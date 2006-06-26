@@ -931,6 +931,9 @@ bool sra_type_can_be_decomposed_p (tree);
 /* In tree-loop-linear.c  */
 extern void linear_transform_loops (struct loops *);
 
+/* In graphite.c  */
+extern void graphite_transform_loops (struct loops *);
+
 /* In tree-ssa-loop-ivopts.c  */
 bool expr_invariant_in_loop_p (struct loop *, tree);
 bool multiplier_allowed_in_address_p (HOST_WIDE_INT);

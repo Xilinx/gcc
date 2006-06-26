@@ -252,6 +252,41 @@ struct tree_opt_pass pass_linear_transform =
   0				        /* letter */	
 };
 
+/* GRAPHITE optimizations.  */
+
+static unsigned int
+graphite_transforms (void)
+{
+  if (!current_loops)
+    return 0;
+
+  graphite_transform_loops (current_loops);
+  return 0;
+}
+
+static bool
+gate_graphite_transforms (void)
+{
+  return flag_graphite != 0;
+}
+
+struct tree_opt_pass pass_graphite_transforms =
+{
+  "graphite",				/* name */
+  gate_graphite_transforms,		/* gate */
+  graphite_transforms,       		/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_GRAPHITE_TRANSFORMS,  		/* tv_id */
+  PROP_cfg | PROP_ssa,			/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_dump_func | TODO_verify_loops,	/* todo_flags_finish */
+  0				        /* letter */	
+};
+
 /* Canonical induction variable creation pass.  */
 
 static unsigned int

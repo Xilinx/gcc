@@ -473,6 +473,10 @@ Common Report Var(flag_gcse_after_reload)
 Perform global common subexpression elimination after register allocation
 has finished
 
+fgraphite
+Common Report Var(flag_graphite)
+Enable GRAPHITE loop transforms
+
 fguess-branch-probability
 Common Report Var(flag_guess_branch_prob)
 Enable guessing of branch probabilities

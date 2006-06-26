@@ -290,9 +290,11 @@ extern void dump_data_dependence_direction (FILE *,
 					    enum data_dependence_direction);
 extern void free_dependence_relation (struct data_dependence_relation *);
 extern void free_dependence_relations (VEC (ddr_p, heap) *);
+extern void free_data_ref (data_reference_p);
 extern void free_data_refs (VEC (data_reference_p, heap) *);
 extern struct data_reference *analyze_array (tree, tree, bool);
 extern void estimate_iters_using_array (tree, tree);
+extern struct data_reference *create_data_ref (tree, tree, bool);
 
 
 /* Return the index of the variable VAR in the LOOP_NEST array.  */

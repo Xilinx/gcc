@@ -1856,7 +1856,7 @@ analyze_offset (tree offset, tree *invariant, tree *constant)
 
 /* Free the memory used by the data reference DR.  */
 
-static void
+void
 free_data_ref (data_reference_p dr)
 {
   if (DR_TYPE(dr) == ARRAY_REF_TYPE)
@@ -1882,7 +1882,7 @@ free_data_ref (data_reference_p dr)
    DR (returned value) - data_reference struct for MEMREF
 */
 
-static struct data_reference *
+struct data_reference *
 create_data_ref (tree memref, tree stmt, bool is_read)
 {
   struct data_reference *dr = NULL;
