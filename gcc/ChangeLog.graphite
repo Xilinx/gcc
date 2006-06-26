@@ -1,0 +1,17 @@
+2006-06-26  Sebastian Pop  <pop@cri.ensmp.fr>
+	    Plesco Alexandru  <shurikx@gmail.com>
+
+	* doc/invoke.texi (-fgraphite): Document.
+	* tree-pass.h (pass_graphite_transforms): Declared.
+	* timevar.def (TV_GRAPHITE_TRANSFORMS): New.
+	* tree-ssa-loop.c (graphite_transforms, gate_graphite_transforms): New.
+	(pass_graphite_transforms): Defined.
+	* tree-data-ref.c (free_data_ref, data_reference): Extern.
+	* tree-data-ref.h (free_data_ref, data_reference): Declared.
+	* graphite.c, graphite.h: New.
+	* common.opt (fgraphite): Declared.
+	* tree-flow.h (graphite_transform_loops): Declared.
+	* Makefile.in (OBJS-common): Add graphite.o.
+	(graphite.o): New rule.
+	* passes.c (pass_graphite_transforms): Scheduled.
+
