@@ -24,6 +24,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #define GCC_DIAGNOSTIC_H
 
 #include "pretty-print.h"
+#include "varray.h"
 #include "options.h"
 
 /* Constants used to discriminate diagnostics.  */
@@ -208,11 +209,15 @@ extern char *diagnostic_build_prefix (diagnostic_info *);
 extern char *file_name_as_prefix (const char *);
 
 /* In tree-pretty-print.c  */
+extern void maybe_init_pretty_print (FILE *file);
 extern int dump_generic_node (pretty_printer *, tree, int, int, bool);
 extern void print_generic_stmt (FILE *, tree, int);
 extern void print_generic_stmt_indented (FILE *, tree, int, int);
 extern void print_generic_expr (FILE *, tree, int);
 extern void print_generic_decl (FILE *, tree, int);
+
+extern varray_type lazy_dump_generic_node (tree, int, bool);
+extern void lazy_print_generic_expr (FILE *file, tree t, int flags);
 
 extern void debug_generic_expr (tree);
 extern void debug_generic_stmt (tree);

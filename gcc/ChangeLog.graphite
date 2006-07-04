@@ -1,3 +1,17 @@
+2006-07-04  Nic Volanschi <nic.volanschi@free.fr>
+
+	* tree-pattern.h: New. Tree pattern matching and checking using 
+	concrete syntax.
+	* tree-check.c: New. Tree/CFG checking pass.
+	* tree-match.c: New. Library for tree pattern matching.
+	* opts.c, common.opt: Add options --ftree-check & --ftree-checks.
+	* toplev.c, flags.h: Add globals for tree-check pass.
+	* Makefile.in: Integrate the files in tree-check pass.
+	* timevar.def, tree-optimize.c, tree-pass.h: Register tree-check pass.
+	* pretty-print.c, pretty-print.h, tree-pretty-print.c, diagnostic.h: 
+	Introduce a "lazy" pretty-print mode.
+	* tree.c, tree.h: Add tree_name.
+
 2006-07-04  Sebastian Pop  <pop@cri.ensmp.fr>
 
 	* doc/invoke.texi (-fgraphite): Correct typo.

@@ -951,6 +951,14 @@ common_handle_option (size_t scode, const char *arg, int value,
       flag_tracer_set = true;
       break;
 
+    case OPT_ftree_check_:
+      tree_check_string = arg;
+      break;
+
+    case OPT_ftree_checks_:
+      tree_check_file = arg;
+      break;
+
     case OPT_funroll_loops:
       flag_unroll_loops_set = true;
       break;

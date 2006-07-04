@@ -41,7 +41,7 @@ static const char *op_symbol (tree);
 static void pretty_print_string (pretty_printer *, const char*);
 static void print_call_name (pretty_printer *, tree);
 static void newline_and_indent (pretty_printer *, int);
-static void maybe_init_pretty_print (FILE *);
+void maybe_init_pretty_print (FILE *);
 static void print_declaration (pretty_printer *, tree, int, int);
 static void print_struct_decl (pretty_printer *, tree, int, int);
 static void do_niy (pretty_printer *, tree);
@@ -71,7 +71,7 @@ do_niy (pretty_printer *buffer, tree node)
   pp_string (buffer, "<<< Unknown tree: ");
   pp_string (buffer, tree_code_name[(int) TREE_CODE (node)]);
 
-  if (EXPR_P (node))
+  if (!pp_lazy_mode (buffer) && EXPR_P (node))
     {
       len = TREE_CODE_LENGTH (TREE_CODE (node));
       for (i = 0; i < len; ++i)
@@ -401,6 +401,7 @@ dump_omp_clauses (pretty_printer *buffer, tree clause, int spc, int flags)
     }
 }
 
+static int dump_generic_node_aux (pretty_printer *, tree, int, int, bool);
 
 /* Dump the node NODE on the pretty_printer BUFFER, SPC spaces of indent.
    FLAGS specifies details to show in the dump (see TDF_* in tree.h).  If
@@ -410,6 +411,21 @@ dump_omp_clauses (pretty_printer *buffer, tree clause, int spc, int flags)
 int
 dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 		   bool is_stmt)
+{ 
+  if (!pp_lazy_mode (buffer))
+    return dump_generic_node_aux (buffer, node, spc, flags, is_stmt); 
+  else 
+    {
+      pp_add_tree (buffer, node);
+      return 0;
+    }
+}
+
+/* Internal worker function for the above. */
+
+static int
+dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
+		       bool is_stmt)
 {
   tree type;
   tree op0, op1;
@@ -2550,7 +2566,7 @@ pretty_print_string (pretty_printer *buffer, const char *str)
     }
 }
 
-static void
+void
 maybe_init_pretty_print (FILE *file)
 {
   if (!initialized)
@@ -2850,4 +2866,33 @@ dump_generic_bb_buff (pretty_printer *buffer, basic_block bb,
 
   if (flags & TDF_BLOCKS)
     dump_bb_end (buffer, bb, indent, flags);
+}
+
+/* Unparse the top level of a tree, returning the list of tree chunks
+   that constitute its printed form. Tree chunks may be: characters,
+   strings, and sub-trees. */
+
+varray_type
+lazy_dump_generic_node (tree node, int flags, bool is_stmt) 
+{
+  pretty_printer *pp = &buffer;
+  varray_type res;
+  VARRAY_GENERIC_PTR_NOGC_INIT (pp->buffer->varray, 10, "tree pp list");
+  dump_generic_node_aux (pp, node, 0, flags, is_stmt);
+  res = pp->buffer->varray;
+  pp->buffer->varray = NULL;
+  return res;
+}
+
+/* Unparse the top level of a tree and dump the resulting list of 
+   tree chunks to a file */
+
+void
+lazy_print_generic_expr (FILE *file, tree t, int flags)
+{
+  varray_type va;
+  maybe_init_pretty_print (file);
+  fprintf (file, "<%s>=", tree_name(t));
+  va = lazy_dump_generic_node (t, flags, false);
+  pp_write_list (va, file);
 }

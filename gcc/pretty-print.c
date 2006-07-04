@@ -27,6 +27,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "intl.h"
 #include "pretty-print.h"
 #include "tree.h"
+#include "diagnostic.h"
 
 #define obstack_chunk_alloc xmalloc
 #define obstack_chunk_free  free
@@ -90,6 +91,8 @@ pp_clear_state (pretty_printer *pp)
 {
   pp->emitted_prefix = false;
   pp_indentation (pp) = 0;
+  if (pp_lazy_mode (pp))
+    pp_free_list (pp->buffer->varray);
 }
 
 /* Flush the formatted text of PRETTY-PRINTER onto the attached stream.  */
@@ -99,6 +102,15 @@ pp_write_text_to_stream (pretty_printer *pp)
   const char *text = pp_formatted_text (pp);
   fputs (text, pp->buffer->stream);
   pp_clear_output_area (pp);
+}
+
+/* Flush the formatted list of PRETTY-PRINTER onto the attached stream.  */
+static void 
+pp_write_list_to_stream (pretty_printer *pp) 
+{
+  FILE *f = pp->buffer->stream;
+  varray_type va = pp->buffer->varray;
+  pp_write_list (va, f);
 }
 
 /* Wrap a text delimited by START and END into PRETTY-PRINTER.  */
@@ -149,7 +161,11 @@ pp_maybe_wrap_text (pretty_printer *pp, const char *start, const char *end)
 static inline void
 pp_append_r (pretty_printer *pp, const char *start, int length)
 {
-  obstack_grow (pp->buffer->obstack, start, length);
+  if (!pp_lazy_mode (pp))
+    obstack_grow (pp->buffer->obstack, start, length);
+  else 
+    pp_add_string (pp, start, length);
+
   pp->buffer->line_length += length;
 }
 
@@ -216,6 +232,7 @@ pp_base_format (pretty_printer *pp, text_info *text)
   pp_wrapping_mode_t old_wrapping_mode;
   bool any_unnumbered = false, any_numbered = false;
   const char **formatters[PP_NL_ARGMAX];
+  varray_type save_varray;
 
   /* Allocate a new chunk structure.  */
   new_chunk_array = XOBNEW (&buffer->chunk_obstack, struct chunk_info);
@@ -368,6 +385,10 @@ pp_base_format (pretty_printer *pp, text_info *text)
      prefixing off.  */
   buffer->obstack = &buffer->chunk_obstack;
   old_wrapping_mode = pp_set_verbatim_wrapping (pp);
+  /* and also disable lazy printing while using the chunk_obstack */
+  save_varray = buffer->varray;
+  buffer->varray = NULL;
+
 
   /* Second phase.  Replace each formatter with the formatted text it
      corresponds to.  */
@@ -548,6 +569,8 @@ pp_base_format (pretty_printer *pp, text_info *text)
   buffer->line_length = 0;
   pp_wrapping_mode (pp) = old_wrapping_mode;
   pp_clear_state (pp);
+  /* and also revert lazy mode to its previous state */
+  buffer->varray = save_varray;
 }
 
 /* Format of a message pointed to by TEXT.  */
@@ -593,10 +616,15 @@ pp_base_format_verbatim (pretty_printer *pp, text_info *text)
 void
 pp_base_flush (pretty_printer *pp)
 {
-  pp_write_text_to_stream (pp);
+  if (!pp_lazy_mode (pp)) 
+    {
+      pp_write_text_to_stream (pp);
+      fputc ('\n', pp->buffer->stream);
+      fflush (pp->buffer->stream);
+    } 
+  else
+    pp_write_list_to_stream (pp);
   pp_clear_state (pp);
-  fputc ('\n', pp->buffer->stream);
-  fflush (pp->buffer->stream);
   pp_needs_newline (pp) = false;
 }
 
@@ -682,6 +710,7 @@ pp_construct (pretty_printer *pp, const char *prefix, int maximum_length)
   obstack_init (&pp->buffer->formatted_obstack);
   pp->buffer->obstack = &pp->buffer->formatted_obstack;
   pp->buffer->stream = stderr;
+  pp->buffer->varray = NULL;
   pp_line_cutoff (pp) = maximum_length;
   pp_prefixing_rule (pp) = DIAGNOSTICS_SHOW_PREFIX_ONCE;
   pp_set_prefix (pp, prefix);
@@ -711,8 +740,13 @@ pp_base_append_text (pretty_printer *pp, const char *start, const char *end)
 const char *
 pp_base_formatted_text (pretty_printer *pp)
 {
-  obstack_1grow (pp->buffer->obstack, '\0');
-  return pp_formatted_text_data (pp);
+  if (!pp_lazy_mode (pp)) 
+    {
+      obstack_1grow (pp->buffer->obstack, '\0');
+      return pp_formatted_text_data (pp);
+    }
+  else 
+    return "";
 }
 
 /*  Return a pointer to the last character emitted in PRETTY-PRINTER's
@@ -723,8 +757,11 @@ pp_base_last_position_in_text (const pretty_printer *pp)
   const char *p = NULL;
   struct obstack *text = pp->buffer->obstack;
 
-  if (obstack_base (text) != obstack_next_free (text))
-    p = ((const char *) obstack_next_free (text)) - 1;
+  if (!pp_lazy_mode (pp)) 
+    { /* normal print mode */
+      if (obstack_base (text) != obstack_next_free (text))
+	p = ((const char *) obstack_next_free (text)) - 1;
+    }
   return p;
 }
 
@@ -777,7 +814,10 @@ pp_verbatim (pretty_printer *pp, const char *msg, ...)
 void
 pp_base_newline (pretty_printer *pp)
 {
-  obstack_1grow (pp->buffer->obstack, '\n');
+  if (!pp_lazy_mode (pp)) /* normal print mode */
+    obstack_1grow (pp->buffer->obstack, '\n');
+  else 
+    pp_add_char (pp, '\n');
   pp->buffer->line_length = 0;
 }
 
@@ -792,7 +832,10 @@ pp_base_character (pretty_printer *pp, int c)
       if (ISSPACE (c))
         return;
     }
-  obstack_1grow (pp->buffer->obstack, c);
+  if (!pp_lazy_mode (pp)) /* normal print mode */
+    obstack_1grow (pp->buffer->obstack, c);
+  else 
+    pp_add_char (pp, c);
   ++pp->buffer->line_length;
 }
 
@@ -804,7 +847,104 @@ pp_base_string (pretty_printer *pp, const char *str)
   pp_maybe_wrap_text (pp, str, str + (str ? strlen (str) : 0));
 }
 
-/* Maybe print out a whitespace if needed.  */
+/* Functions dealing with the lazy mode of pretty-print.  */
+
+bool 
+pp_lazy_mode (const pretty_printer *pp) 
+{
+  return (pp->buffer->varray != NULL);
+}
+
+/* Tree chunk constructor.  */
+
+tree_chunk *
+new_tree_chunk (void)
+{
+  tree_chunk *chunk = xmalloc (sizeof (tree_chunk));
+  chunk->t = NULL;
+  chunk->s = NULL;
+  chunk->c = '\0';
+  return chunk;
+}
+
+/* Add a tree chunk to the lazy list.  */
+
+void 
+pp_add_tree (pretty_printer *pp, tree t) 
+{
+  tree_chunk *chunk = new_tree_chunk ();
+  chunk->t = t;
+  VARRAY_PUSH_GENERIC_PTR_NOGC (pp->buffer->varray, chunk);
+}
+
+/* Add a string chunk to the lazy list.  */
+
+void 
+pp_add_string (pretty_printer *pp, const char *start, int len) 
+{
+  tree_chunk *chunk = new_tree_chunk ();
+  char *str = xmalloc (len + 1);
+  strncpy (str, start, len);
+  str[len] = '\0';
+  chunk->s = str;
+  VARRAY_PUSH_GENERIC_PTR_NOGC (pp->buffer->varray, chunk);
+}
+
+/* Add a character chunk to the lazy list.  */
+
+void 
+pp_add_char (pretty_printer *pp, char c) 
+{
+  tree_chunk *chunk = new_tree_chunk ();
+  chunk->c = c;
+  VARRAY_PUSH_GENERIC_PTR_NOGC (pp->buffer->varray, chunk);
+}
+
+/* Write the lazy list to a file.  */
+
+void 
+pp_write_list (varray_type va, FILE *f) 
+{
+  unsigned int i;
+  tree_chunk *chunk;
+
+  fprintf (f, "[ ");
+  for(i = 0; i < VARRAY_ACTIVE_SIZE (va); i++) 
+    {
+      chunk = VARRAY_GENERIC_PTR_NOGC (va, i);
+      if (chunk->t) 
+	fprintf (f, "<%s>", tree_name (chunk->t));
+      else if (chunk->s) 
+	fprintf (f, "\"%s\"", chunk->s);
+      else
+	/* One-character chunk.  */
+	fprintf (f, "'%c'", chunk->c);
+      fprintf (f, " ");
+    } /* for */
+  fprintf (f, "]");
+}
+
+/* Lazy list destructor.  */
+
+void 
+pp_free_list (varray_type va) 
+{
+  unsigned int i;
+  tree_chunk *chunk;
+  for(i = 0; i < VARRAY_ACTIVE_SIZE (va); i++) 
+    {
+      chunk = VARRAY_GENERIC_PTR_NOGC (va, i);
+      if (chunk->t) 
+	/* don't free chunk->t, as it hasn't been allocated by us! */
+	;
+      else if (chunk->s)
+	free (chunk->s);
+      free (chunk);
+    }
+  VARRAY_FREE (va);
+}
+
+/* Print out a whitespace if needed.  */
 
 void
 pp_base_maybe_space (pretty_printer *pp)

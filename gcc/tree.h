@@ -4572,4 +4572,6 @@ extern unsigned HOST_WIDE_INT compute_builtin_object_size (tree, int);
 /* In expr.c.  */
 extern unsigned HOST_WIDE_INT highest_pow2_factor (tree);
 
+extern const char *tree_name (tree t);
+
 #endif  /* GCC_TREE_H  */

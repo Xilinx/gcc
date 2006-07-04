@@ -339,6 +339,11 @@ int flag_renumber_insns = 1;
    to optimize, debug_info_level and debug_hooks in process_options ().  */
 int flag_var_tracking = AUTODETECT_VALUE;
 
+/* File containing check specifications */
+const char *tree_check_file = NULL;
+/* String containing inline check specifications */
+const char *tree_check_string = NULL;
+
 /* True if the user has tagged the function with the 'section'
    attribute.  */
 

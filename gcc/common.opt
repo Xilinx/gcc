@@ -925,6 +925,14 @@ ftree-ch
 Common Report Var(flag_tree_ch)
 Enable loop header copying on trees
 
+ftree-check=
+Common Joined RejectNegative
+-ftree-check=pattern: Warn for statements matching the pattern
+
+ftree-checks=
+Common Joined RejectNegative
+-ftree-checks=file: Take checking rules from file
+
 ftree-combine-temps
 Common Report Var(flag_tree_combine_temps)
 Coalesce memory temporaries in the SSA->normal pass

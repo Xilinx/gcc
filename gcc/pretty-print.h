@@ -24,6 +24,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 
 #include "obstack.h"
 #include "input.h"
+#include "varray.h"
 
 /* Maximum number of format string arguments.  */
 #define PP_NL_ARGMAX   30
@@ -86,6 +87,17 @@ typedef struct
 
   /* Stack of chunk arrays.  These come from the chunk_obstack.  */
   struct chunk_info *cur_chunk_array;
+
+  /* The varray where the text is built up.  If null, the textual
+     representation of a tree is built as a plain string in the
+     obstack above.
+
+     If varray is not null, we're in "lazy mode", i.e instead of
+     recursively building the textual representation of a tree as a
+     plain string, we build a list of token strings and of "lazy"
+     references to subtrees.
+  */  
+  varray_type varray;
 
   /* Where to output formatted text.  */
   FILE *stream;
@@ -322,6 +334,25 @@ extern void pp_base_character (pretty_printer *, int);
 extern void pp_base_string (pretty_printer *, const char *);
 extern void pp_write_text_to_stream (pretty_printer *pp);
 extern void pp_base_maybe_space (pretty_printer *);
+
+/* Structure containing a piece of a tree's textual representation */
+typedef struct { 
+  /* Reference to a substree.  */
+  tree t;
+  /* A token.  */
+  char *s;
+  /* A token of only one char is not stored in a malloc-ed string.  */
+  char c;
+} tree_chunk;
+
+extern tree_chunk *new_tree_chunk (void);
+
+extern bool pp_lazy_mode (const pretty_printer *pp);
+extern void pp_add_tree (pretty_printer *pp, tree t);
+extern void pp_add_string (pretty_printer *pp, const char *start, int len);
+extern void pp_add_char (pretty_printer *pp, char c);
+extern void pp_free_list (varray_type va);
+extern void pp_write_list (varray_type va, FILE *f);
 
 /* Switch into verbatim mode and return the old mode.  */
 static inline pp_wrapping_mode_t

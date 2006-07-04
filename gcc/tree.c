@@ -7611,4 +7611,13 @@ empty_body_p (tree stmt)
   return true;
 }
 
+/* Return the type name of a tree (e.g. "var_decl") */
+
+const char *
+tree_name (tree t) 
+{
+  return tree_code_name[(int) TREE_CODE (t)];
+}
+
 #include "gt-tree.h"
+
