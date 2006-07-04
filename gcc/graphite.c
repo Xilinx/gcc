@@ -41,6 +41,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
 #include "tree-pass.h"
+#include "domwalk.h"
 #include "graphite.h"
 
 
@@ -49,24 +50,16 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 static void
 print_scop (FILE *file, scop_p scop)
 {
-  basic_block bb;
   fprintf (file, "\nSCoP (\n");
-
-  FOR_BB_BETWEEN (bb, scop->entry, scop->exit, next_bb)
-    {
-      fprintf (file, "bb_%d \n", bb->index);
-      fprintf (file, "{\n");
-      tree_dump_bb (bb, file, 2);
-      fprintf (file, "}\n");
-    }
-
+  fprintf (file, "  entry = bb_%d\n", scop->entry->index);
+  fprintf (file, "  exit = bb_%d\n", scop->exit->index);
   fprintf (file, ")\n");
 }
 
 
 /* Debug SCOP.  */
 
-static void
+void
 debug_scop (scop_p scop)
 {
   print_scop (stderr, scop);
@@ -76,13 +69,14 @@ debug_scop (scop_p scop)
 /* Return true when EXPR is an affine function in LOOP.  */
 
 static bool
-affine_expr(struct loop *loop, tree expr)
+affine_expr (struct loop *loop, tree expr)
 {
   tree scev = analyze_scalar_evolution (loop, expr);
 
   scev = instantiate_parameters (loop, scev);
 
-  return evolution_function_is_affine_multivariate_p (scev);
+  return (evolution_function_is_affine_multivariate_p (scev)
+	  || evolution_function_is_constant_p (scev));
 }
 
 
@@ -120,8 +114,8 @@ stmt_simple_for_scop_p (tree stmt)
 	  case GT_EXPR:
 	  case LE_EXPR:
 	  case GE_EXPR:
-	    return (affine_expr(loop, TREE_OPERAND (opnd0, 0)) 
-		    && affine_expr(loop, TREE_OPERAND (opnd0, 1)));
+	    return (affine_expr (loop, TREE_OPERAND (opnd0, 0)) 
+		    && affine_expr (loop, TREE_OPERAND (opnd0, 1)));
 	  default:
 	    return false;
 	  }
@@ -131,20 +125,53 @@ stmt_simple_for_scop_p (tree stmt)
       {
 	tree opnd0 = TREE_OPERAND (stmt, 0);
 	tree opnd1 = TREE_OPERAND (stmt, 1);
-		
-	if ((TREE_CODE (opnd0) == ARRAY_REF 
+
+	if (TREE_CODE (opnd0) == ARRAY_REF 
 	     || TREE_CODE (opnd0) == INDIRECT_REF
 	     || TREE_CODE (opnd0) == COMPONENT_REF)
-	    && !create_data_ref (opnd0, stmt, false))
-	  return false;
+	  {
+	    if (!create_data_ref (opnd0, stmt, false))
+	      return false;
 
-	if ((TREE_CODE (opnd1) == ARRAY_REF 
+	    if (TREE_CODE (opnd1) == ARRAY_REF 
+		|| TREE_CODE (opnd1) == INDIRECT_REF
+		|| TREE_CODE (opnd1) == COMPONENT_REF)
+	      {
+		if (!create_data_ref (opnd1, stmt, true))
+		  return false;
+
+		return true;
+	      }
+	  }
+
+	if (TREE_CODE (opnd1) == ARRAY_REF 
 	     || TREE_CODE (opnd1) == INDIRECT_REF
 	     || TREE_CODE (opnd1) == COMPONENT_REF)
-	    && !create_data_ref (opnd1, stmt, true))
-	  return false;
+	  {
+	    if (!create_data_ref (opnd1, stmt, true))
+	      return false;
 
-	return (affine_expr(loop, opnd0) && affine_expr(loop, opnd1));
+	    return true;
+	  }
+
+	/*
+	  We cannot return (affine_expr (loop, opnd0) &&
+	   affine_expr (loop, opnd1)) because D.1882_16 is not affine
+	   in the following:
+
+	   D.1881_15 = a[j_13][pretmp.22_20];
+	   D.1882_16 = D.1881_15 + 2;
+	   a[j_22][i_12] = D.1882_16;
+
+	   but this is valid code in a scop.
+
+	   FIXME: I'm not yet 100% sure that returning true is safe:
+	   there might be exponential scevs.  On the other hand, if
+	   these exponential scevs do not reference arrays, then
+	   access functions, domains and schedules remain affine.  So
+	   it is very well possible that we can handle this.
+	*/
+	return true;
       }
 
     case CALL_EXPR:
@@ -158,10 +185,12 @@ stmt_simple_for_scop_p (tree stmt)
 	      && !create_data_ref (TREE_VALUE (args), stmt, true))
 	    return false;
 
-	break;
+	return true;
       }
 
+    case RETURN_EXPR:
     default:
+      /* These nodes cut a new scope.  */
       return false;
     }
 
@@ -183,56 +212,115 @@ basic_block_simple_for_scop_p (basic_block bb)
   return true;
 }
 
-/* Find static control parts (scops) in LOOPS, and save these in the
-   SCOPS vector.  */
+static scop_p down_open_scop;
+VEC (scop_p, heap) *current_scops;
+
+/* Find the first basic block that dominates BB and that exits the
+   current loop.  */
+
+static basic_block
+get_loop_start (basic_block bb)
+{
+  basic_block res = bb;
+  int depth;
+
+  do {
+    res = get_immediate_dominator (CDI_DOMINATORS, res);
+    depth = res->loop_father->depth;
+    } while (depth != 0 && depth >= bb->loop_father->depth);
+
+  return res;
+}
+
+
+/* Build the SCoP ending with BB.  */
 
 static void
-build_scops (VEC (scop_p, heap) **scops)
+end_scop (basic_block bb)
 {
-  unsigned int j;
-  basic_block bb;
-  bitmap_iterator bi;
-  bitmap not_affine = BITMAP_ALLOC (NULL);
-  scop_p scoptp;
+  scop_p new_scop;
+  basic_block loop_start = get_loop_start (bb);
 
-  /* Mark basic blocks that contain difficult constructs.  These
-     blocks are boundaries of scops.  */
-  FOR_EACH_BB (bb)
+  if (dominated_by_p (CDI_DOMINATORS, down_open_scop->entry, loop_start))
     {
-      if (!basic_block_simple_for_scop_p (bb))
-	{
-	  bitmap_set_bit (not_affine, bb->index);
-	  fprintf (stderr, "index = %d|", bb->index);
-	}
+      down_open_scop->exit = bb;
+      VEC_safe_push (scop_p, heap, current_scops, down_open_scop);
+      return;
     }
 
-  /* Loops containing difficult constructs are also split into several
-     scops: mark loop headers and loop latches as points that split
-     scops.  */
-  EXECUTE_IF_SET_IN_BITMAP (not_affine, 0, j, bi)
+  new_scop = XNEW (struct scop);
+  new_scop->entry = loop_start;
+  new_scop->exit = bb;
+  end_scop (loop_start);
+  VEC_safe_push (scop_p, heap, current_scops, new_scop);
+}
+
+/* Mark difficult constructs as boundaries of SCoPs.  Callback for
+   walk_dominator_tree.  */
+
+static void
+test_for_scop_bound (struct dom_walk_data *dw_data ATTRIBUTE_UNUSED,
+		     basic_block bb)
+{
+  if (bb == ENTRY_BLOCK_PTR)
+    return;
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "down bb_%d\n", bb->index);
+
+  /* Exiting the loop containing the open scop ends the scop.  */
+  if (down_open_scop->entry->loop_father->depth > bb->loop_father->depth)
     {
-      basic_block btemp = BASIC_BLOCK (j);
-      struct loop *loop_temp = btemp->loop_father;
-      while (loop_temp)
-	{
-	  bitmap_set_bit (not_affine, loop_temp->header->index);
-	  bitmap_set_bit (not_affine, loop_temp->latch->index);
-	  loop_temp = loop_temp->outer;
-	}
+      down_open_scop->exit = bb;
+      VEC_safe_push (scop_p, heap, current_scops, down_open_scop);
+
+      /* Then we begin a new scop at this block.  */
+      down_open_scop = XNEW (struct scop);
+      down_open_scop->entry = bb;
+
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	fprintf (dump_file, "dom bound bb_%d\n\n", bb->index);
+
+      return;
     }
 
-  /* Split the CFG into scops.  */
-  scoptp = XNEW (struct scop);
-  scoptp->entry = BASIC_BLOCK (0);
-
-  EXECUTE_IF_SET_IN_BITMAP (not_affine, 1, j, bi)
+  if (!basic_block_simple_for_scop_p (bb))
     {
-      scoptp->exit =  BASIC_BLOCK (j-1);
-      VEC_safe_push (scop_p, heap, *scops, scoptp);
+      /* A difficult construct ends the scop.  */
+      end_scop (bb);
 
-      scoptp = XNEW (struct scop);
-      scoptp->entry =  BASIC_BLOCK (j);
+      /* Then we begin a new scop at this block.  */
+      down_open_scop = XNEW (struct scop);
+      down_open_scop->entry = bb;
+
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	fprintf (dump_file, "difficult bound bb_%d\n\n", bb->index);
+
+      return;
     }
+}
+
+/* Find static control parts in LOOPS, and save these in the
+   CURRENT_SCOPS vector.  */
+
+static void
+build_scops (void)
+{
+  struct dom_walk_data walk_data;
+
+  down_open_scop = XNEW (struct scop);
+  down_open_scop->entry = ENTRY_BLOCK_PTR;
+
+  memset (&walk_data, 0, sizeof (struct dom_walk_data));
+  walk_data.before_dom_children_before_stmts = test_for_scop_bound;
+
+  init_walk_dominator_tree (&walk_data);
+  walk_dominator_tree (&walk_data, ENTRY_BLOCK_PTR);
+  fini_walk_dominator_tree (&walk_data);
+
+  /* End the last open scop.  */
+  down_open_scop->exit = EXIT_BLOCK_PTR;
+  VEC_safe_push (scop_p, heap, current_scops, down_open_scop);
 }
 
 /* Build the domains for each loop in the SCOP.  */
@@ -278,21 +366,29 @@ graphite_transform_loops (struct loops *loops ATTRIBUTE_UNUSED)
 {
   unsigned i;
   scop_p scop;
-  VEC (scop_p, heap) *scops = VEC_alloc (scop_p, heap, 3);
+  current_scops = VEC_alloc (scop_p, heap, 3);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "Graphite loop transformations \n");
 
-  build_scops (&scops);
+  build_scops ();
 
-  for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    print_loop_ir (dump_file, 2);
+
+  for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
     {
       build_domains (scop);
       build_scattering_functions (scop);
       
-      debug_scop (scop);
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	print_scop (dump_file, scop);
 
       graphite_transform (scop);
       gloog (scop);
     }
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "\nnumber of SCoPs: %d\n",
+	     VEC_length (scop_p, current_scops));
 }

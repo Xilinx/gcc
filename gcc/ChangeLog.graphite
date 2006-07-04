@@ -1,3 +1,28 @@
+2006-07-04  Sebastian Pop  <pop@cri.ensmp.fr>
+
+	* doc/invoke.texi (-fgraphite): Correct typo.
+	* tree-scalar-evolution.c (number_of_iterations_for_all_loops): Update use
+	of print_loop_ir.
+	* testsuite/gcc.dg/graphite/scop-1.c: New.
+	* testsuite/gcc.dg/graphite/scop-2.c: New.
+	* testsuite/gcc.dg/graphite/graphite.exp: New.
+	* graphite.c: Include domwalk.h.
+	(print_scop): Print only the entry and exit blocks.
+	(debug_scop): No longer static.
+	(affine_expr): Fix formating.  Return also true when the expression is
+	constant.
+	(stmt_simple_for_scop_p): Fix formating.
+	(build_scops): Use domwalk.
+	(get_loop_start, end_scop, test_for_scop_bound): New.
+	(graphite_transform_loops): Avoid printing on stderr.
+	* graphite.h (debug_scop): Declared.
+	* tree-flow.h (debug_loop_ir, print_loop_ir): Update declarations.
+	* Makefile.in (graphite.o): Depend on domwalk.h.
+	* tree-cfg.c (print_loop, print_pred_bbs, print_succ_bbs): Remove 
+	declarations for static functions.
+	(print_loop, print_loop_ir, debug_loop_ir): Use an extra parameter for
+	controlling output verbosity.
+
 2006-06-26  Sebastian Pop  <pop@cri.ensmp.fr>
 	    Plesco Alexandru  <shurikx@gmail.com>
 
