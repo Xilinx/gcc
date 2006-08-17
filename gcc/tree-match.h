@@ -28,17 +28,23 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 typedef struct tree_statement_list_node *cfg_node;
 
 /* Accessor for a CFG node */
-static inline tree cfg_node_stmt (cfg_node node) {
+static inline tree
+cfg_node_stmt (cfg_node node)
+{
   return node->stmt;
 }
 
 /* Map a statement iterator to a CFG node */
-static inline cfg_node bsi_cfg_node (block_stmt_iterator bsi) {
+static inline cfg_node
+bsi_cfg_node (block_stmt_iterator bsi)
+{
   return bsi.tsi.ptr;
 }
 
 /* Get 1st CFG node in a basic block */
-static inline cfg_node bb_1st_cfg_node (basic_block bb) {
+static inline cfg_node
+bb_1st_cfg_node (basic_block bb)
+{
   return STATEMENT_LIST_HEAD (bb->stmt_list);
 }
 
@@ -51,6 +57,7 @@ typedef struct patt_info_s {
   va_list *args_ptr; /* only used for anomymous holes */
   struct patt_info_s *next;
 } patt_info;
+
 typedef patt_info *pattern;
 
 /* Atomic pattern constructor */
@@ -88,12 +95,14 @@ pat_print (pattern p)
 {
   if (!p)
     return;
+
   if (!p->next) 
     fprintf (stderr, "\"%s\"", p->format_spec);
-  else {
-    fprintf (stderr, "\"%s\" or ", p->format_spec);
-    pat_print (p->next);
-  } 
+  else
+    {
+      fprintf (stderr, "\"%s\" or ", p->format_spec);
+      pat_print (p->next);
+    }
 }
 
 /* A "hole" is a pattern variable (aka meta-variable). It contains a

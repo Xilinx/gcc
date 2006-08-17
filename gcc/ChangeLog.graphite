@@ -1,3 +1,14 @@
+2006-08-17  Sebastian Pop  <pop@cri.ensmp.fr>
+
+	* tree-match.c: Reformat following the GNU style.
+	* tree-match.h: Reformat following the GNU style.
+	* tree-pattern.h: Removed empty file.
+	* Makefile.in: Remove references to tree-pattern.h.
+	* tree-check.c: Reformat following the GNU style.
+	(execute_tree_check): Move gate condition code to...
+	(gate_tree_check): ...here.  New function.
+	(pass_check): Use the gate function.
+
 2006-07-04  Nic Volanschi <nic.volanschi@free.fr>
 
 	* tree-pattern.h: New. Tree pattern matching and checking using 
