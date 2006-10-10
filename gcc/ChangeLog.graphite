@@ -1,3 +1,9 @@
+2006-10-10  Sebastian Pop  <pop@cri.ensmp.fr>
+
+	* graphite.c (print_scops, debug_scops): New.
+	(graphite_transform): Renamed graphite_find_transform.
+	* graphite.h (debug_scops): Declared.
+
 2006-08-17  Sebastian Pop  <pop@cri.ensmp.fr>
 
 	* tree-match.c: Reformat following the GNU style.

@@ -39,5 +39,6 @@ DEF_VEC_P(scop_p);
 DEF_VEC_ALLOC_P (scop_p, heap);
 
 extern void debug_scop (scop_p);
+extern void debug_scops (void);
 
 #define SCOP_STMTS(S) (S)->stmts

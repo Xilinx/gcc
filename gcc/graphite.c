@@ -45,6 +45,8 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "graphite.h"
 
 
+VEC (scop_p, heap) *current_scops;
+
 /* Print SCOP to FILE.  */
 
 static void
@@ -56,6 +58,17 @@ print_scop (FILE *file, scop_p scop)
   fprintf (file, ")\n");
 }
 
+/* Print all the SCOPs to FILE.  */
+
+static void
+print_scops (FILE *file)
+{
+  unsigned i;
+  scop_p scop;
+
+  for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
+    print_scop (file, scop);
+}
 
 /* Debug SCOP.  */
 
@@ -65,6 +78,13 @@ debug_scop (scop_p scop)
   print_scop (stderr, scop);
 }
 
+/* Debug all SCOPs from CURRENT_SCOPS.  */
+
+void 
+debug_scops ()
+{
+  print_scops (stderr);
+}
 
 /* Return true when EXPR is an affine function in LOOP.  */
 
@@ -213,7 +233,6 @@ basic_block_simple_for_scop_p (basic_block bb)
 }
 
 static scop_p down_open_scop;
-VEC (scop_p, heap) *current_scops;
 
 /* Find the first basic block that dominates BB and that exits the
    current loop.  */
@@ -341,10 +360,10 @@ build_scattering_functions (scop_p scop ATTRIBUTE_UNUSED)
 }
 
 
-/* Transform the SCOP.  */
+/* Find the right transform for the SCOP.  */
 
 static void
-graphite_transform (scop_p scop ATTRIBUTE_UNUSED)
+graphite_find_transform (scop_p scop ATTRIBUTE_UNUSED)
 {
   
 }
@@ -374,21 +393,18 @@ graphite_transform_loops (struct loops *loops ATTRIBUTE_UNUSED)
   build_scops ();
 
   if (dump_file && (dump_flags & TDF_DETAILS))
-    print_loop_ir (dump_file, 2);
+    {
+      print_loop_ir (dump_file, 2);
+      print_scops (dump_file);
+      fprintf (dump_file, "\nnumber of SCoPs: %d\n",
+	       VEC_length (scop_p, current_scops));
+    }
 
   for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
     {
       build_domains (scop);
       build_scattering_functions (scop);
-      
-      if (dump_file && (dump_flags & TDF_DETAILS))
-	print_scop (dump_file, scop);
-
-      graphite_transform (scop);
+      graphite_find_transform (scop);
       gloog (scop);
     }
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    fprintf (dump_file, "\nnumber of SCoPs: %d\n",
-	     VEC_length (scop_p, current_scops));
 }
