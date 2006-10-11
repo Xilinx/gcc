@@ -1,3 +1,8 @@
+2006-10-11  Sebastian Pop  <pop@cri.ensmp.fr>
+
+	* graphite.c (debug_scops): Adjust definition for avoiding a bootstrap
+	break due to a warning.
+
 2006-10-10  Sebastian Pop  <pop@cri.ensmp.fr>
 
 	* graphite.c (print_scops, debug_scops): New.

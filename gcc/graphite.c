@@ -81,7 +81,7 @@ debug_scop (scop_p scop)
 /* Debug all SCOPs from CURRENT_SCOPS.  */
 
 void 
-debug_scops ()
+debug_scops (void)
 {
   print_scops (stderr);
 }
