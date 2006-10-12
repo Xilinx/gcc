@@ -1,3 +1,2093 @@
+2006-10-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/22_locale/num_put/put/char/11.cc: New.
+	* testsuite/22_locale/num_put/put/wchar_t/11.cc: Likewise.
+
+2006-10-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/lib/libstdc++.exp (v3-build_support): Link
+	libtestc++.a, not a bunch of object files.
+
+2006-10-09  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/29118
+	* src/locale_init.cc (__get_locale_mutex): New. 
+	(locale::locale): Use it.
+	(locale::global): Use it.	
+
+2006-10-09  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/29095
+	* libsupc++/cxxabi.h (__cxa_cdtor_type): Explicit "C" linkage.
+	* config/cpu/arm/cxxabi_tweaks.h: Same.
+	* config/cpu/generic/cxxabi_tweaks.h: Same.
+	* testsuite/abi: Add.
+	* testsuite/abi/header_cxxabi.cc: New.
+	* testsuite/demangle: Move...
+	* testsuite/abi/demangle: ...here.
+	* testsuite/libstdc++-dg/conformance.exp: Adjust testsuite file
+	calculation.
+	* scripts/create_testsuite_files: Same.
+	* testsuite/lib/libstdc++.exp (v3_target_compile_as_c): New.
+	(libstdc++-dg-test): Use it.
+	
+2006-10-09  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28277 (partial: __add_grouping)
+	* include/bits/locale_facets.tcc (__add_grouping<>(_CharT*, _CharT,
+	const char*, size_t, const _CharT*, const _CharT*)): Rewrite in
+	non-recursive form.
+
+2006-10-09  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28277 (partial: money_put bits)
+	* include/bits/locale_facets.tcc (money_put<>::_M_insert(iter_type,
+	ios_base&, char_type, const string_type&)): Avoid __builtin_alloca
+	with no limit, do the work in place.
+
+	* include/bits/locale_facets.tcc (money_put<>::do_put(iter_type,
+	bool, ios_base&, char_type, long double)): Avoid unnecessary
+	__builtin_alloca, do the work in place.
+
+2006-10-09  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/globals_io.cc (_GLIBCXX_once): Remove, unused.
+	(_GLIBCXX_mutex): Same.
+	(_GLIBCXX_mutex_addres): Same.
+	(_GLIBCXX_mutex_init): Same.
+	(_GLIBCXX_mutex_address_init): Same.
+
+2006-10-07  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28277 (partial: money_get bits)
+	* include/bits/locale_facets.tcc (money_get<>::do_get(iter_type,
+	iter_type, bool, ios_base&, ios_base::iostate&, string_type&)):
+	Avoid __builtin_alloca with no limit, do the work in place.
+
+2006-10-07  Ion Gaztanaga  <igaztanaga@gmail.com>
+	    Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_tree.h (_Rb_tree<>::erase(const _Key&)): Don't
+	call std::distance unnecessarily.
+
+2006-10-06  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/29368
+	* include/bits/basic_string.h: Adjust rfind documentation.
+	* include/ext/vstring.h: Likewise.
+
+2006-10-06  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/29354
+	* include/bits/sstream.tcc (basic_stringbuf<>::seekpos(pos_type,
+	ios_base::openmode)): Allow for seek to pos_type(off_type(0))
+	when the stream is empty.
+	* testsuite/27_io/basic_stringbuf/seekpos/char/29354.cc: New.
+	* testsuite/27_io/basic_stringbuf/seekpos/wchar_t/29354.cc: New.
+
+2006-10-04  Benjamin Kosnik  <bkoz@redhat.com>
+	    Mike Stump  <mrs@apple.com>
+	
+	* testsuite/27_io/ios_base/storage/2.cc: Fail on Darwin 8.[0-4].* only.
+	* testsuite/23_containers/vector/resize/1.cc: Same.
+
+2006-10-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/util/performance/priority_queue/mem_usage/
+	pop_test.hpp: Correct typo.
+	* testsuite/util/performance/assoc/mem_usage/
+	multimap_insert_test.hpp: Same.
+	* testsuite/util/performance/assoc/mem_usage/erase_test.hpp: Same.
+
+2006-10-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/util/testsuite_allocator.h (allocation_tracker): To
+	tracker_allocator_counter.
+	(allocation_tracker::allocationTotal): To get_allocation_count.
+	(allocation_tracker::deallocationTotal): To get_deallocation_count.
+	(allocation_tracker::constructCount): To get_construct_count.
+	(allocation_tracker::destructCount): To get_destruct_count.	
+	(allocation_tracker::resetCounts): To reset.
+	(tracker_alloc): To tracker_allocator.
+	* testsuite/util/performance/mem: Remove.
+	* testsuite/util/performance/mem/mem_track_allocator_base.hpp: Remove.
+	* testsuite/util/performance/mem/mem_track_allocator.hpp: Remove.
+	* testsuite/27_io/basic_stringbuf/4.cc: Adjust for new names
+	or includes.
+	* testsuite/ext/hash_set/check_construct_destroy.cc: Same.
+	* testsuite/ext/slist/check_construct_destroy.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	hash_random_int_erase_mem_usage.cc: Same.
+	* testsuite/performance/ext/pb_ds/multimap_text_insert_mem_usage.hpp
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_pop_mem_usage.cc: Same.
+	* testsuite/23_containers/vector/capacity/2.cc: Same.
+	* testsuite/23_containers/vector/cons/4.cc: Same.
+	* testsuite/23_containers/vector/check_construct_destroy.cc: Same.
+	* testsuite/23_containers/deque/cons/2.cc: Same.
+	* testsuite/23_containers/deque/check_construct_destroy.cc: Same.
+	* testsuite/23_containers/list/check_construct_destroy.cc: Same.
+	* testsuite/23_containers/set/check_construct_destroy.cc: Same.
+	* testsuite/util/testsuite_allocator.h
+	* testsuite/util/performance/priority_queue/mem_usage/pop_test.hpp
+	* testsuite/util/performance/assoc/mem_usage/multimap_insert_test.hpp
+	* testsuite/util/performance/assoc/mem_usage/erase_test.hpp
+	* testsuite/util/testsuite_allocator.cc: Same.
+	
+2006-10-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/util/native_type/priority_queue/native_pq_tag.hpp: Remove.
+	* testsuite/util/statistic/sample_var.hpp: Rename to...
+	* testsuite/util/statistic/sample_variance.hpp: ... this.
+	* testsuite/util/statistic/res_recorder.hpp: Rename to...
+	* testsuite/util/statistic/result_recorder.hpp: ... this.
+	* testsuite/util/statistic/sample_mean.hpp: Format.
+	* testsuite/util/statistic/sample_mean_confidence_checker.hpp: Same.
+	* testsuite/util/regression/trait/priority_queue/trait.hpp: Same.
+	* testsuite/util/regression/trait/erase_if_fn.hpp: Same.
+	* testsuite/util/regression/trait/assoc/trait.hpp: Same.
+	* testsuite/util/native_type/priority_queue/
+	native_priority_queue.hpp: Same.
+	* testsuite/util/native_type/assoc/native_tree_tag.hpp: Same.
+	* testsuite/util/native_type/assoc/native_hash_tag.hpp: Same.
+	* testsuite/util/native_type/assoc/native_hash_map.hpp: Same.
+	* testsuite/util/performance/priority_queue/timing/join_test.hpp: Same.
+	* testsuite/util/performance/priority_queue/timing/
+	modify_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/
+	subscript_insert_test.hpp: Same.
+	* testsuite/util/performance/time/timing_test_base.hpp: Same.
+
+2006-10-02  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/rc_string_base.h (_M_compare<wchar_t>):
+	Protect with _GLIBCXX_USE_WCHAR_T.
+	* include/ext/sso_string_base.h (_M_compare<wchar_t>):
+	Likewise.
+	(__sso_string_base<>::_M_destroy): Inline.
+
+2006-10-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pb_ds/detail/basic_types.hpp (comp_hash_): Remove,
+	format.	
+	* include/ext/pb_ds/detail/types_traits.hpp
+	(types_traits::comp_hash): Use pair typedef.	
+	* include/ext/pb_ds/detail/hash_fn/ranged_probe_fn.hpp: Same.
+	* include/ext/pb_ds/detail/hash_fn/ranged_hash_fn.hpp: Same.
+
+2006-10-01  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (xor_combine<>::_M_initialize_max_aux): New.
+	(xor_combine<>::operator()()): Tweak per N2079.
+	* include/tr1/random.tcc (xor_combine<>::_M_initialize_max_aux):
+	Define.
+	(xor_combine<>::_M_initialize_max): Use it.
+	* testsuite/tr1/5_numerical_facilities/random/xor_combine/
+	cons/default.cc: Adjust.
+	* docs/html/ext/tr1.html: Adjust.
+
+2006-10-01  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/type_traits.h: Avoid _T, badname for some targets;
+	also avoid plain T.
+
+2006-10-01  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/io/basic_file_stdio.cc: As an extension, and
+	consistently with C facilities, allow for in|out|app and
+	in|out|app|binary openmodes.
+	* testsuite/27_io/basic_filebuf/open/char/4.cc: New.
+
+2006-09-30  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pb_ds/detail/types_traits.hpp (store_extra_false_type):
+	To false_type.
+	(store_extra_true_type): To true_type.
+	(no_throw_copies_true_type): To true_type.
+	(no_throw_copies_false_type): To false_type.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	insert_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	resize_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	insert_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	entry_list_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	debug_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/cc_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	debug_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	resize_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	insert_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	resize_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/gp_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	insert_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	find_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	debug_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	debug_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	resize_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/lu_map_.hpp: Same.
+
+2006-09-29  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_no_store_hash_fn_imps.hpp: Formating fixes.
+	* include/ext/pb_ds/detail/basic_tree_policy/
+	null_node_metadata.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/const_point_iterator.hpp: Same.
+	* include/ext/pb_ds/detail/basic_types.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_policy/
+	mtf_lu_policy_imp.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_policy/
+	counter_lu_metadata.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_policy/
+	sample_update_policy.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_policy/
+	counter_lu_policy_imp.hpp: Same.
+	* include/ext/pb_ds/list_update_policy.hpp: Same.	
+
+2006-09-29  Benjamin Kosnik  <bkoz@redhat.com>
+            Howard Hinnant  <hhinnant@apple.com>
+            Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/type_traits.h (__remove_unsigned): Fix up for signed
+	char, bool, wchar_t, and floating point types.
+	(__add_unsigned): Same.	
+	* testsuite/ext/type_traits: New.
+	* testsuite/ext/type_traits.cc: Move...
+	* testsuite/ext/type_traits/numeric_traits.cc: ...here.	
+	* testsuite/ext/type_traits/add_unsigned_floating_neg.cc: New.
+	* testsuite/ext/type_traits/add_unsigned_integer_neg.cc: New.
+	* testsuite/ext/type_traits/remove_unsigned_floating_neg.cc: New.
+	* testsuite/ext/type_traits/remove_unsigned_integer_neg.cc: New.
+	* testsuite/ext/type_traits/add_unsigned.cc: New.
+	* testsuite/ext/type_traits/remove_unsigned.cc: New.
+	
+2006-09-29  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* acinclude.m4 (enable_symvers): Default to no if unable to link.
+	* configure: Regenerate.
+
+2006-09-28  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_uninitialized.h
+	(__uninitialized_fill_n_a(_ForwardIterator, _Size, const _Tp&,
+	allocator<>)): Inline.
+
+2006-09-28  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	erase_store_hash_fn_imps.hpp: Formatting fixes.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/cmp_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	insert_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	policy_access_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	resize_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	insert_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/info_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	entry_list_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/trace_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	find_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	debug_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/resize_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	cond_key_dtor_entry_dealtor.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	debug_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	erase_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/size_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	iterators_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	resize_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/policy_access_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/child_iterator.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/update_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/split_join_branch_bag.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/head.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/info_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/cond_dtor_entry_dealtor.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/pat_trie_.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/leaf.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/trace_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/node_base.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/node_iterators.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/point_iterators.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/iterators_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	erase_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	constructor_destructor_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	insert_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	policy_access_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	resize_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/gp_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	constructor_destructor_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	insert_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	iterator_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	info_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	find_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	find_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	debug_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/resize_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	constructor_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	erase_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	resize_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_/binomial_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/
+	policy_access_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/ov_tree_map_.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/node_iterators.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/info_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/iterators_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/splay_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/node.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/splay_tree_.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/traits.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/trace_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/
+	entry_metadata_base.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/lu_map_.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/info_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/
+	iterators_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/rb_tree_.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/node.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/info_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/traits.hpp: Same.
+
+2006-09-28  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/boost_shared_ptr.h: Use __atomic_add_dispatch and
+	__exchange_and_add_dispatch everywhere.
+
+2006-09-27  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/typelist.h (type_to_type): Remove.
+	* include/ext/throw_allocator.h (assert_allocatod): Remove.
+	(check_allocated(label)): New.
+	(print_to_string): Print numerical output correctly.
+
+	* testsuite/ext/pb_ds/example/hash_resize_neg.cc: Adjust line numbers.
+
+	* testsuite/util/regression/rand/priority_queue/detail/
+	operator_fn_imps.hpp: Set and clear label, throw
+        probability. Check only allocations of the marked label.
+	* testsuite/util/regression/rand/assoc/detail/
+	operator_fn_imps.hpp: Same.
+
+	* testsuite/performance/ext/pb_ds/text_find_timing.cc: Adjustments for
+        removal of type_to_type.
+	* testsuite/performance/ext/pb_ds/
+	hash_random_int_erase_mem_usage.cc: Same.
+	* testsuite/performance/ext/pb_ds/tree_text_insert_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_push_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	random_int_subscript_find_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/tree_split_join_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/random_int_find_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	multimap_text_insert_mem_usage.hpp: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_random_int_push_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/multimap_text_find_timing.hpp: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_modify_timing.hpp: Same.
+	* testsuite/performance/ext/pb_ds/
+	tree_order_statistics_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_push_pop_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_join_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_random_int_push_pop_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	random_int_subscript_insert_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/tree_text_lor_find_timing.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	multimap_text_insert_timing.hpp: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_pop_mem_usage.cc: Same.
+	* testsuite/performance/ext/pb_ds/
+	hash_zlob_random_int_find_timing.cc: Same. 
+	* testsuite/util/regression/trait/assoc/type_trait.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/
+	rand_regression_test.hpp: Same.
+	* testsuite/util/regression/rand/assoc/detail/
+	constructor_destructor_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/assoc/detail/insert_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/assoc/rand_regression_test.hpp: Same.
+	* testsuite/util/regression/rand/assoc/
+	container_rand_regression_test.hpp: Same.
+	* testsuite/util/regression/assoc/common_type.hpp: Same.
+	* testsuite/util/regression/basic_type.hpp: Same.
+	* testsuite/util/common_type/assoc/common_type.hpp: Same.
+	* testsuite/util/common_type/assoc/string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/template_policy.hpp: Same.
+	* testsuite/util/common_type/assoc/native_set.hpp: Same.
+	* testsuite/util/performance/priority_queue/mem_usage/
+	pop_test.hpp: Same.
+	* testsuite/util/performance/priority_queue/timing/
+	push_pop_test.hpp: Same.
+	* testsuite/util/performance/priority_queue/timing/join_test.hpp: Same.
+	* testsuite/util/performance/priority_queue/timing/push_test.hpp: Same.
+	* testsuite/util/performance/priority_queue/timing/
+	modify_test.hpp: Same.
+	* testsuite/util/performance/assoc/mem_usage/
+	multimap_insert_test.hpp: Same.
+	* testsuite/util/performance/assoc/mem_usage/erase_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/
+	multimap_insert_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/
+	subscript_find_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/find_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/
+	subscript_insert_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/insert_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/
+	tree_order_statistics_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/multimap_find_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/
+	tree_split_join_test.hpp: Same.
+	* testsuite/util/performance/assoc/multimap_common_type.hpp: Same.
+	* testsuite/util/testsuite_common_types.h: Same.
+
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_no_store_hash_fn_imps.hpp: Typedef
+        normalization, consistency in member names between cc and gp hash
+        tables, formatting fixes.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	erase_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	insert_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	insert_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/trace_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/cc_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/resize_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	erase_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	constructor_destructor_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	erase_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	insert_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	constructor_destructor_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/gp_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	insert_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/trace_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/resize_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	constructor_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	erase_no_store_hash_fn_imps.hpp: Same.
+
+	* include/ext/pb_ds/assoc_container.hpp: Formatting fixes.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_prime_size_policy_imp.hpp: Same.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_standard_resize_policy_imp.hpp: Same.
+	* include/ext/pb_ds/detail/types_traits.hpp: Same.
+	* include/ext/pb_ds/detail/constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/ov_tree_map_.hpp: Same.
+	* include/ext/pb_ds/detail/hash_fn/ranged_probe_fn.hpp: Same.
+	* include/ext/pb_ds/detail/hash_fn/
+	direct_mod_range_hashing_imp.hpp: Same.
+	* include/ext/pb_ds/detail/hash_fn/mask_based_range_hashing.hpp: Same.
+	* include/ext/pb_ds/detail/hash_fn/
+	direct_mask_range_hashing_imp.hpp: Same.
+	
+2006-09-27  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/29217
+	* src/localename.cc (locale::_Impl::_M_replace_categories)):
+	Compensate for the inconsistent numerical encodings of the
+	collate and time categories vs the corresponding names.
+	* testsuite/22_locale/locale/cons/29217.cc: New.
+
+	* testsuite/22_locale/locale/cons/2.cc: Enable and split
+	out the few ENC_TRAITS bits to...
+	* testsuite/22_locale/locale/cons/unicode/1.cc... here.
+
+2006-09-25  Howard Hinnant  <hhinnant@apple.com>
+
+	PR libstdc++/29224
+	* include/tr1/functional_iterate.h: Avoid -Wshadow warnings.
+
+2006-09-25  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/29179
+	* include/ext/mt_allocator.h (__pool_base): Adjust/extend
+	documentation in comments.
+
+2006-09-24  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/boost_shared_ptr.h (shared_ptr<>::shared_ptr(const
+	__shared_ptr<>&), shared_ptr(const __weak_ptr<>&),
+	shared_ptr(const __shared_ptr<>&, __static_cast_tag),
+	shared_ptr(const __shared_ptr<>&, __const_cast_tag),
+	shared_ptr(const __shared_ptr<>&, __dynamic_cast_tag),
+	weak_ptr<>::weak_ptr(const __shared_ptr<>&), weak_ptr(const
+	__weak_ptr<>&)): Remove.
+	(shared_ptr<>::shared_ptr(const shared_ptr<>&),
+	shared_ptr(const weak_ptr<>&), shared_ptr(const shared_ptr<>&,
+	__static_cast_tag), shared_ptr(const shared_ptr<>&,
+	__const_cast_tag), shared_ptr(const shared_ptr<>&,
+	__dynamic_cast_tag), static_pointer_cast(const shared_ptr<>&),
+	const_pointer_cast(const shared_ptr<>&), dynamic_pointer_cast(const
+	shared_ptr<>&), weak_ptr<>::weak_ptr(const shared_ptr<>&),
+	weak_ptr(const weak_ptr<>&), weak_ptr<>::lock(), 
+	__enable_shared_from_this_helper(const __shared_count<>&, const
+	enable_shared_from_this<>*, const _Tp2*)): Add. 
+	(class enable_shared_from_this): Add.
+	* testsuite/tr1/2_general_utilities/memory/enable_shared_from_this/
+	1.cc: New.
+	* testsuite/tr1/2_general_utilities/memory/shared_ptr/casts/1.cc:
+	Likewise.
+	* testsuite/tr1/2_general_utilities/memory/weak_ptr/lock/1.cc:
+	Likewise.
+
+	* include/tr1/boost_shared_ptr.h: Further formatting and
+	uglification fixes.
+
+2006-09-22  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/29134 (vector<bool> bits)
+	* include/bits/stl_bvector.h (vector<bool>::max_size):
+	Use allocator' max_size.
+	* testsuite/23_containers/vector/bool/capacity/29134.cc: New.
+
+	* testsuite/23_containers/deque/capacity/29134-2.cc: Minor tweak.
+	* testsuite/23_containers/vector/capacity/29134-2.cc: Likewise.
+
+2006-09-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/type_traits (add_reference): Robustify vs
+	reference to void.
+	* testsuite/tr1/4_metaprogramming/reference_modifications/
+	add_reference.cc: Add test.
+
+	* include/tr1/memory: include <tr1/type_traits>.
+	* include/tr1/boost_shared_ptr.h (__shared_ptr<>::operator*):
+	Use add_reference instead.
+	* testsuite/tr1/2_general_utilities/memory/enable_shared_from_this/
+	explicit_instantiation/1.cc: New.
+	* testsuite/tr1/2_general_utilities/memory/shared_ptr/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/tr1/2_general_utilities/memory/weak_ptr/
+	explicit_instantiation/1.cc: Likewise.
+
+	* testsuite/util/testsuite_tr1.h: Tweak; avoid empty enum.
+
+	* include/tr1/type_traits_fwd.h: Spelling fix.
+
+	* include/tr1/boost_shared_ptr.h: Obvious stylistic fixes.
+
+2006-09-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/boost_shared_ptr.h: Trivial formatting fixes.
+
+2006-09-21  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/type_traits.h (__numeric_traits_integer): New.
+	(__numeric_traits_floating): New.
+	(__numeric_traits): Use them.
+	* testsuite/ext/type_traits.cc: New.
+	
+2006-09-21  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/hash_map: Remove forward declaration of equality
+	operator, not needed for friendship of all its instances.
+	* include/ext/hash_set: Likewise.
+	* include/bits/stl_set.h: Likewise for equality operator and
+	operator less.
+	* include/bits/stl_multiset.h: Likewise.
+	* include/bits/stl_multimap.h: Likewise.
+	* include/bits/stl_queue.h: Likewise.
+	* include/bits/stl_stack.h: Likewise.
+	* include/bits/streambuf_iterator.h: Likewise for copy.
+	* include/std/std_streambuf.h: Likewise for __copy_aux and find.
+	* include/tr1/boost_shared_ptr.h: Likewise for get_deleter.
+	* include/tr1/random: Likewise, remove all forward declarations
+	of inserters and extractors.
+
+2006-09-21  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/sso_string_base.h (__sso_string_base<>::_M_max_size(),
+	_M_destroy, _M_create): Use _M_get_allocator.
+
+2006-09-21  Ben Elliston  <bje@au.ibm.com>
+
+	* crossconfig.m4 (GLIBCXX_CROSSCONFIG): Remove invocations of
+	GLIBCXX_CHECK_COMPILER_FEATURES.
+	* configure.ac: Always invoke GLIBCXX_CHECK_COMPILER_FEATURES.
+	Remove invocations elsewhere.
+	* configure: Regenerate.
+
+2006-09-21  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/29134 (ext/vstring bits)
+	* include/ext/sso_string_base.h (__sso_string_base<>::_S_max_size):
+	Remove.
+	(__sso_string_base<>::_M_max_size): Use allocator' max_size.
+	(__sso_string_base<>::_M_create): Adjust.
+	* include/ext/vstring.h: Minor comment tweak.
+	* testsuite/ext/vstring/capacity/29134.cc: New.
+
+2006-09-20  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/29134
+	* include/bits/stl_list.h (list<>::max_size): Forward to allocator'
+	max_size.
+	* include/bits/stl_vector.h (vector<>::max_size): Likewise.
+	* include/bits/stl_deque.h (deque<>::max_size): Likewise.
+	* include/bits/stl_tree.h (_Rb_tree<>::max_size): Likewise.
+	* include/tr1/hashtable (_Hashtable<>::max_size): Likewise.
+	* testsuite/23_containers/vector/capacity/29134.cc: Add.
+	* testsuite/23_containers/deque/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/list/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/set/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/map/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/multiset/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/multimap/capacity/29134.cc: Likewise.	
+	* testsuite/tr1/6_containers/unordered/capacity/29134-set.cc: Likewise.
+	* testsuite/tr1/6_containers/unordered/capacity/29134-map.cc: Likewise.
+	* testsuite/tr1/6_containers/unordered/capacity/29134-multiset.cc:
+	Likewise.
+	* testsuite/tr1/6_containers/unordered/capacity/29134-multimap.cc:
+	Likewise.
+
+	* include/bits/deque.tcc (deque<>::_M_new_elements_at_front,
+	deque<>::_M_new_elements_at_back): Check for length errors.
+	* testsuite/23_containers/deque/capacity/29134-2.cc: New.
+	* testsuite/23_containers/vector/capacity/29134-2.cc: Likewise.
+
+	* include/tr1/hashtable (_Hashtable<>::_M_get_Value_allocator): Add.
+	(_Hashtable<>::_M_allocate_node, _M_deallocate_node): Use it.
+	* testsuite/tr1/6_containers/unordered/instantiate/set.cc: Add test.
+	* testsuite/tr1/6_containers/unordered/instantiate/map.cc: Likewise.
+	* testsuite/tr1/6_containers/unordered/instantiate/multiset.cc:
+	Likewise.
+	* testsuite/tr1/6_containers/unordered/instantiate/multimap.cc:
+	Likewise.
+
+2006-09-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pb_ds/detail/
+	typelist_assoc_container.hpp: Remove, unused.
+	* include/ext/pb_ds/detail/typelist/
+	typelist_assoc_container_find.hpp: Same.
+	* include/ext/pb_ds/detail/typelist: Remove.	
+	* include/ext/pb_ds/detail/typelist.hpp: Merge...
+	* include/ext/pb_ds/detail/typelist/typelist_flatten.hpp: Same.
+	* include/ext/pb_ds/detail/typelist/typelist_contains.hpp: Same.
+	* include/ext/pb_ds/detail/typelist/typelist_typelist_append.hpp: Same.
+	* include/ext/pb_ds/detail/typelist/typelist_apply.hpp: Same.
+	* include/ext/pb_ds/detail/typelist/typelist_filter.hpp: Same.
+	* include/ext/pb_ds/detail/typelist/typelist_append.hpp: Same.
+	* include/ext/pb_ds/detail/typelist/typelist_at_index.hpp: Same.
+	* include/ext/pb_ds/detail/typelist/typelist_transform.hpp: Same.
+	* include/ext/typelist.h: ... into this.
+	* include/Makefile.am: Subtractions.
+	* include/Makefile.in: Regenerate.
+
+	* include/ext/pb_ds/assoc_container.hpp: Fixups for new includes,
+	namespaces, and names.	
+	* include/ext/pb_ds/detail/resize_policy/sample_size_policy.hpp: Same.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_prime_size_policy_imp.hpp: Same.
+	* include/ext/pb_ds/detail/resize_policy/
+	cc_hash_max_collision_check_resize_trigger_imp.hpp: Same.
+	* include/ext/pb_ds/detail/resize_policy/
+	sample_resize_policy.hpp: Same.
+	* include/ext/pb_ds/detail/resize_policy/
+	sample_resize_trigger.hpp: Same.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_exponential_size_policy_imp.hpp: Same.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_load_check_resize_trigger_size_base.hpp: Same.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_load_check_resize_trigger_imp.hpp: Same.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_standard_resize_policy_imp.hpp: Same.
+	* include/ext/pb_ds/detail/container_base_dispatch.hpp: Same.
+	* testsuite/performance/ext/pb_ds/text_find_timing.cc
+	* testsuite/performance/ext/pb_ds/hash_random_int_erase_mem_usage.cc
+	* testsuite/performance/ext/pb_ds/tree_text_insert_timing.cc
+	* testsuite/performance/ext/pb_ds/priority_queue_text_push_timing.cc
+	* testsuite/performance/ext/pb_ds/random_int_subscript_find_timing.cc
+	* testsuite/performance/ext/pb_ds/tree_split_join_timing.cc
+	* testsuite/performance/ext/pb_ds/random_int_find_timing.cc
+	* testsuite/performance/ext/pb_ds/
+	multimap_text_insert_mem_usage.hpp: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_random_int_push_timing.cc
+	* testsuite/performance/ext/pb_ds/multimap_text_find_timing.hpp: Same.
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_modify_timing.hpp: Same.
+	* testsuite/performance/ext/pb_ds/tree_order_statistics_timing.cc
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_text_push_pop_timing.cc
+	* testsuite/performance/ext/pb_ds/priority_queue_text_join_timing.cc
+	* testsuite/performance/ext/pb_ds/
+	priority_queue_random_int_push_pop_timing.cc
+	* testsuite/performance/ext/pb_ds/random_int_subscript_insert_timing.cc
+	* testsuite/performance/ext/pb_ds/tree_text_lor_find_timing.cc
+	* testsuite/performance/ext/pb_ds/
+	multimap_text_insert_timing.hpp: Same.
+	* testsuite/performance/ext/pb_ds/priority_queue_text_pop_mem_usage.cc
+	* testsuite/performance/ext/pb_ds/hash_zlob_random_int_find_timing.cc
+	* testsuite/performance/23_containers/find/map.cc
+	* testsuite/performance/23_containers/create/map.cc
+	* testsuite/performance/23_containers/insert_erase/associative.cc
+	* testsuite/performance/23_containers/insert/sequence.cc
+	* testsuite/performance/23_containers/insert/associative.cc
+	* testsuite/performance/23_containers/create_from_sorted/set.cc
+	* testsuite/performance/23_containers/index/map.cc
+	* testsuite/performance/23_containers/insert_from_sorted/set.cc
+	* testsuite/performance/23_containers/create_sort/list.cc
+	* testsuite/performance/23_containers/sort_search/list.cc
+	* testsuite/performance/23_containers/producer_consumer/sequence.cc
+	* testsuite/performance/23_containers/producer_consumer/associative.cc
+	* testsuite/util/regression/trait/assoc/type_trait.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/
+	rand_regression_test.hpp: Same.
+	* testsuite/util/regression/rand/assoc/rand_regression_test.hpp: Same.
+	* testsuite/util/regression/assoc/common_type.hpp: Same.
+	* testsuite/util/native_type/assoc/native_multimap.hpp: Same.
+	* testsuite/util/native_type/assoc/native_tree_tag.hpp: Same.
+	* testsuite/util/native_type/assoc/native_hash_multimap.hpp: Same.
+	* testsuite/util/native_type/assoc/native_set.hpp: Same.
+	* testsuite/util/native_type/assoc/native_map.hpp: Same.
+	* testsuite/util/native_type/assoc/native_hash_set.hpp: Same.
+	* testsuite/util/native_type/assoc/native_hash_map.hpp: Same.
+	* testsuite/util/common_type/priority_queue/common_type.hpp: Same.
+	* testsuite/util/common_type/assoc/common_type.hpp: Same.
+	* testsuite/util/common_type/assoc/string_form.hpp: Same.
+	* testsuite/util/common_type/assoc/template_policy.hpp: Same.
+	* testsuite/util/performance/priority_queue/mem_usage/pop_test.hpp: 
+	Same.
+	* testsuite/util/performance/priority_queue/timing/push_pop_test.hpp: 
+	Same.
+	* testsuite/util/performance/priority_queue/timing/join_test.hpp: Same.
+	* testsuite/util/performance/priority_queue/timing/push_test.hpp: Same.
+	* testsuite/util/performance/priority_queue/timing/modify_test.hpp: 
+	Same.
+	* testsuite/util/performance/assoc/mem_usage/multimap_insert_test.hpp: 
+	Same.
+	* testsuite/util/performance/assoc/mem_usage/erase_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/common_type.hpp: Same.
+	* testsuite/util/performance/assoc/timing/multimap_insert_test.hpp: 
+	Same.
+	* testsuite/util/performance/assoc/timing/subscript_find_test.hpp: 
+	Same.
+	* testsuite/util/performance/assoc/timing/find_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/subscript_insert_test.hpp: 
+	Same.
+	* testsuite/util/performance/assoc/timing/insert_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/
+	tree_order_statistics_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/multimap_find_test.hpp: Same.
+	* testsuite/util/performance/assoc/timing/tree_split_join_test.hpp: 
+	Same.
+	* testsuite/util/performance/assoc/multimap_common_type.hpp: Same.
+
+	* testsuite/ext/pb_ds/example/hash_resize_neg.cc: Fixup line numbers.
+	
+2006-09-19  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/hashtable_policy.h: Uglify all the names.
+	* include/tr1/hashtable: Likewise.
+	* include/tr1/unordered_map: Likewise.
+	* include/tr1/unordered_set: Likewise.
+	* include/tr1/functional: Uglify struct hash names.
+	* include/tr1/cmath: Uglify namespace detail to __detail.
+
+2006-09-18  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/util/regression/res_mng: Remove.
+	* testsuite/util/regression/res_mng/dbg_ex_allocator_base.cc: Merge..
+	* testsuite/util/regression/res_mng/forced_exception.hpp: Merge...
+	* testsuite/util/regression/res_mng/dbg_ex_allocator_base.hpp: Merge..
+	* testsuite/util/regression/res_mng/dbg_ex_allocator.hpp: Merge..
+	* testsuite/util/testsuite_allocator.h (throw_allocator): Merge...
+	* include/ext/throw_allocator.h (throw_allocator): ... into this.
+	* src/throw_allocator.cc: ...and this.
+	* include/Makefile.am (ext_headers): Add.
+	* include/Makefile.in: Regenerate.	
+	* src/Makefile.am (sources): New.
+	* src/Makefile.in: Regenerate.
+	* testsuite/lib/libstdc++.exp: Subtract dbg_ex_allocator_base.cc.
+
+	* include/ext/pb_ds/detail/map_debug_base.hpp: Adjust
+	includes, names, and namespaces.
+	* testsuite/23_containers/list/modifiers/insert/25288.cc: Same.
+	* testsuite/util/regression/rand/priority_queue/detail/
+	erase_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/detail/
+	constructor_destructor_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/detail/
+	insert_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/detail/
+	modify_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/detail/
+	split_join_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/detail/
+	operator_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/priority_queue/
+	container_rand_regression_test.hpp: Same.
+	* testsuite/util/regression/rand/assoc/detail/
+	subscript_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/assoc/detail/
+	operator_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/assoc/detail/erase_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/assoc/detail/
+	constructor_destructor_fn_imps.hpp
+	* testsuite/util/regression/rand/assoc/detail/insert_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/assoc/detail/
+	split_join_fn_imps.hpp: Same.
+	* testsuite/util/regression/rand/assoc/
+	container_rand_regression_test.hpp: Same.
+	* testsuite/util/regression/priority_queue/common_type.hpp: Same.
+	* testsuite/util/regression/assoc/common_type.hpp: Same.
+	* testsuite/util/regression/basic_type.hpp: Same.
+	* testsuite/util/rng/twister_rand_gen.cc: Tweak.
+	
+2006-09-18  Tom Tromey  <tromey@redhat.com>
+
+	* configure: Rebuilt.
+
+2006-09-18  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.tcc (_M_group_int): Remove
+	redundant using-declaration.
+
+2006-09-18  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/typelist.h (cond_type): Remove, use __conditional_type.
+
+2006-09-18  Benjamin Kosnik  <bkoz@redhat.com>
+	    Peter Doerfler  <gcc@pdoerfler.com>
+	    Paolo Carlini  <pcarlini@suse.de>
+	
+	* include/ext/type_traits.h: New. 
+	(__conditional_type): New.
+	(__numeric_traits): New.
+	(__add_unsigned): New.
+	(__remove_unsigned): New.
+	(__enable_if): New.
+	* include/Makefile.am: Add.
+	* include/Makefile.in: Regenerate.
+	* include/ext/pb_ds/detail/type_utils.hpp: Use ext include,
+	remove duplicates.
+	* include/tr1/hashtable_policy.h (IF): Use __conditional_type.
+	(_Max_digits10): Same.
+	(identity): Use _Identity.
+	(extract1st): Use _Select1st.
+	* include/tr1/random (_Select): Use __conditional_type.
+	(_To_Unsigned_Type): Use __add_unsigned. Linebreak fixups.
+	* include/bits/locale_facets.tcc (__to_unsigned_type): Remove, use
+	__add_unsigned.
+	* include/tr1/random.tcc: Fixups as above.
+	* include/tr1/unordered_map: Same.
+	* include/tr1/hashtable: Same.
+	* include/tr1/unordered_set: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	standard_policies.hpp: Same.
+	* include/ext/pb_ds/detail/standard_policies.hpp: Same.
+	* include/ext/pb_ds/detail/typelist/typelist_filter.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/binary_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/type_utils.hpp: Same.
+	* include/ext/pb_ds/trie_policy.hpp: Same.
+	* docs/html/ext/pb_ds/string_trie_e_access_traits.html: Same.
+	
+	* include/bits/cpp_type_traits.h (__enable_if): Move to ext, make
+	boolean argument first.	
+	* include/bits/locale_facets.h: Fixups for __enable_if argument
+	and namespace switch.
+	* include/bits/stl_algobase.h: Same.
+	* include/bits/stl_algo.h: Same.
+	* include/bits/stl_iterator.h: Same.
+	* include/bits/streambuf_iterator.h: Same.
+	* include/debug/safe_iterator.h: Same.
+	* include/tr1/hashtable_policy.h: Same.
+	* include/tr1/cmath: Same.
+	* include/tr1/functional: Same.
+	* include/tr1/functional_iterate.h: Same.
+	* include/std/std_streambuf.h: Same.
+	* include/c_std/std_cmath.h: Same.
+	* testsuite/util/testsuite_tr1.h: Same.
+	* testsuite/util/performance/assoc/multimap_common_type.hpp: Same.
+	
+2006-09-18  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/29063
+	* include/bits/valarray_array.h: Fix typo, undefine
+	_DEFINE_ARRAY_FUNCTION.
+	* include/std/std_valarray.h: Undefine _DEFINE_BINARY_OPERATOR.
+
+2006-09-14  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/concurrence.h (__mutex::__mutex): Pass address of
+	mutex to *_MUTEX_INIT_FUNCTION.
+	
+2006-09-13  Benjamin Kosnik  <bkoz@redhat.com>	
+
+	* include/bits/atomicity.h: Move to...
+	* include/ext/atomicity.h: ...here.	
+	* include/bits/concurrence.h: Move to...
+	* include/ext/concurrence.h: ...here.
+	* include/Makefile.am (ext_headers): Additions.
+	(bits_headers): Subtractions.
+	* include/Makefile.in: Regenerate.
+
+	* include/ext/bitmap_allocator.h (_Mutex), __threads_enabled,
+	_Lock, _Auto_Lock): Subsume into...
+	* include/bits/concurrence.h (__mutex): ..this. Error check
+	locking and unlocking.	
+	(lock): Uglify to...
+	(__scoped_lock): Use __mutex. 
+	(__glibcxx_mutex_define_initialized): Remove.
+	(__glibcxx_mutex_type): Remove.
+
+	* include/tr1/boost_shared_ptr.h: Formating tweaks, adjustments.
+	(_Lock_policy): Move from here...
+	* include/ext/concurrence.h: ... to here.
+	(__shared_ptr_default_lock_mode): To __default_lock_policy.
+	(_S_lockfree): To _S_atomic.
+	Document.
+
+	* libsupc++/guard.cc (static_mutex): Subsume into and fixup for...
+	* include/ext/concurrence.h (__recursive_mutex): ...this. Error
+	check locking and unlocking.
+	* libsupc++/eh_alloc.cc: Use __scoped_lock.
+
+	* config/os/aix/atomicity.h: Fixups for include paths, mutex to
+	__scoped_mutex change, removal of locking defines.
+	* config/os/irix/atomicity.h: Same.
+	* config/cpu/cris/atomicity.h: Same.
+	* config/cpu/m68k/atomicity.h: Same.
+	* config/cpu/hppa/atomicity.h: Same.
+	* config/cpu/mips/atomicity.h: Same.
+	* config/cpu/sparc/atomicity.h: Same.
+	* config/cpu/i386/atomicity.h: Same.
+	* config/cpu/i486/atomicity.h: Same.
+	* config/cpu/sh/atomicity.h: Same.
+	* config/cpu/generic/atomicity_mutex/atomicity.h: Same.
+	* include/ext/pool_allocator.h: Same.
+	* include/ext/bitmap_allocator.h: Same.
+	* include/ext/rc_string_base.h: Same.
+	* include/ext/mt_allocator.h: Same.
+	* include/bits/locale_classes.h: Same.
+	* include/bits/basic_string.h: Same.
+	* include/bits/ios_base.h: Same.
+	* include/tr1/memory: Same.
+	* src/pool_allocator.cc: Same.
+	* src/mt_allocator.cc: Same.
+	* src/locale_init.cc: Same.
+	* src/ios.cc: Same.
+	* src/locale.cc: Same.
+	* src/bitmap_allocator.cc: Same.
+	* src/ios_init.cc: Same.
+	* src/debug.cc: Same.
+	
+2006-09-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* libsupc++/eh_globals.cc: Remove __gnu_internal.
+	* config/io/basic_file_stdio.cc: Same.
+	* config/abi/compatibility.h: Same.
+	* config/cpu/generic/atomicity_mutex/atomicity.h: Same.
+	* config/cpu/sh/atomicity.h: Same.
+	
+2006-09-10  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_heap.h (sort_heap): Iterator post-decrement is
+	only required to be convertible to the iterator type.
+
+2006-09-08  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random.tcc (poisson_distribution<>::operator()):
+	Avoid potential warnings when _IntType is unsigned.
+
+2006-09-08  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/debug/debug.h (_GLIBCXX_DEBUG_ONLY): New.
+	* include/ext/bitmap_allocator.h (_BALLOC_SANITY_CHECK,
+	_BALLOC_ASSERT): Remove. Use _GLIBCXX_DEBUG,
+	_GLIBCXX_DEBUG_ASSERT.
+	* include/ext/pb_ds/hash_policy.hpp (PB_DS_DBG_ASSERT): Convert to
+	_GLIBCXX_DEBUG_ASSERT. Formatting corrections.
+	(PB_DS_DBG_VERIFY): Remove, unused.
+	(PB_DS_DBG_ONLY): Convert to _GLIBCXX_DEBUG blocks.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_load_check_resize_trigger_imp.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_base_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_base_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_base_/
+	insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_base_/
+	binomial_heap_base_.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_base_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_base_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_base_/
+	split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	erase_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	insert_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/cmp_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	insert_store_hash_fn_imps.hpp: Same.	
+	* include/ext/pb_ds/detail/cc_hash_table_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	debug_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/cc_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/resize_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	debug_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	erase_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/unordered_iterator/iterator.hpp: Same.
+	* include/ext/pb_ds/detail/unordered_iterator/point_iterator.hpp: Same.
+	* include/ext/pb_ds/detail/unordered_iterator/
+	const_point_iterator.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/r_erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/child_iterator.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/insert_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/split_join_branch_bag.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/head.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/const_child_iterator.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/split_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/pat_trie_.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/leaf.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/rotate_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/node_base.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/synth_e_access_traits.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/node_iterators.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/internal_node.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/point_iterators.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/r_erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/rotate_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/bin_search_tree_.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/
+	split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/point_iterators.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	constructor_destructor_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	erase_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	insert_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	resize_store_hash_fn_imps.hpp: Same.	
+	* include/ext/pb_ds/detail/gp_hash_table_map_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	constructor_destructor_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/gp_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	insert_store_hash_fn_imps.hpp: Same.	
+	* include/ext/pb_ds/detail/gp_hash_table_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/trace_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	debug_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/resize_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	constructor_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	debug_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	erase_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	resize_no_store_hash_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/types_traits.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/const_iterator.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/
+	constructors_destructor_fn_imps.hpp: Same.	
+	* include/ext/pb_ds/detail/binary_heap_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/const_point_iterator.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/binary_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/resize_policy.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pairing_heap_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pairing_heap_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pairing_heap_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pairing_heap_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pairing_heap_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/pairing_heap_/pairing_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/pairing_heap_/split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binomial_heap_/binomial_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/eq_fn/hash_eq_fn.hpp: Same.
+	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
+	erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
+	left_child_next_sibling_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
+	const_iterator.hpp: Same.	
+	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
+	insert_fn_imps.hpp: Same.	
+	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
+	debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
+	const_point_iterator.hpp: Same.
+	* include/ext/pb_ds/detail/thin_heap_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/thin_heap_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/thin_heap_/thin_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/thin_heap_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/thin_heap_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/thin_heap_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/thin_heap_/split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/cond_dtor.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/ov_tree_map_.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/
+	constructors_destructor_fn_imps.hpp: Same.	
+	* include/ext/pb_ds/detail/ov_tree_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/node_iterators.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/info_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/map_debug_base.hpp: Same.
+	* include/ext/pb_ds/detail/hash_fn/ranged_probe_fn.hpp: Same.
+	* include/ext/pb_ds/detail/hash_fn/probe_fn_base.hpp: Same.
+	* include/ext/pb_ds/detail/hash_fn/ranged_hash_fn.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/splay_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/splay_tree_.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/find_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/lu_map_.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/
+	constructor_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/list_update_map_/
+	iterators_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rc_binomial_heap_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rc_binomial_heap_/
+	rc_binomial_heap_.hpp: Same.
+	* include/ext/pb_ds/detail/rc_binomial_heap_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rc_binomial_heap_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rc_binomial_heap_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rc_binomial_heap_/rc.hpp: Same.
+	* include/ext/pb_ds/detail/rc_binomial_heap_/
+	split_join_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/erase_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/insert_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/
+	constructors_destructor_fn_imps.hpp: Same.	
+	* include/ext/pb_ds/detail/rb_tree_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/rb_tree_.hpp: Same.
+	* include/ext/pb_ds/detail/rb_tree_map_/split_join_fn_imps.hpp: Same.
+	* testsuite/util/regression/res_mng/forced_exception.hpp: Same.
+	* testsuite/util/regression/res_mng/dbg_ex_allocator_base.hpp: Same.
+	* testsuite/util/regression/res_mng/dbg_ex_allocator.hpp: Same.
+	* testsuite/util/rng/twister_rand_gen.cc
+	* testsuite/util/native_type/assoc/native_multimap.hpp: Same.
+	* testsuite/util/native_type/assoc/native_hash_multimap.hpp: Same.
+
+2006-09-05  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/basic_string.tcc (find(const _CharT*, size_type,
+	size_type)): Robustify.
+	* include/ext/vstring.tcc (find(const _CharT*, size_type,
+	size_type)): Likewise.
+
+2006-09-05  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/basic_string.tcc (find(const _CharT*, size_type,
+	size_type)): Reimplement in terms of traits::eq and traits::compare.
+	* include/ext/vstring.tcc (find(const _CharT*, size_type,
+	size_type)): Likewise.
+	* src/string-inst.cc: Remove unneded std::search instantiation.
+
+2006-09-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR c++/28871
+	* include/ext/bitmap_allocator.h: Add comment for end of anonymous
+	namespace.
+	* include/ext/rope: Same.
+	* include/bits/cpp_type_traits.h: Same.
+	* include/tr1/tuple: Same.
+	* include/tr1/functional_iterate.h: Same.
+
+	* include/bits/cpp_type_traits.h: Revert anonymous namespace
+	change, use nested detail instead.
+
+	* testsuite/lib/libstdc++.exp (libstdc++_init): PCHFLAGS revert to
+	stdc++.h.
+	
+2006-09-04  Paolo Carlini  <pcarlini@suse.de>
+
+	* src/mt_allocator.cc (__pool<true>::_M_reclaim_block): Do
+	not name a variable __used, badname on BSD.
+
+2006-09-02  Paolo Carlini  <pcarlini@suse.de>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR libstdc++/24469
+	* src/mt_allocator.cc (__pool<true>::_M_reserve_block,
+	__pool<true>::_M_reclaim_block): Fix the logic to avoid
+	races, exploit atomic counters stored in second part of
+	the memory pointed by _M_used.
+	(__pool<true>::_M_initialize): Adjust _M_used allocation.
+	* include/ext/mt_allocator.h (__pool<true>::_Bin_record):
+	Update comment.
+
+2006-08-31  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/28671 continued
+	* acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): Don't use
+	CXXFLAGS when checking for atomic builtins.
+	* configure: Regenerate.
+	* include/bits/atomicity.h: Revert.
+	
+2006-08-31  Richard Guenther  <rguenther@suse.de>
+
+	* include/ext/mt_allocator.h: Remove volatile qualifiers
+	from data members and corresponding locals and function
+	signatures.
+
+2006-08-31  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/abi/pre/gnu.ver: Correct atomic helper function signature
+	for case where _Atomic_word is long.
+
+2006-08-31  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/28671
+	* include/bits/atomicity.h (__exchange_and_add): Declare only.
+	(__atomic_add): Same.
+	* config/cpu/generic/atomicity_builtins/atomicity.h: Remove comment.
+	
+2006-08-30  Benjamin Kosnik  <bkoz@redhat.com>
+            Richard Guenther  <rguenther@suse.de>
+	
+	* config/abi/pre/gnu.ver: Spell out exact signatures for atomic
+	access functions.
+
+	* include/bits/atomicity.h (__atomic_add_dispatch): Remove
+	volatile qualification for _Atomic_word argument.
+	(__atomic_add_single): Same.
+	(__exchange_and_add_dispatch): Same.
+	(__exchange_and_add_single): Same.
+	
+2006-08-29  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (subtract_with_carry_01<>::_M_initialize_npows):
+	New.
+	(subtract_with_carry_01<>::subtract_with_carry_01(),
+	subtract_with_carry_01<>::subtract_with_carry_01(unsigned long),
+	subtract_with_carry_01<>::subtract_with_carry_01(_Gen&)): Use it.
+	* include/tr1/random.tcc: Define.
+
+	* include/tr1/random (xor_combine<>::_M_initialize_max()): New.
+	(xor_combine<>::xor_combine(), xor_combine<>::xor_combine(const
+	base1_type&, const base2_type&), xor_combine<>::xor_combine(unsigned
+	long), xor_combine<>::xor_combine(_Gen&)): Use it.
+	(xor_combine<>::min, xor_combine<>::max): Adjust.
+	* include/tr1/random.tcc: Define.
+
+2006-08-29  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* acinclude.m4(glibcxx_PCHFLAGS): Set to stdtr1c++.h.
+	* configure: Regenerate.
+	
+	* scripts/check_compile: Output current compile line.
+	
+2006-08-28  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/23773 partial
+	* docs/html/abi.html: Update.
+
+2006-08-28  Roger Sayle  <roger@eyesopen.com>
+	    Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algo.h (__heap_select, __introselect): New.
+	(nth_element): New implementation.
+	(partial_copy): Use __heap_select.
+	* testsuite/performance/25_algorithms/nth_element_worst_case.cc: New.
+
+2006-08-28  Paolo Carlini  <pcarlini@suse.de>
+	    Roger Sayle  <roger@eyesopen.com>
+
+	* testsuite/25_algorithms/nth_element/2.cc: New.
+
+2006-08-27  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28830
+	* testsuite/tr1/2_general_utilities/memory/shared_ptr/thread/
+	lockfree_weaktoshared.cc: Rename to...
+	* testsuite/tr1/2_general_utilities/memory/shared_ptr/thread/
+	default_weaktoshared.cc: ... this; test the default base class.
+	* testsuite/tr1/2_general_utilities/memory/shared_ptr/thread/
+	mutex_weaktoshared.cc: Run like the other thread tests.
+
+2006-08-25  Paolo Carlini  <pcarlini@suse.de>
+
+	* docs/html/ext/tr1.html: Update.
+
+2006-08-25  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (bernoulli_distribution::operator()): Fix
+	wrt generators returning integers.
+	(uniform_int<>::_M_call): Add.
+	(uniform_int<>::operator()): Use it.
+
+	* include/tr1/random (_Adaptor<>::min, _Adaptor<>::max): Add.
+	(_Adaptor<>::operator()): Allow for nonzero _M_g.min().
+
+	* include/tr1/random.tcc (linear_congruential<>::min, max):
+	Move inline...
+	(__mod): Move ...
+	* include/tr1/random: ... here.
+	(struct _Mod): Declare.
+
+	* include/tr1/random (struct _To_Unsigned_Type): Only declare,
+	move...
+	* include/tr1/random.tcc: ... here.
+
+2006-08-22  Phillip Jordan  <phillip.m.jordan@gmail.com>
+
+	*include/tr1/boost_shared_ptr.h: Added locking policy to
+	tr1::shared_ptr<> and related classes.
+	* testsuite/tr1/2_general_utilities/memory/shared_ptr/thread: New.
+	* testsuite/tr1/2_general_utilities/memory/shared_ptr/thread/
+	lockfree_weaktoshared.cc: New.
+	* testsuite/tr1/2_general_utilities/memory/shared_ptr/thread/
+	mutex_weaktoshared.cc: New.
+	*testsuite/tr1/2_general_utilities/memory/shared_ptr/assign/
+	shared_ptr_neg.cc: Modify.
+	
+2006-08-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random.tcc (subtract_with_carry_01<>::
+	seed(_Gen&, false_type)): Fix _M_carry initialization.
+	
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry/cons/default.cc: Qualify 1 as 1UL.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry/cons/gen1.cc: Likewise.
+
+2006-08-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (class subtract_with_carry_01<>): Add.
+	* include/tr1/random.tcc (subtract_with_carry_01<>::
+	seed(unsigned long), subtract_with_carry_01<>::
+	seed(_Gen&, false_type), subtract_with_carry_01<>::
+	operator(), operator<<(std::basic_ostream<>&, const
+	subtract_with_carry_01<>&), operator>>(std::basic_istream<>&,
+	subtract_with_carry_01<>&)): Define.
+	* testsuite/tr1/5_numerical_facilities/random/ranlux3_01.cc:
+	New.
+	* testsuite/tr1/5_numerical_facilities/random/ranlux4_01.cc:
+	Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry_01/cons/seed1.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry_01/cons/seed2.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry_01/cons/default.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry_01/cons/gen1.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry_01/requirements/typedefs.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry_01/operators/equal.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry_01/operators/not_equal.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry_01/operators/serialize.cc: Likewise.
+
+	* docs/html/ext/howto.html: Add two implemented TR1 issues.
+
+	* include/tr1/random.tcc (struct _To_Unsigned_Type<>): Move...
+	* include/tr1/random: ... here.
+	(class subtract_with_carry<>): Use it everywhere.
+
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry/cons/seed1.cc: Qualify 1 as 1UL.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry/cons/seed2.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry/cons/default.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry/cons/gen1.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry/requirements/typedefs.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry/operators/equal.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry/operators/not_equal.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/random/
+	subtract_with_carry/operators/serialize.cc: Likewise.
+
+	* include/tr1/random (class binomial_distribution<>): Reorder the
+	data members to save space.
+
+2006-08-20  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (gamma_distribution<>::_M_initialize,
+	gamma_distribution<>::_M_l_d): Add.
+	(gamma_distribution<>::gamma_distribution(const result_type&),
+	operator>>(std::basic_istream<>&, gamma_distribution&)): Use it.
+	include/tr1/random.tcc (gamma_distribution<>::_M_initialize):
+	Define.
+	(gamma_distribution<>::operator()): Adjust.
+
+	* include/tr1/random (geometric_distribution<>::_M_initialize): Add.
+	(geometric_distribution<>::geometric_distribution(const _RealType&),
+	operator>>(std::basic_istream<>&, geometric_distribution&)): Use it.
+
+2006-08-18  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (class binomial_distribution<>): Add.
+	* include/tr1/random.tcc (binomial_distribution<>::operator(),
+	operator<<(std::basic_ostream<>&, const binomial_distribution<>&),
+	operator>>(std::basic_istream<>&, binomial_distribution<>&,
+	binomial_distribution<>::_M_waiting(), binomial_distribution<>::
+	_M_initialize()): Define.
+	* testsuite/tr1/5_numerical_facilities/random/binomial_distribution/
+	requirements/typedefs.cc: New.
+
+	* include/tr1/random (geometric_distribution<>::
+	geometric_distribution(const _RealType&)): Fix DEBUG_ASSERT
+	limits.
+
+	* include/tr1/random (poisson_distribution): Add normal_distribution
+	member, adjust consistently; minor tweaks and rearrangements of the
+	arithmetic.
+	(operator>>(std::basic_istream<>&, poisson_distribution<>&)): Move
+	out of line.
+	* include/tr1/random.tcc: Adjust.
+
+	* include/tr1/random.tcc (normal_distribution<>::operator()): Minor
+	tweaks.
+
+2006-08-18  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28765
+	* include/ext/rc_string_base.h (_M_clear): New.
+	* include/ext/sso_string_base.h (_M_clear): Likewise.
+	* include/ext/vstring.h (clear): Use it.
+
+2006-08-15  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (poisson_distribution<>::_M_initialize): Add.
+	(poisson_distribution<>::poisson_distribution(const _RealType&):
+	Use it.
+	(operator>>(std::basic_istream<>&, poisson_distribution<>&)):
+	Likewise.
+	(poisson_distribution<>::_M_large): Remove.
+	* include/tr1/random.tcc (poisson_distribution<>::_M_initialize):
+	Define.
+	(operator<<(std::basic_ostream<>&, const poisson_distribution<>&)):
+	Do not output the constants.
+
+	* include/tr1/random (operator>>(std::basic_istream<>&,
+	gamma_distribution&)): Minor tweak.
+	
+	* include/tr1/random.tcc (poisson_distribution<>::operator()):
+	Minor tweak.
+
+	* include/tr1/random: Consistently, all data members private.
+
+2006-08-15  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random.tcc (mersenne_twister<>::operator()): Revert
+	last change (per gcc-patches/2006-08/msg00484.html).
+
+2006-08-14  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (class poisson_distribution<>): Add.
+	* include/tr1/random.tcc (poisson_distribution<>::operator(),
+	operator<<(std::basic_ostream<>&, const poisson_distribution<>&),
+	operator>>(std::basic_istream<>&, poisson_distribution<>&,
+	poisson_distribution<>::poisson_distribution(const _RealType&)):
+	Define.
+	* testsuite/tr1/5_numerical_facilities/random/poisson_distribution/
+	requirements/typedefs.cc: New.
+
+	* include/tr1/random.tcc (mersenne_twister<>::operator()): Tweak
+	a bit for efficiency.
+	
+	* include/tr1/random.tcc (operator<<(std::basic_ostream<>&,
+	const normal_distribution<>&), operator>>(std::basic_istream<>&,
+	normal_distribution<>&)): Do not output _M_saved unnecessarily.
+
+	* include/tr1/random: Trivial formatting fixes.
+	* include/tr1/cmath: Likewise.
+
+2006-08-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_bvector.h (__fill_bvector(_Bit_iterator,
+	_Bit_iterator, bool)): New.
+	(fill(_Bit_iterator, _Bit_iterator, const bool&)): Use it.
+
+2006-08-10  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random.tcc (gamma_distribution<>::operator()): Fixes
+	from the Errata of Devroye's book.
+
+2006-08-10  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_bvector.h (_Bit_iterator_base::_M_incr(ptrdiff_t)):
+	Tidy a bit, thus reducing generated code size.
+
+2006-08-09  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_bvector.h (vector<bool>::_M_copy_aligned): New.
+	(vector<bool>::vector(const vector&), operator=(const vector&),
+	reserve(size_type), _M_fill_insert(iterator, size_type, bool),
+	_M_insert_range(iterator, _ForwardIterator, _ForwardIterator,
+	std::forward_iterator_tag), _M_insert_aux(iterator, bool)): Use it.
+	* testsuite/performance/23_containers/copy_construct/
+	vector_bool.cc: New.
+
+	* testsuite/23_containers/vector/bool/cons/1.cc: New.
+	* testsuite/23_containers/vector/bool/cons/2.cc: Likewise.
+
+	* include/bits/stl_bvector.h (vector<bool>::_M_fill): Remove.
+	(fill(_Bit_iterator, _Bit_iterator, const bool&)): New.
+	(vector<bool>::_M_fill_insert(iterator, size_type, bool)): Adjust.
+
+	* include/bits/stl_bvector.h (_M_initialize_range(_InputIterator,
+	_InputIterator, std::input_iterator_tag)): Remove redundant
+	assignments.
+
+	* include/bits/stl_algo.h (find(istreambuf_iterator<>,
+	istreambuf_iterator<>, _CharT)): Adjust signature.
+	* include/bits/streambuf_iterator.h: Likewise.
+	* include/std/std_streambuf.h: Likewise.	
+
+2006-08-09  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algobase.h (fill(const _Deque_iterator<>&,
+	const _Deque_iterator<>&, const _Tp&)): Move...
+	* include/bits/deque.tcc: ... here.
+	* include/bits/stl_deque.h: Declare.
+
+2006-08-06  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/16611
+	* include/bits/stl_bvector.h (vector<bool>::operator[],
+	vector<bool>::operator[] const): Do not use iterator::operator+,
+	hand code.
+
+2006-08-05  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28587
+	* include/bits/stl_bvector.h (vector<bool>::_M_fill): New.
+	(vector<bool>::_M_fill_insert): Use it.
+	* testsuite/performance/23_containers/resize/vector_bool.cc: New.
+	
+	* testsuite/23_containers/vector/bool/modifiers/insert/1.cc: New.
+	* testsuite/23_containers/vector/bool/capacity/1.cc: Likewise.
+
+2006-08-04  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_queue.h (priority_queue<>::push,
+	priority_queue<>::pop): Remove try/catch, just follow the
+	letter of the Standard.
+
+2006-08-03  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_queue.h: Trivial formatting fixes.
+	* include/bits/stl_stack.h: Likewise.
+
+2006-08-01  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	* docs/html/ext/tr1.html: Update.
+
+2006-07-31  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.tcc (num_put<>::_M_insert_float):
+	Find the decimal point in cs, instead of ws; tidy.
+
+2006-07-30  Roger Sayle  <roger@eyesopen.com>
+
+	* include/ext/codevt_specializations.h (__iconv_adaptor): Use
+	identifier _Tp instead of _T in template argument to avoid conflict.
+
+2006-07-30  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algo.h (stable_sort): Uglify the buf variable.
+	* include/bits/stl_tempbuf.h (_Temporary_buffer<>::
+	_M_initialize_buffer): Uglify the val parameter.
+
+2006-07-27  Benjamin Kosnik  <bkoz@wells.artheist.org>
+
+	PR libstdc++/19664 round 3	
+	* include/Makefile.am (tr1_headers): Add hashtable_policy.h.
+	* include/Makefile.in: Regenerate.
+	* include/tr1/hashtable: Move policy classes into...
+	* include/tr1/hashtable_policy.h: ... this. New.
+	
+	* src/globals_locale.cc: Move contents....
+	* src/locale_init.cc: ... to here, put in anonymous namespace.
+	* src/Makefile.am: Remove globals_locale.cc.
+	* src/Makefile.in: Regenerate.
+
+	* src/locale.cc: Convert __gnu_internal to anonymous namespace.
+	* src/debug.cc: Same.
+	* src/ext-inst.cc: Same.
+	* src/mt_allocator.cc: Same.
+	* src/pool_allocator.cc: Same.
+	
+	* include/tr1/random: Convert std::tr1::_Private to anonymous
+	namespace.
+	* include/tr1/random.tcc: Same.
+
+	* include/tr1/hashtable: Move ::Internal to std::tr1::detail and
+	enclose bits that can actually be internal in in anonymous
+	namespace.
+	* include/tr1/unordered_set: Adjust explicit qualifications for
+	namespace changes.
+	* include/tr1/unordered_map: Same.
+
+	* include/tr1/cmath: Convert __gnu_internal to nested detail namespace.
+
+	* include/bits/cpp_type_traits.h: Move __type_type into anonymous
+	namespace.
+	
+	* include/ext/rope: Change _Rope_constants to anonymous namespace.
+	* include/ext/ropeimpl.h: Same.
+	* src/ext-inst.cc: Same.
+
+2006-07-24  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/cinttypes: Simply protect everything with
+	_GLIBCXX_USE_C99_INTTYPES_TR1.
+	* include/tr1/cfenv: Likewise with _GLIBCXX_USE_C99_FENV_TR1.
+	* include/tr1/cstdint: Likewise with _GLIBCXX_USE_C99_STDINT_TR1.
+
+2006-07-21  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/tr1/random: Make include guards consistent.
+	* include/tr1/unordered_map: Same.
+	* include/tr1/hashtable: Same.
+	* include/tr1/unordered_set: Same.
+
+2006-07-21  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/26792
+	* configure.ac: Use GCC_CHECK_UNWIND_GETIPINFO to
+	define HAVE_GETIPINFO.
+	* aclocal.m4: Add include of ../config/unwind_ipinfo.m4.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+	* libmath/Makefile.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* src/Makefile.in: Regenerate.
+	* libsupc++/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+	* po/Makefile.in: Regenerate.
+	* libsupc++/eh_personality.cc: Check HAVE_GETIPINFO.
+
+2006-07-21  Jason Merrill  <jason@redhat.com>
+
+	PR libstdc++/19664 round 2	
+	* libsupc++/eh_personality.cc: Wrap extern "C" function
+	definitions in namespace __cxxabiv1.
+
+2006-07-21  David Daney  <ddaney@avtrex.com>
+
+	PR libgcj/28426
+	* acinclude.m4: Added a comment.
+
+2006-07-20  Benjamin Kosnik  <bkoz@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+	
+	PR libstdc++/19664 round 1
+	* acinclude.m4 (GLIBCXX_ENABLE_VISIBILITY): Check it.
+	* configure.ac: Use it.
+	* configure: Regenerate.
+	* docs/html/configopts.html: Document it.
+	* include/Makefile.am: Slip in to c++config.
+	* include/Makefile.in: Regenerate.
+	* include/bits/c++config (_GLIBCXX_VISIBILITY): New.
+	(_GLIBCXX_BEGIN_NAMESPACE): Use it.
+	(_GLIBCXX_END_NAMESPACE): Use it.
+	(_GLIBCXX_BEGIN_NESTED_NAMESPACE): Use it.
+	(_GLIBCXX_END_NESTED_NAMESPACE): Use it.		
+	* src/debug.cc: Mark __gnu_internal namespace with hidden
+	visibility attribute.
+	* src/ext-inst.cc: Same.
+	* src/globals_io.cc: Same.
+	* src/globals_locale.cc: Same.
+	* src/ios_init.cc: Same.
+	* src/locale.cc: Same.
+	* src/mt_allocator.cc: Same.
+	* src/pool_allocator.cc: Same.
+
+2006-07-16  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28277 (partial: valarray bits)
+	* include/std/std_valarray.h (valarray<>::shift(int),
+	valarray<>::cshift(int)): Avoid __builtin_alloca with no limit,
+	do the work in place.
+	* testsuite/26_numerics/valarray/28277.cc: New.
+
+2006-07-15  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28277 (partial: ostream bits 1)
+	* include/bits/ostream.tcc (operator<<(basic_ostream<_CharT>&,
+	const char*)): Avoid __builtin_alloca with no limit in the
+	widening.
+	* testsuite/27_io/basic_ostream/inserters_character/wchar_t/
+	28277-1.cc: New.
+
+2006-07-14  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): New.
+	* configure.ac: Use it.
+	* configure: Regenerated.
+	* config.h.in: Regenerated.
+	* configure.host: Simplify.
+	* include/bits/atomicity.h: Adjust macros.
+	* config/cpu/generic/atomicity.h: Move...
+	* config/cpu/generic/atomicity_mutex: New.
+	* config/cpu/generic/atomicity_mutex/atomicity.h: ...here.
+	* config/cpu/generic/atomic_builtins: Rename...
+	* config/cpu/generic/atomicity_builtins: ...to this.
+	* config/cpu/generic/atomicity_builtins/atomicity.h: Moved.
+	* config/cpu/mips/atomicity.h: Comment MIPS II requirement.
+
+	* scripts/testsuite_flags.in: Make --cxxflags reflect CXXFLAGS.
+	
+2006-07-14  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (minstd_rand0, minstd_rand, ranlux3, ranlux4):
+	Use unsigned long as implementation-defined type.
+
+2006-07-14  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random.tcc (struct _To_Unsigned_Type): Add.
+	(subtract_with_carry<>::seed(_Gen&, false_type)): Use an
+	unsigned type in the loop, fix factor multiplier, take g
+	invocations modulo 2^32.
+
+	* include/tr1/random.tcc (subtract_with_carry<>::
+	seed(unsigned long)): Fix value == 0 special case.
+
+	* include/tr1/random (struct _Shift): Fix for large shifts.
+
+2006-07-13  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/performance/21_strings/string_copy_cons_and_dest.cc: New.
+
+2006-07-13  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/Makefile.am (pch*_output_anchor): Add.
+	(pch*_output): Use.
+	(CLEANFILES): Use.
+	* include/Makefile.in: Regenerate.
+	
+	* scripts/check_performance: Be verbose on compile error.
+
+2006-07-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/Makefile.am: Revert last change.
+	* include/Makefile.in: Same.
+
+2006-07-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/Makefile.am (pch_output): Don't precompile extc++.h.
+	(pch_output_dirs): Same.
+	* include/Makefile.in: Regenerate.
+
+	* testsuite/lib/libstdc++.exp: Test PCH with stdtr1c++.h.
+	
+2006-07-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/codecvt_specializations.h: Fix typo in commit
+	for libstdc++/28290.
+
+2006-07-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.tcc (collate<>::do_transform(
+	const _CharT*, const _CharT*)): Simplify previous fix for
+	libstdc++/28277, always allocate memory dynamically.
+
+2006-07-11  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28344
+	* include/tr1/random (gamma_distribution<>::
+	gamma_distribution(const result_type&)): Don't use __alpha as
+	parameter name, a predefined macro on Alpha systems.
+
+2006-07-11  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28290
+	* include/ext/codecvt_specializations.h: Fix, adding missing
+	includes and guards.
+
+2006-07-11  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28277 (partial: collate bits)
+	* include/bits/locale_facets.tcc (collate<>::do_transform(
+	const _CharT*, const _CharT*)): Avoid __builtin_alloca with no
+	limit; also avoid multiple calls (in a loop).
+	* testsuite/22_locale/collate/transform/char/28277.cc: New.
+	* testsuite/22_locale/collate/transform/wchar_t/28277.cc: Likewise.
+
+2006-07-10  Mike Stump  <mrs@apple.com>
+
+	* libsupc++/eh_globals.cc (~__eh_globals_init): Unset _M_init.
+
+2006-07-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/15448
+	* include/Makefile.am: Clean up pch rules.
+	* include/Makefile.in: Regenerate.
+
+2006-07-09  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.tcc (__int_to_char<>(_CharT*,
+	long, const _CharT*, ios_base::fmtflags), __int_to_char<>(_CharT*,
+	unsigned long, const _CharT*, ios_base::fmtflags),
+	__int_to_char<>(_CharT*, long long, const _CharT*, ios_base::fmtflags),
+	__int_to_char<>(_CharT*, unsigned long long, const _CharT*,
+	ios_base::fmtflags)): Remove.
+	(__int_to_char<>(_CharT*, _ValueT, const _CharT*, ios_base::fmtflags,
+	bool)): Adjust.
+	(num_put<>::_M_insert_int(_OutIter, ios_base&, _CharT, _ValueT)):
+	Likewise.
+
+2006-07-06  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (class gamma_distribution<>): Add.
+	* include/tr1/random.tcc (gamma_distribution<>::operator(),
+	operator<<(std::basic_ostream<>&, const gamma_distribution<>&)):
+	Define.
+	* testsuite/tr1/5_numerical_facilities/random/gamma_distribution/
+	requirements/typedefs.cc: New.
+
+2006-07-06  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/util/regression/trait/assoc/trait.hpp: Format.
+	* testsuite/util/regression/rand/priority_queue/
+	rand_regression_test.hpp: Same.
+	* testsuite/util/regression/rand/assoc/rand_regression_test.hpp: Same.
+	* testsuite/util/regression/rand/
+	assoc/container_rand_regression_test.hpp: Same.
+	* testsuite/util/regression/priority_queue/common_type.hpp: Same.
+	* testsuite/util/regression/assoc/common_type.hpp: Same.
+	* testsuite/util/regression/basic_type.hpp: Same.
+
+2006-07-05  Benjamin Kosnik  <bkoz@redhat.com>	
+
+	* include/Makefile.am (pch_output): New.
+	(clean-local): Use it.
+	* include/Makefile.in: Regenerate.
+
+2006-07-04  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/random (_Adaptor<>::operator()()): Cast 1 to
+	result_type.
+	(variate_generator<>::operator()(),
+	variate_generator<>::operator()(_Tp)): Inline.
+
+	* include/tr1/random: Minor cosmetic changes.
+
+2006-07-03  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/rc_string_base.h (__rc_string_base::_S_max_size):
+	Adjust, take into account rounding in _M_create.
+	(__rc_string_base::_M_create): Add early _S_max_size check.
+
+2006-07-03  Ian Lance Taylor  <ian@airs.com>
+	    Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/rc_string_base.h (__rc_string_base::_S_max_size):
+	Increase by a factor of two.
+	* include/ext/sso_string_base.h (__sso_string_base::_S_max_size):
+	Likewise.
+
+2006-07-03  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/sso_string_base.h (__sso_string_base::_M_create): Never
+	allocate a string bigger than _S_max_size.
+
+2006-06-29  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/Makefile.am (pch1_input, pch1_output_builddir,
+	pch1_outputj_installdir, pch1_source): Move from pch_*.
+	(pch2_input, pch2_output_builddir,
+	pch2_output_installdir, pch2_source): Clone for ext.
+	(pch3_input, pch3_output_builddir,
+	pch3_output_installdir, pch3_source): Clone for tr1.
+	(install-pch): Same.
+	* include/Makefile.in: Regenerate.
+
+	* include/precompiled: New directory.
+	* include/stdc++.h: Move...
+	* include/precompiled/stdc++.h: ... here.		
+	* include/precompiled/stdtr1c++.h: New.
+	* include/precompiled/extc++.h: New.
+
+	* testsuite/lib/libstdc++.exp (libstdc++_init): Set PCH_CXXFLAGS
+	to -include bits/stdtr1c++.h.
+
+2006-06-29  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/lib/libstdc++.exp (v3_target_compile): Set timeout to
+	600.
+
+2006-06-27  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/util/regression/rand/priority_queue/
+	rand_regression_test.hpp: Revert.
+
+2006-06-27  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/typelist.h (typelist_append): To append_typelist. 
+	(typelist): To node.
+	Enclose in namespace typelist.
+	* testsuite/util/testsuite_common_types.h: Adjust names, namespaces.
+	* testsuite/performance/23_containers/find/map.cc: Same.
+	* testsuite/performance/23_containers/create/map.cc: Same.
+	* testsuite/performance/23_containers/insert_erase/associative.cc: 
+	Same.
+	* testsuite/performance/23_containers/insert/sequence.cc: Same.
+	* testsuite/performance/23_containers/insert/associative.cc: Same.
+	* testsuite/performance/23_containers/create_from_sorted/set.cc: Same.
+	* testsuite/performance/23_containers/index/map.cc: Same.
+	* testsuite/performance/23_containers/insert_from_sorted/set.cc: Same.
+	* testsuite/performance/23_containers/create_sort/list.cc: Same.
+	* testsuite/performance/23_containers/sort_search/list.cc: Same.
+	* testsuite/performance/23_containers/producer_consumer/sequence.cc: 
+	Same.
+	* testsuite/performance/23_containers/producer_consumer/associative.cc:
+	Same.
+
+2006-06-26  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/ext/pb_ds/regression/trie_no_data_map_rand.cc:
+	Reduce iterations by half.
+	* testsuite/ext/pb_ds/regression/hash_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/hash_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/list_update_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/list_update_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/priority_queue_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/tree_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/tree_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/trie_data_map_rand.cc: Same.
+
+	* testsuite/util/regression/rand/assoc/rand_regression_test.hpp:
+	Set probability of compare from 1 to 0.25.
+	* testsuite/util/regression/rand/priority_queue/
+	rand_regression_test.hpp: Same.
+
 2006-06-25  Paolo Carlini  <pcarlini@suse.de>
 
 	* include/tr1/random (operator<<(std::basic_ostream<>&,
@@ -1432,8 +3522,8 @@
 	
 2006-04-26  Shantonu Sen  <ssen@opendarwin.org>
 
-         PR libstdc++/26513
-         * scripts/make_exports.pl: Use $ENV{NM_FOR_TARGET}, if present.
+	PR libstdc++/26513
+	* scripts/make_exports.pl: Use $ENV{NM_FOR_TARGET}, if present.
 
 2006-04-23  Marc Glisse  <marc.glisse@normalesup.org>
 

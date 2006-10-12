@@ -117,10 +117,17 @@ public final class SocketPermission extends Permission implements Serializable
   static final long serialVersionUID = -7204263841984476862L;
 
   /**
-   * A hostname (possibly wildcarded) or IP address (IPv4 or IPv6).
+   * A hostname (possibly wildcarded).  Will be set if and only if
+   * this object was initialized with a hostname.
    */
-  private transient String host;
+  private transient String hostname = null;
 
+  /**
+   * An IP address (IPv4 or IPv6).  Will be set if and only if this
+   * object was initialized with a single literal IP address.
+   */  
+  private transient InetAddress address = null;
+  
   /**
    * A range of ports.
    */
@@ -164,30 +171,83 @@ public final class SocketPermission extends Permission implements Serializable
    */
   public SocketPermission(String hostport, String actions)
   {
-    super(hostport);
+    super(processHostport(hostport));
 
-    setHostPort(hostport);
+    setHostPort(getName());
     setActions(actions);
   }
 
+  /**
+   * There are two cases in which hostport needs rewriting before
+   * being passed to the superclass constructor.  If hostport is an
+   * empty string then it is substituted with "localhost".  And if
+   * the host part of hostport is a literal IPv6 address in the full
+   * uncompressed form not enclosed with "[" and "]" then we enclose
+   * it with them.
+   */
+  private static String processHostport(String hostport)
+  {
+    if (hostport.length() == 0)
+      return "localhost";
+
+    if (hostport.charAt(0) == '[')
+      return hostport;
+
+    int colons = 0;
+    boolean colon_allowed = true;
+    for (int i = 0; i < hostport.length(); i++)
+      {
+	if (hostport.charAt(i) == ':')
+	  {
+	    if (!colon_allowed)
+	      throw new IllegalArgumentException("Ambiguous hostport part");
+	    colons++;
+	    colon_allowed = false;
+	  }
+	else
+	  colon_allowed = true;
+      }
+
+    switch (colons)
+      {
+      case 0:
+      case 1:
+	// a hostname or IPv4 address
+	return hostport;
+	
+      case 7:
+	// an IPv6 address with no ports
+	return "[" + hostport + "]";
+
+      case 8:
+	// an IPv6 address with ports
+	int last_colon = hostport.lastIndexOf(':');
+	return "[" + hostport.substring(0, last_colon) + "]"
+	  + hostport.substring(last_colon);
+
+      default:
+	throw new IllegalArgumentException("Ambiguous hostport part");
+      }
+  }
+  
   /**
    * Parse the hostport argument to the constructor.
    */
   private void setHostPort(String hostport)
   {
     // Split into host and ports
-    String ports;
-    if (hostport.length() == 0)
-      {
-	host = ports = "";
-      }
-    else if (hostport.charAt(0) == '[')
+    String host, ports;
+    if (hostport.charAt(0) == '[')
       {
 	// host is a bracketed IPv6 address
 	int end = hostport.indexOf("]");
 	if (end == -1)
 	  throw new IllegalArgumentException("Unmatched '['");
 	host = hostport.substring(1, end);
+
+	address = InetAddress.getByLiteral(host);
+	if (address == null)
+	  throw new IllegalArgumentException("Bad IPv6 address");
 
 	if (end == hostport.length() - 1)
 	  ports = "";
@@ -210,9 +270,16 @@ public final class SocketPermission extends Permission implements Serializable
 	    host = hostport.substring(0, sep);
 	    ports = hostport.substring(sep + 1);
 	  }
+
+	address = InetAddress.getByLiteral(host);
+	if (address == null)
+	  {
+	    if (host.lastIndexOf('*') > 0)
+	      throw new IllegalArgumentException("Bad hostname");
+
+	    hostname = host;
+	  }
       }
-    if (ports.indexOf(":") != -1)
-      throw new IllegalArgumentException("Unexpected ':'");
 
     // Parse and validate the ports
     if (ports.length() == 0)
@@ -319,10 +386,25 @@ public final class SocketPermission extends Permission implements Serializable
     else
       return false;
 
-    return p.actionmask == actionmask &&
-      p.minport == minport &&
-      p.maxport == maxport &&
-      p.host.equals(host);
+    if (p.actionmask != actionmask ||
+	p.minport != minport ||
+	p.maxport != maxport)
+      return false;
+
+    if (address != null)
+      {
+	if (p.address == null)
+	  return false;
+	else
+	  return p.address.equals(address);
+      }
+    else
+      {
+	if (p.hostname == null)
+	  return false;
+	else
+	  return p.hostname.equals(hostname);
+      }
   }
 
   /**
@@ -333,7 +415,12 @@ public final class SocketPermission extends Permission implements Serializable
    */
   public int hashCode()
   {
-    return actionmask + minport + maxport + host.hashCode();
+    int code = actionmask + minport + maxport;
+    if (address != null)
+      code += address.hashCode();
+    else
+      code += hostname.hashCode();
+    return code;
   }
 
   /**
@@ -373,6 +460,44 @@ public final class SocketPermission extends Permission implements Serializable
   }
 
   /**
+   * Returns an array of all IP addresses represented by this object.
+   */
+  private InetAddress[] getAddresses()
+  {
+    if (address != null)
+      return new InetAddress[] {address};
+
+    try
+      {
+	return InetAddress.getAllByName(hostname);
+      }
+    catch (UnknownHostException e)
+      {
+	return new InetAddress[0];
+      }
+  }
+
+  /**
+   * Returns the canonical hostname represented by this object,
+   * or null if this object represents a wildcarded domain.
+   */
+  private String getCanonicalHostName()
+  {
+    if (address != null)
+      return address.internalGetCanonicalHostName();
+    if (hostname.charAt(0) == '*')
+      return null;
+    try
+      {
+	return InetAddress.getByName(hostname).internalGetCanonicalHostName();
+      }
+    catch (UnknownHostException e)
+      {
+	return null;
+      }
+  }
+  
+  /**
    * Returns true if the permission object passed it is implied by the
    * this permission.  This will be true if:
    * 
@@ -407,6 +532,11 @@ public final class SocketPermission extends Permission implements Serializable
     else
       return false;
 
+    // If p was initialised with an empty hostname then we do not
+    // imply it. This is not part of the spec, but it seems necessary.
+    if (p.hostname != null && p.hostname.length() == 0)
+      return false;
+    
     // Next check the actions
     if ((p.actionmask & actionmask) != p.actionmask)
 	return false;
@@ -416,36 +546,54 @@ public final class SocketPermission extends Permission implements Serializable
       return false;
 
     // Finally check the hosts
-    if (host.equals(p.host))
-      return true;
+    String p_canon = null;
 
-    // Try the canonical names
-    String ourcanonical = null;
-    String theircanonical = null;
-    try
+    // Return true if this object was initialized with a single
+    // IP address which one of p's IP addresses is equal to.
+    if (address != null)
       {
-	ourcanonical = InetAddress.getByName(host).getHostName();
-	theircanonical = InetAddress.getByName(p.host).getHostName();
-      }
-    catch (UnknownHostException e)
-      {
-	// Who didn't resolve?  Just assume current address is canonical enough
-	// Is this ok to do?
-	if (ourcanonical == null)
-	  ourcanonical = host;
-	if (theircanonical == null)
-	  theircanonical = p.host;
+	InetAddress[] addrs = p.getAddresses();
+	for (int i = 0; i < addrs.length; i++)
+	  {
+	    if (address.equals(addrs[i]))
+	      return true;
+	  }
       }
 
-    if (ourcanonical.equals(theircanonical))
-      return true;
-
-    // Well, last chance.  Try for a wildcard
-    if (host.indexOf("*.") != -1)
+    // Return true if this object is a wildcarded domain that
+    // p's canonical name matches.
+    if (hostname != null && hostname.charAt(0) == '*')
       {
-	String wild_domain =
-	  host.substring(host.indexOf("*" + 1));
-	if (theircanonical.endsWith(wild_domain))
+	p_canon = p.getCanonicalHostName();
+	if (p_canon != null && p_canon.endsWith(hostname.substring(1)))
+	  return true;
+	
+      }
+
+    // Return true if this one of this object's IP addresses
+    // is equal to one of p's.
+    if (address == null)
+      {
+	InetAddress[] addrs = p.getAddresses();
+	InetAddress[] p_addrs = p.getAddresses();
+
+	for (int i = 0; i < addrs.length; i++)
+	  {
+	    for (int j = 0; j < p_addrs.length; j++)
+	      {
+		if (addrs[i].equals(p_addrs[j]))
+		  return true;
+	      }
+	  }
+      }
+
+    // Return true if this object's canonical name equals p's.
+    String canon = getCanonicalHostName();
+    if (canon != null)
+      {
+	if (p_canon == null)
+	  p_canon = p.getCanonicalHostName();
+	if (p_canon != null && canon.equals(p_canon))
 	  return true;
       }
 

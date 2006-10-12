@@ -759,6 +759,7 @@ const struct mips_cpu_info mips_cpu_info_table[] = {
   { "5kf", PROCESSOR_5KF, 64 },
   { "20kc", PROCESSOR_20KC, 64 },
   { "sb1", PROCESSOR_SB1, 64 },
+  { "sb1a", PROCESSOR_SB1A, 64 },
   { "sr71000", PROCESSOR_SR71000, 64 },
 
   /* End marker */
@@ -1016,6 +1017,21 @@ static struct mips_rtx_cost_data const mips_rtx_cost_data[PROCESSOR_MAX] =
                        4            /* memory_latency */
     },
     { /* SB1 */
+      /* These costs are the same as the SB-1A below.  */
+      COSTS_N_INSNS (4),            /* fp_add */
+      COSTS_N_INSNS (4),            /* fp_mult_sf */
+      COSTS_N_INSNS (4),            /* fp_mult_df */
+      COSTS_N_INSNS (24),           /* fp_div_sf */
+      COSTS_N_INSNS (32),           /* fp_div_df */
+      COSTS_N_INSNS (3),            /* int_mult_si */
+      COSTS_N_INSNS (4),            /* int_mult_di */
+      COSTS_N_INSNS (36),           /* int_div_si */
+      COSTS_N_INSNS (68),           /* int_div_di */
+                       1,           /* branch_cost */
+                       4            /* memory_latency */
+    },
+    { /* SB1-A */
+      /* These costs are the same as the SB-1 above.  */
       COSTS_N_INSNS (4),            /* fp_add */
       COSTS_N_INSNS (4),            /* fp_mult_sf */
       COSTS_N_INSNS (4),            /* fp_mult_df */
@@ -1205,7 +1221,10 @@ mips_classify_symbol (rtx x)
 	return SYMBOL_SMALL_DATA;
     }
 
-  if (SYMBOL_REF_SMALL_P (x))
+  /* Do not use small-data accesses for weak symbols; they may end up
+     being zero.  */
+  if (SYMBOL_REF_SMALL_P (x)
+      && !SYMBOL_REF_WEAK (x))
     return SYMBOL_SMALL_DATA;
 
   if (TARGET_ABICALLS)
@@ -2017,6 +2036,11 @@ mips_legitimize_tls_address (rtx loc)
   v1 = gen_rtx_REG (Pmode, GP_RETURN + 1);
 
   model = SYMBOL_REF_TLS_MODEL (loc);
+  /* Only TARGET_ABICALLS code can have more than one module; other
+     code must be be static and should not use a GOT.  All TLS models
+     reduce to local exec in this situation.  */
+  if (!TARGET_ABICALLS)
+    model = TLS_MODEL_LOCAL_EXEC;
 
   switch (model)
     {
@@ -2059,7 +2083,6 @@ mips_legitimize_tls_address (rtx loc)
       break;
 
     case TLS_MODEL_LOCAL_EXEC:
-
       if (Pmode == DImode)
 	emit_insn (gen_tls_get_tp_di (v1));
       else
@@ -4525,13 +4548,15 @@ bool
 mips_expand_unaligned_store (rtx dest, rtx src, unsigned int width, int bitpos)
 {
   rtx left, right;
+  enum machine_mode mode;
 
   if (!mips_get_unaligned_mem (&dest, width, bitpos, &left, &right))
     return false;
 
-  src = gen_lowpart (mode_for_size (width, MODE_INT, 0), src);
+  mode = mode_for_size (width, MODE_INT, 0);
+  src = gen_lowpart (mode, src);
 
-  if (GET_MODE (src) == DImode)
+  if (mode == DImode)
     {
       emit_insn (gen_mov_sdl (dest, src, left));
       emit_insn (gen_mov_sdr (copy_rtx (dest), copy_rtx (src), right));
@@ -4542,6 +4567,20 @@ mips_expand_unaligned_store (rtx dest, rtx src, unsigned int width, int bitpos)
       emit_insn (gen_mov_swr (copy_rtx (dest), copy_rtx (src), right));
     }
   return true;
+}
+
+/* Return true if X is a MEM with the same size as MODE.  */
+
+bool
+mips_mem_fits_mode_p (enum machine_mode mode, rtx x)
+{
+  rtx size;
+
+  if (!MEM_P (x))
+    return false;
+
+  size = MEM_SIZE (x);
+  return size && INTVAL (size) == GET_MODE_SIZE (mode);
 }
 
 /* Return true if (zero_extract OP SIZE POSITION) can be used as the
@@ -6489,7 +6528,7 @@ mips_save_restore_reg (enum machine_mode mode, int regno,
 {
   rtx mem;
 
-  mem = gen_rtx_MEM (mode, plus_constant (stack_pointer_rtx, offset));
+  mem = gen_frame_mem (mode, plus_constant (stack_pointer_rtx, offset));
 
   fn (gen_rtx_REG (mode, regno), mem);
 }
@@ -7281,8 +7320,10 @@ mips_function_rodata_section (tree decl)
   return data_section;
 }
 
-/* Implement TARGET_IN_SMALL_DATA_P.  Return true if it would be safe to
-   access DECL using %gp_rel(...)($gp).  */
+/* Implement TARGET_IN_SMALL_DATA_P.  This function controls whether
+   locally-defined objects go in a small data section.  It also controls
+   the setting of the SYMBOL_REF_SMALL_P flag, which in turn helps
+   mips_classify_symbol decide when to use %gp_rel(...)($gp) accesses.  */
 
 static bool
 mips_in_small_data_p (tree decl)
@@ -7524,10 +7565,10 @@ mips_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
       int size;
 
       /* ??? How should SCmode be handled?  */
-      if (type == NULL_TREE || mode == DImode || mode == DFmode)
+      if (mode == DImode || mode == DFmode)
 	return 0;
 
-      size = int_size_in_bytes (type);
+      size = type ? int_size_in_bytes (type) : GET_MODE_SIZE (mode);
       return size == -1 || size > UNITS_PER_WORD;
     }
   else
@@ -9904,6 +9945,7 @@ mips_issue_rate (void)
       return 2;
 
     case PROCESSOR_SB1:
+    case PROCESSOR_SB1A:
       /* This is actually 4, but we get better performance if we claim 3.
 	 This is partly because of unwanted speculative code motion with the
 	 larger number, and partly because in most common cases we can't
@@ -9922,10 +9964,24 @@ static int
 mips_multipass_dfa_lookahead (void)
 {
   /* Can schedule up to 4 of the 6 function units in any one cycle.  */
-  if (mips_tune == PROCESSOR_SB1)
+  if (TUNE_SB1)
     return 4;
 
   return 0;
+}
+
+/* Implements a store data bypass check.  We need this because the cprestore
+   pattern is type store, but defined using an UNSPEC.  This UNSPEC causes the
+   default routine to abort.  We just return false for that case.  */
+/* ??? Should try to give a better result here than assuming false.  */
+
+int
+mips_store_data_bypass_p (rtx out_insn, rtx in_insn)
+{
+  if (GET_CODE (PATTERN (in_insn)) == UNSPEC_VOLATILE)
+    return false;
+
+  return ! store_data_bypass_p (out_insn, in_insn);
 }
 
 /* Given that we have an rtx of the form (prefetch ... WRITE LOCALITY),
@@ -10036,9 +10092,6 @@ struct builtin_description
   CMP_PS_BUILTINS (cabs, COND, MASK_MIPS3D),				\
   CMP_4S_BUILTINS (c, COND),						\
   CMP_4S_BUILTINS (cabs, COND)
-
-/* __builtin_mips_abs_ps() maps to the standard absM2 pattern.  */
-#define CODE_FOR_mips_abs_ps CODE_FOR_absv2sf2
 
 static const struct builtin_description mips_bdesc[] =
 {

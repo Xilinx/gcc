@@ -33,6 +33,7 @@ Boston, MA 02110-1301, USA.  */
 
 #include <math.h>
 #include <stddef.h>
+#include <float.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327
@@ -196,6 +197,18 @@ typedef off_t gfc_offset;
 
 #include "kinds.h"
 
+/* Define the type used for the current record number for large file I/O.
+   The size must be consistent with the size defined on the compiler side.  */
+#ifdef HAVE_GFC_INTEGER_8
+typedef GFC_INTEGER_8 GFC_IO_INT;
+#else
+#ifdef HAVE_GFC_INTEGER_4
+typedef GFC_INTEGER_4 GFC_IO_INT;
+#else
+#error "GFC_INTEGER_4 should be available for the library to compile".
+#endif
+#endif
+
 /* The following two definitions must be consistent with the types used
    by the compiler.  */
 /* The type used of array indices, amongst other things.  */
@@ -226,6 +239,24 @@ internal_proto(l8_to_l4_offset);
 #endif
 #ifdef HAVE_GFC_REAL_16
 #define GFC_REAL_16_HUGE LDBL_MAX
+#endif
+
+#define GFC_REAL_4_DIGITS FLT_MANT_DIG
+#define GFC_REAL_8_DIGITS DBL_MANT_DIG
+#ifdef HAVE_GFC_REAL_10
+#define GFC_REAL_10_DIGITS LDBL_MANT_DIG
+#endif
+#ifdef HAVE_GFC_REAL_16
+#define GFC_REAL_16_DIGITS LDBL_MANT_DIG
+#endif
+
+#define GFC_REAL_4_RADIX FLT_RADIX
+#define GFC_REAL_8_RADIX FLT_RADIX
+#ifdef HAVE_GFC_REAL_10
+#define GFC_REAL_10_RADIX FLT_RADIX
+#endif
+#ifdef HAVE_GFC_REAL_16
+#define GFC_REAL_16_RADIX FLT_RADIX
 #endif
 
 #ifndef GFC_MAX_DIMENSIONS
@@ -414,6 +445,11 @@ typedef enum
 { SILENT, WARNING, ERROR }
 notification;
 
+/* This is returned by notify_std and several io functions.  */
+typedef enum
+{ SUCCESS = 1, FAILURE }
+try;
+
 /* The filename and line number don't go inside the globals structure.
    They are set by the rest of the program and must be linked to.  */
 
@@ -491,6 +527,9 @@ internal_proto(translate_error);
 
 extern void generate_error (struct st_parameter_common *, int, const char *);
 internal_proto(generate_error);
+
+extern try notify_std (struct st_parameter_common *, int, const char *);
+internal_proto(notify_std);
 
 /* fpu.c */
 
@@ -607,6 +646,11 @@ extern void internal_unpack_c10 (gfc_array_c10 *, const GFC_COMPLEX_10 *);
 internal_proto(internal_unpack_c10);
 #endif
 
+#if defined HAVE_GFC_COMPLEX_16
+extern void internal_unpack_c16 (gfc_array_c16 *, const GFC_COMPLEX_16 *);
+internal_proto(internal_unpack_c16);
+#endif
+
 /* string_intrinsics.c */
 
 extern GFC_INTEGER_4 compare_string (GFC_INTEGER_4, const char *,
@@ -618,14 +662,6 @@ iexport_proto(compare_string);
 extern void random_seed (GFC_INTEGER_4 * size, gfc_array_i4 * put,
 			 gfc_array_i4 * get);
 iexport_proto(random_seed);
-
-/* normalize.c */
-
-extern GFC_REAL_4 normalize_r4_i4 (GFC_UINTEGER_4, GFC_UINTEGER_4);
-internal_proto(normalize_r4_i4);
-
-extern GFC_REAL_8 normalize_r8_i8 (GFC_UINTEGER_8, GFC_UINTEGER_8);
-internal_proto(normalize_r8_i8);
 
 /* size.c */
 

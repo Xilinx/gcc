@@ -50,13 +50,10 @@ PB_DS_CLASS_C_DEC::
 erase(const_key_reference r_key)
 {
   point_iterator it = find(r_key);
-
-  if (it == PB_DS_BASE_C_DEC::end())
-    return (false);
-
+  if (it == base_type::end())
+    return false;
   erase(it);
-
-  return (true);
+  return true;
 }
 
 PB_DS_CLASS_T_DEC
@@ -64,20 +61,14 @@ inline typename PB_DS_CLASS_C_DEC::iterator
 PB_DS_CLASS_C_DEC::
 erase(iterator it)
 {
-  PB_DS_DBG_ONLY(assert_valid());
-
-  if (it == PB_DS_BASE_C_DEC::end())
-    return (it);
-
+  _GLIBCXX_DEBUG_ONLY(assert_valid());
+  if (it == base_type::end())
+    return it;
   iterator ret_it = it;
-
   ++ret_it;
-
   erase_node(it.m_p_nd);
-
-  PB_DS_DBG_ONLY(assert_valid());
-
-  return (ret_it);
+  _GLIBCXX_DEBUG_ONLY(assert_valid());
+  return ret_it;
 }
 
 PB_DS_CLASS_T_DEC
@@ -85,20 +76,14 @@ inline typename PB_DS_CLASS_C_DEC::reverse_iterator
 PB_DS_CLASS_C_DEC::
 erase(reverse_iterator it)
 {
-  PB_DS_DBG_ONLY(assert_valid());
-
-  if (it.m_p_nd == PB_DS_BASE_C_DEC::m_p_head)
+  _GLIBCXX_DEBUG_ONLY(assert_valid());
+  if (it.m_p_nd == base_type::m_p_head)
     return (it);
-
   reverse_iterator ret_it = it;
-
   ++ret_it;
-
   erase_node(it.m_p_nd);
-
-  PB_DS_DBG_ONLY(assert_valid());
-
-  return (ret_it);
+  _GLIBCXX_DEBUG_ONLY(assert_valid());
+  return ret_it;
 }
 
 PB_DS_CLASS_T_DEC
@@ -107,27 +92,21 @@ inline typename PB_DS_CLASS_C_DEC::size_type
 PB_DS_CLASS_C_DEC::
 erase_if(Pred pred)
 {
-  PB_DS_DBG_ONLY(assert_valid();)
-
-    size_type num_ersd = 0;
-
-  iterator it = PB_DS_BASE_C_DEC::begin();
-
-  while (it != PB_DS_BASE_C_DEC::end())
+  _GLIBCXX_DEBUG_ONLY(assert_valid();)
+  size_type num_ersd = 0;
+  iterator it = base_type::begin();
+  while (it != base_type::end())
     {
       if (pred(*it))
         {
 	  ++num_ersd;
-
 	  it = erase(it);
         }
       else
 	++it;
     }
-
-  PB_DS_DBG_ONLY(assert_valid();)
-
-    return (num_ersd);
+  _GLIBCXX_DEBUG_ONLY(assert_valid();)
+  return num_ersd;
 }
 
 PB_DS_CLASS_T_DEC
@@ -135,57 +114,41 @@ void
 PB_DS_CLASS_C_DEC::
 erase_node(node_pointer p_nd)
 {
-  PB_DS_DBG_ASSERT(p_nd != NULL);
-
+  _GLIBCXX_DEBUG_ASSERT(p_nd != NULL);
   splay(p_nd);
 
-  PB_DS_DBG_ONLY(assert_valid();)
-    PB_DS_DBG_ASSERT(p_nd == this->m_p_head->m_p_parent);
+  _GLIBCXX_DEBUG_ONLY(assert_valid();)
+  _GLIBCXX_DEBUG_ASSERT(p_nd == this->m_p_head->m_p_parent);
 
   node_pointer p_l = p_nd->m_p_left;
   node_pointer p_r = p_nd->m_p_right;
 
-  PB_DS_BASE_C_DEC::update_min_max_for_erased_node(p_nd);
-
-  PB_DS_BASE_C_DEC::actual_erase_node(p_nd);
-
+  base_type::update_min_max_for_erased_node(p_nd);
+  base_type::actual_erase_node(p_nd);
   if (p_r == NULL)
     {
-      PB_DS_BASE_C_DEC::m_p_head->m_p_parent = p_l;
-
+      base_type::m_p_head->m_p_parent = p_l;
       if (p_l != NULL)
-	p_l->m_p_parent = PB_DS_BASE_C_DEC::m_p_head;
-
-      PB_DS_DBG_ONLY(assert_valid();)
-
-        return;
+	p_l->m_p_parent = base_type::m_p_head;
+      _GLIBCXX_DEBUG_ONLY(assert_valid();)
+      return;
     }
 
   node_pointer p_target_r = leftmost(p_r);
-
-  PB_DS_DBG_ASSERT(p_target_r != NULL);
-
-  p_r->m_p_parent = PB_DS_BASE_C_DEC::m_p_head;
-
-  PB_DS_BASE_C_DEC::m_p_head->m_p_parent = p_r;
-
+  _GLIBCXX_DEBUG_ASSERT(p_target_r != NULL);
+  p_r->m_p_parent = base_type::m_p_head;
+  base_type::m_p_head->m_p_parent = p_r;
   splay(p_target_r);
 
-  PB_DS_DBG_ONLY(p_target_r->m_p_left = NULL);
-
-  PB_DS_DBG_ASSERT(p_target_r->m_p_parent == this->m_p_head);
-
-  PB_DS_DBG_ASSERT(this->m_p_head->m_p_parent ==
-		   p_target_r);
+  _GLIBCXX_DEBUG_ONLY(p_target_r->m_p_left = NULL);
+  _GLIBCXX_DEBUG_ASSERT(p_target_r->m_p_parent == this->m_p_head);
+  _GLIBCXX_DEBUG_ASSERT(this->m_p_head->m_p_parent == p_target_r);
 
   p_target_r->m_p_left = p_l;
-
   if (p_l != NULL)
     p_l->m_p_parent = p_target_r;
-
-  PB_DS_DBG_ONLY(assert_valid();)
-
-    apply_update(p_target_r, (node_update* )this);
+  _GLIBCXX_DEBUG_ONLY(assert_valid();)
+  apply_update(p_target_r, (node_update* )this);
 }
 
 PB_DS_CLASS_T_DEC
@@ -193,10 +156,8 @@ inline typename PB_DS_CLASS_C_DEC::node_pointer
 PB_DS_CLASS_C_DEC::
 leftmost(node_pointer p_nd)
 {
-  PB_DS_DBG_ASSERT(p_nd != NULL);
-
+  _GLIBCXX_DEBUG_ASSERT(p_nd != NULL);
   while (p_nd->m_p_left != NULL)
     p_nd = p_nd->m_p_left;
-
-  return (p_nd);
+  return p_nd;
 }

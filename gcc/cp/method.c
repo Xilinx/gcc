@@ -161,6 +161,9 @@ make_thunk (tree function, bool this_adjusting,
   DECL_DECLARED_INLINE_P (thunk) = 0;
   /* Nor has it been deferred.  */
   DECL_DEFERRED_FN (thunk) = 0;
+  /* Nor is it a template instantiation.  */
+  DECL_USE_TEMPLATE (thunk) = 0;
+  DECL_TEMPLATE_INFO (thunk) = NULL;
 
   /* Add it to the list of thunks associated with FUNCTION.  */
   TREE_CHAIN (thunk) = DECL_THUNKS (function);
@@ -416,6 +419,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
       TREE_CHAIN (x) = t;
       DECL_CONTEXT (x) = thunk_fndecl;
       SET_DECL_RTL (x, NULL_RTX);
+      DECL_HAS_VALUE_EXPR_P (x) = 0;
       t = x;
     }
   a = nreverse (t);
@@ -943,6 +947,10 @@ locate_copy (tree type, void *client_)
       if (!parms)
 	continue;
       src_type = non_reference (TREE_VALUE (parms));
+
+      if (src_type == error_mark_node)
+        return NULL_TREE;
+
       if (!same_type_ignoring_top_level_qualifiers_p (src_type, type))
 	continue;
       if (!sufficient_parms_p (TREE_CHAIN (parms)))

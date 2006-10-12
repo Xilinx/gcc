@@ -31,6 +31,8 @@
 #   fallback_backtrace_h  Header to use for fallback backtrace implementation
 #			  (only for targets that don't support DWARF2 unwind)
 #   descriptor_h	Header to use for looking past function descriptors
+#   use_libgcj_bc	Whether to build a "libgcj-bc" library for BC-ABI
+#			binaries to link against.
 
 libgcj_flags=
 libgcj_cflags=
@@ -89,6 +91,9 @@ case "${host}" in
 	FILE=Posix
  	enable_java_net_default=no
  	enable_getenv_properties_default=no
+	;;
+  mipsel-*|mips-*)
+	libgcj_interpreter=yes
 	;;
   i686-*|i586-*|i486-*|i386-*)
 	sysdeps_dir=i386
@@ -237,6 +242,10 @@ EOF
 	  rm -f conftest conftest.c
 	fi
 	;;
+   i[34567]86*-kfreebsd*-gnu | x86_64*-kfreebsd*-gnu)
+        libgcj_ld_symbolic='-Wl,-Bsymbolic'
+        slow_pthread_self=
+        ;;
   i[34567]86-*-solaris2.1[0-9]* )
 	sysdeps_dir=x86-64
 	DIVIDESPEC=-f%{m32:no-}%{!m32:%{!m64:no-}}%{m64:}use-divide-subroutine
@@ -255,6 +264,11 @@ EOF
 	enable_hash_synchronization_default=yes
 	slow_pthread_self=
 	can_unwind_signal=yes
+	;;
+  i?86-*-darwin*)
+	enable_hash_synchronization_default=yes
+	slow_pthread_self=
+	can_unwind_signal=no
 	;;
   *-*-freebsd*)
 	slow_pthread_self=
@@ -313,6 +327,15 @@ case "${host}" in
 	descriptor_h=sysdep/descriptor-n.h
 	;;
 esac
+
+case "${host}" in
+  *linux*|*-kfreebsd*-gnu)
+    use_libgcj_bc=yes
+  ;;
+  *)
+    use_libgcj_bc=no
+  ;;
+esac    
 
 libgcj_cflags="${libgcj_cflags} ${libgcj_flags}"
 libgcj_cxxflags="${libgcj_cxxflags} ${libgcj_flags}"

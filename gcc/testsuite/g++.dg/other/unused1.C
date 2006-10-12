@@ -1,5 +1,6 @@
 /* { dg-do compile } */
 /* { dg-options "-g" } */
+/* { dg-skip-if "" { { hppa*-*-hpux* *-*-solaris2.[56]* } && { ! hppa*64*-*-* } } { "*" } { "" } } */
 
 /* Make sure we didn't eliminate casted types because we thought they were
    unused.  */
@@ -43,5 +44,5 @@ int bar5 (void)
 /* { dg-final { scan-assembler "foo" } } */
 /* { dg-final { scan-assembler "boo" } } */
 /* { dg-final { scan-assembler "cue" } } */
-/* { dg-final { scan-assembler "stringz?\t\"class2\"" } } */
-/* { dg-final { scan-assembler "stringz?\t\"printer\"" } } */
+/* { dg-final { scan-assembler "(string|asci)z?\t\"class2\"" } } */
+/* { dg-final { scan-assembler "(string|asci)z?\t\"printer\"" } } */

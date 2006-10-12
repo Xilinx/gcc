@@ -1,6 +1,6 @@
 @c Copyright (C) 2004, 2005, 2006
 @c Free Software Foundation, Inc.
-@c This is part of the GFORTRAN manual.   
+@c This is part of the GNU Fortran manual.   
 @c For copying conditions, see the file gfortran.texi.
 
 @ignore
@@ -28,7 +28,7 @@ included in the gfdl(7) man page.
 @c man end
 @c Set file name and title for the man page.
 @setfilename gfortran
-@settitle GNU Fortran 95 compiler.
+@settitle GNU Fortran compiler.
 @c man begin SYNOPSIS
 gfortran [@option{-c}|@option{-S}|@option{-E}]
          [@option{-g}] [@option{-pg}] [@option{-O}@var{level}]
@@ -54,20 +54,20 @@ For instructions on reporting bugs, see
 @c man end
 @c man begin AUTHOR
 See the Info entry for @command{gfortran} for contributors to GCC and
-GFORTRAN@.
+GNU Fortran.
 @c man end
 @end ignore
 
-@node Invoking GFORTRAN
-@chapter GNU Fortran 95 Command Options
-@cindex GNU Fortran 95 command options
+@node Invoking GNU Fortran
+@chapter GNU Fortran Command Options
+@cindex GNU Fortran command options
 @cindex command options
-@cindex options, GNU Fortran 95 command
+@cindex options, @command{gfortran} command
 
 @c man begin DESCRIPTION
 
 The @command{gfortran} command supports all the options supported by the
-@command{gcc} command.  Only options specific to gfortran are documented here.
+@command{gcc} command.  Only options specific to GNU Fortran are documented here.
 
 @xref{Invoking GCC,,GCC Command Options,gcc,Using the GNU Compiler
 Collection (GCC)}, for information
@@ -76,12 +76,12 @@ therefore, the @command{gfortran} command).
 
 @cindex options, negative forms
 @cindex negative forms of options
-All @command{gcc} and @command{gfortran} options
+All GCC and GNU Fortran options
 are accepted both by @command{gfortran} and by @command{gcc}
 (as well as any other drivers built at the same time,
 such as @command{g++}),
-since adding @command{gfortran} to the @command{gcc} distribution
-enables acceptance of @command{gfortran} options
+since adding GNU Fortran to the GCC distribution
+enables acceptance of GNU Fortran options
 by all of the relevant drivers.
 
 In some cases, options have positive and negative forms;
@@ -101,7 +101,7 @@ one is not the default.
 * Runtime Options::     Influencing runtime behavior
 * Code Gen Options::    Specifying conventions for function calls, data layout
                         and register usage.
-* Environment Variables:: Env vars that affect GNU Fortran.
+* Environment Variables:: Env vars that affect @command{gfortran}.
 @end menu
 
 @node Option Summary
@@ -172,8 +172,8 @@ by type.  Explanations are in the following sections.
 @cindex language, dialect options
 @cindex options, dialect
 
-The following options control the dialect of Fortran
-that the compiler accepts:
+The following options control the details of the Fortran dialect
+accepted by the compiler:
 
 @table @gcctabopt
 @cindex -ffree-form option
@@ -189,14 +189,15 @@ that the compiler accepts:
 @item -ffixed-form
 Specify the layout used by the source file.  The free form layout
 was introduced in Fortran 90.  Fixed form was traditionally used in
-older Fortran programs.
+older Fortran programs.  When neither option is specified, the source
+form is determined by the file extension.
 
 @cindex -fall-intrinsics
 @item -fall-intrinsics
 Accept all of the intrinsic procedures provided in libgfortran 
 without regard to the setting of @option{-std}.  In particular, 
 this option can be quite useful with @option{-std=f95}.  Additionally,
-gfortran will ignore @option{-Wnonstd-intrinsics}.
+@command{gfortran} will ignore @option{-Wnonstd-intrinsics}.
 
 @cindex option, -fd-lines-as-code
 @cindex -fd-lines-as-code, option
@@ -204,16 +205,16 @@ gfortran will ignore @option{-Wnonstd-intrinsics}.
 @cindex -fd-lines-as-comments, option
 @item -fd-lines-as-code
 @item -fd-lines-as-comment
-Enables special treating for lines with @samp{d} or @samp{D} in fixed
-form sources.  If the @option{-fd-lines-as-code} option is given
-they are treated as if the first column contained a blank.  If the
+Enable special treatment for lines beginning with @samp{d} or @samp{D}
+in fixed form sources.  If the @option{-fd-lines-as-code} option is
+given they are treated as if the first column contained a blank.  If the
 @option{-fd-lines-as-comments} option is given, they are treated as
 comment lines.
 
 @cindex option, -fdefault-double-8
 @cindex -fdefault-double-8, option
 @item -fdefault-double-8
-Set the "DOUBLE PRECISION" type to an 8 byte wide.
+Set the @code{DOUBLE PRECISION} type to an 8 byte wide type.
 
 @cindex option, -fdefault-integer-8
 @cindex -fdefault-integer-8, option
@@ -240,8 +241,8 @@ Allow @samp{$} as a valid character in a symbol name.
 @item -fno-backslash
 @cindex backslash
 @cindex escape characters
-Compile switch to change the interpretation of a backslash from
-``C''-style escape characters to a single backslash character.
+Change the interpretation of backslashes in string literals from
+``C-style'' escape characters to a single backslash character.
 
 @cindex -ffixed-line-length-@var{n} option
 @cindex options, -ffixed-line-length-@var{n}
@@ -258,9 +259,9 @@ if padded to that length) after the ends of short fixed-form lines.
 @cindex card image
 @cindex extended-source option
 Popular values for @var{n} include 72 (the
-standard and the default), 80 (card image), and 132 (corresponds
+standard and the default), 80 (card image), and 132 (corresponding
 to ``extended-source'' options in some popular compilers).
-@var{n} may be @samp{none}, meaning that the entire line is meaningful
+@var{n} may also be @samp{none}, meaning that the entire line is meaningful
 and that continued character constants never have implicit spaces appended
 to them to fill out the line.
 @option{-ffixed-line-length-0} means the same thing as
@@ -275,7 +276,7 @@ to them to fill out the line.
 @cindex free form
 @cindex limits, lengths of source lines
 Set column after which characters are ignored in typical free-form
-lines in the source file. For free-form, the default value is 132.
+lines in the source file. The default value is 132.
 @var{n} may be @samp{none}, meaning that the entire line is meaningful.
 @option{-ffree-line-length-0} means the same thing as
 @option{-ffree-line-length-none}.
@@ -284,7 +285,7 @@ lines in the source file. For free-form, the default value is 132.
 @cindex option -fmax-identifier-length=@var{n}
 @item -fmax-identifier-length=@var{n}
 Specify the maximum allowed identifier length. Typical values are
-31 (Fortran 95) and 63 (Fortran 200x).
+31 (Fortran 95) and 63 (Fortran 2003).
 
 @cindex -fimplicit-none option
 @cindex options, -fimplicit-none
@@ -296,15 +297,17 @@ Specify that no implicit typing is allowed, unless overridden by explicit
 @cindex -fcray-pointer option
 @cindex options, -fcray-pointer
 @item -fcray-pointer
-Enables the Cray pointer extension, which provides a C-like pointer.
+Enable the Cray pointer extension, which provides C-like pointer
+functionality.
 
 @cindex -fopenmp
 @cindex options, -fopenmp
 @item -fopenmp
-Enables handling of OpenMP @code{!$omp} directives in free form
+Enable the OpenMP extensions.  This includes OpenMP @code{!$omp} directives
+in free form
 and @code{c$omp}, @code{*$omp} and @code{!$omp} directives in fixed form,
-enables @code{!$} conditional compilation sentinels in free form
-and @code{c$}, @code{*$} and @code{!$} sentinels in fixed form
+@code{!$} conditional compilation sentinels in free form
+and @code{c$}, @code{*$} and @code{!$} sentinels in fixed form, 
 and when linking arranges for the OpenMP runtime library to be linked
 in.
 
@@ -312,16 +315,23 @@ in.
 @cindex options, -frange-check
 @item -frange-check
 Enable range checking on results of simplification of constant expressions
-during compilation.  For example, by default, @command{gfortran} will give
+during compilation.  For example, by default, GNU Fortran will give
 an overflow error at compile time when simplifying @code{a = EXP(1000)}.
 With @samp{-fno-range-check}, no error will be given and the variable @code{a}
-will be assigned the value @code{+Infinity}.
+will be assigned the value @code{+Infinity}.  Similarly,
+@code{DATA i/Z'FFFFFFFF'/} will result in an integer overflow on most systems,
+but with @samp{-fno-range-check} the value will ``wrap around'' and @code{i}
+will be initialized to @math{-1} instead.
 
 @cindex -std=@var{std} option
 @cindex option, -std=@var{std}
 @item -std=@var{std}
-Conform to the specified standard.  Allowed values for @var{std} are
-@samp{gnu}, @samp{f95}, @samp{f2003} and @samp{legacy}.
+Conform to the specified standard.  The default value for @var{std} is
+@samp{gnu}; a superset of the Fortran 95 standard which includes all
+of the GNU extensions recommended for use in new code.  The @samp{legacy}
+value also includes obsolete extensions that may be required for old 
+non-standard programs.  Strict conformance to the Fortran 95 and Fortran 2003
+standards is specified by @samp{f95} and @samp{f2003}, respectively.
 
 @end table
 
@@ -356,12 +366,12 @@ Check the code for syntax errors, but don't do anything beyond that.
 @cindex -pedantic option
 @cindex options, -pedantic
 @item -pedantic
-Issue warnings for uses of extensions to FORTRAN 95.
+Issue warnings for uses of extensions to Fortran 95.
 @option{-pedantic} also applies to C-language constructs where they
 occur in GNU Fortran source files, such as use of @samp{\e} in a
 character constant within a directive like @samp{#include}.
 
-Valid FORTRAN 95 programs should compile properly with or without
+Valid Fortran 95 programs should compile properly with or without
 this option.
 However, without this option, certain GNU extensions and traditional
 Fortran features are supported as well.
@@ -370,7 +380,7 @@ With this option, many of them are rejected.
 Some users try to use @option{-pedantic} to check programs for conformance.
 They soon find that it does not do quite what they want---it finds some
 nonstandard practices, but not all.
-However, improvements to @command{gfortran} in this area are welcome.
+However, improvements to GNU Fortran in this area are welcome.
 
 This should be used in conjunction with -std=@var{std}.
 
@@ -428,7 +438,7 @@ The following example will trigger the warning.
 Warn about missing ampersand in continued character constants. The warning is
 given with @option{-Wampersand}, @option{-pedantic}, @option{-std=f95}, and
 @option{-std=f2003}. Note: With no ampersand given in a continued character
-constant, gfortran assumes continuation at the first non-comment,
+constant, GNU Fortran assumes continuation at the first non-comment,
 non-whitespace character after the ampersand that initiated the continuation.
 
 
@@ -512,7 +522,7 @@ Turns all warnings into errors.
 @cindex warnings, extra
 Turns on ``extra warnings'' and, if optimization is specified
 via @option{-O}, the @option{-Wuninitialized} option.
-(This might change in future versions of @command{gfortran}
+(This might change in future versions of GNU Fortran.)
 @end table
 
 @xref{Warning Options,,Options to Request or Suppress Warnings,
@@ -528,14 +538,14 @@ Some of these have no effect when compiling programs written in Fortran.
 @cindex debugging information options
 
 GNU Fortran has various special options that are used for debugging
-either your program or @command{gfortran}
+either your program or the GNU Fortran compiler.
 
 @table @gcctabopt
 @cindex -fdump-parse-tree option
 @cindex option, -fdump-parse-tree
 @item -fdump-parse-tree
 Output the internal parse tree before starting code generation.  Only
-really useful for debugging gfortran itself.
+really useful for debugging the GNU Fortran compiler itself.
 @end table
 
 @table @gcctabopt
@@ -566,7 +576,7 @@ debugging options.
 
 @cindex INCLUDE directive
 @cindex directive, INCLUDE
-These options affect how @command{gfortran} searches
+These options affect how GNU Fortran searches
 for files specified by the @code{INCLUDE} directive and where it searches
 for previously compiled modules.
 
@@ -616,7 +626,7 @@ GCC options.
 @section Influencing runtime behavior
 @cindex runtime, options
 
-These options affect the runtime behavior of @command{gfortran}.
+These options affect the runtime behavior of programs compiled with GNU Fortran.
 @table @gcctabopt
 @cindex -fconvert=@var{conversion} option
 @item -fconvert=@var{conversion}
@@ -685,7 +695,7 @@ functions that return type @code{COMPLEX} to return the values via an
 extra argument in the calling sequence that points to where to
 store the return value.  Under the default GNU calling conventions, such
 functions simply return their results as they would in GNU
-C -- default @code{REAL} functions return the C type @code{float}, and
+C---default @code{REAL} functions return the C type @code{float}, and
 @code{COMPLEX} functions return the GNU C type @code{complex}.
 Additionally, this option implies the @option{-fsecond-underscore}
 option, unless @option{-fno-second-underscore} is explicitly requested.
@@ -713,18 +723,18 @@ the library implementations use the @command{-fno-f2c} calling conventions.
 Do not transform names of entities specified in the Fortran
 source file by appending underscores to them.
 
-With @option{-funderscoring} in effect, @command{gfortran} appends one
+With @option{-funderscoring} in effect, GNU Fortran appends one
 underscore to external names with no underscores.  This is done to ensure
 compatibility with code produced by many UNIX Fortran compilers.
 
-@emph{Caution}: The default behavior of @command{gfortran} is
+@emph{Caution}: The default behavior of GNU Fortran is
 incompatible with @command{f2c} and @command{g77}, please use the
 @option{-ff2c} option if you want object files compiled with
-@option{gfortran} to be compatible with object code created with these
+GNU Fortran to be compatible with object code created with these
 tools.
 
 Use of @option{-fno-underscoring} is not recommended unless you are
-experimenting with issues such as integration of (GNU) Fortran into
+experimenting with issues such as integration of GNU Fortran into
 existing system environments (vis-a-vis existing libraries, tools, and
 so on).
 
@@ -751,13 +761,13 @@ i = j() + max_count(&my_var, &lvar);
 @end smallexample
 
 Use of @option{-fno-underscoring} allows direct specification of
-user-defined names while debugging and when interfacing @command{gfortran}
+user-defined names while debugging and when interfacing GNU Fortran
 code with other languages.
 
 Note that just because the names match does @emph{not} mean that the
-interface implemented by @command{gfortran} for an external name matches the
+interface implemented by GNU Fortran for an external name matches the
 interface implemented by some other language for that same name.
-That is, getting code produced by @command{gfortran} to link to code produced
+That is, getting code produced by GNU Fortran to link to code produced
 by some other compiler using this or any other method can be only a
 small part of the overall solution---getting the code generated by
 both compilers to agree on issues other than naming can require
@@ -771,7 +781,7 @@ could make finding unresolved-reference bugs quite difficult in some
 cases---they might occur at program run time, and show up only as
 buggy behavior at run time.
 
-In future versions of @command{gfortran} we hope to improve naming and linking
+In future versions of GNU Fortran we hope to improve naming and linking
 issues so that debugging always involves using the names as they appear
 in the source, even if the names as seen by the linker are mangled to
 prevent accidental linking between procedures with incompatible
@@ -787,10 +797,10 @@ interfaces.
 @cindex @command{f2c} calling convention
 @cindex @command{g77} calling convention
 @cindex libf2c calling convention
-By default, @command{gfortran} appends an underscore to external
-names.  If this option is used @command{gfortran} appends two
+By default, GNU Fortran appends an underscore to external
+names.  If this option is used GNU Fortran appends two
 underscores to names with underscores and one underscore to external names
-with no underscores.  (@command{gfortran} also appends two underscores to
+with no underscores.  GNU Fortran also appends two underscores to
 internal names with underscores to avoid naming collisions with external
 names.
 
@@ -828,21 +838,21 @@ on the stack.
 
 This option currently only affects local arrays declared with constant
 bounds, and may not apply to all character variables.
-Future versions of @command{gfortran} may improve this behavior.
+Future versions of GNU Fortran may improve this behavior.
 
 The default value for @var{n} is 32768.
 
 @cindex -fpack-derived
 @item -fpack-derived
 @cindex Structure packing
-This option tells gfortran to pack derived type members as closely as
+This option tells GNU Fortran to pack derived type members as closely as
 possible.  Code compiled with this option is likely to be incompatible
 with code compiled without this option, and may execute slower.
 
 @cindex -frepack-arrays option
 @item -frepack-arrays
 @cindex Repacking arrays
-In some circumstances @command{gfortran} may pass assumed shape array
+In some circumstances GNU Fortran may pass assumed shape array
 sections via a descriptor describing a discontiguous area of memory.
 This option adds code to the function prologue to repack the data into
 a contiguous block at runtime.
@@ -855,25 +865,25 @@ is discontiguous.
 @item -fshort-enums
 This option is provided for interoperability with C code that was
 compiled with the @command{-fshort-enums} option.  It will make
-@command{gfortran} choose the smallest @code{INTEGER} kind a given
+GNU Fortran choose the smallest @code{INTEGER} kind a given
 enumerator set will fit in, and give all its enumerators this kind.
 @end table
 
 @xref{Code Gen Options,,Options for Code Generation Conventions,
 gcc,Using the GNU Compiler Collection (GCC)}, for information on more options
 offered by the GBE
-shared by @command{gfortran} @command{gcc} and other GNU compilers.
+shared by @command{gfortran}, @command{gcc}, and other GNU compilers.
 
 
 @c man end
 
 @node Environment Variables
-@section Environment Variables Affecting GNU Fortran
+@section Environment Variables Affecting @command{gfortran}
 @cindex environment variables
 
 @c man begin ENVIRONMENT
 
-GNU Fortran 95 currently does not make use of any environment
+The @command{gfortran} compiler currently does not make use of any environment
 variables to control its operation above and beyond those
 that affect the operation of @command{gcc}.
 
@@ -882,5 +892,5 @@ gcc,Using the GNU Compiler Collection (GCC)}, for information on environment
 variables.
 
 @xref{Runtime}, for environment variables that affect the
-run-time behavior of @command{gfortran} programs.
+run-time behavior of programs compiled with GNU Fortran.
 @c man end

@@ -43,6 +43,7 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
+	$(top_srcdir)/../config/unwind_ipinfo.m4 \
 	$(top_srcdir)/../libtool.m4 $(top_srcdir)/crossconfig.m4 \
 	$(top_srcdir)/linkage.m4 $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/configure.ac
@@ -122,6 +123,8 @@ ENABLE_SYMVERS_GNU_NAMESPACE_FALSE = @ENABLE_SYMVERS_GNU_NAMESPACE_FALSE@
 ENABLE_SYMVERS_GNU_NAMESPACE_TRUE = @ENABLE_SYMVERS_GNU_NAMESPACE_TRUE@
 ENABLE_SYMVERS_GNU_TRUE = @ENABLE_SYMVERS_GNU_TRUE@
 ENABLE_SYMVERS_TRUE = @ENABLE_SYMVERS_TRUE@
+ENABLE_VISIBILITY_FALSE = @ENABLE_VISIBILITY_FALSE@
+ENABLE_VISIBILITY_TRUE = @ENABLE_VISIBILITY_TRUE@
 EXEEXT = @EXEEXT@
 EXTRA_CXX_FLAGS = @EXTRA_CXX_FLAGS@
 GLIBCXX_BUILD_DEBUG_FALSE = @GLIBCXX_BUILD_DEBUG_FALSE@

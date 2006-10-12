@@ -1,5 +1,6 @@
 /* SecurityManager.java -- security checks for privileged actions
-   Copyright (C) 1998, 1999, 2001, 2002, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2001, 2002, 2005, 2006
+   Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -45,11 +46,15 @@ import java.io.FilePermission;
 import java.lang.reflect.Member;
 import java.net.InetAddress;
 import java.net.SocketPermission;
+import java.security.AccessController;
+import java.security.AccessControlContext;
 import java.security.AllPermission;
 import java.security.Permission;
+import java.security.PrivilegedAction;
 import java.security.Security;
 import java.security.SecurityPermission;
 import java.util.PropertyPermission;
+import java.util.StringTokenizer;
 
 /**
  * SecurityManager is a class you can extend to create your own Java
@@ -187,7 +192,7 @@ public class SecurityManager
    * <ul>
    * <li>All methods on the stack are from system classes</li>
    * <li>All methods on the stack up to the first "privileged" caller, as
-   *  created by {@link AccessController.doPrivileged(PrivilegedAction)},
+   *  created by {@link AccessController#doPrivileged(PrivilegedAction)},
    *  are from system classes</li>
    * <li>A check of <code>java.security.AllPermission</code> succeeds.</li>
    * </ul>
@@ -209,7 +214,7 @@ public class SecurityManager
    * <ul>
    * <li>All methods on the stack are from system classes</li>
    * <li>All methods on the stack up to the first "privileged" caller, as
-   *  created by {@link AccessController.doPrivileged(PrivilegedAction)},
+   *  created by {@link AccessController#doPrivileged(PrivilegedAction)},
    *  are from system classes</li>
    * <li>A check of <code>java.security.AllPermission</code> succeeds.</li>
    * </ul>
@@ -248,7 +253,7 @@ public class SecurityManager
    * <ul>
    * <li>All methods on the stack are from system classes</li>
    * <li>All methods on the stack up to the first "privileged" caller, as
-   *  created by {@link AccessController.doPrivileged(PrivilegedAction)},
+   *  created by {@link AccessController#doPrivileged(PrivilegedAction)},
    *  are from system classes</li>
    * <li>A check of <code>java.security.AllPermission</code> succeeds.</li>
    * </ul>
@@ -315,8 +320,7 @@ public class SecurityManager
    */
   public Object getSecurityContext()
   {
-    // XXX Should be: return AccessController.getContext();
-    return new SecurityContext(getClassContext());
+    return AccessController.getContext();
   }
 
   /**
@@ -331,8 +335,7 @@ public class SecurityManager
    */
   public void checkPermission(Permission perm)
   {
-    // XXX Should be: AccessController.checkPermission(perm);
-    //.throw new SecurityException("Operation not allowed");
+    AccessController.checkPermission(perm);
   }
 
   /**
@@ -353,11 +356,9 @@ public class SecurityManager
    */
   public void checkPermission(Permission perm, Object context)
   {
-    // XXX Should be:
-    // if (! (context instanceof AccessControlContext))
-    //   throw new SecurityException("Missing context");
-    // ((AccessControlContext) context).checkPermission(perm);
-    throw new SecurityException("Operation not allowed");
+    if (! (context instanceof AccessControlContext))
+      throw new SecurityException("Missing context");
+    ((AccessControlContext) context).checkPermission(perm);
   }
 
   /**
@@ -402,7 +403,7 @@ public class SecurityManager
   public void checkAccess(Thread thread)
   {
     if (thread.getThreadGroup() != null 
-	&& thread.getThreadGroup().getParent() != null)
+	&& thread.getThreadGroup().getParent() == null)
       checkPermission(new RuntimePermission("modifyThread"));
   }
 
@@ -425,7 +426,7 @@ public class SecurityManager
    * @throws SecurityException if permission is denied
    * @throws NullPointerException if g is null
    * @see Thread#Thread()
-   * @see ThreadGroup#ThreadGroup()
+   * @see ThreadGroup#ThreadGroup(String)
    * @see ThreadGroup#stop()
    * @see ThreadGroup#suspend()
    * @see ThreadGroup#resume()
@@ -435,7 +436,7 @@ public class SecurityManager
    */
   public void checkAccess(ThreadGroup g)
   {
-    if (g.getParent() != null)
+    if (g.getParent() == null)
       checkPermission(new RuntimePermission("modifyThreadGroup"));
   }
 
@@ -531,7 +532,7 @@ public class SecurityManager
    * @throws NullPointerException if filename is null
    * @see File
    * @see FileInputStream#FileInputStream(String)
-   * @see RandomAccessFile#RandomAccessFile(String)
+   * @see RandomAccessFile#RandomAccessFile(String, String)
    */
   public void checkRead(String filename)
   {
@@ -556,12 +557,10 @@ public class SecurityManager
    */
   public void checkRead(String filename, Object context)
   {
-    // XXX Should be:
-    // if (! (context instanceof AccessControlContext))
-    //   throw new SecurityException("Missing context");
-    // AccessControlContext ac = (AccessControlContext) context;
-    // ac.checkPermission(new FilePermission(filename, "read"));
-    // throw new SecurityException("Cannot read files via file names.");
+    if (! (context instanceof AccessControlContext))
+      throw new SecurityException("Missing context");
+    AccessControlContext ac = (AccessControlContext) context;
+    ac.checkPermission(new FilePermission(filename, "read"));
   }
 
   /**
@@ -598,9 +597,9 @@ public class SecurityManager
    * @see File
    * @see File#canWrite()
    * @see File#mkdir()
-   * @see File#renameTo()
+   * @see File#renameTo(File)
    * @see FileOutputStream#FileOutputStream(String)
-   * @see RandomAccessFile#RandomAccessFile(String)
+   * @see RandomAccessFile#RandomAccessFile(String, String)
    */
   public void checkWrite(String filename)
   {
@@ -675,17 +674,15 @@ public class SecurityManager
    */
   public void checkConnect(String host, int port, Object context)
   {
-    // XXX Should be:
-    // if (! (context instanceof AccessControlContext))
-    //   throw new SecurityException("Missing context");
-    // AccessControlContext ac = (AccessControlContext) context;
-    // if (port == -1)
-    //   ac.checkPermission(new SocketPermission(host, "resolve"));
-    // else
-    //   // Use the toString() hack to do the null check.
-    //   ac.checkPermission(new SocketPermission(host.toString + ":" +port,
-    //                                           "connect"));
-    // throw new SecurityException("Cannot make network connections.");
+    if (! (context instanceof AccessControlContext))
+      throw new SecurityException("Missing context");
+    AccessControlContext ac = (AccessControlContext) context;
+    if (port == -1)
+      ac.checkPermission(new SocketPermission(host, "resolve"));
+    else
+      // Use the toString() hack to do the null check.
+      ac.checkPermission(new SocketPermission(host.toString() + ":" + port,
+                                              "connect"));
   }
 
   /**
@@ -819,7 +816,7 @@ public class SecurityManager
    * @param window the window to create
    * @return true if there is permission to show the window without warning
    * @throws NullPointerException if window is null
-   * @see Window#Window(Frame)
+   * @see java.awt.Window#Window(java.awt.Frame)
    */
   public boolean checkTopLevelWindow(Object window)
   {
@@ -844,7 +841,7 @@ public class SecurityManager
    * an exception.
    *
    * @throws SecurityException if permission is denied
-   * @see Toolkit#getPrintJob(Frame, String, Properties)
+   * @see java.awt.Toolkit#getPrintJob(java.awt.Frame, String, Properties)
    * @since 1.1
    */
   public void checkPrintJobAccess()
@@ -860,7 +857,7 @@ public class SecurityManager
    * rather than throwing an exception.
    *
    * @throws SecurityException if permission is denied
-   * @see Toolkit#getSystemClipboard()
+   * @see java.awt.Toolkit#getSystemClipboard()
    * @since 1.1
    */
   public void checkSystemClipboardAccess()
@@ -876,7 +873,7 @@ public class SecurityManager
    * rather than throwing an exception.
    *
    * @throws SecurityException if permission is denied
-   * @see Toolkit#getSystemEventQueue()
+   * @see java.awt.Toolkit#getSystemEventQueue()
    * @since 1.1
    */
   public void checkAwtEventQueueAccess()
@@ -902,7 +899,7 @@ public class SecurityManager
    */
   public void checkPackageAccess(String packageName)
   {
-    checkPackageList(packageName, "access", "accessClassInPackage.");
+    checkPackageList(packageName, "package.access", "accessClassInPackage.");
   }
 
   /**
@@ -924,7 +921,7 @@ public class SecurityManager
    */
   public void checkPackageDefinition(String packageName)
   {
-    checkPackageList(packageName, "definition", "defineClassInPackage.");
+    checkPackageList(packageName, "package.definition", "defineClassInPackage.");
   }
 
   /**
@@ -1020,45 +1017,41 @@ public class SecurityManager
    * <code>RuntimePermission(permission + packageName)</code>.
    *
    * @param packageName the package name to check access to
-   * @param restriction the list of restrictions, after "package."
+   * @param restriction "package.access" or "package.definition"
    * @param permission the base permission, including the '.'
    * @throws SecurityException if permission is denied
    * @throws NullPointerException if packageName is null
    * @see #checkPackageAccess(String)
    * @see #checkPackageDefinition(String)
    */
-  void checkPackageList(String packageName, String restriction,
+  void checkPackageList(String packageName, final String restriction,
                         String permission)
   {
-    // Use the toString() hack to do the null check.
-    Permission p = new RuntimePermission(permission + packageName.toString());
-    String list = Security.getProperty("package." + restriction);
-    if (list == null)
-      return;
-    while (! "".equals(packageName))
+    if (packageName == null)
+      throw new NullPointerException();
+
+    String list = (String)AccessController.doPrivileged(new PrivilegedAction()
       {
-        for (int index = list.indexOf(packageName);
-             index != -1; index = list.indexOf(packageName, index + 1))
-          {
-            // Exploit package visibility for speed.
-	    int packageNameCount = packageName.length();
-            if (index + packageNameCount == list.length()
-                || list.charAt(index + packageNameCount) == ',')
-              {
-                checkPermission(p);
-                return;
-              }
-          }
-        int index = packageName.lastIndexOf('.');
-        packageName = index < 0 ? "" : packageName.substring(0, index);
+	public Object run()
+        {
+	  return Security.getProperty(restriction);
+	}
+      });
+
+    if (list == null || list.equals(""))
+      return;
+
+    String packageNamePlusDot = packageName + ".";
+
+    StringTokenizer st = new StringTokenizer(list, ",");
+    while (st.hasMoreTokens())
+      {
+	if (packageNamePlusDot.startsWith(st.nextToken()))
+	  {
+	    Permission p = new RuntimePermission(permission + packageName);
+	    checkPermission(p);
+	    return;
+	  }
       }
   }
-} // class SecurityManager
-
-// XXX This class is unnecessary.
-class SecurityContext {
-	Class[] classes;
-	SecurityContext(Class[] classes) {
-		this.classes = classes;
-	}
 }

@@ -65,6 +65,10 @@ improved alias analysis, plus migrating GCC to Bugzilla.
 Geoff Berry for his Java object serialization work and various patches.
 
 @item
+Uros Bizjak for the implementation of x87 math built-in functions and
+for various middle end and i386 back end improvements and bugfixes.
+
+@item
 Eric Blake for helping to make GCJ and libgcj conform to the
 specifications.
 
@@ -565,6 +569,10 @@ Jason Merrill for his direction via the steering committee and leading
 the G++ effort.
 
 @item
+Martin Michlmayr for testing GCC on several architectures using the
+entire Debian archive.
+
+@item
 David Miller for his direction via the steering committee, lots of
 SPARC work, improvements in jump.c and interfacing with the Linux kernel
 developers.
@@ -646,8 +654,8 @@ engine setup, various documentation fixes and other small fixes.
 Geoff Noer for his work on getting cygwin native builds working.
 
 @item
-Diego Novillo for his SPEC performance tracking web pages and assorted
-fixes in the middle end and various back ends.
+Diego Novillo for his work on Tree SSA, OpenMP, SPEC performance
+tracking web pages and assorted fixes.
 
 @item
 David O'Brien for the FreeBSD/alpha, FreeBSD/AMD x86-64, FreeBSD/ARM,

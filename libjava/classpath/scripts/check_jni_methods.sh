@@ -2,8 +2,6 @@
 
 # Fail if any command fails
 set -e
-# Don't override existing files
-set -C
 
 TMPFILE=/tmp/check-jni-methods.$$.1
 TMPFILE2=/tmp/check-jni-methods.$$.2
@@ -29,7 +27,7 @@ find native/jni -name \*.cpp | \
 	cut -f4 -d\  | \
         LC_ALL=C sed -e 's,^\JNIEXPORT .* JNICALL \(Java_[a-z_A-Z0-9]*\) *(.*$,\1,' >> $TMPFILE2
 mv $TMPFILE2 $TMPFILE3
-sort $TMPFILE3 > $TMPFILE2
+sort $TMPFILE3 | uniq > $TMPFILE2
 rm $TMPFILE3
 
 # Write temporary ignore file.
@@ -37,6 +35,9 @@ cat > $TMPFILE3 << EOF
 -Java_gnu_java_awt_peer_gtk_GtkMenuComponentPeer_dispose
 -Java_java_lang_VMSystem_arraycopy
 -Java_java_lang_VMSystem_identityHashCode
+-Java_gnu_java_util_prefs_gconf_GConfNativePeer_finalize_1class
+-Java_gnu_java_util_prefs_gconf_GConfNativePeer_init_1id_1cache
+-Java_gnu_java_util_prefs_gconf_GConfNativePeer_init_1class
 EOF
 
 # Compare again silently.

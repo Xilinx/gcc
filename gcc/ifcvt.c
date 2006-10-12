@@ -1,5 +1,5 @@
 /* If-conversion support.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -153,14 +153,16 @@ cheap_bb_rtx_cost_p (basic_block bb, int max_cost)
 
 	  /* If this instruction is the load or set of a "stack" register,
 	     such as a floating point register on x87, then the cost of
-	     speculatively executing this instruction needs to include
-	     the additional cost of popping this register off of the
-	     register stack.  */
+	     speculatively executing this insn may need to include
+	     the additional cost of popping its result off of the
+	     register stack.  Unfortunately, correctly recognizing and
+	     accounting for this additional overhead is tricky, so for
+	     now we simply prohibit such speculative execution.  */
 #ifdef STACK_REGS
 	  {
 	    rtx set = single_set (insn);
 	    if (set && STACK_REG_P (SET_DEST (set)))
-	      cost += COSTS_N_INSNS (1);
+	      return false;
 	  }
 #endif
 
@@ -2422,7 +2424,7 @@ check_cond_move_block (basic_block bb, rtx *vals, rtx cond)
       src = SET_SRC (set);
       if (!REG_P (dest)
 	  || (SMALL_REGISTER_CLASSES && HARD_REGISTER_P (dest)))
-	return false;
+	return FALSE;
 
       if (!CONSTANT_P (src) && !register_operand (src, VOIDmode))
 	return FALSE;
@@ -2431,6 +2433,14 @@ check_cond_move_block (basic_block bb, rtx *vals, rtx cond)
 	return FALSE;
 
       if (may_trap_p (src) || may_trap_p (dest))
+	return FALSE;
+
+      /* Don't try to handle this if the source register was
+	 modified earlier in the block.  */
+      if ((REG_P (src)
+	   && vals[REGNO (src)] != NULL)
+	  || (GET_CODE (src) == SUBREG && REG_P (SUBREG_REG (src))
+	      && vals[REGNO (SUBREG_REG (src))] != NULL))
 	return FALSE;
 
       /* Don't try to handle this if the destination register was
@@ -3557,6 +3567,13 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
   /* Find the extent of the real code in the merge block.  */
   head = BB_HEAD (merge_bb);
   end = BB_END (merge_bb);
+
+  /* If merge_bb ends with a tablejump, predicating/moving insn's
+     into test_bb and then deleting merge_bb will result in the jumptable
+     that follows merge_bb being removed along with merge_bb and then we
+     get an unresolved reference to the jumptable.  */
+  if (tablejump_p (end, NULL, NULL))
+    return FALSE;
 
   if (LABEL_P (head))
     head = NEXT_INSN (head);

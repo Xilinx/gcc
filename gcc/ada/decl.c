@@ -90,6 +90,7 @@ static tree elaborate_expression_1 (Node_Id, Entity_Id, tree, tree,
 				    bool, bool);
 static tree make_packable_type (tree);
 static tree gnat_to_gnu_field (Entity_Id, tree, int, bool);
+static bool same_discriminant_p (Entity_Id, Entity_Id);
 static void components_to_record (tree, Node_Id, tree, int, bool, tree *,
                                   bool, bool, bool, bool);
 static int compare_field_bitpos (const PTR, const PTR);
@@ -2429,16 +2430,18 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   this record has rep clauses, force the position to zero.  */
 	if (Present (Parent_Subtype (gnat_entity)))
 	  {
+	    Entity_Id gnat_parent = Parent_Subtype (gnat_entity);
 	    tree gnu_parent;
 
 	    /* A major complexity here is that the parent subtype will
-	       reference our discriminants.  But those must reference
-	       the parent component of this record.  So here we will
-	       initialize each of those components to a COMPONENT_REF.
-	       The first operand of that COMPONENT_REF is another
-	       COMPONENT_REF which will be filled in below, once
-	       the parent type can be safely built.  */
-
+	       reference our discriminants in its Discriminant_Constraint
+	       list.  But those must reference the parent component of this
+	       record which is of the parent subtype we have not built yet!
+	       To break the circle we first build a dummy COMPONENT_REF which
+	       represents the "get to the parent" operation and initialize
+	       each of those discriminants to a COMPONENT_REF of the above
+	       dummy parent referencing the corresponding discriminant of the
+	       base type of the parent subtype.  */
 	    gnu_get_parent = build3 (COMPONENT_REF, void_type_node,
 				     build0 (PLACEHOLDER_EXPR, gnu_type),
 				     build_decl (FIELD_DECL, NULL_TREE,
@@ -2460,8 +2463,35 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			     NULL_TREE),
 		     true);
 
-	    gnu_parent = gnat_to_gnu_type (Parent_Subtype (gnat_entity));
+            /* Then we build the parent subtype.  */
+	    gnu_parent = gnat_to_gnu_type (gnat_parent);
 
+	    /* Finally we fix up both kinds of twisted COMPONENT_REF we have
+	       initially built.  The discriminants must reference the fields
+	       of the parent subtype and not those of its base type for the
+	       placeholder machinery to properly work.  */
+	    if (Has_Discriminants (gnat_entity))
+	      for (gnat_field = First_Stored_Discriminant (gnat_entity);
+		   Present (gnat_field);
+		   gnat_field = Next_Stored_Discriminant (gnat_field))
+		if (Present (Corresponding_Discriminant (gnat_field)))
+		  {
+		    Entity_Id field = Empty;
+		    for (field = First_Stored_Discriminant (gnat_parent);
+			 Present (field);
+			 field = Next_Stored_Discriminant (field))
+		      if (same_discriminant_p (gnat_field, field))
+			break;
+		    gcc_assert (Present (field));
+		    TREE_OPERAND (get_gnu_tree (gnat_field), 1)
+		      = gnat_to_gnu_field_decl (field);
+		  }
+
+	    /* The "get to the parent" COMPONENT_REF must be given its
+	       proper type...  */
+	    TREE_TYPE (gnu_get_parent) = gnu_parent;
+
+	    /* ...and reference the _parent field of this record.  */
 	    gnu_field_list
 	      = create_field_decl (get_identifier
 				   (Get_Name_String (Name_uParent)),
@@ -2469,8 +2499,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 				   has_rep ? TYPE_SIZE (gnu_parent) : 0,
 				   has_rep ? bitsize_zero_node : 0, 1);
 	    DECL_INTERNAL_P (gnu_field_list) = 1;
-
-	    TREE_TYPE (gnu_get_parent) = gnu_parent;
 	    TREE_OPERAND (gnu_get_parent, 1) = gnu_field_list;
 	  }
 
@@ -3740,11 +3768,20 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	if (TREE_CODE (gnu_return_type) == VOID_TYPE)
 	  pure_flag = false;
 
+	/* The semantics of "pure" in Ada essentially matches that of "const"
+	   in the back-end.  In particular, both properties are orthogonal to
+	   the "nothrow" property.  But this is true only if the EH circuitry
+	   is explicit in the internal representation of the back-end.  If we
+	   are to completely hide the EH circuitry from it, we need to declare
+	   that calls to pure Ada subprograms that can throw have side effects
+	   since they can trigger an "abnormal" transfer of control flow; thus
+	   they can be neither "const" nor "pure" in the back-end sense.  */
 	gnu_type
 	  = build_qualified_type (gnu_type,
-				  (TYPE_QUALS (gnu_type)
-				   | (TYPE_QUAL_CONST * pure_flag)
-				   | (TYPE_QUAL_VOLATILE * volatile_flag)));
+				  TYPE_QUALS (gnu_type)
+				  | (Exception_Mechanism == Back_End_Exceptions
+				     ? TYPE_QUAL_CONST * pure_flag : 0)
+				  | (TYPE_QUAL_VOLATILE * volatile_flag));
 
 	Sloc_to_locus (Sloc (gnat_entity), &input_location);
 
@@ -3813,6 +3850,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 					    inline_flag, public_flag,
 					    extern_flag, attr_list,
 					    gnat_entity);
+
 	    DECL_STUBBED_P (gnu_decl)
 	      = Convention (gnat_entity) == Convention_Stubbed;
 	  }
@@ -4290,6 +4328,21 @@ gnat_to_gnu_field_decl (Entity_Id gnat_entity)
     gnu_field = TREE_OPERAND (gnu_field, 1);
 
   return gnu_field;
+}
+
+/* Return true if DISCR1 and DISCR2 represent the same discriminant.  */
+
+static
+bool same_discriminant_p (Entity_Id discr1, Entity_Id discr2)
+{
+  while (Present (Corresponding_Discriminant (discr1)))
+    discr1 = Corresponding_Discriminant (discr1);
+
+  while (Present (Corresponding_Discriminant (discr2)))
+    discr2 = Corresponding_Discriminant (discr2);
+
+  return
+    Original_Record_Component (discr1) == Original_Record_Component (discr2);
 }
 
 /* Given GNAT_ENTITY, elaborate all expressions that are required to
@@ -5659,10 +5712,12 @@ components_to_record (tree gnu_record_type, Node_Id component_list,
 		= TYPE_SIZE_UNIT (gnu_record_type);
 	    }
 
+	  /* Create the record for the variant.  Note that we defer emitting
+	     debug info for it until after we are sure to actually use it.  */
 	  components_to_record (gnu_variant_type, Component_List (variant),
 				NULL_TREE, packed, definition,
 				&gnu_our_rep_list, !all_rep_and_size, all_rep,
-				false, unchecked_union);
+				true, unchecked_union);
 
 	  gnu_qual = choices_to_gnu (gnu_discriminant,
 				     Discrete_Choices (variant));
@@ -5676,6 +5731,13 @@ components_to_record (tree gnu_record_type, Node_Id component_list,
 	    gnu_field = TYPE_FIELDS (gnu_variant_type);
 	  else
 	    {
+	      /* Emit debug info for the record.  We used to throw away
+		 empty records but we no longer do that because we need
+		 them to generate complete debug info for the variant;
+		 otherwise, the union type definition will be lacking
+		 the fields associated with these empty variants.  */
+	      write_record_type_debug_info (gnu_variant_type);
+
 	      gnu_field = create_field_decl (gnu_inner_name, gnu_variant_type,
 					     gnu_union_type, 0,
 					     (all_rep_and_size
@@ -5694,12 +5756,6 @@ components_to_record (tree gnu_record_type, Node_Id component_list,
 	  TREE_CHAIN (gnu_field) = gnu_variant_list;
 	  gnu_variant_list = gnu_field;
 	}
-
-      /* We used to delete the empty variants from the end. However,
-         we no longer do that because we need them to generate complete
-         debugging information for the variant record.  Otherwise,
-         the union type definition will be missing the fields associated
-         to these empty variants.  */
 
       /* Only make the QUAL_UNION_TYPE if there are any non-empty variants.  */
       if (gnu_variant_list)

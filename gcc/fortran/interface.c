@@ -217,6 +217,13 @@ gfc_match_interface (void)
 	  && gfc_add_generic (&sym->attr, sym->name, NULL) == FAILURE)
 	return MATCH_ERROR;
 
+      if (sym->attr.dummy)
+	{
+	  gfc_error ("Dummy procedure '%s' at %C cannot have a "
+		     "generic interface", sym->name);
+	  return MATCH_ERROR;
+	}
+
       current_interface.sym = gfc_new_block = sym;
       break;
 
@@ -367,6 +374,9 @@ gfc_compare_derived_types (gfc_symbol * derived1, gfc_symbol * derived2)
       if (dt1->dimension != dt2->dimension)
 	return 0;
 
+     if (dt1->allocatable != dt2->allocatable)
+	return 0;
+
       if (dt1->dimension && gfc_compare_array_spec (dt1->as, dt2->as) == 0)
 	return 0;
 
@@ -496,7 +506,12 @@ check_operator_interface (gfc_interface * intr, gfc_intrinsic_op operator)
   for (formal = intr->sym->formal; formal; formal = formal->next)
     {
       sym = formal->sym;
-
+      if (sym == NULL)
+	{
+	  gfc_error ("Alternate return cannot appear in operator "
+		     "interface at %L", &intr->where);
+	  return;
+	}
       if (args == 0)
 	{
 	  t1 = sym->ts.type;
@@ -522,6 +537,24 @@ check_operator_interface (gfc_interface * intr, gfc_intrinsic_op operator)
 	  gfc_error
 	    ("Assignment operator interface at %L must be a SUBROUTINE",
 	     &intr->where);
+	  return;
+	}
+      if (args != 2)
+	{
+	  gfc_error
+	    ("Assignment operator interface at %L must have two arguments",
+	     &intr->where);
+	  return;
+	}
+      if (sym->formal->sym->ts.type != BT_DERIVED
+	    && sym->formal->next->sym->ts.type != BT_DERIVED
+	    && (sym->formal->sym->ts.type == sym->formal->next->sym->ts.type
+		  || (gfc_numeric_ts (&sym->formal->sym->ts)
+			&& gfc_numeric_ts (&sym->formal->next->sym->ts))))
+	{
+	  gfc_error
+	    ("Assignment operator interface at %L must not redefine "
+	     "an INTRINSIC type assignment", &intr->where);
 	  return;
 	}
     }

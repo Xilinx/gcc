@@ -40,6 +40,9 @@
 
 #define TARGET_OBJECT_FORMAT OBJECT_MACHO
 
+/* Size of the Obj-C jump buffer.  */
+#define OBJC_JBLEN ((TARGET_64BIT) ? (26*2 + 18*2 + 129 + 1) : (26 + 18*2 + 129 + 1))
+
 /* We're not ever going to do TOCs.  */
 
 #define TARGET_TOC 0
@@ -51,10 +54,6 @@
 
 /* Translate config/rs6000/darwin.opt to config/darwin.h.  */
 #define TARGET_DYNAMIC_NO_PIC (TARGET_MACHO_DYNAMIC_NO_PIC)
-
-/* Handle #pragma weak and #pragma pack.  */
-#define HANDLE_SYSV_PRAGMA 1
-
 
 #define TARGET_OS_CPP_BUILTINS()                \
   do                                            \
@@ -84,7 +83,6 @@ do {									\
       }									\
     else if (flag_pic == 1)						\
       {									\
-        /* Darwin doesn't support -fpic.  */				\
         flag_pic = 2;							\
       }									\
   }									\
@@ -289,8 +287,6 @@ do {									\
         fprintf (FILE, "\t.align32 %d,0x60000000\n", (LOG));  \
     } while (0)
 
-/* Generate insns to call the profiler.  */
-
 #ifdef HAVE_GAS_MAX_SKIP_P2ALIGN
 /* This is supported in cctools 465 and later.  The macro test
    above prevents using it in earlier build environments.  */
@@ -303,6 +299,8 @@ do {									\
         fprintf ((FILE), "\t.p2align %d,,%d\n", (LOG), (MAX_SKIP)); \
     }
 #endif
+
+/* Generate insns to call the profiler.  */
 
 #define PROFILE_HOOK(LABEL)   output_profile_hook (LABEL)
 
@@ -442,50 +440,3 @@ do {									\
   (TARGET_64BIT							\
    || (darwin_macosx_version_min				\
        && strverscmp (darwin_macosx_version_min, "10.3") >= 0))
-
-/* Attempt to turn on execute permission for the stack.  This may be
-    used by INITIALIZE_TRAMPOLINE of the target needs it (that is,
-    if the target machine can change execute permissions on a page).
-
-    There is no way to query the execute permission of the stack, so
-    we always issue the mprotect() call.
-
-    Note that we go out of our way to use namespace-non-invasive calls
-    here.  Unfortunately, there is no libc-internal name for mprotect().
-
-    Also note that no errors should be emitted by this code; it is
-    considered dangerous for library calls to send messages to
-    stdout/stderr.  */
-
-#define ENABLE_EXECUTE_STACK                                            \
-extern void __enable_execute_stack (void *);                            \
-void                                                                    \
-__enable_execute_stack (void *addr)                                     \
-{                                                                       \
-   extern int mprotect (void *, size_t, int);                           \
-   extern int __sysctl (int *, unsigned int, void *, size_t *,          \
-                       void *, size_t);                                 \
-                                                                        \
-   static int size;                                                     \
-   static long mask;                                                    \
-                                                                        \
-   char *page, *end;                                                    \
-                                                                        \
-   if (size == 0)                                                       \
-     {                                                                  \
-       int mib[2];                                                      \
-       size_t len;                                                      \
-                                                                        \
-       mib[0] = 6; /* CTL_HW */                                         \
-       mib[1] = 7; /* HW_PAGESIZE */                                    \
-       len = sizeof (size);                                             \
-       (void) __sysctl (mib, 2, &size, &len, NULL, 0);                  \
-       mask = ~((long) size - 1);                                       \
-     }                                                                  \
-                                                                        \
-   page = (char *) (((long) addr) & mask);                              \
-   end  = (char *) ((((long) (addr + (TARGET_64BIT ? 48 : 40))) & mask) + size); \
-                                                                        \
-   /* 7 == PROT_READ | PROT_WRITE | PROT_EXEC */                        \
-   (void) mprotect (page, end - page, 7);                               \
-}

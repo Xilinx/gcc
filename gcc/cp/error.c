@@ -166,8 +166,14 @@ dump_template_argument_list (tree args, int flags)
 static void
 dump_template_parameter (tree parm, int flags)
 {
-  tree p = TREE_VALUE (parm);
-  tree a = TREE_PURPOSE (parm);
+  tree p;
+  tree a;
+
+  if (parm == error_mark_node)
+   return;
+
+  p = TREE_VALUE (parm);
+  a = TREE_PURPOSE (parm);
 
   if (TREE_CODE (p) == TYPE_DECL)
     {
@@ -1236,7 +1242,15 @@ dump_template_parms (tree info, int primary, int flags)
 
       for (ix = 0; ix != len; ix++)
 	{
-	  tree parm = TREE_VALUE (TREE_VEC_ELT (parms, ix));
+	  tree parm;
+
+          if (TREE_VEC_ELT (parms, ix) == error_mark_node)
+            {
+              pp_identifier (cxx_pp, "<template parameter error>");
+              continue;
+            }
+
+          parm = TREE_VALUE (TREE_VEC_ELT (parms, ix));
 
 	  if (ix)
 	    pp_separate_with_comma (cxx_pp);

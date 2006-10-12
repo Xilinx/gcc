@@ -2301,6 +2301,7 @@ m32c_print_operand (FILE * file, rtx x, int code)
   const char *comma;
   HOST_WIDE_INT ival;
   int unsigned_const = 0;
+  int force_sign;
 
   /* Multiplies; constants are converted to sign-extended format but
    we need unsigned, so 'u' and 'U' tell us what size unsigned we
@@ -2463,6 +2464,7 @@ m32c_print_operand (FILE * file, rtx x, int code)
     code = 0;
 
   encode_pattern (x);
+  force_sign = 0;
   for (i = 0; conversions[i].pattern; i++)
     if (conversions[i].code == code
 	&& streq (conversions[i].pattern, pattern))
@@ -2576,6 +2578,8 @@ m32c_print_operand (FILE * file, rtx x, int code)
 			  /* Integers used as addresses are unsigned.  */
 			  ival &= (TARGET_A24 ? 0xffffff : 0xffff);
 			}
+		      if (force_sign && ival >= 0)
+			fputc ('+', file);
 		      fprintf (file, HOST_WIDE_INT_PRINT_DEC, ival);
 		      break;
 		    }
@@ -2620,13 +2624,14 @@ m32c_print_operand (FILE * file, rtx x, int code)
 	      /* Signed displacements off symbols need to have signs
 		 blended cleanly.  */
 	      if (conversions[i].format[j] == '+'
-		  && (!code || code == 'I')
+		  && (!code || code == 'D' || code == 'd')
 		  && ISDIGIT (conversions[i].format[j + 1])
-		  && GET_CODE (patternr[conversions[i].format[j + 1] - '0'])
-		  == CONST_INT
-		  && INTVAL (patternr[conversions[i].format[j + 1] - '0']) <
-		  0)
-		continue;
+		  && (GET_CODE (patternr[conversions[i].format[j + 1] - '0'])
+		      == CONST_INT))
+		{
+		  force_sign = 1;
+		  continue;
+		}
 	      fputc (conversions[i].format[j], file);
 	    }
 	break;
@@ -2786,6 +2791,102 @@ m32c_mov_ok (rtx * operands, enum machine_mode mode ATTRIBUTE_UNUSED)
 #endif
   return true;
 }
+
+/* Returns TRUE if two consecutive HImode mov instructions, generated
+   for moving an immediate double data to a double data type variable
+   location, can be combined into single SImode mov instruction.  */
+bool
+m32c_immd_dbl_mov (rtx * operands, 
+		   enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  int flag = 0, okflag = 0, offset1 = 0, offset2 = 0, offsetsign = 0;
+  const char *str1;
+  const char *str2;
+
+  if (GET_CODE (XEXP (operands[0], 0)) == SYMBOL_REF
+      && MEM_SCALAR_P (operands[0])
+      && !MEM_IN_STRUCT_P (operands[0])
+      && GET_CODE (XEXP (operands[2], 0)) == CONST
+      && GET_CODE (XEXP (XEXP (operands[2], 0), 0)) == PLUS
+      && GET_CODE (XEXP (XEXP (XEXP (operands[2], 0), 0), 0)) == SYMBOL_REF
+      && GET_CODE (XEXP (XEXP (XEXP (operands[2], 0), 0), 1)) == CONST_INT
+      && MEM_SCALAR_P (operands[2])
+      && !MEM_IN_STRUCT_P (operands[2]))
+    flag = 1; 
+
+  else if (GET_CODE (XEXP (operands[0], 0)) == CONST
+           && GET_CODE (XEXP (XEXP (operands[0], 0), 0)) == PLUS
+           && GET_CODE (XEXP (XEXP (XEXP (operands[0], 0), 0), 0)) == SYMBOL_REF
+           && MEM_SCALAR_P (operands[0])
+           && !MEM_IN_STRUCT_P (operands[0])
+           && !(XINT (XEXP (XEXP (XEXP (operands[0], 0), 0), 1), 0) %4)
+           && GET_CODE (XEXP (operands[2], 0)) == CONST
+           && GET_CODE (XEXP (XEXP (operands[2], 0), 0)) == PLUS
+           && GET_CODE (XEXP (XEXP (XEXP (operands[2], 0), 0), 0)) == SYMBOL_REF
+           && MEM_SCALAR_P (operands[2])
+           && !MEM_IN_STRUCT_P (operands[2]))
+    flag = 2; 
+
+  else if (GET_CODE (XEXP (operands[0], 0)) == PLUS
+           &&  GET_CODE (XEXP (XEXP (operands[0], 0), 0)) == REG
+           &&  REGNO (XEXP (XEXP (operands[0], 0), 0)) == FB_REGNO 
+           &&  GET_CODE (XEXP (XEXP (operands[0], 0), 1)) == CONST_INT
+           &&  MEM_SCALAR_P (operands[0])
+           &&  !MEM_IN_STRUCT_P (operands[0])
+           &&  !(XINT (XEXP (XEXP (operands[0], 0), 1), 0) %4)
+           &&  REGNO (XEXP (XEXP (operands[2], 0), 0)) == FB_REGNO 
+           &&  GET_CODE (XEXP (XEXP (operands[2], 0), 1)) == CONST_INT
+           &&  MEM_SCALAR_P (operands[2])
+           &&  !MEM_IN_STRUCT_P (operands[2]))
+    flag = 3; 
+
+  else
+    return false;
+
+  switch (flag)
+    {
+    case 1:
+      str1 = XSTR (XEXP (operands[0], 0), 0);
+      str2 = XSTR (XEXP (XEXP (XEXP (operands[2], 0), 0), 0), 0);
+      if (strcmp (str1, str2) == 0)
+	okflag = 1; 
+      else
+	okflag = 0; 
+      break;
+    case 2:
+      str1 = XSTR (XEXP (XEXP (XEXP (operands[0], 0), 0), 0), 0);
+      str2 = XSTR (XEXP (XEXP (XEXP (operands[2], 0), 0), 0), 0);
+      if (strcmp(str1,str2) == 0)
+	okflag = 1; 
+      else
+	okflag = 0; 
+      break; 
+    case 3:
+      offset1 = XINT (XEXP (XEXP (operands[0], 0), 1), 0);
+      offset2 = XINT (XEXP (XEXP (operands[2], 0), 1), 0);
+      offsetsign = offset1 >> ((sizeof (offset1) * 8) -1);
+      if (((offset2-offset1) == 2) && offsetsign != 0)
+	okflag = 1;
+      else 
+	okflag = 0; 
+      break; 
+    default:
+      okflag = 0; 
+    } 
+      
+  if (okflag == 1)
+    {
+      HOST_WIDE_INT val;
+      operands[4] = gen_rtx_MEM (SImode, XEXP (operands[0], 0));
+
+      val = (XINT (operands[3], 0) << 16) + (XINT (operands[1], 0) & 0xFFFF);
+      operands[5] = gen_rtx_CONST_INT (VOIDmode, val);
+     
+      return true;
+    }
+
+  return false;
+}  
 
 /* Expanders */
 
@@ -3387,6 +3488,42 @@ m32c_expand_neg_mulpsi3 (rtx * operands)
   emit_insn (gen_truncsipsi2 (operands[0], temp2));
 }
 
+static rtx compare_op0, compare_op1;
+
+void
+m32c_pend_compare (rtx *operands)
+{
+  compare_op0 = operands[0];
+  compare_op1 = operands[1];
+}
+
+void
+m32c_unpend_compare (void)
+{
+  switch (GET_MODE (compare_op0))
+    {
+    case QImode:
+      emit_insn (gen_cmpqi_op (compare_op0, compare_op1));
+    case HImode:
+      emit_insn (gen_cmphi_op (compare_op0, compare_op1));
+    case PSImode:
+      emit_insn (gen_cmppsi_op (compare_op0, compare_op1));
+    }
+}
+
+void
+m32c_expand_scc (int code, rtx *operands)
+{
+  enum machine_mode mode = TARGET_A16 ? QImode : HImode;
+
+  emit_insn (gen_rtx_SET (mode,
+			  operands[0],
+			  gen_rtx_fmt_ee (code,
+					  mode,
+					  compare_op0,
+					  compare_op1)));
+}
+
 /* Pattern Output Functions */
 
 /* Returns a (OP (reg:CC FLG_REGNO) (const_int 0)) from some other
@@ -3404,6 +3541,8 @@ int
 m32c_expand_movcc (rtx *operands)
 {
   rtx rel = operands[1];
+  rtx cmp;
+
   if (GET_CODE (rel) != EQ && GET_CODE (rel) != NE)
     return 1;
   if (GET_CODE (operands[2]) != CONST_INT
@@ -3416,12 +3555,17 @@ m32c_expand_movcc (rtx *operands)
       operands[2] = operands[3];
       operands[3] = tmp;
     }
-  if (TARGET_A16)
-    emit_insn (gen_stzx_16 (operands[0], operands[2], operands[3]));
-  else if (GET_MODE (operands[0]) == QImode)
-    emit_insn (gen_stzx_24_qi (operands[0], operands[2], operands[3]));
-  else
-    emit_insn (gen_stzx_24_hi (operands[0], operands[2], operands[3]));
+
+  cmp = gen_rtx_fmt_ee (GET_CODE (rel),
+			GET_MODE (rel),
+			compare_op0,
+			compare_op1);
+
+  emit_move_insn (operands[0],
+		  gen_rtx_IF_THEN_ELSE (GET_MODE (operands[0]),
+					cmp,
+					operands[2],
+					operands[3]));
   return 0;
 }
 

@@ -1096,6 +1096,21 @@ nb_vars_in_chrec (tree chrec)
     }
 }
 
+/* Returns true if TYPE is a type in that we cannot directly perform
+   arithmetics, even though it is a scalar type.  */
+
+static bool
+avoid_arithmetics_in_type_p (tree type)
+{
+  /* Ada frontend uses subtypes -- an arithmetic cannot be directly performed
+     in the subtype, but a base type must be used, and the result then can
+     be casted to the subtype.  */
+  if (TREE_CODE (type) == INTEGER_TYPE && TREE_TYPE (type) != NULL_TREE)
+    return true;
+
+  return false;
+}
+
 static tree chrec_convert_1 (tree, tree, tree, bool);
 
 /* Converts BASE and STEP of affine scev to TYPE.  LOOP is the loop whose iv
@@ -1115,6 +1130,10 @@ convert_affine_scev (struct loop *loop, tree type,
   bool enforce_overflow_semantics;
   bool must_check_src_overflow, must_check_rslt_overflow;
   tree new_base, new_step;
+
+  /* If we cannot perform arithmetic in TYPE, avoid creating an scev.  */
+  if (avoid_arithmetics_in_type_p (type))
+    return false;
 
   /* In general,
      (TYPE) (BASE + STEP * i) = (TYPE) BASE + (TYPE -- sign extend) STEP * i,
@@ -1143,7 +1162,10 @@ convert_affine_scev (struct loop *loop, tree type,
 	 -- must_check_src_overflow is true, and the range of TYPE is superset
 	    of the range of CT -- i.e., in all cases except if CT signed and
 	    TYPE unsigned.
-         -- both CT and TYPE have the same precision and signedness.  */
+         -- both CT and TYPE have the same precision and signedness, and we
+	    verify instead that the source does not overflow (this may be
+	    easier than verifying it for the result, as we may use the
+	    information about the semantics of overflow in CT).  */
       if (must_check_src_overflow)
 	{
 	  if (TYPE_UNSIGNED (type) && !TYPE_UNSIGNED (ct))
@@ -1153,7 +1175,10 @@ convert_affine_scev (struct loop *loop, tree type,
 	}
       else if (TYPE_UNSIGNED (ct) == TYPE_UNSIGNED (type)
 	       && TYPE_PRECISION (ct) == TYPE_PRECISION (type))
-	must_check_rslt_overflow = false;
+	{
+	  must_check_rslt_overflow = false;
+	  must_check_src_overflow = true;
+	}
       else
 	must_check_rslt_overflow = true;
     }
@@ -1305,6 +1330,10 @@ chrec_convert_aggressive (tree type, tree chrec)
   if (TYPE_PRECISION (type) > TYPE_PRECISION (inner_type))
     return NULL_TREE;
 
+  /* If we cannot perform arithmetic in TYPE, avoid creating an scev.  */
+  if (avoid_arithmetics_in_type_p (type))
+    return NULL_TREE;
+
   left = CHREC_LEFT (chrec);
   right = CHREC_RIGHT (chrec);
   lc = chrec_convert_aggressive (type, left);
@@ -1313,27 +1342,7 @@ chrec_convert_aggressive (tree type, tree chrec)
   rc = chrec_convert_aggressive (type, right);
   if (!rc)
     rc = chrec_convert (type, right, NULL_TREE);
-
-  /* Ada creates sub-types where TYPE_MIN_VALUE/TYPE_MAX_VALUE do not
-     cover the entire range of values allowed by TYPE_PRECISION.
-
-     We do not want to optimize away conversions to such types.  Long
-     term I'd rather see the Ada front-end fixed.  */
-  if (INTEGRAL_TYPE_P (type))
-    {
-      tree t;
-
-      t = upper_bound_in_type (type, inner_type);
-      if (! TYPE_MAX_VALUE (type)
-	  || ! operand_equal_p (TYPE_MAX_VALUE (type), t, 0))
-	return NULL_TREE;
-
-      t = lower_bound_in_type (type, inner_type);
-      if (! TYPE_MIN_VALUE (type)
-	  || ! operand_equal_p (TYPE_MIN_VALUE (type), t, 0))
-	return NULL_TREE;
-    }
-  
+ 
   return build_polynomial_chrec (CHREC_VARIABLE (chrec), lc, rc);
 }
 

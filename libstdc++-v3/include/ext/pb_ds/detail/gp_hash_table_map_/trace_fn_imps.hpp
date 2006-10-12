@@ -58,7 +58,7 @@ trace() const
     {
       std::cerr << static_cast<unsigned long>(i) << " ";
 
-      switch(m_a_entries[i].m_stat)
+      switch(m_entries[i].m_stat)
         {
 	case empty_entry_status:
 	  std::cerr << "<empty>";
@@ -67,10 +67,10 @@ trace() const
 	  std::cerr << "<erased>";
 	  break;
 	case valid_entry_status:
-	  std::cerr << PB_DS_V2F(m_a_entries[i].m_value);
+	  std::cerr << PB_DS_V2F(m_entries[i].m_value);
 	  break;
 	default:
-	  PB_DS_DBG_ASSERT(0);
+	  _GLIBCXX_DEBUG_ASSERT(0);
 	};
 
       std::cerr << std::endl;

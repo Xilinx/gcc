@@ -754,7 +754,10 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
 
   if (!base_aligned) 
     {
-      if (!vect_can_force_dr_alignment_p (base, TYPE_ALIGN (vectype)))
+      /* Do not change the alignment of global variables if 
+	 flag_section_anchors is enabled.  */
+      if (!vect_can_force_dr_alignment_p (base, TYPE_ALIGN (vectype))
+	  || (TREE_STATIC (base) && flag_section_anchors))
 	{
 	  if (vect_print_dump_info (REPORT_DETAILS))
 	    {
@@ -1886,7 +1889,8 @@ vect_analyze_loop_form (struct loop *loop)
      that the loop is represented as a do-while (with a proper if-guard
      before the loop if needed), where the loop header contains all the
      executable statements, and the latch is empty.  */
-  if (!empty_block_p (loop->latch))
+  if (!empty_block_p (loop->latch)
+        || phi_nodes (loop->latch))
     {
       if (vect_print_dump_info (REPORT_BAD_FORM_LOOPS))
         fprintf (vect_dump, "not vectorized: unexpected loop form.");

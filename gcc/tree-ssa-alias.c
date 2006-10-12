@@ -678,13 +678,13 @@ compute_may_aliases (void)
   /* Compute type-based flow-insensitive aliasing for all the type
      memory tags.  */
   compute_flow_insensitive_aliasing (ai);
+  
+  /* Compute call clobbering information.  */
+  compute_call_clobbered (ai);
 
   /* Determine if we need to enable alias grouping.  */
   if (ai->total_alias_vops >= MAX_ALIASED_VOPS)
     group_aliases (ai);
-
-  /* Compute call clobbering information.  */
-  compute_call_clobbered (ai);
 
   /* If the program has too many call-clobbered variables and/or function
      calls, create .GLOBAL_VAR and use it to model call-clobbering
@@ -987,6 +987,23 @@ delete_alias_info (struct alias_info *ai)
   delete_points_to_sets ();
 }
 
+/* Used for hashing to identify pointer infos with identical
+   pt_vars bitmaps.  */
+static int
+eq_ptr_info (const void *p1, const void *p2)
+{
+  const struct ptr_info_def *n1 = (const struct ptr_info_def *) p1;
+  const struct ptr_info_def *n2 = (const struct ptr_info_def *) p2;
+  return bitmap_equal_p (n1->pt_vars, n2->pt_vars);
+}
+
+static hashval_t
+ptr_info_hash (const void *p)
+{
+  const struct ptr_info_def *n = (const struct ptr_info_def *) p;
+  return bitmap_hash (n->pt_vars);
+}
+
 /* Create name tags for all the pointers that have been dereferenced.
    We only create a name tag for a pointer P if P is found to point to
    a set of variables (so that we can alias them to *P) or if it is
@@ -1002,6 +1019,7 @@ create_name_tags (void)
   size_t i;
   VEC (tree, heap) *with_ptvars = NULL;
   tree ptr;
+  htab_t ptr_hash;
 
   /* Collect the list of pointers with a non-empty points to set.  */
   for (i = 1; i < num_ssa_names; i++)
@@ -1036,15 +1054,15 @@ create_name_tags (void)
   if (!with_ptvars)
     return;
 
+  ptr_hash = htab_create (10, ptr_info_hash, eq_ptr_info, NULL);
   /* Now go through the pointers with pt_vars, and find a name tag
      with the same pt_vars as this pointer, or create one if one
      doesn't exist.  */
   for (i = 0; VEC_iterate (tree, with_ptvars, i, ptr); i++)
     {
       struct ptr_info_def *pi = SSA_NAME_PTR_INFO (ptr);
-      size_t j;
-      tree ptr2;
       tree old_name_tag = pi->name_mem_tag;
+      struct ptr_info_def **slot;
       
       /* If PTR points to a set of variables, check if we don't
 	 have another pointer Q with the same points-to set before
@@ -1057,21 +1075,18 @@ create_name_tags (void)
 	 problems if they both had different name tags because
 	 they would have different SSA version numbers (which
 	 would force us to take the name tags in and out of SSA).  */
-      for (j = 0; j < i && VEC_iterate (tree, with_ptvars, j, ptr2); j++)
+
+      slot = (struct ptr_info_def **) htab_find_slot (ptr_hash, pi, INSERT);
+      if (*slot)
+        pi->name_mem_tag = (*slot)->name_mem_tag;
+      else
 	{
-	  struct ptr_info_def *qi = SSA_NAME_PTR_INFO (ptr2);
-	  
-	  if (bitmap_equal_p (pi->pt_vars, qi->pt_vars))
-	    {
-	      pi->name_mem_tag = qi->name_mem_tag;
-	      break;
-	    }
+	  *slot = pi;
+	  /* If we didn't find a pointer with the same points-to set
+	     as PTR, create a new name tag if needed.  */
+	  if (pi->name_mem_tag == NULL_TREE)
+	    pi->name_mem_tag = get_nmt_for (ptr);
 	}
-      
-      /* If we didn't find a pointer with the same points-to set
-	 as PTR, create a new name tag if needed.  */
-      if (pi->name_mem_tag == NULL_TREE)
-	pi->name_mem_tag = get_nmt_for (ptr);
       
       /* If the new name tag computed for PTR is different than
 	 the old name tag that it used to have, then the old tag
@@ -1086,6 +1101,7 @@ create_name_tags (void)
       /* Mark the new name tag for renaming.  */
       mark_sym_for_renaming (pi->name_mem_tag);
     }
+  htab_delete (ptr_hash);
 
   VEC_free (tree, heap, with_ptvars);
 }
@@ -1162,6 +1178,7 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
       struct alias_map_d *p_map = ai->pointers[i];
       tree tag = var_ann (p_map->var)->symbol_mem_tag;
       var_ann_t tag_ann = var_ann (tag);
+      tree var;
 
       /* Call-clobbering information is not finalized yet at this point.  */
       if (PTR_IS_REF_ALL (p_map->var))
@@ -1170,11 +1187,15 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
       p_map->total_alias_vops = 0;
       p_map->may_aliases = BITMAP_ALLOC (&alias_obstack);
 
+      /* Add any pre-existing may_aliases to the bitmap used to represent
+	 TAG's alias set in case we need to group aliases.  */
+      for (j = 0; VEC_iterate (tree, tag_ann->may_aliases, j, var); ++j)
+	bitmap_set_bit (p_map->may_aliases, DECL_UID (var));
+
       for (j = 0; j < ai->num_addressable_vars; j++)
 	{
 	  struct alias_map_d *v_map;
 	  var_ann_t v_ann;
-	  tree var;
 	  bool tag_stored_p, var_stored_p;
 	  
 	  v_map = ai->addressable_vars[j];
@@ -2686,24 +2707,71 @@ is_aliased_with (tree tag, tree sym)
   return false;
 }
 
+/* The following is based on code in add_stmt_operand to ensure that the
+   same defs/uses/vdefs/vuses will be found after replacing a reference
+   to var (or ARRAY_REF to var) with an INDIRECT_REF to ptr whose value
+   is the address of var.  Return a memtag for the ptr, after adding the 
+   proper may_aliases to it (which are the aliases of var, if it has any,
+   or var itself).  */
+
+static tree
+add_may_alias_for_new_tag (tree tag, tree var)
+{
+  var_ann_t v_ann = var_ann (var);
+  VEC(tree, gc) *aliases = v_ann->may_aliases;
+
+  /* Case 1: |aliases| == 1  */
+  if ((aliases != NULL)
+      && (VEC_length (tree, aliases) == 1))
+    {
+      tree ali = VEC_index (tree, aliases, 0);
+
+      if (TREE_CODE (ali) == SYMBOL_MEMORY_TAG)
+        return ali;
+    }
+
+  /* Case 2: |aliases| == 0  */
+  if (aliases == NULL)
+    add_may_alias (tag, var);
+  else
+    {
+      /* Case 3: |aliases| > 1  */
+      unsigned i;
+      tree al;
+
+      for (i = 0; VEC_iterate (tree, aliases, i, al); i++)
+        add_may_alias (tag, al);
+    }
+
+  return tag;
+}
 
 /* Create a new symbol tag for PTR.  Construct the may-alias list of this type
-   tag so that it has the aliasing of VAR. 
+   tag so that it has the aliasing of VAR, or of the relevant subvars of VAR
+   according to the location accessed by EXPR.
 
    Note, the set of aliases represented by the new symbol tag are not marked
    for renaming.  */
 
 void
-new_type_alias (tree ptr, tree var)
+new_type_alias (tree ptr, tree var, tree expr)
 {
   var_ann_t p_ann = var_ann (ptr);
   tree tag_type = TREE_TYPE (TREE_TYPE (ptr));
-  var_ann_t v_ann = var_ann (var);
   tree tag;
   subvar_t svars;
+  tree ali = NULL_TREE;
+  HOST_WIDE_INT offset, size, maxsize;
+  tree ref;
 
   gcc_assert (p_ann->symbol_mem_tag == NULL_TREE);
   gcc_assert (!MTAG_P (var));
+
+  ref = get_ref_base_and_extent (expr, &offset, &size, &maxsize);
+  gcc_assert (ref);
+
+  tag = create_memory_tag (tag_type, true);
+  p_ann->symbol_mem_tag = tag;
 
   /* Add VAR to the may-alias set of PTR's new symbol tag.  If VAR has
      subvars, add the subvars to the tag instead of the actual var.  */
@@ -2711,53 +2779,50 @@ new_type_alias (tree ptr, tree var)
       && (svars = get_subvars_for_var (var)))
     {
       subvar_t sv;
-
-      tag = create_memory_tag (tag_type, true);
-      p_ann->symbol_mem_tag = tag;
+      VEC (tree, heap) *overlaps = NULL;
+      unsigned int len;
 
       for (sv = svars; sv; sv = sv->next)
-        add_may_alias (tag, sv->var);
-    }
-  else
-    {
-      /* The following is based on code in add_stmt_operand to ensure that the
-	 same defs/uses/vdefs/vuses will be found after replacing a reference
-	 to var (or ARRAY_REF to var) with an INDIRECT_REF to ptr whose value
-	 is the address of var.  */
-      VEC(tree, gc) *aliases = v_ann->may_aliases;
-
-      if ((aliases != NULL)
-	  && (VEC_length (tree, aliases) == 1))
 	{
-	  tree ali = VEC_index (tree, aliases, 0);
+          bool exact;
 
-	  if (TREE_CODE (ali) == SYMBOL_MEMORY_TAG)
+          if (overlap_subvar (offset, maxsize, sv->var, &exact))
+            VEC_safe_push (tree, heap, overlaps, sv->var);
+        }
+      len = VEC_length (tree, overlaps);
+      if (dump_file && (dump_flags & TDF_DETAILS))
+        fprintf (dump_file, "\nnumber of overlapping subvars = %u\n", len);
+      gcc_assert (len);
+
+      if (len == 1)
+        ali = add_may_alias_for_new_tag (tag, VEC_index (tree, overlaps, 0));
+      else if (len > 1)
+        {
+	  unsigned int k;
+	  tree sv_var;
+
+	  for (k = 0; VEC_iterate (tree, overlaps, k, sv_var); k++)
 	    {
-	      p_ann->symbol_mem_tag = ali;
-	      return;
+	      ali = add_may_alias_for_new_tag (tag, sv_var);
+
+	      if (ali != tag)
+		{
+		  /* Can happen only if 'Case 1' of add_may_alias_for_new_tag
+		     took place.  Since more than one svar was found, we add 
+		     'ali' as one of the may_aliases of the new tag.  */ 
+		  add_may_alias (tag, ali);
+		  ali = tag;
+		}
 	    }
 	}
+    }
+  else
+    ali = add_may_alias_for_new_tag (tag, var);
 
-      tag = create_memory_tag (tag_type, true);
-      p_ann->symbol_mem_tag = tag;
-
-      if (aliases == NULL)
-	add_may_alias (tag, var);
-      else
-	{
-	  unsigned i;
-	  tree al;
-
-	  for (i = 0; VEC_iterate (tree, aliases, i, al); i++)
-	    add_may_alias (tag, al);
-	}
-    }    
-
+  p_ann->symbol_mem_tag = ali;
   TREE_READONLY (tag) = TREE_READONLY (var);
   MTAG_GLOBAL (tag) = is_global_var (var);
 }
-
-
 
 /* This represents the used range of a variable.  */
 

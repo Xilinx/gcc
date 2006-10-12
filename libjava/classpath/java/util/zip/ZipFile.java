@@ -49,8 +49,8 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 
 /**
  * This class represents a Zip archive.  You can ask for the contained
@@ -88,7 +88,7 @@ public class ZipFile implements ZipConstants
   private final RandomAccessFile raf;
 
   // The entries of this zip file when initialized and not yet closed.
-  private HashMap entries;
+  private LinkedHashMap entries;
 
   private boolean closed = false;
 
@@ -250,7 +250,7 @@ public class ZipFile implements ZipConstants
       throw new EOFException(name);
     int centralOffset = inp.readLeInt();
 
-    entries = new HashMap(count+count/2);
+    entries = new LinkedHashMap(count+count/2);
     inp.seek(centralOffset);
     
     for (int i = 0; i < count; i++)
@@ -347,7 +347,7 @@ public class ZipFile implements ZipConstants
    * @exception IllegalStateException when the ZipFile has already been closed.
    * @exception IOException when the entries could not be read.
    */
-  private HashMap getEntries() throws IOException
+  private LinkedHashMap getEntries() throws IOException
   {
     synchronized(raf)
       {
@@ -375,7 +375,7 @@ public class ZipFile implements ZipConstants
 
     try
       {
-	HashMap entries = getEntries();
+	LinkedHashMap entries = getEntries();
 	ZipEntry entry = (ZipEntry) entries.get(name);
         // If we didn't find it, maybe it's a directory.
         if (entry == null && !name.endsWith("/"))
@@ -414,7 +414,7 @@ public class ZipFile implements ZipConstants
   {
     checkClosed();
 
-    HashMap entries = getEntries();
+    LinkedHashMap entries = getEntries();
     String name = entry.getName();
     ZipEntry zipEntry = (ZipEntry) entries.get(name);
     if (zipEntry == null)
@@ -445,6 +445,7 @@ public class ZipFile implements ZipConstants
       case ZipOutputStream.STORED:
 	return inp;
       case ZipOutputStream.DEFLATED:
+        inp.addDummyByte();
         final Inflater inf = new Inflater(true);
         final int sz = (int) entry.getSize();
         return new InflaterInputStream(inp, inf)
@@ -520,6 +521,11 @@ public class ZipFile implements ZipConstants
     private long bufferOffset;
     private int pos;
     private long end;
+    // We may need to supply an extra dummy byte to our reader.
+    // See Inflater.  We use a count here to simplify the logic
+    // elsewhere in this class.  Note that we ignore the dummy
+    // byte in methods where we know it is not needed.
+    private int dummyByteCount;
 
     public PartialInputStream(RandomAccessFile raf, int bufferSize)
       throws IOException
@@ -540,8 +546,17 @@ public class ZipFile implements ZipConstants
     {
       synchronized (raf)
         {
-          raf.seek(bufferOffset);
-          raf.readFully(buffer, 0, (int) Math.min(buffer.length, end - bufferOffset));
+          long len = end - bufferOffset;
+          if (len == 0 && dummyByteCount > 0)
+            {
+              buffer[0] = 0;
+              dummyByteCount = 0;
+            }
+          else
+            {
+              raf.seek(bufferOffset);
+              raf.readFully(buffer, 0, (int) Math.min(buffer.length, len));
+            }
         }
     }
     
@@ -555,7 +570,7 @@ public class ZipFile implements ZipConstants
     
     public int read() throws IOException
     {
-      if (bufferOffset + pos >= end)
+      if (bufferOffset + pos >= end + dummyByteCount)
 	return -1;
       if (pos == buffer.length)
         {
@@ -569,9 +584,9 @@ public class ZipFile implements ZipConstants
 
     public int read(byte[] b, int off, int len) throws IOException
     {
-      if (len > end - (bufferOffset + pos))
+      if (len > end + dummyByteCount - (bufferOffset + pos))
 	{
-	  len = (int) (end - (bufferOffset + pos));
+	  len = (int) (end + dummyByteCount - (bufferOffset + pos));
 	  if (len == 0)
 	    return -1;
 	}
@@ -680,6 +695,11 @@ public class ZipFile implements ZipConstants
         {
           throw new AssertionError(uee);
         }
+    }
+
+    public void addDummyByte()
+    {
+      dummyByteCount = 1;
     }
   }
 }

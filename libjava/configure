@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os build_subdir host_subdir target_subdir libgcj_basedir host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical LN_S mkinstalldirs CC ac_ct_CC EXEEXT OBJEXT CXX ac_ct_CXX CFLAGS CXXFLAGS LDFLAGS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE AS ac_ct_AS LD ac_ct_LD AR ac_ct_AR RANLIB ac_ct_RANLIB JAR ZIP UNZIP BASH_JAR_TRUE BASH_JAR_FALSE MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LIBGCJ_CFLAGS LIBGCJ_CXXFLAGS LIBGCJ_JAVAFLAGS LIBGCJ_LD_SYMBOLIC LIBGCJDEBUG TOOLKIT XLIB_AWT_TRUE XLIB_AWT_FALSE GCJH INCLTDL LIBLTDL DIRLTDL LIBTOOL CXXCPP CPPFLAGS GCJ GCJFLAGS GCJDEPMODE am__fastdepGCJ_TRUE am__fastdepGCJ_FALSE subdirs TESTSUBDIR_TRUE TESTSUBDIR_FALSE JAVA_HOME_SET_TRUE JAVA_HOME_SET_FALSE JAVA_HOME INTERPRETER LIBFFI LIBFFIINCS PLATFORM_INNER_NAT_HDRS CPP EGREP USING_WIN32_PLATFORM_TRUE USING_WIN32_PLATFORM_FALSE USING_POSIX_PLATFORM_TRUE USING_POSIX_PLATFORM_FALSE USING_DARWIN_CRT_TRUE USING_DARWIN_CRT_FALSE SYSTEMSPEC LIBGCJTESTSPEC ZLIBSPEC ZLIBTESTSPEC X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS extra_ldflags_libjava GCLIBS GCINCS GCDEPS GCSPEC JC1GCSPEC GCTESTSPEC USING_BOEHMGC_TRUE USING_BOEHMGC_FALSE USING_NOGC_TRUE USING_NOGC_FALSE THREADLIBS THREADINCS THREADDEPS THREADSPEC THREADLDFLAGS THREADCXXFLAGS USING_POSIX_THREADS_TRUE USING_POSIX_THREADS_FALSE USING_WIN32_THREADS_TRUE USING_WIN32_THREADS_FALSE USING_NO_THREADS_TRUE USING_NO_THREADS_FALSE HASH_SYNC_SPEC USING_GCC_TRUE USING_GCC_FALSE LIBICONV LTLIBICONV PKG_CONFIG GTK_CFLAGS GTK_LIBS GLIB_CFLAGS GLIB_LIBS LIBART_CFLAGS LIBART_LIBS CLASSPATH_SEPARATOR ac_ct_GCJ ZLIBS SYS_ZLIBS ZINCS DIVIDESPEC CHECKREFSPEC EXCEPTIONSPEC BACKTRACESPEC IEEESPEC NATIVE_TRUE NATIVE_FALSE NEEDS_DATA_START_TRUE NEEDS_DATA_START_FALSE GCC_UNWIND_INCLUDE toolexecdir toolexecmainlibdir toolexeclibdir dbexecdir GCJVERSION gxx_include_dir libstdcxx_incdir ALLOCA PERL SYSDEP_SOURCES LD_START_STATIC_SPEC LD_FINISH_STATIC_SPEC here LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os build_libsubdir build_subdir host_subdir target_subdir libgcj_basedir host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical LN_S mkinstalldirs CC ac_ct_CC EXEEXT OBJEXT CXX ac_ct_CXX CFLAGS CXXFLAGS LDFLAGS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE AS ac_ct_AS LD ac_ct_LD AR ac_ct_AR RANLIB ac_ct_RANLIB JAR ZIP UNZIP BASH_JAR_TRUE BASH_JAR_FALSE MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LIBGCJ_CFLAGS LIBGCJ_CXXFLAGS LIBGCJ_JAVAFLAGS LIBGCJ_LD_SYMBOLIC LIBGCJDEBUG TOOLKIT XLIB_AWT_TRUE XLIB_AWT_FALSE GCJH INCLTDL LIBLTDL DIRLTDL LIBTOOL CXXCPP CPPFLAGS GCJ GCJFLAGS GCJDEPMODE am__fastdepGCJ_TRUE am__fastdepGCJ_FALSE subdirs TESTSUBDIR_TRUE TESTSUBDIR_FALSE JAVA_HOME_SET_TRUE JAVA_HOME_SET_FALSE JAVA_HOME INTERPRETER LIBFFI LIBFFIINCS PLATFORM_INNER_NAT_HDRS CPP EGREP USING_WIN32_PLATFORM_TRUE USING_WIN32_PLATFORM_FALSE USING_POSIX_PLATFORM_TRUE USING_POSIX_PLATFORM_FALSE USING_DARWIN_CRT_TRUE USING_DARWIN_CRT_FALSE SYSTEMSPEC LIBGCJTESTSPEC ZLIBSPEC ZLIBTESTSPEC X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS extra_ldflags_libjava GCLIBS GCINCS GCDEPS GCSPEC JC1GCSPEC GCTESTSPEC USING_BOEHMGC_TRUE USING_BOEHMGC_FALSE USING_NOGC_TRUE USING_NOGC_FALSE THREADLIBS THREADINCS THREADDEPS THREADSPEC THREADSTARTFILESPEC THREADLDFLAGS THREADCXXFLAGS USING_POSIX_THREADS_TRUE USING_POSIX_THREADS_FALSE USING_WIN32_THREADS_TRUE USING_WIN32_THREADS_FALSE USING_NO_THREADS_TRUE USING_NO_THREADS_FALSE USE_LIBGCJ_BC_TRUE USE_LIBGCJ_BC_FALSE LIBGCJ_SPEC HASH_SYNC_SPEC USING_GCC_TRUE USING_GCC_FALSE LIBICONV LTLIBICONV PKG_CONFIG GTK_CFLAGS GTK_LIBS GLIB_CFLAGS GLIB_LIBS LIBART_CFLAGS LIBART_LIBS CLASSPATH_SEPARATOR ac_ct_GCJ ZLIBS SYS_ZLIBS ZINCS DIVIDESPEC CHECKREFSPEC EXCEPTIONSPEC BACKTRACESPEC IEEESPEC NATIVE_TRUE NATIVE_FALSE NEEDS_DATA_START_TRUE NEEDS_DATA_START_FALSE GCC_UNWIND_INCLUDE toolexecdir toolexecmainlibdir toolexeclibdir dbexecdir GCJVERSION gxx_include_dir libstdcxx_incdir ALLOCA PERL SYSDEP_SOURCES LD_START_STATIC_SPEC LD_FINISH_STATIC_SPEC here LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -854,6 +854,7 @@ Optional Features:
                           in a compiler-specific directory
   --enable-multilib       build many library versions (default)
   --enable-plugin         build gcjwebplugin web browser plugin
+  --enable-gconf-peer     compile GConf native peers for util.preferences
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-maintainer-mode  enable make rules and dependencies not useful
@@ -876,12 +877,12 @@ Optional Features:
   --disable-jvmpi         disable JVMPI support
   --enable-java-gc=TYPE   choose garbage collector (default is boehm)
   --disable-rpath         do not hardcode runtime library paths
-  _g_switchUse thread-local storage
-                          [default=yes]
+  --enable-tls            Use thread-local storage [default=yes]
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-build-libsubdir=DIR  Directory where to find libraries for build system
   --with-target-subdir=SUBDIR
                           configure in a subdirectory
   --with-cross-host=HOST  configure with a cross compiler from HOST
@@ -1434,8 +1435,26 @@ esac
   *) target_noncanonical=${target_alias} ;;
 esac
 
-  # Prefix 'build-' so this never conflicts with target_subdir.
+
+# post-stage1 host modules use a different CC_FOR_BUILD so, in order to
+# have matching libraries, they should use host libraries: Makefile.tpl
+# arranges to pass --with-build-libsubdir=$(HOST_SUBDIR).
+# However, they still use the build modules, because the corresponding
+# host modules (e.g. bison) are only built for the host when bootstrap
+# finishes. So:
+# - build_subdir is where we find build modules, and never changes.
+# - build_libsubdir is where we find build libraries, and can be overridden.
+
+# Prefix 'build-' so this never conflicts with target_subdir.
 build_subdir="build-${build_noncanonical}"
+
+# Check whether --with-build-libsubdir or --without-build-libsubdir was given.
+if test "${with_build_libsubdir+set}" = set; then
+  withval="$with_build_libsubdir"
+  build_libsubdir="$withval"
+else
+  build_libsubdir="$build_subdir"
+fi;
 # --srcdir=. covers the toplevel, while "test -d" covers the subdirectories
 if ( test $srcdir = . && test -d gcc ) \
    || test -d $srcdir/../host-${host_noncanonical}; then
@@ -1620,6 +1639,21 @@ echo "$as_me: error: Unknown argument to enable/disable plugin" >&2;}
      esac
 else
   plugin_enabled=no
+
+fi;
+
+# Check whether --enable-gconf-peer or --disable-gconf-peer was given.
+if test "${enable_gconf_peer+set}" = set; then
+  enableval="$enable_gconf_peer"
+  case "$enableval" in
+      yes) gconf_enabled=yes ;;
+      no)  gconf_enabled=no ;;
+      *)   { { echo "$as_me:$LINENO: error: Unknown argument to enable/disable gconf-peer" >&5
+echo "$as_me: error: Unknown argument to enable/disable gconf-peer" >&2;}
+   { (exit 1); exit 1; }; };;
+     esac
+else
+  gconf_enabled=no
 
 fi;
 
@@ -4626,7 +4660,7 @@ linux*oldld* | linux*aout* | linux*coff*)
   ;;
 
 # This must be Linux ELF.
-linux*)
+linux*|k*bsd*-gnu)
   version_type=linux
   need_lib_prefix=no
   need_version=no
@@ -5014,6 +5048,10 @@ ac_configure_args="$ac_configure_args --disable-examples"
 ac_configure_args="$ac_configure_args --with-glibj=build"
 if test "$plugin_enabled" != yes; then
   ac_configure_args="$ac_configure_args --disable-plugin"
+fi
+if test "$gconf_enabled" != yes; then
+  ac_configure_args="$ac_configure_args --disable-gconf-peer"
+  ac_configure_args="$ac_configure_args --enable-default-preferences-peer=gnu.java.util.prefs.FileBasedFactory"
 fi
 if test "$use_gtk_awt" != yes; then
   ac_configure_args="$ac_configure_args --disable-gtk-peer"
@@ -5837,7 +5875,7 @@ test x"$pic_mode" = xno && libtool_flags="$libtool_flags --prefer-non-pic"
 case $host in
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5840 "configure"' > conftest.$ac_ext
+  echo '#line 5878 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -6383,7 +6421,7 @@ exec 5>>./config.log
 
 
 
-for ac_prog in gcj gcj-3.2 gcj-3.1 gcj-3.0 gcj-2.95
+for ac_prog in gcj
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -6840,7 +6878,7 @@ if test "${enable_sjlj_exceptions+set}" = set; then
   :
 else
   cat > conftest.$ac_ext << EOF
-#line 6843 "configure"
+#line 6881 "configure"
 struct S { ~S(); };
 void bar();
 void foo()
@@ -9100,6 +9138,7 @@ THREADINCS=
 THREADDEPS=
 THREADH=
 THREADSPEC=
+THREADSTARTFILESPEC=
 case "$THREADS" in
  posix)
     case "$host" in
@@ -9163,6 +9202,20 @@ _ACEOF
 
  win32)
     THREADH=win32-threads.h
+    THREADCXXFLAGS=-mthreads
+    # We need thread-safe exception handling so _CRT_MT should be set to 1.
+    # But we do not want the executables created to be dependent on
+    # mingwm10.dll which provides a __mingwthr_key_dtor() that cleans up
+    # exception handling contexts.  The following kludge achieves this effect
+    # and causes a dummy __mingwthr_key_dtor() to be linked in from
+    # libmingw32.a.  This causes a memory leak of about 24 bytes per thread.
+    # A workaround is to explicitly use -mthreads while linking Java programs.
+    # See PR libgcj/28263.
+    #
+    # FIXME: In Java we are able to detect thread death at the end of
+    # Thread.run() so we should be able to clean up the exception handling
+    # contexts ourselves.
+    THREADSTARTFILESPEC='crtmt%O%s'
     ;;
 
  none)
@@ -9170,6 +9223,7 @@ _ACEOF
     ;;
 esac
           ac_config_links="$ac_config_links include/java-threads.h:include/$THREADH"
+
 
 
 
@@ -9208,12 +9262,28 @@ else
 fi
 
 
+
+if test "$use_libgcj_bc" = yes; then
+  USE_LIBGCJ_BC_TRUE=
+  USE_LIBGCJ_BC_FALSE='#'
+else
+  USE_LIBGCJ_BC_TRUE='#'
+  USE_LIBGCJ_BC_FALSE=
+fi
+
+
 if test -d sysdep; then true; else mkdir sysdep; fi
           ac_config_links="$ac_config_links sysdep/locks.h:sysdep/$sysdeps_dir/locks.h"
 
           ac_config_links="$ac_config_links sysdep/backtrace.h:$fallback_backtrace_h"
 
           ac_config_links="$ac_config_links sysdep/descriptor.h:$descriptor_h"
+
+
+LIBGCJ_SPEC="%{s-bc-abi:} -lgcj"
+if test "$use_libgcj_bc" = yes; then
+  LIBGCJ_SPEC="%{s-bc-abi:-lgcj_bc;:-lgcj}"
+fi
 
 
 HASH_SYNC_SPEC=
@@ -9338,12 +9408,14 @@ else
 
 
 
+
 for ac_func in strerror ioctl select fstat open fsync sleep opendir \
                    gmtime_r localtime_r readdir_r getpwuid_r getcwd \
 		   access stat lstat mkdir rename rmdir unlink utime chmod readlink \
 		   nl_langinfo setlocale \
 		   inet_pton uname inet_ntoa \
-		   fork execvp pipe sigaction ftruncate mmap
+		   fork execvp pipe sigaction ftruncate mmap \
+		   getifaddrs
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
 echo "$as_me:$LINENO: checking for $ac_func" >&5
@@ -14972,11 +15044,16 @@ esac
 
 
 
-# Determine where the standard .db file is found.
+# Determine where the standard .db file and GNU Classpath JNI
+# libraries are found.
 multi_os_directory=`$CC -print-multi-os-directory`
 case $multi_os_directory in
-  .) dbexecdir='$(libdir)/gcj-$(gcc_version)' ;; # Avoid /.
-  *) dbexecdir='$(libdir)/'$multi_os_directory'/gcj-$(gcc_version)' ;;
+  .)
+   dbexecdir='$(libdir)/gcj-$(gcc_version)' # Avoid /.
+   ;;
+  *)
+   dbexecdir='$(libdir)/'$multi_os_directory'/gcj-$(gcc_version)'
+   ;;
 esac
 
 
@@ -15013,7 +15090,13 @@ echo "$as_me: error: --with-gxx-include-dir=[dir] requires a directory" >&2;}
       yes) gxx_include_dir='$(libsubdir)/include/c++' ;;
       *)
 	libstdcxx_incdir='c++/$(gcc_version)'
-	gxx_include_dir='$(prefix)/include/$(libstdcxx_incdir)' ;;
+	gxx_include_dir='include/$(libstdcxx_incdir)'
+	if test -n "$with_cross_host" &&
+           test x"$with_cross_host" != x"no"; then
+          gxx_include_dir='${prefix}/${target_alias}/'"$gxx_include_dir"
+        else
+          gxx_include_dir='${prefix}/'"$gxx_include_dir"
+        fi;;
     esac ;;
   *) gxx_include_dir=${with_gxx_include_dir} ;;
 esac
@@ -15047,11 +15130,12 @@ esac
 
 
 
+
 for ac_header in unistd.h bstring.h sys/time.h sys/types.h fcntl.h \
 		  sys/ioctl.h sys/filio.h sys/stat.h sys/select.h \
 		  sys/socket.h netinet/in.h arpa/inet.h netdb.h net/if.h \
 		  pwd.h sys/config.h stdint.h langinfo.h locale.h \
-		  dirent.h sys/rw_lock.h
+		  dirent.h sys/rw_lock.h ifaddrs.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
@@ -16412,7 +16496,7 @@ case "${host}" in
  mips*-*-linux*)
     SIGNAL_HANDLER=include/mips-signal.h
     ;;
- *-*-darwin*)
+ powerpc*-*-darwin*)
     SIGNAL_HANDLER=include/darwin-signal.h
     ;;
  *)
@@ -16569,6 +16653,96 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
   fi
+
+# For _Unwind_GetIPInfo.
+
+
+
+  ac_ext=cc
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+  echo "$as_me:$LINENO: checking for _Unwind_GetIPInfo" >&5
+echo $ECHO_N "checking for _Unwind_GetIPInfo... $ECHO_C" >&6
+  if test "${gcc_cv_getipinfo+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+  if test x$gcc_no_link = xyes; then
+  { { echo "$as_me:$LINENO: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&5
+echo "$as_me: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+extern "C" { extern void _Unwind_GetIPInfo(); }
+int
+main ()
+{
+_Unwind_GetIPInfo();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  gcc_cv_getipinfo=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+gcc_cv_getipinfo=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+
+fi
+
+  if test $gcc_cv_getipinfo = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_GETIPINFO 1
+_ACEOF
+
+  fi
+  echo "$as_me:$LINENO: result: $gcc_cv_getipinfo" >&5
+echo "${ECHO_T}$gcc_cv_getipinfo" >&6
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
 
 # Check if linker supports static linking on a per library basis
 LD_START_STATIC_SPEC=
@@ -16804,6 +16978,13 @@ if test -z "${USING_NO_THREADS_TRUE}" && test -z "${USING_NO_THREADS_FALSE}"; th
   { { echo "$as_me:$LINENO: error: conditional \"USING_NO_THREADS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"USING_NO_THREADS\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${USE_LIBGCJ_BC_TRUE}" && test -z "${USE_LIBGCJ_BC_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"USE_LIBGCJ_BC\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"USE_LIBGCJ_BC\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -17406,6 +17587,7 @@ s,@build@,$build,;t t
 s,@build_cpu@,$build_cpu,;t t
 s,@build_vendor@,$build_vendor,;t t
 s,@build_os@,$build_os,;t t
+s,@build_libsubdir@,$build_libsubdir,;t t
 s,@build_subdir@,$build_subdir,;t t
 s,@host_subdir@,$host_subdir,;t t
 s,@target_subdir@,$target_subdir,;t t
@@ -17541,6 +17723,7 @@ s,@THREADLIBS@,$THREADLIBS,;t t
 s,@THREADINCS@,$THREADINCS,;t t
 s,@THREADDEPS@,$THREADDEPS,;t t
 s,@THREADSPEC@,$THREADSPEC,;t t
+s,@THREADSTARTFILESPEC@,$THREADSTARTFILESPEC,;t t
 s,@THREADLDFLAGS@,$THREADLDFLAGS,;t t
 s,@THREADCXXFLAGS@,$THREADCXXFLAGS,;t t
 s,@USING_POSIX_THREADS_TRUE@,$USING_POSIX_THREADS_TRUE,;t t
@@ -17549,6 +17732,9 @@ s,@USING_WIN32_THREADS_TRUE@,$USING_WIN32_THREADS_TRUE,;t t
 s,@USING_WIN32_THREADS_FALSE@,$USING_WIN32_THREADS_FALSE,;t t
 s,@USING_NO_THREADS_TRUE@,$USING_NO_THREADS_TRUE,;t t
 s,@USING_NO_THREADS_FALSE@,$USING_NO_THREADS_FALSE,;t t
+s,@USE_LIBGCJ_BC_TRUE@,$USE_LIBGCJ_BC_TRUE,;t t
+s,@USE_LIBGCJ_BC_FALSE@,$USE_LIBGCJ_BC_FALSE,;t t
+s,@LIBGCJ_SPEC@,$LIBGCJ_SPEC,;t t
 s,@HASH_SYNC_SPEC@,$HASH_SYNC_SPEC,;t t
 s,@USING_GCC_TRUE@,$USING_GCC_TRUE,;t t
 s,@USING_GCC_FALSE@,$USING_GCC_FALSE,;t t

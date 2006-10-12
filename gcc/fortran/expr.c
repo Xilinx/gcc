@@ -1014,6 +1014,7 @@ find_array_section (gfc_expr *expr, gfc_ref *ref)
   int rank;
   int d;
   long unsigned one = 1;
+  mpz_t start[GFC_MAX_DIMENSIONS];
   mpz_t end[GFC_MAX_DIMENSIONS];
   mpz_t stride[GFC_MAX_DIMENSIONS];
   mpz_t delta[GFC_MAX_DIMENSIONS];
@@ -1052,6 +1053,7 @@ find_array_section (gfc_expr *expr, gfc_ref *ref)
   for (d = 0; d < rank; d++)
     {
       mpz_init (delta[d]);
+      mpz_init (start[d]);
       mpz_init (end[d]);
       mpz_init (ctr[d]);
       mpz_init (stride[d]);
@@ -1085,26 +1087,18 @@ find_array_section (gfc_expr *expr, gfc_ref *ref)
 	mpz_set_ui (stride[d], one);
 
       /* Obtain the start value for the index.  */
-      if (begin->value.integer)
-	  mpz_set (ctr[d], begin->value.integer);
+      if (begin)
+	  mpz_set (start[d], begin->value.integer);
       else
-	{
-	  if (mpz_cmp_si (stride[d], 0) < 0)
-	    mpz_set (ctr[d], upper->value.integer);
-	  else
-	    mpz_set (ctr[d], lower->value.integer);
-	}
+	mpz_set (start[d], lower->value.integer);
+
+      mpz_set (ctr[d], start[d]);
 
       /* Obtain the end value for the index.  */
       if (finish)
         mpz_set (end[d], finish->value.integer);
       else
-	{
-	  if (mpz_cmp_si (stride[d], 0) < 0)
-	    mpz_set (end[d], lower->value.integer);
-	  else
-	    mpz_set (end[d], upper->value.integer);
-	}
+	mpz_set (end[d], upper->value.integer);
 
       /* Separate 'if' because elements sometimes arrive with
 	 non-null end.  */
@@ -1171,7 +1165,7 @@ find_array_section (gfc_expr *expr, gfc_ref *ref)
 	  if (mpz_cmp_ui (stride[d], 0) > 0 ?
 		mpz_cmp (ctr[d], tmp_mpz) > 0 :
 		mpz_cmp (ctr[d], tmp_mpz) < 0)
-	    mpz_set (ctr[d], ref->u.ar.start[d]->value.integer);
+	    mpz_set (ctr[d], start[d]);
 	  else
 	    mpz_set_ui (stop, 0);
 	}
@@ -1205,6 +1199,7 @@ cleanup:
   for (d = 0; d < rank; d++)
     {
       mpz_clear (delta[d]);
+      mpz_clear (start[d]);
       mpz_clear (end[d]);
       mpz_clear (ctr[d]);
       mpz_clear (stride[d]);
@@ -2411,7 +2406,7 @@ gfc_default_initializer (gfc_typespec *ts)
   /* See if we have a default initializer.  */
   for (c = ts->derived->components; c; c = c->next)
     {
-      if (c->initializer && init == NULL)
+      if ((c->initializer || c->allocatable) && init == NULL)
         init = gfc_get_expr ();
     }
 
@@ -2435,6 +2430,13 @@ gfc_default_initializer (gfc_typespec *ts)
 
       if (c->initializer)
         tail->expr = gfc_copy_expr (c->initializer);
+
+      if (c->allocatable)
+	{
+	  tail->expr = gfc_get_expr ();
+	  tail->expr->expr_type = EXPR_NULL;
+	  tail->expr->ts = c->ts;
+	}
     }
   return init;
 }

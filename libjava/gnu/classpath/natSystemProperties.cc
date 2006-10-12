@@ -82,7 +82,7 @@ file_encoding ()
 
 static const char *default_file_encoding = DEFAULT_FILE_ENCODING;
 
-#if HAVE_GETPWUID_R
+#if defined(HAVE_GETPWUID_R) && defined(_POSIX_PTHREAD_SEMANTICS)
 /* Use overload resolution to find out the signature of getpwuid_r.  */
 
   /* This is Posix getpwuid_r.  */
@@ -183,11 +183,11 @@ gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties
   // redefine `java.home' with `-D' if necessary.
   SET ("java.home", JAVA_HOME);
   SET ("gnu.classpath.home", PREFIX);
-  // This is set to $(libdir) because we use this to find .security
-  // files at runtime.
-  char val2[sizeof ("file://") + sizeof (LIBDIR) + 1];
+  // This is set to $(toolexeclibdir) because we use this to find
+  // .security files at runtime.
+  char val2[sizeof ("file://") + sizeof (TOOLEXECLIBDIR) + 1];
   strcpy (val2, "file://");
-  strcat (val2, LIBDIR);
+  strcat (val2, TOOLEXECLIBDIR);
   SET ("gnu.classpath.home.url", val2);
 
   SET ("file.encoding", default_file_encoding);
@@ -223,7 +223,7 @@ gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties
   uid_t user_id = getuid ();
   struct passwd *pwd_entry;
 
-#ifdef HAVE_GETPWUID_R
+#if defined(HAVE_GETPWUID_R) && defined(_POSIX_PTHREAD_SEMANTICS)
   struct passwd pwd_r;
   size_t len_r = 200;
   char *buf_r = (char *) _Jv_AllocBytes (len_r);
@@ -363,7 +363,7 @@ gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties
   _Jv_platform_initProperties (newprops);
 
   // If java.library.path is set, tell libltdl so we search the new
-  // directories as well.  FIXME: does this work properly on Windows?
+  // directories as well.
   ::java::lang::String *path = newprops->getProperty(JvNewStringLatin1("java.library.path"));
   if (path)
     {

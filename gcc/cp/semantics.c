@@ -1293,6 +1293,10 @@ tree
 finish_label_stmt (tree name)
 {
   tree decl = define_label (input_location, name);
+
+  if (decl  == error_mark_node)
+    return error_mark_node;
+
   return add_stmt (build_stmt (LABEL_EXPR, decl));
 }
 
@@ -1502,9 +1506,11 @@ check_accessibility_of_qualified_id (tree decl,
        its bases.  */
     qualifying_type = currently_open_derived_class (scope);
 
-  if (qualifying_type && IS_AGGR_TYPE_CODE (TREE_CODE (qualifying_type)))
-    /* It is possible for qualifying type to be a TEMPLATE_TYPE_PARM
-       or similar in a default argument value.  */
+  if (qualifying_type 
+      /* It is possible for qualifying type to be a TEMPLATE_TYPE_PARM
+	 or similar in a default argument value.  */
+      && CLASS_TYPE_P (qualifying_type)
+      && !dependent_type_p (qualifying_type))
     perform_or_defer_access_check (TYPE_BINFO (qualifying_type), decl);
 }
 
@@ -1606,69 +1612,45 @@ finish_stmt_expr_expr (tree expr, tree stmt_expr)
      of the last statement is the value of the entire expression.  */
   if (expr)
     {
-      tree type;
-      type = TREE_TYPE (expr);
-      if (!dependent_type_p (type) && !VOID_TYPE_P (type))
+      tree type = TREE_TYPE (expr);
+
+      if (processing_template_decl)
 	{
-	  expr = decay_conversion (expr);
+	  expr = build_stmt (EXPR_STMT, expr);
+	  expr = add_stmt (expr);
+	  /* Mark the last statement so that we can recognize it as such at
+	     template-instantiation time.  */
+	  EXPR_STMT_STMT_EXPR_RESULT (expr) = 1;
+	}
+      else if (VOID_TYPE_P (type))
+	{
+	  /* Just treat this like an ordinary statement.  */
+	  expr = finish_expr_stmt (expr);
+	}
+      else
+	{
+	  /* It actually has a value we need to deal with.  First, force it
+	     to be an rvalue so that we won't need to build up a copy
+	     constructor call later when we try to assign it to something.  */
+	  expr = force_rvalue (expr);
 	  if (error_operand_p (expr))
 	    return error_mark_node;
+
+	  /* Update for array-to-pointer decay.  */
 	  type = TREE_TYPE (expr);
+
+	  /* Wrap it in a CLEANUP_POINT_EXPR and add it to the list like a
+	     normal statement, but don't convert to void or actually add
+	     the EXPR_STMT.  */
+	  if (TREE_CODE (expr) != CLEANUP_POINT_EXPR)
+	    expr = maybe_cleanup_point_expr (expr);
+	  add_stmt (expr);
 	}
+
       /* The type of the statement-expression is the type of the last
 	 expression.  */
       TREE_TYPE (stmt_expr) = type;
-      /* We must take particular care if TYPE is a class type.  In
-	 particular if EXPR creates a temporary of class type, then it
-	 must be destroyed at the semicolon terminating the last
-	 statement -- but we must make a copy before that happens.
-
-	 This problem is solved by using a TARGET_EXPR to initialize a
-	 new temporary variable.  The TARGET_EXPR itself is placed
-	 outside the statement-expression.  However, the last
-	 statement in the statement-expression is transformed from
-	 EXPR to (approximately) T = EXPR, where T is the new
-	 temporary variable.  Thus, the lifetime of the new temporary
-	 extends to the full-expression surrounding the
-	 statement-expression.  */
-      if (!processing_template_decl && !VOID_TYPE_P (type))
-	{
-	  tree target_expr;
-	  if (CLASS_TYPE_P (type)
-	      && !TYPE_HAS_TRIVIAL_INIT_REF (type))
-	    {
-	      target_expr = build_target_expr_with_type (expr, type);
-	      expr = TARGET_EXPR_INITIAL (target_expr);
-	    }
-	  else
-	    {
-	      /* Normally, build_target_expr will not create a
-		 TARGET_EXPR for scalars.  However, we need the
-		 temporary here, in order to solve the scoping
-		 problem described above.  */
-	      target_expr = force_target_expr (type, expr);
-	      expr = TARGET_EXPR_INITIAL (target_expr);
-	      expr = build2 (INIT_EXPR,
-			     type,
-			     TARGET_EXPR_SLOT (target_expr),
-			     expr);
-	    }
-	  TARGET_EXPR_INITIAL (target_expr) = NULL_TREE;
-	  /* Save away the TARGET_EXPR in the TREE_TYPE field of the
-	     STATEMENT_EXPR.  We will retrieve it in
-	     finish_stmt_expr.  */
-	  TREE_TYPE (stmt_expr) = target_expr;
-	}
     }
-
-  /* Having modified EXPR to reflect the extra initialization, we now
-     treat it just like an ordinary statement.  */
-  expr = finish_expr_stmt (expr);
-
-  /* Mark the last statement so that we can recognize it as such at
-     template-instantiation time.  */
-  if (expr && processing_template_decl)
-    EXPR_STMT_STMT_EXPR_RESULT (expr) = 1;
 
   return stmt_expr;
 }
@@ -1690,6 +1672,7 @@ finish_stmt_expr (tree stmt_expr, bool has_no_scope)
 
   type = TREE_TYPE (stmt_expr);
   result = pop_stmt_list (stmt_expr);
+  TREE_TYPE (result) = type;
 
   if (processing_template_decl)
     {
@@ -1697,12 +1680,13 @@ finish_stmt_expr (tree stmt_expr, bool has_no_scope)
       TREE_SIDE_EFFECTS (result) = 1;
       STMT_EXPR_NO_SCOPE (result) = has_no_scope;
     }
-  else if (!TYPE_P (type))
+  else if (CLASS_TYPE_P (type))
     {
-      gcc_assert (TREE_CODE (type) == TARGET_EXPR);
-      TARGET_EXPR_INITIAL (type) = result;
-      TREE_TYPE (result) = void_type_node;
-      result = type;
+      /* Wrap the statement-expression in a TARGET_EXPR so that the
+	 temporary object created by the final expression is destroyed at
+	 the end of the full-expression containing the
+	 statement-expression.  */
+      result = force_target_expr (type, result);
     }
 
   return result;
@@ -1770,6 +1754,7 @@ finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p)
 
   /* ARGS should be a list of arguments.  */
   gcc_assert (!args || TREE_CODE (args) == TREE_LIST);
+  gcc_assert (!TYPE_P (fn));
 
   orig_fn = fn;
   orig_args = args;
@@ -1790,26 +1775,8 @@ finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p)
       args = build_non_dependent_args (orig_args);
     }
 
-  /* A reference to a member function will appear as an overloaded
-     function (rather than a BASELINK) if an unqualified name was used
-     to refer to it.  */
-  if (!BASELINK_P (fn) && is_overloaded_fn (fn))
-    {
-      tree f = fn;
-
-      if (TREE_CODE (f) == TEMPLATE_ID_EXPR)
-	f = TREE_OPERAND (f, 0);
-      f = get_first_fn (f);
-      if (DECL_FUNCTION_MEMBER_P (f))
-	{
-	  tree type = currently_open_derived_class (DECL_CONTEXT (f));
-	  if (!type)
-	    type = DECL_CONTEXT (f);
-	  fn = build_baselink (TYPE_BINFO (type),
-			       TYPE_BINFO (type),
-			       fn, /*optype=*/NULL_TREE);
-	}
-    }
+  if (is_overloaded_fn (fn))
+    fn = baselink_for_fns (fn);
 
   result = NULL_TREE;
   if (BASELINK_P (fn))
@@ -2052,7 +2019,7 @@ finish_compound_literal (tree type, VEC(constructor_elt,gc) *initializer_list)
       DECL_NAME (var) = make_anon_name ();
     }
   /* We must call pushdecl, since the gimplifier complains if the
-     variable hase been declared via a BIND_EXPR.  */
+     variable has not been declared via a BIND_EXPR.  */
   pushdecl (var);
   /* Initialize the variable as we would any other variable with a
      brace-enclosed initializer.  */
@@ -2137,19 +2104,8 @@ check_template_template_default_arg (tree argument)
       && TREE_CODE (argument) != UNBOUND_CLASS_TEMPLATE)
     {
       if (TREE_CODE (argument) == TYPE_DECL)
-	{
-	  tree t = TREE_TYPE (argument);
-
-	  /* Try to emit a slightly smarter error message if we detect
-	     that the user is using a template instantiation.  */
-	  if (CLASSTYPE_TEMPLATE_INFO (t)
-	      && CLASSTYPE_TEMPLATE_INSTANTIATION (t))
-	    error ("invalid use of type %qT as a default value for a "
-		   "template template-parameter", t);
-	  else
-	    error ("invalid use of %qD as a default value for a template "
-		   "template-parameter", argument);
-	}
+	error ("invalid use of type %qT as a default value for a template "
+	       "template-parameter", TREE_TYPE (argument));
       else
 	error ("invalid default argument for a template template parameter");
       return error_mark_node;
@@ -2161,7 +2117,7 @@ check_template_template_default_arg (tree argument)
 /* Begin a class definition, as indicated by T.  */
 
 tree
-begin_class_definition (tree t)
+begin_class_definition (tree t, tree attributes)
 {
   if (t == error_mark_node)
     return error_mark_node;
@@ -2200,6 +2156,9 @@ begin_class_definition (tree t)
   maybe_process_partial_specialization (t);
   pushclass (t);
   TYPE_BEING_DEFINED (t) = 1;
+
+  cplus_decl_attributes (&t, attributes, (int) ATTR_FLAG_TYPE_IN_PLACE);
+
   if (flag_pack_struct)
     {
       tree v;
@@ -2215,7 +2174,7 @@ begin_class_definition (tree t)
      before.  */
   if (! TYPE_ANONYMOUS_P (t))
     {
-      struct c_fileinfo *finfo = get_fileinfo (lbasename (input_filename));
+      struct c_fileinfo *finfo = get_fileinfo (input_filename);
       CLASSTYPE_INTERFACE_ONLY (t) = finfo->interface_only;
       SET_CLASSTYPE_INTERFACE_UNKNOWN_X
 	(t, finfo->interface_unknown);
@@ -2332,8 +2291,9 @@ note_decl_for_pch (tree decl)
 
   /* There's a good chance that we'll have to mangle names at some
      point, even if only for emission in debugging information.  */
-  if (TREE_CODE (decl) == VAR_DECL
-      || TREE_CODE (decl) == FUNCTION_DECL)
+  if ((TREE_CODE (decl) == VAR_DECL
+       || TREE_CODE (decl) == FUNCTION_DECL)
+      && !processing_template_decl)
     mangle_decl (decl);
 }
 
@@ -2426,6 +2386,35 @@ qualified_name_lookup_error (tree scope, tree name, tree decl)
     error ("%qD is not a member of %qD", name, scope);
   else
     error ("%<::%D%> has not been declared", name);
+}
+
+/* If FNS is a member function, a set of member functions, or a
+   template-id referring to one or more member functions, return a
+   BASELINK for FNS, incorporating the current access context.
+   Otherwise, return FNS unchanged.  */
+
+tree
+baselink_for_fns (tree fns)
+{
+  tree fn;
+  tree cl;
+
+  if (BASELINK_P (fns) 
+      || error_operand_p (fns))
+    return fns;
+  
+  fn = fns;
+  if (TREE_CODE (fn) == TEMPLATE_ID_EXPR)
+    fn = TREE_OPERAND (fn, 0);
+  fn = get_first_fn (fn);
+  if (!DECL_FUNCTION_MEMBER_P (fn))
+    return fns;
+
+  cl = currently_open_derived_class (DECL_CONTEXT (fn));
+  if (!cl)
+    cl = DECL_CONTEXT (fn);
+  cl = TYPE_BINFO (cl);
+  return build_baselink (cl, cl, fns, /*optype=*/NULL_TREE);
 }
 
 /* ID_EXPRESSION is a representation of parsed, but unprocessed,
@@ -2590,7 +2579,10 @@ finish_id_expression (tree id_expression,
     {
       *idk = CP_ID_KIND_NONE;
       if (!processing_template_decl)
-	return DECL_INITIAL (decl);
+	{
+	  used_types_insert (TREE_TYPE (decl));
+	  return DECL_INITIAL (decl);
+	}
       return decl;
     }
   else
@@ -2813,8 +2805,12 @@ finish_id_expression (tree id_expression,
 	}
       else if (is_overloaded_fn (decl))
 	{
-	  tree first_fn = OVL_CURRENT (decl);
+	  tree first_fn;
 
+	  first_fn = decl;
+	  if (TREE_CODE (first_fn) == TEMPLATE_ID_EXPR)
+	    first_fn = TREE_OPERAND (first_fn, 0);
+	  first_fn = get_first_fn (first_fn);
 	  if (TREE_CODE (first_fn) == TEMPLATE_DECL)
 	    first_fn = DECL_TEMPLATE_RESULT (first_fn);
 
@@ -2831,6 +2827,8 @@ finish_id_expression (tree id_expression,
 	      return finish_class_member_access_expr (decl, id_expression,
 						      /*template_p=*/false);
 	    }
+
+	  decl = baselink_for_fns (decl);
 	}
       else
 	{
@@ -2897,11 +2895,12 @@ finish_offsetof (tree expr)
       || TREE_CODE (TREE_TYPE (expr)) == METHOD_TYPE
       || TREE_CODE (TREE_TYPE (expr)) == UNKNOWN_TYPE)
     {
-      error ("cannot apply %<offsetof%> to member function %qD",
-	     TREE_OPERAND (expr, 1));
+      if (TREE_CODE (expr) == COMPONENT_REF)
+	expr = TREE_OPERAND (expr, 1);
+      error ("cannot apply %<offsetof%> to member function %qD", expr);
       return error_mark_node;
     }
-  return fold_offsetof (expr);
+  return fold_offsetof (expr, NULL_TREE);
 }
 
 /* Called from expand_body via walk_tree.  Replace all AGGR_INIT_EXPRs

@@ -214,6 +214,13 @@ extern GTY(()) int darwin_ms_struct;
     %{!nostdlib:%{!nodefaultlibs:%(link_ssp) %G %L}} \
     %{!A:%{!nostdlib:%{!nostartfiles:%E}}} %{T*} %{F*} }}}}}}}}"
 
+#ifdef TARGET_SYSTEM_ROOT
+#define LINK_SYSROOT_SPEC \
+  "%{isysroot*:-syslibroot %*;:-syslibroot " TARGET_SYSTEM_ROOT "}"
+#else
+#define LINK_SYSROOT_SPEC "%{isysroot*:-syslibroot %*}"
+#endif
+
 /* Please keep the random linker options in alphabetical order (modulo
    'Z' and 'no' prefixes).  Options that can only go to one of libtool
    or ld must be listed twice, under both !Zdynamiclib and
@@ -282,7 +289,7 @@ extern GTY(()) int darwin_ms_struct;
    %{Zseg_addr_table*: -seg_addr_table %*} \
    %{Zfn_seg_addr_table_filename*:-seg_addr_table_filename %*} \
    %{sub_library*} %{sub_umbrella*} \
-   %{isysroot*:-syslibroot %*} \
+   " LINK_SYSROOT_SPEC " \
    %{twolevel_namespace} %{twolevel_namespace_hints} \
    %{umbrella*} \
    %{undefined*} \
@@ -698,7 +705,9 @@ extern GTY(()) section * darwin_sections[NUM_DARWIN_SECTIONS];
 
 /* Set on a symbol with SYMBOL_FLAG_FUNCTION or
    MACHO_SYMBOL_FLAG_VARIABLE to indicate that the function or
-   variable has been defined in this translation unit.  */
+   variable has been defined in this translation unit.
+   When porting Mach-O to new architectures you need to make
+   sure these aren't clobbered by the backend.  */
 
 #define MACHO_SYMBOL_FLAG_VARIABLE (SYMBOL_FLAG_MACH_DEP)
 #define MACHO_SYMBOL_FLAG_DEFINED ((SYMBOL_FLAG_MACH_DEP) << 1)
@@ -825,6 +834,9 @@ enum machopic_addr_class {
 #undef TARGET_ASM_NAMED_SECTION
 #define TARGET_ASM_NAMED_SECTION darwin_asm_named_section
 
+/* Handle pragma weak and pragma pack.  */
+#define HANDLE_SYSV_PRAGMA 1
+
 #define DARWIN_REGISTER_TARGET_PRAGMAS()			\
   do {								\
     c_register_pragma (0, "mark", darwin_pragma_ignore);	\
@@ -873,5 +885,43 @@ void add_framework_path (char *);
 #else
 #define TARGET_ASM_OUTPUT_ANCHOR NULL
 #endif
+
+/* Attempt to turn on execute permission for the stack.  This may be
+    used by INITIALIZE_TRAMPOLINE of the target needs it (that is,
+    if the target machine can change execute permissions on a page).
+
+    There is no way to query the execute permission of the stack, so
+    we always issue the mprotect() call.
+
+    Unfortunately it is not possible to make this namespace-clean.
+
+    Also note that no errors should be emitted by this code; it is
+    considered dangerous for library calls to send messages to
+    stdout/stderr.  */
+
+#define ENABLE_EXECUTE_STACK                                            \
+extern void __enable_execute_stack (void *);                            \
+void                                                                    \
+__enable_execute_stack (void *addr)                                     \
+{                                                                       \
+   extern int mprotect (void *, size_t, int);                           \
+   extern int getpagesize (void);					\
+   static int size;                                                     \
+   static long mask;                                                    \
+                                                                        \
+   char *page, *end;                                                    \
+                                                                        \
+   if (size == 0)                                                       \
+     {                                                                  \
+       size = getpagesize();						\
+       mask = ~((long) size - 1);                                       \
+     }                                                                  \
+                                                                        \
+   page = (char *) (((long) addr) & mask);                              \
+   end  = (char *) ((((long) (addr + (TARGET_64BIT ? 48 : 40))) & mask) + size); \
+                                                                        \
+   /* 7 == PROT_READ | PROT_WRITE | PROT_EXEC */                        \
+   (void) mprotect (page, end - page, 7);                               \
+}
 
 #endif /* CONFIG_DARWIN_H */

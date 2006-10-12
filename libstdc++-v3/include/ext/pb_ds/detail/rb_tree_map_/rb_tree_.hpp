@@ -52,272 +52,196 @@
 #ifndef PB_DS_BIN_SEARCH_TREE_HPP__DATA_TRUE_INDICATOR
 #define PB_DS_BIN_SEARCH_TREE_HPP__DATA_TRUE_INDICATOR
 #include <ext/pb_ds/detail/bin_search_tree_/bin_search_tree_.hpp>
-#endif // #ifndef PB_DS_BIN_SEARCH_TREE_HPP__DATA_TRUE_INDICATOR
-#endif // #ifdef PB_DS_DATA_TRUE_INDICATOR
+#endif 
+#endif 
 
 #ifdef PB_DS_DATA_FALSE_INDICATOR
 #ifndef PB_DS_BIN_SEARCH_TREE_HPP__DATA_FALSE_INDICATOR
 #define PB_DS_BIN_SEARCH_TREE_HPP__DATA_FALSE_INDICATOR
 #include <ext/pb_ds/detail/bin_search_tree_/bin_search_tree_.hpp>
-#endif // #ifndef PB_DS_BIN_SEARCH_TREE_HPP__DATA_FALSE_INDICATOR
-#endif // #ifdef PB_DS_DATA_FALSE_INDICATOR
+#endif 
+#endif 
 
 #include <ext/pb_ds/detail/standard_policies.hpp>
 #include <ext/pb_ds/detail/basic_types.hpp>
 #include <utility>
 #include <vector>
 #include <assert.h>
+#include <debug/debug.h>
 
 namespace pb_ds
 {
   namespace detail
   {
-
-#ifdef PB_DS_RB_TREE_DEBUG_
-#define PB_DS_DBG_ASSERT(X) assert(X)
-#define PB_DS_DBG_VERIFY(X) assert(X)
-#define PB_DS_DBG_ONLY(X) X
-#else // #ifdef PB_DS_RB_TREE_DEBUG_
-#define PB_DS_DBG_ASSERT(X)
-#define PB_DS_DBG_VERIFY(X) {if((X)==0);}
-#define PB_DS_DBG_ONLY(X) ;
-#endif // #ifdef PB_DS_RB_TREE_DEBUG_
-
-#define PB_DS_CLASS_T_DEC						\
-    template<								\
-						typename Key,		\
-						typename Mapped,	\
-						class Cmp_Fn,		\
-						class Node_And_It_Traits, \
-						class Allocator>
+#define PB_DS_CLASS_T_DEC \
+    template<typename Key, typename Mapped, typename Cmp_Fn, \
+	     typename Node_And_It_Traits, typename Allocator>
 
 #ifdef PB_DS_DATA_TRUE_INDICATOR
-#define PB_DS_CLASS_NAME			\
-    rb_tree_data_
-#endif // #ifdef PB_DS_DATA_TRUE_INDICATOR
-
-#ifdef PB_DS_DATA_FALSE_INDICATOR
-#define PB_DS_CLASS_NAME			\
-    rb_tree_no_data_
-#endif // #ifdef PB_DS_DATA_FALSE_INDICATOR
+#define PB_DS_CLASS_NAME rb_tree_data_
+#endif 
 
 #ifdef PB_DS_DATA_TRUE_INDICATOR
-#define PB_DS_BASE_CLASS_NAME			\
-    bin_search_tree_data_
-#endif // #ifdef PB_DS_DATA_TRUE_INDICATOR
+#define PB_DS_BASE_CLASS_NAME bin_search_tree_data_
+#endif 
 
 #ifdef PB_DS_DATA_FALSE_INDICATOR
-#define PB_DS_BASE_CLASS_NAME			\
-    bin_search_tree_no_data_
-#endif // #ifdef PB_DS_DATA_FALSE_INDICATOR
+#define PB_DS_CLASS_NAME rb_tree_no_data_
+#endif 
 
-#define PB_DS_CLASS_C_DEC						\
-    PB_DS_CLASS_NAME<							\
-						Key,			\
-						Mapped,			\
-						Cmp_Fn,			\
-						Node_And_It_Traits,	\
-						Allocator>
+#ifdef PB_DS_DATA_FALSE_INDICATOR
+#define PB_DS_BASE_CLASS_NAME bin_search_tree_no_data_
+#endif 
 
-#define PB_DS_BASE_C_DEC						\
-    PB_DS_BASE_CLASS_NAME<						\
-							Key,		\
-							Mapped,		\
-							Cmp_Fn,		\
-							Node_And_It_Traits, \
-							Allocator>
+#define PB_DS_CLASS_C_DEC \
+    PB_DS_CLASS_NAME<Key, Mapped, Cmp_Fn, Node_And_It_Traits, Allocator>
+
+#define PB_DS_BASE_C_DEC \
+    PB_DS_BASE_CLASS_NAME<Key, Mapped, Cmp_Fn, Node_And_It_Traits, Allocator>
 
 #ifdef PB_DS_DATA_TRUE_INDICATOR
 #define PB_DS_V2F(X) (X).first
 #define PB_DS_V2S(X) (X).second
 #define PB_DS_EP2VP(X)& ((X)->m_value)
-#endif // #ifdef PB_DS_DATA_TRUE_INDICATOR
+#endif 
 
 #ifdef PB_DS_DATA_FALSE_INDICATOR
 #define PB_DS_V2F(X) (X)
 #define PB_DS_V2S(X) Mapped_Data()
 #define PB_DS_EP2VP(X)& ((X)->m_value.first)
-#endif // #ifdef PB_DS_DATA_FALSE_INDICATOR
+#endif 
 
     template<typename Key,
 	     typename Mapped,
-	     class Cmp_Fn,
-	     class Node_And_It_Traits,
-	     class Allocator>
+	     typename Cmp_Fn,
+	     typename Node_And_It_Traits,
+	     typename Allocator>
     class PB_DS_CLASS_NAME : public PB_DS_BASE_C_DEC
     {
-
     private:
-      typedef typename PB_DS_BASE_C_DEC::node_pointer node_pointer;
+      typedef PB_DS_BASE_C_DEC base_type;
+      typedef typename base_type::node_pointer node_pointer;
 
     public:
-
-      typedef typename Allocator::size_type size_type;
-
-      typedef typename Allocator::difference_type difference_type;
-
-      typedef typename PB_DS_BASE_C_DEC::key_type key_type;
-
-      typedef typename PB_DS_BASE_C_DEC::key_pointer key_pointer;
-
-      typedef typename PB_DS_BASE_C_DEC::const_key_pointer const_key_pointer;
-
-      typedef typename PB_DS_BASE_C_DEC::key_reference key_reference;
-
-      typedef
-      typename PB_DS_BASE_C_DEC::const_key_reference
-      const_key_reference;
-
-      typedef typename PB_DS_BASE_C_DEC::mapped_type mapped_type;
-
-      typedef typename PB_DS_BASE_C_DEC::mapped_pointer mapped_pointer;
-
-      typedef
-      typename PB_DS_BASE_C_DEC::const_mapped_pointer
-      const_mapped_pointer;
-
-      typedef typename PB_DS_BASE_C_DEC::mapped_reference mapped_reference;
-
-      typedef
-      typename PB_DS_BASE_C_DEC::const_mapped_reference
-      const_mapped_reference;
-
-      typedef typename PB_DS_BASE_C_DEC::value_type value_type;
-
-      typedef typename PB_DS_BASE_C_DEC::pointer pointer;
-
-      typedef typename PB_DS_BASE_C_DEC::const_pointer const_pointer;
-
-      typedef typename PB_DS_BASE_C_DEC::reference reference;
-
-      typedef typename PB_DS_BASE_C_DEC::const_reference const_reference;
-
-      typedef typename PB_DS_BASE_C_DEC::point_iterator point_iterator;
-
-      typedef typename PB_DS_BASE_C_DEC::const_iterator const_point_iterator;
-
-      typedef typename PB_DS_BASE_C_DEC::iterator iterator;
-
-      typedef typename PB_DS_BASE_C_DEC::const_iterator const_iterator;
-
-      typedef typename PB_DS_BASE_C_DEC::reverse_iterator reverse_iterator;
-
-      typedef
-      typename PB_DS_BASE_C_DEC::const_reverse_iterator
-      const_reverse_iterator;
-
       typedef Cmp_Fn cmp_fn;
-
       typedef Allocator allocator;
+      typedef typename Allocator::size_type size_type;
+      typedef typename Allocator::difference_type difference_type;
+      typedef typename base_type::key_type key_type;
+      typedef typename base_type::key_pointer key_pointer;
+      typedef typename base_type::const_key_pointer const_key_pointer;
+      typedef typename base_type::key_reference key_reference;
+      typedef typename base_type::const_key_reference const_key_reference;
+      typedef typename base_type::mapped_type mapped_type;
+      typedef typename base_type::mapped_pointer mapped_pointer;
+      typedef typename base_type::const_mapped_pointer const_mapped_pointer;
+      typedef typename base_type::mapped_reference mapped_reference;
+      typedef typename base_type::const_mapped_reference const_mapped_reference;
+      typedef typename base_type::value_type value_type;
+      typedef typename base_type::pointer pointer;
+      typedef typename base_type::const_pointer const_pointer;
+      typedef typename base_type::reference reference;
+      typedef typename base_type::const_reference const_reference;
+      typedef typename base_type::point_iterator point_iterator;
+      typedef typename base_type::const_iterator const_point_iterator;
+      typedef typename base_type::iterator iterator;
+      typedef typename base_type::const_iterator const_iterator;
+      typedef typename base_type::reverse_iterator reverse_iterator;
+      typedef typename base_type::const_reverse_iterator const_reverse_iterator;
+      typedef typename base_type::node_update node_update;
 
-      typedef typename PB_DS_BASE_C_DEC::node_update node_update;
-
-    public:
 
       PB_DS_CLASS_NAME();
 
-      PB_DS_CLASS_NAME(const Cmp_Fn& r_cmp_fn);
+      PB_DS_CLASS_NAME(const Cmp_Fn&);
 
-      PB_DS_CLASS_NAME(const Cmp_Fn& r_cmp_fn, const node_update& r_node_update);
+      PB_DS_CLASS_NAME(const Cmp_Fn&, const node_update&);
 
-      PB_DS_CLASS_NAME(const PB_DS_CLASS_C_DEC& other);
+      PB_DS_CLASS_NAME(const PB_DS_CLASS_C_DEC&);
 
       void
-      swap(PB_DS_CLASS_C_DEC& other);
+      swap(PB_DS_CLASS_C_DEC&);
 
       template<typename It>
       void
-      copy_from_range(It first_it, It last_it);
+      copy_from_range(It, It);
 
-      inline std::pair<
-	point_iterator,
-	bool>
-      insert(const_reference r_value);
+      inline std::pair<point_iterator, bool>
+      insert(const_reference);
 
       inline mapped_reference
       operator[](const_key_reference r_key)
       {
 #ifdef PB_DS_DATA_TRUE_INDICATOR
-	PB_DS_DBG_ONLY(assert_valid();)
-
-	  std::pair<point_iterator, bool> ins_pair =
-	  PB_DS_BASE_C_DEC::insert_leaf(
-					value_type(
-						   r_key,
-						   mapped_type()));
+	_GLIBCXX_DEBUG_ONLY(assert_valid();)
+	std::pair<point_iterator, bool> ins_pair =
+	base_type::insert_leaf(value_type(r_key, mapped_type()));
 
 	if (ins_pair.second == true)
 	  {
 	    ins_pair.first.m_p_nd->m_red = true;
-
-	    PB_DS_DBG_ONLY(this->structure_only_assert_valid();)
-
-	      insert_fixup(ins_pair.first.m_p_nd);
+	    _GLIBCXX_DEBUG_ONLY(this->structure_only_assert_valid();)
+	    insert_fixup(ins_pair.first.m_p_nd);
 	  }
-
-	PB_DS_DBG_ONLY(assert_valid();)
-
-	  return (ins_pair.first.m_p_nd->m_value.second);
-#else // #ifdef PB_DS_DATA_TRUE_INDICATOR
+	_GLIBCXX_DEBUG_ONLY(assert_valid();)
+	return ins_pair.first.m_p_nd->m_value.second;
+#else 
 	insert(r_key);
-
-	return (PB_DS_BASE_C_DEC::s_null_mapped);
-#endif // #ifdef PB_DS_DATA_TRUE
+	return base_type::s_null_mapped;
+#endif 
       }
 
       inline bool
-      erase(const_key_reference r_key);
+      erase(const_key_reference);
 
       inline iterator
-      erase(iterator it);
+      erase(iterator);
 
       inline reverse_iterator
-      erase(reverse_iterator it);
+      erase(reverse_iterator);
 
       template<typename Pred>
       inline size_type
-      erase_if(Pred pred);
+      erase_if(Pred);
 
       void
-      join(PB_DS_CLASS_C_DEC& other);
+      join(PB_DS_CLASS_C_DEC&);
 
       void
-      split(const_key_reference r_key, PB_DS_CLASS_C_DEC& other);
+      split(const_key_reference, PB_DS_CLASS_C_DEC&);
 
     protected:
 
     private:
 
-#ifdef PB_DS_RB_TREE_DEBUG_
-
+#ifdef _GLIBCXX_DEBUG
       void
       assert_valid() const;
 
       size_type
-      assert_node_consistent(const node_pointer p_nd) const;
-
-#endif // #ifdef PB_DS_RB_TREE_DEBUG_
+      assert_node_consistent(const node_pointer) const;
+#endif 
 
       inline static bool
-      is_effectively_black(const node_pointer p_nd);
+      is_effectively_black(const node_pointer);
 
       void
       initialize();
 
       void
-      insert_fixup(node_pointer p_nd);
+      insert_fixup(node_pointer);
 
       void
-      erase_node(node_pointer p_nd);
+      erase_node(node_pointer);
 
       void
-      remove_node(node_pointer p_nd);
+      remove_node(node_pointer);
 
       void
-      remove_fixup(node_pointer p_x, node_pointer p_new_x_parent);
+      remove_fixup(node_pointer, node_pointer);
 
       void
-      split_imp(node_pointer p_nd, PB_DS_CLASS_C_DEC& other);
+      split_imp(node_pointer, PB_DS_CLASS_C_DEC&);
 
       inline node_pointer
       split_min();
@@ -326,20 +250,19 @@ namespace pb_ds
       split_min_imp();
 
       void
-      join_imp(node_pointer p_x, node_pointer p_r);
+      join_imp(node_pointer, node_pointer);
 
       std::pair<node_pointer, node_pointer>
-      find_join_pos_right(node_pointer p_l, size_type h_l, size_type h_r);
+      find_join_pos_right(node_pointer, size_type, size_type);
 
       std::pair<node_pointer, node_pointer>
-      find_join_pos_left(node_pointer p_r, size_type h_l, size_type h_r);
+      find_join_pos_left(node_pointer, size_type, size_type);
 
       inline size_type
-      black_height(node_pointer p_nd);
+      black_height(node_pointer);
 
       void
-      split_at_node(node_pointer p_nd, PB_DS_CLASS_C_DEC& other);
-
+      split_at_node(node_pointer, PB_DS_CLASS_C_DEC&);
     };
 
 #include <ext/pb_ds/detail/rb_tree_map_/constructors_destructor_fn_imps.hpp>
@@ -350,19 +273,10 @@ namespace pb_ds
 #include <ext/pb_ds/detail/rb_tree_map_/info_fn_imps.hpp>
 
 #undef PB_DS_CLASS_T_DEC
-
 #undef PB_DS_CLASS_C_DEC
-
 #undef PB_DS_CLASS_NAME
-
 #undef PB_DS_BASE_CLASS_NAME
-
 #undef PB_DS_BASE_C_DEC
-
-#undef PB_DS_DBG_ASSERT
-#undef PB_DS_DBG_VERIFY
-#undef PB_DS_DBG_ONLY
-
 #undef PB_DS_V2F
 #undef PB_DS_EP2VP
 #undef PB_DS_V2S

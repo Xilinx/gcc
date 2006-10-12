@@ -144,6 +144,7 @@ proc libjava_init { args } {
     global tool_root_dir
     global libjava_libgcc_s_path
     global target_triplet
+    global libjava_version
 
     # We set LC_ALL and LANG to C so that we get the same error messages as expected.
     setenv LC_ALL C
@@ -164,16 +165,22 @@ proc libjava_init { args } {
     }
 
     # Find the libgcj jar file.
-    set libgcj_jar [glob $objdir/../libgcj-*.jar]
-    verbose "jar file is $libgcj_jar"
 
     # FIXME: This finds libgcj.spec for the default multilib.
     # If thread models differ between multilibs, this has to be moved
     # to libjava_arguments
     set specdir [libjava_find_spec]
 
-    # The -B is so we find libgcj.spec.
     set text [eval exec "$GCJ_UNDER_TEST -B$specdir -v 2>@ stdout"]
+    regexp " version \[^\n\r\]*" $text version
+    set libjava_version [lindex $version 1]
+
+    verbose "version: $libjava_version"
+
+    set libgcj_jar [glob $objdir/../libgcj-$libjava_version.jar]
+    verbose "jar file is $libgcj_jar"
+
+    # The -B is so we find libgcj.spec.
     regexp -- "Thread model: (\[^\n\]+)\n" $text ignore model
     set libjava_uses_threads [expr {! ($model == "no"
 				       || $model == "none"

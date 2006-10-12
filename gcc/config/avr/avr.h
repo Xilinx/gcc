@@ -283,6 +283,9 @@ enum reg_class {
 
 #define FRAME_POINTER_REQUIRED frame_pointer_required_p()
 
+/* Offset from the frame pointer register value to the top of the stack.  */
+#define FRAME_POINTER_CFA_OFFSET(FNDECL) 0
+
 #define ELIMINABLE_REGS {					\
       {ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM},		\
 	{FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}		\
@@ -753,6 +756,7 @@ mmcu=*:-mmcu=%*}"
   mmcu=at76*:-m avr3}\
 %{mmcu=atmega8*|\
   mmcu=atmega48|\
+  mmcu=at90pwm1|\
   mmcu=at90pwm2|\
   mmcu=at90pwm3:-m avr4}\
 %{mmcu=atmega16*|\
@@ -843,6 +847,7 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=atmega88:crtm88.o%s} \
 %{mmcu=atmega8515:crtm8515.o%s} \
 %{mmcu=atmega8535:crtm8535.o%s} \
+%{mmcu=at90pwm1:crt90pwm1.o%s} \
 %{mmcu=at90pwm2:crt90pwm2.o%s} \
 %{mmcu=at90pwm3:crt90pwm3.o%s} \
 %{mmcu=atmega16:crtm16.o%s} \

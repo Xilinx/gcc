@@ -379,7 +379,7 @@ identical_dimen_shape (gfc_expr *a, int ai, gfc_expr *b, int bi)
 }
 
 /* Error return for transformational intrinsics not allowed in
-   initalization expressions.  */
+   initialization expressions.  */
  
 static try
 non_init_transformational (void)
@@ -443,6 +443,22 @@ gfc_check_achar (gfc_expr * a)
 
 
 try
+gfc_check_access_func (gfc_expr * name, gfc_expr * mode)
+{
+  if (type_check (name, 0, BT_CHARACTER) == FAILURE
+      || scalar_check (name, 0) == FAILURE)
+    return FAILURE;
+
+
+  if (type_check (mode, 1, BT_CHARACTER) == FAILURE
+      || scalar_check (mode, 1) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
 gfc_check_all_any (gfc_expr * mask, gfc_expr * dim)
 {
   if (logical_array_check (mask, 0) == FAILURE)
@@ -461,13 +477,16 @@ gfc_check_all_any (gfc_expr * mask, gfc_expr * dim)
 try
 gfc_check_allocated (gfc_expr * array)
 {
+  symbol_attribute attr;
+
   if (variable_check (array, 0) == FAILURE)
     return FAILURE;
 
   if (array_check (array, 0) == FAILURE)
     return FAILURE;
 
-  if (!array->symtree->n.sym->attr.allocatable)
+  attr = gfc_variable_attr (array, NULL);
+  if (!attr.allocatable)
     {
       gfc_error ("'%s' argument of '%s' intrinsic at %L must be ALLOCATABLE",
 		 gfc_current_intrinsic_arg[0], gfc_current_intrinsic,
@@ -671,6 +690,41 @@ gfc_check_chdir_sub (gfc_expr * dir, gfc_expr * status)
     return FAILURE;
 
   if (scalar_check (status, 1) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
+gfc_check_chmod (gfc_expr * name, gfc_expr * mode)
+{
+  if (type_check (name, 0, BT_CHARACTER) == FAILURE)
+    return FAILURE;
+
+  if (type_check (mode, 1, BT_CHARACTER) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
+gfc_check_chmod_sub (gfc_expr * name, gfc_expr * mode, gfc_expr * status)
+{
+  if (type_check (name, 0, BT_CHARACTER) == FAILURE)
+    return FAILURE;
+
+  if (type_check (mode, 1, BT_CHARACTER) == FAILURE)
+    return FAILURE;
+
+  if (status == NULL)
+    return SUCCESS;
+
+  if (type_check (status, 2, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (scalar_check (status, 2) == FAILURE)
     return FAILURE;
 
   return SUCCESS;
@@ -1194,6 +1248,16 @@ gfc_check_int (gfc_expr * x, gfc_expr * kind)
       if (scalar_check (kind, 1) == FAILURE)
 	return FAILURE;
     }
+
+  return SUCCESS;
+}
+
+
+try
+gfc_check_intconv (gfc_expr * x)
+{
+  if (numeric_check (x, 0) == FAILURE)
+    return FAILURE;
 
   return SUCCESS;
 }
@@ -1753,6 +1817,64 @@ gfc_check_merge (gfc_expr * tsource, gfc_expr * fsource, gfc_expr * mask)
   return SUCCESS;
 }
 
+try
+gfc_check_move_alloc (gfc_expr * from, gfc_expr * to)
+{
+  symbol_attribute attr;
+
+  if (variable_check (from, 0) == FAILURE)
+    return FAILURE;
+
+  if (array_check (from, 0) == FAILURE)
+    return FAILURE;
+
+  attr = gfc_variable_attr (from, NULL);
+  if (!attr.allocatable)
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L must be ALLOCATABLE",
+		 gfc_current_intrinsic_arg[0], gfc_current_intrinsic,
+		 &from->where);
+      return FAILURE;
+    }
+
+  if (variable_check (to, 0) == FAILURE)
+    return FAILURE;
+
+  if (array_check (to, 0) == FAILURE)
+    return FAILURE;
+
+  attr = gfc_variable_attr (to, NULL);
+  if (!attr.allocatable)
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L must be ALLOCATABLE",
+		 gfc_current_intrinsic_arg[0], gfc_current_intrinsic,
+		 &to->where);
+      return FAILURE;
+    }
+
+  if (same_type_check (from, 0, to, 1) == FAILURE)
+    return FAILURE;
+
+  if (to->rank != from->rank)
+    {
+      gfc_error ("the '%s' and '%s' arguments of '%s' intrinsic at %L must "
+		 "have the same rank %d/%d", gfc_current_intrinsic_arg[0],
+		 gfc_current_intrinsic_arg[1], gfc_current_intrinsic,
+		 &to->where,  from->rank, to->rank);
+      return FAILURE;
+    }
+
+  if (to->ts.kind != from->ts.kind)
+    {
+      gfc_error ("the '%s' and '%s' arguments of '%s' intrinsic at %L must "
+		 "be of the same kind %d/%d", gfc_current_intrinsic_arg[0],
+		 gfc_current_intrinsic_arg[1], gfc_current_intrinsic,
+		 &to->where, from->ts.kind, to->ts.kind);
+      return FAILURE;
+    }
+
+  return SUCCESS;
+}
 
 try
 gfc_check_nearest (gfc_expr * x, gfc_expr * s)
@@ -1766,6 +1888,14 @@ gfc_check_nearest (gfc_expr * x, gfc_expr * s)
   return SUCCESS;
 }
 
+try
+gfc_check_new_line (gfc_expr * a)
+{
+  if (type_check (a, 0, BT_CHARACTER) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
 
 try
 gfc_check_null (gfc_expr * mold)
@@ -1864,6 +1994,22 @@ gfc_check_present (gfc_expr * a)
       gfc_error ("'%s' argument of '%s' intrinsic at %L must be of "
 		 "an OPTIONAL dummy variable", gfc_current_intrinsic_arg[0],
 		 gfc_current_intrinsic, &a->where);
+      return FAILURE;
+    }
+
+/*  13.14.82  PRESENT(A)
+......
+  Argument.  A shall be the name of an optional dummy argument that is accessible
+  in the subprogram in which the PRESENT function reference appears...  */
+
+  if (a->ref != NULL
+	&& !(a->ref->next == NULL
+	       && a->ref->type == REF_ARRAY
+	       && a->ref->u.ar.type == AR_FULL))
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L must not be a sub-"
+		 "object of '%s'", gfc_current_intrinsic_arg[0],
+		 gfc_current_intrinsic, &a->where, sym->name);
       return FAILURE;
     }
 
@@ -3030,6 +3176,59 @@ gfc_check_hostnm_sub (gfc_expr * name, gfc_expr * status)
     return FAILURE;
 
   if (type_check (status, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
+gfc_check_itime_idate (gfc_expr * values)
+{
+  if (array_check (values, 0) == FAILURE)
+    return FAILURE;
+
+  if (rank_check (values, 0, 1) == FAILURE)
+    return FAILURE;
+
+  if (variable_check (values, 0) == FAILURE)
+    return FAILURE;
+
+  if (type_check (values, 0, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (kind_value_check(values, 0, gfc_default_integer_kind) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
+gfc_check_ltime_gmtime (gfc_expr * time, gfc_expr * values)
+{
+  if (type_check (time, 0, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (kind_value_check(time, 0, gfc_default_integer_kind) == FAILURE)
+    return FAILURE;
+
+  if (scalar_check (time, 0) == FAILURE)
+    return FAILURE;
+
+  if (array_check (values, 1) == FAILURE)
+    return FAILURE;
+
+  if (rank_check (values, 1, 1) == FAILURE)
+    return FAILURE;
+
+  if (variable_check (values, 1) == FAILURE)
+    return FAILURE;
+
+  if (type_check (values, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (kind_value_check(values, 1, gfc_default_integer_kind) == FAILURE)
     return FAILURE;
 
   return SUCCESS;

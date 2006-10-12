@@ -40,9 +40,10 @@ target_triplet = @target@
 subdir = native/plugin
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/../../libtool.m4 \
-	$(top_srcdir)/m4/acattribute.m4 $(top_srcdir)/m4/accross.m4 \
-	$(top_srcdir)/m4/acinclude.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/../../config/depstand.m4 \
+	$(top_srcdir)/../../config/lead-dot.m4 \
+	$(top_srcdir)/../../libtool.m4 $(top_srcdir)/m4/acattribute.m4 \
+	$(top_srcdir)/m4/accross.m4 $(top_srcdir)/m4/acinclude.m4 \
 	$(top_srcdir)/m4/ax_create_stdint_h.m4 \
 	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/lib-ld.m4 \
 	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
@@ -58,9 +59,9 @@ am__vpath_adj = case $$p in \
     *) f=$$p;; \
   esac;
 am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
-am__installdirs = "$(DESTDIR)$(gcjversionedlibdir)"
-gcjversionedlibLTLIBRARIES_INSTALL = $(INSTALL)
-LTLIBRARIES = $(gcjversionedlib_LTLIBRARIES)
+am__installdirs = "$(DESTDIR)$(nativeexeclibdir)"
+nativeexeclibLTLIBRARIES_INSTALL = $(INSTALL)
+LTLIBRARIES = $(nativeexeclib_LTLIBRARIES)
 libgcjwebplugin_la_LIBADD =
 am_libgcjwebplugin_la_OBJECTS = libgcjwebplugin_la-gcjwebplugin.lo
 libgcjwebplugin_la_OBJECTS = $(am_libgcjwebplugin_la_OBJECTS)
@@ -110,6 +111,8 @@ CREATE_CORE_JNI_LIBRARIES_FALSE = @CREATE_CORE_JNI_LIBRARIES_FALSE@
 CREATE_CORE_JNI_LIBRARIES_TRUE = @CREATE_CORE_JNI_LIBRARIES_TRUE@
 CREATE_DSSI_LIBRARIES_FALSE = @CREATE_DSSI_LIBRARIES_FALSE@
 CREATE_DSSI_LIBRARIES_TRUE = @CREATE_DSSI_LIBRARIES_TRUE@
+CREATE_GCONF_PEER_LIBRARIES_FALSE = @CREATE_GCONF_PEER_LIBRARIES_FALSE@
+CREATE_GCONF_PEER_LIBRARIES_TRUE = @CREATE_GCONF_PEER_LIBRARIES_TRUE@
 CREATE_GTK_PEER_LIBRARIES_FALSE = @CREATE_GTK_PEER_LIBRARIES_FALSE@
 CREATE_GTK_PEER_LIBRARIES_TRUE = @CREATE_GTK_PEER_LIBRARIES_TRUE@
 CREATE_JNI_HEADERS_FALSE = @CREATE_JNI_HEADERS_FALSE@
@@ -130,6 +133,7 @@ CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DATE = @DATE@
+DEFAULT_PREFS_PEER = @DEFAULT_PREFS_PEER@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 ECHO_C = @ECHO_C@
@@ -160,6 +164,10 @@ FREETYPE2_CFLAGS = @FREETYPE2_CFLAGS@
 FREETYPE2_LIBS = @FREETYPE2_LIBS@
 GCJ = @GCJ@
 GCJX = @GCJX@
+GCONF_CFLAGS = @GCONF_CFLAGS@
+GCONF_LIBS = @GCONF_LIBS@
+GDK_CFLAGS = @GDK_CFLAGS@
+GDK_LIBS = @GDK_LIBS@
 GJDOC = @GJDOC@
 GLIB_CFLAGS = @GLIB_CFLAGS@
 GLIB_LIBS = @GLIB_LIBS@
@@ -210,6 +218,7 @@ PACKAGE_VERSION = @PACKAGE_VERSION@
 PANGOFT2_CFLAGS = @PANGOFT2_CFLAGS@
 PANGOFT2_LIBS = @PANGOFT2_LIBS@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PATH_TO_ESCHER = @PATH_TO_ESCHER@
 PATH_TO_GLIBJ_ZIP = @PATH_TO_GLIBJ_ZIP@
 PERL = @PERL@
 PKG_CONFIG = @PKG_CONFIG@
@@ -230,6 +239,8 @@ USER_SPECIFIED_CLASSLIB_FALSE = @USER_SPECIFIED_CLASSLIB_FALSE@
 USER_SPECIFIED_CLASSLIB_TRUE = @USER_SPECIFIED_CLASSLIB_TRUE@
 USER_SPECIFIED_JAVAH_FALSE = @USER_SPECIFIED_JAVAH_FALSE@
 USER_SPECIFIED_JAVAH_TRUE = @USER_SPECIFIED_JAVAH_TRUE@
+USE_ESCHER_FALSE = @USE_ESCHER_FALSE@
+USE_ESCHER_TRUE = @USE_ESCHER_TRUE@
 USE_PREBUILT_GLIBJ_ZIP_FALSE = @USE_PREBUILT_GLIBJ_ZIP_FALSE@
 USE_PREBUILT_GLIBJ_ZIP_TRUE = @USE_PREBUILT_GLIBJ_ZIP_TRUE@
 VERSION = @VERSION@
@@ -293,18 +304,15 @@ target_alias = @target_alias@
 target_cpu = @target_cpu@
 target_os = @target_os@
 target_vendor = @target_vendor@
+toolexeclibdir = @toolexeclibdir@
 vm_classes = @vm_classes@
-gcc_version := $(shell cat $(top_srcdir)/../../gcc/BASE-VER)
-gcjversionedlibdir = $(libdir)/gcj-$(gcc_version)
-gcjversionedlib_LTLIBRARIES = libgcjwebplugin.la
+nativeexeclib_LTLIBRARIES = libgcjwebplugin.la
 libgcjwebplugin_la_SOURCES = gcjwebplugin.cc
 libgcjwebplugin_la_CXXFLAGS = \
 	-Wall -DAPPLETVIEWER_EXECUTABLE="\"$(bindir)/gappletviewer\"" \
-	-DPLUGIN_DATA_DIRECTORY="\"$(PLUGIN_DIR)/gcjwebplugin-data\"" \
 	$(MOZILLA_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
 
-libgcjwebplugin_la_LDFLAGS = -rpath $(gcjversionedlibdir) \
-	-version-info `grep -v '^\#' $(top_srcdir)/../libtool-version` \
+libgcjwebplugin_la_LDFLAGS = -avoid-version \
 	$(GLIB_LIBS) $(GTK_LIBS) \
 	-lstdc++
 
@@ -341,35 +349,35 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-install-gcjversionedlibLTLIBRARIES: $(gcjversionedlib_LTLIBRARIES)
+install-nativeexeclibLTLIBRARIES: $(nativeexeclib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
-	test -z "$(gcjversionedlibdir)" || $(mkdir_p) "$(DESTDIR)$(gcjversionedlibdir)"
-	@list='$(gcjversionedlib_LTLIBRARIES)'; for p in $$list; do \
+	test -z "$(nativeexeclibdir)" || $(mkdir_p) "$(DESTDIR)$(nativeexeclibdir)"
+	@list='$(nativeexeclib_LTLIBRARIES)'; for p in $$list; do \
 	  if test -f $$p; then \
 	    f=$(am__strip_dir) \
-	    echo " $(LIBTOOL) --mode=install $(gcjversionedlibLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) '$$p' '$(DESTDIR)$(gcjversionedlibdir)/$$f'"; \
-	    $(LIBTOOL) --mode=install $(gcjversionedlibLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) "$$p" "$(DESTDIR)$(gcjversionedlibdir)/$$f"; \
+	    echo " $(LIBTOOL) --mode=install $(nativeexeclibLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) '$$p' '$(DESTDIR)$(nativeexeclibdir)/$$f'"; \
+	    $(LIBTOOL) --mode=install $(nativeexeclibLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) "$$p" "$(DESTDIR)$(nativeexeclibdir)/$$f"; \
 	  else :; fi; \
 	done
 
-uninstall-gcjversionedlibLTLIBRARIES:
+uninstall-nativeexeclibLTLIBRARIES:
 	@$(NORMAL_UNINSTALL)
-	@set -x; list='$(gcjversionedlib_LTLIBRARIES)'; for p in $$list; do \
+	@set -x; list='$(nativeexeclib_LTLIBRARIES)'; for p in $$list; do \
 	  p=$(am__strip_dir) \
-	  echo " $(LIBTOOL) --mode=uninstall rm -f '$(DESTDIR)$(gcjversionedlibdir)/$$p'"; \
-	  $(LIBTOOL) --mode=uninstall rm -f "$(DESTDIR)$(gcjversionedlibdir)/$$p"; \
+	  echo " $(LIBTOOL) --mode=uninstall rm -f '$(DESTDIR)$(nativeexeclibdir)/$$p'"; \
+	  $(LIBTOOL) --mode=uninstall rm -f "$(DESTDIR)$(nativeexeclibdir)/$$p"; \
 	done
 
-clean-gcjversionedlibLTLIBRARIES:
-	-test -z "$(gcjversionedlib_LTLIBRARIES)" || rm -f $(gcjversionedlib_LTLIBRARIES)
-	@list='$(gcjversionedlib_LTLIBRARIES)'; for p in $$list; do \
+clean-nativeexeclibLTLIBRARIES:
+	-test -z "$(nativeexeclib_LTLIBRARIES)" || rm -f $(nativeexeclib_LTLIBRARIES)
+	@list='$(nativeexeclib_LTLIBRARIES)'; for p in $$list; do \
 	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
 	  test "$$dir" != "$$p" || dir=.; \
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
 libgcjwebplugin.la: $(libgcjwebplugin_la_OBJECTS) $(libgcjwebplugin_la_DEPENDENCIES) 
-	$(CXXLINK) -rpath $(gcjversionedlibdir) $(libgcjwebplugin_la_LDFLAGS) $(libgcjwebplugin_la_OBJECTS) $(libgcjwebplugin_la_LIBADD) $(LIBS)
+	$(CXXLINK) -rpath $(nativeexeclibdir) $(libgcjwebplugin_la_LDFLAGS) $(libgcjwebplugin_la_OBJECTS) $(libgcjwebplugin_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -496,7 +504,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(LTLIBRARIES)
 installdirs:
-	for dir in "$(DESTDIR)$(gcjversionedlibdir)"; do \
+	for dir in "$(DESTDIR)$(nativeexeclibdir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: install-am
@@ -525,7 +533,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-gcjversionedlibLTLIBRARIES clean-generic clean-libtool \
+clean-am: clean-generic clean-libtool clean-nativeexeclibLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -544,9 +552,9 @@ info: info-am
 
 info-am:
 
-install-data-am: install-gcjversionedlibLTLIBRARIES
+install-data-am:
 
-install-exec-am:
+install-exec-am: install-nativeexeclibLTLIBRARIES
 
 install-info: install-info-am
 
@@ -572,24 +580,23 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-gcjversionedlibLTLIBRARIES uninstall-info-am
+uninstall-am: uninstall-info-am uninstall-nativeexeclibLTLIBRARIES
 
-.PHONY: CTAGS GTAGS all all-am check check-am clean \
-	clean-gcjversionedlibLTLIBRARIES clean-generic clean-libtool \
-	ctags distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-exec install-exec-am \
-	install-gcjversionedlibLTLIBRARIES install-info \
-	install-info-am install-man install-strip installcheck \
+.PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
+	clean-libtool clean-nativeexeclibLTLIBRARIES ctags distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-data install-data-am install-exec \
+	install-exec-am install-info install-info-am install-man \
+	install-nativeexeclibLTLIBRARIES install-strip installcheck \
 	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am \
-	uninstall-gcjversionedlibLTLIBRARIES uninstall-info-am
+	tags uninstall uninstall-am uninstall-info-am \
+	uninstall-nativeexeclibLTLIBRARIES
 
 
-install-plugin: $(gcjversionedlib_LTLIBRARIES)
+install-plugin: $(nativeexeclib_LTLIBRARIES)
 	$(INSTALL) -d -m0755 $(DESTDIR)$(PLUGIN_DIR)
 	$(INSTALL) .libs/libgcjwebplugin.so $(DESTDIR)$(PLUGIN_DIR)
 

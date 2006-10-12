@@ -32,8 +32,8 @@ test01()
   using std::tr1::subtract_with_carry;
 
   std::stringstream str;
-  subtract_with_carry<unsigned long, (1 << 24), 10, 24> u;
-  subtract_with_carry<unsigned long, (1 << 24), 10, 24> v;
+  subtract_with_carry<unsigned long, (1UL << 24), 10, 24> u;
+  subtract_with_carry<unsigned long, (1UL << 24), 10, 24> v;
   
   u(); // advance
   str << u;

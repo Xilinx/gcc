@@ -410,8 +410,9 @@ static gfc_statement
 next_free (void)
 {
   match m;
-  int c, d, cnt;
+  int c, d, cnt, at_bol;
 
+  at_bol = gfc_at_bol ();
   gfc_gobble_whitespace ();
 
   c = gfc_peek_char ();
@@ -447,6 +448,14 @@ next_free (void)
 
 	  gfc_gobble_whitespace ();
 
+	  if (at_bol && gfc_peek_char () == ';')
+	    {
+	      gfc_error_now
+		("Semicolon at %C needs to be preceded by statement");
+	      gfc_next_char (); /* Eat up the semicolon.  */
+	      return ST_NONE;
+	    }
+
 	  if (gfc_match_eos () == MATCH_YES)
 	    {
 	      gfc_warning_now
@@ -472,6 +481,13 @@ next_free (void)
 	  gcc_assert (c == ' ');
 	  return decode_omp_directive ();
 	}
+    }
+
+  if (at_bol && c == ';')
+    {
+      gfc_error_now ("Semicolon at %C needs to be preceded by statement");
+      gfc_next_char (); /* Eat up the semicolon.  */
+      return ST_NONE;
     }
 
   return decode_statement ();
@@ -571,7 +587,7 @@ next_fixed (void)
   if (c == '\n')
     goto blank_line;
 
-  if (c != ' ' && c!= '0')
+  if (c != ' ' && c != '0')
     {
       gfc_buffer_error (0);
       gfc_error ("Bad continuation line at %C");
@@ -592,6 +608,12 @@ next_fixed (void)
   if (c == '!')
     goto blank_line;
   gfc_current_locus = loc;
+
+  if (c == ';')
+    {
+      gfc_error_now ("Semicolon at %C needs to be preceded by statement");
+      return ST_NONE;
+    }
 
   if (gfc_match_eos () == MATCH_YES)
     goto blank_line;
@@ -1476,8 +1498,9 @@ parse_derived (void)
 {
   int compiling_type, seen_private, seen_sequence, seen_component, error_flag;
   gfc_statement st;
-  gfc_component *c;
   gfc_state_data s;
+  gfc_symbol *sym;
+  gfc_component *c;
 
   error_flag = 0;
 
@@ -1574,19 +1597,17 @@ parse_derived (void)
 	}
     }
 
-  /* Sanity checks on the structure.  If the structure has the
-     SEQUENCE attribute, then all component structures must also have
-     SEQUENCE.  */
-  if (error_flag == 0 && gfc_current_block ()->attr.sequence)
-    for (c = gfc_current_block ()->components; c; c = c->next)
-      {
-	if (c->ts.type == BT_DERIVED && c->ts.derived->attr.sequence == 0)
-	  {
-	    gfc_error
-	      ("Component %s of SEQUENCE type declared at %C does not "
-	       "have the SEQUENCE attribute", c->ts.derived->name);
-	  }
-      }
+  /* Look for allocatable components.  */
+  sym = gfc_current_block ();
+  for (c = sym->components; c; c = c->next)
+    {
+      if (c->allocatable || (c->ts.type == BT_DERIVED
+		    	     && c->ts.derived->attr.alloc_comp))
+	{
+	  sym->attr.alloc_comp = 1;
+	  break;
+	}
+     }
 
   pop_state ();
 }
@@ -2699,8 +2720,9 @@ gfc_fixup_sibling_symbols (gfc_symbol * sym, gfc_namespace * siblings)
   for (ns = siblings; ns; ns = ns->sibling)
     {
       gfc_find_sym_tree (sym->name, ns, 0, &st);
-      if (!st)
-        continue;
+
+      if (!st || (st->n.sym->attr.dummy && ns == st->n.sym->ns))
+	continue;
 
       old_sym = st->n.sym;
       if ((old_sym->attr.flavor == FL_PROCEDURE

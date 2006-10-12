@@ -1,6 +1,6 @@
 // Locale support (codecvt) -*- C++ -*-
 
-// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005
+// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006
 //  Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -34,9 +34,19 @@
 
 // Written by Benjamin Kosnik <bkoz@redhat.com>
 
-/** @file bits/codecvt_specializations.h
+/** @file ext/codecvt_specializations.h
  *  This file is a GNU extension to the Standard C++ Library.
  */
+
+#ifndef _EXT_CODECVT_SPECIALIZATIONS_H
+#define _EXT_CODECVT_SPECIALIZATIONS_H 1
+
+#include <bits/c++config.h>
+
+#ifdef _GLIBCXX_USE_ICONV
+
+#include <locale>
+#include <iconv.h>
 
   // XXX
   // Define this here so codecvt.cc can have _S_max_size definition.
@@ -291,12 +301,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // argument to iconv():  SUSv2 and others use 'const char**', but glibc 2.2
   // uses 'char**', which matches the POSIX 1003.1-2001 standard.
   // Using this adaptor, g++ will do the work for us.
-  template<typename _T>
+  template<typename _Tp>
     inline size_t
-    __iconv_adaptor(size_t(*__func)(iconv_t, _T, size_t*, char**, size_t*),
+    __iconv_adaptor(size_t(*__func)(iconv_t, _Tp, size_t*, char**, size_t*),
                     iconv_t __cd, char** __inbuf, size_t* __inbytes,
                     char** __outbuf, size_t* __outbytes)
-    { return __func(__cd, (_T)__inbuf, __inbytes, __outbuf, __outbytes); }
+    { return __func(__cd, (_Tp)__inbuf, __inbytes, __outbuf, __outbytes); }
 
   template<typename _InternT, typename _ExternT>
     codecvt_base::result
@@ -506,3 +516,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 _GLIBCXX_END_NAMESPACE
 
+#endif
+
+#endif

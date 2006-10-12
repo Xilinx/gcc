@@ -89,6 +89,11 @@ gnu::java::net::PlainSocketImpl::bind (::java::net::InetAddress *host, jint lpor
   int len = haddress->length;
   int i = 1;
 
+  // The following is needed for OS X/PPC, otherwise bind() fails with an
+  // error. I found the issue and following fix on some mailing list, but
+  // no explanation was given as to why this solved the problem.
+  memset (&u, 0, sizeof (u));
+
   if (len == 4)
     {
       u.address.sin_family = AF_INET;
@@ -303,7 +308,7 @@ gnu::java::net::PlainSocketImpl::accept (gnu::java::net::PlainSocketImpl *s)
 
   s->native_fd = new_socket;
   s->localport = localport;
-  s->address = new ::java::net::InetAddress (raddr, NULL);
+  s->address = ::java::net::InetAddress::getByAddress (raddr);
   s->port = rport;
   return;
 
@@ -803,7 +808,7 @@ gnu::java::net::PlainSocketImpl::getOption (jint optID)
           else
             throw new ::java::net::SocketException
               (JvNewStringUTF ("invalid family"));
-          localAddress = new ::java::net::InetAddress (laddr, NULL);
+          localAddress = ::java::net::InetAddress::getByAddress (laddr);
         }
 
       return localAddress;

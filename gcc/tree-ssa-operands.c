@@ -1037,9 +1037,7 @@ append_v_must_def (tree var)
 /* REF is a tree that contains the entire pointer dereference
    expression, if available, or NULL otherwise.  ALIAS is the variable
    we are asking if REF can access.  OFFSET and SIZE come from the
-   memory access expression that generated this virtual operand.
-   FOR_CLOBBER is true is this is adding a virtual operand for a call
-   clobber.  */
+   memory access expression that generated this virtual operand.  */
 
 static bool
 access_can_touch_variable (tree ref, tree alias, HOST_WIDE_INT offset,
@@ -1048,6 +1046,12 @@ access_can_touch_variable (tree ref, tree alias, HOST_WIDE_INT offset,
   bool offsetgtz = offset > 0;
   unsigned HOST_WIDE_INT uoffset = (unsigned HOST_WIDE_INT) offset;
   tree base = ref ? get_base_address (ref) : NULL;
+
+  /* If ALIAS is .GLOBAL_VAR then the memory reference REF must be
+     using a call-clobbered memory tag.  By definition, call-clobbered
+     memory tags can always touch .GLOBAL_VAR.  */
+  if (alias == global_var)
+    return true;
 
   /* If ALIAS is an SFT, it can't be touched if the offset     
      and size of the access is not overlapping with the SFT offset and
@@ -1146,7 +1150,10 @@ access_can_touch_variable (tree ref, tree alias, HOST_WIDE_INT offset,
 	       || TREE_CODE (TREE_TYPE (base)) != UNION_TYPE)
 	   && !AGGREGATE_TYPE_P (TREE_TYPE (alias))
 	   && TREE_CODE (TREE_TYPE (alias)) != COMPLEX_TYPE
-	   && !POINTER_TYPE_P (TREE_TYPE (alias)))
+	   && !POINTER_TYPE_P (TREE_TYPE (alias))
+	   /* When the struct has may_alias attached to it, we need not to
+	      return true.  */
+	   && get_alias_set (base))
     {
 #ifdef ACCESS_DEBUGGING
       fprintf (stderr, "Access to ");

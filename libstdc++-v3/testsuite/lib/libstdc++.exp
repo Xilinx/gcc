@@ -1,6 +1,7 @@
 # libstdc++ "tool init file" for DejaGNU
 
-# Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+# Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+# Free Software Foundation, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -211,8 +212,10 @@ proc libstdc++_init { testfile } {
 	close $f
 
 	set lines [v3_target_compile $src "config[pid].o" object \
-		   "additional_flags=-include additional_flags=bits/stdc++.h"]
+	         "additional_flags=-include additional_flags=bits/stdtr1c++.h"]
 	if {$lines == "" } {
+#	    set PCH_CXXFLAGS "-include bits/extc++.h"
+#	    set PCH_CXXFLAGS "-include bits/stdtr1c++.h"
 	    set PCH_CXXFLAGS "-include bits/stdc++.h"
 	} else {
 	    set PCH_CXXFLAGS ""
@@ -270,23 +273,22 @@ proc libstdc++-dg-test { prog do_what extra_tool_flags } {
         }
     }
 
+    # Short-circut a bunch of complicated goo here for the special
+    # case of compiling a test file as a "C" file, not as C++. Why? So
+    # -nostdc++ doesn't trip us up. So all the extra object files
+    # don't trip us up. So automatically linking in libstdc++ doesn't
+    # happen. So CXXFLAGS don't error.
+    set select_compile "v3_target_compile"
     set options ""
     if { $extra_tool_flags != "" } {
 	verbose -log "extra_tool_flags are:"
 	verbose -log $extra_tool_flags
 	if { [string first "-x c" $extra_tool_flags ] != -1 } {
-	    # Short-circut a bunch of complicated goo here for the
-	    # special case of compiling a test file as a "C" file, not
-	    # as C++: just use target_compile, instead of the usual
-	    # gimmicks.
 	    verbose -log "compiling and executing as C, not C++"
-            set compile_type "executable"
-            set output_file "./[file rootname [file tail $prog]].exe"
-            remote_file build delete $output_file;
-	    lappend options "additional_flags=$extra_tool_flags"
-	    set comp_output [target_compile "$prog" "$output_file" "$compile_type" $options];
-	    set comp_output [ prune_g++_output $comp_output ];
-	    return [list $comp_output $output_file]
+	    set edit_tool_flags $extra_tool_flags
+	    regsub -all ".x c" $edit_tool_flags "" edit_tool_flags
+	    lappend options "additional_flags=$edit_tool_flags"
+	    set select_compile "v3_target_compile_as_c"
         } else {
 	    lappend options "additional_flags=$extra_tool_flags"
 	}
@@ -294,7 +296,7 @@ proc libstdc++-dg-test { prog do_what extra_tool_flags } {
 
     # There is a libstdc++_compile made for us by default (via the tool-
     # and-target file), but the defaults are lacking in goodness.
-    set comp_output [v3_target_compile "$prog" "$output_file" "$compile_type" $options];
+    set comp_output [$select_compile "$prog" "$output_file" "$compile_type" $options];
     set comp_output [ prune_g++_output $comp_output ];
 
     return [list $comp_output $output_file]
@@ -309,9 +311,6 @@ set v3-threads 0
 # True if the library supports symbol versioning.
 set v3-symver 0
 
-# A string naming object files to be linked into all tests.
-set v3-test_objs ""
-
 # Called from libstdc++-dg-test above.  Calls back into system's
 # target_compile to actually do the work.
 proc v3_target_compile { source dest type options } {
@@ -321,8 +320,6 @@ proc v3_target_compile { source dest type options } {
     global cxxflags
     global cxxldflags
     global includes
-    global blddir
-    global v3-test_objs
 
     if { [target_info needs_status_wrapper] != "" && [info exists gluefile] } {
         lappend options "libs=${gluefile}"
@@ -338,8 +335,8 @@ proc v3_target_compile { source dest type options } {
     # Flag setting based on type argument.
     if { $type == "executable" } {
 	# Link the support objects into executables.
-	set cxx_final [concat $cxx_final ${v3-test_objs}]
         set cxx_final [concat $cxx_final $cxxldflags]
+	lappend options "additional_flags=./libtestc++.a"
     } else {
 	if { $type == "sharedlib" } {
 	    # Don't link in anything.
@@ -348,19 +345,43 @@ proc v3_target_compile { source dest type options } {
     }
 
     lappend options "compiler=$cxx_final"
+    lappend options "timeout=600"
 
     return [target_compile $source $dest $type $options]
 }
 
 
+# Called from libstdc++-dg-test above, but only for "C" compilation.
+# Calls back into system's target_compile to actually do the work.
+proc v3_target_compile_as_c { source dest type options } {
+    global gluefile 
+    global wrap_flags
+    global includes
+
+    if { [target_info needs_status_wrapper] != "" && [info exists gluefile] } {
+        lappend options "libs=${gluefile}"
+        lappend options "ldflags=${wrap_flags}"
+    }
+
+    set tname [target_info name]
+    set cc_final [board_info $tname compiler]
+    set cxxlibglossflags  [libgloss_link_flags]
+    set cc_final [concat $cc_final $cxxlibglossflags]
+    set cc_final [concat $cc_final $includes]
+    regsub -all ".nostdinc.." $cc_final "" cc_final
+
+    lappend options "compiler=$cc_final"
+    lappend options "timeout=600"
+
+    return [target_compile $source $dest $type $options]
+}
+
 # Build the support objects linked in with the libstdc++ tests.  In
-# addition, set v3-wchar_t, v3-threads, v3-test_objs, and v3-symver
-# appropriately.
+# addition, set v3-wchar_t, v3-threads, and v3-symver appropriately.
 proc v3-build_support { } {
     global srcdir
     global v3-wchar_t
     global v3-threads
-    global v3-test_objs
     global v3-symver
     global v3-sharedlib
 
@@ -368,7 +389,7 @@ proc v3-build_support { } {
     set v3-wchar_t 0
     set v3-threads 0
     set v3-symver 0
-    set v3-test_objs ""
+    set libtest_objs ""
 
     set config_src "config.cc"
     set f [open $config_src "w"]
@@ -408,8 +429,7 @@ proc v3-build_support { } {
     set source_files [list testsuite_abi.cc testsuite_allocator.cc \
 			  testsuite_character.cc testsuite_hooks.cc \
 	       	 rng/twister_rand_gen.cc io/verified_cmd_line_input.cc \
-       	 io/prog_bar.cc regression/res_mng/dbg_ex_allocator_base.cc \
-	     performance/time/elapsed_timer.cc ]
+			  io/prog_bar.cc performance/time/elapsed_timer.cc ]
     foreach f $source_files {
 	set obj [file rootname $f].o
 	set object_file [file tail $obj]
@@ -420,11 +440,11 @@ proc v3-build_support { } {
 	     != "" } {
 	    error "could not compile $f"
 	}
-	append v3-test_objs "$object_file "
+	append libtest_objs "$object_file "
     }
 
     # Collect into libtestc++.a
-    set arcommand "ar -rc ./libtestc++.a ${v3-test_objs}"
+    set arcommand "ar -rc ./libtestc++.a ${libtest_objs}"
     set result [lindex [local_exec "$arcommand" "" "" 300] 0]
     verbose "link result is $result"
     if { $result == 0 } {
@@ -432,12 +452,6 @@ proc v3-build_support { } {
 	set result [lindex [local_exec "$ranlibcommand" "" "" 300] 0]
 	if { $result != 0 } {
 	    error "could not link libtestc++.a"
-	    
-	    # We cannot actually use libtestc++.a because it's hard to
-	    # position this library after the test file being compiled
-	    # on the constructed compile line. However, we use this as
-	    # a convenience for performance testing.  
-	    #set v3-test_objs "./libtestc++.a"
 	}
     }
 

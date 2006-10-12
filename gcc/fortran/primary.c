@@ -1,6 +1,6 @@
 /* Primary expression subroutines
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006 Free Software
-   Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
@@ -1084,6 +1084,10 @@ match_sym_complex_part (gfc_expr ** result)
       return MATCH_ERROR;
     }
 
+  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: PARAMETER symbol in "
+		      "complex constant at %C") == FAILURE)
+    return MATCH_ERROR;
+
   switch (sym->value->ts.type)
     {
     case BT_REAL:
@@ -1711,7 +1715,7 @@ check_substring:
 symbol_attribute
 gfc_variable_attr (gfc_expr * expr, gfc_typespec * ts)
 {
-  int dimension, pointer, target;
+  int dimension, pointer, allocatable, target;
   symbol_attribute attr;
   gfc_ref *ref;
 
@@ -1723,6 +1727,7 @@ gfc_variable_attr (gfc_expr * expr, gfc_typespec * ts)
 
   dimension = attr.dimension;
   pointer = attr.pointer;
+  allocatable = attr.allocatable;
 
   target = attr.target;
   if (pointer)
@@ -1743,12 +1748,12 @@ gfc_variable_attr (gfc_expr * expr, gfc_typespec * ts)
 	    break;
 
 	  case AR_SECTION:
-	    pointer = 0;
+	    allocatable = pointer = 0;
 	    dimension = 1;
 	    break;
 
 	  case AR_ELEMENT:
-	    pointer = 0;
+	    allocatable = pointer = 0;
 	    break;
 
 	  case AR_UNKNOWN:
@@ -1763,18 +1768,20 @@ gfc_variable_attr (gfc_expr * expr, gfc_typespec * ts)
 	  *ts = ref->u.c.component->ts;
 
 	pointer = ref->u.c.component->pointer;
+	allocatable = ref->u.c.component->allocatable;
 	if (pointer)
 	  target = 1;
 
 	break;
 
       case REF_SUBSTRING:
-	pointer = 0;
+	allocatable = pointer = 0;
 	break;
       }
 
   attr.dimension = dimension;
   attr.pointer = pointer;
+  attr.allocatable = allocatable;
   attr.target = target;
 
   return attr;
@@ -2283,6 +2290,17 @@ match_variable (gfc_expr ** result, int equiv_flag, int host_flag)
   locus where;
   match m;
 
+  /* Since nothing has any business being an lvalue in a module
+     specification block, an interface block or a contains section,
+     we force the changed_symbols mechanism to work by setting
+     host_flag to 0. This prevents valid symbols that have the name
+     of keywords, such as 'end', being turned into variables by
+     failed matching to assignments for, eg., END INTERFACE.  */
+  if (gfc_current_state () == COMP_MODULE
+      || gfc_current_state () == COMP_INTERFACE
+      || gfc_current_state () == COMP_CONTAINS)
+    host_flag = 0;
+
   m = gfc_match_sym_tree (&st, host_flag);
   if (m != MATCH_YES)
     return m;
@@ -2299,6 +2317,14 @@ match_variable (gfc_expr ** result, int equiv_flag, int host_flag)
       if (gfc_add_flavor (&sym->attr, FL_VARIABLE,
 			  sym->name, NULL) == FAILURE)
 	return MATCH_ERROR;
+      break;
+
+    case FL_PARAMETER:
+      if (equiv_flag)
+	gfc_error ("Named constant at %C in an EQUIVALENCE");
+      else
+	gfc_error ("Cannot assign to a named constant at %C");
+      return MATCH_ERROR;
       break;
 
     case FL_PROCEDURE:

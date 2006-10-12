@@ -395,6 +395,7 @@ struct tree_common GTY(())
 	   In a STMT_EXPR, it means we want the result of the enclosed
 	   expression.
        CALL_EXPR_TAILCALL in CALL_EXPR
+       CASE_LOW_SEEN in CASE_LABEL_EXPR
 
    static_flag:
 
@@ -413,6 +414,7 @@ struct tree_common GTY(())
        EH_FILTER_MUST_NOT_THROW in EH_FILTER_EXPR
        TYPE_REF_CAN_ALIAS_ALL in
            POINTER_TYPE, REFERENCE_TYPE
+       CASE_HIGH_SEEN in CASE_LABEL_EXPR
 
    public_flag:
 
@@ -1024,6 +1026,11 @@ extern void omp_clause_range_check_failed (const tree, const char *, int,
    call optimizations.  */
 #define CALL_EXPR_TAILCALL(NODE) (CALL_EXPR_CHECK(NODE)->common.addressable_flag)
 
+/* Used as a temporary field on a CASE_LABEL_EXPR to indicate that the
+   CASE_LOW operand has been processed.  */
+#define CASE_LOW_SEEN(NODE) \
+  (CASE_LABEL_EXPR_CHECK (NODE)->common.addressable_flag)
+
 /* In a VAR_DECL, nonzero means allocate static storage.
    In a FUNCTION_DECL, nonzero if function has been defined.
    In a CONSTRUCTOR, nonzero means allocate static storage.
@@ -1036,6 +1043,11 @@ extern void omp_clause_range_check_failed (const tree, const char *, int,
    should only be executed if an exception is thrown, not on normal exit
    of its scope.  */
 #define CLEANUP_EH_ONLY(NODE) ((NODE)->common.static_flag)
+
+/* Used as a temporary field on a CASE_LABEL_EXPR to indicate that the
+   CASE_HIGH operand has been processed.  */
+#define CASE_HIGH_SEEN(NODE) \
+  (CASE_LABEL_EXPR_CHECK (NODE)->common.static_flag)
 
 /* In an expr node (usually a conversion) this means the node was made
    implicitly and should not lead to any sort of warning.  In a decl node,
@@ -1067,7 +1079,7 @@ extern void omp_clause_range_check_failed (const tree, const char *, int,
 
 #define TREE_OVERFLOW(NODE) (CST_CHECK (NODE)->common.public_flag)
 
-/* In a VAR_DECL or FUNCTION_DECL,
+/* In a VAR_DECL, FUNCTION_DECL, NAMESPACE_DECL or TYPE_DECL,
    nonzero means name is to be accessible from outside this module.
    In an IDENTIFIER_NODE, nonzero means an external declaration
    accessible from outside this module was previously seen
@@ -2264,9 +2276,9 @@ struct tree_binfo GTY (())
 enum symbol_visibility
 {
   VISIBILITY_DEFAULT,
-  VISIBILITY_INTERNAL,
+  VISIBILITY_PROTECTED,
   VISIBILITY_HIDDEN,
-  VISIBILITY_PROTECTED
+  VISIBILITY_INTERNAL
 };
 #endif
 
@@ -2636,11 +2648,14 @@ struct tree_decl_with_rtl GTY(())
 };
 
 /* In a FIELD_DECL, this is the field position, counting in bytes, of the
-   byte containing the bit closest to the beginning of the structure.  */
+   DECL_OFFSET_ALIGN-bit-sized word containing the bit closest to the beginning
+   of the structure.  */
 #define DECL_FIELD_OFFSET(NODE) (FIELD_DECL_CHECK (NODE)->field_decl.offset)
 
 /* In a FIELD_DECL, this is the offset, in bits, of the first bit of the
-   field from DECL_FIELD_OFFSET.  */
+   field from DECL_FIELD_OFFSET.  This field may be nonzero even for fields
+   that are not bit fields (since DECL_OFFSET_ALIGN may be larger than the
+   natural alignment of the field's type).  */
 #define DECL_FIELD_BIT_OFFSET(NODE) (FIELD_DECL_CHECK (NODE)->field_decl.bit_offset)
 
 /* In a FIELD_DECL, this indicates whether the field was a bit-field and
@@ -3534,6 +3549,7 @@ extern tree build_constructor_single (tree, tree, tree);
 extern tree build_constructor_from_list (tree, tree);
 extern tree build_real_from_int_cst (tree, tree);
 extern tree build_complex (tree, tree, tree);
+extern tree build_one_cst (tree);
 extern tree build_string (int, const char *);
 extern tree build_tree_list_stat (tree, tree MEM_STAT_DECL);
 #define build_tree_list(t,q) build_tree_list_stat(t,q MEM_STAT_INFO)
@@ -3576,6 +3592,7 @@ extern tree build_complex_type (tree);
 extern tree build_resx (int);
 extern tree array_type_nelts (tree);
 extern bool in_array_bounds_p (tree);
+extern bool range_in_array_bounds_p (tree);
 
 extern tree value_member (tree, tree);
 extern tree purpose_member (tree, tree);
@@ -3693,6 +3710,11 @@ extern int is_attribute_p (const char *, tree);
    of the attribute or NULL_TREE if not found.  */
 
 extern tree lookup_attribute (const char *, tree);
+
+/* Remove any instances of attribute ATTR_NAME in LIST and return the
+   modified list.  */
+
+extern tree remove_attribute (const char *, tree);
 
 /* Given two attributes lists, return a list of their union.  */
 
@@ -3922,8 +3944,20 @@ extern int fields_length (tree);
 
 extern bool initializer_zerop (tree);
 
-extern void categorize_ctor_elements (tree, HOST_WIDE_INT *, HOST_WIDE_INT *,
-				      HOST_WIDE_INT *, bool *);
+/* Examine CTOR to discover:
+   * how many scalar fields are set to nonzero values,
+     and place it in *P_NZ_ELTS;
+   * how many scalar fields in total are in CTOR,
+     and place it in *P_ELT_COUNT.
+   * if a type is a union, and the initializer from the constructor
+     is not the largest element in the union, then set *p_must_clear.
+
+   Return whether or not CTOR is a valid static constant initializer, the same
+   as "initializer_constant_valid_p (CTOR, TREE_TYPE (CTOR)) != 0".  */
+
+extern bool categorize_ctor_elements (tree, HOST_WIDE_INT *, HOST_WIDE_INT *,
+				      bool *);
+
 extern HOST_WIDE_INT count_type_elements (tree, bool);
 
 /* integer_zerop (tree x) is nonzero if X is an integer constant of value 0.  */
@@ -4338,6 +4372,7 @@ extern void print_rtl (FILE *, rtx);
 /* In print-tree.c */
 extern void debug_tree (tree);
 #ifdef BUFSIZ
+extern void dump_addr (FILE*, const char *, void *);
 extern void print_node (FILE *, const char *, tree, int);
 extern void print_node_brief (FILE *, const char *, tree, int);
 extern void indent_to (FILE *, int);

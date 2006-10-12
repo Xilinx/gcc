@@ -301,6 +301,13 @@ push_value (tree value)
       TREE_CHAIN (node) = quick_stack;
       quick_stack = node;
     }
+  /* If the value has a side effect, then we need to evaluate it
+     whether or not the result is used.  If the value ends up on the
+     quick stack and is then popped, this won't happen -- so we flush
+     the quick stack.  It is safest to simply always flush, though,
+     since TREE_SIDE_EFFECTS doesn't capture COMPONENT_REF, and for
+     the latter we may need to strip conversions.  */
+  flush_quick_stack ();
 }
 
 /* Pop a type from the type stack.
@@ -2837,7 +2844,12 @@ expand_java_field_op (int is_static, int is_putting, int field_ref_index)
   field_ref = build_field_ref (field_ref, self_type, field_name);
   if (is_static
       && ! flag_indirect_dispatch)
-    field_ref = build_class_init (self_type, field_ref);
+    {
+      tree context = DECL_CONTEXT (field_ref);
+      if (context != self_type && CLASS_INTERFACE (TYPE_NAME (context)))
+	field_ref = build_class_init (context, field_ref);
+      field_ref = build_class_init (self_type, field_ref);
+    }
   if (is_putting)
     {
       flush_quick_stack ();
@@ -2846,21 +2858,10 @@ expand_java_field_op (int is_static, int is_putting, int field_ref_index)
 	  if (DECL_CONTEXT (field_decl) != current_class)
             error ("assignment to final field %q+D not in field's class",
                    field_decl);
-	  else if (FIELD_STATIC (field_decl))
-	    {
-	      if (!DECL_CLINIT_P (current_function_decl))
-		warning (0, "assignment to final static field %q+D not in "
-                         "class initializer",
-                         field_decl);
-	    }
-	  else
-	    {
-	      tree cfndecl_name = DECL_NAME (current_function_decl);
-	      if (! DECL_CONSTRUCTOR_P (current_function_decl)
-		  && !ID_FINIT_P (cfndecl_name))
-                warning (0, "assignment to final field %q+D not in constructor",
-			 field_decl);
-	    }
+	  /* We used to check for assignments to final fields not
+	     occurring in the class initializer or in a constructor
+	     here.  However, this constraint doesn't seem to be
+	     enforced by the JVM.  */
 	}      
 
       if (TREE_THIS_VOLATILE (field_decl))

@@ -1,3 +1,993 @@
+2006-10-10  Tom Tromey  <tromey@redhat.com>
+
+	* gnu/classpath/natSystemProperties.cc (insertSystemProperties):
+	Removed obsolete comment.
+
+2006-10-10  Keith Seitz  <keiths@redhat.com>
+
+	* include/java-interp.h (_Jv_InterpMethod::get_insn): Declare.
+	(_Jv_InterpMethod::set_insn): Declare.
+	* interpret.cc (_Jv_InterpMethod::get_insn): New method.
+	(_Jv_InterpMethod::get_insn): New method.
+
+2006-10-10  Tom Tromey  <tromey@redhat.com>
+
+	* prims.cc (_Jv_PrependVersionedLibdir): Use
+	_Jv_platform_path_separator.
+
+2006-10-10  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/29205:
+	* Makefile.in: Rebuilt.
+	* Makefile.am (install-data-local): Install the .pc file.
+	(pkgconfig_DATA): Removed.
+
+2006-10-03  Gary Benson  <gbenson@redhat.com>
+
+	* java/net/InetAddress.java
+	(<clinit>): Reorder the static initializers.
+
+2006-10-02  Gary Benson  <gbenson@redhat.com>
+
+	* java/net/InetAddress.java
+	(checkConnect): Reinstated.
+	(loopbackAddress): Ensure initialized from non-null object.
+
+2006-09-30  Keith Seitz  <keiths@redhat.com>
+
+	* include/java-interp.h (prepared): Change type to pc_t.
+	(insn_index): Define for both DIRECT_THREADED and bytecode interpreters.
+	* interpret.cc [!DIRECT_THREADED] (POKEI): Fix typo.
+	(insn_index): Implement for bytecode interpreter.
+	* interpret-run.cc [!DIRECT_THREADED] (AVAL1U): Add _Jv_Linker class
+	qualifier to resolve_pool_entry.
+	[!DIRECT_THREADED] (AVAL2U): Likewise.
+	[!DIRECT_THREADED] bytecode() cannot be called without an object.
+	Changed all typos.
+	[!DIRECT_THREADED] Likewise for defining_class.
+
+2006-09-26  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR target/26792:
+	* exception.cc (PERSONALITY_FUNCTION): use _Unwind_GetIP
+	if HAVE_GETIPINFO not defined.
+	* stacktrace.cc (_Jv_StackTrace::UnwindTraceFn): Likewise.
+	(_Jv_StackTrace::getLineNumberForFrame): Likewise.
+	* configure.ac: use GCC_CHECK_UNWIND_GETIPINFO.
+	* aclocal.m4, configure, include/config.h.in, Makefile.in:
+	Rebuilt.
+
+2006-09-27  Tom Tromey  <tromey@redhat.com>
+
+	https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=201712
+	* java/util/Locale.java (hashcode): No longer transient.
+	(writeObject): Use ObjectOutputStream.PutField and
+	defaultWriteObject.
+	(readObject): Use defaultReadObject.
+
+2006-09-25  Keith Seitz  <keiths@redhat.com>
+
+	* gnu/classpath/jdwp/VMVirtualMachine.java
+	(_jdwp_suspend_counts): New private variable.
+	* gnu/classpath/jdwp/natVMVirtualMachine.cc
+	(initialize): Initialize _jdwp_suspend_counts.
+	(suspendThread): Implement.
+	(resumeThread): Implement.
+	(getSuspendCount): Implement.
+
+2006-09-22  Marco Trudel  <mtrudel@gmx.ch>
+
+	* jvmti.cc (_Jv_JVMTI_GetErrorName): Now static.  Marked JNICALL.
+
+2006-09-21  Keith Seitz  <keiths@redhat.com>
+
+	* jvmti.cc (_Jv_JVMTI_DisposeEnvironment): Check for enabled
+	events.
+	(check_enabled_event): New function.
+	(check_enabled_events): New function.
+	(post_event): New function.
+	(_Jv_JVMTI_SetEventNotificationMode): New function.
+	(_Jv_JVMTI_SetEventCallbacks): New function.
+	(_Jv_JVMTI_Interface): Define SetEventNotificationMode and
+	SetEventCallbacks members.
+	* include/jvmti-int.h: New file.
+	* include/jvmti_md.h (EVENT_SLOTS) [__GCJ_JNI_IMP__]: Define.
+	(_CLASSPATH_JVMTIENV_CONTENTS) [__GCJ_JNI_IMPL__]: Define.
+	* testsuite/libjava.jvmti/events.java: New file.
+	* testsuite/libjava.jvmti/events.out: New file.
+	* testsuite/libjava.jvmti/natevents.cc: New file. 
+
+2006-09-21  Sandro Tolaini  <tolaini@libero.it>
+
+	* configure.ac: Don't use darwin-signal.h as signal handler for
+	Darwin/i386.
+	* configure.host: Enable Darwin/i386 as a supported host, with no
+	signal unwinding.
+
+2006-09-20  Keith Seitz  <keiths@redhat.com>
+
+	* jvmti.cc (_Jv_JVMTI_CreateRawMonitor): Use _Jv_MallocUnchked
+	and return JVMTI_ERROR_OUT_OF_MEMORY if necessary.
+	(_Jv_JVMTI_GetClassMethods): Likewise.
+	(_Jv_JVMTI_GetClassLoaderClasses): Likewise.
+	(_Jv_JVMTI_GetJNIFunctionTable): Likewise.
+	(_Jv_JVMTI_GetSystemProperty): Likewise.
+
+2006-09-20  Keith Seitz  <keiths@redhat.com>
+
+	* jvmti.cc (_Jv_JVMTI_GetErrorName): New function.
+	(_Jv_JVMTI_Interface): Define GetErrorName member.
+	* testsuite/libjava.jvmti/geterrorname.java: New file.
+	* testsuite/libjava.jvmti/geterrorname.out: New file.
+	* testsuite/libjava.jvmti/natgeterrorname.cc: New file.
+
+2006-09-20  Gary Benson  <gbenson@redhat.com>
+
+	* java/net/InetAddress.java: Mostly merged with Classpath.
+	* java/net/VMInetAddress.java: New file.
+	* sources.am, Makefile.in: Rebuilt.
+
+	* java/net/natVMNetworkInterfacePosix.cc
+	(getInterfaces): Create InetAddress objects using
+	InetAddress.getByAddress.
+	* gnu/java/net/natPlainSocketImplPosix.cc
+	(accept, getOption): Likewise.
+	* gnu/java/net/natPlainDatagramSocketImplPosix.cc
+	(peekData, receive, getLocalAddress): Likewise.
+
+2006-09-19  Keith Seitz  <keiths@redhat.com>
+
+	* testsuite/libjava.jvmti/jvmti.exp: New file.
+
+2006-09-19  Keith Seitz  <keiths@redhat.com>
+
+	* jvmti.cc (THREAD_DEFAULT_TO_CURRENT): Clarify parameter list.
+	(THREAD_CHECK_VALID): Likewise.
+	(THREAD_CHECK_ALIVE): Likewise.
+	(_Jv_JVMTI_SuspendThread): Call THREAD_CHECK_VALID on a Thread not
+	jthread.
+	(_Jv_JVMTI_ResumeThread): Likewise.
+	(_Jv_JVMTI_InterruptThread): Likewise.
+
+	(_Jv_JVMTI_DisposeEnvironment): Probably unwise to dereference an object
+	that was just freed.
+
+2006-09-19  Mark Wielaard  <mark@klomp.org>
+
+	Fixes bug #29137
+	* java/util/logging/LogManager.java (addLogger): Always check for
+	existing children of a new Logger.
+
+2006-09-19  Tom Tromey  <tromey@redhat.com>
+
+	* java/util/logging/LogManager.java: Re-merged with Classpath.
+
+2006-09-18  Tom Tromey  <tromey@redhat.com>
+
+	* configure: Rebuilt.
+
+2006-09-18  Petr Salinger  <Petr.Salinger@seznam.cz>
+
+	* configure.host: Handle kfreebsd.
+
+2006-09-18  Petr Salinger  <Petr.Salinger@seznam.cz>
+
+	* configure: Rebuilt.
+	* shlibpath.m4: Handle GNU/kFreeBSD.
+
+2006-09-14  Tom Tromey  <tromey@redhat.com>
+
+	PR boehm-gc/29068:
+	* boehm.cc (_Jv_GCAttachThread): Disable on Solaris.
+	(_Jv_GCDetachThread): Likewise.
+
+2006-09-14  Andreas Schwab  <schwab@suse.de>
+
+	* posix-threads.cc: Include "posix.h".
+
+2006-09-13  Geoffrey Keating  <geoffk@apple.com>
+
+	* posix.cc (_Jv_platform_nanotime): Return nanoseconds, not
+	microseconds; use gettimeofday when available.
+	* posix-threads.cc (_Jv_CondWait): Improve accuracy and range of
+	timeout calculation.
+	* testsuite/libjava.lang/Thread_Sleep_2.java: New.
+	* testsuite/libjava.lang/Thread_Sleep_2.out: New.
+	* testsuite/libjava.lang/Thread_Sleep_2.xfail: New.
+
+2006-09-12  Tom Tromey  <tromey@redhat.com>
+
+	PR java/29013:
+	* testsuite/libjava.lang/PR29013.out: Likewise.
+	* testsuite/libjava.lang/PR29013.java: New file.
+
+2006-09-12  Tom Tromey  <tromey@redhat.com>
+
+	* testsuite/libjava.jacks/jacks.exp (load_gcc_lib): Removed.
+
+2006-09-07  Matthias Klose  <doko@debian.org>
+
+	* Makefile.am (AM_CXXFLAGS): Remove duplicate define.
+	* Makefile.in: Regenerate.
+
+2006-09-06  Keith Seitz  <keiths@redhat.com>
+
+	* java/lang/Class.h (_Jv_FindInterpreterMethod): Change return type
+	to _Jv_MethodBase instead of _Jv_InterpMethod.
+	* java/lang/natClass.cc (_Jv_FindInterpreterMethod): Likewise.
+	Do not check access flags.
+	Fix some minor style anomalies.
+	
+2006-09-01  Geoffrey Keating  <geoffk@apple.com>
+
+	* testsuite/libjava.jni/jni.exp (gcj_jni_invocation_test_one):
+	Pass -lgcj to linker for C++ files on Darwin.
+
+2006-09-01  Keith Seitz  <keiths@redhat.com>
+
+	* jvmti.cc (THREAD_DEFAULT_TO_CURRENT): Encapsulate in do..while loop.
+	(THREAD_CHECK_VALID): Likewise.
+	(THREAD_CHECK_IS_ALIVE): Likewise.
+	(NULL_CHECK): Likewise.
+	(ILLEGAL_ARGUMENT): Likewise.
+
+2006-09-01  Keith Seitz  <keiths@redhat.com>
+
+	* include/jvm.h (_Jv_JVMTI_Init): Declare.
+	* jvmti.cc (_Jv_JVMTI_Init): New function.
+	* prims.cc (_Jv_CreateJavaVM): Initialize JVMTI.
+
+	* jvmti.cc (ILLEGAL_ARGUMENT): New macro.
+	(_Jv_JVMTI_Allocate): Use ILLEGAL_ARUMENT.
+
+	* jvmti.cc (_jvmtiEnvironments): New linked list of
+	JVMTI environments.
+	(FOREACH_ENVIRONMENT): New macro.
+	(_envListLock): New object to act as synchronization lock
+	for _jvmtiEnvironments.
+	(_Jv_JVMTI_DisposeEnvironment): Check for NULL environment.
+	Remove the environment from the list of known environments.
+	(_Jv_GetJVMTIEnv): Add the new environment to the list
+	of known environments.
+
+2006-09-01  Gary Benson  <gbenson@redhat.com>
+
+	* java/net/InetAddress.java (getLocalHost): Refactor to avoid
+	security check if getLocalHostname() fails and to provide more
+	meaningful exceptions it the security check fails.
+
+2006-09-01  Gary Benson  <gbenson@redhat.com>
+
+	* java/net/InetAddress.java (getByAddress): Create Inet4Address
+	objects when passed IPv4-mapped IPv6 addresses.
+	(getByName, getAllByName): Defer to the above to ensure that the
+	correct Inet*Address objects are returned.
+
+2006-09-01  Gary Benson  <gbenson@redhat.com>
+
+	* java/net/InetAddress.java (getByName, getAllByName):
+	Only perform security check when DNS lookups are required.
+
+2006-08-31  Keith Seitz  <keiths@redhat.com>
+
+	* include/jvmti_md.h: New file.
+
+	* jvmti.cc (_Jv_JVMTI_RawMonitorWait): Add millis parameter.
+	Pass millis to _Jv_CondWait.
+
+2006-08-31  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/28698:
+	* libgcj_bc.c (DECLARE_PRIM_TYPE): New macro.  Declare primitive
+	classes.
+
+2006-08-24  Keith Seitz  <keiths@redhat.com>
+
+	* prims.cc (remoteDebug): New global.
+	(jdwpOptions): New global.
+	(parse_x_arg): Add processing for "X" options "debug" and
+	"runjdwp:"
+	(_Jv_RunMain): If debugging, start up JDWP backend.
+	Send VM_INIT and VM_DEATH when appropriate.
+
+2006-08-23  Keith Seitz  <keiths@redhat.com>
+
+	* gnu/classpath/jdwp/VMVirtualMachine.java
+	(initialize): Declare.
+	* gnu/classpath/jdwp/natVMVirtualMachine.cc
+	(initialize): Get and save JVMTI environment.
+
+2006-08-22  Thomas Fitzsimmons  <fitzsim@redhat.com>
+
+	PR libgcj/27890
+	* gnu/classpath/natSystemProperties.cc (insertSystemProperties):
+	Set gnu.classpath.home.url to TOOLEXECLIBDIR.
+	* configure.ac: Do not add --with-native-libdir to
+	ac_configure_args.
+	* java/security/libgcj.security: Remove file.
+	* java/util/logging/logging.properties: Likewise.
+	* classpath/m4/acinclude.m4 (CLASSPATH_TOOLEXECLIBDIR): New macro.
+	* classpath/resource/Makefile.am (loggingdir): Define to
+	toolexeclibdir.
+	(securitydir): Likewise.
+	* classpath/configure.ac: Call CLASSPATH_TOOLEXECLIBDIR.
+	Set default nativeexeclibdir using toolexeclibdir.
+	* HACKING: Fix classpath aclocal arguments.
+	* Makefile.am (secdir): Remove variable.
+	(propdir): Likewise.
+	(AM_CXXFLAGS): Replace LIBDIR definition with TOOLEXECLIBDIR
+	definition.
+	(all_property_files): Remove variable.
+	(install-data-local): Do not install libgcj.security or
+	logging.properties.
+	* configure, Makefile.in, classpath/configure,
+	classpath/Makefile.in, classpath/native/jni/java-lang/Makefile.in,
+	classpath/native/jni/midi-alsa/Makefile.in,
+	classpath/native/jni/classpath/Makefile.in,
+	classpath/native/jni/midi-dssi/Makefile.in,
+	classpath/native/jni/Makefile.in,
+	classpath/native/jni/java-nio/Makefile.in,
+	classpath/native/jni/java-net/Makefile.in,
+	classpath/native/jni/gconf-peer/Makefile.in,
+	classpath/native/jni/java-io/Makefile.in,
+	classpath/native/jni/xmlj/Makefile.in,
+	classpath/native/jni/java-util/Makefile.in,
+	classpath/native/jni/qt-peer/Makefile.in,
+	classpath/native/jni/gtk-peer/Makefile.in,
+	classpath/native/Makefile.in, classpath/native/jawt/Makefile.in,
+	classpath/native/target/Linux/Makefile.in,
+	classpath/native/target/Makefile.in,
+	classpath/native/target/generic/Makefile.in,
+	classpath/native/fdlibm/Makefile.in,
+	classpath/native/plugin/Makefile.in,
+	classpath/resource/Makefile.in, classpath/scripts/Makefile.in,
+	classpath/tools/Makefile.in, classpath/doc/Makefile.in,
+	classpath/doc/api/Makefile.in, classpath/lib/Makefile.in,
+	classpath/external/Makefile.in,
+	classpath/external/sax/Makefile.in,
+	classpath/external/w3c_dom/Makefile.in,
+	classpath/external/relaxngDatatype/Makefile.in,
+	classpath/include/Makefile.in, classpath/aclocal.m4,
+	classpath/examples/Makefile.in, aclocal.m4: Regenerate.
+
+2006-08-21  Bryce McKinlay  <mckinlay@redhat.com>
+
+	* java/lang/natThread.cc (_Jv_AttachCurrentThread): Attach thread
+	to GC.
+	(_Jv_DetachCurrentThread): Detach thread from GC.
+	* include/boehm-gc.h (_Jv_GCAttachThread, _Jv_GCDetachThread):
+	Declare.
+	* boehm.cc (_Jv_GCAttachThread): New function.
+	(_Jv_GCDetachThread): Likewise.
+
+2006-08-19  Ranjit Mathew  <rmathew@gcc.gnu.org>
+
+	* sysdep/i386/backtrace.h (fallback_backtrace): Add "0x55 0x8B 0xEC"
+	as another sequence that can indicate a "pushl %ebp; movl %esp, %ebp"
+	function prologue.
+
+2006-08-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* Makefile.am (install-exec-hook): Support $(DESTDIR).
+	* Makefile.in: Regenerated.
+
+2006-08-16  Tom Tromey  <tromey@redhat.com>
+
+	* libtool-version: Updated.
+
+2006-08-16  Jakub Jelinek  <jakub@redhat.com>
+	    Bryce McKinlay  <bryce@mckinlay.net.nz>
+
+	* configure, Makefile.in: Rebuilt.
+	* Makefile.am (toolexeclib_LTLIBRARIES): Add libgcj_bc.la.
+	(libgcj_bc_la_SOURCES): New variable.
+	(libgcj_bc_la_LDFLAGS): Likewise.
+	(libgcj_bc_la_LIBADD): Likewise.
+	(libgcj_bc_la_DEPENDENCIES): Likewise.
+	(libgcj_bc_la_LINK): Likewise.
+	(libgcj_bc_dummy_LINK): Likewise.
+	(libgcj_bc.la): New target.
+	(install-exec-hook): Likewise.
+	* libgcj.spec.in (*lib): Use LIBGCJ_SPEC.
+	* libgcj_bc.c: New file.
+	* configure.ac (LIBGCJ_SPEC): New subst.
+	* configure.host (use_libgcj_bc): New variable.
+
+2006-08-15  Kyle Galloway  <kgallowa@redhat.com>
+
+	* include/java-interp.h (_Jv_InterpMethod::run_debug): New method.
+	* interpret.cc: Added placeholder for debug variable type info to STORE*
+	macros.
+	(_Jv_InterpMethod::run_debug): New method.
+	(_Jv_InterpMethod::run_sync_object_debug): New method.
+	(_Jv_InterpMethod::run_sync_class_debug): New method.
+	(_Jv_InterpMethod::run_normal_debug): New method.
+	(_Jv_InterpMethod::run_class_debug): New method.
+	(_Jv_InterpMethod::ncode ()): Changed to select either debug or normal
+	versions of these functions.
+	* interpret-run.cc: New file, holds contents of old 	
+	_Jv_InterpMethod::run method.
+	* stacktrace.cc (_Jv_StackTrace::UnwindTraceFn): Changed to select
+	appropriate function for debug or normal mode.
+
+2006-08-14  Mark Wielaard  <mark@klomp.org>
+
+	Imported GNU Classpath 0.92
+	* HACKING: Add more importing hints. Update automake version
+	requirement.
+
+	* configure.ac (gconf-peer): New enable AC argument.
+	Add --disable-gconf-peer and --enable-default-preferences-peer
+	to classpath configure when gconf is disabled.
+	* scripts/makemake.tcl: Set gnu/java/util/prefs/gconf and
+	gnu/java/awt/dnd/peer/gtk to bc. Classify
+	gnu/java/security/Configuration.java as generated source file.
+
+	* gnu/java/lang/management/VMGarbageCollectorMXBeanImpl.java,
+	gnu/java/lang/management/VMMemoryPoolMXBeanImpl.java,
+	gnu/java/lang/management/VMClassLoadingMXBeanImpl.java,
+	gnu/java/lang/management/VMRuntimeMXBeanImpl.java,
+	gnu/java/lang/management/VMMemoryManagerMXBeanImpl.java,
+	gnu/java/lang/management/VMThreadMXBeanImpl.java,
+	gnu/java/lang/management/VMMemoryMXBeanImpl.java,
+	gnu/java/lang/management/VMCompilationMXBeanImpl.java: New VM stub
+	classes.
+	* java/lang/management/VMManagementFactory.java: Likewise.
+	* java/net/VMURLConnection.java: Likewise.
+	* gnu/java/nio/VMChannel.java: Likewise.
+
+	* java/lang/Thread.java (getState): Add stub implementation.
+	* java/lang/Class.java (isEnum): Likewise.
+	* java/lang/Class.h (isEnum): Likewise.
+
+	* gnu/awt/xlib/XToolkit.java (getClasspathTextLayoutPeer): Removed.
+
+	* javax/naming/spi/NamingManager.java: New override for StackWalker
+	functionality.
+
+	* configure, sources.am, Makefile.in, gcj/Makefile.in,
+	include/Makefile.in, testsuite/Makefile.in: Regenerated.
+
+2006-08-14  Gary Benson  <gbenson@redhat.com>
+
+	* java/lang/Thread.java (accessControlState): New field.
+	* java/security/VMAccessControlState.java: New file.
+	* java/security/natVMAccessControlState.cc: Likewise.
+	* java/security/VMAccessController.java
+	(contexts, inGetContext): Removed.
+	(pushContext, popContext, getContext): Use VMAccessControlState.
+	* Makefile.am (nat_source_files): Updated.
+	* sources.am, Makefile.in: Rebuilt.
+
+2006-08-10  Gary Benson  <gbenson@redhat.com>
+
+	* include/java-stack.h (GetAccessControlStack): Change return
+	type.
+	* stacktrace.cc (accesscontrol_trace_fn): Record the number of
+	Java frames encountered.
+	(GetAccessControlStack): Return a flag indicating whether a call to
+	doPrivileged was encountered rather than an array of method names.
+	* java/security/natVMAccessController.cc (getStack): Change return
+	type.
+	* java/security/VMAccessController.java (getStack): Likewise.
+	(getContext): Change to reflect the above.
+
+2006-08-09  Gary Benson  <gbenson@redhat.com>
+
+	* stacktrace.cc (accesscontrol_trace_fn): Skip non-Java frames.
+
+2006-08-09  Gary Benson  <gbenson@redhat.com>
+
+	* java/lang/System.java (setSecurityManager): Javadoc fix.
+	* java/security/VMAccessController.java (getContext): Comment fix.
+
+2006-08-09  Gary Benson  <gbenson@redhat.com>
+
+	* include/java-stack.h (accesscontrol_trace_fn): Declare.
+	(GetAccessControlStack): Likewise.
+	(GetClassMethodStack): Remove.
+	* stacktrace.cc (accesscontrol_trace_fn): New method.
+	(GetAccessControlStack): Likewise.
+	(GetClassMethodStack): Remove.
+	* java/security/natVMAccessController.cc (getStack): Use
+	GetAccessControlStack.
+
+2006-08-07  Gary Benson  <gbenson@redhat.com>
+
+	PR libgcj/28340:
+	* java/lang/ClassLoader.java (clinit): Install a default
+	security manager if java.security.manager is defined.
+	(getParent, getSystemClassLoader): Use the correct stack
+	frame during security checks.
+	* java/net/URLClassLoader.java (findClass): Avoid calling
+	this.toString() during VM initialization.
+	(runtimeInitialized): New method.
+	* java/net/natURLClassLoader.cc: New file.
+	* Makefile.am (nat_source_files): Added the above.
+	* Makefile.in: Rebuilt.
+
+2006-08-07  Gary Benson  <gbenson@redhat.com>
+	    Casey Marshall <csm@gnu.org>
+
+	* java/lang/SecurityManager.java (getSecurityContext,
+	checkPermission, checkAccess, checkRead, checkConnect,
+	checkPackageAccess, checkPackageDefinition, checkPackageList):
+	Merge with Classpath.
+	(SecurityContext): Remove.
+
+2006-08-07  Gary Benson  <gbenson@redhat.com>
+
+	* java/security/VMAccessController.java (pushContext, popContext,
+	getContext): Use Thread.currentThread() to determine when we're
+	bootstrapping.
+	(runtimeInitialized): Remove.
+	* java/security/natVMAccessController.cc (runtimeInitialized):
+	Remove.
+
+2006-08-06  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/28491:
+	* configure, include/config.h.in: Rebuilt.
+	* configure.ac: Look for ifaddrs.h, getifaddrs.
+	* java/net/natVMNetworkInterfacePosix.cc (getInterfaces): Use
+	getifaddrs if available.
+
+2006-08-06  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/28576:
+	* gnu/java/net/natPlainDatagramSocketImplPosix.cc (connect):
+	Implemented.
+	(disconnect): Likewise.
+	(send): Handle already-connected case.
+
+2006-08-04  Mark Wielaard  <mark@klomp.org>
+
+	* jvmti.cc: Include gcj/method.h.
+
+2006-08-04  Tom Tromey  <tromey@redhat.com>
+
+	* jvmti.cc: Added MAYBE_UNUSED to 'env' parameters.
+	(_Jv_JVMTI_GetObjectSize): Cast _Jv_GetArrayElementFromElementType
+	result to _Jv_uintptr_t.
+
+2006-08-01  Keith Seitz  <keiths@redhat.com>
+
+	* gnu/classpath/jdwp/VMFrame.java: Update to Classpath 0.91.
+	* gnu/classpath/jdwp/VMIdManager.java: Likewise.
+	* gnu/classpath/jdwp/VMMethod.java: Likewise.
+	* gnu/classpath/jdwp/VMVirtualMachine: Likewise.
+	* gnu/classpath/jdwp/natVMFrame.java: New file.
+	* gnu/classpath/jdwp/natVMMethod.java: New file.
+	* gnu/classpath/jdwp/natVMVirtualMachine.java: New file.
+	* Makefile.am (nat_source_files): Add new filles.
+	* Makefile.in: Regenerated.
+
+2006-08-03  Tom Tromey  <tromey@redhat.com>
+
+	* jvmti.cc (REQUIRE_PHASE): New macro.
+	(_Jv_JVMTI_InterruptThread): New function.
+	(_Jv_JVMTI_CreateRawMonitor): Likewise.
+	(_Jv_JVMTI_DestroyRawMonitor): Likewise.
+	(_Jv_JVMTI_RawMonitorEnter): Likewise.
+	(_Jv_JVMTI_RawMonitorExit): Likewise.
+	(_Jv_JVMTI_RawMonitorWait): Likewise.
+	(_Jv_JVMTI_RawMonitorNotify): Likewise.
+	(_Jv_JVMTI_RawMonitorNotifyAll): Likewise.
+	(_Jv_JVMTI_Allocate): Likewise.
+	(_Jv_JVMTI_Deallocate): Likewise.
+	(_Jv_JVMTI_GetClassModifiers): Likewise.
+	(_Jv_JVMTI_GetClassMethods): Likewise.
+	(_Jv_JVMTI_IsInterface): Likewise.
+	(_Jv_JVMTI_IsArrayClass): Likewise.
+	(_Jv_JVMTI_GetClassLoader): Likewise.
+	(_Jv_JVMTI_GetObjectHashCode): Likewise.
+	(_Jv_JVMTI_GetFieldModifiers): Likewise.
+	(_Jv_JVMTI_IsFieldSynthetic): Likewise.
+	(_Jv_JVMTI_GetMethodModifiers): Likewise.
+	(_Jv_JVMTI_IsMethodNative): Likewise.
+	(_Jv_JVMTI_IsMethodSynthetic): Likewise.
+	(_Jv_JVMTI_GetClassLoaderClasses): Likewise.
+	(_Jv_JVMTI_ForceGarbageCollection): Likewise.
+	(_Jv_JVMTI_GetSystemProperty): Likewise.
+	(_Jv_JVMTI_SetSystemProperty): Likewise.
+	(_Jv_JVMTI_GetTime): Likewise.
+	(_Jv_JVMTI_GetAvailableProcessors): Likewise.
+	(_Jv_JVMTI_AddToBootstrapClassLoaderSearch): Likewise.
+	(_Jv_JVMTI_SetVerboseFlag): Likewise.
+	(_Jv_JVMTI_GetObjectSize): Likewise.
+	(_Jv_JVMTI_SetJNIFunctionTable): Likewise.
+	(_Jv_JVMTI_GetJNIFunctionTable): Likewise.
+	(_Jv_JVMTI_Interface): Updated.
+	(NULL_CHECK): New macro.
+
+2006-08-02  Andreas Tobler  <a.tobler@schweiz.ch>
+
+	PR libgcj/28546
+	* include/no-threads.h: Declare _Jv_Thread_t as empty class.
+
+2006-08-01  Andreas Tobler  <a.tobler@schweiz.ch>
+
+	* gnu/classpath/natSystemProperties.cc: Add additional check for
+	getpwuid_r on _POSIX_PTHREAD_SEMANTICS.
+	(SystemProperties::insertSystemProperties): Likewise.
+	* java/io/natFilePosix.cc (File::performList): Add
+	additional check for readdir_r on _POSIX_PTHREAD_SEMANTICS.
+	* java/util/natVMTimeZone.cc (VMTimeZone::getSystemTimeZoneId): Add
+	additional check for localtime_r on _POSIX_PTHREAD_SEMANTICS.
+
+2006-07-31  Thomas Fitzsimmons  <fitzsim@redhat.com>
+
+	PR libgcj/28312
+	* classpath/native/jni/midi-alsa/Makefile.am
+	(libgjsmalsa_la_LDFLAGS): Add -avoid-version.
+	* classpath/native/jni/midi-alsa/Makefile.in: Regenerate.
+	* classpath/native/jni/midi-dssi/Makefile.am
+	(libgjsmdssi_la_LDFLAGS): Add -avoid-version.
+	* classpath/native/jni/midi-dssi/Makefile.in: Regenerate.
+	* classpath/native/jni/qt-peer/Makefile.am: Remove GCJ LOCAL
+	sections.
+	(libqtpeer_la_LDFLAGS): Add -avoid-version.
+	* classpath/native/jni/qt-peer/Makefile.in: Regenerate.
+	* classpath/native/jni/gtk-peer/Makefile.am
+	(libgtkpeer_la_LDFLAGS): Add -avoid-version.
+	* classpath/native/jni/gtk-peer/Makefile.in: Regenerate.
+	* classpath/native/jawt/Makefile.am (libjawt_la_LDFLAGS): Add
+	-avoid-version.
+	* classpath/native/jawt/Makefile.in: Regenerate.
+	* Makefile.am (libjvm_la_LDFLAGS): Add -avoid-version.
+	* Makefile.in: Regenerate.
+
+2006-07-28  Andrew Haley  <aph@redhat.com>
+
+	* gnu/gcj/runtime/natSharedLibLoader.cc (init): Don't set
+	curLoader to VMClassLoader::bootLoader.
+
+2006-07-28  Gary Benson  <gbenson@redhat.com>
+	    Casey Marshall <csm@gnu.org>
+
+	PR libgcj/13604:
+	* include/java-stack.h (GetClassMethodStack): Declare.
+	* stacktrace.cc (GetClassMethodStack): New method.
+	* java/security/AccessController.java: Removed.
+	* java/security/VMAccessController.java: New file.
+	* java/security/natVMAccessController.cc: Likewise.
+	* Makefile.am (nat_source_files): Added the above.
+	* sources.am, Makefile.in: Rebuilt.
+
+2006-07-28  Gary Benson  <gbenson@redhat.com>
+
+	* java/lang/SecurityManager.java (currentClassLoader,
+	currentLoadedClass, classLoaderDepth, checkAccess, checkRead,
+	checkWrite, checkTopLevelWindow, checkPrintJobAccess,
+	checkSystemClipboardAccess, checkAwtEventQueueAccess,
+	checkPackageList): Remerged javadoc.
+
+2006-07-28  Gary Benson  <gbenson@redhat.com>
+
+	* prims.cc (_Jv_CreateJavaVM): Move setting runtimeInitialized
+	from the start to the end of the function.  Remove references
+	to VMThrowable.trace_enabled.
+	* java/lang/natVMThrowable.cc (fillInStackTrace): Use
+	runtimeInitialized rather than trace_enabled to decide
+	whether to inhibit stack trace generation.
+	* java/lang/VMThrowable.java (trace_enabled): Removed.
+
+2006-07-23  Mohan Embar  <gnustuff@thisiscool.com>
+
+	* include/win32-threads.h (_Jv_Thread_t): Explicitly
+	name the struct.
+
+2006-07-23  Mohan Embar  <gnustuff@thisiscool.com>
+
+	* jvmti.cc (_Jv_JVMTI_SuspendThread): Add missing JNICALL
+	attribute.
+	(_Jv_JVMTI_ResumeThread): Likewise.
+	(_Jv_JVMTI_DisposeEnvironment): Likewise.
+
+2006-07-21  Mohan Embar  <gnustuff@thisiscool.com>
+
+	* gnu/java/net/natPlainSocketImplPosix.cc (bind): Clear
+	SockAddr before using - needed for OS X/PPC.
+
+2006-07-21  Keith Seitz  <keiths@redhat.com>
+
+	* boehm.cc (_Jv_SuspendThread): Don't ifdef the function declaration,
+	just the contents.
+	(_Jv_ResumeThread): Likewise.
+	* posix-threads.cc: Revert 2006-06-19 _Jv_ThreadDebugSuspend,
+	_Jv_ThreadDebugResume, _Jv_ThreadDebugSuspendCount patch. Moving
+	to JVMTI instead.
+	* include/posix-threads.h: Likewise.
+	* win32-threads.cc: Likewise.
+	* include/win32-threads.h: Likewise.
+	* jvmti.cc (_Jv_JVMTI_SuspentThread): New function.
+	(_Jv_JVMTI_ResumeThread): New function.
+	(_Jv_JVMTI_Interface): Define SuspendThread and ResumeThread.
+
+2006-07-21  David Daney  <ddaney@avtrex.com>
+
+	PR libgcj/28426
+	* configure: Regenerated.
+
+2006-07-21  Mark Wielaard  <mark@klomp.org>
+
+	* java/io/OutputStreamWriter.java (flush): Create work if null.
+
+2006-07-21  Keith Seitz  <keiths@redhat.com>
+
+	* java/lang/natThread.cc (_Jv_ThreadGetData): New function.
+	* Makefile.am (java/lang/Thread.h): Add friend function 
+	_Jv_ThreadGetData.
+	* Makefile.in: Regenerate.
+
+2006-07-20  Keith Seitz  <keiths@redhat.com>
+
+	* jvmti.cc (_Jv_JVMTI_DisposeEnvironment): New function.
+	(_Jv_JVMTI_Interface): Define DisposeEnvironment method.
+
+2006-07-20  Keith Seitz  <keiths@redhat.com>
+
+	* include/jvm.h (_Jv_GetJVMTIEnv): Declare.
+	* jni.cc (_Jv_JNI_GetEnv): Handle JVMTI requests.
+	* jvmti.cc: New file.
+	* Makefile.am (libgcj_la_SOURCES): Add jvmti.cc.
+	* Makefile.in: Regenerate. 
+
+2006-07-20  David Daney  <ddaney@avtrex.com>
+
+	* configure.host: Enable the interpreter for mipsel-* and mips-*.
+
+2006-07-20  David Daney  <ddaney@avtrex.com>
+
+	* include/mips-signal.h: Update copyright.
+	(struct kernel_sigaction): Removed.
+	(SIGNAL_HANDLER): Changed prototype.
+	(MAKE_THROW_FRAME): Added cast.
+	(INIT_SEGV): Use sigaction instead of syscall.
+	(INIT_FPE): Likewise.
+
+2006-07-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2006-07-18  Gary Benson  <gbenson@redhat.com>
+
+	* java/io/File.java (deleteOnExit): Fix security check.
+
+2006-07-14  Anthony Green  <green@redhat.com>
+
+	* java/io/natFilePosix.cc (performSetLastModified): Return true on
+	success, false otherwise.
+
+2006-07-14  Ranjit Mathew  <rmathew@gcc.gnu.org>
+
+	* stacktrace.cc (_Jv_StackTrace::GetStackTrace): Unconditionally use
+	_Unwind_Backtrace().
+	(_Jv_StackTrace::GetCallerInfo): Enable even for targets using SJLJ
+	EH.
+	(_Jv_StackTrace::GetClassContext): Unconditionally use
+	_Unwind_Backtrace().
+	(_Jv_StackTrace::GetFirstNonSystemClassLoader): Likewise.
+	* sysdep/i386/backtrace.h (HAVE_FALLBACK_BACKTRACE): Do not define.
+	(_Unwind_GetIPInfo): Define macro if SJLJ EH is in use.
+	(_Unwind_GetRegionStart): Likewise.
+	(_Unwind_Backtrace): Likewise.
+	(fallback_backtrace): Accept additional unwind trace function
+	argument.  Call it during unwinding.  Stop when any of _Jv_RunMain(),
+	_Jv_ThreadStart() or main() is seen during unwinding.
+	* sysdep/generic/backtrace.h (fallback_backtrace): Accept an
+	additional unwind trace function argument.
+
+2006-07-14  Gary Benson  <gbenson@redhat.com>
+
+	* java/io/File.java (internalExists): New method.
+	(exists): Use internalExists.
+	(internalIsDirectory): New method.
+	(isDirectory): Use internalIsDirectory.
+	(createTempFile): Use internalExists and internalIsDirectory.
+
+2006-07-13  Bryce McKinlay  <mckinlay@redhat.com>
+
+	* interpret.cc (_Jv_InterpMethod::run): Don't SAVE_PC for fdiv.
+
+2006-07-13  Bryce McKinlay  <mckinlay@redhat.com>
+
+	* interpret.cc (_Jv_InterpMethod::compile): Add FIXME comment.
+	(_Jv_InterpMethod::run): SAVE_PC before executing any instruction 
+	using resolve_pool_entry, as it can throw. Likewise for div/rem ops
+	that can throw ArithmeticException.
+
+2006-07-12  Gary Benson  <gbenson@redhat.com>
+
+	* java/io/File.java (renameTo): Fix security checks.
+
+2006-07-12  Bryce McKinlay  <mckinlay@redhat.com>
+
+	PR libgcj/28352
+	* stacktrace.cc (getLineNumberForFrame): Roll back PC by 1 when
+	looking up line number for interpreted frame.
+
+2006-07-07  Bryce McKinlay  <mckinlay@redhat.com>
+	    Geoffrey Keating <geoffk@apple.com>
+
+	* testsuite/libjava.lang/StackTrace2.java: Renamed from
+	StackTrace.java. Changed class name.
+	* testsuite/libjava.lang/StackTrace2.out: Renamed from
+	StackTrace.out. Updated for new class name.
+
+2006-07-07  Ranjit Mathew  <rmathew@gcc.gnu.org>
+
+	* sysdep/i386/backtrace.h (fallback_backtrace): Scan for a function's
+	prologue to determine its beginning.  Stop unwinding when we reach
+	JvRunMain().
+
+2006-07-07  Gary Benson  <gbenson@redhat.com>
+
+	* Makefile.am (BOOT_CLASS_PATH_DIR): Only contain libgcj.jar.
+	* Makefile.in: Regenerate.
+
+2006-07-06  Bryce McKinlay <mckinlay@redhat.com>
+
+	* stacktrace.cc (ClassForFrame): Remove commented-out code.
+	(UnwindTraceFn): Use _Unwind_GetIPInfo and adjust IP
+	only when needed.
+	(getLineNumberForFrame): Don't adjust IP here.
+	* testsuite/libjava.lang/StackTrace.java: New test case.
+	* testsuite/libjava.lang/StackTrace.out: Ditto.
+
+2006-07-06  Thomas Fitzsimmons  <fitzsim@redhat.com>
+
+	* Makefile.am (libgcj_tools_la_GCJFLAGS): Add
+	-fno-indirect-classes.
+	* Makefile.in: Regenerate.
+	* gcj/Makefile.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2006-07-06  Bryce McKinlay <mckinlay@redhat.com>
+
+	* boehm.cc (_Jv_MarkObj): Mark the next_or_version field.
+
+2006-07-06  Thomas Fitzsimmons  <fitzsim@redhat.com>
+
+	* configure.ac (ac_configure_args): Add --with-native-libdir.
+	* configure: Regenerate.
+	* classpath/native/jni/gtk-peer/Makefile.am: Remove GCJ LOCAL
+	sections.
+	* classpath/native/jni/gtk-peer/Makefile.in: Regenerate.
+	* classpath/native/jawt/Makefile.am: Remove GCJ LOCAL sections.
+	* classpath/native/jawt/Makefile.in: Regenerate.
+	* classpath/native/plugin/Makefile.am: Remove GCJ LOCAL sections.
+	* classpath/native/plugin/Makefile.in: Regenerate.
+
+2006-07-05  Ranjit Mathew  <rmathew@gcc.gnu.org>
+            Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* libgcj.spec.in: Use THREADSTARTFILESPEC to affect the spec for
+	startfile.
+	* configure.ac: Allow targets to affect the spec for startfile
+	by specifying a THREADSTARTFILESPEC variable.  Define this for
+	the win32 threads package to include crtmt.o.
+	* configure: Regenerate.
+	* win32.cc (_CRT_MT): Remove definition.
+	(__mingwthr_key_dtor): Likewise.
+
+2006-07-04  Andreas Tobler  <a.tobler@schweiz.ch>
+
+	* testsuite/lib/libjava.exp (libjava_init): Call the GCJ_UNDER_TEST with
+	the -B$specdir.
+
+	PR libgcj/28226:
+	* include/posix.h (_Jv_platform_dladdr): Remove const qualifier.
+	* include/win32.h (_Jv_platform_dladdr): Likewise.
+	* posix.cc (_Jv_platform_dladdr): Likewise.
+	* win32.cc (_Jv_platform_dladdr): Likewise.
+
+	* testsuite/lib/libjava.exp (libjava_init): Look for libgcj-$version.jar
+	instead of libgcj-*.jar.
+
+2006-07-04  Thomas Fitzsimmons  <fitzsim@redhat.com>
+
+	PR libgcj/28244:
+	* Makefile.am (libgcj_tools_la_DEPENDENCIES): Add libgcj.la and
+	libgcj.spec.
+	* Makefile.in: Regenerate.
+
+2006-06-30  Thomas Fitzsimmons  <fitzsim@redhat.com>
+
+	* classpath/tools/Makefile.am: Comment out tools wrapper creation.
+	(TOOLS_ZIP): Rename tools.zip tools.jar.
+	(noinst_DATA): Do not install tools.jar.
+	* classpath/tools/Makefile.in: Regenerate.
+	* classpath/Makefile.am (SUBDIRS): Add tools.
+	(DIST_SUBDIRS): Likewise.
+	* classpath/Makefile.in: Regenerate.
+	* Makefile.am (toolexeclib_LTLIBRARIES): Add libgcj-tools.la.
+	(jar_DATA): Add libgcj-tools-$(gcc_version).jar.
+	(bin_PROGRAMS): Add gappletviewer, gjarsigner and gkeytool.
+	Add build logic for libgcj-tools.la,
+	libgcj-tools-$(gcc_version).jar and gappletviewer, gjarsigner and
+	gkeytool.
+	* Makefile.in: Regenerate.
+
+2006-06-29  Ranjit Mathew  <rmathew@gcc.gnu.org>
+
+	* gcj/javaprims.h (_Jv_uintptr_t): New typedef similar to uintptr_t in
+	C99.
+	* include/java-stack.h: Include stdlib.h.
+	(_Jv_AddrInfo): New structure to hold address information.
+	* include/posix.h (_Jv_platform_dladdr): Declare.
+	* include/win32.h (_Jv_platform_dladdr): Declare.
+	(backtrace): Remove declaration.
+	* posix.cc: Include dlfcn.h if available.  Include java-stack.h.
+	(_Jv_platform_dladdr): Define.
+	* win32.cc: Include string.h.  Include java-stack.h.
+	(backtrace): Remove.
+	(_Jv_platform_dladdr): Define.
+	* sysdep/i386/backtrace.h (fallback_backtrace): Check that a potential
+	frame pointer value is 32-bit word-aligned.  Use operand of the CALL
+	instruction calling the current function to find its starting address.
+	* stacktrace.cc: Do not include dlfcn.h.  Include platform.h.
+	(_Jv_StackTrace::getLineNumberForFrame): Use _Jv_platform_dladdr()
+	instead of dladdr().
+	(_Jv_StackTrace::GetStackTraceElements): Use nCodeMap even for Windows.
+	(_Jv_StackTrace::GetClassContext): Use fallback_backtrace() for
+	targets with SJLJ exceptions instead of using _Unwind_Backtrace().
+	(_Jv_StackTrace::GetFirstNonSystemClassLoader): Likewise.
+
+2006-06-27  Tom Tromey  <tromey@redhat.com>
+
+	* java/io/OutputStreamWriter.java (writeChars): Use a 'do' loop.
+	Set 'out.count' earlier.
+	(close): Call setFinished on converter.
+	(flush): Always write work buffer.
+	* java/io/PrintStream.java (writeChars): Do 'do' loop.
+	(close): Call setFinished on converter.  Write a 'flush' array.
+	* java/lang/natString.cc (getBytes): Call setFinished on
+	converter.
+	* gnu/gcj/convert/CharsetToBytesAdaptor.java (hasBytes): New
+	field.
+	(write): Set hasBytes.  Changed 'finished' logic.
+	(havePendingBytes): Rewrote.
+	(setFinished): New method.
+	* gnu/gcj/convert/UnicodeToBytes.java (setFinished): New method.
+	* testsuite/libjava.lang/RH194522.java: New file.
+	* testsuite/libjava.lang/RH194522.out: New file.
+
+2006-06-27  Marco Trudel  <mtrudel@gmx.ch>
+
+	* boehm.cc (_Jv_SuspendThread, _Jv_ResumeThread): Define
+	conditionally on GC_PTHREADS, !GC_SOLARIS_THREADS,
+	!GC_WIN32_THREADS and !GC_DARWIN_THREADS.
+
+2006-06-27  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/28178:
+	* jni.cc (_Jv_JNI_DeleteLocalRef): Ignore null argument.
+	(_Jv_JNI_DeleteGlobalRef): Likewise.
+	* testsuite/libjava.jni/PR28178.java: New file.
+	* testsuite/libjava.jni/PR28178.c: New file.
+	* testsuite/libjava.jni/PR28178.out: New file.
+
+2006-06-26  Keith Seitz  <keiths@redhat.com>
+
+	* include/posix-threads.h: Fix coding style aberrations from
+	2006-06-19 check-in.
+	* posix-threads.cc (_Jv_ThreadDebugSuspend): Ditto.
+	* include/win32-threads.h (_Jv_ThreadDebugSuspend): Ditto.
+	* win32-threads.cc (_Jv_ThreadDebugSuspend): Ditto.
+
+2006-06-26  Keith Seitz  <keiths@redhat.com>
+
+	* include/no-gc.h (_Jv_SuspendThread): Declare.
+	(_Jv_ResumeThread): Likewise.
+	* include/boehm-gc.h (_Jv_SuspendThread): Declare.
+	(_Jv_ResumeThread): Likewise.
+	* nogc.cc (_Jv_SuspendThread): New function.
+	(_Jv_ResumeThread): Likewise.
+	* boehm.cc (_Jv_SuspendThread): New function.
+	(_Jv_ResumeThread): Likewise.
+
 2006-06-22  Thomas Fitzsimmons  <fitzsim@redhat.com>
 
 	* testsuite/libjava.jni/jni.exp (gcj_jni_invocation_test_one):
@@ -707,9 +1697,9 @@
 
 2006-05-25  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
-        * configure.ac: Add sys/rw_lock.h to AC_CHECK_HEADERS.
-        * configure: Rebuilt.
-        * include/config.h.in: Likewise.
+	* configure.ac: Add sys/rw_lock.h to AC_CHECK_HEADERS.
+	* configure: Rebuilt.
+	* include/config.h.in: Likewise.
 	* include/posix.h: If HAVE_SYS_RW_LOCK_H is defined, include
 	<sys/rw_lock.h>.
 
@@ -1667,25 +2657,25 @@
 	(_Jv_FindClassFromSignatureNoException): New method declaration.
 	* prims.cc:
 	(_Jv_FindClassFromSignatureNoException): New method.
-        * gcj/javaprims.h:
-        (_Jv_equalsUtf8Classname): New method declaration.
-        (_Jv_isPrimitiveOrDerived): Dito.
-        * prims.cc:
+	* gcj/javaprims.h:
+	(_Jv_equalsUtf8Classname): New method declaration.
+	(_Jv_isPrimitiveOrDerived): Dito.
+	* prims.cc:
 	(_Jv_equalsUtf8Classnames): New method.
-        (_Jv_isPrimitiveOrDerived): New method.
-        * verify.cc:
-        (ref_intersection::equals): Use new classname comparison method.
-        (type::compatible): Use new classname comparison method. Added
-        check whether LHS' type is java.lang.Object .
-        (type::resolve): Added new optional debug message and simplified
-        if-expression.
-        (type::to_array): Added codepath that generates an array type
-        without resolving the element type.
+	(_Jv_isPrimitiveOrDerived): New method.
+	* verify.cc:
+	(ref_intersection::equals): Use new classname comparison method.
+	(type::compatible): Use new classname comparison method. Added
+	check whether LHS' type is java.lang.Object .
+	(type::resolve): Added new optional debug message and simplified
+	if-expression.
+	(type::to_array): Added codepath that generates an array type
+	without resolving the element type.
 
 2006-01-31  Mark Wielaard  <mark@klomp.org>
- 
- 	* NEWS: Add 4.1 updates.
- 
+
+	* NEWS: Add 4.1 updates.
+
 2006-01-30  Keith Seitz  <keiths@redhat.com>
 
 	* include/java-interp.h (insn_index): New declaration.
@@ -2858,18 +3848,18 @@
 
 2005-07-14  Andrew Haley  <aph@redhat.com>
 
-        * gnu/java/net/protocol/file/Connection.java (unquote): New
-        method.
-        (connect): Unquote filename.
-        gnu/java/net/protocol/jar/Connection.java (getInputStream):
-        Likewise.  
-        (getJarFile): Likewise.
+	* gnu/java/net/protocol/file/Connection.java (unquote): New
+	method.
+	(connect): Unquote filename.
+	gnu/java/net/protocol/jar/Connection.java (getInputStream):
+	Likewise.  
+	(getJarFile): Likewise.
 
-        * java/net/URLConnection.java (getContentHandler): Guard cast with
-        instaceof.
+	* java/net/URLConnection.java (getContentHandler): Guard cast with
+	instaceof.
 
-        * java/net/URL.java (URL): If the file part of a spec is absolute,
-        ignore the file part of its context.
+	* java/net/URL.java (URL): If the file part of a spec is absolute,
+	ignore the file part of its context.
 
 2005-07-14  Aaron Luchko  <aluchko@redhat.com>
 

@@ -332,9 +332,10 @@ typedef union tree_ann_d *tree_ann_t;
 typedef struct var_ann_d *var_ann_t;
 typedef struct function_ann_d *function_ann_t;
 typedef struct stmt_ann_d *stmt_ann_t;
+typedef struct tree_ann_common_d *tree_ann_common_t;
 
-static inline tree_ann_t tree_ann (tree);
-static inline tree_ann_t get_tree_ann (tree);
+static inline tree_ann_common_t tree_common_ann (tree);
+static inline tree_ann_common_t get_tree_common_ann (tree);
 static inline var_ann_t var_ann (tree);
 static inline var_ann_t get_var_ann (tree);
 static inline function_ann_t function_ann (tree);
@@ -563,6 +564,7 @@ extern bool is_ctrl_stmt (tree);
 extern bool is_ctrl_altering_stmt (tree);
 extern bool computed_goto_p (tree);
 extern bool simple_goto_p (tree);
+extern bool tree_can_make_abnormal_goto (tree);
 extern basic_block single_noncomplex_succ (basic_block bb);
 extern void tree_dump_bb (basic_block, FILE *, int);
 extern void debug_tree_bb (basic_block);
@@ -595,6 +597,7 @@ extern bool tree_duplicate_sese_region (edge, edge, basic_block *, unsigned,
 					basic_block *);
 extern void add_phi_args_after_copy_bb (basic_block);
 extern void add_phi_args_after_copy (basic_block *, unsigned);
+extern bool tree_purge_dead_abnormal_call_edges (basic_block);
 extern bool tree_purge_dead_eh_edges (basic_block);
 extern bool tree_purge_all_dead_eh_edges (bitmap);
 extern tree gimplify_val (block_stmt_iterator *, tree, tree);
@@ -606,6 +609,7 @@ extern tree gimplify_build3 (block_stmt_iterator *, enum tree_code,
 			     tree, tree, tree, tree);
 extern void init_empty_tree_cfg (void);
 extern void fold_cond_expr_cond (void);
+extern void make_abnormal_goto_edges (basic_block, bool);
 extern void replace_uses_by (tree, tree);
 extern void start_recording_case_labels (void);
 extern void end_recording_case_labels (void);
@@ -623,7 +627,7 @@ extern void dump_generic_bb (FILE *, basic_block, int, int);
 extern var_ann_t create_var_ann (tree);
 extern function_ann_t create_function_ann (tree);
 extern stmt_ann_t create_stmt_ann (tree);
-extern tree_ann_t create_tree_ann (tree);
+extern tree_ann_common_t create_tree_common_ann (tree);
 extern void dump_dfa_stats (FILE *);
 extern void debug_dfa_stats (void);
 extern void debug_referenced_vars (void);
@@ -667,7 +671,7 @@ extern void debug_points_to_info_for (tree);
 extern bool may_be_aliased (tree);
 extern bool is_aliased_with (tree, tree);
 extern struct ptr_info_def *get_ptr_info (tree);
-extern void new_type_alias (tree, tree);
+extern void new_type_alias (tree, tree, tree);
 extern void count_uses_and_derefs (tree, tree, unsigned *, unsigned *, bool *);
 static inline subvar_t get_subvars_for_var (tree);
 static inline tree get_subvar_at (tree, unsigned HOST_WIDE_INT);
@@ -789,6 +793,8 @@ struct tree_niter_desc
 
 /* In tree-vectorizer.c */
 void vectorize_loops (struct loops *);
+extern bool vect_can_force_dr_alignment_p (tree, unsigned int);
+extern tree get_vectype_for_scalar_type (tree);
 
 /* In tree-ssa-phiopt.c */
 bool empty_block_p (basic_block);
@@ -796,11 +802,11 @@ bool empty_block_p (basic_block);
 /* In tree-ssa-loop*.c  */
 
 void tree_ssa_lim (struct loops *);
-void tree_ssa_unswitch_loops (struct loops *);
-void canonicalize_induction_variables (struct loops *);
-void tree_unroll_loops_completely (struct loops *, bool);
-void tree_ssa_prefetch_arrays (struct loops *);
-void remove_empty_loops (struct loops *);
+unsigned int tree_ssa_unswitch_loops (struct loops *);
+unsigned int canonicalize_induction_variables (struct loops *);
+unsigned int tree_unroll_loops_completely (struct loops *, bool);
+unsigned int tree_ssa_prefetch_arrays (struct loops *);
+unsigned int remove_empty_loops (struct loops *);
 void tree_ssa_iv_optimize (struct loops *);
 
 bool number_of_iterations_exit (struct loop *, edge,

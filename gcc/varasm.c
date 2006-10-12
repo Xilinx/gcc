@@ -834,7 +834,7 @@ bss_initializer_p (tree decl)
 /* Compute the alignment of variable specified by DECL.
    DONT_OUTPUT_DATA is from assemble_variable.  */
 
-static void
+void
 align_variable (tree decl, bool dont_output_data)
 {
   unsigned int align = DECL_ALIGN (decl);
@@ -2749,7 +2749,7 @@ copy_constant (tree exp)
       {
 	tree t = lang_hooks.expand_constant (exp);
 
-	gcc_assert (t == exp);
+	gcc_assert (t != exp);
 	return copy_constant (t);
       }
     }
@@ -3699,6 +3699,20 @@ output_addressed_constants (tree exp)
     }
 }
 
+/* Whether a constructor CTOR is a valid static constant initializer if all
+   its elements are.  This used to be internal to initializer_constant_valid_p
+   and has been exposed to let other functions like categorize_ctor_elements
+   evaluate the property while walking a constructor for other purposes.  */
+
+bool
+constructor_static_from_elts_p (tree ctor)
+{
+  return (TREE_CONSTANT (ctor)
+	  && (TREE_CODE (TREE_TYPE (ctor)) == UNION_TYPE
+	      || TREE_CODE (TREE_TYPE (ctor)) == RECORD_TYPE)
+	  && !VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (ctor)));
+}
+
 /* Return nonzero if VALUE is a valid constant-valued expression
    for use in initializing a static variable; one that can be an
    element of a "constant" initializer.
@@ -3719,10 +3733,7 @@ initializer_constant_valid_p (tree value, tree endtype)
   switch (TREE_CODE (value))
     {
     case CONSTRUCTOR:
-      if ((TREE_CODE (TREE_TYPE (value)) == UNION_TYPE
-	   || TREE_CODE (TREE_TYPE (value)) == RECORD_TYPE)
-	  && TREE_CONSTANT (value)
-	  && !VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (value)))
+      if (constructor_static_from_elts_p (value))
 	{
 	  unsigned HOST_WIDE_INT idx;
 	  tree elt;
@@ -4028,14 +4039,17 @@ output_constant (tree exp, unsigned HOST_WIDE_INT size, unsigned int align)
       if (type_size > op_size
 	  && TREE_CODE (exp) != VIEW_CONVERT_EXPR
 	  && TREE_CODE (TREE_TYPE (exp)) != UNION_TYPE)
-	internal_error ("no-op convert from %wd to %wd bytes in initializer",
-			op_size, type_size);
-
-      exp = TREE_OPERAND (exp, 0);
+	/* Keep the conversion. */
+	break;
+      else
+	exp = TREE_OPERAND (exp, 0);
     }
 
   code = TREE_CODE (TREE_TYPE (exp));
   thissize = int_size_in_bytes (TREE_TYPE (exp));
+
+  /* Give the front end another chance to expand constants.  */
+  exp = lang_hooks.expand_constant (exp);
 
   /* Allow a constructor with no elements for any data type.
      This means to fill the space with zeros.  */
@@ -4114,8 +4128,12 @@ output_constant (tree exp, unsigned HOST_WIDE_INT size, unsigned int align)
 
 	    link = TREE_VECTOR_CST_ELTS (exp);
 	    output_constant (TREE_VALUE (link), elt_size, align);
+	    thissize = elt_size;
 	    while ((link = TREE_CHAIN (link)) != NULL)
-	      output_constant (TREE_VALUE (link), elt_size, nalign);
+	      {
+		output_constant (TREE_VALUE (link), elt_size, nalign);
+		thissize += elt_size;
+	      }
 	    break;
 	  }
 	default:
@@ -5033,7 +5051,7 @@ void
 default_assemble_visibility (tree decl, int vis)
 {
   static const char * const visibility_types[] = {
-    NULL, "internal", "hidden", "protected"
+    NULL, "protected", "hidden", "internal"
   };
 
   const char *name, *type;

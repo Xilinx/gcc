@@ -326,6 +326,9 @@ empty_exception_spec (lsda_header_info *info, _Unwind_Sword filter_value)
   return tmp == 0;
 }
 
+namespace __cxxabiv1
+{
+
 // Using a different personality function name causes link failures
 // when trying to mix code using different exception handling models.
 #ifdef _GLIBCXX_SJLJ_EXCEPTIONS
@@ -431,7 +434,11 @@ PERSONALITY_FUNCTION (int version,
   // Parse the LSDA header.
   p = parse_lsda_header (context, language_specific_data, &info);
   info.ttype_base = base_of_encoded_value (info.ttype_encoding, context);
+#ifdef HAVE_GETIPINFO
   ip = _Unwind_GetIPInfo (context, &ip_before_insn);
+#else
+  ip = _Unwind_GetIP (context);
+#endif
   if (! ip_before_insn)
     --ip;
   landing_pad = 0;
@@ -748,3 +755,5 @@ __cxa_call_unexpected (void *exc_obj_in)
     }
 }
 #endif
+
+} // namespace __cxxabiv1

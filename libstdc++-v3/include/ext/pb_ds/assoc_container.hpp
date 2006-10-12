@@ -47,7 +47,7 @@
 #ifndef PB_DS_ASSOC_CNTNR_HPP
 #define PB_DS_ASSOC_CNTNR_HPP
 
-#include <ext/pb_ds/detail/typelist.hpp>
+#include <ext/typelist.h>
 #include <ext/pb_ds/tag_and_trait.hpp>
 #include <ext/pb_ds/detail/standard_policies.hpp>
 #include <ext/pb_ds/detail/container_base_dispatch.hpp>
@@ -55,7 +55,7 @@
 
 namespace pb_ds
 {
-#define PB_DS_BASE_C_DEC						\
+#define PB_DS_BASE_C_DEC \
   detail::container_base_dispatch<Key, Mapped, Tag, Policy_Tl, Allocator>::type
 
   // An abstract basic associative container.
@@ -117,10 +117,9 @@ namespace pb_ds
 #undef PB_DS_BASE_C_DEC
 
 
-#define PB_DS_BASE_C_DEC						\
-  container_base<Key, Mapped, Tag, typename detail::typelist_append< \
-										   typename detail::typelist4<Hash_Fn, Eq_Fn, Resize_Policy, detail::integral_constant<int,Store_Hash> >::type, \
-										   Policy_TL>::type, Allocator>
+#define PB_DS_BASE_C_DEC \
+  container_base<Key, Mapped, Tag, typename __gnu_cxx::typelist::append< \
+  typename __gnu_cxx::typelist::create4<Hash_Fn, Eq_Fn, Resize_Policy, detail::integral_constant<int, Store_Hash> >::type, Policy_TL>::type, Allocator>
 
   // An abstract basic hash-based associative container.
   template<typename Key,
@@ -154,10 +153,10 @@ namespace pb_ds
 #undef PB_DS_BASE_C_DEC
 
 
-#define PB_DS_BASE_C_DEC						\
+#define PB_DS_BASE_C_DEC \
   basic_hash_table<Key, Mapped,	Hash_Fn, Eq_Fn, Resize_Policy, Store_Hash, \
-		   cc_hash_tag,						\
-		   typename detail::typelist1<Comb_Hash_Fn>::type, Allocator>
+		   cc_hash_tag,	\
+	  typename __gnu_cxx::typelist::create1<Comb_Hash_Fn>::type, Allocator>
 
   // A concrete collision-chaining hash-based associative container.
   template<typename Key,
@@ -185,14 +184,14 @@ namespace pb_ds
     // Constructor taking some policy objects. r_hash_fn will be
     // copied by the Hash_Fn object of the container object.
     cc_hash_table(const hash_fn& h) 
-      : base_type(h) { }
+    : base_type(h) { }
 
     // Constructor taking some policy objects. r_hash_fn will be
     // copied by the hash_fn object of the container object, and
     // r_eq_fn will be copied by the eq_fn object of the container
     // object.
     cc_hash_table(const hash_fn& h, const eq_fn& e)
-      : base_type(h, e) { }
+    : base_type(h, e) { }
 
     // Constructor taking some policy objects. r_hash_fn will be
     // copied by the hash_fn object of the container object, r_eq_fn
@@ -200,7 +199,7 @@ namespace pb_ds
     // r_comb_hash_fn will be copied by the comb_hash_fn object of the
     // container object.
     cc_hash_table(const hash_fn& h, const eq_fn& e, const comb_hash_fn& ch)
-      : base_type(h, e, ch) { }
+    : base_type(h, e, ch) { }
 
     // Constructor taking some policy objects. r_hash_fn will be
     // copied by the hash_fn object of the container object, r_eq_fn
@@ -210,7 +209,7 @@ namespace pb_ds
     // resize_policy object of the container object.
     cc_hash_table(const hash_fn& h, const eq_fn& e, const comb_hash_fn& ch, 
 		  const resize_policy& rp)    
-      : base_type(h, e, ch, rp) { }
+    : base_type(h, e, ch, rp) { }
 
     // Constructor taking __iterators to a range of value_types. The
     // value_types between first_it and last_it will be inserted into
@@ -224,7 +223,7 @@ namespace pb_ds
     // last_it will be inserted into the container object.
     template<typename It>
     cc_hash_table(It first, It last, const hash_fn& h)
-      : base_type(h)
+    : base_type(h)
     { copy_from_range(first, last); }
 
     // Constructor taking __iterators to a range of value_types and
@@ -235,7 +234,7 @@ namespace pb_ds
     // object.
     template<typename It>
     cc_hash_table(It first, It last, const hash_fn& h, const eq_fn& e)
-      : base_type(h, e)
+    : base_type(h, e)
     { copy_from_range(first, last); }
 
     // Constructor taking __iterators to a range of value_types and
@@ -248,7 +247,7 @@ namespace pb_ds
     template<typename It>
     cc_hash_table(It first, It last, const hash_fn& h, const eq_fn& e,
 		  const comb_hash_fn& ch)
-      : base_type(h, e, ch)
+    : base_type(h, e, ch)
     { copy_from_range(first, last); }
 
     // Constructor taking __iterators to a range of value_types and
@@ -262,11 +261,11 @@ namespace pb_ds
     template<typename It>
     cc_hash_table(It first, It last, const hash_fn& h, const eq_fn& e, 
 		  const comb_hash_fn& ch, const resize_policy& rp)
-      : base_type(h, e, ch, rp)
+    : base_type(h, e, ch, rp)
     { copy_from_range(first, last); }
 
     cc_hash_table(const cc_hash_table& other)
-      : base_type((const base_type&)other)
+    : base_type((const base_type&)other)
     { }
 
     virtual
@@ -275,7 +274,7 @@ namespace pb_ds
     cc_hash_table& 
     operator=(const cc_hash_table& other)
     {
-      if (this !=& other)
+      if (this != &other)
 	{
 	  cc_hash_table tmp(other);
 	  swap(tmp);
@@ -291,10 +290,10 @@ namespace pb_ds
 #undef PB_DS_BASE_C_DEC
 
 
-#define PB_DS_BASE_C_DEC						\
+#define PB_DS_BASE_C_DEC \
   basic_hash_table<Key, Mapped,	Hash_Fn, Eq_Fn, Resize_Policy, Store_Hash, \
-		   gp_hash_tag,						\
-		   typename detail::typelist2<Comb_Probe_Fn, Probe_Fn>::type, Allocator>
+		   gp_hash_tag, \
+		   typename __gnu_cxx::typelist::create2<Comb_Probe_Fn, Probe_Fn>::type, Allocator>
 
   // A concrete general-probing hash-based associative container.
   template<typename Key,
@@ -324,14 +323,14 @@ namespace pb_ds
     // Constructor taking some policy objects. r_hash_fn will be
     // copied by the hash_fn object of the container object.
     gp_hash_table(const hash_fn& h)
-      : base_type(h) { }
+    : base_type(h) { }
 
     // Constructor taking some policy objects. r_hash_fn will be
     // copied by the hash_fn object of the container object, and
     // r_eq_fn will be copied by the eq_fn object of the container
     // object.
     gp_hash_table(const hash_fn& h, const eq_fn& e)
-      : base_type(h, e) { }
+    : base_type(h, e) { }
 
     // Constructor taking some policy objects. r_hash_fn will be
     // copied by the hash_fn object of the container object, r_eq_fn
@@ -339,7 +338,7 @@ namespace pb_ds
     // r_comb_probe_fn will be copied by the comb_probe_fn object of
     // the container object.
     gp_hash_table(const hash_fn& h, const eq_fn& e, const comb_probe_fn& cp)
-      : base_type(h, e, cp) { }
+    : base_type(h, e, cp) { }
 
     // Constructor taking some policy objects. r_hash_fn will be
     // copied by the hash_fn object of the container object, r_eq_fn
@@ -349,7 +348,7 @@ namespace pb_ds
     // probe_fn object of the container object.
     gp_hash_table(const hash_fn& h, const eq_fn& e, const comb_probe_fn& cp, 
 		  const probe_fn& p)
-      : base_type(h, e, cp, p) { }
+    : base_type(h, e, cp, p) { }
 
     // Constructor taking some policy objects. r_hash_fn will be
     // copied by the hash_fn object of the container object, r_eq_fn
@@ -360,7 +359,7 @@ namespace pb_ds
     // copied by the Resize_Policy object of the container object.
     gp_hash_table(const hash_fn& h, const eq_fn& e, const comb_probe_fn& cp, 
 		  const probe_fn& p, const resize_policy& rp)
-      : base_type(h, e, cp, p, rp) { }
+    : base_type(h, e, cp, p, rp) { }
 
     // Constructor taking __iterators to a range of value_types. The
     // value_types between first_it and last_it will be inserted into
@@ -375,7 +374,7 @@ namespace pb_ds
     // will be copied by the hash_fn object of the container object.
     template<typename It>
     gp_hash_table(It first, It last, const hash_fn& h)
-      : base_type(h)
+    : base_type(h)
     { base_type::copy_from_range(first, last); }
 
     // Constructor taking __iterators to a range of value_types and
@@ -386,7 +385,7 @@ namespace pb_ds
     // object.
     template<typename It>
     gp_hash_table(It first, It last, const hash_fn& h, const eq_fn& e)
-      : base_type(h, e)
+    : base_type(h, e)
     { base_type::copy_from_range(first, last); }
 
     // Constructor taking __iterators to a range of value_types and
@@ -399,7 +398,7 @@ namespace pb_ds
     template<typename It>
     gp_hash_table(It first, It last, const hash_fn& h, const eq_fn& e, 
 		  const comb_probe_fn& cp)
-      : base_type(h, e, cp)
+    : base_type(h, e, cp)
     { base_type::copy_from_range(first, last); }
 
     // Constructor taking __iterators to a range of value_types and
@@ -413,7 +412,7 @@ namespace pb_ds
     template<typename It>
     gp_hash_table(It first, It last, const hash_fn& h, const eq_fn& e, 
 		  const comb_probe_fn& cp, const probe_fn& p)
-      : base_type(h, e, cp, p)
+    : base_type(h, e, cp, p)
     { base_type::copy_from_range(first, last); }
 
     // Constructor taking __iterators to a range of value_types and
@@ -430,11 +429,11 @@ namespace pb_ds
     gp_hash_table(It first, It last, const hash_fn& h, const eq_fn& e, 
 		  const comb_probe_fn& cp, const probe_fn& p, 
 		  const resize_policy& rp)
-      : base_type(h, e, cp, p, rp)
+    : base_type(h, e, cp, p, rp)
     { base_type::copy_from_range(first, last); }
 
     gp_hash_table(const gp_hash_table& other)
-      : base_type((const base_type&)other)
+    : base_type((const base_type&)other)
     { }
 
     virtual
@@ -443,7 +442,7 @@ namespace pb_ds
     gp_hash_table& 
     operator=(const gp_hash_table& other)
     {
-      if (this !=& other)
+      if (this != &other)
 	{
 	  gp_hash_table tmp(other);
 	  swap(tmp);
@@ -459,7 +458,7 @@ namespace pb_ds
 #undef PB_DS_BASE_C_DEC
 
 
-#define PB_DS_BASE_C_DEC					\
+#define PB_DS_BASE_C_DEC \
   container_base<Key, Mapped, Tag, Policy_Tl, Allocator>
 
   // An abstract basic tree-like (tree, trie) associative container.
@@ -485,12 +484,12 @@ namespace pb_ds
 #undef PB_DS_BASE_C_DEC
 
 
-#define PB_DS_TREE_NODE_AND_IT_TRAITS_C_DEC				\
+#define PB_DS_TREE_NODE_AND_IT_TRAITS_C_DEC \
   detail::tree_traits<Key, Mapped,Cmp_Fn,Node_Update,Tag, Allocator>
 
-#define PB_DS_BASE_C_DEC						\
+#define PB_DS_BASE_C_DEC \
   basic_tree<Key,Mapped,Tag,typename PB_DS_TREE_NODE_AND_IT_TRAITS_C_DEC::node_update, \
-	     typename detail::typelist2<Cmp_Fn, PB_DS_TREE_NODE_AND_IT_TRAITS_C_DEC >::type, Allocator>
+	     typename __gnu_cxx::typelist::create2<Cmp_Fn, PB_DS_TREE_NODE_AND_IT_TRAITS_C_DEC >::type, Allocator>
 
   // A concrete basic tree-based associative container.
   template<typename Key, typename Mapped, typename Cmp_Fn = std::less<Key>,
@@ -512,7 +511,7 @@ namespace pb_ds
     // Constructor taking some policy objects. r_cmp_fn will be copied
     // by the Cmp_Fn object of the container object.
     tree(const cmp_fn& c)
-      : base_type(c) { }
+    : base_type(c) { }
 
     // Constructor taking __iterators to a range of value_types. The
     // value_types between first_it and last_it will be inserted into
@@ -531,7 +530,7 @@ namespace pb_ds
     { base_type::copy_from_range(first, last); }
 
     tree(const tree& other)
-      : base_type((const base_type&)other) { }
+    : base_type((const base_type&)other) { }
 
     virtual
     ~tree() { }
@@ -539,7 +538,7 @@ namespace pb_ds
     tree& 
     operator=(const tree& other)
     {
-      if (this !=& other)
+      if (this != &other)
 	{
 	  tree tmp(other);
 	  swap(tmp);
@@ -556,12 +555,12 @@ namespace pb_ds
 #undef PB_DS_TREE_NODE_AND_IT_TRAITS_C_DEC
 
 
-#define PB_DS_TRIE_NODE_AND_ITS_TRAITS					\
+#define PB_DS_TRIE_NODE_AND_ITS_TRAITS \
   detail::trie_traits<Key,Mapped,E_Access_Traits,Node_Update,Tag,Allocator>
 
-#define PB_DS_BASE_C_DEC						\
+#define PB_DS_BASE_C_DEC \
   basic_tree<Key,Mapped,Tag, typename PB_DS_TRIE_NODE_AND_ITS_TRAITS::node_update, \
-	     typename detail::typelist2<E_Access_Traits, PB_DS_TRIE_NODE_AND_ITS_TRAITS >::type, Allocator>
+	     typename __gnu_cxx::typelist::create2<E_Access_Traits, PB_DS_TRIE_NODE_AND_ITS_TRAITS >::type, Allocator>
 
   // A concrete basic trie-based associative container.
   template<typename Key,
@@ -589,7 +588,7 @@ namespace pb_ds
     // be copied by the E_Access_Traits object of the container
     // object.
     trie(const e_access_traits& t)
-      : base_type(t) { }
+    : base_type(t) { }
 
     // Constructor taking __iterators to a range of value_types. The
     // value_types between first_it and last_it will be inserted into
@@ -603,11 +602,11 @@ namespace pb_ds
     // last_it will be inserted into the container object.
     template<typename It>
     trie(It first, It last, const e_access_traits& t)
-      : base_type(t)
+    : base_type(t)
     { base_type::copy_from_range(first, last); }
 
     trie(const trie& other)
-      : base_type((const base_type&)other) { }
+    : base_type((const base_type&)other) { }
 
     virtual
     ~trie() { }
@@ -615,7 +614,7 @@ namespace pb_ds
     trie& 
     operator=(const trie& other)
     {
-      if (this !=& other)
+      if (this != &other)
 	{
 	  trie tmp(other);
 	  swap(tmp);
@@ -632,9 +631,9 @@ namespace pb_ds
 #undef PB_DS_TRIE_NODE_AND_ITS_TRAITS
 
 
-#define PB_DS_BASE_C_DEC						\
-  container_base<Key, Mapped, list_update_tag,			\
-			typename detail::typelist2<Eq_Fn, Update_Policy>::type, Allocator>
+#define PB_DS_BASE_C_DEC \
+  container_base<Key, Mapped, list_update_tag, \
+		 typename __gnu_cxx::typelist::create2<Eq_Fn, Update_Policy>::type, Allocator>
 
   // A list-update based associative container.
   template<typename Key,
@@ -662,7 +661,7 @@ namespace pb_ds
     { base_type::copy_from_range(first, last); }
 
     list_update(const list_update& other)
-      : base_type((const base_type&)other) { }
+    : base_type((const base_type&)other) { }
 
     virtual
     ~list_update() { }

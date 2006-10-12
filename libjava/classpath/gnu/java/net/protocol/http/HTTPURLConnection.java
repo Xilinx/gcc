@@ -65,7 +65,7 @@ import javax.net.ssl.SSLSocketFactory;
  * @author Chris Burdess (dog@gnu.org)
  */
 public class HTTPURLConnection
-  extends HttpsURLConnection
+ extends HttpsURLConnection
   implements HandshakeCompletedListener
 {
   /*
@@ -149,6 +149,14 @@ public class HTTPURLConnection
     final Credentials creds = (username == null) ? null :
       new Credentials (username, password);
     
+    if ("POST".equals(method))
+      {
+        String contentType = requestHeaders.getValue("Content-Type");
+        if (null == contentType)
+          requestHeaders.addValue("Content-Type",
+                                  "application/x-www-form-urlencoded");
+      }
+
     boolean retry;
     do
       {
@@ -346,11 +354,11 @@ public class HTTPURLConnection
     HTTPConnection connection;
     if (keepAlive)
       {
-        connection = HTTPConnection.Pool.instance.get(host, port, secure);
+        connection = HTTPConnection.Pool.instance.get(host, port, secure, getConnectTimeout(), 0);
       }
     else
       {
-        connection = new HTTPConnection(host, port, secure);
+        connection = new HTTPConnection(host, port, secure, 0, getConnectTimeout());
       }
     return connection;
   }
@@ -653,5 +661,27 @@ public class HTTPURLConnection
     handshakeEvent = event;
   }
 
+  /**
+   * Set the connection timeout speed, in milliseconds, or zero if the timeout
+   * is to be considered infinite.
+   *
+   * Overloaded.
+   *
+   */
+  public void setConnectTimeout(int timeout)
+    throws IllegalArgumentException
+  {
+    super.setConnectTimeout( timeout );
+    if( connection == null )
+      return;
+    try 
+      {
+	connection.getSocket().setSoTimeout( timeout );
+      } 
+    catch(IOException se)
+      {
+	// Ignore socket exceptions.
+      }
+  }
 }
 

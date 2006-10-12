@@ -22,6 +22,7 @@ details.  */
 #ifdef ENABLE_JVMPI
 #include <jvmpi.h>
 #endif
+#include <jvmti.h>
 
 #include <java/lang/Class.h>
 #include <java/lang/ClassLoader.h>
@@ -248,6 +249,12 @@ _Jv_JNI_DeleteGlobalRef (JNIEnv *, jobject obj)
 {
   // This seems weird but I think it is correct.
   obj = unwrap (obj);
+  
+  // NULL is ok here -- the JNI specification doesn't say so, but this
+  // is a no-op.
+  if (! obj)
+    return;
+
   unmark_for_gc (obj, global_ref_table);
 }
 
@@ -258,6 +265,11 @@ _Jv_JNI_DeleteLocalRef (JNIEnv *env, jobject obj)
 
   // This seems weird but I think it is correct.
   obj = unwrap (obj);
+
+  // NULL is ok here -- the JNI specification doesn't say so, but this
+  // is a no-op.
+  if (! obj)
+    return;
 
   for (frame = env->locals; frame != NULL; frame = frame->next)
     {
@@ -2483,6 +2495,13 @@ _Jv_JNI_GetEnv (JavaVM *, void **penv, jint version)
       return 0;
     }
 #endif
+
+  // Handle JVMTI requests
+  if (version == JVMTI_VERSION_1_0)
+    {
+      *penv = (void *) _Jv_GetJVMTIEnv ();
+      return 0;
+    }
 
   // FIXME: do we really want to support 1.1?
   if (version != JNI_VERSION_1_4 && version != JNI_VERSION_1_2

@@ -1,6 +1,6 @@
 // Queue implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -67,18 +67,6 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
-  // Forward declarations of operators < and ==, needed for friend declaration.
-  template<typename _Tp, typename _Sequence = deque<_Tp> >
-    class queue;
-
-  template<typename _Tp, typename _Seq>
-    inline bool
-    operator==(const queue<_Tp,_Seq>&, const queue<_Tp,_Seq>&);
-
-  template<typename _Tp, typename _Seq>
-    inline bool
-    operator<(const queue<_Tp,_Seq>&, const queue<_Tp,_Seq>&);
-
   /**
    *  @brief  A standard container giving FIFO behavior.
    *
@@ -103,7 +91,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  which is a typedef for the second Sequence parameter, and @c push and
    *  @c pop, which are standard %queue/FIFO operations.
   */
-  template<typename _Tp, typename _Sequence>
+  template<typename _Tp, typename _Sequence = deque<_Tp> >
     class queue
     {
       // concept requirements
@@ -246,10 +234,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  linear in the size of the sequences, and queues are considered equivalent
    *  if their sequences compare equal.
   */
-  template<typename _Tp, typename _Sequence>
+  template<typename _Tp, typename _Seq>
     inline bool
-    operator==(const queue<_Tp,_Sequence>& __x,
-	       const queue<_Tp,_Sequence>& __y)
+    operator==(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
     { return __x.c == __y.c; }
 
   /**
@@ -265,36 +252,33 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  std::lexicographical_compare() is usually used to make the
    *  determination.
   */
-  template<typename _Tp, typename _Sequence>
+  template<typename _Tp, typename _Seq>
     inline bool
-    operator<(const queue<_Tp,_Sequence>& __x, const queue<_Tp,_Sequence>& __y)
+    operator<(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
     { return __x.c < __y.c; }
 
   /// Based on operator==
-  template<typename _Tp, typename _Sequence>
+  template<typename _Tp, typename _Seq>
     inline bool
-    operator!=(const queue<_Tp,_Sequence>& __x,
-	       const queue<_Tp,_Sequence>& __y)
+    operator!=(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
     { return !(__x == __y); }
 
   /// Based on operator<
-  template<typename _Tp, typename _Sequence>
+  template<typename _Tp, typename _Seq>
     inline bool
-    operator>(const queue<_Tp,_Sequence>& __x, const queue<_Tp,_Sequence>& __y)
+    operator>(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
     { return __y < __x; }
 
   /// Based on operator<
-  template<typename _Tp, typename _Sequence>
+  template<typename _Tp, typename _Seq>
     inline bool
-    operator<=(const queue<_Tp,_Sequence>& __x,
-	       const queue<_Tp,_Sequence>& __y)
+    operator<=(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
     { return !(__y < __x); }
 
   /// Based on operator<
-  template<typename _Tp, typename _Sequence>
+  template<typename _Tp, typename _Seq>
     inline bool
-    operator>=(const queue<_Tp,_Sequence>& __x,
-	       const queue<_Tp,_Sequence>& __y)
+    operator>=(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
     { return !(__x < __y); }
 
   /**
@@ -343,7 +327,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       __glibcxx_class_requires(_Sequence, _SequenceConcept)
       __glibcxx_class_requires(_Sequence, _RandomAccessContainerConcept)
       __glibcxx_class_requires2(_Tp, _Sequence_value_type, _SameTypeConcept)
-      __glibcxx_class_requires4(_Compare, bool, _Tp,_Tp,_BinaryFunctionConcept)
+      __glibcxx_class_requires4(_Compare, bool, _Tp, _Tp,
+				_BinaryFunctionConcept)
 
     public:
       typedef typename _Sequence::value_type                value_type;
@@ -397,11 +382,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  Returns true if the %queue is empty.
        */
       bool
-      empty() const { return c.empty(); }
+      empty() const
+      { return c.empty(); }
 
       /**  Returns the number of elements in the %queue.  */
       size_type
-      size() const { return c.size(); }
+      size() const
+      { return c.size(); }
 
       /**
        *  Returns a read-only (constant) reference to the data at the first
@@ -425,16 +412,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       void
       push(const value_type& __x)
       {
-	try
-        {
-          c.push_back(__x);
-          std::push_heap(c.begin(), c.end(), comp);
-        }
-	catch(...)
-        {
-          c.clear();
-          __throw_exception_again;
-        }
+	c.push_back(__x);
+	std::push_heap(c.begin(), c.end(), comp);
       }
 
       /**
@@ -452,16 +431,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       pop()
       {
 	__glibcxx_requires_nonempty();
-	try
-        {
-          std::pop_heap(c.begin(), c.end(), comp);
-          c.pop_back();
-        }
-	catch(...)
-        {
-          c.clear();
-          __throw_exception_again;
-        }
+	std::pop_heap(c.begin(), c.end(), comp);
+	c.pop_back();
       }
     };
 

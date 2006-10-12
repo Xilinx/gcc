@@ -47,7 +47,7 @@ typedef struct
 
 } _Jv_Mutex_t;
 
-typedef struct
+typedef struct _Jv_Thread_t
 {
   int flags;            // Flags are defined in implementation.
   HANDLE handle;        // Actual handle to the thread
@@ -192,20 +192,6 @@ void _Jv_ThreadInterrupt (_Jv_Thread_t *data);
 // WaitForMultipleObjects and the time you query interrupted_flag.
 // See java/lang/natWin32Process.cc (waitFor) for an example.
 HANDLE _Jv_Win32GetInterruptEvent (void);
-
-// Increases a thread's suspend count. If the thread's previous
-// suspend count was zero, i.e., it is not suspended, this function
-// will suspend the thread. This function may be used to suspend
-// any thread from any other thread (or suspend itself).
-void _Jv_ThreadDebugSuspend (_Jv_Thread_t* data);
-
-// Decreases a thread's suspend count. If the thread's new thread
-// count is zero, the thread is resumed. This function may be used
-// by any thread to resume any other thread.
-void _Jv_ThreadDebugResume (_Jv_Thread_t* data);
-
-// Get the suspend count for a thread
-jint _Jv_ThreadDebugSuspendCount (_Jv_Thread_t* data);
 
 // Remove defines from <windows.h> that conflict with various things in libgcj code
 

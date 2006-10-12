@@ -1,6 +1,6 @@
 /* Specific flags and argument handling of the front-end of the 
    GNU compiler for the Java(TM) language.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -243,6 +243,9 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   /* The argument we use to specify the spec file.  */
   char *spec_file = NULL;
 
+  /* If linking, nonzero if the BC-ABI is in use.  */
+  int link_for_bc_abi = 0;
+
   argc = *in_argc;
   argv = *in_argv;
   added_libraries = *in_added_libraries;
@@ -355,7 +358,6 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  else if (strcmp (argv[i], "-fsyntax-only") == 0
 		   || strcmp (argv[i], "--syntax-only") == 0)
 	    {
-	      want_spec_file = 0;
 	      library = 0;
 	      will_link = 0;
 	      continue;
@@ -365,6 +367,11 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
           else if (strcmp (argv[i], "-static-libgcc") == 0
                    || strcmp (argv[i], "-static") == 0)
 	    shared_libgcc = 0;
+	  else if (strcmp (argv[i], "-findirect-dispatch") == 0
+		   || strcmp (argv[i], "--indirect-dispatch") == 0)
+	    {
+	      link_for_bc_abi = 1;
+	    }
 	  else
 	    /* Pass other options through.  */
 	    continue;
@@ -490,6 +497,8 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   
   num_args += shared_libgcc;
 
+  num_args += link_for_bc_abi;
+
   arglist = XNEWVEC (const char *, num_args + 1);
   j = 0;
 
@@ -598,6 +607,9 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   
   if (shared_libgcc)
     arglist[j++] = "-shared-libgcc";
+
+  if (link_for_bc_abi)
+    arglist[j++] = "-s-bc-abi";
 
   arglist[j] = NULL;
 

@@ -109,7 +109,7 @@ decContextDefault (decContext * context, Int kind)
 /*    (or no) flags are set, a generic constant message is returned.  */
 /* ------------------------------------------------------------------ */
 const char *
-decContextStatusToString (decContext * context)
+decContextStatusToString (const decContext * context)
 {
   Int status = context->status;
   if (status == DEC_Conversion_syntax)
@@ -162,7 +162,7 @@ decContextStatusToString (decContext * context)
 /*    returned.                                                       */
 /* ------------------------------------------------------------------ */
 decContext *
-decContextSetStatusFromString (decContext * context, char *string)
+decContextSetStatusFromString (decContext * context, const char *string)
 {
   if (strcmp (string, DEC_Condition_CS) == 0)
     return decContextSetStatus (context, DEC_Conversion_syntax);

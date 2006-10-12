@@ -1,5 +1,5 @@
 /* Perform doloop optimizations
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006 Free Software Foundation, Inc.
    Based on code by Michael P. Hayes (m.hayes@elec.canterbury.ac.nz)
 
 This file is part of GCC.
@@ -485,6 +485,7 @@ doloop_optimize (struct loop *loop)
   rtx start_label;
   rtx condition;
   unsigned level, est_niter;
+  int max_cost;
   struct niter_desc *desc;
   unsigned word_mode_size;
   unsigned HOST_WIDE_INT word_mode_max;
@@ -522,6 +523,16 @@ doloop_optimize (struct loop *loop)
 	fprintf (dump_file,
 		 "Doloop: Too few iterations (%u) to be profitable.\n",
 		 est_niter);
+      return false;
+    }
+
+  max_cost
+    = COSTS_N_INSNS (PARAM_VALUE (PARAM_MAX_ITERATIONS_COMPUTATION_COST));
+  if (rtx_cost (desc->niter_expr, SET) > max_cost)
+    {
+      if (dump_file)
+	fprintf (dump_file,
+		 "Doloop: number of iterations too costly to compute.\n");
       return false;
     }
 

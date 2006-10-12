@@ -1,3 +1,135 @@
+2006-10-10  Brooks Moses  <bmoses@stanford.edu>
+
+	* Makefile.def: Added pdf target handling.
+	* Makefile.tpl: Added pdf target handling.
+	* Makefile.in: Regenerated.
+
+2006-10-10  Chen Liqin  <liqin@sunnorth.com.cn>
+
+	* MAINTAINERS: Add self as score port maintainer.
+
+2006-10-04  Brooks Moses  <bmoses@stanford.edu>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2006-09-27  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* configure.in: Check for GMP 4.1 or newer.  Check for MPFR 2.2.0 
+	or newer.
+	* configure: Regenerated.
+
+2006-09-27  Dave Brolley  <brolley@redhat.com>
+
+	* configure.in (RUNTEST): Look for 'runtest' in the source tree by using
+	$s instead of $r.
+	* configure: Regenerated.
+
+2006-09-26  Thiemo Seufer  <ths@mips.com>
+
+	* configure.in: Remove redundant handling of mips*-dec-bsd*. Likewise
+	for mipstx39-*-*. Disable libgloss for mips64*-*-linux*.
+	* configure: Regenerate.
+
+2006-09-24  Graeme Peterson <gridly@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Remove myself.
+
+2006-09-22  Chao-ying Fu  <fu@mips.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2006-09-10  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS: Add self as soft-fp maintainer.
+
+2006-09-09  Anatoly Sokolov <aesok@post.ru>
+
+	* MAINTAINERS: Add myself as avr maintainer.
+	Remove Marek Michalkiewicz as avr maintainer.
+
+2006-09-07  Roberto Costa  <roberto.costa@st.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2006-08-30  Corinna Vinschen  <corinna@vinschen.de>
+
+	* configure.in: Never build newlib for a Mingw host.
+	Never build newlib as Mingw target library.
+	Test the existence of winsup/cygwin for building a Cygwin newlib,
+	rather than just winsup.
+	Add winsup/mingw and winsup/w32api paths to FLAGS_FOR_TARGET if
+	building a Mingw target.
+	* configure: Regenerate.
+
+2006-08-08  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* MAINTAINERS (Various Maintainers): Add self as RTL opt. maintainer.
+
+2006-07-25  Paolo Bonzini  <bonzini@gnu.org>
+
+	* config.guess: Import from src (was more updated).
+	* config.sub: Likewise.
+
+2006-07-22  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* configure.in: Allow mingw32 and cygwin targets to build cross-gdb.
+	* configure: Regenerated.
+
+2006-07-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.tpl (configure-stageN-MODULE): Pass --with-build-libsubdir
+	for stages after the first.
+
+2006-07-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.def: Add dependencies for configure-opcodes
+	on configure-intl and all-opcodes on all-intl.
+	* Makefile.in: Regenerated.
+
+2006-07-13  Ben Elliston  <bje@au.ibm.com>
+
+	* MAINTAINERS (Various Maintainers): Add myself as dfp maintainer.
+
+2006-07-06  Paul Eggert  <eggert@cs.ucla.edu>
+
+	Port to hosts whose 'sort' and 'tail' implementations
+	treat operands with leading '+' as file names, as POSIX
+	has required since 2001.  However, make sure the code still
+	works on pre-POSIX hosts.
+	* ltmain.sh: Don't assume "sort +2" is equivalent to
+	"sort -k 3", since POSIX 1003.1-2001 no longer requires this.
+
+2006-07-05  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* MAINTAINERS (Various Maintainers): Add myself as reload maintainer.
+
+2006-07-04  Peter O'Gorman  <peter@pogma.com>
+
+	* ltconfig: chmod 644 before ranlib during install.
+
+2006-07-04  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	PR bootstrap/18058
+	* configure.in: Add -fkeep-inline-functions to CFLAGS for stage 1
+	if the bootstrap compiler is a GCC version that supports it.
+	* configure: Regenerate.
+
+2006-07-03  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.in: Fix thinkos in previous check-in.
+	* configure: Regenerate.
+
+2006-07-03  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR other/27063
+	* configure.in: Test subdir_requires and give an appropriate
+	error message.
+	* configure: Regenerate.
+
+2006-07-01  Andrew John Hughes  <gnu_andrew@member.fsf.org>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
 2006-06-22  John David Anglin  <dave.anglin@nrc.ca>
 
 	* MAINTAINERS (OS Port Maintainers): Add myself as hpux maintainer.
@@ -284,13 +416,13 @@
 
 	2005-12-27  Leif Ekblad  <leif@rdos.net>
 
-        * configure.in: Add support for RDOS target.
-        * configure: Regenerate.
+	* configure.in: Add support for RDOS target.
+	* configure: Regenerate.
 
 2006-02-14  Paolo Bonzini  <bonzini@gnu.org>
             Andreas Schwab  <schwab@suse.de>
 
-        * configure: Regenerate.
+	* configure: Regenerate.
 
 2006-02-12  David Edelsohn  <edelsohn@gnu.org>
 
@@ -881,7 +1013,7 @@
 	non-ported target libraries in noconfigdirs.
 	<cris-*, crisv32-*> Ditto, except for non-aout, non-elf,
 	non-linux-gnu.  Remove libgcj_ex_libffi.
- 	<lang_frag loop>: Set add_this_lang=no if the language is in
+	<lang_frag loop>: Set add_this_lang=no if the language is in
 	unsupported_languages.
 	* configure: Regenerate.
 
@@ -2591,8 +2723,8 @@
 
 2003-12-21  Bernardo Innocenti  <bernie@develer.com>
 
- 	* configure.in (*-*-uclinux): Exclude newlib, libgloss and rda.
- 	* configure: Regenerated.
+	* configure.in (*-*-uclinux): Exclude newlib, libgloss and rda.
+	* configure: Regenerated.
 
 2003-12-16  Jan Hubicka  <jh@suse.cz>
 
@@ -2719,7 +2851,7 @@
 
 2003-09-30  Carlo Wood  <carlo@alinoe.com>
 
-       * MAINTAINERS (Write After Approval): Add myself.
+	* MAINTAINERS (Write After Approval): Add myself.
 
 2003-09-29  Paul Koning  <ni1d@arrl.net>
 
@@ -2763,7 +2895,7 @@
 
 2003-09-16  Dorit Naishlos  <dorit@il.ibm.com>
 
-       * MAINTAINERS (Write After Approval): Add myself.
+	* MAINTAINERS (Write After Approval): Add myself.
 
 2003-09-09  Ian Lance Taylor  <ian@wasabisystems.com>
 
@@ -11510,8 +11642,8 @@ Mon May 10 05:58:35 1993  Ken Raeburn  (raeburn@kr-pc.cygnus.com)
 
 Sun May  9 17:47:57 1993  Rob Savoye  (rob at darkstar.cygnus.com)
 
-       * Makefile.in: Use srcroot to find runtest rather than rootme.
-       Pass RUNTESTFLAGS and EXPECT down in BASE_FLAGS_TO_PASS.
+	* Makefile.in: Use srcroot to find runtest rather than rootme.
+	Pass RUNTESTFLAGS and EXPECT down in BASE_FLAGS_TO_PASS.
 
 Fri May  7 14:55:59 1993  Ian Lance Taylor  (ian@cygnus.com)
 

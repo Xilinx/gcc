@@ -32,9 +32,9 @@ namespace std
 _GLIBCXX_BEGIN_NAMESPACE(tr1)
 
   /*
-   * Implementation-space details.
+   * (Further) implementation-space details.
    */
-  namespace _Private
+  namespace
   {
     // General case for x = (ax + c) mod m -- use Schrage's algorithm to avoid
     // integer overflow.
@@ -86,23 +86,7 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 	__calc(_Tp __x)
 	{ return __a * __x + __c; }
       };
-
-    // Dispatch based on modulus value to prevent divide-by-zero compile-time
-    // errors when m == 0.
-    template<typename _Tp, _Tp __a, _Tp __c, _Tp __m>
-      inline _Tp
-      __mod(_Tp __x)
-      { return _Mod<_Tp, __a, __c, __m, __m == 0>::__calc(__x); }
-
-    // See N1822.
-    template<typename _RealType>
-      struct _Max_digits10
-      { 
-	static const std::streamsize __value =
-	  2 + std::numeric_limits<_RealType>::digits * 3010/10000;
-      };
-
-  } // namespace _Private
+  } // anonymous namespace
 
 
   /**
@@ -114,11 +98,11 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
     linear_congruential<_UIntType, __a, __c, __m>::
     seed(unsigned long __x0)
     {
-      if ((_Private::__mod<_UIntType, 1, 0, __m>(__c) == 0)
-	  && (_Private::__mod<_UIntType, 1, 0, __m>(__x0) == 0))
-	_M_x = _Private::__mod<_UIntType, 1, 0, __m>(1);
+      if ((__mod<_UIntType, 1, 0, __m>(__c) == 0)
+	  && (__mod<_UIntType, 1, 0, __m>(__x0) == 0))
+	_M_x = __mod<_UIntType, 1, 0, __m>(1);
       else
-	_M_x = _Private::__mod<_UIntType, 1, 0, __m>(__x0);
+	_M_x = __mod<_UIntType, 1, 0, __m>(__x0);
     }
 
   /**
@@ -131,37 +115,12 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       seed(_Gen& __g, false_type)
       {
 	_UIntType __x0 = __g();
-	if ((_Private::__mod<_UIntType, 1, 0, __m>(__c) == 0)
-	    && (_Private::__mod<_UIntType, 1, 0, __m>(__x0) == 0))
-	  _M_x = _Private::__mod<_UIntType, 1, 0, __m>(1);
+	if ((__mod<_UIntType, 1, 0, __m>(__c) == 0)
+	    && (__mod<_UIntType, 1, 0, __m>(__x0) == 0))
+	  _M_x = __mod<_UIntType, 1, 0, __m>(1);
 	else
-	  _M_x = _Private::__mod<_UIntType, 1, 0, __m>(__x0);
+	  _M_x = __mod<_UIntType, 1, 0, __m>(__x0);
       }
-
-  /**
-   * Returns a value that is less than or equal to all values potentially
-   * returned by operator(). The return value of this function does not
-   * change during the lifetime of the object..
-   *
-   * The minumum depends on the @p __c parameter: if it is zero, the
-   * minimum generated must be > 0, otherwise 0 is allowed.
-   */
-  template<class _UIntType, _UIntType __a, _UIntType __c, _UIntType __m>
-    typename linear_congruential<_UIntType, __a, __c, __m>::result_type
-    linear_congruential<_UIntType, __a, __c, __m>::
-    min() const
-    { return (_Private::__mod<_UIntType, 1, 0, __m>(__c) == 0) ? 1 : 0; }
-
-  /**
-   * Gets the maximum possible value of the generated range.
-   *
-   * For a linear congruential generator, the maximum is always @p __m - 1.
-   */
-  template<class _UIntType, _UIntType __a, _UIntType __c, _UIntType __m>
-    typename linear_congruential<_UIntType, __a, __c, __m>::result_type
-    linear_congruential<_UIntType, __a, __c, __m>::
-    max() const
-    { return (__m == 0) ? std::numeric_limits<_UIntType>::max() : (__m - 1); }
 
   /**
    * Gets the next generated value in sequence.
@@ -171,7 +130,7 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
     linear_congruential<_UIntType, __a, __c, __m>::
     operator()()
     {
-      _M_x = _Private::__mod<_UIntType, __a, __c, __m>(_M_x);
+      _M_x = __mod<_UIntType, __a, __c, __m>(_M_x);
       return _M_x;
     }
 
@@ -218,8 +177,8 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 		     __b, __t, __c, __l>::
     seed(unsigned long __value)
     {
-      _M_x[0] = _Private::__mod<_UIntType, 1, 0,
-	_Private::_Shift<_UIntType, __w>::__value>(__value);
+      _M_x[0] = __mod<_UIntType, 1, 0,
+	_Shift<_UIntType, __w>::__value>(__value);
 
       for (int __i = 1; __i < state_size; ++__i)
 	{
@@ -227,8 +186,8 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 	  __x ^= __x >> (__w - 2);
 	  __x *= 1812433253ul;
 	  __x += __i;
-	  _M_x[__i] = _Private::__mod<_UIntType, 1, 0,
-	    _Private::_Shift<_UIntType, __w>::__value>(__x);	  
+	  _M_x[__i] = __mod<_UIntType, 1, 0,
+	    _Shift<_UIntType, __w>::__value>(__x);	  
 	}
       _M_p = state_size;
     }
@@ -243,8 +202,8 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       seed(_Gen& __gen, false_type)
       {
 	for (int __i = 0; __i < state_size; ++__i)
-	  _M_x[__i] = _Private::__mod<_UIntType, 1, 0,
-	    _Private::_Shift<_UIntType, __w>::__value>(__gen());
+	  _M_x[__i] = __mod<_UIntType, 1, 0,
+	    _Shift<_UIntType, __w>::__value>(__gen());
 	_M_p = state_size;
       }
 
@@ -347,45 +306,41 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
     subtract_with_carry<_IntType, __m, __s, __r>::
     seed(unsigned long __value)
     {
+      if (__value == 0)
+	__value = 19780503;
+
       std::tr1::linear_congruential<unsigned long, 40014, 0, 2147483563>
 	__lcg(__value);
 
       for (int __i = 0; __i < long_lag; ++__i)
-	_M_x[__i] = _Private::__mod<_IntType, 1, 0, modulus>(__lcg());
+	_M_x[__i] = __mod<_UIntType, 1, 0, modulus>(__lcg());
 
       _M_carry = (_M_x[long_lag - 1] == 0) ? 1 : 0;
       _M_p = 0;
     }
 
-  //
-  // This implementation differs from the tr1 spec because the tr1 spec refused
-  // to make any sense to me:  the exponent of the factor in the spec goes from
-  // 1 to (n-1), but it would only make sense to me if it went from 0 to (n-1).
-  //
-  // This algorithm is still problematic because it can overflow left right and
-  // center.
-  //
   template<typename _IntType, _IntType __m, int __s, int __r>
     template<class _Gen>
-    void
-    subtract_with_carry<_IntType, __m, __s, __r>::
-    seed(_Gen& __gen, false_type)
-    {
-      const int __n = (std::numeric_limits<_IntType>::digits + 31) / 32;
-      for (int __i = 0; __i < long_lag; ++__i)
-	{
-	  _M_x[__i] = 0;
-	  unsigned long __factor = 1;
-	  for (int __j = 0; __j < __n; ++__j)
-	    {
-	      _M_x[__i] += __gen() * __factor;
-	      __factor *= 0x80000000;
-	    }
-	  _M_x[__i] = _Private::__mod<_IntType, 1, 0, modulus>(_M_x[__i]);
-	}
-      _M_carry = (_M_x[long_lag - 1] == 0) ? 1 : 0;
-      _M_p = 0;
-    }
+      void
+      subtract_with_carry<_IntType, __m, __s, __r>::
+      seed(_Gen& __gen, false_type)
+      {
+	const int __n = (std::numeric_limits<_UIntType>::digits + 31) / 32;
+
+	for (int __i = 0; __i < long_lag; ++__i)
+	  {
+	    _UIntType __tmp = 0;
+	    _UIntType __factor = 1;
+	    for (int __j = 0; __j < __n; ++__j)
+	      {
+		__tmp += __mod<_UInt32Type, 1, 0, 0>(__gen()) * __factor;
+		__factor *= _Shift<_UIntType, 32>::__value;
+	      }
+	    _M_x[__i] = __mod<_UIntType, 1, 0, modulus>(__tmp);
+	  }
+	_M_carry = (_M_x[long_lag - 1] == 0) ? 1 : 0;
+	_M_p = 0;
+      }
 
   template<typename _IntType, _IntType __m, int __s, int __r>
     typename subtract_with_carry<_IntType, __m, __s, __r>::result_type
@@ -398,7 +353,9 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 	__ps += long_lag;
 
       // Calculate new x(i) without overflow or division.
-      _IntType __xi;
+      // NB: Thanks to the requirements for _IntType, _M_x[_M_p] + _M_carry
+      // cannot overflow.
+      _UIntType __xi;
       if (_M_x[__ps] >= _M_x[_M_p] + _M_carry)
 	{
 	  __xi = _M_x[__ps] - _M_x[_M_p] - _M_carry;
@@ -409,10 +366,10 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 	  __xi = modulus - _M_x[_M_p] - _M_carry + _M_x[__ps];
 	  _M_carry = 1;
 	}
-      _M_x[_M_p++] = __xi;
+      _M_x[_M_p] = __xi;
 
       // Adjust current index to loop around in ring buffer.
-      if (_M_p >= long_lag)
+      if (++_M_p >= long_lag)
 	_M_p = 0;
 
       return __xi;
@@ -451,6 +408,147 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 
       for (int __i = 0; __i < __r; ++__i)
 	__is >> __x._M_x[__i];
+      __is >> __x._M_carry;
+
+      __is.flags(__flags);
+      return __is;
+    }
+
+
+  template<typename _RealType, int __w, int __s, int __r>
+    void
+    subtract_with_carry_01<_RealType, __w, __s, __r>::
+    _M_initialize_npows()
+    {
+      for (int __j = 0; __j < __n; ++__j)
+#if _GLIBCXX_USE_C99_MATH_TR1
+	_M_npows[__j] = std::tr1::ldexp(_RealType(1), -__w + __j * 32);
+#else
+        _M_npows[__j] = std::pow(_RealType(2), -__w + __j * 32);
+#endif
+    }
+
+  template<typename _RealType, int __w, int __s, int __r>
+    void
+    subtract_with_carry_01<_RealType, __w, __s, __r>::
+    seed(unsigned long __value)
+    {
+      if (__value == 0)
+	__value = 19780503;
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 512. Seeding subtract_with_carry_01 from a single unsigned long.
+      std::tr1::linear_congruential<unsigned long, 40014, 0, 2147483563>
+	__lcg(__value);
+
+      this->seed(__lcg);
+    }
+
+  template<typename _RealType, int __w, int __s, int __r>
+    template<class _Gen>
+      void
+      subtract_with_carry_01<_RealType, __w, __s, __r>::
+      seed(_Gen& __gen, false_type)
+      {
+	for (int __i = 0; __i < long_lag; ++__i)
+	  {
+	    for (int __j = 0; __j < __n - 1; ++__j)
+	      _M_x[__i][__j] = __mod<_UInt32Type, 1, 0, 0>(__gen());
+	    _M_x[__i][__n - 1] = __mod<_UInt32Type, 1, 0,
+	      _Shift<_UInt32Type, __w % 32>::__value>(__gen());
+	  }
+
+	_M_carry = 1;
+	for (int __j = 0; __j < __n; ++__j)
+	  if (_M_x[long_lag - 1][__j] != 0)
+	    {
+	      _M_carry = 0;
+	      break;
+	    }
+
+	_M_p = 0;
+      }
+
+  template<typename _RealType, int __w, int __s, int __r>
+    typename subtract_with_carry_01<_RealType, __w, __s, __r>::result_type
+    subtract_with_carry_01<_RealType, __w, __s, __r>::
+    operator()()
+    {
+      // Derive short lag index from current index.
+      int __ps = _M_p - short_lag;
+      if (__ps < 0)
+	__ps += long_lag;
+
+      _UInt32Type __new_carry;
+      for (int __j = 0; __j < __n - 1; ++__j)
+	{
+	  if (_M_x[__ps][__j] > _M_x[_M_p][__j]
+	      || (_M_x[__ps][__j] == _M_x[_M_p][__j] && _M_carry == 0))
+	    __new_carry = 0;
+	  else
+	    __new_carry = 1;
+
+	  _M_x[_M_p][__j] = _M_x[__ps][__j] - _M_x[_M_p][__j] - _M_carry;
+	  _M_carry = __new_carry;
+	}
+
+      if (_M_x[__ps][__n - 1] > _M_x[_M_p][__n - 1]
+	  || (_M_x[__ps][__n - 1] == _M_x[_M_p][__n - 1] && _M_carry == 0))
+	__new_carry = 0;
+      else
+	__new_carry = 1;
+      
+      _M_x[_M_p][__n - 1] = __mod<_UInt32Type, 1, 0,
+	_Shift<_UInt32Type, __w % 32>::__value>
+	(_M_x[__ps][__n - 1] - _M_x[_M_p][__n - 1] - _M_carry);
+      _M_carry = __new_carry;
+
+      result_type __ret = 0.0;
+      for (int __j = 0; __j < __n; ++__j)
+	__ret += _M_x[_M_p][__j] * _M_npows[__j];
+
+      // Adjust current index to loop around in ring buffer.
+      if (++_M_p >= long_lag)
+	_M_p = 0;
+
+      return __ret;
+    }
+
+  template<typename _RealType, int __w, int __s, int __r,
+	   typename _CharT, typename _Traits>
+    std::basic_ostream<_CharT, _Traits>&
+    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+	       const subtract_with_carry_01<_RealType, __w, __s, __r>& __x)
+    {
+      const std::ios_base::fmtflags __flags = __os.flags();
+      const _CharT __fill = __os.fill();
+      const _CharT __space = __os.widen(' ');
+      __os.flags(std::ios_base::dec | std::ios_base::fixed
+		 | std::ios_base::left);
+      __os.fill(__space);
+
+      for (int __i = 0; __i < __r; ++__i)
+	for (int __j = 0; __j < __x.__n; ++__j)
+	  __os << __x._M_x[__i][__j] << __space;
+      __os << __x._M_carry;
+
+      __os.flags(__flags);
+      __os.fill(__fill);
+      return __os;
+    }
+
+  template<typename _RealType, int __w, int __s, int __r,
+	   typename _CharT, typename _Traits>
+    std::basic_istream<_CharT, _Traits>&
+    operator>>(std::basic_istream<_CharT, _Traits>& __is,
+	       subtract_with_carry_01<_RealType, __w, __s, __r>& __x)
+    {
+      const std::ios_base::fmtflags __flags = __is.flags();
+      __is.flags(std::ios_base::dec | std::ios_base::skipws);
+
+      for (int __i = 0; __i < __r; ++__i)
+	for (int __j = 0; __j < __x.__n; ++__j)
+	  __is >> __x._M_x[__i][__j];
       __is >> __x._M_carry;
 
       __is.flags(__flags);
@@ -513,6 +611,68 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       return __is;
     }
 
+
+  template<class _UniformRandomNumberGenerator1, int __s1,
+	   class _UniformRandomNumberGenerator2, int __s2>
+    void
+    xor_combine<_UniformRandomNumberGenerator1, __s1,
+		_UniformRandomNumberGenerator2, __s2>::
+    _M_initialize_max()
+    {
+      const int __w = std::numeric_limits<result_type>::digits;
+
+      const result_type __m1 =
+	std::min(result_type(_M_b1.max() - _M_b1.min()),
+		 _Shift<result_type, __w - __s1>::__value - 1);
+
+      const result_type __m2 =
+	std::min(result_type(_M_b2.max() - _M_b2.min()),
+		 _Shift<result_type, __w - __s2>::__value - 1);
+
+      // NB: In TR1 s1 is not required to be >= s2.
+      if (__s1 < __s2)
+	_M_max = _M_initialize_max_aux(__m2, __m1, __s2 - __s1) << __s1;
+      else
+	_M_max = _M_initialize_max_aux(__m1, __m2, __s1 - __s2) << __s2;
+    }
+
+  template<class _UniformRandomNumberGenerator1, int __s1,
+	   class _UniformRandomNumberGenerator2, int __s2>
+    typename xor_combine<_UniformRandomNumberGenerator1, __s1,
+			 _UniformRandomNumberGenerator2, __s2>::result_type
+    xor_combine<_UniformRandomNumberGenerator1, __s1,
+		_UniformRandomNumberGenerator2, __s2>::
+    _M_initialize_max_aux(result_type __a, result_type __b, int __d)
+    {
+      const result_type __two2d = result_type(1) << __d;
+      const result_type __c = __a * __two2d;
+
+      if (__a == 0 || __b < __two2d)
+	return __c + __b;
+
+      const result_type __t = std::max(__c, __b);
+      const result_type __u = std::min(__c, __b);
+
+      result_type __ub = __u;
+      result_type __p;
+      for (__p = 0; __ub != 1; __ub >>= 1)
+	++__p;
+
+      const result_type __two2p = result_type(1) << __p;
+      const result_type __k = __t / __two2p;
+
+      if (__k & 1)
+	return (__k + 1) * __two2p - 1;
+
+      if (__c >= __b)
+	return (__k + 1) * __two2p + _M_initialize_max_aux((__t % __two2p)
+							   / __two2d,
+							   __u % __two2p, __d);
+      else
+	return (__k + 1) * __two2p + _M_initialize_max_aux((__u % __two2p)
+							   / __two2d,
+							   __t % __two2p, __d);
+    }
 
   template<class _UniformRandomNumberGenerator1, int __s1,
 	   class _UniformRandomNumberGenerator2, int __s2,
@@ -597,7 +757,7 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       const std::streamsize __precision = __os.precision();
       __os.flags(std::ios_base::scientific | std::ios_base::left);
       __os.fill(__os.widen(' '));
-      __os.precision(_Private::_Max_digits10<double>::__value);
+      __os.precision(__gnu_cxx::__numeric_traits<double>::__max_digits10);
 
       __os << __x.p();
 
@@ -619,7 +779,7 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       const std::streamsize __precision = __os.precision();
       __os.flags(std::ios_base::scientific | std::ios_base::left);
       __os.fill(__os.widen(' '));
-      __os.precision(_Private::_Max_digits10<_RealType>::__value);
+      __os.precision(__gnu_cxx::__numeric_traits<_RealType>::__max_digits10);
 
       __os << __x.p();
 
@@ -627,6 +787,400 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       __os.fill(__fill);
       __os.precision(__precision);
       return __os;
+    }
+
+
+  template<typename _IntType, typename _RealType>
+    void
+    poisson_distribution<_IntType, _RealType>::
+    _M_initialize()
+    {
+#if _GLIBCXX_USE_C99_MATH_TR1
+      if (_M_mean >= 12)
+	{
+	  const _RealType __m = std::floor(_M_mean);
+	  _M_lm_thr = std::log(_M_mean);
+	  _M_lfm = std::tr1::lgamma(__m + 1);
+	  _M_sm = std::sqrt(__m);
+
+	  const _RealType __pi_4 = 0.7853981633974483096156608458198757L;
+	  const _RealType __dx = std::sqrt(2 * __m * std::log(32 * __m
+							      / __pi_4));
+	  _M_d = std::tr1::round(std::max(_RealType(6),
+					  std::min(__m, __dx)));
+	  const _RealType __cx = 2 * __m + _M_d;
+	  _M_scx = std::sqrt(__cx / 2);
+	  _M_1cx = 1 / __cx;
+
+	  _M_c2b = std::sqrt(__pi_4 * __cx) * std::exp(_M_1cx);
+	  _M_cb = 2 * __cx * std::exp(-_M_d * _M_1cx * (1 + _M_d / 2)) / _M_d;
+	}
+      else
+#endif
+	_M_lm_thr = std::exp(-_M_mean);
+      }
+
+  /**
+   * A rejection algorithm when mean >= 12 and a simple method based
+   * upon the multiplication of uniform random variates otherwise.
+   * NB: The former is available only if _GLIBCXX_USE_C99_MATH_TR1
+   * is defined.
+   *
+   * Reference:
+   * Devroye, L. "Non-Uniform Random Variates Generation." Springer-Verlag,
+   * New York, 1986, Ch. X, Sects. 3.3 & 3.4 (+ Errata!).
+   */
+  template<typename _IntType, typename _RealType>
+    template<class _UniformRandomNumberGenerator>
+      typename poisson_distribution<_IntType, _RealType>::result_type
+      poisson_distribution<_IntType, _RealType>::
+      operator()(_UniformRandomNumberGenerator& __urng)
+      {
+#if _GLIBCXX_USE_C99_MATH_TR1
+	if (_M_mean >= 12)
+	  {
+	    _RealType __x;
+
+	    const _RealType __m = std::floor(_M_mean);
+	    // sqrt(pi / 2)
+	    const _RealType __spi_2 = 1.2533141373155002512078826424055226L;
+	    const _RealType __c1 = _M_sm * __spi_2;
+	    const _RealType __c2 = _M_c2b + __c1; 
+	    const _RealType __c3 = __c2 + 1;
+	    const _RealType __c4 = __c3 + 1;
+	    // e^(1 / 78)
+	    const _RealType __e178 = 1.0129030479320018583185514777512983L;
+	    const _RealType __c5 = __c4 + __e178;
+	    const _RealType __c = _M_cb + __c5;
+	    const _RealType __2cx = 2 * (2 * __m + _M_d);
+
+	    bool __reject = true;
+	    do
+	      {
+		const _RealType __u = __c * __urng();
+		const _RealType __e = -std::log(__urng());
+
+		_RealType __w = 0.0;
+		
+		if (__u <= __c1)
+		  {
+		    const _RealType __n = _M_nd(__urng);
+		    const _RealType __y = -std::abs(__n) * _M_sm - 1;
+		    __x = std::floor(__y);
+		    __w = -__n * __n / 2;
+		    if (__x < -__m)
+		      continue;
+		  }
+		else if (__u <= __c2)
+		  {
+		    const _RealType __n = _M_nd(__urng);
+		    const _RealType __y = 1 + std::abs(__n) * _M_scx;
+		    __x = std::ceil(__y);
+		    __w = __y * (2 - __y) * _M_1cx;
+		    if (__x > _M_d)
+		      continue;
+		  }
+		else if (__u <= __c3)
+		  // NB: This case not in the book, nor in the Errata,
+		  // but should be ok...
+		  __x = -1;
+		else if (__u <= __c4)
+		  __x = 0;
+		else if (__u <= __c5)
+		  __x = 1;
+		else
+		  {
+		    const _RealType __v = -std::log(__urng());
+		    const _RealType __y = _M_d + __v * __2cx / _M_d;
+		    __x = std::ceil(__y);
+		    __w = -_M_d * _M_1cx * (1 + __y / 2);
+		  }
+
+		__reject = (__w - __e - __x * _M_lm_thr
+			    > _M_lfm - std::tr1::lgamma(__x + __m + 1));
+
+	      } while (__reject);
+
+	    return _IntType(__x + __m + 0.5);
+	  }
+	else
+#endif
+	  {
+	    _IntType     __x = 0;
+	    _RealType __prod = 1.0;
+
+	    do
+	      {
+		__prod *= __urng();
+		__x += 1;
+	      }
+	    while (__prod > _M_lm_thr);
+
+	    return __x - 1;
+	  }
+      }
+
+  template<typename _IntType, typename _RealType,
+	   typename _CharT, typename _Traits>
+    std::basic_ostream<_CharT, _Traits>&
+    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+	       const poisson_distribution<_IntType, _RealType>& __x)
+    {
+      const std::ios_base::fmtflags __flags = __os.flags();
+      const _CharT __fill = __os.fill();
+      const std::streamsize __precision = __os.precision();
+      const _CharT __space = __os.widen(' ');
+      __os.flags(std::ios_base::scientific | std::ios_base::left);
+      __os.fill(__space);
+      __os.precision(__gnu_cxx::__numeric_traits<_RealType>::__max_digits10);
+
+      __os << __x.mean() << __space << __x._M_nd;
+
+      __os.flags(__flags);
+      __os.fill(__fill);
+      __os.precision(__precision);
+      return __os;
+    }
+
+  template<typename _IntType, typename _RealType,
+	   typename _CharT, typename _Traits>
+    std::basic_istream<_CharT, _Traits>&
+    operator>>(std::basic_istream<_CharT, _Traits>& __is,
+	       poisson_distribution<_IntType, _RealType>& __x)
+    {
+      const std::ios_base::fmtflags __flags = __is.flags();
+      __is.flags(std::ios_base::skipws);
+
+      __is >> __x._M_mean >> __x._M_nd;
+      __x._M_initialize();
+
+      __is.flags(__flags);
+      return __is;
+    }
+
+
+  template<typename _IntType, typename _RealType>
+    void
+    binomial_distribution<_IntType, _RealType>::
+    _M_initialize()
+    {
+      const _RealType __p12 = _M_p <= 0.5 ? _M_p : 1.0 - _M_p;
+
+      _M_easy = true;
+
+#if _GLIBCXX_USE_C99_MATH_TR1
+      if (_M_t * __p12 >= 8)
+	{
+	  _M_easy = false;
+	  const _RealType __np = std::floor(_M_t * __p12);
+	  const _RealType __pa = __np / _M_t;
+	  const _RealType __1p = 1 - __pa;
+	  
+	  const _RealType __pi_4 = 0.7853981633974483096156608458198757L;
+	  const _RealType __d1x =
+	    std::sqrt(__np * __1p * std::log(32 * __np
+					     / (81 * __pi_4 * __1p)));
+	  _M_d1 = std::tr1::round(std::max(_RealType(1), __d1x));
+	  const _RealType __d2x =
+	    std::sqrt(__np * __1p * std::log(32 * _M_t * __1p
+					     / (__pi_4 * __pa)));
+	  _M_d2 = std::tr1::round(std::max(_RealType(1), __d2x));
+	  
+	  // sqrt(pi / 2)
+	  const _RealType __spi_2 = 1.2533141373155002512078826424055226L;
+	  _M_s1 = std::sqrt(__np * __1p) * (1 + _M_d1 / (4 * __np));
+	  _M_s2 = std::sqrt(__np * __1p) * (1 + _M_d2 / (4 * _M_t * __1p));
+	  _M_c = 2 * _M_d1 / __np;
+	  _M_a1 = std::exp(_M_c) * _M_s1 * __spi_2;
+	  const _RealType __a12 = _M_a1 + _M_s2 * __spi_2;
+	  const _RealType __s1s = _M_s1 * _M_s1;
+	  _M_a123 = __a12 + (std::exp(_M_d1 / (_M_t * __1p))
+			     * 2 * __s1s / _M_d1
+			     * std::exp(-_M_d1 * _M_d1 / (2 * __s1s)));
+	  const _RealType __s2s = _M_s2 * _M_s2;
+	  _M_s = (_M_a123 + 2 * __s2s / _M_d2
+		  * std::exp(-_M_d2 * _M_d2 / (2 * __s2s)));
+	  _M_lf = (std::tr1::lgamma(__np + 1)
+		   + std::tr1::lgamma(_M_t - __np + 1));
+	  _M_lp1p = std::log(__pa / __1p);
+
+	  _M_q = -std::log(1 - (__p12 - __pa) / __1p);
+	}
+      else
+#endif
+	_M_q = -std::log(1 - __p12);
+    }
+
+  template<typename _IntType, typename _RealType>
+    template<class _UniformRandomNumberGenerator>
+      typename binomial_distribution<_IntType, _RealType>::result_type
+      binomial_distribution<_IntType, _RealType>::
+      _M_waiting(_UniformRandomNumberGenerator& __urng, _IntType __t)
+      {
+	_IntType    __x = 0;
+	_RealType __sum = 0;
+
+	do
+	  {
+	    const _RealType __e = -std::log(__urng());
+	    __sum += __e / (__t - __x);
+	    __x += 1;
+	  }
+	while (__sum <= _M_q);
+
+	return __x - 1;
+      }
+
+  /**
+   * A rejection algorithm when t * p >= 8 and a simple waiting time
+   * method - the second in the referenced book - otherwise.
+   * NB: The former is available only if _GLIBCXX_USE_C99_MATH_TR1
+   * is defined.
+   *
+   * Reference:
+   * Devroye, L. "Non-Uniform Random Variates Generation." Springer-Verlag,
+   * New York, 1986, Ch. X, Sect. 4 (+ Errata!).
+   */
+  template<typename _IntType, typename _RealType>
+    template<class _UniformRandomNumberGenerator>
+      typename binomial_distribution<_IntType, _RealType>::result_type
+      binomial_distribution<_IntType, _RealType>::
+      operator()(_UniformRandomNumberGenerator& __urng)
+      {
+	result_type __ret;
+	const _RealType __p12 = _M_p <= 0.5 ? _M_p : 1.0 - _M_p;
+
+#if _GLIBCXX_USE_C99_MATH_TR1
+	if (!_M_easy)
+	  {
+	    _RealType __x;
+
+	    const _RealType __np = std::floor(_M_t * __p12);
+	    const _RealType __pa = __np / _M_t;
+
+	    // sqrt(pi / 2)
+	    const _RealType __spi_2 = 1.2533141373155002512078826424055226L;
+	    const _RealType __a1 = _M_a1;
+	    const _RealType __a12 = __a1 + _M_s2 * __spi_2;
+	    const _RealType __a123 = _M_a123;
+	    const _RealType __s1s = _M_s1 * _M_s1;
+	    const _RealType __s2s = _M_s2 * _M_s2;
+
+	    bool __reject;
+	    do
+	      {
+		const _RealType __u = _M_s * __urng();
+
+		_RealType __v;
+
+		if (__u <= __a1)
+		  {
+		    const _RealType __n = _M_nd(__urng);
+		    const _RealType __y = _M_s1 * std::abs(__n);
+		    __reject = __y >= _M_d1;
+		    if (!__reject)
+		      {
+			const _RealType __e = -std::log(__urng());
+			__x = std::floor(__y);
+			__v = -__e - __n * __n / 2 + _M_c;
+		      }
+		  }
+		else if (__u <= __a12)
+		  {
+		    const _RealType __n = _M_nd(__urng);
+		    const _RealType __y = _M_s2 * std::abs(__n);
+		    __reject = __y >= _M_d2;
+		    if (!__reject)
+		      {
+			const _RealType __e = -std::log(__urng());
+			__x = std::floor(-__y);
+			__v = -__e - __n * __n / 2;
+		      }
+		  }
+		else if (__u <= __a123)
+		  {
+		    const _RealType __e1 = -std::log(__urng());		    
+		    const _RealType __e2 = -std::log(__urng());
+
+		    const _RealType __y = _M_d1 + 2 * __s1s * __e1 / _M_d1;
+		    __x = std::floor(__y);
+		    __v = (-__e2 + _M_d1 * (1 / (_M_t - __np)
+					    -__y / (2 * __s1s)));
+		    __reject = false;
+		  }
+		else
+		  {
+		    const _RealType __e1 = -std::log(__urng());		    
+		    const _RealType __e2 = -std::log(__urng());
+
+		    const _RealType __y = _M_d2 + 2 * __s2s * __e1 / _M_d2;
+		    __x = std::floor(-__y);
+		    __v = -__e2 - _M_d2 * __y / (2 * __s2s);
+		    __reject = false;
+		  }
+
+		__reject = __reject || __x < -__np || __x > _M_t - __np;
+		if (!__reject)
+		  {
+		    const _RealType __lfx =
+		      std::tr1::lgamma(__np + __x + 1)
+		      + std::tr1::lgamma(_M_t - (__np + __x) + 1);
+		    __reject = __v > _M_lf - __lfx + __x * _M_lp1p;
+		  }
+	      }
+	    while (__reject);
+
+	    __x += __np + 0.5;
+
+	    const _IntType __z = _M_waiting(__urng, _M_t - _IntType(__x)); 
+	    __ret = _IntType(__x) + __z;
+	  }
+	else
+#endif
+	  __ret = _M_waiting(__urng, _M_t);
+
+	if (__p12 != _M_p)
+	  __ret = _M_t - __ret;
+	return __ret;
+      }
+
+  template<typename _IntType, typename _RealType,
+	   typename _CharT, typename _Traits>
+    std::basic_ostream<_CharT, _Traits>&
+    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+	       const binomial_distribution<_IntType, _RealType>& __x)
+    {
+      const std::ios_base::fmtflags __flags = __os.flags();
+      const _CharT __fill = __os.fill();
+      const std::streamsize __precision = __os.precision();
+      const _CharT __space = __os.widen(' ');
+      __os.flags(std::ios_base::scientific | std::ios_base::left);
+      __os.fill(__space);
+      __os.precision(__gnu_cxx::__numeric_traits<_RealType>::__max_digits10);
+
+      __os << __x.t() << __space << __x.p() 
+	   << __space << __x._M_nd;
+
+      __os.flags(__flags);
+      __os.fill(__fill);
+      __os.precision(__precision);
+      return __os;
+    }
+
+  template<typename _IntType, typename _RealType,
+	   typename _CharT, typename _Traits>
+    std::basic_istream<_CharT, _Traits>&
+    operator>>(std::basic_istream<_CharT, _Traits>& __is,
+	       binomial_distribution<_IntType, _RealType>& __x)
+    {
+      const std::ios_base::fmtflags __flags = __is.flags();
+      __is.flags(std::ios_base::dec | std::ios_base::skipws);
+
+      __is >> __x._M_t >> __x._M_p >> __x._M_nd;
+      __x._M_initialize();
+
+      __is.flags(__flags);
+      return __is;
     }
 
 
@@ -641,7 +1195,7 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       const _CharT __space = __os.widen(' ');
       __os.flags(std::ios_base::scientific | std::ios_base::left);
       __os.fill(__space);
-      __os.precision(_Private::_Max_digits10<_RealType>::__value);
+      __os.precision(__gnu_cxx::__numeric_traits<_RealType>::__max_digits10);
 
       __os << __x.min() << __space << __x.max();
 
@@ -676,7 +1230,7 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       const std::streamsize __precision = __os.precision();
       __os.flags(std::ios_base::scientific | std::ios_base::left);
       __os.fill(__os.widen(' '));
-      __os.precision(_Private::_Max_digits10<_RealType>::__value);
+      __os.precision(__gnu_cxx::__numeric_traits<_RealType>::__max_digits10);
 
       __os << __x.lambda();
 
@@ -688,11 +1242,10 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 
 
   /**
-   * Classic Box-Muller method.
+   * Polar method due to Marsaglia.
    *
-   * Reference:
-   * Box, G. E. P. and Muller, M. E. "A Note on the Generation of
-   * Random Normal Deviates." Ann. Math. Stat. 29, 610-611, 1958.
+   * Devroye, L. "Non-Uniform Random Variates Generation." Springer-Verlag,
+   * New York, 1986, Ch. V, Sect. 4.4.
    */
   template<typename _RealType>
     template<class _UniformRandomNumberGenerator>
@@ -712,20 +1265,20 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 	    result_type __x, __y, __r2;
 	    do
 	      {
-		__x = result_type(2.0) * __urng() - result_type(1.0);
-		__y = result_type(2.0) * __urng() - result_type(1.0);
+		__x = result_type(2.0) * __urng() - 1.0;
+		__y = result_type(2.0) * __urng() - 1.0;
 		__r2 = __x * __x + __y * __y;
 	      }
-	    while (__r2 > result_type(1.0) || __r2 == result_type(0));
+	    while (__r2 > 1.0 || __r2 == 0.0);
 
-	    const result_type __mult = std::sqrt(-result_type(2.0)
-						 * std::log(__r2) / __r2);
+	    const result_type __mult = std::sqrt(-2 * std::log(__r2) / __r2);
 	    _M_saved = __x * __mult;
 	    _M_saved_available = true;
 	    __ret = __y * __mult;
 	  }
-
-	return __ret * _M_sigma + _M_mean;
+	
+	__ret = __ret * _M_sigma + _M_mean;
+	return __ret;
       }
 
   template<typename _RealType, typename _CharT, typename _Traits>
@@ -739,12 +1292,13 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       const _CharT __space = __os.widen(' ');
       __os.flags(std::ios_base::scientific | std::ios_base::left);
       __os.fill(__space);
-      __os.precision(_Private::_Max_digits10<_RealType>::__value);
+      __os.precision(__gnu_cxx::__numeric_traits<_RealType>::__max_digits10);
 
-      __os << __x.mean() << __space
-	   << __x.sigma() << __space
-	   << __x._M_saved << __space
-	   << __x._M_saved_available;
+      __os << __x._M_saved_available << __space
+	   << __x.mean() << __space
+	   << __x.sigma();
+      if (__x._M_saved_available)
+	__os << __space << __x._M_saved;
 
       __os.flags(__flags);
       __os.fill(__fill);
@@ -760,11 +1314,118 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       const std::ios_base::fmtflags __flags = __is.flags();
       __is.flags(std::ios_base::dec | std::ios_base::skipws);
 
-      __is >> __x._M_mean >> __x._M_sigma
-	   >> __x._M_saved >> __x._M_saved_available;
+      __is >> __x._M_saved_available >> __x._M_mean
+	   >> __x._M_sigma;
+      if (__x._M_saved_available)
+	__is >> __x._M_saved;
 
       __is.flags(__flags);
       return __is;
+    }
+
+
+  template<typename _RealType>
+    void
+    gamma_distribution<_RealType>::
+    _M_initialize()
+    {
+      if (_M_alpha >= 1)
+	_M_l_d = std::sqrt(2 * _M_alpha - 1);
+      else
+	_M_l_d = (std::pow(_M_alpha, _M_alpha / (1 - _M_alpha))
+		  * (1 - _M_alpha));
+    }
+
+  /**
+   * Cheng's rejection algorithm GB for alpha >= 1 and a modification
+   * of Vaduva's rejection from Weibull algorithm due to Devroye for
+   * alpha < 1.
+   *
+   * References:
+   * Cheng, R. C. "The Generation of Gamma Random Variables with Non-integral
+   * Shape Parameter." Applied Statistics, 26, 71-75, 1977.
+   *
+   * Vaduva, I. "Computer Generation of Gamma Gandom Variables by Rejection
+   * and Composition Procedures." Math. Operationsforschung and Statistik,
+   * Series in Statistics, 8, 545-576, 1977.
+   *
+   * Devroye, L. "Non-Uniform Random Variates Generation." Springer-Verlag,
+   * New York, 1986, Ch. IX, Sect. 3.4 (+ Errata!).
+   */
+  template<typename _RealType>
+    template<class _UniformRandomNumberGenerator>
+      typename gamma_distribution<_RealType>::result_type
+      gamma_distribution<_RealType>::
+      operator()(_UniformRandomNumberGenerator& __urng)
+      {
+	result_type __x;
+
+	bool __reject;
+	if (_M_alpha >= 1)
+	  {
+	    // alpha - log(4)
+	    const result_type __b = _M_alpha
+	      - result_type(1.3862943611198906188344642429163531L);
+	    const result_type __c = _M_alpha + _M_l_d;
+	    const result_type __1l = 1 / _M_l_d;
+
+	    // 1 + log(9 / 2)
+	    const result_type __k = 2.5040773967762740733732583523868748L;
+
+	    do
+	      {
+		const result_type __u = __urng();
+		const result_type __v = __urng();
+
+		const result_type __y = __1l * std::log(__v / (1 - __v));
+		__x = _M_alpha * std::exp(__y);
+
+		const result_type __z = __u * __v * __v;
+		const result_type __r = __b + __c * __y - __x;
+
+		__reject = __r < result_type(4.5) * __z - __k;
+		if (__reject)
+		  __reject = __r < std::log(__z);
+	      }
+	    while (__reject);
+	  }
+	else
+	  {
+	    const result_type __c = 1 / _M_alpha;
+
+	    do
+	      {
+		const result_type __z = -std::log(__urng());
+		const result_type __e = -std::log(__urng());
+
+		__x = std::pow(__z, __c);
+
+		__reject = __z + __e < _M_l_d + __x;
+	      }
+	    while (__reject);
+	  }
+
+	return __x;
+      }
+
+  template<typename _RealType, typename _CharT, typename _Traits>
+    std::basic_ostream<_CharT, _Traits>&
+    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+	       const gamma_distribution<_RealType>& __x)
+    {
+      const std::ios_base::fmtflags __flags = __os.flags();
+      const _CharT __fill = __os.fill();
+      const std::streamsize __precision = __os.precision();
+      __os.flags(std::ios_base::scientific | std::ios_base::left);
+      __os.fill(__os.widen(' '));
+      __os.precision(__gnu_cxx::__numeric_traits<_RealType>::__max_digits10);
+
+      __os << __x.alpha();
+
+      __os.flags(__flags);
+      __os.fill(__fill);
+      __os.precision(__precision);
+      return __os;
     }
 
 _GLIBCXX_END_NAMESPACE

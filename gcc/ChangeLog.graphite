@@ -1,3 +1,7 @@
+2006-10-12  Sebastian Pop  <pop@cri.ensmp.fr>
+
+	* Merge from mainline (r115016:117632).
+
 2006-10-11  Sebastian Pop  <pop@cri.ensmp.fr>
 
 	* graphite.c (debug_scops): Adjust definition for avoiding a bootstrap

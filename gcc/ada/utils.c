@@ -79,6 +79,21 @@ tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
 tree static_ctors;
 tree static_dtors;
 
+/* Forward declarations for handlers of attributes.  */
+static tree handle_const_attribute (tree *, tree, tree, int, bool *);
+static tree handle_nothrow_attribute (tree *, tree, tree, int, bool *);
+
+/* Table of machine-independent internal attributes for Ada.  We support
+   this minimal set of attributes to accommodate the Alpha back-end which
+   unconditionally puts them on its builtins.  */
+const struct attribute_spec gnat_internal_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  { "const",   0, 0, true,  false, false, handle_const_attribute   },
+  { "nothrow", 0, 0, true,  false, false, handle_nothrow_attribute },
+  { NULL,      0, 0, false, false, false, NULL }
+};
+
 /* Associates a GNAT tree node to a GCC tree node. It is used in
    `save_gnu_tree', `get_gnu_tree' and `present_gnu_tree'. See documentation
    of `save_gnu_tree' for more info.  */
@@ -503,6 +518,8 @@ init_gigi_decls (tree long_long_float_type, tree exception_type)
     (get_identifier ("system__soft_links__get_jmpbuf_address_soft"),
      NULL_TREE, build_function_type (jmpbuf_ptr_type, NULL_TREE),
      NULL_TREE, false, true, true, NULL, Empty);
+  /* Avoid creating superfluous edges to __builtin_setjmp receivers.  */
+  DECL_IS_PURE (get_jmpbuf_decl) = 1;
 
   set_jmpbuf_decl
     = create_subprog_decl
@@ -519,6 +536,8 @@ init_gigi_decls (tree long_long_float_type, tree exception_type)
      NULL_TREE,
      build_function_type (build_pointer_type (except_type_node), NULL_TREE),
      NULL_TREE, false, true, true, NULL, Empty);
+  /* Avoid creating superfluous edges to __builtin_setjmp receivers.  */
+  DECL_IS_PURE (get_excptr_decl) = 1;
 
   /* Functions that raise exceptions. */
   raise_nodefer_decl
@@ -1826,9 +1845,46 @@ builtin_function (const char *name, tree type, int function_code,
   gnat_pushdecl (decl, Empty);
   DECL_BUILT_IN_CLASS (decl) = class;
   DECL_FUNCTION_CODE (decl) = function_code;
+
+  /* Possibly apply some default attributes to this built-in function.  */
   if (attrs)
-      decl_attributes (&decl, attrs, ATTR_FLAG_BUILT_IN);
+    decl_attributes (&decl, attrs, ATTR_FLAG_BUILT_IN);
+  else
+    decl_attributes (&decl, NULL_TREE, 0);
+
   return decl;
+}
+
+/* Handle a "const" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_const_attribute (tree *node, tree ARG_UNUSED (name),
+			tree ARG_UNUSED (args), int ARG_UNUSED (flags),
+			bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) == FUNCTION_DECL)
+    TREE_READONLY (*node) = 1;
+  else
+    *no_add_attrs = true;
+
+  return NULL_TREE;
+}
+
+/* Handle a "nothrow" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_nothrow_attribute (tree *node, tree ARG_UNUSED (name),
+			  tree ARG_UNUSED (args), int ARG_UNUSED (flags),
+			  bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) == FUNCTION_DECL)
+    TREE_NOTHROW (*node) = 1;
+  else
+    *no_add_attrs = true;
+
+  return NULL_TREE;
 }
 
 /* Return an integer type with the number of bits of precision given by
@@ -2019,6 +2075,22 @@ max_size (tree exp, bool max_p)
 	case 2:
 	  if (code == COMPOUND_EXPR)
 	    return max_size (TREE_OPERAND (exp, 1), max_p);
+
+	  /* Calculate "(A ? B : C) - D" as "A ? B - D : C - D" which
+	     may provide a tighter bound on max_size.  */
+	  if (code == MINUS_EXPR
+	      && TREE_CODE (TREE_OPERAND (exp, 0)) == COND_EXPR)
+	    {
+	      tree lhs = fold_build2 (MINUS_EXPR, type,
+				      TREE_OPERAND (TREE_OPERAND (exp, 0), 1),
+				      TREE_OPERAND (exp, 1));
+	      tree rhs = fold_build2 (MINUS_EXPR, type,
+				      TREE_OPERAND (TREE_OPERAND (exp, 0), 2),
+				      TREE_OPERAND (exp, 1));
+	      return fold_build2 (max_p ? MAX_EXPR : MIN_EXPR, type,
+				  max_size (lhs, max_p),
+				  max_size (rhs, max_p));
+	    }
 
 	  {
 	    tree lhs = max_size (TREE_OPERAND (exp, 0), max_p);

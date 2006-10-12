@@ -1,7 +1,7 @@
 # configure.ac for GCC
 # Process this file with autoconf to generate a configuration script.
 
-# Copyright 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+# Copyright 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
 # Free Software Foundation, Inc.
 
 #This file is part of GCC.
@@ -1229,6 +1229,12 @@ AC_DEFINE_UNQUOTED(CONFIG_SJLJ_EXCEPTIONS, $sjlj,
 AC_ARG_WITH(system-libunwind,
 [  --with-system-libunwind use installed libunwind])
 
+# config.gcc also contains tests of with_system_libunwind.
+if test x$with_system_libunwind = xyes; then
+        AC_DEFINE(HAVE_GETIPINFO, 1,
+[Define to 1 if system unwind library has _Unwind_GetIPInfo.])
+fi
+
 # --------------------------------------------------------
 # Build, host, and target specific configuration fragments
 # --------------------------------------------------------
@@ -1437,6 +1443,20 @@ if test x$enable___cxa_atexit = xyes || \
       This is essential for fully standards-compliant handling of
       destructors, but requires __cxa_atexit in libc.])
   fi
+fi
+
+use_getipinfo=yes
+if test x$with_system_libunwind = xyes; then
+   if test x$host = x$target; then
+     AC_SEARCH_LIBS(_Unwind_GetIPInfo, unwind,, [use_getipinfo=no])
+   fi
+fi
+GCC_TARGET_TEMPLATE(HAVE_GETIPINFO)
+if test x$use_getipinfo = xyes; then
+   AC_DEFINE(HAVE_GETIPINFO, 1,
+	[Define to 1 if system unwind library has _Unwind_GetIPInfo.])
+else
+   echo "The system unwind library does not support _Unwind_GetIPInfo."
 fi
 
 # Look for a file containing extra machine modes.
@@ -2209,11 +2229,14 @@ cat > conftest.big <<EOF
 EOF
   # If the assembler didn't choke, and we can objdump,
   # and we got the correct data, then succeed.
+  # The text in the here-document typically retains its unix-style line
+  # endings, while the output of objdump will use host line endings.
+  # Therefore, use diff -b for the comparisons.
   if test x$gcc_cv_objdump != x \
   && $gcc_cv_objdump -s -j .eh_frame conftest.o 2>/dev/null \
      | tail -3 > conftest.got \
-  && { cmp conftest.lit conftest.got > /dev/null 2>&1 \
-    || cmp conftest.big conftest.got > /dev/null 2>&1; }
+  && { diff -b conftest.lit conftest.got > /dev/null 2>&1 \
+    || diff -b conftest.big conftest.got > /dev/null 2>&1; }
   then
     gcc_cv_as_eh_frame=yes
   elif AC_TRY_COMMAND($gcc_cv_as -o conftest.o --traditional-format /dev/null); then
@@ -2812,6 +2835,12 @@ foo:	nop
       [AC_DEFINE(HAVE_AS_IX86_CMOV_SUN_SYNTAX, 1,
         [Define if your assembler supports the Sun syntax for cmov.])])
 
+    gcc_GAS_CHECK_FEATURE([ffreep mnemonic],
+      gcc_cv_as_ix86_ffreep,,,
+      [ffreep %st(1)],,
+      [AC_DEFINE(HAVE_AS_IX86_FFREEP, 1,
+        [Define if your assembler supports the ffreep mnemonic.])])
+
     # This one is used unconditionally by i386.[ch]; it is to be defined
     # to 1 if the feature is present, 0 otherwise.
     gcc_GAS_CHECK_FEATURE([GOTOFF in data],
@@ -3344,13 +3373,9 @@ language_hooks="Make-hooks"
 
 for lang in ${srcdir}/*/config-lang.in
 do
-    case $lang in
-    # The odd quoting in the next line works around
-    # an apparent bug in bash 1.12 on linux.
 changequote(,)dnl
-    ${srcdir}/[*]/config-lang.in)
-        continue ;;
-    *)
+	test "$lang" = "${srcdir}/*/config-lang.in" && continue
+
         lang_alias=`sed -n -e 's,^language=['"'"'"'"]\(.*\)["'"'"'"'].*$,\1,p' -e 's,^language=\([^   ]*\).*$,\1,p' $lang`
         if test "x$lang_alias" = x
         then
@@ -3369,26 +3394,40 @@ changequote(,)dnl
         esac
 changequote([,])dnl
 
-	if test -f $srcdir/$subdir/lang.opt; then
-	    lang_opt_files="$lang_opt_files $srcdir/$subdir/lang.opt"
-	fi
-	if test -f $srcdir/$subdir/$subdir-tree.def; then
-	    lang_tree_files="$lang_tree_files $srcdir/$subdir/$subdir-tree.def"
-	fi
-
 	language=
 	boot_language=
 	compilers=
 	stagestuff=
 	outputs=
 	gtfiles=
+	subdir_requires=
 	. ${srcdir}/$subdir/config-lang.in
 	if test "x$language" = x
 	then
 		echo "${srcdir}/$subdir/config-lang.in doesn't set \$language." 1>&2
 		exit 1
 	fi
+
+	ok=:
+        case ",$enable_languages," in
+        	*,$lang_alias,*) ;;
+		*)
+			for i in $subdir_requires; do
+				test -f "${srcdir}/$i/config-lang.in" && continue
+				ok=false
+				break
+			done
+		;;
+	esac
+	$ok || continue
+
 	all_lang_makefrags="$all_lang_makefrags \$(srcdir)/$subdir/Make-lang.in"
+	if test -f $srcdir/$subdir/lang.opt; then
+	    lang_opt_files="$lang_opt_files $srcdir/$subdir/lang.opt"
+	fi
+	if test -f $srcdir/$subdir/$subdir-tree.def; then
+	    lang_tree_files="$lang_tree_files $srcdir/$subdir/$subdir-tree.def"
+	fi
 	if test -f ${srcdir}/$subdir/Makefile.in
 		then all_lang_makefiles="$subdir/Makefile"
 	fi
@@ -3401,13 +3440,11 @@ changequote([,])dnl
 	all_stagestuff="$all_stagestuff $stagestuff"
 	all_outputs="$all_outputs $outputs"
 	all_gtfiles="$all_gtfiles $gtfiles"
-        for f in $gtfiles
-        do
-                 all_gtfiles_files_langs="$all_gtfiles_files_langs ${subdir} "
-                 all_gtfiles_files_files="$all_gtfiles_files_files ${f} "
-        done
-	;;
-    esac
+	for f in $gtfiles
+	do
+		all_gtfiles_files_langs="$all_gtfiles_files_langs ${subdir} "
+		all_gtfiles_files_files="$all_gtfiles_files_files ${f} "
+	done
 done
 
 # Pick up gtfiles for c
@@ -3433,7 +3470,7 @@ done
 rm -f Make-hooks
 touch Make-hooks
 target_list="all.cross start.encap rest.encap tags \
-	install-common install-man install-info dvi html \
+	install-common install-man install-info dvi pdf html \
 	uninstall info man srcextra srcman srcinfo \
 	mostlyclean clean distclean maintainer-clean \
 	stage1 stage2 stage3 stage4 stageprofile stagefeedback"

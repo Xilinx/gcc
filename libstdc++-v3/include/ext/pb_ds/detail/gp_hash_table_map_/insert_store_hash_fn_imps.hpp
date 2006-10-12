@@ -41,18 +41,17 @@
 
 /**
  * @file insert_store_hash_fn_imps.hpp
- * Contains implementations of gp_ht_map_'s find related functions, when the hash
- *    value is stored.
+ * Contains implementations of gp_ht_map_'s find related functions,
+ * when the hash value is stored.
  */
 
 PB_DS_CLASS_T_DEC
 inline typename PB_DS_CLASS_C_DEC::comp_hash
 PB_DS_CLASS_C_DEC::
-find_ins_pos(const_key_reference r_key, store_hash_true_type)
+find_ins_pos(const_key_reference r_key, true_type)
 {
-  PB_DS_DBG_ONLY(PB_DS_CLASS_C_DEC::assert_valid();)
-
-    comp_hash pos_hash_pair = ranged_probe_fn_base::operator()(r_key);
+  _GLIBCXX_DEBUG_ONLY(PB_DS_CLASS_C_DEC::assert_valid();)
+  comp_hash pos_hash_pair = ranged_probe_fn_base::operator()(r_key);
 
   size_type i;
 
@@ -60,28 +59,22 @@ find_ins_pos(const_key_reference r_key, store_hash_true_type)
    *     that it has not been initted yet.
    */
   size_type ins_pos = m_num_e;
-
   resize_base::notify_insert_search_start();
-
   for (i = 0; i < m_num_e; ++i)
     {
-      const size_type pos =
-	ranged_probe_fn_base::operator()(r_key, pos_hash_pair.second, i);
+      const size_type pos = ranged_probe_fn_base::operator()(r_key, pos_hash_pair.second, i);
 
-      entry* const p_e = m_a_entries + pos;
-
+      entry* const p_e = m_entries + pos;
       switch(p_e->m_stat)
         {
         case empty_entry_status:
 	  {
             resize_base::notify_insert_search_end();
+            _GLIBCXX_DEBUG_ONLY(map_debug_base::check_key_does_not_exist(r_key);)
 
-            PB_DS_DBG_ONLY(
-			   map_debug_base::check_key_does_not_exist(r_key);)
-
-	      return ((ins_pos == m_num_e)?
-		      std::make_pair(pos, pos_hash_pair.second) :
-		      std::make_pair(ins_pos, pos_hash_pair.second));
+	    return ((ins_pos == m_num_e) ?
+		     std::make_pair(pos, pos_hash_pair.second) :
+		     std::make_pair(ins_pos, pos_hash_pair.second));
 	  }
 	  break;
         case erased_entry_status:
@@ -89,59 +82,43 @@ find_ins_pos(const_key_reference r_key, store_hash_true_type)
 	    ins_pos = pos;
 	  break;
         case valid_entry_status:
-	  if (hash_eq_fn_base::operator()(
-					  PB_DS_V2F(p_e->m_value),
-					  p_e->m_hash,
-					  r_key,
-					  pos_hash_pair.second))
+	  if (hash_eq_fn_base::operator()(PB_DS_V2F(p_e->m_value), p_e->m_hash,
+					  r_key, pos_hash_pair.second))
             {
 	      resize_base::notify_insert_search_end();
-
-	      PB_DS_DBG_ONLY(map_debug_base::check_key_exists(r_key);)
-
-                return (std::make_pair(pos, pos_hash_pair.second));
+	      _GLIBCXX_DEBUG_ONLY(map_debug_base::check_key_exists(r_key);)
+              return std::make_pair(pos, pos_hash_pair.second);
             }
 	  break;
         default:
-	  PB_DS_DBG_ASSERT(0);
+	  _GLIBCXX_DEBUG_ASSERT(0);
         };
-
       resize_base::notify_insert_search_collision();
     }
-
   resize_base::notify_insert_search_end();
-
   if (ins_pos == m_num_e)
     throw insert_error();
-
-  return (std::make_pair(ins_pos, pos_hash_pair.second));
+  return std::make_pair(ins_pos, pos_hash_pair.second);
 }
 
 PB_DS_CLASS_T_DEC
 inline std::pair<typename PB_DS_CLASS_C_DEC::point_iterator, bool>
 PB_DS_CLASS_C_DEC::
-insert_imp(const_reference r_val, store_hash_true_type)
+insert_imp(const_reference r_val, true_type)
 {
   const_key_reference r_key = PB_DS_V2F(r_val);
+  comp_hash pos_hash_pair = find_ins_pos(r_key, 
+					 traits_base::m_store_extra_indicator);
 
-  comp_hash pos_hash_pair =
-    find_ins_pos(r_key, traits_base::m_store_extra_indicator);
-
-  PB_DS_DBG_ASSERT(pos_hash_pair.first < m_num_e);
-
-  entry_pointer p_e =& m_a_entries[pos_hash_pair.first];
-
+  _GLIBCXX_DEBUG_ASSERT(pos_hash_pair.first < m_num_e);
+  entry_pointer p_e =& m_entries[pos_hash_pair.first];
   if (p_e->m_stat == valid_entry_status)
     {
-      PB_DS_DBG_ONLY(map_debug_base::check_key_exists(r_key));
-
-      return (std::make_pair(&p_e->m_value, false));
+      _GLIBCXX_DEBUG_ONLY(map_debug_base::check_key_exists(r_key));
+      return std::make_pair(&p_e->m_value, false);
     }
 
-  PB_DS_DBG_ONLY(map_debug_base::check_key_does_not_exist(r_key));
-
-  return (std::make_pair(
-			 insert_new_imp(r_val, pos_hash_pair),
-			 true));
+  _GLIBCXX_DEBUG_ONLY(map_debug_base::check_key_does_not_exist(r_key));
+  return std::make_pair(insert_new_imp(r_val, pos_hash_pair), true);
 }
 

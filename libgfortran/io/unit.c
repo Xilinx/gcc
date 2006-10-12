@@ -420,6 +420,7 @@ get_internal_unit (st_parameter_dt *dtp)
   iunit->flags.form = FORM_FORMATTED;
   iunit->flags.pad = PAD_YES;
   iunit->flags.status = STATUS_UNSPECIFIED;
+  iunit->endfile = NO_ENDFILE;
 
   /* Initialize the data transfer parameters.  */
 
@@ -489,6 +490,15 @@ int
 is_array_io (st_parameter_dt *dtp)
 {
   return dtp->internal_unit_desc != NULL;
+}
+
+
+/* is_stream_io () -- Determine if I/O is access="stream" mode */
+
+int
+is_stream_io (st_parameter_dt *dtp)
+{
+  return dtp->u.p.current_unit->flags.access == ACCESS_STREAM;
 }
 
 

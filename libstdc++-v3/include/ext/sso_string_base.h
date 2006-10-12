@@ -51,21 +51,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       typedef typename _CharT_alloc_type::size_type	    size_type;
       
     private:
-      // The maximum number of individual char_type elements of an
-      // individual string is determined by _S_max_size. This is the
-      // value that will be returned by max_size().  (Whereas npos
-      // is the maximum number of bytes the allocator can allocate.)
-      // If one was to divvy up the theoretical largest size string,
-      // with a terminating character and m _CharT elements, it'd
-      // look like this:
-      // npos = m * sizeof(_CharT) + sizeof(_CharT)
-      // Solving for m:
-      // m = npos / sizeof(_CharT) - 1
-      // In addition, this implementation quarters this amount.
-      enum { _S_max_size = (((static_cast<size_type>(-1)
-			      / sizeof(_CharT)) - 1) / 4) };
-
-      // Data Members (private):
+      // Data Members:
       typename _Util_Base::template _Alloc_hider<_CharT_alloc_type>
                                                             _M_dataplus;
       size_type                                             _M_string_length;
@@ -106,7 +92,8 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       }
 
       void
-      _M_destroy(size_type) throw();
+      _M_destroy(size_type __size) throw()
+      { _M_get_allocator().deallocate(_M_data(), __size + 1); }
 
       // _M_construct_aux is used to implement the 21.3.1 para 15 which
       // requires special behaviour if _InIterator is an integral type
@@ -151,7 +138,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     public:
       size_type
       _M_max_size() const
-      { return size_type(_S_max_size); }
+      { return (_M_get_allocator().max_size() - 1) / 2; }
 
       _CharT*
       _M_data() const
@@ -226,16 +213,14 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       void
       _M_erase(size_type __pos, size_type __n);
 
+      void
+      _M_clear()
+      { _M_set_length(0); }
+
       bool
       _M_compare(const __sso_string_base&) const
       { return false; }
     };
-
-  template<typename _CharT, typename _Traits, typename _Alloc>
-    void
-    __sso_string_base<_CharT, _Traits, _Alloc>::
-    _M_destroy(size_type __size) throw()
-    { _M_dataplus._CharT_alloc_type::deallocate(_M_data(), __size + 1); }
 
   template<typename _CharT, typename _Traits, typename _Alloc>
     void
@@ -318,18 +303,23 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     {
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // 83.  String::npos vs. string::max_size()
-      if (__capacity > size_type(_S_max_size))
+      if (__capacity > _M_max_size())
 	std::__throw_length_error(__N("__sso_string_base::_M_create"));
 
       // The below implements an exponential growth policy, necessary to
       // meet amortized linear time requirements of the library: see
       // http://gcc.gnu.org/ml/libstdc++/2001-07/msg00085.html.
       if (__capacity > __old_capacity && __capacity < 2 * __old_capacity)
-	__capacity = 2 * __old_capacity;
+	{
+	  __capacity = 2 * __old_capacity;
+	  // Never allocate a string bigger than max_size.
+	  if (__capacity > _M_max_size())
+	    __capacity = _M_max_size();
+	}
 
       // NB: Need an array of char_type[__capacity], plus a terminating
       // null char_type() element.
-      return _M_dataplus._CharT_alloc_type::allocate(__capacity + 1);
+      return _M_get_allocator().allocate(__capacity + 1);
     }
 
   template<typename _CharT, typename _Traits, typename _Alloc>
@@ -559,6 +549,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       return false;
     }
 
+#ifdef _GLIBCXX_USE_WCHAR_T
   template<>
     inline bool
     __sso_string_base<wchar_t, std::char_traits<wchar_t>,
@@ -569,6 +560,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	return true;
       return false;
     }
+#endif
 
 _GLIBCXX_END_NAMESPACE
 

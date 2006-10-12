@@ -1,5 +1,5 @@
 /* Implementation of the DATE_AND_TIME intrinsic.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
    Contributed by Steven Bosscher.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -84,7 +84,7 @@ Boston, MA 02110-1301, USA.  */
    ZONE (optional) shall be scalar and of type default character, and
    shall be of length at least 5 in order to contain the complete
    value. It is an INTENT(OUT) argument. Its leftmost 5 characters
-   are assigned a value of the form ±hhmm, where hh and mm are the
+   are assigned a value of the form [+-]hhmm, where hh and mm are the
    time difference with respect to Coordinated Universal Time (UTC) in
    hours and parts of an hour expressed in minutes, respectively. If
    there is no clock available, they are assigned blanks.
@@ -356,6 +356,353 @@ secnds (GFC_REAL_4 *x)
 		   (GFC_REAL_4)values[6] +
 	   0.001 * (GFC_REAL_4)values[7];
   temp2 = fmod (*x, 86400.0);
-  temp2 = (temp1 - temp2 > 0.0) ? temp2 : (temp2 - 86400.0);
+  temp2 = (temp1 - temp2 >= 0.0) ? temp2 : (temp2 - 86400.0);
   return temp1 - temp2;
 }
+
+
+
+/* ITIME(X) - Non-standard
+
+   Description: Returns the current local time hour, minutes, and seconds
+   in elements 1, 2, and 3 of X, respectively.  */
+
+static void
+itime0 (int x[3])
+{
+#ifndef HAVE_NO_DATE_TIME
+  time_t lt;
+  struct tm local_time;
+
+  lt = time (NULL);
+
+  if (lt != (time_t) -1)
+    {
+      local_time = *localtime (&lt);
+
+      x[0] = local_time.tm_hour;
+      x[1] = local_time.tm_min;
+      x[2] = local_time.tm_sec;
+    }
+#else
+  x[0] = x[1] = x[2] = -1;
+#endif
+}
+
+extern void itime_i4 (gfc_array_i4 *);
+export_proto(itime_i4);
+
+void
+itime_i4 (gfc_array_i4 *__values)
+{
+  int x[3], i;
+  size_t len, delta;
+  GFC_INTEGER_4 *vptr;
+  
+  /* Call helper function.  */
+  itime0(x);
+
+  /* Copy the value into the array.  */
+  len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
+  assert (len >= 3);
+  delta = __values->dim[0].stride;
+  if (delta == 0)
+    delta = 1;
+
+  vptr = __values->data;
+  for (i = 0; i < 3; i++, vptr += delta)
+    *vptr = x[i];
+}
+
+
+extern void itime_i8 (gfc_array_i8 *);
+export_proto(itime_i8);
+
+void
+itime_i8 (gfc_array_i8 *__values)
+{
+  int x[3], i;
+  size_t len, delta;
+  GFC_INTEGER_8 *vptr;
+  
+  /* Call helper function.  */
+  itime0(x);
+
+  /* Copy the value into the array.  */
+  len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
+  assert (len >= 3);
+  delta = __values->dim[0].stride;
+  if (delta == 0)
+    delta = 1;
+
+  vptr = __values->data;
+  for (i = 0; i < 3; i++, vptr += delta)
+    *vptr = x[i];
+}
+
+
+
+/* IDATE(X) - Non-standard
+
+   Description: Fills TArray with the numerical values at the current
+   local time. The day (in the range 1-31), month (in the range 1-12),
+   and year appear in elements 1, 2, and 3 of X, respectively.
+   The year has four significant digits.  */
+
+static void
+idate0 (int x[3])
+{
+#ifndef HAVE_NO_DATE_TIME
+  time_t lt;
+  struct tm local_time;
+
+  lt = time (NULL);
+
+  if (lt != (time_t) -1)
+    {
+      local_time = *localtime (&lt);
+
+      x[0] = local_time.tm_mday;
+      x[1] = 1 + local_time.tm_mon;
+      x[2] = 1900 + local_time.tm_year;
+    }
+#else
+  x[0] = x[1] = x[2] = -1;
+#endif
+}
+
+extern void idate_i4 (gfc_array_i4 *);
+export_proto(idate_i4);
+
+void
+idate_i4 (gfc_array_i4 *__values)
+{
+  int x[3], i;
+  size_t len, delta;
+  GFC_INTEGER_4 *vptr;
+  
+  /* Call helper function.  */
+  idate0(x);
+
+  /* Copy the value into the array.  */
+  len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
+  assert (len >= 3);
+  delta = __values->dim[0].stride;
+  if (delta == 0)
+    delta = 1;
+
+  vptr = __values->data;
+  for (i = 0; i < 3; i++, vptr += delta)
+    *vptr = x[i];
+}
+
+
+extern void idate_i8 (gfc_array_i8 *);
+export_proto(idate_i8);
+
+void
+idate_i8 (gfc_array_i8 *__values)
+{
+  int x[3], i;
+  size_t len, delta;
+  GFC_INTEGER_8 *vptr;
+  
+  /* Call helper function.  */
+  idate0(x);
+
+  /* Copy the value into the array.  */
+  len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
+  assert (len >= 3);
+  delta = __values->dim[0].stride;
+  if (delta == 0)
+    delta = 1;
+
+  vptr = __values->data;
+  for (i = 0; i < 3; i++, vptr += delta)
+    *vptr = x[i];
+}
+
+
+
+/* GMTIME(STIME, TARRAY) - Non-standard
+
+   Description: Given a system time value STime, fills TArray with values
+   extracted from it appropriate to the GMT time zone using gmtime(3).
+
+   The array elements are as follows:
+
+      1. Seconds after the minute, range 0-59 or 0-61 to allow for leap seconds
+      2. Minutes after the hour, range 0-59
+      3. Hours past midnight, range 0-23
+      4. Day of month, range 0-31
+      5. Number of months since January, range 0-11
+      6. Years since 1900
+      7. Number of days since Sunday, range 0-6
+      8. Days since January 1
+      9. Daylight savings indicator: positive if daylight savings is in effect,
+         zero if not, and negative if the information isn't available.  */
+
+static void
+gmtime_0 (const time_t * t, int x[9])
+{
+  struct tm lt;
+
+  lt = *gmtime (t);
+  x[0] = lt.tm_sec;
+  x[1] = lt.tm_min;
+  x[2] = lt.tm_hour;
+  x[3] = lt.tm_mday;
+  x[4] = lt.tm_mon;
+  x[5] = lt.tm_year;
+  x[6] = lt.tm_wday;
+  x[7] = lt.tm_yday;
+  x[8] = lt.tm_isdst;
+}
+
+extern void gmtime_i4 (GFC_INTEGER_4 *, gfc_array_i4 *);
+export_proto(gmtime_i4);
+
+void
+gmtime_i4 (GFC_INTEGER_4 * t, gfc_array_i4 * tarray)
+{
+  int x[9], i;
+  size_t len, delta;
+  GFC_INTEGER_4 *vptr;
+  time_t tt;
+  
+  /* Call helper function.  */
+  tt = (time_t) *t;
+  gmtime_0(&tt, x);
+
+  /* Copy the values into the array.  */
+  len = tarray->dim[0].ubound + 1 - tarray->dim[0].lbound;
+  assert (len >= 9);
+  delta = tarray->dim[0].stride;
+  if (delta == 0)
+    delta = 1;
+
+  vptr = tarray->data;
+  for (i = 0; i < 9; i++, vptr += delta)
+    *vptr = x[i];
+}
+
+extern void gmtime_i8 (GFC_INTEGER_8 *, gfc_array_i8 *);
+export_proto(gmtime_i8);
+
+void
+gmtime_i8 (GFC_INTEGER_8 * t, gfc_array_i8 * tarray)
+{
+  int x[9], i;
+  size_t len, delta;
+  GFC_INTEGER_8 *vptr;
+  time_t tt;
+  
+  /* Call helper function.  */
+  tt = (time_t) *t;
+  gmtime_0(&tt, x);
+
+  /* Copy the values into the array.  */
+  len = tarray->dim[0].ubound + 1 - tarray->dim[0].lbound;
+  assert (len >= 9);
+  delta = tarray->dim[0].stride;
+  if (delta == 0)
+    delta = 1;
+
+  vptr = tarray->data;
+  for (i = 0; i < 9; i++, vptr += delta)
+    *vptr = x[i];
+}
+
+
+
+
+/* LTIME(STIME, TARRAY) - Non-standard
+
+   Description: Given a system time value STime, fills TArray with values
+   extracted from it appropriate to the local time zone using localtime(3).
+
+   The array elements are as follows:
+
+      1. Seconds after the minute, range 0-59 or 0-61 to allow for leap seconds
+      2. Minutes after the hour, range 0-59
+      3. Hours past midnight, range 0-23
+      4. Day of month, range 0-31
+      5. Number of months since January, range 0-11
+      6. Years since 1900
+      7. Number of days since Sunday, range 0-6
+      8. Days since January 1
+      9. Daylight savings indicator: positive if daylight savings is in effect,
+         zero if not, and negative if the information isn't available.  */
+
+static void
+ltime_0 (const time_t * t, int x[9])
+{
+  struct tm lt;
+
+  lt = *localtime (t);
+  x[0] = lt.tm_sec;
+  x[1] = lt.tm_min;
+  x[2] = lt.tm_hour;
+  x[3] = lt.tm_mday;
+  x[4] = lt.tm_mon;
+  x[5] = lt.tm_year;
+  x[6] = lt.tm_wday;
+  x[7] = lt.tm_yday;
+  x[8] = lt.tm_isdst;
+}
+
+extern void ltime_i4 (GFC_INTEGER_4 *, gfc_array_i4 *);
+export_proto(ltime_i4);
+
+void
+ltime_i4 (GFC_INTEGER_4 * t, gfc_array_i4 * tarray)
+{
+  int x[9], i;
+  size_t len, delta;
+  GFC_INTEGER_4 *vptr;
+  time_t tt;
+  
+  /* Call helper function.  */
+  tt = (time_t) *t;
+  ltime_0(&tt, x);
+
+  /* Copy the values into the array.  */
+  len = tarray->dim[0].ubound + 1 - tarray->dim[0].lbound;
+  assert (len >= 9);
+  delta = tarray->dim[0].stride;
+  if (delta == 0)
+    delta = 1;
+
+  vptr = tarray->data;
+  for (i = 0; i < 9; i++, vptr += delta)
+    *vptr = x[i];
+}
+
+extern void ltime_i8 (GFC_INTEGER_8 *, gfc_array_i8 *);
+export_proto(ltime_i8);
+
+void
+ltime_i8 (GFC_INTEGER_8 * t, gfc_array_i8 * tarray)
+{
+  int x[9], i;
+  size_t len, delta;
+  GFC_INTEGER_8 *vptr;
+  time_t tt;
+  
+  /* Call helper function.  */
+  tt = (time_t) * t;
+  ltime_0(&tt, x);
+
+  /* Copy the values into the array.  */
+  len = tarray->dim[0].ubound + 1 - tarray->dim[0].lbound;
+  assert (len >= 9);
+  delta = tarray->dim[0].stride;
+  if (delta == 0)
+    delta = 1;
+
+  vptr = tarray->data;
+  for (i = 0; i < 9; i++, vptr += delta)
+    *vptr = x[i];
+}
+
+

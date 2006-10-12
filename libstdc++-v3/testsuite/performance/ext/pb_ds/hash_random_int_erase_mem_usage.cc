@@ -44,14 +44,13 @@
  * Contains test for erasing random integers.
  */
 
-#include <ext/pb_ds/detail/typelist.hpp>
+#include <ext/typelist.h>
+#include <testsuite_allocator.h>
 #include <performance/io/xml_formatter.hpp>
 #include <io/verified_cmd_line_input.hpp>
 #include <rng/twister_rand_gen.hpp>
 #include <common_type/assoc/common_type.hpp>
 #include <performance/assoc/mem_usage/erase_test.hpp>
-#include <ext/pb_ds/detail/typelist.hpp>
-#include <performance/mem/mem_track_allocator.hpp>
 #include <iostream>
 #include <vector>
 #include <functional>
@@ -78,7 +77,7 @@ main(int argc, char* a_p_argv[])
     {
       xml_test_performance_formatter fmt("Size", "Memory (bytes)");
 
-      typedef std::vector< int> vec_t;
+      typedef std::vector<int> vec_t;
       vec_t a_v(vm);
       twister_rand_gen g;
       for (size_t i = 0; i < vm; ++i)
@@ -86,25 +85,18 @@ main(int argc, char* a_p_argv[])
 
       vec_t::const_iterator b = a_v.begin();
       erase_test<vec_t::const_iterator> tst(b,  vn, vs, vm);
-      typedef mem_track_allocator<char> alloc_t;
+      typedef __gnu_test::tracker_allocator<char> alloc_t;
       {
-	typedef
-	  hash_common_types<int, pb_ds::null_mapped_type, int_hash,
-	  std::equal_to<int>, alloc_t>::performance_tl
-	  tl_t;
+	typedef hash_common_types<int, pb_ds::null_mapped_type, int_hash, std::equal_to<int>, alloc_t>::performance_tl tl_t;
 
 	tl_t tl;
-	pb_ds::detail::typelist_apply(tst, tl);
+	__gnu_cxx::typelist::apply(tst, tl);
       }
 
       {
-	typedef
-	  native_hash_set<int, 8, int_hash,
-	  std::equal_to<int>,
-	  std::less<int>, alloc_t>
-	  native_t;
+	typedef native_hash_set<int, 8, int_hash, std::equal_to<int>, std::less<int>, alloc_t> native_t;
 
-	tst(pb_ds::detail::type_to_type<native_t>());
+	tst(native_t());
       }
     }
   catch (...)
@@ -119,18 +111,16 @@ void
 usage()
 {
   using namespace std;
-  cerr << "usage: hash_random_int_erase_if_test <vn> <vs> <vm>" <<
-    endl << endl;
+  cerr << "usage: hash_random_int_erase_if_test <vn> <vs> <vm>" 
+       << endl << endl;
 
-  cerr <<
-    "This test checks the performance of various associative containers "
-    "using their erase method. " << endl;
-  cerr << "Specifically, it does the following:"    << endl;
-  cerr << "*  Creates a vector of random integers "    << endl;
-  cerr << "*  Inserts the elements into the container"    << endl;
-  cerr << "*  Erases all the elements, except one, from the constainer" << endl;
-
-  cerr << endl << endl;
+  cerr << "This test checks the performance of various associative containers "
+          "using their erase method. " << endl;
+  cerr << "Specifically, it does the following:" << endl;
+  cerr << "*  Creates a vector of random integers " << endl;
+  cerr << "*  Inserts the elements into the container" << endl;
+  cerr << "*  Erases all the elements, except one, from the constainer" 
+       << endl << endl;
 
   cerr << "vn = minimum size of the vector" << endl;
   cerr << "vs = step size of the vector" << endl;

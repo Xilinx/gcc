@@ -22,10 +22,7 @@ Boston, MA 02110-1301, USA.  */
 #include "system.h"
 #include <stdlib.h>
 
-#ifndef CROSS_COMPILE
-/* This file shouldn't even be included in a cross compiler, but
-   let's be sure.  */
-extern const char *host_detect_local_cpu (int argc, const char **argv);
+const char *host_detect_local_cpu (int argc, const char **argv);
 
 #ifdef GCC_VERSION
 #define cpuid(num,a,b,c,d) \
@@ -170,5 +167,4 @@ const char *host_detect_local_cpu (int argc, const char **argv)
 {
   return concat ("-m", argv[0], "=i386", NULL);
 }
-#endif
-#endif
+#endif /* GCC_VERSION */

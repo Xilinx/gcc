@@ -1,3 +1,26 @@
+2006-09-27  Matthew Sachs  <msachs@apple.com>
+
+	* compareSumTests3: POD syntax fix.
+
+2006-09-27  Matthew Sachs  <msachs@apple.com>
+
+	* dglib.pm: Initial commit.
+	* compareSumTests3: Initial commit.
+
+2006-09-18  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* dg-cmp-results.sh (compare-$$.awk): Print name[old]
+	and not non-existing nm[old].
+
+2006-07-06  Paul Eggert  <eggert@cs.ucla.edu>
+
+	Port to hosts whose 'sort' and 'tail' implementations
+	treat operands with leading '+' as file names, as POSIX
+	has required since 2001.  However, make sure the code still
+	works on pre-POSIX hosts.
+	* compare_tests: Don't assume "sort +2" is equivalent to
+	"sort -k 3", since POSIX 1003.1-2001 no longer requires this.
+
 2006-06-05  James Lemke  <jwlemke@wasabisystems.com>
 
 	* dg-cmp-results.sh: New script for comparing DejaGNU logs.

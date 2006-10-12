@@ -52,6 +52,7 @@ static const io_tag
 	tag_unit	= {"UNIT", " unit = %e", BT_INTEGER},
 	tag_advance	= {"ADVANCE", " advance = %e", BT_CHARACTER},
 	tag_rec		= {"REC", " rec = %e", BT_INTEGER},
+	tag_spos        = {"POSITION", " pos = %e", BT_INTEGER},
 	tag_format	= {"FORMAT", NULL, BT_CHARACTER},
 	tag_iomsg	= {"IOMSG", " iomsg = %e", BT_CHARACTER},
 	tag_iostat	= {"IOSTAT", " iostat = %v", BT_INTEGER},
@@ -79,6 +80,7 @@ static const io_tag
 	tag_s_pad	= {"PAD", " pad = %v", BT_CHARACTER},
 	tag_iolength	= {"IOLENGTH", " iolength = %v", BT_INTEGER},
 	tag_convert     = {"CONVERT", " convert = %e", BT_CHARACTER},
+	tag_strm_out    = {"POS", " pos = %v", BT_INTEGER},
 	tag_err		= {"ERR", " err = %l", BT_UNKNOWN},
 	tag_end		= {"END", " end = %l", BT_UNKNOWN},
 	tag_eor		= {"EOR", " eor = %l", BT_UNKNOWN};
@@ -1063,6 +1065,13 @@ resolve_tag (const io_tag * tag, gfc_expr * e)
 		  return FAILURE;
 		}
 	    }
+	  else if (e->ts.type == BT_INTEGER)
+	    {
+	      gfc_error ("scalar '%s' FORMAT tag at %L is not an ASSIGNED "
+			 "variable", gfc_basic_typename (e->ts.type), &e->where);
+	      return FAILURE;
+	    }
+
 	  return SUCCESS;
 	}
       else
@@ -1777,6 +1786,9 @@ match_dt_element (io_kind k, gfc_dt * dt)
   m = match_etag (&tag_rec, &dt->rec);
   if (m != MATCH_NO)
     return m;
+  m = match_etag (&tag_spos, &dt->rec);
+  if (m != MATCH_NO)
+    return m;
   m = match_out_tag (&tag_iomsg, &dt->iomsg);
   if (m != MATCH_NO)
     return m;
@@ -1848,6 +1860,7 @@ gfc_resolve_dt (gfc_dt * dt)
 
   RESOLVE_TAG (&tag_format, dt->format_expr);
   RESOLVE_TAG (&tag_rec, dt->rec);
+  RESOLVE_TAG (&tag_spos, dt->rec);
   RESOLVE_TAG (&tag_advance, dt->advance);
   RESOLVE_TAG (&tag_iomsg, dt->iomsg);
   RESOLVE_TAG (&tag_iostat, dt->iostat);
@@ -2333,6 +2346,12 @@ if (condition) \
 		     "List directed format(*) is not allowed with a "
 		     "ADVANCE=specifier at %L.", &expr->where);
 
+      io_constraint (dt->format_expr == NULL
+		       && dt->format_label == NULL
+		       && dt->namelist == NULL,
+		     "the ADVANCE=specifier at %L must appear with an "
+		     "explicit format expression", &expr->where);
+
       if (expr->expr_type == EXPR_CONSTANT && expr->ts.type == BT_CHARACTER)
 	{
 	  const char * advance = expr->value.character.string;
@@ -2630,6 +2649,7 @@ gfc_free_inquire (gfc_inquire * inquire)
   gfc_free_expr (inquire->pad);
   gfc_free_expr (inquire->iolength);
   gfc_free_expr (inquire->convert);
+  gfc_free_expr (inquire->strm_pos);
 
   gfc_free (inquire);
 }
@@ -2672,6 +2692,7 @@ match_inquire_element (gfc_inquire * inquire)
   RETM m = match_vtag (&tag_s_pad, &inquire->pad);
   RETM m = match_vtag (&tag_iolength, &inquire->iolength);
   RETM m = match_vtag (&tag_convert, &inquire->convert);
+  RETM m = match_out_tag (&tag_strm_out, &inquire->strm_pos);
   RETM return MATCH_NO;
 }
 
@@ -2826,6 +2847,7 @@ gfc_resolve_inquire (gfc_inquire * inquire)
   RESOLVE_TAG (&tag_s_pad, inquire->pad);
   RESOLVE_TAG (&tag_iolength, inquire->iolength);
   RESOLVE_TAG (&tag_convert, inquire->convert);
+  RESOLVE_TAG (&tag_strm_out, inquire->strm_pos);
 
   if (gfc_reference_st_label (inquire->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;

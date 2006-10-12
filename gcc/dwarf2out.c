@@ -628,13 +628,19 @@ add_fde_cfi (const char *label, dw_cfi_ref cfi)
 	{
 	  dw_cfi_ref xcfi;
 
-	  fde->dw_fde_current_label = label = xstrdup (label);
+	  label = xstrdup (label);
 
 	  /* Set the location counter to the new label.  */
 	  xcfi = new_cfi ();
-	  xcfi->dw_cfi_opc = DW_CFA_advance_loc4;
+	  /* If we have a current label, advance from there, otherwise
+	     set the location directly using set_loc.  */
+	  xcfi->dw_cfi_opc = fde->dw_fde_current_label
+			     ? DW_CFA_advance_loc4
+			     : DW_CFA_set_loc;
 	  xcfi->dw_cfi_oprnd1.dw_cfi_addr = label;
 	  add_cfi (&fde->dw_fde_cfi, xcfi);
+
+	  fde->dw_fde_current_label = label;
 	}
 
       add_cfi (&fde->dw_fde_cfi, cfi);
@@ -1080,7 +1086,7 @@ stack_adjust_offset (rtx pattern)
    much extra space it needs to pop off the stack.  */
 
 static void
-dwarf2out_stack_adjust (rtx insn, bool after_p ATTRIBUTE_UNUSED)
+dwarf2out_stack_adjust (rtx insn, bool after_p)
 {
   HOST_WIDE_INT offset;
   const char *label;
@@ -1093,7 +1099,31 @@ dwarf2out_stack_adjust (rtx insn, bool after_p ATTRIBUTE_UNUSED)
   if (prologue_epilogue_contains (insn) || sibcall_epilogue_contains (insn))
     return;
 
-  if (BARRIER_P (insn))
+  /* If only calls can throw, and we have a frame pointer,
+     save up adjustments until we see the CALL_INSN.  */
+  if (!flag_asynchronous_unwind_tables && cfa.reg != STACK_POINTER_REGNUM)
+    {
+      if (CALL_P (insn) && !after_p)
+	{
+	  /* Extract the size of the args from the CALL rtx itself.  */
+	  insn = PATTERN (insn);
+	  if (GET_CODE (insn) == PARALLEL)
+	    insn = XVECEXP (insn, 0, 0);
+	  if (GET_CODE (insn) == SET)
+	    insn = SET_SRC (insn);
+	  gcc_assert (GET_CODE (insn) == CALL);
+	  dwarf2out_args_size ("", INTVAL (XEXP (insn, 1)));
+	}
+      return;
+    }
+
+  if (CALL_P (insn) && !after_p)
+    {
+      if (!flag_asynchronous_unwind_tables)
+	dwarf2out_args_size ("", args_size);
+      return;
+    }
+  else if (BARRIER_P (insn))
     {
       /* When we see a BARRIER, we know to reset args_size to 0.  Usually
 	 the compiler will have already emitted a stack adjustment, but
@@ -1115,19 +1145,8 @@ dwarf2out_stack_adjust (rtx insn, bool after_p ATTRIBUTE_UNUSED)
 	if (GET_CODE (XVECEXP (PATTERN (insn), 0, i)) == SET)
 	  offset += stack_adjust_offset (XVECEXP (PATTERN (insn), 0, i));
     }
-  else if (GET_CODE (insn) == CALL_INSN)
-    offset = 0;
   else
     return;
-
-  /* We handle this separately because we want stack adjustments in a
-     CALL_INSN to be handled.  */;
-  if (GET_CODE (insn) == CALL_INSN)
-    {
-      /* If only calls can throw, adjust args_size only at call sites.  */
-      if (!flag_asynchronous_unwind_tables)
-	dwarf2out_args_size ("", args_size);
-    }
 
   if (offset == 0)
     return;
@@ -1142,16 +1161,6 @@ dwarf2out_stack_adjust (rtx insn, bool after_p ATTRIBUTE_UNUSED)
   args_size += offset;
   if (args_size < 0)
     args_size = 0;
-
-  /* If only calls can throw and we have a frame pointer, we'll save
-     up adjustments until we see the CALL_INSN.  We used to return
-     early and derive args_size from NARGS in the CALL_INSN itself,
-     but that doesn't compute the right value if we have nested call
-     expansions, e.g., stack adjustments for a call have already been
-     emitted, and then we issue another call to compute an argument
-     for the enclosing call (i.e., bar (foo ())).  */
-  if (!flag_asynchronous_unwind_tables && cfa.reg != STACK_POINTER_REGNUM)
-    return;
 
   label = dwarf2out_cfi_label ();
   def_cfa_1 (label, &cfa);
@@ -1493,9 +1502,9 @@ static dw_cfa_location cfa_temp;
 	   cfa.base_offset = -cfa_temp.offset
 	   cfa_temp.offset -= mode_size(mem)
 
-  Rule 15:
-  (set <reg> {unspec, unspec_volatile})
-  effects: target-dependent  */
+  Rule 15:
+  (set <reg> {unspec, unspec_volatile})
+  effects: target-dependent  */
 
 static void
 dwarf2out_frame_debug_expr (rtx expr, const char *label)
@@ -2069,6 +2078,7 @@ output_cfi (dw_cfi_ref cfi, dw_fde_ref fde, int for_eh)
 	  else
 	    dw2_asm_output_addr (DWARF2_ADDR_SIZE,
 				 cfi->dw_cfi_oprnd1.dw_cfi_addr, NULL);
+	  fde->dw_fde_current_label = cfi->dw_cfi_oprnd1.dw_cfi_addr;
 	  break;
 
 	case DW_CFA_advance_loc1:
@@ -2562,7 +2572,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fde = &fde_table[fde_table_in_use++];
   fde->decl = current_function_decl;
   fde->dw_fde_begin = dup_label;
-  fde->dw_fde_current_label = NULL;
+  fde->dw_fde_current_label = dup_label;
   fde->dw_fde_hot_section_label = NULL;
   fde->dw_fde_hot_section_end_label = NULL;
   fde->dw_fde_unlikely_section_label = NULL;
@@ -2643,6 +2653,13 @@ dwarf2out_frame_finish (void)
 /* And now, the subset of the debugging information support code necessary
    for emitting location expressions.  */
 
+/* Data about a single source file.  */
+struct dwarf_file_data GTY(())
+{
+  const char * filename;
+  int emitted_number;
+};
+
 /* We need some way to distinguish DW_OP_addr with a direct symbol
    relocation from DW_OP_addr with a dtp-relative symbol relocation.  */
 #define INTERNAL_DW_OP_tls_addr		(0x100 + DW_OP_addr)
@@ -2674,7 +2691,8 @@ enum dw_val_class
   dw_val_class_lbl_id,
   dw_val_class_lineptr,
   dw_val_class_str,
-  dw_val_class_macptr
+  dw_val_class_macptr,
+  dw_val_class_file
 };
 
 /* Describe a double word constant value.  */
@@ -2722,6 +2740,7 @@ typedef struct dw_val_struct GTY(())
       struct indirect_string_node * GTY ((tag ("dw_val_class_str"))) val_str;
       char * GTY ((tag ("dw_val_class_lbl_id"))) val_lbl_id;
       unsigned char GTY ((tag ("dw_val_class_flag"))) val_flag;
+      struct dwarf_file_data * GTY ((tag ("dw_val_class_file"))) val_file;
     }
   GTY ((desc ("%1.val_class"))) v;
 }
@@ -3841,9 +3860,7 @@ static GTY(()) dw_die_ref comp_unit_die;
 static GTY(()) limbo_die_node *limbo_die_list;
 
 /* Filenames referenced by this compilation unit.  */
-static GTY(()) varray_type file_table;
-static GTY(()) varray_type file_table_emitted;
-static GTY(()) size_t file_table_last_lookup_index;
+static GTY((param_is (struct dwarf_file_data))) htab_t file_table;
 
 /* A hash table of references to DIE's that describe declarations.
    The key is a DECL_UID() which is a unique number identifying each decl.  */
@@ -3975,11 +3992,14 @@ static int current_function_has_inlines;
 static int comp_unit_has_inlines;
 #endif
 
-/* Number of file tables emitted in maybe_emit_file().  */
-static GTY(()) int emitcount = 0;
+/* The last file entry emitted by maybe_emit_file().  */
+static GTY(()) struct dwarf_file_data * last_emitted_file;
 
 /* Number of internal labels generated by gen_internal_sym().  */
 static GTY(()) int label_num;
+
+/* Cached result of previous call to lookup_filename.  */
+static GTY(()) struct dwarf_file_data * file_table_last_lookup;
 
 #ifdef DWARF2_DEBUGGING_INFO
 
@@ -4209,8 +4229,7 @@ static dw_die_ref force_decl_die (tree);
 static dw_die_ref force_type_die (tree);
 static dw_die_ref setup_namespace_context (tree, dw_die_ref);
 static void declare_in_namespace (tree, dw_die_ref);
-static unsigned lookup_filename (const char *);
-static void init_file_table (void);
+static struct dwarf_file_data * lookup_filename (const char *);
 static void retry_incomplete_types (void);
 static void gen_type_die_for_member (tree, tree, dw_die_ref);
 static void splice_child_die (dw_die_ref, dw_die_ref);
@@ -4229,7 +4248,7 @@ static void prune_unused_types_walk (dw_die_ref);
 static void prune_unused_types_walk_attribs (dw_die_ref);
 static void prune_unused_types_prune (dw_die_ref);
 static void prune_unused_types (void);
-static int maybe_emit_file (int);
+static int maybe_emit_file (struct dwarf_file_data *fd);
 
 /* Section names used to hold DWARF debugging information.  */
 #ifndef DEBUG_INFO_SECTION
@@ -5170,11 +5189,36 @@ add_AT_addr (dw_die_ref die, enum dwarf_attribute attr_kind, rtx addr)
   add_dwarf_attr (die, &attr);
 }
 
+/* Get the RTX from to an address DIE attribute.  */
+
 static inline rtx
 AT_addr (dw_attr_ref a)
 {
   gcc_assert (a && AT_class (a) == dw_val_class_addr);
   return a->dw_attr_val.v.val_addr;
+}
+
+/* Add a file attribute value to a DIE.  */
+
+static inline void
+add_AT_file (dw_die_ref die, enum dwarf_attribute attr_kind,
+	     struct dwarf_file_data *fd)
+{
+  dw_attr_node attr;
+
+  attr.dw_attr = attr_kind;
+  attr.dw_attr_val.val_class = dw_val_class_file;
+  attr.dw_attr_val.v.val_file = fd;
+  add_dwarf_attr (die, &attr);
+}
+
+/* Get the dwarf_file_data from a file DIE attribute.  */
+
+static inline struct dwarf_file_data *
+AT_file (dw_attr_ref a)
+{
+  gcc_assert (a && AT_class (a) == dw_val_class_file);
+  return a->dw_attr_val.v.val_file;
 }
 
 /* Add a label identifier attribute value to a DIE.  */
@@ -5345,6 +5389,14 @@ get_AT_ref (dw_die_ref die, enum dwarf_attribute attr_kind)
   dw_attr_ref a = get_AT (die, attr_kind);
 
   return a ? AT_ref (a) : NULL;
+}
+
+static inline struct dwarf_file_data *
+get_AT_file (dw_die_ref die, enum dwarf_attribute attr_kind)
+{
+  dw_attr_ref a = get_AT (die, attr_kind);
+
+  return a ? AT_file (a) : NULL;
 }
 
 /* Return TRUE if the language is C or C++.  */
@@ -5756,6 +5808,10 @@ print_die (dw_die_ref die, FILE *outfile)
 	  else
 	    fprintf (outfile, "<null>");
 	  break;
+	case dw_val_class_file:
+	  fprintf (outfile, "\"%s\" (%d)", AT_file (a)->filename,
+		   AT_file (a)->emitted_number);
+	  break;
 	default:
 	  break;
 	}
@@ -5786,11 +5842,9 @@ print_dwarf_line_table (FILE *outfile)
   for (i = 1; i < line_info_table_in_use; i++)
     {
       line_info = &line_info_table[i];
-      fprintf (outfile, "%5d: ", i);
-      fprintf (outfile, "%-20s",
-	       VARRAY_CHAR_PTR (file_table, line_info->dw_file_num));
-      fprintf (outfile, "%6ld", line_info->dw_line_num);
-      fprintf (outfile, "\n");
+      fprintf (outfile, "%5d: %4ld %6ld\n", i,
+	       line_info->dw_file_num,
+	       line_info->dw_line_num);
     }
 
   fprintf (outfile, "\n\n");
@@ -5864,11 +5918,9 @@ attr_checksum (dw_attr_ref at, struct md5_ctx *ctx, int *mark)
 
   CHECKSUM (at->dw_attr);
 
-  /* We don't care about differences in file numbering.  */
-  if (at->dw_attr == DW_AT_decl_file
-      /* Or that this was compiled with a different compiler snapshot; if
-	 the output is the same, that's what matters.  */
-      || at->dw_attr == DW_AT_producer)
+  /* We don't care that this was compiled with a different compiler
+     snapshot; if the output is the same, that's what matters.  */
+  if (at->dw_attr == DW_AT_producer)
     return;
 
   switch (AT_class (at))
@@ -5915,6 +5967,10 @@ attr_checksum (dw_attr_ref at, struct md5_ctx *ctx, int *mark)
     case dw_val_class_lbl_id:
     case dw_val_class_lineptr:
     case dw_val_class_macptr:
+      break;
+
+    case dw_val_class_file:
+      CHECKSUM_STRING (AT_file (at)->filename);
       break;
 
     default:
@@ -6019,6 +6075,9 @@ same_dw_val_p (dw_val_node *v1, dw_val_node *v2, int *mark)
     case dw_val_class_macptr:
       return 1;
 
+    case dw_val_class_file:
+      return v1->v.val_file == v2->v.val_file;
+
     default:
       return 1;
     }
@@ -6032,11 +6091,9 @@ same_attr_p (dw_attr_ref at1, dw_attr_ref at2, int *mark)
   if (at1->dw_attr != at2->dw_attr)
     return 0;
 
-  /* We don't care about differences in file numbering.  */
-  if (at1->dw_attr == DW_AT_decl_file
-      /* Or that this was compiled with a different compiler snapshot; if
-	 the output is the same, that's what matters.  */
-      || at1->dw_attr == DW_AT_producer)
+  /* We don't care that this was compiled with a different compiler
+     snapshot; if the output is the same, that's what matters. */
+  if (at1->dw_attr == DW_AT_producer)
     return 1;
 
   return same_dw_val_p (&at1->dw_attr_val, &at2->dw_attr_val, mark);
@@ -6612,6 +6669,9 @@ size_of_die (dw_die_ref die)
 	  else
 	    size += strlen (a->dw_attr_val.v.val_str->str) + 1;
 	  break;
+	case dw_val_class_file:
+	  size += constant_size (maybe_emit_file (a->dw_attr_val.v.val_file));
+	  break;
 	default:
 	  gcc_unreachable ();
 	}
@@ -6794,6 +6854,18 @@ value_format (dw_attr_ref a)
       return DW_FORM_data;
     case dw_val_class_str:
       return AT_string_form (a);
+    case dw_val_class_file:
+      switch (constant_size (maybe_emit_file (a->dw_attr_val.v.val_file)))
+	{
+	case 1:
+	  return DW_FORM_data1;
+	case 2:
+	  return DW_FORM_data2;
+	case 4:
+	  return DW_FORM_data4;
+	default:
+	  gcc_unreachable ();
+	}
 
     default:
       gcc_unreachable ();
@@ -6919,6 +6991,10 @@ dwarf2out_switch_text_section (void)
   fde->dw_fde_unlikely_section_label = cfun->cold_section_label;
   fde->dw_fde_unlikely_section_end_label = cfun->cold_section_end_label;
   have_multiple_function_sections = true;
+
+  /* Reset the current label on switching text sections, so that we
+     don't attempt to advance_loc4 between labels in different sections.  */
+  fde->dw_fde_current_label = NULL;
 }
 
 /* Output the location list given to us.  */
@@ -7148,6 +7224,15 @@ output_die (dw_die_ref die)
 	  else
 	    dw2_asm_output_nstring (AT_string (a), -1, "%s", name);
 	  break;
+
+	case dw_val_class_file:
+	  {
+	    int f = maybe_emit_file (a->dw_attr_val.v.val_file);
+	    
+	    dw2_asm_output_data (constant_size (f), f, "%s (%s)", name,
+				 a->dw_attr_val.v.val_file->filename);
+	    break;
+	  }
 
 	default:
 	  gcc_unreachable ();
@@ -7488,10 +7573,10 @@ output_ranges (void)
 /* Data structure containing information about input files.  */
 struct file_info
 {
-  char *path;		/* Complete file name.  */
-  char *fname;		/* File name part.  */
+  const char *path;	/* Complete file name.  */
+  const char *fname;	/* File name part.  */
   int length;		/* Length of entire string.  */
-  int file_idx;		/* Index in input file table.  */
+  struct dwarf_file_data * file_idx;	/* Index in input file table.  */
   int dir_idx;		/* Index in directory table.  */
 };
 
@@ -7499,12 +7584,11 @@ struct file_info
    files.  */
 struct dir_info
 {
-  char *path;		/* Path including directory name.  */
+  const char *path;	/* Path including directory name.  */
   int length;		/* Path length.  */
   int prefix;		/* Index of directory entry which is a prefix.  */
   int count;		/* Number of files in this directory.  */
   int dir_idx;		/* Index of directory used as base.  */
-  int used;		/* Used in the end?  */
 };
 
 /* Callback function for file_info comparison.  We sort by looking at
@@ -7545,6 +7629,48 @@ file_info_cmp (const void *p1, const void *p2)
     }
 }
 
+struct file_name_acquire_data 
+{
+  struct file_info *files;
+  int used_files;
+  int max_files;
+};
+
+/* Traversal function for the hash table.  */
+
+static int
+file_name_acquire (void ** slot, void *data)
+{
+  struct file_name_acquire_data *fnad = data;
+  struct dwarf_file_data *d = *slot;
+  struct file_info *fi;
+  const char *f;
+
+  gcc_assert (fnad->max_files >= d->emitted_number);
+
+  if (! d->emitted_number)
+    return 1;
+
+  gcc_assert (fnad->max_files != fnad->used_files);
+
+  fi = fnad->files + fnad->used_files++;
+
+  /* Skip all leading "./".  */
+  f = d->filename;
+  while (f[0] == '.' && f[1] == '/')
+    f += 2;
+  
+  /* Create a new array entry.  */
+  fi->path = f;
+  fi->length = strlen (f);
+  fi->file_idx = d;
+  
+  /* Search for the file name part.  */
+  f = strrchr (f, '/');
+  fi->fname = f == NULL ? fi->path : f + 1;
+  return 1;
+}
+
 /* Output the directory table and the file name table.  We try to minimize
    the total amount of memory needed.  A heuristic is used to avoid large
    slowdowns with many input files.  */
@@ -7552,62 +7678,49 @@ file_info_cmp (const void *p1, const void *p2)
 static void
 output_file_names (void)
 {
+  struct file_name_acquire_data fnad;
+  int numfiles;
   struct file_info *files;
   struct dir_info *dirs;
   int *saved;
   int *savehere;
   int *backmap;
-  size_t ndirs;
+  int ndirs;
   int idx_offset;
-  size_t i;
+  int i;
   int idx;
 
-  /* Handle the case where file_table is empty.  */
-  if (VARRAY_ACTIVE_SIZE (file_table) <= 1)
+  if (!last_emitted_file)
     {
       dw2_asm_output_data (1, 0, "End directory table");
       dw2_asm_output_data (1, 0, "End file name table");
       return;
     }
 
+  numfiles = last_emitted_file->emitted_number;
+
   /* Allocate the various arrays we need.  */
-  files = alloca (VARRAY_ACTIVE_SIZE (file_table) * sizeof (struct file_info));
-  dirs = alloca (VARRAY_ACTIVE_SIZE (file_table) * sizeof (struct dir_info));
+  files = alloca (numfiles * sizeof (struct file_info));
+  dirs = alloca (numfiles * sizeof (struct dir_info));
 
-  /* Sort the file names.  */
-  for (i = 1; i < VARRAY_ACTIVE_SIZE (file_table); i++)
-    {
-      char *f;
+  fnad.files = files;
+  fnad.used_files = 0;
+  fnad.max_files = numfiles;
+  htab_traverse (file_table, file_name_acquire, &fnad);
+  gcc_assert (fnad.used_files == fnad.max_files);
 
-      /* Skip all leading "./".  */
-      f = VARRAY_CHAR_PTR (file_table, i);
-      while (f[0] == '.' && f[1] == '/')
-	f += 2;
-
-      /* Create a new array entry.  */
-      files[i].path = f;
-      files[i].length = strlen (f);
-      files[i].file_idx = i;
-
-      /* Search for the file name part.  */
-      f = strrchr (f, '/');
-      files[i].fname = f == NULL ? files[i].path : f + 1;
-    }
-
-  qsort (files + 1, VARRAY_ACTIVE_SIZE (file_table) - 1,
-	 sizeof (files[0]), file_info_cmp);
+  qsort (files, numfiles, sizeof (files[0]), file_info_cmp);
 
   /* Find all the different directories used.  */
-  dirs[0].path = files[1].path;
-  dirs[0].length = files[1].fname - files[1].path;
+  dirs[0].path = files[0].path;
+  dirs[0].length = files[0].fname - files[0].path;
   dirs[0].prefix = -1;
   dirs[0].count = 1;
   dirs[0].dir_idx = 0;
-  dirs[0].used = 0;
-  files[1].dir_idx = 0;
+  files[0].dir_idx = 0;
   ndirs = 1;
 
-  for (i = 2; i < VARRAY_ACTIVE_SIZE (file_table); i++)
+  for (i = 1; i < numfiles; i++)
     if (files[i].fname - files[i].path == dirs[ndirs - 1].length
 	&& memcmp (dirs[ndirs - 1].path, files[i].path,
 		   dirs[ndirs - 1].length) == 0)
@@ -7618,14 +7731,13 @@ output_file_names (void)
       }
     else
       {
-	size_t j;
+	int j;
 
 	/* This is a new directory.  */
 	dirs[ndirs].path = files[i].path;
 	dirs[ndirs].length = files[i].fname - files[i].path;
 	dirs[ndirs].count = 1;
 	dirs[ndirs].dir_idx = ndirs;
-	dirs[ndirs].used = 0;
 	files[i].dir_idx = ndirs;
 
 	/* Search for a prefix.  */
@@ -7653,7 +7765,7 @@ output_file_names (void)
   memset (saved, '\0', ndirs * sizeof (saved[0]));
   for (i = 0; i < ndirs; i++)
     {
-      size_t j;
+      int j;
       int total;
 
       /* We can always save some space for the current directory.  But this
@@ -7676,7 +7788,7 @@ output_file_names (void)
 
 	      if (k == (int) i)
 		{
-		  /* Yes it is.  We can possibly safe some memory but
+		  /* Yes it is.  We can possibly save some memory by
 		     writing the filenames in dirs[j] relative to
 		     dirs[i].  */
 		  savehere[j] = dirs[i].length;
@@ -7685,7 +7797,7 @@ output_file_names (void)
 	    }
 	}
 
-      /* Check whether we can safe enough to justify adding the dirs[i]
+      /* Check whether we can save enough to justify adding the dirs[i]
 	 directory.  */
       if (total > dirs[i].length + 1)
 	{
@@ -7702,51 +7814,33 @@ output_file_names (void)
 	}
     }
 
-  /* We have to emit them in the order they appear in the file_table array
-     since the index is used in the debug info generation.  To do this
-     efficiently we generate a back-mapping of the indices first.  */
-  backmap = alloca (VARRAY_ACTIVE_SIZE (file_table) * sizeof (int));
-  for (i = 1; i < VARRAY_ACTIVE_SIZE (file_table); i++)
-    {
-      backmap[files[i].file_idx] = i;
-
-      /* Mark this directory as used.  */
-      dirs[dirs[files[i].dir_idx].dir_idx].used = 1;
-    }
-
-  /* That was it.  We are ready to emit the information.  First emit the
-     directory name table.  We have to make sure the first actually emitted
-     directory name has index one; zero is reserved for the current working
-     directory.  Make sure we do not confuse these indices with the one for the
-     constructed table (even though most of the time they are identical).  */
+  /* Emit the directory name table.  */
   idx = 1;
   idx_offset = dirs[0].length > 0 ? 1 : 0;
   for (i = 1 - idx_offset; i < ndirs; i++)
-    if (dirs[i].used != 0)
-      {
-	dirs[i].used = idx++;
-	dw2_asm_output_nstring (dirs[i].path, dirs[i].length - 1,
-				"Directory Entry: 0x%x", dirs[i].used);
-      }
+    dw2_asm_output_nstring (dirs[i].path, dirs[i].length - 1,
+			    "Directory Entry: 0x%x", i + idx_offset);
 
   dw2_asm_output_data (1, 0, "End directory table");
 
-  /* Correct the index for the current working directory entry if it
-     exists.  */
-  if (idx_offset == 0)
-    dirs[0].used = 0;
+  /* We have to emit them in the order of emitted_number since that's
+     used in the debug info generation.  To do this efficiently we
+     generate a back-mapping of the indices first.  */
+  backmap = alloca (numfiles * sizeof (int));
+  for (i = 0; i < numfiles; i++)
+    backmap[files[i].file_idx->emitted_number - 1] = i;
 
   /* Now write all the file names.  */
-  for (i = 1; i < VARRAY_ACTIVE_SIZE (file_table); i++)
+  for (i = 0; i < numfiles; i++)
     {
       int file_idx = backmap[i];
       int dir_idx = dirs[files[file_idx].dir_idx].dir_idx;
 
       dw2_asm_output_nstring (files[file_idx].path + dirs[dir_idx].length, -1,
-			      "File Entry: 0x%lx", (unsigned long) i);
+			      "File Entry: 0x%x", (unsigned) i + 1);
 
       /* Include directory index.  */
-      dw2_asm_output_data_uleb128 (dirs[dir_idx].used, NULL);
+      dw2_asm_output_data_uleb128 (dir_idx + idx_offset, NULL);
 
       /* Modification time.  */
       dw2_asm_output_data_uleb128 (0, NULL);
@@ -7902,9 +7996,7 @@ output_line_info (void)
 	{
 	  current_file = line_info->dw_file_num;
 	  dw2_asm_output_data (1, DW_LNS_set_file, "DW_LNS_set_file");
-	  dw2_asm_output_data_uleb128 (current_file, "(\"%s\")",
-				       VARRAY_CHAR_PTR (file_table,
-							current_file));
+	  dw2_asm_output_data_uleb128 (current_file, "%lu", current_file);
 	}
 
       /* Emit debug info for the current line number, choosing the encoding
@@ -8011,9 +8103,7 @@ output_line_info (void)
 	{
 	  current_file = line_info->dw_file_num;
 	  dw2_asm_output_data (1, DW_LNS_set_file, "DW_LNS_set_file");
-	  dw2_asm_output_data_uleb128 (current_file, "(\"%s\")",
-				       VARRAY_CHAR_PTR (file_table,
-							current_file));
+	  dw2_asm_output_data_uleb128 (current_file, "%lu", current_file);
 	}
 
       /* Emit debug info for the current line number, choosing the encoding
@@ -9077,6 +9167,7 @@ loc_descriptor_from_tree_1 (tree loc, int want_address)
       /* FALLTHRU */
 
     case RESULT_DECL:
+    case FUNCTION_DECL:
       {
 	rtx rtl = rtl_for_decl_location (loc);
 
@@ -9942,10 +10033,13 @@ rtl_for_decl_init (tree init, tree type)
 	rtl = gen_rtx_CONST_STRING (VOIDmode,
 				    ggc_strdup (TREE_STRING_POINTER (init)));
     }
-  /* Although DWARF could easily handle other kinds of aggregates, we
-     have no way to represent such values as RTL constants, so skip
-     those.  */
-  else if (AGGREGATE_TYPE_P (type))
+  /* Other aggregates, and complex values, could be represented using
+     CONCAT: FIXME!  */
+  else if (AGGREGATE_TYPE_P (type) || TREE_CODE (type) == COMPLEX_TYPE)
+    ;
+  /* Vectors only work if their mode is supported by the target.  
+     FIXME: generic vectors ought to work too.  */
+  else if (TREE_CODE (type) == VECTOR_TYPE && TYPE_MODE (type) == BLKmode)
     ;
   /* If the initializer is something that we know will expand into an
      immediate RTL constant, expand it now.  We must be careful not to
@@ -10380,6 +10474,7 @@ convert_cfa_to_fb_loc_list (HOST_WIDE_INT offset)
   for (cfi = fde->dw_fde_cfi; cfi; cfi = cfi->dw_cfi_next)
     switch (cfi->dw_cfi_opc)
       {
+      case DW_CFA_set_loc:
       case DW_CFA_advance_loc1:
       case DW_CFA_advance_loc2:
       case DW_CFA_advance_loc4:
@@ -10825,9 +10920,8 @@ static void
 add_src_coords_attributes (dw_die_ref die, tree decl)
 {
   expanded_location s = expand_location (DECL_SOURCE_LOCATION (decl));
-  unsigned file_index = lookup_filename (s.file);
 
-  add_AT_unsigned (die, DW_AT_decl_file, file_index);
+  add_AT_file (die, DW_AT_decl_file, lookup_filename (s.file));
   add_AT_unsigned (die, DW_AT_decl_line, s.line);
 }
 
@@ -11457,6 +11551,7 @@ dwarf2out_abstract_function (tree decl)
 {
   dw_die_ref old_die;
   tree save_fn;
+  struct function *save_cfun;
   tree context;
   int was_abstract = DECL_ABSTRACT (decl);
 
@@ -11480,7 +11575,9 @@ dwarf2out_abstract_function (tree decl)
 
   /* Pretend we've just finished compiling this function.  */
   save_fn = current_function_decl;
+  save_cfun = cfun;
   current_function_decl = decl;
+  cfun = DECL_STRUCT_FUNCTION (decl);
 
   set_decl_abstract_flags (decl, 1);
   dwarf2out_decl (decl);
@@ -11488,6 +11585,7 @@ dwarf2out_abstract_function (tree decl)
     set_decl_abstract_flags (decl, 0);
 
   current_function_decl = save_fn;
+  cfun = save_cfun;
 }
 
 /* Helper function of premark_used_types() which gets called through
@@ -11531,7 +11629,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
   int declaration = (current_function_decl != decl
 		     || class_or_namespace_scope_p (context_die));
 
-  premark_used_types();
+  premark_used_types ();
 
   /* It is possible to have both DECL_ABSTRACT and DECLARATION be true if we
      started to generate the abstract instance of an inline, decided to output
@@ -11569,7 +11667,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
   else if (old_die)
     {
       expanded_location s = expand_location (DECL_SOURCE_LOCATION (decl));
-      unsigned file_index = lookup_filename (s.file);
+      struct dwarf_file_data * file_index = lookup_filename (s.file);
 
       if (!get_AT_flag (old_die, DW_AT_declaration)
 	  /* We can have a normal definition following an inline one in the
@@ -11591,7 +11689,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	 apply; we just use the old DIE.  */
       if ((old_die->die_parent == comp_unit_die || context_die == NULL)
 	  && (DECL_ARTIFICIAL (decl)
-	      || (get_AT_unsigned (old_die, DW_AT_decl_file) == file_index
+	      || (get_AT_file (old_die, DW_AT_decl_file) == file_index
 		  && (get_AT_unsigned (old_die, DW_AT_decl_line)
 		      == (unsigned) s.line))))
 	{
@@ -11609,12 +11707,10 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	{
 	  subr_die = new_die (DW_TAG_subprogram, context_die, decl);
 	  add_AT_specification (subr_die, old_die);
-	  if (get_AT_unsigned (old_die, DW_AT_decl_file) != file_index)
-	    add_AT_unsigned (subr_die, DW_AT_decl_file, file_index);
-	  if (get_AT_unsigned (old_die, DW_AT_decl_line)
-	      != (unsigned) s.line)
-	    add_AT_unsigned
-	      (subr_die, DW_AT_decl_line, s.line);
+	  if (get_AT_file (old_die, DW_AT_decl_file) != file_index)
+	    add_AT_file (subr_die, DW_AT_decl_file, file_index);
+	  if (get_AT_unsigned (old_die, DW_AT_decl_line) != (unsigned) s.line)
+	    add_AT_unsigned (subr_die, DW_AT_decl_line, s.line);
 	}
     }
   else
@@ -11903,13 +11999,12 @@ gen_variable_die (tree decl, dw_die_ref context_die)
       if (DECL_NAME (decl))
 	{
 	  expanded_location s = expand_location (DECL_SOURCE_LOCATION (decl));
-	  unsigned file_index = lookup_filename (s.file);
+	  struct dwarf_file_data * file_index = lookup_filename (s.file);
 
-	  if (get_AT_unsigned (old_die, DW_AT_decl_file) != file_index)
-	    add_AT_unsigned (var_die, DW_AT_decl_file, file_index);
+	  if (get_AT_file (old_die, DW_AT_decl_file) != file_index)
+	    add_AT_file (var_die, DW_AT_decl_file, file_index);
 
-	  if (get_AT_unsigned (old_die, DW_AT_decl_line)
-	      != (unsigned) s.line)
+	  if (get_AT_unsigned (old_die, DW_AT_decl_line) != (unsigned) s.line)
 
 	    add_AT_unsigned (var_die, DW_AT_decl_line, s.line);
 	}
@@ -11997,9 +12092,8 @@ static inline void
 add_call_src_coords_attributes (tree stmt, dw_die_ref die)
 {
   expanded_location s = expand_location (BLOCK_SOURCE_LOCATION (stmt));
-  unsigned file_index = lookup_filename (s.file);
 
-  add_AT_unsigned (die, DW_AT_call_file, file_index);
+  add_AT_file (die, DW_AT_call_file, lookup_filename (s.file));
   add_AT_unsigned (die, DW_AT_call_line, s.line);
 }
 
@@ -13185,7 +13279,6 @@ dwarf2out_imported_module_or_decl (tree decl, tree context)
 {
   dw_die_ref imported_die, at_import_die;
   dw_die_ref scope_die;
-  unsigned file_index;
   expanded_location xloc;
 
   if (debug_info_level <= DINFO_LEVEL_TERSE)
@@ -13241,8 +13334,7 @@ dwarf2out_imported_module_or_decl (tree decl, tree context)
     imported_die = new_die (DW_TAG_imported_declaration, scope_die, context);
 
   xloc = expand_location (input_location);
-  file_index = lookup_filename (xloc.file);
-  add_AT_unsigned (imported_die, DW_AT_decl_file, file_index);
+  add_AT_file (imported_die, DW_AT_decl_file, lookup_filename (xloc.file));
   add_AT_unsigned (imported_die, DW_AT_decl_line, xloc.line);
   add_AT_die_ref (imported_die, DW_AT_import, at_import_die);
 }
@@ -13406,6 +13498,23 @@ dwarf2out_ignore_block (tree block)
   return 1;
 }
 
+/* Hash table routines for file_hash.  */
+
+static int
+file_table_eq (const void *p1_p, const void *p2_p)
+{
+  const struct dwarf_file_data * p1 = p1_p;
+  const char * p2 = p2_p;
+  return strcmp (p1->filename, p2) == 0;
+}
+
+static hashval_t
+file_table_hash (const void *p_p)
+{
+  const struct dwarf_file_data * p = p_p;
+  return htab_hash_string (p->filename);
+}
+
 /* Lookup FILE_NAME (in the list of filenames that we know about here in
    dwarf2out.c) and return its "index".  The index of each (known) filename is
    just a unique number which is associated with only that one filename.  We
@@ -13417,46 +13526,30 @@ dwarf2out_ignore_block (tree block)
    the index of the filename was looked up last.  This handles the majority of
    all searches.  */
 
-static unsigned
+static struct dwarf_file_data *
 lookup_filename (const char *file_name)
 {
-  size_t i, n;
-  char *save_file_name;
+  void ** slot;
+  struct dwarf_file_data * created;
 
   /* Check to see if the file name that was searched on the previous
      call matches this file name.  If so, return the index.  */
-  if (file_table_last_lookup_index != 0)
-    {
-      const char *last
-	= VARRAY_CHAR_PTR (file_table, file_table_last_lookup_index);
-      if (strcmp (file_name, last) == 0)
-	return file_table_last_lookup_index;
-    }
+  if (file_table_last_lookup
+      && (file_name == file_table_last_lookup->filename
+	  || strcmp (file_table_last_lookup->filename, file_name) == 0))
+    return file_table_last_lookup;
 
   /* Didn't match the previous lookup, search the table.  */
-  n = VARRAY_ACTIVE_SIZE (file_table);
-  for (i = 1; i < n; i++)
-    if (strcmp (file_name, VARRAY_CHAR_PTR (file_table, i)) == 0)
-      {
-	file_table_last_lookup_index = i;
-	return i;
-      }
+  slot = htab_find_slot_with_hash (file_table, file_name,
+				   htab_hash_string (file_name), INSERT);
+  if (*slot)
+    return *slot;
 
-  /* Add the new entry to the end of the filename table.  */
-  file_table_last_lookup_index = n;
-  save_file_name = (char *) ggc_strdup (file_name);
-  VARRAY_PUSH_CHAR_PTR (file_table, save_file_name);
-  VARRAY_PUSH_UINT (file_table_emitted, 0);
-
-  /* If the assembler is emitting the file table, and we aren't eliminating
-     unused debug types, then we must emit .file here.  If we are eliminating
-     unused debug types, then this will be done by the maybe_emit_file call in
-     prune_unused_types_walk_attribs.  */
-
-  if (DWARF2_ASM_LINE_DEBUG_INFO && ! flag_eliminate_unused_debug_types)
-    return maybe_emit_file (i);
-
-  return i;
+  created = ggc_alloc (sizeof (struct dwarf_file_data));
+  created->filename = file_name;
+  created->emitted_number = 0;
+  *slot = created;
+  return created;
 }
 
 /* If the assembler will construct the file table, then translate the compiler
@@ -13466,38 +13559,25 @@ lookup_filename (const char *file_name)
    types, which may include filenames.  */
 
 static int
-maybe_emit_file (int fileno)
+maybe_emit_file (struct dwarf_file_data * fd)
 {
-  if (DWARF2_ASM_LINE_DEBUG_INFO && fileno > 0)
+  if (! fd->emitted_number)
     {
-      if (!VARRAY_UINT (file_table_emitted, fileno))
+      if (last_emitted_file)
+	fd->emitted_number = last_emitted_file->emitted_number + 1;
+      else
+	fd->emitted_number = 1;
+      last_emitted_file = fd;
+      
+      if (DWARF2_ASM_LINE_DEBUG_INFO)
 	{
-	  VARRAY_UINT (file_table_emitted, fileno) = ++emitcount;
-	  fprintf (asm_out_file, "\t.file %u ",
-		   VARRAY_UINT (file_table_emitted, fileno));
-	  output_quoted_string (asm_out_file,
-				VARRAY_CHAR_PTR (file_table, fileno));
+	  fprintf (asm_out_file, "\t.file %u ", fd->emitted_number);
+	  output_quoted_string (asm_out_file, fd->filename);
 	  fputc ('\n', asm_out_file);
 	}
-      return VARRAY_UINT (file_table_emitted, fileno);
     }
-  else
-    return fileno;
-}
-
-/* Initialize the compiler internal file table.  */
-
-static void
-init_file_table (void)
-{
-  /* Allocate the initial hunk of the file_table.  */
-  VARRAY_CHAR_PTR_INIT (file_table, 64, "file_table");
-  VARRAY_UINT_INIT (file_table_emitted, 64, "file_table_emitted");
-
-  /* Skip the first entry - file numbers begin at 1.  */
-  VARRAY_PUSH_CHAR_PTR (file_table, NULL);
-  VARRAY_PUSH_UINT (file_table_emitted, 0);
-  file_table_last_lookup_index = 0;
+  
+  return fd->emitted_number;
 }
 
 /* Called by the final INSN scan whenever we see a var location.  We
@@ -13547,9 +13627,6 @@ dwarf2out_var_location (rtx loc_note)
   last_insn = loc_note;
   last_label = newloc->label;
   decl = NOTE_VAR_LOCATION_DECL (loc_note);
-  if (DECL_DEBUG_EXPR_IS_FROM (decl) && DECL_DEBUG_EXPR (decl) 
-      && DECL_P (DECL_DEBUG_EXPR (decl)))
-    decl = DECL_DEBUG_EXPR (decl); 
   add_var_loc_to_decl (decl, newloc);
 }
 
@@ -13577,6 +13654,8 @@ dwarf2out_source_line (unsigned int line, const char *filename)
   if (debug_info_level >= DINFO_LEVEL_NORMAL
       && line != 0)
     {
+      int file_num = maybe_emit_file (lookup_filename (filename));
+      
       switch_to_section (current_function_section ());
 
       /* If requested, emit something human-readable.  */
@@ -13586,10 +13665,6 @@ dwarf2out_source_line (unsigned int line, const char *filename)
 
       if (DWARF2_ASM_LINE_DEBUG_INFO)
 	{
-	  unsigned file_num = lookup_filename (filename);
-
-	  file_num = maybe_emit_file (file_num);
-
 	  /* Emit the .loc directive understood by GNU as.  */
 	  fprintf (asm_out_file, "\t.loc %d %d 0\n", file_num, line);
 
@@ -13599,8 +13674,9 @@ dwarf2out_source_line (unsigned int line, const char *filename)
       else if (function_section (current_function_decl) != text_section)
 	{
 	  dw_separate_line_info_ref line_info;
-	  targetm.asm_out.internal_label (asm_out_file, SEPARATE_LINE_CODE_LABEL,
-				     separate_line_info_table_in_use);
+	  targetm.asm_out.internal_label (asm_out_file, 
+					  SEPARATE_LINE_CODE_LABEL,
+					  separate_line_info_table_in_use);
 
 	  /* Expand the line info table if necessary.  */
 	  if (separate_line_info_table_in_use
@@ -13621,7 +13697,7 @@ dwarf2out_source_line (unsigned int line, const char *filename)
 	  /* Add the new entry at the end of the line_info_table.  */
 	  line_info
 	    = &separate_line_info_table[separate_line_info_table_in_use++];
-	  line_info->dw_file_num = lookup_filename (filename);
+	  line_info->dw_file_num = file_num;
 	  line_info->dw_line_num = line;
 	  line_info->function = current_function_funcdef_no;
 	}
@@ -13646,7 +13722,7 @@ dwarf2out_source_line (unsigned int line, const char *filename)
 
 	  /* Add the new entry at the end of the line_info_table.  */
 	  line_info = &line_info_table[line_info_table_in_use++];
-	  line_info->dw_file_num = lookup_filename (filename);
+	  line_info->dw_file_num = file_num;
 	  line_info->dw_line_num = line;
 	}
     }
@@ -13668,15 +13744,14 @@ dwarf2out_start_source_file (unsigned int lineno, const char *filename)
 
   if (debug_info_level >= DINFO_LEVEL_VERBOSE)
     {
-      int fileno;
+      int file_num = maybe_emit_file (lookup_filename (filename));
 
       switch_to_section (debug_macinfo_section);
       dw2_asm_output_data (1, DW_MACINFO_start_file, "Start new file");
       dw2_asm_output_data_uleb128 (lineno, "Included from line number %d",
 				   lineno);
 
-      fileno = maybe_emit_file (lookup_filename (filename));
-      dw2_asm_output_data_uleb128 (fileno, "Filename we just started");
+      dw2_asm_output_data_uleb128 (file_num, "file %s", filename);
     }
 }
 
@@ -13735,7 +13810,9 @@ dwarf2out_undef (unsigned int lineno ATTRIBUTE_UNUSED,
 static void
 dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
 {
-  init_file_table ();
+  /* Allocate the file_table.  */
+  file_table = htab_create_ggc (50, file_table_hash,
+				file_table_eq, NULL);
 
   /* Allocate the decl_die_table.  */
   decl_die_table = htab_create_ggc (10, decl_die_table_hash,
@@ -13895,12 +13972,6 @@ prune_unused_types_walk_attribs (dw_die_ref die)
 	     Make sure that it will get emitted.  */
 	  prune_unused_types_mark (a->dw_attr_val.v.val_die_ref.die, 1);
 	}
-      else if (a->dw_attr == DW_AT_decl_file || a->dw_attr == DW_AT_call_file)
-	{
-	  /* A reference to a file.  Make sure the file name is emitted.  */
-	  a->dw_attr_val.v.val_unsigned =
-	    maybe_emit_file (a->dw_attr_val.v.val_unsigned);
-	}
       /* Set the string's refcount to 0 so that prune_unused_types_mark
 	 accounts properly for it.  */
       if (AT_class (a) == dw_val_class_str)
@@ -14040,6 +14111,7 @@ prune_unused_types_prune (dw_die_ref die)
   dw_die_ref c;
 
   gcc_assert (die->die_mark);
+  prune_unused_types_update_strings (die);
 
   if (! die->die_child)
     return;
@@ -14064,7 +14136,6 @@ prune_unused_types_prune (dw_die_ref die)
 
     if (c != prev->die_sib)
       prev->die_sib = c;
-    prune_unused_types_update_strings (c);
     prune_unused_types_prune (c);
   } while (c != die->die_child);
 }
@@ -14110,6 +14181,21 @@ prune_unused_types (void)
     prune_unmark_dies (node->die);
 }
 
+/* Set the parameter to true if there are any relative pathnames in
+   the file table.  */
+static int
+file_table_relative_p (void ** slot, void *param)
+{
+  bool *p = param;
+  struct dwarf_file_data *d = *slot;
+  if (d->emitted_number && d->filename[0] != DIR_SEPARATOR)
+    {
+      *p = true;
+      return 0;
+    }
+  return 1;
+}
+
 /* Output stuff that dwarf requires at the end of every file,
    and generate the DWARF-2 debugging info.  */
 
@@ -14126,15 +14212,10 @@ dwarf2out_finish (const char *filename)
     add_comp_dir_attribute (comp_unit_die);
   else if (get_AT (comp_unit_die, DW_AT_comp_dir) == NULL)
     {
-      size_t i;
-      for (i = 1; i < VARRAY_ACTIVE_SIZE (file_table); i++)
-	if (VARRAY_CHAR_PTR (file_table, i)[0] != DIR_SEPARATOR
-	    /* Don't add cwd for <built-in>.  */
-	    && VARRAY_CHAR_PTR (file_table, i)[0] != '<')
-	  {
-	    add_comp_dir_attribute (comp_unit_die);
-	    break;
-	  }
+      bool p = false;
+      htab_traverse (file_table, file_table_relative_p, &p);
+      if (p)
+	add_comp_dir_attribute (comp_unit_die);
     }
 
   /* Traverse the limbo die list, and add parent/child links.  The only
@@ -14219,17 +14300,6 @@ dwarf2out_finish (const char *filename)
       targetm.asm_out.internal_label (asm_out_file, COLD_END_LABEL, 0);
     }
 
-  /* Output the source line correspondence table.  We must do this
-     even if there is no line information.  Otherwise, on an empty
-     translation unit, we will generate a present, but empty,
-     .debug_info section.  IRIX 6.5 `nm' will then complain when
-     examining the file.  */
-  if (! DWARF2_ASM_LINE_DEBUG_INFO)
-    {
-      switch_to_section (debug_line_section);
-      output_line_info ();
-    }
-
   /* We can only use the low/high_pc attributes if all of the code was
      in .text.  */
   if (!have_multiple_function_sections)
@@ -14293,6 +14363,18 @@ dwarf2out_finish (const char *filename)
       switch_to_section (debug_ranges_section);
       ASM_OUTPUT_LABEL (asm_out_file, ranges_section_label);
       output_ranges ();
+    }
+
+  /* Output the source line correspondence table.  We must do this
+     even if there is no line information.  Otherwise, on an empty
+     translation unit, we will generate a present, but empty,
+     .debug_info section.  IRIX 6.5 `nm' will then complain when
+     examining the file.  This is done late so that any filenames
+     used by the debug_info section are marked as 'used'.  */
+  if (! DWARF2_ASM_LINE_DEBUG_INFO)
+    {
+      switch_to_section (debug_line_section);
+      output_line_info ();
     }
 
   /* Have to end the macro section.  */

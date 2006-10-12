@@ -41,8 +41,8 @@
 
 /**
  * @file erase_no_store_hash_fn_imps.hpp
- * Contains implementations of cc_ht_map_'s erase related functions, when the hash
- *    value is not stored.
+ * Contains implementations of cc_ht_map_'s erase related functions,
+ * when the hash value is not stored.
  */
 
 PB_DS_CLASS_T_DEC
@@ -50,10 +50,8 @@ inline bool
 PB_DS_CLASS_C_DEC::
 erase(const_key_reference r_key)
 {
-  PB_DS_DBG_ONLY(assert_valid();)
-
-    return (erase_in_pos_imp(r_key,
-			     ranged_hash_fn_base::operator()(r_key)));
+  _GLIBCXX_DEBUG_ONLY(assert_valid();)
+  return erase_in_pos_imp(r_key, ranged_hash_fn_base::operator()(r_key));
 }
 
 PB_DS_CLASS_T_DEC
@@ -61,78 +59,48 @@ inline bool
 PB_DS_CLASS_C_DEC::
 erase_in_pos_imp(const_key_reference r_key, size_type pos)
 {
-  PB_DS_DBG_ONLY(assert_valid();)
-
-    entry_pointer p_e = m_a_p_entries[pos];
-
+  _GLIBCXX_DEBUG_ONLY(assert_valid();)
+  entry_pointer p_e = m_entries[pos];
   resize_base::notify_erase_search_start();
-
   if (p_e == NULL)
     {
       resize_base::notify_erase_search_end();
-
-      PB_DS_DBG_ONLY(map_debug_base::check_key_does_not_exist(
-							      r_key);)
-
-        PB_DS_DBG_ONLY(assert_valid();)
-
-        return (false);
+      _GLIBCXX_DEBUG_ONLY(map_debug_base::check_key_does_not_exist(r_key);)
+      _GLIBCXX_DEBUG_ONLY(assert_valid();)
+      return false;
     }
 
-  if (hash_eq_fn_base::operator()(
-				  PB_DS_V2F(p_e->m_value),
-				  r_key))
+  if (hash_eq_fn_base::operator()(PB_DS_V2F(p_e->m_value), r_key))
     {
       resize_base::notify_erase_search_end();
-
-      PB_DS_DBG_ONLY(map_debug_base::
-		     check_key_exists(r_key);)
-
-        erase_entry_pointer(m_a_p_entries[pos]);
-
+      _GLIBCXX_DEBUG_ONLY(map_debug_base:: check_key_exists(r_key);)
+      erase_entry_pointer(m_entries[pos]);
       do_resize_if_needed_no_throw();
-
-      PB_DS_DBG_ONLY(assert_valid();)
-
-        return (true);
+      _GLIBCXX_DEBUG_ONLY(assert_valid();)
+      return true;
     }
 
   while (true)
     {
       entry_pointer p_next_e = p_e->m_p_next;
-
       if (p_next_e == NULL)
         {
 	  resize_base::notify_erase_search_end();
-
-	  PB_DS_DBG_ONLY(map_debug_base::
-			 check_key_does_not_exist(r_key);)
-
-            PB_DS_DBG_ONLY(assert_valid();)
-
-            return (false);
+	  _GLIBCXX_DEBUG_ONLY(map_debug_base::check_key_does_not_exist(r_key);)
+          _GLIBCXX_DEBUG_ONLY(assert_valid();)
+          return false;
         }
 
-      if (hash_eq_fn_base::operator()(
-				      PB_DS_V2F(p_next_e->m_value),
-				      r_key))
+      if (hash_eq_fn_base::operator()(PB_DS_V2F(p_next_e->m_value), r_key))
         {
 	  resize_base::notify_erase_search_end();
-
-	  PB_DS_DBG_ONLY(map_debug_base::
-			 check_key_exists(r_key);)
-
-            erase_entry_pointer(p_e->m_p_next);
-
+	  _GLIBCXX_DEBUG_ONLY(map_debug_base::check_key_exists(r_key);)
+          erase_entry_pointer(p_e->m_p_next);
 	  do_resize_if_needed_no_throw();
-
-	  PB_DS_DBG_ONLY(assert_valid();)
-
-            return (true);
+	  _GLIBCXX_DEBUG_ONLY(assert_valid();)
+          return true;
         }
-
       resize_base::notify_erase_search_collision();
-
       p_e = p_next_e;
     }
 }

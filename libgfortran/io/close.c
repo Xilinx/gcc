@@ -103,5 +103,6 @@ st_close (st_parameter_close *clp)
 #endif
     }
 
+  /* CLOSE on unconnected unit is legal and a no-op: F95 std., 9.3.5. */ 
   library_end ();
 }

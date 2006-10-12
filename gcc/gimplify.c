@@ -955,73 +955,73 @@ gimple_build_eh_filter (tree body, tree allowed, tree failure)
 tree
 voidify_wrapper_expr (tree wrapper, tree temp)
 {
-  if (!VOID_TYPE_P (TREE_TYPE (wrapper)))
+  tree type = TREE_TYPE (wrapper);
+  if (type && !VOID_TYPE_P (type))
     {
-      tree *p, sub = wrapper;
+      tree *p;
 
-    restart:
-      /* Set p to point to the body of the wrapper.  */
-      switch (TREE_CODE (sub))
+      /* Set p to point to the body of the wrapper.  Loop until we find
+	 something that isn't a wrapper.  */
+      for (p = &wrapper; p && *p; )
 	{
-	case BIND_EXPR:
-	  /* For a BIND_EXPR, the body is operand 1.  */
-	  p = &BIND_EXPR_BODY (sub);
-	  break;
-
-	default:
-	  p = &TREE_OPERAND (sub, 0);
-	  break;
-	}
-
-      /* Advance to the last statement.  Set all container types to void.  */
-      if (TREE_CODE (*p) == STATEMENT_LIST)
-	{
-	  tree_stmt_iterator i = tsi_last (*p);
-	  p = tsi_end_p (i) ? NULL : tsi_stmt_ptr (i);
-	}
-      else
-	{
-	  for (; TREE_CODE (*p) == COMPOUND_EXPR; p = &TREE_OPERAND (*p, 1))
+	  switch (TREE_CODE (*p))
 	    {
+	    case BIND_EXPR:
 	      TREE_SIDE_EFFECTS (*p) = 1;
 	      TREE_TYPE (*p) = void_type_node;
+	      /* For a BIND_EXPR, the body is operand 1.  */
+	      p = &BIND_EXPR_BODY (*p);
+	      break;
+
+	    case CLEANUP_POINT_EXPR:
+	    case TRY_FINALLY_EXPR:
+	    case TRY_CATCH_EXPR:
+	      TREE_SIDE_EFFECTS (*p) = 1;
+	      TREE_TYPE (*p) = void_type_node;
+	      p = &TREE_OPERAND (*p, 0);
+	      break;
+
+	    case STATEMENT_LIST:
+	      {
+		tree_stmt_iterator i = tsi_last (*p);
+		TREE_SIDE_EFFECTS (*p) = 1;
+		TREE_TYPE (*p) = void_type_node;
+		p = tsi_end_p (i) ? NULL : tsi_stmt_ptr (i);
+	      }
+	      break;
+
+	    case COMPOUND_EXPR:
+	      /* Advance to the last statement.  Set all container types to void.  */
+	      for (; TREE_CODE (*p) == COMPOUND_EXPR; p = &TREE_OPERAND (*p, 1))
+		{
+		  TREE_SIDE_EFFECTS (*p) = 1;
+		  TREE_TYPE (*p) = void_type_node;
+		}
+	      break;
+
+	    default:
+	      goto out;
 	    }
 	}
 
+    out:
       if (p == NULL || IS_EMPTY_STMT (*p))
-	;
-      /* Look through exception handling.  */
-      else if (TREE_CODE (*p) == TRY_FINALLY_EXPR
-	       || TREE_CODE (*p) == TRY_CATCH_EXPR)
+	temp = NULL_TREE;
+      else if (temp)
 	{
-	  sub = *p;
-	  goto restart;
-	}
-      /* The C++ frontend already did this for us.  */
-      else if (TREE_CODE (*p) == INIT_EXPR
-	       || TREE_CODE (*p) == TARGET_EXPR)
-	temp = TREE_OPERAND (*p, 0);
-      /* If we're returning a dereference, move the dereference
-	 outside the wrapper.  */
-      else if (TREE_CODE (*p) == INDIRECT_REF)
-	{
-	  tree ptr = TREE_OPERAND (*p, 0);
-	  temp = create_tmp_var (TREE_TYPE (ptr), "retval");
-	  *p = build2 (MODIFY_EXPR, TREE_TYPE (ptr), temp, ptr);
-	  temp = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (temp)), temp);
-	  /* If this is a BIND_EXPR for a const inline function, it might not
-	     have TREE_SIDE_EFFECTS set.  That is no longer accurate.  */
-	  TREE_SIDE_EFFECTS (wrapper) = 1;
+	  /* The wrapper is on the RHS of an assignment that we're pushing
+	     down.  */
+	  gcc_assert (TREE_CODE (temp) == INIT_EXPR
+		      || TREE_CODE (temp) == MODIFY_EXPR);
+	  TREE_OPERAND (temp, 1) = *p;
+	  *p = temp;
 	}
       else
 	{
-	  if (!temp)
-	    temp = create_tmp_var (TREE_TYPE (wrapper), "retval");
-	  *p = build2 (MODIFY_EXPR, TREE_TYPE (temp), temp, *p);
-	  TREE_SIDE_EFFECTS (wrapper) = 1;
+	  temp = create_tmp_var (type, "retval");
+	  *p = build2 (INIT_EXPR, type, temp, *p);
 	}
 
-      TREE_TYPE (wrapper) = void_type_node;
       return temp;
     }
 
@@ -1050,13 +1050,13 @@ build_stack_save_restore (tree *save, tree *restore)
 /* Gimplify a BIND_EXPR.  Just voidify and recurse.  */
 
 static enum gimplify_status
-gimplify_bind_expr (tree *expr_p, tree temp, tree *pre_p)
+gimplify_bind_expr (tree *expr_p, tree *pre_p)
 {
   tree bind_expr = *expr_p;
   bool old_save_stack = gimplify_ctxp->save_stack;
   tree t;
 
-  temp = voidify_wrapper_expr (bind_expr, temp);
+  tree temp = voidify_wrapper_expr (bind_expr, NULL);
 
   /* Mark variables seen in this bind expr.  */
   for (t = BIND_EXPR_VARS (bind_expr); t ; t = TREE_CHAIN (t))
@@ -1219,7 +1219,7 @@ gimplify_decl_expr (tree *stmt_p)
     {
       tree init = DECL_INITIAL (decl);
 
-      if (!TREE_CONSTANT (DECL_SIZE (decl)))
+      if (TREE_CODE (DECL_SIZE (decl)) != INTEGER_CST)
 	{
 	  /* This is a variable-sized decl.  Simplify its size and mark it
 	     for deferred expansion.  Note that mudflap depends on the format
@@ -1896,7 +1896,7 @@ gimplify_self_mod_expr (tree *expr_p, tree *pre_p, tree *post_p,
 			bool want_value)
 {
   enum tree_code code;
-  tree lhs, lvalue, rhs, t1;
+  tree lhs, lvalue, rhs, t1, post = NULL, *orig_post_p = post_p;
   bool postfix;
   enum tree_code arith_code;
   enum gimplify_status ret;
@@ -1912,6 +1912,11 @@ gimplify_self_mod_expr (tree *expr_p, tree *pre_p, tree *post_p,
     postfix = want_value;
   else
     postfix = false;
+
+  /* For postfix, make sure the inner expression's post side effects
+     are executed after side effects from this expression.  */
+  if (postfix)
+    post_p = &post;
 
   /* Add or subtract?  */
   if (code == PREINCREMENT_EXPR || code == POSTINCREMENT_EXPR)
@@ -1943,7 +1948,8 @@ gimplify_self_mod_expr (tree *expr_p, tree *pre_p, tree *post_p,
 
   if (postfix)
     {
-      gimplify_and_add (t1, post_p);
+      gimplify_and_add (t1, orig_post_p);
+      append_to_statement_list (post, orig_post_p);
       *expr_p = lhs;
       return GS_ALL_DONE;
     }
@@ -2670,9 +2676,8 @@ gimplify_init_ctor_preeval (tree *expr_p, tree *pre_p, tree *post_p,
       return;
     }
 
-  /* We can't preevaluate if the type contains a placeholder.  */
-  if (type_contains_placeholder_p (TREE_TYPE (*expr_p)))
-    return;
+  /* If this is a variable sized type, we must remember the size.  */
+  maybe_with_size_expr (expr_p);
 
   /* Gimplify the constructor element to something appropriate for the rhs
      of a MODIFY_EXPR.  Given that we know the lhs is an aggregate, we know
@@ -2696,7 +2701,7 @@ gimplify_init_ctor_preeval (tree *expr_p, tree *pre_p, tree *post_p,
 
   /* If this is of variable size, we have no choice but to assume it doesn't
      overlap since we can't make a temporary for it.  */
-  if (!TREE_CONSTANT (TYPE_SIZE (TREE_TYPE (*expr_p))))
+  if (TREE_CODE (TYPE_SIZE (TREE_TYPE (*expr_p))) != INTEGER_CST)
     return;
 
   /* Otherwise, we must search for overlap ...  */
@@ -2940,8 +2945,8 @@ gimplify_init_constructor (tree *expr_p, tree *pre_p,
       {
 	struct gimplify_init_ctor_preeval_data preeval_data;
 	HOST_WIDE_INT num_type_elements, num_ctor_elements;
-	HOST_WIDE_INT num_nonzero_elements, num_nonconstant_elements;
-	bool cleared;
+	HOST_WIDE_INT num_nonzero_elements;
+	bool cleared, valid_const_initializer;
 
 	/* Aggregate types must lower constructors to initialization of
 	   individual elements.  The exception is that a CONSTRUCTOR node
@@ -2949,13 +2954,16 @@ gimplify_init_constructor (tree *expr_p, tree *pre_p,
 	if (VEC_empty (constructor_elt, elts))
 	  break;
 
-	categorize_ctor_elements (ctor, &num_nonzero_elements,
-				  &num_nonconstant_elements,
-				  &num_ctor_elements, &cleared);
+	/* Fetch information about the constructor to direct later processing.
+	   We might want to make static versions of it in various cases, and
+	   can only do so if it known to be a valid constant initializer.  */
+	valid_const_initializer
+	  = categorize_ctor_elements (ctor, &num_nonzero_elements,
+				      &num_ctor_elements, &cleared);
 
 	/* If a const aggregate variable is being initialized, then it
 	   should never be a lose to promote the variable to be static.  */
-	if (num_nonconstant_elements == 0
+	if (valid_const_initializer
 	    && num_nonzero_elements > 1
 	    && TREE_READONLY (object)
 	    && TREE_CODE (object) == VAR_DECL)
@@ -3012,7 +3020,7 @@ gimplify_init_constructor (tree *expr_p, tree *pre_p,
 	   for sparse arrays, though, as it's more efficient to follow
 	   the standard CONSTRUCTOR behavior of memset followed by
 	   individual element initialization.  */
-	if (num_nonconstant_elements == 0 && !cleared)
+	if (valid_const_initializer && !cleared)
 	  {
 	    HOST_WIDE_INT size = int_size_in_bytes (type);
 	    unsigned int align;
@@ -3058,6 +3066,20 @@ gimplify_init_constructor (tree *expr_p, tree *pre_p,
 	      }
 	  }
 
+	/* If there are nonzero elements, pre-evaluate to capture elements
+	   overlapping with the lhs into temporaries.  We must do this before
+	   clearing to fetch the values before they are zeroed-out.  */
+	if (num_nonzero_elements > 0)
+	  {
+	    preeval_data.lhs_base_decl = get_base_address (object);
+	    if (!DECL_P (preeval_data.lhs_base_decl))
+	      preeval_data.lhs_base_decl = NULL;
+	    preeval_data.lhs_alias_set = get_alias_set (object);
+
+	    gimplify_init_ctor_preeval (&TREE_OPERAND (*expr_p, 1),
+					pre_p, post_p, &preeval_data);
+	  }
+
 	if (cleared)
 	  {
 	    /* Zap the CONSTRUCTOR element list, which simplifies this case.
@@ -3073,16 +3095,7 @@ gimplify_init_constructor (tree *expr_p, tree *pre_p,
 	   elements in the constructor, add assignments to the individual
 	   scalar fields of the object.  */
 	if (!cleared || num_nonzero_elements > 0)
-	  {
-	    preeval_data.lhs_base_decl = get_base_address (object);
-	    if (!DECL_P (preeval_data.lhs_base_decl))
-	      preeval_data.lhs_base_decl = NULL;
-	    preeval_data.lhs_alias_set = get_alias_set (object);
-
-	    gimplify_init_ctor_preeval (&TREE_OPERAND (*expr_p, 1),
-					pre_p, post_p, &preeval_data);
-	    gimplify_init_ctor_eval (object, elts, pre_p, cleared);
-	  }
+	  gimplify_init_ctor_eval (object, elts, pre_p, cleared);
 
 	*expr_p = NULL_TREE;
       }
@@ -3400,6 +3413,33 @@ gimplify_modify_expr_rhs (tree *expr_p, tree *from_p, tree *to_p, tree *pre_p,
 	ret = GS_UNHANDLED;
 	break;
 
+	/* If we're initializing from a container, push the initialization
+	   inside it.  */
+      case CLEANUP_POINT_EXPR:
+      case BIND_EXPR:
+      case STATEMENT_LIST:
+	{
+	  tree wrap = *from_p;
+	  tree t;
+
+	  ret = gimplify_expr (to_p, pre_p, post_p,
+			       is_gimple_min_lval, fb_lvalue);
+	  if (ret != GS_ERROR)
+	    ret = GS_OK;
+
+	  t = voidify_wrapper_expr (wrap, *expr_p);
+	  gcc_assert (t == *expr_p);
+
+	  if (want_value)
+	    {
+	      gimplify_and_add (wrap, pre_p);
+	      *expr_p = unshare_expr (*to_p);
+	    }
+	  else
+	    *expr_p = wrap;
+	  return GS_OK;
+	}
+	
       default:
 	ret = GS_UNHANDLED;
 	break;
@@ -3673,8 +3713,10 @@ gimplify_compound_expr (tree *expr_p, tree *pre_p, bool want_value)
    enlightened front-end, or by shortcut_cond_expr.  */
 
 static enum gimplify_status
-gimplify_statement_list (tree *expr_p)
+gimplify_statement_list (tree *expr_p, tree *pre_p)
 {
+  tree temp = voidify_wrapper_expr (*expr_p, NULL);
+
   tree_stmt_iterator i = tsi_start (*expr_p);
 
   while (!tsi_end_p (i))
@@ -3693,6 +3735,13 @@ gimplify_statement_list (tree *expr_p)
 	}
       else
 	tsi_next (&i);
+    }
+
+  if (temp)
+    {
+      append_to_statement_list (*expr_p, pre_p);
+      *expr_p = temp;
+      return GS_OK;
     }
 
   return GS_ALL_DONE;
@@ -4176,16 +4225,9 @@ gimplify_target_expr (tree *expr_p, tree *pre_p, tree *post_p)
 	ret = gimplify_expr (&init, pre_p, post_p, is_gimple_stmt, fb_none);
       else
 	{
-          /* Special handling for BIND_EXPR can result in fewer temps.  */
-	  ret = GS_OK;
-          if (TREE_CODE (init) == BIND_EXPR)
-	    gimplify_bind_expr (&init, temp, pre_p);
-	  if (init != temp)
-	    {
-	      init = build2 (INIT_EXPR, void_type_node, temp, init);
-	      ret = gimplify_expr (&init, pre_p, post_p, is_gimple_stmt,
-				   fb_none);
-	    }
+	  init = build2 (INIT_EXPR, void_type_node, temp, init);
+	  ret = gimplify_expr (&init, pre_p, post_p, is_gimple_stmt,
+			       fb_none);
 	}
       if (ret == GS_ERROR)
 	return GS_ERROR;
@@ -4360,7 +4402,7 @@ omp_add_variable (struct gimplify_omp_ctx *ctx, tree decl, unsigned int flags)
   /* When adding a variable-sized variable, we have to handle all sorts
      of additional bits of data: the pointer replacement variable, and 
      the parameters of the type.  */
-  if (DECL_SIZE (decl) && !TREE_CONSTANT (DECL_SIZE (decl)))
+  if (DECL_SIZE (decl) && TREE_CODE (DECL_SIZE (decl)) != INTEGER_CST)
     {
       /* Add the pointer replacement variable as PRIVATE if the variable
 	 replacement is private, else FIRSTPRIVATE since we'll need the
@@ -4407,7 +4449,7 @@ omp_add_variable (struct gimplify_omp_ctx *ctx, tree decl, unsigned int flags)
       if ((flags & GOVD_SHARED) == 0)
 	{
 	  t = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (decl)));
-	  if (!TREE_CONSTANT (t))
+	  if (TREE_CODE (t) != INTEGER_CST)
 	    omp_notice_variable (ctx, t, true);
 	}
     }
@@ -5126,7 +5168,8 @@ gimplify_omp_atomic_pipeline (tree *expr_p, tree *pre_p, tree addr,
       gimplify_and_add (x, pre_p);
     }
 
-  x = build2 (MODIFY_EXPR, void_type_node, oldival2, oldival);
+  x = build2 (MODIFY_EXPR, void_type_node, oldival2,
+	      fold_convert (itype, oldival));
   gimplify_and_add (x, pre_p);
 
   args = tree_cons (NULL, fold_convert (itype, newival), NULL);
@@ -5498,7 +5541,7 @@ gimplify_expr (tree *expr_p, tree *pre_p, tree *post_p,
 	  break;
 
 	case BIND_EXPR:
-	  ret = gimplify_bind_expr (expr_p, NULL, pre_p);
+	  ret = gimplify_bind_expr (expr_p, pre_p);
 	  break;
 
 	case LOOP_EXPR:
@@ -5645,7 +5688,7 @@ gimplify_expr (tree *expr_p, tree *pre_p, tree *post_p,
 	  break;
 
 	case STATEMENT_LIST:
-	  ret = gimplify_statement_list (expr_p);
+	  ret = gimplify_statement_list (expr_p, pre_p);
 	  break;
 
 	case WITH_SIZE_EXPR:
@@ -6000,7 +6043,18 @@ gimplify_type_sizes (tree type, tree *list_p)
 
     case POINTER_TYPE:
     case REFERENCE_TYPE:
-      gimplify_type_sizes (TREE_TYPE (type), list_p);
+	/* We used to recurse on the pointed-to type here, which turned out to
+	   be incorrect because its definition might refer to variables not
+	   yet initialized at this point if a forward declaration is involved.
+
+	   It was actually useful for anonymous pointed-to types to ensure
+	   that the sizes evaluation dominates every possible later use of the
+	   values.  Restricting to such types here would be safe since there
+	   is no possible forward declaration around, but would introduce an
+	   undesirable middle-end semantic to anonymity.  We then defer to
+	   front-ends the responsibility of ensuring that the sizes are
+	   evaluated both early and late enough, e.g. by attaching artificial
+	   type declarations to the tree.  */
       break;
 
     default:

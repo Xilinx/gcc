@@ -316,6 +316,15 @@ mark_mode_tests (rtx exp)
     }
 }
 
+/* Determine whether the expression EXP is a MATCH_CODE that should
+   be written as a switch statement.  */
+static bool
+generate_switch_p (rtx exp)
+{
+  return GET_CODE (exp) == MATCH_CODE
+	 && strchr (XSTR (exp, 0), ',');
+}
+
 /* Given a predicate, work out where in its RTL expression to add
    tests for proper modes.  Special predicates do not get any such
    tests.  We try to avoid adding tests when we don't have to; in
@@ -361,6 +370,15 @@ add_mode_tests (struct pred_data *p)
 
       switch (GET_CODE (subexp))
 	{
+	case AND:
+	  /* The switch code generation in write_predicate_stmts prefers
+	     rtx code tests to be at the top of the expression tree.  So
+	     push this AND down into the second operand of an existing
+	     AND expression.  */
+	  if (generate_switch_p (XEXP (subexp, 0)))
+	    pos = &XEXP (subexp, 1);
+	  goto break_loop;
+
 	case IOR:
 	  {
 	    int test0 = NO_MODE_TEST (XEXP (subexp, 0));
@@ -520,6 +538,99 @@ write_predicate_expr (rtx exp)
     }
 }
 
+/* Write the MATCH_CODE expression EXP as a switch statement.  */
+
+static void
+write_match_code_switch (rtx exp)
+{
+  const char *codes = XSTR (exp, 0);
+  const char *path = XSTR (exp, 1);
+  const char *code;
+
+  fputs ("  switch (GET_CODE (", stdout);
+  write_extract_subexp (path);
+  fputs ("))\n    {\n", stdout);
+
+  while ((code = scan_comma_elt (&codes)) != 0)
+    {
+      fputs ("    case ", stdout);
+      while (code < codes)
+	{
+	  putchar (TOUPPER (*code));
+	  code++;
+	}
+      fputs(":\n", stdout);
+    }
+}
+
+/* Given a predicate expression EXP, write out a sequence of stmts
+   to evaluate it.  This is similar to write_predicate_expr but can
+   generate efficient switch statements.  */
+
+static void
+write_predicate_stmts (rtx exp)
+{
+  switch (GET_CODE (exp))
+    {
+    case MATCH_CODE:
+      if (generate_switch_p (exp))
+	{
+	  write_match_code_switch (exp);
+	  puts ("      return true;\n"
+		"    default:\n"
+		"      break;\n"
+		"    }\n"
+		"  return false;");
+	  return;
+	}
+      break;
+
+    case AND:
+      if (generate_switch_p (XEXP (exp, 0)))
+	{
+	  write_match_code_switch (XEXP (exp, 0));
+	  puts ("      break;\n"
+		"    default:\n"
+		"      return false;\n"
+		"    }");
+	  exp = XEXP (exp, 1);
+	}
+      break;
+
+    case IOR:
+      if (generate_switch_p (XEXP (exp, 0)))
+	{
+	  write_match_code_switch (XEXP (exp, 0));
+	  puts ("      return true;\n"
+		"    default:\n"
+		"      break;\n"
+		"    }");
+	  exp = XEXP (exp, 1);
+	}
+      break;
+
+    case NOT:
+      if (generate_switch_p (XEXP (exp, 0)))
+	{
+	  write_match_code_switch (XEXP (exp, 0));
+	  puts ("      return false;\n"
+		"    default:\n"
+		"      break;\n"
+		"    }\n"
+		"  return true;");
+	  return;
+	}
+      break;
+
+    default:
+      break;
+    }
+
+  fputs("  return ",stdout);
+  write_predicate_expr (exp);
+  fputs(";\n", stdout);
+}
+
 /* Given a predicate, write out a complete C function to compute it.  */
 static void
 write_one_predicate_function (struct pred_data *p)
@@ -532,11 +643,10 @@ write_one_predicate_function (struct pred_data *p)
 
   /* A normal predicate can legitimately not look at enum machine_mode
      if it accepts only CONST_INTs and/or CONST_DOUBLEs.  */
-  printf ("int\n%s (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)\n"
-	  "{\n  return ",
+  printf ("int\n%s (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)\n{\n",
 	  p->name);
-  write_predicate_expr (p->exp);
-  fputs (";\n}\n\n", stdout);
+  write_predicate_stmts (p->exp);
+  fputs ("}\n\n", stdout);
 }
 
 /* Constraints fall into two categories: register constraints
@@ -781,10 +891,6 @@ add_constraint (const char *name, const char *regclass,
 	  have_error = 1;
 	  return;
 	}
-
-      /* Remove the redundant (and (match_code "const_(int|double)")
-	 from the expression.  */
-      exp = XEXP (exp, 1);
     }
 
   
@@ -968,10 +1074,13 @@ write_tm_constrs_h (void)
 	bool needs_rval = needs_variable (c->exp, "rval");
 	bool needs_mode = (needs_variable (c->exp, "mode")
 			   || needs_hval || needs_lval || needs_rval);
+	bool needs_op = (needs_variable (c->exp, "op")
+			 || needs_ival || needs_mode);
 
 	printf ("static inline bool\n"
-		"satisfies_constraint_%s (rtx op)\n"
-		"{\n", c->c_name);
+		"satisfies_constraint_%s (rtx %s)\n"
+		"{\n", c->c_name,
+		needs_op ? "op" : "ARG_UNUSED (op)");
 	if (needs_mode)
 	  puts ("enum machine_mode mode = GET_MODE (op);");
 	if (needs_ival)
@@ -995,10 +1104,9 @@ write_tm_constrs_h (void)
 	if (needs_rval)
 	  puts ("  if (GET_CODE (op) == CONST_DOUBLE && mode != VOIDmode)"
 		"    rval = CONST_DOUBLE_REAL_VALUE (op);");
-	  
-	fputs ("  return ", stdout);
-	write_predicate_expr (c->exp);
-	fputs (";\n}\n", stdout);
+
+	write_predicate_stmts (c->exp);
+	fputs ("}\n", stdout);
       }
   puts ("#endif /* tm-constrs.h */");
 }
@@ -1048,7 +1156,10 @@ write_insn_const_int_ok_for_constraint (void)
     if (c->is_const_int)
       {
 	printf ("    case CONSTRAINT_%s:\n      return ", c->c_name);
-	write_predicate_expr (c->exp);
+	/* c->exp is guaranteed to be (and (match_code "const_int") (...));
+	   we know at this point that we have a const_int, so we need not
+	   bother with that part of the test.  */
+	write_predicate_expr (XEXP (c->exp, 1));
 	fputs (";\n\n", stdout);
       }
 

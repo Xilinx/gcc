@@ -6,6 +6,9 @@
 /* Define to 0 if the target shouldn't use #pragma weak */
 #undef GTHREAD_USE_WEAK
 
+/* Define to 1 if you have the `access' function. */
+#undef HAVE_ACCESS
+
 /* libm includes acos */
 #undef HAVE_ACOS
 
@@ -150,6 +153,9 @@
 /* Define to 1 if you have the `chsize' function. */
 #undef HAVE_CHSIZE
 
+/* Define to 1 if you have the `clock' function. */
+#undef HAVE_CLOCK
+
 /* libm includes clog */
 #undef HAVE_CLOG
 
@@ -276,6 +282,9 @@
 /* libm includes erfl */
 #undef HAVE_ERFL
 
+/* Define to 1 if you have the `execl' function. */
+#undef HAVE_EXECL
+
 /* libm includes exp */
 #undef HAVE_EXP
 
@@ -317,6 +326,9 @@
 
 /* libm includes floorl */
 #undef HAVE_FLOORL
+
+/* Define to 1 if you have the `fork' function. */
+#undef HAVE_FORK
 
 /* Define if you have fpsetmask. */
 #undef HAVE_FPSETMASK
@@ -378,6 +390,9 @@
 /* Define to 1 if you have the <ieeefp.h> header file. */
 #undef HAVE_IEEEFP_H
 
+/* Define to 1 if the system has the type `intptr_t'. */
+#undef HAVE_INTPTR_T
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -410,6 +425,15 @@
 
 /* Define to 1 if you have the `kill' function. */
 #undef HAVE_KILL
+
+/* libm includes ldexp */
+#undef HAVE_LDEXP
+
+/* libm includes ldexpf */
+#undef HAVE_LDEXPF
+
+/* libm includes ldexpl */
+#undef HAVE_LDEXPL
 
 /* Define to 1 if you have the `link' function. */
 #undef HAVE_LINK
@@ -479,6 +503,9 @@
 
 /* libm includes scalbnl */
 #undef HAVE_SCALBNL
+
+/* Define to 1 if you have the `setmode' function. */
+#undef HAVE_SETMODE
 
 /* Define to 1 if you have the `signal' function. */
 #undef HAVE_SIGNAL
@@ -579,6 +606,9 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
+/* Define to 1 if you have the <sys/wait.h> header file. */
+#undef HAVE_SYS_WAIT_H
+
 /* libm includes tan */
 #undef HAVE_TAN
 
@@ -626,6 +656,9 @@
 
 /* Define if target can unlink open files. */
 #undef HAVE_UNLINK_OPEN_FILE
+
+/* Define to 1 if you have the `wait' function. */
+#undef HAVE_WAIT
 
 /* Define if target has a reliable stat. */
 #undef HAVE_WORKING_STAT

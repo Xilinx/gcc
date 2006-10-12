@@ -217,7 +217,7 @@ Objective-C and Objective-C++ Dialects}.
 @xref{Language Independent Options,,Options to Control Diagnostic Messages Formatting}.
 @gccoptlist{-fmessage-length=@var{n}  @gol
 -fdiagnostics-show-location=@r{[}once@r{|}every-line@r{]}} @gol
--fdiagnostics-show-options
+-fdiagnostics-show-option
 
 @item Warning Options
 @xref{Warning Options,,Options to Request or Suppress Warnings}.
@@ -262,7 +262,7 @@ Objective-C and Objective-C++ Dialects}.
 @item Debugging Options
 @xref{Debugging Options,,Options for Debugging Your Program or GCC}.
 @gccoptlist{-d@var{letters}  -dumpspecs  -dumpmachine  -dumpversion @gol
--fdump-unnumbered  -fdump-translation-unit@r{[}-@var{n}@r{]} @gol
+-fdump-noaddr -fdump-unnumbered  -fdump-translation-unit@r{[}-@var{n}@r{]} @gol
 -fdump-class-hierarchy@r{[}-@var{n}@r{]} @gol
 -fdump-ipa-all -fdump-ipa-cgraph @gol
 -fdump-tree-all @gol
@@ -943,7 +943,6 @@ objective-c  objective-c-header  objective-c-cpp-output
 objective-c++ objective-c++-header objective-c++-cpp-output
 assembler  assembler-with-cpp
 ada
-f77  f77-cpp-input
 f95  f95-cpp-input
 java
 treelang
@@ -1089,15 +1088,14 @@ with the name @command{gcc}).
 
 @findex g++
 @findex c++
-However, C++ programs often require class libraries as well as a
-compiler that understands the C++ language---and under some
-circumstances, you might want to compile programs or header files from
-standard input, or otherwise without a suffix that flags them as C++
-programs.  You might also like to precompile a C header file with a
-@samp{.h} extension to be used in C++ compilations.  @command{g++} is a
-program that calls GCC with the default language set to C++, and
-automatically specifies linking against the C++ library.  On many
-systems, @command{g++} is also installed with the name @command{c++}.
+However, the use of @command{gcc} does not add the C++ library.
+@command{g++} is a program that calls GCC and treats @samp{.c},
+@samp{.h} and @samp{.i} files as C++ source files instead of C source
+files unless @option{-x} is used, and automatically specifies linking
+against the C++ library.  This program is also useful when
+precompiling a C header file with a @samp{.h} extension for use in C++
+compilations.  On many systems, @command{g++} is also installed with
+the name @command{c++}.
 
 @cindex invoking @command{g++}
 When you compile C++ programs, you may specify many of the same
@@ -1571,7 +1569,9 @@ functions for use by the C++ runtime type identification features
 (@samp{dynamic_cast} and @samp{typeid}).  If you don't use those parts
 of the language, you can save some space by using this flag.  Note that
 exception handling uses the same information, but it will generate it as
-needed.
+needed. The @samp{dynamic_cast} operator can still be used for casts that
+do not require runtime type information, i.e. casts to @code{void *} or to
+unambiguous base classes.
 
 @item -fstats
 @opindex fstats
@@ -1619,16 +1619,20 @@ when used within the DSO@.  Enabling this option can have a dramatic effect
 on load and link times of a DSO as it massively reduces the size of the
 dynamic export table when the library makes heavy use of templates.
 
-The behavior of this switch is not quite the same as marking the
-methods as hidden directly.  Normally if there is a class with default
-visibility which has a hidden method, the effect of this is that the
-method must be defined in only one shared object.  This switch does
-not have this restriction.
+The behaviour of this switch is not quite the same as marking the
+methods as hidden directly, because it does not affect static variables
+local to the function or cause the compiler to deduce that
+the function is defined in only one shared object.
 
 You may mark a method as having a visibility explicitly to negate the
 effect of the switch for that method.  For example, if you do want to
 compare pointers to a particular inline method, you might mark it as
-having default visibility.
+having default visibility.  Marking the enclosing class with explicit
+visibility will have no effect.
+
+Explicitly instantiated inline methods are unaffected by this option
+as their linkage might otherwise cross a shared library boundary.
+@xref{Template Instantiation}.
 
 @item -fno-weak
 @opindex fno-weak
@@ -2232,8 +2236,8 @@ messages reporter to emit the same source location information (as
 prefix) for physical lines that result from the process of breaking
 a message which is too long to fit on a single line.
 
-@item -fdiagnostics-show-options
-@opindex fdiagnostics-show-options
+@item -fdiagnostics-show-option
+@opindex fdiagnostics-show-option
 This option instructs the diagnostic machinery to add text to each
 diagnostic emitted, which indicates which command line option directly
 controls that diagnostic, when such an option is known to the
@@ -2664,7 +2668,7 @@ To suppress this warning use the @samp{unused} attribute
 @item -Wunused-variable
 @opindex Wunused-variable
 Warn whenever a local variable or non-constant static variable is unused
-aside from its declaration
+aside from its declaration.
 This warning is enabled by @option{-Wall}.
 
 To suppress this warning use the @samp{unused} attribute
@@ -2870,6 +2874,12 @@ incorrect result when the signed value is converted to unsigned.
 An aggregate has an initializer which does not initialize all members.
 This warning can be independently controlled by
 @option{-Wmissing-field-initializers}.
+
+@item
+An initialized field without side effects is overridden when using
+designated initializers (@pxref{Designated Inits, , Designated
+Initializers}).  This warning can be independently controlled by
+@option{-Woverride-init}.
 
 @item
 A function parameter is declared without a type specifier in K&R-style
@@ -3289,14 +3299,26 @@ unable to be fixed to display these characters distinctly.
 
 @item -Wno-deprecated-declarations
 @opindex Wno-deprecated-declarations
-Do not warn about uses of functions, variables, and types marked as
-deprecated by using the @code{deprecated} attribute.
-(@pxref{Function Attributes}, @pxref{Variable Attributes},
-@pxref{Type Attributes}.)
+Do not warn about uses of functions (@pxref{Function Attributes}),
+variables (@pxref{Variable Attributes}), and types (@pxref{Type
+Attributes}) marked as deprecated by using the @code{deprecated}
+attribute.
 
 @item -Wno-overflow
 @opindex Wno-overflow
 Do not warn about compile-time overflow in constant expressions.
+
+@item -Woverride-init
+@opindex Woverride-init
+@opindex W
+@opindex Wextra
+Warn if an initialized field without side effects is overridden when
+using designated initializers (@pxref{Designated Inits, , Designated
+Initializers}).
+
+This warning is included in @option{-Wextra}.  To get other
+@option{-Wextra} warnings without this one, use @samp{-Wextra
+-Wno-override-init}.
 
 @item -Wpacked
 @opindex Wpacked
@@ -4007,10 +4029,17 @@ with @samp{r} (@option{-fdump-rtl-expand}).
 Dump debugging information during parsing, to standard error.
 @end table
 
+@item -fdump-noaddr
+@opindex fdump-noaddr
+When doing debugging dumps (see @option{-d} option above), suppress
+address output.  This makes it more feasible to use diff on debugging
+dumps for compiler invocations with different compiler binaries and/or
+different text / bss / data / heap / stack / dso start locations.
+
 @item -fdump-unnumbered
 @opindex fdump-unnumbered
 When doing debugging dumps (see @option{-d} option above), suppress instruction
-numbers and line number note output.  This makes it more feasible to
+numbers, line number note and address output.  This makes it more feasible to
 use diff on debugging dumps for compiler invocations with different
 options, in particular with and without @option{-g}.
 
@@ -4654,14 +4683,14 @@ The @option{-finline-limit=@var{n}} option sets some of these parameters
 as follows:
 
 @table @gcctabopt
- @item max-inline-insns-single
-  is set to @var{n}/2.
- @item max-inline-insns-auto
-  is set to @var{n}/2.
- @item min-inline-insns
-  is set to 130 or @var{n}/4, whichever is smaller.
- @item max-inline-insns-rtl
-  is set to @var{n}.
+@item max-inline-insns-single
+ is set to @var{n}/2.
+@item max-inline-insns-auto
+ is set to @var{n}/2.
+@item min-inline-insns
+ is set to 130 or @var{n}/4, whichever is smaller.
+@item max-inline-insns-rtl
+ is set to @var{n}.
 @end table
 
 See below for a documentation of the individual
@@ -5980,7 +6009,7 @@ Specifies maximum number of instructions out-of-line copy of self recursive inli
 function can grow into by performing recursive inlining.
 
 For functions declared inline @option{--param max-inline-insns-recursive} is
-taken into acount.  For function not declared inline, recursive inlining
+taken into account.  For function not declared inline, recursive inlining
 happens only when @option{-finline-functions} (included in @option{-O3}) is
 enabled and @option{--param max-inline-insns-recursive-auto} is used.  The
 default value is 450.
@@ -5990,7 +6019,7 @@ default value is 450.
 Specifies maximum recursion depth used by the recursive inlining.
 
 For functions declared inline @option{--param max-inline-recursive-depth} is
-taken into acount.  For function not declared inline, recursive inlining
+taken into account.  For function not declared inline, recursive inlining
 happens only when @option{-finline-functions} (included in @option{-O3}) is
 enabled and @option{--param max-inline-recursive-depth-auto} is used.  The
 default value is 450.
@@ -6192,13 +6221,13 @@ register.  Increasing values mean more aggressive optimization, making the
 compile time increase with probably slightly better performance.  The default
 value is 100.
 
-@item max-cselib-memory-location
-The maximum number of memory locations cselib should take into acount.
+@item max-cselib-memory-locations
+The maximum number of memory locations cselib should take into account.
 Increasing values mean more aggressive optimization, making the compile time
 increase with probably slightly better performance.  The default value is 500.
 
-@item max-flow-memory-location
-Similar as @option{max-cselib-memory-location} but for dataflow liveness.
+@item max-flow-memory-locations
+Similar as @option{max-cselib-memory-locations} but for dataflow liveness.
 The default value is 100.
 
 @item reorder-blocks-duplicate
@@ -9379,6 +9408,8 @@ boundary.  Aligning @code{double} variables on a two word boundary will
 produce code that runs somewhat faster on a @samp{Pentium} at the
 expense of more memory.
 
+On x86-64, @option{-malign-double} is enabled by default.
+
 @strong{Warning:} if you use the @option{-malign-double} switch,
 structures containing the above types will be aligned differently than
 the published application binary interface specifications for the 386
@@ -9495,15 +9526,13 @@ applicable to individual functions.
 @opindex mpreferred-stack-boundary
 Attempt to keep the stack boundary aligned to a 2 raised to @var{num}
 byte boundary.  If @option{-mpreferred-stack-boundary} is not specified,
-the default is 4 (16 bytes or 128 bits), except when optimizing for code
-size (@option{-Os}), in which case the default is the minimum correct
-alignment (4 bytes for x86, and 8 bytes for x86-64).
+the default is 4 (16 bytes or 128 bits).
 
 On Pentium and PentiumPro, @code{double} and @code{long double} values
 should be aligned to an 8 byte boundary (see @option{-malign-double}) or
 suffer significant run time performance penalties.  On Pentium III, the
-Streaming SIMD Extension (SSE) data type @code{__m128} suffers similar
-penalties if it is not 16 byte aligned.
+Streaming SIMD Extension (SSE) data type @code{__m128} may not work
+properly if it is not 16 byte aligned.
 
 To ensure proper alignment of this values on the stack, the stack boundary
 must be as aligned as that required by any value stored on the stack.
@@ -11322,7 +11351,7 @@ following options: @option{-maltivec}, @option{-mfprnd},
 @option{-mhard-float}, @option{-mmfcrf}, @option{-mmultiple},
 @option{-mnew-mnemonics}, @option{-mpopcntb}, @option{-mpower},
 @option{-mpower2}, @option{-mpowerpc64}, @option{-mpowerpc-gpopt},
-@option{-mpowerpc-gfxopt}, @option{-mstring}, @option{-mmulhw}, @option{dlmzb}.
+@option{-mpowerpc-gfxopt}, @option{-mstring}, @option{-mmulhw}, @option{-mdlmzb}.
 The particular options
 set for any particular CPU will vary between compiler versions,
 depending on what setting seems to produce optimal code for that CPU;
@@ -11903,11 +11932,13 @@ names in the assembly language output using symbolic forms.
 @itemx -mno-longcall
 @opindex mlongcall
 @opindex mno-longcall
-Default to making all function calls indirectly, using a register, so
-that functions which reside further than 32 megabytes (33,554,432
-bytes) from the current location can be called.  This setting can be
-overridden by the @code{shortcall} function attribute, or by
-@code{#pragma longcall(0)}.
+By default assume that all calls are far away so that a longer more
+expensive calling sequence is required.  This is required for calls
+further than 32 megabytes (33,554,432 bytes) from the current location.
+A short call will be generated if the compiler knows
+the call cannot be that far away.  This setting can be overridden by
+the @code{shortcall} function attribute, or by @code{#pragma
+longcall(0)}.
 
 Some linkers are capable of detecting out-of-range calls and generating
 glue code on the fly.  On these systems, long calls are unnecessary and
@@ -13086,7 +13117,7 @@ it.
 @opindex fbounds-check
 For front-ends that support it, generate additional code to check that
 indices used to access arrays are within the declared range.  This is
-currently only supported by the Java and Fortran 77 front-ends, where
+currently only supported by the Java and Fortran front-ends, where
 this option defaults to true and false respectively.
 
 @item -ftrapv
@@ -13508,6 +13539,20 @@ headers and headers from any other library you use, may not be
 expecting to be compiled with visibility other than the default.  You
 may need to explicitly say @samp{#pragma GCC visibility push(default)}
 before including any such headers.
+
+@samp{extern} declarations are not affected by @samp{-fvisibility}, so
+a lot of code can be recompiled with @samp{-fvisibility=hidden} with
+no modifications.  However, this means that calls to @samp{extern}
+functions with no explicit visibility will use the PLT, so it is more
+effective to use @samp{__attribute ((visibility))} and/or
+@samp{#pragma GCC visibility} to tell the compiler which @samp{extern}
+declarations should be treated as hidden.
+
+Note that @samp{-fvisibility} does affect C++ vague linkage
+entities. This means that, for instance, an exception class that will
+be thrown between DSOs must be explicitly marked with default
+visibility so that the @samp{type_info} nodes will be unified between
+the DSOs.
 
 An overview of these techniques, their benefits and how to use them
 is at @w{@uref{http://gcc.gnu.org/wiki/Visibility}}.

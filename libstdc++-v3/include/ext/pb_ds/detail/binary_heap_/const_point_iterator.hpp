@@ -49,52 +49,21 @@
 #define PB_DS_BINARY_HEAP_CONST_FIND_ITERATOR_HPP
 
 #include <ext/pb_ds/tag_and_trait.hpp>
+#include <debug/debug.h>
 
 namespace pb_ds
 {
   namespace detail
   {
-
-#ifdef BINARY_HEAP_DEBUG_
-#define PB_DS_DBG_ASSERT(X) assert(X)
-#define PB_DS_DBG_VERIFY(X) assert(X)
-#define PB_DS_DBG_ONLY(X) X
-#else // #ifdef BINARY_HEAP_DEBUG_
-#define PB_DS_DBG_ASSERT(X)
-#define PB_DS_DBG_VERIFY(X) {if((X)==0);}
-#define PB_DS_DBG_ONLY(X) ;m_p_prev_or_parent
-#endif // #ifdef BINARY_HEAP_DEBUG_
-
-#define PB_DS_CLASS_T_DEC						\
-    template<								\
-						typename Value_Type,	\
-						typename Entry,		\
-						bool Simple,		\
-						class Allocator>
-
-#define PB_DS_CLASS_C_DEC					\
-    binary_heap_const_point_iterator_<				\
-						Value_Type,	\
-						Entry,		\
-						Simple,		\
-						Allocator>
-
     // Const point-type iterator.
-    template<typename Value_Type,
-	     typename Entry,
-	     bool Simple,
-	     class Allocator>
+    template<typename Value_Type, typename Entry, bool Simple, 
+	     typename Allocator>
     class binary_heap_const_point_iterator_
     {
-
     protected:
-      typedef
-      typename Allocator::template rebind<
-      Entry>::other::pointer
-      entry_pointer;
+      typedef typename Allocator::template rebind<Entry>::other::pointer entry_pointer;
 
     public:
-
       // Category.
       typedef trivial_iterator_tag iterator_category;
 
@@ -105,30 +74,23 @@ namespace pb_ds
       typedef Value_Type value_type;
 
       // Iterator's pointer type.
-      typedef
-      typename Allocator::template rebind<
-	value_type>::other::pointer
+      typedef typename Allocator::template rebind<value_type>::other::pointer
       pointer;
 
       // Iterator's const pointer type.
       typedef
-      typename Allocator::template rebind<
-	value_type>::other::const_pointer
+      typename Allocator::template rebind<value_type>::other::const_pointer
       const_pointer;
 
       // Iterator's reference type.
       typedef
-      typename Allocator::template rebind<
-	value_type>::other::reference
+      typename Allocator::template rebind<value_type>::other::reference
       reference;
 
       // Iterator's const reference type.
       typedef
-      typename Allocator::template rebind<
-	value_type>::other::const_reference
+      typename Allocator::template rebind<value_type>::other::const_reference
       const_reference;
-
-    public:
 
       inline
       binary_heap_const_point_iterator_(entry_pointer p_e) : m_p_e(p_e)
@@ -136,75 +98,53 @@ namespace pb_ds
 
       // Default constructor.
       inline
-      binary_heap_const_point_iterator_()
-
-	: m_p_e(NULL)
-      { }
+      binary_heap_const_point_iterator_() : m_p_e(NULL) { }
 
       // Copy constructor.
       inline
-      binary_heap_const_point_iterator_(const PB_DS_CLASS_C_DEC& other)
-
-	: m_p_e(other.m_p_e)
+      binary_heap_const_point_iterator_(const binary_heap_const_point_iterator_& other)
+      : m_p_e(other.m_p_e)
       { }
 
       // Access.
       inline const_pointer
       operator->() const
       {
-	PB_DS_DBG_ASSERT(m_p_e != NULL);
-
-	return (to_ptr(integral_constant<int,Simple>()));
+	_GLIBCXX_DEBUG_ASSERT(m_p_e != NULL);
+	return to_ptr(integral_constant<int, Simple>());
       }
 
       // Access.
       inline const_reference
       operator*() const
       {
-	PB_DS_DBG_ASSERT(m_p_e != NULL);
-
-	return (*to_ptr(integral_constant<int,Simple>()));
+	_GLIBCXX_DEBUG_ASSERT(m_p_e != NULL);
+	return *to_ptr(integral_constant<int, Simple>());
       }
 
       // Compares content to a different iterator object.
       inline bool
-      operator==(const PB_DS_CLASS_C_DEC& other) const
-      {
-	return (m_p_e == other.m_p_e);
-      }
+      operator==(const binary_heap_const_point_iterator_& other) const
+      { return m_p_e == other.m_p_e; }
 
       // Compares content (negatively) to a different iterator object.
       inline bool
-      operator!=(const PB_DS_CLASS_C_DEC& other) const
-      {
-	return (m_p_e != other.m_p_e);
-      }
+      operator!=(const binary_heap_const_point_iterator_& other) const
+      { return m_p_e != other.m_p_e; }
 
     private:
       inline const_pointer
       to_ptr(true_type) const
-      {
-	return m_p_e;
-      }
+      { return m_p_e; }
 
       inline const_pointer
       to_ptr(false_type) const
-      {
-	return* m_p_e;
-      }
+      { return *m_p_e; }
 
     public:
       entry_pointer m_p_e;
     };
-
-#undef PB_DS_CLASS_T_DEC
-#undef PB_DS_CLASS_C_DEC
-
-#undef PB_DS_DBG_ASSERT
-#undef PB_DS_DBG_VERIFY
-#undef PB_DS_DBG_ONLY
-
   } // namespace detail
 } // namespace pb_ds
 
-#endif // #ifndef PB_DS_BINARY_HEAP_CONST_FIND_ITERATOR_HPP
+#endif 

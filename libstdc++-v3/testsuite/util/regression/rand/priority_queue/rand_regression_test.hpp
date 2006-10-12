@@ -44,6 +44,9 @@
  * Contains a random-operation test.
  */
 
+#ifndef PB_DS_PQ_RAND_REGRESSION_TEST_HPP
+#define PB_DS_PQ_RAND_REGRESSION_TEST_HPP
+
 #include <iostream>
 #include <vector>
 #include <regression/rand/priority_queue/container_rand_regression_test.hpp>
@@ -73,7 +76,7 @@ namespace detail
 
     template<typename Cntnr>
     void
-    operator()(pb_ds::detail::type_to_type<Cntnr>)
+    operator()(Cntnr)
     {
       unsigned long ul = static_cast<unsigned long>(m_sd);
       container_rand_regression_test<Cntnr> t(ul, m_n, m_n, m_tp, m_ip, m_dp, 
@@ -142,7 +145,7 @@ namespace detail
     try
       {
 	detail::rand_reg_test tst(sd, n, m, tp, ip, dp, ep, cp, mp, disp);
-	pb_ds::detail::typelist_apply(tst, tl);
+	__gnu_cxx::typelist::apply(tst, tl);
       }
     catch(...)
       {
@@ -208,3 +211,4 @@ namespace detail
 } // namespace test
 } // namespace pb_ds
 
+#endif

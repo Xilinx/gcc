@@ -385,14 +385,17 @@ match_old_style_init (const char *name)
 {
   match m;
   gfc_symtree *st;
+  gfc_symbol *sym;
   gfc_data *newdata;
 
   /* Set up data structure to hold initializers.  */
   gfc_find_sym_tree (name, NULL, 0, &st);
-	  
+  sym = st->n.sym;
+
   newdata = gfc_get_data ();
   newdata->var = gfc_get_data_variable ();
   newdata->var->expr = gfc_get_variable_expr (st);
+  newdata->where = gfc_current_locus;
 
   /* Match initial value list. This also eats the terminal
      '/'.  */
@@ -406,6 +409,13 @@ match_old_style_init (const char *name)
   if (gfc_pure (NULL))
     {
       gfc_error ("Initialization at %C is not allowed in a PURE procedure");
+      gfc_free (newdata);
+      return MATCH_ERROR;
+    }
+
+  /* Mark the variable as having appeared in a data statement.  */
+  if (gfc_add_data (&sym->attr, sym->name, &sym->declared_at) == FAILURE)
+    {
       gfc_free (newdata);
       return MATCH_ERROR;
     }
@@ -867,10 +877,8 @@ add_init_expr_to_sym (const char *name, gfc_expr ** initp,
 	      sym->ts.cl->next = gfc_current_ns->cl_list;
 	      gfc_current_ns->cl_list = sym->ts.cl;
 
-	      if (init->expr_type == EXPR_CONSTANT)
-		sym->ts.cl->length =
-			gfc_int_expr (init->value.character.length);
-	      else if (init->expr_type == EXPR_ARRAY)
+	      if (sym->attr.flavor == FL_PARAMETER
+		    && init->expr_type == EXPR_ARRAY)
 		sym->ts.cl->length = gfc_copy_expr (init->ts.cl->length);
 	    }
 	  /* Update initializer character length according symbol.  */
@@ -954,14 +962,31 @@ build_struct (const char *name, gfc_charlen * cl, gfc_expr ** init,
 
   /* Check array components.  */
   if (!c->dimension)
-    return SUCCESS;
+    {
+      if (c->allocatable)
+	{
+	  gfc_error ("Allocatable component at %C must be an array");
+	  return FAILURE;
+	}
+      else
+	return SUCCESS;
+    }
 
   if (c->pointer)
     {
       if (c->as->type != AS_DEFERRED)
 	{
-	  gfc_error ("Pointer array component of structure at %C "
-		     "must have a deferred shape");
+	  gfc_error ("Pointer array component of structure at %C must have a "
+		     "deferred shape");
+	  return FAILURE;
+	}
+    }
+  else if (c->allocatable)
+    {
+      if (c->as->type != AS_DEFERRED)
+	{
+	  gfc_error ("Allocatable component of structure at %C must have a "
+		     "deferred shape");
 	  return FAILURE;
 	}
     }
@@ -1167,6 +1192,20 @@ variable_decl (int elem)
       goto cleanup;
     }
 
+  /* An interface body specifies all of the procedure's characteristics and these
+     shall be consistent with those specified in the procedure definition, except
+     that the interface may specify a procedure that is not pure if the procedure
+     is defined to be pure(12.3.2).  */
+  if (current_ts.type == BT_DERIVED
+	&& gfc_current_ns->proc_name->attr.if_source == IFSRC_IFBODY
+	&& current_ts.derived->ns != gfc_current_ns)
+    {
+      gfc_error ("the type of '%s' at %C has not been declared within the "
+		 "interface", name);
+      m = MATCH_ERROR;
+      goto cleanup;
+    }
+
   /* In functions that have a RESULT variable defined, the function
      name always refers to function calls.  Therefore, the name is
      not allowed to appear in specification statements.  */
@@ -1262,6 +1301,14 @@ variable_decl (int elem)
 	}
     }
 
+  if (initializer != NULL && current_attr.allocatable
+	&& gfc_current_state () == COMP_DERIVED)
+    {
+      gfc_error ("Initialization of allocatable component at %C is not allowed");
+      m = MATCH_ERROR;
+      goto cleanup;
+    }
+
   /* Check if we are parsing an enumeration and if the current enumerator
      variable has an initializer or not. If it does not have an
      initializer, the initialization value of the previous enumerator 
@@ -1293,8 +1340,9 @@ variable_decl (int elem)
     t = add_init_expr_to_sym (name, &initializer, &var_locus);
   else
     {
-      if (current_ts.type == BT_DERIVED && !current_attr.pointer
-	  && !initializer)
+      if (current_ts.type == BT_DERIVED
+	    && !current_attr.pointer
+	    && !initializer)
 	initializer = gfc_default_initializer (&current_ts);
       t = build_struct (name, cl, &initializer, &as);
     }
@@ -2119,11 +2167,24 @@ match_attr_spec (void)
 	  && d != DECL_DIMENSION && d != DECL_POINTER
 	  && d != DECL_COLON && d != DECL_NONE)
 	{
-
-	  gfc_error ("Attribute at %L is not allowed in a TYPE definition",
-		     &seen_at[d]);
-	  m = MATCH_ERROR;
-	  goto cleanup;
+	  if (d == DECL_ALLOCATABLE)
+	    {
+	      if (gfc_notify_std (GFC_STD_F2003, 
+				   "In the selected standard, the ALLOCATABLE "
+				   "attribute at %C is not allowed in a TYPE "
+				   "definition") == FAILURE)         
+		{
+		  m = MATCH_ERROR;
+		  goto cleanup;
+		}
+            }
+          else
+	    {
+	      gfc_error ("Attribute at %L is not allowed in a TYPE definition",
+			  &seen_at[d]);
+	      m = MATCH_ERROR;
+	      goto cleanup;
+	    }
 	}
 
       if ((d == DECL_PRIVATE || d == DECL_PUBLIC)

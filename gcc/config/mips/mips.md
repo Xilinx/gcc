@@ -67,13 +67,14 @@
    (UNSPEC_CVT_PW_PS		205)
    (UNSPEC_CVT_PS_PW		206)
    (UNSPEC_MULR_PS		207)
+   (UNSPEC_ABS_PS		208)
 
-   (UNSPEC_RSQRT1		208)
-   (UNSPEC_RSQRT2		209)
-   (UNSPEC_RECIP1		210)
-   (UNSPEC_RECIP2		211)
-   (UNSPEC_SINGLE_CC		212)
-   (UNSPEC_SCC			213)
+   (UNSPEC_RSQRT1		209)
+   (UNSPEC_RSQRT2		210)
+   (UNSPEC_RECIP1		211)
+   (UNSPEC_RECIP2		212)
+   (UNSPEC_SINGLE_CC		213)
+   (UNSPEC_SCC			214)
 
    ;; MIPS DSP ASE Revision 0.98 3/24/2005
    (UNSPEC_ADDQ			300)
@@ -340,7 +341,7 @@
 ;; Attribute describing the processor.  This attribute must match exactly
 ;; with the processor_type enumeration in mips.h.
 (define_attr "cpu"
-  "r3000,4kc,4kp,5kc,5kf,20kc,24k,24kx,m4k,r3900,r6000,r4000,r4100,r4111,r4120,r4130,r4300,r4600,r4650,r5000,r5400,r5500,r7000,r8000,r9000,sb1,sr71000"
+  "r3000,4kc,4kp,5kc,5kf,20kc,24k,24kx,m4k,r3900,r6000,r4000,r4100,r4111,r4120,r4130,r4300,r4600,r4650,r5000,r5400,r5500,r7000,r8000,r9000,sb1,sb1a,sr71000"
   (const (symbol_ref "mips_tune")))
 
 ;; The type of hardware hazard associated with this instruction.
@@ -1765,7 +1766,8 @@
 			      (match_operand:ANYF 2 "register_operand" "f"))
 		   (match_operand:ANYF 3 "register_operand" "f"))))]
   "ISA_HAS_NMADD_NMSUB && TARGET_FUSED_MADD
-   && HONOR_SIGNED_ZEROS (<MODE>mode)"
+   && HONOR_SIGNED_ZEROS (<MODE>mode)
+   && !HONOR_NANS (<MODE>mode)"
   "nmadd.<fmt>\t%0,%3,%1,%2"
   [(set_attr "type" "fmadd")
    (set_attr "mode" "<UNITMODE>")])
@@ -1777,7 +1779,8 @@
 		    (match_operand:ANYF 2 "register_operand" "f"))
 	 (match_operand:ANYF 3 "register_operand" "f")))]
   "ISA_HAS_NMADD_NMSUB && TARGET_FUSED_MADD
-   && !HONOR_SIGNED_ZEROS (<MODE>mode)"
+   && !HONOR_SIGNED_ZEROS (<MODE>mode)
+   && !HONOR_NANS (<MODE>mode)"
   "nmadd.<fmt>\t%0,%3,%1,%2"
   [(set_attr "type" "fmadd")
    (set_attr "mode" "<UNITMODE>")])
@@ -1789,7 +1792,8 @@
 			      (match_operand:ANYF 3 "register_operand" "f"))
 		   (match_operand:ANYF 1 "register_operand" "f"))))]
   "ISA_HAS_NMADD_NMSUB && TARGET_FUSED_MADD
-   && HONOR_SIGNED_ZEROS (<MODE>mode)"
+   && HONOR_SIGNED_ZEROS (<MODE>mode)
+   && !HONOR_NANS (<MODE>mode)"
   "nmsub.<fmt>\t%0,%1,%2,%3"
   [(set_attr "type" "fmadd")
    (set_attr "mode" "<UNITMODE>")])
@@ -1801,7 +1805,8 @@
 	 (mult:ANYF (match_operand:ANYF 2 "register_operand" "f")
 		    (match_operand:ANYF 3 "register_operand" "f"))))]
   "ISA_HAS_NMADD_NMSUB && TARGET_FUSED_MADD
-   && !HONOR_SIGNED_ZEROS (<MODE>mode)"
+   && !HONOR_SIGNED_ZEROS (<MODE>mode)
+   && !HONOR_NANS (<MODE>mode)"
   "nmsub.<fmt>\t%0,%1,%2,%3"
   [(set_attr "type" "fmadd")
    (set_attr "mode" "<UNITMODE>")])
@@ -1972,10 +1977,14 @@
 ;; Do not use the integer abs macro instruction, since that signals an
 ;; exception on -2147483648 (sigh).
 
+;; abs.fmt is an arithmetic instruction and treats all NaN inputs as
+;; invalid; it does not clear their sign bits.  We therefore can't use
+;; abs.fmt if the signs of NaNs matter.
+
 (define_insn "abs<mode>2"
   [(set (match_operand:ANYF 0 "register_operand" "=f")
 	(abs:ANYF (match_operand:ANYF 1 "register_operand" "f")))]
-  ""
+  "!HONOR_NANS (<MODE>mode)"
   "abs.<fmt>\t%0,%1"
   [(set_attr "type" "fabs")
    (set_attr "mode" "<UNITMODE>")])
@@ -2024,10 +2033,14 @@
   [(set_attr "type"	"arith")
    (set_attr "mode"	"DI")])
 
+;; neg.fmt is an arithmetic instruction and treats all NaN inputs as
+;; invalid; it does not flip their sign bit.  We therefore can't use
+;; neg.fmt if the signs of NaNs matter.
+
 (define_insn "neg<mode>2"
   [(set (match_operand:ANYF 0 "register_operand" "=f")
 	(neg:ANYF (match_operand:ANYF 1 "register_operand" "f")))]
-  ""
+  "!HONOR_NANS (<MODE>mode)"
   "neg.<fmt>\t%0,%1"
   [(set_attr "type" "fneg")
    (set_attr "mode" "<UNITMODE>")])
@@ -2970,7 +2983,7 @@
 	(unspec:GPR [(match_operand:BLK 1 "memory_operand" "m")
 		     (match_operand:QI 2 "memory_operand" "m")]
 		    UNSPEC_LOAD_LEFT))]
-  "!TARGET_MIPS16"
+  "!TARGET_MIPS16 && mips_mem_fits_mode_p (<MODE>mode, operands[1])"
   "<load>l\t%0,%2"
   [(set_attr "type" "load")
    (set_attr "mode" "<MODE>")])
@@ -2981,7 +2994,7 @@
 		     (match_operand:QI 2 "memory_operand" "m")
 		     (match_operand:GPR 3 "register_operand" "0")]
 		    UNSPEC_LOAD_RIGHT))]
-  "!TARGET_MIPS16"
+  "!TARGET_MIPS16 && mips_mem_fits_mode_p (<MODE>mode, operands[1])"
   "<load>r\t%0,%2"
   [(set_attr "type" "load")
    (set_attr "mode" "<MODE>")])
@@ -2991,7 +3004,7 @@
 	(unspec:BLK [(match_operand:GPR 1 "reg_or_0_operand" "dJ")
 		     (match_operand:QI 2 "memory_operand" "m")]
 		    UNSPEC_STORE_LEFT))]
-  "!TARGET_MIPS16"
+  "!TARGET_MIPS16 && mips_mem_fits_mode_p (<MODE>mode, operands[0])"
   "<store>l\t%z1,%2"
   [(set_attr "type" "store")
    (set_attr "mode" "<MODE>")])
@@ -3002,7 +3015,7 @@
 		     (match_operand:QI 2 "memory_operand" "m")
 		     (match_dup 0)]
 		    UNSPEC_STORE_RIGHT))]
-  "!TARGET_MIPS16"
+  "!TARGET_MIPS16 && mips_mem_fits_mode_p (<MODE>mode, operands[0])"
   "<store>r\t%z1,%2"
   [(set_attr "type" "store")
    (set_attr "mode" "<MODE>")])
@@ -5458,6 +5471,9 @@
   "HAVE_AS_TLS && !TARGET_MIPS16"
   ".set\tpush\;.set\tmips32r2\t\;rdhwr\t%0,$29\;.set\tpop"
   [(set_attr "type" "unknown")
+   ; Since rdhwr always generates a trap for now, putting it in a delay
+   ; slot would make the kernel's emulation of it much slower.
+   (set_attr "can_delay" "no")
    (set_attr "mode" "<MODE>")])
 
 ; The MIPS Paired-Single Floating Point and MIPS-3D Instructions.

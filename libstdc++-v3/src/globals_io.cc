@@ -1,4 +1,5 @@
-// Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -26,7 +27,6 @@
 // the GNU General Public License.
 
 #include "bits/c++config.h"
-#include "bits/gthr.h"
 #include <fstream>
 #include <istream>
 #include <ostream>
@@ -75,7 +75,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 _GLIBCXX_END_NAMESPACE
 
-namespace __gnu_internal
+namespace __gnu_internal _GLIBCXX_VISIBILITY(hidden)
 {
   using namespace std;
   using namespace __gnu_cxx;
@@ -106,25 +106,5 @@ namespace __gnu_internal
   fake_wfilebuf buf_wcout;
   fake_wfilebuf buf_wcin;
   fake_wfilebuf buf_wcerr;
-#endif
-
-  // Globals for once-only runtime initialization of mutex objects.  This
-  // allows static initialization of these objects on systems that need a
-  // function call to initialize a mutex.  For example, see stl_threads.h.
-#ifdef __GTHREAD_MUTEX_INIT
-#elif defined(__GTHREAD_MUTEX_INIT_FUNCTION)
-  __gthread_once_t _GLIBCXX_once = __GTHREAD_ONCE_INIT;
-  __gthread_mutex_t _GLIBCXX_mutex;
-  __gthread_mutex_t *_GLIBCXX_mutex_address;
-  
-  // Once-only initializer function for _GLIBCXX_mutex.  
-  void
-  _GLIBCXX_mutex_init ()
-  { __GTHREAD_MUTEX_INIT_FUNCTION (&_GLIBCXX_mutex); }
-
-  // Once-only initializer function for _GLIBCXX_mutex_address.  
-  void
-  _GLIBCXX_mutex_address_init ()
-  { __GTHREAD_MUTEX_INIT_FUNCTION (_GLIBCXX_mutex_address); }
 #endif
 } // namespace __gnu_internal

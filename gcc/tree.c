@@ -419,7 +419,7 @@ tree_size (tree node)
 	      + (TREE_VEC_LENGTH (node) - 1) * sizeof(char *));
 
     case STRING_CST:
-      return sizeof (struct tree_string) + TREE_STRING_LENGTH (node) - 1;
+      return TREE_STRING_LENGTH (node) + offsetof (struct tree_string, str) + 1;
 
     case OMP_CLAUSE:
       return (sizeof (struct tree_omp_clause)
@@ -1120,8 +1120,9 @@ build_string (int len, const char *str)
 {
   tree s;
   size_t length;
-  
-  length = len + sizeof (struct tree_string);
+
+  /* Do not waste bytes provided by padding of struct tree_string.  */
+  length = len + offsetof (struct tree_string, str) + 1;
 
 #ifdef GATHER_STATISTICS
   tree_node_counts[(int) c_kind]++;
@@ -1158,6 +1159,47 @@ build_complex (tree type, tree real, tree imag)
   TREE_CONSTANT_OVERFLOW (t)
     = TREE_CONSTANT_OVERFLOW (real) | TREE_CONSTANT_OVERFLOW (imag);
   return t;
+}
+
+/* Return a constant of arithmetic type TYPE which is the
+   multiplicative identity of the set TYPE.  */
+
+tree
+build_one_cst (tree type)
+{
+  switch (TREE_CODE (type))
+    {
+    case INTEGER_TYPE: case ENUMERAL_TYPE: case BOOLEAN_TYPE:
+    case POINTER_TYPE: case REFERENCE_TYPE:
+    case OFFSET_TYPE:
+      return build_int_cst (type, 1);
+
+    case REAL_TYPE:
+      return build_real (type, dconst1);
+
+    case VECTOR_TYPE:
+      {
+	tree scalar, cst;
+	int i;
+
+	scalar = build_one_cst (TREE_TYPE (type));
+
+	/* Create 'vect_cst_ = {cst,cst,...,cst}'  */
+	cst = NULL_TREE;
+	for (i = TYPE_VECTOR_SUBPARTS (type); --i >= 0; )
+	  cst = tree_cons (NULL_TREE, scalar, cst);
+
+	return build_vector (type, cst);
+      }
+
+    case COMPLEX_TYPE:
+      return build_complex (type,
+			    build_one_cst (TREE_TYPE (type)),
+			    fold_convert (TREE_TYPE (type), integer_zero_node));
+
+    default:
+      gcc_unreachable ();
+    }
 }
 
 /* Build a BINFO with LEN language slots.  */
@@ -2881,11 +2923,11 @@ build1_stat (enum tree_code code, tree type, tree node MEM_STAT_DECL)
       break;
 
     default:
-      if (TREE_CODE_CLASS (code) == tcc_unary
+      if ((TREE_CODE_CLASS (code) == tcc_unary || code == VIEW_CONVERT_EXPR)
 	  && node && !TYPE_P (node)
 	  && TREE_CONSTANT (node))
 	TREE_CONSTANT (t) = 1;
-      if (TREE_CODE_CLASS (code) == tcc_unary
+      if ((TREE_CODE_CLASS (code) == tcc_unary || code == VIEW_CONVERT_EXPR)
 	  && node && TREE_INVARIANT (node))
 	TREE_INVARIANT (t) = 1;
       if (TREE_CODE_CLASS (code) == tcc_reference
@@ -3131,14 +3173,6 @@ build_decl_stat (enum tree_code code, tree name, tree type MEM_STAT_DECL)
     layout_decl (t, 0);
   else if (code == FUNCTION_DECL)
     DECL_MODE (t) = FUNCTION_MODE;
-
-  if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS))
-    {
-      /* Set default visibility to whatever the user supplied with
-	 visibility_specified depending on #pragma GCC visibility.  */
-      DECL_VISIBILITY (t) = default_visibility;
-      DECL_VISIBILITY_SPECIFIED (t) = visibility_options.inpragma;
-    }
 
   return t;
 }
@@ -3415,7 +3449,6 @@ is_attribute_with_length_p (const char *attr, int attr_len, tree ident)
       gcc_assert (attr[1] == '_');
       gcc_assert (attr[attr_len - 2] == '_');
       gcc_assert (attr[attr_len - 1] == '_');
-      gcc_assert (attr[1] == '_');
       if (ident_len == attr_len - 4
 	  && strncmp (attr + 2, p, attr_len - 4) == 0)
 	return 1;
@@ -3465,6 +3498,28 @@ lookup_attribute (const char *attr_name, tree list)
   return NULL_TREE;
 }
 
+/* Remove any instances of attribute ATTR_NAME in LIST and return the
+   modified list.  */
+
+tree
+remove_attribute (const char *attr_name, tree list)
+{
+  tree *p;
+  size_t attr_len = strlen (attr_name);
+
+  for (p = &list; *p; )
+    {
+      tree l = *p;
+      gcc_assert (TREE_CODE (TREE_PURPOSE (l)) == IDENTIFIER_NODE);
+      if (is_attribute_with_length_p (attr_name, attr_len, TREE_PURPOSE (l)))
+	*p = TREE_CHAIN (l);
+      else
+	p = &TREE_CHAIN (l);
+    }
+
+  return list;
+}
+
 /* Return an attribute list that is the union of a1 and a2.  */
 
 tree
@@ -3499,7 +3554,17 @@ merge_attributes (tree a1, tree a2)
 		   a = lookup_attribute (IDENTIFIER_POINTER (TREE_PURPOSE (a2)),
 					 TREE_CHAIN (a)))
 		{
-		  if (simple_cst_equal (TREE_VALUE (a), TREE_VALUE (a2)) == 1)
+		  if (TREE_VALUE (a) != NULL
+		      && TREE_CODE (TREE_VALUE (a)) == TREE_LIST
+		      && TREE_VALUE (a2) != NULL
+		      && TREE_CODE (TREE_VALUE (a2)) == TREE_LIST)
+		    {
+		      if (simple_cst_list_equal (TREE_VALUE (a),
+						 TREE_VALUE (a2)) == 1)
+			break;
+		    }
+		  else if (simple_cst_equal (TREE_VALUE (a),
+					     TREE_VALUE (a2)) == 1)
 		    break;
 		}
 	      if (a == NULL_TREE)
@@ -3651,9 +3716,18 @@ handle_dll_attribute (tree * pnode, tree name, tree args, int flags,
       return NULL_TREE;
     }
 
+  if (TREE_CODE (node) != FUNCTION_DECL
+      && TREE_CODE (node) != VAR_DECL)
+    {
+      *no_add_attrs = true;
+      warning (OPT_Wattributes, "%qs attribute ignored",
+	       IDENTIFIER_POINTER (name));
+      return NULL_TREE;
+    }
+
   /* Report error on dllimport ambiguities seen now before they cause
      any damage.  */
-  if (is_attribute_p ("dllimport", name))
+  else if (is_attribute_p ("dllimport", name))
     {
       /* Honor any target-specific overrides. */ 
       if (!targetm.valid_dllimport_attribute_p (node))
@@ -4310,14 +4384,20 @@ attribute_list_contained (tree l1, tree l2)
 	   attr = lookup_attribute (IDENTIFIER_POINTER (TREE_PURPOSE (t2)),
 				    TREE_CHAIN (attr)))
 	{
-	  if (simple_cst_equal (TREE_VALUE (t2), TREE_VALUE (attr)) == 1)
+	  if (TREE_VALUE (t2) != NULL
+	      && TREE_CODE (TREE_VALUE (t2)) == TREE_LIST
+	      && TREE_VALUE (attr) != NULL
+	      && TREE_CODE (TREE_VALUE (attr)) == TREE_LIST)
+	    {
+	      if (simple_cst_list_equal (TREE_VALUE (t2),
+					 TREE_VALUE (attr)) == 1)
+		break;
+	    }
+	  else if (simple_cst_equal (TREE_VALUE (t2), TREE_VALUE (attr)) == 1)
 	    break;
 	}
 
       if (attr == 0)
-	return 0;
-
-      if (simple_cst_equal (TREE_VALUE (t2), TREE_VALUE (attr)) != 1)
 	return 0;
     }
 
@@ -5102,7 +5182,11 @@ build_array_type (tree elt_type, tree index_type)
   
   if (index_type == 0)
     {
-      layout_type (t);
+      tree save = t;
+      hashcode = iterative_hash_object (TYPE_HASH (elt_type), hashcode);
+      t = type_hash_canon (hashcode, t);
+      if (save == t)
+	layout_type (t);
       return t;
     }
 
@@ -6630,6 +6714,26 @@ build_common_builtin_nodes (void)
 			"__builtin_nonlocal_goto",
 			ECF_NORETURN | ECF_NOTHROW);
 
+  tmp = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
+  tmp = tree_cons (NULL_TREE, ptr_type_node, tmp);
+  ftype = build_function_type (void_type_node, tmp);
+  local_define_builtin ("__builtin_setjmp_setup", ftype,
+			BUILT_IN_SETJMP_SETUP,
+			"__builtin_setjmp_setup", ECF_NOTHROW);
+
+  tmp = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
+  ftype = build_function_type (ptr_type_node, tmp);
+  local_define_builtin ("__builtin_setjmp_dispatcher", ftype,
+			BUILT_IN_SETJMP_DISPATCHER,
+			"__builtin_setjmp_dispatcher",
+			ECF_PURE | ECF_NOTHROW);
+
+  tmp = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
+  ftype = build_function_type (void_type_node, tmp);
+  local_define_builtin ("__builtin_setjmp_receiver", ftype,
+			BUILT_IN_SETJMP_RECEIVER,
+			"__builtin_setjmp_receiver", ECF_NOTHROW);
+
   ftype = build_function_type (ptr_type_node, void_list_node);
   local_define_builtin ("__builtin_stack_save", ftype, BUILT_IN_STACK_SAVE,
 			"__builtin_stack_save", ECF_NOTHROW);
@@ -6894,6 +6998,39 @@ in_array_bounds_p (tree ref)
 
   if (tree_int_cst_lt (idx, min)
       || tree_int_cst_lt (max, idx))
+    return false;
+
+  return true;
+}
+
+/* Returns true if it is possible to prove that the range of
+   an array access REF (an ARRAY_RANGE_REF expression) falls
+   into the array bounds.  */
+
+bool
+range_in_array_bounds_p (tree ref)
+{
+  tree domain_type = TYPE_DOMAIN (TREE_TYPE (ref));
+  tree range_min, range_max, min, max;
+
+  range_min = TYPE_MIN_VALUE (domain_type);
+  range_max = TYPE_MAX_VALUE (domain_type);
+  if (!range_min
+      || !range_max
+      || TREE_CODE (range_min) != INTEGER_CST
+      || TREE_CODE (range_max) != INTEGER_CST)
+    return false;
+
+  min = array_ref_low_bound (ref);
+  max = array_ref_up_bound (ref);
+  if (!min
+      || !max
+      || TREE_CODE (min) != INTEGER_CST
+      || TREE_CODE (max) != INTEGER_CST)
+    return false;
+
+  if (tree_int_cst_lt (range_min, min)
+      || tree_int_cst_lt (max, range_max))
     return false;
 
   return true;

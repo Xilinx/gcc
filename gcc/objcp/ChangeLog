@@ -1,3 +1,26 @@
+2006-10-10  Brooks Moses  <bmoses@stanford.edu>
+
+	* Make-lang.in: Added empty "obj-c++.pdf" target.
+
+2006-08-20  Mark Mitchell  <mark@codesourcery.com>
+
+	* objcp-lang.c (objcp_tsubst_copy_and_build): Adjust call to
+	tsubst_copy_and_build.
+
+2006-07-28  Volker Reichelt  <reichelt@igpm.rwth-aachen.de>
+
+	* Make-lang.in: Use $(HEADER_H) instead of header.h in dependencies.
+
+2006-07-03  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR other/27063
+	* config-lang.in: Add subdir_requires.
+
+2006-06-30  Jason Merrill  <jason@redhat.com>
+
+	* objcp-decl.c (objcp_start_struct): Pass null attributes argument
+	to begin_class_definition.
+
 2006-05-14  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* Make-lang.in (objcp/objcp-decl.o): Add dependency on

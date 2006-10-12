@@ -200,6 +200,10 @@ extern void assemble_end_function (tree, const char *);
    initial value (that will be done by the caller).  */
 extern void assemble_variable (tree, int, int, int);
 
+/* Compute the alignment of variable specified by DECL.
+   DONT_OUTPUT_DATA is from assemble_variable.  */
+extern void align_variable (tree decl, bool dont_output_data);
+
 /* Output something to declare an external symbol to the assembler.
    (Most assemblers don't need this, so we normally output nothing.)
    Do nothing if DECL is not external.  */
@@ -275,6 +279,13 @@ extern rtx peephole (rtx);
 extern void output_shared_constant_pool (void);
 
 extern void output_object_blocks (void);
+
+/* Whether a constructor CTOR is a valid static constant initializer if all
+   its elements are.  This used to be internal to initializer_constant_valid_p
+   and has been exposed to let other functions like categorize_ctor_elements
+   evaluate the property while walking a constructor for other purposes.  */
+
+extern bool constructor_static_from_elts_p (tree);
 
 /* Return nonzero if VALUE is a valid constant-valued expression
    for use in initializing a static variable; one that can be an

@@ -47,9 +47,9 @@ The callgraph:
     be accessed in such an invisible way and it shall be considered an
     entry point to the callgraph.
 
-    Intraprocedural information:
+    Interprocedural information:
 
-      Callgraph is place to store data needed for intraprocedural optimization.
+      Callgraph is place to store data needed for interprocedural optimization.
       All data structures are divided into three components: local_info that
       is produced while analyzing the function, global_info that is result
       of global walking of the callgraph on the end of compilation and
@@ -137,7 +137,7 @@ static GTY((param_is (struct cgraph_varpool_node))) htab_t cgraph_varpool_hash;
 struct cgraph_varpool_node *cgraph_varpool_nodes_queue, *cgraph_varpool_first_unanalyzed_node;
 
 /* The linked list of cgraph varpool nodes.  */
-static GTY(()) struct cgraph_varpool_node *cgraph_varpool_nodes;
+struct cgraph_varpool_node *cgraph_varpool_nodes;
 
 /* End of the varpool queue.  Needs to be QTYed to work with PCH.  */
 static GTY(()) struct cgraph_varpool_node *cgraph_varpool_last_needed_node;
@@ -293,11 +293,32 @@ cgraph_node_for_asm (tree asmname)
   return NULL;
 }
 
+/* Returns a hash value for X (which really is a die_struct).  */
+
+static hashval_t
+edge_hash (const void *x)
+{
+  return htab_hash_pointer (((struct cgraph_edge *) x)->call_stmt);
+}
+
+/* Return nonzero if decl_id of die_struct X is the same as UID of decl *Y.  */
+
+static int
+edge_eq (const void *x, const void *y)
+{
+  return ((struct cgraph_edge *) x)->call_stmt == y;
+}
+
 /* Return callgraph edge representing CALL_EXPR statement.  */
 struct cgraph_edge *
 cgraph_edge (struct cgraph_node *node, tree call_stmt)
 {
-  struct cgraph_edge *e;
+  struct cgraph_edge *e, *e2;
+  int n = 0;
+
+  if (node->call_site_hash)
+    return htab_find_with_hash (node->call_site_hash, call_stmt,
+      				htab_hash_pointer (call_stmt));
 
   /* This loop may turn out to be performance problem.  In such case adding
      hashtables into call nodes with very many edges is probably best
@@ -305,9 +326,49 @@ cgraph_edge (struct cgraph_node *node, tree call_stmt)
      because we want to make possible having multiple cgraph nodes representing
      different clones of the same body before the body is actually cloned.  */
   for (e = node->callees; e; e= e->next_callee)
-    if (e->call_stmt == call_stmt)
-      break;
+    {
+      if (e->call_stmt == call_stmt)
+	break;
+      n++;
+    }
+  if (n > 100)
+    {
+      node->call_site_hash = htab_create_ggc (120, edge_hash, edge_eq, NULL);
+      for (e2 = node->callees; e2; e2 = e2->next_callee)
+	{
+          void **slot;
+	  slot = htab_find_slot_with_hash (node->call_site_hash,
+					   e2->call_stmt,
+					   htab_hash_pointer (e2->call_stmt),
+					   INSERT);
+	  gcc_assert (!*slot);
+	  *slot = e2;
+	}
+    }
   return e;
+}
+
+/* Change call_smtt of edge E to NEW_STMT.  */
+void
+cgraph_set_call_stmt (struct cgraph_edge *e, tree new_stmt)
+{
+  if (e->caller->call_site_hash)
+    {
+      htab_remove_elt_with_hash (e->caller->call_site_hash,
+				 e->call_stmt,
+				 htab_hash_pointer (e->call_stmt));
+    }
+  e->call_stmt = new_stmt;
+  if (e->caller->call_site_hash)
+    {
+      void **slot;
+      slot = htab_find_slot_with_hash (e->caller->call_site_hash,
+				       e->call_stmt,
+				       htab_hash_pointer
+				       (e->call_stmt), INSERT);
+      gcc_assert (!*slot);
+      *slot = e;
+    }
 }
 
 /* Create edge from CALLER to CALLEE in the cgraph.  */
@@ -353,6 +414,17 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
   callee->callers = edge;
   edge->count = count;
   edge->loop_nest = nest;
+  if (caller->call_site_hash)
+    {
+      void **slot;
+      slot = htab_find_slot_with_hash (caller->call_site_hash,
+				       edge->call_stmt,
+				       htab_hash_pointer
+					 (edge->call_stmt),
+				       INSERT);
+      gcc_assert (!*slot);
+      *slot = edge;
+    }
   return edge;
 }
 
@@ -380,6 +452,10 @@ cgraph_edge_remove_caller (struct cgraph_edge *e)
     e->next_callee->prev_callee = e->prev_callee;
   if (!e->prev_callee)
     e->caller->callees = e->next_callee;
+  if (e->caller->call_site_hash)
+    htab_remove_elt_with_hash (e->caller->call_site_hash,
+			       e->call_stmt,
+	  		       htab_hash_pointer (e->call_stmt));
 }
 
 /* Remove the edge E in the cgraph.  */
@@ -425,6 +501,11 @@ cgraph_node_remove_callees (struct cgraph_node *node)
   for (e = node->callees; e; e = e->next_callee)
     cgraph_edge_remove_callee (e);
   node->callees = NULL;
+  if (node->call_site_hash)
+    {
+      htab_delete (node->call_site_hash);
+      node->call_site_hash = NULL;
+    }
 }
 
 /* Remove all callers from the node.  */
@@ -452,6 +533,9 @@ cgraph_remove_node (struct cgraph_node *node)
 
   cgraph_node_remove_callers (node);
   cgraph_node_remove_callees (node);
+  /* Incremental inlining access removed nodes stored in the postorder list.
+     */
+  node->needed = node->reachable = false;
   while (node->nested)
     cgraph_remove_node (node->nested);
   if (node->origin)
@@ -468,6 +552,8 @@ cgraph_remove_node (struct cgraph_node *node)
     cgraph_nodes = node->next;
   if (node->next)
     node->next->previous = node->previous;
+  node->next = NULL;
+  node->previous = NULL;
   slot = htab_find_slot (cgraph_hash, node, NO_INSERT);
   if (*slot == node)
     {
@@ -509,11 +595,17 @@ cgraph_remove_node (struct cgraph_node *node)
 	kill_body = true;
     }
 
-  if (kill_body && !dump_enabled_p (TDI_tree_all) && flag_unit_at_a_time)
+  if (kill_body && flag_unit_at_a_time)
     {
       DECL_SAVED_TREE (node->decl) = NULL;
       DECL_STRUCT_FUNCTION (node->decl) = NULL;
       DECL_INITIAL (node->decl) = error_mark_node;
+    }
+  node->decl = NULL;
+  if (node->call_site_hash)
+    {
+      htab_delete (node->call_site_hash);
+      node->call_site_hash = NULL;
     }
   cgraph_n_nodes--;
   /* Do not free the structure itself so the walk over chain can continue.  */
@@ -694,7 +786,10 @@ void
 dump_cgraph_varpool_node (FILE *f, struct cgraph_varpool_node *node)
 {
   fprintf (f, "%s:", cgraph_varpool_node_name (node));
-  fprintf (f, " availability:%s", availability_names [cgraph_variable_initializer_availability (node)]);
+  fprintf (f, " availability:%s",
+	   cgraph_function_flags_ready
+	   ? availability_names[cgraph_variable_initializer_availability (node)]
+	   : "not-ready");
   if (DECL_INITIAL (node->decl))
     fprintf (f, " initialized");
   if (node->needed)
@@ -829,7 +924,8 @@ cgraph_varpool_reset_queue (void)
 void
 cgraph_varpool_mark_needed_node (struct cgraph_varpool_node *node)
 {
-  if (!node->needed && node->finalized)
+  if (!node->needed && node->finalized
+      && !TREE_ASM_WRITTEN (node->decl))
     cgraph_varpool_enqueue_needed_node (node);
   node->needed = 1;
 }
@@ -843,8 +939,10 @@ bool
 decide_is_variable_needed (struct cgraph_varpool_node *node, tree decl)
 {
   /* If the user told us it is used, then it must be so.  */
-  if (node->externally_visible
-      || lookup_attribute ("used", DECL_ATTRIBUTES (decl)))
+  if (node->externally_visible)
+    return true;
+  if (!flag_unit_at_a_time
+      && lookup_attribute ("used", DECL_ATTRIBUTES (decl)))
     return true;
 
   /* ??? If the assembler name is set by hand, it is possible to assemble
@@ -861,7 +959,8 @@ decide_is_variable_needed (struct cgraph_varpool_node *node, tree decl)
 
   /* Externally visible variables must be output.  The exception is
      COMDAT variables that must be output only when they are needed.  */
-  if (TREE_PUBLIC (decl) && !DECL_COMDAT (decl) && !DECL_EXTERNAL (decl))
+  if (TREE_PUBLIC (decl) && !flag_whole_program && !DECL_COMDAT (decl)
+      && !DECL_EXTERNAL (decl))
     return true;
 
   /* When not reordering top level variables, we have to assume that

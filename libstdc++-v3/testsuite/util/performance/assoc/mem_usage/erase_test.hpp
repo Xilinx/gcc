@@ -47,99 +47,73 @@
 #ifndef PB_DS_ERASE_TEST_HPP
 #define PB_DS_ERASE_TEST_HPP
 
+#include <iterator>
+#include <testsuite_allocator.h>
 #include <ext/pb_ds/detail/type_utils.hpp>
-#include <performance/mem/mem_track_allocator.hpp>
 #include <performance/io/xml_formatter.hpp>
 #include <common_type/assoc/string_form.hpp>
-#include <iterator>
 
 namespace pb_ds
 {
-
   namespace test
   {
-
-#define PB_DS_CLASS_T_DEC			\
-    template<typename It>
-
-#define PB_DS_CLASS_C_DEC				\
-    erase_test<						\
-						It>
-
     template<typename It>
     class erase_test
     {
     public:
-      erase_test(It ins_b, size_t ins_vn, size_t ins_vs, size_t ins_vm);
+      erase_test(It ins_b, size_t ins_vn, size_t ins_vs, size_t ins_vm)
+      :	m_ins_b(ins_b), m_ins_vn(ins_vn), m_ins_vs(ins_vs), m_ins_vm(ins_vm)
+      { }
 
       template<typename Cntnr>
-      void
-      operator()(pb_ds::detail::type_to_type<Cntnr>);
+        void
+        operator()(Cntnr);
 
     private:
-      erase_test(const erase_test& );
+      erase_test(const erase_test&);
 
-    private:
-      const It m_ins_b;
-
-      const size_t m_ins_vn;
-      const size_t m_ins_vs;
-      const size_t m_ins_vm;
+      const It 		m_ins_b;
+      const size_t 	m_ins_vn;
+      const size_t 	m_ins_vs;
+      const size_t 	m_ins_vm;
     };
 
-    PB_DS_CLASS_T_DEC
-    PB_DS_CLASS_C_DEC::
-    erase_test(It ins_b, size_t ins_vn, size_t ins_vs, size_t ins_vm) :
-      m_ins_b(ins_b),
-      m_ins_vn(ins_vn),
-      m_ins_vs(ins_vs),
-      m_ins_vm(ins_vm)
-    { }
-
-    PB_DS_CLASS_T_DEC
+    template<typename It>
     template<typename Cntnr>
     void
-    PB_DS_CLASS_C_DEC::
-    operator()(pb_ds::detail::type_to_type<Cntnr>)
+    erase_test<It>::
+    operator()(Cntnr)
     {
-      xml_result_set_performance_formatter res_set_fmt(
-						       string_form<Cntnr>::name(),
-						       string_form<Cntnr>::desc());
+      typedef string_form<Cntnr> sform_type;
+      typedef xml_result_set_performance_formatter formatter_type;
+      formatter_type res_set_fmt(sform_type::name(), sform_type::desc());
 
-      for (size_t size_i = 0; m_ins_vn + size_i*  m_ins_vs < m_ins_vm; ++size_i)
+      for (size_t i = 0; m_ins_vn + i * m_ins_vs < m_ins_vm; ++i)
 	{
-	  const size_t ins_size = m_ins_vn + size_i*  m_ins_vs;
+	  const size_t ins_size = m_ins_vn + i * m_ins_vs;
 
 	  It ins_it_b = m_ins_b;
 	  It ins_it_e = m_ins_b;
 	  std::advance(ins_it_e, ins_size);
 
-	  mem_track_allocator<char> alloc;
-
-	  const size_t init_mem = alloc.get_total();
-
+	  typedef __gnu_test::tracker_allocator_counter counter_type;
+	  __gnu_test::tracker_allocator<char> alloc;
+	  const size_t init_mem = counter_type::get_allocation_count() 
+	                          - counter_type::get_deallocation_count();
 	  Cntnr cntnr(ins_it_b, ins_it_e);
 
 	  while (cntnr.size() > 1)
             cntnr.erase(*cntnr.begin());
 
-	  const size_t final_mem = alloc.get_total();
-
+	  const size_t final_mem = counter_type::get_allocation_count() 
+	                         - counter_type::get_deallocation_count();
 	  assert(final_mem > init_mem);
-
 	  const size_t delta_mem = final_mem - init_mem;
-
 	  res_set_fmt.add_res(ins_size, static_cast<double>(delta_mem));
 	}
     }
-
-#undef PB_DS_CLASS_T_DEC
-
-#undef PB_DS_CLASS_C_DEC
-
   } // namespace test
-
 } // namespace pb_ds
 
-#endif // #ifndef PB_DS_ERASE_TEST_HPP
+#endif
 

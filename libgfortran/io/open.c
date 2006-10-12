@@ -40,6 +40,7 @@ static const st_option access_opt[] = {
   {"sequential", ACCESS_SEQUENTIAL},
   {"direct", ACCESS_DIRECT},
   {"append", ACCESS_APPEND},
+  {"stream", ACCESS_STREAM},
   {NULL, 0}
 };
 
@@ -128,7 +129,7 @@ edit_modes (st_parameter_open *opp, gfc_unit * u, unit_flags * flags)
 {
   /* Complain about attempts to change the unchangeable.  */
 
-  if (flags->status != STATUS_UNSPECIFIED &&
+  if (flags->status != STATUS_UNSPECIFIED && flags->status != STATUS_OLD && 
       u->flags.status != flags->status)
     generate_error (&opp->common, ERROR_BAD_OPTION,
 		    "Cannot change STATUS parameter in OPEN statement");
@@ -154,8 +155,14 @@ edit_modes (st_parameter_open *opp, gfc_unit * u, unit_flags * flags)
 
   if (flags->status != STATUS_UNSPECIFIED && flags->status != STATUS_OLD &&
       flags->status != STATUS_UNKNOWN)
-    generate_error (&opp->common, ERROR_BAD_OPTION,
+    {
+      if (flags->status == STATUS_SCRATCH)
+	notify_std (&opp->common, GFC_STD_GNU,
 		    "OPEN statement must have a STATUS of OLD or UNKNOWN");
+      else
+	generate_error (&opp->common, ERROR_BAD_OPTION,
+		    "OPEN statement must have a STATUS of OLD or UNKNOWN");
+    }
 
   if (u->flags.form == FORM_UNFORMATTED)
     {
@@ -208,7 +215,9 @@ edit_modes (st_parameter_open *opp, gfc_unit * u, unit_flags * flags)
       if (sseek (u->s, file_length (u->s)) == FAILURE)
 	goto seek_error;
 
-      u->current_record = 0;
+      if (flags->access != ACCESS_STREAM)
+	u->current_record = 0;
+
       u->endfile = AT_ENDFILE;	/* We are at the end.  */
       break;
 
@@ -426,6 +435,13 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
 
   if (flags->access == ACCESS_DIRECT)
     u->maxrec = max_offset / u->recl;
+  
+  if (flags->access == ACCESS_STREAM)
+    {
+      u->maxrec = max_offset;
+      u->recl = 1;
+      u->strm_pos = 1;
+    }
 
   memmove (u->file, opp->file, opp->file_len);
   u->file_len = opp->file_len;
@@ -615,7 +631,7 @@ st_open (st_parameter_open *opp)
 			"Conflicting ACCESS and POSITION flags in"
 			" OPEN statement");
 
-      notify_std (GFC_STD_GNU,
+      notify_std (&opp->common, GFC_STD_GNU,
 		  "Extension: APPEND as a value for ACCESS in OPEN statement");
       flags.access = ACCESS_SEQUENTIAL;
       flags.position = POSITION_APPEND;

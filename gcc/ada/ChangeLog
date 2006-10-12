@@ -1,3 +1,70 @@
+2006-10-03  Kazu Hirata  <kazu@codesourcery.com>
+
+	* decl.c, utils.c: Fix comment typos.
+
+	* utils.c: Fix a typo.
+
+2006-09-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (gnat_to_gnu_entity) <E_Procedure>: Do not set "const" flag
+	on "pure" Ada subprograms if SJLJ exceptions are used.
+	* trans.c (Handled_Sequence_Of_Statements_to_gnu): Set TREE_NO_WARNING
+	on the declaration node of JMPBUF_SAVE.
+	* utils.c (init_gigi_decls): Set DECL_IS_PURE on the declaration nodes
+	of Get_Jmpbuf_Address_Soft and Get_GNAT_Exception.
+	* utils2.c (build_call_0_expr): Do not set TREE_SIDE_EFFECTS.
+
+2006-08-20  Laurent GUERBY  <laurent@guerby.net>
+
+	PR ada/28716
+	g-socket.adb (Bind_Socket): Call Set_Address.
+
+2006-09-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/15802
+	* decl.c (same_discriminant_p): New static function.
+	(gnat_to_gnu_entity) <E_Record_Type>: When there is a parent
+	subtype and we have discriminants, fix up the COMPONENT_REFs
+	for the discriminants to make them reference the corresponding
+	fields of the parent subtype after it has been built.
+
+2006-09-15  Roger Sayle  <roger@eyesopen.com>
+
+	PR ada/18817
+	* utils.c (max_size): Perform constant folding of (A ? B : C) - D
+	into A ? B - D : C - D when calculating the size of a MINUS_EXPR.
+
+2006-09-13  Olivier Hainque  <hainque@adacore.com>
+
+	PR ada/29025
+	* trans.c (gnat_gimplify_expr) <ADDR_EXPR>: When taking the address
+	of a SAVE_EXPR, just make the operand addressable/not-readonly and
+	let the common gimplifier code make and propagate a temporary copy.
+	(call_to_gnu): Clarify the use of SAVE_EXPR for not addressable
+	out/in-out actuals and defer setting the addressable/readonly bits
+	to the gimplifier.
+
+2006-09-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/28591
+	* decl.c (components_to_record): Defer emitting debug info for the
+	record type associated with the variant until after we are sure to
+	actually use it.
+
+2006-09-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/21952
+	* gigi.h (gnat_internal_attribute_table): Declare.
+	* misc.c (LANG_HOOKS_ATTRIBUTE_TABLE): Define to above.
+	* utils.c (gnat_internal_attribute_table): New global variable.
+	(builtin_function): Always call decl_attributes on the builtin.
+	(handle_const_attribute): New static function.
+	(handle_nothrow_attribute): Likewise.
+
+2006-07-28  Volker Reichelt  <reichelt@igpm.rwth-aachen.de>
+
+	* Make-lang.in: Use $(HEADER_H) instead of header.h in dependencies.
+
 2006-06-23  Olivier Hainque  <hainque@adacore.com>
 
 	* misc.c (gnat_type_max_size): Look at TYPE_ADA_SIZE if we have

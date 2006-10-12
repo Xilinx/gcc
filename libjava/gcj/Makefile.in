@@ -53,9 +53,11 @@ am__aclocal_m4_deps = $(top_srcdir)/../config/acx.m4 \
 	$(top_srcdir)/../config/lib-link.m4 \
 	$(top_srcdir)/../config/lib-prefix.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
-	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/../libtool.m4 \
-	$(top_srcdir)/mingwld.m4 $(top_srcdir)/pkg.m4 \
-	$(top_srcdir)/shlibpath.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/../config/tls.m4 \
+	$(top_srcdir)/../config/unwind_ipinfo.m4 \
+	$(top_srcdir)/../libtool.m4 $(top_srcdir)/mingwld.m4 \
+	$(top_srcdir)/pkg.m4 $(top_srcdir)/shlibpath.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 CONFIG_HEADER = $(top_builddir)/include/config.h libgcj-config.h
@@ -153,6 +155,7 @@ LIBGCJ_CFLAGS = @LIBGCJ_CFLAGS@
 LIBGCJ_CXXFLAGS = @LIBGCJ_CXXFLAGS@
 LIBGCJ_JAVAFLAGS = @LIBGCJ_JAVAFLAGS@
 LIBGCJ_LD_SYMBOLIC = @LIBGCJ_LD_SYMBOLIC@
+LIBGCJ_SPEC = @LIBGCJ_SPEC@
 LIBICONV = @LIBICONV@
 LIBLTDL = @LIBLTDL@
 LIBOBJS = @LIBOBJS@
@@ -195,8 +198,11 @@ THREADINCS = @THREADINCS@
 THREADLDFLAGS = @THREADLDFLAGS@
 THREADLIBS = @THREADLIBS@
 THREADSPEC = @THREADSPEC@
+THREADSTARTFILESPEC = @THREADSTARTFILESPEC@
 TOOLKIT = @TOOLKIT@
 UNZIP = @UNZIP@
+USE_LIBGCJ_BC_FALSE = @USE_LIBGCJ_BC_FALSE@
+USE_LIBGCJ_BC_TRUE = @USE_LIBGCJ_BC_TRUE@
 USING_BOEHMGC_FALSE = @USING_BOEHMGC_FALSE@
 USING_BOEHMGC_TRUE = @USING_BOEHMGC_TRUE@
 USING_DARWIN_CRT_FALSE = @USING_DARWIN_CRT_FALSE@
@@ -250,6 +256,7 @@ bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
 build_cpu = @build_cpu@
+build_libsubdir = @build_libsubdir@
 build_os = @build_os@
 build_subdir = @build_subdir@
 build_vendor = @build_vendor@

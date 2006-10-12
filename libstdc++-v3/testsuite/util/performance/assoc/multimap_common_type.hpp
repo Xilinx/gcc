@@ -52,25 +52,18 @@
 
 namespace pb_ds
 {
-
   namespace test
   {
-
     namespace detail
     {
-
-      struct int_hash : public std::unary_function<
-        int,
-        size_t>
+      struct int_hash : public std::unary_function<int, size_t>
       {
 	inline size_t
         operator()(const int i) const
-	{
-	  return (static_cast<size_t>(i));
-	}
+	{ return (static_cast<size_t>(i)); }
       };
 
-      template<typename Key, class Allocator = std::allocator<char> >
+      template<typename Key, typename Allocator = std::allocator<char> >
       struct hash_set_tl_t
       {
 	typedef
@@ -78,13 +71,12 @@ namespace pb_ds
 	  Key,
 	  pb_ds::null_mapped_type,
 	  int_hash,
-	  std::equal_to<
-	  Key>,
+	  std::equal_to<Key>,
 	  Allocator>::performance_min_tl
         type;
       };
 
-      template<typename Key, class Allocator = std::allocator<char> >
+      template<typename Key, typename Allocator = std::allocator<char> >
       struct lu_set_tl_t
       {
 	typedef
@@ -99,18 +91,17 @@ namespace pb_ds
 
       template<typename Key,
 	       class Sec_Tl,
-	       class Allocator = std::allocator<
-        char> >
+	       typename Allocator = std::allocator<char> >
       struct hash_mmap_tl_t
       {
       private:
 	typedef
-        typename pb_ds::detail::conditional_type<
+        typename pb_ds::detail::__conditional_type<
 	pb_ds::detail::is_same<
 	int,
 	Key>::value,
 	int_hash,
-	string_hash_fn>::type
+	string_hash_fn>::__type
         hash_fn_t;
 
 	template<typename Cntnr_T>
@@ -129,8 +120,8 @@ namespace pb_ds
 
       public:
 	typedef
-        typename pb_ds::detail::typelist_flatten<
-	typename pb_ds::detail::typelist_transform<
+        typename __gnu_cxx::typelist::flatten<
+	typename __gnu_cxx::typelist::transform<
 	Sec_Tl,
 	hash_mmap_transform>::type>::type
         type;
@@ -138,8 +129,7 @@ namespace pb_ds
 
       template<typename Key,
 	       class Sec_Tl,
-	       class Allocator = std::allocator<
-        char> >
+	       typename Allocator = std::allocator<char> >
       struct tree_mmap_tl_t
       {
       private:
@@ -159,102 +149,85 @@ namespace pb_ds
 
       public:
 	typedef
-        typename pb_ds::detail::typelist_flatten<
-	typename pb_ds::detail::typelist_transform<
+        typename __gnu_cxx::typelist::flatten<
+	typename __gnu_cxx::typelist::transform<
 	Sec_Tl,
 	tree_mmap_transform>::type>::type
         type;
       };
 
-      template<typename Key, typename Mapped, class Allocator>
+      template<typename Key, typename Mapped, typename Allocator>
       struct hash_hash_mmap_tl_t
       {
       private:
-	typedef typename hash_set_tl_t< Mapped, Allocator>::type sec_tl_t;
+	typedef typename hash_set_tl_t<Mapped, Allocator>::type sec_tl_t;
 
       public:
-	typedef typename hash_mmap_tl_t< Key, sec_tl_t, Allocator>::type type;
+	typedef typename hash_mmap_tl_t<Key, sec_tl_t, Allocator>::type type;
       };
 
-      template<typename Key, typename Mapped, class Allocator>
+      template<typename Key, typename Mapped, typename Allocator>
       struct tree_hash_mmap_tl_t
       {
       private:
-	typedef typename hash_set_tl_t< Mapped, Allocator>::type sec_tl_t;
+	typedef typename hash_set_tl_t<Mapped, Allocator>::type sec_tl_t;
 
       public:
-	typedef typename tree_mmap_tl_t< Key, sec_tl_t, Allocator>::type type;
+	typedef typename tree_mmap_tl_t<Key, sec_tl_t, Allocator>::type type;
       };
 
-      template<typename Key, typename Mapped, class Allocator>
+      template<typename Key, typename Mapped, typename Allocator>
       struct tree_lu_mmap_tl_t
       {
       private:
-	typedef typename lu_set_tl_t< Mapped, Allocator>::type sec_tl_t;
+	typedef typename lu_set_tl_t<Mapped, Allocator>::type sec_tl_t;
 
       public:
-	typedef typename tree_mmap_tl_t< Key, sec_tl_t, Allocator>::type type;
+	typedef typename tree_mmap_tl_t<Key, sec_tl_t, Allocator>::type type;
       };
 
-      template<typename Key, typename Mapped, class Allocator>
+      template<typename Key, typename Mapped, typename Allocator>
       struct hash_lu_mmap_tl_t
       {
       private:
-	typedef typename lu_set_tl_t< Mapped, Allocator>::type sec_tl_t;
+	typedef typename lu_set_tl_t<Mapped, Allocator>::type sec_tl_t;
 
       public:
-	typedef typename hash_mmap_tl_t< Key, sec_tl_t, Allocator>::type type;
+	typedef typename hash_mmap_tl_t<Key, sec_tl_t, Allocator>::type type;
       };
-
     } // namespace detail
 
-    template<typename Key, typename Mapped, class Allocator>
+    template<typename Key, typename Mapped, typename Allocator>
     struct mmap_tl_t
     {
     private:
       typedef
-      typename detail::hash_hash_mmap_tl_t<
-      Key,
-      Mapped,
-      Allocator>::type
+      typename detail::hash_hash_mmap_tl_t<Key, Mapped, Allocator>::type
       hh_mmap_tl_t;
 
       typedef
-      typename detail::hash_lu_mmap_tl_t<
-	Key,
-	Mapped,
-	Allocator>::type
+      typename detail::hash_lu_mmap_tl_t<Key, Mapped, Allocator>::type
       hl_mmap_tl_t;
 
       typedef
-      typename detail::tree_hash_mmap_tl_t<
-	Key,
-	Mapped,
-	Allocator>::type
+      typename detail::tree_hash_mmap_tl_t<Key, Mapped, Allocator>::type
       th_mmap_tl_t;
 
       typedef
-      typename detail::tree_lu_mmap_tl_t<
-	Key,
-	Mapped,
-	Allocator>::type
+      typename detail::tree_lu_mmap_tl_t<Key, Mapped, Allocator>::type
       tl_mmap_tl_t;
 
     public:
       typedef
-      typename pb_ds::detail::typelist_append<
-      hl_mmap_tl_t,
-      typename pb_ds::detail::typelist_append<
-      hh_mmap_tl_t,
-      typename pb_ds::detail::typelist_append<
-      th_mmap_tl_t,
+      typename __gnu_cxx::typelist::append<hl_mmap_tl_t,
+      typename __gnu_cxx::typelist::append<hh_mmap_tl_t,
+      typename __gnu_cxx::typelist::append<th_mmap_tl_t,
       tl_mmap_tl_t>::type>::type>::type
       type;
     };
 
   } // namespace test
-
 } // namespace pb_ds
 
-#endif // #ifndef PB_DS_MULTIMAP_RANDOM_INT_INSERT_TEST_COMMON_TYPE_HPP
+#endif
 

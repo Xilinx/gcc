@@ -350,7 +350,7 @@ AC_DEFUN([AM_OUTPUT_DEPENDENCY_COMMANDS],
 # with or without modifications, as long as this notice is preserved.
 
 AC_DEFUN([AM_PROG_GCJ],[
-AC_CHECK_PROGS(GCJ, [gcj gcj-3.2 gcj-3.1 gcj-3.0 gcj-2.95], gcj)
+AC_CHECK_PROGS(GCJ, gcj, gcj)
 test -z "$GCJ" && AC_MSG_ERROR([no acceptable gcj found in \$PATH])
 if test "x${GCJFLAGS-unset}" = xunset; then
    GCJFLAGS="-g -O2"
@@ -915,6 +915,7 @@ m4_include([../config/lib-link.m4])
 m4_include([../config/lib-prefix.m4])
 m4_include([../config/no-executables.m4])
 m4_include([../config/tls.m4])
+m4_include([../config/unwind_ipinfo.m4])
 m4_include([../libtool.m4])
 m4_include([mingwld.m4])
 m4_include([pkg.m4])

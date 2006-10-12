@@ -318,6 +318,13 @@ _Jv_ThreadRun (java::lang::Thread* thread)
   thread->finish_ ();
 }
 
+_Jv_Thread_t*
+_Jv_ThreadGetData (java::lang::Thread* thread)
+{
+  natThread* nt = (natThread*) thread->data;
+  return nt->thread;
+}
+
 void
 java::lang::Thread::start (void)
 {
@@ -403,7 +410,8 @@ _Jv_SetCurrentJNIEnv (JNIEnv *env)
 }
 
 // Attach the current native thread to an existing (but unstarted) Thread 
-// object. Returns -1 on failure, 0 upon success.
+// object. Does not register thread with the garbage collector.
+// Returns -1 on failure, 0 upon success.
 jint
 _Jv_AttachCurrentThread(java::lang::Thread* thread)
 {
@@ -420,6 +428,8 @@ _Jv_AttachCurrentThread(java::lang::Thread* thread)
 java::lang::Thread*
 _Jv_AttachCurrentThread(jstring name, java::lang::ThreadGroup* group)
 {
+  // Register thread with GC before attempting any allocations.
+  _Jv_GCAttachThread ();
   java::lang::Thread *thread = _Jv_ThreadCurrent ();
   if (thread != NULL)
     return thread;
@@ -454,6 +464,7 @@ _Jv_DetachCurrentThread (void)
     return -1;
 
   _Jv_ThreadUnRegister ();
+  _Jv_GCDetachThread ();
   // Release the monitors.
   t->finish_ ();
 

@@ -359,6 +359,21 @@ extern regset *glat_start, *glat_end;
 #define RECOVERY_BLOCK(INSN)    (h_i_d[INSN_UID (INSN)].recovery_block)
 #define ORIG_PAT(INSN)          (h_i_d[INSN_UID (INSN)].orig_pat)
 
+/* INSN is either a simple or a branchy speculation check.  */
+#define IS_SPECULATION_CHECK_P(INSN) (RECOVERY_BLOCK (INSN) != NULL)
+
+/* INSN is a speculation check that will simply reexecute the speculatively
+   scheduled instruction if the speculation fails.  */
+#define IS_SPECULATION_SIMPLE_CHECK_P(INSN) \
+  (RECOVERY_BLOCK (INSN) == EXIT_BLOCK_PTR)
+
+/* INSN is a speculation check that will branch to RECOVERY_BLOCK if the
+   speculation fails.  Insns in that block will reexecute the speculatively
+   scheduled code and then will return immediately after INSN thus preserving
+   semantics of the program.  */
+#define IS_SPECULATION_BRANCHY_CHECK_P(INSN) \
+  (RECOVERY_BLOCK (INSN) != NULL && RECOVERY_BLOCK (INSN) != EXIT_BLOCK_PTR)
+
 /* DEP_STATUS of the link encapsulates information, that is needed for
    speculative scheduling.  Namely, it is 4 integers in the range
    [0, MAX_DEP_WEAK] and 3 bits.
@@ -637,6 +652,7 @@ extern void * xrecalloc (void *, size_t, size_t, size_t);
 extern void unlink_bb_notes (basic_block, basic_block);
 extern void add_block (basic_block, basic_block);
 extern void attach_life_info (void);
+extern rtx bb_note (basic_block);
 
 #ifdef ENABLE_CHECKING
 extern void check_reg_live (bool);

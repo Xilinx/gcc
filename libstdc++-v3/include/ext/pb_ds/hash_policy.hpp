@@ -47,21 +47,11 @@
 #ifndef PB_DS_HASH_POLICY_HPP
 #define PB_DS_HASH_POLICY_HPP
 
-#ifdef PB_DS_HASH_POLICY_DEBUG
-# include <cassert>
-# define PB_DS_DBG_ASSERT(X) assert(X)
-# define PB_DS_DBG_VERIFY(X) assert(X)
-# define PB_DS_DBG_ONLY(X) X
-#else 
-# define PB_DS_DBG_ASSERT(X)
-# define PB_DS_DBG_VERIFY(X) {if((X)==0);}
-# define PB_DS_DBG_ONLY(X) ;
-#endif 
-
 #include <algorithm>
 #include <vector>
 #include <cmath>
 #include <ext/pb_ds/exception.hpp>
+#include <ext/pb_ds/detail/type_utils.hpp>
 #include <ext/pb_ds/detail/hash_fn/mask_based_range_hashing.hpp>
 #include <ext/pb_ds/detail/hash_fn/mod_based_range_hashing.hpp>
 #include <ext/pb_ds/detail/resize_policy/hash_load_check_resize_trigger_size_base.hpp>
@@ -288,7 +278,7 @@ namespace pb_ds
 
     typedef PB_DS_SIZE_BASE_C_DEC size_base;
 
-#ifdef PB_DS_HASH_POLICY_DEBUG
+#ifdef _GLIBCXX_DEBUG
     void
     assert_valid() const;
 #endif 
@@ -614,10 +604,6 @@ namespace pb_ds
 
 #undef PB_DS_CLASS_T_DEC
 #undef PB_DS_CLASS_C_DEC
-
-#undef PB_DS_DBG_ASSERT
-#undef PB_DS_DBG_VERIFY
-#undef PB_DS_DBG_ONLY
 
 } // namespace pb_ds
 

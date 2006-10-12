@@ -1,3 +1,74 @@
+2006-10-05  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* testsuite/libgomp.c/barrier-1.c: Change timestamp tests from
+	'<' to '<='.
+
+2006-10-05  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* acinclude.m4 (HAVE_ATTRIBUTE_ALIAS): Remove __USER_LABEL_PREFIX__ from
+	test.
+	* configure: Regenerate.
+	* fortran.c  (ialias_redirect): Add __USER_LABEL_PREFIX__ to alias.
+
+2006-09-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/25261
+	PR middle-end/28790
+	* testsuite/libgomp.c/nestedfn-4.c: New test.
+	* testsuite/libgomp.c/nestedfn-5.c: New test.
+	* testsuite/libgomp.fortran/nestedfn3.f90: New test.
+
+	PR fortran/29097
+	* testsuite/libgomp.fortran/condinc1.f: New test.
+	* testsuite/libgomp.fortran/condinc2.f: New test.
+	* testsuite/libgomp.fortran/condinc3.f90: New test.
+	* testsuite/libgomp.fortran/condinc4.f90: New test.
+	* testsuite/libgomp.fortran/condinc1.inc: New file.
+
+2006-09-18  Tom Tromey  <tromey@redhat.com>
+
+	* configure: Rebuilt.
+
+2006-09-13  Joseph S. Myers  <joseph@codesourcery.com>
+
+	PR c/28768
+	PR preprocessor/14634
+	* configure.ac (HAVE_CLOCK_GETTIME): Add missing second argument
+	to AC_DEFINE.
+	* configure: Regenerate.
+
+2006-09-08  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* testsuite/libgomp.fortran/reduction3.f90: Change
+	-2147483648 to -huge(i)-1 to avoid overflow.
+	* testsuite/libgomp.fortran/reduction4.f90: Change
+	Z'ffffffff' to not(0) to avoid overflow.
+
+2006-08-26  Joseph S. Myers  <joseph@codesourcery.com>
+
+	PR libgomp/25938
+	* Makefile.am (libsubincludedir): New.
+	(nodist_include_HEADERS): Rename to nodist_libsubinclude_HEADERS.
+	* Makefile.in: Regenerate.
+
+2006-08-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libgomp/28725
+	* env.c: Include ctype.h.
+	(parse_schedule, parse_unsigned_long, parse_boolean): Allow
+	leading and/or trailing whitespace and compare strings case
+	insensitively.
+
+2006-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/28390
+	* testsuite/libgomp.fortran/pr28390.f: New test.
+
+2006-07-05  Eric Christopher  <echristo@apple.com>
+
+	* configure.ac: Depend addition of -pthread on host OS.
+	* configure: Regenerate.
+
 2006-06-21  Jakub Jelinek  <jakub@redhat.com>
 
 	* critical.c (GOMP_critical_name_start): Fix *pptr initialization
@@ -154,7 +225,7 @@
 
 	PR libgomp/25936
 	* configure.tgt: Link against -lrt for sem_init on HPUX v11 systems.
- 
+
 2006-02-08  Ulrich Weigand  <uweigand@de.ibm.com>
 
 	* testsuite/lib/libgomp-dg.exp: Load scanrtl.exp library.
@@ -982,7 +1053,7 @@
 	* configure.tgt (x86_64-linux): Also test CC for -m32.
 	* config/linux/x86_64/futex.h (futex_wait): Fix r10 usage.
 
-	* testsuite/lib/libgomp-dg.exp (libgomp_link_flags): Add / 
+	* testsuite/lib/libgomp-dg.exp (libgomp_link_flags): Add /
 	after $gccpath.
 
 	* Makefile.am (SUBDIRS): New.
@@ -1078,7 +1149,7 @@
 
 	* iter.c (gomp_iter_runtime_next_locked): Remove.
 	* loop.c (gomp_loop_static_start, gomp_loop_dynamic_start,
-	gomp_loop_guided_start, gomp_loop_ordered_static_start, 
+	gomp_loop_guided_start, gomp_loop_ordered_static_start,
 	gomp_loop_ordered_dynamic_start, gomp_loop_ordered_guided_start,
 	gomp_loop_static_next, gomp_loop_dynamic_next, gomp_loop_guided_next,
 	gomp_loop_ordered_static_next, gomp_loop_ordered_dynamic_next,

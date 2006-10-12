@@ -630,14 +630,28 @@ cselib_hash_rtx (rtx x, int create)
 
       /* Assume there is only one rtx object for any given label.  */
     case LABEL_REF:
-      hash
-	+= ((unsigned) LABEL_REF << 7) + (unsigned long) XEXP (x, 0);
+      /* We don't hash on the address of the CODE_LABEL to avoid bootstrap
+	 differences and differences between each stage's debugging dumps.  */
+      hash += (((unsigned int) LABEL_REF << 7)
+	       + CODE_LABEL_NUMBER (XEXP (x, 0)));
       return hash ? hash : (unsigned int) LABEL_REF;
 
     case SYMBOL_REF:
-      hash
-	+= ((unsigned) SYMBOL_REF << 7) + (unsigned long) XSTR (x, 0);
-      return hash ? hash : (unsigned int) SYMBOL_REF;
+      {
+	/* Don't hash on the symbol's address to avoid bootstrap differences.
+	   Different hash values may cause expressions to be recorded in
+	   different orders and thus different registers to be used in the
+	   final assembler.  This also avoids differences in the dump files
+	   between various stages.  */
+	unsigned int h = 0;
+	const unsigned char *p = (const unsigned char *) XSTR (x, 0);
+
+	while (*p)
+	  h += (h << 7) + *p++; /* ??? revisit */
+
+	hash += ((unsigned int) SYMBOL_REF << 7) + h;
+	return hash ? hash : (unsigned int) SYMBOL_REF;
+      }
 
     case PRE_DEC:
     case PRE_INC:
@@ -1437,7 +1451,11 @@ cselib_process_insn (rtx insn)
     cselib_current_insn_in_libcall = false;
   cselib_current_insn = 0;
 
-  if (n_useless_values > MAX_USELESS_VALUES)
+  if (n_useless_values > MAX_USELESS_VALUES
+      /* remove_useless_values is linear in the hash table size.  Avoid
+         quadratic behaviour for very large hashtables with very few
+	 useless elements.  */
+      && (unsigned int)n_useless_values > cselib_hash_table->n_elements / 4)
     remove_useless_values ();
 }
 

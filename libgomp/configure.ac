@@ -145,13 +145,20 @@ GCC_HEADER_STDINT(gstdint.h)
 # Check to see if -pthread or -lpthread is needed.  Prefer the former.
 # In case the pthread.h system header is not found, this test will fail.
 XPCFLAGS=""
-CFLAGS="$CFLAGS -pthread"
+
+# Darwin doesn't need the -pthread option since threads are in libSystem
 AC_LINK_IFELSE(
  [AC_LANG_PROGRAM(
   [#include <pthread.h>
    void *g(void *d) { return NULL; }],
   [pthread_t t; pthread_create(&t,NULL,g,NULL);])],
- [XPCFLAGS=" -Wc,-pthread"],
+ [case $host in
+   *-darwin*)
+     ;;
+   default)
+     XPCFLAGS=" -Wc,-pthread"
+     ;;
+     esac],
  [CFLAGS="$save_CFLAGS" LIBS="-lpthread $LIBS"
   AC_LINK_IFELSE(
    [AC_LANG_PROGRAM(
@@ -220,7 +227,7 @@ esac
 if test $ac_cv_func_clock_gettime = no; then
   AC_CHECK_LIB(rt, clock_gettime,
     [LIBS="-lrt $LIBS"
-     AC_DEFINE(HAVE_CLOCK_GETTIME,
+     AC_DEFINE(HAVE_CLOCK_GETTIME, 1,
 	       [Define to 1 if you have the `clock_gettime' function.])])
 fi
 

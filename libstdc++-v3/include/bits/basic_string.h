@@ -42,7 +42,7 @@
 
 #pragma GCC system_header
 
-#include <bits/atomicity.h>
+#include <ext/atomicity.h>
 #include <debug/debug.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
@@ -1627,7 +1627,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Find last position of a C string.
        *  @param s  C string to locate.
-       *  @param pos  Index of character to start search at (default 0).
+       *  @param pos  Index of character to start search at (default end).
        *  @return  Index of start of  last occurrence.
        *
        *  Starting from @a pos, searches backward for the value of @a s within
@@ -1644,7 +1644,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Find last position of a character.
        *  @param c  Character to locate.
-       *  @param pos  Index of character to search back from (default 0).
+       *  @param pos  Index of character to search back from (default end).
        *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for @a c within this string.

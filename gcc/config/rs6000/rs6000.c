@@ -3421,6 +3421,7 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
 
   if (GET_CODE (x) == SYMBOL_REF
       && !ALTIVEC_VECTOR_MODE (mode)
+      && !SPE_VECTOR_MODE (mode)
 #if TARGET_MACHO
       && DEFAULT_ABI == ABI_DARWIN
       && (flag_pic || MACHO_DYNAMIC_NO_PIC_P)
@@ -3522,6 +3523,7 @@ rs6000_legitimate_address (enum machine_mode mode, rtx x, int reg_ok_strict)
   if ((GET_CODE (x) == PRE_INC || GET_CODE (x) == PRE_DEC)
       && !ALTIVEC_VECTOR_MODE (mode)
       && !SPE_VECTOR_MODE (mode)
+      && mode != TFmode
       /* Restrict addressing for DI because of our SUBREG hackery.  */
       && !(TARGET_E500_DOUBLE && (mode == DFmode || mode == DImode))
       && TARGET_UPDATE
@@ -4485,7 +4487,12 @@ function_arg_padding (enum machine_mode mode, tree type)
    of an argument with the specified mode and type.  If it is not defined,
    PARM_BOUNDARY is used for all arguments.
 
-   V.4 wants long longs to be double word aligned.
+   V.4 wants long longs and doubles to be double word aligned.  Just
+   testing the mode size is a boneheaded way to do this as it means
+   that other types such as complex int are also double word aligned.
+   However, we're stuck with this because changing the ABI might break
+   existing library interfaces.
+
    Doubleword align SPE vectors.
    Quadword align Altivec vectors.
    Quadword align large synthetic vector types.   */
@@ -4493,7 +4500,11 @@ function_arg_padding (enum machine_mode mode, tree type)
 int
 function_arg_boundary (enum machine_mode mode, tree type)
 {
-  if (DEFAULT_ABI == ABI_V4 && GET_MODE_SIZE (mode) == 8)
+  if (DEFAULT_ABI == ABI_V4
+      && (GET_MODE_SIZE (mode) == 8
+	  || (TARGET_HARD_FLOAT
+	      && TARGET_FPRS
+	      && mode == TFmode)))
     return 64;
   else if (SPE_VECTOR_MODE (mode)
 	   || (type && TREE_CODE (type) == VECTOR_TYPE
@@ -4596,7 +4607,10 @@ rs6000_darwin64_record_arg_advance_recurse (CUMULATIVE_ARGS *cum,
       {
 	HOST_WIDE_INT bitpos = startbitpos;
 	tree ftype = TREE_TYPE (f);
-	enum machine_mode mode = TYPE_MODE (ftype);
+	enum machine_mode mode;
+	if (ftype == error_mark_node)
+	  continue;
+	mode = TYPE_MODE (ftype);
 
 	if (DECL_SIZE (f) != 0
 	    && host_integerp (bit_position (f), 1))
@@ -4964,7 +4978,10 @@ rs6000_darwin64_record_arg_recurse (CUMULATIVE_ARGS *cum, tree type,
       {
 	HOST_WIDE_INT bitpos = startbitpos;
 	tree ftype = TREE_TYPE (f);
-	enum machine_mode mode = TYPE_MODE (ftype);
+	enum machine_mode mode;
+	if (ftype == error_mark_node)
+	  continue;
+	mode = TYPE_MODE (ftype);
 
 	if (DECL_SIZE (f) != 0
 	    && host_integerp (bit_position (f), 1))
@@ -9790,12 +9807,12 @@ effects of instruction do not correspond to semantics of RTL insn.  */
 int
 insvdi_rshift_rlwimi_p (rtx sizeop, rtx startop, rtx shiftop)
 {
-  if (INTVAL (startop) < 64
-      && INTVAL (startop) > 32
-      && (INTVAL (sizeop) + INTVAL (startop) < 64)
-      && (INTVAL (sizeop) + INTVAL (startop) > 33)
-      && (INTVAL (sizeop) + INTVAL (startop) + INTVAL (shiftop) < 96)
-      && (INTVAL (sizeop) + INTVAL (startop) + INTVAL (shiftop) >= 64)
+  if (INTVAL (startop) > 32
+      && INTVAL (startop) < 64
+      && INTVAL (sizeop) > 1
+      && INTVAL (sizeop) + INTVAL (startop) < 64
+      && INTVAL (shiftop) > 0
+      && INTVAL (sizeop) + INTVAL (shiftop) < 32
       && (64 - (INTVAL (shiftop) & 63)) >= INTVAL (sizeop))
     return 1;
 
@@ -10272,13 +10289,14 @@ print_operand (FILE *file, rtx x, int code)
       return;
 
     case 'D':
-      /* Like 'J' but get to the EQ bit.  */
+      /* Like 'J' but get to the GT bit only.  */
       gcc_assert (GET_CODE (x) == REG);
 
-      /* Bit 1 is EQ bit.  */
-      i = 4 * (REGNO (x) - CR0_REGNO) + 2;
+      /* Bit 1 is GT bit.  */
+      i = 4 * (REGNO (x) - CR0_REGNO) + 1;
 
-      fprintf (file, "%d", i);
+      /* Add one for shift count in rlinm for scc.  */
+      fprintf (file, "%d", i + 1);
       return;
 
     case 'E':
@@ -10777,7 +10795,8 @@ print_operand (FILE *file, rtx x, int code)
 
 	tmp = XEXP (x, 0);
 
-	if (TARGET_E500)
+	/* Ugly hack because %y is overloaded.  */
+	if (TARGET_E500 && GET_MODE_SIZE (GET_MODE (x)) == 8)
 	  {
 	    /* Handle [reg].  */
 	    if (GET_CODE (tmp) == REG)
@@ -11075,7 +11094,7 @@ rs6000_generate_compare (enum rtx_code code)
   /* First, the compare.  */
   compare_result = gen_reg_rtx (comp_mode);
 
-  /* SPE FP compare instructions on the GPRs.  Yuck!  */
+  /* E500 FP compare instructions on the GPRs.  Yuck!  */
   if ((TARGET_E500 && !TARGET_FPRS && TARGET_HARD_FLOAT)
       && rs6000_compare_fp_p)
     {
@@ -11085,8 +11104,8 @@ rs6000_generate_compare (enum rtx_code code)
       if (op_mode == VOIDmode)
 	op_mode = GET_MODE (rs6000_compare_op1);
 
-      /* Note: The E500 comparison instructions set the GT bit (x +
-	 1), on success.  This explains the mess.  */
+      /* The E500 FP compare instructions toggle the GT bit (CR bit 1) only.
+	 This explains the following mess.  */
 
       switch (code)
 	{
@@ -11486,7 +11505,8 @@ output_cbranch (rtx op, const char *label, int reversed, rtx insn)
 	 mispredicted taken branch is more expensive than a
 	 mispredicted not-taken branch.  */
       if (rs6000_always_hint
-	  || abs (prob) > REG_BR_PROB_BASE / 100 * 48)
+	  || (abs (prob) > REG_BR_PROB_BASE / 100 * 48
+	      && br_prob_note_reliable_p (note)))
 	{
 	  if (abs (prob) > REG_BR_PROB_BASE / 20
 	      && ((prob > 0) ^ need_longbranch))
@@ -18095,7 +18115,7 @@ machopic_output_stub (FILE *file, const char *symb, const char *stub)
    position-independent addresses go into a reg.  This is REG if non
    zero, otherwise we allocate register(s) as necessary.  */
 
-#define SMALL_INT(X) ((unsigned) (INTVAL (X) + 0x8000) < 0x10000)
+#define SMALL_INT(X) ((UINTVAL (X) + 0x8000) < 0x10000)
 
 rtx
 rs6000_machopic_legitimize_pic_address (rtx orig, enum machine_mode mode,

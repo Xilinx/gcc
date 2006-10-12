@@ -366,9 +366,9 @@ do { \
   SUBTARGET_EXTRA_SPECS
 
 #if TARGET_CPU_DEFAULT & MASK_HARD_SH4
-#define SUBTARGET_ASM_RELAX_SPEC "%{!m1:%{!m2:%{!m3*:%{!m5*:-isa=sh4}}}}"
+#define SUBTARGET_ASM_RELAX_SPEC "%{!m1:%{!m2:%{!m3*:%{!m5*:-isa=sh4-up}}}}"
 #else
-#define SUBTARGET_ASM_RELAX_SPEC "%{m4*:-isa=sh4}"
+#define SUBTARGET_ASM_RELAX_SPEC "%{m4*:-isa=sh4-up}"
 #endif
 
 #define SH_ASM_SPEC \
@@ -2820,6 +2820,12 @@ struct sh_args {
 /* Since the SH2e has only `float' support, it is desirable to make all
    floating point types equivalent to `float'.  */
 #define DOUBLE_TYPE_SIZE ((TARGET_SH2E && ! TARGET_SH4 && ! TARGET_SH2A_DOUBLE) ? 32 : 64)
+
+#if defined(__SH2E__) || defined(__SH3E__) || defined( __SH4_SINGLE_ONLY__)
+#define LIBGCC2_DOUBLE_TYPE_SIZE 32
+#else
+#define LIBGCC2_DOUBLE_TYPE_SIZE 64
+#endif
 
 /* 'char' is signed by default.  */
 #define DEFAULT_SIGNED_CHAR  1

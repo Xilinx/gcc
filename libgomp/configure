@@ -865,8 +865,7 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-maintainer-mode  enable make rules and dependencies not useful
 			  (and sometimes confusing) to the casual installer
-  _g_switchUse thread-local storage
-                          [default=yes]
+  --enable-tls            Use thread-local storage [default=yes]
   --enable-symvers=STYLE  enables symbol versioning of the shared library
                           [default=yes]
 
@@ -4228,7 +4227,7 @@ test x"$pic_mode" = xno && libtool_flags="$libtool_flags --prefer-non-pic"
 case $host in
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 4231 "configure"' > conftest.$ac_ext
+  echo '#line 4230 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -4638,7 +4637,7 @@ fi
 
 
 # Provide some information about the compiler.
-echo "$as_me:4641:" \
+echo "$as_me:4640:" \
      "checking for Fortran compiler version" >&5
 ac_compiler=`set X $ac_compile; echo $2`
 { (eval echo "$as_me:$LINENO: \"$ac_compiler --version </dev/null >&5\"") >&5
@@ -5831,8 +5830,9 @@ fi
   break
 done
 if test "$acx_cv_header_stdint" = stddef.h; then
-  acx_cv_header_stdint_kind="(lacks uintptr_t)"
+  acx_cv_header_stdint_kind="(lacks uintmax_t)"
   for i in stdint.h $inttype_headers; do
+    unset ac_cv_type_uintptr_t
     unset ac_cv_type_uint32_t
     unset ac_cv_type_uint64_t
     echo $ECHO_N "looking for an incomplete stdint.h in $i, $ECHO_C" >&6
@@ -5958,11 +5958,65 @@ rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
 echo "$as_me:$LINENO: result: $ac_cv_type_uint64_t" >&5
 echo "${ECHO_T}$ac_cv_type_uint64_t" >&6
-if test $ac_cv_type_uint64_t = yes; then
-  :
+
+    echo "$as_me:$LINENO: checking for uintptr_t" >&5
+echo $ECHO_N "checking for uintptr_t... $ECHO_C" >&6
+if test "${ac_cv_type_uintptr_t+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  acx_cv_header_stdint_kind="(lacks uintptr_t and uint64_t)"
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <sys/types.h>
+#include <$i>
+
+int
+main ()
+{
+if ((uintptr_t *) 0)
+  return 0;
+if (sizeof (uintptr_t))
+  return 0;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_type_uintptr_t=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_type_uintptr_t=no
 fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_type_uintptr_t" >&5
+echo "${ECHO_T}$ac_cv_type_uintptr_t" >&6
 
     break
   done
@@ -6095,11 +6149,6 @@ rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
 echo "$as_me:$LINENO: result: $ac_cv_type_u_int64_t" >&5
 echo "${ECHO_T}$ac_cv_type_u_int64_t" >&6
-if test $ac_cv_type_u_int64_t = yes; then
-  :
-else
-  acx_cv_header_stdint_kind="(u_intXX_t style, lacks u_int64_t)"
-fi
 
     break
   done
@@ -8296,7 +8345,8 @@ fi
 # Check to see if -pthread or -lpthread is needed.  Prefer the former.
 # In case the pthread.h system header is not found, this test will fail.
 XPCFLAGS=""
-CFLAGS="$CFLAGS -pthread"
+
+# Darwin doesn't need the -pthread option since threads are in libSystem
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -8335,7 +8385,13 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  XPCFLAGS=" -Wc,-pthread"
+  case $host in
+   *-darwin*)
+     ;;
+   default)
+     XPCFLAGS=" -Wc,-pthread"
+     ;;
+     esac
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
@@ -8748,8 +8804,9 @@ echo "$as_me:$LINENO: result: $ac_cv_lib_rt_clock_gettime" >&5
 echo "${ECHO_T}$ac_cv_lib_rt_clock_gettime" >&6
 if test $ac_cv_lib_rt_clock_gettime = yes; then
   LIBS="-lrt $LIBS"
-     cat >>confdefs.h <<\_ACEOF
-#define HAVE_CLOCK_GETTIME Define to 1 if you have the `clock_gettime' function.
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_CLOCK_GETTIME 1
 _ACEOF
 
 fi
@@ -9030,11 +9087,8 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-#define ULP	STR1(__USER_LABEL_PREFIX__)
-#define STR1(x)	STR2(x)
-#define STR2(x)	#x
 void foo(void) { }
-extern void bar(void) __attribute__((alias(ULP "foo")));
+extern void bar(void) __attribute__((alias("foo")));
 int
 main ()
 {

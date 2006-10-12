@@ -1,4 +1,4 @@
-// Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -61,11 +61,9 @@ main()
 #endif    
 
   typedef __gnu_test::sets<int, thread_type>::type container_types;
-
   typedef test_sequence<thread_type> test_type;
   test_type test("create_from_sorted");
-  __gnu_cxx::apply<test_type, container_types> applier;
-  applier(test);
+  __gnu_cxx::typelist::apply(test, container_types());
 
   return 0;
 }

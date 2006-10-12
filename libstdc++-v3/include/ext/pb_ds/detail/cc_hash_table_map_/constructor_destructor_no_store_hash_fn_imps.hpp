@@ -48,16 +48,14 @@
 PB_DS_CLASS_T_DEC
 inline void
 PB_DS_CLASS_C_DEC::
-constructor_insert_new_imp(const_mapped_reference r_val, size_type pos, integral_constant<int,false>)
+constructor_insert_new_imp(const_mapped_reference r_val, size_type pos, 
+			   false_type)
 {
   // Following lines might throw an exception.
-  entry_pointer p_e = get_entry(r_val, traits_base::s_no_throw_copies_indicator);
+  entry_pointer p = get_entry(r_val, traits_base::s_no_throw_copies_indicator);
 
   // At this point no exceptions can be thrown.
-
-  p_e->m_p_next = m_a_p_entries[pos];
-
-  m_a_p_entries[pos] = p_e;
-
-  PB_DS_DBG_ONLY(map_debug_base::insert_new(r_key);)
-    }
+  p->m_p_next = m_entries[pos];
+  m_entries[pos] = p;
+  _GLIBCXX_DEBUG_ONLY(map_debug_base::insert_new(r_key);)
+}

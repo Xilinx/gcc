@@ -386,6 +386,13 @@ rtl_delete_block (basic_block b)
   /* Selectively delete the entire chain.  */
   BB_HEAD (b) = NULL;
   delete_insn_chain (insn, end);
+  if (b->il.rtl->global_live_at_start)
+    {
+      FREE_REG_SET (b->il.rtl->global_live_at_start);
+      FREE_REG_SET (b->il.rtl->global_live_at_end);
+      b->il.rtl->global_live_at_start = NULL;
+      b->il.rtl->global_live_at_end = NULL;
+    }
 }
 
 /* Records the basic block struct in BLOCK_FOR_INSN for every insn.  */
@@ -444,6 +451,19 @@ entry_of_function (void)
 {
   return (n_basic_blocks > NUM_FIXED_BLOCKS ?
 	  BB_HEAD (ENTRY_BLOCK_PTR->next_bb) : get_insns ());
+}
+
+/* Emit INSN at the entry point of the function, ensuring that it is only
+   executed once per function.  */
+void
+emit_insn_at_entry (rtx insn)
+{
+  edge_iterator ei = ei_start (ENTRY_BLOCK_PTR->succs);
+  edge e = ei_safe_edge (ei);
+  gcc_assert (e->flags & EDGE_FALLTHRU);
+
+  insert_insn_on_edge (insn, e);
+  commit_edge_insertions ();
 }
 
 /* Update insns block within BB.  */

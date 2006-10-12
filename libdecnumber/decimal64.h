@@ -96,12 +96,12 @@ typedef struct
 #endif
 
   /* String conversions */
-decimal64 *decimal64FromString (decimal64 *, char *, decContext *);
-char *decimal64ToString (decimal64 *, char *);
-char *decimal64ToEngString (decimal64 *, char *);
+decimal64 *decimal64FromString (decimal64 *, const char *, decContext *);
+char *decimal64ToString (const decimal64 *, char *);
+char *decimal64ToEngString (const decimal64 *, char *);
 
   /* decNumber conversions */
-decimal64 *decimal64FromNumber (decimal64 *, decNumber *, decContext *);
-decNumber *decimal64ToNumber (decimal64 *, decNumber *);
+decimal64 *decimal64FromNumber (decimal64 *, const decNumber *, decContext *);
+decNumber *decimal64ToNumber (const decimal64 *, decNumber *);
 
 #endif

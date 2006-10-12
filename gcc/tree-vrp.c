@@ -290,6 +290,25 @@ get_value_range (tree var)
   return vr;
 }
 
+/* Return true, if VAL1 and VAL2 are equal values for VRP purposes.  */
+
+static inline bool
+vrp_operand_equal_p (tree val1, tree val2)
+{
+  return (val1 == val2
+	  || (val1 && val2
+	      && operand_equal_p (val1, val2, 0)));
+}
+
+/* Return true, if the bitmaps B1 and B2 are equal.  */
+
+static inline bool
+vrp_bitmap_equal_p (bitmap b1, bitmap b2)
+{
+  return (b1 == b2
+	  || (b1 && b2
+	      && bitmap_equal_p (b1, b2)));
+}
 
 /* Update the value range and equivalence set for variable VAR to
    NEW_VR.  Return true if NEW_VR is different from VAR's previous
@@ -310,11 +329,9 @@ update_value_range (tree var, value_range_t *new_vr)
   /* Update the value range, if necessary.  */
   old_vr = get_value_range (var);
   is_new = old_vr->type != new_vr->type
-           || old_vr->min != new_vr->min
-	   || old_vr->max != new_vr->max
-	   || (old_vr->equiv == NULL && new_vr->equiv)
-	   || (old_vr->equiv && new_vr->equiv == NULL)
-	   || (!bitmap_equal_p (old_vr->equiv, new_vr->equiv));
+	   || !vrp_operand_equal_p (old_vr->min, new_vr->min)
+	   || !vrp_operand_equal_p (old_vr->max, new_vr->max)
+	   || !vrp_bitmap_equal_p (old_vr->equiv, new_vr->equiv);
 
   if (is_new)
     set_value_range (old_vr, new_vr->type, new_vr->min, new_vr->max,
@@ -743,7 +760,7 @@ fix_equivalence_set (value_range_t *vr_p)
   bitmap_iterator bi;
   unsigned i;
   bitmap e = vr_p->equiv;
-  bitmap to_remove = BITMAP_ALLOC (NULL);
+  bitmap to_remove;
 
   /* Only detect inconsistencies on numeric ranges.  */
   if (vr_p->type == VR_VARYING
@@ -751,19 +768,24 @@ fix_equivalence_set (value_range_t *vr_p)
       || symbolic_range_p (vr_p))
     return;
 
+  to_remove = BITMAP_ALLOC (NULL);
   EXECUTE_IF_SET_IN_BITMAP (e, 0, i, bi)
     {
       value_range_t *equiv_vr = vr_value[i];
 
       if (equiv_vr->type == VR_VARYING
-	  || equiv_vr->type == VR_UNDEFINED
-	  || symbolic_range_p (equiv_vr))
+	  || equiv_vr->type == VR_UNDEFINED)
 	continue;
 
-      if (equiv_vr->type == VR_RANGE
-	  && vr_p->type == VR_RANGE
-	  && !value_ranges_intersect_p (vr_p, equiv_vr))
-	bitmap_set_bit (to_remove, i);
+      if (vr_p->type == VR_RANGE
+	  && equiv_vr->type == VR_RANGE)
+	{
+	  /* Two ranges have an empty intersection if their end points
+	     are outside of the other range.  */
+	  if (compare_values (equiv_vr->min, vr_p->max) == 1
+	      || compare_values (equiv_vr->max, vr_p->min) == -1)
+	    bitmap_set_bit (to_remove, i);
+	}
       else if ((equiv_vr->type == VR_RANGE && vr_p->type == VR_ANTI_RANGE)
 	       || (equiv_vr->type == VR_ANTI_RANGE && vr_p->type == VR_RANGE))
 	{
@@ -1997,7 +2019,7 @@ static void
 adjust_range_with_scev (value_range_t *vr, struct loop *loop, tree stmt,
 			tree var)
 {
-  tree init, step, chrec;
+  tree init, step, chrec, tmin, tmax, min, max, type;
   enum ev_direction dir;
 
   /* TODO.  Don't adjust anti-ranges.  An anti-range may provide
@@ -2031,13 +2053,23 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop, tree stmt,
 				true))
     return;
 
-  if (!POINTER_TYPE_P (TREE_TYPE (init))
-      && (vr->type == VR_VARYING || vr->type == VR_UNDEFINED))
+  type = TREE_TYPE (var);
+  if (POINTER_TYPE_P (type) || !TYPE_MIN_VALUE (type))
+    tmin = lower_bound_in_type (type, type);
+  else
+    tmin = TYPE_MIN_VALUE (type);
+  if (POINTER_TYPE_P (type) || !TYPE_MAX_VALUE (type))
+    tmax = upper_bound_in_type (type, type);
+  else
+    tmax = TYPE_MAX_VALUE (type);
+
+  if (vr->type == VR_VARYING || vr->type == VR_UNDEFINED)
     {
+      min = tmin;
+      max = tmax;
+
       /* For VARYING or UNDEFINED ranges, just about anything we get
 	 from scalar evolutions should be better.  */
-      tree min = TYPE_MIN_VALUE (TREE_TYPE (init));
-      tree max = TYPE_MAX_VALUE (TREE_TYPE (init));
 
       if (dir == EV_DIR_DECREASES)
 	max = init;
@@ -2046,7 +2078,8 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop, tree stmt,
 
       /* If we would create an invalid range, then just assume we
 	 know absolutely nothing.  This may be over-conservative,
-	 but it's clearly safe.  */
+	 but it's clearly safe, and should happen only in unreachable
+         parts of code, or for invalid programs.  */
       if (compare_values (min, max) == 1)
 	return;
 
@@ -2054,8 +2087,8 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop, tree stmt,
     }
   else if (vr->type == VR_RANGE)
     {
-      tree min = vr->min;
-      tree max = vr->max;
+      min = vr->min;
+      max = vr->max;
 
       if (dir == EV_DIR_DECREASES)
 	{
@@ -2066,10 +2099,11 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop, tree stmt,
 	      max = init;
 
 	      /* If we just created an invalid range with the minimum
-		 greater than the maximum, take the minimum all the
-		 way to -INF.  */
+		 greater than the maximum, we fail conservatively.
+		 This should happen only in unreachable
+		 parts of code, or for invalid programs.  */
 	      if (compare_values (min, max) == 1)
-		min = TYPE_MIN_VALUE (TREE_TYPE (min));
+		return;
 	    }
 	}
       else
@@ -2079,11 +2113,9 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop, tree stmt,
 	    {
 	      min = init;
 
-	      /* If we just created an invalid range with the minimum
-		 greater than the maximum, take the maximum all the
-		 way to +INF.  */
+	      /* Again, avoid creating invalid range by failing.  */
 	      if (compare_values (min, max) == 1)
-		max = TYPE_MAX_VALUE (TREE_TYPE (max));
+		return;
 	    }
 	}
 

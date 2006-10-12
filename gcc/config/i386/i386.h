@@ -142,7 +142,7 @@ extern const struct processor_costs *ix86_cost;
 
 #define TUNEMASK (1 << ix86_tune)
 extern const int x86_use_leave, x86_push_memory, x86_zero_extend_with_and;
-extern const int x86_use_bit_test, x86_cmove, x86_fisttp, x86_deep_branch;
+extern const int x86_use_bit_test, x86_cmove, x86_deep_branch;
 extern const int x86_branch_hints, x86_unroll_strlen;
 extern const int x86_double_with_add, x86_partial_reg_stall, x86_movx;
 extern const int x86_use_himode_fiop, x86_use_simode_fiop;
@@ -164,6 +164,7 @@ extern const int x86_use_bt;
 extern const int x86_cmpxchg, x86_cmpxchg8b, x86_cmpxchg16b, x86_xadd;
 extern const int x86_use_incdec;
 extern const int x86_pad_returns;
+extern const int x86_partial_flag_reg_stall;
 extern int x86_prefetch_sse;
 
 #define TARGET_USE_LEAVE (x86_use_leave & TUNEMASK)
@@ -174,14 +175,14 @@ extern int x86_prefetch_sse;
 /* For sane SSE instruction set generation we need fcomi instruction.  It is
    safe to enable all CMOVE instructions.  */
 #define TARGET_CMOVE ((x86_cmove & (1 << ix86_arch)) || TARGET_SSE)
-#define TARGET_FISTTP (((x86_fisttp & (1 << ix86_arch)) || TARGET_SSE3) \
-			&& TARGET_80387)
+#define TARGET_FISTTP (TARGET_SSE3 && TARGET_80387)
 #define TARGET_DEEP_BRANCH_PREDICTION (x86_deep_branch & TUNEMASK)
 #define TARGET_BRANCH_PREDICTION_HINTS (x86_branch_hints & TUNEMASK)
 #define TARGET_DOUBLE_WITH_ADD (x86_double_with_add & TUNEMASK)
 #define TARGET_USE_SAHF ((x86_use_sahf & TUNEMASK) && !TARGET_64BIT)
 #define TARGET_MOVX (x86_movx & TUNEMASK)
 #define TARGET_PARTIAL_REG_STALL (x86_partial_reg_stall & TUNEMASK)
+#define TARGET_PARTIAL_FLAG_REG_STALL (x86_partial_flag_reg_stall & TUNEMASK)
 #define TARGET_USE_HIMODE_FIOP (x86_use_himode_fiop & TUNEMASK)
 #define TARGET_USE_SIMODE_FIOP (x86_use_simode_fiop & TUNEMASK)
 #define TARGET_USE_MOV0 (x86_use_mov0 & TUNEMASK)
@@ -273,19 +274,24 @@ extern int x86_prefetch_sse;
 #define OPTIMIZATION_OPTIONS(LEVEL, SIZE) \
   optimization_options ((LEVEL), (SIZE))
 
-/* -march=native handling only makes sense with a native compiler.  */
-#ifndef CROSS_COMPILE
+/* -march=native handling only makes sense with compiler running on
+   an x86 or x86_64 chip.  If changing this condition, also change
+   the condition in driver-i386.c.  */
+#if defined(__i386__) || defined(__x86_64__)
 /* In driver-i386.c.  */
 extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define EXTRA_SPEC_FUNCTIONS \
   { "local_cpu_detect", host_detect_local_cpu },
+#define HAVE_LOCAL_CPU_DETECT
 #endif
 
-/* Support for configure-time defaults of some command line options.  */
+/* Support for configure-time defaults of some command line options.
+   The order here is important so that -march doesn't squash the
+   tune or cpu values.  */
 #define OPTION_DEFAULT_SPECS \
-  {"arch", "%{!march=*:-march=%(VALUE)}"}, \
   {"tune", "%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}" }, \
-  {"cpu", "%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}" }
+  {"cpu", "%{!mtune=*:%{!mcpu=*:%{!march=*:-mtune=%(VALUE)}}}" }, \
+  {"arch", "%{!march=*:-march=%(VALUE)}"}
 
 /* Specs for the compiler proper */
 
@@ -308,7 +314,7 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 %{mno-intel-syntax:-masm=att \
 %n`-mno-intel-syntax' is deprecated. Use `-masm=att' instead.\n}"
 
-#ifdef CROSS_COMPILE
+#ifndef HAVE_LOCAL_CPU_DETECT
 #define CC1_CPU_SPEC CC1_CPU_SPEC_1
 #else
 #define CC1_CPU_SPEC CC1_CPU_SPEC_1 \
@@ -2007,11 +2013,13 @@ do {									\
 #define ASM_OUTPUT_ADDR_DIFF_ELT(FILE, BODY, VALUE, REL) \
   ix86_output_addr_diff_elt ((FILE), (VALUE), (REL))
 
-/* Under some conditions we need jump tables in the text section, because
-   the assembler cannot handle label differences between sections.  */
+/* Under some conditions we need jump tables in the text section,
+   because the assembler cannot handle label differences between
+   sections.  This is the case for x86_64 on Mach-O for example.  */
 
 #define JUMP_TABLES_IN_TEXT_SECTION \
-  (!TARGET_64BIT && flag_pic && !HAVE_AS_GOTOFF_IN_DATA)
+  (flag_pic && ((TARGET_MACHO && TARGET_64BIT) \
+   || (!TARGET_64BIT && !HAVE_AS_GOTOFF_IN_DATA)))
 
 /* Switch to init or fini section via SECTION_OP, emit a call to FUNC,
    and switch back.  For x86 we do this only to save a few bytes that
@@ -2144,7 +2152,7 @@ enum ix86_entity
   MAX_386_ENTITIES
 };
 
-enum ix86_stack_slot 
+enum ix86_stack_slot
 {
   SLOT_TEMP = 0,
   SLOT_CW_STORED,

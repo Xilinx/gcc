@@ -1,3 +1,50 @@
+2006-10-10  Paolo Bonzini  <bonzini@gnu.org>
+	    Sandro Tolaini  <tolaini@libero.it>
+
+	* configure.ac [i*86-*-darwin*]: Set X86_DARWIN symbol and 
+	conditional.
+	* configure: Regenerated.
+	* Makefile.am (nodist_libffi_la_SOURCES) [X86_DARWIN]: New case.
+	(EXTRA_DIST): Add src/x86/darwin.S.
+	* Makefile.in: Regenerated.
+	* include/Makefile.in: Regenerated.
+	* testsuite/Makefile.in: Regenerated.
+
+	* src/x86/ffi.c (ffi_prep_cif_machdep) [X86_DARWIN]: Treat like
+	X86_WIN32, and additionally align stack to 16 bytes.
+	* src/x86/darwin.S: New, based on sysv.S.
+	* src/prep_cif.c (ffi_prep_cif) [X86_DARWIN]: Align > 8-byte structs.
+
+2006-09-12  David Daney  <ddaney@avtrex.com>
+
+	PR libffi/23935
+	* include/Makefile.am: Install both ffi.h and ffitarget.h in
+	$(libdir)/gcc/$(target_alias)/$(gcc_version)/include.
+	* aclocal.m4: Regenerated for automake 1.9.6.
+	* Makefile.in: Regenerated.
+	* include/Makefile.in: Regenerated.
+	* testsuite/Makefile.in: Regenerated.
+
+2006-08-17  Andreas Tobler  <a.tobler@schweiz.ch>
+
+	* include/ffi_common.h (struct): Revert accidental commit.
+
+2006-08-15  Andreas Tobler  <a.tobler@schweiz.ch>
+
+	* include/ffi_common.h: Remove lint directives.
+	* include/ffi.h.in: Likewise.
+
+2006-07-25  Torsten Schoenfeld  <kaffeetisch@gmx.de>
+
+	* include/ffi.h.in (ffi_type_ulong, ffi_type_slong): Define correctly
+	for 32-bit architectures.
+	* testsuite/libffi.call/return_ul.c: New test case.
+
+2006-07-19  David Daney  <ddaney@avtrex.com>
+
+	* testsuite/libffi.call/closure_fn6.c: Remove xfail for mips,
+	xfail remains for mips64.
+
 2006-05-23  Carlos O'Donell  <carlos@codesourcery.com>
 
 	* Makefile.am: Add install-html target. Add install-html to .PHONY

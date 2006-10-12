@@ -70,6 +70,7 @@
 #include <iosfwd>
 #include <bits/stl_pair.h>
 #include <bits/cpp_type_traits.h>
+#include <ext/type_traits.h>
 #include <bits/stl_iterator_base_types.h>
 #include <bits/stl_iterator_base_funcs.h>
 #include <bits/stl_iterator.h>
@@ -319,17 +320,17 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // Helpers for streambuf iterators (either istream or ostream).
   template<typename _CharT>
-    typename __enable_if<ostreambuf_iterator<_CharT>,
-			 __is_char<_CharT>::__value>::__type
+  typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value, 
+				  ostreambuf_iterator<_CharT> >::__type
     __copy_aux(_CharT*, _CharT*, ostreambuf_iterator<_CharT>);
 
   template<typename _CharT>
-    typename __enable_if<ostreambuf_iterator<_CharT>,
-			 __is_char<_CharT>::__value>::__type
+    typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value, 
+				    ostreambuf_iterator<_CharT> >::__type
     __copy_aux(const _CharT*, const _CharT*, ostreambuf_iterator<_CharT>);
 
   template<typename _CharT>
-    typename __enable_if<_CharT*, __is_char<_CharT>::__value>::__type
+  typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value, _CharT*>::__type
     __copy_aux(istreambuf_iterator<_CharT>, istreambuf_iterator<_CharT>,
 	       _CharT*);
 
@@ -405,8 +406,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // Overload for streambuf iterators.
   template<typename _CharT>
-    typename __enable_if<ostreambuf_iterator<_CharT>,
-			 __is_char<_CharT>::__value>::__type
+    typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value, 
+  	       			    ostreambuf_iterator<_CharT> >::__type
     copy(istreambuf_iterator<_CharT>, istreambuf_iterator<_CharT>,
 	 ostreambuf_iterator<_CharT>);
 
@@ -617,32 +618,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     const char __tmp = __c;
     std::memset(__first, static_cast<unsigned char>(__tmp), __last - __first);
   }
-
-  template<typename _Tp, typename _Ref, typename _Ptr>
-    struct _Deque_iterator;
-
-  // Overload for deque::iterators, exploiting the "segmented-iterator
-  // optimization".  NB: leave const_iterators alone!
-  template<typename _Tp>
-    void
-    fill(const _Deque_iterator<_Tp, _Tp&, _Tp*>& __first,
-	 const _Deque_iterator<_Tp, _Tp&, _Tp*>& __last, const _Tp& __value)
-    {
-      typedef typename _Deque_iterator<_Tp, _Tp&, _Tp*>::_Self _Self;
-
-      for (typename _Self::_Map_pointer __node = __first._M_node + 1;
-           __node < __last._M_node; ++__node)
-	std::fill(*__node, *__node + _Self::_S_buffer_size(), __value);
-
-      if (__first._M_node != __last._M_node)
-	{
-	  std::fill(__first._M_cur, __first._M_last, __value);
-	  std::fill(__last._M_first, __last._M_cur, __value);
-	}
-      else
-	std::fill(__first._M_cur, __last._M_cur, __value);
-    }
-
 
   template<bool>
     struct __fill_n

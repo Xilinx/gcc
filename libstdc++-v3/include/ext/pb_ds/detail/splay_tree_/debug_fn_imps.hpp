@@ -44,17 +44,15 @@
  * Contains an implementation class for splay_tree_.
  */
 
-#ifdef PB_DS_SPLAY_TREE_DEBUG_
+#ifdef _GLIBCXX_DEBUG
 
 PB_DS_CLASS_T_DEC
 void
 PB_DS_CLASS_C_DEC::
 assert_valid() const
 {
-  PB_DS_BASE_C_DEC::assert_valid();
-
-  const node_pointer p_head = PB_DS_BASE_C_DEC::m_p_head;
-
+  base_type::assert_valid();
+  const node_pointer p_head = base_type::m_p_head;
   assert_special_imp(p_head);
 }
 
@@ -66,21 +64,17 @@ assert_special_imp(const node_pointer p_nd) const
   if (p_nd == NULL)
     return;
 
-  if (p_nd == PB_DS_BASE_C_DEC::m_p_head)
+  if (p_nd == base_type::m_p_head)
     {
-      PB_DS_DBG_ASSERT(p_nd->m_special);
-
+      _GLIBCXX_DEBUG_ASSERT(p_nd->m_special);
       assert_special_imp(p_nd->m_p_parent);
-
       return;
     }
 
-  PB_DS_DBG_ASSERT(!p_nd->m_special);
-
+  _GLIBCXX_DEBUG_ASSERT(!p_nd->m_special);
   assert_special_imp(p_nd->m_p_left);
-
   assert_special_imp(p_nd->m_p_right);
 }
 
-#endif // #ifdef PB_DS_SPLAY_TREE_DEBUG_
+#endif 
 

@@ -58,15 +58,16 @@ extern enum debug_info_level debug_info_level;
    debugging information.  */
 extern bool use_gnu_debug_info_extensions;
 
-/* Enumerate visibility settings.  */
+/* Enumerate visibility settings.  This is deliberately ordered from most
+   to least visibility.  */
 #ifndef SYMBOL_VISIBILITY_DEFINED
 #define SYMBOL_VISIBILITY_DEFINED
 enum symbol_visibility
 {
   VISIBILITY_DEFAULT,
-  VISIBILITY_INTERNAL,
+  VISIBILITY_PROTECTED,
   VISIBILITY_HIDDEN,
-  VISIBILITY_PROTECTED
+  VISIBILITY_INTERNAL
 };
 #endif
 
@@ -268,7 +269,7 @@ extern const char *flag_random_seed;
 
 /* True if the given mode has a NaN representation and the treatment of
    NaN operands is important.  Certain optimizations, such as folding
-   x * 0 into x, are not correct for NaN operands, and are normally
+   x * 0 into 0, are not correct for NaN operands, and are normally
    disabled for modes with NaNs.  The user can ask for them to be
    done anyway using the -funsafe-math-optimizations switch.  */
 #define HONOR_NANS(MODE) \

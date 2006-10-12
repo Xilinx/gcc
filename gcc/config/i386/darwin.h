@@ -25,17 +25,43 @@ Boston, MA 02110-1301, USA.  */
 
 #define TARGET_VERSION fprintf (stderr, " (i686 Darwin)");
 
+#undef  TARGET_64BIT
+#define TARGET_64BIT (target_flags & MASK_64BIT)
+
+#ifdef IN_LIBGCC2
+#undef TARGET_64BIT
+#ifdef __x86_64__
+#define TARGET_64BIT 1
+#else
+#define TARGET_64BIT 0
+#endif
+#endif
+
+/* Size of the Obj-C jump buffer.  */
+#define OBJC_JBLEN ((TARGET_64BIT) ? ((9 * 2) + 3 + 16) : (18))
+
 #undef TARGET_FPMATH_DEFAULT
 #define TARGET_FPMATH_DEFAULT (TARGET_SSE ? FPMATH_SSE : FPMATH_387)
 
 #define TARGET_OS_CPP_BUILTINS()                \
   do                                            \
     {                                           \
-      builtin_define ("__i386__");              \
       builtin_define ("__LITTLE_ENDIAN__");     \
       darwin_cpp_builtins (pfile);		\
     }                                           \
   while (0)
+
+#undef PTRDIFF_TYPE
+#define PTRDIFF_TYPE (TARGET_64BIT ? "long int" : "int")
+
+#undef WCHAR_TYPE
+#define WCHAR_TYPE "int"
+
+#undef WCHAR_TYPE_SIZE
+#define WCHAR_TYPE_SIZE 32
+
+#undef MAX_BITS_PER_WORD
+#define MAX_BITS_PER_WORD 64
 
 #undef FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN
 #define FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN (0)
@@ -48,13 +74,16 @@ Boston, MA 02110-1301, USA.  */
   %{g: %{!fno-eliminate-unused-debug-symbols: -feliminate-unused-debug-symbols }}"
 
 #undef ASM_SPEC
-#define ASM_SPEC "-arch i386 -force_cpusubtype_ALL"
+#define ASM_SPEC "-arch %(darwin_arch) -force_cpusubtype_ALL"
+
+#define DARWIN_ARCH_SPEC "%{m64:x86_64;:i386}"
+#define DARWIN_SUBARCH_SPEC DARWIN_ARCH_SPEC
 
 #undef SUBTARGET_EXTRA_SPECS
-#define SUBTARGET_EXTRA_SPECS					\
-  { "darwin_arch", "i386" },					\
-  { "darwin_crt2", "" },					\
-  { "darwin_subarch", "i386" },
+#define SUBTARGET_EXTRA_SPECS                                   \
+  { "darwin_arch", DARWIN_ARCH_SPEC },                          \
+  { "darwin_crt2", "" },                                        \
+  { "darwin_subarch", DARWIN_SUBARCH_SPEC },
 
 /* Use the following macro for any Darwin/x86-specific command-line option
    translation.  */
@@ -85,7 +114,7 @@ extern void darwin_x86_file_end (void);
 /* By default, target has a 80387, uses IEEE compatible arithmetic,
    and returns float values in the 387.  */
 
-#define TARGET_SUBTARGET_DEFAULT (MASK_80387 | MASK_IEEE_FP | MASK_FLOAT_RETURNS | MASK_128BIT_LONG_DOUBLE | MASK_ALIGN_DOUBLE)
+#define TARGET_SUBTARGET_DEFAULT (MASK_80387 | MASK_IEEE_FP | MASK_FLOAT_RETURNS | MASK_128BIT_LONG_DOUBLE)
 
 /* For now, disable dynamic-no-pic.  We'll need to go through i386.c
    with a fine-tooth comb looking for refs to flag_pic!  */
@@ -109,7 +138,7 @@ extern void darwin_x86_file_end (void);
 #define ASM_BYTE_OP "\t.byte\t"
 #define ASM_SHORT "\t.word\t"
 #define ASM_LONG "\t.long\t"
-/* Darwin as doesn't do ".quad".  */
+#define ASM_QUAD "\t.quad\t"
 
 #define SUBTARGET_ENCODE_SECTION_INFO  darwin_encode_section_info
 
@@ -144,7 +173,7 @@ extern void darwin_x86_file_end (void);
 #undef FUNCTION_PROFILER
 #define FUNCTION_PROFILER(FILE, LABELNO)				\
     do {								\
-      if (MACHOPIC_INDIRECT)						\
+      if (MACHOPIC_INDIRECT && !TARGET_64BIT)				\
 	{								\
 	  const char *name = machopic_mcount_stub_name ();		\
 	  fprintf (FILE, "\tcall %s\n", name+1);  /*  skip '&'  */	\
@@ -152,6 +181,10 @@ extern void darwin_x86_file_end (void);
 	}								\
       else fprintf (FILE, "\tcall mcount\n");				\
     } while (0)
+
+/* Darwin on x86_64 uses dwarf-2 by default.  */
+#undef PREFERRED_DEBUGGING_TYPE
+#define PREFERRED_DEBUGGING_TYPE (TARGET_64BIT ? DWARF2_DEBUG : DBX_DEBUG)
 
 /* Darwin uses the standard DWARF register numbers but the default
    register numbers for STABS.  Fortunately for 64-bit code the
@@ -171,55 +204,37 @@ extern void darwin_x86_file_end (void);
    : (n) >= 11 && (n) <= 18 ? (n) + 1					\
    : (n))
 
-/* Attempt to turn on execute permission for the stack.  This may be
-    used by INITIALIZE_TRAMPOLINE of the target needs it (that is,
-    if the target machine can change execute permissions on a page).
-
-    There is no way to query the execute permission of the stack, so
-    we always issue the mprotect() call.
-
-    Note that we go out of our way to use namespace-non-invasive calls
-    here.  Unfortunately, there is no libc-internal name for mprotect().
-
-    Also note that no errors should be emitted by this code; it is
-    considered dangerous for library calls to send messages to
-    stdout/stderr.  */
-
-#define ENABLE_EXECUTE_STACK                                            \
-extern void __enable_execute_stack (void *);                            \
-void                                                                    \
-__enable_execute_stack (void *addr)                                     \
-{                                                                       \
-   extern int mprotect (void *, size_t, int);                           \
-   extern int __sysctl (int *, unsigned int, void *, size_t *,          \
-                       void *, size_t);                                 \
-                                                                        \
-   static int size;                                                     \
-   static long mask;                                                    \
-                                                                        \
-   char *page, *end;                                                    \
-                                                                        \
-   if (size == 0)                                                       \
-     {                                                                  \
-       int mib[2];                                                      \
-       size_t len;                                                      \
-                                                                        \
-       mib[0] = 6; /* CTL_HW */                                         \
-       mib[1] = 7; /* HW_PAGESIZE */                                    \
-       len = sizeof (size);                                             \
-       (void) __sysctl (mib, 2, &size, &len, NULL, 0);                  \
-       mask = ~((long) size - 1);                                       \
-     }                                                                  \
-                                                                        \
-   page = (char *) (((long) addr) & mask);                              \
-   end  = (char *) ((((long) (addr + TRAMPOLINE_SIZE)) & mask) + size); \
-                                                                        \
-   /* 7 == PROT_READ | PROT_WRITE | PROT_EXEC */                        \
-   (void) mprotect (page, end - page, 7);                               \
-}
-
 #undef REGISTER_TARGET_PRAGMAS
 #define REGISTER_TARGET_PRAGMAS() DARWIN_REGISTER_TARGET_PRAGMAS()
 
 #undef TARGET_SET_DEFAULT_TYPE_ATTRIBUTES
 #define TARGET_SET_DEFAULT_TYPE_ATTRIBUTES darwin_set_default_type_attributes
+
+/* For 64-bit, we need to add 4 because @GOTPCREL is relative to the
+   end of the instruction, but without the 4 we'd only have the right
+   address for the start of the instruction.  */
+#undef ASM_MAYBE_OUTPUT_ENCODED_ADDR_RTX
+#define ASM_MAYBE_OUTPUT_ENCODED_ADDR_RTX(FILE, ENCODING, SIZE, ADDR, DONE)	\
+  if (TARGET_64BIT)				                                \
+    {                                                                           \
+      if ((SIZE) == 4 && ((ENCODING) & 0x70) == DW_EH_PE_pcrel)			\
+        {                                                                       \
+	   fputs (ASM_LONG, FILE);                                              \
+	   assemble_name (FILE, XSTR (ADDR, 0));				\
+	   fputs ("+4@GOTPCREL", FILE);                                         \
+	   goto DONE;                                                           \
+        }									\
+    }										\
+  else                                                                          \
+    {										\
+      if (ENCODING == ASM_PREFERRED_EH_DATA_FORMAT (2, 1))                      \
+        {                                                                       \
+          darwin_non_lazy_pcrel (FILE, ADDR);                                   \
+          goto DONE;								\
+        }                                                                       \
+    }
+
+/* This needs to move since i386 uses the first flag and other flags are
+   used in Mach-O.  */
+#undef MACHO_SYMBOL_FLAG_VARIABLE
+#define MACHO_SYMBOL_FLAG_VARIABLE ((SYMBOL_FLAG_MACH_DEP) << 3)

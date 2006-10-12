@@ -49,26 +49,23 @@ using namespace __cxxabiv1;
 
 #if _GLIBCXX_HAVE_TLS
 
-namespace __gnu_internal
+namespace
 {
-  using namespace abi;
-  using namespace std;
-
-  __cxa_eh_globals*
+  abi::__cxa_eh_globals*
   get_global() throw()
   {
-    static __thread __cxa_eh_globals global;
+    static __thread abi::__cxa_eh_globals global;
     return &global;
   }
-}
+} // anonymous namespace
 
 extern "C" __cxa_eh_globals*
 __cxxabiv1::__cxa_get_globals_fast() throw()
-{ return __gnu_internal::get_global(); }
+{ return get_global(); }
 
 extern "C" __cxa_eh_globals*
 __cxxabiv1::__cxa_get_globals() throw()
-{ return __gnu_internal::get_global(); }
+{ return get_global(); }
 
 
 #else
@@ -111,6 +108,7 @@ struct __eh_globals_init
   {
     if (_M_init)
       __gthread_key_delete(_M_key);
+    _M_init = false;
   }
 };
 

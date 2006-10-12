@@ -69,12 +69,28 @@ end subroutine
 
 REAL_HEAD(abs)
 REAL_BODY(abs)
+
 ! abs is special in that the result is real
 elemental function f2c_specific__abs_c4 (parm) result (res)
   COMPLEX, intent(in) :: parm
   DOUBLE PRECISION :: res
   res = abs(parm)
 end function
+
+
+! aimag is special in that the result is real
+elemental function f2c_specific__aimag_c4 (parm)
+  complex(kind=4), intent(in) :: parm
+  double precision :: f2c_specific__aimag_c4
+  f2c_specific__aimag_c4 = aimag(parm)
+end function
+
+elemental function f2c_specific__aimag_c8 (parm)
+  complex(kind=8), intent(in) :: parm
+  double precision :: f2c_specific__aimag_c8
+  f2c_specific__aimag_c8 = aimag(parm)
+end function
+
 
 REAL_HEAD(exp)
 REAL_BODY(exp)
@@ -109,6 +125,15 @@ REAL_BODY(acos)
 REAL_HEAD(atan)
 REAL_BODY(atan)
 
+REAL_HEAD(asinh)
+REAL_BODY(asinh)
+
+REAL_HEAD(acosh)
+REAL_BODY(acosh)
+
+REAL_HEAD(atanh)
+REAL_BODY(atanh)
+
 REAL_HEAD(sin)
 REAL_BODY(sin)
 COMPLEX_HEAD(sin)
@@ -134,11 +159,6 @@ REAL_BODY(cosh)
 
 REAL_HEAD(tanh)
 REAL_BODY(tanh)
-
-COMPLEX_HEAD(conjg)
-COMPLEX_BODY(conjg)
-DCOMPLEX_HEAD(conjg)
-DCOMPLEX_BODY(conjg)
 
 REAL_HEAD(aint)
 REAL_BODY(aint)
@@ -167,3 +187,16 @@ REAL2_BODY(atan2)
 
 REAL2_HEAD(mod)
 REAL2_BODY(mod)
+
+! conjg is special-cased because it is not suffixed _c4 but _4
+subroutine f2c_specific__conjg_4 (res, parm)
+  COMPLEX, intent (in) :: parm
+  COMPLEX, intent (out) :: res
+  res = conjg (parm)
+end subroutine
+subroutine f2c_specific__conjg_8 (res, parm)
+  DOUBLE COMPLEX, intent (in) :: parm
+  DOUBLE COMPLEX, intent (out) :: res
+  res = conjg (parm)
+end subroutine
+

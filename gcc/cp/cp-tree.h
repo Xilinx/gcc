@@ -55,6 +55,7 @@ struct diagnostic_context;
       OMP_ATOMIC_DEPENDENT_P (in OMP_ATOMIC)
       OMP_FOR_GIMPLIFYING_P (in OMP_FOR)
       BASELINK_QUALIFIED_P (in BASELINK)
+      TARGET_EXPR_IMPLICIT_P (in TARGET_EXPR)
    1: IDENTIFIER_VIRTUAL_P (in IDENTIFIER_NODE)
       TI_PENDING_TEMPLATE_FLAG.
       TEMPLATE_PARMS_FOR_INLINE.
@@ -3091,6 +3092,11 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    expression statement.  */
 #define EXPR_STMT_EXPR(NODE)	TREE_OPERAND (EXPR_STMT_CHECK (NODE), 0)
 
+/* True if this TARGET_EXPR was created by build_cplus_new, and so we can
+   discard it if it isn't useful.  */
+#define TARGET_EXPR_IMPLICIT_P(NODE) \
+  TREE_LANG_FLAG_0 (TARGET_EXPR_CHECK (NODE))
+
 /* An enumeration of the kind of tags that C++ accepts.  */
 enum tag_types {
   none_type = 0, /* Not a tag type.  */
@@ -3380,46 +3386,51 @@ extern GTY(()) tree static_dtors;
 
 enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, OP_FLAG, TYPENAME_FLAG };
 
-/* These are uses as bits in flags passed to build_new_method_call
-   to control its error reporting behavior.
-
-   LOOKUP_PROTECT means flag access violations.
-   LOOKUP_COMPLAIN mean complain if no suitable member function
-     matching the arguments is found.
-   LOOKUP_NORMAL is just a combination of these two.
-   LOOKUP_NONVIRTUAL means make a direct call to the member function found
-   LOOKUP_ONLYCONVERTING means that non-conversion constructors are not tried.
-   DIRECT_BIND means that if a temporary is created, it should be created so
-     that it lives as long as the current variable bindings; otherwise it
-     only lives until the end of the complete-expression.  It also forces
-     direct-initialization in cases where other parts of the compiler have
-     already generated a temporary, such as reference initialization and the
-     catch parameter.
-   LOOKUP_NO_CONVERSION means that user-defined conversions are not
-     permitted.  Built-in conversions are permitted.
-   LOOKUP_DESTRUCTOR means explicit call to destructor.
-   LOOKUP_NO_TEMP_BIND means temporaries will not be bound to references.
-
-   These are used in global lookup to support elaborated types and
-   qualifiers.
-
-   LOOKUP_PREFER_TYPES means not to accept objects, and possibly namespaces.
-   LOOKUP_PREFER_NAMESPACES means not to accept objects, and possibly types.
-   LOOKUP_PREFER_BOTH means class-or-namespace-name.  */
-
+/* These are uses as bits in flags passed to various functions to
+   control their behavior.  Despite the LOOKUP_ prefix, many of these
+   do not control name lookup.  ??? Functions using these flags should
+   probably be modified to accept explicit boolean flags for the
+   behaviors relevant to them.  */
+/* Check for access violations.  */
 #define LOOKUP_PROTECT (1 << 0)
+/* Complain if no suitable member function matching the arguments is
+   found.  */
 #define LOOKUP_COMPLAIN (1 << 1)
 #define LOOKUP_NORMAL (LOOKUP_PROTECT | LOOKUP_COMPLAIN)
+/* Even if the function found by lookup is a virtual function, it
+   should be called directly.  */
 #define LOOKUP_NONVIRTUAL (1 << 2)
+/* Non-converting (i.e., "explicit") constructors are not tried.  */
 #define LOOKUP_ONLYCONVERTING (1 << 3)
+/* If a temporary is created, it should be created so that it lives
+   as long as the current variable bindings; otherwise it only lives
+   until the end of the complete-expression.  It also forces
+   direct-initialization in cases where other parts of the compiler
+   have already generated a temporary, such as reference
+   initialization and the catch parameter.  */
 #define DIRECT_BIND (1 << 4)
+/* User-defined conversions are not permitted.  (Built-in conversions
+   are permitted.)  */
 #define LOOKUP_NO_CONVERSION (1 << 5)
+/* The user has explicitly called a destructor.  (Therefore, we do
+   not need to check that the object is non-NULL before calling the
+   destructor.)  */
 #define LOOKUP_DESTRUCTOR (1 << 6)
+/* Do not permit references to bind to temporaries.  */
 #define LOOKUP_NO_TEMP_BIND (1 << 7)
+/* Do not accept objects, and possibly namespaces.  */
 #define LOOKUP_PREFER_TYPES (1 << 8)
+/* Do not accept objects, and possibly types.   */
 #define LOOKUP_PREFER_NAMESPACES (1 << 9)
+/* Accept types or namespaces.  */
 #define LOOKUP_PREFER_BOTH (LOOKUP_PREFER_TYPES | LOOKUP_PREFER_NAMESPACES)
+/* We are checking that a constructor can be called -- but we do not
+   actually plan to call it.  */
 #define LOOKUP_CONSTRUCTOR_CALLABLE (1 << 10)
+/* Return friend declarations and un-declared builtin functions.
+   (Normally, these entities are registered in the symbol table, but
+   not found by lookup.)  */
+#define LOOKUP_HIDDEN (LOOKUP_CONSTRUCTOR_CALLABLE << 1)
 
 #define LOOKUP_NAMESPACES_ONLY(F)  \
   (((F) & LOOKUP_PREFER_NAMESPACES) && !((F) & LOOKUP_PREFER_TYPES))
@@ -3894,7 +3905,7 @@ extern int copy_fn_p				(tree);
 extern tree get_scope_of_declarator		(const cp_declarator *);
 extern void grok_special_member_properties	(tree);
 extern int grok_ctor_properties			(tree, tree);
-extern void grok_op_properties			(tree, bool);
+extern bool grok_op_properties			(tree, bool);
 extern tree xref_tag				(enum tag_types, tree, tag_scope, bool);
 extern tree xref_tag_from_type			(tree, tree, tag_scope);
 extern void xref_basetypes			(tree, tree);
@@ -3965,6 +3976,8 @@ extern tree coerce_new_type			(tree);
 extern tree coerce_delete_type			(tree);
 extern void comdat_linkage			(tree);
 extern void determine_visibility		(tree);
+extern void constrain_class_visibility		(tree);
+extern void update_member_visibility		(tree);
 extern void import_export_decl			(tree);
 extern tree build_cleanup			(tree);
 extern tree build_offset_ref_call_from_tree	(tree, tree);
@@ -4073,7 +4086,7 @@ extern void maybe_begin_member_template_processing (tree);
 extern void maybe_end_member_template_processing (void);
 extern tree finish_member_template_decl		(tree);
 extern void begin_template_parm_list		(void);
-extern void begin_specialization		(void);
+extern bool begin_specialization		(void);
 extern void reset_specialization		(void);
 extern void end_specialization			(void);
 extern void begin_explicit_instantiation	(void);
@@ -4084,7 +4097,7 @@ extern tree end_template_parm_list		(tree);
 extern void end_template_decl			(void);
 extern tree push_template_decl			(tree);
 extern tree push_template_decl_real		(tree, bool);
-extern void redeclare_class_template		(tree, tree);
+extern bool redeclare_class_template		(tree, tree);
 extern tree lookup_template_class		(tree, tree, tree, tree,
 						 int, tsubst_flags_t);
 extern tree lookup_template_function		(tree, tree);
@@ -4104,13 +4117,13 @@ extern int template_class_depth			(tree);
 extern int is_specialization_of			(tree, tree);
 extern bool is_specialization_of_friend		(tree, tree);
 extern int comp_template_args			(tree, tree);
-extern void maybe_process_partial_specialization (tree);
+extern tree maybe_process_partial_specialization (tree);
 extern tree most_specialized_instantiation	(tree);
 extern void print_candidates			(tree);
 extern void instantiate_pending_templates	(int);
 extern tree tsubst_default_argument		(tree, tree, tree);
 extern tree tsubst_copy_and_build		(tree, tree, tsubst_flags_t,
-						 tree, bool);
+						 tree, bool, bool);
 extern tree most_general_template		(tree);
 extern tree get_mostly_instantiated_function_type (tree);
 extern int problematic_instantiation_changed	(void);
@@ -4271,7 +4284,7 @@ extern tree finish_fname			(tree);
 extern void finish_translation_unit		(void);
 extern tree finish_template_type_parm		(tree, tree);
 extern tree finish_template_template_parm       (tree, tree);
-extern tree begin_class_definition		(tree);
+extern tree begin_class_definition		(tree, tree);
 extern void finish_template_decl		(tree);
 extern tree finish_template_type		(tree, tree, int);
 extern tree finish_base_specifier		(tree, tree, bool);
@@ -4314,6 +4327,7 @@ extern tree cxx_omp_clause_copy_ctor		(tree, tree, tree);
 extern tree cxx_omp_clause_assign_op		(tree, tree, tree);
 extern tree cxx_omp_clause_dtor			(tree, tree);
 extern bool cxx_omp_privatize_by_reference	(tree);
+extern tree baselink_for_fns                    (tree);
 
 /* in tree.c */
 extern void lang_check_failed			(const char *, int,
@@ -4353,10 +4367,11 @@ extern tree array_type_nelts_top		(tree);
 extern tree break_out_target_exprs		(tree);
 extern tree get_type_decl			(tree);
 extern tree decl_namespace_context		(tree);
+extern bool decl_anon_ns_mem_p			(tree);
 extern tree lvalue_type				(tree);
 extern tree error_type				(tree);
 extern int varargs_function_p			(tree);
-extern int really_overloaded_fn			(tree);
+extern bool really_overloaded_fn		(tree);
 extern bool cp_tree_equal			(tree, tree);
 extern tree no_linkage_check			(tree, bool);
 extern void debug_binfo				(tree);
@@ -4383,6 +4398,7 @@ extern tree fold_if_not_in_template		(tree);
 extern tree rvalue				(tree);
 extern tree convert_bitfield_to_declared_type   (tree);
 extern tree cp_save_expr			(tree);
+extern bool cast_valid_in_integral_constant_expression_p (tree);
 
 /* in typeck.c */
 extern int string_conv_p			(tree, tree, int);
@@ -4503,6 +4519,7 @@ extern bool cp_var_mod_type_p			(tree, tree);
 extern void cxx_initialize_diagnostics		(struct diagnostic_context *);
 extern int cxx_types_compatible_p		(tree, tree);
 extern void init_shadowed_var_for_decl		(void);
+extern tree cxx_staticp                         (tree);
 
 /* in cp-gimplify.c */
 extern int cp_gimplify_expr			(tree *, tree *, tree *);

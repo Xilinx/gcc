@@ -673,6 +673,11 @@ other than C that this front end requires to be enabled (with the
 names given being their @code{language} settings).  For example, the
 Java front end depends on the C++ front end, so sets
 @samp{lang_requires=c++}.
+@item subdir_requires
+If defined, this variable lists (space-separated) front end directories
+other than C that this front end requires to be present.  For example,
+the Objective-C++ front end uses source files from the C++ and
+Objective-C front ends, so sets @samp{subdir_requires="cp objc"}.
 @item target_libs
 If defined, this variable lists (space-separated) targets in the top
 level @file{Makefile} to build the runtime libraries for this
@@ -906,7 +911,7 @@ FIXME: discuss non-C testsuites here.
 @subsection Directives used within DejaGnu tests
 
 Test directives appear within comments in a test source file and begin
-with @code{dg-}.  Some of these are defined within DegaGnu and others
+with @code{dg-}.  Some of these are defined within DejaGnu and others
 are local to the GCC testsuite.
 
 The order in which test directives appear in a test can be important:
@@ -998,6 +1003,10 @@ specific procedure does not examine the argument.
 Skip the test if the test target, including current multilib flags,
 is not covered by the effective-target keyword.
 This directive must appear after any @code{dg-do} directive in the test.
+
+@item  @{ dg-shouldfail @var{comment} @{ @var{selector} @} @{ @var{include-opts} @} @{ @var{exclude-opts} @} @}
+Expect the test executable to return a nonzero exit status if the
+conditions (which are the same as for @code{dg-skip-if}) are met.
 
 @item @{ dg-error @var{regexp} [@var{comment} [@{ target/xfail @var{selector} @} [@var{line}] @}]] @}
 This DejaGnu directive appears on a source line that is expected to get

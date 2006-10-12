@@ -309,6 +309,9 @@ powerpc*-*-*)
 rs6000*-*-*)
 	need_64bit_hwint=yes
 	;;
+score*-*-*)
+	cpu_type=score
+	;;
 sparc64*-*-*)
 	cpu_type=sparc
 	need_64bit_hwint=yes
@@ -438,7 +441,7 @@ case ${target} in
           ;;
       esac
       ;;
-    *) 
+    *)
       echo 'Unknown thread configuration for FreeBSD'
       exit 1
       ;;
@@ -693,13 +696,13 @@ arm*-*-netbsd*)
 	use_collect2=yes
 	;;
 arm*-*-linux*)			# ARM GNU/Linux with ELF
-	tm_file="dbxelf.h elfos.h linux.h arm/elf.h arm/linux-gas.h arm/linux-elf.h" 
+	tm_file="dbxelf.h elfos.h linux.h arm/elf.h arm/linux-gas.h arm/linux-elf.h"
 	tmake_file="${tmake_file} t-linux arm/t-arm"
 	case ${target} in
 	arm*-*-linux-*eabi)
 	    tm_file="$tm_file arm/bpabi.h arm/linux-eabi.h"
 	    tmake_file="$tmake_file arm/t-arm-elf arm/t-bpabi arm/t-linux-eabi"
-  	    # The BPABI long long divmod functions return a 128-bit value in 
+  	    # The BPABI long long divmod functions return a 128-bit value in
 	    # registers r0-r3.  Correctly modeling that requires the use of
 	    # TImode.
 	    need_64bit_hwint=yes
@@ -721,7 +724,7 @@ arm*-*-ecos-elf)
 	tmake_file="arm/t-arm arm/t-arm-elf"
 	;;
 arm*-*-eabi* | arm*-*-symbianelf* )
-	# The BPABI long long divmod functions return a 128-bit value in 
+	# The BPABI long long divmod functions return a 128-bit value in
 	# registers r0-r3.  Correctly modeling that requires the use of
 	# TImode.
 	need_64bit_hwint=yes
@@ -965,7 +968,7 @@ hppa*64*-*-hpux11*)
 		     libgcc_stub.a"
 	case x${enable_threads} in
 	xyes | xposix )
-		thread_file=posix 
+		thread_file=posix
 		;;
 	esac
 	gas=yes
@@ -994,14 +997,21 @@ hppa[12]*-*-hpux11*)
 	fi
 	case x${enable_threads} in
 	xyes | xposix )
-		thread_file=posix 
+		thread_file=posix
 		;;
 	esac
 	use_collect2=yes
 	gas=yes
 	;;
 i[34567]86-*-darwin*)
-	# All the configuration is presently done generically.
+	need_64bit_hwint=yes
+
+	# This is so that '.../configure && make' doesn't fail due to
+	# config.guess deciding that the configuration is i386-*-darwin* and
+	# then this file using that to set --with-cpu=i386 which has no -m64
+	# support.
+	with_arch=${with_arch:-nocona}
+	with_cpu=${with_cpu:-generic}
 	;;
 i[34567]86-*-elf*)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h i386/i386elf.h"
@@ -1164,6 +1174,9 @@ i[34567]86-*-solaris2*)
 	else
 		tmake_file="$tmake_file t-slibgcc-sld"
 	fi
+	if test x$gas = xyes; then
+		tm_file="usegas.h ${tm_file}"
+	fi
 	case ${target} in
 	*-*-solaris2.[789] | *-*-solaris2.1[0-9]*)
 		tm_file="$tm_file tm-dwarf2.h"
@@ -1175,7 +1188,21 @@ i[34567]86-*-solaris2*)
 		tm_defines="${tm_defines} TARGET_BI_ARCH=1"
 		tmake_file="$tmake_file i386/t-sol2-10"
 		need_64bit_hwint=yes
-		# Solaris 2.10 provides crt1.o, crti.o, crtn.o, and gcrt1.o as 
+		# FIXME: -m64 for i[34567]86-*-* should be allowed just
+		# like -m32 for x86_64-*-*.
+		case X"${with_cpu}" in
+		Xgeneric|Xnocona|Xx86-64|Xk8|Xopteron|Xathlon64|Xathlon-fx)
+			;;
+		X)
+			with_cpu=generic
+			;;
+		*)
+			echo "Unsupported CPU used in --with-cpu=$with_cpu, supported values:" 1>&2
+			echo "generic nocona x86-64 k8 opteron athlon64 athlon-fx" 1>&2
+			exit 1
+			;;
+		esac
+		# Solaris 2.10 provides crt1.o, crti.o, crtn.o, and gcrt1.o as
 		# part of the base system.
 		extra_parts="gmon.o crtbegin.o crtend.o"
 		;;
@@ -1258,7 +1285,10 @@ i[34567]86-*-mingw32*)
 	extra_objs="winnt.o winnt-stubs.o"
 	cxx_target_objs=winnt-cxx.o
 	case ${enable_threads} in
-	  "" | yes | win32) thread_file='win32' ;;
+	  "" | yes | win32)
+	  thread_file='win32'
+	  tmake_file="${tmake_file} i386/t-gthr-win32"
+	  ;;
 	esac
 	case ${target} in
 		*mingw32crt*)
@@ -1520,7 +1550,7 @@ mips*-*-openbsd*)
 	target_cpu_default="MASK_ABICALLS"
 	tm_file="mips/mips.h openbsd.h mips/openbsd.h mips/sdb.h"
 	case ${target} in
-	mips*el-*-openbsd*) 
+	mips*el-*-openbsd*)
 	    tm_defines="${tm_defines} TARGET_ENDIAN_DEFAULT=0";;
 	*)  tm_defines="${tm_defines} TARGET_ENDIAN_DEFAULT=MASK_BIG_ENDIAN";;
         esac
@@ -1553,7 +1583,7 @@ mipsisa64sr71k-*-elf*)
         ;;
 mipsisa64sb1-*-elf* | mipsisa64sb1el-*-elf*)
 	tm_file="elfos.h ${tm_file} mips/elf.h"
-	tmake_file=mips/t-elf
+	tmake_file="mips/t-elf mips/t-sb1"
 	target_cpu_default="MASK_64BIT|MASK_FLOAT64"
 	tm_defines="${tm_defines} MIPS_ISA_DEFAULT=64 MIPS_CPU_STRING_DEFAULT=\\\"sb1\\\" MIPS_ABI_DEFAULT=ABI_O64"
 	use_fixproto=yes
@@ -1668,7 +1698,7 @@ powerpc-*-darwin*)
 	extra_parts="crt2.o"
 	case ${target} in
 	  *-darwin1[0-9]* | *-darwin[8-9]*)
-	    tmake_file="${tmake_file} rs6000/t-darwin8" 
+	    tmake_file="${tmake_file} rs6000/t-darwin8"
 	    tm_file="${tm_file} rs6000/darwin8.h"
 	    ;;
 	  *-darwin7*)
@@ -1905,6 +1935,11 @@ s390x-ibm-tpf*)
         thread_file='tpf'
 	extra_options="${extra_options} s390/tpf.opt"
 	;;
+score-*-elf)
+        tm_file="dbxelf.h elfos.h score/elf.h score/score.h"
+        tmake_file=score/t-score-elf
+        extra_objs="score-mdaux.o"
+        ;;
 sh-*-elf* | sh[12346l]*-*-elf* | sh*-*-kaos* | \
 sh-*-symbianelf* | sh[12346l]*-*-symbianelf* | \
   sh-*-linux* | sh[346lbe]*-*-linux* | \
@@ -1981,7 +2016,7 @@ sh-*-symbianelf* | sh[12346l]*-*-symbianelf* | \
 		tm_file="sh/symbian-pre.h sh/little.h ${tm_file} sh/symbian-post.h"
 		extra_objs="symbian.o"
 		extra_parts="crt1.o crti.o crtn.o crtbegin.o crtend.o crtbeginS.o crtendS.o"
-		;;	
+		;;
 	esac
 	# sed el/eb endian suffixes away to avoid confusion with sh[23]e
 	case `echo ${target} | sed 's/e[lb]-/-/'` in
