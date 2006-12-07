@@ -575,6 +575,7 @@ extern void dump_cfg_stats (FILE *);
 extern void debug_cfg_stats (void);
 extern void debug_loop_ir (int);
 extern void print_loop_ir (FILE *, int);
+extern void print_loop_ir_bb (FILE *, basic_block, int, int);
 extern void cleanup_dead_labels (void);
 extern void group_case_labels (void);
 extern tree first_stmt (basic_block);

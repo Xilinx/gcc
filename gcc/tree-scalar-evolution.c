@@ -2180,7 +2180,30 @@ instantiate_parameters_1 (struct loop *loop, tree chrec, int flags, htab_t cache
 	 is defined outside of the loop, we may just leave it in symbolic
 	 form, otherwise we need to admit that we do not know its behavior
 	 inside the loop.  */
-      res = !flow_bb_inside_loop_p (loop, def_bb) ? chrec : chrec_dont_know;
+      if (!flow_bb_inside_loop_p (loop, def_bb))
+	res = chrec;
+      else
+	{
+	  /* res = chrec_dont_know; */
+	  tree def = SSA_NAME_DEF_STMT (chrec);
+
+	  /* Instantiate as much as possible until ending on a phi
+	     node of the same loop, in which case it means that the
+	     definition is varying in that loop.  */
+	  switch (TREE_CODE (def))
+	    {
+	    case MODIFY_EXPR:
+	      res = instantiate_parameters_1 (loop, TREE_OPERAND (def, 1),
+					      flags, cache, size_expr);
+	      break;
+
+	    case PHI_NODE:
+	    default:
+	      res = chrec_dont_know;
+	      break;
+	    }
+	}
+
       set_instantiated_value (cache, chrec, res);
 
       /* To make things even more complicated, instantiate_parameters_1

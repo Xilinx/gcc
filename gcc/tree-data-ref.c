@@ -4060,12 +4060,109 @@ compute_all_dependences (VEC (data_reference_p, heap) *datarefs,
       }
 }
 
+
+/* Stores the locations of memory references in STMT to REFERENCES.  Returns
+   true if STMT clobbers memory, false otherwise.  */
+ 
+static bool
+get_references_in_stmt (tree stmt, VEC (data_ref_loc, heap) **references)
+{
+  bool clobbers_memory = false;
+  data_ref_loc *ref;
+  tree *op0, *op1, args, call;
+ 
+  *references = NULL;
+ 
+  /* ASM_EXPR and CALL_EXPR may embed arbitrary side effects.
+     Calls have side-effects, except those to const or pure
+     functions.  */
+  call = get_call_expr_in (stmt);
+  if ((call
+       && !(call_expr_flags (call) & (ECF_CONST | ECF_PURE)))
+      || (TREE_CODE (stmt) == ASM_EXPR
+ 	  && ASM_VOLATILE_P (stmt)))
+    clobbers_memory = true;
+ 
+  if (ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS))
+    return clobbers_memory;
+ 
+  if (TREE_CODE (stmt) ==  MODIFY_EXPR)
+    {
+      op0 = &TREE_OPERAND (stmt, 0);
+      op1 = &TREE_OPERAND (stmt, 1);
+ 		
+      if (DECL_P (*op1)
+ 	  || REFERENCE_CLASS_P (*op1))
+ 	{
+ 	  ref = VEC_safe_push (data_ref_loc, heap, *references, NULL);
+ 	  ref->pos = op1;
+ 	  ref->is_read = true;
+ 	}
+ 
+      if (DECL_P (*op0)
+ 	  || REFERENCE_CLASS_P (*op0))
+ 	{
+ 	  ref = VEC_safe_push (data_ref_loc, heap, *references, NULL);
+ 	  ref->pos = op0;
+ 	  ref->is_read = false;
+ 	}
+    }
+ 
+  if (call)
+    {
+      for (args = TREE_OPERAND (call, 1); args; args = TREE_CHAIN (args))
+ 	{
+ 	  op0 = &TREE_VALUE (args);
+ 	  if (DECL_P (*op0)
+ 	      || REFERENCE_CLASS_P (*op0))
+ 	    {
+ 	      ref = VEC_safe_push (data_ref_loc, heap, *references, NULL);
+ 	      ref->pos = op0;
+ 	      ref->is_read = true;
+ 	    }
+ 	}
+    }
+ 
+  return clobbers_memory;
+}
+ 
+/* Stores the data references in STMT to DATAREFS.  If there is an unanalyzable
+   reference, returns false, otherwise returns true.  */
+ 
+bool
+find_data_references_in_stmt (tree stmt,
+ 			      VEC (data_reference_p, heap) **datarefs)
+{
+  unsigned i;
+  VEC (data_ref_loc, heap) *references;
+  data_ref_loc *ref;
+  bool ret = true;
+  data_reference_p dr;
+ 
+  if (get_references_in_stmt (stmt, &references))
+    {
+      VEC_free (data_ref_loc, heap, references);
+      return false;
+    }
+ 
+  for (i = 0; VEC_iterate (data_ref_loc, references, i, ref); i++)
+    {
+      dr = create_data_ref (*ref->pos, stmt, ref->is_read);
+      if (dr)
+ 	VEC_safe_push (data_reference_p, heap, *datarefs, dr);
+      else
+ 	{
+ 	  ret = false;
+ 	  break;
+ 	}
+    }
+  VEC_free (data_ref_loc, heap, references);
+  return ret;
+}
+
 /* Search the data references in LOOP, and record the information into
    DATAREFS.  Returns chrec_dont_know when failing to analyze a
-   difficult case, returns NULL_TREE otherwise.
-   
-   TODO: This function should be made smarter so that it can handle address
-   arithmetic as if they were array accesses, etc.  */
+   difficult case, returns NULL_TREE otherwise.  */
 
 tree 
 find_data_references_in_loop (struct loop *loop,
@@ -4074,118 +4171,41 @@ find_data_references_in_loop (struct loop *loop,
   basic_block bb, *bbs;
   unsigned int i;
   block_stmt_iterator bsi;
-  struct data_reference *dr;
 
   bbs = get_loop_body (loop);
+  loop->parallel_p = true;
 
   for (i = 0; i < loop->num_nodes; i++)
     {
       bb = bbs[i];
 
       for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-        {
+	{
 	  tree stmt = bsi_stmt (bsi);
 
-	  /* ASM_EXPR and CALL_EXPR may embed arbitrary side effects.
-	     Calls have side-effects, except those to const or pure
-	     functions.  */
-	  if ((TREE_CODE (stmt) == CALL_EXPR
-	       && !(call_expr_flags (stmt) & (ECF_CONST | ECF_PURE)))
-	      || (TREE_CODE (stmt) == ASM_EXPR
-		  && ASM_VOLATILE_P (stmt)))
-	    goto insert_dont_know_node;
-
-	  if (ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS))
-	    continue;
-
-	  switch (TREE_CODE (stmt))
+	  if (!find_data_references_in_stmt (stmt, datarefs))
 	    {
-	    case MODIFY_EXPR:
-	      {
-		bool one_inserted = false;
-		tree opnd0 = TREE_OPERAND (stmt, 0);
-		tree opnd1 = TREE_OPERAND (stmt, 1);
-		
-		if (TREE_CODE (opnd0) == ARRAY_REF 
-		    || TREE_CODE (opnd0) == INDIRECT_REF
-                    || TREE_CODE (opnd0) == COMPONENT_REF)
-		  {
-		    dr = create_data_ref (opnd0, stmt, false);
-		    if (dr) 
-		      {
-			VEC_safe_push (data_reference_p, heap, *datarefs, dr);
-			one_inserted = true;
-		      }
-		  }
+	      struct data_reference *res;
+	      res = XNEW (struct data_reference);
+	      DR_STMT (res) = NULL_TREE;
+	      DR_REF (res) = NULL_TREE;
+	      DR_BASE_OBJECT (res) = NULL;
+	      DR_TYPE (res) = ARRAY_REF_TYPE;
+	      DR_SET_ACCESS_FNS (res, NULL);
+	      DR_BASE_OBJECT (res) = NULL;
+	      DR_IS_READ (res) = false;
+	      DR_BASE_ADDRESS (res) = NULL_TREE;
+	      DR_OFFSET (res) = NULL_TREE;
+	      DR_INIT (res) = NULL_TREE;
+	      DR_STEP (res) = NULL_TREE;
+	      DR_OFFSET_MISALIGNMENT (res) = NULL_TREE;
+	      DR_MEMTAG (res) = NULL_TREE;
+	      DR_PTR_INFO (res) = NULL;
+	      loop->parallel_p = false;
+	      VEC_safe_push (data_reference_p, heap, *datarefs, res);
 
-		if (TREE_CODE (opnd1) == ARRAY_REF 
-		    || TREE_CODE (opnd1) == INDIRECT_REF
-		    || TREE_CODE (opnd1) == COMPONENT_REF)
-		  {
-		    dr = create_data_ref (opnd1, stmt, true);
-		    if (dr) 
-		      {
-			VEC_safe_push (data_reference_p, heap, *datarefs, dr);
-			one_inserted = true;
-		      }
-		  }
-
-		if (!one_inserted)
-		  goto insert_dont_know_node;
-
-		break;
-	      }
-
-	    case CALL_EXPR:
-	      {
-		tree args;
-		bool one_inserted = false;
-
-		for (args = TREE_OPERAND (stmt, 1); args; 
-		     args = TREE_CHAIN (args))
-		  if (TREE_CODE (TREE_VALUE (args)) == ARRAY_REF
-		      || TREE_CODE (TREE_VALUE (args)) == INDIRECT_REF
-		      || TREE_CODE (TREE_VALUE (args)) == COMPONENT_REF)
-		    {
-		      dr = create_data_ref (TREE_VALUE (args), stmt, true);
-		      if (dr)
-			{
-			  VEC_safe_push (data_reference_p, heap, *datarefs, dr);
-			  one_inserted = true;
-			}
-		    }
-
-		if (!one_inserted)
-		  goto insert_dont_know_node;
-
-		break;
-	      }
-
-	    default:
-		{
-		  struct data_reference *res;
-
-		insert_dont_know_node:;
-		  res = XNEW (struct data_reference);
-		  DR_STMT (res) = NULL_TREE;
-		  DR_REF (res) = NULL_TREE;
-		  DR_BASE_OBJECT (res) = NULL;
-		  DR_TYPE (res) = ARRAY_REF_TYPE;
-		  DR_SET_ACCESS_FNS (res, NULL);
-		  DR_BASE_OBJECT (res) = NULL;
-		  DR_IS_READ (res) = false;
-		  DR_BASE_ADDRESS (res) = NULL_TREE;
-		  DR_OFFSET (res) = NULL_TREE;
-		  DR_INIT (res) = NULL_TREE;
-		  DR_STEP (res) = NULL_TREE;
-		  DR_OFFSET_MISALIGNMENT (res) = NULL_TREE;
-		  DR_MEMTAG (res) = NULL_TREE;
-		  DR_PTR_INFO (res) = NULL;
-		  VEC_safe_push (data_reference_p, heap, *datarefs, res);
-
-		  free (bbs);
-		  return chrec_dont_know;
-		}
+	      free (bbs);
+	      return chrec_dont_know;
 	    }
 
 	  /* When there are no defs in the loop, the loop is parallel.  */
@@ -4193,10 +4213,87 @@ find_data_references_in_loop (struct loop *loop,
 	    loop->parallel_p = false;
 	}
     }
-
   free (bbs);
 
   return NULL_TREE;
+}
+
+/* Initializes an equation CY of the access matrix using the
+   information for a subscript from ACCESS_FUN.  Returns true when the
+   operation succeeded.  */
+
+static bool
+build_access_matrix_with_af (tree access_fun, lambda_vector cy,
+			     VEC (loop_p, heap) *loop_nest, 
+			     VEC (tree, heap) *params)
+{
+  switch (TREE_CODE (access_fun))
+    {
+    case POLYNOMIAL_CHREC:
+      {
+	tree left = CHREC_LEFT (access_fun);
+	tree right = CHREC_RIGHT (access_fun);
+	int var = CHREC_VARIABLE (access_fun);
+	unsigned i, var_idx;
+	struct loop *loopi;
+
+	if (TREE_CODE (right) != INTEGER_CST)
+	  return false;
+
+	/* Find the index of the current variable VAR_IDX in the
+	   LOOP_NEST array.  */
+	for (var_idx = 0; VEC_iterate (loop_p, loop_nest, var_idx, loopi);
+	     var_idx++)
+	  if (loopi->num == var)
+	    break;
+
+	if (loopi->num == var)
+	  cy[var_idx] = int_cst_value (right);
+	else
+	  {
+	    tree param;
+	    
+	    /* This is potentially a parameter.  */
+	    for (i = 0; VEC_iterate (tree, params, i, param);
+		 i++, var_idx++)
+	      if (loopi->num == var)
+		break;
+	    
+	  }
+
+	switch (TREE_CODE (left))
+	  {
+	  case POLYNOMIAL_CHREC:
+	    return build_access_matrix_with_af (left, cy, loop_nest, params);
+
+	  case INTEGER_CST:
+	    {
+	      /* Constant part.  */
+	      unsigned nb_loops = VEC_length (loop_p, loop_nest);
+	      unsigned nb_params = VEC_length (tree, params);
+
+	      cy[nb_loops + nb_params] = int_cst_value (left);
+	      return true;
+	    }
+
+	  default:
+	    return false;
+	  }
+      }
+
+    case INTEGER_CST:
+      {
+	/* Constant part.  */
+	unsigned nb_loops = VEC_length (loop_p, loop_nest);
+	unsigned nb_params = VEC_length (tree, params);
+
+	cy[nb_loops + nb_params] = int_cst_value (access_fun);
+	return true;
+      }
+
+    default:
+      return false;
+    }
 }
 
 /* Recursive helper function.  */

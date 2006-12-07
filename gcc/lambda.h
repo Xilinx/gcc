@@ -37,6 +37,9 @@ DEF_VEC_ALLOC_P(lambda_vector,heap);
    all vectors are the same length).  */
 typedef lambda_vector *lambda_matrix;
 
+DEF_VEC_P (lambda_matrix);
+DEF_VEC_ALLOC_P (lambda_matrix, heap);
+
 /* A transformation matrix, which is a self-contained ROWSIZE x COLSIZE
    matrix.  Rather than use floats, we simply keep a single DENOMINATOR that
    represents the denominator for every element in the matrix.  */

@@ -105,6 +105,34 @@ struct data_reference
 
   /* The type of the data-ref.  */
   enum data_ref_type type;
+
+  /* Each vector of the access matrix represents a linear access
+     function for a subscript.  First elements correspond to the
+     leftmost indices, ie. for a[i][j] the first vector corresponds to
+     the subscript in "i".  The elements of a vector are relative to
+     the loop nest in which the data reference is considered.  
+
+     For example, in
+
+     | loop_1
+     |    loop_2
+     |      a[i+3][2*j+n-1]
+
+     if "i" varies in loop_1 and "j" varies in loop_2, the access
+     matrix with respect to the loop nest {loop_1, loop_2} is:
+
+     | loop_1  loop_2  param_n  cst
+     |   1       0        0      3
+     |   0       2        1     -1
+
+     whereas the access matrix with respect to loop_2 considers "i" as
+     a parameter:
+
+     | loop_2  param_i  param_n  cst
+     |   0       1         0      3
+     |   2       0         1     -1
+  */
+  VEC (lambda_vector, heap) *access_matrix;
 };
 
 typedef struct data_reference *data_reference_p;
@@ -237,6 +265,7 @@ struct data_dependence_relation
 
   /* The classic distance vector.  */
   VEC (lambda_vector, heap) *dist_vects;
+
 };
 
 typedef struct data_dependence_relation *ddr_p;
@@ -269,6 +298,20 @@ DEF_VEC_ALLOC_P(ddr_p,heap);
 
 
 
+/* Describes a location of a memory reference.  */
+
+typedef struct data_ref_loc_d
+{
+  /* Position of the memory reference.  */
+  tree *pos;
+
+  /* True if the memory reference is read.  */
+  bool is_read;
+} data_ref_loc;
+
+DEF_VEC_O (data_ref_loc);
+DEF_VEC_ALLOC_O (data_ref_loc, heap);
+
 extern tree find_data_references_in_loop (struct loop *,
 					  VEC (data_reference_p, heap) **);
 extern void compute_data_dependences_for_loop (struct loop *, bool,
@@ -295,7 +338,7 @@ extern void free_data_refs (VEC (data_reference_p, heap) *);
 extern struct data_reference *analyze_array (tree, tree, bool);
 extern void estimate_iters_using_array (tree, tree);
 extern struct data_reference *create_data_ref (tree, tree, bool);
-
+extern bool find_data_references_in_stmt (tree, VEC (data_reference_p, heap) **);
 
 /* Return the index of the variable VAR in the LOOP_NEST array.  */
 

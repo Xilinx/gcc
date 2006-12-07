@@ -5133,6 +5133,34 @@ print_succ_bbs (FILE *file, basic_block bb)
     fprintf (file, "bb_%d ", e->dest->index);
 }
 
+/* Print to FILE the basic block BB following the VERBOSITY level.  */
+
+void 
+print_loop_ir_bb (FILE *file, basic_block bb, int indent, int verbosity)
+{
+  char *s_indent = (char *) alloca ((size_t) indent + 1);
+  memset ((void *) s_indent, ' ', (size_t) indent);
+  s_indent[indent] = '\0';
+
+  /* Print basic_block's header.  */
+  if (verbosity >= 2)
+    {
+      fprintf (file, "%s  bb_%d (preds = {", s_indent, bb->index);
+      print_pred_bbs (file, bb);
+      fprintf (file, "}, succs = {");
+      print_succ_bbs (file, bb);
+      fprintf (file, "})\n");
+    }
+
+  /* Print basic_block's body.  */
+  if (verbosity >= 3)
+    {
+      fprintf (file, "%s  {\n", s_indent);
+      tree_dump_bb (bb, file, indent + 4);
+      fprintf (file, "%s  }\n", s_indent);
+    }
+}
+
 
 /* Pretty print LOOP on FILE, indented INDENT spaces.  Following
    VERBOSITY level this outputs the contents of the loop, or just its
@@ -5152,7 +5180,13 @@ print_loop (FILE *file, struct loop *loop, int indent, int verbosity)
   s_indent[indent] = '\0';
 
   /* Print loop's header.  */
-  fprintf (file, "%sloop_%d\n", s_indent, loop->num);
+  fprintf (file, "%sloop_%d (header = %d, latch = %d", s_indent, 
+	   loop->num, loop->header->index, loop->latch->index);
+  fprintf (file, ", niter = ");
+  print_generic_expr (file, loop->nb_iterations, 0);
+  fprintf (file, ", estim_niter = ");
+  print_generic_expr (file, loop->estimated_nb_iterations, 0);
+  fprintf (file, ")\n");
 
   /* Print loop's body.  */
   if (verbosity >= 1)
@@ -5160,25 +5194,7 @@ print_loop (FILE *file, struct loop *loop, int indent, int verbosity)
       fprintf (file, "%s{\n", s_indent);
       FOR_EACH_BB (bb)
 	if (bb->loop_father == loop)
-	  {
-	    /* Print basic_block's header.  */
-	    if (verbosity >= 2)
-	      {
-		fprintf (file, "%s  bb_%d (preds = {", s_indent, bb->index);
-		print_pred_bbs (file, bb);
-		fprintf (file, "}, succs = {");
-		print_succ_bbs (file, bb);
-		fprintf (file, "})\n");
-	      }
-	    
-	    /* Print basic_block's body.  */
-	    if (verbosity >= 3)
-	      {
-		fprintf (file, "%s  {\n", s_indent);
-		tree_dump_bb (bb, file, indent + 4);
-		fprintf (file, "%s  }\n", s_indent);
-	      }
-	  }
+	  print_loop_ir_bb (file, bb, indent, verbosity);
 
       print_loop (file, loop->inner, indent + 2, verbosity);
       fprintf (file, "%s}\n", s_indent);

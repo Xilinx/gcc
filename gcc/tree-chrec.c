@@ -1395,3 +1395,23 @@ scev_direction (tree chrec)
   else
     return EV_DIR_GROWS;
 }
+
+/* Iterates over all the components of SCEV, and calls CBCK.  */
+
+void
+for_each_scev_op (tree *scev, bool (*cbck) (tree *, void *), void *data)
+{
+  switch (TREE_CODE_LENGTH (TREE_CODE (*scev)))
+    {
+    case 2:
+      for_each_scev_op (&TREE_OPERAND (*scev, 1), cbck, data);
+
+    case 1:
+      for_each_scev_op (&TREE_OPERAND (*scev, 0), cbck, data);
+
+    default:
+      cbck (scev, data);
+      break;
+    }
+}
+
