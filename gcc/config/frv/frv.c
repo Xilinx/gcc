@@ -2203,7 +2203,7 @@ frv_expand_builtin_va_start (tree valist, rtx nextarg)
       debug_rtx (nextarg);
     }
 
-  t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist,
+  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (valist), valist,
 	      make_tree (ptr_type_node, nextarg));
   TREE_SIDE_EFFECTS (t) = 1;
 
@@ -8148,7 +8148,7 @@ frv_reorg (void)
 }
 
 #define def_builtin(name, type, code) \
-  lang_hooks.builtin_function ((name), (type), (code), BUILT_IN_MD, NULL, NULL)
+  add_builtin_function ((name), (type), (code), BUILT_IN_MD, NULL, NULL)
 
 struct builtin_description
 {

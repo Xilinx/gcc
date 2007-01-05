@@ -76,9 +76,6 @@ F95_OBJS = $(F95_PARSER_OBJS) \
     fortran/trans-intrinsic.o fortran/trans-io.o fortran/trans-openmp.o \
     fortran/trans-stmt.o fortran/trans-types.o
 
-# GFORTRAN uses GMP for its internal arithmetics.
-F95_LIBS = $(GMPLIBS) $(LIBS)
-
 #
 # Define the names for selecting gfortran in LANGUAGES.
 fortran: f951$(exeext)
@@ -105,9 +102,9 @@ gfortran-cross$(exeext): gfortran$(exeext)
 
 # The compiler itself is called f951.
 f951$(exeext): $(F95_OBJS) \
-		$(BACKEND) $(LIBDEPS)
+		$(BACKEND) $(LIBDEPS) attribs.o
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
-		$(F95_OBJS) $(BACKEND) $(F95_LIBS)
+		$(F95_OBJS) $(BACKEND) $(LIBS) attribs.o
 
 gt-fortran-trans.h    : s-gtype; @true
 #
@@ -302,4 +299,4 @@ fortran/trans-intrinsic.o: $(GFORTRAN_TRANS_DEPS) fortran/mathbuiltins.def \
 fortran/dependency.o: $(GFORTRAN_TRANS_DEPS) fortran/dependency.h
 fortran/trans-common.o: $(GFORTRAN_TRANS_DEPS) $(TARGET_H) $(RTL_H)
 fortran/resolve.o: fortran/dependency.h
-fortran/options.o: $(TARGET_H)
+fortran/options.o: $(PARAMS_H) $(TARGET_H)

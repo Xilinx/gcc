@@ -510,8 +510,8 @@ format_item_1:
         return FAILURE;
       if (t != FMT_RPAREN || level > 0)
 	{
-	  error = _("$ must be the last specifier");
-	  goto syntax;
+	  gfc_warning ("$ should be the last specifier in format at %C");
+	  goto optional_comma_1;
 	}
 
       goto finished;
@@ -755,8 +755,9 @@ between_desc:
 
 optional_comma:
   /* Optional comma is a weird between state where we've just finished
-     reading a colon, slash or P descriptor.  */
+     reading a colon, slash, dollar or P descriptor.  */
   t = format_lex ();
+optional_comma_1:
   switch (t)
     {
     case FMT_COMMA:
@@ -858,7 +859,7 @@ gfc_match_format (void)
   if (gfc_current_ns->proc_name
 	&& gfc_current_ns->proc_name->attr.flavor == FL_MODULE)
     {
-      gfc_error ("Format statement in module main block at %C.");
+      gfc_error ("Format statement in module main block at %C");
       return MATCH_ERROR;
     }
 
@@ -1121,7 +1122,7 @@ resolve_tag (const io_tag * tag, gfc_expr * e)
 
       if (tag == &tag_size && e->ts.kind != gfc_default_integer_kind)
 	{
-	  if (gfc_notify_std (GFC_STD_GNU, "Fortran 95 requires default "
+	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 95 requires default "
 			      "INTEGER in SIZE tag at %L",
 			      &e->where) == FAILURE)
 	    return FAILURE;
@@ -1130,6 +1131,14 @@ resolve_tag (const io_tag * tag, gfc_expr * e)
       if (tag == &tag_convert)
 	{
 	  if (gfc_notify_std (GFC_STD_GNU, "Extension: CONVERT tag at %L",
+			      &e->where) == FAILURE)
+	    return FAILURE;
+	}
+    
+      if (tag == &tag_iolength && e->ts.kind != gfc_default_integer_kind)
+	{
+	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 95 requires default "
+			      "INTEGER in IOLENGTH tag at %L",
 			      &e->where) == FAILURE)
 	    return FAILURE;
 	}
@@ -1253,6 +1262,99 @@ gfc_resolve_open (gfc_open * open)
 }
 
 
+
+/* Check if a given value for a SPECIFIER is either in the list of values
+   allowed in F95 or F2003, issuing an error message and returning a zero
+   value if it is not allowed.  */
+static int
+compare_to_allowed_values (const char * specifier, const char * allowed[],
+			   const char * allowed_f2003[], 
+			   const char * allowed_gnu[], char * value,
+			   const char * statement, bool warn)
+{
+  int i;
+  unsigned int len;
+
+  len = strlen(value);
+  if (len > 0)
+  {
+    for (len--; len > 0; len--)
+      if (value[len] != ' ')
+	break;
+    len++;
+  }
+
+  for (i = 0; allowed[i]; i++)
+    if (len == strlen(allowed[i])
+	&& strncasecmp (value, allowed[i], strlen(allowed[i])) == 0)
+      return 1;
+
+  for (i = 0; allowed_f2003 && allowed_f2003[i]; i++)
+    if (len == strlen(allowed_f2003[i])
+	&& strncasecmp (value, allowed_f2003[i], strlen(allowed_f2003[i])) == 0)
+      {
+	notification n = gfc_notification_std (GFC_STD_F2003);
+
+	if (n == WARNING || (warn && n == ERROR))
+	  {
+	    gfc_warning ("Fortran 2003: %s specifier in %s statement at %C "
+			 "has value '%s'", specifier, statement,
+			 allowed_f2003[i]);
+	    return 1;
+	  }
+	else
+	  if (n == ERROR)
+	    {
+	      gfc_notify_std (GFC_STD_F2003, "Fortran 2003: %s specifier in "
+			      "%s statement at %C has value '%s'", specifier,
+			      statement, allowed_f2003[i]);
+	      return 0;
+	    }
+
+	/* n == SILENT */
+	return 1;
+      }
+
+  for (i = 0; allowed_gnu && allowed_gnu[i]; i++)
+    if (len == strlen(allowed_gnu[i])
+	&& strncasecmp (value, allowed_gnu[i], strlen(allowed_gnu[i])) == 0)
+      {
+	notification n = gfc_notification_std (GFC_STD_GNU);
+
+	if (n == WARNING || (warn && n == ERROR))
+	  {
+	    gfc_warning ("Extension: %s specifier in %s statement at %C "
+			 "has value '%s'", specifier, statement,
+			 allowed_gnu[i]);
+	    return 1;
+	  }
+	else
+	  if (n == ERROR)
+	    {
+	      gfc_notify_std (GFC_STD_GNU, "Extension: %s specifier in "
+			      "%s statement at %C has value '%s'", specifier,
+			      statement, allowed_gnu[i]);
+	      return 0;
+	    }
+
+	/* n == SILENT */
+	return 1;
+      }
+
+  if (warn)
+    {
+      gfc_warning ("%s specifier in %s statement at %C has invalid value '%s'",
+		   specifier, statement, value);
+      return 1;
+    }
+  else
+    {
+      gfc_error ("%s specifier in %s statement at %C has invalid value '%s'",
+		 specifier, statement, value);
+      return 0;
+    }
+}
+
 /* Match an OPEN statement.  */
 
 match
@@ -1260,6 +1362,7 @@ gfc_match_open (void)
 {
   gfc_open *open;
   match m;
+  bool warn;
 
   m = gfc_match_char ('(');
   if (m == MATCH_NO)
@@ -1302,6 +1405,240 @@ gfc_match_open (void)
       gfc_error ("OPEN statement not allowed in PURE procedure at %C");
       goto cleanup;
     }
+
+  warn = (open->err || open->iostat) ? true : false;
+  /* Checks on the ACCESS specifier.  */
+  if (open->access && open->access->expr_type == EXPR_CONSTANT)
+    {
+      static const char * access_f95[] = { "SEQUENTIAL", "DIRECT", NULL };
+      static const char * access_f2003[] = { "STREAM", NULL };
+      static const char * access_gnu[] = { "APPEND", NULL };
+
+      if (!compare_to_allowed_values ("ACCESS", access_f95, access_f2003,
+				      access_gnu,
+				      open->access->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    }
+
+  /* Checks on the ACTION specifier.  */
+  if (open->action && open->action->expr_type == EXPR_CONSTANT)
+    {
+      static const char * action[] = { "READ", "WRITE", "READWRITE", NULL };
+
+      if (!compare_to_allowed_values ("ACTION", action, NULL, NULL,
+				      open->action->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    }
+
+  /* Checks on the ASYNCHRONOUS specifier.  */
+  /* TODO: code is ready, just needs uncommenting when async I/O support
+     is added ;-)
+  if (open->asynchronous && open->asynchronous->expr_type == EXPR_CONSTANT)
+    {
+      static const char * asynchronous[] = { "YES", "NO", NULL };
+
+      if (!compare_to_allowed_values
+		("action", asynchronous, NULL, NULL,
+		 open->asynchronous->value.character.string, "OPEN", warn))
+	goto cleanup;
+    }*/
+  
+  /* Checks on the BLANK specifier.  */
+  if (open->blank && open->blank->expr_type == EXPR_CONSTANT)
+    {
+      static const char * blank[] = { "ZERO", "NULL", NULL };
+
+      if (!compare_to_allowed_values ("BLANK", blank, NULL, NULL,
+				      open->blank->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    }
+
+  /* Checks on the DECIMAL specifier.  */
+  /* TODO: uncomment this code when DECIMAL support is added 
+  if (open->decimal && open->decimal->expr_type == EXPR_CONSTANT)
+    {
+      static const char * decimal[] = { "COMMA", "POINT", NULL };
+
+      if (!compare_to_allowed_values ("DECIMAL", decimal, NULL, NULL,
+				      open->decimal->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    } */
+
+  /* Checks on the DELIM specifier.  */
+  if (open->delim && open->delim->expr_type == EXPR_CONSTANT)
+    {
+      static const char * delim[] = { "APOSTROPHE", "QUOTE", "NONE", NULL };
+
+      if (!compare_to_allowed_values ("DELIM", delim, NULL, NULL,
+				      open->delim->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    }
+
+  /* Checks on the ENCODING specifier.  */
+  /* TODO: uncomment this code when ENCODING support is added 
+  if (open->encoding && open->encoding->expr_type == EXPR_CONSTANT)
+    {
+      static const char * encoding[] = { "UTF-8", "DEFAULT", NULL };
+
+      if (!compare_to_allowed_values ("ENCODING", encoding, NULL, NULL,
+				      open->encoding->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    } */
+
+  /* Checks on the FORM specifier.  */
+  if (open->form && open->form->expr_type == EXPR_CONSTANT)
+    {
+      static const char * form[] = { "FORMATTED", "UNFORMATTED", NULL };
+
+      if (!compare_to_allowed_values ("FORM", form, NULL, NULL,
+				      open->form->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    }
+
+  /* Checks on the PAD specifier.  */
+  if (open->pad && open->pad->expr_type == EXPR_CONSTANT)
+    {
+      static const char * pad[] = { "YES", "NO", NULL };
+
+      if (!compare_to_allowed_values ("PAD", pad, NULL, NULL,
+				      open->pad->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    }
+
+  /* Checks on the POSITION specifier.  */
+  if (open->position && open->position->expr_type == EXPR_CONSTANT)
+    {
+      static const char * position[] = { "ASIS", "REWIND", "APPEND", NULL };
+
+      if (!compare_to_allowed_values ("POSITION", position, NULL, NULL,
+				      open->position->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    }
+
+  /* Checks on the ROUND specifier.  */
+  /* TODO: uncomment this code when ROUND support is added 
+  if (open->round && open->round->expr_type == EXPR_CONSTANT)
+    {
+      static const char * round[] = { "UP", "DOWN", "ZERO", "NEAREST",
+				      "COMPATIBLE", "PROCESSOR_DEFINED", NULL };
+
+      if (!compare_to_allowed_values ("ROUND", round, NULL, NULL,
+				      open->round->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    } */
+
+  /* Checks on the SIGN specifier.  */
+  /* TODO: uncomment this code when SIGN support is added 
+  if (open->sign && open->sign->expr_type == EXPR_CONSTANT)
+    {
+      static const char * sign[] = { "PLUS", "SUPPRESS", "PROCESSOR_DEFINED",
+				     NULL };
+
+      if (!compare_to_allowed_values ("SIGN", sign, NULL, NULL,
+				      open->sign->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+    } */
+
+#define warn_or_error(...) \
+{ \
+  if (warn) \
+    gfc_warning (__VA_ARGS__); \
+  else \
+    { \
+      gfc_error (__VA_ARGS__); \
+      goto cleanup; \
+    } \
+}
+
+  /* Checks on the RECL specifier.  */
+  if (open->recl && open->recl->expr_type == EXPR_CONSTANT
+      && open->recl->ts.type == BT_INTEGER
+      && mpz_sgn (open->recl->value.integer) != 1)
+    {
+      warn_or_error ("RECL in OPEN statement at %C must be positive");
+    }
+
+  /* Checks on the STATUS specifier.  */
+  if (open->status && open->status->expr_type == EXPR_CONSTANT)
+    {
+      static const char * status[] = { "OLD", "NEW", "SCRATCH",
+	"REPLACE", "UNKNOWN", NULL };
+
+      if (!compare_to_allowed_values ("STATUS", status, NULL, NULL,
+				      open->status->value.character.string,
+				      "OPEN", warn))
+	goto cleanup;
+
+      /* F2003, 9.4.5: If the STATUS= specifier has the value NEW or REPLACE,
+         the FILE= specifier shall appear.  */
+      if (open->file == NULL &&
+	  (strncasecmp (open->status->value.character.string, "replace", 7) == 0
+	  || strncasecmp (open->status->value.character.string, "new", 3) == 0))
+	{
+	  warn_or_error ("The STATUS specified in OPEN statement at %C is '%s' "
+			 "and no FILE specifier is present",
+			 open->status->value.character.string);
+	}
+
+      /* F2003, 9.4.5: If the STATUS= specifier has the value SCRATCH,
+	 the FILE= specifier shall not appear.  */
+      if (strncasecmp (open->status->value.character.string, "scratch", 7) == 0
+	  && open->file)
+	{
+	  warn_or_error ("The STATUS specified in OPEN statement at %C cannot "
+			 "have the value SCRATCH if a FILE specifier "
+			 "is present");
+	}
+    }
+
+  /* Things that are not allowed for unformatted I/O.  */
+  if (open->form && open->form->expr_type == EXPR_CONSTANT
+      && (open->delim
+	  /* TODO uncomment this code when F2003 support is finished */
+	  /* || open->decimal || open->encoding || open->round
+	     || open->sign */
+	  || open->pad || open->blank)
+      && strncasecmp (open->form->value.character.string,
+		      "unformatted", 11) == 0)
+    {
+      const char * spec = (open->delim ? "DELIM " : (open->pad ? "PAD " :
+	    open->blank ? "BLANK " : ""));
+
+      warn_or_error ("%sspecifier at %C not allowed in OPEN statement for "
+		     "unformatted I/O", spec);
+    }
+
+  if (open->recl && open->access && open->access->expr_type == EXPR_CONSTANT
+      && strncasecmp (open->access->value.character.string, "stream", 6) == 0)
+    {
+      warn_or_error ("RECL specifier not allowed in OPEN statement at %C for "
+		     "stream I/O");
+    }
+
+  if (open->position && open->access && open->access->expr_type == EXPR_CONSTANT
+      && !(strncasecmp (open->access->value.character.string,
+			"sequential", 10) == 0
+	   || strncasecmp (open->access->value.character.string,
+			   "stream", 6) == 0
+	   || strncasecmp (open->access->value.character.string,
+			   "append", 6) == 0))
+    {
+      warn_or_error ("POSITION specifier in OPEN statement at %C only allowed "
+		     "for stream or sequential ACCESS");
+    }
+
+#undef warn_or_error
 
   new_st.op = EXEC_OPEN;
   new_st.ext.open = open;
@@ -1368,6 +1705,7 @@ gfc_match_close (void)
 {
   gfc_close *close;
   match m;
+  bool warn;
 
   m = gfc_match_char ('(');
   if (m == MATCH_NO)
@@ -1409,6 +1747,19 @@ gfc_match_close (void)
     {
       gfc_error ("CLOSE statement not allowed in PURE procedure at %C");
       goto cleanup;
+    }
+
+  warn = (close->iostat || close->err) ? true : false;
+
+  /* Checks on the STATUS specifier.  */
+  if (close->status && close->status->expr_type == EXPR_CONSTANT)
+    {
+      static const char * status[] = { "KEEP", "DELETE", NULL };
+
+      if (!compare_to_allowed_values ("STATUS", status, NULL, NULL,
+				      close->status->value.character.string,
+				      "CLOSE", warn))
+	goto cleanup;
     }
 
   new_st.op = EXEC_CLOSE;
@@ -2254,9 +2605,13 @@ if (condition) \
 		     "REC tag at %L is incompatible with internal file",
 		     &dt->rec->where);
 
-      io_constraint (dt->namelist != NULL,
-		     "Internal file at %L is incompatible with namelist",
-		     &expr->where);
+      if (dt->namelist != NULL)
+        {
+          if (gfc_notify_std(GFC_STD_F2003,
+                         "Fortran 2003: Internal file at %L with namelist",
+                         &expr->where) == FAILURE)
+            m = MATCH_ERROR;
+        }
 
       io_constraint (dt->advance != NULL,
 		     "ADVANCE tag at %L is incompatible with internal file",
@@ -2355,8 +2710,8 @@ if (condition) \
       if (expr->expr_type == EXPR_CONSTANT && expr->ts.type == BT_CHARACTER)
 	{
 	  const char * advance = expr->value.character.string;
-	  not_no = strncasecmp (advance, "no", 2) != 0;
-	  not_yes = strncasecmp (advance, "yes", 2) != 0;
+	  not_no = strcasecmp (advance, "no") != 0;
+	  not_yes = strcasecmp (advance, "yes") != 0;
 	}
       else
 	{
@@ -2402,7 +2757,8 @@ match_io (io_kind k)
   where = gfc_current_locus;
   comma_flag = 0;
   current_dt = dt = gfc_getmem (sizeof (gfc_dt));
-  if (gfc_match_char ('(') == MATCH_NO)
+  m = gfc_match_char ('(');
+  if (m == MATCH_NO)
     {
       where = gfc_current_locus;
       if (k == M_WRITE)
@@ -2454,9 +2810,25 @@ match_io (io_kind k)
     }
   else
     {
-      /* Error for constructs like print (1,*).   */
-      if (k == M_PRINT)
-	goto  syntax;
+      /* Before issuing an error for a malformed 'print (1,*)' type of
+	 error, check for a default-char-expr of the form ('(I0)').  */
+
+      if (k == M_PRINT && m == MATCH_YES)
+	{
+	  /* Reset current locus to get the initial '(' in an expression.  */
+	  gfc_current_locus = where;
+	  dt->format_expr = NULL;
+	  m = match_dt_format (dt);
+
+	  if (m == MATCH_ERROR)
+	    goto cleanup;
+	  if (m == MATCH_NO || dt->format_expr == NULL)
+	    goto syntax;
+
+	  comma_flag = 1;
+	  dt->io_unit = default_unit (k);
+	  goto get_io_list;
+	}
     }
 
   /* Match a control list */

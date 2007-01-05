@@ -22,10 +22,11 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #ifndef GCC_TREE_SCALAR_EVOLUTION_H
 #define GCC_TREE_SCALAR_EVOLUTION_H
 
-extern tree number_of_iterations_in_loop (struct loop *);
+extern tree number_of_latch_executions (struct loop *);
+extern tree number_of_exit_cond_executions (struct loop *);
 extern tree get_loop_exit_condition (struct loop *);
 
-extern void scev_initialize (struct loops *loops);
+extern void scev_initialize (void);
 extern void scev_reset (void);
 extern void scev_finalize (void);
 extern tree analyze_scalar_evolution (struct loop *, tree);
@@ -35,5 +36,13 @@ extern void scev_analysis (void);
 unsigned int scev_const_prop (void);
 
 extern bool simple_iv (struct loop *, tree, tree, affine_iv *, bool);
+
+/* Returns the loop of the polynomial chrec CHREC.  */
+
+static inline struct loop *
+get_chrec_loop (tree chrec)
+{
+  return get_loop (CHREC_VARIABLE (chrec));
+}
 
 #endif  /* GCC_TREE_SCALAR_EVOLUTION_H  */

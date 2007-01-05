@@ -1129,7 +1129,7 @@ alter_access (tree t, tree fdecl, tree access)
     }
   else
     {
-      perform_or_defer_access_check (TYPE_BINFO (t), fdecl);
+      perform_or_defer_access_check (TYPE_BINFO (t), fdecl, fdecl);
       DECL_ACCESS (fdecl) = tree_cons (t, access, DECL_ACCESS (fdecl));
       return 1;
     }
@@ -4050,7 +4050,7 @@ type_requires_array_cookie (tree type)
 	 argument is `size_t', it will be the usual deallocation
 	 function -- unless there is one-argument function, too.  */
       if (TREE_CHAIN (second_parm) == void_list_node
-	  && same_type_p (TREE_VALUE (second_parm), sizetype))
+	  && same_type_p (TREE_VALUE (second_parm), size_type_node))
 	has_two_argument_delete_p = true;
     }
 
@@ -5062,6 +5062,7 @@ finish_struct_1 (tree t)
      working on.  */
   for (x = TYPE_FIELDS (t); x; x = TREE_CHAIN (x))
     if (TREE_CODE (x) == VAR_DECL && TREE_STATIC (x)
+        && TREE_TYPE (x) != error_mark_node
 	&& same_type_p (TYPE_MAIN_VARIANT (TREE_TYPE (x)), t))
       DECL_MODE (x) = TYPE_MODE (t);
 
@@ -5957,7 +5958,7 @@ resolve_address_of_overloaded_function (tree target_type,
       if (DECL_FUNCTION_MEMBER_P (fn))
 	{
 	  gcc_assert (access_path);
-	  perform_or_defer_access_check (access_path, fn);
+	  perform_or_defer_access_check (access_path, fn, fn);
 	}
     }
 
@@ -7448,7 +7449,14 @@ build_vcall_offset_vtbl_entries (tree binfo, vtbl_init_data* vid)
   /* We only need these entries if this base is a virtual base.  We
      compute the indices -- but do not add to the vtable -- when
      building the main vtable for a class.  */
-  if (BINFO_VIRTUAL_P (binfo) || binfo == TYPE_BINFO (vid->derived))
+  if (binfo == TYPE_BINFO (vid->derived)
+      || (BINFO_VIRTUAL_P (binfo) 
+	  /* If BINFO is RTTI_BINFO, then (since BINFO does not
+	     correspond to VID->DERIVED), we are building a primary
+	     construction virtual table.  Since this is a primary
+	     virtual table, we do not need the vcall offsets for
+	     BINFO.  */
+	  && binfo != vid->rtti_binfo))
     {
       /* We need a vcall offset for each of the virtual functions in this
 	 vtable.  For example:

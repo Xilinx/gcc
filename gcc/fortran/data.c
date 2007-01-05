@@ -1,5 +1,6 @@
 /* Supporting functions for resolving DATA statement.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software
+   Foundation, Inc.
    Contributed by Lifang Zeng <zlf605@hotmail.com>
 
 This file is part of GCC.
@@ -60,7 +61,7 @@ get_array_index (gfc_array_ref * ar, mpz_t * offset)
       if ((gfc_is_constant_expr (ar->as->lower[i]) == 0)
 	  || (gfc_is_constant_expr (ar->as->upper[i]) == 0)
 	  || (gfc_is_constant_expr (e) == 0))
-	gfc_error ("non-constant array in DATA statement %L.", &ar->where);        
+	gfc_error ("non-constant array in DATA statement %L", &ar->where);        
       mpz_set (tmp, e->value.integer);
       mpz_sub (tmp, tmp, ar->as->lower[i]->value.integer);
       mpz_mul (tmp, tmp, delta);
@@ -79,41 +80,48 @@ get_array_index (gfc_array_ref * ar, mpz_t * offset)
 /* Find if there is a constructor which offset is equal to OFFSET.  */
 
 static gfc_constructor *
-find_con_by_offset (mpz_t offset, gfc_constructor *con)
+find_con_by_offset (splay_tree spt, mpz_t offset)
 {
   mpz_t tmp;
   gfc_constructor *ret = NULL;
+  gfc_constructor *con;
+  splay_tree_node sptn;
 
+/* The complexity is due to needing quick access to the linked list of
+   constructors.  Both a linked list and a splay tree are used, and both are
+   kept up to date if they are array elements (which is the only time that
+   a specific constructor has to be found).  */  
+
+  gcc_assert (spt != NULL);
   mpz_init (tmp);
 
-  for (; con; con = con->next)
+  sptn = splay_tree_lookup (spt, (splay_tree_key) mpz_get_si(offset));
+
+  if (sptn)
+    ret = (gfc_constructor*) sptn->value;  
+  else
     {
-      int cmp = mpz_cmp (offset, con->n.offset);
-
-      /* We retain a sorted list, so if we're too large, we're done.  */
-      if (cmp < 0)
-	break;
-
-      /* Yaye for exact matches.  */
-      if (cmp == 0)
-	{
-          ret = con;
-	  break;
-	}
-
-      /* If the constructor element is a range, match any element.  */
-      if (mpz_cmp_ui (con->repeat, 1) > 0)
-	{
-	  mpz_add (tmp, con->n.offset, con->repeat);
-	  if (mpz_cmp (offset, tmp) < 0)
-	    {
-	      ret = con;
-	      break;
-	    }
-	}
+       /* Need to check and see if we match a range, so we will pull
+          the next lowest index and see if the range matches.  */
+       sptn = splay_tree_predecessor (spt, (splay_tree_key) mpz_get_si(offset));
+       if (sptn)
+         {
+            con = (gfc_constructor*) sptn->value;
+            if (mpz_cmp_ui (con->repeat, 1) > 0)
+              {
+                 mpz_init (tmp);
+                 mpz_add (tmp, con->n.offset, con->repeat);
+                 if (mpz_cmp (offset, tmp) < 0)
+                   ret = con;
+                 mpz_clear (tmp);
+              }
+            else 
+              ret = NULL; /* The range did not match.  */
+         }
+      else
+        ret = NULL; /* No pred, so no match.  */
     }
 
-  mpz_clear (tmp);
   return ret;
 }
 
@@ -155,7 +163,8 @@ create_character_intializer (gfc_expr * init, gfc_typespec * ts,
       init->expr_type = EXPR_CONSTANT;
       init->ts = *ts;
       
-      dest = gfc_getmem (len);
+      dest = gfc_getmem (len + 1);
+      dest[len] = '\0';
       init->value.character.length = len;
       init->value.character.string = dest;
       /* Blank the string if we're only setting a substring.  */
@@ -167,13 +176,26 @@ create_character_intializer (gfc_expr * init, gfc_typespec * ts,
 
   if (ref)
     {
+      gfc_expr *start_expr, *end_expr;
+
       gcc_assert (ref->type == REF_SUBSTRING);
 
       /* Only set a substring of the destination.  Fortran substring bounds
          are one-based [start, end], we want zero based [start, end).  */
-      gfc_extract_int (ref->u.ss.start, &start);
+      start_expr = gfc_copy_expr (ref->u.ss.start);
+      end_expr = gfc_copy_expr (ref->u.ss.end);
+
+      if ((gfc_simplify_expr (start_expr, 1) == FAILURE)
+	     || (gfc_simplify_expr (end_expr, 1)) == FAILURE)
+	{
+	  gfc_error ("failure to simplify substring reference in DATA"
+		     "statement at %L", &ref->u.ss.start->where);
+	  return NULL;
+	}
+
+      gfc_extract_int (start_expr, &start);
       start--;
-      gfc_extract_int (ref->u.ss.end, &end);
+      gfc_extract_int (end_expr, &end);
     }
   else
     {
@@ -215,9 +237,12 @@ gfc_assign_data_value (gfc_expr * lvalue, gfc_expr * rvalue, mpz_t index)
   gfc_expr *expr;
   gfc_constructor *con;
   gfc_constructor *last_con;
+  gfc_constructor *pred;
   gfc_symbol *symbol;
   gfc_typespec *last_ts;
   mpz_t offset;
+  splay_tree spt;
+  splay_tree_node sptn;
 
   symbol = lvalue->symtree->n.sym;
   init = symbol->value;
@@ -264,16 +289,38 @@ gfc_assign_data_value (gfc_expr * lvalue, gfc_expr * rvalue, mpz_t index)
 	  else
 	    mpz_set (offset, index);
 
-	  /* Find the same element in the existing constructor.  */
-	  con = expr->value.constructor;
-	  con = find_con_by_offset (offset, con);
+          /* Splay tree containing offset and gfc_constructor.  */
+          spt = expr->con_by_offset;
+
+          if (spt == NULL)
+            {
+               spt = splay_tree_new (splay_tree_compare_ints,NULL,NULL);
+               expr->con_by_offset = spt; 
+               con = NULL;
+            }
+         else
+	  con = find_con_by_offset (spt, offset);
 
 	  if (con == NULL)
 	    {
 	      /* Create a new constructor.  */
 	      con = gfc_get_constructor ();
 	      mpz_set (con->n.offset, offset);
-	      gfc_insert_constructor (expr, con);
+              sptn = splay_tree_insert (spt, (splay_tree_key) mpz_get_si(offset),
+                                       (splay_tree_value) con);
+              /* Fix up the linked list.  */
+              sptn = splay_tree_predecessor (spt, (splay_tree_key) mpz_get_si(offset));
+              if (sptn == NULL)
+                {  /* Insert at the head.  */
+                   con->next = expr->value.constructor;
+                   expr->value.constructor = con;
+                }
+              else
+                {  /* Insert in the chain.  */
+                   pred = (gfc_constructor*) sptn->value;
+                   con->next = pred->next;
+                   pred->next = con;
+                }
 	    }
 	  break;
 
@@ -364,9 +411,12 @@ gfc_assign_data_value_range (gfc_expr * lvalue, gfc_expr * rvalue,
   gfc_ref *ref;
   gfc_expr *init, *expr;
   gfc_constructor *con, *last_con;
+  gfc_constructor *pred;
   gfc_symbol *symbol;
   gfc_typespec *last_ts;
   mpz_t offset;
+  splay_tree spt;
+  splay_tree_node sptn;
 
   symbol = lvalue->symtree->n.sym;
   init = symbol->value;
@@ -420,19 +470,43 @@ gfc_assign_data_value_range (gfc_expr * lvalue, gfc_expr * rvalue,
 	    }
 
 	  /* Find the same element in the existing constructor.  */
-	  con = expr->value.constructor;
-	  con = find_con_by_offset (offset, con);
 
-	  /* Create a new constructor.  */
-	  if (con == NULL)
-	    {
-	      con = gfc_get_constructor ();
-	      mpz_set (con->n.offset, offset);
-	      if (ref->next == NULL)
-		mpz_set (con->repeat, repeat);
-	      gfc_insert_constructor (expr, con);
-	    }
-	  else
+          /* Splay tree containing offset and gfc_constructor.  */
+          spt = expr->con_by_offset;
+
+          if (spt == NULL)
+            {
+               spt = splay_tree_new (splay_tree_compare_ints,NULL,NULL);
+               expr->con_by_offset = spt;
+               con = NULL;
+            }
+          else 
+            con = find_con_by_offset (spt, offset);
+
+          if (con == NULL)
+            {
+              /* Create a new constructor.  */
+              con = gfc_get_constructor ();
+              mpz_set (con->n.offset, offset);
+              if (ref->next == NULL)
+                mpz_set (con->repeat, repeat);
+              sptn = splay_tree_insert (spt, (splay_tree_key) mpz_get_si(offset),
+                                       (splay_tree_value) con);
+              /* Fix up the linked list.  */
+              sptn = splay_tree_predecessor (spt, (splay_tree_key) mpz_get_si(offset));
+              if (sptn == NULL)
+                {  /* Insert at the head.  */
+                   con->next = expr->value.constructor;
+                   expr->value.constructor = con;
+                }
+              else
+                {  /* Insert in the chain.  */
+                   pred = (gfc_constructor*) sptn->value;
+                   con->next = pred->next;
+                   pred->next = con;
+                }
+            }
+          else
 	    gcc_assert (ref->next != NULL);
 	  break;
 

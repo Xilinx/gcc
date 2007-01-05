@@ -106,6 +106,8 @@ rs6000_cpu_cpp_builtins (cpp_reader *pfile)
     builtin_define ("_ARCH_PWR5");
   if (TARGET_FPRND)
     builtin_define ("_ARCH_PWR5X");
+  if (TARGET_MFPGPR)
+    builtin_define ("_ARCH_PWR6X");
   if (! TARGET_POWER && ! TARGET_POWER2 && ! TARGET_POWERPC)
     builtin_define ("_ARCH_COM");
   if (TARGET_ALTIVEC)
@@ -125,6 +127,9 @@ rs6000_cpu_cpp_builtins (cpp_reader *pfile)
   /* Used by lwarx/stwcx. errata work-around.  */
   if (rs6000_cpu == PROCESSOR_PPC405)
     builtin_define ("__PPC405__");
+  /* Used by libstdc++.  */
+  if (TARGET_NO_LWSYNC)
+    builtin_define ("__NO_LWSYNC__");
 
   /* May be overridden by target configuration.  */
   RS6000_CPU_CPP_ENDIAN_BUILTINS();

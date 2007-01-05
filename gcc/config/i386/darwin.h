@@ -1,5 +1,5 @@
 /* Target definitions for x86 running Darwin.
-   Copyright (C) 2001, 2002, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2004, 2005, 2006 Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
 This file is part of GCC.
@@ -70,7 +70,7 @@ Boston, MA 02110-1301, USA.  */
    the kernel or some such.  */
 
 #undef CC1_SPEC
-#define CC1_SPEC "%{!static:-fPIC}\
+#define CC1_SPEC "%{!mkernel:%{!static:%{!mdynamic-no-pic:-fPIC}}} \
   %{g: %{!fno-eliminate-unused-debug-symbols: -feliminate-unused-debug-symbols }}"
 
 #undef ASM_SPEC
@@ -81,6 +81,7 @@ Boston, MA 02110-1301, USA.  */
 
 #undef SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS                                   \
+  DARWIN_EXTRA_SPECS                                            \
   { "darwin_arch", DARWIN_ARCH_SPEC },                          \
   { "darwin_crt2", "" },                                        \
   { "darwin_subarch", DARWIN_SUBARCH_SPEC },
@@ -182,9 +183,17 @@ extern void darwin_x86_file_end (void);
       else fprintf (FILE, "\tcall mcount\n");				\
     } while (0)
 
-/* Darwin on x86_64 uses dwarf-2 by default.  */
+#define C_COMMON_OVERRIDE_OPTIONS					\
+  do {									\
+    SUBTARGET_C_COMMON_OVERRIDE_OPTIONS;				\
+  } while (0)
+
+/* Darwin on x86_64 uses dwarf-2 by default.  Pre-darwin9 32-bit
+   compiles default to stabs+.  darwin9+ defaults to dwarf-2.  */
+#ifndef DARWIN_PREFER_DWARF
 #undef PREFERRED_DEBUGGING_TYPE
 #define PREFERRED_DEBUGGING_TYPE (TARGET_64BIT ? DWARF2_DEBUG : DBX_DEBUG)
+#endif
 
 /* Darwin uses the standard DWARF register numbers but the default
    register numbers for STABS.  Fortunately for 64-bit code the

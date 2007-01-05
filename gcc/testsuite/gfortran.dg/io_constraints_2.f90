@@ -1,4 +1,5 @@
 ! { dg-do compile }
+! { dg-options "-std=f95" }
 ! Part II of the test  of the IO constraints patch, which fixes PRs:
 ! PRs 25053, 25063, 25064, 25066, 25067, 25068, 25069, 25307 and 20862.
 ! Modified2006-07-08 to check the patch for PR20844.
@@ -35,11 +36,11 @@ end module global
 
  write(*, NML=NL) z                             !  { dg-error "followed by IO-list" }
 !Was correctly picked up before patch.
- print NL, z                                    !  { dg-error "followed by IO-list" }
+ print NL, z                                    !  { dg-error "PRINT namelist at \\(1\\) is an extension" }
 !
 ! Not allowed with internal unit
 !Was correctly picked up before patch.
- write(buffer, NML=NL)                          !  { dg-error "incompatible with namelist" }
+ write(buffer, NML=NL)                          !  { dg-error "Internal file at \\(1\\) with namelist" }
 !Was correctly picked up before patch.
  write(buffer, fmt='(i6)', REC=10) a            !  { dg-error "REC tag" }
  write(buffer, fmt='(i6)', END=10) a            !  { dg-error "END tag" }
@@ -52,6 +53,8 @@ end module global
 ! Not allowed with an ADVANCE=specifier
  READ(buffer, fmt='(i6)', advance='YES') a      ! { dg-error "internal file" }
  READ(1, NML=NL, advance='YES')                 ! { dg-error "NAMELIST IO is not allowed" }
+ 
+ READ(1, fmt='(i6)', advance='NO', size = ierr) ! { dg-error "requires default INTEGER" }
 
  READ(1, advance='YES')                         ! { dg-error "must appear with an explicit format" }
 

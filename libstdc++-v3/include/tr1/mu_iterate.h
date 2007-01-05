@@ -28,7 +28,7 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-/** @file mu_iterate.h
+/** @file tr1/mu_iterate.h
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
@@ -36,6 +36,8 @@
 // Determine the result type when we pass the arguments along. This
 // involves passing along the cv-qualifiers placed on _Mu and
 // unwrapping the argument bundle.
+// @namespace std::tr1
+// @class std::tr1::_Mu::result
 template<typename _CVMu, typename _CVArg
          _GLIBCXX_COMMA _GLIBCXX_TEMPLATE_PARAMS>
 class result<_CVMu(_CVArg, tuple<_GLIBCXX_TEMPLATE_ARGS>)>
@@ -48,4 +50,3 @@ operator()(_CVArg& __arg, const tuple<_GLIBCXX_TEMPLATE_ARGS>& __tuple)
 {
   return __arg(_GLIBCXX_MU_GET_TUPLE_ARGS);
 }
-

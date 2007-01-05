@@ -19,9 +19,6 @@ foo (int n)
   int ia[N];
   int ib[N];
   int ic[N];
-  short sa[N];
-  short sb[N];
-  short sc[N];
   int i,j;
   int diff = 0;
   char cb[N];
@@ -62,7 +59,8 @@ foo (int n)
   fbar (a);
 
 
-  /* Not vectorizable yet (access pattern).  */
+  /* Strided access. Vectorizable on platforms that support load of strided 
+     accesses (extract of even/odd vector elements).  */
   for (i = 0; i < N/2; i++){
     a[i] = b[2*i+1] * c[2*i+1] - b[2*i] * c[2*i];
     d[i] = b[2*i] * c[2*i+1] + b[2*i+1] * c[2*i];
@@ -80,16 +78,6 @@ foo (int n)
   fbar (a);
   fbar (d);
 
-
-  /* Not vectorizable yet (two types with different nunits in vector).  */
-  for (i = 0; i < N; i++){
-    ia[i] = ib[i] + ic[i];
-    sa[i] = sb[i] + sc[i];
-  }
-  ibar (ia);
-  sbar (sa);
-
-
   /* Not vetorizable yet (too conservative dependence test).  */
   for (i = 0; i < N; i++){
     a[i] = b[i] + c[i];
@@ -98,6 +86,6 @@ foo (int n)
   fbar (a);
 }
 
-/* { dg-final { scan-tree-dump-times "vectorized 3 loops" 1 "vect" } } */
-/* { dg-final { scan-tree-dump-times "Vectorizing an unaligned access" 0 "vect" } } */
+/* { dg-final { scan-tree-dump-times "vectorized 4 loops" 1 "vect" { target vect_extract_even_odd } } } */
+/* { dg-final { scan-tree-dump-times "vectorized 3 loops" 1 "vect" { xfail vect_extract_even_odd } } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

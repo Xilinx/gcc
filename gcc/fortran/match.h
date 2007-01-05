@@ -136,16 +136,20 @@ void gfc_set_constant_character_len (int, gfc_expr *);
 match gfc_match_allocatable (void);
 match gfc_match_dimension (void);
 match gfc_match_external (void);
+match gfc_match_import (void);
 match gfc_match_intent (void);
 match gfc_match_intrinsic (void);
 match gfc_match_optional (void);
 match gfc_match_parameter (void);
 match gfc_match_pointer (void);
+match gfc_match_protected (void);
 match gfc_match_private (gfc_statement *);
 match gfc_match_public (gfc_statement *);
 match gfc_match_save (void);
 match gfc_match_modproc (void);
 match gfc_match_target (void);
+match gfc_match_value (void);
+match gfc_match_volatile (void);
 
 /* primary.c */
 match gfc_match_structure_constructor (gfc_symbol *, gfc_expr **);

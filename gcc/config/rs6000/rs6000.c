@@ -1,6 +1,6 @@
 /* Subroutines used for code generation on IBM RS/6000.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -139,11 +139,16 @@ struct rs6000_cpu_select rs6000_select[3] =
   { (const char *)0,	"-mtune=",		1,	0 },
 };
 
+static GTY(()) bool rs6000_cell_dont_microcode;
+
 /* Always emit branch hint bits.  */
 static GTY(()) bool rs6000_always_hint;
 
 /* Schedule instructions for group formation.  */
 static GTY(()) bool rs6000_sched_groups;
+
+/* Align branch targets.  */
+static GTY(()) bool rs6000_align_branch_targets;
 
 /* Support for -msched-costly-dep option.  */
 const char *rs6000_sched_costly_dep_str;
@@ -234,6 +239,10 @@ static enum {
 /* Flag to say the TOC is initialized */
 int toc_initialized;
 char toc_label_name[10];
+
+/* Cached value of rs6000_variable_issue. This is cached in
+   rs6000_variable_issue hook and returned from rs6000_sched_reorder2.  */
+static short cached_can_issue_more;
 
 static GTY(()) section *read_only_data_section;
 static GTY(()) section *private_data_section;
@@ -512,6 +521,22 @@ struct processor_costs ppc630_cost = {
   COSTS_N_INSNS (21),   /* ddiv */
 };
 
+/* Instruction costs on Cell processor.  */
+/* COSTS_N_INSNS (1) ~ one add.  */
+static const
+struct processor_costs ppccell_cost = {
+  COSTS_N_INSNS (9/2)+2,    /* mulsi */
+  COSTS_N_INSNS (6/2),    /* mulsi_const */
+  COSTS_N_INSNS (6/2),    /* mulsi_const9 */
+  COSTS_N_INSNS (15/2)+2,   /* muldi */
+  COSTS_N_INSNS (38/2),   /* divsi */
+  COSTS_N_INSNS (70/2),   /* divdi */
+  COSTS_N_INSNS (10/2),   /* fp */
+  COSTS_N_INSNS (10/2),   /* dmul */
+  COSTS_N_INSNS (74/2),   /* sdiv */
+  COSTS_N_INSNS (74/2),   /* ddiv */
+};
+
 /* Instruction costs on PPC750 and PPC7400 processors.  */
 static const
 struct processor_costs ppc750_cost = {
@@ -570,6 +595,21 @@ struct processor_costs power4_cost = {
   COSTS_N_INSNS (3),    /* dmul */
   COSTS_N_INSNS (17),   /* sdiv */
   COSTS_N_INSNS (17),   /* ddiv */
+};
+
+/* Instruction costs on POWER6 processors.  */
+static const
+struct processor_costs power6_cost = {
+  COSTS_N_INSNS (8),    /* mulsi */
+  COSTS_N_INSNS (8),    /* mulsi_const */
+  COSTS_N_INSNS (8),    /* mulsi_const9 */
+  COSTS_N_INSNS (8),    /* muldi */
+  COSTS_N_INSNS (22),   /* divsi */
+  COSTS_N_INSNS (28),   /* divdi */
+  COSTS_N_INSNS (3),    /* fp */
+  COSTS_N_INSNS (3),    /* dmul */
+  COSTS_N_INSNS (13),   /* sdiv */
+  COSTS_N_INSNS (16),   /* ddiv */
 };
 
 
@@ -647,22 +687,35 @@ static void rs6000_xcoff_file_end (void);
 static int rs6000_variable_issue (FILE *, int, rtx, int);
 static bool rs6000_rtx_costs (rtx, int, int, int *);
 static int rs6000_adjust_cost (rtx, rtx, rtx, int);
+static void rs6000_sched_init (FILE *, int, int);
 static bool is_microcoded_insn (rtx);
-static int is_dispatch_slot_restricted (rtx);
+static bool is_nonpipeline_insn (rtx);
 static bool is_cracked_insn (rtx);
 static bool is_branch_slot_insn (rtx);
+static bool is_load_insn (rtx);
+static rtx get_store_dest (rtx pat);
+static bool is_store_insn (rtx);
+static bool set_to_load_agen (rtx,rtx);
+static bool adjacent_mem_locations (rtx,rtx); 
 static int rs6000_adjust_priority (rtx, int);
 static int rs6000_issue_rate (void);
 static bool rs6000_is_costly_dependence (rtx, rtx, rtx, int, int);
 static rtx get_next_active_insn (rtx, rtx);
 static bool insn_terminates_group_p (rtx , enum group_termination);
+static bool insn_must_be_first_in_group (rtx);
+static bool insn_must_be_last_in_group (rtx);
 static bool is_costly_group (rtx *, rtx);
 static int force_new_group (int, FILE *, rtx *, rtx, bool *, int, int *);
 static int redefine_groups (FILE *, int, rtx, rtx);
 static int pad_groups (FILE *, int, rtx, rtx);
 static void rs6000_sched_finish (FILE *, int);
+static int rs6000_sched_reorder (FILE *, int, rtx *, int *, int);
+static int rs6000_sched_reorder2 (FILE *, int, rtx *, int *, int);
 static int rs6000_use_sched_lookahead (void);
+static int rs6000_use_sched_lookahead_guard (rtx);
 static tree rs6000_builtin_mask_for_load (void);
+static tree rs6000_builtin_mul_widen_even (tree);
+static tree rs6000_builtin_mul_widen_odd (tree);
 
 static void def_builtin (int, const char *, tree, int);
 static void rs6000_init_builtins (void);
@@ -908,14 +961,27 @@ static const char alt_reg_names[][8] =
 #define TARGET_SCHED_ADJUST_PRIORITY rs6000_adjust_priority
 #undef TARGET_SCHED_IS_COSTLY_DEPENDENCE
 #define TARGET_SCHED_IS_COSTLY_DEPENDENCE rs6000_is_costly_dependence
+#undef TARGET_SCHED_INIT
+#define TARGET_SCHED_INIT rs6000_sched_init
 #undef TARGET_SCHED_FINISH
 #define TARGET_SCHED_FINISH rs6000_sched_finish
+#undef TARGET_SCHED_REORDER
+#define TARGET_SCHED_REORDER rs6000_sched_reorder
+#undef TARGET_SCHED_REORDER2
+#define TARGET_SCHED_REORDER2 rs6000_sched_reorder2
 
 #undef TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD rs6000_use_sched_lookahead
 
+#undef TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD
+#define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD rs6000_use_sched_lookahead_guard
+
 #undef TARGET_VECTORIZE_BUILTIN_MASK_FOR_LOAD
 #define TARGET_VECTORIZE_BUILTIN_MASK_FOR_LOAD rs6000_builtin_mask_for_load
+#undef TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN
+#define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN rs6000_builtin_mul_widen_even
+#undef TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD
+#define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD rs6000_builtin_mul_widen_odd
 
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS rs6000_init_builtins
@@ -1169,12 +1235,16 @@ rs6000_override_options (const char *default_cpu)
 	 {"801", PROCESSOR_MPCCORE, POWERPC_BASE_MASK | MASK_SOFT_FLOAT},
 	 {"821", PROCESSOR_MPCCORE, POWERPC_BASE_MASK | MASK_SOFT_FLOAT},
 	 {"823", PROCESSOR_MPCCORE, POWERPC_BASE_MASK | MASK_SOFT_FLOAT},
-	 {"8540", PROCESSOR_PPC8540, POWERPC_BASE_MASK | MASK_PPC_GFXOPT},
+	 {"8540", PROCESSOR_PPC8540,
+	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_STRICT_ALIGN},
 	 /* 8548 has a dummy entry for now.  */
-	 {"8548", PROCESSOR_PPC8540, POWERPC_BASE_MASK | MASK_PPC_GFXOPT},
+	 {"8548", PROCESSOR_PPC8540,
+	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_STRICT_ALIGN},
 	 {"860", PROCESSOR_MPCCORE, POWERPC_BASE_MASK | MASK_SOFT_FLOAT},
 	 {"970", PROCESSOR_POWER4,
 	  POWERPC_7400_MASK | MASK_PPC_GPOPT | MASK_MFCRF | MASK_POWERPC64},
+	 {"cell", PROCESSOR_CELL,
+	  POWERPC_7400_MASK  | MASK_PPC_GPOPT | MASK_MFCRF | MASK_POWERPC64},
 	 {"common", PROCESSOR_COMMON, MASK_NEW_MNEMONICS},
 	 {"ec603e", PROCESSOR_PPC603, POWERPC_BASE_MASK | MASK_SOFT_FLOAT},
 	 {"G3", PROCESSOR_PPC750, POWERPC_BASE_MASK | MASK_PPC_GFXOPT},
@@ -1194,9 +1264,12 @@ rs6000_override_options (const char *default_cpu)
 	 {"power5+", PROCESSOR_POWER5,
 	  POWERPC_BASE_MASK | MASK_POWERPC64 | MASK_PPC_GFXOPT
 	  | MASK_MFCRF | MASK_POPCNTB | MASK_FPRND},
- 	 {"power6", PROCESSOR_POWER5,
+ 	 {"power6", PROCESSOR_POWER6,
 	  POWERPC_7400_MASK | MASK_POWERPC64 | MASK_MFCRF | MASK_POPCNTB
 	  | MASK_FPRND},
+	 {"power6x", PROCESSOR_POWER6,
+	  POWERPC_7400_MASK | MASK_POWERPC64 | MASK_MFCRF | MASK_POPCNTB
+	  | MASK_FPRND | MASK_MFPGPR},
 	 {"powerpc", PROCESSOR_POWERPC, POWERPC_BASE_MASK},
 	 {"powerpc64", PROCESSOR_POWERPC64,
 	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_POWERPC64},
@@ -1220,10 +1293,10 @@ rs6000_override_options (const char *default_cpu)
 
   enum {
     POWER_MASKS = MASK_POWER | MASK_POWER2 | MASK_MULTIPLE | MASK_STRING,
-    POWERPC_MASKS = (POWERPC_BASE_MASK | MASK_PPC_GPOPT
+    POWERPC_MASKS = (POWERPC_BASE_MASK | MASK_PPC_GPOPT | MASK_STRICT_ALIGN
 		     | MASK_PPC_GFXOPT | MASK_POWERPC64 | MASK_ALTIVEC
 		     | MASK_MFCRF | MASK_POPCNTB | MASK_FPRND | MASK_MULHW
-		     | MASK_DLMZB)
+		     | MASK_DLMZB | MASK_MFPGPR)
   };
 
   rs6000_init_hard_regno_mode_ok ();
@@ -1373,9 +1446,6 @@ rs6000_override_options (const char *default_cpu)
 
   if (TARGET_E500)
     {
-      if (TARGET_ALTIVEC)
-	error ("AltiVec and E500 instructions cannot coexist");
-
       /* The e500 does not have string instructions, and we set
 	 MASK_STRING above when optimizing for size.  */
       if ((target_flags & MASK_STRING) != 0)
@@ -1398,10 +1468,18 @@ rs6000_override_options (const char *default_cpu)
 	rs6000_long_double_type_size = RS6000_DEFAULT_LONG_DOUBLE_SIZE;
     }
 
+  /* Detect invalid option combinations with E500.  */
+  CHECK_E500_OPTIONS;
+
   rs6000_always_hint = (rs6000_cpu != PROCESSOR_POWER4
-			&& rs6000_cpu != PROCESSOR_POWER5);
+			&& rs6000_cpu != PROCESSOR_POWER5
+                        && rs6000_cpu != PROCESSOR_POWER6
+			&& rs6000_cpu != PROCESSOR_CELL);
   rs6000_sched_groups = (rs6000_cpu == PROCESSOR_POWER4
 			 || rs6000_cpu == PROCESSOR_POWER5);
+  rs6000_align_branch_targets = (rs6000_cpu == PROCESSOR_POWER4
+                                 || rs6000_cpu == PROCESSOR_POWER5
+                                 || rs6000_cpu == PROCESSOR_POWER6);
 
   rs6000_sched_restricted_insns_priority
     = (rs6000_sched_groups ? 1 : 0);
@@ -1470,7 +1548,17 @@ rs6000_override_options (const char *default_cpu)
   /* Set branch target alignment, if not optimizing for size.  */
   if (!optimize_size)
     {
-      if (rs6000_sched_groups)
+      /* Cell wants to be aligned 8byte for dual issue. */
+      if (rs6000_cpu == PROCESSOR_CELL)
+	{
+	  if (align_functions <= 0)
+	    align_functions = 8;
+	  if (align_jumps <= 0)
+	    align_jumps = 8;
+	  if (align_loops <= 0)
+	    align_loops = 8;
+ 	}
+      if (rs6000_align_branch_targets)
 	{
 	  if (align_functions <= 0)
 	    align_functions = 16;
@@ -1551,6 +1639,10 @@ rs6000_override_options (const char *default_cpu)
 	rs6000_cost = &ppc630_cost;
 	break;
 
+      case PROCESSOR_CELL: 
+	rs6000_cost = &ppccell_cost;
+	break;
+
       case PROCESSOR_PPC750:
       case PROCESSOR_PPC7400:
 	rs6000_cost = &ppc750_cost;
@@ -1569,6 +1661,10 @@ rs6000_override_options (const char *default_cpu)
 	rs6000_cost = &power4_cost;
 	break;
 
+      case PROCESSOR_POWER6:
+	rs6000_cost = &power6_cost;
+	break;
+
       default:
 	gcc_unreachable ();
       }
@@ -1582,6 +1678,52 @@ rs6000_builtin_mask_for_load (void)
     return altivec_builtin_mask_for_load;
   else
     return 0;
+}
+
+/* Implement targetm.vectorize.builtin_mul_widen_even.  */
+static tree
+rs6000_builtin_mul_widen_even (tree type)
+{
+  if (!TARGET_ALTIVEC)
+    return NULL_TREE;
+
+  switch (TYPE_MODE (type))
+    {
+    case V8HImode:
+      return TYPE_UNSIGNED (type) ? 
+            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULEUH] :
+            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULESH];
+
+    case V16QImode:
+      return TYPE_UNSIGNED (type) ?
+            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULEUB] :
+            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULESB];
+    default:
+      return NULL_TREE;
+    }
+}
+
+/* Implement targetm.vectorize.builtin_mul_widen_odd.  */
+static tree
+rs6000_builtin_mul_widen_odd (tree type)
+{
+  if (!TARGET_ALTIVEC)
+    return NULL_TREE;
+
+  switch (TYPE_MODE (type))
+    {
+    case V8HImode:
+      return TYPE_UNSIGNED (type) ?
+            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOUH] :
+            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOSH];
+
+    case V16QImode:
+      return TYPE_UNSIGNED (type) ?
+            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOUB] :
+            rs6000_builtin_decls[ALTIVEC_BUILTIN_VMULOSB];
+    default:
+      return NULL_TREE;
+    }
 }
 
 /* Handle generic options of the form -mfoo=yes/no.
@@ -2574,24 +2716,34 @@ build_mask64_2_operands (rtx in, rtx *out)
 bool
 invalid_e500_subreg (rtx op, enum machine_mode mode)
 {
-  /* Reject (subreg:SI (reg:DF)).  */
-  if (GET_CODE (op) == SUBREG
+  if (TARGET_E500_DOUBLE)
+    {
+      /* Reject (subreg:SI (reg:DF)).  */
+      if (GET_CODE (op) == SUBREG
+	  && mode == SImode
+	  && REG_P (SUBREG_REG (op))
+	  && GET_MODE (SUBREG_REG (op)) == DFmode)
+	return true;
+
+      /* Reject (subreg:DF (reg:DI)).  */
+      if (GET_CODE (op) == SUBREG
+	  && mode == DFmode
+	  && REG_P (SUBREG_REG (op))
+	  && GET_MODE (SUBREG_REG (op)) == DImode)
+	return true;
+    }
+
+  if (TARGET_SPE
+      && GET_CODE (op) == SUBREG
       && mode == SImode
       && REG_P (SUBREG_REG (op))
-      && GET_MODE (SUBREG_REG (op)) == DFmode)
-    return true;
-
-  /* Reject (subreg:DF (reg:DI)).  */
-  if (GET_CODE (op) == SUBREG
-      && mode == DFmode
-      && REG_P (SUBREG_REG (op))
-      && GET_MODE (SUBREG_REG (op)) == DImode)
+      && SPE_VECTOR_MODE (GET_MODE (SUBREG_REG (op))))
     return true;
 
   return false;
 }
 
-/* Darwin, AIX increases natural record alignment to doubleword if the first
+/* AIX increases natural record alignment to doubleword if the first
    field is an FP double while the FP fields remain word aligned.  */
 
 unsigned int
@@ -2614,6 +2766,37 @@ rs6000_special_round_type_align (tree type, unsigned int computed,
       if (type != error_mark_node && TYPE_MODE (type) == DFmode)
 	align = MAX (align, 64);
     }
+
+  return align;
+}
+
+/* Darwin increases record alignment to the natural alignment of
+   the first field.  */
+
+unsigned int
+darwin_rs6000_special_round_type_align (tree type, unsigned int computed,
+					unsigned int specified)
+{
+  unsigned int align = MAX (computed, specified);
+
+  if (TYPE_PACKED (type))
+    return align;
+
+  /* Find the first field, looking down into aggregates.  */
+  do {
+    tree field = TYPE_FIELDS (type);
+    /* Skip all non field decls */
+    while (field != NULL && TREE_CODE (field) != FIELD_DECL)
+      field = TREE_CHAIN (field);
+    if (! field)
+      break;
+    type = TREE_TYPE (field);
+    while (TREE_CODE (type) == ARRAY_TYPE)
+      type = TREE_TYPE (type);
+  } while (AGGREGATE_TYPE_P (type));
+
+  if (! AGGREGATE_TYPE_P (type) && type != error_mark_node)
+    align = MAX (align, TYPE_ALIGN (type));
 
   return align;
 }
@@ -3180,8 +3363,7 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 		  emit_move_insn (tmp2, mem);
 		  emit_insn (gen_addsi3 (tmp3, tmp1, tmp2));
 		  last = emit_move_insn (got, tmp3);
-		  REG_NOTES (last) = gen_rtx_EXPR_LIST (REG_EQUAL, gsym,
-							REG_NOTES (last));
+		  set_unique_reg_note (last, REG_EQUAL, gsym);
 		  REG_NOTES (first) = gen_rtx_INSN_LIST (REG_LIBCALL, last,
 							 REG_NOTES (first));
 		  REG_NOTES (last) = gen_rtx_INSN_LIST (REG_RETVAL, first,
@@ -3583,9 +3765,7 @@ rs6000_mode_dependent_address (rtx addr)
     case LO_SUM:
       return true;
 
-    case PRE_INC:
-    case PRE_DEC:
-      return TARGET_UPDATE;
+    /* Auto-increment cases are now treated generically in recog.c.  */
 
     default:
       break;
@@ -3639,15 +3819,20 @@ rs6000_hard_regno_nregs (int regno, enum machine_mode mode)
   if (FP_REGNO_P (regno))
     return (GET_MODE_SIZE (mode) + UNITS_PER_FP_WORD - 1) / UNITS_PER_FP_WORD;
 
-  if (TARGET_E500_DOUBLE && mode == DFmode)
-    return 1;
-
   if (SPE_SIMD_REGNO_P (regno) && TARGET_SPE && SPE_VECTOR_MODE (mode))
     return (GET_MODE_SIZE (mode) + UNITS_PER_SPE_WORD - 1) / UNITS_PER_SPE_WORD;
 
   if (ALTIVEC_REGNO_P (regno))
     return
       (GET_MODE_SIZE (mode) + UNITS_PER_ALTIVEC_WORD - 1) / UNITS_PER_ALTIVEC_WORD;
+
+  /* The value returned for SCmode in the E500 double case is 2 for
+     ABI compatibility; storing an SCmode value in a single register
+     would require function_arg and rs6000_spe_function_arg to handle
+     SCmode so as to pass the value correctly in a pair of
+     registers.  */
+  if (TARGET_E500_DOUBLE && FLOAT_MODE_P (mode) && mode != SCmode)
+    return (GET_MODE_SIZE (mode) + UNITS_PER_FP_WORD - 1) / UNITS_PER_FP_WORD;
 
   return (GET_MODE_SIZE (mode) + UNITS_PER_WORD - 1) / UNITS_PER_WORD;
 }
@@ -3750,11 +3935,11 @@ rs6000_emit_set_const (rtx dest, enum machine_mode mode,
     case SImode:
       result = no_new_pseudos ? dest : gen_reg_rtx (SImode);
 
-      emit_insn (gen_rtx_SET (VOIDmode, result,
+      emit_insn (gen_rtx_SET (VOIDmode, copy_rtx (result),
 			      GEN_INT (INTVAL (source)
 				       & (~ (HOST_WIDE_INT) 0xffff))));
       emit_insn (gen_rtx_SET (VOIDmode, dest,
-			      gen_rtx_IOR (SImode, result,
+			      gen_rtx_IOR (SImode, copy_rtx (result),
 					   GEN_INT (INTVAL (source) & 0xffff))));
       result = dest;
       break;
@@ -3809,7 +3994,7 @@ rs6000_emit_set_long_const (rtx dest, HOST_WIDE_INT c1, HOST_WIDE_INT c2)
 
       operand1 = operand_subword_force (dest, WORDS_BIG_ENDIAN == 0,
 					DImode);
-      operand2 = operand_subword_force (dest, WORDS_BIG_ENDIAN != 0,
+      operand2 = operand_subword_force (copy_rtx (dest), WORDS_BIG_ENDIAN != 0,
 					DImode);
       emit_move_insn (operand1, GEN_INT (c1));
       emit_move_insn (operand2, GEN_INT (c2));
@@ -3844,7 +4029,9 @@ rs6000_emit_set_long_const (rtx dest, HOST_WIDE_INT c1, HOST_WIDE_INT c2)
 	  else
 	    emit_move_insn (dest, GEN_INT (ud2 << 16));
 	  if (ud1 != 0)
-	    emit_move_insn (dest, gen_rtx_IOR (DImode, dest, GEN_INT (ud1)));
+	    emit_move_insn (copy_rtx (dest),
+			    gen_rtx_IOR (DImode, copy_rtx (dest),
+					 GEN_INT (ud1)));
 	}
       else if ((ud4 == 0xffff && (ud3 & 0x8000))
 	       || (ud4 == 0 && ! (ud3 & 0x8000)))
@@ -3856,10 +4043,16 @@ rs6000_emit_set_long_const (rtx dest, HOST_WIDE_INT c1, HOST_WIDE_INT c2)
 	    emit_move_insn (dest, GEN_INT (ud3 << 16));
 
 	  if (ud2 != 0)
-	    emit_move_insn (dest, gen_rtx_IOR (DImode, dest, GEN_INT (ud2)));
-	  emit_move_insn (dest, gen_rtx_ASHIFT (DImode, dest, GEN_INT (16)));
+	    emit_move_insn (copy_rtx (dest),
+			    gen_rtx_IOR (DImode, copy_rtx (dest),
+					 GEN_INT (ud2)));
+	  emit_move_insn (copy_rtx (dest),
+			  gen_rtx_ASHIFT (DImode, copy_rtx (dest),
+					  GEN_INT (16)));
 	  if (ud1 != 0)
-	    emit_move_insn (dest, gen_rtx_IOR (DImode, dest, GEN_INT (ud1)));
+	    emit_move_insn (copy_rtx (dest),
+			    gen_rtx_IOR (DImode, copy_rtx (dest),
+					 GEN_INT (ud1)));
 	}
       else
 	{
@@ -3870,14 +4063,20 @@ rs6000_emit_set_long_const (rtx dest, HOST_WIDE_INT c1, HOST_WIDE_INT c2)
 	    emit_move_insn (dest, GEN_INT (ud4 << 16));
 
 	  if (ud3 != 0)
-	    emit_move_insn (dest, gen_rtx_IOR (DImode, dest, GEN_INT (ud3)));
+	    emit_move_insn (copy_rtx (dest),
+			    gen_rtx_IOR (DImode, copy_rtx (dest),
+					 GEN_INT (ud3)));
 
-	  emit_move_insn (dest, gen_rtx_ASHIFT (DImode, dest, GEN_INT (32)));
+	  emit_move_insn (copy_rtx (dest),
+			  gen_rtx_ASHIFT (DImode, copy_rtx (dest),
+					  GEN_INT (32)));
 	  if (ud2 != 0)
-	    emit_move_insn (dest, gen_rtx_IOR (DImode, dest,
-					       GEN_INT (ud2 << 16)));
+	    emit_move_insn (copy_rtx (dest),
+			    gen_rtx_IOR (DImode, copy_rtx (dest),
+					 GEN_INT (ud2 << 16)));
 	  if (ud1 != 0)
-	    emit_move_insn (dest, gen_rtx_IOR (DImode, dest, GEN_INT (ud1)));
+	    emit_move_insn (copy_rtx (dest),
+			    gen_rtx_IOR (DImode, copy_rtx (dest), GEN_INT (ud1)));
 	}
     }
   return dest;
@@ -3948,8 +4147,8 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
     {
       emit_move_insn (adjust_address (operands[0], SImode, 0),
 		      adjust_address (operands[1], SImode, 0));
-      emit_move_insn (adjust_address (operands[0], SImode, 4),
-		      adjust_address (operands[1], SImode, 4));
+      emit_move_insn (adjust_address (copy_rtx (operands[0]), SImode, 4),
+		      adjust_address (copy_rtx (operands[1]), SImode, 4));
       return;
     }
 
@@ -3976,7 +4175,8 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
       if (FP_REGNO_P (regnum) || regnum >= FIRST_PSEUDO_REGISTER)
 	{
 	  rtx newreg;
-	  newreg = (no_new_pseudos ? operands[1] : gen_reg_rtx (mode));
+	  newreg = (no_new_pseudos ? copy_rtx (operands[1])
+		    : gen_reg_rtx (mode));
 	  emit_insn (gen_aux_truncdfsf2 (newreg, operands[1]));
 	  operands[1] = newreg;
 	}
@@ -4017,8 +4217,7 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
 
   /* 128-bit constant floating-point values on Darwin should really be
      loaded as two parts.  */
-  if (!TARGET_IEEEQUAD
-      && TARGET_HARD_FLOAT && TARGET_FPRS && TARGET_LONG_DOUBLE_128
+  if (!TARGET_IEEEQUAD && TARGET_LONG_DOUBLE_128
       && mode == TFmode && GET_CODE (operands[1]) == CONST_DOUBLE)
     {
       /* DImode is used, not DFmode, because simplify_gen_subreg doesn't
@@ -5826,7 +6025,7 @@ rs6000_va_start (tree valist, rtx nextarg)
 
   if (cfun->va_list_gpr_size)
     {
-      t = build2 (MODIFY_EXPR, TREE_TYPE (gpr), gpr,
+      t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (gpr), gpr,
 		  build_int_cst (NULL_TREE, n_gpr));
       TREE_SIDE_EFFECTS (t) = 1;
       expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -5834,7 +6033,7 @@ rs6000_va_start (tree valist, rtx nextarg)
 
   if (cfun->va_list_fpr_size)
     {
-      t = build2 (MODIFY_EXPR, TREE_TYPE (fpr), fpr,
+      t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (fpr), fpr,
 		  build_int_cst (NULL_TREE, n_fpr));
       TREE_SIDE_EFFECTS (t) = 1;
       expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -5845,7 +6044,7 @@ rs6000_va_start (tree valist, rtx nextarg)
   if (words != 0)
     t = build2 (PLUS_EXPR, TREE_TYPE (ovf), t,
 	        build_int_cst (NULL_TREE, words * UNITS_PER_WORD));
-  t = build2 (MODIFY_EXPR, TREE_TYPE (ovf), ovf, t);
+  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (ovf), ovf, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
@@ -5862,7 +6061,7 @@ rs6000_va_start (tree valist, rtx nextarg)
   if (cfun->machine->varargs_save_offset)
     t = build2 (PLUS_EXPR, TREE_TYPE (sav), t,
 	        build_int_cst (NULL_TREE, cfun->machine->varargs_save_offset));
-  t = build2 (MODIFY_EXPR, TREE_TYPE (sav), sav, t);
+  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (sav), sav, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 }
@@ -5995,7 +6194,7 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
       u = build2 (MULT_EXPR, integer_type_node, u, size_int (sav_scale));
       t = build2 (PLUS_EXPR, ptr_type_node, t, u);
 
-      t = build2 (MODIFY_EXPR, void_type_node, addr, t);
+      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, t);
       gimplify_and_add (t, pre_p);
 
       t = build1 (GOTO_EXPR, void_type_node, lab_over);
@@ -6008,7 +6207,7 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
 	{
 	  /* Ensure that we don't find any more args in regs.
 	     Alignment has taken care of the n_reg == 2 gpr case.  */
-	  t = build2 (MODIFY_EXPR, TREE_TYPE (reg), reg, size_int (8));
+	  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (reg), reg, size_int (8));
 	  gimplify_and_add (t, pre_p);
 	}
     }
@@ -6025,17 +6224,38 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
     }
   gimplify_expr (&t, pre_p, NULL, is_gimple_val, fb_rvalue);
 
-  u = build2 (MODIFY_EXPR, void_type_node, addr, t);
+  u = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, t);
   gimplify_and_add (u, pre_p);
 
   t = build2 (PLUS_EXPR, TREE_TYPE (t), t, size_int (size));
-  t = build2 (MODIFY_EXPR, TREE_TYPE (ovf), ovf, t);
+  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (ovf), ovf, t);
   gimplify_and_add (t, pre_p);
 
   if (lab_over)
     {
       t = build1 (LABEL_EXPR, void_type_node, lab_over);
       append_to_statement_list (t, pre_p);
+    }
+
+  if (STRICT_ALIGNMENT
+      && (TYPE_ALIGN (type)
+	  > (unsigned) BITS_PER_UNIT * (align < 4 ? 4 : align)))
+    {
+      /* The value (of type complex double, for example) may not be
+	 aligned in memory in the saved registers, so copy via a
+	 temporary.  (This is the same code as used for SPARC.)  */
+      tree tmp = create_tmp_var (type, "va_arg_tmp");
+      tree dest_addr = build_fold_addr_expr (tmp);
+
+      tree copy = build_function_call_expr
+	(implicit_built_in_decls[BUILT_IN_MEMCPY],
+	 tree_cons (NULL_TREE, dest_addr,
+		    tree_cons (NULL_TREE, addr,
+			       tree_cons (NULL_TREE, size_int (rsize * 4),
+					  NULL_TREE))));
+
+      gimplify_and_add (copy, pre_p);
+      addr = dest_addr;
     }
 
   addr = fold_convert (ptrtype, addr);
@@ -6053,8 +6273,8 @@ def_builtin (int mask, const char *name, tree type, int code)
 	abort ();
 
       rs6000_builtin_decls[code] =
-        lang_hooks.builtin_function (name, type, code, BUILT_IN_MD,
-				     NULL, NULL_TREE);
+        add_builtin_function (name, type, code, BUILT_IN_MD,
+			      NULL, NULL_TREE);
     }
 }
 
@@ -8578,12 +8798,11 @@ altivec_init_builtins (void)
       /* Initialize target builtin that implements
          targetm.vectorize.builtin_mask_for_load.  */
 
-      decl = lang_hooks.builtin_function ("__builtin_altivec_mask_for_load",
-                               v16qi_ftype_long_pcvoid,
-                               ALTIVEC_BUILTIN_MASK_FOR_LOAD,
-                               BUILT_IN_MD, NULL,
-                               tree_cons (get_identifier ("const"),
-                                          NULL_TREE, NULL_TREE));
+      decl = add_builtin_function ("__builtin_altivec_mask_for_load",
+				   v16qi_ftype_long_pcvoid,
+				   ALTIVEC_BUILTIN_MASK_FOR_LOAD,
+				   BUILT_IN_MD, NULL, NULL_TREE);
+      TREE_READONLY (decl) = 1;
       /* Record the decl. Will be used by rs6000_builtin_mask_for_load.  */
       altivec_builtin_mask_for_load = decl;
     }
@@ -10796,7 +11015,8 @@ print_operand (FILE *file, rtx x, int code)
 	tmp = XEXP (x, 0);
 
 	/* Ugly hack because %y is overloaded.  */
-	if (TARGET_E500 && GET_MODE_SIZE (GET_MODE (x)) == 8)
+	if ((TARGET_SPE || TARGET_E500_DOUBLE)
+	    && GET_MODE_SIZE (GET_MODE (x)) == 8)
 	  {
 	    /* Handle [reg].  */
 	    if (GET_CODE (tmp) == REG)
@@ -11095,7 +11315,7 @@ rs6000_generate_compare (enum rtx_code code)
   compare_result = gen_reg_rtx (comp_mode);
 
   /* E500 FP compare instructions on the GPRs.  Yuck!  */
-  if ((TARGET_E500 && !TARGET_FPRS && TARGET_HARD_FLOAT)
+  if ((!TARGET_FPRS && TARGET_HARD_FLOAT)
       && rs6000_compare_fp_p)
     {
       rtx cmp, or_result, compare_result2;
@@ -11288,7 +11508,7 @@ rs6000_generate_compare (enum rtx_code code)
      under flag_finite_math_only we don't bother.  */
   if (rs6000_compare_fp_p
       && !flag_finite_math_only
-      && !(TARGET_HARD_FLOAT && TARGET_E500 && !TARGET_FPRS)
+      && !(TARGET_HARD_FLOAT && !TARGET_FPRS)
       && (code == LE || code == GE
 	  || code == UNEQ || code == LTGT
 	  || code == UNGT || code == UNLT))
@@ -11338,7 +11558,7 @@ rs6000_emit_sCOND (enum rtx_code code, rtx result)
   condition_rtx = rs6000_generate_compare (code);
   cond_code = GET_CODE (condition_rtx);
 
-  if (TARGET_E500 && rs6000_compare_fp_p
+  if (rs6000_compare_fp_p
       && !TARGET_FPRS && TARGET_HARD_FLOAT)
     {
       rtx t;
@@ -11445,7 +11665,7 @@ output_cbranch (rtx op, const char *label, int reversed, rtx insn)
 	code = reverse_condition (code);
     }
 
-  if ((TARGET_E500 && !TARGET_FPRS && TARGET_HARD_FLOAT) && mode == CCFPmode)
+  if ((!TARGET_FPRS && TARGET_HARD_FLOAT) && mode == CCFPmode)
     {
       /* The efscmp/tst* instructions twiddle bit 2, which maps nicely
 	 to the GT bit.  */
@@ -11861,7 +12081,7 @@ rs6000_emit_cmove (rtx dest, rtx op, rtx true_cond, rtx false_cond)
 	return rs6000_emit_int_cmove (dest, op, true_cond, false_cond);
       return 0;
     }
-  else if (TARGET_E500 && TARGET_HARD_FLOAT && !TARGET_FPRS
+  else if (TARGET_HARD_FLOAT && !TARGET_FPRS
 	   && SCALAR_FLOAT_MODE_P (compare_mode))
     return 0;
 
@@ -12540,6 +12760,8 @@ rs6000_split_multireg_move (rtx dst, rtx src)
     reg_mode = DFmode;
   else if (ALTIVEC_REGNO_P (reg))
     reg_mode = V16QImode;
+  else if (TARGET_E500_DOUBLE && mode == TFmode)
+    reg_mode = DFmode;
   else
     reg_mode = word_mode;
   reg_mode_size = GET_MODE_SIZE (reg_mode);
@@ -14810,7 +15032,7 @@ rs6000_emit_epilogue (int sibcall)
   rs6000_stack_t *info;
   int restoring_FPRs_inline;
   int using_load_multiple;
-  int using_mfcr_multiple;
+  int using_mtcr_multiple;
   int use_backchain_to_restore_sp;
   int sp_offset = 0;
   rtx sp_reg_rtx = gen_rtx_REG (Pmode, 1);
@@ -14839,7 +15061,7 @@ rs6000_emit_epilogue (int sibcall)
   use_backchain_to_restore_sp = (frame_pointer_needed
 				 || current_function_calls_alloca
 				 || info->total_size > 32767);
-  using_mfcr_multiple = (rs6000_cpu == PROCESSOR_PPC601
+  using_mtcr_multiple = (rs6000_cpu == PROCESSOR_PPC601
 			 || rs6000_cpu == PROCESSOR_PPC603
 			 || rs6000_cpu == PROCESSOR_PPC750
 			 || optimize_size);
@@ -15139,7 +15361,7 @@ rs6000_emit_epilogue (int sibcall)
       rtx r12_rtx = gen_rtx_REG (SImode, 12);
       int count = 0;
 
-      if (using_mfcr_multiple)
+      if (using_mtcr_multiple)
 	{
 	  for (i = 0; i < 8; i++)
 	    if (regs_ever_live[CR0_REGNO+i] && ! call_used_regs[CR0_REGNO+i])
@@ -15147,7 +15369,7 @@ rs6000_emit_epilogue (int sibcall)
 	  gcc_assert (count);
 	}
 
-      if (using_mfcr_multiple && count > 1)
+      if (using_mtcr_multiple && count > 1)
 	{
 	  rtvec p;
 	  int ndx;
@@ -16430,6 +16652,16 @@ output_function_profiler (FILE *file, int labelno)
 }
 
 
+
+/* The following variable value is the last issued insn.  */
+
+static rtx last_scheduled_insn;
+
+/* The following variable helps to balance issuing of load and
+   store instructions */
+
+static int load_store_pendulum;
+
 /* Power4 load update and store update instructions are cracked into a
    load or store and an integer insn which are executed in the same cycle.
    Branches have their own dispatch slot which does not count against the
@@ -16441,19 +16673,41 @@ rs6000_variable_issue (FILE *stream ATTRIBUTE_UNUSED,
 		       int verbose ATTRIBUTE_UNUSED,
 		       rtx insn, int more)
 {
+  last_scheduled_insn = insn;
   if (GET_CODE (PATTERN (insn)) == USE
       || GET_CODE (PATTERN (insn)) == CLOBBER)
+    {
+      cached_can_issue_more = more;
+      return cached_can_issue_more;
+    }
+
+  if (insn_terminates_group_p (insn, current_group))
+    {
+      cached_can_issue_more = 0;
+      return cached_can_issue_more;
+    }
+
+  /* If no reservation, but reach here */
+  if (recog_memoized (insn) < 0)
     return more;
 
   if (rs6000_sched_groups)
     {
       if (is_microcoded_insn (insn))
-	return 0;
+        cached_can_issue_more = 0;
       else if (is_cracked_insn (insn))
-	return more > 2 ? more - 2 : 0;
+        cached_can_issue_more = more > 2 ? more - 2 : 0;
+      else
+        cached_can_issue_more = more - 1;
+
+      return cached_can_issue_more;
     }
 
-  return more - 1;
+  if (rs6000_cpu_attr == CPU_CELL && is_nonpipeline_insn (insn))
+    return 0;
+
+  cached_can_issue_more = more - 1;
+  return cached_can_issue_more;
 }
 
 /* Adjust the cost of a scheduling dependency.  Return the new cost of
@@ -16462,64 +16716,286 @@ rs6000_variable_issue (FILE *stream ATTRIBUTE_UNUSED,
 static int
 rs6000_adjust_cost (rtx insn, rtx link, rtx dep_insn, int cost)
 {
+  enum attr_type attr_type;
+
   if (! recog_memoized (insn))
     return 0;
 
-  if (REG_NOTE_KIND (link) != 0)
-    return 0;
-
-  if (REG_NOTE_KIND (link) == 0)
+  switch (REG_NOTE_KIND (link))
     {
-      /* Data dependency; DEP_INSN writes a register that INSN reads
-	 some cycles later.  */
+    case REG_DEP_TRUE:
+      {
+        /* Data dependency; DEP_INSN writes a register that INSN reads
+	   some cycles later.  */
 
-      /* Separate a load from a narrower, dependent store.  */
-      if (rs6000_sched_groups
-	  && GET_CODE (PATTERN (insn)) == SET
-	  && GET_CODE (PATTERN (dep_insn)) == SET
-	  && GET_CODE (XEXP (PATTERN (insn), 1)) == MEM
-	  && GET_CODE (XEXP (PATTERN (dep_insn), 0)) == MEM
-	  && (GET_MODE_SIZE (GET_MODE (XEXP (PATTERN (insn), 1)))
-	      > GET_MODE_SIZE (GET_MODE (XEXP (PATTERN (dep_insn), 0)))))
-	return cost + 14;
+        /* Separate a load from a narrower, dependent store.  */
+        if (rs6000_sched_groups
+            && GET_CODE (PATTERN (insn)) == SET
+            && GET_CODE (PATTERN (dep_insn)) == SET
+            && GET_CODE (XEXP (PATTERN (insn), 1)) == MEM
+            && GET_CODE (XEXP (PATTERN (dep_insn), 0)) == MEM
+            && (GET_MODE_SIZE (GET_MODE (XEXP (PATTERN (insn), 1)))
+                > GET_MODE_SIZE (GET_MODE (XEXP (PATTERN (dep_insn), 0)))))
+          return cost + 14;
 
-      switch (get_attr_type (insn))
-	{
-	case TYPE_JMPREG:
-	  /* Tell the first scheduling pass about the latency between
-	     a mtctr and bctr (and mtlr and br/blr).  The first
-	     scheduling pass will not know about this latency since
-	     the mtctr instruction, which has the latency associated
-	     to it, will be generated by reload.  */
-	  return TARGET_POWER ? 5 : 4;
-	case TYPE_BRANCH:
-	  /* Leave some extra cycles between a compare and its
-	     dependent branch, to inhibit expensive mispredicts.  */
-	  if ((rs6000_cpu_attr == CPU_PPC603
-	       || rs6000_cpu_attr == CPU_PPC604
-	       || rs6000_cpu_attr == CPU_PPC604E
-	       || rs6000_cpu_attr == CPU_PPC620
-	       || rs6000_cpu_attr == CPU_PPC630
-	       || rs6000_cpu_attr == CPU_PPC750
-	       || rs6000_cpu_attr == CPU_PPC7400
-	       || rs6000_cpu_attr == CPU_PPC7450
-	       || rs6000_cpu_attr == CPU_POWER4
-	       || rs6000_cpu_attr == CPU_POWER5)
-	      && recog_memoized (dep_insn)
-	      && (INSN_CODE (dep_insn) >= 0)
-	      && (get_attr_type (dep_insn) == TYPE_CMP
-		  || get_attr_type (dep_insn) == TYPE_COMPARE
-		  || get_attr_type (dep_insn) == TYPE_DELAYED_COMPARE
-		  || get_attr_type (dep_insn) == TYPE_IMUL_COMPARE
-		  || get_attr_type (dep_insn) == TYPE_LMUL_COMPARE
-		  || get_attr_type (dep_insn) == TYPE_FPCOMPARE
-		  || get_attr_type (dep_insn) == TYPE_CR_LOGICAL
-		  || get_attr_type (dep_insn) == TYPE_DELAYED_CR))
-	    return cost + 2;
-	default:
-	  break;
-	}
+        attr_type = get_attr_type (insn);
+
+        switch (attr_type)
+          {
+          case TYPE_JMPREG:
+            /* Tell the first scheduling pass about the latency between
+               a mtctr and bctr (and mtlr and br/blr).  The first
+               scheduling pass will not know about this latency since
+               the mtctr instruction, which has the latency associated
+               to it, will be generated by reload.  */
+            return TARGET_POWER ? 5 : 4;
+          case TYPE_BRANCH:
+            /* Leave some extra cycles between a compare and its
+               dependent branch, to inhibit expensive mispredicts.  */
+            if ((rs6000_cpu_attr == CPU_PPC603
+                 || rs6000_cpu_attr == CPU_PPC604
+                 || rs6000_cpu_attr == CPU_PPC604E
+                 || rs6000_cpu_attr == CPU_PPC620
+                 || rs6000_cpu_attr == CPU_PPC630
+                 || rs6000_cpu_attr == CPU_PPC750
+                 || rs6000_cpu_attr == CPU_PPC7400
+                 || rs6000_cpu_attr == CPU_PPC7450
+                 || rs6000_cpu_attr == CPU_POWER4
+                 || rs6000_cpu_attr == CPU_POWER5
+                 || rs6000_cpu_attr == CPU_CELL)
+                && recog_memoized (dep_insn)
+                && (INSN_CODE (dep_insn) >= 0))
+              
+              switch (get_attr_type (dep_insn))
+                {
+                case TYPE_CMP:
+                case TYPE_COMPARE:
+                case TYPE_DELAYED_COMPARE:
+                case TYPE_IMUL_COMPARE:
+                case TYPE_LMUL_COMPARE:
+                case TYPE_FPCOMPARE:
+                case TYPE_CR_LOGICAL:
+                case TYPE_DELAYED_CR:
+                    return cost + 2;
+		default:
+		  break;
+		}
+            break;
+
+          case TYPE_STORE:
+          case TYPE_STORE_U:
+          case TYPE_STORE_UX:
+          case TYPE_FPSTORE:
+          case TYPE_FPSTORE_U:
+          case TYPE_FPSTORE_UX:
+            if ((rs6000_cpu == PROCESSOR_POWER6)
+                && recog_memoized (dep_insn)
+                && (INSN_CODE (dep_insn) >= 0))
+              {
+
+                if (GET_CODE (PATTERN (insn)) != SET)
+                  /* If this happens, we have to extend this to schedule
+                     optimally.  Return default for now.  */
+                  return cost;
+
+                /* Adjust the cost for the case where the value written
+                   by a fixed point operation is used as the address
+                   gen value on a store. */
+                switch (get_attr_type (dep_insn))
+                  {
+                  case TYPE_LOAD:
+                  case TYPE_LOAD_U:
+                  case TYPE_LOAD_UX:
+                  case TYPE_CNTLZ:
+                    {
+                      if (! store_data_bypass_p (dep_insn, insn))
+                        return 4;
+                      break;
+                    }
+                  case TYPE_LOAD_EXT:
+                  case TYPE_LOAD_EXT_U:
+                  case TYPE_LOAD_EXT_UX:
+                  case TYPE_VAR_SHIFT_ROTATE:
+                  case TYPE_VAR_DELAYED_COMPARE:
+                    {
+                      if (! store_data_bypass_p (dep_insn, insn))
+                        return 6;
+                      break;
+                      }
+                  case TYPE_INTEGER:
+                  case TYPE_COMPARE:
+                  case TYPE_FAST_COMPARE:
+                  case TYPE_EXTS:
+                  case TYPE_SHIFT:
+                  case TYPE_INSERT_WORD:
+                  case TYPE_INSERT_DWORD:
+                  case TYPE_FPLOAD_U:
+                  case TYPE_FPLOAD_UX:
+                  case TYPE_STORE_U:
+                  case TYPE_STORE_UX:
+                  case TYPE_FPSTORE_U:
+                  case TYPE_FPSTORE_UX:
+                    {
+                      if (! store_data_bypass_p (dep_insn, insn))
+                        return 3;
+                      break;
+                    }
+                  case TYPE_IMUL:
+                  case TYPE_IMUL2:
+                  case TYPE_IMUL3:
+                  case TYPE_LMUL:
+                  case TYPE_IMUL_COMPARE:
+                  case TYPE_LMUL_COMPARE:
+                    {
+                      if (! store_data_bypass_p (dep_insn, insn))
+                        return 17;
+                      break;
+                    }
+                  case TYPE_IDIV:
+                    {
+                      if (! store_data_bypass_p (dep_insn, insn))
+                        return 45;
+                      break;
+                    }
+                  case TYPE_LDIV:
+                    {
+                      if (! store_data_bypass_p (dep_insn, insn))
+                        return 57;
+                      break;
+                    }
+                  default:
+                    break;
+                  }
+              }
+              break;
+
+          case TYPE_LOAD:
+          case TYPE_LOAD_U:
+          case TYPE_LOAD_UX:
+          case TYPE_LOAD_EXT:
+          case TYPE_LOAD_EXT_U:
+          case TYPE_LOAD_EXT_UX:
+            if ((rs6000_cpu == PROCESSOR_POWER6)
+                && recog_memoized (dep_insn)
+                && (INSN_CODE (dep_insn) >= 0))
+              {
+
+                /* Adjust the cost for the case where the value written
+                   by a fixed point instruction is used within the address
+                   gen portion of a subsequent load(u)(x) */
+                switch (get_attr_type (dep_insn))
+                  {
+                  case TYPE_LOAD:
+                  case TYPE_LOAD_U:
+                  case TYPE_LOAD_UX:
+                  case TYPE_CNTLZ:
+                    {
+                      if (set_to_load_agen (dep_insn, insn))
+                        return 4;
+                      break;
+                    }
+                  case TYPE_LOAD_EXT:
+                  case TYPE_LOAD_EXT_U:
+                  case TYPE_LOAD_EXT_UX:
+                  case TYPE_VAR_SHIFT_ROTATE:
+                  case TYPE_VAR_DELAYED_COMPARE:
+                    {
+                      if (set_to_load_agen (dep_insn, insn))
+                        return 6;
+                      break;
+                    }
+                  case TYPE_INTEGER:
+                  case TYPE_COMPARE:
+                  case TYPE_FAST_COMPARE:
+                  case TYPE_EXTS:
+                  case TYPE_SHIFT:
+                  case TYPE_INSERT_WORD:
+                  case TYPE_INSERT_DWORD:
+                  case TYPE_FPLOAD_U:
+                  case TYPE_FPLOAD_UX:
+                  case TYPE_STORE_U:
+                  case TYPE_STORE_UX:
+                  case TYPE_FPSTORE_U:
+                  case TYPE_FPSTORE_UX:
+                    {
+                      if (set_to_load_agen (dep_insn, insn))
+                        return 3;
+                      break;
+                    }
+                  case TYPE_IMUL:
+                  case TYPE_IMUL2:
+                  case TYPE_IMUL3:
+                  case TYPE_LMUL:
+                  case TYPE_IMUL_COMPARE:
+                  case TYPE_LMUL_COMPARE:
+                    {
+                      if (set_to_load_agen (dep_insn, insn))
+                        return 17;
+                      break;
+                    }
+                  case TYPE_IDIV:
+                    {
+                      if (set_to_load_agen (dep_insn, insn))
+                        return 45;
+                      break;
+                    }
+                  case TYPE_LDIV:
+                    {
+                      if (set_to_load_agen (dep_insn, insn))
+                        return 57;
+                      break;
+                    }
+                  default:
+                    break;
+                  }
+              }
+            break;
+
+          case TYPE_FPLOAD:
+            if ((rs6000_cpu == PROCESSOR_POWER6)
+                && recog_memoized (dep_insn)
+                && (INSN_CODE (dep_insn) >= 0)
+                && (get_attr_type (dep_insn) == TYPE_MFFGPR))
+              return 2;
+
+          default:
+            break;
+          }
+
       /* Fall out to return default cost.  */
+      }
+      break;
+
+    case REG_DEP_OUTPUT:
+      /* Output dependency; DEP_INSN writes a register that INSN writes some
+	 cycles later.  */
+      if ((rs6000_cpu == PROCESSOR_POWER6)
+          && recog_memoized (dep_insn)
+          && (INSN_CODE (dep_insn) >= 0))
+        {
+          attr_type = get_attr_type (insn);
+
+          switch (attr_type)
+            {
+            case TYPE_FP:
+              if (get_attr_type (dep_insn) == TYPE_FP)
+                return 1;
+              break;
+            case TYPE_FPLOAD:
+              if (get_attr_type (dep_insn) == TYPE_MFFGPR)
+                return 2;
+              break;
+            default:
+              break;
+            }
+        }
+    case REG_DEP_ANTI:
+      /* Anti dependency; DEP_INSN reads a register that INSN writes some
+	 cycles later.  */
+      return 0;
+
+    default:
+      gcc_unreachable ();
     }
 
   return cost;
@@ -16536,6 +17012,9 @@ is_microcoded_insn (rtx insn)
       || GET_CODE (PATTERN (insn)) == CLOBBER)
     return false;
 
+  if (rs6000_cpu_attr == CPU_CELL)
+    return get_attr_cell_micro (insn) == CELL_MICRO_ALWAYS;
+
   if (rs6000_sched_groups)
     {
       enum attr_type type = get_attr_type (insn);
@@ -16548,55 +17027,6 @@ is_microcoded_insn (rtx insn)
     }
 
   return false;
-}
-
-/* The function returns a nonzero value if INSN can be scheduled only
-   as the first insn in a dispatch group ("dispatch-slot restricted").
-   In this case, the returned value indicates how many dispatch slots
-   the insn occupies (at the beginning of the group).
-   Return 0 otherwise.  */
-
-static int
-is_dispatch_slot_restricted (rtx insn)
-{
-  enum attr_type type;
-
-  if (!rs6000_sched_groups)
-    return 0;
-
-  if (!insn
-      || insn == NULL_RTX
-      || GET_CODE (insn) == NOTE
-      || GET_CODE (PATTERN (insn)) == USE
-      || GET_CODE (PATTERN (insn)) == CLOBBER)
-    return 0;
-
-  type = get_attr_type (insn);
-
-  switch (type)
-    {
-    case TYPE_MFCR:
-    case TYPE_MFCRF:
-    case TYPE_MTCR:
-    case TYPE_DELAYED_CR:
-    case TYPE_CR_LOGICAL:
-    case TYPE_MTJMPR:
-    case TYPE_MFJMPR:
-      return 1;
-    case TYPE_IDIV:
-    case TYPE_LDIV:
-      return 2;
-    case TYPE_LOAD_L:
-    case TYPE_STORE_C:
-    case TYPE_ISYNC:
-    case TYPE_SYNC:
-      return 4;
-    default:
-      if (rs6000_cpu == PROCESSOR_POWER5
-	  && is_cracked_insn (insn))
-	return 2;
-      return 0;
-    }
 }
 
 /* The function returns true if INSN is cracked into 2 instructions
@@ -16649,6 +17079,74 @@ is_branch_slot_insn (rtx insn)
   return false;
 }
 
+/* The function returns true if out_inst sets a value that is
+   used in the address generation computation of in_insn */
+static bool
+set_to_load_agen (rtx out_insn, rtx in_insn)
+{
+  rtx out_set, in_set;
+
+  /* For performance reasons, only handle the simple case where
+     both loads are a single_set. */
+  out_set = single_set (out_insn);
+  if (out_set)
+    {
+      in_set = single_set (in_insn);
+      if (in_set)
+        return reg_mentioned_p (SET_DEST (out_set), SET_SRC (in_set));
+    }
+
+  return false;
+}
+
+/* The function returns true if the target storage location of
+   out_insn is adjacent to the target storage location of in_insn */
+/* Return 1 if memory locations are adjacent.  */
+
+static bool
+adjacent_mem_locations (rtx insn1, rtx insn2)
+{
+
+  rtx a = get_store_dest (PATTERN (insn1));
+  rtx b = get_store_dest (PATTERN (insn2));
+
+  if ((GET_CODE (XEXP (a, 0)) == REG
+       || (GET_CODE (XEXP (a, 0)) == PLUS
+	   && GET_CODE (XEXP (XEXP (a, 0), 1)) == CONST_INT))
+      && (GET_CODE (XEXP (b, 0)) == REG
+	  || (GET_CODE (XEXP (b, 0)) == PLUS
+	      && GET_CODE (XEXP (XEXP (b, 0), 1)) == CONST_INT)))
+    {
+      HOST_WIDE_INT val0 = 0, val1 = 0;
+      rtx reg0, reg1;
+      int val_diff;
+
+      if (GET_CODE (XEXP (a, 0)) == PLUS)
+        {
+	  reg0 = XEXP (XEXP (a, 0), 0);
+	  val0 = INTVAL (XEXP (XEXP (a, 0), 1));
+        }
+      else
+	reg0 = XEXP (a, 0);
+
+      if (GET_CODE (XEXP (b, 0)) == PLUS)
+        {
+	  reg1 = XEXP (XEXP (b, 0), 0);
+	  val1 = INTVAL (XEXP (XEXP (b, 0), 1));
+        }
+      else
+	reg1 = XEXP (b, 0);
+
+      val_diff = val1 - val0;
+
+      return ((REGNO (reg0) == REGNO (reg1))
+	      && (val_diff == INTVAL (MEM_SIZE (a))
+                  || val_diff == -INTVAL (MEM_SIZE (b))));
+    }
+
+  return false;
+}
+
 /* A C statement (sans semicolon) to update the integer scheduling
    priority INSN_PRIORITY (INSN). Increase the priority to execute the
    INSN earlier, reduce the priority to execute INSN later.  Do not
@@ -16688,7 +17186,7 @@ rs6000_adjust_priority (rtx insn ATTRIBUTE_UNUSED, int priority)
   }
 #endif
 
-  if (is_dispatch_slot_restricted (insn)
+  if (insn_must_be_first_in_group (insn)
       && reload_completed
       && current_sched_info->sched_max_insns_priority
       && rs6000_sched_restricted_insns_priority)
@@ -16708,8 +17206,48 @@ rs6000_adjust_priority (rtx insn ATTRIBUTE_UNUSED, int priority)
 	return (priority + 1);
     }
 
+  if (rs6000_cpu == PROCESSOR_POWER6
+      && ((load_store_pendulum == -2 && is_load_insn (insn))
+          || (load_store_pendulum == 2 && is_store_insn (insn))))
+    /* Attach highest priority to insn if the scheduler has just issued two
+       stores and this instruction is a load, or two loads and this instruction
+       is a store. Power6 wants loads and stores scheduled alternately
+       when possible */
+    return current_sched_info->sched_max_insns_priority;
+
   return priority;
 }
+
+/* Return true if the instruction is nonpipelined on the Cell. */
+static bool
+is_nonpipeline_insn (rtx insn)
+{
+  enum attr_type type;
+  if (!insn || !INSN_P (insn)
+      || GET_CODE (PATTERN (insn)) == USE
+      || GET_CODE (PATTERN (insn)) == CLOBBER)
+    return false;
+
+  type = get_attr_type (insn);
+  if (type == TYPE_IMUL
+      || type == TYPE_IMUL2
+      || type == TYPE_IMUL3
+      || type == TYPE_LMUL
+      || type == TYPE_IDIV
+      || type == TYPE_LDIV
+      || type == TYPE_SDIV
+      || type == TYPE_DDIV
+      || type == TYPE_SSQRT
+      || type == TYPE_DSQRT
+      || type == TYPE_MFCR
+      || type == TYPE_MFCRF
+      || type == TYPE_MFJMPR)
+    {
+      return true;
+    }
+  return false;
+}
+
 
 /* Return how many instructions the machine can issue per cycle.  */
 
@@ -16731,6 +17269,7 @@ rs6000_issue_rate (void)
   case CPU_PPC750:
   case CPU_PPC7400:
   case CPU_PPC8540:
+  case CPU_CELL:
     return 2;
   case CPU_RIOS2:
   case CPU_PPC604:
@@ -16740,6 +17279,7 @@ rs6000_issue_rate (void)
     return 4;
   case CPU_POWER4:
   case CPU_POWER5:
+  case CPU_POWER6:
     return 5;
   default:
     return 1;
@@ -16754,7 +17294,27 @@ rs6000_use_sched_lookahead (void)
 {
   if (rs6000_cpu_attr == CPU_PPC8540)
     return 4;
+  if (rs6000_cpu_attr == CPU_CELL)
+    return (reload_completed ? 8 : 0);
   return 0;
+}
+
+/* We are choosing insn from the ready queue.  Return nonzero if INSN can be chosen.  */
+static int
+rs6000_use_sched_lookahead_guard (rtx insn)
+{
+  if (rs6000_cpu_attr != CPU_CELL)
+    return 1;
+
+   if (insn == NULL_RTX || !INSN_P (insn))
+     abort ();
+   
+  if (!reload_completed
+      || is_nonpipeline_insn (insn)
+      || is_microcoded_insn (insn))
+    return 0;
+
+  return 1;
 }
 
 /* Determine is PAT refers to memory.  */
@@ -16855,6 +17415,32 @@ is_store_insn (rtx insn)
   return is_store_insn1 (PATTERN (insn));
 }
 
+/* Return the dest of a store insn.  */
+
+static rtx
+get_store_dest (rtx pat)
+{
+  gcc_assert (is_store_insn1 (pat));
+
+  if (GET_CODE (pat) == SET)
+    return SET_DEST (pat);
+  else if (GET_CODE (pat) == PARALLEL)
+    {
+      int i;
+
+      for (i = 0; i < XVECLEN (pat, 0); i++)
+	{
+	  rtx inner_pat = XVECEXP (pat, 0, i);
+	  if (GET_CODE (inner_pat) == SET
+	      && is_mem_ref (SET_DEST (inner_pat)))
+	    return inner_pat;
+	}
+    }
+  /* We shouldn't get here, because we should have either a simple
+     store insn or a store with update which are covered above.  */
+  gcc_unreachable();
+}
+
 /* Returns whether the dependence between INSN and NEXT is considered
    costly by the given target.  */
 
@@ -16924,6 +17510,237 @@ get_next_active_insn (rtx insn, rtx tail)
   return insn;
 }
 
+/* We are about to begin issuing insns for this clock cycle. */
+
+static int
+rs6000_sched_reorder (FILE *dump ATTRIBUTE_UNUSED, int sched_verbose,
+                        rtx *ready ATTRIBUTE_UNUSED,
+                        int *pn_ready ATTRIBUTE_UNUSED,
+		        int clock_var ATTRIBUTE_UNUSED)
+{
+  int n_ready = *pn_ready;
+
+  if (sched_verbose)
+    fprintf (dump, "// rs6000_sched_reorder :\n");
+
+  /* Reorder the ready list, if the second to last ready insn
+     is a nonepipeline insn.  */
+  if (rs6000_cpu_attr == CPU_CELL && n_ready > 1)
+  {
+    if (is_nonpipeline_insn (ready[n_ready - 1])
+        && (recog_memoized (ready[n_ready - 2]) > 0))
+      /* Simply swap first two insns.  */
+      {
+	rtx tmp = ready[n_ready - 1];
+	ready[n_ready - 1] = ready[n_ready - 2];
+	ready[n_ready - 2] = tmp;
+      }
+  }
+
+  if (rs6000_cpu == PROCESSOR_POWER6)
+    load_store_pendulum = 0;
+
+  return rs6000_issue_rate ();
+}
+
+/* Like rs6000_sched_reorder, but called after issuing each insn.  */
+
+static int
+rs6000_sched_reorder2 (FILE *dump, int sched_verbose, rtx *ready,
+		         int *pn_ready, int clock_var ATTRIBUTE_UNUSED)
+{
+  if (sched_verbose)
+    fprintf (dump, "// rs6000_sched_reorder2 :\n");
+
+  /* For Power6, we need to handle some special cases to try and keep the
+     store queue from overflowing and triggering expensive flushes.
+
+     This code monitors how load and store instructions are being issued
+     and skews the ready list one way or the other to increase the likelihood
+     that a desired instruction is issued at the proper time.
+
+     A couple of things are done.  First, we maintain a "load_store_pendulum"
+     to track the current state of load/store issue.
+
+       - If the pendulum is at zero, then no loads or stores have been
+         issued in the current cycle so we do nothing.
+
+       - If the pendulum is 1, then a single load has been issued in this
+         cycle and we attempt to locate another load in the ready list to
+         issue with it.
+
+       - If the pendulum is -2, then two stores have already been
+         issued in this cycle, so we increase the priority of the first load
+         in the ready list to increase it's likelihood of being chosen first
+         in the next cycle.
+
+       - If the pendulum is -1, then a single store has been issued in this
+         cycle and we attempt to locate another store in the ready list to
+         issue with it, preferring a store to an adjacent memory location to
+         facilitate store pairing in the store queue.
+
+       - If the pendulum is 2, then two loads have already been
+         issued in this cycle, so we increase the priority of the first store
+         in the ready list to increase it's likelihood of being chosen first
+         in the next cycle.
+
+       - If the pendulum < -2 or > 2, then do nothing.
+
+       Note: This code covers the most common scenarios.  There exist non
+             load/store instructions which make use of the LSU and which
+             would need to be accounted for to strictly model the behavior
+             of the machine.  Those instructions are currently unaccounted
+             for to help minimize compile time overhead of this code.
+   */
+  if (rs6000_cpu == PROCESSOR_POWER6 && last_scheduled_insn)
+    {
+      int pos;
+      int i;
+      rtx tmp;
+
+      if (is_store_insn (last_scheduled_insn))
+        /* Issuing a store, swing the load_store_pendulum to the left */
+        load_store_pendulum--;
+      else if (is_load_insn (last_scheduled_insn))
+        /* Issuing a load, swing the load_store_pendulum to the right */
+        load_store_pendulum++;
+      else
+        return cached_can_issue_more;
+
+      /* If the pendulum is balanced, or there is only one instruction on
+         the ready list, then all is well, so return. */
+      if ((load_store_pendulum == 0) || (*pn_ready <= 1))
+        return cached_can_issue_more;
+
+      if (load_store_pendulum == 1)
+        {
+          /* A load has been issued in this cycle.  Scan the ready list
+             for another load to issue with it */
+          pos = *pn_ready-1;
+
+          while (pos >= 0)
+            {
+              if (is_load_insn (ready[pos]))
+                {
+                  /* Found a load.  Move it to the head of the ready list,
+                     and adjust it's priority so that it is more likely to
+                     stay there */
+                  tmp = ready[pos];
+                  for (i=pos; i<*pn_ready-1; i++)
+                    ready[i] = ready[i + 1];
+                  ready[*pn_ready-1] = tmp;
+                  if INSN_PRIORITY_KNOWN (tmp)
+                    INSN_PRIORITY (tmp)++;
+                  break;
+                }
+              pos--;
+            }
+        }
+      else if (load_store_pendulum == -2)
+        {
+          /* Two stores have been issued in this cycle.  Increase the
+             priority of the first load in the ready list to favor it for
+             issuing in the next cycle. */
+          pos = *pn_ready-1;
+
+          while (pos >= 0)
+            {
+              if (is_load_insn (ready[pos])
+                  && INSN_PRIORITY_KNOWN (ready[pos]))
+                {
+                  INSN_PRIORITY (ready[pos])++;
+
+                  /* Adjust the pendulum to account for the fact that a load
+                     was found and increased in priority.  This is to prevent
+                     increasing the priority of multiple loads */
+                  load_store_pendulum--;
+
+                  break;
+                }
+              pos--;
+            }
+        }
+      else if (load_store_pendulum == -1)
+        {
+          /* A store has been issued in this cycle.  Scan the ready list for
+             another store to issue with it, preferring a store to an adjacent
+             memory location */
+          int first_store_pos = -1;
+
+          pos = *pn_ready-1;
+
+          while (pos >= 0)
+            {
+              if (is_store_insn (ready[pos]))
+                {
+                  /* Maintain the index of the first store found on the
+                     list */
+                  if (first_store_pos == -1)
+                    first_store_pos = pos;
+
+                  if (is_store_insn (last_scheduled_insn)
+                      && adjacent_mem_locations (last_scheduled_insn,ready[pos]))
+                    {
+                      /* Found an adjacent store.  Move it to the head of the
+                         ready list, and adjust it's priority so that it is
+                         more likely to stay there */
+                      tmp = ready[pos];
+                      for (i=pos; i<*pn_ready-1; i++)
+                        ready[i] = ready[i + 1];
+                      ready[*pn_ready-1] = tmp;
+                      if INSN_PRIORITY_KNOWN (tmp)
+                        INSN_PRIORITY (tmp)++;
+                      first_store_pos = -1;
+
+                      break;
+                    };
+                }
+              pos--;
+            }
+
+          if (first_store_pos >= 0)
+            {
+              /* An adjacent store wasn't found, but a non-adjacent store was,
+                 so move the non-adjacent store to the front of the ready
+                 list, and adjust its priority so that it is more likely to
+                 stay there. */
+              tmp = ready[first_store_pos];
+              for (i=first_store_pos; i<*pn_ready-1; i++)
+                ready[i] = ready[i + 1];
+              ready[*pn_ready-1] = tmp;
+              if INSN_PRIORITY_KNOWN (tmp)
+                INSN_PRIORITY (tmp)++;
+            }
+        }
+      else if (load_store_pendulum == 2)
+       {
+           /* Two loads have been issued in this cycle.  Increase the priority
+              of the first store in the ready list to favor it for issuing in
+              the next cycle. */
+          pos = *pn_ready-1;
+
+          while (pos >= 0)
+            {
+              if (is_store_insn (ready[pos])
+                  && INSN_PRIORITY_KNOWN (ready[pos]))
+                {
+                  INSN_PRIORITY (ready[pos])++;
+
+                  /* Adjust the pendulum to account for the fact that a store
+                     was found and increased in priority.  This is to prevent
+                     increasing the priority of multiple stores */
+                  load_store_pendulum++;
+
+                  break;
+                }
+              pos--;
+            }
+        }
+    }
+
+  return cached_can_issue_more;
+}
+
 /* Return whether the presence of INSN causes a dispatch group termination
    of group WHICH_GROUP.
 
@@ -16940,28 +17757,179 @@ get_next_active_insn (rtx insn, rtx tail)
 static bool
 insn_terminates_group_p (rtx insn, enum group_termination which_group)
 {
-  enum attr_type type;
+  bool first, last;
 
   if (! insn)
     return false;
 
-  type = get_attr_type (insn);
+  first = insn_must_be_first_in_group (insn);
+  last = insn_must_be_last_in_group (insn);
 
-  if (is_microcoded_insn (insn))
+  if (first && last)
     return true;
 
   if (which_group == current_group)
-    {
-      if (is_branch_slot_insn (insn))
-	return true;
-      return false;
-    }
+    return last;
   else if (which_group == previous_group)
+    return first;
+
+  return false;
+}
+
+
+static bool
+insn_must_be_first_in_group (rtx insn)
+{
+  enum attr_type type;
+
+  if (!insn
+      || insn == NULL_RTX
+      || GET_CODE (insn) == NOTE
+      || GET_CODE (PATTERN (insn)) == USE
+      || GET_CODE (PATTERN (insn)) == CLOBBER)
+    return false;
+
+  switch (rs6000_cpu)
     {
-      if (is_dispatch_slot_restricted (insn))
-	return true;
-      return false;
+    case PROCESSOR_POWER5:
+      if (is_cracked_insn (insn))
+        return true;
+    case PROCESSOR_POWER4:
+      if (is_microcoded_insn (insn))
+        return true;
+
+      if (!rs6000_sched_groups)
+        return false;
+
+      type = get_attr_type (insn);
+
+      switch (type)
+        {
+        case TYPE_MFCR:
+        case TYPE_MFCRF:
+        case TYPE_MTCR:
+        case TYPE_DELAYED_CR:
+        case TYPE_CR_LOGICAL:
+        case TYPE_MTJMPR:
+        case TYPE_MFJMPR:
+        case TYPE_IDIV:
+        case TYPE_LDIV:
+        case TYPE_LOAD_L:
+        case TYPE_STORE_C:
+        case TYPE_ISYNC:
+        case TYPE_SYNC:
+          return true;
+        default:
+          break;
+        }
+      break;
+    case PROCESSOR_POWER6:
+      type = get_attr_type (insn);
+
+      switch (type)
+        {
+        case TYPE_INSERT_DWORD:
+        case TYPE_EXTS:
+        case TYPE_CNTLZ:
+        case TYPE_SHIFT:
+        case TYPE_VAR_SHIFT_ROTATE:
+        case TYPE_TRAP:
+        case TYPE_IMUL:
+        case TYPE_IMUL2:
+        case TYPE_IMUL3:
+        case TYPE_LMUL:
+        case TYPE_IDIV:
+        case TYPE_INSERT_WORD:
+        case TYPE_DELAYED_COMPARE:
+        case TYPE_IMUL_COMPARE:
+        case TYPE_LMUL_COMPARE:
+        case TYPE_FPCOMPARE:
+        case TYPE_MFCR:
+        case TYPE_MTCR:
+        case TYPE_MFJMPR:
+        case TYPE_MTJMPR:
+        case TYPE_ISYNC:
+        case TYPE_SYNC:
+        case TYPE_LOAD_L:
+        case TYPE_STORE_C:
+        case TYPE_LOAD_U:
+        case TYPE_LOAD_UX:
+        case TYPE_LOAD_EXT_UX:
+        case TYPE_STORE_U:
+        case TYPE_STORE_UX:
+        case TYPE_FPLOAD_U:
+        case TYPE_FPLOAD_UX:
+        case TYPE_FPSTORE_U:
+        case TYPE_FPSTORE_UX:
+          return true;
+        default:
+          break;
+        }
+      break;
+    default:
+      break;
     }
+
+  return false;
+}
+
+static bool
+insn_must_be_last_in_group (rtx insn)
+{
+  enum attr_type type;
+
+  if (!insn
+      || insn == NULL_RTX
+      || GET_CODE (insn) == NOTE
+      || GET_CODE (PATTERN (insn)) == USE
+      || GET_CODE (PATTERN (insn)) == CLOBBER)
+    return false;
+
+  switch (rs6000_cpu) {
+  case PROCESSOR_POWER4:
+  case PROCESSOR_POWER5:
+    if (is_microcoded_insn (insn))
+      return true;
+
+    if (is_branch_slot_insn (insn))
+      return true;
+
+    break;
+  case PROCESSOR_POWER6:
+    type = get_attr_type (insn);
+
+    switch (type)
+      {
+      case TYPE_EXTS:
+      case TYPE_CNTLZ:
+      case TYPE_SHIFT:
+      case TYPE_VAR_SHIFT_ROTATE:
+      case TYPE_TRAP:
+      case TYPE_IMUL:
+      case TYPE_IMUL2:
+      case TYPE_IMUL3:
+      case TYPE_LMUL:
+      case TYPE_IDIV:
+      case TYPE_DELAYED_COMPARE:
+      case TYPE_IMUL_COMPARE:
+      case TYPE_LMUL_COMPARE:
+      case TYPE_FPCOMPARE:
+      case TYPE_MFCR:
+      case TYPE_MTCR:
+      case TYPE_MFJMPR:
+      case TYPE_MTJMPR:
+      case TYPE_ISYNC:
+      case TYPE_SYNC:
+      case TYPE_LOAD_L:
+      case TYPE_STORE_C:
+        return true;
+      default:
+        break;
+    }
+    break;
+  default:
+    break;
+  }
 
   return false;
 }
@@ -17284,6 +18252,17 @@ pad_groups (FILE *dump, int sched_verbose, rtx prev_head_insn, rtx tail)
     }
 
   return group_count;
+}
+
+/* We're beginning a new block.  Initialize data structures as necessary.  */
+
+static void
+rs6000_sched_init (FILE *dump ATTRIBUTE_UNUSED,
+		     int sched_verbose ATTRIBUTE_UNUSED,
+		     int max_ready ATTRIBUTE_UNUSED)
+{   
+  last_scheduled_insn = NULL_RTX;
+  load_store_pendulum = 0;
 }
 
 /* The following function is called at the end of scheduling BB.
@@ -18759,11 +19738,12 @@ rs6000_rtx_costs (rtx x, int code, int outer_code, int *total)
     case MINUS:
       if (mode == DFmode)
 	{
-	  if (GET_CODE (XEXP (x, 0)) == MULT)
+	  if (GET_CODE (XEXP (x, 0)) == MULT
+	      || GET_CODE (XEXP (x, 1)) == MULT)
 	    {
 	      /* FNMA accounted in outer NEG.  */
 	      if (outer_code == NEG)
-		*total = 0;
+		*total = rs6000_cost->dmul - rs6000_cost->fp;
 	      else
 		*total = rs6000_cost->dmul;
 	    }

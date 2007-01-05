@@ -1259,3 +1259,20 @@ _Jv_FindInterpreterMethod (jclass klass, jmethodID desired_method)
   return NULL;
 }
 #endif
+
+// Return Utf8 name of a class. This function is here for code that
+// can't access klass->name directly.
+_Jv_Utf8Const*
+_Jv_GetClassNameUtf8 (jclass klass)
+{
+  return klass->name;
+}
+
+jclass
+_Jv_GetMethodDeclaringClass (jmethodID method)
+{
+  _Jv_StackTrace::UpdateNCodeMap ();
+  jobject obj = reinterpret_cast<jobject> (method->ncode);
+  return reinterpret_cast<jclass> (_Jv_StackTrace::ncodeMap->get (obj));
+}
+

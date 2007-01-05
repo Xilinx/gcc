@@ -2584,13 +2584,6 @@ debug_dependencies (void)
 		  n = NOTE_LINE_NUMBER (insn);
 		  if (n < 0)
 		    fprintf (sched_dump, "%s\n", GET_NOTE_INSN_NAME (n));
-		  else
-		    {
-		      expanded_location xloc;
-		      NOTE_EXPANDED_LOCATION (xloc, insn);
-		      fprintf (sched_dump, "line %d, file %s\n",
-			       xloc.line, xloc.file);
-		    }
 		}
 	      else
 		fprintf (sched_dump, " {%s}\n", GET_RTX_NAME (GET_CODE (insn)));
@@ -2768,7 +2761,6 @@ schedule_region (int rgn)
     {
       basic_block first_bb, last_bb, curr_bb;
       rtx head, tail;
-      int b = BB_TO_BLOCK (bb);
 
       first_bb = EBB_FIRST_BB (bb);
       last_bb = EBB_LAST_BB (bb);
@@ -2784,11 +2776,6 @@ schedule_region (int rgn)
       current_sched_info->prev_head = PREV_INSN (head);
       current_sched_info->next_tail = NEXT_INSN (tail);
 
-      if (write_symbols != NO_DEBUG)
-	{
-	  save_line_notes (b, head, tail);
-	  rm_line_notes (head, tail);
-	}
 
       /* rm_other_notes only removes notes which are _inside_ the
 	 block---that is, it won't remove notes before the first real insn
@@ -2839,17 +2826,6 @@ schedule_region (int rgn)
   /* Sanity check: verify that all region insns were scheduled.  */
   gcc_assert (sched_rgn_n_insns == rgn_n_insns);
 
-  /* Restore line notes.  */
-  if (write_symbols != NO_DEBUG)
-    {
-      for (bb = 0; bb < current_nr_blocks; bb++)
-	{
-	  rtx head, tail;
-
-	  get_ebb_head_tail (EBB_FIRST_BB (bb), EBB_LAST_BB (bb), &head, &tail);
-	  restore_line_notes (head, tail);
-	}
-    }
 
   /* Done with this region.  */
 
@@ -3045,10 +3021,6 @@ schedule_insns (void)
   if (reload_completed)
     reposition_prologue_and_epilogue_notes (get_insns ());
 
-  /* Delete redundant line notes.  */
-  if (write_symbols != NO_DEBUG)
-    rm_redundant_line_notes ();
-
   if (sched_verbose)
     {
       if (reload_completed == 0 && flag_schedule_interblock)
@@ -3152,9 +3124,15 @@ add_block1 (basic_block bb, basic_block after)
 	 is _always_ valid for access.  */
 
       i = BLOCK_TO_BB (after->index) + 1;
-      for (pos = ebb_head[i]; rgn_bb_table[pos] != after->index; pos--);
+      pos = ebb_head[i] - 1;
+      /* Now POS is the index of the last block in the region.  */
+
+      /* Find index of basic block AFTER.  */
+      for (; rgn_bb_table[pos] != after->index; pos--);
+
       pos++;
       gcc_assert (pos > ebb_head[i - 1]);
+
       /* i - ebb right after "AFTER".  */
       /* ebb_head[i] - VALID.  */
 

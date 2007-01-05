@@ -28,14 +28,14 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 21 Strings library
-//
-
 /** @file basic_string.h
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
+
+//
+// ISO C++ 14882: 21 Strings library
+//
 
 #ifndef _BASIC_STRING_H
 #define _BASIC_STRING_H 1
@@ -2394,9 +2394,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  writing a C string.
    */
   template<typename _CharT, typename _Traits, typename _Alloc>
-    basic_ostream<_CharT, _Traits>&
+    inline basic_ostream<_CharT, _Traits>&
     operator<<(basic_ostream<_CharT, _Traits>& __os,
-	       const basic_string<_CharT, _Traits, _Alloc>& __str);
+	       const basic_string<_CharT, _Traits, _Alloc>& __str)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 586. string inserter not a formatted function
+      return __os._M_insert(__str.data(), __str.size());
+    }
 
   /**
    *  @brief  Read a line from stream into a string.
@@ -2431,8 +2436,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _CharT, typename _Traits, typename _Alloc>
     inline basic_istream<_CharT, _Traits>&
     getline(basic_istream<_CharT, _Traits>& __is,
-	    basic_string<_CharT, _Traits, _Alloc>& __str);
-    
+	    basic_string<_CharT, _Traits, _Alloc>& __str)
+    { return getline(__is, __str, __is.widen('\n')); }
+
   template<>
     basic_istream<char>&
     getline(basic_istream<char>& __in, basic_string<char>& __str,

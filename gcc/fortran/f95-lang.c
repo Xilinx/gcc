@@ -62,7 +62,8 @@ GTY(())
 
 union lang_tree_node
 GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-     chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
+     chain_next ("(GIMPLE_STMT_P (&%h.generic) ? (union lang_tree_node *) 0 : (union lang_tree_node *)TREE_CHAIN (&%h.generic))")))
+
 {
   union tree_node GTY((tag ("0"),
 		       desc ("tree_node_structure (&%h)"))) generic;
@@ -124,6 +125,7 @@ static HOST_WIDE_INT gfc_get_alias_set (tree);
 #undef LANG_HOOKS_OMP_DISREGARD_VALUE_EXPR
 #undef LANG_HOOKS_OMP_PRIVATE_DEBUG_CLAUSE
 #undef LANG_HOOKS_OMP_FIRSTPRIVATIZE_TYPE_SIZES
+#undef LANG_HOOKS_BUILTIN_FUNCTION
 
 /* Define lang hooks.  */
 #define LANG_HOOKS_NAME                 "GNU F95"
@@ -150,6 +152,7 @@ static HOST_WIDE_INT gfc_get_alias_set (tree);
 #define LANG_HOOKS_OMP_PRIVATE_DEBUG_CLAUSE	gfc_omp_private_debug_clause
 #define LANG_HOOKS_OMP_FIRSTPRIVATIZE_TYPE_SIZES \
   gfc_omp_firstprivatize_type_sizes
+#define LANG_HOOKS_BUILTIN_FUNCTION          gfc_builtin_function
 
 const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
@@ -223,7 +226,7 @@ gfc_expand_function (tree fndecl)
 		&& TREE_CODE (TREE_OPERAND (expr, 0)) == VAR_DECL
 		&& TREE_CODE (TREE_TYPE (TREE_OPERAND (expr, 0)))
 		   == UNION_TYPE
-		&& cgraph_varpool_node (TREE_OPERAND (expr, 0))->needed
+		&& varpool_node (TREE_OPERAND (expr, 0))->needed
 		&& errorcount == 0 && sorrycount == 0)
 	      {
 		timevar_push (TV_SYMOUT);
@@ -723,43 +726,11 @@ int ggc_p = 1;
 
 /* Builtin function initialization.  */
 
-/* Return a definition for a builtin function named NAME and whose data type
-   is TYPE.  TYPE should be a function type with argument types.
-   FUNCTION_CODE tells later passes how to compile calls to this function.
-   See tree.h for its possible values.
-
-   If LIBRARY_NAME is nonzero, use that for DECL_ASSEMBLER_NAME,
-   the name to be called if we can't opencode the function.  If
-   ATTRS is nonzero, use that for the function's attribute list.  */
-
 tree
-builtin_function (const char *name,
-		  tree type,
-		  int function_code,
-		  enum built_in_class class,
-		  const char *library_name,
-		  tree attrs)
+gfc_builtin_function (tree decl)
 {
-  tree decl = build_decl (FUNCTION_DECL, get_identifier (name), type);
-  DECL_EXTERNAL (decl) = 1;
-  TREE_PUBLIC (decl) = 1;
-  if (library_name)
-    SET_DECL_ASSEMBLER_NAME (decl, get_identifier (library_name));
   make_decl_rtl (decl);
   pushdecl (decl);
-  DECL_BUILT_IN_CLASS (decl) = class;
-  DECL_FUNCTION_CODE (decl) = function_code;
-
-  /* Possibly apply some default attributes to this built-in function.  */
-  if (attrs)
-    {
-      /* FORNOW the only supported attribute is "const".  If others need
-         to be supported then see the more general solution in procedure
-         builtin_function in c-decl.c  */
-      if (lookup_attribute ( "const", attrs ))
-        TREE_READONLY (decl) = 1;
-    }
-
   return decl;
 }
 
@@ -773,8 +744,8 @@ gfc_define_builtin (const char * name,
 {
   tree decl;
 
-  decl = builtin_function (name, type, code, BUILT_IN_NORMAL,
-			   library_name, NULL_TREE);
+  decl = add_builtin_function (name, type, code, BUILT_IN_NORMAL,
+			       library_name, NULL_TREE);
   if (const_p)
     TREE_READONLY (decl) = 1;
 
@@ -926,6 +897,13 @@ gfc_init_builtin_functions (void)
 		      BUILT_IN_COPYSIGN, "copysign", true);
   gfc_define_builtin ("__builtin_copysignf", mfunc_float[1], 
 		      BUILT_IN_COPYSIGNF, "copysignf", true);
+ 
+  gfc_define_builtin ("__builtin_fmodl", mfunc_longdouble[1], 
+		      BUILT_IN_FMODL, "fmodl", true);
+  gfc_define_builtin ("__builtin_fmod", mfunc_double[1], 
+		      BUILT_IN_FMOD, "fmod", true);
+  gfc_define_builtin ("__builtin_fmodf", mfunc_float[1], 
+		      BUILT_IN_FMODF, "fmodf", true);
 
   /* These are used to implement the ** operator.  */
   gfc_define_builtin ("__builtin_powl", mfunc_longdouble[1], 

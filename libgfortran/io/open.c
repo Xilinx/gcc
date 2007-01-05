@@ -32,6 +32,7 @@ Boston, MA 02110-1301, USA.  */
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include "libgfortran.h"
 #include "io.h"
 
@@ -178,7 +179,7 @@ edit_modes (st_parameter_open *opp, gfc_unit * u, unit_flags * flags)
 
       if (flags->pad != PAD_UNSPECIFIED)
 	generate_error (&opp->common, ERROR_OPTION_CONFLICT,
-			"PAD paramter conflicts with UNFORMATTED form in "
+			"PAD parameter conflicts with UNFORMATTED form in "
 			"OPEN statement");
     }
 
@@ -284,7 +285,7 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
       if (flags->form == FORM_UNFORMATTED)
 	{
 	  generate_error (&opp->common, ERROR_OPTION_CONFLICT,
-			  "PAD paramter conflicts with UNFORMATTED form in "
+			  "PAD parameter conflicts with UNFORMATTED form in "
 			  "OPEN statement");
 	  goto fail;
 	}
@@ -343,7 +344,7 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
 	break;
 
       opp->file = tmpname;
-      opp->file_len = sprintf(opp->file, "fort.%d", opp->common.unit);
+      opp->file_len = sprintf(opp->file, "fort.%d", (int) opp->common.unit);
       break;
 
     default:
@@ -374,7 +375,34 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
   s = open_external (opp, flags);
   if (s == NULL)
     {
-      generate_error (&opp->common, ERROR_OS, NULL);
+      char *path, *msg;
+      path = (char *) gfc_alloca (opp->file_len + 1);
+      msg = (char *) gfc_alloca (opp->file_len + 51);
+      unpack_filename (path, opp->file, opp->file_len);
+
+      switch (errno)
+	{
+	case ENOENT: 
+	  st_sprintf (msg, "File '%s' does not exist", path);
+	  break;
+
+	case EEXIST:
+	  st_sprintf (msg, "File '%s' already exists", path);
+	  break;
+
+	case EACCES:
+	  st_sprintf (msg, "Permission denied trying to open file '%s'", path);
+	  break;
+
+	case EISDIR:
+	  st_sprintf (msg, "'%s' is a directory", path);
+	  break;
+
+	default:
+	  msg = NULL;
+	}
+
+      generate_error (&opp->common, ERROR_OS, msg);
       goto cleanup;
     }
 
@@ -406,26 +434,36 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
   /* Unspecified recl ends up with a processor dependent value.  */
 
   if ((opp->common.flags & IOPARM_OPEN_HAS_RECL_IN))
-    u->recl = opp->recl_in;
+    {
+      u->flags.has_recl = 1;
+      u->recl = opp->recl_in;
+    }
   else
     {
-      switch (compile_options.record_marker)
+      u->flags.has_recl = 0;
+      u->recl = max_offset;
+      if (compile_options.max_subrecord_length)
 	{
-	case 0:
-	  u->recl = max_offset;
-	  break;
+	  u->recl_subrecord = compile_options.max_subrecord_length;
+	}
+      else
+	{
+	  switch (compile_options.record_marker)
+	    {
+	    case 0:
+	      /* Fall through */
+	    case sizeof (GFC_INTEGER_4):
+	      u->recl_subrecord = GFC_MAX_SUBRECORD_LENGTH;
+	      break;
 
-	case sizeof (GFC_INTEGER_4):
-	  u->recl = GFC_INTEGER_4_HUGE;
-	  break;
+	    case sizeof (GFC_INTEGER_8):
+	      u->recl_subrecord = max_offset - 16;
+	      break;
 
-	case sizeof (GFC_INTEGER_8):
-	  u->recl = max_offset;
-	  break;
-
-	default:
-	  runtime_error ("Illegal value for record marker");
-	  break;
+	    default:
+	      runtime_error ("Illegal value for record marker");
+	      break;
+	    }
 	}
     }
 

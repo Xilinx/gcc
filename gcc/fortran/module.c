@@ -173,6 +173,9 @@ static FILE *module_fp;
 /* The name of the module we're reading (USE'ing) or writing.  */
 static char module_name[GFC_MAX_SYMBOL_LEN + 1];
 
+/* The way the module we're reading was specified.  */
+static bool specified_nonint, specified_int;
+
 static int module_line, module_column, only_flag;
 static enum
 { IO_INPUT, IO_OUTPUT }
@@ -483,11 +486,64 @@ free_rename (void)
 match
 gfc_match_use (void)
 {
-  char name[GFC_MAX_SYMBOL_LEN + 1];
+  char name[GFC_MAX_SYMBOL_LEN + 1], module_nature[GFC_MAX_SYMBOL_LEN + 1];
   gfc_use_rename *tail = NULL, *new;
   interface_type type;
   gfc_intrinsic_op operator;
   match m;
+
+  specified_int = false;
+  specified_nonint = false;
+
+  if (gfc_match (" , ") == MATCH_YES)
+    {
+      if ((m = gfc_match (" %n ::", module_nature)) == MATCH_YES)
+	{
+	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: module "
+			      "nature in USE statement at %C") == FAILURE)
+	    return MATCH_ERROR;
+
+	  if (strcmp (module_nature, "intrinsic") == 0)
+	    specified_int = true;
+	  else
+	    {
+	      if (strcmp (module_nature, "non_intrinsic") == 0)
+		specified_nonint = true;
+	      else
+		{
+		  gfc_error ("Module nature in USE statement at %C shall "
+			     "be either INTRINSIC or NON_INTRINSIC");
+		  return MATCH_ERROR;
+		}
+	    }
+	}
+      else
+	{
+	  /* Help output a better error message than "Unclassifiable
+	     statement".  */
+	  gfc_match (" %n", module_nature);
+	  if (strcmp (module_nature, "intrinsic") == 0
+	      || strcmp (module_nature, "non_intrinsic") == 0)
+	    gfc_error ("\"::\" was expected after module nature at %C "
+		       "but was not found");
+	  return m;
+	}
+    }
+  else
+    {
+      m = gfc_match (" ::");
+      if (m == MATCH_YES &&
+	  gfc_notify_std (GFC_STD_F2003, "Fortran 2003: "
+			  "\"USE :: module\" at %C") == FAILURE)
+	return MATCH_ERROR;
+
+      if (m != MATCH_YES)
+	{
+	  m = gfc_match ("% ");
+	  if (m != MATCH_YES)
+	    return m;
+	}
+    }
 
   m = gfc_match_name (module_name);
   if (m != MATCH_YES)
@@ -1431,11 +1487,11 @@ mio_internal_string (char *string)
 
 typedef enum
 { AB_ALLOCATABLE, AB_DIMENSION, AB_EXTERNAL, AB_INTRINSIC, AB_OPTIONAL,
-  AB_POINTER, AB_SAVE, AB_TARGET, AB_DUMMY, AB_RESULT,
-  AB_DATA, AB_IN_NAMELIST, AB_IN_COMMON, 
-  AB_FUNCTION, AB_SUBROUTINE, AB_SEQUENCE, AB_ELEMENTAL, AB_PURE,
-  AB_RECURSIVE, AB_GENERIC, AB_ALWAYS_EXPLICIT, AB_CRAY_POINTER,
-  AB_CRAY_POINTEE, AB_THREADPRIVATE, AB_ALLOC_COMP
+  AB_POINTER, AB_SAVE, AB_TARGET, AB_DUMMY, AB_RESULT, AB_DATA,
+  AB_IN_NAMELIST, AB_IN_COMMON, AB_FUNCTION, AB_SUBROUTINE, AB_SEQUENCE,
+  AB_ELEMENTAL, AB_PURE, AB_RECURSIVE, AB_GENERIC, AB_ALWAYS_EXPLICIT,
+  AB_CRAY_POINTER, AB_CRAY_POINTEE, AB_THREADPRIVATE, AB_ALLOC_COMP,
+  AB_VALUE, AB_VOLATILE, AB_PROTECTED
 }
 ab_attribute;
 
@@ -1448,6 +1504,8 @@ static const mstring attr_bits[] =
     minit ("OPTIONAL", AB_OPTIONAL),
     minit ("POINTER", AB_POINTER),
     minit ("SAVE", AB_SAVE),
+    minit ("VALUE", AB_VALUE),
+    minit ("VOLATILE", AB_VOLATILE),
     minit ("TARGET", AB_TARGET),
     minit ("THREADPRIVATE", AB_THREADPRIVATE),
     minit ("DUMMY", AB_DUMMY),
@@ -1466,6 +1524,7 @@ static const mstring attr_bits[] =
     minit ("CRAY_POINTER", AB_CRAY_POINTER),
     minit ("CRAY_POINTEE", AB_CRAY_POINTEE),
     minit ("ALLOC_COMP", AB_ALLOC_COMP),
+    minit ("PROTECTED", AB_PROTECTED),
     minit (NULL, -1)
 };
 
@@ -1516,8 +1575,14 @@ mio_symbol_attribute (symbol_attribute * attr)
 	MIO_NAME(ab_attribute) (AB_OPTIONAL, attr_bits);
       if (attr->pointer)
 	MIO_NAME(ab_attribute) (AB_POINTER, attr_bits);
+      if (attr->protected)
+	MIO_NAME(ab_attribute) (AB_PROTECTED, attr_bits);
       if (attr->save)
 	MIO_NAME(ab_attribute) (AB_SAVE, attr_bits);
+      if (attr->value)
+	MIO_NAME(ab_attribute) (AB_VALUE, attr_bits);
+      if (attr->volatile_)
+	MIO_NAME(ab_attribute) (AB_VOLATILE, attr_bits);
       if (attr->target)
 	MIO_NAME(ab_attribute) (AB_TARGET, attr_bits);
       if (attr->threadprivate)
@@ -1593,8 +1658,17 @@ mio_symbol_attribute (symbol_attribute * attr)
 	    case AB_POINTER:
 	      attr->pointer = 1;
 	      break;
+	    case AB_PROTECTED:
+	      attr->protected = 1;
+	      break;
 	    case AB_SAVE:
 	      attr->save = 1;
+	      break;
+	    case AB_VALUE:
+	      attr->value = 1;
+	      break;
+	    case AB_VOLATILE:
+	      attr->volatile_ = 1;
 	      break;
 	    case AB_TARGET:
 	      attr->target = 1;
@@ -2120,27 +2194,9 @@ mio_symtree_ref (gfc_symtree ** stp)
 {
   pointer_info *p;
   fixup_t *f;
-  gfc_symtree * ns_st = NULL;
 
   if (iomode == IO_OUTPUT)
-    {
-      /* If this is a symtree for a symbol that came from a contained module
-	 namespace, it has a unique name and we should look in the current
-	 namespace to see if the required, non-contained symbol is available
-	 yet. If so, the latter should be written.  */
-      if ((*stp)->n.sym && check_unique_name((*stp)->name))
-	ns_st = gfc_find_symtree (gfc_current_ns->sym_root,
-				    (*stp)->n.sym->name);
-
-      /* On the other hand, if the existing symbol is the module name or the
-	 new symbol is a dummy argument, do not do the promotion.  */
-      if (ns_st && ns_st->n.sym
-	    && ns_st->n.sym->attr.flavor != FL_MODULE
-	    && !(*stp)->n.sym->attr.dummy)
-	mio_symbol_ref (&ns_st->n.sym);
-      else
-	mio_symbol_ref (&(*stp)->n.sym);
-    }
+    mio_symbol_ref (&(*stp)->n.sym);
   else
     {
       require_atom (ATOM_INTEGER);
@@ -2480,6 +2536,48 @@ static const mstring intrinsics[] =
     minit (NULL, -1)
 };
 
+
+/* Remedy a couple of situations where the gfc_expr's can be defective.  */
+ 
+static void
+fix_mio_expr (gfc_expr *e)
+{
+  gfc_symtree *ns_st = NULL;
+  const char *fname;
+
+  if (iomode != IO_OUTPUT)
+    return;
+
+  if (e->symtree)
+    {
+      /* If this is a symtree for a symbol that came from a contained module
+	 namespace, it has a unique name and we should look in the current
+	 namespace to see if the required, non-contained symbol is available
+	 yet. If so, the latter should be written.  */
+      if (e->symtree->n.sym && check_unique_name(e->symtree->name))
+	ns_st = gfc_find_symtree (gfc_current_ns->sym_root,
+				    e->symtree->n.sym->name);
+
+      /* On the other hand, if the existing symbol is the module name or the
+	 new symbol is a dummy argument, do not do the promotion.  */
+      if (ns_st && ns_st->n.sym
+	    && ns_st->n.sym->attr.flavor != FL_MODULE
+	    && !e->symtree->n.sym->attr.dummy)
+	e->symtree = ns_st;
+    }
+  else if (e->expr_type == EXPR_FUNCTION && e->value.function.name)
+    {
+      /* In some circumstances, a function used in an initialization
+	 expression, in one use associated module, can fail to be
+	 coupled to its symtree when used in a specification
+	 expression in another module.  */
+      fname = e->value.function.esym ? e->value.function.esym->name :
+				       e->value.function.isym->name;
+      e->symtree = gfc_find_symtree (gfc_current_ns->sym_root, fname);
+    }
+}
+
+
 /* Read and write expressions.  The form "()" is allowed to indicate a
    NULL expression.  */
 
@@ -2523,6 +2621,8 @@ mio_expr (gfc_expr ** ep)
 
   mio_typespec (&e->ts);
   mio_integer (&e->rank);
+
+  fix_mio_expr (e);
 
   switch (e->expr_type)
     {
@@ -2684,7 +2784,7 @@ mio_namelist (gfc_symbol * sym)
 	  check_name = find_use_name (sym->name);
 	  if (check_name && strcmp (check_name, sym->name) != 0)
 	    gfc_error("Namelist %s cannot be renamed by USE"
-		      " association to %s.",
+		      " association to %s",
 		      sym->name, check_name);
 	}
 
@@ -2956,6 +3056,8 @@ load_generic_interfaces (void)
   const char *p;
   char name[GFC_MAX_SYMBOL_LEN + 1], module[GFC_MAX_SYMBOL_LEN + 1];
   gfc_symbol *sym;
+  gfc_interface *generic = NULL;
+  int n, i;
 
   mio_lparen ();
 
@@ -2966,25 +3068,49 @@ load_generic_interfaces (void)
       mio_internal_string (name);
       mio_internal_string (module);
 
-      /* Decide if we need to load this one or not.  */
-      p = find_use_name (name);
+      n = number_use_names (name);
+      n = n ? n : 1;
 
-      if (p == NULL || gfc_find_symbol (p, NULL, 0, &sym))
+      for (i = 1; i <= n; i++)
 	{
-	  while (parse_atom () != ATOM_RPAREN);
-	  continue;
+	  /* Decide if we need to load this one or not.  */
+	  p = find_use_name_n (name, &i);
+
+	  if (p == NULL || gfc_find_symbol (p, NULL, 0, &sym))
+	    {
+	      while (parse_atom () != ATOM_RPAREN);
+	        continue;
+	    }
+
+	  if (sym == NULL)
+	    {
+	      gfc_get_symbol (p, NULL, &sym);
+
+	      sym->attr.flavor = FL_PROCEDURE;
+	      sym->attr.generic = 1;
+	      sym->attr.use_assoc = 1;
+	    }
+	  else
+	    {
+	      /* Unless sym is a generic interface, this reference
+		 is ambiguous.  */
+	      gfc_symtree *st;
+	      p = p ? p : name;
+	      st = gfc_find_symtree (gfc_current_ns->sym_root, p);
+	      st->ambiguous = sym->attr.generic ? 0 : 1;
+	    }
+
+	  if (i == 1)
+	    {
+	      mio_interface_rest (&sym->generic);
+	      generic = sym->generic;
+	    }
+	  else
+	    {
+	      sym->generic = generic;
+	      sym->attr.generic_copy = 1;
+	    }
 	}
-
-      if (sym == NULL)
-	{
-	  gfc_get_symbol (p, NULL, &sym);
-
-	  sym->attr.flavor = FL_PROCEDURE;
-	  sym->attr.generic = 1;
-	  sym->attr.use_assoc = 1;
-	}
-
-      mio_interface_rest (&sym->generic);
     }
 
   mio_rparen ();
@@ -3144,6 +3270,8 @@ load_needed (pointer_info * p)
 
   mio_symbol (sym);
   sym->attr.use_assoc = 1;
+  if (only_flag)
+    sym->attr.use_only = 1;
 
   return 1;
 }
@@ -3407,7 +3535,10 @@ read_module (void)
 
 
 /* Given an access type that is specific to an entity and the default
-   access, return nonzero if the entity is publicly accessible.  */
+   access, return nonzero if the entity is publicly accessible.  If the
+   element is declared as PUBLIC, then it is public; if declared 
+   PRIVATE, then private, and otherwise it is public unless the default
+   access in this context has been declared PRIVATE.  */
 
 bool
 gfc_check_access (gfc_access specific_access, gfc_access default_access)
@@ -3418,12 +3549,7 @@ gfc_check_access (gfc_access specific_access, gfc_access default_access)
   if (specific_access == ACCESS_PRIVATE)
     return FALSE;
 
-  if (gfc_option.flag_module_access_private)
-    return default_access == ACCESS_PUBLIC;
-  else
-    return default_access != ACCESS_PRIVATE;
-
-  return FALSE;
+  return default_access != ACCESS_PRIVATE;
 }
 
 
@@ -3783,6 +3909,138 @@ gfc_dump_module (const char *name, int dump_flag)
 }
 
 
+/* Add an integer named constant from a given module.  */
+static void
+create_int_parameter (const char *name, int value, const char *modname)
+{
+  gfc_symtree * tmp_symtree;
+  gfc_symbol * sym;
+
+  tmp_symtree = gfc_find_symtree (gfc_current_ns->sym_root, name);
+  if (tmp_symtree != NULL)
+    {
+      if (strcmp (modname, tmp_symtree->n.sym->module) == 0)
+	return;
+      else
+	gfc_error ("Symbol '%s' already declared", name);
+    }
+
+  gfc_get_sym_tree (name, gfc_current_ns, &tmp_symtree);
+  sym = tmp_symtree->n.sym;
+
+  sym->module = gfc_get_string (modname);
+  sym->attr.flavor = FL_PARAMETER;
+  sym->ts.type = BT_INTEGER;
+  sym->ts.kind = gfc_default_integer_kind;
+  sym->value = gfc_int_expr (value);
+  sym->attr.use_assoc = 1;
+}
+
+/* USE the ISO_FORTRAN_ENV intrinsic module.  */
+static void
+use_iso_fortran_env_module (void)
+{
+  static char mod[] = "iso_fortran_env";
+  const char *local_name;
+  gfc_use_rename *u;
+  gfc_symbol *mod_sym;
+  gfc_symtree *mod_symtree;
+  int i;
+
+  mstring symbol[] = {
+#define NAMED_INTCST(a,b,c) minit(b,0),
+#include "iso-fortran-env.def"
+#undef NAMED_INTCST
+    minit (NULL, -1234) };
+
+  i = 0;
+#define NAMED_INTCST(a,b,c) symbol[i++].tag = c;
+#include "iso-fortran-env.def"
+#undef NAMED_INTCST
+
+  /* Generate the symbol for the module itself.  */
+  mod_symtree = gfc_find_symtree (gfc_current_ns->sym_root, mod);
+  if (mod_symtree == NULL)
+    {
+      gfc_get_sym_tree (mod, gfc_current_ns, &mod_symtree);
+      gcc_assert (mod_symtree);
+      mod_sym = mod_symtree->n.sym;
+
+      mod_sym->attr.flavor = FL_MODULE;
+      mod_sym->attr.intrinsic = 1;
+      mod_sym->module = gfc_get_string (mod);
+    }
+  else
+    if (!mod_symtree->n.sym->attr.intrinsic)
+      gfc_error ("Use of intrinsic module '%s' at %C conflicts with "
+		 "non-intrinsic module name used previously", mod);
+
+  /* Generate the symbols for the module integer named constants.  */
+  if (only_flag)
+    for (u = gfc_rename_list; u; u = u->next)
+      {
+	for (i = 0; symbol[i].string; i++)
+	  if (strcmp (symbol[i].string, u->use_name) == 0)
+	    break;
+
+	if (symbol[i].string == NULL)
+	  {
+	    gfc_error ("Symbol '%s' referenced at %L does not exist in "
+		       "intrinsic module ISO_FORTRAN_ENV", u->use_name,
+		       &u->where);
+	    continue;
+	  }
+
+	if ((gfc_option.flag_default_integer || gfc_option.flag_default_real)
+	    && strcmp (symbol[i].string, "numeric_storage_size") == 0)
+	  gfc_warning_now ("Use of the NUMERIC_STORAGE_SIZE named constant "
+			   "from intrinsic module ISO_FORTRAN_ENV at %L is "
+			   "incompatible with option %s", &u->where,
+			   gfc_option.flag_default_integer
+			     ? "-fdefault-integer-8" : "-fdefault-real-8");
+
+	create_int_parameter (u->local_name[0] ? u->local_name
+					       : symbol[i].string,
+			      symbol[i].tag, mod);
+      }
+  else
+    {
+      for (i = 0; symbol[i].string; i++)
+	{
+	  local_name = NULL;
+	  for (u = gfc_rename_list; u; u = u->next)
+	    {
+	      if (strcmp (symbol[i].string, u->use_name) == 0)
+		{
+		  local_name = u->local_name;
+		  u->found = 1;
+		  break;
+		}
+	    }
+
+	  if ((gfc_option.flag_default_integer || gfc_option.flag_default_real)
+	      && strcmp (symbol[i].string, "numeric_storage_size") == 0)
+	    gfc_warning_now ("Use of the NUMERIC_STORAGE_SIZE named constant "
+			     "from intrinsic module ISO_FORTRAN_ENV at %C is "
+			     "incompatible with option %s",
+			     gfc_option.flag_default_integer
+				? "-fdefault-integer-8" : "-fdefault-real-8");
+
+	  create_int_parameter (local_name ? local_name : symbol[i].string,
+				symbol[i].tag, mod);
+	}
+
+      for (u = gfc_rename_list; u; u = u->next)
+	{
+	  if (u->found)
+	    continue;
+
+	  gfc_error ("Symbol '%s' referenced at %L not found in intrinsic "
+		     "module ISO_FORTRAN_ENV", u->use_name, &u->where);
+	}
+    }
+}
+
 /* Process a USE directive.  */
 
 void
@@ -3790,30 +4048,71 @@ gfc_use_module (void)
 {
   char *filename;
   gfc_state_data *p;
-  int c, line;
+  int c, line, start;
+  gfc_symtree *mod_symtree;
 
   filename = (char *) alloca(strlen(module_name) + strlen(MODULE_EXTENSION)
 			     + 1);
   strcpy (filename, module_name);
   strcat (filename, MODULE_EXTENSION);
 
-  module_fp = gfc_open_included_file (filename, true);
+  /* First, try to find an non-intrinsic module, unless the USE statement
+     specified that the module is intrinsic.  */
+  module_fp = NULL;
+  if (!specified_int)
+    module_fp = gfc_open_included_file (filename, true, true);
+
+  /* Then, see if it's an intrinsic one, unless the USE statement
+     specified that the module is non-intrinsic.  */
+  if (module_fp == NULL && !specified_nonint)
+    {
+      if (strcmp (module_name, "iso_fortran_env") == 0
+         && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: "
+                            "ISO_FORTRAN_ENV intrinsic module at %C") != FAILURE)
+       {
+         use_iso_fortran_env_module ();
+         return;
+       }
+
+      module_fp = gfc_open_intrinsic_module (filename);
+
+      if (module_fp == NULL && specified_int)
+       gfc_fatal_error ("Can't find an intrinsic module named '%s' at %C",
+                        module_name);
+    }
+
   if (module_fp == NULL)
     gfc_fatal_error ("Can't open module file '%s' for reading at %C: %s",
 		     filename, strerror (errno));
 
+  /* Check that we haven't already USEd an intrinsic module with the
+     same name.  */
+
+  mod_symtree = gfc_find_symtree (gfc_current_ns->sym_root, module_name);
+  if (mod_symtree && mod_symtree->n.sym->attr.intrinsic)
+    gfc_error ("Use of non-intrinsic module '%s' at %C conflicts with "
+	       "intrinsic module name used previously", module_name);
+
   iomode = IO_INPUT;
   module_line = 1;
   module_column = 1;
+  start = 0;
 
-  /* Skip the first two lines of the module.  */
-  /* FIXME: Could also check for valid two lines here, instead.  */
+  /* Skip the first two lines of the module, after checking that this is
+     a gfortran module file.  */
   line = 0;
   while (line < 2)
     {
       c = module_char ();
       if (c == EOF)
 	bad_module ("Unexpected end of module");
+      if (start++ < 2)
+	parse_name (c);
+      if ((start == 1 && strcmp (atom_name, "GFORTRAN") != 0)
+	    || (start == 2 && strcmp (atom_name, " module") != 0))
+	gfc_fatal_error ("File '%s' opened at %C is not a GFORTRAN module "
+			  "file", filename);
+
       if (c == '\n')
 	line++;
     }

@@ -1,3 +1,53 @@
+2007-01-04  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/28165:
+	* internal.h (cpp_in_primary_file): New function.
+	* directives.c (do_include_next): Use cpp_in_primary_file.
+	(do_pragma_once): Likewise.
+	(do_pragma_system_header): Likewise.
+
+2006-12-29  Ian Lance Taylor  <iant@google.com>
+
+	* lex.c (_cpp_clean_line): Add uses of __builtin_expect.  Don't
+	look backward at the end of the line unless we saw a backslash.
+
+2006-12-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR preprocessor/29612
+	* directives.c (do_linemarker): Set pfile->buffer->sysp always, not
+	only when new_sysp is non-zero.
+
+2006-12-28  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/30001:
+	* charset.c (_cpp_convert_input): Check that to.len is greater
+	than zero.
+
+2006-11-20  Trevor Smigiel <Trevor_Smigiel@playstation.sony.com>
+
+	* configure.ac (need_64bit_hwint): Need 64bit hwint for SPU.
+	* configure: Rebuilt.
+
+2006-11-01	Douglas Gregor <doug.gregor@gmail.com>
+
+	* include/cpplib.h (enum c_lang): Add CLK_GNUCXX0X and CLK_CXX0X
+	for experimental C++0x mode.
+	* init.c (lang_defaults): Add defaults for C++0x modes. C++0x has
+	adopted the preprocessor changes introduced in C99.
+
+2006-10-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure.ac (need_64bit_hwint): Set for i[34567]86-*-linux*
+	depending on --enable-targets=all.
+	* configure: Regenerate.
+
+2006-10-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR preprocessor/28709
+	* macro.c (paste_tokens): Do error reporting here, use BUF with the
+	spelled LHS token as opposed to spelling it again.
+	(paste_all_tokens): Don't report errors here, just break on failure.
+
 2006-10-10  Brooks Moses  <bmoses@stanford.edu>
 
 	* Makefile.in: Added empty "pdf" target.

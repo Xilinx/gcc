@@ -446,13 +446,15 @@ constant_val_insert (tree fn, tree parm1, tree val)
   edge e_step;
   edge_iterator ei;
 
-  init_stmt = build2 (MODIFY_EXPR, void_type_node, parm1, val);
+  init_stmt = build2 (GIMPLE_MODIFY_STMT, void_type_node, parm1, val);
   func = DECL_STRUCT_FUNCTION (fn);
   cfun = func;
   current_function_decl = fn;
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (func)->succs)
     FOR_EACH_EDGE (e_step, ei, ENTRY_BLOCK_PTR_FOR_FUNCTION (func)->succs)
       bsi_insert_on_edge_immediate (e_step, init_stmt);
+  current_function_decl = NULL;
+  cfun = NULL;
 }
 
 /* build INTEGER_CST tree with type TREE_TYPE and 

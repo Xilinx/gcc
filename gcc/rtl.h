@@ -850,7 +850,6 @@ extern const char * const reg_note_name[];
 #define NOTE_BLOCK(INSN)	XCTREE (INSN, 4, NOTE)
 #define NOTE_EH_HANDLER(INSN)	XCINT (INSN, 4, NOTE)
 #define NOTE_BASIC_BLOCK(INSN)	XCBBDEF (INSN, 4, NOTE)
-#define NOTE_EXPECTED_VALUE(INSN) XCEXP (INSN, 4, NOTE)
 #define NOTE_VAR_LOCATION(INSN)	XCEXP (INSN, 4, NOTE)
 
 /* In a NOTE that is a line number, this is the line number.
@@ -1041,6 +1040,7 @@ extern unsigned int subreg_regno_offset	(unsigned int, enum machine_mode,
 extern bool subreg_offset_representable_p (unsigned int, enum machine_mode,
 					   unsigned int, enum machine_mode);
 extern unsigned int subreg_regno (rtx);
+extern unsigned int subreg_nregs (rtx);
 extern unsigned HOST_WIDE_INT nonzero_bits (rtx, enum machine_mode);
 extern unsigned int num_sign_bit_copies (rtx, enum machine_mode);
 extern bool constant_pool_constant_p (rtx);
@@ -1196,6 +1196,7 @@ do {						\
    MEM_NOTRAP_P (LHS) = MEM_NOTRAP_P (RHS),			\
    MEM_READONLY_P (LHS) = MEM_READONLY_P (RHS),			\
    MEM_KEEP_ALIAS_SET_P (LHS) = MEM_KEEP_ALIAS_SET_P (RHS),	\
+   MEM_POINTER (LHS) = MEM_POINTER (RHS),			\
    MEM_ATTRS (LHS) = MEM_ATTRS (RHS))
 
 /* 1 if RTX is a label_ref for a nonlocal label.  */
@@ -1433,9 +1434,6 @@ extern int currently_expanding_to_rtl;
 /* In expmed.c */
 extern int ceil_log2 (unsigned HOST_WIDE_INT);
 
-/* In builtins.c */
-extern rtx expand_builtin_expect_jump (tree, rtx, rtx);
-
 /* In explow.c */
 extern void set_stack_check_libfunc (rtx);
 extern HOST_WIDE_INT trunc_int_for_mode	(HOST_WIDE_INT, enum machine_mode);
@@ -1552,7 +1550,6 @@ extern rtx emit_call_insn_after_setloc (rtx, rtx, int);
 extern rtx emit_barrier_after (rtx);
 extern rtx emit_label_after (rtx, rtx);
 extern rtx emit_note_after (int, rtx);
-extern rtx emit_note_copy_after (rtx, rtx);
 extern rtx emit_insn (rtx);
 extern rtx emit_jump_insn (rtx);
 extern rtx emit_call_insn (rtx);
@@ -2031,7 +2028,6 @@ extern enum rtx_code reversed_comparison_code_parts (enum rtx_code,
 						     rtx, rtx, rtx);
 extern void delete_for_peephole (rtx, rtx);
 extern int condjump_in_parallel_p (rtx);
-extern unsigned int purge_line_number_notes (void);
 
 /* In emit-rtl.c.  */
 extern int max_reg_num (void);
@@ -2064,7 +2060,6 @@ extern void add_insn (rtx);
 extern void add_insn_before (rtx, rtx);
 extern void add_insn_after (rtx, rtx);
 extern void remove_insn (rtx);
-extern void emit_insn_after_with_line_notes (rtx, rtx, rtx);
 extern rtx emit (rtx);
 extern void renumber_insns (void);
 extern rtx delete_insn (rtx);
@@ -2251,6 +2246,8 @@ extern GTY(()) rtx stack_limit_rtx;
 /* In predict.c */
 extern void invert_br_probabilities (rtx);
 extern bool expensive_function_p (int);
+/* In cfgexpand.c */
+extern void add_reg_br_prob_note (rtx last, int probability);
 /* In tracer.c */
 extern void tracer (unsigned int);
 

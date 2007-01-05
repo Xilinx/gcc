@@ -85,8 +85,8 @@ vn_compute (tree expr, hashval_t val)
   /* EXPR must not be a statement.  We are only interested in value
      numbering expressions on the RHS of assignments.  */
   gcc_assert (expr);
-  gcc_assert (!expr->common.ann
-	      || expr->common.ann->common.type != STMT_ANN);
+  gcc_assert (!expr->base.ann
+	      || expr->base.ann->common.type != STMT_ANN);
 
   val = iterative_hash_expr (expr, val);
   return val;
@@ -181,6 +181,7 @@ set_value_handle (tree e, tree v)
   if (TREE_CODE (e) == SSA_NAME)
     SSA_NAME_VALUE (e) = v;
   else if (EXPR_P (e) || DECL_P (e) || TREE_CODE (e) == TREE_LIST
+	   || GIMPLE_STMT_P (e)
 	   || TREE_CODE (e) == CONSTRUCTOR)
     get_tree_common_ann (e)->value_handle = v;
   else
@@ -419,33 +420,6 @@ vn_lookup_or_add_with_vuses (tree expr, VEC (tree, gc) *vuses)
   return v;
 }
 
-
-
-/* Get the value handle of EXPR.  This is the only correct way to get
-   the value handle for a "thing".  If EXPR does not have a value
-   handle associated, it returns NULL_TREE.  
-   NB: If EXPR is min_invariant, this function is *required* to return EXPR.  */
-
-tree
-get_value_handle (tree expr)
-{
-
-  if (is_gimple_min_invariant (expr))
-    return expr;
-
-  if (TREE_CODE (expr) == SSA_NAME)
-    return SSA_NAME_VALUE (expr);
-  else if (EXPR_P (expr) || DECL_P (expr) || TREE_CODE (expr) == TREE_LIST
-	   || TREE_CODE (expr) == CONSTRUCTOR)
-    {
-      tree_ann_common_t ann = tree_common_ann (expr);
-      return ((ann) ? ann->value_handle : NULL_TREE);
-    }
-  else
-    gcc_unreachable ();
-}
-
-
 /* Initialize data structures used in value numbering.  */
 
 void
@@ -455,7 +429,6 @@ vn_init (void)
 			     val_expr_pair_expr_eq, free);
   shared_lookup_vuses = NULL;
 }
-
 
 /* Delete data used for value numbering.  */
 

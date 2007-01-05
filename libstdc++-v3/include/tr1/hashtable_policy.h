@@ -27,7 +27,7 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-/** @file 
+/** @file tr1/hashtable_policy.h
  *  This is a TR1 C++ Library header. 
  */
 
@@ -42,8 +42,6 @@ namespace std
 { 
 _GLIBCXX_BEGIN_NAMESPACE(tr1)
 namespace __detail
-{
-namespace 
 {
   // Helper function: return distance(first, last) for forward
   // iterators, or 0 for input iterators.
@@ -168,7 +166,6 @@ namespace
       (unsigned long)18446744073709551557ull,
       (unsigned long)18446744073709551557ull
     };
-} // anonymous namespace
 
   // Auxiliary types used for all instantiations of _Hashtable: nodes
   // and iterators.

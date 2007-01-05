@@ -34,6 +34,7 @@ Boston, MA 02110-1301, USA.  */
 #include <stdarg.h>
 #include <string.h>
 #include <float.h>
+#include <errno.h>
 
 #include "libgfortran.h"
 #include "../io/io.h"
@@ -284,7 +285,7 @@ show_locus (st_parameter_common *cmp)
   if (!options.locus || cmp == NULL || cmp->filename == NULL)
     return;
 
-  st_printf ("At line %d of file %s\n", cmp->line, cmp->filename);
+  st_printf ("At line %d of file %s\n", (int) cmp->line, cmp->filename);
 }
 
 
@@ -435,6 +436,14 @@ translate_error (int code)
       p = "Write exceeds length of DIRECT access record";
       break;
 
+    case ERROR_SHORT_RECORD:
+      p = "I/O past end of record on unformatted file";
+      break;
+
+    case ERROR_CORRUPT_FILE:
+      p = "Unformatted file structure has been corrupted";
+      break;
+
     default:
       p = "Unknown error code";
       break;
@@ -457,7 +466,7 @@ generate_error (st_parameter_common *cmp, int family, const char *message)
 {
   /* Set the error status.  */
   if ((cmp->flags & IOPARM_HAS_IOSTAT))
-    *cmp->iostat = family;
+    *cmp->iostat = (family == ERROR_OS) ? errno : family;
 
   if (message == NULL)
     message =

@@ -63,7 +63,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 
 static int can_delete_note_p (rtx);
 static int can_delete_label_p (rtx);
-static void commit_one_edge_insertion (edge, int);
+static void commit_one_edge_insertion (edge);
 static basic_block rtl_split_edge (edge);
 static bool rtl_move_block_after (basic_block, basic_block);
 static int rtl_verify_flow_info (void);
@@ -327,12 +327,8 @@ rtl_create_basic_block (void *headp, void *endp, basic_block after)
   /* Grow the basic block array if needed.  */
   if ((size_t) last_basic_block >= VEC_length (basic_block, basic_block_info))
     {
-      size_t old_size = VEC_length (basic_block, basic_block_info);
       size_t new_size = last_basic_block + (last_basic_block + 3) / 4;
-      basic_block *p;
-      VEC_safe_grow (basic_block, gc, basic_block_info, new_size);
-      p = VEC_address (basic_block, basic_block_info);
-      memset (&p[old_size], 0, sizeof (basic_block) * (new_size - old_size));
+      VEC_safe_grow_cleared (basic_block, gc, basic_block_info, new_size);
     }
 
   n_basic_blocks++;
@@ -361,7 +357,7 @@ cfg_layout_create_basic_block (void *head, void *end, basic_block after)
 static void
 rtl_delete_block (basic_block b)
 {
-  rtx insn, end, tmp;
+  rtx insn, end;
 
   /* If the head of this block is a CODE_LABEL, then it might be the
      label for an exception handler which can't be reached.  We need
@@ -370,18 +366,7 @@ rtl_delete_block (basic_block b)
   if (LABEL_P (insn))
     maybe_remove_eh_handler (insn);
 
-  /* Include any jump table following the basic block.  */
-  end = BB_END (b);
-  if (tablejump_p (end, NULL, &tmp))
-    end = tmp;
-
-  /* Include any barriers that may follow the basic block.  */
-  tmp = next_nonnote_insn (end);
-  while (tmp && BARRIER_P (tmp))
-    {
-      end = tmp;
-      tmp = next_nonnote_insn (end);
-    }
+  end = get_last_bb_insn (b);
 
   /* Selectively delete the entire chain.  */
   BB_HEAD (b) = NULL;
@@ -866,12 +851,6 @@ try_redirect_by_replacing_jump (edge e, basic_block target, bool in_cfglayout)
   e->probability = REG_BR_PROB_BASE;
   e->count = src->count;
 
-  /* We don't want a block to end on a line-number note since that has
-     the potential of changing the code between -g and not -g.  */
-  while (NOTE_P (BB_END (e->src))
-	 && NOTE_LINE_NUMBER (BB_END (e->src)) >= 0)
-    delete_insn (BB_END (e->src));
-
   if (e->dest != target)
     redirect_edge_succ (e, target);
 
@@ -1233,11 +1212,6 @@ rtl_tidy_fallthru_edge (edge e)
 #endif
 
       q = PREV_INSN (q);
-
-      /* We don't want a block to end on a line-number note since that has
-	 the potential of changing the code between -g and not -g.  */
-      while (NOTE_P (q) && NOTE_LINE_NUMBER (q) >= 0)
-	q = PREV_INSN (q);
     }
 
   /* Selectively unlink the sequence.  */
@@ -1359,7 +1333,7 @@ insert_insn_on_edge (rtx pattern, edge e)
 /* Update the CFG for the instructions queued on edge E.  */
 
 static void
-commit_one_edge_insertion (edge e, int watch_calls)
+commit_one_edge_insertion (edge e)
 {
   rtx before = NULL_RTX, after = NULL_RTX, insns, tmp, last;
   basic_block bb = NULL;
@@ -1368,25 +1342,6 @@ commit_one_edge_insertion (edge e, int watch_calls)
   insns = e->insns.r;
   e->insns.r = NULL_RTX;
 
-  /* Special case -- avoid inserting code between call and storing
-     its return value.  */
-  if (watch_calls && (e->flags & EDGE_FALLTHRU)
-      && single_pred_p (e->dest)
-      && e->src != ENTRY_BLOCK_PTR
-      && CALL_P (BB_END (e->src)))
-    {
-      rtx next = next_nonnote_insn (BB_END (e->src));
-
-      after = BB_HEAD (e->dest);
-      /* The first insn after the call may be a stack pop, skip it.  */
-      while (next
-	     && keep_with_call_p (next))
-	{
-	  after = next;
-	  next = next_nonnote_insn (next);
-	}
-      bb = e->dest;
-    }
   if (!before && !after)
     {
       /* Figure out where to put these things.  If the destination has
@@ -1499,7 +1454,8 @@ commit_one_edge_insertion (edge e, int watch_calls)
     gcc_assert (!JUMP_P (last));
 
   /* Mark the basic block for find_many_sub_basic_blocks.  */
-  bb->aux = &bb->aux;
+  if (current_ir_type () != IR_RTL_CFGLAYOUT)
+    bb->aux = &bb->aux;
 }
 
 /* Update the CFG for all queued instructions.  */
@@ -1524,56 +1480,18 @@ commit_edge_insertions (void)
 	if (e->insns.r)
 	  {
 	    changed = true;
-	    commit_one_edge_insertion (e, false);
+	    commit_one_edge_insertion (e);
 	  }
     }
 
   if (!changed)
     return;
 
-  blocks = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (blocks);
-  FOR_EACH_BB (bb)
-    if (bb->aux)
-      {
-	SET_BIT (blocks, bb->index);
-	/* Check for forgotten bb->aux values before commit_edge_insertions
-	   call.  */
-	gcc_assert (bb->aux == &bb->aux);
-	bb->aux = NULL;
-      }
-  find_many_sub_basic_blocks (blocks);
-  sbitmap_free (blocks);
-}
-
-/* Update the CFG for all queued instructions, taking special care of inserting
-   code on edges between call and storing its return value.  */
-
-void
-commit_edge_insertions_watch_calls (void)
-{
-  basic_block bb;
-  sbitmap blocks;
-  bool changed = false;
-
-#ifdef ENABLE_CHECKING
-  verify_flow_info ();
-#endif
-
-  FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, EXIT_BLOCK_PTR, next_bb)
-    {
-      edge e;
-      edge_iterator ei;
-
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	if (e->insns.r)
-	  {
-	    changed = true;
-	    commit_one_edge_insertion (e, true);
-	  }
-    }
-
-  if (!changed)
+  /* In the old rtl CFG API, it was OK to insert control flow on an
+     edge, apparently?  In cfglayout mode, this will *not* work, and
+     the caller is responsible for making sure that control flow is
+     valid at all times.  */
+  if (current_ir_type () == IR_RTL_CFGLAYOUT)
     return;
 
   blocks = sbitmap_alloc (last_basic_block);
@@ -1660,6 +1578,8 @@ print_rtl_with_bb (FILE *outf, rtx rtx_first)
       for (tmp_rtx = rtx_first; NULL != tmp_rtx; tmp_rtx = NEXT_INSN (tmp_rtx))
 	{
 	  int did_output;
+	  edge_iterator ei;
+	  edge e;
 
 	  if ((bb = start[INSN_UID (tmp_rtx)]) != NULL)
 	    {
@@ -1667,6 +1587,12 @@ print_rtl_with_bb (FILE *outf, rtx rtx_first)
 		       bb->index);
 	      dump_regset (bb->il.rtl->global_live_at_start, outf);
 	      putc ('\n', outf);
+	      FOR_EACH_EDGE (e, ei, bb->preds)
+		{
+		  fputs (";; Pred edge ", outf);
+		  dump_edge_info (outf, e, 0);
+		  fputc ('\n', outf);
+		}
 	    }
 
 	  if (in_bb_p[INSN_UID (tmp_rtx)] == NOT_IN_BB
@@ -1680,10 +1606,16 @@ print_rtl_with_bb (FILE *outf, rtx rtx_first)
 
 	  if ((bb = end[INSN_UID (tmp_rtx)]) != NULL)
 	    {
-	      fprintf (outf, ";; End of basic block %d, registers live:\n",
+	      fprintf (outf, ";; End of basic block %d, registers live:",
 		       bb->index);
 	      dump_regset (bb->il.rtl->global_live_at_end, outf);
 	      putc ('\n', outf);
+	      FOR_EACH_EDGE (e, ei, bb->succs)
+		{
+		  fputs (";; Succ edge ", outf);
+		  dump_edge_info (outf, e, 1);
+		  fputc ('\n', outf);
+		}
 	    }
 
 	  if (did_output)
@@ -1714,6 +1646,29 @@ update_br_prob_note (basic_block bb)
   if (!note || INTVAL (XEXP (note, 0)) == BRANCH_EDGE (bb)->probability)
     return;
   XEXP (note, 0) = GEN_INT (BRANCH_EDGE (bb)->probability);
+}
+
+/* Get the last insn associated with block BB (that includes barriers and
+   tablejumps after BB).  */
+rtx
+get_last_bb_insn (basic_block bb)
+{
+  rtx tmp;
+  rtx end = BB_END (bb);
+
+  /* Include any jump table following the basic block.  */
+  if (tablejump_p (end, NULL, &tmp))
+    end = tmp;
+
+  /* Include any barriers that may follow the basic block.  */
+  tmp = next_nonnote_insn (end);
+  while (tmp && BARRIER_P (tmp))
+    {
+      end = tmp;
+      tmp = next_nonnote_insn (end);
+    }
+
+  return end;
 }
 
 /* Verify the CFG and RTL consistency common for both underlying RTL and

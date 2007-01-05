@@ -198,6 +198,14 @@ DEFPARAM(PARAM_INLINE_CALL_COST,
 	 "inline-call-cost",
 	 "expense of call operation relative to ordinary arithmetic operations",
 	 16, 0, 0)
+DEFPARAM(PARAM_LARGE_STACK_FRAME,
+	 "large-stack-frame",
+	 "The size of stack frame to be considered large",
+	 256, 0, 0)
+DEFPARAM(PARAM_STACK_FRAME_GROWTH,
+	 "large-stack-frame-growth",
+	 "Maximal stack frame growth due to inlining (in percent)",
+	 1000, 0, 0)
 
 /* The GCSE optimization will be disabled if it would require
    significantly more memory than this value.  */
@@ -443,13 +451,6 @@ DEFPARAM(PARAM_VECT_MAX_VERSION_CHECKS,
          "Bound on number of runtime checks inserted by the vectorizer's loop versioning",
          6, 0, 0)
 
-/* The product of the next two is used to decide whether or not to
-   use .GLOBAL_VAR.  See tree-dfa.c.  */
-DEFPARAM(PARAM_GLOBAL_VAR_THRESHOLD,
-	"global-var-threshold",
-	"Given N calls and V call-clobbered vars in a function.  Use .GLOBAL_VAR if NxV is larger than this limit",
-	500000, 0, 0)
-
 DEFPARAM(PARAM_MAX_CSELIB_MEMORY_LOCATIONS,
 	 "max-cselib-memory-locations",
 	 "The maximum memory locations recorded by cselib",
@@ -487,8 +488,8 @@ DEFPARAM(PARAM_MAX_RELOAD_SEARCH_INSNS,
 
 DEFPARAM(PARAM_MAX_ALIASED_VOPS,
          "max-aliased-vops",
-	 "The maximum number of virtual operands allowed to represent aliases before triggering alias grouping",
-	 500, 0, 0)
+	 "The maximum number of virtual operators per statement allowed to represent aliases before triggering alias grouping",
+	 10, 0, 0)
 
 DEFPARAM(PARAM_MAX_SCHED_REGION_BLOCKS,
 	 "max-sched-region-blocks",
@@ -594,6 +595,50 @@ DEFPARAM(PARAM_MAX_SCHED_READY_INSNS,
 	 "The maximum number of instructions ready to be issued to be considered by the scheduler during the first scheduling pass",
 	 100, 0, 0)
 
+/* Prefetching and cache-optimizations related parameters.  Default values are
+   usually set by machine description.  */
+
+/* The number of insns executed before prefetch is completed.  */
+
+DEFPARAM (PARAM_PREFETCH_LATENCY,
+	 "prefetch-latency",
+	 "The number of insns executed before prefetch is completed",
+	 200, 0, 0)
+
+/* The number of prefetches that can run at the same time.  */
+
+DEFPARAM (PARAM_SIMULTANEOUS_PREFETCHES,
+	  "simultaneous-prefetches",
+	  "The number of prefetches that can run at the same time",
+	  3, 0, 0)
+
+/* The size of L1 cache in number of cache lines.  */
+
+DEFPARAM (PARAM_L1_CACHE_SIZE,
+	  "l1-cache-size",
+	  "The size of L1 cache",
+	  1024, 0, 0)
+
+/* The size of L1 cache line in bytes.  */
+
+DEFPARAM (PARAM_L1_CACHE_LINE_SIZE,
+	  "l1-cache-line-size",
+	  "The size of L1 cache line",
+	  32, 0, 0)
+
+#ifdef ENABLE_CHECKING
+# define GCC_CANONICAL_TYPES_DEFAULT 1
+#else
+# define GCC_CANONICAL_TYPES_DEFAULT 0
+#endif
+
+/* Whether we should verify that the canonical types in the system are
+   consistent with the "structural" typing. */
+
+DEFPARAM (PARAM_VERIFY_CANONICAL_TYPES,
+	  "verify-canonical-types",
+	  "Whether to verify canonical types",
+	  GCC_CANONICAL_TYPES_DEFAULT, 0, 1)
 /*
 Local variables:
 mode:c

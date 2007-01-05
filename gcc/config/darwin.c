@@ -220,7 +220,8 @@ indirect_data (rtx sym_ref)
   int lprefix;
   const char *name;
 
-  /* If we aren't generating fix-and-continue code, don't do anything special.  */
+  /* If we aren't generating fix-and-continue code, don't do anything
+     special.  */
   if (TARGET_FIX_AND_CONTINUE == 0)
     return 0;
 
@@ -712,7 +713,8 @@ machopic_legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 				   gen_rtx_LO_SUM (Pmode, temp_reg, asym));
 	      emit_insn (gen_rtx_SET (VOIDmode, reg, mem));
 #else
-	      /* Some other CPU -- WriteMe! but right now there are no other platform that can use dynamic-no-pic  */
+	      /* Some other CPU -- WriteMe! but right now there are no other
+		 platforms that can use dynamic-no-pic  */
 	      gcc_unreachable ();
 #endif
 	      pic_ref = reg;
@@ -740,8 +742,7 @@ machopic_legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 				  gen_rtx_LO_SUM (Pmode,
 						  hi_sum_reg, offset));
 	      insn = emit_insn (gen_rtx_SET (VOIDmode, reg, mem));
-	      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUAL, pic_ref,
-						    REG_NOTES (insn));
+	      set_unique_reg_note (insn, REG_EQUAL, pic_ref);
 
 	      pic_ref = reg;
 #else
@@ -1093,135 +1094,220 @@ darwin_mark_decl_preserved (const char *name)
   fputc ('\n', asm_out_file);
 }
 
-section *
-machopic_select_section (tree exp, int reloc,
-			 unsigned HOST_WIDE_INT align ATTRIBUTE_UNUSED)
+static section *
+darwin_text_section (int reloc, int weak)
 {
-  section *base_section;
-  bool weak_p = (DECL_P (exp) && DECL_WEAK (exp)
-		 && (lookup_attribute ("weak", DECL_ATTRIBUTES (exp))
-		     || ! lookup_attribute ("weak_import",
-					    DECL_ATTRIBUTES (exp))));
-
-  if (TREE_CODE (exp) == FUNCTION_DECL)
-    {
-      if (reloc == 1)
-	base_section = (weak_p
-			? darwin_sections[text_unlikely_coal_section]
-			: unlikely_text_section ());
-      else
-	base_section = weak_p ? darwin_sections[text_coal_section] : text_section;
-    }
-  else if (decl_readonly_section_1 (exp, reloc, MACHOPIC_INDIRECT))
-    base_section = weak_p ? darwin_sections[const_coal_section] : darwin_sections[const_section];
-  else if (TREE_READONLY (exp) || TREE_CONSTANT (exp))
-    base_section = weak_p ? darwin_sections[const_data_coal_section] : darwin_sections[const_data_section];
+  if (reloc)
+    return (weak
+	    ? darwin_sections[text_unlikely_coal_section]
+	    : unlikely_text_section ());
   else
-    base_section = weak_p ? darwin_sections[data_coal_section] : data_section;
+    return (weak
+	    ? darwin_sections[text_coal_section]
+	    : text_section);
+}
 
-  if (TREE_CODE (exp) == STRING_CST
+static section *
+darwin_rodata_section (int weak)
+{
+  return (weak
+	  ? darwin_sections[const_coal_section]
+	  : darwin_sections[const_section]);
+}
+
+static section *
+darwin_mergeable_string_section (tree exp,
+				 unsigned HOST_WIDE_INT align)
+{
+  if (flag_merge_constants
+      && TREE_CODE (exp) == STRING_CST
+      && TREE_CODE (TREE_TYPE (exp)) == ARRAY_TYPE
+      && align <= 256
       && ((size_t) TREE_STRING_LENGTH (exp)
 	  == strlen (TREE_STRING_POINTER (exp)) + 1))
     return darwin_sections[cstring_section];
-  else if ((TREE_CODE (exp) == INTEGER_CST || TREE_CODE (exp) == REAL_CST)
-	   && flag_merge_constants)
+
+  return readonly_data_section;
+}
+
+#ifndef HAVE_GAS_LITERAL16
+#define HAVE_GAS_LITERAL16 0
+#endif
+
+static section *
+darwin_mergeable_constant_section (tree exp,
+				   unsigned HOST_WIDE_INT align)
+{
+  enum machine_mode mode = DECL_MODE (exp);
+  unsigned int modesize = GET_MODE_BITSIZE (mode);
+
+  if (flag_merge_constants
+      && mode != VOIDmode
+      && mode != BLKmode
+      && modesize <= align
+      && align >= 8
+      && align <= 256
+      && (align & (align -1)) == 0)
     {
       tree size = TYPE_SIZE_UNIT (TREE_TYPE (exp));
 
-      if (TREE_CODE (size) == INTEGER_CST &&
-	  TREE_INT_CST_LOW (size) == 4 &&
-	  TREE_INT_CST_HIGH (size) == 0)
-	return darwin_sections[literal4_section];
-      else if (TREE_CODE (size) == INTEGER_CST &&
-	       TREE_INT_CST_LOW (size) == 8 &&
-	       TREE_INT_CST_HIGH (size) == 0)
-	return darwin_sections[literal8_section];
-      else if (TARGET_64BIT
-	       && TREE_CODE (size) == INTEGER_CST
-	       && TREE_INT_CST_LOW (size) == 16
+      if (TREE_CODE (size) == INTEGER_CST
+	  && TREE_INT_CST_LOW (size) == 4
+	  && TREE_INT_CST_HIGH (size) == 0)
+        return darwin_sections[literal4_section];
+      else if (TREE_CODE (size) == INTEGER_CST
+	       && TREE_INT_CST_LOW (size) == 8
 	       && TREE_INT_CST_HIGH (size) == 0)
-	return darwin_sections[literal16_section];
+        return darwin_sections[literal8_section];
+      else if (HAVE_GAS_LITERAL16
+	       && TARGET_64BIT
+               && TREE_CODE (size) == INTEGER_CST
+               && TREE_INT_CST_LOW (size) == 16
+               && TREE_INT_CST_HIGH (size) == 0)
+        return darwin_sections[literal16_section];
       else
-	return base_section;
+        return readonly_data_section;
     }
-  else if (TREE_CODE (exp) == CONSTRUCTOR
-	   && TREE_TYPE (exp)
-	   && TREE_CODE (TREE_TYPE (exp)) == RECORD_TYPE
-	   && TYPE_NAME (TREE_TYPE (exp)))
+
+  return readonly_data_section;
+}
+
+section *
+machopic_select_section (tree decl,
+			 int reloc,
+			 unsigned HOST_WIDE_INT align)
+{
+  bool weak = (DECL_P (decl)
+	       && DECL_WEAK (decl)
+	       && (lookup_attribute ("weak", DECL_ATTRIBUTES (decl))
+		   || ! lookup_attribute ("weak_import",
+					  DECL_ATTRIBUTES (decl))));
+  int shlib = flag_pic;
+  section *base_section;
+
+  switch (categorize_decl_for_section (decl, reloc, shlib))
     {
-      tree name = TYPE_NAME (TREE_TYPE (exp));
+    case SECCAT_TEXT:
+      base_section = darwin_text_section (reloc, weak);
+      break;
+
+    case SECCAT_RODATA:
+    case SECCAT_SRODATA:
+      base_section = darwin_rodata_section (weak);
+      break;
+
+    case SECCAT_RODATA_MERGE_STR:
+      base_section = darwin_mergeable_string_section (decl, align);
+      break;
+
+    case SECCAT_RODATA_MERGE_STR_INIT:
+      base_section = darwin_mergeable_string_section (DECL_INITIAL (decl), align);
+      break;
+
+    case SECCAT_RODATA_MERGE_CONST:
+      base_section =  darwin_mergeable_constant_section (decl, align);
+      break;
+
+    case SECCAT_DATA:
+    case SECCAT_DATA_REL:
+    case SECCAT_DATA_REL_LOCAL:
+    case SECCAT_DATA_REL_RO:
+    case SECCAT_DATA_REL_RO_LOCAL:
+    case SECCAT_SDATA:
+    case SECCAT_TDATA:
+    case SECCAT_BSS:
+    case SECCAT_SBSS:
+    case SECCAT_TBSS:
+      if (TREE_READONLY (decl) || TREE_CONSTANT (decl))
+	base_section = weak ? darwin_sections[const_data_coal_section]
+			    : darwin_sections[const_data_section];
+      else
+	base_section = weak ? darwin_sections[data_coal_section] : data_section;
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  /* Darwin weird special cases.  */
+  if (TREE_CODE (decl) == CONSTRUCTOR
+      && TREE_TYPE (decl)
+      && TREE_CODE (TREE_TYPE (decl)) == RECORD_TYPE
+      && TYPE_NAME (TREE_TYPE (decl)))
+    {
+      tree name = TYPE_NAME (TREE_TYPE (decl));
       if (TREE_CODE (name) == TYPE_DECL)
-	name = DECL_NAME (name);
+        name = DECL_NAME (name);
 
       if (!strcmp (IDENTIFIER_POINTER (name), "__builtin_ObjCString"))
-	{
-	  if (flag_next_runtime)
-	    return darwin_sections[objc_constant_string_object_section];
-	  else
-	    return darwin_sections[objc_string_object_section];
-	}
+        {
+          if (flag_next_runtime)
+            return darwin_sections[objc_constant_string_object_section];
+          else
+            return darwin_sections[objc_string_object_section];
+        }
       else
-	return base_section;
+        return base_section;
     }
-  else if (TREE_CODE (exp) == VAR_DECL &&
-	   DECL_NAME (exp) &&
-	   TREE_CODE (DECL_NAME (exp)) == IDENTIFIER_NODE &&
-	   IDENTIFIER_POINTER (DECL_NAME (exp)) &&
-	   !strncmp (IDENTIFIER_POINTER (DECL_NAME (exp)), "_OBJC_", 6))
+  else if (TREE_CODE (decl) == VAR_DECL
+	   && DECL_NAME (decl)
+	   && TREE_CODE (DECL_NAME (decl)) == IDENTIFIER_NODE
+	   && IDENTIFIER_POINTER (DECL_NAME (decl))
+	   && !strncmp (IDENTIFIER_POINTER (DECL_NAME (decl)), "_OBJC_", 6))
     {
-      const char *name = IDENTIFIER_POINTER (DECL_NAME (exp));
+      const char *name = IDENTIFIER_POINTER (DECL_NAME (decl));
 
       if (!strncmp (name, "_OBJC_CLASS_METHODS_", 20))
-	return darwin_sections[objc_cls_meth_section];
+        return darwin_sections[objc_cls_meth_section];
       else if (!strncmp (name, "_OBJC_INSTANCE_METHODS_", 23))
-	return darwin_sections[objc_inst_meth_section];
+        return darwin_sections[objc_inst_meth_section];
       else if (!strncmp (name, "_OBJC_CATEGORY_CLASS_METHODS_", 20))
-	return darwin_sections[objc_cat_cls_meth_section];
+        return darwin_sections[objc_cat_cls_meth_section];
       else if (!strncmp (name, "_OBJC_CATEGORY_INSTANCE_METHODS_", 23))
-	return darwin_sections[objc_cat_inst_meth_section];
+        return darwin_sections[objc_cat_inst_meth_section];
       else if (!strncmp (name, "_OBJC_CLASS_VARIABLES_", 22))
-	return darwin_sections[objc_class_vars_section];
+        return darwin_sections[objc_class_vars_section];
       else if (!strncmp (name, "_OBJC_INSTANCE_VARIABLES_", 25))
-	return darwin_sections[objc_instance_vars_section];
+        return darwin_sections[objc_instance_vars_section];
       else if (!strncmp (name, "_OBJC_CLASS_PROTOCOLS_", 22))
-	return darwin_sections[objc_cat_cls_meth_section];
+        return darwin_sections[objc_cat_cls_meth_section];
       else if (!strncmp (name, "_OBJC_CLASS_NAME_", 17))
-	return darwin_sections[objc_class_names_section];
+        return darwin_sections[objc_class_names_section];
       else if (!strncmp (name, "_OBJC_METH_VAR_NAME_", 20))
-	return darwin_sections[objc_meth_var_names_section];
+        return darwin_sections[objc_meth_var_names_section];
       else if (!strncmp (name, "_OBJC_METH_VAR_TYPE_", 20))
-	return darwin_sections[objc_meth_var_types_section];
+        return darwin_sections[objc_meth_var_types_section];
       else if (!strncmp (name, "_OBJC_CLASS_REFERENCES", 22))
-	return darwin_sections[objc_cls_refs_section];
+        return darwin_sections[objc_cls_refs_section];
       else if (!strncmp (name, "_OBJC_CLASS_", 12))
-	return darwin_sections[objc_class_section];
+        return darwin_sections[objc_class_section];
       else if (!strncmp (name, "_OBJC_METACLASS_", 16))
-	return darwin_sections[objc_meta_class_section];
+        return darwin_sections[objc_meta_class_section];
       else if (!strncmp (name, "_OBJC_CATEGORY_", 15))
-	return darwin_sections[objc_category_section];
+        return darwin_sections[objc_category_section];
       else if (!strncmp (name, "_OBJC_SELECTOR_REFERENCES", 25))
-	return darwin_sections[objc_selector_refs_section];
+        return darwin_sections[objc_selector_refs_section];
       else if (!strncmp (name, "_OBJC_SELECTOR_FIXUP", 20))
-	return darwin_sections[objc_selector_fixup_section];
+        return darwin_sections[objc_selector_fixup_section];
       else if (!strncmp (name, "_OBJC_SYMBOLS", 13))
-	return darwin_sections[objc_symbols_section];
+        return darwin_sections[objc_symbols_section];
       else if (!strncmp (name, "_OBJC_MODULES", 13))
-	return darwin_sections[objc_module_info_section];
+        return darwin_sections[objc_module_info_section];
       else if (!strncmp (name, "_OBJC_IMAGE_INFO", 16))
-	return darwin_sections[objc_image_info_section];
+        return darwin_sections[objc_image_info_section];
       else if (!strncmp (name, "_OBJC_PROTOCOL_INSTANCE_METHODS_", 32))
-	return darwin_sections[objc_cat_inst_meth_section];
+        return darwin_sections[objc_cat_inst_meth_section];
       else if (!strncmp (name, "_OBJC_PROTOCOL_CLASS_METHODS_", 29))
-	return darwin_sections[objc_cat_cls_meth_section];
+        return darwin_sections[objc_cat_cls_meth_section];
       else if (!strncmp (name, "_OBJC_PROTOCOL_REFS_", 20))
-	return darwin_sections[objc_cat_cls_meth_section];
+        return darwin_sections[objc_cat_cls_meth_section];
       else if (!strncmp (name, "_OBJC_PROTOCOL_", 15))
-	return darwin_sections[objc_protocol_section];
+        return darwin_sections[objc_protocol_section];
       else
-	return base_section;
+        return base_section;
     }
-  else
-    return base_section;
+
+  return base_section;
 }
 
 /* This can be called with address expressions as "rtx".
@@ -1239,7 +1325,8 @@ machopic_select_rtx_section (enum machine_mode mode, rtx x,
 	   && (GET_CODE (x) == CONST_INT
 	       || GET_CODE (x) == CONST_DOUBLE))
     return darwin_sections[literal4_section];
-  else if (TARGET_64BIT
+  else if (HAVE_GAS_LITERAL16
+	   && TARGET_64BIT
 	   && GET_MODE_SIZE (mode) == 16
 	   && (GET_CODE (x) == CONST_INT
 	       || GET_CODE (x) == CONST_DOUBLE
@@ -1303,6 +1390,42 @@ darwin_unique_section (tree decl ATTRIBUTE_UNUSED, int reloc ATTRIBUTE_UNUSED)
   /* Darwin does not use unique sections.  */
 }
 
+/* Handle __attribute__ ((apple_kext_compatibility)).
+   This only applies to darwin kexts for 2.95 compatibility -- it shrinks the
+   vtable for classes with this attribute (and their descendants) by not
+   outputting the new 3.0 nondeleting destructor.  This means that such
+   objects CANNOT be allocated on the stack or as globals UNLESS they have
+   a completely empty `operator delete'.
+   Luckily, this fits in with the Darwin kext model.
+
+   This attribute also disables gcc3's potential overlaying of derived
+   class data members on the padding at the end of the base class.  */
+
+tree
+darwin_handle_kext_attribute (tree *node, tree name,
+			      tree args ATTRIBUTE_UNUSED,
+			      int flags ATTRIBUTE_UNUSED,
+			      bool *no_add_attrs)
+{
+  /* APPLE KEXT stuff -- only applies with pure static C++ code.  */
+  if (! TARGET_KEXTABI)
+    {
+      warning (0, "%<%s%> 2.95 vtable-compatability attribute applies "
+	       "only when compiling a kext", IDENTIFIER_POINTER (name));
+
+      *no_add_attrs = true;
+    }
+  else if (TREE_CODE (*node) != RECORD_TYPE)
+    {
+      warning (0, "%<%s%> 2.95 vtable-compatability attribute applies "
+	       "only to C++ classes", IDENTIFIER_POINTER (name));
+
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
 /* Handle a "weak_import" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -1338,14 +1461,17 @@ no_dead_strip (FILE *file, const char *lab)
 void
 darwin_emit_unwind_label (FILE *file, tree decl, int for_eh, int empty)
 {
-  tree id = DECL_ASSEMBLER_NAME (decl)
-    ? DECL_ASSEMBLER_NAME (decl)
-    : DECL_NAME (decl);
-
-  const char *base = IDENTIFIER_POINTER (id);
-
-  bool need_quotes = name_needs_quotes (base);
+  const char *base;
   char *lab;
+  bool need_quotes;
+
+  if (DECL_ASSEMBLER_NAME_SET_P (decl))
+    base = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+  else
+    base = IDENTIFIER_POINTER (DECL_NAME (decl));
+
+  base = targetm.strip_name_encoding (base);
+  need_quotes = name_needs_quotes (base);
 
   if (! for_eh)
     return;
@@ -1472,6 +1598,7 @@ darwin_file_start (void)
 	  DEBUG_LINE_SECTION,
 	  DEBUG_LOC_SECTION,
 	  DEBUG_PUBNAMES_SECTION,
+	  DEBUG_PUBTYPES_SECTION,
 	  DEBUG_STR_SECTION,
 	  DEBUG_RANGES_SECTION
 	};
@@ -1526,13 +1653,17 @@ darwin_file_end (void)
   fprintf (asm_out_file, "\t.subsections_via_symbols\n");
 }
 
+/* TODO: Add a language hook for identifying if a decl is a vtable.  */
+#define DARWIN_VTABLE_P(DECL) 0
+
 /* Cross-module name binding.  Darwin does not support overriding
-   functions at dynamic-link time.  */
+   functions at dynamic-link time, except for vtables in kexts.  */
 
 bool
 darwin_binds_local_p (tree decl)
 {
-  return default_binds_local_p_1 (decl, 0);
+  return default_binds_local_p_1 (decl,
+				  TARGET_KEXTABI && DARWIN_VTABLE_P (decl));
 }
 
 #if 0
@@ -1560,6 +1691,36 @@ darwin_set_default_type_attributes (tree type)
     TYPE_ATTRIBUTES (type) = tree_cons (get_identifier ("ms_struct"),
                                         NULL_TREE,
                                         TYPE_ATTRIBUTES (type));
+}
+
+/* True, iff we're generating code for loadable kernel extensions.  */
+
+bool
+darwin_kextabi_p (void) {
+  return flag_apple_kext;
+}
+
+void
+darwin_override_options (void)
+{
+  if (flag_apple_kext && strcmp (lang_hooks.name, "GNU C++") != 0)
+    {
+      warning (0, "command line option %<-fapple-kext%> is only valid for C++");
+      flag_apple_kext = 0;
+    }
+  if (flag_mkernel || flag_apple_kext)
+    {
+      /* -mkernel implies -fapple-kext for C++ */
+      if (strcmp (lang_hooks.name, "GNU C++") == 0)
+	flag_apple_kext = 1;
+
+      flag_no_common = 1;
+
+      /* No EH in kexts.  */
+      flag_exceptions = 0;
+      /* No -fnon-call-exceptions data in kexts.  */
+      flag_non_call_exceptions = 0;
+    }
 }
 
 #include "gt-darwin.h"

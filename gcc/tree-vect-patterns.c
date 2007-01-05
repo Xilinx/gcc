@@ -50,10 +50,12 @@ static bool widened_name_p (tree, tree, tree *, tree *);
 static tree vect_recog_widen_sum_pattern (tree, tree *, tree *);
 static tree vect_recog_widen_mult_pattern (tree, tree *, tree *);
 static tree vect_recog_dot_prod_pattern (tree, tree *, tree *);
+static tree vect_recog_pow_pattern (tree, tree *, tree *);
 static vect_recog_func_ptr vect_vect_recog_func_ptrs[NUM_PATTERNS] = {
 	vect_recog_widen_mult_pattern,
 	vect_recog_widen_sum_pattern,
-	vect_recog_dot_prod_pattern};
+	vect_recog_dot_prod_pattern,
+	vect_recog_pow_pattern};
 
 
 /* Function widened_name_p
@@ -89,10 +91,10 @@ widened_name_p (tree name, tree use_stmt, tree *half_type, tree *def_stmt)
   if (! *def_stmt)
     return false;
 
-  if (TREE_CODE (*def_stmt) != MODIFY_EXPR)
+  if (TREE_CODE (*def_stmt) != GIMPLE_MODIFY_STMT)
     return false;
 
-  expr = TREE_OPERAND (*def_stmt, 1);
+  expr = GIMPLE_STMT_OPERAND (*def_stmt, 1);
   if (TREE_CODE (expr) != NOP_EXPR)
     return false;
 
@@ -164,10 +166,10 @@ vect_recog_dot_prod_pattern (tree last_stmt, tree *type_in, tree *type_out)
   tree pattern_expr;
   tree prod_type;
 
-  if (TREE_CODE (last_stmt) != MODIFY_EXPR)
+  if (TREE_CODE (last_stmt) != GIMPLE_MODIFY_STMT)
     return NULL;
 
-  expr = TREE_OPERAND (last_stmt, 1);
+  expr = GIMPLE_STMT_OPERAND (last_stmt, 1);
   type = TREE_TYPE (expr);
 
   /* Look for the following pattern 
@@ -202,7 +204,7 @@ vect_recog_dot_prod_pattern (tree last_stmt, tree *type_in, tree *type_out)
       /* Has been detected as widening-summation?  */
 
       stmt = STMT_VINFO_RELATED_STMT (stmt_vinfo);
-      expr = TREE_OPERAND (stmt, 1);
+      expr = GIMPLE_STMT_OPERAND (stmt, 1);
       type = TREE_TYPE (expr);
       if (TREE_CODE (expr) != WIDEN_SUM_EXPR)
         return NULL;
@@ -226,7 +228,7 @@ vect_recog_dot_prod_pattern (tree last_stmt, tree *type_in, tree *type_out)
       if (widened_name_p (oprnd0, stmt, &half_type, &def_stmt))
         {
           stmt = def_stmt;
-          expr = TREE_OPERAND (stmt, 1);
+          expr = GIMPLE_STMT_OPERAND (stmt, 1);
           oprnd0 = TREE_OPERAND (expr, 0);
         }
       else
@@ -245,7 +247,7 @@ vect_recog_dot_prod_pattern (tree last_stmt, tree *type_in, tree *type_out)
   gcc_assert (stmt_vinfo);
   if (STMT_VINFO_DEF_TYPE (stmt_vinfo) != vect_loop_def)
     return NULL;
-  expr = TREE_OPERAND (stmt, 1);
+  expr = GIMPLE_STMT_OPERAND (stmt, 1);
   if (TREE_CODE (expr) != MULT_EXPR)
     return NULL;
   if (STMT_VINFO_IN_PATTERN_P (stmt_vinfo))
@@ -253,7 +255,7 @@ vect_recog_dot_prod_pattern (tree last_stmt, tree *type_in, tree *type_out)
       /* Has been detected as a widening multiplication?  */
 
       stmt = STMT_VINFO_RELATED_STMT (stmt_vinfo);
-      expr = TREE_OPERAND (stmt, 1);
+      expr = GIMPLE_STMT_OPERAND (stmt, 1);
       if (TREE_CODE (expr) != WIDEN_MULT_EXPR)
         return NULL;
       stmt_vinfo = vinfo_for_stmt (stmt);
@@ -277,10 +279,10 @@ vect_recog_dot_prod_pattern (tree last_stmt, tree *type_in, tree *type_out)
         return NULL;
       if (!widened_name_p (oprnd0, stmt, &half_type0, &def_stmt))
         return NULL;
-      oprnd00 = TREE_OPERAND (TREE_OPERAND (def_stmt, 1), 0);
+      oprnd00 = TREE_OPERAND (GIMPLE_STMT_OPERAND (def_stmt, 1), 0);
       if (!widened_name_p (oprnd1, stmt, &half_type1, &def_stmt))
         return NULL;
-      oprnd01 = TREE_OPERAND (TREE_OPERAND (def_stmt, 1), 0);
+      oprnd01 = TREE_OPERAND (GIMPLE_STMT_OPERAND (def_stmt, 1), 0);
       if (TYPE_MAIN_VARIANT (half_type0) != TYPE_MAIN_VARIANT (half_type1))
         return NULL;
       if (TYPE_PRECISION (prod_type) != TYPE_PRECISION (half_type0) * 2)
@@ -334,12 +336,164 @@ vect_recog_dot_prod_pattern (tree last_stmt, tree *type_in, tree *type_out)
 */
 
 static tree
-vect_recog_widen_mult_pattern (tree last_stmt ATTRIBUTE_UNUSED, 
-			       tree *type_in ATTRIBUTE_UNUSED, 
-			       tree *type_out ATTRIBUTE_UNUSED)
+vect_recog_widen_mult_pattern (tree last_stmt, 
+			       tree *type_in, 
+			       tree *type_out)
 {
-  /* Yet to be implemented.   */
-  return NULL;
+  tree expr;
+  tree def_stmt0, def_stmt1;
+  tree oprnd0, oprnd1;
+  tree type, half_type0, half_type1;
+  tree pattern_expr;
+  tree vectype;
+  tree dummy;
+  enum tree_code dummy_code;
+
+  if (TREE_CODE (last_stmt) != GIMPLE_MODIFY_STMT)
+    return NULL;
+
+  expr = GIMPLE_STMT_OPERAND (last_stmt, 1);
+  type = TREE_TYPE (expr);
+
+  /* Starting from LAST_STMT, follow the defs of its uses in search
+     of the above pattern.  */
+
+  if (TREE_CODE (expr) != MULT_EXPR)
+    return NULL;
+
+  oprnd0 = TREE_OPERAND (expr, 0);
+  oprnd1 = TREE_OPERAND (expr, 1);
+  if (TYPE_MAIN_VARIANT (TREE_TYPE (oprnd0)) != TYPE_MAIN_VARIANT (type)
+      || TYPE_MAIN_VARIANT (TREE_TYPE (oprnd1)) != TYPE_MAIN_VARIANT (type))
+    return NULL;
+
+  /* Check argument 0 */
+  if (!widened_name_p (oprnd0, last_stmt, &half_type0, &def_stmt0))
+    return NULL;
+  oprnd0 = TREE_OPERAND (GIMPLE_STMT_OPERAND (def_stmt0, 1), 0);
+
+  /* Check argument 1 */
+  if (!widened_name_p (oprnd1, last_stmt, &half_type1, &def_stmt1))
+    return NULL;
+  oprnd1 = TREE_OPERAND (GIMPLE_STMT_OPERAND (def_stmt1, 1), 0);
+
+  if (TYPE_MAIN_VARIANT (half_type0) != TYPE_MAIN_VARIANT (half_type1))
+    return NULL;
+
+  /* Pattern detected.  */
+  if (vect_print_dump_info (REPORT_DETAILS))
+    fprintf (vect_dump, "vect_recog_widen_mult_pattern: detected: ");
+
+  /* Check target support  */
+  vectype = get_vectype_for_scalar_type (half_type0);
+  if (!supportable_widening_operation (WIDEN_MULT_EXPR, last_stmt, vectype,
+                                       &dummy, &dummy, &dummy_code,
+                                       &dummy_code))
+    return NULL;
+
+  *type_in = vectype;
+  *type_out = NULL_TREE;
+
+  /* Pattern supported. Create a stmt to be used to replace the pattern: */
+  pattern_expr = build2 (WIDEN_MULT_EXPR, type, oprnd0, oprnd1);
+  if (vect_print_dump_info (REPORT_DETAILS))
+    print_generic_expr (vect_dump, pattern_expr, TDF_SLIM);
+  return pattern_expr;
+}
+
+
+/* Function vect_recog_pow_pattern
+
+   Try to find the following pattern:
+
+     x = POW (y, N);
+
+   with POW being one of pow, powf, powi, powif and N being
+   either 2 or 0.5.
+
+   Input:
+
+   * LAST_STMT: A stmt from which the pattern search begins.
+
+   Output:
+
+   * TYPE_IN: The type of the input arguments to the pattern.
+
+   * TYPE_OUT: The type of the output of this pattern.
+
+   * Return value: A new stmt that will be used to replace the sequence of
+   stmts that constitute the pattern. In this case it will be:
+        x * x
+   or
+	sqrt (x)
+*/
+
+static tree
+vect_recog_pow_pattern (tree last_stmt, tree *type_in, tree *type_out)
+{
+  tree expr;
+  tree type;
+  tree fn, arglist, base, exp;
+
+  if (TREE_CODE (last_stmt) != GIMPLE_MODIFY_STMT)
+    return NULL;
+
+  expr = GIMPLE_STMT_OPERAND (last_stmt, 1);
+  type = TREE_TYPE (expr);
+
+  if (TREE_CODE (expr) != CALL_EXPR)
+    return NULL_TREE;
+
+  fn = get_callee_fndecl (expr);
+  arglist = TREE_OPERAND (expr, 1);
+  switch (DECL_FUNCTION_CODE (fn))
+    {
+    case BUILT_IN_POWIF:
+    case BUILT_IN_POWI:
+    case BUILT_IN_POWF:
+    case BUILT_IN_POW:
+      base = TREE_VALUE (arglist);
+      exp = TREE_VALUE (TREE_CHAIN (arglist));
+      if (TREE_CODE (exp) != REAL_CST
+	  && TREE_CODE (exp) != INTEGER_CST)
+        return NULL_TREE;
+      break;
+
+    default:;
+      return NULL_TREE;
+    }
+
+  /* We now have a pow or powi builtin function call with a constant
+     exponent.  */
+
+  *type_out = NULL_TREE;
+
+  /* Catch squaring.  */
+  if ((host_integerp (exp, 0)
+       && tree_low_cst (exp, 0) == 2)
+      || (TREE_CODE (exp) == REAL_CST
+          && REAL_VALUES_EQUAL (TREE_REAL_CST (exp), dconst2)))
+    {
+      *type_in = TREE_TYPE (base);
+      return build2 (MULT_EXPR, TREE_TYPE (base), base, base);
+    }
+
+  /* Catch square root.  */
+  if (TREE_CODE (exp) == REAL_CST
+      && REAL_VALUES_EQUAL (TREE_REAL_CST (exp), dconsthalf))
+    {
+      tree newfn = mathfn_built_in (TREE_TYPE (base), BUILT_IN_SQRT);
+      tree newarglist = build_tree_list (NULL_TREE, base);
+      *type_in = get_vectype_for_scalar_type (TREE_TYPE (base));
+      if (*type_in)
+	{
+	  newfn = build_function_call_expr (newfn, newarglist);
+	  if (vectorizable_function (newfn, *type_in))
+	    return newfn;
+	}
+    }
+
+  return NULL_TREE;
 }
 
 
@@ -384,10 +538,10 @@ vect_recog_widen_sum_pattern (tree last_stmt, tree *type_in, tree *type_out)
   tree type, half_type;
   tree pattern_expr;
 
-  if (TREE_CODE (last_stmt) != MODIFY_EXPR)
+  if (TREE_CODE (last_stmt) != GIMPLE_MODIFY_STMT)
     return NULL;
 
-  expr = TREE_OPERAND (last_stmt, 1);
+  expr = GIMPLE_STMT_OPERAND (last_stmt, 1);
   type = TREE_TYPE (expr);
 
   /* Look for the following pattern
@@ -421,7 +575,7 @@ vect_recog_widen_sum_pattern (tree last_stmt, tree *type_in, tree *type_out)
   if (!widened_name_p (oprnd0, last_stmt, &half_type, &stmt))
     return NULL;
 
-  oprnd0 = TREE_OPERAND (TREE_OPERAND (stmt, 1), 0);
+  oprnd0 = TREE_OPERAND (GIMPLE_STMT_OPERAND (stmt, 1), 0);
   *type_in = half_type;
   *type_out = type;
 
@@ -518,7 +672,8 @@ vect_pattern_recog_1 (
   var = create_tmp_var (pattern_type, "patt");
   add_referenced_var (var);
   var_name = make_ssa_name (var, NULL_TREE);
-  pattern_expr = build2 (MODIFY_EXPR, void_type_node, var_name, pattern_expr);
+  pattern_expr = build2 (GIMPLE_MODIFY_STMT, void_type_node, var_name,
+      			 pattern_expr);
   SSA_NAME_DEF_STMT (var_name) = pattern_expr;
   bsi_insert_before (&si, pattern_expr, BSI_SAME_STMT);
   ann = stmt_ann (pattern_expr);

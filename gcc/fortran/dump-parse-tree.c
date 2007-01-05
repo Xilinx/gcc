@@ -555,8 +555,14 @@ gfc_show_attr (symbol_attribute * attr)
     gfc_status (" OPTIONAL");
   if (attr->pointer)
     gfc_status (" POINTER");
+  if (attr->protected)
+    gfc_status (" PROTECTED");
   if (attr->save)
     gfc_status (" SAVE");
+  if (attr->value)
+    gfc_status (" VALUE");
+  if (attr->volatile_)
+    gfc_status (" VOLATILE");
   if (attr->threadprivate)
     gfc_status (" THREADPRIVATE");
   if (attr->target)
@@ -1026,6 +1032,7 @@ gfc_show_code_node (int level, gfc_code * c)
       gfc_status ("ENTRY %s", c->ext.entry->sym->name);
       break;
 
+    case EXEC_INIT_ASSIGN:
     case EXEC_ASSIGN:
       gfc_status ("ASSIGN ");
       gfc_show_expr (c->expr);

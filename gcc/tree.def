@@ -359,6 +359,7 @@ DEFTREECODE (RESULT_DECL, "result_decl", tcc_declaration, 0)
 DEFTREECODE (STRUCT_FIELD_TAG, "struct_field_tag", tcc_declaration, 0)
 DEFTREECODE (NAME_MEMORY_TAG, "name_memory_tag", tcc_declaration, 0)
 DEFTREECODE (SYMBOL_MEMORY_TAG, "symbol_memory_tag", tcc_declaration, 0)
+DEFTREECODE (MEMORY_PARTITION_TAG, "memory_partition_tag", tcc_declaration, 0)
 
 /* A namespace declaration.  Namespaces appear in DECL_CONTEXT of other
    _DECLs, providing a hierarchy of names.  */
@@ -634,15 +635,8 @@ DEFTREECODE (RDIV_EXPR, "rdiv_expr", tcc_binary, 2)
    Used for pointer subtraction in C.  */
 DEFTREECODE (EXACT_DIV_EXPR, "exact_div_expr", tcc_binary, 2)
 
-/* Conversion of real to fixed point: four ways to round,
-   like the four ways to divide.
-   CONVERT_EXPR can also be used to convert a real to an integer,
-   and that is what is used in languages that do not have ways of
-   specifying which of these is wanted.  Maybe these are not needed.  */
+/* Conversion of real to fixed point by truncation.  */
 DEFTREECODE (FIX_TRUNC_EXPR, "fix_trunc_expr", tcc_unary, 1)
-DEFTREECODE (FIX_CEIL_EXPR, "fix_ceil_expr", tcc_unary, 1)
-DEFTREECODE (FIX_FLOOR_EXPR, "fix_floor_expr", tcc_unary, 1)
-DEFTREECODE (FIX_ROUND_EXPR, "fix_round_expr", tcc_unary, 1)
 
 /* Conversion of an integer to a real.  */
 DEFTREECODE (FLOAT_EXPR, "float_expr", tcc_unary, 1)
@@ -1072,6 +1066,41 @@ DEFTREECODE (WIDEN_MULT_EXPR, "widen_mult_expr", tcc_binary, 2)
    Operand 1 is an integer shift amount in bits.  */
 DEFTREECODE (VEC_LSHIFT_EXPR, "vec_lshift_expr", tcc_binary, 2)
 DEFTREECODE (VEC_RSHIFT_EXPR, "vec_rshift_expr", tcc_binary, 2)
+
+/* GIMPLE tree codes.  */
+
+/* Assignment expression.  Operand 0 is the what to set; 1, the new value.  */
+DEFTREECODE (GIMPLE_MODIFY_STMT, "gimple_modify_stmt", tcc_gimple_stmt, 2)
+
+/* Widening vector multiplication.
+   The two operands are vectors with N elements of size S. Multiplying the
+   elements of the two vectors will result in N products of size 2*S.
+   VEC_WIDEN_MULT_HI_EXPR computes the N/2 high products.
+   VEC_WIDEN_MULT_LO_EXPR computes the N/2 low products.  */
+DEFTREECODE (VEC_WIDEN_MULT_HI_EXPR, "widen_mult_hi_expr", tcc_binary, 2)
+DEFTREECODE (VEC_WIDEN_MULT_LO_EXPR, "widen_mult_hi_expr", tcc_binary, 2)
+
+/* Unpack (extract and promote/widen) the high/low elements of the input vector
+   into the output vector. The input vector has twice as many elements
+   as the output vector, that are half the size of the elements
+   of the output vector.  This is used to support type promotion. */
+DEFTREECODE (VEC_UNPACK_HI_EXPR, "vec_unpack_hi_expr", tcc_unary, 1)
+DEFTREECODE (VEC_UNPACK_LO_EXPR, "vec_unpack_lo_expr", tcc_unary, 1)
+
+/* Pack (demote/narrow and merge) the elements of the two input vectors
+   into the output vector, using modulo/saturating arithmetic.
+   The elements of the input vectors are twice the size of the elements of the
+   output vector.  This is used to support type demotion.  */
+DEFTREECODE (VEC_PACK_MOD_EXPR, "vec_pack_mod_expr", tcc_binary, 2)
+DEFTREECODE (VEC_PACK_SAT_EXPR, "vec_pack_sat_expr", tcc_binary, 2)
+                                                                                
+/* Extract even/odd fields from vectors.  */
+DEFTREECODE (VEC_EXTRACT_EVEN_EXPR, "vec_extracteven_expr", tcc_binary, 2)
+DEFTREECODE (VEC_EXTRACT_ODD_EXPR, "vec_extractodd_expr", tcc_binary, 2)
+
+/* Merge input vectors interleaving their fields.  */
+DEFTREECODE (VEC_INTERLEAVE_HIGH_EXPR, "vec_interleavehigh_expr", tcc_binary, 2)
+DEFTREECODE (VEC_INTERLEAVE_LOW_EXPR, "vec_interleavelow_expr", tcc_binary, 2)
 
 /*
 Local variables:

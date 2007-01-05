@@ -51,6 +51,7 @@ Boston, MA 02110-1301, USA.  */
 #include "cfglayout.h"
 #include "tree-gimple.h"
 #include "langhooks.h"
+#include "params.h"
 
 /* Processor costs */
 static const
@@ -827,6 +828,20 @@ sparc_override_options (void)
   if (!(target_flags_explicit & MASK_LONG_DOUBLE_128))
     target_flags |= MASK_LONG_DOUBLE_128;
 #endif
+
+  if (!PARAM_SET_P (PARAM_SIMULTANEOUS_PREFETCHES))
+    set_param_value ("simultaneous-prefetches",
+		     ((sparc_cpu == PROCESSOR_ULTRASPARC
+		       || sparc_cpu == PROCESSOR_NIAGARA)
+		      ? 2
+		      : (sparc_cpu == PROCESSOR_ULTRASPARC3
+			 ? 8 : 3)));
+  if (!PARAM_SET_P (PARAM_L1_CACHE_LINE_SIZE))
+    set_param_value ("l1-cache-line-size", 
+		     ((sparc_cpu == PROCESSOR_ULTRASPARC
+		       || sparc_cpu == PROCESSOR_ULTRASPARC3
+		       || sparc_cpu == PROCESSOR_NIAGARA)
+		      ? 64 : 32));
 }
 
 #ifdef SUBTARGET_ATTRIBUTE_TABLE
@@ -3242,8 +3257,7 @@ legitimize_pic_address (rtx orig, enum machine_mode mode ATTRIBUTE_UNUSED,
       insn = emit_move_insn (reg, pic_ref);
       /* Put a REG_EQUAL note on this insn, so that it can be optimized
 	 by loop.  */
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUAL, orig,
-				  REG_NOTES (insn));
+      set_unique_reg_note (insn, REG_EQUAL, orig);
       return reg;
     }
   else if (GET_CODE (orig) == CONST)
@@ -5701,7 +5715,7 @@ sparc_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
     addr = fold_convert (ptrtype, addr);
 
   incr = fold (build2 (PLUS_EXPR, ptr_type_node, incr, ssize_int (rsize)));
-  incr = build2 (MODIFY_EXPR, ptr_type_node, valist, incr);
+  incr = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, valist, incr);
   gimplify_and_add (incr, post_p);
 
   return build_va_arg_indirect_ref (addr);
@@ -7868,8 +7882,8 @@ sparc_init_libfuncs (void)
 }
 
 #define def_builtin(NAME, CODE, TYPE) \
-  lang_hooks.builtin_function((NAME), (TYPE), (CODE), BUILT_IN_MD, NULL, \
-                              NULL_TREE)
+  add_builtin_function((NAME), (TYPE), (CODE), BUILT_IN_MD, NULL, \
+                       NULL_TREE)
 
 /* Implement the TARGET_INIT_BUILTINS target hook.
    Create builtin functions for special SPARC instructions.  */

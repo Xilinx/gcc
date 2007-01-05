@@ -62,6 +62,12 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "langhooks-def.h"
 #include "pointer-set.h"
 
+/* Set this to 1 if you want the standard ISO C99 semantics of 'inline'
+   when you specify -std=c99 or -std=gnu99, and to 0 if you want
+   behaviour compatible with the nonstandard semantics implemented by
+   GCC 2.95 through 4.2.  */
+#define WANT_C99_INLINE_SEMANTICS 1
+
 /* In grokdeclarator, distinguish syntactic contexts of declarators.  */
 enum decl_context
 { NORMAL,			/* Ordinary declaration */
@@ -153,10 +159,6 @@ int current_function_returns_abnormally;
    whose return type is defaulted, if warnings for this are desired.  */
 
 static int warn_about_return_type;
-
-/* Nonzero when starting a function declared `extern inline'.  */
-
-static int current_extern_inline;
 
 /* Nonzero when the current toplevel function contains a declaration
    of a nested function which is never defined.  */
@@ -254,7 +256,7 @@ extern char C_SIZEOF_STRUCT_LANG_IDENTIFIER_isnt_accurate
 
 union lang_tree_node
   GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-       chain_next ("TREE_CODE (&%h.generic) == INTEGER_TYPE ? (union lang_tree_node *) TYPE_NEXT_VARIANT (&%h.generic) : (union lang_tree_node *) TREE_CHAIN (&%h.generic)")))
+       chain_next ("TREE_CODE (&%h.generic) == INTEGER_TYPE ? (union lang_tree_node *) TYPE_NEXT_VARIANT (&%h.generic) : (GIMPLE_TUPLE_P (&%h.generic) ? (union lang_tree_node *) 0 : (union lang_tree_node *) TREE_CHAIN (&%h.generic))")))
 {
   union tree_node GTY ((tag ("0"),
 			desc ("tree_node_structure (&%h)")))
@@ -432,7 +434,7 @@ add_stmt (tree t)
 {
   enum tree_code code = TREE_CODE (t);
 
-  if (EXPR_P (t) && code != LABEL_EXPR)
+  if (CAN_HAVE_LOCATION_P (t) && code != LABEL_EXPR)
     {
       if (!EXPR_HAS_LOCATION (t))
 	SET_EXPR_LOCATION (t, input_location);
@@ -797,11 +799,22 @@ pop_scope (void)
 	      && DECL_ABSTRACT_ORIGIN (p) != p)
 	    TREE_ADDRESSABLE (DECL_ABSTRACT_ORIGIN (p)) = 1;
 	  if (!DECL_EXTERNAL (p)
-	      && DECL_INITIAL (p) == 0)
+	      && !DECL_INITIAL (p)
+	      && scope != file_scope
+	      && scope != external_scope)
 	    {
 	      error ("nested function %q+D declared but never defined", p);
 	      undef_nested_function = true;
 	    }
+	  /* C99 6.7.4p6: "a function with external linkage... declared
+	     with an inline function specifier ... shall also be defined in the
+	     same translation unit."  */
+	  else if (DECL_DECLARED_INLINE_P (p)
+		   && TREE_PUBLIC (p)
+		   && !DECL_INITIAL (p)
+		   && flag_isoc99)
+	    pedwarn ("inline function %q+D declared but never defined", p);
+
 	  goto common_symbol;
 
 	case VAR_DECL:
@@ -1292,10 +1305,11 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 
   /* Function declarations can either be 'static' or 'extern' (no
      qualifier is equivalent to 'extern' - C99 6.2.2p5) and therefore
-     can never conflict with each other on account of linkage (6.2.2p4).
-     Multiple definitions are not allowed (6.9p3,5) but GCC permits
-     two definitions if one is 'extern inline' and one is not.  The non-
-     extern-inline definition supersedes the extern-inline definition.  */
+     can never conflict with each other on account of linkage
+     (6.2.2p4).  Multiple definitions are not allowed (6.9p3,5) but
+     gnu89 mode permits two definitions if one is 'extern inline' and
+     one is not.  The non- extern-inline definition supersedes the
+     extern-inline definition.  */
 
   else if (TREE_CODE (newdecl) == FUNCTION_DECL)
     {
@@ -1321,16 +1335,20 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 	    {
 	      /* If both decls are in the same TU and the new declaration
 		 isn't overriding an extern inline reject the new decl.
-		 When we handle c99 style inline rules we'll want to reject
-		 the following:
-
-		 DECL_EXTERN_INLINE (olddecl)
-		 && !DECL_EXTERN_INLINE (newdecl)
-
-		 if they're in the same translation unit. Until we implement
-		 the full semantics we accept the construct.  */
-	      if (!(DECL_EXTERN_INLINE (olddecl)
-		    && !DECL_EXTERN_INLINE (newdecl))
+		 In c99, no overriding is allowed in the same translation
+		 unit.  */
+	      if ((!DECL_EXTERN_INLINE (olddecl)
+		   || DECL_EXTERN_INLINE (newdecl)
+#if WANT_C99_INLINE_SEMANTICS
+		   || (flag_isoc99
+		       && (!DECL_DECLARED_INLINE_P (olddecl)
+			   || !lookup_attribute ("gnu_inline",
+						 DECL_ATTRIBUTES (olddecl)))
+		       && (!DECL_DECLARED_INLINE_P (newdecl)
+			   || !lookup_attribute ("gnu_inline",
+						 DECL_ATTRIBUTES (newdecl))))
+#endif /* WANT_C99_INLINE_SEMANTICS */
+		  )
 		  && same_translation_unit_p (newdecl, olddecl))
 		{
 		  error ("redefinition of %q+D", newdecl);
@@ -1388,6 +1406,23 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 	      warning (OPT_Wtraditional, "non-static declaration of %q+D "
 		       "follows static declaration", newdecl);
 	      warned = true;
+	    }
+	}
+
+      /* Make sure gnu_inline attribute is either not present, or
+	 present on all inline decls.  */
+      if (DECL_DECLARED_INLINE_P (olddecl)
+	  && DECL_DECLARED_INLINE_P (newdecl))
+	{
+	  bool newa = lookup_attribute ("gnu_inline",
+					DECL_ATTRIBUTES (newdecl)) != NULL;
+	  bool olda = lookup_attribute ("gnu_inline",
+					DECL_ATTRIBUTES (olddecl)) != NULL;
+	  if (newa != olda)
+	    {
+	      error ("%<gnu_inline%> attribute present on %q+D",
+		     newa ? newdecl : olddecl);
+	      error ("%Jbut not here", newa ? olddecl : newdecl);
 	    }
 	}
     }
@@ -1521,9 +1556,13 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 	 ??? Should we still warn about this now we have unit-at-a-time
 	 mode and can get it right?
 	 Definitely don't complain if the decls are in different translation
-	 units.  */
+	 units.
+	 C99 permits this, so don't warn in that case.  (The function
+	 may not be inlined everywhere in function-at-a-time mode, but
+	 we still shouldn't warn.)  */
       if (DECL_DECLARED_INLINE_P (newdecl) && !DECL_DECLARED_INLINE_P (olddecl)
-	  && same_translation_unit_p (olddecl, newdecl))
+	  && same_translation_unit_p (olddecl, newdecl)
+	  && ! flag_isoc99)
 	{
 	  if (TREE_USED (olddecl))
 	    {
@@ -1600,12 +1639,13 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 static void
 merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 {
-  int new_is_definition = (TREE_CODE (newdecl) == FUNCTION_DECL
-			   && DECL_INITIAL (newdecl) != 0);
-  int new_is_prototype = (TREE_CODE (newdecl) == FUNCTION_DECL
-			  && TYPE_ARG_TYPES (TREE_TYPE (newdecl)) != 0);
-  int old_is_prototype = (TREE_CODE (olddecl) == FUNCTION_DECL
-			  && TYPE_ARG_TYPES (TREE_TYPE (olddecl)) != 0);
+  bool new_is_definition = (TREE_CODE (newdecl) == FUNCTION_DECL
+			    && DECL_INITIAL (newdecl) != 0);
+  bool new_is_prototype = (TREE_CODE (newdecl) == FUNCTION_DECL
+			   && TYPE_ARG_TYPES (TREE_TYPE (newdecl)) != 0);
+  bool old_is_prototype = (TREE_CODE (olddecl) == FUNCTION_DECL
+			   && TYPE_ARG_TYPES (TREE_TYPE (olddecl)) != 0);
+  bool extern_changed = false;
 
   /* For real parm decl following a forward decl, rechain the old decl
      in its new location and clear TREE_ASM_WRITTEN (it's not a
@@ -1752,6 +1792,22 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 	}
     }
 
+#if WANT_C99_INLINE_SEMANTICS
+  /* In c99, 'extern' declaration before (or after) 'inline' means this
+     function is not DECL_EXTERNAL, unless 'gnu_inline' attribute
+     is present.  */
+  if (TREE_CODE (newdecl) == FUNCTION_DECL
+      && flag_isoc99
+      && (DECL_DECLARED_INLINE_P (newdecl)
+	  || DECL_DECLARED_INLINE_P (olddecl))
+      && (!DECL_DECLARED_INLINE_P (newdecl)
+	  || !DECL_DECLARED_INLINE_P (olddecl)
+	  || !DECL_EXTERNAL (olddecl))
+      && DECL_EXTERNAL (newdecl)
+      && !lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (newdecl)))
+    DECL_EXTERNAL (newdecl) = 0;
+#endif /* WANT_C99_INLINE_SEMANTICS */
+
   if (DECL_EXTERNAL (newdecl))
     {
       TREE_STATIC (newdecl) = TREE_STATIC (olddecl);
@@ -1844,6 +1900,8 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 	}
     }
 
+   extern_changed = DECL_EXTERNAL (olddecl) && !DECL_EXTERNAL (newdecl);
+
   /* Copy most of the decl-specific fields of NEWDECL into OLDDECL.
      But preserve OLDDECL's DECL_UID and DECL_CONTEXT.  */
   {
@@ -1886,6 +1944,13 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 	  || (TREE_CODE (olddecl) == VAR_DECL
 	      && TREE_STATIC (olddecl))))
     make_decl_rtl (olddecl);
+
+  /* If we changed a function from DECL_EXTERNAL to !DECL_EXTERNAL,
+     and the definition is coming from the old version, cgraph needs
+     to be called again.  */
+  if (extern_changed && !new_is_definition 
+      && TREE_CODE (olddecl) == FUNCTION_DECL && DECL_INITIAL (olddecl))
+    cgraph_finalize_function (olddecl, false);
 }
 
 /* Handle when a new declaration NEWDECL has the same name as an old
@@ -2791,7 +2856,16 @@ c_make_fname_decl (tree id, int type_dep)
 
   TREE_USED (decl) = 1;
 
-  if (current_function_decl)
+  if (current_function_decl
+      /* For invalid programs like this:
+        
+         void foo()
+         const char* p = __FUNCTION__;
+        
+	 the __FUNCTION__ is believed to appear in K&R style function
+	 parameter declarator.  In that case we still don't have
+	 function_scope.  */
+      && (!errorcount || current_function_scope))
     {
       DECL_CONTEXT (decl) = current_function_decl;
       bind (id, decl, current_function_scope,
@@ -2803,30 +2877,15 @@ c_make_fname_decl (tree id, int type_dep)
   return decl;
 }
 
-/* Return a definition for a builtin function named NAME and whose data type
-   is TYPE.  TYPE should be a function type with argument types.
-   FUNCTION_CODE tells later passes how to compile calls to this function.
-   See tree.h for its possible values.
-
-   If LIBRARY_NAME is nonzero, use that for DECL_ASSEMBLER_NAME,
-   the name to be called if we can't opencode the function.  If
-   ATTRS is nonzero, use that for the function's attribute list.  */
-
 tree
-builtin_function (const char *name, tree type, int function_code,
-		  enum built_in_class cl, const char *library_name,
-		  tree attrs)
+c_builtin_function (tree decl)
 {
-  tree id = get_identifier (name);
-  tree decl = build_decl (FUNCTION_DECL, id, type);
-  TREE_PUBLIC (decl) = 1;
-  DECL_EXTERNAL (decl) = 1;
+  tree type = TREE_TYPE (decl);
+  tree   id = DECL_NAME (decl);
+
+  const char *name = IDENTIFIER_POINTER (id);
   DECL_LANG_SPECIFIC (decl) = GGC_CNEW (struct lang_decl);
-  DECL_BUILT_IN_CLASS (decl) = cl;
-  DECL_FUNCTION_CODE (decl) = function_code;
   C_DECL_BUILTIN_PROTOTYPE (decl) = (TYPE_ARG_TYPES (type) != 0);
-  if (library_name)
-    SET_DECL_ASSEMBLER_NAME (decl, get_identifier (library_name));
 
   /* Should never be called on a symbol with a preexisting meaning.  */
   gcc_assert (!I_SYMBOL_BINDING (id));
@@ -2840,12 +2899,6 @@ builtin_function (const char *name, tree type, int function_code,
       TREE_CHAIN (decl) = visible_builtins;
       visible_builtins = decl;
     }
-
-  /* Possibly apply some default attributes to this built-in function.  */
-  if (attrs)
-    decl_attributes (&decl, attrs, ATTR_FLAG_BUILT_IN);
-  else
-    decl_attributes (&decl, NULL_TREE, 0);
 
   return decl;
 }
@@ -3267,6 +3320,20 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
   /* Set attributes here so if duplicate decl, will have proper attributes.  */
   decl_attributes (&decl, attributes, 0);
 
+#if WANT_C99_INLINE_SEMANTICS
+  /* Handle gnu_inline attribute.  */
+  if (declspecs->inline_p
+      && flag_isoc99
+      && TREE_CODE (decl) == FUNCTION_DECL
+      && lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (decl)))
+    {
+      if (declspecs->storage_class == csc_auto && current_scope != file_scope)
+	;
+      else if (declspecs->storage_class != csc_static)
+	DECL_EXTERNAL (decl) = !DECL_EXTERNAL (decl);
+    }
+#endif /* WANT_C99_INLINE_SEMANTICS */
+
   if (TREE_CODE (decl) == FUNCTION_DECL
       && targetm.calls.promote_prototypes (TREE_TYPE (decl)))
     {
@@ -3294,6 +3361,17 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
     warning (OPT_Wattributes, "inline function %q+D given attribute noinline",
 	     decl);
 
+  /* C99 6.7.4p3: An inline definition of a function with external
+     linkage shall not contain a definition of a modifiable object
+     with static storage duration...  */
+  if (TREE_CODE (decl) == VAR_DECL
+      && current_scope != file_scope
+      && TREE_STATIC (decl)
+      && DECL_DECLARED_INLINE_P (current_function_decl)
+      && DECL_EXTERNAL (current_function_decl))
+    pedwarn ("%q+D is static but declared in inline function %qD "
+	     "which is not static", decl, current_function_decl);
+
   /* Add this decl to the current scope.
      TEM may equal DECL or it may be a previous decl of the same name.  */
   tem = pushdecl (decl);
@@ -3305,6 +3383,23 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
     }
 
   return tem;
+}
+
+/* Initialize EH if not initialized yet and exceptions are enabled.  */
+
+void
+c_maybe_initialize_eh (void)
+{
+  if (!flag_exceptions || c_eh_initialized_p)
+    return;
+
+  c_eh_initialized_p = true;
+  eh_personality_libfunc
+    = init_one_libfunc (USING_SJLJ_EXCEPTIONS
+			? "__gcc_personality_sj0"
+			: "__gcc_personality_v0");
+  default_init_unwind_resume_libfunc ();
+  using_eh_for_cleanups ();
 }
 
 /* Finish processing of a declaration;
@@ -3598,16 +3693,7 @@ finish_decl (tree decl, tree init, tree asmspec_tree)
 	  TREE_USED (cleanup_decl) = 1;
 
 	  /* Initialize EH, if we've been told to do so.  */
-	  if (flag_exceptions && !c_eh_initialized_p)
-	    {
-	      c_eh_initialized_p = true;
-	      eh_personality_libfunc
-		= init_one_libfunc (USING_SJLJ_EXCEPTIONS
-				    ? "__gcc_personality_sj0"
-				    : "__gcc_personality_v0");
-	      default_init_unwind_resume_libfunc ();
-	      using_eh_for_cleanups ();
-	    }
+	  c_maybe_initialize_eh ();
 
 	  push_cleanup (decl, cleanup, false);
 	}
@@ -4738,8 +4824,19 @@ grokdeclarator (const struct c_declarator *declarator,
 	   GCC to signify a forward declaration of a nested function.  */
 	if (storage_class == csc_auto && current_scope != file_scope)
 	  DECL_EXTERNAL (decl) = 0;
+	/* In C99, a function which is declared 'inline' with 'extern'
+	   is not an external reference (which is confusing).  It
+	   means that the later definition of the function must be output
+	   in this file, C99 6.7.4p6.  In GNU C89, a function declared
+	   'extern inline' is an external reference.  */
+	else if (declspecs->inline_p && storage_class != csc_static)
+#if WANT_C99_INLINE_SEMANTICS
+	  DECL_EXTERNAL (decl) = (storage_class == csc_extern) == !flag_isoc99;
+#else
+	  DECL_EXTERNAL (decl) = (storage_class == csc_extern);
+#endif
 	else
-	  DECL_EXTERNAL (decl) = 1;
+	  DECL_EXTERNAL (decl) = !initialized;
 
 	/* Record absence of global scope for `static' or `auto'.  */
 	TREE_PUBLIC (decl)
@@ -4769,11 +4866,7 @@ grokdeclarator (const struct c_declarator *declarator,
 	       the abstract origin pointing between the declarations,
 	       which will confuse dwarf2out.  */
 	    if (initialized)
-	      {
-		DECL_INLINE (decl) = 1;
-		if (storage_class == csc_extern)
-		  current_extern_inline = 1;
-	      }
+	      DECL_INLINE (decl) = 1;
 	  }
 	/* If -finline-functions, assume it can be inlined.  This does
 	   two things: let the function be deferred until it is actually
@@ -5271,12 +5364,15 @@ start_struct (enum tree_code code, tree name)
 	    error ("nested redefinition of %<union %E%>", name);
 	  else
 	    error ("nested redefinition of %<struct %E%>", name);
+	  /* Don't create structures that contain themselves.  */
+	  ref = NULL_TREE;
 	}
     }
-  else
-    {
-      /* Otherwise create a forward-reference just so the tag is in scope.  */
 
+  /* Otherwise create a forward-reference just so the tag is in scope.  */
+
+  if (ref == NULL_TREE || TREE_CODE (ref) != code)
+    {
       ref = make_node (code);
       pushtag (name, ref);
     }
@@ -5968,7 +6064,6 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
   current_function_returns_null = 0;
   current_function_returns_abnormally = 0;
   warn_about_return_type = 0;
-  current_extern_inline = 0;
   c_switch_stack = NULL;
 
   nstack_se = XOBNEW (&parser_obstack, struct c_label_context_se);
@@ -6007,6 +6102,18 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
       && lookup_attribute ("noinline", DECL_ATTRIBUTES (decl1)))
     warning (OPT_Wattributes, "inline function %q+D given attribute noinline",
 	     decl1);
+
+#if WANT_C99_INLINE_SEMANTICS
+  /* Handle gnu_inline attribute.  */
+  if (declspecs->inline_p
+      && flag_isoc99
+      && TREE_CODE (decl1) == FUNCTION_DECL
+      && lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (decl1)))
+    {
+      if (declspecs->storage_class != csc_static)
+	DECL_EXTERNAL (decl1) = !DECL_EXTERNAL (decl1);
+    }
+#endif /* WANT_C99_INLINE_SEMANTICS */
 
   announce_function (decl1);
 
@@ -6120,12 +6227,6 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
     warning (OPT_Wmissing_declarations,
 	     "%q+D was used with no declaration before its definition", decl1);
 
-  /* This is a definition, not a reference.
-     So normally clear DECL_EXTERNAL.
-     However, `extern inline' acts like a declaration
-     except for defining how to inline.  So set DECL_EXTERNAL in that case.  */
-  DECL_EXTERNAL (decl1) = current_extern_inline;
-
   /* This function exists in static storage.
      (This does not mean `static' in the C sense!)  */
   TREE_STATIC (decl1) = 1;
@@ -6145,54 +6246,11 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
   /* Warn for unlikely, improbable, or stupid declarations of `main'.  */
   if (warn_main > 0 && MAIN_NAME_P (DECL_NAME (decl1)))
     {
-      tree args;
-      int argct = 0;
-
       if (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (decl1)))
 	  != integer_type_node)
 	pedwarn ("return type of %q+D is not %<int%>", decl1);
 
-      for (args = TYPE_ARG_TYPES (TREE_TYPE (decl1)); args;
-	   args = TREE_CHAIN (args))
-	{
-	  tree type = args ? TREE_VALUE (args) : 0;
-
-	  if (type == void_type_node)
-	    break;
-
-	  ++argct;
-	  switch (argct)
-	    {
-	    case 1:
-	      if (TYPE_MAIN_VARIANT (type) != integer_type_node)
-		pedwarn ("first argument of %q+D should be %<int%>", decl1);
-	      break;
-
-	    case 2:
-	      if (TREE_CODE (type) != POINTER_TYPE
-		  || TREE_CODE (TREE_TYPE (type)) != POINTER_TYPE
-		  || (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (type)))
-		      != char_type_node))
-		pedwarn ("second argument of %q+D should be %<char **%>",
-			 decl1);
-	      break;
-
-	    case 3:
-	      if (TREE_CODE (type) != POINTER_TYPE
-		  || TREE_CODE (TREE_TYPE (type)) != POINTER_TYPE
-		  || (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (type)))
-		      != char_type_node))
-		pedwarn ("third argument of %q+D should probably be "
-			 "%<char **%>", decl1);
-	      break;
-	    }
-	}
-
-      /* It is intentional that this message does not mention the third
-	 argument because it's only mentioned in an appendix of the
-	 standard.  */
-      if (argct > 0 && (argct < 2 || argct > 3))
-	pedwarn ("%q+D takes only zero or two arguments", decl1);
+      check_main_parameter_types(decl1);
 
       if (!TREE_PUBLIC (decl1))
 	pedwarn ("%q+D is normally a non-static function", decl1);
@@ -6356,8 +6414,8 @@ store_parm_decls_oldstyle (tree fndecl, const struct c_arg_info *arg_info)
 
 	  if (flag_isoc99)
 	    pedwarn ("type of %q+D defaults to %<int%>", decl);
-	  else if (extra_warnings)
-	    warning (OPT_Wextra, "type of %q+D defaults to %<int%>", decl);
+	  else 
+	    warning (OPT_Wmissing_parameter_type, "type of %q+D defaults to %<int%>", decl);
 	}
 
       TREE_PURPOSE (parm) = decl;
@@ -6424,8 +6482,8 @@ store_parm_decls_oldstyle (tree fndecl, const struct c_arg_info *arg_info)
       tree type;
       for (parm = DECL_ARGUMENTS (fndecl),
 	     type = current_function_prototype_arg_types;
-	   parm || (type && (TYPE_MAIN_VARIANT (TREE_VALUE (type))
-			     != void_type_node));
+	   parm || (type && TREE_VALUE (type) != error_mark_node
+                   && (TYPE_MAIN_VARIANT (TREE_VALUE (type)) != void_type_node));
 	   parm = TREE_CHAIN (parm), type = TREE_CHAIN (type))
 	{
 	  if (parm == 0 || type == 0
@@ -6901,7 +6959,6 @@ c_push_function_context (struct function *f)
   p->returns_null = current_function_returns_null;
   p->returns_abnormally = current_function_returns_abnormally;
   p->warn_about_return_type = warn_about_return_type;
-  p->extern_inline = current_extern_inline;
 }
 
 /* Restore the variables used during compilation of a C function.  */
@@ -6930,7 +6987,6 @@ c_pop_function_context (struct function *f)
   current_function_returns_null = p->returns_null;
   current_function_returns_abnormally = p->returns_abnormally;
   warn_about_return_type = p->warn_about_return_type;
-  current_extern_inline = p->extern_inline;
 
   f->language = NULL;
 }
@@ -7557,8 +7613,9 @@ declspecs_add_scspec (struct c_declspecs *specs, tree scspec)
   gcc_assert (TREE_CODE (scspec) == IDENTIFIER_NODE
 	      && C_IS_RESERVED_WORD (scspec));
   i = C_RID_CODE (scspec);
-  if (extra_warnings && specs->non_sc_seen_p)
-    warning (OPT_Wextra, "%qE is not at beginning of declaration", scspec);
+  if (specs->non_sc_seen_p)
+    warning (OPT_Wold_style_declaration, 
+             "%qE is not at beginning of declaration", scspec);
   switch (i)
     {
     case RID_INLINE:

@@ -148,8 +148,9 @@ create_tmp_var_for (struct nesting_info *info, tree type, const char *prefix)
   DECL_CONTEXT (tmp_var) = info->context;
   TREE_CHAIN (tmp_var) = info->new_local_var_chain;
   DECL_SEEN_IN_BIND_EXPR_P (tmp_var) = 1;
-  if (TREE_CODE (type) == COMPLEX_TYPE)
-    DECL_COMPLEX_GIMPLE_REG_P (tmp_var) = 1;
+  if (TREE_CODE (type) == COMPLEX_TYPE
+      || TREE_CODE (type) == VECTOR_TYPE)
+    DECL_GIMPLE_REG_P (tmp_var) = 1;
 
   info->new_local_var_chain = tmp_var;
 
@@ -182,7 +183,7 @@ build_addr (tree exp, tree context)
   save_context = current_function_decl;
   current_function_decl = context;
   retval = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (exp)), exp);
-  current_function_decl = save_context;;
+  current_function_decl = save_context;
   return retval;
 }
 
@@ -388,7 +389,7 @@ init_tmp_var (struct nesting_info *info, tree exp, tree_stmt_iterator *tsi)
   tree t, stmt;
 
   t = create_tmp_var_for (info, TREE_TYPE (exp), NULL);
-  stmt = build2 (MODIFY_EXPR, TREE_TYPE (t), t, exp);
+  stmt = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (t), t, exp);
   SET_EXPR_LOCUS (stmt, EXPR_LOCUS (tsi_stmt (*tsi)));
   tsi_link_before (tsi, stmt, TSI_SAME_STMT);
 
@@ -416,7 +417,7 @@ save_tmp_var (struct nesting_info *info, tree exp,
   tree t, stmt;
 
   t = create_tmp_var_for (info, TREE_TYPE (exp), NULL);
-  stmt = build2 (MODIFY_EXPR, TREE_TYPE (t), exp, t);
+  stmt = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (t), exp, t);
   SET_EXPR_LOCUS (stmt, EXPR_LOCUS (tsi_stmt (*tsi)));
   tsi_link_after (tsi, stmt, TSI_SAME_STMT);
 
@@ -546,6 +547,47 @@ get_nl_goto_field (struct nesting_info *info)
   return field;
 }
 
+/* Helper function for walk_stmts.  Walk output operands of an ASM_EXPR.  */
+
+static void
+walk_asm_expr (struct walk_stmt_info *wi, tree stmt)
+{
+  int noutputs = list_length (ASM_OUTPUTS (stmt));
+  const char **oconstraints
+    = (const char **) alloca ((noutputs) * sizeof (const char *));
+  int i;
+  tree link;
+  const char *constraint;
+  bool allows_mem, allows_reg, is_inout;
+
+  wi->is_lhs = true;
+  for (i=0, link = ASM_OUTPUTS (stmt); link; ++i, link = TREE_CHAIN (link))
+    {
+      constraint = TREE_STRING_POINTER (TREE_VALUE (TREE_PURPOSE (link)));
+      oconstraints[i] = constraint;
+      parse_output_constraint (&constraint, i, 0, 0, &allows_mem,
+			       &allows_reg, &is_inout);
+
+      wi->val_only = (allows_reg || !allows_mem);
+      walk_tree (&TREE_VALUE (link), wi->callback, wi, NULL);
+    }
+
+  for (link = ASM_INPUTS (stmt); link; link = TREE_CHAIN (link))
+    {
+      constraint = TREE_STRING_POINTER (TREE_VALUE (TREE_PURPOSE (link)));
+      parse_input_constraint (&constraint, 0, 0, noutputs, 0,
+			      oconstraints, &allows_mem, &allows_reg);
+
+      wi->val_only = (allows_reg || !allows_mem);
+      /* Although input "m" is not really a LHS, we need a lvalue.  */
+      wi->is_lhs = !wi->val_only;
+      walk_tree (&TREE_VALUE (link), wi->callback, wi, NULL);
+    }
+
+  wi->is_lhs = false;
+  wi->val_only = true;
+}
+
 /* Iterate over all sub-statements of *TP calling walk_tree with
    WI->CALLBACK for every sub-expression in each statement found.  */
 
@@ -613,19 +655,23 @@ walk_stmts (struct walk_stmt_info *wi, tree *tp)
       walk_stmts (wi, &TREE_OPERAND (t, 0));
       break;
 
-    case MODIFY_EXPR:
+    case GIMPLE_MODIFY_STMT:
       /* A formal temporary lhs may use a COMPONENT_REF rhs.  */
-      wi->val_only = !is_gimple_formal_tmp_var (TREE_OPERAND (t, 0));
-      walk_tree (&TREE_OPERAND (t, 1), wi->callback, wi, NULL);
+      wi->val_only = !is_gimple_formal_tmp_var (GIMPLE_STMT_OPERAND (t, 0));
+      walk_tree (&GIMPLE_STMT_OPERAND (t, 1), wi->callback, wi, NULL);
 
       /* If the rhs is appropriate for a memory, we may use a
 	 COMPONENT_REF on the lhs.  */
-      wi->val_only = !is_gimple_mem_rhs (TREE_OPERAND (t, 1));
+      wi->val_only = !is_gimple_mem_rhs (GIMPLE_STMT_OPERAND (t, 1));
       wi->is_lhs = true;
-      walk_tree (&TREE_OPERAND (t, 0), wi->callback, wi, NULL);
+      walk_tree (&GIMPLE_STMT_OPERAND (t, 0), wi->callback, wi, NULL);
 
       wi->val_only = true;
       wi->is_lhs = false;
+      break;
+
+    case ASM_EXPR:
+      walk_asm_expr (wi, *tp);
       break;
 
     default:
@@ -1648,7 +1694,7 @@ convert_call_expr (tree *tp, int *walk_subtrees, void *data)
       break;
 
     case RETURN_EXPR:
-    case MODIFY_EXPR:
+    case GIMPLE_MODIFY_STMT:
     case WITH_SIZE_EXPR:
       /* Only return modify and with_size_expr may contain calls.  */
       *walk_subtrees = 1;
@@ -1770,7 +1816,7 @@ finalize_nesting_tree_1 (struct nesting_info *root)
 
 	  y = build3 (COMPONENT_REF, TREE_TYPE (field),
 		      root->frame_decl, field, NULL_TREE);
-	  x = build2 (MODIFY_EXPR, TREE_TYPE (field), y, x);
+	  x = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (field), y, x);
 	  append_to_statement_list (x, &stmt_list);
 	}
     }
@@ -1781,7 +1827,7 @@ finalize_nesting_tree_1 (struct nesting_info *root)
     {
       tree x = build3 (COMPONENT_REF, TREE_TYPE (root->chain_field),
 		       root->frame_decl, root->chain_field, NULL_TREE);
-      x = build2 (MODIFY_EXPR, TREE_TYPE (x), x, get_chain_decl (root));
+      x = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (x), x, get_chain_decl (root));
       append_to_statement_list (x, &stmt_list);
     }
 

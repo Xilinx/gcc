@@ -255,10 +255,6 @@ static section *ia64_rwreloc_select_rtx_section (enum machine_mode, rtx,
 						 unsigned HOST_WIDE_INT)
      ATTRIBUTE_UNUSED;
 static unsigned int ia64_section_type_flags (tree, const char *, int);
-static void ia64_hpux_add_extern_decl (tree decl)
-     ATTRIBUTE_UNUSED;
-static void ia64_hpux_file_end (void)
-     ATTRIBUTE_UNUSED;
 static void ia64_init_libfuncs (void)
      ATTRIBUTE_UNUSED;
 static void ia64_hpux_init_libfuncs (void)
@@ -2457,7 +2453,7 @@ ia64_compute_frame_size (HOST_WIDE_INT size)
       current_frame_info.reg_save_b0 = find_gr_spill (1);
       if (current_frame_info.reg_save_b0 == 0)
 	{
-	  spill_size += 8;
+	  extra_spill_size += 8;
 	  n_spilled += 1;
 	}
 
@@ -2486,7 +2482,7 @@ ia64_compute_frame_size (HOST_WIDE_INT size)
       if (regs_ever_live[BR_REG (0)] && ! call_used_regs[BR_REG (0)])
 	{
 	  SET_HARD_REG_BIT (mask, BR_REG (0));
-	  spill_size += 8;
+	  extra_spill_size += 8;
 	  n_spilled += 1;
 	}
 
@@ -3176,6 +3172,31 @@ ia64_expand_prologue (void)
 	}
     }
 
+  /* Save the return pointer.  */
+  if (TEST_HARD_REG_BIT (current_frame_info.mask, BR_REG (0)))
+    {
+      reg = gen_rtx_REG (DImode, BR_REG (0));
+      if (current_frame_info.reg_save_b0 != 0)
+	{
+	  alt_reg = gen_rtx_REG (DImode, current_frame_info.reg_save_b0);
+	  insn = emit_move_insn (alt_reg, reg);
+	  RTX_FRAME_RELATED_P (insn) = 1;
+
+	  /* Even if we're not going to generate an epilogue, we still
+	     need to save the register so that EH works.  */
+	  if (! epilogue_p)
+	    emit_insn (gen_prologue_use (alt_reg));
+	}
+      else
+	{
+	  alt_regno = next_scratch_gr_reg ();
+	  alt_reg = gen_rtx_REG (DImode, alt_regno);
+	  emit_move_insn (alt_reg, reg);
+	  do_spill (gen_movdi_x, alt_reg, cfa_off, reg);
+	  cfa_off -= 8;
+	}
+    }
+
   if (current_frame_info.reg_save_gp)
     {
       insn = emit_move_insn (gen_rtx_REG (DImode,
@@ -3201,32 +3222,6 @@ ia64_expand_prologue (void)
 	do_spill (gen_gr_spill, reg, cfa_off, reg);
 	cfa_off -= 8;
       }
-
-  /* Handle BR0 specially -- it may be getting stored permanently in
-     some GR register.  */
-  if (TEST_HARD_REG_BIT (current_frame_info.mask, BR_REG (0)))
-    {
-      reg = gen_rtx_REG (DImode, BR_REG (0));
-      if (current_frame_info.reg_save_b0 != 0)
-	{
-	  alt_reg = gen_rtx_REG (DImode, current_frame_info.reg_save_b0);
-	  insn = emit_move_insn (alt_reg, reg);
-	  RTX_FRAME_RELATED_P (insn) = 1;
-
-	  /* Even if we're not going to generate an epilogue, we still
-	     need to save the register so that EH works.  */
-	  if (! epilogue_p)
-	    emit_insn (gen_prologue_use (alt_reg));
-	}
-      else
-	{
-	  alt_regno = next_scratch_gr_reg ();
-	  alt_reg = gen_rtx_REG (DImode, alt_regno);
-	  emit_move_insn (alt_reg, reg);
-	  do_spill (gen_movdi_x, alt_reg, cfa_off, reg);
-	  cfa_off -= 8;
-	}
-    }
 
   /* Spill the rest of the BR registers.  */
   for (regno = BR_REG (1); regno <= BR_REG (7); ++regno)
@@ -3361,6 +3356,22 @@ ia64_expand_epilogue (int sibcall_p)
       emit_move_insn (reg, alt_reg);
     }
 
+  /* Restore the return pointer.  */
+  if (TEST_HARD_REG_BIT (current_frame_info.mask, BR_REG (0)))
+    {
+      if (current_frame_info.reg_save_b0 != 0)
+	alt_reg = gen_rtx_REG (DImode, current_frame_info.reg_save_b0);
+      else
+	{
+	  alt_regno = next_scratch_gr_reg ();
+	  alt_reg = gen_rtx_REG (DImode, alt_regno);
+	  do_restore (gen_movdi_x, alt_reg, cfa_off);
+	  cfa_off -= 8;
+	}
+      reg = gen_rtx_REG (DImode, BR_REG (0));
+      emit_move_insn (reg, alt_reg);
+    }
+
   /* We should now be at the base of the gr/br/fr spill area.  */
   gcc_assert (cfa_off == (current_frame_info.spill_cfa_off
 			  + current_frame_info.spill_size));
@@ -3379,23 +3390,7 @@ ia64_expand_epilogue (int sibcall_p)
 	cfa_off -= 8;
       }
 
-  /* Restore the branch registers.  Handle B0 specially, as it may
-     have gotten stored in some GR register.  */
-  if (TEST_HARD_REG_BIT (current_frame_info.mask, BR_REG (0)))
-    {
-      if (current_frame_info.reg_save_b0 != 0)
-	alt_reg = gen_rtx_REG (DImode, current_frame_info.reg_save_b0);
-      else
-	{
-	  alt_regno = next_scratch_gr_reg ();
-	  alt_reg = gen_rtx_REG (DImode, alt_regno);
-	  do_restore (gen_movdi_x, alt_reg, cfa_off);
-	  cfa_off -= 8;
-	}
-      reg = gen_rtx_REG (DImode, BR_REG (0));
-      emit_move_insn (reg, alt_reg);
-    }
-
+  /* Restore the branch registers.  */
   for (regno = BR_REG (1); regno <= BR_REG (7); ++regno)
     if (TEST_HARD_REG_BIT (current_frame_info.mask, regno))
       {
@@ -4324,7 +4319,7 @@ ia64_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
 		       build_int_cst (NULL_TREE, 2 * UNITS_PER_WORD - 1));
       t = build2 (BIT_AND_EXPR, TREE_TYPE (t), t,
 		  build_int_cst (NULL_TREE, -2 * UNITS_PER_WORD));
-      t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist, t);
+      t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (valist), valist, t);
       gimplify_and_add (t, pre_p);
     }
 
@@ -5020,49 +5015,6 @@ ia64_secondary_reload_class (enum reg_class class,
   return NO_REGS;
 }
 
-
-/* Emit text to declare externally defined variables and functions, because
-   the Intel assembler does not support undefined externals.  */
-
-void
-ia64_asm_output_external (FILE *file, tree decl, const char *name)
-{
-  int save_referenced;
-
-  /* GNU as does not need anything here, but the HP linker does need
-     something for external functions.  */
-
-  if (TARGET_GNU_AS
-      && (!TARGET_HPUX_LD
-	  || TREE_CODE (decl) != FUNCTION_DECL
-	  || strstr (name, "__builtin_") == name))
-    return;
-
-  /* ??? The Intel assembler creates a reference that needs to be satisfied by
-     the linker when we do this, so we need to be careful not to do this for
-     builtin functions which have no library equivalent.  Unfortunately, we
-     can't tell here whether or not a function will actually be called by
-     expand_expr, so we pull in library functions even if we may not need
-     them later.  */
-  if (! strcmp (name, "__builtin_next_arg")
-      || ! strcmp (name, "alloca")
-      || ! strcmp (name, "__builtin_constant_p")
-      || ! strcmp (name, "__builtin_args_info"))
-    return;
-
-  if (TARGET_HPUX_LD)
-    ia64_hpux_add_extern_decl (decl);
-  else
-    {
-      /* assemble_name will set TREE_SYMBOL_REFERENCED, so we must save and
-         restore it.  */
-      save_referenced = TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl));
-      if (TREE_CODE (decl) == FUNCTION_DECL)
-        ASM_OUTPUT_TYPE_DIRECTIVE (file, name, "function");
-      (*targetm.asm_out.globalize_label) (file, name);
-      TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)) = save_referenced;
-    }
-}
 
 /* Parse the -mfixed-range= option string.  */
 
@@ -7693,6 +7645,53 @@ get_next_important_insn (rtx insn, rtx tail)
   return NULL_RTX;
 }
 
+/* Add a bundle selector TEMPLATE0 before INSN.  */
+
+static void
+ia64_add_bundle_selector_before (int template0, rtx insn)
+{
+  rtx b = gen_bundle_selector (GEN_INT (template0));
+
+  ia64_emit_insn_before (b, insn);
+#if NR_BUNDLES == 10
+  if ((template0 == 4 || template0 == 5)
+      && (flag_unwind_tables || (flag_exceptions && !USING_SJLJ_EXCEPTIONS)))
+    {
+      int i;
+      rtx note = NULL_RTX;
+
+      /* In .mbb and .bbb bundles, check if CALL_INSN isn't in the
+	 first or second slot.  If it is and has REG_EH_NOTE set, copy it
+	 to following nops, as br.call sets rp to the address of following
+	 bundle and therefore an EH region end must be on a bundle
+	 boundary.  */
+      insn = PREV_INSN (insn);
+      for (i = 0; i < 3; i++)
+	{
+	  do
+	    insn = next_active_insn (insn);
+	  while (GET_CODE (insn) == INSN
+		 && get_attr_empty (insn) == EMPTY_YES);
+	  if (GET_CODE (insn) == CALL_INSN)
+	    note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
+	  else if (note)
+	    {
+	      int code;
+
+	      gcc_assert ((code = recog_memoized (insn)) == CODE_FOR_nop
+			  || code == CODE_FOR_nop_b);
+	      if (find_reg_note (insn, REG_EH_REGION, NULL_RTX))
+		note = NULL_RTX;
+	      else
+		REG_NOTES (insn)
+		  = gen_rtx_EXPR_LIST (REG_EH_REGION, XEXP (note, 0),
+				       REG_NOTES (insn));
+	    }
+	}
+    }
+#endif
+}
+
 /* The following function does insn bundling.  Bundling means
    inserting templates and nop insns to fit insn groups into permitted
    templates.  Instruction scheduling uses NDFA (non-deterministic
@@ -7974,8 +7973,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
 		/* We are at the start of a bundle: emit the template
 		   (it should be defined).  */
 		gcc_assert (template0 >= 0);
-		b = gen_bundle_selector (GEN_INT (template0));
-		ia64_emit_insn_before (b, nop);
+		ia64_add_bundle_selector_before (template0, nop);
 		/* If we have two bundle window, we make one bundle
 		   rotation.  Otherwise template0 will be undefined
 		   (negative value).  */
@@ -8001,8 +7999,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
 	  /* The current insn is at the bundle start: emit the
 	     template.  */
 	  gcc_assert (template0 >= 0);
-	  b = gen_bundle_selector (GEN_INT (template0));
-	  ia64_emit_insn_before (b, insn);
+	  ia64_add_bundle_selector_before (template0, insn);
 	  b = PREV_INSN (insn);
 	  insn = b;
 	  /* See comment above in analogous place for emitting nops
@@ -8024,8 +8021,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
 	      /* See comment above in analogous place for emitting nops
 		 after the insn.  */
 	      gcc_assert (template0 >= 0);
-	      b = gen_bundle_selector (GEN_INT (template0));
-	      ia64_emit_insn_before (b, insn);
+	      ia64_add_bundle_selector_before (template0, insn);
 	      b = PREV_INSN (insn);
 	      insn = b;
 	      template0 = template1;
@@ -8119,8 +8115,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
 	      }
 	    /* Put the MM-insn in the same slot of a bundle with the
 	       same template as the original one.  */
-	    ia64_emit_insn_before (gen_bundle_selector (GEN_INT (template0)),
-				   insn);
+	    ia64_add_bundle_selector_before (template0, insn);
 	    /* To put the insn in the same slot, add necessary number
 	       of nops.  */
 	    for (j = n; j > 0; j --)
@@ -9114,8 +9109,8 @@ ia64_init_builtins (void)
 					       "__float128");
 
 #define def_builtin(name, type, code)					\
-  lang_hooks.builtin_function ((name), (type), (code), BUILT_IN_MD,	\
-			       NULL, NULL_TREE)
+  add_builtin_function ((name), (type), (code), BUILT_IN_MD,	\
+		       NULL, NULL_TREE)
 
   def_builtin ("__builtin_ia64_bsp",
 	       build_function_type (ptr_type_node, void_list_node),
@@ -9174,55 +9169,33 @@ ia64_hpux_function_arg_padding (enum machine_mode mode, tree type)
    return DEFAULT_FUNCTION_ARG_PADDING (mode, type);
 }
 
-/* Linked list of all external functions that are to be emitted by GCC.
-   We output the name if and only if TREE_SYMBOL_REFERENCED is set in
-   order to avoid putting out names that are never really used.  */
+/* Emit text to declare externally defined variables and functions, because
+   the Intel assembler does not support undefined externals.  */
 
-struct extern_func_list GTY(())
+void
+ia64_asm_output_external (FILE *file, tree decl, const char *name)
 {
-  struct extern_func_list *next;
-  tree decl;
-};
-
-static GTY(()) struct extern_func_list *extern_func_head;
-
-static void
-ia64_hpux_add_extern_decl (tree decl)
-{
-  struct extern_func_list *p = ggc_alloc (sizeof (struct extern_func_list));
-
-  p->decl = decl;
-  p->next = extern_func_head;
-  extern_func_head = p;
-}
-
-/* Print out the list of used global functions.  */
-
-static void
-ia64_hpux_file_end (void)
-{
-  struct extern_func_list *p;
-
-  for (p = extern_func_head; p; p = p->next)
+  /* We output the name if and only if TREE_SYMBOL_REFERENCED is
+     set in order to avoid putting out names that are never really
+     used. */
+  if (TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
     {
-      tree decl = p->decl;
-      tree id = DECL_ASSEMBLER_NAME (decl);
+      /* maybe_assemble_visibility will return 1 if the assembler
+	 visibility directive is output.  */
+      int need_visibility = ((*targetm.binds_local_p) (decl)
+			     && maybe_assemble_visibility (decl));
 
-      gcc_assert (id);
-
-      if (!TREE_ASM_WRITTEN (decl) && TREE_SYMBOL_REFERENCED (id))
-        {
-	  const char *name = XSTR (XEXP (DECL_RTL (decl), 0), 0);
-
-	  TREE_ASM_WRITTEN (decl) = 1;
-	  (*targetm.asm_out.globalize_label) (asm_out_file, name);
-	  fputs (TYPE_ASM_OP, asm_out_file);
-	  assemble_name (asm_out_file, name);
-	  fprintf (asm_out_file, "," TYPE_OPERAND_FMT "\n", "function");
-        }
+      /* GNU as does not need anything here, but the HP linker does
+	 need something for external functions.  */
+      if ((TARGET_HPUX_LD || !TARGET_GNU_AS)
+	  && TREE_CODE (decl) == FUNCTION_DECL)
+	{
+	  ASM_OUTPUT_TYPE_DIRECTIVE (file, name, "function");
+	  (*targetm.asm_out.globalize_label) (file, name);
+	}
+      else if (need_visibility && !TARGET_GNU_AS)
+	(*targetm.asm_out.globalize_label) (file, name);
     }
-
-  extern_func_head = 0;
 }
 
 /* Set SImode div/mod functions, init_integral_libfuncs only initializes
@@ -9272,6 +9245,22 @@ ia64_hpux_init_libfuncs (void)
 {
   ia64_init_libfuncs ();
 
+  /* The HP SI millicode division and mod functions expect DI arguments.
+     By turning them off completely we avoid using both libgcc and the
+     non-standard millicode routines and use the HP DI millicode routines
+     instead.  */
+
+  set_optab_libfunc (sdiv_optab, SImode, 0);
+  set_optab_libfunc (udiv_optab, SImode, 0);
+  set_optab_libfunc (smod_optab, SImode, 0);
+  set_optab_libfunc (umod_optab, SImode, 0);
+
+  set_optab_libfunc (sdiv_optab, DImode, "__milli_divI");
+  set_optab_libfunc (udiv_optab, DImode, "__milli_divU");
+  set_optab_libfunc (smod_optab, DImode, "__milli_remI");
+  set_optab_libfunc (umod_optab, DImode, "__milli_remU");
+
+  /* HP-UX libc has TF min/max/abs routines in it.  */
   set_optab_libfunc (smin_optab, TFmode, "_U_Qfmin");
   set_optab_libfunc (smax_optab, TFmode, "_U_Qfmax");
   set_optab_libfunc (abs_optab, TFmode, "_U_Qfabs");
@@ -9782,6 +9771,11 @@ ia64_optimization_options (int level ATTRIBUTE_UNUSED,
 {
   /* Let the scheduler form additional regions.  */
   set_param_value ("max-sched-extend-regions-iters", 2);
+
+  /* Set the default values for cache-related parameters.  */
+  set_param_value ("simultaneous-prefetches", 6);
+  set_param_value ("l1-cache-line-size", 32);
+
 }
 
 #include "gt-ia64.h"

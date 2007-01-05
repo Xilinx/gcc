@@ -449,7 +449,6 @@ decode_options (unsigned int argc, const char **argv)
       flag_tree_dom = 1;
       flag_tree_dse = 1;
       flag_tree_ter = 1;
-      flag_tree_live_range_split = 1;
       flag_tree_sra = 1;
       flag_tree_copyrename = 1;
       flag_tree_fre = 1;
@@ -474,8 +473,8 @@ decode_options (unsigned int argc, const char **argv)
       flag_thread_jumps = 1;
       flag_crossjumping = 1;
       flag_optimize_sibling_calls = 1;
+      flag_forward_propagate = 1;
       flag_cse_follow_jumps = 1;
-      flag_cse_skip_blocks = 1;
       flag_gcse = 1;
       flag_expensive_optimizations = 1;
       flag_ipa_type_escape = 1;
@@ -999,10 +998,6 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_pedantic_errors:
       flag_pedantic_errors = pedantic = 1;
-      break;
-
-    case OPT_fforce_mem:
-      warning (0, "-f[no-]force-mem is nop and option will be removed in 4.2");
       break;
 
     case OPT_floop_optimize:

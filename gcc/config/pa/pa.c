@@ -662,7 +662,7 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
       insn = emit_move_insn (reg, pic_ref);
 
       /* Put a REG_EQUAL note on this insn, so that it can be optimized.  */
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUAL, orig, REG_NOTES (insn));
+      set_unique_reg_note (insn, REG_EQUAL, orig);
 
       return reg;
     }
@@ -1893,6 +1893,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
 	     because PLUS uses an 11-bit immediate and the insn sequence
 	     generated is not as efficient as the one using HIGH/LO_SUM.  */
 	  if (GET_CODE (operand1) == CONST_INT
+	      && GET_MODE_BITSIZE (mode) <= BITS_PER_WORD
 	      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
 	      && !insert)
 	    {
@@ -1977,8 +1978,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
 		}
 	    }
 
-	  REG_NOTES (insn)
-	    = gen_rtx_EXPR_LIST (REG_EQUAL, op1, REG_NOTES (insn));
+	  set_unique_reg_note (insn, REG_EQUAL, op1);
 
 	  return 1;
 	}
@@ -4158,9 +4158,6 @@ hppa_pic_save_rtx (void)
 #define NO_DEFERRED_PROFILE_COUNTERS 0
 #endif
 
-/* Define heap vector type for funcdef numbers.  */
-DEF_VEC_I(int);
-DEF_VEC_ALLOC_I(int,heap);
 
 /* Vector of funcdef numbers.  */
 static VEC(int,heap) *funcdef_nos;
@@ -4337,8 +4334,10 @@ return_addr_rtx (int count, rtx frameaddr)
 		 GEN_INT (0x00011820), NE, NULL_RTX, SImode, 1);
   emit_jump_insn (gen_bne (label));
 
+  /* 0xe0400002 must be specified as -532676606 so that it won't be
+     rejected as an invalid immediate operand on 64-bit hosts.  */
   emit_cmp_insn (gen_rtx_MEM (SImode, plus_constant (ins, 12)),
-		 GEN_INT (0xe0400002), NE, NULL_RTX, SImode, 1);
+		 GEN_INT (-532676606), NE, NULL_RTX, SImode, 1);
 
   /* If there is no export stub then just use the value saved from
      the return pointer register.  */

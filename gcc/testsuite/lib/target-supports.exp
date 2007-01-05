@@ -1,4 +1,4 @@
-#   Copyright (C) 1999, 2001, 2003, 2004, 2005, 2006
+#   Copyright (C) 1999, 2001, 2003, 2004, 2005, 2006, 2007
 #   Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
@@ -37,7 +37,7 @@ proc get_compiler_messages {basename want_output type contents args} {
     global tool
 
     if { [llength $args] > 0 } {
-	set options "additional_flags=[lindex $args 0]"
+	set options [list "additional_flags=[lindex $args 0]"]
     } else {
 	set options ""
     }
@@ -163,7 +163,7 @@ proc check_weak_available { } {
 
     # HP-UX 10.X doesn't support it
 
-    if { [regexp "hppa.*hpux10" $target_triplet] } {
+    if { [istarget "hppa*-*-hpux10*"] } {
 	return 0
     }
 
@@ -936,6 +936,8 @@ proc check_function_available { function } {
 	set exe "function[pid].exe"
 
 	set f [open $src "w"]
+	puts $f "#ifdef __cplusplus\nextern \"C\"\n#endif\n"
+	puts $f "char $function ();\n"
 	puts $f "int main () { $function (); }"
 	close $f
 
@@ -995,6 +997,9 @@ proc check_cxa_atexit_available { } {
 
     if [info exists et_cxa_atexit] {
 	verbose "check_cxa_atexit_available: using cached result" 2
+    } elseif { [istarget "hppa*-*-hpux10*"] } {
+	# HP-UX 10 doesn't have __cxa_atexit but subsequent test passes.
+	set et_cxa_atexit 0
     } else {
 	set et_cxa_atexit 0
 
@@ -1116,6 +1121,16 @@ proc check_effective_target_lp64 { } {
     }]
 }
 
+# Return 1 if the target supports long double larger than double,
+# 0 otherwise.
+
+proc check_effective_target_large_long_double { } {
+    return [check_no_compiler_messages large_long_double object {
+	int dummy[sizeof(long double) > sizeof(double) ? 1 : -1];
+    }]
+}
+
+
 # Return 1 if the target supports compiling decimal floating point,
 # 0 otherwise.
 
@@ -1225,7 +1240,9 @@ proc check_effective_target_vect_cmdline_needed { } {
 	set et_vect_cmdline_needed_saved 1
 	if { [istarget ia64-*-*]
 	     || (([istarget x86_64-*-*] || [istarget i?86-*-*])
-		 && [check_effective_target_lp64])} {
+		 && [check_effective_target_lp64])
+	     || ([istarget powerpc*-*-*]
+		 && [check_effective_target_powerpc_spe])} {
 	   set et_vect_cmdline_needed_saved 0
 	}
     }
@@ -1247,6 +1264,7 @@ proc check_effective_target_vect_int { } {
 	set et_vect_int_saved 0
 	if { [istarget i?86-*-*]
 	      || [istarget powerpc*-*-*]
+	      || [istarget spu-*-*]
 	      || [istarget x86_64-*-*]
 	      || [istarget sparc*-*-*]
 	      || [istarget alpha*-*-*]
@@ -1296,6 +1314,20 @@ proc check_effective_target_arm32 { } {
     return $et_arm32_saved
 }
 
+# Return 1 if this is an ARM target supporting -mfpu=vfp
+# -mfloat-abi=softfp.  Some multilibs may be incompatible with these
+# options.
+
+proc check_effective_target_arm_vfp_ok { } {
+    if { [check_effective_target_arm32] } {
+	return [check_no_compiler_messages arm_vfp_ok object {
+	    int dummy;
+	} "-mfpu=vfp -mfloat-abi=softfp"]
+    } else {
+	return 0
+    }
+}
+
 # Return 1 if this is a PowerPC target with floating-point registers.
 
 proc check_effective_target_powerpc_fprs { } {
@@ -1325,6 +1357,22 @@ proc check_effective_target_powerpc_altivec_ok { } {
 	return [check_no_compiler_messages powerpc_altivec_ok object {
 	    int dummy;
 	} "-maltivec"]
+    } else {
+	return 0
+    }
+}
+
+# Return 1 if this is a PowerPC target with SPE enabled.
+
+proc check_effective_target_powerpc_spe { } {
+    if { [istarget powerpc*-*-*] } {
+	return [check_no_compiler_messages powerpc_spe object {
+	    #ifndef __SPE__
+	    #error not SPE
+	    #else
+	    int dummy;
+	    #endif
+	}]
     } else {
 	return 0
     }
@@ -1382,6 +1430,7 @@ proc check_effective_target_vect_float { } {
 	set et_vect_float_saved 0
 	if { [istarget i?86-*-*]
 	      || [istarget powerpc*-*-*]
+	      || [istarget spu-*-*]
 	      || [istarget mipsisa64*-*-*]
 	      || [istarget x86_64-*-*]
 	      || [istarget ia64-*-*] } {
@@ -1405,13 +1454,34 @@ proc check_effective_target_vect_double { } {
     } else {
 	set et_vect_double_saved 0
 	if { [istarget i?86-*-*]
-	      || [istarget x86_64-*-*] } {
+	      || [istarget x86_64-*-*] 
+	      || [istarget spu-*-*] } {
 	   set et_vect_double_saved 1
 	}
     }
 
     verbose "check_effective_target_vect_double: returning $et_vect_double_saved" 2
     return $et_vect_double_saved
+}
+
+# Return 0 if the target supports hardware comparison of vectors of double, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_vect_no_compare_double { } {
+    global et_vect_no_compare_double_saved
+
+    if [info exists et_vect_no_compare_double_saved] {
+        verbose "check_effective_target_vect_no_compare_double: using cached result" 2
+    } else {
+        set et_vect_no_compare_double_saved 0
+        if { [istarget spu-*-*] } {
+           set et_vect_no_compare_double_saved 1
+        }
+    }
+
+    verbose "check_effective_target_vect_no_compare_double: returning $et_vect_no_compare_double_saved" 2
+    return $et_vect_no_compare_double_saved
 }
 
 # Return 1 if the target plus current options does not support a vector
@@ -1427,6 +1497,7 @@ proc check_effective_target_vect_no_int_max { } {
     } else {
 	set et_vect_no_int_max_saved 0
 	if { [istarget sparc*-*-*]
+	     || [istarget spu-*-*]
 	     || [istarget alpha*-*-*] } {
 	    set et_vect_no_int_max_saved 1
 	}
@@ -1475,18 +1546,19 @@ proc check_effective_target_vect_no_bitwise { } {
 
 # Return 1 if the target plus current options supports a vector
 # widening summation of *short* args into *int* result, 0 otherwise.
+# A target can also support this widening summation if it can support
+# promotion (unpacking) from shorts to ints.
 #
 # This won't change for different subtargets so cache the result.
                                                                                                 
 proc check_effective_target_vect_widen_sum_hi_to_si { } {
     global et_vect_widen_sum_hi_to_si
-                                                                                                
+
     if [info exists et_vect_widen_sum_hi_to_si_saved] {
         verbose "check_effective_target_vect_widen_sum_hi_to_si: using cached result" 2
     } else {
-        set et_vect_widen_sum_hi_to_si_saved 0
-        if { [istarget powerpc*-*-*]
-	     || [istarget ia64-*-*] } {
+        set et_vect_widen_sum_hi_to_si_saved [check_effective_target_vect_unpack]
+        if { [istarget powerpc*-*-*] } {
             set et_vect_widen_sum_hi_to_si_saved 1
         }
     }
@@ -1496,19 +1568,21 @@ proc check_effective_target_vect_widen_sum_hi_to_si { } {
 
 # Return 1 if the target plus current options supports a vector
 # widening summation of *char* args into *short* result, 0 otherwise.
+# A target can also support this widening summation if it can support
+# promotion (unpacking) from chars to shorts.
 #
 # This won't change for different subtargets so cache the result.
                                                                                                 
 proc check_effective_target_vect_widen_sum_qi_to_hi { } {
     global et_vect_widen_sum_qi_to_hi
-                                                                                                
+
     if [info exists et_vect_widen_sum_qi_to_hi_saved] {
         verbose "check_effective_target_vect_widen_sum_qi_to_hi: using cached result" 2
     } else {
         set et_vect_widen_sum_qi_to_hi_saved 0
-        if { [istarget ia64-*-*] } {
+	if { [check_effective_target_vect_unpack] } {
             set et_vect_widen_sum_qi_to_hi_saved 1
-        }
+	}
     }
     verbose "check_effective_target_vect_widen_sum_qi_to_hi: returning $et_vect_widen_sum_qi_to_hi_saved" 2
     return $et_vect_widen_sum_qi_to_hi_saved
@@ -1521,7 +1595,7 @@ proc check_effective_target_vect_widen_sum_qi_to_hi { } {
                                                                                                 
 proc check_effective_target_vect_widen_sum_qi_to_si { } {
     global et_vect_widen_sum_qi_to_si
-                                                                                                
+
     if [info exists et_vect_widen_sum_qi_to_si_saved] {
         verbose "check_effective_target_vect_widen_sum_qi_to_si: using cached result" 2
     } else {
@@ -1535,24 +1609,64 @@ proc check_effective_target_vect_widen_sum_qi_to_si { } {
 }
 
 # Return 1 if the target plus current options supports a vector
-# widening summation, 0 otherwise.
+# widening multiplication of *char* args into *short* result, 0 otherwise.
+# A target can also support this widening multplication if it can support
+# promotion (unpacking) from chars to shorts, and vect_short_mult (non-widening
+# multiplication of shorts).
 #
 # This won't change for different subtargets so cache the result.
-                                                                                                
-proc check_effective_target_vect_widen_sum { } {
-    global et_vect_widen_sum
-                                                                                                
-    if [info exists et_vect_widen_sum_saved] {
-        verbose "check_effective_target_vect_widen_sum: using cached result" 2
+
+
+proc check_effective_target_vect_widen_mult_qi_to_hi { } {
+    global et_vect_widen_mult_qi_to_hi
+
+    if [info exists et_vect_widen_mult_qi_to_hi_saved] {
+        verbose "check_effective_target_vect_widen_mult_qi_to_hi: using cached result" 2
     } else {
-        set et_vect_widen_sum_saved 0
-        if { [istarget powerpc*-*-*]
-	     || [istarget ia64-*-*] } {
-            set et_vect_widen_sum_saved 1
+	if { [check_effective_target_vect_unpack]
+	     && [check_effective_target_vect_short_mult] } {
+	    set et_vect_widen_mult_qi_to_hi_saved 1
+	} else {
+	    set et_vect_widen_mult_qi_to_hi_saved 0
+	}
+        if { [istarget powerpc*-*-*] } {
+            set et_vect_widen_mult_qi_to_hi_saved 1
         }
     }
-    verbose "check_effective_target_vect_widen_sum: returning $et_vect_widen_sum_saved" 2
-    return $et_vect_widen_sum_saved
+    verbose "check_effective_target_vect_widen_mult_qi_to_hi: returning $et_vect_widen_mult_qi_to_hi_saved" 2
+    return $et_vect_widen_mult_qi_to_hi_saved
+}
+
+# Return 1 if the target plus current options supports a vector
+# widening multiplication of *short* args into *int* result, 0 otherwise.
+# A target can also support this widening multplication if it can support
+# promotion (unpacking) from shorts to ints, and vect_int_mult (non-widening
+# multiplication of ints).
+#
+# This won't change for different subtargets so cache the result.
+
+
+proc check_effective_target_vect_widen_mult_hi_to_si { } {
+    global et_vect_widen_mult_hi_to_si
+
+    if [info exists et_vect_widen_mult_hi_to_si_saved] {
+        verbose "check_effective_target_vect_widen_mult_hi_to_si: using cached result" 2
+    } else {
+        if { [check_effective_target_vect_unpack]
+             && [check_effective_target_vect_int_mult] } {
+          set et_vect_widen_mult_hi_to_si_saved 1
+        } else {
+          set et_vect_widen_mult_hi_to_si_saved 0
+        }
+        if { [istarget powerpc*-*-*]
+	      || [istarget spu-*-*]
+	      || [istarget i?86-*-*]
+	      || [istarget x86_64-*-*] } {
+            set et_vect_widen_mult_hi_to_si_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_widen_mult_hi_to_si: returning $et_vect_widen_mult_hi_to_si_saved" 2
+    return $et_vect_widen_mult_hi_to_si_saved
 }
 
 # Return 1 if the target plus current options supports a vector
@@ -1567,9 +1681,6 @@ proc check_effective_target_vect_sdot_qi { } {
         verbose "check_effective_target_vect_sdot_qi: using cached result" 2
     } else {
         set et_vect_sdot_qi_saved 0
-        if { [istarget ia64-*-*] } {
-            set et_vect_sdot_qi_saved 1
-        }
     }
     verbose "check_effective_target_vect_sdot_qi: returning $et_vect_sdot_qi_saved" 2
     return $et_vect_sdot_qi_saved
@@ -1587,8 +1698,7 @@ proc check_effective_target_vect_udot_qi { } {
         verbose "check_effective_target_vect_udot_qi: using cached result" 2
     } else {
         set et_vect_udot_qi_saved 0
-        if { [istarget powerpc*-*-*]
-             || [istarget ia64-*-*] } {
+        if { [istarget powerpc*-*-*] } {
             set et_vect_udot_qi_saved 1
         }
     }
@@ -1610,8 +1720,7 @@ proc check_effective_target_vect_sdot_hi { } {
         set et_vect_sdot_hi_saved 0
         if { [istarget powerpc*-*-*] 
 	     || [istarget i?86-*-*]
-             || [istarget x86_64-*-*]
-             || [istarget ia64-*-*] } {
+             || [istarget x86_64-*-*] } {
             set et_vect_sdot_hi_saved 1
         }
     }
@@ -1639,6 +1748,51 @@ proc check_effective_target_vect_udot_hi { } {
     return $et_vect_udot_hi_saved
 }
 
+
+# Return 1 if the target plus current options supports a vector
+# demotion (packing) of shorts (to chars) and ints (to shorts) 
+# using modulo arithmetic, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+                                                                                
+proc check_effective_target_vect_pack_mod { } {
+    global et_vect_pack_mod
+                                                                                
+    if [info exists et_vect_pack_mod_saved] {
+        verbose "check_effective_target_vect_pack_mod: using cached result" 2
+    } else {
+        set et_vect_pack_mod_saved 0
+        if { [istarget powerpc*-*-*]
+             || [istarget i?86-*-*]
+             || [istarget x86_64-*-*] } {
+            set et_vect_pack_mod_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_pack_mod: returning $et_vect_pack_mod_saved" 2
+    return $et_vect_pack_mod_saved
+}
+
+# Return 1 if the target plus current options supports a vector
+# promotion (unpacking) of chars (to shorts) and shorts (to ints), 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+                                   
+proc check_effective_target_vect_unpack { } {
+    global et_vect_unpack
+                                        
+    if [info exists et_vect_unpack_saved] {
+        verbose "check_effective_target_vect_unpack: using cached result" 2
+    } else {
+        set et_vect_unpack_saved 0
+        if { [istarget powerpc*-*-*]
+             || [istarget i?86-*-*]
+             || [istarget x86_64-*-*] } {
+            set et_vect_unpack_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_unpack: returning $et_vect_unpack_saved" 2  
+    return $et_vect_unpack_saved
+}
 
 # Return 1 if the target plus current options does not support a vector
 # alignment mechanism, 0 otherwise.
@@ -1741,6 +1895,44 @@ proc check_effective_target_vect_int_mult { } {
 
     verbose "check_effective_target_vect_int_mult: returning $et_vect_int_mult_saved" 2
     return $et_vect_int_mult_saved
+}
+
+# Return 1 if the target supports vector even/odd elements extraction, 0 otherwise.
+
+proc check_effective_target_vect_extract_even_odd { } {
+    global et_vect_extract_even_odd_saved
+    
+    if [info exists et_vect_extract_even_odd_saved] {
+        verbose "check_effective_target_vect_extract_even_odd: using cached result" 2
+    } else {
+        set et_vect_extract_even_odd_saved 0 
+        if { [istarget powerpc*-*-*] } {
+           set et_vect_extract_even_odd_saved 1
+        }
+    }
+
+    verbose "check_effective_target_vect_extract_even_odd: returning $et_vect_extract_even_odd_saved" 2
+    return $et_vect_extract_even_odd_saved
+}
+
+# Return 1 if the target supports vector interleaving, 0 otherwise.
+
+proc check_effective_target_vect_interleave { } {
+    global et_vect_interleave_saved
+    
+    if [info exists et_vect_interleave_saved] {
+        verbose "check_effective_target_vect_interleave: using cached result" 2
+    } else {
+        set et_vect_interleave_saved 0
+        if { [istarget powerpc*-*-*]
+             || [istarget i?86-*-*]
+             || [istarget x86_64-*-*] } {
+           set et_vect_interleave_saved 1
+        }
+    }
+
+    verbose "check_effective_target_vect_interleave: returning $et_vect_interleave_saved" 2
+    return $et_vect_interleave_saved
 }
 
 # Return 1 if the target supports section-anchors
@@ -1870,4 +2062,15 @@ proc check_effective_target_string_merging { } {
 		"rodata\\.str" assembly {
 		    const char *var = "String";
 		} {-O2}]
+}
+
+# Return 1 if target has the basic signed and unsigned types in
+# <stdint.h>, 0 otherwise.
+
+proc check_effective_target_stdint_types { } {
+    return [check_no_compiler_messages stdint_types assembly {
+	#include <stdint.h>
+	int8_t a; int16_t b; int32_t c; int64_t d;
+	uint8_t e; uint16_t f; uint32_t g; uint64_t h;
+    }]
 }

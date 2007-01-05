@@ -49,6 +49,9 @@ typedef struct param_info
   /* The associated value.  */
   int value;
 
+  /* True if the parameter was explicitly set.  */
+  bool set;
+
   /* Minimum acceptable value.  */
   int min_value;
   
@@ -87,6 +90,10 @@ typedef enum compiler_param
 /* The value of the parameter given by ENUM.  */
 #define PARAM_VALUE(ENUM) \
   (compiler_params[(int) ENUM].value)
+
+/* True if the value of the parameter was explicitly changed.  */
+#define PARAM_SET_P(ENUM) \
+  (compiler_params[(int) ENUM].set)
 
 /* Macros for the various parameters.  */
 #define SALIAS_MAX_IMPLICIT_FIELDS \
@@ -135,8 +142,6 @@ typedef enum compiler_param
   PARAM_VALUE (PARAM_SMS_DFA_HISTORY)
 #define SMS_LOOP_AVERAGE_COUNT_THRESHOLD \
   PARAM_VALUE (PARAM_SMS_LOOP_AVERAGE_COUNT_THRESHOLD)
-#define GLOBAL_VAR_THRESHOLD \
-  PARAM_VALUE (PARAM_GLOBAL_VAR_THRESHOLD)
 #define MAX_ALIASED_VOPS \
   PARAM_VALUE (PARAM_MAX_ALIASED_VOPS)
 #define INTEGER_SHARE_LIMIT \
@@ -151,4 +156,14 @@ typedef enum compiler_param
   ((size_t) PARAM_VALUE (PARAM_MAX_FIELDS_FOR_FIELD_SENSITIVE))
 #define MAX_SCHED_READY_INSNS \
   PARAM_VALUE (PARAM_MAX_SCHED_READY_INSNS)
+#define PREFETCH_LATENCY \
+  PARAM_VALUE (PARAM_PREFETCH_LATENCY)
+#define SIMULTANEOUS_PREFETCHES \
+  PARAM_VALUE (PARAM_SIMULTANEOUS_PREFETCHES)
+#define L1_CACHE_SIZE \
+  PARAM_VALUE (PARAM_L1_CACHE_SIZE)
+#define L1_CACHE_LINE_SIZE \
+  PARAM_VALUE (PARAM_L1_CACHE_LINE_SIZE)
+#define VERIFY_CANONICAL_TYPES \
+  PARAM_VALUE (PARAM_VERIFY_CANONICAL_TYPES)
 #endif /* ! GCC_PARAMS_H */

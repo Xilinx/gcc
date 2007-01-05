@@ -91,6 +91,23 @@ do {									\
       target_flags |= MASK_POWERPC64;					\
       warning (0, "-m64 requires PowerPC64 architecture, enabling");	\
     }									\
+  if (flag_mkernel)                                                     \
+    {									\
+      rs6000_default_long_calls = 1;					\
+      target_flags |= MASK_SOFT_FLOAT;					\
+    }									\
+  /* Unless the user (not the configurer) has explicitly overridden	\
+     it with -mcpu=G3 or -mno-altivec, then 10.5+ targets default to	\
+     G4 unless targetting the kernel.  */				\
+  if (!flag_mkernel							\
+      && !flag_apple_kext						\
+      && darwin_macosx_version_min					\
+      && strverscmp (darwin_macosx_version_min, "10.5") >= 0		\
+      && ! (target_flags_explicit & MASK_ALTIVEC)			\
+      && ! rs6000_select[1].string)					\
+    {									\
+      target_flags |= MASK_ALTIVEC;					\
+    }									\
 } while(0)
 
 #define C_COMMON_OVERRIDE_OPTIONS do {					\
@@ -100,6 +117,9 @@ do {									\
        || strverscmp (darwin_macosx_version_min, "10.4.6") < 0)		\
       && flag_use_cxa_get_exception_ptr == 2)				\
     flag_use_cxa_get_exception_ptr = 0;					\
+  if (flag_mkernel)							\
+    flag_no_builtin = 1;						\
+  SUBTARGET_C_COMMON_OVERRIDE_OPTIONS;					\
 } while (0)
 
 /* Darwin has 128-bit long double support in libc in 10.4 and later.
@@ -114,9 +134,11 @@ do {									\
    the kernel or some such.  */
 
 #define CC1_SPEC "\
-%{g: %{!fno-eliminate-unused-debug-symbols: -feliminate-unused-debug-symbols }} \
-%{static: %{Zdynamic: %e conflicting code gen style switches are used}}\
-%{!static:%{!mdynamic-no-pic:-fPIC}}"
+  %{g: %{!fno-eliminate-unused-debug-symbols: -feliminate-unused-debug-symbols }} \
+  %{static: %{Zdynamic: %e conflicting code gen style switches are used}}\
+  %{!mkernel:%{!static:%{!mdynamic-no-pic:-fPIC}}}"
+
+#define DARWIN_ARCH_SPEC "%{m64:ppc64;:ppc}"
 
 #define DARWIN_SUBARCH_SPEC "			\
  %{m64: ppc64}					\
@@ -143,7 +165,8 @@ do {									\
 
 #undef SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS			\
-  { "darwin_arch", "%{m64:ppc64;:ppc}" },	\
+  DARWIN_EXTRA_SPECS                            \
+  { "darwin_arch", DARWIN_ARCH_SPEC },		\
   { "darwin_crt2", DARWIN_CRT2_SPEC },		\
   { "darwin_subarch", DARWIN_SUBARCH_SPEC },
 
@@ -366,26 +389,28 @@ do {									\
 /* Fix for emit_group_load (): force large constants to be pushed via regs.  */
 #define ALWAYS_PUSH_CONSTS_USING_REGS_P		1
 
-/* This now supports a natural alignment mode */
-/* Darwin word-aligns FP doubles but doubleword-aligns 64-bit ints.  */
-#define ADJUST_FIELD_ALIGN(FIELD, COMPUTED) \
-  (TARGET_ALIGN_NATURAL ? (COMPUTED) : \
-  (TYPE_MODE (TREE_CODE (TREE_TYPE (FIELD)) == ARRAY_TYPE \
-	      ? get_inner_array_type (FIELD) \
-	      : TREE_TYPE (FIELD)) == DFmode \
-   ? MIN ((COMPUTED), 32) : (COMPUTED)))
+/* Compute field alignment.  This is similar to the version of the
+   macro in the Apple version of GCC, except that version supports
+   'mac68k' alignment, and that version uses the computed alignment
+   always for the first field of a structure.  The first-field
+   behaviour is dealt with by
+   darwin_rs6000_special_round_type_align.  */
+#define ADJUST_FIELD_ALIGN(FIELD, COMPUTED)	\
+  (TARGET_ALIGN_NATURAL ? (COMPUTED)		\
+   : (COMPUTED) == 128 ? 128			\
+   : MIN ((COMPUTED), 32))
 
 /* Darwin increases natural record alignment to doubleword if the first
    field is an FP double while the FP fields remain word aligned.  */
-#define ROUND_TYPE_ALIGN(STRUCT, COMPUTED, SPECIFIED)			\
-  ((TREE_CODE (STRUCT) == RECORD_TYPE					\
-    || TREE_CODE (STRUCT) == UNION_TYPE					\
-    || TREE_CODE (STRUCT) == QUAL_UNION_TYPE)				\
-   && TARGET_ALIGN_NATURAL == 0                         		\
-   ? rs6000_special_round_type_align (STRUCT, COMPUTED, SPECIFIED)	\
-   : (TREE_CODE (STRUCT) == VECTOR_TYPE					\
-      && ALTIVEC_VECTOR_MODE (TYPE_MODE (STRUCT))) 			\
-   ? MAX (MAX ((COMPUTED), (SPECIFIED)), 128)          			 \
+#define ROUND_TYPE_ALIGN(STRUCT, COMPUTED, SPECIFIED)			  \
+  ((TREE_CODE (STRUCT) == RECORD_TYPE					  \
+    || TREE_CODE (STRUCT) == UNION_TYPE					  \
+    || TREE_CODE (STRUCT) == QUAL_UNION_TYPE)				  \
+   && TARGET_ALIGN_NATURAL == 0						  \
+   ? darwin_rs6000_special_round_type_align (STRUCT, COMPUTED, SPECIFIED) \
+   : (TREE_CODE (STRUCT) == VECTOR_TYPE					  \
+      && ALTIVEC_VECTOR_MODE (TYPE_MODE (STRUCT)))			  \
+   ? MAX (MAX ((COMPUTED), (SPECIFIED)), 128)				  \
    : MAX ((COMPUTED), (SPECIFIED)))
 
 /* Specify padding for the last element of a block move between
@@ -440,3 +465,7 @@ do {									\
   (TARGET_64BIT							\
    || (darwin_macosx_version_min				\
        && strverscmp (darwin_macosx_version_min, "10.3") >= 0))
+
+/* When generating kernel code or kexts, we don't use Altivec by
+   default, as kernel code doesn't save/restore those registers.  */
+#define OS_MISSING_ALTIVEC (flag_mkernel || flag_apple_kext)

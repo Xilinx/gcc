@@ -36,6 +36,8 @@
 #ifndef _CONCURRENCE_H
 #define _CONCURRENCE_H 1
 
+#include <cstdlib>
+#include <exception>
 #include <bits/gthr.h> 
 #include <bits/functexcept.h>
 
@@ -62,6 +64,45 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 #else
   _S_single;
 #endif
+  
+  // NB: As this is used in libsupc++, need to only depend on
+  // exception. No stdexception classes, no use of std::string.
+  class __concurrence_lock_error : public std::exception
+  {
+  public:
+    virtual char const*
+    what() const throw()
+    { return "__gnu_cxx::__concurrence_lock_error"; }
+  };
+
+  class __concurrence_unlock_error : public std::exception
+  {
+  public:
+    virtual char const*
+    what() const throw()
+    { return "__gnu_cxx::__concurrence_unlock_error"; }
+  };
+
+  // Substitute for concurrence_error object in the case of -fno-exceptions.
+  inline void
+  __throw_concurrence_lock_error()
+  {
+#if __EXCEPTIONS
+    throw __concurrence_lock_error();
+#else
+    std::abort();
+#endif
+  }
+
+  inline void
+  __throw_concurrence_unlock_error()
+  {
+#if __EXCEPTIONS
+    throw __concurrence_unlock_error();
+#else
+    std::abort();
+#endif
+  }
 
   class __mutex 
   {
@@ -88,23 +129,23 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     }
 
     void lock()
-    { 
+    {
 #if __GTHREADS
       if (__gthread_active_p())
 	{
 	  if (__gthread_mutex_lock(&_M_mutex) != 0)
-	    std::__throw_runtime_error("__mutex::lock");
+	    __throw_concurrence_lock_error();
 	}
 #endif
     }
     
     void unlock()
-    { 
+    {
 #if __GTHREADS
       if (__gthread_active_p())
 	{
 	  if (__gthread_mutex_unlock(&_M_mutex) != 0)
-	    std::__throw_runtime_error("__mutex::unlock");
+	    __throw_concurrence_unlock_error();
 	}
 #endif
     }
@@ -140,7 +181,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       if (__gthread_active_p())
 	{
 	  if (__gthread_recursive_mutex_lock(&_M_mutex) != 0)
-	    std::__throw_runtime_error("__recursive_mutex::lock");
+	    __throw_concurrence_lock_error();
 	}
 #endif
     }
@@ -151,7 +192,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       if (__gthread_active_p())
 	{
 	  if (__gthread_recursive_mutex_unlock(&_M_mutex) != 0)
-	    std::__throw_runtime_error("__recursive_mutex::unlock");
+	    __throw_concurrence_unlock_error();
 	}
 #endif
     }
@@ -163,16 +204,16 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
   class __scoped_lock
   {
   public:
-    typedef __mutex mutex_type;
+    typedef __mutex __mutex_type;
 
   private:
-    mutex_type& _M_device;
+    __mutex_type& _M_device;
 
     __scoped_lock(const __scoped_lock&);
     __scoped_lock& operator=(const __scoped_lock&);
 
   public:
-    explicit __scoped_lock(mutex_type& __name) : _M_device(__name)
+    explicit __scoped_lock(__mutex_type& __name) : _M_device(__name)
     { _M_device.lock(); }
 
     ~__scoped_lock() throw()

@@ -446,6 +446,29 @@ struct tree_default_arg GTY (())
   VEC(tree,gc) *instantiations;
 };
 
+/* The condition associated with the static assertion.  This must be
+   an integral constant expression.  */
+#define STATIC_ASSERT_CONDITION(NODE) \
+  (((struct tree_static_assert *)STATIC_ASSERT_CHECK (NODE))->condition)
+
+/* The message associated with the static assertion.  This must be a
+   string constant, which will be emitted as an error message when the
+   static assert condition is false.  */
+#define STATIC_ASSERT_MESSAGE(NODE) \
+  (((struct tree_static_assert *)STATIC_ASSERT_CHECK (NODE))->message)
+
+/* Source location information for a static assertion.  */
+#define STATIC_ASSERT_SOURCE_LOCATION(NODE) \
+  (((struct tree_static_assert *)STATIC_ASSERT_CHECK (NODE))->location)
+
+struct tree_static_assert GTY (())
+{
+  struct tree_common common;
+  tree condition;
+  tree message;
+  location_t location;
+};
+
 enum cp_tree_node_structure_enum {
   TS_CP_GENERIC,
   TS_CP_IDENTIFIER,
@@ -457,12 +480,13 @@ enum cp_tree_node_structure_enum {
   TS_CP_BASELINK,
   TS_CP_WRAPPER,
   TS_CP_DEFAULT_ARG,
+  TS_CP_STATIC_ASSERT,
   LAST_TS_CP_ENUM
 };
 
 /* The resulting tree type.  */
 union lang_tree_node GTY((desc ("cp_tree_node_structure (&%h)"),
-       chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
+       chain_next ("(GIMPLE_STMT_P (&%h.generic) ? (union lang_tree_node *) 0 : (union lang_tree_node *)TREE_CHAIN (&%h.generic))")))
 {
   union tree_node GTY ((tag ("TS_CP_GENERIC"),
 			desc ("tree_node_structure (&%h)"))) generic;
@@ -473,6 +497,8 @@ union lang_tree_node GTY((desc ("cp_tree_node_structure (&%h)"),
   struct tree_baselink GTY ((tag ("TS_CP_BASELINK"))) baselink;
   struct tree_default_arg GTY ((tag ("TS_CP_DEFAULT_ARG"))) default_arg;
   struct lang_identifier GTY ((tag ("TS_CP_IDENTIFIER"))) identifier;
+  struct tree_static_assert GTY ((tag ("TS_CP_STATIC_ASSERT"))) 
+    static_assertion;
 };
 
 
@@ -1976,9 +2002,6 @@ struct lang_decl GTY(())
   (!DECL_TEMPLATE_PARM_P (NODE)					\
    && TREE_CODE (CP_DECL_CONTEXT (NODE)) == NAMESPACE_DECL)
 
-#define TYPE_NAMESPACE_SCOPE_P(NODE)				\
-  (TREE_CODE (CP_TYPE_CONTEXT (NODE)) == NAMESPACE_DECL)
-
 /* 1 iff NODE is a class member.  */
 #define DECL_CLASS_SCOPE_P(NODE) \
   (DECL_CONTEXT (NODE) && TYPE_P (DECL_CONTEXT (NODE)))
@@ -1990,10 +2013,6 @@ struct lang_decl GTY(())
 #define DECL_FUNCTION_SCOPE_P(NODE) \
   (DECL_CONTEXT (NODE) \
    && TREE_CODE (DECL_CONTEXT (NODE)) == FUNCTION_DECL)
-
-#define TYPE_FUNCTION_SCOPE_P(NODE) \
-  (TYPE_CONTEXT (NODE) \
-   && TREE_CODE (TYPE_CONTEXT (NODE)) == FUNCTION_DECL)
 
 /* 1 iff VAR_DECL node NODE is a type-info decl.  This flag is set for
    both the primary typeinfo object and the associated NTBS name.  */
@@ -2041,7 +2060,7 @@ struct lang_decl GTY(())
 
 /* In a TREE_LIST concatenating using directives, indicate indirect
    directives  */
-#define TREE_INDIRECT_USING(NODE) (TREE_LIST_CHECK (NODE)->common.lang_flag_0)
+#define TREE_INDIRECT_USING(NODE) (TREE_LIST_CHECK (NODE)->base.lang_flag_0)
 
 extern tree decl_shadowed_for_var_lookup (tree);
 extern void decl_shadowed_for_var_insert (tree, tree);
@@ -2853,8 +2872,14 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    indicates the type of specializations:
 
      1=implicit instantiation
-     2=explicit specialization, e.g. int min<int> (int, int);
-     3=explicit instantiation, e.g. template int min<int> (int, int);
+
+     2=partial or explicit specialization, e.g.:
+
+        template <> int min<int> (int, int),
+
+     3=explicit instantiation, e.g.:
+  
+        template int min<int> (int, int);
 
    Note that NODE will be marked as a specialization even if the
    template it is instantiating is not a primary template.  For
@@ -3468,7 +3493,8 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, OP_FLAG, TYPENAME_FLAG };
 #define WANT_ENUM	4 /* enumerated types */
 #define WANT_POINTER	8 /* pointer types */
 #define WANT_NULL      16 /* null pointer constant */
-#define WANT_ARITH	(WANT_INT | WANT_FLOAT)
+#define WANT_VECTOR    32 /* vector types */
+#define WANT_ARITH	(WANT_INT | WANT_FLOAT | WANT_VECTOR)
 
 /* Used with comptypes, and related functions, to guide type
    comparison.  */
@@ -3482,6 +3508,10 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, OP_FLAG, TYPENAME_FLAG };
 #define COMPARE_REDECLARATION 4 /* The comparison is being done when
 				   another declaration of an existing
 				   entity is seen.  */
+#define COMPARE_STRUCTURAL    8 /* The comparison is intended to be
+				   structural. The actual comparison
+				   will be identical to
+				   COMPARE_STRICT.  */
 
 /* Used with push_overloaded_decl.  */
 #define PUSH_GLOBAL	     0  /* Push the DECL into namespace scope,
@@ -3771,7 +3801,7 @@ extern tree build_op_delete_call		(enum tree_code, tree, tree, bool, tree, tree)
 extern bool can_convert				(tree, tree);
 extern bool can_convert_arg			(tree, tree, tree, int);
 extern bool can_convert_arg_bad			(tree, tree, tree);
-extern bool enforce_access			(tree, tree);
+extern bool enforce_access			(tree, tree, tree);
 extern tree convert_default_arg			(tree, tree, tree, int);
 extern tree convert_arg_to_ellipsis		(tree);
 extern tree build_x_va_arg			(tree, tree);
@@ -3908,7 +3938,7 @@ extern int grok_ctor_properties			(tree, tree);
 extern bool grok_op_properties			(tree, bool);
 extern tree xref_tag				(enum tag_types, tree, tag_scope, bool);
 extern tree xref_tag_from_type			(tree, tree, tag_scope);
-extern void xref_basetypes			(tree, tree);
+extern bool xref_basetypes			(tree, tree);
 extern tree start_enum				(tree);
 extern void finish_enum				(tree);
 extern void build_enumerator			(tree, tree, tree);
@@ -3941,11 +3971,7 @@ extern int nonstatic_local_decl_p		(tree);
 extern tree register_dtor_fn			(tree);
 extern tmpl_spec_kind current_tmpl_spec_kind	(int);
 extern tree cp_fname_init			(const char *, tree *);
-extern tree builtin_function			(const char *name, tree type,
-						 int code,
-						 enum built_in_class cl,
-						 const char *libname,
-						 tree attrs);
+extern tree cxx_builtin_function		(tree decl);
 extern tree check_elaborated_type_specifier	(enum tag_types, tree, bool);
 extern void warn_extern_redeclared_static	(tree, tree);
 extern const char *cxx_comdat_group		(tree);
@@ -3971,7 +3997,7 @@ extern tree grokbitfield (const cp_declarator *, cp_decl_specifier_seq *,
 			  tree);
 extern void cplus_decl_attributes		(tree *, tree, int);
 extern void finish_anon_union			(tree);
-extern void cp_finish_file			(void);
+extern void cp_write_global_declarations	(void);
 extern tree coerce_new_type			(tree);
 extern tree coerce_delete_type			(tree);
 extern void comdat_linkage			(tree);
@@ -4144,6 +4170,7 @@ extern tree build_non_dependent_expr		(tree);
 extern tree build_non_dependent_args		(tree);
 extern bool reregister_specialization		(tree, tree, tree);
 extern tree fold_non_dependent_expr		(tree);
+extern bool explicit_class_specialization_p     (tree);
 
 /* in repo.c */
 extern void init_repo				(void);
@@ -4203,16 +4230,31 @@ extern tree copied_binfo			(tree, tree);
 extern tree original_binfo			(tree, tree);
 extern int shared_member_p			(tree);
 
+
+/* The representation of a deferred access check.  */
+
+typedef struct deferred_access_check GTY(())
+{
+  /* The base class in which the declaration is referenced. */
+  tree binfo;
+  /* The declaration whose access must be checked.  */
+  tree decl;
+  /* The declaration that should be used in the error message.  */
+  tree diag_decl;
+} deferred_access_check;
+DEF_VEC_O(deferred_access_check);
+DEF_VEC_ALLOC_O(deferred_access_check,gc);
+
 /* in semantics.c */
 extern void push_deferring_access_checks	(deferring_kind);
 extern void resume_deferring_access_checks	(void);
 extern void stop_deferring_access_checks	(void);
 extern void pop_deferring_access_checks		(void);
-extern tree get_deferred_access_checks		(void);
+extern VEC (deferred_access_check,gc)* get_deferred_access_checks		(void);
 extern void pop_to_parent_deferring_access_checks (void);
-extern void perform_access_checks		(tree);
+extern void perform_access_checks		(VEC (deferred_access_check,gc)*);
 extern void perform_deferred_access_checks	(void);
-extern void perform_or_defer_access_check	(tree, tree);
+extern void perform_or_defer_access_check	(tree, tree, tree);
 extern int stmts_are_full_exprs_p		(void);
 extern void init_cp_semantics			(void);
 extern tree do_poplevel				(tree);
@@ -4328,6 +4370,8 @@ extern tree cxx_omp_clause_assign_op		(tree, tree, tree);
 extern tree cxx_omp_clause_dtor			(tree, tree);
 extern bool cxx_omp_privatize_by_reference	(tree);
 extern tree baselink_for_fns                    (tree);
+extern void finish_static_assert                (tree, tree, location_t,
+                                                 bool);
 
 /* in tree.c */
 extern void lang_check_failed			(const char *, int,
@@ -4425,8 +4469,9 @@ extern tree build_x_indirect_ref		(tree, const char *);
 extern tree build_indirect_ref			(tree, const char *);
 extern tree build_array_ref			(tree, tree);
 extern tree get_member_function_from_ptrfunc	(tree *, tree);
-extern tree build_x_binary_op			(enum tree_code, tree, tree,
-						 bool *);
+extern tree build_x_binary_op			(enum tree_code, tree,
+						 enum tree_code, tree,
+						 enum tree_code, bool *);
 extern tree build_x_unary_op			(enum tree_code, tree);
 extern tree unary_complex_lvalue		(enum tree_code, tree);
 extern tree build_x_conditional_expr		(tree, tree, tree);

@@ -56,7 +56,9 @@ GLIBCXX_3.4 {
       std::b[b-z]*;
       std::c[a-g]*;
 #     std::char_traits;
-      std::c[i-z]*;
+#     std::c[i-z]*;
+      std::c[i-s]*;
+      std::c[u-z]*;
       std::[d-h]*;
       std::i[a-n]*;
       std::ios_base::[A-Ha-z]*;
@@ -120,12 +122,20 @@ GLIBCXX_3.4 {
       std::__moneypunct_cache*;
       std::__numpunct_cache*;
       std::__timepunct_cache*;
-      __gnu_debug::_Safe_iterator_base*;
-      __gnu_debug::_Safe_sequence_base*;
       __gnu_debug::_Error_formatter*
     };
 
     # Names not in an 'extern' block are mangled names.
+
+    # __gnu_debug::_Safe_sequence_base and _Safe_iterator_base
+    _ZN11__gnu_debug19_Safe_sequence_base13_M_detach_allEv;
+    _ZN11__gnu_debug19_Safe_sequence_base18_M_detach_singularEv;
+    _ZN11__gnu_debug19_Safe_sequence_base22_M_revalidate_singularEv;
+    _ZN11__gnu_debug19_Safe_sequence_base7_M_swapERS0_;
+    _ZN11__gnu_debug19_Safe_iterator_base9_M_attachEPNS_19_Safe_sequence_baseEb;
+    _ZN11__gnu_debug19_Safe_iterator_base9_M_detachEv;
+    _ZNK11__gnu_debug19_Safe_iterator_base11_M_singularEv;
+    _ZNK11__gnu_debug19_Safe_iterator_base14_M_can_compareERKS0_;
 
     # std::string
     _ZNSsC*;
@@ -285,7 +295,7 @@ GLIBCXX_3.4 {
     _ZNSoC*;
     _ZNSoD*;
     _ZNKSo6sentrycvbEv;
-    _ZNSo8_M_write*;
+    _ZNSo8_M_writeEPKc[il];
     _ZNSo[0-9][a-z]*;
     _ZNSolsE*[^g];
 
@@ -299,7 +309,7 @@ GLIBCXX_3.4 {
     _ZNSt13basic_ostreamIwSt11char_traitsIwEE5tellpEv;
     _ZNSt13basic_ostreamIwSt11char_traitsIwEE5writeEPKw*;
     _ZNSt13basic_ostreamIwSt11char_traitsIwEE6sentry*;
-    _ZNSt13basic_ostreamIwSt11char_traitsIwEE8_M_write*;
+    _ZNSt13basic_ostreamIwSt11char_traitsIwEE8_M_writeEPKw[il];
     _ZNSt13basic_ostreamIwSt11char_traitsIwEElsE*[^g];
 
     # std::ostream operators and inserters
@@ -328,6 +338,22 @@ GLIBCXX_3.4 {
 
     # bool std::has_facet 
     _ZSt9has_facetIS*;
+
+    # std::use_facet
+    _ZSt9use_facetIS*;
+
+    # std::ctype
+    _ZNKSt5ctypeIcE8*;
+    _ZNKSt5ctypeIcE9*;
+    _ZNKSt5ctypeIcE10*;
+    _ZNKSt5ctypeIw*;
+    _ZNSt5ctypeI[cw]*;
+
+    # std::ctype_base
+    _ZNSt10ctype_base*;
+
+    # std::ctype_byname
+    _ZNSt12ctype_bynameI[cw]*;
 
     # std::num_get
     _ZNKSt7num_getI[cw]St19istreambuf_iteratorI[cw]St11char_traitsI[cw]EEE*;
@@ -659,8 +685,20 @@ GLIBCXX_3.4.9 {
     _ZNSt13basic_istreamIwSt11char_traitsIwEE10_M_extractI[^g]*;
 
     _ZSt21__copy_streambufs_eofI[cw]St11char_traitsI[cw]EE[il]PSt15basic_streambuf*;
+
+    _ZNSo9_M_insertEPKc[il];
+    _ZNSt13basic_ostreamIwSt11char_traitsIwEE9_M_insertEPKw[il];
+
 } GLIBCXX_3.4.8;
 
+GLIBCXX_3.4.10 {
+
+    _ZN11__gnu_debug19_Safe_sequence_base12_M_get_mutexEv;
+    _ZN11__gnu_debug19_Safe_iterator_base16_M_attach_singleEPNS_19_Safe_sequence_baseEb;
+    _ZN11__gnu_debug19_Safe_iterator_base16_M_detach_singleEv;
+    _ZN11__gnu_debug19_Safe_iterator_base12_M_get_mutexEv;
+
+} GLIBCXX_3.4.9;
 
 # Symbols in the support library (libsupc++) have their own tag.
 CXXABI_1.3 {

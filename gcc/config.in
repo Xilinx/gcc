@@ -203,6 +203,13 @@
 #endif
 
 
+/* Define if your assembler supports the subtraction of symbols in different
+   sections. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_IX86_DIFF_SECT_DELTA
+#endif
+
+
 /* Define if your assembler supports the ffreep mnemonic. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_IX86_FFREEP
@@ -233,9 +240,21 @@
 #endif
 
 
+/* Define if your assembler supports mffgpr and mftgpr. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_MFPGPR
+#endif
+
+
 /* Define if your assembler supports the -no-mul-bug-abort option. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_NO_MUL_BUG_ABORT_OPTION
+#endif
+
+
+/* Define if the assembler understands -mno-shared. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_NO_SHARED
 #endif
 
 
@@ -735,6 +754,12 @@
 /* Define if your assembler and linker support .hidden. */
 #undef HAVE_GAS_HIDDEN
 
+/* Define if your assembler supports .literal16. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_GAS_LITERAL16
+#endif
+
+
 /* Define if your assembler supports specifying the maximum number of bytes to
    skip when using the GAS .p2align command. */
 #ifndef USED_FOR_TARGET
@@ -882,6 +907,13 @@
 
 /* Define if your linker supports --eh-frame-hdr option. */
 #undef HAVE_LD_EH_FRAME_HDR
+
+/* Define if your linker supports garbage collection of sections in presence
+   of EH frames. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_LD_EH_GC_SECTIONS
+#endif
+
 
 /* Define if your PowerPC64 linker only needs function descriptor syms. */
 #ifndef USED_FOR_TARGET

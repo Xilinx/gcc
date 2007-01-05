@@ -1078,6 +1078,12 @@ Biggest alignment supported by the object file format of this machine.
 Use this macro to limit the alignment which can be specified using the
 @code{__attribute__ ((aligned (@var{n})))} construct.  If not defined,
 the default value is @code{BIGGEST_ALIGNMENT}.
+
+On systems that use ELF, the default (in @file{config/elfos.h}) is
+the largest supported 32-bit ELF section alignment representable on
+a 32-bit host e.g. @samp{(((unsigned HOST_WIDEST_INT) 1 << 28) * 8)}.
+On 32-bit ELF the largest supported section alignment in bits is
+@samp{(0x80000000 * 8)}, but this is not representable on 32-bit hosts.
 @end defmac
 
 @defmac DATA_ALIGNMENT (@var{type}, @var{basic-align})
@@ -1970,6 +1976,33 @@ definition of this macro is
    ((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1)  \
     / UNITS_PER_WORD)
 @end smallexample
+@end defmac
+
+@defmac HARD_REGNO_NREGS_HAS_PADDING (@var{regno}, @var{mode})
+A C expression that is nonzero if a value of mode @var{mode}, stored
+in memory, ends with padding that causes it to take up more space than
+in registers starting at register number @var{regno} (as determined by
+multiplying GCC's notion of the size of the register when containing
+this mode by the number of registers returned by
+@code{HARD_REGNO_NREGS}).  By default this is zero.
+
+For example, if a floating-point value is stored in three 32-bit
+registers but takes up 128 bits in memory, then this would be
+nonzero.
+
+This macros only needs to be defined if there are cases where
+@code{subreg_get_info}
+would otherwise wrongly determine that a @code{subreg} can be
+represented by an offset to the register number, when in fact such a
+@code{subreg} would contain some of the padding not stored in
+registers and so not be representable.
+@end defmac
+
+@defmac HARD_REGNO_NREGS_WITH_PADDING (@var{regno}, @var{mode})
+For values of @var{regno} and @var{mode} for which
+@code{HARD_REGNO_NREGS_HAS_PADDING} returns nonzero, a C expression
+returning the greater number of registers required to hold the value
+including any padding.  In the example above, the value would be four.
 @end defmac
 
 @defmac REGMODE_NATURAL_SIZE (@var{mode})
@@ -4535,10 +4568,11 @@ not support profiling.
 @end defmac
 
 @defmac NO_PROFILE_COUNTERS
-Define this macro if the @code{mcount} subroutine on your system does
-not need a counter variable allocated for each function.  This is true
-for almost all modern implementations.  If you define this macro, you
-must not use the @var{labelno} argument to @code{FUNCTION_PROFILER}.
+Define this macro to be an expression with a nonzero value if the
+@code{mcount} subroutine on your system does not need a counter variable
+allocated for each function.  This is true for almost all modern
+implementations.  If you define this macro, you must not use the
+@var{labelno} argument to @code{FUNCTION_PROFILER}.
 @end defmac
 
 @defmac PROFILE_BEFORE_PROLOGUE
@@ -5282,6 +5316,35 @@ described above.
 If this hook is not defined, then @var{addr} will be used as
 the argument @var{OFF} to @code{REALIGN_LOAD}, in which case the low
 log2(@var{VS})-1 bits of @var{addr} will be considered.
+@end deftypefn
+
+@deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN (tree @var{x})
+This hook should return the DECL of a function @var{f} that implements
+widening multiplication of the even elements of two input vectors of type @var{x}.
+
+If this hook is defined, the autovectorizer will use it along with the
+@code{TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD} target hook when vectorizing
+widening multiplication in cases that the order of the results does not have to be
+preserved (e.g. used only by a reduction computation). Otherwise, the
+@code{widen_mult_hi/lo} idioms will be used.
+@end deftypefn
+
+@deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD (tree @var{x})
+This hook should return the DECL of a function @var{f} that implements
+widening multiplication of the odd elements of two input vectors of type @var{x}.
+
+If this hook is defined, the autovectorizer will use it along with the
+@code{TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN} target hook when vectorizing
+widening multiplication in cases that the order of the results does not have to be
+preserved (e.g. used only by a reduction computation). Otherwise, the
+@code{widen_mult_hi/lo} idioms will be used.
+@end deftypefn
+
+@deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION (enum built_in_function @var{code}, tree @var{vec_type})
+This hook should return the decl of a function that implements the vectorized
+variant of the builtin function with builtin function code @var{code} or
+@code{NULL_TREE} if such a function is not available.  The return type of
+the vectorized function shall be of vector type @var{vec_type}.
 @end deftypefn
 
 @node Anchored Addresses
@@ -6588,6 +6651,58 @@ The default version of this function handles choosing code vs data,
 read-only vs read-write data, and @code{flag_pic}.  You should only
 need to override this if your target has special flags that might be
 set via @code{__attribute__}.
+@end deftypefn
+
+@deftypefn {Target Hook} {int} TARGET_ASM_RECORD_GCC_SWITCHES (print_switch_type @var{type}, const char * @var{text})
+Provides the target with the ability to record the gcc command line
+switches that have been passed to the compiler, and options that are
+enabled.  The @var{type} argument specifies what is being recorded.
+It can take the following values:
+
+@table @gcctabopt
+@item SWITCH_TYPE_PASSED
+@var{text} is a command line switch that has been set by the user.
+
+@item SWITCH_TYPE_ENABLED
+@var{text} is an option which has been enabled.  This might be as a
+direct result of a command line switch, or because it is enabled by
+default or because it has been enabled as a side effect of a different
+command line switch.  For example, the @option{-O2} switch enables
+various different individual optimization passes.
+
+@item SWITCH_TYPE_DESCRIPTIVE
+@var{text} is either NULL or some descriptive text which should be
+ignored.  If @var{text} is NULL then it is being used to warn the
+target hook that either recording is starting or ending.  The first
+time @var{type} is SWITCH_TYPE_DESCRIPTIVE and @var{text} is NULL, the
+warning is for start up and the second time the warning is for
+wind down.  This feature is to allow the target hook to make any
+necessary preparations before it starts to record switches and to
+perform any necessary tidying up after it has finished recording
+switches.
+
+@item SWITCH_TYPE_LINE_START
+This option can be ignored by this target hook.
+
+@item  SWITCH_TYPE_LINE_END
+This option can be ignored by this target hook.
+@end table
+
+The hook's return value must be zero.  Other return values may be
+supported in the future.
+
+By default this hook is set to NULL, but an example implementation is
+provided for ELF based targets.  Called @var{elf_record_gcc_switches},
+it records the switches as ASCII text inside a new, string mergeable
+section in the assembler output file.  The name of the new section is
+provided by the @code{TARGET_ASM_RECORD_GCC_SWITCHES_SECTION} target
+hook.
+@end deftypefn
+
+@deftypefn {Target Hook} {const char *} TARGET_ASM_RECORD_GCC_SWITCHES_SECTION
+This is the name of the section that will be created by the example
+ELF implementation of the @code{TARGET_ASM_RECORD_GCC_SWITCHES} target
+hook.
 @end deftypefn
 
 @need 2000
@@ -8080,7 +8195,7 @@ This works only if @code{ASM_OUTPUT_MAX_SKIP_ALIGN} is defined.
 A C statement to output to the stdio stream @var{stream} an assembler
 instruction to advance the location counter by @var{nbytes} bytes.
 Those bytes should be zero when loaded.  @var{nbytes} will be a C
-expression of type @code{int}.
+expression of type @code{unsigned HOST_WIDE_INT}.
 @end defmac
 
 @defmac ASM_NO_SKIP_IN_TEXT
@@ -8969,6 +9084,14 @@ unit will not be COMDAT.
 This hook returns true if @code{__aeabi_atexit} (as defined by the ARM EABI)
 should be used to register static destructors when @option{-fuse-cxa-atexit}
 is in effect.  The default is to return false to use @code{__cxa_atexit}.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_CXX_USE_ATEXIT_FOR_CXA_ATEXIT (void)
+This hook returns true if the target @code{atexit} function can be used
+in the same manner as @code{__cxa_atexit} to register C++ static
+destructors. This requires that @code{atexit}-registered functions in
+shared libraries are run in the correct order when the libraries are
+unloaded. The default is to return false.
 @end deftypefn
 
 @deftypefn {Target Hook} void TARGET_CXX_ADJUST_CLASS_AT_DEFINITION (tree @var{type})

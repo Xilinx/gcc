@@ -281,6 +281,7 @@ match_hollerith_constant (gfc_expr ** result)
 		gfc_default_character_kind, &gfc_current_locus);
 	  e->value.character.string = gfc_getmem (num+1);
 	  memcpy (e->value.character.string, buffer, num);
+	  e->value.character.string[num] = '\0';
 	  e->value.character.length = num;
 	  *result = e;
 	  return MATCH_YES;
@@ -577,16 +578,6 @@ done:
 	  goto cleanup;
 	}
       kind = gfc_default_double_kind;
-      break;
-
-    case 'q':
-      if (kind != -2)
-	{
-	  gfc_error
-	    ("Real number at %C has a 'q' exponent and an explicit kind");
-	  goto cleanup;
-	}
-      kind = gfc_option.q_kind;
       break;
 
     default:
@@ -1438,6 +1429,80 @@ cleanup:
 }
 
 
+/* Match an argument list function, such as %VAL.  */
+
+static match
+match_arg_list_function (gfc_actual_arglist *result)
+{
+  char name[GFC_MAX_SYMBOL_LEN + 1];
+  locus old_locus;
+  match m;
+
+  old_locus = gfc_current_locus;
+
+  if (gfc_match_char ('%') != MATCH_YES)
+    {
+      m = MATCH_NO;
+      goto cleanup;
+    }
+
+  m = gfc_match ("%n (", name);
+  if (m != MATCH_YES)
+    goto cleanup;
+
+  if (name[0] != '\0')
+    {
+      switch (name[0])
+	{
+	case 'l':
+	  if (strncmp(name, "loc", 3) == 0)
+	    {
+	      result->name = "%LOC";
+	      break;
+	    }
+	case 'r':
+	  if (strncmp(name, "ref", 3) == 0)
+	    {
+	      result->name = "%REF";
+	      break;
+	    }
+	case 'v':
+	  if (strncmp(name, "val", 3) == 0)
+	    {
+	      result->name = "%VAL";
+	      break;
+	    }
+	default:
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
+    }
+
+  if (gfc_notify_std (GFC_STD_GNU, "Extension: argument list "
+		      "function at %C") == FAILURE)
+    {
+      m = MATCH_ERROR;
+      goto cleanup;
+    }
+
+  m = match_actual_arg (&result->expr);
+  if (m != MATCH_YES)
+    goto cleanup;
+
+  if (gfc_match_char (')') != MATCH_YES)
+    {
+      m = MATCH_NO;
+      goto cleanup;
+    }
+
+  return MATCH_YES;
+
+cleanup:
+  gfc_current_locus = old_locus;
+  return m;
+}
+
+
 /* Matches an actual argument list of a function or subroutine, from
    the opening parenthesis to the closing parenthesis.  The argument
    list is assumed to allow keyword arguments because we don't know if
@@ -1506,12 +1571,20 @@ gfc_match_actual_arglist (int sub_flag, gfc_actual_arglist ** argp)
 	}
       else
 	{
-	  /* See if we have the first keyword argument.  */
-	  m = match_keyword_arg (tail, head);
-	  if (m == MATCH_YES)
-	    seen_keyword = 1;
+	  /* Try an argument list function, like %VAL.  */
+	  m = match_arg_list_function (tail);
 	  if (m == MATCH_ERROR)
 	    goto cleanup;
+
+	  /* See if we have the first keyword argument.  */
+	  if (m == MATCH_NO)
+	    {
+	      m = match_keyword_arg (tail, head);
+	      if (m == MATCH_YES)
+		seen_keyword = 1;
+	      if (m == MATCH_ERROR)
+		goto cleanup;
+	    }
 
 	  if (m == MATCH_NO)
 	    {
@@ -1523,6 +1596,7 @@ gfc_match_actual_arglist (int sub_flag, gfc_actual_arglist ** argp)
 		goto syntax;
 	    }
 	}
+
 
     next:
       if (gfc_match_char (')') == MATCH_YES)
@@ -1926,7 +2000,8 @@ gfc_match_rvalue (gfc_expr ** result)
   if (m != MATCH_YES)
     return m;
 
-  if (gfc_find_state (COMP_INTERFACE) == SUCCESS)
+  if (gfc_find_state (COMP_INTERFACE) == SUCCESS
+      && !gfc_current_ns->has_import_set)
     i = gfc_get_sym_tree (name, NULL, &symtree);
   else
     i = gfc_get_ha_sym_tree (name, &symtree);
@@ -2311,6 +2386,11 @@ match_variable (gfc_expr ** result, int equiv_flag, int host_flag)
   switch (sym->attr.flavor)
     {
     case FL_VARIABLE:
+      if (sym->attr.protected && sym->attr.use_assoc)
+        {
+	  gfc_error ("Assigning to PROTECTED variable at %C");
+          return MATCH_ERROR;
+        }
       break;
 
     case FL_UNKNOWN:

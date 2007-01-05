@@ -158,6 +158,9 @@ avoid_constant_pool_reference (rtx x)
       return x;
     }
 
+  if (GET_MODE (x) == BLKmode)
+    return x;
+
   addr = XEXP (x, 0);
 
   /* Call target hook to avoid the effects of -fpic etc....  */
@@ -1041,6 +1044,9 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	    val++, arg0 &= arg0 - 1;
 	  val &= 1;
 	  break;
+
+	case BSWAP:
+	  return 0;
 
 	case TRUNCATE:
 	  val = arg0;
@@ -3747,10 +3753,10 @@ simplify_const_relational_operation (enum rtx_code code,
     return simplify_const_relational_operation (signed_condition (code),
 						mode, tem, const0_rtx);
 
-  if (flag_unsafe_math_optimizations && code == ORDERED)
+  if (! HONOR_NANS (mode) && code == ORDERED)
     return const_true_rtx;
 
-  if (flag_unsafe_math_optimizations && code == UNORDERED)
+  if (! HONOR_NANS (mode) && code == UNORDERED)
     return const0_rtx;
 
   /* For modes without NaNs, if the two operands are equal, we know the
@@ -4642,13 +4648,22 @@ simplify_subreg (enum machine_mode outermode, rtx op,
      of real and imaginary part.  */
   if (GET_CODE (op) == CONCAT)
     {
-      unsigned int inner_size, final_offset;
+      unsigned int part_size, final_offset;
       rtx part, res;
 
-      inner_size = GET_MODE_UNIT_SIZE (innermode);
-      part = byte < inner_size ? XEXP (op, 0) : XEXP (op, 1);
-      final_offset = byte % inner_size;
-      if (final_offset + GET_MODE_SIZE (outermode) > inner_size)
+      part_size = GET_MODE_UNIT_SIZE (GET_MODE (XEXP (op, 0)));
+      if (byte < part_size)
+	{
+	  part = XEXP (op, 0);
+	  final_offset = byte;
+	}
+      else
+	{
+	  part = XEXP (op, 1);
+	  final_offset = byte - part_size;
+	}
+
+      if (final_offset + GET_MODE_SIZE (outermode) > part_size)
 	return NULL_RTX;
 
       res = simplify_subreg (outermode, part, GET_MODE (part), final_offset);
@@ -4847,9 +4862,9 @@ simplify_rtx (rtx x)
 
     case RTX_EXTRA:
       if (code == SUBREG)
-	return simplify_gen_subreg (mode, SUBREG_REG (x),
-				    GET_MODE (SUBREG_REG (x)),
-				    SUBREG_BYTE (x));
+	return simplify_subreg (mode, SUBREG_REG (x),
+				GET_MODE (SUBREG_REG (x)),
+				SUBREG_BYTE (x));
       break;
 
     case RTX_OBJ:
@@ -4867,4 +4882,3 @@ simplify_rtx (rtx x)
     }
   return NULL;
 }
-

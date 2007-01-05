@@ -108,7 +108,7 @@ array_loop_spec;
      or
       &GROUPNAME  OBJECT=value[s] [,OBJECT=value[s]]...&END
 
-   The object can be a fully qualified, compound name for an instrinsic
+   The object can be a fully qualified, compound name for an intrinsic
    type, derived types or derived type components.  So, a substring
    a(:)%b(4)%ch(2:4)(1:7) has to be treated correctly in namelist
    read. Hence full information about the structure of the object has
@@ -354,7 +354,7 @@ typedef struct st_parameter_dt
 {
   st_parameter_common common;
   GFC_IO_INT rec;
-  GFC_INTEGER_4 *size, *iolength;
+  GFC_IO_INT *size, *iolength;
   gfc_array_char *internal_unit_desc;
   CHARACTER1 (format);
   CHARACTER2 (advance);
@@ -415,7 +415,10 @@ typedef struct st_parameter_dt
 	  /* An internal unit specific flag used to identify that the associated
 	     unit is internal.  */
 	  unsigned unit_is_internal : 1;
-	  /* 17 unused bits.  */
+	  /* An internal unit specific flag to signify an EOF condition for list
+	     directed read.  */
+	  unsigned at_eof : 1;
+	  /* 16 unused bits.  */
 
 	  char last_char;
 	  char nml_delim;
@@ -467,6 +470,7 @@ typedef struct
   unit_status status;
   unit_pad pad;
   unit_convert convert;
+  int has_recl;
 }
 unit_flags;
 
@@ -495,12 +499,19 @@ typedef struct gfc_unit
   unit_mode mode;
   unit_flags flags;
 
-  /* recl           -- Record length of the file.
-     last_record    -- Last record number read or written
-     maxrec         -- Maximum record number in a direct access file
-     bytes_left     -- Bytes left in current record.
-     strm_pos       -- Current position in file for STREAM I/O.  */
-  gfc_offset recl, last_record, maxrec, bytes_left, strm_pos;
+  /* recl                 -- Record length of the file.
+     last_record          -- Last record number read or written
+     maxrec               -- Maximum record number in a direct access file
+     bytes_left           -- Bytes left in current record.
+     strm_pos             -- Current position in file for STREAM I/O.
+     recl_subrecord       -- Maximum length for subrecord.
+     bytes_left_subrecord -- Bytes left in current subrecord.  */
+  gfc_offset recl, last_record, maxrec, bytes_left, strm_pos,
+    recl_subrecord, bytes_left_subrecord;
+
+  /* Set to 1 if we have read a subrecord.  */
+
+  int continued;
 
   __gthread_mutex_t lock;
   /* Number of threads waiting to acquire this unit's lock.

@@ -107,6 +107,7 @@ typedef struct gfc_ss_info
      start is used in the calculation of these.  Indexed by scalarizer
      dimension.  */
   tree start[GFC_MAX_DIMENSIONS];
+  tree end[GFC_MAX_DIMENSIONS];
   tree stride[GFC_MAX_DIMENSIONS];
   tree delta[GFC_MAX_DIMENSIONS];
 
@@ -303,7 +304,8 @@ void gfc_conv_intrinsic_function (gfc_se *, gfc_expr *);
 int gfc_is_intrinsic_libcall (gfc_expr *);
 
 /* Also used to CALL subroutines.  */
-int gfc_conv_function_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *);
+int gfc_conv_function_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *,
+			    tree);
 /* gfc_trans_* shouldn't call push/poplevel, use gfc_push/pop_scope */
 
 /* Generate code for a scalar assignment.  */
@@ -333,8 +335,12 @@ void gfc_trans_vla_type_sizes (gfc_symbol *, stmtblock_t *);
 void gfc_add_expr_to_block (stmtblock_t *, tree);
 /* Add a block to the end of a block.  */
 void gfc_add_block_to_block (stmtblock_t *, stmtblock_t *);
-/* Add a MODIFY_EXPR to a block.  */
-void gfc_add_modify_expr (stmtblock_t *, tree, tree);
+/* Add a MODIFY_EXPR or a GIMPLE_MODIFY_STMT to a block.  */
+void gfc_add_modify (stmtblock_t *, tree, tree, bool);
+#define gfc_add_modify_expr(BLOCK, LHS, RHS) \
+       gfc_add_modify ((BLOCK), (LHS), (RHS), false)
+#define gfc_add_modify_stmt(BLOCK, LHS, RHS) \
+       gfc_add_modify ((BLOCK), (LHS), (RHS), true)
 
 /* Initialize a statement block.  */
 void gfc_init_block (stmtblock_t *);
@@ -426,7 +432,7 @@ bool get_array_ctor_strlen (gfc_constructor *, tree *);
 void gfc_trans_runtime_check (tree, const char *, stmtblock_t *, locus *);
 
 /* Generate code for an assignment, includes scalarization.  */
-tree gfc_trans_assignment (gfc_expr *, gfc_expr *);
+tree gfc_trans_assignment (gfc_expr *, gfc_expr *, bool);
 
 /* Generate code for a pointer assignment.  */
 tree gfc_trans_pointer_assignment (gfc_expr *, gfc_expr *);
@@ -445,8 +451,7 @@ void pushlevel (int);
 tree poplevel (int, int, int);
 tree getdecls (void);
 tree gfc_truthvalue_conversion (tree);
-tree builtin_function (const char *, tree, int, enum built_in_class,
-		       const char *, tree);
+tree gfc_builtin_function (tree);
 
 /* In trans-openmp.c */
 bool gfc_omp_privatize_by_reference (tree);
@@ -506,6 +511,12 @@ extern GTY(()) tree gfor_fndecl_math_exponent4;
 extern GTY(()) tree gfor_fndecl_math_exponent8;
 extern GTY(()) tree gfor_fndecl_math_exponent10;
 extern GTY(()) tree gfor_fndecl_math_exponent16;
+
+/* BLAS functions.  */
+extern GTY(()) tree gfor_fndecl_sgemm;
+extern GTY(()) tree gfor_fndecl_dgemm;
+extern GTY(()) tree gfor_fndecl_cgemm;
+extern GTY(()) tree gfor_fndecl_zgemm;
 
 /* String functions.  */
 extern GTY(()) tree gfor_fndecl_compare_string;

@@ -28,10 +28,14 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-/** @file functional_iterate.h
+/** @file tr1/functional_iterate.h
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
+
+namespace std
+{
+_GLIBCXX_BEGIN_NAMESPACE(tr1)
 
 template<typename _Res _GLIBCXX_COMMA _GLIBCXX_TEMPLATE_PARAMS>
   struct _Weak_result_type_impl<_Res(_GLIBCXX_TEMPLATE_ARGS)>
@@ -914,3 +918,5 @@ template<typename _Functor>
       }
   }
 
+_GLIBCXX_END_NAMESPACE
+}

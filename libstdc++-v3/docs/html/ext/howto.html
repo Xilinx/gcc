@@ -387,7 +387,7 @@
         <em>operator&gt;&gt;(istream&amp;, string&amp;) doesn't set failbit</em>
     </dt>
     <dd>If nothing is extracted into the string, <code>op&gt;&gt;</code> now
-        sets <code>failbit</code> (which can cause an exception, etc, etc).
+        sets <code>failbit</code> (which can cause an exception, etc., etc.).
     </dd>
 
     <dt><a href="lwg-defects.html#214">214</a>:
@@ -580,18 +580,36 @@
     <dd>Fix the parameters.
     </dd>
 
-    <dt><a href="lwg-active.html#512">512</a>:
+    <dt><a href="lwg-closed.html#512">512</a>:
         <em>Seeding subtract_with_carry_01 from a single unsigned long</em>
     </dt>
     <dd>Construct a <code>linear_congruential</code> engine and seed with it.
     </dd>
 
-    <dt><a href="lwg-active.html#538">538</a>:
-        <em>DR 538. 241 again: Does unique_copy() require CopyConstructible
+    <dt><a href="lwg-defects.html#538">538</a>:
+        <em>241 again: Does unique_copy() require CopyConstructible
 	    and Assignable?</em>
     </dt>
     <dd>In case of input_iterator/output_iterator rely on Assignability of
         input_iterator' value_type.
+    </dd>
+
+    <dt><a href="lwg-defects.html#541">541</a>:
+        <em>shared_ptr template assignment and void</em>
+    </dt>
+    <dd>Add an auto_ptr&lt;void&gt; specialization.
+    </dd>
+
+    <dt><a href="lwg-active.html#543">543</a>:
+        <em>valarray slice default constructor</em>
+    </dt>
+    <dd>Follow the straightforward proposed resolution.
+    </dd>
+
+    <dt><a href="lwg-active.html#586">586</a>:
+        <em>string inserter not a formatted function</em>
+    </dt>
+    <dd>Change it to be a formatted output function (i.e. catch exceptions).
     </dd>
 <!--
     <dt><a href="lwg-defects.html#"></a>:

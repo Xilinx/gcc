@@ -2,7 +2,7 @@
    specifiers not at start.  */
 /* Origin: Joseph Myers <jsm@polyomino.org.uk> */
 /* { dg-do compile } */
-/* { dg-options "-W" } */
+/* { dg-options "-Wold-style-declaration" } */
 
 static int x0;
 int static x1; /* { dg-warning "not at beginning" } */

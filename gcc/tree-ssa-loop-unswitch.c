@@ -73,34 +73,23 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
    tree-ssa-loop-im.c ensures that all the suitable conditions are in this
    shape.  */
 
-static struct loop *tree_unswitch_loop (struct loops *, struct loop *, basic_block,
-				   tree);
-static bool tree_unswitch_single_loop (struct loops *, struct loop *, int);
+static struct loop *tree_unswitch_loop (struct loop *, basic_block, tree);
+static bool tree_unswitch_single_loop (struct loop *, int);
 static tree tree_may_unswitch_on (basic_block, struct loop *);
 
-/* Main entry point.  Perform loop unswitching on all suitable LOOPS.  */
+/* Main entry point.  Perform loop unswitching on all suitable loops.  */
 
 unsigned int
-tree_ssa_unswitch_loops (struct loops *loops)
+tree_ssa_unswitch_loops (void)
 {
-  int i, num;
+  loop_iterator li;
   struct loop *loop;
   bool changed = false;
 
   /* Go through inner loops (only original ones).  */
-  num = loops->num;
-
-  for (i = 1; i < num; i++)
+  FOR_EACH_LOOP (li, loop, LI_ONLY_OLD | LI_ONLY_INNERMOST)
     {
-      /* Removed loop?  */
-      loop = loops->parray[i];
-      if (!loop)
-	continue;
-
-      if (loop->inner)
-	continue;
-
-      changed |= tree_unswitch_single_loop (loops, loop, 0);
+      changed |= tree_unswitch_single_loop (loop, 0);
     }
 
   if (changed)
@@ -177,7 +166,7 @@ simplify_using_entry_checks (struct loop *loop, tree cond)
    grow exponentially.  */
 
 static bool
-tree_unswitch_single_loop (struct loops *loops, struct loop *loop, int num)
+tree_unswitch_single_loop (struct loop *loop, int num)
 {
   basic_block *bbs;
   struct loop *nloop;
@@ -252,7 +241,7 @@ tree_unswitch_single_loop (struct loops *loops, struct loop *loop, int num)
 
   initialize_original_copy_tables ();
   /* Unswitch the loop on this condition.  */
-  nloop = tree_unswitch_loop (loops, loop, bbs[i], cond);
+  nloop = tree_unswitch_loop (loop, bbs[i], cond);
   if (!nloop)
     {
       free_original_copy_tables ();
@@ -265,8 +254,8 @@ tree_unswitch_single_loop (struct loops *loops, struct loop *loop, int num)
   free_original_copy_tables ();
 
   /* Invoke itself on modified loops.  */
-  tree_unswitch_single_loop (loops, nloop, num + 1);
-  tree_unswitch_single_loop (loops, loop, num + 1);
+  tree_unswitch_single_loop (nloop, num + 1);
+  tree_unswitch_single_loop (loop, num + 1);
   free (bbs);
   return true;
 }
@@ -277,16 +266,20 @@ tree_unswitch_single_loop (struct loops *loops, struct loop *loop, int num)
    if impossible, new loop otherwise.  */
 
 static struct loop *
-tree_unswitch_loop (struct loops *loops, struct loop *loop,
+tree_unswitch_loop (struct loop *loop,
 		    basic_block unswitch_on, tree cond)
 {
-  basic_block condition_bb;
+  unsigned prob_true;
+  edge edge_true, edge_false;
 
   /* Some sanity checking.  */
   gcc_assert (flow_bb_inside_loop_p (loop, unswitch_on));
   gcc_assert (EDGE_COUNT (unswitch_on->succs) == 2);
   gcc_assert (loop->inner == NULL);
 
-  return loop_version (loops, loop, unshare_expr (cond), 
-		       &condition_bb, false);
+  extract_true_false_edges_from_block (unswitch_on, &edge_true, &edge_false);
+  prob_true = edge_true->probability;
+  return loop_version (loop, unshare_expr (cond), 
+		       NULL, prob_true, prob_true,
+		       REG_BR_PROB_BASE - prob_true, false);
 }

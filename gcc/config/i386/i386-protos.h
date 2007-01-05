@@ -50,8 +50,8 @@ extern bool x86_extended_QIreg_mentioned_p (rtx);
 extern bool x86_extended_reg_mentioned_p (rtx);
 extern enum machine_mode ix86_cc_mode (enum rtx_code, rtx, rtx);
 
-extern int ix86_expand_movmem (rtx, rtx, rtx, rtx);
-extern int ix86_expand_clrmem (rtx, rtx, rtx);
+extern int ix86_expand_movmem (rtx, rtx, rtx, rtx, rtx, rtx);
+extern int ix86_expand_setmem (rtx, rtx, rtx, rtx, rtx, rtx);
 extern int ix86_expand_strlen (rtx, rtx, rtx, rtx);
 
 extern bool legitimate_constant_p (rtx);
@@ -105,6 +105,7 @@ extern int ix86_expand_int_movcc (rtx[]);
 extern int ix86_expand_fp_movcc (rtx[]);
 extern bool ix86_expand_fp_vcond (rtx[]);
 extern bool ix86_expand_int_vcond (rtx[]);
+extern void ix86_expand_sse_unpack (rtx[], bool, bool);
 extern int ix86_expand_int_addcc (rtx[]);
 extern void ix86_expand_call (rtx, rtx, rtx, rtx, rtx, int);
 extern void x86_initialize_trampoline (rtx, rtx, rtx);
@@ -156,6 +157,16 @@ extern void ix86_emit_fp_unordered_jump (rtx);
 extern void ix86_emit_i387_log1p (rtx, rtx);
 
 extern enum rtx_code ix86_reverse_condition (enum rtx_code, enum machine_mode);
+
+extern void ix86_expand_lround (rtx, rtx);
+extern void ix86_expand_lfloorceil (rtx, rtx, bool);
+extern void ix86_expand_rint (rtx, rtx);
+extern void ix86_expand_floorceil (rtx, rtx, bool);
+extern void ix86_expand_floorceildf_32 (rtx, rtx, bool);
+extern void ix86_expand_round (rtx, rtx);
+extern void ix86_expand_rounddf_32 (rtx, rtx);
+extern void ix86_expand_trunc (rtx, rtx);
+extern void ix86_expand_truncdf_32 (rtx, rtx);
 
 #ifdef TREE_CODE
 extern void init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);

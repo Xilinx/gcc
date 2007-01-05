@@ -763,8 +763,6 @@ merge_blocks_move (edge e, basic_block b, basic_block c, int mode)
   if (BB_PARTITION (b) != BB_PARTITION (c))
     return NULL;
 
-
-
   /* If B has a fallthru edge to C, no need to move anything.  */
   if (e->flags & EDGE_FALLTHRU)
     {
@@ -2260,7 +2258,15 @@ cleanup_cfg (int mode)
 	}
       else
 	break;
-      delete_dead_jumptables ();
+
+      /* Don't call delete_dead_jumptables in cfglayout mode, because
+	 that function assumes that jump tables are in the insns stream.
+	 But we also don't _have_ to delete dead jumptables in cfglayout
+	 mode because we shouldn't even be looking at things that are
+	 not in a basic block.  Dead jumptables are cleaned up when
+	 going out of cfglayout mode.  */
+      if (!(mode & CLEANUP_CFGLAYOUT))
+	delete_dead_jumptables ();
     }
 
   timevar_pop (TV_CLEANUP_CFG);
@@ -2300,19 +2306,12 @@ struct tree_opt_pass pass_jump =
 static unsigned int
 rest_of_handle_jump2 (void)
 {
-  /* Turn NOTE_INSN_EXPECTED_VALUE into REG_BR_PROB.  Do this
-     before jump optimization switches branch directions.  */
-  if (flag_guess_branch_prob)
-    expected_value_to_br_prob ();
-
   delete_trivially_dead_insns (get_insns (), max_reg_num ());
   reg_scan (get_insns (), max_reg_num ());
   if (dump_file)
     dump_flow_info (dump_file, dump_flags);
   cleanup_cfg ((optimize ? CLEANUP_EXPENSIVE : 0)
 	       | (flag_thread_jumps ? CLEANUP_THREADING : 0));
-
-  purge_line_number_notes ();
 
   if (optimize)
     cleanup_cfg (CLEANUP_EXPENSIVE);

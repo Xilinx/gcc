@@ -200,7 +200,7 @@ do_check (gfc_intrinsic_sym * specific, gfc_actual_arglist * arg)
    Argument list:
       char *     name of function
       int        whether function is elemental
-      int        If the function can be used as an actual argument [1] [2]
+      int        If the function can be used as an actual argument [1]
       bt         return type of function
       int        kind of return type of function
       int        Fortran standard version
@@ -221,10 +221,7 @@ do_check (gfc_intrinsic_sym * specific, gfc_actual_arglist * arg)
      determined by its presence on the 13.6 list in Fortran 2003.  The
      following intrinsics, which are GNU extensions, are considered allowed
      as actual arguments: ACOSH ATANH DACOSH DASINH DATANH DCONJG DIMAG
-     ZABS ZCOS ZEXP ZLOG ZSIN ZSQRT.
- [2] The value 2 is used in this field for CHAR, which is allowed as an
-     actual argument in F2003, but not in F95. It is the only such
-     intrinsic function.  */
+     ZABS ZCOS ZEXP ZLOG ZSIN ZSQRT.  */
 
 static void
 add_sym (const char *name, int elemental, int actual_ok, bt type, int kind,
@@ -1180,7 +1177,7 @@ add_functions (void)
 
   make_generic ("ceiling", GFC_ISYM_CEILING, GFC_STD_F95);
 
-  add_sym_2 ("char", 1, 2, BT_CHARACTER, dc, GFC_STD_F77,
+  add_sym_2 ("char", ELEMENTAL, ACTUAL_NO, BT_CHARACTER, dc, GFC_STD_F77,
 	     gfc_check_char, gfc_simplify_char, gfc_resolve_char,
 	     i, BT_INTEGER, di, REQUIRED, kind, BT_INTEGER, di, OPTIONAL);
 
@@ -2785,7 +2782,7 @@ remove_nullargs (gfc_actual_arglist ** ap)
     {
       next = head->next;
 
-      if (head->expr == NULL)
+      if (head->expr == NULL && !head->label)
 	{
 	  head->next = NULL;
 	  gfc_free_actual_arglist (head);
@@ -2867,7 +2864,11 @@ keywords:
 
       if (f == NULL)
 	{
-	  gfc_error ("Can't find keyword named '%s' in call to '%s' at %L",
+	  if (a->name[0] == '%')
+	    gfc_error ("Argument list function at %L is not allowed in this "
+		       "context", where);
+	  else
+	    gfc_error ("Can't find keyword named '%s' in call to '%s' at %L",
 		     a->name, name, where);
 	  return FAILURE;
 	}
@@ -2901,6 +2902,12 @@ do_sort:
 
   for (f = formal; f; f = f->next)
     {
+      if (f->actual && f->actual->label != NULL && f->ts.type)
+	{
+	  gfc_error ("ALTERNATE RETURN not permitted at %L", where);
+	  return FAILURE;
+	}
+
       if (f->actual == NULL)
 	{
 	  a = gfc_get_actual_arglist ();
@@ -3397,8 +3404,7 @@ got_specific:
   /* TODO: We should probably only allow elemental functions here.  */
   flag |= (expr->ts.type != BT_INTEGER && expr->ts.type != BT_CHARACTER);
 
-  if (pedantic && gfc_init_expr
-      && flag && gfc_init_expr_extensions (specific))
+  if (gfc_init_expr && flag && gfc_init_expr_extensions (specific))
     {
       if (gfc_notify_std (GFC_STD_GNU, "Extension: Evaluation of "
 	    "nonstandard initialization expression at %L", &expr->where)

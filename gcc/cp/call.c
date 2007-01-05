@@ -39,6 +39,7 @@ Boston, MA 02110-1301, USA.  */
 #include "intl.h"
 #include "target.h"
 #include "convert.h"
+#include "langhooks.h"
 
 /* The various kinds of conversion.  */
 
@@ -1810,14 +1811,19 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 	break;
       if (TYPE_PTR_P (type1) && TYPE_PTR_P (type2))
 	break;
-      if (TREE_CODE (type1) == ENUMERAL_TYPE && TREE_CODE (type2) == ENUMERAL_TYPE)
+      if (TREE_CODE (type1) == ENUMERAL_TYPE 
+	  && TREE_CODE (type2) == ENUMERAL_TYPE)
 	break;
-      if (TYPE_PTR_P (type1) && null_ptr_cst_p (args[1]))
+      if (TYPE_PTR_P (type1) 
+	  && null_ptr_cst_p (args[1])
+	  && !uses_template_parms (type1))
 	{
 	  type2 = type1;
 	  break;
 	}
-      if (null_ptr_cst_p (args[0]) && TYPE_PTR_P (type2))
+      if (null_ptr_cst_p (args[0]) 
+	  && TYPE_PTR_P (type2)
+	  && !uses_template_parms (type2))
 	{
 	  type1 = type2;
 	  break;
@@ -4076,7 +4082,7 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	  /* On the second pass, the second argument must be
 	     "size_t".  */
 	  else if (pass == 1
-		   && same_type_p (TREE_VALUE (t), sizetype)
+		   && same_type_p (TREE_VALUE (t), size_type_node)
 		   && TREE_CHAIN (t) == void_list_node)
 	    break;
 	}
@@ -4096,7 +4102,7 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
       /* If the FN is a member function, make sure that it is
 	 accessible.  */
       if (DECL_CLASS_SCOPE_P (fn))
-	perform_or_defer_access_check (TYPE_BINFO (type), fn);
+	perform_or_defer_access_check (TYPE_BINFO (type), fn, fn);
 
       if (pass == 0)
 	args = tree_cons (NULL_TREE, addr, args);
@@ -4127,21 +4133,22 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 
 /* If the current scope isn't allowed to access DECL along
    BASETYPE_PATH, give an error.  The most derived class in
-   BASETYPE_PATH is the one used to qualify DECL.  */
+   BASETYPE_PATH is the one used to qualify DECL. DIAG_DECL is
+   the declaration to use in the error diagnostic.  */
 
 bool
-enforce_access (tree basetype_path, tree decl)
+enforce_access (tree basetype_path, tree decl, tree diag_decl)
 {
   gcc_assert (TREE_CODE (basetype_path) == TREE_BINFO);
 
   if (!accessible_p (basetype_path, decl, true))
     {
       if (TREE_PRIVATE (decl))
-	error ("%q+#D is private", decl);
+	error ("%q+#D is private", diag_decl);
       else if (TREE_PROTECTED (decl))
-	error ("%q+#D is protected", decl);
+	error ("%q+#D is protected", diag_decl);
       else
-	error ("%q+#D is inaccessible", decl);
+	error ("%q+#D is inaccessible", diag_decl);
       error ("within this context");
       return false;
     }
@@ -4770,9 +4777,9 @@ build_over_call (struct z_candidate *cand, int flags)
       if (DECL_TEMPLATE_INFO (fn)
 	  && DECL_MEMBER_TEMPLATE_P (DECL_TI_TEMPLATE (fn)))
 	perform_or_defer_access_check (cand->access_path,
-				       DECL_TI_TEMPLATE (fn));
+				       DECL_TI_TEMPLATE (fn), fn);
       else
-	perform_or_defer_access_check (cand->access_path, fn);
+	perform_or_defer_access_check (cand->access_path, fn, fn);
     }
 
   if (args && TREE_CODE (args) != TREE_LIST)
@@ -5065,9 +5072,9 @@ build_java_interface_fn_ref (tree fn, tree instance)
 				     tree_cons (NULL_TREE, java_int_type_node,
 						endlink)));
       java_iface_lookup_fn
-	= builtin_function ("_Jv_LookupInterfaceMethodIdx",
-			    build_function_type (ptr_type_node, t),
-			    0, NOT_BUILT_IN, NULL, NULL_TREE);
+	= add_builtin_function ("_Jv_LookupInterfaceMethodIdx",
+				build_function_type (ptr_type_node, t),
+				0, NOT_BUILT_IN, NULL, NULL_TREE);
     }
 
   /* Look up the pointer to the runtime java.lang.Class object for `instance'.

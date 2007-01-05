@@ -1,3 +1,64 @@
+2006-12-21  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR libgomp/28209
+	* libgomp.texi: New file.
+	* configure.ac: Add --enable-generated-files-in-srcdir option.
+	* Makefile.am: Add info, dvi, pdf, html targets. On request, copy
+	files to srcdir.
+	* Makefile.in: Regenerated.
+	* config.h.in: Regenerated.
+	* testsuite/Makefile.in: Regenerated.
+	* NOTES: Removed.
+
+2006-12-04  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR libgomp/29949
+	* env.c (omp_set_num_threads): Set illegal thread count to 1.
+
+2006-12-04  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* configure: Regenerate.
+
+2006-12-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libgomp/29947
+	* loop.c (gomp_loop_init): Make parameters signed.  Set ws->end to
+	start if there shouldn't be any loop iterations.
+	(gomp_loop_ordered_static_start): Remove start == end test.
+	* testsuite/libgomp.c/pr29947-1.c: New test.
+	* testsuite/libgomp.c/pr29947-2.c: New test.
+
+2006-12-02  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* configure.tgt: Force initial-exec TLS model on Linux only.
+
+2006-11-13  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* configure: Regenerated.
+
+2006-11-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	* env.c (parse_schedule): Reject out of range values.
+	(parse_unsigned_long): Reject out of range, negative or zero values.
+
+2006-10-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/29629
+	* testsuite/libgomp.fortran/pr29629.f90: New test.
+
+2006-10-24  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	PR libgomp/29494
+	* configure.tgt: Use posix95 configuration for Solaris 2.5.1 and 2.6.
+	* config/posix95: New directory.
+	* config/posix95/omp-lock.h: New file.
+	* config/posix95/lock.c: Likewise.
+
+2006-10-14  Geoffrey Keating  <geoffk@apple.com>
+
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
 2006-10-05  Danny Smith  <dannysmith@users.sourceforge.net>
 
 	* testsuite/libgomp.c/barrier-1.c: Change timestamp tests from

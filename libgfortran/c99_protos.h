@@ -100,6 +100,21 @@ extern float fabsf(float);
 extern float floorf(float);
 #endif
 
+#ifndef HAVE_FLOORL
+#define HAVE_FLOORL 1
+extern long double floorl (long double x);
+#endif
+
+#ifndef HAVE_FMODF
+#define HAVE_FMODF 1
+extern float fmodf (float x, float y);
+#endif
+
+#ifndef HAVE_FMODL
+#define HAVE_FMODL 1
+extern long double fmodl (long double x, long double y);
+#endif
+
 #ifndef HAVE_FREXPF
 #define HAVE_FREXPF 1
 extern float frexpf(float, int *);
@@ -184,6 +199,53 @@ extern double round(double);
 #define HAVE_ROUNDF 1
 extern float roundf(float);
 #endif
+
+/* Wrappers for systems without the various C99 single precision Bessel
+   functions.  */
+
+#if defined(HAVE_J0) && ! defined(HAVE_J0F)
+#define HAVE_J0F 1
+extern float j0f (float);
+#endif
+
+#if defined(HAVE_J1) && !defined(HAVE_J1F)
+#define HAVE_J1F 1
+extern float j1f (float);
+#endif
+
+#if defined(HAVE_JN) && !defined(HAVE_JNF)
+#define HAVE_JNF 1
+extern float jnf (int, float);
+#endif
+
+#if defined(HAVE_Y0) && !defined(HAVE_Y0F)
+#define HAVE_Y0F 1
+extern float y0f (float);
+#endif
+
+#if defined(HAVE_Y1) && !defined(HAVE_Y1F)
+#define HAVE_Y1F 1
+extern float y1f (float);
+#endif
+
+#if defined(HAVE_YN) && !defined(HAVE_YNF)
+#define HAVE_YNF 1
+extern float ynf (int, float);
+#endif
+
+
+/* Wrappers for systems without the C99 erff() and erfcf() functions.  */
+
+#if defined(HAVE_ERF) && !defined(HAVE_ERFF)
+#define HAVE_ERFF 1
+extern float erff (float);
+#endif
+
+#if defined(HAVE_ERFC) && !defined(HAVE_ERFCF)
+#define HAVE_ERFCF 1
+extern float erfcf (float);
+#endif
+
 
 
 /* log10l is needed on all platforms for decimal I/O */

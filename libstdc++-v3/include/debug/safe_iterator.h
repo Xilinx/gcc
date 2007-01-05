@@ -28,6 +28,10 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
+/** @file debug/safe_iterator.h
+ *  This file is a GNU debug extension to the Standard C++ Library.
+ */
+
 #ifndef _GLIBCXX_DEBUG_SAFE_ITERATOR_H
 #define _GLIBCXX_DEBUG_SAFE_ITERATOR_H 1
 
@@ -321,9 +325,21 @@ namespace __gnu_debug
 				       _M_constant());
       }
 
+      /** Likewise, but not thread-safe. */
+      void
+      _M_attach_single(const _Sequence* __seq)
+      {
+	_Safe_iterator_base::_M_attach_single(const_cast<_Sequence*>(__seq),
+					      _M_constant());
+      }
+
       /** Invalidate the iterator, making it singular. */
       void
       _M_invalidate();
+
+      /** Likewise, but not thread-safe. */
+      void
+      _M_invalidate_single();
 
       /// Is the iterator dereferenceable?
       bool

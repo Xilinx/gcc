@@ -315,6 +315,28 @@ optab_for_tree_code (enum tree_code code, tree type)
     case VEC_RSHIFT_EXPR:
       return vec_shr_optab;
 
+    case VEC_WIDEN_MULT_HI_EXPR:
+      return TYPE_UNSIGNED (type) ? 
+	vec_widen_umult_hi_optab : vec_widen_smult_hi_optab;
+
+    case VEC_WIDEN_MULT_LO_EXPR:
+      return TYPE_UNSIGNED (type) ? 
+	vec_widen_umult_lo_optab : vec_widen_smult_lo_optab;
+
+    case VEC_UNPACK_HI_EXPR:
+      return TYPE_UNSIGNED (type) ? 
+	vec_unpacku_hi_optab : vec_unpacks_hi_optab;
+
+    case VEC_UNPACK_LO_EXPR:
+      return TYPE_UNSIGNED (type) ? 
+	vec_unpacku_lo_optab : vec_unpacks_lo_optab;
+
+    case VEC_PACK_MOD_EXPR:
+      return vec_pack_mod_optab;
+                                                                                
+    case VEC_PACK_SAT_EXPR:
+      return TYPE_UNSIGNED (type) ? vec_pack_usat_optab : vec_pack_ssat_optab;
+                                                                                
     default:
       break;
     }
@@ -336,6 +358,18 @@ optab_for_tree_code (enum tree_code code, tree type)
 
     case ABS_EXPR:
       return trapv ? absv_optab : abs_optab;
+
+    case VEC_EXTRACT_EVEN_EXPR:
+      return vec_extract_even_optab;
+
+    case VEC_EXTRACT_ODD_EXPR:
+      return vec_extract_odd_optab;
+
+    case VEC_INTERLEAVE_HIGH_EXPR:
+      return vec_interleave_high_optab;
+
+    case VEC_INTERLEAVE_LOW_EXPR:
+      return vec_interleave_low_optab;
 
     default:
       return NULL;
@@ -1276,6 +1310,7 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
       int icode = (int) binoptab->handlers[(int) mode].insn_code;
       enum machine_mode mode0 = insn_data[icode].operand[1].mode;
       enum machine_mode mode1 = insn_data[icode].operand[2].mode;
+      enum machine_mode tmp_mode;
       rtx pat;
       rtx xop0 = op0, xop1 = op1;
 
@@ -1329,8 +1364,21 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	  && mode1 != VOIDmode)
 	xop1 = copy_to_mode_reg (mode1, xop1);
 
-      if (!insn_data[icode].operand[0].predicate (temp, mode))
-	temp = gen_reg_rtx (mode);
+      if (binoptab == vec_pack_mod_optab 
+	  || binoptab == vec_pack_usat_optab
+          || binoptab == vec_pack_ssat_optab)
+	{
+	  /* The mode of the result is different then the mode of the
+	     arguments.  */
+	  tmp_mode = insn_data[icode].operand[0].mode;
+	  if (GET_MODE_NUNITS (tmp_mode) != 2 * GET_MODE_NUNITS (mode))
+	    return 0;
+	}
+      else
+        tmp_mode = mode;
+
+      if (!insn_data[icode].operand[0].predicate (temp, tmp_mode))
+	temp = gen_reg_rtx (tmp_mode);
 
       pat = GEN_FCN (icode) (temp, xop0, xop1);
       if (pat)
@@ -2589,6 +2637,10 @@ expand_unop (enum machine_mode mode, optab unoptab, rtx op0, rtx target,
       else
 	goto try_libcall;
     }
+
+  /* We can't widen a bswap.  */
+  if (unoptab == bswap_optab)
+    goto try_libcall;
 
   if (CLASS_HAS_WIDER_MODES_P (class))
     for (wider_mode = GET_MODE_WIDER_MODE (mode);
@@ -4861,6 +4913,46 @@ expand_fix (rtx to, rtx from, int unsignedp)
         convert_move (to, target, 0);
     }
 }
+
+/* Generate code to convert FROM to fixed point and store in TO.  FROM
+   must be floating point, TO must be signed.  Use the conversion optab
+   TAB to do the conversion.  */
+
+bool
+expand_sfix_optab (rtx to, rtx from, convert_optab tab)
+{
+  enum insn_code icode;
+  rtx target = to;
+  enum machine_mode fmode, imode;
+
+  /* We first try to find a pair of modes, one real and one integer, at
+     least as wide as FROM and TO, respectively, in which we can open-code
+     this conversion.  If the integer mode is wider than the mode of TO,
+     we can do the conversion either signed or unsigned.  */
+
+  for (fmode = GET_MODE (from); fmode != VOIDmode;
+       fmode = GET_MODE_WIDER_MODE (fmode))
+    for (imode = GET_MODE (to); imode != VOIDmode;
+	 imode = GET_MODE_WIDER_MODE (imode))
+      {
+	icode = tab->handlers[imode][fmode].insn_code;
+	if (icode != CODE_FOR_nothing)
+	  {
+	    if (fmode != GET_MODE (from))
+	      from = convert_to_mode (fmode, from, 0);
+
+	    if (imode != GET_MODE (to))
+	      target = gen_reg_rtx (imode);
+
+	    emit_unop_insn (icode, target, from, UNKNOWN);
+	    if (target != to)
+	      convert_move (to, target, 0);
+	    return true;
+	  }
+      }
+
+  return false;
+}
 
 /* Report whether we have an instruction to perform the operation
    specified by CODE on operands of mode MODE.  */
@@ -5212,7 +5304,7 @@ init_optabs (void)
   smod_optab = init_optab (MOD);
   umod_optab = init_optab (UMOD);
   fmod_optab = init_optab (UNKNOWN);
-  drem_optab = init_optab (UNKNOWN);
+  remainder_optab = init_optab (UNKNOWN);
   ftrunc_optab = init_optab (UNKNOWN);
   and_optab = init_optab (AND);
   ior_optab = init_optab (IOR);
@@ -5252,6 +5344,7 @@ init_optabs (void)
   absv_optab = init_optabv (ABS);
   addcc_optab = init_optab (UNKNOWN);
   one_cmpl_optab = init_optab (NOT);
+  bswap_optab = init_optab (BSWAP);
   ffs_optab = init_optab (FFS);
   clz_optab = init_optab (CLZ);
   ctz_optab = init_optab (CTZ);
@@ -5259,14 +5352,11 @@ init_optabs (void)
   parity_optab = init_optab (PARITY);
   sqrt_optab = init_optab (SQRT);
   floor_optab = init_optab (UNKNOWN);
-  lfloor_optab = init_optab (UNKNOWN);
   ceil_optab = init_optab (UNKNOWN);
-  lceil_optab = init_optab (UNKNOWN);
   round_optab = init_optab (UNKNOWN);
   btrunc_optab = init_optab (UNKNOWN);
   nearbyint_optab = init_optab (UNKNOWN);
   rint_optab = init_optab (UNKNOWN);
-  lrint_optab = init_optab (UNKNOWN);
   sincos_optab = init_optab (UNKNOWN);
   sin_optab = init_optab (UNKNOWN);
   asin_optab = init_optab (UNKNOWN);
@@ -5306,12 +5396,27 @@ init_optabs (void)
   udot_prod_optab = init_optab (UNKNOWN);
 
   vec_extract_optab = init_optab (UNKNOWN);
+  vec_extract_even_optab = init_optab (UNKNOWN);
+  vec_extract_odd_optab = init_optab (UNKNOWN);
+  vec_interleave_high_optab = init_optab (UNKNOWN);
+  vec_interleave_low_optab = init_optab (UNKNOWN);
   vec_set_optab = init_optab (UNKNOWN);
   vec_init_optab = init_optab (UNKNOWN);
   vec_shl_optab = init_optab (UNKNOWN);
   vec_shr_optab = init_optab (UNKNOWN);
   vec_realign_load_optab = init_optab (UNKNOWN);
   movmisalign_optab = init_optab (UNKNOWN);
+  vec_widen_umult_hi_optab = init_optab (UNKNOWN);
+  vec_widen_umult_lo_optab = init_optab (UNKNOWN);
+  vec_widen_smult_hi_optab = init_optab (UNKNOWN);
+  vec_widen_smult_lo_optab = init_optab (UNKNOWN);
+  vec_unpacks_hi_optab = init_optab (UNKNOWN);
+  vec_unpacks_lo_optab = init_optab (UNKNOWN);
+  vec_unpacku_hi_optab = init_optab (UNKNOWN);
+  vec_unpacku_lo_optab = init_optab (UNKNOWN);
+  vec_pack_mod_optab = init_optab (UNKNOWN);
+  vec_pack_usat_optab = init_optab (UNKNOWN);
+  vec_pack_ssat_optab = init_optab (UNKNOWN);
 
   powi_optab = init_optab (UNKNOWN);
 
@@ -5325,6 +5430,10 @@ init_optabs (void)
   ufixtrunc_optab = init_convert_optab (UNKNOWN);
   sfloat_optab = init_convert_optab (FLOAT);
   ufloat_optab = init_convert_optab (UNSIGNED_FLOAT);
+  lrint_optab = init_convert_optab (UNKNOWN);
+  lround_optab = init_convert_optab (UNKNOWN);
+  lfloor_optab = init_convert_optab (UNKNOWN);
+  lceil_optab = init_convert_optab (UNKNOWN);
 
   for (i = 0; i < NUM_MACHINE_MODES; i++)
     {
@@ -5444,6 +5553,14 @@ init_optabs (void)
 				 MODE_DECIMAL_FLOAT, MODE_INT);
   init_interclass_conv_libfuncs (ufloat_optab, "floatuns",
 				 MODE_INT, MODE_DECIMAL_FLOAT);
+  init_interclass_conv_libfuncs (lrint_optab, "lrint",
+				 MODE_INT, MODE_FLOAT);
+  init_interclass_conv_libfuncs (lround_optab, "lround",
+				 MODE_INT, MODE_FLOAT);
+  init_interclass_conv_libfuncs (lfloor_optab, "lfloor",
+				 MODE_INT, MODE_FLOAT);
+  init_interclass_conv_libfuncs (lceil_optab, "lceil",
+				 MODE_INT, MODE_FLOAT);
 
   /* sext_optab is also used for FLOAT_EXTEND.  */
   init_intraclass_conv_libfuncs (sext_optab, "extend", MODE_FLOAT, true);
@@ -5454,6 +5571,11 @@ init_optabs (void)
   init_intraclass_conv_libfuncs (trunc_optab, "trunc", MODE_DECIMAL_FLOAT, false);
   init_interclass_conv_libfuncs (trunc_optab, "trunc", MODE_FLOAT, MODE_DECIMAL_FLOAT);
   init_interclass_conv_libfuncs (trunc_optab, "trunc", MODE_DECIMAL_FLOAT, MODE_FLOAT);
+
+  /* Explicitly initialize the bswap libfuncs since we need them to be
+     valid for things other than word_mode.  */
+  set_optab_libfunc (bswap_optab, SImode, "__bswapsi2");
+  set_optab_libfunc (bswap_optab, DImode, "__bswapdi2");
 
   /* Use cabs for double complex abs, since systems generally have cabs.
      Don't define any libcall for float complex, so that cabs will be used.  */

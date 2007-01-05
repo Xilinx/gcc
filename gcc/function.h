@@ -159,6 +159,7 @@ struct expr_status GTY(())
 #define forced_labels (cfun->expr->x_forced_labels)
 #define stack_pointer_delta (cfun->expr->x_stack_pointer_delta)
 
+struct gimple_df;
 struct temp_slot;
 typedef struct temp_slot *temp_slot_p;
 
@@ -188,6 +189,14 @@ struct function GTY(())
 
   /* The control flow graph for this function.  */
   struct control_flow_graph *cfg;
+  /* SSA and dataflow information.  */
+  struct gimple_df *gimple_df;
+
+  /* The loops in this function.  */
+  struct loops * GTY((skip)) x_current_loops;
+
+  /* Value histograms attached to particular statements.  */
+  htab_t GTY((skip)) value_histograms;
 
   /* For function.c.  */
 
@@ -364,6 +373,10 @@ struct function GTY(())
      Used for detecting stack clobbers.  */
   tree stack_protect_guard;
 
+  /* Properties used by the pass manager.  */
+  unsigned int curr_properties;
+  unsigned int last_verified;
+
   /* Collected bit flags.  */
 
   /* Nonzero if function being compiled needs to be given an address
@@ -463,6 +476,11 @@ struct function GTY(())
   /* Number of units of floating point registers that need saving in stdarg
      function.  */
   unsigned int va_list_fpr_size : 8;
+
+  /* FIXME tuples: This bit is temporarily here to mark when a
+     function has been gimplified, so we can make sure we're not
+     creating non GIMPLE tuples after gimplification.  */
+  unsigned gimplified : 1;
 };
 
 /* If va_list_[gf]pr_size is set to this, it means we don't know how
@@ -520,6 +538,8 @@ extern int trampolines_created;
 #define avail_temp_slots (cfun->x_avail_temp_slots)
 #define temp_slot_level (cfun->x_temp_slot_level)
 #define nonlocal_goto_handler_labels (cfun->x_nonlocal_goto_handler_labels)
+#define current_loops (cfun->x_current_loops)
+#define VALUE_HISTOGRAMS(fun) (fun)->value_histograms
 
 /* Given a function decl for a containing function,
    return the `struct function' for it.  */

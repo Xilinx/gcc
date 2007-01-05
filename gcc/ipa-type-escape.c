@@ -1184,11 +1184,11 @@ scan_for_refs (tree *tp, int *walk_subtrees, void *data)
       *walk_subtrees = 0;
       break;
 
-    case MODIFY_EXPR:
+    case GIMPLE_MODIFY_STMT:
       {
 	/* First look on the lhs and see what variable is stored to */
-	tree lhs = TREE_OPERAND (t, 0);
-	tree rhs = TREE_OPERAND (t, 1);
+	tree lhs = GIMPLE_STMT_OPERAND (t, 0);
+	tree rhs = GIMPLE_STMT_OPERAND (t, 1);
 
 	check_lhs_var (lhs);
  	check_cast (TREE_TYPE (lhs), rhs);
@@ -1267,7 +1267,11 @@ scan_for_refs (tree *tp, int *walk_subtrees, void *data)
 		   result so we do mark the resulting cast as being
 		   bad.  */
 		if (check_call (rhs))
-		  bitmap_set_bit (results_of_malloc, DECL_UID (lhs));
+		  {
+		    if (TREE_CODE (lhs) == SSA_NAME)
+		      lhs = SSA_NAME_VAR (lhs);
+		    bitmap_set_bit (results_of_malloc, DECL_UID (lhs));
+		  }
 		break;
 	      default:
 		break;
@@ -1337,7 +1341,7 @@ ipa_init (void)
    to variables defined within this unit.  */
 
 static void 
-analyze_variable (struct cgraph_varpool_node *vnode)
+analyze_variable (struct varpool_node *vnode)
 {
   tree global = vnode->decl;
   tree type = get_canon_type (TREE_TYPE (global), false, false);
@@ -1674,7 +1678,7 @@ static unsigned int
 type_escape_execute (void)
 {
   struct cgraph_node *node;
-  struct cgraph_varpool_node *vnode;
+  struct varpool_node *vnode;
   unsigned int i;
   bitmap_iterator bi;
   splay_tree_node result;
@@ -1682,7 +1686,7 @@ type_escape_execute (void)
   ipa_init ();
 
   /* Process all of the variables first.  */
-  for (vnode = cgraph_varpool_nodes_queue; vnode; vnode = vnode->next_needed)
+  FOR_EACH_STATIC_VARIABLE (vnode)
     analyze_variable (vnode);
 
   /* Process all of the functions. next

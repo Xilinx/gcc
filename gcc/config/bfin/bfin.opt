@@ -40,9 +40,18 @@ mid-shared-library
 Target Report Mask(ID_SHARED_LIBRARY)
 Enabled ID based shared library
 
+mleaf-id-shared-library
+Target Report Mask(LEAF_ID_SHARED_LIBRARY)
+Generate code that won't be linked against any other ID shared libraries,
+but may be used as a shared library.
+
 mshared-library-id=
 Target RejectNegative Joined UInteger Var(bfin_library_id)
 ID of shared library to build
+
+msep-data
+Target Report Mask(SEP_DATA)
+Enable separate data segment
 
 mlong-calls
 Target Report Mask(LONG_CALLS)
@@ -51,3 +60,7 @@ Avoid generating pc-relative calls; use indirection
 mfdpic
 Target Report Mask(FDPIC)
 Enable Function Descriptor PIC mode
+
+mstack-check-l1
+Target Report Mask(STACK_CHECK_L1)
+Do stack checking using bounds in L1 scratch memory

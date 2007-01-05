@@ -59,9 +59,8 @@ struct dfa_stats_d
   long num_phis;
   long num_phi_args;
   int max_num_phi_args;
-  long num_v_may_defs;
+  long num_vdefs;
   long num_vuses;
-  long num_v_must_defs;
 };
 
 
@@ -69,18 +68,6 @@ struct dfa_stats_d
 static void collect_dfa_stats (struct dfa_stats_d *);
 static tree collect_dfa_stats_r (tree *, int *, void *);
 static tree find_vars_r (tree *, int *, void *);
-
-
-/* Global declarations.  */
-
-/* Array of all variables referenced in the function.  */
-htab_t referenced_vars;
-
-/* Default definition for this symbols.  If set for symbol, it
-   means that the first reference to this variable in the function is a
-   USE or a VUSE.  In those cases, the SSA renamer creates an SSA name
-   for this variable with an empty defining statement.  */
-htab_t default_defs;
 
 
 /*---------------------------------------------------------------------------
@@ -137,16 +124,33 @@ var_ann_t
 create_var_ann (tree t)
 {
   var_ann_t ann;
+  struct static_var_ann_d *sann = NULL;
 
   gcc_assert (t);
   gcc_assert (DECL_P (t));
-  gcc_assert (!t->common.ann || t->common.ann->common.type == VAR_ANN);
+  gcc_assert (!t->base.ann || t->base.ann->common.type == VAR_ANN);
 
-  ann = GGC_CNEW (struct var_ann_d);
+  if (!MTAG_P (t) && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
+    {
+      sann = GGC_CNEW (struct static_var_ann_d);
+      ann = &sann->ann;
+    }
+  else
+    ann = GGC_CNEW (struct var_ann_d);
 
   ann->common.type = VAR_ANN;
 
-  t->common.ann = (tree_ann_t) ann;
+  if (!MTAG_P (t) && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
+    {
+       void **slot;
+       sann->uid = DECL_UID (t);
+       slot = htab_find_slot_with_hash (gimple_var_anns (cfun),
+				        t, DECL_UID (t), INSERT);
+       gcc_assert (!*slot);
+       *slot = sann;
+    }
+  else
+    t->base.ann = (tree_ann_t) ann;
 
   return ann;
 }
@@ -160,14 +164,14 @@ create_function_ann (tree t)
 
   gcc_assert (t);
   gcc_assert (TREE_CODE (t) == FUNCTION_DECL);
-  gcc_assert (!t->common.ann || t->common.ann->common.type == FUNCTION_ANN);
+  gcc_assert (!t->base.ann || t->base.ann->common.type == FUNCTION_ANN);
 
   ann = ggc_alloc (sizeof (*ann));
   memset ((void *) ann, 0, sizeof (*ann));
 
   ann->common.type = FUNCTION_ANN;
 
-  t->common.ann = (tree_ann_t) ann;
+  t->base.ann = (tree_ann_t) ann;
 
   return ann;
 }
@@ -180,7 +184,7 @@ create_stmt_ann (tree t)
   stmt_ann_t ann;
 
   gcc_assert (is_gimple_stmt (t));
-  gcc_assert (!t->common.ann || t->common.ann->common.type == STMT_ANN);
+  gcc_assert (!t->base.ann || t->base.ann->common.type == STMT_ANN);
 
   ann = GGC_CNEW (struct stmt_ann_d);
 
@@ -189,7 +193,7 @@ create_stmt_ann (tree t)
   /* Since we just created the annotation, mark the statement modified.  */
   ann->modified = true;
 
-  t->common.ann = (tree_ann_t) ann;
+  t->base.ann = (tree_ann_t) ann;
 
   return ann;
 }
@@ -202,12 +206,12 @@ create_tree_common_ann (tree t)
   tree_ann_common_t ann;
 
   gcc_assert (t);
-  gcc_assert (!t->common.ann || t->common.ann->common.type == TREE_ANN_COMMON);
+  gcc_assert (!t->base.ann || t->base.ann->common.type == TREE_ANN_COMMON);
 
   ann = GGC_CNEW (struct tree_ann_common_d);
 
   ann->type = TREE_ANN_COMMON;
-  t->common.ann = (tree_ann_t) ann;
+  t->base.ann = (tree_ann_t) ann;
 
   return ann;
 }
@@ -219,10 +223,11 @@ make_rename_temp (tree type, const char *prefix)
 {
   tree t = create_tmp_var (type, prefix);
 
-  if (TREE_CODE (type) == COMPLEX_TYPE)
-    DECL_COMPLEX_GIMPLE_REG_P (t) = 1;
+  if (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
+      || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
+    DECL_GIMPLE_REG_P (t) = 1;
 
-  if (referenced_vars)
+  if (gimple_referenced_vars (cfun))
     {
       add_referenced_var (t);
       mark_sym_for_renaming (t);
@@ -346,39 +351,36 @@ dump_variable (FILE *file, tree var)
 
   if (is_call_clobbered (var))
     {
+      var_ann_t va = var_ann (var);
+      unsigned int escape_mask = va->escape_mask;
+
       fprintf (file, ", call clobbered");
-      if (dump_flags & TDF_DETAILS)
-	{
-	  var_ann_t va = var_ann (var);
-	  unsigned int escape_mask = va->escape_mask;
-	  
-	  fprintf (file, " (");
-	  if (escape_mask & ESCAPE_STORED_IN_GLOBAL)
-	    fprintf (file, ", stored in global");
-	  if (escape_mask & ESCAPE_TO_ASM)
-	    fprintf (file, ", goes through ASM");
-	  if (escape_mask & ESCAPE_TO_CALL)
-	    fprintf (file, ", passed to call");
-	  if (escape_mask & ESCAPE_BAD_CAST)
-	    fprintf (file, ", bad cast");
-	  if (escape_mask & ESCAPE_TO_RETURN)
-	    fprintf (file, ", returned from func");
-	  if (escape_mask & ESCAPE_TO_PURE_CONST)
-	    fprintf (file, ", passed to pure/const");
-	  if (escape_mask & ESCAPE_IS_GLOBAL)
-	    fprintf (file, ", is global var");
-	  if (escape_mask & ESCAPE_IS_PARM)
-	    fprintf (file, ", is incoming pointer");
-	  if (escape_mask & ESCAPE_UNKNOWN)
-	    fprintf (file, ", unknown escape");
-	  fprintf (file, " )");
-	}
+      fprintf (file, " (");
+      if (escape_mask & ESCAPE_STORED_IN_GLOBAL)
+	fprintf (file, ", stored in global");
+      if (escape_mask & ESCAPE_TO_ASM)
+	fprintf (file, ", goes through ASM");
+      if (escape_mask & ESCAPE_TO_CALL)
+	fprintf (file, ", passed to call");
+      if (escape_mask & ESCAPE_BAD_CAST)
+	fprintf (file, ", bad cast");
+      if (escape_mask & ESCAPE_TO_RETURN)
+	fprintf (file, ", returned from func");
+      if (escape_mask & ESCAPE_TO_PURE_CONST)
+	fprintf (file, ", passed to pure/const");
+      if (escape_mask & ESCAPE_IS_GLOBAL)
+	fprintf (file, ", is global var");
+      if (escape_mask & ESCAPE_IS_PARM)
+	fprintf (file, ", is incoming pointer");
+      if (escape_mask & ESCAPE_UNKNOWN)
+	fprintf (file, ", unknown escape");
+      fprintf (file, " )");
     }
 
-  if (default_def (var))
+  if (gimple_default_def (cfun, var))
     {
       fprintf (file, ", default def: ");
-      print_generic_expr (file, default_def (var), dump_flags);
+      print_generic_expr (file, gimple_default_def (cfun, var), dump_flags);
     }
 
   if (may_aliases (var))
@@ -391,6 +393,21 @@ dump_variable (FILE *file, tree var)
     {
       fprintf (file, ", sub-vars: ");
       dump_subvars_for (file, var);
+    }
+
+  if (!is_gimple_reg (var))
+    {
+      if (memory_partition (var))
+	{
+	  fprintf (file, ", belongs to partition: ");
+	  print_generic_expr (file, memory_partition (var), dump_flags);
+	}
+
+      if (TREE_CODE (var) == MEMORY_PARTITION_TAG)
+	{
+	  fprintf (file, ", partition symbols: ");
+	  dump_decl_set (file, MPT_SYMBOLS (var));
+	}
     }
 
   fprintf (file, "\n");
@@ -459,14 +476,9 @@ dump_dfa_stats (FILE *file)
   fprintf (file, fmt_str_1, "VUSE operands", dfa_stats.num_vuses,
 	   SCALE (size), LABEL (size));
 
-  size = dfa_stats.num_v_may_defs * sizeof (tree *);
+  size = dfa_stats.num_vdefs * sizeof (tree *);
   total += size;
-  fprintf (file, fmt_str_1, "V_MAY_DEF operands", dfa_stats.num_v_may_defs,
-	   SCALE (size), LABEL (size));
-
-  size = dfa_stats.num_v_must_defs * sizeof (tree *);
-  total += size;
-  fprintf (file, fmt_str_1, "V_MUST_DEF operands", dfa_stats.num_v_must_defs,
+  fprintf (file, fmt_str_1, "VDEF operands", dfa_stats.num_vdefs,
 	   SCALE (size), LABEL (size));
 
   size = dfa_stats.num_phis * sizeof (struct tree_phi_node);
@@ -552,19 +564,17 @@ collect_dfa_stats_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
   tree t = *tp;
   struct dfa_stats_d *dfa_stats_p = (struct dfa_stats_d *)data;
 
-  if (t->common.ann)
+  if (t->base.ann)
     {
-      switch (ann_type (t->common.ann))
+      switch (ann_type (t->base.ann))
 	{
 	case STMT_ANN:
 	  {
 	    dfa_stats_p->num_stmt_anns++;
 	    dfa_stats_p->num_defs += NUM_SSA_OPERANDS (t, SSA_OP_DEF);
 	    dfa_stats_p->num_uses += NUM_SSA_OPERANDS (t, SSA_OP_USE);
-	    dfa_stats_p->num_v_may_defs += NUM_SSA_OPERANDS (t, SSA_OP_VMAYDEF);
+	    dfa_stats_p->num_vdefs += NUM_SSA_OPERANDS (t, SSA_OP_VDEF);
 	    dfa_stats_p->num_vuses += NUM_SSA_OPERANDS (t, SSA_OP_VUSE);
-	    dfa_stats_p->num_v_must_defs += 
-				  NUM_SSA_OPERANDS (t, SSA_OP_VMUSTDEF);
 	    break;
 	  }
 
@@ -611,7 +621,8 @@ referenced_var_lookup (unsigned int uid)
 {
   struct int_tree_map *h, in;
   in.uid = uid;
-  h = (struct int_tree_map *) htab_find_with_hash (referenced_vars, &in, uid);
+  h = (struct int_tree_map *) htab_find_with_hash (gimple_referenced_vars (cfun),
+						   &in, uid);
   gcc_assert (h || uid == 0);
   if (h)
     return h->to;
@@ -621,7 +632,7 @@ referenced_var_lookup (unsigned int uid)
 /* Check if TO is in the referenced_vars hash table and insert it if not.  
    Return true if it required insertion.  */
 
-static bool
+bool
 referenced_var_check_and_insert (tree to)
 { 
   struct int_tree_map *h, in;
@@ -630,7 +641,8 @@ referenced_var_check_and_insert (tree to)
 
   in.uid = uid;
   in.to = to;
-  h = (struct int_tree_map *) htab_find_with_hash (referenced_vars, &in, uid);
+  h = (struct int_tree_map *) htab_find_with_hash (gimple_referenced_vars (cfun),
+						   &in, uid);
 
   if (h)
     {
@@ -643,7 +655,8 @@ referenced_var_check_and_insert (tree to)
   h = GGC_NEW (struct int_tree_map);
   h->uid = uid;
   h->to = to;
-  loc = htab_find_slot_with_hash (referenced_vars, h, uid, INSERT);
+  loc = htab_find_slot_with_hash (gimple_referenced_vars (cfun),
+				  h, uid, INSERT);
   *(struct int_tree_map **)  loc = h;
   return true;
 }
@@ -652,12 +665,13 @@ referenced_var_check_and_insert (tree to)
    variable.  */
 
 tree 
-default_def (tree var)
+gimple_default_def (struct function *fn, tree var)
 {
   struct int_tree_map *h, in;
   gcc_assert (SSA_VAR_P (var));
   in.uid = DECL_UID (var);
-  h = (struct int_tree_map *) htab_find_with_hash (default_defs, &in,
+  h = (struct int_tree_map *) htab_find_with_hash (DEFAULT_DEFS (fn),
+						   &in,
                                                    DECL_UID (var));
   if (h)
     return h->to;
@@ -675,14 +689,17 @@ set_default_def (tree var, tree def)
 
   gcc_assert (SSA_VAR_P (var));
   in.uid = DECL_UID (var);
-  if (!def && default_def (var))
+  if (!def && gimple_default_def (cfun, var))
     {
-      loc = htab_find_slot_with_hash (default_defs, &in, DECL_UID (var), INSERT);
-      htab_remove_elt (default_defs, *loc);
+      loc = htab_find_slot_with_hash (DEFAULT_DEFS (cfun), &in,
+            DECL_UID (var), INSERT);
+      htab_remove_elt (DEFAULT_DEFS (cfun), *loc);
       return;
     }
-  gcc_assert (TREE_CODE (def) == SSA_NAME);
-  loc = htab_find_slot_with_hash (default_defs, &in, DECL_UID (var), INSERT);
+  gcc_assert (!def || TREE_CODE (def) == SSA_NAME);
+  loc = htab_find_slot_with_hash (DEFAULT_DEFS (cfun), &in,
+                                  DECL_UID (var), INSERT);
+
   /* Default definition might be changed by tail call optimization.  */
   if (!*loc)
     {
@@ -694,8 +711,12 @@ set_default_def (tree var, tree def)
    else
     {
       h = (struct int_tree_map *) *loc;
+      SSA_NAME_IS_DEFAULT_DEF (h->to) = false;
       h->to = def;
     }
+
+   /* Mark DEF as the default definition for VAR.  */
+   SSA_NAME_IS_DEFAULT_DEF (def) = true;
 }
 
 /* Add VAR to the list of referenced variables if it isn't already there.  */
@@ -720,15 +741,13 @@ add_referenced_var (tree var)
 
       /* Scan DECL_INITIAL for pointer variables as they may contain
 	 address arithmetic referencing the address of other
-	 variables.  */
+	 variables.  
+	 Even non-constant intializers need to be walked, because
+	 IPA passes might prove that their are invariant later on.  */
       if (DECL_INITIAL (var)
 	  /* Initializers of external variables are not useful to the
 	     optimizers.  */
-          && !DECL_EXTERNAL (var)
-	  /* It's not necessary to walk the initial value of non-constant
-	     variables because it cannot be propagated by the
-	     optimizers.  */
-	  && (TREE_CONSTANT (var) || TREE_READONLY (var)))
+          && !DECL_EXTERNAL (var))
       	walk_tree (&DECL_INITIAL (var), find_vars_r, NULL, 0);
     }
 }
@@ -757,71 +776,26 @@ get_virtual_var (tree var)
   return var;
 }
 
-/* Mark all the non-SSA variables found in STMT's operands to be
-   processed by update_ssa.  */
+/* Mark all the naked symbols in STMT for SSA renaming.
+   
+   NOTE: This function should only be used for brand new statements.
+   If the caller is modifying an existing statement, it should use the
+   combination push_stmt_changes/pop_stmt_changes.  */
 
 void
-mark_new_vars_to_rename (tree stmt)
+mark_symbols_for_renaming (tree stmt)
 {
+  tree op;
   ssa_op_iter iter;
-  tree val;
-  bitmap vars_in_vops_to_rename;
-  bool found_exposed_symbol = false;
-  int v_may_defs_before, v_may_defs_after;
-  int v_must_defs_before, v_must_defs_after;
 
-  if (TREE_CODE (stmt) == PHI_NODE)
-    return;
-
-  get_stmt_ann (stmt);
-  vars_in_vops_to_rename = BITMAP_ALLOC (NULL);
-
-  /* Before re-scanning the statement for operands, mark the existing
-     virtual operands to be renamed again.  We do this because when new
-     symbols are exposed, the virtual operands that were here before due to
-     aliasing will probably be removed by the call to get_stmt_operand.
-     Therefore, we need to flag them to be renamed beforehand.
-
-     We flag them in a separate bitmap because we don't really want to
-     rename them if there are not any newly exposed symbols in the
-     statement operands.  */
-  v_may_defs_before = NUM_SSA_OPERANDS (stmt, SSA_OP_VMAYDEF);
-  v_must_defs_before = NUM_SSA_OPERANDS (stmt, SSA_OP_VMUSTDEF);
-
-  FOR_EACH_SSA_TREE_OPERAND (val, stmt, iter, 
-			     SSA_OP_VMAYDEF | SSA_OP_VUSE | SSA_OP_VMUSTDEF)
-    {
-      if (!DECL_P (val))
-	val = SSA_NAME_VAR (val);
-      bitmap_set_bit (vars_in_vops_to_rename, DECL_UID (val));
-    }
-
-  /* Now force an operand re-scan on the statement and mark any newly
-     exposed variables.  */
   update_stmt (stmt);
 
-  v_may_defs_after = NUM_SSA_OPERANDS (stmt, SSA_OP_VMAYDEF);
-  v_must_defs_after = NUM_SSA_OPERANDS (stmt, SSA_OP_VMUSTDEF);
-
-  FOR_EACH_SSA_TREE_OPERAND (val, stmt, iter, SSA_OP_ALL_OPERANDS)
-    if (DECL_P (val))
-      {
-	found_exposed_symbol = true;
-	mark_sym_for_renaming (val);
-      }
-
-  /* If we found any newly exposed symbols, or if there are fewer VDEF
-     operands in the statement, add the variables we had set in
-     VARS_IN_VOPS_TO_RENAME to VARS_TO_RENAME.  We need to check for
-     vanishing VDEFs because in those cases, the names that were formerly
-     generated by this statement are not going to be available anymore.  */
-  if (found_exposed_symbol
-      || v_may_defs_before > v_may_defs_after
-      || v_must_defs_before > v_must_defs_after)
-    mark_set_for_renaming (vars_in_vops_to_rename);
-
-  BITMAP_FREE (vars_in_vops_to_rename);
+  /* Mark all the operands for renaming.  */
+  FOR_EACH_SSA_TREE_OPERAND (op, stmt, iter, SSA_OP_ALL_OPERANDS)
+    if (DECL_P (op))
+      mark_sym_for_renaming (op);
 }
+
 
 /* Find all variables within the gimplified statement that were not previously
    visible to the function and add them to the referenced variables list.  */
@@ -851,7 +825,7 @@ find_new_referenced_vars (tree *stmt_p)
 }
 
 
-/* If REF is a handled component reference for a structure, return the
+/* If EXP is a handled component reference for a structure, return the
    base variable.  The access range is delimited by bit positions *POFFSET and
    *POFFSET + *PMAX_SIZE.  The access size is *PSIZE bits.  If either
    *PSIZE or *PMAX_SIZE is -1, they could not be determined.  If *PSIZE

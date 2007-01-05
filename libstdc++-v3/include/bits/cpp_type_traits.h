@@ -28,12 +28,12 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-// Written by Gabriel Dos Reis <dosreis@cmla.ens-cachan.fr>
-
 /** @file cpp_type_traits.h
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
+
+// Written by Gabriel Dos Reis <dosreis@cmla.ens-cachan.fr>
 
 #ifndef _CPP_TYPE_TRAITS_H
 #define _CPP_TYPE_TRAITS_H 1
@@ -78,12 +78,9 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
 _GLIBCXX_END_NAMESPACE
 
-struct __true_type { };
-struct __false_type { };
-
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
-namespace detail
+namespace __detail
 {
   // NB: g++ can not compile these if declared within the class
   // __is_pod itself.
@@ -94,7 +91,11 @@ namespace detail
   __one __test_type(int _Tp::*);
   template<typename _Tp>
   __two& __test_type(...);
-} // namespace detail
+} // namespace __detail
+
+
+  struct __true_type { };
+  struct __false_type { };
 
   template<bool>
     struct __truth_type
@@ -346,8 +347,8 @@ namespace detail
     {
       enum
 	{
-	  __value = (sizeof(detail::__test_type<_Tp>(0))
-		     != sizeof(detail::__one))
+	  __value = (sizeof(__detail::__test_type<_Tp>(0))
+		     != sizeof(__detail::__one))
 	};
     };
 

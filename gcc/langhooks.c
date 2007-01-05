@@ -577,7 +577,7 @@ lhd_omp_predetermined_sharing (tree decl ATTRIBUTE_UNUSED)
 tree
 lhd_omp_assignment (tree clause ATTRIBUTE_UNUSED, tree dst, tree src)
 {
-  return build2 (MODIFY_EXPR, void_type_node, dst, src);
+  return build2 (GIMPLE_MODIFY_STMT, void_type_node, dst, src);
 }
 
 /* Register language specific type size variables as potentially OpenMP
@@ -587,4 +587,43 @@ void
 lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *c ATTRIBUTE_UNUSED,
 				   tree t ATTRIBUTE_UNUSED)
 {
+}
+
+tree
+add_builtin_function (const char *name,
+		      tree type,
+		      int function_code,
+		      enum built_in_class cl,
+		      const char *library_name,
+		      tree attrs)
+{
+  tree   id = get_identifier (name);
+  tree decl = build_decl (FUNCTION_DECL, id, type);
+
+  TREE_PUBLIC (decl)         = 1;
+  DECL_EXTERNAL (decl)       = 1;
+  DECL_BUILT_IN_CLASS (decl) = cl;
+  DECL_FUNCTION_CODE (decl)  = function_code;
+
+  if (library_name)
+    {
+      tree libname = get_identifier (library_name);
+      SET_DECL_ASSEMBLER_NAME (decl, libname);
+    }
+
+  /* Possibly apply some default attributes to this built-in function.  */
+  if (attrs)
+    decl_attributes (&decl, attrs, ATTR_FLAG_BUILT_IN);
+  else
+    decl_attributes (&decl, NULL_TREE, 0);
+
+  return lang_hooks.builtin_function (decl);
+
+}
+
+tree
+lhd_builtin_function (tree decl)
+{
+  lang_hooks.decls.pushdecl (decl);
+  return decl;
 }

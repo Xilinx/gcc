@@ -140,6 +140,9 @@ struct sra_elt
 
   /* A flag for use with/after random access traversals.  */
   bool visited;
+
+  /* True if there is BIT_FIELD_REF on the lhs with a vector. */
+  bool is_vector_lhs;
 };
 
 #define IS_ELEMENT_FOR_GROUP(ELEMENT) (TREE_CODE (ELEMENT) == RANGE_EXPR)
@@ -787,9 +790,18 @@ sra_walk_expr (tree *expr_p, block_stmt_iterator *bsi, bool is_output,
 	break;
 
       case BIT_FIELD_REF:
+	/* A bit field reference to a specific vector is scalarized but for
+	   ones for inputs need to be marked as used on the left hand size so
+	   when we scalarize it, we can mark that variable as non renamable.  */
+	if (is_output && TREE_CODE (TREE_TYPE (TREE_OPERAND (inner, 0))) == VECTOR_TYPE)
+	  {
+	    struct sra_elt *elt = maybe_lookup_element_for_expr (TREE_OPERAND (inner, 0));
+	    elt->is_vector_lhs = true;
+	  }
 	/* A bit field reference (access to *multiple* fields simultaneously)
 	   is not currently scalarized.  Consider this an access to the
 	   complete outer element, to which walk_tree will bring us next.  */
+	  
 	goto use_all;
 
       case VIEW_CONVERT_EXPR:
@@ -851,17 +863,17 @@ sra_walk_asm_expr (tree expr, block_stmt_iterator *bsi,
   sra_walk_tree_list (ASM_OUTPUTS (expr), bsi, true, fns);
 }
 
-/* Walk a MODIFY_EXPR and categorize the assignment appropriately.  */
+/* Walk a GIMPLE_MODIFY_STMT and categorize the assignment appropriately.  */
 
 static void
-sra_walk_modify_expr (tree expr, block_stmt_iterator *bsi,
+sra_walk_gimple_modify_stmt (tree expr, block_stmt_iterator *bsi,
 		      const struct sra_walk_fns *fns)
 {
   struct sra_elt *lhs_elt, *rhs_elt;
   tree lhs, rhs;
 
-  lhs = TREE_OPERAND (expr, 0);
-  rhs = TREE_OPERAND (expr, 1);
+  lhs = GIMPLE_STMT_OPERAND (expr, 0);
+  rhs = GIMPLE_STMT_OPERAND (expr, 1);
   lhs_elt = maybe_lookup_element_for_expr (lhs);
   rhs_elt = maybe_lookup_element_for_expr (rhs);
 
@@ -878,7 +890,7 @@ sra_walk_modify_expr (tree expr, block_stmt_iterator *bsi,
       if (!rhs_elt->is_scalar)
 	fns->ldst (rhs_elt, lhs, bsi, false);
       else
-	fns->use (rhs_elt, &TREE_OPERAND (expr, 1), bsi, false, false);
+	fns->use (rhs_elt, &GIMPLE_STMT_OPERAND (expr, 1), bsi, false, false);
     }
 
   /* If it isn't scalarizable, there may be scalarizable variables within, so
@@ -892,7 +904,7 @@ sra_walk_modify_expr (tree expr, block_stmt_iterator *bsi,
       if (call)
 	sra_walk_call_expr (call, bsi, fns);
       else
-	sra_walk_expr (&TREE_OPERAND (expr, 1), bsi, false, fns);
+	sra_walk_expr (&GIMPLE_STMT_OPERAND (expr, 1), bsi, false, fns);
     }
 
   /* Likewise, handle the LHS being scalarizable.  We have cases similar
@@ -924,14 +936,14 @@ sra_walk_modify_expr (tree expr, block_stmt_iterator *bsi,
       /* Otherwise we're being used in some context that requires the
 	 aggregate to be seen as a whole.  Invoke USE.  */
       else
-	fns->use (lhs_elt, &TREE_OPERAND (expr, 0), bsi, true, false);
+	fns->use (lhs_elt, &GIMPLE_STMT_OPERAND (expr, 0), bsi, true, false);
     }
 
   /* Similarly to above, LHS_ELT being null only means that the LHS as a
      whole is not a scalarizable reference.  There may be occurrences of
      scalarizable variables within, which implies a USE.  */
   else
-    sra_walk_expr (&TREE_OPERAND (expr, 0), bsi, true, fns);
+    sra_walk_expr (&GIMPLE_STMT_OPERAND (expr, 0), bsi, true, fns);
 }
 
 /* Entry point to the walk functions.  Search the entire function,
@@ -977,14 +989,14 @@ sra_walk_function (const struct sra_walk_fns *fns)
 	       as a USE of the variable on the RHS of this assignment.  */
 
 	    t = TREE_OPERAND (stmt, 0);
-	    if (TREE_CODE (t) == MODIFY_EXPR)
-	      sra_walk_expr (&TREE_OPERAND (t, 1), &si, false, fns);
+	    if (TREE_CODE (t) == GIMPLE_MODIFY_STMT)
+	      sra_walk_expr (&GIMPLE_STMT_OPERAND (t, 1), &si, false, fns);
 	    else
 	      sra_walk_expr (&TREE_OPERAND (stmt, 0), &si, false, fns);
 	    break;
 
-	  case MODIFY_EXPR:
-	    sra_walk_modify_expr (stmt, &si, fns);
+	  case GIMPLE_MODIFY_STMT:
+	    sra_walk_gimple_modify_stmt (stmt, &si, fns);
 	    break;
 	  case CALL_EXPR:
 	    sra_walk_call_expr (stmt, &si, fns);
@@ -1178,6 +1190,12 @@ instantiate_element (struct sra_elt *elt)
   base = base_elt->element;
 
   elt->replacement = var = make_rename_temp (elt->type, "SR");
+
+  /* For vectors, if used on the left hand side with BIT_FIELD_REF,
+     they are not a gimple register.  */
+  if (TREE_CODE (TREE_TYPE (var)) == VECTOR_TYPE && elt->is_vector_lhs)
+    DECL_GIMPLE_REG_P (var) = 0;
+
   DECL_SOURCE_LOCATION (var) = DECL_SOURCE_LOCATION (base);
   DECL_ARTIFICIAL (var) = 1;
 
@@ -1351,6 +1369,32 @@ instantiate_missing_elements (struct sra_elt *elt)
     }
 }
 
+/* Return true if there is only one non aggregate field in the record, TYPE.
+   Return false otherwise.  */
+
+static bool
+single_scalar_field_in_record_p (tree type)
+{
+   int num_fields = 0;
+   tree field;
+   if (TREE_CODE (type) != RECORD_TYPE)
+     return false;
+
+   for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+     if (TREE_CODE (field) == FIELD_DECL)
+       {
+         num_fields++;
+
+         if (num_fields == 2)
+           return false;
+	 
+         if (AGGREGATE_TYPE_P (TREE_TYPE (field)))
+           return false;
+       }
+
+   return true;
+}
+
 /* Make one pass across an element tree deciding whether to perform block
    or element copies.  If we decide on element copies, instantiate all
    elements.  Return true if there are any instantiated sub-elements.  */
@@ -1429,6 +1473,10 @@ decide_block_copy (struct sra_elt *elt)
 	  full_size = tree_low_cst (size_tree, 1);
 	  full_count = count_type_elements (elt->type, false);
 	  inst_count = sum_instantiated_sizes (elt, &inst_size);
+
+	  /* If there is only one scalar field in the record, don't block copy.  */
+	  if (single_scalar_field_in_record_p (elt->type))
+	    use_block_copy = false;
 
 	  /* ??? What to do here.  If there are two fields, and we've only
 	     instantiated one, then instantiating the other is clearly a win.
@@ -1533,8 +1581,9 @@ decide_instantiations (void)
 
 /* Phase Four: Update the function to match the replacements created.  */
 
-/* Mark all the variables in V_MAY_DEF or V_MUST_DEF operands for STMT for
-   renaming. This becomes necessary when we modify all of a non-scalar.  */
+/* Mark all the variables in VDEF/VUSE operators for STMT for
+   renaming. This becomes necessary when we modify all of a
+   non-scalar.  */
 
 static void
 mark_all_v_defs_1 (tree stmt)
@@ -1568,6 +1617,7 @@ mark_all_v_defs (tree list)
 	mark_all_v_defs_1 (tsi_stmt (i));
     }
 }
+
 
 /* Mark every replacement under ELT with TREE_NO_WARNING.  */
 
@@ -1659,16 +1709,16 @@ generate_copy_inout (struct sra_elt *elt, bool copy_out, tree expr,
       i = c->replacement;
 
       t = build2 (COMPLEX_EXPR, elt->type, r, i);
-      t = build2 (MODIFY_EXPR, void_type_node, expr, t);
+      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, expr, t);
       SSA_NAME_DEF_STMT (expr) = t;
       append_to_statement_list (t, list_p);
     }
   else if (elt->replacement)
     {
       if (copy_out)
-	t = build2 (MODIFY_EXPR, void_type_node, elt->replacement, expr);
+	t = build2 (GIMPLE_MODIFY_STMT, void_type_node, elt->replacement, expr);
       else
-	t = build2 (MODIFY_EXPR, void_type_node, expr, elt->replacement);
+	t = build2 (GIMPLE_MODIFY_STMT, void_type_node, expr, elt->replacement);
       append_to_statement_list (t, list_p);
     }
   else
@@ -1703,7 +1753,7 @@ generate_element_copy (struct sra_elt *dst, struct sra_elt *src, tree *list_p)
 
       gcc_assert (src->replacement);
 
-      t = build2 (MODIFY_EXPR, void_type_node, dst->replacement,
+      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, dst->replacement,
 		  src->replacement);
       append_to_statement_list (t, list_p);
     }
@@ -1735,7 +1785,7 @@ generate_element_zero (struct sra_elt *elt, tree *list_p)
       gcc_assert (elt->is_scalar);
       t = fold_convert (elt->type, integer_zero_node);
 
-      t = build2 (MODIFY_EXPR, void_type_node, elt->replacement, t);
+      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, elt->replacement, t);
       append_to_statement_list (t, list_p);
     }
 }
@@ -1747,7 +1797,7 @@ static void
 generate_one_element_init (tree var, tree init, tree *list_p)
 {
   /* The replacement can be almost arbitrarily complex.  Gimplify.  */
-  tree stmt = build2 (MODIFY_EXPR, void_type_node, var, init);
+  tree stmt = build2 (GIMPLE_MODIFY_STMT, void_type_node, var, init);
   gimplify_and_add (stmt, list_p);
 }
 
@@ -1994,10 +2044,10 @@ scalarize_copy (struct sra_elt *lhs_elt, struct sra_elt *rhs_elt,
 
       /* See the commentary in sra_walk_function concerning
 	 RETURN_EXPR, and why we should never see one here.  */
-      gcc_assert (TREE_CODE (stmt) == MODIFY_EXPR);
+      gcc_assert (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT);
 
-      TREE_OPERAND (stmt, 0) = lhs_elt->replacement;
-      TREE_OPERAND (stmt, 1) = rhs_elt->replacement;
+      GIMPLE_STMT_OPERAND (stmt, 0) = lhs_elt->replacement;
+      GIMPLE_STMT_OPERAND (stmt, 1) = rhs_elt->replacement;
       update_stmt (stmt);
     }
   else if (lhs_elt->use_block_copy || rhs_elt->use_block_copy)
@@ -2326,10 +2376,11 @@ struct tree_opt_pass pass_sra =
   TV_TREE_SRA,				/* tv_id */
   PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
   0,					/* properties_provided */
-  PROP_smt_usage,		        /* properties_destroyed */
+  0,				        /* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func /* todo_flags_finish */
+  TODO_dump_func
   | TODO_update_ssa
-  | TODO_ggc_collect | TODO_verify_ssa,
+  | TODO_ggc_collect
+  | TODO_verify_ssa,			/* todo_flags_finish */
   0					/* letter */
 };

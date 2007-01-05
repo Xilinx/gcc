@@ -343,11 +343,9 @@ match_chunks_pattinfo (varray_type va, patt_info *patt, const char *delim,
 	    {
 	      if (memcmp (patt->format_spec, chunk->s, strlen (chunk->s)))
 		{
-		  char *x = strndup (patt->format_spec, strlen (chunk->s));
 		  PP_TRACE (TRACE_MATCH_STEPS, 
 			    fprintf (stderr, "fail str chunk '%s' vs patt '%s'",
-				     chunk->s, x));
-		  free (x);
+				     chunk->s, patt->format_spec));
 		  return 0;
 		}
 

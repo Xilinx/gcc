@@ -183,6 +183,14 @@ proc gcc-dg-prune { system text } {
 	return "::unsupported::memory full"
     }
 
+    # Likewise, if we see ".text exceeds local store range" or
+    # similar.
+    if {[string match "spu-*" $system] && \
+	    [string match "*exceeds local store range*" $text]} {
+	# The format here is important.  See dg.exp.
+	return "::unsupported::memory full"
+    }
+
     return $text
 }
 
@@ -196,7 +204,7 @@ if { [info procs ${tool}_load] != [list] \
     proc ${tool}_load { program args } {
 	global tool
 	global shouldfail
-	set result [saved_${tool}_load $program $args]
+	set result [eval [list saved_${tool}_load $program] $args]
 	if { $shouldfail != 0 } {
 	    switch [lindex $result 0] {
 		"pass" { set status "fail" }
@@ -443,6 +451,52 @@ proc cleanup-saved-temps { } {
 proc cleanup-modules { modlist } {
     foreach modname $modlist {
 	remove-build-file [string tolower $modname].mod
+    }
+}
+
+# Verify that the compiler output file exists, invoked via dg-final.
+proc output-exists { args } {
+    # Process an optional target or xfail list.
+    if { [llength $args] >= 1 } {
+	switch [dg-process-target [lindex $args 0]] {
+	    "S" { }
+	    "N" { return }
+	    "F" { setup_xfail "*-*-*" }
+	    "P" { }
+	}
+    }
+
+    # Access variables from gcc-dg-test-1.
+    upvar 2 name testcase
+    upvar 2 output_file output_file
+
+    if [file exists $output_file] {
+	pass "$testcase output-exists $output_file"
+    } else {
+	fail "$testcase output-exists $output_file"
+    }
+}
+
+# Verify that the compiler output file does not exist, invoked via dg-final.
+proc output-exists-not { args } {
+    # Process an optional target or xfail list.
+    if { [llength $args] >= 1 } {
+	switch [dg-process-target [lindex $args 0]] {
+	    "S" { }
+	    "N" { return }
+	    "F" { setup_xfail "*-*-*" }
+	    "P" { }
+	}
+    }
+
+    # Access variables from gcc-dg-test-1.
+    upvar 2 name testcase
+    upvar 2 output_file output_file
+
+    if [file exists $output_file] {
+	fail "$testcase output-exists-not $output_file"
+    } else {
+	pass "$testcase output-exists-not $output_file"
     }
 }
 

@@ -123,9 +123,9 @@ struct edge_def GTY(())
 
   /* Instructions queued on the edge.  */
   union edge_def_insns {
-    rtx GTY ((tag ("0"))) r;
-    tree GTY ((tag ("1"))) t;
-  } GTY ((desc ("ir_type ()"))) insns;
+    tree GTY ((tag ("true"))) t;
+    rtx GTY ((tag ("false"))) r;
+  } GTY ((desc ("current_ir_type () == IR_GIMPLE"))) insns;
 
   /* Auxiliary info specific to a pass.  */
   PTR GTY ((skip (""))) aux;
@@ -146,6 +146,7 @@ struct edge_def GTY(())
 typedef struct edge_def *edge;
 DEF_VEC_P(edge);
 DEF_VEC_ALLOC_P(edge,gc);
+DEF_VEC_ALLOC_P(edge,heap);
 
 #define EDGE_FALLTHRU		1	/* 'Straight line' flow */
 #define EDGE_ABNORMAL		2	/* Strange flow, like computed
@@ -179,7 +180,6 @@ extern const struct gcov_ctr_summary *profile_info;
 
 /* Declared in cfgloop.h.  */
 struct loop;
-struct loops;
 
 /* Declared in tree-flow.h.  */
 struct edge_prediction;
@@ -486,9 +486,9 @@ extern void update_bb_for_insn (basic_block);
 extern void free_basic_block_vars (void);
 
 extern void insert_insn_on_edge (rtx, edge);
+basic_block split_edge_and_insert (edge, rtx);
 
 extern void commit_edge_insertions (void);
-extern void commit_edge_insertions_watch_calls (void);
 
 extern void remove_fake_edges (void);
 extern void remove_fake_exit_edges (void);
@@ -869,7 +869,6 @@ extern struct edge_list *pre_edge_rev_lcm (int, sbitmap *,
 extern void compute_available (sbitmap *, sbitmap *, sbitmap *, sbitmap *);
 
 /* In predict.c */
-extern void expected_value_to_br_prob (void);
 extern bool maybe_hot_bb_p (basic_block);
 extern bool probably_cold_bb_p (basic_block);
 extern bool probably_never_executed_bb_p (basic_block);
@@ -921,31 +920,13 @@ extern bool cleanup_cfg (int);
 extern bool delete_unreachable_blocks (void);
 extern bool merge_seq_blocks (void);
 
-typedef struct conflict_graph_def *conflict_graph;
-
-/* Callback function when enumerating conflicts.  The arguments are
-   the smaller and larger regno in the conflict.  Returns zero if
-   enumeration is to continue, nonzero to halt enumeration.  */
-typedef int (*conflict_graph_enum_fn) (int, int, void *);
-
-
-/* Prototypes of operations on conflict graphs.  */
-
-extern conflict_graph conflict_graph_new
- (int);
-extern void conflict_graph_delete (conflict_graph);
-extern int conflict_graph_add (conflict_graph, int, int);
-extern int conflict_graph_conflict_p (conflict_graph, int, int);
-extern void conflict_graph_enum (conflict_graph, int, conflict_graph_enum_fn,
-				 void *);
-extern void conflict_graph_merge_regs (conflict_graph, int, int);
-extern void conflict_graph_print (conflict_graph, FILE*);
 extern bool mark_dfs_back_edges (void);
 extern void set_edge_can_fallthru_flag (void);
 extern void update_br_prob_note (basic_block);
 extern void fixup_abnormal_edges (void);
 extern bool inside_basic_block_p (rtx);
 extern bool control_flow_insn_p (rtx);
+extern rtx get_last_bb_insn (basic_block);
 
 /* In bb-reorder.c */
 extern void reorder_basic_blocks (unsigned int);

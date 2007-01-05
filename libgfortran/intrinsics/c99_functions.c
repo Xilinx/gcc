@@ -76,6 +76,101 @@ float complex clog10f(float complex);
 double complex clog10(double complex);
 long double complex clog10l(long double complex);
 
+
+/* Wrappers for systems without the various C99 single precision Bessel
+   functions.  */
+
+#if defined(HAVE_J0) && ! defined(HAVE_J0F)
+#define HAVE_J0F 1
+extern float j0f (float);
+
+float
+j0f (float x)
+{
+  return (float) j0 ((double) x);
+}
+#endif
+
+#if defined(HAVE_J1) && !defined(HAVE_J1F)
+#define HAVE_J1F 1
+extern float j1f (float);
+
+float j1f (float x)
+{
+  return (float) j1 ((double) x);
+}
+#endif
+
+#if defined(HAVE_JN) && !defined(HAVE_JNF)
+#define HAVE_JNF 1
+extern float jnf (int, float);
+
+float
+jnf (int n, float x)
+{
+  return (float) jn (n, (double) x);
+}
+#endif
+
+#if defined(HAVE_Y0) && !defined(HAVE_Y0F)
+#define HAVE_Y0F 1
+extern float y0f (float);
+
+float
+y0f (float x)
+{
+  return (float) y0 ((double) x);
+}
+#endif
+
+#if defined(HAVE_Y1) && !defined(HAVE_Y1F)
+#define HAVE_Y1F 1
+extern float y1f (float);
+
+float
+y1f (float x)
+{
+  return (float) y1 ((double) x);
+}
+#endif
+
+#if defined(HAVE_YN) && !defined(HAVE_YNF)
+#define HAVE_YNF 1
+extern float ynf (int, float);
+
+float
+ynf (int n, float x)
+{
+  return (float) yn (n, (double) x);
+}
+#endif
+
+
+/* Wrappers for systems without the C99 erff() and erfcf() functions.  */
+
+#if defined(HAVE_ERF) && !defined(HAVE_ERFF)
+#define HAVE_ERFF 1
+extern float erff (float);
+
+float
+erff (float x)
+{
+  return (float) erf ((double) x);
+}
+#endif
+
+#if defined(HAVE_ERFC) && !defined(HAVE_ERFCF)
+#define HAVE_ERFCF 1
+extern float erfcf (float);
+
+float
+erfcf (float x)
+{
+  return (float) erfc ((double) x);
+}
+#endif
+
+
 #ifndef HAVE_ACOSF
 #define HAVE_ACOSF 1
 float
@@ -196,6 +291,15 @@ float
 floorf(float x)
 {
   return (float) floor(x);
+}
+#endif
+
+#ifndef HAVE_FMODF
+#define HAVE_FMODF 1
+float
+fmodf (float x, float y)
+{
+  return (float) fmod (x, y);
 }
 #endif
 
@@ -493,6 +597,47 @@ log10l(long double x)
     }
 #endif
     return log10 (x);
+}
+#endif
+
+
+#ifndef HAVE_FLOORL
+#define HAVE_FLOORL 1
+long double
+floorl (long double x)
+{
+  /* Zero, possibly signed.  */
+  if (x == 0)
+    return x;
+
+  /* Large magnitude.  */
+  if (x > DBL_MAX || x < (-DBL_MAX))
+    return x;
+
+  /* Small positive values.  */
+  if (x >= 0 && x < DBL_MIN)
+    return 0;
+
+  /* Small negative values.  */
+  if (x < 0 && x > (-DBL_MIN))
+    return -1;
+
+  return floor (x);
+}
+#endif
+
+
+#ifndef HAVE_FMODL
+#define HAVE_FMODL 1
+long double
+fmodl (long double x, long double y)
+{
+  if (y == 0.0L)
+    return 0.0L;
+
+  /* Need to check that the result has the same sign as x and magnitude
+     less than the magnitude of y.  */
+  return x - floorl (x / y) * y;
 }
 #endif
 

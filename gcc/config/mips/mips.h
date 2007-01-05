@@ -38,7 +38,8 @@ enum processor_type {
   PROCESSOR_5KC,
   PROCESSOR_5KF,
   PROCESSOR_20KC,
-  PROCESSOR_24K,
+  PROCESSOR_24KC,
+  PROCESSOR_24KF,
   PROCESSOR_24KX,
   PROCESSOR_M4K,
   PROCESSOR_R3900,
@@ -553,22 +554,6 @@ extern const struct mips_rtx_cost_data *mips_cost;
 				 && !TARGET_SR71K                       \
 				 && !TARGET_MIPS16)
 
-/* Generate three-operand multiply instructions for SImode.  */
-#define GENERATE_MULT3_SI       ((TARGET_MIPS3900                       \
-                                  || TARGET_MIPS5400                    \
-                                  || TARGET_MIPS5500                    \
-                                  || TARGET_MIPS7000                    \
-                                  || TARGET_MIPS9000                    \
-				  || TARGET_MAD				\
-                                  || ISA_MIPS32	                        \
-                                  || ISA_MIPS32R2                       \
-                                  || ISA_MIPS64)                        \
-                                 && !TARGET_MIPS16)
-
-/* Generate three-operand multiply instructions for DImode.  */
-#define GENERATE_MULT3_DI       ((TARGET_MIPS3900)                      \
-				 && !TARGET_MIPS16)
-
 /* True if the ABI can only work with 64-bit integer registers.  We
    generally allow ad-hoc variations for TARGET_SINGLE_FLOAT, but
    otherwise floating-point registers must also be 64-bit.  */
@@ -584,126 +569,127 @@ extern const struct mips_rtx_cost_data *mips_cost;
 /* ISA has instructions for managing 64 bit fp and gp regs (e.g. mips3).  */
 #define ISA_HAS_64BIT_REGS	(ISA_MIPS3				\
 				 || ISA_MIPS4				\
-                                 || ISA_MIPS64)
+				 || ISA_MIPS64)
 
 /* ISA has branch likely instructions (e.g. mips2).  */
 /* Disable branchlikely for tx39 until compare rewrite.  They haven't
    been generated up to this point.  */
 #define ISA_HAS_BRANCHLIKELY	(!ISA_MIPS1)
 
-/* ISA has the conditional move instructions introduced in mips4.  */
-#define ISA_HAS_CONDMOVE        ((ISA_MIPS4				\
-				  || ISA_MIPS32	                        \
-				  || ISA_MIPS32R2                       \
+/* ISA has a three-operand multiplication instruction (usually spelt "mul").  */
+#define ISA_HAS_MUL3		((TARGET_MIPS3900                       \
+				  || TARGET_MIPS5400			\
+				  || TARGET_MIPS5500			\
+				  || TARGET_MIPS7000			\
+				  || TARGET_MIPS9000			\
+				  || TARGET_MAD				\
+				  || ISA_MIPS32				\
+				  || ISA_MIPS32R2			\
 				  || ISA_MIPS64)			\
-                                 && !TARGET_MIPS5500                    \
+				 && !TARGET_MIPS16)
+
+/* ISA has the conditional move instructions introduced in mips4.  */
+#define ISA_HAS_CONDMOVE	((ISA_MIPS4				\
+				  || ISA_MIPS32				\
+				  || ISA_MIPS32R2			\
+				  || ISA_MIPS64)			\
+				 && !TARGET_MIPS5500			\
 				 && !TARGET_MIPS16)
 
 /* ISA has the mips4 FP condition code instructions: FP-compare to CC,
    branch on CC, and move (both FP and non-FP) on CC.  */
 #define ISA_HAS_8CC		(ISA_MIPS4				\
-                         	 || ISA_MIPS32	                        \
-                         	 || ISA_MIPS32R2                        \
+				 || ISA_MIPS32				\
+				 || ISA_MIPS32R2			\
 				 || ISA_MIPS64)
 
 /* This is a catch all for other mips4 instructions: indexed load, the
    FP madd and msub instructions, and the FP recip and recip sqrt
    instructions.  */
-#define ISA_HAS_FP4             ((ISA_MIPS4				\
-				  || ISA_MIPS64)       			\
- 				 && !TARGET_MIPS16)
+#define ISA_HAS_FP4		((ISA_MIPS4				\
+				  || (ISA_MIPS32R2 && TARGET_FLOAT64)   \
+				  || ISA_MIPS64)			\
+				 && !TARGET_MIPS16)
 
 /* ISA has conditional trap instructions.  */
 #define ISA_HAS_COND_TRAP	(!ISA_MIPS1				\
 				 && !TARGET_MIPS16)
 
 /* ISA has integer multiply-accumulate instructions, madd and msub.  */
-#define ISA_HAS_MADD_MSUB       ((ISA_MIPS32				\
+#define ISA_HAS_MADD_MSUB	((ISA_MIPS32				\
 				  || ISA_MIPS32R2			\
-				  || ISA_MIPS64				\
-				  ) && !TARGET_MIPS16)
+				  || ISA_MIPS64)			\
+				 && !TARGET_MIPS16)
 
 /* ISA has floating-point nmadd and nmsub instructions.  */
 #define ISA_HAS_NMADD_NMSUB	((ISA_MIPS4				\
-				  || ISA_MIPS64)       			\
-                                 && (!TARGET_MIPS5400 || TARGET_MAD)    \
-				 && ! TARGET_MIPS16)
+				  || ISA_MIPS64)			\
+				 && (!TARGET_MIPS5400 || TARGET_MAD)	\
+				 && !TARGET_MIPS16)
 
 /* ISA has count leading zeroes/ones instruction (not implemented).  */
-#define ISA_HAS_CLZ_CLO         ((ISA_MIPS32				\
-                                  || ISA_MIPS32R2			\
-                                  || ISA_MIPS64				\
-                                 ) && !TARGET_MIPS16)
-
-/* ISA has double-word count leading zeroes/ones instruction (not
-   implemented).  */
-#define ISA_HAS_DCLZ_DCLO       (ISA_MIPS64				\
+#define ISA_HAS_CLZ_CLO		((ISA_MIPS32				\
+				  || ISA_MIPS32R2			\
+				  || ISA_MIPS64)			\
 				 && !TARGET_MIPS16)
 
 /* ISA has three operand multiply instructions that put
    the high part in an accumulator: mulhi or mulhiu.  */
-#define ISA_HAS_MULHI           (TARGET_MIPS5400                        \
-                                 || TARGET_MIPS5500                     \
-                                 || TARGET_SR71K                        \
-                                 )
+#define ISA_HAS_MULHI		((TARGET_MIPS5400			 \
+				  || TARGET_MIPS5500			 \
+				  || TARGET_SR71K)			 \
+				 && !TARGET_MIPS16)
 
 /* ISA has three operand multiply instructions that
    negates the result and puts the result in an accumulator.  */
-#define ISA_HAS_MULS            (TARGET_MIPS5400                        \
-                                 || TARGET_MIPS5500                     \
-                                 || TARGET_SR71K                        \
-                                 )
+#define ISA_HAS_MULS		((TARGET_MIPS5400			\
+				  || TARGET_MIPS5500			\
+				  || TARGET_SR71K)			\
+				 && !TARGET_MIPS16)
 
 /* ISA has three operand multiply instructions that subtracts the
    result from a 4th operand and puts the result in an accumulator.  */
-#define ISA_HAS_MSAC            (TARGET_MIPS5400                        \
-                                 || TARGET_MIPS5500                     \
-                                 || TARGET_SR71K                        \
-                                 )
+#define ISA_HAS_MSAC		((TARGET_MIPS5400			\
+				  || TARGET_MIPS5500			\
+				  || TARGET_SR71K)			\
+				 && !TARGET_MIPS16)
+
 /* ISA has three operand multiply instructions that  the result
    from a 4th operand and puts the result in an accumulator.  */
-#define ISA_HAS_MACC            ((TARGET_MIPS4120 && !TARGET_MIPS16)	\
-                                 || (TARGET_MIPS4130 && !TARGET_MIPS16)	\
-                                 || TARGET_MIPS5400                     \
-                                 || TARGET_MIPS5500                     \
-                                 || TARGET_SR71K                        \
-                                 )
+#define ISA_HAS_MACC		((TARGET_MIPS4120			\
+				  || TARGET_MIPS4130			\
+				  || TARGET_MIPS5400			\
+				  || TARGET_MIPS5500			\
+				  || TARGET_SR71K)			\
+				 && !TARGET_MIPS16)
 
 /* ISA has NEC VR-style MACC, MACCHI, DMACC and DMACCHI instructions.  */
-#define ISA_HAS_MACCHI		(!TARGET_MIPS16				\
-				 && (TARGET_MIPS4120			\
-				     || TARGET_MIPS4130))
+#define ISA_HAS_MACCHI		((TARGET_MIPS4120			\
+				  || TARGET_MIPS4130)			\
+				 && !TARGET_MIPS16)
 
-/* ISA has 32-bit rotate right instruction.  */
-#define ISA_HAS_ROTR_SI         (!TARGET_MIPS16                         \
-                                 && (ISA_MIPS32R2                       \
-                                     || TARGET_MIPS5400                 \
-                                     || TARGET_MIPS5500                 \
-                                     || TARGET_SR71K                    \
-                                     ))
-
-/* ISA has 64-bit rotate right instruction.  */
-#define ISA_HAS_ROTR_DI         (TARGET_64BIT                           \
-                                 && !TARGET_MIPS16                      \
-                                 && (TARGET_MIPS5400                    \
-                                     || TARGET_MIPS5500                 \
-                                     || TARGET_SR71K                    \
-                                     ))
+/* ISA has the "ror" (rotate right) instructions.  */
+#define ISA_HAS_ROR		((ISA_MIPS32R2				\
+				  || TARGET_MIPS5400			\
+				  || TARGET_MIPS5500			\
+				  || TARGET_SR71K)			\
+				 && !TARGET_MIPS16)
 
 /* ISA has data prefetch instructions.  This controls use of 'pref'.  */
 #define ISA_HAS_PREFETCH	((ISA_MIPS4				\
 				  || ISA_MIPS32				\
 				  || ISA_MIPS32R2			\
-				  || ISA_MIPS64)	       		\
+				  || ISA_MIPS64)			\
 				 && !TARGET_MIPS16)
 
 /* ISA has data indexed prefetch instructions.  This controls use of
    'prefx', along with TARGET_HARD_FLOAT and TARGET_DOUBLE_FLOAT.
    (prefx is a cop1x instruction, so can only be used if FP is
    enabled.)  */
-#define ISA_HAS_PREFETCHX       ((ISA_MIPS4				\
-				  || ISA_MIPS64)       			\
- 				 && !TARGET_MIPS16)
+#define ISA_HAS_PREFETCHX	((ISA_MIPS4				\
+				  || ISA_MIPS32R2			\
+				  || ISA_MIPS64)			\
+				 && !TARGET_MIPS16)
 
 /* True if trunc.w.s and trunc.w.d are real (not synthetic)
    instructions.  Both require TARGET_HARD_FLOAT, and trunc.w.d
@@ -711,19 +697,20 @@ extern const struct mips_rtx_cost_data *mips_cost;
 #define ISA_HAS_TRUNC_W		(!ISA_MIPS1)
 
 /* ISA includes the MIPS32r2 seb and seh instructions.  */
-#define ISA_HAS_SEB_SEH         (!TARGET_MIPS16                        \
-                                 && (ISA_MIPS32R2                      \
-                                     ))
+#define ISA_HAS_SEB_SEH		(ISA_MIPS32R2				\
+				 && !TARGET_MIPS16)
 
 /* ISA includes the MIPS32/64 rev 2 ext and ins instructions.  */
-#define ISA_HAS_EXT_INS         (!TARGET_MIPS16                        \
-                                 && (ISA_MIPS32R2                      \
-                                     ))
+#define ISA_HAS_EXT_INS		(ISA_MIPS32R2				\
+				 && !TARGET_MIPS16)
+
+/* ISA has instructions for accessing top part of 64 bit fp regs */
+#define ISA_HAS_MXHC1		(TARGET_FLOAT64 && ISA_MIPS32R2)
 
 /* True if the result of a load is not available to the next instruction.
    A nop will then be needed between instructions like "lw $4,..."
    and "addiu $4,$4,1".  */
-#define ISA_HAS_LOAD_DELAY	(mips_isa == 1				\
+#define ISA_HAS_LOAD_DELAY	(ISA_MIPS1				\
 				 && !TARGET_MIPS3900			\
 				 && !TARGET_MIPS16)
 
@@ -838,6 +825,7 @@ extern const struct mips_rtx_cost_data *mips_cost;
 %(subtarget_asm_debugging_spec) \
 %{mabi=*} %{!mabi*: %(asm_abi_default_spec)} \
 %{mgp32} %{mgp64} %{march=*} %{mxgot:-xgot} \
+%{mfp32} %{mfp64} \
 %{mshared} %{mno-shared} \
 %{msym32} %{mno-sym32} \
 %{mtune=*} %{v} \
@@ -865,13 +853,12 @@ extern const struct mips_rtx_cost_data *mips_cost;
 
 /* CC1_SPEC is the set of arguments to pass to the compiler proper.  */
 
-#ifndef CC1_SPEC
+#undef CC1_SPEC
 #define CC1_SPEC "\
 %{gline:%{!g:%{!g0:%{!g1:%{!g2: -g1}}}}} \
 %{G*} %{EB:-meb} %{EL:-mel} %{EB:%{EL:%emay not use both -EB and -EL}} \
 %{save-temps: } \
 %(subtarget_cc1_spec)"
-#endif
 
 /* Preprocessor specs.  */
 
@@ -2532,6 +2519,7 @@ while (0)
    the assembler uses length information on externals to allocate in
    data/sdata bss/sbss, thereby saving exec time.  */
 
+#undef ASM_OUTPUT_EXTERNAL
 #define ASM_OUTPUT_EXTERNAL(STREAM,DECL,NAME) \
   mips_output_external(STREAM,DECL,NAME)
 

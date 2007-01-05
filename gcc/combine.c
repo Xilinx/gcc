@@ -1659,7 +1659,7 @@ likely_spilled_retval_1 (rtx x, rtx set, void *data)
     new_mask >>= info->regno - regno;
   else
     new_mask <<= regno - info->regno;
-  info->mask &= new_mask;
+  info->mask &= ~new_mask;
 }
 
 /* Return nonzero iff part of the return value is live during INSN, and
@@ -1695,7 +1695,8 @@ likely_spilled_retval_p (rtx insn)
   info.nregs = nregs;
   info.mask = mask;
   for (p = PREV_INSN (use); info.mask && p != insn; p = PREV_INSN (p))
-    note_stores (PATTERN (insn), likely_spilled_retval_1, &info);
+    if (INSN_P (p))
+      note_stores (PATTERN (p), likely_spilled_retval_1, &info);
   mask = info.mask;
 
   /* Check if any of the (probably) live return value registers is
@@ -1818,8 +1819,8 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
   rtx i3dest_killed = 0;
   /* SET_DEST and SET_SRC of I2 and I1.  */
   rtx i2dest, i2src, i1dest = 0, i1src = 0;
-  /* PATTERN (I2), or a copy of it in certain cases.  */
-  rtx i2pat;
+  /* PATTERN (I1) and PATTERN (I2), or a copy of it in certain cases.  */
+  rtx i1pat = 0, i2pat = 0;
   /* Indicates if I2DEST or I1DEST is in I2SRC or I1_SRC.  */
   int i2dest_in_i2src = 0, i1dest_in_i1src = 0, i2dest_in_i1src = 0;
   int i2dest_killed = 0, i1dest_killed = 0;
@@ -2217,12 +2218,21 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
      rtx.  If I2 is a PARALLEL, we just need the piece that assigns I2SRC to
      I2DEST.  */
 
-  i2pat = (GET_CODE (PATTERN (i2)) == PARALLEL
-	   ? gen_rtx_SET (VOIDmode, i2dest, i2src)
-	   : PATTERN (i2));
-
   if (added_sets_2)
-    i2pat = copy_rtx (i2pat);
+    {
+      if (GET_CODE (PATTERN (i2)) == PARALLEL)
+	i2pat = gen_rtx_SET (VOIDmode, i2dest, copy_rtx (i2src));
+      else
+	i2pat = copy_rtx (PATTERN (i2));
+    }
+
+  if (added_sets_1)
+    {
+      if (GET_CODE (PATTERN (i1)) == PARALLEL)
+	i1pat = gen_rtx_SET (VOIDmode, i1dest, copy_rtx (i1src));
+      else
+	i1pat = copy_rtx (PATTERN (i1));
+    }
 
   combine_merges++;
 
@@ -2417,9 +2427,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	}
 
       if (added_sets_1)
-	XVECEXP (newpat, 0, --total_sets)
-	  = (GET_CODE (PATTERN (i1)) == PARALLEL
-	     ? gen_rtx_SET (VOIDmode, i1dest, i1src) : PATTERN (i1));
+	XVECEXP (newpat, 0, --total_sets) = i1pat;
 
       if (added_sets_2)
 	{

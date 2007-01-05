@@ -87,13 +87,13 @@ is_gimple_formal_tmp_rhs (tree t)
 bool
 is_gimple_reg_rhs (tree t)
 {
-  /* If the RHS of the MODIFY_EXPR may throw or make a nonlocal goto
+  /* If the RHS of the GIMPLE_MODIFY_STMT may throw or make a nonlocal goto
      and the LHS is a user variable, then we need to introduce a formal
      temporary.  This way the optimizers can determine that the user
      variable is only modified if evaluation of the RHS does not throw.
 
      Don't force a temp of a non-renamable type; the copy could be
-     arbitrarily expensive.  Instead we will generate a V_MAY_DEF for
+     arbitrarily expensive.  Instead we will generate a VDEF for
      the assignment.  */
 
   if (is_gimple_reg_type (TREE_TYPE (t))
@@ -183,6 +183,13 @@ is_gimple_min_invariant (tree t)
     case VECTOR_CST:
       return true;
 
+    /* Vector constant constructors are gimple invariant.  */
+    case CONSTRUCTOR:
+      if (TREE_TYPE (t) && TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
+	return TREE_CONSTANT (t);
+      else
+	return false;
+
     default:
       return false;
     }
@@ -233,7 +240,7 @@ is_gimple_stmt (tree t)
       return true;
 
     case CALL_EXPR:
-    case MODIFY_EXPR:
+    case GIMPLE_MODIFY_STMT:
       /* These are valid regardless of their type.  */
       return true;
 
@@ -316,8 +323,9 @@ is_gimple_reg (tree t)
 
   /* Complex values must have been put into ssa form.  That is, no 
      assignments to the individual components.  */
-  if (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE)
-    return DECL_COMPLEX_GIMPLE_REG_P (t);
+  if (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
+      || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
+    return DECL_GIMPLE_REG_P (t);
 
   return true;
 }
@@ -377,7 +385,7 @@ is_gimple_val (tree t)
   /* FIXME make these decls.  That can happen only when we expose the
      entire landing-pad construct at the tree level.  */
   if (TREE_CODE (t) == EXC_PTR_EXPR || TREE_CODE (t) == FILTER_EXPR)
-    return 1;
+    return true;
 
   return (is_gimple_variable (t) || is_gimple_min_invariant (t));
 }
@@ -409,10 +417,7 @@ is_gimple_cast (tree t)
 {
   return (TREE_CODE (t) == NOP_EXPR
 	  || TREE_CODE (t) == CONVERT_EXPR
-          || TREE_CODE (t) == FIX_TRUNC_EXPR
-          || TREE_CODE (t) == FIX_CEIL_EXPR
-          || TREE_CODE (t) == FIX_FLOOR_EXPR
-          || TREE_CODE (t) == FIX_ROUND_EXPR);
+          || TREE_CODE (t) == FIX_TRUNC_EXPR);
 }
 
 /* Return true if T is a valid op0 of a CALL_EXPR.  */
@@ -430,8 +435,10 @@ is_gimple_call_addr (tree t)
 tree
 get_call_expr_in (tree t)
 {
-  if (TREE_CODE (t) == MODIFY_EXPR)
-    t = TREE_OPERAND (t, 1);
+  /* FIXME tuples: delete the assertion below when conversion complete.  */
+  gcc_assert (TREE_CODE (t) != MODIFY_EXPR);
+  if (TREE_CODE (t) == GIMPLE_MODIFY_STMT)
+    t = GIMPLE_STMT_OPERAND (t, 1);
   if (TREE_CODE (t) == WITH_SIZE_EXPR)
     t = TREE_OPERAND (t, 0);
   if (TREE_CODE (t) == CALL_EXPR)
@@ -476,7 +483,7 @@ recalculate_side_effects (tree t)
       switch (code)
 	{
 	case INIT_EXPR:
-	case MODIFY_EXPR:
+	case GIMPLE_MODIFY_STMT:
 	case VA_ARG_EXPR:
 	case PREDECREMENT_EXPR:
 	case PREINCREMENT_EXPR:

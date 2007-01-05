@@ -380,14 +380,14 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
     {
     case RETURN_EXPR:
       stmt = TREE_OPERAND (stmt, 0);
-      if (!stmt || TREE_CODE (stmt) != MODIFY_EXPR)
+      if (!stmt || TREE_CODE (stmt) != GIMPLE_MODIFY_STMT)
 	return;
 
       /* FALLTHRU */
 
-    case MODIFY_EXPR:
-      p_lhs = &TREE_OPERAND (stmt, 0);
-      p_rhs = &TREE_OPERAND (stmt, 1);
+    case GIMPLE_MODIFY_STMT:
+      p_lhs = &GIMPLE_STMT_OPERAND (stmt, 0);
+      p_rhs = &GIMPLE_STMT_OPERAND (stmt, 1);
       lhs = *p_lhs;
       rhs = *p_rhs;
       break;
@@ -411,9 +411,15 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
   gcc_assert (code != CONVERT_EXPR);
   op = optab_for_tree_code (code, type);
 
-  /* For widening vector operations, the relevant type is of the arguments,
-     not the widened result.  */
-  if (code == WIDEN_SUM_EXPR)
+  /* For widening/narrowing vector operations, the relevant type is of the 
+     arguments, not the widened result.  */
+  if (code == WIDEN_SUM_EXPR
+      || code == VEC_WIDEN_MULT_HI_EXPR
+      || code == VEC_WIDEN_MULT_LO_EXPR
+      || code == VEC_UNPACK_HI_EXPR
+      || code == VEC_UNPACK_LO_EXPR
+      || code == VEC_PACK_MOD_EXPR
+      || code == VEC_PACK_SAT_EXPR)
     type = TREE_TYPE (TREE_OPERAND (rhs, 0));
 
   /* Optabs will try converting a negation into a subtraction, so

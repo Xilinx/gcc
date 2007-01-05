@@ -2647,6 +2647,11 @@ try_replace_reg (rtx from, rtx to, rtx insn)
   int success = 0;
   rtx set = single_set (insn);
 
+  /* Usually we substitute easy stuff, so we won't copy everything.
+     We however need to take care to not duplicate non-trivial CONST
+     expressions.  */
+  to = copy_rtx (to);
+
   validate_replace_src_group (from, to, insn);
   if (num_changes_pending () && apply_change_group ())
     success = 1;
@@ -3396,7 +3401,8 @@ one_cprop_pass (int pass, bool cprop_jumps, bool bypass_jumps)
   global_const_prop_count = local_const_prop_count = 0;
   global_copy_prop_count = local_copy_prop_count = 0;
 
-  local_cprop_pass (cprop_jumps);
+  if (cprop_jumps)
+    local_cprop_pass (cprop_jumps);
 
   /* Determine implicit sets.  */
   implicit_sets = XCNEWVEC (rtx, last_basic_block);

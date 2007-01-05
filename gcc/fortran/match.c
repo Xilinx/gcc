@@ -852,6 +852,15 @@ gfc_match_assignment (void)
       return MATCH_NO;
     }
 
+  if (lvalue->symtree->n.sym->attr.protected
+      && lvalue->symtree->n.sym->attr.use_assoc)
+    {
+      gfc_current_locus = old_loc;
+      gfc_free_expr (lvalue);
+      gfc_error ("Setting value of PROTECTED variable at %C");
+      return MATCH_ERROR;
+    }
+
   rvalue = NULL;
   m = gfc_match (" %e%t", &rvalue);
   if (m != MATCH_YES)
@@ -897,6 +906,15 @@ gfc_match_pointer_assignment (void)
   m = gfc_match (" %e%t", &rvalue);
   if (m != MATCH_YES)
     goto cleanup;
+
+  if (lvalue->symtree->n.sym->attr.protected
+      && lvalue->symtree->n.sym->attr.use_assoc)
+    {
+      gfc_error ("Assigning to a PROTECTED pointer at %C");
+      m = MATCH_ERROR;
+      goto cleanup;
+    }
+
 
   new_st.op = EXEC_POINTER_ASSIGN;
   new_st.expr = lvalue;
@@ -2327,16 +2345,19 @@ gfc_match_common (void)
 
       if (name[0] == '\0')
 	{
+	  if (gfc_current_ns->is_block_data)
+	    {
+	      gfc_warning ("BLOCK DATA unit cannot contain blank COMMON at %C");
+	    }
 	  t = &gfc_current_ns->blank_common;
 	  if (t->head == NULL)
 	    t->where = gfc_current_locus;
-	  head = &t->head;
 	}
       else
 	{
 	  t = gfc_get_common (name, 0);
-	  head = &t->head;
 	}
+      head = &t->head;
 
       if (*head == NULL)
 	tail = NULL;
@@ -2595,8 +2616,8 @@ gfc_match_namelist (void)
 	     these are the only errors for the next two lines.  */
 	  if (sym->as && sym->as->type == AS_ASSUMED_SIZE)
 	    {
-	      gfc_error ("Assumed size array '%s' in namelist '%s'at "
-		         "%C is not allowed.", sym->name, group_name->name);
+	      gfc_error ("Assumed size array '%s' in namelist '%s' at "
+		         "%C is not allowed", sym->name, group_name->name);
 	      gfc_error_check ();
 	    }
 

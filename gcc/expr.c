@@ -127,7 +127,6 @@ static void move_by_pieces_1 (rtx (*) (rtx, ...), enum machine_mode,
 			      struct move_by_pieces *);
 static bool block_move_libcall_safe_for_call_parm (void);
 static bool emit_block_move_via_movmem (rtx, rtx, rtx, unsigned);
-static rtx emit_block_move_via_libcall (rtx, rtx, rtx, bool);
 static tree emit_block_move_libcall_fn (int);
 static void emit_block_move_via_loop (rtx, rtx, rtx, unsigned);
 static rtx clear_by_pieces_1 (void *, HOST_WIDE_INT, enum machine_mode);
@@ -135,7 +134,6 @@ static void clear_by_pieces (rtx, unsigned HOST_WIDE_INT, unsigned int);
 static void store_by_pieces_1 (struct store_by_pieces *, unsigned int);
 static void store_by_pieces_2 (rtx (*) (rtx, ...), enum machine_mode,
 			       struct store_by_pieces *);
-static rtx clear_storage_via_libcall (rtx, rtx, bool);
 static tree clear_storage_libcall_fn (int);
 static rtx compress_float_constant (rtx, rtx);
 static rtx get_subtarget (rtx);
@@ -1336,7 +1334,7 @@ emit_block_move_via_movmem (rtx x, rtx y, rtx size, unsigned int align)
 /* A subroutine of emit_block_move.  Expand a call to memcpy.
    Return the return value from memcpy, 0 otherwise.  */
 
-static rtx
+rtx
 emit_block_move_via_libcall (rtx dst, rtx src, rtx size, bool tailcall)
 {
   rtx dst_addr, src_addr;
@@ -2540,8 +2538,8 @@ clear_storage (rtx object, rtx size, enum block_op_methods method)
   else if (set_storage_via_setmem (object, size, const0_rtx, align))
     ;
   else
-    return clear_storage_via_libcall (object, size,
-				      method == BLOCK_OP_TAILCALL);
+    return set_storage_via_libcall (object, size, const0_rtx,
+				    method == BLOCK_OP_TAILCALL);
 
   return NULL;
 }
@@ -2549,10 +2547,10 @@ clear_storage (rtx object, rtx size, enum block_op_methods method)
 /* A subroutine of clear_storage.  Expand a call to memset.
    Return the return value of memset, 0 otherwise.  */
 
-static rtx
-clear_storage_via_libcall (rtx object, rtx size, bool tailcall)
+rtx
+set_storage_via_libcall (rtx object, rtx size, rtx val, bool tailcall)
 {
-  tree call_expr, arg_list, fn, object_tree, size_tree;
+  tree call_expr, arg_list, fn, object_tree, size_tree, val_tree;
   enum machine_mode size_mode;
   rtx retval;
 
@@ -2572,11 +2570,14 @@ clear_storage_via_libcall (rtx object, rtx size, bool tailcall)
      for returning pointers, we could end up generating incorrect code.  */
 
   object_tree = make_tree (ptr_type_node, object);
+  if (GET_CODE (val) != CONST_INT)
+    val = convert_to_mode (TYPE_MODE (integer_type_node), val, 1);
   size_tree = make_tree (sizetype, size);
+  val_tree = make_tree (integer_type_node, val);
 
   fn = clear_storage_libcall_fn (true);
   arg_list = tree_cons (NULL_TREE, size_tree, NULL_TREE);
-  arg_list = tree_cons (NULL_TREE, integer_zero_node, arg_list);
+  arg_list = tree_cons (NULL_TREE, val_tree, arg_list);
   arg_list = tree_cons (NULL_TREE, object_tree, arg_list);
 
   /* Now we have to build up the CALL_EXPR itself.  */
@@ -2590,7 +2591,7 @@ clear_storage_via_libcall (rtx object, rtx size, bool tailcall)
   return retval;
 }
 
-/* A subroutine of clear_storage_via_libcall.  Create the tree node
+/* A subroutine of set_storage_via_libcall.  Create the tree node
    for the function we use for block clears.  The first time FOR_CALL
    is true, we call assemble_external.  */
 
@@ -5670,6 +5671,13 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
     {
       size_tree = TREE_OPERAND (exp, 1);
       *punsignedp = BIT_FIELD_REF_UNSIGNED (exp);
+      
+      /* For vector types, with the correct size of access, use the mode of
+	 inner type.  */
+      if (TREE_CODE (TREE_TYPE (TREE_OPERAND (exp, 0))) == VECTOR_TYPE
+	  && TREE_TYPE (exp) == TREE_TYPE (TREE_TYPE (TREE_OPERAND (exp, 0)))
+	  && tree_int_cst_equal (size_tree, TYPE_SIZE (TREE_TYPE (exp))))
+        mode = TYPE_MODE (TREE_TYPE (exp));
     }
   else
     {
@@ -6246,6 +6254,9 @@ safe_from_p (rtx x, tree exp, int top_p)
     case tcc_type:
       /* Should never get a type here.  */
       gcc_unreachable ();
+
+    case tcc_gimple_stmt:
+      gcc_unreachable ();
     }
 
   /* If we have an rtl, find any enclosed object.  Then see if we conflict
@@ -6666,7 +6677,7 @@ expand_expr_real (tree exp, rtx target, enum machine_mode tmode,
 
   /* Handle ERROR_MARK before anybody tries to access its type.  */
   if (TREE_CODE (exp) == ERROR_MARK
-      || TREE_CODE (TREE_TYPE (exp)) == ERROR_MARK)
+      || (!GIMPLE_TUPLE_P (exp) && TREE_CODE (TREE_TYPE (exp)) == ERROR_MARK))
     {
       ret = CONST0_RTX (tmode);
       return ret ? ret : const0_rtx;
@@ -6736,7 +6747,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		    enum expand_modifier modifier, rtx *alt_rtl)
 {
   rtx op0, op1, temp, decl_rtl;
-  tree type = TREE_TYPE (exp);
+  tree type;
   int unsignedp;
   enum machine_mode mode;
   enum tree_code code = TREE_CODE (exp);
@@ -6751,8 +6762,18 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 								  type)	  \
 				 : (expr))
 
-  mode = TYPE_MODE (type);
-  unsignedp = TYPE_UNSIGNED (type);
+  if (GIMPLE_STMT_P (exp))
+    {
+      type = void_type_node;
+      mode = VOIDmode;
+      unsignedp = 0;
+    }
+  else
+    {
+      type = TREE_TYPE (exp);
+      mode = TYPE_MODE (type);
+      unsignedp = TYPE_UNSIGNED (type);
+    }
   if (lang_hooks.reduce_bit_field_operations
       && TREE_CODE (type) == INTEGER_TYPE
       && GET_MODE_PRECISION (mode) > TYPE_PRECISION (type))
@@ -7739,7 +7760,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  return REDUCE_BIT_FIELD (op0);
 	}
 
-      op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, mode, modifier);
+      op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, mode,
+			 modifier == EXPAND_SUM ? EXPAND_NORMAL : modifier);
       if (GET_MODE (op0) == mode)
 	;
 
@@ -8187,11 +8209,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		       subtarget, &op0, &op1, 0);
       return expand_divmod (1, code, mode, op0, op1, target, unsignedp);
 
-    case FIX_ROUND_EXPR:
-    case FIX_FLOOR_EXPR:
-    case FIX_CEIL_EXPR:
-      gcc_unreachable ();			/* Not used for C.  */
-
     case FIX_TRUNC_EXPR:
       op0 = expand_normal (TREE_OPERAND (exp, 0));
       if (target == 0 || modifier == EXPAND_STACK_PARM)
@@ -8566,10 +8583,10 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	target = expand_vec_cond_expr (exp, target);
 	return target;
 
-    case MODIFY_EXPR:
+    case GIMPLE_MODIFY_STMT:
       {
-	tree lhs = TREE_OPERAND (exp, 0);
-	tree rhs = TREE_OPERAND (exp, 1);
+	tree lhs = GIMPLE_STMT_OPERAND (exp, 0);
+	tree rhs = GIMPLE_STMT_OPERAND (exp, 1);
 
 	gcc_assert (ignore);
 
@@ -8749,11 +8766,66 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
         return temp;
       }
 
+    case VEC_EXTRACT_EVEN_EXPR:
+    case VEC_EXTRACT_ODD_EXPR:
+      {
+        expand_operands (TREE_OPERAND (exp, 0),  TREE_OPERAND (exp, 1),
+                         NULL_RTX, &op0, &op1, 0);
+        this_optab = optab_for_tree_code (code, type);
+        temp = expand_binop (mode, this_optab, op0, op1, target, unsignedp,
+                             OPTAB_WIDEN);
+        gcc_assert (temp);
+        return temp;
+      }
+
+    case VEC_INTERLEAVE_HIGH_EXPR:
+    case VEC_INTERLEAVE_LOW_EXPR:
+      {
+        expand_operands (TREE_OPERAND (exp, 0),  TREE_OPERAND (exp, 1),
+                         NULL_RTX, &op0, &op1, 0);
+        this_optab = optab_for_tree_code (code, type);
+        temp = expand_binop (mode, this_optab, op0, op1, target, unsignedp,
+                             OPTAB_WIDEN);
+        gcc_assert (temp);
+        return temp;
+      }
+
     case VEC_LSHIFT_EXPR:
     case VEC_RSHIFT_EXPR:
       {
 	target = expand_vec_shift_expr (exp, target);
 	return target;
+      }
+
+    case VEC_UNPACK_HI_EXPR:
+    case VEC_UNPACK_LO_EXPR:
+      {
+	op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, VOIDmode, 0);
+	this_optab = optab_for_tree_code (code, type);
+	temp = expand_widen_pattern_expr (exp, op0, NULL_RTX, NULL_RTX,
+					  target, unsignedp);
+	gcc_assert (temp);
+	return temp;
+      }
+
+    case VEC_WIDEN_MULT_HI_EXPR:
+    case VEC_WIDEN_MULT_LO_EXPR:
+      {
+	tree oprnd0 = TREE_OPERAND (exp, 0);
+	tree oprnd1 = TREE_OPERAND (exp, 1);
+
+	expand_operands (oprnd0, oprnd1, NULL_RTX, &op0, &op1, 0);
+	target = expand_widen_pattern_expr (exp, op0, op1, NULL_RTX,
+					    target, unsignedp);
+	gcc_assert (target);
+	return target;
+      }
+
+    case VEC_PACK_MOD_EXPR:
+    case VEC_PACK_SAT_EXPR:
+      {
+	mode = TYPE_MODE (TREE_TYPE (TREE_OPERAND (exp, 0)));
+	goto binop;
       }
 
     default:
@@ -8858,7 +8930,7 @@ is_aligning_offset (tree offset, tree exp)
 tree
 string_constant (tree arg, tree *ptr_offset)
 {
-  tree array, offset;
+  tree array, offset, lower_bound;
   STRIP_NOPS (arg);
 
   if (TREE_CODE (arg) == ADDR_EXPR)
@@ -8880,6 +8952,20 @@ string_constant (tree arg, tree *ptr_offset)
 	  if (TREE_CODE (array) != STRING_CST
 	      && TREE_CODE (array) != VAR_DECL)
 	    return 0;
+
+	  /* Check if the array has a non-zero lower bound.  */
+	  lower_bound = array_ref_low_bound (TREE_OPERAND (arg, 0));
+	  if (!integer_zerop (lower_bound))
+	    {
+	      /* If the offset and base aren't both constants, return 0.  */
+	      if (TREE_CODE (lower_bound) != INTEGER_CST)
+	        return 0;
+	      if (TREE_CODE (offset) != INTEGER_CST)
+		return 0;
+	      /* Adjust offset by the lower bound.  */
+	      offset = size_diffop (fold_convert (sizetype, offset), 
+				    fold_convert (sizetype, lower_bound));
+	    }
 	}
       else
 	return 0;
@@ -9128,6 +9214,17 @@ do_store_flag (tree exp, rtx target, enum machine_mode mode, int only_cheap)
     return 0;
 
   icode = setcc_gen_code[(int) code];
+
+  if (icode == CODE_FOR_nothing)
+    {
+      enum machine_mode wmode;
+      
+      for (wmode = operand_mode;
+	   icode == CODE_FOR_nothing && wmode != VOIDmode;
+	   wmode = GET_MODE_WIDER_MODE (wmode))
+	icode = cstore_optab->handlers[(int) wmode].insn_code;
+    }
+
   if (icode == CODE_FOR_nothing
       || (only_cheap && insn_data[(int) icode].operand[0].mode != mode))
     {
@@ -9173,25 +9270,10 @@ do_store_flag (tree exp, rtx target, enum machine_mode mode, int only_cheap)
     target = gen_reg_rtx (GET_MODE (target));
 
   emit_move_insn (target, invert ? const0_rtx : const1_rtx);
-  result = compare_from_rtx (op0, op1, code, unsignedp,
-			     operand_mode, NULL_RTX);
-  if (GET_CODE (result) == CONST_INT)
-    return (((result == const0_rtx && ! invert)
-	     || (result != const0_rtx && invert))
-	    ? const0_rtx : const1_rtx);
-
-  /* The code of RESULT may not match CODE if compare_from_rtx
-     decided to swap its operands and reverse the original code.
-
-     We know that compare_from_rtx returns either a CONST_INT or
-     a new comparison code, so it is safe to just extract the
-     code from RESULT.  */
-  code = GET_CODE (result);
-
   label = gen_label_rtx ();
-  gcc_assert (bcc_gen_fctn[(int) code]);
-
-  emit_jump_insn ((*bcc_gen_fctn[(int) code]) (label));
+  do_compare_rtx_and_jump (op0, op1, code, unsignedp, operand_mode, NULL_RTX,
+			   NULL_RTX, label);
+  
   emit_move_insn (target, invert ? const1_rtx : const0_rtx);
   emit_label (label);
 

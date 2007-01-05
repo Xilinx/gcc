@@ -277,6 +277,7 @@ insn_locators_initialize (void)
 	      NOTE_EXPANDED_LOCATION (xloc, insn);
 	      line_number = xloc.line;
 	      file_name = xloc.file;
+	      delete_insn (insn);
 	    }
 	}
       else
@@ -986,7 +987,6 @@ duplicate_insn_chain (rtx from, rtx to)
 	    case NOTE_INSN_DELETED_LABEL:
 	      /* No problem to strip these.  */
 	    case NOTE_INSN_EPILOGUE_BEG:
-	    case NOTE_INSN_FUNCTION_END:
 	      /* Debug code expect these notes to exist just once.
 		 Keep them in the master copy.
 		 ??? It probably makes more sense to duplicate them for each
@@ -996,7 +996,6 @@ duplicate_insn_chain (rtx from, rtx to)
 	    case NOTE_INSN_BASIC_BLOCK:
 	      break;
 
-	    case NOTE_INSN_REPEATED_LINE_NUMBER:
 	    case NOTE_INSN_SWITCH_TEXT_SECTIONS:
 	      emit_note_copy (insn);
 	      break;
@@ -1230,9 +1229,7 @@ copy_bbs (basic_block *bbs, unsigned n, basic_block *new_bbs,
       new_bb = new_bbs[i] = duplicate_block (bb, NULL, after);
       after = new_bb;
       bb->flags |= BB_DUPLICATED;
-      /* Add to loop.  */
-      add_bb_to_loop (new_bb, bb->loop_father->copy);
-      /* Possibly set header.  */
+      /* Possibly set loop header.  */
       if (bb->loop_father->header == bb && bb->loop_father != base)
 	new_bb->loop_father->header = new_bb;
       /* Or latch.  */

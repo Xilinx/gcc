@@ -163,9 +163,19 @@ enum stmt_vec_info_type {
   load_vec_info_type,
   store_vec_info_type,
   op_vec_info_type,
+  call_vec_info_type,
   assignment_vec_info_type,
   condition_vec_info_type,
-  reduc_vec_info_type
+  reduc_vec_info_type,
+  type_promotion_vec_info_type,
+  type_demotion_vec_info_type
+};
+
+/* Indicates whether/how a variable is used in the loop.  */
+enum vect_relevant {
+  vect_unused_in_loop = 0,
+  vect_used_by_reduction,
+  vect_used_in_loop  
 };
 
 typedef struct data_reference *dr_p;
@@ -182,10 +192,10 @@ typedef struct _stmt_vec_info {
   /* The loop_vec_info with respect to which STMT is vectorized.  */
   loop_vec_info loop_vinfo;
 
-  /* Not all stmts in the loop need to be vectorized. e.g, the incrementation
+  /* Not all stmts in the loop need to be vectorized. e.g, the increment
      of the loop induction variable and computation of array indexes. relevant
      indicates whether the stmt needs to be vectorized.  */
-  bool relevant;
+  enum vect_relevant relevant;
 
   /* Indicates whether this stmts is part of a computation whose result is
      used outside the loop.  */
@@ -226,21 +236,52 @@ typedef struct _stmt_vec_info {
   /* Classify the def of this stmt.  */
   enum vect_def_type def_type;
 
+  /* Interleaving info.  */
+  /* First data-ref in the interleaving group.  */
+  tree first_dr;
+  /* Pointer to the next data-ref in the group.  */
+  tree next_dr;
+  /* The size of the interleaving group.  */
+  unsigned int size;
+  /* For stores, number of stores from this group seen. We vectorize the last
+     one.  */
+  unsigned int store_count;
+  /* For loads only, the gap from the previous load. For consecutive loads, GAP
+     is 1.  */
+  unsigned int gap;
+  /* In case that two or more stmts share data-ref, this is the pointer to the
+     previously detected stmt with the same dr.  */
+  tree same_dr_stmt;
 } *stmt_vec_info;
 
 /* Access Functions.  */
-#define STMT_VINFO_TYPE(S)                (S)->type
-#define STMT_VINFO_STMT(S)                (S)->stmt
-#define STMT_VINFO_LOOP_VINFO(S)          (S)->loop_vinfo
-#define STMT_VINFO_RELEVANT_P(S)          (S)->relevant
-#define STMT_VINFO_LIVE_P(S)              (S)->live
-#define STMT_VINFO_VECTYPE(S)             (S)->vectype
-#define STMT_VINFO_VEC_STMT(S)            (S)->vectorized_stmt
-#define STMT_VINFO_DATA_REF(S)            (S)->data_ref_info
-#define STMT_VINFO_IN_PATTERN_P(S)        (S)->in_pattern_p
-#define STMT_VINFO_RELATED_STMT(S)        (S)->related_stmt
-#define STMT_VINFO_SAME_ALIGN_REFS(S)     (S)->same_align_refs
-#define STMT_VINFO_DEF_TYPE(S)            (S)->def_type
+#define STMT_VINFO_TYPE(S)                 (S)->type
+#define STMT_VINFO_STMT(S)                 (S)->stmt
+#define STMT_VINFO_LOOP_VINFO(S)           (S)->loop_vinfo
+#define STMT_VINFO_RELEVANT(S)             (S)->relevant
+#define STMT_VINFO_LIVE_P(S)               (S)->live
+#define STMT_VINFO_VECTYPE(S)              (S)->vectype
+#define STMT_VINFO_VEC_STMT(S)             (S)->vectorized_stmt
+#define STMT_VINFO_DATA_REF(S)             (S)->data_ref_info
+#define STMT_VINFO_IN_PATTERN_P(S)         (S)->in_pattern_p
+#define STMT_VINFO_RELATED_STMT(S)         (S)->related_stmt
+#define STMT_VINFO_SAME_ALIGN_REFS(S)      (S)->same_align_refs
+#define STMT_VINFO_DEF_TYPE(S)             (S)->def_type
+#define STMT_VINFO_DR_GROUP_FIRST_DR(S)    (S)->first_dr
+#define STMT_VINFO_DR_GROUP_NEXT_DR(S)     (S)->next_dr
+#define STMT_VINFO_DR_GROUP_SIZE(S)        (S)->size
+#define STMT_VINFO_DR_GROUP_STORE_COUNT(S) (S)->store_count
+#define STMT_VINFO_DR_GROUP_GAP(S)         (S)->gap
+#define STMT_VINFO_DR_GROUP_SAME_DR_STMT(S)(S)->same_dr_stmt
+
+#define DR_GROUP_FIRST_DR(S)               (S)->first_dr
+#define DR_GROUP_NEXT_DR(S)                (S)->next_dr
+#define DR_GROUP_SIZE(S)                   (S)->size
+#define DR_GROUP_STORE_COUNT(S)            (S)->store_count
+#define DR_GROUP_GAP(S)                    (S)->gap
+#define DR_GROUP_SAME_DR_STMT(S)           (S)->same_dr_stmt
+
+#define STMT_VINFO_RELEVANT_P(S)          ((S)->relevant != vect_unused_in_loop)
 
 static inline void set_stmt_info (stmt_ann_t ann, stmt_vec_info stmt_info);
 static inline stmt_vec_info vinfo_for_stmt (tree stmt);
@@ -279,18 +320,12 @@ known_alignment_for_access_p (struct data_reference *data_ref_info)
   return (DR_MISALIGNMENT (data_ref_info) != -1);
 }
 
-/* Perform signed modulo, always returning a non-negative value.  */
-#define VECT_SMODULO(x,y) ((x) % (y) < 0 ? ((x) % (y) + (y)) : (x) % (y))
-
 /* vect_dump will be set to stderr or dump_file if exist.  */
 extern FILE *vect_dump;
 extern enum verbosity_levels vect_verbosity_level;
 
-/* Number of loops, at the beginning of vectorization.  */
-extern unsigned int vect_loops_num;
-
 /* Bitmap of virtual variables to be renamed.  */
-extern bitmap vect_vnames_to_rename;
+extern bitmap vect_memsyms_to_rename;
 
 /*-----------------------------------------------------------------*/
 /* Function prototypes.                                            */
@@ -307,7 +342,7 @@ extern bitmap vect_vnames_to_rename;
    divide by the vectorization factor, and to peel the first few iterations
    to force the alignment of data references in the loop.  */
 extern struct loop *slpeel_tree_peel_loop_to_edge 
-  (struct loop *, struct loops *, edge, tree, tree, bool);
+  (struct loop *, edge, tree, tree, bool);
 extern void slpeel_make_loop_iterate_ntimes (struct loop *, tree);
 extern bool slpeel_can_duplicate_loop_p (struct loop *, edge);
 #ifdef ENABLE_CHECKING
@@ -328,12 +363,12 @@ extern bool vect_can_force_dr_alignment_p (tree, unsigned int);
 extern enum dr_alignment_support vect_supportable_dr_alignment
   (struct data_reference *);
 extern bool reduction_code_for_scalar_code (enum tree_code, enum tree_code *);
+extern bool supportable_widening_operation (enum tree_code, tree, tree,
+  tree *, tree *, enum tree_code *, enum tree_code *);
 /* Creation and deletion of loop and stmt info structs.  */
 extern loop_vec_info new_loop_vec_info (struct loop *loop);
 extern void destroy_loop_vec_info (loop_vec_info);
 extern stmt_vec_info new_stmt_vec_info (tree stmt, loop_vec_info);
-/* Main driver.  */
-extern void vectorize_loops (struct loops *);
 
 
 /** In tree-vect-analyze.c  **/
@@ -346,7 +381,7 @@ extern loop_vec_info vect_analyze_loop (struct loop *);
    Additional pattern recognition functions can (and will) be added
    in the future.  */
 typedef tree (* vect_recog_func_ptr) (tree, tree *, tree *);
-#define NUM_PATTERNS 3
+#define NUM_PATTERNS 4
 void vect_pattern_recog (loop_vec_info);
 
 
@@ -354,12 +389,16 @@ void vect_pattern_recog (loop_vec_info);
 extern bool vectorizable_load (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_store (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_operation (tree, block_stmt_iterator *, tree *);
+extern bool vectorizable_type_promotion (tree, block_stmt_iterator *, tree *);
+extern bool vectorizable_type_demotion (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_assignment (tree, block_stmt_iterator *, tree *);
+extern bool vectorizable_function (tree, tree);
+extern bool vectorizable_call (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_condition (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_live_operation (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_reduction (tree, block_stmt_iterator *, tree *);
 /* Driver for transformation stage.  */
-extern void vect_transform_loop (loop_vec_info, struct loops *);
+extern void vect_transform_loop (loop_vec_info);
 
 /*************************************************************************
   Vectorization Debug Information - in tree-vectorizer.c

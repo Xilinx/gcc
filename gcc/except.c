@@ -1,6 +1,6 @@
 /* Implements exception handling.
    Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
    Contributed by Mike Stump <mrs@cygnus.com>.
 
 This file is part of GCC.
@@ -1869,17 +1869,15 @@ sjlj_emit_function_enter (rtx dispatch_label)
 
 #ifdef DONT_USE_BUILTIN_SETJMP
   {
-    rtx x, note;
+    rtx x;
     x = emit_library_call_value (setjmp_libfunc, NULL_RTX, LCT_RETURNS_TWICE,
 				 TYPE_MODE (integer_type_node), 1,
 				 plus_constant (XEXP (fc, 0),
 						sjlj_fc_jbuf_ofs), Pmode);
 
-    note = emit_note (NOTE_INSN_EXPECTED_VALUE);
-    NOTE_EXPECTED_VALUE (note) = gen_rtx_EQ (VOIDmode, x, const0_rtx);
-
     emit_cmp_and_jump_insns (x, const0_rtx, NE, 0,
 			     TYPE_MODE (integer_type_node), 0, dispatch_label);
+    add_reg_br_prob_note (get_insns (), REG_BR_PROB_BASE/100);
   }
 #else
   expand_builtin_setjmp_setup (plus_constant (XEXP (fc, 0), sjlj_fc_jbuf_ofs),
@@ -3520,10 +3518,16 @@ sjlj_output_call_site_table (void)
 /* Switch to the section that should be used for exception tables.  */
 
 static void
-switch_to_exception_section (void)
+switch_to_exception_section (const char * ARG_UNUSED (fnname))
 {
-  if (exception_section == 0)
+  section *s;
+
+  if (exception_section)
+    s = exception_section;
+  else
     {
+      /* Compute the section and cache it into exception_section,
+	 unless it depends on the function name.  */
       if (targetm.have_named_sections)
 	{
 	  int flags;
@@ -3539,12 +3543,26 @@ switch_to_exception_section (void)
 	    }
 	  else
 	    flags = SECTION_WRITE;
-	  exception_section = get_section (".gcc_except_table", flags, NULL);
+
+#ifdef HAVE_LD_EH_GC_SECTIONS
+	  if (flag_function_sections)
+	    {
+	      char *section_name = xmalloc (strlen (fnname) + 32);
+	      sprintf (section_name, ".gcc_except_table.%s", fnname);
+	      s = get_section (section_name, flags, NULL);
+	      free (section_name);
+	    }
+	  else
+#endif
+	    exception_section
+	      = s = get_section (".gcc_except_table", flags, NULL);
 	}
       else
-	exception_section = flag_pic ? data_section : readonly_data_section;
+	exception_section
+	  = s = flag_pic ? data_section : readonly_data_section;
     }
-  switch_to_section (exception_section);
+
+  switch_to_section (s);
 }
 #endif
 
@@ -3563,7 +3581,7 @@ output_ttype (tree type, int tt_format, int tt_format_size)
     value = const0_rtx;
   else
     {
-      struct cgraph_varpool_node *node;
+      struct varpool_node *node;
 
       type = lookup_type_for_runtime (type);
       value = expand_expr (type, NULL_RTX, VOIDmode, EXPAND_INITIALIZER);
@@ -3577,9 +3595,9 @@ output_ttype (tree type, int tt_format, int tt_format_size)
 	  type = TREE_OPERAND (type, 0);
 	  if (TREE_CODE (type) == VAR_DECL)
 	    {
-	      node = cgraph_varpool_node (type);
+	      node = varpool_node (type);
 	      if (node)
-		cgraph_varpool_mark_needed_node (node);
+		varpool_mark_needed_node (node);
 	      public = TREE_PUBLIC (type);
 	    }
 	}
@@ -3599,7 +3617,7 @@ output_ttype (tree type, int tt_format, int tt_format_size)
 }
 
 void
-output_function_exception_table (void)
+output_function_exception_table (const char * ARG_UNUSED (fnname))
 {
   int tt_format, cs_format, lp_format, i, n;
 #ifdef HAVE_AS_LEB128
@@ -3627,7 +3645,7 @@ output_function_exception_table (void)
   /* Note that varasm still thinks we're in the function's code section.
      The ".endp" directive that will immediately follow will take us back.  */
 #else
-  switch_to_exception_section ();
+  switch_to_exception_section (fnname);
 #endif
 
   /* If the target wants a label to begin the table, emit it here.  */

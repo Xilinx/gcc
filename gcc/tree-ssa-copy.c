@@ -63,6 +63,24 @@ may_propagate_copy (tree dest, tree orig)
   tree type_d = TREE_TYPE (dest);
   tree type_o = TREE_TYPE (orig);
 
+  /* For memory partitions, copies are OK as long as the memory symbol
+     belongs to the partition.  */
+  if (TREE_CODE (dest) == SSA_NAME
+      && TREE_CODE (SSA_NAME_VAR (dest)) == MEMORY_PARTITION_TAG)
+    return (TREE_CODE (orig) == SSA_NAME
+            && !is_gimple_reg (orig)
+	    && (bitmap_bit_p (MPT_SYMBOLS (SSA_NAME_VAR (dest)),
+	                      DECL_UID (SSA_NAME_VAR (orig)))
+	        || SSA_NAME_VAR (dest) == SSA_NAME_VAR (orig)));
+
+  if (TREE_CODE (orig) == SSA_NAME
+      && TREE_CODE (SSA_NAME_VAR (orig)) == MEMORY_PARTITION_TAG)
+    return (TREE_CODE (dest) == SSA_NAME
+            && !is_gimple_reg (dest)
+	    && (bitmap_bit_p (MPT_SYMBOLS (SSA_NAME_VAR (orig)),
+	                      DECL_UID (SSA_NAME_VAR (dest)))
+	        || SSA_NAME_VAR (dest) == SSA_NAME_VAR (orig)));
+  
   /* Do not copy between types for which we *do* need a conversion.  */
   if (!tree_ssa_useless_type_conversion_1 (type_d, type_o))
     return false;
@@ -108,8 +126,8 @@ may_propagate_copy (tree dest, tree orig)
       && POINTER_TYPE_P (type_d)
       && POINTER_TYPE_P (type_o))
     {
-      tree mt_dest = var_ann (SSA_NAME_VAR (dest))->symbol_mem_tag;
-      tree mt_orig = var_ann (SSA_NAME_VAR (orig))->symbol_mem_tag;
+      tree mt_dest = symbol_mem_tag (SSA_NAME_VAR (dest));
+      tree mt_orig = symbol_mem_tag (SSA_NAME_VAR (orig));
       if (mt_dest && mt_orig && mt_dest != mt_orig)
 	return false;
       else if (!lang_hooks.types_compatible_p (type_d, type_o))
@@ -187,6 +205,18 @@ merge_alias_info (tree orig, tree new)
   tree orig_sym = SSA_NAME_VAR (orig);
   var_ann_t new_ann = var_ann (new_sym);
   var_ann_t orig_ann = var_ann (orig_sym);
+
+  /* No merging necessary when memory partitions are involved.  */
+  if (factoring_name_p (new))
+    {
+      gcc_assert (!is_gimple_reg (orig_sym));
+      return;
+    }
+  else if (factoring_name_p (orig))
+    {
+      gcc_assert (!is_gimple_reg (new_sym));
+      return;
+    }
 
   gcc_assert (POINTER_TYPE_P (TREE_TYPE (orig)));
   gcc_assert (POINTER_TYPE_P (TREE_TYPE (new)));
@@ -370,11 +400,11 @@ stmt_may_generate_copy (tree stmt)
   if (TREE_CODE (stmt) == PHI_NODE)
     return !SSA_NAME_OCCURS_IN_ABNORMAL_PHI (PHI_RESULT (stmt));
 
-  if (TREE_CODE (stmt) != MODIFY_EXPR)
+  if (TREE_CODE (stmt) != GIMPLE_MODIFY_STMT)
     return false;
 
-  lhs = TREE_OPERAND (stmt, 0);
-  rhs = TREE_OPERAND (stmt, 1);
+  lhs = GIMPLE_STMT_OPERAND (stmt, 0);
+  rhs = GIMPLE_STMT_OPERAND (stmt, 1);
   ann = stmt_ann (stmt);
 
   /* If the statement has volatile operands, it won't generate a
@@ -545,7 +575,7 @@ dump_copy_of (FILE *file, tree var)
 /* Evaluate the RHS of STMT.  If it produces a valid copy, set the LHS
    value and store the LHS into *RESULT_P.  If STMT generates more
    than one name (i.e., STMT is an aliased store), it is enough to
-   store the first name in the V_MAY_DEF list into *RESULT_P.  After
+   store the first name in the VDEF list into *RESULT_P.  After
    all, the names generated will be VUSEd in the same statements.  */
 
 static enum ssa_prop_result
@@ -554,8 +584,8 @@ copy_prop_visit_assignment (tree stmt, tree *result_p)
   tree lhs, rhs;
   prop_value_t *rhs_val;
 
-  lhs = TREE_OPERAND (stmt, 0);
-  rhs = TREE_OPERAND (stmt, 1);
+  lhs = GIMPLE_STMT_OPERAND (stmt, 0);
+  rhs = GIMPLE_STMT_OPERAND (stmt, 1);
 
   gcc_assert (TREE_CODE (rhs) == SSA_NAME);
 
@@ -582,8 +612,8 @@ copy_prop_visit_assignment (tree stmt, tree *result_p)
     }
   else if (stmt_makes_single_store (stmt))
     {
-      /* Otherwise, set the names in V_MAY_DEF/V_MUST_DEF operands
-	 to be a copy of RHS.  */
+      /* Otherwise, set the names in VDEF operands to be a copy
+	 of RHS.  */
       ssa_op_iter i;
       tree vdef;
       bool changed;
@@ -690,17 +720,17 @@ copy_prop_visit_stmt (tree stmt, edge *taken_edge_p, tree *result_p)
       fprintf (dump_file, "\n");
     }
 
-  if (TREE_CODE (stmt) == MODIFY_EXPR
-      && TREE_CODE (TREE_OPERAND (stmt, 1)) == SSA_NAME
+  if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+      && TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)) == SSA_NAME
       && (do_store_copy_prop
-	  || TREE_CODE (TREE_OPERAND (stmt, 0)) == SSA_NAME))
+	  || TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 0)) == SSA_NAME))
     {
       /* If the statement is a copy assignment, evaluate its RHS to
 	 see if the lattice value of its output has changed.  */
       retval = copy_prop_visit_assignment (stmt, result_p);
     }
-  else if (TREE_CODE (stmt) == MODIFY_EXPR
-	   && TREE_CODE (TREE_OPERAND (stmt, 0)) == SSA_NAME
+  else if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+	   && TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 0)) == SSA_NAME
 	   && do_store_copy_prop
 	   && stmt_makes_single_load (stmt))
     {
@@ -711,14 +741,14 @@ copy_prop_visit_stmt (tree stmt, edge *taken_edge_p, tree *result_p)
       if (val
 	  && val->mem_ref
 	  && is_gimple_reg (val->value)
-	  && operand_equal_p (val->mem_ref, TREE_OPERAND (stmt, 1), 0))
+	  && operand_equal_p (val->mem_ref, GIMPLE_STMT_OPERAND (stmt, 1), 0))
         {
 	  bool changed;
-	  changed = set_copy_of_val (TREE_OPERAND (stmt, 0),
+	  changed = set_copy_of_val (GIMPLE_STMT_OPERAND (stmt, 0),
 				     val->value, val->mem_ref);
 	  if (changed)
 	    {
-	      *result_p = TREE_OPERAND (stmt, 0);
+	      *result_p = GIMPLE_STMT_OPERAND (stmt, 0);
 	      retval = SSA_PROP_INTERESTING;
 	    }
 	  else
@@ -882,11 +912,9 @@ init_copy_prop (void)
 {
   basic_block bb;
 
-  copy_of = XNEWVEC (prop_value_t, num_ssa_names);
-  memset (copy_of, 0, num_ssa_names * sizeof (*copy_of));
+  copy_of = XCNEWVEC (prop_value_t, num_ssa_names);
 
-  cached_last_copy_of = XNEWVEC (tree, num_ssa_names);
-  memset (cached_last_copy_of, 0, num_ssa_names * sizeof (*cached_last_copy_of));
+  cached_last_copy_of = XCNEWVEC (tree, num_ssa_names);
 
   FOR_EACH_BB (bb)
     {
@@ -912,7 +940,7 @@ init_copy_prop (void)
 	  if (stmt_ends_bb_p (stmt))
 	    DONT_SIMULATE_AGAIN (stmt) = false;
 	  else if (stmt_may_generate_copy (stmt)
-		   && loop_depth_of_name (TREE_OPERAND (stmt, 1)) <= depth)
+		   && loop_depth_of_name (GIMPLE_STMT_OPERAND (stmt, 1)) <= depth)
 	    DONT_SIMULATE_AGAIN (stmt) = false;
 	  else
 	    DONT_SIMULATE_AGAIN (stmt) = true;
@@ -954,8 +982,7 @@ fini_copy_prop (void)
   
   /* Set the final copy-of value for each variable by traversing the
      copy-of chains.  */
-  tmp = XNEWVEC (prop_value_t, num_ssa_names);
-  memset (tmp, 0, num_ssa_names * sizeof (*tmp));
+  tmp = XCNEWVEC (prop_value_t, num_ssa_names);
   for (i = 1; i < num_ssa_names; i++)
     {
       tree var = ssa_name (i);

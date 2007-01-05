@@ -18,7 +18,7 @@
 ;; communicates with all the execution units separately instead.
 
 (define_attr "athlon_decode" "direct,vector,double"
-  (cond [(eq_attr "type" "call,imul,idiv,other,multi,fcmov,fpspc,str,pop,cld,leave")
+  (cond [(eq_attr "type" "call,imul,idiv,other,multi,fcmov,fpspc,str,pop,leave")
 	   (const_string "vector")
          (and (eq_attr "type" "push")
               (match_operand 1 "memory_operand" ""))
@@ -343,7 +343,7 @@
 			 "athlon-direct,(athlon-fpsched+athlon-agu),(athlon-fstore+athlon-store)")
 (define_insn_reservation "athlon_fist" 4
 			 (and (eq_attr "cpu" "athlon,k8,generic64")
-			      (eq_attr "type" "fistp"))
+			      (eq_attr "type" "fistp,fisttp"))
 			 "athlon-direct,(athlon-fpsched+athlon-agu),(athlon-fstore+athlon-store)")
 (define_insn_reservation "athlon_fmov" 2
 			 (and (eq_attr "cpu" "athlon,k8,generic64")

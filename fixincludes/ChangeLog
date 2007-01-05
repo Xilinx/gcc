@@ -1,3 +1,40 @@
+2006-12-12  Olivier Hainque  <hainque@adacore.com>
+
+	* fixincludes/mkfixinc.sh: Add "*-*-vxworks*" to the list of
+	targets for which a no-op fixer is appropriate.
+	
+2006-11-07  Richard Guenther  <rguenther@suse.de>
+
+	* inclhack.def (glibc_c99_inline_2): Adjust for glibc 2.3
+	systems.
+	* fixincl.x: Regenerate.
+
+2006-11-02  Geoffrey Keating  <geoffk@apple.com>
+
+	* inclhack.def (glibc_c99_inline_1): New.
+	* inclhack.def (glibc_c99_inline_2): New.
+	* inclhack.def (glibc_c99_inline_3): New.
+	* inclhack.def (glibc_c99_inline_4): New.
+	* fixincl.x: Regenerate.
+	* tests/base/bits/string2.h: New.
+	* tests/base/sys/sysmacros.h: New.
+	* tests/base/sys/stat.h: Update.
+
+2006-11-01  Steve Ellcey  <sje@cup.hp.com>
+
+	* tests/base/sys/socket.h: Update.
+
+2006-10-31  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux11_extern_sendfile): New.
+	(hpux11_extern_sendpath): New.
+	* fixincl.x: Regenerate.
+
+2006-10-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* inclhack.def (AAB_fd_zero_asm_posix_types_h): Bypass on x86_64.
+	* fixincl.x: Regenerate.
+
 2006-10-10  Brooks Moses  <bmoses@stanford.edu>
 
 	* Makefile.in: Added empty "pdf" target.

@@ -1,3 +1,35 @@
+2006-12-04  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* configure: Regenerate.
+
+2006-11-13  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* configure: Regenerated.
+
+2006-11-10  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR libmudflap/28578
+	* mf-hooks1.c (__mf_0fn_malloc): Make the bootstrap buffers
+	static but not function scope static.
+	(free): Skip deallocation attempts for objects placed into
+	bootstrap buffers.
+	* testsuite/libmudflap.cth/pass59-frag.c: New test.
+
+2006-11-06  Frank Ch. Eigler  <fche@redhat.com>
+
+	From Herman ten Brugge <hermantenbrugge@home.nl>:
+	* mf-runtime.c (__mf_uncache_object): Optimize the code so that
+	small and large objects are handled a lot faster.
+
+2006-11-06  Frank Ch. Eigler  <fche@redhat.com>
+
+	* configure.ac (__libc_freeres): Look for it.
+	* mf-impl.h (call_libc_freeres): New configuration flag.
+	* mf-runtime.c (__mf_set_default_options): Set it by default.
+	(__mfu_report): Call it if needed.
+	(__mfu_unregister): Remove "unaccessed registered object" warning.
+	* configure, config.h.in: Regenerated.
+
 2006-09-18  Tom Tromey  <tromey@redhat.com>
 
 	* configure: Rebuilt.

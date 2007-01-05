@@ -751,10 +751,10 @@ ggc_min_heapsize_heuristic (void)
 # endif
 
   /* Don't blindly run over our data limit; do GC at least when the
-     *next* GC would be within 16Mb of the limit.  If GCC does hit the
-     data limit, compilation will fail, so this tries to be
-     conservative.  */
-  limit_kbytes = MAX (0, limit_kbytes - 16 * 1024);
+     *next* GC would be within 20Mb of the limit or within a quarter of
+     the limit, whichever is larger.  If GCC does hit the data limit,
+     compilation will fail, so this tries to be conservative.  */
+  limit_kbytes = MAX (0, limit_kbytes - MAX (limit_kbytes / 4, 20 * 1024));
   limit_kbytes = (limit_kbytes * 100) / (110 + ggc_min_expand_heuristic());
   phys_kbytes = MIN (phys_kbytes, limit_kbytes);
 
@@ -919,12 +919,31 @@ ggc_free_overhead (void *ptr)
 
 /* Helper for qsort; sort descriptors by amount of memory consumed.  */
 static int
+final_cmp_statistic (const void *loc1, const void *loc2)
+{
+  struct loc_descriptor *l1 = *(struct loc_descriptor **) loc1;
+  struct loc_descriptor *l2 = *(struct loc_descriptor **) loc2;
+  long diff;
+  diff = ((long)(l1->allocated + l1->overhead - l1->freed) -
+	  (l2->allocated + l2->overhead - l2->freed));
+  return diff > 0 ? 1 : diff < 0 ? -1 : 0;
+}
+
+/* Helper for qsort; sort descriptors by amount of memory consumed.  */
+static int
 cmp_statistic (const void *loc1, const void *loc2)
 {
   struct loc_descriptor *l1 = *(struct loc_descriptor **) loc1;
   struct loc_descriptor *l2 = *(struct loc_descriptor **) loc2;
-  return ((l1->allocated + l1->overhead - l1->freed) -
-	  (l2->allocated + l2->overhead - l2->freed));
+  long diff;
+
+  diff = ((long)(l1->allocated + l1->overhead - l1->freed - l1->collected) -
+	  (l2->allocated + l2->overhead - l2->freed - l2->collected));
+  if (diff)
+    return diff > 0 ? 1 : diff < 0 ? -1 : 0;
+  diff =  ((long)(l1->allocated + l1->overhead - l1->freed) -
+	   (l2->allocated + l2->overhead - l2->freed));
+  return diff > 0 ? 1 : diff < 0 ? -1 : 0;
 }
 
 /* Collect array of the descriptors from hashtable.  */
@@ -941,7 +960,7 @@ add_statistics (void **slot, void *b)
 /* Dump per-site memory statistics.  */
 #endif
 void
-dump_ggc_loc_statistics (void)
+dump_ggc_loc_statistics (bool final ATTRIBUTE_UNUSED)
 {
 #ifdef GATHER_STATISTICS
   int nentries = 0;
@@ -958,7 +977,8 @@ dump_ggc_loc_statistics (void)
 	   "source location", "Garbage", "Freed", "Leak", "Overhead", "Times");
   fprintf (stderr, "-------------------------------------------------------\n");
   htab_traverse (loc_hash, add_statistics, &nentries);
-  qsort (loc_array, nentries, sizeof (*loc_array), cmp_statistic);
+  qsort (loc_array, nentries, sizeof (*loc_array),
+	 final ? final_cmp_statistic : cmp_statistic);
   for (i = 0; i < nentries; i++)
     {
       struct loc_descriptor *d = loc_array[i];

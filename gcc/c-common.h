@@ -90,6 +90,9 @@ enum rid
   /* casts */
   RID_CONSTCAST, RID_DYNCAST, RID_REINTCAST, RID_STATCAST,
 
+  /* C++0x */
+  RID_STATIC_ASSERT,
+
   /* Objective-C */
   RID_AT_ENCODE,   RID_AT_END,
   RID_AT_CLASS,    RID_AT_ALIAS,     RID_AT_DEFS,
@@ -521,6 +524,11 @@ extern int flag_access_control;
 
 extern int flag_check_new;
 
+/* Nonzero if we want to allow the use of experimental features that
+   are likely to become part of C++0x. */
+
+extern int flag_cpp0x;
+
 /* Nonzero if we want the new ISO rules for pushing a new scope for `for'
    initialization variables.
    0: Old rules, set by -fno-for-scope.
@@ -654,10 +662,11 @@ extern void binary_op_error (enum tree_code);
 extern tree fix_string_type (tree);
 struct varray_head_tag;
 extern void constant_expression_warning (tree);
-extern void strict_aliasing_warning(tree, tree, tree);
+extern void strict_aliasing_warning (tree, tree, tree);
 extern void empty_body_warning (tree, tree);
 extern tree convert_and_check (tree, tree);
 extern void overflow_warning (tree);
+extern void check_main_parameter_types (tree decl);
 extern bool c_determine_visibility (tree);
 extern bool same_scalar_type_ignoring_signedness (tree, tree);
 
@@ -850,6 +859,9 @@ extern int complete_array_type (tree *, tree, bool);
 extern tree builtin_type_for_size (int, bool);
 
 extern void warn_array_subscript_with_type_char (tree);
+extern void warn_about_parentheses (enum tree_code, enum tree_code,
+				    enum tree_code);
+
 
 /* In c-gimplify.c  */
 extern void c_genericize (tree);

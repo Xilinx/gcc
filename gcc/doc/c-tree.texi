@@ -305,6 +305,9 @@ The elements are indexed from zero.
 @findex TYPENAME_TYPE_FULLNAME
 @findex TYPE_FIELDS
 @findex TYPE_PTROBV_P
+@findex TYPE_CANONICAL
+@findex TYPE_STRUCTURAL_EQUALITY_P
+@findex SET_TYPE_STRUCTURAL_EQUALITY
 
 All types have corresponding tree nodes.  However, you should not assume
 that there is exactly one tree node corresponding to each type.  There
@@ -405,6 +408,52 @@ This predicate holds for a pointer to object type.  Note however that it
 does not hold for the generic pointer to object type @code{void *}.  You
 may use @code{TYPE_PTROBV_P} to test for a pointer to object type as
 well as @code{void *}.
+
+@item TYPE_CANONICAL
+This macro returns the ``canonical'' type for the given type
+node. Canonical types are used to improve performance in the C++ and
+Objective-C++ front ends by allowing efficient comparison between two
+type nodes in @code{same_type_p}: if the @code{TYPE_CANONICAL} values
+of the types are equal, the types are equivalent; otherwise, the types
+are not equivalent. The notion of equivalence for canonical types is
+the same as the notion of type equivalence in the language itself. For
+instance,
+
+When @code{TYPE_CANONICAL} is @code{NULL_TREE}, there is no canonical
+type for the given type node. In this case, comparison between this
+type and any other type requires the compiler to perform a deep,
+``structural'' comparison to see if the two type nodes have the same
+form and properties.
+
+The canonical type for a node is always the most fundamental type in
+the equivalence class of types. For instance, @code{int} is its own
+canonical type. A typedef @code{I} of @code{int} will have @code{int}
+as its canonical type. Similarly, @code{I*}@ and a typedef @code{IP}@
+(defined to @code{I*}) will has @code{int*} as their canonical
+type. When building a new type node, be sure to set
+@code{TYPE_CANONICAL} to the appropriate canonical type. If the new
+type is a compound type (built from other types), and any of those
+other types require structural equality, use
+@code{SET_TYPE_STRUCTURAL_EQUALITY} to ensure that the new type also
+requires structural equality. Finally, if for some reason you cannot
+guarantee that @code{TYPE_CANONICAL} will point to the canonical type,
+use @code{SET_TYPE_STRUCTURAL_EQUALITY} to make sure that the new
+type--and any type constructed based on it--requires structural
+equality. If you suspect that the canonical type system is
+miscomparing types, pass @code{--param verify-canonical-types=1} to
+the compiler or configure with @code{--enable-checking} to force the
+compiler to verify its canonical-type comparisons against the
+structural comparisons; the compiler will then print any warnings if
+the canonical types miscompare.
+
+@item TYPE_STRUCTURAL_EQUALITY_P
+This predicate holds when the node requires structural equality
+checks, e.g., when @code{TYPE_CANONICAL} is @code{NULL_TREE}.
+
+@item SET_TYPE_STRUCTURAL_EQUALITY
+This macro states that the type node it is given requires structural
+equality checks, e.g., it sets @code{TYPE_CANONICAL} to
+@code{NULL_TREE}.
 
 @item same_type_p
 This predicate takes two types as input, and holds if they are the same
@@ -1928,6 +1977,18 @@ This macro returns the attributes on the type @var{type}.
 @tindex OMP_CONTINUE
 @tindex OMP_ATOMIC
 @tindex OMP_CLAUSE
+@tindex VEC_LSHIFT_EXPR
+@tindex VEC_RSHIFT_EXPR
+@tindex VEC_WIDEN_MULT_HI_EXPR
+@tindex VEC_WIDEN_MULT_LO_EXPR
+@tindex VEC_UNPACK_HI_EXPR
+@tindex VEC_UNPACK_LO_EXPR
+@tindex VEC_PACK_MOD_EXPR
+@tindex VEC_PACK_SAT_EXPR
+@tindex VEC_EXTRACT_EVEN_EXPR 
+@tindex VEC_EXTRACT_ODD_EXPR
+@tindex VEC_INTERLEAVE_HIGH_EXPR
+@tindex VEC_INTERLEAVE_LOW_EXPR
 
 The internal representation for expressions is for the most part quite
 straightforward.  However, there are a few facts that one must bear in
@@ -2734,5 +2795,62 @@ of variables are restricted to exactly one, accessed with
 same clause @code{C} need to be represented as multiple @code{C} clauses
 chained together.  This facilitates adding new clauses during
 compilation.
+
+@item VEC_LSHIFT_EXPR
+@item VEC_RSHIFT_EXPR
+These nodes represent whole vector left and right shifts, respectively.  
+The first operand is the vector to shift; it will always be of vector type.  
+The second operand is an expression for the number of bits by which to
+shift.  Note that the result is undefined if the second operand is larger
+than or equal to the first operand's type size.
+
+@item VEC_WIDEN_MULT_HI_EXPR
+@item VEC_WIDEN_MULT_LO_EXPR
+These nodes represent widening vector multiplication of the high and low
+parts of the two input vectors, respectively.  Their operands are vectors 
+that contain the same number of elements (@code{N}) of the same integral type.  
+The result is a vector that contains half as many elements, of an integral type 
+whose size is twice as wide.  In the case of @code{VEC_WIDEN_MULT_HI_EXPR} the
+high @code{N/2} elements of the two vector are multiplied to produce the
+vector of @code{N/2} products. In the case of @code{VEC_WIDEN_MULT_LO_EXPR} the
+low @code{N/2} elements of the two vector are multiplied to produce the
+vector of @code{N/2} products.
+
+@item VEC_UNPACK_HI_EXPR
+@item VEC_UNPACK_LO_EXPR
+These nodes represent unpacking of the high and low parts of the input vector, 
+respectively.  The single operand is a vector that contains @code{N} elements 
+of the same integral type.  The result is a vector that contains half as many 
+elements, of an integral type whose size is twice as wide.  In the case of 
+@code{VEC_UNPACK_HI_EXPR} the high @code{N/2} elements of the vector are 
+extracted and widened (promoted).  In the case of @code{VEC_UNPACK_LO_EXPR} the 
+low @code{N/2} elements of the vector are extracted and widened (promoted).
+
+@item VEC_PACK_MOD_EXPR
+@item VEC_PACK_SAT_EXPR
+These nodes represent packing of elements of the two input vectors into the
+output vector, using modulo or saturating arithmetic, respectively.
+Their operands are vectors that contain the same number of elements 
+of the same integral type.  The result is a vector that contains twice as many 
+elements, of an integral type whose size is half as wide.  In both cases
+the elements of the two vectors are demoted and merged (concatenated) to form
+the output vector.
+
+@item VEC_EXTRACT_EVEN_EXPR
+@item VEC_EXTRACT_ODD_EXPR
+These nodes represent extracting of the even/odd elements of the two input 
+vectors, respectively. Their operands and result are vectors that contain the 
+same number of elements of the same type.
+
+@item VEC_INTERLEAVE_HIGH_EXPR
+@item VEC_INTERLEAVE_LOW_EXPR
+These nodes represent merging and interleaving of the high/low elements of the
+two input vectors, respectively. The operands and the result are vectors that 
+contain the same number of elements (@code{N}) of the same type.
+In the case of @code{VEC_INTERLEAVE_HIGH_EXPR}, the high @code{N/2} elements of 
+the first input vector are interleaved with the high @code{N/2} elements of the
+second input vector. In the case of @code{VEC_INTERLEAVE_LOW_EXPR}, the low
+@code{N/2} elements of the first input vector are interleaved with the low 
+@code{N/2} elements of the second input vector.
 
 @end table

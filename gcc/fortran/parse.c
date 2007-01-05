@@ -229,6 +229,7 @@ decode_statement (void)
       match ("inquire", gfc_match_inquire, ST_INQUIRE);
       match ("implicit", gfc_match_implicit, ST_IMPLICIT);
       match ("implicit% none", gfc_match_implicit_none, ST_IMPLICIT_NONE);
+      match ("import", gfc_match_import, ST_IMPORT);
       match ("interface", gfc_match_interface, ST_INTERFACE);
       match ("intent", gfc_match_intent, ST_ATTR_DECL);
       match ("intrinsic", gfc_match_intrinsic, ST_ATTR_DECL);
@@ -259,6 +260,7 @@ decode_statement (void)
       match ("program", gfc_match_program, ST_PROGRAM);
       if (gfc_match_public (&st) == MATCH_YES)
 	return st;
+      match ("protected", gfc_match_protected, ST_ATTR_DECL);
       break;
 
     case 'r':
@@ -279,7 +281,12 @@ decode_statement (void)
       break;
 
     case 'u':
-      match ("use% ", gfc_match_use, ST_USE);
+      match ("use", gfc_match_use, ST_USE);
+      break;
+
+    case 'v':
+      match ("value", gfc_match_value, ST_ATTR_DECL);
+      match ("volatile", gfc_match_volatile, ST_ATTR_DECL);
       break;
 
     case 'w':
@@ -1034,6 +1041,9 @@ gfc_ascii_statement (gfc_statement st)
     case ST_IMPLIED_ENDDO:
       p = _("implied END DO");
       break;
+    case ST_IMPORT:
+      p = "IMPORT";
+      break;
     case ST_INQUIRE:
       p = "INQUIRE";
       break;
@@ -1348,7 +1358,9 @@ unexpected_statement (gfc_statement st)
             | program  subroutine  function  module |
             +---------------------------------------+
             |                 use                   |
-            |---------------------------------------+
+            +---------------------------------------+
+            |                 import                |
+            +---------------------------------------+
             |        |        implicit none         |
             |        +-----------+------------------+
             |        | parameter |  implicit        |
@@ -1372,8 +1384,8 @@ unexpected_statement (gfc_statement st)
 typedef struct
 {
   enum
-  { ORDER_START, ORDER_USE, ORDER_IMPLICIT_NONE, ORDER_IMPLICIT,
-    ORDER_SPEC, ORDER_EXEC
+  { ORDER_START, ORDER_USE, ORDER_IMPORT, ORDER_IMPLICIT_NONE,
+    ORDER_IMPLICIT, ORDER_SPEC, ORDER_EXEC
   }
   state;
   gfc_statement last_statement;
@@ -1395,6 +1407,12 @@ verify_st_order (st_state * p, gfc_statement st)
       if (p->state > ORDER_USE)
 	goto order;
       p->state = ORDER_USE;
+      break;
+
+    case ST_IMPORT:
+      if (p->state > ORDER_IMPORT)
+	goto order;
+      p->state = ORDER_IMPORT;
       break;
 
     case ST_IMPLICIT_NONE:
@@ -1678,6 +1696,7 @@ parse_interface (void)
   gfc_interface_info save;
   gfc_state_data s1, s2;
   gfc_statement st;
+  locus proc_locus;
 
   accept_statement (ST_INTERFACE);
 
@@ -1765,6 +1784,7 @@ loop:
   accept_statement (st);
   prog_unit = gfc_new_block;
   prog_unit->formal_ns = gfc_current_ns;
+  proc_locus = gfc_current_locus;
 
 decl:
   /* Read data declaration statements.  */
@@ -1780,8 +1800,15 @@ decl:
 
   current_interface = save;
   gfc_add_interface (prog_unit);
-
   pop_state ();
+
+  if (current_interface.ns
+	&& current_interface.ns->proc_name
+	&& strcmp (current_interface.ns->proc_name->name,
+		   prog_unit->name) == 0)
+    gfc_error ("INTERFACE procedure '%s' at %L has the same name as the "
+	       "enclosing procedure", prog_unit->name, &proc_locus);
+
   goto loop;
 
 done:
@@ -1816,6 +1843,7 @@ loop:
       /* Fall through */
 
     case ST_USE:
+    case ST_IMPORT:
     case ST_IMPLICIT_NONE:
     case ST_IMPLICIT:
     case ST_PARAMETER:
@@ -2753,6 +2781,7 @@ parse_contained (int module)
   gfc_statement st;
   gfc_symbol *sym;
   gfc_entry_list *el;
+  int contains_statements = 0;
 
   push_state (&s1, COMP_CONTAINS, NULL);
   parent_ns = gfc_current_ns;
@@ -2773,6 +2802,7 @@ parse_contained (int module)
 
 	case ST_FUNCTION:
 	case ST_SUBROUTINE:
+	  contains_statements = 1;
 	  accept_statement (st);
 
 	  push_state (&s2,
@@ -2856,6 +2886,11 @@ parse_contained (int module)
   gfc_free_namespace (ns);
 
   pop_state ();
+  if (!contains_statements)
+    /* This is valid in Fortran 2008.  */
+    gfc_notify_std (GFC_STD_GNU, "Extension: "
+                    "CONTAINS statement without FUNCTION "
+                    "or SUBROUTINE statement at %C");
 }
 
 
@@ -3219,12 +3254,12 @@ loop:
   if (s.state == COMP_MODULE)
     {
       gfc_dump_module (s.sym->name, errors_before == errors);
-      if (errors == 0 && ! gfc_option.flag_no_backend)
+      if (errors == 0)
 	gfc_generate_module_code (gfc_current_ns);
     }
   else
     {
-      if (errors == 0 && ! gfc_option.flag_no_backend)
+      if (errors == 0)
 	gfc_generate_code (gfc_current_ns);
     }
 

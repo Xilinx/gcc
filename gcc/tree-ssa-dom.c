@@ -101,7 +101,11 @@ static VEC(tree,heap) *avail_exprs_stack;
    expressions are removed from AVAIL_EXPRS.  Else we may change the
    hash code for an expression and be unable to find/remove it from
    AVAIL_EXPRS.  */
-static VEC(tree,heap) *stmts_to_rescan;
+typedef tree *tree_p;
+DEF_VEC_P(tree_p);
+DEF_VEC_ALLOC_P(tree_p,heap);
+
+static VEC(tree_p,heap) *stmts_to_rescan;
 
 /* Structure for entries in the expression hash table.
 
@@ -240,7 +244,6 @@ tree_ssa_dominator_optimize (void)
 {
   struct dom_walk_data walk_data;
   unsigned int i;
-  struct loops loops_info;
 
   memset (&opt_stats, 0, sizeof (opt_stats));
 
@@ -248,7 +251,7 @@ tree_ssa_dominator_optimize (void)
   avail_exprs = htab_create (1024, real_avail_expr_hash, avail_expr_eq, free);
   avail_exprs_stack = VEC_alloc (tree, heap, 20);
   const_and_copies_stack = VEC_alloc (tree, heap, 20);
-  stmts_to_rescan = VEC_alloc (tree, heap, 20);
+  stmts_to_rescan = VEC_alloc (tree_p, heap, 20);
   need_eh_cleanup = BITMAP_ALLOC (NULL);
 
   /* Setup callbacks for the generic dominator tree walker.  */
@@ -276,9 +279,12 @@ tree_ssa_dominator_optimize (void)
   /* We need to know which edges exit loops so that we can
      aggressively thread through loop headers to an exit
      edge.  */
-  flow_loops_find (&loops_info);
-  mark_loop_exit_edges (&loops_info);
-  flow_loops_free (&loops_info);
+  loop_optimizer_init (0);
+  if (current_loops)
+    {
+      mark_loop_exit_edges ();
+      loop_optimizer_finalize ();
+    }
 
   /* Clean up the CFG so that any forwarder blocks created by loop
      canonicalization are removed.  */
@@ -357,7 +363,7 @@ tree_ssa_dominator_optimize (void)
   
   VEC_free (tree, heap, avail_exprs_stack);
   VEC_free (tree, heap, const_and_copies_stack);
-  VEC_free (tree, heap, stmts_to_rescan);
+  VEC_free (tree_p, heap, stmts_to_rescan);
   return 0;
 }
 
@@ -378,7 +384,7 @@ struct tree_opt_pass pass_dominator =
   TV_TREE_SSA_DOMINATOR_OPTS,		/* tv_id */
   PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
   0,					/* properties_provided */
-  PROP_smt_usage,			/* properties_destroyed */
+  0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func
     | TODO_update_ssa
@@ -487,7 +493,7 @@ initialize_hash_element (tree expr, tree lhs, struct expr_hash_elt *element)
   else if (TREE_CODE (expr) == RETURN_EXPR && TREE_OPERAND (expr, 0))
     {
       element->stmt = expr;
-      element->rhs = TREE_OPERAND (TREE_OPERAND (expr, 0), 1);
+      element->rhs = GIMPLE_STMT_OPERAND (TREE_OPERAND (expr, 0), 1);
     }
   else if (TREE_CODE (expr) == GOTO_EXPR)
     {
@@ -497,7 +503,7 @@ initialize_hash_element (tree expr, tree lhs, struct expr_hash_elt *element)
   else
     {
       element->stmt = expr;
-      element->rhs = TREE_OPERAND (expr, 1);
+      element->rhs = GENERIC_TREE_OPERAND (expr, 1);
     }
 
   element->lhs = lhs;
@@ -699,16 +705,17 @@ dom_opt_finalize_block (struct dom_walk_data *walk_data, basic_block bb)
 
   /* If we queued any statements to rescan in this block, then
      go ahead and rescan them now.  */
-  while (VEC_length (tree, stmts_to_rescan) > 0)
+  while (VEC_length (tree_p, stmts_to_rescan) > 0)
     {
-      tree stmt = VEC_last (tree, stmts_to_rescan);
+      tree *stmt_p = VEC_last (tree_p, stmts_to_rescan);
+      tree stmt = *stmt_p;
       basic_block stmt_bb = bb_for_stmt (stmt);
 
       if (stmt_bb != bb)
 	break;
 
-      VEC_pop (tree, stmts_to_rescan);
-      mark_new_vars_to_rename (stmt);
+      VEC_pop (tree_p, stmts_to_rescan);
+      pop_stmt_changes (stmt_p);
     }
 }
 
@@ -1181,14 +1188,14 @@ simple_iv_increment_p (tree stmt)
   tree lhs, rhs, preinc, phi;
   unsigned i;
 
-  if (TREE_CODE (stmt) != MODIFY_EXPR)
+  if (TREE_CODE (stmt) != GIMPLE_MODIFY_STMT)
     return false;
 
-  lhs = TREE_OPERAND (stmt, 0);
+  lhs = GIMPLE_STMT_OPERAND (stmt, 0);
   if (TREE_CODE (lhs) != SSA_NAME)
     return false;
 
-  rhs = TREE_OPERAND (stmt, 1);
+  rhs = GIMPLE_STMT_OPERAND (stmt, 1);
 
   if (TREE_CODE (rhs) != PLUS_EXPR
       && TREE_CODE (rhs) != MINUS_EXPR)
@@ -1471,15 +1478,15 @@ eliminate_redundant_computations (tree stmt)
   bool retval = false;
   bool modify_expr_p = false;
 
-  if (TREE_CODE (stmt) == MODIFY_EXPR)
-    def = TREE_OPERAND (stmt, 0);
+  if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
+    def = GIMPLE_STMT_OPERAND (stmt, 0);
 
   /* Certain expressions on the RHS can be optimized away, but can not
      themselves be entered into the hash tables.  */
   if (! def
       || TREE_CODE (def) != SSA_NAME
       || SSA_NAME_OCCURS_IN_ABNORMAL_PHI (def)
-      || !ZERO_SSA_OPERANDS (stmt, SSA_OP_VMAYDEF)
+      || !ZERO_SSA_OPERANDS (stmt, SSA_OP_VDEF)
       /* Do not record equivalences for increments of ivs.  This would create
 	 overlapping live ranges for a very questionable gain.  */
       || simple_iv_increment_p (stmt))
@@ -1497,12 +1504,12 @@ eliminate_redundant_computations (tree stmt)
     expr_p = &SWITCH_COND (stmt);
   else if (TREE_CODE (stmt) == RETURN_EXPR && TREE_OPERAND (stmt, 0))
     {
-      expr_p = &TREE_OPERAND (TREE_OPERAND (stmt, 0), 1);
+      expr_p = &GIMPLE_STMT_OPERAND (TREE_OPERAND (stmt, 0), 1);
       modify_expr_p = true;
     }
   else
     {
-      expr_p = &TREE_OPERAND (stmt, 1);
+      expr_p = &GENERIC_TREE_OPERAND (stmt, 1);
       modify_expr_p = true;
     }
 
@@ -1550,21 +1557,19 @@ eliminate_redundant_computations (tree stmt)
   return retval;
 }
 
-/* STMT, a MODIFY_EXPR, may create certain equivalences, in either
+/* STMT, a GIMPLE_MODIFY_STMT, may create certain equivalences, in either
    the available expressions table or the const_and_copies table.
    Detect and record those equivalences.  */
 
 static void
-record_equivalences_from_stmt (tree stmt,
-			       int may_optimize_p,
-			       stmt_ann_t ann)
+record_equivalences_from_stmt (tree stmt, int may_optimize_p, stmt_ann_t ann)
 {
-  tree lhs = TREE_OPERAND (stmt, 0);
+  tree lhs = GIMPLE_STMT_OPERAND (stmt, 0);
   enum tree_code lhs_code = TREE_CODE (lhs);
 
   if (lhs_code == SSA_NAME)
     {
-      tree rhs = TREE_OPERAND (stmt, 1);
+      tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
 
       /* Strip away any useless type conversions.  */
       STRIP_USELESS_TYPE_CONVERSION (rhs);
@@ -1586,11 +1591,12 @@ record_equivalences_from_stmt (tree stmt,
      vops and recording the result in the available expression table,
      we may be able to expose more redundant loads.  */
   if (!ann->has_volatile_ops
-      && (TREE_CODE (TREE_OPERAND (stmt, 1)) == SSA_NAME
-	  || is_gimple_min_invariant (TREE_OPERAND (stmt, 1)))
+      && stmt_references_memory_p (stmt)
+      && (TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)) == SSA_NAME
+	  || is_gimple_min_invariant (GIMPLE_STMT_OPERAND (stmt, 1)))
       && !is_gimple_reg (lhs))
     {
-      tree rhs = TREE_OPERAND (stmt, 1);
+      tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
       tree new;
 
       /* FIXME: If the LHS of the assignment is a bitfield and the RHS
@@ -1617,9 +1623,9 @@ record_equivalences_from_stmt (tree stmt,
       if (rhs)
 	{
 	  /* Build a new statement with the RHS and LHS exchanged.  */
-	  new = build2 (MODIFY_EXPR, TREE_TYPE (stmt), rhs, lhs);
+	  new = build2_gimple (GIMPLE_MODIFY_STMT, rhs, lhs);
 
-	  create_ssa_artficial_load_stmt (new, stmt);
+	  create_ssa_artificial_load_stmt (new, stmt);
 
 	  /* Finally enter the statement into the available expression
 	     table.  */
@@ -1739,7 +1745,7 @@ cprop_operand (tree stmt, use_operand_p op_p)
    known value for that SSA_NAME (or NULL if no value is known).  
 
    Propagate values from CONST_AND_COPIES into the uses, vuses and
-   v_may_def_ops of STMT.  */
+   vdef_ops of STMT.  */
 
 static bool
 cprop_into_stmt (tree stmt)
@@ -1791,6 +1797,7 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
   ann = stmt_ann (stmt);
   opt_stats.num_stmts++;
   may_have_exposed_new_symbols = false;
+  push_stmt_changes (bsi_stmt_ptr (si));
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -1798,7 +1805,7 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
       print_generic_stmt (dump_file, stmt, TDF_SLIM);
     }
 
-  /* Const/copy propagate into USES, VUSES and the RHS of V_MAY_DEFs.  */
+  /* Const/copy propagate into USES, VUSES and the RHS of VDEFs.  */
   may_have_exposed_new_symbols = cprop_into_stmt (stmt);
 
   /* If the statement has been modified with constant replacements,
@@ -1838,11 +1845,14 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
   may_optimize_p = (!ann->has_volatile_ops
 		    && ((TREE_CODE (stmt) == RETURN_EXPR
 			 && TREE_OPERAND (stmt, 0)
-			 && TREE_CODE (TREE_OPERAND (stmt, 0)) == MODIFY_EXPR
+			 && TREE_CODE (TREE_OPERAND (stmt, 0))
+			    == GIMPLE_MODIFY_STMT
 			 && ! (TREE_SIDE_EFFECTS
-			       (TREE_OPERAND (TREE_OPERAND (stmt, 0), 1))))
-			|| (TREE_CODE (stmt) == MODIFY_EXPR
-			    && ! TREE_SIDE_EFFECTS (TREE_OPERAND (stmt, 1)))
+			       (GIMPLE_STMT_OPERAND
+				(TREE_OPERAND (stmt, 0), 1))))
+			|| (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+			    && ! TREE_SIDE_EFFECTS (GIMPLE_STMT_OPERAND (stmt,
+									 1)))
 			|| TREE_CODE (stmt) == COND_EXPR
 			|| TREE_CODE (stmt) == SWITCH_EXPR));
 
@@ -1850,10 +1860,8 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
     may_have_exposed_new_symbols |= eliminate_redundant_computations (stmt);
 
   /* Record any additional equivalences created by this statement.  */
-  if (TREE_CODE (stmt) == MODIFY_EXPR)
-    record_equivalences_from_stmt (stmt,
-				   may_optimize_p,
-				   ann);
+  if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
+    record_equivalences_from_stmt (stmt, may_optimize_p, ann);
 
   /* If STMT is a COND_EXPR and it was modified, then we may know
      where it goes.  If that is the case, then mark the CFG as altered.
@@ -1880,7 +1888,6 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
 
      Ultimately I suspect we're going to need to change the interface
      into the SSA_NAME manager.  */
-
   if (ann->modified)
     {
       tree val = NULL;
@@ -1904,7 +1911,20 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
     }
 
   if (may_have_exposed_new_symbols)
-    VEC_safe_push (tree, heap, stmts_to_rescan, bsi_stmt (si));
+    {
+      /* Queue the statement to be re-scanned after all the
+	 AVAIL_EXPRS have been processed.  The change buffer stack for
+	 all the pushed statements will be processed when this queue
+	 is emptied.  */
+      VEC_safe_push (tree_p, heap, stmts_to_rescan, bsi_stmt_ptr (si));
+    }
+  else
+    {
+      /* Otherwise, just discard the recently pushed change buffer.  If
+	 not, the STMTS_TO_RESCAN queue will get out of synch with the
+	 change buffer stack.  */
+      discard_stmt_changes (bsi_stmt_ptr (si));
+    }
 }
 
 /* Search for an existing instance of STMT in the AVAIL_EXPRS table.  If
@@ -1915,7 +1935,7 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
    is also added to the stack pointed to by BLOCK_AVAIL_EXPRS_P, so that they
    can be removed when we finish processing this block and its children.
 
-   NOTE: This function assumes that STMT is a MODIFY_EXPR node that
+   NOTE: This function assumes that STMT is a GIMPLE_MODIFY_STMT node that
    contains no CALL_EXPR on its RHS and makes no volatile nor
    aliased references.  */
 
@@ -1927,7 +1947,8 @@ lookup_avail_expr (tree stmt, bool insert)
   tree temp;
   struct expr_hash_elt *element = XNEW (struct expr_hash_elt);
 
-  lhs = TREE_CODE (stmt) == MODIFY_EXPR ? TREE_OPERAND (stmt, 0) : NULL;
+  lhs = TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+    			    ? GIMPLE_STMT_OPERAND (stmt, 0) : NULL;
 
   initialize_hash_element (stmt, lhs, element);
 
@@ -1976,8 +1997,8 @@ lookup_avail_expr (tree stmt, bool insert)
 }
 
 /* Hashing and equality functions for AVAIL_EXPRS.  The table stores
-   MODIFY_EXPR statements.  We compute a value number for expressions using
-   the code of the expression and the SSA numbers of its operands.  */
+   GIMPLE_MODIFY_STMT statements.  We compute a value number for expressions
+   using the code of the expression and the SSA numbers of its operands.  */
 
 static hashval_t
 avail_expr_hash (const void *p)
@@ -2076,14 +2097,14 @@ degenerate_phi_result (tree phi)
   return (i == PHI_NUM_ARGS (phi) ? val : NULL);
 }
 
-/* Given a tree node T, which is either a PHI_NODE or MODIFY_EXPR,
+/* Given a tree node T, which is either a PHI_NODE or GIMPLE_MODIFY_STMT,
    remove it from the IL.  */
 
 static void
 remove_stmt_or_phi (tree t)
 {
   if (TREE_CODE (t) == PHI_NODE)
-    remove_phi_node (t, NULL);
+    remove_phi_node (t, NULL, true);
   else
     {
       block_stmt_iterator bsi = bsi_for_stmt (t);
@@ -2091,7 +2112,7 @@ remove_stmt_or_phi (tree t)
     }
 }
 
-/* Given a tree node T, which is either a PHI_NODE or MODIFY_EXPR,
+/* Given a tree node T, which is either a PHI_NODE or GIMPLE_MODIFY_STMT,
    return the "rhs" of the node, in the case of a non-degenerate
    PHI, NULL is returned.  */
 
@@ -2100,13 +2121,13 @@ get_rhs_or_phi_arg (tree t)
 {
   if (TREE_CODE (t) == PHI_NODE)
     return degenerate_phi_result (t);
-  else if (TREE_CODE (t) == MODIFY_EXPR)
-    return TREE_OPERAND (t, 1);
+  else if (TREE_CODE (t) == GIMPLE_MODIFY_STMT)
+    return GIMPLE_STMT_OPERAND (t, 1);
   gcc_unreachable ();
 }
 
 
-/* Given a tree node T, which is either a PHI_NODE or a MODIFY_EXPR,
+/* Given a tree node T, which is either a PHI_NODE or a GIMPLE_MODIFY_STMT,
    return the "lhs" of the node.  */
 
 static tree
@@ -2114,8 +2135,8 @@ get_lhs_or_phi_result (tree t)
 {
   if (TREE_CODE (t) == PHI_NODE)
     return PHI_RESULT (t);
-  else if (TREE_CODE (t) == MODIFY_EXPR)
-    return TREE_OPERAND (t, 0);
+  else if (TREE_CODE (t) == GIMPLE_MODIFY_STMT)
+    return GIMPLE_STMT_OPERAND (t, 0);
   gcc_unreachable ();
 }
 
@@ -2179,6 +2200,8 @@ propagate_rhs_into_lhs (tree stmt, tree lhs, tree rhs, bitmap interesting_names)
 	      fprintf (dump_file, "\n");
 	    }
 
+	  push_stmt_changes (&use_stmt);
+
 	  /* Propagate the RHS into this use of the LHS.  */
 	  FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
 	    propagate_value (use_p, rhs);
@@ -2213,6 +2236,8 @@ propagate_rhs_into_lhs (tree stmt, tree lhs, tree rhs, bitmap interesting_names)
 		  tree result = get_lhs_or_phi_result (use_stmt);
 		  bitmap_set_bit (interesting_names, SSA_NAME_VERSION (result));
 		}
+
+	      discard_stmt_changes (&use_stmt);
 	      continue;
 	    }
 
@@ -2225,7 +2250,7 @@ propagate_rhs_into_lhs (tree stmt, tree lhs, tree rhs, bitmap interesting_names)
 	  /* Sometimes propagation can expose new operands to the
 	     renamer.  Note this will call update_stmt at the 
 	     appropriate time.  */
-	  mark_new_vars_to_rename (use_stmt);
+	  pop_stmt_changes (&use_stmt);
 
 	  /* Dump details.  */
 	  if (dump_file && (dump_flags & TDF_DETAILS))
@@ -2237,9 +2262,10 @@ propagate_rhs_into_lhs (tree stmt, tree lhs, tree rhs, bitmap interesting_names)
 
 	  /* If we replaced a variable index with a constant, then
 	     we would need to update the invariant flag for ADDR_EXPRs.  */
-	  if (TREE_CODE (use_stmt) == MODIFY_EXPR
-	      && TREE_CODE (TREE_OPERAND (use_stmt, 1)) == ADDR_EXPR)
-	    recompute_tree_invariant_for_addr_expr (TREE_OPERAND (use_stmt, 1));
+	  if (TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
+	      && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == ADDR_EXPR)
+	    recompute_tree_invariant_for_addr_expr
+	      (GIMPLE_STMT_OPERAND (use_stmt, 1));
 
 	  /* If we cleaned up EH information from the statement,
 	     mark its containing block as needing EH cleanups.  */
@@ -2252,10 +2278,11 @@ propagate_rhs_into_lhs (tree stmt, tree lhs, tree rhs, bitmap interesting_names)
 
 	  /* Propagation may expose new trivial copy/constant propagation
 	     opportunities.  */
-	  if (TREE_CODE (use_stmt) == MODIFY_EXPR
-	      && TREE_CODE (TREE_OPERAND (use_stmt, 0)) == SSA_NAME
-	      && (TREE_CODE (TREE_OPERAND (use_stmt, 1)) == SSA_NAME
-		  || is_gimple_min_invariant (TREE_OPERAND (use_stmt, 1))))
+	  if (TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
+	      && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 0)) == SSA_NAME
+	      && (TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == SSA_NAME
+		  || is_gimple_min_invariant (GIMPLE_STMT_OPERAND (use_stmt,
+		      						   1))))
 	    {
 	      tree result = get_lhs_or_phi_result (use_stmt);
 	      bitmap_set_bit (interesting_names, SSA_NAME_VERSION (result));
@@ -2439,6 +2466,7 @@ static unsigned int
 eliminate_degenerate_phis (void)
 {
   bitmap interesting_names;
+  bitmap interesting_names1;
 
   /* Bitmap of blocks which need EH information updated.  We can not
      update it on-the-fly as doing so invalidates the dominator tree.  */
@@ -2455,6 +2483,7 @@ eliminate_degenerate_phis (void)
      Experiments have show we generally get better compilation
      time behavior with bitmaps rather than sbitmaps.  */
   interesting_names = BITMAP_ALLOC (NULL);
+  interesting_names1 = BITMAP_ALLOC (NULL);
 
   /* First phase.  Eliminate degenerate PHIs via a dominator
      walk of the CFG.
@@ -2476,7 +2505,12 @@ eliminate_degenerate_phis (void)
       unsigned int i;
       bitmap_iterator bi;
 
-      EXECUTE_IF_SET_IN_BITMAP (interesting_names, 0, i, bi)
+      /* EXECUTE_IF_SET_IN_BITMAP does not like its bitmap
+	 changed during the loop.  Copy it to another bitmap and
+	 use that.  */
+      bitmap_copy (interesting_names1, interesting_names);
+
+      EXECUTE_IF_SET_IN_BITMAP (interesting_names1, 0, i, bi)
 	{
 	  tree name = ssa_name (i);
 
@@ -2497,6 +2531,7 @@ eliminate_degenerate_phis (void)
     }
 
   BITMAP_FREE (interesting_names);
+  BITMAP_FREE (interesting_names1);
   if (cfg_altered)
     free_dominance_info (CDI_DOMINATORS);
   return 0;
@@ -2513,7 +2548,7 @@ struct tree_opt_pass pass_phi_only_cprop =
   TV_TREE_PHI_CPROP,                    /* tv_id */
   PROP_cfg | PROP_ssa | PROP_alias,     /* properties_required */
   0,                                    /* properties_provided */
-  PROP_smt_usage,                       /* properties_destroyed */
+  0,		                        /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_cleanup_cfg | TODO_dump_func 
     | TODO_ggc_collect | TODO_verify_ssa

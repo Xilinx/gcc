@@ -1,5 +1,5 @@
 /* Mudflap: narrow-pointer bounds-checking by tree rewriting.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
    Contributed by Frank Ch. Eigler <fche@redhat.com>
    and Graydon Hoare <graydon@redhat.com>
    Splay Tree code originally by Mark Mitchell <mark@markmitchell.com>,
@@ -300,6 +300,9 @@ __mf_set_default_options ()
   __mf_opts.timestamps = 1;
   __mf_opts.mudflap_mode = mode_check;
   __mf_opts.violation_mode = viol_nop;
+#ifdef HAVE___LIBC_FREERES
+  __mf_opts.call_libc_freeres = 1;
+#endif
   __mf_opts.heur_std_data = 1;
 #ifdef LIBMUDFLAPTH
   __mf_opts.thread_stack = 0;
@@ -365,6 +368,11 @@ options [] =
     {"print-leaks",
      "print any memory leaks at program shutdown",
      set_option, 1, &__mf_opts.print_leaks},
+#ifdef HAVE___LIBC_FREERES
+    {"libc-freeres",
+     "call glibc __libc_freeres at shutdown for better leak data",
+     set_option, 1, &__mf_opts.call_libc_freeres},
+#endif
     {"check-initialization",
      "detect uninitialized object reads",
      set_option, 1, &__mf_opts.check_initialization},
@@ -1071,24 +1079,80 @@ __mf_uncache_object (__mf_object_t *old_obj)
   /* Can it possibly exist in the cache?  */
   if (LIKELY (old_obj->read_count + old_obj->write_count))
     {
-      /* As reported by Herman ten Brugge, we need to scan the entire
-         cache for entries that may hit this object. */
       uintptr_t low = old_obj->low;
       uintptr_t high = old_obj->high;
-      struct __mf_cache *entry = & __mf_lookup_cache [0];
+      struct __mf_cache *entry;
       unsigned i;
-      for (i = 0; i <= __mf_lc_mask; i++, entry++)
-        {
-          /* NB: the "||" in the following test permits this code to
-             tolerate the situation introduced by __mf_check over
-             contiguous objects, where a cache entry spans several
-             objects.  */
-          if (entry->low == low || entry->high == high)
+      if ((high - low) >= (__mf_lc_mask << __mf_lc_shift))
+	{
+	  /* For large objects (>= cache size - 1) check the whole cache.  */
+          entry = & __mf_lookup_cache [0];
+          for (i = 0; i <= __mf_lc_mask; i++, entry++)
             {
-              entry->low = MAXPTR;
-              entry->high = MINPTR;
+              /* NB: the "||" in the following test permits this code to
+                 tolerate the situation introduced by __mf_check over
+                 contiguous objects, where a cache entry spans several
+                 objects.  */
+              if (entry->low == low || entry->high == high)
+                {
+                  entry->low = MAXPTR;
+                  entry->high = MINPTR;
+                }
             }
         }
+      else
+	{
+	  /* Object is now smaller then cache size.  */
+          unsigned entry_low_idx = __MF_CACHE_INDEX (low);
+          unsigned entry_high_idx = __MF_CACHE_INDEX (high);
+          if (entry_low_idx <= entry_high_idx)
+	    {
+              entry = & __mf_lookup_cache [entry_low_idx];
+              for (i = entry_low_idx; i <= entry_high_idx; i++, entry++)
+                {
+                  /* NB: the "||" in the following test permits this code to
+                     tolerate the situation introduced by __mf_check over
+                     contiguous objects, where a cache entry spans several
+                     objects.  */
+                  if (entry->low == low || entry->high == high)
+                    {
+                      entry->low = MAXPTR;
+                      entry->high = MINPTR;
+                    }
+                }
+            }
+          else
+	    {
+	      /* Object wrapped around the end of the cache. First search
+		 from low to end of cache and then from 0 to high.  */
+              entry = & __mf_lookup_cache [entry_low_idx];
+              for (i = entry_low_idx; i <= __mf_lc_mask; i++, entry++)
+                {
+                  /* NB: the "||" in the following test permits this code to
+                     tolerate the situation introduced by __mf_check over
+                     contiguous objects, where a cache entry spans several
+                     objects.  */
+                  if (entry->low == low || entry->high == high)
+                    {
+                      entry->low = MAXPTR;
+                      entry->high = MINPTR;
+                    }
+                }
+              entry = & __mf_lookup_cache [0];
+              for (i = 0; i <= entry_high_idx; i++, entry++)
+                {
+                  /* NB: the "||" in the following test permits this code to
+                     tolerate the situation introduced by __mf_check over
+                     contiguous objects, where a cache entry spans several
+                     objects.  */
+                  if (entry->low == low || entry->high == high)
+                    {
+                      entry->low = MAXPTR;
+                      entry->high = MINPTR;
+                    }
+                }
+	    }
+	}
     }
 }
 
@@ -1323,10 +1387,15 @@ __mfu_unregister (void *ptr, size_t sz, int type)
                 (old_obj->type == __MF_TYPE_HEAP
                  || old_obj->type == __MF_TYPE_HEAP_I))
               {
+		/* The problem with a warning message here is that we may not
+		   be privy to accesses to such objects that occur within
+		   uninstrumented libraries.  */
+#if 0
                 fprintf (stderr,
                          "*******\n"
                          "mudflap warning: unaccessed registered object:\n");
                 __mf_describe_object (old_obj);
+#endif
               }
           }
 
@@ -1855,6 +1924,14 @@ __mfu_report ()
 
       /* Free up any remaining alloca()'d blocks.  */
       __mf_wrap_alloca_indirect (0);
+#ifdef HAVE___LIBC_FREERES
+      if (__mf_opts.call_libc_freeres)
+        {
+          extern void __libc_freeres (void);
+          __libc_freeres ();
+        }
+#endif
+
       __mf_describe_object (NULL); /* Reset description epoch.  */
       l = __mf_report_leaks ();
       fprintf (stderr, "number of leaked objects: %u\n", l);

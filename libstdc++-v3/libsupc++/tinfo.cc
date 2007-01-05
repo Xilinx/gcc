@@ -44,13 +44,17 @@ std::type_info::
 std::bad_cast::~bad_cast() throw() { }
 std::bad_typeid::~bad_typeid() throw() { }
 
-#if !__GXX_MERGED_TYPEINFO_NAMES
+#if !__GXX_TYPEINFO_EQUALITY_INLINE
 
 // We can't rely on common symbols being shared between shared objects.
 bool std::type_info::
 operator== (const std::type_info& arg) const
 {
+#if __GXX_MERGED_TYPEINFO_NAMES
+  return name () == arg.name ();
+#else
   return (&arg == this) || (__builtin_strcmp (name (), arg.name ()) == 0);
+#endif
 }
 
 #endif
@@ -486,9 +490,9 @@ __do_dyncast (ptrdiff_t src2dst,
           result.whole2dst =
               __sub_kind (result.whole2dst | result2.whole2dst);
         }
-      else if ((result.dst_ptr != 0 & result2.dst_ptr != 0)
-	       || (result.dst_ptr != 0 & result2_ambig)
-	       || (result2.dst_ptr != 0 & result_ambig))
+      else if ((result.dst_ptr != 0 && result2.dst_ptr != 0)
+	       || (result.dst_ptr != 0 && result2_ambig)
+	       || (result2.dst_ptr != 0 && result_ambig))
         {
           // Found two different DST_TYPE bases, or a valid one and a set of
           // ambiguous ones, must disambiguate. See whether SRC_PTR is

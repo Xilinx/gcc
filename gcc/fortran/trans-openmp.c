@@ -111,7 +111,7 @@ gfc_omp_clause_default_ctor (tree clause ATTRIBUTE_UNUSED, tree decl)
      "not currently allocated" allocation status.  */
   gfc_init_block (&block);
 
-  gfc_conv_descriptor_data_set (&block, decl, null_pointer_node);
+  gfc_conv_descriptor_data_set_tuples (&block, decl, null_pointer_node);
 
   return gfc_finish_block (&block);
 }
@@ -300,6 +300,7 @@ gfc_trans_omp_array_reduction (tree c, gfc_symbol *sym, locus where)
   init_val_sym.ts = sym->ts;
   init_val_sym.attr.referenced = 1;
   init_val_sym.declared_at = where;
+  init_val_sym.attr.flavor = FL_VARIABLE;
   backend_decl = omp_reduction_init (c, gfc_sym_type (&init_val_sym));
   init_val_sym.backend_decl = backend_decl;
 
@@ -308,6 +309,7 @@ gfc_trans_omp_array_reduction (tree c, gfc_symbol *sym, locus where)
   outer_sym.as = gfc_copy_array_spec (sym->as);
   outer_sym.attr.dummy = 0;
   outer_sym.attr.result = 0;
+  outer_sym.attr.flavor = FL_VARIABLE;
   outer_sym.backend_decl = create_tmp_var_raw (TREE_TYPE (decl), NULL);
 
   /* Create fake symtrees for it.  */
@@ -424,7 +426,7 @@ gfc_trans_omp_array_reduction (tree c, gfc_symbol *sym, locus where)
 
   /* Create the init statement list.  */
   pushlevel (0);
-  stmt = gfc_trans_assignment (e1, e2);
+  stmt = gfc_trans_assignment (e1, e2, false);
   if (TREE_CODE (stmt) != BIND_EXPR)
     stmt = build3_v (BIND_EXPR, NULL, stmt, poplevel (1, 0, 0));
   else
@@ -433,7 +435,7 @@ gfc_trans_omp_array_reduction (tree c, gfc_symbol *sym, locus where)
 
   /* Create the merge statement list.  */
   pushlevel (0);
-  stmt = gfc_trans_assignment (e3, e4);
+  stmt = gfc_trans_assignment (e3, e4, false);
   if (TREE_CODE (stmt) != BIND_EXPR)
     stmt = build3_v (BIND_EXPR, NULL, stmt, poplevel (1, 0, 0));
   else
@@ -830,7 +832,7 @@ gfc_trans_omp_atomic (gfc_code *code)
 	  tree accum = gfc_create_var (TREE_TYPE (rse.expr), NULL);
 	  gfc_actual_arglist *arg;
 
-	  gfc_add_modify_expr (&block, accum, rse.expr);
+	  gfc_add_modify_stmt (&block, accum, rse.expr);
 	  for (arg = expr2->value.function.actual->next->next; arg;
 	       arg = arg->next)
 	    {
@@ -838,7 +840,7 @@ gfc_trans_omp_atomic (gfc_code *code)
 	      gfc_conv_expr (&rse, arg->expr);
 	      gfc_add_block_to_block (&block, &rse.pre);
 	      x = fold_build2 (op, TREE_TYPE (accum), accum, rse.expr);
-	      gfc_add_modify_expr (&block, accum, x);
+	      gfc_add_modify_stmt (&block, accum, x);
 	    }
 
 	  rse.expr = accum;
@@ -955,11 +957,11 @@ gfc_trans_omp_do (gfc_code *code, stmtblock_t *pblock,
   /* Loop body.  */
   if (simple)
     {
-      init = build2_v (MODIFY_EXPR, dovar, from);
+      init = build2_v (GIMPLE_MODIFY_STMT, dovar, from);
       cond = build2 (simple > 0 ? LE_EXPR : GE_EXPR, boolean_type_node,
 		     dovar, to);
       incr = fold_build2 (PLUS_EXPR, type, dovar, step);
-      incr = fold_build2 (MODIFY_EXPR, type, dovar, incr);
+      incr = fold_build2 (GIMPLE_MODIFY_STMT, type, dovar, incr);
       if (pblock != &block)
 	{
 	  pushlevel (0);
@@ -981,10 +983,10 @@ gfc_trans_omp_do (gfc_code *code, stmtblock_t *pblock,
       tmp = fold_build2 (TRUNC_DIV_EXPR, type, tmp, step);
       tmp = gfc_evaluate_now (tmp, pblock);
       count = gfc_create_var (type, "count");
-      init = build2_v (MODIFY_EXPR, count, build_int_cst (type, 0));
+      init = build2_v (GIMPLE_MODIFY_STMT, count, build_int_cst (type, 0));
       cond = build2 (LT_EXPR, boolean_type_node, count, tmp);
       incr = fold_build2 (PLUS_EXPR, type, count, build_int_cst (type, 1));
-      incr = fold_build2 (MODIFY_EXPR, type, count, incr);
+      incr = fold_build2 (GIMPLE_MODIFY_STMT, type, count, incr);
 
       if (pblock != &block)
 	{
@@ -996,7 +998,7 @@ gfc_trans_omp_do (gfc_code *code, stmtblock_t *pblock,
       /* Initialize DOVAR.  */
       tmp = fold_build2 (MULT_EXPR, type, count, step);
       tmp = build2 (PLUS_EXPR, type, from, tmp);
-      gfc_add_modify_expr (&body, dovar, tmp);
+      gfc_add_modify_stmt (&body, dovar, tmp);
     }
 
   if (!dovar_found)

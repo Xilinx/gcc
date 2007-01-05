@@ -27,7 +27,7 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-/** @file
+/** @file tr1/functional
  *  This is a TR1 C++ Library header.
  */
 
@@ -514,9 +514,10 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
    */
   template<typename _Tp>
     struct is_bind_expression
-    {
-      static const bool value = false;
-    };
+    { static const bool value = false; };
+
+  template<typename _Tp>
+    const bool is_bind_expression<_Tp>::value;
 
   /**
    *  @brief Determines if the given type _Tp is a placeholder in a
@@ -524,9 +525,10 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
    */
   template<typename _Tp>
     struct is_placeholder
-    {
-      static const int value = 0;
-    };
+    { static const int value = 0; };
+
+  template<typename _Tp>
+    const int is_placeholder<_Tp>::value;
 
   /**
    *  @if maint
@@ -543,9 +545,10 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
    */
   template<int _Num>
     struct is_placeholder<_Placeholder<_Num> >
-    {
-      static const int value = _Num;
-    };
+    { static const int value = _Num; };
+
+  template<int _Num>
+    const int is_placeholder<_Placeholder<_Num> >::value;
 
   /**
    *  @if maint
@@ -714,10 +717,11 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
    *  @endif
    */
    template<typename _Signature>
-    struct is_bind_expression<_Bind<_Signature> >
-    {
-      static const bool value = true;
-    };
+     struct is_bind_expression<_Bind<_Signature> >
+     { static const bool value = true; };
+
+   template<typename _Signature>
+     const bool is_bind_expression<_Bind<_Signature> >::value;
 
   /**
    *  @if maint
@@ -725,10 +729,11 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
    *  @endif
    */
    template<typename _Result, typename _Signature>
-   struct is_bind_expression<_Bind_result<_Result, _Signature> >
-    {
-      static const bool value = true;
-    };
+     struct is_bind_expression<_Bind_result<_Result, _Signature> >
+     { static const bool value = true; };
+
+   template<typename _Result, typename _Signature>
+     const bool is_bind_expression<_Bind_result<_Result, _Signature> >::value;
 
   /**
    *  @brief Exception class thrown when class template function's
@@ -1085,6 +1090,10 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       __x.swap(__y);
     }
 
+_GLIBCXX_END_NAMESPACE
+}
+
+
 #define _GLIBCXX_JOIN(X,Y) _GLIBCXX_JOIN2( X , Y )
 #define _GLIBCXX_JOIN2(X,Y) _GLIBCXX_JOIN3(X,Y)
 #define _GLIBCXX_JOIN3(X,Y) X##Y
@@ -1094,6 +1103,11 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 #undef _GLIBCXX_JOIN3
 #undef _GLIBCXX_JOIN2
 #undef _GLIBCXX_JOIN
+
+
+namespace std
+{
+_GLIBCXX_BEGIN_NAMESPACE(tr1)
 
   // Definition of default hash function std::tr1::hash<>.  The types for
   // which std::tr1::hash<T> is defined is in clause 6.3.3. of the PDTR.
@@ -1118,9 +1132,11 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
   _TR1_hashtable_define_trivial_hash(short);
   _TR1_hashtable_define_trivial_hash(int);
   _TR1_hashtable_define_trivial_hash(long);
+  _TR1_hashtable_define_trivial_hash(long long);
   _TR1_hashtable_define_trivial_hash(unsigned short);
   _TR1_hashtable_define_trivial_hash(unsigned int);
   _TR1_hashtable_define_trivial_hash(unsigned long);
+  _TR1_hashtable_define_trivial_hash(unsigned long long);
 
 #undef _TR1_hashtable_define_trivial_hash
 

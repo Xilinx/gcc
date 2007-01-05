@@ -140,6 +140,7 @@ fix = {
     files    = asm/posix_types.h;
     mach     = 'i[34567]86-*-linux*';
     bypass   = '} while';
+    bypass   = 'x86_64';
 
     /*
      * Define _POSIX_TYPES_H_WRAPPER at the end of the wrapper, not
@@ -1288,6 +1289,81 @@ fix = {
 };
 
 
+/*
+ *  Some versions of glibc don't expect the C99 inline semantics.
+ */
+fix = {
+    hackname  = glibc_c99_inline_1;
+    files     = features.h;
+    select    = "^ *&& !defined __OPTIMIZE_SIZE__ && !defined __NO_INLINE__$";
+    c_fix     = format;
+    c_fix_arg = "%0 && __STDC_VERSION__ < 199901L";
+    test_text = <<-EOT
+#if __GNUC_PREREQ (2, 7) && defined __OPTIMIZE__ \
+    && !defined __OPTIMIZE_SIZE__ && !defined __NO_INLINE__
+# define __USE_EXTERN_INLINES	1
+#endif
+EOT;
+};
+
+
+/*
+ * The glibc_c99_inline_1 fix should have fixed everything.  Unfortunately
+ * there are many glibc headers which do not respect __USE_EXTERN_INLINES.
+ * The remaining glibc_c99_inline_* fixes deal with some of those headers.
+ */
+fix = {
+    hackname  = glibc_c99_inline_2;
+    files     = sys/stat.h;
+    select    = "extern __inline__ int";
+    sed	      = "s/extern int \\(stat\\|lstat\\|fstat\\|mknod\\)/"
+		"#if __STDC_VERSION__ < 199901L\\\nextern\\\n#endif\\\n"
+    		"__inline__ int \\1/";
+    sed	      = "s/extern int __REDIRECT\\(_NTH\\|\\) (\\(stat\\|lstat\\|fstat\\)/"
+		"#if __STDC_VERSION__ < 199901L\\\nextern\\\n#endif\\\n"
+    		"__inline__ int __REDIRECT\\1 (\\2/";
+    sed	      = "s/^extern __inline__ int/"
+		"#if __STDC_VERSION__ < 199901L\\\nextern\\\n#endif\\\n"
+		"__inline__ int/";
+    test_text = <<-EOT
+extern int fstat64 (int __fd, struct stat64 *__buf) __THROW __nonnull ((2));
+extern __inline__ int
+__NTH (fstat64 (int __fd, struct stat64 *__statbuf))
+{}
+EOT;
+};
+
+
+fix = {
+    hackname  = glibc_c99_inline_3;
+    files     = bits/string2.h;
+    bypass    = "__STDC_VERSION__";
+    c_fix     = format;
+    c_fix_arg = "# if defined(__cplusplus) || __STDC_VERSION__ >= 19901L";
+    c_fix_arg = "^# ifdef __cplusplus$";
+    test_text = <<-EOT
+# ifdef __cplusplus
+#  define __STRING_INLINE inline
+# else
+#  define __STRING_INLINE extern __inline
+# endif
+EOT;
+};
+
+
+fix = {
+    hackname  = glibc_c99_inline_4;
+    files     = sys/sysmacros.h;
+    bypass    = "__STDC_VERSION__";
+    c_fix     = format;
+    c_fix_arg = "\n#if __STDC_VERSION__ < 19901L\nextern\n#endif\n";
+    c_fix_arg = "extern";
+    test_text = <<-EOT
+__extension__ extern __inline unsigned int
+EOT;
+};
+
+
 /*  glibc-2.3.5 defines pthread mutex initializers incorrectly,
  *  so we replace them with versions that correspond to the
  *  definition.
@@ -1777,6 +1853,26 @@ fix = {
     c_fix_arg = "#ifdef _KERNEL\n%0\n#endif";
 
     test_text = "extern union mpinfou spu_info[];";
+};
+
+fix = {
+    hackname  = hpux11_extern_sendfile;
+    mach      = "*-hp-hpux11.[12]*";
+    files     = sys/socket.h;
+    select    = "^[ \t]*extern sbsize_t sendfile.*\n.*, int\\)\\);\n";
+    c_fix     = format;
+    c_fix_arg = "#ifndef _APP32_64BIT_OFF_T\n%0#endif\n";
+    test_text = "   extern sbsize_t sendfile __((int, int, off_t, bsize_t,\n                               const struct iovec *, int));\n";
+};
+
+fix = {
+    hackname  = hpux11_extern_sendpath;
+    mach      = "*-hp-hpux11.[12]*";
+    files     = sys/socket.h;
+    select    = "^[ \t]*extern sbsize_t sendpath.*\n.*, int\\)\\);\n";
+    c_fix     = format;
+    c_fix_arg = "#ifndef _APP32_64BIT_OFF_T\n%0#endif\n";
+    test_text = "   extern sbsize_t sendpath __((int, int, off_t, bsize_t,\n                               const struct iovec *, int));\n";
 };
 
 fix = {

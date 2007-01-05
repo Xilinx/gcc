@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for IBM RS/6000.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -68,6 +68,7 @@
   %{mno-power: %{!mpowerpc*: -mcom}} \
   %{!mno-power: %{!mpower*: %(asm_default)}}} \
 %{mcpu=common: -mcom} \
+%{mcpu=cell: -mcell} \
 %{mcpu=power: -mpwr} \
 %{mcpu=power2: -mpwrx} \
 %{mcpu=power3: -mppc64} \
@@ -75,6 +76,7 @@
 %{mcpu=power5: -mpower4} \
 %{mcpu=power5+: -mpower4} \
 %{mcpu=power6: -mpower4 -maltivec} \
+%{mcpu=power6x: -mpower4 -maltivec} \
 %{mcpu=powerpc: -mppc} \
 %{mcpu=rios: -mpwr} \
 %{mcpu=rios1: -mpwr} \
@@ -162,6 +164,14 @@
 #define TARGET_FPRND 0
 #endif
 
+/* Define TARGET_MFPGPR if the target assembler does not support the
+   mffpr and mftgpr instructions. */
+
+#ifndef HAVE_AS_MFPGPR
+#undef  TARGET_MFPGPR
+#define TARGET_MFPGPR 0
+#endif
+
 #ifndef TARGET_SECURE_PLT
 #define TARGET_SECURE_PLT 0
 #endif
@@ -212,7 +222,9 @@ enum processor_type
    PROCESSOR_PPC7450,
    PROCESSOR_PPC8540,
    PROCESSOR_POWER4,
-   PROCESSOR_POWER5
+   PROCESSOR_POWER5,
+   PROCESSOR_POWER6,
+   PROCESSOR_CELL
 };
 
 extern enum processor_type rs6000_cpu;
@@ -329,6 +341,10 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 #define TARGET_FPRS 1
 #define TARGET_E500_SINGLE 0
 #define TARGET_E500_DOUBLE 0
+#define CHECK_E500_OPTIONS do { } while (0)
+
+/* E500 processors only support plain "sync", not lwsync.  */
+#define TARGET_NO_LWSYNC TARGET_E500
 
 /* Sometimes certain combinations of command options do not make sense
    on a particular target machine.  You can define a macro
@@ -612,8 +628,23 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 #define DWARF_REG_TO_UNWIND_COLUMN(r) \
   ((r) > 1200 ? ((r) - 1200 + FIRST_PSEUDO_REGISTER - 1) : (r))
 
+/* Use standard DWARF numbering for DWARF debugging information.  */
+#define DBX_REGISTER_NUMBER(REGNO) rs6000_dbx_register_number (REGNO)
+
 /* Use gcc hard register numbering for eh_frame.  */
 #define DWARF_FRAME_REGNUM(REGNO) (REGNO)
+
+/* Map register numbers held in the call frame info that gcc has
+   collected using DWARF_FRAME_REGNUM to those that should be output in
+   .debug_frame and .eh_frame.  We continue to use gcc hard reg numbers
+   for .eh_frame, but use the numbers mandated by the various ABIs for
+   .debug_frame.  rs6000_emit_prologue has translated any combination of
+   CR2, CR3, CR4 saves to a save of CR2.  The actual code emitted saves
+   the whole of CR, so we map CR2_REGNO to the DWARF reg for CR.  */
+#define DWARF2_FRAME_REG_OUT(REGNO, FOR_EH)	\
+  ((FOR_EH) ? (REGNO)				\
+   : (REGNO) == CR2_REGNO ? 64			\
+   : DBX_REGISTER_NUMBER (REGNO))
 
 /* 1 for registers that have pervasive standard uses
    and are not available for the register allocator.
@@ -1094,12 +1125,18 @@ enum reg_class
   rs6000_secondary_reload_class (CLASS, MODE, IN)
 
 /* If we are copying between FP or AltiVec registers and anything
-   else, we need a memory location.  */
+   else, we need a memory location.  The exception is when we are
+   targeting ppc64 and the move to/from fpr to gpr instructions
+   are available.*/
 
-#define SECONDARY_MEMORY_NEEDED(CLASS1,CLASS2,MODE) 		\
- ((CLASS1) != (CLASS2) && ((CLASS1) == FLOAT_REGS		\
-			   || (CLASS2) == FLOAT_REGS		\
-			   || (CLASS1) == ALTIVEC_REGS		\
+#define SECONDARY_MEMORY_NEEDED(CLASS1,CLASS2,MODE)			\
+ ((CLASS1) != (CLASS2) && (((CLASS1) == FLOAT_REGS			\
+                            && (!TARGET_MFPGPR || !TARGET_POWERPC64	\
+				|| ((MODE != DFmode) && (MODE != DImode)))) \
+			   || ((CLASS2) == FLOAT_REGS			\
+                               && (!TARGET_MFPGPR || !TARGET_POWERPC64	\
+				|| ((MODE != DFmode) && (MODE != DImode)))) \
+			   || (CLASS1) == ALTIVEC_REGS			\
 			   || (CLASS2) == ALTIVEC_REGS))
 
 /* Return the maximum number of consecutive registers

@@ -1,3 +1,37 @@
+2007-01-05  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* Merge from mainline (r117661:120450).
+
+2006-10-12  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* tree-scalar-evolution.c (instantiate_parameters_1): Don't stop
+	at the first declaration outside the varying loop, instantiate as
+	far as possible.
+	* tree-chrec.c (for_each_scev_op): New.
+	* tree-chrec.h (for_each_scev_op): Declared.
+	* tree-ssa-loop.c (pass_graphite_trans): Don't dump the function.
+	* tree-data-ref.c (get_references_in_stmt, 
+	find_data_references_in_stmt): New, from trunk.
+	(find_data_references_in_loop): Use get_references_in_stmt
+	and find_data_references_in_loop, modified as in trunk.
+	(build_access_matrix_with_af): New.
+	* tree-data-ref.h (data_reference): Add a field access_matrix.
+	(data_ref_loc): New, as in trunk.
+	* graphite.c (print_graphite_bb, bb_in_scop_p, stmt_in_scop_p,
+	invariant_in_scop_p, param_index, scan_tree_for_params, 
+	scop_loop_index, build_scop_loop_nests, build_scop_domain, irp_data,
+	idx_record_param, idx_record_params, build_access_matrix, 
+	build_scop_data_accesses, build_scop_canonical_schedules, 
+	build_graphite_bb, build_scop_bbs, find_params_in_bb, 
+	build_scop_params): New.
+	* graphite.h (graphite_bb): New.
+	(scop): Add fields static_schedule, params, loop_nest,
+	iteration_domain.
+	* lambda.h: Declare vecs of lambda_matrix.
+	* tree-flow.h (print_loop_ir_bb): Declared.
+	* tree-cfg.c (print_loop_ir_bb): New.
+	(print_loop): Use print_loop_ir_bb.
+
 2006-10-12  Sebastian Pop  <pop@cri.ensmp.fr>
 
 	* Merge from mainline (r115016:117632).

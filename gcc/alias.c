@@ -293,6 +293,26 @@ insert_subset_children (splay_tree_node node, void *data)
   return 0;
 }
 
+/* Return true if the first alias set is a subset of the second.  */
+
+bool
+alias_set_subset_of (HOST_WIDE_INT set1, HOST_WIDE_INT set2)
+{
+  alias_set_entry ase;
+
+  /* Everything is a subset of the "aliases everything" set.  */
+  if (set2 == 0)
+    return true;
+
+  /* Otherwise, check if set1 is a subset of set2.  */
+  ase = get_alias_set_entry (set2);
+  if (ase != 0
+      && (splay_tree_lookup (ase->children,
+			     (splay_tree_key) set1)))
+    return true;
+  return false;
+}
+
 /* Return 1 if the two specified alias sets may conflict.  */
 
 int
@@ -1857,13 +1877,15 @@ fixed_scalar_and_varying_struct_p (rtx mem1, rtx mem2, rtx mem1_addr,
   if (! flag_strict_aliasing)
     return NULL_RTX;
 
-  if (MEM_SCALAR_P (mem1) && MEM_IN_STRUCT_P (mem2)
+  if (MEM_ALIAS_SET (mem2)
+      && MEM_SCALAR_P (mem1) && MEM_IN_STRUCT_P (mem2)
       && !varies_p (mem1_addr, 1) && varies_p (mem2_addr, 1))
     /* MEM1 is a scalar at a fixed address; MEM2 is a struct at a
        varying address.  */
     return mem1;
 
-  if (MEM_IN_STRUCT_P (mem1) && MEM_SCALAR_P (mem2)
+  if (MEM_ALIAS_SET (mem1)
+      && MEM_IN_STRUCT_P (mem1) && MEM_SCALAR_P (mem2)
       && varies_p (mem1_addr, 1) && !varies_p (mem2_addr, 1))
     /* MEM2 is a scalar at a fixed address; MEM1 is a struct at a
        varying address.  */
@@ -2149,7 +2171,7 @@ true_dependence (rtx mem, enum machine_mode mem_mode, rtx x,
     return 1;
 
   /* (mem:BLK (scratch)) is a special mechanism to conflict with everything.
-     This is used in epilogue deallocation functions.  */
+     This is used in epilogue deallocation functions, and in cselib.  */
   if (GET_MODE (x) == BLKmode && GET_CODE (XEXP (x, 0)) == SCRATCH)
     return 1;
   if (GET_MODE (mem) == BLKmode && GET_CODE (XEXP (mem, 0)) == SCRATCH)
@@ -2431,9 +2453,7 @@ init_alias_analysis (void)
   if (reg_base_value)
     VEC_truncate (rtx, reg_base_value, 0);
 
-  VEC_safe_grow (rtx, gc, reg_base_value, maxreg);
-  memset (VEC_address (rtx, reg_base_value), 0,
-	  sizeof (rtx) * VEC_length (rtx, reg_base_value));
+  VEC_safe_grow_cleared (rtx, gc, reg_base_value, maxreg);
 
   new_reg_base_value = XNEWVEC (rtx, maxreg);
   reg_seen = XNEWVEC (char, maxreg);
@@ -2583,38 +2603,6 @@ init_alias_analysis (void)
   for (i = 0; i < (int)reg_known_value_size; i++)
     if (reg_known_value[i] == 0)
       reg_known_value[i] = regno_reg_rtx[i + FIRST_PSEUDO_REGISTER];
-
-  /* Simplify the reg_base_value array so that no register refers to
-     another register, except to special registers indirectly through
-     ADDRESS expressions.
-
-     In theory this loop can take as long as O(registers^2), but unless
-     there are very long dependency chains it will run in close to linear
-     time.
-
-     This loop may not be needed any longer now that the main loop does
-     a better job at propagating alias information.  */
-  pass = 0;
-  do
-    {
-      changed = 0;
-      pass++;
-      for (ui = 0; ui < maxreg; ui++)
-	{
-	  rtx base = VEC_index (rtx, reg_base_value, ui);
-	  if (base && REG_P (base))
-	    {
-	      unsigned int base_regno = REGNO (base);
-	      if (base_regno == ui)		/* register set from itself */
-		VEC_replace (rtx, reg_base_value, ui, 0);
-	      else
-		VEC_replace (rtx, reg_base_value, ui,
-			     VEC_index (rtx, reg_base_value, base_regno));
-	      changed = 1;
-	    }
-	}
-    }
-  while (changed && pass < MAX_ALIAS_LOOP_PASSES);
 
   /* Clean up.  */
   free (new_reg_base_value);

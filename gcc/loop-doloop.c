@@ -248,7 +248,7 @@ add_test (rtx cond, edge *e, basic_block dest)
   do_compare_rtx_and_jump (op0, op1, code, 0, mode, NULL_RTX, NULL_RTX, label);
 
   jump = get_last_insn ();
-  if (!JUMP_P (jump))
+  if (!jump || !JUMP_P (jump))
     {
       /* The condition is always false and the jump was optimized out.  */
       end_sequence ();
@@ -257,7 +257,11 @@ add_test (rtx cond, edge *e, basic_block dest)
 
   seq = get_insns ();
   end_sequence ();
-  bb = loop_split_edge_with (*e, seq);
+
+  /* There always is at least the jump insn in the sequence.  */
+  gcc_assert (seq != NULL_RTX);
+
+  bb = split_edge_and_insert (*e, seq);
   *e = single_succ_edge (bb);
 
   if (any_uncondjump_p (jump))
@@ -372,9 +376,9 @@ doloop_modify (struct loop *loop, struct niter_desc *desc,
       rtx ass = copy_rtx (desc->noloop_assumptions);
       basic_block preheader = loop_preheader_edge (loop)->src;
       basic_block set_zero
-	      = loop_split_edge_with (loop_preheader_edge (loop), NULL_RTX);
+	      = split_edge (loop_preheader_edge (loop));
       basic_block new_preheader
-	      = loop_split_edge_with (loop_preheader_edge (loop), NULL_RTX);
+	      = split_edge (loop_preheader_edge (loop));
       edge te;
 
       /* Expand the condition testing the assumptions and if it does not pass,
@@ -406,7 +410,6 @@ doloop_modify (struct loop *loop, struct niter_desc *desc,
 	{
 	  /* All the conditions were simplified to false, remove the
 	     unreachable set_zero block.  */
-	  remove_bb_from_loops (set_zero);
 	  delete_basic_block (set_zero);
 	}
       else
@@ -613,20 +616,16 @@ doloop_optimize (struct loop *loop)
   return true;
 }
 
-/* This is the main entry point.  Process all LOOPS using doloop_optimize.  */
+/* This is the main entry point.  Process all loops using doloop_optimize.  */
 
 void
-doloop_optimize_loops (struct loops *loops)
+doloop_optimize_loops (void)
 {
-  unsigned i;
+  loop_iterator li;
   struct loop *loop;
 
-  for (i = 1; i < loops->num; i++)
+  FOR_EACH_LOOP (li, loop, 0)
     {
-      loop = loops->parray[i];
-      if (!loop)
-	continue;
-
       doloop_optimize (loop);
     }
 
@@ -634,7 +633,7 @@ doloop_optimize_loops (struct loops *loops)
 
 #ifdef ENABLE_CHECKING
   verify_dominators (CDI_DOMINATORS);
-  verify_loop_structure (loops);
+  verify_loop_structure ();
 #endif
 }
 #endif /* HAVE_doloop_end */

@@ -43,11 +43,15 @@ extern unsigned xtensa_current_frame_size;
 
 /* Macros used in the machine description to select various Xtensa
    configuration options.  */
+#ifndef XCHAL_HAVE_MUL32_HIGH
+#define XCHAL_HAVE_MUL32_HIGH 0
+#endif
 #define TARGET_BIG_ENDIAN	XCHAL_HAVE_BE
 #define TARGET_DENSITY		XCHAL_HAVE_DENSITY
 #define TARGET_MAC16		XCHAL_HAVE_MAC16
 #define TARGET_MUL16		XCHAL_HAVE_MUL16
 #define TARGET_MUL32		XCHAL_HAVE_MUL32
+#define TARGET_MUL32_HIGH	XCHAL_HAVE_MUL32_HIGH
 #define TARGET_DIV32		XCHAL_HAVE_DIV32
 #define TARGET_NSA		XCHAL_HAVE_NSA
 #define TARGET_MINMAX		XCHAL_HAVE_MINMAX
@@ -483,75 +487,6 @@ extern const enum reg_class xtensa_regno_to_class[FIRST_PSEUDO_REGISTER];
    16 AR registers may be explicitly used in the RTL, as either
    incoming or outgoing arguments.  */
 #define SMALL_REGISTER_CLASSES 1
-
-
-/* REGISTER AND CONSTANT CLASSES */
-
-/* Get reg_class from a letter such as appears in the machine
-   description.
-
-   Available letters: a-f,h,j-l,q,t-z,A-D,W,Y-Z
-
-   DEFINED REGISTER CLASSES:
-
-   'a'  general-purpose registers except sp
-   'q'  sp (aka a1)
-   'D'	general-purpose registers (only if density option enabled)
-   'd'  general-purpose registers, including sp (only if density enabled)
-   'A'	MAC16 accumulator (only if MAC16 option enabled)
-   'B'	general-purpose registers (only if sext instruction enabled)
-   'C'  general-purpose registers (only if mul16 option enabled)
-   'W'  general-purpose registers (only if const16 option enabled)
-   'b'	coprocessor boolean registers
-   'f'	floating-point registers
-*/
-
-extern enum reg_class xtensa_char_to_class[256];
-
-#define REG_CLASS_FROM_LETTER(C) xtensa_char_to_class[ (int) (C) ]
-
-/* The letters I, J, K, L, M, N, O, and P in a register constraint
-   string can be used to stand for particular ranges of immediate
-   operands.  This macro defines what the ranges are.  C is the
-   letter, and VALUE is a constant value.  Return 1 if VALUE is
-   in the range specified by C.
-
-   For Xtensa:
-
-   I = 12-bit signed immediate for MOVI
-   J = 8-bit signed immediate for ADDI
-   K = 4-bit value in (b4const U {0})
-   L = 4-bit value in b4constu
-   M = 7-bit immediate value for MOVI.N
-   N = 8-bit unsigned immediate shifted left by 8 bits for ADDMI
-   O = 4-bit immediate for ADDI.N
-   P = valid immediate mask value for EXTUI */
-
-#define CONST_OK_FOR_LETTER_P  xtensa_const_ok_for_letter_p
-#define CONST_DOUBLE_OK_FOR_LETTER_P(VALUE, C) (0)
-
-
-/* Other letters can be defined in a machine-dependent fashion to
-   stand for particular classes of registers or other arbitrary
-   operand types.
-
-   R = memory that can be accessed with a 4-bit unsigned offset
-   T = memory in a constant pool (addressable with a pc-relative load)
-   U = memory *NOT* in a constant pool
-
-   The offset range should not be checked here (except to distinguish
-   denser versions of the instructions for which more general versions
-   are available).  Doing so leads to problems in reloading: an
-   argptr-relative address may become invalid when the phony argptr is
-   eliminated in favor of the stack pointer (the offset becomes too
-   large to fit in the instruction's immediate field); a reload is
-   generated to fix this but the RTL is not immediately updated; in
-   the meantime, the constraints are checked and none match.  The
-   solution seems to be to simply skip the offset check here.  The
-   address will be checked anyway because of the code in
-   GO_IF_LEGITIMATE_ADDRESS.  */
-
-#define EXTRA_CONSTRAINT  xtensa_extra_constraint
 
 #define PREFERRED_RELOAD_CLASS(X, CLASS)				\
   xtensa_preferred_reload_class (X, CLASS, 0)
@@ -1068,6 +1003,9 @@ typedef struct xtensa_args
 /* Value is 1 if truncating an integer of INPREC bits to OUTPREC bits
    is done just by pretending it is already truncated.  */
 #define TRULY_NOOP_TRUNCATION(OUTPREC, INPREC) 1
+
+#define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  ((VALUE) = 32, 1)
+#define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  ((VALUE) = -1, 1)
 
 /* Specify the machine mode that pointers have.
    After generation of rtl, the compiler makes no further distinction

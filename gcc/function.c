@@ -203,7 +203,7 @@ extern tree debug_find_var_in_block_tree (tree, tree);
 static void record_insns (rtx, VEC(int,heap) **) ATTRIBUTE_UNUSED;
 static int contains (rtx, VEC(int,heap) **);
 #ifdef HAVE_return
-static void emit_return_into_block (basic_block, rtx);
+static void emit_return_into_block (basic_block);
 #endif
 #if defined(HAVE_epilogue) && defined(INCOMING_RETURN_ADDR_RTX)
 static rtx keep_stack_depressed (rtx);
@@ -544,15 +544,7 @@ static struct temp_slot **
 temp_slots_at_level (int level)
 {
   if (level >= (int) VEC_length (temp_slot_p, used_temp_slots))
-    {
-      size_t old_length = VEC_length (temp_slot_p, used_temp_slots);
-      temp_slot_p *p;
-
-      VEC_safe_grow (temp_slot_p, gc, used_temp_slots, level + 1);
-      p = VEC_address (temp_slot_p, used_temp_slots);
-      memset (&p[old_length], 0,
-	      sizeof (temp_slot_p) * (level + 1 - old_length));
-    }
+    VEC_safe_grow_cleared (temp_slot_p, gc, used_temp_slots, level + 1);
 
   return &(VEC_address (temp_slot_p, used_temp_slots)[level]);
 }
@@ -1529,7 +1521,14 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	 Validate the new value vs the insn predicate.  Note that
 	 asm insns will have insn_code -1 here.  */
       if (!safe_insn_predicate (insn_code, i, x))
-	x = force_reg (insn_data[insn_code].operand[i].mode, x);
+	{
+	  start_sequence ();
+	  x = force_reg (insn_data[insn_code].operand[i].mode, x);
+	  seq = get_insns ();
+	  end_sequence ();
+	  if (seq)
+	    emit_insn_before (seq, insn);
+	}
 
       *recog_data.operand_loc[i] = recog_data.operand[i] = x;
       any_change = true;
@@ -1540,7 +1539,7 @@ instantiate_virtual_regs_in_insn (rtx insn)
       /* Propagate operand changes into the duplicates.  */
       for (i = 0; i < recog_data.n_dups; ++i)
 	*recog_data.dup_loc[i]
-	  = recog_data.operand[(unsigned)recog_data.dup_num[i]];
+	  = copy_rtx (recog_data.operand[(unsigned)recog_data.dup_num[i]]);
 
       /* Force re-recognition of the instruction for validation.  */
       INSN_CODE (insn) = -1;
@@ -1602,7 +1601,7 @@ static tree
 instantiate_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 {
   tree t = *tp;
-  if (! EXPR_P (t))
+  if (! EXPR_P (t) && ! GIMPLE_STMT_P (t))
     {
       *walk_subtrees = 0;
       if (DECL_P (t) && DECL_RTL_SET_P (t))
@@ -3220,11 +3219,11 @@ gimplify_parameters (void)
 		  t = built_in_decls[BUILT_IN_ALLOCA];
 		  t = build_function_call_expr (t, args);
 		  t = fold_convert (ptr_type, t);
-		  t = build2 (MODIFY_EXPR, void_type_node, addr, t);
+		  t = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, t);
 		  gimplify_and_add (t, &stmts);
 		}
 
-	      t = build2 (MODIFY_EXPR, void_type_node, local, parm);
+	      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, local, parm);
 	      gimplify_and_add (t, &stmts);
 
 	      SET_DECL_VALUE_EXPR (parm, local);
@@ -3529,9 +3528,8 @@ setjmp_vars_warning (tree block)
 	  && DECL_RTL_SET_P (decl)
 	  && REG_P (DECL_RTL (decl))
 	  && regno_clobbered_at_setjmp (REGNO (DECL_RTL (decl))))
-	warning (0, "variable %q+D might be clobbered by %<longjmp%>"
-		 " or %<vfork%>",
-		 decl);
+	warning (OPT_Wclobbered, "variable %q+D might be clobbered by" 
+                 " %<longjmp%> or %<vfork%>", decl);
     }
 
   for (sub = BLOCK_SUBBLOCKS (block); sub; sub = TREE_CHAIN (sub))
@@ -3550,7 +3548,8 @@ setjmp_args_warning (void)
     if (DECL_RTL (decl) != 0
 	&& REG_P (DECL_RTL (decl))
 	&& regno_clobbered_at_setjmp (REGNO (DECL_RTL (decl))))
-      warning (0, "argument %q+D might be clobbered by %<longjmp%> or %<vfork%>",
+      warning (OPT_Wclobbered, 
+               "argument %q+D might be clobbered by %<longjmp%> or %<vfork%>",
 	       decl);
 }
 
@@ -4335,19 +4334,6 @@ expand_function_end (void)
   clear_pending_stack_adjust ();
   do_pending_stack_adjust ();
 
-  /* Mark the end of the function body.
-     If control reaches this insn, the function can drop through
-     without returning a value.  */
-  emit_note (NOTE_INSN_FUNCTION_END);
-
-  /* Must mark the last line number note in the function, so that the test
-     coverage code can avoid counting the last line twice.  This just tells
-     the code to ignore the immediately following line note, since there
-     already exists a copy of this note somewhere above.  This line number
-     note is still needed for debugging though, so we can't delete it.  */
-  if (flag_test_coverage)
-    emit_note (NOTE_INSN_REPEATED_LINE_NUMBER);
-
   /* Output a linenumber for the end of the function.
      SDB depends on this.  */
   force_next_line_note ();
@@ -4653,11 +4639,9 @@ sibcall_epilogue_contains (rtx insn)
    block_for_insn appropriately.  */
 
 static void
-emit_return_into_block (basic_block bb, rtx line_note)
+emit_return_into_block (basic_block bb)
 {
   emit_jump_insn_after (gen_return (), BB_END (bb));
-  if (line_note)
-    emit_note_copy_after (line_note, PREV_INSN (BB_END (bb)));
 }
 #endif /* HAVE_return */
 
@@ -5123,18 +5107,6 @@ thread_prologue_and_epilogue_insns (rtx f ATTRIBUTE_UNUSED)
       if (BB_HEAD (last) == label && LABEL_P (label))
 	{
 	  edge_iterator ei2;
-	  rtx epilogue_line_note = NULL_RTX;
-
-	  /* Locate the line number associated with the closing brace,
-	     if we can find one.  */
-	  for (seq = get_last_insn ();
-	       seq && ! active_insn_p (seq);
-	       seq = PREV_INSN (seq))
-	    if (NOTE_P (seq) && NOTE_LINE_NUMBER (seq) > 0)
-	      {
-		epilogue_line_note = seq;
-		break;
-	      }
 
 	  for (ei2 = ei_start (last->preds); (e = ei_safe_edge (ei2)); )
 	    {
@@ -5158,7 +5130,7 @@ thread_prologue_and_epilogue_insns (rtx f ATTRIBUTE_UNUSED)
 		 with a simple return instruction.  */
 	      if (simplejump_p (jump))
 		{
-		  emit_return_into_block (bb, epilogue_line_note);
+		  emit_return_into_block (bb);
 		  delete_insn (jump);
 		}
 
@@ -5195,7 +5167,7 @@ thread_prologue_and_epilogue_insns (rtx f ATTRIBUTE_UNUSED)
 	     this is still reachable will be determined later.  */
 
 	  emit_barrier_after (BB_END (last));
-	  emit_return_into_block (last, epilogue_line_note);
+	  emit_return_into_block (last);
 	  epilogue_end = BB_END (last);
 	  single_succ_edge (last)->flags &= ~EDGE_FALLTHRU;
 	  goto epilogue_done;
@@ -5297,61 +5269,6 @@ epilogue_done:
     }
 #endif
 
-#ifdef HAVE_prologue
-  /* This is probably all useless now that we use locators.  */
-  if (prologue_end)
-    {
-      rtx insn, prev;
-
-      /* GDB handles `break f' by setting a breakpoint on the first
-	 line note after the prologue.  Which means (1) that if
-	 there are line number notes before where we inserted the
-	 prologue we should move them, and (2) we should generate a
-	 note before the end of the first basic block, if there isn't
-	 one already there.
-
-	 ??? This behavior is completely broken when dealing with
-	 multiple entry functions.  We simply place the note always
-	 into first basic block and let alternate entry points
-	 to be missed.
-       */
-
-      for (insn = prologue_end; insn; insn = prev)
-	{
-	  prev = PREV_INSN (insn);
-	  if (NOTE_P (insn) && NOTE_LINE_NUMBER (insn) > 0)
-	    {
-	      /* Note that we cannot reorder the first insn in the
-		 chain, since rest_of_compilation relies on that
-		 remaining constant.  */
-	      if (prev == NULL)
-		break;
-	      reorder_insns (insn, insn, prologue_end);
-	    }
-	}
-
-      /* Find the last line number note in the first block.  */
-      for (insn = BB_END (ENTRY_BLOCK_PTR->next_bb);
-	   insn != prologue_end && insn;
-	   insn = PREV_INSN (insn))
-	if (NOTE_P (insn) && NOTE_LINE_NUMBER (insn) > 0)
-	  break;
-
-      /* If we didn't find one, make a copy of the first line number
-	 we run across.  */
-      if (! insn)
-	{
-	  for (insn = next_active_insn (prologue_end);
-	       insn;
-	       insn = PREV_INSN (insn))
-	    if (NOTE_P (insn) && NOTE_LINE_NUMBER (insn) > 0)
-	      {
-		emit_note_copy_after (insn, prologue_end);
-		break;
-	      }
-	}
-    }
-#endif
 #ifdef HAVE_epilogue
   if (epilogue_end)
     {
@@ -5359,16 +5276,14 @@ epilogue_done:
 
       /* Similarly, move any line notes that appear after the epilogue.
          There is no need, however, to be quite so anal about the existence
-	 of such a note.  Also move the NOTE_INSN_FUNCTION_END and (possibly)
+	 of such a note.  Also possibly move
 	 NOTE_INSN_FUNCTION_BEG notes, as those can be relevant for debug
 	 info generation.  */
       for (insn = epilogue_end; insn; insn = next)
 	{
 	  next = NEXT_INSN (insn);
 	  if (NOTE_P (insn) 
-	      && (NOTE_LINE_NUMBER (insn) > 0
-		  || NOTE_LINE_NUMBER (insn) == NOTE_INSN_FUNCTION_BEG
-		  || NOTE_LINE_NUMBER (insn) == NOTE_INSN_FUNCTION_END))
+	      && (NOTE_LINE_NUMBER (insn) == NOTE_INSN_FUNCTION_BEG))
 	    reorder_insns (insn, insn, PREV_INSN (epilogue_end));
 	}
     }

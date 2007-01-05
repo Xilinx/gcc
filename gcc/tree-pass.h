@@ -68,6 +68,8 @@ enum tree_dump_index
 #define TDF_STMTADDR	(1 << 12)	/* Address of stmt.  */
 
 #define TDF_GRAPH	(1 << 13)	/* a graph dump is being emitted */
+#define TDF_MEMSYMS	(1 << 14)	/* display memory symbols in expr.
+                                           Implies TDF_VOPS.  */
 
 extern char *get_dump_file_name (enum tree_dump_index);
 extern int dump_enabled_p (enum tree_dump_index);
@@ -151,8 +153,6 @@ struct dump_file_info
 #define PROP_rtl		(1 << 8)
 #define PROP_alias		(1 << 9)
 #define PROP_gimple_lomp	(1 << 10)	/* lowered OpenMP directives */
-#define PROP_smt_usage          (1 << 11)       /* which SMT's are
-						   used alone.  */
 
 #define PROP_trees \
   (PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh | PROP_gimple_lomp)
@@ -286,7 +286,6 @@ extern struct tree_opt_pass pass_warn_function_return;
 extern struct tree_opt_pass pass_warn_function_noreturn;
 extern struct tree_opt_pass pass_phiopt;
 extern struct tree_opt_pass pass_forwprop;
-extern struct tree_opt_pass pass_redundant_phi;
 extern struct tree_opt_pass pass_dse;
 extern struct tree_opt_pass pass_nrv;
 extern struct tree_opt_pass pass_mark_used_blocks;
@@ -317,6 +316,7 @@ extern struct tree_opt_pass pass_ipa_pure_const;
 extern struct tree_opt_pass pass_ipa_type_escape;
 extern struct tree_opt_pass pass_ipa_pta;
 extern struct tree_opt_pass pass_early_local_passes;
+extern struct tree_opt_pass pass_all_early_optimizations;
 
 extern struct tree_opt_pass pass_all_optimizations;
 extern struct tree_opt_pass pass_cleanup_cfg_post_optimizing;
@@ -332,6 +332,8 @@ extern struct tree_opt_pass pass_rtl_eh;
 extern struct tree_opt_pass pass_initial_value_sets;
 extern struct tree_opt_pass pass_unshare_all_rtl;
 extern struct tree_opt_pass pass_instantiate_virtual_regs;
+extern struct tree_opt_pass pass_rtl_fwprop;
+extern struct tree_opt_pass pass_rtl_fwprop_addr;
 extern struct tree_opt_pass pass_jump2;
 extern struct tree_opt_pass pass_cse;
 extern struct tree_opt_pass pass_gcse;
@@ -353,7 +355,6 @@ extern struct tree_opt_pass pass_cse2;
 extern struct tree_opt_pass pass_life;
 extern struct tree_opt_pass pass_combine;
 extern struct tree_opt_pass pass_if_after_combine;
-extern struct tree_opt_pass pass_partition_blocks;
 extern struct tree_opt_pass pass_partition_blocks;
 extern struct tree_opt_pass pass_regmove;
 extern struct tree_opt_pass pass_split_all_insns;
@@ -386,7 +387,6 @@ extern struct tree_opt_pass pass_duplicate_computed_gotos;
 extern struct tree_opt_pass pass_variable_tracking;
 extern struct tree_opt_pass pass_free_cfg;
 extern struct tree_opt_pass pass_machine_reorg;
-extern struct tree_opt_pass pass_purge_lineno_notes;
 extern struct tree_opt_pass pass_cleanup_barriers;
 extern struct tree_opt_pass pass_delay_slots;
 extern struct tree_opt_pass pass_split_for_shorten_branches;

@@ -1,5 +1,6 @@
 /* IO Code translation/library interface
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software
+   Foundation, Inc.
    Contributed by Paul Brook
 
 This file is part of GCC.
@@ -991,7 +992,7 @@ gfc_trans_inquire (gfc_code * code)
 
   /* Sanity check.  */
   if (p->unit && p->file)
-    gfc_error ("INQUIRE statement at %L cannot contain both FILE and UNIT specifiers.", &code->loc);
+    gfc_error ("INQUIRE statement at %L cannot contain both FILE and UNIT specifiers", &code->loc);
 
   if (p->unit)
     set_parameter_value (&block, var, IOPARM_common_unit, p->unit);
@@ -1429,7 +1430,7 @@ build_dt (tree function, gfc_code * code)
 			    dt->advance);
 
       if (dt->format_expr)
-	mask |= set_string (&block, &post_block, var, IOPARM_dt_format,
+	mask |= set_string (&block, &post_end_block, var, IOPARM_dt_format,
 			    dt->format_expr);
 
       if (dt->format_label)

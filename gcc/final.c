@@ -1,6 +1,6 @@
 /* Convert RTL to assembler code and output it, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -76,6 +76,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "timevar.h"
 #include "cgraph.h"
 #include "coverage.h"
+#include "vecprim.h"
 
 #ifdef XCOFF_DEBUGGING_INFO
 #include "xcoffout.h"		/* Needed for external data
@@ -137,7 +138,7 @@ static const char *last_filename;
 
 /* Whether to force emission of a line note before the next insn.  */
 static bool force_source_line = false;
-  
+
 extern const int length_unit_log; /* This is defined in insn-attrtab.c.  */
 
 /* Nonzero while outputting an `asm' with operands.
@@ -320,7 +321,7 @@ dbr_sequence_length (void)
 
 static int *insn_lengths;
 
-varray_type insn_addresses_;
+VEC(int,heap) *insn_addresses_;
 
 /* Max uid for which the above arrays are valid.  */
 static int insn_lengths_max_uid;
@@ -816,7 +817,7 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 
   /* Free uid_shuid before reallocating it.  */
   free (uid_shuid);
-  
+
   uid_shuid = XNEWVEC (int, max_uid);
 
   if (max_labelno != max_label_num ())
@@ -857,7 +858,7 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
       INSN_SHUID (insn) = i++;
       if (INSN_P (insn))
 	continue;
-      
+
       if (LABEL_P (insn))
 	{
 	  rtx next;
@@ -1594,7 +1595,7 @@ final (rtx first, FILE *file, int optimize)
   CC_STATUS_INIT;
 
   /* Output the insns.  */
-  for (insn = NEXT_INSN (first); insn;)
+  for (insn = first; insn;)
     {
 #ifdef HAVE_ATTR_length
       if ((unsigned) INSN_UID (insn) >= INSN_ADDRESSES_SIZE ())
@@ -1697,9 +1698,6 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
       switch (NOTE_LINE_NUMBER (insn))
 	{
 	case NOTE_INSN_DELETED:
-	case NOTE_INSN_FUNCTION_END:
-	case NOTE_INSN_REPEATED_LINE_NUMBER:
-	case NOTE_INSN_EXPECTED_VALUE:
 	  break;
 
 	case NOTE_INSN_SWITCH_TEXT_SECTIONS:
@@ -1707,9 +1705,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	  (*debug_hooks->switch_text_section) ();
 	  switch_to_section (current_function_section ());
 	  break;
-	  
+
 	case NOTE_INSN_BASIC_BLOCK:
-	  
 #ifdef TARGET_UNWIND_INFO
 	  targetm.asm_out.unwind_emit (asm_out_file, insn);
 #endif
@@ -3051,7 +3048,7 @@ output_asm_insn (const char *template, rtx *operands)
 	    int letter = *p++;
 	    unsigned long opnum;
 	    char *endptr;
-	    
+
 	    opnum = strtoul (p, &endptr, 10);
 
 	    if (endptr == p)
@@ -3096,7 +3093,7 @@ output_asm_insn (const char *template, rtx *operands)
 	  {
 	    unsigned long opnum;
 	    char *endptr;
-	    
+
 	    opnum = strtoul (p, &endptr, 10);
 	    if (this_is_asm_operands && opnum >= insn_noperands)
 	      output_operand_lossage ("operand number out of range");
@@ -3670,7 +3667,7 @@ int
 final_forward_branch_p (rtx insn)
 {
   int insn_id, label_id;
-  
+
   gcc_assert (uid_shuid);
   insn_id = INSN_SHUID (insn);
   label_id = INSN_SHUID (JUMP_LABEL (insn));
@@ -3846,7 +3843,7 @@ debug_flush_symbol_queue (void)
 
   for (i = 0; i < symbol_queue_index; ++i)
     {
-      /* If we pushed queued symbols then such symbols are must be
+      /* If we pushed queued symbols then such symbols must be
          output no matter what anyone else says.  Specifically,
          we need to make sure dbxout_symbol() thinks the symbol was
          used and also we need to override TYPE_DECL_SUPPRESS_DEBUG
@@ -3921,14 +3918,14 @@ rest_of_handle_final (void)
 #ifdef TARGET_UNWIND_INFO
   /* ??? The IA-64 ".handlerdata" directive must be issued before
      the ".endp" directive that closes the procedure descriptor.  */
-  output_function_exception_table ();
+  output_function_exception_table (fnname);
 #endif
 
   assemble_end_function (current_function_decl, fnname);
 
 #ifndef TARGET_UNWIND_INFO
   /* Otherwise, it feels unclean to switch sections in the middle.  */
-  output_function_exception_table ();
+  output_function_exception_table (fnname);
 #endif
 
   user_defined_section_attribute = false;
@@ -3981,7 +3978,7 @@ rest_of_handle_shorten_branches (void)
   shorten_branches (get_insns ());
   return 0;
 }
- 
+
 struct tree_opt_pass pass_shorten_branches =
 {
   "shorten",                            /* name */

@@ -1,5 +1,6 @@
 /* Array things
-   Copyright (C) 2000, 2001, 2002, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006 Free Software
+   Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
@@ -874,7 +875,7 @@ gfc_match_array_constructor (gfc_expr ** result)
         return MATCH_NO;
       else
         {
-          if (gfc_notify_std (GFC_STD_F2003, "New in Fortran 2003: [...] "
+          if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: [...] "
                               "style array constructors at %C") == FAILURE)
             return MATCH_ERROR;
           end_delim = " ]";

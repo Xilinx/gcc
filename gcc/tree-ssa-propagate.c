@@ -531,12 +531,12 @@ get_rhs (tree stmt)
     {
     case RETURN_EXPR:
       stmt = TREE_OPERAND (stmt, 0);
-      if (!stmt || TREE_CODE (stmt) != MODIFY_EXPR)
+      if (!stmt || TREE_CODE (stmt) != GIMPLE_MODIFY_STMT)
 	return stmt;
       /* FALLTHRU */
 
-    case MODIFY_EXPR:
-      stmt = TREE_OPERAND (stmt, 1);
+    case GIMPLE_MODIFY_STMT:
+      stmt = GENERIC_TREE_OPERAND (stmt, 1);
       if (TREE_CODE (stmt) == WITH_SIZE_EXPR)
 	return TREE_OPERAND (stmt, 0);
       else
@@ -571,29 +571,78 @@ set_rhs (tree *stmt_p, tree expr)
   ssa_op_iter iter;
 
   /* Verify the constant folded result is valid gimple.  */
-  if (TREE_CODE_CLASS (code) == tcc_binary)
+  switch (TREE_CODE_CLASS (code))
     {
+    case tcc_declaration:
+      if (!is_gimple_variable(expr))
+	return false;
+      break;
+
+    case tcc_constant:
+      break;
+
+    case tcc_binary:
+    case tcc_comparison:
       if (!is_gimple_val (TREE_OPERAND (expr, 0))
 	  || !is_gimple_val (TREE_OPERAND (expr, 1)))
 	return false;
-    }
-  else if (TREE_CODE_CLASS (code) == tcc_unary)
-    {
+      break;
+
+    case tcc_unary:
       if (!is_gimple_val (TREE_OPERAND (expr, 0)))
 	return false;
+      break;
+
+    case tcc_expression:
+      switch (code)
+	{
+	case ADDR_EXPR:
+          if (TREE_CODE (TREE_OPERAND (expr, 0)) == ARRAY_REF
+	      && !is_gimple_val (TREE_OPERAND (TREE_OPERAND (expr, 0), 1)))
+	    return false;
+	  break;
+
+	case TRUTH_NOT_EXPR:
+	  if (!is_gimple_val (TREE_OPERAND (expr, 0)))
+	    return false;
+	  break;
+
+	case TRUTH_AND_EXPR:
+	case TRUTH_XOR_EXPR:
+	case TRUTH_OR_EXPR:
+	  if (!is_gimple_val (TREE_OPERAND (expr, 0))
+	      || !is_gimple_val (TREE_OPERAND (expr, 1)))
+	    return false;
+	  break;
+
+	case CALL_EXPR:
+	case EXC_PTR_EXPR:
+	case FILTER_EXPR:
+	  break;
+
+	default:
+	  return false;
+	}
+      break;
+
+    case tcc_exceptional:
+      switch (code)
+	{
+	case SSA_NAME:
+	  break;
+
+	default:
+	  return false;
+	}
+      break;
+
+    default:
+      return false;
     }
-  else if (code == ADDR_EXPR)
-    {
-      if (TREE_CODE (TREE_OPERAND (expr, 0)) == ARRAY_REF
-	  && !is_gimple_val (TREE_OPERAND (TREE_OPERAND (expr, 0), 1)))
-	return false;
-    }
-  else if (code == COMPOUND_EXPR
-	   || code == MODIFY_EXPR)
-    return false;
 
   if (EXPR_HAS_LOCATION (stmt)
-      && EXPR_P (expr)
+      && (EXPR_P (expr)
+	  || GIMPLE_STMT_P (expr))
       && ! EXPR_HAS_LOCATION (expr)
       && TREE_SIDE_EFFECTS (expr)
       && TREE_CODE (expr) != LABEL_EXPR)
@@ -603,19 +652,23 @@ set_rhs (tree *stmt_p, tree expr)
     {
     case RETURN_EXPR:
       op = TREE_OPERAND (stmt, 0);
-      if (TREE_CODE (op) != MODIFY_EXPR)
+      if (TREE_CODE (op) != GIMPLE_MODIFY_STMT)
 	{
-	  TREE_OPERAND (stmt, 0) = expr;
+	  GIMPLE_STMT_OPERAND (stmt, 0) = expr;
 	  break;
 	}
       stmt = op;
       /* FALLTHRU */
 
-    case MODIFY_EXPR:
-      op = TREE_OPERAND (stmt, 1);
+    case GIMPLE_MODIFY_STMT:
+      op = GIMPLE_STMT_OPERAND (stmt, 1);
       if (TREE_CODE (op) == WITH_SIZE_EXPR)
-	stmt = op;
-      TREE_OPERAND (stmt, 1) = expr;
+	{
+	  stmt = op;
+          TREE_OPERAND (stmt, 1) = expr;
+	}
+      else
+        GIMPLE_STMT_OPERAND (stmt, 1) = expr;
       break;
 
     case COND_EXPR:
@@ -638,9 +691,9 @@ set_rhs (tree *stmt_p, tree expr)
 	 effects, then replace *STMT_P with an empty statement.  */
       ann = stmt_ann (stmt);
       *stmt_p = TREE_SIDE_EFFECTS (expr) ? expr : build_empty_stmt ();
-      (*stmt_p)->common.ann = (tree_ann_t) ann;
+      (*stmt_p)->base.ann = (tree_ann_t) ann;
 
-      if (in_ssa_p
+      if (gimple_in_ssa_p (cfun)
 	  && TREE_SIDE_EFFECTS (expr))
 	{
 	  /* Fix all the SSA_NAMEs created by *STMT_P to point to its new
@@ -696,7 +749,7 @@ ssa_propagate (ssa_prop_visit_stmt_fn visit_stmt,
 }
 
 
-/* Return the first V_MAY_DEF or V_MUST_DEF operand for STMT.  */
+/* Return the first VDEF operand for STMT.  */
 
 tree
 first_vdef (tree stmt)
@@ -722,13 +775,13 @@ stmt_makes_single_load (tree stmt)
 {
   tree rhs;
 
-  if (TREE_CODE (stmt) != MODIFY_EXPR)
+  if (TREE_CODE (stmt) != GIMPLE_MODIFY_STMT)
     return false;
 
-  if (ZERO_SSA_OPERANDS (stmt, SSA_OP_VMAYDEF|SSA_OP_VUSE))
+  if (ZERO_SSA_OPERANDS (stmt, SSA_OP_VDEF|SSA_OP_VUSE))
     return false;
 
-  rhs = TREE_OPERAND (stmt, 1);
+  rhs = GIMPLE_STMT_OPERAND (stmt, 1);
   STRIP_NOPS (rhs);
 
   return (!TREE_THIS_VOLATILE (rhs)
@@ -747,13 +800,13 @@ stmt_makes_single_store (tree stmt)
 {
   tree lhs;
 
-  if (TREE_CODE (stmt) != MODIFY_EXPR)
+  if (TREE_CODE (stmt) != GIMPLE_MODIFY_STMT)
     return false;
 
-  if (ZERO_SSA_OPERANDS (stmt, SSA_OP_VMAYDEF|SSA_OP_VMUSTDEF))
+  if (ZERO_SSA_OPERANDS (stmt, SSA_OP_VDEF))
     return false;
 
-  lhs = TREE_OPERAND (stmt, 0);
+  lhs = GIMPLE_STMT_OPERAND (stmt, 0);
   STRIP_NOPS (lhs);
 
   return (!TREE_THIS_VOLATILE (lhs)
@@ -853,7 +906,7 @@ replace_uses_in (tree stmt, bool *replaced_addresses_p,
       GIMPLE register, then we are making a copy/constant propagation
       from a memory store.  For instance,
 
-      	# a_3 = V_MAY_DEF <a_2>
+      	# a_3 = VDEF <a_2>
 	a.b = x_1;
 	...
  	# VUSE <a_3>
@@ -864,8 +917,8 @@ replace_uses_in (tree stmt, bool *replaced_addresses_p,
       the VUSE(s) that we are replacing.  Otherwise, we may do the
       wrong replacement:
 
-      	# a_3 = V_MAY_DEF <a_2>
-	# b_5 = V_MAY_DEF <b_4>
+      	# a_3 = VDEF <a_2>
+	# b_5 = VDEF <b_4>
 	*p = 10;
 	...
 	# VUSE <b_5>
@@ -885,10 +938,10 @@ replace_uses_in (tree stmt, bool *replaced_addresses_p,
       stored in different locations:
 
      		if (...)
-		  # a_3 = V_MAY_DEF <a_2>
+		  # a_3 = VDEF <a_2>
 		  a.b = 3;
 		else
-		  # a_4 = V_MAY_DEF <a_2>
+		  # a_4 = VDEF <a_2>
 		  a.c = 3;
 		# a_5 = PHI <a_3, a_4>
 
@@ -915,7 +968,7 @@ replace_vuses_in (tree stmt, bool *replaced_addresses_p,
 	 see if we are trying to propagate a constant or a GIMPLE
 	 register (case #1 above).  */
       prop_value_t *val = get_value_loaded_by (stmt, prop_value);
-      tree rhs = TREE_OPERAND (stmt, 1);
+      tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
 
       if (val
 	  && val->value
@@ -927,7 +980,7 @@ replace_vuses_in (tree stmt, bool *replaced_addresses_p,
 	  /* If we are replacing a constant address, inform our
 	     caller.  */
 	  if (TREE_CODE (val->value) != SSA_NAME
-	      && POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (stmt, 1)))
+	      && POINTER_TYPE_P (TREE_TYPE (GIMPLE_STMT_OPERAND (stmt, 1)))
 	      && replaced_addresses_p)
 	    *replaced_addresses_p = true;
 
@@ -937,7 +990,7 @@ replace_vuses_in (tree stmt, bool *replaced_addresses_p,
 	     stores between DEF_STMT and STMT, we only need to check
 	     that the RHS of STMT is the same as the memory reference
 	     propagated together with the value.  */
-	  TREE_OPERAND (stmt, 1) = val->value;
+	  GIMPLE_STMT_OPERAND (stmt, 1) = val->value;
 
 	  if (TREE_CODE (val->value) != SSA_NAME)
 	    prop_stats.num_const_prop++;
@@ -1036,14 +1089,14 @@ static bool
 fold_predicate_in (tree stmt)
 {
   tree *pred_p = NULL;
-  bool modify_expr_p = false;
+  bool modify_stmt_p = false;
   tree val;
 
-  if (TREE_CODE (stmt) == MODIFY_EXPR
-      && COMPARISON_CLASS_P (TREE_OPERAND (stmt, 1)))
+  if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+      && COMPARISON_CLASS_P (GIMPLE_STMT_OPERAND (stmt, 1)))
     {
-      modify_expr_p = true;
-      pred_p = &TREE_OPERAND (stmt, 1);
+      modify_stmt_p = true;
+      pred_p = &GIMPLE_STMT_OPERAND (stmt, 1);
     }
   else if (TREE_CODE (stmt) == COND_EXPR)
     pred_p = &COND_EXPR_COND (stmt);
@@ -1053,7 +1106,7 @@ fold_predicate_in (tree stmt)
   val = vrp_evaluate_conditional (*pred_p, true);
   if (val)
     {
-      if (modify_expr_p)
+      if (modify_stmt_p)
         val = fold_convert (TREE_TYPE (*pred_p), val);
       
       if (dump_file)
@@ -1119,9 +1172,12 @@ substitute_and_fold (prop_value_t *prop_value, bool use_ranges_p)
 	  /* Ignore ASSERT_EXPRs.  They are used by VRP to generate
 	     range information for names and they are discarded
 	     afterwards.  */
-	  if (TREE_CODE (stmt) == MODIFY_EXPR
-	      && TREE_CODE (TREE_OPERAND (stmt, 1)) == ASSERT_EXPR)
+	  if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+	      && TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)) == ASSERT_EXPR)
 	    continue;
+
+	  /* Record the state of the statement before replacements.  */
+	  push_stmt_changes (bsi_stmt_ptr (i));
 
 	  /* Replace the statement with its folded version and mark it
 	     folded.  */
@@ -1158,10 +1214,6 @@ substitute_and_fold (prop_value_t *prop_value, bool use_ranges_p)
 	      fold_stmt (bsi_stmt_ptr (i));
 	      stmt = bsi_stmt (i);
 
-	      /* If we folded a builtin function, we'll likely
-		 need to rename VDEFs.  */
-	      mark_new_vars_to_rename (stmt);
-
               /* If we cleaned up EH information from the statement,
                  remove EH edges.  */
 	      if (maybe_clean_or_replace_eh_stmt (old_stmt, stmt))
@@ -1179,6 +1231,14 @@ substitute_and_fold (prop_value_t *prop_value, bool use_ranges_p)
 		  print_generic_stmt (dump_file, stmt, TDF_SLIM);
 		  fprintf (dump_file, "\n");
 		}
+
+	      /* Determine what needs to be done to update the SSA form.  */
+	      pop_stmt_changes (bsi_stmt_ptr (i));
+	    }
+	  else
+	    {
+	      /* The statement was not modified, discard the change buffer.  */
+	      discard_stmt_changes (bsi_stmt_ptr (i));
 	    }
 
 	  /* Some statements may be simplified using ranges.  For
@@ -1189,7 +1249,6 @@ substitute_and_fold (prop_value_t *prop_value, bool use_ranges_p)
 	     statement.  */
 	  if (use_ranges_p)
 	    simplify_stmt_using_ranges (stmt);
-
 	}
     }
 

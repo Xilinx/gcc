@@ -733,6 +733,15 @@ digest_init (tree type, tree init)
 
 	  return error_mark_node;
 	}
+
+      if (TREE_CODE (type) == ARRAY_TYPE
+	  && TREE_CODE (init) != CONSTRUCTOR)
+	{
+	  error ("array must be initialized with a brace-enclosed"
+		 " initializer");
+	  return error_mark_node;
+	}
+
       return convert_for_initialization (NULL_TREE, type, init,
 					 LOOKUP_NORMAL | LOOKUP_ONLYCONVERTING,
 					 "initialization", NULL_TREE, 0);
@@ -791,8 +800,8 @@ process_init_constructor_array (tree type, tree init)
     /* Vectors are like simple fixed-size arrays.  */
     len = TYPE_VECTOR_SUBPARTS (type);
 
-  /* There cannot be more initializers than needed (or reshape_init would
-     detect this before we do.  */
+  /* There cannot be more initializers than needed as otherwise
+     reshape_init would have already rejected the initializer.  */
   if (!unbounded)
     gcc_assert (VEC_length (constructor_elt, v) <= len);
 
@@ -1333,9 +1342,9 @@ build_functional_cast (tree exp, tree parms)
   if (parms && TREE_CHAIN (parms) == NULL_TREE)
     return build_c_cast (type, TREE_VALUE (parms));
 
-  /* We need to zero-initialize POD types.  Let's do that for everything
-     that doesn't need a constructor.  */
-  if (parms == NULL_TREE && !TYPE_NEEDS_CONSTRUCTING (type)
+  /* We need to zero-initialize POD types.  */
+  if (parms == NULL_TREE 
+      && !CLASSTYPE_NON_POD_P (type)
       && TYPE_HAS_DEFAULT_CONSTRUCTOR (type))
     {
       exp = build_constructor (type, NULL);

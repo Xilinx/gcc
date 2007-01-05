@@ -172,10 +172,10 @@ stmt_simple_for_scop_p (tree stmt)
 	  }
       }
 
-    case MODIFY_EXPR:
+    case GIMPLE_MODIFY_STMT:
       {
-	tree opnd0 = TREE_OPERAND (stmt, 0);
-	tree opnd1 = TREE_OPERAND (stmt, 1);
+	tree opnd0 = GIMPLE_STMT_OPERAND (stmt, 0);
+	tree opnd1 = GIMPLE_STMT_OPERAND (stmt, 1);
 
 	if (TREE_CODE (opnd0) == ARRAY_REF 
 	     || TREE_CODE (opnd0) == INDIRECT_REF
@@ -515,7 +515,7 @@ build_scop_domain (scop_p scop)
 
   for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, loop); i++)
     {
-      tree nb_iters = number_of_iterations_in_loop (loop);
+      tree nb_iters = number_of_latch_executions (loop);
       lambda_vector ineq_low = lambda_vector_new (SCOP_DIM_DOMAIN (scop));
       lambda_vector ineq_up = lambda_vector_new (SCOP_DIM_DOMAIN (scop));
 
@@ -747,7 +747,7 @@ build_scop_params (scop_p scop)
   /* Find the parameters used in the loop bounds.  */
   for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, loop); i++)
     {
-      tree nb_iters = number_of_iterations_in_loop (loop);
+      tree nb_iters = number_of_latch_executions (loop);
 
       if (chrec_contains_symbols (nb_iters))
 	{

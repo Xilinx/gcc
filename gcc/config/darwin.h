@@ -1,6 +1,6 @@
 /* Target definitions for Darwin (Mac OS X) systems.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 2000, 2001, 2002, 2003, 2004,
-   2005
+   2005, 2006
    Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
@@ -39,6 +39,9 @@ Boston, MA 02110-1301, USA.  */
    multi-architecture binary support.  */
 
 #define OBJECT_FORMAT_MACHO
+
+/* Don't assume anything about the header files.  */
+#define NO_IMPLICIT_EXTERN_C
 
 /* Suppress g++ attempt to link in the math library automatically. */
 #define MATH_LIBRARY ""
@@ -127,14 +130,18 @@ extern GTY(()) int darwin_ms_struct;
   { "-segs_read_write_addr", "-Zsegs_read_write_addr" }, \
   { "-seg_addr_table", "-Zseg_addr_table" }, \
   { "-seg_addr_table_filename", "-Zfn_seg_addr_table_filename" }, \
+  { "-fapple-kext", "-fapple-kext -static -Wa,-static" }, \
   { "-filelist", "-Xlinker -filelist -Xlinker" },  \
-  { "-framework", "-Xlinker -framework -Xlinker" },  \
+  { "-findirect-virtual-calls", "-fapple-kext" }, \
   { "-flat_namespace", "-Zflat_namespace" },  \
   { "-force_cpusubtype_ALL", "-Zforce_cpusubtype_ALL" },  \
   { "-force_flat_namespace", "-Zforce_flat_namespace" },  \
+  { "-framework", "-Xlinker -framework -Xlinker" },  \
+  { "-fterminated-vtables", "-fapple-kext" }, \
   { "-image_base", "-Zimage_base" },  \
   { "-init", "-Zinit" },  \
   { "-install_name", "-Zinstall_name" },  \
+  { "-mkernel", "-mkernel -static -Wa,-static" }, \
   { "-multiply_defined_unused", "-Zmultiplydefinedunused" },  \
   { "-multiply_defined", "-Zmultiply_defined" },  \
   { "-multi_module", "-Zmulti_module" },  \
@@ -142,6 +149,11 @@ extern GTY(()) int darwin_ms_struct;
   { "-single_module", "-Zsingle_module" },  \
   { "-unexported_symbols_list", "-Zunexported_symbols_list" }, \
   SUBTARGET_OPTION_TRANSLATE_TABLE
+
+#define SUBSUBTARGET_OVERRIDE_OPTIONS					\
+  do {									\
+    darwin_override_options ();						\
+  } while (0)
 
 /* These compiler options take n arguments.  */
 
@@ -188,11 +200,25 @@ extern GTY(()) int darwin_ms_struct;
    !strcmp (STR, "dylinker_install_name") ? 1 : \
    0)
 
+#define SUBTARGET_C_COMMON_OVERRIDE_OPTIONS do {                        \
+    if (flag_mkernel || flag_apple_kext)				\
+      {									\
+	if (flag_use_cxa_atexit == 2)					\
+	  flag_use_cxa_atexit = 0;					\
+	/* kexts should always be built without the coalesced sections	\
+	   because the kernel loader doesn't grok such sections.  */	\
+	flag_weak = 0;							\
+	/* No RTTI in kexts.  */					\
+	flag_rtti = 0;							\
+      }									\
+  } while (0)
+
 /* Machine dependent cpp options.  Don't add more options here, add
    them to darwin_cpp_builtins in darwin-c.c.  */
 
 #undef	CPP_SPEC
-#define CPP_SPEC "%{static:%{!dynamic:-D__STATIC__}}%{!static:-D__DYNAMIC__}"
+#define CPP_SPEC "%{static:%{!dynamic:-D__STATIC__}}%{!static:-D__DYNAMIC__}" \
+	" %{pthread:-D_REENTRANT}"
 
 /* This is mostly a clone of the standard LINK_COMMAND_SPEC, plus
    precomp, libtool, and fat build additions.  Also we
@@ -203,16 +229,18 @@ extern GTY(()) int darwin_ms_struct;
    specifying the handling of options understood by generic Unix
    linkers, and for positional arguments like libraries.  */
 #define LINK_COMMAND_SPEC "\
-%{!fdump=*:%{!fsyntax-only:%{!precomp:%{!c:%{!M:%{!MM:%{!E:%{!S:\
-    %{!Zdynamiclib:%(linker)}%{Zdynamiclib:/usr/bin/libtool} \
-    %l %X %{d} %{s} %{t} %{Z} \
-    %{!Zdynamiclib:%{A} %{e*} %{m} %{N} %{n} %{r} %{u*} %{x} %{z}} \
-    %{@:-o %f%u.out}%{!@:%{o*}%{!o:-o a.out}} \
+%{!fdump=*:%{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
+    %(linker) %l %X %{d} %{s} %{t} %{Z} \
+    %{A} %{e*} %{m} %{r} %{x} \
+    %{o*}%{!o:-o a.out} \
     %{!A:%{!nostdlib:%{!nostartfiles:%S}}} \
     %{L*} %{fopenmp:%:include(libgomp.spec)%(link_gomp)}   \
     %(link_libgcc) %o %{fprofile-arcs|fprofile-generate|coverage:-lgcov} \
     %{!nostdlib:%{!nodefaultlibs:%(link_ssp) %G %L}} \
-    %{!A:%{!nostdlib:%{!nostartfiles:%E}}} %{T*} %{F*} }}}}}}}}"
+    %{!A:%{!nostdlib:%{!nostartfiles:%E}}} %{T*} %{F*} }}}}}}}\n\
+%{!fdump=*:%{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
+    %{.c|.cc|.C|.cpp|.c++|.CPP|.m|.mm: \
+    %{gdwarf-2:%{!gstabs*:%{!g0: dsymutil %{o*:%*}%{!o:a.out}}}}}}}}}}}}"
 
 #ifdef TARGET_SYSTEM_ROOT
 #define LINK_SYSROOT_SPEC \
@@ -222,12 +250,9 @@ extern GTY(()) int darwin_ms_struct;
 #endif
 
 /* Please keep the random linker options in alphabetical order (modulo
-   'Z' and 'no' prefixes).  Options that can only go to one of libtool
-   or ld must be listed twice, under both !Zdynamiclib and
-   Zdynamiclib, with one of the cases reporting an error.  */
-/* Note that options taking arguments may appear multiple times on a
-   command line with different arguments each time, so put a * after
-   their names so all of them get passed.  */
+   'Z' and 'no' prefixes). Note that options taking arguments may appear
+   multiple times on a command line with different arguments each time,
+   so put a * after their names so all of them get passed.  */
 #define LINK_SPEC  \
   "%{static}%{!static:-dynamic} \
    %{fgnu-runtime:%:replace-outfile(-lobjc -lobjc-gnu)}\
@@ -245,20 +270,20 @@ extern GTY(()) int darwin_ms_struct;
      %{keep_private_externs} \
      %{private_bundle} \
     } \
-   %{Zdynamiclib: \
+   %{Zdynamiclib: -dylib \
      %{Zbundle:%e-bundle not allowed with -dynamiclib} \
      %{Zbundle_loader*:%e-bundle_loader not allowed with -dynamiclib} \
      %{client_name*:%e-client_name not allowed with -dynamiclib} \
-     %{compatibility_version*} \
-     %{current_version*} \
-     %{Zforce_cpusubtype_ALL:-arch_only %(darwin_arch)} \
-     %{!Zforce_cpusubtype_ALL: -arch_only %(darwin_subarch)} \
+     %{compatibility_version*:-dylib_compatibility_version %*} \
+     %{current_version*:-dylib_current_version %*} \
+     %{Zforce_cpusubtype_ALL:-arch %(darwin_arch)} \
+     %{!Zforce_cpusubtype_ALL: -arch %(darwin_subarch)} \
      %{Zforce_flat_namespace:%e-force_flat_namespace not allowed with -dynamiclib} \
-     %{Zinstall_name*:-install_name %*} \
+     %{Zinstall_name*:-dylib_install_name %*} \
      %{keep_private_externs:%e-keep_private_externs not allowed with -dynamiclib} \
      %{private_bundle:%e-private_bundle not allowed with -dynamiclib} \
     } \
-   %{Zall_load:-all_load}%{Zdynamiclib:%{!Zall_load:-noall_load}} \
+   %{Zall_load:-all_load} \
    %{Zallowable_client*:-allowable_client %*} \
    %{Zbind_at_load:-bind_at_load} \
    %{Zarch_errors_fatal:-arch_errors_fatal} \
@@ -342,7 +367,8 @@ extern GTY(()) int darwin_ms_struct;
 
 #undef  STARTFILE_SPEC
 #define STARTFILE_SPEC							    \
-  "%{!Zdynamiclib:%{Zbundle:%{!static:-lbundle1.o}}			    \
+  "%{Zdynamiclib: %(darwin_dylib1) }					    \
+   %{!Zdynamiclib:%{Zbundle:%{!static:-lbundle1.o}}			    \
      %{!Zbundle:%{pg:%{static:-lgcrt0.o}				    \
                      %{!static:%{object:-lgcrt0.o}			    \
                                %{!object:%{preload:-lgcrt0.o}		    \
@@ -350,7 +376,7 @@ extern GTY(()) int darwin_ms_struct;
                 %{!pg:%{static:-lcrt0.o}				    \
                       %{!static:%{object:-lcrt0.o}			    \
                                 %{!object:%{preload:-lcrt0.o}		    \
-                                  %{!preload:-lcrt1.o %(darwin_crt2)}}}}}}  \
+                                  %{!preload: %(darwin_crt1)  %(darwin_crt2)}}}}}}  \
   %{shared-libgcc:%:version-compare(< 10.5 mmacosx-version-min= crt3.o%s)}"
 
 /* The native Darwin linker doesn't necessarily place files in the order
@@ -358,15 +384,26 @@ extern GTY(()) int darwin_ms_struct;
    to put anything in ENDFILE_SPEC.  */
 /* #define ENDFILE_SPEC "" */
 
+#define DARWIN_EXTRA_SPECS     \
+  { "darwin_crt1", DARWIN_CRT1_SPEC },                                 \
+  { "darwin_dylib1", DARWIN_DYLIB1_SPEC },
+
+#define DARWIN_DYLIB1_SPEC                                             \
+  "%:version-compare(!> 10.5 mmacosx-version-min= -ldylib1.o)          \
+   %:version-compare(>= 10.5 mmacosx-version-min= -ldylib1.10.5.o)"
+
+#define DARWIN_CRT1_SPEC                                               \
+  "%:version-compare(!> 10.5 mmacosx-version-min= -lcrt1.o)            \
+   %:version-compare(>= 10.5 mmacosx-version-min= -lcrt1.10.5.o)"
+
 /* Default Darwin ASM_SPEC, very simple.  */
 #define ASM_SPEC "-arch %(darwin_arch) \
   %{Zforce_cpusubtype_ALL:-force_cpusubtype_ALL}"
 
-/* We use Dbx symbol format.  */
+/* We still allow output of STABS.  */
 
 #define DBX_DEBUGGING_INFO 1
 
-/* Also enable Dwarf 2 as an option.  */
 #define DWARF2_DEBUGGING_INFO
 #define PREFERRED_DEBUGGING_TYPE DBX_DEBUG
 
@@ -378,6 +415,7 @@ extern GTY(()) int darwin_ms_struct;
 #define DEBUG_LINE_SECTION	"__DWARF,__debug_line,regular,debug"
 #define DEBUG_LOC_SECTION	"__DWARF,__debug_loc,regular,debug"
 #define DEBUG_PUBNAMES_SECTION	"__DWARF,__debug_pubnames,regular,debug"
+#define DEBUG_PUBTYPES_SECTION	"__DWARF,__debug_pubtypes,regular,debug"
 #define DEBUG_STR_SECTION	"__DWARF,__debug_str,regular,debug"
 #define DEBUG_RANGES_SECTION	"__DWARF,__debug_ranges,regular,debug"
 
@@ -693,6 +731,8 @@ extern GTY(()) section * darwin_sections[NUM_DARWIN_SECTIONS];
 /* Extra attributes for Darwin.  */
 #define SUBTARGET_ATTRIBUTE_TABLE					     \
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */ \
+  { "apple_kext_compatibility", 0, 0, false, true, false,		     \
+    darwin_handle_kext_attribute },					     \
   { "weak_import", 0, 0, true, false, false,				     \
     darwin_handle_weak_import_attribute }
 
@@ -837,6 +877,8 @@ enum machopic_addr_class {
 /* Handle pragma weak and pragma pack.  */
 #define HANDLE_SYSV_PRAGMA 1
 
+#define HANDLE_PRAGMA_PACK_PUSH_POP 1
+
 #define DARWIN_REGISTER_TARGET_PRAGMAS()			\
   do {								\
     c_register_pragma (0, "mark", darwin_pragma_ignore);	\
@@ -923,5 +965,12 @@ __enable_execute_stack (void *addr)                                     \
    /* 7 == PROT_READ | PROT_WRITE | PROT_EXEC */                        \
    (void) mprotect (page, end - page, 7);                               \
 }
+
+/* For Apple KEXTs, we make the constructors return this to match gcc
+   2.95.  */
+#define TARGET_CXX_CDTOR_RETURNS_THIS (darwin_kextabi_p)
+extern int flag_mkernel;
+extern int flag_apple_kext;
+#define TARGET_KEXTABI flag_apple_kext
 
 #endif /* CONFIG_DARWIN_H */

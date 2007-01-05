@@ -2791,8 +2791,7 @@ mark_set_1 (struct propagate_block_info *pbi, enum rtx_code code, rtx reg, rtx c
 	      regno_first += subreg_regno_offset (regno_first, inner_mode,
 						  SUBREG_BYTE (reg),
 						  outer_mode);
-	      regno_last = (regno_first
-			    + hard_regno_nregs[regno_first][outer_mode] - 1);
+	      regno_last = regno_first + subreg_nregs (reg) - 1;
 
 	      /* Since we've just adjusted the register number ranges, make
 		 sure REG matches.  Otherwise some_was_live will be clear
@@ -4696,7 +4695,7 @@ rest_of_handle_life (void)
     cleanup_cfg (CLEANUP_EXPENSIVE | CLEANUP_UPDATE_LIFE | CLEANUP_LOG_LINKS
                  | (flag_thread_jumps ? CLEANUP_THREADING : 0));
 
-  if (extra_warnings)
+  if (warn_clobbered)
     {
       setjmp_vars_warning (DECL_INITIAL (current_function_decl));
       setjmp_args_warning ();

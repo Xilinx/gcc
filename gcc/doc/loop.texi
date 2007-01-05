@@ -63,20 +63,25 @@ The root of this tree is a fake loop that contains all blocks in the
 function.  Each of the loops is represented in a @code{struct loop}
 structure.  Each loop is assigned an index (@code{num} field of the
 @code{struct loop} structure), and the pointer to the loop is stored in
-the corresponding field of the @code{parray} field of the loops
+the corresponding field of the @code{larray} vector in the loops
 structure.  Index of a sub-loop is always greater than the index of its
 super-loop.  The indices do not have to be continuous, there may be
-empty (@code{NULL}) entries in the @code{parray} created by deleting
-loops.  The index of a loop never changes.  The first unused index is
-stored in the @code{num} field of the loops structure.
+empty (@code{NULL}) entries in the @code{larray} created by deleting
+loops.  The index of a loop never changes.
+
+The entries of the @code{larray} field should not be accessed directly.
+The function @code{get_loop} returns the loop description for a loop with
+the given index.  @code{number_of_loops} function returns number of
+loops in the function.  To traverse all loops, use @code{FOR_EACH_LOOP}
+macro.  The @code{flags} argument of the macro is used to determine
+the direction of traversal and the set of loops visited.
 
 Each basic block contains the reference to the innermost loop it belongs
 to (@code{loop_father}).  For this reason, it is only possible to have
 one @code{struct loops} structure initialized at the same time for each
-CFG.  It is recommended to use the global variable @code{current_loops}
-to contain the @code{struct loops} structure, especially if the loop
-structures are updated throughout several passes.  Many of the loop
-manipulation functions assume that dominance information is up-to-date.
+CFG.  The global variable @code{current_loops} contains the
+@code{struct loops} structure.  Many of the loop manipulation functions
+assume that dominance information is up-to-date.
 
 The loops are analyzed through @code{loop_optimizer_init} function.  The
 argument of this function is a set of flags represented in an integer
@@ -104,8 +109,8 @@ flag is not set for blocks and edges that belong to natural loops that
 are in such an irreducible region (but it is set for the entry and exit
 edges of such a loop, if they lead to/from this region).
 @item @code{LOOPS_HAVE_MARKED_SINGLE_EXITS}: If a loop has exactly one
-exit edge, this edge is stored in @code{single_exit} field of the loop
-structure.  @code{NULL} is stored there otherwise.
+exit edge, this edge is recorded in the loop structure.  @code{single_exit}
+function can be used to retrieve this edge.
 @end itemize
 
 These properties may also be computed/enforced later, using functions
@@ -140,9 +145,6 @@ the basic blocks of the sub-loops).
 number of super-loops of the loop.
 @item @code{outer}, @code{inner}, @code{next}: The super-loop, the first
 sub-loop, and the sibling of the loop in the loops tree.
-@item @code{single_exit}: The exit edge of the loop, if the loop has
-exactly one exit and the loops were analyzed with
-LOOPS_HAVE_MARKED_SINGLE_EXITS.
 @end itemize
 
 There are other fields in the loop structures, many of them used only by
@@ -176,6 +178,9 @@ with @code{EDGE_LOOP_EXIT} flag.
 @code{get_loop_body_in_bfs_order}: Enumerates the basic blocks in the
 loop in depth-first search order in reversed CFG, ordered by dominance
 relation, and breath-first search order, respectively.
+@item @code{single_exit}: Returns the single exit edge of the loop, or
+@code{NULL} if the loop has more than one exit.  You can only use this
+function if LOOPS_HAVE_MARKED_SINGLE_EXITS property is used.
 @item @code{get_loop_exit_edges}: Enumerates the exit edges of a loop.
 @item @code{just_once_each_iteration_p}: Returns true if the basic block
 is executed exactly once during each iteration of a loop (that is, it
@@ -195,19 +200,11 @@ The loops tree can be manipulated using the following functions:
 @item @code{remove_bb_from_loops}: Removes a basic block from loops.
 @end itemize
 
-The specialized versions of several low-level CFG functions that also
-update loop structures are provided:
+Most low-level CFG functions update loops automatically.  The following
+functions handle some more complicated cases of CFG manipulations:
 
 @itemize
-@item @code{loop_split_edge_with}: Splits an edge, and places a
-specified RTL code on it.  On GIMPLE, the function can still be used,
-but the code must be NULL.
-@item @code{bsi_insert_on_edge_immediate_loop}: Inserts code on edge,
-splitting it if necessary.  Only works on GIMPLE.
 @item @code{remove_path}: Removes an edge and all blocks it dominates.
-@item @code{loop_commit_inserts}: Commits insertions scheduled on edges,
-and sets loops for the new blocks.  This function can only be used on
-GIMPLE.
 @item @code{split_loop_exit_edge}: Splits exit edge of the loop,
 ensuring that PHI node arguments remain in the loop (this ensures that
 loop-closed SSA form is preserved).  Only useful on GIMPLE.
@@ -400,13 +397,15 @@ calculations.
 @cindex Number of iterations analysis
 
 Both on GIMPLE and on RTL, there are functions available to determine
-the number of iterations of a loop, with a similar interface.  In many
-cases, it is not possible to determine number of iterations
-unconditionally -- the determined number is correct only if some
-assumptions are satisfied.  The analysis tries to verify these
-conditions using the information contained in the program; if it fails,
-the conditions are returned together with the result.  The following
-information and conditions are provided by the analysis:
+the number of iterations of a loop, with a similar interface.  The
+number of iterations of a loop in GCC is defined as the number of
+executions of the loop latch.  In many cases, it is not possible to
+determine the number of iterations unconditionally -- the determined
+number is correct only if some assumptions are satisfied.  The analysis
+tries to verify these conditions using the information contained in the
+program; if it fails, the conditions are returned together with the
+result.  The following information and conditions are provided by the
+analysis:
 
 @itemize
 @item @code{assumptions}: If this condition is false, the rest of
@@ -434,16 +433,16 @@ number of iterations -- @code{find_loop_niter} on GIMPLE and
 @code{find_simple_exit} on RTL.  Finally, there are functions that
 provide the same information, but additionally cache it, so that
 repeated calls to number of iterations are not so costly --
-@code{number_of_iterations_in_loop} on GIMPLE and
-@code{get_simple_loop_desc} on RTL.
+@code{number_of_latch_executions} on GIMPLE and @code{get_simple_loop_desc}
+on RTL.
 
 Note that some of these functions may behave slightly differently than
 others -- some of them return only the expression for the number of
 iterations, and fail if there are some assumptions.  The function
-@code{number_of_iterations_in_loop} works only for single-exit loops,
-and it returns the value for number of iterations higher by one with
-respect to all other functions (i.e., it returns number of executions of
-the exit statement, not of the loop latch).
+@code{number_of_latch_executions} works only for single-exit loops.
+The function @code{number_of_cond_exit_executions} can be used to
+determine number of executions of the exit condition of a single-exit
+loop (i.e., the @code{number_of_latch_executions} increased by one).
 
 @node Dependency analysis
 @section Data Dependency Analysis

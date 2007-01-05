@@ -445,13 +445,8 @@ check_member_template (tree tmpl)
       || (TREE_CODE (decl) == TYPE_DECL
 	  && IS_AGGR_TYPE (TREE_TYPE (decl))))
     {
-      if (current_function_decl)
-	/* 14.5.2.2 [temp.mem]
-
-	   A local class shall not have member templates.  */
-	error ("invalid declaration of member template %q#D in local class",
-	       decl);
-
+      /* The parser rejects template declarations in local classes.  */
+      gcc_assert (!current_function_decl);
       /* The parser rejects any use of virtual in a function template.  */
       gcc_assert (!(TREE_CODE (decl) == FUNCTION_DECL
 		    && DECL_VIRTUAL_P (decl)));
@@ -946,6 +941,14 @@ grokbitfield (const cp_declarator *declarator,
   if (TREE_CODE (value) == VOID_TYPE)
     return void_type_node;
 
+  if (!INTEGRAL_TYPE_P (TREE_TYPE (value))
+      && (POINTER_TYPE_P (value)
+          || !dependent_type_p (TREE_TYPE (value))))
+    {
+      error ("bit-field %qD with non-integral type", value);
+      return error_mark_node;
+    }
+
   if (TREE_CODE (value) == TYPE_DECL)
     {
       error ("cannot declare %qD to be a bit-field type", value);
@@ -1407,7 +1410,7 @@ import_export_class (tree ctype)
 static bool
 var_finalized_p (tree var)
 {
-  return cgraph_varpool_node (var)->finalized;
+  return varpool_node (var)->finalized;
 }
 
 /* DECL is a VAR_DECL or FUNCTION_DECL which, for whatever reason,
@@ -2316,7 +2319,7 @@ start_objects (int method_type, int initp)
     sprintf (type, "%c", method_type);
 
   fndecl = build_lang_decl (FUNCTION_DECL,
-			    get_file_function_name_long (type),
+			    get_file_function_name (type),
 			    build_function_type (void_type_node,
 						 void_list_node));
   start_preparsed_function (fndecl, /*attrs=*/NULL_TREE, SF_PRE_PARSED);
@@ -2821,7 +2824,7 @@ write_out_vars (tree vars)
 }
 
 /* Generate a static constructor (if CONSTRUCTOR_P) or destructor
-   (otherwise) that will initialize all gobal objects with static
+   (otherwise) that will initialize all global objects with static
    storage duration having the indicated PRIORITY.  */
 
 static void
@@ -3019,13 +3022,13 @@ build_java_method_aliases (void)
     }
 }
 
-/* This routine is called from the last rule in yyparse ().
+/* This routine is called at the end of compilation.
    Its job is to create all the code needed to initialize and
    destroy the global aggregates.  We do the destruction
    first, since that way we only need to reverse the decls once.  */
 
 void
-cp_finish_file (void)
+cp_write_global_declarations (void)
 {
   tree vars;
   bool reconsider;

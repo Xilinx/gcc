@@ -88,6 +88,9 @@ typedef struct copy_body_data
   /* True if lang_hooks.decls.insert_block should be invoked when
      duplicating BLOCK nodes.  */
   bool transform_lang_insert_block;
+
+  /* Statements that might be possibly folded.  */
+  struct pointer_set_t *statements_to_fold;
 } copy_body_data;
 
 /* Function prototypes.  */
@@ -109,6 +112,8 @@ void tree_function_versioning (tree, tree, varray_type, bool);
 
 extern tree remap_decl (tree decl, copy_body_data *id);
 extern tree remap_type (tree type, copy_body_data *id);
+
+extern HOST_WIDE_INT estimated_stack_frame_size (void);
 
 /* 0 if we should not perform inlining.
    1 if we should expand functions calls inline at the tree level.

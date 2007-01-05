@@ -263,7 +263,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       if (indent <= 4)
 	print_node_brief (file, "type", TREE_TYPE (node), indent + 4);
     }
-  else
+  else if (!GIMPLE_TUPLE_P (node))
     {
       print_node (file, "type", TREE_TYPE (node), indent + 4);
       if (TREE_TYPE (node))
@@ -604,6 +604,11 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	       TYPE_ALIGN (node), TYPE_SYMTAB_ADDRESS (node),
 	       TYPE_ALIAS_SET (node));
 
+      if (TYPE_STRUCTURAL_EQUALITY_P (node))
+	fprintf (file, " structural equality");
+      else
+	dump_addr (file, " canonical type ", TYPE_CANONICAL (node));
+      
       print_node (file, "attributes", TYPE_ATTRIBUTES (node), indent + 4);
 
       if (INTEGRAL_TYPE_P (node) || TREE_CODE (node) == REAL_TYPE)
@@ -677,6 +682,18 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	}
 
       print_node (file, "chain", TREE_CHAIN (node), indent + 4);
+      break;
+
+    case tcc_gimple_stmt:
+      len = TREE_CODE_LENGTH (TREE_CODE (node));
+
+      for (i = 0; i < len; i++)
+	{
+	  char temp[10];
+
+	  sprintf (temp, "arg %d", i);
+	  print_node (file, temp, GIMPLE_STMT_OPERAND (node, i), indent + 4);
+	}
       break;
 
     case tcc_constant:

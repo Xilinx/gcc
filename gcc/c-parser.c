@@ -59,10 +59,6 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "cgraph.h"
 
 
-/* Miscellaneous data and functions needed for the parser.  */
-
-int yydebug;
-
 /* Objective-C specific parser/lexer information.  */
 
 static int objc_pq_context = 0;
@@ -199,26 +195,6 @@ static const struct resword reswords[] =
   { "out",		RID_OUT,		D_OBJC },
 };
 #define N_reswords (sizeof reswords / sizeof (struct resword))
-
-/* All OpenMP clauses.  OpenMP 2.5.  */
-typedef enum pragma_omp_clause {
-  PRAGMA_OMP_CLAUSE_NONE = 0,
-
-  PRAGMA_OMP_CLAUSE_COPYIN,
-  PRAGMA_OMP_CLAUSE_COPYPRIVATE,
-  PRAGMA_OMP_CLAUSE_DEFAULT,
-  PRAGMA_OMP_CLAUSE_FIRSTPRIVATE,
-  PRAGMA_OMP_CLAUSE_IF,
-  PRAGMA_OMP_CLAUSE_LASTPRIVATE,
-  PRAGMA_OMP_CLAUSE_NOWAIT,
-  PRAGMA_OMP_CLAUSE_NUM_THREADS,
-  PRAGMA_OMP_CLAUSE_ORDERED,
-  PRAGMA_OMP_CLAUSE_PRIVATE,
-  PRAGMA_OMP_CLAUSE_REDUCTION,
-  PRAGMA_OMP_CLAUSE_SCHEDULE,
-  PRAGMA_OMP_CLAUSE_SHARED
-} pragma_omp_clause;
-
 
 /* Initialization routine for this file.  */
 
@@ -2172,7 +2148,7 @@ c_parser_typeof_specifier (c_parser *parser)
 	  if (DECL_P (e) || CONSTANT_CLASS_P (e))
 	    e = build1 (NOP_EXPR, void_type_node, e);
 
-	  if (EXPR_P (e))
+	  if (CAN_HAVE_LOCATION_P (e))
 	    SET_EXPR_LOCATION (e, input_location);
 
 	  add_stmt (e);
@@ -3817,7 +3793,7 @@ c_parser_statement_after_labels (c_parser *parser)
      (recursively) all of the component statements should already have
      line numbers assigned.  ??? Can we discard no-op statements
      earlier?  */
-  if (stmt && EXPR_P (stmt))
+  if (stmt && CAN_HAVE_LOCATION_P (stmt))
     SET_EXPR_LOCATION (stmt, loc);
 }
 
@@ -3836,7 +3812,7 @@ c_parser_paren_condition (c_parser *parser)
   loc = c_parser_peek_token (parser)->location;
   cond = c_objc_common_truthvalue_conversion
     (c_parser_expression_conv (parser).value);
-  if (EXPR_P (cond))
+  if (CAN_HAVE_LOCATION_P (cond))
     SET_EXPR_LOCATION (cond, loc);
   c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, "expected %<)%>");
   return cond;
@@ -3856,7 +3832,7 @@ c_parser_c99_block_statement (c_parser *parser)
    is just parsing a statement but (a) it is a block in C99, (b) we
    track whether the body is an if statement for the sake of
    -Wparentheses warnings, (c) we handle an empty body specially for
-   the sake of -Wextra warnings.  */
+   the sake of -Wempty-body warnings.  */
 
 static tree
 c_parser_if_body (c_parser *parser, bool *if_p)
@@ -3868,7 +3844,7 @@ c_parser_if_body (c_parser *parser, bool *if_p)
 	     && c_parser_peek_2nd_token (parser)->type == CPP_COLON))
     c_parser_label (parser);
   *if_p = c_parser_next_token_is_keyword (parser, RID_IF);
-  if (extra_warnings && c_parser_next_token_is (parser, CPP_SEMICOLON))
+  if (warn_empty_body && c_parser_next_token_is (parser, CPP_SEMICOLON))
     add_stmt (build_empty_stmt ());
   c_parser_statement_after_labels (parser);
   return c_end_compound_stmt (block, flag_isoc99);
@@ -4073,7 +4049,7 @@ c_parser_for_statement (c_parser *parser)
 	{
 	  tree ocond = c_parser_expression_conv (parser).value;
 	  cond = c_objc_common_truthvalue_conversion (ocond);
-	  if (EXPR_P (cond))
+	  if (CAN_HAVE_LOCATION_P (cond))
 	    SET_EXPR_LOCATION (cond, loc);
 	  c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
 	}
@@ -7424,7 +7400,7 @@ c_parser_omp_for_loop (c_parser *parser)
     {
       cond = c_parser_expression_conv (parser).value;
       cond = c_objc_common_truthvalue_conversion (cond);
-      if (EXPR_P (cond))
+      if (CAN_HAVE_LOCATION_P (cond))
 	SET_EXPR_LOCATION (cond, input_location);
     }
   c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
@@ -7754,6 +7730,12 @@ c_parser_omp_construct (c_parser *parser)
   loc = c_parser_peek_token (parser)->location;
   p_kind = c_parser_peek_token (parser)->pragma_kind;
   c_parser_consume_pragma (parser);
+
+  /* For all constructs below except #pragma omp atomic
+     MUST_NOT_THROW catch handlers are needed when exceptions
+     are enabled.  */
+  if (p_kind != PRAGMA_OMP_ATOMIC)
+    c_maybe_initialize_eh ();
 
   switch (p_kind)
     {

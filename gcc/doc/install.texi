@@ -292,21 +292,23 @@ systems' @command{tar} programs will also work, only try GNU
 
 @item GNU Multiple Precision Library (GMP) version 4.1 (or later)
 
-Necessary to build the Fortran frontend.  If you do not have it
-installed in your library search path, you will have to configure with
-the @option{--with-gmp} or @option{--with-gmp-dir} configure option.
+Necessary to build GCC.  If you do not have it installed in your
+library search path, you will have to configure with the
+@option{--with-gmp} configure option.  See also
+@option{--with-gmp-lib} and @option{--with-gmp-include}.
 
-@item MPFR Library version 2.2 (or later)
+@item MPFR Library version 2.2.1 (or later)
 
-Necessary to build the Fortran frontend.  It can be downloaded from
+Necessary to build GCC.  It can be downloaded from
 @uref{http://www.mpfr.org/}.  The version of MPFR that is bundled with
-GMP 4.1.x contains numerous bugs.  Although gfortran will appear
-to function with the buggy versions of MPFR, there are a few gfortran bugs
-that will not be fixed to use this version.  It is strongly
-recommended to upgrade to at least MPFR version 2.2.
+GMP 4.1.x contains numerous bugs.  Although GCC may appear to function
+with the buggy versions of MPFR, there are a few bugs that will not be
+fixed when using this version.  It is strongly recommended to upgrade
+to the recommended version of MPFR.
 
-The @option{--with-mpfr} or @option{--with-mpfr-dir} configure option should
-be used if your MPFR Library is not installed in your library search path.
+The @option{--with-mpfr} configure option should be used if your MPFR
+Library is not installed in your default library search path.  See
+also @option{--with-mpfr-lib} and @option{--with-mpfr-include}.
 
 @item @command{jar}, or InfoZIP (@command{zip} and @command{unzip})
 
@@ -325,7 +327,7 @@ to regenerate @file{configure} and @file{config.in} files.  Most
 directories require autoconf 2.59 (exactly), but the toplevel
 still requires autoconf 2.13 (exactly).
 
-@item automake versions 1.9.3
+@item automake version 1.9.6
 
 Necessary when modifying a @file{Makefile.am} file to regenerate its
 associated @file{Makefile.in}.
@@ -336,7 +338,7 @@ file.  Specifically this applies to the @file{gcc}, @file{intl},
 as any of their subdirectories.
 
 For directories that use automake, GCC requires the latest release in
-the 1.9.x series, which is currently 1.9.3.  When regenerating a directory
+the 1.9.x series, which is currently 1.9.6.  When regenerating a directory
 to a newer version, please update all the directories using an older 1.9.x
 to the latest released version.
 
@@ -390,14 +392,19 @@ releases.
 Necessary for running @command{makeinfo} when modifying @file{*.texi}
 files to test your changes.
 
+Necessary for running @command{make dvi} or @command{make pdf} to
+create printable documentation in DVI or PDF format.  Texinfo version
+4.8 or later is required for @command{make pdf}.
+
 Necessary to build GCC documentation during development because the
 generated output files are not included in the SVN repository.  They are
 included in releases.
 
 @item @TeX{} (any working version)
 
-Necessary for running @command{texi2dvi}, used when running
-@command{make dvi} to create DVI files.
+Necessary for running @command{texi2dvi} and @command{texi2pdf}, which 
+are used when running @command{make dvi} or @command{make pdf} to create
+DVI or PDF files, respectively.
 
 @item SVN (any version)
 @itemx SSH (any version)
@@ -455,11 +462,11 @@ components.
 Please refer to the @uref{http://gcc.gnu.org/releases.html,,releases web page}
 for information on how to obtain GCC@.
 
-The full distribution includes the C, C++, Objective-C, Fortran 77, Fortran
-(in case of GCC 4.0 and later), Java, and Ada (in case of GCC 3.1 and later)
-compilers.  The full distribution also includes runtime libraries for C++,
-Objective-C, Fortran 77, Fortran, and Java.  In GCC 3.0 and later versions,
-GNU compiler testsuites are also included in the full distribution.
+The full distribution includes the C, C++, Objective-C, Fortran, Java,
+and Ada (in the case of GCC 3.1 and later) compilers.  The full
+distribution also includes runtime libraries for C++, Objective-C,
+Fortran, and Java.  In GCC 3.0 and later versions, the GNU compiler
+testsuites are also included in the full distribution.
 
 If you choose to download specific components, you must download the core
 GCC distribution plus any language specific distributions you wish to
@@ -1147,7 +1154,7 @@ powerpc-linux for powerpc64-linux, only generates 32-bit code.  This
 option enables the 32-bit target to be a bi-arch compiler, which is
 useful when you want a bi-arch compiler that defaults to 32-bit, and
 you are building a bi-arch or multi-arch binutils in a combined tree.
-Currently, this option only affects powerpc-linux.
+Currently, this option only affects powerpc-linux and x86-linux.
 
 @item --enable-secureplt
 This option enables @option{-msecure-plt} by default for powerpc-linux.
@@ -1288,6 +1295,26 @@ When neither of these configure options are used, the default will be
 128-bit @code{long double} when built against GNU C Library 2.4 and later,
 64-bit @code{long double} otherwise.
 
+@item --with-gmp=@var{pathname}
+@itemx --with-gmp-include=@var{pathname}
+@itemx --with-gmp-lib=@var{pathname}
+@itemx --with-mpfr=@var{pathname}
+@itemx --with-mpfr-include=@var{pathname}
+@itemx --with-mpfr-lib=@var{pathname}
+If you do not have GMP (the GNU Multiple Precision library) and the
+MPFR Libraries installed in a standard location and you want to build
+GCC, you can explicitly specify the directory where they are installed
+(@samp{--with-gmp=@var{gmpinstalldir}},
+@samp{--with-mpfr=@var{mpfrinstalldir}}).  The
+@option{--with-gmp=@var{gmpinstalldir}} option is shorthand for
+@option{--with-gmp-lib=@var{gmpinstalldir}/lib} and
+@option{--with-gmp-include=@var{gmpinstalldir}/include}.  Likewise the
+@option{--with-mpfr=@var{mpfrinstalldir}} option is shorthand for
+@option{--with-mpfr-lib=@var{mpfrinstalldir}/lib} and
+@option{--with-mpfr-include=@var{mpfrinstalldir}/include}.  If these
+shorthand assumptions are not correct, you can use the explicit
+include and lib options directly.
+
 @end table
 
 @subheading Cross-Compiler-Specific Options
@@ -1367,25 +1394,6 @@ When you use this option, you should ensure that @var{dir} includes
 @command{ranlib} and @command{strip} if necessary, and possibly
 @command{objdump}.  Otherwise, GCC may use an inconsistent set of
 tools.
-@end table
-
-@subheading Fortran-Specific Options
-
-The following options apply to the build of the Fortran front end.
-
-@table @code
-
-@item --with-gmp=@var{pathname}
-@itemx --with-mpfr=@var{pathname}
-@itemx --with-gmp-dir=@var{pathname}
-@itemx --with-mpfr-dir=@var{pathname}
-If you don't have GMP (the GNU Multiple Precision library) and the MPFR
-Libraries installed in a standard location and you want to build the Fortran
-front-end, you can explicitly specify the directory where they are installed
-(@samp{--with-gmp=gmpinstalldir}, @samp{--with-mpfr=mpfrinstalldir}) or where
-you built them without installing (@samp{--with-gmp-dir=gmpbuilddir},
-@samp{--with-mpfr-dir=gmpbuilddir}).
-
 @end table
 
 @subheading Java-Specific Options
@@ -1901,12 +1909,12 @@ You can pass multiple options to the testsuite using the
 work outside the makefiles.  For example,
 
 @smallexample
-    make check-g++ RUNTESTFLAGS="--target_board=unix/-O3/-fno-strength-reduce"
+    make check-g++ RUNTESTFLAGS="--target_board=unix/-O3/-fmerge-constants"
 @end smallexample
 
 will run the standard @command{g++} testsuites (``unix'' is the target name
 for a standard native testsuite situation), passing
-@samp{-O3 -fno-strength-reduce} to the compiler on every test, i.e.,
+@samp{-O3 -fmerge-constants} to the compiler on every test, i.e.,
 slashes separate options.
 
 You can run the testsuites multiple times using combinations of options
@@ -2166,7 +2174,10 @@ If you want to print the GCC manuals, do @samp{cd @var{objdir}; make
 dvi}.  You will need to have @command{texi2dvi} (version at least 4.4)
 and @TeX{} installed.  This creates a number of @file{.dvi} files in
 subdirectories of @file{@var{objdir}}; these may be converted for
-printing with programs such as @command{dvips}.  You can also
+printing with programs such as @command{dvips}.  Alternately, by using
+@samp{make pdf} in place of @samp{make dvi}, you can create documentation
+in the form of @file{.pdf} files; this requires @command{texi2pdf}, which
+is included with Texinfo version 4.8 and later.  You can also
 @uref{http://www.gnu.org/order/order.html,,buy printed manuals from the
 Free Software Foundation}, though such manuals may not be for the most
 recent version of GCC@.
@@ -2272,7 +2283,7 @@ number of platforms.
 
 @item
 The @uref{http://gcc.gnu.org/wiki/GFortranBinaries,,GFortran Wiki} has
-links to gfortran binaries for several platforms.
+links to GNU Fortran binaries for several platforms.
 @end itemize
 
 In addition to those specific offerings, you can get a binary
@@ -3228,6 +3239,11 @@ and then proceed as described in @uref{build.html,,the build
 instructions}, where we strongly recommend specifying an absolute path
 to invoke @var{srcdir}/configure.
 
+Because GCC on AIX is built as a 32-bit executable by default,
+(although it can generate 64-bit programs) the GMP and MPFR libraries
+required by gfortran must be 32-bit libraries.  Building GMP and MPFR
+as static archive libraries works better than shared libraries.
+
 Errors involving @code{alloca} when building GCC generally are due
 to an incorrect definition of @code{CC} in the Makefile or mixing files
 compiled with the native C compiler and GCC@.  During the stage1 phase of
@@ -3596,11 +3612,10 @@ binaries are available at
 @uref{http://developer.apple.com/darwin/projects/compiler/} (free
 registration required).
 
-This version of GCC requires at least cctools-590.7.
-
-The version of GCC shipped by Apple typically includes a number of
-extensions not available in a standard GCC release.  These extensions
-are generally for backwards compatibility and best avoided.
+This version of GCC requires at least cctools-590.36.  The
+cctools-590.36 package referenced from
+@uref{http://gcc.gnu.org/ml/gcc/2006-03/msg00507.html} will not work
+on systems older than 10.3.9 (aka darwin7.9.0).
 
 @html
 <hr />
@@ -3835,12 +3850,15 @@ ld: warning: relocation error: R_SPARC_UA32: @dots{}
 To work around this problem, compile with @option{-gstabs+} instead of
 plain @option{-g}.
 
-When configuring the GNU Multiple Precision Library (GMP) version 4.1.x
-on a Solaris 7 or later system, the canonical target triplet must be
-specified as the @command{build} parameter on the configure line:
+When configuring the GNU Multiple Precision Library (GMP) or the MPFR
+library on a Solaris 7 or later system, the canonical target triplet
+must be specified as the @command{build} parameter on the configure
+line.  This triplet can be obtained by invoking ./config.guess in
+the toplevel source directory of GCC (and not that of GMP or MPFR).
+For example on a Solaris 7 system:
 
 @smallexample
-./configure --build=sparc-sun-solaris2.7 --prefix=xxx --enable-mpfr
+   % ./configure --build=sparc-sun-solaris2.7 --prefix=xxx
 @end smallexample
 
 @html
@@ -3920,15 +3938,24 @@ releases mishandled unaligned relocations on @code{sparc-*-*} targets.
 @end html
 @heading @anchor{sparc64-x-solaris2}sparc64-*-solaris2*
 
+When configuring the GNU Multiple Precision Library (GMP) or the
+MPFR library, the canonical target triplet must be specified as
+the @command{build} parameter on the configure line.  For example
+on a Solaris 7 system:
+
+@smallexample
+   % ./configure --build=sparc64-sun-solaris2.7 --prefix=xxx
+@end smallexample
+
 The following compiler flags must be specified in the configure
 step in order to bootstrap this target with the Sun compiler:
 
 @smallexample
-   % CC="cc -xildoff -xarch=v9" @var{srcdir}/configure [@var{options}] [@var{target}]
+   % CC="cc -xarch=v9 -xildoff" @var{srcdir}/configure [@var{options}] [@var{target}]
 @end smallexample
 
-@option{-xildoff} turns off the incremental linker, and @option{-xarch=v9}
-specifies the SPARC-V9 architecture to the Sun linker and assembler.
+@option{-xarch=v9} specifies the SPARC-V9 architecture to the Sun toolchain
+and @option{-xildoff} turns off the incremental linker.
 
 @html
 <hr />

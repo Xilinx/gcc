@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.
    For ARM with ELF obj format.
-   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2004, 2005
+   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2004, 2005, 2007
    Free Software Foundation, Inc.
    Contributed by Philip Blundell <philb@gnu.org> and
    Catherine Moore <clm@cygnus.com>
@@ -96,9 +96,10 @@
 /* Define this macro if jump tables (for `tablejump' insns) should be
    output in the text section, along with the assembler instructions.
    Otherwise, the readonly data section is used.  */
-/* We put ARM jump tables in the text section, because it makes the code
-   more efficient, but for Thumb it's better to put them out of band.  */
-#define JUMP_TABLES_IN_TEXT_SECTION (TARGET_ARM)
+/* We put ARM and Thumb-2 jump tables in the text section, because it makes
+   the code more efficient, but for Thumb-1 it's better to put them out of
+   band.  */
+#define JUMP_TABLES_IN_TEXT_SECTION (TARGET_32BIT)
 
 #ifndef LINK_SPEC
 #define LINK_SPEC "%{mbig-endian:-EB} %{mlittle-endian:-EL} -X"
@@ -133,12 +134,6 @@
 /* The ELF assembler handles GOT addressing differently to NetBSD.  */
 #define GOT_PCREL	0
 
-/* Biggest alignment supported by the object file format of this
-   machine.  Use this macro to limit the alignment which can be
-   specified using the `__attribute__ ((aligned (N)))' construct.  If
-   not defined, the default value is `BIGGEST_ALIGNMENT'.  */
-#define MAX_OFILE_ALIGNMENT (32768 * 8)
-
 /* Align output to a power of two.  Note ".align 0" is redundant,
    and also GAS will treat it as ".align 2" which we do not want.  */
 #define ASM_OUTPUT_ALIGN(STREAM, POWER)			\
@@ -149,5 +144,3 @@
     }							\
   while (0)
 
-/* The EABI doesn't provide a way of implementing init_priority.  */
-#define SUPPORTS_INIT_PRIORITY (!TARGET_AAPCS_BASED)

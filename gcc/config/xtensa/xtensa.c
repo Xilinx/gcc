@@ -123,75 +123,6 @@ const enum reg_class xtensa_regno_to_class[FIRST_PSEUDO_REGISTER] =
   ACC_REG,
 };
 
-/* Map register constraint character to register class.  */
-enum reg_class xtensa_char_to_class[256] =
-{
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-  NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
-};
-
 static enum internal_test map_test_to_internal_test (enum rtx_code);
 static rtx gen_int_relational (enum rtx_code, rtx, rtx, int *);
 static rtx gen_float_relational (enum rtx_code, rtx, rtx);
@@ -210,6 +141,9 @@ static bool xtensa_rtx_costs (rtx, int, int, int *);
 static tree xtensa_build_builtin_va_list (void);
 static bool xtensa_return_in_memory (tree, tree);
 static tree xtensa_gimplify_va_arg_expr (tree, tree, tree *, tree *);
+static void xtensa_init_builtins (void);
+static tree xtensa_fold_builtin (tree, tree, bool);
+static rtx xtensa_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
 
 static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
   REG_ALLOC_ORDER;
@@ -265,12 +199,17 @@ static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
 #undef TARGET_RETURN_IN_MSB
 #define TARGET_RETURN_IN_MSB xtensa_return_in_msb
 
-struct gcc_target targetm = TARGET_INITIALIZER;
-
+#undef  TARGET_INIT_BUILTINS
+#define TARGET_INIT_BUILTINS xtensa_init_builtins
+#undef  TARGET_FOLD_BUILTIN
+#define TARGET_FOLD_BUILTIN xtensa_fold_builtin
+#undef  TARGET_EXPAND_BUILTIN
+#define TARGET_EXPAND_BUILTIN xtensa_expand_builtin
 
-/*
- * Functions to test Xtensa immediate operand validity.
- */
+struct gcc_target targetm = TARGET_INITIALIZER;
+
+
+/* Functions to test Xtensa immediate operand validity.  */
 
 bool
 xtensa_simm8 (HOST_WIDE_INT v)
@@ -392,25 +331,6 @@ xtensa_mask_immediate (HOST_WIDE_INT v)
 	return true;
     }
 
-  return false;
-}
-
-
-bool
-xtensa_const_ok_for_letter_p (HOST_WIDE_INT v, int c)
-{
-  switch (c)
-    {
-    case 'I': return xtensa_simm12b (v);
-    case 'J': return xtensa_simm8 (v);
-    case 'K': return (v == 0 || xtensa_b4const (v));
-    case 'L': return xtensa_b4constu (v);
-    case 'M': return (v >= -32 && v <= 95);
-    case 'N': return xtensa_simm8x256 (v);
-    case 'O': return (v == -1 || (v >= 1 && v <= 15));
-    case 'P': return xtensa_mask_immediate (v);
-    default: break;
-    }
   return false;
 }
 
@@ -577,26 +497,6 @@ xtensa_mem_offset (unsigned v, enum machine_mode mode)
     }
 
   return xtensa_uimm8x4 (v);
-}
-
-
-bool
-xtensa_extra_constraint (rtx op, int c)
-{
-  /* Allow pseudo registers during reload.  */
-  if (GET_CODE (op) != MEM)
-    return (c >= 'R' && c <= 'U'
-	    && reload_in_progress && GET_CODE (op) == REG
-	    && REGNO (op) >= FIRST_PSEUDO_REGISTER);
-
-  switch (c)
-    {
-    case 'R': return smalloffset_mem_p (op);
-    case 'T': return !TARGET_CONST16 && constantpool_mem_p (op);
-    case 'U': return !constantpool_mem_p (op);
-    default: break;
-    }
-  return false;
 }
 
 
@@ -1359,6 +1259,101 @@ xtensa_emit_loop_end (rtx insn, rtx *operands)
 
 
 char *
+xtensa_emit_branch (bool inverted, bool immed, rtx *operands)
+{
+  static char result[64];
+  enum rtx_code code;
+  const char *op;
+
+  code = GET_CODE (operands[3]);
+  switch (code)
+    {
+    case EQ:	op = inverted ? "ne" : "eq"; break;
+    case NE:	op = inverted ? "eq" : "ne"; break;
+    case LT:	op = inverted ? "ge" : "lt"; break;
+    case GE:	op = inverted ? "lt" : "ge"; break;
+    case LTU:	op = inverted ? "geu" : "ltu"; break;
+    case GEU:	op = inverted ? "ltu" : "geu"; break;
+    default:	gcc_unreachable ();
+    }
+
+  if (immed)
+    {
+      if (INTVAL (operands[1]) == 0)
+	sprintf (result, "b%sz%s\t%%0, %%2", op,
+		 (TARGET_DENSITY && (code == EQ || code == NE)) ? ".n" : "");
+      else
+	sprintf (result, "b%si\t%%0, %%d1, %%2", op);
+    }
+  else
+    sprintf (result, "b%s\t%%0, %%1, %%2", op);
+
+  return result;
+}
+
+
+char *
+xtensa_emit_bit_branch (bool inverted, bool immed, rtx *operands)
+{
+  static char result[64];
+  const char *op;
+
+  switch (GET_CODE (operands[3]))
+    {
+    case EQ:	op = inverted ? "bs" : "bc"; break;
+    case NE:	op = inverted ? "bc" : "bs"; break;
+    default:	gcc_unreachable ();
+    }
+
+  if (immed)
+    {
+      unsigned bitnum = INTVAL (operands[1]) & 0x1f; 
+      operands[1] = GEN_INT (bitnum); 
+      sprintf (result, "b%si\t%%0, %%d1, %%2", op);
+    }
+  else
+    sprintf (result, "b%s\t%%0, %%1, %%2", op);
+
+  return result;
+}
+
+
+char *
+xtensa_emit_movcc (bool inverted, bool isfp, bool isbool, rtx *operands)
+{
+  static char result[64];
+  enum rtx_code code;
+  const char *op;
+
+  code = GET_CODE (operands[4]);
+  if (isbool)
+    {
+      switch (code)
+	{
+	case EQ:	op = inverted ? "t" : "f"; break;
+	case NE:	op = inverted ? "f" : "t"; break;
+	default:	gcc_unreachable ();
+	}
+    }
+  else
+    {
+      switch (code)
+	{
+	case EQ:	op = inverted ? "nez" : "eqz"; break;
+	case NE:	op = inverted ? "eqz" : "nez"; break;
+	case LT:	op = inverted ? "gez" : "ltz"; break;
+	case GE:	op = inverted ? "ltz" : "gez"; break;
+	default:	gcc_unreachable ();
+	}
+    }
+
+  sprintf (result, "mov%s%s\t%%0, %%%d, %%1",
+	   op, isfp ? ".s" : "", inverted ? 3 : 2);
+  return result;
+}
+
+
+char *
 xtensa_emit_call (int callop, rtx *operands)
 {
   static char result[64];
@@ -1517,17 +1512,6 @@ override_options (void)
 
   if (!TARGET_BOOLEANS && TARGET_HARD_FLOAT)
     error ("boolean registers required for the floating-point option");
-
-  xtensa_char_to_class['q'] = SP_REG;
-  xtensa_char_to_class['a'] = GR_REGS;
-  xtensa_char_to_class['b'] = ((TARGET_BOOLEANS) ? BR_REGS : NO_REGS);
-  xtensa_char_to_class['f'] = ((TARGET_HARD_FLOAT) ? FP_REGS : NO_REGS);
-  xtensa_char_to_class['A'] = ((TARGET_MAC16) ? ACC_REG : NO_REGS);
-  xtensa_char_to_class['B'] = ((TARGET_SEXT) ? GR_REGS : NO_REGS);
-  xtensa_char_to_class['C'] = ((TARGET_MUL16) ? GR_REGS: NO_REGS);
-  xtensa_char_to_class['D'] = ((TARGET_DENSITY) ? GR_REGS: NO_REGS);
-  xtensa_char_to_class['d'] = ((TARGET_DENSITY) ? AR_REGS: NO_REGS);
-  xtensa_char_to_class['W'] = ((TARGET_CONST16) ? GR_REGS: NO_REGS);
 
   /* Set up array giving whether a given register can hold a given mode.  */
   for (mode = VOIDmode;
@@ -2118,7 +2102,7 @@ xtensa_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
 
   /* Call __builtin_saveregs; save the result in __va_reg */
   u = make_tree (ptr_type_node, expand_builtin_saveregs ());
-  t = build2 (MODIFY_EXPR, ptr_type_node, reg, u);
+  t = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, reg, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
@@ -2126,7 +2110,7 @@ xtensa_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   u = make_tree (ptr_type_node, virtual_incoming_args_rtx);
   u = fold_build2 (PLUS_EXPR, ptr_type_node, u,
 		   build_int_cst (NULL_TREE, -32));
-  t = build2 (MODIFY_EXPR, ptr_type_node, stk, u);
+  t = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, stk, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
@@ -2136,7 +2120,7 @@ xtensa_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   if (arg_words >= MAX_ARGS_IN_REGISTERS)
     arg_words += 2;
   u = build_int_cst (NULL_TREE, arg_words * UNITS_PER_WORD);
-  t = build2 (MODIFY_EXPR, integer_type_node, ndx, u);
+  t = build2 (GIMPLE_MODIFY_STMT, integer_type_node, ndx, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 }
@@ -2205,7 +2189,7 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
 		  build_int_cst (NULL_TREE, align - 1));
       t = build2 (BIT_AND_EXPR, integer_type_node, t,
 		  build_int_cst (NULL_TREE, -align));
-      t = build2 (MODIFY_EXPR, integer_type_node, orig_ndx, t);
+      t = build2 (GIMPLE_MODIFY_STMT, integer_type_node, orig_ndx, t);
       gimplify_and_add (t, pre_p);
     }
 
@@ -2216,7 +2200,7 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
 
   t = fold_convert (integer_type_node, va_size);
   t = build2 (PLUS_EXPR, integer_type_node, orig_ndx, t);
-  t = build2 (MODIFY_EXPR, integer_type_node, ndx, t);
+  t = build2 (GIMPLE_MODIFY_STMT, integer_type_node, ndx, t);
   gimplify_and_add (t, pre_p);
 
 
@@ -2241,7 +2225,7 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
 		  NULL_TREE);
       gimplify_and_add (t, pre_p);
 
-      t = build2 (MODIFY_EXPR, void_type_node, array, reg);
+      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, array, reg);
       gimplify_and_add (t, pre_p);
 
       t = build1 (GOTO_EXPR, void_type_node, lab_over);
@@ -2273,13 +2257,13 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
 
   t = size_binop (PLUS_EXPR, va_size, size_int (32));
   t = fold_convert (integer_type_node, t);
-  t = build2 (MODIFY_EXPR, integer_type_node, ndx, t);
+  t = build2 (GIMPLE_MODIFY_STMT, integer_type_node, ndx, t);
   gimplify_and_add (t, pre_p);
 
   t = build1 (LABEL_EXPR, void_type_node, lab_false2);
   gimplify_and_add (t, pre_p);
 
-  t = build2 (MODIFY_EXPR, void_type_node, array, stk);
+  t = build2 (GIMPLE_MODIFY_STMT, void_type_node, array, stk);
   gimplify_and_add (t, pre_p);
 
   if (lab_over)
@@ -2319,6 +2303,74 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
   if (indirect)
     addr = build_va_arg_indirect_ref (addr);
   return build_va_arg_indirect_ref (addr);
+}
+
+
+/* Builtins.  */
+
+enum xtensa_builtin
+{
+  XTENSA_BUILTIN_UMULSIDI3,
+  XTENSA_BUILTIN_max
+};
+
+
+static void
+xtensa_init_builtins (void)
+{
+  tree ftype;
+
+  ftype = build_function_type_list (unsigned_intDI_type_node,
+				    unsigned_intSI_type_node,
+				    unsigned_intSI_type_node, NULL_TREE);
+
+  add_builtin_function ("__builtin_umulsidi3", ftype,
+			XTENSA_BUILTIN_UMULSIDI3, BUILT_IN_MD,
+			"__umulsidi3", NULL_TREE);
+}
+
+
+static tree
+xtensa_fold_builtin (tree fndecl, tree arglist, bool ignore ATTRIBUTE_UNUSED)
+{
+  unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
+  tree arg0, arg1;
+
+  if (fcode == XTENSA_BUILTIN_UMULSIDI3)
+    {
+      arg0 = TREE_VALUE (arglist);
+      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
+      if ((TREE_CODE (arg0) == INTEGER_CST && TREE_CODE (arg1) == INTEGER_CST)
+	  || TARGET_MUL32_HIGH)
+	return fold_build2 (MULT_EXPR, unsigned_intDI_type_node,
+			    fold_convert (unsigned_intDI_type_node, arg0),
+			    fold_convert (unsigned_intDI_type_node, arg1));
+      else
+	return NULL;
+    }
+
+  internal_error ("bad builtin code");
+  return NULL;
+}
+
+
+static rtx
+xtensa_expand_builtin (tree exp, rtx target,
+		       rtx subtarget ATTRIBUTE_UNUSED,
+		       enum machine_mode mode ATTRIBUTE_UNUSED,
+		       int ignore)
+{
+  tree fndecl = TREE_OPERAND (TREE_OPERAND (exp, 0), 0);
+  unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
+
+  /* The umulsidi3 builtin is just a mechanism to avoid calling the real
+     __umulsidi3 function when the Xtensa configuration can directly
+     implement it.  If not, just call the function.  */
+  if (fcode == XTENSA_BUILTIN_UMULSIDI3)
+    return expand_call (exp, target, ignore);
+
+  internal_error ("bad builtin code");
+  return NULL_RTX;
 }
 
 
@@ -2530,7 +2582,12 @@ xtensa_rtx_costs (rtx x, int code, int outer_code, int *total)
       }
 
     case FFS:
+    case CTZ:
       *total = COSTS_N_INSNS (TARGET_NSA ? 5 : 50);
+      return true;
+
+    case CLZ:
+      *total = COSTS_N_INSNS (TARGET_NSA ? 1 : 50);
       return true;
 
     case NOT:
@@ -2589,8 +2646,10 @@ xtensa_rtx_costs (rtx x, int code, int outer_code, int *total)
 	enum machine_mode xmode = GET_MODE (x);
 	if (xmode == SFmode)
 	  *total = COSTS_N_INSNS (TARGET_HARD_FLOAT ? 4 : 50);
-	else if (xmode == DFmode || xmode == DImode)
+	else if (xmode == DFmode)
 	  *total = COSTS_N_INSNS (50);
+	else if (xmode == DImode)
+	  *total = COSTS_N_INSNS (TARGET_MUL32_HIGH ? 10 : 50);
 	else if (TARGET_MUL32)
 	  *total = COSTS_N_INSNS (4);
 	else if (TARGET_MAC16)

@@ -33,7 +33,8 @@ Boston, MA 02110-1301, USA.  */
    %{!shared:%{pg:-L/lib/pa20_64/libp -L/usr/lib/pa20_64/libp %{!static:\
      %nWarning: consider linking with `-static' as system libraries with\n\
      %n  profiling support are only provided in archive format}}}\
-   %{mhp-ld:+Accept TypeMismatch -z} -E %{mlinker-opt:-O} %{!shared:-u main}\
+   %{mhp-ld:+Accept TypeMismatch -z} -E %{mlinker-opt:-O}\
+   %{!shared:-u main %{!nostdlib:%{!nodefaultlibs:-u __cxa_finalize}}}\
    %{static:-a archive} %{shared:%{mhp-ld:-b}%{!mhp-ld:-shared}}"
 #else
 #define LINK_SPEC \
@@ -43,7 +44,8 @@ Boston, MA 02110-1301, USA.  */
    %{!shared:%{pg:-L/lib/pa20_64/libp -L/usr/lib/pa20_64/libp %{!static:\
      %nWarning: consider linking with `-static' as system libraries with\n\
      %n  profiling support are only provided in archive format}}}\
-   %{!mgnu-ld:+Accept TypeMismatch -z} -E %{mlinker-opt:-O} %{!shared:-u main}\
+   %{!mgnu-ld:+Accept TypeMismatch -z} -E %{mlinker-opt:-O}\
+   %{!shared:-u main %{!nostdlib:%{!nodefaultlibs:-u __cxa_finalize}}}\
    %{static:-a archive} %{shared:%{mgnu-ld:-shared}%{!mgnu-ld:-b}}"
 #endif
 
@@ -86,7 +88,7 @@ Boston, MA 02110-1301, USA.  */
 /* Under hpux11, the normal location of the `ld' and `as' programs is the
    /usr/ccs/bin directory.  */
 
-#ifndef CROSS_COMPILE
+#ifndef CROSS_DIRECTORY_STRUCTURE
 #undef MD_EXEC_PREFIX
 #define MD_EXEC_PREFIX "/usr/ccs/bin"
 #endif
@@ -103,12 +105,12 @@ Boston, MA 02110-1301, USA.  */
    is the /usr/ccs/lib/pa20_64 directory.  Some files may also be in the
    /opt/langtools/lib/pa20_64 directory.  */
 
-#ifndef CROSS_COMPILE
+#ifndef CROSS_DIRECTORY_STRUCTURE
 #undef MD_STARTFILE_PREFIX
 #define MD_STARTFILE_PREFIX "/usr/ccs/lib/pa20_64/"
 #endif
 
-#ifndef CROSS_COMPILE
+#ifndef CROSS_DIRECTORY_STRUCTURE
 #undef MD_STARTFILE_PREFIX_1
 #define MD_STARTFILE_PREFIX_1 "/opt/langtools/lib/pa20_64/"
 #endif
@@ -195,6 +197,7 @@ do {								\
    dynamic loader to work correctly.  This is equivalent to the
    HP assembler's .IMPORT directive but relates more directly to
    ELF object file types.  */
+#undef ASM_OUTPUT_EXTERNAL
 #define ASM_OUTPUT_EXTERNAL(FILE, DECL, NAME)			\
   pa_hpux_asm_output_external ((FILE), (DECL), (NAME))
 #define ASM_OUTPUT_EXTERNAL_REAL(FILE, DECL, NAME)		\

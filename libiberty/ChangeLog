@@ -1,3 +1,66 @@
+2006-12-20  Geoffrey Keating  <geoffk@apple.com>
+
+	* cp-demangle.h: Add comment explaining what to do to avoid
+	overrunning string.
+	(d_check_char): New.
+	(d_next_char): Don't advance past trailing '\0'.
+	* cp-demangle.c (cplus_demangle_mangled_name): Use d_check_char.
+	(d_nested_name): Likewise.
+	(d_special_name): Likewise.
+	(d_call_offset): Likewise.
+	(d_function_type): Likewise.
+	(d_array_type): Likewise.
+	(d_pointer_to_member_type): Likewise.
+	(d_template_param): Likewise.
+	(d_template_args): Likewise.
+	(d_template_arg): Likewise.
+	(d_expr_primary): Likewise.
+	(d_local_name): Likewise.
+	(d_substitution): Likewise.
+	(d_ctor_dtor_name): Use d_advance rather than d_next_char.
+	* testsuite/test-demangle.c: Include sys/mman.h.
+	(MAP_ANONYMOUS): Define.
+	(protect_end): New.
+	(main): Use protect_end.
+	* testsuite/demangle-expected: Add testcases for overrunning
+	the end of the string.
+
+2006-11-30  Andrew Stubbs  <andrew.stubbs@st.com>
+            J"orn Rennecke <joern.rennecke@st.com>
+
+	PR driver/29931
+	* make-relative-prefix.c (make_relative_prefix_1): New function,
+	broken out of make_relative_prefix.  Make link resolution dependent
+	on new parameter.
+	(make_relative_prefix): Use make_relative_prefix_1.
+	(make_relative_prefix_ignore_links): New function.
+
+2006-11-08  Vladimir Prus  <vladimir@codesourcery.com>
+
+	* pex-win32.c (no_suffixes): Remove.
+	(std_suffixes): Add "" as first element.
+	(find_executable): Remove detection of already-present
+	extension. Try all suffixes in std_suffixes.
+				
+2006-11-07  Julian Brown  <julian@codesourcery.com>
+
+	* floatformat.c (get_field): Fix segfault with little-endian word
+	order on 64-bit hosts.
+	(put_field): Likewise.
+	(min): Move definition.
+
+2006-10-26  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	pex-win32.c (argv_to_cmdline): Replace xmalloc with XNEWVEC.
+	(find_executable): Likewise.
+	(win32_spawn): Cast alloca return to (char**).
+	Replace malloc with XNEWVEC.
+	bcopy.c (bcopy): Add explict casts in assignments.
+
+2006-10-25  Ben Elliston  <bje@au.ibm.com>
+
+	* pexecute.txh: Wrap pexecute's "flag" argument with @var {..}.
+	
 2006-10-10  Brooks Moses  <bmoses@stanford.edu>
 
 	* Makefile.in: Added "pdf", "libiberty.pdf" target support.

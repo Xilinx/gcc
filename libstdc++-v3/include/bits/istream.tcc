@@ -86,30 +86,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   template<typename _CharT, typename _Traits>
-    basic_istream<_CharT, _Traits>&
-    basic_istream<_CharT, _Traits>::
-    operator>>(__istream_type& (*__pf)(__istream_type&))
-    { return __pf(*this); }
-
-  template<typename _CharT, typename _Traits>
-    basic_istream<_CharT, _Traits>&
-    basic_istream<_CharT, _Traits>::
-    operator>>(__ios_type& (*__pf)(__ios_type&))
-    {
-      __pf(*this);
-      return *this;
-    }
-
-  template<typename _CharT, typename _Traits>
-    basic_istream<_CharT, _Traits>&
-    basic_istream<_CharT, _Traits>::
-    operator>>(ios_base& (*__pf)(ios_base&))
-    {
-      __pf(*this);
-      return *this;
-    }
-
-  template<typename _CharT, typename _Traits>
     template<typename _ValueT>
       basic_istream<_CharT, _Traits>&
       basic_istream<_CharT, _Traits>::
@@ -1011,12 +987,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	__in.setstate(__err);
       return __in;
     }
-
-  template<class _CharT, class _Traits, class _Alloc>
-    inline basic_istream<_CharT,_Traits>&
-    getline(basic_istream<_CharT, _Traits>& __in,
-	    basic_string<_CharT,_Traits,_Alloc>& __str)
-    { return getline(__in, __str, __in.widen('\n')); }
 
   // Inhibit implicit instantiations for required instantiations,
   // which are defined via explicit instantiations elsewhere.
