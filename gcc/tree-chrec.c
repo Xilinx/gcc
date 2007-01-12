@@ -546,7 +546,7 @@ chrec_apply (unsigned var,
       || chrec_contains_symbols_defined_in_loop (chrec, var))
     return chrec_dont_know;
  
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (debug_p ())
     fprintf (dump_file, "(chrec_apply \n");
 
   if (TREE_CODE (x) == INTEGER_CST && SCALAR_FLOAT_TYPE_P (type))
@@ -571,7 +571,7 @@ chrec_apply (unsigned var,
   else
     res = chrec_dont_know;
   
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (debug_p ())
     {
       fprintf (dump_file, "  (varying_loop = %d\n", var);
       fprintf (dump_file, ")\n  (chrec = ");

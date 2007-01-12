@@ -52,7 +52,10 @@ VEC (scop_p, heap) *current_scops;
 void
 print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 {
-  print_loop_ir_bb (file, GBB_BB (gb), indent, verbosity);
+  fprintf (file, "\nGBB (\n");
+  print_loop_ir_bb (file, GBB_BB (gb), indent+2, verbosity);
+  dump_data_references (file, GBB_DATA_REFS (gb));
+  fprintf (file, ")\n");
 }
 
 /* Print SCOP to FILE.  */
@@ -67,12 +70,12 @@ print_scop (FILE *file, scop_p scop, int verbosity)
 	   scop->entry->index, scop->exit->index);
 
   fprintf (file, "       (static schedule: ");
-  print_lambda_vector (file, SCOP_STATIC_SCHEDULE (scop), SCOP_NB_LOOPS (scop));
+  print_lambda_vector (file, SCOP_STATIC_SCHEDULE (scop), scop_nb_loops (scop));
   fprintf (file, "       )\n");
 
   fprintf (file, "       (domain: \n");
   for (i = 0; VEC_iterate (lambda_vector, SCOP_DOMAIN (scop), i, v); i++)
-    print_lambda_vector (file, v, SCOP_DIM_DOMAIN (scop));
+    print_lambda_vector (file, v, scop_dim_domain (scop));
   fprintf (file, "       )\n");
 
   if (scop->bbs)
@@ -339,7 +342,7 @@ test_for_scop_bound (struct dom_walk_data *dw_data ATTRIBUTE_UNUSED,
   if (bb == ENTRY_BLOCK_PTR)
     return;
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (debug_p ())
     fprintf (dump_file, "down bb_%d\n", bb->index);
 
   /* Exiting the loop containing the open scop ends the scop.  */
@@ -352,7 +355,7 @@ test_for_scop_bound (struct dom_walk_data *dw_data ATTRIBUTE_UNUSED,
       down_open_scop = XNEW (struct scop);
       down_open_scop->entry = bb;
 
-      if (dump_file && (dump_flags & TDF_DETAILS))
+      if (debug_p ())
 	fprintf (dump_file, "dom bound bb_%d\n\n", bb->index);
 
       return;
@@ -367,7 +370,7 @@ test_for_scop_bound (struct dom_walk_data *dw_data ATTRIBUTE_UNUSED,
       down_open_scop = XNEW (struct scop);
       down_open_scop->entry = bb;
 
-      if (dump_file && (dump_flags & TDF_DETAILS))
+      if (debug_p ())
 	fprintf (dump_file, "difficult bound bb_%d\n\n", bb->index);
 
       return;
@@ -451,11 +454,11 @@ scan_tree_for_params (scop_p scop, tree expr, lambda_vector ineq, int k)
       break;
 
     case SSA_NAME:
-      ineq[SCOP_NB_LOOPS (scop) + param_index (expr, scop)] = k;
+      ineq[scop_nb_loops (scop) + param_index (expr, scop)] = k;
       break;
 
     case INTEGER_CST:
-      ineq[SCOP_NB_LOOPS (scop) + SCOP_NB_PARAMS (scop)] = int_cst_value (expr);
+      ineq[scop_nb_loops (scop) + scop_nb_params (scop)] = int_cst_value (expr);
       break;
 
     case NOP_EXPR:
@@ -469,20 +472,19 @@ scan_tree_for_params (scop_p scop, tree expr, lambda_vector ineq, int k)
     }
 }
 
-/* Returns the index of LOOP in the domain matrix for the SCOP.  */
+/* Record LOOP as occuring in SCOP.  */
 
-static int
-scop_loop_index (scop_p scop, struct loop *loop)
+static inline void
+scop_record_loop (scop_p scop, struct loop *loop)
 {
   unsigned i;
   struct loop *l;
 
   for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, l); i++)
     if (l == loop)
-      return i;
+      return;
 
   VEC_safe_push (loop_p, heap, SCOP_LOOP_NEST (scop), loop);
-  return VEC_length (loop_p, SCOP_LOOP_NEST (scop)) - 1;
 }
 
 /* Build the loop nest around basic block BB.  */
@@ -496,9 +498,7 @@ build_scop_loop_nests (scop_p scop)
   SCOP_LOOP_NEST (scop) = VEC_alloc (loop_p, heap, 3);
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    scop_loop_index (scop, GBB_BB (gb)->loop_father);
-
-  SCOP_NB_LOOPS (scop) = VEC_length (loop_p, SCOP_LOOP_NEST (scop));
+    scop_record_loop (scop, GBB_BB (gb)->loop_father);
 }
 
 /* Build the current domain matrix: the loops belonging to the current
@@ -510,14 +510,13 @@ build_scop_domain (scop_p scop)
   unsigned i;
   struct loop *loop;
 
-  SCOP_DIM_DOMAIN (scop) = SCOP_NB_LOOPS (scop) + SCOP_NB_PARAMS (scop) + 1;
-  SCOP_DOMAIN (scop) = VEC_alloc (lambda_vector, heap, SCOP_DIM_DOMAIN (scop));
+  SCOP_DOMAIN (scop) = VEC_alloc (lambda_vector, heap, scop_dim_domain (scop));
 
   for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, loop); i++)
     {
       tree nb_iters = number_of_latch_executions (loop);
-      lambda_vector ineq_low = lambda_vector_new (SCOP_DIM_DOMAIN (scop));
-      lambda_vector ineq_up = lambda_vector_new (SCOP_DIM_DOMAIN (scop));
+      lambda_vector ineq_low = lambda_vector_new (scop_dim_domain (scop));
+      lambda_vector ineq_up = lambda_vector_new (scop_dim_domain (scop));
 
       if (chrec_contains_undetermined (nb_iters))
 	continue;
@@ -532,7 +531,7 @@ build_scop_domain (scop_p scop)
 
 	  /* loop_i <= nb_iters */
 	  ineq_up[i] = -1;
-	  ineq_up[SCOP_DIM_DOMAIN (scop) - 1] = nbi;
+	  ineq_up[scop_dim_domain (scop) - 1] = nbi;
 	  VEC_safe_push (lambda_vector, heap, SCOP_DOMAIN (scop), ineq_up);
 	}
 
@@ -595,25 +594,31 @@ idx_record_params (tree base, tree *idx, void *dta)
 }
 
 /* Initialize the access matrix in the data reference REF with respect
-   to the loop nesting LOOP_NEST.  */
+   to the loop nesting LOOP_NEST.  Return true when the operation
+   succeeded.  */
 
-static void
-build_access_matrix (data_reference_p ref ATTRIBUTE_UNUSED, graphite_bb_p bb ATTRIBUTE_UNUSED)
+static bool
+build_access_matrix (data_reference_p ref, graphite_bb_p gb)
 {
+  unsigned i;
 
-#if 0
-  for (i = 0; i < DDR_NUM_SUBSCRIPTS (ref); i++)
+  DR_SCOP (ref) = GBB_SCOP (gb);
+  DR_ACCESS_MATRIX (ref) = VEC_alloc (lambda_vector, heap, 
+				      DR_NUM_DIMENSIONS (ref));
+
+  for (i = 0; i < DR_NUM_DIMENSIONS (ref); i++)
     {
-      lambda_vector v = lambda_vector_new (VEC_length (loop_p, loop_nest));
-      bool res = build_access_matrix_with_af (DR_ACCESS_FN (ref, i), v, 
-					      loop_nest, params);
-      if (res == false)
-	{
-	  ref->affine = false;
-	  break;
-	}
+      lambda_vector v = lambda_vector_new (gbb_dim_domain (gb));
+      bool res = build_access_matrix_with_af (DR_ACCESS_FN (ref, i), v,
+					      SCOP_LOOP_NEST (GBB_SCOP (gb)),
+					      SCOP_PARAMS (GBB_SCOP (gb)));
+      if (!res)
+	return false;
+
+      VEC_safe_push (lambda_vector, heap, DR_ACCESS_MATRIX (ref), v);
     }
-#endif
+
+  return true;
 }
 
 /* Build a schedule for each basic-block in the SCOP.  */
@@ -651,16 +656,16 @@ build_scop_canonical_schedules (scop_p scop)
   unsigned i;
   graphite_bb_p gb;
 
-  SCOP_STATIC_SCHEDULE (scop) = lambda_vector_new (SCOP_NB_LOOPS (scop) + 1);
+  SCOP_STATIC_SCHEDULE (scop) = lambda_vector_new (scop_nb_loops (scop) + 1);
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
       basic_block bb = GBB_BB (gb);
 
       SCOP_STATIC_SCHEDULE (scop)[scop_loop_index (scop, bb->loop_father)] += 1;
-      GBB_STATIC_SCHEDULE (gb) = lambda_vector_new (SCOP_NB_LOOPS (scop));
+      GBB_STATIC_SCHEDULE (gb) = lambda_vector_new (scop_nb_loops (scop));
       lambda_vector_copy (SCOP_STATIC_SCHEDULE (scop), GBB_STATIC_SCHEDULE (gb),
-			  SCOP_NB_LOOPS (scop) + 1);
+			  scop_nb_loops (scop) + 1);
     }
 }
 
@@ -681,6 +686,7 @@ build_graphite_bb (struct dom_walk_data *dw_data, basic_block bb)
   /* Build the new representation for the basic block.  */
   gb = XNEW (struct graphite_bb);
   GBB_BB (gb) = bb;
+  GBB_SCOP (gb) = scop;
 
   /* Store the GRAPHITE representation of the current BB.  */
   VEC_safe_push (graphite_bb_p, heap, scop->bbs, gb);
@@ -766,8 +772,6 @@ build_scop_params (scop_p scop)
   init_walk_dominator_tree (&walk_data);
   walk_dominator_tree (&walk_data, scop->entry);
   fini_walk_dominator_tree (&walk_data);
-
-  SCOP_NB_PARAMS (scop) = VEC_length (tree, SCOP_PARAMS (scop));
 }
 
 /* Find the right transform for the SCOP.  */
@@ -784,7 +788,6 @@ find_transform (scop_p scop ATTRIBUTE_UNUSED)
 static void
 gloog (scop_p scop ATTRIBUTE_UNUSED)
 {
-  
 }
 
 

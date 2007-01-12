@@ -1,3 +1,51 @@
+2007-01-12  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* tree-dump.c (dump_option_value_in): Add TDF_DEBUG.
+	* tree-pass.h (TDF_DEBUG, debug_p): New.
+	* tree-scalar-evolution.c (set_scalar_evolution, get_scalar_evolution, 
+	get_scalar_evolution, add_to_evolution, set_nb_iterations_in_loop, 
+	get_loop_exit_condition, analyze_evolution_in_loop,
+	analyze_initial_condition, analyze_scalar_evolution,
+	instantiate_parameters, number_of_latch_executions): Use debug_p.
+	* tree-chrec.c (chrec_apply): Use debug_p.
+	* tree-data-ref.c: Include graphite.h.
+	(dump_data_reference): Print also the access matrix.
+	(analyze_array, analyze_indirect_ref, init_data_ref, 
+	analyze_offset_expr, address_analysis, object_analysis,
+	create_data_ref, finalize_ddr_dependent, 
+	non_affine_dependence_relation, analyze_ziv_subscript,
+	analyze_siv_subscript_cst_affine, 
+	compute_overlap_steps_for_affine_1_2, analyze_subscript_affine_affine,
+	can_use_analyze_subscript_affine_affine, analyze_siv_subscript,
+	analyze_miv_subscript, analyze_overlapping_iterations, 
+	build_classic_dist_vector, subscript_dependence_tester, 
+	compute_affine_dependence, analyze_all_data_dependences): Use debug_p.
+	(build_access_matrix_with_af): No longer static.
+	* tree-data-ref.h (scop_p): ... declaration here.
+	(data_reference.scop): New field.
+	(DR_SCOP, DR_ACCESS_MATRIX): New.
+	(build_access_matrix_with_af, dr_num_subscripts): Declared.
+	* graphite.c (print_graphite_bb): Call dump_data_references.
+	(print_scop): Use scop_nb_loops and scop_dim_domain.
+	(test_for_scop_bound): Use debug_p.
+	(scan_tree_for_params): Use scop_nb_loops, scop_nb_loops and
+	scop_nb_params.
+	(scop_loop_index): Moved...
+	(scop_record_loop): New.
+	(build_scop_loop_nests): Use scop_record_loop.
+	(build_scop_domain): Use scop_dim_domain.
+	(build_access_matrix): Implemented.
+	(build_scop_canonical_schedules): Use scop_nb_loops.
+	(build_graphite_bb): Initialize GBB_SCOP.
+	* graphite.h (scop_p): Moved...
+	(graphite_bb.scop): New field.
+	(graphite_bb.iteration_domain, GBB_DOMAIN, scop.nb_params,
+	scop.nb_loops, scop.dim_domain, SCOP_NB_LOOPS, SCOP_NB_PARAMS,
+	SCOP_DIM_DOMAIN, SCOP_STMTS): Removed.
+	(scop_nb_params, scop_nb_loops, scop_dim_domain, gbb_dim_domain,
+	scop_loop_index): New.
+	* Makefile.in (tree-data-ref.o): Depends on graphite.h.
+
 2007-01-05  Sebastian Pop  <sebastian.pop@inria.fr>
 
 	* Merge from mainline (r117661:120450).

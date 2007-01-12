@@ -69,6 +69,8 @@ enum data_ref_type {
   POINTER_REF_TYPE
 };
 
+typedef struct scop *scop_p;
+
 struct data_reference
 {
   /* A pointer to the statement that contains this DR.  */
@@ -140,7 +142,9 @@ struct data_reference
      function for a subscript.  First elements correspond to the
      leftmost indices, ie. for a[i][j] the first vector corresponds to
      the subscript in "i".  The elements of a vector are relative to
-     the loop nest in which the data reference is considered.  
+     the loop nests in which the data reference is considered,
+     i.e. the vector is relative to the SCoP that provides the context
+     in which this data reference occurs.
 
      For example, in
 
@@ -148,7 +152,7 @@ struct data_reference
      |    loop_2
      |      a[i+3][2*j+n-1]
 
-     if "i" varies in loop_1 and "j" varies in loop_2, the access
+     if "i" varies in loop_1 and "j" varies in loop_2, the access 
      matrix with respect to the loop nest {loop_1, loop_2} is:
 
      | loop_1  loop_2  param_n  cst
@@ -163,12 +167,15 @@ struct data_reference
      |   2       0         1     -1
   */
   VEC (lambda_vector, heap) *access_matrix;
+  scop_p scop;
 };
 
 typedef struct data_reference *data_reference_p;
 DEF_VEC_P(data_reference_p);
 DEF_VEC_ALLOC_P (data_reference_p, heap);
 
+#define DR_SCOP(DR)                (DR)->scop
+#define DR_ACCESS_MATRIX(DR)       (DR)->access_matrix
 #define DR_STMT(DR)                (DR)->stmt
 #define DR_REF(DR)                 (DR)->ref
 #define DR_BASE_OBJECT(DR)         (DR)->object_info.base_object
@@ -365,6 +372,10 @@ extern void free_data_refs (VEC (data_reference_p, heap) *);
 extern struct data_reference *analyze_array (tree, tree, bool);
 extern struct data_reference *create_data_ref (tree, tree, bool);
 extern bool find_data_references_in_stmt (tree, VEC (data_reference_p, heap) **);
+extern bool build_access_matrix_with_af (tree, lambda_vector,
+					 VEC (loop_p, heap) *,
+					 VEC (tree, heap) *);
+extern unsigned dr_num_subscripts (data_reference_p);
 
 /* Return the index of the variable VAR in the LOOP_NEST array.  */
 

@@ -70,6 +70,7 @@ enum tree_dump_index
 #define TDF_GRAPH	(1 << 13)	/* a graph dump is being emitted */
 #define TDF_MEMSYMS	(1 << 14)	/* display memory symbols in expr.
                                            Implies TDF_VOPS.  */
+#define TDF_DEBUG	(1 << 15)	/* Pass debugging output.  */
 
 extern char *get_dump_file_name (enum tree_dump_index);
 extern int dump_enabled_p (enum tree_dump_index);
@@ -84,6 +85,15 @@ extern const char *dump_flag_name (enum tree_dump_index);
 extern FILE *dump_file;
 extern int dump_flags;
 extern const char *dump_file_name;
+
+/* Return true when the dump file is initialized and in debug
+   mode.  */
+
+static inline bool
+debug_p (void)
+{
+  return (dump_file && (dump_flags & TDF_DEBUG));
+}
 
 /* Return the dump_file_info for the given phase.  */
 extern struct dump_file_info *get_dump_file_info (enum tree_dump_index);

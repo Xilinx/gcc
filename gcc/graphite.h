@@ -25,23 +25,21 @@ typedef struct graphite_bb *graphite_bb_p;
 DEF_VEC_P(graphite_bb_p);
 DEF_VEC_ALLOC_P (graphite_bb_p, heap);
 
-typedef struct scop *scop_p;
 DEF_VEC_P(scop_p);
 DEF_VEC_ALLOC_P (scop_p, heap);
 
 struct graphite_bb
 {
   basic_block bb;
+  scop_p scop;
 
   lambda_vector static_schedule;
-  VEC (lambda_vector, heap) *iteration_domain;
   VEC (data_reference_p, heap) *data_refs;
 };
 
 #define GBB_BB(GBB) GBB->bb
 #define GBB_SCOP(GBB) GBB->scop
 #define GBB_STATIC_SCHEDULE(GBB) GBB->static_schedule
-#define GBB_DOMAIN(GBB) GBB->iteration_domain
 #define GBB_DATA_REFS(GBB) GBB->data_refs
 
 
@@ -60,14 +58,11 @@ struct scop
   lambda_vector static_schedule;
 
   /* Parameters used within the SCOP.  */
-  int nb_params;
   VEC (tree, heap) *params;
 
   /* Loops contained in the scop.  */
-  int nb_loops;
   VEC (loop_p, heap) *loop_nest;
 
-  int dim_domain;
   VEC (lambda_vector, heap) *iteration_domain;
 };
 
@@ -76,14 +71,59 @@ struct scop
 #define SCOP_EXIT(S) S->exit
 #define SCOP_STATIC_SCHEDULE(S) S->static_schedule
 #define SCOP_LOOP_NEST(S) S->loop_nest
-#define SCOP_NB_LOOPS(S) S->nb_loops
 #define SCOP_PARAMS(S) S->params
-#define SCOP_NB_PARAMS(S) S->nb_params
-#define SCOP_DIM_DOMAIN(S) S->dim_domain
+
 #define SCOP_DOMAIN(S) S->iteration_domain
 
 extern void debug_scop (scop_p, int);
 extern void debug_scops (int);
 extern void print_graphite_bb (FILE *, graphite_bb_p, int, int);
 
-#define SCOP_STMTS(S) (S)->stmts
+/* Return the number of parameters used in SCOP.  */
+
+static inline int
+scop_nb_params (scop_p scop)
+{
+  return VEC_length (tree, SCOP_PARAMS (scop));
+}
+
+/* Return the number of loops contained in SCOP.  */
+
+static inline int
+scop_nb_loops (scop_p scop)
+{
+  return VEC_length (loop_p, SCOP_LOOP_NEST (scop));
+}
+
+/* Return the dimension of the domains for SCOP.  */
+
+static inline int
+scop_dim_domain (scop_p scop)
+{
+  return scop_nb_loops (scop) + scop_nb_params (scop) + 1;
+}
+
+/* Return the dimension of the domains for GB.  */
+
+static inline int
+gbb_dim_domain (graphite_bb_p gb)
+{
+  return scop_dim_domain (GBB_SCOP (gb));
+}
+
+/* Returns the index of LOOP in the domain matrix for the SCOP.  */
+
+static inline int
+scop_loop_index (scop_p scop, struct loop *loop)
+{
+  unsigned i;
+  struct loop *l;
+
+  for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, l); i++)
+    if (l == loop)
+      return i;
+
+  gcc_unreachable ();
+  return -1;
+}
+
