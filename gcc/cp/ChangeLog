@@ -659,6 +659,12 @@
 	* decl.c (grokdeclarator): Rename uses of
 	multiple_specifiers_p to conflicting_specifiers_p.
 
+2006-10-11  Mark Mitchell  <mark@codesourcery.com>
+
+	PR c++/29175
+	* decl.c (check_initializer): Issue errors about trying to
+	initialize arrays whose elements have variable size.
+
 2006-10-10  Brooks Moses  <bmoses@stanford.edu>
 
 	* Make-lang.in: Added "c++.pdf" target support.

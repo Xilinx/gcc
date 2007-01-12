@@ -1,5 +1,9 @@
 2007-01-12  Sebastian Pop  <sebastian.pop@inria.fr>
 
+	* Merge from mainline (r117632:117661).
+
+2007-01-12  Sebastian Pop  <sebastian.pop@inria.fr>
+
 	* tree-dump.c (dump_option_value_in): Add TDF_DEBUG.
 	* tree-pass.h (TDF_DEBUG, debug_p): New.
 	* tree-scalar-evolution.c (set_scalar_evolution, get_scalar_evolution, 
