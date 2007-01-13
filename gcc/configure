@@ -309,7 +309,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical build_libsubdir build_subdir host_subdir target_subdir GENINSRC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT NO_MINUS_C_MINUS_O OUTPUT_OPTION CPP EGREP strict1_warn cxx_compat_warn warn_cflags WERROR nocommon_flag TREEBROWSER valgrind_path valgrind_path_defines valgrind_command coverage_flags enable_multilib enable_decimal_float enable_shared TARGET_SYSTEM_ROOT TARGET_SYSTEM_ROOT_DEFINE CROSS_SYSTEM_HEADER_DIR onestep datarootdir docdir htmldir SET_MAKE AWK LN_S LN RANLIB ac_ct_RANLIB ranlib_flags INSTALL INSTALL_PROGRAM INSTALL_DATA make_compare_target have_mktemp_command MAKEINFO BUILD_INFO GENERATED_MANPAGES FLEX BISON NM AR stage1_cflags COLLECT2_LIBS GNAT_LIBEXC LDEXP_LIB TARGET_GETGROUPS_T LIBICONV LTLIBICONV LIBICONV_DEP manext objext gthread_flags extra_modes_file extra_opt_files USE_NLS LIBINTL LIBINTL_DEP INCINTL XGETTEXT GMSGFMT POSUB CATALOGS DATADIRNAME INSTOBJEXT GENCAT CATOBJEXT host_cc_for_libada CROSS ALL SYSTEM_HEADER_DIR inhibit_libc CC_FOR_BUILD BUILD_CFLAGS STMP_FIXINC STMP_FIXPROTO collect2 gcc_cv_as ORIGINAL_AS_FOR_TARGET gcc_cv_ld ORIGINAL_LD_FOR_TARGET gcc_cv_nm ORIGINAL_NM_FOR_TARGET gcc_cv_objdump libgcc_visibility GGC zlibdir zlibinc MAINT gcc_tooldir dollar slibdir objdir subdirs srcdir all_boot_languages all_compilers all_gtfiles all_gtfiles_files_langs all_gtfiles_files_files all_lang_makefrags all_lang_makefiles all_languages all_selected_languages all_stagestuff build_exeext build_install_headers_dir build_xm_file_list build_xm_include_list build_xm_defines check_languages cc_set_by_configure quoted_cc_set_by_configure cpp_install_dir xmake_file tmake_file extra_gcc_objs extra_headers_list extra_objs extra_parts extra_passes extra_programs float_h_file gcc_config_arguments gcc_gxx_include_dir host_exeext host_xm_file_list host_xm_include_list host_xm_defines out_host_hook_obj install lang_opt_files lang_specs_files lang_tree_files local_prefix md_file objc_boehm_gc out_file out_object_file stage_prefix_set_by_configure quoted_stage_prefix_set_by_configure thread_file tm_file_list tm_include_list tm_defines tm_p_file_list tm_p_include_list xm_file_list xm_include_list xm_defines c_target_objs cxx_target_objs target_cpu_default GMPLIBS GMPINC LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical build_libsubdir build_subdir host_subdir target_subdir GENINSRC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT NO_MINUS_C_MINUS_O OUTPUT_OPTION CPP EGREP strict_warn cxx_compat_warn warn_cflags nocommon_flag TREEBROWSER valgrind_path valgrind_path_defines valgrind_command coverage_flags enable_multilib enable_decimal_float enable_shared TARGET_SYSTEM_ROOT TARGET_SYSTEM_ROOT_DEFINE CROSS_SYSTEM_HEADER_DIR onestep datarootdir docdir htmldir SET_MAKE AWK LN_S LN RANLIB ac_ct_RANLIB ranlib_flags INSTALL INSTALL_PROGRAM INSTALL_DATA make_compare_target have_mktemp_command MAKEINFO BUILD_INFO GENERATED_MANPAGES FLEX BISON NM AR COLLECT2_LIBS GNAT_LIBEXC LDEXP_LIB TARGET_GETGROUPS_T LIBICONV LTLIBICONV LIBICONV_DEP manext objext gthread_flags extra_modes_file extra_opt_files USE_NLS LIBINTL LIBINTL_DEP INCINTL XGETTEXT GMSGFMT POSUB CATALOGS DATADIRNAME INSTOBJEXT GENCAT CATOBJEXT host_cc_for_libada CROSS ALL SYSTEM_HEADER_DIR inhibit_libc CC_FOR_BUILD BUILD_CFLAGS STMP_FIXINC STMP_FIXPROTO collect2 gcc_cv_as ORIGINAL_AS_FOR_TARGET gcc_cv_ld ORIGINAL_LD_FOR_TARGET gcc_cv_nm ORIGINAL_NM_FOR_TARGET gcc_cv_objdump libgcc_visibility GGC zlibdir zlibinc MAINT gcc_tooldir dollar slibdir objdir subdirs srcdir all_compilers all_gtfiles all_gtfiles_files_langs all_gtfiles_files_files all_lang_makefrags all_lang_makefiles all_languages all_selected_languages build_exeext build_install_headers_dir build_xm_file_list build_xm_include_list build_xm_defines check_languages cpp_install_dir xmake_file tmake_file extra_gcc_objs extra_headers_list extra_objs extra_parts extra_passes extra_programs float_h_file gcc_config_arguments gcc_gxx_include_dir host_exeext host_xm_file_list host_xm_include_list host_xm_defines out_host_hook_obj install lang_opt_files lang_specs_files lang_tree_files local_prefix md_file objc_boehm_gc out_file out_object_file thread_file tm_file_list tm_include_list tm_defines tm_p_file_list tm_p_include_list xm_file_list xm_include_list xm_defines c_target_objs cxx_target_objs target_cpu_default GMPLIBS GMPINC LIBOBJS LTLIBOBJS'
 ac_subst_files='language_hooks'
 
 # Initialize some variables set by options.
@@ -863,7 +863,6 @@ Optional Features:
                           intended for creating source tarballs for users
                           without texinfo bison or flex.
   --enable-werror-always         enable -Werror always
-  --enable-werror         enable -Werror in bootstrap stage2 and later
   --enable-checking=LIST
 			  enable expensive run-time checks.  With LIST,
 			  enable only specific categories of checks.
@@ -6250,11 +6249,11 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_prog_cc_w_no_overlength_strings" >&5
 echo "${ECHO_T}$ac_cv_prog_cc_w_no_overlength_strings" >&6
 
-strict1_warn=
+strict_warn=
 if test $ac_cv_prog_cc_w_no_long_long = yes \
    && test $ac_cv_prog_cc_w_no_variadic_macros = yes \
    && test $ac_cv_prog_cc_w_no_overlength_strings = yes ; then
-  strict1_warn="-pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings"
+  strict_warn="-pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings"
 fi
 
 # Add -Wold-style-definition if it's accepted
@@ -6309,7 +6308,7 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_prog_cc_w_old_style_definition" >&5
 echo "${ECHO_T}$ac_cv_prog_cc_w_old_style_definition" >&6
 if test $ac_cv_prog_cc_w_old_style_definition = yes ; then
-  strict1_warn="${strict1_warn} -Wold-style-definition"
+  strict_warn="${strict_warn} -Wold-style-definition"
 fi
 
 # Add -Wmissing-format-attribute if it's accepted
@@ -6364,7 +6363,7 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_prog_cc_w_missing_format_attribute" >&5
 echo "${ECHO_T}$ac_cv_prog_cc_w_missing_format_attribute" >&6
 if test $ac_cv_prog_cc_w_missing_format_attribute = yes ; then
-  strict1_warn="${strict1_warn} -Wmissing-format-attribute"
+  strict_warn="${strict_warn} -Wmissing-format-attribute"
 fi
 
 # Enable -Werror, period.
@@ -6376,10 +6375,8 @@ else
   enable_werror_always=no
 fi;
 if test x${enable_werror_always} = xyes ; then
-  strict1_warn="${strict1_warn} -Werror"
-  WERROR=-Werror
+  strict_warn="${strict_warn} -Werror"
 fi
-
 
 
 # Get C++ compatibility warning flag, if supported.
@@ -6448,30 +6445,12 @@ if test "x$GCC" = "xyes"; then
 fi
 
 
-# Enable -Werror in bootstrap stage2 and later.
+# Enable expensive internal checks
 is_release=
 if test x"`cat $srcdir/DEV-PHASE`" != xexperimental; then
   is_release=yes
 fi
-# Check whether --enable-werror or --disable-werror was given.
-if test "${enable_werror+set}" = set; then
-  enableval="$enable_werror"
 
-else
-  if test x$is_release = x ; then
-  # Default to "yes" on development branches.
-  enable_werror=yes
-else
-  # Default to "no" on release branches.
-  enable_werror=no
-fi
-fi;
-if test x$enable_werror = xyes ; then
-  WERROR=-Werror
-fi
-
-
-# Enable expensive internal checks
 # Check whether --enable-checking or --disable-checking was given.
 if test "${enable_checking+set}" = set; then
   enableval="$enable_checking"
@@ -7651,7 +7630,7 @@ if test "${gcc_cv_prog_makeinfo_modern+set}" = set; then
 else
     ac_prog_version=`$MAKEINFO --version 2>&1 |
                    sed -n 's/^.*GNU texinfo.* \([0-9][0-9.]*\).*$/\1/p'`
-  echo "configure:7654: version of makeinfo is $ac_prog_version" >&5
+  echo "configure:7633: version of makeinfo is $ac_prog_version" >&5
   case $ac_prog_version in
     '')     gcc_cv_prog_makeinfo_modern=no;;
     4.[4-9]*)
@@ -8825,19 +8804,6 @@ esac
 # --------
 # UNSORTED
 # --------
-
-# Stage specific cflags for build.
-stage1_cflags=
-case $build in
-vax-*-*)
-  if test x$GCC = xyes
-  then
-    stage1_cflags="-Wa,-J"
-  else
-    stage1_cflags="-J"
-  fi
-  ;;
-esac
 
 
 # These libraries may be used by collect2.
@@ -10593,19 +10559,9 @@ fi;
 
 
 
+    lib_includedir=UNSET
+  lib_libdir=UNSET
 
-    use_additional=yes
-
-  acl_save_prefix="$prefix"
-  prefix="$acl_final_prefix"
-  acl_save_exec_prefix="$exec_prefix"
-  exec_prefix="$acl_final_exec_prefix"
-
-    eval additional_includedir=\"$includedir\"
-    eval additional_libdir=\"$libdir\"
-
-  exec_prefix="$acl_save_exec_prefix"
-  prefix="$acl_save_prefix"
 
 
 # Check whether --with-libiconv-prefix or --without-libiconv-prefix was given.
@@ -10613,7 +10569,8 @@ if test "${with_libiconv_prefix+set}" = set; then
   withval="$with_libiconv_prefix"
 
     if test "X$withval" = "Xno"; then
-      use_additional=no
+      lib_includedir="NONE"
+      lib_libdir="NONE"
     else
       if test "X$withval" = "X"; then
 
@@ -10622,19 +10579,36 @@ if test "${with_libiconv_prefix+set}" = set; then
   acl_save_exec_prefix="$exec_prefix"
   exec_prefix="$acl_final_exec_prefix"
 
-          eval additional_includedir=\"$includedir\"
-          eval additional_libdir=\"$libdir\"
+          eval lib_includedir=\"$includedir\"
+          eval lib_libdir=\"$libdir\"
 
   exec_prefix="$acl_save_exec_prefix"
   prefix="$acl_save_prefix"
 
       else
-        additional_includedir="$withval/include"
-        additional_libdir="$withval/lib"
+        lib_includedir="$withval/include"
+        lib_libdir="$withval/lib"
       fi
     fi
 
 fi;
+
+
+  acl_save_prefix="$prefix"
+  prefix="$acl_final_prefix"
+  acl_save_exec_prefix="$exec_prefix"
+  exec_prefix="$acl_final_exec_prefix"
+
+    test $lib_includedir = UNSET && eval lib_includedir=\"$includedir\"
+    test $lib_libdir = UNSET && eval lib_libdir=\"$libdir\"
+
+  exec_prefix="$acl_save_exec_prefix"
+  prefix="$acl_save_prefix"
+
+
+
+
+
       LIBICONV=
   LTLIBICONV=
   INCICONV=
@@ -10671,19 +10645,19 @@ fi;
           found_la=
           found_so=
           found_a=
-          if test $use_additional = yes; then
-            if test -n "$shlibext" && test -f "$additional_libdir/lib$name.$shlibext"; then
-              found_dir="$additional_libdir"
-              found_so="$additional_libdir/lib$name.$shlibext"
-              if test -f "$additional_libdir/lib$name.la"; then
-                found_la="$additional_libdir/lib$name.la"
+          if test "$lib_libdir" != NONE; then
+            if test -n "$shlibext" && test -f "$lib_libdir/lib$name.$shlibext"; then
+              found_dir="$lib_libdir"
+              found_so="$lib_libdir/lib$name.$shlibext"
+              if test -f "$lib_libdir/lib$name.la"; then
+                found_la="$lib_libdir/lib$name.la"
               fi
             else
-              if test -f "$additional_libdir/lib$name.$libext"; then
-                found_dir="$additional_libdir"
-                found_a="$additional_libdir/lib$name.$libext"
-                if test -f "$additional_libdir/lib$name.la"; then
-                  found_la="$additional_libdir/lib$name.la"
+              if test -f "$lib_libdir/lib$name.$libext"; then
+                found_dir="$lib_libdir"
+                found_a="$lib_libdir/lib$name.$libext"
+                if test -f "$lib_libdir/lib$name.la"; then
+                  found_la="$lib_libdir/lib$name.la"
                 fi
               fi
             fi
@@ -10792,6 +10766,11 @@ fi;
             fi
                         additional_includedir=
             case "$found_dir" in
+              "$lib_libdir")
+                if test "$lib_includedir" != NONE; then
+                  additional_includedir="$lib_includedir"
+                fi
+                ;;
               */lib | */lib/)
                 basedir=`echo "X$found_dir" | sed -e 's,^X,,' -e 's,/lib/*$,,'`
                 additional_includedir="$basedir/include"
@@ -10969,6 +10948,7 @@ fi;
       LTLIBICONV="${LTLIBICONV}${LTLIBICONV:+ }-R$found_dir"
     done
   fi
+
 
 
 
@@ -13049,25 +13029,6 @@ do
 	fi
 done
 tmake_file="${tmake_file_}"
-
-# If the host doesn't support symlinks, modify CC in
-# FLAGS_TO_PASS so CC="stage1/xgcc -Bstage1/" works.
-# Otherwise, we can use "CC=$(CC)".
-rm -f symtest.tem
-case "$LN_S" in
-	*-s*)
-		cc_set_by_configure="\$(CC)"
-		quoted_cc_set_by_configure="\$(CC)"
-		stage_prefix_set_by_configure="\$(STAGE_PREFIX)"
-		quoted_stage_prefix_set_by_configure="\$(STAGE_PREFIX)"
-		;;
-	*)
-		cc_set_by_configure="\`case '\$(CC)' in stage*) echo '\$(CC)' | sed -e 's|stage|../stage|g';; *) echo '\$(CC)';; esac\`"
-		quoted_cc_set_by_configure="\\\`case '\\\$(CC)' in stage*) echo '\\\$(CC)' | sed -e 's|stage|../stage|g';; *) echo '\\\$(CC)';; esac\\\`"
-		stage_prefix_set_by_configure="\`case '\$(STAGE_PREFIX)' in stage*) echo '\$(STAGE_PREFIX)' | sed -e 's|stage|../stage|g';; *) echo '\$(STAGE_PREFIX)';; esac\`"
-		quoted_stage_prefix_set_by_configure="\\\`case '\\\$(STAGE_PREFIX)' in stage*) echo '\\\$(STAGE_PREFIX)' | sed -e 's|stage|../stage|g';; *) echo '\\\$(STAGE_PREFIX)';; esac\\\`"
-		;;
-esac
 
 # This is a terrible hack which will go away some day.
 host_cc_for_libada=${CC}
@@ -16253,14 +16214,14 @@ _ACEOF
 fi
 
 # Test for stack protector support in target C library.
-case "$target" in
-  *-*-linux*)
-    echo "$as_me:$LINENO: checking __stack_chk_fail in target GNU C library" >&5
-echo $ECHO_N "checking __stack_chk_fail in target GNU C library... $ECHO_C" >&6
+echo "$as_me:$LINENO: checking __stack_chk_fail in target C library" >&5
+echo $ECHO_N "checking __stack_chk_fail in target C library... $ECHO_C" >&6
 if test "${gcc_cv_libc_provides_ssp+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   gcc_cv_libc_provides_ssp=no
+    case "$target" in
+       *-*-linux*)
       if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
 	if test "x$with_sysroot" = x; then
 	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
@@ -16286,12 +16247,112 @@ else
 	     $glibc_header_dir/features.h > /dev/null; then
 	  gcc_cv_libc_provides_ssp=yes
 	fi
-      fi
+        fi
+	;;
+       *-*-darwin*)
+	 echo "$as_me:$LINENO: checking for __stack_chk_fail" >&5
+echo $ECHO_N "checking for __stack_chk_fail... $ECHO_C" >&6
+if test "${ac_cv_func___stack_chk_fail+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+/* Define __stack_chk_fail to an innocuous variant, in case <limits.h> declares __stack_chk_fail.
+   For example, HP-UX 11i <limits.h> declares gettimeofday.  */
+#define __stack_chk_fail innocuous___stack_chk_fail
+
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char __stack_chk_fail (); below.
+    Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+    <limits.h> exists even on freestanding compilers.  */
+
+#ifdef __STDC__
+# include <limits.h>
+#else
+# include <assert.h>
+#endif
+
+#undef __stack_chk_fail
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char __stack_chk_fail ();
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub___stack_chk_fail) || defined (__stub_____stack_chk_fail)
+choke me
+#else
+char (*f) () = __stack_chk_fail;
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+int
+main ()
+{
+return f != __stack_chk_fail;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_func___stack_chk_fail=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_func___stack_chk_fail=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_func___stack_chk_fail" >&5
+echo "${ECHO_T}$ac_cv_func___stack_chk_fail" >&6
+if test $ac_cv_func___stack_chk_fail = yes; then
+  gcc_cv_libc_provides_ssp=yes
+else
+  echo "no __stack_chk_fail on this target"
+fi
+
+        ;;
+  *) gcc_cv_libc_provides_ssp=no ;;
+    esac
 fi
 echo "$as_me:$LINENO: result: $gcc_cv_libc_provides_ssp" >&5
-echo "${ECHO_T}$gcc_cv_libc_provides_ssp" >&6 ;;
-  *) gcc_cv_libc_provides_ssp=no ;;
-esac
+echo "${ECHO_T}$gcc_cv_libc_provides_ssp" >&6
+
 if test x$gcc_cv_libc_provides_ssp = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
@@ -16418,9 +16479,7 @@ lang_tree_files=
 # These (without "all_") are set in each config-lang.in.
 # `language' must be a single word so is spelled singularly.
 all_languages=
-all_boot_languages=
 all_compilers=
-all_stagestuff=
 all_outputs='Makefile gccbug libada-mk'
 # List of language makefile fragments.
 all_lang_makefrags=
@@ -16469,7 +16528,6 @@ do
 	language=
 	boot_language=
 	compilers=
-	stagestuff=
 	outputs=
 	gtfiles=
 	subdir_requires=
@@ -16504,12 +16562,7 @@ do
 		then all_lang_makefiles="$subdir/Makefile"
 	fi
 	all_languages="$all_languages $language"
-	if test "x$boot_language" = xyes
-	then
-		all_boot_languages="$all_boot_languages $language"
-	fi
 	all_compilers="$all_compilers $compilers"
-	all_stagestuff="$all_stagestuff $stagestuff"
 	all_outputs="$all_outputs $outputs"
 	all_gtfiles="$all_gtfiles $gtfiles"
 	for f in $gtfiles
@@ -16544,8 +16597,7 @@ touch Make-hooks
 target_list="all.cross start.encap rest.encap tags \
 	install-common install-man install-info dvi pdf html \
 	uninstall info man srcextra srcman srcinfo \
-	mostlyclean clean distclean maintainer-clean \
-	stage1 stage2 stage3 stage4 stageprofile stagefeedback"
+	mostlyclean clean distclean maintainer-clean"
 
 for t in $target_list
 do
@@ -16672,12 +16724,6 @@ fi;
 
 
 # Substitute configuration variables
-
-
-
-
-
-
 
 
 
@@ -17417,10 +17463,9 @@ s,@NO_MINUS_C_MINUS_O@,$NO_MINUS_C_MINUS_O,;t t
 s,@OUTPUT_OPTION@,$OUTPUT_OPTION,;t t
 s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
-s,@strict1_warn@,$strict1_warn,;t t
+s,@strict_warn@,$strict_warn,;t t
 s,@cxx_compat_warn@,$cxx_compat_warn,;t t
 s,@warn_cflags@,$warn_cflags,;t t
-s,@WERROR@,$WERROR,;t t
 s,@nocommon_flag@,$nocommon_flag,;t t
 s,@TREEBROWSER@,$TREEBROWSER,;t t
 s,@valgrind_path@,$valgrind_path,;t t
@@ -17456,7 +17501,6 @@ s,@FLEX@,$FLEX,;t t
 s,@BISON@,$BISON,;t t
 s,@NM@,$NM,;t t
 s,@AR@,$AR,;t t
-s,@stage1_cflags@,$stage1_cflags,;t t
 s,@COLLECT2_LIBS@,$COLLECT2_LIBS,;t t
 s,@GNAT_LIBEXC@,$GNAT_LIBEXC,;t t
 s,@LDEXP_LIB@,$LDEXP_LIB,;t t
@@ -17509,7 +17553,6 @@ s,@slibdir@,$slibdir,;t t
 s,@objdir@,$objdir,;t t
 s,@subdirs@,$subdirs,;t t
 s,@srcdir@,$srcdir,;t t
-s,@all_boot_languages@,$all_boot_languages,;t t
 s,@all_compilers@,$all_compilers,;t t
 s,@all_gtfiles@,$all_gtfiles,;t t
 s,@all_gtfiles_files_langs@,$all_gtfiles_files_langs,;t t
@@ -17518,15 +17561,12 @@ s,@all_lang_makefrags@,$all_lang_makefrags,;t t
 s,@all_lang_makefiles@,$all_lang_makefiles,;t t
 s,@all_languages@,$all_languages,;t t
 s,@all_selected_languages@,$all_selected_languages,;t t
-s,@all_stagestuff@,$all_stagestuff,;t t
 s,@build_exeext@,$build_exeext,;t t
 s,@build_install_headers_dir@,$build_install_headers_dir,;t t
 s,@build_xm_file_list@,$build_xm_file_list,;t t
 s,@build_xm_include_list@,$build_xm_include_list,;t t
 s,@build_xm_defines@,$build_xm_defines,;t t
 s,@check_languages@,$check_languages,;t t
-s,@cc_set_by_configure@,$cc_set_by_configure,;t t
-s,@quoted_cc_set_by_configure@,$quoted_cc_set_by_configure,;t t
 s,@cpp_install_dir@,$cpp_install_dir,;t t
 s,@xmake_file@,$xmake_file,;t t
 s,@tmake_file@,$tmake_file,;t t
@@ -17553,8 +17593,6 @@ s,@md_file@,$md_file,;t t
 s,@objc_boehm_gc@,$objc_boehm_gc,;t t
 s,@out_file@,$out_file,;t t
 s,@out_object_file@,$out_object_file,;t t
-s,@stage_prefix_set_by_configure@,$stage_prefix_set_by_configure,;t t
-s,@quoted_stage_prefix_set_by_configure@,$quoted_stage_prefix_set_by_configure,;t t
 s,@thread_file@,$thread_file,;t t
 s,@tm_file_list@,$tm_file_list,;t t
 s,@tm_include_list@,$tm_include_list,;t t
@@ -18153,26 +18191,6 @@ for d in $subdirs doc build
 do
     test -d $d || mkdir $d
 done
-# If the host supports symlinks, point stage[1234] at ../stage[1234] so
-# bootstrapping and the installation procedure can still use
-# CC="stage1/xgcc -Bstage1/".  If the host doesn't support symlinks,
-# FLAGS_TO_PASS has been modified to solve the problem there.
-# This is virtually a duplicate of what happens in configure.lang; we do
-# an extra check to make sure this only happens if ln -s can be used.
-case "$LN_S" in
-  *-s*)
-    for d in ${subdirs} ; do
-	STARTDIR=`${PWDCMD-pwd}`
-	cd $d
-	for t in stage1 stage2 stage3 stage4 stageprofile stagefeedback include
-	do
-		rm -f $t
-		$LN_S ../$t $t 2>/dev/null
-	done
-	cd $STARTDIR
-    done
-  ;;
-esac
  ;;
   esac
 done

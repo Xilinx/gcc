@@ -1,6 +1,6 @@
 /* Java(TM) language-specific utility routines.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+   2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -60,7 +60,6 @@ static tree java_tree_inlining_walk_subtrees (tree *, int *, walk_tree_fn,
 					      void *, struct pointer_set_t *);
 static int merge_init_test_initialization (void * *, void *);
 static int inline_init_test_initialization (void * *, void *);
-static bool java_can_use_bit_fields_p (void);
 static bool java_dump_tree (void *, tree);
 static void dump_compound_expr (dump_info_p, tree);
 static bool java_decl_ok_for_sibcall (tree);
@@ -120,15 +119,10 @@ const struct attribute_spec java_attribute_table[] =
    prototypes.  Starts out false.  */
 static bool inhibit_error_function_printing;
 
-int compiling_from_source;
-
 const char *resource_name;
 
 /* When nonzero, -Wall was turned on.  */
 int flag_wall = 0;
-
-/* The encoding of the source file.  */
-const char *current_encoding = NULL;
 
 /* When nonzero, report use of deprecated classes, methods, or fields.  */
 int flag_deprecated = 1;
@@ -183,8 +177,6 @@ struct language_function GTY(())
 #define LANG_HOOKS_DECL_PRINTABLE_NAME lang_printable_name
 #undef LANG_HOOKS_PRINT_ERROR_FUNCTION
 #define LANG_HOOKS_PRINT_ERROR_FUNCTION	java_print_error_function
-#undef LANG_HOOKS_CAN_USE_BIT_FIELDS_P
-#define LANG_HOOKS_CAN_USE_BIT_FIELDS_P java_can_use_bit_fields_p
 
 #undef LANG_HOOKS_TYPE_FOR_MODE
 #define LANG_HOOKS_TYPE_FOR_MODE java_type_for_mode
@@ -278,8 +270,6 @@ java_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_Wall:
       flag_wall = value;
-      flag_redundant = value;
-      flag_extraneous_semicolon = value;
       /* When -Wall given, enable -Wunused.  We do this because the C
 	 compiler does it, and people expect it.  */
       set_Wunused (value);
@@ -313,6 +303,7 @@ java_handle_option (size_t scode, const char *arg, int value)
       jcf_path_bootclasspath_arg (arg);
       break;
 
+    case OPT_faux_classpath:
     case OPT_fclasspath_:
     case OPT_fCLASSPATH_:
       jcf_path_classpath_arg (arg);
@@ -328,7 +319,7 @@ java_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_fencoding_:
-      current_encoding = arg;
+      /* Nothing.  */
       break;
 
     case OPT_fextdirs_:
@@ -336,11 +327,15 @@ java_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_foutput_class_dir_:
-      jcf_write_base_directory = arg;
+      /* FIXME: remove; this is handled by ecj1 now.  */
       break;
 
     case OPT_version:
       v_flag = 1;
+      break;
+      
+    case OPT_fsource_filename_:
+      java_read_sourcefilenames (arg);
       break;
       
     default:
@@ -597,14 +592,6 @@ java_init_options (unsigned int argc ATTRIBUTE_UNUSED,
   return CL_Java;
 }
 
-static bool
-java_can_use_bit_fields_p (void)
-{
-  /* The bit-field optimizations cause problems when generating class
-     files.  */
-  return flag_emit_class_files ? false : true;
-}
-
 /* Post-switch processing.  */
 static bool
 java_post_options (const char **pfilename)
@@ -668,8 +655,6 @@ java_post_options (const char **pfilename)
 		     target name here.  */
 		  if ((dependency_tracking & DEPEND_TARGET_SET))
 		    ; /* Nothing.  */
-		  else if (flag_emit_class_files)
-		    jcf_dependency_set_target (NULL);
 		  else
 		    {
 		      strcpy (buf + (dot - filename), TARGET_OBJECT_SUFFIX);
@@ -994,7 +979,8 @@ java_dump_tree (void *dump_info, tree t)
 static bool
 java_decl_ok_for_sibcall (tree decl)
 {
-  return decl != NULL && DECL_CONTEXT (decl) == output_class;
+  return (decl != NULL && DECL_CONTEXT (decl) == output_class
+	  && DECL_INLINE (decl));
 }
 
 /* Given a call_expr, try to figure out what its target might be.  In

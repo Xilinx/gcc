@@ -4214,7 +4214,6 @@ build_access_matrix_with_af (tree access_fun, lambda_vector cy,
 	/* Constant part.  */
 	unsigned nb_loops = VEC_length (loop_p, loop_nest);
 	unsigned nb_params = VEC_length (tree, params);
-
 	cy[nb_loops + nb_params] = int_cst_value (access_fun);
 	return true;
       }

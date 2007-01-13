@@ -254,6 +254,10 @@ int flag_short_double;
 
 int flag_short_wchar;
 
+/* Nonzero means allow implicit conversions between vectors with
+   differing numbers of subparts and/or differing element types.  */
+int flag_lax_vector_conversions;
+
 /* Nonzero means allow Microsoft extensions without warnings or errors.  */
 int flag_ms_extensions;
 
@@ -920,39 +924,45 @@ constant_expression_warning (tree value)
     pedwarn ("overflow in constant expression");
 }
 
-/* Print a warning if an expression had overflow in folding.
+/* Print a warning if an expression had overflow in folding and its
+   operands hadn't.
+
    Invoke this function on every expression that
    (1) appears in the source code, and
-   (2) might be a constant expression that overflowed, and
+   (2) is a constant expression that overflowed, and
    (3) is not already checked by convert_and_check;
-   however, do not invoke this function on operands of explicit casts.  */
+   however, do not invoke this function on operands of explicit casts
+   or when the expression is the result of an operator and any operand
+   already overflowed.  */
 
 void
 overflow_warning (tree value)
 {
-  if ((TREE_CODE (value) == INTEGER_CST
-       || (TREE_CODE (value) == COMPLEX_CST
-	   && TREE_CODE (TREE_REALPART (value)) == INTEGER_CST))
-      && TREE_OVERFLOW (value))
+  if (skip_evaluation) return;
+
+  switch (TREE_CODE (value))
     {
-      TREE_OVERFLOW (value) = 0;
-      if (skip_evaluation == 0)
-	warning (OPT_Woverflow, "integer overflow in expression");
-    }
-  else if ((TREE_CODE (value) == REAL_CST
-	    || (TREE_CODE (value) == COMPLEX_CST
-		&& TREE_CODE (TREE_REALPART (value)) == REAL_CST))
-	   && TREE_OVERFLOW (value))
-    {
-      TREE_OVERFLOW (value) = 0;
-      if (skip_evaluation == 0)
-	warning (OPT_Woverflow, "floating point overflow in expression");
-    }
-  else if (TREE_CODE (value) == VECTOR_CST && TREE_OVERFLOW (value))
-    {
-      TREE_OVERFLOW (value) = 0;
-      if (skip_evaluation == 0)
-	warning (OPT_Woverflow, "vector overflow in expression");
+    case INTEGER_CST:
+      warning (OPT_Woverflow, "integer overflow in expression");
+      break;
+      
+    case REAL_CST:
+      warning (OPT_Woverflow, "floating point overflow in expression");
+      break;
+      
+    case VECTOR_CST:
+      warning (OPT_Woverflow, "vector overflow in expression");
+      break;
+      
+    case COMPLEX_CST:
+      if (TREE_CODE (TREE_REALPART (value)) == INTEGER_CST)
+	warning (OPT_Woverflow, "complex integer overflow in expression");
+      else if (TREE_CODE (TREE_REALPART (value)) == REAL_CST)
+	warning (OPT_Woverflow, "complex floating point overflow in expression");
+      break;
+
+    default:
+      break;
     }
 }
 
@@ -1072,19 +1082,44 @@ check_main_parameter_types (tree decl)
    pedwarn ("%q+D takes only zero or two arguments", decl);
 }
 
- 
-/* Nonzero if vector types T1 and T2 can be converted to each other
-   without an explicit cast.  */
-int
-vector_types_convertible_p (tree t1, tree t2)
+/* True if vector types T1 and T2 can be converted to each other
+   without an explicit cast.  If EMIT_LAX_NOTE is true, and T1 and T2
+   can only be converted with -flax-vector-conversions yet that is not
+   in effect, emit a note telling the user about that option if such
+   a note has not previously been emitted.  */
+bool
+vector_types_convertible_p (tree t1, tree t2, bool emit_lax_note)
 {
-  return targetm.vector_opaque_p (t1)
-	 || targetm.vector_opaque_p (t2)
-	 || (tree_int_cst_equal (TYPE_SIZE (t1), TYPE_SIZE (t2))
-	     && (TREE_CODE (TREE_TYPE (t1)) != REAL_TYPE ||
-		 TYPE_PRECISION (t1) == TYPE_PRECISION (t2))
-	     && INTEGRAL_TYPE_P (TREE_TYPE (t1))
-		== INTEGRAL_TYPE_P (TREE_TYPE (t2)));
+  static bool emitted_lax_note = false;
+  bool convertible_lax;
+
+  if ((targetm.vector_opaque_p (t1) || targetm.vector_opaque_p (t2))
+      && tree_int_cst_equal (TYPE_SIZE (t1), TYPE_SIZE (t2)))
+    return true;
+
+  convertible_lax =
+    (tree_int_cst_equal (TYPE_SIZE (t1), TYPE_SIZE (t2))
+     && (TREE_CODE (TREE_TYPE (t1)) != REAL_TYPE ||
+	 TYPE_PRECISION (t1) == TYPE_PRECISION (t2))
+     && (INTEGRAL_TYPE_P (TREE_TYPE (t1))
+	 == INTEGRAL_TYPE_P (TREE_TYPE (t2))));
+
+  if (!convertible_lax || flag_lax_vector_conversions)
+    return convertible_lax;
+
+  if (TYPE_VECTOR_SUBPARTS (t1) == TYPE_VECTOR_SUBPARTS (t2)
+      && comptypes (TREE_TYPE (t1), TREE_TYPE (t2)))
+    return true;
+
+  if (emit_lax_note && !emitted_lax_note)
+    {
+      emitted_lax_note = true;
+      inform ("use -flax-vector-conversions to permit "
+              "conversions between vectors with differing "
+              "element types or numbers of subparts");
+    }
+
+  return false;
 }
 
 /* Warns if the conversion of EXPR to TYPE may alter a value.
@@ -2285,12 +2320,11 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
 	{
 	  /* Convert primop1 to target type, but do not introduce
 	     additional overflow.  We know primop1 is an int_cst.  */
-	  tree tmp = build_int_cst_wide (*restype_ptr,
-					 TREE_INT_CST_LOW (primop1),
-					 TREE_INT_CST_HIGH (primop1));
-
-	  primop1 = force_fit_type (tmp, 0, TREE_OVERFLOW (primop1),
-				    TREE_CONSTANT_OVERFLOW (primop1));
+	  primop1 = force_fit_type_double (*restype_ptr,
+					   TREE_INT_CST_LOW (primop1),
+					   TREE_INT_CST_HIGH (primop1), 0,
+					   TREE_OVERFLOW (primop1),
+					   TREE_CONSTANT_OVERFLOW (primop1));
 	}
       if (type != *restype_ptr)
 	{
@@ -2591,6 +2625,18 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
   return fold_build2 (resultcode, result_type, ptrop, intop);
 }
 
+/* Return whether EXPR is a declaration whose address can never be
+   NULL.  */
+
+bool
+decl_with_nonnull_addr_p (tree expr)
+{
+  return (DECL_P (expr)
+	  && (TREE_CODE (expr) == PARM_DECL
+	      || TREE_CODE (expr) == LABEL_DECL
+	      || !DECL_WEAK (expr)));
+}
+
 /* Prepare expr to be an argument of a TRUTH_NOT_EXPR,
    or for an `if' or `while' statement or ?..: exp.  It should already
    have been validated to be of suitable type; otherwise, a bad
@@ -2656,23 +2702,22 @@ c_common_truthvalue_conversion (tree expr)
     case ADDR_EXPR:
       {
  	tree inner = TREE_OPERAND (expr, 0);
-	if (DECL_P (inner)
-	    && (TREE_CODE (inner) == PARM_DECL
-		|| TREE_CODE (inner) == LABEL_DECL
-		|| !DECL_WEAK (inner)))
+	if (decl_with_nonnull_addr_p (inner))
 	  {
-	    /* Common Ada/Pascal programmer's mistake.  We always warn
-	       about this since it is so bad.  */
-	    warning (OPT_Walways_true, "the address of %qD will always evaluate as %<true%>",
+	    /* Common Ada/Pascal programmer's mistake.  */
+	    warning (OPT_Walways_true,
+		     "the address of %qD will always evaluate as %<true%>",
 		     inner);
 	    return truthvalue_true_node;
 	  }
 
-	/* If we are taking the address of an external decl, it might be
-	   zero if it is weak, so we cannot optimize.  */
-	if (DECL_P (inner)
-	    && DECL_EXTERNAL (inner))
-	  break;
+	/* If we still have a decl, it is possible for its address to
+	   be NULL, so we cannot optimize.  */
+	if (DECL_P (inner))
+	  {
+	    gcc_assert (DECL_WEAK (inner));
+	    break;
+	  }
 
 	if (TREE_SIDE_EFFECTS (inner))
 	  return build2 (COMPOUND_EXPR, truthvalue_type_node,
@@ -5587,11 +5632,11 @@ check_function_nonnull (tree attrs, tree params)
 	       param_num++, param = TREE_CHAIN (param))
 	    {
 	      if (!param)
-	break;
+		break;
 	      if (!args || nonnull_check_p (args, param_num))
-	check_function_arguments_recurse (check_nonnull_arg, NULL,
-					  TREE_VALUE (param),
-					  param_num);
+		check_function_arguments_recurse (check_nonnull_arg, NULL,
+						  TREE_VALUE (param),
+						  param_num);
 	    }
 	}
     }

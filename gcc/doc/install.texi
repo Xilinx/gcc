@@ -994,8 +994,8 @@ This is an alias for @option{--enable-tls=no}.
 @item --with-cpu=@var{cpu}
 Specify which cpu variant the compiler should generate code for by default.
 @var{cpu} will be used as the default value of the @option{-mcpu=} switch.
-This option is only supported on some targets, including ARM, i386, PowerPC,
-and SPARC@.
+This option is only supported on some targets, including ARM, i386, M68k,
+PowerPC, and SPARC@.
 
 @item --with-schedule=@var{cpu}
 @itemx --with-arch=@var{cpu}
@@ -2062,7 +2062,10 @@ cd @var{objdir}; make install
 @end smallexample
 
 We strongly recommend to install into a target directory where there is
-no previous version of GCC present.
+no previous version of GCC present.  Also, the GNAT runtime should not
+be stripped, as this would break certain features of the debugger that
+depend on this debugging information (catching Ada exceptions for
+instance).
 
 That step completes the installation of GCC; user level binaries can
 be found in @file{@var{prefix}/bin} where @var{prefix} is the value
@@ -2389,6 +2392,8 @@ information are.
 @uref{#m6811-elf,,m6811-elf}
 @item
 @uref{#m6812-elf,,m6812-elf}
+@item
+@uref{#m68k-x-x,,m68k-*-*}
 @item
 @uref{#m68k-hp-hpux,,m68k-hp-hpux}
 @item
@@ -3386,6 +3391,12 @@ applications.  There are no standard Unix configurations.
 @html
 <hr />
 @end html
+@heading @anchor{m68k-x-x}m68k-*-*
+You can specify a default target using @option{--with-cpu=@var{target}}.
+This @var{target} can either be a @option{-mcpu} argument or one of the
+following values: @samp{m68000}, @samp{m68010}, @samp{m68020}, @samp{m68030},
+@samp{m68040}, @samp{m68060}, @samp{m68020-40} and @samp{m68020-60}.
+
 @heading @anchor{m68k-hp-hpux}m68k-hp-hpux
 HP 9000 series 300 or 400 running HP-UX@.  HP-UX version 8.0 has a bug in
 the assembler that prevents compilation of GCC@.  This

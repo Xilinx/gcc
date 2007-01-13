@@ -31,19 +31,14 @@ Boston, MA 02110-1301, USA.  */
       builtin_define ("__m68k__");		\
       builtin_define ("__SVR4_ABI__");		\
       builtin_define ("__motorola__");		\
+      if (TARGET_HARD_FLOAT)			\
+	builtin_define ("__HAVE_FPU__");	\
     }						\
   while (0)
 
-/* Default target comes from config.gcc */
-#undef TARGET_DEFAULT
-#define TARGET_DEFAULT TARGET_CPU_DEFAULT
-
-
 /* Don't try using XFmode on the 68010.  */ 
 #undef LONG_DOUBLE_TYPE_SIZE
-#define LONG_DOUBLE_TYPE_SIZE			\
-  ((TARGET_68020 || TARGET_68040 || TARGET_68040_ONLY || \
-    TARGET_68060) ? 80 : 64)
+#define LONG_DOUBLE_TYPE_SIZE (TARGET_68020 ? 80 : 64)
 
 #ifdef __mc68010__
 #define LIBGCC2_LONG_DOUBLE_TYPE_SIZE 64
@@ -51,40 +46,17 @@ Boston, MA 02110-1301, USA.  */
 #define LIBGCC2_LONG_DOUBLE_TYPE_SIZE 80
 #endif
 
-#define EXTRA_SPECS \
-  { "cpp_cpu_default_spec", CPP_CPU_DEFAULT_SPEC }, \
-  { "cpp_cpu_spec",         CPP_CPU_SPEC }, \
-  { "cpp_fpu_spec",         CPP_FPU_SPEC }, \
-  { "asm_default_spec",     ASM_DEFAULT_SPEC }, \
-  { "netbsd_cpp_spec",      NETBSD_CPP_SPEC }, \
+#undef SUBTARGET_EXTRA_SPECS
+#define SUBTARGET_EXTRA_SPECS \
   { "netbsd_entry_point",   NETBSD_ENTRY_POINT },
 
 
-#define CPP_CPU_SPEC \
-  "%{m68010:-D__mc68010__} \
-   %{m68020:-D__mc68020__} \
-   %{m68030:-D__mc68030__} \
-   %{m68040:-D__mc68040__} \
-   %(cpp_cpu_default_spec)"
-
-
 #undef TARGET_VERSION
-#if TARGET_DEFAULT & MASK_68020
-#define TARGET_VERSION fprintf (stderr, " (NetBSD/m68k ELF)");
-#define CPP_CPU_DEFAULT_SPEC "%{!m680*:-D__mc68020__}"
-#define ASM_DEFAULT_SPEC "%{!m680*:-m68020}"
-#else
-#define TARGET_VERSION fprintf (stderr, " (NetBSD/68010 ELF)");
-#define CPP_CPU_DEFAULT_SPEC "%{!m680*:-D__mc68010__}"
-#define ASM_DEFAULT_SPEC "%{!m680*:-m68010}"
-#endif
-
-
-#if TARGET_DEFAULT & MASK_68881
-#define CPP_FPU_SPEC "%{!msoft-float:-D__HAVE_68881__ -D__HAVE_FPU__}"
-#else
-#define CPP_FPU_SPEC "%{m68881:-D__HAVE_68881__ -D__HAVE_FPU__}"
-#endif
+#define TARGET_VERSION			\
+  fprintf (stderr,			\
+	   TARGET_68010			\
+	   ? " (NetBSD/68010 ELF)"	\
+	   : " (NetBSD/m68k ELF)");
 
 
 /* Provide a CPP_SPEC appropriate for NetBSD m68k targets.  Currently we
@@ -92,18 +64,14 @@ Boston, MA 02110-1301, USA.  */
    whether or not use of the FPU is allowed.  */
 
 #undef CPP_SPEC
-#define CPP_SPEC \
-  "%(netbsd_cpp_spec) %(cpp_cpu_spec) %(cpp_fpu_spec)"
+#define CPP_SPEC NETBSD_CPP_SPEC
 
 
-/* Provide an ASM_SPEC appropriate for NetBSD m68k ELF targets.  We pass
-   on some CPU options, as well as PIC code generation options.  */
+/* Provide an ASM_SPEC appropriate for NetBSD m68k ELF targets.  We need
+   to passn PIC code generation options.  */
 
 #undef ASM_SPEC
-#define ASM_SPEC \
-  "%(asm_default_spec) \
-    %{m68010} %{m68020} %{m68030} %{m68040} %{m68060} \
-    %{fpic|fpie:-k} %{fPIC|fPIE:-k -K}"
+#define ASM_SPEC "%(asm_cpu_spec) %{fpic|fpie:-k} %{fPIC|fPIE:-k -K}"
 
 #define AS_NEEDS_DASH_FOR_PIPED_INPUT
 

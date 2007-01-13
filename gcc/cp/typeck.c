@@ -3334,10 +3334,22 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 					      "comparison");
       else if ((code0 == POINTER_TYPE || TYPE_PTRMEM_P (type0))
 	       && null_ptr_cst_p (op1))
-	result_type = type0;
+	{
+	  if (TREE_CODE (op0) == ADDR_EXPR
+	      && decl_with_nonnull_addr_p (TREE_OPERAND (op0, 0)))
+	    warning (OPT_Walways_true, "the address of %qD will never be NULL",
+		     TREE_OPERAND (op0, 0));
+	  result_type = type0;
+	}
       else if ((code1 == POINTER_TYPE || TYPE_PTRMEM_P (type1))
 	       && null_ptr_cst_p (op0))
-	result_type = type1;
+	{
+	  if (TREE_CODE (op1) == ADDR_EXPR 
+	      && decl_with_nonnull_addr_p (TREE_OPERAND (op1, 0)))
+	    warning (OPT_Walways_true, "the address of %qD will never be NULL",
+		     TREE_OPERAND (op1, 0));
+	  result_type = type1;
+	}
       else if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
 	  result_type = type0;
@@ -3858,6 +3870,12 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
   result = fold_if_not_in_template (result);
   if (final_type != 0)
     result = cp_convert (final_type, result);
+
+  if (TREE_OVERFLOW_P (result) 
+      && !TREE_OVERFLOW_P (op0) 
+      && !TREE_OVERFLOW_P (op1))
+    overflow_warning (result);
+
   return result;
 }
 
@@ -6278,7 +6296,7 @@ convert_for_assignment (tree type, tree rhs,
   coder = TREE_CODE (rhstype);
 
   if (TREE_CODE (type) == VECTOR_TYPE && coder == VECTOR_TYPE
-      && vector_types_convertible_p (type, rhstype))
+      && vector_types_convertible_p (type, rhstype, true))
     return convert (type, rhs);
 
   if (rhs == error_mark_node || rhstype == error_mark_node)
@@ -6845,7 +6863,7 @@ ptr_reasonably_similar (tree to, tree from)
 	continue;
 
       if (TREE_CODE (to) == VECTOR_TYPE
-	  && vector_types_convertible_p (to, from))
+	  && vector_types_convertible_p (to, from, false))
 	return 1;
 
       if (TREE_CODE (to) == INTEGER_TYPE

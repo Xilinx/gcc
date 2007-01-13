@@ -43,6 +43,7 @@ static sbitmap found_in_subgraph;
 
 /* Local functions.  */
 static int compare_values (tree val1, tree val2);
+static void vrp_meet (value_range_t *, value_range_t *);
 
 /* Location information for ASSERT_EXPRs.  Each instance of this
    structure describes an ASSERT_EXPR for an SSA name.  Since a single
@@ -233,6 +234,20 @@ set_value_range_to_varying (value_range_t *vr)
   vr->min = vr->max = NULL_TREE;
   if (vr->equiv)
     bitmap_clear (vr->equiv);
+}
+
+
+/* Set value range VR to a range of a truthvalue of type TYPE.  */
+
+static inline void
+set_value_range_to_truthvalue (value_range_t *vr, tree type)
+{
+  if (TYPE_PRECISION (type) == 1)
+    set_value_range_to_varying (vr);
+  else
+    set_value_range (vr, VR_RANGE,
+		     build_int_cst (type, 0), build_int_cst (type, 1),
+		     vr->equiv);
 }
 
 
@@ -1066,6 +1081,7 @@ extract_range_from_assert (value_range_t *vr_p, tree expr)
       else
 	{
 	  tree min, max, anti_min, anti_max, real_min, real_max;
+	  int cmp;
 
 	  /* We want to compute the logical AND of the two ranges;
 	     there are three cases to consider.
@@ -1130,8 +1146,8 @@ extract_range_from_assert (value_range_t *vr_p, tree expr)
 	  /* Case 3a, the anti-range extends into the low
 	     part of the real range.  Thus creating a new
 	     low for the real range.  */
-	  else if ((compare_values (anti_max, real_min) == 1
-		    || compare_values (anti_max, real_min) == 0)
+	  else if (((cmp = compare_values (anti_max, real_min)) == 1
+		    || cmp == 0)
 		   && compare_values (anti_max, real_max) == -1)
 	    {
 	      min = fold_build2 (PLUS_EXPR, TREE_TYPE (var_vr->min),
@@ -1144,8 +1160,8 @@ extract_range_from_assert (value_range_t *vr_p, tree expr)
 	     part of the real range.  Thus creating a new
 	     higher for the real range.  */
 	  else if (compare_values (anti_min, real_min) == 1
-		   && (compare_values (anti_min, real_max) == -1
-		       || compare_values (anti_min, real_max) == 0))
+		   && ((cmp = compare_values (anti_min, real_max)) == -1
+		       || cmp == 0))
 	    {
 	      max = fold_build2 (MINUS_EXPR, TREE_TYPE (var_vr->min),
 				 anti_min,
@@ -1438,7 +1454,8 @@ extract_range_from_binary_expr (value_range_t *vr, tree expr)
 	}
       else
 	{
-	  set_value_range_to_varying (vr);
+	  /* The result of a TRUTH_*_EXPR is always true or false.  */
+	  set_value_range_to_truthvalue (vr, TREE_TYPE (expr));
 	  return;
 	}
     }
@@ -1734,8 +1751,8 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
 	      && is_gimple_val (new_max)
 	      && tree_int_cst_equal (new_min, orig_min)
 	      && tree_int_cst_equal (new_max, orig_max)
-	      && compare_values (new_min, new_max) <= 0
-	      && compare_values (new_min, new_max) >= -1)
+	      && (cmp = compare_values (new_min, new_max)) <= 0
+	      && cmp >= -1)
 	    {
 	      set_value_range (vr, VR_RANGE, new_min, new_max, vr->equiv);
 	      return;
@@ -1903,6 +1920,40 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
 }
 
 
+/* Extract range information from a conditional expression EXPR based on
+   the ranges of each of its operands and the expression code.  */
+
+static void
+extract_range_from_cond_expr (value_range_t *vr, tree expr)
+{
+  tree op0, op1;
+  value_range_t vr0 = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
+  value_range_t vr1 = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
+
+  /* Get value ranges for each operand.  For constant operands, create
+     a new value range with the operand to simplify processing.  */
+  op0 = COND_EXPR_THEN (expr);
+  if (TREE_CODE (op0) == SSA_NAME)
+    vr0 = *(get_value_range (op0));
+  else if (is_gimple_min_invariant (op0))
+    set_value_range (&vr0, VR_RANGE, op0, op0, NULL);
+  else
+    set_value_range_to_varying (&vr0);
+
+  op1 = COND_EXPR_ELSE (expr);
+  if (TREE_CODE (op1) == SSA_NAME)
+    vr1 = *(get_value_range (op1));
+  else if (is_gimple_min_invariant (op1))
+    set_value_range (&vr1, VR_RANGE, op1, op1, NULL);
+  else
+    set_value_range_to_varying (&vr1);
+
+  /* The resulting value range is the union of the operand ranges */
+  vrp_meet (&vr0, &vr1);
+  copy_value_range (vr, &vr0);
+}
+
+
 /* Extract range information from a comparison expression EXPR based
    on the range of its operand and the expression code.  */
 
@@ -1919,7 +1970,8 @@ extract_range_from_comparison (value_range_t *vr, tree expr)
       set_value_range (vr, VR_RANGE, val, val, vr->equiv);
     }
   else
-    set_value_range_to_varying (vr);
+    /* The result of a comparison is always true or false.  */
+    set_value_range_to_truthvalue (vr, TREE_TYPE (expr));
 }
 
 
@@ -1944,6 +1996,8 @@ extract_range_from_expr (value_range_t *vr, tree expr)
     extract_range_from_binary_expr (vr, expr);
   else if (TREE_CODE_CLASS (code) == tcc_unary)
     extract_range_from_unary_expr (vr, expr);
+  else if (code == COND_EXPR)
+    extract_range_from_cond_expr (vr, expr);
   else if (TREE_CODE_CLASS (code) == tcc_comparison)
     extract_range_from_comparison (vr, expr);
   else if (is_gimple_min_invariant (expr))
@@ -3486,6 +3540,7 @@ remove_range_assertions (void)
 
 	    /* And finally, remove the copy, it is not needed.  */
 	    bsi_remove (&si, true);
+	    release_defs (stmt); 
 	  }
 	else
 	  bsi_next (&si);
@@ -4181,6 +4236,7 @@ vrp_visit_phi_node (tree phi)
   tree lhs = PHI_RESULT (phi);
   value_range_t *lhs_vr = get_value_range (lhs);
   value_range_t vr_result = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
+  bool all_const = true;
 
   copy_value_range (&vr_result, lhs_vr);
 
@@ -4208,7 +4264,10 @@ vrp_visit_phi_node (tree phi)
 	  value_range_t vr_arg;
 
 	  if (TREE_CODE (arg) == SSA_NAME)
-	    vr_arg = *(get_value_range (arg));
+	    {
+	      vr_arg = *(get_value_range (arg));
+	      all_const = false;
+	    }
 	  else
 	    {
 	      vr_arg.type = VR_RANGE;
@@ -4239,7 +4298,8 @@ vrp_visit_phi_node (tree phi)
   /* To prevent infinite iterations in the algorithm, derive ranges
      when the new value is slightly bigger or smaller than the
      previous one.  */
-  if (lhs_vr->type == VR_RANGE && vr_result.type == VR_RANGE)
+  if (lhs_vr->type == VR_RANGE && vr_result.type == VR_RANGE
+      && !all_const)
     {
       if (!POINTER_TYPE_P (TREE_TYPE (lhs)))
 	{

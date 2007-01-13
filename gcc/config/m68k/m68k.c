@@ -176,7 +176,7 @@ int m68k_last_compare_had_fp_operands;
 #define TARGET_ASM_FILE_START_APP_OFF true
 
 #undef TARGET_DEFAULT_TARGET_FLAGS
-#define TARGET_DEFAULT_TARGET_FLAGS (TARGET_DEFAULT | MASK_STRICT_ALIGNMENT)
+#define TARGET_DEFAULT_TARGET_FLAGS MASK_STRICT_ALIGNMENT
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION m68k_handle_option
 
@@ -201,12 +201,152 @@ static const struct attribute_spec m68k_attribute_table[] =
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
-/* These bits are controlled by all CPU selection options.  Many options
-   also control MASK_68881, but some (notably -m68020) leave it alone.  */
+/* Base flags for 68k ISAs.  */
+#define FL_FOR_isa_00    FL_ISA_68000
+#define FL_FOR_isa_10    (FL_FOR_isa_00 | FL_ISA_68010)
+/* FL_68881 controls the default setting of -m68881.  gcc has traditionally
+   generated 68881 code for 68020 and 68030 targets unless explicitly told
+   not to.  */
+#define FL_FOR_isa_20    (FL_FOR_isa_10 | FL_ISA_68020 \
+			  | FL_BITFIELD | FL_68881)
+#define FL_FOR_isa_40    (FL_FOR_isa_20 | FL_ISA_68040)
+#define FL_FOR_isa_cpu32 (FL_FOR_isa_10 | FL_ISA_68020)
 
-#define MASK_ALL_CPU_BITS \
-  (MASK_COLDFIRE | MASK_CF_HWDIV | MASK_68060 | MASK_68040 \
-   | MASK_68040_ONLY | MASK_68030 | MASK_68020 | MASK_BITFIELD)
+/* Base flags for ColdFire ISAs.  */
+#define FL_FOR_isa_a     (FL_COLDFIRE | FL_ISA_A)
+#define FL_FOR_isa_aplus (FL_FOR_isa_a | FL_ISA_APLUS | FL_CF_USP)
+/* Note ISA_B doesn't necessarily include USP (user stack pointer) support.  */
+#define FL_FOR_isa_b     (FL_FOR_isa_a | FL_ISA_B | FL_CF_HWDIV)
+#define FL_FOR_isa_c     (FL_FOR_isa_b | FL_ISA_C | FL_CF_USP)
+
+enum m68k_isa
+{
+  /* Traditional 68000 instruction sets.  */
+  isa_00,
+  isa_10,
+  isa_20,
+  isa_40,
+  isa_cpu32,
+  /* ColdFire instruction set variants.  */
+  isa_a,
+  isa_aplus,
+  isa_b,
+  isa_c,
+  isa_max
+};
+
+/* Information about one of the -march, -mcpu or -mtune arguments.  */
+struct m68k_target_selection
+{
+  /* The argument being described.  */
+  const char *name;
+
+  /* For -mcpu, this is the device selected by the option.
+     For -mtune and -march, it is a representative device
+     for the microarchitecture or ISA respectively.  */
+  enum target_device device;
+
+  /* The M68K_DEVICE fields associated with DEVICE.  See the comment
+     in m68k-devices.def for details.  FAMILY is only valid for -mcpu.  */
+  const char *family;
+  enum uarch_type microarch;
+  enum m68k_isa isa;
+  unsigned long flags;
+};
+
+/* A list of all devices in m68k-devices.def.  Used for -mcpu selection.  */
+static const struct m68k_target_selection all_devices[] =
+{
+#define M68K_DEVICE(NAME,ENUM_VALUE,FAMILY,MULTILIB,MICROARCH,ISA,FLAGS) \
+  { NAME, ENUM_VALUE, FAMILY, u##MICROARCH, ISA, FLAGS | FL_FOR_##ISA },
+#include "m68k-devices.def"
+#undef M68K_DEVICE
+  { NULL, unk_device, NULL, unk_arch, isa_max, 0 }
+};
+
+/* A list of all ISAs, mapping each one to a representative device.
+   Used for -march selection.  */
+static const struct m68k_target_selection all_isas[] =
+{
+  { "68000",    m68000,     NULL,  u68000,   isa_00,    FL_FOR_isa_00 },
+  { "68010",    m68010,     NULL,  u68010,   isa_10,    FL_FOR_isa_10 },
+  { "68020",    m68020,     NULL,  u68020,   isa_20,    FL_FOR_isa_20 },
+  { "68030",    m68030,     NULL,  u68030,   isa_20,    FL_FOR_isa_20 },
+  { "68040",    m68040,     NULL,  u68040,   isa_40,    FL_FOR_isa_40 },
+  { "68060",    m68060,     NULL,  u68060,   isa_40,    FL_FOR_isa_40 },
+  { "cpu32",    cpu32,      NULL,  ucpu32,   isa_20,    FL_FOR_isa_cpu32 },
+  { "isaa",     mcf5206e,   NULL,  ucfv2,    isa_a,     (FL_FOR_isa_a
+							 | FL_CF_HWDIV) },
+  { "isaaplus", mcf5271,    NULL,  ucfv2,    isa_aplus, (FL_FOR_isa_aplus
+							 | FL_CF_HWDIV) },
+  { "isab",     mcf5407,    NULL,  ucfv4,    isa_b,     FL_FOR_isa_b },
+  { "isac",     unk_device, NULL,  ucfv4,    isa_c,     (FL_FOR_isa_c
+							 | FL_CF_FPU
+							 | FL_CF_EMAC) },
+  { NULL,       unk_device, NULL,  unk_arch, isa_max,   0 }
+};
+
+/* A list of all microarchitectures, mapping each one to a representative
+   device.  Used for -mtune selection.  */
+static const struct m68k_target_selection all_microarchs[] =
+{
+  { "68000",    m68000,     NULL,  u68000,    isa_00,  FL_FOR_isa_00 },
+  { "68010",    m68010,     NULL,  u68010,    isa_10,  FL_FOR_isa_10 },
+  { "68020",    m68020,     NULL,  u68020,    isa_20,  FL_FOR_isa_20 },
+  { "68020-40", m68020,     NULL,  u68020_40, isa_20,  FL_FOR_isa_20 },
+  { "68020-60", m68020,     NULL,  u68020_60, isa_20,  FL_FOR_isa_20 },
+  { "68030",    m68030,     NULL,  u68030,    isa_20,  FL_FOR_isa_20 },
+  { "68040",    m68040,     NULL,  u68040,    isa_40,  FL_FOR_isa_40 },
+  { "68060",    m68060,     NULL,  u68060,    isa_40,  FL_FOR_isa_40 },
+  { "cpu32",    cpu32,      NULL,  ucpu32,    isa_20,  FL_FOR_isa_cpu32 },
+  { "cfv2",     mcf5206,    NULL,  ucfv2,     isa_a,   FL_FOR_isa_a },
+  { "cfv3",     mcf5307,    NULL,  ucfv3,     isa_a,   (FL_FOR_isa_a
+							| FL_CF_HWDIV) },
+  { "cfv4",     mcf5407,    NULL,  ucfv4,     isa_b,   FL_FOR_isa_b },
+  { "cfv4e",    mcf547x,    NULL,  ucfv4e,    isa_b,   (FL_FOR_isa_b
+							| FL_CF_USP
+							| FL_CF_EMAC
+							| FL_CF_FPU) },
+  { NULL,       unk_device, NULL,  unk_arch,  isa_max, 0 }
+};
+
+/* The entries associated with the -mcpu, -march and -mtune settings,
+   or null for options that have not been used.  */
+const struct m68k_target_selection *m68k_cpu_entry;
+const struct m68k_target_selection *m68k_arch_entry;
+const struct m68k_target_selection *m68k_tune_entry;
+
+/* Which CPU we are generating code for.  */
+enum target_device m68k_cpu;
+
+/* Which microarchitecture to tune for.  */
+enum uarch_type m68k_tune;
+
+/* Which FPU to use.  */
+enum fpu_type m68k_fpu;
+
+/* The set of FL_* flags that apply to the target processor.  */
+unsigned int m68k_cpu_flags;
+
+/* See whether TABLE has an entry with name NAME.  Return true and
+   store the entry in *ENTRY if so, otherwise return false and
+   leave *ENTRY alone.  */
+
+static bool
+m68k_find_selection (const struct m68k_target_selection **entry,
+		     const struct m68k_target_selection *table,
+		     const char *name)
+{
+  size_t i;
+
+  for (i = 0; table[i].name; i++)
+    if (strcmp (table[i].name, name) == 0)
+      {
+	*entry = table + i;
+	return true;
+      }
+  return false;
+}
 
 /* Implement TARGET_HANDLE_OPTION.  */
 
@@ -215,84 +355,69 @@ m68k_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
+    case OPT_march_:
+      return m68k_find_selection (&m68k_arch_entry, all_isas, arg);
+
+    case OPT_mcpu_:
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, arg);
+
+    case OPT_mtune_:
+      return m68k_find_selection (&m68k_tune_entry, all_microarchs, arg);
+
     case OPT_m5200:
-      target_flags &= ~(MASK_ALL_CPU_BITS | MASK_68881);
-      target_flags |= MASK_5200;
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "5206");
 
     case OPT_m5206e:
-      target_flags &= ~(MASK_ALL_CPU_BITS | MASK_68881);
-      target_flags |= MASK_5200 | MASK_CF_HWDIV;
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "5206e");
 
     case OPT_m528x:
-      target_flags &= ~(MASK_ALL_CPU_BITS | MASK_68881);
-      target_flags |= MASK_528x | MASK_CF_HWDIV;
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "528x");
 
     case OPT_m5307:
-      target_flags &= ~(MASK_ALL_CPU_BITS | MASK_68881);
-      target_flags |= MASK_CFV3 | MASK_CF_HWDIV;
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "5307");
 
     case OPT_m5407:
-      target_flags &= ~(MASK_ALL_CPU_BITS | MASK_68881);
-      target_flags |= MASK_CFV4 | MASK_CF_HWDIV;
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "5407");
 
     case OPT_mcfv4e:
-      target_flags &= ~(MASK_ALL_CPU_BITS | MASK_68881);
-      target_flags |= MASK_CFV4 | MASK_CF_HWDIV | MASK_CFV4E;
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "547x");
 
     case OPT_m68000:
     case OPT_mc68000:
-      target_flags &= ~(MASK_ALL_CPU_BITS | MASK_68881);
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "68000");
+
+    case OPT_m68010:
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "68010");
 
     case OPT_m68020:
     case OPT_mc68020:
-      target_flags &= ~MASK_ALL_CPU_BITS;
-      target_flags |= MASK_68020 | MASK_BITFIELD;
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "68020");
 
     case OPT_m68020_40:
-      target_flags &= ~MASK_ALL_CPU_BITS;
-      target_flags |= MASK_BITFIELD | MASK_68881 | MASK_68020 | MASK_68040;
-      return true;
+      return (m68k_find_selection (&m68k_tune_entry, all_microarchs,
+				   "68020-40")
+	      && m68k_find_selection (&m68k_cpu_entry, all_devices, "68020"));
 
     case OPT_m68020_60:
-      target_flags &= ~MASK_ALL_CPU_BITS;
-      target_flags |= (MASK_BITFIELD | MASK_68881 | MASK_68020
-		       | MASK_68040 | MASK_68060);
-      return true;
+      return (m68k_find_selection (&m68k_tune_entry, all_microarchs,
+				   "68020-60")
+	      && m68k_find_selection (&m68k_cpu_entry, all_devices, "68020"));
 
     case OPT_m68030:
-      target_flags &= ~MASK_ALL_CPU_BITS;
-      target_flags |= MASK_68020 | MASK_68030 | MASK_BITFIELD;
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "68030");
 
     case OPT_m68040:
-      target_flags &= ~MASK_ALL_CPU_BITS;
-      target_flags |= (MASK_68020 | MASK_68881 | MASK_BITFIELD
-		       | MASK_68040_ONLY | MASK_68040);
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "68040");
 
     case OPT_m68060:
-      target_flags &= ~MASK_ALL_CPU_BITS;
-      target_flags |= (MASK_68020 | MASK_68881 | MASK_BITFIELD
-		       | MASK_68040_ONLY | MASK_68060);
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "68060");
 
     case OPT_m68302:
-      target_flags &= ~(MASK_ALL_CPU_BITS | MASK_68881);
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "68302");
 
     case OPT_m68332:
     case OPT_mcpu32:
-      target_flags &= ~(MASK_ALL_CPU_BITS | MASK_68881);
-      target_flags |= MASK_68020;
-      return true;
+      return m68k_find_selection (&m68k_cpu_entry, all_devices, "68332");
 
     case OPT_mshared_library_id_:
       if (value > MAX_LIBRARY_ID)
@@ -319,6 +444,68 @@ m68k_handle_option (size_t code, const char *arg, int value)
 void
 override_options (void)
 {
+  const struct m68k_target_selection *entry;
+  unsigned long target_mask;
+
+  /* User can choose:
+
+     -mcpu=
+     -march=
+     -mtune=
+
+     -march=ARCH should generate code that runs any processor
+     implementing architecture ARCH.  -mcpu=CPU should override -march
+     and should generate code that runs on processor CPU, making free
+     use of any instructions that CPU understands.  -mtune=UARCH applies
+     on top of -mcpu or -march and optimises the code for UARCH.  It does
+     not change the target architecture.  */
+  if (m68k_cpu_entry)
+    {
+      /* Complain if the -march setting is for a different microarchitecture,
+	 or includes flags that the -mcpu setting doesn't.  */
+      if (m68k_arch_entry
+	  && (m68k_arch_entry->microarch != m68k_cpu_entry->microarch
+	      || (m68k_arch_entry->flags & ~m68k_cpu_entry->flags) != 0))
+	warning (0, "-mcpu=%s conflicts with -march=%s",
+		 m68k_cpu_entry->name, m68k_arch_entry->name);
+
+      entry = m68k_cpu_entry;
+    }
+  else
+    entry = m68k_arch_entry;
+
+  if (!entry)
+    entry = all_devices + TARGET_CPU_DEFAULT;
+
+  m68k_cpu_flags = entry->flags;
+
+  /* Use the architecture setting to derive default values for
+     certain flags.  */
+  target_mask = 0;
+  if ((m68k_cpu_flags & FL_BITFIELD) != 0)
+    target_mask |= MASK_BITFIELD;
+  if ((m68k_cpu_flags & FL_CF_HWDIV) != 0)
+    target_mask |= MASK_CF_HWDIV;
+  if ((m68k_cpu_flags & (FL_68881 | FL_CF_FPU)) != 0)
+    target_mask |= MASK_HARD_FLOAT;
+  target_flags |= target_mask & ~target_flags_explicit;
+
+  /* Set the directly-usable versions of the -mcpu and -mtune settings.  */
+  m68k_cpu = entry->device;
+  if (m68k_tune_entry)
+    m68k_tune = m68k_tune_entry->microarch;
+#ifdef M68K_DEFAULT_TUNE
+  else if (!m68k_cpu_entry && !m68k_arch_entry)
+    m68k_tune = M68K_DEFAULT_TUNE;
+#endif
+  else
+    m68k_tune = entry->microarch;
+
+  /* Set the type of FPU.  */
+  m68k_fpu = (!TARGET_HARD_FLOAT ? FPUTYPE_NONE
+	      : (m68k_cpu_flags & FL_COLDFIRE) != 0 ? FPUTYPE_COLDFIRE
+	      : FPUTYPE_68881);
+
   /* Sanity check to ensure that msep-data and mid-sahred-library are not
    * both specified together.  Doing so simply doesn't make sense.
    */
@@ -352,6 +539,30 @@ override_options (void)
     flag_no_function_cse = 1;
 
   SUBTARGET_OVERRIDE_OPTIONS;
+}
+
+/* Generate a macro of the form __mPREFIX_cpu_NAME, where PREFIX is the
+   given argument and NAME is the argument passed to -mcpu.  Return NULL
+   if -mcpu was not passed.  */
+
+const char *
+m68k_cpp_cpu_ident (const char *prefix)
+{
+  if (!m68k_cpu_entry)
+    return NULL;
+  return concat ("__m", prefix, "_cpu_", m68k_cpu_entry->name, NULL);
+}
+
+/* Generate a macro of the form __mPREFIX_family_NAME, where PREFIX is the
+   given argument and NAME is the name of the representative device for
+   the -mcpu argument's family.  Return NULL if -mcpu was not passed.  */
+
+const char *
+m68k_cpp_cpu_family (const char *prefix)
+{
+  if (!m68k_cpu_entry)
+    return NULL;
+  return concat ("__m", prefix, "_family_", m68k_cpu_entry->family, NULL);
 }
 
 /* Return nonzero if FUNC is an interrupt function as specified by the
@@ -550,7 +761,7 @@ m68k_output_function_prologue (FILE *stream,
 
   if (frame_pointer_needed)
     {
-      if (current_frame.size == 0 && TARGET_68040)
+      if (current_frame.size == 0 && TUNE_68040)
 	/* on the 68040, pea + move is faster than link.w 0 */
 	fprintf (stream, (MOTOROLA
 			  ? "\tpea (%s)\n\tmove.l %s,%s\n"
@@ -584,14 +795,14 @@ m68k_output_function_prologue (FILE *stream,
 		asm_fprintf (stream, "\tsubq" ASM_DOT "l %I%wd,%Rsp\n",
 		             fsize_with_regs);
 	    }
-	  else if (fsize_with_regs <= 16 && TARGET_CPU32)
+	  else if (fsize_with_regs <= 16 && TUNE_CPU32)
 	    /* On the CPU32 it is faster to use two subqw instructions to
 	       subtract a small integer (8 < N <= 16) to a register.  */
 	    asm_fprintf (stream,
 			 "\tsubq" ASM_DOT "w %I8,%Rsp\n"
 			 "\tsubq" ASM_DOT "w %I%wd,%Rsp\n",
 			 fsize_with_regs - 8);
-	  else if (TARGET_68040)
+	  else if (TUNE_68040)
 	    /* Adding negative number is faster on the 68040.  */
 	    asm_fprintf (stream, "\tadd" ASM_DOT "w %I%wd,%Rsp\n",
 			 -fsize_with_regs);
@@ -1054,7 +1265,7 @@ m68k_output_function_epilogue (FILE *stream,
 	    asm_fprintf (stream, "\taddq" ASM_DOT "l %I%wd,%Rsp\n",
 			 fsize_with_regs);
 	}
-      else if (fsize_with_regs <= 16 && TARGET_CPU32)
+      else if (fsize_with_regs <= 16 && TUNE_CPU32)
 	{
 	  /* On the CPU32 it is faster to use two addqw instructions to
 	     add a small integer (8 < N <= 16) to a register.  */
@@ -1065,7 +1276,7 @@ m68k_output_function_epilogue (FILE *stream,
 	}
       else if (fsize_with_regs < 0x8000)
 	{
-	  if (TARGET_68040)
+	  if (TUNE_68040)
 	    asm_fprintf (stream, "\tadd" ASM_DOT "w %I%wd,%Rsp\n",
 			 fsize_with_regs);
 	  else
@@ -1562,7 +1773,7 @@ const_method (rtx constant)
   if (USE_MOVQ ((u >> 16) | (u << 16)))
     return SWAP;
 
-  if (TARGET_CFV4)
+  if (TARGET_ISAB)
     {
       /* Try using MVZ/MVS with an immediate value to load constants.  */
       if (i >= 0 && i <= 65535)
@@ -1634,12 +1845,21 @@ m68k_rtx_costs (rtx x, int code, int outer_code, int *total)
        sometimes move insns are needed.  */
     /* div?.w is relatively cheaper on 68000 counted in COSTS_N_INSNS
        terms.  */
-#define MULL_COST (TARGET_68060 ? 2 : TARGET_68040 ? 5		\
-		   : (TARGET_COLDFIRE && !TARGET_5200) ? 3	\
-		   : TARGET_COLDFIRE ? 10 : 13)
-#define MULW_COST (TARGET_68060 ? 2 : TARGET_68040 ? 3 : TARGET_68020 ? 8 \
-		   : (TARGET_COLDFIRE && !TARGET_5200) ? 2 : 5)
-#define DIVW_COST (TARGET_68020 ? 27 : TARGET_CF_HWDIV ? 11 : 12)
+#define MULL_COST				\
+  (TUNE_68060 ? 2				\
+   : TUNE_68040 ? 5				\
+   : TUNE_CFV2 ? 10				\
+   : TARGET_COLDFIRE ? 3 : 13)
+
+#define MULW_COST				\
+  (TUNE_68060 ? 2				\
+   : TUNE_68040 ? 3				\
+   : TUNE_68000_10 || TUNE_CFV2 ? 5		\
+   : TARGET_COLDFIRE ? 2 : 8)
+
+#define DIVW_COST				\
+  (TARGET_CF_HWDIV ? 11				\
+   : TUNE_68000_10 || TARGET_COLDFIRE ? 12 : 27)
 
     case PLUS:
       /* An lea costs about three times as much as a simple add.  */
@@ -1661,12 +1881,12 @@ m68k_rtx_costs (rtx x, int code, int outer_code, int *total)
     case ASHIFT:
     case ASHIFTRT:
     case LSHIFTRT:
-      if (TARGET_68060)
+      if (TUNE_68060)
 	{
           *total = COSTS_N_INSNS(1);
 	  return true;
 	}
-      if (! TARGET_68020 && ! TARGET_COLDFIRE)
+      if (TUNE_68000_10)
         {
 	  if (GET_CODE (XEXP (x, 1)) == CONST_INT)
 	    {
@@ -1770,7 +1990,7 @@ valid_mov3q_const (rtx constant)
 {
   int i;
 
-  if (TARGET_CFV4 && GET_CODE (constant) == CONST_INT)
+  if (TARGET_ISAB && GET_CODE (constant) == CONST_INT)
     {
       i = INTVAL (constant);
       if (i == -1 || (i >= 1 && i <= 7))
@@ -1786,9 +2006,8 @@ output_move_simode_const (rtx *operands)
   if (operands[1] == const0_rtx
       && (DATA_REG_P (operands[0])
 	  || GET_CODE (operands[0]) == MEM)
-      /* clr insns on 68000 read before writing.
-	 This isn't so on the 68010, but we have no TARGET_68010.  */
-      && ((TARGET_68020 || TARGET_COLDFIRE)
+      /* clr insns on 68000 read before writing.  */
+      && ((TARGET_68010 || TARGET_COLDFIRE)
 	  || !(GET_CODE (operands[0]) == MEM
 	       && MEM_VOLATILE_P (operands[0]))))
     return "clr%.l %0";
@@ -1845,9 +2064,8 @@ output_move_himode (rtx *operands)
       if (operands[1] == const0_rtx
 	  && (DATA_REG_P (operands[0])
 	      || GET_CODE (operands[0]) == MEM)
-	  /* clr insns on 68000 read before writing.
-	     This isn't so on the 68010, but we have no TARGET_68010.  */
-	  && ((TARGET_68020 || TARGET_COLDFIRE)
+	  /* clr insns on 68000 read before writing.  */
+	  && ((TARGET_68010 || TARGET_COLDFIRE)
 	      || !(GET_CODE (operands[0]) == MEM
 		   && MEM_VOLATILE_P (operands[0]))))
 	return "clr%.w %0";
@@ -1899,10 +2117,9 @@ output_move_qimode (rtx *operands)
 		&& ! ADDRESS_REG_P (operands[1])
 		&& ! TARGET_COLDFIRE));
 
-  /* clr and st insns on 68000 read before writing.
-     This isn't so on the 68010, but we have no TARGET_68010.  */
+  /* clr and st insns on 68000 read before writing.  */
   if (!ADDRESS_REG_P (operands[0])
-      && ((TARGET_68020 || TARGET_COLDFIRE)
+      && ((TARGET_68010 || TARGET_COLDFIRE)
 	  || !(GET_CODE (operands[0]) == MEM && MEM_VOLATILE_P (operands[0]))))
     {
       if (operands[1] == const0_rtx)
@@ -1935,9 +2152,8 @@ const char *
 output_move_stricthi (rtx *operands)
 {
   if (operands[1] == const0_rtx
-      /* clr insns on 68000 read before writing.
-	 This isn't so on the 68010, but we have no TARGET_68010.  */
-      && ((TARGET_68020 || TARGET_COLDFIRE)
+      /* clr insns on 68000 read before writing.  */
+      && ((TARGET_68010 || TARGET_COLDFIRE)
 	  || !(GET_CODE (operands[0]) == MEM && MEM_VOLATILE_P (operands[0]))))
     return "clr%.w %0";
   return "move%.w %1,%0";
@@ -1947,9 +2163,8 @@ const char *
 output_move_strictqi (rtx *operands)
 {
   if (operands[1] == const0_rtx
-      /* clr insns on 68000 read before writing.
-         This isn't so on the 68010, but we have no TARGET_68010.  */
-      && ((TARGET_68020 || TARGET_COLDFIRE)
+      /* clr insns on 68000 read before writing.  */
+      && ((TARGET_68010 || TARGET_COLDFIRE)
           || !(GET_CODE (operands[0]) == MEM && MEM_VOLATILE_P (operands[0]))))
     return "clr%.b %0";
   return "move%.b %1,%0";
@@ -2560,7 +2775,7 @@ output_addsi3 (rtx *operands)
       /* On the CPU32 it is faster to use two addql instructions to
 	 add a small integer (8 < N <= 16) to a register.
 	 Likewise for subql.  */
-      if (TARGET_CPU32 && REG_P (operands[0]))
+      if (TUNE_CPU32 && REG_P (operands[0]))
 	{
 	  if (INTVAL (operands[2]) > 8
 	      && INTVAL (operands[2]) <= 16)
@@ -2579,7 +2794,7 @@ output_addsi3 (rtx *operands)
 	  && INTVAL (operands[2]) >= -0x8000
 	  && INTVAL (operands[2]) < 0x8000)
 	{
-	  if (TARGET_68040)
+	  if (TUNE_68040)
 	    return "add%.w %2,%0";
 	  else
 	    return MOTOROLA ? "lea (%c2,%0),%0" : "lea %0@(%c2),%0";
@@ -2780,7 +2995,7 @@ standard_68881_constant_p (rtx x)
 
   /* fmovecr must be emulated on the 68040 and 68060, so it shouldn't be
      used at all on those chips.  */
-  if (TARGET_68040 || TARGET_68060)
+  if (TUNE_68040_60)
     return 0;
 
   if (! inited_68881_table)
@@ -2895,12 +3110,12 @@ print_operand (FILE *file, rtx op, int letter)
     asm_fprintf (file, "%Rfpcr");
   else if (letter == '$')
     {
-      if (TARGET_68040_ONLY)
+      if (TARGET_68040)
 	fprintf (file, "s");
     }
   else if (letter == '&')
     {
-      if (TARGET_68040_ONLY)
+      if (TARGET_68040)
 	fprintf (file, "d");
     }
   else if (letter == '/')

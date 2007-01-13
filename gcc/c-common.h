@@ -392,6 +392,10 @@ extern int flag_short_double;
 
 extern int flag_short_wchar;
 
+/* Nonzero means allow implicit conversions between vectors with
+   differing numbers of subparts and/or differing element types.  */
+extern int flag_lax_vector_conversions;
+
 /* Nonzero means allow Microsoft extensions without warnings or errors.  */
 extern int flag_ms_extensions;
 
@@ -652,6 +656,7 @@ extern tree c_common_unsigned_type (tree);
 extern tree c_common_signed_type (tree);
 extern tree c_common_signed_or_unsigned_type (int, tree);
 extern tree c_build_bitfield_integer_type (unsigned HOST_WIDE_INT, int);
+extern bool decl_with_nonnull_addr_p (tree);
 extern tree c_common_truthvalue_conversion (tree);
 extern void c_apply_type_quals_to_decl (int, tree);
 extern tree c_sizeof_or_alignof_type (tree, bool, int);
@@ -800,7 +805,7 @@ extern tree finish_label_address_expr (tree);
 extern tree lookup_label (tree);
 extern tree lookup_name (tree);
 
-extern int vector_types_convertible_p (tree t1, tree t2);
+extern bool vector_types_convertible_p (tree t1, tree t2, bool emit_lax_note);
 
 extern rtx c_expand_expr (tree, rtx, enum machine_mode, int, rtx *);
 

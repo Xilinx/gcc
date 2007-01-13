@@ -2816,7 +2816,7 @@ fi
 echo "$as_me:$LINENO: result: $acx_cv_prog_cc_pedantic__Wno_long_long" >&5
 echo "${ECHO_T}$acx_cv_prog_cc_pedantic__Wno_long_long" >&6
 if test $acx_cv_prog_cc_pedantic__Wno_long_long = yes; then
-  WARN_PEDANTIC="-pedantic -Wno-long-long"
+  WARN_PEDANTIC="$WARN_PEDANTIC${WARN_PEDANTIC:+ }-pedantic -Wno-long-long"
 fi
 
 
@@ -2835,8 +2835,9 @@ else
   enable_werror_always=no
 fi;
 if test $enable_werror_always = yes; then
-  WERROR=-Werror
+  WERROR="$WERROR${WERROR:+ }-Werror"
 fi
+
 
 
 

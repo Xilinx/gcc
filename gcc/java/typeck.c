@@ -1,5 +1,5 @@
 /* Handle types for the GNU compiler for the Java(TM) language.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -131,9 +131,7 @@ convert (tree type, tree expr)
     {
       if (type == char_type_node || type == promoted_char_type_node)
 	return fold_convert (type, expr);
-      if ((really_constant_p (expr)
-	   || (! flag_unsafe_math_optimizations
-	       && ! flag_emit_class_files))
+      if ((really_constant_p (expr) || ! flag_unsafe_math_optimizations)
 	  && TREE_CODE (TREE_TYPE (expr)) == REAL_TYPE
 	  && TARGET_FLOAT_FORMAT == IEEE_FLOAT_FORMAT)
 	return convert_ieee_real_to_integer (type, expr);
@@ -356,7 +354,7 @@ tree
 build_java_array_type (tree element_type, HOST_WIDE_INT length)
 {
   tree sig, t, fld, atype, arfld;
-  char buf[23]; /* 20 for the digits of a 64 bit number + "[]" + \0 */
+  char buf[23];
   tree elsig = build_java_signature (element_type);
   tree el_name = element_type;
   buf[0] = '[';

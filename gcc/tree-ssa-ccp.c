@@ -1431,7 +1431,7 @@ struct tree_opt_pass pass_ccp =
   NULL,					/* next */
   0,					/* static_pass_number */
   TV_TREE_CCP,				/* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
@@ -1608,7 +1608,7 @@ maybe_fold_offset_to_array_ref (tree base, tree offset, tree orig_type)
 	  || lrem || hrem)
 	return NULL_TREE;
 
-      idx = build_int_cst_wide (NULL_TREE, lquo, hquo);
+      idx = build_int_cst_wide (TREE_TYPE (offset), lquo, hquo);
     }
 
   /* Assume the low bound is zero.  If there is a domain type, get the
@@ -2109,6 +2109,10 @@ get_maxval_strlen (tree arg, tree *length, bitmap visited, int type)
   
   if (TREE_CODE (arg) != SSA_NAME)
     {
+      if (TREE_CODE (arg) == COND_EXPR)
+        return get_maxval_strlen (COND_EXPR_THEN (arg), length, visited, type)
+               && get_maxval_strlen (COND_EXPR_ELSE (arg), length, visited, type);
+
       if (type == 2)
 	{
 	  val = arg;
@@ -2438,6 +2442,13 @@ fold_stmt (tree *stmt_p)
 	    }
 	}
     }
+  else if (TREE_CODE (rhs) == COND_EXPR)
+    {
+      tree temp = fold (COND_EXPR_COND (rhs));
+      if (temp != COND_EXPR_COND (rhs))
+        result = fold_build3 (COND_EXPR, TREE_TYPE (rhs), temp,
+                              COND_EXPR_THEN (rhs), COND_EXPR_ELSE (rhs));
+    }
 
   /* If we couldn't fold the RHS, hand over to the generic fold routines.  */
   if (result == NULL_TREE)
@@ -2639,7 +2650,7 @@ struct tree_opt_pass pass_fold_builtins =
   NULL,					/* next */
   0,					/* static_pass_number */
   0,					/* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */

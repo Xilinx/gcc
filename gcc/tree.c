@@ -1,6 +1,6 @@
 /* Language-independent node constructors for parse phase of GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -752,6 +752,10 @@ copy_list (tree list)
 tree
 build_int_cst (tree type, HOST_WIDE_INT low)
 {
+  /* Support legacy code.  */
+  if (!type)
+    type = integer_type_node;
+
   return build_int_cst_wide (type, low, low < 0 ? -1 : 0);
 }
 
@@ -775,53 +779,25 @@ build_int_cstu (tree type, unsigned HOST_WIDE_INT low)
 tree
 build_int_cst_type (tree type, HOST_WIDE_INT low)
 {
-  unsigned HOST_WIDE_INT val = (unsigned HOST_WIDE_INT) low;
-  unsigned HOST_WIDE_INT hi, mask;
-  unsigned bits;
-  bool signed_p;
-  bool negative;
+  unsigned HOST_WIDE_INT low1;
+  HOST_WIDE_INT hi;
 
-  if (!type)
-    type = integer_type_node;
+  gcc_assert (type);
 
-  bits = TYPE_PRECISION (type);
-  signed_p = !TYPE_UNSIGNED (type);
+  fit_double_type (low, low < 0 ? -1 : 0, &low1, &hi, type);
 
-  if (bits >= HOST_BITS_PER_WIDE_INT)
-    negative = (low < 0);
-  else
-    {
-      /* If the sign bit is inside precision of LOW, use it to determine
-	 the sign of the constant.  */
-      negative = ((val >> (bits - 1)) & 1) != 0;
+  return build_int_cst_wide (type, low1, hi);
+}
 
-      /* Mask out the bits outside of the precision of the constant.  */
-      mask = (((unsigned HOST_WIDE_INT) 2) << (bits - 1)) - 1;
+/* Create an INT_CST node of TYPE and value HI:LOW.  The value is truncated
+   and sign extended according to the value range of TYPE.  */
 
-      if (signed_p && negative)
-	val |= ~mask;
-      else
-	val &= mask;
-    }
-
-  /* Determine the high bits.  */
-  hi = (negative ? ~(unsigned HOST_WIDE_INT) 0 : 0);
-
-  /* For unsigned type we need to mask out the bits outside of the type
-     precision.  */
-  if (!signed_p)
-    {
-      if (bits <= HOST_BITS_PER_WIDE_INT)
-	hi = 0;
-      else
-	{
-	  bits -= HOST_BITS_PER_WIDE_INT;
-	  mask = (((unsigned HOST_WIDE_INT) 2) << (bits - 1)) - 1;
-	  hi &= mask;
-	}
-    }
-
-  return build_int_cst_wide (type, val, hi);
+tree
+build_int_cst_wide_type (tree type,
+			 unsigned HOST_WIDE_INT low, HOST_WIDE_INT high)
+{
+  fit_double_type (low, high, &low, &high, type);
+  return build_int_cst_wide (type, low, high);
 }
 
 /* These are the hash table functions for the hash table of INTEGER_CST
@@ -852,10 +828,9 @@ int_cst_hash_eq (const void *x, const void *y)
 	  && TREE_INT_CST_LOW (xt) == TREE_INT_CST_LOW (yt));
 }
 
-/* Create an INT_CST node of TYPE and value HI:LOW.  If TYPE is NULL,
-   integer_type_node is used.  The returned node is always shared.
-   For small integers we use a per-type vector cache, for larger ones
-   we use a single hash table.  */
+/* Create an INT_CST node of TYPE and value HI:LOW.
+   The returned node is always shared.  For small integers we use a
+   per-type vector cache, for larger ones we use a single hash table.  */
 
 tree
 build_int_cst_wide (tree type, unsigned HOST_WIDE_INT low, HOST_WIDE_INT hi)
@@ -864,8 +839,7 @@ build_int_cst_wide (tree type, unsigned HOST_WIDE_INT low, HOST_WIDE_INT hi)
   int ix = -1;
   int limit = 0;
 
-  if (!type)
-    type = integer_type_node;
+  gcc_assert (type);
 
   switch (TREE_CODE (type))
     {
@@ -1023,7 +997,7 @@ tree
 build_vector (tree type, tree vals)
 {
   tree v = make_node (VECTOR_CST);
-  int over1 = 0, over2 = 0;
+  int over = 0;
   tree link;
 
   TREE_VECTOR_CST_ELTS (v) = vals;
@@ -1038,13 +1012,10 @@ build_vector (tree type, tree vals)
       if (!CONSTANT_CLASS_P (value))
 	continue;
 
-      over1 |= TREE_OVERFLOW (value);
-      over2 |= TREE_CONSTANT_OVERFLOW (value);
+      over |= TREE_OVERFLOW (value);
     }
 
-  TREE_OVERFLOW (v) = over1;
-  TREE_CONSTANT_OVERFLOW (v) = over2;
-
+  TREE_OVERFLOW (v) = over;
   return v;
 }
 
@@ -1141,7 +1112,7 @@ build_real (tree type, REAL_VALUE_TYPE d)
 
   TREE_TYPE (v) = type;
   TREE_REAL_CST_PTR (v) = dp;
-  TREE_OVERFLOW (v) = TREE_CONSTANT_OVERFLOW (v) = overflow;
+  TREE_OVERFLOW (v) = overflow;
   return v;
 }
 
@@ -1175,7 +1146,6 @@ build_real_from_int_cst (tree type, tree i)
   v = build_real (type, real_value_from_int_cst (type, i));
 
   TREE_OVERFLOW (v) |= overflow;
-  TREE_CONSTANT_OVERFLOW (v) |= overflow;
   return v;
 }
 
@@ -1224,8 +1194,6 @@ build_complex (tree type, tree real, tree imag)
   TREE_IMAGPART (t) = imag;
   TREE_TYPE (t) = type ? type : build_complex_type (TREE_TYPE (real));
   TREE_OVERFLOW (t) = TREE_OVERFLOW (real) | TREE_OVERFLOW (imag);
-  TREE_CONSTANT_OVERFLOW (t)
-    = TREE_CONSTANT_OVERFLOW (real) | TREE_CONSTANT_OVERFLOW (imag);
   return t;
 }
 
@@ -1814,9 +1782,6 @@ size_in_bytes (tree type)
       lang_hooks.types.incomplete_type_error (NULL_TREE, type);
       return size_zero_node;
     }
-
-  if (TREE_CODE (t) == INTEGER_CST)
-    t = force_fit_type (t, 0, false, false);
 
   return t;
 }
@@ -5989,12 +5954,10 @@ get_narrower (tree op, int *unsignedp_ptr)
 	{
 	  if (first)
 	    uns = DECL_UNSIGNED (TREE_OPERAND (op, 1));
-	  win = build3 (COMPONENT_REF, type, TREE_OPERAND (op, 0),
-			TREE_OPERAND (op, 1), NULL_TREE);
-	  TREE_SIDE_EFFECTS (win) = TREE_SIDE_EFFECTS (op);
-	  TREE_THIS_VOLATILE (win) = TREE_THIS_VOLATILE (op);
+	  win = fold_convert (type, op);
 	}
     }
+
   *unsignedp_ptr = uns;
   return win;
 }
@@ -6008,12 +5971,13 @@ int_fits_type_p (tree c, tree type)
   tree type_low_bound = TYPE_MIN_VALUE (type);
   tree type_high_bound = TYPE_MAX_VALUE (type);
   bool ok_for_low_bound, ok_for_high_bound;
-  tree tmp;
+  unsigned HOST_WIDE_INT low;
+  HOST_WIDE_INT high;
 
   /* If at least one bound of the type is a constant integer, we can check
      ourselves and maybe make a decision. If no such decision is possible, but
      this type is a subtype, try checking against that.  Otherwise, use
-     force_fit_type, which checks against the precision.
+     fit_double_type, which checks against the precision.
 
      Compute the status for each possibly constant bound, and return if we see
      one does not match. Use ok_for_xxx_bound for this purpose, assigning -1
@@ -6068,12 +6032,10 @@ int_fits_type_p (tree c, tree type)
       && TYPE_PRECISION (type) == TYPE_PRECISION (TREE_TYPE (type)))
     return int_fits_type_p (c, TREE_TYPE (type));
 
-  /* Or to force_fit_type, if nothing else.  */
-  tmp = copy_node (c);
-  TREE_TYPE (tmp) = type;
-  tmp = force_fit_type (tmp, -1, false, false);
-  return TREE_INT_CST_HIGH (tmp) == TREE_INT_CST_HIGH (c)
-         && TREE_INT_CST_LOW (tmp) == TREE_INT_CST_LOW (c);
+  /* Or to fit_double_type, if nothing else.  */
+  low = TREE_INT_CST_LOW (c);
+  high = TREE_INT_CST_HIGH (c);
+  return !fit_double_type (low, high, &low, &high, type);
 }
 
 /* Subprogram of following function.  Called by walk_tree.

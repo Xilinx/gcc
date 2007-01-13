@@ -3446,48 +3446,57 @@ static try
 resolve_deallocate_expr (gfc_expr * e)
 {
   symbol_attribute attr;
-  int allocatable;
+  int allocatable, pointer, check_intent_in;
   gfc_ref *ref;
+
+  /* Check INTENT(IN), unless the object is a sub-component of a pointer.  */
+  check_intent_in = 1;
 
   if (gfc_resolve_expr (e) == FAILURE)
     return FAILURE;
-
-  attr = gfc_expr_attr (e);
-  if (attr.pointer)
-    return SUCCESS;
 
   if (e->expr_type != EXPR_VARIABLE)
     goto bad;
 
   allocatable = e->symtree->n.sym->attr.allocatable;
+  pointer = e->symtree->n.sym->attr.pointer;
   for (ref = e->ref; ref; ref = ref->next)
-    switch (ref->type)
-      {
-      case REF_ARRAY:
-	if (ref->u.ar.type != AR_FULL)
+    {
+      if (pointer)
+        check_intent_in = 0;
+
+      switch (ref->type)
+        {
+        case REF_ARRAY:
+	  if (ref->u.ar.type != AR_FULL)
+	    allocatable = 0;
+	  break;
+
+        case REF_COMPONENT:
+	  allocatable = (ref->u.c.component->as != NULL
+		         && ref->u.c.component->as->type == AS_DEFERRED);
+	  pointer = ref->u.c.component->pointer;
+	  break;
+
+        case REF_SUBSTRING:
 	  allocatable = 0;
-	break;
+	  break;
+        }
+    }
 
-      case REF_COMPONENT:
-	allocatable = (ref->u.c.component->as != NULL
-		       && ref->u.c.component->as->type == AS_DEFERRED);
-	break;
+  attr = gfc_expr_attr (e);
 
-      case REF_SUBSTRING:
-	allocatable = 0;
-	break;
-      }
-
-  if (allocatable == 0)
+  if (allocatable == 0 && attr.pointer == 0)
     {
     bad:
       gfc_error ("Expression in DEALLOCATE statement at %L must be "
 		 "ALLOCATABLE or a POINTER", &e->where);
     }
 
-  if (e->symtree->n.sym->attr.intent == INTENT_IN)
+  if (check_intent_in
+      && e->symtree->n.sym->attr.intent == INTENT_IN)
     {
-      gfc_error ("Can't deallocate INTENT(IN) variable '%s' at %L",
+      gfc_error ("Cannot deallocate INTENT(IN) variable '%s' at %L",
                  e->symtree->n.sym->name, &e->where);
       return FAILURE;
     }
@@ -3609,7 +3618,7 @@ expr_to_initialize (gfc_expr * e)
 static try
 resolve_allocate_expr (gfc_expr * e, gfc_code * code)
 {
-  int i, pointer, allocatable, dimension;
+  int i, pointer, allocatable, dimension, check_intent_in;
   symbol_attribute attr;
   gfc_ref *ref, *ref2;
   gfc_array_ref *ar;
@@ -3617,6 +3626,9 @@ resolve_allocate_expr (gfc_expr * e, gfc_code * code)
   gfc_expr *init_e;
   gfc_symbol *sym;
   gfc_alloc *a;
+
+  /* Check INTENT(IN), unless the object is a sub-component of a pointer.  */
+  check_intent_in = 1;
 
   if (gfc_resolve_expr (e) == FAILURE)
     return FAILURE;
@@ -3655,26 +3667,31 @@ resolve_allocate_expr (gfc_expr * e, gfc_code * code)
 	}
 
       for (ref = e->ref; ref; ref2 = ref, ref = ref->next)
-	switch (ref->type)
-	  {
-	  case REF_ARRAY:
-	    if (ref->next != NULL)
-	      pointer = 0;
-	    break;
+        {
+	  if (pointer)
+	    check_intent_in = 0;
 
-	  case REF_COMPONENT:
-	    allocatable = (ref->u.c.component->as != NULL
-			   && ref->u.c.component->as->type == AS_DEFERRED);
+	  switch (ref->type)
+	    {
+ 	      case REF_ARRAY:
+	        if (ref->next != NULL)
+	          pointer = 0;
+	        break;
 
-	    pointer = ref->u.c.component->pointer;
-	    dimension = ref->u.c.component->dimension;
-	    break;
+	      case REF_COMPONENT:
+	        allocatable = (ref->u.c.component->as != NULL
+			      && ref->u.c.component->as->type == AS_DEFERRED);
 
-	  case REF_SUBSTRING:
-	    allocatable = 0;
-	    pointer = 0;
-	    break;
-	  }
+	        pointer = ref->u.c.component->pointer;
+	        dimension = ref->u.c.component->dimension;
+	        break;
+
+	      case REF_SUBSTRING:
+	        allocatable = 0;
+	        pointer = 0;
+	        break;
+	    }
+       }
     }
 
   if (allocatable == 0 && pointer == 0)
@@ -3684,9 +3701,10 @@ resolve_allocate_expr (gfc_expr * e, gfc_code * code)
       return FAILURE;
     }
 
-  if (e->symtree->n.sym->attr.intent == INTENT_IN)
+  if (check_intent_in
+      && e->symtree->n.sym->attr.intent == INTENT_IN)
     {
-      gfc_error ("Can't allocate INTENT(IN) variable '%s' at %L",
+      gfc_error ("Cannot allocate INTENT(IN) variable '%s' at %L",
                  e->symtree->n.sym->name, &e->where);
       return FAILURE;
     }
@@ -5066,6 +5084,29 @@ resolve_code (gfc_code * code, gfc_namespace * ns)
 	      goto call;
 	    }
 
+	  if (code->expr->ts.type == BT_CHARACTER
+		&& gfc_option.warn_character_truncation)
+	    {
+	      int llen = 0, rlen = 0;
+
+	      if (code->expr->ts.cl != NULL
+		    && code->expr->ts.cl->length != NULL
+		    && code->expr->ts.cl->length->expr_type == EXPR_CONSTANT)
+		llen = mpz_get_si (code->expr->ts.cl->length->value.integer);
+
+	      if (code->expr2->expr_type == EXPR_CONSTANT)
+		rlen = code->expr2->value.character.length;
+
+	      else if (code->expr2->ts.cl != NULL
+		    && code->expr2->ts.cl->length != NULL
+		    && code->expr2->ts.cl->length->expr_type == EXPR_CONSTANT)
+		rlen = mpz_get_si (code->expr2->ts.cl->length->value.integer);
+
+	      if (rlen && llen && rlen > llen)
+		gfc_warning_now ("rhs of CHARACTER assignment at %L will "
+				 "be truncated (%d/%d)", &code->loc, rlen, llen);
+	    }
+
 	  if (gfc_pure (NULL))
 	    {
 	      if (gfc_impure_variable (code->expr->symtree->n.sym))
@@ -6417,17 +6458,47 @@ traverse_data_list (gfc_data_variable * var, locus * where)
 {
   mpz_t trip;
   iterator_stack frame;
-  gfc_expr *e;
+  gfc_expr *e, *start, *end, *step;
+  try retval = SUCCESS;
 
   mpz_init (frame.value);
 
-  mpz_init_set (trip, var->iter.end->value.integer);
-  mpz_sub (trip, trip, var->iter.start->value.integer);
-  mpz_add (trip, trip, var->iter.step->value.integer);
+  start = gfc_copy_expr (var->iter.start);
+  end = gfc_copy_expr (var->iter.end);
+  step = gfc_copy_expr (var->iter.step);
 
-  mpz_div (trip, trip, var->iter.step->value.integer);
+  if (gfc_simplify_expr (start, 1) == FAILURE
+	|| start->expr_type != EXPR_CONSTANT)
+    {
+      gfc_error ("iterator start at %L does not simplify",
+		 &start->where);
+      retval = FAILURE;
+      goto cleanup;
+    }
+  if (gfc_simplify_expr (end, 1) == FAILURE
+	||  end->expr_type != EXPR_CONSTANT)
+    {
+      gfc_error ("iterator end at %L does not simplify",
+		 &end->where);
+      retval = FAILURE;
+      goto cleanup;
+    }
+  if (gfc_simplify_expr (step, 1) == FAILURE
+	||  step->expr_type != EXPR_CONSTANT)
+    {
+      gfc_error ("iterator step at %L does not simplify",
+		 &step->where);
+      retval = FAILURE;
+      goto cleanup;
+    }
 
-  mpz_set (frame.value, var->iter.start->value.integer);
+  mpz_init_set (trip, end->value.integer);
+  mpz_sub (trip, trip, start->value.integer);
+  mpz_add (trip, trip, step->value.integer);
+
+  mpz_div (trip, trip, step->value.integer);
+
+  mpz_set (frame.value, start->value.integer);
 
   frame.prev = iter_stack;
   frame.variable = var->iter.var->symtree;
@@ -6438,26 +6509,34 @@ traverse_data_list (gfc_data_variable * var, locus * where)
       if (traverse_data_var (var->list, where) == FAILURE)
 	{
 	  mpz_clear (trip);
-	  return FAILURE;
+	  retval = FAILURE;
+	  goto cleanup;
 	}
 
       e = gfc_copy_expr (var->expr);
       if (gfc_simplify_expr (e, 1) == FAILURE)
-        {
-          gfc_free_expr (e);
-          return FAILURE;
-        }
+	{
+	  gfc_free_expr (e);
+	  mpz_clear (trip);
+	  retval = FAILURE;
+	  goto cleanup;
+	}
 
-      mpz_add (frame.value, frame.value, var->iter.step->value.integer);
+      mpz_add (frame.value, frame.value, step->value.integer);
 
       mpz_sub_ui (trip, trip, 1);
     }
 
   mpz_clear (trip);
+cleanup:
   mpz_clear (frame.value);
 
+  gfc_free_expr (start);
+  gfc_free_expr (end);
+  gfc_free_expr (step);
+
   iter_stack = frame.prev;
-  return SUCCESS;
+  return retval;
 }
 
 
@@ -6501,11 +6580,6 @@ resolve_data_variables (gfc_data_variable * d)
 	{
 	  if (gfc_resolve_iterator (&d->iter, false) == FAILURE)
 	    return FAILURE;
-
-	  if (d->iter.start->expr_type != EXPR_CONSTANT
-	      || d->iter.end->expr_type != EXPR_CONSTANT
-	      || d->iter.step->expr_type != EXPR_CONSTANT)
-	    gfc_internal_error ("resolve_data_variables(): Bad iterator");
 
 	  if (resolve_data_variables (d->list) == FAILURE)
 	    return FAILURE;

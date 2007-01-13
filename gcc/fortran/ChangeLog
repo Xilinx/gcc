@@ -1,17 +1,231 @@
-2006-10-11  Tobias Schlueter  <tobias.schlueter@physik.uni-muenchen.de>
+2007-01-11  Thomas Koenig  <Thomas.Koenig@online.de>
 
-	* gfortran.h (gfc_show_actual_arglist, gfc_show_array_ref,
-	gfc_show_array_spec, gfc_show_attr, gfc_show_code,
-	gfc_show_components, gfc_show_constructor, gfc_show_equiv,
-	gfc_show_expr, gfc_show_namelist, gfc_show_ref, gfc_show_symbol,
-	gfc_show_typespec): Add prototypes.
-	* dump-parse-tree.c (gfc_show_actual_arglist, gfc_show_array_ref,
-	gfc_show_array_spec, gfc_show_attr, gfc_show_code,
-	gfc_show_components, gfc_show_constructor, gfc_show_equiv,
-	gfc_show_expr, gfc_show_namelist, gfc_show_ref, gfc_show_symbol,
-	gfc_show_typespec): Remove 'static' from declaration.
+	PR libfortran/30415
+	* iresolve.c (gfc_resolve_maxloc):  If the rank
+	of the return array is nonzero and we process an
+	integer array smaller than default kind, coerce
+	the array to default integer.
+	* iresolve.c (gfc_resolve_minloc):  Likewise.
 
-2006-10-10  Brooks Moses  <bmoses@stanford.edu>
+2007-01-11  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* simplify.c: Update copyright to 2007.
+	* scanner.c: Same.
+
+2007-01-11  Francois-Xavier Coudert  <coudert@clipper.ens.fr>
+
+	PR fortran/30430
+	* scanner.c (gfc_release_include_path): Free gfc_option.module_dir
+	only once!
+
+2007-01-09  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* simplify.c (gfc_simplify_ibclr): Fix POS comparison.
+	(gfc_simplify_ibset): Same.
+
+2007-01-09  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	PR 30381
+	PR 30420
+	* simplify.c (convert_mpz_to_unsigned): New function.
+	(convert_mpz_to_signed): New function, largely based on
+	twos_complement().
+	(twos_complement): Removed.
+	(gfc_simplify_ibclr): Add conversions to and from an
+	unsigned representation before bit-twiddling.
+	(gfc_simplify_ibset): Same.
+	(gfc_simplify_ishftc): Add checks for overly large
+	constant arguments, only check the third argument if
+	it's present, carry over high bits into	the result as
+	appropriate, and perform the final conversion back to
+	a signed representation using the correct sign bit.
+	(gfc_simplify_not): Removed unnecessary masking.
+
+2007-01-09  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/30408
+	* resolve.c (resolve_code): Use the code->expr character length
+	directly to set length of llen.
+
+2007-01-09  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/30408
+	* lang.opt: Add Wcharacter_truncation option.
+	* options.c (gfc_init_options): Initialize
+	gfc_option.warn_character_truncation to zero.
+	(gfc_handle_option): Add case for OPT_Wcharacter_truncation.
+
+2007-01-08  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* interface.c, intrinsic.c, gfortranspec.c, io.c, f95-lang.c,
+	iresolve.c, match.c:  Update Copyright years.  Whitespace.
+
+2007-01-08  Richard Guenther  <rguenther@suse.de>
+
+	* trans-io.c (transfer_array_desc): Use build_int_cst instead
+	of build_int_cstu.
+
+2007-01-08  Roger Sayle  <roger@eyesopen.com>
+
+	* trans-array.c (constant_array_constructor_p): New function to
+	determine whether an array constructor consists only of constant
+	elements, and if so return it's size.
+	(gfc_build_constant_array_constructor): Construct a statically
+	initialized gfortran array for a given EXPR_ARRAY.
+	(gfc_trans_constant_array_constructor): Efficiently scalarize
+	a constant array constructor.
+	(gfc_trans_array_constructor):  Tidy up use of CONST_STRING.
+	Special case scalarization of constant array constructors, all of
+	whose elements are specified, using constant_array_constructor_p 
+	and gfc_trans_constant_array_constructor.
+	(gfc_conv_scalarized_array_ref): Check whetger info->offset is zero
+	before adding it to index, to avoid creating a NON_LVALUE_EXPR.
+
+2007-01-08  Kazu Hirata  <kazu@codesourcery.com>
+
+	gfortran.texi: Fix typos.
+
+2007-01-07  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* decl.c, dump-parse-tree.c, error.c, data.c, expr.c, dependency.c,
+	convert.c:  Update Copyright dates.  Fix whitespace.
+
+2007-01-07  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* data.c (gfc_assign_data_value): Fix whitespace.
+
+2007-01-07  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* trans-array.c (gfc_trans_create_temp_array, gfc_array_init_size):
+	Commentary typo fix.
+
+2007-01-07  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	PR fortran/27698
+	* match.c (gfc_match_name): Print diagnostics for invalid
+	character in names.
+
+2007-01-06  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* array.c: Fix whitespace in comment table.
+
+2007-01-06  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* array.c, bbt.c, check.c:  Update copyright years.  Whitespace.
+
+2007-01-06  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* arith.c: Update copyright years.  Whitespace.
+
+2007-01-05  Roger Sayle  <roger@eyesopen.com>
+
+	* trans-expr.c (gfc_trans_assignment_1): New subroutine to scalarize
+	array assignments split out from gfc_trans_assignment.
+	(gfc_trans_array_copy): New function to implement array to array
+	copies via calls to __builtin_memcpy.
+	(copyable_array_p): New helper function to identify an array of
+	simple/POD types, that may be copied/assigned using memcpy.
+	(gfc_trans_assignment): Use gfc_trans_array_copy to handle simple
+	whole array assignments considered suitable by copyable_array_p.
+	Invoke gfc_trans_assignment_1 to perform the fallback scalarization.
+
+2007-01-05  Roger Sayle  <roger@eyesopen.com>
+
+	* trans-array.c (gfc_trans_array_constructor_value): Make the
+	static const "data" array as TREE_READONLY.
+	* trans-stmt.c (gfc_trans_character_select): Likewise.
+
+2007-01-05  Roger Sayle  <roger@eyesopen.com>
+
+	* trans-array.c (gfc_conv_loop_setup):  Test whether the loop
+	stride is one, to avoid fold_build2 introducing a useless
+	NON_LVALUE_EXPR node.
+
+2007-01-05  Tobias Burnus  <burnus@net-b.de>
+
+	* symbol.c (check_conflict): Fix error message.
+
+2007-01-05  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/23232
+	* decl.c (gfc_in_match_data, gfc_set_in_match_data): New
+	functions to signal that a DATA statement is being matched.
+	(gfc_match_data): Call gfc_set_in_match_data on entry and on
+	exit.
+	* gfortran.h : Add prototypes for above.
+	* expr.c (check_init_expr): Avoid check on parameter or
+	variable if gfc_in_match_data is true.
+	(gfc_match_init_expr): Do not call error on non-reduction of
+	expression if gfc_in_match_data is true.
+
+	PR fortran/27996
+	PR fortran/27998
+	* decl.c (gfc_set_constant_character_len): Add boolean arg to
+	flag array constructor resolution.  Warn if string is being
+	truncated.  Standard dependent error if string is padded. Set
+	new arg to false for all three calls to
+	gfc_set_constant_character_len.
+	* match.h : Add boolean arg to prototype for
+	gfc_set_constant_character_len.
+	* gfortran.h : Add warn_character_truncation to gfc_options.
+	* options.c (set_Wall): Set warn_character_truncation if -Wall
+	is set.
+	* resolve.c (resolve_code): Warn if rhs string in character
+	assignment has to be truncated.
+	* array.c (gfc_resolve_character_array_constructor): Set new
+	argument to true for call to gfc_set_constant_character_len.
+
+2007-01-05  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/29624
+	* interface.c (compare_parameter_intent): New function.
+	  (check_intents): Support pointer intents.
+	* symbol.c (check_conflict): Support pointer intents,
+	  better conflict_std message.
+	* expr.c (gfc_check_assign,gfc_check_pointer_assign):
+	  Support pointer intents.
+	* resolve.c (resolve_deallocate_expr,resolve_allocate_expr):
+	  Support pointer intents.
+
+2007-01-03  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	PR 30371
+	* check.c (gfc_check_kill_sub): Add checks for non-scalar
+	arguments.
+
+2007-01-04  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* intrinsic.texi: Minor cleanup, reflowing overlong
+	paragraphs, and correcting whitespace.
+
+2007-01-04  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* intrinsic.texi (LBOUND): Add documentation.
+	(LGE): Add documentation.
+	(LGT): Add documentation.
+	(LINK): Add documentation.
+	(LLE): Add documentation.
+	(LLT): Add documentation.
+	(LNBLNK): Add documentation.
+	(UBOUND): Add documentation.
+	(UNLINK): Add documentation.
+
+2007-01-04  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* intrinsic.texi (IAND): Clarify argument specifications.
+	(IBCLR): Add documentation.
+	(IBITS): Add documentation.
+	(IBSET): Add documentation.
+	(IEOR): Add documentation.
+	(IERRNO): Add documentation.
+	(INDEX): Add documentation.
+	(IOR): Add documentation.
+	(ISHFT): Add documentation.
+	(ISHFTC): Add documentation.
+	(KILL): Add documentation.
+	(LEN_TRIM): Add documentation.
+
+2007-01-04  Brooks Moses  <brooks.moses@codesourcery.com>
 
 	PR 30235
 	* interface.c (compare_actual_formal): check for

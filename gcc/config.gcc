@@ -801,6 +801,10 @@ bfin*-uclinux*)
         tmake_file=bfin/t-bfin-elf
         use_collect2=no
         ;;
+bfin*-rtems*)
+	tm_file="${tm_file} dbxelf.h elfos.h bfin/elf.h bfin/rtems.h rtems.h"
+	tmake_file="bfin/t-bfin t-rtems bfin/t-rtems"
+        ;;
 bfin*-*)
 	tm_file="${tm_file} dbxelf.h elfos.h bfin/elf.h"
         tmake_file=bfin/t-bfin
@@ -1474,42 +1478,40 @@ m68hc12-*-*|m6812-*-*)
 	use_fixproto=yes
         ;;
 m68k-*-aout*)
+	default_m68k_cpu=68020
 	tmake_file=m68k/t-m68kbare
 	tm_file="m68k/m68k.h m68k/m68k-none.h m68k/m68kemb.h m68k/m68k-aout.h libgloss.h"
 	;;
 m68k-*-coff*)
+	default_m68k_cpu=68020
 	tmake_file=m68k/t-m68kbare
 	tm_defines="${tm_defines} MOTOROLA USE_GAS"
 	tm_file="m68k/m68k.h m68k/m68k-none.h m68k/m68kemb.h dbxcoff.h m68k/coff.h dbx.h"
 	use_fixproto=yes
 	;;
 m68020-*-elf* | m68k-*-elf*)
+	default_m68k_cpu=68020
 	tm_file="m68k/m68k.h m68k/m68k-none.h m68k/m68kelf.h dbxelf.h elfos.h m68k/m68kemb.h m68k/m68020-elf.h"
 	tm_defines="${tm_defines} MOTOROLA USE_GAS"
 	tmake_file=m68k/t-m68kelf
 	extra_parts="crtbegin.o crtend.o"
 	;;
 m68010-*-netbsdelf* | m68k*-*-netbsdelf*)
+	default_m68k_cpu=68020
 	tm_file="${tm_file} dbxelf.h elfos.h netbsd.h netbsd-elf.h m68k/netbsd-elf.h"
 	tm_defines="${tm_defines} MOTOROLA USE_GAS"
-	case ${target} in
-	m68010*)
-		target_cpu_default="0"
-		;;
-	*)
-		target_cpu_default="MASK_68020|MASK_68881|MASK_BITFIELD"
-		;;
-	esac
 	;;
 m68k*-*-openbsd*)
+	default_m68k_cpu=68020
 	# needed to unconfuse gdb
-	tm_defines="${tm_defines} OBSD_OLD_GAS TARGET_DEFAULT=(MASK_68020|MASK_68881|MASK_BITFIELD)"
+	tm_defines="${tm_defines} OBSD_OLD_GAS"
 	tm_file="m68k/m68k.h openbsd.h m68k/openbsd.h"
 	tmake_file="t-libc-ok t-openbsd m68k/t-openbsd"
 	# we need collect2 until our bug is fixed...
 	use_collect2=yes
 	;;
 m68k-*-uclinux*)		# Motorola m68k/ColdFire running uClinux with uClibc
+	default_m68k_cpu=68020
 	tm_file="m68k/m68k.h m68k/m68k-none.h m68k/m68kelf.h dbxelf.h elfos.h m68k/uclinux.h"
  	tm_defines="${tm_defines} MOTOROLA USE_GAS"
 	tmake_file=m68k/t-uclinux
@@ -1518,6 +1520,7 @@ m68k-*-uclinux*)		# Motorola m68k/ColdFire running uClinux with uClibc
 m68k-*-linux*)		# Motorola m68k's running GNU/Linux
 				# with ELF format using glibc 2
 				# aka the GNU/Linux C library 6.
+	default_m68k_cpu=68020
 	tm_file="m68k/m68k.h dbxelf.h elfos.h svr4.h linux.h m68k/linux.h"
 	extra_options="${extra_options} m68k/ieee.opt"
 	tm_defines="${tm_defines} MOTOROLA USE_GAS"
@@ -1528,6 +1531,7 @@ m68k-*-linux*)		# Motorola m68k's running GNU/Linux
 	fi
 	;;
 m68k-*-rtems*)
+	default_m68k_cpu=68020
 	tmake_file="m68k/t-m68kbare m68k/t-crtstuff t-rtems m68k/t-rtems"
 	tm_file="m68k/m68k.h m68k/m68k-none.h m68k/m68kelf.h dbxelf.h elfos.h m68k/m68kemb.h m68k/m68020-elf.h m68k/rtemself.h rtems.h"
 	tm_defines="${tm_defines} MOTOROLA USE_GAS"
@@ -2621,6 +2625,12 @@ if test x$with_cpu = x ; then
     frv550-*-*linux*)
       with_cpu=fr550
       ;;
+    m680[012]0-*-*)
+      with_cpu=`echo ${target} | sed 's/-.*$//'`
+      ;;
+    m68k*-*-*)
+      with_cpu=m${default_m68k_cpu}
+      ;;
     sparc*-*-*)
       with_cpu="`echo ${target} | sed 's/-.*$//'`"
       ;;
@@ -2769,16 +2779,33 @@ case "${target}" in
 		esac
 		;;
 
-	m68k*-linux*)
+	m680[012]0-*-* | m68k*-*-*)
 		supported_defaults="cpu"
+
+		# We always have a $with_cpu setting here.
 		case "$with_cpu" in
-		"" | "m68020" | "m68030" | "m68040" | "m68060" | "m68020-40" | "m68020-60")
-			# OK
+		"m68000" | "m68010" | "m68020" | "m68030" | "m68040" | "m68060")
+			m68k_cpu_ident=$with_cpu
+			;;
+		"m68020-40")
+			m68k_cpu_ident=m68020
+			tm_defines="$tm_defines M68K_DEFAULT_TUNE=u68020_40"
+			;;
+		"m68020-60")
+			m68k_cpu_ident=m68020
+			tm_defines="$tm_defines M68K_DEFAULT_TUNE=u68020_60"
 			;;
 		*)
-			echo "Unknown CPU used in --with-cpu=$with_cpu, known values:"  1>&2
-			echo "m68020 m68030 m68040 m68060 m68020-40 m68020-60" 1>&2
-			exit 1
+			# We need the C identifier rather than the string.
+			m68k_cpu_ident=`awk -v arg="\"$with_cpu\"" \
+			   'BEGIN { FS="[ \t]*[,()][ \t]*" }; \
+			    $1 == "M68K_DEVICE" && $2 == arg { print $3 }' \
+				 ${srcdir}/config/m68k/m68k-devices.def`
+			if [ x"$m68k_cpu_ident" = x ] ; then
+				echo "Unknown CPU used in --with-cpu=$with_cpu" 1>&2
+				exit 1
+			fi
+			with_cpu="mcpu=$with_cpu"
 			;;
 		esac
 		;;
@@ -3029,43 +3056,16 @@ case ${target} in
 		fi
 		;;
 
-	m68k*-linux*)
-		case "x$with_cpu" in
-		x)
-			# The most generic
-			target_cpu_default2="(MASK_68020|MASK_68881|MASK_BITFIELD)"
-			;;
-		xm68020)
-			target_cpu_default2="(MASK_68020|MASK_68881|MASK_BITFIELD)"
-			;;
-		xm68030)
-			target_cpu_default2="(MASK_68030|MASK_68020|MASK_68881|MASK_BITFIELD)"
-			;;
-		xm68040)
-			target_cpu_default2="(MASK_68040|MASK_68040_ONLY|MASK_68020|MASK_68881|MASK_BITFIELD)"
-			;;
-		xm68060)
-			target_cpu_default2="(MASK_68060|MASK_68040_ONLY|MASK_68020|MASK_68881|MASK_BITFIELD)"
-			;;
-		xm68020-40)
-			target_cpu_default2="(MASK_BITFIELD|MASK_68881|MASK_68020|MASK_68040)"
-			;;
-		xm68020-60)
-			target_cpu_default2="(MASK_BITFIELD|MASK_68881|MASK_68020|MASK_68040|MASK_68060)"
-			;;
-		*)
-			echo "Unknown CPU used in --with-cpu=$with_cpu"  1>&2
-			exit 1
-			;;
-		esac
-		;;
-
 	hppa*-*-* | parisc*-*-*)
 		target_cpu_default2="MASK_BIG_SWITCH"
 		if test x$gas = xyes
 		then
 			target_cpu_default2="${target_cpu_default2}|MASK_GAS|MASK_JUMP_IN_DELAY"
 		fi
+		;;
+
+	m680[012]0-*-* | m68k*-*-*)
+		target_cpu_default2=$m68k_cpu_ident
 		;;
 
 	mips*-*-*)

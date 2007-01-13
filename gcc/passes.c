@@ -439,8 +439,10 @@ init_optimization_passes (void)
 #define NEXT_PASS(PASS)  (p = next_pass_1 (p, &PASS))
   /* Interprocedural optimization passes.  */
   p = &all_ipa_passes;
+  NEXT_PASS (pass_ipa_function_and_variable_visibility);
   NEXT_PASS (pass_early_ipa_inline);
   NEXT_PASS (pass_early_local_passes);
+  NEXT_PASS (pass_ipa_increase_alignment);
   NEXT_PASS (pass_ipa_cp);
   NEXT_PASS (pass_ipa_inline);
   NEXT_PASS (pass_ipa_reference);
@@ -462,6 +464,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_lower_complex_O0);
   NEXT_PASS (pass_lower_vector);
   NEXT_PASS (pass_warn_function_return);
+  NEXT_PASS (pass_build_cgraph_edges);
   *p = NULL;
 
   p = &pass_early_local_passes.sub;
@@ -479,6 +482,15 @@ init_optimization_passes (void)
   NEXT_PASS (pass_build_ssa);
   NEXT_PASS (pass_early_warn_uninitialized);
   NEXT_PASS (pass_cleanup_cfg);
+  NEXT_PASS (pass_rename_ssa_copies);
+  NEXT_PASS (pass_ccp);
+  
+  NEXT_PASS (pass_forwprop);
+  NEXT_PASS (pass_copy_prop);
+  NEXT_PASS (pass_merge_phi);
+  NEXT_PASS (pass_dce);
+  NEXT_PASS (pass_tail_recursion);
+  NEXT_PASS (pass_release_ssa_names);
 
   *p = NULL;
 
@@ -831,6 +843,13 @@ execute_todo (unsigned int flags)
 
   do_per_function (execute_function_todo, (void *)(size_t) flags);
 
+  /* Always remove functions just as before inlining: IPA passes might be
+     interested to see bodies of extern inline functions that are not inlined
+     to analyze side effects.  The full removal is done just at the end
+     of IPA pass queue.  */
+  if (flags & TODO_remove_functions)
+    cgraph_remove_unreachable_nodes (true, dump_file);
+
   if ((flags & TODO_dump_cgraph)
       && dump_file && !current_function_decl)
     {
@@ -995,6 +1014,11 @@ execute_ipa_pass_list (struct tree_opt_pass *pass)
     {
       gcc_assert (!current_function_decl);
       gcc_assert (!cfun);
+      if (!quiet_flag)
+	{
+          fprintf (stderr, " <%s>", pass->name ? pass->name : "");
+	  fflush (stderr);
+	}
       if (execute_one_pass (pass) && pass->sub)
 	do_per_function ((void (*)(void *))execute_pass_list, pass->sub);
       if (!current_function_decl)

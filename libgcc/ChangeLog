@@ -1,0 +1,47 @@
+2007-01-09  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/t-linux: New.
+	* config.host (sh*-*-linux*): Set tmake_file.
+
+2007-01-05  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Makefile.in (install): Handle multilibs.
+
+2007-01-04  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.in: Added .PHONY entry for documentation targets.
+
+2007-01-04  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.in: Add empty info, html, dvi, pdf targets.
+
+2007-01-04  Mike Stump  <mrs@apple.com>
+
+	* Makefile.in (MAKEINFO): Remove.
+	(PERL): Likewise.
+
+2007-01-04  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Add GCC_TOPLEV_SUBDIRS.
+	* configure: Regenerate.
+	* Makefile.in (host_subdir): Substitute it.
+	(gcc_objdir): Use it. 
+
+2007-01-04  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* config.host (ia64*-*-linux*): Set tmake_file.
+
+2007-01-04  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Makefile.in (version): Define.
+
+2007-01-03  Daniel Jacobowitz  <dan@codesourcery.com>
+	    Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.in, config/i386/t-darwin, config/i386/t-darwin64,
+	config/i386/t-nwld, config/rs6000/t-darwin, config/rs6000/t-ldbl128,
+	config/i386/t-crtfm, config/alpha/t-crtfm, config/ia64/t-ia64,
+	config/sparc/t-crtfm, config/t-slibgcc-darwin,
+	config/rs6000/t-ppccomm, config.host, configure.ac, empty.mk,
+	shared-object.mk, siditi-object.mk, static-object.mk: New files.
+	* configure: Generated.
