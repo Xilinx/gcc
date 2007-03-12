@@ -3033,15 +3033,17 @@ dump_generic_bb_buff (pretty_printer *buffer, basic_block bb,
    that constitute its printed form. Tree chunks may be: characters,
    strings, and sub-trees. */
 
-varray_type
+VEC (tree_chunk, heap) *
 lazy_dump_generic_node (tree node, int flags, bool is_stmt) 
 {
   pretty_printer *pp = &buffer;
-  varray_type res;
-  VARRAY_GENERIC_PTR_NOGC_INIT (pp->buffer->varray, 10, "tree pp list");
+  VEC (tree_chunk, heap) *res;
+
+  pp->buffer->chunks = VEC_alloc (tree_chunk, heap, 10);
   dump_generic_node_aux (pp, node, 0, flags, is_stmt);
-  res = pp->buffer->varray;
-  pp->buffer->varray = NULL;
+  res = pp->buffer->chunks;
+  pp->buffer->chunks = NULL;
+
   return res;
 }
 
@@ -3051,9 +3053,10 @@ lazy_dump_generic_node (tree node, int flags, bool is_stmt)
 void
 lazy_print_generic_expr (FILE *file, tree t, int flags)
 {
-  varray_type va;
+  VEC (tree_chunk, heap) *chunks;
+
   maybe_init_pretty_print (file);
   fprintf (file, "<%s>=", tree_name(t));
-  va = lazy_dump_generic_node (t, flags, false);
-  pp_write_list (va, file);
+  chunks = lazy_dump_generic_node (t, flags, false);
+  pp_write_list (chunks, file);
 }

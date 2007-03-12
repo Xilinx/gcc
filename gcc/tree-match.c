@@ -124,9 +124,11 @@ static bool tree_equal_mod_tmps (tree, tree, cfg_node, cfg_node);
 static bool 
 tree_equal (tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2) 
 {
-  varray_type va1, va2;
-  tree_chunk *chunk1, *chunk2;
+  VEC (tree_chunk, heap) *chunks1;
+  VEC (tree_chunk, heap) *chunks2;
+  tree_chunk chunk1, chunk2;
   int len1, len2, i;
+  bool res = false;
   
   if ((!t1 || !t2))
     return (t1 == t2);
@@ -134,8 +136,8 @@ tree_equal (tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
   if (t1 == t2)
     return true;
 
-  va1 = lazy_dump_generic_node (t1, 0, false);
-  va2 = lazy_dump_generic_node (t2, 0, false);
+  chunks1 = lazy_dump_generic_node (t1, 0, false);
+  chunks2 = lazy_dump_generic_node (t2, 0, false);
 
   PP_TRACE (TRACE_MATCH_STEPS, {
     fprintf (stderr, "tree cmp:\n");
@@ -145,52 +147,32 @@ tree_equal (tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
     fprintf (stderr, "---\n");
   });
 
-  len1 = VARRAY_ACTIVE_SIZE (va1);
-  len2 = VARRAY_ACTIVE_SIZE (va2);
+  len1 = VEC_length (tree_chunk, chunks1);
+  len2 = VEC_length (tree_chunk, chunks2);
 
   if (len1 != len2)
+    goto mismatch;
+
+  for (i = 0; VEC_iterate (tree_chunk, chunks1, i, chunk1); i++)
     {
-      pp_free_list (va1);
-      pp_free_list (va2);
-      return 0;
+      chunk2 = VEC_index (tree_chunk, chunks2, i);
+
+      if (((chunk1->t || chunk2->t)
+	   && (!(chunk1->t && chunk2->t) 
+	       || !tree_equal_mod_tmps (chunk1->t, chunk2->t, 
+					ctx_node1, ctx_node2)))
+	  || ((chunk1->s || chunk2->s)
+	      && (!(chunk1->s && chunk2->s)
+		  || strcmp (chunk1->s, chunk2->s)))
+	  || (chunk1->c != chunk2->c))
+	goto mismatch;
     }
 
-  for (i = 0; i < len1; i++)
-    {
-      chunk1 = VARRAY_GENERIC_PTR_NOGC (va1, i);
-      chunk2 = VARRAY_GENERIC_PTR_NOGC (va2, i);
-
-      if ((chunk1->t || chunk2->t)
-	  && (!(chunk1->t && chunk2->t) 
-	      || !tree_equal_mod_tmps (chunk1->t, chunk2->t, 
-				       ctx_node1, ctx_node2)))
-	{
-	  pp_free_list (va1);
-	  pp_free_list (va2);
-	  return 0;
-	}
-
-      else if ((chunk1->s || chunk2->s)
-	       && (!(chunk1->s && chunk2->s) 
-		   || strcmp (chunk1->s, chunk2->s)))
-	{
-	  pp_free_list (va1);
-	  pp_free_list (va2);
-	  return 0;
-	}
-
-      else if (chunk1->c != chunk2->c)
-	{
-	  /* one-character chunk */
-	  pp_free_list (va1);
-	  pp_free_list (va2);
-	  return 0;
-	}
-    }
-
-  pp_free_list (va1);
-  pp_free_list (va2);
-  return 1;
+  res = true;
+ mismatch:
+  pp_free_list (chunks1);
+  pp_free_list (chunks2);
+  return res;
 }
 
 /* Check if two trees are equal, modulo casts and substitutions of
@@ -220,7 +202,7 @@ static char tree_1st_char (tree);
 /* Get the first character of (the printed form of) a tree chunk */
 
 static char 
-chunk_1st_char (tree_chunk *chunk) 
+chunk_1st_char (tree_chunk chunk) 
 {
   if (chunk->t)
     return tree_1st_char (chunk->t);
@@ -234,15 +216,14 @@ chunk_1st_char (tree_chunk *chunk)
 
 /* Search the first chunk of a lazy list not consisting of whitespace */
 
-static tree_chunk *
-chunks_lookahead (varray_type va, unsigned int i) 
+static tree_chunk
+chunks_lookahead (VEC (tree_chunk, heap) *chunks, unsigned int i) 
 {
-  tree_chunk *chunk;
+  tree_chunk chunk;
 
-  do {
-    chunk = VARRAY_GENERIC_PTR_NOGC (va, i);
-    i++;
-  } while (chunk->c && chunk->c == ' ' && i <= VARRAY_ACTIVE_SIZE (va));
+  for (; VEC_iterate (tree_chunk, chunks, i, chunk); i++)
+    if (chunk->c == 0 || chunk->c != ' ')
+      break;
 
   return chunk;
 }
@@ -252,16 +233,17 @@ chunks_lookahead (varray_type va, unsigned int i)
 static char 
 tree_1st_char (tree t) 
 {
-  varray_type va;
-  tree_chunk *chunk;
+  VEC (tree_chunk, heap) *chunks;
+  tree_chunk chunk;
 
   /* Don't hung on unnamed vars, etc.  Cannot dump these nodes.  */
   if (TREE_CODE (t) == VAR_DECL || TREE_CODE_CLASS (TREE_CODE (t)) == 'x')
     return '\0';
 
-  va = lazy_dump_generic_node (t, 0, false);
-  chunk = chunks_lookahead (va, 0);
-  pp_free_list (va);
+  chunks = lazy_dump_generic_node (t, 0, false);
+  chunk = chunks_lookahead (chunks, 0);
+  pp_free_list (chunks);
+
   return chunk_1st_char (chunk);
 }
 
@@ -295,22 +277,20 @@ static bool match_tree_pattinfo (tree, patt_info *, const char *, cfg_node);
    a pattern. */
 
 static bool 
-match_chunks_pattinfo (varray_type va, patt_info *patt, const char *delim, 
-		       cfg_node ctx_node) 
+match_chunks_pattinfo (VEC (tree_chunk, heap) *chunks, patt_info *patt,
+		       const char *delim, cfg_node ctx_node)
 {
   unsigned int i;
-  tree_chunk *chunk;
+  tree_chunk chunk;
 
-  for (i = 0; i < VARRAY_ACTIVE_SIZE (va); i++) 
+  for (i = 0; VEC_iterate (tree_chunk, chunks, i, chunk); i++)
     {
-      chunk = VARRAY_GENERIC_PTR_NOGC (va, i);
-
       if (chunk->t)
 	{
 	  /* Compute delimiter for t.  */
-	  char next_char = (i + 1 == VARRAY_ACTIVE_SIZE (va) ?
+	  char next_char = (i + 1 == VEC_length (tree_chunk, chunks) ?
 			    *delim : 
-			    chunk_1st_char (chunks_lookahead (va, i + 1)));
+			    chunk_1st_char (chunks_lookahead (chunks, i + 1)));
 
 	  PP_TRACE (TRACE_MATCH_STEPS, 
 		    fprintf (stderr, "tree delimited by %c", next_char));
@@ -411,7 +391,6 @@ static bool
 match_tree_pattinfo (tree t, patt_info *patt, const char *delim, 
 		     cfg_node ctx_node)
 {
-  varray_type va;
   tree *pt;
   hole *ph = NULL;
   bool res;
@@ -480,9 +459,12 @@ match_tree_pattinfo (tree t, patt_info *patt, const char *delim,
     }
   else
     {
-      /* can't swallow a whole tree, must recurse on it */
+      /* Can't swallow a whole tree, must recurse on it.  */
+      VEC (tree_chunk, heap) *chunks;
+
       PP_TRACE (TRACE_MATCH_STEPS, fprintf (stderr, "check chunks vs patt"));
-      /* check an eventual pattern-only '(' to be skipped */
+
+      /* Check an eventual pattern-only '(' to be skipped.  */
       if (patt->format_spec[0] == '\\' && patt->format_spec[1] == '(')
 	{
 	  PP_TRACE (TRACE_MATCH_STEPS, fprintf (stderr, "[skip lpar]"));
@@ -490,7 +472,7 @@ match_tree_pattinfo (tree t, patt_info *patt, const char *delim,
 	}
 
       /* On a tmpvar or a cast, there is no point to recurse directly (they
-	 cannot be in the pattern), so substitute it before */
+	 cannot be in the pattern), so substitute it before.  */
       while ((val = substitute_tmp_var (t, ctx_node, false)) != NULL
 	     || (val = substitute_cast_expr (t)) != NULL)
 	{
@@ -499,9 +481,9 @@ match_tree_pattinfo (tree t, patt_info *patt, const char *delim,
 	}
 
       maybe_init_pretty_print (stdout);
-      va = lazy_dump_generic_node (t, 0, false);
-      res = match_chunks_pattinfo (va, patt, delim, ctx_node);
-      pp_free_list (va);
+      chunks = lazy_dump_generic_node (t, 0, false);
+      res = match_chunks_pattinfo (chunks, patt, delim, ctx_node);
+      pp_free_list (chunks);
       PP_TRACE (TRACE_MATCH_STEPS, fprintf (stderr, "%s chunks vs patt",
 					    (res? "succeed": "fail")));
 
@@ -585,7 +567,7 @@ save_global_holes (void)
 /* Restore the values of all global variables from a buffer */
 
 void 
-restore_global_holes (hole *saved) 
+restore_global_holes (hole_p saved) 
 {
   memcpy (global_holes, saved, sizeof (global_holes));
   free (saved);

@@ -27,6 +27,9 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 /* At the statement level, a node in the CFG has the following type: */
 typedef struct tree_statement_list_node *cfg_node;
 
+DEF_VEC_P (cfg_node);
+DEF_VEC_ALLOC_P (cfg_node, heap);
+
 /* Accessor for a CFG node */
 static inline tree
 cfg_node_stmt (cfg_node node)
@@ -115,6 +118,11 @@ typedef struct hole_s {
   tree tree;
   cfg_node ctx;
 } hole;
+
+typedef hole *hole_p;
+
+DEF_VEC_P (hole_p);
+DEF_VEC_ALLOC_P (hole_p, heap);
 
 /* Named local holes are noted by a single lowercase letter */
 #define LOCAL_MAX 26

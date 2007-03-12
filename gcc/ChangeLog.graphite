@@ -1,3 +1,27 @@
+2007-03-12  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* tree-pretty-print.c (dump_generic_bb_buff, lazy_dump_generic_node): 
+	Use VECs instead of varrays.
+	* diagnostic.h (lazy_dump_generic_node): Update declaration.
+	* Makefile.in (pretty-print.o): Depend on vec.h.
+	* pretty-print.c: Include tree.h and vec.h.
+	(pp_clear_state, pp_write_list_to_stream, pp_base_format, 
+	pp_base_format, pp_construct, pp_base_string, pp_lazy_mode,
+	new_tree_chunk, pp_add_tree, pp_add_string, pp_add_char, pp_write_list,
+	pp_free_list): Use VECs instead of varrays.
+	* pretty-print.h: Do not include varray.h.
+	(struct tree_chunk_s): Declaration moved before its use.
+	(output_buffer): Rename varray field to chunks.
+	* tree-match.c (tree_equal, chunk_1st_char, chunks_lookahead, 
+	tree_1st_char, match_chunks_pattinfo, match_tree_pattinfo, 
+	save_global_holes): Use VECs instead of varrays.
+	* tree-match.h: Declare VECs of cfg_node, and hole_p.
+	* tree-check.c (scan_cfg_stmts, push_node, print_matching_stmt): Removed.
+	(tree_check_instance, push_global_holes_if_new, tree_check,
+	execute_tree_check): Use VECs instead of varrays.
+	(gate_tree_check): Don't execute the CFG check when basic_block_info
+	is not available.
+
 2007-01-12  Sebastian Pop  <sebastian.pop@inria.fr>
 
 	* Merge from mainline (r115016:120733).

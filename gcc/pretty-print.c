@@ -25,6 +25,8 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "system.h"
 #include "coretypes.h"
 #include "intl.h"
+#include "tree.h"
+#include "vec.h"
 #include "pretty-print.h"
 #include "tree.h"
 #include "diagnostic.h"
@@ -92,7 +94,7 @@ pp_clear_state (pretty_printer *pp)
   pp->emitted_prefix = false;
   pp_indentation (pp) = 0;
   if (pp_lazy_mode (pp))
-    pp_free_list (pp->buffer->varray);
+    pp_free_list (pp->buffer->chunks);
 }
 
 /* Flush the formatted text of PRETTY-PRINTER onto the attached stream.  */
@@ -109,8 +111,8 @@ static void
 pp_write_list_to_stream (pretty_printer *pp) 
 {
   FILE *f = pp->buffer->stream;
-  varray_type va = pp->buffer->varray;
-  pp_write_list (va, f);
+  VEC (tree_chunk, heap) *chunks = pp->buffer->chunks;
+  pp_write_list (chunks, f);
 }
 
 /* Wrap a text delimited by START and END into PRETTY-PRINTER.  */
@@ -232,7 +234,7 @@ pp_base_format (pretty_printer *pp, text_info *text)
   pp_wrapping_mode_t old_wrapping_mode;
   bool any_unnumbered = false, any_numbered = false;
   const char **formatters[PP_NL_ARGMAX];
-  varray_type save_varray;
+  VEC (tree_chunk, heap) *saved_chunks;
 
   /* Allocate a new chunk structure.  */
   new_chunk_array = XOBNEW (&buffer->chunk_obstack, struct chunk_info);
@@ -386,8 +388,8 @@ pp_base_format (pretty_printer *pp, text_info *text)
   buffer->obstack = &buffer->chunk_obstack;
   old_wrapping_mode = pp_set_verbatim_wrapping (pp);
   /* and also disable lazy printing while using the chunk_obstack */
-  save_varray = buffer->varray;
-  buffer->varray = NULL;
+  saved_chunks = buffer->chunks;
+  buffer->chunks = NULL;
 
 
   /* Second phase.  Replace each formatter with the formatted text it
@@ -569,8 +571,8 @@ pp_base_format (pretty_printer *pp, text_info *text)
   buffer->line_length = 0;
   pp_wrapping_mode (pp) = old_wrapping_mode;
   pp_clear_state (pp);
-  /* and also revert lazy mode to its previous state */
-  buffer->varray = save_varray;
+  /* And also revert lazy mode to its previous state */
+  buffer->chunks = saved_chunks;
 }
 
 /* Format of a message pointed to by TEXT.  */
@@ -710,7 +712,7 @@ pp_construct (pretty_printer *pp, const char *prefix, int maximum_length)
   obstack_init (&pp->buffer->formatted_obstack);
   pp->buffer->obstack = &pp->buffer->formatted_obstack;
   pp->buffer->stream = stderr;
-  pp->buffer->varray = NULL;
+  pp->buffer->chunks = NULL;
   pp_line_cutoff (pp) = maximum_length;
   pp_prefixing_rule (pp) = DIAGNOSTICS_SHOW_PREFIX_ONCE;
   pp_set_prefix (pp, prefix);
@@ -852,15 +854,15 @@ pp_base_string (pretty_printer *pp, const char *str)
 bool 
 pp_lazy_mode (const pretty_printer *pp) 
 {
-  return (pp->buffer->varray != NULL);
+  return (pp->buffer->chunks != NULL);
 }
 
 /* Tree chunk constructor.  */
 
-tree_chunk *
+tree_chunk
 new_tree_chunk (void)
 {
-  tree_chunk *chunk = xmalloc (sizeof (tree_chunk));
+  tree_chunk chunk = xmalloc (sizeof (struct tree_chunk_s));
   chunk->t = NULL;
   chunk->s = NULL;
   chunk->c = '\0';
@@ -872,9 +874,10 @@ new_tree_chunk (void)
 void 
 pp_add_tree (pretty_printer *pp, tree t) 
 {
-  tree_chunk *chunk = new_tree_chunk ();
+  tree_chunk chunk = new_tree_chunk ();
+
   chunk->t = t;
-  VARRAY_PUSH_GENERIC_PTR_NOGC (pp->buffer->varray, chunk);
+  VEC_safe_push (tree_chunk, heap, pp->buffer->chunks, chunk);
 }
 
 /* Add a string chunk to the lazy list.  */
@@ -882,12 +885,13 @@ pp_add_tree (pretty_printer *pp, tree t)
 void 
 pp_add_string (pretty_printer *pp, const char *start, int len) 
 {
-  tree_chunk *chunk = new_tree_chunk ();
+  tree_chunk chunk = new_tree_chunk ();
   char *str = xmalloc (len + 1);
+
   strncpy (str, start, len);
   str[len] = '\0';
   chunk->s = str;
-  VARRAY_PUSH_GENERIC_PTR_NOGC (pp->buffer->varray, chunk);
+  VEC_safe_push (tree_chunk, heap, pp->buffer->chunks, chunk);
 }
 
 /* Add a character chunk to the lazy list.  */
@@ -895,53 +899,56 @@ pp_add_string (pretty_printer *pp, const char *start, int len)
 void 
 pp_add_char (pretty_printer *pp, char c) 
 {
-  tree_chunk *chunk = new_tree_chunk ();
+  tree_chunk chunk = new_tree_chunk ();
+
   chunk->c = c;
-  VARRAY_PUSH_GENERIC_PTR_NOGC (pp->buffer->varray, chunk);
+  VEC_safe_push (tree_chunk, heap, pp->buffer->chunks, chunk);
 }
 
 /* Write the lazy list to a file.  */
 
 void 
-pp_write_list (varray_type va, FILE *f) 
+pp_write_list (VEC (tree_chunk, heap) *chunks, FILE *f) 
 {
   unsigned int i;
-  tree_chunk *chunk;
+  tree_chunk chunk;
 
   fprintf (f, "[ ");
-  for(i = 0; i < VARRAY_ACTIVE_SIZE (va); i++) 
+
+  for (i = 0; VEC_iterate (tree_chunk, chunks, i, chunk); i++)
     {
-      chunk = VARRAY_GENERIC_PTR_NOGC (va, i);
       if (chunk->t) 
 	fprintf (f, "<%s>", tree_name (chunk->t));
+
       else if (chunk->s) 
 	fprintf (f, "\"%s\"", chunk->s);
+
       else
-	/* One-character chunk.  */
 	fprintf (f, "'%c'", chunk->c);
+
       fprintf (f, " ");
-    } /* for */
+    }
+
   fprintf (f, "]");
 }
 
 /* Lazy list destructor.  */
 
 void 
-pp_free_list (varray_type va) 
+pp_free_list (VEC (tree_chunk, heap) *chunks) 
 {
   unsigned int i;
-  tree_chunk *chunk;
-  for(i = 0; i < VARRAY_ACTIVE_SIZE (va); i++) 
+  tree_chunk chunk;
+
+  for (i = 0; VEC_iterate (tree_chunk, chunks, i, chunk); i++)
     {
-      chunk = VARRAY_GENERIC_PTR_NOGC (va, i);
-      if (chunk->t) 
-	/* don't free chunk->t, as it hasn't been allocated by us! */
-	;
-      else if (chunk->s)
+      if (chunk->s)
 	free (chunk->s);
+
       free (chunk);
     }
-  VARRAY_FREE (va);
+
+  VEC_free (tree_chunk, heap, chunks);
 }
 
 /* Print out a whitespace if needed.  */

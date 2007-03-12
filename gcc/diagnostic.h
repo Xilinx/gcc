@@ -216,7 +216,7 @@ extern void print_generic_stmt_indented (FILE *, tree, int, int);
 extern void print_generic_expr (FILE *, tree, int);
 extern void print_generic_decl (FILE *, tree, int);
 
-extern varray_type lazy_dump_generic_node (tree, int, bool);
+extern VEC (tree_chunk, heap) *lazy_dump_generic_node (tree, int, bool);
 extern void lazy_print_generic_expr (FILE *file, tree t, int flags);
 
 extern void debug_generic_expr (tree);

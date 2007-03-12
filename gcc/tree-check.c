@@ -41,6 +41,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "toplev.h"
 #include "tree-match.h"
 
+
 /* Raise a warning upon detecting a satisfied condate.  The concept of
    condate (control & data property to be checked) is described in
    tree-match.h.  */
@@ -65,45 +66,6 @@ tree_check_warning (const char *condname, tree stmt, int check_option)
   fprintf (stderr, ".\n");
   input_location = saved_location;
 }
-  
-/* Type of a callback for scan_cfg_stmts.  */
-typedef void (*scan_cfg_stmts_fn)(cfg_node node, void *);
-
-/* Scan all statements in the CFG, and for every statement (matching
-   the patern, if non-null), execute the callback.  */
-
-static void 
-scan_cfg_stmts (pattern patt, scan_cfg_stmts_fn callback, void *data)
-{
-  basic_block bb;
-
-  if (!basic_block_info)
-    {
-      fprintf (stderr, "no BBs available!\n");
-      return;
-    }
-
-  FOR_EACH_BB (bb)
-    {
-      block_stmt_iterator bsi;
-      tree stmt;
-
-      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	{
-	  stmt = bsi_stmt (bsi);
-
-	  PP_TRACE (TRACE_MATCH, {
-	    lazy_print_generic_expr (stderr, stmt, 0);
-	    fprintf (stderr, "= ");
-	    print_generic_expr (stderr, stmt, 0); 
-	    fprintf (stderr, "\n");
-	  });
-
-	  if (!patt || tree_match_disj (stmt, patt, bsi_cfg_node (bsi)))
-	    (*callback) (bsi_cfg_node (bsi), data);
-	}
-    }
-}
 
 /* Initialization function for the tree-check pass.  */
 
@@ -111,26 +73,6 @@ static void
 tree_check_init (void) 
 {
   reset_global_holes ();
-}
-
-/* scan_cfg_stmts callback used in tree_check_instance.  */
-
-static void 
-push_node (cfg_node node, void *data) 
-{
-  varray_type va = (varray_type) data;
-  tree stmt = cfg_node_stmt (node);
-
-  VARRAY_PUSH_GENERIC_PTR_NOGC (va, node);
-
-  if (stmt) 
-    TREE_VISITED (stmt) = 1;
-
-  PP_TRACE (TRACE_CHECK_STEPS, {
-      fprintf (stderr, "found src stmt:");
-      print_generic_expr (stderr, stmt, 0);
-      fprintf (stderr, "\n");
-    });
 }
 
 /* Visit a CFG node.  Used in tree_check_instance.  */
@@ -172,40 +114,75 @@ check_node (cfg_node node, condate cond)
 static void 
 tree_check_instance (condate cond)
 {
-  varray_type stack;
-  
+  VEC (cfg_node, heap) *stack = VEC_alloc (cfg_node, heap, 100);
+  basic_block bb;
+  cfg_node node;
+  tree stmt;
+
   PP_TRACE (TRACE_CHECK, {
     fprintf (stderr, "checking condate instance:\n");
     print_global_holes ();
-  })
-  /* Allocate stack for back-tracking up CFG.  */
-  VARRAY_GENERIC_PTR_NOGC_INIT (stack, 100, "TreeCheckStmtStack");
+  });
 
   /* Push from nodes on the stack.  */
   PP_TRACE (TRACE_CHECK, fprintf (stderr, "searching src pat %s\n", 
 				  cond->from->format_spec));
-  scan_cfg_stmts (cond->from, push_node, stack);
+
+  FOR_EACH_BB (bb)
+    {
+      block_stmt_iterator bsi;
+      tree stmt;
+
+      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+	{
+	  stmt = bsi_stmt (bsi);
+	  pattern patt = cond->from;
+
+	  PP_TRACE (TRACE_MATCH, {
+	    lazy_print_generic_expr (stderr, stmt, 0);
+	    fprintf (stderr, "= ");
+	    print_generic_expr (stderr, stmt, 0); 
+	    fprintf (stderr, "\n");
+	  });
+
+	  if (!patt || tree_match_disj (stmt, patt, bsi_cfg_node (bsi)))
+	    {
+	      node = bsi_cfg_node (bsi);
+	      stmt = cfg_node_stmt (node);
+
+	      VEC_safe_push (cfg_node, heap, stack, node);
+
+	      if (stmt) 
+		TREE_VISITED (stmt) = 1;
+
+	      PP_TRACE (TRACE_CHECK_STEPS, {
+		fprintf (stderr, "found src stmt:");
+		print_generic_expr (stderr, stmt, 0);
+		fprintf (stderr, "\n");
+	      });
+	    }
+	}
+    }
+
   PP_TRACE (TRACE_CHECK, fprintf (stderr, "%d src stmts found\n", 
-				  (unsigned) VARRAY_ACTIVE_SIZE (stack)));
+				  (unsigned) VEC_length (cfg_node, stack)));
 
   /* Perform depth-first search.  */
-  while (VARRAY_ACTIVE_SIZE (stack)) 
+  while (VEC_length (cfg_node, stack) != 0)
     {
-      cfg_node node;
-      tree stmt;
       cfg_node succ_node;
       bool push_it;
     
-      node = VARRAY_TOP_GENERIC_PTR_NOGC (stack); 
-      VARRAY_POP (stack);
+      node = VEC_pop (cfg_node, stack);
       stmt = cfg_node_stmt (node);
+
       if (node->next == NULL)
 	{
 	  edge e;
 	  edge_iterator ei;
-	  basic_block bb;
-	
+
 	  bb = bb_for_stmt (stmt);
+
 	  FOR_EACH_EDGE (e, ei, bb->succs)
 	    {
 	      if (e->dest == EXIT_BLOCK_PTR) 
@@ -235,7 +212,7 @@ tree_check_instance (condate cond)
 	      push_it = check_node (succ_node, cond);
 
 	      if (push_it)
-		VARRAY_PUSH_GENERIC_PTR_NOGC (stack, succ_node);
+		VEC_safe_push (cfg_node, heap, stack, succ_node);
 	    }
 	}
       else
@@ -244,31 +221,31 @@ tree_check_instance (condate cond)
 	  push_it = check_node (succ_node, cond);
 
 	  if (push_it)
-	    VARRAY_PUSH_GENERIC_PTR_NOGC (stack, succ_node);
+	    VEC_safe_push (cfg_node, heap, stack, succ_node);
 	}
-    } /* while DFS */
-  VARRAY_FREE (stack);
+    }
+
+  VEC_free (cfg_node, heap, stack);
 }
 
-/* scan_cfg_stmts() callback used in tree_check() to collect condate
-   instances.  An instance is new if the combination of global hole
-   values has not been seen yet.  */
+/* Collect new condate instances.  An instance is new if the
+   combination of global hole values has not been seen yet.  */
 
-static void 
-push_global_holes_if_new (cfg_node node ATTRIBUTE_UNUSED, void *data) 
+static void
+push_global_holes_if_new (VEC (hole_p, heap) *stack)
 {
-  varray_type va = (varray_type) data;
   unsigned int i;
+  hole_p h;
 
   /* Check if these global holes were already seen.  */
-  for (i=0; i < VARRAY_ACTIVE_SIZE (va); i++)
-    if (eq_global_holes (global_holes, VARRAY_GENERIC_PTR_NOGC (va, i)))
+  for (i = 0; VEC_iterate (hole_p, stack, i, h); i++)
+    if (eq_global_holes (global_holes, h))
       {
 	reset_global_holes ();
-	return; 
+	return;
       }
 
-  VARRAY_PUSH_GENERIC_PTR_NOGC (va, save_global_holes ());
+  VEC_safe_push (hole_p, heap, stack, save_global_holes ());
   reset_global_holes ();
 }
 
@@ -277,28 +254,50 @@ push_global_holes_if_new (cfg_node node ATTRIBUTE_UNUSED, void *data)
 static void 
 tree_check (condate cond)
 {
-  varray_type holes_stack;
-  
   /* Allocate stack for collecting condate instances.  */
-  VARRAY_GENERIC_PTR_NOGC_INIT (holes_stack, 10, "TreeCheckHolesStack");
-
+  VEC (hole_p, heap) *stack = VEC_alloc (hole_p, heap, 10);
+  pattern patt = cond->from;
+  basic_block bb;
+  
   PP_TRACE (TRACE_CHECK, 
 	    fprintf (stderr, "searching src pat %s\n", 
-		     cond->from->format_spec));
-  scan_cfg_stmts (cond->from, push_global_holes_if_new, holes_stack);
-  PP_TRACE (TRACE_CHECK, fprintf (stderr, "%d condate instances found\n", 
-				  (unsigned) VARRAY_ACTIVE_SIZE (holes_stack)));
+		     patt->format_spec));
 
-  while (VARRAY_ACTIVE_SIZE (holes_stack)) 
+  FOR_EACH_BB (bb)
     {
-      restore_global_holes (VARRAY_TOP_GENERIC_PTR_NOGC (holes_stack)); 
-      VARRAY_POP (holes_stack);
+      block_stmt_iterator bsi;
+      tree stmt;
+
+      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+	{
+	  stmt = bsi_stmt (bsi);
+
+	  PP_TRACE (TRACE_MATCH, {
+	    lazy_print_generic_expr (stderr, stmt, 0);
+	    fprintf (stderr, "= ");
+	    print_generic_expr (stderr, stmt, 0); 
+	    fprintf (stderr, "\n");
+	  });
+
+	  if (!patt || tree_match_disj (stmt, patt, bsi_cfg_node (bsi)))
+	    push_global_holes_if_new (stack);
+	}
+    }
+
+  PP_TRACE (TRACE_CHECK, fprintf (stderr, "%d condate instances found\n", 
+				  VEC_length (hole_p, stack)));
+
+  while (VEC_length (hole_p, stack))
+    {
+      hole_p h = VEC_pop (hole_p, stack);
+
+      restore_global_holes (h);
       tree_check_instance (cond);
       PP_TRACE (TRACE_CHECK, fprintf (stderr, "recounting stmts\n"));
       tree_check_init (); /* clear visited flag */
     }
 
-  VARRAY_FREE (holes_stack);
+  VEC_free (hole_p, heap, stack);
 }
 
 /* Read from a file a string delimted by double quotes.  */
@@ -459,17 +458,6 @@ parse_tree_check_file_once (void)
   return 0;
 }
 
-/* scan_cfg_stmts callback used in execute_tree_check.  */
-
-static void 
-print_matching_stmt (cfg_node node ATTRIBUTE_UNUSED, 
-		     void *data ATTRIBUTE_UNUSED) 
-{
-  tree stmt = cfg_node_stmt (node);
-  tree_check_warning (tree_check_string, stmt, OPT_ftree_check_);
-  reset_global_holes ();
-}
-
 /* Main function of the tree-check pass.  Triggered either by
    -ftree-check or -ftree-checks.  */
 
@@ -498,10 +486,37 @@ execute_tree_check (void)
   else
     {
       /* tree_check_string != NULL */
-      pattern patt;
+      basic_block bb;
+      pattern patt = mkpat (tree_check_string);
+
       reset_global_holes ();
-      patt = mkpat (tree_check_string);
-      scan_cfg_stmts (patt, print_matching_stmt, NULL);
+
+      FOR_EACH_BB (bb)
+	{
+	  block_stmt_iterator bsi;
+	  tree stmt;
+
+	  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+	    {
+	      stmt = bsi_stmt (bsi);
+
+	      PP_TRACE (TRACE_MATCH, {
+		lazy_print_generic_expr (stderr, stmt, 0);
+		fprintf (stderr, "= ");
+		print_generic_expr (stderr, stmt, 0); 
+		fprintf (stderr, "\n");
+	      });
+
+	      if (!patt || tree_match_disj (stmt, patt, bsi_cfg_node (bsi)))
+		{
+		  tree_check_warning (tree_check_string,
+				      cfg_node_stmt (bsi_cfg_node (bsi)),
+				      OPT_ftree_check_);
+		  reset_global_holes ();
+		}
+	    }
+	}
+
       rmpat (patt);
     }
 
@@ -512,7 +527,8 @@ execute_tree_check (void)
 static bool
 gate_tree_check (void)
 {
-  return (tree_check_file != 0 || tree_check_string != 0);
+  return ((tree_check_file != 0 || tree_check_string != 0)
+	  && basic_block_info != 0);
 }
 
 struct tree_opt_pass pass_check =
