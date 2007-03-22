@@ -47,21 +47,21 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
    tree-match.h.  */
 
 static void 
-tree_check_warning (const char *condname, tree stmt, int check_option)
+tree_check_warning (condate cond, tree stmt, int check_option)
 {
   location_t saved_location = input_location;
 
   if (EXPR_HAS_LOCATION (stmt))
     input_location = EXPR_LOCATION (stmt);
 
-  warning (check_option, "user-defined check failed:");
-  fprintf (stderr, "%s:%d: check = %s,\n", 
-	   input_filename, input_line, condname);
-  fprintf (stderr, "%s:%d: instance = ", input_filename, input_line);
+  warning (check_option, "user-defined warning %s:", cond->name);
+  if (cond->msg) 
+    fprintf (stderr, "%s:%d: %s\n", input_location.file, input_location.line, cond->msg);
+  fprintf (stderr, "%s:%d: instance = ", input_location.file, input_location.line);
   /*   print_local_holes (); */
   print_global_holes ();
   fprintf (stderr, ",\n");
-  fprintf (stderr, "%s:%d: reached: ", input_filename, input_line); 
+  fprintf (stderr, "%s:%d: reached: ", input_location.file, input_location.line); 
   print_generic_expr (stderr, stmt, 0);
   fprintf (stderr, ".\n");
   input_location = saved_location;
@@ -72,7 +72,18 @@ tree_check_warning (const char *condname, tree stmt, int check_option)
 static void 
 tree_check_init (void) 
 {
+  basic_block bb;
   reset_global_holes ();
+  FOR_EACH_BB (bb)
+    {
+      block_stmt_iterator bsi;
+      tree stmt;
+      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+	{
+	  stmt = bsi_stmt (bsi);
+	  TREE_VISITED (stmt) = 0;
+	}
+    }
 }
 
 /* Visit a CFG node.  Used in tree_check_instance.  */
@@ -95,7 +106,7 @@ check_node (cfg_node node, condate cond)
     
   if (tree_match_disj (stmt, cond->to, node))
     {
-      tree_check_warning (cond->name, stmt, OPT_ftree_checks_);
+      tree_check_warning (cond, stmt, OPT_ftree_checks_);
       return 0;  /* follow_none */
     }
 
@@ -135,8 +146,9 @@ tree_check_instance (condate cond)
 
       for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
 	{
+	  pattern patt;
 	  stmt = bsi_stmt (bsi);
-	  pattern patt = cond->from;
+	  patt = cond->from;
 
 	  PP_TRACE (TRACE_MATCH, {
 	    lazy_print_generic_expr (stderr, stmt, 0);
@@ -249,15 +261,60 @@ push_global_holes_if_new (VEC (hole_p, heap) *stack)
   reset_global_holes ();
 }
 
+/* Check a trivial condate consisting only in a (FROM) pattern. 
+   This comes to reporting every match of the pattern in a function.  */
+
+static void 
+tree_scan (condate cond)
+{
+  basic_block bb;
+
+  FOR_EACH_BB (bb)
+    {
+      block_stmt_iterator bsi;
+      tree stmt;
+      
+      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+	{
+	  stmt = bsi_stmt (bsi);
+	  
+	  PP_TRACE (TRACE_MATCH, {
+	      lazy_print_generic_expr (stderr, stmt, 0);
+	      fprintf (stderr, "= ");
+	      print_generic_expr (stderr, stmt, 0); 
+	      fprintf (stderr, "\n");
+	    });
+	  
+	  if (!cond->from || tree_match_disj (stmt, cond->from, bsi_cfg_node (bsi)))
+	    {
+	      tree_check_warning (cond,
+				  cfg_node_stmt (bsi_cfg_node (bsi)),
+				  OPT_ftree_check_);
+	      reset_global_holes ();
+	    }
+	}
+    }
+}
+
 /* Check a condate on a function.  */
 
 static void 
 tree_check (condate cond)
 {
-  /* Allocate stack for collecting condate instances.  */
-  VEC (hole_p, heap) *stack = VEC_alloc (hole_p, heap, 10);
+  VEC (hole_p, heap) *stack;
   pattern patt = cond->from;
   basic_block bb;
+
+  /* Check for trivial condates */
+  if (!cond->to)
+    {
+      tree_scan (cond);
+      return;
+    }
+
+  /* Allocate stack for collecting condate instances.  */
+  stack = VEC_alloc (hole_p, heap, 10);
+  patt = cond->from;
   
   PP_TRACE (TRACE_CHECK, 
 	    fprintf (stderr, "searching src pat %s\n", 
@@ -300,48 +357,13 @@ tree_check (condate cond)
   VEC_free (hole_p, heap, stack);
 }
 
-/* Read from a file a string delimted by double quotes.  */
-
-static char *
-read_delimited_string (FILE *infile) 
-{
-  static char buf[256];
-  int c, buf_sp;
-
-  /* lookahead(1), to skip comment lines */
-  while ((c = getc (infile)) == '#')
-    {
-      /* skip to \n */
-      while ((c = getc (infile)) != '\n' && c != EOF);
-    }
-
-  ungetc (c, infile);
-
-  /* skip to opening \" */
-  while ((c = getc (infile)) != '"' && c != '\n' && c != EOF); 
-
-  if (c == '\n' || c == EOF) 
-    return NULL; /* no string found */
-
-  /* fill in string contents */
-  buf_sp = 0;
-  while ((c = getc (infile)) != '"' && c != '\n' && c != EOF)
-    buf[buf_sp++] = c;
-
-  if (c == '\n' || c == EOF) 
-    return NULL; /* unclosed string */
-
-  /* end string */
-  buf[buf_sp] = '\0';
-  return buf;
-}
 
 /* Print a condate.  */
 
 void 
 print_cond (condate cond) 
 {
-  fprintf (stderr, "check(");
+  fprintf (stderr, "condate %s {", cond->name);
   pat_print (cond->from);
   fprintf (stderr, ", ");
   pat_print (cond->to);
@@ -351,7 +373,7 @@ print_cond (condate cond)
   pat_print (cond->avoid_then);
   fprintf (stderr, ", ");
   pat_print (cond->avoid_else);
-  fprintf (stderr, ")\n");
+  fprintf (stderr, "} warning(%s);\n", cond->msg? cond->msg : "<null>");
 }
 
 /* Check a list of condates on the current function.  */
@@ -373,9 +395,8 @@ execute_conds (condate conds[], int n)
   }
 }
 
-#define CONDMAX 100
-static condate conds[CONDMAX];  /* list of condated to check */
-static int n_conds = 0;         /* number of condates to check */
+condate conds[CONDMAX];  /* list of condated to check */
+int n_conds = 0;         /* number of condates to check */
 
 /* Flush the list of condates.  */
 
@@ -393,16 +414,15 @@ delete_conds (condate conds[], int n)
   n_conds = 0;
 }
 
+/* Open file containing the checks. Used by the parser condate.y */
+FILE *checkfile;
+
 /* Parse the file containing condates definitions, and cache the result.  */
 
 static int 
 parse_tree_check_file_once (void) 
 {
   static const char *current_check_file = NULL;
-  static char *str;
-  static pattern from, to, avoid, avoid_then, avoid_else;
-  static char *name;
-  FILE *checkfile;
   
   if (current_check_file)
     {
@@ -417,44 +437,19 @@ parse_tree_check_file_once (void)
   current_check_file = tree_check_file;
   checkfile = fopen (tree_check_file, "r");
 
-  if (!checkfile)
-    return -1;
-
-  while (1) 
+  if (!checkfile) 
     {
-      from = to = avoid = avoid_then = avoid_else = NULL;
-
-      while ((str = read_delimited_string (checkfile)) != NULL)
-	from = pat_or (mkpat (str), from);
-
-      if (!from)
-	break;
-
-      while ((str = read_delimited_string (checkfile)) != NULL)
-	to = pat_or (mkpat (str), to);
-
-      while ((str = read_delimited_string (checkfile)) != NULL)
-	avoid = pat_or (mkpat (str), avoid);
-
-      while ((str = read_delimited_string (checkfile)) != NULL)
-	avoid_then = pat_or (mkpat (str), avoid_then);
-
-      while ((str = read_delimited_string (checkfile)) != NULL)
-	avoid_else = pat_or (mkpat (str), avoid_else);
-
-      name = xmalloc (strlen (tree_check_file) + 6);
-      strcpy (name, tree_check_file);
-      sprintf (name + strlen (tree_check_file), "[%03d]", n_conds);
-      conds[n_conds++] = mkcond (name, from, to, avoid, 
-			       avoid_then, avoid_else);
-      free (name);
-      if (n_conds == CONDMAX)
-	{
-	  fprintf (stderr, "Warning: ignoring checks beyond %d", CONDMAX);
-	  break;
-	}
+      fprintf (stderr, "tree-check-file %s not found\n", tree_check_file);
+      return -1;
+    }
+  
+  if (condate_parse () != 0) 
+    {
+      fclose (checkfile);
+      return -2;
     }
 
+  fclose (checkfile);
   return 0;
 }
 
@@ -477,48 +472,21 @@ execute_tree_check (void)
   if (tree_check_file)
     {
       if (parse_tree_check_file_once () < 0)
-	{
-	  fprintf (stderr, "tree-check-file %s not found\n", tree_check_file);
-	  return 0;
-	}
-      execute_conds (conds, n_conds);
+	return 0;
     }
   else
     {
       /* tree_check_string != NULL */
-      basic_block bb;
-      pattern patt = mkpat (tree_check_string);
-
-      reset_global_holes ();
-
-      FOR_EACH_BB (bb)
+      static const char *current_check_string = NULL;
+      if (!current_check_string) 
 	{
-	  block_stmt_iterator bsi;
-	  tree stmt;
-
-	  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	    {
-	      stmt = bsi_stmt (bsi);
-
-	      PP_TRACE (TRACE_MATCH, {
-		lazy_print_generic_expr (stderr, stmt, 0);
-		fprintf (stderr, "= ");
-		print_generic_expr (stderr, stmt, 0); 
-		fprintf (stderr, "\n");
-	      });
-
-	      if (!patt || tree_match_disj (stmt, patt, bsi_cfg_node (bsi)))
-		{
-		  tree_check_warning (tree_check_string,
-				      cfg_node_stmt (bsi_cfg_node (bsi)),
-				      OPT_ftree_check_);
-		  reset_global_holes ();
-		}
-	    }
+	  condate cond = mkcond (tree_check_string, mkpat (tree_check_string), 
+				 NULL, NULL, NULL, NULL);
+	  add_condate (cond);
+	  current_check_string = tree_check_string;
 	}
-
-      rmpat (patt);
     }
+  execute_conds (conds, n_conds);
 
   PP_TRACE (TRACE_CHECK, fprintf (stderr, "}\n"));
   return 0;

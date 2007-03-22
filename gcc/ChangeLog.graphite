@@ -1,3 +1,21 @@
+2007-03-20  Nic Volanschi  <nic.volanschi@free.fr>
+
+	* condate.y: New file.
+	* tree-match.h (struct patt_info_s): New field sign.
+	(struct condate_s): New field msg.
+	(normalize_condate, name_condate, add_condate): New.
+	(conds[], condate_parse): Made extern.
+	* tree-check.c (tree_check_warning): First arg changed to cond; warning reformatted.
+	(tree_check_init): Reset the TREE_VISITED bit on every CFG node.
+	(tree_scan): New.
+	(tree_check): Process trivial condates.
+	(read_delimited_string): Removed.
+	(print_cond): Print name and msg.
+	(conds[]): Made extern.
+	(parse_tree_check_file_once): Rewritten to use the parser in condate.y.
+	Processing of option --tree_check_string moved to tree_scan().
+	* Makefile.in: Added condate.y
+
 2007-03-12  Sebastian Pop  <sebastian.pop@inria.fr>
 
 	* tree-pretty-print.c (dump_generic_bb_buff, lazy_dump_generic_node): 

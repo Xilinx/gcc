@@ -57,8 +57,9 @@ bb_1st_cfg_node (basic_block bb)
  */
 typedef struct patt_info_s {
   const char *format_spec;
+  int sign;
   va_list *args_ptr; /* only used for anomymous holes */
-  struct patt_info_s *next;
+  struct patt_info_s *next; /* next disjunct in the pattern */
 } patt_info;
 
 typedef patt_info *pattern;
@@ -96,14 +97,16 @@ rmpat (pattern p)
 static inline void 
 pat_print (pattern p) 
 {
+  const char *sign;
   if (!p)
     return;
 
+  sign = (p->sign > 0)? "+" : (p->sign < 0)? "-" : "";
   if (!p->next) 
-    fprintf (stderr, "\"%s\"", p->format_spec);
+    fprintf (stderr, "%s\"%s\"", sign, p->format_spec);
   else
     {
-      fprintf (stderr, "\"%s\" or ", p->format_spec);
+      fprintf (stderr, "%s\"%s\" or ", sign, p->format_spec);
       pat_print (p->next);
     }
 }
@@ -162,9 +165,10 @@ typedef struct condate_s {
   char *name;    /* Used to identify the condate in warning messages. */
   pattern from;  /* Paths start at nodes matching this pattern. */
   pattern to;    /* Paths end at nodes matching this pattern. */
-  pattern avoid; /* Paths must avoid nodes matching: this pattern, */
+  pattern avoid; /* Paths must avoid nodes matching this pattern, */
   pattern avoid_then; /* ... successful conditions matching this pattern, */
   pattern avoid_else; /* ... and unsuccessful conditions mathing this one. */
+  const char *msg; /* message to print if the condate is matched */
 } *condate;
 
 /* Condate constructor */
@@ -182,6 +186,7 @@ mkcond (const char *name, pattern from, pattern to, pattern avoid,
   cond->avoid = avoid; 
   cond->avoid_then = avoid_then; 
   cond->avoid_else = avoid_else;
+  cond->msg = NULL;
   return cond;
 }
 
@@ -200,6 +205,17 @@ rmcond (condate cond)
 }
 
 extern void print_cond (condate cond);
+
+#define CONDMAX 100
+extern condate conds[CONDMAX];  /* list of condated to check */
+extern int n_conds;         /* number of condates to check */
+
+extern void normalize_condate(condate cond);
+extern void name_condate(condate cond);
+extern void add_condate(condate cond);
+
+extern FILE *checkfile;
+extern int condate_parse (void);
 
 /* Tracing levels & macros */
 enum trace_level {

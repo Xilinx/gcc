@@ -936,7 +936,7 @@ C_OBJS = c-lang.o stub-objc.o $(C_AND_OBJC_OBJS)
 OBJS-common = \
  double-int.o tree-chrec.o tree-scalar-evolution.o tree-data-ref.o	   \
  tree-cfg.o tree-dfa.o tree-eh.o tree-ssa.o tree-optimize.o tree-gimple.o  \
- tree-check.o tree-match.o graphite.o \
+ tree-check.o tree-match.o condate.tab.o graphite.o \
  gimplify.o tree-pretty-print.o tree-into-ssa.o tree-ssa-ter.o		   \
  tree-outof-ssa.o tree-ssa-ccp.o tree-vn.o tree-ssa-uncprop.o		   \
  tree-ssa-dce.o  tree-ssa-copy.o tree-nrv.o tree-ssa-copyrename.o	   \
@@ -1882,6 +1882,14 @@ tree-match.o : tree-match.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(TREE_DUMP_H) except.h langhooks.h $(CFGLOOP_H) tree-pass.h \
    $(CFGLAYOUT_H) $(BASIC_BLOCK_H) hard-reg-set.h $(HASHTAB_H) toplev.h \
    tree-ssa-propagate.h tree-match.h
+condate.tab.o : condate.tab.c
+condate.tab.c : condate.y $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
+   $(RTL_H) $(TREE_H) $(TM_P_H) $(EXPR_H) $(GGC_H) $(FLAGS_H) output.h \
+   $(DIAGNOSTIC_H) $(FUNCTION_H) $(TIMEVAR_H) $(TM_H) coretypes.h \
+   $(TREE_DUMP_H) except.h langhooks.h $(CFGLOOP_H) tree-pass.h \
+   $(CFGLAYOUT_H) $(BASIC_BLOCK_H) hard-reg-set.h $(HASHTAB_H) toplev.h \
+   tree-ssa-propagate.h tree-match.h
+	$(BISON) $(BISONFLAGS) $<
 tree-cfgcleanup.o : tree-cfgcleanup.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(RTL_H) $(TREE_H) $(TM_P_H) $(EXPR_H) $(GGC_H) $(FLAGS_H) output.h \
    $(DIAGNOSTIC_H) errors.h $(FUNCTION_H) $(TIMEVAR_H) $(TM_H) coretypes.h \
