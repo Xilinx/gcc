@@ -3,7 +3,7 @@
    1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
    Contributed by A. Lichnewsky, lich@inria.inria.fr.
    Changes by Michael Meissner, meissner@osf.org.
-   64 bit r4000 support by Ian Lance Taylor, ian@cygnus.com, and
+   64-bit r4000 support by Ian Lance Taylor, ian@cygnus.com, and
    Brendan Eich, brendan@microunity.com.
 
 This file is part of GCC.
@@ -180,6 +180,14 @@ enum mips_function_type
   MIPS_VOID_FTYPE_V2HI_V2HI,
   MIPS_VOID_FTYPE_V4QI_V4QI,
 
+  /* For MIPS DSP REV 2 ASE.  */
+  MIPS_V4QI_FTYPE_V4QI,
+  MIPS_SI_FTYPE_SI_SI_SI,
+  MIPS_DI_FTYPE_DI_USI_USI,
+  MIPS_DI_FTYPE_SI_SI,
+  MIPS_DI_FTYPE_USI_USI,
+  MIPS_V2HI_FTYPE_SI_SI_SI,
+
   /* The last type.  */
   MIPS_MAX_FTYPE_MAX
 };
@@ -267,8 +275,6 @@ struct mips_integer_op;
 struct mips_sim;
 
 static enum mips_symbol_type mips_classify_symbol (rtx);
-static void mips_split_const (rtx, rtx *, HOST_WIDE_INT *);
-static bool mips_offset_within_object_p (rtx, HOST_WIDE_INT);
 static bool mips_valid_base_register_p (rtx, enum machine_mode, int);
 static bool mips_symbolic_address_p (enum mips_symbol_type, enum machine_mode);
 static bool mips_classify_address (struct mips_address_info *, rtx,
@@ -303,11 +309,7 @@ static void mips_set_tune (const struct mips_cpu_info *);
 static bool mips_handle_option (size_t, const char *, int);
 static struct machine_function *mips_init_machine_status (void);
 static void print_operand_reloc (FILE *, rtx, const char **);
-#if TARGET_IRIX
-static void irix_output_external_libcall (rtx);
-#endif
 static void mips_file_start (void);
-static void mips_file_end (void);
 static bool mips_rewrite_small_data_p (rtx);
 static int mips_small_data_pattern_1 (rtx *, void *);
 static int mips_rewrite_small_data_1 (rtx *, void *);
@@ -395,7 +397,7 @@ static int mips_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode mode,
 				   tree, bool);
 static bool mips_valid_pointer_mode (enum machine_mode);
 static bool mips_vector_mode_supported_p (enum machine_mode);
-static rtx mips_prepare_builtin_arg (enum insn_code, unsigned int, tree *);
+static rtx mips_prepare_builtin_arg (enum insn_code, unsigned int, tree, unsigned int);
 static rtx mips_prepare_builtin_target (enum insn_code, unsigned int, rtx);
 static rtx mips_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
 static void mips_init_builtins (void);
@@ -551,19 +553,6 @@ int sdb_label_count = 0;
 
 /* Next label # for each statement for Silicon Graphics IRIS systems.  */
 int sym_lineno = 0;
-
-/* Linked list of all externals that are to be emitted when optimizing
-   for the global pointer if they haven't been declared by the end of
-   the program with an appropriate .comm or initialization.  */
-
-struct extern_list GTY (())
-{
-  struct extern_list *next;	/* next external */
-  const char *name;		/* name of the external */
-  int size;			/* size in bytes */
-};
-
-static GTY (()) struct extern_list *extern_head = 0;
 
 /* Name of the file containing the current function.  */
 const char *current_function_file = "";
@@ -1144,9 +1133,7 @@ static struct mips_rtx_cost_data const mips_rtx_cost_data[PROCESSOR_MAX] =
 #define TARGET_MACHINE_DEPENDENT_REORG mips_reorg
 
 #undef TARGET_ASM_FILE_START
-#undef TARGET_ASM_FILE_END
 #define TARGET_ASM_FILE_START mips_file_start
-#define TARGET_ASM_FILE_END mips_file_end
 #undef TARGET_ASM_FILE_START_FILE_DIRECTIVE
 #define TARGET_ASM_FILE_START_FILE_DIRECTIVE true
 
@@ -1311,58 +1298,6 @@ mips_classify_symbol (rtx x)
   return SYMBOL_GENERAL;
 }
 
-
-/* Split X into a base and a constant offset, storing them in *BASE
-   and *OFFSET respectively.  */
-
-static void
-mips_split_const (rtx x, rtx *base, HOST_WIDE_INT *offset)
-{
-  *offset = 0;
-
-  if (GET_CODE (x) == CONST)
-    {
-      x = XEXP (x, 0);
-      if (GET_CODE (x) == PLUS && GET_CODE (XEXP (x, 1)) == CONST_INT)
-	{
-	  *offset += INTVAL (XEXP (x, 1));
-	  x = XEXP (x, 0);
-	}
-    }
-  *base = x;
-}
-
-
-/* Return true if SYMBOL is a SYMBOL_REF and OFFSET + SYMBOL points
-   to the same object as SYMBOL, or to the same object_block.  */
-
-static bool
-mips_offset_within_object_p (rtx symbol, HOST_WIDE_INT offset)
-{
-  if (GET_CODE (symbol) != SYMBOL_REF)
-    return false;
-
-  if (CONSTANT_POOL_ADDRESS_P (symbol)
-      && offset >= 0
-      && offset < (int) GET_MODE_SIZE (get_pool_mode (symbol)))
-    return true;
-
-  if (SYMBOL_REF_DECL (symbol) != 0
-      && offset >= 0
-      && offset < int_size_in_bytes (TREE_TYPE (SYMBOL_REF_DECL (symbol))))
-    return true;
-
-  if (SYMBOL_REF_HAS_BLOCK_INFO_P (symbol)
-      && SYMBOL_REF_BLOCK (symbol)
-      && SYMBOL_REF_BLOCK_OFFSET (symbol) >= 0
-      && ((unsigned HOST_WIDE_INT) offset + SYMBOL_REF_BLOCK_OFFSET (symbol)
-	  < (unsigned HOST_WIDE_INT) SYMBOL_REF_BLOCK (symbol)->size))
-    return true;
-
-  return false;
-}
-
-
 /* Return true if X is a symbolic constant that can be calculated in
    the same way as a bare symbol.  If it is, store the type of the
    symbol in *SYMBOL_TYPE.  */
@@ -1370,9 +1305,9 @@ mips_offset_within_object_p (rtx symbol, HOST_WIDE_INT offset)
 bool
 mips_symbolic_constant_p (rtx x, enum mips_symbol_type *symbol_type)
 {
-  HOST_WIDE_INT offset;
+  rtx offset;
 
-  mips_split_const (x, &x, &offset);
+  split_const (x, &x, &offset);
   if (UNSPEC_ADDRESS_P (x))
     *symbol_type = UNSPEC_ADDRESS_TYPE (x);
   else if (GET_CODE (x) == SYMBOL_REF || GET_CODE (x) == LABEL_REF)
@@ -1384,7 +1319,7 @@ mips_symbolic_constant_p (rtx x, enum mips_symbol_type *symbol_type)
   else
     return false;
 
-  if (offset == 0)
+  if (offset == const0_rtx)
     return true;
 
   /* Check whether a nonzero offset is valid for the underlying
@@ -1400,7 +1335,7 @@ mips_symbolic_constant_p (rtx x, enum mips_symbol_type *symbol_type)
 	 sign-extended.  In this case we can't allow an arbitrary offset
 	 in case the 32-bit value X + OFFSET has a different sign from X.  */
       if (Pmode == DImode && !ABI_HAS_64BIT_SYMBOLS)
-	return mips_offset_within_object_p (x, offset);
+	return offset_within_block_p (x, INTVAL (offset));
 
       /* In other cases the relocations can handle any offset.  */
       return true;
@@ -1416,15 +1351,15 @@ mips_symbolic_constant_p (rtx x, enum mips_symbol_type *symbol_type)
 
     case SYMBOL_SMALL_DATA:
       /* Make sure that the offset refers to something within the
-	 underlying object.  This should guarantee that the final
+	 same object block.  This should guarantee that the final
 	 PC- or GP-relative offset is within the 16-bit limit.  */
-      return mips_offset_within_object_p (x, offset);
+      return offset_within_block_p (x, INTVAL (offset));
 
     case SYMBOL_GOT_LOCAL:
     case SYMBOL_GOTOFF_PAGE:
       /* The linker should provide enough local GOT entries for a
 	 16-bit offset.  Larger offsets may lead to GOT overflow.  */
-      return SMALL_OPERAND (offset);
+      return SMALL_INT (offset);
 
     case SYMBOL_GOT_GLOBAL:
     case SYMBOL_GOTOFF_GLOBAL:
@@ -1614,8 +1549,7 @@ mips_tls_symbol_ref_1 (rtx *x, void *data ATTRIBUTE_UNUSED)
 static bool
 mips_cannot_force_const_mem (rtx x)
 {
-  rtx base;
-  HOST_WIDE_INT offset;
+  rtx base, offset;
 
   if (!TARGET_MIPS16)
     {
@@ -1631,8 +1565,8 @@ mips_cannot_force_const_mem (rtx x)
       if (GET_CODE (x) == CONST_INT)
 	return true;
 
-      mips_split_const (x, &base, &offset);
-      if (symbolic_operand (base, VOIDmode) && SMALL_OPERAND (offset))
+      split_const (x, &base, &offset);
+      if (symbolic_operand (base, VOIDmode) && SMALL_INT (offset))
 	return true;
     }
 
@@ -1819,7 +1753,7 @@ mips_const_insns (rtx x)
 {
   struct mips_integer_op codes[MIPS_MAX_INTEGER_OPS];
   enum mips_symbol_type symbol_type;
-  HOST_WIDE_INT offset;
+  rtx offset;
 
   switch (GET_CODE (x))
     {
@@ -1860,16 +1794,16 @@ mips_const_insns (rtx x)
       /* Otherwise try splitting the constant into a base and offset.
 	 16-bit offsets can be added using an extra addiu.  Larger offsets
 	 must be calculated separately and then added to the base.  */
-      mips_split_const (x, &x, &offset);
+      split_const (x, &x, &offset);
       if (offset != 0)
 	{
 	  int n = mips_const_insns (x);
 	  if (n != 0)
 	    {
-	      if (SMALL_OPERAND (offset))
+	      if (SMALL_INT (offset))
 		return n + 1;
 	      else
-		return n + 1 + mips_build_integer (codes, offset);
+		return n + 1 + mips_build_integer (codes, INTVAL (offset));
 	    }
 	}
       return 0;
@@ -1954,10 +1888,15 @@ mips_split_symbol (rtx temp, rtx addr)
 {
   rtx high;
 
-  if (TARGET_MIPS16)
-    high = mips16_gp_pseudo_reg ();
-  else
+  if (!TARGET_MIPS16)
     high = mips_force_temporary (temp, gen_rtx_HIGH (Pmode, copy_rtx (addr)));
+  else if (no_new_pseudos)
+    {
+      emit_insn (gen_load_const_gp (copy_rtx (temp)));
+      high = temp;
+    }
+  else
+    high = mips16_gp_pseudo_reg ();
   return gen_rtx_LO_SUM (Pmode, high, addr);
 }
 
@@ -1968,13 +1907,14 @@ mips_split_symbol (rtx temp, rtx addr)
 rtx
 mips_unspec_address (rtx address, enum mips_symbol_type symbol_type)
 {
-  rtx base;
-  HOST_WIDE_INT offset;
+  rtx base, offset;
 
-  mips_split_const (address, &base, &offset);
+  split_const (address, &base, &offset);
   base = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, base),
 			 UNSPEC_ADDRESS_FIRST + symbol_type);
-  return plus_constant (gen_rtx_CONST (Pmode, base), offset);
+  if (offset != const0_rtx)
+    base = gen_rtx_PLUS (Pmode, base, offset);
+  return gen_rtx_CONST (Pmode, base);
 }
 
 
@@ -2322,8 +2262,7 @@ mips_move_integer (rtx dest, rtx temp, unsigned HOST_WIDE_INT value)
 static void
 mips_legitimize_const_move (enum machine_mode mode, rtx dest, rtx src)
 {
-  rtx base;
-  HOST_WIDE_INT offset;
+  rtx base, offset;
 
   /* Split moves of big integers into smaller pieces.  */
   if (splittable_const_int_operand (src, mode))
@@ -2348,13 +2287,13 @@ mips_legitimize_const_move (enum machine_mode mode, rtx dest, rtx src)
   /* If we have (const (plus symbol offset)), load the symbol first
      and then add in the offset.  This is usually better than forcing
      the constant into memory, at least in non-mips16 code.  */
-  mips_split_const (src, &base, &offset);
+  split_const (src, &base, &offset);
   if (!TARGET_MIPS16
-      && offset != 0
-      && (!no_new_pseudos || SMALL_OPERAND (offset)))
+      && offset != const0_rtx
+      && (!no_new_pseudos || SMALL_INT (offset)))
     {
       base = mips_force_temporary (dest, base);
-      emit_move_insn (dest, mips_add_offset (0, base, offset));
+      emit_move_insn (dest, mips_add_offset (0, base, INTVAL (offset)));
       return;
     }
 
@@ -2541,7 +2480,7 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
 	      return true;
 	    }
 
-	  /* We can use cmpi for an xor with an unsigned 16 bit value.  */
+	  /* We can use cmpi for an xor with an unsigned 16-bit value.  */
 	  if ((outer_code) == XOR
 	      && INTVAL (x) >= 0 && INTVAL (x) < 0x10000)
 	    {
@@ -2550,7 +2489,7 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
 	    }
 
 	  /* We may be able to use slt or sltu for a comparison with a
-	     signed 16 bit value.  (The boundary conditions aren't quite
+	     signed 16-bit value.  (The boundary conditions aren't quite
 	     right, but this is just a heuristic anyhow.)  */
 	  if (((outer_code) == LT || (outer_code) == LE
 	       || (outer_code) == GE || (outer_code) == GT
@@ -2725,7 +2664,7 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
       return true;
 
     case SIGN_EXTEND:
-      /* A sign extend from SImode to DImode in 64 bit mode is often
+      /* A sign extend from SImode to DImode in 64-bit mode is often
          zero instructions, because the result can often be used
          directly by another instruction; we'll call it one.  */
       if (TARGET_64BIT && mode == DImode
@@ -2979,7 +2918,7 @@ mips_output_move (rtx dest, rtx src)
       if (src_code == CONST_INT)
 	{
 	  /* Don't use the X format, because that will give out of
-	     range numbers for 64 bit hosts and 32 bit targets.  */
+	     range numbers for 64-bit hosts and 32-bit targets.  */
 	  if (!TARGET_MIPS16)
 	    return "li\t%0,%1\t\t\t# %X1";
 
@@ -3907,8 +3846,8 @@ function_arg (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
       && host_integerp (TYPE_SIZE_UNIT (type), 1)
       && named)
     {
-      /* The Irix 6 n32/n64 ABIs say that if any 64 bit chunk of the
-	 structure contains a double in its entirety, then that 64 bit
+      /* The Irix 6 n32/n64 ABIs say that if any 64-bit chunk of the
+	 structure contains a double in its entirety, then that 64-bit
 	 chunk is passed in a floating point register.  */
       tree field;
 
@@ -3924,7 +3863,7 @@ function_arg (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
       if (field != 0)
 	{
 	  /* Now handle the special case by returning a PARALLEL
-	     indicating where each 64 bit chunk goes.  INFO.REG_WORDS
+	     indicating where each 64-bit chunk goes.  INFO.REG_WORDS
 	     chunks are passed in registers.  */
 	  unsigned int i;
 	  HOST_WIDE_INT bitpos;
@@ -5003,6 +4942,10 @@ override_options (void)
   if (TARGET_PAIRED_SINGLE_FLOAT && !ISA_MIPS64)
     error ("-mips3d/-mpaired-single must be used with -mips64");
 
+  /* If TARGET_DSPR2, enable MASK_DSP.  */
+  if (TARGET_DSPR2)
+    target_flags |= MASK_DSP;
+
   if (TARGET_MIPS16 && TARGET_DSP)
     error ("-mips16 and -mdsp cannot be used together");
 
@@ -5728,16 +5671,15 @@ print_operand_reloc (FILE *file, rtx op, const char **relocs)
 {
   enum mips_symbol_type symbol_type;
   const char *p;
-  rtx base;
-  HOST_WIDE_INT offset;
+  rtx base, offset;
 
   if (!mips_symbolic_constant_p (op, &symbol_type) || relocs[symbol_type] == 0)
     fatal_insn ("PRINT_OPERAND, invalid operand for relocation", op);
 
   /* If OP uses an UNSPEC address, we want to print the inner symbol.  */
-  mips_split_const (op, &base, &offset);
+  split_const (op, &base, &offset);
   if (UNSPEC_ADDRESS_P (base))
-    op = plus_constant (UNSPEC_ADDRESS (base), offset);
+    op = plus_constant (UNSPEC_ADDRESS (base), INTVAL (offset));
 
   fputs (relocs[symbol_type], file);
   output_addr_const (file, op);
@@ -5786,48 +5728,38 @@ print_operand_address (FILE *file, rtx x)
    the -G limit but declared by the user to be in a section other
    than .sbss or .sdata.  */
 
-int
-mips_output_external (FILE *file ATTRIBUTE_UNUSED, tree decl, const char *name)
+void
+mips_output_external (FILE *file, tree decl, const char *name)
 {
-  register struct extern_list *p;
+  default_elf_asm_output_external (file, decl, name);
 
-  if (!TARGET_EXPLICIT_RELOCS && mips_in_small_data_p (decl))
+  /* We output the name if and only if TREE_SYMBOL_REFERENCED is
+     set in order to avoid putting out names that are never really
+     used. */
+  if (TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
     {
-      p = (struct extern_list *) ggc_alloc (sizeof (struct extern_list));
-      p->next = extern_head;
-      p->name = name;
-      p->size = int_size_in_bytes (TREE_TYPE (decl));
-      extern_head = p;
-    }
-
-  if (TARGET_IRIX && mips_abi == ABI_32 && TREE_CODE (decl) == FUNCTION_DECL)
-    {
-      p = (struct extern_list *) ggc_alloc (sizeof (struct extern_list));
-      p->next = extern_head;
-      p->name = name;
-      p->size = -1;
-      extern_head = p;
-    }
-
-  return 0;
-}
-
-#if TARGET_IRIX
-static void
-irix_output_external_libcall (rtx fun)
-{
-  register struct extern_list *p;
-
-  if (mips_abi == ABI_32)
-    {
-      p = (struct extern_list *) ggc_alloc (sizeof (struct extern_list));
-      p->next = extern_head;
-      p->name = XSTR (fun, 0);
-      p->size = -1;
-      extern_head = p;
+      if (!TARGET_EXPLICIT_RELOCS && mips_in_small_data_p (decl))
+	{
+	  fputs ("\t.extern\t", file);
+	  assemble_name (file, name);
+	  fprintf (file, ", " HOST_WIDE_INT_PRINT_DEC "\n",
+		   int_size_in_bytes (TREE_TYPE (decl)));
+	}
+      else if (TARGET_IRIX
+	       && mips_abi == ABI_32
+	       && TREE_CODE (decl) == FUNCTION_DECL)
+	{
+	  /* In IRIX 5 or IRIX 6 for the O32 ABI, we must output a
+	     `.global name .text' directive for every used but
+	     undefined function.  If we don't, the linker may perform
+	     an optimization (skipping over the insns that set $gp)
+	     when it is unsafe.  */
+	  fputs ("\t.globl ", file);
+	  assemble_name (file, name);
+	  fputs (" .text\n", file);
+	}
     }
 }
-#endif
 
 /* Emit a new filename to a stream.  If we are smuggling stabs, try to
    put out a MIPS ECOFF file and a stab.  */
@@ -5989,50 +5921,6 @@ mips_output_aligned_bss (FILE *stream, tree decl, const char *name,
 }
 #endif
 
-/* Implement TARGET_ASM_FILE_END.  When using assembler macros, emit
-   .externs for any small-data variables that turned out to be external.  */
-
-static void
-mips_file_end (void)
-{
-  tree name_tree;
-  struct extern_list *p;
-
-  if (extern_head)
-    {
-      fputs ("\n", asm_out_file);
-
-      for (p = extern_head; p != 0; p = p->next)
-	{
-	  name_tree = get_identifier (p->name);
-
-	  /* Positively ensure only one .extern for any given symbol.  */
-	  if (!TREE_ASM_WRITTEN (name_tree)
-	      && TREE_SYMBOL_REFERENCED (name_tree))
-	    {
-	      TREE_ASM_WRITTEN (name_tree) = 1;
-	      /* In IRIX 5 or IRIX 6 for the O32 ABI, we must output a
-		 `.global name .text' directive for every used but
-		 undefined function.  If we don't, the linker may perform
-		 an optimization (skipping over the insns that set $gp)
-		 when it is unsafe.  */
-	      if (TARGET_IRIX && mips_abi == ABI_32 && p->size == -1)
-		{
-		  fputs ("\t.globl ", asm_out_file);
-		  assemble_name (asm_out_file, p->name);
-		  fputs (" .text\n", asm_out_file);
-		}
-	      else
-		{
-		  fputs ("\t.extern\t", asm_out_file);
-		  assemble_name (asm_out_file, p->name);
-		  fprintf (asm_out_file, ", %d\n", p->size);
-		}
-	    }
-	}
-    }
-}
-
 /* Implement ASM_OUTPUT_ALIGNED_DECL_COMMON.  This is usually the same as the
    elfos.h version, but we also need to handle -muninit-const-in-rodata.  */
 
@@ -6614,7 +6502,7 @@ mips_for_each_saved_reg (HOST_WIDE_INT sp_offset, mips_save_restore_fn fn)
 
   /* Save registers starting from high to low.  The debuggers prefer at least
      the return register be stored at func+4, and also it allows us not to
-     need a nop in the epilog if at least one register is reloaded in
+     need a nop in the epilogue if at least one register is reloaded in
      addition to return address.  */
   offset = cfun->machine->frame.gp_sp_offset - sp_offset;
   for (regno = GP_REG_LAST; regno >= GP_REG_FIRST; regno--)
@@ -6718,8 +6606,8 @@ mips_output_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 #endif
 
   /* In mips16 mode, we may need to generate a 32 bit to handle
-     floating point arguments.  The linker will arrange for any 32 bit
-     functions to call this stub, which will then jump to the 16 bit
+     floating point arguments.  The linker will arrange for any 32-bit
+     functions to call this stub, which will then jump to the 16-bit
      function proper.  */
   if (TARGET_MIPS16 && !TARGET_SOFT_FLOAT
       && current_function_args_info.fp_code != 0)
@@ -7713,12 +7601,12 @@ mips_cannot_change_mode_class (enum machine_mode from,
 bool
 mips_dangerous_for_la25_p (rtx x)
 {
-  HOST_WIDE_INT offset;
+  rtx offset;
 
   if (TARGET_EXPLICIT_RELOCS)
     return false;
 
-  mips_split_const (x, &x, &offset);
+  split_const (x, &x, &offset);
   return global_got_operand (x, VOIDmode);
 }
 
@@ -7925,19 +7813,13 @@ mips16_gp_pseudo_reg (void)
 {
   if (cfun->machine->mips16_gp_pseudo_rtx == NULL_RTX)
     {
-      rtx unspec;
       rtx insn, scan;
 
       cfun->machine->mips16_gp_pseudo_rtx = gen_reg_rtx (Pmode);
 
       /* We want to initialize this to a value which gcc will believe
          is constant.  */
-      start_sequence ();
-      unspec = gen_rtx_UNSPEC (VOIDmode, gen_rtvec (1, const0_rtx), UNSPEC_GP);
-      emit_move_insn (cfun->machine->mips16_gp_pseudo_rtx,
-		      gen_rtx_CONST (Pmode, unspec));
-      insn = get_insns ();
-      end_sequence ();
+      insn = gen_load_const_gp (cfun->machine->mips16_gp_pseudo_rtx);
 
       push_topmost_sequence ();
       /* We need to emit the initialization after the FUNCTION_BEG
@@ -7968,7 +7850,7 @@ mips16_fp_args (FILE *file, int fp_code, int from_fp_p)
   int gparg, fparg;
   unsigned int f;
 
-  /* This code only works for the original 32 bit ABI and the O64 ABI.  */
+  /* This code only works for the original 32-bit ABI and the O64 ABI.  */
   gcc_assert (TARGET_OLDABI);
 
   if (from_fp_p)
@@ -8016,9 +7898,9 @@ mips16_fp_args (FILE *file, int fp_code, int from_fp_p)
 }
 
 /* Build a mips16 function stub.  This is used for functions which
-   take arguments in the floating point registers.  It is 32 bit code
+   take arguments in the floating point registers.  It is 32-bit code
    that moves the floating point args into the general registers, and
-   then jumps to the 16 bit code.  */
+   then jumps to the 16-bit code.  */
 
 static void
 build_mips16_function_stub (FILE *file)
@@ -8113,11 +7995,11 @@ static struct mips16_stub *mips16_stubs;
 
 /* Build a call stub for a mips16 call.  A stub is needed if we are
    passing any floating point values which should go into the floating
-   point registers.  If we are, and the call turns out to be to a 32
-   bit function, the stub will be used to move the values into the
-   floating point registers before calling the 32 bit function.  The
-   linker will magically adjust the function call to either the 16 bit
-   function or the 32 bit stub, depending upon where the function call
+   point registers.  If we are, and the call turns out to be to a
+   32-bit function, the stub will be used to move the values into the
+   floating point registers before calling the 32-bit function.  The
+   linker will magically adjust the function call to either the 16-bit
+   function or the 32-bit stub, depending upon where the function call
    is actually defined.
 
    Similarly, we need a stub if the return value might come back in a
@@ -8237,7 +8119,7 @@ build_mips16_call_stub (rtx retval, rtx fn, rtx arg_size, int fp_code)
     {
       /* Build a special purpose stub.  When the linker sees a
 	 function call in mips16 code, it will check where the target
-	 is defined.  If the target is a 32 bit call, the linker will
+	 is defined.  If the target is a 32-bit call, the linker will
 	 search for the section defined here.  It can tell which
 	 symbol this section is associated with by looking at the
 	 relocation information (the name is unreliable, since this
@@ -8296,7 +8178,7 @@ build_mips16_call_stub (rtx retval, rtx fn, rtx arg_size, int fp_code)
 	}
 
       /* We build the stub code by hand.  That's the only way we can
-	 do it, since we can't generate 32 bit code during a 16 bit
+	 do it, since we can't generate 32-bit code during a 16-bit
 	 compilation.  */
 
       /* We don't want the assembler to insert any nops here.  */
@@ -9879,7 +9761,7 @@ vr4130_true_reg_dependence_p (rtx insn)
 static bool
 vr4130_swap_insns_p (rtx insn1, rtx insn2)
 {
-  rtx dep;
+  dep_link_t dep;
 
   /* Check for the following case:
 
@@ -9889,11 +9771,11 @@ vr4130_swap_insns_p (rtx insn1, rtx insn2)
 
      If INSN1 is the last instruction blocking X, it would better to
      choose (INSN1, X) over (INSN2, INSN1).  */
-  for (dep = INSN_DEPEND (insn1); dep != 0; dep = XEXP (dep, 1))
-    if (REG_NOTE_KIND (dep) == REG_DEP_ANTI
-	&& INSN_PRIORITY (XEXP (dep, 0)) > INSN_PRIORITY (insn2)
-	&& recog_memoized (XEXP (dep, 0)) >= 0
-	&& get_attr_vr4130_class (XEXP (dep, 0)) == VR4130_CLASS_ALU)
+  FOR_EACH_DEP_LINK (dep, INSN_FORW_DEPS (insn1))
+    if (DEP_LINK_KIND (dep) == REG_DEP_ANTI
+	&& INSN_PRIORITY (DEP_LINK_CON (dep)) > INSN_PRIORITY (insn2)
+	&& recog_memoized (DEP_LINK_CON (dep)) >= 0
+	&& get_attr_vr4130_class (DEP_LINK_CON (dep)) == VR4130_CLASS_ALU)
       return false;
 
   if (vr4130_last_insn != 0
@@ -10225,6 +10107,7 @@ static const struct builtin_description sb1_bdesc[] =
 #define CODE_FOR_mips_addu_qb CODE_FOR_addv4qi3
 #define CODE_FOR_mips_subq_ph CODE_FOR_subv2hi3
 #define CODE_FOR_mips_subu_qb CODE_FOR_subv4qi3
+#define CODE_FOR_mips_mul_ph CODE_FOR_mulv2hi3
 
 /* Define a MIPS_BUILTIN_DIRECT_NO_TARGET function for instruction
    CODE_FOR_mips_<INSN>.  FUNCTION_TYPE and TARGET_FLAGS are
@@ -10284,19 +10167,6 @@ static const struct builtin_description dsp_bdesc[] =
   DIRECT_BUILTIN (mulq_rs_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSP),
   DIRECT_BUILTIN (muleq_s_w_phl, MIPS_SI_FTYPE_V2HI_V2HI, MASK_DSP),
   DIRECT_BUILTIN (muleq_s_w_phr, MIPS_SI_FTYPE_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (dpau_h_qbl, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (dpau_h_qbr, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (dpsu_h_qbl, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (dpsu_h_qbr, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
-  DIRECT_BUILTIN (dpaq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (dpsq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (mulsaq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (dpaq_sa_l_w, MIPS_DI_FTYPE_DI_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (dpsq_sa_l_w, MIPS_DI_FTYPE_DI_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (maq_s_w_phl, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (maq_s_w_phr, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (maq_sa_w_phl, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
-  DIRECT_BUILTIN (maq_sa_w_phr, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
   DIRECT_BUILTIN (bitrev, MIPS_SI_FTYPE_SI, MASK_DSP),
   DIRECT_BUILTIN (insv, MIPS_SI_FTYPE_SI_SI, MASK_DSP),
   DIRECT_BUILTIN (repl_qb, MIPS_V4QI_FTYPE_SI, MASK_DSP),
@@ -10313,6 +10183,65 @@ static const struct builtin_description dsp_bdesc[] =
   DIRECT_BUILTIN (pick_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSP),
   DIRECT_BUILTIN (pick_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSP),
   DIRECT_BUILTIN (packrl_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSP),
+  DIRECT_NO_TARGET_BUILTIN (wrdsp, MIPS_VOID_FTYPE_SI_SI, MASK_DSP),
+  DIRECT_BUILTIN (rddsp, MIPS_SI_FTYPE_SI, MASK_DSP),
+  DIRECT_BUILTIN (lbux, MIPS_SI_FTYPE_PTR_SI, MASK_DSP),
+  DIRECT_BUILTIN (lhx, MIPS_SI_FTYPE_PTR_SI, MASK_DSP),
+  DIRECT_BUILTIN (lwx, MIPS_SI_FTYPE_PTR_SI, MASK_DSP),
+  BPOSGE_BUILTIN (32, MASK_DSP),
+
+  /* The following are for the MIPS DSP ASE REV 2.  */
+  DIRECT_BUILTIN (absq_s_qb, MIPS_V4QI_FTYPE_V4QI, MASK_DSPR2),
+  DIRECT_BUILTIN (addu_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (addu_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (adduh_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSPR2),
+  DIRECT_BUILTIN (adduh_r_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSPR2),
+  DIRECT_BUILTIN (append, MIPS_SI_FTYPE_SI_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (balign, MIPS_SI_FTYPE_SI_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (cmpgdu_eq_qb, MIPS_SI_FTYPE_V4QI_V4QI, MASK_DSPR2),
+  DIRECT_BUILTIN (cmpgdu_lt_qb, MIPS_SI_FTYPE_V4QI_V4QI, MASK_DSPR2),
+  DIRECT_BUILTIN (cmpgdu_le_qb, MIPS_SI_FTYPE_V4QI_V4QI, MASK_DSPR2),
+  DIRECT_BUILTIN (mul_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (mul_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (mulq_rs_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (mulq_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (mulq_s_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (precr_qb_ph, MIPS_V4QI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (precr_sra_ph_w, MIPS_V2HI_FTYPE_SI_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (precr_sra_r_ph_w, MIPS_V2HI_FTYPE_SI_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (prepend, MIPS_SI_FTYPE_SI_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (shra_qb, MIPS_V4QI_FTYPE_V4QI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (shra_r_qb, MIPS_V4QI_FTYPE_V4QI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (shrl_ph, MIPS_V2HI_FTYPE_V2HI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (subu_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (subu_s_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (subuh_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSPR2),
+  DIRECT_BUILTIN (subuh_r_qb, MIPS_V4QI_FTYPE_V4QI_V4QI, MASK_DSPR2),
+  DIRECT_BUILTIN (addqh_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (addqh_r_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (addqh_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (addqh_r_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (subqh_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (subqh_r_ph, MIPS_V2HI_FTYPE_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (subqh_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (subqh_r_w, MIPS_SI_FTYPE_SI_SI, MASK_DSPR2)
+};
+
+static const struct builtin_description dsp_32only_bdesc[] =
+{
+  DIRECT_BUILTIN (dpau_h_qbl, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
+  DIRECT_BUILTIN (dpau_h_qbr, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
+  DIRECT_BUILTIN (dpsu_h_qbl, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
+  DIRECT_BUILTIN (dpsu_h_qbr, MIPS_DI_FTYPE_DI_V4QI_V4QI, MASK_DSP),
+  DIRECT_BUILTIN (dpaq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
+  DIRECT_BUILTIN (dpsq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
+  DIRECT_BUILTIN (mulsaq_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
+  DIRECT_BUILTIN (dpaq_sa_l_w, MIPS_DI_FTYPE_DI_SI_SI, MASK_DSP),
+  DIRECT_BUILTIN (dpsq_sa_l_w, MIPS_DI_FTYPE_DI_SI_SI, MASK_DSP),
+  DIRECT_BUILTIN (maq_s_w_phl, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
+  DIRECT_BUILTIN (maq_s_w_phr, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
+  DIRECT_BUILTIN (maq_sa_w_phl, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
+  DIRECT_BUILTIN (maq_sa_w_phr, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSP),
   DIRECT_BUILTIN (extr_w, MIPS_SI_FTYPE_DI_SI, MASK_DSP),
   DIRECT_BUILTIN (extr_r_w, MIPS_SI_FTYPE_DI_SI, MASK_DSP),
   DIRECT_BUILTIN (extr_rs_w, MIPS_SI_FTYPE_DI_SI, MASK_DSP),
@@ -10321,12 +10250,23 @@ static const struct builtin_description dsp_bdesc[] =
   DIRECT_BUILTIN (extpdp, MIPS_SI_FTYPE_DI_SI, MASK_DSP),
   DIRECT_BUILTIN (shilo, MIPS_DI_FTYPE_DI_SI, MASK_DSP),
   DIRECT_BUILTIN (mthlip, MIPS_DI_FTYPE_DI_SI, MASK_DSP),
-  DIRECT_NO_TARGET_BUILTIN (wrdsp, MIPS_VOID_FTYPE_SI_SI, MASK_DSP),
-  DIRECT_BUILTIN (rddsp, MIPS_SI_FTYPE_SI, MASK_DSP),
-  DIRECT_BUILTIN (lbux, MIPS_SI_FTYPE_PTR_SI, MASK_DSP),
-  DIRECT_BUILTIN (lhx, MIPS_SI_FTYPE_PTR_SI, MASK_DSP),
-  DIRECT_BUILTIN (lwx, MIPS_SI_FTYPE_PTR_SI, MASK_DSP),
-  BPOSGE_BUILTIN (32, MASK_DSP)
+
+  /* The following are for the MIPS DSP ASE REV 2.  */
+  DIRECT_BUILTIN (dpa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (dps_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (madd, MIPS_DI_FTYPE_DI_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (maddu, MIPS_DI_FTYPE_DI_USI_USI, MASK_DSPR2),
+  DIRECT_BUILTIN (msub, MIPS_DI_FTYPE_DI_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (msubu, MIPS_DI_FTYPE_DI_USI_USI, MASK_DSPR2),
+  DIRECT_BUILTIN (mulsa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (mult, MIPS_DI_FTYPE_SI_SI, MASK_DSPR2),
+  DIRECT_BUILTIN (multu, MIPS_DI_FTYPE_USI_USI, MASK_DSPR2),
+  DIRECT_BUILTIN (dpax_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (dpsx_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (dpaqx_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (dpaqx_sa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (dpsqx_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2),
+  DIRECT_BUILTIN (dpsqx_sa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, MASK_DSPR2)
 };
 
 /* This helps provide a mapping from builtin function codes to bdesc
@@ -10343,27 +10283,32 @@ struct bdesc_map
   /* The target processor that supports these builtin functions.
      PROCESSOR_MAX means we enable them for all processors.  */
   enum processor_type proc;
+
+  /* If the target has these flags, this builtin function table
+     will not be supported.  */
+  int unsupported_target_flags;
 };
 
 static const struct bdesc_map bdesc_arrays[] =
 {
-  { mips_bdesc, ARRAY_SIZE (mips_bdesc), PROCESSOR_MAX },
-  { sb1_bdesc, ARRAY_SIZE (sb1_bdesc), PROCESSOR_SB1 },
-  { dsp_bdesc, ARRAY_SIZE (dsp_bdesc), PROCESSOR_MAX }
+  { mips_bdesc, ARRAY_SIZE (mips_bdesc), PROCESSOR_MAX, 0 },
+  { sb1_bdesc, ARRAY_SIZE (sb1_bdesc), PROCESSOR_SB1, 0 },
+  { dsp_bdesc, ARRAY_SIZE (dsp_bdesc), PROCESSOR_MAX, 0 },
+  { dsp_32only_bdesc, ARRAY_SIZE (dsp_32only_bdesc), PROCESSOR_MAX,
+    MASK_64BIT }
 };
 
-/* Take the head of argument list *ARGLIST and convert it into a form
-   suitable for input operand OP of instruction ICODE.  Return the value
-   and point *ARGLIST at the next element of the list.  */
+/* Take the argument ARGNUM of the arglist of EXP and convert it into a form
+   suitable for input operand OP of instruction ICODE.  Return the value.  */
 
 static rtx
 mips_prepare_builtin_arg (enum insn_code icode,
-			  unsigned int op, tree *arglist)
+			  unsigned int op, tree exp, unsigned int argnum)
 {
   rtx value;
   enum machine_mode mode;
 
-  value = expand_normal (TREE_VALUE (*arglist));
+  value = expand_normal (CALL_EXPR_ARG (exp, argnum));
   mode = insn_data[icode].operand[op].mode;
   if (!insn_data[icode].operand[op].predicate (value, mode))
     {
@@ -10376,7 +10321,6 @@ mips_prepare_builtin_arg (enum insn_code icode,
 	}
     }
 
-  *arglist = TREE_CHAIN (*arglist);
   return value;
 }
 
@@ -10404,13 +10348,12 @@ mips_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 {
   enum insn_code icode;
   enum mips_builtin_type type;
-  tree fndecl, arglist;
+  tree fndecl;
   unsigned int fcode;
   const struct builtin_description *bdesc;
   const struct bdesc_map *m;
 
-  fndecl = TREE_OPERAND (TREE_OPERAND (exp, 0), 0);
-  arglist = TREE_OPERAND (exp, 1);
+  fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
   fcode = DECL_FUNCTION_CODE (fndecl);
 
   bdesc = NULL;
@@ -10431,15 +10374,15 @@ mips_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
   switch (type)
     {
     case MIPS_BUILTIN_DIRECT:
-      return mips_expand_builtin_direct (icode, target, arglist, true);
+      return mips_expand_builtin_direct (icode, target, exp, true);
 
     case MIPS_BUILTIN_DIRECT_NO_TARGET:
-      return mips_expand_builtin_direct (icode, target, arglist, false);
+      return mips_expand_builtin_direct (icode, target, exp, false);
 
     case MIPS_BUILTIN_MOVT:
     case MIPS_BUILTIN_MOVF:
       return mips_expand_builtin_movtf (type, icode, bdesc[fcode].cond,
-					target, arglist);
+					target, exp);
 
     case MIPS_BUILTIN_CMP_ANY:
     case MIPS_BUILTIN_CMP_ALL:
@@ -10447,7 +10390,7 @@ mips_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
     case MIPS_BUILTIN_CMP_LOWER:
     case MIPS_BUILTIN_CMP_SINGLE:
       return mips_expand_builtin_compare (type, icode, bdesc[fcode].cond,
-					  target, arglist);
+					  target, exp);
 
     case MIPS_BUILTIN_BPOSGE32:
       return mips_expand_builtin_bposge (type, target);
@@ -10673,6 +10616,41 @@ mips_init_builtins (void)
 
       types[MIPS_SI_FTYPE_VOID]
 	= build_function_type (intSI_type_node, void_list_node);
+
+      if (TARGET_DSPR2)
+	{
+	  types[MIPS_V4QI_FTYPE_V4QI]
+	    = build_function_type_list (V4QI_type_node,
+					V4QI_type_node,
+					NULL_TREE);
+
+	  types[MIPS_SI_FTYPE_SI_SI_SI]
+	    = build_function_type_list (intSI_type_node,
+					intSI_type_node, intSI_type_node,
+					intSI_type_node, NULL_TREE);
+
+	  types[MIPS_DI_FTYPE_DI_USI_USI]
+	    = build_function_type_list (intDI_type_node,
+					intDI_type_node,
+					unsigned_intSI_type_node,
+					unsigned_intSI_type_node, NULL_TREE);
+
+	  types[MIPS_DI_FTYPE_SI_SI]
+	    = build_function_type_list (intDI_type_node,
+					intSI_type_node, intSI_type_node,
+					NULL_TREE);
+
+	  types[MIPS_DI_FTYPE_USI_USI]
+	    = build_function_type_list (intDI_type_node,
+					unsigned_intSI_type_node,
+					unsigned_intSI_type_node, NULL_TREE);
+
+	  types[MIPS_V2HI_FTYPE_SI_SI_SI]
+	    = build_function_type_list (V2HI_type_node,
+					intSI_type_node, intSI_type_node,
+					intSI_type_node, NULL_TREE);
+
+	}
     }
 
   /* Iterate through all of the bdesc arrays, initializing all of the
@@ -10681,7 +10659,8 @@ mips_init_builtins (void)
   offset = 0;
   for (m = bdesc_arrays; m < &bdesc_arrays[ARRAY_SIZE (bdesc_arrays)]; m++)
     {
-      if (m->proc == PROCESSOR_MAX || (m->proc == mips_arch))
+      if ((m->proc == PROCESSOR_MAX || (m->proc == mips_arch))
+	  && (m->unsupported_target_flags & target_flags) == 0)
 	for (d = m->bdesc; d < &m->bdesc[m->size]; d++)
 	  if ((d->target_flags & target_flags) == d->target_flags)
 	    add_builtin_function (d->name, types[d->function_type],
@@ -10692,16 +10671,17 @@ mips_init_builtins (void)
 }
 
 /* Expand a MIPS_BUILTIN_DIRECT function.  ICODE is the code of the
-   .md pattern and ARGLIST is the list of function arguments.  TARGET,
+   .md pattern and CALL is the function expr with arguments.  TARGET,
    if nonnull, suggests a good place to put the result.
    HAS_TARGET indicates the function must return something.  */
 
 static rtx
-mips_expand_builtin_direct (enum insn_code icode, rtx target, tree arglist,
+mips_expand_builtin_direct (enum insn_code icode, rtx target, tree exp,
 			    bool has_target)
 {
   rtx ops[MAX_RECOG_OPERANDS];
   int i = 0;
+  int j = 0;
 
   if (has_target)
     {
@@ -10710,10 +10690,10 @@ mips_expand_builtin_direct (enum insn_code icode, rtx target, tree arglist,
       i = 1;
     }
 
-  /* We need to test if arglist is not zero.  Some instructions have extra
+  /* We need to test if the arglist is not zero.  Some instructions have extra
      clobber registers.  */
-  for (; i < insn_data[icode].n_operands && arglist != 0; i++)
-    ops[i] = mips_prepare_builtin_arg (icode, i, &arglist);
+  for (; i < insn_data[icode].n_operands && i <= call_expr_nargs (exp); i++, j++)
+    ops[i] = mips_prepare_builtin_arg (icode, i, exp, j);
 
   switch (i)
     {
@@ -10736,7 +10716,7 @@ mips_expand_builtin_direct (enum insn_code icode, rtx target, tree arglist,
 }
 
 /* Expand a __builtin_mips_movt_*_ps() or __builtin_mips_movf_*_ps()
-   function (TYPE says which).  ARGLIST is the list of arguments to the
+   function (TYPE says which).  EXP is the tree for the function
    function, ICODE is the instruction that should be used to compare
    the first two arguments, and COND is the condition it should test.
    TARGET, if nonnull, suggests a good place to put the result.  */
@@ -10744,26 +10724,26 @@ mips_expand_builtin_direct (enum insn_code icode, rtx target, tree arglist,
 static rtx
 mips_expand_builtin_movtf (enum mips_builtin_type type,
 			   enum insn_code icode, enum mips_fp_condition cond,
-			   rtx target, tree arglist)
+			   rtx target, tree exp)
 {
   rtx cmp_result, op0, op1;
 
   cmp_result = mips_prepare_builtin_target (icode, 0, 0);
-  op0 = mips_prepare_builtin_arg (icode, 1, &arglist);
-  op1 = mips_prepare_builtin_arg (icode, 2, &arglist);
+  op0 = mips_prepare_builtin_arg (icode, 1, exp, 0);
+  op1 = mips_prepare_builtin_arg (icode, 2, exp, 1);
   emit_insn (GEN_FCN (icode) (cmp_result, op0, op1, GEN_INT (cond)));
 
   icode = CODE_FOR_mips_cond_move_tf_ps;
   target = mips_prepare_builtin_target (icode, 0, target);
   if (type == MIPS_BUILTIN_MOVT)
     {
-      op1 = mips_prepare_builtin_arg (icode, 2, &arglist);
-      op0 = mips_prepare_builtin_arg (icode, 1, &arglist);
+      op1 = mips_prepare_builtin_arg (icode, 2, exp, 2);
+      op0 = mips_prepare_builtin_arg (icode, 1, exp, 3);
     }
   else
     {
-      op0 = mips_prepare_builtin_arg (icode, 1, &arglist);
-      op1 = mips_prepare_builtin_arg (icode, 2, &arglist);
+      op0 = mips_prepare_builtin_arg (icode, 1, exp, 2);
+      op1 = mips_prepare_builtin_arg (icode, 2, exp, 3);
     }
   emit_insn (gen_mips_cond_move_tf_ps (target, op0, op1, cmp_result));
   return target;
@@ -10799,24 +10779,25 @@ mips_builtin_branch_and_move (rtx condition, rtx target,
 
 /* Expand a comparison builtin of type BUILTIN_TYPE.  ICODE is the code
    of the comparison instruction and COND is the condition it should test.
-   ARGLIST is the list of function arguments and TARGET, if nonnull,
+   EXP is the function call and arguments and TARGET, if nonnull,
    suggests a good place to put the boolean result.  */
 
 static rtx
 mips_expand_builtin_compare (enum mips_builtin_type builtin_type,
 			     enum insn_code icode, enum mips_fp_condition cond,
-			     rtx target, tree arglist)
+			     rtx target, tree exp)
 {
   rtx offset, condition, cmp_result, ops[MAX_RECOG_OPERANDS];
   int i;
+  int j = 0;
 
   if (target == 0 || GET_MODE (target) != SImode)
     target = gen_reg_rtx (SImode);
 
   /* Prepare the operands to the comparison.  */
   cmp_result = mips_prepare_builtin_target (icode, 0, 0);
-  for (i = 1; i < insn_data[icode].n_operands - 1; i++)
-    ops[i] = mips_prepare_builtin_arg (icode, i, &arglist);
+  for (i = 1; i < insn_data[icode].n_operands - 1; i++, j++)
+    ops[i] = mips_prepare_builtin_arg (icode, i, exp, j);
 
   switch (insn_data[icode].n_operands)
     {

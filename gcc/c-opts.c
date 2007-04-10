@@ -1,5 +1,6 @@
 /* C/ObjC/C++ command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
 This file is part of GCC.
@@ -38,6 +39,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "opts.h"
 #include "options.h"
 #include "mkdeps.h"
+#include "target.h"
 
 #ifndef DOLLARS_IN_IDENTIFIERS
 # define DOLLARS_IN_IDENTIFIERS true
@@ -277,7 +279,12 @@ c_common_handle_option (size_t scode, const char *arg, int value)
     {
     default:
       if (cl_options[code].flags & (CL_C | CL_CXX | CL_ObjC | CL_ObjCXX))
-	break;
+	{
+	  if ((option->flags & CL_TARGET)
+	      && ! targetcm.handle_c_option (scode, arg, value))
+	    result = 0;
+	  break;
+	}
 #ifdef CL_Fortran
       if (lang_fortran && (cl_options[code].flags & (CL_Fortran)))
 	break;
@@ -394,8 +401,9 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	warn_sign_compare = value;
       warn_switch = value;
       warn_strict_aliasing = value;
-      warn_string_literal_comparison = value;
-      warn_always_true = value;
+      warn_address = value;
+      warn_strict_overflow = value;
+      warn_array_bounds = value;
 
       /* Only warn about unknown pragmas that are not in system
 	 headers.  */
@@ -416,6 +424,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	  /* C++-specific warnings.  */
 	  warn_reorder = value;
 	  warn_nontemplate_friend = value;
+          warn_cxx0x_compat = value;
           if (value > 0)
             warn_write_strings = true;
 	}
@@ -447,8 +456,10 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       global_dc->warning_as_error_requested = value;
       break;
 
-    case OPT_Werror_implicit_function_declaration:
-      mesg_implicit_function_declaration = 2;
+    case OPT_Werror_implicit_function_declaration: 
+      /* For backward compatibility, this is the same as
+	 -Werror=implicit-function-declaration.  */
+      enable_warning_as_error ("implicit-function-declaration", value, CL_C | CL_ObjC); 
       break;
 
     case OPT_Wformat:
@@ -1018,6 +1029,13 @@ c_common_post_options (const char **pfilename)
   if (flag_inline_functions)
     flag_inline_trees = 2;
 
+  /* By default we use C99 inline semantics in GNU99 or C99 mode.  C99
+     inline semantics are not supported in GNU89 or C89 mode.  */
+  if (flag_gnu89_inline == -1)
+    flag_gnu89_inline = !flag_isoc99;
+  else if (!flag_gnu89_inline && !flag_isoc99)
+    error ("-fno-gnu89-inline is only supported in GNU99 or C99 mode");
+
   /* If we are given more than one input file, we must use
      unit-at-a-time mode.  */
   if (num_in_fnames > 1)
@@ -1059,6 +1077,23 @@ c_common_post_options (const char **pfilename)
   if (warn_overlength_strings == -1 || c_dialect_cxx ())
     warn_overlength_strings = 0;
 
+  /* Adjust various flags for C++ based on command-line settings.  */
+  if (c_dialect_cxx ())
+    {
+      if (!flag_permissive)
+	{
+	  flag_pedantic_errors = 1;
+	  cpp_opts->pedantic_errors = 1;
+	}
+      if (!flag_no_inline)
+	{
+	  flag_inline_trees = 1;
+	  flag_no_inline = 1;
+	}
+      if (flag_inline_functions)
+	flag_inline_trees = 2;
+    }
+
   /* Special format checking options don't work without -Wformat; warn if
      they are used.  */
   if (!warn_format)
@@ -1071,14 +1106,25 @@ c_common_post_options (const char **pfilename)
 	       "-Wformat-zero-length ignored without -Wformat");
       warning (OPT_Wformat_nonliteral,
 	       "-Wformat-nonliteral ignored without -Wformat");
+      warning (OPT_Wformat_contains_nul,
+	       "-Wformat-contains-nul ignored without -Wformat");
       warning (OPT_Wformat_security,
 	       "-Wformat-security ignored without -Wformat");
     }
+
+  /* -Wimplicit-function-declaration is enabled by default for C99.  */
+  if (warn_implicit_function_declaration == -1) 
+    warn_implicit_function_declaration = flag_isoc99;
 
   /* C99 requires special handling of complex multiplication and division;
      -ffast-math and -fcx-limited-range are handled in process_options.  */
   if (flag_isoc99)
     flag_complex_method = 2;
+
+  /* If we're allowing C++0x constructs, don't warn about C++0x
+     compatibility problems.  */
+  if (flag_cpp0x)
+    warn_cxx0x_compat = 0;
 
   if (flag_preprocess_only)
     {
@@ -1561,13 +1607,7 @@ set_Wimplicit (int on)
 {
   warn_implicit = on;
   warn_implicit_int = on;
-  if (on)
-    {
-      if (mesg_implicit_function_declaration != 2)
-	mesg_implicit_function_declaration = 1;
-    }
-  else
-    mesg_implicit_function_declaration = 0;
+  warn_implicit_function_declaration = on;
 }
 
 /* Args to -d specify what to dump.  Silently ignore

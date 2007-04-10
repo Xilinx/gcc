@@ -109,6 +109,9 @@ int cgraph_n_nodes;
 /* Maximal uid used in cgraph nodes.  */
 int cgraph_max_uid;
 
+/* Maximal pid used for profiling */
+int cgraph_max_pid;
+
 /* Set when whole unit has been analyzed so we can access global info.  */
 bool cgraph_global_info_ready = false;
 
@@ -161,6 +164,7 @@ cgraph_create_node (void)
   node = GGC_CNEW (struct cgraph_node);
   node->next = cgraph_nodes;
   node->uid = cgraph_max_uid++;
+  node->pid = -1;
   node->order = cgraph_order++;
   if (cgraph_nodes)
     cgraph_nodes->previous = node;
@@ -320,7 +324,7 @@ cgraph_set_call_stmt (struct cgraph_edge *e, tree new_stmt)
 
 struct cgraph_edge *
 cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
-		    tree call_stmt, gcov_type count, int nest)
+		    tree call_stmt, gcov_type count, int freq, int nest)
 {
   struct cgraph_edge *edge = GGC_NEW (struct cgraph_edge);
 #ifdef ENABLE_CHECKING
@@ -358,6 +362,10 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
   caller->callees = edge;
   callee->callers = edge;
   edge->count = count;
+  gcc_assert (count >= 0);
+  edge->frequency = freq;
+  gcc_assert (freq >= 0);
+  gcc_assert (freq <= CGRAPH_FREQ_MAX);
   edge->loop_nest = nest;
   if (caller->call_site_hash)
     {
@@ -481,6 +489,7 @@ cgraph_release_function_body (struct cgraph_node *node)
       current_function_decl = node->decl;
       delete_tree_ssa ();
       delete_tree_cfg_annotations ();
+      cfun->eh = NULL;
       current_function_decl = old_decl;
       pop_cfun();
     }
@@ -654,7 +663,7 @@ void
 dump_cgraph_node (FILE *f, struct cgraph_node *node)
 {
   struct cgraph_edge *edge;
-  fprintf (f, "%s/%i:", cgraph_node_name (node), node->uid);
+  fprintf (f, "%s/%i(%i):", cgraph_node_name (node), node->uid, node->pid);
   if (node->global.inlined_to)
     fprintf (f, " (inline copy in %s/%i)",
 	     cgraph_node_name (node->global.inlined_to),
@@ -708,6 +717,9 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
       if (edge->count)
 	fprintf (f, "("HOST_WIDEST_INT_PRINT_DEC"x) ",
 		 (HOST_WIDEST_INT)edge->count);
+      if (edge->frequency)
+	fprintf (f, "(%.2f per call) ",
+		 edge->frequency / (double)CGRAPH_FREQ_BASE);
       if (!edge->inline_failed)
 	fprintf(f, "(inlined) ");
     }
@@ -722,6 +734,9 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
       if (edge->count)
 	fprintf (f, "("HOST_WIDEST_INT_PRINT_DEC"x) ",
 		 (HOST_WIDEST_INT)edge->count);
+      if (edge->frequency)
+	fprintf (f, "(%.2f per call) ",
+		 edge->frequency / (double)CGRAPH_FREQ_BASE);
       if (edge->loop_nest)
 	fprintf (f, "(nested in %i loops) ", edge->loop_nest);
     }
@@ -790,13 +805,16 @@ cgraph_function_possibly_inlined_p (tree decl)
 /* Create clone of E in the node N represented by CALL_EXPR the callgraph.  */
 struct cgraph_edge *
 cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
-		   tree call_stmt, gcov_type count_scale, int loop_nest,
-		   bool update_original)
+		   tree call_stmt, gcov_type count_scale, int freq_scale,
+		   int loop_nest, bool update_original)
 {
   struct cgraph_edge *new;
+  gcov_type count = e->count * count_scale / REG_BR_PROB_BASE;
+  gcov_type freq = e->frequency * (gcov_type) freq_scale / CGRAPH_FREQ_BASE;
 
-  new = cgraph_create_edge (n, e->callee, call_stmt,
-			    e->count * count_scale / REG_BR_PROB_BASE,
+  if (freq > CGRAPH_FREQ_MAX)
+    freq = CGRAPH_FREQ_MAX;
+  new = cgraph_create_edge (n, e->callee, call_stmt, count, freq,
 			    e->loop_nest + loop_nest);
 
   new->inline_failed = e->inline_failed;
@@ -816,7 +834,7 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
    function's profile to reflect the fact that part of execution is handled
    by node.  */
 struct cgraph_node *
-cgraph_clone_node (struct cgraph_node *n, gcov_type count, int loop_nest,
+cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq, int loop_nest,
 		   bool update_original)
 {
   struct cgraph_node *new = cgraph_create_node ();
@@ -848,7 +866,7 @@ cgraph_clone_node (struct cgraph_node *n, gcov_type count, int loop_nest,
     }
 
   for (e = n->callees;e; e=e->next_callee)
-    cgraph_clone_edge (e, new, e->call_stmt, count_scale, loop_nest,
+    cgraph_clone_edge (e, new, e->call_stmt, count_scale, freq, loop_nest,
 		       update_original);
 
   new->next_clone = n->next_clone;

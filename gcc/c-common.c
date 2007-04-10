@@ -48,6 +48,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "opts.h"
 #include "real.h"
 #include "cgraph.h"
+#include "target-def.h"
 
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
@@ -510,6 +511,8 @@ static tree handle_packed_attribute (tree *, tree, tree, int, bool *);
 static tree handle_nocommon_attribute (tree *, tree, tree, int, bool *);
 static tree handle_common_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noreturn_attribute (tree *, tree, tree, int, bool *);
+static tree handle_hot_attribute (tree *, tree, tree, int, bool *);
+static tree handle_cold_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noinline_attribute (tree *, tree, tree, int, bool *);
 static tree handle_always_inline_attribute (tree *, tree, tree, int,
 					    bool *);
@@ -554,7 +557,7 @@ static tree handle_warn_unused_result_attribute (tree *, tree, tree, int,
 						 bool *);
 static tree handle_sentinel_attribute (tree *, tree, tree, int, bool *);
 
-static void check_function_nonnull (tree, tree);
+static void check_function_nonnull (tree, int, tree *);
 static void check_nonnull_arg (void *, tree, unsigned HOST_WIDE_INT);
 static bool nonnull_check_p (tree, unsigned HOST_WIDE_INT);
 static bool get_nonnull_operand (tree, unsigned HOST_WIDE_INT *);
@@ -598,9 +601,9 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_const_attribute },
   { "transparent_union",      0, 0, false, false, false,
 			      handle_transparent_union_attribute },
-  { "constructor",            0, 0, true,  false, false,
+  { "constructor",            0, 1, true,  false, false,
 			      handle_constructor_attribute },
-  { "destructor",             0, 0, true,  false, false,
+  { "destructor",             0, 1, true,  false, false,
 			      handle_destructor_attribute },
   { "mode",                   1, 1, false,  true, false,
 			      handle_mode_attribute },
@@ -647,6 +650,10 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_warn_unused_result_attribute },
   { "sentinel",               0, 1, false, true, true,
 			      handle_sentinel_attribute },
+  { "cold",                   0, 0, true,  false, false,
+			      handle_cold_attribute },
+  { "hot",                    0, 0, true,  false, false,
+			      handle_hot_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
 
@@ -662,6 +669,11 @@ const struct attribute_spec c_common_format_attribute_table[] =
 			      handle_format_arg_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
+
+/* Functions called automatically at the beginning and end of execution.  */
+
+tree static_ctors;
+tree static_dtors;
 
 /* Push current bindings for the function name VAR_DECLS.  */
 
@@ -918,7 +930,7 @@ constant_expression_warning (tree value)
   if ((TREE_CODE (value) == INTEGER_CST || TREE_CODE (value) == REAL_CST
        || TREE_CODE (value) == VECTOR_CST
        || TREE_CODE (value) == COMPLEX_CST)
-      && TREE_CONSTANT_OVERFLOW (value)
+      && TREE_OVERFLOW (value)
       && warn_overflow
       && pedantic)
     pedwarn ("overflow in constant expression");
@@ -966,6 +978,42 @@ overflow_warning (tree value)
     }
 }
 
+
+/* Warn about use of a logical || / && operator being used in a
+   context where it is likely that the bitwise equivalent was intended
+   by the programmer. CODE is the TREE_CODE of the operator, ARG1
+   and ARG2 the arguments.  */
+
+void
+warn_logical_operator (enum tree_code code, tree arg1, tree
+    arg2)
+{
+  switch (code)
+    {
+      case TRUTH_ANDIF_EXPR:
+      case TRUTH_ORIF_EXPR:
+      case TRUTH_OR_EXPR:
+      case TRUTH_AND_EXPR:
+	if (!TREE_NO_WARNING (arg1)
+	    && INTEGRAL_TYPE_P (TREE_TYPE (arg1))
+	    && !CONSTANT_CLASS_P (arg1)
+	    && TREE_CODE (arg2) == INTEGER_CST
+	    && !integer_zerop (arg2))
+	  {
+	    warning (OPT_Wlogical_op,
+		     "logical %<%s%> with non-zero constant "
+		     "will always evaluate as true",
+		     ((code == TRUTH_ANDIF_EXPR)
+		      || (code == TRUTH_AND_EXPR)) ? "&&" : "||");
+	    TREE_NO_WARNING (arg1) = true;
+	  }
+	break;
+      default:
+	break;
+    }
+}
+
+
 /* Print a warning about casts that might indicate violation
    of strict aliasing rules if -Wstrict-aliasing is used and
    strict aliasing mode is in effect. OTYPE is the original
@@ -1008,26 +1056,23 @@ strict_aliasing_warning (tree otype, tree type, tree expr)
    block.  */
 
 void
-empty_body_warning (tree inner_then, tree inner_else)
+empty_if_body_warning (tree inner_then, tree inner_else)
 {
-  if (warn_empty_body)
-    {
-      if (TREE_CODE (inner_then) == STATEMENT_LIST
-	  && STATEMENT_LIST_TAIL (inner_then))
-	inner_then = STATEMENT_LIST_TAIL (inner_then)->stmt;
+  if (TREE_CODE (inner_then) == STATEMENT_LIST
+      && STATEMENT_LIST_TAIL (inner_then))
+    inner_then = STATEMENT_LIST_TAIL (inner_then)->stmt;
 
-      if (inner_else && TREE_CODE (inner_else) == STATEMENT_LIST
-	  && STATEMENT_LIST_TAIL (inner_else))
-	inner_else = STATEMENT_LIST_TAIL (inner_else)->stmt;
+  if (inner_else && TREE_CODE (inner_else) == STATEMENT_LIST
+      && STATEMENT_LIST_TAIL (inner_else))
+    inner_else = STATEMENT_LIST_TAIL (inner_else)->stmt;
 
-      if (IS_EMPTY_STMT (inner_then) && !inner_else)
-	warning (OPT_Wempty_body, "%Hempty body in an if-statement",
-		 EXPR_LOCUS (inner_then));
+  if (IS_EMPTY_STMT (inner_then) && !inner_else)
+    warning (OPT_Wempty_body, "%Hsuggest braces around empty body "
+             "in an %<if%> statement", EXPR_LOCUS (inner_then));
 
-      if (inner_else && IS_EMPTY_STMT (inner_else))
-	warning (OPT_Wempty_body, "%Hempty body in an else-statement",
-		 EXPR_LOCUS (inner_else));
-   }
+  else if (inner_else && IS_EMPTY_STMT (inner_else))
+    warning (OPT_Wempty_body, "%Hsuggest braces around empty body "
+             "in an %<else%> statement", EXPR_LOCUS (inner_else));
 }
 
 /* Warn for unlikely, improbable, or stupid DECL declarations
@@ -1123,7 +1168,7 @@ vector_types_convertible_p (tree t1, tree t2, bool emit_lax_note)
 }
 
 /* Warns if the conversion of EXPR to TYPE may alter a value.
-   This function is called from convert_and_check.  */
+   This is a helper function for warnings_for_convert_and_check.  */
 
 static void
 conversion_warning (tree type, tree expr)
@@ -1231,6 +1276,55 @@ conversion_warning (tree type, tree expr)
     }
 }
 
+/* Produce warnings after a conversion. RESULT is the result of
+   converting EXPR to TYPE.  This is a helper function for
+   convert_and_check and cp_convert_and_check.  */
+
+void
+warnings_for_convert_and_check (tree type, tree expr, tree result)
+{
+  if (TREE_CODE (expr) == INTEGER_CST
+      && (TREE_CODE (type) == INTEGER_TYPE
+          || TREE_CODE (type) == ENUMERAL_TYPE)
+      && !int_fits_type_p (expr, type))
+    {
+      /* Do not diagnose overflow in a constant expression merely
+         because a conversion overflowed.  */
+      if (TREE_OVERFLOW (result))
+        TREE_OVERFLOW (result) = TREE_OVERFLOW (expr);
+
+      if (TYPE_UNSIGNED (type))
+        {
+          /* This detects cases like converting -129 or 256 to
+             unsigned char.  */
+          if (!int_fits_type_p (expr, c_common_signed_type (type)))
+            warning (OPT_Woverflow,
+                     "large integer implicitly truncated to unsigned type");
+          else if (warn_conversion)
+            conversion_warning (type, expr);
+        }
+      else if (!int_fits_type_p (expr, c_common_unsigned_type (type))) 
+	warning (OPT_Woverflow,
+		 "overflow in implicit constant conversion");
+      /* No warning for converting 0x80000000 to int.  */
+      else if (pedantic
+	       && (TREE_CODE (TREE_TYPE (expr)) != INTEGER_TYPE
+		   || TYPE_PRECISION (TREE_TYPE (expr))
+		   != TYPE_PRECISION (type)))
+	warning (OPT_Woverflow,
+		 "overflow in implicit constant conversion");
+
+      else if (warn_conversion)
+	conversion_warning (type, expr);
+    }
+  else if (TREE_CODE (result) == INTEGER_CST && TREE_OVERFLOW (result)) 
+    warning (OPT_Woverflow,
+             "overflow in implicit constant conversion");
+  else if (warn_conversion)
+    conversion_warning (type, expr);
+}
+
+
 /* Convert EXPR to TYPE, warning about conversion problems with constants.
    Invoke this function on every expression that is converted implicitly,
    i.e. because of language rules and not because of an explicit cast.  */
@@ -1245,55 +1339,9 @@ convert_and_check (tree type, tree expr)
   
   result = convert (type, expr);
 
-  if (skip_evaluation)
-    return result;
+  if (!skip_evaluation && !TREE_OVERFLOW_P (expr))
+    warnings_for_convert_and_check (type, expr, result);
 
-
-  if (TREE_CODE (expr) == INTEGER_CST
-      && (TREE_CODE (type) == INTEGER_TYPE
-          || TREE_CODE (type) == ENUMERAL_TYPE)
-      && !int_fits_type_p (expr, type))
-    {
-      /* Do not diagnose overflow in a constant expression merely
-         because a conversion overflowed.  */
-      if (TREE_OVERFLOW (result))
-        {
-          TREE_CONSTANT_OVERFLOW (result) = TREE_CONSTANT_OVERFLOW (expr);
-          TREE_OVERFLOW (result) = TREE_OVERFLOW (expr);
-        }
-      
-      if (TYPE_UNSIGNED (type))
-        {
-          /* This detects cases like converting -129 or 256 to
-             unsigned char.  */
-          if (!int_fits_type_p (expr, c_common_signed_type (type)))
-            warning (OPT_Woverflow,
-                     "large integer implicitly truncated to unsigned type");
-          else if (warn_conversion)
-            conversion_warning (type, expr);
-        }
-      else
-        {
-          if (!int_fits_type_p (expr, c_common_unsigned_type (type)))
-            warning (OPT_Woverflow,
-                     "overflow in implicit constant conversion");
-          /* No warning for converting 0x80000000 to int.  */
-          else if (pedantic
-                   && (TREE_CODE (TREE_TYPE (expr)) != INTEGER_TYPE
-                       || TYPE_PRECISION (TREE_TYPE (expr))
-                       != TYPE_PRECISION (type)))
-            warning (OPT_Woverflow,
-                     "overflow in implicit constant conversion");
-          else if (warn_conversion)
-            conversion_warning (type, expr);
-        }
-    }
-  else if (TREE_CODE (result) == INTEGER_CST && TREE_OVERFLOW (result)) 
-    warning (OPT_Woverflow,
-             "overflow in implicit constant conversion");
-  else if (warn_conversion)
-    conversion_warning (type, expr);
-  
   return result;
 }
 
@@ -1579,16 +1627,23 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
       /* We need to warn about conflicts among arguments and conflicts between
 	 args and the function address.  Side effects of the function address,
 	 however, are not ordered by the sequence point of the call.  */
-      tmp_before = tmp_nosp = tmp_list2 = tmp_list3 = 0;
-      verify_tree (TREE_OPERAND (x, 0), &tmp_before, &tmp_nosp, NULL_TREE);
-      if (TREE_OPERAND (x, 1))
-	verify_tree (TREE_OPERAND (x, 1), &tmp_list2, &tmp_list3, NULL_TREE);
-      merge_tlist (&tmp_list3, tmp_list2, 0);
-      add_tlist (&tmp_before, tmp_list3, NULL_TREE, 0);
-      add_tlist (&tmp_before, tmp_nosp, NULL_TREE, 0);
-      warn_for_collisions (tmp_before);
-      add_tlist (pbefore_sp, tmp_before, NULL_TREE, 0);
-      return;
+      {
+	call_expr_arg_iterator iter;
+	tree arg;
+	tmp_before = tmp_nosp = 0; 
+	verify_tree (CALL_EXPR_FN (x), &tmp_before, &tmp_nosp, NULL_TREE);
+	FOR_EACH_CALL_EXPR_ARG (arg, iter, x)
+	  {
+	    tmp_list2 = tmp_list3 = 0;
+	    verify_tree (arg, &tmp_list2, &tmp_list3, NULL_TREE);
+	    merge_tlist (&tmp_list3, tmp_list2, 0);
+	    add_tlist (&tmp_before, tmp_list3, NULL_TREE, 0);
+	  }
+	add_tlist (&tmp_before, tmp_nosp, NULL_TREE, 0);
+	warn_for_collisions (tmp_before);
+	add_tlist (pbefore_sp, tmp_before, NULL_TREE, 0);
+	return;
+      }
 
     case TREE_LIST:
       /* Scan all the list, e.g. indices of multi dimensional array.  */
@@ -1648,7 +1703,7 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
       else if (IS_EXPR_CODE_CLASS (cl))
 	{
 	  int lp;
-	  int max = TREE_CODE_LENGTH (TREE_CODE (x));
+	  int max = TREE_OPERAND_LENGTH (x);
 	  for (lp = 0; lp < max; lp++)
 	    {
 	      tmp_before = tmp_nosp = 0;
@@ -2323,8 +2378,7 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
 	  primop1 = force_fit_type_double (*restype_ptr,
 					   TREE_INT_CST_LOW (primop1),
 					   TREE_INT_CST_HIGH (primop1), 0,
-					   TREE_OVERFLOW (primop1),
-					   TREE_CONSTANT_OVERFLOW (primop1));
+					   TREE_OVERFLOW (primop1));
 	}
       if (type != *restype_ptr)
 	{
@@ -2547,7 +2601,7 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
 tree
 pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
 {
-  tree size_exp;
+  tree size_exp, ret;
 
   /* The result is a pointer of the same type that is being added.  */
 
@@ -2573,6 +2627,12 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
     }
   else
     size_exp = size_in_bytes (TREE_TYPE (result_type));
+
+  /* We are manipulating pointer values, so we don't need to warn
+     about relying on undefined signed overflow.  We disable the
+     warning here because we use integer types so fold won't know that
+     they are really pointers.  */
+  fold_defer_overflow_warnings ();
 
   /* If what we are about to multiply by the size of the elements
      contains a constant term, apply distributive law
@@ -2622,7 +2682,11 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
 				    convert (TREE_TYPE (intop), size_exp), 1));
 
   /* Create the sum or difference.  */
-  return fold_build2 (resultcode, result_type, ptrop, intop);
+  ret = fold_build2 (resultcode, result_type, ptrop, intop);
+
+  fold_undefer_and_ignore_overflow_warnings ();
+
+  return ret;
 }
 
 /* Return whether EXPR is a declaration whose address can never be
@@ -2685,10 +2749,8 @@ c_common_truthvalue_conversion (tree expr)
       return expr;
 
     case INTEGER_CST:
-      /* Avoid integer_zerop to ignore TREE_CONSTANT_OVERFLOW.  */
-      return (TREE_INT_CST_LOW (expr) != 0 || TREE_INT_CST_HIGH (expr) != 0)
-	     ? truthvalue_true_node
-	     : truthvalue_false_node;
+      return integer_zerop (expr) ? truthvalue_false_node
+				  : truthvalue_true_node;
 
     case REAL_CST:
       return real_compare (NE_EXPR, &TREE_REAL_CST (expr), &dconst0)
@@ -2705,7 +2767,7 @@ c_common_truthvalue_conversion (tree expr)
 	if (decl_with_nonnull_addr_p (inner))
 	  {
 	    /* Common Ada/Pascal programmer's mistake.  */
-	    warning (OPT_Walways_true,
+	    warning (OPT_Waddress,
 		     "the address of %qD will always evaluate as %<true%>",
 		     inner);
 	    return truthvalue_true_node;
@@ -4209,6 +4271,29 @@ c_expand_expr (tree exp, rtx target, enum machine_mode tmode,
     }
 }
 
+
+/* Generate the RTL for the body of FNDECL.  */
+
+void
+c_expand_body (tree fndecl)
+{
+
+  if (!DECL_INITIAL (fndecl)
+      || DECL_INITIAL (fndecl) == error_mark_node)
+    return;
+
+  tree_rest_of_compilation (fndecl);
+
+  if (DECL_STATIC_CONSTRUCTOR (fndecl)
+      && targetm.have_ctors_dtors)
+    targetm.asm_out.constructor (XEXP (DECL_RTL (fndecl), 0),
+				 decl_init_priority_lookup (fndecl));
+  if (DECL_STATIC_DESTRUCTOR (fndecl)
+      && targetm.have_ctors_dtors)
+    targetm.asm_out.destructor (XEXP (DECL_RTL (fndecl), 0),
+				decl_fini_priority_lookup (fndecl));
+}
+
 /* Hook used by staticp to handle language-specific tree codes.  */
 
 tree
@@ -4386,6 +4471,59 @@ handle_noreturn_attribute (tree *node, tree name, tree ARG_UNUSED (args),
       = build_pointer_type
 	(build_type_variant (TREE_TYPE (type),
 			     TYPE_READONLY (TREE_TYPE (type)), 1));
+  else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
+/* Handle a "hot" and attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_hot_attribute (tree *node, tree name, tree ARG_UNUSED (args),
+			  int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) == FUNCTION_DECL)
+    {
+      if (lookup_attribute ("cold", DECL_ATTRIBUTES (*node)) != NULL)
+	{
+	  warning (OPT_Wattributes, "%qE attribute conflicts with attribute %s",
+		   name, "cold");
+	  *no_add_attrs = true;
+	}
+      /* Do nothing else, just set the attribute.  We'll get at
+	 it later with lookup_attribute.  */
+    }
+  else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+/* Handle a "cold" and attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_cold_attribute (tree *node, tree name, tree ARG_UNUSED (args),
+		       int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) == FUNCTION_DECL)
+    {
+      if (lookup_attribute ("hot", DECL_ATTRIBUTES (*node)) != NULL)
+	{
+	  warning (OPT_Wattributes, "%qE attribute conflicts with attribute %s",
+		   name, "hot");
+	  *no_add_attrs = true;
+	}
+      /* Do nothing else, just set the attribute.  We'll get at
+	 it later with lookup_attribute.  */
+    }
   else
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);
@@ -4644,12 +4782,68 @@ handle_transparent_union_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* Subroutine of handle_{con,de}structor_attribute.  Evaluate ARGS to
+   get the requested priority for a constructor or destructor,
+   possibly issuing diagnostics for invalid or reserved
+   priorities.  */
+
+static priority_type
+get_priority (tree args, bool is_destructor)
+{
+  HOST_WIDE_INT pri;
+  tree arg;
+
+  if (!args)
+    return DEFAULT_INIT_PRIORITY;
+  
+  if (!SUPPORTS_INIT_PRIORITY)
+    {
+      if (is_destructor)
+	error ("destructor priorities are not supported");
+      else
+	error ("constructor priorities are not supported");
+      return DEFAULT_INIT_PRIORITY;
+    }
+
+  arg = TREE_VALUE (args);
+  if (!host_integerp (arg, /*pos=*/0)
+      || !INTEGRAL_TYPE_P (TREE_TYPE (arg)))
+    goto invalid;
+
+  pri = tree_low_cst (TREE_VALUE (args), /*pos=*/0);
+  if (pri < 0 || pri > MAX_INIT_PRIORITY)
+    goto invalid;
+
+  if (pri <= MAX_RESERVED_INIT_PRIORITY)
+    {
+      if (is_destructor)
+	warning (0,
+		 "destructor priorities from 0 to %d are reserved "
+		 "for the implementation", 
+		 MAX_RESERVED_INIT_PRIORITY);
+      else
+	warning (0,
+		 "constructor priorities from 0 to %d are reserved "
+		 "for the implementation", 
+		 MAX_RESERVED_INIT_PRIORITY);
+    }
+  return pri;
+
+ invalid:
+  if (is_destructor)
+    error ("destructor priorities must be integers from 0 to %d inclusive",
+	   MAX_INIT_PRIORITY);
+  else
+    error ("constructor priorities must be integers from 0 to %d inclusive",
+	   MAX_INIT_PRIORITY);
+  return DEFAULT_INIT_PRIORITY;
+}
+
 /* Handle a "constructor" attribute; arguments as in
    struct attribute_spec.handler.  */
 
 static tree
-handle_constructor_attribute (tree *node, tree name,
-			      tree ARG_UNUSED (args),
+handle_constructor_attribute (tree *node, tree name, tree args,
 			      int ARG_UNUSED (flags),
 			      bool *no_add_attrs)
 {
@@ -4660,7 +4854,10 @@ handle_constructor_attribute (tree *node, tree name,
       && TREE_CODE (type) == FUNCTION_TYPE
       && decl_function_context (decl) == 0)
     {
+      priority_type priority;
       DECL_STATIC_CONSTRUCTOR (decl) = 1;
+      priority = get_priority (args, /*is_destructor=*/false);
+      SET_DECL_INIT_PRIORITY (decl, priority);
       TREE_USED (decl) = 1;
     }
   else
@@ -4676,8 +4873,7 @@ handle_constructor_attribute (tree *node, tree name,
    struct attribute_spec.handler.  */
 
 static tree
-handle_destructor_attribute (tree *node, tree name,
-			     tree ARG_UNUSED (args),
+handle_destructor_attribute (tree *node, tree name, tree args,
 			     int ARG_UNUSED (flags),
 			     bool *no_add_attrs)
 {
@@ -4688,7 +4884,10 @@ handle_destructor_attribute (tree *node, tree name,
       && TREE_CODE (type) == FUNCTION_TYPE
       && decl_function_context (decl) == 0)
     {
+      priority_type priority;
       DECL_STATIC_DESTRUCTOR (decl) = 1;
+      priority = get_priority (args, /*is_destructor=*/true);
+      SET_DECL_FINI_PRIORITY (decl, priority);
       TREE_USED (decl) = 1;
     }
   else
@@ -5610,13 +5809,15 @@ handle_nonnull_attribute (tree *node, tree ARG_UNUSED (name),
 }
 
 /* Check the argument list of a function call for null in argument slots
-   that are marked as requiring a non-null pointer argument.  */
+   that are marked as requiring a non-null pointer argument.  The NARGS
+   arguments are passed in the array ARGARRAY.
+*/
 
 static void
-check_function_nonnull (tree attrs, tree params)
+check_function_nonnull (tree attrs, int nargs, tree *argarray)
 {
-  tree a, args, param;
-  int param_num;
+  tree a, args;
+  int i;
 
   for (a = attrs; a; a = TREE_CHAIN (a))
     {
@@ -5628,85 +5829,65 @@ check_function_nonnull (tree attrs, tree params)
 	     should check for non-null, do it.  If the attribute has no args,
 	     then every pointer argument is checked (in which case the check
 	     for pointer type is done in check_nonnull_arg).  */
-	  for (param = params, param_num = 1; ;
-	       param_num++, param = TREE_CHAIN (param))
+	  for (i = 0; i < nargs; i++)
 	    {
-	      if (!param)
-		break;
-	      if (!args || nonnull_check_p (args, param_num))
+	      if (!args || nonnull_check_p (args, i + 1))
 		check_function_arguments_recurse (check_nonnull_arg, NULL,
-						  TREE_VALUE (param),
-						  param_num);
+						  argarray[i],
+						  i + 1);
 	    }
 	}
     }
 }
 
 /* Check that the Nth argument of a function call (counting backwards
-   from the end) is a (pointer)0.  */
+   from the end) is a (pointer)0.  The NARGS arguments are passed in the
+   array ARGARRAY.  */
 
 static void
-check_function_sentinel (tree attrs, tree params, tree typelist)
+check_function_sentinel (tree attrs, int nargs, tree *argarray, tree typelist)
 {
   tree attr = lookup_attribute ("sentinel", attrs);
 
   if (attr)
     {
+      int len = 0;
+      int pos = 0;
+      tree sentinel;
+
       /* Skip over the named arguments.  */
-      while (typelist && params)
-      {
-	typelist = TREE_CHAIN (typelist);
-	params = TREE_CHAIN (params);
-      }
-
-      if (typelist || !params)
-	warning (OPT_Wformat,
-		 "not enough variable arguments to fit a sentinel");
-      else
+      while (typelist && len < nargs)
 	{
-	  tree sentinel, end;
-	  unsigned pos = 0;
-
-	  if (TREE_VALUE (attr))
-	    {
-	      tree p = TREE_VALUE (TREE_VALUE (attr));
-	      pos = TREE_INT_CST_LOW (p);
-	    }
-
-	  sentinel = end = params;
-
-	  /* Advance `end' ahead of `sentinel' by `pos' positions.  */
-	  while (pos > 0 && TREE_CHAIN (end))
-	    {
-	      pos--;
-	      end = TREE_CHAIN (end);
-	    }
-	  if (pos > 0)
-	    {
-	      warning (OPT_Wformat,
-		       "not enough variable arguments to fit a sentinel");
-	      return;
-	    }
-
-	  /* Now advance both until we find the last parameter.  */
-	  while (TREE_CHAIN (end))
-	    {
-	      end = TREE_CHAIN (end);
-	      sentinel = TREE_CHAIN (sentinel);
-	    }
-
-	  /* Validate the sentinel.  */
-	  if ((!POINTER_TYPE_P (TREE_TYPE (TREE_VALUE (sentinel)))
-	       || !integer_zerop (TREE_VALUE (sentinel)))
-	      /* Although __null (in C++) is only an integer we allow it
-		 nevertheless, as we are guaranteed that it's exactly
-		 as wide as a pointer, and we don't want to force
-		 users to cast the NULL they have written there.
-		 We warn with -Wstrict-null-sentinel, though.  */
-	      && (warn_strict_null_sentinel
-		  || null_node != TREE_VALUE (sentinel)))
-	    warning (OPT_Wformat, "missing sentinel in function call");
+	  typelist = TREE_CHAIN (typelist);
+	  len++;
 	}
+
+      if (TREE_VALUE (attr))
+	{
+	  tree p = TREE_VALUE (TREE_VALUE (attr));
+	  pos = TREE_INT_CST_LOW (p);
+	}
+
+      /* The sentinel must be one of the varargs, i.e.
+	 in position >= the number of fixed arguments.  */
+      if ((nargs - 1 - pos) < len)
+	{
+	  warning (OPT_Wformat,
+		   "not enough variable arguments to fit a sentinel");
+	  return;
+	}
+
+      /* Validate the sentinel.  */
+      sentinel = argarray[nargs - 1 - pos];
+      if ((!POINTER_TYPE_P (TREE_TYPE (sentinel))
+	   || !integer_zerop (sentinel))
+	  /* Although __null (in C++) is only an integer we allow it
+	     nevertheless, as we are guaranteed that it's exactly
+	     as wide as a pointer, and we don't want to force
+	     users to cast the NULL they have written there.
+	     We warn with -Wstrict-null-sentinel, though.  */
+	  && (warn_strict_null_sentinel || null_node != sentinel))
+	warning (OPT_Wformat, "missing sentinel in function call");
     }
 }
 
@@ -5896,23 +6077,26 @@ handle_sentinel_attribute (tree *node, tree name, tree args,
   return NULL_TREE;
 }
 
-/* Check for valid arguments being passed to a function.  */
+/* Check for valid arguments being passed to a function.
+   ATTRS is a list of attributes.  There are NARGS arguments in the array
+   ARGARRAY.  TYPELIST is the list of argument types for the function.
+ */
 void
-check_function_arguments (tree attrs, tree params, tree typelist)
+check_function_arguments (tree attrs, int nargs, tree *argarray, tree typelist)
 {
   /* Check for null being passed in a pointer argument that must be
      non-null.  We also need to do this if format checking is enabled.  */
 
   if (warn_nonnull)
-    check_function_nonnull (attrs, params);
+    check_function_nonnull (attrs, nargs, argarray);
 
   /* Check for errors in format strings.  */
 
   if (warn_format || warn_missing_format_attribute)
-      check_function_format (attrs, params);
+    check_function_format (attrs, nargs, argarray);
 
   if (warn_format)
-    check_function_sentinel (attrs, params, typelist);
+    check_function_sentinel (attrs, nargs, argarray, typelist);
 }
 
 /* Generic argument checking recursion routine.  PARAM is the argument to
@@ -5936,7 +6120,7 @@ check_function_arguments_recurse (void (*callback)
 
   if (TREE_CODE (param) == CALL_EXPR)
     {
-      tree type = TREE_TYPE (TREE_TYPE (TREE_OPERAND (param, 0)));
+      tree type = TREE_TYPE (TREE_TYPE (CALL_EXPR_FN (param)));
       tree attrs;
       bool found_format_arg = false;
 
@@ -5949,10 +6133,11 @@ check_function_arguments_recurse (void (*callback)
 	   attrs = TREE_CHAIN (attrs))
 	if (is_attribute_p ("format_arg", TREE_PURPOSE (attrs)))
 	  {
-	    tree inner_args;
+	    tree inner_arg;
 	    tree format_num_expr;
 	    int format_num;
 	    int i;
+	    call_expr_arg_iterator iter;
 
 	    /* Extract the argument number, which was previously checked
 	       to be valid.  */
@@ -5963,14 +6148,13 @@ check_function_arguments_recurse (void (*callback)
 
 	    format_num = TREE_INT_CST_LOW (format_num_expr);
 
-	    for (inner_args = TREE_OPERAND (param, 1), i = 1;
-		 inner_args != 0;
-		 inner_args = TREE_CHAIN (inner_args), i++)
+	    for (inner_arg = first_call_expr_arg (param, &iter), i = 1;
+		 inner_arg != 0;
+		 inner_arg = next_call_expr_arg (&iter), i++)
 	      if (i == format_num)
 		{
 		  check_function_arguments_recurse (callback, ctx,
-						    TREE_VALUE (inner_args),
-						    param_num);
+						    inner_arg, param_num);
 		  found_format_arg = true;
 		  break;
 		}
@@ -6187,7 +6371,7 @@ c_warn_unused_result (tree *top_p)
 	ftype = TREE_TYPE (fdecl);
       else
 	{
-	  ftype = TREE_TYPE (TREE_OPERAND (t, 0));
+	  ftype = TREE_TYPE (CALL_EXPR_FN (t));
 	  /* Look past pointer-to-function to the function type itself.  */
 	  ftype = TREE_TYPE (ftype);
 	}
@@ -6300,6 +6484,12 @@ fold_offsetof_1 (tree expr, tree stop_ref)
       t = convert (sizetype, t);
       off = size_binop (MULT_EXPR, TYPE_SIZE_UNIT (TREE_TYPE (expr)), t);
       break;
+
+    case COMPOUND_EXPR:
+      /* Handle static members of volatile structs.  */
+      t = TREE_OPERAND (expr, 1);
+      gcc_assert (TREE_CODE (t) == VAR_DECL);
+      return fold_offsetof_1 (t, stop_ref);
 
     default:
       gcc_unreachable ();
@@ -6756,13 +6946,109 @@ warn_about_parentheses (enum tree_code code, enum tree_code code_left,
 		 "suggest parentheses around comparison in operand of &");
     }
 
-  /* Similarly, check for cases like 1<=i<=10 that are probably errors.  */
-  if (TREE_CODE_CLASS (code) == tcc_comparison
-      && (TREE_CODE_CLASS (code_left) == tcc_comparison
-	  || TREE_CODE_CLASS (code_right) == tcc_comparison))
-    warning (OPT_Wparentheses, "comparisons like X<=Y<=Z do not "
-	     "have their mathematical meaning");
+  if (code == EQ_EXPR || code == NE_EXPR)
+    {
+      if (TREE_CODE_CLASS (code_left) == tcc_comparison
+          || TREE_CODE_CLASS (code_right) == tcc_comparison)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around comparison in operand of %s",
+                 code == EQ_EXPR ? "==" : "!=");
+    }
+  else if (TREE_CODE_CLASS (code) == tcc_comparison)
+    {
+      if ((TREE_CODE_CLASS (code_left) == tcc_comparison
+	   && code_left != NE_EXPR && code_left != EQ_EXPR)
+	  || (TREE_CODE_CLASS (code_right) == tcc_comparison
+	      && code_right != NE_EXPR && code_right != EQ_EXPR))
+	warning (OPT_Wparentheses, "comparisons like X<=Y<=Z do not "
+		 "have their mathematical meaning");
+    }
 }
 
+/* If LABEL (a LABEL_DECL) has not been used, issue a warning.  */
+
+void
+warn_for_unused_label (tree label)
+{
+  if (!TREE_USED (label))
+    {
+      if (DECL_INITIAL (label))
+	warning (OPT_Wunused_label, "label %q+D defined but not used", label);
+      else
+        warning (OPT_Wunused_label, "label %q+D declared but not defined", label);
+    }
+}
+
+/* If FNDECL is a static constructor or destructor, add it to the list
+   of functions to be called by the file scope initialization
+   function.  */
+
+void
+c_record_cdtor_fn (tree fndecl)
+{
+  if (targetm.have_ctors_dtors)
+    return;
+
+  if (DECL_STATIC_CONSTRUCTOR (fndecl))
+    static_ctors = tree_cons (NULL_TREE, fndecl, static_ctors);
+  if (DECL_STATIC_DESTRUCTOR (fndecl))
+    static_dtors = tree_cons (NULL_TREE, fndecl, static_dtors);
+}
+
+/* Synthesize a function which calls all the global ctors or global
+   dtors in this file.  This is only used for targets which do not
+   support .ctors/.dtors sections.  FIXME: Migrate into cgraph.  */
+static void
+build_cdtor (int method_type, tree cdtors)
+{
+  tree body = 0;
+
+  if (!cdtors)
+    return;
+
+  for (; cdtors; cdtors = TREE_CHAIN (cdtors))
+    append_to_statement_list (build_function_call (TREE_VALUE (cdtors), 0),
+			      &body);
+
+  cgraph_build_static_cdtor (method_type, body, DEFAULT_INIT_PRIORITY);
+}
+
+/* Generate functions to call static constructors and destructors
+   for targets that do not support .ctors/.dtors sections.  These
+   functions have magic names which are detected by collect2.  */
+
+void
+c_build_cdtor_fns (void)
+{
+  if (!targetm.have_ctors_dtors)
+    {
+      build_cdtor ('I', static_ctors); 
+      static_ctors = NULL_TREE;
+      build_cdtor ('D', static_dtors); 
+      static_dtors = NULL_TREE;
+    }
+  else
+    {
+      gcc_assert (!static_ctors);
+      gcc_assert (!static_dtors);
+    }
+}
+
+#ifndef TARGET_HAS_TARGETCM
+struct gcc_targetcm targetcm = TARGETCM_INITIALIZER;
+#endif
+
+/* Warn for division by zero according to the value of DIVISOR.  */
+
+void
+warn_for_div_by_zero (tree divisor)
+{
+  /* If DIVISOR is zero, and has integral type, issue a warning about
+     division by zero.  Do not issue a warning if DIVISOR has a
+     floating-point type, since we consider 0.0/0.0 a valid way of
+     generating a NaN.  */
+  if (skip_evaluation == 0 && integer_zerop (divisor))
+    warning (OPT_Wdiv_by_zero, "division by zero");
+}
 
 #include "gt-c-common.h"

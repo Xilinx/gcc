@@ -899,6 +899,8 @@ find_array_element (gfc_constructor *cons, gfc_array_ref *ar,
   int i;
   mpz_t delta;
   mpz_t offset;
+  mpz_t span;
+  mpz_t tmp;
   gfc_expr *e;
   try t;
 
@@ -907,6 +909,8 @@ find_array_element (gfc_constructor *cons, gfc_array_ref *ar,
 
   mpz_init_set_ui (offset, 0);
   mpz_init (delta);
+  mpz_init (tmp);
+  mpz_init_set_ui (span, 1);
   for (i = 0; i < ar->dimen; i++)
     {
       e = gfc_copy_expr (ar->start[i]);
@@ -930,7 +934,13 @@ find_array_element (gfc_constructor *cons, gfc_array_ref *ar,
 	}
 
       mpz_sub (delta, e->value.integer, ar->as->lower[i]->value.integer);
+      mpz_mul (delta, delta, span);
       mpz_add (offset, offset, delta);
+
+      mpz_set_ui (tmp, 1);
+      mpz_add (tmp, tmp, ar->as->upper[i]->value.integer);
+      mpz_sub (tmp, tmp, ar->as->lower[i]->value.integer);
+      mpz_mul (span, span, tmp);
     }
 
   if (cons)
@@ -949,6 +959,8 @@ find_array_element (gfc_constructor *cons, gfc_array_ref *ar,
 depart:
   mpz_clear (delta);
   mpz_clear (offset);
+  mpz_clear (span);
+  mpz_clear (tmp);
   if (e)
     gfc_free_expr (e);
   *rval = cons;
@@ -1063,7 +1075,13 @@ find_array_section (gfc_expr *expr, gfc_ref *ref)
       if (ref->u.ar.dimen_type[d] == DIMEN_VECTOR)  /* Vector subscript.  */
 	{
 	  gcc_assert (begin);
-	  gcc_assert (begin->expr_type == EXPR_ARRAY); 
+
+	  if (begin->expr_type != EXPR_ARRAY)
+	    {
+	      t = FAILURE;
+	      goto cleanup;
+	    }
+
 	  gcc_assert (begin->rank == 1);
 	  gcc_assert (begin->shape);
 
@@ -1137,8 +1155,7 @@ find_array_section (gfc_expr *expr, gfc_ref *ref)
 	    }
 
 	  /* Calculate the number of elements and the shape.  */
-	  mpz_abs (tmp_mpz, stride[d]);
-	  mpz_div (tmp_mpz, stride[d], tmp_mpz);
+	  mpz_set (tmp_mpz, stride[d]);
 	  mpz_add (tmp_mpz, end[d], tmp_mpz);
 	  mpz_sub (tmp_mpz, tmp_mpz, ctr[d]);
 	  mpz_div (tmp_mpz, tmp_mpz, stride[d]);

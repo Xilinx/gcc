@@ -654,7 +654,8 @@ fix = {
  */
 fix = {
     hackname  = alpha___extern_prefix;
-    select    = "(.*)(defined\\(__DECC\\)|def[ \t]*__DECC)[ \t]*\n(#[ \t]*pragma[ \t]*extern_prefix.*)";
+    select    = "(.*)(defined\\(__DECC\\)|def[ \t]*__DECC)[ \t]*\n"
+                "(#[ \t]*pragma[ \t]*extern_prefix.*)";
 
     mach      = "alpha*-dec-osf*";
     c_fix     = format;
@@ -681,7 +682,8 @@ fix = {
     c_fix     = format;
     c_fix_arg = "%0 && !defined(__PRAGMA_EXTERN_PREFIX)";
 
-    test_text = "#if (_ISO_C_SOURCE>=19990L) && !defined(_LIBC_POLLUTION_H_) && !defined(__DECC)";
+    test_text = "#if (_ISO_C_SOURCE>=19990L) "
+                "&& !defined(_LIBC_POLLUTION_H_) && !defined(__DECC)";
 };
 
 
@@ -714,7 +716,8 @@ fix = {
     select    = '(#define assert\(EX\).*)\(\(int\) \(EX\)\)';
     c_fix     = format;
     c_fix_arg = "%1(EX)";
-    test_text = '#define assert(EX) (((int) (EX)) ? (void)0 : __assert(#EX, __FILE__, __LINE__))';
+    test_text = '#define assert(EX) (((int) (EX)) ? (void)0 '
+                ': __assert(#EX, __FILE__, __LINE__))';
 };
 
 
@@ -782,14 +785,17 @@ fix = {
 fix = {
     hackname  = alpha_pthread;
     files     = pthread.h;
-    select    = "((#[ \t]*if)([ \t]*defined[ \t]*\\(_PTHREAD_ENV_DECC\\)|def _PTHREAD_ENV_DECC)(.*))\n"
+    select    = "((#[ \t]*if)([ \t]*defined[ \t]*\\(_PTHREAD_ENV_DECC\\)"
+                "|def _PTHREAD_ENV_DECC)(.*))\n"
 		"(#[ \t]*define _PTHREAD_USE_PTDNAM_)";
 
     mach      = "alpha*-dec-osf*";
     c_fix     = format;
-    c_fix_arg = "%2 defined (_PTHREAD_ENV_DECC)%4 || defined (__PRAGMA_EXTERN_PREFIX)\n%5";
+    c_fix_arg = "%2 defined (_PTHREAD_ENV_DECC)%4 "
+                "|| defined (__PRAGMA_EXTERN_PREFIX)\n%5";
 
-    test_text = "#  if defined (_PTHREAD_ENV_DECC) || defined (_PTHREAD_ENV_EPCC)\n"
+    test_text = "#  if defined (_PTHREAD_ENV_DECC) "
+                      "|| defined (_PTHREAD_ENV_EPCC)\n"
 		"#   define _PTHREAD_USE_PTDNAM_\n"
 		"#  endif\n"
 		"#  ifdef _PTHREAD_ENV_DECC\n"
@@ -887,8 +893,12 @@ fix = {
 
     mach     = "alpha*-dec-osf4*";
     select   = "#define wcstok wcstok_r";
-    sed      = "s@#define wcstok wcstok_r@extern wchar_t *wcstok __((wchar_t *, const wchar_t *, wchar_t **)) __asm__(\"wcstok_r\");@";
-    sed      = "s@#define wcsftime __wcsftime_isoc@extern size_t   wcsftime __((wchar_t *, size_t, const wchar_t *, const struct tm *)) __asm__(\"__wcsftime_isoc\");@";
+    sed      = "s@#define wcstok wcstok_r@"
+                "extern wchar_t *wcstok __((wchar_t *, const wchar_t *, "
+                          "wchar_t **)) __asm__(\"wcstok_r\");@";
+    sed      = "s@#define wcsftime __wcsftime_isoc@"
+                "extern size_t   wcsftime __((wchar_t *, size_t, const wchar_t *"
+                          ", const struct tm *)) __asm__(\"__wcsftime_isoc\");@";
     test_text = "#define wcstok wcstok_r\n"
 		"#define wcsftime __wcsftime_isoc";
 };
@@ -1031,9 +1041,8 @@ fix = {
     files    = math.h, "architecture/*/math.h";
     select   = "^extern[ \t]+double[ \t]+cabs";
 
-    c_fix     = format;
-    c_fix_arg = "";
-    c_fix_arg = "^extern[ \t]+double[ \t]+cabs[ \t]*\\([^\\)]*\\);";
+    sed       = "s/^extern[ \t]*double[ \t]*cabs[ \t]*\([^\\\)]*\);//";
+    sed       = "s/^extern[ \t]*long[ \t]*double[ \t]*cabsl[ \t]*\([^\\\)]*\);//";
 
     test_text = "#ifdef __STDC__\n"
                 "extern     double   cabs(struct dbl_hypot);\n"
@@ -1043,7 +1052,8 @@ fix = {
                 "extern double cabs ( _Complex z );\n"
                 "extern double cabs(); /* This is a comment\n"
                 "                         and it ends here. */\n"
-		"extern double	cabs(struct __cabs_s);";
+                "extern double	cabs(struct __cabs_s);\n"
+                "extern long double cabsl( struct __cabsl_s );";
 };
 
 /*
@@ -1301,7 +1311,7 @@ fix = {
     files     = features.h, '*/features.h';
     select    = "^ *&& !defined __OPTIMIZE_SIZE__ && !defined __NO_INLINE__$";
     c_fix     = format;
-    c_fix_arg = "%0 && __STDC_VERSION__ < 199901L";
+    c_fix_arg = "%0 && (defined __extern_inline || defined __GNUC_GNU_INLINE__)";
     test_text = <<-EOT
 #if __GNUC_PREREQ (2, 7) && defined __OPTIMIZE__ \
     && !defined __OPTIMIZE_SIZE__ && !defined __NO_INLINE__
@@ -1320,38 +1330,39 @@ fix = {
     hackname  = glibc_c99_inline_2;
     files     = sys/stat.h, '*/sys/stat.h';
     select    = "extern __inline__ int";
-    sed	      = "s/extern int \\(stat\\|lstat\\|fstat\\|mknod\\)/"
-		"#if __STDC_VERSION__ < 199901L\\\nextern\\\n#endif\\\n"
-    		"__inline__ int \\1/";
-    sed	      = "s/extern int __REDIRECT\\(_NTH\\|\\) (\\(stat\\|lstat\\|fstat\\)/"
-		"#if __STDC_VERSION__ < 199901L\\\nextern\\\n#endif\\\n"
-    		"__inline__ int __REDIRECT\\1 (\\2/";
-    sed	      = "s/^extern __inline__ int/"
-		"#if __STDC_VERSION__ < 199901L\\\nextern\\\n#endif\\\n"
-		"__inline__ int/";
+    sed     = "s/extern int \\(stat\\|lstat\\|fstat\\|mknod\\)/"
+              "#ifdef __GNUC_GNU_INLINE__\\\nextern\\\n#endif\\\n"
+              "__inline__ int \\1/";
+    sed     = "s/extern int __REDIRECT\\(_NTH\\|\\) (\\(stat\\|lstat\\|fstat\\)/"
+              "#ifdef __GNUC_GNU_INLINE__\\\nextern\\\n#endif\\\n"
+              "__inline__ int __REDIRECT\\1 (\\2/";
+    sed     = "s/^extern __inline__ int/"
+              "#ifdef __GNUC_GNU_INLINE__\\\nextern\\\n#endif\\\n"
+              "__inline__ int/";
     test_text = <<-EOT
-extern int fstat64 (int __fd, struct stat64 *__buf) __THROW __nonnull ((2));
-extern __inline__ int
-__NTH (fstat64 (int __fd, struct stat64 *__statbuf))
-{}
-EOT;
+	extern int fstat64 (int __fd, struct stat64 *__buf) __THROW __nonnull ((2));
+	extern __inline__ int
+	__NTH (fstat64 (int __fd, struct stat64 *__statbuf))
+	{}
+	EOT;
 };
 
 
 fix = {
     hackname  = glibc_c99_inline_3;
     files     = bits/string2.h, '*/bits/string2.h';
+    select    = "extern __inline";
     bypass    = "__STDC_VERSION__";
     c_fix     = format;
-    c_fix_arg = "# if defined(__cplusplus) || __STDC_VERSION__ >= 19901L";
+    c_fix_arg = "# if defined(__cplusplus) || defined(__GNUC_STDC_INLINE__)";
     c_fix_arg = "^# ifdef __cplusplus$";
     test_text = <<-EOT
-# ifdef __cplusplus
-#  define __STRING_INLINE inline
-# else
-#  define __STRING_INLINE extern __inline
-# endif
-EOT;
+	# ifdef __cplusplus
+	#  define __STRING_INLINE inline
+	# else
+	#  define __STRING_INLINE extern __inline
+	# endif
+	EOT;
 };
 
 
@@ -1359,12 +1370,15 @@ fix = {
     hackname  = glibc_c99_inline_4;
     files     = sys/sysmacros.h, '*/sys/sysmacros.h';
     bypass    = "__STDC_VERSION__";
+    select    = "extern __inline";
     c_fix     = format;
-    c_fix_arg = "\n#if __STDC_VERSION__ < 19901L\nextern\n#endif\n";
-    c_fix_arg = "extern";
+    c_fix_arg = "\n#ifdef __GNUC_GNU_INLINE__\nextern\n#endif\n";
+    c_fix_arg = '(^| )extern ';
     test_text = <<-EOT
-__extension__ extern __inline unsigned int
-EOT;
+	__extension__ extern __inline unsigned int
+	__extension__ __extern_inline unsigned int
+	extern __inline unsigned int
+	EOT;
 };
 
 
@@ -2536,6 +2550,22 @@ fix = {
     sed    = "/OPEN_MAX/s,/\\* Max, Max,";
     test_text = "/*\n#define CHILD_MAX 20 /* Max, Max, ... */ /*\n"
                 "#define OPEN_MAX  20 /* Max, Max, ... */\n";
+};
+
+
+/*
+ *  Some versions of NetBSD don't expect the C99 inline semantics.
+ */
+fix = {
+    hackname  = netbsd_c99_inline_1;
+    mach      = *-*-netbsd*;
+    files     = signal.h;
+    select    = "extern __inline int";
+
+    c_fix     = format;
+    c_fix_arg = "extern\n#ifdef __GNUC_STDC_INLINE__\n__attribute__((__gnu_inline__))\n#endif\n__inline int";
+
+    test_text = "extern __inline int\nsigaddset(sigset_t *set, int signo)\n{}";
 };
 
 

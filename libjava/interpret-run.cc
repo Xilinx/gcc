@@ -1,6 +1,6 @@
 // interpret-run.cc - Code to interpret bytecode
 
-/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation
+/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation
 
    This file is part of libgcj.
 
@@ -26,6 +26,96 @@ details.  */
   _Jv_word *sp = stack;
 
   _Jv_word locals[meth->max_locals];
+
+#ifdef DEBUG
+  // This is the information needed to get and set local variables with
+  // proper type checking.
+  frame_desc.locals = locals;
+  char locals_type[meth->max_locals];
+  frame_desc.locals_type = locals_type;
+  
+  // Set all slots as invalid until they are written to.
+  memset (locals_type, 'x', meth->max_locals);
+  
+  // We need to set the local variable types for the method arguments since
+  // they are valid at invocation.
+  
+  _Jv_Method *method = meth->get_method ();
+  int type_ctr = 0;
+  
+  // If the method is non-static, we need to set the type for the "this" pointer.
+  if ((method->accflags & java::lang::reflect::Modifier::STATIC) == 0)
+    {
+      if (args)
+        {
+          // Set the "this" pointer for this frame.
+          _Jv_word *this_ptr = reinterpret_cast<_Jv_word *> (args);
+          frame_desc.obj_ptr = this_ptr[0].o;
+        }
+
+      frame_desc.locals_type[0] = 'o';
+      type_ctr++;
+    }
+  
+  // Now parse the method signature to set the types of the other arguments.  
+  int sig_len = method->signature->len ();
+  char *signature = method->signature->chars ();
+  for (int i = 1; signature[i] != ')' && i <= sig_len; i++)
+    {
+      if (signature[i] == 'Z' || signature[i] == 'B' || signature[i] == 'C' 
+          || signature[i] == 'S' || signature[i] == 'I')
+        {
+          frame_desc.locals_type[type_ctr] = 'i';
+          type_ctr++;
+          continue;
+        }
+      else if (signature[i] == 'F')
+        {
+          frame_desc.locals_type[type_ctr] = 'f';
+          type_ctr++;
+          continue;
+        }
+      else if (signature[i] == 'J')
+        {
+          frame_desc.locals_type[type_ctr] = 'l';
+          frame_desc.locals_type[type_ctr+1] = 'x';
+          type_ctr += 2;
+          continue;
+        }
+      else if (signature[i] == 'D')
+        {
+          frame_desc.locals_type[type_ctr] = 'd';
+          frame_desc.locals_type[type_ctr+1] = 'x';
+          type_ctr += 2;
+          continue;
+        }
+      else if (signature[i] == 'L')
+        {
+          frame_desc.locals_type[type_ctr] = 'o';
+          type_ctr++;
+          while (signature[i] != ';')
+            i++;
+          continue;
+        }
+      else if (signature[i] == '[')
+        {
+          frame_desc.locals_type[type_ctr] = 'o';
+          type_ctr++;
+          
+          // Ignore multi-dimensional arrays.
+          while (signature[i] == '[')
+            i++;
+          
+          // Check for an object array
+          if (signature[i] == 'L')
+            {
+              while (signature[i] != ';')
+                i++;
+            }
+          continue;
+        }
+    }
+#endif /* DEBUG */
 
 #define INSN_LABEL(op) &&insn_##op
 
@@ -217,7 +307,7 @@ details.  */
     INSN_LABEL(invokespecial),
     INSN_LABEL(invokestatic),
     INSN_LABEL(invokeinterface),
-    INSN_LABEL (breakpoint),
+    INSN_LABEL(breakpoint),
     INSN_LABEL(new),
     INSN_LABEL(newarray),
     INSN_LABEL(anewarray),
@@ -248,7 +338,27 @@ details.  */
 
 #ifdef DIRECT_THREADED
 
+#ifdef DEBUG
+#undef NEXT_INSN
+#define NEXT_INSN							\
+  do									\
+    {									\
+      if (JVMTI_REQUESTED_EVENT (SingleStep))				\
+	{								\
+	  JNIEnv *env = _Jv_GetCurrentJNIEnv ();			\
+	  jmethodID method = meth->self;				\
+	  jlocation loc = meth->insn_index (pc);			\
+	  _Jv_JVMTI_PostEvent (JVMTI_EVENT_SINGLE_STEP, thread,		\
+			       env, method, loc);			\
+	}								\
+      goto *((pc++)->insn);						\
+    }									\
+  while (0)
+#else
+#undef NEXT_INSN
 #define NEXT_INSN goto *((pc++)->insn)
+#endif
+
 #define INTVAL() ((pc++)->int_val)
 #define AVAL() ((pc++)->datum)
 
@@ -281,7 +391,22 @@ details.  */
 
 #else
 
+#ifdef DEBUG
+#define NEXT_INSN							\
+  do									\
+    {									\
+      if (JVMTI_REQUESTED_EVENT (SingleStep))				\
+	{								\
+	  JNIEnv *env = _Jv_GetCurrentJNIEnv ();			\
+	  jmethodID method = meth->self;				\
+	  jlocation loc = meth->insn_index (pc);			\
+	  _Jv_JVMTI_PostEvent (JVMTI_EVENT_SINGLE_STEP, thread,		\
+			       env, method, loc);			\
+	}								\
+      goto *(insn_target[*pc++])
+#else
 #define NEXT_INSN goto *(insn_target[*pc++])
+#endif
 
 #define GET1S() get1s (pc++)
 #define GET2S() (pc += 2, get2s (pc- 2))
@@ -2466,48 +2591,68 @@ details.  */
 
     insn_breakpoint:
       {
-	// nothing just yet
+	JvAssert (JVMTI_REQUESTED_EVENT (Breakpoint));
+
+	// Send JVMTI notification
+	using namespace ::java::lang;
+	jmethodID method = meth->self;
+	jlocation location = meth->insn_index (pc - 1);
+	Thread *thread = Thread::currentThread ();
+	JNIEnv *jni_env = _Jv_GetCurrentJNIEnv ();
+
+	_Jv_JVMTI_PostEvent (JVMTI_EVENT_BREAKPOINT, thread, jni_env,
+			     method, location);
+
+	// Continue execution
+	using namespace gnu::gcj::jvmti;
+	Breakpoint *bp
+	  = BreakpointManager::getBreakpoint (reinterpret_cast<jlong> (method),
+					      location);
+	JvAssert (bp != NULL);
+
+	pc_t opc = reinterpret_cast<pc_t> (bp->getInsn ());
+
+#ifdef DIRECT_THREADED
+	goto *(opc->insn);
+#else
+	goto *(insn_target[*opc]);
+#endif
       }
     }
   catch (java::lang::Throwable *ex)
     {
-#ifdef DIRECT_THREADED
-      void *logical_pc = (void *) ((insn_slot *) pc - 1);
-#else
-      int logical_pc = pc - 1 - meth->bytecode ();
+#ifdef DEBUG
+       // This needs to be done before the pc is changed.
+       jlong throw_loc = meth->insn_index (pc);
 #endif
-      _Jv_InterpException *exc = meth->exceptions ();
-      jclass exc_class = ex->getClass ();
-
-      for (int i = 0; i < meth->exc_count; i++)
-	{
-	  if (PCVAL (exc[i].start_pc) <= logical_pc
-	      && logical_pc < PCVAL (exc[i].end_pc))
-	    {
-#ifdef DIRECT_THREADED
-	      jclass handler = (jclass) exc[i].handler_type.p;
-#else
-	      jclass handler = NULL;
-	      if (exc[i].handler_type.i != 0)
-		handler = (_Jv_Linker::resolve_pool_entry (meth->defining_class,
-							   exc[i].handler_type.i)).clazz;
-#endif /* DIRECT_THREADED */
-
-	      if (handler == NULL || handler->isAssignableFrom (exc_class))
-		{
-
-#ifdef DIRECT_THREADED
-		  pc = (insn_slot *) exc[i].handler_pc.p;
-#else
-		  pc = meth->bytecode () + exc[i].handler_pc.i;
-#endif /* DIRECT_THREADED */
-		  sp = stack;
-		  sp++->o = ex; // Push exception.
-		  NEXT_INSN;
-		}
-	    }
-	}
-
+      // Check if the exception is handled and, if so, set the pc to the start
+      // of the appropriate catch block.
+      if (meth->check_handler (&pc, meth, ex))
+        {
+          sp = stack;
+          sp++->o = ex; // Push exception.
+#ifdef DEBUG
+          if (JVMTI_REQUESTED_EVENT (Exception))
+            {
+              using namespace gnu::gcj::jvmti;
+              jlong throw_meth = reinterpret_cast<jlong> (meth->get_method ());
+              jlong catch_loc = meth->insn_index (pc);
+              ExceptionEvent::postExceptionEvent (thread, throw_meth,
+                                                  throw_loc, ex, throw_meth,
+                                                  catch_loc);
+            }
+#endif
+          NEXT_INSN;
+        }
+#ifdef DEBUG
+      if (JVMTI_REQUESTED_EVENT (Exception))
+        {
+          using namespace gnu::gcj::jvmti;
+          jlong throw_meth = reinterpret_cast<jlong> (meth->get_method ());
+          ExceptionEvent::postExceptionEvent (thread, throw_meth, throw_loc,
+                                              ex, NULL, NULL);
+        }
+#endif
       // No handler, so re-throw.
       throw ex;
     }

@@ -1,5 +1,5 @@
 ; Options for the Fortran 95 front end.
-; Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+; Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -34,52 +34,56 @@ Fortran Joined
 -J<directory>	Put MODULE files in 'directory'
 
 Wall
-Fortran RejectNegative
+Fortran
 ; Documented in C
 
 Waliasing
-Fortran
+Fortran Warning
 Warn about possible aliasing of dummy arguments
 
 Wampersand
-Fortran
+Fortran Warning
 Warn about missing ampersand in continued character constants
 
 Wcharacter-truncation
-Fortran
+Fortran Warning
 Warn about truncated character expressions
 
 Wconversion
-Fortran
+Fortran Warning
 Warn about implicit conversion
 
 Wimplicit-interface
-Fortran
+Fortran Warning
 Warn about calls with implicit interface
 
 Wline-truncation
-Fortran
+Fortran Warning
 Warn about truncated source lines
 
 Wnonstd-intrinsics
-Fortran
+Fortran Warning
 Warn about usage of non-standard intrinsics
 
 Wsurprising
-Fortran
+Fortran Warning
 Warn about \"suspicious\" constructs
 
 Wtabs
-Fortran
+Fortran Warning
 Permit nonconforming uses of the tab character
 
 Wunderflow
-Fortran
+Fortran Warning
 Warn about underflow of numerical constant expressions
 
 fall-intrinsics
 Fortran RejectNegative
 All intrinsics procedures are available regardless of selected standard
+
+fallow-leading-underscore
+Fortran Undocumented
+; For internal use only: allow the first character of symbol names to be an underscore
 
 fautomatic
 Fortran
@@ -88,6 +92,10 @@ Do not treat local variables and COMMON blocks as if they were named in SAVE sta
 fbackslash
 Fortran
 Specify that backslash in string introduces an escape character
+
+fbacktrace
+Fortran
+Produce a backtrace when a runtime error is encountered
 
 fblas-matmul-limit=
 Fortran RejectNegative Joined UInteger
@@ -136,6 +144,10 @@ Set the default real kind to an 8 byte wide type
 fdollar-ok
 Fortran
 Allow dollar signs in entity names
+
+fdump-core
+Fortran
+Dump a core file when a runtime error occurs
 
 fdump-parse-tree
 Fortran
@@ -207,7 +219,7 @@ Enable OpenMP
 
 fpack-derived
 Fortran
-Try to layout derived types as compact as possible
+Try to lay out derived types as compactly as possible
 
 fpreprocessed
 Fortran
@@ -251,7 +263,7 @@ Conform to the ISO Fortran 95 standard
 
 std=gnu
 Fortran
-Conform nothing in particular
+Conform to nothing in particular
 
 std=legacy
 Fortran

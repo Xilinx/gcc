@@ -1,4 +1,4 @@
-/* Copyright (C) 2004, 2005, 2006  Free Software Foundation
+/* Copyright (C) 2004, 2005, 2006, 2007  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -429,7 +429,12 @@ public class Main
     StringBuffer hexBytes = new StringBuffer();
     int length = b.length;
     for (int i = 0; i < length; ++i)
-      hexBytes.append(Integer.toHexString(b[i] & 0xff));
+      {
+	int v = b[i] & 0xff;
+	if (v < 16)
+	  hexBytes.append('0');
+	hexBytes.append(Integer.toHexString(v));
+      }
     return hexBytes.toString();
   }
 

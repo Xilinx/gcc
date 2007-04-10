@@ -1340,6 +1340,8 @@ s390_handle_arch_option (const char *arg,
 				    | PF_LONG_DISPLACEMENT},
       {"z9-109", PROCESSOR_2094_Z9_109, PF_IEEE_FLOAT | PF_ZARCH
                                        | PF_LONG_DISPLACEMENT | PF_EXTIMM},
+      {"z9-ec", PROCESSOR_2094_Z9_109, PF_IEEE_FLOAT | PF_ZARCH
+                             | PF_LONG_DISPLACEMENT | PF_EXTIMM | PF_DFP },
     };
   size_t i;
 
@@ -1418,10 +1420,33 @@ override_options (void)
     }
 
   /* Sanity checks.  */
-  if (TARGET_ZARCH && !(s390_arch_flags & PF_ZARCH))
+  if (TARGET_ZARCH && !TARGET_CPU_ZARCH)
     error ("z/Architecture mode not supported on %s", s390_arch_string);
   if (TARGET_64BIT && !TARGET_ZARCH)
     error ("64-bit ABI not supported in ESA/390 mode");
+
+  if (TARGET_HARD_DFP && (!TARGET_CPU_DFP || !TARGET_ZARCH))
+    {
+      if (target_flags_explicit & MASK_SOFT_DFP)
+	{
+	  if (!TARGET_CPU_DFP)
+	    error ("Hardware decimal floating point instructions"
+		   " not available on %s", s390_arch_string);
+	  if (!TARGET_ZARCH)
+	    error ("Hardware decimal floating point instructions"
+		   " not available in ESA/390 mode");
+	}
+      else
+	target_flags |= MASK_SOFT_DFP;
+    }
+
+  if ((target_flags_explicit & MASK_SOFT_FLOAT) && TARGET_SOFT_FLOAT)
+    {
+      if ((target_flags_explicit & MASK_SOFT_DFP) && TARGET_HARD_DFP)
+	error ("-mhard-dfp can't be used in conjunction with -msoft-float");
+
+      target_flags |= MASK_SOFT_DFP;
+    }
 
   /* Set processor cost function.  */
   if (s390_tune == PROCESSOR_2094_Z9_109)
@@ -1437,9 +1462,7 @@ override_options (void)
 
   if (s390_stack_size)
     {
-      if (!s390_stack_guard)
-	error ("-mstack-size implies use of -mstack-guard");
-      else if (s390_stack_guard >= s390_stack_size)
+      if (s390_stack_guard >= s390_stack_size)
 	error ("stack size must be greater than the stack guard value");
       else if (s390_stack_size > 1 << 16)
 	error ("stack size must not be greater than 64k");
@@ -2615,67 +2638,57 @@ s390_preferred_reload_class (rtx op, enum reg_class class)
   return class;
 }
 
-/* Return the register class of a scratch register needed to
-   load IN into a register of class CLASS in MODE.
+/* Inform reload about cases where moving X with a mode MODE to a register in
+   CLASS requires an extra scratch or immediate register.  Return the class
+   needed for the immediate register.  */
 
-   We need a temporary when loading a PLUS expression which
-   is not a legitimate operand of the LOAD ADDRESS instruction.  */
-
-enum reg_class
-s390_secondary_input_reload_class (enum reg_class class,
-				   enum machine_mode mode, rtx in)
+static enum reg_class
+s390_secondary_reload (bool in_p, rtx x, enum reg_class class,
+		       enum machine_mode mode, secondary_reload_info *sri)
 {
-  if (s390_plus_operand (in, mode))
-    return ADDR_REGS;
-
-  if (reg_classes_intersect_p (FP_REGS, class)
-      && mode == TFmode
-      && GET_CODE (in) == MEM
-      && GET_CODE (XEXP (in, 0)) == PLUS
-      && GET_CODE (XEXP (XEXP (in, 0), 1)) == CONST_INT
-      && !DISP_IN_RANGE (INTVAL (XEXP (XEXP (in, 0), 1))
-			 + GET_MODE_SIZE (mode) - 1))
-    return ADDR_REGS;
-
+  /* Intermediate register needed.  */
   if (reg_classes_intersect_p (CC_REGS, class))
     return GENERAL_REGS;
 
-  return NO_REGS;
-}
+  /* We need a scratch register when loading a PLUS expression which
+     is not a legitimate operand of the LOAD ADDRESS instruction.  */
+  if (in_p && s390_plus_operand (x, mode))
+    sri->icode = (TARGET_64BIT ?
+		  CODE_FOR_reloaddi_plus : CODE_FOR_reloadsi_plus);
 
-/* Return the register class of a scratch register needed to
-   store a register of class CLASS in MODE into OUT:
-
-   We need a temporary when storing a double-word to a
-   non-offsettable memory address.  */
-
-enum reg_class
-s390_secondary_output_reload_class (enum reg_class class,
-				    enum machine_mode mode, rtx out)
-{
-  if ((TARGET_64BIT ? (mode == TImode || mode == TFmode)
-                    : (mode == DImode || mode == DFmode))
-      && reg_classes_intersect_p (GENERAL_REGS, class)
-      && GET_CODE (out) == MEM
-      && GET_CODE (XEXP (out, 0)) == PLUS
-      && GET_CODE (XEXP (XEXP (out, 0), 0)) == PLUS
-      && GET_CODE (XEXP (XEXP (out, 0), 1)) == CONST_INT
-      && !DISP_IN_RANGE (INTVAL (XEXP (XEXP (out, 0), 1))
+  /* Peforming a multiword move from or to memory we have to make sure the
+     second chunk in memory is addressable without causing a displacement
+     overflow.  If that would be the case we calculate the address in
+     a scratch register.  */
+  if (MEM_P (x)
+      && GET_CODE (XEXP (x, 0)) == PLUS
+      && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT
+      && !DISP_IN_RANGE (INTVAL (XEXP (XEXP (x, 0), 1))
 			 + GET_MODE_SIZE (mode) - 1))
-    return ADDR_REGS;
+    {
+      /* For GENERAL_REGS a displacement overflow is no problem if occuring
+	 in a s_operand address since we may fallback to lm/stm.  So we only
+	 have to care about overflows in the b+i+d case.  */
+      if ((reg_classes_intersect_p (GENERAL_REGS, class)
+	   && s390_class_max_nregs (GENERAL_REGS, mode) > 1
+	   && GET_CODE (XEXP (XEXP (x, 0), 0)) == PLUS)
+	  /* For FP_REGS no lm/stm is available so this check is triggered
+	     for displacement overflows in b+i+d and b+d like addresses.  */
+	  || (reg_classes_intersect_p (FP_REGS, class)
+	      && s390_class_max_nregs (FP_REGS, mode) > 1))
+	{
+	  if (in_p)
+	    sri->icode = (TARGET_64BIT ?
+			  CODE_FOR_reloaddi_nonoffmem_in :
+			  CODE_FOR_reloadsi_nonoffmem_in);
+	  else
+	    sri->icode = (TARGET_64BIT ?
+			  CODE_FOR_reloaddi_nonoffmem_out :
+			  CODE_FOR_reloadsi_nonoffmem_out);
+	}
+    }
 
-  if (reg_classes_intersect_p (FP_REGS, class)
-      && mode == TFmode
-      && GET_CODE (out) == MEM
-      && GET_CODE (XEXP (out, 0)) == PLUS
-      && GET_CODE (XEXP (XEXP (out, 0), 1)) == CONST_INT
-      && !DISP_IN_RANGE (INTVAL (XEXP (XEXP (out, 0), 1))
-			 + GET_MODE_SIZE (mode) - 1))
-    return ADDR_REGS;
-
-  if (reg_classes_intersect_p (CC_REGS, class))
-    return GENERAL_REGS;
-
+  /* Either scratch or no register needed.  */
   return NO_REGS;
 }
 
@@ -4228,7 +4241,7 @@ s390_expand_cs_hqi (enum machine_mode mode, rtx target, rtx mem, rtx cmp, rtx ne
 }
 
 /* Expand an atomic operation CODE of mode MODE.  MEM is the memory location
-   and VAL the value to play with.  If AFTER is true then store the the value
+   and VAL the value to play with.  If AFTER is true then store the value
    MEM holds after the operation, if AFTER is false then store the value MEM
    holds before the operation.  If TARGET is zero then discard that value, else
    store it to TARGET.  */
@@ -7245,21 +7258,47 @@ s390_emit_prologue (void)
 
       if (s390_stack_size)
   	{
-	  HOST_WIDE_INT stack_check_mask = ((s390_stack_size - 1)
-					    & ~(s390_stack_guard - 1));
-	  rtx t = gen_rtx_AND (Pmode, stack_pointer_rtx,
-			       GEN_INT (stack_check_mask));
+	  HOST_WIDE_INT stack_guard;
 
-	  if (TARGET_64BIT)
-	    gen_cmpdi (t, const0_rtx);
+	  if (s390_stack_guard)
+	    stack_guard = s390_stack_guard;
 	  else
-	    gen_cmpsi (t, const0_rtx);
+	    {
+	      /* If no value for stack guard is provided the smallest power of 2
+		 larger than the current frame size is chosen.  */
+	      stack_guard = 1;
+	      while (stack_guard < cfun_frame_layout.frame_size)
+		stack_guard <<= 1;
+	    }
 
-	  emit_insn (gen_conditional_trap (gen_rtx_EQ (CCmode, 
-						       gen_rtx_REG (CCmode, 
-								    CC_REGNUM),
-						       const0_rtx),
-					   const0_rtx));
+	  if (cfun_frame_layout.frame_size >= s390_stack_size)
+	    {
+	      warning (0, "frame size of function %qs is "
+		       HOST_WIDE_INT_PRINT_DEC
+		       " bytes exceeding user provided stack limit of "
+		       HOST_WIDE_INT_PRINT_DEC " bytes.  "
+		       "An unconditional trap is added.",
+		       current_function_name(), cfun_frame_layout.frame_size,
+		       s390_stack_size);
+	      emit_insn (gen_trap ());
+	    }
+	  else
+	    {
+	      HOST_WIDE_INT stack_check_mask = ((s390_stack_size - 1)
+						& ~(stack_guard - 1));
+	      rtx t = gen_rtx_AND (Pmode, stack_pointer_rtx,
+				   GEN_INT (stack_check_mask));
+	      if (TARGET_64BIT)
+		gen_cmpdi (t, const0_rtx);
+	      else
+		gen_cmpsi (t, const0_rtx);
+
+	      emit_insn (gen_conditional_trap (gen_rtx_EQ (CCmode,
+							   gen_rtx_REG (CCmode,
+								     CC_REGNUM),
+							   const0_rtx),
+					       const0_rtx));
+	    }
   	}
 
       if (s390_warn_framesize > 0 
@@ -8210,13 +8249,14 @@ s390_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
   unsigned int const *code_for_builtin =
     TARGET_64BIT ? code_for_builtin_64 : code_for_builtin_31;
 
-  tree fndecl = TREE_OPERAND (TREE_OPERAND (exp, 0), 0);
+  tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
   unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
-  tree arglist = TREE_OPERAND (exp, 1);
   enum insn_code icode;
   rtx op[MAX_ARGS], pat;
   int arity;
   bool nonvoid;
+  tree arg;
+  call_expr_arg_iterator iter;
 
   if (fcode >= S390_BUILTIN_max)
     internal_error ("bad builtin fcode");
@@ -8226,13 +8266,11 @@ s390_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 
   nonvoid = TREE_TYPE (TREE_TYPE (fndecl)) != void_type_node;
 
-  for (arglist = TREE_OPERAND (exp, 1), arity = 0;
-       arglist;
-       arglist = TREE_CHAIN (arglist), arity++)
+  arity = 0;
+  FOR_EACH_CALL_EXPR_ARG (arg, iter, exp)
     {
       const struct insn_operand_data *insn_op;
 
-      tree arg = TREE_VALUE (arglist);
       if (arg == error_mark_node)
 	return NULL_RTX;
       if (arity > MAX_ARGS)
@@ -8244,6 +8282,7 @@ s390_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 
       if (!(*insn_op->predicate) (op[arity], insn_op->mode))
 	op[arity] = copy_to_mode_reg (insn_op->mode, op[arity]);
+      arity++;
     }
 
   if (nonvoid)
@@ -8703,28 +8742,26 @@ s390_valid_pointer_mode (enum machine_mode mode)
   return (mode == SImode || (TARGET_64BIT && mode == DImode));
 }
 
-/* Checks whether the given ARGUMENT_LIST would use a caller
+/* Checks whether the given CALL_EXPR would use a caller
    saved register.  This is used to decide whether sibling call
    optimization could be performed on the respective function
    call.  */
 
 static bool
-s390_call_saved_register_used (tree argument_list)
+s390_call_saved_register_used (tree call_expr)
 {
   CUMULATIVE_ARGS cum;
   tree parameter;
   enum machine_mode mode;
   tree type;
   rtx parm_rtx;
-  int reg;
+  int reg, i;
 
   INIT_CUMULATIVE_ARGS (cum, NULL, NULL, 0, 0);
 
-  while (argument_list)
+  for (i = 0; i < call_expr_nargs (call_expr); i++)
     {
-      parameter = TREE_VALUE (argument_list);
-      argument_list = TREE_CHAIN (argument_list);
-
+      parameter = CALL_EXPR_ARG (call_expr, i);
       gcc_assert (parameter);
 
       /* For an undeclared variable passed as parameter we will get
@@ -8780,11 +8817,7 @@ s390_function_ok_for_sibcall (tree decl, tree exp)
   /* Register 6 on s390 is available as an argument register but unfortunately
      "caller saved". This makes functions needing this register for arguments
      not suitable for sibcalls.  */
-  if (TREE_OPERAND (exp, 1)
-      && s390_call_saved_register_used (TREE_OPERAND (exp, 1)))
-      return false;
-
-  return true;
+  return !s390_call_saved_register_used (exp);
 }
 
 /* Return the fixed registers used for condition codes.  */
@@ -9320,6 +9353,9 @@ s390_reorg (void)
 
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P s390_scalar_mode_supported_p
+
+#undef TARGET_SECONDARY_RELOAD
+#define TARGET_SECONDARY_RELOAD s390_secondary_reload
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

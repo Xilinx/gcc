@@ -29,21 +29,20 @@ write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
-#include <math.h>
 #include "libgfortran.h"'
 
 include(`mtype.m4')dnl
 
-`#if defined (HAVE_'real_type`) && defined (HAVE_FREXP'Q`)'
+`#if defined (HAVE_'real_type`) && defined (HAVE_FREXP'Q`)
 
-extern real_type fraction_r`'kind (real_type s);
-export_proto(fraction_r`'kind);
+extern 'real_type` fraction_r'kind` ('real_type` s);
+export_proto(fraction_r'kind`);
 
-real_type
-fraction_r`'kind (real_type s)
+'real_type`
+fraction_r'kind` ('real_type` s)
 {
   int dummy_exp;
-  return frexp`'q (s, &dummy_exp);
+  return frexp'q` (s, &dummy_exp);
 }
 
-#endif
+#endif'

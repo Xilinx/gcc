@@ -34,8 +34,6 @@ Boston, MA 02110-1301, USA.  */
 #include <ctype.h>
 
 #include "libgfortran.h"
-#include "../io/io.h"
-
 
 /* Environment scanner.  Examine the environment for controlling minor
  * aspects of the program's execution.  Our philosophy here that the
@@ -538,6 +536,15 @@ static variable variable_table[] = {
    unformatted I/O.  */
   {"GFORTRAN_CONVERT_UNIT", 0, 0, init_unformatted, show_string,
    "Set format for unformatted files", 0},
+
+  /* Behaviour when encoutering a runtime error.  */
+  {"GFORTRAN_ERROR_DUMPCORE", -1, &options.dump_core,
+    init_boolean, show_boolean,
+    "Dump a core file (if possible) on runtime error", -1},
+
+  {"GFORTRAN_ERROR_BACKTRACE", -1, &options.backtrace,
+    init_boolean, show_boolean,
+    "Print out a backtrace (if possible) on runtime error", -1},
 
   {NULL, 0, NULL, NULL, NULL, NULL, 0}
 };

@@ -11,6 +11,26 @@ export SVNROOT
 
 PATH=/usr/local/bin:$PATH
 
+MANUALS="cpp
+  cppinternals
+  fastjar
+  gcc
+  gccint
+  gcj
+  g77
+  gfortran
+  gfc-internals
+  gnat_ug_unx
+  gnat_ug_vms
+  gnat_ug_vxw
+  gnat_ug_wnt
+  gnat_ugn_unw
+  gnat-style
+  gnat_rm
+  libgomp
+  libiberty
+  porting"
+
 WWWBASE=/www/gcc/htdocs
 WWWBASE_PREFORMATTED=/www/gcc/htdocs-preformatted
 WWWPREPROCESS='/www/gcc/bin/preprocess -r'
@@ -108,8 +128,6 @@ tar cf docs-sources.tar gcc
 # The directory to pass to -I; this is the one with texinfo.tex
 # and fdl.texi.
 includedir=gcc/gcc/doc/include
-
-MANUALS="cpp cppinternals fastjar gcc gccint gcj g77 gfortran gnat_ug_unx gnat_ug_vms gnat_ug_vxw gnat_ug_wnt gnat_ugn_unw gnat-style gnat_rm libiberty porting"
 
 # Generate gnat_ugn_unw
 

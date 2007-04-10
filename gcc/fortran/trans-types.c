@@ -97,6 +97,9 @@ int gfc_c_int_kind;
    kind=8, this will be set to 8, otherwise it is set to 4.  */
 int gfc_intio_kind; 
 
+/* The integer kind used to store character lengths.  */
+int gfc_charlen_int_kind;
+
 /* The size of the numeric storage unit and character storage unit.  */
 int gfc_numeric_storage_size;
 int gfc_character_storage_size;
@@ -607,7 +610,8 @@ gfc_init_types (void)
   boolean_false_node = build_int_cst (boolean_type_node, 0);
 
   /* ??? Shouldn't this be based on gfc_index_integer_kind or so?  */
-  gfc_charlen_type_node = gfc_get_int_type (4);
+  gfc_charlen_int_kind = 4;
+  gfc_charlen_type_node = gfc_get_int_type (gfc_charlen_int_kind);
 }
 
 /* Get the type node for the given type and kind.  */
@@ -1463,7 +1467,6 @@ gfc_get_derived_type (gfc_symbol * derived)
   tree typenode, field, field_type, fieldlist;
   gfc_component *c;
   gfc_dt_list *dt;
-  gfc_namespace * ns;
 
   gcc_assert (derived && derived->attr.flavor == FL_DERIVED);
 
@@ -1479,39 +1482,6 @@ gfc_get_derived_type (gfc_symbol * derived)
     }
   else
     {
-      /* If an equal derived type is already available in the parent namespace,
-	 use its backend declaration and those of its components, rather than
-	 building anew so that potential dummy and actual arguments use the
-	 same TREE_TYPE.  If an equal type is found without a backend_decl,
-	 build the parent version and use it in the current namespace.  */
-      if (derived->ns->parent)
-	ns = derived->ns->parent;
-      else if (derived->ns->proc_name
-		 && derived->ns->proc_name->ns != derived->ns)
-	/* Derived types in an interface body obtain their parent reference
-	   through the proc_name symbol.  */
-	ns = derived->ns->proc_name->ns;
-      else
-	/* Sometimes there isn't a parent reference!  */
-	ns = NULL;
-
-      for (; ns; ns = ns->parent)
-	{
-	  for (dt = ns->derived_types; dt; dt = dt->next)
-	    {
-	      if (dt->derived == derived)
-		continue;
-
-	      if (dt->derived->backend_decl == NULL
-		    && gfc_compare_derived_types (dt->derived, derived))
-		gfc_get_derived_type (dt->derived);
-
-	      if (copy_dt_decls_ifequal (dt->derived, derived))
-		break;
-	    }
-	  if (derived->backend_decl)
-	    goto other_equal_dts;
-	}
 
       /* We see this derived type first time, so build the type node.  */
       typenode = make_node (RECORD_TYPE);
@@ -1591,12 +1561,8 @@ gfc_get_derived_type (gfc_symbol * derived)
 
   derived->backend_decl = typenode;
 
-other_equal_dts:
-  /* Add this backend_decl to all the other, equal derived types and
-     their components in this and sibling namespaces.  */
-  ns = derived->ns->parent ? derived->ns->parent->contained : derived->ns;
-  for (; ns; ns = ns->sibling)
-    for (dt = ns->derived_types; dt; dt = dt->next)
+    /* Add this backend_decl to all the other, equal derived types.  */
+    for (dt = gfc_derived_types; dt; dt = dt->next)
       copy_dt_decls_ifequal (derived, dt->derived);
 
   return derived->backend_decl;
@@ -1768,7 +1734,8 @@ gfc_get_function_type (gfc_symbol * sym)
   while (nstr--)
     typelist = gfc_chainon_list (typelist, gfc_charlen_type_node);
 
-  typelist = gfc_chainon_list (typelist, void_type_node);
+  if (typelist)
+    typelist = gfc_chainon_list (typelist, void_type_node);
 
   if (alternate_return)
     type = integer_type_node;
@@ -1869,24 +1836,12 @@ gfc_type_for_mode (enum machine_mode mode, int unsignedp)
   return NULL_TREE;
 }
 
-/* Return a type the same as TYPE except unsigned or
-   signed according to UNSIGNEDP.  */
-
-tree
-gfc_signed_or_unsigned_type (int unsignedp, tree type)
-{
-  if (TREE_CODE (type) != INTEGER_TYPE || TYPE_UNSIGNED (type) == unsignedp)
-    return type;
-  else
-    return gfc_type_for_size (TYPE_PRECISION (type), unsignedp);
-}
-
 /* Return an unsigned type the same as TYPE in other respects.  */
 
 tree
 gfc_unsigned_type (tree type)
 {
-  return gfc_signed_or_unsigned_type (1, type);
+  return get_signed_or_unsigned_type (1, type);
 }
 
 /* Return a signed type the same as TYPE in other respects.  */
@@ -1894,7 +1849,7 @@ gfc_unsigned_type (tree type)
 tree
 gfc_signed_type (tree type)
 {
-  return gfc_signed_or_unsigned_type (0, type);
+  return get_signed_or_unsigned_type (0, type);
 }
 
 #include "gt-fortran-trans-types.h"

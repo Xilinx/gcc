@@ -1,6 +1,6 @@
 /* Alias analysis for GNU C
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+   2007 Free Software Foundation, Inc.
    Contributed by John Carr (jfc@mit.edu).
 
 This file is part of GCC.
@@ -149,7 +149,6 @@ struct alias_set_entry GTY(())
 typedef struct alias_set_entry *alias_set_entry;
 
 static int rtx_equal_for_memref_p (rtx, rtx);
-static rtx find_symbolic_term (rtx);
 static int memrefs_conflict_p (int, rtx, int, rtx, HOST_WIDE_INT);
 static void record_set (rtx, rtx, void *);
 static int base_alias_check (rtx, rtx, enum machine_mode,
@@ -1345,39 +1344,6 @@ rtx_equal_for_memref_p (rtx x, rtx y)
   return 1;
 }
 
-/* Given an rtx X, find a SYMBOL_REF or LABEL_REF within
-   X and return it, or return 0 if none found.  */
-
-static rtx
-find_symbolic_term (rtx x)
-{
-  int i;
-  enum rtx_code code;
-  const char *fmt;
-
-  code = GET_CODE (x);
-  if (code == SYMBOL_REF || code == LABEL_REF)
-    return x;
-  if (OBJECT_P (x))
-    return 0;
-
-  fmt = GET_RTX_FORMAT (code);
-  for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
-    {
-      rtx t;
-
-      if (fmt[i] == 'e')
-	{
-	  t = find_symbolic_term (XEXP (x, i));
-	  if (t != 0)
-	    return t;
-	}
-      else if (fmt[i] == 'E')
-	break;
-    }
-  return 0;
-}
-
 rtx
 find_base_term (rtx x)
 {
@@ -2546,10 +2512,12 @@ init_alias_analysis (void)
 		  rtx src = SET_SRC (set);
 		  rtx t;
 
-		  if (REG_NOTES (insn) != 0
-		      && (((note = find_reg_note (insn, REG_EQUAL, 0)) != 0
-			   && REG_N_SETS (regno) == 1)
-			  || (note = find_reg_note (insn, REG_EQUIV, NULL_RTX)) != 0)
+		  note = find_reg_equal_equiv_note (insn);
+		  if (note && REG_NOTE_KIND (note) == REG_EQUAL
+		      && REG_N_SETS (regno) != 1)
+		    note = NULL_RTX;
+
+		  if (note != NULL_RTX
 		      && GET_CODE (XEXP (note, 0)) != EXPR_LIST
 		      && ! rtx_varies_p (XEXP (note, 0), 1)
 		      && ! reg_overlap_mentioned_p (SET_DEST (set),
@@ -2583,7 +2551,7 @@ init_alias_analysis (void)
 	}
 
       /* Now propagate values from new_reg_base_value to reg_base_value.  */
-      gcc_assert (maxreg == (unsigned int) max_reg_num());
+      gcc_assert (maxreg == (unsigned int) max_reg_num ());
 
       for (ui = 0; ui < maxreg; ui++)
 	{

@@ -186,8 +186,6 @@ struct language_function GTY(())
 #define LANG_HOOKS_SIGNED_TYPE java_signed_type
 #undef LANG_HOOKS_UNSIGNED_TYPE
 #define LANG_HOOKS_UNSIGNED_TYPE java_unsigned_type
-#undef LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE
-#define LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE java_signed_or_unsigned_type
 
 #undef LANG_HOOKS_TREE_DUMP_DUMP_TREE_FN
 #define LANG_HOOKS_TREE_DUMP_DUMP_TREE_FN java_dump_tree
@@ -353,11 +351,6 @@ FILE *finput;
 static bool
 java_init (void)
 {
-#if 0
-  extern int flag_minimal_debug;
-  flag_minimal_debug = 0;
-#endif
-
   /* FIXME: Indirect dispatch isn't yet compatible with static class
      init optimization.  */
   if (flag_indirect_dispatch)
@@ -881,13 +874,6 @@ dump_compound_expr (dump_info_p di, tree t)
 	  dump_compound_expr (di, TREE_OPERAND (t, i));
 	  break;
 
-	case EXPR_WITH_FILE_LOCATION:
-	    {
-	      tree wfl_node = EXPR_WFL_NODE (TREE_OPERAND (t, i));
-	      dump_child ("expr", wfl_node);
-	      break;
-	    }
-
 	default:
 	  dump_child ("expr", TREE_OPERAND (t, i));
 	}
@@ -1001,7 +987,7 @@ java_get_callee_fndecl (tree call_expr)
 
   if (TREE_CODE (call_expr) != CALL_EXPR)
     return NULL;
-  method = TREE_OPERAND (call_expr, 0);
+  method = CALL_EXPR_FN (call_expr);
   STRIP_NOPS (method);
   if (TREE_CODE (method) != ARRAY_REF)
     return NULL;

@@ -35,11 +35,13 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
   const char *s;
 }
 
-%token <t>ENT_TYPEDEF_STRUCT
-%token <t>ENT_STRUCT
+%token <s>ENT_TYPEDEF_STRUCT
+%token <s>ENT_STRUCT
+%token <s>ENT_TYPEDEF_UNION
+%token <s>ENT_UNION
 %token ENT_EXTERNSTATIC
-%token ENT_YACCUNION
 %token GTY_TOKEN
+%token VEC_TOKEN
 %token UNION
 %token STRUCT
 %token ENUM
@@ -47,17 +49,15 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 %token NESTED_PTR
 %token <s>PARAM_IS
 %token NUM
-%token PERCENTPERCENT "%%"
-%token <t>SCALAR
+%token <s>SCALAR
 %token <s>ID
 %token <s>STRING
 %token <s>ARRAY
-%token <s>PERCENT_ID
 %token <s>CHAR
 
-%type <p> struct_fields yacc_ids yacc_typematch
+%type <p> struct_fields
 %type <t> type lasttype
-%type <o> optionsopt options option optionseq optionseqopt
+%type <o> optionsopt options optionseq
 %type <s> type_option stringseq
 
 %%
@@ -65,26 +65,35 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 start: /* empty */
        | typedef_struct start
        | externstatic start
-       | yacc_union start
+       | start
        ;
 
 typedef_struct: ENT_TYPEDEF_STRUCT options '{' struct_fields '}' ID
 		   {
-		     new_structure ($1->u.s.tag, UNION_P ($1), &lexer_line,
-				    $4, $2);
-		     do_typedef ($6, $1, &lexer_line);
+		     type_p t = new_structure ($1, false, &lexer_line, $4, $2);
+		     do_typedef ($6, t, &lexer_line);
 		     lexer_toplevel_done = 1;
 		   }
-		 ';'
-		   {}
+		  ';'
+		| ENT_TYPEDEF_UNION options '{' struct_fields '}' ID
+		   {
+		     type_p t = new_structure ($1, true, &lexer_line, $4, $2);
+		     do_typedef ($6, t, &lexer_line);
+		     lexer_toplevel_done = 1;
+		   }
+		  ';'
 		| ENT_STRUCT options '{' struct_fields '}'
 		   {
-		     new_structure ($1->u.s.tag, UNION_P ($1), &lexer_line,
-				    $4, $2);
+		     new_structure ($1, false, &lexer_line, $4, $2);
 		     lexer_toplevel_done = 1;
 		   }
-		 ';'
-		   {}
+		  ';'
+		| ENT_UNION options '{' struct_fields '}'
+		   {
+		     new_structure ($1, true, &lexer_line, $4, $2);
+		     lexer_toplevel_done = 1;
+		   }
+		  ';'
 		;
 
 externstatic: ENT_EXTERNSTATIC options lasttype ID semiequal
@@ -116,102 +125,20 @@ semiequal: ';'
 	   | '='
 	   ;
 
-yacc_union: ENT_YACCUNION options struct_fields '}' yacc_typematch
-	    PERCENTPERCENT
-	      {
-	        note_yacc_type ($2, $3, $5, &lexer_line);
-	      }
-	    ;
-
-yacc_typematch: /* empty */
-		   { $$ = NULL; }
-		| yacc_typematch PERCENT_ID yacc_ids
-		   {
-		     pair_p p;
-		     for (p = $3; p->next != NULL; p = p->next)
-		       {
-		         p->name = NULL;
-			 p->type = NULL;
-		       }
-		     p->name = NULL;
-		     p->type = NULL;
-		     p->next = $1;
-		     $$ = $3;
-		   }
-		| yacc_typematch PERCENT_ID '<' ID '>' yacc_ids
-		   {
-		     pair_p p;
-		     type_p newtype = NULL;
-		     if (strcmp ($2, "type") == 0)
-		       newtype = (type_p) 1;
-		     for (p = $6; p->next != NULL; p = p->next)
-		       {
-		         p->name = $4;
-		         p->type = newtype;
-		       }
-		     p->name = $4;
-		     p->next = $1;
-		     p->type = newtype;
-		     $$ = $6;
-		   }
-		;
-
-yacc_ids: /* empty */
-	{ $$ = NULL; }
-     | yacc_ids ID
-        {
-	  pair_p p = XCNEW (struct pair);
-	  p->next = $1;
-	  p->line = lexer_line;
-	  p->opt = XNEW (struct options);
-	  p->opt->name = "tag";
-	  p->opt->next = NULL;
-	  p->opt->info = (char *)$2;
-	  $$ = p;
-	}
-     | yacc_ids CHAR
-        {
-	  pair_p p = XCNEW (struct pair);
-	  p->next = $1;
-	  p->line = lexer_line;
-	  p->opt = XNEW (struct options);
-	  p->opt->name = "tag";
-	  p->opt->next = NULL;
-	  p->opt->info = xasprintf ("'%s'", $2);
-	  $$ = p;
-	}
-     ;
-
 struct_fields: { $$ = NULL; }
 	       | type optionsopt ID bitfieldopt ';' struct_fields
 	          {
-	            pair_p p = XNEW (struct pair);
-		    p->type = adjust_field_type ($1, $2);
-		    p->opt = $2;
-		    p->name = $3;
-		    p->next = $6;
-		    p->line = lexer_line;
-		    $$ = p;
+		    $$ = create_field_at ($6, $1, $3, $2, &lexer_line);
 		  }
 	       | type optionsopt ID ARRAY ';' struct_fields
 	          {
-	            pair_p p = XNEW (struct pair);
-		    p->type = adjust_field_type (create_array ($1, $4), $2);
-		    p->opt = $2;
-		    p->name = $3;
-		    p->next = $6;
-		    p->line = lexer_line;
-		    $$ = p;
+		    $$ = create_field_at ($6, create_array ($1, $4),
+		    			  $3, $2, &lexer_line);
 		  }
 	       | type optionsopt ID ARRAY ARRAY ';' struct_fields
 	          {
-	            pair_p p = XNEW (struct pair);
-		    p->type = create_array (create_array ($1, $5), $4);
-		    p->opt = $2;
-		    p->name = $3;
-		    p->next = $7;
-		    p->line = lexer_line;
-		    $$ = p;
+		    type_p arr = create_array (create_array ($1, $5), $4);
+		    $$ = create_field_at ($7, arr, $3, $2, &lexer_line);
 		  }
 	       | type ':' bitfieldlen ';' struct_fields
 		  { $$ = $5; }
@@ -226,9 +153,12 @@ bitfieldlen: NUM | ID
 	     ;
 
 type: SCALAR
-         { $$ = $1; }
+         { $$ = create_scalar_type ($1); }
       | ID
          { $$ = resolve_typedef ($1, &lexer_line); }
+      | VEC_TOKEN '(' ID ',' ID ')'
+         { $$ = resolve_typedef (concat ("VEC_", $3, "_", $5, (char *)0),
+	      			 &lexer_line); }
       | type '*'
          { $$ = create_pointer ($1); }
       | STRUCT ID '{' struct_fields '}'
@@ -240,9 +170,9 @@ type: SCALAR
       | UNION ID
          { $$ = find_structure ($2, 1); }
       | ENUM ID
-         { $$ = create_scalar_type ($2, strlen ($2)); }
+         { $$ = create_scalar_type ($2); }
       | ENUM ID '{' enum_items '}'
-         { $$ = create_scalar_type ($2, strlen ($2)); }
+         { $$ = create_scalar_type ($2); }
       ;
 
 enum_items: /* empty */
@@ -258,7 +188,7 @@ optionsopt: { $$ = NULL; }
 	    | options { $$ = $1; }
 	    ;
 
-options: GTY_TOKEN '(' '(' optionseqopt ')' ')'
+options: GTY_TOKEN '(' '(' optionseq ')' ')'
 	   { $$ = $4; }
 	 ;
 
@@ -268,39 +198,19 @@ type_option : ALIAS
 	        { $$ = $1; }
 	      ;
 
-option:   ID
-	    { $$ = create_option (NULL, $1, (void *)""); }
-        | ID '(' stringseq ')'
-            { $$ = create_option (NULL, $1, (void *)$3); }
-	| type_option '(' type ')'
-	    { $$ = create_option (NULL, $1, adjust_field_type ($3, NULL)); }
-	| NESTED_PTR '(' type ',' stringseq ',' stringseq ')'
-	    {
-	      struct nested_ptr_data d;
+optionseq: { $$ = NULL; }
+	| optionseq commaopt ID
+	   { $$ = create_option ($1, $3, (void *)""); }
+	| optionseq commaopt ID '(' stringseq ')'
+	   { $$ = create_option ($1, $3, (void *)$5); }
+	| optionseq commaopt type_option '(' type ')'
+	   { $$ = create_option ($1, $3, adjust_field_type ($5, 0)); }
+	| optionseq commaopt NESTED_PTR '(' type ',' stringseq ',' stringseq ')'
+	   { $$ = create_nested_ptr_option ($1, $5, $7, $9); }
 
-	      d.type = adjust_field_type ($3, NULL);
-	      d.convert_to = $5;
-	      d.convert_from = $7;
-	      $$ = create_option (NULL, "nested_ptr",
-				  xmemdup (&d, sizeof (d), sizeof (d)));
-	    }
-	;
-
-optionseq: option
-	      {
-	        $1->next = NULL;
-		$$ = $1;
-	      }
-	    | optionseq ',' option
-	      {
-	        $3->next = $1;
-		$$ = $3;
-	      }
-	    ;
-
-optionseqopt: { $$ = NULL; }
-	      | optionseq { $$ = $1; }
-	      ;
+commaopt: /* nothing */
+	  | ','
+	  ;
 
 stringseq: STRING
 	     { $$ = $1; }

@@ -909,7 +909,7 @@ abnormal_corrupt (tree phi, int i)
 static inline void
 fail_abnormal_edge_coalesce (int x, int y)
 {
-  fprintf (stderr, "\nUnable to coalesce ssa_names %d  and %d ",x, y);
+  fprintf (stderr, "\nUnable to coalesce ssa_names %d and %d",x, y);
   fprintf (stderr, " which are marked as MUST COALESCE.\n");
   print_generic_expr (stderr, ssa_name (x), TDF_SLIM);
   fprintf (stderr, " and  ");
@@ -976,7 +976,7 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 		  if ((e->flags & EDGE_ABNORMAL) == 0)
 		    {
 		      int cost = coalesce_cost_edge (e);
-		      if (cost == 1 && single_imm_use_p (arg))
+		      if (cost == 1 && has_single_use (arg))
 		        add_cost_one_coalesce (cl, ver, SSA_NAME_VERSION (arg));
 		      else
 			add_coalesce (cl, ver, SSA_NAME_VERSION (arg), cost);

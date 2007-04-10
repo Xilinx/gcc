@@ -1,6 +1,6 @@
 // 2005-03-03  Paolo Carlini  <pcarlini@suse.de>
 //
-// Copyright (C) 2005 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -35,6 +35,7 @@ void test01()
   VERIFY( (test_category<is_polymorphic, PolymorphicClass>(true)) );
   VERIFY( (test_category<is_polymorphic, DerivedPolymorphic>(true)) );
   VERIFY( (test_category<is_polymorphic, AbstractClass>(true)) );
+  VERIFY( (test_category<is_polymorphic, VirtualDestructorClass>(true)) );
   VERIFY( (test_category<is_polymorphic, std::iostream>(true)) );
   VERIFY( (test_category<is_polymorphic, std::streambuf>(true)) );
 

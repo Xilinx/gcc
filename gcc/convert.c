@@ -47,8 +47,7 @@ convert_to_pointer (tree type, tree expr)
 
   /* Propagate overflow to the NULL pointer.  */
   if (integer_zerop (expr))
-    return force_fit_type_double (type, 0, 0, 0, TREE_OVERFLOW (expr),
-				  false);
+    return force_fit_type_double (type, 0, 0, 0, TREE_OVERFLOW (expr));
 
   switch (TREE_CODE (TREE_TYPE (expr)))
     {
@@ -174,7 +173,7 @@ convert_to_real (tree type, tree expr)
 	  CASE_MATHFN (Y1)
 #undef CASE_MATHFN
 	    {
-	      tree arg0 = strip_float_extensions (TREE_VALUE (TREE_OPERAND (expr, 1)));
+	      tree arg0 = strip_float_extensions (CALL_EXPR_ARG (expr, 0));
 	      tree newtype = type;
 
 	      /* We have (outertype)sqrt((innertype)x).  Choose the wider mode from
@@ -189,13 +188,12 @@ convert_to_real (tree type, tree expr)
 		  && (TYPE_MODE (newtype) == TYPE_MODE (double_type_node)
 		      || TYPE_MODE (newtype) == TYPE_MODE (float_type_node)))
 	        {
-		  tree arglist;
 		  tree fn = mathfn_built_in (newtype, fcode);
 
 		  if (fn)
 		  {
-		    arglist = build_tree_list (NULL_TREE, fold (convert_to_real (newtype, arg0)));
-		    expr = build_function_call_expr (fn, arglist);
+		    tree arg = fold (convert_to_real (newtype, arg0));
+		    expr = build_call_expr (fn, 1, arg);
 		    if (newtype == type)
 		      return expr;
 		  }
@@ -226,18 +224,14 @@ convert_to_real (tree type, tree expr)
 
       if (fn)
 	{
-	  tree arg
-	    = strip_float_extensions (TREE_VALUE (TREE_OPERAND (expr, 1)));
+	  tree arg = strip_float_extensions (CALL_EXPR_ARG (expr, 0));
 
 	  /* Make sure (type)arg0 is an extension, otherwise we could end up
 	     changing (float)floor(double d) into floorf((float)d), which is
 	     incorrect because (float)d uses round-to-nearest and can round
 	     up to the next integer.  */
 	  if (TYPE_PRECISION (type) >= TYPE_PRECISION (TREE_TYPE (arg)))
-	    return
-	      build_function_call_expr (fn,
-					build_tree_list (NULL_TREE,
-					  fold (convert_to_real (type, arg))));
+	    return build_call_expr (fn, 1, fold (convert_to_real (type, arg)));
 	}
     }
 
@@ -419,12 +413,12 @@ convert_to_integer (tree type, tree expr)
 	    fn = mathfn_built_in (s_intype, BUILT_IN_LLROUND);
 	  break;
 
-	CASE_FLT_FN (BUILT_IN_RINT):
-	  /* Only convert rint* if we can ignore math exceptions.  */
+	CASE_FLT_FN (BUILT_IN_NEARBYINT):
+	  /* Only convert nearbyint* if we can ignore math exceptions.  */
 	  if (flag_trapping_math)
 	    break;
 	  /* ... Fall through ...  */
-	CASE_FLT_FN (BUILT_IN_NEARBYINT):
+	CASE_FLT_FN (BUILT_IN_RINT):
 	  if (outprec < TYPE_PRECISION (long_integer_type_node)
 	      || (outprec == TYPE_PRECISION (long_integer_type_node)
 		  && !TYPE_UNSIGNED (type)))
@@ -435,10 +429,7 @@ convert_to_integer (tree type, tree expr)
 	  break;
 
 	CASE_FLT_FN (BUILT_IN_TRUNC):
-	  {
-	    tree arglist = TREE_OPERAND (s_expr, 1);
-	    return convert_to_integer (type, TREE_VALUE (arglist));
-	  }
+	  return convert_to_integer (type, CALL_EXPR_ARG (s_expr, 0));
 
 	default:
 	  break;
@@ -446,8 +437,7 @@ convert_to_integer (tree type, tree expr)
       
       if (fn)
         {
-	  tree arglist = TREE_OPERAND (s_expr, 1);
-	  tree newexpr = build_function_call_expr (fn, arglist);
+	  tree newexpr = build_call_expr (fn, 1, CALL_EXPR_ARG (s_expr, 0));
 	  return convert_to_integer (type, newexpr);
 	}
     }
@@ -662,11 +652,10 @@ convert_to_integer (tree type, tree expr)
 			   PLUS_EXPR or MINUS_EXPR in an unsigned
 			   type.  Otherwise, we would introduce
 			   signed-overflow undefinedness.  */
-			|| (!flag_wrapv
+			|| ((!TYPE_OVERFLOW_WRAPS (TREE_TYPE (arg0))
+			     || !TYPE_OVERFLOW_WRAPS (TREE_TYPE (arg1)))
 			    && (ex_form == PLUS_EXPR
-				|| ex_form == MINUS_EXPR)
-			    && (!TYPE_UNSIGNED (TREE_TYPE (arg0))
-				|| !TYPE_UNSIGNED (TREE_TYPE (arg1)))))
+				|| ex_form == MINUS_EXPR)))
 		      typex = lang_hooks.types.unsigned_type (typex);
 		    else
 		      typex = lang_hooks.types.signed_type (typex);

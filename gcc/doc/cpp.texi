@@ -58,9 +58,8 @@ This manual contains no Invariant Sections.  The Front-Cover Texts are
 
 @titlepage
 @title The C Preprocessor
-@subtitle for GCC version @value{version-GCC}
-@author Richard M. Stallman
-@author Zachary Weinberg
+@versionsubtitle
+@author Richard M. Stallman, Zachary Weinberg
 @page
 @c There is a fill at the bottom of the page, so we need a filll to
 @c override it.
@@ -2015,6 +2014,28 @@ functions.  You should not use these macros in any way unless you make
 sure that programs will execute with the same effect whether or not they
 are defined.  If they are defined, their value is 1.
 
+@item __GNUC_GNU_INLINE__
+GCC defines this macro if functions declared @code{inline} will be
+handled in GCC's traditional gnu89 mode.  In this mode an @code{extern
+inline} function will never be compiled as a standalone function, and
+an @code{inline} function which is neither @code{extern} nor
+@code{static} will always be compiled as a standalone function.
+
+@item __GNUC_STDC_INLINE__
+GCC defines this macro if functions declared @code{inline} will be
+handled according to the ISO C99 standard.  In this mode an
+@code{extern inline} function will always be compiled as a standalone
+externally visible function, and an @code{inline} function which is
+neither @code{extern} nor @code{static} will never be compiled as a
+standalone function.
+
+If this macro is defined, GCC supports the @code{gnu_inline} function
+attribute as a way to always get the gnu89 behavior.  Support for
+this and @code{__GNUC_GNU_INLINE__} was added in GCC 4.1.3.  If
+neither macro is defined, an older version of GCC is being used:
+@code{inline} functions will be compiled in gnu89 mode, and the
+@code{gnu_inline} function attribute will not be recognized.
+
 @item __CHAR_UNSIGNED__
 GCC defines this macro if and only if the data type @code{char} is
 unsigned on the target machine.  It exists to cause the standard header
@@ -2078,6 +2099,23 @@ Defined to the maximum value of the @code{signed char}, @code{wchar_t},
 respectively.  They exist to make the standard header given numerical limits
 work correctly.  You should not use these macros directly; instead, include
 the appropriate headers.
+
+@item __SIZEOF_INT__
+@itemx __SIZEOF_LONG__
+@itemx __SIZEOF_LONG_LONG__
+@itemx __SIZEOF_SHORT__
+@itemx __SIZEOF_POINTER__
+@itemx __SIZEOF_FLOAT__
+@itemx __SIZEOF_DOUBLE__
+@itemx __SIZEOF_LONG_DOUBLE__
+@itemx __SIZEOF_SIZE_T__
+@itemx __SIZEOF_WCHAR_T__
+@itemx __SIZEOF_WINT_T__
+@itemx __SIZEOF_PTRDIFF_T__
+Defined to the number of bytes of the C standard data types: @code{int},
+@code{long}, @code{long long}, @code{short}, @code{void *}, @code{float},
+@code{double}, @code{long double}, @code{size_t}, @code{wchar_t}, @code{wint_t}
+and @code{ptrdiff_t}.
 
 @item __DEPRECATED
 This macro is defined, with value 1, when compiling a C++ source file

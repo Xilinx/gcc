@@ -1,34 +1,220 @@
-2007-01-11 Harsha Jagasia <harsha.jagasia@amd.com>
+2007-04-04  Christian Bruel  <christian.bruel@st.com>
 
-        * MAINTAINERS (Write After Approval): Add myself.
+	* MAINTAINERS (Write After Approval): Add myself.
+	
+2007-04-02  Dave Korn  <dave.korn@artimi.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2007-03-31  Tobias Burnus  <burnus@net-b.de>
+
+	* MAINTAINERS (fortran 95 front end): Add myself.
+
+2007-03-28  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+	
+2007-03-24  Ayal Zaks  <zaks@il.ibm.com>
+
+	* MAINTAINERS (Modulo Scheduler): Add myself.
+
+2007-03-23  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* MAINTAINERS (fortran 95 front end): Add myself.
+	(c++ front end): whitespace fix.
+
+2007-03-22  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2007-03-21  Richard Sandiford  <richard@codesourcery.com>
+
+	* configure.ac (TOPLEVEL_CONFIGURE_ARGUMENTS): Fix m4 quoting
+	of glob.  Quote arguments with single quotes too.
+	* configure: Regenerate.
+
+2007-03-12  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.def (fixincludes): Remove unneeded "missing" lines.
+	* Makefile.in: Regenerate
+
+2007-03-07  Andreas Schwab  <schwab@suse.de>
+
+	* configure: Regenerate.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* configure.ac: Add "--with-pdfdir" configure option,
+	which defines pdfdir variable.
+	* Makefile.def (target=fixincludes): Add install-pdf to
+	missing targets.
+	(recursive_targets): Add install-pdf target.
+	(flags_to_pass): Add pdfdir.
+	* Makefile.tpl: Add pdfdir handling, add do-install-pdf
+	target.
+	* configure: Regenerate
+	* Makefile.in: Regenerate
+
+2007-02-28  Eric Christopher  <echristo@apple.com>
+
+	Revert:
+	2006-12-07  Mike Stump  <mrs@apple.com>
+
+	* Makefile.def (dependencies): Add dependency for
+	install-target-libssp and install-target-libgomp on
+	install-gcc.
+	* Makefile.in: Regenerate.
+
+2007-02-27  Matt Kraai  <kraai@ftbfs.org>
+
+	* configure: Regenerate.
+	* configure.ac: Move statements after variable declarations.
+
+2007-02-19  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* MAINTAINERS: Add myself as sh maintainer.
+
+2007-02-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure.ac: Adjust for loop syntax.
+	* configure: Regenerate.
+
+2007-02-18  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure: Rebuilt.
+
+2007-02-18  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure.ac: Drop multiple occurrences of --enable-languages,
+	and fix its quoting.
+	* configure: Rebuilt.
+
+2007-02-17  Mark Mitchell  <mark@codesourcery.com>
+            Nathan Sidwell  <nathan@codesourcery.com>
+            Vladimir Prus  <vladimir@codesourcery.com
+            Joseph Myers  <joseph@codesourcery.com>
+
+	* configure.ac (TOPLEVEL_CONFIGURE_ARGUMENTS): Fix quoting.
+	* configure: Regenerate.
+
+2007-02-14  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* ltconfig (freebsd*): Default to elf.
+
+2007-02-13  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* configure.ac (target_libraries): Move libgcc before libiberty.
+	* configure: Regenerated.
+
+2007-02-13  Daniel Jacobowitz  <dan@codesourcery.com>
+	    Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/30753
+	* configure.ac: Remove obsolete build / host tests.  Use AC_PROG_CC
+	unconditionally.  Use AC_PROG_CXX.  Use ACX_TOOL_DIRS to find $prefix.
+	* configure: Regenerated.
+
+2007-02-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* MAINTAINERS (Language Front End Maintainers): Update my mail
+	address.
+
+2007-02-09  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	PR bootstrap/30748
+	* configure.ac: Correct syntax for Solaris ksh.
+	* configure: Regenerated.
+
+2007-02-09  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Sync with src.
+	* configure: Regenerate.
+
+2007-02-09  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.in: Regenerate.
+
+2007-02-09  Paolo Bonzini  <bonzini@gnu.org>
+
+	* config.sub: Sync with src.
+
+2007-02-09  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Makefile.tpl (build_alias, host_alias, target_alias): Use
+	noncanonical equivalents.
+	* configure.in: Rename to...
+	* configure.ac: ...this.  Update AC_PREREQ.  Prevent error for
+	AS_FOR_TARGET.  Set build_noncanonical, host_noncanonical, and
+	target_noncanonical.  Use them.  Rewrite removal of configure
+	arguments for autoconf 2.59.  Discard variable settings.  Force
+	program_transform_name for native tools.
+
+	* Makefile.in: Regenerated.
+	* configure: Regenerated with autoconf 2.59.
+
+2007-02-07  Roman Zippel <zippel@linux-m68k.org>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2007-01-31  Andreas Schwab  <schwab@suse.de>
+
+	* Makefile.tpl (LDFLAGS): Substitute it.
+	* Makefile.in: Regenerate.
+
+2007-01-30 Andrey Belevantsev <abel@ispras.ru>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2007-01-28  David Edelsohn  <edelsohn@gnu.org>
+
+	* MAINTAINERS (spu port): Add myself.
+
+2007-01-23  Richard Guenther  <rguenther@suse.de>
+
+	PR bootstrap/30541
+	* Makefile.def (flags_to_pass): Add GNATBIND and GNATMAKE.
+	* Makefile.tpl (GNATBIND): Substitute it.
+	(GNATMAKE): Likewise.
+	(POSTSTAGE1_FLAGS_TO_PASS): Pass staged GNATBIND instead
+	of STAGE_PREFIX.
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+
+2007-01-18  Mike Stump  <mrs@apple.com>
+
+	* configure.in: Re-enable -Werror for gcc builds.
+
+2007-01-11  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
 
 2007-01-11  Paolo Bonzini  <bonzini@gnu.org>
 
 	* configure.in: Change == to = in test command.
-        * configure: Regenerate.
+	* configure: Regenerate.
 
 2007-01-11  Paolo Bonzini  <bonzini@gnu.org>
-            Nick Clifton  <nickc@redhat.com>
-            Kaveh R. Ghazi  <ghazi@caip.rutgets.edu>
+	    Nick Clifton  <nickc@redhat.com>
+	    Kaveh R. Ghazi  <ghazi@caip.rutgets.edu>
 
-        * configure.in (build_configargs, host_configargs, target_configargs):
-        Remove build/host/target parameters.
-        (host_libs): Add gmp and mpfr.
-        (GMP tests): Reorganize to allow in-tree GMP/MPFR.
-        * Makefile.def (gmp, mpfr): New.
-        (gcc): Remove target.
-        * Makefile.tpl (build_os, build_vendor, host_os, host_vendor,
-        target_os, target_vendor): New.
-        (configure): Add host_alias/target_alias arguments.  Adjust invocations.
-        * configure: Regenerate.
-        * Makefile.in: Regenerate.
+	* configure.in (build_configargs, host_configargs, target_configargs):
+	Remove build/host/target parameters.
+	(host_libs): Add gmp and mpfr.
+	(GMP tests): Reorganize to allow in-tree GMP/MPFR.
+	* Makefile.def (gmp, mpfr): New.
+	(gcc): Remove target.
+	* Makefile.tpl (build_os, build_vendor, host_os, host_vendor,
+	target_os, target_vendor): New.
+	(configure): Add host_alias/target_alias arguments.  Adjust invocations.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
 
 2007-01-11  Matt Fago  <fago@earthlink.net>
 
 	* configure.in: Try to link to functions only in mpfr 2.2.x
-        to improve robustness of configure tests.
+	to improve robustness of configure tests.
 	* configure: Regenerate.
-	
+
 2007-01-09  Uros Bizjak  <ubizjak@gmail.com>
 
 	* MAINTAINERS: Add myself as i386 maintainer.
@@ -94,8 +280,8 @@
 
 2006-12-20  Adam Megacz  <megacz@cs.berkeley.edu>
 
-        * configure.in: add AC_SUBST for *_FOR_TARGET.
-        * configure: Regenerate.
+	* configure.in: add AC_SUBST for *_FOR_TARGET.
+	* configure: Regenerate.
 
 2006-12-19  Paolo Bonzini  <bonzini@gnu.org>
 
@@ -145,7 +331,6 @@
 2006-12-11  Alan Modra  <amodra@bigpond.net.au>
 
 	* configure.in:  Handle spu makefile frag.
-	* config/mt-spu: New file.
 	* Makefile.tpl (MAINT): Define
 	(MAINTAINER_MODE_FALSE, MAINTAINER_MODE_TRUE): Define.
 	* configure: Regenerate.
@@ -322,7 +507,7 @@
 2006-10-25  Chen Liqin  <liqin@sunnorth.com.cn>
 
 	* MAINTAINERS (Write After Approval): Move myself to
-        Write After Approval section.
+	Write After Approval section.
 
 2006-10-21  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
@@ -761,7 +946,7 @@
 	* configure: Regenerate.
 
 2006-02-14  Paolo Bonzini  <bonzini@gnu.org>
-            Andreas Schwab  <schwab@suse.de>
+	    Andreas Schwab  <schwab@suse.de>
 
 	* configure: Regenerate.
 
@@ -2596,7 +2781,7 @@
 	of libf2c.
 	* configure, Makefile.in: Regenerate.
 
-2004-05-13  Tobias SchlÃƒÂƒÃ‚Â¼ter  <tobi@gcc.gnu.org>
+2004-05-13  Tobias SchlÃÂÃÂ¼ter  <tobi@gcc.gnu.org>
 
 	* MAINTAINERS (Write After Approval): Add myself.
 

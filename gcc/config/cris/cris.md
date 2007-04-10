@@ -1,5 +1,5 @@
 ;; GCC machine description for CRIS cpu cores.
-;; Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+;; Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
 ;; Free Software Foundation, Inc.
 ;; Contributed by Axis Communications.
 
@@ -337,12 +337,12 @@
 	 (match_operand:SI 1 "const_int_operand" "K,n,K,n,K,n,n")
 	 (match_operand:SI 2 "nonmemory_operand" "M,M,K,n,r,r,r")))]
   ;; Either it is a single bit, or consecutive ones starting at 0.
-  "GET_CODE (operands[1]) == CONST_INT
+  "CONST_INT_P (operands[1])
    && (operands[1] == const1_rtx || operands[2] == const0_rtx)
    && (REG_S_P (operands[0])
        || (operands[1] == const1_rtx
 	   && REG_S_P (operands[2])
-	   && GET_CODE (operands[0]) == CONST_INT
+	   && CONST_INT_P (operands[0])
 	   && exact_log2 (INTVAL (operands[0])) >= 0))"
 
 ;; The last "&&" condition above should be caught by some kind of
@@ -409,7 +409,7 @@
 	(match_operand:DI 1 "general_operand" ""))]
   ""
 {
-  if (GET_CODE (operands[0]) == MEM && operands[1] != const0_rtx)
+  if (MEM_P (operands[0]) && operands[1] != const0_rtx)
     operands[1] = copy_to_mode_reg (DImode, operands[1]);
 
   /* Some other ports (as of 2001-09-10 for example mcore and romp) also
@@ -420,8 +420,7 @@
      emitted) is the final value.  This construct from romp seems more
      robust, especially considering the head comments from
      emit_no_conflict_block.  */
-  if ((GET_CODE (operands[1]) == CONST_INT
-       || GET_CODE (operands[1]) == CONST_DOUBLE)
+  if ((CONST_INT_P (operands[1]) || GET_CODE (operands[1]) == CONST_DOUBLE)
       && ! reload_completed
       && ! reload_in_progress)
     {
@@ -513,7 +512,7 @@
   "cris_side_effect_mode_ok (PLUS, operands, 3, 1, 2, -1, 0)"
 {
   if ((which_alternative == 0 || which_alternative == 3)
-      && (GET_CODE (operands[2]) != CONST_INT
+      && (!CONST_INT_P (operands[2])
 	  || INTVAL (operands[2]) > 127
 	  || INTVAL (operands[2]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
@@ -540,7 +539,7 @@
        || which_alternative == 3
        || which_alternative == 6
        || which_alternative == 8)
-      && (GET_CODE (operands[2]) != CONST_INT
+      && (!CONST_INT_P (operands[2])
 	  || INTVAL (operands[2]) > 127
 	  || INTVAL (operands[2]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
@@ -659,7 +658,7 @@
   "cris_side_effect_mode_ok (PLUS, operands, 3, 0, 1, -1, 2)"
 {
   if ((which_alternative == 0 || which_alternative == 4)
-      && (GET_CODE (operands[1]) != CONST_INT
+      && (!CONST_INT_P (operands[1])
 	  || INTVAL (operands[1]) > 127
 	  || INTVAL (operands[1]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[1]), 'N')
@@ -693,7 +692,7 @@
    && cris_side_effect_mode_ok (PLUS, operands, 3, 0, 1, -1, 2)"
 {
   if ((which_alternative == 0 || which_alternative == 4)
-      && (GET_CODE (operands[1]) != CONST_INT
+      && (!CONST_INT_P (operands[1])
 	  || INTVAL (operands[1]) > 127
 	  || INTVAL (operands[1]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[1]), 'N')
@@ -766,7 +765,7 @@
   "cris_side_effect_mode_ok (PLUS, operands, 2, 0, 1, -1, -1)"
 {
   if ((which_alternative == 0 || which_alternative == 3)
-      && (GET_CODE (operands[1]) != CONST_INT
+      && (!CONST_INT_P (operands[1])
 	  || INTVAL (operands[1]) > 127
 	  || INTVAL (operands[1]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[1]), 'N')
@@ -787,7 +786,7 @@
 {
   /* If the output goes to a MEM, make sure we have zero or a register as
      input.  */
-  if (GET_CODE (operands[0]) == MEM
+  if (MEM_P (operands[0])
       && ! REG_S_P (operands[1])
       && operands[1] != const0_rtx
       && ! no_new_pseudos)
@@ -960,7 +959,7 @@
 	if (GET_CODE (tem) == PLUS
 	    && GET_CODE (XEXP (tem, 0)) == UNSPEC
 	    && XINT (XEXP (tem, 0), 1) == CRIS_UNSPEC_GOTREL
-	    && GET_CODE (XEXP (tem, 1)) == CONST_INT)
+	    && CONST_INT_P (XEXP (tem, 1)))
 	  tem = XEXP (tem, 0);
 	gcc_assert (GET_CODE (tem) == UNSPEC);
 	switch (XINT (tem, 1))
@@ -1047,7 +1046,7 @@
   "cris_side_effect_mode_ok (PLUS, operands, 3, 1, 2, -1, 0)"
 {
   if ((which_alternative == 0 || which_alternative == 3)
-      && (GET_CODE (operands[2]) != CONST_INT
+      && (!CONST_INT_P (operands[2])
 	  || INTVAL (operands[2]) > 127
 	  || INTVAL (operands[2]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
@@ -1071,7 +1070,7 @@
   "cris_side_effect_mode_ok (PLUS, operands, 3, 1, 2, -1, 0)"
 {
   if ((which_alternative == 0 || which_alternative == 3)
-      && (GET_CODE (operands[2]) != CONST_INT
+      && (!CONST_INT_P (operands[2])
 	  || INTVAL (operands[2]) > 127
 	  || INTVAL (operands[2]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
@@ -1348,7 +1347,7 @@
   "cris_side_effect_mode_ok (PLUS, operands, 4, 2, 3, -1, 0)"
 {
   if ((which_alternative == 0 || which_alternative == 3)
-      && (GET_CODE (operands[3]) != CONST_INT
+      && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
@@ -1406,7 +1405,7 @@
   "cris_side_effect_mode_ok (PLUS, operands, 4, 2, 3, -1, 0)"
 {
   if ((which_alternative == 0 || which_alternative == 3)
-      && (GET_CODE (operands[3]) != CONST_INT
+      && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
@@ -1482,7 +1481,7 @@
 	if (GET_CODE (tem) == PLUS
 	    && GET_CODE (XEXP (tem, 0)) == UNSPEC
 	    && XINT (XEXP (tem, 0), 1) == CRIS_UNSPEC_GOTREL
-	    && GET_CODE (XEXP (tem, 1)) == CONST_INT)
+	    && CONST_INT_P (XEXP (tem, 1)))
 	  tem = XEXP (tem, 0);
 	gcc_assert (GET_CODE (tem) == UNSPEC);
 	switch (XINT (tem, 1))
@@ -1679,7 +1678,7 @@
   "cris_side_effect_mode_ok (PLUS, operands, 4, 2, 3, -1, 0)"
 {
   if ((which_alternative == 0 || which_alternative == 3)
-      && (GET_CODE (operands[3]) != CONST_INT
+      && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
@@ -1708,7 +1707,7 @@
    && cris_side_effect_mode_ok (PLUS, operands, 4, 2, 3, -1, 0)"
 {
   if ((which_alternative == 0 || which_alternative == 3)
-      && (GET_CODE (operands[3]) != CONST_INT
+      && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
@@ -1788,7 +1787,7 @@
   "cris_side_effect_mode_ok (PLUS, operands, 4, 2, 3, -1, 0)"
 {
   if ((which_alternative == 0 || which_alternative == 3)
-      && (GET_CODE (operands[3]) != CONST_INT
+      && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
@@ -1816,7 +1815,7 @@
    && cris_side_effect_mode_ok (PLUS, operands, 4, 2, 3, -1, 0)"
 {
   if ((which_alternative == 0 || which_alternative == 3)
-      && (GET_CODE (operands[3]) != CONST_INT
+      && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
 	  || CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
@@ -1963,7 +1962,7 @@
 	 (match_operand:SI 2 "const_int_operand" "n")))]
   "operands[0] != frame_pointer_rtx
    && operands[1] != frame_pointer_rtx
-   && GET_CODE (operands[2]) == CONST_INT
+   && CONST_INT_P (operands[2])
    && (INTVAL (operands[2]) == 2
        || INTVAL (operands[2]) == 4 || INTVAL (operands[2]) == 3
        || INTVAL (operands[2]) == 5)"
@@ -1993,7 +1992,7 @@
 	 (match_operand:SI 1 "register_operand" "0")))]
   "operands[0] != frame_pointer_rtx
    && operands[1] != frame_pointer_rtx
-   && GET_CODE (operands[3]) == CONST_INT
+   && CONST_INT_P (operands[3])
    && (INTVAL (operands[3]) == 1
        || INTVAL (operands[3]) == 2 || INTVAL (operands[3]) == 4)"
   "addi %2%T3,%0"
@@ -2185,7 +2184,7 @@
 		(match_operand:SI 2 "general_operand"	 "")))]
   ""
 {
-  if (! (GET_CODE (operands[2]) == CONST_INT
+  if (! (CONST_INT_P (operands[2])
 	 && (((INTVAL (operands[2]) == -256
 	       || INTVAL (operands[2]) == -65536)
 	      && rtx_equal_p (operands[1], operands[0]))
@@ -2229,7 +2228,7 @@
 	(and:SI (match_operand:SI 1 "nonimmediate_operand" "%r,Q,To")
 		(match_operand:SI 2 "const_int_operand" "n,n,n")))]
   "(INTVAL (operands[2]) == 255 || INTVAL (operands[2]) == 65535)
-   && (GET_CODE (operands[1]) != MEM || ! MEM_VOLATILE_P (operands[1]))"
+   && !side_effects_p (operands[1])"
   "movu.%z2 %1,%0"
   [(set_attr "slottable" "yes,yes,no")])
 
@@ -2238,7 +2237,7 @@
 	(and:SI (match_operand:SI 1 "nonimmediate_operand" "%0,0,0,0,0,0")
 		(match_operand:SI 2 "const_int_operand" "P,n,P,n,P,n")))]
   "(INTVAL (operands[2]) == -65536 || INTVAL (operands[2]) == -256)
-   && (GET_CODE (operands[0]) != MEM || ! MEM_VOLATILE_P (operands[0]))"
+   && !side_effects_p (operands[0])"
   "@
    cLear.b %0
    cLear.w %0
@@ -2283,7 +2282,7 @@
 		(match_operand:HI 2 "general_operand"  "")))]
   ""
 {
-  if (! (GET_CODE (operands[2]) == CONST_INT
+  if (! (CONST_INT_P (operands[2])
 	 && (((INTVAL (operands[2]) == -256
 	       || INTVAL (operands[2]) == 65280)
 	      && rtx_equal_p (operands[1], operands[0]))
@@ -2317,7 +2316,7 @@
   [(set (match_operand:HI 0 "register_operand" "=r,r,r")
 	(and:HI (match_operand:HI 1 "nonimmediate_operand" "r,Q,To")
 		(const_int 255)))]
-  "GET_CODE (operands[1]) != MEM || ! MEM_VOLATILE_P (operands[1])"
+  "!side_effects_p (operands[1])"
   "mOvu.b %1,%0"
   [(set_attr "slottable" "yes,yes,no")])
 
@@ -2325,7 +2324,7 @@
   [(set (match_operand:HI 0 "nonimmediate_operand" "=r,Q,To")
 	(and:HI (match_operand:HI 1 "nonimmediate_operand" "0,0,0")
 		(const_int -256)))]
-  "GET_CODE (operands[0]) != MEM || ! MEM_VOLATILE_P (operands[0])"
+  "!side_effects_p (operands[0])"
   "cLear.b %0"
   [(set_attr "slottable" "yes,yes,no")
    (set_attr "cc" "none")])
@@ -2619,8 +2618,7 @@
   ""
 {
   return
-    (GET_CODE (operands[2]) == CONST_INT
-     && INTVAL (operands[2]) > <nbitsm1>)
+    (CONST_INT_P (operands[2]) && INTVAL (operands[2]) > <nbitsm1>)
     ? "moveq 0,%0"
     : (CONSTANT_P (operands[2])
        ? "lslq %2,%0" : "lsl<m> %2,%0");
@@ -2677,7 +2675,7 @@
 		  (match_operand:SI 2 "general_operand"   "r,Q>,g,!To")))]
   ""
 {
-  if (GET_CODE (operands[2]) == CONST_INT)
+  if (CONST_INT_P (operands[2]))
     {
       /* Constant operands are zero-extended, so only 32-bit operands
 	 may be negative.  */
@@ -2890,7 +2888,7 @@
 	      (clobber (reg:SI CRIS_SRP_REGNUM))])]
   ""
 {
-  gcc_assert (GET_CODE (operands[0]) == MEM);
+  gcc_assert (MEM_P (operands[0]));
   if (flag_pic)
     cris_expand_pic_call_address (&operands[0]);
 })
@@ -2931,7 +2929,7 @@
 	      (clobber (reg:SI CRIS_SRP_REGNUM))])]
   ""
 {
-  gcc_assert (GET_CODE (operands[1]) == MEM);
+  gcc_assert (MEM_P (operands[1]));
   if (flag_pic)
     cris_expand_pic_call_address (&operands[1]);
 })
@@ -3640,8 +3638,7 @@
   "reload_completed
    && REG_P (operands[0])
    && GET_MODE_SIZE (GET_MODE (operands[0])) <= UNITS_PER_WORD
-   && (GET_CODE (XEXP (operands[1], 0)) == MEM
-       || CONSTANT_P (XEXP (operands[1], 0)))
+   && (MEM_P (XEXP (operands[1], 0)) || CONSTANT_P (XEXP (operands[1], 0)))
    && REGNO (operands[0]) < CRIS_LAST_GENERAL_REGISTER"
   [(set (match_dup 2) (match_dup 4))
    (set (match_dup 0) (match_dup 3))]
@@ -3659,7 +3656,7 @@
   "reload_completed
    && REG_P (operands[0])
    && GET_MODE_SIZE (GET_MODE (operands[0])) <= UNITS_PER_WORD
-   && (GET_CODE (XEXP (operands[1], 0)) == MEM
+   && (MEM_P (XEXP (operands[1], 0))
        || CONSTANT_P (XEXP (operands[1], 0)))"
   [(set (match_dup 2) (match_dup 5))
    (set (match_dup 0) (match_op_dup 4 [(match_dup 3)]))]
@@ -4043,8 +4040,8 @@
    ;; don't do this for a mem-volatile access.
   "REGNO (operands[2]) == REGNO (operands[0])
    && INTVAL (operands[3]) <= 65535 && INTVAL (operands[3]) >= 0
-   && ! CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'I')
-   && (GET_CODE (operands[1]) != MEM || ! MEM_VOLATILE_P (operands[1]))"
+   && !CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'I')
+   && !side_effects_p (operands[1])"
   ;; FIXME: CC0 valid except for M (i.e. CC_NOT_NEGATIVE).
   [(set (match_dup 0) (match_dup 4))
    (set (match_dup 5) (match_dup 6))]

@@ -728,30 +728,13 @@ union lang_tree_node
   (DECL_LANG_SPECIFIC(DECL)->u.f.arg_slot_count)
 /* Source location of end of function. */
 #define DECL_FUNCTION_LAST_LINE(DECL) (DECL_LANG_SPECIFIC(DECL)->u.f.last_line)
-/* Information on declaration location */
-#define DECL_FUNCTION_WFL(DECL)  (DECL_LANG_SPECIFIC(DECL)->u.f.wfl)
 /* List of checked thrown exceptions, as specified with the `throws'
    keyword */
 #define DECL_FUNCTION_THROWS(DECL) (DECL_LANG_SPECIFIC(DECL)->u.f.throws_list)
-/* List of other constructors of the same class that this constructor
-   calls */
-#define DECL_CONSTRUCTOR_CALLS(DECL) \
-  (DECL_LANG_SPECIFIC(DECL)->u.f.called_constructor)
-/* When the function is an access function, the DECL it was trying to
-   access */
-#define DECL_FUNCTION_ACCESS_DECL(DECL) \
-  (DECL_LANG_SPECIFIC(DECL)->u.f.called_constructor)
-/* The identifier of the access method used to invoke this method from
-   an inner class.  */
-#define DECL_FUNCTION_INNER_ACCESS(DECL) \
-  (DECL_LANG_SPECIFIC(DECL)->u.f.inner_access)
 /* Pointer to the function's current's COMPOUND_EXPR tree (while
    completing its body) or the function's block */
 #define DECL_FUNCTION_BODY(DECL) \
   (DECL_LANG_SPECIFIC(DECL)->u.f.function_decl_body)
-/* How specific the function is (for method selection - Java source
-   code front-end */
-#define DECL_SPECIFIC_COUNT(DECL) DECL_ARG_SLOT_COUNT(DECL)
 /* For each function decl, init_test_table contains a hash table whose
    entries are keyed on class names, and whose values are local
    boolean decls.  The variables are intended to be TRUE when the
@@ -781,7 +764,7 @@ union lang_tree_node
 #define FIELD_LOCAL_ALIAS(DECL) DECL_LANG_FLAG_6 (VAR_OR_FIELD_CHECK (DECL))
 
 /* True when DECL, which aliases an outer context local variable is
-   used by the inner classe */
+   used by the inner classes.  */
 #define FIELD_LOCAL_ALIAS_USED(DECL) DECL_LANG_FLAG_7 (VAR_OR_FIELD_CHECK (DECL))
 
 /* True when DECL is a this$<n> field. Note that
@@ -819,8 +802,6 @@ union lang_tree_node
 /* True if a final field was initialized upon its declaration
    or in an initializer.  Set after definite assignment.  */
 #define DECL_FIELD_FINAL_IUD(NODE)  (DECL_LANG_SPECIFIC (NODE)->u.v.final_iud)
-/* The original WFL of a final variable. */
-#define DECL_FIELD_FINAL_WFL(NODE)  (DECL_LANG_SPECIFIC(NODE)->u.v.wfl)
 /* The class that's the owner of a dynamic binding table.  */
 #define DECL_OWNER(NODE)            (DECL_LANG_SPECIFIC(NODE)->u.v.owner)
 /* True if NODE is a local variable final. */
@@ -888,11 +869,8 @@ struct lang_decl_func GTY(())
   /* A temporary lie for the sake of ggc.  Actually, last_line is
      only a source_location if USE_MAPPED_LOCATION.  FIXME.  */
   source_location last_line;	/* End line number for a function decl */
-  tree wfl;			/* Information on the original location */
   tree throws_list;		/* Exception specified by `throws' */
   tree function_decl_body;	/* Hold all function's statements */
-  tree called_constructor;	/* When decl is a constructor, the
-				   list of other constructor it calls */
 
   /* Class initialization test variables  */
   htab_t GTY ((param_is (struct treetreehash_entry))) init_test_table;
@@ -900,8 +878,6 @@ struct lang_decl_func GTY(())
   /* Initialized (static) Class Table */
   htab_t GTY ((param_is (union tree_node))) ict;
 
-  tree inner_access;		/* The identifier of the access method
-				   used for invocation from inner classes */
   unsigned int native : 1;	/* Nonzero if this is a native method  */
   unsigned int init_final : 1;	/* Nonzero all finals are initialized */
   unsigned int init_calls_this : 1;
@@ -972,7 +948,6 @@ struct lang_decl_var GTY(())
   int end_pc;
   tree slot_chain;
   tree am;			/* Access method for this field (1.1) */
-  tree wfl;			/* Original wfl */
   tree owner;
   unsigned int final_iud : 1;	/* Final initialized upon declaration */
   unsigned int cif : 1;		/* True: decl is a class initialization flag */
@@ -1126,7 +1101,6 @@ extern tree java_type_for_mode (enum machine_mode, int);
 extern tree java_type_for_size (unsigned int, int);
 extern tree java_unsigned_type (tree);
 extern tree java_signed_type (tree);
-extern tree java_signed_or_unsigned_type (int, tree);
 extern tree java_truthvalue_conversion (tree);
 extern void add_assume_compiled (const char *, int);
 extern void add_enable_assert (const char *, int);
@@ -1154,10 +1128,13 @@ extern void layout_class (tree);
 extern int get_interface_method_index (tree, tree);
 extern tree layout_class_method (tree, tree, tree, tree);
 extern void layout_class_methods (tree);
+extern void cache_this_class_ref (tree);
+extern void uncache_this_class_ref (tree);
 extern tree build_class_ref (tree);
 extern tree build_dtable_decl (tree);
 extern tree build_internal_class_name (tree);
 extern tree build_constants_constructor (void);
+extern tree build_constant_data_ref (bool);
 extern tree build_ref_from_constant_pool (int);
 extern tree build_utf8_ref (tree);
 extern tree ident_subst (const char *, int, const char *, int, int,
@@ -1197,6 +1174,7 @@ extern tree check_for_builtin (tree, tree);
 extern void initialize_builtins (void);
 
 extern tree lookup_name (tree);
+extern bool special_method_p (tree);
 extern void maybe_rewrite_invocation (tree *, tree *, tree *, tree *);
 extern tree build_known_method_ref (tree, tree, tree, tree, tree, tree);
 extern tree build_class_init (tree, tree);
@@ -1648,20 +1626,18 @@ extern tree *type_map;
 
 #define BUILD_MONITOR_ENTER(WHERE, ARG)					\
   {									\
-    (WHERE) = build3 (CALL_EXPR, int_type_node,				\
-		      build_address_of (soft_monitorenter_node),	\
-		      build_tree_list (NULL_TREE, (ARG)),	 	\
-		      NULL_TREE);					\
+    (WHERE) = build_call_nary (int_type_node,				\
+			       build_address_of (soft_monitorenter_node), \
+			       1, (ARG));				\
     TREE_SIDE_EFFECTS (WHERE) = 1;					\
   }
 
-#define BUILD_MONITOR_EXIT(WHERE, ARG)				\
-  {								\
-    (WHERE) = build3 (CALL_EXPR, int_type_node,			\
-		      build_address_of (soft_monitorexit_node),	\
-		      build_tree_list (NULL_TREE, (ARG)),	\
-		      NULL_TREE);				\
-    TREE_SIDE_EFFECTS (WHERE) = 1;				\
+#define BUILD_MONITOR_EXIT(WHERE, ARG)					\
+  {									\
+    (WHERE) = build_call_nary (int_type_node,				\
+			       build_address_of (soft_monitorexit_node), \
+			       1, (ARG));				\
+    TREE_SIDE_EFFECTS (WHERE) = 1;					\
   }
 
 /* True when we can perform static class initialization optimization */
@@ -1701,36 +1677,6 @@ enum
 /* In an EXIT_BLOCK_EXPR node.  */
 #define EXIT_BLOCK_LABELED_BLOCK(NODE) \
   TREE_OPERAND_CHECK_CODE (NODE, EXIT_BLOCK_EXPR, 0)
-
-/* In an EXPR_WITH_FILE_LOCATION node.  */
-#define EXPR_WFL_EMIT_LINE_NOTE(NODE) \
-  (EXPR_WITH_FILE_LOCATION_CHECK (NODE)->base.public_flag)
-#undef EXPR_WFL_NODE
-#define EXPR_WFL_NODE(NODE) \
-  TREE_OPERAND (EXPR_WITH_FILE_LOCATION_CHECK (NODE), 0)
-#ifdef USE_MAPPED_LOCATION
-#define EXPR_WFL_LINECOL(NODE) EXPR_LOCUS(NODE)
-#define EXPR_WFL_FILENAME(NODE) EXPR_FILENAME (NODE)
-#define EXPR_WFL_LINENO(NODE) EXPR_LINENO (NODE)
-extern tree build_expr_wfl (tree, source_location);
-extern tree expr_add_location (tree, source_location, bool);
-#define build_unknown_wfl(NODE) build_expr_wfl(NODE, UNKNOWN_LOCATION)
-#else
-#define EXPR_WFL_LINECOL(NODE) (EXPR_CHECK (NODE)->exp.complexity)
-#define EXPR_WFL_LINENO(NODE) (EXPR_WFL_LINECOL (NODE) >> 12)
-#define EXPR_WFL_COLNO(NODE) (EXPR_WFL_LINECOL (NODE) & 0xfff)
-#undef EXPR_WFL_FILENAME_NODE
-#define EXPR_WFL_FILENAME_NODE(NODE) \
-  TREE_OPERAND (EXPR_WITH_FILE_LOCATION_CHECK (NODE), 2)
-#define EXPR_WFL_FILENAME(NODE) \
-  IDENTIFIER_POINTER (EXPR_WFL_FILENAME_NODE (NODE))
-/* ??? Java uses this in all expressions.  */
-#define EXPR_WFL_SET_LINECOL(NODE, LINE, COL) \
-  (EXPR_WFL_LINECOL(NODE) = ((LINE) << 12) | ((COL) & 0xfff))
-
-extern tree build_expr_wfl (tree, const char *, int, int);
-#define build_unknown_wfl(NODE) build_expr_wfl(NODE, NULL, 0, 0)
-#endif
 
 extern void java_genericize (tree);
 extern int java_gimplify_expr (tree *, tree *, tree *);

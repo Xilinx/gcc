@@ -74,7 +74,7 @@ do_niy (pretty_printer *buffer, tree node)
 
   if (!pp_lazy_mode (buffer) && EXPR_P (node))
     {
-      len = TREE_CODE_LENGTH (TREE_CODE (node));
+      len = TREE_OPERAND_LENGTH (node);
       for (i = 0; i < len; ++i)
 	{
 	  newline_and_indent (buffer, 2);
@@ -586,6 +586,14 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
 		pp_string (buffer, "vector ");
 		dump_generic_node (buffer, TREE_TYPE (node), 
 				   spc, flags, false);
+	      }
+	    else if (TREE_CODE (node) == INTEGER_TYPE)
+	      {
+		pp_string (buffer, (TYPE_UNSIGNED (node)
+				    ? "<unnamed-unsigned:"
+				    : "<unnamed-signed:"));
+		pp_decimal_int (buffer, TYPE_PRECISION (node));
+		pp_string (buffer, ">");
 	      }
 	    else
               pp_string (buffer, "<unnamed type>");
@@ -1189,12 +1197,22 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
       /* Print parameters.  */
       pp_space (buffer);
       pp_character (buffer, '(');
-      op1 = TREE_OPERAND (node, 1);
-      if (op1)
-	dump_generic_node (buffer, op1, spc, flags, false);
+      {
+	tree arg;
+	call_expr_arg_iterator iter;
+	FOR_EACH_CALL_EXPR_ARG (arg, iter, node)
+	  {
+	    dump_generic_node (buffer, arg, spc, flags, false);
+	    if (more_call_expr_args_p (&iter))
+	      {
+		pp_character (buffer, ',');
+		pp_space (buffer);
+	      }
+	  }
+      }
       pp_character (buffer, ')');
 
-      op1 = TREE_OPERAND (node, 2);
+      op1 = CALL_EXPR_STATIC_CHAIN (node);
       if (op1)
 	{
 	  pp_string (buffer, " [static-chain: ");
@@ -2544,7 +2562,7 @@ print_call_name (pretty_printer *buffer, tree node)
 
   gcc_assert (TREE_CODE (node) == CALL_EXPR);
 
-  op0 = TREE_OPERAND (node, 0);
+  op0 = CALL_EXPR_FN (node);
 
   if (TREE_CODE (op0) == NON_LVALUE_EXPR)
     op0 = TREE_OPERAND (op0, 0);

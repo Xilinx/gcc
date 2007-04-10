@@ -18,6 +18,30 @@ AC_ARG_ENABLE(java-maintainer-mode,
 AM_CONDITIONAL(JAVA_MAINTAINER_MODE, test "$enable_java_maintainer_mode" = yes)
 dnl END GCJ LOCAL
 
+dnl GCJ LOCAL
+# We would like to our source tree to be readonly.  However when releases or
+# pre-releases are generated, the man pages need to be included as they are
+# converted from the texi files via perl which we don't require end users to
+# have installed.
+# Therefore we have --enable-generated-files-in-srcdir to do just that.
+
+AC_MSG_CHECKING([whether to place generated files in the source directory])
+  dnl generated-files-in-srcdir is disabled by default
+  AC_ARG_ENABLE(generated-files-in-srcdir, 
+[  --enable-generated-files-in-srcdir
+                          put copies of generated files in source dir
+                          intended for creating source tarballs for users
+                          without texinfo, perl, bison or flex.],
+      generated_files_in_srcdir=$enableval,
+      generated_files_in_srcdir=no)
+
+AC_MSG_RESULT($generated_files_in_srcdir)
+AM_CONDITIONAL(GENINSRC, test x$generated_files_in_srcdir = xyes)
+dnl END GCJ LOCAL
+
+# Find the rest of the source tree framework.
+AM_ENABLE_MULTILIB(, ../..)
+
 dnl -----------------------------------------------------------
 dnl Fold all IA-32 CPU architectures into "x86"
 dnl -----------------------------------------------------------
@@ -188,7 +212,9 @@ AC_ARG_ENABLE([dssi],
                 no) COMPILE_DSSI=no ;;
                 *) COMPILE_DSSI=yes ;;
               esac],
-              [AC_CHECK_HEADERS([dssi.h],COMPILE_DSSI=yes,COMPILE_DSSI=no)])
+              [COMPILE_DSSI=no
+	       AC_CHECK_HEADERS([dssi.h], [
+	         AC_CHECK_HEADERS([jack/jack.h],COMPILE_DSSI=yes)])])
 AM_CONDITIONAL(CREATE_DSSI_LIBRARIES, test "x${COMPILE_DSSI}" = xyes)
 
 dnl -----------------------------------------------------------
@@ -608,16 +634,16 @@ if test "x${COMPILE_JNI}" = xyes; then
   if test "x${COMPILE_PLUGIN}" = xyes; then
     PKG_CHECK_MODULES(MOZILLA, mozilla-plugin, [MOZILLA_FOUND=yes], [MOZILLA_FOUND=no])
     if test "x${MOZILLA_FOUND}" = xno; then
-      PKG_CHECK_MODULES(MOZILLA, firefox-plugin, [MOZILLA_FOUND=yes], [MOZILLA_FOUND=no])
+      PKG_CHECK_MODULES(MOZILLA, firefox-plugin firefox-xpcom, [MOZILLA_FOUND=yes], [MOZILLA_FOUND=no])
     fi
     if test "x${MOZILLA_FOUND}" = xno; then
-      PKG_CHECK_MODULES(MOZILLA, xulrunner-plugin, [MOZILLA_FOUND=yes], [MOZILLA_FOUND=no])
+      PKG_CHECK_MODULES(MOZILLA, xulrunner-plugin xulrunner-xpcom, [MOZILLA_FOUND=yes], [MOZILLA_FOUND=no])
     fi
     if test "x${MOZILLA_FOUND}" = xno; then
-      PKG_CHECK_MODULES(MOZILLA, mozilla-firefox-plugin, [MOZILLA_FOUND=yes], [MOZILLA_FOUND=no])
+      PKG_CHECK_MODULES(MOZILLA, mozilla-firefox-plugin mozilla-firefox-xpcom, [MOZILLA_FOUND=yes], [MOZILLA_FOUND=no])
     fi
     if test "x${MOZILLA_FOUND}" = xno; then
-      PKG_CHECK_MODULES(MOZILLA, seamonkey-plugin, [MOZILLA_FOUND=yes], [MOZILLA_FOUND=no])
+      PKG_CHECK_MODULES(MOZILLA, seamonkey-plugin seamonkey-xpcom, [MOZILLA_FOUND=yes], [MOZILLA_FOUND=no])
     fi
     PKG_CHECK_MODULES(GLIB, glib-2.0)
 
@@ -703,6 +729,27 @@ AC_ARG_ENABLE([load-library],
               [INIT_LOAD_LIBRARY="true"])
 AC_SUBST(INIT_LOAD_LIBRARY)
 
+
+dnl -----------------------------------------------------------
+dnl Specify the jar file containing the Eclipse Java Compiler.  If
+dnl this option is not specified then the com.sun.tools.javac
+dnl implementation will not be included in tools.zip.
+dnl -----------------------------------------------------------
+dnl GCJ LOCAL: default to $multi_basedir/ecj.jar
+dnl In the default case where $multi_basedir/ecj.jar is found
+dnl $(jardir)/ecj.jar will not expand properly in GNU Classpath's
+dnl gnu/classpath/Configuration.java.  That is OK though since libjava's
+dnl gnu/classpath/Configuration.java overrides GNU Classpath's and
+dnl ECJ_JAR_FILE will be properly expanded in libjava's
+dnl gnu/classpath/natConfiguration.cc.
+AC_ARG_WITH([ecj-jar],
+  	    [AS_HELP_STRING([--with-ecj-jar=ABS.PATH],
+  	    [specify jar file containing the Eclipse Java Compiler])],
+  	    [ECJ_JAR=$withval],
+	    [if test -f $multi_basedir/ecj.jar; then
+	       ECJ_JAR='$(jardir)/ecj.jar'
+	     fi])
+AC_SUBST(ECJ_JAR)
 
 dnl -----------------------------------------------------------
 dnl Should the VM explicitly run class initialization subfunctions for

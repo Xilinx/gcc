@@ -375,22 +375,23 @@ static void
 verify_flow_insensitive_alias_info (void)
 {
   tree var;
-  bitmap visited = BITMAP_ALLOC (NULL);
   referenced_var_iterator rvi;
 
   FOR_EACH_REFERENCED_VAR (var, rvi)
     {
-      size_t j;
-      var_ann_t ann;
-      VEC(tree,gc) *may_aliases;
+      unsigned int j;
+      bitmap aliases;
       tree alias;
+      bitmap_iterator bi;
 
-      ann = var_ann (var);
-      may_aliases = ann->may_aliases;
+      if (!MTAG_P (var) || !MTAG_ALIASES (var))
+	continue;
+      
+      aliases = MTAG_ALIASES (var);
 
-      for (j = 0; VEC_iterate (tree, may_aliases, j, alias); j++)
+      EXECUTE_IF_SET_IN_BITMAP (aliases, 0, j, bi)
 	{
-	  bitmap_set_bit (visited, DECL_UID (alias));
+	  alias = referenced_var (j);
 
 	  if (TREE_CODE (alias) != MEMORY_PARTITION_TAG
 	      && !may_be_aliased (alias))
@@ -402,23 +403,6 @@ verify_flow_insensitive_alias_info (void)
 	}
     }
 
-  FOR_EACH_REFERENCED_VAR (var, rvi)
-    {
-      var_ann_t ann;
-      ann = var_ann (var);
-
-      if (!MTAG_P (var)
-	  && ann->is_aliased
-	  && memory_partition (var) == NULL_TREE
-	  && !bitmap_bit_p (visited, DECL_UID (var)))
-	{
-	  error ("addressable variable that is aliased but is not in any "
-	         "alias set");
-	  goto err;
-	}
-    }
-
-  BITMAP_FREE (visited);
   return;
 
 err:
@@ -778,7 +762,6 @@ init_tree_ssa (void)
 					       var_ann_eq, NULL);
   cfun->gimple_df->call_clobbered_vars = BITMAP_GGC_ALLOC ();
   cfun->gimple_df->addressable_vars = BITMAP_GGC_ALLOC ();
-  init_alias_heapvars ();
   init_ssanames ();
   init_phinodes ();
 }
@@ -952,10 +935,12 @@ tree_ssa_useless_type_conversion (tree expr)
   if (TREE_CODE (expr) == NOP_EXPR || TREE_CODE (expr) == CONVERT_EXPR
       || TREE_CODE (expr) == VIEW_CONVERT_EXPR
       || TREE_CODE (expr) == NON_LVALUE_EXPR)
-    return tree_ssa_useless_type_conversion_1 (TREE_TYPE (expr),
-					       TREE_TYPE (TREE_OPERAND (expr,
-									0)));
-
+    /* FIXME: Use of GENERIC_TREE_TYPE here is a temporary measure to work
+       around known bugs with GIMPLE_MODIFY_STMTs appearing in places
+       they shouldn't.  See PR 30391.  */
+    return tree_ssa_useless_type_conversion_1
+      (TREE_TYPE (expr),
+       GENERIC_TREE_TYPE (TREE_OPERAND (expr, 0)));
 
   return false;
 }

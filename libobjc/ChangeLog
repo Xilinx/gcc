@@ -1,3 +1,19 @@
+2007-04-09  Andrew Ruder  <andy@aeruder.net>
+
+	* sendmsg.c: Added __objc_msg_forward2, a hook that allows
+	external libraries to provide a function that returns the real
+	forwarding function based on both the selector and the receiver.
+	* objc/objc-api.h: Define __objc_msg_forward2.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.in: Add dummy install-pdf target.
+
+2007-02-18  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* objc/objc-list.h (list_free): Add keyword 'inline' to avoid
+	unused warning.
+	
 2006-10-31  Geoffrey Keating  <geoffk@apple.com>
 
 	* encoding.c (darwin_rs6000_special_round_type_align): New.

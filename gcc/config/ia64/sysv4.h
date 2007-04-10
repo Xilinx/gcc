@@ -84,8 +84,8 @@ do {						\
 #define DBX_REGISTER_NUMBER(REGNO) \
   ia64_dbx_register_number(REGNO)
 
-/* Things that svr4.h defines to the wrong type, because it assumes 32 bit
-   ints and 32 bit longs.  */
+/* Things that svr4.h defines to the wrong type, because it assumes 32-bit
+   ints and 32-bit longs.  */
 
 #undef SIZE_TYPE
 #define SIZE_TYPE "long unsigned int"
@@ -121,6 +121,8 @@ do {									\
 } while (0)
 
 /* Override default elf definition.  */
+#undef  TARGET_ASM_RELOC_RW_MASK
+#define TARGET_ASM_RELOC_RW_MASK  ia64_reloc_rw_mask
 #undef	TARGET_ASM_SELECT_RTX_SECTION
 #define TARGET_ASM_SELECT_RTX_SECTION  ia64_select_rtx_section
 

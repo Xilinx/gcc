@@ -1,5 +1,6 @@
 /* Tree inlining.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Alexandre Oliva <aoliva@redhat.com>
 
 This file is part of GCC.
@@ -107,6 +108,21 @@ int flag_inline_trees = 0;
    o Provide heuristics to clamp inlining of recursive template
      calls?  */
 
+
+/* Weights that estimate_num_insns uses for heuristics in inlining.  */
+
+eni_weights eni_inlining_weights;
+
+/* Weights that estimate_num_insns uses to estimate the size of the
+   produced code.  */
+
+eni_weights eni_size_weights;
+
+/* Weights that estimate_num_insns uses to estimate the time necessary
+   to execute the produced code.  */
+
+eni_weights eni_time_weights;
+
 /* Prototypes.  */
 
 static tree declare_return_variable (copy_body_data *, tree, tree, tree *);
@@ -132,14 +148,12 @@ static tree copy_decl_maybe_to_var (tree, copy_body_data *);
 void
 insert_decl_map (copy_body_data *id, tree key, tree value)
 {
-  splay_tree_insert (id->decl_map, (splay_tree_key) key,
-		     (splay_tree_value) value);
+  *pointer_map_insert (id->decl_map, key) = value;
 
   /* Always insert an identity map as well.  If we see this same new
      node again, we won't want to duplicate it a second time.  */
   if (key != value)
-    splay_tree_insert (id->decl_map, (splay_tree_key) value,
-		       (splay_tree_value) value);
+    *pointer_map_insert (id->decl_map, value) = value;
 }
 
 /* Construct new SSA name for old NAME. ID is the inline context.  */
@@ -148,13 +162,13 @@ static tree
 remap_ssa_name (tree name, copy_body_data *id)
 {
   tree new;
-  splay_tree_node n;
+  tree *n;
 
   gcc_assert (TREE_CODE (name) == SSA_NAME);
 
-  n = splay_tree_lookup (id->decl_map, (splay_tree_key) name);
+  n = (tree *) pointer_map_contains (id->decl_map, name);
   if (n)
-    return (tree) n->value;
+    return *n;
 
   /* Do not set DEF_STMT yet as statement is not copied yet. We do that
      in copy_bb.  */
@@ -191,7 +205,7 @@ remap_ssa_name (tree name, copy_body_data *id)
 tree
 remap_decl (tree decl, copy_body_data *id)
 {
-  splay_tree_node n;
+  tree *n;
   tree fn;
 
   /* We only remap local variables in the current function.  */
@@ -199,7 +213,7 @@ remap_decl (tree decl, copy_body_data *id)
 
   /* See if we have remapped this declaration.  */
 
-  n = splay_tree_lookup (id->decl_map, (splay_tree_key) decl);
+  n = (tree *) pointer_map_contains (id->decl_map, decl);
 
   /* If we didn't already have an equivalent for this declaration,
      create one now.  */
@@ -252,22 +266,22 @@ remap_decl (tree decl, copy_body_data *id)
       return t;
     }
 
-  return unshare_expr ((tree) n->value);
+  return unshare_expr (*n);
 }
 
 static tree
 remap_type_1 (tree type, copy_body_data *id)
 {
-  splay_tree_node node;
+  tree *node;
   tree new, t;
 
   if (type == NULL)
     return type;
 
   /* See if we have remapped this type.  */
-  node = splay_tree_lookup (id->decl_map, (splay_tree_key) type);
+  node = (tree *) pointer_map_contains (id->decl_map, type);
   if (node)
-    return (tree) node->value;
+    return *node;
 
   /* The type only needs remapping if it's variably modified.  */
   if (! variably_modified_type_p (type, id->src_fn))
@@ -380,15 +394,15 @@ remap_type_1 (tree type, copy_body_data *id)
 tree
 remap_type (tree type, copy_body_data *id)
 {
-  splay_tree_node node;
+  tree *node;
 
   if (type == NULL)
     return type;
 
   /* See if we have remapped this type.  */
-  node = splay_tree_lookup (id->decl_map, (splay_tree_key) type);
+  node = (tree *) pointer_map_contains (id->decl_map, type);
   if (node)
-    return (tree) node->value;
+    return *node;
 
   /* The type only needs remapping if it's variably modified.  */
   if (! variably_modified_type_p (type, id->src_fn))
@@ -634,12 +648,12 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 	     and thus don't count as variable modification.  Avoid
 	     keeping bogosities like 0 = 0.  */
 	  tree decl = GIMPLE_STMT_OPERAND (*tp, 0), value;
-	  splay_tree_node n;
+	  tree *n;
 
-	  n = splay_tree_lookup (id->decl_map, (splay_tree_key) decl);
+	  n = (tree *) pointer_map_contains (id->decl_map, decl);
 	  if (n)
 	    {
-	      value = (tree) n->value;
+	      value = *n;
 	      STRIP_TYPE_NOPS (value);
 	      if (TREE_CONSTANT (value) || TREE_READONLY_DECL_P (value))
 		{
@@ -653,9 +667,9 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 	  /* Get rid of *& from inline substitutions that can happen when a
 	     pointer argument is an ADDR_EXPR.  */
 	  tree decl = TREE_OPERAND (*tp, 0);
-	  splay_tree_node n;
+	  tree *n;
 
-	  n = splay_tree_lookup (id->decl_map, (splay_tree_key) decl);
+	  n = (tree *) pointer_map_contains (id->decl_map, decl);
 	  if (n)
 	    {
 	      tree new;
@@ -666,8 +680,8 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 		 build_fold_indirect_ref wouldn't strip the INDIRECT_REF,
 		 but we absolutely rely on that.  As fold_indirect_ref
 	         does other useful transformations, try that first, though.  */
-	      tree type = TREE_TYPE (TREE_TYPE ((tree)n->value));
-	      new = unshare_expr ((tree)n->value);
+	      tree type = TREE_TYPE (TREE_TYPE (*n));
+	      new = unshare_expr (*n);
 	      old = *tp;
 	      *tp = fold_indirect_ref_1 (type, new);
 	      if (! *tp)
@@ -702,11 +716,11 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 	  new_block = id->block;
 	  if (TREE_BLOCK (*tp))
 	    {
-	      splay_tree_node n;
-	      n = splay_tree_lookup (id->decl_map,
-				     (splay_tree_key) TREE_BLOCK (*tp));
+	      tree *n;
+	      n = (tree *) pointer_map_contains (id->decl_map,
+						 TREE_BLOCK (*tp));
 	      gcc_assert (n);
-	      new_block = (tree) n->value;
+	      new_block = *n;
 	    }
 	  TREE_BLOCK (*tp) = new_block;
 	}
@@ -762,8 +776,13 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale, int count_scal
   copy_basic_block = create_basic_block (NULL, (void *) 0,
                                          (basic_block) bb->prev_bb->aux);
   copy_basic_block->count = bb->count * count_scale / REG_BR_PROB_BASE;
-  copy_basic_block->frequency = (bb->frequency
+
+  /* We are going to rebuild frequencies from scratch.  These values have just
+     small importance to drive canonicalize_loop_headers.  */
+  copy_basic_block->frequency = ((gcov_type)bb->frequency
 				     * frequency_scale / REG_BR_PROB_BASE);
+  if (copy_basic_block->frequency > BB_FREQ_MAX)
+    copy_basic_block->frequency = BB_FREQ_MAX;
   copy_bsi = bsi_start (copy_basic_block);
 
   for (bsi = bsi_start (bb);
@@ -824,7 +843,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale, int count_scal
 		      edge = cgraph_edge (id->src_node, orig_stmt);
 		      if (edge)
 			cgraph_clone_edge (edge, id->dst_node, stmt,
-					   REG_BR_PROB_BASE, 1, true);
+					   REG_BR_PROB_BASE, 1, edge->frequency, true);
 		      break;
 
 		    case CB_CGE_MOVE_CLONES:
@@ -853,7 +872,20 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale, int count_scal
 	      gcc_assert (lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt)
 			  != 0);
 
-	      if (tree_could_throw_p (stmt))
+	      if (tree_could_throw_p (stmt)
+		  /* When we are cloning for inlining, we are supposed to
+		     construct a clone that calls precisely the same functions
+		     as original.  However IPA optimizers might've proved
+		     earlier some function calls as non-trapping that might
+		     render some basic blocks dead that might become
+		     unreachable.
+
+		     We can't update SSA with unreachable blocks in CFG and thus
+		     we prevent the scenario by preserving even the "dead" eh
+		     edges until the point they are later removed by
+		     fixup_cfg pass.  */
+		  || (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES
+		      && lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt) > 0))
 		{
 		  int region = lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt);
 		  /* Add an entry for the copied tree in the EH hashtable.
@@ -1366,13 +1398,13 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
       if (def && gimple_in_ssa_p (cfun) && is_gimple_reg (p))
 	{
 	  def = remap_ssa_name (def, id);
-          init_stmt = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (var), def, rhs);
+          init_stmt = build_gimple_modify_stmt (def, rhs);
 	  SSA_NAME_DEF_STMT (def) = init_stmt;
 	  SSA_NAME_IS_DEFAULT_DEF (def) = 0;
 	  set_default_def (var, NULL);
 	}
       else
-        init_stmt = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (var), var, rhs);
+        init_stmt = build_gimple_modify_stmt (var, rhs);
 
       /* If we did not create a gimple value and we did not create a gimple
 	 cast of a gimple value, then we will need to gimplify INIT_STMTS
@@ -1410,10 +1442,10 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 }
 
 /* Generate code to initialize the parameters of the function at the
-   top of the stack in ID from the ARGS (presented as a TREE_LIST).  */
+   top of the stack in ID from the CALL_EXPR EXP.  */
 
 static void
-initialize_inlined_parameters (copy_body_data *id, tree args, tree static_chain,
+initialize_inlined_parameters (copy_body_data *id, tree exp,
 			       tree fn, basic_block bb)
 {
   tree parms;
@@ -1421,14 +1453,16 @@ initialize_inlined_parameters (copy_body_data *id, tree args, tree static_chain,
   tree p;
   tree vars = NULL_TREE;
   int argnum = 0;
+  call_expr_arg_iterator iter;
+  tree static_chain = CALL_EXPR_STATIC_CHAIN (exp);
 
   /* Figure out what the parameters are.  */
   parms = DECL_ARGUMENTS (fn);
 
   /* Loop through the parameter declarations, replacing each with an
      equivalent VAR_DECL, appropriately initialized.  */
-  for (p = parms, a = args; p;
-       a = a ? TREE_CHAIN (a) : a, p = TREE_CHAIN (p))
+  for (p = parms, a = first_call_expr_arg (exp, &iter); p;
+       a = next_call_expr_arg (&iter), p = TREE_CHAIN (p))
     {
       tree value;
 
@@ -1436,7 +1470,7 @@ initialize_inlined_parameters (copy_body_data *id, tree args, tree static_chain,
 
       /* Find the initializer.  */
       value = lang_hooks.tree_inlining.convert_parm_for_inlining
-	      (p, a ? TREE_VALUE (a) : NULL_TREE, fn, argnum);
+	      (p, a, fn, argnum);
 
       setup_one_parameter (id, p, value, fn, bb, &vars);
     }
@@ -1904,14 +1938,26 @@ estimate_move_cost (tree type)
     return ((size + MOVE_MAX_PIECES - 1) / MOVE_MAX_PIECES);
 }
 
+/* Arguments for estimate_num_insns_1.  */
+
+struct eni_data
+{
+  /* Used to return the number of insns.  */
+  int count;
+
+  /* Weights of various constructs.  */
+  eni_weights *weights;
+};
+
 /* Used by estimate_num_insns.  Estimate number of instructions seen
    by given statement.  */
 
 static tree
 estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
 {
-  int *count = (int *) data;
+  struct eni_data *d = data;
   tree x = *tp;
+  unsigned cost;
 
   if (IS_TYPE_OR_DECL_P (x))
     {
@@ -2026,7 +2072,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
       /* Otherwise it's a store, so fall through to compute the move cost.  */
 
     case CONSTRUCTOR:
-      *count += estimate_move_cost (TREE_TYPE (x));
+      d->count += estimate_move_cost (TREE_TYPE (x));
       break;
 
     /* Assign cost of 1 to usual operations.
@@ -2090,8 +2136,6 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case POSTDECREMENT_EXPR:
     case POSTINCREMENT_EXPR:
 
-    case SWITCH_EXPR:
-
     case ASM_EXPR:
 
     case REALIGN_LOAD_EXPR:
@@ -2116,7 +2160,13 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case VEC_INTERLEAVE_LOW_EXPR:
 
     case RESX_EXPR:
-      *count += 1;
+      d->count += 1;
+      break;
+
+    case SWITCH_EXPR:
+      /* TODO: Cost of a switch should be derived from the number of
+	 branches.  */
+      d->count += d->weights->switch_cost;
       break;
 
     /* Few special cases of expensive operations.  This is useful
@@ -2131,13 +2181,13 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case FLOOR_MOD_EXPR:
     case ROUND_MOD_EXPR:
     case RDIV_EXPR:
-      *count += 10;
+      d->count += d->weights->div_mod_cost;
       break;
     case CALL_EXPR:
       {
 	tree decl = get_callee_fndecl (x);
-	tree arg;
 
+	cost = d->weights->call_cost;
 	if (decl && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL)
 	  switch (DECL_FUNCTION_CODE (decl))
 	    {
@@ -2146,6 +2196,10 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
 	      return NULL_TREE;
 	    case BUILT_IN_EXPECT:
 	      return NULL_TREE;
+	    /* Prefetch instruction is not expensive.  */
+	    case BUILT_IN_PREFETCH:
+	      cost = 1;
+	      break;
 	    default:
 	      break;
 	    }
@@ -2154,16 +2208,19 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
 	   that does use function declaration to figure out the arguments.  */
 	if (!decl)
 	  {
-	    for (arg = TREE_OPERAND (x, 1); arg; arg = TREE_CHAIN (arg))
-	      *count += estimate_move_cost (TREE_TYPE (TREE_VALUE (arg)));
+	    tree a;
+	    call_expr_arg_iterator iter;
+	    FOR_EACH_CALL_EXPR_ARG (a, iter, x)
+	      d->count += estimate_move_cost (TREE_TYPE (a));
 	  }
 	else
 	  {
+	    tree arg;
 	    for (arg = DECL_ARGUMENTS (decl); arg; arg = TREE_CHAIN (arg))
-	      *count += estimate_move_cost (TREE_TYPE (arg));
+	      d->count += estimate_move_cost (TREE_TYPE (arg));
 	  }
 
-	*count += PARAM_VALUE (PARAM_INLINE_CALL_COST);
+	d->count += cost;
 	break;
       }
 
@@ -2177,7 +2234,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case OMP_CRITICAL:
     case OMP_ATOMIC:
       /* OpenMP directives are generally very expensive.  */
-      *count += 40;
+      d->count += d->weights->omp_cost;
       break;
 
     default:
@@ -2186,16 +2243,20 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
   return NULL;
 }
 
-/* Estimate number of instructions that will be created by expanding EXPR.  */
+/* Estimate number of instructions that will be created by expanding EXPR.
+   WEIGHTS contains weights attributed to various constructs.  */
 
 int
-estimate_num_insns (tree expr)
+estimate_num_insns (tree expr, eni_weights *weights)
 {
-  int num = 0;
   struct pointer_set_t *visited_nodes;
   basic_block bb;
   block_stmt_iterator bsi;
   struct function *my_function;
+  struct eni_data data;
+
+  data.count = 0;
+  data.weights = weights;
 
   /* If we're given an entire function, walk the CFG.  */
   if (TREE_CODE (expr) == FUNCTION_DECL)
@@ -2210,15 +2271,40 @@ estimate_num_insns (tree expr)
 	       bsi_next (&bsi))
 	    {
 	      walk_tree (bsi_stmt_ptr (bsi), estimate_num_insns_1,
-			 &num, visited_nodes);
+			 &data, visited_nodes);
 	    }
 	}
       pointer_set_destroy (visited_nodes);
     }
   else
-    walk_tree_without_duplicates (&expr, estimate_num_insns_1, &num);
+    walk_tree_without_duplicates (&expr, estimate_num_insns_1, &data);
 
-  return num;
+  return data.count;
+}
+
+/* Initializes weights used by estimate_num_insns.  */
+
+void
+init_inline_once (void)
+{
+  eni_inlining_weights.call_cost = PARAM_VALUE (PARAM_INLINE_CALL_COST);
+  eni_inlining_weights.div_mod_cost = 10;
+  eni_inlining_weights.switch_cost = 1;
+  eni_inlining_weights.omp_cost = 40;
+
+  eni_size_weights.call_cost = 1;
+  eni_size_weights.div_mod_cost = 1;
+  eni_size_weights.switch_cost = 10;
+  eni_size_weights.omp_cost = 40;
+
+  /* Estimating time for call is difficult, since we have no idea what the
+     called function does.  In the current uses of eni_time_weights,
+     underestimating the cost does less harm than overestimating it, so
+     we choose a rather small value here.  */
+  eni_time_weights.call_cost = 10;
+  eni_time_weights.div_mod_cost = 10;
+  eni_time_weights.switch_cost = 4;
+  eni_time_weights.omp_cost = 40;
 }
 
 typedef struct function *function_p;
@@ -2266,8 +2352,7 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
   tree t;
   tree use_retvar;
   tree fn;
-  splay_tree st;
-  tree args;
+  struct pointer_map_t *st;
   tree return_slot;
   tree modify_dest;
   location_t saved_location;
@@ -2335,8 +2420,14 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
          (incorrect node sharing is most common reason for missing edges.  */
       gcc_assert (dest->needed || !flag_unit_at_a_time);
       cgraph_create_edge (id->dst_node, dest, stmt,
-			  bb->count, bb->loop_depth)->inline_failed
+			  bb->count, CGRAPH_FREQ_BASE,
+			  bb->loop_depth)->inline_failed
 	= N_("originally indirect function call not considered for inlining");
+      if (dump_file)
+	{
+	   fprintf (dump_file, "Created new direct edge to %s",
+		    cgraph_node_name (dest));
+	}
       goto egress;
     }
 
@@ -2416,18 +2507,14 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
   /* Local declarations will be replaced by their equivalents in this
      map.  */
   st = id->decl_map;
-  id->decl_map = splay_tree_new (splay_tree_compare_pointers,
-				 NULL, NULL);
-
-  /* Initialize the parameters.  */
-  args = TREE_OPERAND (t, 1);
+  id->decl_map = pointer_map_create ();
 
   /* Record the function we are about to inline.  */
   id->src_fn = fn;
   id->src_node = cg_edge->callee;
   id->src_cfun = DECL_STRUCT_FUNCTION (fn);
 
-  initialize_inlined_parameters (id, args, TREE_OPERAND (t, 2), fn, bb);
+  initialize_inlined_parameters (id, t, fn, bb);
 
   if (DECL_INITIAL (fn))
     add_lexical_block (id->block, remap_blocks (DECL_INITIAL (fn), id));
@@ -2486,7 +2573,7 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
     }
 
   /* Clean up.  */
-  splay_tree_delete (id->decl_map);
+  pointer_map_destroy (id->decl_map);
   id->decl_map = st;
 
   /* If the inlined function returns a result that we care about,
@@ -2611,9 +2698,78 @@ fold_marked_statements (int first, struct pointer_set_t *statements)
       }
 }
 
+/* Return true if BB has at least one abnormal outgoing edge.  */
+
+static inline bool
+has_abnormal_outgoing_edge_p (basic_block bb)
+{
+  edge e;
+  edge_iterator ei;
+
+  FOR_EACH_EDGE (e, ei, bb->succs)
+    if (e->flags & EDGE_ABNORMAL)
+      return true;
+
+  return false;
+}
+
+/* When a block from the inlined function contains a call with side-effects
+   in the middle gets inlined in a function with non-locals labels, the call
+   becomes a potential non-local goto so we need to add appropriate edge.  */
+
+static void
+make_nonlocal_label_edges (void)
+{
+  block_stmt_iterator bsi;
+  basic_block bb;
+
+  FOR_EACH_BB (bb)
+    {
+      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+	{
+	  tree stmt = bsi_stmt (bsi);
+	  if (tree_can_make_abnormal_goto (stmt))
+	    {
+	      if (stmt == bsi_stmt (bsi_last (bb)))
+		{
+		  if (!has_abnormal_outgoing_edge_p (bb))
+		    make_abnormal_goto_edges (bb, true);
+		}
+	      else
+		{
+		  edge e = split_block (bb, stmt);
+		  bb = e->src;
+		  make_abnormal_goto_edges (bb, true);
+		}
+	      break;
+	    }
+
+	  /* Update PHIs on nonlocal goto receivers we (possibly)
+	     just created new edges into.  */
+	  if (TREE_CODE (stmt) == LABEL_EXPR
+	      && gimple_in_ssa_p (cfun))
+	    {
+	      tree target = LABEL_EXPR_LABEL (stmt);
+	      if (DECL_NONLOCAL (target))
+		{
+		  tree phi;
+
+		  for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
+		    {
+		      gcc_assert (SSA_NAME_OCCURS_IN_ABNORMAL_PHI
+				  (PHI_RESULT (phi)));
+		      mark_sym_for_renaming
+			(SSA_NAME_VAR (PHI_RESULT (phi)));
+		    }
+		}
+	    }
+	}
+    }
+}
+
 /* Expand calls to inline functions in the body of FN.  */
 
-void
+unsigned int
 optimize_inline_calls (tree fn)
 {
   copy_body_data id;
@@ -2624,7 +2780,7 @@ optimize_inline_calls (tree fn)
      occurred -- and we might crash if we try to inline invalid
      code.  */
   if (errorcount || sorrycount)
-    return;
+    return 0;
 
   /* Clear out ID.  */
   memset (&id, 0, sizeof (id));
@@ -2674,30 +2830,26 @@ optimize_inline_calls (tree fn)
 	gcc_assert (e->inline_failed);
     }
 #endif
-  /* We need to rescale frequencies again to peak at REG_BR_PROB_BASE
-     as inlining loops might increase the maximum.  */
-  if (ENTRY_BLOCK_PTR->count)
-    counts_to_freqs ();
+
+  /* We are not going to maintain the cgraph edges up to date.
+     Kill it so it won't confuse us.  */
+  cgraph_node_remove_callees (id.dst_node);
 
   fold_marked_statements (last, id.statements_to_fold);
   pointer_set_destroy (id.statements_to_fold);
-  if (gimple_in_ssa_p (cfun))
-    {
-      /* We make no attempts to keep dominance info up-to-date.  */
-      free_dominance_info (CDI_DOMINATORS);
-      free_dominance_info (CDI_POST_DOMINATORS);
-      delete_unreachable_blocks ();
-      update_ssa (TODO_update_ssa);
-      fold_cond_expr_cond ();
-      if (need_ssa_update_p ())
-        update_ssa (TODO_update_ssa);
-    }
-  else
-    fold_cond_expr_cond ();
+  fold_cond_expr_cond ();
+  if (current_function_has_nonlocal_label)
+    make_nonlocal_label_edges ();
+  /* We make no attempts to keep dominance info up-to-date.  */
+  free_dominance_info (CDI_DOMINATORS);
+  free_dominance_info (CDI_POST_DOMINATORS);
   /* It would be nice to check SSA/CFG/statement consistency here, but it is
      not possible yet - the IPA passes might make various functions to not
      throw and they don't care to proactively update local EH info.  This is
      done later in fixup_cfg pass that also execute the verification.  */
+  return (TODO_update_ssa | TODO_cleanup_cfg
+	  | (gimple_in_ssa_p (cfun) ? TODO_remove_unused_locals : 0)
+	  | (profile_status != PROFILE_ABSENT ? TODO_rebuild_frequencies : 0));
 }
 
 /* FN is a function that has a complete body, and CLONE is a function whose
@@ -2715,7 +2867,7 @@ clone_body (tree clone, tree fn, void *arg_map)
   id.src_fn = fn;
   id.dst_fn = clone;
   id.src_cfun = DECL_STRUCT_FUNCTION (fn);
-  id.decl_map = (splay_tree)arg_map;
+  id.decl_map = (struct pointer_map_t *)arg_map;
 
   id.copy_decl = copy_decl_no_change;
   id.transform_call_graph_edges = CB_CGE_DUPLICATE;
@@ -2809,12 +2961,12 @@ copy_tree_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 static void
 remap_save_expr (tree *tp, void *st_, int *walk_subtrees)
 {
-  splay_tree st = (splay_tree) st_;
-  splay_tree_node n;
+  struct pointer_map_t *st = (struct pointer_map_t *) st_;
+  tree *n;
   tree t;
 
   /* See if we already encountered this SAVE_EXPR.  */
-  n = splay_tree_lookup (st, (splay_tree_key) *tp);
+  n = (tree *) pointer_map_contains (st, *tp);
 
   /* If we didn't already remap this SAVE_EXPR, do so now.  */
   if (!n)
@@ -2822,15 +2974,15 @@ remap_save_expr (tree *tp, void *st_, int *walk_subtrees)
       t = copy_node (*tp);
 
       /* Remember this SAVE_EXPR.  */
-      splay_tree_insert (st, (splay_tree_key) *tp, (splay_tree_value) t);
+      *pointer_map_insert (st, *tp) = t;
       /* Make sure we don't remap an already-remapped SAVE_EXPR.  */
-      splay_tree_insert (st, (splay_tree_key) t, (splay_tree_value) t);
+      *pointer_map_insert (st, t) = t;
     }
   else
     {
       /* We've already walked into this SAVE_EXPR; don't do it again.  */
       *walk_subtrees = 0;
-      t = (tree) n->value;
+      t = *n;
     }
 
   /* Replace this SAVE_EXPR with the copy.  */
@@ -2895,19 +3047,19 @@ static tree
 unsave_r (tree *tp, int *walk_subtrees, void *data)
 {
   copy_body_data *id = (copy_body_data *) data;
-  splay_tree st = id->decl_map;
-  splay_tree_node n;
+  struct pointer_map_t *st = id->decl_map;
+  tree *n;
 
   /* Only a local declaration (variable or label).  */
   if ((TREE_CODE (*tp) == VAR_DECL && !TREE_STATIC (*tp))
       || TREE_CODE (*tp) == LABEL_DECL)
     {
       /* Lookup the declaration.  */
-      n = splay_tree_lookup (st, (splay_tree_key) *tp);
+      n = (tree *) pointer_map_contains (st, *tp);
 
       /* If it's there, remap it.  */
       if (n)
-	*tp = (tree) n->value;
+	*tp = *n;
     }
 
   else if (TREE_CODE (*tp) == STATEMENT_LIST)
@@ -2944,7 +3096,7 @@ unsave_expr_now (tree expr)
   memset (&id, 0, sizeof (id));
   id.src_fn = current_function_decl;
   id.dst_fn = current_function_decl;
-  id.decl_map = splay_tree_new (splay_tree_compare_pointers, NULL, NULL);
+  id.decl_map = pointer_map_create ();
 
   id.copy_decl = copy_decl_no_change;
   id.transform_call_graph_edges = CB_CGE_DUPLICATE;
@@ -2959,7 +3111,7 @@ unsave_expr_now (tree expr)
   walk_tree (&expr, unsave_r, &id, NULL);
 
   /* Clean up.  */
-  splay_tree_delete (id.decl_map);
+  pointer_map_destroy (id.decl_map);
 
   return expr;
 }
@@ -3194,6 +3346,7 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   struct ipa_replace_map *replace_info;
   basic_block old_entry_block;
   tree t_step;
+  tree old_current_function_decl = current_function_decl;
 
   gcc_assert (TREE_CODE (old_decl) == FUNCTION_DECL
 	      && TREE_CODE (new_decl) == FUNCTION_DECL);
@@ -3201,10 +3354,6 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
 
   old_version_node = cgraph_node (old_decl);
   new_version_node = cgraph_node (new_decl);
-
-  allocate_struct_function (new_decl);
-  /* Cfun points to the new allocated function struct at this point.  */
-  cfun->function_end_locus = DECL_SOURCE_LOCATION (new_decl);
 
   DECL_ARTIFICIAL (new_decl) = 1;
   DECL_ABSTRACT_ORIGIN (new_decl) = DECL_ORIGIN (old_decl);
@@ -3221,7 +3370,7 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
       id.statements_to_fold = pointer_set_create ();
     }
   
-  id.decl_map = splay_tree_new (splay_tree_compare_pointers, NULL, NULL);
+  id.decl_map = pointer_map_create ();
   id.src_fn = old_decl;
   id.dst_fn = new_decl;
   id.src_node = old_version_node;
@@ -3298,7 +3447,7 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   number_blocks (new_decl);
 
   /* Clean up.  */
-  splay_tree_delete (id.decl_map);
+  pointer_map_destroy (id.decl_map);
   if (!update_clones)
     {
       fold_marked_statements (0, id.statements_to_fold);
@@ -3322,7 +3471,9 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   free_dominance_info (CDI_DOMINATORS);
   free_dominance_info (CDI_POST_DOMINATORS);
   pop_cfun ();
-  current_function_decl = NULL;
+  current_function_decl = old_current_function_decl;
+  gcc_assert (!current_function_decl
+	      || DECL_STRUCT_FUNCTION (current_function_decl) == cfun);
   return;
 }
 
@@ -3337,11 +3488,11 @@ build_duplicate_type (tree type)
   id.src_fn = current_function_decl;
   id.dst_fn = current_function_decl;
   id.src_cfun = cfun;
-  id.decl_map = splay_tree_new (splay_tree_compare_pointers, NULL, NULL);
+  id.decl_map = pointer_map_create ();
 
   type = remap_type_1 (type, &id);
 
-  splay_tree_delete (id.decl_map);
+  pointer_map_destroy (id.decl_map);
 
   return type;
 }

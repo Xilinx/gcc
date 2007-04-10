@@ -247,11 +247,6 @@ execute_free_cfg_annotations (void)
   /* And get rid of annotations we no longer need.  */
   delete_tree_cfg_annotations ();
 
-#ifdef ENABLE_CHECKING
-  /* Once the statement annotations have been removed, we can verify
-     the integrity of statements in the EH throw table.  */
-  verify_eh_throw_table_statements ();
-#endif
   return 0;
 }
 
@@ -272,27 +267,14 @@ struct tree_opt_pass pass_free_cfg_annotations =
   0					/* letter */
 };
 
-/* Return true if BB has at least one abnormal outgoing edge.  */
-
-static inline bool
-has_abnormal_outgoing_edge_p (basic_block bb)
-{
-  edge e;
-  edge_iterator ei;
-
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    if (e->flags & EDGE_ABNORMAL)
-      return true;
-
-  return false;
-}
-
 /* Pass: fixup_cfg.  IPA passes, compilation of earlier functions or inlining
-   might have changed some properties, such as marked functions nothrow or
-   added calls that can potentially go to non-local labels.  Remove redundant
-   edges and basic blocks, and create new ones if necessary.  */
+   might have changed some properties, such as marked functions nothrow.
+   Remove redundant edges and basic blocks, and create new ones if necessary.
 
-static unsigned int
+   This pass can't be executed as stand alone pass from pass manager, because
+   in between inlining and this fixup the verify_flow_info would fail.  */
+
+unsigned int
 execute_fixup_cfg (void)
 {
   basic_block bb;
@@ -315,7 +297,7 @@ execute_fixup_cfg (void)
 	      {
 		if (gimple_in_ssa_p (cfun))
 		  {
-		    todo |= TODO_update_ssa;
+		    todo |= TODO_update_ssa | TODO_cleanup_cfg;
 	            update_stmt (stmt);
 		  }
 	        TREE_SIDE_EFFECTS (call) = 0;
@@ -325,55 +307,9 @@ execute_fixup_cfg (void)
 	    if (!tree_could_throw_p (stmt) && lookup_stmt_eh_region (stmt))
 	      remove_stmt_from_eh_region (stmt);
 	  }
-	tree_purge_dead_eh_edges (bb);
+	if (tree_purge_dead_eh_edges (bb))
+          todo |= TODO_cleanup_cfg;
       }
-
-  if (current_function_has_nonlocal_label)
-    {
-      FOR_EACH_BB (bb)
-	{
-	  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	    {
-	      tree stmt = bsi_stmt (bsi);
-	      if (tree_can_make_abnormal_goto (stmt))
-		{
-		  if (stmt == bsi_stmt (bsi_last (bb)))
-		    {
-		      if (!has_abnormal_outgoing_edge_p (bb))
-			make_abnormal_goto_edges (bb, true);
-		    }
-		  else
-		    {
-		      edge e = split_block (bb, stmt);
-		      bb = e->src;
-		      make_abnormal_goto_edges (bb, true);
-		    }
-		  break;
-		}
-
-	      /* Update PHIs on nonlocal goto receivers we (possibly)
-		 just created new edges into.  */
-	      if (TREE_CODE (stmt) == LABEL_EXPR
-		  && gimple_in_ssa_p (cfun))
-		{
-		  tree target = LABEL_EXPR_LABEL (stmt);
-		  if (DECL_NONLOCAL (target))
-		    {
-		      tree phi;
-
-		      for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
-			{
-		          todo |= TODO_update_ssa;
-			  gcc_assert (SSA_NAME_OCCURS_IN_ABNORMAL_PHI
-				      (PHI_RESULT (phi)));
-			  mark_sym_for_renaming
-			    (SSA_NAME_VAR (PHI_RESULT (phi)));
-			}
-		    }
-		}
-	    }
-	}
-    }
 
   /* Dump a textual representation of the flowgraph.  */
   if (dump_file)
@@ -381,24 +317,6 @@ execute_fixup_cfg (void)
 
   return todo;
 }
-
-struct tree_opt_pass pass_fixup_cfg =
-{
-  "fixupcfg",				/* name */
-  NULL,					/* gate */
-  execute_fixup_cfg,			/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  0,					/* tv_id */
-  PROP_cfg,				/* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  TODO_cleanup_cfg | TODO_ggc_collect
-  | TODO_dump_func | TODO_verify_flow
-  | TODO_verify_stmts,/* todo_flags_finish */
-  0					/* letter */ };
 
 /* Do the actions required to initialize internal data structures used
    in tree-ssa optimization passes.  */
@@ -455,24 +373,6 @@ tree_lowering_passes (tree fn)
   bitmap_obstack_release (NULL);
   pop_cfun ();
 }
-
-/* Update recursively all inlined_to pointers of functions
-   inlined into NODE to INLINED_TO.  */
-static void
-update_inlined_to_pointers (struct cgraph_node *node,
-			    struct cgraph_node *inlined_to)
-{
-  struct cgraph_edge *e;
-  for (e = node->callees; e; e = e->next_callee)
-    {
-      if (e->callee->global.inlined_to)
-	{
-	  e->callee->global.inlined_to = inlined_to;
-	  update_inlined_to_pointers (e->callee, inlined_to);
-	}
-    }
-}
-
 
 /* For functions-as-trees languages, this performs all optimization and
    compilation for FNDECL.  */
@@ -492,13 +392,9 @@ tree_rest_of_compilation (tree fndecl)
   /* Initialize the default bitmap obstack.  */
   bitmap_obstack_initialize (NULL);
 
-  /* We might need the body of this function so that we can expand
-     it inline somewhere else.  */
-  if (cgraph_preserve_function_body_p (fndecl))
-    save_inline_function_body (node);
-
   /* Initialize the RTL code for the function.  */
   current_function_decl = fndecl;
+  cfun = DECL_STRUCT_FUNCTION (fndecl);
   saved_loc = input_location;
   input_location = DECL_SOURCE_LOCATION (fndecl);
   init_function_start (fndecl);
@@ -510,33 +406,6 @@ tree_rest_of_compilation (tree fndecl)
   cfun->x_dont_save_pending_sizes_p = 1;
   
   tree_register_cfg_hooks ();
-
-  if (flag_inline_trees)
-    {
-      struct cgraph_edge *e;
-      for (e = node->callees; e; e = e->next_callee)
-	if (!e->inline_failed || warn_inline)
-	  break;
-      if (e)
-	{
-	  timevar_push (TV_INTEGRATION);
-	  optimize_inline_calls (fndecl);
-	  timevar_pop (TV_INTEGRATION);
-	}
-    }
-  /* In non-unit-at-a-time we must mark all referenced functions as needed.
-     */
-  if (!flag_unit_at_a_time)
-    {
-      struct cgraph_edge *e;
-      for (e = node->callees; e; e = e->next_callee)
-	if (e->callee->analyzed)
-          cgraph_mark_needed_node (e->callee);
-    }
-
-  /* We are not going to maintain the cgraph edges up to date.
-     Kill it so it won't confuse us.  */
-  cgraph_node_remove_callees (node);
 
   bitmap_obstack_initialize (&reg_obstack); /* FIXME, only at RTL generation*/
   /* Perform all tree transforms and optimizations.  */

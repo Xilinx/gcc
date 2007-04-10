@@ -1,3 +1,18 @@
+2007-03-30  Rafael Avila de Espindola  <espindola@google.com>
+
+	* treetree.c (tree_lang_signed_or_unsigned_type): Remove.
+	(LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE) Remove.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Make-lang.in: Add install-pdf target as copied from
+	automake v1.10 rules.
+
+2007-02-26  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* treelang.texi: Standardize title page, remove version number
+	from copyright page.
+
 2006-10-23 Rafael Avila de Espindola  <rafael.espindola@gmail.com>
 
 	* treetree.c (builtin_function): Remove.

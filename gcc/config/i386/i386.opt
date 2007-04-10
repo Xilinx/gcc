@@ -1,6 +1,6 @@
 ; Options for the IA-32 and AMD64 ports of the compiler.
 
-; Copyright (C) 2005 Free Software Foundation, Inc.
+; Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -95,12 +95,6 @@ mcmodel=
 Target RejectNegative Joined Var(ix86_cmodel_string)
 Use given x86-64 code model
 
-mdebug-addr
-Target RejectNegative Var(TARGET_DEBUG_ADDR) Undocumented
-
-mdebug-arg
-Target RejectNegative Var(TARGET_DEBUG_ARG) Undocumented
-
 mfancy-math-387
 Target RejectNegative Report InverseMask(NO_FANCY_MATH_387, USE_FANCY_MATH_387)
 Generate sin, cos, sqrt for FPU
@@ -157,6 +151,10 @@ momit-leaf-frame-pointer
 Target Report Mask(OMIT_LEAF_FRAME_POINTER)
 Omit the frame pointer in leaf functions
 
+mpc
+Target RejectNegative Report Joined Var(ix87_precision_string)
+Set 80387 floating-point precision (-mpc32, -mpc64, -mpc80)
+
 mpentium
 Target RejectNegative Undocumented
 ;; Deprecated
@@ -204,6 +202,30 @@ Support MMX, SSE, SSE2 and SSE3 built-in functions and code generation
 mssse3
 Target Report Mask(SSSE3)
 Support MMX, SSE, SSE2, SSE3 and SSSE3 built-in functions and code generation
+
+msse4a
+Target Report Mask(SSE4A)
+Support MMX, SSE, SSE2, SSE3 and SSE4A built-in functions and code generation
+
+mpopcnt
+Target Report Mask(POPCNT)
+Support code generation of popcount instruction for popcount built-ins 
+namely __builtin_popcount, __builtin_popcountl and __builtin_popcountll
+
+mabm
+Target Report Mask(ABM)
+Support code generation of Advanced Bit Manipulation (ABM) instructions,
+which include popcnt and lzcnt instructions, for popcount and clz built-ins
+namely __builtin_popcount, __builtin_popcountl, __builtin_popcountll and
+__builtin_clz, __builtin_clzl, __builtin_clzll
+
+mcx16
+Target Report RejectNegative Var(x86_cmpxchg16b)
+Support code generation of cmpxchg16b instruction.
+
+msahf
+Target Report RejectNegative Var(x86_sahf)
+Support code generation of sahf instruction in 64bit x86-64 code
 
 msseregparm
 Target RejectNegative Mask(SSEREGPARM)

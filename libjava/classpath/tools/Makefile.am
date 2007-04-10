@@ -89,7 +89,8 @@ grmic_CFLAGS = \
 	-DTOOLNAME="\"grmic\""
 
 else
-bin_SCRIPTS = gappletviewer gjarsigner gkeytool \
+## GCJ LOCAL: do not install these.
+noinst_SCRIPTS = gappletviewer gjarsigner gkeytool \
 	gjar gnative2ascii gserialver gjavah grmiregistry \
 	gtnameserv gorbd grmid grmic
 bin_PROGRAMS =
@@ -100,6 +101,10 @@ EXTRA_DIST = toolwrapper.c gappletviewer.in gjarsigner.in gkeytool.in \
 
 # All our example java source files
 TOOLS_JAVA_FILES = $(srcdir)/gnu/classpath/tools/*/*.java \
+	$(srcdir)/com/sun/javadoc/*.java \
+	$(srcdir)/com/sun/tools/doclets/*.java \
+	$(srcdir)/com/sun/tools/javac/*.java \
+	$(srcdir)/sun/rmi/rmic/*.java \
 	$(srcdir)/external/asm/org/objectweb/asm/*.java \
 	$(srcdir)/external/asm/org/objectweb/asm/attrs/*.java \
 	$(srcdir)/external/asm/org/objectweb/asm/commons/*.java \
@@ -124,7 +129,8 @@ RMIC_TEMPLATES = $(srcdir)/gnu/classpath/tools/rmic/templates/*.jav
 ALL_TOOLS_FILES = $(TOOLS_JAVA_FILES) $(RMIC_TEMPLATES)
 
 # Some architecture independent data to be installed.
-TOOLS_DATA = $(TOOLS_ZIP)
+# GCJ LOCAL: do not install this.
+noinst_DATA = $(TOOLS_ZIP)
 
 # Where we want these data files installed.
 TOOLSdir = $(pkgdatadir)
@@ -152,15 +158,30 @@ $(TOOLS_ZIP): $(TOOLS_JAVA_FILES)
 ##	@rm -rf classes asm
 ##	mkdir classes asm
 	find $(srcdir)/external/asm -name '*.java' -print > asm.lst
-	find $(srcdir)/gnu/classpath/tools -name '*.java' -print > classes.lst
-	cat classes.lst asm.lst > all-classes.lst
+	find $(srcdir)/gnu/classpath/tools \
+	     $(srcdir)/com/sun/javadoc \
+	     $(srcdir)/com/sun/tools/doclets \
+	     $(srcdir)/com/sun/tools/javac \
+	     $(srcdir)/sun/rmi/rmic \
+	     -name '*.java' -print > classes.lst
+	if [ -f $(top_builddir)/../vm-tools-packages ]; then \
+	    : > vm-tools.lst; \
+	    for pkg in `cat $(top_builddir)/../vm-tools-packages`; do \
+	      $(FIND) $(top_srcdir)/../$$pkg -follow -name '*.java' -print >> vm-tools.lst; \
+	    done \
+	else \
+	    echo -n > vm-tools.lst; \
+	fi
+	cat classes.lst asm.lst vm-tools.lst > all-classes.lst
 if JAVA_MAINTAINER_MODE
 ## Compile ASM separately as it is latin-1 encoded.
 	AC=`echo $(JCOMPILER) | sed -e 's/UTF-8/ISO-8859-1/g'`; \
 	  $$AC -g -w -d $(srcdir)/asm @asm.lst
-	$(JCOMPILER) -g -w -d $(srcdir)/classes @classes.lst
+	$(JCOMPILER) -g -w -d $(srcdir)/classes @classes.lst @vm-tools.lst
 ## Copy over tools resource files.
-	@list=`cd $(top_srcdir)/resource && find gnu/classpath/tools -name \*.properties -print`; \
+	@list=`cd $(top_srcdir)/resource && find gnu/classpath/tools \
+	       com/sun/javadoc com/sun/tools/doclets com/sun/tools/javac \
+	       sun/rmi/rmic -name \*.properties -print`; \
 	for p in $$list; do \
 	  dirname=classes/`dirname $$p`; \
 	  if ! test -d "$$dirname"; then mkdir -p "$$dirname"; fi; \

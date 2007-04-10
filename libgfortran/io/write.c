@@ -32,7 +32,6 @@ Boston, MA 02110-1301, USA.  */
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
-#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "libgfortran.h"
@@ -488,7 +487,7 @@ output_float (st_parameter_dt *dtp, const fnode *f, GFC_REAL_LARGEST value)
     value = -value;
 
   /* Special case when format specifies no digits after the decimal point.  */
-  if (d == 0)
+  if (d == 0 && ft == FMT_F)
     {
       if (value < 0.5)
 	value = 0.0;

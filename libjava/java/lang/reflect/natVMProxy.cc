@@ -1,6 +1,6 @@
 // natVMProxy.cc -- Implementation of VMProxy methods.
 
-/* Copyright (C) 2006
+/* Copyright (C) 2006, 2007
    Free Software Foundation
 
    This file is part of libgcj.
@@ -66,7 +66,7 @@ using namespace java::lang::reflect;
 using namespace java::lang;
 
 typedef void (*closure_fun) (ffi_cif*, void*, void**, void*);
-static void *ncode (_Jv_Method *self, closure_fun fun, Method *meth);
+static void *ncode (jclass klass, _Jv_Method *self, closure_fun fun);
 static void run_proxy (ffi_cif*, void*, void**, void*);
 
 typedef jobject invoke_t (jobject, Proxy *, Method *, JArray< jobject > *);
@@ -165,7 +165,7 @@ java::lang::reflect::VMProxy::generateProxyClass
       // the interfaces of which it is a proxy will also be reachable,
       // so this is safe.
       method = imethod;
-      method.ncode = ncode (&method, run_proxy, elements(d->methods)[i]);
+      method.ncode = ncode (klass, &method, run_proxy);
       method.accflags &= ~Modifier::ABSTRACT;
     }
 
@@ -283,15 +283,14 @@ unbox (jobject o, jclass klass, void *rvalue, FFI_TYPE type)
     JvFail ("Bad ffi type in proxy");
 }
 
-
 // run_proxy is the entry point for all proxy methods.  It boxes up
 // all the arguments and then invokes the invocation handler's invoke()
 // method.  Exceptions are caught and propagated.
 
 typedef struct {
   ffi_closure  closure;
+  _Jv_ClosureList list;
   ffi_cif   cif;
-  Method *meth;
   _Jv_Method *self;
   ffi_type *arg_types[0];
 } ncode_closure;
@@ -302,6 +301,8 @@ run_proxy (ffi_cif *cif,
 	   void **args,
 	   void*user_data)
 {
+  using namespace java::lang::reflect;
+
   Proxy *proxy = *(Proxy**)args[0];
   ncode_closure *self = (ncode_closure *) user_data;
 
@@ -313,11 +314,22 @@ run_proxy (ffi_cif *cif,
   Thread *thread = Thread::currentThread();
   _Jv_InterpFrame frame_desc (self->self, thread, proxy->getClass());
 
+  Method *meth = _Jv_LookupProxyMethod (proxy->getClass(), 
+					self->self->name,
+					self->self->signature);
+  JArray<jclass> *parameter_types = meth->internalGetParameterTypes ();
+  JArray<jclass> *exception_types = meth->internalGetExceptionTypes ();
+
   InvocationHandler *handler = proxy->h;
-  void *poo 
-    = _Jv_NewObjectArray (self->meth->parameter_types->length, &Object::class$, NULL);
-  JArray<jobject> *argsArray = (JArray<jobject> *) poo;
-  jobject *jargs = elements(argsArray);
+  JArray<jobject> *argsArray = NULL;
+  jobject *jargs = NULL;
+  if (parameter_types->length)
+    {
+      void *poo 
+	= _Jv_NewObjectArray (parameter_types->length, &Object::class$, NULL);
+      argsArray = (JArray<jobject> *) poo;
+      jargs = elements(argsArray);
+    }
 
   // FIXME: It must be possible to use fast interface dispatch here,
   // but I've not quite figured out how to do it.
@@ -331,14 +343,14 @@ run_proxy (ffi_cif *cif,
 
   // Copy and box all the args.
   int index = 1;
-  for (int i = 0; i < self->meth->parameter_types->length; i++, index++)
-    jargs[i] = box (args[index], elements(self->meth->parameter_types)[i],
+  for (int i = 0; i < parameter_types->length; i++, index++)
+    jargs[i] = box (args[index], elements(parameter_types)[i],
 		    cif->arg_types[index]->type);
   
   jobject ret;
   try
     {
-      ret = invoke (handler, proxy, self->meth, argsArray);
+      ret = invoke (handler, proxy, meth, argsArray);
     }
   catch (Throwable *t)
     {
@@ -346,15 +358,15 @@ run_proxy (ffi_cif *cif,
 	  || _Jv_IsInstanceOf (t, &Error::class$))
 	throw t;
 
-      Class **throwables = elements (self->meth->exception_types);
-      for (int i = 0; i < self->meth->exception_types->length; i++)
+      Class **throwables = elements (exception_types);
+      for (int i = 0; i < exception_types->length; i++)
 	if (_Jv_IsInstanceOf (t, throwables[i]))
 	  throw t;
 
       throw new UndeclaredThrowableException (t);
     }
 
-  unbox (ret, self->meth->return_type, rvalue, cif->rtype->type);
+  unbox (ret, meth->return_type, rvalue, cif->rtype->type);
 }
 
 
@@ -362,16 +374,19 @@ run_proxy (ffi_cif *cif,
 // the address of its closure.
 
 static void *
-ncode (_Jv_Method *self, closure_fun fun, Method *meth)
+ncode (jclass klass, _Jv_Method *self, closure_fun fun)
 {
   using namespace java::lang::reflect;
 
   jboolean staticp = (self->accflags & Modifier::STATIC) != 0;
   int arg_count = _Jv_count_arguments (self->signature, staticp);
 
+  void *code;
   ncode_closure *closure =
-    (ncode_closure*)_Jv_AllocBytes (sizeof (ncode_closure)
-				    + arg_count * sizeof (ffi_type*));
+    (ncode_closure*)ffi_closure_alloc (sizeof (ncode_closure)
+				       + arg_count * sizeof (ffi_type*),
+				       &code);
+  closure->list.registerClosure (klass, closure);
 
   _Jv_init_cif (self->signature,
 		arg_count,
@@ -379,16 +394,16 @@ ncode (_Jv_Method *self, closure_fun fun, Method *meth)
 		&closure->cif,
 		&closure->arg_types[0],
 		NULL);
-  closure->meth = meth;
   closure->self = self;
 
   JvAssert ((self->accflags & Modifier::NATIVE) == 0);
 
-  ffi_prep_closure (&closure->closure,
-		    &closure->cif, 
-		    fun,
-		    (void*)closure);
+  ffi_prep_closure_loc (&closure->closure,
+			&closure->cif,
+			fun,
+			code,
+			code);
 
-  self->ncode = (void*)closure;
+  self->ncode = code;
   return self->ncode;
 }

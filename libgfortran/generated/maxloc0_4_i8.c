@@ -31,7 +31,6 @@ Boston, MA 02110-1301, USA.  */
 #include "config.h"
 #include <stdlib.h>
 #include <assert.h>
-#include <float.h>
 #include <limits.h>
 #include "libgfortran.h"
 
@@ -103,7 +102,7 @@ maxloc0_4_i8 (gfc_array_i4 * const restrict retarray,
 
   GFC_INTEGER_8 maxval;
 
-  maxval = -GFC_INTEGER_8_HUGE;
+  maxval = (-GFC_INTEGER_8_HUGE-1);
 
   while (base)
     {
@@ -227,7 +226,7 @@ mmaxloc0_4_i8 (gfc_array_i4 * const restrict retarray,
 
   GFC_INTEGER_8 maxval;
 
-  maxval = -GFC_INTEGER_8_HUGE;
+  maxval = (-GFC_INTEGER_8_HUGE-1);
 
   while (base)
     {

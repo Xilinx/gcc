@@ -10,9 +10,15 @@
 
 
 #if defined( GLIBC_C99_INLINE_4_CHECK )
-__extension__ 
-#if __STDC_VERSION__ < 19901L
+__extension__
+#ifdef __GNUC_GNU_INLINE__
 extern
 #endif
- __inline unsigned int
+__inline unsigned int
+__extension__ __extern_inline unsigned int
+
+#ifdef __GNUC_GNU_INLINE__
+extern
+#endif
+__inline unsigned int
 #endif  /* GLIBC_C99_INLINE_4_CHECK */

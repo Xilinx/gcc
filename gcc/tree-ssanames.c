@@ -318,17 +318,27 @@ release_dead_ssa_names (void)
   referenced_var_iterator rvi;
 
   /* Current defs point to various dead SSA names that in turn points to dead
-     statements so bunch of dead memory is holded from releasing.  */
+     statements so bunch of dead memory is held from releasing.  */
   FOR_EACH_REFERENCED_VAR (t, rvi)
     set_current_def (t, NULL);
   /* Now release the freelist.  */
   for (t = FREE_SSANAMES (cfun); t; t = next)
     {
       next = TREE_CHAIN (t);
-      ggc_free (t);
+      /* Dangling pointers might make GGC to still see dead SSA names, so it is
+ 	 important to unlink the list and avoid GGC from seeing all subsequent
+	 SSA names.  In longer run we want to have all dangling pointers here
+	 removed (since they usually go through dead statements that consume
+	 considerable amounts of memory).  */
+      TREE_CHAIN (t) = NULL_TREE;
       n++;
     }
   FREE_SSANAMES (cfun) = NULL;
+
+  /* Cgraph edges has been invalidated and point to dead statement.  We need to
+     remove them now and will rebuild it before next IPA pass.  */
+  cgraph_node_remove_callees (cgraph_node (current_function_decl));
+
   if (dump_file)
     fprintf (dump_file, "Released %i names, %.2f%%\n", n, n * 100.0 / num_ssa_names);
   return 0;

@@ -1,7 +1,8 @@
 /* Scalar Replacement of Aggregates (SRA) converts some structure
    references into scalar references, exposing them to the scalar
    optimizers.
-   Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007
+     Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -75,6 +76,9 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 */
 
 
+/* True if this is the "early" pass, before inlining.  */
+static bool early_sra;
+
 /* The set of todo flags to return from tree_sra.  */
 static unsigned int todoflags;
 
@@ -143,6 +147,10 @@ struct sra_elt
 
   /* True if there is BIT_FIELD_REF on the lhs with a vector. */
   bool is_vector_lhs;
+
+  /* 1 if the element is a field that is part of a block, 2 if the field
+     is the block itself, 0 if it's neither.  */
+  char in_bitfld_block;
 };
 
 #define IS_ELEMENT_FOR_GROUP(ELEMENT) (TREE_CODE (ELEMENT) == RANGE_EXPR)
@@ -342,6 +350,17 @@ decl_can_be_decomposed_p (tree var)
       return false;
     }
 
+  /* HACK: if we decompose a va_list_type_node before inlining, then we'll
+     confuse tree-stdarg.c, and we won't be able to figure out which and
+     how many arguments are accessed.  This really should be improved in
+     tree-stdarg.c, as the decomposition is truely a win.  This could also
+     be fixed if the stdarg pass ran early, but this can't be done until
+     we've aliasing information early too.  See PR 30791.  */
+  if (early_sra
+      && TYPE_MAIN_VARIANT (TREE_TYPE (var))
+	 == TYPE_MAIN_VARIANT (va_list_type_node))
+    return false;
+
   return true;
 }
 
@@ -446,6 +465,12 @@ sra_hash_tree (tree t)
       h = iterative_hash_expr (DECL_FIELD_BIT_OFFSET (t), h);
       break;
 
+    case BIT_FIELD_REF:
+      /* Don't take operand 0 into account, that's our parent.  */
+      h = iterative_hash_expr (TREE_OPERAND (t, 1), 0);
+      h = iterative_hash_expr (TREE_OPERAND (t, 2), h);
+      break;
+
     default:
       gcc_unreachable ();
     }
@@ -464,12 +489,14 @@ sra_elt_hash (const void *x)
 
   h = sra_hash_tree (e->element);
 
-  /* Take into account everything back up the chain.  Given that chain
-     lengths are rarely very long, this should be acceptable.  If we
-     truly identify this as a performance problem, it should work to
-     hash the pointer value "e->parent".  */
+  /* Take into account everything except bitfield blocks back up the
+     chain.  Given that chain lengths are rarely very long, this
+     should be acceptable.  If we truly identify this as a performance
+     problem, it should work to hash the pointer value
+     "e->parent".  */
   for (p = e->parent; p ; p = p->parent)
-    h = (h * 65521) ^ sra_hash_tree (p->element);
+    if (!p->in_bitfld_block)
+      h = (h * 65521) ^ sra_hash_tree (p->element);
 
   return h;
 }
@@ -482,8 +509,17 @@ sra_elt_eq (const void *x, const void *y)
   const struct sra_elt *a = x;
   const struct sra_elt *b = y;
   tree ae, be;
+  const struct sra_elt *ap = a->parent;
+  const struct sra_elt *bp = b->parent;
 
-  if (a->parent != b->parent)
+  if (ap)
+    while (ap->in_bitfld_block)
+      ap = ap->parent;
+  if (bp)
+    while (bp->in_bitfld_block)
+      bp = bp->parent;
+
+  if (ap != bp)
     return false;
 
   ae = a->element;
@@ -517,6 +553,11 @@ sra_elt_eq (const void *x, const void *y)
       if (DECL_FIELD_CONTEXT (ae) == DECL_FIELD_CONTEXT (be))
 	return false;
       return fields_compatible_p (ae, be);
+
+    case BIT_FIELD_REF:
+      return
+	tree_int_cst_equal (TREE_OPERAND (ae, 1), TREE_OPERAND (be, 1))
+	&& tree_int_cst_equal (TREE_OPERAND (ae, 2), TREE_OPERAND (be, 2));
 
     default:
       gcc_unreachable ();
@@ -656,10 +697,9 @@ struct sra_walk_fns
   /* Invoked when ELT is required as a unit.  Note that ELT might refer to
      a leaf node, in which case this is a simple scalar reference.  *EXPR_P
      points to the location of the expression.  IS_OUTPUT is true if this
-     is a left-hand-side reference.  USE_ALL is true if we saw something we
-     couldn't quite identify and had to force the use of the entire object.  */
+     is a left-hand-side reference.  */
   void (*use) (struct sra_elt *elt, tree *expr_p,
-	       block_stmt_iterator *bsi, bool is_output, bool use_all);
+	       block_stmt_iterator *bsi, bool is_output);
 
   /* Invoked when we have a copy between two scalarizable references.  */
   void (*copy) (struct sra_elt *lhs_elt, struct sra_elt *rhs_elt,
@@ -670,8 +710,8 @@ struct sra_walk_fns
   void (*init) (struct sra_elt *elt, tree value, block_stmt_iterator *bsi);
 
   /* Invoked when we have a copy between one scalarizable reference ELT
-     and one non-scalarizable reference OTHER.  IS_OUTPUT is true if ELT
-     is on the left-hand side.  */
+     and one non-scalarizable reference OTHER without side-effects. 
+     IS_OUTPUT is true if ELT is on the left-hand side.  */
   void (*ldst) (struct sra_elt *elt, tree other,
 		block_stmt_iterator *bsi, bool is_output);
 
@@ -713,7 +753,6 @@ sra_walk_expr (tree *expr_p, block_stmt_iterator *bsi, bool is_output,
   tree expr = *expr_p;
   tree inner = expr;
   bool disable_scalarization = false;
-  bool use_all_p = false;
 
   /* We're looking to collect a reference expression between EXPR and INNER,
      such that INNER is a scalarizable decl and all other nodes through EXPR
@@ -734,7 +773,7 @@ sra_walk_expr (tree *expr_p, block_stmt_iterator *bsi, bool is_output,
 	    if (disable_scalarization)
 	      elt->cannot_scalarize = true;
 	    else
-	      fns->use (elt, expr_p, bsi, is_output, use_all_p);
+	      fns->use (elt, expr_p, bsi, is_output);
 	  }
 	return;
 
@@ -793,10 +832,13 @@ sra_walk_expr (tree *expr_p, block_stmt_iterator *bsi, bool is_output,
 	/* A bit field reference to a specific vector is scalarized but for
 	   ones for inputs need to be marked as used on the left hand size so
 	   when we scalarize it, we can mark that variable as non renamable.  */
-	if (is_output && TREE_CODE (TREE_TYPE (TREE_OPERAND (inner, 0))) == VECTOR_TYPE)
+	if (is_output
+	    && TREE_CODE (TREE_TYPE (TREE_OPERAND (inner, 0))) == VECTOR_TYPE)
 	  {
-	    struct sra_elt *elt = maybe_lookup_element_for_expr (TREE_OPERAND (inner, 0));
-	    elt->is_vector_lhs = true;
+	    struct sra_elt *elt
+	      = maybe_lookup_element_for_expr (TREE_OPERAND (inner, 0));
+	    if (elt)
+	      elt->is_vector_lhs = true;
 	  }
 	/* A bit field reference (access to *multiple* fields simultaneously)
 	   is not currently scalarized.  Consider this an access to the
@@ -818,7 +860,6 @@ sra_walk_expr (tree *expr_p, block_stmt_iterator *bsi, bool is_output,
       use_all:
         expr_p = &TREE_OPERAND (inner, 0);
 	inner = expr = *expr_p;
-	use_all_p = true;
 	break;
 
       default:
@@ -849,7 +890,10 @@ static void
 sra_walk_call_expr (tree expr, block_stmt_iterator *bsi,
 		    const struct sra_walk_fns *fns)
 {
-  sra_walk_tree_list (TREE_OPERAND (expr, 1), bsi, false, fns);
+  int i;
+  int nargs = call_expr_nargs (expr);
+  for (i = 0; i < nargs; i++)
+    sra_walk_expr (&CALL_EXPR_ARG (expr, i), bsi, false, fns);
 }
 
 /* Walk the inputs and outputs of an ASM_EXPR looking for scalarizable
@@ -863,11 +907,14 @@ sra_walk_asm_expr (tree expr, block_stmt_iterator *bsi,
   sra_walk_tree_list (ASM_OUTPUTS (expr), bsi, true, fns);
 }
 
+static void sra_replace (block_stmt_iterator *bsi, tree list);
+static tree sra_build_elt_assignment (struct sra_elt *elt, tree src);
+
 /* Walk a GIMPLE_MODIFY_STMT and categorize the assignment appropriately.  */
 
 static void
 sra_walk_gimple_modify_stmt (tree expr, block_stmt_iterator *bsi,
-		      const struct sra_walk_fns *fns)
+			     const struct sra_walk_fns *fns)
 {
   struct sra_elt *lhs_elt, *rhs_elt;
   tree lhs, rhs;
@@ -887,10 +934,10 @@ sra_walk_gimple_modify_stmt (tree expr, block_stmt_iterator *bsi,
   /* If the RHS is scalarizable, handle it.  There are only two cases.  */
   if (rhs_elt)
     {
-      if (!rhs_elt->is_scalar)
+      if (!rhs_elt->is_scalar && !TREE_SIDE_EFFECTS (lhs))
 	fns->ldst (rhs_elt, lhs, bsi, false);
       else
-	fns->use (rhs_elt, &GIMPLE_STMT_OPERAND (expr, 1), bsi, false, false);
+	fns->use (rhs_elt, &GIMPLE_STMT_OPERAND (expr, 1), bsi, false);
     }
 
   /* If it isn't scalarizable, there may be scalarizable variables within, so
@@ -930,13 +977,16 @@ sra_walk_gimple_modify_stmt (tree expr, block_stmt_iterator *bsi,
 	 The lvalue requirement prevents us from trying to directly scalarize
 	 the result of a function call.  Which would result in trying to call
 	 the function multiple times, and other evil things.  */
-      else if (!lhs_elt->is_scalar && is_gimple_addressable (rhs))
+      else if (!lhs_elt->is_scalar
+	       && !TREE_SIDE_EFFECTS (rhs) && is_gimple_addressable (rhs))
 	fns->ldst (lhs_elt, rhs, bsi, true);
 
       /* Otherwise we're being used in some context that requires the
 	 aggregate to be seen as a whole.  Invoke USE.  */
       else
-	fns->use (lhs_elt, &GIMPLE_STMT_OPERAND (expr, 0), bsi, true, false);
+	{
+	  fns->use (lhs_elt, &GIMPLE_STMT_OPERAND (expr, 0), bsi, true);
+	}
     }
 
   /* Similarly to above, LHS_ELT being null only means that the LHS as a
@@ -973,8 +1023,9 @@ sra_walk_function (const struct sra_walk_fns *fns)
 
 	/* If the statement has no virtual operands, then it doesn't
 	   make any structure references that we care about.  */
-	if (ZERO_SSA_OPERANDS (stmt, (SSA_OP_VIRTUAL_DEFS | SSA_OP_VUSE)))
-	  continue;
+	if (gimple_aliases_computed_p (cfun)
+	    && ZERO_SSA_OPERANDS (stmt, (SSA_OP_VIRTUAL_DEFS | SSA_OP_VUSE)))
+	      continue;
 
 	switch (TREE_CODE (stmt))
 	  {
@@ -989,7 +1040,9 @@ sra_walk_function (const struct sra_walk_fns *fns)
 	       as a USE of the variable on the RHS of this assignment.  */
 
 	    t = TREE_OPERAND (stmt, 0);
-	    if (TREE_CODE (t) == GIMPLE_MODIFY_STMT)
+	    if (t == NULL_TREE)
+	      ;
+	    else if (TREE_CODE (t) == GIMPLE_MODIFY_STMT)
 	      sra_walk_expr (&GIMPLE_STMT_OPERAND (t, 1), &si, false, fns);
 	    else
 	      sra_walk_expr (&TREE_OPERAND (stmt, 0), &si, false, fns);
@@ -1044,7 +1097,7 @@ find_candidates_for_sra (void)
 static void
 scan_use (struct sra_elt *elt, tree *expr_p ATTRIBUTE_UNUSED,
 	  block_stmt_iterator *bsi ATTRIBUTE_UNUSED,
-	  bool is_output ATTRIBUTE_UNUSED, bool use_all ATTRIBUTE_UNUSED)
+	  bool is_output ATTRIBUTE_UNUSED)
 {
   elt->n_uses += 1;
 }
@@ -1152,6 +1205,15 @@ build_element_name_1 (struct sra_elt *elt)
       sprintf (buffer, HOST_WIDE_INT_PRINT_DEC, TREE_INT_CST_LOW (t));
       obstack_grow (&sra_obstack, buffer, strlen (buffer));
     }
+  else if (TREE_CODE (t) == BIT_FIELD_REF)
+    {
+      sprintf (buffer, "B" HOST_WIDE_INT_PRINT_DEC,
+	       tree_low_cst (TREE_OPERAND (t, 2), 1));
+      obstack_grow (&sra_obstack, buffer, strlen (buffer));
+      sprintf (buffer, "F" HOST_WIDE_INT_PRINT_DEC,
+	       tree_low_cst (TREE_OPERAND (t, 1), 1));
+      obstack_grow (&sra_obstack, buffer, strlen (buffer));
+    }
   else
     {
       tree name = DECL_NAME (t);
@@ -1184,9 +1246,12 @@ instantiate_element (struct sra_elt *elt)
 {
   struct sra_elt *base_elt;
   tree var, base;
+  bool nowarn = TREE_NO_WARNING (elt->element);
 
   for (base_elt = elt; base_elt->parent; base_elt = base_elt->parent)
-    continue;
+    if (!nowarn)
+      nowarn = base_elt->parent->n_uses
+	|| TREE_NO_WARNING (base_elt->parent->element);
   base = base_elt->element;
 
   elt->replacement = var = make_rename_temp (elt->type, "SR");
@@ -1215,7 +1280,7 @@ instantiate_element (struct sra_elt *elt)
       DECL_DEBUG_EXPR_IS_FROM (var) = 1;
       
       DECL_IGNORED_P (var) = 0;
-      TREE_NO_WARNING (var) = TREE_NO_WARNING (base);
+      TREE_NO_WARNING (var) = nowarn;
     }
   else
     {
@@ -1310,7 +1375,7 @@ sum_instantiated_sizes (struct sra_elt *elt, unsigned HOST_WIDE_INT *sizep)
 
 static void instantiate_missing_elements (struct sra_elt *elt);
 
-static void
+static struct sra_elt *
 instantiate_missing_elements_1 (struct sra_elt *elt, tree child, tree type)
 {
   struct sra_elt *sub = lookup_element (elt, child, type, INSERT);
@@ -1321,6 +1386,266 @@ instantiate_missing_elements_1 (struct sra_elt *elt, tree child, tree type)
     }
   else
     instantiate_missing_elements (sub);
+  return sub;
+}
+
+/* Obtain the canonical type for field F of ELEMENT.  */
+
+static tree
+canon_type_for_field (tree f, tree element)
+{
+  tree field_type = TREE_TYPE (f);
+
+  /* canonicalize_component_ref() unwidens some bit-field types (not
+     marked as DECL_BIT_FIELD in C++), so we must do the same, lest we
+     may introduce type mismatches.  */
+  if (INTEGRAL_TYPE_P (field_type)
+      && DECL_MODE (f) != TYPE_MODE (field_type))
+    field_type = TREE_TYPE (get_unwidened (build3 (COMPONENT_REF,
+						   field_type,
+						   element,
+						   f, NULL_TREE),
+					   NULL_TREE));
+
+  return field_type;
+}
+
+/* Look for adjacent fields of ELT starting at F that we'd like to
+   scalarize as a single variable.  Return the last field of the
+   group.  */
+
+static tree
+try_instantiate_multiple_fields (struct sra_elt *elt, tree f)
+{
+  unsigned HOST_WIDE_INT align, oalign, word, bit, size, alchk;
+  enum machine_mode mode;
+  tree first = f, prev;
+  tree type, var;
+  struct sra_elt *block;
+
+  if (!is_sra_scalar_type (TREE_TYPE (f))
+      || !host_integerp (DECL_FIELD_OFFSET (f), 1)
+      || !host_integerp (DECL_FIELD_BIT_OFFSET (f), 1)
+      || !host_integerp (DECL_SIZE (f), 1)
+      || lookup_element (elt, f, NULL, NO_INSERT))
+    return f;
+
+  /* Taking the alignment of elt->element is not enough, since it
+     might be just an array index or some such.  We shouldn't need to
+     initialize align here, but our optimizers don't always realize
+     that, if we leave the loop without initializing align, we'll fail
+     the assertion right after the loop.  */
+  align = (unsigned HOST_WIDE_INT)-1;
+  for (block = elt; block; block = block->parent)
+    if (DECL_P (block->element))
+      {
+	align = DECL_ALIGN (block->element);
+	break;
+      }
+  gcc_assert (block);
+
+  oalign = DECL_OFFSET_ALIGN (f);
+  word = tree_low_cst (DECL_FIELD_OFFSET (f), 1);
+  bit = tree_low_cst (DECL_FIELD_BIT_OFFSET (f), 1);
+  size = tree_low_cst (DECL_SIZE (f), 1);
+
+  if (align > oalign)
+    align = oalign;
+
+  alchk = align - 1;
+  alchk = ~alchk;
+
+  if ((bit & alchk) != ((bit + size - 1) & alchk))
+    return f;
+
+  /* Find adjacent fields in the same alignment word.  */
+
+  for (prev = f, f = TREE_CHAIN (f);
+       f && TREE_CODE (f) == FIELD_DECL
+	 && is_sra_scalar_type (TREE_TYPE (f))
+	 && host_integerp (DECL_FIELD_OFFSET (f), 1)
+	 && host_integerp (DECL_FIELD_BIT_OFFSET (f), 1)
+	 && host_integerp (DECL_SIZE (f), 1)
+	 && (HOST_WIDE_INT)word == tree_low_cst (DECL_FIELD_OFFSET (f), 1)
+	 && !lookup_element (elt, f, NULL, NO_INSERT);
+       prev = f, f = TREE_CHAIN (f))
+    {
+      unsigned HOST_WIDE_INT nbit, nsize;
+
+      nbit = tree_low_cst (DECL_FIELD_BIT_OFFSET (f), 1);
+      nsize = tree_low_cst (DECL_SIZE (f), 1);
+
+      if (bit + size == nbit)
+	{
+	  if ((bit & alchk) != ((nbit + nsize - 1) & alchk))
+	    break;
+	  size += nsize;
+	}
+      else if (nbit + nsize == bit)
+	{
+	  if ((nbit & alchk) != ((bit + size - 1) & alchk))
+	    break;
+	  bit = nbit;
+	  size += nsize;
+	}
+      else
+	break;
+    }
+
+  f = prev;
+
+  if (f == first)
+    return f;
+
+  gcc_assert ((bit & alchk) == ((bit + size - 1) & alchk));
+
+  /* Try to widen the bit range so as to cover padding bits as well.  */
+
+  if ((bit & ~alchk) || size != align)
+    {
+      unsigned HOST_WIDE_INT mbit = bit & alchk;
+      unsigned HOST_WIDE_INT msize = align;
+
+      for (f = TYPE_FIELDS (elt->type);
+	   f; f = TREE_CHAIN (f))
+	{
+	  unsigned HOST_WIDE_INT fword, fbit, fsize;
+
+	  /* Skip the fields from first to prev.  */
+	  if (f == first)
+	    {
+	      f = prev;
+	      continue;
+	    }
+
+	  if (!(TREE_CODE (f) == FIELD_DECL
+		&& host_integerp (DECL_FIELD_OFFSET (f), 1)
+		&& host_integerp (DECL_FIELD_BIT_OFFSET (f), 1)))
+	    continue;
+
+	  fword = tree_low_cst (DECL_FIELD_OFFSET (f), 1);
+	  /* If we're past the selected word, we're fine.  */
+	  if (word < fword)
+	    continue;
+
+	  fbit = tree_low_cst (DECL_FIELD_BIT_OFFSET (f), 1);
+
+	  if (host_integerp (DECL_SIZE (f), 1))
+	    fsize = tree_low_cst (DECL_SIZE (f), 1);
+	  else
+	    /* Assume a variable-sized field takes up all space till
+	       the end of the word.  ??? Endianness issues?  */
+	    fsize = align - fbit;
+
+	  if (fword < word)
+	    {
+	      /* A large field might start at a previous word and
+		 extend into the selected word.  Exclude those
+		 bits.  ??? Endianness issues? */
+	      HOST_WIDE_INT diff = fbit + fsize
+		- (HOST_WIDE_INT)((word - fword) * BITS_PER_UNIT + mbit);
+
+	      if (diff <= 0)
+		continue;
+
+	      mbit += diff;
+	      msize -= diff;
+	    }
+	  else
+	    {
+	      gcc_assert (fword == word);
+
+	      /* Non-overlapping, great.  */
+	      if (fbit + fsize <= mbit
+		  || mbit + msize <= fbit)
+		continue;
+
+	      if (fbit <= mbit)
+		{
+		  unsigned HOST_WIDE_INT diff = fbit + fsize - mbit;
+		  mbit += diff;
+		  msize -= diff;
+		}
+	      else if (fbit > mbit)
+		msize -= (mbit + msize - fbit);
+	      else
+		gcc_unreachable ();
+	    }
+	}
+
+      bit = mbit;
+      size = msize;
+    }
+
+  /* Now we know the bit range we're interested in.  Find the smallest
+     machine mode we can use to access it.  */
+
+  for (mode = smallest_mode_for_size (size, MODE_INT);
+       ;
+       mode = GET_MODE_WIDER_MODE (mode))
+    {
+      gcc_assert (mode != VOIDmode);
+
+      alchk = GET_MODE_PRECISION (mode) - 1;
+      alchk = ~alchk;
+
+      if ((bit & alchk) == ((bit + size - 1) & alchk))
+	break;
+    }
+
+  gcc_assert (~alchk < align);
+
+  /* Create the field group as a single variable.  */
+
+  type = lang_hooks.types.type_for_mode (mode, 1);
+  gcc_assert (type);
+  var = build3 (BIT_FIELD_REF, type, NULL_TREE,
+		bitsize_int (size),
+		bitsize_int (word * BITS_PER_UNIT + bit));
+  BIT_FIELD_REF_UNSIGNED (var) = 1;
+
+  block = instantiate_missing_elements_1 (elt, var, type);
+  gcc_assert (block && block->is_scalar);
+
+  var = block->replacement;
+
+  if (((word * BITS_PER_UNIT + bit) & ~alchk)
+      || (HOST_WIDE_INT)size != tree_low_cst (DECL_SIZE (var), 1))
+    {
+      block->replacement = build3 (BIT_FIELD_REF,
+				   TREE_TYPE (block->element), var,
+				   bitsize_int (size),
+				   bitsize_int ((word * BITS_PER_UNIT
+						 + bit) & ~alchk));
+      BIT_FIELD_REF_UNSIGNED (block->replacement) = 1;
+      TREE_NO_WARNING (block->replacement) = 1;
+    }
+
+  block->in_bitfld_block = 2;
+
+  /* Add the member fields to the group, such that they access
+     portions of the group variable.  */
+
+  for (f = first; f != TREE_CHAIN (prev); f = TREE_CHAIN (f))
+    {
+      tree field_type = canon_type_for_field (f, elt->element);
+      struct sra_elt *fld = lookup_element (block, f, field_type, INSERT);
+
+      gcc_assert (fld && fld->is_scalar && !fld->replacement);
+
+      fld->replacement = build3 (BIT_FIELD_REF, field_type, var,
+				 DECL_SIZE (f),
+				 bitsize_int
+				 ((word * BITS_PER_UNIT
+				   + (TREE_INT_CST_LOW
+				      (DECL_FIELD_BIT_OFFSET (f))))
+				  & ~alchk));
+      BIT_FIELD_REF_UNSIGNED (fld->replacement) = TYPE_UNSIGNED (field_type);
+      TREE_NO_WARNING (block->replacement) = 1;
+      fld->in_bitfld_block = 1;
+    }
+
+  return prev;
 }
 
 static void
@@ -1335,7 +1660,19 @@ instantiate_missing_elements (struct sra_elt *elt)
 	tree f;
 	for (f = TYPE_FIELDS (type); f ; f = TREE_CHAIN (f))
 	  if (TREE_CODE (f) == FIELD_DECL)
-	    instantiate_missing_elements_1 (elt, f, TREE_TYPE (f));
+	    {
+	      tree last = try_instantiate_multiple_fields (elt, f);
+
+	      if (last != f)
+		{
+		  f = last;
+		  continue;
+		}
+
+	      instantiate_missing_elements_1 (elt, f,
+					      canon_type_for_field
+					      (f, elt->element));
+	    }
 	break;
       }
 
@@ -1569,9 +1906,6 @@ decide_instantiations (void)
     }
   bitmap_clear (&done_head);
   
-  if (!bitmap_empty_p (sra_candidates))
-    todoflags |= TODO_update_smt_usage;
-
   mark_set_for_renaming (sra_candidates);
 
   if (dump_file)
@@ -1649,6 +1983,16 @@ generate_one_element_ref (struct sra_elt *elt, tree base)
       {
 	tree field = elt->element;
 
+	/* We can't test elt->in_bitfld_blk here because, when this is
+	   called from instantiate_element, we haven't set this field
+	   yet.  */
+	if (TREE_CODE (field) == BIT_FIELD_REF)
+	  {
+	    tree ret = copy_node (field);
+	    TREE_OPERAND (ret, 0) = base;
+	    return ret;
+	  }
+
 	/* Watch out for compatible records with differing field lists.  */
 	if (DECL_FIELD_CONTEXT (field) != TYPE_MAIN_VARIANT (TREE_TYPE (base)))
 	  field = find_compatible_field (TREE_TYPE (base), field);
@@ -1657,7 +2001,6 @@ generate_one_element_ref (struct sra_elt *elt, tree base)
       }
 
     case ARRAY_TYPE:
-      todoflags |= TODO_update_smt_usage;
       if (TREE_CODE (elt->element) == RANGE_EXPR)
 	return build4 (ARRAY_RANGE_REF, elt->type, base,
 		       TREE_OPERAND (elt->element, 0), NULL, NULL);
@@ -1686,6 +2029,142 @@ generate_element_ref (struct sra_elt *elt)
     return elt->element;
 }
 
+/* Create an assignment statement from SRC to DST.  */
+
+static tree
+sra_build_assignment (tree dst, tree src)
+{
+  /* It was hoped that we could perform some type sanity checking
+     here, but since front-ends can emit accesses of fields in types
+     different from their nominal types and copy structures containing
+     them as a whole, we'd have to handle such differences here.
+     Since such accesses under different types require compatibility
+     anyway, there's little point in making tests and/or adding
+     conversions to ensure the types of src and dst are the same.
+     So we just assume type differences at this point are ok.  */
+  return build_gimple_modify_stmt (dst, src);
+}
+
+/* BIT_FIELD_REFs must not be shared.  sra_build_elt_assignment()
+   takes care of assignments, but we must create copies for uses.  */
+#define REPLDUP(t) (TREE_CODE (t) != BIT_FIELD_REF ? (t) : copy_node (t))
+
+static tree
+sra_build_elt_assignment (struct sra_elt *elt, tree src)
+{
+  tree dst = elt->replacement;
+  tree var, type, tmp, tmp2, tmp3;
+  tree list, stmt;
+  tree cst, cst2, mask;
+  tree minshift = NULL, maxshift = NULL;
+
+  if (TREE_CODE (dst) != BIT_FIELD_REF
+      || !elt->in_bitfld_block)
+    return sra_build_assignment (REPLDUP (dst), src);
+
+  var = TREE_OPERAND (dst, 0);
+
+  /* Try to widen the assignment to the entire variable.
+     We need the source to be a BIT_FIELD_REF as well, such that, for
+     BIT_FIELD_REF<d,sz,dp> = BIT_FIELD_REF<s,sz,sp>,
+     if sp >= dp, we can turn it into
+     d = BIT_FIELD_REF<s,sp+sz,sp-dp>.  */
+  if (elt->in_bitfld_block == 2
+      && TREE_CODE (src) == BIT_FIELD_REF
+      && !tree_int_cst_lt (TREE_OPERAND (src, 2), TREE_OPERAND (dst, 2)))
+    {
+      src = fold_build3 (BIT_FIELD_REF, TREE_TYPE (var),
+			 TREE_OPERAND (src, 0),
+			 size_binop (PLUS_EXPR, TREE_OPERAND (src, 1),
+				     TREE_OPERAND (dst, 2)),
+			 size_binop (MINUS_EXPR, TREE_OPERAND (src, 2),
+				     TREE_OPERAND (dst, 2)));
+      BIT_FIELD_REF_UNSIGNED (src) = 1;
+
+      return sra_build_assignment (var, src);
+    }
+
+  if (!is_gimple_reg (var))
+    return sra_build_assignment (REPLDUP (dst), src);
+
+  list = alloc_stmt_list ();
+
+  cst = TREE_OPERAND (dst, 2);
+  if (WORDS_BIG_ENDIAN)
+    {
+      cst = size_binop (MINUS_EXPR, DECL_SIZE (var), cst);
+      maxshift = cst;
+    }
+  else
+    minshift = cst;
+
+  cst2 = size_binop (PLUS_EXPR, TREE_OPERAND (dst, 1),
+		     TREE_OPERAND (dst, 2));
+  if (WORDS_BIG_ENDIAN)
+    {
+      cst2 = size_binop (MINUS_EXPR, DECL_SIZE (var), cst2);
+      minshift = cst2;
+    }
+  else
+    maxshift = cst2;
+
+  type = TREE_TYPE (var);
+
+  mask = build_int_cst_wide (type, 1, 0);
+  cst = int_const_binop (LSHIFT_EXPR, mask, maxshift, 1);
+  cst2 = int_const_binop (LSHIFT_EXPR, mask, minshift, 1);
+  mask = int_const_binop (MINUS_EXPR, cst, cst2, 1);
+  mask = fold_build1 (BIT_NOT_EXPR, type, mask);
+
+  if (!WORDS_BIG_ENDIAN)
+    cst2 = TREE_OPERAND (dst, 2);
+
+  tmp = make_rename_temp (type, "SR");
+  stmt = build_gimple_modify_stmt (tmp,
+				   fold_build2 (BIT_AND_EXPR, type,
+						var, mask));
+  append_to_statement_list (stmt, &list);
+
+  if (is_gimple_reg (src))
+    tmp2 = src;
+  else
+    {
+      tmp2 = make_rename_temp (TREE_TYPE (src), "SR");
+      stmt = sra_build_assignment (tmp2, src);
+      append_to_statement_list (stmt, &list);
+    }
+
+  if (!TYPE_UNSIGNED (TREE_TYPE (tmp2))
+      || TYPE_MAIN_VARIANT (TREE_TYPE (tmp2)) != TYPE_MAIN_VARIANT (type))
+    {
+      tmp3 = make_rename_temp (type, "SR");
+      tmp2 = fold_build3 (BIT_FIELD_REF, type, tmp2, TREE_OPERAND (dst, 1),
+			  bitsize_int (0));
+      if (TREE_CODE (tmp2) == BIT_FIELD_REF)
+	BIT_FIELD_REF_UNSIGNED (tmp2) = 1;
+      stmt = sra_build_assignment (tmp3, tmp2);
+      append_to_statement_list (stmt, &list);
+      tmp2 = tmp3;
+    }
+
+  if (!integer_zerop (minshift))
+    {
+      tmp3 = make_rename_temp (type, "SR");
+      stmt = build_gimple_modify_stmt (tmp3,
+				       fold_build2 (LSHIFT_EXPR, type,
+						    tmp2, minshift));
+      append_to_statement_list (stmt, &list);
+      tmp2 = tmp3;
+    }
+
+  stmt = build_gimple_modify_stmt (var,
+				   fold_build2 (BIT_IOR_EXPR, type,
+						tmp, tmp2));
+  append_to_statement_list (stmt, &list);
+
+  return list;
+}
+
 /* Generate a set of assignment statements in *LIST_P to copy all
    instantiated elements under ELT to or from the equivalent structure
    rooted at EXPR.  COPY_OUT controls the direction of the copy, with
@@ -1709,16 +2188,16 @@ generate_copy_inout (struct sra_elt *elt, bool copy_out, tree expr,
       i = c->replacement;
 
       t = build2 (COMPLEX_EXPR, elt->type, r, i);
-      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, expr, t);
+      t = sra_build_assignment (expr, t);
       SSA_NAME_DEF_STMT (expr) = t;
       append_to_statement_list (t, list_p);
     }
   else if (elt->replacement)
     {
       if (copy_out)
-	t = build2 (GIMPLE_MODIFY_STMT, void_type_node, elt->replacement, expr);
+	t = sra_build_elt_assignment (elt, expr);
       else
-	t = build2 (GIMPLE_MODIFY_STMT, void_type_node, expr, elt->replacement);
+	t = sra_build_assignment (expr, REPLDUP (elt->replacement));
       append_to_statement_list (t, list_p);
     }
   else
@@ -1743,6 +2222,19 @@ generate_element_copy (struct sra_elt *dst, struct sra_elt *src, tree *list_p)
   FOR_EACH_ACTUAL_CHILD (dc, dst)
     {
       sc = lookup_element (src, dc->element, NULL, NO_INSERT);
+      if (!sc && dc->in_bitfld_block == 2)
+	{
+	  struct sra_elt *dcs;
+
+	  FOR_EACH_ACTUAL_CHILD (dcs, dc)
+	    {
+	      sc = lookup_element (src, dcs->element, NULL, NO_INSERT);
+	      gcc_assert (sc);
+	      generate_element_copy (dcs, sc, list_p);
+	    }
+
+	  continue;
+	}
       gcc_assert (sc);
       generate_element_copy (dc, sc, list_p);
     }
@@ -1753,8 +2245,7 @@ generate_element_copy (struct sra_elt *dst, struct sra_elt *src, tree *list_p)
 
       gcc_assert (src->replacement);
 
-      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, dst->replacement,
-		  src->replacement);
+      t = sra_build_elt_assignment (dst, REPLDUP (src->replacement));
       append_to_statement_list (t, list_p);
     }
 }
@@ -1775,8 +2266,9 @@ generate_element_zero (struct sra_elt *elt, tree *list_p)
       return;
     }
 
-  FOR_EACH_ACTUAL_CHILD (c, elt)
-    generate_element_zero (c, list_p);
+  if (!elt->in_bitfld_block)
+    FOR_EACH_ACTUAL_CHILD (c, elt)
+      generate_element_zero (c, list_p);
 
   if (elt->replacement)
     {
@@ -1785,7 +2277,7 @@ generate_element_zero (struct sra_elt *elt, tree *list_p)
       gcc_assert (elt->is_scalar);
       t = fold_convert (elt->type, integer_zero_node);
 
-      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, elt->replacement, t);
+      t = sra_build_elt_assignment (elt, t);
       append_to_statement_list (t, list_p);
     }
 }
@@ -1794,10 +2286,10 @@ generate_element_zero (struct sra_elt *elt, tree *list_p)
    Add the result to *LIST_P.  */
 
 static void
-generate_one_element_init (tree var, tree init, tree *list_p)
+generate_one_element_init (struct sra_elt *elt, tree init, tree *list_p)
 {
   /* The replacement can be almost arbitrarily complex.  Gimplify.  */
-  tree stmt = build2 (GIMPLE_MODIFY_STMT, void_type_node, var, init);
+  tree stmt = sra_build_elt_assignment (elt, init);
   gimplify_and_add (stmt, list_p);
 }
 
@@ -1826,7 +2318,7 @@ generate_element_init_1 (struct sra_elt *elt, tree init, tree *list_p)
     {
       if (elt->replacement)
 	{
-	  generate_one_element_init (elt->replacement, init, list_p);
+	  generate_one_element_init (elt, init, list_p);
 	  elt->visited = true;
 	}
       return result;
@@ -1985,7 +2477,7 @@ sra_replace (block_stmt_iterator *bsi, tree list)
 
 static void
 scalarize_use (struct sra_elt *elt, tree *expr_p, block_stmt_iterator *bsi,
-	       bool is_output, bool use_all)
+	       bool is_output)
 {
   tree list = NULL, stmt = bsi_stmt (*bsi);
 
@@ -1994,8 +2486,27 @@ scalarize_use (struct sra_elt *elt, tree *expr_p, block_stmt_iterator *bsi,
       /* If we have a replacement, then updating the reference is as
 	 simple as modifying the existing statement in place.  */
       if (is_output)
-	mark_all_v_defs (stmt);
-      *expr_p = elt->replacement;
+	{
+	  if (TREE_CODE (elt->replacement) == BIT_FIELD_REF
+	      && is_gimple_reg (TREE_OPERAND (elt->replacement, 0))
+	      && TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+	      && &GIMPLE_STMT_OPERAND (stmt, 0) == expr_p)
+	    {
+	      tree newstmt = sra_build_elt_assignment
+		(elt, GIMPLE_STMT_OPERAND (stmt, 1));
+	      if (TREE_CODE (newstmt) != STATEMENT_LIST)
+		{
+		  tree list = alloc_stmt_list ();
+		  append_to_statement_list (newstmt, &list);
+		  newstmt = list;
+		}
+	      sra_replace (bsi, newstmt);
+	      return;
+	    }
+
+	  mark_all_v_defs (stmt);
+	}
+      *expr_p = REPLDUP (elt->replacement);
       update_stmt (stmt);
     }
   else
@@ -2013,17 +2524,23 @@ scalarize_use (struct sra_elt *elt, tree *expr_p, block_stmt_iterator *bsi,
 	 This optimization would be most effective if sra_walk_function
 	 processed the blocks in dominator order.  */
 
-      generate_copy_inout (elt, is_output, generate_element_ref (elt), &list);
-      if (list == NULL)
-	return;
-      mark_all_v_defs (list);
-      if (is_output)
-	sra_insert_after (bsi, list);
-      else
+      generate_copy_inout (elt, false, generate_element_ref (elt), &list);
+      if (list)
 	{
+	  mark_all_v_defs (list);
 	  sra_insert_before (bsi, list);
-	  if (use_all)
-	    mark_no_warning (elt);
+	  mark_no_warning (elt);
+	}
+
+      if (is_output)
+	{
+	  list = NULL;
+	  generate_copy_inout (elt, true, generate_element_ref (elt), &list);
+	  if (list)
+	    {
+	      mark_all_v_defs (list);
+	      sra_insert_after (bsi, list);
+	    }
 	}
     }
 }
@@ -2047,7 +2564,7 @@ scalarize_copy (struct sra_elt *lhs_elt, struct sra_elt *rhs_elt,
       gcc_assert (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT);
 
       GIMPLE_STMT_OPERAND (stmt, 0) = lhs_elt->replacement;
-      GIMPLE_STMT_OPERAND (stmt, 1) = rhs_elt->replacement;
+      GIMPLE_STMT_OPERAND (stmt, 1) = REPLDUP (rhs_elt->replacement);
       update_stmt (stmt);
     }
   else if (lhs_elt->use_block_copy || rhs_elt->use_block_copy)
@@ -2189,7 +2706,7 @@ scalarize_ldst (struct sra_elt *elt, tree other,
     {
       /* Since ELT is not fully instantiated, we have to leave the
 	 block copy in place.  Treat this as a USE.  */
-      scalarize_use (elt, NULL, bsi, is_output, false);
+      scalarize_use (elt, NULL, bsi, is_output);
     }
   else
     {
@@ -2201,8 +2718,8 @@ scalarize_ldst (struct sra_elt *elt, tree other,
 
       mark_all_v_defs (stmt);
       generate_copy_inout (elt, is_output, other, &list);
-      mark_all_v_defs (list);
       gcc_assert (list);
+      mark_all_v_defs (list);
 
       /* Preserve EH semantics.  */
       if (stmt_ends_bb_p (stmt))
@@ -2298,6 +2815,10 @@ dump_sra_elt_name (FILE *f, struct sra_elt *elt)
 	    fputc ('.', f);
 	  print_generic_expr (f, elt->element, dump_flags);
 	}
+      else if (TREE_CODE (elt->element) == BIT_FIELD_REF)
+	fprintf (f, "$B" HOST_WIDE_INT_PRINT_DEC "F" HOST_WIDE_INT_PRINT_DEC,
+		 tree_low_cst (TREE_OPERAND (elt->element, 2), 1),
+		 tree_low_cst (TREE_OPERAND (elt->element, 1), 1));
       else if (TREE_CODE (elt->element) == RANGE_EXPR)
 	fprintf (f, "["HOST_WIDE_INT_PRINT_DEC".."HOST_WIDE_INT_PRINT_DEC"]",
 		 TREE_INT_CST_LOW (TREE_OPERAND (elt->element, 0)),
@@ -2359,11 +2880,43 @@ tree_sra (void)
   return todoflags;
 }
 
+static unsigned int
+tree_sra_early (void)
+{
+  unsigned int ret;
+
+  early_sra = true;
+  ret = tree_sra ();
+  early_sra = false;
+
+  return ret;
+}
+
 static bool
 gate_sra (void)
 {
   return flag_tree_sra != 0;
 }
+
+struct tree_opt_pass pass_sra_early =
+{
+  "esra",				/* name */
+  gate_sra,				/* gate */
+  tree_sra_early,			/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_TREE_SRA,				/* tv_id */
+  PROP_cfg | PROP_ssa,			/* properties_required */
+  0,					/* properties_provided */
+  0,				        /* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_dump_func
+  | TODO_update_ssa
+  | TODO_ggc_collect
+  | TODO_verify_ssa,			/* todo_flags_finish */
+  0					/* letter */
+};
 
 struct tree_opt_pass pass_sra =
 {
@@ -2374,7 +2927,7 @@ struct tree_opt_pass pass_sra =
   NULL,					/* next */
   0,					/* static_pass_number */
   TV_TREE_SRA,				/* tv_id */
-  PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
+  PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   0,				        /* properties_destroyed */
   0,					/* todo_flags_start */

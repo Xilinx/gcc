@@ -73,9 +73,6 @@ export_proto(string_verify);
 extern void string_trim (GFC_INTEGER_4 *, void **, GFC_INTEGER_4, const char *);
 export_proto(string_trim);
 
-extern void string_repeat (char *, GFC_INTEGER_4, const char *, GFC_INTEGER_4);
-export_proto(string_repeat);
-
 /* Strings of unequal length are extended with pad characters.  */
 
 GFC_INTEGER_4
@@ -83,7 +80,7 @@ compare_string (GFC_INTEGER_4 len1, const char * s1,
 		GFC_INTEGER_4 len2, const char * s2)
 {
   int res;
-  const char *s;
+  const unsigned char *s;
   int len;
 
   res = memcmp (s1, s2, (len1 < len2) ? len1 : len2);
@@ -96,13 +93,13 @@ compare_string (GFC_INTEGER_4 len1, const char * s1,
   if (len1 < len2)
     {
       len = len2 - len1;
-      s = &s2[len1];
+      s = (unsigned char *) &s2[len1];
       res = -1;
     }
   else
     {
       len = len1 - len2;
-      s = &s1[len2];
+      s = (unsigned char *) &s1[len2];
       res = 1;
     }
 
@@ -351,27 +348,4 @@ string_verify (GFC_INTEGER_4 slen, const char * str, GFC_INTEGER_4 setlen,
     }
 
   return 0;
-}
-
-
-/* Concatenate several copies of a string.  */
-
-void
-string_repeat (char * dest, GFC_INTEGER_4 slen, 
-               const char * src, GFC_INTEGER_4 ncopies)
-{
-  int i;
-
-  /* See if ncopies is valid.  */
-  if (ncopies < 0)
-    {
-      /* The error is already reported.  */
-      runtime_error ("Augument NCOPIES is negative.");
-    }
-
-  /* Copy characters.  */
-  for (i = 0; i < ncopies; i++) 
-    {
-      memmove (dest + (i * slen), src, slen);
-    }
 }

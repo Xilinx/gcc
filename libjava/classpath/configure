@@ -312,7 +312,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os JAVA_MAINTAINER_MODE_TRUE JAVA_MAINTAINER_MODE_FALSE LIBVERSION CLASSPATH_MODULE CLASSPATH_CONVENIENCE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar CREATE_COLLECTIONS_TRUE CREATE_COLLECTIONS_FALSE CREATE_JNI_LIBRARIES_TRUE CREATE_JNI_LIBRARIES_FALSE CREATE_CORE_JNI_LIBRARIES_TRUE CREATE_CORE_JNI_LIBRARIES_FALSE CREATE_GCONF_PEER_LIBRARIES_TRUE CREATE_GCONF_PEER_LIBRARIES_FALSE default_toolkit CREATE_XMLJ_LIBRARY_TRUE CREATE_XMLJ_LIBRARY_FALSE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CPP EGREP CREATE_ALSA_LIBRARIES_TRUE CREATE_ALSA_LIBRARIES_FALSE CREATE_DSSI_LIBRARIES_TRUE CREATE_DSSI_LIBRARIES_FALSE CREATE_GTK_PEER_LIBRARIES_TRUE CREATE_GTK_PEER_LIBRARIES_FALSE CREATE_QT_PEER_LIBRARIES_TRUE CREATE_QT_PEER_LIBRARIES_FALSE CREATE_PLUGIN_TRUE CREATE_PLUGIN_FALSE toolexeclibdir nativeexeclibdir glibjdir VM_BINARY FOUND_CACAO_TRUE FOUND_CACAO_FALSE CREATE_JNI_HEADERS_TRUE CREATE_JNI_HEADERS_FALSE CREATE_WRAPPERS_TRUE CREATE_WRAPPERS_FALSE LN_S RANLIB ac_ct_RANLIB LIBTOOL CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP PERL COLLECTIONS_PREFIX LIBMAGIC LIBICONV LTLIBICONV WARNING_CFLAGS STRICT_WARNING_CFLAGS ERROR_CFLAGS PKG_CONFIG XML_CFLAGS XML_LIBS XSLT_CFLAGS XSLT_LIBS X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS GTK_CFLAGS GTK_LIBS FREETYPE2_CFLAGS FREETYPE2_LIBS PANGOFT2_CFLAGS PANGOFT2_LIBS XTEST_LIBS GCONF_CFLAGS GCONF_LIBS GDK_CFLAGS GDK_LIBS QT_CFLAGS QT_LIBS MOC MOZILLA_CFLAGS MOZILLA_LIBS GLIB_CFLAGS GLIB_LIBS PLUGIN_DIR USER_JAVAH USER_SPECIFIED_JAVAH_TRUE USER_SPECIFIED_JAVAH_FALSE CLASSPATH_INCLUDES GCJ JIKES JIKESENCODING JIKESWARNINGS KJC GCJX ECJ FOUND_GCJ_TRUE FOUND_GCJ_FALSE FOUND_JIKES_TRUE FOUND_JIKES_FALSE FOUND_ECJ_TRUE FOUND_ECJ_FALSE FOUND_KJC_TRUE FOUND_KJC_FALSE FOUND_GCJX_TRUE FOUND_GCJX_FALSE USER_CLASSLIB USER_SPECIFIED_CLASSLIB_TRUE USER_SPECIFIED_CLASSLIB_FALSE vm_classes MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LIBDEBUG INIT_LOAD_LIBRARY JAVA_LANG_SYSTEM_EXPLICIT_INITIALIZATION REMOVE MKDIR CP DATE FIND ZIP FASTJAR INSTALL_GLIBJ_ZIP_TRUE INSTALL_GLIBJ_ZIP_FALSE INSTALL_CLASS_FILES_TRUE INSTALL_CLASS_FILES_FALSE BUILD_CLASS_FILES_TRUE BUILD_CLASS_FILES_FALSE EXAMPLESDIR GJDOC CREATE_API_DOCS_TRUE CREATE_API_DOCS_FALSE JAY JAY_SKELETON REGEN_PARSERS_TRUE REGEN_PARSERS_FALSE USE_PREBUILT_GLIBJ_ZIP_TRUE USE_PREBUILT_GLIBJ_ZIP_FALSE PATH_TO_GLIBJ_ZIP USE_ESCHER_TRUE USE_ESCHER_FALSE PATH_TO_ESCHER ENABLE_LOCAL_SOCKETS_TRUE ENABLE_LOCAL_SOCKETS_FALSE DEFAULT_PREFS_PEER LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os JAVA_MAINTAINER_MODE_TRUE JAVA_MAINTAINER_MODE_FALSE GENINSRC_TRUE GENINSRC_FALSE multi_basedir LIBVERSION CLASSPATH_MODULE CLASSPATH_CONVENIENCE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar CREATE_COLLECTIONS_TRUE CREATE_COLLECTIONS_FALSE CREATE_JNI_LIBRARIES_TRUE CREATE_JNI_LIBRARIES_FALSE CREATE_CORE_JNI_LIBRARIES_TRUE CREATE_CORE_JNI_LIBRARIES_FALSE CREATE_GCONF_PEER_LIBRARIES_TRUE CREATE_GCONF_PEER_LIBRARIES_FALSE default_toolkit CREATE_XMLJ_LIBRARY_TRUE CREATE_XMLJ_LIBRARY_FALSE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CPP EGREP CREATE_ALSA_LIBRARIES_TRUE CREATE_ALSA_LIBRARIES_FALSE CREATE_DSSI_LIBRARIES_TRUE CREATE_DSSI_LIBRARIES_FALSE CREATE_GTK_PEER_LIBRARIES_TRUE CREATE_GTK_PEER_LIBRARIES_FALSE CREATE_QT_PEER_LIBRARIES_TRUE CREATE_QT_PEER_LIBRARIES_FALSE CREATE_PLUGIN_TRUE CREATE_PLUGIN_FALSE toolexeclibdir nativeexeclibdir glibjdir VM_BINARY FOUND_CACAO_TRUE FOUND_CACAO_FALSE CREATE_JNI_HEADERS_TRUE CREATE_JNI_HEADERS_FALSE CREATE_WRAPPERS_TRUE CREATE_WRAPPERS_FALSE LN_S RANLIB ac_ct_RANLIB LIBTOOL CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP PERL COLLECTIONS_PREFIX LIBMAGIC LIBICONV LTLIBICONV WARNING_CFLAGS STRICT_WARNING_CFLAGS ERROR_CFLAGS PKG_CONFIG XML_CFLAGS XML_LIBS XSLT_CFLAGS XSLT_LIBS X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS GTK_CFLAGS GTK_LIBS FREETYPE2_CFLAGS FREETYPE2_LIBS PANGOFT2_CFLAGS PANGOFT2_LIBS XTEST_LIBS GCONF_CFLAGS GCONF_LIBS GDK_CFLAGS GDK_LIBS QT_CFLAGS QT_LIBS MOC MOZILLA_CFLAGS MOZILLA_LIBS GLIB_CFLAGS GLIB_LIBS PLUGIN_DIR USER_JAVAH USER_SPECIFIED_JAVAH_TRUE USER_SPECIFIED_JAVAH_FALSE CLASSPATH_INCLUDES GCJ JIKES JIKESENCODING JIKESWARNINGS KJC GCJX ECJ FOUND_GCJ_TRUE FOUND_GCJ_FALSE FOUND_JIKES_TRUE FOUND_JIKES_FALSE FOUND_ECJ_TRUE FOUND_ECJ_FALSE FOUND_KJC_TRUE FOUND_KJC_FALSE FOUND_GCJX_TRUE FOUND_GCJX_FALSE USER_CLASSLIB USER_SPECIFIED_CLASSLIB_TRUE USER_SPECIFIED_CLASSLIB_FALSE vm_classes MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LIBDEBUG INIT_LOAD_LIBRARY ECJ_JAR JAVA_LANG_SYSTEM_EXPLICIT_INITIALIZATION REMOVE MKDIR CP DATE FIND ZIP FASTJAR INSTALL_GLIBJ_ZIP_TRUE INSTALL_GLIBJ_ZIP_FALSE INSTALL_CLASS_FILES_TRUE INSTALL_CLASS_FILES_FALSE BUILD_CLASS_FILES_TRUE BUILD_CLASS_FILES_FALSE EXAMPLESDIR GJDOC CREATE_API_DOCS_TRUE CREATE_API_DOCS_FALSE JAY JAY_SKELETON REGEN_PARSERS_TRUE REGEN_PARSERS_FALSE USE_PREBUILT_GLIBJ_ZIP_TRUE USE_PREBUILT_GLIBJ_ZIP_FALSE PATH_TO_GLIBJ_ZIP USE_ESCHER_TRUE USE_ESCHER_FALSE PATH_TO_ESCHER ENABLE_LOCAL_SOCKETS_TRUE ENABLE_LOCAL_SOCKETS_FALSE DEFAULT_PREFS_PEER LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -873,6 +873,11 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-java-maintainer-mode
                           allow rebuilding of .class and .h files
+  --enable-generated-files-in-srcdir
+                          put copies of generated files in source dir
+                          intended for creating source tarballs for users
+                          without texinfo, perl, bison or flex.
+  --enable-multilib       build many library versions (default)
   --enable-collections    create collections.jar default=no
   --enable-jni            compile JNI source default=yes
   --enable-core-jni       compile JNI sources for core default=yes
@@ -945,6 +950,8 @@ Optional Packages:
   --with-ecj              bytecode compilation with ecj
   --with-classpath        specify path to a classes.zip like file
   --with-vm-classes       specify path to VM override source files
+  --with-ecj-jar=ABS.PATH specify jar file containing the Eclipse Java
+                          Compiler
   --with-fastjar=PATH     define to use a fastjar style tool
   --with-glibj            define what to install (zip|flat|both|none|build)
                           [default=zip]
@@ -1540,6 +1547,76 @@ else
   JAVA_MAINTAINER_MODE_TRUE='#'
   JAVA_MAINTAINER_MODE_FALSE=
 fi
+
+
+# We would like to our source tree to be readonly.  However when releases or
+# pre-releases are generated, the man pages need to be included as they are
+# converted from the texi files via perl which we don't require end users to
+# have installed.
+# Therefore we have --enable-generated-files-in-srcdir to do just that.
+
+echo "$as_me:$LINENO: checking whether to place generated files in the source directory" >&5
+echo $ECHO_N "checking whether to place generated files in the source directory... $ECHO_C" >&6
+    # Check whether --enable-generated-files-in-srcdir or --disable-generated-files-in-srcdir was given.
+if test "${enable_generated_files_in_srcdir+set}" = set; then
+  enableval="$enable_generated_files_in_srcdir"
+  generated_files_in_srcdir=$enableval
+else
+  generated_files_in_srcdir=no
+fi;
+
+echo "$as_me:$LINENO: result: $generated_files_in_srcdir" >&5
+echo "${ECHO_T}$generated_files_in_srcdir" >&6
+
+
+if test x$generated_files_in_srcdir = xyes; then
+  GENINSRC_TRUE=
+  GENINSRC_FALSE='#'
+else
+  GENINSRC_TRUE='#'
+  GENINSRC_FALSE=
+fi
+
+
+# Find the rest of the source tree framework.
+# Default to --enable-multilib
+# Check whether --enable-multilib or --disable-multilib was given.
+if test "${enable_multilib+set}" = set; then
+  enableval="$enable_multilib"
+  case "$enableval" in
+  yes) multilib=yes ;;
+  no)  multilib=no ;;
+  *)   { { echo "$as_me:$LINENO: error: bad value $enableval for multilib option" >&5
+echo "$as_me: error: bad value $enableval for multilib option" >&2;}
+   { (exit 1); exit 1; }; } ;;
+ esac
+else
+  multilib=yes
+fi;
+
+# We may get other options which we leave undocumented:
+# --with-target-subdir, --with-multisrctop, --with-multisubdir
+# See config-ml.in if you want the gory details.
+
+if test "$srcdir" = "."; then
+  if test "$with_target_subdir" != "."; then
+    multi_basedir="$srcdir/$with_multisrctop../../.."
+  else
+    multi_basedir="$srcdir/$with_multisrctop../.."
+  fi
+else
+  multi_basedir="$srcdir/../.."
+fi
+
+
+# Even if the default multilib is not a cross compilation,
+# it may be that some of the other multilibs are.
+if test $cross_compiling = no && test $multilib = yes \
+   && test "x${with_multisubdir}" != x ; then
+   cross_compiling=maybe
+fi
+
+          ac_config_commands="$ac_config_commands default-1"
 
 
 if expr ${target_cpu} : '.*86' > /dev/null; then target_cpu=x86; fi
@@ -4102,6 +4179,7 @@ if test "${enable_dssi+set}" = set; then
                 *) COMPILE_DSSI=yes ;;
               esac
 else
+  COMPILE_DSSI=no
 
 for ac_header in dssi.h
 do
@@ -4247,9 +4325,157 @@ if test `eval echo '${'$as_ac_Header'}'` = yes; then
   cat >>confdefs.h <<_ACEOF
 #define `echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
- COMPILE_DSSI=yes
+
+
+for ac_header in jack/jack.h
+do
+as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
+if eval "test \"\${$as_ac_Header+set}\" = set"; then
+  echo "$as_me:$LINENO: checking for $ac_header" >&5
+echo $ECHO_N "checking for $ac_header... $ECHO_C" >&6
+if eval "test \"\${$as_ac_Header+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_Header'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$as_ac_Header'}'`" >&6
 else
-  COMPILE_DSSI=no
+  # Is the header compilable?
+echo "$as_me:$LINENO: checking $ac_header usability" >&5
+echo $ECHO_N "checking $ac_header usability... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <$ac_header>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_header_compiler=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_header_compiler=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+echo "${ECHO_T}$ac_header_compiler" >&6
+
+# Is the header present?
+echo "$as_me:$LINENO: checking $ac_header presence" >&5
+echo $ECHO_N "checking $ac_header presence... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <$ac_header>
+_ACEOF
+if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
+  (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null; then
+  if test -s conftest.err; then
+    ac_cpp_err=$ac_c_preproc_warn_flag
+    ac_cpp_err=$ac_cpp_err$ac_c_werror_flag
+  else
+    ac_cpp_err=
+  fi
+else
+  ac_cpp_err=yes
+fi
+if test -z "$ac_cpp_err"; then
+  ac_header_preproc=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+echo "${ECHO_T}$ac_header_preproc" >&6
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
+  yes:no: )
+    { echo "$as_me:$LINENO: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the compiler's result" >&5
+echo "$as_me: WARNING: $ac_header: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { echo "$as_me:$LINENO: WARNING: $ac_header: present but cannot be compiled" >&5
+echo "$as_me: WARNING: $ac_header: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header:     check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: $ac_header:     check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: see the Autoconf documentation" >&5
+echo "$as_me: WARNING: $ac_header: see the Autoconf documentation" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&5
+echo "$as_me: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: $ac_header: proceeding with the preprocessor's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: in the future, the compiler will take precedence" >&5
+echo "$as_me: WARNING: $ac_header: in the future, the compiler will take precedence" >&2;}
+    (
+      cat <<\_ASBOX
+## -------------------------------- ##
+## Report this to classpath@gnu.org ##
+## -------------------------------- ##
+_ASBOX
+    ) |
+      sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+echo "$as_me:$LINENO: checking for $ac_header" >&5
+echo $ECHO_N "checking for $ac_header... $ECHO_C" >&6
+if eval "test \"\${$as_ac_Header+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  eval "$as_ac_Header=\$ac_header_preproc"
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_Header'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$as_ac_Header'}'`" >&6
+
+fi
+if test `eval echo '${'$as_ac_Header'}'` = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define `echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+ COMPILE_DSSI=yes
+fi
+
+done
+
 fi
 
 done
@@ -5564,7 +5790,7 @@ test x"$pic_mode" = xno && libtool_flags="$libtool_flags --prefer-non-pic"
 case $host in
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5567 "configure"' > conftest.$ac_ext
+  echo '#line 5793 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13330,23 +13556,23 @@ fi
   else
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
-        echo "$as_me:$LINENO: checking for firefox-plugin" >&5
-echo $ECHO_N "checking for firefox-plugin... $ECHO_C" >&6
+        echo "$as_me:$LINENO: checking for firefox-plugin firefox-xpcom" >&5
+echo $ECHO_N "checking for firefox-plugin firefox-xpcom... $ECHO_C" >&6
 
-        if $PKG_CONFIG --exists "firefox-plugin" ; then
+        if $PKG_CONFIG --exists "firefox-plugin firefox-xpcom" ; then
             echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6
             succeeded=yes
 
             echo "$as_me:$LINENO: checking MOZILLA_CFLAGS" >&5
 echo $ECHO_N "checking MOZILLA_CFLAGS... $ECHO_C" >&6
-            MOZILLA_CFLAGS=`$PKG_CONFIG --cflags "firefox-plugin"`
+            MOZILLA_CFLAGS=`$PKG_CONFIG --cflags "firefox-plugin firefox-xpcom"`
             echo "$as_me:$LINENO: result: $MOZILLA_CFLAGS" >&5
 echo "${ECHO_T}$MOZILLA_CFLAGS" >&6
 
             echo "$as_me:$LINENO: checking MOZILLA_LIBS" >&5
 echo $ECHO_N "checking MOZILLA_LIBS... $ECHO_C" >&6
-            MOZILLA_LIBS=`$PKG_CONFIG --libs "firefox-plugin"`
+            MOZILLA_LIBS=`$PKG_CONFIG --libs "firefox-plugin firefox-xpcom"`
             echo "$as_me:$LINENO: result: $MOZILLA_LIBS" >&5
 echo "${ECHO_T}$MOZILLA_LIBS" >&6
         else
@@ -13354,7 +13580,7 @@ echo "${ECHO_T}$MOZILLA_LIBS" >&6
             MOZILLA_LIBS=""
             ## If we have a custom action on failure, don't print errors, but
             ## do set a variable so people can do so.
-            MOZILLA_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "firefox-plugin"`
+            MOZILLA_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "firefox-plugin firefox-xpcom"`
 
         fi
 
@@ -13428,23 +13654,23 @@ fi
   else
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
-        echo "$as_me:$LINENO: checking for xulrunner-plugin" >&5
-echo $ECHO_N "checking for xulrunner-plugin... $ECHO_C" >&6
+        echo "$as_me:$LINENO: checking for xulrunner-plugin xulrunner-xpcom" >&5
+echo $ECHO_N "checking for xulrunner-plugin xulrunner-xpcom... $ECHO_C" >&6
 
-        if $PKG_CONFIG --exists "xulrunner-plugin" ; then
+        if $PKG_CONFIG --exists "xulrunner-plugin xulrunner-xpcom" ; then
             echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6
             succeeded=yes
 
             echo "$as_me:$LINENO: checking MOZILLA_CFLAGS" >&5
 echo $ECHO_N "checking MOZILLA_CFLAGS... $ECHO_C" >&6
-            MOZILLA_CFLAGS=`$PKG_CONFIG --cflags "xulrunner-plugin"`
+            MOZILLA_CFLAGS=`$PKG_CONFIG --cflags "xulrunner-plugin xulrunner-xpcom"`
             echo "$as_me:$LINENO: result: $MOZILLA_CFLAGS" >&5
 echo "${ECHO_T}$MOZILLA_CFLAGS" >&6
 
             echo "$as_me:$LINENO: checking MOZILLA_LIBS" >&5
 echo $ECHO_N "checking MOZILLA_LIBS... $ECHO_C" >&6
-            MOZILLA_LIBS=`$PKG_CONFIG --libs "xulrunner-plugin"`
+            MOZILLA_LIBS=`$PKG_CONFIG --libs "xulrunner-plugin xulrunner-xpcom"`
             echo "$as_me:$LINENO: result: $MOZILLA_LIBS" >&5
 echo "${ECHO_T}$MOZILLA_LIBS" >&6
         else
@@ -13452,7 +13678,7 @@ echo "${ECHO_T}$MOZILLA_LIBS" >&6
             MOZILLA_LIBS=""
             ## If we have a custom action on failure, don't print errors, but
             ## do set a variable so people can do so.
-            MOZILLA_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "xulrunner-plugin"`
+            MOZILLA_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "xulrunner-plugin xulrunner-xpcom"`
 
         fi
 
@@ -13526,23 +13752,23 @@ fi
   else
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
-        echo "$as_me:$LINENO: checking for mozilla-firefox-plugin" >&5
-echo $ECHO_N "checking for mozilla-firefox-plugin... $ECHO_C" >&6
+        echo "$as_me:$LINENO: checking for mozilla-firefox-plugin mozilla-firefox-xpcom" >&5
+echo $ECHO_N "checking for mozilla-firefox-plugin mozilla-firefox-xpcom... $ECHO_C" >&6
 
-        if $PKG_CONFIG --exists "mozilla-firefox-plugin" ; then
+        if $PKG_CONFIG --exists "mozilla-firefox-plugin mozilla-firefox-xpcom" ; then
             echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6
             succeeded=yes
 
             echo "$as_me:$LINENO: checking MOZILLA_CFLAGS" >&5
 echo $ECHO_N "checking MOZILLA_CFLAGS... $ECHO_C" >&6
-            MOZILLA_CFLAGS=`$PKG_CONFIG --cflags "mozilla-firefox-plugin"`
+            MOZILLA_CFLAGS=`$PKG_CONFIG --cflags "mozilla-firefox-plugin mozilla-firefox-xpcom"`
             echo "$as_me:$LINENO: result: $MOZILLA_CFLAGS" >&5
 echo "${ECHO_T}$MOZILLA_CFLAGS" >&6
 
             echo "$as_me:$LINENO: checking MOZILLA_LIBS" >&5
 echo $ECHO_N "checking MOZILLA_LIBS... $ECHO_C" >&6
-            MOZILLA_LIBS=`$PKG_CONFIG --libs "mozilla-firefox-plugin"`
+            MOZILLA_LIBS=`$PKG_CONFIG --libs "mozilla-firefox-plugin mozilla-firefox-xpcom"`
             echo "$as_me:$LINENO: result: $MOZILLA_LIBS" >&5
 echo "${ECHO_T}$MOZILLA_LIBS" >&6
         else
@@ -13550,7 +13776,7 @@ echo "${ECHO_T}$MOZILLA_LIBS" >&6
             MOZILLA_LIBS=""
             ## If we have a custom action on failure, don't print errors, but
             ## do set a variable so people can do so.
-            MOZILLA_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "mozilla-firefox-plugin"`
+            MOZILLA_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "mozilla-firefox-plugin mozilla-firefox-xpcom"`
 
         fi
 
@@ -13624,23 +13850,23 @@ fi
   else
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
-        echo "$as_me:$LINENO: checking for seamonkey-plugin" >&5
-echo $ECHO_N "checking for seamonkey-plugin... $ECHO_C" >&6
+        echo "$as_me:$LINENO: checking for seamonkey-plugin seamonkey-xpcom" >&5
+echo $ECHO_N "checking for seamonkey-plugin seamonkey-xpcom... $ECHO_C" >&6
 
-        if $PKG_CONFIG --exists "seamonkey-plugin" ; then
+        if $PKG_CONFIG --exists "seamonkey-plugin seamonkey-xpcom" ; then
             echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6
             succeeded=yes
 
             echo "$as_me:$LINENO: checking MOZILLA_CFLAGS" >&5
 echo $ECHO_N "checking MOZILLA_CFLAGS... $ECHO_C" >&6
-            MOZILLA_CFLAGS=`$PKG_CONFIG --cflags "seamonkey-plugin"`
+            MOZILLA_CFLAGS=`$PKG_CONFIG --cflags "seamonkey-plugin seamonkey-xpcom"`
             echo "$as_me:$LINENO: result: $MOZILLA_CFLAGS" >&5
 echo "${ECHO_T}$MOZILLA_CFLAGS" >&6
 
             echo "$as_me:$LINENO: checking MOZILLA_LIBS" >&5
 echo $ECHO_N "checking MOZILLA_LIBS... $ECHO_C" >&6
-            MOZILLA_LIBS=`$PKG_CONFIG --libs "seamonkey-plugin"`
+            MOZILLA_LIBS=`$PKG_CONFIG --libs "seamonkey-plugin seamonkey-xpcom"`
             echo "$as_me:$LINENO: result: $MOZILLA_LIBS" >&5
 echo "${ECHO_T}$MOZILLA_LIBS" >&6
         else
@@ -13648,7 +13874,7 @@ echo "${ECHO_T}$MOZILLA_LIBS" >&6
             MOZILLA_LIBS=""
             ## If we have a custom action on failure, don't print errors, but
             ## do set a variable so people can do so.
-            MOZILLA_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "seamonkey-plugin"`
+            MOZILLA_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "seamonkey-plugin seamonkey-xpcom"`
 
         fi
 
@@ -15922,6 +16148,18 @@ else
   INIT_LOAD_LIBRARY="true"
 fi;
 
+
+
+
+# Check whether --with-ecj-jar or --without-ecj-jar was given.
+if test "${with_ecj_jar+set}" = set; then
+  withval="$with_ecj_jar"
+  ECJ_JAR=$withval
+else
+  if test -f $multi_basedir/ecj.jar; then
+	       ECJ_JAR='$(jardir)/ecj.jar'
+	     fi
+fi;
 
 
 # Check whether --enable-java-lang-system-explicit-initialization or --disable-java-lang-system-explicit-initialization was given.
@@ -19865,6 +20103,13 @@ echo "$as_me: error: conditional \"JAVA_MAINTAINER_MODE\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
+if test -z "${GENINSRC_TRUE}" && test -z "${GENINSRC_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"GENINSRC\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"GENINSRC\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 if test -z "${CREATE_COLLECTIONS_TRUE}" && test -z "${CREATE_COLLECTIONS_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"CREATE_COLLECTIONS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
@@ -20553,6 +20798,17 @@ cat >>$CONFIG_STATUS <<_ACEOF
 # INIT-COMMANDS section.
 #
 
+
+srcdir="$srcdir"
+host="$host"
+target="$target"
+with_multisubdir="$with_multisubdir"
+with_multisrctop="$with_multisrctop"
+with_target_subdir="$with_target_subdir"
+ac_configure_args="${multilib_arg} ${ac_configure_args}"
+multi_basedir="$multi_basedir"
+CONFIG_SHELL=${CONFIG_SHELL-/bin/sh}
+CC="$CC"
 AMDEP_TRUE="$AMDEP_TRUE" ac_aux_dir="$ac_aux_dir"
 # variables for create stdint.h replacement
 PACKAGE="$PACKAGE"
@@ -20636,6 +20892,7 @@ do
   "tools/grmic" ) CONFIG_FILES="$CONFIG_FILES tools/grmic" ;;
   "tools/gjavah" ) CONFIG_FILES="$CONFIG_FILES tools/gjavah" ;;
   "$ac_config_links_1" ) CONFIG_LINKS="$CONFIG_LINKS $ac_config_links_1" ;;
+  "default-1" ) CONFIG_COMMANDS="$CONFIG_COMMANDS default-1" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
   "mkcollections.pl" ) CONFIG_COMMANDS="$CONFIG_COMMANDS mkcollections.pl" ;;
   "$ac_stdint_h" ) CONFIG_COMMANDS="$CONFIG_COMMANDS $ac_stdint_h" ;;
@@ -20754,6 +21011,9 @@ s,@target_vendor@,$target_vendor,;t t
 s,@target_os@,$target_os,;t t
 s,@JAVA_MAINTAINER_MODE_TRUE@,$JAVA_MAINTAINER_MODE_TRUE,;t t
 s,@JAVA_MAINTAINER_MODE_FALSE@,$JAVA_MAINTAINER_MODE_FALSE,;t t
+s,@GENINSRC_TRUE@,$GENINSRC_TRUE,;t t
+s,@GENINSRC_FALSE@,$GENINSRC_FALSE,;t t
+s,@multi_basedir@,$multi_basedir,;t t
 s,@LIBVERSION@,$LIBVERSION,;t t
 s,@CLASSPATH_MODULE@,$CLASSPATH_MODULE,;t t
 s,@CLASSPATH_CONVENIENCE@,$CLASSPATH_CONVENIENCE,;t t
@@ -20905,6 +21165,7 @@ s,@MAINTAINER_MODE_FALSE@,$MAINTAINER_MODE_FALSE,;t t
 s,@MAINT@,$MAINT,;t t
 s,@LIBDEBUG@,$LIBDEBUG,;t t
 s,@INIT_LOAD_LIBRARY@,$INIT_LOAD_LIBRARY,;t t
+s,@ECJ_JAR@,$ECJ_JAR,;t t
 s,@JAVA_LANG_SYSTEM_EXPLICIT_INITIALIZATION@,$JAVA_LANG_SYSTEM_EXPLICIT_INITIALIZATION,;t t
 s,@REMOVE@,$REMOVE,;t t
 s,@MKDIR@,$MKDIR,;t t
@@ -21673,6 +21934,14 @@ esac
   { echo "$as_me:$LINENO: executing $ac_dest commands" >&5
 echo "$as_me: executing $ac_dest commands" >&6;}
   case $ac_dest in
+    default-1 )
+# Only add multilib support code if we just rebuilt the top-level
+# Makefile.
+case " $CONFIG_FILES " in
+ *" Makefile "*)
+   ac_file=Makefile . ${multi_basedir}/config-ml.in
+   ;;
+esac ;;
     depfiles ) test x"$AMDEP_TRUE" != x"" || for mf in $CONFIG_FILES; do
   # Strip MF so we end up with the name of the file.
   mf=`echo "$mf" | sed -e 's/:.*$//'`

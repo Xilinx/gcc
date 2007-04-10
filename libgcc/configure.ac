@@ -52,13 +52,24 @@ AC_ARG_ENABLE(shared,
 ], [enable_shared=yes])
 AC_SUBST(enable_shared)
 
+AC_MSG_CHECKING([for --enable-version-specific-runtime-libs])
+AC_ARG_ENABLE(version-specific-runtime-libs,
+[  --enable-version-specific-runtime-libs    Specify that runtime libraries should be installed in a compiler-specific directory ],
+[case "$enableval" in
+ yes) version_specific_libs=yes ;;
+ no)  version_specific_libs=no ;;
+ *)   AC_MSG_ERROR([Unknown argument to enable/disable version-specific libs]);;
+ esac],
+[version_specific_libs=no])
+AC_MSG_RESULT($version_specific_libs)
+
 AC_ARG_WITH(slibdir,
 [  --with-slibdir=DIR      shared libraries in DIR [LIBDIR]],
 slibdir="$with_slibdir",
-if test "${enable_version_specific_runtime_libs+set}" = set; then
+if test "${version_specific_libs}" = yes; then
   slibdir='$(libsubdir)'
-elif test "$host" != "$target"; then
-  slibdir='$(build_tooldir)/lib'
+elif test -n "$with_cross_host" && test x"$with_cross_host" != x"no"; then
+  slibdir='$(exec_prefix)/$(host_noncanonical)/lib'
 else
   slibdir='$(libdir)'
 fi)
@@ -95,6 +106,42 @@ AC_CACHE_CHECK([whether decimal floating point is supported], [libgcc_cv_dfp],
 				  [libgcc_cv_dfp=no])])
 decimal_float=$libgcc_cv_dfp
 AC_SUBST(decimal_float)
+
+AC_ARG_ENABLE(decimal-float,
+[  --enable-decimal-float={no,yes,bid,dpd}
+			enable decimal float extension to C.  Selecting 'bid'
+			or 'dpd' choses which decimal floating point format
+			to use],
+[
+  case $enable_decimal_float in
+    yes | no | bid | dpd) ;;
+    *) AC_MSG_ERROR(['$enable_decimal_float' is an invalid value for --enable-decimal-float.
+Valid choices are 'yes', 'bid', 'dpd', and 'no'.]) ;;
+  esac
+],
+[
+  case $host in
+    powerpc*-*-linux* | i?86*-*-linux* | x86_64*-*-linux*)
+      enable_decimal_float=yes
+      ;;
+    *)
+      enable_decimal_float=no
+      ;;
+  esac
+])
+
+# x86's use BID format instead of DPD
+if test x$enable_decimal_float = xyes; then
+  case $host in
+    i?86*-*-linux* | x86_64*-*-linux*)
+      enable_decimal_float=bid
+      ;;
+    *)
+      enable_decimal_float=dpd
+      ;;
+  esac
+fi
+AC_SUBST(enable_decimal_float)
 
 # Collect host-machine-specific information.
 . ${srcdir}/config.host
@@ -147,7 +194,6 @@ if test -n "$CONFIG_FILES"; then
 fi]],
 [[srcdir=${srcdir}
 host=${host}
-target=${target}
 with_target_subdir=${with_target_subdir}
 with_multisubdir=${with_multisubdir}
 ac_configure_args="--enable-multilib ${ac_configure_args}"

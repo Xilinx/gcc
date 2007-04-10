@@ -21,10 +21,12 @@ Boston, MA 02110-1301, USA.  */
 /* Define functions defined in aux-output.c and used in templates.  */
 
 #ifdef RTX_CODE
+extern bool m68k_interrupt_function_p (tree);
 extern HOST_WIDE_INT m68k_initial_elimination_offset (int from, int to);
-extern const char *output_move_const_into_data_reg (rtx *);
-extern int valid_mov3q_const (rtx);
-extern const char *output_move_simode_const (rtx *);
+
+extern void split_di (rtx[], int, rtx[], rtx[]);
+
+extern bool valid_mov3q_const (HOST_WIDE_INT);
 extern const char *output_move_simode (rtx *);
 extern const char *output_move_himode (rtx *);
 extern const char *output_move_qimode (rtx *);
@@ -39,7 +41,8 @@ extern const char *output_addsi3 (rtx *);
 extern const char *output_andsi3 (rtx *);
 extern const char *output_iorsi3 (rtx *);
 extern const char *output_xorsi3 (rtx *);
-extern void m68k_output_pic_call (rtx dest);
+extern const char *output_call (rtx);
+extern const char *output_sibcall (rtx);
 extern void output_dbcc_and_branch (rtx *);
 extern int floating_exact_log2 (rtx);
 extern bool strict_low_part_peephole_ok (enum machine_mode mode, rtx first_insn, rtx target);
@@ -49,19 +52,34 @@ extern int standard_68881_constant_p (rtx);
 extern void print_operand_address (FILE *, rtx);
 extern void print_operand (FILE *, rtx, int);
 extern void notice_update_cc (rtx, rtx);
+extern bool m68k_legitimate_base_reg_p (rtx, bool);
+extern bool m68k_legitimate_index_reg_p (rtx, bool);
+extern bool m68k_illegitimate_symbolic_constant_p (rtx);
+extern bool m68k_legitimate_address_p (enum machine_mode, rtx, bool);
+extern bool m68k_matches_q_p (rtx);
+extern bool m68k_matches_u_p (rtx);
 extern rtx legitimize_pic_address (rtx, enum machine_mode, rtx);
 extern int valid_dbcc_comparison_p_2 (rtx, enum machine_mode);
 extern rtx m68k_libcall_value (enum machine_mode);
 extern rtx m68k_function_value (tree, tree);
 extern int emit_move_sequence (rtx *, enum machine_mode, rtx);
+extern bool m68k_movem_pattern_p (rtx, rtx, HOST_WIDE_INT, bool);
+extern const char *m68k_output_movem (rtx *, rtx, HOST_WIDE_INT, bool);
 
 #endif /* RTX_CODE */
 
 extern bool m68k_regno_mode_ok (int, enum machine_mode);
+extern enum reg_class m68k_secondary_reload_class (enum reg_class,
+						   enum machine_mode, rtx);
+extern enum reg_class m68k_preferred_reload_class (rtx, enum reg_class);
 extern int flags_in_68881 (void);
-extern bool use_return_insn (void);
+extern void m68k_expand_prologue (void);
+extern bool m68k_use_return_insn (void);
+extern void m68k_expand_epilogue (bool);
 extern void override_options (void);
 extern const char *m68k_cpp_cpu_ident (const char *);
 extern const char *m68k_cpp_cpu_family (const char *);
 extern void init_68881_table (void);
+extern rtx m68k_legitimize_call_address (rtx);
+extern rtx m68k_legitimize_sibcall_address (rtx);
 extern int m68k_hard_regno_rename_ok(unsigned int, unsigned int);

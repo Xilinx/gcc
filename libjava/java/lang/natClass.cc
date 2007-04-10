@@ -1,6 +1,6 @@
 // natClass.cc - Implementation of java.lang.Class native methods.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation
 
    This file is part of libgcj.
@@ -29,6 +29,7 @@ details.  */
 #include <java/lang/reflect/Member.h>
 #include <java/lang/reflect/Method.h>
 #include <java/lang/reflect/Field.h>
+#include <java/lang/reflect/Proxy.h>
 #include <java/lang/reflect/Constructor.h>
 #include <java/lang/AbstractMethodError.h>
 #include <java/lang/ArrayStoreException.h>
@@ -50,6 +51,7 @@ details.  */
 #include <java/lang/NullPointerException.h>
 #include <java/lang/RuntimePermission.h>
 #include <java/lang/System.h>
+#include <java/lang/SecurityException.h>
 #include <java/lang/SecurityManager.h>
 #include <java/lang/StringBuffer.h>
 #include <java/lang/VMClassLoader.h>
@@ -669,6 +671,28 @@ java::lang::Class::finalize (void)
   engine->unregister(this);
 }
 
+void
+_Jv_ClosureList::releaseClosures (_Jv_ClosureList **closures)
+{
+  if (!closures)
+    return;
+
+  while (_Jv_ClosureList *current = *closures)
+    {
+      *closures = current->next;
+      ffi_closure_free (current->ptr);
+    }
+}
+
+void
+_Jv_ClosureList::registerClosure (jclass klass, void *ptr)
+{
+  _Jv_ClosureList **closures = klass->engine->get_closure_list (klass);
+  this->ptr = ptr;
+  this->next = *closures;
+  *closures = this;
+}
+
 // This implements the initialization process for a class.  From Spec
 // section 12.4.2.
 void
@@ -689,6 +713,10 @@ java::lang::Class::initializeClass (void)
 	try
 	  {
 	    _Jv_Linker::wait_for_state(this, JV_STATE_LINKED);
+	  }
+	catch (java::lang::SecurityException *x)
+	  {
+	    throw x;
 	  }
 	catch (java::lang::Throwable *x)
 	  {
@@ -727,6 +755,10 @@ java::lang::Class::initializeClass (void)
 	{
 	  _Jv_InitClass (superclass);
 	}
+      catch (java::lang::SecurityException *x)
+	{
+	  throw x;
+	}
       catch (java::lang::Throwable *except)
 	{
 	  // Caught an exception.
@@ -744,6 +776,10 @@ java::lang::Class::initializeClass (void)
 					     void_signature);
       if (meth)
 	((void (*) (void)) meth->ncode) ();
+    }
+  catch (java::lang::SecurityException *x)
+    {
+      throw x;
     }
   catch (java::lang::Throwable *except)
     {
@@ -1137,7 +1173,7 @@ parseAnnotationElement(jclass klass, _Jv_Constants *pool,
     case 'J':
       {
 	int cindex = read_u2 (bytes, last);
-	check_constant (pool, cindex, JV_CONSTANT_Double);
+	check_constant (pool, cindex, JV_CONSTANT_Long);
 	_Jv_word2 word;
 	memcpy (&word, &pool->data[cindex], 2 * sizeof (_Jv_word));
 	result = Long::valueOf (word.l);
@@ -1318,9 +1354,8 @@ java::lang::Class::getDeclaredAnnotations(jint /* jv_attr_type */ member_type,
   if (bytes == NULL)
     return 0;
 
-  ClassLoader *trueLoader = loader;
-  if (trueLoader == NULL)
-    trueLoader = (ClassLoader *)VMClassLoader::bootLoader;
+  if (loader == NULL)
+    loader = (ClassLoader *)VMClassLoader::bootLoader;
 
   result = (loader->getDeclaredAnnotations
 	    (this, member_type, member_index, kind_req));
@@ -1615,6 +1650,59 @@ _Jv_LookupDeclaredMethod (jclass klass, _Jv_Utf8Const *name,
 	}
     }
 
+  return NULL;
+}
+
+// The rules for finding proxy methods are different: first we search
+// the interfaces implemented by a proxy, then the methods declared in
+// class Proxy.
+
+java::lang::reflect::Method *
+_Jv_LookupProxyMethod (jclass proxyClass, _Jv_Utf8Const *name,
+		       _Jv_Utf8Const *signature)
+{
+  using namespace java::lang::reflect;
+  jclass declaringClass;
+  _Jv_Method * m;
+
+  for (int i = 0; i < proxyClass->interface_count; i++)
+    {
+      declaringClass = proxyClass->interfaces[i];
+      m = _Jv_GetMethodLocal (declaringClass, name, signature);
+      if (m)
+	break;
+    }
+  if (!m)
+    m = _Jv_LookupDeclaredMethod (&Proxy::class$,
+				  name,
+				  signature,
+				  &declaringClass);
+
+  Method *rmethod = new Method ();
+  rmethod->offset = (char*) m - (char*) declaringClass->methods;
+  rmethod->declaringClass = declaringClass;
+  return rmethod;
+}
+
+
+
+java::lang::reflect::Method *
+_Jv_GetReflectedMethod (jclass klass, _Jv_Utf8Const *name,
+		       _Jv_Utf8Const *signature)
+{
+  for (; klass; klass = klass->getSuperclass())
+    {
+      _Jv_Method *meth = _Jv_GetMethodLocal (klass, name, signature);
+      if (meth)
+	{
+	  using namespace java::lang::reflect;
+	  Method *rmethod = new Method ();
+	  rmethod->offset = (char*) meth - (char*) klass->methods;
+	  rmethod->declaringClass = klass;
+	  return rmethod;
+	}
+    }
+  
   return NULL;
 }
 
@@ -2004,3 +2092,21 @@ _Jv_GetMethodDeclaringClass (jmethodID method)
   return reinterpret_cast<jclass> (_Jv_StackTrace::ncodeMap->get (obj));
 }
 
+jbyte
+_Jv_GetClassState (jclass klass)
+{
+  return klass->state;
+}
+
+jstring
+_Jv_GetInterpClassSourceFile (jclass klass)
+{
+  if (_Jv_IsInterpretedClass (klass))
+    {
+      _Jv_InterpClass *iclass =
+	reinterpret_cast<_Jv_InterpClass *> (klass->aux_info);
+      return iclass->source_file_name;
+    }
+
+  return NULL;
+}

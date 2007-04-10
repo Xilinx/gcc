@@ -25,10 +25,9 @@
 # Each language makefile fragment must provide the following targets:
 #
 # foo.all.cross, foo.start.encap, foo.rest.encap,
-# foo.info
-# foo.install-common, foo.install-info, foo.install-man,
-# foo.uninstall, foo.install-info, foo.dvi, foo.pdf, foo.html,
-# foo.mostlyclean, foo.clean, foo.distclean, foo.extraclean,
+# foo.install-common, foo.install-man, foo.install-info, foo.install-pdf,
+# foo.info, foo.dvi, foo.pdf, foo.html, foo.uninstall,
+# foo.mostlyclean, foo.clean, foo.distclean,
 # foo.maintainer-clean, foo.stage1, foo.stage2, foo.stage3, foo.stage4
 #
 # where `foo' is the name of the language.
@@ -122,10 +121,23 @@ fortran.tags: force
 	cd $(srcdir)/fortran; etags -o TAGS.sub *.c *.h; \
 	etags --include TAGS.sub --include ../TAGS.sub
 
-fortran.info: doc/gfortran.info
-fortran.dvi: doc/gfortran.dvi
-fortran.pdf: doc/gfortran.pdf
+fortran.info: doc/gfortran.info doc/gfc-internals.info
+fortran.dvi: doc/gfortran.dvi doc/gfc-internals.dvi
 fortran.html: $(build_htmldir)/gfortran/index.html
+
+F95_PDFFILES = doc/gfortran.pdf
+
+fortran.pdf: $(F95_PDFFILES) doc/gfc-internals.pdf
+
+fortran.install-pdf: $(F95_PDFFILES)
+	@$(NORMAL_INSTALL)
+	test -z "$(pdfdir)/gcc" || $(mkinstalldirs) "$(DESTDIR)$(pdfdir)/gcc"
+	@list='$(F95_PDFFILES)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(pdf__strip_dir) \
+	  echo " $(INSTALL_DATA) '$$d$$p' '$(DESTDIR)$(pdfdir)/gcc/$$f'"; \
+	  $(INSTALL_DATA) "$$d$$p" "$(DESTDIR)$(pdfdir)/gcc/$$f"; \
+	done
 
 F95_MANFILES = doc/gfortran.1
 
@@ -173,6 +185,26 @@ $(build_htmldir)/gfortran/index.html: $(GFORTRAN_TEXI)
 
 gfortran.pod: $(GFORTRAN_TEXI)
 	-$(TEXI2POD) < $(srcdir)/fortran/invoke.texi > $@
+
+# GFORTRAN internals documentation.
+GFC_INTERNALS_TEXI = \
+  $(srcdir)/fortran/gfc-internals.texi \
+  $(srcdir)/doc/include/fdl.texi \
+  $(srcdir)/doc/include/gcc-common.texi \
+  gcc-vers.texi
+
+doc/gfc-internals.info: $(GFC_INTERNALS_TEXI)
+	if [ x$(BUILD_INFO) = xinfo ]; then \
+	  rm -f doc/gfc-internals.info-*; \
+	  $(MAKEINFO) -I $(srcdir)/doc/include -I $(srcdir)/fortran \
+	    -o $@ $<; \
+	else true; fi
+
+doc/gfc-internals.dvi: $(GFC_INTERNALS_TEXI)
+	$(TEXI2DVI) -I $(srcdir)/fortran -I $(abs_docdir)/include -o $@ $<
+
+doc/gfc-internals.pdf: $(GFC_INTERNALS_TEXI)
+	$(TEXI2PDF) -I $(srcdir)/fortran -I $(abs_docdir)/include -o $@ $<
 
 # Create or recreate the gfortran private include file directory.
 install-finclude-dir: installdirs

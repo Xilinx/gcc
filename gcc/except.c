@@ -2785,7 +2785,10 @@ set_nothrow_function_flags (void)
 {
   rtx insn;
 
-  if (!targetm.binds_local_p (current_function_decl))
+  /* If we don't know that this implementation of the function will
+     actually be used, then we must not set TREE_NOTHROW, since
+     callers must not assume that this function does not throw.  */
+  if (DECL_REPLACEABLE_P (current_function_decl))
     return 0;
 
   TREE_NOTHROW (current_function_decl) = 1;
@@ -2864,9 +2867,9 @@ expand_builtin_unwind_init (void)
 }
 
 rtx
-expand_builtin_eh_return_data_regno (tree arglist)
+expand_builtin_eh_return_data_regno (tree exp)
 {
-  tree which = TREE_VALUE (arglist);
+  tree which = CALL_EXPR_ARG (exp, 0);
   unsigned HOST_WIDE_INT iwhich;
 
   if (TREE_CODE (which) != INTEGER_CST)
@@ -3630,12 +3633,12 @@ output_function_exception_table (const char * ARG_UNUSED (fnname))
   int have_tt_data;
   int tt_format_size = 0;
 
-  if (eh_personality_libfunc)
-    assemble_external_libcall (eh_personality_libfunc);
-
   /* Not all functions need anything.  */
   if (! cfun->uses_eh_lsda)
     return;
+
+  if (eh_personality_libfunc)
+    assemble_external_libcall (eh_personality_libfunc);
 
 #ifdef TARGET_UNWIND_INFO
   /* TODO: Move this into target file.  */

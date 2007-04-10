@@ -1,6 +1,7 @@
 // File based streams -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -14,10 +15,10 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+// Boston, MA 02110-1301, USA.
 
 // As a special exception, you may use this file as part of a free software
 // library without restriction.  Specifically, if other files instantiate
@@ -44,9 +45,8 @@
 #include <istream>
 #include <ostream>
 #include <locale>	// For codecvt
-#include <cstdio>       // For SEEK_SET, SEEK_CUR, SEEK_END, BUFSIZ     
-#include <bits/basic_file.h>
-#include <bits/gthr.h>
+#include <cstdio>       // For BUFSIZ     
+#include <bits/basic_file.h>  // For __basic_file, __c_lock
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 

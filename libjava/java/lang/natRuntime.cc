@@ -1,6 +1,6 @@
 // natRuntime.cc - Implementation of native side of Runtime class.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -207,7 +207,14 @@ java::lang::Runtime::_load (jstring path, jboolean do_search)
 	  // FIXME: what?
 	  return;
 	}
+
+      // Push a new frame so that JNI_OnLoad will get the right class
+      // loader if it calls FindClass.
+      ::java::lang::ClassLoader *loader
+	  = _Jv_StackTrace::GetFirstNonSystemClassLoader();
+      JNIEnv *env = _Jv_GetJNIEnvNewFrameWithLoader (loader);
       jint vers = ((jint (JNICALL *) (JavaVM *, void *)) onload) (vm, NULL);
+      _Jv_JNI_PopSystemFrame (env);
       if (vers != JNI_VERSION_1_1 && vers != JNI_VERSION_1_2
 	  && vers != JNI_VERSION_1_4)
 	{
@@ -290,7 +297,7 @@ java::lang::Runtime::execInternal (jstringArray cmd,
 				   jstringArray env,
 				   java::io::File *dir)
 {
-  return new _Jv_platform_process (cmd, env, dir);
+  return new _Jv_platform_process (cmd, env, dir, false);
 }
 
 jint

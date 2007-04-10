@@ -1,5 +1,6 @@
 /* Data and Control Flow Analysis for Trees.
-   Copyright (C) 2001, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -228,9 +229,6 @@ struct var_ann_d GTY(())
   /* Used when building base variable structures in a var_map.  */
   unsigned base_var_processed : 1;
 
-  /* Nonzero if this variable is in the alias set of another variable.  */
-  unsigned is_aliased : 1;
-
   /* Nonzero if this variable was used after SSA optimizations were
      applied.  We set this when translating out of SSA form.  */
   unsigned used : 1;
@@ -265,11 +263,6 @@ struct var_ann_d GTY(())
      FIXME, do we really need this here?  How much slower would it be
      to convert to hash table?  */
   tree symbol_mem_tag;
-
-  /* Variables that may alias this variable.  This may only be set on
-     memory tags (NAME_MEMORY_TAG or TYPE_MEMORY_TAG).  FIXME, move to
-     struct tree_memory_tag.  */
-  VEC(tree, gc) *may_aliases;
 
   /* Used when going out of SSA form to indicate which partition this
      variable represents storage for.  */
@@ -381,14 +374,14 @@ struct stmt_ann_d GTY(())
   /* Set of variables that have had their address taken in the statement.  */
   bitmap addresses_taken;
 
-  /* Nonzero if the statement references memory (at least one of its
-     expressions contains a non-register operand).  */
-  unsigned references_memory : 1;
-
   /* Unique identifier for this statement.  These ID's are to be created
      by each pass on an as-needed basis in any order convenient for the
      pass which needs statement UIDs.  */
   unsigned int uid;
+
+  /* Nonzero if the statement references memory (at least one of its
+     expressions contains a non-register operand).  */
+  unsigned references_memory : 1;
 
   /* Nonzero if the statement has been modified (meaning that the operands
      need to be scanned again).  */
@@ -431,7 +424,7 @@ extern void set_bb_for_stmt (tree, basic_block);
 static inline bool noreturn_call_p (tree);
 static inline void update_stmt (tree);
 static inline bool stmt_modified_p (tree);
-static inline VEC(tree, gc) *may_aliases (tree);
+static inline bitmap may_aliases (tree);
 static inline int get_lineno (tree);
 static inline const char *get_filename (tree);
 static inline bool is_exec_stmt (tree);
@@ -679,7 +672,7 @@ extern basic_block move_sese_region_to_fn (struct function *, basic_block,
 
 /* In tree-cfgcleanup.c  */
 extern bool cleanup_tree_cfg (void);
-extern void cleanup_tree_cfg_loop (void);
+extern bool cleanup_tree_cfg_loop (void);
 
 /* In tree-pretty-print.c.  */
 extern void dump_generic_bb (FILE *, basic_block, int, int);
@@ -699,6 +692,7 @@ extern void dump_subvars_for (FILE *, tree);
 extern void debug_subvars_for (tree);
 extern tree get_virtual_var (tree);
 extern void add_referenced_var (tree);
+extern void remove_referenced_var (tree);
 extern void mark_symbols_for_renaming (tree);
 extern void find_new_referenced_vars (tree *);
 
@@ -784,7 +778,7 @@ bool fold_stmt_inplace (tree);
 tree widen_bitfield (tree, tree, tree);
 
 /* In tree-vrp.c  */
-tree vrp_evaluate_conditional (tree, bool);
+tree vrp_evaluate_conditional (tree, tree);
 void simplify_stmt_using_ranges (tree);
 
 /* In tree-ssa-dom.c  */
@@ -829,18 +823,8 @@ struct tree_niter_desc
 			   a loop (provided that assumptions == true and
 			   may_be_zero == false), more precisely the number
 			   of executions of the latch of the loop.  */
-  tree additional_info;	/* The boolean expression.  Sometimes we use additional
-			   knowledge to simplify the other expressions
-			   contained in this structure (for example the
-			   knowledge about value ranges of operands on entry to
-			   the loop).  If this is a case, conjunction of such
-			   condition is stored in this field, so that we do not
-			   lose the information: for example if may_be_zero
-			   is (n <= 0) and niter is (unsigned) n, we know
-			   that the number of iterations is at most
-			   MAX_SIGNED_INT.  However if the (n <= 0) assumption
-			   is eliminated (by looking at the guard on entry of
-			   the loop), then the information would be lost.  */
+  double_int max;	/* The upper bound on the number of iterations of
+			   the loop.  */
 
   /* The simplified shape of the exit condition.  The loop exits if
      CONTROL CMP BOUND is false, where CMP is one of NE_EXPR,
@@ -918,7 +902,7 @@ bool contains_abnormal_ssa_name_p (tree);
 /* In tree-ssa-threadedge.c */
 extern bool potentially_threadable_block (basic_block);
 extern void thread_across_edge (tree, edge, bool,
-				VEC(tree, heap) **, tree (*) (tree));
+				VEC(tree, heap) **, tree (*) (tree, tree));
 
 /* In tree-ssa-loop-im.c  */
 /* The possibilities of statement movement.  */
@@ -1004,6 +988,9 @@ extern void linear_transform_loops (void);
 /* In graphite.c  */
 extern void graphite_transform_loops (struct loops *);
 
+/* In tree-data-ref.c  */
+extern void tree_check_data_deps (void);
+
 /* In tree-ssa-loop-ivopts.c  */
 bool expr_invariant_in_loop_p (struct loop *, tree);
 bool multiplier_allowed_in_address_p (HOST_WIDE_INT, enum machine_mode);
@@ -1061,6 +1048,7 @@ void sort_fieldstack (VEC(fieldoff_s,heap) *);
 
 void init_alias_heapvars (void);
 void delete_alias_heapvars (void);
+unsigned int execute_fixup_cfg (void);
 
 #include "tree-flow-inline.h"
 

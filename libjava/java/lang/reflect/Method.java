@@ -1,6 +1,6 @@
 // Method.java - Represent method of class or interface.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2006  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2006, 2007  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -68,7 +68,7 @@ public final class Method
    * is a non-inherited member.
    * @return the class that declared this member
    */
-  public Class getDeclaringClass()
+  public Class<?> getDeclaringClass()
   {
     return declaringClass;
   }
@@ -153,6 +153,15 @@ public final class Method
     return (Class<?>[]) parameter_types.clone();
   }
 
+  // Just like getParameterTypes, but don't clone the array.
+  // Package private for use by VMProxy.
+  final Class<?>[] internalGetParameterTypes ()
+  {
+    if (parameter_types == null)
+      getType();
+    return (Class<?>[]) parameter_types;
+  }
+
   /**
    * Get the exception types this method says it throws, in no particular
    * order. If the method has no throws clause, returns a 0-length array
@@ -165,6 +174,15 @@ public final class Method
     if (exception_types == null)
       getType();
     return (Class<?>[]) exception_types.clone();
+  }
+
+  // Just like getExceptionTypes, but don't clone the array.
+  // Package private for use by VMProxy.
+  final Class<?>[] internalGetExceptionTypes ()
+  {
+    if (exception_types == null)
+      getType();
+    return (Class<?>[]) exception_types;
   }
 
   /**

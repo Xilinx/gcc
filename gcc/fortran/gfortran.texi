@@ -118,12 +118,10 @@ Boston, MA 02110-1301 USA
 @setchapternewpage odd
 @titlepage
 @title Using GNU Fortran
-@sp 2
-@center The gfortran team
+@versionsubtitle
+@author The @t{gfortran} team
 @page
 @vskip 0pt plus 1filll
-For the @value{version-GCC} Version
-@sp 1
 Published by the Free Software Foundation@*
 51 Franklin Street, Fifth Floor@*
 Boston, MA 02110-1301, USA@*
@@ -367,8 +365,8 @@ the relevant compiler front-end program (e.g., @command{f951} for
 Fortran) for each file in the source code, and then calls the assembler
 and linker as appropriate to produce the compiled output. In a copy of
 GCC which has been compiled with Fortran language support enabled,
-@command{gcc} will recognize files with @file{.f}, @file{.f90}, and
-@file{.f95} extensions as Fortran source code, and compile it
+@command{gcc} will recognize files with @file{.f}, @file{.f90}, @file{.f95},
+and @file{.f03} extensions as Fortran source code, and compile it
 accordingly.  A @command{gfortran} driver program is also provided,
 which is identical to @command{gcc} except that it automatically links
 the Fortran runtime libraries into the compiled program.
@@ -391,36 +389,12 @@ Fortran compiler.
 @cindex Fortran 77
 @cindex G77
 
-Why do we write a compiler front end from scratch? 
-There's a fine Fortran 77 compiler in the
-GNU Compiler Collection that accepts some features
-of the Fortran 90 standard as extensions.
-Why not start from there and revamp it?
-
-One of the reasons is that Craig Burley, the author of G77,
-has decided to stop working on the G77 front end.
-On @uref{http://world.std.com/~burley/g77-why.html,
-Craig explains the reasons for his decision to stop working on G77}
-in one of the pages in his homepage.
-Among the reasons is a lack of interest in improvements to
-@command{g77}.
-Users appear to be quite satisfied with @command{g77} as it is.
-While @command{g77} is still being maintained (by Toon Moene),
-it is unlikely that sufficient people will be willing
-to completely rewrite the existing code. 
-
-But there are other reasons to start from scratch.
-Many people, including Craig Burley,
-no longer agreed with certain design decisions in the G77 front end.
-Also, the interface of @command{g77} to the back end is written in
-a style which is confusing and not up to date on recommended practice.
-In fact, a full rewrite had already been planned for GCC 3.0.
-
-When Craig decided to stop,
-it just seemed to be a better idea to start a new project from scratch,
-because it was expected to be easier to maintain code we
-develop ourselves than to do a major overhaul of @command{g77} first,
-and then build a Fortran 95 compiler out of it.
+The GNU Fortran compiler is the successor to G77, the Fortran 77 front
+end included in GCC prior to version 4.  It is an entirely new program
+that has been designed to provide Fortran 95 support and extensibility
+for future Fortran language standards, as well as providing backwards
+compatibility for Fortran 77 and nearly all of the GNU language 
+extensions supported by G77.
 
 
 @c ---------------------------------------------------------------------
@@ -790,6 +764,9 @@ host-associated derived types.
 attribute; supported intrinsic modules: @code{ISO_FORTRAN_ENV},
 @code{OMP_LIB} and @code{OMP_LIB_KINDS}.
 
+@item
+Renaming of operators in the @code{USE} statement.
+
 @end itemize
 
 
@@ -831,25 +808,32 @@ of extensions, and @option{-std=legacy} allows both without warning.
 * Cray pointers::
 * CONVERT specifier::
 * OpenMP::
+* Argument list functions::
 @end menu
 
 @node Old-style kind specifications
 @section Old-style kind specifications
 @cindex Kind specifications
 
-GNU Fortran allows old-style kind specifications in
-declarations. These look like:
+GNU Fortran allows old-style kind specifications in declarations. These
+look like:
 @smallexample
-      TYPESPEC*k x,y,z
+      TYPESPEC*size x,y,z
 @end smallexample
+@noindent
 where @code{TYPESPEC} is a basic type (@code{INTEGER}, @code{REAL},
-etc.), and where @code{k} is a valid kind number for that type. The
-statement then declares @code{x}, @code{y} and @code{z} to be of
-type @code{TYPESPEC} with kind @code{k}. This is equivalent to the
-standard conforming declaration
+etc.), and where @code{size} is a byte count corresponding to the
+storage size of a valid kind for that type.  (For @code{COMPLEX}
+variables, @code{size} is the total size of the real and imaginary
+parts.)  The statement then declares @code{x}, @code{y} and @code{z} to
+be of type @code{TYPESPEC} with the appropriate kind.  This is
+equivalent to the standard-conforming declaration
 @smallexample
       TYPESPEC(k) x,y,z
 @end smallexample
+@noindent
+where @code{k} is equal to @code{size} for most types, but is equal to
+@code{size/2} for the @code{COMPLEX} type.
 
 @node Old-style variable initialization
 @section Old-style variable initialization
@@ -1304,6 +1288,44 @@ routines are provided both in a form of a Fortran 90 module named
 For details refer to the actual
 @uref{http://www.openmp.org/drupal/mp-documents/spec25.pdf,
 OpenMP Application Program Interface v2.5} specification.
+
+@node Argument list functions
+@section Argument list functions %VAL, %REF and %LOC
+@cindex Argument list functions %VAL, %REF and %LOC
+
+GNU Fortran supports argument list functions @code{%VAL}, @code{%REF} 
+and @code{%LOC} statements, for backward compatibility with g77. 
+It is recommended that these should be used only for code that is 
+accessing facilities outside of GNU Fortran, such as operating system 
+or windowing facilities. It is best to constrain such uses to isolated 
+portions of a program--portions that deal specifically and exclusively 
+with low-level, system-dependent facilities. Such portions might well 
+provide a portable interface for use by the program as a whole, but are 
+themselves not portable, and should be thoroughly tested each time they 
+are rebuilt using a new compiler or version of a compiler.
+
+@code{%VAL} passes a scalar argument by value, @code{%REF} passes it by 
+reference and @code{%LOC} passes its memory location.  Since gfortran 
+already passes scalar arguments by reference, @code{%REF} is in effect 
+a do-nothing.  @code{%LOC} has the same effect as a fortran pointer.
+
+An example of passing an argument by value to a C subroutine foo.:
+@smallexample
+C
+C prototype      void foo_ (float x);
+C
+      external foo
+      real*4 x
+      x = 3.14159
+      call foo (%VAL (x))
+      end
+@end smallexample
+
+For details refer to the g77 manual
+@uref{http://gcc.gnu.org/onlinedocs/gcc-3.4.6/g77/index.html#Top}.
+
+Also, the gfortran testsuite c_by_val.f and its partner c_by_val.c are
+worth a look.
 
 @c ---------------------------------------------------------------------
 @c Intrinsic Procedures

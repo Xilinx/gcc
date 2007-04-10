@@ -1,6 +1,6 @@
 /* Generate code from machine description to compute values of attributes.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
 This file is part of GCC.
@@ -189,6 +189,14 @@ struct delay_desc
   int lineno;			/* Line number.  */
 };
 
+struct attr_value_list
+{
+  struct attr_value *av;
+  struct insn_ent *ie;
+  struct attr_desc *attr;
+  struct attr_value_list *next;
+};
+
 /* Listheads of above structures.  */
 
 /* This one is indexed by the first character of the attribute name.  */
@@ -196,6 +204,7 @@ struct delay_desc
 static struct attr_desc *attrs[MAX_ATTRS_INDEX];
 static struct insn_def *defs;
 static struct delay_desc *delays;
+struct attr_value_list **insn_code_values;
 
 /* Other variables.  */
 
@@ -2448,6 +2457,7 @@ simplify_test_exp (rtx exp, int insn_code, int insn_index)
   struct attr_desc *attr;
   struct attr_value *av;
   struct insn_ent *ie;
+  struct attr_value_list *iv;
   int i;
   rtx newexp = exp;
   bool left_alt, right_alt;
@@ -2718,16 +2728,36 @@ simplify_test_exp (rtx exp, int insn_code, int insn_index)
 	 would give this insn the values being tested for.  */
       if (insn_code >= 0
 	  && (attr = find_attr (&XSTR (exp, 0), 0)) != NULL)
-	for (av = attr->first_value; av; av = av->next)
-	  for (ie = av->first_insn; ie; ie = ie->next)
-	    if (ie->def->insn_code == insn_code)
-	      {
-		rtx x;
-		x = evaluate_eq_attr (exp, av->value, insn_code, insn_index);
-		x = SIMPLIFY_TEST_EXP (x, insn_code, insn_index);
-		if (attr_rtx_cost(x) < 20)
-		  return x;
-	      }
+	{
+	  rtx x;
+
+	  av = NULL;
+	  if (insn_code_values)
+	    {
+	      for (iv = insn_code_values[insn_code]; iv; iv = iv->next)
+		if (iv->attr == attr)
+		  {
+		    av = iv->av;
+		    break;
+		  }
+	    }
+	  else
+	    {
+	      for (av = attr->first_value; av; av = av->next)
+		for (ie = av->first_insn; ie; ie = ie->next)
+		  if (ie->def->insn_code == insn_code)
+		    goto got_av;
+	    }
+
+	  if (av)
+	    {
+	    got_av:
+	      x = evaluate_eq_attr (exp, av->value, insn_code, insn_index);
+	      x = SIMPLIFY_TEST_EXP (x, insn_code, insn_index);
+	      if (attr_rtx_cost(x) < 20)
+		return x;
+	    }
+	}
       break;
 
     default:
@@ -2756,14 +2786,6 @@ optimize_attrs (void)
   struct insn_ent *ie;
   rtx newexp;
   int i;
-  struct attr_value_list
-  {
-    struct attr_value *av;
-    struct insn_ent *ie;
-    struct attr_desc *attr;
-    struct attr_value_list *next;
-  };
-  struct attr_value_list **insn_code_values;
   struct attr_value_list *ivbuf;
   struct attr_value_list *iv;
 
@@ -2840,6 +2862,7 @@ optimize_attrs (void)
 
   free (ivbuf);
   free (insn_code_values - 2);
+  insn_code_values = NULL;
 }
 
 /* Clear the ATTR_CURR_SIMPLIFIED_P flag in EXP and its subexpressions.  */
@@ -3026,37 +3049,6 @@ compares_alternatives_p (rtx exp)
       case 'E':
 	for (j = 0; j < XVECLEN (exp, i); j++)
 	  if (compares_alternatives_p (XVECEXP (exp, i, j)))
-	    return 1;
-	break;
-      }
-
-  return 0;
-}
-
-/* Returns nonzero is INNER is contained in EXP.  */
-
-static int
-contained_in_p (rtx inner, rtx exp)
-{
-  int i, j;
-  const char *fmt;
-
-  if (rtx_equal_p (inner, exp))
-    return 1;
-
-  for (i = 0, fmt = GET_RTX_FORMAT (GET_CODE (exp));
-       i < GET_RTX_LENGTH (GET_CODE (exp)); i++)
-    switch (*fmt++)
-      {
-      case 'e':
-      case 'u':
-	if (contained_in_p (inner, XEXP (exp, i)))
-	  return 1;
-	break;
-
-      case 'E':
-	for (j = 0; j < XVECLEN (exp, i); j++)
-	  if (contained_in_p (inner, XVECEXP (exp, i, j)))
 	    return 1;
 	break;
       }
@@ -3887,51 +3879,6 @@ write_attr_case (struct attr_desc *attr, struct attr_value *av,
       printf ("break;\n");
     }
   printf ("\n");
-}
-
-/* Search for uses of non-const attributes and write code to cache them.  */
-
-static int
-write_expr_attr_cache (rtx p, struct attr_desc *attr)
-{
-  const char *fmt;
-  int i, ie, j, je;
-
-  if (GET_CODE (p) == EQ_ATTR)
-    {
-      if (XSTR (p, 0) != attr->name)
-	return 0;
-
-      if (!attr->is_numeric)
-	printf ("  enum attr_%s ", attr->name);
-      else
-	printf ("  int ");
-
-      printf ("attr_%s = get_attr_%s (insn);\n", attr->name, attr->name);
-      return 1;
-    }
-
-  fmt = GET_RTX_FORMAT (GET_CODE (p));
-  ie = GET_RTX_LENGTH (GET_CODE (p));
-  for (i = 0; i < ie; i++)
-    {
-      switch (*fmt++)
-	{
-	case 'e':
-	  if (write_expr_attr_cache (XEXP (p, i), attr))
-	    return 1;
-	  break;
-
-	case 'E':
-	  je = XVECLEN (p, i);
-	  for (j = 0; j < je; ++j)
-	    if (write_expr_attr_cache (XVECEXP (p, i, j), attr))
-	      return 1;
-	  break;
-	}
-    }
-
-  return 0;
 }
 
 /* Utilities to write in various forms.  */

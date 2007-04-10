@@ -27,15 +27,9 @@ extern "Java"
         namespace util
         {
             class MethodResult;
+            class MonitorInfo;
         }
       }
-    }
-  }
-  namespace java
-  {
-    namespace nio
-    {
-        class ByteBuffer;
     }
   }
 }
@@ -51,13 +45,12 @@ public:
   static void resumeThread(::java::lang::Thread *);
   static void resumeAllThreads();
   static jint getSuspendCount(::java::lang::Thread *);
-  static jint getAllLoadedClassesCount();
-  static ::java::util::Iterator * getAllLoadedClasses();
+  static ::java::util::Collection * getAllLoadedClasses();
   static jint getClassStatus(::java::lang::Class *);
   static JArray< ::gnu::classpath::jdwp::VMMethod * > * getAllClassMethods(::java::lang::Class *);
   static ::gnu::classpath::jdwp::VMMethod * getClassMethod(::java::lang::Class *, jlong);
   static ::java::util::ArrayList * getFrames(::java::lang::Thread *, jint, jint);
-  static ::gnu::classpath::jdwp::VMFrame * getFrame(::java::lang::Thread *, ::java::nio::ByteBuffer *);
+  static ::gnu::classpath::jdwp::VMFrame * getFrame(::java::lang::Thread *, jlong);
   static jint getFrameCount(::java::lang::Thread *);
   static jint getThreadStatus(::java::lang::Thread *);
   static ::java::util::ArrayList * getLoadRequests(::java::lang::ClassLoader *);
@@ -66,8 +59,33 @@ public:
   static void registerEvent(::gnu::classpath::jdwp::event::EventRequest *);
   static void unregisterEvent(::gnu::classpath::jdwp::event::EventRequest *);
   static void clearEvents(jbyte);
+  static void redefineClasses(JArray< ::java::lang::Class * > *, JArray< JArray< jbyte > * > *);
+  static void setDefaultStratum(::java::lang::String *);
+  static ::java::lang::String * getSourceDebugExtension(::java::lang::Class *);
+  static JArray< jbyte > * getBytecodes(::gnu::classpath::jdwp::VMMethod *);
+  static ::gnu::classpath::jdwp::util::MonitorInfo * getMonitorInfo(::java::lang::Object *);
+  static JArray< ::java::lang::Object * > * getOwnedMonitors(::java::lang::Thread *);
+  static ::java::lang::Object * getCurrentContendedMonitor(::java::lang::Thread *);
+  static void popFrames(::java::lang::Thread *, jlong);
+  static const jboolean canWatchFieldModification = 0;
+  static const jboolean canWatchFieldAccess = 0;
+  static const jboolean canGetBytecodes = 0;
+  static const jboolean canGetSyntheticAttribute = 0;
+  static const jboolean canGetOwnedMonitorInfo = 0;
+  static const jboolean canGetCurrentContendedMonitor = 0;
+  static const jboolean canGetMonitorInfo = 0;
+  static const jboolean canRedefineClasses = 0;
+  static const jboolean canAddMethod = 0;
+  static const jboolean canUnrestrictedlyRedefineClasses = 0;
+  static const jboolean canPopFrames = 0;
+  static const jboolean canUseInstanceFilters = 0;
+  static const jboolean canGetSourceDebugExtension = 0;
+  static const jboolean canRequestVMDeathEvent = 0;
+  static const jboolean canSetDefaultStratum = 0;
 private:
   static ::java::util::Hashtable * _jdwp_suspend_counts;
+public: // actually package-private
+  static ::java::util::Hashtable * _stepping_threads;
 public:
   static ::java::lang::Class class$;
 };

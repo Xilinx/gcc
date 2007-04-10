@@ -286,6 +286,14 @@ proc check_gc_sections_available { } {
 	    return 0
 	}
 
+	# VxWorks kernel modules are relocatable objects linked with -r,
+	# while RTP executables are linked with -q (--emit-relocs).
+	# Both of these options are incompatible with --gc-sections.
+	if { [istarget *-*-vxworks*] } {
+	    set gc_sections_available_saved 0
+	    return 0
+	}
+
 	# Check if the ld used by gcc supports --gc-sections.
 	set gcc_spec [${tool}_target_compile "-dumpspecs" "" "none" ""]
 	regsub ".*\n\*linker:\[ \t\]*\n(\[^ \t\n\]*).*" "$gcc_spec" {\1} linker
@@ -340,6 +348,7 @@ proc check_profiling_available { test_what } {
 	     || [istarget arm*-*-eabi*]
 	     || [istarget arm*-*-elf]
 	     || [istarget arm*-*-symbianelf*]
+	     || [istarget bfin-*-*]
 	     || [istarget powerpc-*-eabi*]
 	     || [istarget strongarm*-*-elf]
 	     || [istarget xscale*-*-elf]
@@ -349,6 +358,7 @@ proc check_profiling_available { test_what } {
 	     || [istarget m68k-*-elf]
 	     || [istarget mips*-*-elf]
 	     || [istarget xtensa-*-elf]
+	     || [istarget *-*-vxworks*]
 	     || [istarget *-*-windiss] } {
 	    set profiling_available_saved 0
 	} else {
@@ -384,7 +394,7 @@ proc check_effective_target_pcc_bitfield_type_matters { } {
     }]
 }
 
-# Return 1 if thread local storage (TLS) is supported, 0 otherwise.
+# Return 1 if *native* thread local storage (TLS) is supported, 0 otherwise.
 #
 # This won't change for different subtargets so cache the result.
 
@@ -406,11 +416,19 @@ proc check_effective_target_tls {} {
 	close $f
 
 	# Test for thread-local data supported by the platform.
-	set comp_output \
-	    [${tool}_target_compile $src $asm assembly ""]
+	set comp_output [${tool}_target_compile $src $asm assembly ""]
 	file delete $src
 	if { [string match "*not supported*" $comp_output] } {
 	    set et_tls_saved 0
+	} else {
+	    set fd [open $asm r]
+	    set text [read $fd]
+	    close $fd
+	    if { [string match "*emutls*" $text]} {
+		set et_tls_saved 0
+	    } else {
+		set et_tls_saved 1
+	    }
 	}
 	remove-build-file $asm
     }
@@ -473,6 +491,14 @@ proc check_effective_target_fopenmp {} {
     } "-fopenmp"]
 }
 
+# Return 1 if the target supports -fstack-protector
+
+proc check_effective_target_fstack_protector {} {
+    return [check_no_compiler_messages fstack_protector assembly {
+        void foo (void) { }
+    } "-fstack-protector"]
+}
+
 # Return 1 if compilation with -freorder-blocks-and-partition is error-free
 # for trivial code, 0 otherwise.
 
@@ -507,6 +533,26 @@ proc check_effective_target_mpaired_single { } {
     return [check_no_compiler_messages mpaired_single object {
 	void foo (void) { }
     } "-mpaired-single"]
+}
+
+# Return 1 if the current multilib does not generate PIC by default.
+
+proc check_effective_target_nonpic { } {
+    return [check_no_compiler_messages nonpic assembly {
+	#if __PIC__
+	#error FOO
+	#endif
+    }]
+}
+
+# Return 1 if the target does not use a status wrapper.
+
+proc check_effective_target_unwrapped { } {
+    if { [target_info needs_status_wrapper] != "" \
+	     && [target_info needs_status_wrapper] != "0" } {
+	return 0
+    }
+    return 1
 }
 
 # Return true if iconv is supported on the target. In particular IBM1047.
@@ -611,6 +657,7 @@ proc check_effective_target_fortran_large_real { } {
 
 	if [string match "" $lines] then {
 	    # No error message, compilation succeeded.
+	    remote_file build delete $exe
   	    set et_fortran_large_real_saved 1
 	}
     }
@@ -667,6 +714,7 @@ proc check_effective_target_fortran_large_int { } {
 
 	if [string match "" $lines] then {
 	    # No error message, compilation succeeded.
+	    remote_file build delete $exe
 	    set et_fortran_large_int_saved 1
 	}
     }
@@ -721,6 +769,7 @@ proc check_effective_target_static_libgfortran { } {
 
        if [string match "" $lines] then {
            # No error message, compilation succeeded.
+	   remote_file build delete $exe
            set et_static_libgfortran_saved 1
        }
     }
@@ -1242,7 +1291,8 @@ proc check_effective_target_vect_cmdline_needed { } {
 	     || (([istarget x86_64-*-*] || [istarget i?86-*-*])
 		 && [check_effective_target_lp64])
 	     || ([istarget powerpc*-*-*]
-		 && [check_effective_target_powerpc_spe])} {
+		 && ([check_effective_target_powerpc_spe]
+		     || [check_effective_target_powerpc_altivec]))} {
 	   set et_vect_cmdline_needed_saved 0
 	}
     }
@@ -1369,6 +1419,22 @@ proc check_effective_target_powerpc_spe { } {
 	return [check_no_compiler_messages powerpc_spe object {
 	    #ifndef __SPE__
 	    #error not SPE
+	    #else
+	    int dummy;
+	    #endif
+	}]
+    } else {
+	return 0
+    }
+}
+
+# Return 1 if this is a PowerPC target with Altivec enabled.
+
+proc check_effective_target_powerpc_altivec { } {
+    if { [istarget powerpc*-*-*] } {
+	return [check_no_compiler_messages powerpc_altivec object {
+	    #ifndef __ALTIVEC__
+	    #error not Altivec
 	    #else
 	    int dummy;
 	    #endif
@@ -2007,6 +2073,75 @@ proc check_effective_target_sync_char_short { } {
     return $et_sync_char_short_saved
 }
 
+# Return 1 if the target uses a ColdFire FPU.
+
+proc check_effective_target_coldfire_fpu { } {
+    return [check_no_compiler_messages coldfire_fpu assembly {
+	#ifndef __mcffpu__
+	#error FOO
+	#endif
+    }]
+}
+
+# Return true if this is a uClibc target.
+
+proc check_effective_target_uclibc {} {
+    return [check_no_compiler_messages uclibc object {
+	#include <features.h>
+	#if !defined (__UCLIBC__)
+	#error FOO
+	#endif
+    }]
+}
+
+# Return true if this is a uclibc target and if the uclibc feature
+# described by __$feature__ is not present.
+
+proc check_missing_uclibc_feature {feature} {
+    return [check_no_compiler_messages $feature object "
+	#include <features.h>
+	#if !defined (__UCLIBC) || defined (__${feature}__)
+	#error FOO
+	#endif
+    "]
+}
+
+# Return true if this is a Newlib target.
+
+proc check_effective_target_newlib {} {
+    return [check_no_compiler_messages newlib object {
+	#include <newlib.h>
+    }]
+}
+
+# Return 1 if
+#   (a) an error of a few ULP is expected in string to floating-point
+#       conversion functions; and
+#   (b) overflow is not always detected correctly by those functions.
+
+proc check_effective_target_lax_strtofp {} {
+    # By default, assume that all uClibc targets suffer from this.
+    return [check_effective_target_uclibc]
+}
+
+# Return 1 if this is a target for which wcsftime is a dummy
+# function that always returns 0.
+
+proc check_effective_target_dummy_wcsftime {} {
+    # By default, assume that all uClibc targets suffer from this.
+    return [check_effective_target_uclibc]
+}
+
+# Return 1 if constructors with initialization priority arguments are
+# supposed on this target.
+
+proc check_effective_target_init_priority {} {
+    return [check_no_compiler_messages init_priority assembly "
+	void f() __attribute__((constructor (1000)));
+	void f() \{\}
+    "]
+}
+
 # Return 1 if the target matches the effective target 'arg', 0 otherwise.
 # This can be used with any check_* proc that takes no argument and
 # returns only 1 or 0.  It could be used with check_* procs that take
@@ -2072,5 +2207,45 @@ proc check_effective_target_stdint_types { } {
 	#include <stdint.h>
 	int8_t a; int16_t b; int32_t c; int64_t d;
 	uint8_t e; uint16_t f; uint32_t g; uint64_t h;
+    }]
+}
+
+# Return 1 if programs are intended to be run on a simulator
+# (i.e. slowly) rather than hardware (i.e. fast).
+
+proc check_effective_target_simulator { } {
+
+    # All "src/sim" simulators set this one.
+    if [board_info target exists is_simulator] {
+	return [board_info target is_simulator]
+    }
+
+    # The "sid" simulators don't set that one, but at least they set
+    # this one.
+    if [board_info target exists slow_simulator] {
+	return [board_info target slow_simulator]
+    }
+
+    return 0
+}
+
+# Return 1 if the target is a VxWorks RTP.
+
+proc check_effective_target_vxworks_kernel { } {
+    return [check_no_compiler_messages vxworks_kernel assembly {
+	#if !defined __vxworks || defined __RTP__
+	#error NO
+	#endif
+    }]
+}
+
+# Return 1 if the target is expected to provide wide character support.
+
+proc check_effective_target_wchar { } {
+    if {[check_missing_uclibc_feature UCLIBC_HAS_WCHAR]} {
+	return 0
+    }
+    return [check_no_compiler_messages wchar assembly {
+	#include <wchar.h>
     }]
 }

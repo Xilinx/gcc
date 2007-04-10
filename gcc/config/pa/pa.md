@@ -68,7 +68,7 @@
 ;; type "binary" insns have two input operands (1,2) and one output (0)
 
 (define_attr "type"
-  "move,unary,binary,shift,nullshift,compare,load,store,uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,fpload,fpstore,fpalu,fpcc,fpmulsgl,fpmuldbl,fpdivsgl,fpdivdbl,fpsqrtsgl,fpsqrtdbl,multi,milli,parallel_branch"
+  "move,unary,binary,shift,nullshift,compare,load,store,uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,fpload,fpstore,fpalu,fpcc,fpmulsgl,fpmuldbl,fpdivsgl,fpdivdbl,fpsqrtsgl,fpsqrtdbl,multi,milli,parallel_branch,fpstore_load,store_fpload"
   (const_string "binary"))
 
 (define_attr "pa_combine_type"
@@ -258,21 +258,31 @@
        (eq_attr "cpu" "700"))
   "mem_700*3")
 
-(define_insn_reservation "W11" 1
-  (and (eq_attr "type" "!fpcc,fpalu,fpmulsgl,fpmuldbl,fpdivsgl,fpdivdbl,fpsqrtsgl,fpsqrtdbl,load,fpload,store,fpstore")
+(define_insn_reservation "W11" 5
+  (and (eq_attr "type" "fpstore_load")
+       (eq_attr "cpu" "700"))
+  "mem_700*5")
+
+(define_insn_reservation "W12" 6
+  (and (eq_attr "type" "store_fpload")
+       (eq_attr "cpu" "700"))
+  "mem_700*6")
+
+(define_insn_reservation "W13" 1
+  (and (eq_attr "type" "!fpcc,fpalu,fpmulsgl,fpmuldbl,fpdivsgl,fpdivdbl,fpsqrtsgl,fpsqrtdbl,load,fpload,store,fpstore,fpstore_load,store_fpload")
        (eq_attr "cpu" "700"))
   "dummy_700")
 
 ;; We have a bypass for all computations in the FP unit which feed an
 ;; FP store as long as the sizes are the same.
-(define_bypass 2 "W1,W2" "W10" "hppa_fpstore_bypass_p")
-(define_bypass 9 "W3" "W10" "hppa_fpstore_bypass_p")
-(define_bypass 11 "W4" "W10" "hppa_fpstore_bypass_p")
-(define_bypass 13 "W5" "W10" "hppa_fpstore_bypass_p")
-(define_bypass 17 "W6" "W10" "hppa_fpstore_bypass_p")
+(define_bypass 2 "W1,W2" "W10,W11" "hppa_fpstore_bypass_p")
+(define_bypass 9 "W3" "W10,W11" "hppa_fpstore_bypass_p")
+(define_bypass 11 "W4" "W10,W11" "hppa_fpstore_bypass_p")
+(define_bypass 13 "W5" "W10,W11" "hppa_fpstore_bypass_p")
+(define_bypass 17 "W6" "W10,W11" "hppa_fpstore_bypass_p")
 
 ;; We have an "anti-bypass" for FP loads which feed an FP store.
-(define_bypass 4 "W8" "W10" "hppa_fpstore_bypass_p")
+(define_bypass 4 "W8,W12" "W10,W11" "hppa_fpstore_bypass_p")
 
 ;; Function units for the 7100 and 7150.  The 7100/7150 can dual-issue
 ;; floating point computations with non-floating point computations (fp loads
@@ -344,19 +354,29 @@
        (eq_attr "cpu" "7100"))
   "i_7100+mem_7100,mem_7100")
 
-(define_insn_reservation "X7" 1
-  (and (eq_attr "type" "!fpcc,fpalu,fpmulsgl,fpmuldbl,fpdivsgl,fpsqrtsgl,fpdivdbl,fpsqrtdbl,load,fpload,store,fpstore")
+(define_insn_reservation "X7" 4
+  (and (eq_attr "type" "fpstore_load")
+       (eq_attr "cpu" "7100"))
+  "i_7100+mem_7100,mem_7100*3")
+
+(define_insn_reservation "X8" 4
+  (and (eq_attr "type" "store_fpload")
+       (eq_attr "cpu" "7100"))
+  "i_7100+mem_7100,mem_7100*3")
+
+(define_insn_reservation "X9" 1
+  (and (eq_attr "type" "!fpcc,fpalu,fpmulsgl,fpmuldbl,fpdivsgl,fpsqrtsgl,fpdivdbl,fpsqrtdbl,load,fpload,store,fpstore,fpstore_load,store_fpload")
        (eq_attr "cpu" "7100"))
   "i_7100")
 
 ;; We have a bypass for all computations in the FP unit which feed an
 ;; FP store as long as the sizes are the same.
-(define_bypass 1 "X0" "X6" "hppa_fpstore_bypass_p")
-(define_bypass 7 "X1" "X6" "hppa_fpstore_bypass_p")
-(define_bypass 14 "X2" "X6" "hppa_fpstore_bypass_p")
+(define_bypass 1 "X0" "X6,X7" "hppa_fpstore_bypass_p")
+(define_bypass 7 "X1" "X6,X7" "hppa_fpstore_bypass_p")
+(define_bypass 14 "X2" "X6,X7" "hppa_fpstore_bypass_p")
 
 ;; We have an "anti-bypass" for FP loads which feed an FP store.
-(define_bypass 3 "X4" "X6" "hppa_fpstore_bypass_p")
+(define_bypass 3 "X4,X8" "X6,X7" "hppa_fpstore_bypass_p")
 
 ;; The 7100LC has three floating-point units: ALU, MUL, and DIV.
 ;; There's no value in modeling the ALU and MUL separately though
@@ -449,40 +469,70 @@
        (eq_attr "cpu" "7100LC"))
   "i1_7100lc+mem_7100lc,mem_7100lc")
 
-(define_insn_reservation "Y6" 1
+(define_insn_reservation "Y6" 4
+  (and (eq_attr "type" "fpstore_load")
+       (eq_attr "cpu" "7100LC"))
+  "i1_7100lc+mem_7100lc,mem_7100lc*3")
+
+(define_insn_reservation "Y7" 4
+  (and (eq_attr "type" "store_fpload")
+       (eq_attr "cpu" "7100LC"))
+  "i1_7100lc+mem_7100lc,mem_7100lc*3")
+
+(define_insn_reservation "Y8" 1
   (and (eq_attr "type" "shift,nullshift")
        (eq_attr "cpu" "7100LC,7200,7300"))
   "i1_7100lc")
 
-(define_insn_reservation "Y7" 1
+(define_insn_reservation "Y9" 1
   (and (eq_attr "type" "!fpcc,fpalu,fpmulsgl,fpmuldbl,fpdivsgl,fpsqrtsgl,fpdivdbl,fpsqrtdbl,load,fpload,store,fpstore,shift,nullshift")
        (eq_attr "cpu" "7100LC,7200,7300"))
   "(i0_7100lc|i1_7100lc)")
 
 ;; The 7200 has a store-load penalty
-(define_insn_reservation "Y8" 2
-  (and (eq_attr "type" "store")
-       (eq_attr "cpu" "7200"))
-  "i1_7100lc,mem_7100lc")
-
-(define_insn_reservation "Y9" 2
-  (and (eq_attr "type" "fpstore")
-       (eq_attr "cpu" "7200"))
-  "i1_7100lc,mem_7100lc")
-
-;; The 7300 has no penalty for store-store or store-load
 (define_insn_reservation "Y10" 2
   (and (eq_attr "type" "store")
-       (eq_attr "cpu" "7300"))
-  "i1_7100lc")
+       (eq_attr "cpu" "7200"))
+  "i1_7100lc,mem_7100lc")
 
 (define_insn_reservation "Y11" 2
   (and (eq_attr "type" "fpstore")
+       (eq_attr "cpu" "7200"))
+  "i1_7100lc,mem_7100lc")
+
+(define_insn_reservation "Y12" 4
+  (and (eq_attr "type" "fpstore_load")
+       (eq_attr "cpu" "7200"))
+  "i1_7100lc,mem_7100lc,i1_7100lc+mem_7100lc")
+
+(define_insn_reservation "Y13" 4
+  (and (eq_attr "type" "store_fpload")
+       (eq_attr "cpu" "7200"))
+  "i1_7100lc,mem_7100lc,i1_7100lc+mem_7100lc")
+
+;; The 7300 has no penalty for store-store or store-load
+(define_insn_reservation "Y14" 2
+  (and (eq_attr "type" "store")
        (eq_attr "cpu" "7300"))
   "i1_7100lc")
 
+(define_insn_reservation "Y15" 2
+  (and (eq_attr "type" "fpstore")
+       (eq_attr "cpu" "7300"))
+  "i1_7100lc")
+
+(define_insn_reservation "Y16" 4
+  (and (eq_attr "type" "fpstore_load")
+       (eq_attr "cpu" "7300"))
+  "i1_7100lc,i1_7100lc+mem_7100lc")
+
+(define_insn_reservation "Y17" 4
+  (and (eq_attr "type" "store_fpload")
+       (eq_attr "cpu" "7300"))
+  "i1_7100lc,i1_7100lc+mem_7100lc")
+
 ;; We have an "anti-bypass" for FP loads which feed an FP store.
-(define_bypass 3 "Y3" "Y5,Y9,Y11" "hppa_fpstore_bypass_p")
+(define_bypass 3 "Y3,Y7,Y13,Y17" "Y5,Y6,Y11,Y12,Y15,Y16" "hppa_fpstore_bypass_p")
 
 ;; Scheduling for the PA8000 is somewhat different than scheduling for a
 ;; traditional architecture.
@@ -536,18 +586,23 @@
     (eq_attr "cpu" "8000"))
   "im_8000,rm_8000+store_8000")
 
+(define_insn_reservation "Z2" 0
+  (and (eq_attr "type" "fpstore_load,store_fpload")
+       (eq_attr "cpu" "8000"))
+  "im_8000,rm_8000+store_8000,im_8000,rm_8000")
+
 ;; We can issue and retire two non-memory operations per cycle with
 ;; a few exceptions (branches).  This group catches those we want
 ;; to assume have zero latency.
-(define_insn_reservation "Z2" 0
+(define_insn_reservation "Z3" 0
   (and
-    (eq_attr "type" "!load,fpload,store,fpstore,uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,multi,milli,parallel_branch,fpcc,fpalu,fpmulsgl,fpmuldbl,fpsqrtsgl,fpsqrtdbl,fpdivsgl,fpdivdbl")
+    (eq_attr "type" "!load,fpload,store,fpstore,uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,multi,milli,parallel_branch,fpcc,fpalu,fpmulsgl,fpmuldbl,fpsqrtsgl,fpsqrtdbl,fpdivsgl,fpdivdbl,fpstore_load,store_fpload")
     (eq_attr "cpu" "8000"))
   "inm_8000,rnm_8000")
 
 ;; Branches use both slots in the non-memory issue and
 ;; retirement unit.
-(define_insn_reservation "Z3" 0
+(define_insn_reservation "Z4" 0
   (and
     (eq_attr "type" "uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,multi,milli,parallel_branch")
     (eq_attr "cpu" "8000"))
@@ -557,7 +612,7 @@
 ;; They can issue/retire two at a time in the non-memory
 ;; units.  We fix their latency at 2 cycles and they
 ;; are fully pipelined.
-(define_insn_reservation "Z4" 1
+(define_insn_reservation "Z5" 1
  (and
    (eq_attr "type" "fpcc,fpalu,fpmulsgl,fpmuldbl")
    (eq_attr "cpu" "8000"))
@@ -566,13 +621,13 @@
 ;; The fdivsqrt units are not pipelined and have a very long latency.  
 ;; To keep the DFA from exploding, we do not show all the
 ;; reservations for the divsqrt unit.
-(define_insn_reservation "Z5" 17
+(define_insn_reservation "Z6" 17
  (and
    (eq_attr "type" "fpdivsgl,fpsqrtsgl")
    (eq_attr "cpu" "8000"))
  "inm_8000,fdivsqrt_8000*6,rnm_8000")
 
-(define_insn_reservation "Z6" 31
+(define_insn_reservation "Z7" 31
  (and
    (eq_attr "type" "fpdivdbl,fpsqrtdbl")
    (eq_attr "cpu" "8000"))
@@ -2481,9 +2536,9 @@
 
 (define_insn ""
   [(set (match_operand:SI 0 "move_dest_operand"
-			  "=r,r,r,r,r,r,Q,!*q,!r,!*f,*f,T,!r,!f")
+			  "=r,r,r,r,r,r,Q,!*q,!r,!*f,*f,T,?r,?*f")
 	(match_operand:SI 1 "move_src_operand"
-			  "A,r,J,N,K,RQ,rM,!rM,!*q,!*fM,RT,*f,!f,!r"))]
+			  "A,r,J,N,K,RQ,rM,!rM,!*q,!*fM,RT,*f,*f,r"))]
   "(register_operand (operands[0], SImode)
     || reg_or_0_operand (operands[1], SImode))
    && !TARGET_SOFT_FLOAT
@@ -2503,7 +2558,7 @@
    fstw%F0 %1,%0
    {fstws|fstw} %1,-16(%%sp)\n\t{ldws|ldw} -16(%%sp),%0
    {stws|stw} %1,-16(%%sp)\n\t{fldws|fldw} -16(%%sp),%0"
-  [(set_attr "type" "load,move,move,move,shift,load,store,move,move,fpalu,fpload,fpstore,move,move")
+  [(set_attr "type" "load,move,move,move,shift,load,store,move,move,fpalu,fpload,fpstore,fpstore_load,store_fpload")
    (set_attr "pa_combine_type" "addmove")
    (set_attr "length" "4,4,4,4,4,4,4,4,4,4,4,4,8,8")])
 
@@ -3123,9 +3178,9 @@
 
 (define_insn ""
   [(set (match_operand:HI 0 "move_dest_operand"
-	 		  "=r,r,r,r,r,Q,!*q,!r,!*f,!r,!f")
+	 		  "=r,r,r,r,r,Q,!*q,!r,!*f,?r,?*f")
 	(match_operand:HI 1 "move_src_operand"
-			  "r,J,N,K,RQ,rM,!rM,!*q,!*fM,!f,!r"))]
+			  "r,J,N,K,RQ,rM,!rM,!*q,!*fM,*f,r"))]
   "(register_operand (operands[0], HImode)
     || reg_or_0_operand (operands[1], HImode))
    && !TARGET_SOFT_FLOAT
@@ -3142,7 +3197,7 @@
    fcpy,sgl %f1,%0
    {fstws|fstw} %1,-16(%%sp)\n\t{ldws|ldw} -16(%%sp),%0
    {stws|stw} %1,-16(%%sp)\n\t{fldws|fldw} -16(%%sp),%0"
-  [(set_attr "type" "move,move,move,shift,load,store,move,move,move,move,move")
+  [(set_attr "type" "move,move,move,shift,load,store,move,move,move,fpstore_load,store_fpload")
    (set_attr "pa_combine_type" "addmove")
    (set_attr "length" "4,4,4,4,4,4,4,4,4,8,8")])
 
@@ -3296,9 +3351,9 @@
 
 (define_insn ""
   [(set (match_operand:QI 0 "move_dest_operand"
-			  "=r,r,r,r,r,Q,!*q,!r,!*f,!r,!f")
+			  "=r,r,r,r,r,Q,!*q,!r,!*f,?r,?*f")
 	(match_operand:QI 1 "move_src_operand"
-			  "r,J,N,K,RQ,rM,!rM,!*q,!*fM,!f,!r"))]
+			  "r,J,N,K,RQ,rM,!rM,!*q,!*fM,*f,r"))]
   "(register_operand (operands[0], QImode)
     || reg_or_0_operand (operands[1], QImode))
    && !TARGET_SOFT_FLOAT
@@ -3315,7 +3370,7 @@
    fcpy,sgl %f1,%0
    {fstws|fstw} %1,-16(%%sp)\n\t{ldws|ldw} -16(%%sp),%0
    {stws|stw} %1,-16(%%sp)\n\t{fldws|fldw} -16(%%sp),%0"
-  [(set_attr "type" "move,move,move,shift,load,store,move,move,move,move,move")
+  [(set_attr "type" "move,move,move,shift,load,store,move,move,move,fpstore_load,store_fpload")
    (set_attr "pa_combine_type" "addmove")
    (set_attr "length" "4,4,4,4,4,4,4,4,4,8,8")])
 
@@ -4098,8 +4153,20 @@
   ""
   "
 {
-  if (GET_CODE (operands[1]) == CONST_DOUBLE && TARGET_64BIT)
-    operands[1] = force_const_mem (DFmode, operands[1]);
+  if (GET_CODE (operands[1]) == CONST_DOUBLE
+      && operands[1] != CONST0_RTX (DFmode))
+    {
+      /* Reject CONST_DOUBLE loads to all hard registers when
+	 generating 64-bit code and to floating point registers
+	 when generating 32-bit code.  */
+      if (REG_P (operands[0])
+	  && HARD_REGISTER_P (operands[0])
+	  && (TARGET_64BIT || REGNO (operands[0]) >= 32))
+	FAIL;
+
+      if (TARGET_64BIT)
+	operands[1] = force_const_mem (DFmode, operands[1]);
+    }
 
   if (emit_move_sequence (operands, DFmode, 0))
     DONE;
@@ -4141,9 +4208,9 @@
 
 (define_insn ""
   [(set (match_operand:DF 0 "move_dest_operand"
-			  "=f,*r,Q,?o,?Q,f,*r,*r,!r,!f")
+			  "=f,*r,Q,?o,?Q,f,*r,*r,?*r,?f")
 	(match_operand:DF 1 "reg_or_0_or_nonsymb_mem_operand"
-			  "fG,*rG,f,*r,*r,RQ,o,RQ,!f,!r"))]
+			  "fG,*rG,f,*r,*r,RQ,o,RQ,f,*r"))]
   "(register_operand (operands[0], DFmode)
     || reg_or_0_operand (operands[1], DFmode))
    && !(GET_CODE (operands[1]) == CONST_DOUBLE
@@ -4159,7 +4226,7 @@
     return output_fp_move_double (operands);
   return output_move_double (operands);
 }"
-  [(set_attr "type" "fpalu,move,fpstore,store,store,fpload,load,load,move,move")
+  [(set_attr "type" "fpalu,move,fpstore,store,store,fpload,load,load,fpstore_load,store_fpload")
    (set_attr "length" "4,8,4,8,16,4,8,16,12,12")])
 
 (define_insn ""
@@ -4315,9 +4382,9 @@
 
 (define_insn ""
   [(set (match_operand:DF 0 "move_dest_operand"
-			  "=r,?o,?Q,r,r,!r,!f")
+			  "=r,?o,?Q,r,r")
 	(match_operand:DF 1 "reg_or_0_or_nonsymb_mem_operand"
-			  "rG,r,r,o,RQ,!f,!r"))]
+			  "rG,r,r,o,RQ"))]
   "(register_operand (operands[0], DFmode)
     || reg_or_0_operand (operands[1], DFmode))
    && !TARGET_64BIT
@@ -4326,14 +4393,14 @@
 {
   return output_move_double (operands);
 }"
-  [(set_attr "type" "move,store,store,load,load,move,move")
-   (set_attr "length" "8,8,16,8,16,12,12")])
+  [(set_attr "type" "move,store,store,load,load")
+   (set_attr "length" "8,8,16,8,16")])
 
 (define_insn ""
   [(set (match_operand:DF 0 "move_dest_operand"
 			  "=!*r,*r,*r,*r,*r,Q,f,f,T")
 	(match_operand:DF 1 "move_src_operand"
-			  "!*r,J,N,K,RQ,*rM,fM,RT,f"))]
+			  "!*r,J,N,K,RQ,*rG,fG,RT,f"))]
   "(register_operand (operands[0], DFmode)
     || reg_or_0_operand (operands[1], DFmode))
    && !TARGET_SOFT_FLOAT && TARGET_64BIT"
@@ -4358,8 +4425,17 @@
   ""
   "
 {
-  if (GET_CODE (operands[1]) == CONST_DOUBLE && TARGET_64BIT)
-    operands[1] = force_const_mem (DImode, operands[1]);
+  /* Except for zero, we don't support loading a CONST_INT directly
+     to a hard floating-point register since a scratch register is
+     needed for the operation.  While the operation could be handled
+     before no_new_pseudos is true, the simplest solution is to fail.  */
+  if (TARGET_64BIT
+      && GET_CODE (operands[1]) == CONST_INT
+      && operands[1] != CONST0_RTX (DImode)
+      && REG_P (operands[0])
+      && HARD_REGISTER_P (operands[0])
+      && REGNO (operands[0]) >= 32)
+    FAIL;
 
   if (emit_move_sequence (operands, DImode, 0))
     DONE;
@@ -4467,9 +4543,9 @@
 
 (define_insn ""
   [(set (match_operand:DI 0 "move_dest_operand"
-			  "=r,o,Q,r,r,r,*f,*f,T,!r,!f")
+			  "=r,o,Q,r,r,r,*f,*f,T,?r,?*f")
 	(match_operand:DI 1 "general_operand"
-			  "rM,r,r,o*R,Q,i,*fM,RT,*f,!f,!r"))]
+			  "rM,r,r,o*R,Q,i,*fM,RT,*f,*f,r"))]
   "(register_operand (operands[0], DImode)
     || reg_or_0_operand (operands[1], DImode))
    && !TARGET_64BIT
@@ -4484,7 +4560,7 @@
   return output_move_double (operands);
 }"
   [(set_attr "type"
-    "move,store,store,load,load,multi,fpalu,fpload,fpstore,move,move")
+    "move,store,store,load,load,multi,fpalu,fpload,fpstore,fpstore_load,store_fpload")
    (set_attr "length" "8,8,16,8,16,16,4,4,4,12,12")])
 
 (define_insn ""
@@ -4619,7 +4695,7 @@
   "!TARGET_64BIT"
   "*
 {
-  /* Don't output a 64 bit constant, since we can't trust the assembler to
+  /* Don't output a 64-bit constant, since we can't trust the assembler to
      handle it correctly.  */
   if (GET_CODE (operands[2]) == CONST_DOUBLE)
     operands[2] = GEN_INT (CONST_DOUBLE_LOW (operands[2]));
@@ -4659,6 +4735,14 @@
   ""
   "
 {
+  /* Reject CONST_DOUBLE loads to floating point registers.  */
+  if (GET_CODE (operands[1]) == CONST_DOUBLE
+      && operands[1] != CONST0_RTX (SFmode)
+      && REG_P (operands[0])
+      && HARD_REGISTER_P (operands[0])
+      && REGNO (operands[0]) >= 32)
+    FAIL;
+
   if (emit_move_sequence (operands, SFmode, 0))
     DONE;
 }")
@@ -4699,9 +4783,9 @@
 
 (define_insn ""
   [(set (match_operand:SF 0 "move_dest_operand"
-			  "=f,!*r,f,*r,Q,Q,!r,!f")
+			  "=f,!*r,f,*r,Q,Q,?*r,?f")
 	(match_operand:SF 1 "reg_or_0_or_nonsymb_mem_operand"
-			  "fG,!*rG,RQ,RQ,f,*rG,!f,!r"))]
+			  "fG,!*rG,RQ,RQ,f,*rG,f,*r"))]
   "(register_operand (operands[0], SFmode)
     || reg_or_0_operand (operands[1], SFmode))
    && !TARGET_SOFT_FLOAT
@@ -4715,7 +4799,7 @@
    stw%M0 %r1,%0
    {fstws|fstw} %1,-16(%%sp)\n\t{ldws|ldw} -16(%%sp),%0
    {stws|stw} %1,-16(%%sp)\n\t{fldws|fldw} -16(%%sp),%0"
-  [(set_attr "type" "fpalu,move,fpload,load,fpstore,store,move,move")
+  [(set_attr "type" "fpalu,move,fpload,load,fpstore,store,fpstore_load,store_fpload")
    (set_attr "pa_combine_type" "addmove")
    (set_attr "length" "4,4,4,4,4,4,8,8")])
 
@@ -5349,6 +5433,59 @@
   [(set_attr "type" "binary")
    (set_attr "length" "4")])
 
+(define_expand "addvdi3"
+  [(parallel [(set (match_operand:DI 0 "register_operand" "")
+		   (plus:DI (match_operand:DI 1 "reg_or_0_operand" "")
+			    (match_operand:DI 2 "arith11_operand" "")))
+	      (trap_if (ne (plus:TI (sign_extend:TI (match_dup 1))
+				    (sign_extend:TI (match_dup 2)))
+			   (sign_extend:TI (plus:DI (match_dup 1)
+						    (match_dup 2))))
+		       (const_int 0))])]
+  ""
+  "")
+
+(define_insn ""
+  [(set (match_operand:DI 0 "register_operand" "=r,r")
+	(plus:DI (match_operand:DI 1 "reg_or_0_operand" "%rM,rM")
+		 (match_operand:DI 2 "arith11_operand" "r,I")))
+   (trap_if (ne (plus:TI (sign_extend:TI (match_dup 1))
+			 (sign_extend:TI (match_dup 2)))
+		(sign_extend:TI (plus:DI (match_dup 1)
+					 (match_dup 2))))
+	    (const_int 0))]
+  "TARGET_64BIT"
+  "@
+  add,tsv,* %2,%1,%0
+  addi,tsv,* %2,%1,%0"
+  [(set_attr "type" "binary,binary")
+   (set_attr "length" "4,4")])
+
+(define_insn ""
+  [(set (match_operand:DI 0 "register_operand" "=r")
+	(plus:DI (match_operand:DI 1 "reg_or_0_operand" "%rM")
+		 (match_operand:DI 2 "arith11_operand" "rI")))
+   (trap_if (ne (plus:TI (sign_extend:TI (match_dup 1))
+			 (sign_extend:TI (match_dup 2)))
+		(sign_extend:TI (plus:DI (match_dup 1)
+					 (match_dup 2))))
+	    (const_int 0))]
+  "!TARGET_64BIT"
+  "*
+{
+  if (GET_CODE (operands[2]) == CONST_INT)
+    {
+      if (INTVAL (operands[2]) >= 0)
+	return \"addi %2,%R1,%R0\;{addco|add,c,tsv} %1,%%r0,%0\";
+      else
+	return \"addi %2,%R1,%R0\;{subbo|sub,b,tsv} %1,%%r0,%0\";
+    }
+  else
+    return \"add %R2,%R1,%R0\;{addco|add,c,tsv} %2,%1,%0\";
+}"
+  [(set_attr "type" "binary")
+   (set_attr "length" "8")])
+
 ;; define_splits to optimize cases of adding a constant integer
 ;; to a register when the constant does not fit in 14 bits.  */
 (define_split
@@ -5426,26 +5563,33 @@
    (set_attr "pa_combine_type" "addmove")
    (set_attr "length" "4,4")])
 
+(define_insn "addvsi3"
+  [(set (match_operand:SI 0 "register_operand" "=r,r")
+	(plus:SI (match_operand:SI 1 "reg_or_0_operand" "%rM,rM")
+		 (match_operand:SI 2 "arith11_operand" "r,I")))
+   (trap_if (ne (plus:DI (sign_extend:DI (match_dup 1))
+			 (sign_extend:DI (match_dup 2)))
+		(sign_extend:DI (plus:SI (match_dup 1)
+					 (match_dup 2))))
+	    (const_int 0))]
+  ""
+  "@
+  {addo|add,tsv} %2,%1,%0
+  {addio|addi,tsv} %2,%1,%0"
+  [(set_attr "type" "binary,binary")
+   (set_attr "length" "4,4")])
+
 (define_expand "subdi3"
   [(set (match_operand:DI 0 "register_operand" "")
-	(minus:DI (match_operand:DI 1 "register_operand" "")
-		  (match_operand:DI 2 "register_operand" "")))]
+	(minus:DI (match_operand:DI 1 "arith11_operand" "")
+		  (match_operand:DI 2 "reg_or_0_operand" "")))]
   ""
   "")
 
 (define_insn ""
-  [(set (match_operand:DI 0 "register_operand" "=r")
-	(minus:DI (match_operand:DI 1 "register_operand" "r")
-		  (match_operand:DI 2 "register_operand" "r")))]
-  "!TARGET_64BIT"
-  "sub %R1,%R2,%R0\;{subb|sub,b} %1,%2,%0"
-  [(set_attr "type" "binary")
-  (set_attr "length" "8")])
-
-(define_insn ""
   [(set (match_operand:DI 0 "register_operand" "=r,r,!q")
 	(minus:DI (match_operand:DI 1 "arith11_operand" "r,I,!U")
-		  (match_operand:DI 2 "register_operand" "r,r,!r")))]
+		  (match_operand:DI 2 "reg_or_0_operand" "rM,rM,!rM")))]
   "TARGET_64BIT"
   "@
    sub %1,%2,%0
@@ -5453,6 +5597,91 @@
    mtsarcm %2"
   [(set_attr "type" "binary,binary,move")
   (set_attr "length" "4,4,4")])
+
+(define_insn ""
+  [(set (match_operand:DI 0 "register_operand" "=r,&r")
+	(minus:DI (match_operand:DI 1 "arith11_operand" "r,I")
+		  (match_operand:DI 2 "reg_or_0_operand" "rM,rM")))]
+  "!TARGET_64BIT"
+  "*
+{
+  if (GET_CODE (operands[1]) == CONST_INT)
+    {
+      if (INTVAL (operands[1]) >= 0)
+	return \"subi %1,%R2,%R0\;{subb|sub,b} %%r0,%2,%0\";
+      else
+	return \"ldi -1,%0\;subi %1,%R2,%R0\;{subb|sub,b} %0,%2,%0\";
+    }
+  else
+    return \"sub %R1,%R2,%R0\;{subb|sub,b} %1,%2,%0\";
+}"
+  [(set_attr "type" "binary")
+   (set (attr "length")
+	(if_then_else (eq_attr "alternative" "0")
+	  (const_int 8)
+	  (if_then_else (ge (symbol_ref "INTVAL (operands[1])")
+			    (const_int 0))
+	    (const_int 8)
+	    (const_int 12))))])
+
+(define_expand "subvdi3"
+  [(parallel [(set (match_operand:DI 0 "register_operand" "")
+		   (minus:DI (match_operand:DI 1 "arith11_operand" "")
+			     (match_operand:DI 2 "reg_or_0_operand" "")))
+	      (trap_if (ne (minus:TI (sign_extend:TI (match_dup 1))
+				     (sign_extend:TI (match_dup 2)))
+			   (sign_extend:TI (minus:DI (match_dup 1)
+						     (match_dup 2))))
+		       (const_int 0))])]
+  ""
+  "")
+
+(define_insn ""
+  [(set (match_operand:DI 0 "register_operand" "=r,r")
+	(minus:DI (match_operand:DI 1 "arith11_operand" "r,I")
+		  (match_operand:DI 2 "reg_or_0_operand" "rM,rM")))
+   (trap_if (ne (minus:TI (sign_extend:TI (match_dup 1))
+			  (sign_extend:TI (match_dup 2)))
+		(sign_extend:TI (minus:DI (match_dup 1)
+					  (match_dup 2))))
+	    (const_int 0))]
+  "TARGET_64BIT"
+  "@
+  {subo|sub,tsv} %1,%2,%0
+  {subio|subi,tsv} %1,%2,%0"
+  [(set_attr "type" "binary,binary")
+   (set_attr "length" "4,4")])
+
+(define_insn ""
+  [(set (match_operand:DI 0 "register_operand" "=r,&r")
+	(minus:DI (match_operand:DI 1 "arith11_operand" "r,I")
+		  (match_operand:DI 2 "reg_or_0_operand" "rM,rM")))
+   (trap_if (ne (minus:TI (sign_extend:TI (match_dup 1))
+			  (sign_extend:TI (match_dup 2)))
+		(sign_extend:TI (minus:DI (match_dup 1)
+					  (match_dup 2))))
+	    (const_int 0))]
+  "!TARGET_64BIT"
+  "*
+{
+  if (GET_CODE (operands[1]) == CONST_INT)
+    {
+      if (INTVAL (operands[1]) >= 0)
+	return \"subi %1,%R2,%R0\;{subbo|sub,b,tsv} %%r0,%2,%0\";
+      else
+	return \"ldi -1,%0\;subi %1,%R2,%R0\;{subbo|sub,b,tsv} %0,%2,%0\";
+    }
+  else
+    return \"sub %R1,%R2,%R0\;{subbo|sub,b,tsv} %1,%2,%0\";
+}"
+  [(set_attr "type" "binary,binary")
+   (set (attr "length")
+	(if_then_else (eq_attr "alternative" "0")
+	  (const_int 8)
+	  (if_then_else (ge (symbol_ref "INTVAL (operands[1])")
+			    (const_int 0))
+	    (const_int 8)
+	    (const_int 12))))])
 
 (define_expand "subsi3"
   [(set (match_operand:SI 0 "register_operand" "")
@@ -5483,6 +5712,22 @@
    mtsarcm %2"
   [(set_attr "type" "binary,binary,move")
    (set_attr "length" "4,4,4")])
+
+(define_insn "subvsi3"
+  [(set (match_operand:SI 0 "register_operand" "=r,r")
+	(minus:SI (match_operand:SI 1 "arith11_operand" "rM,I")
+		  (match_operand:SI 2 "reg_or_0_operand" "rM,rM")))
+   (trap_if (ne (minus:DI (sign_extend:DI (match_dup 1))
+			  (sign_extend:DI (match_dup 2)))
+		(sign_extend:DI (minus:SI (match_dup 1)
+					  (match_dup 2))))
+	    (const_int 0))]
+  ""
+  "@
+  {subo|sub,tsv} %1,%2,%0
+  {subio|subi,tsv} %1,%2,%0"
+  [(set_attr "type" "binary,binary")
+   (set_attr "length" "4,4")])
 
 ;; Clobbering a "register_operand" instead of a match_scratch
 ;; in operand3 of millicode calls avoids spilling %r1 and
@@ -5591,10 +5836,10 @@
 						GEN_INT (32)));
   emit_move_insn (op2shifted, gen_rtx_LSHIFTRT (DImode, operands[2],
 						GEN_INT (32)));
-  op1r = gen_rtx_SUBREG (SImode, operands[1], 4);
-  op2r = gen_rtx_SUBREG (SImode, operands[2], 4);
-  op1l = gen_rtx_SUBREG (SImode, op1shifted, 4);
-  op2l = gen_rtx_SUBREG (SImode, op2shifted, 4);
+  op1r = force_reg (SImode, gen_rtx_SUBREG (SImode, operands[1], 4));
+  op2r = force_reg (SImode, gen_rtx_SUBREG (SImode, operands[2], 4));
+  op1l = force_reg (SImode, gen_rtx_SUBREG (SImode, op1shifted, 4));
+  op2l = force_reg (SImode, gen_rtx_SUBREG (SImode, op2shifted, 4));
 
   /* Emit multiplies for the cross products.  */
   emit_insn (gen_umulsidi3 (cross_product1, op2r, op1l));
@@ -6031,11 +6276,53 @@
   [(set_attr "type" "unary")
    (set_attr "length" "4")])
 
+(define_expand "negvdi2"
+  [(parallel [(set (match_operand:DI 0 "register_operand" "")
+		   (neg:DI (match_operand:DI 1 "register_operand" "")))
+	      (trap_if (ne (neg:TI (sign_extend:TI (match_dup 1)))
+				   (sign_extend:TI (neg:DI (match_dup 1))))
+		       (const_int 0))])]
+  ""
+  "")
+
+(define_insn ""
+  [(set (match_operand:DI 0 "register_operand" "=r")
+	(neg:DI (match_operand:DI 1 "register_operand" "r")))
+   (trap_if (ne (neg:TI (sign_extend:TI (match_dup 1)))
+		(sign_extend:TI (neg:DI (match_dup 1))))
+	    (const_int 0))]
+  "!TARGET_64BIT"
+  "sub %%r0,%R1,%R0\;{subbo|sub,b,tsv} %%r0,%1,%0"
+  [(set_attr "type" "unary")
+   (set_attr "length" "8")])
+
+(define_insn ""
+  [(set (match_operand:DI 0 "register_operand" "=r")
+	(neg:DI (match_operand:DI 1 "register_operand" "r")))
+   (trap_if (ne (neg:TI (sign_extend:TI (match_dup 1)))
+		(sign_extend:TI (neg:DI (match_dup 1))))
+	    (const_int 0))]
+  "TARGET_64BIT"
+  "sub,tsv %%r0,%1,%0"
+  [(set_attr "type" "unary")
+   (set_attr "length" "4")])
+
 (define_insn "negsi2"
   [(set (match_operand:SI 0 "register_operand" "=r")
 	(neg:SI (match_operand:SI 1 "register_operand" "r")))]
   ""
   "sub %%r0,%1,%0"
+  [(set_attr "type" "unary")
+   (set_attr "length" "4")])
+
+(define_insn "negvsi2"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (neg:SI (match_operand:SI 1 "register_operand" "r")))
+   (trap_if (ne (neg:DI (sign_extend:DI (match_dup 1)))
+		(sign_extend:DI (neg:SI (match_dup 1))))
+	    (const_int 0))]
+   ""
+   "{subo|sub,tsv} %%r0,%1,%0"
   [(set_attr "type" "unary")
    (set_attr "length" "4")])
 
@@ -6742,7 +7029,7 @@
 				     (match_operand:SI 2 "register_operand" "q")))
 		(match_operand:SI 3 "register_operand" "0")))]
   ; accept ...0001...1, can this be generalized?
-  "exact_log2 (INTVAL (operands[1]) + 1) >= 0"
+  "exact_log2 (INTVAL (operands[1]) + 1) > 0"
   "*
 {
   int x = INTVAL (operands[1]);
@@ -6841,7 +7128,7 @@
 				     (match_operand:DI 2 "register_operand" "q")))
 		(match_operand:DI 3 "register_operand" "0")))]
   ; accept ...0001...1, can this be generalized?
-  "TARGET_64BIT && exact_log2 (INTVAL (operands[1]) + 1) >= 0"
+  "TARGET_64BIT && exact_log2 (INTVAL (operands[1]) + 1) > 0"
   "*
 {
   int x = INTVAL (operands[1]);
@@ -7037,7 +7324,7 @@
 	(and:SI (ashift:SI (match_operand:SI 1 "register_operand" "r")
 			   (match_operand:SI 2 "const_int_operand" ""))
 		(match_operand:SI 3 "const_int_operand" "")))]
-  "exact_log2 (1 + (INTVAL (operands[3]) >> (INTVAL (operands[2]) & 31))) >= 0"
+  "exact_log2 (1 + (INTVAL (operands[3]) >> (INTVAL (operands[2]) & 31))) > 0"
   "*
 {
   int cnt = INTVAL (operands[2]) & 31;
@@ -9906,7 +10193,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   [(set (match_operand:SI 0 "register_operand" "=r")
 	(unspec:SI [(const_int 0)] UNSPEC_TP))]
   ""
-  "{mfctl|mfctl,w} %%cr27,%0"
+  "mfctl %%cr27,%0"
   [(set_attr "type" "multi")
    (set_attr "length" "4")])
 

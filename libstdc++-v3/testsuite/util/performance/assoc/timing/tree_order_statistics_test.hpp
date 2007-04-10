@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -50,7 +50,9 @@
 #include <performance/time/timing_test_base.hpp>
 #include <performance/io/xml_formatter.hpp>
 #include <common_type/assoc/string_form.hpp>
+#include <ext/pb_ds/detail/type_utils.hpp>
 #include <iterator>
+#include <cstdlib>
 
 namespace pb_ds
 {
@@ -58,10 +60,6 @@ namespace pb_ds
   {
     namespace detail
     {
-#define PB_DS_STATIC_ASSERT(UNIQUE, E) \
-      typedef \
-      pb_ds::detail::static_assert_dumclass<sizeof(pb_ds::detail::static_assert<(bool)(E)>)> UNIQUE##static_assert_type
-
       template<typename Cntnr, bool Native>
       class order_statistics_functor
       {
@@ -87,7 +85,7 @@ namespace pb_ds
 	      const size_t max_size = m_r_container.size();
 	      while (it != e)
 		if (m_r_container.order_of_key(*(it++)) > max_size)
-		  abort();
+		  std::abort();
 	    }
 	}
 
@@ -116,7 +114,7 @@ namespace pb_ds
 		{
 		  const_iterator f_it = m_r_container.find(*(it++));
 		  if (static_cast<size_t>(std::distance(b, f_it)) > max_size)
-		    abort();
+		    std::abort();
 		}
 	    }
 	}

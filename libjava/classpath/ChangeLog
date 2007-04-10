@@ -1,3 +1,418 @@
+2007-04-02  Keith Seitz  <keiths@redhat.com>
+
+	* gnu/classpath/jdwp/event/ThreadStartEvent.java (Event):
+	Event type is "THREAD_START" not "THREAD_END".
+
+	* gnu/classpath/jdwp/transport/SocketTransport.java (ITransport):
+	Handle configure strings ":port" and "port".
+
+2007-03-30  Andrew Haley  <aph@redhat.com>
+
+	* javax/management/ObjectName.java: Handle 0-length names.
+
+2007-03-27  Andrew Haley  <aph@redhat.com>
+
+	* javax/management/MBeanServerFactory.java: Use the domain that
+	we've been passed, not the fixed string "DefaultDomain".
+
+2007-03-29  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/29869:
+	* gnu/java/util/jar/JarUtils.java (log): Commented out.
+	(readSFManifest): Don't log.
+
+2007-03-28  Casey Marshall  <csm@gnu.org>
+
+	* gnu/javax/net/ssl/provider/ClientHandshake.java (RSAGen.implRun):
+	check keyEncipherment bit of the certificate, and just pass the public
+	key to the cipher.
+
+2007-03-27  Casey Marshall  <csm@gnu.org>
+
+	PR classpath/31302:
+	* gnu/javax/net/ssl/provider/SSLSocketImpl.java (SSLSocketImpl):
+	Always make a new socket.
+	(bind, connect, getInetAddress, getLocalAddress, getPort,
+	getLocalPort, getRemoteSocketAddress, getLocalSocketAddress,
+	setTcpNoDelay, getTcpNoDelay, setSoLinger, getSoLinger,
+	setOOBInline, getOOBInline, setSoTimeout, getSoTimeout,
+	setSendBufferSize, getSendBufferSize, setReceiveBufferSize,
+	getReceiveBufferSize, setKeepAlive, getKeepAlive, setTrafficClass,
+	getTrafficClass, setReuseAddress, getReuseAddress, close,
+	shutdownInput, shutdownOutput, isConnected, isBound, isClosed,
+	isInputShutdown, isOutputShutdown): Always use
+	'underlyingSocket'.
+
+2007-03-27  Tom Tromey  <tromey@redhat.com>
+
+	PR classpath/31303:
+	* external/sax/org/xml/sax/helpers/XMLReaderFactory.java
+	(createXMLReader): Code in Classpath default.
+
+2007-03-27  Keith Seitz  <keiths@redhat.com>
+
+	Merged from upstream:
+	2007-03-09  Kyle Galloway  <kgallowa@redhat.com>
+	* gnu/classpath/jdwp/exception/InvalidTagException.java: New file.
+	* gnu/classpath/jdwp/processor/ArrayReferenceCommandSet.java
+	(executeGetValues): Use Value type.
+	(exectureSetValues): Ditto.  
+	* gnu/classpath/jdwp/processor/ClassTypeCommandSet.java
+	(executeGetValues): Use Value type.
+	(executeSetValues): Ditto.
+	(invokeMethod): Record method return type.
+	* gnu/classpath/jdwp/processor/ObjectReferenceCommandSet.java
+	(executeGetValues): Use Value type.
+	(executeSetValues): Ditto.
+	* gnu/classpath/jdwp/processor/ReferenceTypeCommandSet.java
+	(executeGetValues): Use Value type.
+	* gnu/classpath/jdwp/processor/StackFrameCommandSet.java
+	(executeGetValues): Use Value type.
+	(executeSetValues): Ditto.
+	* gnu/classpath/jdwp/util/MethodResult.java: Add resType to store
+	return type.
+	(getResultType): New Method.
+	(setResultType): Ditto.
+	* gnu/classpath/jdwp/util/Value.java: Remove.
+	* gnu/classpath/jdwp/value: New Package.
+	* gnu/classpath/jdwp/value/Value.java: New file.
+	* gnu/classpath/jdwp/value/BooleanValue.java: New file.
+	* gnu/classpath/jdwp/value/ByteValue.java: New file.
+	* gnu/classpath/jdwp/value/CharValue.java: New file.
+	* gnu/classpath/jdwp/value/DoubleValue.java: New file.
+	* gnu/classpath/jdwp/value/FloatValue.java: New file.
+	* gnu/classpath/jdwp/value/IntValue.java: New file.
+	* gnu/classpath/jdwp/value/LongValue.java: New file.
+	* gnu/classpath/jdwp/value/ObjectValue.java: New file.
+	* gnu/classpath/jdwp/value/ShortValue.java: New file.
+	* gnu/classpath/jdwp/value/StringValue.java: New file.
+	* gnu/classpath/jdwp/value/ValueFactory.java: New file.
+	* gnu/classpath/jdwp/value/VoidValue.java: New file.
+
+	2007-02-28  Keith Seitz  <keiths@redhat.com>
+	* gnu/classpath/jdwp/processor/EventRequestCommandSet.java
+	(executeSet): Check if VM has capability for field access
+	or modification events.
+	* gnu/classpath/jdwp/processor/MethodCommandSet.java
+	(executeByteCodes): Check if VM has capability and
+	implement.
+	* gnu/classpath/jdwp/processor/ObjectReferenceCommandSet.java
+	(executeMonitorInfo): Likewise.
+	* gnu/classpath/jdwp/processor/ReferenceTypeCommandSet.java
+	(executeSourceDebugExtension): Likewise.
+	* gnu/classpath/jdwp/processor/StackFrameCommandSet.java
+	(executePopFrames): Likewise.
+	* gnu/classpath/jdwp/processor/ThreadReferenceCommandSet.java
+	(executeOwnedMonitors): Likewise.
+	(executeCurrentContendedMonitor): Likewise.
+	* gnu/classpath/jdwp/processor/VirtualMachineCommandSet.java
+	(executeCapabilities): Rewrite using new VMVirtualMachine
+	capabilities.
+	(executeRedefineClasses): Check if VM has capability and
+	implement.
+	(executeSetDefaultStratum): Likewise.
+	* gnu/classpath/jdwp/util/MonitorInfo.java; New file.
+	* vm/reference/gnu/classpath/jdwp/VMVirtualMachine.java
+	(canWatchFieldModification): New class constant.
+	(canWatchFieldAccess): Likewise.
+	(canGetBytecodes): Likewise.
+	(canGetSyntheticAttribute): Likewise.
+	(canGetOwnedMonitorInfo): Likewise.
+	(canGetCurrentContendedMonitor): Likewise.
+	(canGetMonitorInfo): Likewise.
+	(canRedefineClasses): Likewise.
+	(canAddMethod): Likewise.
+	(canUnrestrictedlyRedefineClasses): Likewise.
+	(canPopFrames): Likewise.
+	(canUseInstanceFilters): Likewise.
+	(canGetSourceDebugExtension): Likewise.
+	(canRequestVMDeathEvent): Likewise.
+	(canSetDefaultStratum): Likewise.
+	(redefineClasses): New method.
+	(setDefaultStratum): Likewise.
+	(getSourceDebugExtension): Likewise.
+	(getBytecodes): Likewise.
+	(getMonitorInfo): Likewise.
+	(getOwnedMonitors): Likewise.
+	(getCurrentContendedMonitor): Likewise.
+	(popFrames): Likewise.
+
+	2007-02-28  Keith Seitz  <keiths@redhat.com>
+	* gnu/classpath/jdwp/processor/MethodCommandSet.java
+	(executeLineTable): Use ReferenceTypeId instead of
+	ClassReferenceTypeId.
+	(executeVariableTable): Likewise.
+	(executeVariableTableWithGeneric): Fix error message.
+	* gnu/classpath/jdwp/processor/ReferenceTypeCommandSet.java
+	(executeSignatureWithGeneric): Fix error message.
+	(executeFieldWithGeneric): Likewise.
+	(executeMethodsWithGeneric): Likewise.
+	* gnu/classpath/jdwp/processor/StackFrameCommandSet.java
+	(executeGetValues): Use ThreadId instead of ObjectId.
+	(executeSetValues): Likewise.
+	(executeThisObject): Likewise.
+
+	2007-02-28  Kyle Galloway  <kgallowa@redhat.com>
+	* gnu/classpath/jdwp/id/NullObjectId.java: New class.
+	* gnu/classpath/jdwp/util/NullObject.java: New class.
+	* vm/reference/gnu/classpath/jdwp/VMIdManager.java
+	(getObjectId): Handle null object.
+	(get): Handle objectId of 0. 
+
+	2007-02-22  Keith Seitz  <keiths@redhat.ecom>
+	* vm/reference/gnu/classpath/jdwp/VMVirtualMachine.java
+	(getAllLoadedClassesCount): Remove.
+	(getAllLoadedClasses): Return a Collection.
+	* gnu/classpath/jdwp/processor/VirtualMachineCommandSet.java
+	(executeClassesBySignature): VMVirtualMachine.getAllLoadedClasses
+	now returns Collection.
+	(executeAllClasses): Likewise.
+	Get size of return from Colleciton instead of calling
+	getAllLoadedClassesCount.
+
+	2007-02-22  Kyle Galloway  <kgallowa@redhat.com>
+	* gnu/classpath/jdwp/processor/StackFrameCommandSet.java 
+	(executeGetValues): Pass a signature byte to VMFrame.getValue.
+	* vm/reference/gnu/classpath/jdwp/VMFrame.java (getValue): Add
+	signature parameter.
+
+	2007-02-02  Kyle Galloway  <kgallowa@redhat.com>
+	* gnu/classpath/jdwp/processor/StackFrameCommandSet.java
+	(executeGetValues): Changed getFrame to use a jlong to pass frameID.
+	(executeSetValues): Ditto.
+	(executeThisObject): Ditto.
+	* vm/reference/gnu/classpath/jdwp/VMFrame.java: Added thread field
+	and a constructor used to create VMFrames.
+	(getThread): New method.
+	* vm/reference/gnu/classpath/jdwp/VMVirtualMachine.java(getFrame):
+	Changed to take a long instead of a ByteBuffer to pass the frameID.
+
+	2007-01-15  Kyle Galloway  <kgallowa@redhat.com>
+	* gnu/classpath/jdwp/exception/InvalidSlotException.java: New file.
+
+2007-03-26  Tom Tromey  <tromey@redhat.com>
+
+	* doc/cp-tools.texinfo (gcjh Tool): Added more text.
+	(rmid Tool): Likewise.
+
+2007-03-25  Dalibor Topic  <robilad@kaffe.org>
+
+	* doc/cp-tools.texinfo: Fix node ordering.
+
+2007-03-19  Matthias Klose  <doko@ubuntu.com>
+
+	* doc/Makefile.am: Build a gcjh(1) man page.
+	* doc/cp-tools.texinfo: Add documentation for gcjh.
+
+2007-03-26  Stepan Kasal  <skasal@redhat.com>
+
+	* tools/gnu/classpath/tools/javah/Main.java (cniOrJniSeen): New
+	field.
+	(getParser): Use new field.
+
+2007-03-17  Thomas Fitzsimmons  <fitzsim@redhat.com>
+
+	* resource/com/sun/tools/javac/messages.properties
+	(Main.FailedToRead, Main.MalformedURL, Main.FailedToLoad): Clarify
+	messages for when --with-ecj-jar is not specified.
+	* configure.ac (FOUND_ECJ_JAR): Remove conditional.
+	* tools/Makefile.am: Build com.sun.tools.javac package
+	unconditionally.
+	* configure, doc/api/Makefile.in, doc/Makefile.in,
+	examples/Makefile.in, external/jsr166/Makefile.in,
+	external/Makefile.in, external/relaxngDatatype/Makefile.in,
+	external/sax/Makefile.in, external/w3c_dom/Makefile.in,
+	include/Makefile.in, lib/Makefile.in, Makefile.in,
+	native/fdlibm/Makefile.in, native/jawt/Makefile.in,
+	native/jni/classpath/Makefile.in,
+	native/jni/gconf-peer/Makefile.in,
+	native/jni/gtk-peer/Makefile.in, native/jni/java-io/Makefile.in,
+	native/jni/java-lang/Makefile.in, native/jni/java-net/Makefile.in,
+	native/jni/java-nio/Makefile.in, native/jni/java-util/Makefile.in,
+	native/jni/Makefile.in, native/jni/midi-alsa/Makefile.in,
+	native/jni/midi-dssi/Makefile.in,
+	native/jni/native-lib/Makefile.in, native/jni/qt-peer/Makefile.in,
+	native/jni/xmlj/Makefile.in, native/Makefile.in,
+	native/plugin/Makefile.in, resource/Makefile.in,
+	scripts/Makefile.in, tools/Makefile.in: Regenerate.
+	* tools/classes/com/sun/tools/javac: New directory.
+	* tools/classes/com/sun/tools/javac/Main.class,
+	tools/classes/com/sun/tools/javac/Messages.class: New files.
+
+2007-03-16  Tom Tromey  <tromey@redhat.com>
+
+	* tools/gnu/classpath/tools/javah/Main.java (run): Use class'
+	name in File case.
+
+2007-03-16  Tom Tromey  <tromey@redhat.com>
+
+	* tools/gnu/classpath/tools/javah/JniStubPrinter.java
+	(printClass): Added filename argument.
+	* tools/gnu/classpath/tools/javah/JniIncludePrinter.java
+	(printClass): Added filename argument.
+	* tools/gnu/classpath/tools/javah/CniIncludePrinter.java
+	(printClass): Use user's file name.
+	* tools/gnu/classpath/tools/javah/CniStubPrinter.java
+	(printClass): Use user's file name.
+	* tools/gnu/classpath/tools/javah/Printer.java (printClass): Added
+	filename argument.
+	* tools/gnu/classpath/tools/javah/Main.java (getParser): Fix '-v'
+	argument order.
+	(writeHeaders): Use a HashMap.
+	(run): Put class name into HashMap for writeHeaders.
+
+2007-03-02  Mario Torre  <neugens@limasoftware.net>
+
+	PR classpath/31017:
+	committed for Petteri RÃ¤ty <betelgeuse@gentoo.org>
+	* configure.ac: fix broken build for gcj browser plugin
+
+2007-02-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* java/util/Date.java (parse): Properly parse 09:01:02 as
+	hours/minutes/seconds, not as hours/minutes/year.
+	* java/util/SimpleTimeZone.java (SimpleTimeZone): Simplify
+	{start,end}TimeMode constructor by calling shorter constructor,
+	set {start,end}TimeMode fields after it returns.
+	(setStartRule): Don't adjust startTime into WALL_TIME.  Set
+	startTimeMode to WALL_TIME.
+	(endStartRule): Similarly.
+	(getOffset): Handle properly millis + dstOffset overflowing into the
+	next day.  Adjust startTime resp. endTime based on startTimeMode
+	resp. endTimeMode.
+	* java/util/TimeZone.java (zoneinfo_dir, availableIDs, aliases0): New
+	static fields.
+	(timezones): Remove synchronized keyword.  Set zoneinfo_dir.
+	If non-null, set up aliases0 and don't put anything into
+	timezones0.
+	(defaultZone): Call getTimeZone instead of timezones().get.
+	(getDefaultTimeZone): Fix parsing of EST5 or EST5EDT6.  Use
+	getTimeZoneInternal instead of timezones().get.
+	(parseTime): Parse correctly hour:minute.
+	(getTimeZoneInternal): New private method.
+	(getTimeZone): Do the custom ID checking first, canonicalize
+	ID for custom IDs as required by documentation.  Call
+	getTimeZoneInternal to handle the rest.
+	(getAvailableIDs(int)): Add locking.  Handle zoneinfo_dir != null.
+	(getAvailableIDs(File,String,ArrayList)): New private method.
+	(getAvailableIDs()): Add locking.  Handle zoneinfo_dir != null.
+	* gnu/java/util/ZoneInfo.java: New file.
+
+2007-02-20  Matthias Klose  <doko@ubuntu.com>
+
+	* doc/Makefile.am: Add rules to build and install man pages
+	from texinfo docs.
+	* doc/hacking.texinfo doc/tools.texinfo, doc/vmintegration.texinfo:
+	Rename, prefix files with "cp-".
+	* doc/cp-tools.texinfo: Add markup for man page generation,
+	add documentation for command line options for gjar, gjavah,
+	gnative2ascii, gorbd, grmid, grmiregistry, gserialver, gtnameserv.
+	doc/texi2pod.pl: New, taken from the GCC sources.
+
+2006-10-14  Edwin Steiner  <edwin.steiner@gmx.net>
+
+	PR classpath/28652:
+	* javax/management/MBeanInfo.java (MBeanInfo): 
+	Use clone to duplicate the arrays in order to
+	preserve the array type.
+
+2007-02-16  Andrew Haley  <aph@redhat.com>
+
+	* gnu/java/lang/management/MemoryMXBeanImpl.java,
+	javax/management/MBeanServerDelegate.java: Use
+	gnu.javax.management.ListenerData rather than
+	gnu.classpath.ListenerData.
+	* gnu/javax/management/ListenerData.java: Move here from
+	gnu/classpath/ListenerData.java.
+
+2007-02-14  Jakub Jelinek  <jakub@redhat.com>
+	Andrew Haley  <aph@redhat.com>
+
+	* java/util/TimeZone.java (getDateParams): Negate dayOfWeek.
+
+2007-02-09  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/30647:
+	* configure: Rebuilt.
+	* configure.ac: Also check for jack/jack.h.
+
+2007-02-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* java/util/TimeZone.java: Handle default (one hour) daylight
+	savings.
+
+2007-02-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR 23566
+	* scripts/timezones.pl: Parse each file in 2 passes, in one parse
+	just Rule lines, in the other everything else.  Pass 0 instead of
+	$savings as second argument to parseRule when parsing the start
+	rule.
+	* java/util/TimeZone.java (timezones): Regenerate from tzdata2007a.
+
+2007-02-07  Chris Burdess  <dog@gnu.org>
+
+	Fixes PR 30718.
+	* gnu/xml/dom/ls/SAXEventSink.java: Add public accessor/mutators.
+	* gnu/xml/transform/XSLURIResolver.java: Add support for custom
+	  SAXSources without a backing URL or stream.
+
+	Fixes PR 27710.
+	* gnu/xml/dom/DomDocumentBuilderFactory.java: Fall back to synchronous
+	  LSParser if implementation does not support asynchronous.
+	* gnu/xml/stream/XMLParser.java,
+	  gnu/xml/stream/XIncludeFilter.java: Use custom code instead of
+	  java.net.URL to resolve to an an absolute URI, to avoid nonexistent
+	  protocol handler problems.
+
+2007-02-06  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/30707:
+	* tools/gnu/classpath/tools/javah/JniIncludePrinter.java
+	(printClass): Always print a header.
+
+2007-02-05  Andrew Haley  <aph@redhat.com>
+
+	PR cp-tools/30706
+	* tools/gnu/classpath/tools/javah/JniIncludePrinter.java:
+	(printClass): Replace '/' in filenames with '_'.
+	* tools/gnu/classpath/tools/javah/JniStubPrinter.java
+	(printClass): Likewise.
+
+2007-02-05  Tom Tromey  <tromey@redhat.com>
+
+	* java/net/Proxy.java (equals): Handle case where address==null.
+	(hashCode): Likewise.
+	(toString): Likewise.
+
+2007-01-31  Tom Tromey  <tromey@redhat.com>
+
+	* resource/gnu/classpath/tools/jar/messages.properties
+	(Main.Stdin): New message.
+	* tools/gnu/classpath/tools/jar/Main.java (initializeParser): Add
+	'-@' option.
+	(readNames): New method.
+	(run): Use it.
+
+2007-01-26  Andrew Haley  <aph@redhat.com>
+
+        * java/lang/SecurityManager.java: Load and initialize
+        java.security.Security.
+
+2007-01-26  Tom Tromey  <tromey@redhat.com>
+
+	* tools/gnu/classpath/tools/javah/FieldHelper.java (print): Print
+	'volatile' after field type.
+
+2007-01-23  Marco Trudel  <mtrudel@gmx.ch>
+
+	* java/util/Arrays.java (binarySearch): Change comparison order.
+
+2007-01-17  Tom Tromey  <tromey@redhat.com>
+
+	* tools/gnu/classpath/tools/javah/PathOptionGroup.java
+	(PathOptionGroup): Set default boot class path.
+
 2006-12-14  Andrew Haley  <aph@redhat.com>
 
 	* tools/gnu/classpath/tools/jar/Creator.java: Close the

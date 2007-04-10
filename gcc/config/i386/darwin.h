@@ -66,11 +66,15 @@ Boston, MA 02110-1301, USA.  */
 #undef FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN
 #define FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN (0)
 
+#undef TARGET_KEEPS_VECTOR_ALIGNED_STACK
+#define TARGET_KEEPS_VECTOR_ALIGNED_STACK 1
+
 /* We want -fPIC by default, unless we're using -static to compile for
    the kernel or some such.  */
 
 #undef CC1_SPEC
 #define CC1_SPEC "%{!mkernel:%{!static:%{!mdynamic-no-pic:-fPIC}}} \
+  %{!mmacosx-version-min=*:-mmacosx-version-min=%(darwin_minversion)} \
   %{g: %{!fno-eliminate-unused-debug-symbols: -feliminate-unused-debug-symbols }}"
 
 #undef ASM_SPEC
@@ -78,6 +82,15 @@ Boston, MA 02110-1301, USA.  */
 
 #define DARWIN_ARCH_SPEC "%{m64:x86_64;:i386}"
 #define DARWIN_SUBARCH_SPEC DARWIN_ARCH_SPEC
+
+/* Determine a minimum version based on compiler options.  */
+#define DARWIN_MINVERSION_SPEC				\
+ "%{!m64|fgnu-runtime:10.4;				\
+    ,objective-c|,objc-cpp-output:10.5;			\
+    ,objective-c-header:10.5;				\
+    ,objective-c++|,objective-c++-cpp-output:10.5;	\
+    ,objective-c++-header|,objc++-cpp-output:10.5;	\
+    :10.4}"
 
 #undef SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS                                   \

@@ -24,6 +24,7 @@ extern "Java"
     namespace net
     {
         class InetAddress;
+        class InetSocketAddress;
         class SocketAddress;
         class SocketImpl;
     }
@@ -45,8 +46,8 @@ public:
   ::java::lang::Object * getOption(jint);
   void shutdownInput();
   void shutdownOutput();
-public: // actually protected
   void create(jboolean);
+public: // actually protected
   void connect(::java::lang::String *, jint);
   void connect(::java::net::InetAddress *, jint);
   void connect(::java::net::SocketAddress *, jint);
@@ -59,6 +60,9 @@ public: // actually protected
   jint available();
   void close();
   void sendUrgentData(jint);
+public:
+  ::java::net::InetSocketAddress * getLocalAddress();
+public: // actually protected
   ::java::io::InputStream * getInputStream();
   ::java::io::OutputStream * getOutputStream();
 public: // actually package-private
@@ -79,6 +83,7 @@ public: // actually package-private
   jint __attribute__((aligned(__alignof__( ::java::net::SocketImpl)))) native_fd;
   jint timeout;
   ::java::net::InetAddress * localAddress;
+  ::java::net::InetSocketAddress * localSocketAddress;
 private:
   ::java::io::InputStream * in;
   ::java::io::OutputStream * out;

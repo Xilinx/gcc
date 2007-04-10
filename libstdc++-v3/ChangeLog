@@ -1,3 +1,2947 @@
+2007-04-10  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28277 (partial: vstring bits)
+	* include/bits/ostream_insert.h: New.
+	* include/Makefile.am: Add.
+	* include/ext/vstring.h (operator<<(basic_ostream<>&,
+	const __versa_string<>&): Forward to __ostream_insert.
+	* include/bits/basic_string.h (operator<<(basic_ostream<>&,
+	const string<>&)): Likewise.
+	* include/std/ostream (operator<<(basic_ostream<>&, _CharT),
+	operator<<(basic_ostream<char,>&, char), operator<<(basic_ostream<>&,
+	const _CharT*), operator<<(basic_ostream<char,>&, const char*)):
+	Likewise.
+	* include/ext/vstring.tcc (operator<<(basic_ostream<>&,
+	const __versa_string<>&)): Remove.
+	(class basic_ostream): Remove friend declarations.
+	(basic_ostream<>::_M_write(char_type, streamsize),
+	_M_insert(const char_type*, streamsize)): Remove.
+	* include/bits/ostream.tcc (_M_insert(const char_type*, streamsize)):
+	Remove definition.
+	(operator<<(basic_ostream<>&, const char*)): Use __ostream_insert.
+	* config/abi/pre/gnu.ver: Adjust.
+	* src/ostream-inst.cc: Add __ostream_insert instantiations.
+	* include/bits/locale_facets.h (__pad<>::_S_pad): Remove __num
+	parameter.
+	* include/bits/locale_facets.tcc (__pad<>::_S_pad): Adjust.
+	(num_put<>::_M_pad(_CharT, streamsize, ios_base&, _CharT*,
+	const _CharT*, int&)): Likewise.
+	* include/Makefile.in: Rebuild.
+	* testsuite/ext/vstring/inserters_extractors/char/28277.cc: New.
+	* testsuite/ext/vstring/inserters_extractors/wchar_t/28277.cc: New.
+
+	* include/ext/vstring_util.h: Do not include the whole <locale>.
+	* include/ext/vstring.tcc (operator>>(basic_istream<>&,
+	__versa_string<>&, getline(basic_istream<>&, __versa_string<>&,
+	_CharT)): Tweak to refer to ios_base as a base of istream; do not
+	refer to non-standard types of istream.
+	* include/bits/istream.tcc (operator>>(basic_istream<>&, _CharT*),
+	ws(basic_istream<>&)): Do not refer to non-standard types of istream.
+	* include/std/bitset (operator>>(std::basic_istream<>&, bitset<>&)):
+	Avoid using basic_streambuf<>*.
+
+	* include/bits/istream.tcc (operator>>(basic_istream<>&,
+	basic_string<>&), getline(basic_istream<>&, basic_string<>&, _CharT)):
+	Move...
+	* include/bits/basic_string.tcc: ... here; tweak to refer to ios_base
+	as a base of istream; do not refer to non-standard types of istream.
+	* include/std/string: Tweak includes.
+
+	* include/ext/type_traits.h (__is_null_pointer): Add.
+	* include/ext/rc_string_base.h: Use it.
+	* include/ext/sso_string_base.h: Likewise.
+	* include/bits/basic_string.tcc (__is_null_pointer): Remove, use
+	the above.
+	* include/ext/vstring_util.h (__vstring_utility<>::_S_is_null_pointer):
+	Remove.
+
+2007-04-09  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/type_traits_fwd.h (__is_union_or_class): Remove.
+	* include/tr1/type_traits (struct __in_array,
+	struct __is_union_or_class, struct __is_union_or_class_helper,
+	struct __is_empty_helper, struct __is_polymorphic_helper):
+	Remove.
+	(struct is_enum): Use __is_enum.
+	(struct is_union): Use __is_union.
+	(struct is_class): Use __is_class.
+	(struct is_function): Adjust.
+	(struct is_empty): Use __is_empty.
+	(struct is_polymorphic): Use __is_polymorphic.
+	(struct is_abstract): Use __is_abstract.
+	(struct has_virtual_destructor): Use __has_virtual_destructor.
+	(struct __is_base_of_helper): Use __is_base_of.
+	* testsuite/tr1/4_metaprogramming/composite_type_traits/
+	is_union_or_class/typedefs.cc: Remove.
+	* testsuite/tr1/4_metaprogramming/composite_type_traits/
+	is_union_or_class/is_union_or_class.cc: Likewise.
+	* testsuite/tr1/4_metaprogramming/primary_type_categories/
+	is_class/typedefs.cc: New.
+	* testsuite/tr1/4_metaprogramming/primary_type_categories/
+	is_class/is_class.cc: Likewise.
+	* testsuite/tr1/4_metaprogramming/primary_type_categories/
+	is_union/typedefs.cc: Likewise.
+	* testsuite/tr1/4_metaprogramming/primary_type_categories/
+	is_union/is_union.cc: Likewise.
+	* testsuite/tr1/4_metaprogramming/type_properties/
+	has_virtual_destructor/typedefs.cc: Likewise.
+	* testsuite/tr1/4_metaprogramming/type_properties/
+	has_virtual_destructor/has_virtual_destructor.cc: Likewise.
+	* testsuite/util/testsuite_tr1.h (class VirtualDestructorClass): Add.
+	* testsuite/tr1/4_metaprogramming/type_properties/is_polymorphic/
+	is_polymorphic.cc: Add test.
+
+2007-04-08  Alexey Beshenov  <bav.272304@gmail.com>
+
+	PR libstdc++/31511
+	* include/c_global/cmath.tcc (__cmath_power): Use _Tp(1).
+	* include/c_std/cmath.tcc (__cmath_power): Likewise.
+
+2007-04-06  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31117
+	* config/locale/gnu/c_locale.cc (__convert_to_v): Do not use errno,
+	just check that the value is finite.
+	* config/locale/generic/c_locale.cc (__convert_to_v): Likewise.
+
+2007-04-06  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/type_traits.h (__numeric_traits): Move...
+	* include/ext/numeric_traits.h: ... here.
+	* include/Makefile.am: Add.
+	* include/ext/pb_ds/detail/type_utils.hpp: Include 
+	<ext/numeric_traits.h> too.
+	* include/tr1/random: Likewise.
+	* testsuite/ext/type_traits/numeric_traits.cc: Move...
+	* testsuite/ext/numeric_traits/numeric_traits.cc: ... here.
+	* include/Makefile.in: Regenerate.
+
+2007-04-04  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/valarray_array.h (__valarray_default_construct(_Tp*,
+	_Tp*)): Use __is_scalar instead of __is_pod.
+
+2007-04-03  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algobase.h (__copy_aux(_II, _II, _OI),
+	__copy_backward_aux(_BI1, _BI1, _BI2)): Use __is_pod.
+	* include/bits/stl_deque.h (deque<>::_M_destroy_data(iterator,
+	iterator, const std::allocator<>&)): Use __has_trivial_constructor.
+	(deque<>::_M_destroy_data_dispatch): Remove.
+	* include/bits/stl_uninitialized.h (uninitialized_copy(_InputIterator,
+	_InputIterator, _ForwardIterator), uninitialized_fill(_ForwardIterator,
+	_ForwardIterator, const _Tp&), uninitialized_fill_n(_ForwardIterator,
+	_Size, const _Tp&)): Use __is_pod.
+	* include/bits/stl_tempbuf.h (_Temporary_buffer::
+	_Temporary_buffer(_ForwardIterator, _ForwardIterator)): Use __is_pod.
+	(_Temporary_buffer::_M_initialize_buffer): Remove.
+	* include/bits/stl_construct.h (_Destroy(_ForwardIterator,
+	_ForwardIterator)): Use __has_trivial_destructor.
+	(__destroy_aux): Remove.
+
+2007-04-03  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_map.h (map<>::insert(iterator, const value_type&):
+	Uglify parameter.
+
+2007-04-03  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31440
+	* include/bits/stl_tree.h (_M_lower_bound(_Link_type, _Link_type,
+	const _Key&), _M_upper_bound(_Link_type, _Link_type, const _Key&)):
+	Add.
+	(_M_equal_range(const _Key&) const): Remove.
+	(lower_bound(const key_type&), lower_bound(const key_type&) const,
+	upper_bound(const key_type&), upper_bound(const key_type&) const,
+	equal_range(const key_type&), equal_range(const key_type&) const):
+	Adjust.
+	(find(const _Key&), find(const _Key&) const): Tweak.
+	* testsuite/23_containers/map/operations/31440.cc: New.
+
+2007-04-02  Matthew Levine  <gcc@severeweblint.org>
+	    Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31370
+	* include/bits/stl_bvector.h (vector<bool>::max_size): Fix.
+	(vector<bool>::_M_check_len): Add.
+	* include/bits/vector.tcc (_M_fill_insert(iterator, size_type, bool),
+	_M_insert_range(iterator, _ForwardIterator, _ForwardIterator,
+	std::forward_iterator_tag), _M_insert_aux(iterator, bool)): Use it.
+	* testsuite/23_containers/vector/bool/modifiers/insert/31370.cc: New.
+	* testsuite/23_containers/vector/bool/capacity/29134.cc: Adjust.
+
+	* include/bits/stl_vector.h (vector<>::_M_check_len): Add.
+	* include/bits/vector.tcc (_M_insert_aux(iterator, const _Tp&),
+	_M_fill_insert(iterator, size_type, const value_type&),
+	_M_range_insert(iterator, _ForwardIterator, _ForwardIterator,
+	std::forward_iterator_tag)): Use it.
+
+2007-04-02  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31401 (vstring bits)
+	* include/ext/vstring.tcc (find(const _CharT*, size_type,
+	size_type)): Avoid unsigned overflow.
+
+2007-04-02  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.tcc (num_put<>::do_put(iter_type,
+	ios_base&, char_type, const void*)): Fix for sizeof(const void*)
+	> sizeof(unsigned long).
+
+2007-04-01  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* include/tr1/poly_laguerre.tcc: Missing s/__alpha/__alpha1, line 278.
+
+2007-04-01  Richard Henderson  <rth@redhat.com>
+
+	* include/tr1/poly_laguerre.tcc: s/__alpha/__alpha1/g.
+	* include/tr1/ell_integral.tcc: Likewise.
+
+2007-03-31  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_bvector.h (_M_fill_insert(iterator, size_type,
+	bool), _M_insert_range(iterator, _ForwardIterator, _ForwardIterator,
+	std::forward_iterator_tag), _M_insert_aux(iterator, bool)): Move
+	out of line...
+	* include/bits/vector.tcc: ... here.
+
+2007-03-30  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/26099
+	* include/bits/cpp_type_traits.h (struct __is_pod, struct __is_empty):
+	Remove.
+	* include/bits/valarray_array.h: Adjust.
+	* include/bits/allocator.h: Likewise.
+	* include/bits/stl_tree.h: Likewise.
+
+2007-03-30  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31401
+	* include/bits/basic_string.tcc (find(const _CharT*, size_type,
+	size_type)): Avoid unsigned overflow.
+	* testsuite/21_strings/basic_string/find/char/4.cc: New.
+	* testsuite/21_strings/basic_string/find/wchar_t/4.cc: Likewise.
+
+2007-03-27  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/fstream.tcc (basic_filebuf<>::underflow):
+	Don't call codecvt::in at all if _M_ext_next >= _M_ext_end.
+	* testsuite/27_io/basic_filebuf/underflow/char/3.cc: New.
+
+2007-03-26  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/c_compatibility/complex.h: Without
+	__GXX_EXPERIMENTAL_CXX0X__ include_next complex.h.	
+	* include/c_compatibility/fenv.h: Same.
+	* include/c_compatibility/inttypes.h: Same.
+	* include/c_compatibility/stdbool.h: Same.
+	* include/c_compatibility/stdint.h: Same.
+	* include/c_compatibility/tgmath.h: Same.
+
+	* include/tr1/cinttypes: Use include_next.
+	* include/tr1/cstdint: Same.
+	* include/tr1/cstdbool: Same.
+
+	* acinclude.m4 (GLIBCXX_ENABLE_C99): Add check for tgmath.h
+	* configure: Regenerate.
+	* config.h.in: Same.
+	
+2007-03-25  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/functional: Formatting fixes.
+
+2007-03-23  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/27_io/basic_ostream/inserters_arithmetic/wchar_t/4402.cc:
+	Likewise use std::numeric_limits<>::max().
+	* testsuite/27_io/basic_ostream/inserters_arithmetic/char/4402.cc:
+	Minor tweaks.
+
+2007-03-23  Hans-Peter Nilsson  <hp@axis.com>
+
+	* testsuite/27_io/basic_ostream/inserters_arithmetic/char/4402.cc
+	(test02): Use std::numeric_limits<>::max() to get suitable large
+	values.
+
+2007-03-22  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/21_strings/headers/cstdlib/functions_std.cc: Without
+	C99 support, _GLIBCXX_USE_WCHAR_T not defined, so
+	dg-require-c-std.
+	* testsuite/tr1/6_containers/headers/functional/synopsis.cc: Same.
+	* testsuite/27_io/headers/iostream/synopsis.cc: Same.
+	* testsuite/27_io/headers/streambuf/types_std.cc: Same.
+	* testsuite/27_io/headers/sstream/types_std.cc: Same.
+	* testsuite/27_io/headers/ostream/types_std.cc: Same.
+	* testsuite/27_io/headers/istream/types_std.cc: Same.
+	* testsuite/27_io/headers/iostream/types_std.cc: Same.
+	* testsuite/27_io/headers/fstream/types_std.cc: Same.
+	* testsuite/21_strings/headers/string/types_std.cc: Same.
+	* testsuite/21_strings/headers/cwctype/functions_std.cc: Same.
+	* testsuite/21_strings/headers/cwctype/types_std.cc: Same.
+	* testsuite/21_strings/headers/cwchar/functions_std.cc: Same.
+	* testsuite/21_strings/headers/cwchar/types_std.cc: Same.
+	
+	* include/Makefile.am (c_compatibility_headers): Add fenv.h.
+	* include/Makefile.in: Regenerate.
+	* configure.host: Update comment.
+
+	* include/tr1/cfenv: Use include_next.
+
+2007-03-19  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/tuple (get(_Tuple_impl<>&, get(const _Tuple_impl<>&):
+	Rename as __get_helper.
+	(get(tuple<>&, get(const tuple<>&)): Forward to the latter.
+
+2007-03-19  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* docs/doxygen/user.cfg.in: Update for new includes, macros.
+	
+2007-03-18  Mark Mitchell  <mark@codesourcery.com>
+
+	* libsupc++/array_type_info.cc: Likewise.
+	* libsupc++/bad_cast.cc: Likewise.
+	* libsupc++/bad_typeid.cc: Likewise.
+	* libsupc++/class_type_info.cc: Likewise.
+	* libsupc++/dyncast.cc: Likewise.
+	* libsupc++/enum_type_info.cc: Likewise.
+	* libsupc++/function_type_info.cc: Likewise.
+	* libsupc++/fundamental_type_info.cc: Likewise.
+	* libsupc++/pbase_type_info.cc: Likewise.
+	* libsupc++/pmem_type_info.cc: Likewise.
+	* libsupc++/pointer_type_info.cc: Likewise.
+	* libsupc++/si_class_type_info.cc: Likewise.
+	* libsupc++/vmi_class_type_info.cc: Likewise.
+	* libsupc++/tinfo.h: Move inline type_info functions here.
+	* libsupc++/tinfo.cc: Separate type_info classes into their own
+	files.
+	* libsupc++/tinfo2.cc: Likewise.
+	* Makefile.am (sources): Mention new files.
+	* Makefile.in: Regenerated.
+
+2007-03-16  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/27_io/headers/cinttypes/types_std_c++0x.cc: Use
+	-std=gnu++0x instead of -std=c++0x for testing.
+	* testsuite/18_support/headers/cstdint/types_std_c++0x.cc: Same.
+	* testsuite/26_numerics/headers/random/types_std_c++0x.cc: Same.
+	* testsuite/26_numerics/headers/cfenv/types_std_c++0x.cc: Same.
+	* testsuite/26_numerics/headers/cstdlib/types_std_c++0x.cc: Same.
+	* testsuite/26_numerics/headers/cmath/types_std_c++0x.cc: Same.
+	* testsuite/17_intro/headers/c++200x/all_multiple_inclusion.cc: Same.
+	* testsuite/17_intro/headers/c++200x/all.cc: Same.
+	* testsuite/17_intro/using_namespace_std_tr1_neg.cc: Same.
+	* testsuite/23_containers/hash/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/unordered_map/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/tuple/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/unordered_set/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/headers/tuple/types_std_c++0x.cc: Same.
+	* testsuite/23_containers/unordered_multiset/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/array/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/enable_shared_from_this/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/headers/functional/types_std_c++0x.cc: Same.
+	* testsuite/20_util/headers/functional/
+	using_namespace_std_placeholders.cc: Same.
+	* testsuite/20_util/headers/type_traits/types_std_c++0x.cc: Same.
+	* testsuite/20_util/headers/memory/types_std_c++0x.cc: Same.
+	* testsuite/20_util/shared_ptr/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/weak_ptr/requirements/
+	explicit_instantiation.cc: Same.
+	
+2007-03-16  Benjamin Kosnik  <bkoz@redhat.com>
+	
+	* testsuite/lib/dg-options.exp (dg-require-c-std): New.
+	* testsuite/lib/libstdc++.exp (check_v3_target_c_std): New. Check to
+	see if _GLIBCXX_USE_C99_MATH is active. 
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	08_cyl_bessel_i/check_nan.cc: Use dg-require-c-std.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	17_hyperg/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	13_ellint_2/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	20_riemann_zeta/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	01_assoc_laguerre/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	02_assoc_legendre/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	22_sph_legendre/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	10_cyl_bessel_k/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	09_cyl_bessel_j/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	21_sph_bessel/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	07_conf_hyperg/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	16_hermite/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	12_ellint_1/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	05_comp_ellint_2/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	18_laguerre/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	14_ellint_3/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	04_comp_ellint_1/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	06_comp_ellint_3/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	19_legendre/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	03_beta/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	11_cyl_neumann/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	15_expint/check_nan.cc: Same.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	23_sph_neumann/check_nan.cc: Same.
+
+	* include/tr1/poly_laguerre.tcc (__poly_laguerre): Don't check if
+	unsigned int can be a NaN.
+
+2007-03-16  Edward M. Smith-Rowland  <3dw4rd@verizon.net>
+
+	* docs/html/ext/tr1.html : Marked tr1 math special functions done.
+	* docs/html/faq/index.html : Ditto.
+	* include/Makefile.in : Added new special function header files.
+	* include/Makefile.am : Ditto.	
+	* include/tr1/common.h : Added type promotion routines for three
+	and four args.
+
+	* include/tr1/special_function_util.h: New.
+	* include/tr1/bessel_function.tcc: New.
+	* include/tr1/beta_function.tcc: New.
+	* include/tr1/ell_integral.tcc: New.
+	* include/tr1/exp_integral.tcc: New.
+	* include/tr1/gamma.tcc: New.
+	* include/tr1/hypergeometric.tcc: New.
+	* include/tr1/legendre_function.tcc: New.
+	* include/tr1/modified_bessel_func.tcc: New.
+	* include/tr1/poly_hermite.tcc: New.
+	* include/tr1/poly_laguerre.tcc: New.
+	* include/tr1/riemann_zeta.tcc: New.
+	* include/tr1/cmath : Included tr1 math special functions.
+	* include/tr1/math.h : Ditto.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	testcase.h: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	01_assoc_laguerre/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	01_assoc_laguerre/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	01_assoc_laguerre/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	01_assoc_laguerre/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	02_assoc_legendre/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	02_assoc_legendre/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	02_assoc_legendre/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	02_assoc_legendre/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/03_beta/
+	compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/03_beta/
+	check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/03_beta/
+	check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/03_beta/
+	compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	04_comp_ellint_1/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	04_comp_ellint_1/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	04_comp_ellint_1/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	04_comp_ellint_1/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	05_comp_ellint_2/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	05_comp_ellint_2/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	05_comp_ellint_2/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	05_comp_ellint_2/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	06_comp_ellint_3/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	06_comp_ellint_3/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	06_comp_ellint_3/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	06_comp_ellint_3/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	07_conf_hyperg/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	07_conf_hyperg/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	07_conf_hyperg/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	07_conf_hyperg/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	08_cyl_bessel_i/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	08_cyl_bessel_i/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	08_cyl_bessel_i/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	08_cyl_bessel_i/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	09_cyl_bessel_j/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	09_cyl_bessel_j/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	09_cyl_bessel_j/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	09_cyl_bessel_j/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	10_cyl_bessel_k/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	10_cyl_bessel_k/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	10_cyl_bessel_k/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	10_cyl_bessel_k/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	11_cyl_neumann/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	11_cyl_neumann/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	11_cyl_neumann/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	11_cyl_neumann/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/12_ellint_1/
+	compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/12_ellint_1/
+	check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/12_ellint_1/
+	check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/12_ellint_1/
+	compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/13_ellint_2/
+	compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/13_ellint_2/
+	check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/13_ellint_2/
+	check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/13_ellint_2/
+	compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/14_ellint_3/
+	compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/14_ellint_3/
+	check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/14_ellint_3/
+	check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/14_ellint_3/
+	compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/15_expint/
+	check_value_neg.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/15_expint/
+	compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/15_expint/
+	check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/15_expint/
+	compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/15_expint/
+	check_value_pos.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/16_hermite/
+	compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/16_hermite/
+	check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/16_hermite/
+	compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/17_hyperg/
+	compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/17_hyperg/
+	check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/17_hyperg/
+	check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/17_hyperg/
+	compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/18_laguerre/
+	compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/18_laguerre/
+	check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/18_laguerre/
+	check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/18_laguerre/
+	compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/19_legendre/
+	compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/19_legendre/
+	check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/19_legendre/
+	check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/19_legendre/
+	compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	20_riemann_zeta/check_value_neg.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	20_riemann_zeta/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	20_riemann_zeta/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	20_riemann_zeta/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	20_riemann_zeta/check_value_pos.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	21_sph_bessel/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	21_sph_bessel/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	21_sph_bessel/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	21_sph_bessel/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	22_sph_legendre/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	22_sph_legendre/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	22_sph_legendre/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	22_sph_legendre/compile_2.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	23_sph_neumann/compile.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	23_sph_neumann/check_nan.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	23_sph_neumann/check_value.cc: New.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	23_sph_neumann/ compile_2.cc: New.
+	
+2007-03-15  Hans-Peter Nilsson  <hp@axis.com>
+
+	* testsuite/lib/libstdc++.exp (v3-build_support) <ar>: If it
+	exists, use env(AR_FOR_TARGET).  Log the command.
+	<ranlib>: Similar.
+
+2007-03-14  Nathan Sidwell  <nathan@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>::
+
+	* testsuite/lib/libstdc++.exp (check_v3_target_fileio,
+        check_v3_target_time): New.
+	* testsuite/lib/dg-options.exp (dg-require-fileio,
+        dg-require-time): New.
+	* testsuite/ext/stdio_sync_filebuf/char/12048-1.cc: Use it.
+	* testsuite/ext/stdio_sync_filebuf/char/12048-2.cc: Use it.
+	* testsuite/ext/stdio_sync_filebuf/char/12048-3.cc: Use it.
+	* testsuite/ext/stdio_sync_filebuf/char/12048-4.cc: Use it.
+	* testsuite/ext/stdio_sync_filebuf/char/1.cc: Use it.
+	* testsuite/ext/stdio_filebuf/char/2.cc: Use it.
+	* testsuite/ext/stdio_filebuf/char/10063-1.cc: Use it.
+	* testsuite/ext/stdio_filebuf/char/10063-2.cc: Use it.
+	* testsuite/ext/stdio_filebuf/char/10063-3.cc: Use it.
+	* testsuite/22_locale/time_put/put/char/12439_1.cc: Use it.
+	* testsuite/22_locale/time_put/put/char/12439_3.cc: Use it.
+	* testsuite/27_io/basic_ofstream/open/char/1.cc: Use it.
+	* testsuite/27_io/basic_ofstream/cons/char/2.cc: Use it.
+	* testsuite/27_io/objects/char/12048-2.cc: Use it.
+	* testsuite/27_io/objects/char/12048-4.cc: Use it.
+	* testsuite/27_io/objects/char/12048-1.cc: Use it.
+	* testsuite/27_io/objects/char/12048-3.cc: Use it.
+	* testsuite/27_io/objects/char/10.cc: Use it.
+	* testsuite/27_io/objects/char/12048-5.cc: Use it.
+	* testsuite/27_io/basic_istream/get/char/2.cc: Use it.
+	* testsuite/27_io/basic_istream/ignore/char/2.cc: Use it.
+	* testsuite/27_io/basic_istream/ignore/char/3.cc: Use it.
+	* testsuite/27_io/basic_istream/getline/char/5.cc: Use it.
+	* testsuite/27_io/basic_istream/seekg/char/sstream.cc: Use it.
+	* testsuite/27_io/basic_istream/seekg/char/fstream.cc: Use it.
+	* testsuite/27_io/basic_istream/readsome/char/6746-2.cc: Use it.
+	* testsuite/27_io/basic_istream/extractors_other/char/2.cc: Use it.
+	* testsuite/27_io/basic_istream/tellg/char/sstream.cc: Use it.
+	* testsuite/27_io/basic_istream/tellg/char/1.cc: Use it.
+	* testsuite/27_io/basic_istream/tellg/char/fstream.cc: Use it.
+	* testsuite/27_io/basic_istream/extractors_character/char/4.cc: Use it.
+	* testsuite/27_io/basic_ostream/inserters_other/char/1.cc: Use it.
+	* testsuite/27_io/basic_ostream/tellp/char/1.cc: Use it.
+	* testsuite/27_io/basic_ostream/seekp/char/2346-fstream.cc: Use it.
+	* testsuite/27_io/basic_ifstream/open/char/1.cc: Use it.
+	* testsuite/27_io/basic_ifstream/cons/char/1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputbackc/char/1-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputbackc/char/1-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputbackc/char/2-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputbackc/char/2-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sgetn/char/3.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sgetn/char/1-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sgetn/char/1-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sgetn/char/2-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sgetn/char/2-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/12790-1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/12790-2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/12790-3.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/12790-4.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/1-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/1-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/1-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/2-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/2-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/2-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/3-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/3-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/3-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/11543.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/12790-1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/12790-2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/12790-3.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekoff/char/12790-4.cc: Use it.
+	* testsuite/27_io/basic_filebuf/in_avail/char/1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/in_avail/char/9701-3.cc: Use it.
+	* testsuite/27_io/basic_filebuf/setbuf/char/1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/setbuf/char/2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/setbuf/char/3.cc: Use it.
+	* testsuite/27_io/basic_filebuf/setbuf/char/12875-1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/setbuf/char/12875-2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sbumpc/char/1-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sbumpc/char/1-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sbumpc/char/2-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sbumpc/char/2-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sbumpc/char/9825.cc: Use it.
+	* testsuite/27_io/basic_filebuf/is_open/char/1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputc/char/1-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputc/char/1-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputc/char/2-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputc/char/2-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/open/12790-1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/open/char/1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/open/char/2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/open/char/3.cc: Use it.
+	* testsuite/27_io/basic_filebuf/overflow/char/2-unbuf.cc: Use it.
+	* testsuite/27_io/basic_filebuf/overflow/char/2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/overflow/char/9988.cc: Use it.
+	* testsuite/27_io/basic_filebuf/overflow/char/9182-2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/overflow/char/9169.cc: Use it.
+	* testsuite/27_io/basic_filebuf/snextc/char/1-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/snextc/char/1-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/snextc/char/2-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/snextc/char/2-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sgetc/char/1-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sgetc/char/1-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sgetc/char/1-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sgetc/char/2-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sgetc/char/2-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/close/12790-1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/close/char/1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/close/char/12790-1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/close/char/12790-2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/close/char/2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/close/char/12790-3.cc: Use it.
+	* testsuite/27_io/basic_filebuf/close/char/12790-4.cc: Use it.
+	* testsuite/27_io/basic_filebuf/close/char/4.cc: Use it.
+	* testsuite/27_io/basic_filebuf/underflow/10096.cc: Use it.
+	* testsuite/27_io/basic_filebuf/underflow/char/2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sungetc/char/1-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sungetc/char/1-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sungetc/char/2-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sungetc/char/2-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/12790-1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/12790-2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/12790-3.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/12790-1.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/12790-2.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/12790-4.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/1-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/1-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/1-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/2-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/2-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/2-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/3-in.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/3-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/seekpos/char/3-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputn/char/1-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputn/char/1-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputn/char/2-io.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputn/char/2-out.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sputn/char/9339.cc: Use it.
+	* testsuite/27_io/basic_filebuf/pbackfail/char/9761.cc: Use it.
+	* testsuite/27_io/basic_filebuf/sync/char/9182-1.cc: Use it.
+	* testsuite/21_strings/basic_string/inserters_extractors/
+	char/10.cc: Use it.
+	* testsuite/21_strings/basic_string/inserters_extractors/
+	char/11.cc: Use it.
+	* testsuite/21_strings/basic_string/inserters_extractors/
+	char/5.cc: Use it.
+
+2007-03-13  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/tuple: Only include <utility> for std::pair, and
+	forward declare reference_wrapper; formatting fixes.
+	* include/tr1/ref_fwd.h: Remove.
+	* include/tr1/tuple_defs.h: Remove, unused.
+	* include/Makefile.am: Update.
+	* include/Makefile.in: Regenerate.
+	* testsuite/tr1/6_containers/tuple/creation_functions/make_tuple.cc:
+	Include <tr1/functional> too.
+
+	* include/tr1/tuple: Define tuple_size<tuple<_Elements...> >::value.
+
+2007-03-12  Stephen M. Webb  <stephen.webb@bregmasoft.com>
+
+	* include/tr1/regex: Add "boilerplate" implementations.
+	* testsuite/tr1/7_regular_expressions/regex_traits/wchar_t/
+	translate_nocase.cc: New.
+	* testsuite/tr1/7_regular_expressions/regex_traits/wchar_t/
+	ctor.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/regex_traits/char/
+	translate_nocase.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/regex_traits/char/
+	ctor.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/regex/cons/char/
+	c_string_ecma.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/regex/cons/char/
+	default.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/regex/cons/char/
+	c_string_grep.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/regex/cons/char/
+	c_string_extended.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/regex/cons/char/
+	c_string_basic.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/regex/cons/char/
+	c_string_awk.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/regex/cons/char/
+	c_string_egrep.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/wchar_t/
+	range.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/wchar_t/
+	string_op.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/wchar_t/
+	string.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/wchar_t/
+	pstring.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/wchar_t/
+	cstring_op.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/wchar_t/
+	cstring.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/char/
+	range.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/char/
+	string_op.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/char/
+	string.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/char/
+	pstring.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/char/
+	cstring_op.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/char/
+	cstring.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/wchar_t/
+	range.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/wchar_t/
+	default.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/wchar_t/
+	string.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/wchar_t/
+	pstring.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/wchar_t/
+	cstring.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/char/
+	range.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/char/
+	default.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/char/
+	string.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/char/
+	pstring.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/char/
+	cstring.cc: Likewise.
+	* testsuite/tr1/7_regular_expressions/match_results/ctors/char/
+	default.cc: Likewise.
+
+2007-03-12  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algo.h (swap_ranges): Move...
+	* include/bits/stl_algobase.h: ... here.
+	* include/tr1/array: Trim includes, stl_algobase.h is enough.
+
+2007-03-11  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28080 (final)
+	* include/std/iosfwd: Do not include <bits/c++io.h>.
+	* config/io/basic_file_stdio.h: Do it here.
+	* include/ext/stdio_sync_filebuf.h: Likewise.
+	* include/ext/rope: Include <bits/gthr.h> unconditionally.
+	* include/std/fstream: Do not include <bits/gthr.h>.
+	
+	* include/std/ios: Do not include <cstdio>.
+	* include/bits/ios_base.h: Do it here.
+	* testsuite/27_io/ios_base/cons/assign_neg.cc: Adjust dg-error
+	line numbers.
+	* testsuite/27_io/ios_base/cons/copy_neg.cc: Likewise.
+
+2007-03-10  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28080 (partial)
+	* include/std/memory: Move C++03 implementation...
+	* include/bits/stl_memory.h: ... here, new.
+	* include/Makefile.am: Add.
+	* include/bits/stl_tempbuf.h: Include the latter instead.
+	* include/tr1/hashtable: Include allocator.h instead of
+	the whole <memory>.
+	* include/tr1/hashtable_policy.h: Include stl_function.h
+	instead of <functional>.
+	* include/Makefile.in: Regenerate.
+	* testsuite/20_util/auto_ptr/assign_neg.cc: Adjust dg-error
+	line numbers.
+
+2007-03-09  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* include/Makefile.in: Regenerate.
+	* include/tr1/mu_iterate.h: Remove.
+	* include/tr1/tuple (_Tuple_impl): New.
+	(tuple): Make variadic, re-implement as shell over _Tuple_impl.
+	(0-element tuple): Basis case.
+	(2-element tuple): Handle pair methods.
+	(__get_helper): Remove.
+	(tuple_element): Reimplement with variadic templates.
+	(tuple_size): Ditto.
+	(get): Ditto.
+	(operator==): Use variadic templates in the signature.
+	(operator<): Ditto.
+	(operator!=): Ditto.
+	(operator>): Ditto.
+	(operator<=): Ditto.
+	(operator>=): Ditto.
+	(__stripped_tuple_type): Remove; we've inlined its behavior.
+	(make_tuple): Reimplement with variadic templates.
+	(tie): Ditto.
+	* include/tr1/tuple_iterate.h: Remove.
+	* include/tr1/bind_repeat.h: Remove.
+	* include/tr1/ref_wrap_iterate.h: Remove.
+	* include/tr1/bind_iterate.h: Remove.
+	* include/tr1/functional (_Weak_result_type): Add variadic
+	partial specializations.
+	(result_of): Ditto.
+	(__invoke): Reimplement using variadic templates.
+	(reference_wrapper): Reimplement operator() with variadic
+	templates.
+	(_Maybe_unary_or_binary_function): New.
+	(_Mem_fn): Implement for member function pointers using variadic
+	templates.
+	(placeholders): Define 30 placeholders.
+	(_Index_tuple): New.
+	(_Build_index_tuple): New.
+	(_No_tuple_element): New.
+	(_Safe_tuple_element_impl): New.
+	(_Safe_tuple_element): New.
+	(_Mu): Reimplement with variadic templates, use
+	_Safe_tuple_element instead of tuple_element.
+	(_Bind): Reimplement with variadic templates and tuples.
+	(_Bind_result): Ditto.
+	(bind): Reimplement with variadic templates.
+	(_Function_handler): Ditto.
+	(function): Ditto.
+	* include/tr1/functional_iterate.h: Remove.
+	* include/tr1/repeat.h: Remove.
+	* include/Makefile.am: Don't install removed headers.
+	
+2007-03-06  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28080 (partial)
+	* include/bits/stl_algobase.h: Do not include <cstdlib>.
+	* src/localename.cc: Do it here.
+	* src/ctype.cc: Likewise.
+	* include/ext/pb_ds/detail/map_debug_base.hpp: Likewise.
+	* include/ext/pb_ds/exception.hpp: Likewise.
+	* include/ext/pb_ds/list_update_policy.hpp: Likewise.
+	* include/bits/stl_algo.h: Likewise.
+	* include/tr1/random: Likewise.
+	* testsuite/util/testsuite_hooks.cc: Likewise.
+	* testsuite/util/testsuite_abi_check.cc: Likewise.
+	* testsuite/util/testsuite_abi.cc: Likewise.
+	* testsuite/util/performance/assoc/timing/
+	tree_order_statistics_test.hpp: Likewise.
+	* config/locale/darwin/ctype_members.cc: Likewise.
+	* config/locale/gnu/c++locale_internal.h: Likewise.
+	* config/locale/generic/ctype_members.cc: Likewise.
+	* config/locale/generic/time_members.cc: Likewise.
+
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_load_check_resize_trigger_imp.hpp: Qualify abort.
+	* testsuite/util/performance/assoc/timing/
+	multimap_find_test.hpp: Likewise.
+	* include/std/valarray: Do include <cstdlib>.
+	* include/tr1/hashtable: Likewise.
+
+2007-03-05  Joseph Myers  <joseph@codesourcery.com>
+
+	PR libstdc++/30675
+	* testsuite/lib/libstdc++.exp (v3-build_support): Use [transform
+	"ar"] and [transform "ranlib"].
+
+2007-03-04  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/27_io/basic_ostream/inserters_arithmetic/
+	char/31031.cc: Include the right header.
+
+2007-03-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* acinclude.m4 (GLIBCXX_ENABLE_CHEADERS): Add c_global.
+	* configure.host (c_model): Set default to c_global.
+	* configure: Regenerate.
+	* include/Makefile.am (c_compatibility_headers_extra): Make
+	conditional on GLIBCXX_C_HEADERS_COMPATIBILITY.
+	(c_base_headers_extra): Make conditional on GLIBCXX_C_HEADERS_EXTRA.
+	(c_compatibility_headers): Make conditional on c/c_std/c_global.
+	* include/Makefile.in: Regenerate.
+	* docs/html/configopts.html: Add c_global information to
+	--enable-cheaders. Eventually, "c_std" should mean "C" includes
+	that are in namespace std, with optional C++ "C" compatibility
+	includes to inject into global scope. And "c_global" should mean
+	"C" includes that are in the global namespace, with C++ includes
+	injecting into namespace std and no C++ "C" compatibility
+	includes.
+ 
+2007-03-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/c++config: Add _GLIBCXX_NAMEPACE_C.
+	Add _GLIBCXX_NAMESPACE_ASSOCIATION_CXX200x.
+	Add _GLIBCXX_TR1 as namespace macro.
+	Add namespace associations for std::__cxx200x conditionally.
+
+	* include/c_compatibility/assert.h: Correct doxygen markup,
+	conditionalize the global injections on _GLIBCXX_NAMESPACE_C.
+	* include/c_compatibility/ctype.h: Same.
+	* include/c_compatibility/errno.h: Same.
+	* include/c_compatibility/float.h: Same.
+	* include/c_compatibility/iso646.h: Same.
+	* include/c_compatibility/limits.h: Same.
+	* include/c_compatibility/locale.h: Same.
+	* include/c_compatibility/math.h: Same.
+	* include/c_compatibility/setjmp.h: Same.
+	* include/c_compatibility/signal.h: Same.
+	* include/c_compatibility/stdarg.h: Same.
+	* include/c_compatibility/stddef.h: Same.
+	* include/c_compatibility/stdio.h: Same.
+	* include/c_compatibility/stdlib.h: Same.
+	* include/c_compatibility/string.h: Same.
+	* include/c_compatibility/time.h: Same.
+	* include/c_compatibility/wchar.h: Same.
+	* include/c_compatibility/wctype.h: Same.
+
+	* include/c_compatibility/complex.h: Add.
+	* include/c_compatibility/fenv.h: Same.
+	* include/c_compatibility/inttypes.h: Same.
+	* include/c_compatibility/stdbool.h: Same.
+	* include/c_compatibility/stdint.h: Same.
+	* include/c_compatibility/tgmath.h: Same.
+
+	* include/c_global/cassert: Add, use include_next, use C++0x features
+	if -std=c++0x.
+	* include/c_global/cctype: Same.
+	* include/c_global/cerrno: Same.
+	* include/c_global/cfloat: Same.
+	* include/c_global/ciso646: Same.
+	* include/c_global/climits: Same.
+	* include/c_global/clocale: Same.
+	* include/c_global/cmath: Same.
+	* include/c_global/cmath.tcc: Same.
+	* include/c_global/csetjmp: Same.
+	* include/c_global/csignal: Same.
+	* include/c_global/cstdarg: Same.
+	* include/c_global/cstddef: Same.
+	* include/c_global/cstdio: Same.
+	* include/c_global/cstdlib: Same.
+	* include/c_global/cstring: Same.
+	* include/c_global/ctime: Same.
+	* include/c_global/cwchar: Same.
+	* include/c_global/cwctype: Same.
+
+	* include/c_global/ccomplex: Add.
+	* include/c_global/cfenv: Add.
+	* include/c_global/cinttypes: Add. 
+	* include/c_global/cstdbool: Add.
+	* include/c_global/cstdint: Add.
+	* include/c_global/ctgmath: Add.
+
+	* include/std/algorithm: Use C++0x features if -std=c++0x.	
+	* include/std/bitset: Same.
+	* include/std/complex: Same.
+	* include/std/deque: Same.
+	* include/std/fstream: Same.
+	* include/std/functional: Same.
+	* include/std/iomanip: Same.
+	* include/std/ios: Same.
+	* include/std/iosfwd: Same.
+	* include/std/iostream: Same.
+	* include/std/istream: Same.
+	* include/std/iterator: Same.
+	* include/std/limits: Same.
+	* include/std/list: Same.
+	* include/std/locale: Same.
+	* include/std/map: Same.
+	* include/std/memory: Same.
+	* include/std/numeric: Same.
+	* include/std/ostream: Same.
+	* include/std/queue: Same.
+	* include/std/set: Same.
+	* include/std/sstream: Same.
+	* include/std/stack: Same.
+	* include/std/stdexcept: Same.
+	* include/std/streambuf: Same.
+	* include/std/string: Same.
+	* include/std/utility: Same.
+	* include/std/valarray: Same.
+	* include/std/vector: Same.
+
+	* include/std/array: Add.
+	* include/std/random: Add.
+	* include/std/regex: Add.
+	* include/std/tuple: Add.
+	* include/std/type_traits: Add.
+	* include/std/unordered_map: Add.
+	* include/std/unordered_set: Add.
+	* include/std/c++0x_warning.h: Add.
+	
+	* include/tr1/array: Switch namespaces based on _GLIBCXX_TR1.
+	* include/tr1/boost_shared_ptr.h: Same.
+	* include/tr1/cctype: Same.
+	* include/tr1/cfenv: Same.
+	* include/tr1/cinttypes: Same.
+	* include/tr1/cmath: Same.
+	* include/tr1/common.h: Same.
+	* include/tr1/complex: Same.
+	* include/tr1/cstdint: Same.
+	* include/tr1/cstdio: Same.
+	* include/tr1/cstdlib: Same.
+	* include/tr1/cwchar: Same.
+	* include/tr1/cwctype: Same.
+	* include/tr1/functional: Same.
+	* include/tr1/functional_hash.h: Same.
+	* include/tr1/functional_iterate.h: Same.
+	* include/tr1/hashtable: Same.
+	* include/tr1/hashtable_policy.h: Same.
+	* include/tr1/math.h: Same.
+	* include/tr1/memory: Same.
+	* include/tr1/random: Same.
+	* include/tr1/random.tcc: Same.
+	* include/tr1/ref_fwd.h: Same.
+	* include/tr1/repeat.h: Same.
+	* include/tr1/stdlib.h: Same.
+	* include/tr1/tuple: Same.
+	* include/tr1/tuple_iterate.h: Same.
+	* include/tr1/type_traits: Same.
+	* include/tr1/type_traits_fwd.h: Same.
+	* include/tr1/unordered_map: Same.
+	* include/tr1/unordered_set: Same.
+	* include/tr1/utility: Same.
+
+	* include/tr1/ccomplex: Add.
+	* include/tr1/complex.h: Add.
+	* include/tr1/regex: Add.
+
+	* include/Makefile.am: Add C++0x headers, "C" compatibility headers.
+	* include/Makefile.in: Regenerate.
+
+	* testsuite/tr1/headers.cc: Add in regex/complex.
+
+	* testsuite/17_intro/headers/c++200x/all.cc: New.
+	* testsuite/17_intro/headers/c++200x/all_multiple_inclusion.cc: Same.
+	* testsuite/17_intro/using_namespace_std_tr1_neg.cc: Same.
+	* testsuite/18_support/headers/cstdbool/std_c++0x_neg.cc: Same.
+	* testsuite/18_support/headers/cstdint/std_c++0x_neg.cc: Same.
+	* testsuite/18_support/headers/cstdint/types_std_c++0x.cc: Same.
+	* testsuite/20_util/enable_shared_from_this/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/headers/functional/types_std_c++0x.cc: Same.
+	* testsuite/20_util/headers/functional/
+	using_namespace_std_placeholders.cc: Same.
+	* testsuite/20_util/headers/memory/types_std_c++0x.cc: Same.
+	* testsuite/20_util/headers/type_traits/std_c++0x_neg.cc: Same.
+	* testsuite/20_util/headers/type_traits/types_std_c++0x.cc: Same.
+	* testsuite/20_util/shared_ptr/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/weak_ptr/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/array/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/hash/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/headers/array/std_c++0x_neg.cc: Same.
+	* testsuite/23_containers/headers/tuple/std_c++0x_neg.cc: Same.
+	* testsuite/23_containers/headers/tuple/types_std_c++0x.cc: Same.
+	* testsuite/23_containers/headers/unordered_map/std_c++0x_neg.cc: Same.
+	* testsuite/23_containers/headers/unordered_set/std_c++0x_neg.cc: Same.
+	* testsuite/23_containers/tuple/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/unordered_map/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/unordered_multiset/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/23_containers/unordered_set/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/26_numerics/headers/ccomplex/std_c++0x_neg.cc: Same.
+	* testsuite/26_numerics/headers/cfenv/std_c++0x_neg.cc: Same.
+	* testsuite/26_numerics/headers/cfenv/types_std_c++0x.cc: Same.
+	* testsuite/26_numerics/headers/cmath/types_std_c++0x.cc: Same.
+	* testsuite/26_numerics/headers/cstdlib/types_std_c++0x.cc: Same.
+	* testsuite/26_numerics/headers/ctgmath/std_c++0x_neg.cc: Same.
+	* testsuite/26_numerics/headers/random/std_c++0x_neg.cc: Same.
+	* testsuite/26_numerics/headers/random/types_std_c++0x.cc: Same.
+	* testsuite/27_io/headers/cinttypes/std_c++0x_neg.cc: Same.
+	* testsuite/27_io/headers/cinttypes/types_std_c++0x.cc: Same.
+	* testsuite/28_regex/headers/regex/std_c++0x_neg.cc: Same.
+
+	* testsuite/tr1/8_c_compatibility/cfenv/types.cc: Rename ...
+	* testsuite/tr1/8_c_compatibility/cinttypes/types.cc: Same.
+	* testsuite/tr1/8_c_compatibility/cmath/types.cc: Same.
+	* testsuite/tr1/8_c_compatibility/cstdint/types.cc: Same.
+	* testsuite/tr1/8_c_compatibility/cstdlib/types.cc: Same.
+	* testsuite/tr1/8_c_compatibility/cfenv/types_std_tr1.cc: ...to this.
+	* testsuite/tr1/8_c_compatibility/cinttypes/types_std_tr1.cc: Same.
+	* testsuite/tr1/8_c_compatibility/cmath/types_std_tr1.cc: Same.
+	* testsuite/tr1/8_c_compatibility/cstdint/types_std_tr1.cc: Same.
+	* testsuite/tr1/8_c_compatibility/cstdlib/types_std_tr1.cc: Same.
+
+2007-03-03  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31031
+	* include/bits/istream.tcc: Inhibit implicit instantiation of
+	the _M_insert helpers.
+	* include/bits/ostream.tcc: Likewise for _M_extract.
+	* testsuite/27_io/basic_ostream/inserters_arithmetic/char/
+	31031.cc: New.
+	* testsuite/27_io/basic_ostream/inserters_arithmetic/wchar_t/
+	31031.cc: Likewise.
+
+2007-03-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/debug/functions.h: Use cstddef.
+	
+	* testsuite/tr1/3_function_objects/headers/functional/
+	using_namespace_std_tr1_placeholders.cc: Fix include.
+	
+2007-03-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* crossconfig.m4 (djgpp): Correct builtin defines to HAVE___,
+	instead of HAVE____.
+	* configure: Regenerate.
+
+2007-03-03  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28080 (partial)
+	* include/bits/stl_algobase.h: Do not include <iosfwd>,
+	<bits/functexcept.h> is enough; adjust __copy_aux declarations;
+	remove declaration of copy overload for istreambuf_iterator /
+	ostreambuf_iterator.
+	* src/debug.cc: Include <cstdio>.
+	* include/ext/rope: Include <iosfwd>.
+	* include/bits/char_traits.h: Include <cstdio> and <cwchar>.
+	* include/bits/stl_algo.h: Remove declaration of find overload
+	for istreambuf_iterator.
+	* include/std/queue: Clean up includes.
+	* include/std/stack: Likewise.
+	* include/std/memory: Likewise.
+	* include/std/algorithm: Likewise.
+	* include/std/vector: Likewise.
+	* include/std/deque: Likewise.
+	* include/std/list: Likewise.
+	* include/bits/stl_tree.h: Likewise.
+	* testsuite/ext/type_traits/remove_unsigned_integer_neg.cc: Adjust
+	dg-error markers.
+	* testsuite/ext/type_traits/add_unsigned_floating_neg.cc: Likewise.
+	* testsuite/ext/type_traits/remove_unsigned_floating_neg.cc: Likewise.
+	* testsuite/ext/type_traits/add_unsigned_integer_neg.cc: Likewise.
+	* testsuite/23_containers/set/operators/1_neg.cc: Likewise.
+	* testsuite/23_containers/map/operators/1_neg.cc: Likewise.
+	* testsuite/20_util/auto_ptr/assign_neg.cc: Likewise.
+
+	* include/ext/type_traits.h: Fix type of __max_digits10; clean up
+	includes.
+
+	* testsuite/util/testsuite_hooks.h: Do not include <cstddef>.
+	* testsuite/util/testsuite_hooks.cc: Do it here.
+
+2007-03-02  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/27_io/objects/wchar_t/9661-1.cc: Include <cstdlib>.
+	* testsuite/27_io/objects/wchar_t/7.cc: Likewise.
+	* testsuite/27_io/objects/char/9661-1.cc: Likewise.
+	* testsuite/27_io/objects/char/7.cc: Likewise.
+	* testsuite/27_io/basic_istream/ignore/wchar_t/2.cc: Likewise.
+	* testsuite/27_io/basic_istream/ignore/char/2.cc: Likewise.
+	* testsuite/27_io/basic_istream/getline/wchar_t/5.cc: Likewise.
+	* testsuite/27_io/basic_istream/getline/char/5.cc: Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/char/
+	11.cc: Likewise.
+	* testsuite/27_io/basic_istream/extractors_character/wchar_t/
+	4.cc: Likewise.
+	* testsuite/27_io/basic_istream/extractors_character/char/
+	4.cc: Likewise.
+	* testsuite/27_io/basic_ostream/seekp/wchar_t/
+	2346-fstream.cc: Likewise.
+	* testsuite/27_io/basic_ostream/seekp/char/
+	2346-fstream.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/seekoff/char/26777.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/imbue/wchar_t/13582-2.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/imbue/wchar_t/14975-2.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/imbue/char/13171-2.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/imbue/char/13582-2.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/close/char/4879.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/close/char/9964.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/underflow/char/10097.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/showmanyc/char/9533-1.cc: Likewise.
+	* testsuite/21_strings/basic_string/inserters_extractors/
+	wchar_t/10.cc: Likewise.
+	* testsuite/21_strings/basic_string/inserters_extractors/
+	wchar_t/11.cc: Likewise.
+	* testsuite/21_strings/basic_string/inserters_extractors/
+	char/10.cc: Likewise.
+	* testsuite/21_strings/basic_string/inserters_extractors/
+	char/11.cc: Likewise.
+	* testsuite/ext/pb_ds/example/trie_dna.cc: Likewise.
+	* testsuite/ext/new_allocator/deallocate_global.cc: Likewise.
+	* testsuite/ext/new_allocator/deallocate_local.cc: Likewise.
+	* testsuite/performance/27_io/filebuf_sgetn_unbuf.cc: Likewise.
+	* testsuite/performance/27_io/ifstream_getline.cc: Likewise.
+	* testsuite/22_locale/locale/cons/4.cc: Likewise.
+	* testsuite/22_locale/locale/cons/5.cc: Likewise.
+	* testsuite/tr1/2_general_utilities/shared_ptr/thread/
+	mutex_weaktoshared.cc: Likewise.
+	* testsuite/tr1/2_general_utilities/shared_ptr/thread/
+	default_weaktoshared.cc: Likewise.
+	* testsuite/thread/pthread5.cc: Likewise.
+	* testsuite/thread/pthread1.cc: Likewise.
+	* testsuite/23_containers/deque/cons/assign/1.cc: Likewise.
+
+2007-03-02  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/thread/pthread1.cc: Include <pthread.h>.
+	* testsuite/thread/pthread2.cc: Likewise.
+	* testsuite/thread/pthread3.cc: Likewise.
+	* testsuite/thread/pthread4.cc: Likewise.
+	* testsuite/thread/pthread5.cc: Likewise.
+	* testsuite/thread/pthread6.cc: Likewise.
+	* testsuite/thread/pthread7-rope.cc: Likewise.
+
+2007-03-02  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28080 (partial)
+	* include/tr1/random (class random_device): Rework to use simple
+	<cstdio> input, do not include <fstream>.
+	* include/tr1/random.tcc (all inserters and extractors): Refer
+	to ios_base as base class of basic_istream or basic_ostream.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.am: Add dummy install-pdf target.
+	* Makefile.in: Regenerate
+
+2007-03-01  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31005
+	* include/bits/localefwd.h: Include <cctype>.
+
+2007-02-27  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28080 (partial)
+	* include/std/bitset: Do not include <ios>, <iosfwd> is enough.
+	(operator>>(std::basic_istream<>&, bitset<>&)): Tweak, refer to
+	ios_base as a base of basic_istream.
+	* include/std/iomanip: Do not include <ios>, <iosfwd> + 
+	<bits/ios_base.h> is enough.
+	* include/std/iosfwd: Do not include <cctype> here...
+	* include/bits/locale_facets.h: ... do it here, when needed.
+	* include/bits/ostream.tcc: Clean up, do not include <locale> here...
+	* include/std/ostream: ... here instead.
+	* include/bits/istream.tcc: Likewise for <locale> and <ostream>...
+	* include/std/istream: ... here.
+	* include/bits/sstream.tcc: Do not include <sstream>.
+
+2007-02-27  Richard Guenther  <rguenther@suse.de>
+
+	* acinclude.m4: Adjust regular expression for ld version extraction.
+	* configure: Regenerate.
+
+2007-02-26  DJ Delorie  <dj@redhat.com>
+
+	* crossconfig.m4 (djgpp): Pre-detect djgpp-specific results, to
+	avoid needing to link during cross compiling.
+	* configure: Regenerated.
+
+2007-02-26  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28080 (partial)
+	* include/std/bitset: Do not include <istream> and <ostream>,
+	<ios> is enough.
+	* include/std/iomanip: Do not include the whole <istream>,
+	<ios> is enough; do not include <functional>; reformat.
+	* include/std/functional: Do not include <cstddef>.
+	* include/std/list: Do not include <bits/stl_uninitialized.h>.
+	* include/std/numeric: Do not include the whole <iterator> and
+	<bits/stl_function.h>.
+	* include/std/valarray: Do not include <numeric>.
+	* include/bits/stl_numeric.h: Include <bits/concept_check.h>.
+	* src/iostream-inst.cc: Include <istream>.
+	* include/ext/functional: Include <cstddef>.
+	* testsuite/util/testsuite_hooks.h: Do not include <locale>,
+	<ctime> is enough; qualify tm.
+	* testsuite/util/testsuite_hooks.cc: Qualify tm.
+
+2007-02-26  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.h (class ctype_byname<char>,
+	class ctype_byname<wchar_t>): Declare.
+	* src/ctype.cc (ctype_byname<wchar_t>::ctype_byname(const char*,
+	size_t), ctype_byname<wchar_t>::~ctype_byname): Define.
+	* config/locale/generic/ctype_members.cc (ctype_byname<char>::
+	ctype_byname(const char*, size_t), ctype_byname<char>::~ctype_byname):
+	Likewise.
+	* config/locale/gnu/ctype_members.cc (ctype_byname<char>::
+	ctype_byname(const char*, size_t), ctype_byname<char>::~ctype_byname):
+	Likewise.
+	* config/locale/darwin/ctype_members.cc (ctype_byname<char>::
+	ctype_byname(const char*, size_t), ctype_byname<char>::~ctype_byname):
+	Likewise.
+	* testsuite/22_locale/headers/locale/synopsis.cc: Remove xfail.
+
+2007-02-25  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/19_diagnostics/headers/cerrno/macros.cc: Include
+	the right header.
+	* testsuite/18_support/headers/cstdlib/macros.cc: Likewise.
+
+2007-02-23  Paolo Carlini  <pcarlini@suse.de>
+	
+	PR libstdc++/25896
+	* include/tr1/hashtable (_Hashtable<>::erase(const key_type&)):
+	Take care of &_M_extract((*__slot)->_M_v) == &__k.
+
+	* testsuite/tr1/6_containers/unordered_map/erase/1.cc: New.
+	* testsuite/tr1/6_containers/unordered_multimap/erase/1.cc: Likewise.
+	* testsuite/tr1/6_containers/unordered_multiset/erase/1.cc: Likewise.
+	* testsuite/tr1/6_containers/unordered_set/erase/1.cc: Likewise.
+
+2007-02-23  Mark Mitchell  <mark@codesourcery.com>
+
+	* testsuite/27_io/ios_base/sync_with_stdio/1.cc: XFAIL for wrapped
+	targets.
+
+2007-02-23  Mark Mitchell  <mark@codesourcery.com>
+
+	* testsuite/26_numerics/headers/cmath/c99_classification_macros_c.cc:
+	XFAIL for Newlib targets.
+
+2007-02-22  Simon Martin  <simartin@users.sourceforge.net>
+
+	* testsuite/27_io/basic_ios/cons/char/3.cc: Fixed type mismatches in
+	explicit instantiations.
+	* testsuite/27_io/basic_istream/extractors_other/pod/
+	3983-3.cc: Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/pod/3983-1.cc:
+	Likewise.
+	* testsuite/27_io/basic_istream/extractors_character/pod/3983-2.cc:
+	Likewise.
+	* testsuite/27_io/basic_istream/sentry/pod/1.cc: Likewise.
+	* testsuite/27_io/basic_ostream/sentry/pod/1.cc: Likewise.
+	* testsuite/21_strings/basic_string/inserters_extractors/
+	pod/10081-in.cc: Likewise.
+	* testsuite/21_strings/basic_string/inserters_extractors/pod/
+	10081-out.cc: Likewise.
+	* testsuite/21_strings/basic_string/capacity/1.cc: Likewise.
+
+2007-02-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/unordered_map (class __unordered_map,
+	class __unordered_multimap): New.
+	(class unordered_map, class unordered_multimap): Forward to
+	the latter.
+	* include/tr1/unordered_set: Likewise for unordered_set and
+	unordered_multiset.
+	* testsuite/tr1/6_containers/headers/unordered_set/synopsis.cc:
+	Remove xfail.
+	* testsuite/tr1/6_containers/headers/unordered_map/synopsis.cc:
+	Likewise.
+	* testsuite/tr1/6_containers/unordered_multimap/requirements/
+	explicit_instantiation.cc: Adjust.
+	* testsuite/tr1/6_containers/unordered_set/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/tr1/6_containers/unordered_map/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/tr1/6_containers/unordered_multiset/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/tr1/6_containers/unordered_map/24064.cc: Likewise.
+	* testsuite/util/native_type/assoc/native_hash_set.hpp: Likewise.
+	* testsuite/util/native_type/assoc/native_hash_map.hpp: Likewise.
+
+2007-02-20  Mark Mitchell  <mark@codesourcery.com>
+
+	* testsuite/lib/libstdc++.exp (libstdc++_init): Compile testglue
+	with -fexceptions.
+
+2007-02-20  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28080 (partial)
+	* include/tr1/functional: Split out hash bits to...
+	* include/tr1/functional_hash.h: ...here.
+	* include/Makefile.am: Add.
+	* include/tr1/unordered_set: Include the latter instead.
+	* include/tr1/unordered_map: Likewise.
+	* include/tr1/random: Do not include the whole <algorithm>,
+	stl_algobase.h is enough.
+	* include/tr1/memory: Likewise.
+	* include/Makefile.in: Regenerate.
+
+	* include/tr1/utility (get(std::pair<>&), get(const std::pair<>&)):
+	Mark inline.
+
+2007-02-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	Directory layout flattening.
+
+	Added in testsuite:
+	* 20_util/allocator
+	* 20_util/auto_ptr
+	* 20_util/function_objects
+	* 20_util/function_objects/binders
+	* 20_util/function_objects/binders/1.cc
+	* 20_util/function_objects/binders/3113.cc
+	* 20_util/function_objects/comparisons.cc
+	* 20_util/pair
+	* 20_util/raw_storage_iterator
+	* 20_util/rel_ops.cc
+	* 20_util/specialized_algorithms
+	* 20_util/specialized_algorithms/16505.cc
+	* 20_util/temporary_buffer.cc
+	* 26_numerics/numeric_arrays/slice_array
+	* 26_numerics/numeric_arrays/slice_array/array_assignment.cc
+	* 26_numerics/numeric_arrays/slice_array/requirements
+	* 26_numerics/numeric_arrays/slice_array/requirements/
+	explicit_instantiation.cc
+	* 26_numerics/numeric_arrays/slice_array/requirements/typedefs.cc
+	* 26_numerics/numeric_arrays/valarray
+	* 26_numerics/numeric_arrays/valarray/27867.cc
+	* 26_numerics/numeric_arrays/valarray/28277.cc
+	* 26_numerics/numeric_arrays/valarray/30416.cc
+	* 26_numerics/numeric_arrays/valarray/algo.cc
+	* 26_numerics/numeric_arrays/valarray/binary_closure.cc
+	* 26_numerics/numeric_arrays/valarray/const_bracket.cc
+	* 26_numerics/numeric_arrays/valarray/dr543.cc
+	* 26_numerics/numeric_arrays/valarray/name_lookup.cc
+	* 26_numerics/numeric_arrays/valarray/operators.cc
+	* 26_numerics/numeric_arrays/valarray/requirements
+	* 26_numerics/numeric_arrays/valarray/requirements/
+	explicit_instantiation.cc
+	* 26_numerics/numeric_arrays/valarray/requirements/typedefs.cc
+	* 26_numerics/numeric_arrays/valarray/subset_assignment.cc
+	* tr1/2_general_utilities/enable_shared_from_this
+	* tr1/2_general_utilities/shared_ptr
+	* tr1/2_general_utilities/weak_ptr
+	
+	Deleted in testsuite:
+	* 20_util/functional
+	* 20_util/functional/binders
+	* 20_util/functional/binders/1.cc
+	* 20_util/functional/binders/3113.cc
+	* 20_util/functional/comparisons.cc
+	* 20_util/memory
+	* 20_util/memory/16505.cc
+	* 20_util/memory/allocator
+	* 20_util/memory/allocator/10378.cc
+	* 20_util/memory/allocator/14176.cc
+	* 20_util/memory/allocator/1.cc
+	* 20_util/memory/allocator/8230.cc
+	* 20_util/memory/allocator/requirements
+	* 20_util/memory/allocator/requirements/explicit_instantiation
+	* 20_util/memory/allocator/requirements/explicit_instantiation/1.cc
+	* 20_util/memory/auto_ptr
+	* 20_util/memory/auto_ptr/1.cc
+	* 20_util/memory/auto_ptr/2.cc
+	* 20_util/memory/auto_ptr/3946.cc
+	* 20_util/memory/auto_ptr/3.cc
+	* 20_util/memory/auto_ptr/4.cc
+	* 20_util/memory/auto_ptr/5.cc
+	* 20_util/memory/auto_ptr/6.cc
+	* 20_util/memory/auto_ptr/7.cc
+	* 20_util/memory/auto_ptr/assign_neg.cc
+	* 20_util/memory/auto_ptr/requirements
+	* 20_util/memory/auto_ptr/requirements/explicit_instantiation
+	* 20_util/memory/auto_ptr/requirements/explicit_instantiation/1.cc
+	* 20_util/memory/raw_storage_iterator
+	* 20_util/memory/raw_storage_iterator/requirements
+	* 20_util/memory/raw_storage_iterator/requirements/base_classes.cc
+	* 20_util/memory/raw_storage_iterator/requirements/
+	explicit_instantiation
+	* 20_util/memory/raw_storage_iterator/requirements/
+	explicit_instantiation/1.cc
+	* 20_util/memory/raw_storage_iterator/requirements/typedefs.cc
+	* 20_util/memory/temporary_buffer.cc
+	* 20_util/utility
+	* 20_util/utility/pair
+	* 20_util/utility/pair/1.cc
+	* 20_util/utility/pair/2.cc
+	* 20_util/utility/pair/3.cc
+	* 20_util/utility/pair/4.cc
+	* 20_util/utility/pair/requirements
+	* 20_util/utility/pair/requirements/explicit_instantiation
+	* 20_util/utility/pair/requirements/explicit_instantiation/1.cc
+	* 20_util/utility/rel_ops.cc
+	* 26_numerics/numeric_arrays/27867.cc
+	* 26_numerics/numeric_arrays/28277.cc
+	* 26_numerics/numeric_arrays/30416.cc
+	* 26_numerics/numeric_arrays/binary_closure.cc
+	* 26_numerics/numeric_arrays/dr543.cc
+	* 26_numerics/numeric_arrays/slice_array_assignment.cc
+	* 26_numerics/numeric_arrays/valarray.cc
+	* 26_numerics/numeric_arrays/valarray_const_bracket.cc
+	* 26_numerics/numeric_arrays/valarray_name_lookup.cc
+	* 26_numerics/numeric_arrays/valarray_operators.cc
+	* 26_numerics/numeric_arrays/valarray_subset_assignment.cc
+	* tr1/2_general_utilities/memory
+	* tr1/2_general_utilities/memory/enable_shared_from_this
+	* tr1/2_general_utilities/memory/enable_shared_from_this/1.cc
+	* tr1/2_general_utilities/memory/enable_shared_from_this/not_shared2.cc
+	* tr1/2_general_utilities/memory/enable_shared_from_this/not_shared3.cc
+	* tr1/2_general_utilities/memory/enable_shared_from_this/not_shared.cc
+	* tr1/2_general_utilities/memory/enable_shared_from_this/requirements
+	* tr1/2_general_utilities/memory/enable_shared_from_this/
+	requirements/explicit_instantiation
+	* tr1/2_general_utilities/memory/enable_shared_from_this/
+	requirements/explicit_instantiation/1.cc
+	* tr1/2_general_utilities/memory/enable_shared_from_this/shared.cc
+	* tr1/2_general_utilities/memory/enable_shared_from_this/
+	still_shared.cc
+	* tr1/2_general_utilities/memory/shared_ptr
+	* tr1/2_general_utilities/memory/shared_ptr/assign
+	* tr1/2_general_utilities/memory/shared_ptr/assign/assign.cc
+	* tr1/2_general_utilities/memory/shared_ptr/assign/auto_ptr.cc
+	* tr1/2_general_utilities/memory/shared_ptr/assign/auto_ptr_neg.cc
+	* tr1/2_general_utilities/memory/shared_ptr/assign/
+	auto_ptr_rvalue_neg.cc
+	* tr1/2_general_utilities/memory/shared_ptr/assign/dr541.cc
+	* tr1/2_general_utilities/memory/shared_ptr/assign/shared_ptr.cc
+	* tr1/2_general_utilities/memory/shared_ptr/assign/shared_ptr_neg.cc
+	* tr1/2_general_utilities/memory/shared_ptr/casts
+	* tr1/2_general_utilities/memory/shared_ptr/casts/1.cc
+	* tr1/2_general_utilities/memory/shared_ptr/comparison
+	* tr1/2_general_utilities/memory/shared_ptr/comparison/cmp.cc
+	* tr1/2_general_utilities/memory/shared_ptr/cons
+	* tr1/2_general_utilities/memory/shared_ptr/cons/auto_ptr.cc
+	* tr1/2_general_utilities/memory/shared_ptr/cons/auto_ptr_neg.cc
+	* tr1/2_general_utilities/memory/shared_ptr/cons/copy.cc
+	* tr1/2_general_utilities/memory/shared_ptr/cons/default.cc
+	* tr1/2_general_utilities/memory/shared_ptr/cons/pointer.cc
+	* tr1/2_general_utilities/memory/shared_ptr/cons/weak_ptr.cc
+	* tr1/2_general_utilities/memory/shared_ptr/cons/weak_ptr_expired.cc
+	* tr1/2_general_utilities/memory/shared_ptr/dest
+	* tr1/2_general_utilities/memory/shared_ptr/dest/dest.cc
+	* tr1/2_general_utilities/memory/shared_ptr/misc
+	* tr1/2_general_utilities/memory/shared_ptr/misc/24595.cc
+	* tr1/2_general_utilities/memory/shared_ptr/misc/io.cc
+	* tr1/2_general_utilities/memory/shared_ptr/misc/swap.cc
+	* tr1/2_general_utilities/memory/shared_ptr/modifiers
+	* tr1/2_general_utilities/memory/shared_ptr/modifiers/24805.cc
+	* tr1/2_general_utilities/memory/shared_ptr/modifiers/reset.cc
+	* tr1/2_general_utilities/memory/shared_ptr/modifiers/reset_neg.cc
+	* tr1/2_general_utilities/memory/shared_ptr/modifiers/swap.cc
+	* tr1/2_general_utilities/memory/shared_ptr/modifiers/swap_neg.cc
+	* tr1/2_general_utilities/memory/shared_ptr/observers
+	* tr1/2_general_utilities/memory/shared_ptr/observers/bool_conv.cc
+	* tr1/2_general_utilities/memory/shared_ptr/observers/get.cc
+	* tr1/2_general_utilities/memory/shared_ptr/observers/unique.cc
+	* tr1/2_general_utilities/memory/shared_ptr/observers/use_count.cc
+	* tr1/2_general_utilities/memory/shared_ptr/requirements
+	* tr1/2_general_utilities/memory/shared_ptr/requirements/
+	explicit_instantiation
+	* tr1/2_general_utilities/memory/shared_ptr/requirements/
+	explicit_instantiation/1.cc
+	* tr1/2_general_utilities/memory/shared_ptr/thread
+	* tr1/2_general_utilities/memory/shared_ptr/thread/
+	default_weaktoshared.cc
+	* tr1/2_general_utilities/memory/shared_ptr/thread/
+	mutex_weaktoshared.cc
+	* tr1/2_general_utilities/memory/weak_ptr
+	* tr1/2_general_utilities/memory/weak_ptr/lock
+	* tr1/2_general_utilities/memory/weak_ptr/lock/1.cc
+	* tr1/2_general_utilities/memory/weak_ptr/requirements
+	* tr1/2_general_utilities/memory/weak_ptr/requirements/
+	explicit_instantiation
+	* tr1/2_general_utilities/memory/weak_ptr/requirements/
+	explicit_instantiation/1.cc
+
+2007-02-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	Revamp library API testing.
+	
+	Added in testsuite:
+	* 17_intro/headers
+	* 17_intro/headers/all_assert_neg.cc
+	* 17_intro/headers/all_c++200x_compatibility.cc
+	* 17_intro/headers/all.cc
+	* 17_intro/headers/c++1998
+	* 17_intro/headers/c++1998/all.cc
+	* 17_intro/headers/c++1998/all_multiple_inclusion.cc
+	* 17_intro/headers/c++1998/c++_for_c.tar
+	* 17_intro/headers/c++1998/c++.tar
+	* 17_intro/using_namespace_std.cc
+	* 18_support/headers
+	* 18_support/headers/cfloat
+	* 18_support/headers/cfloat/values.cc
+	* 18_support/headers/climits
+	* 18_support/headers/climits/values.cc
+	* 18_support/headers/csetjmp
+	* 18_support/headers/csetjmp/functions_std.cc
+	* 18_support/headers/csetjmp/macros.cc
+	* 18_support/headers/csetjmp/types_std.cc
+	* 18_support/headers/csignal
+	* 18_support/headers/csignal/functions_std.cc
+	* 18_support/headers/csignal/macros.cc
+	* 18_support/headers/csignal/types_std.cc
+	* 18_support/headers/cstdarg
+	* 18_support/headers/cstdarg/macros.cc
+	* 18_support/headers/cstdarg/types_std.cc
+	* 18_support/headers/cstddef
+	* 18_support/headers/cstddef/macros.cc
+	* 18_support/headers/cstddef/types_std.cc
+	* 18_support/headers/cstdlib
+	* 18_support/headers/cstdlib/functions_std.cc
+	* 18_support/headers/cstdlib/macros.cc
+	* 18_support/headers/ctime
+	* 18_support/headers/ctime/functions_std.cc
+	* 18_support/headers/ctime/macros.cc
+	* 18_support/headers/ctime/types_std.cc
+	* 18_support/headers/exception
+	* 18_support/headers/exception/synopsis.cc
+	* 18_support/headers/exception/types_std.cc
+	* 18_support/headers/limits
+	* 18_support/headers/limits/synopsis.cc
+	* 18_support/headers/new
+	* 18_support/headers/new/synopsis.cc
+	* 18_support/headers/new/types_std.cc
+	* 18_support/headers/typeinfo
+	* 18_support/headers/typeinfo/synopsis.cc
+	* 18_support/headers/typeinfo/types_std.cc
+	* 18_support/numeric_limits/is_signed.cc
+	* 18_support/numeric_limits/requirements
+	* 18_support/numeric_limits/requirements/explicit_instantiation
+	* 18_support/numeric_limits/requirements/explicit_instantiation/1.cc
+	* 18_support/numeric_limits/specialization_default_values.cc
+	* 19_diagnostics/headers
+	* 19_diagnostics/headers/cassert
+	* 19_diagnostics/headers/cassert/macros.cc
+	* 19_diagnostics/headers/cerrno
+	* 19_diagnostics/headers/cerrno/macros.cc
+	* 19_diagnostics/headers/stdexcept
+	* 19_diagnostics/headers/stdexcept/synopsis.cc
+	* 19_diagnostics/headers/stdexcept/types_std.cc
+	* 20_util/headers
+	* 20_util/headers/cstdlib
+	* 20_util/headers/cstdlib/functions_std.cc
+	* 20_util/headers/cstring
+	* 20_util/headers/cstring/functions_std.cc
+	* 20_util/headers/cstring/macros.cc
+	* 20_util/headers/cstring/types_std.cc
+	* 20_util/headers/ctime
+	* 20_util/headers/ctime/functions_std.cc
+	* 20_util/headers/ctime/macros.cc
+	* 20_util/headers/ctime/types_std.cc
+	* 20_util/headers/functional
+	* 20_util/headers/functional/synopsis.cc
+	* 20_util/headers/memory
+	* 20_util/headers/memory/synopsis.cc
+	* 20_util/headers/utility
+	* 20_util/headers/utility/synopsis.cc
+	* 20_util/headers/utility/using_namespace_std_rel_ops.cc
+	* 20_util/memory/allocator/requirements
+	* 20_util/memory/allocator/requirements/explicit_instantiation
+	* 20_util/memory/allocator/requirements/explicit_instantiation/1.cc
+	* 20_util/memory/auto_ptr/requirements
+	* 20_util/memory/auto_ptr/requirements/explicit_instantiation
+	* 20_util/memory/auto_ptr/requirements/explicit_instantiation/1.cc
+	* 20_util/memory/raw_storage_iterator
+	* 20_util/memory/raw_storage_iterator/requirements
+	* 20_util/memory/raw_storage_iterator/requirements/base_classes.cc
+	* 20_util/memory/raw_storage_iterator/requirements/
+	explicit_instantiation
+	* 20_util/memory/raw_storage_iterator/requirements/
+	explicit_instantiation/1.cc
+	* 20_util/memory/raw_storage_iterator/requirements/typedefs.cc
+	* 20_util/utility/pair/requirements
+	* 20_util/utility/pair/requirements/explicit_instantiation
+	* 20_util/utility/pair/requirements/explicit_instantiation/1.cc
+	* 21_strings/basic_string/requirements
+	* 21_strings/basic_string/requirements/explicit_instantiation
+	* 21_strings/basic_string/requirements/explicit_instantiation/1.cc
+	* 21_strings/basic_string/requirements/explicit_instantiation/debug.cc
+	* 21_strings/headers
+	* 21_strings/headers/cctype
+	* 21_strings/headers/cctype/functions_std.cc
+	* 21_strings/headers/cstdlib
+	* 21_strings/headers/cstdlib/functions_std.cc
+	* 21_strings/headers/cstdlib/macros.cc
+	* 21_strings/headers/cstring
+	* 21_strings/headers/cstring/functions_std.cc
+	* 21_strings/headers/cstring/macros.cc
+	* 21_strings/headers/cstring/types_std.cc
+	* 21_strings/headers/cwchar
+	* 21_strings/headers/cwchar/functions_std.cc
+	* 21_strings/headers/cwchar/macros.cc
+	* 21_strings/headers/cwchar/types_std.cc
+	* 21_strings/headers/cwctype
+	* 21_strings/headers/cwctype/functions_std.cc
+	* 21_strings/headers/cwctype/macros.cc
+	* 21_strings/headers/cwctype/types_std.cc
+	* 21_strings/headers/string
+	* 21_strings/headers/string/synopsis.cc
+	* 21_strings/headers/string/types_std.cc
+	* 22_locale/codecvt_byname/requirements
+	* 22_locale/codecvt_byname/requirements/base_classes.cc
+	* 22_locale/codecvt_byname/requirements/explicit_instantiation.cc
+	* 22_locale/codecvt_byname/requirements/typedefs.cc
+	* 22_locale/codecvt/requirements
+	* 22_locale/codecvt/requirements/base_classes.cc
+	* 22_locale/codecvt/requirements/explicit_instantiation.cc
+	* 22_locale/codecvt/requirements/typedefs.cc
+	* 22_locale/collate_byname/requirements
+	* 22_locale/collate_byname/requirements/base_classes.cc
+	* 22_locale/collate_byname/requirements/explicit_instantiation.cc
+	* 22_locale/collate_byname/requirements/typedefs.cc
+	* 22_locale/collate/requirements
+	* 22_locale/collate/requirements/base_classes.cc
+	* 22_locale/collate/requirements/explicit_instantiation.cc
+	* 22_locale/collate/requirements/typedefs.cc
+	* 22_locale/ctype_base/mask.cc
+	* 22_locale/ctype/requirements
+	* 22_locale/ctype/requirements/base_classes.cc
+	* 22_locale/ctype/requirements/explicit_instantiation.cc
+	* 22_locale/ctype/requirements/typedefs.cc
+	* 22_locale/headers
+	* 22_locale/headers/clocale
+	* 22_locale/headers/clocale/functions_std.cc
+	* 22_locale/headers/clocale/macros.cc
+	* 22_locale/headers/clocale/types_std.cc
+	* 22_locale/headers/locale
+	* 22_locale/headers/locale/synopsis.cc
+	* 22_locale/headers/locale/types_std.cc
+	* 22_locale/messages_byname/requirements
+	* 22_locale/messages_byname/requirements/base_classes.cc
+	* 22_locale/messages_byname/requirements/explicit_instantiation.cc
+	* 22_locale/messages_byname/requirements/typedefs.cc
+	* 22_locale/messages/requirements
+	* 22_locale/messages/requirements/base_classes.cc
+	* 22_locale/messages/requirements/explicit_instantiation.cc
+	* 22_locale/messages/requirements/typedefs.cc
+	* 22_locale/money_get/cons
+	* 22_locale/money_get/cons/3.cc
+	* 22_locale/money_get/requirements
+	* 22_locale/money_get/requirements/base_classes.cc
+	* 22_locale/money_get/requirements/explicit_instantiations.cc
+	* 22_locale/money_get/requirements/typedefs.cc
+	* 22_locale/moneypunct_byname/requirements
+	* 22_locale/moneypunct_byname/requirements/base_classes.cc
+	* 22_locale/moneypunct_byname/requirements/explicit_instantiation.cc
+	* 22_locale/moneypunct_byname/requirements/typedefs.cc
+	* 22_locale/moneypunct/requirements
+	* 22_locale/moneypunct/requirements/false
+	* 22_locale/moneypunct/requirements/false/base_classes.cc
+	* 22_locale/moneypunct/requirements/false/explicit_instantiation.cc
+	* 22_locale/moneypunct/requirements/false/intl.cc
+	* 22_locale/moneypunct/requirements/false/typedefs.cc
+	* 22_locale/moneypunct/requirements/true
+	* 22_locale/moneypunct/requirements/true/base_classes.cc
+	* 22_locale/moneypunct/requirements/true/explicit_instantiation.cc
+	* 22_locale/moneypunct/requirements/true/intl.cc
+	* 22_locale/moneypunct/requirements/true/typedefs.cc
+	* 22_locale/money_put/cons
+	* 22_locale/money_put/cons/3.cc
+	* 22_locale/money_put/requirements
+	* 22_locale/money_put/requirements/base_classes.cc
+	* 22_locale/money_put/requirements/explicit_instantiation.cc
+	* 22_locale/money_put/requirements/typedefs.cc
+	* 22_locale/num_get/cons
+	* 22_locale/num_get/cons/3.cc
+	* 22_locale/num_get/requirements
+	* 22_locale/num_get/requirements/base_classes.cc
+	* 22_locale/num_get/requirements/explicit_instantiation.cc
+	* 22_locale/num_get/requirements/typedefs.cc
+	* 22_locale/numpunct_byname/requirements
+	* 22_locale/numpunct_byname/requirements/base_classes.cc
+	* 22_locale/numpunct_byname/requirements/explicit_instantiations.cc
+	* 22_locale/numpunct_byname/requirements/typedefs.cc
+	* 22_locale/numpunct/requirements
+	* 22_locale/numpunct/requirements/base_classes.cc
+	* 22_locale/numpunct/requirements/explicit_instantiations.cc
+	* 22_locale/numpunct/requirements/typedefs.cc
+	* 22_locale/num_put/cons
+	* 22_locale/num_put/cons/3.cc
+	* 22_locale/num_put/requirements
+	* 22_locale/num_put/requirements/base_classes.cc
+	* 22_locale/num_put/requirements/explicit_instantiations.cc
+	* 22_locale/num_put/requirements/typedefs.cc
+	* 22_locale/time_get/requirements
+	* 22_locale/time_get/requirements/base_classes.cc
+	* 22_locale/time_get/requirements/explicit_instantiations.cc
+	* 22_locale/time_get/requirements/typedefs.cc
+	* 22_locale/time_put/requirements
+	* 22_locale/time_put/requirements/base_classes.cc
+	* 22_locale/time_put/requirements/explicit_instantiations.cc
+	* 22_locale/time_put/requirements/typedefs.cc
+	* 23_containers/bitset/requirements
+	* 23_containers/bitset/requirements/explicit_instantiation
+	* 23_containers/bitset/requirements/explicit_instantiation/1.cc
+	* 23_containers/deque/requirements
+	* 23_containers/deque/requirements/explicit_instantiation
+	* 23_containers/deque/requirements/partial_specialization
+	* 23_containers/deque/requirements/partial_specialization/1.cc
+	* 23_containers/headers
+	* 23_containers/headers/bitset
+	* 23_containers/headers/bitset/synopsis.cc
+	* 23_containers/headers/deque
+	* 23_containers/headers/deque/synopsis.cc
+	* 23_containers/headers/list
+	* 23_containers/headers/list/synopsis.cc
+	* 23_containers/headers/map
+	* 23_containers/headers/map/synopsis.cc
+	* 23_containers/headers/queue
+	* 23_containers/headers/queue/synopsis.cc
+	* 23_containers/headers/set
+	* 23_containers/headers/set/synopsis.cc
+	* 23_containers/headers/stack
+	* 23_containers/headers/stack/synopsis.cc
+	* 23_containers/headers/vector
+	* 23_containers/headers/vector/synopsis.cc
+	* 23_containers/list/requirements
+	* 23_containers/list/requirements/explicit_instantiation
+	* 23_containers/list/requirements/partial_specialization
+	* 23_containers/list/requirements/partial_specialization/1.cc
+	* 23_containers/map/requirements
+	* 23_containers/map/requirements/explicit_instantiation
+	* 23_containers/map/requirements/partial_specialization
+	* 23_containers/map/requirements/partial_specialization/1.cc
+	* 23_containers/multimap/requirements
+	* 23_containers/multimap/requirements/explicit_instantiation
+	* 23_containers/multimap/requirements/partial_specialization
+	* 23_containers/multimap/requirements/partial_specialization/1.cc
+	* 23_containers/multiset/requirements
+	* 23_containers/multiset/requirements/explicit_instantiation
+	* 23_containers/multiset/requirements/partial_specialization
+	* 23_containers/multiset/requirements/partial_specialization/1.cc
+	* 23_containers/priority_queue/requirements
+	* 23_containers/priority_queue/requirements/explicit_instantiation
+	* 23_containers/priority_queue/requirements/explicit_instantiation/1.cc
+	* 23_containers/queue/requirements
+	* 23_containers/queue/requirements/explicit_instantiation
+	* 23_containers/queue/requirements/explicit_instantiation/1.cc
+	* 23_containers/set/requirements
+	* 23_containers/set/requirements/explicit_instantiation
+	* 23_containers/set/requirements/partial_specialization
+	* 23_containers/set/requirements/partial_specialization/1.cc
+	* 23_containers/stack/requirements
+	* 23_containers/stack/requirements/explicit_instantiation
+	* 23_containers/stack/requirements/explicit_instantiation/1.cc
+	* 23_containers/vector/requirements
+	* 23_containers/vector/requirements/explicit_instantiation
+	* 23_containers/vector/requirements/partial_specialization
+	* 23_containers/vector/requirements/partial_specialization/1.cc
+	* 24_iterators/back_insert_iterator
+	* 24_iterators/back_insert_iterator/2.cc
+	* 24_iterators/back_insert_iterator/requirements
+	* 24_iterators/back_insert_iterator/requirements/base_classes.cc
+	* 24_iterators/back_insert_iterator/requirements/container.cc
+	* 24_iterators/back_insert_iterator/requirements/
+	explicit_instantiation.cc
+	* 24_iterators/back_insert_iterator/requirements/typedefs.cc
+	* 24_iterators/front_insert_iterator
+	* 24_iterators/front_insert_iterator/2.cc
+	* 24_iterators/front_insert_iterator/requirements
+	* 24_iterators/front_insert_iterator/requirements/base_classes.cc
+	* 24_iterators/front_insert_iterator/requirements/container.cc
+	* 24_iterators/front_insert_iterator/requirements/
+	explicit_instantiation.cc
+	* 24_iterators/front_insert_iterator/requirements/typedefs.cc
+	* 24_iterators/headers
+	* 24_iterators/headers/iterator
+	* 24_iterators/headers/iterator/synopsis.cc
+	* 24_iterators/headers/iterator/types_std.cc
+	* 24_iterators/insert_iterator
+	* 24_iterators/insert_iterator/2.cc
+	* 24_iterators/insert_iterator/requirements
+	* 24_iterators/insert_iterator/requirements/base_classes.cc
+	* 24_iterators/insert_iterator/requirements/container.cc
+	* 24_iterators/insert_iterator/requirements/explicit_instantiation.cc
+	* 24_iterators/insert_iterator/requirements/typedefs.cc
+	* 24_iterators/istreambuf_iterator/requirements
+	* 24_iterators/istreambuf_iterator/requirements/base_classes.cc
+	* 24_iterators/istreambuf_iterator/requirements/
+	explicit_instantiation.cc
+	* 24_iterators/istreambuf_iterator/requirements/typedefs.cc
+	* 24_iterators/istream_iterator
+	* 24_iterators/istream_iterator/2.cc
+	* 24_iterators/istream_iterator/requirements
+	* 24_iterators/istream_iterator/requirements/base_classes.cc
+	* 24_iterators/istream_iterator/requirements/explicit_instantiation.cc
+	* 24_iterators/istream_iterator/requirements/typedefs.cc
+	* 24_iterators/ostreambuf_iterator/requirements
+	* 24_iterators/ostreambuf_iterator/requirements/base_classes.cc
+	* 24_iterators/ostreambuf_iterator/requirements/
+	explicit_instantiation.cc
+	* 24_iterators/ostreambuf_iterator/requirements/typedefs.cc
+	* 24_iterators/ostream_iterator
+	* 24_iterators/ostream_iterator/requirements
+	* 24_iterators/ostream_iterator/requirements/base_classes.cc
+	* 24_iterators/ostream_iterator/requirements/explicit_instantiation.cc
+	* 24_iterators/ostream_iterator/requirements/typedefs.cc
+	* 24_iterators/random_access_iterator
+	* 24_iterators/random_access_iterator/26020.cc
+	* 24_iterators/random_access_iterator/string_vector_iterators.cc
+	* 24_iterators/reverse_iterator/requirements
+	* 24_iterators/reverse_iterator/requirements/base_classes.cc
+	* 24_iterators/reverse_iterator/requirements/current.cc
+	* 24_iterators/reverse_iterator/requirements/explicit_instantiation.cc
+	* 24_iterators/reverse_iterator/requirements/typedefs.cc
+	* 25_algorithms/headers
+	* 25_algorithms/headers/algorithm
+	* 25_algorithms/headers/algorithm/synopsis.cc
+	* 25_algorithms/headers/cstdlib
+	* 25_algorithms/headers/cstdlib/functions_std.cc
+	* 26_numerics/headers
+	* 26_numerics/headers/cmath
+	* 26_numerics/headers/cmath/19322.cc
+	* 26_numerics/headers/cmath/c99_classification_macros_c.cc
+	* 26_numerics/headers/cmath/c99_classification_macros_c++.cc
+	* 26_numerics/headers/cmath/c_math.cc
+	* 26_numerics/headers/cmath/c_math_dynamic.cc
+	* 26_numerics/headers/cmath/fabs_inline.cc
+	* 26_numerics/headers/cmath/functions_std.cc
+	* 26_numerics/headers/cmath/macros.cc
+	* 26_numerics/headers/cmath/overloads.cc
+	* 26_numerics/headers/cmath/powi.cc
+	* 26_numerics/headers/complex
+	* 26_numerics/headers/complex/synopsis.cc
+	* 26_numerics/headers/cstdlib
+	* 26_numerics/headers/cstdlib/13943.cc
+	* 26_numerics/headers/cstdlib/2190.cc
+	* 26_numerics/headers/cstdlib/functions_std.cc
+	* 26_numerics/headers/cstdlib/macros.cc
+	* 26_numerics/headers/cstdlib/types_std.cc
+	* 26_numerics/headers/numeric
+	* 26_numerics/headers/numeric/synopsis.cc
+	* 26_numerics/headers/valarray
+	* 26_numerics/headers/valarray/synopsis.cc
+	* 26_numerics/headers/valarray/types_std.cc
+	* 26_numerics/numeric_arrays
+	* 26_numerics/numeric_operations
+	* 27_io/basic_filebuf/cons/2020.cc
+	* 27_io/basic_filebuf/requirements
+	* 27_io/basic_filebuf/requirements/base_classes.cc
+	* 27_io/basic_filebuf/requirements/explicit_instantiation.cc
+	* 27_io/basic_filebuf/requirements/typedefs.cc
+	* 27_io/basic_fstream/cons
+	* 27_io/basic_fstream/cons/3.cc
+	* 27_io/basic_fstream/requirements
+	* 27_io/basic_fstream/requirements/base_classes.cc
+	* 27_io/basic_fstream/requirements/explicit_instantiation.cc
+	* 27_io/basic_fstream/requirements/typedefs.cc
+	* 27_io/basic_ifstream/cons/2020.cc
+	* 27_io/basic_ifstream/requirements
+	* 27_io/basic_ifstream/requirements/base_classes.cc
+	* 27_io/basic_ifstream/requirements/explicit_instantiation.cc
+	* 27_io/basic_ifstream/requirements/typedefs.cc
+	* 27_io/basic_ios/cons/2020.cc
+	* 27_io/basic_ios/requirements
+	* 27_io/basic_ios/requirements/base_classes.cc
+	* 27_io/basic_ios/requirements/explicit_instantiation.cc
+	* 27_io/basic_ios/requirements/typedefs.cc
+	* 27_io/basic_iostream/cons
+	* 27_io/basic_iostream/cons/2020.cc
+	* 27_io/basic_iostream/requirements
+	* 27_io/basic_iostream/requirements/base_classes.cc
+	* 27_io/basic_iostream/requirements/explicit_instantiation.cc
+	* 27_io/basic_iostream/requirements/typedefs.cc
+	* 27_io/basic_istream/cons
+	* 27_io/basic_istream/cons/3.cc
+	* 27_io/basic_istream/requirements
+	* 27_io/basic_istream/requirements/base_classes.cc
+	* 27_io/basic_istream/requirements/explicit_instantiation.cc
+	* 27_io/basic_istream/requirements/typedefs.cc
+	* 27_io/basic_istringstream/cons
+	* 27_io/basic_istringstream/cons/2020.cc
+	* 27_io/basic_istringstream/requirements
+	* 27_io/basic_istringstream/requirements/base_classes.cc
+	* 27_io/basic_istringstream/requirements/explicit_instantiation.cc
+	* 27_io/basic_istringstream/requirements/typedefs.cc
+	* 27_io/basic_ofstream/cons/2020.cc
+	* 27_io/basic_ofstream/requirements
+	* 27_io/basic_ofstream/requirements/base_classes.cc
+	* 27_io/basic_ofstream/requirements/explicit_instantiations.cc
+	* 27_io/basic_ofstream/requirements/typedefs.cc
+	* 27_io/basic_ostream/cons/2020.cc
+	* 27_io/basic_ostream/requirements
+	* 27_io/basic_ostream/requirements/base_classes.cc
+	* 27_io/basic_ostream/requirements/explicit_instantiation.cc
+	* 27_io/basic_ostream/requirements/typedefs.cc
+	* 27_io/basic_ostringstream/cons/2020.cc
+	* 27_io/basic_ostringstream/requirements
+	* 27_io/basic_ostringstream/requirements/base_classes.cc
+	* 27_io/basic_ostringstream/requirements/explicit_instantiation.cc
+	* 27_io/basic_ostringstream/requirements/typedefs.cc
+	* 27_io/basic_streambuf/cons/2020.cc
+	* 27_io/basic_streambuf/requirements
+	* 27_io/basic_streambuf/requirements/base_classes.cc
+	* 27_io/basic_streambuf/requirements/typedefs.cc
+	* 27_io/basic_stringbuf/cons/2020.cc
+	* 27_io/basic_stringbuf/requirements
+	* 27_io/basic_stringbuf/requirements/base_classes.cc
+	* 27_io/basic_stringbuf/requirements/explicit_instantiation
+	* 27_io/basic_stringbuf/requirements/explicit_instantiation/2.cc
+	* 27_io/basic_stringbuf/requirements/explicit_instantiation/4.cc
+	* 27_io/basic_stringbuf/requirements/typedefs.cc
+	* 27_io/basic_stringstream/cons
+	* 27_io/basic_stringstream/cons/2020.cc
+	* 27_io/basic_stringstream/requirements
+	* 27_io/basic_stringstream/requirements/base_classes.cc
+	* 27_io/basic_stringstream/requirements/explicit_instantiation.cc
+	* 27_io/basic_stringstream/requirements/typedefs.cc
+	* 27_io/fpos/requirements
+	* 27_io/fpos/requirements/explicit_instantiation.cc
+	* 27_io/headers
+	* 27_io/headers/cstdio
+	* 27_io/headers/cstdio/functions_std.cc
+	* 27_io/headers/cstdio/macros.cc
+	* 27_io/headers/cstdio/types_std.cc
+	* 27_io/headers/cstdlib
+	* 27_io/headers/fstream
+	* 27_io/headers/fstream/synopsis.cc
+	* 27_io/headers/fstream/types_std.cc
+	* 27_io/headers/iomanip
+	* 27_io/headers/iomanip/synopsis.cc
+	* 27_io/headers/ios
+	* 27_io/headers/ios/synopsis.cc
+	* 27_io/headers/iostream
+	* 27_io/headers/iostream/synopsis.cc
+	* 27_io/headers/iostream/types_std.cc
+	* 27_io/headers/ios/types_std.cc
+	* 27_io/headers/istream
+	* 27_io/headers/istream/synopsis.cc
+	* 27_io/headers/istream/types_std.cc
+	* 27_io/headers/ostream
+	* 27_io/headers/ostream/synopsis.cc
+	* 27_io/headers/ostream/types_std.cc
+	* 27_io/headers/sstream
+	* 27_io/headers/sstream/synopsis.cc
+	* 27_io/headers/sstream/types_std.cc
+	* 27_io/headers/streambuf
+	* 27_io/headers/streambuf/synopsis.cc
+	* 27_io/headers/streambuf/types_std.cc
+	* ext/debug_allocator/explicit_instantiation.cc
+	* ext/hash_map/requirements
+	* ext/hash_map/requirements/explicit_instantiation.cc
+	* ext/hash_set/requirements
+	* ext/hash_set/requirements/explicit_instantiation.cc
+	* ext/malloc_allocator/explicit_instantiation.cc
+	* ext/mt_allocator/explicit_instantiation.cc
+	* ext/pool_allocator/explicit_instantiation.cc
+	* ext/slist/requirements
+	* ext/slist/requirements/explicit_instantiation.cc
+	* ext/stdio_filebuf/requirements
+	* ext/stdio_filebuf/requirements/explicit_instantiation.cc
+	* ext/vstring/requirements
+	* ext/vstring/requirements/explicit_instantiation
+	* tr1/2_general_utilities/headers
+	* tr1/2_general_utilities/headers/functional
+	* tr1/2_general_utilities/headers/functional/synopsis.cc
+	* tr1/2_general_utilities/headers/memory
+	* tr1/2_general_utilities/headers/memory/synopsis.cc
+	* tr1/2_general_utilities/headers/memory/types_std_tr1.cc
+	* tr1/2_general_utilities/memory/enable_shared_from_this/requirements
+	* tr1/2_general_utilities/memory/enable_shared_from_this/
+	requirements/explicit_instantiation
+	* tr1/2_general_utilities/memory/shared_ptr/requirements
+	* tr1/2_general_utilities/memory/shared_ptr/requirements/
+	explicit_instantiation
+	* tr1/2_general_utilities/memory/weak_ptr/requirements
+	* tr1/2_general_utilities/memory/weak_ptr/requirements/
+	explicit_instantiation
+	* tr1/3_function_objects/headers
+	* tr1/3_function_objects/headers/functional
+	* tr1/3_function_objects/headers/functional/synopsis.cc
+	* tr1/3_function_objects/headers/functional/types_std_tr1.cc
+	* tr1/3_function_objects/headers/functional/
+	using_namespace_std_tr1_placeholders.cc
+	* tr1/4_metaprogramming/headers
+	* tr1/4_metaprogramming/headers/type_traits
+	* tr1/4_metaprogramming/headers/type_traits/synopsis.cc
+	* tr1/4_metaprogramming/headers/type_traits/types_std_tr1.cc
+	* tr1/5_numerical_facilities/headers
+	* tr1/5_numerical_facilities/headers/random
+	* tr1/5_numerical_facilities/headers/random/synopsis.cc
+	* tr1/5_numerical_facilities/headers/random/types_std_tr1.cc
+	* tr1/5_numerical_facilities/random/discard_block/
+	requirements/typedefs.cc
+	* tr1/6_containers/array/requirements/explicit_instantiation.cc
+	* tr1/6_containers/hash
+	* tr1/6_containers/hash/requirements
+	* tr1/6_containers/hash/requirements/base_classes.cc
+	* tr1/6_containers/hash/requirements/explicit_instantiation.cc
+	* tr1/6_containers/headers
+	* tr1/6_containers/headers/array
+	* tr1/6_containers/headers/array/synopsis.cc
+	* tr1/6_containers/headers/functional
+	* tr1/6_containers/headers/functional/synopsis.cc
+	* tr1/6_containers/headers/tuple
+	* tr1/6_containers/headers/tuple/synopsis.cc
+	* tr1/6_containers/headers/tuple/types_std_tr1.cc
+	* tr1/6_containers/headers/unordered_map
+	* tr1/6_containers/headers/unordered_map/synopsis.cc
+	* tr1/6_containers/headers/unordered_set
+	* tr1/6_containers/headers/unordered_set/synopsis.cc
+	* tr1/6_containers/tuple/requirements
+	* tr1/6_containers/tuple/requirements/explicit_instantiation.cc
+	* tr1/6_containers/unordered_map
+	* tr1/6_containers/unordered_map/24064.cc
+	* tr1/6_containers/unordered_map/capacity
+	* tr1/6_containers/unordered_map/capacity/29134-map.cc
+	* tr1/6_containers/unordered_map/erase
+	* tr1/6_containers/unordered_map/erase/24061-map.cc
+	* tr1/6_containers/unordered_map/find
+	* tr1/6_containers/unordered_map/find/map1.cc
+	* tr1/6_containers/unordered_map/insert
+	* tr1/6_containers/unordered_map/insert/24061-map.cc
+	* tr1/6_containers/unordered_map/insert/array_syntax.cc
+	* tr1/6_containers/unordered_map/insert/map_range.cc
+	* tr1/6_containers/unordered_map/insert/map_single.cc
+	* tr1/6_containers/unordered_map/requirements
+	* tr1/6_containers/unordered_map/requirements/explicit_instantiation.cc
+	* tr1/6_containers/unordered_map/requirements/iterator_neg.cc
+	* tr1/6_containers/unordered_map/requirements/iterator_null_neg.cc
+	* tr1/6_containers/unordered_map/swap
+	* tr1/6_containers/unordered_map/swap/1.cc
+	* tr1/6_containers/unordered_map/swap/2.cc
+	* tr1/6_containers/unordered_multimap
+	* tr1/6_containers/unordered_multimap/capacity
+	* tr1/6_containers/unordered_multimap/capacity/29134-multimap.cc
+	* tr1/6_containers/unordered_multimap/erase
+	* tr1/6_containers/unordered_multimap/erase/24061-multimap.cc
+	* tr1/6_containers/unordered_multimap/find
+	* tr1/6_containers/unordered_multimap/find/multimap1.cc
+	* tr1/6_containers/unordered_multimap/insert
+	* tr1/6_containers/unordered_multimap/insert/24061-multimap.cc
+	* tr1/6_containers/unordered_multimap/insert/multimap_range.cc
+	* tr1/6_containers/unordered_multimap/insert/multimap_single.cc
+	* tr1/6_containers/unordered_multimap/requirements
+	* tr1/6_containers/unordered_multimap/requirements/
+	explicit_instantiation.cc
+	* tr1/6_containers/unordered_multimap/requirements/iterator_neg.cc
+	* tr1/6_containers/unordered_multimap/requirements/iterator_null_neg.cc
+	* tr1/6_containers/unordered_multimap/swap
+	* tr1/6_containers/unordered_multimap/swap/1.cc
+	* tr1/6_containers/unordered_multimap/swap/2.cc
+	* tr1/6_containers/unordered_multiset
+	* tr1/6_containers/unordered_multiset/24054.cc
+	* tr1/6_containers/unordered_multiset/capacity
+	* tr1/6_containers/unordered_multiset/capacity/29134-multiset.cc
+	* tr1/6_containers/unordered_multiset/erase
+	* tr1/6_containers/unordered_multiset/erase/24061-multiset.cc
+	* tr1/6_containers/unordered_multiset/find
+	* tr1/6_containers/unordered_multiset/find/multiset1.cc
+	* tr1/6_containers/unordered_multiset/insert
+	* tr1/6_containers/unordered_multiset/insert/24061-multiset.cc
+	* tr1/6_containers/unordered_multiset/insert/multiset_range.cc
+	* tr1/6_containers/unordered_multiset/insert/multiset_single.cc
+	* tr1/6_containers/unordered_multiset/requirements
+	* tr1/6_containers/unordered_multiset/requirements/
+	explicit_instantiation.cc
+	* tr1/6_containers/unordered_multiset/requirements/iterator_neg.cc
+	* tr1/6_containers/unordered_multiset/requirements/iterator_null_neg.cc
+	* tr1/6_containers/unordered_multiset/swap
+	* tr1/6_containers/unordered_multiset/swap/1.cc
+	* tr1/6_containers/unordered_multiset/swap/2.cc
+	* tr1/6_containers/unordered_set
+	* tr1/6_containers/unordered_set/23053.cc
+	* tr1/6_containers/unordered_set/23465.cc
+	* tr1/6_containers/unordered_set/26127.cc
+	* tr1/6_containers/unordered_set/26132.cc
+	* tr1/6_containers/unordered_set/capacity
+	* tr1/6_containers/unordered_set/capacity/29134-set.cc
+	* tr1/6_containers/unordered_set/erase
+	* tr1/6_containers/unordered_set/erase/24061-set.cc
+	* tr1/6_containers/unordered_set/find
+	* tr1/6_containers/unordered_set/find/set1.cc
+	* tr1/6_containers/unordered_set/insert
+	* tr1/6_containers/unordered_set/insert/24061-set.cc
+	* tr1/6_containers/unordered_set/insert/set_range.cc
+	* tr1/6_containers/unordered_set/insert/set_single.cc
+	* tr1/6_containers/unordered_set/requirements
+	* tr1/6_containers/unordered_set/requirements/explicit_instantiation.cc
+	* tr1/6_containers/unordered_set/requirements/iterator_neg.cc
+	* tr1/6_containers/unordered_set/requirements/iterator_null_neg.cc
+	* tr1/6_containers/unordered_set/requirements/
+	iterators_default_constructor.cc
+	* tr1/6_containers/unordered_set/swap
+	* tr1/6_containers/unordered_set/swap/1.cc
+	* tr1/6_containers/unordered_set/swap/2.cc
+	* tr1/using_namespace_std_tr1.cc
+
+	Deleted in testsuite:
+	* 17_intro/header_cassert.cc
+	* 17_intro/header_cerrno.cc
+	* 17_intro/header_csetjmp.cc
+	* 17_intro/header_cstdarg.cc
+	* 17_intro/header_cstddef.cc
+	* 17_intro/header_cstdio.cc
+	* 17_intro/header_cstdlib.cc
+	* 17_intro/header_cstring.cc
+	* 17_intro/header_ctime.cc
+	* 17_intro/header_cwchar.cc
+	* 17_intro/header_cwctype.cc
+	* 17_intro/header_fstream.cc
+	* 17_intro/header_iomanip.cc
+	* 17_intro/header_ios.cc
+	* 17_intro/header_iosfwd.cc
+	* 17_intro/header_iostream.cc
+	* 17_intro/header_istream.cc
+	* 17_intro/header_ostream.cc
+	* 17_intro/headers.cc
+	* 17_intro/headers_c++_c++0x_compat.cc
+	* 17_intro/headers_c.cc
+	* 17_intro/headers_c++.cc
+	* 17_intro/header_sstream.cc
+	* 17_intro/header_streambuf.cc
+	* 17_intro/no_assert_neg.cc
+	* 18_support/numeric_limits/sign.cc
+	* 18_support/numeric_limits/specialization.cc
+	* 20_util/memory/raw_storage_iterator.cc
+	* 21_strings/basic_string/1.cc
+	* 21_strings/basic_string/2.cc
+	* 22_locale/codecvt/1.cc
+	* 22_locale/codecvt/2.cc
+	* 22_locale/codecvt_byname/1.cc
+	* 22_locale/collate/1.cc
+	* 22_locale/collate/2.cc
+	* 22_locale/collate_byname/1.cc
+	* 22_locale/ctype/1.cc
+	* 22_locale/ctype_base/1.cc
+	* 22_locale/messages/1.cc
+	* 22_locale/messages/2.cc
+	* 22_locale/messages_byname/1.cc
+	* 22_locale/money_get/1.cc
+	* 22_locale/money_get/2.cc
+	* 22_locale/money_get/3.cc
+	* 22_locale/moneypunct/1.cc
+	* 22_locale/moneypunct/2.cc
+	* 22_locale/moneypunct/3.cc
+	* 22_locale/moneypunct_byname/1.cc
+	* 22_locale/money_put/1.cc
+	* 22_locale/money_put/2.cc
+	* 22_locale/money_put/3.cc
+	* 22_locale/num_get/1.cc
+	* 22_locale/num_get/2.cc
+	* 22_locale/num_get/3.cc
+	* 22_locale/numpunct/1.cc
+	* 22_locale/numpunct/2.cc
+	* 22_locale/numpunct_byname/1.cc
+	* 22_locale/num_put/1.cc
+	* 22_locale/num_put/2.cc
+	* 22_locale/num_put/3.cc
+	* 22_locale/time_get/1.cc
+	* 22_locale/time_get/2.cc
+	* 22_locale/time_put/1.cc
+	* 22_locale/time_put/2.cc
+	* 23_containers/deque/1.cc
+	* 23_containers/deque/explicit_instantiation
+	* 23_containers/deque/explicit_instantiation/1.cc
+	* 23_containers/deque/explicit_instantiation/2.cc
+	* 23_containers/deque/explicit_instantiation/3.cc
+	* 23_containers/list/1.cc
+	* 23_containers/list/explicit_instantiation
+	* 23_containers/list/explicit_instantiation/1.cc
+	* 23_containers/list/explicit_instantiation/2.cc
+	* 23_containers/list/explicit_instantiation/3.cc
+	* 23_containers/map/1.cc
+	* 23_containers/map/explicit_instantiation
+	* 23_containers/map/explicit_instantiation/1.cc
+	* 23_containers/map/explicit_instantiation/2.cc
+	* 23_containers/map/explicit_instantiation/3.cc
+	* 23_containers/multimap/1.cc
+	* 23_containers/multimap/explicit_instantiation
+	* 23_containers/multimap/explicit_instantiation/1.cc
+	* 23_containers/multimap/explicit_instantiation/2.cc
+	* 23_containers/multimap/explicit_instantiation/3.cc
+	* 23_containers/multiset/1.cc
+	* 23_containers/multiset/explicit_instantiation
+	* 23_containers/multiset/explicit_instantiation/1.cc
+	* 23_containers/multiset/explicit_instantiation/2.cc
+	* 23_containers/multiset/explicit_instantiation/3.cc
+	* 23_containers/set/1.cc
+	* 23_containers/set/explicit_instantiation
+	* 23_containers/set/explicit_instantiation/1.cc
+	* 23_containers/set/explicit_instantiation/2.cc
+	* 23_containers/set/explicit_instantiation/3.cc
+	* 23_containers/vector/1.cc
+	* 23_containers/vector/explicit_instantiation
+	* 23_containers/vector/explicit_instantiation/1.cc
+	* 23_containers/vector/explicit_instantiation/2.cc
+	* 23_containers/vector/explicit_instantiation/3.cc
+	* 24_iterators/26020.cc
+	* 24_iterators/back_insert_iterator.cc
+	* 24_iterators/front_insert_iterator.cc
+	* 24_iterators/insert_iterator.cc
+	* 24_iterators/istreambuf_iterator/1.cc
+	* 24_iterators/istream_iterator.cc
+	* 24_iterators/iterator.cc
+	* 24_iterators/ostreambuf_iterator/1.cc
+	* 24_iterators/ostream_iterator.cc
+	* 24_iterators/reverse_iterator/1.cc
+	* 26_numerics/cmath
+	* 26_numerics/cmath/19322.cc
+	* 26_numerics/cmath/c99_classification_macros_c.cc
+	* 26_numerics/cmath/c99_classification_macros_c++.cc
+	* 26_numerics/cmath/c_math.cc
+	* 26_numerics/cmath/c_math_dynamic.cc
+	* 26_numerics/cmath/fabs_inline.cc
+	* 26_numerics/cmath/overloads.cc
+	* 26_numerics/cmath/powi.cc
+	* 26_numerics/cstdlib
+	* 26_numerics/cstdlib/13943.cc
+	* 26_numerics/numeric
+	* 26_numerics/numeric/sum_diff.cc
+	* 26_numerics/valarray
+	* 26_numerics/valarray/27867.cc
+	* 26_numerics/valarray/28277.cc
+	* 26_numerics/valarray/30416.cc
+	* 26_numerics/valarray/binary_closure.cc
+	* 26_numerics/valarray/dr543.cc
+	* 26_numerics/valarray/slice_array_assignment.cc
+	* 26_numerics/valarray/slice.cc
+	* 26_numerics/valarray/valarray.cc
+	* 26_numerics/valarray/valarray_const_bracket.cc
+	* 26_numerics/valarray/valarray_name_lookup.cc
+	* 26_numerics/valarray/valarray_operators.cc
+	* 26_numerics/valarray/valarray_subset_assignment.cc
+	* 27_io/basic_filebuf/1.cc
+	* 27_io/basic_filebuf/2.cc
+	* 27_io/basic_filebuf/3.cc
+	* 27_io/basic_filebuf/4.cc
+	* 27_io/basic_fstream/1.cc
+	* 27_io/basic_fstream/2.cc
+	* 27_io/basic_fstream/3.cc
+	* 27_io/basic_fstream/4.cc
+	* 27_io/basic_ifstream/1.cc
+	* 27_io/basic_ifstream/2.cc
+	* 27_io/basic_ifstream/3.cc
+	* 27_io/basic_ifstream/4.cc
+	* 27_io/basic_ios/1.cc
+	* 27_io/basic_ios/2.cc
+	* 27_io/basic_ios/3.cc
+	* 27_io/basic_ios/4.cc
+	* 27_io/basic_iostream/1.cc
+	* 27_io/basic_iostream/2.cc
+	* 27_io/basic_iostream/3.cc
+	* 27_io/basic_iostream/4.cc
+	* 27_io/basic_istream/1.cc
+	* 27_io/basic_istream/2.cc
+	* 27_io/basic_istream/3.cc
+	* 27_io/basic_istream/4.cc
+	* 27_io/basic_istringstream/1.cc
+	* 27_io/basic_istringstream/2.cc
+	* 27_io/basic_istringstream/3.cc
+	* 27_io/basic_istringstream/4.cc
+	* 27_io/basic_ofstream/1.cc
+	* 27_io/basic_ofstream/2.cc
+	* 27_io/basic_ofstream/3.cc
+	* 27_io/basic_ofstream/4.cc
+	* 27_io/basic_ostream/1.cc
+	* 27_io/basic_ostream/2.cc
+	* 27_io/basic_ostream/3.cc
+	* 27_io/basic_ostream/4.cc
+	* 27_io/basic_ostringstream/1.cc
+	* 27_io/basic_ostringstream/2.cc
+	* 27_io/basic_ostringstream/3.cc
+	* 27_io/basic_ostringstream/4.cc
+	* 27_io/basic_streambuf/1.cc
+	* 27_io/basic_streambuf/2.cc
+	* 27_io/basic_streambuf/3.cc
+	* 27_io/basic_stringbuf/1.cc
+	* 27_io/basic_stringbuf/2.cc
+	* 27_io/basic_stringbuf/3.cc
+	* 27_io/basic_stringbuf/4.cc
+	* 27_io/basic_stringbuf/5.cc
+	* 27_io/basic_stringstream/1.cc
+	* 27_io/basic_stringstream/2.cc
+	* 27_io/basic_stringstream/3.cc
+	* 27_io/basic_stringstream/4.cc
+	* 27_io/fpos/1.cc
+	* ext/debug_allocator/instantiate.cc
+	* ext/hash_map/instantiate.cc
+	* ext/hash_set/instantiate.cc
+	* ext/malloc_allocator/instantiate.cc
+	* ext/mt_allocator/instantiate.cc
+	* ext/pool_allocator/instantiate.cc
+	* ext/slist/instantiate.cc
+	* ext/stdio_filebuf/char/1.cc
+	* ext/vstring/explicit_instantiation
+	* ext/vstring/explicit_instantiation/1.cc
+	* ext/vstring/explicit_instantiation/2.cc
+	* ext/vstring/explicit_instantiation/char
+	* ext/vstring/explicit_instantiation/char/1.cc
+	* ext/vstring/explicit_instantiation/wchar_t
+	* ext/vstring/explicit_instantiation/wchar_t/1.cc
+	* tr1/2_general_utilities/memory/enable_shared_from_this/
+	explicit_instantiation
+	* tr1/2_general_utilities/memory/enable_shared_from_this/
+	explicit_instantiation/1.cc
+	* tr1/2_general_utilities/memory/shared_ptr/explicit_instantiation
+	* tr1/2_general_utilities/memory/shared_ptr/explicit_instantiation/1.cc
+	* tr1/2_general_utilities/memory/weak_ptr/explicit_instantiation
+	* tr1/2_general_utilities/memory/weak_ptr/explicit_instantiation/1.cc
+	* tr1/5_numerical_facilities/random/discard_block/requirements/
+	requirements.cc
+	* tr1/6_containers/array/requirements/instantiate.cc
+	* tr1/6_containers/unordered
+	* tr1/6_containers/unordered/23781.cc
+	* tr1/6_containers/unordered/capacity
+	* tr1/6_containers/unordered/capacity/29134-map.cc
+	* tr1/6_containers/unordered/capacity/29134-multimap.cc
+	* tr1/6_containers/unordered/capacity/29134-multiset.cc
+	* tr1/6_containers/unordered/capacity/29134-set.cc
+	* tr1/6_containers/unordered/erase
+	* tr1/6_containers/unordered/erase/24061-map.cc
+	* tr1/6_containers/unordered/erase/24061-multimap.cc
+	* tr1/6_containers/unordered/erase/24061-multiset.cc
+	* tr1/6_containers/unordered/erase/24061-set.cc
+	* tr1/6_containers/unordered/find
+	* tr1/6_containers/unordered/find/map1.cc
+	* tr1/6_containers/unordered/find/multimap1.cc
+	* tr1/6_containers/unordered/find/multiset1.cc
+	* tr1/6_containers/unordered/find/set1.cc
+	* tr1/6_containers/unordered/hash
+	* tr1/6_containers/unordered/hash/24799.cc
+	* tr1/6_containers/unordered/hashtable
+	* tr1/6_containers/unordered/hashtable/23053.cc
+	* tr1/6_containers/unordered/hashtable/23465.cc
+	* tr1/6_containers/unordered/hashtable/24054.cc
+	* tr1/6_containers/unordered/hashtable/24064.cc
+	* tr1/6_containers/unordered/hashtable/26127.cc
+	* tr1/6_containers/unordered/hashtable/26132.cc
+	* tr1/6_containers/unordered/hashtable/iterators_default_constructor.cc
+	* tr1/6_containers/unordered/insert
+	* tr1/6_containers/unordered/insert/24061-map.cc
+	* tr1/6_containers/unordered/insert/24061-multimap.cc
+	* tr1/6_containers/unordered/insert/24061-multiset.cc
+	* tr1/6_containers/unordered/insert/24061-set.cc
+	* tr1/6_containers/unordered/insert/array_syntax.cc
+	* tr1/6_containers/unordered/insert/map_range.cc
+	* tr1/6_containers/unordered/insert/map_single.cc
+	* tr1/6_containers/unordered/insert/multimap_range.cc
+	* tr1/6_containers/unordered/insert/multimap_single.cc
+	* tr1/6_containers/unordered/insert/multiset_range.cc
+	* tr1/6_containers/unordered/insert/multiset_single.cc
+	* tr1/6_containers/unordered/insert/set_range.cc
+	* tr1/6_containers/unordered/insert/set_single.cc
+	* tr1/6_containers/unordered/instantiate
+	* tr1/6_containers/unordered/instantiate/hash.cc
+	* tr1/6_containers/unordered/instantiate/map.cc
+	* tr1/6_containers/unordered/instantiate/multimap.cc
+	* tr1/6_containers/unordered/instantiate/multiset.cc
+	* tr1/6_containers/unordered/instantiate/set.cc
+	* tr1/6_containers/unordered/swap
+	* tr1/6_containers/unordered/swap/unordered_map
+	* tr1/6_containers/unordered/swap/unordered_map/1.cc
+	* tr1/6_containers/unordered/swap/unordered_map/2.cc
+	* tr1/6_containers/unordered/swap/unordered_multimap
+	* tr1/6_containers/unordered/swap/unordered_multimap/1.cc
+	* tr1/6_containers/unordered/swap/unordered_multimap/2.cc
+	* tr1/6_containers/unordered/swap/unordered_multiset
+	* tr1/6_containers/unordered/swap/unordered_multiset/1.cc
+	* tr1/6_containers/unordered/swap/unordered_multiset/2.cc
+	* tr1/6_containers/unordered/swap/unordered_set
+	* tr1/6_containers/unordered/swap/unordered_set/1.cc
+	* tr1/6_containers/unordered/swap/unordered_set/2.cc
+	* tr1/6_containers/unordered/types
+	* tr1/6_containers/unordered/types/map_iterator.cc
+	* tr1/6_containers/unordered/types/multimap_iterator.cc
+	* tr1/6_containers/unordered/types/multiset_iterator.cc
+	* tr1/6_containers/unordered/types/set_iterator.cc
+
+	* testsuite/24_iterators/reverse_iterator/2.cc: To just one
+	non-requirements test.
+	* testsuite/ext/headers.cc: Add new includes.
+	
+2007-02-18  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/28080 (partial)
+	* include/bits/stl_algobase.h: Do not include <climits>, use
+	std::numeric_limits.
+	* include/bits/stl_bvector.h: Use __CHAR_BIT__.
+	* config/locale/gnu/codecvt_members.cc: Include <climits>.
+	* config/locale/generic/codecvt_members.cc: Likewise.
+	* include/std/string: Do not include <algorithm>; do not include
+	<memory>, include <bits/allocator.h> instead.
+	* include/ext/vstring_fwd.h: Likewise.
+	* include/ext/vstring_util.h: Do not include <algorithm>.
+	* include/tr1/hashtable_policy.h: Include <algorithm>.
+	* testsuite/21_strings/basic_string/replace/char/1.cc: Likewise.
+	* testsuite/21_strings/basic_string/replace/wchar_t/1.cc: Likewise.
+	* testsuite/23_containers/bitset/cons/1.cc: Likewise.
+	* testsuite/util/testsuite_character.h: Likewise.
+
+	* config/locale/gnu/codecvt_members.cc: Also include <cstdlib>,
+	for MB_CUR_MAX.
+	* config/locale/generic/codecvt_members.cc: Likewise.
+
+2007-02-16  Paolo Carlini  <pcarlini@suse.de>
+
+	Revert.
+	2007-02-14  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR middle-end/30768
+	* testsuite/ext/pb_ds/regression/list_update_data_map_rand.cc:
+	Xfail ICE for cris-*-*.
+
+2007-02-14  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR middle-end/30768
+	* testsuite/ext/pb_ds/regression/list_update_data_map_rand.cc:
+	Xfail ICE for cris-*-*.
+
+2007-02-14  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* configure.ac: Move AM_ICONV to native-only, add HAVE_ICONV for
+        newlib.
+	* configure: Regenerate.
+
+2007-02-13  Dirk Mueller  <dmueller@suse.de>
+
+	* include/bits/locale_facets.tcc (num_get<>::do_get): Avoid
+	warning about ambiguous else.
+
+2007-02-12  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/21172
+	* include/bits/stl_heap.h (__adjust_heap(_RandomAccessIterator,
+	_Distance, _Distance, _Tp), __adjust_heap(_RandomAccessIterator,
+	_Distance, _Distance, _Tp, _Compare)): Avoid potential integer
+	overflow.
+
+	* include/bits/stl_heap.h (__is_heap(_RandomAccessIterator,
+	_RandomAccessIterator), __is_heap(_RandomAccessIterator,
+	_RandomAccessIterator, _StrictWeakOrdering): Mark inline.
+	(make_heap(_RandomAccessIterator, _RandomAccessIterator,
+	_Compare)): Do not mark inline.
+
+	* include/bits/stl_heap.h (push_heap(_RandomAccessIterator,
+	_RandomAccessIterator), sort_heap(_RandomAccessIterator,
+	_RandomAccessIterator)): Uncomment __glibcxx_requires_heap.
+
+2007-02-09  Richard Sandiford  <richard@codesourcery.com>
+
+	* testsuite/22_locale/time_put/put/wchar_t/1.cc: XFAIL if
+	dummy_wcsftime.
+	* testsuite/22_locale/time_put/put/wchar_t/5.cc: Likewise.
+	* testsuite/22_locale/time_put/put/wchar_t/9.cc: Likewise.
+	* testsuite/22_locale/time_put/put/wchar_t/10.cc: Likewise.
+	* testsuite/22_locale/num_get/get/wchar_t/2.cc: XFAIL if lax_strtofp.
+	* testsuite/22_locale/num_get/get/char/2.cc: Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/wchar_t/12.cc:
+	Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/wchar_t/09.cc:
+	Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/char/12.cc:
+	Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/char/09.cc:
+	Likewise.
+	* testsuite/27_io/basic_ostream/inserters_arithmetic/wchar_t/6.cc:
+	Likewise.
+	* testsuite/27_io/basic_ostream/inserters_arithmetic/char/6.cc:
+	Likewise.
+	* testsuite/26_numerics/cmath/c99_classification_macros_c++.cc: XFAIL
+	for uClibc.
+	* testsuite/26_numerics/cmath/c99_classification_macros_c.cc: Likewise.
+
+2007-02-09  Paolo Carlini  <pcarlini@suse.de>
+
+	* scripts/testsuite_flags.in: Add back @LIBICONV@ to SECTIONLDFLAGS.
+
+2007-02-08  Howard Hinnant  <hhinnant@apple.com>
+
+	PR libstdc++/17012
+	* include/bits/list.tcc (list<>::remove): Take care of
+	&*__first == &__value.
+	* docs/html/ext/howto.html: Add an entry for DR 526.
+
+2007-02-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libgomp/28468
+	* configure: Regenerate.
+
+2007-02-07  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR testsuite/28870
+	* testsuite/27_io/basic_stringbuf/overflow/char/1.cc: Use only
+	10000 iterations for simulator targets.
+	* testsuite/ext/pb_ds/regression/tree_data_map_rand.cc: Use only 5
+	iterations for simulator targets.
+	* testsuite/ext/pb_ds/regression/tree_no_data_map_rand.cc: Ditto.
+	* testsuite/ext/pb_ds/regression/trie_data_map_rand.cc: Ditto.
+	* testsuite/ext/pb_ds/regression/trie_no_data_map_rand.cc: Ditto.
+	* testsuite/ext/pb_ds/regression/hash_no_data_map_rand.cc: Ditto.
+	* testsuite/ext/pb_ds/regression/hash_data_map_rand.cc: Ditto.
+	* testsuite/ext/pb_ds/regression/priority_queue_rand.cc: Ditto.
+	* testsuite/23_containers/set/modifiers/16728.cc: Use only 10
+	iterations for simulator targets.
+
+2007-02-06  Benjamin Kosnik  <bkoz@redhat.com>
+            Marco Trudel  <mtrudel@gmx.ch>
+
+	* include/precompiled/extc++.h: Guard include files that assume
+	iconv support is present from precompilation via
+	_GLIBCXX_HAVE_ICONV.
+
+2007-02-05  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_deque.h (operator<): Qualify call.
+
+2007-02-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/c++config: Consistent macro guards for config includes.
+	* config/locale/gnu/c_locale.h: Same.
+	* config/locale/generic/c_locale.h: Same.
+	* config/allocator/mt_allocator_base.h: Same.
+	* config/allocator/malloc_allocator_base.h: Same.
+	* config/allocator/new_allocator_base.h: Same.
+	* config/allocator/pool_allocator_base.h: Same.
+	* config/allocator/bitmap_allocator_base.h: Same.
+	* config/os/vxworks/os_defines.h: Same.
+	* config/cpu/sh/atomicity.h: Same.
+	* config/io/c_io_stdio.h: Same.
+	* config/io/basic_file_stdio.h: Same.
+
+2007-02-01  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/14493
+	* libsupc++/typeinfo (bad_cast::what, bad_typeid::what): Declare.
+	* libsupc++/tinfo.cc: Define.	
+	* libsupc++/exception (bad_exception::what): Declare.
+	* libsupc++/eh_exception.cc: Define.
+	(exception::what): Adjust, don't use typeid.
+	* libsupc++/new (bad_alloc::what): Declare.
+	* libsupc++/new_handler.cc: Define.
+	* config/abi/pre/gnu.ver: Export the new methods @3.4.9; adjust
+	existing 3.4.10 exports to 3.4.9.
+	* configure.ac: Adjust to 6.0.9.
+	* configure: Regenerate.
+	* testsuite/util/testsuite_abi.cc: Update.
+	* testsuite/18_support/14493.cc: New.
+
+2007-02-01  Ben Elliston  <bje@au.ibm.com>
+
+	* libsupc++/eh_alloc.cc (__cxa_free_exception): Don't refer to the
+	emergency_buffer using `&array[0][0]' notation, use `array'.
+
+2007-01-30  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/30571
+	* include/ext/pb_ds/detail/type_utils.hpp: Use C++0x
+	static_assert if available, if not, centralize PB_DS_STATIC_ASSERT
+	definition here.
+	* include/ext/pb_ds/detail/resize_policy/
+	cc_hash_max_collision_check_resize_trigger_imp.hpp: Remove
+	PB_DS_STATIC_ASSERT definition.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_load_check_resize_trigger_imp.hpp: Same.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_standard_resize_policy_imp.hpp: Same.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/cc_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/pat_trie_.hpp: Same.
+	* include/ext/pb_ds/detail/pat_trie_/internal_node.hpp: Same.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/gp_ht_map_.hpp: Same.
+	* include/ext/pb_ds/detail/ov_tree_map_/node_iterators.hpp: Same.
+	* include/ext/pb_ds/trie_policy.hpp: Same.
+	* testsuite/util/performance/assoc/timing/
+	tree_order_statistics_test.hpp: Same.
+	* testsuite/ext/pb_ds/example/hash_resize_neg.cc: Adjust line numbers.
+	* testsuite/17_intro/headers_c++_c++0x_compat.cc: New.
+	
+	* include/precompiled/extc++.h: Update to current list of ext files.
+
+2007-01-29  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_uninitialized.h (uninitialized_copy(const char*,
+	const char*, char*), uninitialized_copy(const wchar_t*, const wchar_t*,
+	wchar_t*)): Remove, just forward to std::copy.
+
+2007-01-29  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/enc_filebuf.h: Resurrect, update.
+	* include/ext/codecvt_specializations.h: Remove
+        _GLIBCXX_USE_ICONV, _GLIBCXX_USE_ENCODING_STATE.
+	* include/bits/localefwd.h: Remove declaration for __enc_traits.
+	* docs/html/22_locale/codecvt.html: Change __enc_traits to
+	encoding_state.
+	* scripts/testsuite_flags.in: Remove ICONV.
+
+	* configure.ac: Remove GLIBCXX_CHECK_ICONV_SUPPORT.
+	* acinclude.m4 (GLIBCXX_CHECK_ICONV_SUPPORT): Remove.
+	* crossconfig.m4: Remove use of GLIBCXX_CHECK_ICONV_SUPPORT.
+	* config.h.in: Remove HAVE_ICONV_CLOSE, HAVE_ICONV_OPEN,
+	HAVE_NL_LANGINFO, _GLIBCXX_USE_ICONV.
+	* include/Makefile.am: Uglify ICONV_CONST.
+	* configure: Regenerate.
+	* aclocal.m4: Regenerate.
+	* Makefile.in: Regenerate.
+	* src/Makefile.in: Regenerate.
+	* po/Makefile.in: Regenerate.
+	* libmath/Makefile.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* libsupc++/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+	* testsuite/ext/enc_filebuf/wchar_t/13189.cc: Use
+	dg-require-iconv, fix up for encoding_state changes.
+	* testsuite/ext/enc_filebuf/char/13189.cc: Same.
+	* testsuite/ext/enc_filebuf/char/13598.cc: Same.
+	* testsuite/22_locale/codecvt/unicode: Move...
+	* testsuite/22_locale/codecvt/unicode/char.cc: Move...
+	* testsuite/22_locale/codecvt/unicode/1.cc: Move...
+	* testsuite/22_locale/codecvt/unicode/wchar_t.cc: Move...
+	* testsuite/ext/codecvt: New.
+	* testsuite/ext/codecvt/char-1.cc: ...here. Also, use dg-require-iconv.
+	* testsuite/ext/codecvt/char-2.cc: ...here. Same.
+	* testsuite/ext/codecvt/1.cc: ...here. Same.
+	* testsuite/ext/codecvt/wchar_t.cc: ...here. Same.
+	* testsuite/22_locale/locale/cons/unicode: Delete directory.
+	* testsuite/22_locale/locale/cons/unicode/1.cc: Move...
+	* testsuite/22_locale/locale/cons/unicode.cc: ...here.
+
+2007-01-28  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.tcc (num_get<>::do_get(iter_type,
+	iter_type, ios_base&, ios_base::iostate&, bool&),
+	num_put<>::_M_insert_int(_OutIter, ios_base&, _CharT, _ValueT)):
+	-Wconversion and -Woverflow fixes.
+	* include/bits/istream.tcc (operator>>(int&), operator>>(short&)):
+	Likewise.
+	* include/std/valarray (valarray<>::shift, cshift): Likewise.
+
+2007-01-26  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/30586
+	* config/cpu/ia64/atomic_word.h: Just include <bits/cxxabi_tweaks.h>.
+	* testsuite/abi/30586.cc: New.
+
+2007-01-25  Nathan Myers  <ncm@cantrip.org>
+
+	* include/bits/streambuf_iterator.h (istreambuf_iterator<>::equal):
+	Simplify.
+
+2007-01-24   Steve LoBasso <slobasso@yahoo.com>
+	     Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/deque.tcc (deque<>::erase(iterator, iterator)):
+	Fix condition.
+	* testsuite/23_containers/deque/modifiers/erase/3.cc: New.
+
+2007-01-24  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* libsupc++/eh_personality.cc  (PERSONALITY_FUNCTION): Replace
+	_Unwind_Word with _uleb128_t in the SJLJ context.
+
+2007-01-24  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/29722 continued
+	* testsuite/lib/libstdc++.exp (v3_target_compile_as_c): Add
+	libsupc++ library directory.
+	* testsuite/abi/cxx_runtime_only_linkage.cc: Remove hard-coded
+	path specification.
+	
+2007-01-24  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* libsupc++/eh_personality.cc (parse_lsda_header, check_exception_spec,
+	get_ttype_entry, empty_exception_spec, PERSONALITY_FUNCTION): Replaced
+	_Unwind_Word with _uleb128_t and _Unwind_SWord with _sleb128_t.
+
+2007-01-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algobase.h (__fill_aux(unsigned char*,
+	unsigned char*, const unsigned char&), __fill_aux(signed char*,
+	signed char*, const signed char&), __fill_aux(char*, char*,
+	const char&), __fill_aux(wchar_t*, wchar_t*, const wchar_t&)):
+	Take the character by value.
+	(__fill_n_aux): Likewise.
+
+2007-01-21  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/30449 (fill, fill_n)
+	* include/bits/stl_algobase.h (__fill_aux(wchar_t*, wchar_t*,
+	const wchar_t&), __fill_n_aux(wchar_t*, _Size, const wchar_t&)): New.
+	(fill(signed char*, signed char*, const signed char&),
+	fill(unsigned char*, unsigned char*, const unsigned char&),
+	fill(char*, char*, char&), fill_n(signed char*, _Size,
+	const signed char&), fill_n(unsigned char*, _Size,
+	const unsigned char&), fill_n(char*, _Size, char&)): Rename to
+	__*_aux.
+	(__fill_normal, __fill_n_normal): New, call the latter.
+	(fill, fill_n): Adjust, call the latter.	
+	* testsuite/25_algorithms/fill/4.cc: New.
+	* testsuite/25_algorithms/fill/5.cc: New.
+
+2007-01-18  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/basic_string.h (basic_string<>::_S_compare): Add.
+	(compare(const basic_string&)): Use it.
+	* include/bits/basic_string.tcc (compare(size_type, size_type,
+	const basic_string&), compare(size_type, size_type,
+	const basic_string&, size_type, size_type), compare(const _CharT*),
+	compare(size_type, size_type, const _CharT*), compare(size_type,
+	size_type, const _CharT*, size_type)): Likewise.
+	* include/ext/vstring_util.h (__vstring_utility<>::_S_compare): Add.
+	* include/ext/vstring.h (compare(const __versa_string&)): Use it.
+	* include/ext/vstring.tcc (compare(size_type, size_type,
+	const __versa_string&), compare(size_type, size_type,
+	const __versa_string&, size_type, size_type), compare(const _CharT*),
+	compare(size_type, size_type, const _CharT*), compare(size_type,
+	size_type, const _CharT*, size_type)): Likewise.
+
+2007-01-15  Ian Lance Taylor  <iant@google.com>
+	    Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/type_traits.h: Fix __glibcxx_max macro.
+	* include/std/limits: Likewise.
+
+2007-01-15  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/std/valarray (valarray<>::cshift): Fix typo.
+
+2007-01-14  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algobase.h (fill_n(char*, _Size,
+	const signed char&)): Fix signature.
+	* testsuite/25_algorithms/fill/3.cc: New.
+
+2007-01-13  John David Anglin  <dave.anglin@nrc-cnrc.gc>
+
+	* config/cpu/hppa/atomicity.h (__exchange_and_add): Don't use ordered
+	store.
+	(__atomic_add): Likewise.
+
+2007-01-13  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/14991
+	* docs/html/17_intro/porting-howto.html ([3]): Mention stdio_filebuf.
+	* docs/html/17_intro/porting-howto.xml: Remove.
+
+	* docs/html/17_intro/porting-howto.html: Remove spurious end tags
+	pointed out by validator.w3.org.
+
 2007-01-12  Paolo Carlini  <pcarlini@suse.de>
 
 	PR libstdc++/30416 (continued)

@@ -38,16 +38,6 @@ Some basic guidelines for editing this document:
 @chapter Intrinsic Procedures
 @cindex intrinsic procedures
 
-This portion of the document is incomplete and undergoing massive expansion 
-and editing.  All contributions and corrections are strongly encouraged. 
-
-Implemented intrinsics are fully functional and available to the user to apply. 
-Some intrinsics have documentation yet to be completed as indicated by 'documentation pending'.
-
-@comment Missing intrinsics (double check with #19292)
-@comment  - MClock
-@comment  - Short
-
 @menu
 * Introduction:         Introduction to Intrinsics
 * @code{ABORT}:         ABORT,     Abort the program     
@@ -125,6 +115,7 @@ Some intrinsics have documentation yet to be completed as indicated by 'document
 * @code{FSEEK}:         FSEEK,     Low level file positioning subroutine
 * @code{FSTAT}:         FSTAT,     Get file status
 * @code{FTELL}:         FTELL,     Current stream position
+* @code{GERROR}:        GERROR,    Get last system error message
 * @code{GETARG}:        GETARG,    Get command line arguments
 * @code{GET_COMMAND}:   GET_COMMAND, Get the entire command line
 * @code{GET_COMMAND_ARGUMENT}: GET_COMMAND_ARGUMENT, Get command line arguments
@@ -150,8 +141,11 @@ Some intrinsics have documentation yet to be completed as indicated by 'document
 * @code{IERRNO}:        IERRNO,    Function to get the last system error number
 * @code{INDEX}:         INDEX,     Position of a substring within a string
 * @code{INT}:           INT,       Convert to integer type
+* @code{INT2}:          INT2,      Convert to 16-bit integer type
+* @code{INT8}:          INT8,      Convert to 64-bit integer type
 * @code{IOR}:           IOR,       Bitwise logical or
 * @code{IRAND}:         IRAND,     Integer pseudo-random number
+* @code{ISATTY}:        ISATTY,    Whether a unit is a terminal device
 * @code{ISHFT}:         ISHFT,     Shift bits
 * @code{ISHFTC}:        ISHFTC,    Shift bits circularly
 * @code{ITIME}:         ITIME,     Current local time (hour/minutes/seconds)
@@ -170,6 +164,7 @@ Some intrinsics have documentation yet to be completed as indicated by 'document
 * @code{LOG}:           LOG,       Logarithm function
 * @code{LOG10}:         LOG10,     Base 10 logarithm function 
 * @code{LOGICAL}:       LOGICAL,   Convert to logical type
+* @code{LONG}:          LONG,      Convert to integer type
 * @code{LSHIFT}:        LSHIFT,    Left shift bits
 * @code{LSTAT}:         LSTAT,     Get file status
 * @code{LTIME}:         LTIME,     Convert time to local time info
@@ -179,6 +174,8 @@ Some intrinsics have documentation yet to be completed as indicated by 'document
 * @code{MAXEXPONENT}:   MAXEXPONENT, Maximum exponent of a real kind
 * @code{MAXLOC}:        MAXLOC,    Location of the maximum value within an array
 * @code{MAXVAL}:        MAXVAL,    Maximum value of an array
+* @code{MCLOCK}:        MCLOCK,    Time function
+* @code{MCLOCK8}:       MCLOCK8,   Time function (64-bit)
 * @code{MERGE}:         MERGE,     Merge arrays
 * @code{MIN}:           MIN,       Minimum value of an argument list
 * @code{MINEXPONENT}:   MINEXPONENT, Minimum exponent of a real kind
@@ -214,8 +211,7 @@ Some intrinsics have documentation yet to be completed as indicated by 'document
 * @code{SCALE}:         SCALE,     Scale a real value
 * @code{SCAN}:          SCAN,      Scan a string for the presence of a set of characters
 * @code{SECNDS}:        SECNDS,    Time function
-@comment * @code{SECOND}:        SECOND,    (?)
-@comment * @code{SECONDS}:       SECONDS,   (?)
+* @code{SECOND}:        SECOND,    CPU time function
 * @code{SELECTED_INT_KIND}: SELECTED_INT_KIND,  Choose integer kind
 * @code{SELECTED_REAL_KIND}: SELECTED_REAL_KIND,  Choose real kind
 * @code{SET_EXPONENT}:  SET_EXPONENT, Set the exponent of the model
@@ -225,6 +221,7 @@ Some intrinsics have documentation yet to be completed as indicated by 'document
 * @code{SIN}:           SIN,       Sine function
 * @code{SINH}:          SINH,      Hyperbolic sine function
 * @code{SIZE}:          SIZE,      Function to determine the size of an array
+* @code{SLEEP}:         SLEEP,     Sleep for the specified number of seconds
 * @code{SNGL}:          SNGL,      Convert double precision real to default real
 * @code{SPACING}:       SPACING,   Smallest distance between two numbers of a given type
 * @code{SPREAD}:        SPREAD,    Add a dimension to an array 
@@ -238,14 +235,15 @@ Some intrinsics have documentation yet to be completed as indicated by 'document
 * @code{TAN}:           TAN,       Tangent function
 * @code{TANH}:          TANH,      Hyperbolic tangent function
 * @code{TIME}:          TIME,      Time function
+* @code{TIME8}:         TIME8,     Time function (64-bit)
 * @code{TINY}:          TINY,      Smallest positive number of a real kind
 * @code{TRANSFER}:      TRANSFER,  Transfer bit patterns
 * @code{TRANSPOSE}:     TRANSPOSE, Transpose an array of rank two
 * @code{TRIM}:          TRIM,      Function to remove trailing blank characters of a string
+* @code{TTYNAM}:        TTYNAM,    Get the name of a terminal device.
 * @code{UBOUND}:        UBOUND,    Upper dimension bounds of an array
 * @code{UMASK}:         UMASK,     Set the file creation mask
 * @code{UNLINK}:        UNLINK,    Remove a file from the file system
-* @code{UNMASK}:        UNMASK,    (?)
 * @code{UNPACK}:        UNPACK,    Unpack an array of rank one into an array
 * @code{VERIFY}:        VERIFY,    Scan a string for the absence of a set of characters
 * @code{XOR}:           XOR,       Bitwise logical exclusive or
@@ -307,7 +305,7 @@ which is suitable for debugging purposes.
 GNU extension
 
 @item @emph{Class}:
-non-elemental subroutine
+Non-elemental subroutine
 
 @item @emph{Syntax}:
 @code{CALL ABORT}
@@ -327,6 +325,7 @@ end program test_abort
 @ref{EXIT}, @ref{KILL}
 
 @end table
+
 
 
 @node ABS
@@ -350,10 +349,10 @@ F77 and later, has overloads that are GNU extensions
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ABS(X)}
+@code{RESULT = ABS(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type of the argument shall be an @code{INTEGER(*)},
 @code{REAL(*)}, or @code{COMPLEX(*)}.
 @end multitable
@@ -376,7 +375,7 @@ end program test_abs
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument            @tab Return type       @tab Standard
 @item @code{CABS(Z)}  @tab @code{COMPLEX(4) Z} @tab @code{REAL(4)}    @tab F77 and later
 @item @code{DABS(X)}  @tab @code{REAL(8)    X} @tab @code{REAL(8)}    @tab F77 and later
@@ -385,6 +384,7 @@ end program test_abs
 @item @code{CDABS(Z)} @tab @code{COMPLEX(8) Z} @tab @code{COMPLEX(8)} @tab GNU extension
 @end multitable
 @end table
+
 
 
 @node ACCESS
@@ -406,10 +406,10 @@ GNU extension
 Inquiry function
 
 @item @emph{Syntax}:
-@code{I = ACCESS(NAME, MODE)}
+@code{RESULT = ACCESS(NAME, MODE)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{NAME} @tab Scalar @code{CHARACTER} with the file name.
 Tailing blank are ignored unless the character @code{achar(0)} is
 present, then all characters up to and excluding @code{achar(0)} are
@@ -421,7 +421,7 @@ and @code{"x"} (executable), or @code{" "} to check for existence.
 
 @item @emph{Return value}:
 Returns a scalar @code{INTEGER}, which is @code{0} if the file is
-accessable in the given mode; otherwise or if an invalid argument
+accessible in the given mode; otherwise or if an invalid argument
 has been given for @code{MODE} the value @code{1} is returned.
 
 @item @emph{Example}:
@@ -444,6 +444,7 @@ end program access_test
 @end table
 
 
+
 @node ACHAR
 @section @code{ACHAR} --- Character in @acronym{ASCII} collating sequence 
 @cindex @code{ACHAR} intrinsic
@@ -461,10 +462,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{C = ACHAR(I)}
+@code{RESULT = ACHAR(I)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @end multitable
 
@@ -479,6 +480,14 @@ program test_achar
   c = achar(32)
 end program test_achar
 @end smallexample
+
+@item @emph{Note}:
+See @ref{ICHAR} for a discussion of converting between numerical values
+and formatted string representations.
+
+@item @emph{See also}:
+@ref{CHAR}, @ref{IACHAR}, @ref{ICHAR}
+
 @end table
 
 
@@ -500,10 +509,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ACOS(X)}
+@code{RESULT = ACOS(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)} with a magnitude that is
 less than one.
 @end multitable
@@ -522,7 +531,7 @@ end program test_acos
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DACOS(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab F77 and later
 @end multitable
@@ -533,15 +542,18 @@ Inverse function: @ref{COS}
 @end table
 
 
+
 @node ACOSH
 @section @code{ACOSH} --- Hyperbolic arccosine function
 @cindex @code{ACOSH} intrinsic
+@cindex @code{DACOSH} intrinsic
 @cindex hyperbolic arccosine
 @cindex hyperbolic cosine (inverse)
 
 @table @asis
 @item @emph{Description}:
-@code{ACOSH(X)} computes the area hyperbolic cosine of @var{X} (inverse of @code{COSH(X)}).
+@code{ACOSH(X)} computes the hyperbolic arccosine of @var{X} (inverse of
+@code{COSH(X)}).
 
 @item @emph{Standard}:
 GNU extension
@@ -550,10 +562,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ACOSH(X)}
+@code{RESULT = ACOSH(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)} with a magnitude that is
 greater or equal to one.
 @end multitable
@@ -569,6 +581,12 @@ PROGRAM test_acosh
   WRITE (*,*) ACOSH(x)
 END PROGRAM
 @end smallexample
+
+@item @emph{Specific names}:
+@multitable @columnfractions .20 .20 .20 .25
+@item Name             @tab Argument          @tab Return type       @tab Standard
+@item @code{DACOSH(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab GNU extension
+@end multitable
 
 @item @emph{See also}:
 Inverse function: @ref{COSH}
@@ -593,10 +611,10 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{STR = ADJUSTL(STR)}
+@code{RESULT = ADJUSTL(STR)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{STR} @tab The type shall be @code{CHARACTER}.
 @end multitable
 
@@ -634,10 +652,10 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{STR = ADJUSTR(STR)}
+@code{RESULT = ADJUSTR(STR)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{STR} @tab The type shall be @code{CHARACTER}.
 @end multitable
 
@@ -680,10 +698,10 @@ F77 and later, has overloads that are GNU extensions
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = AIMAG(Z)}
+@code{RESULT = AIMAG(Z)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{Z} @tab The type of the argument shall be @code{COMPLEX(*)}.
 @end multitable
 
@@ -703,7 +721,7 @@ end program test_aimag
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument            @tab Return type       @tab Standard
 @item @code{DIMAG(Z)} @tab @code{COMPLEX(8) Z} @tab @code{REAL(8)}    @tab GNU extension
 @item @code{IMAG(Z)}  @tab @code{COMPLEX(*) Z} @tab @code{REAL(*)}    @tab GNU extension
@@ -730,13 +748,14 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = AINT(X [, KIND])} 
+@code{RESULT = AINT(X [, KIND])} 
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X}    @tab The type of the argument shall be @code{REAL(*)}.
-@item @var{KIND} @tab (Optional) @var{KIND} shall be a scalar integer
-initialization expression.
+@item @var{KIND} @tab (Optional) An @code{INTEGER(*)} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
@@ -761,7 +780,7 @@ end program test_aint
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name           @tab Argument         @tab Return type      @tab Standard
 @item @code{DINT(X)} @tab @code{REAL(8) X} @tab @code{REAL(8)}   @tab F77 and later
 @end multitable
@@ -776,7 +795,7 @@ end program test_aint
 @table @asis
 @item @emph{Description}:
 @code{ALARM(SECONDS, HANDLER [, STATUS])} causes external subroutine @var{HANDLER}
-to be executed after a delay of @var{SECONDS} by using @code{alarm(1)} to
+to be executed after a delay of @var{SECONDS} by using @code{alarm(2)} to
 set up a signal and @code{signal(2)} to catch it. If @var{STATUS} is
 supplied, it will be returned with the number of seconds remaining until
 any previously scheduled alarm was due to be delivered, or zero if there
@@ -792,14 +811,15 @@ Subroutine
 @code{CALL ALARM(SECONDS, HANDLER [, STATUS])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{SECONDS} @tab The type of the argument shall be a scalar
 @code{INTEGER}. It is @code{INTENT(IN)}.
 @item @var{HANDLER} @tab Signal handler (@code{INTEGER FUNCTION} or
-@code{SUBROUTINE}) or dummy/global @code{INTEGER} scalar.
-@code{INTEGER}. It is @code{INTENT(IN)}.
+@code{SUBROUTINE}) or dummy/global @code{INTEGER} scalar. The scalar 
+values may be either @code{SIG_IGN=1} to ignore the alarm generated 
+or @code{SIG_DFL=0} to set the default action. It is @code{INTENT(IN)}.
 @item @var{STATUS}  @tab (Optional) @var{STATUS} shall be a scalar
-@code{INTEGER} variable. It is @code{INTENT(OUT)}.
+variable of the default @code{INTEGER} kind. It is @code{INTENT(OUT)}.
 @end multitable
 
 @item @emph{Example}:
@@ -835,10 +855,10 @@ F95 and later
 transformational function
 
 @item @emph{Syntax}:
-@code{L = ALL(MASK [, DIM])}
+@code{RESULT = ALL(MASK [, DIM])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{MASK} @tab The type of the argument shall be @code{LOGICAL(*)} and
 it shall not be scalar.
 @item @var{DIM}  @tab (Optional) @var{DIM} shall be a scalar integer
@@ -900,10 +920,10 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{L = ALLOCATED(X)}
+@code{RESULT = ALLOCATED(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X}    @tab The argument shall be an @code{ALLOCATABLE} array.
 @end multitable
 
@@ -921,6 +941,7 @@ program test_allocated
 end program test_allocated
 @end smallexample
 @end table
+
 
 
 @node AND
@@ -943,12 +964,12 @@ GNU extension
 Non-elemental function
 
 @item @emph{Syntax}:
-@code{RESULT = AND(X, Y)}
+@code{RESULT = AND(I, J)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab The type shall be either @code{INTEGER(*)} or @code{LOGICAL}.
-@item @var{Y} @tab The type shall be either @code{INTEGER(*)} or @code{LOGICAL}.
+@multitable @columnfractions .15 .70
+@item @var{I} @tab The type shall be either @code{INTEGER(*)} or @code{LOGICAL}.
+@item @var{J} @tab The type shall be either @code{INTEGER(*)} or @code{LOGICAL}.
 @end multitable
 
 @item @emph{Return value}:
@@ -990,14 +1011,14 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ANINT(X)}
-@code{X = ANINT(X, KIND)}
+@code{RESULT = ANINT(X [, KIND])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X}    @tab The type of the argument shall be @code{REAL(*)}.
-@item @var{KIND} @tab (Optional) @var{KIND} shall be a scalar integer
-initialization expression.
+@item @var{KIND} @tab (Optional) An @code{INTEGER(*)} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
@@ -1020,7 +1041,7 @@ end program test_anint
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument         @tab Return type      @tab Standard
 @item @code{DNINT(X)} @tab @code{REAL(8) X} @tab @code{REAL(8)}   @tab F77 and later
 @end multitable
@@ -1045,11 +1066,10 @@ F95 and later
 transformational function
 
 @item @emph{Syntax}:
-@code{L = ANY(MASK)} 
-@code{L = ANY(MASK, DIM)}
+@code{RESULT = ANY(MASK [, DIM])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{MASK} @tab The type of the argument shall be @code{LOGICAL(*)} and
 it shall not be scalar.
 @item @var{DIM}  @tab (Optional) @var{DIM} shall be a scalar integer
@@ -1112,10 +1132,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ASIN(X)}
+@code{RESULT = ASIN(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}, and a magnitude that is
 less than one.
 @end multitable
@@ -1134,7 +1154,7 @@ end program test_asin
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DASIN(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab F77 and later
 @end multitable
@@ -1145,15 +1165,17 @@ Inverse function: @ref{SIN}
 @end table
 
 
+
 @node ASINH
 @section @code{ASINH} --- Hyperbolic arcsine function
 @cindex @code{ASINH} intrinsic
+@cindex @code{DASINH} intrinsic
 @cindex hyperbolic arcsine
 @cindex hyperbolic sine (inverse)
 
 @table @asis
 @item @emph{Description}:
-@code{ASINH(X)} computes the area hyperbolic sine of @var{X} (inverse of @code{SINH(X)}).
+@code{ASINH(X)} computes the hyperbolic arcsine of @var{X} (inverse of @code{SINH(X)}).
 
 @item @emph{Standard}:
 GNU extension
@@ -1162,10 +1184,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ASINH(X)}
+@code{RESULT = ASINH(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}, with @var{X} a real number.
 @end multitable
 
@@ -1180,6 +1202,12 @@ PROGRAM test_asinh
   WRITE (*,*) ASINH(x)
 END PROGRAM
 @end smallexample
+
+@item @emph{Specific names}:
+@multitable @columnfractions .20 .20 .20 .25
+@item Name             @tab Argument          @tab Return type       @tab Standard
+@item @code{DASINH(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab GNU extension.
+@end multitable
 
 @item @emph{See also}:
 Inverse function: @ref{SINH}
@@ -1204,11 +1232,10 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{L = ASSOCIATED(PTR)} 
-@code{L = ASSOCIATED(PTR [, TGT])}
+@code{RESULT = ASSOCIATED(PTR [, TGT])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{PTR} @tab @var{PTR} shall have the @code{POINTER} attribute and
 it can be of any type.
 @item @var{TGT} @tab (Optional) @var{TGT} shall be a @code{POINTER} or
@@ -1280,10 +1307,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ATAN(X)}
+@code{RESULT = ATAN(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}.
 @end multitable
 
@@ -1300,7 +1327,7 @@ end program test_atan
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DATAN(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab F77 and later
 @end multitable
@@ -1320,7 +1347,8 @@ Inverse function: @ref{TAN}
 
 @table @asis
 @item @emph{Description}:
-@code{ATAN2(Y,X)} computes the arctangent of the complex number @math{X + i Y}.
+@code{ATAN2(Y,X)} computes the arctangent of the complex number
+@math{X + i Y}.
 
 @item @emph{Standard}:
 F77 and later
@@ -1329,10 +1357,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ATAN2(Y,X)}
+@code{RESULT = ATAN2(Y,X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{Y} @tab The type shall be @code{REAL(*)}.
 @item @var{X} @tab The type and kind type parameter shall be the same as @var{Y}.
 If @var{Y} is zero, then @var{X} must be nonzero.
@@ -1356,7 +1384,7 @@ end program test_atan2
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type    @tab Standard
 @item @code{DATAN2(X)} @tab @code{REAL(8) X} @tab @code{REAL(8)} @tab F77 and later
 @end multitable
@@ -1367,12 +1395,14 @@ end program test_atan2
 @node ATANH
 @section @code{ATANH} --- Hyperbolic arctangent function
 @cindex @code{ASINH} intrinsic
+@cindex @code{DASINH} intrinsic
 @cindex hyperbolic arctangent
 @cindex hyperbolic tangent (inverse)
 
 @table @asis
 @item @emph{Description}:
-@code{ATANH(X)} computes the area hyperbolic sine of @var{X} (inverse of @code{TANH(X)}).
+@code{ATANH(X)} computes the hyperbolic arctangent of @var{X} (inverse
+of @code{TANH(X)}).
 
 @item @emph{Standard}:
 GNU extension
@@ -1381,10 +1411,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ATANH(X)}
+@code{RESULT = ATANH(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)} with a magnitude
 that is less than or equal to one.
 @end multitable
@@ -1401,10 +1431,15 @@ PROGRAM test_atanh
 END PROGRAM
 @end smallexample
 
+@item @emph{Specific names}:
+@multitable @columnfractions .20 .20 .20 .25
+@item Name             @tab Argument          @tab Return type       @tab Standard
+@item @code{DATANH(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab GNU extension
+@end multitable
+
 @item @emph{See also}:
 Inverse function: @ref{TANH}
 @end table
-
 
 
 
@@ -1426,10 +1461,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = BESJ0(X)}
+@code{RESULT = BESJ0(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}, and it shall be scalar.
 @end multitable
 
@@ -1446,7 +1481,7 @@ end program test_besj0
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DBESJ0(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}   @tab GNU extension
 @end multitable
@@ -1472,10 +1507,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = BESJ1(X)}
+@code{RESULT = BESJ1(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}, and it shall be scalar.
 @end multitable
 
@@ -1492,7 +1527,7 @@ end program test_besj1
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DBESJ1(X)}@tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab GNU extension
 @end multitable
@@ -1518,10 +1553,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{Y = BESJN(N, X)}
+@code{RESULT = BESJN(N, X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{N} @tab The type shall be @code{INTEGER(*)}, and it shall be scalar.
 @item @var{X} @tab The type shall be @code{REAL(*)}, and it shall be scalar.
 @end multitable
@@ -1538,7 +1573,7 @@ end program test_besjn
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name             @tab Argument            @tab Return type       @tab Standard
 @item @code{DBESJN(X)} @tab @code{INTEGER(*) N} @tab @code{REAL(8)}    @tab GNU extension
 @item                  @tab @code{REAL(8) X}    @tab                   @tab
@@ -1565,10 +1600,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = BESY0(X)}
+@code{RESULT = BESY0(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}, and it shall be scalar.
 @end multitable
 
@@ -1584,7 +1619,7 @@ end program test_besy0
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DBESY0(X)}@tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab GNU extension
 @end multitable
@@ -1610,10 +1645,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = BESY1(X)}
+@code{RESULT = BESY1(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}, and it shall be scalar.
 @end multitable
 
@@ -1629,7 +1664,7 @@ end program test_besy1
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DBESY1(X)}@tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab GNU extension
 @end multitable
@@ -1655,10 +1690,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{Y = BESYN(N, X)}
+@code{RESULT = BESYN(N, X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{N} @tab The type shall be @code{INTEGER(*)}, and it shall be scalar.
 @item @var{X} @tab The type shall be @code{REAL(*)}, and it shall be scalar.
 @end multitable
@@ -1675,7 +1710,7 @@ end program test_besyn
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name               @tab Argument            @tab Return type     @tab Standard
 @item @code{DBESYN(N,X)} @tab @code{INTEGER(*) N} @tab @code{REAL(8)}  @tab GNU extension
 @item                    @tab @code{REAL(8)    X} @tab                 @tab 
@@ -1702,10 +1737,10 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{I = BIT_SIZE(I)}
+@code{RESULT = BIT_SIZE(I)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @end multitable
 
@@ -1742,10 +1777,10 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{I = BTEST(I,POS)}
+@code{RESULT = BTEST(I, POS)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @item @var{POS} @tab The type shall be @code{INTEGER(*)}.
 @end multitable
@@ -1785,12 +1820,14 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{I = CEILING(X[,KIND])}
+@code{RESULT = CEILING(X [, KIND])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}.
-@item @var{KIND} @tab (Optional) scalar integer initialization expression.
+@item @var{KIND} @tab (Optional) An @code{INTEGER(*)} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
@@ -1820,7 +1857,7 @@ end program test_ceiling
 
 @table @asis
 @item @emph{Description}:
-@code{CHAR(I,[KIND])} returns the character represented by the integer @var{I}.
+@code{CHAR(I [, KIND])} returns the character represented by the integer @var{I}.
 
 @item @emph{Standard}:
 F77 and later
@@ -1829,12 +1866,14 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{C = CHAR(I[,KIND])}
+@code{RESULT = CHAR(I [, KIND])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
-@item @var{KIND} @tab Optional scaler integer initialization expression.
+@item @var{KIND} @tab (Optional) An @code{INTEGER(*)} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
@@ -1850,10 +1889,15 @@ program test_char
 end program test_char
 @end smallexample
 
+@item @emph{Note}:
+See @ref{ICHAR} for a discussion of converting between numerical values
+and formatted string representations.
+
 @item @emph{See also}:
-@ref{ACHAR}, @ref{ICHAR}, @ref{IACHAR}
+@ref{ACHAR}, @ref{IACHAR}, @ref{ICHAR}
 
 @end table
+
 
 
 @node CHDIR
@@ -1863,23 +1907,30 @@ end program test_char
 
 @table @asis
 @item @emph{Description}:
-Change current working directory to a specified @var{PATH}.
+Change current working directory to a specified path.
+
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
 
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine, non-elemental function
 
 @item @emph{Syntax}:
-@code{CALL chdir(PATH[,STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL CHDIR(NAME [, STATUS])}
+@item @code{STATUS = CHDIR(NAME)}
+@end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{PATH}   @tab The type shall be @code{CHARACTER(*)} and shall
+@multitable @columnfractions .15 .70
+@item @var{NAME}   @tab The type shall be @code{CHARACTER(*)} and shall
                         specify a valid path within the file system.
-@item @var{STATUS} @tab (Optional) status flag. Returns 0 on success, 
-                        a system specific and non-zero error code otherwise.
+@item @var{STATUS} @tab (Optional) @code{INTEGER} status flag of the default
+                        kind.  Returns 0 on success, and a system specific
+                        and non-zero error code otherwise.
 @end multitable
 
 @item @emph{Example}:
@@ -1926,7 +1977,7 @@ Subroutine, non-elemental function
 @end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{NAME} @tab Scalar @code{CHARACTER} with the file name.
 Trailing blanks are ignored unless the character @code{achar(0)} is
 present, then all characters up to and excluding @code{achar(0)} are
@@ -1963,10 +2014,9 @@ program chmod_test
   print *, 'Status: ', status
 end program chmod_test
 @end smallexample
-@item @emph{Specific names}:
-@item @emph{See also}:
 
 @end table
+
 
 
 @node CMPLX
@@ -1976,7 +2026,7 @@ end program chmod_test
 
 @table @asis
 @item @emph{Description}:
-@code{CMPLX(X[,Y[,KIND]])} returns a complex number where @var{X} is converted to
+@code{CMPLX(X [, Y [, KIND]])} returns a complex number where @var{X} is converted to
 the real component.  If @var{Y} is present it is converted to the imaginary
 component.  If @var{Y} is not present then the imaginary component is set to
 0.0.  If @var{X} is complex then @var{Y} must not be present.
@@ -1988,16 +2038,18 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{C = CMPLX(X[,Y[,KIND]])}
+@code{RESULT = CMPLX(X [, Y [, KIND]])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type may be @code{INTEGER(*)}, @code{REAL(*)},
                    or @code{COMPLEX(*)}.
-@item @var{Y} @tab Optional, allowed if @var{X} is not
-                   @code{COMPLEX(*)}.  May be @code{INTEGER(*)}
-		   or @code{REAL(*)}. 
-@item @var{KIND} @tab Optional scaler integer initialization expression.
+@item @var{Y} @tab (Optional; only allowed if @var{X} is not
+                   @code{COMPLEX(*)}.)  May be @code{INTEGER(*)}
+		   or @code{REAL(*)}.
+@item @var{KIND} @tab (Optional) An @code{INTEGER(*)} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
@@ -2034,10 +2086,10 @@ F2003
 Inquiry function
 
 @item @emph{Syntax}:
-@code{I = COMMAND_ARGUMENT_COUNT()}
+@code{RESULT = COMMAND_ARGUMENT_COUNT()}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item None
 @end multitable
 
@@ -2056,6 +2108,8 @@ end program test_command_argument_count
 @item @emph{See also}:
 @ref{GET_COMMAND}, @ref{GET_COMMAND_ARGUMENT}
 @end table
+
+
 
 @node CONJG
 @section @code{CONJG} --- Complex conjugate function 
@@ -2077,7 +2131,7 @@ Elemental function
 @code{Z = CONJG(Z)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{Z} @tab The type shall be @code{COMPLEX(*)}.
 @end multitable
 
@@ -2097,7 +2151,7 @@ end program test_conjg
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name             @tab Argument             @tab Return type          @tab Standard
 @item @code{DCONJG(Z)} @tab @code{COMPLEX(8) Z}  @tab @code{COMPLEX(8)}    @tab GNU extension
 @end multitable
@@ -2109,6 +2163,7 @@ end program test_conjg
 @section @code{COS} --- Cosine function 
 @cindex @code{COS} intrinsic
 @cindex @code{DCOS} intrinsic
+@cindex @code{CCOS} intrinsic
 @cindex @code{ZCOS} intrinsic
 @cindex @code{CDCOS} intrinsic
 @cindex trigonometric functions
@@ -2124,10 +2179,10 @@ F77 and later, has overloads that are GNU extensions
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = COS(X)}
+@code{RESULT = COS(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)} or
 @code{COMPLEX(*)}.
 @end multitable
@@ -2146,7 +2201,7 @@ end program test_cos
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument            @tab Return type       @tab Standard
 @item @code{DCOS(X)}  @tab @code{REAL(8) X}    @tab @code{REAL(8)}    @tab F77 and later
 @item @code{CCOS(X)}  @tab @code{COMPLEX(4) X} @tab @code{COMPLEX(4)} @tab F77 and later
@@ -2181,7 +2236,7 @@ Elemental function
 @code{X = COSH(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}.
 @end multitable
 
@@ -2198,7 +2253,7 @@ end program test_cosh
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DCOSH(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab F77 and later
 @end multitable
@@ -2217,7 +2272,7 @@ Inverse function: @ref{ACOSH}
 
 @table @asis
 @item @emph{Description}:
-@code{COUNT(MASK[,DIM])} counts the number of @code{.TRUE.} elements of
+@code{COUNT(MASK [, DIM])} counts the number of @code{.TRUE.} elements of
 @var{MASK} along the dimension of @var{DIM}.  If @var{DIM} is omitted it is
 taken to be @code{1}.  @var{DIM} is a scaler of type @code{INTEGER} in the
 range of @math{1 /leq DIM /leq n)} where @math{n} is the rank of @var{MASK}.
@@ -2229,10 +2284,10 @@ F95 and later
 transformational function
 
 @item @emph{Syntax}:
-@code{I = COUNT(MASK[,DIM])}
+@code{RESULT = COUNT(MASK [, DIM])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{MASK} @tab The type shall be @code{LOGICAL}.
 @item @var{DIM}  @tab The type shall be @code{INTEGER}.
 @end multitable
@@ -2277,8 +2332,9 @@ end program test_count
 
 @table @asis
 @item @emph{Description}:
-Returns a @code{REAL} value representing the elapsed CPU time in seconds.  This
-is useful for testing segments of code to determine execution time.
+Returns a @code{REAL(*)} value representing the elapsed CPU time in
+seconds.  This is useful for testing segments of code to determine
+execution time.
 
 @item @emph{Standard}:
 F95 and later
@@ -2287,11 +2343,11 @@ F95 and later
 Subroutine
 
 @item @emph{Syntax}:
-@code{CPU_TIME(X)}
+@code{CALL CPU_TIME(TIME)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab The type shall be @code{REAL} with @code{INTENT(OUT)}.
+@multitable @columnfractions .15 .70
+@item @var{TIME} @tab The type shall be @code{REAL(*)} with @code{INTENT(OUT)}.
 @end multitable
 
 @item @emph{Return value}:
@@ -2318,7 +2374,7 @@ end program test_cpu_time
 
 @table @asis
 @item @emph{Description}:
-@code{CSHIFT(ARRAY, SHIFT[,DIM])} performs a circular shift on elements of
+@code{CSHIFT(ARRAY, SHIFT [, DIM])} performs a circular shift on elements of
 @var{ARRAY} along the dimension of @var{DIM}.  If @var{DIM} is omitted it is
 taken to be @code{1}.  @var{DIM} is a scaler of type @code{INTEGER} in the
 range of @math{1 /leq DIM /leq n)} where @math{n} is the rank of @var{ARRAY}.
@@ -2334,10 +2390,10 @@ F95 and later
 transformational function
 
 @item @emph{Syntax}:
-@code{A = CSHIFT(A, SHIFT[,DIM])}
+@code{RESULT = CSHIFT(A, SHIFT [, DIM])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{ARRAY}  @tab May be any type, not scaler.
 @item @var{SHIFT}  @tab The type shall be @code{INTEGER}.
 @item @var{DIM}    @tab The type shall be @code{INTEGER}.
@@ -2364,6 +2420,7 @@ end program test_cshift
 @end table
 
 
+
 @node CTIME
 @section @code{CTIME} --- Convert a time into a string
 @cindex @code{CTIME} intrinsic
@@ -2371,15 +2428,11 @@ end program test_cshift
 
 @table @asis
 @item @emph{Description}:
-@code{CTIME(T,S)} converts @var{T}, a system time value, such as returned
-by @code{TIME8()}, to a string of the form @samp{Sat Aug 19 18:13:14
-1995}, and returns that string into @var{S}.
+@code{CTIME} converts a system time value, such as returned by
+@code{TIME8()}, to a string of the form @samp{Sat Aug 19 18:13:14 1995}.
 
-If @code{CTIME} is invoked as a function, it can not be invoked as a
-subroutine, and vice versa.
-
-@var{T} is an @code{INTENT(IN)} @code{INTEGER(KIND=8)} variable.
-@var{S} is an @code{INTENT(OUT)} @code{CHARACTER} variable.
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
 
 @item @emph{Standard}:
 GNU extension
@@ -2389,14 +2442,14 @@ Subroutine
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
-@item @code{CALL CTIME(T,S)}.
-@item @code{S = CTIME(T)}, (not recommended).
+@item @code{CALL CTIME(TIME, RESULT)}.
+@item @code{RESULT = CTIME(TIME)}, (not recommended).
 @end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{S}@tab The type shall be of type @code{CHARACTER}.
-@item @var{T}@tab The type shall be of type @code{INTEGER(KIND=8)}.
+@multitable @columnfractions .15 .70
+@item @var{TIME}    @tab The type shall be of type @code{INTEGER(KIND=8)}.
+@item @var{RESULT}  @tab The type shall be of type @code{CHARACTER}.
 @end multitable
 
 @item @emph{Return value}:
@@ -2415,7 +2468,13 @@ program test_ctime
     print *, 'Program was started on ', date
 end program test_ctime
 @end smallexample
+
+@item @emph{See Also}:
+@ref{GMTIME}, @ref{LTIME}, @ref{TIME}, @ref{TIME8}
+
 @end table
+
+
 
 @node DATE_AND_TIME
 @section @code{DATE_AND_TIME} --- Date and time subroutine
@@ -2436,7 +2495,7 @@ Unavailable time and date parameters return blanks.
 
 @var{VALUES} is @code{INTENT(OUT)} and provides the following:
 
-@multitable @columnfractions .15 .30 .60
+@multitable @columnfractions .15 .30 .40
 @item @tab @code{VALUE(1)}: @tab The year
 @item @tab @code{VALUE(2)}: @tab The month
 @item @tab @code{VALUE(3)}: @tab The day of the month
@@ -2457,7 +2516,7 @@ Subroutine
 @code{CALL DATE_AND_TIME([DATE, TIME, ZONE, VALUES])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{DATE}  @tab (Optional) The type shall be @code{CHARACTER(8)} or larger.
 @item @var{TIME}  @tab (Optional) The type shall be @code{CHARACTER(10)} or larger.
 @item @var{ZONE}  @tab (Optional) The type shall be @code{CHARACTER(5)} or larger.
@@ -2503,10 +2562,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = DBLE(X)}
+@code{RESULT = DBLE(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{INTEGER(*)}, @code{REAL(*)},
                    or @code{COMPLEX(*)}.
 @end multitable
@@ -2549,14 +2608,13 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{C = DCMPLX(X)}
-@code{C = DCMPLX(X,Y)}
+@code{RESULT = DCMPLX(X [, Y])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type may be @code{INTEGER(*)}, @code{REAL(*)},
                    or @code{COMPLEX(*)}.
-@item @var{Y} @tab Optional if @var{X} is not @code{COMPLEX(*)}. May be
+@item @var{Y} @tab (Optional if @var{X} is not @code{COMPLEX(*)}.) May be
                    @code{INTEGER(*)} or @code{REAL(*)}. 
 @end multitable
 
@@ -2596,10 +2654,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = DFLOAT(X)}
+@code{RESULT = DFLOAT(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{INTEGER(*)}.
 @end multitable
 
@@ -2638,10 +2696,10 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{C = DIGITS(X)}
+@code{RESULT = DIGITS(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type may be @code{INTEGER(*)} or @code{REAL(*)}.
 @end multitable
 
@@ -2682,10 +2740,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = DIM(X,Y)}
+@code{RESULT = DIM(X, Y)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{INTEGER(*)} or @code{REAL(*)}
 @item @var{Y} @tab The type shall be the same type and kind as @var{X}.
 @end multitable
@@ -2706,7 +2764,7 @@ end program test_dim
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name             @tab Argument              @tab Return type       @tab Standard
 @item @code{IDIM(X,Y)} @tab @code{INTEGER(4) X,Y} @tab @code{INTEGER(4)} @tab F77 and later
 @item @code{DDIM(X,Y)} @tab @code{REAL(8) X,Y}    @tab @code{REAL(8)}    @tab F77 and later
@@ -2736,10 +2794,10 @@ F95 and later
 transformational function
 
 @item @emph{Syntax}:
-@code{S = DOT_PRODUCT(X,Y)}
+@code{RESULT = DOT_PRODUCT(X, Y)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be numeric or @code{LOGICAL}, rank 1.
 @item @var{Y} @tab The type shall be numeric or @code{LOGICAL}, rank 1.
 @end multitable
@@ -2782,10 +2840,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{D = DPROD(X,Y)}
+@code{RESULT = DPROD(X, Y)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL}.
 @item @var{Y} @tab The type shall be @code{REAL}.
 @end multitable
@@ -2824,10 +2882,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{D = DREAL(Z)}
+@code{RESULT = DREAL(Z)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{Z} @tab The type shall be @code{COMPLEX(8)}.
 @end multitable
 
@@ -2877,7 +2935,7 @@ subroutine, and vice versa.
 
 @var{TARRAY} and @var{RESULT} are @code{INTENT(OUT)} and provide the following:
 
-@multitable @columnfractions .15 .30 .60
+@multitable @columnfractions .15 .30 .40
 @item @tab @code{TARRAY(1)}: @tab User time in seconds.
 @item @tab @code{TARRAY(2)}: @tab System time in seconds.
 @item @tab @code{RESULT}: @tab Run time since start in seconds.
@@ -2896,7 +2954,7 @@ Subroutine
 @end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{TARRAY}@tab The type shall be @code{REAL, DIMENSION(2)}.
 @item @var{RESULT}@tab The type shall be @code{REAL}.
 @end multitable
@@ -2960,10 +3018,10 @@ F95 and later
 transformational function
 
 @item @emph{Syntax}:
-@code{A = EOSHIFT(A, SHIFT[,BOUNDARY, DIM])}
+@code{RESULT = EOSHIFT(A, SHIFT [, BOUNDARY, DIM])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{ARRAY}  @tab May be any type, not scaler.
 @item @var{SHIFT}  @tab The type shall be @code{INTEGER}.
 @item @var{BOUNDARY} @tab Same type as @var{ARRAY}. 
@@ -3008,10 +3066,10 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{C = EPSILON(X)}
+@code{RESULT = EPSILON(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}.
 @end multitable
 
@@ -3047,10 +3105,10 @@ GNU Extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ERF(X)}
+@code{RESULT = ERF(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}, and it shall be scalar.
 @end multitable
 
@@ -3067,7 +3125,7 @@ end program test_erf
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DERF(X)}  @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab GNU extension
 @end multitable
@@ -3091,10 +3149,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = ERFC(X)}
+@code{RESULT = ERFC(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}, and it shall be scalar.
 @end multitable
 
@@ -3111,7 +3169,7 @@ end program test_erfc
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DERFC(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab GNU extension
 @end multitable
@@ -3155,13 +3213,13 @@ GNU extension
 Subroutine
 
 @item @emph{Syntax}:
-@multitable @columnfractions .8
+@multitable @columnfractions .80
 @item @code{CALL ETIME(TARRAY, RESULT)}.
 @item @code{RESULT = ETIME(TARRAY)}, (not recommended).
 @end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{TARRAY}@tab The type shall be @code{REAL, DIMENSION(2)}.
 @item @var{RESULT}@tab The type shall be @code{REAL}.
 @end multitable
@@ -3217,8 +3275,8 @@ Subroutine
 @code{CALL EXIT([STATUS])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{STATUS} @tab The type of the argument shall be @code{INTEGER(*)}.
+@multitable @columnfractions .15 .70
+@item @var{STATUS} @tab Shall be an @code{INTEGER} of the default kind.
 @end multitable
 
 @item @emph{Return value}:
@@ -3243,6 +3301,7 @@ end program test_exit
 @section @code{EXP} --- Exponential function 
 @cindex @code{EXP} intrinsic
 @cindex @code{DEXP} intrinsic
+@cindex @code{CEXP} intrinsic
 @cindex @code{ZEXP} intrinsic
 @cindex @code{CDEXP} intrinsic
 @cindex exponential
@@ -3258,10 +3317,10 @@ F77 and later, has overloads that are GNU extensions
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = EXP(X)}
+@code{RESULT = EXP(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)} or
 @code{COMPLEX(*)}.
 @end multitable
@@ -3278,7 +3337,7 @@ end program test_exp
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument             @tab Return type         @tab Standard
 @item @code{DEXP(X)}  @tab @code{REAL(8) X}     @tab @code{REAL(8)}      @tab F77 and later
 @item @code{CEXP(X)}  @tab @code{COMPLEX(4) X}  @tab @code{COMPLEX(4)}   @tab F77 and later
@@ -3306,10 +3365,10 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{I = EXPONENT(X)}
+@code{RESULT = EXPONENT(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}.
 @end multitable
 
@@ -3327,6 +3386,7 @@ program test_exponent
 end program test_exponent
 @end smallexample
 @end table
+
 
 
 @node FDATE
@@ -3361,7 +3421,7 @@ Subroutine
 @end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{DATE}@tab The type shall be of type @code{CHARACTER}.
 @end multitable
 
@@ -3384,6 +3444,8 @@ end program test_fdate
 @end smallexample
 @end table
 
+
+
 @node FLOAT
 
 @section @code{FLOAT} --- Convert integer to default real
@@ -3401,15 +3463,15 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = FLOAT(I)}
+@code{RESULT = FLOAT(I)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type default @code{REAL}
+The return value is of type default @code{REAL}.
 
 @item @emph{Example}:
 @smallexample
@@ -3449,13 +3511,14 @@ GNU extension
 Non-elemental subroutine
 
 @item @emph{Syntax}:
-@code{CALL FGET(C[,STATUS])}
+@code{CALL FGET(C [, STATUS])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{C}      @tab The type shall be @code{CHARACTER}.
-@item @var{STATUS} @tab (Optional) status flag of type @code{INTEGER}. Returns 0 on success,
-                        -1 on end-of-file and a system specific positive error code otherwise.
+@item @var{STATUS} @tab (Optional) status flag of type @code{INTEGER}.
+                        Returns 0 on success, -1 on end-of-file, and a
+                        system specific positive error code otherwise.
 @end multitable
 
 @item @emph{Example}:
@@ -3478,6 +3541,7 @@ END PROGRAM
 @item @emph{See also}:
 @ref{FGETC}, @ref{FPUT}, @ref{FPUTC}
 @end table
+
 
 
 @node FGETC
@@ -3504,10 +3568,10 @@ GNU extension
 Non-elemental subroutine
 
 @item @emph{Syntax}:
-@code{CALL FGETC(UNIT,C[,STATUS])}
+@code{CALL FGETC(UNIT, C [, STATUS])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{UNIT}   @tab The type shall be @code{INTEGER}.
 @item @var{C}      @tab The type shall be @code{CHARACTER}.
 @item @var{STATUS} @tab (Optional) status flag of type @code{INTEGER}. Returns 0 on success,
@@ -3552,12 +3616,14 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{I = FLOOR(X[,KIND])}
+@code{RESULT = FLOOR(X [, KIND])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}.
-@item @var{KIND} @tab Optional scaler integer initialization expression.
+@item @var{KIND} @tab (Optional) An @code{INTEGER(*)} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
@@ -3594,13 +3660,13 @@ argument, all units are flushed, otherwise just the unit specified.
 GNU extension
 
 @item @emph{Class}:
-non-elemental subroutine
+Non-elemental subroutine
 
 @item @emph{Syntax}:
 @code{CALL FLUSH(UNIT)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{UNIT} @tab (Optional) The type shall be @code{INTEGER}.
 @end multitable
 
@@ -3626,13 +3692,13 @@ open Fortran I/O unit @code{UNIT}.
 GNU extension
 
 @item @emph{Class}:
-non-elemental function
+Non-elemental function
 
 @item @emph{Syntax}:
-@code{I = FNUM(UNIT)}
+@code{RESULT = FNUM(UNIT)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{UNIT} @tab The type shall be @code{INTEGER}.
 @end multitable
 
@@ -3677,10 +3743,10 @@ GNU extension
 Non-elemental subroutine
 
 @item @emph{Syntax}:
-@code{CALL FPUT(C[,STATUS])}
+@code{CALL FPUT(C [, STATUS])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{C}      @tab The type shall be @code{CHARACTER}.
 @item @var{STATUS} @tab (Optional) status flag of type @code{INTEGER}. Returns 0 on success,
                         -1 on end-of-file and a system specific positive error code otherwise.
@@ -3727,10 +3793,10 @@ GNU extension
 Non-elemental subroutine
 
 @item @emph{Syntax}:
-@code{CALL FPUTC(UNIT,C[,STATUS])}
+@code{CALL FPUTC(UNIT, C [, STATUS])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{UNIT}   @tab The type shall be @code{INTEGER}.
 @item @var{C}      @tab The type shall be @code{CHARACTER}.
 @item @var{STATUS} @tab (Optional) status flag of type @code{INTEGER}. Returns 0 on success,
@@ -3777,7 +3843,7 @@ Elemental function
 @code{Y = FRACTION(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type of the argument shall be a @code{REAL}.
 @end multitable
 
@@ -3819,10 +3885,10 @@ GNU extension
 Subroutine
 
 @item @emph{Syntax}:
-@code{FREE(PTR)}
+@code{CALL FREE(PTR)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{PTR} @tab The type shall be @code{INTEGER}. It represents the
 location of the memory that should be de-allocated.
 @end multitable
@@ -3835,45 +3901,6 @@ See @code{MALLOC} for an example.
 
 @item @emph{See also}:
 @ref{MALLOC}
-@end table
-
-
-
-
-@node FSTAT
-@section @code{FSTAT} --- Get file status
-@cindex @code{FSTAT} intrinsic
-@cindex file system operations 
-
-@table @asis
-@item @emph{Description}:
-@code{FSTAT} is identical to @ref{STAT}, except that information about an 
-already opened file is obtained.
-
-The elements in @code{BUFF} are the same as described by @ref{STAT}.
-
-@item @emph{Standard}:
-GNU extension
-
-@item @emph{Class}:
-Non-elemental subroutine
-
-@item @emph{Syntax}:
-@code{CALL fstat(UNIT,BUFF[,STATUS])}
-
-@item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{UNIT}   @tab An open I/O unit number of type @code{INTEGER}.
-@item @var{BUFF}   @tab The type shall be @code{INTEGER(4), DIMENSION(13)}.
-@item @var{STATUS} @tab (Optional) status flag of type @code{INTEGER(4)}. Returns 0 
-                        on success and a system specific error code otherwise.
-@end multitable
-
-@item @emph{Example}:
-See @ref{STAT} for an example.
-
-@item @emph{See also}:
-To stat a link: @ref{LSTAT}, to stat a file: @ref{STAT}
 @end table
 
 
@@ -3906,6 +3933,44 @@ Subroutine
 
 
 
+@node FSTAT
+@section @code{FSTAT} --- Get file status
+@cindex @code{FSTAT} intrinsic
+@cindex file system operations 
+
+@table @asis
+@item @emph{Description}:
+@code{FSTAT} is identical to @ref{STAT}, except that information about an 
+already opened file is obtained.
+
+The elements in @code{BUFF} are the same as described by @ref{STAT}.
+
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Non-elemental subroutine
+
+@item @emph{Syntax}:
+@code{CALL FSTAT(UNIT, BUFF [, STATUS])}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{UNIT}   @tab An open I/O unit number of type @code{INTEGER}.
+@item @var{BUFF}   @tab The type shall be @code{INTEGER(4), DIMENSION(13)}.
+@item @var{STATUS} @tab (Optional) status flag of type @code{INTEGER(4)}. Returns 0 
+                        on success and a system specific error code otherwise.
+@end multitable
+
+@item @emph{Example}:
+See @ref{STAT} for an example.
+
+@item @emph{See also}:
+To stat a link: @ref{LSTAT}, to stat a file: @ref{STAT}
+@end table
+
+
+
 @node FTELL
 @section @code{FTELL} --- Current stream position
 @cindex @code{FTELL} intrinsic
@@ -3930,7 +3995,7 @@ Subroutine, function
 @end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{OFFSET}  @tab Shall of type @code{INTEGER}.
 @item @var{UNIT}    @tab Shall of type @code{INTEGER}.
 @end multitable
@@ -3951,6 +4016,44 @@ END PROGRAM
 
 @item @emph{See also}:
 @ref{FSEEK}
+@end table
+
+
+
+@node GERROR
+@section @code{GERROR} --- Get last system error message
+@cindex @code{GERROR} intrinsic
+
+@table @asis
+@item @emph{Description}:
+Returns the system error message corresponding to the last system error.
+This resembles the functionality of @code{strerror(3)} in C.
+
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Subroutine
+
+@item @emph{Syntax}:
+@code{CALL GERROR(RESULT)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{RESULT}  @tab Shall of type @code{CHARACTER(*)}.
+@end multitable
+
+@item @emph{Example}:
+@smallexample
+PROGRAM test_gerror
+  CHARACTER(len=100) :: msg
+  CALL gerror(msg)
+  WRITE(*,*) msg
+END PROGRAM
+@end smallexample
+
+@item @emph{See also}:
+@ref{IERRNO}, @ref{PERROR}
 @end table
 
 
@@ -3977,11 +4080,11 @@ GNU extension
 Subroutine
 
 @item @emph{Syntax}:
-@code{CALL GETARG(N,ARG)}
+@code{CALL GETARG(N, ARG)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{N}   @tab Shall of type @code{INTEGER(4)}, @math{@var{N} \geq 0}
+@multitable @columnfractions .15 .70
+@item @var{N}   @tab Shall be of type @code{INTEGER(4)}, @math{@var{N} \geq 0}
 @item @var{ARG} @tab Shall be of type @code{CHARACTER(*)}. 
 @end multitable
 
@@ -4034,7 +4137,7 @@ Subroutine
 @code{CALL GET_COMMAND(CMD)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{CMD} @tab Shall be of type @code{CHARACTER(*)}. 
 @end multitable
 
@@ -4074,11 +4177,11 @@ F2003
 Subroutine
 
 @item @emph{Syntax}:
-@code{CALL GET_COMMAND_ARGUMENT(N,ARG)}
+@code{CALL GET_COMMAND_ARGUMENT(N, ARG)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{N}   @tab Shall of type @code{INTEGER(4)}, @math{@var{N} \geq 0}
+@multitable @columnfractions .15 .70
+@item @var{N}   @tab Shall be of type @code{INTEGER(4)}, @math{@var{N} \geq 0}
 @item @var{ARG} @tab Shall be of type @code{CHARACTER(*)}. 
 @end multitable
 
@@ -4129,10 +4232,10 @@ GNU extension
 Non-elemental subroutine.
 
 @item @emph{Syntax}:
-@code{CALL GETCWD(CWD[,STATUS])}
+@code{CALL GETCWD(CWD [, STATUS])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{CWD}    @tab The type shall be @code{CHARACTER(*)}.
 @item @var{STATUS} @tab (Optional) status flag. Returns 0 on success, 
                         a system specific and non-zero error code otherwise.
@@ -4174,10 +4277,10 @@ GNU extension
 Subroutine
 
 @item @emph{Syntax}:
-@code{CALL GETENV(ENVVAR,VALUE)}
+@code{CALL GETENV(ENVVAR, VALUE)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{ENVVAR} @tab Shall be of type @code{CHARACTER(*)}. 
 @item @var{VALUE}  @tab Shall be of type @code{CHARACTER(*)}. 
 @end multitable
@@ -4218,10 +4321,10 @@ F2003
 Subroutine
 
 @item @emph{Syntax}:
-@code{CALL GET_ENVIRONMENT_VARIABLE(ENVVAR,VALUE)}
+@code{CALL GET_ENVIRONMENT_VARIABLE(ENVVAR, VALUE)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{ENVVAR} @tab Shall be of type @code{CHARACTER(*)}. 
 @item @var{VALUE}  @tab Shall be of type @code{CHARACTER(*)}. 
 @end multitable
@@ -4259,7 +4362,7 @@ GNU extension
 function
 
 @item @emph{Syntax}:
-@code{I = GETGID()}
+@code{RESULT = GETGID()}
 
 @item @emph{Return value}:
 The return value of @code{GETGID} is an @code{INTEGER} of the default
@@ -4293,7 +4396,7 @@ Subroutine
 @code{CALL GETLOG(LOGIN)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{LOGIN} @tab Shall be of type @code{CHARACTER(*)}.
 @end multitable
 
@@ -4333,7 +4436,7 @@ GNU extension
 function
 
 @item @emph{Syntax}:
-@code{I = GETPID()}
+@code{RESULT = GETPID()}
 
 @item @emph{Return value}:
 The return value of @code{GETPID} is an @code{INTEGER} of the default
@@ -4371,7 +4474,7 @@ GNU extension
 function
 
 @item @emph{Syntax}:
-@code{GETUID()}
+@code{RESULT = GETUID()}
 
 @item @emph{Return value}:
 The return value of @code{GETUID} is an @code{INTEGER} of the default
@@ -4392,10 +4495,12 @@ See @code{GETPID} for an example.
 @cindex @code{GMTIME} intrinsic
 @cindex time, conversion function
 
-Not yet implemented in GNU Fortran.
-
 @table @asis
 @item @emph{Description}:
+Given a system time value @var{STIME} (as provided by the @code{TIME8()}
+intrinsic), fills @var{TARRAY} with values extracted from it appropriate
+to the UTC time zone (Universal Coordinated Time, also known in some
+countries as GMT, Greenwich Mean Time), using @code{gmtime(3)}.
 
 @item @emph{Standard}:
 GNU extension
@@ -4404,11 +4509,36 @@ GNU extension
 Subroutine
 
 @item @emph{Syntax}:
+@code{CALL GMTIME(STIME, TARRAY)}
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{STIME}  @tab An @code{INTEGER(*)} scalar expression
+                        corresponding to a system time, with 
+			@code{INTENT(IN)}.
+@item @var{TARRAY} @tab A default @code{INTEGER} array with 9 elements,
+                        with @code{INTENT(OUT)}.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{Specific names}:
+The elements of @var{TARRAY} are assigned as follows:
+@enumerate
+@item Seconds after the minute, range 0--59 or 0--61 to allow for leap
+      seconds
+@item Minutes after the hour, range 0--59
+@item Hours past midnight, range 0--23
+@item Day of month, range 0--31
+@item Number of months since January, range 0--12
+@item Years since 1900
+@item Number of days since Sunday, range 0--6
+@item Days since January 1
+@item Daylight savings indicator: positive if daylight savings is in
+      effect, zero if not, and negative if the information is not
+      available.
+@end enumerate
+
 @item @emph{See also}:
+@ref{CTIME}, @ref{LTIME}, @ref{TIME}, @ref{TIME8}
 
 @end table
 
@@ -4433,12 +4563,12 @@ Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
-@item @code{CALL HOSTNM(NAME, STATUS)}
+@item @code{CALL HOSTNM(NAME[, STATUS])}
 @item @code{STATUS = HOSTNM(NAME)}
 @end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{NAME}    @tab Shall of type @code{CHARACTER(*)}.
 @item @var{STATUS}  @tab (Optional) status flag of type @code{INTEGER}.
                          Returns 0 on success, or a system specific error
@@ -4470,11 +4600,11 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{Y = HUGE(X)}
+@code{RESULT = HUGE(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be of type @code{REAL} or @code{INTEGER}.
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL} or @code{INTEGER}.
 @end multitable
 
 @item @emph{Return value}:
@@ -4509,10 +4639,10 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{I = IACHAR(C)}
+@code{RESULT = IACHAR(C)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{C} @tab Shall be a scalar @code{CHARACTER}, with @code{INTENT(IN)}
 @end multitable
 
@@ -4528,10 +4658,15 @@ program test_iachar
 end program test_iachar
 @end smallexample
 
+@item @emph{Note}:
+See @ref{ICHAR} for a discussion of converting between numerical values
+and formatted string representations.
+
 @item @emph{See also}:
-@ref{CHAR},@ref{ICHAR}
+@ref{ACHAR}, @ref{CHAR}, @ref{ICHAR}
 
 @end table
+
 
 
 @node IAND
@@ -4553,7 +4688,7 @@ Elemental function
 @code{RESULT = IAND(I, J)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @item @var{J} @tab The type shall be @code{INTEGER(*)}, of the same
 kind as @var{I}.  (As a GNU extension, different kinds are also 
@@ -4575,7 +4710,8 @@ END PROGRAM
 @end smallexample
 
 @item @emph{See also}:
-@ref{IOR}, @ref{IEOR}, @ref{IBITS}, @ref{IBSET}, @ref{IBCLR},
+@ref{IOR}, @ref{IEOR}, @ref{IBITS}, @ref{IBSET}, @ref{IBCLR}, @ref{NOT}
+
 @end table
 
 
@@ -4602,7 +4738,7 @@ GNU extension
 Non-elemental Function
 
 @item @emph{Syntax}:
-@code{I = IARGC()}
+@code{RESULT = IARGC()}
 
 @item @emph{Arguments}:
 None.
@@ -4642,7 +4778,7 @@ Elemental function
 @code{RESULT = IBCLR(I, POS)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @item @var{POS} @tab The type shall be @code{INTEGER(*)}.
 @end multitable
@@ -4652,7 +4788,8 @@ The return value is of type @code{INTEGER(*)} and of the same kind as
 @var{I}.
 
 @item @emph{See also}:
-@ref{IBITS}, @ref{IBSET}, @ref{IAND}, @ref{IOR}, @ref{IEOR}
+@ref{IBITS}, @ref{IBSET}, @ref{IAND}, @ref{IOR}, @ref{IEOR}, @ref{MVBITS}
+
 @end table
 
 
@@ -4680,7 +4817,7 @@ Elemental function
 @code{RESULT = IBITS(I, POS, LEN)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @item @var{POS} @tab The type shall be @code{INTEGER(*)}.
 @item @var{LEN} @tab The type shall be @code{INTEGER(*)}.
@@ -4716,7 +4853,7 @@ Elemental function
 @code{RESULT = IBSET(I, POS)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @item @var{POS} @tab The type shall be @code{INTEGER(*)}.
 @end multitable
@@ -4726,7 +4863,8 @@ The return value is of type @code{INTEGER(*)} and of the same kind as
 @var{I}.
 
 @item @emph{See also}:
-@ref{IBCLR}, @ref{IBITS}, @ref{IAND}, @ref{IOR}, @ref{IEOR}
+@ref{IBCLR}, @ref{IBITS}, @ref{IAND}, @ref{IOR}, @ref{IEOR}, @ref{MVBITS}
+
 @end table
 
 
@@ -4750,10 +4888,10 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{I = ICHAR(C)}
+@code{RESULT = ICHAR(C)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{C} @tab Shall be a scalar @code{CHARACTER}, with @code{INTENT(IN)}
 @end multitable
 
@@ -4770,24 +4908,34 @@ end program test_ichar
 @end smallexample
 
 @item @emph{Note}:
-No intrinsic exists to convert a printable character string to a numerical
-value. For example, there is no intrinsic that, given the @code{CHARACTER}
-value 154, returns an @code{INTEGER} or @code{REAL} value with the
-value 154.
-
-Instead, you can use internal-file I/O to do this kind of conversion. For
+No intrinsic exists to convert between a numeric value and a formatted
+character string representation -- for instance, given the
+@code{CHARACTER} value @code{'154'}, obtaining an @code{INTEGER} or
+@code{REAL} value with the value 154, or vice versa. Instead, this
+functionality is provided by internal-file I/O, as in the following
 example:
 @smallexample
 program read_val
   integer value
-  character(len=10) string
-
+  character(len=10) string, string2
   string = '154'
+  
+  ! Convert a string to a numeric value
   read (string,'(I10)') value
   print *, value
+  
+  ! Convert a value to a formatted string
+  write (string2,'(I10)') value
+  print *, string2
 end program read_val
 @end smallexample
+
+@item @emph{See also}:
+@ref{ACHAR}, @ref{CHAR}, @ref{IACHAR}
+
 @end table
+
+
 
 @node IDATE
 @section @code{IDATE} --- Get current local time subroutine (day/month/year) 
@@ -4810,7 +4958,7 @@ Subroutine
 @code{CALL IDATE(TARRAY)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{TARRAY} @tab The type shall be @code{INTEGER, DIMENSION(3)} and
 the kind shall be the default integer kind.
 @end multitable
@@ -4852,7 +5000,7 @@ Elemental function
 @code{RESULT = IEOR(I, J)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @item @var{J} @tab The type shall be @code{INTEGER(*)}, of the same
 kind as @var{I}.  (As a GNU extension, different kinds are also 
@@ -4865,7 +5013,7 @@ arguments.  (If the argument kinds differ, it is of the same kind as
 the larger argument.)
 
 @item @emph{See also}:
-@ref{IOR}, @ref{IAND}, @ref{IBITS}, @ref{IBSET}, @ref{IBCLR},
+@ref{IOR}, @ref{IAND}, @ref{IBITS}, @ref{IBSET}, @ref{IBCLR}, @ref{NOT}
 @end table
 
 
@@ -4886,7 +5034,7 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{I = IERRNO()}
+@code{RESULT = IERRNO()}
 
 @item @emph{Arguments}:
 None.
@@ -4920,10 +5068,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{I = INDEX(STRING, SUBSTRING [, BACK])}
+@code{RESULT = INDEX(STRING, SUBSTRING [, BACK])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{STRING} @tab Shall be a scalar @code{CHARACTER(*)}, with
 @code{INTENT(IN)}
 @item @var{SUBSTRING} @tab Shall be a scalar @code{CHARACTER(*)}, with
@@ -4959,16 +5107,15 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@multitable @columnfractions .30 .80
-@item @code{X = INT(X)}
-@item @code{X = INT(X, KIND)}
-@end multitable
+@code{RESULT = INT(A [, KIND))}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be of type @code{INTEGER(*)}, @code{REAL(*)} or
-@code{COMPLEX(*)} @item @var{KIND}  @tab (Optional) @var{KIND} shall be
-a scalar integer.
+@multitable @columnfractions .15 .70
+@item @var{A}    @tab Shall be of type @code{INTEGER(*)},
+                      @code{REAL(*)}, or @code{COMPLEX(*)}.
+@item @var{KIND} @tab (Optional) An @code{INTEGER(*)} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
@@ -4977,13 +5124,13 @@ the following rules:
 
 @table @asis
 @item (A)
-If @var{X} is of type @code{INTEGER(*)}, @code{INT(X) = X} 
+If @var{A} is of type @code{INTEGER(*)}, @code{INT(A) = A} 
 @item (B)
-If @var{X} is of type @code{REAL(*)} and @math{|X| < 1} @code{INT(X)} equals @var{0}. 
-If @math{|X| \geq 1}, then @code{INT(X)} equals the largest integer that does not exceed 
-the range of @var{X} and whose sign is the same as the sign of @var{X}.
+If @var{A} is of type @code{REAL(*)} and @math{|A| < 1}, @code{INT(A)} equals @code{0}. 
+If @math{|A| \geq 1}, then @code{INT(A)} equals the largest integer that does not exceed 
+the range of @var{A} and whose sign is the same as the sign of @var{A}.
 @item (C)
-If @var{X} is of type @code{COMPLEX(*)}, rule B is applied to the real part of X.
+If @var{A} is of type @code{COMPLEX(*)}, rule B is applied to the real part of @var{A}.
 @end table
 
 @item @emph{Example}:
@@ -4997,13 +5144,86 @@ end program
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name             @tab Argument            @tab Return type       @tab Standard
-@item @code{IFIX(X)}   @tab @code{REAL(4) X}    @tab @code{INTEGER}    @tab F77 and later
-@item @code{IDINT(X)}  @tab @code{REAL(8) X}    @tab @code{INTEGER}    @tab F77 and later
+@item @code{IFIX(A)}   @tab @code{REAL(4) A}    @tab @code{INTEGER}    @tab F77 and later
+@item @code{IDINT(A)}  @tab @code{REAL(8) A}    @tab @code{INTEGER}    @tab F77 and later
 @end multitable
 
 @comment @item @emph{See also}:
+@end table
+
+
+
+@node INT2
+@section @code{INT2} --- Convert to 16-bit integer type
+@cindex @code{INT2} intrinsic
+@cindex @code{SHORT} intrinsic
+@cindex conversion function (integer)
+
+@table @asis
+@item @emph{Description}:
+Convert to a @code{KIND=2} integer type. This is equivalent to the
+standard @code{INT} intrinsic with an optional argument of
+@code{KIND=2}, and is only included for backwards compatibility.
+
+The @code{SHORT} intrinsic is equivalent to @code{INT2}.
+
+@item @emph{Standard}:
+GNU extension.
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = INT2(A)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{A}    @tab Shall be of type @code{INTEGER(*)},
+                      @code{REAL(*)}, or @code{COMPLEX(*)}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is a @code{INTEGER(2)} variable.
+
+@comment @item @emph{See also}:
+@ref{INT}, @ref{INT8}, @ref{LONG}
+@end table
+
+
+
+@node INT8
+@section @code{INT8} --- Convert to 64-bit integer type
+@cindex @code{INT8} intrinsic
+@cindex conversion function (integer)
+
+@table @asis
+@item @emph{Description}:
+Convert to a @code{KIND=8} integer type. This is equivalent to the
+standard @code{INT} intrinsic with an optional argument of
+@code{KIND=8}, and is only included for backwards compatibility.
+
+@item @emph{Standard}:
+GNU extension.
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = INT8(A)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{A}    @tab Shall be of type @code{INTEGER(*)},
+                      @code{REAL(*)}, or @code{COMPLEX(*)}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is a @code{INTEGER(8)} variable.
+
+@comment @item @emph{See also}:
+@ref{INT}, @ref{INT2}, @ref{LONG}
 @end table
 
 
@@ -5028,7 +5248,7 @@ Elemental function
 @code{RESULT = IEOR(I, J)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @item @var{J} @tab The type shall be @code{INTEGER(*)}, of the same
 kind as @var{I}.  (As a GNU extension, different kinds are also 
@@ -5041,9 +5261,8 @@ arguments.  (If the argument kinds differ, it is of the same kind as
 the larger argument.)
 
 @item @emph{See also}:
-@ref{IEOR}, @ref{IAND}, @ref{IBITS}, @ref{IBSET}, @ref{IBCLR},
+@ref{IEOR}, @ref{IAND}, @ref{IBITS}, @ref{IBSET}, @ref{IBCLR}, @ref{NOT}
 @end table
-
 
 
 
@@ -5065,14 +5284,14 @@ it is used as a new seed with @code{SRAND}.
 GNU extension
 
 @item @emph{Class}:
-non-elemental function
+Non-elemental function
 
 @item @emph{Syntax}:
-@code{I = IRAND(FLAG)}
+@code{RESULT = IRAND(FLAG)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{FLAG} @tab shall be a scalar @code{INTEGER} of kind 4.
+@multitable @columnfractions .15 .70
+@item @var{FLAG} @tab Shall be a scalar @code{INTEGER} of kind 4.
 @end multitable
 
 @item @emph{Return value}:
@@ -5089,6 +5308,47 @@ program test_irand
 end program test_irand
 @end smallexample
 
+@end table
+
+
+
+@node ISATTY
+@section @code{ISATTY} --- Whether a unit is a terminal device.
+@cindex @code{ISATTY} intrinsic
+
+@table @asis
+@item @emph{Description}:
+Determine whether a unit is connected to a terminal device.
+
+@item @emph{Standard}:
+GNU extension.
+
+@item @emph{Class}:
+Non-elemental function.
+
+@item @emph{Syntax}:
+@code{RESULT = ISATTY(UNIT)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{UNIT} @tab Shall be a scalar @code{INTEGER(*)}.
+@end multitable
+
+@item @emph{Return value}:
+Returns @code{.TRUE.} if the @var{UNIT} is connected to a terminal 
+device, @code{.FALSE.} otherwise.
+
+@item @emph{Example}:
+@smallexample
+PROGRAM test_isatty
+  INTEGER(kind=1) :: unit
+  DO unit = 1, 10
+    write(*,*) isatty(unit=unit)
+  END DO
+END PROGRAM
+@end smallexample
+@item @emph{See also}:
+@ref{TTYNAM}
 @end table
 
 
@@ -5118,7 +5378,7 @@ Elemental function
 @code{RESULT = ISHFT(I, SHIFT)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @item @var{SHIFT} @tab The type shall be @code{INTEGER(*)}.
 @end multitable
@@ -5130,7 +5390,6 @@ The return value is of type @code{INTEGER(*)} and of the same kind as
 @item @emph{See also}:
 @ref{ISHFTC}
 @end table
-
 
 
 
@@ -5160,7 +5419,7 @@ Elemental function
 @code{RESULT = ISHFTC(I, SHIFT [, SIZE])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{I} @tab The type shall be @code{INTEGER(*)}.
 @item @var{SHIFT} @tab The type shall be @code{INTEGER(*)}.
 @item @var{SIZE} @tab (Optional) The type shall be @code{INTEGER(*)};
@@ -5199,7 +5458,7 @@ Subroutine
 @code{CALL ITIME(TARRAY)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{TARRAY} @tab The type shall be @code{INTEGER, DIMENSION(3)}
 and the kind shall be the default integer kind.
 @end multitable
@@ -5239,7 +5498,7 @@ Subroutine
 @code{CALL KILL(PID, SIGNAL [, STATUS])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{PID} @tab Shall be a scalar @code{INTEGER}, with
 @code{INTENT(IN)}
 @item @var{SIGNAL} @tab Shall be a scalar @code{INTEGER}, with
@@ -5273,7 +5532,7 @@ Inquiry function
 @code{K = KIND(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab Shall be of type @code{LOGICAL}, @code{INTEGER},
 @code{REAL}, @code{COMPLEX} or @code{CHARACTER}.
 @end multitable
@@ -5312,10 +5571,10 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{I = LBOUND(ARRAY [, DIM])}
+@code{RESULT = LBOUND(ARRAY [, DIM])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{ARRAY} @tab Shall be an array, of any type.
 @item @var{DIM} @tab (Optional) Shall be a scalar @code{INTEGER(*)}.
 @end multitable
@@ -5355,7 +5614,7 @@ Inquiry function
 @code{L = LEN(STRING)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{STRING} @tab Shall be a scalar or array of type
 @code{CHARACTER(*)}, with @code{INTENT(IN)}
 @end multitable
@@ -5384,16 +5643,16 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{L = LEN_TRIM(STRING)}
+@code{RESULT = LEN_TRIM(STRING)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{STRING} @tab Shall be a scalar of type @code{CHARACTER(*)},
 with @code{INTENT(IN)}
 @end multitable
 
 @item @emph{Return value}:
-The return value is of @code{INTEGER(kind=4)} type.
+The return value is an @code{INTEGER} of the default kind.
 
 @item @emph{See also}:
 @ref{LEN}, @ref{ADJUSTL}, @ref{ADJUSTR}
@@ -5429,10 +5688,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{L = LGE(STRING_A, STRING_B)}
+@code{RESULT = LGE(STRING_A, STRING_B)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{STRING_A} @tab Shall be of default @code{CHARACTER} type.
 @item @var{STRING_B} @tab Shall be of default @code{CHARACTER} type.
 @end multitable
@@ -5475,10 +5734,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{L = LGT(STRING_A, STRING_B)}
+@code{RESULT = LGT(STRING_A, STRING_B)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{STRING_A} @tab Shall be of default @code{CHARACTER} type.
 @item @var{STRING_B} @tab Shall be of default @code{CHARACTER} type.
 @end multitable
@@ -5507,24 +5766,30 @@ names are ignored.  If the @var{STATUS} argument is supplied, it
 contains 0 on success or a nonzero error code upon return; see
 @code{link(2)}.
 
+This intrinsic is provided in both subroutine and function forms;
+however, only one form can be used in any given program unit.
+
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Subroutine
+Subroutine, non-elemental function
 
 @item @emph{Syntax}:
-@code{CALL LINK(PATH1, PATH2 [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL LINK(PATH1, PATH2 [, STATUS])}
+@item @code{STATUS = LINK(PATH1, PATH2)}
+@end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{PATH1} @tab Shall be of default @code{CHARACTER} type.
 @item @var{PATH2} @tab Shall be of default @code{CHARACTER} type.
 @item @var{STATUS} @tab (Optional) Shall be of default @code{INTEGER} type.
 @end multitable
 
 @item @emph{See also}:
-@ref{UNLINK}
+@ref{SYMLNK}, @ref{UNLINK}
 @end table
 
 
@@ -5557,10 +5822,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{L = LLE(STRING_A, STRING_B)}
+@code{RESULT = LLE(STRING_A, STRING_B)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{STRING_A} @tab Shall be of default @code{CHARACTER} type.
 @item @var{STRING_B} @tab Shall be of default @code{CHARACTER} type.
 @end multitable
@@ -5580,8 +5845,6 @@ otherwise, based on the ASCII ordering.
 @cindex @code{LLT} intrinsic
 @cindex comparison (lexical)
 @cindex lexical comparison
-
-Intrinsic implemented, documentation pending.
 
 @table @asis
 @item @emph{Description}:
@@ -5605,10 +5868,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{L = LLT(STRING_A, STRING_B)}
+@code{RESULT = LLT(STRING_A, STRING_B)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{STRING_A} @tab Shall be of default @code{CHARACTER} type.
 @item @var{STRING_B} @tab Shall be of default @code{CHARACTER} type.
 @end multitable
@@ -5640,10 +5903,10 @@ GNU extension
 Elemental function
 
 @item @emph{Syntax}:
-@code{L = LNBLNK(STRING)}
+@code{RESULT = LNBLNK(STRING)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{STRING} @tab Shall be a scalar of type @code{CHARACTER(*)},
 with @code{INTENT(IN)}
 @end multitable
@@ -5673,10 +5936,10 @@ GNU extension
 Inquiry function
 
 @item @emph{Syntax}:
-@code{I = LOC(X)}
+@code{RESULT = LOC(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab Variable of any type.
 @end multitable
 
@@ -5719,10 +5982,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = LOG(X)}
+@code{RESULT = LOG(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)} or
 @code{COMPLEX(*)}.
 @end multitable
@@ -5742,7 +6005,7 @@ end program test_log
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{ALOG(X)}  @tab @code{REAL(4) X}  @tab @code{REAL(4)}    @tab f95, gnu
 @item @code{DLOG(X)}  @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab f95, gnu
@@ -5772,10 +6035,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = LOG10(X)}
+@code{RESULT = LOG10(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)} or
 @code{COMPLEX(*)}.
 @end multitable
@@ -5793,7 +6056,7 @@ end program test_log10
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{ALOG10(X)}  @tab @code{REAL(4) X}  @tab @code{REAL(4)}    @tab F95 and later
 @item @code{DLOG10(X)}  @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab F95 and later
@@ -5807,10 +6070,10 @@ end program test_log10
 @cindex @code{LOGICAL} intrinsic
 @cindex conversion function (logical)
 
-Intrinsic implemented, documentation pending.
-
 @table @asis
 @item @emph{Description}:
+Converts one kind of @code{LOGICAL} variable to another.
+
 @item @emph{Standard}:
 F95 and later
 
@@ -5818,13 +6081,60 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
+@code{RESULT = LOGICAL(L [, KIND])}
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{L}    @tab The type shall be @code{LOGICAL(*)}.
+@item @var{KIND} @tab (Optional) An @code{INTEGER(*)} initialization
+                      expression indicating the kind parameter of
+		      the result.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{Specific names}:
+The return value is a @code{LOGICAL} value equal to @var{L}, with a
+kind corresponding to @var{KIND}, or of the default logical kind if
+@var{KIND} is not given.
+
 @item @emph{See also}:
+@ref{INT}, @ref{REAL}, @ref{CMPLX}
 @end table
 
+
+
+@node LONG
+@section @code{LONG} --- Convert to integer type
+@cindex @code{LONG} intrinsic
+@cindex conversion function (integer)
+
+@table @asis
+@item @emph{Description}:
+Convert to a @code{KIND=4} integer type, which is the same size as a C
+@code{long} integer.  This is equivalent to the standard @code{INT}
+intrinsic with an optional argument of @code{KIND=4}, and is only
+included for backwards compatibility.
+
+@item @emph{Standard}:
+GNU extension.
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = LONG(A)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{A}    @tab Shall be of type @code{INTEGER(*)},
+                      @code{REAL(*)}, or @code{COMPLEX(*)}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is a @code{INTEGER(4)} variable.
+
+@comment @item @emph{See also}:
+@ref{INT}, @ref{INT2}, @ref{INT8}
+@end table
 
 
 
@@ -5833,25 +6143,41 @@ Elemental function
 @cindex @code{LSHIFT} intrinsic
 @cindex bit operations
 
-Intrinsic implemented, documentation pending.
-
 @table @asis
 @item @emph{Description}:
+@code{LSHIFT} returns a value corresponding to @var{I} with all of the
+bits shifted left by @var{SHIFT} places.  If the absolute value of
+@var{SHIFT} is greater than @code{BIT_SIZE(I)}, the value is undefined. 
+Bits shifted out from the left end are lost; zeros are shifted in from
+the opposite end.
+
+This function has been superseded by the @code{ISHFT} intrinsic, which
+is standard in Fortran 95 and later.
 
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Function
+Elemental function
 
 @item @emph{Syntax}:
+@code{RESULT = LSHIFT(I, SHIFT)}
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab The type shall be @code{INTEGER(*)}.
+@item @var{SHIFT} @tab The type shall be @code{INTEGER(*)}.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{Specific names}:
+The return value is of type @code{INTEGER(*)} and of the same kind as
+@var{I}.
+
 @item @emph{See also}:
+@ref{ISHFT}, @ref{ISHFTC}, @ref{RSHIFT}
 
 @end table
+
 
 
 @node LSTAT
@@ -5873,10 +6199,10 @@ GNU extension
 Non-elemental subroutine
 
 @item @emph{Syntax}:
-@code{CALL LSTAT(FILE,BUFF[,STATUS])}
+@code{CALL LSTAT(FILE, BUFF [, STATUS])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{FILE}   @tab The type shall be @code{CHARACTER(*)}, a valid path within the file system.
 @item @var{BUFF}   @tab The type shall be @code{INTEGER(4), DIMENSION(13)}.
 @item @var{STATUS} @tab (Optional) status flag of type @code{INTEGER(4)}. Returns 0 
@@ -5897,10 +6223,11 @@ To stat an open file: @ref{FSTAT}, to stat a file: @ref{STAT}
 @cindex @code{LTIME} intrinsic
 @cindex time, conversion function
 
-Intrinsic implemented, documentation pending.
-
 @table @asis
 @item @emph{Description}:
+Given a system time value @var{STIME} (as provided by the @code{TIME8()}
+intrinsic), fills @var{TARRAY} with values extracted from it appropriate
+to the local time zone using @code{localtime(3)}.
 
 @item @emph{Standard}:
 GNU extension
@@ -5909,11 +6236,36 @@ GNU extension
 Subroutine
 
 @item @emph{Syntax}:
+@code{CALL LTIME(STIME, TARRAY)}
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{STIME}  @tab An @code{INTEGER(*)} scalar expression
+                        corresponding to a system time, with 
+			@code{INTENT(IN)}.
+@item @var{TARRAY} @tab A default @code{INTEGER} array with 9 elements,
+                        with @code{INTENT(OUT)}.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{Specific names}:
+The elements of @var{TARRAY} are assigned as follows:
+@enumerate
+@item Seconds after the minute, range 0--59 or 0--61 to allow for leap
+      seconds
+@item Minutes after the hour, range 0--59
+@item Hours past midnight, range 0--23
+@item Day of month, range 0--31
+@item Number of months since January, range 0--12
+@item Years since 1900
+@item Number of days since Sunday, range 0--6
+@item Days since January 1
+@item Daylight savings indicator: positive if daylight savings is in
+      effect, zero if not, and negative if the information is not
+      available.
+@end enumerate
+
 @item @emph{See also}:
+@ref{CTIME}, @ref{GMTIME}, @ref{TIME}, @ref{TIME8}
 
 @end table
 
@@ -5937,13 +6289,13 @@ using Fortran 95 pointers, the memory allocation intrinsic is
 GNU extension
 
 @item @emph{Class}:
-non-elemental function
+Non-elemental function
 
 @item @emph{Syntax}:
 @code{PTR = MALLOC(SIZE)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{SIZE} @tab The type shall be @code{INTEGER(*)}.
 @end multitable
 
@@ -5984,15 +6336,16 @@ end program test_malloc
 @end table
 
 
+
 @node MATMUL
 @section @code{MATMUL} --- matrix multiplication
 @cindex @code{MATMUL} intrinsic
 @cindex matrix operations
 
-Intrinsic implemented, documentation pending.
-
 @table @asis
 @item @emph{Description}:
+Performs a matrix multiplication on numeric or logical arguments.
+
 @item @emph{Standard}:
 F95 and later
 
@@ -6000,22 +6353,47 @@ F95 and later
 Transformational function
 
 @item @emph{Syntax}:
+@code{RESULT = MATMUL(MATRIX_A, MATRIX_B)}
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{MATRIX_A} @tab An array of @code{INTEGER(*)},
+                          @code{REAL(*)}, @code{COMPLEX(*)}, or
+			  @code{LOGICAL(*)} type, with a rank of
+			  one or two.
+@item @var{MATRIX_B} @tab An array of @code{INTEGER(*)},
+                          @code{REAL(*)}, or @code{COMPLEX(*)} type if
+			  @var{MATRIX_A} is of a numeric type;
+			  otherwise, an array of @code{LOGICAL(*)}
+			  type. The rank shall be one or two, and the
+			  first (or only) dimension of @var{MATRIX_B}
+			  shall be equal to the last (or only)
+			  dimension of @var{MATRIX_A}.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
+The matrix product of @var{MATRIX_A} and @var{MATRIX_B}.  The type and
+kind of the result follow the usual type and kind promotion rules, as
+for the @code{*} or @code{.AND.} operators.
+
 @item @emph{See also}:
 @end table
+
 
 
 @node MAX
 @section @code{MAX} --- Maximum value of an argument list
 @cindex @code{MAX} intrinsic
-@cindex undocumented intrinsic 
-
-Intrinsic implemented, documentation pending.
+@cindex @code{MAX0} intrinsic
+@cindex @code{AMAX0} intrinsic
+@cindex @code{MAX1} intrinsic
+@cindex @code{AMAX1} intrinsic
+@cindex @code{DMAX1} intrinsic
 
 @table @asis
 @item @emph{Description}:
+Returns the argument with the largest (most positive) value.
+
 @item @emph{Standard}:
 F77 and later
 
@@ -6023,12 +6401,24 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
+@code{RESULT = MAX(A1, A2 [, A3 [, ...]])}
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{A1}          @tab The type shall be @code{INTEGER(*)} or
+                             @code{REAL(*)}.
+@item @var{A2}, @var{A3}, ... @tab An expression of the same type and kind
+                             as @var{A1}.  (As a GNU extension, 
+			     arguments of different kinds are
+			     permitted.)
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
+The return value corresponds to the maximum value among the arguments,
+and has the same type and kind as the first argument.
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name             @tab Argument            @tab Return type         @tab Standard
 @item @code{MAX0(I)}   @tab @code{INTEGER(4) I} @tab @code{INTEGER(4)}   @tab F77 and later
 @item @code{AMAX0(I)}  @tab @code{INTEGER(4) I} @tab @code{REAL(MAX(X))} @tab F77 and later
@@ -6038,8 +6428,10 @@ Elemental function
 @end multitable
 
 @item @emph{See also}:
-@ref{MAXLOC} @ref{MAXVAL}
+@ref{MAXLOC} @ref{MAXVAL}, @ref{MIN}
+
 @end table
+
 
 
 @node MAXEXPONENT
@@ -6060,11 +6452,11 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{I = MAXEXPONENT(X)}
+@code{RESULT = MAXEXPONENT(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be of type @code{REAL}.
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL}.
 @end multitable
 
 @item @emph{Return value}:
@@ -6084,15 +6476,25 @@ end program exponents
 @end table
 
 
+
 @node MAXLOC
 @section @code{MAXLOC} --- Location of the maximum value within an array
 @cindex @code{MAXLOC} intrinsic
-@cindex undocumented intrinsic 
-
-Intrinsic implemented, documentation pending.
 
 @table @asis
 @item @emph{Description}:
+Determines the location of the element in the array with the maximum
+value, or, if the @var{DIM} argument is supplied, determines the
+locations of the maximum element along each row of the array in the
+@var{DIM} direction.  If @var{MASK} is present, only the elements for
+which @var{MASK} is @code{.TRUE.} are considered.  If more than one
+element in the array has the maximum value, the location returned is
+that of the first such element in array element order.  If the array has
+zero size, or all of the elements of @var{MASK} are @code{.FALSE.}, then
+the result is an array of zeroes.  Similarly, if @var{DIM} is supplied
+and all of the elements of @var{MASK} along a given row are zero, the
+result value for that row is zero.
+
 @item @emph{Standard}:
 F95 and later
 
@@ -6100,11 +6502,35 @@ F95 and later
 Transformational function
 
 @item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{RESULT = MAXLOC(ARRAY, DIM [, MASK])}
+@item @code{RESULT = MAXLOC(ARRAY [, MASK])}
+@end multitable
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER(*)},
+                       @code{REAL(*)}, or @code{CHARACTER(*)}.
+@item @var{DIM}   @tab (Optional) Shall be a scalar of type
+                       @code{INTEGER(*)}, with a value between one
+		       and the rank of @var{ARRAY}, inclusive.  It
+		       may not be an optional dummy argument.
+@item @var{MASK}  @tab Shall be an array of type @code{LOGICAL(*)},
+                       and conformable with @var{ARRAY}.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
+If @var{DIM} is absent, the result is a rank-one array with a length
+equal to the rank of @var{ARRAY}.  If @var{DIM} is present, the result
+is an array with a rank one less than the rank of @var{ARRAY}, and a
+size corresponding to the size of @var{ARRAY} with the @var{DIM}
+dimension removed.  If @var{DIM} is present and @var{ARRAY} has a rank
+of one, the result is a scalar.  In all cases, the result is of default
+@code{INTEGER} type.
+
 @item @emph{See also}:
 @ref{MAX}, @ref{MAXVAL}
+
 @end table
 
 
@@ -6112,23 +6538,48 @@ Transformational function
 @node MAXVAL
 @section @code{MAXVAL} --- Maximum value of an array
 @cindex @code{MAXVAL} intrinsic
-@cindex undocumented intrinsic 
-
-Intrinsic implemented, documentation pending.
 
 @table @asis
 @item @emph{Description}:
-@item @emph{Standard}:
+Determines the maximum value of the elements in an array value, or, if
+the @var{DIM} argument is supplied, determines the maximum value along
+each row of the array in the @var{DIM} direction.  If @var{MASK} is
+present, only the elements for which @var{MASK} is @code{.TRUE.} are
+considered.  If the array has zero size, or all of the elements of
+@var{MASK} are @code{.FALSE.}, then the result is the most negative
+number of the type and kind of @var{ARRAY} if @var{ARRAY} is numeric, or
+a string of nulls if @var{ARRAY} is of character type.
 
+@item @emph{Standard}:
+F95 and later
 
 @item @emph{Class}:
 Transformational function
 
 @item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{RESULT = MAXVAL(ARRAY, DIM [, MASK])}
+@item @code{RESULT = MAXVAL(ARRAY [, MASK])}
+@end multitable
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER(*)},
+                       @code{REAL(*)}, or @code{CHARACTER(*)}.
+@item @var{DIM}   @tab (Optional) Shall be a scalar of type
+                       @code{INTEGER(*)}, with a value between one
+		       and the rank of @var{ARRAY}, inclusive.  It
+		       may not be an optional dummy argument.
+@item @var{MASK}  @tab Shall be an array of type @code{LOGICAL(*)},
+                       and conformable with @var{ARRAY}.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{Specific names}:
+If @var{DIM} is absent, or if @var{ARRAY} has a rank of one, the result
+is a scalar.  If @var{DIM} is present, the result is an array with a
+rank one less than the rank of @var{ARRAY}, and a size corresponding to
+the size of @var{ARRAY} with the @var{DIM} dimension removed.  In all
+cases, the result is of the same type and kind as @var{ARRAY}.
 
 @item @emph{See also}:
 @ref{MAX}, @ref{MAXLOC}
@@ -6136,40 +6587,131 @@ Transformational function
 
 
 
-
-@node MERGE
-@section @code{MERGE} --- Merge arrays
-@cindex @code{MERGE} intrinsic
-@cindex undocumented intrinsic 
-
-Intrinsic implemented, documentation pending.
+@node MCLOCK
+@section @code{MCLOCK} --- Time function
+@cindex @code{MCLOCK} intrinsic
+@cindex time, clock ticks
+@cindex clock ticks
 
 @table @asis
 @item @emph{Description}:
+Returns the number of clock ticks since the start of the process, based
+on the UNIX function @code{clock(3)}.
+
+This intrinsic is not fully portable, such as to systems with 32-bit
+@code{INTEGER} types but supporting times wider than 32 bits. Therefore,
+the values returned by this intrinsic might be, or become, negative, or
+numerically less than previous values, during a single run of the
+compiled program.
+
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Non-elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = MCLOCK()}
+
+@item @emph{Return value}:
+The return value is a scalar of type @code{INTEGER(4)}, equal to the
+number of clock ticks since the start of the process, or @code{-1} if
+the system does not support @code{clock(3)}.
+
+@item @emph{See also}:
+@ref{CTIME}, @ref{GMTIME}, @ref{LTIME}, @ref{MCLOCK}, @ref{TIME}
+
+@end table
+
+
+
+@node MCLOCK8
+@section @code{MCLOCK8} --- Time function (64-bit)
+@cindex @code{MCLOCK8} intrinsic
+@cindex time, current
+@cindex current time
+
+@table @asis
+@item @emph{Description}:
+Returns the number of clock ticks since the start of the process, based
+on the UNIX function @code{clock(3)}.
+
+@emph{Warning:} this intrinsic does not increase the range of the timing
+values over that returned by @code{clock(3)}. On a system with a 32-bit
+@code{clock(3)}, @code{MCLOCK8()} will return a 32-bit value, even though
+it is converted to a 64-bit @code{INTEGER(8)} value. That means
+overflows of the 32-bit value can still occur. Therefore, the values
+returned by this intrinsic might be or become negative or numerically
+less than previous values during a single run of the compiled program.
+
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Non-elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = MCLOCK8()}
+
+@item @emph{Return value}:
+The return value is a scalar of type @code{INTEGER(8)}, equal to the
+number of clock ticks since the start of the process, or @code{-1} if
+the system does not support @code{clock(3)}.
+
+@item @emph{See also}:
+@ref{CTIME}, @ref{GMTIME}, @ref{LTIME}, @ref{MCLOCK}, @ref{TIME8}
+
+@end table
+
+
+
+@node MERGE
+@section @code{MERGE} --- Merge variables
+@cindex @code{MERGE} intrinsic
+
+@table @asis
+@item @emph{Description}:
+Select values from two arrays according to a logical mask.  The result
+is equal to @var{TSOURCE} if @var{MASK} is @code{.TRUE.}, or equal to
+@var{FSOURCE} if it is @code{.FALSE.}.
+
 @item @emph{Standard}:
 F95 and later
 
 @item @emph{Class}:
-elemental function
+Elemental function
 
 @item @emph{Syntax}:
+@code{RESULT = MERGE(TSOURCE, FSOURCE, MASK)}
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{TSOURCE} @tab May be of any type.
+@item @var{FSOURCE} @tab Shall be of the same type and type parameters
+                         as @var{TSOURCE}.
+@item @var{MASK}    @tab Shall be of type @code{LOGICAL(*)}.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{Specific names}:
-@item @emph{See also}:
+The result is of the same type and type parameters as @var{TSOURCE}.
+
 @end table
+
 
 
 @node MIN
 @section @code{MIN} --- Minimum value of an argument list
 @cindex @code{MIN} intrinsic
-@cindex undocumented intrinsic 
-
-Intrinsic implemented, documentation pending.
+@cindex @code{MIN0} intrinsic
+@cindex @code{AMIN0} intrinsic
+@cindex @code{MIN1} intrinsic
+@cindex @code{AMIN1} intrinsic
+@cindex @code{DMIN1} intrinsic
 
 @table @asis
 @item @emph{Description}:
+Returns the argument with the smallest (most negative) value.
+
 @item @emph{Standard}:
 F77 and later
 
@@ -6177,12 +6719,24 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
+@code{RESULT = MIN(A1, A2 [, A3, ...])}
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{A1}          @tab The type shall be @code{INTEGER(*)} or
+                             @code{REAL(*)}.
+@item @var{A2}, @var{A3}, ... @tab An expression of the same type and kind
+                             as @var{A1}.  (As a GNU extension, 
+			     arguments of different kinds are
+			     permitted.)
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
+The return value corresponds to the maximum value among the arguments,
+and has the same type and kind as the first argument.
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name             @tab Argument            @tab Return type         @tab Standard
 @item @code{MIN0(I)}   @tab @code{INTEGER(4) I} @tab @code{INTEGER(4)}   @tab F77 and later
 @item @code{AMIN0(I)}  @tab @code{INTEGER(4) I} @tab @code{REAL(MIN(X))} @tab F77 and later
@@ -6192,8 +6746,10 @@ Elemental function
 @end multitable
 
 @item @emph{See also}:
-@ref{MINLOC}, @ref{MINVAL}
+@ref{MAX}, @ref{MINLOC}, @ref{MINVAL}
 @end table
+
+
 
 @node MINEXPONENT
 @section @code{MINEXPONENT} --- Minimum exponent of a real kind
@@ -6213,11 +6769,11 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{I = MINEXPONENT(X)}
+@code{RESULT = MINEXPONENT(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be of type @code{REAL}.
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL}.
 @end multitable
 
 @item @emph{Return value}:
@@ -6229,15 +6785,25 @@ See @code{MAXEXPONENT} for an example.
 @end table
 
 
+
 @node MINLOC
 @section @code{MINLOC} --- Location of the minimum value within an array
 @cindex @code{MINLOC} intrinsic
-@cindex undocumented intrinsic 
-
-Intrinsic implemented, documentation pending.
 
 @table @asis
 @item @emph{Description}:
+Determines the location of the element in the array with the minimum
+value, or, if the @var{DIM} argument is supplied, determines the
+locations of the minimum element along each row of the array in the
+@var{DIM} direction.  If @var{MASK} is present, only the elements for
+which @var{MASK} is @code{.TRUE.} are considered.  If more than one
+element in the array has the minimum value, the location returned is
+that of the first such element in array element order.  If the array has
+zero size, or all of the elements of @var{MASK} are @code{.FALSE.}, then
+the result is an array of zeroes.  Similarly, if @var{DIM} is supplied
+and all of the elements of @var{MASK} along a given row are zero, the
+result value for that row is zero.
+
 @item @emph{Standard}:
 F95 and later
 
@@ -6245,9 +6811,31 @@ F95 and later
 Transformational function
 
 @item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{RESULT = MINLOC(ARRAY, DIM [, MASK])}
+@item @code{RESULT = MINLOC(ARRAY [, MASK])}
+@end multitable
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER(*)},
+                       @code{REAL(*)}, or @code{CHARACTER(*)}.
+@item @var{DIM}   @tab (Optional) Shall be a scalar of type
+                       @code{INTEGER(*)}, with a value between one
+		       and the rank of @var{ARRAY}, inclusive.  It
+		       may not be an optional dummy argument.
+@item @var{MASK}  @tab Shall be an array of type @code{LOGICAL(*)},
+                       and conformable with @var{ARRAY}.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
+If @var{DIM} is absent, the result is a rank-one array with a length
+equal to the rank of @var{ARRAY}.  If @var{DIM} is present, the result
+is an array with a rank one less than the rank of @var{ARRAY}, and a
+size corresponding to the size of @var{ARRAY} with the @var{DIM}
+dimension removed.  If @var{DIM} is present and @var{ARRAY} has a rank
+of one, the result is a scalar.  In all cases, the result is of default
+@code{INTEGER} type.
 
 @item @emph{See also}:
 @ref{MIN}, @ref{MINVAL}
@@ -6255,15 +6843,22 @@ Transformational function
 @end table
 
 
+
 @node MINVAL
 @section @code{MINVAL} --- Minimum value of an array
 @cindex @code{MINVAL} intrinsic
-@cindex undocumented intrinsic 
-
-Intrinsic implemented, documentation pending.
 
 @table @asis
 @item @emph{Description}:
+Determines the minimum value of the elements in an array value, or, if
+the @var{DIM} argument is supplied, determines the minimum value along
+each row of the array in the @var{DIM} direction.  If @var{MASK} is
+present, only the elements for which @var{MASK} is @code{.TRUE.} are
+considered.  If the array has zero size, or all of the elements of
+@var{MASK} are @code{.FALSE.}, then the result is @code{HUGE(ARRAY)} if
+@var{ARRAY} is numeric, or a string of @code{CHAR(255)} characters if
+@var{ARRAY} is of character type.
+
 @item @emph{Standard}:
 F95 and later
 
@@ -6271,14 +6866,34 @@ F95 and later
 Transformational function
 
 @item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{RESULT = MINVAL(ARRAY, DIM [, MASK])}
+@item @code{RESULT = MINVAL(ARRAY [, MASK])}
+@end multitable
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER(*)},
+                       @code{REAL(*)}, or @code{CHARACTER(*)}.
+@item @var{DIM}   @tab (Optional) Shall be a scalar of type
+                       @code{INTEGER(*)}, with a value between one
+		       and the rank of @var{ARRAY}, inclusive.  It
+		       may not be an optional dummy argument.
+@item @var{MASK}  @tab Shall be an array of type @code{LOGICAL(*)},
+                       and conformable with @var{ARRAY}.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
+If @var{DIM} is absent, or if @var{ARRAY} has a rank of one, the result
+is a scalar.  If @var{DIM} is present, the result is an array with a
+rank one less than the rank of @var{ARRAY}, and a size corresponding to
+the size of @var{ARRAY} with the @var{DIM} dimension removed.  In all
+cases, the result is of the same type and kind as @var{ARRAY}.
 
 @item @emph{See also}:
 @ref{MIN}, @ref{MINLOC}
-@end table
 
+@end table
 
 
 
@@ -6301,12 +6916,12 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = MOD(A,P)}
+@code{RESULT = MOD(A, P)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{A} @tab shall be a scalar of type @code{INTEGER} or @code{REAL}
-@item @var{P} @tab shall be a scalar of the same type as @var{A} and not
+@multitable @columnfractions .15 .70
+@item @var{A} @tab Shall be a scalar of type @code{INTEGER} or @code{REAL}
+@item @var{P} @tab Shall be a scalar of the same type as @var{A} and not
 equal to zero
 @end multitable
 
@@ -6335,7 +6950,7 @@ end program test_mod
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name             @tab Arguments      @tab Return type    @tab Standard
 @item @code{AMOD(A,P)} @tab @code{REAL(4)} @tab @code{REAL(4)} @tab F95 and later
 @item @code{DMOD(A,P)} @tab @code{REAL(8)} @tab @code{REAL(8)} @tab F95 and later
@@ -6360,12 +6975,12 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = MODULO(A,P)}
+@code{RESULT = MODULO(A, P)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{A} @tab shall be a scalar of type @code{INTEGER} or @code{REAL}
-@item @var{P} @tab shall be a scalar of the same type and kind as @var{A}
+@multitable @columnfractions .15 .70
+@item @var{A} @tab Shall be a scalar of type @code{INTEGER} or @code{REAL}
+@item @var{P} @tab Shall be a scalar of the same type and kind as @var{A}
 @end multitable
 
 @item @emph{Return value}:
@@ -6398,31 +7013,6 @@ end program test_mod
 
 
 
-@node MVBITS
-@section @code{MVBITS} --- Move bits from one integer to another
-@cindex @code{MVBITS} intrinsic
-@cindex bit operations
-
-Intrinsic implemented, documentation pending.
-
-@table @asis
-@item @emph{Description}:
-@item @emph{Standard}:
-F95 and later
-
-@item @emph{Class}:
-Elemental subroutine
-
-@item @emph{Syntax}:
-@item @emph{Arguments}:
-@item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{See also}:
-@end table
-
-
-
-
 @node MOVE_ALLOC
 @section @code{MOVE_ALLOC} --- Move allocation from one object to another
 @cindex @code{MOVE_ALLOC} intrinsic
@@ -6444,7 +7034,7 @@ Subroutine
 @code{CALL MOVE_ALLOC(SRC, DEST)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{SRC}  @tab @code{ALLOCATABLE}, @code{INTENT(INOUT)}, may be
                       of any type and kind.
 @item @var{DEST} @tab @code{ALLOCATABLE}, @code{INTENT(OUT)}, shall be
@@ -6470,6 +7060,50 @@ end program test_move_alloc
 
 
 
+@node MVBITS
+@section @code{MVBITS} --- Move bits from one integer to another
+@cindex @code{MVBITS} intrinsic
+@cindex bit operations
+
+@table @asis
+@item @emph{Description}:
+Moves @var{LEN} bits from positions @var{FROMPOS} through
+@code{FROMPOS+LEN-1} of @var{FROM} to positions @var{TOPOS} through
+@code{TOPOS+LEN-1} of @var{TO}. The portion of argument @var{TO} not
+affected by the movement of bits is unchanged. The values of
+@code{FROMPOS+LEN-1} and @code{TOPOS+LEN-1} must be less than
+@code{BIT_SIZE(FROM)}.
+
+@item @emph{Standard}:
+F95 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = MVBITS(FROM, FROMPOS, LEN, TO, TOPOS)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{FROM}    @tab The type shall be @code{INTEGER(*)}.
+@item @var{FROMPOS} @tab The type shall be @code{INTEGER(*)}.
+@item @var{LEN}     @tab The type shall be @code{INTEGER(*)}.
+@item @var{TO}      @tab The type shall be @code{INTEGER(*)}, of the
+                         same kind as @var{FROM}.
+@item @var{TOPOS}   @tab The type shall be @code{INTEGER(*)}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{INTEGER(*)} and of the same kind as
+@var{FROM}.
+
+@item @emph{See also}:
+@ref{IBCLR}, @ref{IBSET}, @ref{IBITS}, @ref{IAND}, @ref{IOR}, @ref{IEOR}
+
+@end table
+
+
+
 @node NEAREST
 @section @code{NEAREST} --- Nearest representable number
 @cindex @code{NEAREST} intrinsic
@@ -6487,11 +7121,11 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{Y = NEAREST(X, S)}
+@code{RESULT = NEAREST(X, S)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be of type @code{REAL}.
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL}.
 @item @var{S} @tab (Optional) shall be of type @code{REAL} and
 not equal to zero.
 @end multitable
@@ -6523,7 +7157,7 @@ end program test_nearest
 
 @table @asis
 @item @emph{Description}:
-@code{NEW_LINE(C)} returns the new-line character
+@code{NEW_LINE(C)} returns the new-line character.
 
 @item @emph{Standard}:
 F2003 and later
@@ -6532,10 +7166,10 @@ F2003 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{C = NEW_LINE(C)}
+@code{RESULT = NEW_LINE(C)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{C}    @tab The argument shall be a scalar or array of the
                       type @code{CHARACTER}.
 @end multitable
@@ -6572,10 +7206,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = NINT(X)}
+@code{RESULT = NINT(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X}    @tab The type of the argument shall be @code{REAL}.
 @end multitable
 
@@ -6596,7 +7230,7 @@ end program test_nint
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .33 .33 .33
+@multitable @columnfractions .25 .25 .25
 @item Name             @tab Argument         @tab Standard
 @item @code{IDNINT(X)} @tab @code{REAL(8)}   @tab F95 and later
 @end multitable
@@ -6607,28 +7241,38 @@ end program test_nint
 @end table
 
 
+
 @node NOT
 @section @code{NOT} --- Logical negation
 @cindex @code{NOT} intrinsic
-@cindex logical operations
-
-Intrinsic implemented, documentation pending.
+@cindex bit operations
 
 @table @asis
 @item @emph{Description}:
+@code{NOT} returns the bitwise boolean inverse of @var{I}.
+
 @item @emph{Standard}:
-F77 and later
+F95 and later
 
 @item @emph{Class}:
 Elemental function
 
 @item @emph{Syntax}:
-@item @emph{Arguments}:
-@item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{See also}:
-@end table
+@code{RESULT = NOT(I)}
 
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab The type shall be @code{INTEGER(*)}.
+@end multitable
+
+@item @emph{Return value}:
+The return type is @code{INTEGER(*)}, of the same kind as the
+argument.
+
+@item @emph{See also}:
+@ref{IAND}, @ref{IEOR}, @ref{IOR}, @ref{IBITS}, @ref{IBSET}, @ref{IBCLR}
+
+@end table
 
 
 
@@ -6657,7 +7301,6 @@ Transformational function
 
 
 
-
 @node OR
 @section @code{OR} --- Bitwise logical OR
 @cindex @code{OR} intrinsic
@@ -6681,7 +7324,7 @@ Non-elemental function
 @code{RESULT = OR(X, Y)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be either @code{INTEGER(*)} or @code{LOGICAL}.
 @item @var{Y} @tab The type shall be either @code{INTEGER(*)} or @code{LOGICAL}.
 @end multitable
@@ -6705,7 +7348,6 @@ END PROGRAM
 @item @emph{See also}:
 F95 elemental function: @ref{IOR}
 @end table
-
 
 
 
@@ -6735,16 +7377,16 @@ Transformational function
 
 
 
-
 @node PERROR
 @section @code{PERROR} --- Print system error message
 @cindex @code{PERROR} intrinsic
-@cindex undocumented intrinsic 
-
-Intrinsic implemented, documentation pending.
 
 @table @asis
 @item @emph{Description}:
+Prints (on the C @code{stderr} stream) a newline-terminated error
+message corresponding to the last system error. This is prefixed by
+@var{STRING}, a colon and a space. See @code{perror(3)}.
+
 @item @emph{Standard}:
 GNU extension
 
@@ -6752,14 +7394,16 @@ GNU extension
 Subroutine
 
 @item @emph{Syntax}:
+@code{CALL PERROR(STRING)}
+
 @item @emph{Arguments}:
-@item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{Specific names}:
+@multitable @columnfractions .15 .70
+@item @var{STRING} @tab A scalar of default @code{CHARACTER} type.
+@end multitable
+
 @item @emph{See also}:
 @ref{IERRNO}
 @end table
-
 
 
 
@@ -6780,11 +7424,11 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{I = PRECISION(X)}
+@code{RESULT = PRECISION(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be of type @code{REAL} or @code{COMPLEX}.
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL} or @code{COMPLEX}.
 @end multitable
 
 @item @emph{Return value}:
@@ -6829,7 +7473,6 @@ Inquiry function
 
 
 
-
 @node PRODUCT
 @section @code{PRODUCT} --- Product of array elements
 @cindex @code{PRODUCT} intrinsic
@@ -6856,7 +7499,6 @@ Transformational function
 
 
 
-
 @node RADIX
 @section @code{RADIX} --- Base of a model number
 @cindex @code{RADIX} intrinsic
@@ -6873,10 +7515,10 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{R = RADIX(X)}
+@code{RESULT = RADIX(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab Shall be of type @code{INTEGER} or @code{REAL}
 @end multitable
 
@@ -6891,6 +7533,77 @@ program test_radix
   print *, "The radix for the default real kind is", radix(0.0)
 end program test_radix
 @end smallexample
+
+@end table
+
+
+
+@node RAN
+@section @code{RAN} --- Real pseudo-random number
+@cindex @code{RAN} intrinsic
+@cindex random numbers
+
+@table @asis
+@item @emph{Description}:
+For compatibility with HP FORTRAN 77/iX, the @code{RAN} intrinsic is
+provided as an alias for @code{RAND}.  See @ref{RAND} for complete
+documentation.
+
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Non-elemental function
+
+@item @emph{See also}:
+@ref{RAND}, @ref{RANDOM_NUMBER}
+@end table
+
+
+
+@node RAND
+@section @code{RAND} --- Real pseudo-random number
+@cindex @code{RAND} intrinsic
+@cindex random numbers
+
+@table @asis
+@item @emph{Description}:
+@code{RAND(FLAG)} returns a pseudo-random number from a uniform
+distribution between 0 and 1. If @var{FLAG} is 0, the next number
+in the current sequence is returned; if @var{FLAG} is 1, the generator
+is restarted by @code{CALL SRAND(0)}; if @var{FLAG} has any other value,
+it is used as a new seed with @code{SRAND}.
+
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Non-elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = RAND(FLAG)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{FLAG} @tab Shall be a scalar @code{INTEGER} of kind 4.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of @code{REAL} type and the default kind.
+
+@item @emph{Example}:
+@smallexample
+program test_rand
+  integer,parameter :: seed = 86456
+  
+  call srand(seed)
+  print *, rand(), rand(), rand(), rand()
+  print *, rand(seed), rand(), rand(), rand()
+end program test_rand
+@end smallexample
+
+@item @emph{See also}:
+@ref{SRAND}, @ref{RANDOM_NUMBER}
 
 @end table
 
@@ -6921,7 +7634,6 @@ Elemental subroutine
 
 
 
-
 @node RANDOM_SEED
 @section @code{RANDOM_SEED} --- Initialize a pseudo-random number sequence
 @cindex @code{RANDOM_SEED} intrinsic
@@ -6947,60 +7659,6 @@ Subroutine
 
 
 
-
-@node RAND
-@section @code{RAND} --- Real pseudo-random number
-@cindex @code{RAND} intrinsic
-@cindex @code{RAN} intrinsic
-@cindex random numbers
-
-@table @asis
-@item @emph{Description}:
-@code{RAND(FLAG)} returns a pseudo-random number from a uniform
-distribution between 0 and 1. If @var{FLAG} is 0, the next number
-in the current sequence is returned; if @var{FLAG} is 1, the generator
-is restarted by @code{CALL SRAND(0)}; if @var{FLAG} has any other value,
-it is used as a new seed with @code{SRAND}.
-
-@item @emph{Standard}:
-GNU extension
-
-@item @emph{Class}:
-non-elemental function
-
-@item @emph{Syntax}:
-@code{X = RAND(FLAG)}
-
-@item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{FLAG} @tab shall be a scalar @code{INTEGER} of kind 4.
-@end multitable
-
-@item @emph{Return value}:
-The return value is of @code{REAL} type and the default kind.
-
-@item @emph{Example}:
-@smallexample
-program test_rand
-  integer,parameter :: seed = 86456
-  
-  call srand(seed)
-  print *, rand(), rand(), rand(), rand()
-  print *, rand(seed), rand(), rand(), rand()
-end program test_rand
-@end smallexample
-
-@item @emph{Note}:
-For compatibility with HP FORTRAN 77/iX, the @code{RAN} intrinsic is
-provided as an alias for @code{RAND}.
-
-@item @emph{See also}:
-@ref{SRAND}, @ref{RANDOM_NUMBER}
-
-@end table
-
-
-
 @node RANGE
 @section @code{RANGE} --- Decimal exponent range of a real kind
 @cindex @code{RANGE} intrinsic
@@ -7018,11 +7676,11 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{I = RANGE(X)}
+@code{RESULT = RANGE(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be of type @code{REAL} or @code{COMPLEX}.
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL} or @code{COMPLEX}.
 @end multitable
 
 @item @emph{Return value}:
@@ -7031,21 +7689,6 @@ kind.
 
 @item @emph{Example}:
 See @code{PRECISION} for an example.
-@end table
-
-
-
-@node RAN
-@section @code{RAN} --- Real pseudo-random number
-@cindex @code{RAN} intrinsic
-@cindex random numbers
-
-@table @asis
-@item @emph{Standard}:
-GNU extension
-
-@item @emph{See also}:
-@ref{RAND}, @ref{RANDOM_NUMBER}
 @end table
 
 
@@ -7069,17 +7712,18 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@multitable @columnfractions .30 .80
-@item @code{X = REAL(X)}
-@item @code{X = REAL(X, KIND)}
-@item @code{X = REALPART(Z)}
+@multitable @columnfractions .80
+@item @code{RESULT = REAL(X [, KIND])}
+@item @code{RESULT = REALPART(Z)}
 @end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be @code{INTEGER(*)}, @code{REAL(*)}, or  
-@code{COMPLEX(*)}.
-@item @var{KIND}  @tab (Optional) @var{KIND} shall be a scalar integer.
+@multitable @columnfractions .15 .70
+@item @var{X}    @tab Shall be @code{INTEGER(*)}, @code{REAL(*)}, or
+                      @code{COMPLEX(*)}.
+@item @var{KIND} @tab (Optional) An @code{INTEGER(*)} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
@@ -7113,28 +7757,47 @@ end program test_real
 @end table
 
 
+
 @node RENAME
 @section @code{RENAME} --- Rename a file
 @cindex @code{RENAME} intrinsic
 @cindex file system operations
 
-Intrinsic implemented, documentation pending.
-
 @table @asis
 @item @emph{Description}:
+Renames a file from file @var{PATH1} to @var{PATH2}. A null
+character (@code{CHAR(0)}) can be used to mark the end of the names in
+@var{PATH1} and @var{PATH2}; otherwise, trailing blanks in the file
+names are ignored.  If the @var{STATUS} argument is supplied, it
+contains 0 on success or a nonzero error code upon return; see
+@code{rename(2)}.
+
+This intrinsic is provided in both subroutine and function forms;
+however, only one form can be used in any given program unit.
+
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Subroutine
+Subroutine, non-elemental function
 
 @item @emph{Syntax}:
-@item @emph{Arguments}:
-@item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{See also}:
-@end table
+@multitable @columnfractions .80
+@item @code{CALL RENAME(PATH1, PATH2 [, STATUS])}
+@item @code{STATUS = RENAME(PATH1, PATH2)}
+@end multitable
 
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{PATH1} @tab Shall be of default @code{CHARACTER} type.
+@item @var{PATH2} @tab Shall be of default @code{CHARACTER} type.
+@item @var{STATUS} @tab (Optional) Shall be of default @code{INTEGER} type.
+@end multitable
+
+@item @emph{See also}:
+@ref{LINK}
+
+@end table
 
 
 
@@ -7159,7 +7822,6 @@ Transformational function
 @item @emph{Example}:
 @item @emph{See also}:
 @end table
-
 
 
 
@@ -7204,11 +7866,11 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{Y = RRSPACING(X)}
+@code{RESULT = RRSPACING(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be of type @code{REAL}.
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL}.
 @end multitable
 
 @item @emph{Return value}:
@@ -7225,22 +7887,38 @@ The value returned is equal to
 @cindex @code{RSHIFT} intrinsic
 @cindex bit operations
 
-Intrinsic implemented, documentation pending.
-
 @table @asis
 @item @emph{Description}:
+@code{RSHIFT} returns a value corresponding to @var{I} with all of the
+bits shifted right by @var{SHIFT} places.  If the absolute value of
+@var{SHIFT} is greater than @code{BIT_SIZE(I)}, the value is undefined. 
+Bits shifted out from the left end are lost; zeros are shifted in from
+the opposite end.
+
+This function has been superseded by the @code{ISHFT} intrinsic, which
+is standard in Fortran 95 and later.
 
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Function
+Elemental function
 
 @item @emph{Syntax}:
+@code{RESULT = RSHIFT(I, SHIFT)}
+
 @item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab The type shall be @code{INTEGER(*)}.
+@item @var{SHIFT} @tab The type shall be @code{INTEGER(*)}.
+@end multitable
+
 @item @emph{Return value}:
-@item @emph{Example}:
+The return value is of type @code{INTEGER(*)} and of the same kind as
+@var{I}.
+
 @item @emph{See also}:
+@ref{ISHFT}, @ref{ISHFTC}, @ref{LSHIFT}
 
 @end table
 
@@ -7261,10 +7939,10 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{Y = SCALE(X, I)}
+@code{RESULT = SCALE(X, I)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type of the argument shall be a @code{REAL}.
 @item @var{I} @tab The type of the argument shall be a @code{INTEGER}.
 @end multitable
@@ -7283,6 +7961,7 @@ end program test_scale
 @end smallexample
 
 @end table
+
 
 
 @node SCAN
@@ -7309,7 +7988,6 @@ Elemental function
 
 
 
-
 @node SECNDS
 @section @code{SECNDS} --- Time function
 @cindex @code{SECNDS} intrinsic
@@ -7327,16 +8005,15 @@ use is discouraged.
 GNU extension
 
 @item @emph{Class}:
-function
+Non-elemental function
 
 @item @emph{Syntax}:
-@code{T = SECNDS (X)}
+@code{RESULT = SECNDS (X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item Name        @tab Type
-@item @var{T}     @tab REAL(4)
-@item @var{X}     @tab REAL(4)
+@multitable @columnfractions .15 .70
+@item @var{T}     @tab Shall be of type @code{REAL(4)}.
+@item @var{X}     @tab Shall be of type @code{REAL(4)}.
 @end multitable
 
 @item @emph{Return value}:
@@ -7354,6 +8031,50 @@ program test_secnds
     print *, "Something took ", t2, " seconds."
 end program test_secnds
 @end smallexample
+@end table
+
+
+
+@node SECOND
+@section @code{SECOND} --- CPU time function
+@cindex @code{SECOND} intrinsic
+@cindex time, elapsed
+@cindex elapsed time
+
+@table @asis
+@item @emph{Description}:
+Returns a @code{REAL(4)} value representing the elapsed CPU time in
+seconds.  This provides the same functionality as the standard
+@code{CPU_TIME} intrinsic, and is only included for backwards
+compatibility.
+
+This intrinsic is provided in both subroutine and function forms;
+however, only one form can be used in any given program unit.
+
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Subroutine, non-elemental function
+
+@item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{CALL SECOND(TIME)}
+@item @code{TIME = SECOND()}
+@end multitable
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{TIME}  @tab Shall be of type @code{REAL(4)}.
+@end multitable
+
+@item @emph{Return value}:
+In either syntax, @var{TIME} is set to the process's current runtime in
+seconds.
+
+@item @emph{See also}:
+@ref{CPU_TIME}
+
 @end table
 
 
@@ -7377,13 +8098,11 @@ F95 and later
 Transformational function
 
 @item @emph{Syntax}:
-@multitable @columnfractions .30 .80
-@item @code{J = SELECTED_INT_KIND(I)}
-@end multitable
+@code{RESULT = SELECTED_INT_KIND(I)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{I} @tab shall be a scalar and of type @code{INTEGER}.
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be a scalar and of type @code{INTEGER}.
 @end multitable
 
 @item @emph{Example}:
@@ -7423,12 +8142,10 @@ F95 and later
 Transformational function
 
 @item @emph{Syntax}:
-@multitable @columnfractions .30 .80
-@item @code{I = SELECTED_REAL_KIND(P,R)}
-@end multitable
+@code{RESULT = SELECTED_REAL_KIND(P, R)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{P} @tab (Optional) shall be a scalar and of type @code{INTEGER}.
 @item @var{R} @tab (Optional) shall be a scalar and of type @code{INTEGER}.
 @end multitable
@@ -7486,12 +8203,12 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{Y = SET_EXPONENT(X, I)}
+@code{RESULT = SET_EXPONENT(X, I)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be of type @code{REAL}.
-@item @var{I} @tab shall be of type @code{INTEGER}.
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL}.
+@item @var{I} @tab Shall be of type @code{INTEGER}.
 @end multitable
 
 @item @emph{Return value}:
@@ -7538,7 +8255,6 @@ Inquiry function
 
 
 
-
 @node SIGN
 @section @code{SIGN} --- Sign copying function
 @cindex @code{SIGN} intrinsic
@@ -7557,12 +8273,12 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = SIGN(A,B)}
+@code{RESULT = SIGN(A, B)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{A} @tab shall be a scalar of type @code{INTEGER} or @code{REAL}
-@item @var{B} @tab shall be a scalar of the same type and kind as @var{A}
+@multitable @columnfractions .15 .70
+@item @var{A} @tab Shall be a scalar of type @code{INTEGER} or @code{REAL}
+@item @var{B} @tab Shall be a scalar of the same type and kind as @var{A}
 @end multitable
 
 @item @emph{Return value}:
@@ -7584,7 +8300,7 @@ end program test_sign
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name              @tab Arguments      @tab Return type    @tab Standard
 @item @code{ISIGN(A,P)} @tab @code{INTEGER(4)} @tab @code{INTEGER(4)} @tab f95, gnu
 @item @code{DSIGN(A,P)} @tab @code{REAL(8)} @tab @code{REAL(8)} @tab f95, gnu
@@ -7613,18 +8329,17 @@ is supplied, it is set to the value returned by @code{signal(2)}.
 GNU extension
 
 @item @emph{Class}:
-subroutine, non-elemental function
+Subroutine, non-elemental function
 
 @item @emph{Syntax}:
-@multitable @columnfractions .30 .80
-@item @code{CALL SIGNAL(NUMBER, HANDLER)}
-@item @code{CALL SIGNAL(NUMBER, HANDLER, STATUS)}
+@multitable @columnfractions .80
+@item @code{CALL SIGNAL(NUMBER, HANDLER [, STATUS])}
 @item @code{STATUS = SIGNAL(NUMBER, HANDLER)}
 @end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{NUMBER} @tab shall be a scalar integer, with @code{INTENT(IN)}
+@multitable @columnfractions .15 .70
+@item @var{NUMBER} @tab Shall be a scalar integer, with @code{INTENT(IN)}
 @item @var{HANDLER}@tab Signal handler (@code{INTEGER FUNCTION} or
 @code{SUBROUTINE}) or dummy/global @code{INTEGER} scalar.
 @code{INTEGER}. It is @code{INTENT(IN)}.
@@ -7651,11 +8366,11 @@ end program test_signal
 
 
 
-
 @node SIN
 @section @code{SIN} --- Sine function 
 @cindex @code{SIN} intrinsic
 @cindex @code{DSIN} intrinsic
+@cindex @code{CSIN} intrinsic
 @cindex @code{ZSIN} intrinsic
 @cindex @code{CDSIN} intrinsic
 @cindex trigonometric functions
@@ -7671,10 +8386,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = SIN(X)}
+@code{RESULT = SIN(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)} or
 @code{COMPLEX(*)}.
 @end multitable
@@ -7691,7 +8406,7 @@ end program test_sin
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DSIN(X)}  @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab f95, gnu
 @item @code{CSIN(X)}  @tab @code{COMPLEX(4) X}  @tab @code{COMPLEX(4)}    @tab f95, gnu
@@ -7722,10 +8437,10 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = SINH(X)}
+@code{RESULT = SINH(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}.
 @end multitable
 
@@ -7741,7 +8456,7 @@ end program test_sinh
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DSINH(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab F95 and later
 @end multitable
@@ -7776,6 +8491,38 @@ Inquiry function
 
 
 
+@node SLEEP
+@section @code{SLEEP} --- Sleep for the specified number of seconds
+@cindex @code{SLEEP} intrinsic
+
+@table @asis
+@item @emph{Description}:
+Calling this subroutine causes the process to pause for @var{SECONDS} seconds.
+
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Subroutine
+
+@item @emph{Syntax}:
+@code{CALL SLEEP(SECONDS)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{SECONDS} @tab The type shall be of default @code{INTEGER}.
+@end multitable
+
+@item @emph{Example}:
+@smallexample
+program test_sleep
+  call sleep(5)
+end
+@end smallexample
+@end table
+
+
+
 @node SNGL
 @section @code{SNGL} --- Convert double precision real to default real
 @cindex @code{SNGL} intrinsic
@@ -7794,10 +8541,10 @@ GNU extension
 function
 
 @item @emph{Syntax}:
-@code{X = SNGL(A)}
+@code{RESULT = SNGL(A)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{A} @tab The type shall be a double precision @code{REAL}.
 @end multitable
 
@@ -7834,7 +8581,6 @@ Elemental function
 
 
 
-
 @node SPREAD
 @section @code{SPREAD} --- Add a dimension to an array
 @cindex @code{SPREAD} intrinsic
@@ -7859,7 +8605,6 @@ Transformational function
 
 
 
-
 @node SQRT
 @section @code{SQRT} --- Square-root function
 @cindex @code{SQRT} intrinsic
@@ -7880,10 +8625,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = SQRT(X)}
+@code{RESULT = SQRT(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)} or
 @code{COMPLEX(*)}.
 @end multitable
@@ -7903,7 +8648,7 @@ end program test_sqrt
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name             @tab Argument             @tab Return type          @tab Standard
 @item @code{DSQRT(X)}  @tab @code{REAL(8) X}     @tab @code{REAL(8)}       @tab F95 and later
 @item @code{CSQRT(X)}  @tab @code{COMPLEX(4) X}  @tab @code{COMPLEX(4)}    @tab F95 and later
@@ -7929,14 +8674,14 @@ generator is specified by the required argument @var{SEED}.
 GNU extension
 
 @item @emph{Class}:
-non-elemental subroutine
+Non-elemental subroutine
 
 @item @emph{Syntax}:
 @code{CALL SRAND(SEED)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{SEED} @tab shall be a scalar @code{INTEGER(kind=4)}.
+@multitable @columnfractions .15 .70
+@item @var{SEED} @tab Shall be a scalar @code{INTEGER(kind=4)}.
 @end multitable
 
 @item @emph{Return value}:
@@ -7960,6 +8705,7 @@ pseudo-random number generators.
 @end table
 
 
+
 @node STAT
 @section @code{STAT} --- Get file status
 @cindex @code{STAT} intrinsic
@@ -7972,7 +8718,7 @@ the file itself, but execute (search) permission is required on all of the
 directories in path that lead to the file.
 
 The elements that are obtained and stored in the array @code{BUFF}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @code{buff(1)}   @tab  Device ID 
 @item @code{buff(2)}   @tab  Inode number 
 @item @code{buff(3)}   @tab  File mode 
@@ -8002,7 +8748,7 @@ Non-elemental subroutine
 @code{CALL STAT(FILE,BUFF[,STATUS])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{FILE}   @tab The type shall be @code{CHARACTER(*)}, a valid path within the file system.
 @item @var{BUFF}   @tab The type shall be @code{INTEGER(4), DIMENSION(13)}.
 @item @var{STATUS} @tab (Optional) status flag of type @code{INTEGER(4)}. Returns 0 
@@ -8066,52 +8812,85 @@ Transformational function
 
 
 
-
 @node SYMLNK
 @section @code{SYMLNK} --- Create a symbolic link
 @cindex @code{SYMLNK} intrinsic
 @cindex file system operations
 
-Intrinsic implemented, documentation pending.
-
 @table @asis
 @item @emph{Description}:
+Makes a symbolic link from file @var{PATH1} to @var{PATH2}. A null
+character (@code{CHAR(0)}) can be used to mark the end of the names in
+@var{PATH1} and @var{PATH2}; otherwise, trailing blanks in the file
+names are ignored.  If the @var{STATUS} argument is supplied, it
+contains 0 on success or a nonzero error code upon return; see
+@code{symlink(2)}.  If the system does not supply @code{symlink(2)}, 
+@code{ENOSYS} is returned.
+
+This intrinsic is provided in both subroutine and function forms;
+however, only one form can be used in any given program unit.
+
 @item @emph{Standard}:
-@item @emph{Class}:
 GNU extension
 
-@item @emph{Syntax}:
-@item @emph{Arguments}:
-@item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{See also}:
-@end table
+@item @emph{Class}:
+Subroutine, non-elemental function
 
+@item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{CALL SYMLNK(PATH1, PATH2 [, STATUS])}
+@item @code{STATUS = SYMLNK(PATH1, PATH2)}
+@end multitable
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{PATH1} @tab Shall be of default @code{CHARACTER} type.
+@item @var{PATH2} @tab Shall be of default @code{CHARACTER} type.
+@item @var{STATUS} @tab (Optional) Shall be of default @code{INTEGER} type.
+@end multitable
+
+@item @emph{See also}:
+@ref{LINK}, @ref{UNLINK}
+
+@end table
 
 
 
 @node SYSTEM
 @section @code{SYSTEM} --- Execute a shell command
 @cindex @code{SYSTEM} intrinsic
-@cindex undocumented intrinsic 
-
-Intrinsic implemented, documentation pending.
 
 @table @asis
 @item @emph{Description}:
+Passes the command @var{COMMAND} to a shell (see @code{system(3)}). If
+argument @var{STATUS} is present, it contains the value returned by
+@code{system(3)}, which is presumably 0 if the shell command succeeded.
+Note that which shell is used to invoke the command is system-dependent
+and environment-dependent.
+
+This intrinsic is provided in both subroutine and function forms;
+however, only one form can be used in any given program unit.
+
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Subroutine
+Subroutine, non-elemental function
 
 @item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{CALL SYSTEM(COMMAND [, STATUS])}
+@item @code{STATUS = SYSTEM(COMMAND)}
+@end multitable
+
 @item @emph{Arguments}:
-@item @emph{Return value}:
-@item @emph{Example}:
+@multitable @columnfractions .15 .70
+@item @var{COMMAND} @tab Shall be of default @code{CHARACTER} type.
+@item @var{STATUS}  @tab (Optional) Shall be of default @code{INTEGER} type.
+@end multitable
+
 @item @emph{See also}:
 @end table
-
 
 
 
@@ -8157,10 +8936,10 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{X = TAN(X)}
+@code{RESULT = TAN(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}.
 @end multitable
 
@@ -8177,7 +8956,7 @@ end program test_tan
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DTAN(X)}  @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab F95 and later
 @end multitable
@@ -8208,7 +8987,7 @@ Elemental function
 @code{X = TANH(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be @code{REAL(*)}.
 @end multitable
 
@@ -8225,7 +9004,7 @@ end program test_tanh
 @end smallexample
 
 @item @emph{Specific names}:
-@multitable @columnfractions .20 .20 .20 .40
+@multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument          @tab Return type       @tab Standard
 @item @code{DTANH(X)} @tab @code{REAL(8) X}  @tab @code{REAL(8)}    @tab F95 and later
 @end multitable
@@ -8242,10 +9021,22 @@ end program test_tanh
 @cindex time, current
 @cindex current time
 
-Intrinsic implemented, documentation pending.
-
 @table @asis
 @item @emph{Description}:
+Returns the current time encoded as an integer (in the manner of the
+UNIX function @code{time(3)}). This value is suitable for passing to
+@code{CTIME()}, @code{GMTIME()}, and @code{LTIME()}.
+
+This intrinsic is not fully portable, such as to systems with 32-bit
+@code{INTEGER} types but supporting times wider than 32 bits. Therefore,
+the values returned by this intrinsic might be, or become, negative, or
+numerically less than previous values, during a single run of the
+compiled program.
+
+See @ref{TIME8}, for information on a similar intrinsic that might be
+portable to more GNU Fortran implementations, though to fewer Fortran
+compilers.
+
 @item @emph{Standard}:
 GNU extension
 
@@ -8253,10 +9044,53 @@ GNU extension
 Non-elemental function
 
 @item @emph{Syntax}:
-@item @emph{Arguments}:
+@code{RESULT = TIME()}
+
 @item @emph{Return value}:
-@item @emph{Example}:
+The return value is a scalar of type @code{INTEGER(4)}.
+
 @item @emph{See also}:
+@ref{CTIME}, @ref{GMTIME}, @ref{LTIME}, @ref{MCLOCK}, @ref{TIME8}
+
+@end table
+
+
+
+@node TIME8
+@section @code{TIME8} --- Time function (64-bit)
+@cindex @code{TIME8} intrinsic
+@cindex time, current
+@cindex current time
+
+@table @asis
+@item @emph{Description}:
+Returns the current time encoded as an integer (in the manner of the
+UNIX function @code{time(3)}). This value is suitable for passing to
+@code{CTIME()}, @code{GMTIME()}, and @code{LTIME()}.
+
+@emph{Warning:} this intrinsic does not increase the range of the timing
+values over that returned by @code{time(3)}. On a system with a 32-bit
+@code{time(3)}, @code{TIME8()} will return a 32-bit value, even though
+it is converted to a 64-bit @code{INTEGER(8)} value. That means
+overflows of the 32-bit value can still occur. Therefore, the values
+returned by this intrinsic might be or become negative or numerically
+less than previous values during a single run of the compiled program.
+
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Non-elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = TIME8()}
+
+@item @emph{Return value}:
+The return value is a scalar of type @code{INTEGER(8)}.
+
+@item @emph{See also}:
+@ref{CTIME}, @ref{GMTIME}, @ref{LTIME}, @ref{MCLOCK8}, @ref{TIME}
+
 @end table
 
 
@@ -8278,11 +9112,11 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{Y = TINY(X)}
+@code{RESULT = TINY(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
-@item @var{X} @tab shall be of type @code{REAL}.
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL}.
 @end multitable
 
 @item @emph{Return value}:
@@ -8318,7 +9152,6 @@ Transformational function
 
 
 
-
 @node TRANSPOSE
 @section @code{TRANSPOSE} --- Transpose an array of rank two
 @cindex @code{TRANSPOSE} intrinsic
@@ -8340,7 +9173,6 @@ Transformational function
 @item @emph{Example}:
 @item @emph{See also}:
 @end table
-
 
 
 
@@ -8368,6 +9200,52 @@ Transformational function
 
 
 
+@node TTYNAM
+@section @code{TTYNAM} --- Get the name of a terminal device.
+@cindex @code{TTYNAM} intrinsic
+
+@table @asis
+@item @emph{Description}:
+Get the name of a terminal device. For more information, 
+see @code{ttyname(3)}.
+
+This intrinsic is provided in both subroutine and function forms; 
+however, only one form can be used in any given program unit. 
+
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Subroutine, non-elemental function
+
+@item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{CALL TTYNAM(UNIT, NAME)}
+@item @code{NAME = TTYNAM(UNIT)}
+@end multitable
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{UNIT} @tab Shall be a scalar @code{INTEGER(*)}.
+@item @var{NAME} @tab Shall be of type @code{CHARACTER(*)}.
+@end multitable
+
+@item @emph{Example}:
+@smallexample
+PROGRAM test_ttynam
+  INTEGER :: unit
+  DO unit = 1, 10
+    IF (isatty(unit=unit)) write(*,*) ttynam(unit)
+  END DO
+END PROGRAM
+@end smallexample
+
+@item @emph{See also}:
+@ref{ISATTY}
+@end table
+
+
+
 @node UBOUND
 @section @code{UBOUND} --- Upper dimension bounds of an array
 @cindex @code{UBOUND} intrinsic
@@ -8383,10 +9261,10 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{I = UBOUND(ARRAY [, DIM])}
+@code{RESULT = UBOUND(ARRAY [, DIM])}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{ARRAY} @tab Shall be an array, of any type.
 @item @var{DIM} @tab (Optional) Shall be a scalar @code{INTEGER(*)}.
 @end multitable
@@ -8411,10 +9289,11 @@ the relevant dimension.
 @cindex @code{UMASK} intrinsic
 @cindex file system operations
 
-Intrinsic implemented, documentation pending.
-
 @table @asis
 @item @emph{Description}:
+Sets the file creation mask to @var{MASK} and returns the old value in
+argument @var{OLD} if it is supplied. See @code{umask(2)}.
+
 @item @emph{Standard}:
 GNU extension
 
@@ -8422,11 +9301,15 @@ GNU extension
 Subroutine
 
 @item @emph{Syntax}:
+@code{CALL UMASK(MASK [, OLD])}
+
 @item @emph{Arguments}:
-@item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{Specific names}:
-@item @emph{See also}:
+@multitable @columnfractions .15 .70
+@item @var{MASK} @tab Shall be a scalar of type @code{INTEGER(*)}.
+@item @var{MASK} @tab (Optional) Shall be a scalar of type
+                      @code{INTEGER(*)}.
+@end multitable
+
 @end table
 
 
@@ -8442,48 +9325,32 @@ Unlinks the file @var{PATH}. A null character (@code{CHAR(0)}) can be
 used to mark the end of the name in @var{PATH}; otherwise, trailing
 blanks in the file name are ignored.  If the @var{STATUS} argument is
 supplied, it contains 0 on success or a nonzero error code upon return;
-see @code{link(2)}.
+see @code{unlink(2)}.
+
+This intrinsic is provided in both subroutine and function forms;
+however, only one form can be used in any given program unit.
 
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Subroutine
+Subroutine, non-elemental function
 
 @item @emph{Syntax}:
-@code{CALL UNLINK(PATH [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL UNLINK(PATH [, STATUS])}
+@item @code{STATUS = UNLINK(PATH)}
+@end multitable
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{PATH} @tab Shall be of default @code{CHARACTER} type.
 @item @var{STATUS} @tab (Optional) Shall be of default @code{INTEGER} type.
 @end multitable
 
 @item @emph{See also}:
-@ref{LINK}
+@ref{LINK}, @ref{SYMLNK}
 @end table
-
-
-
-@node UNMASK
-@section @code{UNMASK} --- (?)
-@cindex @code{UNMASK} intrinsic
-@cindex undocumented intrinsic 
-
-Intrinsic implemented, documentation pending.
-
-@table @asis
-@item @emph{Description}:
-@item @emph{Standard}:
-@item @emph{Class}:
-@item @emph{Syntax}:
-@item @emph{Arguments}:
-@item @emph{Return value}:
-@item @emph{Example}:
-@item @emph{Specific names}:
-@item @emph{See also}:
-@end table
-
 
 
 
@@ -8513,7 +9380,6 @@ Transformational function
 
 
 
-
 @node VERIFY
 @section @code{VERIFY} --- Scan a string for the absence of a set of characters
 @cindex @code{VERIFY} intrinsic
@@ -8536,6 +9402,7 @@ Elemental function
 @item @emph{Specific names}:
 @item @emph{See also}:
 @end table
+
 
 
 @node XOR
@@ -8561,7 +9428,7 @@ Non-elemental function
 @code{RESULT = XOR(X, Y)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .15 .70
 @item @var{X} @tab The type shall be either @code{INTEGER(*)} or @code{LOGICAL}.
 @item @var{Y} @tab The type shall be either @code{INTEGER(*)} or @code{LOGICAL}.
 @end multitable

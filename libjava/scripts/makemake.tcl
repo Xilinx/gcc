@@ -22,6 +22,8 @@ proc verbose {text} {
 # * bc    objects in this package and all its sub-packages
 #         are to be compiled with the BC ABI.  It is an error
 #         for sub-packages to also appear in the map.
+# * bcheaders 
+#         as bc, but generate header files and compile with CNI.
 # * package
 #         objects in this package (and possibly sub-packages,
 #         if they do not appear in the map) will be compiled en masse
@@ -42,10 +44,19 @@ set package_map(.) package
 # These are ignored in Classpath.
 set package_map(gnu/test) ignore
 set package_map(gnu/javax/swing/plaf/gtk) ignore
+set package_map(gnu/gcj/tools/gc_analyze) ignore
 
 set package_map(gnu/java/awt/peer/swing) bc
 
-set package_map(gnu/xml) bc
+set package_map(gnu/xml/aelfred2) bc
+set package_map(gnu/xml/dom) bc
+set package_map(gnu/xml/libxmlj) bc
+set package_map(gnu/xml/pipeline) bc
+set package_map(gnu/xml/stream) bc
+set package_map(gnu/xml/transform) bc
+set package_map(gnu/xml/util) bc
+set package_map(gnu/xml/validation) bc
+set package_map(gnu/xml/xpath) bc
 set package_map(javax/imageio) bc
 set package_map(javax/xml) bc
 set package_map(gnu/java/beans) bc
@@ -64,6 +75,18 @@ set package_map(javax/rmi) bc
 set package_map(org/omg) bc
 set package_map(gnu/CORBA) bc
 set package_map(gnu/javax/rmi) bc
+set package_map(gnu/java/lang/management) bcheaders
+set package_map(java/lang/management) bc
+set package_map(gnu/classpath/management) bc
+set package_map(gnu/javax/management) bc
+
+# parser/HTML_401F.class is really big, and there have been complaints
+# about this package requiring too much memory to build.  So, we
+# compile it as separate objects.  But, we're careful to compile the
+# sub-packages as packages.
+set package_map(gnu/javax/swing/text/html/parser) ordinary
+set package_map(gnu/javax/swing/text/html/parser/models) package
+set package_map(gnu/javax/swing/text/html/parser/support) package
 
 # More special cases.  These end up in their own library.
 # Note that if we BC-compile AWT we must update these as well.
@@ -100,6 +123,14 @@ set properties_map(java/util/logging) _
 # We haven't merged locale resources yet.
 set properties_map(gnu/java/locale) _
 
+# We want to be able to load xerces if it is on the class path.  So,
+# we have to avoid compiling in the XML-related service files.
+set properties_map(META-INF/services/javax.xml.parsers.DocumentBuilderFactory) _
+set properties_map(META-INF/services/javax.xml.parsers.SAXParserFactory) _
+set properties_map(META-INF/services/javax.xml.parsers.TransformerFactory) _
+set properties_map(META-INF/services/org.relaxng.datatype.DatatypeLibraryFactory) _
+set properties_map(META-INF/services/org.w3c.dom.DOMImplementationSourceList) _
+set properties_map(META-INF/services/org.xml.sax.driver) _
 
 # List of all properties files.
 set properties_files {}
@@ -200,8 +231,10 @@ proc scan_directory {basedir subdir} {
     } elseif {[file isdirectory $file]} {
       lappend subdirs $subdir/$file
     } elseif {$subdir == "META-INF/services"} {
-      # All service files are included as properties.
-      lappend properties_files $basedir/$subdir/$file
+      # Service files are generally included as properties.
+      if {! [info exists properties_map($subdir/$file)]} {
+	lappend properties_files $basedir/$subdir/$file
+      }
     }
   }
   cd $here
@@ -219,7 +252,7 @@ proc scan_directory {basedir subdir} {
 # Scan known packages beneath the base directory for .java source
 # files.
 proc scan_packages {basedir} {
-  foreach subdir {gnu java javax org sun META-INF} {
+  foreach subdir {gnu java javax org sun com META-INF} {
     if {[file exists $basedir/$subdir]} {
       scan_directory $basedir $subdir
     }
@@ -248,7 +281,11 @@ proc emit_bc_rule {package} {
     set omit "| grep -v $exclusion_map($package)"
   }
   puts  "\t@find \$(srcdir)/classpath/lib/$package -name '*.class'${omit} > $tname"
-  puts "\t\$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o $loname @$tname"
+  puts -nonewline "\t\$(LTGCJCOMPILE) -fsource-filename=\$(here)/classpath/lib/classes "
+  if {$package_map($package) == "bc"} {
+    puts -nonewline "-fjni "
+  }
+  puts "-findirect-dispatch -fno-indirect-classes -c -o $loname @$tname"
   puts "\t@rm -f $tname"
   puts ""
 
@@ -277,7 +314,7 @@ proc emit_package_rule {package} {
     # Object and Class are special cases due to an apparent compiler
     # bug.  Process is a special case because we don't build all
     # concrete implementations of Process on all platforms.
-    set omit "| tr ' ' '\\n' | fgrep -v Object.class | fgrep -v Class.class | grep -v '\[^/\]Process' "
+    set omit "| tr ' ' '\\n' | fgrep -v Object.class | fgrep -v Class.class | egrep -v '\(Ecos\|Posix\|Win32\)Process' "
   } else {
     set omit ""
   }
@@ -293,6 +330,32 @@ proc emit_package_rule {package} {
 
   if {$pkgname != "gnu/gcj/xlib" && $pkgname != "gnu/awt/xlib"
       && $pkgname != "gnu/gcj/tools/gcj_dbtool"} {
+    lappend package_files $lname
+  }
+}
+
+# Emit a rule to build a package full of 'ordinary' files, that is,
+# one .o for each .java.
+proc emit_ordinary_rule {package} {
+  global name_map package_files
+
+  foreach file $name_map($package) {
+    # Strip off the '.java'.
+    set root [file rootname $file]
+
+    # Look for all included .class files.  Assumes that we don't have
+    # multiple top-level classes in a .java file.
+    set lname $root.list
+    set dname $root.deps
+
+    puts "$lname: classpath/$file"
+    puts "\t@\$(mkinstalldirs) \$(dir \$@)"
+    puts "\techo \$(srcdir)/classpath/lib/${root}*.class> $lname"
+    puts ""
+    puts "-include $dname"
+    puts ""
+    puts ""
+
     lappend package_files $lname
   }
 }
@@ -418,8 +481,10 @@ foreach package [lsort [array names package_map]] {
 
   if {$package_map($package) == "bc"} {
     emit_bc_rule $package
+  } elseif {$package_map($package) == "bcheaders"} {
+    emit_bc_rule $package
   } elseif {$package_map($package) == "ordinary"} {
-    # Nothing in particular to do here.
+    emit_ordinary_rule $package
   } elseif {$package_map($package) == "package"} {
     emit_package_rule $package
   } else {

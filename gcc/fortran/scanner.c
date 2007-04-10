@@ -113,7 +113,6 @@ gfc_scanner_done_1 (void)
       gfc_free(file_head);
       file_head = f;    
     }
-
 }
 
 
@@ -248,12 +247,12 @@ gfc_open_intrinsic_module (const char *name)
   return open_included_file (name, intrinsic_modules_dirs, true);
 }
 
+
 /* Test to see if we're at the end of the main source file.  */
 
 int
 gfc_at_end (void)
 {
-
   return end_flag;
 }
 
@@ -263,7 +262,6 @@ gfc_at_end (void)
 int
 gfc_at_eof (void)
 {
-
   if (gfc_at_end ())
     return 1;
 
@@ -294,7 +292,6 @@ gfc_at_bol (void)
 int
 gfc_at_eol (void)
 {
-
   if (gfc_at_eof ())
     return 1;
 
@@ -318,7 +315,7 @@ gfc_advance_line (void)
 
   gfc_current_locus.lb = gfc_current_locus.lb->next;
 
-  if (gfc_current_locus.lb != NULL)         
+  if (gfc_current_locus.lb != NULL)	 
     gfc_current_locus.nextc = gfc_current_locus.lb->line;
   else 
     {
@@ -345,7 +342,7 @@ next_char (void)
   if (gfc_current_locus.nextc == NULL)
     return '\n';
 
-  c = *gfc_current_locus.nextc++;
+  c = (unsigned char) *gfc_current_locus.nextc++;
   if (c == '\0')
     {
       gfc_current_locus.nextc--; /* Remain on this line.  */
@@ -354,6 +351,7 @@ next_char (void)
 
   return c;
 }
+
 
 /* Skip a comment.  When we come here the parse pointer is positioned
    immediately after the comment character.  If we ever implement
@@ -706,6 +704,9 @@ restart:
 	skip_comment_line ();
       else
 	gfc_advance_line ();
+      
+      if (gfc_at_eof())
+	goto not_continuation;
 
       /* We've got a continuation line.  If we are on the very next line after
 	 the last continuation, increment the continuation line count and
@@ -714,10 +715,9 @@ restart:
 	{
 	  if (++continue_count == gfc_option.max_continue_free)
 	    {
-	      if (gfc_notification_std (GFC_STD_GNU)
-		  || pedantic)
-		gfc_warning ("Limit of %d continuations exceeded in statement at %C",
-			      gfc_option.max_continue_free);
+	      if (gfc_notification_std (GFC_STD_GNU) || pedantic)
+		gfc_warning ("Limit of %d continuations exceeded in "
+			     "statement at %C", gfc_option.max_continue_free);
 	    }
 	}
       continue_line = gfc_current_locus.lb->linenum;
@@ -761,7 +761,8 @@ restart:
 	  if (in_string)
 	    {
 	      if (gfc_option.warn_ampersand)
-		gfc_warning_now ("Missing '&' in continued character constant at %C");
+		gfc_warning_now ("Missing '&' in continued character "
+				 "constant at %C");
 	      gfc_current_locus.nextc--;
 	    }
 	  /* Both !$omp and !$ -fopenmp continuation lines have & on the
@@ -835,10 +836,10 @@ restart:
 	{
 	  if (++continue_count == gfc_option.max_continue_fixed)
 	    {
-	      if (gfc_notification_std (GFC_STD_GNU)
-		  || pedantic)
-		gfc_warning ("Limit of %d continuations exceeded in statement at %C",
-			      gfc_option.max_continue_fixed);
+	      if (gfc_notification_std (GFC_STD_GNU) || pedantic)
+		gfc_warning ("Limit of %d continuations exceeded in "
+			     "statement at %C",
+			     gfc_option.max_continue_fixed);
 	    }
 	}
 
@@ -997,7 +998,7 @@ gfc_gobble_whitespace (void)
 	 parts of gfortran.  */
 
 static int
-load_line (FILE * input, char **pbuf, int *pbuflen)
+load_line (FILE *input, char **pbuf, int *pbuflen)
 {
   static int linenum = 0, current_line = 1;
   int c, maxlen, i, preprocessor_flag, buflen = *pbuflen;
@@ -1052,11 +1053,11 @@ load_line (FILE * input, char **pbuf, int *pbuflen)
 		&& !seen_printable && seen_ampersand)
 	    {
 	      if (pedantic)
-		gfc_error_now
-		  ("'&' not allowed by itself in line %d", current_line);
+		gfc_error_now ("'&' not allowed by itself in line %d",
+			       current_line);
 	      else
-		gfc_warning_now
-		  ("'&' not allowed by itself in line %d", current_line);
+		gfc_warning_now ("'&' not allowed by itself in line %d",
+				 current_line);
 	    }
 	  break;
 	}
@@ -1065,13 +1066,6 @@ load_line (FILE * input, char **pbuf, int *pbuflen)
 	continue;		/* Gobble characters.  */
       if (c == '\0')
 	continue;
-
-      if (c == '\032')
-	{
-	  /* Ctrl-Z ends the file.  */
-	  while (fgetc (input) != EOF);
-	  break;
-	}
 
       /* Check for illegal use of ampersand. See F95 Standard 3.3.1.3.  */
       if (c == '&')
@@ -1084,11 +1078,11 @@ load_line (FILE * input, char **pbuf, int *pbuflen)
 	    && c == '!' && !seen_printable && seen_ampersand)
 	{
 	  if (pedantic)
-	    gfc_error_now (
-	      "'&' not allowed by itself with comment in line %d", current_line);
+	    gfc_error_now ("'&' not allowed by itself with comment in "
+			   "line %d", current_line);
 	  else
-	    gfc_warning_now (
-	      "'&' not allowed by itself with comment in line %d", current_line);
+	    gfc_warning_now ("'&' not allowed by itself with comment in "
+			     "line %d", current_line);
 	  seen_printable = 1;
 	}
 
@@ -1103,8 +1097,8 @@ load_line (FILE * input, char **pbuf, int *pbuflen)
 	      && current_line != linenum)
 	    {
 	      linenum = current_line;
-	      gfc_warning_now (
-		"Nonconforming tab character in column 1 of line %d", linenum);
+	      gfc_warning_now ("Nonconforming tab character in column 1 "
+			       "of line %d", linenum);
 	    }
 
 	  while (i <= 6)
@@ -1127,7 +1121,7 @@ load_line (FILE * input, char **pbuf, int *pbuflen)
 		overlong line.  */
 	      buflen = buflen * 2;
 	      *pbuf = xrealloc (*pbuf, buflen + 1);
-	      buffer = (*pbuf)+i;
+	      buffer = (*pbuf) + i;
 	    }
 	}
       else if (i >= maxlen)
@@ -1234,10 +1228,10 @@ preprocessor_line (char *c)
   /* Make filename end at quote.  */
   unescape = 0;
   escaped = false;
-  while (*c && ! (! escaped && *c == '"'))
+  while (*c && ! (!escaped && *c == '"'))
     {
       if (escaped)
-        escaped = false;
+	escaped = false;
       else if (*c == '\\')
 	{
 	  escaped = true;
@@ -1406,6 +1400,7 @@ include_line (char *line)
   load_file (begin, false);
   return true;
 }
+
 
 /* Load a file into memory by calling load_line until the file ends.  */
 
@@ -1582,7 +1577,7 @@ unescape_filename (const char *ptr)
       ++p;
     }
 
-  if (! *p || p[1])
+  if (!*p || p[1])
     return NULL;
 
   /* Undo effects of cpp_quote_string.  */

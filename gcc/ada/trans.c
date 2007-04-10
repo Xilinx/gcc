@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2006, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -288,7 +288,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
 /* Perform initializations for this module.  */
 
 void
-gnat_init_stmt_group ()
+gnat_init_stmt_group (void)
 {
   /* Initialize ourselves.  */
   init_code_table ();
@@ -389,12 +389,12 @@ Identifier_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p)
      enclosing block, but we have no way of testing that right now.
 
      ??? We used to essentially set the TREE_ADDRESSABLE flag on the variable
-     here, but it can now be removed by the Tree aliasing machinery if the
-     address of the variable is never taken.  All we can do is to make the
-     variable volatile, which might incur the generation of temporaries just
-     to access the memory in some circumstances.  This can be avoided for
-     variables of non-constant size because they are automatically allocated
-     to memory.  There might be no way of allocating a proper temporary for
+     here, but it can now be removed by the Tree aliasing machinery if the
+     address of the variable is never taken.  All we can do is to make the
+     variable volatile, which might incur the generation of temporaries just
+     to access the memory in some circumstances.  This can be avoided for
+     variables of non-constant size because they are automatically allocated
+     to memory.  There might be no way of allocating a proper temporary for
      them in any case.  We only do this for SJLJ though.  */
   if (TREE_VALUE (gnu_except_ptr_stack)
       && TREE_CODE (gnu_result) == VAR_DECL
@@ -782,8 +782,8 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 
       if (attribute == Attr_Max_Size_In_Storage_Elements)
 	gnu_result = convert (sizetype,
-			      fold (build2 (CEIL_DIV_EXPR, bitsizetype,
-					    gnu_result, bitsize_unit_node)));
+			      fold_build2 (CEIL_DIV_EXPR, bitsizetype,
+					   gnu_result, bitsize_unit_node));
       break;
 
     case Attr_Alignment:
@@ -876,7 +876,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	  /* 'Length or 'Range_Length.  */
 	  {
 	    tree gnu_compute_type
-	      = gnat_signed_or_unsigned_type (0,
+	      = get_signed_or_unsigned_type (0,
 					      get_base_type (gnu_result_type));
 
 	    gnu_result
@@ -1100,8 +1100,8 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
      example in AARM 11.6(5.e). */
   if (prefix_unused && TREE_SIDE_EFFECTS (gnu_prefix)
       && !Is_Entity_Name (Prefix (gnat_node)))
-    gnu_result = fold (build2 (COMPOUND_EXPR, TREE_TYPE (gnu_result),
-			       gnu_prefix, gnu_result));
+    gnu_result = fold_build2 (COMPOUND_EXPR, TREE_TYPE (gnu_result),
+			      gnu_prefix, gnu_result);
 
   *gnu_result_type_p = gnu_result_type;
   return gnu_result;
@@ -1172,8 +1172,7 @@ Case_Statement_to_gnu (Node_Id gnat_node)
 	    case N_Identifier:
 	    case N_Expanded_Name:
 	      /* This represents either a subtype range or a static value of
-		 some kind; Ekind says which.  If a static value, fall through
-		 to the next case.  */
+		 some kind; Ekind says which.  */
 	      if (IN (Ekind (Entity (gnat_choice)), Type_Kind))
 		{
 		  tree gnu_type = get_unpadded_type (Entity (gnat_choice));
@@ -1181,6 +1180,29 @@ Case_Statement_to_gnu (Node_Id gnat_node)
 		  gnu_low = fold (TYPE_MIN_VALUE (gnu_type));
 		  gnu_high = fold (TYPE_MAX_VALUE (gnu_type));
 		  break;
+		}
+	      /* Static values are handled by the next case to which we'll
+		 fallthrough.  If this is a constant with an address clause
+		 attached, we need to get to the initialization expression
+		 first, as the GCC tree for the entity might happen to be an
+		 INDIRECT_REF otherwise.  */
+	      else if (Ekind (Entity (gnat_choice)) == E_Constant
+		       && Present (Address_Clause (Entity (gnat_choice))))
+		{
+		  /* We might have a deferred constant with an address clause
+		     on either the incomplete or the full view.  While the
+		     Address_Clause is always attached to the visible entity,
+		     as tested above, the static value is the Expression
+		     attached to the the declaration of the entity or of its
+		     full view if any.  */
+
+		  Entity_Id gnat_constant = Entity (gnat_choice);
+
+		  if (Present (Full_View (gnat_constant)))
+		    gnat_constant = Full_View (gnat_constant);
+
+		  gnat_choice
+		    = Expression (Declaration_Node (gnat_constant));
 		}
 
 	      /* ... fall through ... */
@@ -1992,18 +2014,47 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
       gnu_actual_list = tree_cons (NULL_TREE, gnu_actual, gnu_actual_list);
     }
 
-  gnu_subprog_call = build3 (CALL_EXPR, TREE_TYPE (gnu_subprog_type),
-			     gnu_subprog_addr, nreverse (gnu_actual_list),
-			     NULL_TREE);
+  gnu_subprog_call = build_call_list (TREE_TYPE (gnu_subprog_type),
+				      gnu_subprog_addr,
+				      nreverse (gnu_actual_list));
 
-  /* If we return by passing a target, we emit the call and return the target
-     as our result.  */
+  /* If we return by passing a target, the result is the target after the
+     call.  We must not emit the call directly here because this might be
+     evaluated as part of an expression with conditions to control whether
+     the call should be emitted or not.  */
   if (TYPE_RETURNS_BY_TARGET_PTR_P (gnu_subprog_type))
     {
-      add_stmt_with_node (gnu_subprog_call, gnat_node);
-      *gnu_result_type_p
+      /* Conceptually, what we need is a COMPOUND_EXPR with the call followed
+	 by the target object converted to the proper type.  Doing so would
+	 potentially be very inefficient, however, as this expresssion might
+	 end up wrapped into an outer SAVE_EXPR later on, which would incur a
+	 pointless temporary copy of the whole object.
+
+	 What we do instead is build a COMPOUND_EXPR returning the address of
+	 the target, and then dereference.  Wrapping the COMPOUND_EXPR into a
+	 SAVE_EXPR later on then only incurs a pointer copy.  */
+
+      tree gnu_result_type
 	= TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (gnu_subprog_type)));
-      return unchecked_convert (*gnu_result_type_p, gnu_target, false);
+
+      /* Build and return
+	 (result_type) *[gnu_subprog_call (&gnu_target, ...), &gnu_target]  */
+
+      tree gnu_target_address
+	= build_unary_op (ADDR_EXPR, NULL_TREE, gnu_target);
+
+      gnu_result
+	= build2 (COMPOUND_EXPR, TREE_TYPE (gnu_target_address),
+		  gnu_subprog_call, gnu_target_address);
+
+      gnu_result
+	= unchecked_convert (gnu_result_type,
+			     build_unary_op (INDIRECT_REF, NULL_TREE,
+					     gnu_result),
+			     false);
+
+      *gnu_result_type_p = gnu_result_type;
+      return gnu_result;
     }
 
   /* If it is a function call, the result is the call expression unless
@@ -2714,7 +2765,7 @@ gnat_to_gnu (Node_Id gnat_node)
 	   of the subtype, but that causes problems with subtypes whose usage
 	   will raise Constraint_Error and with biased representation, so
 	   we don't.  */
-	gcc_assert (!TREE_CONSTANT_OVERFLOW (gnu_result));
+	gcc_assert (!TREE_OVERFLOW (gnu_result));
       }
       break;
 
@@ -2741,7 +2792,7 @@ gnat_to_gnu (Node_Id gnat_node)
 	  gnu_result_type = get_unpadded_type (Etype (gnat_node));
 	  gnu_result = UI_To_gnu (Corresponding_Integer_Value (gnat_node),
 				  gnu_result_type);
-	  gcc_assert (!TREE_CONSTANT_OVERFLOW (gnu_result));
+	  gcc_assert (!TREE_OVERFLOW (gnu_result));
 	}
 
       /* We should never see a Vax_Float type literal, since the front end
@@ -3032,65 +3083,73 @@ gnat_to_gnu (Node_Id gnat_node)
 
     case N_Slice:
       {
-        tree gnu_type;
-        Node_Id gnat_range_node = Discrete_Range (gnat_node);
+	tree gnu_type;
+	Node_Id gnat_range_node = Discrete_Range (gnat_node);
 
-        gnu_result = gnat_to_gnu (Prefix (gnat_node));
-        gnu_result_type = get_unpadded_type (Etype (gnat_node));
+	gnu_result = gnat_to_gnu (Prefix (gnat_node));
+	gnu_result_type = get_unpadded_type (Etype (gnat_node));
 
 	/* Do any implicit dereferences of the prefix and do any needed
 	   range check.  */
-        gnu_result = maybe_implicit_deref (gnu_result);
-        gnu_result = maybe_unconstrained_array (gnu_result);
-        gnu_type = TREE_TYPE (gnu_result);
-        if (Do_Range_Check (gnat_range_node))
-          {
-            /* Get the bounds of the slice. */
+	gnu_result = maybe_implicit_deref (gnu_result);
+	gnu_result = maybe_unconstrained_array (gnu_result);
+	gnu_type = TREE_TYPE (gnu_result);
+	if (Do_Range_Check (gnat_range_node))
+	  {
+	    /* Get the bounds of the slice.  */
 	    tree gnu_index_type
 	      = TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_result_type));
-            tree gnu_min_expr = TYPE_MIN_VALUE (gnu_index_type);
-            tree gnu_max_expr = TYPE_MAX_VALUE (gnu_index_type);
-            tree gnu_expr_l, gnu_expr_h, gnu_expr_type;
+	    tree gnu_min_expr = TYPE_MIN_VALUE (gnu_index_type);
+	    tree gnu_max_expr = TYPE_MAX_VALUE (gnu_index_type);
+	    /* Get the permitted bounds.  */
+	    tree gnu_base_index_type
+	      = TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type));
+	    tree gnu_base_min_expr = TYPE_MIN_VALUE (gnu_base_index_type);
+	    tree gnu_base_max_expr = TYPE_MAX_VALUE (gnu_base_index_type);
+	    tree gnu_expr_l, gnu_expr_h, gnu_expr_type;
 
-            /* Check to see that the minimum slice value is in range */
-            gnu_expr_l
-	      = emit_index_check
-		(gnu_result, gnu_min_expr,
-		 TYPE_MIN_VALUE (TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type))),
-		 TYPE_MAX_VALUE (TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type))));
+	    /* Check to see that the minimum slice value is in range.  */
+	    gnu_expr_l = emit_index_check (gnu_result,
+					   gnu_min_expr,
+					   gnu_base_min_expr,
+					   gnu_base_max_expr);
 
-            /* Check to see that the maximum slice value is in range */
-            gnu_expr_h
-	      = emit_index_check
-		(gnu_result, gnu_max_expr,
-		 TYPE_MIN_VALUE (TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type))),
-		 TYPE_MAX_VALUE (TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type))));
+	    /* Check to see that the maximum slice value is in range.  */
+	    gnu_expr_h = emit_index_check (gnu_result,
+					   gnu_max_expr,
+					   gnu_base_min_expr,
+					   gnu_base_max_expr);
 
-            /* Derive a good type to convert everything too */
-            gnu_expr_type = get_base_type (TREE_TYPE (gnu_expr_l));
+	    /* Derive a good type to convert everything to.  */
+	    gnu_expr_type = get_base_type (TREE_TYPE (gnu_expr_l));
 
-            /* Build a compound expression that does the range checks */
-            gnu_expr
-              = build_binary_op (COMPOUND_EXPR, gnu_expr_type,
-                                 convert (gnu_expr_type, gnu_expr_h),
-                                 convert (gnu_expr_type, gnu_expr_l));
+	    /* Build a compound expression that does the range checks and
+	       returns the low bound.  */
+	    gnu_expr = build_binary_op (COMPOUND_EXPR, gnu_expr_type,
+					convert (gnu_expr_type, gnu_expr_h),
+					convert (gnu_expr_type, gnu_expr_l));
 
-            /* Build a conditional expression that returns the range checks
-               expression if the slice range is not null (max >= min) or
-               returns the min if the slice range is null */
-            gnu_expr
-              = fold (build3 (COND_EXPR, gnu_expr_type,
-			      build_binary_op (GE_EXPR, gnu_expr_type,
-					       convert (gnu_expr_type,
-							gnu_max_expr),
-					       convert (gnu_expr_type,
-							gnu_min_expr)),
-			      gnu_expr, gnu_min_expr));
-          }
-        else
-          gnu_expr = TYPE_MIN_VALUE (TYPE_DOMAIN (gnu_result_type));
+	   /* Build a conditional expression that does the range check and
+	      returns the low bound if the slice is not empty (max >= min),
+	      and returns the naked low bound otherwise (max < min), unless
+	      it is non-constant and the high bound is; this prevents VRP
+	      from inferring bogus ranges on the unlikely path.  */
+	    gnu_expr = fold_build3 (COND_EXPR, gnu_expr_type,
+				    build_binary_op (GE_EXPR, gnu_expr_type,
+						     convert (gnu_expr_type,
+							      gnu_max_expr),
+						     convert (gnu_expr_type,
+							      gnu_min_expr)),
+				    gnu_expr,
+				    TREE_CODE (gnu_min_expr) != INTEGER_CST
+				    && TREE_CODE (gnu_max_expr) == INTEGER_CST
+				    ? gnu_max_expr : gnu_min_expr);
+	  }
+	else
+	  /* Simply return the naked low bound.  */
+	  gnu_expr = TYPE_MIN_VALUE (TYPE_DOMAIN (gnu_result_type));
 
-        gnu_result = build_binary_op (ARRAY_RANGE_REF, gnu_result_type,
+	gnu_result = build_binary_op (ARRAY_RANGE_REF, gnu_result_type,
 				      gnu_result, gnu_expr);
       }
       break;
@@ -3440,11 +3499,7 @@ gnat_to_gnu (Node_Id gnat_node)
 	    tree gnu_old_lhs = gnu_lhs;
 	    gnu_lhs = convert (gnu_type, gnu_lhs);
 	    if (TREE_CODE (gnu_lhs) == INTEGER_CST && ignore_lhs_overflow)
-	      {
-		TREE_OVERFLOW (gnu_lhs) = TREE_OVERFLOW (gnu_old_lhs);
-		TREE_CONSTANT_OVERFLOW (gnu_lhs)
-		  = TREE_CONSTANT_OVERFLOW (gnu_old_lhs);
-	      }
+	      TREE_OVERFLOW (gnu_lhs) = TREE_OVERFLOW (gnu_old_lhs);
 	    gnu_rhs = convert (gnu_type, gnu_rhs);
 	  }
 
@@ -3491,7 +3546,9 @@ gnat_to_gnu (Node_Id gnat_node)
       /* This case can apply to a boolean or a modular type.
 	 Fall through for a boolean operand since GNU_CODES is set
 	 up to handle this.  */
-      if (IN (Ekind (Etype (gnat_node)), Modular_Integer_Kind))
+      if (Is_Modular_Integer_Type (Etype (gnat_node))
+	  || (Ekind (Etype (gnat_node)) == E_Private_Type
+	      && Is_Modular_Integer_Type (Full_View (Etype (gnat_node)))))
 	{
 	  gnu_expr = gnat_to_gnu (Right_Opnd (gnat_node));
 	  gnu_result_type = get_unpadded_type (Etype (gnat_node));
@@ -4343,7 +4400,7 @@ gnat_to_gnu (Node_Id gnat_node)
 
   /* If the result is a constant that overflows, raise constraint error.  */
   else if (TREE_CODE (gnu_result) == INTEGER_CST
-      && TREE_CONSTANT_OVERFLOW (gnu_result))
+      && TREE_OVERFLOW (gnu_result))
     {
       post_error ("Constraint_Error will be raised at run-time?", gnat_node);
 
@@ -4477,7 +4534,7 @@ insert_code_for (Node_Id gnat_node)
 /* Start a new statement group chained to the previous group.  */
 
 static void
-start_stmt_group ()
+start_stmt_group (void)
 {
   struct stmt_group *group = stmt_group_free_list;
 
@@ -4637,7 +4694,7 @@ set_block_for_group (tree gnu_block)
    BLOCK or cleanups were set.  */
 
 static tree
-end_stmt_group ()
+end_stmt_group (void)
 {
   struct stmt_group *group = current_stmt_group;
   tree gnu_retval = group->stmt_list;
@@ -5407,10 +5464,10 @@ emit_check (tree gnu_cond, tree gnu_expr, int reason)
      in front of the comparison in case it ends up being a SAVE_EXPR.  Put the
      whole thing inside its own SAVE_EXPR so the inner SAVE_EXPR doesn't leak
      out.  */
-  gnu_result = fold (build3 (COND_EXPR, TREE_TYPE (gnu_expr), gnu_cond,
-			     build2 (COMPOUND_EXPR, TREE_TYPE (gnu_expr),
-				     gnu_call, gnu_expr),
-			     gnu_expr));
+  gnu_result = fold_build3 (COND_EXPR, TREE_TYPE (gnu_expr), gnu_cond,
+			    build2 (COMPOUND_EXPR, TREE_TYPE (gnu_expr),
+				    gnu_call, gnu_expr),
+			    gnu_expr);
 
   /* If GNU_EXPR has side effects, make the outer COMPOUND_EXPR and
      protect it.  Otherwise, show GNU_RESULT has no side effects: we
@@ -5637,12 +5694,12 @@ addressable_p (tree gnu_expr)
     case COMPONENT_REF:
       return (!DECL_BIT_FIELD (TREE_OPERAND (gnu_expr, 1))
 	      && (!STRICT_ALIGNMENT
-	          /* If the field was marked as "semantically" addressable
-		     in create_field_decl, we are guaranteed that it can
-		     be directly addressed.  */
-		  || !DECL_NONADDRESSABLE_P (TREE_OPERAND (gnu_expr, 1))
-		  /* Otherwise it can nevertheless be directly addressed
-		     if it has been sufficiently aligned in the record.  */
+		  /* Even with DECL_BIT_FIELD cleared, we have to ensure that
+		     the field is sufficiently aligned, in case it is subject
+		     to a pragma Component_Alignment.  But we don't need to
+		     check the alignment of the containing record, as it is
+		     guaranteed to be not smaller than that of its most
+		     aligned field that is not a bit-field.  */
 		  || DECL_ALIGN (TREE_OPERAND (gnu_expr, 1))
 		       >= TYPE_ALIGN (TREE_TYPE (gnu_expr)))
 	      && addressable_p (TREE_OPERAND (gnu_expr, 0)));
@@ -6008,8 +6065,8 @@ maybe_stabilize_reference (tree ref, bool force, bool lvalues_only,
 
     case ADDR_EXPR:
       /*  A standalone ADDR_EXPR is never an lvalue, and this one can't
-	  be nested inside an outer INDIRECT_REF, since INDIREC_REF goes
-	  straight to stabilize_1.  */
+	  be nested inside an outer INDIRECT_REF, since INDIRECT_REF goes
+	  straight to gnat_stabilize_reference_1.  */
       if (lvalues_only)
 	goto failure;
 
@@ -6061,11 +6118,17 @@ maybe_stabilize_reference (tree ref, bool force, bool lvalues_only,
       break;
 
     case COMPOUND_EXPR:
-      result = build2 (COMPOUND_EXPR, type,
-		       gnat_stabilize_reference_1 (TREE_OPERAND (ref, 0),
-						   force),
-		       maybe_stabilize_reference (TREE_OPERAND (ref, 1), force,
-						  lvalues_only, success));
+      result = gnat_stabilize_reference_1 (ref, force);
+      break;
+
+    case CALL_EXPR:
+      if (lvalues_only)
+	goto failure;
+
+      /* This generates better code than the scheme in protect_multiple_eval
+	 because large objects will be returned via invisible reference in
+	 most ABIs so the temporary will directly be filled by the callee.  */
+      result = gnat_stabilize_reference_1 (ref, force);
       break;
 
     case ERROR_MARK:
@@ -6136,6 +6199,7 @@ gnat_stabilize_reference_1 (tree e, bool force)
     case tcc_statement:
     case tcc_expression:
     case tcc_reference:
+    case tcc_vl_exp:
       /* If this is a COMPONENT_REF of a fat pointer, save the entire
 	 fat pointer.  This may be more efficient, but will also allow
 	 us to more easily find the match for the PLACEHOLDER_EXPR.  */

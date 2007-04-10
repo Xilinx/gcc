@@ -29,29 +29,27 @@ write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
-#include <math.h>
-#include <float.h>
 #include "libgfortran.h"'
 
 include(`mtype.m4')dnl
 
-`#if defined (HAVE_'real_type`) && defined (HAVE_COPYSIGN'Q`) && defined (HAVE_NEXTAFTER'Q`)'
+`#if defined (HAVE_'real_type`) && defined (HAVE_COPYSIGN'Q`) && defined (HAVE_NEXTAFTER'Q`)
 
-extern real_type nearest_r`'kind (real_type s, real_type dir);
-export_proto(nearest_r`'kind);
+extern 'real_type` nearest_r'kind` ('real_type` s, 'real_type` dir);
+export_proto(nearest_r'kind`);
 
-real_type
-nearest_r`'kind (real_type s, real_type dir)
+'real_type`
+nearest_r'kind` ('real_type` s, 'real_type` dir)
 {
-  dir = copysign`'q (__builtin_inf`'q (), dir);
+  dir = copysign'q` (__builtin_inf'q` (), dir);
   if (FLT_EVAL_METHOD != 0)
     {
       /* ??? Work around glibc bug on x86.  */
-      volatile real_type r = nextafter`'q (s, dir);
+      volatile 'real_type` r = nextafter'q` (s, dir);
       return r;
     }
   else
-    return nextafter`'q (s, dir);
+    return nextafter'q` (s, dir);
 }
 
-#endif
+#endif'

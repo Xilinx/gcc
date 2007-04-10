@@ -2612,7 +2612,8 @@ see_merge_one_use_extension (void **slot, void *b)
 	/* Replacement failed.  Remove the note.  */
 	remove_note (ref_copy, note);
       else
-	XEXP (note, 0) = simplified_note;
+	set_unique_reg_note (ref_copy, REG_NOTE_KIND (note),
+			     simplified_note);
     }
 
   if (!see_want_to_be_merged_with_extension (ref, use_se, USE_EXTENSION))
@@ -3169,7 +3170,7 @@ see_store_reference_and_extension (rtx ref_insn, rtx se_insn,
 
    A definition is relevant if its root has
    ((entry_type == SIGN_EXTENDED_DEF) || (entry_type == ZERO_EXTENDED_DEF)) and
-   his source_mode is not narrower then the the roots source_mode.
+   his source_mode is not narrower then the roots source_mode.
 
    Return the number of relevant defs or negative number if something bad had
    happened and the optimization should be aborted.  */

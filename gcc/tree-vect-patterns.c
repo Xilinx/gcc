@@ -1,5 +1,5 @@
 /* Analysis Utilities for Loop Vectorization.
-   Copyright (C) 2006 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007 Free Software Foundation, Inc.
    Contributed by Dorit Nuzman <dorit@il.ibm.com>
 
 This file is part of GCC.
@@ -386,7 +386,8 @@ vect_recog_widen_mult_pattern (tree last_stmt,
 
   /* Check target support  */
   vectype = get_vectype_for_scalar_type (half_type0);
-  if (!supportable_widening_operation (WIDEN_MULT_EXPR, last_stmt, vectype,
+  if (!vectype
+      || !supportable_widening_operation (WIDEN_MULT_EXPR, last_stmt, vectype,
                                        &dummy, &dummy, &dummy_code,
                                        &dummy_code))
     return NULL;
@@ -433,7 +434,7 @@ vect_recog_pow_pattern (tree last_stmt, tree *type_in, tree *type_out)
 {
   tree expr;
   tree type;
-  tree fn, arglist, base, exp;
+  tree fn, base, exp;
 
   if (TREE_CODE (last_stmt) != GIMPLE_MODIFY_STMT)
     return NULL;
@@ -445,15 +446,14 @@ vect_recog_pow_pattern (tree last_stmt, tree *type_in, tree *type_out)
     return NULL_TREE;
 
   fn = get_callee_fndecl (expr);
-  arglist = TREE_OPERAND (expr, 1);
   switch (DECL_FUNCTION_CODE (fn))
     {
     case BUILT_IN_POWIF:
     case BUILT_IN_POWI:
     case BUILT_IN_POWF:
     case BUILT_IN_POW:
-      base = TREE_VALUE (arglist);
-      exp = TREE_VALUE (TREE_CHAIN (arglist));
+      base = CALL_EXPR_ARG (expr, 0);
+      exp = CALL_EXPR_ARG (expr, 1);
       if (TREE_CODE (exp) != REAL_CST
 	  && TREE_CODE (exp) != INTEGER_CST)
         return NULL_TREE;
@@ -483,12 +483,11 @@ vect_recog_pow_pattern (tree last_stmt, tree *type_in, tree *type_out)
       && REAL_VALUES_EQUAL (TREE_REAL_CST (exp), dconsthalf))
     {
       tree newfn = mathfn_built_in (TREE_TYPE (base), BUILT_IN_SQRT);
-      tree newarglist = build_tree_list (NULL_TREE, base);
       *type_in = get_vectype_for_scalar_type (TREE_TYPE (base));
       if (*type_in)
 	{
-	  newfn = build_function_call_expr (newfn, newarglist);
-	  if (vectorizable_function (newfn, *type_in))
+	  newfn = build_call_expr (newfn, 1, base);
+	  if (vectorizable_function (newfn, *type_in, *type_in) != NULL_TREE)
 	    return newfn;
 	}
     }
@@ -647,6 +646,9 @@ vect_pattern_recog_1 (
 
       /* Check target support  */
       pattern_vectype = get_vectype_for_scalar_type (type_in);
+      if (!pattern_vectype)
+        return;
+
       optab = optab_for_tree_code (TREE_CODE (pattern_expr), pattern_vectype);
       vec_mode = TYPE_MODE (pattern_vectype);
       if (!optab
@@ -672,8 +674,7 @@ vect_pattern_recog_1 (
   var = create_tmp_var (pattern_type, "patt");
   add_referenced_var (var);
   var_name = make_ssa_name (var, NULL_TREE);
-  pattern_expr = build2 (GIMPLE_MODIFY_STMT, void_type_node, var_name,
-      			 pattern_expr);
+  pattern_expr = build_gimple_modify_stmt (var_name, pattern_expr);
   SSA_NAME_DEF_STMT (var_name) = pattern_expr;
   bsi_insert_before (&si, pattern_expr, BSI_SAME_STMT);
   ann = stmt_ann (pattern_expr);

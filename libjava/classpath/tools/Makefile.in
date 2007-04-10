@@ -57,6 +57,7 @@ DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../../config/depstand.m4 \
 	$(top_srcdir)/../../config/lead-dot.m4 \
+	$(top_srcdir)/../../config/multi.m4 \
 	$(top_srcdir)/../../config/no-executables.m4 \
 	$(top_srcdir)/../../libtool.m4 $(top_srcdir)/m4/acattribute.m4 \
 	$(top_srcdir)/m4/accross.m4 $(top_srcdir)/m4/acinclude.m4 \
@@ -72,8 +73,7 @@ CONFIG_HEADER = $(top_builddir)/include/config.h
 CONFIG_CLEAN_FILES = gappletviewer gjarsigner gkeytool gjar \
 	gnative2ascii gserialver grmiregistry gtnameserv gorbd grmid \
 	grmic gjavah
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" \
-	"$(DESTDIR)$(TOOLSdir)"
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
 am__gappletviewer_SOURCES_DIST = toolwrapper.c
@@ -133,7 +133,7 @@ am__gtnameserv_SOURCES_DIST = toolwrapper.c
 gtnameserv_OBJECTS = $(am_gtnameserv_OBJECTS)
 gtnameserv_LDADD = $(LDADD)
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
-SCRIPTS = $(bin_SCRIPTS)
+SCRIPTS = $(bin_SCRIPTS) $(noinst_SCRIPTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/include
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -157,14 +157,7 @@ DIST_SOURCES = $(am__gappletviewer_SOURCES_DIST) \
 	$(am__grmic_SOURCES_DIST) $(am__grmid_SOURCES_DIST) \
 	$(am__grmiregistry_SOURCES_DIST) \
 	$(am__gserialver_SOURCES_DIST) $(am__gtnameserv_SOURCES_DIST)
-am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
-am__vpath_adj = case $$p in \
-    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
-    *) f=$$p;; \
-  esac;
-am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
-TOOLSDATA_INSTALL = $(INSTALL_DATA)
-DATA = $(TOOLS_DATA)
+DATA = $(noinst_DATA)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -227,6 +220,7 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 ECJ = @ECJ@
+ECJ_JAR = @ECJ_JAR@
 EGREP = @EGREP@
 ENABLE_LOCAL_SOCKETS_FALSE = @ENABLE_LOCAL_SOCKETS_FALSE@
 ENABLE_LOCAL_SOCKETS_TRUE = @ENABLE_LOCAL_SOCKETS_TRUE@
@@ -255,6 +249,8 @@ GCONF_CFLAGS = @GCONF_CFLAGS@
 GCONF_LIBS = @GCONF_LIBS@
 GDK_CFLAGS = @GDK_CFLAGS@
 GDK_LIBS = @GDK_LIBS@
+GENINSRC_FALSE = @GENINSRC_FALSE@
+GENINSRC_TRUE = @GENINSRC_TRUE@
 GJDOC = @GJDOC@
 GLIB_CFLAGS = @GLIB_CFLAGS@
 GLIB_LIBS = @GLIB_LIBS@
@@ -381,6 +377,7 @@ libexecdir = @libexecdir@
 localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
+multi_basedir = @multi_basedir@
 nativeexeclibdir = @nativeexeclibdir@
 oldincludedir = @oldincludedir@
 prefix = @prefix@
@@ -401,10 +398,6 @@ GLIBJ_CLASSPATH = $(srcdir)/asm
 
 # Setup the compiler to use the GNU Classpath library we just build
 @FOUND_GCJ_TRUE@JCOMPILER = $(GCJ) -C -encoding UTF-8 -bootclasspath $(GLIBJ_BOOTCLASSPATH) -classpath $(GLIBJ_CLASSPATH):.
-@CREATE_WRAPPERS_FALSE@bin_SCRIPTS = gappletviewer gjarsigner gkeytool \
-@CREATE_WRAPPERS_FALSE@	gjar gnative2ascii gserialver gjavah grmiregistry \
-@CREATE_WRAPPERS_FALSE@	gtnameserv gorbd grmid grmic
-
 @CREATE_WRAPPERS_TRUE@bin_SCRIPTS = 
 @CREATE_WRAPPERS_TRUE@AM_CPPFLAGS = -Wall \
 @CREATE_WRAPPERS_TRUE@	-I$(top_srcdir)/include \
@@ -471,6 +464,10 @@ GLIBJ_CLASSPATH = $(srcdir)/asm
 @CREATE_WRAPPERS_TRUE@	-DTOOLPACKAGE="\"rmic\"" \
 @CREATE_WRAPPERS_TRUE@	-DTOOLNAME="\"grmic\""
 
+@CREATE_WRAPPERS_FALSE@noinst_SCRIPTS = gappletviewer gjarsigner gkeytool \
+@CREATE_WRAPPERS_FALSE@	gjar gnative2ascii gserialver gjavah grmiregistry \
+@CREATE_WRAPPERS_FALSE@	gtnameserv gorbd grmid grmic
+
 EXTRA_DIST = toolwrapper.c gappletviewer.in gjarsigner.in gkeytool.in \
 	gjar.in gnative2ascii.in gserialver.in gjavah.in grmiregistry.in \
 	gtnameserv.in gorbd.in grmid.in grmic.in
@@ -478,6 +475,10 @@ EXTRA_DIST = toolwrapper.c gappletviewer.in gjarsigner.in gkeytool.in \
 
 # All our example java source files
 TOOLS_JAVA_FILES = $(srcdir)/gnu/classpath/tools/*/*.java \
+	$(srcdir)/com/sun/javadoc/*.java \
+	$(srcdir)/com/sun/tools/doclets/*.java \
+	$(srcdir)/com/sun/tools/javac/*.java \
+	$(srcdir)/sun/rmi/rmic/*.java \
 	$(srcdir)/external/asm/org/objectweb/asm/*.java \
 	$(srcdir)/external/asm/org/objectweb/asm/attrs/*.java \
 	$(srcdir)/external/asm/org/objectweb/asm/commons/*.java \
@@ -503,7 +504,8 @@ RMIC_TEMPLATES = $(srcdir)/gnu/classpath/tools/rmic/templates/*.jav
 ALL_TOOLS_FILES = $(TOOLS_JAVA_FILES) $(RMIC_TEMPLATES)
 
 # Some architecture independent data to be installed.
-TOOLS_DATA = $(TOOLS_ZIP)
+# GCJ LOCAL: do not install this.
+noinst_DATA = $(TOOLS_ZIP)
 
 # Where we want these data files installed.
 TOOLSdir = $(pkgdatadir)
@@ -882,23 +884,6 @@ clean-libtool:
 distclean-libtool:
 	-rm -f libtool
 uninstall-info-am:
-install-TOOLSDATA: $(TOOLS_DATA)
-	@$(NORMAL_INSTALL)
-	test -z "$(TOOLSdir)" || $(mkdir_p) "$(DESTDIR)$(TOOLSdir)"
-	@list='$(TOOLS_DATA)'; for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  f=$(am__strip_dir) \
-	  echo " $(TOOLSDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(TOOLSdir)/$$f'"; \
-	  $(TOOLSDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(TOOLSdir)/$$f"; \
-	done
-
-uninstall-TOOLSDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(TOOLS_DATA)'; for p in $$list; do \
-	  f=$(am__strip_dir) \
-	  echo " rm -f '$(DESTDIR)$(TOOLSdir)/$$f'"; \
-	  rm -f "$(DESTDIR)$(TOOLSdir)/$$f"; \
-	done
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -983,7 +968,7 @@ check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-am
 all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(TOOLSdir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1033,7 +1018,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-TOOLSDATA
+install-data-am:
 
 install-exec-am: install-binPROGRAMS install-binSCRIPTS
 
@@ -1061,22 +1046,21 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-TOOLSDATA uninstall-binPROGRAMS \
-	uninstall-binSCRIPTS uninstall-info-am
+uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
+	uninstall-info-am
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-binPROGRAMS \
 	clean-generic clean-libtool clean-local ctags dist-hook \
 	distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-TOOLSDATA install-am \
-	install-binPROGRAMS install-binSCRIPTS install-data \
-	install-data-am install-exec install-exec-am install-info \
-	install-info-am install-man install-strip installcheck \
-	installcheck-am installcheck-binPROGRAMS \
-	installcheck-binSCRIPTS installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-TOOLSDATA uninstall-am \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-binSCRIPTS install-data install-data-am install-exec \
+	install-exec-am install-info install-info-am install-man \
+	install-strip installcheck installcheck-am \
+	installcheck-binPROGRAMS installcheck-binSCRIPTS installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags uninstall uninstall-am \
 	uninstall-binPROGRAMS uninstall-binSCRIPTS uninstall-info-am
 
 @FOUND_ECJ_FALSE@@FOUND_GCJ_FALSE@error dunno how to setup the JCOMPILER and compile
@@ -1101,12 +1085,27 @@ dist-hook:
 # so they get also included.
 $(TOOLS_ZIP): $(TOOLS_JAVA_FILES)
 	find $(srcdir)/external/asm -name '*.java' -print > asm.lst
-	find $(srcdir)/gnu/classpath/tools -name '*.java' -print > classes.lst
-	cat classes.lst asm.lst > all-classes.lst
+	find $(srcdir)/gnu/classpath/tools \
+	     $(srcdir)/com/sun/javadoc \
+	     $(srcdir)/com/sun/tools/doclets \
+	     $(srcdir)/com/sun/tools/javac \
+	     $(srcdir)/sun/rmi/rmic \
+	     -name '*.java' -print > classes.lst
+	if [ -f $(top_builddir)/../vm-tools-packages ]; then \
+	    : > vm-tools.lst; \
+	    for pkg in `cat $(top_builddir)/../vm-tools-packages`; do \
+	      $(FIND) $(top_srcdir)/../$$pkg -follow -name '*.java' -print >> vm-tools.lst; \
+	    done \
+	else \
+	    echo -n > vm-tools.lst; \
+	fi
+	cat classes.lst asm.lst vm-tools.lst > all-classes.lst
 @JAVA_MAINTAINER_MODE_TRUE@	AC=`echo $(JCOMPILER) | sed -e 's/UTF-8/ISO-8859-1/g'`; \
 @JAVA_MAINTAINER_MODE_TRUE@	  $$AC -g -w -d $(srcdir)/asm @asm.lst
-@JAVA_MAINTAINER_MODE_TRUE@	$(JCOMPILER) -g -w -d $(srcdir)/classes @classes.lst
-@JAVA_MAINTAINER_MODE_TRUE@	@list=`cd $(top_srcdir)/resource && find gnu/classpath/tools -name \*.properties -print`; \
+@JAVA_MAINTAINER_MODE_TRUE@	$(JCOMPILER) -g -w -d $(srcdir)/classes @classes.lst @vm-tools.lst
+@JAVA_MAINTAINER_MODE_TRUE@	@list=`cd $(top_srcdir)/resource && find gnu/classpath/tools \
+@JAVA_MAINTAINER_MODE_TRUE@	       com/sun/javadoc com/sun/tools/doclets com/sun/tools/javac \
+@JAVA_MAINTAINER_MODE_TRUE@	       sun/rmi/rmic -name \*.properties -print`; \
 @JAVA_MAINTAINER_MODE_TRUE@	for p in $$list; do \
 @JAVA_MAINTAINER_MODE_TRUE@	  dirname=classes/`dirname $$p`; \
 @JAVA_MAINTAINER_MODE_TRUE@	  if ! test -d "$$dirname"; then mkdir -p "$$dirname"; fi; \

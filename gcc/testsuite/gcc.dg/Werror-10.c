@@ -4,9 +4,9 @@
 
 /* Make sure #pragma can work with -Werror.  */
 
-#pragma GCC diagnostic error "-Walways-true"
+#pragma GCC diagnostic error "-Waddress"
 
-void __attribute__((dj)) bar() { }	/* { dg-warning "warning: .* attribute directive ignored" } */
+void __attribute__((dj)) bar() { }	/* { dg-error "error: .* attribute directive ignored" } */
 
 int i;
 

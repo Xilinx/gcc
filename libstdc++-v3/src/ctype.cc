@@ -1,4 +1,5 @@
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2004, 2005
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2004, 2005,
+// 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -27,6 +28,7 @@
 // the GNU General Public License.
 
 #include <locale>
+#include <cstdlib>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
@@ -73,7 +75,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // XXX At some point, just rename this file to ctype_configure_char.cc
   // and compile it as a separate file instead of including it here.
   // Platform-specific initialization code for ctype tables.
-  #include <bits/ctype_noninline.h>
+#include <bits/ctype_noninline.h>
 
   const size_t ctype<char>::table_size;
 
@@ -98,17 +100,20 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   ctype<wchar_t>::~ctype() 
   { _S_destroy_c_locale(_M_c_locale_ctype); }
 
-  template<>
-    ctype_byname<wchar_t>::ctype_byname(const char* __s, size_t __refs)
-    : ctype<wchar_t>(__refs) 
-    { 		
-      if (std::strcmp(__s, "C") != 0 && std::strcmp(__s, "POSIX") != 0)
-	{
-	  this->_S_destroy_c_locale(this->_M_c_locale_ctype);
-	  this->_S_create_c_locale(this->_M_c_locale_ctype, __s);
-	  this->_M_initialize_ctype();
-	}
-    }
+  ctype_byname<wchar_t>::ctype_byname(const char* __s, size_t __refs)
+  : ctype<wchar_t>(__refs) 
+  { 		
+    if (std::strcmp(__s, "C") != 0 && std::strcmp(__s, "POSIX") != 0)
+      {
+	this->_S_destroy_c_locale(this->_M_c_locale_ctype);
+	this->_S_create_c_locale(this->_M_c_locale_ctype, __s);
+	this->_M_initialize_ctype();
+      }
+  }
+
+  ctype_byname<wchar_t>::~ctype_byname() 
+  { }
+
 #endif
 
 _GLIBCXX_END_NAMESPACE

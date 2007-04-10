@@ -149,6 +149,7 @@ Boston, MA 02110-1301, USA.  */
 
    This will (of course) be extended as other needs arise.  */
 
+static bool forward_propagate_addr_expr (tree name, tree rhs);
 
 /* Set to true if we delete EH edges during the optimization.  */
 static bool cfg_changed;
@@ -591,7 +592,7 @@ tidy_after_forward_propagate_addr (tree stmt)
   mark_symbols_for_renaming (stmt);
 }
 
-/* STMT defines LHS which is contains the address of the 0th element
+/* DEF_RHS defines LHS which is contains the address of the 0th element
    in an array.  USE_STMT uses LHS to compute the address of an
    arbitrary element within the array.  The (variable) byte offset
    of the element is contained in OFFSET.
@@ -608,7 +609,7 @@ tidy_after_forward_propagate_addr (tree stmt)
 
 static bool
 forward_propagate_addr_into_variable_array_index (tree offset, tree lhs,
-						  tree stmt, tree use_stmt)
+						  tree def_rhs, tree use_stmt)
 {
   tree index;
 
@@ -650,8 +651,7 @@ forward_propagate_addr_into_variable_array_index (tree offset, tree lhs,
   index = TREE_OPERAND (offset, 0);
 
   /* Replace the pointer addition with array indexing.  */
-  GIMPLE_STMT_OPERAND (use_stmt, 1)
-    = unshare_expr (GIMPLE_STMT_OPERAND (stmt, 1));
+  GIMPLE_STMT_OPERAND (use_stmt, 1) = unshare_expr (def_rhs);
   TREE_OPERAND (TREE_OPERAND (GIMPLE_STMT_OPERAND (use_stmt, 1), 0), 1)
     = index;
 
@@ -662,29 +662,28 @@ forward_propagate_addr_into_variable_array_index (tree offset, tree lhs,
   return true;
 }
 
-/* STMT is a statement of the form SSA_NAME = ADDR_EXPR <whatever>.
+/* NAME is a SSA_NAME representing DEF_RHS which is of the form
+   ADDR_EXPR <whatever>.
 
    Try to forward propagate the ADDR_EXPR into the use USE_STMT.
    Often this will allow for removal of an ADDR_EXPR and INDIRECT_REF
    node or for recovery of array indexing from pointer arithmetic.
    
-   CHANGED is an optional pointer to a boolean variable set to true if
-   either the LHS or RHS was changed in the USE_STMT.  
-
    Return true if the propagation was successful (the propagation can
    be not totally successful, yet things may have been changed).  */
 
 static bool
-forward_propagate_addr_expr_1 (tree stmt, tree use_stmt, bool *changed)
+forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt)
 {
-  tree name = GIMPLE_STMT_OPERAND (stmt, 0);
   tree lhs, rhs, array_ref;
 
   /* Strip away any outer COMPONENT_REF/ARRAY_REF nodes from the LHS. 
      ADDR_EXPR will not appear on the LHS.  */
   lhs = GIMPLE_STMT_OPERAND (use_stmt, 0);
-  while (TREE_CODE (lhs) == COMPONENT_REF || TREE_CODE (lhs) == ARRAY_REF)
+  while (handled_component_p (lhs))
     lhs = TREE_OPERAND (lhs, 0);
+
+  rhs = GIMPLE_STMT_OPERAND (use_stmt, 1);
 
   /* Now see if the LHS node is an INDIRECT_REF using NAME.  If so, 
      propagate the ADDR_EXPR into the use of NAME and fold the result.  */
@@ -692,36 +691,28 @@ forward_propagate_addr_expr_1 (tree stmt, tree use_stmt, bool *changed)
     {
       /* This should always succeed in creating gimple, so there is
 	 no need to save enough state to undo this propagation.  */
-      TREE_OPERAND (lhs, 0) = unshare_expr (GIMPLE_STMT_OPERAND (stmt, 1));
+      TREE_OPERAND (lhs, 0) = unshare_expr (def_rhs);
       fold_stmt_inplace (use_stmt);
       tidy_after_forward_propagate_addr (use_stmt);
-      if (changed)
-	*changed = true;
+
+      /* Continue propagating into the RHS.  */
     }
 
-  /* Trivial case.  The use statement could be a trivial copy.  We
-     go ahead and handle that case here since it's trivial and
-     removes the need to run copy-prop before this pass to get
-     the best results.  Also note that by handling this case here
-     we can catch some cascading effects, ie the single use is
-     in a copy, and the copy is used later by a single INDIRECT_REF
-     for example.  */
-  else if (TREE_CODE (lhs) == SSA_NAME
-      	   && GIMPLE_STMT_OPERAND (use_stmt, 1) == name)
-    {
-      GIMPLE_STMT_OPERAND (use_stmt, 1)
-	= unshare_expr (GIMPLE_STMT_OPERAND (stmt, 1));
-      tidy_after_forward_propagate_addr (use_stmt);
-      if (changed)
-	*changed = true;
-      return true;
-    }
+  /* Trivial case.  The use statement could be a trivial copy or a
+     useless conversion.  Recurse to the uses of the lhs as copyprop does
+     not copy through differen variant pointers and FRE does not catch
+     all useless conversions.  */
+  else if ((TREE_CODE (lhs) == SSA_NAME
+      	    && rhs == name)
+	   || ((TREE_CODE (rhs) == NOP_EXPR
+		|| TREE_CODE (rhs) == CONVERT_EXPR)
+	       && tree_ssa_useless_type_conversion_1 (TREE_TYPE (rhs),
+						      TREE_TYPE (def_rhs))))
+    return forward_propagate_addr_expr (lhs, def_rhs);
 
   /* Strip away any outer COMPONENT_REF, ARRAY_REF or ADDR_EXPR
      nodes from the RHS.  */
-  rhs = GIMPLE_STMT_OPERAND (use_stmt, 1);
-  while (TREE_CODE (rhs) == COMPONENT_REF
-	 || TREE_CODE (rhs) == ARRAY_REF
+  while (handled_component_p (rhs)
 	 || TREE_CODE (rhs) == ADDR_EXPR)
     rhs = TREE_OPERAND (rhs, 0);
 
@@ -731,11 +722,9 @@ forward_propagate_addr_expr_1 (tree stmt, tree use_stmt, bool *changed)
     {
       /* This should always succeed in creating gimple, so there is
          no need to save enough state to undo this propagation.  */
-      TREE_OPERAND (rhs, 0) = unshare_expr (GIMPLE_STMT_OPERAND (stmt, 1));
+      TREE_OPERAND (rhs, 0) = unshare_expr (def_rhs);
       fold_stmt_inplace (use_stmt);
       tidy_after_forward_propagate_addr (use_stmt);
-      if (changed)
-	*changed = true;
       return true;
     }
 
@@ -743,7 +732,7 @@ forward_propagate_addr_expr_1 (tree stmt, tree use_stmt, bool *changed)
      array indexing.  They only apply when we have the address of
      element zero in an array.  If that is not the case then there
      is nothing to do.  */
-  array_ref = TREE_OPERAND (GIMPLE_STMT_OPERAND (stmt, 1), 0);
+  array_ref = TREE_OPERAND (def_rhs, 0);
   if (TREE_CODE (array_ref) != ARRAY_REF
       || TREE_CODE (TREE_TYPE (TREE_OPERAND (array_ref, 0))) != ARRAY_TYPE
       || !integer_zerop (TREE_OPERAND (array_ref, 1)))
@@ -760,7 +749,7 @@ forward_propagate_addr_expr_1 (tree stmt, tree use_stmt, bool *changed)
       && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST)
     {
       tree orig = unshare_expr (rhs);
-      TREE_OPERAND (rhs, 0) = unshare_expr (GIMPLE_STMT_OPERAND (stmt, 1));
+      TREE_OPERAND (rhs, 0) = unshare_expr (def_rhs);
 
       /* If folding succeeds, then we have just exposed new variables
 	 in USE_STMT which will need to be renamed.  If folding fails,
@@ -768,8 +757,6 @@ forward_propagate_addr_expr_1 (tree stmt, tree use_stmt, bool *changed)
       if (fold_stmt_inplace (use_stmt))
 	{
 	  tidy_after_forward_propagate_addr (use_stmt);
-	  if (changed)
-	    *changed = true;
 	  return true;
 	}
       else
@@ -794,9 +781,7 @@ forward_propagate_addr_expr_1 (tree stmt, tree use_stmt, bool *changed)
       tree offset_stmt = SSA_NAME_DEF_STMT (TREE_OPERAND (rhs, 1));
       
       res = forward_propagate_addr_into_variable_array_index (offset_stmt, lhs,
-							      stmt, use_stmt);
-      if (res && changed)
-	*changed = true;
+							      def_rhs, use_stmt);
       return res;
     }
 	      
@@ -811,17 +796,13 @@ forward_propagate_addr_expr_1 (tree stmt, tree use_stmt, bool *changed)
       bool res;
       tree offset_stmt = SSA_NAME_DEF_STMT (TREE_OPERAND (rhs, 0));
       res = forward_propagate_addr_into_variable_array_index (offset_stmt, lhs,
-							      stmt, use_stmt);
-      if (res && changed)
-	*changed = true;
+							      def_rhs, use_stmt);
       return res;
     }
   return false;
 }
 
 /* STMT is a statement of the form SSA_NAME = ADDR_EXPR <whatever>.
-   SOME is a pointer to a boolean value indicating whether we
-   propagated the address expression anywhere.
 
    Try to forward propagate the ADDR_EXPR into all uses of the SSA_NAME.
    Often this will allow for removal of an ADDR_EXPR and INDIRECT_REF
@@ -829,10 +810,9 @@ forward_propagate_addr_expr_1 (tree stmt, tree use_stmt, bool *changed)
    Returns true, if all uses have been propagated into.  */
 
 static bool
-forward_propagate_addr_expr (tree stmt, bool *some)
+forward_propagate_addr_expr (tree name, tree rhs)
 {
-  int stmt_loop_depth = bb_for_stmt (stmt)->loop_depth;
-  tree name = GIMPLE_STMT_OPERAND (stmt, 0);
+  int stmt_loop_depth = bb_for_stmt (SSA_NAME_DEF_STMT (name))->loop_depth;
   imm_use_iterator iter;
   tree use_stmt;
   bool all = true;
@@ -860,11 +840,22 @@ forward_propagate_addr_expr (tree stmt, bool *some)
       
       push_stmt_changes (&use_stmt);
 
-      result = forward_propagate_addr_expr_1 (stmt, use_stmt, some);
-      *some |= result;
+      result = forward_propagate_addr_expr_1 (name, rhs, use_stmt);
       all &= result;
 
       pop_stmt_changes (&use_stmt);
+
+      /* Remove intermediate now unused copy and conversion chains.  */
+      if (result
+	  && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 0)) == SSA_NAME
+	  && (TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == SSA_NAME
+	      || TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == NOP_EXPR
+	      || TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == CONVERT_EXPR))
+	{
+	  block_stmt_iterator bsi = bsi_for_stmt (use_stmt);
+	  release_defs (use_stmt);
+	  bsi_remove (&bsi, true);
+	}
     }
 
   return all;
@@ -999,16 +990,14 @@ tree_ssa_forward_propagate_single_use_vars (void)
 
 	      if (TREE_CODE (rhs) == ADDR_EXPR)
 		{
-		  bool some = false;
-		  if (forward_propagate_addr_expr (stmt, &some))
+		  if (forward_propagate_addr_expr (lhs, rhs))
 		    {
 		      release_defs (stmt);
+		      todoflags |= TODO_remove_unused_locals;
 		      bsi_remove (&bsi, true);
 		    }
 		  else
 		    bsi_next (&bsi);
-		  if (some)
-		    todoflags |= TODO_update_smt_usage;
 		}
 	      else if ((TREE_CODE (rhs) == BIT_NOT_EXPR
 		        || TREE_CODE (rhs) == NEGATE_EXPR)
@@ -1041,7 +1030,7 @@ tree_ssa_forward_propagate_single_use_vars (void)
     }
 
   if (cfg_changed)
-    cleanup_tree_cfg ();
+    todoflags |= TODO_cleanup_cfg;
   return todoflags;
 }
 

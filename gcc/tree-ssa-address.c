@@ -1,5 +1,5 @@
 /* Memory address lowering and addressing mode selection.
-   Copyright (C) 2004 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
@@ -135,10 +135,15 @@ gen_addr_rtx (rtx symbol, rtx base, rtx index, rtx step, rtx offset,
       act_elem = symbol;
       if (offset)
 	{
-	  act_elem = gen_rtx_CONST (Pmode,
-				    gen_rtx_PLUS (Pmode, act_elem, offset));
+	  act_elem = gen_rtx_PLUS (Pmode, act_elem, offset);
+
 	  if (offset_p)
-	    *offset_p = &XEXP (XEXP (act_elem, 0), 1);
+	    *offset_p = &XEXP (act_elem, 1);
+
+	  if (GET_CODE (symbol) == SYMBOL_REF
+	      || GET_CODE (symbol) == LABEL_REF
+	      || GET_CODE (symbol) == CONST)
+	    act_elem = gen_rtx_CONST (Pmode, act_elem);
 	}
 
       if (*addr)
@@ -564,7 +569,7 @@ tree
 create_mem_ref (block_stmt_iterator *bsi, tree type, aff_tree *addr)
 {
   tree mem_ref, tmp;
-  tree addr_type = build_pointer_type (type), atype;
+  tree atype;
   struct mem_address parts;
 
   addr_to_parts (addr, &parts);
@@ -592,18 +597,24 @@ create_mem_ref (block_stmt_iterator *bsi, tree type, aff_tree *addr)
 
   if (parts.symbol)
     {
-      tmp = fold_convert (addr_type,
-			  build_addr (parts.symbol, current_function_decl));
+      tmp = build_addr (parts.symbol, current_function_decl);
+      gcc_assert (is_gimple_val (tmp));
     
       /* Add the symbol to base, eventually forcing it to register.  */
       if (parts.base)
 	{
+	  gcc_assert (tree_ssa_useless_type_conversion_1
+				(sizetype, TREE_TYPE (parts.base)));
+
 	  if (parts.index)
-	    parts.base = force_gimple_operand_bsi (bsi,
-			fold_build2 (PLUS_EXPR, addr_type,
-				     fold_convert (addr_type, parts.base),
+	    {
+	      atype = TREE_TYPE (tmp);
+	      parts.base = force_gimple_operand_bsi (bsi,
+			fold_build2 (PLUS_EXPR, atype,
+				     fold_convert (atype, parts.base),
 				     tmp),
 			true, NULL_TREE);
+	    }
 	  else
 	    {
 	      parts.index = parts.base;
@@ -653,7 +664,7 @@ create_mem_ref (block_stmt_iterator *bsi, tree type, aff_tree *addr)
 			true, NULL_TREE);
 	}
       else
-	parts.base = parts.offset, bsi;
+	parts.base = parts.offset;
 
       parts.offset = NULL_TREE;
 

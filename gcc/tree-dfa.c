@@ -337,9 +337,6 @@ dump_variable (FILE *file, tree var)
       print_generic_expr (file, ann->symbol_mem_tag, dump_flags);
     }
 
-  if (ann && ann->is_aliased)
-    fprintf (file, ", is aliased");
-
   if (TREE_ADDRESSABLE (var))
     fprintf (file, ", is addressable");
   
@@ -383,7 +380,7 @@ dump_variable (FILE *file, tree var)
       print_generic_expr (file, gimple_default_def (cfun, var), dump_flags);
     }
 
-  if (may_aliases (var))
+  if (MTAG_P (var) && may_aliases (var))
     {
       fprintf (file, ", may aliases: ");
       dump_may_aliases_for (file, var);
@@ -752,6 +749,29 @@ add_referenced_var (tree var)
     }
 }
 
+/* Remove VAR from the list.  */
+
+void
+remove_referenced_var (tree var)
+{
+  var_ann_t v_ann;
+  struct int_tree_map in;
+  void **loc;
+  unsigned int uid = DECL_UID (var);
+
+  clear_call_clobbered (var);
+  v_ann = get_var_ann (var);
+  ggc_free (v_ann);
+  var->base.ann = NULL;
+  gcc_assert (DECL_P (var));
+  in.uid = uid;
+  in.to = var;
+  loc = htab_find_slot_with_hash (gimple_referenced_vars (cfun), &in, uid,
+				  NO_INSERT);
+  ggc_free (*loc);
+  htab_clear_slot (gimple_referenced_vars (cfun), loc);
+}
+
 
 /* Return the virtual variable associated to the non-scalar variable VAR.  */
 
@@ -839,7 +859,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
   HOST_WIDE_INT bitsize = -1;
   HOST_WIDE_INT maxsize = -1;
   tree size_tree = NULL_TREE;
-  tree bit_offset = bitsize_zero_node;
+  HOST_WIDE_INT bit_offset = 0;
   bool seen_variable_array_ref = false;
 
   gcc_assert (!SSA_VAR_P (exp));
@@ -876,8 +896,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
       switch (TREE_CODE (exp))
 	{
 	case BIT_FIELD_REF:
-	  bit_offset = size_binop (PLUS_EXPR, bit_offset,
-				   TREE_OPERAND (exp, 2));
+	  bit_offset += tree_low_cst (TREE_OPERAND (exp, 2), 0);
 	  break;
 
 	case COMPONENT_REF:
@@ -887,14 +906,11 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 
 	    if (this_offset && TREE_CODE (this_offset) == INTEGER_CST)
 	      {
-		this_offset = size_binop (MULT_EXPR,
-					  fold_convert (bitsizetype,
-							this_offset),
-					  bitsize_unit_node);
-		bit_offset = size_binop (PLUS_EXPR,
-				         bit_offset, this_offset);
-		bit_offset = size_binop (PLUS_EXPR, bit_offset,
-					 DECL_FIELD_BIT_OFFSET (field));
+		HOST_WIDE_INT hthis_offset = tree_low_cst (this_offset, 0);
+
+		hthis_offset *= BITS_PER_UNIT;
+		bit_offset += hthis_offset;
+		bit_offset += tree_low_cst (DECL_FIELD_BIT_OFFSET (field), 0);
 	      }
 	    else
 	      {
@@ -902,12 +918,8 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 		/* We need to adjust maxsize to the whole structure bitsize.
 		   But we can subtract any constant offset seen sofar,
 		   because that would get us out of the structure otherwise.  */
-		if (maxsize != -1
-		    && csize && host_integerp (csize, 1))
-		  {
-		    maxsize = (TREE_INT_CST_LOW (csize)
-			       - TREE_INT_CST_LOW (bit_offset));
-		  }
+		if (maxsize != -1 && csize && host_integerp (csize, 1))
+		  maxsize = TREE_INT_CST_LOW (csize) - bit_offset;
 		else
 		  maxsize = -1;
 	      }
@@ -921,17 +933,17 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 	    tree low_bound = array_ref_low_bound (exp);
 	    tree unit_size = array_ref_element_size (exp);
 
-	    if (! integer_zerop (low_bound))
-	      index = fold_build2 (MINUS_EXPR, TREE_TYPE (index),
-				   index, low_bound);
-	    index = size_binop (MULT_EXPR,
-				fold_convert (sizetype, index), unit_size);
-	    if (TREE_CODE (index) == INTEGER_CST)
+	    /* If the resulting bit-offset is constant, track it.  */
+	    if (host_integerp (index, 0)
+		&& host_integerp (low_bound, 0)
+		&& host_integerp (unit_size, 1))
 	      {
-		index = size_binop (MULT_EXPR,
-				    fold_convert (bitsizetype, index),
-				    bitsize_unit_node);
-		bit_offset = size_binop (PLUS_EXPR, bit_offset, index);
+		HOST_WIDE_INT hindex = tree_low_cst (index, 0);
+
+		hindex -= tree_low_cst (low_bound, 0);
+		hindex *= tree_low_cst (unit_size, 1);
+		hindex *= BITS_PER_UNIT;
+		bit_offset += hindex;
 
 		/* An array ref with a constant index up in the structure
 		   hierarchy will constrain the size of any variable array ref
@@ -944,12 +956,8 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 		/* We need to adjust maxsize to the whole array bitsize.
 		   But we can subtract any constant offset seen sofar,
 		   because that would get us outside of the array otherwise.  */
-		if (maxsize != -1
-		    && asize && host_integerp (asize, 1))
-		  {
-		    maxsize = (TREE_INT_CST_LOW (asize)
-			       - TREE_INT_CST_LOW (bit_offset));
-		  }
+		if (maxsize != -1 && asize && host_integerp (asize, 1))
+		  maxsize = TREE_INT_CST_LOW (asize) - bit_offset;
 		else
 		  maxsize = -1;
 
@@ -964,8 +972,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 	  break;
 
 	case IMAGPART_EXPR:
-	  bit_offset = size_binop (PLUS_EXPR, bit_offset,
-				   bitsize_int (bitsize));
+	  bit_offset += bitsize;
 	  break;
 
 	case VIEW_CONVERT_EXPR:
@@ -991,14 +998,14 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
   if (seen_variable_array_ref
       && maxsize != -1
       && host_integerp (TYPE_SIZE (TREE_TYPE (exp)), 1)
-      && TREE_INT_CST_LOW (bit_offset) + maxsize
-	 == TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (exp))))
+      && bit_offset + maxsize
+	   == (signed)TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (exp))))
     maxsize = -1;
 
   /* ???  Due to negative offsets in ARRAY_REF we can end up with
      negative bit_offset here.  We might want to store a zero offset
      in this case.  */
-  *poffset = TREE_INT_CST_LOW (bit_offset);
+  *poffset = bit_offset;
   *psize = bitsize;
   *pmax_size = maxsize;
 

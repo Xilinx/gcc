@@ -69,7 +69,7 @@ public class StandardMBean
   /**
    * The interface for this bean.
    */
-  private Class iface;
+  private Class<?> iface;
 
   /**
    * The implementation of the interface.
@@ -94,7 +94,7 @@ public class StandardMBean
    *                                    in the interface that doesn't comply
    *                                    with the naming conventions.
    */
-  protected StandardMBean(Class iface)
+  protected StandardMBean(Class<?> iface)
     throws NotCompliantMBeanException
   {
     if (iface == null)
@@ -107,8 +107,9 @@ public class StandardMBean
 	catch (ClassNotFoundException e)
 	  {
 	    throw (NotCompliantMBeanException) 
-	      (new NotCompliantMBeanException("An interface for the class " +
-					      className + " was not found.").initCause(e));
+	      (new NotCompliantMBeanException("An interface, " + className +
+					      "MBean, for the class " + className +
+					      " was not found.").initCause(e));
 	  }
       }
     if (!(iface.isInstance(this)))
@@ -132,7 +133,7 @@ public class StandardMBean
    *                                    in the interface that doesn't comply
    *                                    with the naming conventions.
    */
-  public StandardMBean(Object impl, Class iface)
+  public <T> StandardMBean(T impl, Class<T> iface)
     throws NotCompliantMBeanException
   {
     if (impl == null)
@@ -142,20 +143,23 @@ public class StandardMBean
 	String className = impl.getClass().getName();
 	try
 	  {
-	    iface = Class.forName(className + "MBean");
+	    this.iface = Class.forName(className + "MBean", true,
+				       impl.getClass().getClassLoader());
 	  }
 	catch (ClassNotFoundException e)
 	  {
 	    throw (NotCompliantMBeanException) 
-	      (new NotCompliantMBeanException("An interface for the class " +
-					      className + " was not found.").initCause(e));
+	      (new NotCompliantMBeanException("An interface, " + className +
+					      "MBean, for the class " + className +
+					      " was not found.").initCause(e));
 	  }
       }
-    if (!(iface.isInstance(impl)))
+    else
+      this.iface = iface;
+    if (!(this.iface.isInstance(impl)))
       throw new NotCompliantMBeanException("The instance, " + impl + 
 					   ", is not an instance of " + iface);
     this.impl = impl;
-    this.iface = iface;
   }
 
   /**
@@ -490,7 +494,7 @@ public class StandardMBean
    *
    * @return the implementation class.
    */
-  public Class getImplementationClass()
+  public Class<?> getImplementationClass()
   {
     return impl.getClass();
   }
@@ -665,7 +669,10 @@ public class StandardMBean
 			 ainfo, cinfo, oinfo, null);
     String cname = getClassName(info);
     String desc = getDescription(info);
-    info = new MBeanInfo(cname, desc, ainfo, cinfo, oinfo, null);
+    MBeanNotificationInfo[] ninfo = null;
+    if (impl instanceof NotificationBroadcaster)
+      ninfo = ((NotificationBroadcaster) impl).getNotificationInfo();
+    info = new MBeanInfo(cname, desc, ainfo, cinfo, oinfo, ninfo);
     cacheMBeanInfo(info);
     return info;
   }
@@ -675,7 +682,7 @@ public class StandardMBean
    *
    * @return the management interface.
    */
-  public final Class getMBeanInterface()
+  public final Class<?> getMBeanInterface()
   {
     return iface;
   }

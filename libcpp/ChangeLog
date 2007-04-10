@@ -1,3 +1,36 @@
+2007-03-30  Michael Meissner  <michael.meissner@amd.com>
+
+	* directives.c (lex_macro_node_from_str): Fix alloca call to be
+	type correct.
+
+2007-03-30  Richard Henderson  <rth@redhat.com>
+
+	* directives.c (lex_macro_node_from_str): New.
+	(cpp_push_definition, cpp_pop_definition): New.
+	* include/cpplib.h (cpp_push_definition, cpp_pop_definition): Declare.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.in: Add dummy install-pdf target.
+
+2007-01-30  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/30468:
+	* mkdeps.c (apply_vpath): Strip successive '/'s if we stripped
+	'./'.
+
+2007-01-30  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/29966:
+	* macro.c (lex_expansion_token): Save and restore cpp_reader's
+	cur_token.
+	(_cpp_create_definition): Don't restore cur_token here.
+	* lex.c (_cpp_lex_token): Added assertion.
+
+2007-01-27  Tom Tromey  <tromey@redhat.com>
+
+	* configure: Rebuilt.
+
 2007-01-12  Tom Tromey  <tromey@redhat.com>
 
 	PR preprocessor/28227:

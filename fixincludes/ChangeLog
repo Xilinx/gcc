@@ -1,3 +1,69 @@
+2007-03-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* inclhack.def (glibc_c99_inline_1): Define __USE_EXTERN_INLINES
+	if __extern_inline or __GNUC_GNU_INLINE__ is defined rather than
+	__STDC_VERSION__ < 199901L.
+	(glibc_c99_inline_2): Replace #if __STDC_VERSION__ < 199901L
+	with #ifdef __GNUC_GNU_INLINE__.
+	(glibc_c99_inline_3): Add select.  Replace __STDC_VERSION__ >= 199901L
+	with defined(__GNUC_STDC_INLINE__).
+	(glibc_c99_inline_4): Change select, add second c_fix_arg.
+	Replace #if __STDC_VERSION__ < 199901L with
+	#ifdef __GNUC_GNU_INLINE__.
+	* fixincl.x: Regenerated.
+	* tests/base/bits/string2.h: Update.
+	* tests/base/sys/sysmacros.h: Update.
+	* tests/base/sys/stat.h: Update.
+
+2007-03-18  Krister Walfridsson  <cato@df.lth.se>
+
+	PR target/30058
+	* inclhack.def (netbsd_c99_inline_1): New.
+	* fixincl.x: Regenerate.
+	* tests/base/signal.h: New.
+
+2007-03-12  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.in: Add dummy "install-info" target.
+
+2007-03-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* mkheaders.in: Fix headers for each multilib required.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.in: Add dummy install-pdf target.
+
+2007-02-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* mkheaders.in (incdir): Use include-fixed not include.
+
+2007-02-15  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.in: Added "pdf" target to .PHONY.
+
+2007-02-05  Richard Guenther  <rguenther@suse.de>
+
+	* inclhack.def (glibc_c99_inline_4): Adjust selector to cope
+	with older glibc.  Adjust version number for C99.
+	* fixincl.x: Regenerated.
+
+2007-02-04  Mike Stump  <mrs@apple.com>
+
+	* mkheaders.in: Allow optional isysroot parameter.
+
+2007-02-03  Bruce Korb <bkorb@gnu.org>
+
+	* inclhack.def (glibc_c99_inline_4): replace "extern" only if
+	surrounded by space characters.
+
+2007-01-25  Daniel Franke <franke.daniel@gmail.com>
+
+	PR target/30272
+	* inclhack.def(broken_cabs): Also remove definition of cabsl.
+	* fixincl.x: Regenerate.
+	* tests/base/math.h: Update.
+
 2007-01-05  Bruce Korb <bkorb@gnu.org>, 
             Daniel Franke <franke.daniel@gmail.com>
 

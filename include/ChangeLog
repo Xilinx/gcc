@@ -1,3 +1,28 @@
+2007-03-29  Joel Brobecker  <brobecker@adacore.com>
+
+	* filenames.h (FILENAME_CMP): Adjust define to call filename_cmp
+	regardless of the type of file system.
+
+2007-03-06  Jan Hubicka  <jh@suse.cz>
+	
+	* ansidecl.h (ATTRIBUTE_COLD, ATTRIBUTE_HOT): New.
+
+2007-02-09  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* libiberty.h (pex_write_input): Remove prototype.
+
+2007-01-31  Vladimir Prus  <vladimir@codesourcery.com>
+	
+	* libiberty.h (PEX_STDERR_TO_PIPE): New define.
+	(PEX_BINARY_ERROR): New define.
+	(pex_read_err): New function.
+
+2007-01-29  Simon Baldwin <simonb@google.com>
+
+	* demangle.h: New cplus_demangle_print_callback,
+	cplus_demangle_v3_callback, and java_demangle_v3_callback function
+	prototypes, and demangle_callbackref type definition.
+
 2006-12-06  Nick Clifton  <nickc@redhat.com>
 
 	* ansidecl.h (ATTRIBUTE_PACKED): Define.

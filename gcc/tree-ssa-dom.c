@@ -1,5 +1,5 @@
 /* SSA Dominator optimizations for trees
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -279,7 +279,7 @@ tree_ssa_dominator_optimize (void)
   /* We need to know which edges exit loops so that we can
      aggressively thread through loop headers to an exit
      edge.  */
-  loop_optimizer_init (0);
+  loop_optimizer_init (AVOID_CFG_MODIFICATIONS);
   if (current_loops)
     {
       mark_loop_exit_edges ();
@@ -389,8 +389,7 @@ struct tree_opt_pass pass_dominator =
   TODO_dump_func
     | TODO_update_ssa
     | TODO_cleanup_cfg
-    | TODO_verify_ssa	
-    | TODO_update_smt_usage,		/* todo_flags_finish */
+    | TODO_verify_ssa,			/* todo_flags_finish */
   0					/* letter */
 };
 
@@ -554,7 +553,7 @@ restore_vars_to_original_value (void)
 /* A trivial wrapper so that we can present the generic jump
    threading code with a simple API for simplifying statements.  */
 static tree
-simplify_stmt_for_jump_threading (tree stmt)
+simplify_stmt_for_jump_threading (tree stmt, tree within_stmt ATTRIBUTE_UNUSED)
 {
   return lookup_avail_expr (stmt, false);
 }
@@ -1623,7 +1622,7 @@ record_equivalences_from_stmt (tree stmt, int may_optimize_p, stmt_ann_t ann)
       if (rhs)
 	{
 	  /* Build a new statement with the RHS and LHS exchanged.  */
-	  new = build2_gimple (GIMPLE_MODIFY_STMT, rhs, lhs);
+	  new = build_gimple_modify_stmt (rhs, lhs);
 
 	  create_ssa_artificial_load_stmt (new, stmt);
 
@@ -2551,9 +2550,11 @@ struct tree_opt_pass pass_phi_only_cprop =
   0,                                    /* properties_provided */
   0,		                        /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_cleanup_cfg | TODO_dump_func 
-    | TODO_ggc_collect | TODO_verify_ssa
-    | TODO_verify_stmts | TODO_update_smt_usage
-    | TODO_update_ssa, /* todo_flags_finish */
+  TODO_cleanup_cfg
+    | TODO_dump_func 
+    | TODO_ggc_collect
+    | TODO_verify_ssa
+    | TODO_verify_stmts
+    | TODO_update_ssa,			/* todo_flags_finish */
   0                                     /* letter */
 };

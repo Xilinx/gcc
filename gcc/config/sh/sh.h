@@ -1550,8 +1550,8 @@ extern enum reg_class reg_class_from_letter[];
     Bsc: SCRATCH - for the scratch register in movsi_ie in the
 	 fldi0 / fldi0 cases
    C: Constants other than only CONST_INT (constraint len == 3)
-    Css: signed 16 bit constant, literal or symbolic
-    Csu: unsigned 16 bit constant, literal or symbolic
+    Css: signed 16-bit constant, literal or symbolic
+    Csu: unsigned 16-bit constant, literal or symbolic
     Csy: label or symbol
     Cpg: non-explicit constants that can be directly loaded into a general
 	 purpose register in PIC code.  like 's' except we don't allow
@@ -1738,8 +1738,6 @@ extern enum reg_class reg_class_from_letter[];
       && (GET_CODE (X) == LABEL_REF || PIC_DIRECT_ADDR_P (X)))		\
    ? TARGET_REGS							\
    : SECONDARY_INOUT_RELOAD_CLASS((CLASS),(MODE),(X), NO_REGS))
-#else
-#define HAVE_SECONDARY_RELOADS
 #endif
 
 /* Return the maximum number of consecutive registers
@@ -1981,6 +1979,13 @@ struct sh_args {
 
      - If T is set, a return trampoline will be set up for 64-bit
      return values to be split into 2 32-bit registers.  */
+    long call_cookie;
+
+  /* This is set to nonzero when the call in question must use the Renesas ABI,
+     even without the -mrenesas option.  */
+    int renesas_abi;
+};
+
 #define CALL_COOKIE_RET_TRAMP_SHIFT 0
 #define CALL_COOKIE_RET_TRAMP(VAL) ((VAL) << CALL_COOKIE_RET_TRAMP_SHIFT)
 #define CALL_COOKIE_STACKSEQ_SHIFT 1
@@ -1993,12 +1998,6 @@ struct sh_args {
   ((VAL) << CALL_COOKIE_INT_REG_SHIFT (REG))
 #define CALL_COOKIE_INT_REG_GET(COOKIE, REG) \
   (((COOKIE) >> CALL_COOKIE_INT_REG_SHIFT (REG)) & ((REG) < 4 ? 7 : 15))
-    long call_cookie;
-
-  /* This is set to nonzero when the call in question must use the Renesas ABI,
-     even without the -mrenesas option.  */
-    int renesas_abi;
-};
 
 #define CUMULATIVE_ARGS  struct sh_args
 

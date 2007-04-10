@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -239,7 +239,7 @@ int in_system_header = 0;
 int flag_detailed_statistics = 0;
 
 /* A random sequence of characters, unless overridden by user.  */
-const char *flag_random_seed;
+static const char *flag_random_seed;
 
 /* A local time stamp derived from the time of compilation. It will be
    zero if the system cannot provide a time.  It will be -1u, if the
@@ -332,11 +332,6 @@ int flag_dump_rtl_in_asm = 0;
    At present, the rtx may be either a REG or a SYMBOL_REF, although
    the support provided depends on the backend.  */
 rtx stack_limit_rtx;
-
-/* If one, renumber instruction UIDs to reduce the number of
-   unused UIDs if there are a lot of instructions.  If greater than
-   one, unconditionally renumber instruction UIDs.  */
-int flag_renumber_insns = 1;
 
 /* Nonzero if we should track variables.  When
    flag_var_tracking == AUTODETECT_VALUE it will be set according
@@ -461,23 +456,20 @@ announce_function (tree decl)
     }
 }
 
-/* Set up a default flag_random_seed and local_tick, unless the user
-   already specified one.  */
+/* Initialize local_tick with the time of day, or -1 if
+   flag_random_seed is set.  */
 
 static void
-randomize (void)
+init_local_tick (void)
 {
   if (!flag_random_seed)
     {
-      unsigned HOST_WIDE_INT value;
-      static char random_seed[HOST_BITS_PER_WIDE_INT / 4 + 3];
-
       /* Get some more or less random data.  */
 #ifdef HAVE_GETTIMEOFDAY
       {
- 	struct timeval tv;
+	struct timeval tv;
 
- 	gettimeofday (&tv, NULL);
+	gettimeofday (&tv, NULL);
 	local_tick = tv.tv_sec * 1000 + tv.tv_usec / 1000;
       }
 #else
@@ -488,15 +480,47 @@ randomize (void)
 	  local_tick = (unsigned) now;
       }
 #endif
-      value = local_tick ^ getpid ();
-
-      sprintf (random_seed, HOST_WIDE_INT_PRINT_HEX, value);
-      flag_random_seed = random_seed;
     }
-  else if (!local_tick)
+  else
     local_tick = -1;
 }
 
+/* Set up a default flag_random_seed and local_tick, unless the user
+   already specified one.  Must be called after init_local_tick.  */
+
+static void
+init_random_seed (void)
+{
+  unsigned HOST_WIDE_INT value;
+  static char random_seed[HOST_BITS_PER_WIDE_INT / 4 + 3];
+
+  value = local_tick ^ getpid ();
+
+  sprintf (random_seed, HOST_WIDE_INT_PRINT_HEX, value);
+  flag_random_seed = random_seed;
+}
+
+/* Obtain the random_seed string.  Unless NOINIT, initialize it if
+   it's not provided in the command line.  */
+
+const char *
+get_random_seed (bool noinit)
+{
+  if (!flag_random_seed && !noinit)
+    init_random_seed ();
+  return flag_random_seed;
+}
+
+/* Modify the random_seed string to VAL.  Return its previous
+   value.  */
+
+const char *
+set_random_seed (const char *val)
+{
+  const char *old = flag_random_seed;
+  flag_random_seed = val;
+  return old;
+}
 
 /* Decode the string P as an integral parameter.
    If the string is indeed an integer return its numeric value else
@@ -906,9 +930,8 @@ warn_deprecated_use (tree node)
     {
       expanded_location xloc = expand_location (DECL_SOURCE_LOCATION (node));
       warning (OPT_Wdeprecated_declarations,
-	       "%qs is deprecated (declared at %s:%d)",
-	       IDENTIFIER_POINTER (DECL_NAME (node)),
-	       xloc.file, xloc.line);
+	       "%qD is deprecated (declared at %s:%d)",
+	       node, xloc.file, xloc.line);
     }
   else if (TYPE_P (node))
     {
@@ -1059,11 +1082,14 @@ compile_file (void)
   if (flag_mudflap)
     mudflap_finish_file ();
 
+  /* Likewise for emulated thread-local storage.  */
+  if (!targetm.have_tls)
+    emutls_finish ();
+
   output_shared_constant_pool ();
   output_object_blocks ();
 
   /* Write out any pending weak symbol declarations.  */
-
   weak_finish ();
 
   /* Do dbx symbols.  */
@@ -1285,7 +1311,8 @@ print_switch_values (print_switch_fn_type print_fn)
 
   /* Fill in the -frandom-seed option, if the user didn't pass it, so
      that it can be printed below.  This helps reproducibility.  */
-  randomize ();
+  if (!flag_random_seed)
+    init_random_seed ();
 
   /* Print the options as passed.  */
   pos = print_single_switch (print_fn, pos,
@@ -1955,6 +1982,7 @@ backend_init (void)
   init_regs ();
   init_fake_stack_mems ();
   init_alias_once ();
+  init_inline_once ();
   init_reload ();
   init_varasm_once ();
 
@@ -1997,6 +2025,11 @@ lang_dependent_init (const char *name)
      provide a dummy function context for them.  */
   init_dummy_function_start ();
   init_expr_once ();
+
+  /* Although the actions of init_set_costs are language-independent,
+     it uses optabs, so we cannot call it from backend_init.  */
+  init_set_costs ();
+
   expand_dummy_function_end ();
 
   /* If dbx symbol table desired, initialize writing it and output the
@@ -2121,7 +2154,7 @@ toplev_main (unsigned int argc, const char **argv)
      enough to default flags appropriately.  */
   decode_options (argc, argv);
 
-  randomize ();
+  init_local_tick ();
 
   /* Exit early if we can (e.g. -help).  */
   if (!exit_after_options)

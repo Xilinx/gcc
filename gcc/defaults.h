@@ -796,6 +796,12 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #define TARGET_C99_FUNCTIONS 0
 #endif
 
+/* Determine whether the target runtime library has
+   a sincos implementation following the GNU extension.  */
+#ifndef TARGET_HAS_SINCOS
+#define TARGET_HAS_SINCOS 0
+#endif
+
 /* Indicate that CLZ and CTZ are undefined at zero.  */
 #ifndef CLZ_DEFINED_VALUE_AT_ZERO
 #define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  0
@@ -898,6 +904,10 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #ifndef HARD_REGNO_NREGS_HAS_PADDING
 #define HARD_REGNO_NREGS_HAS_PADDING(REGNO, MODE) 0
 #define HARD_REGNO_NREGS_WITH_PADDING(REGNO, MODE) -1
+#endif
+
+#ifndef OUTGOING_REG_PARM_STACK_SPACE
+#define OUTGOING_REG_PARM_STACK_SPACE 0
 #endif
 
 #endif  /* ! GCC_DEFAULTS_H */

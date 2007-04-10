@@ -1,3 +1,7 @@
+2007-04-10  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* Merge from mainline (r120733:123693).
+
 2007-03-20  Nic Volanschi  <nic.volanschi@free.fr>
 
 	* condate.y: New file.

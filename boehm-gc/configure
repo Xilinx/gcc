@@ -1351,6 +1351,13 @@ else
 fi
 
 
+# Even if the default multilib is not a cross compilation,
+# it may be that some of the other multilibs are.
+if test $cross_compiling = no && test $multilib = yes \
+   && test "x${with_multisubdir}" != x ; then
+   cross_compiling=maybe
+fi
+
           ac_config_commands="$ac_config_commands default-1"
 
 
@@ -4773,7 +4780,7 @@ test x"$pic_mode" = xno && libtool_flags="$libtool_flags --prefer-non-pic"
 case $host in
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 4776 "configure"' > conftest.$ac_ext
+  echo '#line 4783 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -6819,11 +6826,9 @@ LIBS="$oldLIBS"
 
 # Configuration of machine-dependent code
 #
-# We don't set NO_EXECUTE_PERMISSION by default because gcj (and
-# anything else that creates trampolines in gc-allocated memory)
-# always needs exec permission.  The exceptions to this are IA-64 and
-# some variations of Power PC, where trampolines don't contain
-# executable code.
+# Set NO_EXECUTE_PERMISSION by default because gcj already uses
+# ffi_closure_{alloc,free} which takes care of allocating trampolines
+# in executable memory.
 #
 echo "$as_me:$LINENO: checking which machine-dependent code should be used" >&5
 echo $ECHO_N "checking which machine-dependent code should be used... $ECHO_C" >&6
@@ -6884,14 +6889,14 @@ _ACEOF
     machdep="sparc_mach_dep.lo"
     ;;
  ia64-*-*)
+    machdep="mach_dep.lo ia64_save_regs_in_stack.lo"
+    ;;
+esac
 
 cat >>confdefs.h <<\_ACEOF
 #define NO_EXECUTE_PERMISSION 1
 _ACEOF
 
-    machdep="mach_dep.lo ia64_save_regs_in_stack.lo"
-    ;;
-esac
 if test x"$machdep" = x; then
 echo "$as_me:$LINENO: result: $machdep" >&5
 echo "${ECHO_T}$machdep" >&6
@@ -7616,19 +7621,6 @@ cat >>confdefs.h <<\_ACEOF
 #define ATOMIC_UNCOLLECTABLE 1
 _ACEOF
 
-
-if test -n "${with_cross_host}"; then
-
-cat >>confdefs.h <<\_ACEOF
-#define NO_SIGSET 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define NO_DEBUGGING 1
-_ACEOF
-
-fi
 
 # Check whether --enable-gc-debug or --disable-gc-debug was given.
 if test "${enable_gc_debug+set}" = set; then

@@ -84,6 +84,11 @@ extern int flag_pa_unix;
 #define TARGET_HPUX_10_10 0
 #endif
 
+/* HP-UX 11.* features (11.00, 11.11, 11.23, etc.)  */
+#ifndef TARGET_HPUX_11
+#define TARGET_HPUX_11 0
+#endif
+
 /* HP-UX 11i multibyte and UNIX 98 extensions.  */
 #ifndef TARGET_HPUX_11_11
 #define TARGET_HPUX_11_11 0
@@ -482,10 +487,10 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
    C is the letter, and VALUE is a constant value.
    Return 1 if VALUE is in the range specified by C.
 
-   `I' is used for the 11 bit constants.
-   `J' is used for the 14 bit constants.
+   `I' is used for the 11-bit constants.
+   `J' is used for the 14-bit constants.
    `K' is used for values that can be moved with a zdepi insn.
-   `L' is used for the 5 bit constants.
+   `L' is used for the 5-bit constants.
    `M' is used for 0.
    `N' is used for values with the least significant 11 bits equal to zero
 	                  and when sign extended from 32 to 64 bits the
@@ -597,7 +602,7 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
 
 /* Define this if the above stack space is to be considered part of the
    space allocated by the caller.  */
-#define OUTGOING_REG_PARM_STACK_SPACE
+#define OUTGOING_REG_PARM_STACK_SPACE 1
 
 /* Keep the stack pointer constant throughout the function.
    This is both an optimization and a necessity: longjmp
@@ -1316,7 +1321,7 @@ extern int may_call_alloca;
    function's constant-pool, because such addresses can actually be
    output as REG+SMALLINT. 
 
-   Note we only allow 5 bit immediates for access to a constant address;
+   Note we only allow 5-bit immediates for access to a constant address;
    doing so avoids losing for loading/storing a FP register at an address
    which will not fit in 5 bits.  */
 

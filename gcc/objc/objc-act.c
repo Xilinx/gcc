@@ -956,7 +956,7 @@ objc_volatilize_decl (tree decl)
 }
 
 /* Check if protocol PROTO is adopted (directly or indirectly) by class CLS
-   (including its categoreis and superclasses) or by object type TYP.
+   (including its categories and superclasses) or by object type TYP.
    Issue a warning if PROTO is not adopted anywhere and WARN is set.  */
 
 static bool
@@ -1659,7 +1659,7 @@ synth_module_prologue (void)
 		     build_int_cst (NULL_TREE, OFFS_MSGSEND_FAST),
 		     NULL_TREE);
 #else
-      /* No direct dispatch availible.  */
+      /* No direct dispatch available.  */
       umsg_fast_decl = umsg_decl;
 #endif
 
@@ -2007,6 +2007,7 @@ objc_add_static_instance (tree constructor, tree class_decl)
   DECL_COMMON (decl) = 1;
   TREE_STATIC (decl) = 1;
   DECL_ARTIFICIAL (decl) = 1;
+  TREE_USED (decl) = 1;
   DECL_INITIAL (decl) = constructor;
 
   /* We may be writing something else just now.
@@ -3298,7 +3299,7 @@ static hashval_t
 hash_interface (const void *p)
 {
   const struct interface_tuple *d = p;
-  return htab_hash_pointer (d->id);
+  return IDENTIFIER_HASH_VALUE (d->id);
 }
 
 static int
@@ -3327,7 +3328,7 @@ lookup_interface (tree ident)
       {
 	slot = (struct interface_tuple **)
 	  htab_find_slot_with_hash (interface_htab, ident,
-				    htab_hash_pointer (ident),
+				    IDENTIFIER_HASH_VALUE (ident),
 				    NO_INSERT);
 	if (slot && *slot)
 	  i = (*slot)->class_name;
@@ -3641,7 +3642,7 @@ next_sjlj_build_catch_list (void)
 
 	{
 	  struct _objc_exception_data _stack;
-	  id volatile _rethrow = 0;
+	  id _rethrow = 0;
 	  try
 	    {
 	      objc_exception_try_enter (&_stack);
@@ -3685,7 +3686,6 @@ next_sjlj_build_try_catch_finally (void)
 
   rethrow_decl = objc_create_temporary_var (objc_object_type);
   cur_try_context->rethrow_decl = rethrow_decl;
-  TREE_THIS_VOLATILE (rethrow_decl) = 1;
   TREE_CHAIN (rethrow_decl) = stack_decl;
 
   /* Build the outermost variable binding level.  */
@@ -6130,7 +6130,7 @@ receiver_is_class_object (tree receiver, int self, int super)
   /* The receiver is a function call that returns an id.  Check if
      it is a call to objc_getClass, if so, pick up the class name.  */
   if (TREE_CODE (receiver) == CALL_EXPR
-      && (exp = TREE_OPERAND (receiver, 0))
+      && (exp = CALL_EXPR_FN (receiver))
       && TREE_CODE (exp) == ADDR_EXPR
       && (exp = TREE_OPERAND (exp, 0))
       && TREE_CODE (exp) == FUNCTION_DECL
@@ -6140,9 +6140,7 @@ receiver_is_class_object (tree receiver, int self, int super)
       && TREE_TYPE (exp) == TREE_TYPE (objc_get_class_decl)
       && !strcmp (IDENTIFIER_POINTER (DECL_NAME (exp)), TAG_GETCLASS)
       /* We have a call to objc_get_class/objc_getClass!  */
-      && (arg = TREE_OPERAND (receiver, 1))
-      && TREE_CODE (arg) == TREE_LIST
-      && (arg = TREE_VALUE (arg)))
+      && (arg = CALL_EXPR_ARG (receiver, 0)))
     {
       STRIP_NOPS (arg);
       if (TREE_CODE (arg) == ADDR_EXPR
@@ -6997,7 +6995,7 @@ add_class (tree class_name, tree name)
     interface_htab = htab_create_ggc (31, hash_interface, eq_interface, NULL);
   slot = (struct interface_tuple **)
     htab_find_slot_with_hash (interface_htab, name,
-			      htab_hash_pointer (name),
+			      IDENTIFIER_HASH_VALUE (name),
 			      INSERT);
   if (!*slot)
     {
@@ -9516,7 +9514,7 @@ objc_gimplify_expr (tree *expr_p, tree *pre_p, tree *post_p)
 tree
 objc_get_callee_fndecl (tree call_expr)
 {
-  tree addr = TREE_OPERAND (call_expr, 0);
+  tree addr = CALL_EXPR_FN (call_expr);
   if (TREE_CODE (addr) != OBJ_TYPE_REF)
     return 0;
 

@@ -2,7 +2,7 @@
    Register Transfer Expressions (rtx's) that make up the
    Register Transfer Language (rtl) used in the Back End of the GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1994, 1995, 1997, 1998, 1999, 2000, 2004,
-   2005, 2006
+   2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -93,11 +93,6 @@ DEF_RTL_EXPR(EXPR_LIST, "expr_list", "ee", RTX_EXTRA)
    The insns are represented in print by their uids.  */
 DEF_RTL_EXPR(INSN_LIST, "insn_list", "ue", RTX_EXTRA)
 
-/* a linked list of dependencies. 
-   The insns are represented in print by their uids. 
-   Operand 2 is the status of a dependence (see sched-int.h for more).  */
-DEF_RTL_EXPR(DEPS_LIST, "deps_list", "uei", RTX_EXTRA)
-
 /* SEQUENCE appears in the result of a `gen_...' function
    for a DEFINE_EXPAND that wants to make several insns.
    Its elements are the bodies of the insns that should be made.
@@ -173,15 +168,15 @@ DEF_RTL_EXPR(COND_EXEC, "cond_exec", "ee", RTX_EXTRA)
 /* Several operations to be done in parallel (perhaps under COND_EXEC).  */
 DEF_RTL_EXPR(PARALLEL, "parallel", "E", RTX_EXTRA)
 
+#ifdef USE_MAPPED_LOCATION
 /* A string that is passed through to the assembler as input.
      One can obviously pass comments through by using the
      assembler comment syntax.
      These occur in an insn all by themselves as the PATTERN.
      They also appear inside an ASM_OPERANDS
      as a convenient way to hold a string.  */
-DEF_RTL_EXPR(ASM_INPUT, "asm_input", "s", RTX_EXTRA)
+DEF_RTL_EXPR(ASM_INPUT, "asm_input", "si", RTX_EXTRA)
 
-#ifdef USE_MAPPED_LOCATION
 /* An assembler instruction with operands.
    1st operand is the instruction template.
    2nd operand is the constraint for the output.
@@ -195,6 +190,14 @@ DEF_RTL_EXPR(ASM_INPUT, "asm_input", "s", RTX_EXTRA)
    6th is the source line number.  */
 DEF_RTL_EXPR(ASM_OPERANDS, "asm_operands", "ssiEEi", RTX_EXTRA)
 #else
+/* A string that is passed through to the assembler as input.
+     One can obviously pass comments through by using the
+     assembler comment syntax.
+     These occur in an insn all by themselves as the PATTERN.
+     They also appear inside an ASM_OPERANDS
+     as a convenient way to hold a string.  */
+DEF_RTL_EXPR(ASM_INPUT, "asm_input", "ssi", RTX_EXTRA)
+
 /* An assembler instruction with operands.
    1st operand is the instruction template.
    2nd operand is the constraint for the output.
@@ -387,6 +390,12 @@ DEF_RTL_EXPR(STRICT_LOW_PART, "strict_low_part", "e", RTX_EXTRA)
    This is used for complex values.  Normally it appears only
    in DECL_RTLs and during RTL generation, but not in the insn chain.  */
 DEF_RTL_EXPR(CONCAT, "concat", "ee", RTX_OBJ)
+
+/* (CONCATN [a1 a2 ... an]) represents the virtual concatenation of
+   all An to make a value.  This is an extension of CONCAT to larger
+   number of components.  Like CONCAT, it should not appear in the
+   insn chain.  Every element of the CONCATN is the same size.  */
+DEF_RTL_EXPR(CONCATN, "concatn", "E", RTX_OBJ)
 
 /* A memory location; operand is the address.  The second operand is the
    alias set to which this MEM belongs.  We use `0' instead of `w' for this

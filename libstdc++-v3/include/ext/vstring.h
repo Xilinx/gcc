@@ -1,6 +1,6 @@
 // Versatile string -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -1675,7 +1675,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
 	int __r = traits_type::compare(this->_M_data(), __str.data(), __len);
 	if (!__r)
-	  __r =  __size - __osize;
+	  __r = _S_compare(__size, __osize);
 	return __r;
       }
 
@@ -2139,11 +2139,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  writing a C string.
    */
   template<typename _CharT, typename _Traits, typename _Alloc,
-           template <typename, typename, typename> class _Base>
-    basic_ostream<_CharT, _Traits>&
+	   template <typename, typename, typename> class _Base>
+    inline basic_ostream<_CharT, _Traits>&
     operator<<(basic_ostream<_CharT, _Traits>& __os,
-	       const __gnu_cxx::__versa_string<_CharT, _Traits,
-	                                       _Alloc, _Base>& __str);
+	       const __gnu_cxx::__versa_string<_CharT, _Traits, _Alloc,
+	       _Base>& __str)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 586. string inserter not a formatted function
+      return __ostream_insert(__os, __str.data(), __str.size());
+    }
 
   /**
    *  @brief  Read a line from stream into a string.

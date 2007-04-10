@@ -7,6 +7,8 @@
 @c %**end of header
 @c @end ifnothtml
 
+@include gcc-common.texi
+
 @c Specify title for specific html page
 @ifset indexhtml
 @settitle Installing GCC
@@ -43,7 +45,7 @@
 @end ifset
 
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 @c *** Converted to texinfo by Dean Wakerley, dean@wakerley.com
 
 @c IMPORTANT: whenever you modify this file, run `install.texi2html' to
@@ -99,9 +101,8 @@ Free Documentation License}''.
 
 @c Part 3 Titlepage and Copyright
 @titlepage
-@sp 10
-@comment The title is printed in a large font.
-@center @titlefont{Installing GCC}
+@title Installing GCC
+@versionsubtitle
 
 @c The following two commands start the copyright page.
 @page
@@ -109,7 +110,7 @@ Free Documentation License}''.
 @insertcopying
 @end titlepage
 
-@c Part 4 Top node and Master Menu
+@c Part 4 Top node, Master Menu, and/or Table of Contents
 @ifinfo
 @node    Top, , , (dir)
 @comment node-name, next,          Previous, up
@@ -128,6 +129,10 @@ Free Documentation License}''.
 * Concept Index::   This index has two entries.
 @end menu
 @end ifinfo
+
+@iftex
+@contents
+@end iftex
 
 @c Part 5 The Body of the Document
 @c ***Installing GCC**********************************************************
@@ -370,14 +375,14 @@ Necessary to regenerate the top level @file{Makefile.in} file from
 @file{Makefile.tpl} and @file{Makefile.def}.
 
 @item GNU Bison version 1.28 (or later)
-Berkeley @command{yacc} (@command{byacc}) is also reported to work other
-than for GCJ.
 
-Necessary when modifying @file{*.y} files.
+Necessary when modifying @file{*.y} files.  Necessary to build the
+@code{treelang} front end (which is not enabled by default) from a
+checkout of the SVN repository; the generated files are not in the
+repository.  They are included in releases.
 
-Necessary to build GCC during development because the generated output
-files are not included in the SVN repository.  They are included in
-releases.
+Berkeley @command{yacc} (@command{byacc}) has been reported to work
+as well.
 
 @item Flex version 2.5.4 (or later)
 
@@ -430,6 +435,17 @@ Useful when submitting patches for the GCC source code.
 
 Necessary when applying patches, created with @command{diff}, to one's
 own sources.
+
+@item ecj1
+@itemx gjavah
+
+If you wish to modify @file{.java} files in libjava, you will need to
+configure with @option{--enable-java-maintainer-mode}, and you will need
+to have executables named @command{ecj1} and @command{gjavah} in your path.
+The @command{ecj1} executable should run the Eclipse Java compiler via
+the GCC-specific entry point.  You can download a suitable jar from
+@uref{ftp://sourceware.org/pub/java/}, or by running the script
+@command{contrib/download_ecj}.
 
 @end table
 
@@ -898,7 +914,7 @@ tools can not generate or interpret stabs.
 @item --disable-multilib
 Specify that multiple target
 libraries to support different target variants, calling
-conventions, etc should not be built.  The default is to build a
+conventions, etc.@: should not be built.  The default is to build a
 predefined set of them.
 
 Some targets provide finer-grained control over which multilibs are built
@@ -1101,14 +1117,6 @@ particularly useful if you intend to use several versions of GCC in
 parallel.  This is currently supported by @samp{libgfortran},
 @samp{libjava}, @samp{libmudflap}, @samp{libstdc++}, and @samp{libobjc}.
 
-@item --with-java-home=@var{dirname}
-This @samp{libjava} option overrides the default value of the
-@samp{java.home} system property.  It is also used to set
-@samp{sun.boot.class.path} to @file{@var{dirname}/lib/rt.jar}.  By
-default @samp{java.home} is set to @file{@var{prefix}} and
-@samp{sun.boot.class.path} to
-@file{@var{datadir}/java/libgcj-@var{version}.jar}.
-
 @item --enable-languages=@var{lang1},@var{lang2},@dots{}
 Specify that only a particular subset of compilers and
 their runtime libraries should be built.  For a list of valid values for
@@ -1127,6 +1135,21 @@ Ada, Objective-C++, and treelang are not default languages; the rest are.
 Re-defining @code{LANGUAGES} when calling @samp{make} @strong{does not}
 work anymore, as those language sub-directories might not have been
 configured!
+
+@item --enable-stage1-languages=@var{lang1},@var{lang2},@dots{}
+Specify that a particular subset of compilers and their runtime
+libraries should be built with the system C compiler during stage 1 of
+the bootstrap process, rather than only in later stages with the
+bootstrapped C compiler.  The list of valid values is the same as for
+@option{--enable-languages}, and the option @code{all} will select all
+of the languages enabled by @option{--enable-languages}.  This option is
+primarily useful for GCC development; for instance, when a development
+version of the compiler cannot bootstrap due to compiler bugs, or when
+one is debugging front ends other than the C front end.  When this
+option is used, one can then build the target libraries for the
+specified languages with the stage-1 compiler by using @command{make
+stage1-bubble all-target}, or run the testsuite on the stage-1 compiler
+for the specified languages using @command{make stage1-start check-gcc}.
 
 @item --disable-libada
 Specify that the run-time libraries and tools used by GNAT should not
@@ -1281,11 +1304,20 @@ is removed entirely in the next major release, unless someone steps
 forward to maintain the port.
 
 @item --enable-decimal-float
+@itemx --enable-decimal-float=yes
+@itemx --enable-decimal-float=no
+@itemx --enable-decimal-float=bid
+@itemx --enable-decimal-float=dpd
 @itemx --disable-decimal-float
-Enable (or disable) support for the C decimal floating point
-extension.  This is enabled by default only on PowerPC GNU/Linux
-systems.  Other systems may also support it, but require the user to
-specifically enable it.
+Enable (or disable) support for the C decimal floating point extension
+that is in the IEEE 754R extension to the IEEE754 floating point
+standard.  This is enabled by default only on PowerPC, i386, and
+x86_64 GNU/Linux systems.  Other systems may also support it, but
+require the user to specifically enable it.  You can optionally
+control which decimal floating point format is used (either @samp{bid}
+or @samp{dpd}).  The @samp{bid} (binary integer decimal) format is
+default on i386 and x86_64 systems, and the @samp{dpd} (densely packed
+decimal) format is default on PowerPC systems.
 
 @item --with-long-double-128
 Specify if @code{long double} type should be 128-bit by default on selected
@@ -1420,6 +1452,40 @@ The following options apply to building @samp{libgcj}.
 @subsubheading General Options
 
 @table @code
+@item --enable-java-maintainer-mode
+By default the @samp{libjava} build will not attempt to compile the
+@file{.java} source files to @file{.class}.  Instead, it will use the
+@file{.class} files from the source tree.  If you use this option you
+must have executables named @command{ecj1} and @command{gjavah} in your path
+for use by the build.  You must use this option if you intend to
+modify any @file{.java} files in @file{libjava}.
+
+@item --with-java-home=@var{dirname}
+This @samp{libjava} option overrides the default value of the
+@samp{java.home} system property.  It is also used to set
+@samp{sun.boot.class.path} to @file{@var{dirname}/lib/rt.jar}.  By
+default @samp{java.home} is set to @file{@var{prefix}} and
+@samp{sun.boot.class.path} to
+@file{@var{datadir}/java/libgcj-@var{version}.jar}.
+
+@item --with-ecj-jar=@var{filename}
+This option can be used to specify the location of an external jar
+file containing the Eclipse Java compiler.  A specially modified
+version of this compiler is used by @command{gcj} to parse
+@file{.java} source files.  If this option is given, the
+@samp{libjava} build will create and install an @file{ecj1} executable
+which uses this jar file at runtime.
+
+If this option is not given, but an @file{ecj.jar} file is found in
+the topmost source tree at configure time, then the @samp{libgcj}
+build will create and install @file{ecj1}, and will also install the
+discovered @file{ecj.jar} into a suitable place in the install tree.
+
+If @file{ecj1} is not installed, then the user will have to supply one
+on his path in order for @command{gcj} to properly parse @file{.java}
+source files.  A suitable jar is available from
+@uref{ftp://sourceware.org/pub/java/}.
+
 @item --disable-getenv-properties
 Don't set system properties from @env{GCJ_PROPERTIES}.
 
@@ -1584,10 +1650,18 @@ that type mismatches occur, this could be the cause.
 
 The solution is not to use such a directory for building GCC@.
 
-When building from SVN or snapshots, or if you modify parser sources,
-you need the Bison parser generator installed.  If you do not modify
-parser sources, releases contain the Bison-generated files and you do
-not need Bison installed to build them.
+When building from SVN or snapshots and enabling the @code{treelang}
+front end, or if you modify @file{*.y} files, you need the Bison parser
+generator installed.  If you do not modify @file{*.y} files, releases
+contain the Bison-generated files and you do not need Bison installed
+to build them.  Note that most front ends now use hand-written parsers,
+which can be modified with no need for Bison.
+
+Similarly, when building from SVN or snapshots, or if you modify
+@file{*.l} files, you need the Flex lexical analyzer generator installed.
+There is still one Flex-based lexical analyzer (part of the build
+machinery, not of GCC itself) that is used even if you only build the
+C front end.
 
 When building from SVN or snapshots, or if you modify Texinfo
 documentation, you need version 4.4 or later of Texinfo installed if you
@@ -1977,17 +2051,12 @@ The Java runtime tests can be executed via @samp{make check}
 in the @file{@var{target}/libjava/testsuite} directory in
 the build tree.
 
-The @uref{http://sources.redhat.com/mauve/,,Mauve Project} provides
+The @uref{http://sourceware.org/mauve/,,Mauve Project} provides
 a suite of tests for the Java Class Libraries.  This suite can be run
 as part of libgcj testing by placing the Mauve tree within the libjava
 testsuite at @file{libjava/testsuite/libjava.mauve/mauve}, or by
 specifying the location of that tree when invoking @samp{make}, as in
 @samp{make MAUVEDIR=~/mauve check}.
-
-@uref{http://sources.redhat.com/mauve/jacks.html,,Jacks}
-is a free testsuite that tests Java compiler front ends.  This suite
-can be run as part of libgcj testing by placing the Jacks tree within
-the libjava testsuite at @file{libjava/testsuite/libjava.jacks/jacks}.
 
 @section How to interpret test results
 
@@ -2265,7 +2334,7 @@ SGI---@uref{http://freeware.sgi.com/,,SGI Freeware}.
 Microsoft Windows:
 @itemize
 @item
-The @uref{http://sources.redhat.com/cygwin/,,Cygwin} project;
+The @uref{http://sourceware.org/cygwin/,,Cygwin} project;
 @item
 The @uref{http://www.mingw.org/,,MinGW} project.
 @end itemize
@@ -2396,6 +2465,8 @@ information are.
 @uref{#m68k-x-x,,m68k-*-*}
 @item
 @uref{#m68k-hp-hpux,,m68k-hp-hpux}
+@item
+@uref{#m68k-uclinux,,m68k-uclinux}
 @item
 @uref{#mips-x-x,,mips-*-*}
 @item
@@ -3072,7 +3143,7 @@ This port still is undergoing significant development.
 @end html
 @heading @anchor{x-x-linux-gnu}*-*-linux-gnu
 
-Versions of libstdc++-v3 starting with 3.2.1 require bugfixes present
+Versions of libstdc++-v3 starting with 3.2.1 require bug fixes present
 in glibc 2.2.5 and later.  More information is available in the
 libstdc++-v3 documentation.
 
@@ -3392,11 +3463,29 @@ applications.  There are no standard Unix configurations.
 <hr />
 @end html
 @heading @anchor{m68k-x-x}m68k-*-*
-You can specify a default target using @option{--with-cpu=@var{target}}.
-This @var{target} can either be a @option{-mcpu} argument or one of the
-following values: @samp{m68000}, @samp{m68010}, @samp{m68020}, @samp{m68030},
+By default, @samp{m68k-*-aout}, @samp{m68k-*-coff*},
+@samp{m68k-*-elf*}, @samp{m68k-*-rtems} and @samp{m68k-*-uclinux}
+build libraries for both M680x0 and ColdFire processors.  If you only
+need the M680x0 libraries, you can omit the ColdFire ones by passing
+@option{--with-arch=m68k} to @command{configure}.  Alternatively, you
+can omit the M680x0 libraries by passing @option{--with-arch=cf} to
+@command{configure}.  These targets default to 5206 code when
+configured with @option{--with-arch=cf} and 68020 code otherwise.
+
+The @samp{m68k-*-linux-gnu}, @samp{m68k-*-netbsd} and
+@samp{m68k-*-openbsd} targets also support the @option{--with-arch}
+option.  They will generate ColdFire CFV4e code when configured with
+@option{--with-arch=cf} and 68020 code otherwise.
+
+You can override the default processors listed above by configuring
+with @option{--with-cpu=@var{target}}.  This @var{target} can either
+be a @option{-mcpu} argument or one of the following values:
+@samp{m68000}, @samp{m68010}, @samp{m68020}, @samp{m68030},
 @samp{m68040}, @samp{m68060}, @samp{m68020-40} and @samp{m68020-60}.
 
+@html
+<hr />
+@end html
 @heading @anchor{m68k-hp-hpux}m68k-hp-hpux
 HP 9000 series 300 or 400 running HP-UX@.  HP-UX version 8.0 has a bug in
 the assembler that prevents compilation of GCC@.  This
@@ -3450,6 +3539,17 @@ to look like:
 @html
 <hr />
 @end html
+@heading @anchor{m68k-x-uclinux}m68k-*-uclinux
+GCC 4.3 changed the uClinux configuration so that it uses the
+@samp{m68k-linux-gnu} ABI rather than the @samp{m68k-elf} ABI.
+It also added improved support for C++ and flat shared libraries,
+both of which were ABI changes.  However, you can still use the
+original ABI by configuring for @samp{m68k-uclinuxoldabi} or
+@samp{m68k-@var{vendor}-uclinuxoldabi}.
+
+@html
+<hr />
+@end html
 @heading @anchor{mips-x-x}mips-*-*
 If on a MIPS system you get an error message saying ``does not have gp
 sections for all it's [sic] sectons [sic]'', don't worry about it.  This
@@ -3483,10 +3583,13 @@ currently do not work, because the auxiliary programs
 anything but a MIPS.  It does work to cross compile for a MIPS
 if you use the GNU assembler and linker.
 
-The linker from GNU binutils versions prior to 2.17 has a bug which
-causes the runtime linker stubs in @file{libgcj.so} to be incorrectly
-generated.  If you want to use libgcj, either use binutils 2.17 or
-later to build it or export @samp{LD_BIND_NOW=1} in your runtime environment.
+The assembler from GNU binutils 2.17 and earlier has a bug in the way
+it sorts relocations for REL targets (o32, o64, EABI).  This can cause
+bad code to be generated for simple C++ programs.  Also the linker
+from GNU binutils versions prior to 2.17 has a bug which causes the
+runtime linker stubs in very large programs, like @file{libgcj.so}, to
+be incorrectly generated.  Binutils CVS snapshots and releases made
+after Nov. 9, 2006 are thought to be free from both of these problems.
 
 @html
 <hr />
@@ -3761,7 +3864,7 @@ The stock GNU binutils 2.15 release is broken on this platform because of a
 single bug.  It has been fixed on the 2.15 branch in the CVS repository.
 You can obtain a working version by checking out the binutils-2_15-branch
 from the CVS repository or applying the patch
-@uref{http://sources.redhat.com/ml/binutils-cvs/2004-09/msg00036.html} to the
+@uref{http://sourceware.org/ml/binutils-cvs/2004-09/msg00036.html} to the
 release.
 
 We recommend using GNU binutils 2.16 or later in conjunction with GCC 4.x,
@@ -4150,7 +4253,7 @@ modern targets.
 
 For some systems, old versions of GNU binutils may also be useful,
 and are available from @file{pub/binutils/old-releases} on
-@uref{http://sources.redhat.com/mirrors.html,,sources.redhat.com mirror sites}.
+@uref{http://sourceware.org/mirrors.html,,sourceware.org mirror sites}.
 
 Some of the information on specific systems above relates to
 such older systems, but much of the information

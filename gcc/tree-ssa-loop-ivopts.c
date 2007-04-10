@@ -1,5 +1,5 @@
 /* Induction variable optimizations.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
@@ -83,6 +83,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "ggc.h"
 #include "insn-config.h"
 #include "recog.h"
+#include "pointer-set.h"
 #include "hashtab.h"
 #include "tree-chrec.h"
 #include "tree-scalar-evolution.h"
@@ -90,6 +91,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "params.h"
 #include "langhooks.h"
 #include "tree-affine.h"
+#include "target.h"
 
 /* The infinite cost.  */
 #define INFTY 10000000
@@ -208,7 +210,7 @@ struct ivopts_data
   unsigned regs_used;
 
   /* Numbers of iterations for all exits of the current loop.  */
-  htab_t niters;
+  struct pointer_map_t *niters;
 
   /* The size of version_info array allocated.  */
   unsigned version_info_size;
@@ -673,58 +675,26 @@ contains_abnormal_ssa_name_p (tree expr)
   return false;
 }
 
-/* Element of the table in that we cache the numbers of iterations obtained
-   from exits of the loop.  */
-
-struct nfe_cache_elt
-{
-  /* The edge for that the number of iterations is cached.  */
-  edge exit;
-
-  /* Number of iterations corresponding to this exit, or NULL if it cannot be
-     determined.  */
-  tree niter;
-};
-
-/* Hash function for nfe_cache_elt E.  */
-
-static hashval_t
-nfe_hash (const void *e)
-{
-  const struct nfe_cache_elt *elt = e;
-
-  return htab_hash_pointer (elt->exit);
-}
-
-/* Equality function for nfe_cache_elt E1 and edge E2.  */
-
-static int
-nfe_eq (const void *e1, const void *e2)
-{
-  const struct nfe_cache_elt *elt1 = e1;
-
-  return elt1->exit == e2;
-}
-
 /*  Returns tree describing number of iterations determined from
     EXIT of DATA->current_loop, or NULL if something goes wrong.  */
 
 static tree
 niter_for_exit (struct ivopts_data *data, edge exit)
 {
-  struct nfe_cache_elt *nfe_desc;
   struct tree_niter_desc desc;
-  PTR *slot;
+  tree niter;
+  void **slot;
 
-  slot = htab_find_slot_with_hash (data->niters, exit,
-				   htab_hash_pointer (exit),
-				   INSERT);
-
-  if (!*slot)
+  if (!data->niters)
     {
-      nfe_desc = xmalloc (sizeof (struct nfe_cache_elt));
-      nfe_desc->exit = exit;
+      data->niters = pointer_map_create ();
+      slot = NULL;
+    }
+  else
+    slot = pointer_map_contains (data->niters, exit);
 
+  if (!slot)
+    {
       /* Try to determine number of iterations.  We must know it
 	 unconditionally (i.e., without possibility of # of iterations
 	 being zero).  Also, we cannot safely work with ssa names that
@@ -734,14 +704,16 @@ niter_for_exit (struct ivopts_data *data, edge exit)
 				     exit, &desc, true)
 	  && integer_zerop (desc.may_be_zero)
      	  && !contains_abnormal_ssa_name_p (desc.niter))
-	nfe_desc->niter = desc.niter;
+	niter = desc.niter;
       else
-	nfe_desc->niter = NULL_TREE;
+	niter = NULL_TREE;
+
+      *pointer_map_insert (data->niters, exit) = niter;
     }
   else
-    nfe_desc = *slot;
+    niter = *slot;
 
-  return nfe_desc->niter;
+  return niter;
 }
 
 /* Returns tree describing number of iterations determined from
@@ -770,7 +742,7 @@ tree_ssa_iv_optimize_init (struct ivopts_data *data)
   data->relevant = BITMAP_ALLOC (NULL);
   data->important_candidates = BITMAP_ALLOC (NULL);
   data->max_inv_id = 0;
-  data->niters = htab_create (10, nfe_hash, nfe_eq, free);
+  data->niters = NULL;
   data->iv_uses = VEC_alloc (iv_use_p, heap, 20);
   data->iv_candidates = VEC_alloc (iv_cand_p, heap, 20);
   decl_rtl_to_reset = VEC_alloc (tree, heap, 20);
@@ -1301,7 +1273,7 @@ expr_invariant_in_loop_p (struct loop *loop, tree expr)
   if (!EXPR_P (expr) && !GIMPLE_STMT_P (expr))
     return false;
 
-  len = TREE_CODE_LENGTH (TREE_CODE (expr));
+  len = TREE_OPERAND_LENGTH (expr);
   for (i = 0; i < len; i++)
     if (!expr_invariant_in_loop_p (loop, TREE_OPERAND (expr, i)))
       return false;
@@ -2409,11 +2381,17 @@ produce_memory_decl_rtl (tree obj, int *regno)
     {
       const char *name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (obj));
       x = gen_rtx_SYMBOL_REF (Pmode, name);
+      SET_SYMBOL_REF_DECL (x, obj);
+      x = gen_rtx_MEM (DECL_MODE (obj), x);
+      targetm.encode_section_info (obj, x, true);
     }
   else
-    x = gen_raw_REG (Pmode, (*regno)++);
+    {
+      x = gen_raw_REG (Pmode, (*regno)++);
+      x = gen_rtx_MEM (DECL_MODE (obj), x);
+    }
 
-  return gen_rtx_MEM (DECL_MODE (obj), x);
+  return x;
 }
 
 /* Prepares decl_rtl for variables referred in *EXPR_P.  Callback for
@@ -2972,6 +2950,12 @@ get_address_cost (bool symbol_present, bool var_present,
 	  if (sym_p)
 	    {
 	      base = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (""));
+	      /* ??? We can run into trouble with some backends by presenting
+		 it with symbols which havn't been properly passed through
+		 targetm.encode_section_info.  By setting the local bit, we
+		 enhance the probability of things working.  */
+	      SYMBOL_REF_FLAGS (base) = SYMBOL_FLAG_LOCAL;
+
 	      if (off_p)
 		base = gen_rtx_fmt_e (CONST, Pmode,
 				      gen_rtx_fmt_ee (PLUS, Pmode,
@@ -3099,17 +3083,18 @@ force_expr_to_var_cost (tree expr)
 
   if (!costs_initialized)
     {
-      tree var = create_tmp_var_raw (integer_type_node, "test_var");
-      rtx x = gen_rtx_MEM (DECL_MODE (var),
-			   gen_rtx_SYMBOL_REF (Pmode, "test_var"));
-      tree addr;
       tree type = build_pointer_type (integer_type_node);
+      tree var, addr;
+      rtx x;
+
+      var = create_tmp_var_raw (integer_type_node, "test_var");
+      TREE_STATIC (var) = 1;
+      x = produce_memory_decl_rtl (var, NULL);
+      SET_DECL_RTL (var, x);
 
       integer_cost = computation_cost (build_int_cst (integer_type_node,
 						      2000));
 
-      SET_DECL_RTL (var, x);
-      TREE_STATIC (var) = 1;
       addr = build1 (ADDR_EXPR, type, var);
       symbol_cost = computation_cost (addr) + 1;
 
@@ -4975,7 +4960,7 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
     {
       if (stmts)
 	bsi_insert_after (&bsi, stmts, BSI_CONTINUE_LINKING);
-      ass = build2_gimple (GIMPLE_MODIFY_STMT, tgt, op);
+      ass = build_gimple_modify_stmt (tgt, op);
       bsi_insert_after (&bsi, ass, BSI_NEW_STMT);
       remove_statement (use->stmt, false);
       SSA_NAME_DEF_STMT (tgt) = ass;
@@ -5236,7 +5221,11 @@ free_loop_data (struct ivopts_data *data)
   bitmap_iterator bi;
   tree obj;
 
-  htab_empty (data->niters);
+  if (data->niters)
+    {
+      pointer_map_destroy (data->niters);
+      data->niters = NULL;
+    }
 
   EXECUTE_IF_SET_IN_BITMAP (data->relevant, 0, i, bi)
     {
@@ -5304,7 +5293,6 @@ tree_ssa_iv_optimize_finalize (struct ivopts_data *data)
   free (data->version_info);
   BITMAP_FREE (data->relevant);
   BITMAP_FREE (data->important_candidates);
-  htab_delete (data->niters);
 
   VEC_free (tree, heap, decl_rtl_to_reset);
   VEC_free (iv_use_p, heap, data->iv_uses);
@@ -5320,6 +5308,7 @@ tree_ssa_iv_optimize_loop (struct ivopts_data *data, struct loop *loop)
   struct iv_ca *iv_ca;
   edge exit;
 
+  gcc_assert (!data->niters);
   data->current_loop = loop;
 
   if (dump_file && (dump_flags & TDF_DETAILS))

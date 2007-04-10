@@ -1,4 +1,5 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -34,8 +35,6 @@ Boston, MA 02110-1301, USA.  */
 #include "libgfortran.h"
 
 #include <gthr.h>
-
-#define DEFAULT_TEMPDIR "/tmp"
 
 /* Basic types used in data transfers.  */
 
@@ -205,52 +204,12 @@ typedef enum
 {READING, WRITING}
 unit_mode;
 
-typedef enum
-{ CONVERT_NONE=-1, CONVERT_NATIVE, CONVERT_SWAP, CONVERT_BIG, CONVERT_LITTLE }
-unit_convert;
-
 #define CHARACTER1(name) \
 	      char * name; \
 	      gfc_charlen_type name ## _len
 #define CHARACTER2(name) \
 	      gfc_charlen_type name ## _len; \
 	      char * name
-
-#define IOPARM_LIBRETURN_MASK		(3 << 0)
-#define IOPARM_LIBRETURN_OK		(0 << 0)
-#define IOPARM_LIBRETURN_ERROR		(1 << 0)
-#define IOPARM_LIBRETURN_END		(2 << 0)
-#define IOPARM_LIBRETURN_EOR		(3 << 0)
-#define IOPARM_ERR			(1 << 2)
-#define IOPARM_END			(1 << 3)
-#define IOPARM_EOR			(1 << 4)
-#define IOPARM_HAS_IOSTAT		(1 << 5)
-#define IOPARM_HAS_IOMSG		(1 << 6)
-
-#define IOPARM_COMMON_MASK		((1 << 7) - 1)
-
-typedef struct st_parameter_common
-{
-  GFC_INTEGER_4 flags;
-  GFC_INTEGER_4 unit;
-  const char *filename;
-  GFC_INTEGER_4 line;
-  CHARACTER2 (iomsg);
-  GFC_INTEGER_4 *iostat;
-}
-st_parameter_common;
-
-#define IOPARM_OPEN_HAS_RECL_IN		(1 << 7)
-#define IOPARM_OPEN_HAS_FILE		(1 << 8)
-#define IOPARM_OPEN_HAS_STATUS		(1 << 9)
-#define IOPARM_OPEN_HAS_ACCESS		(1 << 10)
-#define IOPARM_OPEN_HAS_FORM		(1 << 11)
-#define IOPARM_OPEN_HAS_BLANK		(1 << 12)
-#define IOPARM_OPEN_HAS_POSITION	(1 << 13)
-#define IOPARM_OPEN_HAS_ACTION		(1 << 14)
-#define IOPARM_OPEN_HAS_DELIM		(1 << 15)
-#define IOPARM_OPEN_HAS_PAD		(1 << 16)
-#define IOPARM_OPEN_HAS_CONVERT		(1 << 17)
 
 typedef struct
 {
@@ -475,13 +434,6 @@ typedef struct
 unit_flags;
 
 
-/* The default value of record length for preconnected units is defined
-   here. This value can be overriden by an environment variable.
-   Default value is 1 Gb.  */
-
-#define DEFAULT_RECL 1073741824
-
-
 typedef struct gfc_unit
 {
   int unit_number;
@@ -491,7 +443,7 @@ typedef struct gfc_unit
   struct gfc_unit *left, *right;
   int priority;
 
-  int read_bad, current_record;
+  int read_bad, current_record, saved_pos;
   enum
   { NO_ENDFILE, AT_ENDFILE, AFTER_ENDFILE }
   endfile;
@@ -671,6 +623,9 @@ internal_proto(file_position);
 extern int is_seekable (stream *);
 internal_proto(is_seekable);
 
+extern int is_special (stream *);
+internal_proto(is_special);
+
 extern int is_preconnected (stream *);
 internal_proto(is_preconnected);
 
@@ -739,9 +694,6 @@ extern void unlock_unit (gfc_unit *);
 internal_proto(unlock_unit);
 
 /* open.c */
-
-extern void test_endfile (gfc_unit *);
-internal_proto(test_endfile);
 
 extern gfc_unit *new_unit (st_parameter_open *, gfc_unit *, unit_flags *);
 internal_proto(new_unit);
@@ -877,10 +829,6 @@ extern void list_formatted_write (st_parameter_dt *, bt, void *, int, size_t,
 				  size_t);
 internal_proto(list_formatted_write);
 
-/* error.c */
-extern notification notification_std(int);
-internal_proto(notification_std);
-
 /* size_from_kind.c */
 extern size_t size_from_real_kind (int);
 internal_proto(size_from_real_kind);
@@ -926,7 +874,3 @@ dec_waiting_unlocked (gfc_unit *u)
 
 #endif
 
-/* ../runtime/environ.c  This is here because we return unit_convert.  */
-
-unit_convert get_unformatted_convert (int);
-internal_proto(get_unformatted_convert);

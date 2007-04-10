@@ -211,7 +211,7 @@ LSYM(Lend_fde):
 # if defined(__thumb2__)
 	pop\cond	{\regs, pc}
 # else
-	ldm\cond\dirn	sp!, {\regs, lr}
+	ldm\cond\dirn	sp!, {\regs, pc}
 # endif
 	.endif
 #endif
@@ -444,7 +444,7 @@ pc		.req	r15
 
 	@ Initially shift the divisor left 3 bits if possible,
 	@ set curbit accordingly.  This allows for curbit to be located
-	@ at the left end of each 4 bit nibbles in the division loop
+	@ at the left end of each 4-bit nibbles in the division loop
 	@ to save one loop in most cases.
 	tst	\divisor, #0xe0000000
 	moveq	\divisor, \divisor, lsl #3
@@ -1062,10 +1062,9 @@ LSYM(Lover12):
 /* Constant taken from <asm/signal.h>.  */
 #define SIGFPE	8
 
-	.code	32
-	FUNC_START div0
+	ARM_FUNC_START div0
 
-	stmfd	sp!, {r1, lr}
+	do_push	{r1, lr}
 	mov	r0, #SIGFPE
 	bl	SYM(raise) __PLT__
 	RETLDM	r1

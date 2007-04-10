@@ -1,6 +1,6 @@
 // Locale support -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -45,6 +45,7 @@
 #include <bits/c++config.h>
 #include <bits/c++locale.h>     // Defines __c_locale, config-specific includes
 #include <iosfwd>		// For ostreambuf_iterator, istreambuf_iterator
+#include <cctype>
 #include <bits/functexcept.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
@@ -118,7 +119,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // NB: Specialized for char and wchar_t in locale_facets.h.
 
   class codecvt_base;
-  class __enc_traits;
   template<typename _InternT, typename _ExternT, typename _StateT>
     class codecvt;
   template<> class codecvt<char, char, mbstate_t>;

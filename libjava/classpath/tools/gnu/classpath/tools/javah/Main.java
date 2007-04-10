@@ -1,5 +1,5 @@
 /* Main.java - javah main program
- Copyright (C) 2006 Free Software Foundation, Inc.
+ Copyright (C) 2006, 2007 Free Software Foundation, Inc.
 
  This file is part of GNU Classpath.
 
@@ -58,6 +58,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 
 import org.objectweb.asm.ClassReader;
 
@@ -87,6 +88,9 @@ public class Main
 
   // True if we're emitting CNI code.
   boolean cni;
+
+  // True if we've seen -cni or -jni.
+  boolean cniOrJniSeen;
 
   // True if output files should always be written.
   boolean force;
@@ -179,9 +183,14 @@ public class Main
       results.addAll(Arrays.asList(files));
   }
 
-  private Parser getParser()
+  protected String getName()
   {
-    ClasspathToolParser result = new ClasspathToolParser("javah", true);
+    return "javah";
+  }
+
+  protected Parser getParser()
+  {
+    ClasspathToolParser result = new ClasspathToolParser(getName(), true);
     result.setHeader("usage: javah [OPTIONS] CLASS...");
     result.add(classpath);
     result.add(new Option('d', "Set output directory", "DIR")
@@ -237,8 +246,9 @@ public class Main
     {
       public void parsed(String arg0) throws OptionException
       {
-        if (cni)
+        if (cniOrJniSeen && cni)
           throw new OptionException("only one of -jni or -cni may be used");
+	cniOrJniSeen = true;
         cni = false;
       }
     });
@@ -246,10 +256,13 @@ public class Main
     {
       public void parsed(String arg0) throws OptionException
       {
+        if (cniOrJniSeen && ! cni)
+          throw new OptionException("only one of -jni or -cni may be used");
+	cniOrJniSeen = true;
         cni = true;
       }
     });
-    result.add(new Option("verbose", "Set verbose mode")
+    result.add(new Option("verbose", 'v', "Set verbose mode")
     {
       public void parsed(String arg0) throws OptionException
       {
@@ -304,23 +317,31 @@ public class Main
     return result;
   }
 
-  private void writeHeaders(ArrayList klasses, Printer printer)
+  private void writeHeaders(HashMap klasses, Printer printer)
       throws IOException
   {
-    Iterator i = klasses.iterator();
+    Iterator i = klasses.entrySet().iterator();
     while (i.hasNext())
       {
-        ClassWrapper klass = (ClassWrapper) i.next();
+	Map.Entry e = (Map.Entry) i.next();
+	File filename = (File) e.getKey();
+        ClassWrapper klass = (ClassWrapper) e.getValue();
         if (verbose)
-          System.err.println("[writing " + klass + "]");
-        printer.printClass(klass);
+          System.err.println("[writing " + klass + " as " + filename + "]");
+        printer.printClass(filename, klass);
       }
   }
 
-  private void run(String[] args) throws IOException
+  protected void postParse(String[] names)
+  {
+    // Nothing here.
+  }
+
+  protected void run(String[] args) throws IOException
   {
     Parser p = getParser();
     String[] classNames = p.parse(args);
+    postParse(classNames);
     loader = classpath.getLoader();
 
     boolean isDirectory = outFileName == null;
@@ -365,19 +386,21 @@ public class Main
       }
 
     Iterator i = klasses.iterator();
-    ArrayList results = new ArrayList();
+    HashMap results = new HashMap();
     while (i.hasNext())
       {
         // Let user specify either kind of class name or a
         // file name.
         Object item = i.next();
         ClassWrapper klass;
+	File filename;
         if (item instanceof File)
           {
             // Load class from file.
             if (verbose)
               System.err.println("[reading file " + item + "]");
             klass = getClass((File) item);
+	    filename = new File(klass.name);
           }
         else
           {
@@ -385,9 +408,12 @@ public class Main
             String className = ((String) item).replace('.', '/');
             if (verbose)
               System.err.println("[reading class " + className + "]");
+	    // Use the name the user specified, even if it is
+	    // different from the ultimate class name.
+	    filename = new File(className);
             klass = getClass(className);
           }
-        results.add(klass);
+        results.put(filename, klass);
       }
 
     writeHeaders(results, printer);
@@ -425,7 +451,8 @@ public class Main
         String resource = name.replace('.', '/') + ".class";
         URL url = loader.findResource(resource);
         if (url == null)
-          throw new IOException("can't find class file " + resource);
+          throw new IOException("can't find class file " + resource
+				+ " in " + loader);
         InputStream is = url.openStream();
         ClassWrapper result = readClass(is);
         classMap.put(name, result);

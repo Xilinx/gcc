@@ -1,3 +1,156 @@
+2007-03-19  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac: New configure option
+	--enable-generated-files-in-srcdir.
+	* doc/Makefile.am: Add support to generate files in srcdir,
+	install the cp-tools documentation in info format.
+	* configure: Regenerate.
+	* native/jni/classpath/Makefile.in, native/jni/midi-dssi/Makefile.in,
+	native/jni/Makefile.in, native/jni/gconf-peer/Makefile.in,
+	native/jni/java-io/Makefile.in, native/jni/native-lib/Makefile.in,
+	native/jni/java-util/Makefile.in, native/jni/java-lang/Makefile.in,
+	native/jni/midi-alsa/Makefile.in, native/jni/java-nio/Makefile.in,
+	native/jni/java-net/Makefile.in, native/jni/xmlj/Makefile.in,
+	native/jni/qt-peer/Makefile.in, native/jni/gtk-peer/Makefile.in,
+	native/Makefile.in, native/jawt/Makefile.in, native/fdlibm/Makefile.in,
+	native/plugin/Makefile.in, resource/Makefile.in, scripts/Makefile.in,
+	tools/Makefile.in, doc/Makefile.in, doc/api/Makefile.in,
+	lib/Makefile.in, external/Makefile.in, external/sax/Makefile.in,
+	external/w3c_dom/Makefile.in, external/jsr166/Makefile.in,
+	external/relaxngDatatype/Makefile.in, include/Makefile.in,
+	examples/Makefile.in: Regenerate.
+
+2007-03-09  Gary Benson  <gbenson@redhat.com>
+	    Chris Burdess  <dog@gnu.org>
+
+	PR classpath/30831
+	* gnu/xml/dom/ls/SAXEventSink.java: Only set extended document
+	properties when reader is available.
+
+2007-03-08  Gary Benson  <gbenson@redhat.com>
+
+	PR classpath/30983:
+	* gnu/xml/dom/ls/DomLSParser.java (getInputSource):
+	Do not use the entity resolver to resolve the top-level document.
+
+2007-03-07  Gary Benson  <gbenson@redhat.com>
+
+	PR classpath/30906:
+	* resource/META-INF/services/org.w3c.dom.DOMImplementationSourceList:
+	New file.
+
+2007-03-06  Matthias Klose  <doko@ubuntu.com>
+
+	* doc/Makefile.am(gkeytool.pod): Don't use sed -i.
+	* doc/Makefile.in: Regenerate.
+
+2007-03-06  Tom Tromey  <tromey@redhat.com>
+
+	* tools/gnu/classpath/tools/javah/Main.java (getName): New
+	method.
+	(getParser): Now protected.  Use getName.  Add '-v' alias for
+	--verbose.
+	(postParse): New method.
+	(run): Now protected.  Use postParse.
+	* tools/gnu/classpath/tools/javah/GcjhMain.java: New file.
+	* tools/Makefile.in: Rebuilt.
+	* tools/Makefile.am: Remove vm-tools.lst before creating it.
+
+2007-03-05  Matthias Klose  <doko@ubuntu.com>
+
+	* doc/Makefile.am(man_MANS): Add $(TOOLS_MANFILES).
+	* doc/Makefile.in: Regenerate.
+
+2007-02-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* java/util/TimeZone.java (getDefaultDisplayName): Don't
+	check if TimeZone is instanceof SimpleTimeZone.
+
+2007-02-21  Gary Benson  <gbenson@redhat.com>
+
+	* java/util/GregorianCalendar.java,
+	(add): Don't set fields directly anymore. Use set()
+
+2007-02-20  Matthias Klose  <doko@ubuntu.com>
+
+	* Merge doc update from classpath HEAD.
+	* doc/texi2pod.pl: Not imported.
+	* doc/Makefile.am: Use GCC's texi2pod.pl
+	* doc/Makefile.in: Regenerate.
+
+2007-02-20  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/MBeanServer.java: Updated.
+	* javax/management/MBeanServerConnection.java: Likewise.
+	* javax/management/ObjectName.java: Likewise.
+	* javax/management/StandardMBean.java: Likewise.
+
+2007-02-15  David Daney  <ddaney@avtrex.com>
+
+	* tools/Makefile.am (TOOLS_ZIP): Add classes from vm-tools-packages.
+	* tools/Makefile.in: Regenerated.
+
+2007-02-15  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/AttributeList.java: Updated.
+	* javax/management/MBeanServerDelegate.java: Likewise.
+	* javax/management/MBeanServerFactory.java: Likewise.
+	* javax/management/StandardMBean.java: Likewise.
+
+2007-02-15  Gary Benson  <gbenson@redhat.com>
+
+	* gnu/javax/management/Server.java
+	(registerMBean): Always register objects that implement the
+	MBeanRegistration interface, and check the name returned by
+	preRegister before using it.
+
+2007-02-15  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/ObjectName.java:
+	(getKeyPropertyList()): Remove cast and call
+	to UnmodifiableMap.
+
+2007-02-14  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/ObjectName.java
+	(toString): Return this item's canonical name.
+
+2007-02-12  Tom Tromey  <tromey@redhat.com>
+
+	* java/util/Collections.java (UnmodifiableMap.toArray): Imported
+	changes from Classpath.
+
+2007-02-09  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/ObjectName.java
+	(quote): Initialize StringBuilder correctly.
+
+2007-02-08  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/MBeanServerFactory.java
+	(servers): Initialize.
+	(createMBeanServer): Don't initialize servers.
+
+2007-01-31  Tom Tromey  <tromey@redhat.com>
+
+	* tools/Makefile.in: Rebuilt.
+	* tools/Makefile.am (noinst_SCRIPTS): Renamed from bin_SCRIPTS.
+	(noinst_DATA): Renamed from TOOLS_DATA.
+
+2007-01-20  Matthias Klose  <doko@debian.org>
+
+	* native/jni/gtk-peer/Makefile.am, native/jawt/Makefile.am: Install
+	into nativeexeclibdir instead of gcjversionedlibdir.
+	* native/jni/gtk-peer/Makefile.in, native/jawt/Makefile.in: Regenerate.
+
+2007-01-16  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* configure.ac: Use multi.m4 from aclocal rather than
+	custom code.  Use multi_basedir instead libgcj_basedir.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
 2007-01-10  Matthias Klose  <doko@debian.org>
 
 	Readd missing chunks from r116332:

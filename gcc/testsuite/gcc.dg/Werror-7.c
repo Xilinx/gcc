@@ -1,10 +1,10 @@
 /* { dg-do compile } */
-/* { dg-options "-Walways-true -Werror -Wno-error=always-true -Wattributes" } */
+/* { dg-options "-Waddress -Werror -Wno-error=address -Wattributes" } */
 /* { dg-warning "warnings being treated as errors" "" {target "*-*-*"} 0 } */
 
 /* Make sure -Wno-error= overrides -Werror.  */
 
-void __attribute__((dj)) bar() { }	/* { dg-warning "warning: .* attribute directive ignored" } */
+void __attribute__((dj)) bar() { }	/* { dg-error "error: .* attribute directive ignored" } */
 
 int i;
 

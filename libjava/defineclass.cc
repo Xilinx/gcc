@@ -1,6 +1,7 @@
 // defineclass.cc - defining a class from .class format.
 
-/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
+/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation
 
    This file is part of libgcj.
 
@@ -299,6 +300,9 @@ struct _Jv_ClassReader
 
   /** check an utf8 entry, without creating a Utf8Const object */
   bool is_attribute_name (int index, const char *name);
+  
+  /** return the value of a utf8 entry in the passed array */
+  int pool_Utf8_to_char_arr (int index, char **entry);
 
   /** here goes the class-loader members defined out-of-line */
   void handleConstantPool ();
@@ -784,6 +788,18 @@ _Jv_ClassReader::is_attribute_name (int index, const char *name)
     return !memcmp (bytes+offsets[index]+2, name, len);
 }
 
+// Get a UTF8 value from the constant pool and turn it into a garbage
+// collected char array.
+int _Jv_ClassReader::pool_Utf8_to_char_arr (int index, char** entry)
+{
+  check_tag (index, JV_CONSTANT_Utf8);
+  int len = get2u (bytes + offsets[index]);
+  *entry = reinterpret_cast<char *> (_Jv_AllocBytes (len + 1));
+  (*entry)[len] = '\0';
+  memcpy (*entry, bytes + offsets[index] + 2, len);
+  return len + 1;
+}
+
 void _Jv_ClassReader::read_one_field_attribute (int field_index,
 						bool *found_value)
 {
@@ -978,6 +994,34 @@ void _Jv_ClassReader::read_one_code_attribute (int method_index)
        }
       method->line_table_len = table_len;
       method->line_table = table;
+    }
+  else if (is_attribute_name (name, "LocalVariableTable"))
+    {
+      _Jv_InterpMethod *method = reinterpret_cast<_Jv_InterpMethod *>
+	                       (def_interp->interpreted_methods[method_index]);
+      if (method->local_var_table != NULL)
+        throw_class_format_error ("Method already has LocalVariableTable");
+	
+      int table_len = read2u ();
+      _Jv_LocalVarTableEntry *table 
+        = reinterpret_cast<_Jv_LocalVarTableEntry *>
+            (_Jv_AllocRawObj (table_len * sizeof (_Jv_LocalVarTableEntry)));
+                               
+      for (int i = 0; i < table_len; i++)
+        {
+          table[i].bytecode_start_pc = read2u ();
+          table[i].length = read2u ();
+          int len;
+          len = pool_Utf8_to_char_arr (read2u (), &table[i].name);
+          len = pool_Utf8_to_char_arr (read2u (), &table[i].descriptor);
+          table[i].slot = read2u ();
+          
+          if (table[i].slot > method->max_locals || table[i].slot < 0)
+            throw_class_format_error ("Malformed Local Variable Table: Invalid Slot");
+        }
+	    
+      method->local_var_table_len = table_len;
+      method->local_var_table = table;
     }
   else
     {
@@ -1652,7 +1696,7 @@ void _Jv_ClassReader::handleCodeAttribute
       // call a static method of an interpreted class from precompiled
       // code without first resolving the class (that will happen
       // during class initialization instead).
-      method->self->ncode = method->ncode ();
+      method->self->ncode = method->ncode (def);
     }
 }
 
@@ -1697,7 +1741,7 @@ void _Jv_ClassReader::handleMethodsEnd ()
 		  // interpreted class from precompiled code without
 		  // first resolving the class (that will happen
 		  // during class initialization instead).
-		  method->ncode = m->ncode ();
+		  method->ncode = m->ncode (def);
 		}
 	    }
 	}

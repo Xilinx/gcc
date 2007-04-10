@@ -1,7 +1,7 @@
 /* Call-backs for C++ error reporting.
    This code is non-reentrant.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002,
-   2003, 2004, 2005 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
@@ -66,6 +66,8 @@ static void dump_aggr_type (tree, int);
 static void dump_type_prefix (tree, int);
 static void dump_type_suffix (tree, int);
 static void dump_function_name (tree, int);
+static void dump_call_expr_args (tree, int, bool);
+static void dump_aggr_init_expr_args (tree, int, bool);
 static void dump_expr_list (tree, int);
 static void dump_global_iord (tree);
 static void dump_parameters (tree, int);
@@ -136,7 +138,9 @@ dump_scope (tree scope, int flags)
 static void
 dump_template_argument (tree arg, int flags)
 {
-  if (TYPE_P (arg) || TREE_CODE (arg) == TEMPLATE_DECL)
+  if (ARGUMENT_PACK_P (arg))
+    dump_template_argument_list (ARGUMENT_PACK_ARGS (arg), flags);
+  else if (TYPE_P (arg) || TREE_CODE (arg) == TEMPLATE_DECL)
     dump_type (arg, flags & ~TFF_CLASS_KEY_OR_ENUM);
   else
     dump_expr (arg, (flags | TFF_EXPR_IN_PARENS) & ~TFF_CLASS_KEY_OR_ENUM);
@@ -154,9 +158,17 @@ dump_template_argument_list (tree args, int flags)
 
   for (i = 0; i< n; ++i)
     {
-      if (need_comma)
+      tree arg = TREE_VEC_ELT (args, i);
+
+      /* Only print a comma if we know there is an argument coming. In
+         the case of an empty template argument pack, no actual
+         argument will be printed.  */
+      if (need_comma
+          && (!ARGUMENT_PACK_P (arg)
+              || TREE_VEC_LENGTH (ARGUMENT_PACK_ARGS (arg)) > 0))
 	pp_separate_with_comma (cxx_pp);
-      dump_template_argument (TREE_VEC_ELT (args, i), flags);
+
+      dump_template_argument (arg, flags);
       need_comma = 1;
     }
 }
@@ -180,6 +192,8 @@ dump_template_parameter (tree parm, int flags)
       if (flags & TFF_DECL_SPECIFIERS)
 	{
 	  pp_cxx_identifier (cxx_pp, "class");
+          if (TEMPLATE_TYPE_PARAMETER_PACK (TREE_TYPE (p)))
+            pp_cxx_identifier (cxx_pp, "...");
 	  if (DECL_NAME (p))
 	    pp_cxx_tree_identifier (cxx_pp, DECL_NAME (p));
 	}
@@ -376,6 +390,11 @@ dump_type (tree t, int flags)
       pp_cxx_right_paren (cxx_pp);
       break;
 
+    case TYPE_PACK_EXPANSION:
+      dump_type (PACK_EXPANSION_PATTERN (t), flags);
+      pp_cxx_identifier (cxx_pp, "...");
+      break;
+
     default:
       pp_unsupported_tree (cxx_pp, t);
       /* Fall through to error.  */
@@ -445,7 +464,10 @@ dump_aggr_type (tree t, int flags)
 		&& TYPE_LANG_SPECIFIC (t) && CLASSTYPE_TEMPLATE_INFO (t)
 		&& (TREE_CODE (CLASSTYPE_TI_TEMPLATE (t)) != TEMPLATE_DECL
 		    || PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (t)));
-      dump_scope (CP_DECL_CONTEXT (name), flags | TFF_SCOPE);
+      
+      if (! (flags & TFF_UNQUALIFIED_NAME))
+	dump_scope (CP_DECL_CONTEXT (name), flags | TFF_SCOPE);
+      flags &= ~TFF_UNQUALIFIED_NAME;
       if (tmplate)
 	{
 	  /* Because the template names are mangled, we have to locate
@@ -629,16 +651,16 @@ dump_type_suffix (tree t, int flags)
       pp_cxx_left_bracket (cxx_pp);
       if (TYPE_DOMAIN (t))
 	{
-	  if (host_integerp (TYPE_MAX_VALUE (TYPE_DOMAIN (t)), 0))
-	    pp_wide_integer
-	      (cxx_pp, tree_low_cst (TYPE_MAX_VALUE (TYPE_DOMAIN (t)), 0) + 1);
-	  else if (TREE_CODE (TYPE_MAX_VALUE (TYPE_DOMAIN (t))) == MINUS_EXPR)
-	    dump_expr (TREE_OPERAND (TYPE_MAX_VALUE (TYPE_DOMAIN (t)), 0),
+	  tree dtype = TYPE_DOMAIN (t);
+	  tree max = TYPE_MAX_VALUE (dtype);
+	  if (host_integerp (max, 0))
+	    pp_wide_integer (cxx_pp, tree_low_cst (max, 0) + 1);
+	  else if (TREE_CODE (max) == MINUS_EXPR)
+	    dump_expr (TREE_OPERAND (max, 0),
 		       flags & ~TFF_EXPR_IN_PARENS);
 	  else
-	    dump_expr (fold (cp_build_binary_op
-			     (PLUS_EXPR, TYPE_MAX_VALUE (TYPE_DOMAIN (t)),
-			      integer_one_node)),
+	    dump_expr (fold_build2 (PLUS_EXPR, dtype, max,
+				    build_int_cst (dtype, 1)),
 		       flags & ~TFF_EXPR_IN_PARENS);
 	}
       pp_cxx_right_bracket (cxx_pp);
@@ -695,11 +717,14 @@ dump_simple_decl (tree t, tree type, int flags)
 {
   if (flags & TFF_DECL_SPECIFIERS)
     {
-      dump_type_prefix (type, flags);
+      dump_type_prefix (type, flags & ~TFF_UNQUALIFIED_NAME);
       pp_maybe_space (cxx_pp);
     }
-  if (!DECL_INITIAL (t) || TREE_CODE (DECL_INITIAL (t)) != TEMPLATE_PARM_INDEX)
+  if (! (flags & TFF_UNQUALIFIED_NAME)
+      && (!DECL_INITIAL (t)
+	  || TREE_CODE (DECL_INITIAL (t)) != TEMPLATE_PARM_INDEX))
     dump_scope (CP_DECL_CONTEXT (t), flags);
+  flags &= ~TFF_UNQUALIFIED_NAME;
   if (DECL_NAME (t))
     dump_decl (DECL_NAME (t), flags);
   else
@@ -761,7 +786,9 @@ dump_decl (tree t, int flags)
 	pp_cxx_declaration (cxx_pp, t);
       else
 	{
-	  dump_scope (CP_DECL_CONTEXT (t), flags);
+	  if (! (flags & TFF_UNQUALIFIED_NAME))
+	    dump_scope (CP_DECL_CONTEXT (t), flags);
+	  flags &= ~TFF_UNQUALIFIED_NAME;
 	  if (DECL_NAME (t) == NULL_TREE)
 	    pp_identifier (cxx_pp, "<unnamed>");
 	  else
@@ -996,7 +1023,9 @@ dump_function_decl (tree t, int flags)
   tree template_args = NULL_TREE;
   tree template_parms = NULL_TREE;
   int show_return = flags & TFF_RETURN_TYPE || flags & TFF_DECL_SPECIFIERS;
+  int do_outer_scope = ! (flags & TFF_UNQUALIFIED_NAME);
 
+  flags &= ~TFF_UNQUALIFIED_NAME;
   if (TREE_CODE (t) == TEMPLATE_DECL)
     t = DECL_TEMPLATE_RESULT (t);
 
@@ -1038,7 +1067,9 @@ dump_function_decl (tree t, int flags)
     dump_type_prefix (TREE_TYPE (fntype), flags);
 
   /* Print the function name.  */
-  if (cname)
+  if (!do_outer_scope)
+    /* Nothing.  */;
+  else if (cname)
     {
       dump_type (cname, flags);
       pp_cxx_colon_colon (cxx_pp);
@@ -1088,8 +1119,7 @@ dump_function_decl (tree t, int flags)
 static void
 dump_parameters (tree parmtypes, int flags)
 {
-  int first;
-
+  int first = 1;
   pp_cxx_left_paren (cxx_pp);
 
   for (first = 1; parmtypes != void_list_node;
@@ -1103,7 +1133,22 @@ dump_parameters (tree parmtypes, int flags)
 	  pp_cxx_identifier (cxx_pp, "...");
 	  break;
 	}
-      dump_type (TREE_VALUE (parmtypes), flags);
+      if (ARGUMENT_PACK_P (TREE_VALUE (parmtypes)))
+        {
+          tree types = ARGUMENT_PACK_ARGS (TREE_VALUE (parmtypes));
+          int i, len = TREE_VEC_LENGTH (types);
+	  first = 1;
+          for (i = 0; i < len; ++i)
+            {
+              if (!first)
+                pp_separate_with_comma (cxx_pp);
+              first = 0;
+              
+              dump_type (TREE_VEC_ELT (types, i), flags);
+            }
+        }
+      else
+        dump_type (TREE_VALUE (parmtypes), flags);
 
       if ((flags & TFF_FUNCTION_DEFAULT_ARGUMENTS) && TREE_PURPOSE (parmtypes))
 	{
@@ -1226,14 +1271,19 @@ dump_template_parms (tree info, int primary, int flags)
 	{
 	  tree arg = TREE_VEC_ELT (args, ix);
 
-	  if (ix)
-	    pp_separate_with_comma (cxx_pp);
-
-	  if (!arg)
-	    pp_identifier (cxx_pp, "<template parameter error>");
-	  else
-	    dump_template_argument (arg, flags);
-	}
+          /* Only print a comma if we know there is an argument coming. In
+             the case of an empty template argument pack, no actual
+             argument will be printed.  */
+          if (ix
+              && (!ARGUMENT_PACK_P (arg)
+                  || TREE_VEC_LENGTH (ARGUMENT_PACK_ARGS (arg)) > 0))
+            pp_separate_with_comma (cxx_pp);
+          
+          if (!arg)
+            pp_identifier (cxx_pp, "<template parameter error>");
+          else
+            dump_template_argument (arg, flags);
+        }
     }
   else if (primary)
     {
@@ -1263,6 +1313,55 @@ dump_template_parms (tree info, int primary, int flags)
 	}
     }
   pp_cxx_end_template_argument_list (cxx_pp);
+}
+
+/* Print out the arguments of CALL_EXPR T as a parenthesized list using
+   flags FLAGS.  Skip over the first argument if SKIPFIRST is true.  */
+
+static void
+dump_call_expr_args (tree t, int flags, bool skipfirst)
+{
+  tree arg;
+  call_expr_arg_iterator iter;
+  
+  pp_cxx_left_paren (cxx_pp);
+  FOR_EACH_CALL_EXPR_ARG (arg, iter, t)
+    {
+      if (skipfirst)
+	skipfirst = false;
+      else
+	{
+	  dump_expr (arg, flags | TFF_EXPR_IN_PARENS);
+	  if (more_call_expr_args_p (&iter))
+	    pp_separate_with_comma (cxx_pp);
+	}
+    }
+  pp_cxx_right_paren (cxx_pp);
+}
+
+/* Print out the arguments of AGGR_INIT_EXPR T as a parenthesized list
+   using flags FLAGS.  Skip over the first argument if SKIPFIRST is
+   true.  */
+
+static void
+dump_aggr_init_expr_args (tree t, int flags, bool skipfirst)
+{
+  tree arg;
+  aggr_init_expr_arg_iterator iter;
+  
+  pp_cxx_left_paren (cxx_pp);
+  FOR_EACH_AGGR_INIT_EXPR_ARG (arg, iter, t)
+    {
+      if (skipfirst)
+	skipfirst = false;
+      else
+	{
+	  dump_expr (arg, flags | TFF_EXPR_IN_PARENS);
+	  if (more_aggr_init_expr_args_p (&iter))
+	    pp_separate_with_comma (cxx_pp);
+	}
+    }
+  pp_cxx_right_paren (cxx_pp);
 }
 
 /* Print out a list of initializers (subr of dump_expr).  */
@@ -1387,8 +1486,8 @@ dump_expr (tree t, int flags)
       {
 	tree fn = NULL_TREE;
 
-	if (TREE_CODE (TREE_OPERAND (t, 0)) == ADDR_EXPR)
-	  fn = TREE_OPERAND (TREE_OPERAND (t, 0), 0);
+	if (TREE_CODE (AGGR_INIT_EXPR_FN (t)) == ADDR_EXPR)
+	  fn = TREE_OPERAND (AGGR_INIT_EXPR_FN (t), 0);
 
 	if (fn && TREE_CODE (fn) == FUNCTION_DECL)
 	  {
@@ -1398,18 +1497,15 @@ dump_expr (tree t, int flags)
 	      dump_decl (fn, 0);
 	  }
 	else
-	  dump_expr (TREE_OPERAND (t, 0), 0);
+	  dump_expr (AGGR_INIT_EXPR_FN (t), 0);
       }
-      pp_cxx_left_paren (cxx_pp);
-      if (TREE_OPERAND (t, 1))
-	dump_expr_list (TREE_CHAIN (TREE_OPERAND (t, 1)), flags);
-      pp_cxx_right_paren (cxx_pp);
+      dump_aggr_init_expr_args (t, flags, false);
       break;
 
     case CALL_EXPR:
       {
-	tree fn = TREE_OPERAND (t, 0);
-	tree args = TREE_OPERAND (t, 1);
+	tree fn = CALL_EXPR_FN (t);
+	bool skipfirst = false;
 
 	if (TREE_CODE (fn) == ADDR_EXPR)
 	  fn = TREE_OPERAND (fn, 0);
@@ -1420,7 +1516,7 @@ dump_expr (tree t, int flags)
 
 	if (TREE_TYPE (fn) != NULL_TREE && NEXT_CODE (fn) == METHOD_TYPE)
 	  {
-	    tree ob = TREE_VALUE (args);
+	    tree ob = CALL_EXPR_ARG (t, 0);
 	    if (TREE_CODE (ob) == ADDR_EXPR)
 	      {
 		dump_expr (TREE_OPERAND (ob, 0), flags | TFF_EXPR_IN_PARENS);
@@ -1432,12 +1528,10 @@ dump_expr (tree t, int flags)
 		dump_expr (ob, flags | TFF_EXPR_IN_PARENS);
 		pp_arrow (cxx_pp);
 	      }
-	    args = TREE_CHAIN (args);
+	    skipfirst = true;
 	  }
 	dump_expr (fn, flags | TFF_EXPR_IN_PARENS);
-	pp_cxx_left_paren (cxx_pp);
-	dump_expr_list (args, flags);
-	pp_cxx_right_paren (cxx_pp);
+	dump_call_expr_args (t, flags, skipfirst);
       }
       break;
 
@@ -1581,10 +1675,8 @@ dump_expr (tree t, int flags)
 	{
 	  t = TREE_OPERAND (t, 0);
 	  gcc_assert (TREE_CODE (t) == CALL_EXPR);
-	  dump_expr (TREE_OPERAND (t, 0), flags | TFF_EXPR_IN_PARENS);
-	  pp_cxx_left_paren (cxx_pp);
-	  dump_expr_list (TREE_CHAIN (TREE_OPERAND (t, 1)), flags);
-	  pp_cxx_right_paren (cxx_pp);
+	  dump_expr (CALL_EXPR_FN (t), flags | TFF_EXPR_IN_PARENS);
+	  dump_call_expr_args (t, flags, true);
 	}
       else
 	{
@@ -1888,6 +1980,29 @@ dump_expr (tree t, int flags)
 
     case NON_DEPENDENT_EXPR:
       dump_expr (TREE_OPERAND (t, 0), flags);
+      break;
+
+    case EXPR_PACK_EXPANSION:
+      dump_expr (PACK_EXPANSION_PATTERN (t), flags);
+      pp_cxx_identifier (cxx_pp, "...");
+      break;
+
+    case RECORD_TYPE:
+    case UNION_TYPE:
+    case ENUMERAL_TYPE:
+    case REAL_TYPE:
+    case VOID_TYPE:
+    case BOOLEAN_TYPE:
+    case INTEGER_TYPE:
+    case COMPLEX_TYPE:
+    case VECTOR_TYPE:
+      pp_type_specifier_seq (cxx_pp, t);
+      break;
+
+    case TYPENAME_TYPE:
+      /* We get here when we want to print a dependent type as an
+         id-expression, without any disambiguator decoration.  */
+      pp_id_expression (cxx_pp, t);
       break;
 
       /*  This list is incomplete, but should suffice for now.
@@ -2407,4 +2522,15 @@ cp_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
   diagnostic_set_info_translated (&diagnostic, msg, ap,
 				  input_location, dlevel);
   report_diagnostic (&diagnostic);
+}
+
+/* Warn about the use of variadic templates when appropriate.  */
+void
+maybe_warn_variadic_templates (void)
+{
+  if ((!flag_cpp0x || flag_iso) && !in_system_header)
+    /* We really want to surpress this warning in system headers,
+       because libstdc++ uses variadic templates even when we aren't
+       in C++0x mode. */
+    pedwarn ("ISO C++ does not include variadic templates");
 }

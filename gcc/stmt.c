@@ -1,6 +1,6 @@
 /* Expands front end tree to back end RTL for GCC
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -260,15 +260,16 @@ n_occurrences (int c, const char *s)
    insn is volatile; don't optimize it.  */
 
 static void
-expand_asm (tree string, int vol)
+expand_asm_loc (tree string, int vol, location_t locus)
 {
   rtx body;
 
   if (TREE_CODE (string) == ADDR_EXPR)
     string = TREE_OPERAND (string, 0);
 
-  body = gen_rtx_ASM_INPUT (VOIDmode,
-			    ggc_strdup (TREE_STRING_POINTER (string)));
+  body = gen_rtx_ASM_INPUT_loc (VOIDmode,
+				ggc_strdup (TREE_STRING_POINTER (string)),
+				locus);
 
   MEM_VOLATILE_P (body) = vol;
 
@@ -1094,7 +1095,7 @@ expand_asm_expr (tree exp)
 
   if (ASM_INPUT_P (exp))
     {
-      expand_asm (ASM_STRING (exp), ASM_VOLATILE_P (exp));
+      expand_asm_loc (ASM_STRING (exp), ASM_VOLATILE_P (exp), input_location);
       return;
     }
 
@@ -1425,6 +1426,7 @@ warn_if_unused_value (tree exp, location_t locus)
     case TRY_CATCH_EXPR:
     case WITH_CLEANUP_EXPR:
     case EXIT_EXPR:
+    case VA_ARG_EXPR:
       return 0;
 
     case BIND_EXPR:
@@ -1477,7 +1479,7 @@ warn_if_unused_value (tree exp, location_t locus)
       /* If this is an expression which has no operands, there is no value
 	 to be unused.  There are no such language-independent codes,
 	 but front ends may define such.  */
-      if (EXPRESSION_CLASS_P (exp) && TREE_CODE_LENGTH (TREE_CODE (exp)) == 0)
+      if (EXPRESSION_CLASS_P (exp) && TREE_OPERAND_LENGTH (exp) == 0)
 	return 0;
 
     warn:

@@ -294,6 +294,16 @@ int main (void)
   TESTIT2_R (atan2, -1.0, 0.0, -1.58, -1.57); /* atan2(-1,0) == -pi/2 */
   TESTIT2_R (atan2, 1.0, 0.0, 1.57, 1.58); /* atan2(1,0) == pi/2 */
 
+  TESTIT2 (fdim, 0.0, 0.0, 0.0); /* fdim(0,0) == 0 */
+  TESTIT2 (fdim, -0.0, 0.0, 0.0); /* fdim(-0,0) == 0 */
+  TESTIT2 (fdim, 0.0, -0.0, 0.0); /* fdim(0,-0) == 0 */
+  TESTIT2 (fdim, -0.0, -0.0, 0.0); /* fdim(-0,-0) == 0 */
+  TESTIT2 (fdim, 5.0, 5.0, 0.0); /* fdim(5,5) == 0 */
+  TESTIT2 (fdim, 5.0, 6.0, 0.0); /* fdim(5,6) == 0 */
+  TESTIT2 (fdim, 6.0, 5.0, 1.0); /* fdim(6,5) == 1 */
+  TESTIT2 (fdim, -5.0, -6.0, 1.0); /* fdim(-5,-6) == 1 */
+  TESTIT2 (fdim, -6.0, -5.0, 0.0); /* fdim(-6,-5) == 0 */
+
   TESTIT2 (fmin, 5.0, 6.0, 5.0); /* fmin(5,6) == 5 */
   TESTIT2 (fmin, 6.0, 5.0, 5.0); /* fmin(6,5) == 5 */
   TESTIT2 (fmin, -5.0, -6.0, -6.0); /* fmin(-5,-6) == -6 */
@@ -352,6 +362,13 @@ int main (void)
     link_error (__LINE__);
   if (__builtin_fmal(0.5L,__LDBL_MIN__, __LDBL_MIN__) != __LDBL_MIN__*1.5L)
     link_error (__LINE__);
+
+  TESTIT (sqrt, -0.0, -0.0); /* sqrt(-0) == -0 */
+  TESTIT (sqrt, 0.0, 0.0); /* sqrt(0) == 0 */
+  TESTIT (sqrt, 1.0, 1.0); /* sqrt(1) == 1 */
+  TESTIT (sqrt, 4.0, 2.0); /* sqrt(4) == 2 */
+  TESTIT_R (sqrt, 1.5, 1.22, 1.23); /* sqrt(1.5) == 1.224... */
+  TESTIT_R (sqrt, 2.0, 1.41, 1.42); /* sqrt(2) == 1.414... */
 
   return 0;
 }

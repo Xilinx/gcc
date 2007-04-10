@@ -1,5 +1,5 @@
 /* This is a software decimal floating point library.
-   Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -66,7 +66,7 @@ typedef decNumber* (*dfp_unary_func)
 typedef decNumber* (*dfp_binary_func)
      (decNumber *, const decNumber *, const decNumber *, decContext *);
 
-extern unsigned long __dec_byte_swap (unsigned long);
+extern uint32_t __dec_byte_swap (uint32_t);
 
 /* Unary operations.  */
 
@@ -87,6 +87,19 @@ dfp_unary_op (dfp_unary_func op, DFP_C_TYPE arg)
 
   /* Perform the operation.  */
   op (&res, &arg1, &context);
+
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    {
+      /* decNumber exception flags we care about here.  */
+      int ieee_flags;
+      int dec_flags = DEC_IEEE_854_Division_by_zero | DEC_IEEE_854_Inexact
+		      | DEC_IEEE_854_Invalid_operation | DEC_IEEE_854_Overflow
+		      | DEC_IEEE_854_Underflow;
+      dec_flags &= context.status;
+      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
+      if (ieee_flags != 0)
+        DFP_HANDLE_EXCEPTIONS (ieee_flags);
+    }
 
   TO_ENCODED (&encoded_result, &res, &context);
   IEEE_TO_HOST (encoded_result, &result);
@@ -114,6 +127,19 @@ dfp_binary_op (dfp_binary_func op, DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 
   /* Perform the operation.  */
   op (&res, &arg1, &arg2, &context);
+
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    {
+      /* decNumber exception flags we care about here.  */
+      int ieee_flags;
+      int dec_flags = DEC_IEEE_854_Division_by_zero | DEC_IEEE_854_Inexact
+		      | DEC_IEEE_854_Invalid_operation | DEC_IEEE_854_Overflow
+		      | DEC_IEEE_854_Underflow;
+      dec_flags &= context.status;
+      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
+      if (ieee_flags != 0)
+        DFP_HANDLE_EXCEPTIONS (ieee_flags);
+    }
 
   TO_ENCODED (&encoded_result, &res, &context);
   IEEE_TO_HOST (encoded_result, &result);
@@ -146,6 +172,8 @@ dfp_compare_op (dfp_binary_func op, DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
     result = -1;
   else if (decNumberIsZero (&res))
     result = 0;
+  else if (decNumberIsNaN (&res))
+    result = -2;
   else
     result = 1;
 
@@ -302,7 +330,9 @@ DFP_NE (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
   int stat;
   stat = dfp_compare_op (decNumberCompare, arg_a, arg_b);
-  /* For NE return nonzero for true, zero for false.  */
+  /* For NE return zero for true, nonzero for false.  */
+  if (__builtin_expect (stat == -2, 0))  /* An operand is NaN.  */
+    return 1;
   return stat != 0;
 }
 #endif /* L_ne */
@@ -336,6 +366,8 @@ DFP_LE (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
   int stat;
   stat = dfp_compare_op (decNumberCompare, arg_a, arg_b);
   /* For LE return 0 (<= 0) for true, 1 for false.  */
+  if (__builtin_expect (stat == -2, 0))  /* An operand is NaN.  */
+    return 1;
   return stat == 1;
 }
 #endif /* L_le */
@@ -347,6 +379,8 @@ DFP_GE (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
   int stat;
   stat = dfp_compare_op (decNumberCompare, arg_a, arg_b);
   /* For GE return 1 (>=0) for true, -1 for false.  */
+  if (__builtin_expect (stat == -2, 0))  /* An operand is NaN.  */
+    return -1;
   return (stat != -1) ? 1 : -1;
 }
 #endif /* L_ge */
@@ -371,6 +405,17 @@ DFP_TO_DFP (DFP_C_TYPE f_from)
   TO_INTERNAL (&s_from, &d);
   TO_ENCODED_TO (&s_to, &d, &context);
 
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    {
+      /* decNumber exception flags we care about here.  */
+      int ieee_flags;
+      int dec_flags = DEC_IEEE_854_Inexact | DEC_IEEE_854_Invalid_operation;
+      dec_flags &= context.status;
+      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
+      if (ieee_flags != 0)
+        DFP_HANDLE_EXCEPTIONS (ieee_flags);
+    }
+
   IEEE_TO_HOST_TO (s_to, &f_to);
   return f_to;
 }
@@ -385,6 +430,9 @@ DFP_TO_INT (DFP_C_TYPE x)
 {
   /* decNumber's decimal* types have the same format as C's _Decimal*
      types, but they have different calling conventions.  */
+
+  /* TODO: Decimal float to integer conversions should raise FE_INVALID
+     if the result value does not fit into the result type.  */
 
   IEEE_TYPE s;
   char buf[BUFMAX];
@@ -402,7 +450,7 @@ DFP_TO_INT (DFP_C_TYPE x)
   /* Rescale if the exponent is less than zero.  */
   decNumberToIntegralValue (&n2, &n1, &context);
   /* Get a value to use for the quantize call.  */
-  decNumberFromString (&qval, (char *) "1.0", &context);
+  decNumberFromString (&qval, (char *) "1.", &context);
   /* Force the exponent to zero.  */
   decNumberQuantize (&n1, &n2, &qval, &context);
   /* Get a string, which at this point will not include an exponent.  */
@@ -436,6 +484,19 @@ INT_TO_DFP (INT_TYPE i)
   /* Convert from the floating point string to a decimal* type.  */
   FROM_STRING (&s, buf, &context);
   IEEE_TO_HOST (s, &f);
+
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    {
+      /* decNumber exception flags we care about here.  */
+      int ieee_flags;
+      int dec_flags = DEC_IEEE_854_Inexact | DEC_IEEE_854_Invalid_operation
+		      | DEC_IEEE_854_Overflow;
+      dec_flags &= context.status;
+      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
+      if (ieee_flags != 0)
+        DFP_HANDLE_EXCEPTIONS (ieee_flags);
+    }
+
   return f;
 }
 #endif
@@ -484,6 +545,19 @@ BFP_TO_DFP (BFP_TYPE x)
   /* Convert from the floating point string to a decimal* type.  */
   FROM_STRING (&s, buf, &context);
   IEEE_TO_HOST (s, &f);
+
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    {
+      /* decNumber exception flags we care about here.  */
+      int ieee_flags;
+      int dec_flags = DEC_IEEE_854_Inexact | DEC_IEEE_854_Invalid_operation
+		      | DEC_IEEE_854_Overflow | DEC_IEEE_854_Underflow;
+      dec_flags &= context.status;
+      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
+      if (ieee_flags != 0)
+        DFP_HANDLE_EXCEPTIONS (ieee_flags);
+    }
+
   return f;
 }
 #endif

@@ -1,5 +1,5 @@
 /* Default initializers for a generic GCC target.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This program is free software; you can redistribute it and/or modify it
@@ -64,6 +64,10 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #define TARGET_ASM_GLOBALIZE_LABEL default_globalize_label
 #endif
 
+#ifndef TARGET_ASM_GLOBALIZE_DECL_NAME
+#define TARGET_ASM_GLOBALIZE_DECL_NAME default_globalize_decl_name
+#endif
+
 #ifndef TARGET_ASM_EMIT_UNWIND_LABEL
 #define TARGET_ASM_EMIT_UNWIND_LABEL default_emit_unwind_label
 #endif
@@ -92,6 +96,10 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #define TARGET_ASM_FUNCTION_EPILOGUE default_function_pro_epilogue
 #define TARGET_ASM_FUNCTION_END_PROLOGUE no_asm_to_stream
 #define TARGET_ASM_FUNCTION_BEGIN_EPILOGUE no_asm_to_stream
+
+#ifndef TARGET_ASM_RELOC_RW_MASK
+#define TARGET_ASM_RELOC_RW_MASK default_reloc_rw_mask
+#endif
 
 #ifndef TARGET_ASM_SELECT_SECTION
 #define TARGET_ASM_SELECT_SECTION default_select_section
@@ -186,6 +194,7 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #endif
 
 #define TARGET_DWARF_REGISTER_SPAN hook_rtx_rtx_null
+#define TARGET_INIT_DWARF_REG_SIZES_EXTRA hook_void_tree
 
 #ifndef TARGET_ASM_FILE_START
 #define TARGET_ASM_FILE_START default_file_start
@@ -253,6 +262,7 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 			TARGET_ASM_UNALIGNED_INT_OP,		\
 			TARGET_ASM_INTEGER,			\
 			TARGET_ASM_GLOBALIZE_LABEL,		\
+			TARGET_ASM_GLOBALIZE_DECL_NAME,		\
                         TARGET_ASM_EMIT_UNWIND_LABEL,           \
 			TARGET_ASM_EMIT_EXCEPT_TABLE_LABEL,	\
 			TARGET_UNWIND_EMIT,			\
@@ -265,6 +275,7 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 			TARGET_ASM_FUNCTION_EPILOGUE,		\
 			TARGET_ASM_INIT_SECTIONS,		\
 			TARGET_ASM_NAMED_SECTION,		\
+			TARGET_ASM_RELOC_RW_MASK,		\
 			TARGET_ASM_SELECT_SECTION,		\
 			TARGET_ASM_SELECT_RTX_SECTION,		\
 			TARGET_ASM_UNIQUE_SECTION,		\
@@ -303,7 +314,6 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD 0
 #define TARGET_SCHED_DFA_NEW_CYCLE 0
 #define TARGET_SCHED_IS_COSTLY_DEPENDENCE 0
-#define TARGET_SCHED_ADJUST_COST_2 0
 #define TARGET_SCHED_H_I_D_EXTENDED 0
 #define TARGET_SCHED_SPECULATE_INSN 0
 #define TARGET_SCHED_NEEDS_BLOCK_P 0
@@ -332,7 +342,6 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
    TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD,	\
    TARGET_SCHED_DFA_NEW_CYCLE,					\
    TARGET_SCHED_IS_COSTLY_DEPENDENCE,                           \
-   TARGET_SCHED_ADJUST_COST_2,                                  \
    TARGET_SCHED_H_I_D_EXTENDED,					\
    TARGET_SCHED_SPECULATE_INSN,                                 \
    TARGET_SCHED_NEEDS_BLOCK_P,                                  \
@@ -342,6 +351,7 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #define TARGET_VECTORIZE_BUILTIN_MASK_FOR_LOAD 0
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION default_builtin_vectorized_function
+#define TARGET_VECTORIZE_BUILTIN_CONVERSION default_builtin_vectorized_conversion
 #define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN 0
 #define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD 0
 
@@ -349,6 +359,7 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
   {									\
     TARGET_VECTORIZE_BUILTIN_MASK_FOR_LOAD,				\
     TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION,			\
+    TARGET_VECTORIZE_BUILTIN_CONVERSION,				\
     TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN,                            \
     TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD				\
   }
@@ -683,6 +694,7 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
   TARGET_ADDRESS_COST,				\
   TARGET_ALLOCATE_INITIAL_VALUE,		\
   TARGET_DWARF_REGISTER_SPAN,                   \
+  TARGET_INIT_DWARF_REG_SIZES_EXTRA,		\
   TARGET_FIXED_CONDITION_CODE_REGS,		\
   TARGET_CC_MODES_COMPATIBLE,			\
   TARGET_MACHINE_DEPENDENT_REORG,		\
@@ -722,6 +734,9 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
   TARGET_RELAXED_ORDERING,			\
   TARGET_ARM_EABI_UNWINDER			\
 }
+
+#define TARGET_HANDLE_C_OPTION default_handle_c_option
+#define TARGETCM_INITIALIZER { TARGET_HANDLE_C_OPTION }
 
 #include "hooks.h"
 #include "targhooks.h"

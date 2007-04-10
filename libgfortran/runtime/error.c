@@ -33,12 +33,76 @@ Boston, MA 02110-1301, USA.  */
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#include <float.h>
 #include <errno.h>
 
+#ifdef HAVE_SIGNAL_H
+#include <signal.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
+/* <sys/time.h> has to be included before <sys/resource.h> to work
+   around PR 30518; otherwise, MacOS 10.3.9 headers are just broken.  */
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+
 #include "libgfortran.h"
-#include "../io/io.h"
-#include "../io/unix.h"
+
+#ifdef __MINGW32__
+#define HAVE_GETPID 1
+#include <process.h>
+#endif
+
+
+/* sys_exit()-- Terminate the program with an exit code.  */
+
+void
+sys_exit (int code)
+{
+  /* Show error backtrace if possible.  */
+  if (code != 0 && code != 4
+      && (options.backtrace == 1
+	  || (options.backtrace == -1 && compile_options.backtrace == 1)))
+    show_backtrace ();
+
+  /* Dump core if requested.  */
+  if (code != 0
+      && (options.dump_core == 1
+	 || (options.dump_core == -1 && compile_options.dump_core == 1)))
+    {
+#if defined(HAVE_GETRLIMIT) && defined(RLIMIT_CORE)
+      /* Warn if a core file cannot be produced because
+	 of core size limit.  */
+
+      struct rlimit core_limit;
+
+      if (getrlimit (RLIMIT_CORE, &core_limit) == 0 && core_limit.rlim_cur == 0)
+	st_printf ("** Warning: a core dump was requested, but the core size"
+		   "limit\n**          is currently zero.\n\n");
+#endif
+      
+      
+#if defined(HAVE_KILL) && defined(HAVE_GETPID) && defined(SIGQUIT)
+      kill (getpid (), SIGQUIT);
+#else
+      st_printf ("Core dump not possible, sorry.");
+#endif
+    }
+
+  exit (code);
+}
+
 
 /* Error conditions.  The tricky part here is printing a message when
  * it is the I/O subsystem that is severely wounded.  Our goal is to
@@ -119,104 +183,6 @@ xtoa (GFC_UINTEGER_LARGEST n, char *buffer, size_t len)
     }
 
   return p;
-}
-
-
-/* st_printf()-- simple printf() function for streams that handles the
- * formats %d, %s and %c.  This function handles printing of error
- * messages that originate within the library itself, not from a user
- * program. */
-
-int
-st_printf (const char *format, ...)
-{
-  int count, total;
-  va_list arg;
-  char *p;
-  const char *q;
-  stream *s;
-  char itoa_buf[GFC_ITOA_BUF_SIZE];
-  unix_stream err_stream;
-
-  total = 0;
-  s = init_error_stream (&err_stream);
-  va_start (arg, format);
-
-  for (;;)
-    {
-      count = 0;
-
-      while (format[count] != '%' && format[count] != '\0')
-	count++;
-
-      if (count != 0)
-	{
-	  p = salloc_w (s, &count);
-	  memmove (p, format, count);
-	  sfree (s);
-	}
-
-      total += count;
-      format += count;
-      if (*format++ == '\0')
-	break;
-
-      switch (*format)
-	{
-	case 'c':
-	  count = 1;
-
-	  p = salloc_w (s, &count);
-	  *p = (char) va_arg (arg, int);
-
-	  sfree (s);
-	  break;
-
-	case 'd':
-	  q = gfc_itoa (va_arg (arg, int), itoa_buf, sizeof (itoa_buf));
-	  count = strlen (q);
-
-	  p = salloc_w (s, &count);
-	  memmove (p, q, count);
-	  sfree (s);
-	  break;
-
-	case 'x':
-	  q = xtoa (va_arg (arg, unsigned), itoa_buf, sizeof (itoa_buf));
-	  count = strlen (q);
-
-	  p = salloc_w (s, &count);
-	  memmove (p, q, count);
-	  sfree (s);
-	  break;
-
-	case 's':
-	  q = va_arg (arg, char *);
-	  count = strlen (q);
-
-	  p = salloc_w (s, &count);
-	  memmove (p, q, count);
-	  sfree (s);
-	  break;
-
-	case '\0':
-	  return total;
-
-	default:
-	  count = 2;
-	  p = salloc_w (s, &count);
-	  p[0] = format[-1];
-	  p[1] = format[0];
-	  sfree (s);
-	  break;
-	}
-
-      total += count;
-      format++;
-    }
-
-  va_end (arg);
-  return total;
 }
 
 

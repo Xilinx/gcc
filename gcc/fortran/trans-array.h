@@ -32,7 +32,7 @@ void gfc_set_loop_bounds_from_array_spec (gfc_interface_mapping *,
 
 /* Generate code to create a temporary array.  */
 tree gfc_trans_create_temp_array (stmtblock_t *, stmtblock_t *, gfc_loopinfo *,
-                                  gfc_ss_info *, tree, bool, bool, bool, bool);
+                                  gfc_ss_info *, tree, bool, bool, bool);
 
 /* Generate function entry code for allocation of compiler allocated array
    variables.  */
@@ -133,3 +133,7 @@ tree gfc_conv_descriptor_ubound (tree, tree);
 /* Add pre-loop scalarization code for intrinsic functions which require
    special handling.  */
 void gfc_add_intrinsic_ss_code (gfc_loopinfo *, gfc_ss *);
+
+/* Functions for constant array constructor processing.  */
+unsigned HOST_WIDE_INT gfc_constant_array_constructor_p (gfc_constructor *);
+tree gfc_build_constant_array_constructor (gfc_expr *, tree);

@@ -5,7 +5,9 @@
 //
 // Any platform that doesn't have proper __cxa_atexit support will also fail.
 //
-// { dg-do run { xfail { { mmix-knuth-mmixware xtensa-*-elf* arm*-*-elf arm*-*-eabi m68k-*-elf } || { ! cxa_atexit } } } }
+// { dg-do run }
+// { dg-require-effective-target unwrapped }
+// { dg-require-effective-target cxa_atexit }
 
 #include <stdlib.h>
 extern "C" void _exit (int);
@@ -15,8 +17,8 @@ static int cnt = 0;
 class Foo2
 {
 	public:
-		Foo2() {};
-		~Foo2() { if (++cnt == 2) _exit (0); };
+		Foo2() {}
+		~Foo2() { if (++cnt == 2) _exit (0); }
 };
 
 static Foo2& GetFoo2()
@@ -29,7 +31,7 @@ class Foo1
 {
 	public:
 		Foo1() {}
-		~Foo1() { if (++cnt != 1) abort(); GetFoo2(); };
+		~Foo1() { if (++cnt != 1) abort(); GetFoo2(); }
 };
 
 int main( int argc, const char* argv[] )

@@ -1,5 +1,5 @@
 /* Support routines for Value Range Propagation (VRP).
-   Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>.
 
 This file is part of GCC.
@@ -32,6 +32,8 @@ Boston, MA 02110-1301, USA.  */
 #include "tree-dump.h"
 #include "timevar.h"
 #include "diagnostic.h"
+#include "toplev.h"
+#include "intl.h"
 #include "cfgloop.h"
 #include "tree-scalar-evolution.h"
 #include "tree-ssa-propagate.h"
@@ -43,7 +45,9 @@ static sbitmap found_in_subgraph;
 
 /* Local functions.  */
 static int compare_values (tree val1, tree val2);
+static int compare_values_warnv (tree val1, tree val2, bool *);
 static void vrp_meet (value_range_t *, value_range_t *);
+static tree vrp_evaluate_conditional_warnv (tree, bool, bool *);
 
 /* Location information for ASSERT_EXPRs.  Each instance of this
    structure describes an ASSERT_EXPR for an SSA name.  Since a single
@@ -90,6 +94,107 @@ static sbitmap blocks_visited;
 /* Value range array.  After propagation, VR_VALUE[I] holds the range
    of values that SSA name N_I may take.  */
 static value_range_t **vr_value;
+
+
+/* Return whether TYPE should use an overflow infinity distinct from
+   TYPE_{MIN,MAX}_VALUE.  We use an overflow infinity value to
+   represent a signed overflow during VRP computations.  An infinity
+   is distinct from a half-range, which will go from some number to
+   TYPE_{MIN,MAX}_VALUE.  */
+
+static inline bool
+needs_overflow_infinity (tree type)
+{
+  return INTEGRAL_TYPE_P (type) && !TYPE_OVERFLOW_WRAPS (type);
+}
+
+/* Return whether TYPE can support our overflow infinity
+   representation: we use the TREE_OVERFLOW flag, which only exists
+   for constants.  If TYPE doesn't support this, we don't optimize
+   cases which would require signed overflow--we drop them to
+   VARYING.  */
+
+static inline bool
+supports_overflow_infinity (tree type)
+{
+#ifdef ENABLE_CHECKING
+  gcc_assert (needs_overflow_infinity (type));
+#endif
+  return (TYPE_MIN_VALUE (type) != NULL_TREE
+	  && CONSTANT_CLASS_P (TYPE_MIN_VALUE (type))
+	  && TYPE_MAX_VALUE (type) != NULL_TREE
+	  && CONSTANT_CLASS_P (TYPE_MAX_VALUE (type)));
+}
+
+/* VAL is the maximum or minimum value of a type.  Return a
+   corresponding overflow infinity.  */
+
+static inline tree
+make_overflow_infinity (tree val)
+{
+#ifdef ENABLE_CHECKING
+  gcc_assert (val != NULL_TREE && CONSTANT_CLASS_P (val));
+#endif
+  val = copy_node (val);
+  TREE_OVERFLOW (val) = 1;
+  return val;
+}
+
+/* Return a negative overflow infinity for TYPE.  */
+
+static inline tree
+negative_overflow_infinity (tree type)
+{
+#ifdef ENABLE_CHECKING
+  gcc_assert (supports_overflow_infinity (type));
+#endif
+  return make_overflow_infinity (TYPE_MIN_VALUE (type));
+}
+
+/* Return a positive overflow infinity for TYPE.  */
+
+static inline tree
+positive_overflow_infinity (tree type)
+{
+#ifdef ENABLE_CHECKING
+  gcc_assert (supports_overflow_infinity (type));
+#endif
+  return make_overflow_infinity (TYPE_MAX_VALUE (type));
+}
+
+/* Return whether VAL is a negative overflow infinity.  */
+
+static inline bool
+is_negative_overflow_infinity (tree val)
+{
+  return (needs_overflow_infinity (TREE_TYPE (val))
+	  && CONSTANT_CLASS_P (val)
+	  && TREE_OVERFLOW (val)
+	  && operand_equal_p (val, TYPE_MIN_VALUE (TREE_TYPE (val)), 0));
+}
+
+/* Return whether VAL is a positive overflow infinity.  */
+
+static inline bool
+is_positive_overflow_infinity (tree val)
+{
+  return (needs_overflow_infinity (TREE_TYPE (val))
+	  && CONSTANT_CLASS_P (val)
+	  && TREE_OVERFLOW (val)
+	  && operand_equal_p (val, TYPE_MAX_VALUE (TREE_TYPE (val)), 0));
+}
+
+/* Return whether VAL is a positive or negative overflow infinity.  */
+
+static inline bool
+is_overflow_infinity (tree val)
+{
+  return (needs_overflow_infinity (TREE_TYPE (val))
+	  && CONSTANT_CLASS_P (val)
+	  && TREE_OVERFLOW (val)
+	  && (operand_equal_p (val, TYPE_MAX_VALUE (TREE_TYPE (val)), 0)
+	      || operand_equal_p (val, TYPE_MIN_VALUE (TREE_TYPE (val)), 0)));
+}
 
 
 /* Return true if ARG is marked with the nonnull attribute in the
@@ -155,8 +260,10 @@ set_value_range (value_range_t *vr, enum value_range_type t, tree min,
       gcc_assert (min && max);
 
       if (INTEGRAL_TYPE_P (TREE_TYPE (min)) && t == VR_ANTI_RANGE)
-	gcc_assert (min != TYPE_MIN_VALUE (TREE_TYPE (min))
-		    || max != TYPE_MAX_VALUE (TREE_TYPE (max)));
+	gcc_assert ((min != TYPE_MIN_VALUE (TREE_TYPE (min))
+		     && !is_negative_overflow_infinity (min))
+		    || (max != TYPE_MAX_VALUE (TREE_TYPE (max))
+			&& !is_positive_overflow_infinity (max)));
 
       cmp = compare_values (min, max);
       gcc_assert (cmp == 0 || cmp == -1 || cmp == -2);
@@ -196,13 +303,42 @@ copy_value_range (value_range_t *to, value_range_t *from)
   set_value_range (to, from->type, from->min, from->max, from->equiv);
 }
 
-/* Set value range VR to a non-negative range of type TYPE.  */
+
+/* Set value range VR to VR_VARYING.  */
 
 static inline void
-set_value_range_to_nonnegative (value_range_t *vr, tree type)
+set_value_range_to_varying (value_range_t *vr)
 {
-  tree zero = build_int_cst (type, 0);
-  set_value_range (vr, VR_RANGE, zero, TYPE_MAX_VALUE (type), vr->equiv);
+  vr->type = VR_VARYING;
+  vr->min = vr->max = NULL_TREE;
+  if (vr->equiv)
+    bitmap_clear (vr->equiv);
+}
+
+/* Set value range VR to a non-negative range of type TYPE.
+   OVERFLOW_INFINITY indicates whether to use a overflow infinity
+   rather than TYPE_MAX_VALUE; this should be true if we determine
+   that the range is nonnegative based on the assumption that signed
+   overflow does not occur.  */
+
+static inline void
+set_value_range_to_nonnegative (value_range_t *vr, tree type,
+				bool overflow_infinity)
+{
+  tree zero;
+
+  if (overflow_infinity && !supports_overflow_infinity (type))
+    {
+      set_value_range_to_varying (vr);
+      return;
+    }
+
+  zero = build_int_cst (type, 0);
+  set_value_range (vr, VR_RANGE, zero,
+		   (overflow_infinity
+		    ? positive_overflow_infinity (type)
+		    : TYPE_MAX_VALUE (type)),
+		   vr->equiv);
 }
 
 /* Set value range VR to a non-NULL range of type TYPE.  */
@@ -222,18 +358,6 @@ set_value_range_to_null (value_range_t *vr, tree type)
 {
   tree zero = build_int_cst (type, 0);
   set_value_range (vr, VR_RANGE, zero, zero, vr->equiv);
-}
-
-
-/* Set value range VR to VR_VARYING.  */
-
-static inline void
-set_value_range_to_varying (value_range_t *vr)
-{
-  vr->type = VR_VARYING;
-  vr->min = vr->max = NULL_TREE;
-  if (vr->equiv)
-    bitmap_clear (vr->equiv);
 }
 
 
@@ -313,9 +437,13 @@ get_value_range (tree var)
 static inline bool
 vrp_operand_equal_p (tree val1, tree val2)
 {
-  return (val1 == val2
-	  || (val1 && val2
-	      && operand_equal_p (val1, val2, 0)));
+  if (val1 == val2)
+    return true;
+  if (!val1 || !val2 || !operand_equal_p (val1, val2, 0))
+    return false;
+  if (is_overflow_infinity (val1))
+    return is_overflow_infinity (val2);
+  return true;
 }
 
 /* Return true, if the bitmaps B1 and B2 are equal.  */
@@ -407,22 +535,58 @@ symbolic_range_p (value_range_t *vr)
           || !is_gimple_min_invariant (vr->max));
 }
 
-/* Like tree_expr_nonnegative_p, but this function uses value ranges
-   obtained so far.  */
+/* Return true if value range VR uses a overflow infinity.  */
 
-static bool
-vrp_expr_computes_nonnegative (tree expr)
+static inline bool
+overflow_infinity_range_p (value_range_t *vr)
 {
-  return tree_expr_nonnegative_p (expr);
+  return (vr->type == VR_RANGE
+	  && (is_overflow_infinity (vr->min)
+	      || is_overflow_infinity (vr->max)));
 }
 
-/* Like tree_expr_nonzero_p, but this function uses value ranges
+/* Return false if we can not make a valid comparison based on VR;
+   this will be the case if it uses an overflow infinity and overflow
+   is not undefined (i.e., -fno-strict-overflow is in effect).
+   Otherwise return true, and set *STRICT_OVERFLOW_P to true if VR
+   uses an overflow infinity.  */
+
+static bool
+usable_range_p (value_range_t *vr, bool *strict_overflow_p)
+{
+  gcc_assert (vr->type == VR_RANGE);
+  if (is_overflow_infinity (vr->min))
+    {
+      *strict_overflow_p = true;
+      if (!TYPE_OVERFLOW_UNDEFINED (TREE_TYPE (vr->min)))
+	return false;
+    }
+  if (is_overflow_infinity (vr->max))
+    {
+      *strict_overflow_p = true;
+      if (!TYPE_OVERFLOW_UNDEFINED (TREE_TYPE (vr->max)))
+	return false;
+    }
+  return true;
+}
+
+
+/* Like tree_expr_nonnegative_warnv_p, but this function uses value
+   ranges obtained so far.  */
+
+static bool
+vrp_expr_computes_nonnegative (tree expr, bool *strict_overflow_p)
+{
+  return tree_expr_nonnegative_warnv_p (expr, strict_overflow_p);
+}
+
+/* Like tree_expr_nonzero_warnv_p, but this function uses value ranges
    obtained so far.  */
 
 static bool
-vrp_expr_computes_nonzero (tree expr)
+vrp_expr_computes_nonzero (tree expr, bool *strict_overflow_p)
 {
-  if (tree_expr_nonzero_p (expr))
+  if (tree_expr_nonzero_warnv_p (expr, strict_overflow_p))
     return true;
 
   /* If we have an expression of the form &X->a, then the expression
@@ -468,20 +632,41 @@ valid_value_p (tree expr)
 static inline int
 operand_less_p (tree val, tree val2)
 {
-  tree tcmp;
   /* LT is folded faster than GE and others.  Inline the common case.  */
   if (TREE_CODE (val) == INTEGER_CST && TREE_CODE (val2) == INTEGER_CST)
     {
       if (TYPE_UNSIGNED (TREE_TYPE (val)))
 	return INT_CST_LT_UNSIGNED (val, val2);
       else
-	return INT_CST_LT (val, val2);
+	{
+	  if (INT_CST_LT (val, val2))
+	    return 1;
+	}
     }
   else
-    tcmp = fold_binary_to_constant (LT_EXPR, boolean_type_node, val, val2);
-  if (!tcmp)
-    return -2;
-  return !integer_zerop (tcmp);
+    {
+      tree tcmp;
+
+      fold_defer_overflow_warnings ();
+
+      tcmp = fold_binary_to_constant (LT_EXPR, boolean_type_node, val, val2);
+
+      fold_undefer_and_ignore_overflow_warnings ();
+
+      if (!tcmp)
+	return -2;
+
+      if (!integer_zerop (tcmp))
+	return 1;
+    }
+
+  /* val >= val2, not considering overflow infinity.  */
+  if (is_negative_overflow_infinity (val))
+    return is_negative_overflow_infinity (val2) ? 0 : 1;
+  else if (is_positive_overflow_infinity (val2))
+    return is_positive_overflow_infinity (val) ? 0 : 1;
+
+  return 0;
 }
 
 /* Compare two values VAL1 and VAL2.  Return
@@ -493,10 +678,14 @@ operand_less_p (tree val, tree val2)
 	+2 if VAL1 != VAL2
 
    This is similar to tree_int_cst_compare but supports pointer values
-   and values that cannot be compared at compile time.  */
+   and values that cannot be compared at compile time.
+
+   If STRICT_OVERFLOW_P is not NULL, then set *STRICT_OVERFLOW_P to
+   true if the return value is only valid if we assume that signed
+   overflow is undefined.  */
 
 static int
-compare_values (tree val1, tree val2)
+compare_values_warnv (tree val1, tree val2, bool *strict_overflow_p)
 {
   if (val1 == val2)
     return 0;
@@ -532,6 +721,8 @@ compare_values (tree val1, tree val2)
 	  c1 = TREE_OPERAND (val1, 1);
 	  if (tree_int_cst_sgn (c1) == -1)
 	    {
+	      if (is_negative_overflow_infinity (c1))
+		return -2;
 	      c1 = fold_unary_to_constant (NEGATE_EXPR, TREE_TYPE (c1), c1);
 	      if (!c1)
 		return -2;
@@ -552,6 +743,8 @@ compare_values (tree val1, tree val2)
 	  c2 = TREE_OPERAND (val2, 1);
 	  if (tree_int_cst_sgn (c2) == -1)
 	    {
+	      if (is_negative_overflow_infinity (c2))
+		return -2;
 	      c2 = fold_unary_to_constant (NEGATE_EXPR, TREE_TYPE (c2), c2);
 	      if (!c2)
 		return -2;
@@ -569,9 +762,11 @@ compare_values (tree val1, tree val2)
 	return 0;
 
       /* If overflow is defined we cannot simplify more.  */
-      if (TYPE_UNSIGNED (TREE_TYPE (val1))
-	  || flag_wrapv)
+      if (!TYPE_OVERFLOW_UNDEFINED (TREE_TYPE (val1)))
 	return -2;
+
+      if (strict_overflow_p != NULL)
+	*strict_overflow_p = true;
 
       if (code1 == SSA_NAME)
 	{
@@ -589,7 +784,7 @@ compare_values (tree val1, tree val2)
 	    return 1;
 	  else if (code2 == PLUS_EXPR)
 	    /* NAME + CST1 > NAME + CST2, if CST1 > CST2  */
-	    return compare_values (c1, c2);
+	    return compare_values_warnv (c1, c2, strict_overflow_p);
 	  else if (code2 == MINUS_EXPR)
 	    /* NAME + CST1 > NAME - CST2  */
 	    return 1;
@@ -605,7 +800,7 @@ compare_values (tree val1, tree val2)
 	  else if (code2 == MINUS_EXPR)
 	    /* NAME - CST1 > NAME - CST2, if CST1 < CST2.  Notice that
 	       C1 and C2 are swapped in the call to compare_values.  */
-	    return compare_values (c2, c1);
+	    return compare_values_warnv (c2, c1, strict_overflow_p);
 	}
 
       gcc_unreachable ();
@@ -617,9 +812,22 @@ compare_values (tree val1, tree val2)
 
   if (!POINTER_TYPE_P (TREE_TYPE (val1)))
     {
-      /* We cannot compare overflowed values.  */
+      /* We cannot compare overflowed values, except for overflow
+	 infinities.  */
       if (TREE_OVERFLOW (val1) || TREE_OVERFLOW (val2))
-	return -2;
+	{
+	  if (strict_overflow_p != NULL)
+	    *strict_overflow_p = true;
+	  if (is_negative_overflow_infinity (val1))
+	    return is_negative_overflow_infinity (val2) ? 0 : -1;
+	  else if (is_negative_overflow_infinity (val2))
+	    return 1;
+	  else if (is_positive_overflow_infinity (val1))
+	    return is_positive_overflow_infinity (val2) ? 0 : 1;
+	  else if (is_positive_overflow_infinity (val2))
+	    return -1;
+	  return -2;
+	}
 
       return tree_int_cst_compare (val1, val2);
     }
@@ -653,6 +861,23 @@ compare_values (tree val1, tree val2)
 
       return -2;
     }
+}
+
+/* Compare values like compare_values_warnv, but treat comparisons of
+   nonconstants which rely on undefined overflow as incomparable.  */
+
+static int
+compare_values (tree val1, tree val2)
+{
+  bool sop;
+  int ret;
+
+  sop = false;
+  ret = compare_values_warnv (val1, val2, &sop);
+  if (sop
+      && (!is_gimple_min_invariant (val1) || !is_gimple_min_invariant (val2)))
+    ret = -2;
+  return ret;
 }
 
 
@@ -920,8 +1145,10 @@ extract_range_from_assert (value_range_t *vr_p, tree expr)
       /* If MIN and MAX cover the whole range for their type, then
 	 just use the original LIMIT.  */
       if (INTEGRAL_TYPE_P (type)
-	  && min == TYPE_MIN_VALUE (type)
-	  && max == TYPE_MAX_VALUE (type))
+	  && (min == TYPE_MIN_VALUE (type)
+	      || is_negative_overflow_infinity (min))
+	  && (max == TYPE_MAX_VALUE (type)
+	      || is_positive_overflow_infinity (max)))
 	min = max = limit;
 
       set_value_range (vr_p, VR_ANTI_RANGE, min, max, vr_p->equiv);
@@ -943,7 +1170,9 @@ extract_range_from_assert (value_range_t *vr_p, tree expr)
       /* If the maximum value forces us to be out of bounds, simply punt.
 	 It would be pointless to try and do anything more since this
 	 all should be optimized away above us.  */
-      if (cond_code == LT_EXPR && compare_values (max, min) == 0)
+      if ((cond_code == LT_EXPR
+	   && compare_values (max, min) == 0)
+	  || is_overflow_infinity (max))
 	set_value_range_to_varying (vr_p);
       else
 	{
@@ -974,7 +1203,9 @@ extract_range_from_assert (value_range_t *vr_p, tree expr)
       /* If the minimum value forces us to be out of bounds, simply punt.
 	 It would be pointless to try and do anything more since this
 	 all should be optimized away above us.  */
-      if (cond_code == GT_EXPR && compare_values (min, max) == 0)
+      if ((cond_code == GT_EXPR
+	   && compare_values (min, max) == 0)
+	  || is_overflow_infinity (min))
 	set_value_range_to_varying (vr_p);
       else
 	{
@@ -1150,9 +1381,21 @@ extract_range_from_assert (value_range_t *vr_p, tree expr)
 		    || cmp == 0)
 		   && compare_values (anti_max, real_max) == -1)
 	    {
-	      min = fold_build2 (PLUS_EXPR, TREE_TYPE (var_vr->min),
-				 anti_max,
-				 build_int_cst (TREE_TYPE (var_vr->min), 1));
+	      gcc_assert (!is_positive_overflow_infinity (anti_max));
+	      if (needs_overflow_infinity (TREE_TYPE (anti_max))
+		  && anti_max == TYPE_MAX_VALUE (TREE_TYPE (anti_max)))
+		{
+		  if (!supports_overflow_infinity (TREE_TYPE (var_vr->min)))
+		    {
+		      set_value_range_to_varying (vr_p);
+		      return;
+		    }
+		  min = positive_overflow_infinity (TREE_TYPE (var_vr->min));
+		}
+	      else
+		min = fold_build2 (PLUS_EXPR, TREE_TYPE (var_vr->min),
+				   anti_max,
+				   build_int_cst (TREE_TYPE (var_vr->min), 1));
 	      max = real_max;
 	      set_value_range (vr_p, VR_RANGE, min, max, vr_p->equiv);
 	    }
@@ -1163,9 +1406,21 @@ extract_range_from_assert (value_range_t *vr_p, tree expr)
 		   && ((cmp = compare_values (anti_min, real_max)) == -1
 		       || cmp == 0))
 	    {
-	      max = fold_build2 (MINUS_EXPR, TREE_TYPE (var_vr->min),
-				 anti_min,
-				 build_int_cst (TREE_TYPE (var_vr->min), 1));
+	      gcc_assert (!is_negative_overflow_infinity (anti_min));
+	      if (needs_overflow_infinity (TREE_TYPE (anti_min))
+		  && anti_min == TYPE_MIN_VALUE (TREE_TYPE (anti_min)))
+		{
+		  if (!supports_overflow_infinity (TREE_TYPE (var_vr->min)))
+		    {
+		      set_value_range_to_varying (vr_p);
+		      return;
+		    }
+		  max = negative_overflow_infinity (TREE_TYPE (var_vr->min));
+		}
+	      else
+		max = fold_build2 (MINUS_EXPR, TREE_TYPE (var_vr->min),
+				   anti_min,
+				   build_int_cst (TREE_TYPE (var_vr->min), 1));
 	      min = real_min;
 	      set_value_range (vr_p, VR_RANGE, min, max, vr_p->equiv);
 	    }
@@ -1203,9 +1458,11 @@ extract_range_from_ssa_name (value_range_t *vr, tree var)
 
 /* Wrapper around int_const_binop.  If the operation overflows and we
    are not using wrapping arithmetic, then adjust the result to be
-   -INF or +INF depending on CODE, VAL1 and VAL2.  */
+   -INF or +INF depending on CODE, VAL1 and VAL2.  This can return
+   NULL_TREE if we need to use an overflow infinity representation but
+   the type does not support it.  */
 
-static inline tree
+static tree
 vrp_int_const_binop (enum tree_code code, tree val1, tree val2)
 {
   tree res;
@@ -1214,8 +1471,7 @@ vrp_int_const_binop (enum tree_code code, tree val1, tree val2)
 
   /* If we are not using wrapping arithmetic, operate symbolically
      on -INF and +INF.  */
-  if (TYPE_UNSIGNED (TREE_TYPE (val1))
-      || flag_wrapv)
+  if (TYPE_OVERFLOW_WRAPS (TREE_TYPE (val1)))
     {
       int checkz = compare_values (res, val1);
       bool overflow = false;
@@ -1252,15 +1508,41 @@ vrp_int_const_binop (enum tree_code code, tree val1, tree val2)
 	}
 
     }
-  else if (TREE_OVERFLOW (res)
-	   && !TREE_OVERFLOW (val1)
-	   && !TREE_OVERFLOW (val2))
+  else if ((TREE_OVERFLOW (res)
+	    && !TREE_OVERFLOW (val1)
+	    && !TREE_OVERFLOW (val2))
+	   || is_overflow_infinity (val1)
+	   || is_overflow_infinity (val2))
     {
       /* If the operation overflowed but neither VAL1 nor VAL2 are
 	 overflown, return -INF or +INF depending on the operation
 	 and the combination of signs of the operands.  */
       int sgn1 = tree_int_cst_sgn (val1);
       int sgn2 = tree_int_cst_sgn (val2);
+
+      if (needs_overflow_infinity (TREE_TYPE (res))
+	  && !supports_overflow_infinity (TREE_TYPE (res)))
+	return NULL_TREE;
+
+      /* We have to punt on adding infinities of different signs,
+	 since we can't tell what the sign of the result should be.
+	 Likewise for subtracting infinities of the same sign.  */
+      if (((code == PLUS_EXPR && sgn1 != sgn2)
+	   || (code == MINUS_EXPR && sgn1 == sgn2))
+	  && is_overflow_infinity (val1)
+	  && is_overflow_infinity (val2))
+	return NULL_TREE;
+
+      /* Don't try to handle division or shifting of infinities.  */
+      if ((code == TRUNC_DIV_EXPR
+	   || code == FLOOR_DIV_EXPR
+	   || code == CEIL_DIV_EXPR
+	   || code == EXACT_DIV_EXPR
+	   || code == ROUND_DIV_EXPR
+	   || code == RSHIFT_EXPR)
+	  && (is_overflow_infinity (val1)
+	      || is_overflow_infinity (val2)))
+	return NULL_TREE;
 
       /* Notice that we only need to handle the restricted set of
 	 operations handled by extract_range_from_binary_expr.
@@ -1275,24 +1557,42 @@ vrp_int_const_binop (enum tree_code code, tree val1, tree val2)
       if ((code == MULT_EXPR && sgn1 == sgn2)
           /* For addition, the operands must be of the same sign
 	     to yield an overflow.  Its sign is therefore that
-	     of one of the operands, for example the first.  */
-	  || (code == PLUS_EXPR && sgn1 > 0)
-	  /* For subtraction, the operands must be of different
-	     signs to yield an overflow.  Its sign is therefore
-	     that of the first operand or the opposite of that
-	     of the second operand.  A first operand of 0 counts
-	     as positive here, for the corner case 0 - (-INF),
-	     which overflows, but must yield +INF.  */
-	  || (code == MINUS_EXPR && sgn1 >= 0)
+	     of one of the operands, for example the first.  For
+	     infinite operands X + -INF is negative, not positive.  */
+	  || (code == PLUS_EXPR
+	      && (sgn1 >= 0
+		  ? !is_negative_overflow_infinity (val2)
+		  : is_positive_overflow_infinity (val2)))
+	  /* For subtraction, non-infinite operands must be of
+	     different signs to yield an overflow.  Its sign is
+	     therefore that of the first operand or the opposite of
+	     that of the second operand.  A first operand of 0 counts
+	     as positive here, for the corner case 0 - (-INF), which
+	     overflows, but must yield +INF.  For infinite operands 0
+	     - INF is negative, not positive.  */
+	  || (code == MINUS_EXPR
+	      && (sgn1 >= 0
+		  ? !is_positive_overflow_infinity (val2)
+		  : is_negative_overflow_infinity (val2)))
+	  /* We only get in here with positive shift count, so the
+	     overflow direction is the same as the sign of val1.
+	     Actually rshift does not overflow at all, but we only
+	     handle the case of shifting overflowed -INF and +INF.  */
+	  || (code == RSHIFT_EXPR
+	      && sgn1 >= 0)
 	  /* For division, the only case is -INF / -1 = +INF.  */
 	  || code == TRUNC_DIV_EXPR
 	  || code == FLOOR_DIV_EXPR
 	  || code == CEIL_DIV_EXPR
 	  || code == EXACT_DIV_EXPR
 	  || code == ROUND_DIV_EXPR)
-	return TYPE_MAX_VALUE (TREE_TYPE (res));
+	return (needs_overflow_infinity (TREE_TYPE (res))
+		? positive_overflow_infinity (TREE_TYPE (res))
+		: TYPE_MAX_VALUE (TREE_TYPE (res)));
       else
-	return TYPE_MIN_VALUE (TREE_TYPE (res));
+	return (needs_overflow_infinity (TREE_TYPE (res))
+		? negative_overflow_infinity (TREE_TYPE (res))
+		: TYPE_MIN_VALUE (TREE_TYPE (res)));
     }
 
   return res;
@@ -1322,6 +1622,7 @@ extract_range_from_binary_expr (value_range_t *vr, tree expr)
       && code != CEIL_DIV_EXPR
       && code != EXACT_DIV_EXPR
       && code != ROUND_DIV_EXPR
+      && code != RSHIFT_EXPR
       && code != MIN_EXPR
       && code != MAX_EXPR
       && code != BIT_AND_EXPR
@@ -1446,7 +1747,9 @@ extract_range_from_binary_expr (value_range_t *vr, tree expr)
 	       && vr1.type != VR_VARYING
 	       && vr0.type == vr1.type
 	       && !symbolic_range_p (&vr0)
-	       && !symbolic_range_p (&vr1))
+	       && !overflow_infinity_range_p (&vr0)
+	       && !symbolic_range_p (&vr1)
+	       && !overflow_infinity_range_p (&vr1))
 	{
 	  /* Boolean expressions cannot be folded with int_const_binop.  */
 	  min = fold_binary (code, TREE_TYPE (expr), vr0.min, vr1.min);
@@ -1487,10 +1790,12 @@ extract_range_from_binary_expr (value_range_t *vr, tree expr)
 	   || code == FLOOR_DIV_EXPR
 	   || code == CEIL_DIV_EXPR
 	   || code == EXACT_DIV_EXPR
-	   || code == ROUND_DIV_EXPR)
+	   || code == ROUND_DIV_EXPR
+	   || code == RSHIFT_EXPR)
     {
       tree val[4];
       size_t i;
+      bool sop;
 
       /* If we have an unsigned MULT_EXPR with two VR_ANTI_RANGEs,
 	 drop to VR_VARYING.  It would take more effort to compute a
@@ -1502,10 +1807,29 @@ extract_range_from_binary_expr (value_range_t *vr, tree expr)
 	 point.  */
       if (code == MULT_EXPR
 	  && vr0.type == VR_ANTI_RANGE
-	  && (flag_wrapv || TYPE_UNSIGNED (TREE_TYPE (op0))))
+	  && !TYPE_OVERFLOW_UNDEFINED (TREE_TYPE (op0)))
 	{
 	  set_value_range_to_varying (vr);
 	  return;
+	}
+
+      /* If we have a RSHIFT_EXPR with any shift values outside [0..prec-1],
+	 then drop to VR_VARYING.  Outside of this range we get undefined
+	 behaviour from the shift operation.  We cannot even trust
+	 SHIFT_COUNT_TRUNCATED at this stage, because that applies to rtl
+	 shifts, and the operation at the tree level may be widened.  */
+      if (code == RSHIFT_EXPR)
+	{
+	  if (vr1.type == VR_ANTI_RANGE
+	      || !vrp_expr_computes_nonnegative (op1, &sop)
+	      || (operand_less_p
+		  (build_int_cst (TREE_TYPE (vr1.max),
+				  TYPE_PRECISION (TREE_TYPE (expr)) - 1),
+		   vr1.max) != 0))
+	    {
+	      set_value_range_to_varying (vr);
+	      return;
+	    }
 	}
 
       /* Multiplications and divisions are a bit tricky to handle,
@@ -1522,27 +1846,51 @@ extract_range_from_binary_expr (value_range_t *vr, tree expr)
 	 the new range.  */
 
       /* Divisions by zero result in a VARYING value.  */
-      if (code != MULT_EXPR
-	  && (vr0.type == VR_ANTI_RANGE || range_includes_zero_p (&vr1)))
+      else if (code != MULT_EXPR
+	       && (vr0.type == VR_ANTI_RANGE || range_includes_zero_p (&vr1)))
 	{
 	  set_value_range_to_varying (vr);
 	  return;
 	}
 
       /* Compute the 4 cross operations.  */
+      sop = false;
       val[0] = vrp_int_const_binop (code, vr0.min, vr1.min);
+      if (val[0] == NULL_TREE)
+	sop = true;
 
-      val[1] = (vr1.max != vr1.min)
-	       ? vrp_int_const_binop (code, vr0.min, vr1.max)
-	       : NULL_TREE;
+      if (vr1.max == vr1.min)
+	val[1] = NULL_TREE;
+      else
+	{
+	  val[1] = vrp_int_const_binop (code, vr0.min, vr1.max);
+	  if (val[1] == NULL_TREE)
+	    sop = true;
+	}
 
-      val[2] = (vr0.max != vr0.min)
-	       ? vrp_int_const_binop (code, vr0.max, vr1.min)
-	       : NULL_TREE;
+      if (vr0.max == vr0.min)
+	val[2] = NULL_TREE;
+      else
+	{
+	  val[2] = vrp_int_const_binop (code, vr0.max, vr1.min);
+	  if (val[2] == NULL_TREE)
+	    sop = true;
+	}
 
-      val[3] = (vr0.min != vr0.max && vr1.min != vr1.max)
-	       ? vrp_int_const_binop (code, vr0.max, vr1.max)
-	       : NULL_TREE;
+      if (vr0.min == vr0.max || vr1.min == vr1.max)
+	val[3] = NULL_TREE;
+      else
+	{
+	  val[3] = vrp_int_const_binop (code, vr0.max, vr1.max);
+	  if (val[3] == NULL_TREE)
+	    sop = true;
+	}
+
+      if (sop)
+	{
+	  set_value_range_to_varying (vr);
+	  return;
+	}
 
       /* Set MIN to the minimum of VAL[i] and MAX to the maximum
 	 of VAL[i].  */
@@ -1550,13 +1898,17 @@ extract_range_from_binary_expr (value_range_t *vr, tree expr)
       max = val[0];
       for (i = 1; i < 4; i++)
 	{
-	  if (!is_gimple_min_invariant (min) || TREE_OVERFLOW (min)
-	      || !is_gimple_min_invariant (max) || TREE_OVERFLOW (max))
+	  if (!is_gimple_min_invariant (min)
+	      || (TREE_OVERFLOW (min) && !is_overflow_infinity (min))
+	      || !is_gimple_min_invariant (max)
+	      || (TREE_OVERFLOW (max) && !is_overflow_infinity (max)))
 	    break;
 
 	  if (val[i])
 	    {
-	      if (!is_gimple_min_invariant (val[i]) || TREE_OVERFLOW (val[i]))
+	      if (!is_gimple_min_invariant (val[i])
+		  || (TREE_OVERFLOW (val[i])
+		      && !is_overflow_infinity (val[i])))
 		{
 		  /* If we found an overflowed value, set MIN and MAX
 		     to it so that we set the resulting range to
@@ -1597,16 +1949,18 @@ extract_range_from_binary_expr (value_range_t *vr, tree expr)
     {
       if (vr0.type == VR_RANGE
 	  && vr0.min == vr0.max
-	  && tree_expr_nonnegative_p (vr0.max)
-	  && TREE_CODE (vr0.max) == INTEGER_CST)
+	  && TREE_CODE (vr0.max) == INTEGER_CST
+	  && !TREE_OVERFLOW (vr0.max)
+	  && tree_int_cst_sgn (vr0.max) >= 0)
 	{
 	  min = build_int_cst (TREE_TYPE (expr), 0);
 	  max = vr0.max;
 	}
       else if (vr1.type == VR_RANGE
-	  && vr1.min == vr1.max
-	  && tree_expr_nonnegative_p (vr1.max)
-	  && TREE_CODE (vr1.max) == INTEGER_CST)
+	       && vr1.min == vr1.max
+	       && TREE_CODE (vr1.max) == INTEGER_CST
+	       && !TREE_OVERFLOW (vr1.max)
+	       && tree_int_cst_sgn (vr1.max) >= 0)
 	{
 	  type = VR_RANGE;
 	  min = build_int_cst (TREE_TYPE (expr), 0);
@@ -1622,9 +1976,31 @@ extract_range_from_binary_expr (value_range_t *vr, tree expr)
     gcc_unreachable ();
 
   /* If either MIN or MAX overflowed, then set the resulting range to
-     VARYING.  */
-  if (!is_gimple_min_invariant (min) || TREE_OVERFLOW (min)
-      || !is_gimple_min_invariant (max) || TREE_OVERFLOW (max))
+     VARYING.  But we do accept an overflow infinity
+     representation.  */
+  if (min == NULL_TREE
+      || !is_gimple_min_invariant (min)
+      || (TREE_OVERFLOW (min) && !is_overflow_infinity (min))
+      || max == NULL_TREE
+      || !is_gimple_min_invariant (max)
+      || (TREE_OVERFLOW (max) && !is_overflow_infinity (max)))
+    {
+      set_value_range_to_varying (vr);
+      return;
+    }
+
+  /* We punt if:
+     1) [-INF, +INF]
+     2) [-INF, +-INF(OVF)]
+     3) [+-INF(OVF), +INF]
+     4) [+-INF(OVF), +-INF(OVF)]
+     We learn nothing when we have INF and INF(OVF) on both sides.
+     Note that we do accept [-INF, -INF] and [+INF, +INF] without
+     overflow.  */
+  if ((min == TYPE_MIN_VALUE (TREE_TYPE (min))
+       || is_overflow_infinity (min))
+      && (max == TYPE_MAX_VALUE (TREE_TYPE (max))
+	  || is_overflow_infinity (max)))
     {
       set_value_range_to_varying (vr);
       return;
@@ -1698,7 +2074,12 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
      determining if it evaluates to NULL [0, 0] or non-NULL (~[0, 0]).  */
   if (POINTER_TYPE_P (TREE_TYPE (expr)) || POINTER_TYPE_P (TREE_TYPE (op0)))
     {
-      if (range_is_nonnull (&vr0) || tree_expr_nonzero_p (expr))
+      bool sop;
+
+      sop = false;
+      if (range_is_nonnull (&vr0)
+	  || (tree_expr_nonzero_warnv_p (expr, &sop)
+	      && !sop))
 	set_value_range_to_nonnull (vr, TREE_TYPE (expr));
       else if (range_is_null (&vr0))
 	set_value_range_to_null (vr, TREE_TYPE (expr));
@@ -1721,7 +2102,8 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
 	 or equal to the new max, then we can safely use the newly
 	 computed range for EXPR.  This allows us to compute
 	 accurate ranges through many casts.  */
-      if (vr0.type == VR_RANGE
+      if ((vr0.type == VR_RANGE
+	   && !overflow_infinity_range_p (&vr0))
 	  || (vr0.type == VR_VARYING
 	      && TYPE_PRECISION (outer_type) > TYPE_PRECISION (inner_type)))
 	{
@@ -1789,21 +2171,44 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
       && !TYPE_UNSIGNED (TREE_TYPE (expr)))
     {
       /* NEGATE_EXPR flips the range around.  We need to treat
-	 TYPE_MIN_VALUE specially dependent on wrapping, range type
-	 and if it was used as minimum or maximum value:  
-	  -~[MIN, MIN] == ~[MIN, MIN]
-	  -[MIN, 0] == [0, MAX]  for -fno-wrapv
-	  -[MIN, 0] == [0, MIN]  for -fwrapv (will be set to varying later)  */
-      min = vr0.max == TYPE_MIN_VALUE (TREE_TYPE (expr))
-	    ? TYPE_MIN_VALUE (TREE_TYPE (expr))
-	    : fold_unary_to_constant (code, TREE_TYPE (expr), vr0.max);
+	 TYPE_MIN_VALUE specially.  */
+      if (is_positive_overflow_infinity (vr0.max))
+	min = negative_overflow_infinity (TREE_TYPE (expr));
+      else if (is_negative_overflow_infinity (vr0.max))
+	min = positive_overflow_infinity (TREE_TYPE (expr));
+      else if (vr0.max != TYPE_MIN_VALUE (TREE_TYPE (expr)))
+	min = fold_unary_to_constant (code, TREE_TYPE (expr), vr0.max);
+      else if (needs_overflow_infinity (TREE_TYPE (expr)))
+	{
+	  if (supports_overflow_infinity (TREE_TYPE (expr)))
+	    min = positive_overflow_infinity (TREE_TYPE (expr));
+	  else
+	    {
+	      set_value_range_to_varying (vr);
+	      return;
+	    }
+	}
+      else
+	min = TYPE_MIN_VALUE (TREE_TYPE (expr));
 
-      max = vr0.min == TYPE_MIN_VALUE (TREE_TYPE (expr))
-	    ? (vr0.type == VR_ANTI_RANGE || flag_wrapv
-	       ? TYPE_MIN_VALUE (TREE_TYPE (expr))
-	       : TYPE_MAX_VALUE (TREE_TYPE (expr)))
-	    : fold_unary_to_constant (code, TREE_TYPE (expr), vr0.min);
-
+      if (is_positive_overflow_infinity (vr0.min))
+	max = negative_overflow_infinity (TREE_TYPE (expr));
+      else if (is_negative_overflow_infinity (vr0.min))
+	max = positive_overflow_infinity (TREE_TYPE (expr));
+      else if (vr0.min != TYPE_MIN_VALUE (TREE_TYPE (expr)))
+	max = fold_unary_to_constant (code, TREE_TYPE (expr), vr0.min);
+      else if (needs_overflow_infinity (TREE_TYPE (expr)))
+	{
+	  if (supports_overflow_infinity (TREE_TYPE (expr)))
+	    max = positive_overflow_infinity (TREE_TYPE (expr));
+	  else
+	    {
+	      set_value_range_to_varying (vr);
+	      return;
+	    }
+	}
+      else
+	max = TYPE_MIN_VALUE (TREE_TYPE (expr));
     }
   else if (code == NEGATE_EXPR
 	   && TYPE_UNSIGNED (TREE_TYPE (expr)))
@@ -1827,7 +2232,7 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
     {
       /* -TYPE_MIN_VALUE = TYPE_MIN_VALUE with flag_wrapv so we can't get a
          useful range.  */
-      if (flag_wrapv
+      if (!TYPE_OVERFLOW_UNDEFINED (TREE_TYPE (expr))
 	  && ((vr0.type == VR_RANGE
 	       && vr0.min == TYPE_MIN_VALUE (TREE_TYPE (expr)))
 	      || (vr0.type == VR_ANTI_RANGE
@@ -1840,11 +2245,33 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
 	
       /* ABS_EXPR may flip the range around, if the original range
 	 included negative values.  */
-      min = (vr0.min == TYPE_MIN_VALUE (TREE_TYPE (expr)))
-	    ? TYPE_MAX_VALUE (TREE_TYPE (expr))
-	    : fold_unary_to_constant (code, TREE_TYPE (expr), vr0.min);
+      if (is_overflow_infinity (vr0.min))
+	min = positive_overflow_infinity (TREE_TYPE (expr));
+      else if (vr0.min != TYPE_MIN_VALUE (TREE_TYPE (expr)))
+	min = fold_unary_to_constant (code, TREE_TYPE (expr), vr0.min);
+      else if (!needs_overflow_infinity (TREE_TYPE (expr)))
+	min = TYPE_MAX_VALUE (TREE_TYPE (expr));
+      else if (supports_overflow_infinity (TREE_TYPE (expr)))
+	min = positive_overflow_infinity (TREE_TYPE (expr));
+      else
+	{
+	  set_value_range_to_varying (vr);
+	  return;
+	}
 
-      max = fold_unary_to_constant (code, TREE_TYPE (expr), vr0.max);
+      if (is_overflow_infinity (vr0.max))
+	max = positive_overflow_infinity (TREE_TYPE (expr));
+      else if (vr0.max != TYPE_MIN_VALUE (TREE_TYPE (expr)))
+	max = fold_unary_to_constant (code, TREE_TYPE (expr), vr0.max);
+      else if (!needs_overflow_infinity (TREE_TYPE (expr)))
+	max = TYPE_MAX_VALUE (TREE_TYPE (expr));
+      else if (supports_overflow_infinity (TREE_TYPE (expr)))
+	max = positive_overflow_infinity (TREE_TYPE (expr));
+      else
+	{
+	  set_value_range_to_varying (vr);
+	  return;
+	}
 
       cmp = compare_values (min, max);
 
@@ -1854,8 +2281,6 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
 	{ 
 	  if (range_includes_zero_p (&vr0))
 	    {
-	      tree type_min_value = TYPE_MIN_VALUE (TREE_TYPE (expr));
-
 	      /* Take the lower of the two values.  */
 	      if (cmp != 1)
 		max = min;
@@ -1864,11 +2289,22 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
 	         or ~[-INF + 1, min (abs(MIN), abs(MAX))] when
 		 flag_wrapv is set and the original anti-range doesn't include
 	         TYPE_MIN_VALUE, remember -TYPE_MIN_VALUE = TYPE_MIN_VALUE.  */
-	      min = (flag_wrapv && vr0.min != type_min_value
-		     ? int_const_binop (PLUS_EXPR,
-					type_min_value,
-					integer_one_node, 0)
-		     : type_min_value);
+	      if (TYPE_OVERFLOW_WRAPS (TREE_TYPE (expr)))
+		{
+		  tree type_min_value = TYPE_MIN_VALUE (TREE_TYPE (expr));
+
+		  min = (vr0.min != type_min_value
+			 ? int_const_binop (PLUS_EXPR, type_min_value,
+					    integer_one_node, 0)
+			 : type_min_value);
+		}
+	      else
+		{
+		  if (overflow_infinity_range_p (&vr0))
+		    min = negative_overflow_infinity (TREE_TYPE (expr));
+		  else
+		    min = TYPE_MIN_VALUE (TREE_TYPE (expr));
+		}
 	    }
 	  else
 	    {
@@ -1877,7 +2313,18 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
 	         anti-range.  */
 	      vr0.type = VR_RANGE;
 	      min = build_int_cst (TREE_TYPE (expr), 0);
-	      max = TYPE_MAX_VALUE (TREE_TYPE (expr));
+	      if (needs_overflow_infinity (TREE_TYPE (expr)))
+		{
+		  if (supports_overflow_infinity (TREE_TYPE (expr)))
+		    max = positive_overflow_infinity (TREE_TYPE (expr));
+		  else
+		    {
+		      set_value_range_to_varying (vr);
+		      return;
+		    }
+		}
+	      else
+		max = TYPE_MAX_VALUE (TREE_TYPE (expr));
 	    }
 	}
 
@@ -1905,6 +2352,40 @@ extract_range_from_unary_expr (value_range_t *vr, tree expr)
       /* Otherwise, operate on each end of the range.  */
       min = fold_unary_to_constant (code, TREE_TYPE (expr), vr0.min);
       max = fold_unary_to_constant (code, TREE_TYPE (expr), vr0.max);
+
+      if (needs_overflow_infinity (TREE_TYPE (expr)))
+	{
+	  gcc_assert (code != NEGATE_EXPR && code != ABS_EXPR);
+	  if (is_overflow_infinity (vr0.min))
+	    min = vr0.min;
+	  else if (TREE_OVERFLOW (min))
+	    {
+	      if (supports_overflow_infinity (TREE_TYPE (expr)))
+		min = (tree_int_cst_sgn (min) >= 0
+		       ? positive_overflow_infinity (TREE_TYPE (min))
+		       : negative_overflow_infinity (TREE_TYPE (min)));
+	      else
+		{
+		  set_value_range_to_varying (vr);
+		  return;
+		}
+	    }
+
+	  if (is_overflow_infinity (vr0.max))
+	    max = vr0.max;
+	  else if (TREE_OVERFLOW (max))
+	    {
+	      if (supports_overflow_infinity (TREE_TYPE (expr)))
+		max = (tree_int_cst_sgn (max) >= 0
+		       ? positive_overflow_infinity (TREE_TYPE (max))
+		       : negative_overflow_infinity (TREE_TYPE (max)));
+	      else
+		{
+		  set_value_range_to_varying (vr);
+		  return;
+		}
+	    }
+	}
     }
 
   cmp = compare_values (min, max);
@@ -1960,8 +2441,15 @@ extract_range_from_cond_expr (value_range_t *vr, tree expr)
 static void
 extract_range_from_comparison (value_range_t *vr, tree expr)
 {
-  tree val = vrp_evaluate_conditional (expr, false);
-  if (val)
+  bool sop = false;
+  tree val = vrp_evaluate_conditional_warnv (expr, false, &sop);
+
+  /* A disadvantage of using a special infinity as an overflow
+     representation is that we lose the ability to record overflow
+     when we don't have an infinity.  So we have to ignore a result
+     which relies on overflow.  */
+
+  if (val && !is_overflow_infinity (val) && !sop)
     {
       /* Since this expression was found on the RHS of an assignment,
 	 its type may be different from _Bool.  Convert VAL to EXPR's
@@ -2011,10 +2499,14 @@ extract_range_from_expr (value_range_t *vr, tree expr)
      with range data.  */
   if (vr->type == VR_VARYING)
     {
+      bool sop = false;
+
       if (INTEGRAL_TYPE_P (TREE_TYPE (expr))
-	  && vrp_expr_computes_nonnegative (expr))
-        set_value_range_to_nonnegative (vr, TREE_TYPE (expr));
-      else if (vrp_expr_computes_nonzero (expr))
+	  && vrp_expr_computes_nonnegative (expr, &sop))
+	set_value_range_to_nonnegative (vr, TREE_TYPE (expr),
+					sop || is_overflow_infinity (expr));
+      else if (vrp_expr_computes_nonzero (expr, &sop)
+	       && !sop)
         set_value_range_to_nonnull (vr, TREE_TYPE (expr));
     }
 }
@@ -2059,6 +2551,11 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop, tree stmt,
       || scev_probably_wraps_p (init, step, stmt, get_chrec_loop (chrec),
 				true))
     return;
+
+  /* We use TYPE_MIN_VALUE and TYPE_MAX_VALUE here instead of
+     negative_overflow_infinity and positive_overflow_infinity,
+     because we have concluded that the loop probably does not
+     wrap.  */
 
   type = TREE_TYPE (var);
   if (POINTER_TYPE_P (type) || !TYPE_MIN_VALUE (type))
@@ -2139,11 +2636,15 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop, tree stmt,
    - Return BOOLEAN_FALSE_NODE if the comparison always returns false.
 
    - Return NULL_TREE if it is not always possible to determine the
-     value of the comparison.  */
+     value of the comparison.
+
+   Also set *STRICT_OVERFLOW_P to indicate whether a range with an
+   overflow infinity was used in the test.  */
 
 
 static tree
-compare_ranges (enum tree_code comp, value_range_t *vr0, value_range_t *vr1)
+compare_ranges (enum tree_code comp, value_range_t *vr0, value_range_t *vr1,
+		bool *strict_overflow_p)
 {
   /* VARYING or UNDEFINED ranges cannot be compared.  */
   if (vr0->type == VR_VARYING
@@ -2179,12 +2680,16 @@ compare_ranges (enum tree_code comp, value_range_t *vr0, value_range_t *vr1)
 
       gcc_assert (comp == NE_EXPR || comp == EQ_EXPR);
 
-      if (compare_values (vr0->min, vr1->min) == 0
-	  && compare_values (vr0->max, vr1->max) == 0)
+      if (compare_values_warnv (vr0->min, vr1->min, strict_overflow_p) == 0
+	  && compare_values_warnv (vr0->max, vr1->max, strict_overflow_p) == 0)
 	return (comp == NE_EXPR) ? boolean_true_node : boolean_false_node;
 
       return NULL_TREE;
     }
+
+  if (!usable_range_p (vr0, strict_overflow_p)
+      || !usable_range_p (vr1, strict_overflow_p))
+    return NULL_TREE;
 
   /* Simplify processing.  If COMP is GT_EXPR or GE_EXPR, switch the
      operands around and change the comparison code.  */
@@ -2201,19 +2706,23 @@ compare_ranges (enum tree_code comp, value_range_t *vr0, value_range_t *vr1)
     {
       /* Equality may only be computed if both ranges represent
 	 exactly one value.  */
-      if (compare_values (vr0->min, vr0->max) == 0
-	  && compare_values (vr1->min, vr1->max) == 0)
+      if (compare_values_warnv (vr0->min, vr0->max, strict_overflow_p) == 0
+	  && compare_values_warnv (vr1->min, vr1->max, strict_overflow_p) == 0)
 	{
-	  int cmp_min = compare_values (vr0->min, vr1->min);
-	  int cmp_max = compare_values (vr0->max, vr1->max);
+	  int cmp_min = compare_values_warnv (vr0->min, vr1->min,
+					      strict_overflow_p);
+	  int cmp_max = compare_values_warnv (vr0->max, vr1->max,
+					      strict_overflow_p);
 	  if (cmp_min == 0 && cmp_max == 0)
 	    return boolean_true_node;
 	  else if (cmp_min != -2 && cmp_max != -2)
 	    return boolean_false_node;
 	}
       /* If [V0_MIN, V1_MAX] < [V1_MIN, V1_MAX] then V0 != V1.  */
-      else if (compare_values (vr0->min, vr1->max) == 1
-	       || compare_values (vr1->min, vr0->max) == 1)
+      else if (compare_values_warnv (vr0->min, vr1->max,
+				     strict_overflow_p) == 1
+	       || compare_values_warnv (vr1->min, vr0->max,
+					strict_overflow_p) == 1)
 	return boolean_false_node;
 
       return NULL_TREE;
@@ -2227,17 +2736,21 @@ compare_ranges (enum tree_code comp, value_range_t *vr0, value_range_t *vr1)
 	 make sure that both comparisons yield similar results to
 	 avoid comparing values that cannot be compared at
 	 compile-time.  */
-      cmp1 = compare_values (vr0->max, vr1->min);
-      cmp2 = compare_values (vr0->min, vr1->max);
+      cmp1 = compare_values_warnv (vr0->max, vr1->min, strict_overflow_p);
+      cmp2 = compare_values_warnv (vr0->min, vr1->max, strict_overflow_p);
       if ((cmp1 == -1 && cmp2 == -1) || (cmp1 == 1 && cmp2 == 1))
 	return boolean_true_node;
 
       /* If VR0 and VR1 represent a single value and are identical,
 	 return false.  */
-      else if (compare_values (vr0->min, vr0->max) == 0
-	       && compare_values (vr1->min, vr1->max) == 0
-	       && compare_values (vr0->min, vr1->min) == 0
-	       && compare_values (vr0->max, vr1->max) == 0)
+      else if (compare_values_warnv (vr0->min, vr0->max,
+				     strict_overflow_p) == 0
+	       && compare_values_warnv (vr1->min, vr1->max,
+					strict_overflow_p) == 0
+	       && compare_values_warnv (vr0->min, vr1->min,
+					strict_overflow_p) == 0
+	       && compare_values_warnv (vr0->max, vr1->max,
+					strict_overflow_p) == 0)
 	return boolean_false_node;
 
       /* Otherwise, they may or may not be different.  */
@@ -2249,16 +2762,26 @@ compare_ranges (enum tree_code comp, value_range_t *vr0, value_range_t *vr1)
       int tst;
 
       /* If VR0 is to the left of VR1, return true.  */
-      tst = compare_values (vr0->max, vr1->min);
+      tst = compare_values_warnv (vr0->max, vr1->min, strict_overflow_p);
       if ((comp == LT_EXPR && tst == -1)
 	  || (comp == LE_EXPR && (tst == -1 || tst == 0)))
-	return boolean_true_node;
+	{
+	  if (overflow_infinity_range_p (vr0)
+	      || overflow_infinity_range_p (vr1))
+	    *strict_overflow_p = true;
+	  return boolean_true_node;
+	}
 
       /* If VR0 is to the right of VR1, return false.  */
-      tst = compare_values (vr0->min, vr1->max);
+      tst = compare_values_warnv (vr0->min, vr1->max, strict_overflow_p);
       if ((comp == LT_EXPR && (tst == 0 || tst == 1))
 	  || (comp == LE_EXPR && tst == 1))
-	return boolean_false_node;
+	{
+	  if (overflow_infinity_range_p (vr0)
+	      || overflow_infinity_range_p (vr1))
+	    *strict_overflow_p = true;
+	  return boolean_false_node;
+	}
 
       /* Otherwise, we don't know.  */
       return NULL_TREE;
@@ -2272,10 +2795,13 @@ compare_ranges (enum tree_code comp, value_range_t *vr0, value_range_t *vr1)
    BOOLEAN_TRUE_NODE if VR COMP VAL always returns true for all the
    values in VR.  Return BOOLEAN_FALSE_NODE if the comparison
    always returns false.  Return NULL_TREE if it is not always
-   possible to determine the value of the comparison.  */
+   possible to determine the value of the comparison.  Also set
+   *STRICT_OVERFLOW_P to indicate whether a range with an overflow
+   infinity was used in the test.  */
 
 static tree
-compare_range_with_value (enum tree_code comp, value_range_t *vr, tree val)
+compare_range_with_value (enum tree_code comp, value_range_t *vr, tree val,
+			  bool *strict_overflow_p)
 {
   if (vr->type == VR_VARYING || vr->type == VR_UNDEFINED)
     return NULL_TREE;
@@ -2298,20 +2824,23 @@ compare_range_with_value (enum tree_code comp, value_range_t *vr, tree val)
       return NULL_TREE;
     }
 
+  if (!usable_range_p (vr, strict_overflow_p))
+    return NULL_TREE;
+
   if (comp == EQ_EXPR)
     {
       /* EQ_EXPR may only be computed if VR represents exactly
 	 one value.  */
-      if (compare_values (vr->min, vr->max) == 0)
+      if (compare_values_warnv (vr->min, vr->max, strict_overflow_p) == 0)
 	{
-	  int cmp = compare_values (vr->min, val);
+	  int cmp = compare_values_warnv (vr->min, val, strict_overflow_p);
 	  if (cmp == 0)
 	    return boolean_true_node;
 	  else if (cmp == -1 || cmp == 1 || cmp == 2)
 	    return boolean_false_node;
 	}
-      else if (compare_values (val, vr->min) == -1
-	       || compare_values (vr->max, val) == -1)
+      else if (compare_values_warnv (val, vr->min, strict_overflow_p) == -1
+	       || compare_values_warnv (vr->max, val, strict_overflow_p) == -1)
 	return boolean_false_node;
 
       return NULL_TREE;
@@ -2319,14 +2848,14 @@ compare_range_with_value (enum tree_code comp, value_range_t *vr, tree val)
   else if (comp == NE_EXPR)
     {
       /* If VAL is not inside VR, then they are always different.  */
-      if (compare_values (vr->max, val) == -1
-	  || compare_values (vr->min, val) == 1)
+      if (compare_values_warnv (vr->max, val, strict_overflow_p) == -1
+	  || compare_values_warnv (vr->min, val, strict_overflow_p) == 1)
 	return boolean_true_node;
 
       /* If VR represents exactly one value equal to VAL, then return
 	 false.  */
-      if (compare_values (vr->min, vr->max) == 0
-	  && compare_values (vr->min, val) == 0)
+      if (compare_values_warnv (vr->min, vr->max, strict_overflow_p) == 0
+	  && compare_values_warnv (vr->min, val, strict_overflow_p) == 0)
 	return boolean_false_node;
 
       /* Otherwise, they may or may not be different.  */
@@ -2337,16 +2866,24 @@ compare_range_with_value (enum tree_code comp, value_range_t *vr, tree val)
       int tst;
 
       /* If VR is to the left of VAL, return true.  */
-      tst = compare_values (vr->max, val);
+      tst = compare_values_warnv (vr->max, val, strict_overflow_p);
       if ((comp == LT_EXPR && tst == -1)
 	  || (comp == LE_EXPR && (tst == -1 || tst == 0)))
-	return boolean_true_node;
+	{
+	  if (overflow_infinity_range_p (vr))
+	    *strict_overflow_p = true;
+	  return boolean_true_node;
+	}
 
       /* If VR is to the right of VAL, return false.  */
-      tst = compare_values (vr->min, val);
+      tst = compare_values_warnv (vr->min, val, strict_overflow_p);
       if ((comp == LT_EXPR && (tst == 0 || tst == 1))
 	  || (comp == LE_EXPR && tst == 1))
-	return boolean_false_node;
+	{
+	  if (overflow_infinity_range_p (vr))
+	    *strict_overflow_p = true;
+	  return boolean_false_node;
+	}
 
       /* Otherwise, we don't know.  */
       return NULL_TREE;
@@ -2356,16 +2893,24 @@ compare_range_with_value (enum tree_code comp, value_range_t *vr, tree val)
       int tst;
 
       /* If VR is to the right of VAL, return true.  */
-      tst = compare_values (vr->min, val);
+      tst = compare_values_warnv (vr->min, val, strict_overflow_p);
       if ((comp == GT_EXPR && tst == 1)
 	  || (comp == GE_EXPR && (tst == 0 || tst == 1)))
-	return boolean_true_node;
+	{
+	  if (overflow_infinity_range_p (vr))
+	    *strict_overflow_p = true;
+	  return boolean_true_node;
+	}
 
       /* If VR is to the left of VAL, return false.  */
-      tst = compare_values (vr->max, val);
+      tst = compare_values_warnv (vr->max, val, strict_overflow_p);
       if ((comp == GT_EXPR && (tst == -1 || tst == 0))
 	  || (comp == GE_EXPR && tst == -1))
-	return boolean_false_node;
+	{
+	  if (overflow_infinity_range_p (vr))
+	    *strict_overflow_p = true;
+	  return boolean_false_node;
+	}
 
       /* Otherwise, we don't know.  */
       return NULL_TREE;
@@ -2404,6 +2949,9 @@ dump_value_range (FILE *file, value_range_t *vr)
 	  && !TYPE_UNSIGNED (type)
 	  && vr->min == TYPE_MIN_VALUE (type))
 	fprintf (file, "-INF");
+      else if (needs_overflow_infinity (type)
+	       && is_negative_overflow_infinity (vr->min))
+	fprintf (file, "-INF(OVF)");
       else
 	print_generic_expr (file, vr->min, 0);
 
@@ -2412,6 +2960,9 @@ dump_value_range (FILE *file, value_range_t *vr)
       if (INTEGRAL_TYPE_P (type)
 	  && vr->max == TYPE_MAX_VALUE (type))
 	fprintf (file, "+INF");
+      else if (needs_overflow_infinity (type)
+	       && is_positive_overflow_infinity (vr->max))
+	fprintf (file, "+INF(OVF)");
       else
 	print_generic_expr (file, vr->max, 0);
 
@@ -2497,22 +3048,20 @@ build_assert_expr_for (tree cond, tree v)
   if (COMPARISON_CLASS_P (cond))
     {
       tree a = build2 (ASSERT_EXPR, TREE_TYPE (v), v, cond); 
-      assertion = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (v), n, a);
+      assertion = build_gimple_modify_stmt (n, a);
     }
   else if (TREE_CODE (cond) == TRUTH_NOT_EXPR)
     {
       /* Given !V, build the assignment N = false.  */
       tree op0 = TREE_OPERAND (cond, 0);
       gcc_assert (op0 == v);
-      assertion = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (v), n,
-			  boolean_false_node);
+      assertion = build_gimple_modify_stmt (n, boolean_false_node);
     }
   else if (TREE_CODE (cond) == SSA_NAME)
     {
       /* Given V, build the assignment N = true.  */
       gcc_assert (v == cond);
-      assertion = build2 (GIMPLE_MODIFY_STMT,
-	  		  TREE_TYPE (v), n, boolean_true_node);
+      assertion = build_gimple_modify_stmt (n, boolean_true_node);
     }
   else
     gcc_unreachable ();
@@ -2956,7 +3505,6 @@ register_edge_assert_for_1 (tree op, enum tree_code code,
     }
   else if (TREE_CODE (rhs) == NOP_EXPR
 	   || TREE_CODE (rhs) == CONVERT_EXPR
-	   || TREE_CODE (rhs) == VIEW_CONVERT_EXPR
 	   || TREE_CODE (rhs) == NON_LVALUE_EXPR)
     { 
       /* Recurse through the type conversion.  */
@@ -3478,6 +4026,171 @@ insert_range_assertions (void)
   BITMAP_FREE (need_assert_for);
 }
 
+/* Checks one ARRAY_REF in REF, located at LOCUS. Ignores flexible arrays
+   and "struct" hacks. If VRP can determine that the
+   array subscript is a constant, check if it is outside valid
+   range. If the array subscript is a RANGE, warn if it is
+   non-overlapping with valid range.
+   IGNORE_OFF_BY_ONE is true if the ARRAY_REF is inside a ADDR_EXPR.  */
+
+static void
+check_array_ref (tree ref, location_t* locus, bool ignore_off_by_one)
+{
+  value_range_t* vr = NULL;
+  tree low_sub, up_sub;
+  tree low_bound, up_bound = array_ref_up_bound (ref);
+
+  low_sub = up_sub = TREE_OPERAND (ref, 1);
+
+  if (!up_bound || !locus || TREE_NO_WARNING (ref)
+      || TREE_CODE (up_bound) != INTEGER_CST
+      /* Can not check flexible arrays.  */
+      || (TYPE_SIZE (TREE_TYPE (ref)) == NULL_TREE
+          && TYPE_DOMAIN (TREE_TYPE (ref)) != NULL_TREE
+          && TYPE_MAX_VALUE (TYPE_DOMAIN (TREE_TYPE (ref))) == NULL_TREE)
+      /* Accesses after the end of arrays of size 0 (gcc
+         extension) and 1 are likely intentional ("struct
+         hack").  */
+      || compare_tree_int (up_bound, 1) <= 0)
+    return;
+
+  low_bound = array_ref_low_bound (ref);
+
+  if (TREE_CODE (low_sub) == SSA_NAME)
+    {
+      vr = get_value_range (low_sub);
+      if (vr->type == VR_RANGE || vr->type == VR_ANTI_RANGE)
+        {
+          low_sub = vr->type == VR_RANGE ? vr->max : vr->min;
+          up_sub = vr->type == VR_RANGE ? vr->min : vr->max;
+        }
+    }
+
+  if (vr && vr->type == VR_ANTI_RANGE)
+    {
+      if (TREE_CODE (up_sub) == INTEGER_CST
+          && tree_int_cst_lt (up_bound, up_sub)
+          && TREE_CODE (low_sub) == INTEGER_CST
+          && tree_int_cst_lt (low_sub, low_bound))
+        {
+          warning (OPT_Warray_bounds,
+                   "%Harray subscript is outside array bounds", locus);
+          TREE_NO_WARNING (ref) = 1;
+        }
+    }
+  else if (TREE_CODE (up_sub) == INTEGER_CST
+           && tree_int_cst_lt (up_bound, up_sub)
+           && !tree_int_cst_equal (up_bound, up_sub)
+           && (!ignore_off_by_one
+               || !tree_int_cst_equal (int_const_binop (PLUS_EXPR,
+                                                        up_bound,
+                                                        integer_one_node,
+                                                        0),
+                                       up_sub)))
+    {
+      warning (OPT_Warray_bounds, "%Harray subscript is above array bounds",
+               locus);
+      TREE_NO_WARNING (ref) = 1;
+    }
+  else if (TREE_CODE (low_sub) == INTEGER_CST
+           && tree_int_cst_lt (low_sub, low_bound))
+    {
+      warning (OPT_Warray_bounds, "%Harray subscript is below array bounds",
+               locus);
+      TREE_NO_WARNING (ref) = 1;
+    }
+}
+
+/* walk_tree() callback that checks if *TP is
+   an ARRAY_REF inside an ADDR_EXPR (in which an array
+   subscript one outside the valid range is allowed). Call
+   check_array_ref for each ARRAY_REF found. The location is 
+   passed in DATA.  */
+
+static tree
+check_array_bounds (tree *tp, int *walk_subtree, void *data)
+{
+  tree t = *tp;
+  tree stmt = (tree)data;
+  location_t *location = EXPR_LOCUS (stmt);
+
+  *walk_subtree = TRUE;
+
+  if (TREE_CODE (t) == ARRAY_REF)
+    check_array_ref (t, location, false /*ignore_off_by_one*/);
+  else if (TREE_CODE (t) == ADDR_EXPR)
+    {
+       use_operand_p op;
+       tree use_stmt;
+       t = TREE_OPERAND (t, 0);
+
+       /* Don't warn on statements like
+
+          ssa_name = 500 + &array[-200]
+
+          or
+
+          ssa_name = &array[-200]
+          other_name = ssa_name + 300;
+
+          which are sometimes
+          produced by other optimizing passes.  */
+
+       if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+           && BINARY_CLASS_P (GIMPLE_STMT_OPERAND (stmt, 1)))
+         *walk_subtree = FALSE;
+
+       if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+           && TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 0)) == SSA_NAME
+           && single_imm_use (GIMPLE_STMT_OPERAND (stmt, 0), &op, &use_stmt)
+           && TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
+           && BINARY_CLASS_P (GIMPLE_STMT_OPERAND (use_stmt, 1)))
+         *walk_subtree = FALSE;
+
+       while (*walk_subtree && handled_component_p (t))
+         {
+           if (TREE_CODE (t) == ARRAY_REF)
+             check_array_ref (t, location, true /*ignore_off_by_one*/);
+           t = TREE_OPERAND (t, 0);
+         }
+       *walk_subtree = FALSE;
+    }
+
+  return NULL_TREE;
+}
+
+/* Walk over all statements of all reachable BBs and call check_array_bounds
+   on them.  */
+
+static void
+check_all_array_refs (void)
+{
+  basic_block bb;
+  block_stmt_iterator si;
+
+  FOR_EACH_BB (bb)
+    {
+      /* Skip bb's that are clearly unreachable.  */
+      if (single_pred_p (bb))
+      {
+	basic_block pred_bb = EDGE_PRED (bb, 0)->src;
+	tree ls = NULL_TREE;
+
+	if (!bsi_end_p (bsi_last (pred_bb)))
+	  ls = bsi_stmt (bsi_last (pred_bb));
+
+	if (ls && TREE_CODE (ls) == COND_EXPR
+	    && ((COND_EXPR_COND (ls) == boolean_false_node
+		 && (EDGE_PRED (bb, 0)->flags & EDGE_TRUE_VALUE))
+		|| (COND_EXPR_COND (ls) == boolean_true_node
+		    && (EDGE_PRED (bb, 0)->flags & EDGE_FALSE_VALUE))))
+	  continue;
+      }
+      for (si = bsi_start (bb); !bsi_end_p (si); bsi_next (&si))
+	walk_tree (bsi_stmt_ptr (si), check_array_bounds,
+		   bsi_stmt (si), NULL);
+    }
+}
 
 /* Convert range assertion expressions into the implied copies and
    copy propagate away the copies.  Doing the trivial copy propagation
@@ -3572,9 +4285,9 @@ stmt_interesting_for_vrp (tree stmt)
 	  && (INTEGRAL_TYPE_P (TREE_TYPE (lhs))
 	      || POINTER_TYPE_P (TREE_TYPE (lhs)))
 	  && ((TREE_CODE (rhs) == CALL_EXPR
-	       && TREE_CODE (TREE_OPERAND (rhs, 0)) == ADDR_EXPR
-	       && DECL_P (TREE_OPERAND (TREE_OPERAND (rhs, 0), 0))
-	       && DECL_IS_BUILTIN (TREE_OPERAND (TREE_OPERAND (rhs, 0), 0)))
+	       && TREE_CODE (CALL_EXPR_FN (rhs)) == ADDR_EXPR
+	       && DECL_P (TREE_OPERAND (CALL_EXPR_FN (rhs), 0))
+	       && DECL_IS_BUILTIN (TREE_OPERAND (CALL_EXPR_FN (rhs), 0)))
 	      || ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS)))
 	return true;
     }
@@ -3696,15 +4409,18 @@ vrp_visit_assignment (tree stmt, tree *output_p)
 
 /* Compare all the value ranges for names equivalent to VAR with VAL
    using comparison code COMP.  Return the same value returned by
-   compare_range_with_value.  */
+   compare_range_with_value, including the setting of
+   *STRICT_OVERFLOW_P.  */
 
 static tree
-compare_name_with_value (enum tree_code comp, tree var, tree val)
+compare_name_with_value (enum tree_code comp, tree var, tree val,
+			 bool *strict_overflow_p)
 {
   bitmap_iterator bi;
   unsigned i;
   bitmap e;
   tree retval, t;
+  int used_strict_overflow;
   
   t = retval = NULL_TREE;
 
@@ -3716,8 +4432,14 @@ compare_name_with_value (enum tree_code comp, tree var, tree val)
      the body of the loop just to check VAR's value range).  */
   bitmap_set_bit (e, SSA_NAME_VERSION (var));
 
+  /* Start at -1.  Set it to 0 if we do a comparison without relying
+     on overflow, or 1 if all comparisons rely on overflow.  */
+  used_strict_overflow = -1;
+
   EXECUTE_IF_SET_IN_BITMAP (e, 0, i, bi)
     {
+      bool sop;
+
       value_range_t equiv_vr = *(vr_value[i]);
 
       /* If name N_i does not have a valid range, use N_i as its own
@@ -3730,7 +4452,8 @@ compare_name_with_value (enum tree_code comp, tree var, tree val)
 	  equiv_vr.max = ssa_name (i);
 	}
 
-      t = compare_range_with_value (comp, &equiv_vr, val);
+      sop = false;
+      t = compare_range_with_value (comp, &equiv_vr, val, &sop);
       if (t)
 	{
 	  /* If we get different answers from different members
@@ -3744,6 +4467,11 @@ compare_name_with_value (enum tree_code comp, tree var, tree val)
 	      break;
 	    }
 	  retval = t;
+
+	  if (!sop)
+	    used_strict_overflow = 0;
+	  else if (used_strict_overflow < 0)
+	    used_strict_overflow = 1;
 	}
     }
 
@@ -3751,7 +4479,11 @@ compare_name_with_value (enum tree_code comp, tree var, tree val)
   bitmap_clear_bit (e, SSA_NAME_VERSION (var));
 
   if (retval)
-    return retval;
+    {
+      if (used_strict_overflow > 0)
+	*strict_overflow_p = true;
+      return retval;
+    }
 
   /* We couldn't find a non-NULL value for the predicate.  */
   return NULL_TREE;
@@ -3761,15 +4493,19 @@ compare_name_with_value (enum tree_code comp, tree var, tree val)
 /* Given a comparison code COMP and names N1 and N2, compare all the
    ranges equivalent to N1 against all the ranges equivalent to N2
    to determine the value of N1 COMP N2.  Return the same value
-   returned by compare_ranges.  */
+   returned by compare_ranges.  Set *STRICT_OVERFLOW_P to indicate
+   whether we relied on an overflow infinity in the comparison.  */
+
 
 static tree
-compare_names (enum tree_code comp, tree n1, tree n2)
+compare_names (enum tree_code comp, tree n1, tree n2,
+	       bool *strict_overflow_p)
 {
   tree t, retval;
   bitmap e1, e2;
   bitmap_iterator bi1, bi2;
   unsigned i1, i2;
+  int used_strict_overflow;
 
   /* Compare the ranges of every name equivalent to N1 against the
      ranges of every name equivalent to N2.  */
@@ -3794,6 +4530,10 @@ compare_names (enum tree_code comp, tree n1, tree n2)
 	     : boolean_false_node;
     }
 
+  /* Start at -1.  Set it to 0 if we do a comparison without relying
+     on overflow, or 1 if all comparisons rely on overflow.  */
+  used_strict_overflow = -1;
+
   /* Otherwise, compare all the equivalent ranges.  First, add N1 and
      N2 to their own set of equivalences to avoid duplicating the body
      of the loop just to check N1 and N2 ranges.  */
@@ -3812,6 +4552,8 @@ compare_names (enum tree_code comp, tree n1, tree n2)
       t = retval = NULL_TREE;
       EXECUTE_IF_SET_IN_BITMAP (e2, 0, i2, bi2)
 	{
+	  bool sop;
+
 	  value_range_t vr2 = *(vr_value[i2]);
 
 	  if (vr2.type == VR_VARYING || vr2.type == VR_UNDEFINED)
@@ -3821,7 +4563,7 @@ compare_names (enum tree_code comp, tree n1, tree n2)
 	      vr2.max = ssa_name (i2);
 	    }
 
-	  t = compare_ranges (comp, &vr1, &vr2);
+	  t = compare_ranges (comp, &vr1, &vr2, &sop);
 	  if (t)
 	    {
 	      /* If we get different answers from different members
@@ -3836,6 +4578,11 @@ compare_names (enum tree_code comp, tree n1, tree n2)
 		  return NULL_TREE;
 		}
 	      retval = t;
+
+	      if (!sop)
+		used_strict_overflow = 0;
+	      else if (used_strict_overflow < 0)
+		used_strict_overflow = 1;
 	    }
 	}
 
@@ -3843,6 +4590,8 @@ compare_names (enum tree_code comp, tree n1, tree n2)
 	{
 	  bitmap_clear_bit (e1, SSA_NAME_VERSION (n1));
 	  bitmap_clear_bit (e2, SSA_NAME_VERSION (n2));
+	  if (used_strict_overflow > 0)
+	    *strict_overflow_p = true;
 	  return retval;
 	}
     }
@@ -3864,10 +4613,14 @@ compare_names (enum tree_code comp, tree n1, tree n2)
    If USE_EQUIV_P is true, the ranges of all the names equivalent with
    the operands in COND are used when trying to compute its value.
    This is only used during final substitution.  During propagation,
-   we only check the range of each variable and not its equivalents.  */
+   we only check the range of each variable and not its equivalents.
 
-tree
-vrp_evaluate_conditional (tree cond, bool use_equiv_p)
+   Set *STRICT_OVERFLOW_P to indicate whether we relied on an overflow
+   infinity to produce the result.  */
+
+static tree
+vrp_evaluate_conditional_warnv (tree cond, bool use_equiv_p,
+				bool *strict_overflow_p)
 {
   gcc_assert (TREE_CODE (cond) == SSA_NAME
               || TREE_CODE_CLASS (TREE_CODE (cond)) == tcc_comparison);
@@ -3878,11 +4631,13 @@ vrp_evaluate_conditional (tree cond, bool use_equiv_p)
       tree retval;
 
       if (use_equiv_p)
-	retval = compare_name_with_value (NE_EXPR, cond, boolean_false_node);
+	retval = compare_name_with_value (NE_EXPR, cond, boolean_false_node,
+					  strict_overflow_p);
       else
 	{
 	  value_range_t *vr = get_value_range (cond);
-	  retval = compare_range_with_value (NE_EXPR, vr, boolean_false_node);
+	  retval = compare_range_with_value (NE_EXPR, vr, boolean_false_node,
+					     strict_overflow_p);
 	}
 
       /* If COND has a known boolean range, return it.  */
@@ -3908,12 +4663,15 @@ vrp_evaluate_conditional (tree cond, bool use_equiv_p)
       if (use_equiv_p)
 	{
 	  if (TREE_CODE (op0) == SSA_NAME && TREE_CODE (op1) == SSA_NAME)
-	    return compare_names (TREE_CODE (cond), op0, op1);
+	    return compare_names (TREE_CODE (cond), op0, op1,
+				  strict_overflow_p);
 	  else if (TREE_CODE (op0) == SSA_NAME)
-	    return compare_name_with_value (TREE_CODE (cond), op0, op1);
+	    return compare_name_with_value (TREE_CODE (cond), op0, op1,
+					    strict_overflow_p);
 	  else if (TREE_CODE (op1) == SSA_NAME)
-	    return compare_name_with_value (
-		    swap_tree_comparison (TREE_CODE (cond)), op1, op0);
+	    return (compare_name_with_value
+		    (swap_tree_comparison (TREE_CODE (cond)), op1, op0,
+		     strict_overflow_p));
 	}
       else
 	{
@@ -3923,17 +4681,69 @@ vrp_evaluate_conditional (tree cond, bool use_equiv_p)
 	  vr1 = (TREE_CODE (op1) == SSA_NAME) ? get_value_range (op1) : NULL;
 
 	  if (vr0 && vr1)
-	    return compare_ranges (TREE_CODE (cond), vr0, vr1);
+	    return compare_ranges (TREE_CODE (cond), vr0, vr1,
+				   strict_overflow_p);
 	  else if (vr0 && vr1 == NULL)
-	    return compare_range_with_value (TREE_CODE (cond), vr0, op1);
+	    return compare_range_with_value (TREE_CODE (cond), vr0, op1,
+					     strict_overflow_p);
 	  else if (vr0 == NULL && vr1)
-	    return compare_range_with_value (
-		    swap_tree_comparison (TREE_CODE (cond)), vr1, op0);
+	    return (compare_range_with_value
+		    (swap_tree_comparison (TREE_CODE (cond)), vr1, op0,
+		     strict_overflow_p));
 	}
     }
 
   /* Anything else cannot be computed statically.  */
   return NULL_TREE;
+}
+
+/* Given COND within STMT, try to simplify it based on value range
+   information.  Return NULL if the conditional can not be evaluated.
+   The ranges of all the names equivalent with the operands in COND
+   will be used when trying to compute the value.  If the result is
+   based on undefined signed overflow, issue a warning if
+   appropriate.  */
+
+tree
+vrp_evaluate_conditional (tree cond, tree stmt)
+{
+  bool sop;
+  tree ret;
+
+  sop = false;
+  ret = vrp_evaluate_conditional_warnv (cond, true, &sop);
+
+  if (ret && sop)
+    {
+      enum warn_strict_overflow_code wc;
+      const char* warnmsg;
+
+      if (is_gimple_min_invariant (ret))
+	{
+	  wc = WARN_STRICT_OVERFLOW_CONDITIONAL;
+	  warnmsg = G_("assuming signed overflow does not occur when "
+		       "simplifying conditional to constant");
+	}
+      else
+	{
+	  wc = WARN_STRICT_OVERFLOW_COMPARISON;
+	  warnmsg = G_("assuming signed overflow does not occur when "
+		       "simplifying conditional");
+	}
+
+      if (issue_strict_overflow_warning (wc))
+	{
+	  location_t locus;
+
+	  if (!EXPR_HAS_LOCATION (stmt))
+	    locus = input_location;
+	  else
+	    locus = EXPR_LOCATION (stmt);
+	  warning (OPT_Wstrict_overflow, "%H%s", &locus, warnmsg);
+	}
+    }
+
+  return ret;
 }
 
 
@@ -3946,6 +4756,7 @@ static enum ssa_prop_result
 vrp_visit_cond_stmt (tree stmt, edge *taken_edge_p)
 {
   tree cond, val;
+  bool sop;
 
   *taken_edge_p = NULL;
 
@@ -4018,9 +4829,21 @@ vrp_visit_cond_stmt (tree stmt, edge *taken_edge_p)
      additional checking.  Testing on several code bases (GCC, DLV,
      MICO, TRAMP3D and SPEC2000) showed that doing this results in
      4 more predicates folded in SPEC.  */
-  val = vrp_evaluate_conditional (cond, false);
+  sop = false;
+  val = vrp_evaluate_conditional_warnv (cond, false, &sop);
   if (val)
-    *taken_edge_p = find_taken_edge (bb_for_stmt (stmt), val);
+    {
+      if (!sop)
+	*taken_edge_p = find_taken_edge (bb_for_stmt (stmt), val);
+      else
+	{
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    fprintf (dump_file,
+		     "\nIgnoring predicate evaluation because "
+		     "it assumes that signed overflow is undefined");
+	  val = NULL_TREE;
+	}
+    }
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -4067,9 +4890,9 @@ vrp_visit_stmt (tree stmt, edge *taken_edge_p, tree *output_p)
 	 for deriving ranges, with the obvious exception of calls to
 	 builtin functions.  */
       if ((TREE_CODE (rhs) == CALL_EXPR
-	   && TREE_CODE (TREE_OPERAND (rhs, 0)) == ADDR_EXPR
-	   && DECL_P (TREE_OPERAND (TREE_OPERAND (rhs, 0), 0))
-	   && DECL_IS_BUILTIN (TREE_OPERAND (TREE_OPERAND (rhs, 0), 0)))
+	   && TREE_CODE (CALL_EXPR_FN (rhs)) == ADDR_EXPR
+	   && DECL_P (TREE_OPERAND (CALL_EXPR_FN (rhs), 0))
+	   && DECL_IS_BUILTIN (TREE_OPERAND (CALL_EXPR_FN (rhs), 0)))
 	  || ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS))
 	return vrp_visit_assignment (stmt, output_p);
     }
@@ -4312,18 +5135,42 @@ vrp_visit_phi_node (tree phi)
 	     other case to avoid infinite bouncing between different
 	     minimums.  */
 	  if (cmp_min > 0 || cmp_min < 0)
-	    vr_result.min = TYPE_MIN_VALUE (TREE_TYPE (vr_result.min));
+	    {
+	      /* If we will end up with a (-INF, +INF) range, set it
+		 to VARYING.  */
+	      if (is_positive_overflow_infinity (vr_result.max)
+		  || (vr_result.max
+		      == TYPE_MAX_VALUE (TREE_TYPE (vr_result.max))))
+		goto varying;
+
+	      if (!needs_overflow_infinity (TREE_TYPE (vr_result.min)))
+		vr_result.min = TYPE_MIN_VALUE (TREE_TYPE (vr_result.min));
+	      else if (supports_overflow_infinity (TREE_TYPE (vr_result.min)))
+		vr_result.min =
+		  negative_overflow_infinity (TREE_TYPE (vr_result.min));
+	      else
+		goto varying;
+	    }
 
 	  /* Similarly, if the new maximum is smaller or larger than
 	     the previous one, go all the way to +INF.  */
 	  if (cmp_max < 0 || cmp_max > 0)
-	    vr_result.max = TYPE_MAX_VALUE (TREE_TYPE (vr_result.max));
+	    {
+	      /* If we will end up with a (-INF, +INF) range, set it
+		 to VARYING.  */
+	      if (is_negative_overflow_infinity (vr_result.min)
+		  || (vr_result.min
+		      == TYPE_MIN_VALUE (TREE_TYPE (vr_result.min))))
+		goto varying;
 
-	  /* If we ended up with a (-INF, +INF) range, set it to
-	     VARYING.  */
-	  if (vr_result.min == TYPE_MIN_VALUE (TREE_TYPE (vr_result.min))
-	      && vr_result.max == TYPE_MAX_VALUE (TREE_TYPE (vr_result.max)))
-	    goto varying;
+	      if (!needs_overflow_infinity (TREE_TYPE (vr_result.max)))
+		vr_result.max = TYPE_MAX_VALUE (TREE_TYPE (vr_result.max));
+	      else if (supports_overflow_infinity (TREE_TYPE (vr_result.max)))
+		vr_result.max =
+		  positive_overflow_infinity (TREE_TYPE (vr_result.max));
+	      else
+		goto varying;
+	    }
 	}
     }
 
@@ -4358,7 +5205,26 @@ simplify_div_or_mod_using_ranges (tree stmt, tree rhs, enum tree_code rhs_code)
     }
   else
     {
-      val = compare_range_with_value (GT_EXPR, vr, integer_zero_node);
+      bool sop = false;
+
+      val = compare_range_with_value (GT_EXPR, vr, integer_zero_node, &sop);
+
+      if (val
+	  && sop
+	  && integer_onep (val)
+	  && issue_strict_overflow_warning (WARN_STRICT_OVERFLOW_MISC))
+	{
+	  location_t locus;
+
+	  if (!EXPR_HAS_LOCATION (stmt))
+	    locus = input_location;
+	  else
+	    locus = EXPR_LOCATION (stmt);
+	  warning (OPT_Wstrict_overflow,
+		   ("%Hassuming signed overflow does not occur when "
+		    "simplifying / or %% to >> or &"),
+		   &locus);
+	}
     }
 
   if (val && integer_onep (val))
@@ -4403,10 +5269,14 @@ simplify_abs_using_ranges (tree stmt, tree rhs)
     }
   else if (vr)
     {
-      val = compare_range_with_value (LE_EXPR, vr, integer_zero_node);
+      bool sop = false;
+
+      val = compare_range_with_value (LE_EXPR, vr, integer_zero_node, &sop);
       if (!val)
 	{
-	  val = compare_range_with_value (GE_EXPR, vr, integer_zero_node);
+	  sop = false;
+	  val = compare_range_with_value (GE_EXPR, vr, integer_zero_node,
+					  &sop);
 
 	  if (val)
 	    {
@@ -4421,6 +5291,20 @@ simplify_abs_using_ranges (tree stmt, tree rhs)
 	  && (integer_onep (val) || integer_zerop (val)))
 	{
 	  tree t;
+
+	  if (sop && issue_strict_overflow_warning (WARN_STRICT_OVERFLOW_MISC))
+	    {
+	      location_t locus;
+
+	      if (!EXPR_HAS_LOCATION (stmt))
+		locus = input_location;
+	      else
+		locus = EXPR_LOCATION (stmt);
+	      warning (OPT_Wstrict_overflow,
+		       ("%Hassuming signed overflow does not occur when "
+			"simplifying abs (X) to X or -X"),
+		       &locus);
+	    }
 
 	  if (integer_onep (val))
 	    t = build1 (NEGATE_EXPR, TREE_TYPE (op), op);
@@ -4450,10 +5334,12 @@ test_for_singularity (enum tree_code cond_code, tree op0,
      the conditional as it was written.  */
   if (cond_code == LE_EXPR || cond_code == LT_EXPR)
     {
+      /* This should not be negative infinity; there is no overflow
+	 here.  */
       min = TYPE_MIN_VALUE (TREE_TYPE (op0));
 
       max = op1;
-      if (cond_code == LT_EXPR)
+      if (cond_code == LT_EXPR && !is_overflow_infinity (max))
 	{
 	  tree one = build_int_cst (TREE_TYPE (op0), 1);
 	  max = fold_build2 (MINUS_EXPR, TREE_TYPE (op0), max, one);
@@ -4461,10 +5347,12 @@ test_for_singularity (enum tree_code cond_code, tree op0,
     }
   else if (cond_code == GE_EXPR || cond_code == GT_EXPR)
     {
+      /* This should not be positive infinity; there is no overflow
+	 here.  */
       max = TYPE_MAX_VALUE (TREE_TYPE (op0));
 
       min = op1;
-      if (cond_code == GT_EXPR)
+      if (cond_code == GT_EXPR && !is_overflow_infinity (min))
 	{
 	  tree one = build_int_cst (TREE_TYPE (op0), 1);
 	  min = fold_build2 (PLUS_EXPR, TREE_TYPE (op0), min, one);
@@ -4610,10 +5498,13 @@ simplify_stmt_using_ranges (tree stmt)
    restored.  */
 static VEC(tree,heap) *stack;
 
-/* A trivial wrapper so that we can present the generic jump
-   threading code with a simple API for simplifying statements.  */
+/* A trivial wrapper so that we can present the generic jump threading
+   code with a simple API for simplifying statements.  STMT is the
+   statement we want to simplify, WITHIN_STMT provides the location
+   for any overflow warnings.  */
+
 static tree
-simplify_stmt_for_jump_threading (tree stmt)
+simplify_stmt_for_jump_threading (tree stmt, tree within_stmt)
 {
   /* We only use VRP information to simplify conditionals.  This is
      overly conservative, but it's unclear if doing more would be
@@ -4621,7 +5512,7 @@ simplify_stmt_for_jump_threading (tree stmt)
   if (TREE_CODE (stmt) != COND_EXPR)
     return NULL;
 
-  return vrp_evaluate_conditional (COND_EXPR_COND (stmt), true);
+  return vrp_evaluate_conditional (COND_EXPR_COND (stmt), within_stmt);
 }
 
 /* Blocks which have more than one predecessor and more than
@@ -4745,13 +5636,9 @@ finalize_jump_threads (void)
   cfg_altered = thread_through_all_blocks ();
 
   /* If we threaded jumps, then we need to recompute the dominance
-     information, to safely do that we must clean up the CFG first.  */
+     information.  */
   if (cfg_altered)
-    {
-      free_dominance_info (CDI_DOMINATORS);
-      cleanup_tree_cfg ();
-      calculate_dominance_info (CDI_DOMINATORS);
-    }
+    free_dominance_info (CDI_DOMINATORS);
   VEC_free (tree, heap, stack);
 }
 
@@ -4796,6 +5683,9 @@ vrp_finalize (void)
     }
 
   substitute_and_fold (single_val_range, true);
+
+  if (warn_array_bounds)
+      check_all_array_refs ();
 
   /* We must identify jump threading opportunities before we release
      the datastructures built by VRP.  */
@@ -4920,7 +5810,6 @@ struct tree_opt_pass pass_vrp =
     | TODO_ggc_collect
     | TODO_verify_ssa
     | TODO_dump_func
-    | TODO_update_ssa
-    | TODO_update_smt_usage,			/* todo_flags_finish */
+    | TODO_update_ssa,			/* todo_flags_finish */
   0					/* letter */
 };

@@ -29,7 +29,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 /* A jump function for a callsite represents the values passed as actual 
    arguments of the callsite. There are three main types of values :
    Formal - the caller's formal parameter is passed as an actual argument.
-   Constant - a constant is passed as a an actual argument.
+   Constant - a constant is passed as an actual argument.
    Unknown - neither of the above.
    Integer and real constants are represented as CONST_IPATYPE and Fortran 
    constants are represented as CONST_IPATYPE_REF.  */
@@ -106,6 +106,9 @@ struct ipa_replace_map
    to ipa_node/ipa_edge struct.  */
 #define IPA_NODE_REF(MT) ((struct ipa_node *)(MT)->aux)
 #define IPA_EDGE_REF(EDGE) ((struct ipa_edge *)(EDGE)->aux)
+/* This macro checks validity of index returned by
+   ipa_method_tree_map function.  */
+#define IS_VALID_TREE_MAP_INDEX(I) ((I) != -1)
 
 /* ipa_node stores information related to a method and
    its formal parameters. It is pointed to by a field in the
@@ -198,7 +201,5 @@ void ipa_nodes_free (void);
 /* Debugging interface.  */
 void ipa_method_tree_print (FILE *);
 void ipa_method_modify_print (FILE *);
-
-unsigned int ipcp_driver (void);
 
 #endif /* IPA_PROP_H */

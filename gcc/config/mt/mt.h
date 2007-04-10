@@ -346,12 +346,12 @@ enum reg_class
 /* For MorphoRISC1:
 
    `I'	is used for the range of constants an arithmetic insn can
-	actually contain (16 bits signed integers).
+	actually contain (16-bit signed integers).
 
    `J'	is used for the range which is just zero (ie, $r0).
 
    `K'	is used for the range of constants a logical insn can actually
-	contain (16 bit zero-extended integers).
+	contain (16-bit zero-extended integers).
 
    `L'	is used for the range of constants that be loaded with lui
 	(ie, the bottom 16 bits are zero).
@@ -359,11 +359,11 @@ enum reg_class
    `M'	is used for the range of constants that take two words to load
 	(ie, not matched by `I', `K', and `L').
 
-   `N'	is used for negative 16 bit constants other than -65536.
+   `N'	is used for negative 16-bit constants other than -65536.
 
-   `O'	is a 15 bit signed integer.
+   `O'	is a 15-bit signed integer.
 
-   `P'	is used for positive 16 bit constants.  */
+   `P'	is used for positive 16-bit constants.  */
 
 #define SMALL_INT(X) ((unsigned HOST_WIDE_INT) (INTVAL (X) + 0x8000) < 0x10000)
 #define SMALL_INT_UNSIGNED(X) ((unsigned HOST_WIDE_INT) (INTVAL (X)) < 0x10000)
@@ -533,7 +533,7 @@ extern struct mt_frame_info current_frame_info;
 
 /* Define this if it is the responsibility of the caller to
    allocate the area reserved for arguments passed in registers.  */
-#define OUTGOING_REG_PARM_STACK_SPACE
+#define OUTGOING_REG_PARM_STACK_SPACE 1
 
 /* The number of register assigned to holding function arguments.  */
 #define MT_NUM_ARG_REGS        4

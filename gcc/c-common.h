@@ -90,6 +90,17 @@ enum rid
   /* casts */
   RID_CONSTCAST, RID_DYNCAST, RID_REINTCAST, RID_STATCAST,
 
+  /* C++ extensions */
+  RID_HAS_NOTHROW_ASSIGN,      RID_HAS_NOTHROW_CONSTRUCTOR,
+  RID_HAS_NOTHROW_COPY,        RID_HAS_TRIVIAL_ASSIGN,
+  RID_HAS_TRIVIAL_CONSTRUCTOR, RID_HAS_TRIVIAL_COPY,
+  RID_HAS_TRIVIAL_DESTRUCTOR,  RID_HAS_VIRTUAL_DESTRUCTOR,
+  RID_IS_ABSTRACT,             RID_IS_BASE_OF,
+  RID_IS_CONVERTIBLE_TO,       RID_IS_CLASS,
+  RID_IS_EMPTY,                RID_IS_ENUM,
+  RID_IS_POD,                  RID_IS_POLYMORPHIC,
+  RID_IS_UNION,
+
   /* C++0x */
   RID_STATIC_ASSERT,
 
@@ -108,6 +119,8 @@ enum rid
   RID_FIRST_MODIFIER = RID_STATIC,
   RID_LAST_MODIFIER = RID_ONEWAY,
 
+  RID_FIRST_CXX0X = RID_STATIC_ASSERT,
+  RID_LAST_CXX0X = RID_STATIC_ASSERT,
   RID_FIRST_AT = RID_AT_ENCODE,
   RID_LAST_AT = RID_AT_IMPLEMENTATION,
   RID_FIRST_PQ = RID_IN,
@@ -638,13 +651,13 @@ extern void finish_fname_decls (void);
 extern const char *fname_as_string (int);
 extern tree fname_decl (unsigned, tree);
 
-extern void check_function_arguments (tree, tree, tree);
+extern void check_function_arguments (tree, int, tree *, tree);
 extern void check_function_arguments_recurse (void (*)
 					      (void *, tree,
 					       unsigned HOST_WIDE_INT),
 					      void *, tree,
 					      unsigned HOST_WIDE_INT);
-extern void check_function_format (tree, tree);
+extern void check_function_format (tree, int, tree *);
 extern void set_Wformat (int);
 extern tree handle_format_attribute (tree *, tree, tree, int, bool *);
 extern tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
@@ -668,9 +681,11 @@ extern tree fix_string_type (tree);
 struct varray_head_tag;
 extern void constant_expression_warning (tree);
 extern void strict_aliasing_warning (tree, tree, tree);
-extern void empty_body_warning (tree, tree);
+extern void empty_if_body_warning (tree, tree);
+extern void warnings_for_convert_and_check (tree, tree, tree);
 extern tree convert_and_check (tree, tree);
 extern void overflow_warning (tree);
+extern void warn_logical_operator (enum tree_code, tree, tree);
 extern void check_main_parameter_types (tree decl);
 extern bool c_determine_visibility (tree);
 extern bool same_scalar_type_ignoring_signedness (tree, tree);
@@ -808,6 +823,7 @@ extern tree lookup_name (tree);
 extern bool vector_types_convertible_p (tree t1, tree t2, bool emit_lax_note);
 
 extern rtx c_expand_expr (tree, rtx, enum machine_mode, int, rtx *);
+extern void c_expand_body (tree);
 
 extern tree c_staticp (tree);
 
@@ -866,6 +882,8 @@ extern tree builtin_type_for_size (int, bool);
 extern void warn_array_subscript_with_type_char (tree);
 extern void warn_about_parentheses (enum tree_code, enum tree_code,
 				    enum tree_code);
+extern void warn_for_unused_label (tree label);
+extern void warn_for_div_by_zero (tree divisor);
 
 
 /* In c-gimplify.c  */
@@ -983,5 +1001,12 @@ extern tree c_omp_remap_decl (tree, bool);
 #ifndef GCC_DIAG_STYLE
 #define GCC_DIAG_STYLE __gcc_cdiag__
 #endif
+
+/* Functions called automatically at the beginning and end of execution.  */
+extern GTY (()) tree static_ctors;
+extern GTY (()) tree static_dtors;
+
+extern void c_record_cdtor_fn (tree);
+extern void c_build_cdtor_fns (void);
 
 #endif /* ! GCC_C_COMMON_H */

@@ -2903,7 +2903,7 @@ cp3 registers.
 cp1 + cp2 + cp3 registers.
 
 @item I
-Unsigned 15 bit integer (in the range 0 to 32767).
+High 16-bit constant (32-bit constant with 16 LSBs zero).
 
 @item J
 Unsigned 5 bit integer (in the range 0 to 31).
@@ -2919,18 +2919,6 @@ Unsigned 14 bit integer (in the range 0 to 16383).
 
 @item N
 Signed 14 bit integer (in the range @minus{}8192 to 8191).
-
-@item O
-Signed 15 bit integer (in the range @minus{}16384 to 16383).
-
-@item P
-Signed 12 bit integer (in the range @minus{}2048 to 2047).
-
-@item J
-An integer constant with exactly a single bit set.
-
-@item Q
-An integer constant.
 
 @item Z
 Any SYMBOL_REF.
@@ -3063,7 +3051,9 @@ definitions.
 @deffn {MD Expression} define_register_constraint name regclass docstring
 All three arguments are string constants.
 @var{name} is the name of the constraint, as it will appear in
-@code{match_operand} expressions.  @var{regclass} can be either the
+@code{match_operand} expressions.  If @var{name} is a multi-letter
+constraint its length shall be the same for all constraints starting
+with the same letter.  @var{regclass} can be either the
 name of the corresponding register class (@pxref{Register Classes}),
 or a C expression which evaluates to the appropriate register class.
 If it is an expression, it must have no side effects, and it cannot
@@ -3971,6 +3961,11 @@ destination, in the form of a @code{const_int} rtx.  Thus, if the
 compiler knows that both source and destination are word-aligned,
 it may provide the value 4 for this operand.
 
+Optional operands 5 and 6 specify expected alignment and size of block
+respectively.  The expected alignment differs from alignment in operand 4
+in a way that the blocks are not required to be aligned according to it in
+all cases. Expected size, when unknown, is set to @code{(const_int -1)}.
+
 Descriptions of multiple @code{movmem@var{m}} patterns can only be
 beneficial if the patterns for smaller modes have fewer restrictions
 on their first, second and fourth operands.  Note that the mode @var{m}
@@ -4002,6 +3997,11 @@ The fourth operand is the known alignment of the destination, in the form
 of a @code{const_int} rtx.  Thus, if the compiler knows that the
 destination is word-aligned, it may provide the value 4 for this
 operand.
+
+Optional operands 5 and 6 specify expected alignment and size of block
+respectively.  The expected alignment differs from alignment in operand 4
+in a way that the blocks are not required to be aligned according to it in
+all cases. Expected size, when unknown, is set to @code{(const_int -1)}.
 
 The use for multiple @code{setmem@var{m}} is as for @code{movmem@var{m}}.
 
@@ -4703,6 +4703,13 @@ respectively, a low or moderate degree of temporal locality.
 
 Targets that do not support write prefetches or locality hints can ignore
 the values of operands 1 and 2.
+
+@cindex @code{blockage} instruction pattern
+@item @samp{blockage}
+
+This pattern defines a pseudo insn that prevents the instruction
+scheduler from moving instructions across the boundary defined by the
+blockage insn.  Normally an UNSPEC_VOLATILE pattern.
 
 @cindex @code{memory_barrier} instruction pattern
 @item @samp{memory_barrier}

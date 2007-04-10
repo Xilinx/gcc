@@ -16,29 +16,41 @@ extern double cos (double);
 extern double sin (double);
 extern double tan (double);
 extern double fabs (double);
+extern double atan2 (double, double);
 extern double copysign (double, double);
 extern double fmin (double, double);
 extern double fmax (double, double);
 extern double hypot (double, double);
 extern double pure (double) __attribute__ ((__pure__));
+extern double carg (__complex__ double);
+extern __complex__ double ccos (__complex__ double);
+extern __complex__ double ctan (__complex__ double);
 extern float cosf (float);
 extern float sinf (float);
 extern float tanf (float);
 extern float fabsf (float);
+extern float atan2f (float, float);
 extern float copysignf (float, float);
 extern float fminf (float, float);
 extern float fmaxf (float, float);
 extern float hypotf (float, float);
 extern float puref (float) __attribute__ ((__pure__));
+extern float cargf (__complex__ float);
+extern __complex__ float ccosf (__complex__ float);
+extern __complex__ float ctanf (__complex__ float);
 extern long double cosl (long double);
 extern long double sinl (long double);
 extern long double tanl (long double);
 extern long double fabsl (long double);
+extern long double atan2l (long double, long double);
 extern long double copysignl (long double, long double);
 extern long double fminl (long double, long double);
 extern long double fmaxl (long double, long double);
 extern long double hypotl (long double, long double);
 extern long double purel (long double) __attribute__ ((__pure__));
+extern long double cargl (__complex__ long double);
+extern __complex__ long double ccosl (__complex__ long double);
+extern __complex__ long double ctanl (__complex__ long double);
 
 extern void link_error(void);
 
@@ -185,6 +197,87 @@ void test2(double x, double y)
   
   if (fmax (x,fmin(y,x)) != x)
     link_error ();
+
+  if ((__complex__ double) x != -(__complex__ double) (-x))
+    link_error ();
+
+  if (x*1i != -(-x*1i))
+    link_error ();
+
+  if (x+(x-y)*1i != -(-x+(y-x)*1i))
+    link_error ();
+
+  if (x+(x-y)*1i != -(-x-(x-y)*1i))
+    link_error ();
+
+  if (ccos(tan(x)+sin(y)*1i) != ccos(-tan(-x)+-sin(-y)*1i))
+    link_error ();
+
+  if (ccos(tan(x)+sin(x-y)*1i) != ccos(-tan(-x)-sin(y-x)*1i))
+    link_error ();
+
+  if (-5+x*1i != -~(5+x*1i))
+    link_error ();
+
+  if (tan(x)+tan(y)*1i != -~(tan(-x)+tan(y)*1i))
+    link_error ();
+}
+
+void test3(__complex__ double x, __complex__ double y, int i)
+{
+  if (carg(x) != atan2(__imag__ x, __real__ x))
+    link_error ();
+
+  if (ccos(x) != ccos(-x))
+    link_error();
+
+  if (ccos(ctan(x)) != ccos(ctan(-x)))
+    link_error();
+
+  if (ctan(x-y) != -ctan(y-x))
+    link_error();
+
+  if (ccos(x/y) != ccos(-x/y))
+    link_error();
+
+  if (ccos(x/y) != ccos(x/-y))
+    link_error();
+
+  if (ccos(x/ctan(y)) != ccos(-x/ctan(-y)))
+    link_error();
+
+  if (ccos(x*y) != ccos(-x*y))
+    link_error();
+
+  if (ccos(x*y) != ccos(x*-y))
+    link_error();
+
+  if (ccos(ctan(x)*y) != ccos(ctan(-x)*-y))
+    link_error();
+
+  if (ccos(ctan(x/y)) != ccos(-ctan(x/-y)))
+    link_error();
+
+  if (ccos(i ? x : y) != ccos(i ? -x : y))
+    link_error();
+
+  if (ccos(i ? x : y) != ccos(i ? x : -y))
+    link_error();
+
+  if (ccos(i ? x : ctan(y/x)) != ccos(i ? -x : -ctan(-y/x)))
+    link_error();
+
+  if (~x != -~-x)
+    link_error();
+
+  if (ccos(~x) != ccos(-~-x))
+    link_error();
+
+  if (ctan(~(x-y)) != -ctan(~(y-x)))
+    link_error();
+
+  if (ctan(~(x/y)) != -ctan(~(x/-y)))
+    link_error();
 }
 
 void test1f(float x)
@@ -332,8 +425,85 @@ void test2f(float x, float y)
   
   if (fmaxf (x,fminf(y,x)) != x)
     link_error ();
+
+  if ((__complex__ float) x != -(__complex__ float) (-x))
+    link_error ();
+
+  if (x+(x-y)*1i != -(-x+(y-x)*1i))
+    link_error ();
+
+  if (x+(x-y)*1i != -(-x-(x-y)*1i))
+    link_error ();
+
+  if (ccosf(tanf(x)+sinf(y)*1i) != ccosf(-tanf(-x)+-sinf(-y)*1i))
+    link_error ();
+
+  if (ccosf(tanf(x)+sinf(x-y)*1i) != ccosf(-tanf(-x)-sinf(y-x)*1i))
+    link_error ();
+
+  if (-5+x*1i != -~(5+x*1i))
+    link_error ();
+
+  if (tanf(x)+tanf(y)*1i != -~(tanf(-x)+tanf(y)*1i))
+    link_error ();
 }
 
+void test3f(__complex__ float x, __complex__ float y, int i)
+{
+  if (cargf(x) != atan2f(__imag__ x, __real__ x))
+    link_error ();
+
+  if (ccosf(x) != ccosf(-x))
+    link_error();
+
+  if (ccosf(ctanf(x)) != ccosf(ctanf(-x)))
+    link_error();
+
+  if (ctanf(x-y) != -ctanf(y-x))
+    link_error();
+
+  if (ccosf(x/y) != ccosf(-x/y))
+    link_error();
+
+  if (ccosf(x/y) != ccosf(x/-y))
+    link_error();
+
+  if (ccosf(x/ctanf(y)) != ccosf(-x/ctanf(-y)))
+    link_error();
+
+  if (ccosf(x*y) != ccosf(-x*y))
+    link_error();
+
+  if (ccosf(x*y) != ccosf(x*-y))
+    link_error();
+
+  if (ccosf(ctanf(x)*y) != ccosf(ctanf(-x)*-y))
+    link_error();
+
+  if (ccosf(ctanf(x/y)) != ccosf(-ctanf(x/-y)))
+    link_error();
+
+  if (ccosf(i ? x : y) != ccosf(i ? -x : y))
+    link_error();
+
+  if (ccosf(i ? x : y) != ccosf(i ? x : -y))
+    link_error();
+
+  if (ccosf(i ? x : ctanf(y/x)) != ccosf(i ? -x : -ctanf(-y/x)))
+    link_error();
+
+  if (~x != -~-x)
+    link_error();
+
+  if (ccosf(~x) != ccosf(-~-x))
+    link_error();
+
+  if (ctanf(~(x-y)) != -ctanf(~(y-x)))
+    link_error();
+
+  if (ctanf(~(x/y)) != -ctanf(~(x/-y)))
+    link_error();
+}
 
 void test1l(long double x)
 {
@@ -480,6 +650,84 @@ void test2l(long double x, long double y)
   
   if (fmaxl (x,fminl(y,x)) != x)
     link_error ();
+
+  if ((__complex__ long double) x != -(__complex__ long double) (-x))
+    link_error ();
+
+  if (x+(x-y)*1i != -(-x+(y-x)*1i))
+    link_error ();
+
+  if (x+(x-y)*1i != -(-x-(x-y)*1i))
+    link_error ();
+
+  if (ccosl(tanl(x)+sinl(y)*1i) != ccosl(-tanl(-x)+-sinl(-y)*1i))
+    link_error ();
+
+  if (ccosl(tanl(x)+sinl(x-y)*1i) != ccosl(-tanl(-x)-sinl(y-x)*1i))
+    link_error ();
+
+  if (-5+x*1i != -~(5+x*1i))
+    link_error ();
+
+  if (tanl(x)+tanl(y)*1i != -~(tanl(-x)+tanl(y)*1i))
+    link_error ();
+}
+
+void test3l(__complex__ long double x, __complex__ long double y, int i)
+{
+  if (cargl(x) != atan2l(__imag__ x, __real__ x))
+    link_error ();
+
+  if (ccosl(x) != ccosl(-x))
+    link_error();
+
+  if (ccosl(ctanl(x)) != ccosl(ctanl(-x)))
+    link_error();
+
+  if (ctanl(x-y) != -ctanl(y-x))
+    link_error();
+
+  if (ccosl(x/y) != ccosl(-x/y))
+    link_error();
+
+  if (ccosl(x/y) != ccosl(x/-y))
+    link_error();
+
+  if (ccosl(x/ctanl(y)) != ccosl(-x/ctanl(-y)))
+    link_error();
+
+  if (ccosl(x*y) != ccosl(-x*y))
+    link_error();
+
+  if (ccosl(x*y) != ccosl(x*-y))
+    link_error();
+
+  if (ccosl(ctanl(x)*y) != ccosl(ctanl(-x)*-y))
+    link_error();
+
+  if (ccosl(ctanl(x/y)) != ccosl(-ctanl(x/-y)))
+    link_error();
+
+  if (ccosl(i ? x : y) != ccosl(i ? -x : y))
+    link_error();
+
+  if (ccosl(i ? x : y) != ccosl(i ? x : -y))
+    link_error();
+
+  if (ccosl(i ? x : ctanl(y/x)) != ccosl(i ? -x : -ctanl(-y/x)))
+    link_error();
+
+  if (~x != -~-x)
+    link_error();
+
+  if (ccosl(~x) != ccosl(-~-x))
+    link_error();
+
+  if (ctanl(~(x-y)) != -ctanl(~(y-x)))
+    link_error();
+
+  if (ctanl(~(x/y)) != -ctanl(~(x/-y)))
+    link_error();
 }
 
 int main()

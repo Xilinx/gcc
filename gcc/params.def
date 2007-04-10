@@ -1,5 +1,6 @@
 /* params.def - Run-time parameters.
-   Copyright (C) 2001, 2002, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007 
+   Free Software Foundation, Inc.
    Written by Mark Mitchell <mark@codesourcery.com>.
 
 This file is part of GCC.
@@ -146,6 +147,12 @@ DEFPARAM (PARAM_MAX_VARIABLE_EXPANSIONS,
 	  "If -fvariable-expansion-in-unroller is used, the maximum number of times that an individual variable will be expanded during loop unrolling",
           1, 0, 0)
      
+/* Limit loop autovectorization to loops with large enough iteration count.  */
+DEFPARAM (PARAM_MIN_VECT_LOOP_BOUND,
+	  "min-vect-loop-bound",
+	  "If -ftree-vectorize is used, the minimal loop bound of a loop to be considered for vectorization",
+	  0, 0, 0)
+
 /* The maximum number of instructions to consider when looking for an
    instruction to fill a delay slot.  If more than this arbitrary
    number of instructions is searched, the time savings from filling
@@ -193,7 +200,7 @@ DEFPARAM(PARAM_LARGE_UNIT_INSNS,
 DEFPARAM(PARAM_INLINE_UNIT_GROWTH,
 	 "inline-unit-growth",
 	 "how much can given compilation unit grow because of the inlining (in percent)",
-	 50, 0, 0)
+	 30, 0, 0)
 DEFPARAM(PARAM_INLINE_CALL_COST,
 	 "inline-call-cost",
 	 "expense of call operation relative to ordinary arithmetic operations",
@@ -445,6 +452,41 @@ DEFPARAM(PARAM_SCEV_MAX_EXPR_SIZE,
  	 "scev-max-expr-size",
 	 "Bound on size of expressions used in the scalar evolutions analyzer",
 	 20, 0, 0)
+
+DEFPARAM(PARAM_OMEGA_MAX_VARS,
+ 	 "omega-max-vars",
+	 "Bound on the number of variables in Omega constraint systems",
+	 128, 0, 0)
+
+DEFPARAM(PARAM_OMEGA_MAX_GEQS,
+ 	 "omega-max-geqs",
+	 "Bound on the number of inequalities in Omega constraint systems",
+	 256, 0, 0)
+
+DEFPARAM(PARAM_OMEGA_MAX_EQS,
+ 	 "omega-max-eqs",
+	 "Bound on the number of equalities in Omega constraint systems",
+	 128, 0, 0)
+
+DEFPARAM(PARAM_OMEGA_MAX_WILD_CARDS,
+ 	 "omega-max-wild-cards",
+	 "Bound on the number of wild cards in Omega constraint systems",
+	 18, 0, 0)
+
+DEFPARAM(PARAM_OMEGA_HASH_TABLE_SIZE,
+ 	 "omega-hash-table-size",
+	 "Bound on the size of the hash table in Omega constraint systems",
+	 550, 0, 0)
+
+DEFPARAM(PARAM_OMEGA_MAX_KEYS,
+ 	 "omega-max-keys",
+	 "Bound on the number of keys in Omega constraint systems",
+	 500, 0, 0)
+
+DEFPARAM(PARAM_OMEGA_ELIMINATE_REDUNDANT_CONSTRAINTS,
+ 	 "omega-eliminate-redundant-constraints",
+	 "When set to 1, use expensive methods to eliminate all redundant constraints",
+	 0, 0, 1)
 
 DEFPARAM(PARAM_VECT_MAX_VERSION_CHECKS,
          "vect-max-version-checks",

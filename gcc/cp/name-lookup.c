@@ -771,7 +771,7 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 
       check_template_shadow (x);
 
-      /* If this is a function conjured up by the backend, massage it
+      /* If this is a function conjured up by the back end, massage it
 	 so it looks friendly.  */
       if (DECL_NON_THUNK_FUNCTION_P (x) && ! DECL_LANG_SPECIFIC (x))
 	{
@@ -4563,6 +4563,18 @@ arg_assoc_type (struct arg_lookup *k, tree type)
     case LANG_TYPE:
       gcc_assert (type == unknown_type_node);
       return false;
+    case TYPE_PACK_EXPANSION:
+      return arg_assoc_type (k, PACK_EXPANSION_PATTERN (type));
+    case TYPE_ARGUMENT_PACK:
+      {
+        tree args = ARGUMENT_PACK_ARGS (type);
+        int i, len = TREE_VEC_LENGTH (args);
+        for (i = 0; i < len; i++)
+          if (arg_assoc_type (k, TREE_VEC_ELT (args, i)))
+            return true;
+      }
+      break;
+
     default:
       gcc_unreachable ();
     }
@@ -5018,7 +5030,7 @@ push_to_top_level (void)
   struct cp_binding_level *b;
   cxx_saved_binding *sb;
   size_t i;
-  int need_pop;
+  bool need_pop;
 
   timevar_push (TV_NAME_LOOKUP);
   s = GGC_CNEW (struct saved_scope);
@@ -5028,11 +5040,11 @@ push_to_top_level (void)
   /* If we're in the middle of some function, save our state.  */
   if (cfun)
     {
-      need_pop = 1;
+      need_pop = true;
       push_function_context_to (NULL_TREE);
     }
   else
-    need_pop = 0;
+    need_pop = false;
 
   if (scope_chain && previous_class_level)
     store_class_bindings (previous_class_level->class_shadowed,

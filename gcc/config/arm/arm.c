@@ -150,6 +150,7 @@ static int arm_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 
 #ifdef OBJECT_FORMAT_ELF
 static void arm_elf_asm_constructor (rtx, int);
+static void arm_elf_asm_destructor (rtx, int);
 #endif
 #ifndef ARM_PE
 static void arm_encode_section_info (tree, rtx, int);
@@ -1145,11 +1146,6 @@ arm_override_options (void)
       && (TARGET_DEFAULT & MASK_APCS_FRAME))
     warning (0, "-g with -mno-apcs-frame may not give sensible debugging");
 
-  /* If stack checking is disabled, we can use r10 as the PIC register,
-     which keeps r9 available.  */
-  if (flag_pic && TARGET_SINGLE_PIC_BASE)
-    arm_pic_register = TARGET_APCS_STACK ? 9 : 10;
-
   if (TARGET_APCS_FLOAT)
     warning (0, "passing floating point arguments in fp regs not yet supported");
 
@@ -1342,6 +1338,11 @@ arm_override_options (void)
 	warning (0, "structure size boundary can only be set to %s",
 		 ARM_DOUBLEWORD_ALIGN ? "8, 32 or 64": "8 or 32");
     }
+
+  /* If stack checking is disabled, we can use r10 as the PIC register,
+     which keeps r9 available.  The EABI specifies r9 as the PIC register.  */
+  if (flag_pic && TARGET_SINGLE_PIC_BASE)
+    arm_pic_register = (TARGET_APCS_STACK || TARGET_AAPCS_BASED) ? 9 : 10;
 
   if (arm_pic_register_string != NULL)
     {
@@ -3190,7 +3191,7 @@ current_file_function_operand (rtx sym_ref)
   return 0;
 }
 
-/* Return nonzero if a 32 bit "long_call" should be generated for
+/* Return nonzero if a 32-bit "long_call" should be generated for
    this call.  We generate a long_call if the function:
 
         a.  has an __attribute__((long call))
@@ -3922,10 +3923,15 @@ thumb2_legitimate_index_p (enum machine_mode mode, rtx index, int strict_p)
 	    && (INTVAL (index) & 3) == 0);
 
   if (TARGET_REALLY_IWMMXT && VALID_IWMMXT_REG_MODE (mode))
-    return (code == CONST_INT
-	    && INTVAL (index) < 1024
-	    && INTVAL (index) > -1024
-	    && (INTVAL (index) & 3) == 0);
+    {
+      /* For DImode assume values will usually live in core regs
+	 and only allow LDRD addressing modes.  */
+      if (!TARGET_LDRD || mode != DImode)
+	return (code == CONST_INT
+		&& INTVAL (index) < 1024
+		&& INTVAL (index) > -1024
+		&& (INTVAL (index) & 3) == 0);
+    }
 
   if (arm_address_register_rtx_p (index, strict_p)
       && (GET_MODE_SIZE (mode) <= 4))
@@ -4076,7 +4082,7 @@ thumb1_legitimate_address_p (enum machine_mode mode, rtx x, int strict_p)
 	       && thumb_legitimate_offset_p (mode, INTVAL (XEXP (x, 1))))
 	return 1;
 
-      /* REG+const has 10 bit offset for SP, but only SImode and
+      /* REG+const has 10-bit offset for SP, but only SImode and
 	 larger is supported.  */
       /* ??? Should probably check for DI/DFmode overflow here
 	 just like GO_IF_LEGITIMATE_OFFSET does.  */
@@ -4385,8 +4391,8 @@ arm_legitimize_address (rtx x, rtx orig_x, enum machine_mode mode)
       HOST_WIDE_INT mask, base, index;
       rtx base_reg;
 
-      /* ldr and ldrb can use a 12 bit index, ldrsb and the rest can only
-         use a 8 bit index. So let's use a 12 bit index for SImode only and
+      /* ldr and ldrb can use a 12-bit index, ldrsb and the rest can only
+         use a 8-bit index. So let's use a 12-bit index for SImode only and
          hope that arm_gen_constant will enable ldrb to use more bits. */
       bits = (mode == SImode) ? 12 : 8;
       mask = (1 << bits) - 1;
@@ -5764,12 +5770,12 @@ arm_eliminable_register (rtx x)
 }
 
 /* Return GENERAL_REGS if a scratch register required to reload x to/from
-   VFP registers.  Otherwise return NO_REGS.  */
+   coprocessor registers.  Otherwise return NO_REGS.  */
 
 enum reg_class
-vfp_secondary_reload_class (enum machine_mode mode, rtx x)
+coproc_secondary_reload_class (enum machine_mode mode, rtx x, bool wb)
 {
-  if (arm_coproc_mem_operand (x, FALSE) || s_register_operand (x, mode))
+  if (arm_coproc_mem_operand (x, wb) || s_register_operand (x, mode))
     return NO_REGS;
 
   return GENERAL_REGS;
@@ -7710,7 +7716,7 @@ get_jump_table_size (rtx insn)
       switch (modesize)
 	{
 	case 1:
-	  /* Round up size of TBB table to a haflword boundary.  */
+	  /* Round up size  of TBB table to a halfword boundary.  */
 	  size = (size + 1) & ~(HOST_WIDE_INT)1;
 	  break;
 	case 2:
@@ -9146,12 +9152,37 @@ output_move_double (rtx *operands)
 		  output_asm_insn ("ldr%(d%)\t%0, [%1] @split", otherops);
 		}
 	      else
-		output_asm_insn ("ldr%(d%)\t%0, [%1, %2]!", otherops);
+		{
+		  /* IWMMXT allows offsets larger than ldrd can handle,
+		     fix these up with a pair of ldr.  */
+		  if (GET_CODE (otherops[2]) == CONST_INT
+		      && (INTVAL(otherops[2]) <= -256
+			  || INTVAL(otherops[2]) >= 256))
+		    {
+		      output_asm_insn ("ldr%?\t%0, [%1, %2]!", otherops);
+		      otherops[0] = gen_rtx_REG (SImode, 1 + reg0);
+		      output_asm_insn ("ldr%?\t%0, [%1, #4]", otherops);
+		    }
+		  else
+		    output_asm_insn ("ldr%(d%)\t%0, [%1, %2]!", otherops);
+		}
 	    }
 	  else
 	    {
-	      /* We only allow constant increments, so this is safe.  */
-	      output_asm_insn ("ldr%(d%)\t%0, [%1], %2", otherops);
+	      /* IWMMXT allows offsets larger than ldrd can handle,
+		 fix these up with a pair of ldr.  */
+	      if (GET_CODE (otherops[2]) == CONST_INT
+		  && (INTVAL(otherops[2]) <= -256
+		      || INTVAL(otherops[2]) >= 256))
+		{
+		  otherops[0] = gen_rtx_REG (SImode, 1 + reg0);
+		  output_asm_insn ("ldr%?\t%0, [%1, #4]", otherops);
+		  otherops[0] = operands[0];
+		  output_asm_insn ("ldr%?\t%0, [%1], %2", otherops);
+		}
+	      else
+		/* We only allow constant increments, so this is safe.  */
+		output_asm_insn ("ldr%(d%)\t%0, [%1], %2", otherops);
 	    }
 	  break;
 
@@ -9289,7 +9320,29 @@ output_move_double (rtx *operands)
 	  otherops[1] = XEXP (XEXP (XEXP (operands[0], 0), 1), 0);
 	  otherops[2] = XEXP (XEXP (XEXP (operands[0], 0), 1), 1);
 
-	  if (GET_CODE (XEXP (operands[0], 0)) == PRE_MODIFY)
+	  /* IWMMXT allows offsets larger than ldrd can handle,
+	     fix these up with a pair of ldr.  */
+	  if (GET_CODE (otherops[2]) == CONST_INT
+	      && (INTVAL(otherops[2]) <= -256
+		  || INTVAL(otherops[2]) >= 256))
+	    {
+	      rtx reg1;
+	      reg1 = gen_rtx_REG (SImode, 1 + REGNO (operands[1]));
+	      if (GET_CODE (XEXP (operands[0], 0)) == PRE_MODIFY)
+		{
+		  output_asm_insn ("ldr%?\t%0, [%1, %2]!", otherops);
+		  otherops[0] = reg1;
+		  output_asm_insn ("ldr%?\t%0, [%1, #4]", otherops);
+		}
+	      else
+		{
+		  otherops[0] = reg1;
+		  output_asm_insn ("ldr%?\t%0, [%1, #4]", otherops);
+		  otherops[0] = operands[1];
+		  output_asm_insn ("ldr%?\t%0, [%1], %2", otherops);
+		}
+	    }
+	  else if (GET_CODE (XEXP (operands[0], 0)) == PRE_MODIFY)
 	    output_asm_insn ("str%(d%)\t%0, [%1, %2]!", otherops);
 	  else
 	    output_asm_insn ("str%(d%)\t%0, [%1], %2", otherops);
@@ -11996,17 +12049,16 @@ arm_assemble_integer (rtx x, unsigned int size, int aligned_p)
   return default_assemble_integer (x, size, aligned_p);
 }
 
-
-/* Add a function to the list of static constructors.  */
-
 static void
-arm_elf_asm_constructor (rtx symbol, int priority)
+arm_elf_asm_cdtor (rtx symbol, int priority, bool is_ctor)
 {
   section *s;
 
   if (!TARGET_AAPCS_BASED)
     {
-      default_named_section_asm_out_constructor (symbol, priority);
+      (is_ctor ? 
+       default_named_section_asm_out_constructor 
+       : default_named_section_asm_out_destructor) (symbol, priority);
       return;
     }
 
@@ -12014,17 +12066,37 @@ arm_elf_asm_constructor (rtx symbol, int priority)
   if (priority != DEFAULT_INIT_PRIORITY)
     {
       char buf[18];
-      sprintf (buf, ".init_array.%.5u", priority);
+      sprintf (buf, "%s.%.5u", 
+	       is_ctor ? ".init_array" : ".fini_array",
+	       priority);
       s = get_section (buf, SECTION_WRITE, NULL_TREE);
     }
-  else
+  else if (is_ctor)
     s = ctors_section;
+  else
+    s = dtors_section;
 
   switch_to_section (s);
   assemble_align (POINTER_SIZE);
   fputs ("\t.word\t", asm_out_file);
   output_addr_const (asm_out_file, symbol);
   fputs ("(target1)\n", asm_out_file);
+}
+
+/* Add a function to the list of static constructors.  */
+
+static void
+arm_elf_asm_constructor (rtx symbol, int priority)
+{
+  arm_elf_asm_cdtor (symbol, priority, /*is_ctor=*/true);
+}
+
+/* Add a function to the list of static destructors.  */
+
+static void
+arm_elf_asm_destructor (rtx symbol, int priority)
+{
+  arm_elf_asm_cdtor (symbol, priority, /*is_ctor=*/false);
 }
 #endif
 
@@ -12195,7 +12267,7 @@ get_arm_condition_code (rtx comparison)
     }
 }
 
-/* Tell arm_asm_ouput_opcode to output IT blocks for conditionally executed
+/* Tell arm_asm_output_opcode to output IT blocks for conditionally executed
    instructions.  */
 void
 thumb2_final_prescan_insn (rtx insn)
@@ -12243,10 +12315,7 @@ thumb2_final_prescan_insn (rtx insn)
       /* USE and CLOBBER aren't really insns, so just skip them.  */
       if (GET_CODE (body) == USE
 	  || GET_CODE (body) == CLOBBER)
-	{
-	  arm_condexec_count++;
-	  continue;
-	}
+	continue;
 
       /* ??? Recognize conditional jumps, and combine them with IT blocks.  */
       if (GET_CODE (body) != COND_EXEC)
@@ -13341,11 +13410,11 @@ safe_vector_operand (rtx x, enum machine_mode mode)
 
 static rtx
 arm_expand_binop_builtin (enum insn_code icode,
-			  tree arglist, rtx target)
+			  tree exp, rtx target)
 {
   rtx pat;
-  tree arg0 = TREE_VALUE (arglist);
-  tree arg1 = TREE_VALUE (TREE_CHAIN (arglist));
+  tree arg0 = CALL_EXPR_ARG (exp, 0);
+  tree arg1 = CALL_EXPR_ARG (exp, 1);
   rtx op0 = expand_normal (arg0);
   rtx op1 = expand_normal (arg1);
   enum machine_mode tmode = insn_data[icode].operand[0].mode;
@@ -13380,10 +13449,10 @@ arm_expand_binop_builtin (enum insn_code icode,
 
 static rtx
 arm_expand_unop_builtin (enum insn_code icode,
-			 tree arglist, rtx target, int do_load)
+			 tree exp, rtx target, int do_load)
 {
   rtx pat;
-  tree arg0 = TREE_VALUE (arglist);
+  tree arg0 = CALL_EXPR_ARG (exp, 0);
   rtx op0 = expand_normal (arg0);
   enum machine_mode tmode = insn_data[icode].operand[0].mode;
   enum machine_mode mode0 = insn_data[icode].operand[1].mode;
@@ -13425,8 +13494,7 @@ arm_expand_builtin (tree exp,
 {
   const struct builtin_description * d;
   enum insn_code    icode;
-  tree              fndecl = TREE_OPERAND (TREE_OPERAND (exp, 0), 0);
-  tree              arglist = TREE_OPERAND (exp, 1);
+  tree              fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
   tree              arg0;
   tree              arg1;
   tree              arg2;
@@ -13455,8 +13523,8 @@ arm_expand_builtin (tree exp,
 	       : fcode == ARM_BUILTIN_TEXTRMUH ? CODE_FOR_iwmmxt_textrmuh
 	       : CODE_FOR_iwmmxt_textrmw);
 
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
+      arg0 = CALL_EXPR_ARG (exp, 0);
+      arg1 = CALL_EXPR_ARG (exp, 1);
       op0 = expand_normal (arg0);
       op1 = expand_normal (arg1);
       tmode = insn_data[icode].operand[0].mode;
@@ -13487,9 +13555,9 @@ arm_expand_builtin (tree exp,
       icode = (fcode == ARM_BUILTIN_TINSRB ? CODE_FOR_iwmmxt_tinsrb
 	       : fcode == ARM_BUILTIN_TINSRH ? CODE_FOR_iwmmxt_tinsrh
 	       : CODE_FOR_iwmmxt_tinsrw);
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
-      arg2 = TREE_VALUE (TREE_CHAIN (TREE_CHAIN (arglist)));
+      arg0 = CALL_EXPR_ARG (exp, 0);
+      arg1 = CALL_EXPR_ARG (exp, 1);
+      arg2 = CALL_EXPR_ARG (exp, 2);
       op0 = expand_normal (arg0);
       op1 = expand_normal (arg1);
       op2 = expand_normal (arg2);
@@ -13519,15 +13587,15 @@ arm_expand_builtin (tree exp,
       return target;
 
     case ARM_BUILTIN_SETWCX:
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
+      arg0 = CALL_EXPR_ARG (exp, 0);
+      arg1 = CALL_EXPR_ARG (exp, 1);
       op0 = force_reg (SImode, expand_normal (arg0));
       op1 = expand_normal (arg1);
       emit_insn (gen_iwmmxt_tmcr (op1, op0));
       return 0;
 
     case ARM_BUILTIN_GETWCX:
-      arg0 = TREE_VALUE (arglist);
+      arg0 = CALL_EXPR_ARG (exp, 0);
       op0 = expand_normal (arg0);
       target = gen_reg_rtx (SImode);
       emit_insn (gen_iwmmxt_tmrc (target, op0));
@@ -13535,8 +13603,8 @@ arm_expand_builtin (tree exp,
 
     case ARM_BUILTIN_WSHUFH:
       icode = CODE_FOR_iwmmxt_wshufh;
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
+      arg0 = CALL_EXPR_ARG (exp, 0);
+      arg1 = CALL_EXPR_ARG (exp, 1);
       op0 = expand_normal (arg0);
       op1 = expand_normal (arg1);
       tmode = insn_data[icode].operand[0].mode;
@@ -13562,13 +13630,13 @@ arm_expand_builtin (tree exp,
       return target;
 
     case ARM_BUILTIN_WSADB:
-      return arm_expand_binop_builtin (CODE_FOR_iwmmxt_wsadb, arglist, target);
+      return arm_expand_binop_builtin (CODE_FOR_iwmmxt_wsadb, exp, target);
     case ARM_BUILTIN_WSADH:
-      return arm_expand_binop_builtin (CODE_FOR_iwmmxt_wsadh, arglist, target);
+      return arm_expand_binop_builtin (CODE_FOR_iwmmxt_wsadh, exp, target);
     case ARM_BUILTIN_WSADBZ:
-      return arm_expand_binop_builtin (CODE_FOR_iwmmxt_wsadbz, arglist, target);
+      return arm_expand_binop_builtin (CODE_FOR_iwmmxt_wsadbz, exp, target);
     case ARM_BUILTIN_WSADHZ:
-      return arm_expand_binop_builtin (CODE_FOR_iwmmxt_wsadhz, arglist, target);
+      return arm_expand_binop_builtin (CODE_FOR_iwmmxt_wsadhz, exp, target);
 
       /* Several three-argument builtins.  */
     case ARM_BUILTIN_WMACS:
@@ -13589,9 +13657,9 @@ arm_expand_builtin (tree exp,
 	       : fcode == ARM_BUILTIN_TMIATB ? CODE_FOR_iwmmxt_tmiatb
 	       : fcode == ARM_BUILTIN_TMIATT ? CODE_FOR_iwmmxt_tmiatt
 	       : CODE_FOR_iwmmxt_walign);
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
-      arg2 = TREE_VALUE (TREE_CHAIN (TREE_CHAIN (arglist)));
+      arg0 = CALL_EXPR_ARG (exp, 0);
+      arg1 = CALL_EXPR_ARG (exp, 1);
+      arg2 = CALL_EXPR_ARG (exp, 2);
       op0 = expand_normal (arg0);
       op1 = expand_normal (arg1);
       op2 = expand_normal (arg2);
@@ -13630,11 +13698,11 @@ arm_expand_builtin (tree exp,
 
   for (i = 0, d = bdesc_2arg; i < ARRAY_SIZE (bdesc_2arg); i++, d++)
     if (d->code == (const enum arm_builtins) fcode)
-      return arm_expand_binop_builtin (d->icode, arglist, target);
+      return arm_expand_binop_builtin (d->icode, exp, target);
 
   for (i = 0, d = bdesc_1arg; i < ARRAY_SIZE (bdesc_1arg); i++, d++)
     if (d->code == (const enum arm_builtins) fcode)
-      return arm_expand_unop_builtin (d->icode, arglist, target, 0);
+      return arm_expand_unop_builtin (d->icode, exp, target, 0);
 
   /* @@@ Should really do something sensible here.  */
   return NULL_RTX;

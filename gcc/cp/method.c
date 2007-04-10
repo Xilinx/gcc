@@ -61,9 +61,6 @@ static tree thunk_adjust (tree, bool, HOST_WIDE_INT, tree);
 static void do_build_assign_ref (tree);
 static void do_build_copy_constructor (tree);
 static tree synthesize_exception_spec (tree, tree (*) (tree, void *), void *);
-static tree locate_dtor (tree, void *);
-static tree locate_ctor (tree, void *);
-static tree locate_copy (tree, void *);
 static tree make_alias_for_thunk (tree);
 
 /* Called once to initialize method.c.  */
@@ -432,7 +429,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
       DECL_RESULT (thunk_fndecl)
 	= build_decl (RESULT_DECL, 0, integer_type_node);
       fnname = XSTR (XEXP (DECL_RTL (thunk_fndecl), 0), 0);
-      /* The back-end expects DECL_INITIAL to contain a BLOCK, so we
+      /* The back end expects DECL_INITIAL to contain a BLOCK, so we
 	 create one.  */
       fn_block = make_node (BLOCK);
       BLOCK_VARS (fn_block) = a;
@@ -452,6 +449,8 @@ use_thunk (tree thunk_fndecl, bool emit_p)
     }
   else
     {
+      int i;
+      tree *argarray = (tree *) alloca (list_length (a) * sizeof (tree));
       /* If this is a covariant thunk, or we don't have the necessary
 	 code for efficient thunks, generate a thunk function that
 	 just makes a call to the real function.  Unfortunately, this
@@ -475,11 +474,10 @@ use_thunk (tree thunk_fndecl, bool emit_p)
 			  fixed_offset, virtual_offset);
 
       /* Build up the call to the real function.  */
-      t = tree_cons (NULL_TREE, t, NULL_TREE);
-      for (a = TREE_CHAIN (a); a; a = TREE_CHAIN (a))
-	t = tree_cons (NULL_TREE, a, t);
-      t = nreverse (t);
-      t = build_call (alias, t);
+      argarray[0] = t;
+      for (i = 1, a = TREE_CHAIN (a); a; a = TREE_CHAIN (a), i++)
+	argarray[i] = a;
+      t = build_call_a (alias, i, argarray);
       CALL_FROM_THUNK_P (t) = 1;
 
       if (VOID_TYPE_P (TREE_TYPE (t)))
@@ -867,7 +865,7 @@ synthesize_exception_spec (tree type, tree (*extractor) (tree, void*),
 
 /* Locate the dtor of TYPE.  */
 
-static tree
+tree
 locate_dtor (tree type, void *client ATTRIBUTE_UNUSED)
 {
   return CLASSTYPE_DESTRUCTORS (type);
@@ -875,7 +873,7 @@ locate_dtor (tree type, void *client ATTRIBUTE_UNUSED)
 
 /* Locate the default ctor of TYPE.  */
 
-static tree
+tree
 locate_ctor (tree type, void *client ATTRIBUTE_UNUSED)
 {
   tree fns;
@@ -911,7 +909,7 @@ struct copy_data
    points to a COPY_DATA holding the name (NULL for the ctor)
    and desired qualifiers of the source operand.  */
 
-static tree
+tree
 locate_copy (tree type, void *client_)
 {
   struct copy_data *client = (struct copy_data *)client_;
@@ -1190,5 +1188,26 @@ skip_artificial_parms_for (tree fn, tree list)
     list = TREE_CHAIN (list);
   return list;
 }
+
+/* Given a FUNCTION_DECL FN and a chain LIST, return the number of
+   artificial parms in FN.  */
+
+int
+num_artificial_parms_for (tree fn)
+{
+  int count = 0;
+
+  if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fn))
+    count++;
+  else
+    return 0;
+
+  if (DECL_HAS_IN_CHARGE_PARM_P (fn))
+    count++;
+  if (DECL_HAS_VTT_PARM_P (fn))
+    count++;
+  return count;
+}
+
 
 #include "gt-cp-method.h"

@@ -115,7 +115,6 @@ static HOST_WIDE_INT gfc_get_alias_set (tree);
 #undef LANG_HOOKS_TYPE_FOR_SIZE
 #undef LANG_HOOKS_UNSIGNED_TYPE
 #undef LANG_HOOKS_SIGNED_TYPE
-#undef LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE
 #undef LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION
 #undef LANG_HOOKS_CLEAR_BINDING_STACK
 #undef LANG_HOOKS_GET_ALIAS_SET
@@ -141,7 +140,6 @@ static HOST_WIDE_INT gfc_get_alias_set (tree);
 #define LANG_HOOKS_TYPE_FOR_SIZE           gfc_type_for_size
 #define LANG_HOOKS_UNSIGNED_TYPE           gfc_unsigned_type
 #define LANG_HOOKS_SIGNED_TYPE             gfc_signed_type
-#define LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE gfc_signed_or_unsigned_type
 #define LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION gfc_expand_function
 #define LANG_HOOKS_CLEAR_BINDING_STACK     gfc_clear_binding_stack
 #define LANG_HOOKS_GET_ALIAS_SET	   gfc_get_alias_set
@@ -852,10 +850,13 @@ gfc_init_builtin_functions (void)
   tree mfunc_cfloat[3];
   tree mfunc_cdouble[3];
   tree mfunc_clongdouble[3];
-  tree func_cfloat_float;
-  tree func_cdouble_double;
-  tree func_clongdouble_longdouble;
-  tree ftype;
+  tree func_cfloat_float, func_float_cfloat;
+  tree func_cdouble_double, func_double_cdouble;
+  tree func_clongdouble_longdouble, func_longdouble_clongdouble;
+  tree func_float_floatp_floatp;
+  tree func_double_doublep_doublep;
+  tree func_longdouble_longdoublep_longdoublep;
+  tree ftype, ptype;
   tree tmp;
   tree builtin_types[(int) BT_LAST + 1];
 
@@ -869,12 +870,43 @@ gfc_init_builtin_functions (void)
   tmp = tree_cons (NULL_TREE, complex_float_type_node, void_list_node);
   func_cfloat_float = build_function_type (float_type_node, tmp);
 
+  tmp = tree_cons (NULL_TREE, float_type_node, void_list_node);
+  func_float_cfloat = build_function_type (complex_float_type_node, tmp);
+
   tmp = tree_cons (NULL_TREE, complex_double_type_node, void_list_node);
   func_cdouble_double = build_function_type (double_type_node, tmp);
+
+  tmp = tree_cons (NULL_TREE, double_type_node, void_list_node);
+  func_double_cdouble = build_function_type (complex_double_type_node, tmp);
 
   tmp = tree_cons (NULL_TREE, complex_long_double_type_node, void_list_node);
   func_clongdouble_longdouble =
     build_function_type (long_double_type_node, tmp);
+
+  tmp = tree_cons (NULL_TREE, long_double_type_node, void_list_node);
+  func_longdouble_clongdouble =
+    build_function_type (complex_long_double_type_node, tmp);
+
+  ptype = build_pointer_type (float_type_node);
+  tmp = tree_cons (NULL_TREE, float_type_node,
+		   tree_cons (NULL_TREE, ptype,
+		   	      build_tree_list (NULL_TREE, ptype)));
+  func_float_floatp_floatp =
+    build_function_type (void_type_node, tmp);
+
+  ptype = build_pointer_type (double_type_node);
+  tmp = tree_cons (NULL_TREE, double_type_node,
+		   tree_cons (NULL_TREE, ptype,
+		   	      build_tree_list (NULL_TREE, ptype)));
+  func_double_doublep_doublep =
+    build_function_type (void_type_node, tmp);
+
+  ptype = build_pointer_type (long_double_type_node);
+  tmp = tree_cons (NULL_TREE, long_double_type_node,
+		   tree_cons (NULL_TREE, ptype,
+		   	      build_tree_list (NULL_TREE, ptype)));
+  func_longdouble_longdoublep_longdoublep =
+    build_function_type (void_type_node, tmp);
 
 #include "mathbuiltins.def"
 
@@ -922,6 +954,33 @@ gfc_init_builtin_functions (void)
 		      BUILT_IN_POW, "pow", true);
   gfc_define_builtin ("__builtin_powf", mfunc_float[1], 
 		      BUILT_IN_POWF, "powf", true);
+
+  if (TARGET_C99_FUNCTIONS)
+    {
+      gfc_define_builtin ("__builtin_cbrtl", mfunc_longdouble[0],
+			  BUILT_IN_CBRTL, "cbrtl", true);
+      gfc_define_builtin ("__builtin_cbrt", mfunc_double[0],
+			  BUILT_IN_CBRT, "cbrt", true);
+      gfc_define_builtin ("__builtin_cbrtf", mfunc_float[0],
+			  BUILT_IN_CBRTF, "cbrtf", true);
+      gfc_define_builtin ("__builtin_cexpil", func_longdouble_clongdouble, 
+		          BUILT_IN_CEXPIL, "cexpil", true);
+      gfc_define_builtin ("__builtin_cexpi", func_double_cdouble,
+		          BUILT_IN_CEXPI, "cexpi", true);
+      gfc_define_builtin ("__builtin_cexpif", func_float_cfloat,
+		          BUILT_IN_CEXPIF, "cexpif", true);
+    }
+
+  if (TARGET_HAS_SINCOS)
+    {
+      gfc_define_builtin ("__builtin_sincosl",
+			  func_longdouble_longdoublep_longdoublep,
+		          BUILT_IN_SINCOSL, "sincosl", false);
+      gfc_define_builtin ("__builtin_sincos", func_double_doublep_doublep,
+		          BUILT_IN_SINCOS, "sincos", false);
+      gfc_define_builtin ("__builtin_sincosf", func_float_floatp_floatp,
+		          BUILT_IN_SINCOSF, "sincosf", false);
+    }
 
   /* Other builtin functions we use.  */
 
@@ -1074,6 +1133,14 @@ gfc_init_builtin_functions (void)
   gfc_define_builtin ("__builtin_trap", builtin_types[BT_FN_VOID],
 		      BUILT_IN_TRAP, NULL, false);
   TREE_THIS_VOLATILE (built_in_decls[BUILT_IN_TRAP]) = 1;
+
+  gfc_define_builtin ("__emutls_get_address",
+		      builtin_types[BT_FN_PTR_PTR], BUILT_IN_EMUTLS_GET_ADDRESS,
+		      "__emutls_get_address", true);
+  gfc_define_builtin ("__emutls_register_common",
+		      builtin_types[BT_FN_VOID_PTR_WORD_WORD_PTR],
+		      BUILT_IN_EMUTLS_REGISTER_COMMON,
+		      "__emutls_register_common", false);
 
   build_common_builtin_nodes ();
   targetm.init_builtins ();

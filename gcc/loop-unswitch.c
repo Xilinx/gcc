@@ -143,7 +143,7 @@ unswitch_loops (void)
 
   /* Go through inner loops (only original ones).  */
 
-  FOR_EACH_LOOP (li, loop, LI_ONLY_OLD | LI_ONLY_INNERMOST)
+  FOR_EACH_LOOP (li, loop, LI_ONLY_INNERMOST)
     {
       unswitch_single_loop (loop, NULL_RTX, 0);
 #ifdef ENABLE_CHECKING
@@ -457,11 +457,6 @@ unswitch_loop (struct loop *loop, basic_block unswitch_on, rtx cond, rtx cinsn)
   /* Remove branches that are now unreachable in new loops.  */
   remove_path (true_edge);
   remove_path (false_edge);
-
-  /* One of created loops do not have to be subloop of the outer loop now,
-     so fix its placement in loop data structure.  */
-  fix_loop_placement (loop);
-  fix_loop_placement (nloop);
 
   /* Preserve the simple loop preheaders.  */
   split_edge (loop_preheader_edge (loop));

@@ -31,7 +31,6 @@ Boston, MA 02110-1301, USA.  */
 #include "config.h"
 #include <stdlib.h>
 #include <assert.h>
-#include <float.h>
 #include "libgfortran.h"
 
 
@@ -138,9 +137,9 @@ maxval_i16 (gfc_array_i16 * const restrict retarray,
       src = base;
       {
 
-  result = -GFC_INTEGER_16_HUGE;
+  result = (-GFC_INTEGER_16_HUGE-1);
         if (len <= 0)
-	  *dest = -GFC_INTEGER_16_HUGE;
+	  *dest = (-GFC_INTEGER_16_HUGE-1);
 	else
 	  {
 	    for (n = 0; n < len; n++, src += delta)
@@ -308,9 +307,9 @@ mmaxval_i16 (gfc_array_i16 * const restrict retarray,
       msrc = mbase;
       {
 
-  result = -GFC_INTEGER_16_HUGE;
+  result = (-GFC_INTEGER_16_HUGE-1);
         if (len <= 0)
-	  *dest = -GFC_INTEGER_16_HUGE;
+	  *dest = (-GFC_INTEGER_16_HUGE-1);
 	else
 	  {
 	    for (n = 0; n < len; n++, src += delta, msrc += mdelta)
@@ -404,7 +403,7 @@ smaxval_i16 (gfc_array_i16 * const restrict retarray,
     dest = retarray->data;
 
     for (n = 0; n < rank; n++)
-      dest[n * dstride] = -GFC_INTEGER_16_HUGE ;
+      dest[n * dstride] = (-GFC_INTEGER_16_HUGE-1) ;
 }
 
 #endif

@@ -319,6 +319,7 @@ dequeue_and_dump (dump_info_p di)
 	case tcc_expression:
 	case tcc_reference:
 	case tcc_statement:
+	case tcc_vl_exp:
 	  /* These nodes are handled explicitly below.  */
 	  break;
 
@@ -607,8 +608,19 @@ dequeue_and_dump (dump_info_p di)
       break;
 
     case CALL_EXPR:
-      dump_child ("fn", TREE_OPERAND (t, 0));
-      dump_child ("args", TREE_OPERAND (t, 1));
+      {
+	int i = 0;
+	tree arg;
+	call_expr_arg_iterator iter;
+	dump_child ("fn", CALL_EXPR_FN (t));
+	FOR_EACH_CALL_EXPR_ARG (arg, iter, t)
+	  {
+	    char buffer[32];
+	    sprintf (buffer, "%u", i);
+	    dump_child (buffer, arg);
+	    i++;
+	  }
+      }
       break;
 
     case CONSTRUCTOR:
@@ -744,7 +756,7 @@ dump_node (tree t, int flags, FILE *stream)
 
 
 /* Table of tree dump switches. This must be consistent with the
-   TREE_DUMP_INDEX enumeration in tree.h.  */
+   tree_dump_index enumeration in tree-pass.h.  */
 static struct dump_file_info dump_files[TDI_end] =
 {
   {NULL, NULL, NULL, 0, 0, 0, 0},
@@ -1003,6 +1015,9 @@ dump_switch_p_1 (const char *arg, struct dump_file_info *dfi, bool doglob)
 
   option_value = skip_leading_substring (arg, doglob ? dfi->glob : dfi->swtch);
   if (!option_value)
+    return 0;
+
+  if (*option_value && *option_value != '-')
     return 0;
 
   ptr = option_value;

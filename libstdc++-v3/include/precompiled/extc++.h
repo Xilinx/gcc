@@ -1,6 +1,6 @@
 // C++ includes used for precompiling extensions -*- C++ -*-
 
-// Copyright (C) 2006 Free Software Foundation, Inc.
+// Copyright (C) 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -35,8 +35,9 @@
 
 #include <ext/algorithm>
 #include <ext/array_allocator.h>
+#include <ext/atomicity.h>
 #include <ext/bitmap_allocator.h>
-#include <ext/codecvt_specializations.h>
+#include <ext/concurrence.h>
 #include <ext/debug_allocator.h>
 #include <ext/functional>
 #include <ext/hash_map>
@@ -54,7 +55,9 @@
 #include <ext/slist>
 #include <ext/stdio_filebuf.h>
 #include <ext/stdio_sync_filebuf.h>
+#include <ext/throw_allocator.h>
 #include <ext/typelist.h>
+#include <ext/type_traits.h>
 #include <ext/vstring.h>
 #include <ext/pb_ds/assoc_container.hpp>
 #include <ext/pb_ds/priority_queue.hpp>
@@ -63,3 +66,8 @@
 #include <ext/pb_ds/list_update_policy.hpp>
 #include <ext/pb_ds/tree_policy.hpp>
 #include <ext/pb_ds/trie_policy.hpp>
+
+#ifdef _GLIBCXX_HAVE_ICONV
+ #include <ext/codecvt_specializations.h>
+ #include <ext/enc_filebuf.h>
+#endif

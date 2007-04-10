@@ -1,6 +1,6 @@
 /* Emit RTL for the GCC expander.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -105,7 +105,7 @@ REAL_VALUE_TYPE dconstm1;
 REAL_VALUE_TYPE dconstm2;
 REAL_VALUE_TYPE dconsthalf;
 REAL_VALUE_TYPE dconstthird;
-REAL_VALUE_TYPE dconstpi;
+REAL_VALUE_TYPE dconstsqrt2;
 REAL_VALUE_TYPE dconste;
 
 /* All references to the following fixed hard registers go through
@@ -812,13 +812,12 @@ gen_reg_rtx (enum machine_mode mode)
   return val;
 }
 
-/* Generate a register with same attributes as REG, but offsetted by OFFSET.
+/* Update NEW with the same attributes as REG, but offsetted by OFFSET.
    Do the big endian correction if needed.  */
 
-rtx
-gen_rtx_REG_offset (rtx reg, enum machine_mode mode, unsigned int regno, int offset)
+static void
+update_reg_offset (rtx new, rtx reg, int offset)
 {
-  rtx new = gen_rtx_REG (mode, regno);
   tree decl;
   HOST_WIDE_INT var_size;
 
@@ -860,7 +859,7 @@ gen_rtx_REG_offset (rtx reg, enum machine_mode mode, unsigned int regno, int off
   if ((BYTES_BIG_ENDIAN || WORDS_BIG_ENDIAN)
       && decl != NULL
       && offset > 0
-      && GET_MODE_SIZE (GET_MODE (reg)) > GET_MODE_SIZE (mode)
+      && GET_MODE_SIZE (GET_MODE (reg)) > GET_MODE_SIZE (GET_MODE (new))
       && ((var_size = int_size_in_bytes (TREE_TYPE (decl))) > 0
 	  && var_size < GET_MODE_SIZE (GET_MODE (reg))))
     {
@@ -904,6 +903,30 @@ gen_rtx_REG_offset (rtx reg, enum machine_mode mode, unsigned int regno, int off
 
   REG_ATTRS (new) = get_reg_attrs (REG_EXPR (reg),
 				   REG_OFFSET (reg) + offset);
+}
+
+/* Generate a register with same attributes as REG, but offsetted by
+   OFFSET.  */
+
+rtx
+gen_rtx_REG_offset (rtx reg, enum machine_mode mode, unsigned int regno,
+		    int offset)
+{
+  rtx new = gen_rtx_REG (mode, regno);
+
+  update_reg_offset (new, reg, offset);
+  return new;
+}
+
+/* Generate a new pseudo-register with the same attributes as REG, but
+   offsetted by OFFSET.  */
+
+rtx
+gen_reg_rtx_offset (rtx reg, enum machine_mode mode, int offset)
+{
+  rtx new = gen_reg_rtx (mode);
+
+  update_reg_offset (new, reg, offset);
   return new;
 }
 
@@ -1458,12 +1481,15 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
   alias = get_alias_set (t);
 
   MEM_VOLATILE_P (ref) |= TYPE_VOLATILE (type);
-  MEM_IN_STRUCT_P (ref) = AGGREGATE_TYPE_P (type);
+  MEM_IN_STRUCT_P (ref)
+    = AGGREGATE_TYPE_P (type) || TREE_CODE (type) == COMPLEX_TYPE;
   MEM_POINTER (ref) = POINTER_TYPE_P (type);
 
   /* If we are making an object of this type, or if this is a DECL, we know
      that it is a scalar if the type is not an aggregate.  */
-  if ((objectp || DECL_P (t)) && ! AGGREGATE_TYPE_P (type))
+  if ((objectp || DECL_P (t))
+      && ! AGGREGATE_TYPE_P (type)
+      && TREE_CODE (type) != COMPLEX_TYPE)
     MEM_SCALAR_P (ref) = 1;
 
   /* We can set the alignment from the type if we are making an object,
@@ -2783,33 +2809,6 @@ get_max_uid (void)
 {
   return cur_insn_uid;
 }
-
-/* Renumber instructions so that no instruction UIDs are wasted.  */
-
-void
-renumber_insns (void)
-{
-  rtx insn;
-
-  /* If we're not supposed to renumber instructions, don't.  */
-  if (!flag_renumber_insns)
-    return;
-
-  /* If there aren't that many instructions, then it's not really
-     worth renumbering them.  */
-  if (flag_renumber_insns == 1 && get_max_uid () < 25000)
-    return;
-
-  cur_insn_uid = 1;
-
-  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
-    {
-      if (dump_file)
-	fprintf (dump_file, "Renumbering insn %d to %d\n",
-		 INSN_UID (insn), cur_insn_uid);
-      INSN_UID (insn) = cur_insn_uid++;
-    }
-}
 
 /* Return the next insn.  If it is a SEQUENCE, return the first insn
    of the sequence.  */
@@ -3078,6 +3077,37 @@ prev_cc0_setter (rtx insn)
 }
 #endif
 
+#ifdef AUTO_INC_DEC
+/* Find a RTX_AUTOINC class rtx which matches DATA.  */
+
+static int
+find_auto_inc (rtx *xp, void *data)
+{
+  rtx x = *xp;
+  rtx reg = data;
+
+  if (GET_RTX_CLASS (GET_CODE (x)) != RTX_AUTOINC)
+    return 0;
+
+  switch (GET_CODE (x))
+    {
+      case PRE_DEC:
+      case PRE_INC:
+      case POST_DEC:
+      case POST_INC:
+      case PRE_MODIFY:
+      case POST_MODIFY:
+	if (rtx_equal_p (reg, XEXP (x, 0)))
+	  return 1;
+	break;
+
+      default:
+	gcc_unreachable ();
+    }
+  return -1;
+}
+#endif
+
 /* Increment the label uses for all labels present in rtx.  */
 
 static void
@@ -3202,8 +3232,7 @@ try_split (rtx pat, rtx trial, int last)
       switch (REG_NOTE_KIND (note))
 	{
 	case REG_EH_REGION:
-	  insn = insn_last;
-	  while (insn != NULL_RTX)
+	  for (insn = insn_last; insn != NULL_RTX; insn = PREV_INSN (insn))
 	    {
 	      if (CALL_P (insn)
 		  || (flag_non_call_exceptions && INSN_P (insn)
@@ -3212,36 +3241,44 @@ try_split (rtx pat, rtx trial, int last)
 		  = gen_rtx_EXPR_LIST (REG_EH_REGION,
 				       XEXP (note, 0),
 				       REG_NOTES (insn));
-	      insn = PREV_INSN (insn);
 	    }
 	  break;
 
 	case REG_NORETURN:
 	case REG_SETJMP:
-	  insn = insn_last;
-	  while (insn != NULL_RTX)
+	  for (insn = insn_last; insn != NULL_RTX; insn = PREV_INSN (insn))
 	    {
 	      if (CALL_P (insn))
 		REG_NOTES (insn)
 		  = gen_rtx_EXPR_LIST (REG_NOTE_KIND (note),
 				       XEXP (note, 0),
 				       REG_NOTES (insn));
-	      insn = PREV_INSN (insn);
 	    }
 	  break;
 
 	case REG_NON_LOCAL_GOTO:
-	  insn = insn_last;
-	  while (insn != NULL_RTX)
+	  for (insn = insn_last; insn != NULL_RTX; insn = PREV_INSN (insn))
 	    {
 	      if (JUMP_P (insn))
 		REG_NOTES (insn)
 		  = gen_rtx_EXPR_LIST (REG_NOTE_KIND (note),
 				       XEXP (note, 0),
 				       REG_NOTES (insn));
-	      insn = PREV_INSN (insn);
 	    }
 	  break;
+
+#ifdef AUTO_INC_DEC
+	case REG_INC:
+	  for (insn = insn_last; insn != NULL_RTX; insn = PREV_INSN (insn))
+	    {
+	      rtx reg = XEXP (note, 0);
+	      if (!FIND_REG_INC_NOTE (insn, reg)
+		  && for_each_rtx (&PATTERN (insn), find_auto_inc, reg) > 0)
+		REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_INC, reg,
+						      REG_NOTES (insn));
+	    }
+	  break;
+#endif
 
 	default:
 	  break;
@@ -4183,7 +4220,10 @@ emit_insn_before_setloc (rtx pattern, rtx before, int loc)
   if (pattern == NULL_RTX || !loc)
     return last;
 
-  first = NEXT_INSN (first);
+  if (!first)
+    first = get_insns ();
+  else
+    first = NEXT_INSN (first);
   while (1)
     {
       if (active_insn_p (first) && !INSN_LOCATOR (first))
@@ -5158,8 +5198,8 @@ init_emit_once (int line_numbers)
 
   /* Initialize mathematical constants for constant folding builtins.
      These constants need to be given to at least 160 bits precision.  */
-  real_from_string (&dconstpi,
-    "3.1415926535897932384626433832795028841971693993751058209749445923078");
+  real_from_string (&dconstsqrt2,
+    "1.4142135623730950488016887242096980785696718753769480731766797379907");
   real_from_string (&dconste,
     "2.7182818284590452353602874713526624977572470936999595749669676277241");
 

@@ -1,6 +1,7 @@
 /* Common subexpression elimination for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -3045,11 +3046,37 @@ fold_rtx (rtx x, rtx insn)
       {
 	rtx folded_arg = XEXP (x, i), const_arg;
 	enum machine_mode mode_arg = GET_MODE (folded_arg);
+
+	switch (GET_CODE (folded_arg))
+	  {
+	  case MEM:
+	  case REG:
+	  case SUBREG:
+	    const_arg = equiv_constant (folded_arg);
+	    break;
+
+	  case CONST:
+	  case CONST_INT:
+	  case SYMBOL_REF:
+	  case LABEL_REF:
+	  case CONST_DOUBLE:
+	  case CONST_VECTOR:
+	    const_arg = folded_arg;
+	    break;
+
 #ifdef HAVE_cc0
-	if (CC0_P (folded_arg))
-	  folded_arg = prev_insn_cc0, mode_arg = prev_insn_cc0_mode;
+	  case CC0:
+	    folded_arg = prev_insn_cc0;
+	    mode_arg = prev_insn_cc0_mode;
+	    const_arg = equiv_constant (folded_arg);
+	    break;
 #endif
-	const_arg = equiv_constant (folded_arg);
+
+	  default:
+	    folded_arg = fold_rtx (folded_arg, insn);
+	    const_arg = equiv_constant (folded_arg);
+	    break;
+	  }
 
 	/* For the first three operands, see if the operand
 	   is constant or equivalent to a constant.  */
@@ -5254,8 +5281,11 @@ cse_insn (rtx insn, rtx libcall_insn)
 		{
 		  if (insert_regs (x, NULL, 0))
 		    {
+		      rtx dest = SET_DEST (sets[i].rtl);
+
 		      rehash_using_reg (x);
 		      hash = HASH (x, mode);
+		      sets[i].dest_hash = HASH (dest, GET_MODE (dest));
 		    }
 		  elt = insert (x, NULL, hash, mode);
 		}
@@ -5846,13 +5876,20 @@ cse_find_path (basic_block first_bb, struct cse_basic_block_data *data,
 	    {
 	      bb = FALLTHRU_EDGE (previous_bb_in_path)->dest;
 	      if (bb != EXIT_BLOCK_PTR
-		  && single_pred_p (bb))
+		  && single_pred_p (bb)
+		  /* We used to assert here that we would only see blocks
+		     that we have not visited yet.  But we may end up
+		     visiting basic blocks twice if the CFG has changed
+		     in this run of cse_main, because when the CFG changes
+		     the topological sort of the CFG also changes.  A basic
+		     blocks that previously had more than two predecessors
+		     may now have a single predecessor, and become part of
+		     a path that starts at another basic block.
+
+		     We still want to visit each basic block only once, so
+		     halt the path here if we have already visited BB.  */
+		  && !TEST_BIT (cse_visited_basic_blocks, bb->index))
 		{
-#if ENABLE_CHECKING
-		  /* We should only see blocks here that we have not
-		     visited yet.  */
-		  gcc_assert (!TEST_BIT (cse_visited_basic_blocks, bb->index));
-#endif
 		  SET_BIT (cse_visited_basic_blocks, bb->index);
 		  data->path[path_size++].bb = bb;
 		  break;
@@ -5891,14 +5928,12 @@ cse_find_path (basic_block first_bb, struct cse_basic_block_data *data,
 	    e = NULL;
 
 	  if (e && e->dest != EXIT_BLOCK_PTR
-	      && single_pred_p (e->dest))
+	      && single_pred_p (e->dest)
+	      /* Avoid visiting basic blocks twice.  The large comment
+		 above explains why this can happen.  */
+	      && !TEST_BIT (cse_visited_basic_blocks, e->dest->index))
 	    {
 	      basic_block bb2 = e->dest;
-
-	      /* We should only see blocks here that we have not
-		 visited yet.  */
-	      gcc_assert (!TEST_BIT (cse_visited_basic_blocks, bb2->index));
-
 	      SET_BIT (cse_visited_basic_blocks, bb2->index);
 	      data->path[path_size++].bb = bb2;
 	      bb = bb2;

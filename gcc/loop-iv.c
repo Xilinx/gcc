@@ -1261,71 +1261,6 @@ inverse (unsigned HOST_WIDEST_INT x, int mod)
   return rslt;
 }
 
-/* Tries to estimate the maximum number of iterations.  */
-
-static unsigned HOST_WIDEST_INT
-determine_max_iter (struct niter_desc *desc)
-{
-  rtx niter = desc->niter_expr;
-  rtx mmin, mmax, left, right;
-  unsigned HOST_WIDEST_INT nmax, inc;
-
-  if (GET_CODE (niter) == AND
-      && GET_CODE (XEXP (niter, 0)) == CONST_INT)
-    {
-      nmax = INTVAL (XEXP (niter, 0));
-      if (!(nmax & (nmax + 1)))
-	{
-	  desc->niter_max = nmax;
-	  return nmax;
-	}
-    }
-
-  get_mode_bounds (desc->mode, desc->signed_p, desc->mode, &mmin, &mmax);
-  nmax = INTVAL (mmax) - INTVAL (mmin);
-
-  if (GET_CODE (niter) == UDIV)
-    {
-      if (GET_CODE (XEXP (niter, 1)) != CONST_INT)
-	{
-	  desc->niter_max = nmax;
-	  return nmax;
-	}
-      inc = INTVAL (XEXP (niter, 1));
-      niter = XEXP (niter, 0);
-    }
-  else
-    inc = 1;
-
-  if (GET_CODE (niter) == PLUS)
-    {
-      left = XEXP (niter, 0);
-      right = XEXP (niter, 0);
-
-      if (GET_CODE (right) == CONST_INT)
-	right = GEN_INT (-INTVAL (right));
-    }
-  else if (GET_CODE (niter) == MINUS)
-    {
-      left = XEXP (niter, 0);
-      right = XEXP (niter, 0);
-    }
-  else
-    {
-      left = niter;
-      right = mmin;
-    }
-
-  if (GET_CODE (left) == CONST_INT)
-    mmax = left;
-  if (GET_CODE (right) == CONST_INT)
-    mmin = right;
-  nmax = INTVAL (mmax) - INTVAL (mmin);
-
-  desc->niter_max = nmax / inc;
-  return nmax / inc;
-}
-
 /* Checks whether register *REG is in set ALT.  Callback for for_each_rtx.  */
 
 static int
@@ -1457,14 +1392,34 @@ implies_p (rtx a, rtx b)
 	}
     }
 
+  if (b == const_true_rtx)
+    return true;
+
+  if ((GET_RTX_CLASS (GET_CODE (a)) != RTX_COMM_COMPARE
+       && GET_RTX_CLASS (GET_CODE (a)) != RTX_COMPARE)
+      || (GET_RTX_CLASS (GET_CODE (b)) != RTX_COMM_COMPARE
+	  && GET_RTX_CLASS (GET_CODE (b)) != RTX_COMPARE))
+    return false;
+
+  op0 = XEXP (a, 0);
+  op1 = XEXP (a, 1);
+  opb0 = XEXP (b, 0);
+  opb1 = XEXP (b, 1);
+
+  mode = GET_MODE (op0);
+  if (mode != GET_MODE (opb0))
+    mode = VOIDmode;
+  else if (mode == VOIDmode)
+    {
+      mode = GET_MODE (op1);
+      if (mode != GET_MODE (opb1))
+	mode = VOIDmode;
+    }
+
   /* A < B implies A + 1 <= B.  */
   if ((GET_CODE (a) == GT || GET_CODE (a) == LT)
       && (GET_CODE (b) == GE || GET_CODE (b) == LE))
     {
-      op0 = XEXP (a, 0);
-      op1 = XEXP (a, 1);
-      opb0 = XEXP (b, 0);
-      opb1 = XEXP (b, 1);
 
       if (GET_CODE (a) == GT)
 	{
@@ -1480,21 +1435,81 @@ implies_p (rtx a, rtx b)
 	  opb1 = r;
 	}
 
-      mode = GET_MODE (op0);
-      if (mode != GET_MODE (opb0))
-	mode = VOIDmode;
-      else if (mode == VOIDmode)
-	{
-	  mode = GET_MODE (op1);
-	  if (mode != GET_MODE (opb1))
-	    mode = VOIDmode;
-	}
-
       if (SCALAR_INT_MODE_P (mode)
 	  && rtx_equal_p (op1, opb1)
 	  && simplify_gen_binary (MINUS, mode, opb0, op0) == const1_rtx)
 	return true;
+      return false;
     }
+
+  /* A < B or A > B imply A != B.  TODO: Likewise
+     A + n < B implies A != B + n if neither wraps.  */
+  if (GET_CODE (b) == NE
+      && (GET_CODE (a) == GT || GET_CODE (a) == GTU
+	  || GET_CODE (a) == LT || GET_CODE (a) == LTU))
+    {
+      if (rtx_equal_p (op0, opb0)
+	  && rtx_equal_p (op1, opb1))
+	return true;
+    }
+
+  /* For unsigned comparisons, A != 0 implies A > 0 and A >= 1.  */
+  if (GET_CODE (a) == NE
+      && op1 == const0_rtx)
+    {
+      if ((GET_CODE (b) == GTU
+	   && opb1 == const0_rtx)
+	  || (GET_CODE (b) == GEU
+	      && opb1 == const1_rtx))
+	return rtx_equal_p (op0, opb0);
+    }
+
+  /* A != N is equivalent to A - (N + 1) <u -1.  */
+  if (GET_CODE (a) == NE
+      && GET_CODE (op1) == CONST_INT
+      && GET_CODE (b) == LTU
+      && opb1 == constm1_rtx
+      && GET_CODE (opb0) == PLUS
+      && GET_CODE (XEXP (opb0, 1)) == CONST_INT
+      /* Avoid overflows.  */
+      && ((unsigned HOST_WIDE_INT) INTVAL (XEXP (opb0, 1))
+	  != ((unsigned HOST_WIDE_INT)1
+	      << (HOST_BITS_PER_WIDE_INT - 1)) - 1)
+      && INTVAL (XEXP (opb0, 1)) + 1 == -INTVAL (op1))
+    return rtx_equal_p (op0, XEXP (opb0, 0));
+
+  /* Likewise, A != N implies A - N > 0.  */
+  if (GET_CODE (a) == NE
+      && GET_CODE (op1) == CONST_INT)
+    {
+      if (GET_CODE (b) == GTU
+	  && GET_CODE (opb0) == PLUS
+	  && opb1 == const0_rtx
+	  && GET_CODE (XEXP (opb0, 1)) == CONST_INT
+	  /* Avoid overflows.  */
+	  && ((unsigned HOST_WIDE_INT) INTVAL (XEXP (opb0, 1))
+	      != ((unsigned HOST_WIDE_INT) 1 << (HOST_BITS_PER_WIDE_INT - 1)))
+	  && rtx_equal_p (XEXP (opb0, 0), op0))
+	return INTVAL (op1) == -INTVAL (XEXP (opb0, 1));
+      if (GET_CODE (b) == GEU
+	  && GET_CODE (opb0) == PLUS
+	  && opb1 == const1_rtx
+	  && GET_CODE (XEXP (opb0, 1)) == CONST_INT
+	  /* Avoid overflows.  */
+	  && ((unsigned HOST_WIDE_INT) INTVAL (XEXP (opb0, 1))
+	      != ((unsigned HOST_WIDE_INT) 1 << (HOST_BITS_PER_WIDE_INT - 1)))
+	  && rtx_equal_p (XEXP (opb0, 0), op0))
+	return INTVAL (op1) == -INTVAL (XEXP (opb0, 1));
+    }
+
+  /* A >s X, where X is positive, implies A <u Y, if Y is negative.  */
+  if ((GET_CODE (a) == GT || GET_CODE (a) == GE)
+      && GET_CODE (op1) == CONST_INT
+      && ((GET_CODE (a) == GT && op1 == constm1_rtx)
+	  || INTVAL (op1) >= 0)
+      && GET_CODE (b) == LTU
+      && GET_CODE (opb1) == CONST_INT)
+    return INTVAL (opb1) < 0;
 
   return false;
 }
@@ -1796,6 +1811,11 @@ simplify_using_initial_values (struct loop *loop, enum rtx_code op, rtx *expr)
 	      FREE_REG_SET (altered);
 	      return;
 	    }
+	  if (for_each_rtx (expr, altered_reg_used, altered))
+	    {
+	      FREE_REG_SET (altered);
+	      return;
+	    }
 	}
 
       if (!single_pred_p (e->src)
@@ -1979,6 +1999,57 @@ canonicalize_iv_subregs (struct rtx_iv *iv0, struct rtx_iv *iv1,
   desc->signed_p = signed_p;
 
   return true;
+}
+
+/* Tries to estimate the maximum number of iterations.  */
+
+static unsigned HOST_WIDEST_INT
+determine_max_iter (struct loop *loop, struct niter_desc *desc)
+{
+  rtx niter = desc->niter_expr;
+  rtx mmin, mmax, cmp;
+  unsigned HOST_WIDEST_INT nmax, inc;
+
+  if (GET_CODE (niter) == AND
+      && GET_CODE (XEXP (niter, 0)) == CONST_INT)
+    {
+      nmax = INTVAL (XEXP (niter, 0));
+      if (!(nmax & (nmax + 1)))
+	{
+	  desc->niter_max = nmax;
+	  return nmax;
+	}
+    }
+
+  get_mode_bounds (desc->mode, desc->signed_p, desc->mode, &mmin, &mmax);
+  nmax = INTVAL (mmax) - INTVAL (mmin);
+
+  if (GET_CODE (niter) == UDIV)
+    {
+      if (GET_CODE (XEXP (niter, 1)) != CONST_INT)
+	{
+	  desc->niter_max = nmax;
+	  return nmax;
+	}
+      inc = INTVAL (XEXP (niter, 1));
+      niter = XEXP (niter, 0);
+    }
+  else
+    inc = 1;
+
+  /* We could use a binary search here, but for now improving the upper
+     bound by just one eliminates one important corner case.  */
+  cmp = gen_rtx_fmt_ee (desc->signed_p ? LT : LTU, VOIDmode, niter, mmax);
+  simplify_using_initial_values (loop, UNKNOWN, &cmp);
+  if (cmp == const_true_rtx)
+    {
+      nmax--;
+
+      if (dump_file)
+	fprintf (dump_file, ";; improved upper bound by one.\n");
+    }
+  desc->niter_max = nmax / inc;
+  return nmax / inc;
 }
 
 /* Computes number of iterations of the CONDITION in INSN in LOOP and stores
@@ -2499,7 +2570,7 @@ iv_number_of_iterations (struct loop *loop, rtx insn, rtx condition,
   else
     {
       if (!desc->niter_max)
-	desc->niter_max = determine_max_iter (desc);
+	desc->niter_max = determine_max_iter (loop, desc);
 
       /* simplify_using_initial_values does a copy propagation on the registers
 	 in the expression for the number of iterations.  This prolongs life

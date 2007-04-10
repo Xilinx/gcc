@@ -1172,6 +1172,12 @@ darwin_mergeable_constant_section (tree exp,
   return readonly_data_section;
 }
 
+int
+machopic_reloc_rw_mask (void)
+{
+  return MACHOPIC_INDIRECT ? 3 : 0;
+}
+
 section *
 machopic_select_section (tree decl,
 			 int reloc,
@@ -1182,10 +1188,9 @@ machopic_select_section (tree decl,
 	       && (lookup_attribute ("weak", DECL_ATTRIBUTES (decl))
 		   || ! lookup_attribute ("weak_import",
 					  DECL_ATTRIBUTES (decl))));
-  int shlib = flag_pic;
   section *base_section;
 
-  switch (categorize_decl_for_section (decl, reloc, shlib))
+  switch (categorize_decl_for_section (decl, reloc))
     {
     case SECCAT_TEXT:
       base_section = darwin_text_section (reloc, weak);

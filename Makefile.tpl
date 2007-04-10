@@ -28,15 +28,15 @@ in
 # -------------------------------
 VPATH=@srcdir@
 
-build_alias=@build_alias@
+build_alias=@build_noncanonical@
 build_vendor=@build_vendor@
 build_os=@build_os@
 build=@build@
-host_alias=@host_alias@
+host_alias=@host_noncanonical@
 host_vendor=@host_vendor@
 host_os=@host_os@
 host=@host@
-target_alias=@target_alias@
+target_alias=@target_noncanonical@
 target_vendor=@target_vendor@
 target_os=@target_os@
 target=@target@
@@ -61,6 +61,7 @@ oldincludedir = @oldincludedir@
 infodir = @infodir@
 datarootdir = @datarootdir@
 docdir = @docdir@
+pdfdir = @pdfdir@
 htmldir = @htmldir@
 mandir = @mandir@
 man1dir = $(mandir)/man1
@@ -299,8 +300,11 @@ RANLIB = @RANLIB@
 STRIP = @STRIP@
 WINDRES = @WINDRES@
 
+GNATBIND = @GNATBIND@
+GNATMAKE = @GNATMAKE@
+
 CFLAGS = @CFLAGS@
-LDFLAGS = 
+LDFLAGS = @LDFLAGS@
 LIBCFLAGS = $(CFLAGS)
 CXXFLAGS = @CXXFLAGS@
 LIBCXXFLAGS = $(CXXFLAGS) -fno-implicit-templates
@@ -451,7 +455,7 @@ X11_FLAGS_TO_PASS = \
 
 POSTSTAGE1_FLAGS_TO_PASS = \
 	CC="$${CC}" CC_FOR_BUILD="$${CC_FOR_BUILD}" \
-	STAGE_PREFIX="$$r/$(HOST_SUBDIR)/prev-gcc/" \
+	GNATBIND="$$r/$(HOST_SUBDIR)/prev-gcc/gnatbind" \
 	CFLAGS="$(BOOT_CFLAGS)" \
 	LIBCFLAGS="$(BOOT_CFLAGS)" \
 	LDFLAGS="$(BOOT_LDFLAGS)" \
@@ -567,7 +571,8 @@ do-[+make_target+]:
 
 # Here are the targets which correspond to the do-X targets.
 
-.PHONY: info installcheck dvi pdf html install-info install-html
+.PHONY: info installcheck dvi pdf html
+.PHONY: install-info install-pdf install-html
 .PHONY: clean distclean mostlyclean maintainer-clean realclean
 .PHONY: local-clean local-distclean local-maintainer-clean
 info: do-info
@@ -585,6 +590,8 @@ install-info: do-install-info dir.info
 	if [ -f dir.info ] ; then \
 	  $(INSTALL_DATA) dir.info $(DESTDIR)$(infodir)/dir.info ; \
 	else true ; fi
+
+install-pdf: do-install-pdf
 
 install-html: do-install-html
 
@@ -1585,7 +1592,7 @@ config.status: configure
 
 # Rebuilding configure.
 AUTOCONF = autoconf
-$(srcdir)/configure: @MAINT@ $(srcdir)/configure.in $(srcdir)/config/acx.m4
+$(srcdir)/configure: @MAINT@ $(srcdir)/configure.ac $(srcdir)/config/acx.m4
 	cd $(srcdir) && $(AUTOCONF)
 
 # ------------------------------

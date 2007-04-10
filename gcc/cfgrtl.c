@@ -728,7 +728,8 @@ try_redirect_by_replacing_jump (edge e, basic_block target, bool in_cfglayout)
      the cc0 setter too.  */
   kill_from = insn;
 #ifdef HAVE_cc0
-  if (reg_mentioned_p (cc0_rtx, PATTERN (insn)))
+  if (reg_mentioned_p (cc0_rtx, PATTERN (insn))
+      && only_sets_cc0_p (PREV_INSN (insn)))
     kill_from = PREV_INSN (insn);
 #endif
 
@@ -1676,13 +1677,14 @@ get_last_bb_insn (basic_block bb)
 
    Currently it does following checks:
 
-   - test head/end pointers
    - overlapping of basic blocks
+   - insns with wrong BLOCK_FOR_INSN pointers
    - headers of basic blocks (the NOTE_INSN_BASIC_BLOCK note)
    - tails of basic blocks (ensure that boundary is necessary)
    - scans body of the basic block for JUMP_INSN, CODE_LABEL
      and NOTE_INSN_BASIC_BLOCK
    - verify that no fall_thru edge crosses hot/cold partition boundaries
+   - verify that there are no pending RTL branch predictions
 
    In future it can be extended check a lot of other stuff as well
    (reachability of basic blocks, life information, etc. etc.).  */
@@ -1690,24 +1692,14 @@ get_last_bb_insn (basic_block bb)
 static int
 rtl_verify_flow_info_1 (void)
 {
-  const int max_uid = get_max_uid ();
-  rtx last_head = get_last_insn ();
-  basic_block *bb_info;
   rtx x;
   int err = 0;
   basic_block bb;
 
-  bb_info = XCNEWVEC (basic_block, max_uid);
-
+  /* Check the general integrity of the basic blocks.  */
   FOR_EACH_BB_REVERSE (bb)
     {
-      rtx head = BB_HEAD (bb);
-      rtx end = BB_END (bb);
-
-      /* Verify the end of the basic block is in the INSN chain.  */
-      for (x = last_head; x != NULL_RTX; x = PREV_INSN (x))
-	if (x == end)
-	  break;
+      rtx insn;
 
       if (!(bb->flags & BB_RTL))
 	{
@@ -1715,40 +1707,21 @@ rtl_verify_flow_info_1 (void)
 	  err = 1;
 	}
 
-      if (!x)
+      FOR_BB_INSNS (bb, insn)
+	if (BLOCK_FOR_INSN (insn) != bb)
+	  {
+	    error ("insn %d basic block pointer is %d, should be %d",
+		   INSN_UID (insn),
+		   BLOCK_FOR_INSN (insn) ? BLOCK_FOR_INSN (insn)->index : 0,
+		   bb->index);
+	    err = 1;
+	  }
+
+      if (bb->predictions)
 	{
-	  error ("end insn %d for block %d not found in the insn stream",
-		 INSN_UID (end), bb->index);
+	  error ("bb prediction set for block %d, but it is not used in RTL land", bb->index);
 	  err = 1;
 	}
-
-      /* Work backwards from the end to the head of the basic block
-	 to verify the head is in the RTL chain.  */
-      for (; x != NULL_RTX; x = PREV_INSN (x))
-	{
-	  /* While walking over the insn chain, verify insns appear
-	     in only one basic block and initialize the BB_INFO array
-	     used by other passes.  */
-	  if (bb_info[INSN_UID (x)] != NULL)
-	    {
-	      error ("insn %d is in multiple basic blocks (%d and %d)",
-		     INSN_UID (x), bb->index, bb_info[INSN_UID (x)]->index);
-	      err = 1;
-	    }
-
-	  bb_info[INSN_UID (x)] = bb;
-
-	  if (x == head)
-	    break;
-	}
-      if (!x)
-	{
-	  error ("head insn %d for block %d not found in the insn stream",
-		 INSN_UID (head), bb->index);
-	  err = 1;
-	}
-
-      last_head = x;
     }
 
   /* Now check the basic blocks (boundaries etc.) */
@@ -1916,7 +1889,6 @@ rtl_verify_flow_info_1 (void)
     }
 
   /* Clean up.  */
-  free (bb_info);
   return err;
 }
 
@@ -1925,30 +1897,72 @@ rtl_verify_flow_info_1 (void)
 
    Currently it does following checks:
    - all checks of rtl_verify_flow_info_1
+   - test head/end pointers
    - check that all insns are in the basic blocks
      (except the switch handling code, barriers and notes)
    - check that all returns are followed by barriers
    - check that all fallthru edge points to the adjacent blocks.  */
+
 static int
 rtl_verify_flow_info (void)
 {
   basic_block bb;
   int err = rtl_verify_flow_info_1 ();
   rtx x;
+  rtx last_head = get_last_insn ();
+  basic_block *bb_info;
   int num_bb_notes;
   const rtx rtx_first = get_insns ();
   basic_block last_bb_seen = ENTRY_BLOCK_PTR, curr_bb = NULL;
+  const int max_uid = get_max_uid ();
+
+  bb_info = XCNEWVEC (basic_block, max_uid);
 
   FOR_EACH_BB_REVERSE (bb)
     {
       edge e;
       edge_iterator ei;
+      rtx head = BB_HEAD (bb);
+      rtx end = BB_END (bb);
 
-      if (bb->predictions)
+      /* Verify the end of the basic block is in the INSN chain.  */
+      for (x = last_head; x != NULL_RTX; x = PREV_INSN (x))
+	if (x == end)
+	  break;
+
+      if (!x)
 	{
-	  error ("bb prediction set for block %i, but it is not used in RTL land", bb->index);
+	  error ("end insn %d for block %d not found in the insn stream",
+		 INSN_UID (end), bb->index);
 	  err = 1;
 	}
+
+      /* Work backwards from the end to the head of the basic block
+	 to verify the head is in the RTL chain.  */
+      for (; x != NULL_RTX; x = PREV_INSN (x))
+	{
+	  /* While walking over the insn chain, verify insns appear
+	     in only one basic block.  */
+	  if (bb_info[INSN_UID (x)] != NULL)
+	    {
+	      error ("insn %d is in multiple basic blocks (%d and %d)",
+		     INSN_UID (x), bb->index, bb_info[INSN_UID (x)]->index);
+	      err = 1;
+	    }
+
+	  bb_info[INSN_UID (x)] = bb;
+
+	  if (x == head)
+	    break;
+	}
+      if (!x)
+	{
+	  error ("head insn %d for block %d not found in the insn stream",
+		 INSN_UID (head), bb->index);
+	  err = 1;
+	}
+
+      last_head = x;
 
       FOR_EACH_EDGE (e, ei, bb->succs)
 	if (e->flags & EDGE_FALLTHRU)
@@ -1993,6 +2007,8 @@ rtl_verify_flow_info (void)
 		}
 	}
     }
+
+  free (bb_info);
 
   num_bb_notes = 0;
   last_bb_seen = ENTRY_BLOCK_PTR;
@@ -2503,10 +2519,11 @@ cfg_layout_can_merge_blocks_p (basic_block a, basic_block b)
 	  /* Must be simple edge.  */
 	  && !(single_succ_edge (a)->flags & EDGE_COMPLEX)
 	  && a != ENTRY_BLOCK_PTR && b != EXIT_BLOCK_PTR
-	  /* If the jump insn has side effects,
-	     we can't kill the edge.  */
+	  /* If the jump insn has side effects, we can't kill the edge.
+	     When not optimizing, try_redirect_by_replacing_jump will
+	     not allow us to redirect an edge by replacing a table jump.  */
 	  && (!JUMP_P (BB_END (a))
-	      || (reload_completed
+	      || ((!optimize || reload_completed)
 		  ? simplejump_p (BB_END (a)) : onlyjump_p (BB_END (a)))));
 }
 
@@ -2961,6 +2978,38 @@ insert_insn_end_bb_new (rtx pat, basic_block bb)
   return new_insn;
 }
 
+/* Returns true if it is possible to remove edge E by redirecting
+   it to the destination of the other edge from E->src.  */
+
+static bool
+rtl_can_remove_branch_p (edge e)
+{
+  basic_block src = e->src;
+  basic_block target = EDGE_SUCC (src, EDGE_SUCC (src, 0) == e)->dest;
+  rtx insn = BB_END (src), set;
+
+  /* The conditions are taken from try_redirect_by_replacing_jump.  */
+  if (target == EXIT_BLOCK_PTR)
+    return false;
+
+  if (e->flags & (EDGE_ABNORMAL_CALL | EDGE_EH))
+    return false;
+
+  if (find_reg_note (insn, REG_CROSSING_JUMP, NULL_RTX)
+      || BB_PARTITION (src) != BB_PARTITION (target))
+    return false;
+
+  if (!onlyjump_p (insn)
+      || tablejump_p (insn, NULL, NULL))
+    return false;
+
+  set = single_set (insn);
+  if (!set || side_effects_p (set))
+    return false;
+
+  return true;
+}
+
 /* Implementation of CFG manipulation for linearized RTL.  */
 struct cfg_hooks rtl_cfg_hooks = {
   "rtl",
@@ -2969,6 +3018,7 @@ struct cfg_hooks rtl_cfg_hooks = {
   rtl_create_basic_block,
   rtl_redirect_edge_and_branch,
   rtl_redirect_edge_and_branch_force,
+  rtl_can_remove_branch_p,
   rtl_delete_block,
   rtl_split_block,
   rtl_move_block_after,
@@ -3012,6 +3062,7 @@ struct cfg_hooks cfg_layout_rtl_cfg_hooks = {
   cfg_layout_create_basic_block,
   cfg_layout_redirect_edge_and_branch,
   cfg_layout_redirect_edge_and_branch_force,
+  rtl_can_remove_branch_p,
   cfg_layout_delete_block,
   cfg_layout_split_block,
   rtl_move_block_after,

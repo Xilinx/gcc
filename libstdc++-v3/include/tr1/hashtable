@@ -1,6 +1,6 @@
 // Internal header for TR1 unordered_set and unordered_map -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -53,18 +53,17 @@
 #define _TR1_HASHTABLE 1
 
 #include <utility>		// For std::pair
-#include <memory>
 #include <iterator>
 #include <cstddef>
-#include <cstdlib>
 #include <cmath>
+#include <bits/allocator.h>
 #include <bits/functexcept.h>
 #include <tr1/type_traits>	// For true_type and false_type
 #include <tr1/hashtable_policy.h>
 
 namespace std
 { 
-_GLIBCXX_BEGIN_NAMESPACE(tr1)
+_GLIBCXX_BEGIN_NAMESPACE(_GLIBCXX_TR1)
 
   // Class template _Hashtable, class definition.
   
@@ -382,10 +381,10 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 		       typename _Hashtable::_Hash_code_type);
 
       std::pair<iterator, bool>
-      _M_insert(const value_type&, std::tr1::true_type);
+      _M_insert(const value_type&, std::_GLIBCXX_TR1::true_type);
 
       iterator
-      _M_insert(const value_type&, std::tr1::false_type);
+      _M_insert(const value_type&, std::_GLIBCXX_TR1::false_type);
 
       void
       _M_erase_node(_Node*, _Node**);
@@ -394,7 +393,7 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       // Insert and erase
       _Insert_Return_Type
       insert(const value_type& __v) 
-      { return _M_insert(__v, std::tr1::integral_constant<bool,
+      { return _M_insert(__v, std::_GLIBCXX_TR1::integral_constant<bool,
 			 __unique_keys>()); }
 
       iterator
@@ -908,7 +907,7 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 				  __chc, __cit, __uk>::iterator, bool>
     _Hashtable<_Key, _Value, _Allocator, _ExtractKey, _Equal,
 	       _H1, _H2, _Hash, _RehashPolicy, __chc, __cit, __uk>::
-    _M_insert(const value_type& __v, std::tr1::true_type)
+    _M_insert(const value_type& __v, std::_GLIBCXX_TR1::true_type)
     {
       const key_type& __k = this->_M_extract(__v);
       typename _Hashtable::_Hash_code_type __code = this->_M_hash_code(__k);
@@ -929,7 +928,7 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
 			__chc, __cit, __uk>::iterator
     _Hashtable<_Key, _Value, _Allocator, _ExtractKey, _Equal,
 	       _H1, _H2, _Hash, _RehashPolicy, __chc, __cit, __uk>::
-    _M_insert(const value_type& __v, std::tr1::false_type)
+    _M_insert(const value_type& __v, std::_GLIBCXX_TR1::false_type)
     {
       std::pair<bool, std::size_t> __do_rehash
 	= _M_rehash_policy._M_need_rehash(_M_bucket_count,
@@ -1063,10 +1062,31 @@ _GLIBCXX_BEGIN_NAMESPACE(tr1)
       while (*__slot && !this->_M_compare(__k, __code, *__slot))
 	__slot = &((*__slot)->_M_next);
 
+      _Node** __saved_slot = 0;
       while (*__slot && this->_M_compare(__k, __code, *__slot))
 	{
-	  _Node* __p = *__slot;
-	  *__slot = __p->_M_next;
+	  // _GLIBCXX_RESOLVE_LIB_DEFECTS
+	  // 526. Is it undefined if a function in the standard changes
+	  // in parameters?
+	  if (&this->_M_extract((*__slot)->_M_v) != &__k)
+	    {
+              _Node* __p = *__slot;
+              *__slot = __p->_M_next;
+	      _M_deallocate_node(__p);
+	      --_M_element_count;
+	      ++__result;
+	    }
+	  else
+	    {
+	      __saved_slot = __slot;
+	      __slot = &((*__slot)->_M_next);
+	    }
+	}
+
+      if (__saved_slot)
+	{
+	  _Node* __p = *__saved_slot;
+	  *__saved_slot = __p->_M_next;
 	  _M_deallocate_node(__p);
 	  --_M_element_count;
 	  ++__result;

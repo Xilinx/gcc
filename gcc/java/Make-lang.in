@@ -28,8 +28,8 @@
 # Each language makefile fragment must provide the following targets:
 #
 # foo.all.cross, foo.start.encap, foo.rest.encap,
-# foo.install-common, foo.install-man, foo.install-info, foo.dvi, foo.pdf,
-# foo.html, foo.uninstall,
+# foo.install-common, foo.install-man, foo.install-info, foo.install-pdf,
+# foo.info, foo.dvi, foo.pdf, foo.html, foo.uninstall,
 # foo.mostlyclean, foo.clean, foo.distclean,
 # foo.maintainer-clean, foo.stage1, foo.stage2, foo.stage3, foo.stage4
 #
@@ -135,11 +135,16 @@ java.srcinfo: doc/gcj.info
 	-cp -p $^ $(srcdir)/doc
 
 java.dvi: doc/gcj.dvi
-java.pdf: doc/gcj.pdf
+
+JAVA_PDFFILES = doc/gcj.pdf
+
+java.pdf: $(JAVA_PDFFILES)
+
 java.html: $(build_htmldir)/java/index.html
+
 JAVA_MANFILES = doc/gcj.1 doc/jcf-dump.1 doc/gij.1 \
-                doc/jv-convert.1 doc/grmic.1 doc/grmiregistry.1 \
-		doc/gcj-dbtool.1
+                doc/jv-convert.1 doc/grmic.1\
+		doc/gcj-dbtool.1 doc/gc-analyze.1
 
 java.man: $(JAVA_MANFILES)
 
@@ -187,6 +192,16 @@ java.uninstall:
 
 java.install-info: $(DESTDIR)$(infodir)/gcj.info
 
+java.install-pdf: $(JAVA_PDFFILES)
+	@$(NORMAL_INSTALL)
+	test -z "$(pdfdir)" || $(mkinstalldirs) "$(DESTDIR)$(pdfdir)"
+	@list='$(JAVA_PDFFILES)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(pdf__strip_dir) \
+	  echo " $(INSTALL_DATA) '$$d$$p' '$(DESTDIR)$(pdfdir)/$$f'"; \
+	  $(INSTALL_DATA) "$$d$$p" "$(DESTDIR)$(pdfdir)/$$f"; \
+	done
+
 #
 # Clean hooks:
 # A lot of the ancillary files are deleted by the main makefile.
@@ -206,8 +221,8 @@ java.maintainer-clean:
 	-rm -f $(docobjdir)/gij.1
 	-rm -f $(docobjdir)/jv-convert.1
 	-rm -f $(docobjdir)/grmic.1
-	-rm -f $(docobjdir)/grmiregistry.1
 	-rm -f $(docobjdir)/gcj-dbtool.1
+	-rm -f $(docobjdir)/gc-analyze.1
 #
 # Stage hooks:
 # The main makefile has already created stage?/java.
@@ -318,7 +333,7 @@ $(build_htmldir)/java/index.html: $(TEXI_JAVA_FILES)
 	$(TEXI2HTML) -I $(gcc_docdir)/include -I $(srcdir)/java -o $(@D) $<
 
 .INTERMEDIATE: gcj.pod jcf-dump.pod gij.pod \
-  jv-convert.pod grmic.pod grmiregistry.pod gcj-dbtool.pod
+  jv-convert.pod grmic.pod gcj-dbtool.pod gc-analyze.pod
 
 gcj.pod: java/gcj.texi
 	-$(TEXI2POD) -D gcj < $< > $@
@@ -330,19 +345,19 @@ jv-convert.pod: java/gcj.texi
 	-$(TEXI2POD) -D jv-convert < $< > $@
 grmic.pod: java/gcj.texi
 	-$(TEXI2POD) -D grmic < $< > $@
-grmiregistry.pod: java/gcj.texi
-	-$(TEXI2POD) -D grmiregistry < $< > $@
 gcj-dbtool.pod: java/gcj.texi
 	-$(TEXI2POD) -D gcj-dbtool < $< > $@
+gc-analyze.pod: java/gcj.texi
+	-$(TEXI2POD) -D gc-analyze < $< > $@
 
 # Install the man pages.
 java.install-man: installdirs \
                   $(DESTDIR)$(man1dir)/$(JAVA_INSTALL_NAME)$(man1ext) \
 		  $(JAVA_TARGET_INDEPENDENT_BIN_TOOLS:%=doc/%.1) \
-		  doc/gij.1 doc/jv-convert.1 doc/grmic.1 doc/grmiregistry.1 \
-		  doc/gcj-dbtool.1
+		  doc/gij.1 doc/jv-convert.1 doc/grmic.1 \
+		  doc/gcj-dbtool.1 doc/gc-analyze.1
 	for tool in $(JAVA_TARGET_INDEPENDENT_BIN_TOOLS) \
-		gij jv-convert grmic grmiregistry gcj-dbtool ; do \
+		gij jv-convert grmic gcj-dbtool gc-analyze ; do \
 	  tool_transformed_name=`echo $$tool|sed '$(program_transform_name)'`; \
 	  man_name=$(DESTDIR)$(man1dir)/$${tool_transformed_name}$(man1ext); \
 	  rm -f $$man_name ; \

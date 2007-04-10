@@ -1,6 +1,7 @@
 // Locale support -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -725,7 +726,7 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
 	  long __l = -1;
           __beg = _M_extract_int(__beg, __end, __io, __err, __l);
 	  if (__l == 0 || __l == 1)
-	    __v = __l;
+	    __v = bool(__l);
 	  else
             __err |= ios_base::failbit;
         }
@@ -746,16 +747,20 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
 	      const char_type __c = *__beg;
 
 	      if (__testf)
-		if (__n < __lc->_M_falsename_size)
-		  __testf = __c == __lc->_M_falsename[__n];
-		else
-		  break;
+	        {
+		  if (__n < __lc->_M_falsename_size)
+		    __testf = __c == __lc->_M_falsename[__n];
+		  else
+		    break;
+		}
 
 	      if (__testt)
-		if (__n < __lc->_M_truename_size)
-		  __testt = __c == __lc->_M_truename[__n];
-		else
-		  break;
+	        {
+		  if (__n < __lc->_M_truename_size)
+		    __testt = __c == __lc->_M_truename[__n];
+		  else
+		    break;
+		}
 
 	      if (!__testf && !__testt)
 		break;
@@ -764,9 +769,9 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
 		__testeof = true;
             }
 	  if (__testf && __n == __lc->_M_falsename_size)
-	    __v = 0;
+	    __v = false;
 	  else if (__testt && __n == __lc->_M_truename_size)
-	    __v = 1;
+	    __v = true;
 	  else
 	    __err |= ios_base::failbit;
 
@@ -906,8 +911,8 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
     {
       // [22.2.2.2.2] Stage 3.
       // If necessary, pad.
-      __pad<_CharT, char_traits<_CharT> >::_S_pad(__io, __fill, __new, __cs,
-						  __w, __len, true);
+      __pad<_CharT, char_traits<_CharT> >::_S_pad(__io, __fill, __new,
+						  __cs, __w, __len);
       __len = static_cast<int>(__w);
     }
 
@@ -994,7 +999,9 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
 	const ios_base::fmtflags __basefield = __flags & ios_base::basefield;
 	const bool __dec = (__basefield != ios_base::oct
 			    && __basefield != ios_base::hex);
-	const __unsigned_type __u = (__v > 0 || !__dec) ? __v : -__v;
+	const __unsigned_type __u = ((__v > 0 || !__dec)
+				     ? __unsigned_type(__v)
+				     : -__unsigned_type(__v));
  	int __len = __int_to_char(__cs + __ilen, __u, __lit, __flags, __dec);
 	__cs += __ilen - __len;
 
@@ -1307,8 +1314,12 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
 					 | ios_base::internal);
       __io.flags((__flags & __fmt) | (ios_base::hex | ios_base::showbase));
 
+      typedef __gnu_cxx::__conditional_type<(sizeof(const void*)
+					     <= sizeof(unsigned long)),
+	unsigned long, unsigned long long>::__type _UIntPtrType;       
+
       __s = _M_insert_int(__s, __io, __fill,
-			  reinterpret_cast<unsigned long>(__v));
+			  reinterpret_cast<_UIntPtrType>(__v));
       __io.flags(__flags);
       return __s;
     }
@@ -2493,10 +2504,6 @@ _GLIBCXX_END_LDBL_NAMESPACE
   // Assumes
   // __newlen > __oldlen
   // __news is allocated for __newlen size
-  // Used by both num_put and ostream inserters: if __num,
-  // internal-adjusted objects are padded according to the rules below
-  // concerning 0[xX] and +-, otherwise, exactly as right-adjusted
-  // ones are.
 
   // NB: Of the two parameters, _CharT can be deduced from the
   // function arguments. The other (_Traits) has to be explicitly specified.
@@ -2505,7 +2512,7 @@ _GLIBCXX_END_LDBL_NAMESPACE
     __pad<_CharT, _Traits>::_S_pad(ios_base& __io, _CharT __fill,
 				   _CharT* __news, const _CharT* __olds,
 				   const streamsize __newlen,
-				   const streamsize __oldlen, const bool __num)
+				   const streamsize __oldlen)
     {
       const size_t __plen = static_cast<size_t>(__newlen - __oldlen);
       const ios_base::fmtflags __adjust = __io.flags() & ios_base::adjustfield;
@@ -2519,7 +2526,7 @@ _GLIBCXX_END_LDBL_NAMESPACE
 	}
 
       size_t __mod = 0;
-      if (__adjust == ios_base::internal && __num)
+      if (__adjust == ios_base::internal)
 	{
 	  // Pad after the sign, if there is one.
 	  // Pad after 0[xX], if there is one.

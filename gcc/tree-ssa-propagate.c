@@ -615,11 +615,20 @@ set_rhs (tree *stmt_p, tree expr)
 	    return false;
 	  break;
 
-	case CALL_EXPR:
 	case EXC_PTR_EXPR:
 	case FILTER_EXPR:
 	  break;
 
+	default:
+	  return false;
+	}
+      break;
+
+    case tcc_vl_exp:
+      switch (code)
+	{
+	case CALL_EXPR:
+	  break;
 	default:
 	  return false;
 	}
@@ -1103,7 +1112,7 @@ fold_predicate_in (tree stmt)
   else
     return false;
 
-  val = vrp_evaluate_conditional (*pred_p, true);
+  val = vrp_evaluate_conditional (*pred_p, stmt);
   if (val)
     {
       if (modify_stmt_p)
@@ -1137,15 +1146,18 @@ fold_predicate_in (tree stmt)
    expressions are evaluated with a call to vrp_evaluate_conditional.
    This will only give meaningful results when called from tree-vrp.c
    (the information used by vrp_evaluate_conditional is built by the
-   VRP pass).  */
+   VRP pass).  
 
-void
+   Return TRUE when something changed.  */
+
+bool
 substitute_and_fold (prop_value_t *prop_value, bool use_ranges_p)
 {
   basic_block bb;
+  bool something_changed = false;
 
   if (prop_value == NULL && !use_ranges_p)
-    return;
+    return false;
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "\nSubstituing values and folding statements\n\n");
@@ -1234,6 +1246,7 @@ substitute_and_fold (prop_value_t *prop_value, bool use_ranges_p)
 
 	      /* Determine what needs to be done to update the SSA form.  */
 	      pop_stmt_changes (bsi_stmt_ptr (i));
+	      something_changed = true;
 	    }
 	  else
 	    {
@@ -1261,6 +1274,7 @@ substitute_and_fold (prop_value_t *prop_value, bool use_ranges_p)
       fprintf (dump_file, "Predicates folded:    %6ld\n",
 	       prop_stats.num_pred_folded);
     }
+  return something_changed;
 }
 
 #include "gt-tree-ssa-propagate.h"

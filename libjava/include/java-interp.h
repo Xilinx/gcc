@@ -1,6 +1,6 @@
 // java-interp.h - Header file for the bytecode interpreter.  -*- c++ -*-
 
-/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
+/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -137,6 +137,21 @@ struct  _Jv_LineTableEntry
   int line;
 };
 
+// This structure holds local variable information.
+// The pc value is the first pc where the variable must have a value and it
+// must continue to have a value until (start_pc + length).
+// The name is the variable name, and the descriptor contains type information.
+// The slot is the index in the local variable array of this method, long and
+// double occupy slot and slot+1.
+struct _Jv_LocalVarTableEntry
+{
+  int bytecode_start_pc;
+  int length;
+  char *name;
+  char *descriptor;
+  int slot;
+};
+
 class _Jv_InterpMethod : public _Jv_MethodBase
 {
   // Breakpoint instruction
@@ -157,6 +172,10 @@ class _Jv_InterpMethod : public _Jv_MethodBase
   // Length of the line_table - when this is zero then line_table is NULL.
   int line_table_len;  
   _Jv_LineTableEntry *line_table;
+  
+  // The local variable table length and the table itself
+  int local_var_table_len;
+  _Jv_LocalVarTableEntry *local_var_table;
 
   pc_t prepared;
   int number_insn_slots;
@@ -183,7 +202,7 @@ class _Jv_InterpMethod : public _Jv_MethodBase
   }
 
   // return the method's invocation pointer (a stub).
-  void *ncode ();
+  void *ncode (jclass);
   void compile (const void * const *);
 
   static void run_normal (ffi_cif*, void*, ffi_raw*, void*);
@@ -205,11 +224,16 @@ class _Jv_InterpMethod : public _Jv_MethodBase
   // number info is unavailable.
   int get_source_line(pc_t mpc);
 
+   public:
+
   // Convenience function for indexing bytecode PC/insn slots in
   // line tables for JDWP
   jlong insn_index (pc_t pc);
   
-   public:
+  // Helper function used to check if there is a handler for an exception
+  // present at this code index
+  jboolean check_handler (pc_t *pc, _Jv_InterpMethod *meth,
+                     java::lang::Throwable *ex);
    
   /* Get the line table for this method.
    * start  is the lowest index in the method
@@ -219,6 +243,25 @@ class _Jv_InterpMethod : public _Jv_MethodBase
    */
   void get_line_table (jlong& start, jlong& end, jintArray& line_numbers,
 		       jlongArray& code_indices);
+  
+  int get_max_locals ()
+  {
+    return static_cast<int> (max_locals);
+  }
+  
+  /* Get info for a local variable of this method.
+   * If there is no loca_var_table for this method it will return -1.
+   * table_slot  indicates which slot in the local_var_table to get, if there is
+   * no variable at this location it will return 0.
+   * Otherwise, it will return the number of table slots after the selected
+   * slot, indexed from 0.
+   * 
+   * Example: there are 5 slots in the table, you request slot 0 so it will
+   * return 4.
+   */
+  int get_local_var_table (char **name, char **sig, char **generic_sig,
+                           jlong *startloc, jint *length, jint *slot,
+                           int table_slot);
 
   /* Installs a break instruction at the given code index. Returns
      the pc_t of the breakpoint or NULL if index is invalid. */
@@ -250,6 +293,7 @@ class _Jv_InterpClass
   _Jv_MethodBase **interpreted_methods;
   _Jv_ushort     *field_initializers;
   jstring source_file_name;
+  _Jv_ClosureList **closures;
 
   friend class _Jv_ClassReader;
   friend class _Jv_InterpMethod;
@@ -262,6 +306,7 @@ class _Jv_InterpClass
 #endif
 
   friend _Jv_MethodBase ** _Jv_GetFirstMethod (_Jv_InterpClass *klass);
+  friend jstring _Jv_GetInterpClassSourceFile (jclass);
 };
 
 extern inline _Jv_MethodBase **
@@ -298,7 +343,7 @@ class _Jv_JNIMethod : public _Jv_MethodBase
   // This function is used when making a JNI call from the interpreter.
   static void call (ffi_cif *, void *, ffi_raw *, void *);
 
-  void *ncode ();
+  void *ncode (jclass);
 
   friend class _Jv_ClassReader;
   friend class _Jv_InterpreterEngine;
@@ -315,35 +360,105 @@ public:
   }
 };
 
-// The interpreted call stack, represented by a linked list of frames.
-struct _Jv_InterpFrame
+enum _Jv_FrameType
 {
+  frame_native,
+  frame_interpreter,
+  frame_proxy
+};
+
+//  The composite call stack as represented by a linked list of frames
+class _Jv_Frame
+{
+public:
+  java::lang::Thread *thread;
+
   union
   {
+    _Jv_MethodBase *self;
     void *meth;
-    _Jv_InterpMethod *self;
     _Jv_Method *proxyMethod;
   };
-  java::lang::Thread *thread;
-  _Jv_InterpFrame *next;
+  
+  //The full list of frames, JNI and interpreted
+  _Jv_Frame *next;
+  _Jv_FrameType frame_type;
+  
+  _Jv_Frame (_Jv_MethodBase *s, java::lang::Thread *thr, _Jv_FrameType type)
+  {
+    self = s;
+    frame_type = type;
+    next = (_Jv_Frame *) thr->frame;
+    thr->frame = (gnu::gcj::RawData *) this;
+    thread = thr;
+  }
+
+  ~_Jv_Frame ()
+  {
+    thread->frame = (gnu::gcj::RawData *) next;
+  }
+
+  int depth ()
+  {
+    int depth = 0;
+    struct _Jv_Frame *f;
+    for (f = this; f != NULL; f = f->next)
+      ++depth;
+
+    return depth;
+  }
+};
+
+// An interpreted frame in the call stack
+class _Jv_InterpFrame : public _Jv_Frame
+{
+public:
+  
+  // Keep the purely interpreted list around so as not to break backtraces
+  _Jv_InterpFrame *next_interp;
+  
   union
   {
     pc_t pc;
     jclass proxyClass;
   };
-  
-  _Jv_InterpFrame (void *meth, java::lang::Thread *thr, jclass proxyClass = NULL)
+
+  //Debug info for local variables.
+  _Jv_word *locals;
+  char *locals_type;
+
+  // Object pointer for this frame ("this")
+  jobject obj_ptr;
+
+  _Jv_InterpFrame (void *meth, java::lang::Thread *thr, jclass proxyCls = NULL)
+  : _Jv_Frame (reinterpret_cast<_Jv_MethodBase *> (meth), thr,
+	             frame_interpreter)
   {
-    this->meth = meth;
-    thread = thr;
-    next = (_Jv_InterpFrame *) thr->interp_frame;
+    next_interp = (_Jv_InterpFrame *) thr->interp_frame;
+    proxyClass = proxyCls;
     thr->interp_frame = (gnu::gcj::RawData *) this;
-    this->proxyClass = proxyClass;
+    obj_ptr = NULL;
   }
 
   ~_Jv_InterpFrame ()
   {
-    thread->interp_frame = (gnu::gcj::RawData *) next;
+    thread->interp_frame = (gnu::gcj::RawData *) next_interp;
+  }
+
+  jobject get_this_ptr ()
+  {
+    return obj_ptr;
+  } 
+};
+
+// A native frame in the call stack really just a placeholder
+class _Jv_NativeFrame : public _Jv_Frame
+{
+public:
+
+  _Jv_NativeFrame (_Jv_JNIMethod *s, java::lang::Thread *thr)
+  : _Jv_Frame (s, thr, frame_native)
+  {
   }
 };
 

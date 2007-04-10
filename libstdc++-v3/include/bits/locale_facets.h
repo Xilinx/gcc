@@ -1,6 +1,7 @@
 // Locale support -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -44,6 +45,7 @@
 
 #include <ctime>	// For struct tm
 #include <cwctype>	// For wctype_t
+#include <cctype>
 #include <bits/ctype_base.h>	
 #include <iosfwd>
 #include <bits/ios_base.h>  // For ios_base, ios_base::iostate
@@ -91,7 +93,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       static void
       _S_pad(ios_base& __io, _CharT __fill, _CharT* __news,
 	     const _CharT* __olds, const streamsize __newlen,
-	     const streamsize __oldlen, const bool __num);
+	     const streamsize __oldlen);
     };
 
   // Used by both numeric and monetary facets.
@@ -1510,7 +1512,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     class ctype_byname : public ctype<_CharT>
     {
     public:
-      typedef _CharT		char_type;
+      typedef typename ctype<_CharT>::mask  mask;
 
       explicit
       ctype_byname(const char* __s, size_t __refs = 0);
@@ -1522,10 +1524,30 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /// 22.2.1.4  Class ctype_byname specializations.
   template<>
-    ctype_byname<char>::ctype_byname(const char*, size_t refs);
+    class ctype_byname<char> : public ctype<char>
+    {
+    public:
+      explicit
+      ctype_byname(const char* __s, size_t __refs = 0);
 
+    protected:
+      virtual
+      ~ctype_byname();
+    };
+
+#ifdef _GLIBCXX_USE_WCHAR_T
   template<>
-    ctype_byname<wchar_t>::ctype_byname(const char*, size_t refs);
+    class ctype_byname<wchar_t> : public ctype<wchar_t>
+    {
+    public:
+      explicit
+      ctype_byname(const char* __s, size_t __refs = 0);
+
+    protected:
+      virtual
+      ~ctype_byname();
+    };
+#endif
 
 _GLIBCXX_END_NAMESPACE
 

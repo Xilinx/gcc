@@ -91,6 +91,7 @@ Boston, MA 02110-1301, USA.  */
 /* Define this so we can compile MS code for use with WINE.  */
 #define HANDLE_PRAGMA_PACK_PUSH_POP
 
+#undef LINK_GCC_C_SEQUENCE_SPEC
 #define LINK_GCC_C_SEQUENCE_SPEC \
   "%{static:--start-group} %G %L %{static:--end-group}%{!static:%G}"
 
@@ -125,5 +126,8 @@ Boston, MA 02110-1301, USA.  */
 /* Determine whether the entire c99 runtime
    is present in the runtime library.  */
 #define TARGET_C99_FUNCTIONS (OPTION_GLIBC)
+
+/* Whether we have sincos that follows the GNU extension.  */
+#define TARGET_HAS_SINCOS (OPTION_GLIBC)
 
 #define TARGET_POSIX_IO

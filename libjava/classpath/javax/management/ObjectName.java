@@ -1,5 +1,5 @@
 /* ObjectName.java -- Represent the name of a bean, or a pattern for a name.
-   Copyright (C) 2006 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -105,7 +105,7 @@ public class ObjectName
   /**
    * The properties, as key-value pairs.
    */
-  private TreeMap properties;
+  private TreeMap<String,String> properties = new TreeMap<String,String>();
 
   /**
    * The properties as a string (stored for ordering).
@@ -143,6 +143,9 @@ public class ObjectName
   public ObjectName(String name)
     throws MalformedObjectNameException
   {
+    if (name.length() == 0)
+      name = "*:*";
+
     int domainSep = name.indexOf(':');
     if (domainSep == -1)
       throw new MalformedObjectNameException("No domain separator was found.");
@@ -164,7 +167,6 @@ public class ObjectName
 	  throw new MalformedObjectNameException("A name that is not a " +
 						 "pattern must contain at " +
 						 "least one key-value pair.");
-	properties = new TreeMap();
 	for (int a = 0; a < pairs.length; ++a)
 	  {
 	    int sep = pairs[a].indexOf('=');
@@ -197,7 +199,6 @@ public class ObjectName
     throws MalformedObjectNameException
   {
     this.domain = domain;
-    properties = new TreeMap();
     properties.put(key, value);
     checkComponents();
   }
@@ -216,7 +217,7 @@ public class ObjectName
    * @throws NullPointerException if one of the parameters is
    *                              <code>null</code>.
    */
-  public ObjectName(String domain, Hashtable properties)
+  public ObjectName(String domain, Hashtable<String,String> properties)
     throws MalformedObjectNameException
   {
     this.domain = domain;
@@ -305,70 +306,80 @@ public class ObjectName
   {
     if (name.isPattern())
       return false;
-    if (isPattern())
+
+    if (!isPattern())
+      return equals(name);
+
+    if (isDomainPattern())
       {
-	boolean domainMatch, propMatch;
-	if (isDomainPattern())
-	  {
-	    String oDomain = name.getDomain();
-	    int oLength = oDomain.length();
-	    for (int a = 0; a < domain.length(); ++a)
-	      {
-		char n = domain.charAt(a);
-		if (oLength == a && n != '*')
-		  return false;
-		if (n == '?')
-		  continue;
-		if (n == '*')
-		  if ((a + 1) < domain.length())
-		    {
-		      if (oLength == a)
-			return false;
-		      char next;
-		      do
-			{
-			  next = domain.charAt(a + 1);
-			} while (next == '*');
-		      if (next == '?')
-			continue;
-		      int pos = a;
-		      while (oDomain.charAt(pos) != next)
-			{
-			  ++pos;
-			  if (pos == oLength)
-			    return false;
-			}
-		    }
-		if (n != oDomain.charAt(a))
-		  return false;
-	      }
-	    domainMatch = true;
-	  }
-	else
-	  domainMatch = domain.equals(name.getDomain());
-	if (isPropertyPattern())
-	  {
-	    Hashtable oProps = name.getKeyPropertyList();
-	    Iterator i = properties.entrySet().iterator();
-	    while (i.hasNext())
-	      {
-		Map.Entry entry = (Map.Entry) i.next();
-		String key = (String) entry.getKey();
-		if (!(oProps.containsKey(key)))
-		  return false;
-		String val = (String) entry.getValue();
-		if (!(val.equals(oProps.get(key))))
-		  return false;
-	      }
-	    propMatch = true;
-	  }
-	else
-	  propMatch =
-	    getCanonicalKeyPropertyListString().equals
-	    (name.getCanonicalKeyPropertyListString());
-	return domainMatch && propMatch;
+	if (!domainMatches(domain, 0, name.getDomain(), 0))
+	  return false;
       }
-    return equals(name);
+    else
+      {
+	if (!domain.equals(name.getDomain()))
+	  return false;
+      }
+
+    if (isPropertyPattern())
+      {
+	Hashtable oProps = name.getKeyPropertyList();
+	Iterator i = properties.entrySet().iterator();
+	while (i.hasNext())
+	  {
+	    Map.Entry entry = (Map.Entry) i.next();
+	    String key = (String) entry.getKey();
+	    if (!(oProps.containsKey(key)))
+	      return false;
+	    String val = (String) entry.getValue();
+	    if (!(val.equals(oProps.get(key))))
+	      return false;
+	  }
+      }
+    else
+      {
+	if (!getCanonicalKeyPropertyListString().equals
+	    (name.getCanonicalKeyPropertyListString()))
+	  return false;
+      }
+    return true;
+  }
+
+  /**
+   * Returns true if the domain matches the pattern.
+   *
+   * @param pattern the pattern to match against.
+   * @param patternindex the index into the pattern to start matching.
+   * @param domain the domain to match.
+   * @param domainindex the index into the domain to start matching.
+   * @return true if the domain matches the pattern.
+   */
+  private static boolean domainMatches(String pattern, int patternindex,
+				       String domain, int domainindex)
+  {
+    while (patternindex < pattern.length())
+      {
+	char c = pattern.charAt(patternindex++);
+	
+	if (c == '*')
+	  {
+	    for (int i = domain.length(); i >= domainindex; i--)
+	      {
+		if (domainMatches(pattern, patternindex, domain, i))
+		  return true;
+	      }
+	    return false;
+	  }
+
+	if (domainindex >= domain.length())
+	  return false;
+	
+	if (c != '?' && c != domain.charAt(domainindex))
+	  return false;
+
+	domainindex++;
+      }
+    return true;
   }
 
   /**
@@ -542,7 +553,8 @@ public class ObjectName
    *                                      specifications.
    * @throws NullPointerException if <code>name</code> is <code>null</code>.
    */
-  public static ObjectName getInstance(String domain, Hashtable properties)
+  public static ObjectName getInstance(String domain,
+				       Hashtable<String,String> properties)
     throws MalformedObjectNameException
   {
     return new ObjectName(domain, properties);
@@ -565,16 +577,15 @@ public class ObjectName
   /**
    * Returns the properties in a {@link java.util.Hashtable}.  The table
    * contains each of the properties as keys mapped to their value.  The
-   * returned table may be unmodifiable.  If the case that the table is
-   * modifiable, changes made to it will not be reflected in the object
-   * name.
+   * returned table is not unmodifiable, but changes made to it will not
+   * be reflected in the object name.
    *
    * @return a {@link java.util.Hashtable}, containing each of the object
    *         name's properties.
    */
-  public Hashtable getKeyPropertyList()
+  public Hashtable<String,String> getKeyPropertyList()
   {
-    return (Hashtable) Collections.unmodifiableMap(new Hashtable(properties));
+    return new Hashtable<String,String>(properties);
   }
 
   /**
@@ -674,7 +685,8 @@ public class ObjectName
    */
   public static String quote(String string)
   {
-    StringBuilder builder = new StringBuilder('"');
+    StringBuilder builder = new StringBuilder();
+    builder.append('"');
     for (int a = 0; a < string.length(); ++a)
       {
 	char s = string.charAt(a);
@@ -715,19 +727,18 @@ public class ObjectName
 
   /**
    * Returns a textual representation of the object name.
-   * The format is unspecified, but it should be expected that
-   * two equivalent object names will return the same string
-   * from this method.
+   *
+   * <p>The format is unspecified beyond that equivalent object
+   * names will return the same string from this method, but note
+   * that Tomcat depends on the string returned by this method
+   * being a valid textual representation of the object name and
+   * will fail to start if it is not.
    *
    * @return a textual representation of the object name.
    */
   public String toString()
   {
-    return getClass().toString() +
-      "[domain = " + domain +
-      ",properties = " + properties +
-      ",propertyPattern = " + propertyPattern +
-      "]";
+    return getCanonicalName();
   }
 
   /**

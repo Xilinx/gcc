@@ -1,7 +1,7 @@
 ## Process this with automake to create Makefile.in
 
 AUTOMAKE_OPTIONS = foreign subdir-objects
-ACLOCAL_AMFLAGS = -I ..
+ACLOCAL_AMFLAGS = -I .. -I ../config
 
 SUBDIRS = include testsuite
 
@@ -78,7 +78,7 @@ toolexeclib_LTLIBRARIES = libffi.la
 noinst_LTLIBRARIES = libffi_convenience.la
 
 libffi_la_SOURCES = src/debug.c src/prep_cif.c src/types.c \
-		src/raw_api.c src/java_raw_api.c
+		src/raw_api.c src/java_raw_api.c src/closures.c
 
 nodist_libffi_la_SOURCES =
 
@@ -162,7 +162,15 @@ libffi_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version`
 AM_CPPFLAGS = -I. -I$(top_srcdir)/include -Iinclude -I$(top_srcdir)/src
 AM_CCASFLAGS = $(AM_CPPFLAGS)
 
-# No install-html support
-.PHONY: install-html
+# No install-html or install-pdf support in automake yet
+.PHONY: install-html install-pdf
 install-html:
+install-pdf:
 
+# Multilib support.  Automake should provide these on its own.
+all-recursive: all-multi
+install-recursive: install-multi
+mostlyclean-recursive: mostlyclean-multi
+clean-recursive: clean-multi
+distclean-recursive: distclean-multi
+maintainer-clean-recursive: maintainer-clean-multi

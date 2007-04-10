@@ -7,7 +7,7 @@
 @c Loop Representation
 @c ---------------------------------------------------------------------
 
-@node Loop Representation
+@node Loop Analysis and Representation
 @chapter Analysis and Representation of Loops
 
 GCC provides extensive infrastructure for work with natural loops, i.e.,
@@ -26,6 +26,7 @@ variable analysis and number of iterations analysis).
 * Number of iterations::	Number of iterations analysis.
 * Dependency analysis::		Data dependency analysis.
 * Lambda::			Linear loop transformations framework.
+* Omega::			A solver for linear programming problems.
 @end menu
 
 @node Loop representation
@@ -48,11 +49,17 @@ a single header, or if there is a branching in the middle of the loop.
 The representation of loops in GCC however allows only loops with a
 single latch.  During loop analysis, headers of such loops are split and
 forwarder blocks are created in order to disambiguate their structures.
-A heuristic based on profile information is used to determine whether
-the latches correspond to sub-loops or to control flow in a single loop.
-This means that the analysis sometimes changes the CFG, and if you run
-it in the middle of an optimization pass, you must be able to deal with
-the new blocks.
+Heuristic based on profile information and structure of the induction
+variables in the loops is used to determine whether the latches
+correspond to sub-loops or to control flow in a single loop.  This means
+that the analysis sometimes changes the CFG, and if you run it in the
+middle of an optimization pass, you must be able to deal with the new
+blocks.  You may avoid CFG changes by passing
+@code{LOOPS_MAY_HAVE_MULTIPLE_LATCHES} flag to the loop discovery,
+note however that most other loop manipulation functions will not work
+correctly for loops with multiple latch edges (the functions that only
+query membership of blocks to loops and subloop relationships, or
+enumerate and test loop exits, can be expected to work).
 
 Body of the loop is the set of blocks that are dominated by its header,
 and reachable from its latch against the direction of edges in CFG.  The
@@ -64,17 +71,24 @@ function.  Each of the loops is represented in a @code{struct loop}
 structure.  Each loop is assigned an index (@code{num} field of the
 @code{struct loop} structure), and the pointer to the loop is stored in
 the corresponding field of the @code{larray} vector in the loops
-structure.  Index of a sub-loop is always greater than the index of its
-super-loop.  The indices do not have to be continuous, there may be
+structure.  The indices do not have to be continuous, there may be
 empty (@code{NULL}) entries in the @code{larray} created by deleting
-loops.  The index of a loop never changes.
+loops.  Also, there is no guarantee on the relative order of a loop
+and its subloops in the numbering.  The index of a loop never changes.
 
 The entries of the @code{larray} field should not be accessed directly.
 The function @code{get_loop} returns the loop description for a loop with
 the given index.  @code{number_of_loops} function returns number of
 loops in the function.  To traverse all loops, use @code{FOR_EACH_LOOP}
 macro.  The @code{flags} argument of the macro is used to determine
-the direction of traversal and the set of loops visited.
+the direction of traversal and the set of loops visited.  Each loop is
+guaranteed to be visited exactly once, regardless of the changes to the
+loop tree, and the loops may be removed during the traversal.  The newly
+created loops are never traversed, if they need to be visited, this
+must be done separately after their creation.  The @code{FOR_EACH_LOOP}
+macro allocates temporary variables.  If the @code{FOR_EACH_LOOP} loop
+were ended using break or goto, they would not be released;
+@code{FOR_EACH_LOOP_BREAK} macro must be used instead.
 
 Each basic block contains the reference to the innermost loop it belongs
 to (@code{loop_father}).  For this reason, it is only possible to have
@@ -89,6 +103,13 @@ bitmask.  These flags specify what other properties of the loop
 structures should be calculated/enforced and preserved later:
 
 @itemize
+@item @code{LOOPS_MAY_HAVE_MULTIPLE_LATCHES}: If this flag is set, no
+changes to CFG will be performed in the loop analysis, in particular,
+loops with multiple latch edges will not be disambiguated.  If a loop
+has multiple latches, its latch block is set to NULL.  Most of
+the loop manipulation functions will not work for loops in this shape.
+No other flags that require CFG changes can be passed to
+loop_optimizer_init.
 @item @code{LOOPS_HAVE_PREHEADERS}: Forwarder blocks are created in such
 a way that each loop has only one entry edge, and additionally, the
 source block of this entry edge has only one successor.  This creates a
@@ -603,3 +624,32 @@ Given a transformed loopnest, conversion back into gcc IR is done by
 @code{lambda_loopnest_to_gcc_loopnest}.  This function will modify the
 loops so that they match the transformed loopnest.
 
+
+@node Omega
+@section Omega a solver for linear programming problems
+@cindex Omega a solver for linear programming problems
+
+The data dependence analysis contains several solvers triggered
+sequentially from the less complex ones to the more sophisticated.
+For ensuring the consistency of the results of these solvers, a data
+dependence check pass has been implemented based on two different
+solvers.  The second method that has been integrated to GCC is based
+on the Omega dependence solver, written in the 1990's by William Pugh
+and David Wonnacott.  Data dependence tests can be formulated using a
+subset of the Presburger arithmetics that can be translated to linear
+constraint systems.  These linear constraint systems can then be
+solved using the Omega solver.
+
+The Omega solver is using Fourier-Motzkin's algorithm for variable
+elimination: a linear constraint system containing @code{n} variables
+is reduced to a linear constraint system with @code{n-1} variables.
+The Omega solver can also be used for solving other problems that can
+be expressed under the form of a system of linear equalities and
+inequalities.  The Omega solver is known to have an exponential worst
+case, also known under the name of ``omega nightmare'' in the
+literature, but in practice, the omega test is known to be efficient
+for the common data dependence tests.
+
+The interface used by the Omega solver for describing the linear
+programming problems is described in @file{omega.h}, and the solver is
+@code{omega_solve_problem}.  

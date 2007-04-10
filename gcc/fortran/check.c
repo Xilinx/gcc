@@ -58,6 +58,18 @@ numeric_check (gfc_expr *e, int n)
   if (gfc_numeric_ts (&e->ts))
     return SUCCESS;
 
+  /* If the expression has not got a type, check if its namespace can
+     offer a default type.  */
+  if ((e->expr_type == EXPR_VARIABLE || e->expr_type == EXPR_VARIABLE)
+	&& e->symtree->n.sym->ts.type == BT_UNKNOWN
+	&& gfc_set_default_type (e->symtree->n.sym, 0,
+				 e->symtree->n.sym->ns) == SUCCESS
+	&& gfc_numeric_ts (&e->symtree->n.sym->ts))
+    {
+      e->ts = e->symtree->n.sym->ts;
+      return SUCCESS;
+    }
+
   gfc_error ("'%s' argument of '%s' intrinsic at %L must be a numeric type",
 	     gfc_current_intrinsic_arg[n], gfc_current_intrinsic, &e->where);
 
@@ -337,7 +349,10 @@ dim_rank_check (gfc_expr *dim, gfc_expr *array, int allow_assumed)
 
   ar = gfc_find_array_ref (array);
   rank = array->rank;
-  if (ar->as->type == AS_ASSUMED_SIZE && !allow_assumed)
+  if (ar->as->type == AS_ASSUMED_SIZE
+      && !allow_assumed
+      && ar->type != AR_ELEMENT
+      && ar->type != AR_SECTION)
     rank--;
 
   if (mpz_cmp_ui (dim->value.integer, 1) < 0
@@ -2994,6 +3009,9 @@ gfc_check_alarm_sub (gfc_expr *seconds, gfc_expr *handler, gfc_expr *status)
     return FAILURE;
 
   if (type_check (status, 2, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (kind_value_check (status, 2, gfc_default_integer_kind) == FAILURE)
     return FAILURE;
 
   return SUCCESS;

@@ -51,7 +51,8 @@ enum processor_flags
   PF_IEEE_FLOAT = 1,
   PF_ZARCH = 2,
   PF_LONG_DISPLACEMENT = 4,
-  PF_EXTIMM = 8
+  PF_EXTIMM = 8,
+  PF_DFP = 16
 };
 
 extern enum processor_type s390_tune;
@@ -68,11 +69,15 @@ extern enum processor_flags s390_arch_flags;
 	(s390_arch_flags & PF_LONG_DISPLACEMENT)
 #define TARGET_CPU_EXTIMM \
  	(s390_arch_flags & PF_EXTIMM)
+#define TARGET_CPU_DFP \
+ 	(s390_arch_flags & PF_DFP)
 
 #define TARGET_LONG_DISPLACEMENT \
        (TARGET_ZARCH && TARGET_CPU_LONG_DISPLACEMENT)
 #define TARGET_EXTIMM \
        (TARGET_ZARCH && TARGET_CPU_EXTIMM)
+#define TARGET_DFP \
+       (TARGET_ZARCH && TARGET_CPU_DFP)
 
 /* Run-time target specification.  */
 
@@ -103,9 +108,9 @@ extern enum processor_flags s390_arch_flags;
 #define TARGET_IEEE_FLOAT          1
 
 #ifdef DEFAULT_TARGET_64BIT
-#define TARGET_DEFAULT             (MASK_64BIT | MASK_ZARCH | MASK_HARD_FLOAT)
+#define TARGET_DEFAULT             (MASK_64BIT | MASK_ZARCH)
 #else
-#define TARGET_DEFAULT             MASK_HARD_FLOAT
+#define TARGET_DEFAULT             0
 #endif
 
 /* Support for configure-time defaults.  */
@@ -459,19 +464,11 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
 #define PREFERRED_RELOAD_CLASS(X, CLASS)	\
   s390_preferred_reload_class ((X), (CLASS))
 
-/* We need a secondary reload when loading a PLUS which is
-   not a valid operand for LOAD ADDRESS.  */
-#define SECONDARY_INPUT_RELOAD_CLASS(CLASS, MODE, IN)	\
-  s390_secondary_input_reload_class ((CLASS), (MODE), (IN))
-
-/* We need a secondary reload when storing a double-word
-   to a non-offsettable memory address.  */
-#define SECONDARY_OUTPUT_RELOAD_CLASS(CLASS, MODE, OUT)	\
-  s390_secondary_output_reload_class ((CLASS), (MODE), (OUT))
-
 /* We need secondary memory to move data between GPRs and FPRs.  */
 #define SECONDARY_MEMORY_NEEDED(CLASS1, CLASS2, MODE) \
- ((CLASS1) != (CLASS2) && ((CLASS1) == FP_REGS || (CLASS2) == FP_REGS))
+ ((CLASS1) != (CLASS2)                                \
+  && ((CLASS1) == FP_REGS || (CLASS2) == FP_REGS)     \
+  && (!TARGET_DFP || GET_MODE_SIZE (MODE) != 8))
 
 /* Get_secondary_mem widens its argument to BITS_PER_WORD which loses on 64bit
    because the movsi and movsf patterns don't handle r/f moves.  */

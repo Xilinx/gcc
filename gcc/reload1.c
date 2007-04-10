@@ -1,7 +1,7 @@
 /* Reload pseudo regs into hard regs for insns that require hard regs.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation,
-   Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -1173,20 +1173,6 @@ reload (rtx first, int global)
       {
 	rtx *pnote;
 
-	/* Clean up invalid ASMs so that they don't confuse later passes.
-	   See PR 21299.  */
-	if (asm_noperands (PATTERN (insn)) >= 0)
-	  {
-	    extract_insn (insn);
-	    if (!constrain_operands (1))
-	      {
-		error_for_asm (insn,
-			       "%<asm%> operand has impossible constraints");
-		delete_insn (insn);
-		continue;
-	      }
-	  }
-
 	if (CALL_P (insn))
 	  replace_pseudos_in (& CALL_INSN_FUNCTION_USAGE (insn),
 			      VOIDmode, CALL_INSN_FUNCTION_USAGE (insn));
@@ -1245,8 +1231,22 @@ reload (rtx first, int global)
 	add_auto_inc_notes (insn, PATTERN (insn));
 #endif
 
-	/* And simplify (subreg (reg)) if it appears as an operand.  */
+	/* Simplify (subreg (reg)) if it appears as an operand.  */
 	cleanup_subreg_operands (insn);
+
+	/* Clean up invalid ASMs so that they don't confuse later passes.
+	   See PR 21299.  */
+	if (asm_noperands (PATTERN (insn)) >= 0)
+	  {
+	    extract_insn (insn);
+	    if (!constrain_operands (1))
+	      {
+		error_for_asm (insn,
+			       "%<asm%> operand has impossible constraints");
+		delete_insn (insn);
+		continue;
+	      }
+	  }
       }
 
   /* If we are doing stack checking, give a warning if this function's
@@ -1365,7 +1365,7 @@ maybe_fix_stack_asms (void)
 
       /* Get the operand values and constraints out of the insn.  */
       decode_asm_operands (pat, recog_data.operand, recog_data.operand_loc,
-			   constraints, operand_mode);
+			   constraints, operand_mode, NULL);
 
       /* For every operand, see what registers are allowed.  */
       for (i = 0; i < noperands; i++)
@@ -2548,6 +2548,30 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
     case POST_INC:
     case PRE_DEC:
     case POST_DEC:
+      /* We do not support elimination of a register that is modified.
+	 elimination_effects has already make sure that this does not
+	 happen.  */
+      return x;
+
+    case PRE_MODIFY:
+    case POST_MODIFY:
+      /* We do not support elimination of a register that is modified.
+	 elimination_effects has already make sure that this does not
+	 happen.  The only remaining case we need to consider here is
+	 that the increment value may be an eliminable register.  */
+      if (GET_CODE (XEXP (x, 1)) == PLUS
+	  && XEXP (XEXP (x, 1), 0) == XEXP (x, 0))
+	{
+	  rtx new = eliminate_regs_1 (XEXP (XEXP (x, 1), 1), mem_mode,
+				      insn, true);
+
+	  if (new != XEXP (XEXP (x, 1), 1))
+	    return gen_rtx_fmt_ee (code, GET_MODE (x), XEXP (x, 0),
+				   gen_rtx_PLUS (GET_MODE (x),
+						 XEXP (x, 0), new));
+	}
+      return x;
+
     case STRICT_LOW_PART:
     case NEG:          case NOT:
     case SIGN_EXTEND:  case ZERO_EXTEND:
@@ -2743,6 +2767,14 @@ elimination_effects (rtx x, enum machine_mode mem_mode)
     case POST_DEC:
     case POST_MODIFY:
     case PRE_MODIFY:
+      /* If we modify the source of an elimination rule, disable it.  */
+      for (ep = reg_eliminate; ep < &reg_eliminate[NUM_ELIMINABLE_REGS]; ep++)
+	if (ep->from_rtx == XEXP (x, 0))
+	  ep->can_eliminate = 0;
+
+      /* If we modify the target of an elimination rule by adding a constant,
+	 update its offset.  If we modify the target in any other way, we'll
+	 have to disable the rule as well.  */
       for (ep = reg_eliminate; ep < &reg_eliminate[NUM_ELIMINABLE_REGS]; ep++)
 	if (ep->to_rtx == XEXP (x, 0))
 	  {
@@ -2757,11 +2789,15 @@ elimination_effects (rtx x, enum machine_mode mem_mode)
 	      ep->offset += size;
 	    else if (code == PRE_INC || code == POST_INC)
 	      ep->offset -= size;
-	    else if ((code == PRE_MODIFY || code == POST_MODIFY)
-		     && GET_CODE (XEXP (x, 1)) == PLUS
-		     && XEXP (x, 0) == XEXP (XEXP (x, 1), 0)
-		     && CONSTANT_P (XEXP (XEXP (x, 1), 1)))
-	      ep->offset -= INTVAL (XEXP (XEXP (x, 1), 1));
+	    else if (code == PRE_MODIFY || code == POST_MODIFY)
+	      {
+		if (GET_CODE (XEXP (x, 1)) == PLUS
+		    && XEXP (x, 0) == XEXP (XEXP (x, 1), 0)
+		    && CONST_INT_P (XEXP (XEXP (x, 1), 1)))
+		  ep->offset -= INTVAL (XEXP (XEXP (x, 1), 1));
+		else
+		  ep->can_eliminate = 0;
+	      }
 	  }
 
       /* These two aren't unary operators.  */
@@ -3100,39 +3136,20 @@ eliminate_regs_in_insn (rtx insn, int replace)
 	  {
 	    rtx to_rtx = ep->to_rtx;
 	    offset += ep->offset;
+	    offset = trunc_int_for_mode (offset, GET_MODE (reg));
 
 	    if (GET_CODE (XEXP (plus_cst_src, 0)) == SUBREG)
 	      to_rtx = gen_lowpart (GET_MODE (XEXP (plus_cst_src, 0)),
 				    to_rtx);
-	    if (offset == 0)
-	      {
-		int num_clobbers;
-		/* We assume here that if we need a PARALLEL with
-		   CLOBBERs for this assignment, we can do with the
-		   MATCH_SCRATCHes that add_clobbers allocates.
-		   There's not much we can do if that doesn't work.  */
-		PATTERN (insn) = gen_rtx_SET (VOIDmode,
-					      SET_DEST (old_set),
-					      to_rtx);
-		num_clobbers = 0;
-		INSN_CODE (insn) = recog (PATTERN (insn), insn, &num_clobbers);
-		if (num_clobbers)
-		  {
-		    rtvec vec = rtvec_alloc (num_clobbers + 1);
-
-		    vec->elem[0] = PATTERN (insn);
-		    PATTERN (insn) = gen_rtx_PARALLEL (VOIDmode, vec);
-		    add_clobbers (PATTERN (insn), INSN_CODE (insn));
-		  }
-		gcc_assert (INSN_CODE (insn) >= 0);
-	      }
 	    /* If we have a nonzero offset, and the source is already
 	       a simple REG, the following transformation would
 	       increase the cost of the insn by replacing a simple REG
 	       with (plus (reg sp) CST).  So try only when we already
 	       had a PLUS before.  */
-	    else if (plus_src)
+	    if (offset == 0 || plus_src)
 	      {
+		rtx new_src = plus_constant (to_rtx, offset);
+
 		new_body = old_body;
 		if (! replace)
 		  {
@@ -3143,8 +3160,20 @@ eliminate_regs_in_insn (rtx insn, int replace)
 		PATTERN (insn) = new_body;
 		old_set = single_set (insn);
 
-		XEXP (SET_SRC (old_set), 0) = to_rtx;
-		XEXP (SET_SRC (old_set), 1) = GEN_INT (offset);
+		/* First see if this insn remains valid when we make the
+		   change.  If not, try to replace the whole pattern with
+		   a simple set (this may help if the original insn was a
+		   PARALLEL that was only recognized as single_set due to 
+		   REG_UNUSED notes).  If this isn't valid either, keep
+		   the INSN_CODE the same and let reload fix it up.  */
+		if (!validate_change (insn, &SET_SRC (old_set), new_src, 0))
+		  {
+		    rtx new_pat = gen_rtx_SET (VOIDmode,
+					       SET_DEST (old_set), new_src);
+
+		    if (!validate_change (insn, &PATTERN (insn), new_pat, 0))
+		      SET_SRC (old_set) = new_src;
+		  }
 	      }
 	    else
 	      break;
@@ -5653,7 +5682,16 @@ choose_reload_regs (struct insn_chain *chain)
 		regno = subreg_regno (rld[r].in);
 #endif
 
-	      if (regno >= 0 && reg_last_reload_reg[regno] != 0)
+	      if (regno >= 0
+		  && reg_last_reload_reg[regno] != 0
+#ifdef CANNOT_CHANGE_MODE_CLASS
+		  /* Verify that the register it's in can be used in
+		     mode MODE.  */
+		  && !REG_CANNOT_CHANGE_MODE_P (REGNO (reg_last_reload_reg[regno]),
+						GET_MODE (reg_last_reload_reg[regno]),
+						mode)
+#endif
+		  )
 		{
 		  enum reg_class class = rld[r].class, last_class;
 		  rtx last_reg = reg_last_reload_reg[regno];
@@ -5673,13 +5711,6 @@ choose_reload_regs (struct insn_chain *chain)
 
 		  if ((GET_MODE_SIZE (GET_MODE (last_reg))
 		       >= GET_MODE_SIZE (need_mode))
-#ifdef CANNOT_CHANGE_MODE_CLASS
-		      /* Verify that the register in "i" can be obtained
-			 from LAST_REG.  */
-		      && !REG_CANNOT_CHANGE_MODE_P (REGNO (last_reg),
-						    GET_MODE (last_reg),
-						    mode)
-#endif
 		      && reg_reloaded_contents[i] == regno
 		      && TEST_HARD_REG_BIT (reg_reloaded_valid, i)
 		      && HARD_REGNO_MODE_OK (i, rld[r].mode)
@@ -7561,6 +7592,23 @@ emit_reload_insns (struct insn_chain *chain)
 	  rtx out = ((rld[r].out && REG_P (rld[r].out))
 		     ? rld[r].out : rld[r].out_reg);
 	  int nregno = REGNO (out);
+
+	  /* REG_RTX is now set or clobbered by the main instruction.
+	     As the comment above explains, forget_old_reloads_1 only
+	     sees the original instruction, and there is no guarantee
+	     that the original instruction also clobbered REG_RTX.
+	     For example, if find_reloads sees that the input side of
+	     a matched operand pair dies in this instruction, it may
+	     use the input register as the reload register.
+
+	     Calling forget_old_reloads_1 is a waste of effort if
+	     REG_RTX is also the output register.
+
+	     If we know that REG_RTX holds the value of a pseudo
+	     register, the code after the call will record that fact.  */
+	  if (rld[r].reg_rtx && rld[r].reg_rtx != out)
+	    forget_old_reloads_1 (rld[r].reg_rtx, NULL_RTX, NULL);
+
 	  if (nregno >= FIRST_PSEUDO_REGISTER)
 	    {
 	      rtx src_reg, store_insn = NULL_RTX;
@@ -7812,8 +7860,7 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
       if (insn)
 	{
 	  /* Add a REG_EQUIV note so that find_equiv_reg can find it.  */
-	  REG_NOTES (insn)
-	    = gen_rtx_EXPR_LIST (REG_EQUIV, in, REG_NOTES (insn));
+	  set_unique_reg_note (insn, REG_EQUIV, in);
 	  return insn;
 	}
 
@@ -7822,7 +7869,7 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
 
       gen_reload (out, op1, opnum, type);
       insn = emit_insn (gen_add2_insn (out, op0));
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUIV, in, REG_NOTES (insn));
+      set_unique_reg_note (insn, REG_EQUIV, in);
     }
 
 #ifdef SECONDARY_MEMORY_NEEDED
@@ -7882,8 +7929,7 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
       insn = emit_insn_if_valid_for_reload (insn);
       if (insn)
 	{
-	  REG_NOTES (insn)
-	    = gen_rtx_EXPR_LIST (REG_EQUIV, in, REG_NOTES (insn));
+	  set_unique_reg_note (insn, REG_EQUIV, in);
 	  return insn;
 	}
 

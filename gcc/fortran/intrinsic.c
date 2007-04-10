@@ -120,12 +120,9 @@ gfc_get_intrinsic_sub_symbol (const char *name)
 static const char *
 conv_name (gfc_typespec *from, gfc_typespec *to)
 {
-  static char name[30];
-
-  sprintf (name, "__convert_%c%d_%c%d", gfc_type_letter (from->type),
-	   from->kind, gfc_type_letter (to->type), to->kind);
-
-  return gfc_get_string (name);
+  return gfc_get_string ("__convert_%c%d_%c%d",
+			 gfc_type_letter (from->type), from->kind,
+			 gfc_type_letter (to->type), to->kind);
 }
 
 
@@ -144,7 +141,7 @@ find_conv (gfc_typespec *from, gfc_typespec *to)
   sym = conversion;
 
   for (i = 0; i < nconv; i++, sym++)
-    if (strcmp (target, sym->name) == 0)
+    if (target == sym->name)
       return sym;
 
   return NULL;
@@ -701,9 +698,14 @@ add_sym_5s (const char *name, int elemental, bt type, int kind, int standard,
 static gfc_intrinsic_sym *
 find_sym (gfc_intrinsic_sym *start, int n, const char *name)
 {
+  /* name may be a user-supplied string, so we must first make sure
+     that we're comparing against a pointer into the global string
+     table.  */
+  const char *p = gfc_get_string (name);
+
   while (n > 0)
     {
-      if (strcmp (name, start->name) == 0)
+      if (p == start->name)
 	return start;
 
       start++;
@@ -949,7 +951,7 @@ add_functions (void)
   make_generic ("access", GFC_ISYM_ACCESS, GFC_STD_GNU);
 
   add_sym_1 ("achar", ELEMENTAL, ACTUAL_NO, BT_CHARACTER, dc, GFC_STD_F95,
-	     gfc_check_achar, gfc_simplify_achar, NULL,
+	     gfc_check_achar, gfc_simplify_achar, gfc_resolve_achar,
 	     i, BT_INTEGER, di, REQUIRED);
 
   make_generic ("achar", GFC_ISYM_ACHAR, GFC_STD_F95);
@@ -1911,7 +1913,7 @@ add_functions (void)
 
   add_sym_1 ("new_line", NOT_ELEMENTAL, ACTUAL_NO, BT_CHARACTER, dc,
 	     GFC_STD_F2003, gfc_check_new_line, gfc_simplify_new_line, NULL,
-	     i, BT_CHARACTER, dc, REQUIRED);
+	     a, BT_CHARACTER, dc, REQUIRED);
 
   add_sym_2 ("nint", ELEMENTAL, ACTUAL_YES, BT_INTEGER, di, GFC_STD_F77,
 	     gfc_check_a_ikind, gfc_simplify_nint, gfc_resolve_nint,
@@ -2383,7 +2385,7 @@ add_subroutines (void)
 	      dt, BT_CHARACTER, dc, REQUIRED);
 
   add_sym_1s ("gerror", 0, BT_UNKNOWN, 0, GFC_STD_GNU,
-	      gfc_check_gerror, NULL, gfc_resolve_gerror, c, BT_CHARACTER,
+	      gfc_check_gerror, NULL, gfc_resolve_gerror, res, BT_CHARACTER,
 	      dc, REQUIRED);
 
   add_sym_2s ("getcwd", 0, BT_UNKNOWN, 0, GFC_STD_GNU,
@@ -2457,7 +2459,7 @@ add_subroutines (void)
 
   add_sym_1s ("exit", 0, BT_UNKNOWN, 0, GFC_STD_GNU,
 	      gfc_check_exit, NULL, gfc_resolve_exit,
-	      c, BT_INTEGER, di, OPTIONAL);
+	      st, BT_INTEGER, di, OPTIONAL);
 
   if ((gfc_option.allow_std & GFC_STD_GNU) || gfc_option.flag_all_intrinsics)
     make_noreturn();
@@ -2553,7 +2555,7 @@ add_subroutines (void)
 
   add_sym_2s ("ttynam", 0, BT_UNKNOWN, 0, GFC_STD_GNU,
 	      gfc_check_ttynam_sub, NULL, gfc_resolve_ttynam_sub,
-	      ut, BT_INTEGER, di, REQUIRED, c, BT_CHARACTER, dc, REQUIRED);
+	      ut, BT_INTEGER, di, REQUIRED, name, BT_CHARACTER, dc, REQUIRED);
 
   add_sym_2s ("umask", 0, BT_UNKNOWN, 0, GFC_STD_GNU,
 	      gfc_check_umask_sub, NULL, gfc_resolve_umask_sub,

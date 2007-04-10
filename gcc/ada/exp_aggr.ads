@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,7 +32,8 @@ package Exp_Aggr is
    procedure Expand_N_Extension_Aggregate (N : Node_Id);
 
    function Is_Delayed_Aggregate (N : Node_Id) return Boolean;
-   --  returns True if N is a delayed aggregate of some kind
+   --  Returns True if N is an aggregate of some kind whose Expansion_Delayed
+   --  flag is set (see sinfo for meaning of flag).
 
    procedure Convert_Aggr_In_Object_Decl  (N : Node_Id);
    --  N is a N_Object_Declaration with an expression which must be

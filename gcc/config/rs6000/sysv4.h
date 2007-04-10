@@ -1,6 +1,6 @@
 /* Target definitions for GNU compiler for PowerPC running System V.4
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2006 Free Software Foundation, Inc.
+   2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Cygnus Support.
 
    This file is part of GCC.
@@ -215,10 +215,6 @@ do {									\
       error ("-msecure-plt not supported by your assembler");		\
     }									\
 									\
-  if (TARGET_SOFT_FLOAT && TARGET_LONG_DOUBLE_128			\
-      && rs6000_explicit_options.long_double)				\
-    warning (0, "-msoft-float and -mlong-double-128 not supported");	\
-									\
   /* Treat -fPIC the same as -mrelocatable.  */				\
   if (flag_pic > 1 && DEFAULT_ABI != ABI_AIX)				\
     {									\
@@ -368,11 +364,10 @@ do {									\
 
 /* Override default elf definitions.  */
 #define TARGET_ASM_INIT_SECTIONS rs6000_elf_asm_init_sections
+#undef  TARGET_ASM_RELOC_RW_MASK
+#define TARGET_ASM_RELOC_RW_MASK rs6000_elf_reloc_rw_mask
 #undef	TARGET_ASM_SELECT_RTX_SECTION
 #define	TARGET_ASM_SELECT_RTX_SECTION rs6000_elf_select_rtx_section
-#undef	TARGET_ASM_SELECT_SECTION
-#define	TARGET_ASM_SELECT_SECTION  rs6000_elf_select_section
-#define TARGET_ASM_UNIQUE_SECTION  rs6000_elf_unique_section
 
 /* Return nonzero if this entry is to be written into the constant pool
    in a special way.  We do so if this is a SYMBOL_REF, LABEL_REF or a CONST
@@ -537,7 +532,6 @@ extern int fixuplabelno;
 
 #define TARGET_ENCODE_SECTION_INFO  rs6000_elf_encode_section_info
 #define TARGET_IN_SMALL_DATA_P  rs6000_elf_in_small_data_p
-#define TARGET_SECTION_TYPE_FLAGS  rs6000_elf_section_type_flags
 
 /* The ELF version doesn't encode [DS] or whatever at the end of symbols.  */
 
@@ -584,7 +578,7 @@ extern int fixuplabelno;
 /* Override svr4.h definition.  */
 #undef	ASM_SPEC
 #define	ASM_SPEC "%(asm_cpu) \
-%{.s: %{mregnames} %{mno-regnames}} %{.S: %{mregnames} %{mno-regnames}} \
+%{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
 %{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
 %{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
 %{memb|msdata|msdata=eabi: -memb} \

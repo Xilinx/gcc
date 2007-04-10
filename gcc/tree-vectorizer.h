@@ -168,13 +168,22 @@ enum stmt_vec_info_type {
   condition_vec_info_type,
   reduc_vec_info_type,
   type_promotion_vec_info_type,
-  type_demotion_vec_info_type
+  type_demotion_vec_info_type,
+  type_conversion_vec_info_type
 };
 
 /* Indicates whether/how a variable is used in the loop.  */
 enum vect_relevant {
   vect_unused_in_loop = 0,
+
+  /* defs that feed computations that end up (only) in a reduction. These
+     defs may be used by non-reduction stmts, but eventually, any 
+     computations/values that are affected by these defs are used to compute 
+     a reduction (i.e. don't get stored to memory, for example). We use this 
+     to identify computations that we can change the order in which they are 
+     computed.  */
   vect_used_by_reduction,
+
   vect_used_in_loop  
 };
 
@@ -252,6 +261,9 @@ typedef struct _stmt_vec_info {
   /* In case that two or more stmts share data-ref, this is the pointer to the
      previously detected stmt with the same dr.  */
   tree same_dr_stmt;
+  /* For loads only, if there is a store with the same location, this field is
+     TRUE.  */
+  bool read_write_dep;
 } *stmt_vec_info;
 
 /* Access Functions.  */
@@ -273,6 +285,7 @@ typedef struct _stmt_vec_info {
 #define STMT_VINFO_DR_GROUP_STORE_COUNT(S) (S)->store_count
 #define STMT_VINFO_DR_GROUP_GAP(S)         (S)->gap
 #define STMT_VINFO_DR_GROUP_SAME_DR_STMT(S)(S)->same_dr_stmt
+#define STMT_VINFO_DR_GROUP_READ_WRITE_DEPENDENCE(S)  (S)->read_write_dep
 
 #define DR_GROUP_FIRST_DR(S)               (S)->first_dr
 #define DR_GROUP_NEXT_DR(S)                (S)->next_dr
@@ -280,6 +293,7 @@ typedef struct _stmt_vec_info {
 #define DR_GROUP_STORE_COUNT(S)            (S)->store_count
 #define DR_GROUP_GAP(S)                    (S)->gap
 #define DR_GROUP_SAME_DR_STMT(S)           (S)->same_dr_stmt
+#define DR_GROUP_READ_WRITE_DEPENDENCE(S)  (S)->read_write_dep
 
 #define STMT_VINFO_RELEVANT_P(S)          ((S)->relevant != vect_unused_in_loop)
 
@@ -298,6 +312,21 @@ vinfo_for_stmt (tree stmt)
 {
   stmt_ann_t ann = stmt_ann (stmt);
   return ann ? (stmt_vec_info) ann->common.aux : NULL;
+}
+
+static inline bool
+is_pattern_stmt_p (stmt_vec_info stmt_info)
+{
+  tree related_stmt;
+  stmt_vec_info related_stmt_info;
+
+  related_stmt = STMT_VINFO_RELATED_STMT (stmt_info);
+  if (related_stmt
+      && (related_stmt_info = vinfo_for_stmt (related_stmt))
+      && STMT_VINFO_IN_PATTERN_P (related_stmt_info))
+    return true;
+
+  return false;
 }
 
 /*-----------------------------------------------------------------*/
@@ -342,7 +371,7 @@ extern bitmap vect_memsyms_to_rename;
    divide by the vectorization factor, and to peel the first few iterations
    to force the alignment of data references in the loop.  */
 extern struct loop *slpeel_tree_peel_loop_to_edge 
-  (struct loop *, edge, tree, tree, bool);
+  (struct loop *, edge, tree, tree, bool, unsigned int);
 extern void slpeel_make_loop_iterate_ntimes (struct loop *, tree);
 extern bool slpeel_can_duplicate_loop_p (struct loop *, edge);
 #ifdef ENABLE_CHECKING
@@ -391,8 +420,10 @@ extern bool vectorizable_store (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_operation (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_type_promotion (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_type_demotion (tree, block_stmt_iterator *, tree *);
+extern bool vectorizable_conversion (tree, block_stmt_iterator *, 
+				     tree *);
 extern bool vectorizable_assignment (tree, block_stmt_iterator *, tree *);
-extern bool vectorizable_function (tree, tree);
+extern tree vectorizable_function (tree, tree, tree);
 extern bool vectorizable_call (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_condition (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_live_operation (tree, block_stmt_iterator *, tree *);

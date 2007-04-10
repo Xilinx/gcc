@@ -37,6 +37,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "real.h"
 #include "regs.h"
 #include "function.h"
+#include "tree.h"
 
 /* Information about a subreg of a hard register.  */
 struct subreg_info
@@ -494,6 +495,61 @@ get_related_value (rtx x)
 	   && GET_CODE (XEXP (x, 1)) == CONST_INT)
     return XEXP (x, 0);
   return 0;
+}
+
+/* Return true if SYMBOL is a SYMBOL_REF and OFFSET + SYMBOL points
+   to somewhere in the same object or object_block as SYMBOL.  */
+
+bool
+offset_within_block_p (rtx symbol, HOST_WIDE_INT offset)
+{
+  tree decl;
+
+  if (GET_CODE (symbol) != SYMBOL_REF)
+    return false;
+
+  if (offset == 0)
+    return true;
+
+  if (offset > 0)
+    {
+      if (CONSTANT_POOL_ADDRESS_P (symbol)
+	  && offset < (int) GET_MODE_SIZE (get_pool_mode (symbol)))
+	return true;
+
+      decl = SYMBOL_REF_DECL (symbol);
+      if (decl && offset < int_size_in_bytes (TREE_TYPE (decl)))
+	return true;
+    }
+
+  if (SYMBOL_REF_HAS_BLOCK_INFO_P (symbol)
+      && SYMBOL_REF_BLOCK (symbol)
+      && SYMBOL_REF_BLOCK_OFFSET (symbol) >= 0
+      && ((unsigned HOST_WIDE_INT) offset + SYMBOL_REF_BLOCK_OFFSET (symbol)
+	  < (unsigned HOST_WIDE_INT) SYMBOL_REF_BLOCK (symbol)->size))
+    return true;
+
+  return false;
+}
+
+/* Split X into a base and a constant offset, storing them in *BASE_OUT
+   and *OFFSET_OUT respectively.  */
+
+void
+split_const (rtx x, rtx *base_out, rtx *offset_out)
+{
+  if (GET_CODE (x) == CONST)
+    {
+      x = XEXP (x, 0);
+      if (GET_CODE (x) == PLUS && GET_CODE (XEXP (x, 1)) == CONST_INT)
+	{
+	  *base_out = XEXP (x, 0);
+	  *offset_out = XEXP (x, 1);
+	  return;
+	}
+    }
+  *base_out = x;
+  *offset_out = const0_rtx;
 }
 
 /* Return the number of places FIND appears within X.  If COUNT_DEST is
@@ -1676,15 +1732,46 @@ find_reg_equal_equiv_note (rtx insn)
 
   if (!INSN_P (insn))
     return 0;
+
   for (link = REG_NOTES (insn); link; link = XEXP (link, 1))
     if (REG_NOTE_KIND (link) == REG_EQUAL
 	|| REG_NOTE_KIND (link) == REG_EQUIV)
       {
-	if (single_set (insn) == 0)
+	/* FIXME: We should never have REG_EQUAL/REG_EQUIV notes on
+	   insns that have multiple sets.  Checking single_set to
+	   make sure of this is not the proper check, as explained
+	   in the comment in set_unique_reg_note.
+
+	   This should be changed into an assert.  */
+	if (GET_CODE (PATTERN (insn)) == PARALLEL && multiple_sets (insn))
 	  return 0;
 	return link;
       }
   return NULL;
+}
+
+/* Check whether INSN is a single_set whose source is known to be
+   equivalent to a constant.  Return that constant if so, otherwise
+   return null.  */
+
+rtx
+find_constant_src (rtx insn)
+{
+  rtx note, set, x;
+
+  set = single_set (insn);
+  if (set)
+    {
+      x = avoid_constant_pool_reference (SET_SRC (set));
+      if (CONSTANT_P (x))
+	return x;
+    }
+
+  note = find_reg_equal_equiv_note (insn);
+  if (note && CONSTANT_P (XEXP (note, 0)))
+    return XEXP (note, 0);
+
+  return NULL_RTX;
 }
 
 /* Return true if DATUM, or any overlap of DATUM, of kind CODE is found
@@ -1811,6 +1898,24 @@ remove_note (rtx insn, rtx note)
       }
 
   gcc_unreachable ();
+}
+
+/* Remove REG_EQUAL and/or REG_EQUIV notes if INSN has such notes.  */
+
+void
+remove_reg_equal_equiv_notes (rtx insn)
+{
+  rtx *loc;
+
+  loc = &REG_NOTES (insn);
+  while (*loc)
+    {
+      enum reg_note kind = REG_NOTE_KIND (*loc);
+      if (kind == REG_EQUAL || kind == REG_EQUIV)
+	*loc = XEXP (*loc, 1);
+      else
+	loc = &XEXP (*loc, 1);
+    }
 }
 
 /* Search LISTP (an EXPR_LIST) for an entry whose first operand is NODE and

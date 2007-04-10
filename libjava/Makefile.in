@@ -48,12 +48,12 @@ target_triplet = @target@
 @NATIVE_TRUE@	grmic$(EXEEXT) grmiregistry$(EXEEXT) \
 @NATIVE_TRUE@	gcj-dbtool$(EXEEXT) gappletviewer$(EXEEXT) \
 @NATIVE_TRUE@	gjarsigner$(EXEEXT) gkeytool$(EXEEXT) \
-@NATIVE_TRUE@	gjar$(EXEEXT) gjavah$(EXEEXT) \
+@NATIVE_TRUE@	gjar$(EXEEXT) gcjh$(EXEEXT) gjavah$(EXEEXT) \
 @NATIVE_TRUE@	gnative2ascii$(EXEEXT) gorbd$(EXEEXT) \
 @NATIVE_TRUE@	grmid$(EXEEXT) gserialver$(EXEEXT) \
-@NATIVE_TRUE@	gtnameserv$(EXEEXT)
+@NATIVE_TRUE@	gtnameserv$(EXEEXT) gc-analyze$(EXEEXT)
 @BUILD_ECJ1_TRUE@libexecsub_PROGRAMS = ecjx$(EXEEXT)
-@BASH_JAR_TRUE@am__append_5 = scripts/jar
+@ANONVERSCRIPT_TRUE@am__append_5 = -Wl,--version-script=$(srcdir)/libgcj.ver
 @USING_GCC_TRUE@am__append_6 = $(WARNINGS)
 @USING_BOEHMGC_TRUE@am__append_7 = boehm.cc
 @USING_NOGC_TRUE@am__append_8 = nogc.cc
@@ -63,6 +63,7 @@ target_triplet = @target@
 @USING_POSIX_THREADS_TRUE@am__append_12 = posix-threads.cc
 @USING_WIN32_THREADS_TRUE@am__append_13 = win32-threads.cc
 @USING_NO_THREADS_TRUE@am__append_14 = no-threads.cc
+@ANONVERSCRIPT_TRUE@am__append_15 = $(srcdir)/libgcj.ver
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/../compile \
 	$(srcdir)/../config.guess $(srcdir)/../config.sub \
 	$(srcdir)/../depcomp $(srcdir)/../install-sh \
@@ -74,7 +75,8 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/../compile \
 	$(top_srcdir)/scripts/jar.in COPYING ChangeLog NEWS THANKS
 @MAINTAINER_MODE_TRUE@@NATIVE_TRUE@noinst_PROGRAMS =  \
 @MAINTAINER_MODE_TRUE@@NATIVE_TRUE@	gen-from-JIS$(EXEEXT)
-@XLIB_AWT_TRUE@am__append_15 = $(xlib_nat_headers)
+@NATIVE_TRUE@@USE_LIBGCJ_BC_TRUE@am__append_16 = libgcj_bc.la
+@XLIB_AWT_TRUE@am__append_17 = $(xlib_nat_headers)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/acx.m4 \
@@ -83,10 +85,12 @@ am__aclocal_m4_deps = $(top_srcdir)/../config/acx.m4 \
 	$(top_srcdir)/../config/gxx-include-dir.m4 \
 	$(top_srcdir)/../config/iconv.m4 \
 	$(top_srcdir)/../config/lcmessage.m4 \
+	$(top_srcdir)/../config/ld-symbolic.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
 	$(top_srcdir)/../config/lib-ld.m4 \
 	$(top_srcdir)/../config/lib-link.m4 \
 	$(top_srcdir)/../config/lib-prefix.m4 \
+	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
 	$(top_srcdir)/../config/tls.m4 \
 	$(top_srcdir)/../config/unwind_ipinfo.m4 \
@@ -104,7 +108,7 @@ CONFIG_CLEAN_FILES = libgcj.pc libgcj.spec libgcj-test.spec \
 	java/net/natVMInetAddress.cc java/net/natVMNetworkInterface.cc \
 	gnu/java/net/natPlainSocketImpl.cc \
 	gnu/java/net/natPlainDatagramSocketImpl.cc \
-	gnu/java/nio/natPipeImpl.cc gnu/java/nio/natSelectorImpl.cc \
+	gnu/java/nio/natVMPipe.cc gnu/java/nio/natVMSelector.cc \
 	gnu/java/nio/channels/natFileChannelImpl.cc sysdep/locks.h \
 	sysdep/backtrace.h sysdep/descriptor.h
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
@@ -155,16 +159,17 @@ am__DEPENDENCIES_1 = gnu/awt.lo gnu/awt/j2d.lo gnu/classpath.lo \
 	gnu/classpath/jdwp/exception.lo gnu/classpath/jdwp/id.lo \
 	gnu/classpath/jdwp/processor.lo \
 	gnu/classpath/jdwp/transport.lo gnu/classpath/jdwp/util.lo \
-	gnu/gcj.lo gnu/gcj/convert.lo gnu/gcj/io.lo gnu/gcj/jvmti.lo \
-	gnu/gcj/runtime.lo gnu/gcj/util.lo gnu/java/awt.lo \
-	gnu/java/awt/color.lo gnu/java/awt/dnd.lo gnu/java/awt/font.lo \
+	gnu/classpath/jdwp/value.lo gnu/gcj.lo gnu/gcj/convert.lo \
+	gnu/gcj/io.lo gnu/gcj/jvmti.lo gnu/gcj/runtime.lo \
+	gnu/gcj/util.lo gnu/java/awt.lo gnu/java/awt/color.lo \
+	gnu/java/awt/dnd.lo gnu/java/awt/font.lo \
 	gnu/java/awt/font/autofit.lo gnu/java/awt/font/opentype.lo \
 	gnu/java/awt/font/opentype/truetype.lo gnu/java/awt/image.lo \
 	gnu/java/awt/java2d.lo gnu/java/awt/peer.lo \
 	gnu/java/awt/peer/headless.lo gnu/java/awt/print.lo \
-	gnu/java/io.lo gnu/java/lang.lo gnu/java/lang/management.lo \
-	gnu/java/lang/reflect.lo gnu/java/locale.lo gnu/java/math.lo \
-	gnu/java/net.lo gnu/java/net/loader.lo gnu/java/net/local.lo \
+	gnu/java/io.lo gnu/java/lang.lo gnu/java/lang/reflect.lo \
+	gnu/java/locale.lo gnu/java/math.lo gnu/java/net.lo \
+	gnu/java/net/loader.lo gnu/java/net/local.lo \
 	gnu/java/net/protocol/core.lo gnu/java/net/protocol/file.lo \
 	gnu/java/net/protocol/ftp.lo gnu/java/net/protocol/gcjlib.lo \
 	gnu/java/net/protocol/http.lo gnu/java/net/protocol/https.lo \
@@ -200,8 +205,8 @@ am__DEPENDENCIES_1 = gnu/awt.lo gnu/awt/j2d.lo gnu/classpath.lo \
 	gnu/javax/crypto/sasl/plain.lo gnu/javax/crypto/sasl/srp.lo \
 	gnu/javax/imageio.lo gnu/javax/imageio/bmp.lo \
 	gnu/javax/imageio/gif.lo gnu/javax/imageio/jpeg.lo \
-	gnu/javax/imageio/png.lo gnu/javax/management.lo \
-	gnu/javax/naming/giop.lo gnu/javax/naming/ictxImpl/trans.lo \
+	gnu/javax/imageio/png.lo gnu/javax/naming/giop.lo \
+	gnu/javax/naming/ictxImpl/trans.lo \
 	gnu/javax/naming/jndi/url/corbaname.lo \
 	gnu/javax/naming/jndi/url/rmi.lo gnu/javax/net/ssl.lo \
 	gnu/javax/net/ssl/provider.lo gnu/javax/print.lo \
@@ -215,7 +220,12 @@ am__DEPENDENCIES_1 = gnu/awt.lo gnu/awt/j2d.lo gnu/classpath.lo \
 	gnu/javax/sound/sampled/WAV.lo gnu/javax/swing/plaf/gnu.lo \
 	gnu/javax/swing/plaf/metal.lo gnu/javax/swing/text/html.lo \
 	gnu/javax/swing/text/html/css.lo \
-	gnu/javax/swing/text/html/parser.lo \
+	gnu/javax/swing/text/html/parser/GnuParserDelegator.lo \
+	gnu/javax/swing/text/html/parser/HTML_401F.lo \
+	gnu/javax/swing/text/html/parser/SmallHtmlAttributeSet.lo \
+	gnu/javax/swing/text/html/parser/gnuDTD.lo \
+	gnu/javax/swing/text/html/parser/htmlAttributeSet.lo \
+	gnu/javax/swing/text/html/parser/htmlValidator.lo \
 	gnu/javax/swing/text/html/parser/models.lo \
 	gnu/javax/swing/text/html/parser/support.lo \
 	gnu/javax/swing/text/html/parser/support/low.lo \
@@ -227,26 +237,25 @@ am__DEPENDENCIES_1 = gnu/awt.lo gnu/awt/j2d.lo gnu/classpath.lo \
 	java/awt/peer.lo java/awt/print.lo java/beans.lo \
 	java/beans/beancontext.lo java/io.lo java/lang.lo \
 	java/lang/annotation.lo java/lang/instrument.lo \
-	java/lang/management.lo java/lang/ref.lo java/lang/reflect.lo \
-	java/math.lo java/net.lo java/nio.lo java/nio/channels.lo \
-	java/nio/channels/spi.lo java/nio/charset.lo \
-	java/nio/charset/spi.lo java/rmi.lo java/rmi/activation.lo \
-	java/rmi/dgc.lo java/rmi/registry.lo java/rmi/server.lo \
-	java/security.lo java/security/acl.lo java/security/cert.lo \
-	java/security/interfaces.lo java/security/spec.lo java/sql.lo \
-	java/text.lo java/util.lo java/util/concurrent.lo \
-	java/util/concurrent/atomic.lo java/util/concurrent/locks.lo \
-	java/util/jar.lo java/util/logging.lo java/util/prefs.lo \
-	java/util/regex.lo java/util/zip.lo javax/accessibility.lo \
-	javax/crypto.lo javax/crypto/interfaces.lo \
-	javax/crypto/spec.lo javax/management.lo \
-	javax/management/loading.lo javax/management/openmbean.lo \
-	javax/naming.lo javax/naming/directory.lo \
-	javax/naming/event.lo javax/naming/ldap.lo javax/naming/spi.lo \
-	javax/net.lo javax/net/ssl.lo javax/print.lo \
-	javax/print/attribute.lo javax/print/attribute/standard.lo \
-	javax/print/event.lo javax/security/auth.lo \
-	javax/security/auth/callback.lo \
+	java/lang/ref.lo java/lang/reflect.lo java/math.lo java/net.lo \
+	java/nio.lo java/nio/channels.lo java/nio/channels/spi.lo \
+	java/nio/charset.lo java/nio/charset/spi.lo java/rmi.lo \
+	java/rmi/activation.lo java/rmi/dgc.lo java/rmi/registry.lo \
+	java/rmi/server.lo java/security.lo java/security/acl.lo \
+	java/security/cert.lo java/security/interfaces.lo \
+	java/security/spec.lo java/sql.lo java/text.lo java/util.lo \
+	java/util/concurrent.lo java/util/concurrent/atomic.lo \
+	java/util/concurrent/locks.lo java/util/jar.lo \
+	java/util/logging.lo java/util/prefs.lo java/util/regex.lo \
+	java/util/zip.lo javax/accessibility.lo javax/crypto.lo \
+	javax/crypto/interfaces.lo javax/crypto/spec.lo \
+	javax/management.lo javax/management/loading.lo \
+	javax/management/openmbean.lo javax/naming.lo \
+	javax/naming/directory.lo javax/naming/event.lo \
+	javax/naming/ldap.lo javax/naming/spi.lo javax/net.lo \
+	javax/net/ssl.lo javax/print.lo javax/print/attribute.lo \
+	javax/print/attribute/standard.lo javax/print/event.lo \
+	javax/security/auth.lo javax/security/auth/callback.lo \
 	javax/security/auth/kerberos.lo javax/security/auth/login.lo \
 	javax/security/auth/spi.lo javax/security/auth/x500.lo \
 	javax/security/cert.lo javax/security/sasl.lo \
@@ -265,8 +274,12 @@ am__DEPENDENCIES_1 = gnu/awt.lo gnu/awt/j2d.lo gnu/classpath.lo \
 	sun/reflect.lo sun/reflect/annotation.lo sun/reflect/misc.lo
 am__DEPENDENCIES_2 = gnu-CORBA.lo gnu-java-awt-dnd-peer-gtk.lo \
 	gnu-java-awt-peer-gtk.lo gnu-java-awt-peer-swing.lo \
-	gnu-java-beans.lo gnu-java-util-prefs-gconf.lo \
-	gnu-javax-rmi.lo gnu-javax-sound-midi.lo gnu-xml.lo \
+	gnu-java-beans.lo gnu-java-lang-management.lo \
+	gnu-java-util-prefs-gconf.lo gnu-javax-management.lo \
+	gnu-javax-rmi.lo gnu-javax-sound-midi.lo gnu-xml-aelfred2.lo \
+	gnu-xml-dom.lo gnu-xml-libxmlj.lo gnu-xml-pipeline.lo \
+	gnu-xml-stream.lo gnu-xml-transform.lo gnu-xml-util.lo \
+	gnu-xml-validation.lo gnu-xml-xpath.lo java-lang-management.lo \
 	javax-imageio.lo javax-rmi.lo javax-xml.lo org-omg.lo \
 	org-relaxng.lo org-w3c.lo org-xml.lo
 am__DEPENDENCIES_3 = $(patsubst classpath/resource/%,%,$(addsuffix \
@@ -289,11 +302,12 @@ am__libgcj_la_SOURCES_DIST = prims.cc jni.cc jvmti.cc exception.cc \
 	gnu/gcj/convert/natOutput_SJIS.cc \
 	gnu/gcj/io/natSimpleSHSStream.cc gnu/gcj/io/shs.cc \
 	gnu/gcj/jvmti/natBreakpoint.cc \
+	gnu/gcj/jvmti/natExceptionEvent.cc \
 	gnu/gcj/runtime/natFinalizerThread.cc \
 	gnu/gcj/runtime/natSharedLibLoader.cc \
 	gnu/gcj/runtime/natSystemClassLoader.cc \
 	gnu/gcj/runtime/natStringBuffer.cc gnu/gcj/util/natDebug.cc \
-	gnu/java/lang/natMainThread.cc \
+	gnu/gcj/util/natGCInfo.cc gnu/java/lang/natMainThread.cc \
 	gnu/java/lang/management/natVMClassLoadingMXBeanImpl.cc \
 	gnu/java/lang/management/natVMCompilationMXBeanImpl.cc \
 	gnu/java/lang/management/natVMGarbageCollectorMXBeanImpl.cc \
@@ -305,21 +319,20 @@ am__libgcj_la_SOURCES_DIST = prims.cc jni.cc jvmti.cc exception.cc \
 	gnu/java/net/natPlainDatagramSocketImpl.cc \
 	gnu/java/net/natPlainSocketImpl.cc \
 	gnu/java/net/protocol/core/natCoreInputStream.cc \
-	gnu/java/nio/natPipeImpl.cc gnu/java/nio/natSelectorImpl.cc \
+	gnu/java/nio/natVMPipe.cc gnu/java/nio/natVMSelector.cc \
 	gnu/java/nio/natNIOServerSocket.cc \
 	gnu/java/nio/natVMChannel.cc \
 	gnu/java/nio/channels/natFileChannelImpl.cc java/io/natFile.cc \
-	java/io/natObjectInputStream.cc \
-	java/io/natVMObjectStreamClass.cc \
-	java/lang/management/natVMManagementFactory.cc \
-	java/lang/natCharacter.cc java/lang/natClass.cc \
-	java/lang/natClassLoader.cc java/lang/natConcreteProcess.cc \
-	java/lang/natDouble.cc java/lang/natFloat.cc \
-	java/lang/natMath.cc java/lang/natObject.cc \
-	java/lang/natRuntime.cc java/lang/natString.cc \
-	java/lang/natStringBuffer.cc java/lang/natStringBuilder.cc \
-	java/lang/natSystem.cc java/lang/natThread.cc \
-	java/lang/natThreadLocal.cc java/lang/natVMClassLoader.cc \
+	java/io/natVMObjectInputStream.cc \
+	java/io/natVMObjectStreamClass.cc java/lang/natCharacter.cc \
+	java/lang/natClass.cc java/lang/natClassLoader.cc \
+	java/lang/natConcreteProcess.cc java/lang/natVMDouble.cc \
+	java/lang/natVMFloat.cc java/lang/natMath.cc \
+	java/lang/natObject.cc java/lang/natRuntime.cc \
+	java/lang/natString.cc java/lang/natStringBuffer.cc \
+	java/lang/natStringBuilder.cc java/lang/natSystem.cc \
+	java/lang/natThread.cc java/lang/natThreadLocal.cc \
+	java/lang/natVMClassLoader.cc java/lang/natVMProcess.cc \
 	java/lang/natVMThrowable.cc java/lang/ref/natReference.cc \
 	java/lang/reflect/natArray.cc \
 	java/lang/reflect/natConstructor.cc \
@@ -328,7 +341,7 @@ am__libgcj_la_SOURCES_DIST = prims.cc jni.cc jvmti.cc exception.cc \
 	java/net/natVMNetworkInterface.cc \
 	java/net/natVMURLConnection.cc \
 	java/nio/channels/natVMChannels.cc \
-	java/nio/natDirectByteBufferImpl.cc \
+	java/nio/natVMDirectByteBufferImpl.cc \
 	java/security/natVMAccessController.cc \
 	java/security/natVMAccessControlState.cc \
 	java/text/natCollator.cc java/util/natVMTimeZone.cc \
@@ -352,11 +365,12 @@ am__objects_2 = gnu/classpath/jdwp/natVMFrame.lo \
 	gnu/gcj/convert/natOutput_SJIS.lo \
 	gnu/gcj/io/natSimpleSHSStream.lo gnu/gcj/io/shs.lo \
 	gnu/gcj/jvmti/natBreakpoint.lo \
+	gnu/gcj/jvmti/natExceptionEvent.lo \
 	gnu/gcj/runtime/natFinalizerThread.lo \
 	gnu/gcj/runtime/natSharedLibLoader.lo \
 	gnu/gcj/runtime/natSystemClassLoader.lo \
 	gnu/gcj/runtime/natStringBuffer.lo gnu/gcj/util/natDebug.lo \
-	gnu/java/lang/natMainThread.lo \
+	gnu/gcj/util/natGCInfo.lo gnu/java/lang/natMainThread.lo \
 	gnu/java/lang/management/natVMClassLoadingMXBeanImpl.lo \
 	gnu/java/lang/management/natVMCompilationMXBeanImpl.lo \
 	gnu/java/lang/management/natVMGarbageCollectorMXBeanImpl.lo \
@@ -368,21 +382,20 @@ am__objects_2 = gnu/classpath/jdwp/natVMFrame.lo \
 	gnu/java/net/natPlainDatagramSocketImpl.lo \
 	gnu/java/net/natPlainSocketImpl.lo \
 	gnu/java/net/protocol/core/natCoreInputStream.lo \
-	gnu/java/nio/natPipeImpl.lo gnu/java/nio/natSelectorImpl.lo \
+	gnu/java/nio/natVMPipe.lo gnu/java/nio/natVMSelector.lo \
 	gnu/java/nio/natNIOServerSocket.lo \
 	gnu/java/nio/natVMChannel.lo \
 	gnu/java/nio/channels/natFileChannelImpl.lo java/io/natFile.lo \
-	java/io/natObjectInputStream.lo \
-	java/io/natVMObjectStreamClass.lo \
-	java/lang/management/natVMManagementFactory.lo \
-	java/lang/natCharacter.lo java/lang/natClass.lo \
-	java/lang/natClassLoader.lo java/lang/natConcreteProcess.lo \
-	java/lang/natDouble.lo java/lang/natFloat.lo \
-	java/lang/natMath.lo java/lang/natObject.lo \
-	java/lang/natRuntime.lo java/lang/natString.lo \
-	java/lang/natStringBuffer.lo java/lang/natStringBuilder.lo \
-	java/lang/natSystem.lo java/lang/natThread.lo \
-	java/lang/natThreadLocal.lo java/lang/natVMClassLoader.lo \
+	java/io/natVMObjectInputStream.lo \
+	java/io/natVMObjectStreamClass.lo java/lang/natCharacter.lo \
+	java/lang/natClass.lo java/lang/natClassLoader.lo \
+	java/lang/natConcreteProcess.lo java/lang/natVMDouble.lo \
+	java/lang/natVMFloat.lo java/lang/natMath.lo \
+	java/lang/natObject.lo java/lang/natRuntime.lo \
+	java/lang/natString.lo java/lang/natStringBuffer.lo \
+	java/lang/natStringBuilder.lo java/lang/natSystem.lo \
+	java/lang/natThread.lo java/lang/natThreadLocal.lo \
+	java/lang/natVMClassLoader.lo java/lang/natVMProcess.lo \
 	java/lang/natVMThrowable.lo java/lang/ref/natReference.lo \
 	java/lang/reflect/natArray.lo \
 	java/lang/reflect/natConstructor.lo \
@@ -391,7 +404,7 @@ am__objects_2 = gnu/classpath/jdwp/natVMFrame.lo \
 	java/net/natVMNetworkInterface.lo \
 	java/net/natVMURLConnection.lo \
 	java/nio/channels/natVMChannels.lo \
-	java/nio/natDirectByteBufferImpl.lo \
+	java/nio/natVMDirectByteBufferImpl.lo \
 	java/security/natVMAccessController.lo \
 	java/security/natVMAccessControlState.lo \
 	java/text/natCollator.lo java/util/natVMTimeZone.lo \
@@ -426,8 +439,12 @@ am_ecjx_OBJECTS =
 ecjx_OBJECTS = $(am_ecjx_OBJECTS)
 am_gappletviewer_OBJECTS =
 gappletviewer_OBJECTS = $(am_gappletviewer_OBJECTS)
+am_gc_analyze_OBJECTS =
+gc_analyze_OBJECTS = $(am_gc_analyze_OBJECTS)
 am_gcj_dbtool_OBJECTS = gnu/gcj/tools/gcj_dbtool/natMain.$(OBJEXT)
 gcj_dbtool_OBJECTS = $(am_gcj_dbtool_OBJECTS)
+am_gcjh_OBJECTS =
+gcjh_OBJECTS = $(am_gcjh_OBJECTS)
 am__gen_from_JIS_SOURCES_DIST = gnu/gcj/convert/gen-from-JIS.c \
 	gnu/gcj/convert/make-trie.c
 @MAINTAINER_MODE_TRUE@@NATIVE_TRUE@am_gen_from_JIS_OBJECTS = gnu/gcj/convert/gen-from-JIS.$(OBJEXT) \
@@ -489,17 +506,18 @@ SOURCES = $(lib_gnu_awt_xlib_la_SOURCES) $(libgcj_tools_la_SOURCES) \
 	$(libgcj_la_SOURCES) $(EXTRA_libgcj_la_SOURCES) \
 	$(libgcj_bc_la_SOURCES) $(libgij_la_SOURCES) \
 	$(libjvm_la_SOURCES) $(ecjx_SOURCES) $(gappletviewer_SOURCES) \
-	$(gcj_dbtool_SOURCES) $(gen_from_JIS_SOURCES) $(gij_SOURCES) \
-	$(gjar_SOURCES) $(gjarsigner_SOURCES) $(gjavah_SOURCES) \
-	$(gkeytool_SOURCES) $(gnative2ascii_SOURCES) $(gorbd_SOURCES) \
-	$(grmic_SOURCES) $(grmid_SOURCES) $(grmiregistry_SOURCES) \
-	$(gserialver_SOURCES) $(gtnameserv_SOURCES) \
-	$(jv_convert_SOURCES)
+	$(gc_analyze_SOURCES) $(gcj_dbtool_SOURCES) $(gcjh_SOURCES) \
+	$(gen_from_JIS_SOURCES) $(gij_SOURCES) $(gjar_SOURCES) \
+	$(gjarsigner_SOURCES) $(gjavah_SOURCES) $(gkeytool_SOURCES) \
+	$(gnative2ascii_SOURCES) $(gorbd_SOURCES) $(grmic_SOURCES) \
+	$(grmid_SOURCES) $(grmiregistry_SOURCES) $(gserialver_SOURCES) \
+	$(gtnameserv_SOURCES) $(jv_convert_SOURCES)
 DIST_SOURCES = $(lib_gnu_awt_xlib_la_SOURCES) \
 	$(libgcj_tools_la_SOURCES) $(am__libgcj_la_SOURCES_DIST) \
 	$(EXTRA_libgcj_la_SOURCES) $(libgcj_bc_la_SOURCES) \
 	$(libgij_la_SOURCES) $(libjvm_la_SOURCES) $(ecjx_SOURCES) \
-	$(gappletviewer_SOURCES) $(gcj_dbtool_SOURCES) \
+	$(gappletviewer_SOURCES) $(gc_analyze_SOURCES) \
+	$(gcj_dbtool_SOURCES) $(gcjh_SOURCES) \
 	$(am__gen_from_JIS_SOURCES_DIST) $(gij_SOURCES) \
 	$(gjar_SOURCES) $(gjarsigner_SOURCES) $(gjavah_SOURCES) \
 	$(gkeytool_SOURCES) $(gnative2ascii_SOURCES) $(gorbd_SOURCES) \
@@ -531,10 +549,11 @@ GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
 ACLOCAL = @ACLOCAL@
-ALLOCA = @ALLOCA@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
+ANONVERSCRIPT_FALSE = @ANONVERSCRIPT_FALSE@
+ANONVERSCRIPT_TRUE = @ANONVERSCRIPT_TRUE@
 AR = @AR@
 AS = @AS@
 AUTOCONF = @AUTOCONF@
@@ -542,8 +561,6 @@ AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 BACKTRACESPEC = @BACKTRACESPEC@
-BASH_JAR_FALSE = @BASH_JAR_FALSE@
-BASH_JAR_TRUE = @BASH_JAR_TRUE@
 BUILD_ECJ1_FALSE = @BUILD_ECJ1_FALSE@
 BUILD_ECJ1_TRUE = @BUILD_ECJ1_TRUE@
 CC = @CC@
@@ -619,10 +636,10 @@ LIBGCJ_CFLAGS = @LIBGCJ_CFLAGS@
 LIBGCJ_CXXFLAGS = @LIBGCJ_CXXFLAGS@
 LIBGCJ_JAVAFLAGS = @LIBGCJ_JAVAFLAGS@
 LIBGCJ_LD_SYMBOLIC = @LIBGCJ_LD_SYMBOLIC@
+LIBGCJ_LD_SYMBOLIC_FUNCTIONS = @LIBGCJ_LD_SYMBOLIC_FUNCTIONS@
 LIBGCJ_SPEC = @LIBGCJ_SPEC@
 LIBICONV = @LIBICONV@
 LIBLTDL = @LIBLTDL@
-LIBMAGIC = @LIBMAGIC@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
@@ -730,7 +747,7 @@ build_vendor = @build_vendor@
 datadir = @datadir@
 dbexecdir = @dbexecdir@
 exec_prefix = @exec_prefix@
-extra_ldflags_libjava = @extra_ldflags_libjava@
+extra_ldflags_libjava = @extra_ldflags_libjava@ $(am__append_5)
 gxx_include_dir = @gxx_include_dir@
 here = @here@
 host = @host@
@@ -745,12 +762,12 @@ infodir = @infodir@
 install_sh = @install_sh@
 libdir = @libdir@
 libexecdir = @libexecdir@
-libgcj_basedir = @libgcj_basedir@
 libstdcxx_incdir = @libstdcxx_incdir@
 localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 mkinstalldirs = @mkinstalldirs@
+multi_basedir = @multi_basedir@
 oldincludedir = @oldincludedir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
@@ -804,7 +821,7 @@ jar_DATA = libgcj-$(gcc_version).jar libgcj-tools-$(gcc_version).jar \
 db_name = classmap.db
 db_pathtail = gcj-$(gcc_version)/$(db_name)
 @NATIVE_TRUE@dbexec_DATA = $(db_name)
-bin_SCRIPTS = addr2name.awk $(am__append_5)
+bin_SCRIPTS = addr2name.awk
 GCJ_WITH_FLAGS = $(GCJ) --encoding=UTF-8 -Wno-deprecated
 GCJLINK = $(LIBTOOL) --tag=GCJ --mode=link $(GCJ) -L$(here) $(JC1FLAGS) \
           $(LDFLAGS) -o $@
@@ -832,6 +849,7 @@ AM_CXXFLAGS = \
 	-DGCJ_ENDORSED_DIRS="\"$(jardir)/gcj-endorsed\"" \
 	-DGCJ_VERSIONED_LIBDIR="\"$(dbexecdir)\"" \
 	-DPATH_SEPARATOR="\"$(CLASSPATH_SEPARATOR)\"" \
+	-DECJ_JAR_FILE="\"$(ECJ_JAR)\"" \
 	-DLIBGCJ_DEFAULT_DATABASE="\"$(dbexecdir)/$(db_name)\"" \
 	-DLIBGCJ_DEFAULT_DATABASE_PATH_TAIL="\"$(db_pathtail)\""
 
@@ -872,7 +890,8 @@ xlib_nat_files = $(xlib_nat_source_files:.cc=.lo)
 # certain linuxthread functions get linked:
 libgcj_la_LDFLAGS = -rpath $(toolexeclibdir) $(THREADLDFLAGS) $(THREADLIBS) \
 	$(LIBLTDL) $(SYS_ZLIBS) \
-	-version-info `grep -v '^\#' $(srcdir)/libtool-version`
+	-version-info `grep -v '^\#' $(srcdir)/libtool-version` \
+	$(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
 
 libgcj_la_LIBADD = \
 	classpath/native/fdlibm/libfdlibm.la \
@@ -882,21 +901,19 @@ libgcj_la_LIBADD = \
 	$(all_packages_source_files:.list=.lo) \
 	$(bc_objects) \
 	$(propertyo_files) \
-	$(LIBMAGIC) $(LIBFFI) $(ZLIBS) $(GCLIBS)
+	$(LIBFFI) $(ZLIBS) $(GCLIBS)
 
-libgcj_la_DEPENDENCIES = libgcj-$(gcc_version).jar \
-	java/lang/Object.lo \
-	java/lang/Class.lo \
-	java/process-$(PLATFORM).lo \
-	$(all_packages_source_files:.list=.lo) \
-	$(LIBLTDL) $(libgcj_la_LIBADD)
-
+libgcj_la_DEPENDENCIES = libgcj-$(gcc_version).jar java/lang/Object.lo \
+	java/lang/Class.lo java/process-$(PLATFORM).lo \
+	$(all_packages_source_files:.list=.lo) $(LIBLTDL) \
+	$(libgcj_la_LIBADD) $(am__append_15)
 libgcj_la_LINK = $(LIBLINK)
 EXTRA_libgcj_la_SOURCES = java/lang/Object.java
 libgcj_tools_la_SOURCES = classpath/tools/tools.zip
 libgcj_tools_la_GCJFLAGS = $(AM_GCJFLAGS) -findirect-dispatch -fno-indirect-classes  -fsource-filename=$(here)/classpath/tools/all-classes.lst
 libgcj_tools_la_LDFLAGS = -rpath $(toolexeclibdir) \
- -version-info `grep -v '^\#' $(srcdir)/libtool-version`
+ -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
+ $(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
 
 libgcj_tools_la_DEPENDENCIES = libgcj.la libgcj.spec
 libgcj_tools_la_LINK = $(LIBLINK)
@@ -923,7 +940,9 @@ lib_gnu_awt_xlib_la_LDFLAGS = ../libstdc++-v3/src/libstdc++.la \
 
 lib_gnu_awt_xlib_la_LINK = $(LIBLINK)
 libgcj_bc_la_SOURCES = libgcj_bc.c
-libgcj_bc_la_LDFLAGS = -rpath $(toolexeclibdir) -no-static -version-info 1:0:0
+libgcj_bc_la_LDFLAGS = -rpath $(toolexeclibdir) -no-static -version-info 1:0:0 \
+	$(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
+
 libgcj_bc_la_LIBADD = libgcj.la
 libgcj_bc_la_DEPENDENCIES = libgcj.la
 libgcj_bc_la_LINK = $(LIBLINK)
@@ -1127,7 +1146,6 @@ gnu/awt/xlib/XToolkit.java
 gnu_awt_xlib_header_files = $(patsubst %.java,%.h,$(gnu_awt_xlib_source_files))
 gnu_classpath_source_files = \
 gnu/classpath/Configuration.java \
-classpath/gnu/classpath/ListenerData.java \
 classpath/gnu/classpath/NotImplementedException.java \
 classpath/gnu/classpath/Pointer.java \
 classpath/gnu/classpath/Pointer32.java \
@@ -1191,15 +1209,19 @@ classpath/gnu/classpath/jdwp/event/filters/ThreadOnlyFilter.java
 
 gnu_classpath_jdwp_event_filters_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_classpath_jdwp_event_filters_source_files)))
 gnu_classpath_jdwp_exception_source_files = \
+classpath/gnu/classpath/jdwp/exception/AbsentInformationException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidClassException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidClassLoaderException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidCountException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidEventTypeException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidFieldException.java \
+classpath/gnu/classpath/jdwp/exception/InvalidFrameException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidLocationException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidMethodException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidObjectException.java \
+classpath/gnu/classpath/jdwp/exception/InvalidSlotException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidStringException.java \
+classpath/gnu/classpath/jdwp/exception/InvalidTagException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidThreadException.java \
 classpath/gnu/classpath/jdwp/exception/InvalidThreadGroupException.java \
 classpath/gnu/classpath/jdwp/exception/JdwpException.java \
@@ -1207,6 +1229,7 @@ classpath/gnu/classpath/jdwp/exception/JdwpIllegalArgumentException.java \
 classpath/gnu/classpath/jdwp/exception/JdwpInternalErrorException.java \
 classpath/gnu/classpath/jdwp/exception/NativeMethodException.java \
 classpath/gnu/classpath/jdwp/exception/NotImplementedException.java \
+classpath/gnu/classpath/jdwp/exception/TypeMismatchException.java \
 classpath/gnu/classpath/jdwp/exception/VmDeadException.java
 
 gnu_classpath_jdwp_exception_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_classpath_jdwp_exception_source_files)))
@@ -1218,6 +1241,7 @@ classpath/gnu/classpath/jdwp/id/ClassObjectId.java \
 classpath/gnu/classpath/jdwp/id/ClassReferenceTypeId.java \
 classpath/gnu/classpath/jdwp/id/InterfaceReferenceTypeId.java \
 classpath/gnu/classpath/jdwp/id/JdwpId.java \
+classpath/gnu/classpath/jdwp/id/NullObjectId.java \
 classpath/gnu/classpath/jdwp/id/ObjectId.java \
 classpath/gnu/classpath/jdwp/id/ReferenceTypeId.java \
 classpath/gnu/classpath/jdwp/id/StringId.java \
@@ -1262,11 +1286,29 @@ classpath/gnu/classpath/jdwp/util/JdwpString.java \
 classpath/gnu/classpath/jdwp/util/LineTable.java \
 classpath/gnu/classpath/jdwp/util/Location.java \
 classpath/gnu/classpath/jdwp/util/MethodResult.java \
+classpath/gnu/classpath/jdwp/util/MonitorInfo.java \
+classpath/gnu/classpath/jdwp/util/NullObject.java \
 classpath/gnu/classpath/jdwp/util/Signature.java \
 classpath/gnu/classpath/jdwp/util/Value.java \
 classpath/gnu/classpath/jdwp/util/VariableTable.java
 
 gnu_classpath_jdwp_util_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_classpath_jdwp_util_source_files)))
+gnu_classpath_jdwp_value_source_files = \
+classpath/gnu/classpath/jdwp/value/BooleanValue.java \
+classpath/gnu/classpath/jdwp/value/ByteValue.java \
+classpath/gnu/classpath/jdwp/value/CharValue.java \
+classpath/gnu/classpath/jdwp/value/DoubleValue.java \
+classpath/gnu/classpath/jdwp/value/FloatValue.java \
+classpath/gnu/classpath/jdwp/value/IntValue.java \
+classpath/gnu/classpath/jdwp/value/LongValue.java \
+classpath/gnu/classpath/jdwp/value/ObjectValue.java \
+classpath/gnu/classpath/jdwp/value/ShortValue.java \
+classpath/gnu/classpath/jdwp/value/StringValue.java \
+classpath/gnu/classpath/jdwp/value/Value.java \
+classpath/gnu/classpath/jdwp/value/ValueFactory.java \
+classpath/gnu/classpath/jdwp/value/VoidValue.java
+
+gnu_classpath_jdwp_value_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_classpath_jdwp_value_source_files)))
 gnu_gcj_source_files = \
 gnu/gcj/Core.java \
 gnu/gcj/RawData.java \
@@ -1300,14 +1342,13 @@ gnu/gcj/convert/UnicodeToBytes.java
 
 gnu_gcj_convert_header_files = $(patsubst %.java,%.h,$(gnu_gcj_convert_source_files))
 gnu_gcj_io_source_files = \
-gnu/gcj/io/DefaultMimeTypes.java \
-gnu/gcj/io/MimeTypes.java \
 gnu/gcj/io/SimpleSHSStream.java
 
 gnu_gcj_io_header_files = $(patsubst %.java,%.h,$(gnu_gcj_io_source_files))
 gnu_gcj_jvmti_source_files = \
 gnu/gcj/jvmti/Breakpoint.java \
 gnu/gcj/jvmti/BreakpointManager.java \
+gnu/gcj/jvmti/ExceptionEvent.java \
 gnu/gcj/jvmti/Location.java
 
 gnu_gcj_jvmti_header_files = $(patsubst %.java,%.h,$(gnu_gcj_jvmti_source_files))
@@ -1330,7 +1371,9 @@ gnu/gcj/tools/gcj_dbtool/Main.java
 
 gnu_gcj_tools_gcj_dbtool_header_files = $(patsubst %.java,%.h,$(gnu_gcj_tools_gcj_dbtool_source_files))
 gnu_gcj_util_source_files = \
-gnu/gcj/util/Debug.java
+gnu/gcj/util/Debug.java \
+gnu/gcj/util/GCInfo.java \
+gnu/gcj/util/UtilPermission.java
 
 gnu_gcj_util_header_files = $(patsubst %.java,%.h,$(gnu_gcj_util_source_files))
 gnu_gcj_xlib_source_files = \
@@ -1916,6 +1959,7 @@ classpath/gnu/java/net/loader/FileResource.java \
 classpath/gnu/java/net/loader/FileURLLoader.java \
 classpath/gnu/java/net/loader/JarURLLoader.java \
 classpath/gnu/java/net/loader/JarURLResource.java \
+gnu/java/net/loader/Load_gcjlib.java \
 classpath/gnu/java/net/loader/RemoteResource.java \
 classpath/gnu/java/net/loader/RemoteURLLoader.java \
 classpath/gnu/java/net/loader/Resource.java \
@@ -2382,7 +2426,8 @@ gnu_java_text_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gn
 gnu_java_util_source_files = \
 classpath/gnu/java/util/DoubleEnumeration.java \
 classpath/gnu/java/util/EmptyEnumeration.java \
-classpath/gnu/java/util/WeakIdentityHashMap.java
+classpath/gnu/java/util/WeakIdentityHashMap.java \
+classpath/gnu/java/util/ZoneInfo.java
 
 gnu_java_util_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_util_source_files)))
 gnu_java_util_jar_source_files = \
@@ -2863,9 +2908,9 @@ classpath/gnu/javax/imageio/png/PNGTime.java
 
 gnu_javax_imageio_png_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_javax_imageio_png_source_files)))
 gnu_javax_management_source_files = \
+classpath/gnu/javax/management/ListenerData.java \
 classpath/gnu/javax/management/Server.java
 
-gnu_javax_management_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_javax_management_source_files)))
 gnu_javax_naming_giop_source_files = \
 classpath/gnu/javax/naming/giop/ContextContinuation.java \
 classpath/gnu/javax/naming/giop/CorbalocParser.java \
@@ -3231,11 +3276,13 @@ gnu_javax_swing_tree_source_files = \
 classpath/gnu/javax/swing/tree/GnuPath.java
 
 gnu_javax_swing_tree_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_javax_swing_tree_source_files)))
-gnu_xml_source_files = \
+gnu_xml_aelfred2_source_files = \
 classpath/gnu/xml/aelfred2/JAXPFactory.java \
 classpath/gnu/xml/aelfred2/SAXDriver.java \
 classpath/gnu/xml/aelfred2/XmlParser.java \
-classpath/gnu/xml/aelfred2/XmlReader.java \
+classpath/gnu/xml/aelfred2/XmlReader.java
+
+gnu_xml_dom_source_files = \
 classpath/gnu/xml/dom/Consumer.java \
 classpath/gnu/xml/dom/DTDAttributeTypeInfo.java \
 classpath/gnu/xml/dom/DTDElementTypeInfo.java \
@@ -3337,7 +3384,9 @@ classpath/gnu/xml/dom/ls/DomLSSerializer.java \
 classpath/gnu/xml/dom/ls/FilteredSAXEventSink.java \
 classpath/gnu/xml/dom/ls/ReaderInputStream.java \
 classpath/gnu/xml/dom/ls/SAXEventSink.java \
-classpath/gnu/xml/dom/ls/WriterOutputStream.java \
+classpath/gnu/xml/dom/ls/WriterOutputStream.java
+
+gnu_xml_libxmlj_source_files = \
 classpath/gnu/xml/libxmlj/dom/GnomeAttr.java \
 classpath/gnu/xml/libxmlj/dom/GnomeCDATASection.java \
 classpath/gnu/xml/libxmlj/dom/GnomeCharacterData.java \
@@ -3378,7 +3427,9 @@ classpath/gnu/xml/libxmlj/util/EmptyNodeList.java \
 classpath/gnu/xml/libxmlj/util/NamedInputStream.java \
 classpath/gnu/xml/libxmlj/util/StandaloneDocumentType.java \
 classpath/gnu/xml/libxmlj/util/StandaloneLocator.java \
-classpath/gnu/xml/libxmlj/util/XMLJ.java \
+classpath/gnu/xml/libxmlj/util/XMLJ.java
+
+gnu_xml_pipeline_source_files = \
 classpath/gnu/xml/pipeline/CallFilter.java \
 classpath/gnu/xml/pipeline/DomConsumer.java \
 classpath/gnu/xml/pipeline/EventConsumer.java \
@@ -3391,7 +3442,9 @@ classpath/gnu/xml/pipeline/TextConsumer.java \
 classpath/gnu/xml/pipeline/ValidationConsumer.java \
 classpath/gnu/xml/pipeline/WellFormednessFilter.java \
 classpath/gnu/xml/pipeline/XIncludeFilter.java \
-classpath/gnu/xml/pipeline/XsltFilter.java \
+classpath/gnu/xml/pipeline/XsltFilter.java
+
+gnu_xml_stream_source_files = \
 classpath/gnu/xml/stream/AttributeImpl.java \
 classpath/gnu/xml/stream/BufferedReader.java \
 classpath/gnu/xml/stream/CRLFReader.java \
@@ -3421,7 +3474,9 @@ classpath/gnu/xml/stream/XMLEventWriterImpl.java \
 classpath/gnu/xml/stream/XMLInputFactoryImpl.java \
 classpath/gnu/xml/stream/XMLOutputFactoryImpl.java \
 classpath/gnu/xml/stream/XMLParser.java \
-classpath/gnu/xml/stream/XMLStreamWriterImpl.java \
+classpath/gnu/xml/stream/XMLStreamWriterImpl.java
+
+gnu_xml_transform_source_files = \
 classpath/gnu/xml/transform/AbstractNumberNode.java \
 classpath/gnu/xml/transform/ApplyImportsNode.java \
 classpath/gnu/xml/transform/ApplyTemplatesNode.java \
@@ -3475,14 +3530,18 @@ classpath/gnu/xml/transform/ValueOfNode.java \
 classpath/gnu/xml/transform/WhenNode.java \
 classpath/gnu/xml/transform/WithParam.java \
 classpath/gnu/xml/transform/XSLComparator.java \
-classpath/gnu/xml/transform/XSLURIResolver.java \
+classpath/gnu/xml/transform/XSLURIResolver.java
+
+gnu_xml_util_source_files = \
 classpath/gnu/xml/util/DoParse.java \
 classpath/gnu/xml/util/DomParser.java \
 classpath/gnu/xml/util/Resolver.java \
 classpath/gnu/xml/util/SAXNullTransformerFactory.java \
 classpath/gnu/xml/util/XCat.java \
 classpath/gnu/xml/util/XHTMLWriter.java \
-classpath/gnu/xml/util/XMLWriter.java \
+classpath/gnu/xml/util/XMLWriter.java
+
+gnu_xml_validation_source_files = \
 classpath/gnu/xml/validation/datatype/Annotation.java \
 classpath/gnu/xml/validation/datatype/AnySimpleType.java \
 classpath/gnu/xml/validation/datatype/AnyType.java \
@@ -3592,7 +3651,9 @@ classpath/gnu/xml/validation/xmlschema/XMLSchemaSchemaFactory.java \
 classpath/gnu/xml/validation/xmlschema/XMLSchemaTypeInfo.java \
 classpath/gnu/xml/validation/xmlschema/XMLSchemaTypeInfoProvider.java \
 classpath/gnu/xml/validation/xmlschema/XMLSchemaValidator.java \
-classpath/gnu/xml/validation/xmlschema/XMLSchemaValidatorHandler.java \
+classpath/gnu/xml/validation/xmlschema/XMLSchemaValidatorHandler.java
+
+gnu_xml_xpath_source_files = \
 classpath/gnu/xml/xpath/AndExpr.java \
 classpath/gnu/xml/xpath/ArithmeticExpr.java \
 classpath/gnu/xml/xpath/BooleanFunction.java \
@@ -4236,7 +4297,7 @@ classpath/java/lang/Override.java \
 classpath/java/lang/Package.java \
 java/lang/PosixProcess.java \
 classpath/java/lang/Process.java \
-java/lang/ProcessBuilder.java \
+classpath/java/lang/ProcessBuilder.java \
 classpath/java/lang/Readable.java \
 classpath/java/lang/Runnable.java \
 java/lang/Runtime.java \
@@ -4268,6 +4329,7 @@ java/lang/VMClassLoader.java \
 java/lang/VMCompiler.java \
 java/lang/VMDouble.java \
 java/lang/VMFloat.java \
+java/lang/VMProcess.java \
 java/lang/VMThrowable.java \
 classpath/java/lang/VerifyError.java \
 classpath/java/lang/VirtualMachineError.java \
@@ -4314,7 +4376,6 @@ classpath/java/lang/management/ThreadInfo.java \
 classpath/java/lang/management/ThreadMXBean.java \
 java/lang/management/VMManagementFactory.java
 
-java_lang_management_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(java_lang_management_source_files)))
 java_lang_ref_source_files = \
 classpath/java/lang/ref/PhantomReference.java \
 java/lang/ref/Reference.java \
@@ -4362,7 +4423,7 @@ classpath/java/net/ConnectException.java \
 classpath/java/net/ContentHandler.java \
 classpath/java/net/ContentHandlerFactory.java \
 classpath/java/net/DatagramPacket.java \
-java/net/DatagramSocket.java \
+classpath/java/net/DatagramSocket.java \
 classpath/java/net/DatagramSocketImpl.java \
 classpath/java/net/DatagramSocketImplFactory.java \
 classpath/java/net/FileNameMap.java \
@@ -4385,7 +4446,7 @@ classpath/java/net/Proxy.java \
 classpath/java/net/ProxySelector.java \
 classpath/java/net/ResolverCache.java \
 classpath/java/net/ServerSocket.java \
-java/net/Socket.java \
+classpath/java/net/Socket.java \
 classpath/java/net/SocketAddress.java \
 classpath/java/net/SocketException.java \
 classpath/java/net/SocketImpl.java \
@@ -4396,7 +4457,7 @@ classpath/java/net/SocketTimeoutException.java \
 classpath/java/net/URI.java \
 classpath/java/net/URISyntaxException.java \
 classpath/java/net/URL.java \
-java/net/URLClassLoader.java \
+classpath/java/net/URLClassLoader.java \
 classpath/java/net/URLConnection.java \
 classpath/java/net/URLDecoder.java \
 classpath/java/net/URLEncoder.java \
@@ -4434,7 +4495,7 @@ classpath/java/nio/InvalidMarkException.java \
 classpath/java/nio/LongBuffer.java \
 classpath/java/nio/LongBufferImpl.java \
 classpath/java/nio/LongViewBufferImpl.java \
-java/nio/MappedByteBuffer.java \
+classpath/java/nio/MappedByteBuffer.java \
 java/nio/MappedByteBufferImpl.java \
 classpath/java/nio/ReadOnlyBufferException.java \
 classpath/java/nio/ShortBuffer.java \
@@ -4845,7 +4906,7 @@ classpath/java/util/Formattable.java \
 classpath/java/util/FormattableFlags.java \
 classpath/java/util/Formatter.java \
 classpath/java/util/FormatterClosedException.java \
-java/util/GregorianCalendar.java \
+classpath/java/util/GregorianCalendar.java \
 classpath/java/util/HashMap.java \
 classpath/java/util/HashSet.java \
 classpath/java/util/Hashtable.java \
@@ -7161,7 +7222,7 @@ sun/reflect/Reflection.java
 
 sun_reflect_header_files = $(patsubst %.java,%.h,$(sun_reflect_source_files))
 sun_reflect_annotation_source_files = \
-classpath/sun/reflect/annotation/AnnotationInvocationHandler.java \
+sun/reflect/annotation/AnnotationInvocationHandler.java \
 classpath/sun/reflect/annotation/AnnotationParser.java \
 classpath/sun/reflect/annotation/AnnotationType.java \
 classpath/sun/reflect/annotation/EnumConstantNotPresentExceptionProxy.java \
@@ -7185,6 +7246,7 @@ all_packages_source_files = \
   gnu/classpath/jdwp/processor.list \
   gnu/classpath/jdwp/transport.list \
   gnu/classpath/jdwp/util.list \
+  gnu/classpath/jdwp/value.list \
   gnu/gcj.list \
   gnu/gcj/convert.list \
   gnu/gcj/io.list \
@@ -7205,7 +7267,6 @@ all_packages_source_files = \
   gnu/java/awt/print.list \
   gnu/java/io.list \
   gnu/java/lang.list \
-  gnu/java/lang/management.list \
   gnu/java/lang/reflect.list \
   gnu/java/locale.list \
   gnu/java/math.list \
@@ -7283,7 +7344,6 @@ all_packages_source_files = \
   gnu/javax/imageio/gif.list \
   gnu/javax/imageio/jpeg.list \
   gnu/javax/imageio/png.list \
-  gnu/javax/management.list \
   gnu/javax/naming/giop.list \
   gnu/javax/naming/ictxImpl/trans.list \
   gnu/javax/naming/jndi/url/corbaname.list \
@@ -7306,7 +7366,12 @@ all_packages_source_files = \
   gnu/javax/swing/plaf/metal.list \
   gnu/javax/swing/text/html.list \
   gnu/javax/swing/text/html/css.list \
-  gnu/javax/swing/text/html/parser.list \
+  gnu/javax/swing/text/html/parser/GnuParserDelegator.list \
+  gnu/javax/swing/text/html/parser/HTML_401F.list \
+  gnu/javax/swing/text/html/parser/SmallHtmlAttributeSet.list \
+  gnu/javax/swing/text/html/parser/gnuDTD.list \
+  gnu/javax/swing/text/html/parser/htmlAttributeSet.list \
+  gnu/javax/swing/text/html/parser/htmlValidator.list \
   gnu/javax/swing/text/html/parser/models.list \
   gnu/javax/swing/text/html/parser/support.list \
   gnu/javax/swing/text/html/parser/support/low.list \
@@ -7332,7 +7397,6 @@ all_packages_source_files = \
   java/lang.list \
   java/lang/annotation.list \
   java/lang/instrument.list \
-  java/lang/management.list \
   java/lang/ref.list \
   java/lang/reflect.list \
   java/math.list \
@@ -7432,6 +7496,7 @@ ordinary_header_files = \
   $(gnu_classpath_jdwp_processor_header_files) \
   $(gnu_classpath_jdwp_transport_header_files) \
   $(gnu_classpath_jdwp_util_header_files) \
+  $(gnu_classpath_jdwp_value_header_files) \
   $(gnu_gcj_header_files) \
   $(gnu_gcj_convert_header_files) \
   $(gnu_gcj_io_header_files) \
@@ -7531,7 +7596,6 @@ ordinary_header_files = \
   $(gnu_javax_imageio_gif_header_files) \
   $(gnu_javax_imageio_jpeg_header_files) \
   $(gnu_javax_imageio_png_header_files) \
-  $(gnu_javax_management_header_files) \
   $(gnu_javax_naming_giop_header_files) \
   $(gnu_javax_naming_ictxImpl_trans_header_files) \
   $(gnu_javax_naming_jndi_url_corbaname_header_files) \
@@ -7580,7 +7644,6 @@ ordinary_header_files = \
   $(java_lang_header_files) \
   $(java_lang_annotation_header_files) \
   $(java_lang_instrument_header_files) \
-  $(java_lang_management_header_files) \
   $(java_lang_ref_header_files) \
   $(java_lang_reflect_header_files) \
   $(java_math_header_files) \
@@ -7673,10 +7736,21 @@ bc_objects = \
   gnu-java-awt-peer-gtk.lo \
   gnu-java-awt-peer-swing.lo \
   gnu-java-beans.lo \
+  gnu-java-lang-management.lo \
   gnu-java-util-prefs-gconf.lo \
+  gnu-javax-management.lo \
   gnu-javax-rmi.lo \
   gnu-javax-sound-midi.lo \
-  gnu-xml.lo \
+  gnu-xml-aelfred2.lo \
+  gnu-xml-dom.lo \
+  gnu-xml-libxmlj.lo \
+  gnu-xml-pipeline.lo \
+  gnu-xml-stream.lo \
+  gnu-xml-transform.lo \
+  gnu-xml-util.lo \
+  gnu-xml-validation.lo \
+  gnu-xml-xpath.lo \
+  java-lang-management.lo \
   javax-imageio.lo \
   javax-rmi.lo \
   javax-xml.lo \
@@ -7712,29 +7786,25 @@ property_files = \
   classpath/resource/java/util/iso4217.properties \
   classpath/resource/javax/imageio/plugins/jpeg/MessagesBundle.properties \
   classpath/resource/org/ietf/jgss/MessagesBundle.properties \
+  classpath/resource/sun/rmi/rmic/messages.properties \
+  classpath/resource/com/sun/tools/javac/messages.properties \
   classpath/resource/META-INF/services/java.util.prefs.PreferencesFactory.in \
   classpath/resource/META-INF/services/javax.sound.midi.spi.MidiDeviceProvider \
   classpath/resource/META-INF/services/javax.sound.midi.spi.MidiFileReader \
   classpath/resource/META-INF/services/javax.sound.midi.spi.MidiFileWriter \
-  classpath/resource/META-INF/services/javax.sound.sampled.spi.AudioFileReader \
-  classpath/resource/META-INF/services/javax.xml.parsers.DocumentBuilderFactory \
-  classpath/resource/META-INF/services/javax.xml.parsers.SAXParserFactory \
-  classpath/resource/META-INF/services/javax.xml.parsers.TransformerFactory \
-  classpath/resource/META-INF/services/org.relaxng.datatype.DatatypeLibraryFactory \
-  classpath/resource/META-INF/services/org.xml.sax.driver
+  classpath/resource/META-INF/services/javax.sound.sampled.spi.AudioFileReader
 
 omitted_headers = java/lang/ClassLoader.h java/lang/Thread.h \
 	java/lang/String.h java/lang/reflect/Constructor.h \
 	java/lang/reflect/Field.h java/lang/reflect/Method.h \
 	java/lang/reflect/Proxy.h gnu/gcj/runtime/ExtensionClassLoader.h
 
-generic_header_files = $(ordinary_header_files) $(xlib_nat_headers)
-MYGCJH = gjavah
 inner_nat_headers = java/io/ObjectOutputStream$$PutField.h \
 	java/io/ObjectInputStream$$GetField.h \
 	java/nio/DirectByteBufferImpl$$ReadWrite.h \
 	java/nio/channels/Pipe$$SinkChannel.h \
 	java/nio/channels/Pipe$$SourceChannel.h \
+	java/lang/VMProcess$ImmediateEOFInputStream.h \
 	java/lang/reflect/Proxy$$ProxyData.h \
 	java/lang/reflect/Proxy$$ProxyType.h \
 	gnu/java/net/PlainSocketImpl$$SocketInputStream.h \
@@ -7742,6 +7812,10 @@ inner_nat_headers = java/io/ObjectOutputStream$$PutField.h \
 	gnu/java/nio/PipeImpl$$SinkChannelImpl.h \
 	gnu/java/nio/PipeImpl$$SourceChannelImpl.h
 
+generic_header_files = $(ordinary_header_files) $(inner_nat_headers) \
+	$(xlib_nat_headers)
+
+MYGCJH = gjavah
 nat_headers = $(ordinary_header_files) $(inner_nat_headers)
 nat_headers_install = $(ordinary_header_files)
 xlib_nat_headers = $(gnu_awt_xlib_header_files) $(gnu_gcj_xlib_header_files)
@@ -7772,8 +7846,15 @@ gcj_dbtool_LDFLAGS = --main=gnu.gcj.tools.gcj_dbtool.Main \
 gcj_dbtool_LINK = $(GCJLINK)
 gcj_dbtool_LDADD = gnu/gcj/tools/gcj_dbtool.lo -L$(here)/.libs libgcj.la
 gcj_dbtool_DEPENDENCIES = gnu/gcj/tools/gcj_dbtool.lo libgcj.la libgcj.spec
+gc_analyze_SOURCES = 
+gc_analyze_LDFLAGS = --main=gnu.gcj.tools.gc_analyze.MemoryAnalyze \
+        -rpath $(toolexeclibdir) -shared-libgcc $(THREADLDFLAGS)
+
+gc_analyze_LINK = $(GCJLINK)
+gc_analyze_LDADD = -L$(here)/.libs libgcj-tools.la libgcj.la
+gc_analyze_DEPENDENCIES = libgcj-tools.la libgcj.la libgcj.spec
 gij_SOURCES = 
-gij_LDFLAGS = -rpath $(libdir)/gcj-$(gcc_version) -rpath $(toolexeclibdir) \
+gij_LDFLAGS = -rpath $(dbexecdir) -rpath $(toolexeclibdir) \
 	-shared-libgcc $(THREADLDFLAGS)
 
 gij_LINK = $(GCJLINK)
@@ -7785,13 +7866,14 @@ ECJX_BASE_FLAGS = -findirect-dispatch \
 
 @NATIVE_FALSE@ecjx_LINK = $(GCJ_FOR_ECJX_LINK)
 @NATIVE_TRUE@ecjx_LINK = $(GCJLINK)
-@ENABLE_SHARED_FALSE@@NATIVE_TRUE@ecjx_LDFLAGS = $(ECJX_BASE_FLAGS) $(ECJ_BUILD_JAR)
+@ENABLE_SHARED_FALSE@@NATIVE_TRUE@ecjx_LDFLAGS = $(ECJX_BASE_FLAGS) $(ECJ_BUILD_JAR) -fbootclasspath=$(BOOTCLASSPATH)
 @ENABLE_SHARED_TRUE@@NATIVE_TRUE@ecjx_LDFLAGS = $(ECJX_BASE_FLAGS) -Djava.class.path=$(ECJ_JAR)
 @NATIVE_FALSE@ecjx_LDFLAGS = $(ECJX_BASE_FLAGS) $(ECJ_BUILD_JAR)
 @NATIVE_FALSE@ecjx_LDADD = 
 @NATIVE_TRUE@ecjx_LDADD = -L$(here)/.libs libgcj.la
 @NATIVE_FALSE@ecjx_DEPENDENCIES = 
-@NATIVE_TRUE@ecjx_DEPENDENCIES = libgcj.la libgcj.spec
+@NATIVE_TRUE@ecjx_DEPENDENCIES = libgcj.la libgcj.spec \
+@NATIVE_TRUE@	$(am__append_16)
 gappletviewer_SOURCES = 
 gappletviewer_LDFLAGS = --main=gnu.classpath.tools.appletviewer.Main \
 	-rpath $(toolexeclibdir) -shared-libgcc $(THREADLDFLAGS)
@@ -7827,6 +7909,13 @@ gjavah_LDFLAGS = --main=gnu.classpath.tools.javah.Main \
 gjavah_LINK = $(GCJLINK)
 gjavah_LDADD = -L$(here)/.libs libgcj-tools.la
 gjavah_DEPENDENCIES = libgcj-tools.la
+gcjh_SOURCES = 
+gcjh_LDFLAGS = --main=gnu.classpath.tools.javah.GcjhMain \
+	-rpath $(toolexeclibdir) -shared-libgcc $(THREADLDFLAGS)
+
+gcjh_LINK = $(GCJLINK)
+gcjh_LDADD = -L$(here)/.libs libgcj-tools.la
+gcjh_DEPENDENCIES = libgcj-tools.la
 gnative2ascii_SOURCES = 
 gnative2ascii_LDFLAGS = --main=gnu.classpath.tools.native2ascii.Native2ASCII \
 	-rpath $(toolexeclibdir) -shared-libgcc $(THREADLDFLAGS)
@@ -7895,11 +7984,13 @@ gnu/gcj/convert/natOutput_SJIS.cc \
 gnu/gcj/io/natSimpleSHSStream.cc \
 gnu/gcj/io/shs.cc \
 gnu/gcj/jvmti/natBreakpoint.cc \
+gnu/gcj/jvmti/natExceptionEvent.cc \
 gnu/gcj/runtime/natFinalizerThread.cc \
 gnu/gcj/runtime/natSharedLibLoader.cc \
 gnu/gcj/runtime/natSystemClassLoader.cc \
 gnu/gcj/runtime/natStringBuffer.cc \
 gnu/gcj/util/natDebug.cc \
+gnu/gcj/util/natGCInfo.cc \
 gnu/java/lang/natMainThread.cc \
 gnu/java/lang/management/natVMClassLoadingMXBeanImpl.cc \
 gnu/java/lang/management/natVMCompilationMXBeanImpl.cc \
@@ -7912,21 +8003,20 @@ gnu/java/lang/management/natVMThreadMXBeanImpl.cc \
 gnu/java/net/natPlainDatagramSocketImpl.cc \
 gnu/java/net/natPlainSocketImpl.cc \
 gnu/java/net/protocol/core/natCoreInputStream.cc \
-gnu/java/nio/natPipeImpl.cc \
-gnu/java/nio/natSelectorImpl.cc \
+gnu/java/nio/natVMPipe.cc \
+gnu/java/nio/natVMSelector.cc \
 gnu/java/nio/natNIOServerSocket.cc \
 gnu/java/nio/natVMChannel.cc \
 gnu/java/nio/channels/natFileChannelImpl.cc \
 java/io/natFile.cc \
-java/io/natObjectInputStream.cc \
+java/io/natVMObjectInputStream.cc \
 java/io/natVMObjectStreamClass.cc \
-java/lang/management/natVMManagementFactory.cc \
 java/lang/natCharacter.cc \
 java/lang/natClass.cc \
 java/lang/natClassLoader.cc \
 java/lang/natConcreteProcess.cc \
-java/lang/natDouble.cc \
-java/lang/natFloat.cc \
+java/lang/natVMDouble.cc \
+java/lang/natVMFloat.cc \
 java/lang/natMath.cc \
 java/lang/natObject.cc \
 java/lang/natRuntime.cc	\
@@ -7937,6 +8027,7 @@ java/lang/natSystem.cc \
 java/lang/natThread.cc \
 java/lang/natThreadLocal.cc \
 java/lang/natVMClassLoader.cc \
+java/lang/natVMProcess.cc \
 java/lang/natVMThrowable.cc \
 java/lang/ref/natReference.cc \
 java/lang/reflect/natArray.cc \
@@ -7948,7 +8039,7 @@ java/net/natVMInetAddress.cc \
 java/net/natVMNetworkInterface.cc \
 java/net/natVMURLConnection.cc \
 java/nio/channels/natVMChannels.cc \
-java/nio/natDirectByteBufferImpl.cc \
+java/nio/natVMDirectByteBufferImpl.cc \
 java/security/natVMAccessController.cc \
 java/security/natVMAccessControlState.cc \
 java/text/natCollator.cc \
@@ -7982,7 +8073,7 @@ gnu/gcj/xlib/natXImage.cc \
 gnu/gcj/xlib/natXUnmapEvent.cc
 
 sourcesdir = $(jardir)
-headers_to_make = $(nat_headers) $(am__append_15)
+headers_to_make = $(nat_headers) $(am__append_17)
 
 # Work around what appears to be a GNU make bug handling MAKEFLAGS
 # values defined in terms of make variables, as is the case for CC and
@@ -8012,6 +8103,7 @@ AM_MAKEFLAGS = \
 	"exec_prefix=$(exec_prefix)" \
 	"infodir=$(infodir)" \
 	"libdir=$(libdir)" \
+	"mandir=$(mandir)" \
 	"prefix=$(prefix)" \
 	"gxx_include_dir=$(gxx_include_dir)" \
 	"AR=$(AR)" \
@@ -8288,6 +8380,8 @@ gnu/gcj/jvmti/$(DEPDIR)/$(am__dirstamp):
 	@: > gnu/gcj/jvmti/$(DEPDIR)/$(am__dirstamp)
 gnu/gcj/jvmti/natBreakpoint.lo: gnu/gcj/jvmti/$(am__dirstamp) \
 	gnu/gcj/jvmti/$(DEPDIR)/$(am__dirstamp)
+gnu/gcj/jvmti/natExceptionEvent.lo: gnu/gcj/jvmti/$(am__dirstamp) \
+	gnu/gcj/jvmti/$(DEPDIR)/$(am__dirstamp)
 gnu/gcj/runtime/$(am__dirstamp):
 	@$(mkdir_p) gnu/gcj/runtime
 	@: > gnu/gcj/runtime/$(am__dirstamp)
@@ -8312,6 +8406,8 @@ gnu/gcj/util/$(DEPDIR)/$(am__dirstamp):
 	@$(mkdir_p) gnu/gcj/util/$(DEPDIR)
 	@: > gnu/gcj/util/$(DEPDIR)/$(am__dirstamp)
 gnu/gcj/util/natDebug.lo: gnu/gcj/util/$(am__dirstamp) \
+	gnu/gcj/util/$(DEPDIR)/$(am__dirstamp)
+gnu/gcj/util/natGCInfo.lo: gnu/gcj/util/$(am__dirstamp) \
 	gnu/gcj/util/$(DEPDIR)/$(am__dirstamp)
 gnu/java/lang/$(am__dirstamp):
 	@$(mkdir_p) gnu/java/lang
@@ -8377,9 +8473,9 @@ gnu/java/nio/$(am__dirstamp):
 gnu/java/nio/$(DEPDIR)/$(am__dirstamp):
 	@$(mkdir_p) gnu/java/nio/$(DEPDIR)
 	@: > gnu/java/nio/$(DEPDIR)/$(am__dirstamp)
-gnu/java/nio/natPipeImpl.lo: gnu/java/nio/$(am__dirstamp) \
+gnu/java/nio/natVMPipe.lo: gnu/java/nio/$(am__dirstamp) \
 	gnu/java/nio/$(DEPDIR)/$(am__dirstamp)
-gnu/java/nio/natSelectorImpl.lo: gnu/java/nio/$(am__dirstamp) \
+gnu/java/nio/natVMSelector.lo: gnu/java/nio/$(am__dirstamp) \
 	gnu/java/nio/$(DEPDIR)/$(am__dirstamp)
 gnu/java/nio/natNIOServerSocket.lo: gnu/java/nio/$(am__dirstamp) \
 	gnu/java/nio/$(DEPDIR)/$(am__dirstamp)
@@ -8402,19 +8498,10 @@ java/io/$(DEPDIR)/$(am__dirstamp):
 	@: > java/io/$(DEPDIR)/$(am__dirstamp)
 java/io/natFile.lo: java/io/$(am__dirstamp) \
 	java/io/$(DEPDIR)/$(am__dirstamp)
-java/io/natObjectInputStream.lo: java/io/$(am__dirstamp) \
+java/io/natVMObjectInputStream.lo: java/io/$(am__dirstamp) \
 	java/io/$(DEPDIR)/$(am__dirstamp)
 java/io/natVMObjectStreamClass.lo: java/io/$(am__dirstamp) \
 	java/io/$(DEPDIR)/$(am__dirstamp)
-java/lang/management/$(am__dirstamp):
-	@$(mkdir_p) java/lang/management
-	@: > java/lang/management/$(am__dirstamp)
-java/lang/management/$(DEPDIR)/$(am__dirstamp):
-	@$(mkdir_p) java/lang/management/$(DEPDIR)
-	@: > java/lang/management/$(DEPDIR)/$(am__dirstamp)
-java/lang/management/natVMManagementFactory.lo:  \
-	java/lang/management/$(am__dirstamp) \
-	java/lang/management/$(DEPDIR)/$(am__dirstamp)
 java/lang/$(am__dirstamp):
 	@$(mkdir_p) java/lang
 	@: > java/lang/$(am__dirstamp)
@@ -8429,9 +8516,9 @@ java/lang/natClassLoader.lo: java/lang/$(am__dirstamp) \
 	java/lang/$(DEPDIR)/$(am__dirstamp)
 java/lang/natConcreteProcess.lo: java/lang/$(am__dirstamp) \
 	java/lang/$(DEPDIR)/$(am__dirstamp)
-java/lang/natDouble.lo: java/lang/$(am__dirstamp) \
+java/lang/natVMDouble.lo: java/lang/$(am__dirstamp) \
 	java/lang/$(DEPDIR)/$(am__dirstamp)
-java/lang/natFloat.lo: java/lang/$(am__dirstamp) \
+java/lang/natVMFloat.lo: java/lang/$(am__dirstamp) \
 	java/lang/$(DEPDIR)/$(am__dirstamp)
 java/lang/natMath.lo: java/lang/$(am__dirstamp) \
 	java/lang/$(DEPDIR)/$(am__dirstamp)
@@ -8452,6 +8539,8 @@ java/lang/natThread.lo: java/lang/$(am__dirstamp) \
 java/lang/natThreadLocal.lo: java/lang/$(am__dirstamp) \
 	java/lang/$(DEPDIR)/$(am__dirstamp)
 java/lang/natVMClassLoader.lo: java/lang/$(am__dirstamp) \
+	java/lang/$(DEPDIR)/$(am__dirstamp)
+java/lang/natVMProcess.lo: java/lang/$(am__dirstamp) \
 	java/lang/$(DEPDIR)/$(am__dirstamp)
 java/lang/natVMThrowable.lo: java/lang/$(am__dirstamp) \
 	java/lang/$(DEPDIR)/$(am__dirstamp)
@@ -8506,7 +8595,7 @@ java/nio/$(am__dirstamp):
 java/nio/$(DEPDIR)/$(am__dirstamp):
 	@$(mkdir_p) java/nio/$(DEPDIR)
 	@: > java/nio/$(DEPDIR)/$(am__dirstamp)
-java/nio/natDirectByteBufferImpl.lo: java/nio/$(am__dirstamp) \
+java/nio/natVMDirectByteBufferImpl.lo: java/nio/$(am__dirstamp) \
 	java/nio/$(DEPDIR)/$(am__dirstamp)
 java/security/$(am__dirstamp):
 	@$(mkdir_p) java/security
@@ -8647,6 +8736,9 @@ ecjx$(EXEEXT): $(ecjx_OBJECTS) $(ecjx_DEPENDENCIES)
 gappletviewer$(EXEEXT): $(gappletviewer_OBJECTS) $(gappletviewer_DEPENDENCIES) 
 	@rm -f gappletviewer$(EXEEXT)
 	$(gappletviewer_LINK) $(gappletviewer_LDFLAGS) $(gappletviewer_OBJECTS) $(gappletviewer_LDADD) $(LIBS)
+gc-analyze$(EXEEXT): $(gc_analyze_OBJECTS) $(gc_analyze_DEPENDENCIES) 
+	@rm -f gc-analyze$(EXEEXT)
+	$(gc_analyze_LINK) $(gc_analyze_LDFLAGS) $(gc_analyze_OBJECTS) $(gc_analyze_LDADD) $(LIBS)
 gnu/gcj/tools/gcj_dbtool/$(am__dirstamp):
 	@$(mkdir_p) gnu/gcj/tools/gcj_dbtool
 	@: > gnu/gcj/tools/gcj_dbtool/$(am__dirstamp)
@@ -8659,6 +8751,9 @@ gnu/gcj/tools/gcj_dbtool/natMain.$(OBJEXT):  \
 gcj-dbtool$(EXEEXT): $(gcj_dbtool_OBJECTS) $(gcj_dbtool_DEPENDENCIES) 
 	@rm -f gcj-dbtool$(EXEEXT)
 	$(gcj_dbtool_LINK) $(gcj_dbtool_LDFLAGS) $(gcj_dbtool_OBJECTS) $(gcj_dbtool_LDADD) $(LIBS)
+gcjh$(EXEEXT): $(gcjh_OBJECTS) $(gcjh_DEPENDENCIES) 
+	@rm -f gcjh$(EXEEXT)
+	$(gcjh_LINK) $(gcjh_LDFLAGS) $(gcjh_OBJECTS) $(gcjh_LDADD) $(LIBS)
 gnu/gcj/convert/gen-from-JIS.$(OBJEXT):  \
 	gnu/gcj/convert/$(am__dirstamp) \
 	gnu/gcj/convert/$(DEPDIR)/$(am__dirstamp)
@@ -8766,6 +8861,8 @@ mostlyclean-compile:
 	-rm -f gnu/gcj/io/shs.lo
 	-rm -f gnu/gcj/jvmti/natBreakpoint.$(OBJEXT)
 	-rm -f gnu/gcj/jvmti/natBreakpoint.lo
+	-rm -f gnu/gcj/jvmti/natExceptionEvent.$(OBJEXT)
+	-rm -f gnu/gcj/jvmti/natExceptionEvent.lo
 	-rm -f gnu/gcj/natCore.$(OBJEXT)
 	-rm -f gnu/gcj/natCore.lo
 	-rm -f gnu/gcj/runtime/natFinalizerThread.$(OBJEXT)
@@ -8779,6 +8876,8 @@ mostlyclean-compile:
 	-rm -f gnu/gcj/tools/gcj_dbtool/natMain.$(OBJEXT)
 	-rm -f gnu/gcj/util/natDebug.$(OBJEXT)
 	-rm -f gnu/gcj/util/natDebug.lo
+	-rm -f gnu/gcj/util/natGCInfo.$(OBJEXT)
+	-rm -f gnu/gcj/util/natGCInfo.lo
 	-rm -f gnu/gcj/xlib/lib_gnu_awt_xlib_la-natClip.$(OBJEXT)
 	-rm -f gnu/gcj/xlib/lib_gnu_awt_xlib_la-natClip.lo
 	-rm -f gnu/gcj/xlib/lib_gnu_awt_xlib_la-natColormap.$(OBJEXT)
@@ -8847,22 +8946,20 @@ mostlyclean-compile:
 	-rm -f gnu/java/nio/channels/natFileChannelImpl.lo
 	-rm -f gnu/java/nio/natNIOServerSocket.$(OBJEXT)
 	-rm -f gnu/java/nio/natNIOServerSocket.lo
-	-rm -f gnu/java/nio/natPipeImpl.$(OBJEXT)
-	-rm -f gnu/java/nio/natPipeImpl.lo
-	-rm -f gnu/java/nio/natSelectorImpl.$(OBJEXT)
-	-rm -f gnu/java/nio/natSelectorImpl.lo
 	-rm -f gnu/java/nio/natVMChannel.$(OBJEXT)
 	-rm -f gnu/java/nio/natVMChannel.lo
+	-rm -f gnu/java/nio/natVMPipe.$(OBJEXT)
+	-rm -f gnu/java/nio/natVMPipe.lo
+	-rm -f gnu/java/nio/natVMSelector.$(OBJEXT)
+	-rm -f gnu/java/nio/natVMSelector.lo
 	-rm -f java/io/natFile.$(OBJEXT)
 	-rm -f java/io/natFile.lo
-	-rm -f java/io/natObjectInputStream.$(OBJEXT)
-	-rm -f java/io/natObjectInputStream.lo
+	-rm -f java/io/natVMObjectInputStream.$(OBJEXT)
+	-rm -f java/io/natVMObjectInputStream.lo
 	-rm -f java/io/natVMObjectStreamClass.$(OBJEXT)
 	-rm -f java/io/natVMObjectStreamClass.lo
 	-rm -f java/lang/Object.$(OBJEXT)
 	-rm -f java/lang/Object.lo
-	-rm -f java/lang/management/natVMManagementFactory.$(OBJEXT)
-	-rm -f java/lang/management/natVMManagementFactory.lo
 	-rm -f java/lang/natCharacter.$(OBJEXT)
 	-rm -f java/lang/natCharacter.lo
 	-rm -f java/lang/natClass.$(OBJEXT)
@@ -8871,10 +8968,6 @@ mostlyclean-compile:
 	-rm -f java/lang/natClassLoader.lo
 	-rm -f java/lang/natConcreteProcess.$(OBJEXT)
 	-rm -f java/lang/natConcreteProcess.lo
-	-rm -f java/lang/natDouble.$(OBJEXT)
-	-rm -f java/lang/natDouble.lo
-	-rm -f java/lang/natFloat.$(OBJEXT)
-	-rm -f java/lang/natFloat.lo
 	-rm -f java/lang/natMath.$(OBJEXT)
 	-rm -f java/lang/natMath.lo
 	-rm -f java/lang/natObject.$(OBJEXT)
@@ -8895,6 +8988,12 @@ mostlyclean-compile:
 	-rm -f java/lang/natThreadLocal.lo
 	-rm -f java/lang/natVMClassLoader.$(OBJEXT)
 	-rm -f java/lang/natVMClassLoader.lo
+	-rm -f java/lang/natVMDouble.$(OBJEXT)
+	-rm -f java/lang/natVMDouble.lo
+	-rm -f java/lang/natVMFloat.$(OBJEXT)
+	-rm -f java/lang/natVMFloat.lo
+	-rm -f java/lang/natVMProcess.$(OBJEXT)
+	-rm -f java/lang/natVMProcess.lo
 	-rm -f java/lang/natVMThrowable.$(OBJEXT)
 	-rm -f java/lang/natVMThrowable.lo
 	-rm -f java/lang/ref/natReference.$(OBJEXT)
@@ -8917,8 +9016,8 @@ mostlyclean-compile:
 	-rm -f java/net/natVMURLConnection.lo
 	-rm -f java/nio/channels/natVMChannels.$(OBJEXT)
 	-rm -f java/nio/channels/natVMChannels.lo
-	-rm -f java/nio/natDirectByteBufferImpl.$(OBJEXT)
-	-rm -f java/nio/natDirectByteBufferImpl.lo
+	-rm -f java/nio/natVMDirectByteBufferImpl.$(OBJEXT)
+	-rm -f java/nio/natVMDirectByteBufferImpl.lo
 	-rm -f java/security/natVMAccessControlState.$(OBJEXT)
 	-rm -f java/security/natVMAccessControlState.lo
 	-rm -f java/security/natVMAccessController.$(OBJEXT)
@@ -8982,12 +9081,14 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/io/$(DEPDIR)/natSimpleSHSStream.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/io/$(DEPDIR)/shs.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/jvmti/$(DEPDIR)/natBreakpoint.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/jvmti/$(DEPDIR)/natExceptionEvent.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/runtime/$(DEPDIR)/natFinalizerThread.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/runtime/$(DEPDIR)/natSharedLibLoader.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/runtime/$(DEPDIR)/natStringBuffer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/runtime/$(DEPDIR)/natSystemClassLoader.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/tools/gcj_dbtool/$(DEPDIR)/natMain.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/util/$(DEPDIR)/natDebug.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/util/$(DEPDIR)/natGCInfo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natClip.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natColormap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDisplay.Plo@am__quote@
@@ -9021,20 +9122,18 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/net/$(DEPDIR)/natPlainSocketImpl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/net/protocol/core/$(DEPDIR)/natCoreInputStream.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/nio/$(DEPDIR)/natNIOServerSocket.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@gnu/java/nio/$(DEPDIR)/natPipeImpl.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@gnu/java/nio/$(DEPDIR)/natSelectorImpl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/nio/$(DEPDIR)/natVMChannel.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@gnu/java/nio/$(DEPDIR)/natVMPipe.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@gnu/java/nio/$(DEPDIR)/natVMSelector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/nio/channels/$(DEPDIR)/natFileChannelImpl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/io/$(DEPDIR)/natFile.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@java/io/$(DEPDIR)/natObjectInputStream.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@java/io/$(DEPDIR)/natVMObjectInputStream.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/io/$(DEPDIR)/natVMObjectStreamClass.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/Object.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natCharacter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natClass.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natClassLoader.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natConcreteProcess.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natDouble.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natFloat.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natMath.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natObject.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natRuntime.Plo@am__quote@
@@ -9045,8 +9144,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natThread.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natThreadLocal.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natVMClassLoader.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natVMDouble.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natVMFloat.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natVMProcess.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/$(DEPDIR)/natVMThrowable.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@java/lang/management/$(DEPDIR)/natVMManagementFactory.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/ref/$(DEPDIR)/natReference.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/reflect/$(DEPDIR)/natArray.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/lang/reflect/$(DEPDIR)/natConstructor.Plo@am__quote@
@@ -9056,7 +9157,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@java/net/$(DEPDIR)/natVMInetAddress.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/net/$(DEPDIR)/natVMNetworkInterface.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/net/$(DEPDIR)/natVMURLConnection.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@java/nio/$(DEPDIR)/natDirectByteBufferImpl.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@java/nio/$(DEPDIR)/natVMDirectByteBufferImpl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/nio/channels/$(DEPDIR)/natVMChannels.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/security/$(DEPDIR)/natVMAccessControlState.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@java/security/$(DEPDIR)/natVMAccessController.Plo@am__quote@
@@ -9334,7 +9435,6 @@ clean-libtool:
 	-rm -rf gnu/java/nio/channels/.libs gnu/java/nio/channels/_libs
 	-rm -rf java/io/.libs java/io/_libs
 	-rm -rf java/lang/.libs java/lang/_libs
-	-rm -rf java/lang/management/.libs java/lang/management/_libs
 	-rm -rf java/lang/ref/.libs java/lang/ref/_libs
 	-rm -rf java/lang/reflect/.libs java/lang/reflect/_libs
 	-rm -rf java/net/.libs java/net/_libs
@@ -9679,7 +9779,8 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-recursive
-all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(SCRIPTS) $(DATA)
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(SCRIPTS) all-multi \
+		$(DATA)
 installdirs: installdirs-recursive
 installdirs-am:
 	for dir in "$(DESTDIR)$(dbexecdir)" "$(DESTDIR)$(toolexeclibdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecsubdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(dbexecdir)" "$(DESTDIR)$(jardir)" "$(DESTDIR)$(toolexecmainlibdir)"; do \
@@ -9744,8 +9845,6 @@ distclean-generic:
 	-rm -f java/io/$(am__dirstamp)
 	-rm -f java/lang/$(DEPDIR)/$(am__dirstamp)
 	-rm -f java/lang/$(am__dirstamp)
-	-rm -f java/lang/management/$(DEPDIR)/$(am__dirstamp)
-	-rm -f java/lang/management/$(am__dirstamp)
 	-rm -f java/lang/ref/$(DEPDIR)/$(am__dirstamp)
 	-rm -f java/lang/ref/$(am__dirstamp)
 	-rm -f java/lang/reflect/$(DEPDIR)/$(am__dirstamp)
@@ -9775,15 +9874,15 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-recursive
+clean: clean-multi clean-recursive
 
 clean-am: clean-binPROGRAMS clean-dbexecLTLIBRARIES clean-generic \
 	clean-libexecsubPROGRAMS clean-libtool clean-noinstPROGRAMS \
 	clean-toolexeclibLTLIBRARIES mostlyclean-am
 
-distclean: distclean-recursive
+distclean: distclean-multi distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ./$(DEPDIR) classpath/tools/$(DEPDIR) gnu/classpath/$(DEPDIR) gnu/classpath/jdwp/$(DEPDIR) gnu/gcj/$(DEPDIR) gnu/gcj/convert/$(DEPDIR) gnu/gcj/io/$(DEPDIR) gnu/gcj/jvmti/$(DEPDIR) gnu/gcj/runtime/$(DEPDIR) gnu/gcj/tools/gcj_dbtool/$(DEPDIR) gnu/gcj/util/$(DEPDIR) gnu/gcj/xlib/$(DEPDIR) gnu/java/lang/$(DEPDIR) gnu/java/lang/management/$(DEPDIR) gnu/java/net/$(DEPDIR) gnu/java/net/protocol/core/$(DEPDIR) gnu/java/nio/$(DEPDIR) gnu/java/nio/channels/$(DEPDIR) java/io/$(DEPDIR) java/lang/$(DEPDIR) java/lang/management/$(DEPDIR) java/lang/ref/$(DEPDIR) java/lang/reflect/$(DEPDIR) java/net/$(DEPDIR) java/nio/$(DEPDIR) java/nio/channels/$(DEPDIR) java/security/$(DEPDIR) java/text/$(DEPDIR) java/util/$(DEPDIR) java/util/concurrent/atomic/$(DEPDIR) java/util/logging/$(DEPDIR) java/util/zip/$(DEPDIR) sun/misc/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) classpath/tools/$(DEPDIR) gnu/classpath/$(DEPDIR) gnu/classpath/jdwp/$(DEPDIR) gnu/gcj/$(DEPDIR) gnu/gcj/convert/$(DEPDIR) gnu/gcj/io/$(DEPDIR) gnu/gcj/jvmti/$(DEPDIR) gnu/gcj/runtime/$(DEPDIR) gnu/gcj/tools/gcj_dbtool/$(DEPDIR) gnu/gcj/util/$(DEPDIR) gnu/gcj/xlib/$(DEPDIR) gnu/java/lang/$(DEPDIR) gnu/java/lang/management/$(DEPDIR) gnu/java/net/$(DEPDIR) gnu/java/net/protocol/core/$(DEPDIR) gnu/java/nio/$(DEPDIR) gnu/java/nio/channels/$(DEPDIR) java/io/$(DEPDIR) java/lang/$(DEPDIR) java/lang/ref/$(DEPDIR) java/lang/reflect/$(DEPDIR) java/net/$(DEPDIR) java/nio/$(DEPDIR) java/nio/channels/$(DEPDIR) java/security/$(DEPDIR) java/text/$(DEPDIR) java/util/$(DEPDIR) java/util/concurrent/atomic/$(DEPDIR) java/util/logging/$(DEPDIR) java/util/zip/$(DEPDIR) sun/misc/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-local distclean-tags
@@ -9802,8 +9901,8 @@ install-data-am: install-data-local install-jarDATA
 
 install-exec-am: install-binPROGRAMS install-binSCRIPTS \
 	install-dbexecDATA install-dbexecLTLIBRARIES \
-	install-libexecsubPROGRAMS install-toolexeclibLTLIBRARIES \
-	install-toolexecmainlibDATA
+	install-libexecsubPROGRAMS install-multi \
+	install-toolexeclibLTLIBRARIES install-toolexecmainlibDATA
 	@$(NORMAL_INSTALL)
 	$(MAKE) $(AM_MAKEFLAGS) install-exec-hook
 
@@ -9813,14 +9912,14 @@ install-man:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-recursive
+maintainer-clean: maintainer-clean-multi maintainer-clean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ./$(DEPDIR) classpath/tools/$(DEPDIR) gnu/classpath/$(DEPDIR) gnu/classpath/jdwp/$(DEPDIR) gnu/gcj/$(DEPDIR) gnu/gcj/convert/$(DEPDIR) gnu/gcj/io/$(DEPDIR) gnu/gcj/jvmti/$(DEPDIR) gnu/gcj/runtime/$(DEPDIR) gnu/gcj/tools/gcj_dbtool/$(DEPDIR) gnu/gcj/util/$(DEPDIR) gnu/gcj/xlib/$(DEPDIR) gnu/java/lang/$(DEPDIR) gnu/java/lang/management/$(DEPDIR) gnu/java/net/$(DEPDIR) gnu/java/net/protocol/core/$(DEPDIR) gnu/java/nio/$(DEPDIR) gnu/java/nio/channels/$(DEPDIR) java/io/$(DEPDIR) java/lang/$(DEPDIR) java/lang/management/$(DEPDIR) java/lang/ref/$(DEPDIR) java/lang/reflect/$(DEPDIR) java/net/$(DEPDIR) java/nio/$(DEPDIR) java/nio/channels/$(DEPDIR) java/security/$(DEPDIR) java/text/$(DEPDIR) java/util/$(DEPDIR) java/util/concurrent/atomic/$(DEPDIR) java/util/logging/$(DEPDIR) java/util/zip/$(DEPDIR) sun/misc/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) classpath/tools/$(DEPDIR) gnu/classpath/$(DEPDIR) gnu/classpath/jdwp/$(DEPDIR) gnu/gcj/$(DEPDIR) gnu/gcj/convert/$(DEPDIR) gnu/gcj/io/$(DEPDIR) gnu/gcj/jvmti/$(DEPDIR) gnu/gcj/runtime/$(DEPDIR) gnu/gcj/tools/gcj_dbtool/$(DEPDIR) gnu/gcj/util/$(DEPDIR) gnu/gcj/xlib/$(DEPDIR) gnu/java/lang/$(DEPDIR) gnu/java/lang/management/$(DEPDIR) gnu/java/net/$(DEPDIR) gnu/java/net/protocol/core/$(DEPDIR) gnu/java/nio/$(DEPDIR) gnu/java/nio/channels/$(DEPDIR) java/io/$(DEPDIR) java/lang/$(DEPDIR) java/lang/ref/$(DEPDIR) java/lang/reflect/$(DEPDIR) java/net/$(DEPDIR) java/nio/$(DEPDIR) java/nio/channels/$(DEPDIR) java/security/$(DEPDIR) java/text/$(DEPDIR) java/util/$(DEPDIR) java/util/concurrent/atomic/$(DEPDIR) java/util/logging/$(DEPDIR) java/util/zip/$(DEPDIR) sun/misc/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-recursive
+mostlyclean: mostlyclean-multi mostlyclean-recursive
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool mostlyclean-local
@@ -9841,33 +9940,37 @@ uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
 
 uninstall-info: uninstall-info-recursive
 
-.PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am am--refresh check \
-	check-am clean clean-binPROGRAMS clean-dbexecLTLIBRARIES \
-	clean-generic clean-libexecsubPROGRAMS clean-libtool \
-	clean-noinstPROGRAMS clean-recursive \
+.PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am all-multi \
+	am--refresh check check-am clean clean-binPROGRAMS \
+	clean-dbexecLTLIBRARIES clean-generic clean-libexecsubPROGRAMS \
+	clean-libtool clean-multi clean-noinstPROGRAMS clean-recursive \
 	clean-toolexeclibLTLIBRARIES ctags ctags-recursive dist \
 	dist-all dist-bzip2 dist-gzip dist-shar dist-tarZ dist-zip \
 	distcheck distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-local distclean-recursive \
-	distclean-tags distcleancheck distdir distuninstallcheck dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-binPROGRAMS install-binSCRIPTS install-data \
-	install-data-am install-data-local install-dbexecDATA \
-	install-dbexecLTLIBRARIES install-exec install-exec-am \
-	install-exec-hook install-info install-info-am install-jarDATA \
-	install-libexecsubPROGRAMS install-man install-strip \
-	install-toolexeclibLTLIBRARIES install-toolexecmainlibDATA \
-	installcheck installcheck-am installdirs installdirs-am \
-	maintainer-clean maintainer-clean-generic \
+	distclean-libtool distclean-local distclean-multi \
+	distclean-recursive distclean-tags distcleancheck distdir \
+	distuninstallcheck dvi dvi-am html html-am info info-am \
+	install install-am install-binPROGRAMS install-binSCRIPTS \
+	install-data install-data-am install-data-local \
+	install-dbexecDATA install-dbexecLTLIBRARIES install-exec \
+	install-exec-am install-exec-hook install-info install-info-am \
+	install-jarDATA install-libexecsubPROGRAMS install-man \
+	install-multi install-strip install-toolexeclibLTLIBRARIES \
+	install-toolexecmainlibDATA installcheck installcheck-am \
+	installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic maintainer-clean-multi \
 	maintainer-clean-recursive mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool mostlyclean-local \
-	mostlyclean-recursive pdf pdf-am ps ps-am tags tags-recursive \
-	uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-binSCRIPTS uninstall-dbexecDATA \
-	uninstall-dbexecLTLIBRARIES uninstall-info-am \
-	uninstall-jarDATA uninstall-libexecsubPROGRAMS \
-	uninstall-toolexeclibLTLIBRARIES uninstall-toolexecmainlibDATA
+	mostlyclean-multi mostlyclean-recursive pdf pdf-am ps ps-am \
+	tags tags-recursive uninstall uninstall-am \
+	uninstall-binPROGRAMS uninstall-binSCRIPTS \
+	uninstall-dbexecDATA uninstall-dbexecLTLIBRARIES \
+	uninstall-info-am uninstall-jarDATA \
+	uninstall-libexecsubPROGRAMS uninstall-toolexeclibLTLIBRARIES \
+	uninstall-toolexecmainlibDATA
 
+
+interpret.lo:  AM_CXXFLAGS += -fwrapv
 
 $(db_name): gcj-dbtool$(EXEEXT)
 	@rm -f $(db_name)
@@ -9888,8 +9991,9 @@ $(propertyo_files): %.lo: classpath/resource/%
 	$(LTGCJCOMPILE) -o $@ -c $< -Wc,--resource,$(@:.lo=)
 
 libgcj-$(gcc_version).jar: classpath/lib/compile-classes
-	here=`pwd`; cd $(srcdir)/classpath/lib; $(JAR) -cfM \
-	    $$here/libgcj-$(gcc_version).jar gnu java javax org sun
+	here=`pwd`; cd $(srcdir)/classpath/lib; \
+	find gnu java javax org sun -name .svn -prune -o -name '*.class' -print | \
+	$(JAR) -cfM@ $$here/libgcj-$(gcc_version).jar
 
 libgcj-tools-$(gcc_version).jar: classpath/tools/tools.zip
 	cp $< $@
@@ -9921,7 +10025,7 @@ java/lang/Class.lo: classpath/lib/java/lang/Class.class
 
 gnu-CORBA.lo: $(gnu_CORBA_source_files)
 	@find $(srcdir)/classpath/lib/gnu/CORBA -name '*.class' > gnu-CORBA.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-CORBA.lo @gnu-CORBA.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-CORBA.lo @gnu-CORBA.list
 	@rm -f gnu-CORBA.list
 
 gnu/awt.list: $(gnu_awt_source_files)
@@ -10002,6 +10106,12 @@ gnu/classpath/jdwp/util.list: $(gnu_classpath_jdwp_util_source_files)
 
 -include gnu/classpath/jdwp/util.deps
 
+gnu/classpath/jdwp/value.list: $(gnu_classpath_jdwp_value_source_files)
+	@$(mkinstalldirs) $(dir $@)
+	echo $(srcdir)/classpath/lib/gnu/classpath/jdwp/value/*.class > gnu/classpath/jdwp/value.list
+
+-include gnu/classpath/jdwp/value.deps
+
 gnu/gcj.list: $(gnu_gcj_source_files)
 	@$(mkinstalldirs) $(dir $@)
 	echo $(srcdir)/classpath/lib/gnu/gcj/*.class > gnu/gcj.list
@@ -10070,7 +10180,7 @@ gnu/java/awt/dnd.list: $(gnu_java_awt_dnd_source_files)
 
 gnu-java-awt-dnd-peer-gtk.lo: $(gnu_java_awt_dnd_peer_gtk_source_files)
 	@find $(srcdir)/classpath/lib/gnu/java/awt/dnd/peer/gtk -name '*.class' > gnu-java-awt-dnd-peer-gtk.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-awt-dnd-peer-gtk.lo @gnu-java-awt-dnd-peer-gtk.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-awt-dnd-peer-gtk.lo @gnu-java-awt-dnd-peer-gtk.list
 	@rm -f gnu-java-awt-dnd-peer-gtk.list
 
 gnu/java/awt/font.list: $(gnu_java_awt_font_source_files)
@@ -10117,7 +10227,7 @@ gnu/java/awt/peer.list: $(gnu_java_awt_peer_source_files)
 
 gnu-java-awt-peer-gtk.lo: $(gnu_java_awt_peer_gtk_source_files)
 	@find $(srcdir)/classpath/lib/gnu/java/awt/peer/gtk -name '*.class' > gnu-java-awt-peer-gtk.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-awt-peer-gtk.lo @gnu-java-awt-peer-gtk.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-awt-peer-gtk.lo @gnu-java-awt-peer-gtk.list
 	@rm -f gnu-java-awt-peer-gtk.list
 
 gnu/java/awt/peer/headless.list: $(gnu_java_awt_peer_headless_source_files)
@@ -10128,17 +10238,17 @@ gnu/java/awt/peer/headless.list: $(gnu_java_awt_peer_headless_source_files)
 
 gnu-java-awt-peer-qt.lo: $(gnu_java_awt_peer_qt_source_files)
 	@find $(srcdir)/classpath/lib/gnu/java/awt/peer/qt -name '*.class' > gnu-java-awt-peer-qt.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-awt-peer-qt.lo @gnu-java-awt-peer-qt.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-awt-peer-qt.lo @gnu-java-awt-peer-qt.list
 	@rm -f gnu-java-awt-peer-qt.list
 
 gnu-java-awt-peer-swing.lo: $(gnu_java_awt_peer_swing_source_files)
 	@find $(srcdir)/classpath/lib/gnu/java/awt/peer/swing -name '*.class' > gnu-java-awt-peer-swing.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-awt-peer-swing.lo @gnu-java-awt-peer-swing.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-awt-peer-swing.lo @gnu-java-awt-peer-swing.list
 	@rm -f gnu-java-awt-peer-swing.list
 
 gnu-java-awt-peer-x.lo: $(gnu_java_awt_peer_x_source_files)
 	@find $(srcdir)/classpath/lib/gnu/java/awt/peer/x -name '*.class' > gnu-java-awt-peer-x.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-awt-peer-x.lo @gnu-java-awt-peer-x.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-awt-peer-x.lo @gnu-java-awt-peer-x.list
 	@rm -f gnu-java-awt-peer-x.list
 
 gnu/java/awt/print.list: $(gnu_java_awt_print_source_files)
@@ -10149,7 +10259,7 @@ gnu/java/awt/print.list: $(gnu_java_awt_print_source_files)
 
 gnu-java-beans.lo: $(gnu_java_beans_source_files)
 	@find $(srcdir)/classpath/lib/gnu/java/beans -name '*.class' > gnu-java-beans.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-beans.lo @gnu-java-beans.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-beans.lo @gnu-java-beans.list
 	@rm -f gnu-java-beans.list
 
 gnu/java/io.list: $(gnu_java_io_source_files)
@@ -10164,11 +10274,10 @@ gnu/java/lang.list: $(gnu_java_lang_source_files)
 
 -include gnu/java/lang.deps
 
-gnu/java/lang/management.list: $(gnu_java_lang_management_source_files)
-	@$(mkinstalldirs) $(dir $@)
-	echo $(srcdir)/classpath/lib/gnu/java/lang/management/*.class > gnu/java/lang/management.list
-
--include gnu/java/lang/management.deps
+gnu-java-lang-management.lo: $(gnu_java_lang_management_source_files)
+	@find $(srcdir)/classpath/lib/gnu/java/lang/management -name '*.class' > gnu-java-lang-management.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -findirect-dispatch -fno-indirect-classes -c -o gnu-java-lang-management.lo @gnu-java-lang-management.list
+	@rm -f gnu-java-lang-management.list
 
 gnu/java/lang/reflect.list: $(gnu_java_lang_reflect_source_files)
 	@$(mkinstalldirs) $(dir $@)
@@ -10442,7 +10551,7 @@ gnu/java/util/prefs.list: $(gnu_java_util_prefs_source_files)
 
 gnu-java-util-prefs-gconf.lo: $(gnu_java_util_prefs_gconf_source_files)
 	@find $(srcdir)/classpath/lib/gnu/java/util/prefs/gconf -name '*.class' > gnu-java-util-prefs-gconf.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-util-prefs-gconf.lo @gnu-java-util-prefs-gconf.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-java-util-prefs-gconf.lo @gnu-java-util-prefs-gconf.list
 	@rm -f gnu-java-util-prefs-gconf.list
 
 gnu/java/util/regex.list: $(gnu_java_util_regex_source_files)
@@ -10637,11 +10746,10 @@ gnu/javax/imageio/png.list: $(gnu_javax_imageio_png_source_files)
 
 -include gnu/javax/imageio/png.deps
 
-gnu/javax/management.list: $(gnu_javax_management_source_files)
-	@$(mkinstalldirs) $(dir $@)
-	echo $(srcdir)/classpath/lib/gnu/javax/management/*.class > gnu/javax/management.list
-
--include gnu/javax/management.deps
+gnu-javax-management.lo: $(gnu_javax_management_source_files)
+	@find $(srcdir)/classpath/lib/gnu/javax/management -name '*.class' > gnu-javax-management.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-javax-management.lo @gnu-javax-management.list
+	@rm -f gnu-javax-management.list
 
 gnu/javax/naming/giop.list: $(gnu_javax_naming_giop_source_files)
 	@$(mkinstalldirs) $(dir $@)
@@ -10723,7 +10831,7 @@ gnu/javax/print/ipp/attribute/supported.list: $(gnu_javax_print_ipp_attribute_su
 
 gnu-javax-rmi.lo: $(gnu_javax_rmi_source_files)
 	@find $(srcdir)/classpath/lib/gnu/javax/rmi -name '*.class' > gnu-javax-rmi.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-javax-rmi.lo @gnu-javax-rmi.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-javax-rmi.lo @gnu-javax-rmi.list
 	@rm -f gnu-javax-rmi.list
 
 gnu/javax/security/auth.list: $(gnu_javax_security_auth_source_files)
@@ -10746,7 +10854,7 @@ gnu/javax/security/auth/login.list: $(gnu_javax_security_auth_login_source_files
 
 gnu-javax-sound-midi.lo: $(gnu_javax_sound_midi_source_files)
 	@find $(srcdir)/classpath/lib/gnu/javax/sound/midi -name '*.class' > gnu-javax-sound-midi.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-javax-sound-midi.lo @gnu-javax-sound-midi.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-javax-sound-midi.lo @gnu-javax-sound-midi.list
 	@rm -f gnu-javax-sound-midi.list
 
 gnu/javax/sound/sampled/AU.list: $(gnu_javax_sound_sampled_AU_source_files)
@@ -10785,11 +10893,41 @@ gnu/javax/swing/text/html/css.list: $(gnu_javax_swing_text_html_css_source_files
 
 -include gnu/javax/swing/text/html/css.deps
 
-gnu/javax/swing/text/html/parser.list: $(gnu_javax_swing_text_html_parser_source_files)
+gnu/javax/swing/text/html/parser/GnuParserDelegator.list: classpath/gnu/javax/swing/text/html/parser/GnuParserDelegator.java
 	@$(mkinstalldirs) $(dir $@)
-	echo $(srcdir)/classpath/lib/gnu/javax/swing/text/html/parser/*.class > gnu/javax/swing/text/html/parser.list
+	echo $(srcdir)/classpath/lib/gnu/javax/swing/text/html/parser/GnuParserDelegator*.class> gnu/javax/swing/text/html/parser/GnuParserDelegator.list
 
--include gnu/javax/swing/text/html/parser.deps
+-include gnu/javax/swing/text/html/parser/GnuParserDelegator.deps
+
+gnu/javax/swing/text/html/parser/HTML_401F.list: classpath/gnu/javax/swing/text/html/parser/HTML_401F.java
+	@$(mkinstalldirs) $(dir $@)
+	echo $(srcdir)/classpath/lib/gnu/javax/swing/text/html/parser/HTML_401F*.class> gnu/javax/swing/text/html/parser/HTML_401F.list
+
+-include gnu/javax/swing/text/html/parser/HTML_401F.deps
+
+gnu/javax/swing/text/html/parser/SmallHtmlAttributeSet.list: classpath/gnu/javax/swing/text/html/parser/SmallHtmlAttributeSet.java
+	@$(mkinstalldirs) $(dir $@)
+	echo $(srcdir)/classpath/lib/gnu/javax/swing/text/html/parser/SmallHtmlAttributeSet*.class> gnu/javax/swing/text/html/parser/SmallHtmlAttributeSet.list
+
+-include gnu/javax/swing/text/html/parser/SmallHtmlAttributeSet.deps
+
+gnu/javax/swing/text/html/parser/gnuDTD.list: classpath/gnu/javax/swing/text/html/parser/gnuDTD.java
+	@$(mkinstalldirs) $(dir $@)
+	echo $(srcdir)/classpath/lib/gnu/javax/swing/text/html/parser/gnuDTD*.class> gnu/javax/swing/text/html/parser/gnuDTD.list
+
+-include gnu/javax/swing/text/html/parser/gnuDTD.deps
+
+gnu/javax/swing/text/html/parser/htmlAttributeSet.list: classpath/gnu/javax/swing/text/html/parser/htmlAttributeSet.java
+	@$(mkinstalldirs) $(dir $@)
+	echo $(srcdir)/classpath/lib/gnu/javax/swing/text/html/parser/htmlAttributeSet*.class> gnu/javax/swing/text/html/parser/htmlAttributeSet.list
+
+-include gnu/javax/swing/text/html/parser/htmlAttributeSet.deps
+
+gnu/javax/swing/text/html/parser/htmlValidator.list: classpath/gnu/javax/swing/text/html/parser/htmlValidator.java
+	@$(mkinstalldirs) $(dir $@)
+	echo $(srcdir)/classpath/lib/gnu/javax/swing/text/html/parser/htmlValidator*.class> gnu/javax/swing/text/html/parser/htmlValidator.list
+
+-include gnu/javax/swing/text/html/parser/htmlValidator.deps
 
 gnu/javax/swing/text/html/parser/models.list: $(gnu_javax_swing_text_html_parser_models_source_files)
 	@$(mkinstalldirs) $(dir $@)
@@ -10815,10 +10953,50 @@ gnu/javax/swing/tree.list: $(gnu_javax_swing_tree_source_files)
 
 -include gnu/javax/swing/tree.deps
 
-gnu-xml.lo: $(gnu_xml_source_files)
-	@find $(srcdir)/classpath/lib/gnu/xml -name '*.class' > gnu-xml.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-xml.lo @gnu-xml.list
-	@rm -f gnu-xml.list
+gnu-xml-aelfred2.lo: $(gnu_xml_aelfred2_source_files)
+	@find $(srcdir)/classpath/lib/gnu/xml/aelfred2 -name '*.class' > gnu-xml-aelfred2.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-xml-aelfred2.lo @gnu-xml-aelfred2.list
+	@rm -f gnu-xml-aelfred2.list
+
+gnu-xml-dom.lo: $(gnu_xml_dom_source_files)
+	@find $(srcdir)/classpath/lib/gnu/xml/dom -name '*.class' > gnu-xml-dom.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-xml-dom.lo @gnu-xml-dom.list
+	@rm -f gnu-xml-dom.list
+
+gnu-xml-libxmlj.lo: $(gnu_xml_libxmlj_source_files)
+	@find $(srcdir)/classpath/lib/gnu/xml/libxmlj -name '*.class' > gnu-xml-libxmlj.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-xml-libxmlj.lo @gnu-xml-libxmlj.list
+	@rm -f gnu-xml-libxmlj.list
+
+gnu-xml-pipeline.lo: $(gnu_xml_pipeline_source_files)
+	@find $(srcdir)/classpath/lib/gnu/xml/pipeline -name '*.class' > gnu-xml-pipeline.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-xml-pipeline.lo @gnu-xml-pipeline.list
+	@rm -f gnu-xml-pipeline.list
+
+gnu-xml-stream.lo: $(gnu_xml_stream_source_files)
+	@find $(srcdir)/classpath/lib/gnu/xml/stream -name '*.class' > gnu-xml-stream.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-xml-stream.lo @gnu-xml-stream.list
+	@rm -f gnu-xml-stream.list
+
+gnu-xml-transform.lo: $(gnu_xml_transform_source_files)
+	@find $(srcdir)/classpath/lib/gnu/xml/transform -name '*.class' > gnu-xml-transform.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-xml-transform.lo @gnu-xml-transform.list
+	@rm -f gnu-xml-transform.list
+
+gnu-xml-util.lo: $(gnu_xml_util_source_files)
+	@find $(srcdir)/classpath/lib/gnu/xml/util -name '*.class' > gnu-xml-util.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-xml-util.lo @gnu-xml-util.list
+	@rm -f gnu-xml-util.list
+
+gnu-xml-validation.lo: $(gnu_xml_validation_source_files)
+	@find $(srcdir)/classpath/lib/gnu/xml/validation -name '*.class' > gnu-xml-validation.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-xml-validation.lo @gnu-xml-validation.list
+	@rm -f gnu-xml-validation.list
+
+gnu-xml-xpath.lo: $(gnu_xml_xpath_source_files)
+	@find $(srcdir)/classpath/lib/gnu/xml/xpath -name '*.class' > gnu-xml-xpath.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o gnu-xml-xpath.lo @gnu-xml-xpath.list
+	@rm -f gnu-xml-xpath.list
 
 java/applet.list: $(java_applet_source_files)
 	@$(mkinstalldirs) $(dir $@)
@@ -10930,7 +11108,7 @@ java/io.list: $(java_io_source_files)
 
 java/lang.list: $(java_lang_source_files)
 	@$(mkinstalldirs) $(dir $@)
-	echo $(srcdir)/classpath/lib/java/lang/*.class | tr ' ' '\n' | fgrep -v Object.class | fgrep -v Class.class | grep -v '[^/]Process' > java/lang.list
+	echo $(srcdir)/classpath/lib/java/lang/*.class | tr ' ' '\n' | fgrep -v Object.class | fgrep -v Class.class | egrep -v '(Ecos|Posix|Win32)Process' > java/lang.list
 
 -include java/lang.deps
 
@@ -10946,11 +11124,10 @@ java/lang/instrument.list: $(java_lang_instrument_source_files)
 
 -include java/lang/instrument.deps
 
-java/lang/management.list: $(java_lang_management_source_files)
-	@$(mkinstalldirs) $(dir $@)
-	echo $(srcdir)/classpath/lib/java/lang/management/*.class > java/lang/management.list
-
--include java/lang/management.deps
+java-lang-management.lo: $(java_lang_management_source_files)
+	@find $(srcdir)/classpath/lib/java/lang/management -name '*.class' > java-lang-management.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o java-lang-management.lo @java-lang-management.list
+	@rm -f java-lang-management.list
 
 java/lang/ref.list: $(java_lang_ref_source_files)
 	@$(mkinstalldirs) $(dir $@)
@@ -11158,7 +11335,7 @@ javax/crypto/spec.list: $(javax_crypto_spec_source_files)
 
 javax-imageio.lo: $(javax_imageio_source_files)
 	@find $(srcdir)/classpath/lib/javax/imageio -name '*.class' > javax-imageio.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o javax-imageio.lo @javax-imageio.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o javax-imageio.lo @javax-imageio.list
 	@rm -f javax-imageio.list
 
 javax/management.list: $(javax_management_source_files)
@@ -11247,7 +11424,7 @@ javax/print/event.list: $(javax_print_event_source_files)
 
 javax-rmi.lo: $(javax_rmi_source_files)
 	@find $(srcdir)/classpath/lib/javax/rmi -name '*.class' > javax-rmi.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o javax-rmi.lo @javax-rmi.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o javax-rmi.lo @javax-rmi.list
 	@rm -f javax-rmi.list
 
 javax/security/auth.list: $(javax_security_auth_source_files)
@@ -11444,7 +11621,7 @@ javax/transaction/xa.list: $(javax_transaction_xa_source_files)
 
 javax-xml.lo: $(javax_xml_source_files)
 	@find $(srcdir)/classpath/lib/javax/xml -name '*.class' > javax-xml.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o javax-xml.lo @javax-xml.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o javax-xml.lo @javax-xml.list
 	@rm -f javax-xml.list
 
 org/ietf/jgss.list: $(org_ietf_jgss_source_files)
@@ -11455,22 +11632,22 @@ org/ietf/jgss.list: $(org_ietf_jgss_source_files)
 
 org-omg.lo: $(org_omg_source_files)
 	@find $(srcdir)/classpath/lib/org/omg -name '*.class' > org-omg.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o org-omg.lo @org-omg.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o org-omg.lo @org-omg.list
 	@rm -f org-omg.list
 
 org-relaxng.lo: $(org_relaxng_source_files)
 	@find $(srcdir)/classpath/lib/org/relaxng -name '*.class' > org-relaxng.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o org-relaxng.lo @org-relaxng.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o org-relaxng.lo @org-relaxng.list
 	@rm -f org-relaxng.list
 
 org-w3c.lo: $(org_w3c_source_files)
 	@find $(srcdir)/classpath/lib/org/w3c -name '*.class' > org-w3c.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o org-w3c.lo @org-w3c.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o org-w3c.lo @org-w3c.list
 	@rm -f org-w3c.list
 
 org-xml.lo: $(org_xml_source_files)
 	@find $(srcdir)/classpath/lib/org/xml -name '*.class' > org-xml.list
-	$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o org-xml.lo @org-xml.list
+	$(LTGCJCOMPILE) -fsource-filename=$(here)/classpath/lib/classes -fjni -findirect-dispatch -fno-indirect-classes -c -o org-xml.lo @org-xml.list
 	@rm -f org-xml.list
 
 sun/misc.list: $(sun_misc_source_files)
@@ -11534,8 +11711,7 @@ install-exec-hook: install-toolexeclibLTLIBRARIES install-libexecsubPROGRAMS
 @USE_LIBGCJ_BC_TRUE@	rm $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1; \
 @USE_LIBGCJ_BC_TRUE@	$(LN_S) libgcj_bc.so.1.0.0 $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1; \
 @USE_LIBGCJ_BC_TRUE@	rm $(DESTDIR)$(toolexeclibdir)/libgcj_bc.la;
-@BUILD_ECJ1_TRUE@@NATIVE_TRUE@	mv $(DESTDIR)$(libexecsubdir)/ecjx$(EXEEXT) $(DESTDIR)$(libexecsubdir)/ecj1$(host_exeext)
-@BUILD_ECJ1_TRUE@@NATIVE_FALSE@	mv $(DESTDIR)$(libexecsubdir)/$(target_noncanonical)-ecjx$(EXEEXT) $(DESTDIR)$(libexecsubdir)/ecj1$(host_exeext)
+@BUILD_ECJ1_TRUE@	mv $(DESTDIR)$(libexecsubdir)/`echo ecjx | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` $(DESTDIR)$(libexecsubdir)/ecj1$(host_exeext)
 
 install-data-local:
 	$(PRE_INSTALL)
@@ -11700,9 +11876,10 @@ $(libgcj_la_OBJECTS) $(gcj_dbtool_OBJECTS) $(xlib_nat_files): headers.stamp
 $(libgij_la_OBJECTS): headers.stamp
 $(libjvm_la_OBJECTS): headers.stamp
 
-# No install-html support yet.
-.PHONY: install-html
+# No install-html or install-pdf support in automake yet
+.PHONY: install-html install-pdf
 install-html:
+install-pdf:
 
 # Multilib support.
 .PHONY: all-multi mostlyclean-multi clean-multi distclean-multi \

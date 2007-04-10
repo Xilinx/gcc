@@ -214,10 +214,6 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   /* The number of libraries added in.  */
   int added_libraries;
 
-  /* The total number of arguments having to do with classpath
-     setting.  */
-  int classpath_args = 0;
-
   /* The total number of arguments with the new stuff.  */
   int num_args = 1;
 
@@ -305,7 +301,7 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  else if (argv[i][1] == 'O')
 	    saw_O = 1;
 	  else if ((argv[i][2] == '\0'
-		    && strchr ("bBVDUoeTuIYmLiA", argv[i][1]) != NULL)
+		    && strchr ("bBVDUoeTuIYmLiAI", argv[i][1]) != NULL)
 		   || strcmp (argv[i], "-Tdata") == 0
 		   || strcmp (argv[i], "-MT") == 0
 		   || strcmp (argv[i], "-MF") == 0)
@@ -516,9 +512,19 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  arglist[j] = "-xnone";
 	}
 
-      if (argv[i][1] == 'I')
+      if (argv[i][0] == '-' && argv[i][1] == 'I')
 	{
-	  jcf_path_include_arg (&argv[i][2]);
+	  const char *arg;
+	  if (argv[i][2] == '\0')
+	    {
+	      gcc_assert (i + 1 < argc && (args[i + 1] & PARAM_ARG) != 0);
+	      arg = argv[i + 1];
+	      /* Drop the argument.  */
+	      ++i;
+	    }
+	  else
+	    arg = &argv[i][2];
+	  jcf_path_include_arg (arg);
 	  --j;
 	  continue;
 	}

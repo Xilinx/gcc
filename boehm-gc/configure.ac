@@ -364,11 +364,9 @@ LIBS="$oldLIBS"
 
 # Configuration of machine-dependent code
 #
-# We don't set NO_EXECUTE_PERMISSION by default because gcj (and
-# anything else that creates trampolines in gc-allocated memory)
-# always needs exec permission.  The exceptions to this are IA-64 and
-# some variations of Power PC, where trampolines don't contain
-# executable code.
+# Set NO_EXECUTE_PERMISSION by default because gcj already uses
+# ffi_closure_{alloc,free} which takes care of allocating trampolines
+# in executable memory.
 #
 AC_MSG_CHECKING(which machine-dependent code should be used)
 machdep=
@@ -411,10 +409,10 @@ case "$host" in
     machdep="sparc_mach_dep.lo"
     ;;
  ia64-*-*)
-    AC_DEFINE(NO_EXECUTE_PERMISSION,1,[cause some or all of the heap to not have execute permission])
     machdep="mach_dep.lo ia64_save_regs_in_stack.lo"
     ;;
 esac
+AC_DEFINE(NO_EXECUTE_PERMISSION,1,[cause some or all of the heap to not have execute permission])
 if test x"$machdep" = x; then
 AC_MSG_RESULT($machdep)
    machdep="mach_dep.lo"
@@ -487,14 +485,6 @@ dnl By default, make the library as general as possible.
 AC_DEFINE(JAVA_FINALIZATION,1,[make it somewhat safer to finalize objects out of order])
 AC_DEFINE(GC_GCJ_SUPPORT,1,[include support for gcj])
 AC_DEFINE(ATOMIC_UNCOLLECTABLE,1,[include code for GC_malloc_atomic_uncollectable])
-
-dnl This is something of a hack.  When cross-compiling we turn off
-dnl some functionality. These is only correct when targetting an
-dnl embedded system.  FIXME.
-if test -n "${with_cross_host}"; then
-   AC_DEFINE(NO_SIGSET,1,[use empty GC_disable_signals and GC_enable_signals])
-   AC_DEFINE(NO_DEBUGGING,1,[removes GC_dump])
-fi
 
 AC_ARG_ENABLE(gc-debug,
 [  --enable-gc-debug	include full support for pointer backtracing etc.],

@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by James E. Wilson <wilson@cygnus.com> and
 		  David Mosberger <davidm@hpl.hp.com>.
@@ -55,6 +55,7 @@ Boston, MA 02110-1301, USA.  */
 #include "intl.h"
 #include "debug.h"
 #include "params.h"
+#include "tm-constrs.h"
 
 /* This is used for communication between ASM_OUTPUT_LABEL and
    ASM_OUTPUT_LABELREF.  */
@@ -211,7 +212,7 @@ static void ia64_output_function_epilogue (FILE *, HOST_WIDE_INT);
 static void ia64_output_function_end_prologue (FILE *);
 
 static int ia64_issue_rate (void);
-static int ia64_adjust_cost_2 (rtx, int, rtx, int);
+static int ia64_adjust_cost (rtx, rtx, rtx, int);
 static void ia64_sched_init (FILE *, int, int);
 static void ia64_sched_init_global (FILE *, int, int);
 static void ia64_sched_finish_global (FILE *, int);
@@ -242,17 +243,13 @@ static void bundling (FILE *, int, rtx, rtx);
 static void ia64_output_mi_thunk (FILE *, tree, HOST_WIDE_INT,
 				  HOST_WIDE_INT, tree);
 static void ia64_file_start (void);
+static void ia64_globalize_decl_name (FILE *, tree);
 
+static int ia64_hpux_reloc_rw_mask (void) ATTRIBUTE_UNUSED;
+static int ia64_reloc_rw_mask (void) ATTRIBUTE_UNUSED;
 static section *ia64_select_rtx_section (enum machine_mode, rtx,
 					 unsigned HOST_WIDE_INT);
 static void ia64_output_dwarf_dtprel (FILE *, int, rtx)
-     ATTRIBUTE_UNUSED;
-static section *ia64_rwreloc_select_section (tree, int, unsigned HOST_WIDE_INT)
-     ATTRIBUTE_UNUSED;
-static void ia64_rwreloc_unique_section (tree, int)
-     ATTRIBUTE_UNUSED;
-static section *ia64_rwreloc_select_rtx_section (enum machine_mode, rtx,
-						 unsigned HOST_WIDE_INT)
      ATTRIBUTE_UNUSED;
 static unsigned int ia64_section_type_flags (tree, const char *, int);
 static void ia64_init_libfuncs (void)
@@ -265,6 +262,7 @@ static void ia64_vms_init_libfuncs (void)
      ATTRIBUTE_UNUSED;
 
 static tree ia64_handle_model_attribute (tree *, tree, tree, int, bool *);
+static tree ia64_handle_version_id_attribute (tree *, tree, tree, int, bool *);
 static void ia64_encode_section_info (tree, rtx, int);
 static rtx ia64_struct_value_rtx (tree, int);
 static tree ia64_gimplify_va_arg (tree, tree, tree *, tree *);
@@ -282,6 +280,8 @@ static const struct attribute_spec ia64_attribute_table[] =
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
   { "syscall_linkage", 0, 0, false, true,  true,  NULL },
   { "model",	       1, 1, true, false, false, ia64_handle_model_attribute },
+  { "version_id",      1, 1, true, false, false,
+    ia64_handle_version_id_attribute },
   { NULL,	       0, 0, false, false, false, NULL }
 };
 
@@ -322,8 +322,8 @@ static const struct attribute_spec ia64_attribute_table[] =
 #undef TARGET_IN_SMALL_DATA_P
 #define TARGET_IN_SMALL_DATA_P  ia64_in_small_data_p
 
-#undef TARGET_SCHED_ADJUST_COST_2
-#define TARGET_SCHED_ADJUST_COST_2 ia64_adjust_cost_2
+#undef TARGET_SCHED_ADJUST_COST
+#define TARGET_SCHED_ADJUST_COST ia64_adjust_cost
 #undef TARGET_SCHED_ISSUE_RATE
 #define TARGET_SCHED_ISSUE_RATE ia64_issue_rate
 #undef TARGET_SCHED_VARIABLE_ISSUE
@@ -390,6 +390,9 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_ASM_FILE_START
 #define TARGET_ASM_FILE_START ia64_file_start
+
+#undef TARGET_ASM_GLOBALIZE_DECL_NAME
+#define TARGET_ASM_GLOBALIZE_DECL_NAME ia64_globalize_decl_name
 
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS ia64_rtx_costs
@@ -600,102 +603,6 @@ ia64_encode_section_info (tree decl, rtx rtl, int first)
     ia64_encode_addr_area (decl, XEXP (rtl, 0));
 }
 
-/* Implement CONST_OK_FOR_LETTER_P.  */
-
-bool
-ia64_const_ok_for_letter_p (HOST_WIDE_INT value, char c)
-{
-  switch (c)
-    {
-    case 'I':
-      return CONST_OK_FOR_I (value);
-    case 'J':
-      return CONST_OK_FOR_J (value);
-    case 'K':
-      return CONST_OK_FOR_K (value);
-    case 'L':
-      return CONST_OK_FOR_L (value);
-    case 'M':
-      return CONST_OK_FOR_M (value);
-    case 'N':
-      return CONST_OK_FOR_N (value);
-    case 'O':
-      return CONST_OK_FOR_O (value);
-    case 'P':
-      return CONST_OK_FOR_P (value);
-    default:
-      return false;
-    }
-}
-
-/* Implement CONST_DOUBLE_OK_FOR_LETTER_P.  */
-
-bool
-ia64_const_double_ok_for_letter_p (rtx value, char c)
-{
-  switch (c)
-    {
-    case 'G':
-      return CONST_DOUBLE_OK_FOR_G (value);
-    default:
-      return false;
-    }
-}
-
-/* Implement EXTRA_CONSTRAINT.  */
-
-bool
-ia64_extra_constraint (rtx value, char c)
-{
-  switch (c)
-    {
-    case 'Q':
-      /* Non-volatile memory for FP_REG loads/stores.  */
-      return memory_operand(value, VOIDmode) && !MEM_VOLATILE_P (value);
-
-    case 'R':
-      /* 1..4 for shladd arguments.  */
-      return (GET_CODE (value) == CONST_INT
-	      && INTVAL (value) >= 1 && INTVAL (value) <= 4);
-
-    case 'S':
-      /* Non-post-inc memory for asms and other unsavory creatures.  */
-      return (GET_CODE (value) == MEM
-	      && GET_RTX_CLASS (GET_CODE (XEXP (value, 0))) != RTX_AUTOINC
-	      && (reload_in_progress || memory_operand (value, VOIDmode)));
-
-    case 'T':
-      /* Symbol ref to small-address-area.  */
-      return small_addr_symbolic_operand (value, VOIDmode);
-
-    case 'U':
-      /* Vector zero.  */
-      return value == CONST0_RTX (GET_MODE (value));
-
-    case 'W':
-      /* An integer vector, such that conversion to an integer yields a
-	 value appropriate for an integer 'J' constraint.  */
-      if (GET_CODE (value) == CONST_VECTOR
-	  && GET_MODE_CLASS (GET_MODE (value)) == MODE_VECTOR_INT)
-	{
-	  value = simplify_subreg (DImode, value, GET_MODE (value), 0);
-	  return ia64_const_ok_for_letter_p (INTVAL (value), 'J');
-	}
-      return false;
-
-    case 'Y':
-      /* A V2SF vector containing elements that satisfy 'G'.  */
-      return
-	(GET_CODE (value) == CONST_VECTOR
-	 && GET_MODE (value) == V2SFmode
-	 && ia64_const_double_ok_for_letter_p (XVECEXP (value, 0, 0), 'G')
-	 && ia64_const_double_ok_for_letter_p (XVECEXP (value, 0, 1), 'G'));
-
-    default:
-      return false;
-    }
-}
-
 /* Return 1 if the operands of a move are ok.  */
 
 int
@@ -716,7 +623,7 @@ ia64_move_ok (rtx dst, rtx src)
   if (INTEGRAL_MODE_P (GET_MODE (dst)))
     return src == const0_rtx;
   else
-    return GET_CODE (src) == CONST_DOUBLE && CONST_DOUBLE_OK_FOR_G (src);
+    return satisfies_constraint_G (src);
 }
 
 /* Return 1 if the operands are ok for a floating point load pair.  */
@@ -807,7 +714,7 @@ ia64_legitimate_constant_p (rtx x)
     case CONST_DOUBLE:
       if (GET_MODE (x) == VOIDmode)
 	return true;
-      return CONST_DOUBLE_OK_FOR_G (x);
+      return satisfies_constraint_G (x);
 
     case CONST:
     case SYMBOL_REF:
@@ -841,7 +748,7 @@ ia64_legitimate_constant_p (rtx x)
 	enum machine_mode mode = GET_MODE (x);
 
 	if (mode == V2SFmode)
-	  return ia64_extra_constraint (x, 'Y');
+	  return satisfies_constraint_Y (x);
 
 	return (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
 		&& GET_MODE_SIZE (mode) <= 8);
@@ -1975,6 +1882,7 @@ ia64_reload_gp (void)
   else
     {
       HOST_WIDE_INT offset;
+      rtx offset_r;
 
       offset = (current_frame_info.spill_cfa_off
 	        + current_frame_info.spill_size);
@@ -1989,12 +1897,12 @@ ia64_reload_gp (void)
           offset = current_frame_info.total_size - offset;
         }
 
-      if (CONST_OK_FOR_I (offset))
-        emit_insn (gen_adddi3 (pic_offset_table_rtx,
-			       tmp, GEN_INT (offset)));
+      offset_r = GEN_INT (offset);
+      if (satisfies_constraint_I (offset_r))
+        emit_insn (gen_adddi3 (pic_offset_table_rtx, tmp, offset_r));
       else
         {
-          emit_move_insn (pic_offset_table_rtx, GEN_INT (offset));
+          emit_move_insn (pic_offset_table_rtx, offset_r);
           emit_insn (gen_adddi3 (pic_offset_table_rtx,
 			         pic_offset_table_rtx, tmp));
         }
@@ -2224,6 +2132,24 @@ emit_safe_across_calls (void)
     }
   if (out_state)
     fputc ('\n', asm_out_file);
+}
+
+/* Globalize a declaration.  */
+
+static void
+ia64_globalize_decl_name (FILE * stream, tree decl)
+{
+  const char *name = XSTR (XEXP (DECL_RTL (decl), 0), 0);
+  tree version_attr = lookup_attribute ("version_id", DECL_ATTRIBUTES (decl));
+  if (version_attr)
+    {
+      tree v = TREE_VALUE (TREE_VALUE (version_attr));
+      const char *p = TREE_STRING_POINTER (v);
+      fprintf (stream, "\t.alias %s#, \"%s{%s}\"\n", name, name, p);
+    }
+  targetm.asm_out.globalize_label (stream, name);
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    ASM_OUTPUT_TYPE_DIRECTIVE (stream, name, "function");
 }
 
 /* Helper function for ia64_compute_frame_size: find an appropriate general
@@ -2713,7 +2639,7 @@ spill_restore_mem (rtx reg, HOST_WIDE_INT cfa_off)
 
   if (spill_fill_data.prev_addr[iter])
     {
-      if (CONST_OK_FOR_N (disp))
+      if (satisfies_constraint_N (disp_rtx))
 	{
 	  *spill_fill_data.prev_addr[iter]
 	    = gen_rtx_POST_MODIFY (DImode, spill_fill_data.iter_reg[iter],
@@ -2727,7 +2653,7 @@ spill_restore_mem (rtx reg, HOST_WIDE_INT cfa_off)
       else
 	{
 	  /* ??? Could use register post_modify for loads.  */
-	  if (! CONST_OK_FOR_I (disp))
+	  if (!satisfies_constraint_I (disp_rtx))
 	    {
 	      rtx tmp = gen_rtx_REG (DImode, next_scratch_gr_reg ());
 	      emit_move_insn (tmp, disp_rtx);
@@ -2760,7 +2686,7 @@ spill_restore_mem (rtx reg, HOST_WIDE_INT cfa_off)
 	{
 	  start_sequence ();
 
-	  if (! CONST_OK_FOR_I (disp))
+	  if (!satisfies_constraint_I (disp_rtx))
 	    {
 	      rtx tmp = gen_rtx_REG (DImode, next_scratch_gr_reg ());
 	      emit_move_insn (tmp, disp_rtx);
@@ -3020,7 +2946,7 @@ ia64_expand_prologue (void)
       rtx frame_size_rtx = GEN_INT (- current_frame_info.total_size);
       rtx offset;
 
-      if (CONST_OK_FOR_I (- current_frame_info.total_size))
+      if (satisfies_constraint_I (frame_size_rtx))
 	offset = frame_size_rtx;
       else
 	{
@@ -3444,7 +3370,7 @@ ia64_expand_epilogue (int sibcall_p)
       rtx offset, frame_size_rtx;
 
       frame_size_rtx = GEN_INT (current_frame_info.total_size);
-      if (CONST_OK_FOR_I (current_frame_info.total_size))
+      if (satisfies_constraint_I (frame_size_rtx))
 	offset = frame_size_rtx;
       else
 	{
@@ -3552,6 +3478,7 @@ ia64_split_return_addr_rtx (rtx dest)
 	{
 	  HOST_WIDE_INT off;
 	  unsigned int regno;
+	  rtx off_r;
 
 	  /* Compute offset from CFA for BR0.  */
 	  /* ??? Must be kept in sync with ia64_expand_prologue.  */
@@ -3571,11 +3498,12 @@ ia64_split_return_addr_rtx (rtx dest)
 	    }
 
 	  /* Load address into scratch register.  */
-	  if (CONST_OK_FOR_I (off))
-	    emit_insn (gen_adddi3 (dest, src, GEN_INT (off)));
+	  off_r = GEN_INT (off);
+	  if (satisfies_constraint_I (off_r))
+	    emit_insn (gen_adddi3 (dest, src, off_r));
 	  else
 	    {
-	      emit_move_insn (dest, GEN_INT (off));
+	      emit_move_insn (dest, off_r);
 	      emit_insn (gen_adddi3 (dest, src, dest));
 	    }
 
@@ -4523,6 +4451,18 @@ ia64_print_operand (FILE * file, rtx x, int code)
 	case ORDERED:
 	  str = "ord";
 	  break;
+	case UNLT:
+	  str = "nge";
+	  break;
+	case UNLE:
+	  str = "ngt";
+	  break;
+	case UNGT:
+	  str = "nle";
+	  break;
+	case UNGE:
+	  str = "nlt";
+	  break;
 	default:
 	  str = GET_RTX_NAME (GET_CODE (x));
 	  break;
@@ -4754,18 +4694,18 @@ ia64_rtx_costs (rtx x, int code, int outer_code, int *total)
       switch (outer_code)
         {
         case SET:
-	  *total = CONST_OK_FOR_J (INTVAL (x)) ? 0 : COSTS_N_INSNS (1);
+	  *total = satisfies_constraint_J (x) ? 0 : COSTS_N_INSNS (1);
 	  return true;
         case PLUS:
-	  if (CONST_OK_FOR_I (INTVAL (x)))
+	  if (satisfies_constraint_I (x))
 	    *total = 0;
-	  else if (CONST_OK_FOR_J (INTVAL (x)))
+	  else if (satisfies_constraint_J (x))
 	    *total = 1;
 	  else
 	    *total = COSTS_N_INSNS (1);
 	  return true;
         default:
-	  if (CONST_OK_FOR_K (INTVAL (x)) || CONST_OK_FOR_L (INTVAL (x)))
+	  if (satisfies_constraint_K (x) || satisfies_constraint_L (x))
 	    *total = 0;
 	  else
 	    *total = COSTS_N_INSNS (1);
@@ -6240,18 +6180,16 @@ ia64_single_set (rtx insn)
   return ret;
 }
 
-/* Adjust the cost of a scheduling dependency.
-   Return the new cost of a dependency of type DEP_TYPE or INSN on DEP_INSN.
-   COST is the current cost.  */
+/* Adjust the cost of a scheduling dependency.  Return the new cost of
+   a dependency LINK or INSN on DEP_INSN.  COST is the current cost.  */
 
 static int
-ia64_adjust_cost_2 (rtx insn, int dep_type1, rtx dep_insn, int cost)
+ia64_adjust_cost (rtx insn, rtx link, rtx dep_insn, int cost)
 {
-  enum reg_note dep_type = (enum reg_note) dep_type1;
   enum attr_itanium_class dep_class;
   enum attr_itanium_class insn_class;
 
-  if (dep_type != REG_DEP_OUTPUT)
+  if (REG_NOTE_KIND (link) != REG_DEP_OUTPUT)
     return cost;
 
   insn_class = ia64_safe_itanium_class (insn);
@@ -6280,7 +6218,7 @@ ia64_emit_insn_before (rtx insn, rtx before)
 static void
 ia64_dependencies_evaluation_hook (rtx head, rtx tail)
 {
-  rtx insn, link, next, next_tail;
+  rtx insn, next, next_tail;
 
   /* Before reload, which_alternative is not set, which means that
      ia64_safe_itanium_class will produce wrong results for (at least)
@@ -6296,13 +6234,16 @@ ia64_dependencies_evaluation_hook (rtx head, rtx tail)
     if (INSN_P (insn)
 	&& ia64_safe_itanium_class (insn) == ITANIUM_CLASS_IALU)
       {
-	for (link = INSN_DEPEND (insn); link != 0; link = XEXP (link, 1))
+	dep_link_t link;
+
+	FOR_EACH_DEP_LINK (link, INSN_FORW_DEPS (insn))
 	  {
 	    enum attr_itanium_class c;
 
-	    if (REG_NOTE_KIND (link) != REG_DEP_TRUE)
+	    if (DEP_LINK_KIND (link) != REG_DEP_TRUE)
 	      continue;
-	    next = XEXP (link, 0);
+
+	    next = DEP_LINK_CON (link);
 	    c = ia64_safe_itanium_class (next);
 	    if ((c == ITANIUM_CLASS_ST
 		 || c == ITANIUM_CLASS_STF)
@@ -6591,14 +6532,14 @@ ia64_dfa_new_cycle (FILE *dump, int verbose, rtx insn, int last_clock,
 
       if (c != ITANIUM_CLASS_MMMUL && c != ITANIUM_CLASS_MMSHF)
 	{
-	  rtx link;
+	  dep_link_t link;
 	  int d = -1;
 
-	  for (link = LOG_LINKS (insn); link; link = XEXP (link, 1))
-	    if (REG_NOTE_KIND (link) == 0)
+	  FOR_EACH_DEP_LINK (link, INSN_BACK_DEPS (insn))
+	    if (DEP_LINK_KIND (link) == REG_DEP_TRUE)
 	      {
 		enum attr_itanium_class dep_class;
-		rtx dep_insn = XEXP (link, 0);
+		rtx dep_insn = DEP_LINK_PRO (link);
 
 		dep_class = ia64_safe_itanium_class (dep_insn);
 		if ((dep_class == ITANIUM_CLASS_MMMUL
@@ -6760,13 +6701,19 @@ ia64_speculate_insn (rtx insn, ds_t ts, rtx *new_pat)
   if (GET_CODE (pat) == COND_EXEC)
     pat = COND_EXEC_CODE (pat);
 
+  /* This should be a SET ...  */
   if (GET_CODE (pat) != SET)
     return -1;
+
   reg = SET_DEST (pat);
-  if (!REG_P (reg))
+  /* ... to the general/fp register ...  */
+  if (!REG_P (reg) || !(GR_REGNO_P (REGNO (reg)) || FP_REGNO_P (REGNO (reg))))
     return -1;
 
-  mem = SET_SRC (pat);  
+  /* ... from the mem ...  */
+  mem = SET_SRC (pat);
+
+  /* ... that can, possibly, be a zero_extend ...  */
   if (GET_CODE (mem) == ZERO_EXTEND)
     {
       mem = XEXP (mem, 0);
@@ -6775,6 +6722,7 @@ ia64_speculate_insn (rtx insn, ds_t ts, rtx *new_pat)
   else
     extend_p = false;
 
+  /* ... or a speculative load.  */
   if (GET_CODE (mem) == UNSPEC)
     {
       int code;
@@ -6791,8 +6739,12 @@ ia64_speculate_insn (rtx insn, ds_t ts, rtx *new_pat)
       mem = XVECEXP (mem, 0, 0);
       gcc_assert (MEM_P (mem));
     }
+
+  /* Source should be a mem ...  */
   if (!MEM_P (mem))
     return -1;
+
+  /* ... addressed by a register.  */
   mem_reg = XEXP (mem, 0);
   if (!REG_P (mem_reg))
     return -1;
@@ -6809,6 +6761,7 @@ ia64_speculate_insn (rtx insn, ds_t ts, rtx *new_pat)
 
   extract_insn_cached (insn);
   gcc_assert (reg == recog_data.operand[0] && mem == recog_data.operand[1]);
+
   *new_pat = ia64_gen_spec_insn (insn, ts, mode_no, gen_p != 0, extend_p);
 
   return gen_p;
@@ -7116,13 +7069,13 @@ ia64_gen_check (rtx insn, rtx label, bool mutate_p)
        As long as patterns are unique for each instruction, this can be
        accomplished by matching ORIG_PAT fields.  */
     {
-      rtx link;
+      dep_link_t link;
       int check_no = 0;
       rtx orig_pat = ORIG_PAT (insn);
 
-      for (link = RESOLVED_DEPS (insn); link; link = XEXP (link, 1))
+      FOR_EACH_DEP_LINK (link, INSN_RESOLVED_BACK_DEPS (insn))
 	{
-	  rtx x = XEXP (link, 0);
+	  rtx x = DEP_LINK_PRO (link);
 
 	  if (ORIG_PAT (x) == orig_pat)
 	    check_no = spec_check_no[INSN_UID (x)];
@@ -9121,6 +9074,19 @@ ia64_init_builtins (void)
 	       IA64_BUILTIN_FLUSHRS);
 
 #undef def_builtin
+
+  if (TARGET_HPUX)
+    {
+      if (built_in_decls [BUILT_IN_FINITE])
+	set_user_assembler_name (built_in_decls [BUILT_IN_FINITE],
+	  "_Isfinite");
+      if (built_in_decls [BUILT_IN_FINITEF])
+	set_user_assembler_name (built_in_decls [BUILT_IN_FINITEF],
+	  "_Isfinitef");
+      if (built_in_decls [BUILT_IN_FINITEL])
+	set_user_assembler_name (built_in_decls [BUILT_IN_FINITEL],
+	  "_Isfinitef128");
+    }
 }
 
 rtx
@@ -9128,7 +9094,7 @@ ia64_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 		     enum machine_mode mode ATTRIBUTE_UNUSED,
 		     int ignore ATTRIBUTE_UNUSED)
 {
-  tree fndecl = TREE_OPERAND (TREE_OPERAND (exp, 0), 0);
+  tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
   unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
 
   switch (fcode)
@@ -9189,10 +9155,7 @@ ia64_asm_output_external (FILE *file, tree decl, const char *name)
 	 need something for external functions.  */
       if ((TARGET_HPUX_LD || !TARGET_GNU_AS)
 	  && TREE_CODE (decl) == FUNCTION_DECL)
-	{
-	  ASM_OUTPUT_TYPE_DIRECTIVE (file, name, "function");
-	  (*targetm.asm_out.globalize_label) (file, name);
-	}
+	  (*targetm.asm_out.globalize_decl_name) (file, decl);
       else if (need_visibility && !TARGET_GNU_AS)
 	(*targetm.asm_out.globalize_label) (file, name);
     }
@@ -9314,6 +9277,24 @@ ia64_sysv4_init_libfuncs (void)
      glibc doesn't have them.  */
 }
 
+/* For HPUX, it is illegal to have relocations in shared segments.  */
+
+static int
+ia64_hpux_reloc_rw_mask (void)
+{
+  return 3;
+}
+
+/* For others, relax this so that relocations to local data goes in
+   read-only segments, but we still cannot allow global relocations
+   in read-only segments.  */
+
+static int
+ia64_reloc_rw_mask (void)
+{
+  return flag_pic ? 3 : 2;
+}
+
 /* Return the section to use for X.  The only special thing we do here
    is to honor small data.  */
 
@@ -9328,37 +9309,6 @@ ia64_select_rtx_section (enum machine_mode mode, rtx x,
   else
     return default_elf_select_rtx_section (mode, x, align);
 }
-
-/* It is illegal to have relocations in shared segments on AIX and HPUX.
-   Pretend flag_pic is always set.  */
-
-static section *
-ia64_rwreloc_select_section (tree exp, int reloc, unsigned HOST_WIDE_INT align)
-{
-  return default_elf_select_section_1 (exp, reloc, align, true);
-}
-
-static void
-ia64_rwreloc_unique_section (tree decl, int reloc)
-{
-  default_unique_section_1 (decl, reloc, true);
-}
-
-static section *
-ia64_rwreloc_select_rtx_section (enum machine_mode mode, rtx x,
-				 unsigned HOST_WIDE_INT align)
-{
-  section *sect;
-  int save_pic = flag_pic;
-  flag_pic = 1;
-  sect = ia64_select_rtx_section (mode, x, align);
-  flag_pic = save_pic;
-  return sect;
-}
-
-#ifndef TARGET_RWRELOC
-#define TARGET_RWRELOC flag_pic
-#endif
 
 static unsigned int
 ia64_section_type_flags (tree decl, const char *name, int reloc)
@@ -9375,7 +9325,7 @@ ia64_section_type_flags (tree decl, const char *name, int reloc)
       || strncmp (name, ".gnu.linkonce.sb.", 17) == 0)
     flags = SECTION_SMALL;
 
-  flags |= default_section_type_flags_1 (decl, name, reloc, TARGET_RWRELOC);
+  flags |= default_section_type_flags (decl, name, reloc);
   return flags;
 }
 
@@ -9415,6 +9365,7 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
   rtx this, insn, funexp;
   unsigned int this_parmno;
   unsigned int this_regno;
+  rtx delta_rtx;
 
   reload_completed = 1;
   epilogue_completed = 1;
@@ -9443,25 +9394,24 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
     reg_names[this_regno] = ia64_reg_numbers[this_parmno];
 
   this = gen_rtx_REG (Pmode, this_regno);
+
+  /* Apply the constant offset, if required.  */
+  delta_rtx = GEN_INT (delta);
   if (TARGET_ILP32)
     {
       rtx tmp = gen_rtx_REG (ptr_mode, this_regno);
       REG_POINTER (tmp) = 1;
-      if (delta && CONST_OK_FOR_I (delta))
+      if (delta && satisfies_constraint_I (delta_rtx))
 	{
-	  emit_insn (gen_ptr_extend_plus_imm (this, tmp, GEN_INT (delta)));
+	  emit_insn (gen_ptr_extend_plus_imm (this, tmp, delta_rtx));
 	  delta = 0;
 	}
       else
 	emit_insn (gen_ptr_extend (this, tmp));
     }
-
-  /* Apply the constant offset, if required.  */
   if (delta)
     {
-      rtx delta_rtx = GEN_INT (delta);
-
-      if (!CONST_OK_FOR_I (delta))
+      if (!satisfies_constraint_I (delta_rtx))
 	{
 	  rtx tmp = gen_rtx_REG (Pmode, 2);
 	  emit_move_insn (tmp, delta_rtx);
@@ -9481,10 +9431,9 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
 	  rtx t = gen_rtx_REG (ptr_mode, 2);
 	  REG_POINTER (t) = 1;
 	  emit_move_insn (t, gen_rtx_MEM (ptr_mode, this));
-	  if (CONST_OK_FOR_I (vcall_offset))
+	  if (satisfies_constraint_I (vcall_offset_rtx))
 	    {
-	      emit_insn (gen_ptr_extend_plus_imm (tmp, t, 
-						  vcall_offset_rtx));
+	      emit_insn (gen_ptr_extend_plus_imm (tmp, t, vcall_offset_rtx));
 	      vcall_offset = 0;
 	    }
 	  else
@@ -9495,7 +9444,7 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
 
       if (vcall_offset)
 	{
-	  if (!CONST_OK_FOR_J (vcall_offset))
+	  if (!satisfies_constraint_J (vcall_offset_rtx))
 	    {
 	      rtx tmp2 = gen_rtx_REG (Pmode, next_scratch_gr_reg ());
 	      emit_move_insn (tmp2, vcall_offset_rtx);
@@ -9505,8 +9454,7 @@ ia64_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
 	}
 
       if (TARGET_ILP32)
-	emit_move_insn (gen_rtx_REG (ptr_mode, 2), 
-			gen_rtx_MEM (ptr_mode, tmp));
+	emit_insn (gen_zero_extendsidi2 (tmp, gen_rtx_MEM (ptr_mode, tmp)));
       else
 	emit_move_insn (tmp, gen_rtx_MEM (Pmode, tmp));
 
@@ -9776,6 +9724,29 @@ ia64_optimization_options (int level ATTRIBUTE_UNUSED,
   set_param_value ("simultaneous-prefetches", 6);
   set_param_value ("l1-cache-line-size", 32);
 
+}
+
+/* HP-UX version_id attribute.
+   For object foo, if the version_id is set to 1234 put out an alias
+   of '.alias foo "foo{1234}"  We can't use "foo{1234}" in anything
+   other than an alias statement because it is an illegal symbol name.  */
+
+static tree
+ia64_handle_version_id_attribute (tree *node ATTRIBUTE_UNUSED,
+                                 tree name ATTRIBUTE_UNUSED,
+                                 tree args,
+                                 int flags ATTRIBUTE_UNUSED,
+                                 bool *no_add_attrs)
+{
+  tree arg = TREE_VALUE (args);
+
+  if (TREE_CODE (arg) != STRING_CST)
+    {
+      error("version attribute is not a string");
+      *no_add_attrs = true;
+      return NULL_TREE;
+    }
+  return NULL_TREE;
 }
 
 #include "gt-ia64.h"

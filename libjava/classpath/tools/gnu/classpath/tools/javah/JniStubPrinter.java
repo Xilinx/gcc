@@ -1,5 +1,5 @@
 /* JniStubPrinter.java - Generate JNI stub files
- Copyright (C) 2006 Free Software Foundation, Inc.
+ Copyright (C) 2006, 2007 Free Software Foundation, Inc.
 
  This file is part of GNU Classpath.
 
@@ -71,17 +71,20 @@ public class JniStubPrinter
     return new JniPrintStream(classpath, fos, klass);
   }
 
-  public void printClass(ClassWrapper klass) throws IOException
+  public void printClass(File filename, ClassWrapper klass) throws IOException
   {
+    // Note that we ignore the filename here.
     if (! klass.hasNativeMethod())
       return;
     String xname = JniHelper.mangle(klass.name);
-    JniPrintStream out = (JniPrintStream) getPrintStream(klass.name + ".c", klass);
+    JniPrintStream out 
+      = (JniPrintStream) getPrintStream(klass.name.replace('/', '_') + ".c", 
+					klass);
     if (out == null)
       return;
     out.println();
     out.print("#include <");
-    out.print(klass.name);
+    out.print(klass.name.replace('/', '_'));
     out.println(".h>");
 
     Iterator i = klass.methods.iterator();

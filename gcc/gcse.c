@@ -1,7 +1,7 @@
 /* Global common subexpression elimination/Partial redundancy elimination
    and global constant/copy propagation for GNU compiler.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+   2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -2668,7 +2668,8 @@ try_replace_reg (rtx from, rtx to, rtx insn)
   /* If there is already a REG_EQUAL note, update the expression in it
      with our replacement.  */
   if (note != 0 && REG_NOTE_KIND (note) == REG_EQUAL)
-    XEXP (note, 0) = simplify_replace_rtx (XEXP (note, 0), from, to);
+    set_unique_reg_note (insn, REG_EQUAL,
+			 simplify_replace_rtx (XEXP (note, 0), from, to));
 
   if (!success && set && reg_mentioned_p (from, SET_SRC (set)))
     {
@@ -3731,7 +3732,7 @@ bypass_conditional_jumps (void)
   /* If we bypassed any register setting insns, we inserted a
      copy on the redirected edge.  These need to be committed.  */
   if (changed)
-    commit_edge_insertions();
+    commit_edge_insertions ();
 
   return changed;
 }
@@ -5127,7 +5128,7 @@ print_ldst_list (FILE * file)
 
   fprintf (file, "LDST list: \n");
 
-  for (ptr = first_ls_expr(); ptr != NULL; ptr = next_ls_expr (ptr))
+  for (ptr = first_ls_expr (); ptr != NULL; ptr = next_ls_expr (ptr))
     {
       fprintf (file, "  Pattern (%3d): ", ptr->index);
 

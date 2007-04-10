@@ -123,16 +123,22 @@ static int combine_successes;
 
 static int total_attempts, total_merges, total_extras, total_successes;
 
-/* Sometimes combine tries to replace the right hand side of an insn
-   with the value of a REG_EQUAL note.  This is the insn that has been
-   so modified, or null if none.  */
+/* combine_instructions may try to replace the right hand side of the
+   second instruction with the value of an associated REG_EQUAL note
+   before throwing it at try_combine.  That is problematic when there
+   is a REG_DEAD note for a register used in the old right hand side
+   and can cause distribute_notes to do wrong things.  This is the
+   second instruction if it has been so modified, null otherwise.  */
 
-static rtx replaced_rhs_insn;
+static rtx i2mod;
 
-/* When REPLACED_RHS_INSN is nonnull, this is a copy of the new right
-   hand side.  */
+/* When I2MOD is nonnull, this is a copy of the old right hand side.  */
 
-static rtx replaced_rhs_value;
+static rtx i2mod_old_rhs;
+
+/* When I2MOD is nonnull, this is a copy of the new right hand side.  */
+
+static rtx i2mod_new_rhs;
 
 /* Vector mapping INSN_UIDs to cuids.
    The cuids are like uids but increase monotonically always.
@@ -932,11 +938,12 @@ combine_instructions (rtx f, unsigned int nregs)
 			 be deleted or recognized by try_combine.  */
 		      rtx orig = SET_SRC (set);
 		      SET_SRC (set) = note;
-		      replaced_rhs_insn = temp;
-		      replaced_rhs_value = copy_rtx (note);
-		      next = try_combine (insn, temp, NULL_RTX,
+		      i2mod = temp;
+		      i2mod_old_rhs = copy_rtx (orig);
+		      i2mod_new_rhs = copy_rtx (note);
+		      next = try_combine (insn, i2mod, NULL_RTX,
 					  &new_direct_jump_p);
-		      replaced_rhs_insn = NULL;
+		      i2mod = NULL_RTX;
 		      if (next)
 			goto retry;
 		      SET_SRC (set) = orig;
@@ -1007,27 +1014,36 @@ init_reg_last (void)
 static void
 setup_incoming_promotions (void)
 {
-  unsigned int regno;
-  rtx reg;
-  enum machine_mode mode;
-  int unsignedp;
-  rtx first = get_insns ();
+  rtx first;
+  tree arg;
 
-  if (targetm.calls.promote_function_args (TREE_TYPE (cfun->decl)))
+  if (!targetm.calls.promote_function_args (TREE_TYPE (cfun->decl)))
+    return;
+
+  first = get_insns ();
+
+  for (arg = DECL_ARGUMENTS (current_function_decl); arg;
+       arg = TREE_CHAIN (arg))
     {
-      for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
-	/* Check whether this register can hold an incoming pointer
-	   argument.  FUNCTION_ARG_REGNO_P tests outgoing register
-	   numbers, so translate if necessary due to register windows.  */
-	if (FUNCTION_ARG_REGNO_P (OUTGOING_REGNO (regno))
-	    && (reg = promoted_input_arg (regno, &mode, &unsignedp)) != 0)
-	  {
-	    record_value_for_reg
-	      (reg, first, gen_rtx_fmt_e ((unsignedp ? ZERO_EXTEND
-					   : SIGN_EXTEND),
-					  GET_MODE (reg),
-					  gen_rtx_CLOBBER (mode, const0_rtx)));
-	  }
+      rtx reg = DECL_INCOMING_RTL (arg);
+
+      if (!REG_P (reg))
+	continue;
+
+      if (TYPE_MODE (DECL_ARG_TYPE (arg)) == TYPE_MODE (TREE_TYPE (arg)))
+	{
+	  enum machine_mode mode = TYPE_MODE (TREE_TYPE (arg));
+	  int uns = TYPE_UNSIGNED (TREE_TYPE (arg));
+
+	  mode = promote_mode (TREE_TYPE (arg), mode, &uns, 1);
+	  if (mode == GET_MODE (reg) && mode != DECL_MODE (arg))
+	    {
+	      rtx x;
+	      x = gen_rtx_CLOBBER (DECL_MODE (arg), const0_rtx);
+	      x = gen_rtx_fmt_e ((uns ? ZERO_EXTEND : SIGN_EXTEND), mode, x);
+	      record_value_for_reg (reg, first, x);
+	    }
+	}
     }
 }
 
@@ -1719,18 +1735,8 @@ likely_spilled_retval_p (rtx insn)
 static void
 adjust_for_new_dest (rtx insn)
 {
-  rtx *loc;
-
   /* For notes, be conservative and simply remove them.  */
-  loc = &REG_NOTES (insn);
-  while (*loc)
-    {
-      enum reg_note kind = REG_NOTE_KIND (*loc);
-      if (kind == REG_EQUAL || kind == REG_EQUIV)
-	*loc = XEXP (*loc, 1);
-      else
-	loc = &XEXP (*loc, 1);
-    }
+  remove_reg_equal_equiv_notes (insn);
 
   /* The new insn will have a destination that was previously the destination
      of an insn just above it.  Call distribute_links to make a LOG_LINK from
@@ -1996,7 +2002,9 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	    offset = -1;
 	}
 
-      if (offset >= 0)
+      if (offset >= 0
+	  && (GET_MODE_BITSIZE (GET_MODE (SET_DEST (temp)))
+	      <= HOST_BITS_PER_WIDE_INT * 2))
 	{
 	  HOST_WIDE_INT mhi, ohi, ihi;
 	  HOST_WIDE_INT mlo, olo, ilo;
@@ -12140,8 +12148,8 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 	     use of A and put the death note there.  */
 
 	  if (from_insn
-	      && from_insn == replaced_rhs_insn
-	      && !reg_overlap_mentioned_p (XEXP (note, 0), replaced_rhs_value))
+	      && from_insn == i2mod
+	      && !reg_overlap_mentioned_p (XEXP (note, 0), i2mod_new_rhs))
 	    tem = from_insn;
 	  else
 	    {
@@ -12154,7 +12162,10 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 	      else if (i2 != 0 && next_nonnote_insn (i2) == i3
 		       && reg_referenced_p (XEXP (note, 0), PATTERN (i2)))
 		place = i2;
-	      else if (rtx_equal_p (XEXP (note, 0), elim_i2)
+	      else if ((rtx_equal_p (XEXP (note, 0), elim_i2)
+			&& !(i2mod
+			     && reg_overlap_mentioned_p (XEXP (note, 0),
+							 i2mod_old_rhs)))
 		       || rtx_equal_p (XEXP (note, 0), elim_i1))
 		break;
 	      tem = i3;
@@ -12173,14 +12184,12 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 		      continue;
 		    }
 
-		  /* If TEM is a (reaching) definition of the use to which the
-		     note was attached, see if that is all TEM is doing.  If so,
-		     delete TEM.  Otherwise, make this into a REG_UNUSED note
-		     instead.  Don't delete sets to global register vars.  */
-		  if ((!from_insn
-		       || INSN_CUID (tem) < INSN_CUID (from_insn))
-		      && (REGNO (XEXP (note, 0)) >= FIRST_PSEUDO_REGISTER
-			  || !global_regs[REGNO (XEXP (note, 0))])
+		  /* If the register is being set at TEM, see if that is all
+		     TEM is doing.  If so, delete TEM.  Otherwise, make this
+		     into a REG_UNUSED note instead. Don't delete sets to
+		     global register vars.  */
+		  if ((REGNO (XEXP (note, 0)) >= FIRST_PSEUDO_REGISTER
+		       || !global_regs[REGNO (XEXP (note, 0))])
 		      && reg_set_p (XEXP (note, 0), PATTERN (tem)))
 		    {
 		      rtx set = single_set (tem);

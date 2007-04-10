@@ -55,66 +55,23 @@
 /* Translate config/rs6000/darwin.opt to config/darwin.h.  */
 #define TARGET_DYNAMIC_NO_PIC (TARGET_MACHO_DYNAMIC_NO_PIC)
 
-#define TARGET_OS_CPP_BUILTINS()                \
-  do                                            \
-    {                                           \
-      if (!TARGET_64BIT) builtin_define ("__ppc__");   \
-      if (TARGET_64BIT) builtin_define ("__ppc64__");  \
-      builtin_define ("__POWERPC__");           \
-      builtin_define ("__NATURAL_ALIGNMENT__"); \
-      darwin_cpp_builtins (pfile);		\
-    }                                           \
+#define TARGET_OS_CPP_BUILTINS()			\
+  do							\
+    {							\
+      if (!TARGET_64BIT) builtin_define ("__ppc__");	\
+      if (TARGET_64BIT) builtin_define ("__ppc64__");	\
+      builtin_define ("__POWERPC__");			\
+      builtin_define ("__NATURAL_ALIGNMENT__");		\
+      darwin_cpp_builtins (pfile);			\
+    }							\
   while (0)
 
-
-#define SUBTARGET_OVERRIDE_OPTIONS					\
-do {									\
-  /* The Darwin ABI always includes AltiVec, can't be (validly) turned	\
-     off.  */								\
-  rs6000_altivec_abi = 1;						\
-  TARGET_ALTIVEC_VRSAVE = 1;						\
-  if (DEFAULT_ABI == ABI_DARWIN)					\
-  {									\
-    if (MACHO_DYNAMIC_NO_PIC_P)						\
-      {									\
-        if (flag_pic)							\
-            warning (0, "-mdynamic-no-pic overrides -fpic or -fPIC");	\
-        flag_pic = 0;							\
-      }									\
-    else if (flag_pic == 1)						\
-      {									\
-        flag_pic = 2;							\
-      }									\
-  }									\
-  if (TARGET_64BIT && ! TARGET_POWERPC64)				\
-    {									\
-      target_flags |= MASK_POWERPC64;					\
-      warning (0, "-m64 requires PowerPC64 architecture, enabling");	\
-    }									\
-  if (flag_mkernel)                                                     \
-    {									\
-      rs6000_default_long_calls = 1;					\
-      target_flags |= MASK_SOFT_FLOAT;					\
-    }									\
-  /* Unless the user (not the configurer) has explicitly overridden	\
-     it with -mcpu=G3 or -mno-altivec, then 10.5+ targets default to	\
-     G4 unless targetting the kernel.  */				\
-  if (!flag_mkernel							\
-      && !flag_apple_kext						\
-      && darwin_macosx_version_min					\
-      && strverscmp (darwin_macosx_version_min, "10.5") >= 0		\
-      && ! (target_flags_explicit & MASK_ALTIVEC)			\
-      && ! rs6000_select[1].string)					\
-    {									\
-      target_flags |= MASK_ALTIVEC;					\
-    }									\
-} while(0)
+#define SUBTARGET_OVERRIDE_OPTIONS darwin_rs6000_override_options ()
 
 #define C_COMMON_OVERRIDE_OPTIONS do {					\
   /* On powerpc, __cxa_get_exception_ptr is available starting in the	\
      10.4.6 libstdc++.dylib.  */					\
-  if ((! darwin_macosx_version_min					\
-       || strverscmp (darwin_macosx_version_min, "10.4.6") < 0)		\
+  if (strverscmp (darwin_macosx_version_min, "10.4.6") < 0		\
       && flag_use_cxa_get_exception_ptr == 2)				\
     flag_use_cxa_get_exception_ptr = 0;					\
   if (flag_mkernel)							\
@@ -136,6 +93,7 @@ do {									\
 #define CC1_SPEC "\
   %{g: %{!fno-eliminate-unused-debug-symbols: -feliminate-unused-debug-symbols }} \
   %{static: %{Zdynamic: %e conflicting code gen style switches are used}}\
+  %{!mmacosx-version-min=*:-mmacosx-version-min=%(darwin_minversion)} \
   %{!mkernel:%{!static:%{!mdynamic-no-pic:-fPIC}}}"
 
 #define DARWIN_ARCH_SPEC "%{m64:ppc64;:ppc}"
@@ -162,6 +120,17 @@ do {									\
 /* crt2.o is at least partially required for 10.3.x and earlier.  */
 #define DARWIN_CRT2_SPEC \
   "%{!m64:%:version-compare(!> 10.4 mmacosx-version-min= crt2.o%s)}"
+
+/* Determine a minimum version based on compiler options.  */
+#define DARWIN_MINVERSION_SPEC					\
+  "%{m64:%{fgnu-runtime:10.4;					\
+	   ,objective-c|,objc-cpp-output:10.5;			\
+	   ,objective-c-header:10.5;				\
+	   ,objective-c++|,objective-c++-cpp-output:10.5;	\
+	   ,objective-c++-header|,objc++-cpp-output:10.5;	\
+	   :10.4};						\
+     shared-libgcc:10.3;					\
+     :10.1}"
 
 #undef SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS			\
@@ -273,8 +242,6 @@ do {									\
 
 /* This says how to output an assembler line to define a global common
    symbol.  */
-/* ? */
-#undef  ASM_OUTPUT_ALIGNED_COMMON
 #define ASM_OUTPUT_COMMON(FILE, NAME, SIZE, ROUNDED)			\
   do {									\
     unsigned HOST_WIDE_INT _new_size = SIZE;				\
@@ -393,7 +360,7 @@ do {									\
    macro in the Apple version of GCC, except that version supports
    'mac68k' alignment, and that version uses the computed alignment
    always for the first field of a structure.  The first-field
-   behaviour is dealt with by
+   behavior is dealt with by
    darwin_rs6000_special_round_type_align.  */
 #define ADJUST_FIELD_ALIGN(FIELD, COMPUTED)	\
   (TARGET_ALIGN_NATURAL ? (COMPUTED)		\
@@ -441,9 +408,9 @@ do {									\
 #include <stdbool.h>
 #endif
 
+#ifndef __LP64__
 #define MD_UNWIND_SUPPORT "config/rs6000/darwin-unwind.h"
-
-#define HAS_MD_FALLBACK_FRAME_STATE_FOR 1
+#endif
 
 /* True, iff we're generating fast turn around debugging code.  When
    true, we arrange for function prologues to start with 5 nops so
@@ -463,8 +430,7 @@ do {									\
 #undef TARGET_C99_FUNCTIONS
 #define TARGET_C99_FUNCTIONS					\
   (TARGET_64BIT							\
-   || (darwin_macosx_version_min				\
-       && strverscmp (darwin_macosx_version_min, "10.3") >= 0))
+   || strverscmp (darwin_macosx_version_min, "10.3") >= 0)
 
 /* When generating kernel code or kexts, we don't use Altivec by
    default, as kernel code doesn't save/restore those registers.  */

@@ -97,11 +97,6 @@ static GTY(()) VEC(tree,gc) *deferred_fns;
 
 int at_eof;
 
-/* Functions called along with real static constructors and destructors.  */
-
-tree static_ctors;
-tree static_dtors;
-
 
 
 /* Return a member function type (a METHOD_TYPE), given FNTYPE (a
@@ -141,6 +136,12 @@ cp_build_parm_decl (tree name, tree type)
      sees templates.  */
   if (!processing_template_decl)
     DECL_ARG_TYPE (parm) = type_passed_as (type);
+
+  /* If the type is a pack expansion, then we have a function
+     parameter pack. */
+  if (type && TREE_CODE (type) == TYPE_PACK_EXPANSION)
+    FUNCTION_PARAMETER_PACK_P (parm) = 1;
+
   return parm;
 }
 
@@ -1394,7 +1395,7 @@ import_export_class (tree ctype)
   if (MULTIPLE_SYMBOL_SPACES && import_export == -1)
     import_export = 0;
 
-  /* Allow backends the chance to overrule the decision.  */
+  /* Allow back ends the chance to overrule the decision.  */
   if (targetm.cxx.import_export_class)
     import_export = targetm.cxx.import_export_class (ctype, import_export);
 
@@ -1446,7 +1447,7 @@ decl_needed_p (tree decl)
      emitted; they may be referred to from other object files.  */
   if (TREE_PUBLIC (decl) && !DECL_COMDAT (decl))
     return true;
-  /* If this entity was used, let the back-end see it; it will decide
+  /* If this entity was used, let the back end see it; it will decide
      whether or not to emit it into the object file.  */
   if (TREE_USED (decl)
       || (DECL_ASSEMBLER_NAME_SET_P (decl)
@@ -2340,13 +2341,6 @@ start_objects (int method_type, int initp)
 
   body = begin_compound_stmt (BCS_FN_BODY);
 
-  /* We cannot allow these functions to be elided, even if they do not
-     have external linkage.  And, there's no point in deferring
-     compilation of these functions; they're all going to have to be
-     out anyhow.  */
-  DECL_INLINE (current_function_decl) = 0;
-  DECL_UNINLINABLE (current_function_decl) = 1;
-
   return body;
 }
 
@@ -2444,6 +2438,7 @@ start_static_storage_duration_function (unsigned count)
 			       type);
   TREE_PUBLIC (ssdf_decl) = 0;
   DECL_ARTIFICIAL (ssdf_decl) = 1;
+  DECL_INLINE (ssdf_decl) = 1;
 
   /* Put this function in the list of functions to be called from the
      static constructors and destructors.  */
@@ -2496,11 +2491,6 @@ start_static_storage_duration_function (unsigned count)
 
   /* Set up the scope of the outermost block in the function.  */
   body = begin_compound_stmt (BCS_FN_BODY);
-
-  /* This function must not be deferred because we are depending on
-     its compilation to tell us what is TREE_SYMBOL_REFERENCED.  */
-  DECL_INLINE (ssdf_decl) = 0;
-  DECL_UNINLINABLE (ssdf_decl) = 1;
 
   return body;
 }
@@ -2858,7 +2848,7 @@ generate_ctor_or_dtor_function (bool constructor_p, int priority,
       && constructor_p && objc_static_init_needed_p ())
     {
       body = start_objects (function_key, priority);
-      static_ctors = objc_generate_static_init_call (static_ctors);
+      objc_generate_static_init_call (NULL_TREE);
     }
 
   /* Call the static storage duration function with appropriate
@@ -2881,29 +2871,6 @@ generate_ctor_or_dtor_function (bool constructor_p, int priority,
 	}
     }
 
-  /* If we're generating code for the DEFAULT_INIT_PRIORITY, throw in
-     calls to any functions marked with attributes indicating that
-     they should be called at initialization- or destruction-time.  */
-  if (priority == DEFAULT_INIT_PRIORITY)
-    {
-      tree fns;
-
-      for (fns = constructor_p ? static_ctors : static_dtors;
-	   fns;
-	   fns = TREE_CHAIN (fns))
-	{
-	  fndecl = TREE_VALUE (fns);
-
-	  /* Calls to pure/const functions will expand to nothing.  */
-	  if (! (flags_from_decl_or_type (fndecl) & (ECF_CONST | ECF_PURE)))
-	    {
-	      if (! body)
-		body = start_objects (function_key, priority);
-	      finish_expr_stmt (build_function_call (fndecl, NULL_TREE));
-	    }
-	}
-    }
-
   /* Close out the function.  */
   if (body)
     finish_objects (function_key, priority, body);
@@ -2921,11 +2888,9 @@ generate_ctor_and_dtor_functions_for_priority (splay_tree_node n, void * data)
 
   /* Generate the functions themselves, but only if they are really
      needed.  */
-  if (pi->initializations_p
-      || (priority == DEFAULT_INIT_PRIORITY && static_ctors))
+  if (pi->initializations_p)
     generate_ctor_or_dtor_function (/*constructor_p=*/true, priority, locus);
-  if (pi->destructions_p
-      || (priority == DEFAULT_INIT_PRIORITY && static_dtors))
+  if (pi->destructions_p)
     generate_ctor_or_dtor_function (/*constructor_p=*/false, priority, locus);
 
   /* Keep iterating.  */
@@ -2933,7 +2898,7 @@ generate_ctor_and_dtor_functions_for_priority (splay_tree_node n, void * data)
 }
 
 /* Called via LANGHOOK_CALLGRAPH_ANALYZE_EXPR.  It is supposed to mark
-   decls referenced from frontend specific constructs; it will be called
+   decls referenced from front-end specific constructs; it will be called
    only for language-specific tree nodes.
 
    Here we must deal with member pointers.  */
@@ -3146,7 +3111,7 @@ cp_write_global_declarations (void)
 	     through the loop.  That's because we need to know which
 	     vtables have been referenced, and TREE_SYMBOL_REFERENCED
 	     isn't computed until a function is finished, and written
-	     out.  That's a deficiency in the back-end.  When this is
+	     out.  That's a deficiency in the back end.  When this is
 	     fixed, these initialization functions could all become
 	     inline, with resulting performance improvements.  */
 	  tree ssdf_body;
@@ -3221,7 +3186,7 @@ cp_write_global_declarations (void)
 	  if (!DECL_SAVED_TREE (decl))
 	    continue;
 
-	  /* We lie to the back-end, pretending that some functions
+	  /* We lie to the back end, pretending that some functions
 	     are not defined when they really are.  This keeps these
 	     functions from being put out unnecessarily.  But, we must
 	     stop lying when the functions are referenced, or if they
@@ -3320,21 +3285,17 @@ cp_write_global_declarations (void)
     splay_tree_foreach (priority_info_map,
 			generate_ctor_and_dtor_functions_for_priority,
 			/*data=*/&locus);
-  else
-    {
-      /* If we have a ctor or this is obj-c++ and we need a static init,
-	 call generate_ctor_or_dtor_function.  */
-      if (static_ctors || (c_dialect_objc () && objc_static_init_needed_p ()))
-	generate_ctor_or_dtor_function (/*constructor_p=*/true,
-					DEFAULT_INIT_PRIORITY, &locus);
-      if (static_dtors)
-	generate_ctor_or_dtor_function (/*constructor_p=*/false,
-					DEFAULT_INIT_PRIORITY, &locus);
-    }
+  else if (c_dialect_objc () && objc_static_init_needed_p ())
+    /* If this is obj-c++ and we need a static init, call
+       generate_ctor_or_dtor_function.  */
+    generate_ctor_or_dtor_function (/*constructor_p=*/true,
+				    DEFAULT_INIT_PRIORITY, &locus);
 
   /* We're done with the splay-tree now.  */
   if (priority_info_map)
     splay_tree_delete (priority_info_map);
+
+  c_build_cdtor_fns ();
 
   /* Generate any missing aliases.  */
   maybe_apply_pending_pragma_weaks ();
@@ -3412,7 +3373,7 @@ build_offset_ref_call_from_tree (tree fn, tree args)
 		  || TREE_CODE (fn) == MEMBER_REF);
       if (type_dependent_expression_p (fn)
 	  || any_type_dependent_arguments_p (args))
-	return build_min_nt (CALL_EXPR, fn, args, NULL_TREE);
+	return build_nt_call_list (fn, args);
 
       /* Transform the arguments and add the implicit "this"
 	 parameter.  That must be done before the FN is transformed
@@ -3442,7 +3403,7 @@ build_offset_ref_call_from_tree (tree fn, tree args)
 
   expr = build_function_call (fn, args);
   if (processing_template_decl && expr != error_mark_node)
-    return build_min_non_dep (CALL_EXPR, expr, orig_fn, orig_args, NULL_TREE);
+    return build_min_non_dep_call_list (expr, orig_fn, orig_args);
   return expr;
 }
 

@@ -46,7 +46,11 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/../config.guess \
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
+	$(top_srcdir)/../config/iconv.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
+	$(top_srcdir)/../config/lib-ld.m4 \
+	$(top_srcdir)/../config/lib-link.m4 \
+	$(top_srcdir)/../config/lib-prefix.m4 \
 	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
 	$(top_srcdir)/../config/unwind_ipinfo.m4 \
@@ -152,9 +156,13 @@ GLIBCXX_BUILD_PCH_TRUE = @GLIBCXX_BUILD_PCH_TRUE@
 GLIBCXX_C_HEADERS_COMPATIBILITY_FALSE = @GLIBCXX_C_HEADERS_COMPATIBILITY_FALSE@
 GLIBCXX_C_HEADERS_COMPATIBILITY_TRUE = @GLIBCXX_C_HEADERS_COMPATIBILITY_TRUE@
 GLIBCXX_C_HEADERS_C_FALSE = @GLIBCXX_C_HEADERS_C_FALSE@
+GLIBCXX_C_HEADERS_C_GLOBAL_FALSE = @GLIBCXX_C_HEADERS_C_GLOBAL_FALSE@
+GLIBCXX_C_HEADERS_C_GLOBAL_TRUE = @GLIBCXX_C_HEADERS_C_GLOBAL_TRUE@
 GLIBCXX_C_HEADERS_C_STD_FALSE = @GLIBCXX_C_HEADERS_C_STD_FALSE@
 GLIBCXX_C_HEADERS_C_STD_TRUE = @GLIBCXX_C_HEADERS_C_STD_TRUE@
 GLIBCXX_C_HEADERS_C_TRUE = @GLIBCXX_C_HEADERS_C_TRUE@
+GLIBCXX_C_HEADERS_EXTRA_FALSE = @GLIBCXX_C_HEADERS_EXTRA_FALSE@
+GLIBCXX_C_HEADERS_EXTRA_TRUE = @GLIBCXX_C_HEADERS_EXTRA_TRUE@
 GLIBCXX_HOSTED_FALSE = @GLIBCXX_HOSTED_FALSE@
 GLIBCXX_HOSTED_TRUE = @GLIBCXX_HOSTED_TRUE@
 GLIBCXX_INCLUDES = @GLIBCXX_INCLUDES@
@@ -171,6 +179,7 @@ LIBS = @LIBS@
 LIBSUPCXX_PICFLAGS = @LIBSUPCXX_PICFLAGS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
+LTLIBICONV = @LTLIBICONV@
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
@@ -793,8 +802,11 @@ TAGS: tags-recursive $(LISP)
 
 # Installation of distribution html documentation not yet supported
 # TODO: Write custom install-html rule.
-.PHONY: install-html
+.PHONY: install-html install-pdf
 install-html:
+
+# No install-pdf support in automake yet
+install-pdf:
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

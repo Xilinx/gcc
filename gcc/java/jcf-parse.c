@@ -91,7 +91,7 @@ static location_t file_start_location;
 /* The Java archive that provides main_class;  the main input file. */
 static GTY(()) struct JCF * main_jcf;
 
-/* The number of source files passd to us by -fsource-filename and an
+/* The number of source files passed to us by -fsource-filename and an
    array of pointers to each name.  Used by find_sourcefile().  */
 static int num_files = 0;
 static char **filenames;
@@ -259,7 +259,7 @@ java_read_sourcefilenames (const char *fsource_filename)
 /* Given a relative pathname such as foo/bar.java, attempt to find a
    longer pathname with the same suffix.  
 
-   This is a best guess heuristic; with some weird class hierarcies we
+   This is a best guess heuristic; with some weird class hierarchies we
    may fail to pick the correct source file.  For example, if we have
    the filenames foo/bar.java and also foo/foo/bar.java, we do not
    have enough information to know which one is the right match for
@@ -381,15 +381,15 @@ set_source_filename (JCF *jcf, int index)
 /* Annotation handling.  
 
    The technique we use here is to copy the annotation data directly
-   from the input class file into the ouput file.  We don't decode the
+   from the input class file into the output file.  We don't decode the
    data at all, merely rewriting constant indexes whenever we come
-   across them: this is necessary becasue the constant pool in the
+   across them: this is necessary because the constant pool in the
    output file isn't the same as the constant pool in in the input.
 
    The main advantage of this technique is that the resulting
    annotation data is pointer-free, so it doesn't have to be relocated
    at startup time.  As a consequence of this, annotations have no
-   peformance impact unless they are used.  Also, this representation
+   performance impact unless they are used.  Also, this representation
    is very dense.  */
 
 
@@ -723,7 +723,7 @@ handle_annotation (JCF *jcf, int level)
 }
 
 /* Read an annotation count from JCF, and write the following
-   annotatons to the reflection_data field of the outgoing class.  */
+   annotations to the reflection_data field of the outgoing class.  */
 
 static void
 handle_annotations (JCF *jcf, int level)
@@ -975,7 +975,7 @@ handle_signature_attribute (int member_index, JCF *jcf,
   else if (current_field)						\
     FIELD_SYNTHETIC (current_field) = 1;				\
   else									\
-    CLASS_SYNTHETIC (current_class) = 1;				\
+    TYPE_SYNTHETIC (current_class) = 1;					\
 }
 
 #define HANDLE_GCJCOMPILED_ATTRIBUTE()		\
@@ -1218,9 +1218,12 @@ give_name_to_class (JCF *jcf, int i)
 	main_input_filename = sfname;
       }
 #else
-      input_location = DECL_SOURCE_LOCATION (TYPE_NAME (this_class));
-      if (main_input_filename == NULL && jcf == main_jcf)
-	main_input_filename = input_filename;
+     if (! DECL_ARTIFICIAL (TYPE_NAME (this_class)))
+      {
+	input_location = DECL_SOURCE_LOCATION (TYPE_NAME (this_class));
+	if (main_input_filename == NULL && jcf == main_jcf)
+	  main_input_filename = input_filename;
+      }
 #endif
 
       jcf->cpool.data[i].t = this_class;
@@ -1295,7 +1298,7 @@ read_class (tree name)
       
       path_name = find_class (IDENTIFIER_POINTER (name),
 			      IDENTIFIER_LENGTH (name),
-			      &this_jcf, 1);
+			      &this_jcf);
       if (path_name == 0)
 	return 0;
       else
@@ -1304,72 +1307,21 @@ read_class (tree name)
 
   current_jcf = jcf;
 
-  if (current_jcf->java_source)
+  if (class == NULL_TREE || ! CLASS_PARSED_P (class))
     {
-      gcc_unreachable ();
-#if 0
-      const char *filename = current_jcf->filename;
-      char *real_path;
-      tree given_file, real_file;
-      FILE *finput;
-      int generate;
-
-      java_parser_context_save_global ();
-      java_push_parser_context ();
-
-      given_file = get_identifier (filename);
-      filename = IDENTIFIER_POINTER (given_file);
-      real_path = lrealpath (filename);
-      real_file = get_identifier (real_path);
-      free (real_path);
-
-      generate = IS_A_COMMAND_LINE_FILENAME_P (given_file);
-      output_class = current_class = NULL_TREE;
-      current_function_decl = NULL_TREE;
-
-      if (! HAS_BEEN_ALREADY_PARSED_P (real_file))
-	{
-	  if (! (finput = fopen (filename, "r")))
-	    fatal_error ("can't reopen %s: %m", filename);
-
-	  parse_source_file_1 (real_file, filename, finput);
-	  parse_source_file_2 ();
-	  parse_source_file_3 ();
-
-	  if (fclose (finput))
-	    fatal_error ("can't close %s: %m", input_filename);
-#ifdef USE_MAPPED_LOCATION
-	  linemap_add (&line_table, LC_LEAVE, false, NULL, 0);
-#endif
-	}
-      JCF_FINISH (current_jcf);
-      java_pop_parser_context (generate);
-      java_parser_context_restore_global ();
-#endif
+      output_class = current_class = class;
+      if (JCF_SEEN_IN_ZIP (current_jcf))
+	read_zip_member(current_jcf,
+			current_jcf->zipd, current_jcf->zipd->zipf);
+      jcf_parse (current_jcf);
+      /* Parsing might change the class, in which case we have to
+	 put it back where we found it.  */
+      if (current_class != class && icv != NULL_TREE)
+	TREE_TYPE (icv) = current_class;
+      class = current_class;
     }
-  else
-    {
-      if (class == NULL_TREE || ! CLASS_PARSED_P (class))
-	{
-/* 	  java_parser_context_save_global (); */
-/* 	  java_push_parser_context (); */
-	  output_class = current_class = class;
-/* 	  ctxp->save_location = input_location; */
-	  if (JCF_SEEN_IN_ZIP (current_jcf))
-	    read_zip_member(current_jcf,
-			    current_jcf->zipd, current_jcf->zipd->zipf);
-	  jcf_parse (current_jcf);
-	  /* Parsing might change the class, in which case we have to
-	     put it back where we found it.  */
-	  if (current_class != class && icv != NULL_TREE)
-	    TREE_TYPE (icv) = current_class;
-	  class = current_class;
-/* 	  java_pop_parser_context (0); */
-/* 	  java_parser_context_restore_global (); */
-	}
-      layout_class (class);
-      load_inner_classes (class);
-    }
+  layout_class (class);
+  load_inner_classes (class);
 
   output_class = save_output_class;
   current_class = save_current_class;
@@ -1500,6 +1452,8 @@ jcf_parse (JCF* jcf)
 {
   int i, code;
 
+  bitmap_clear (field_offsets);
+
   if (jcf_parse_preamble (jcf) != 0)
     fatal_error ("not a valid Java .class file");
   code = jcf_parse_constant_pool (jcf);
@@ -1557,18 +1511,7 @@ jcf_parse (JCF* jcf)
     TYPE_FIELDS (current_class) = nreverse (TYPE_FIELDS (current_class));
 
   if (current_class == object_type_node)
-    {
-      layout_class_methods (object_type_node);
-      /* If we don't have the right archive, emit a verbose warning.
-	 If we're generating bytecode, emit the warning only if
-	 -fforce-classes-archive-check was specified. */
-#if 0
-      /* ECJ HACK: ignore this.  */
-      if (!jcf->right_zip
-	  && (!flag_emit_class_files || flag_force_classes_archive_check))
-	fatal_error ("the %<java.lang.Object%> that was found in %qs didn't have the special zero-length %<gnu.gcj.gcj-compiled%> attribute.  This generally means that your classpath is incorrectly set.  Use %<info gcj \"Input Options\"%> to see the info page describing how to set the classpath", jcf->filename);
-#endif
-    }
+    layout_class_methods (object_type_node);
   else
     all_class_list = tree_cons (NULL_TREE,
 				TYPE_NAME (current_class), all_class_list );
@@ -2048,13 +1991,6 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 
   bitmap_obstack_release (&bit_obstack);
 
-/*   java_expand_classes (); */
-/*   if (java_report_errors () || flag_syntax_only) */
-/*     return; */
-    
-  /* Expand all classes compiled from source.  */
-/*   java_finish_classes (); */
-
  finish:
   /* Arrange for any necessary initialization to happen.  */
   java_emit_static_constructor ();
@@ -2196,7 +2132,6 @@ parse_zip_file_entries (void)
 	    JCF_ZERO (jcf);
 	    jcf->read_state  = finput;
 	    jcf->filbuf      = jcf_filbuf_from_stdio;
-	    jcf->java_source = 0;
 	    jcf->classname   = NULL;
 	    jcf->filename    = file_name;
 	    jcf->zipd        = zdir;
@@ -2270,7 +2205,6 @@ process_zip_dir (FILE *finput)
 
       jcf->read_state  = finput;
       jcf->filbuf      = jcf_filbuf_from_stdio;
-      jcf->java_source = 0;
       jcf->classname   = class_name;
       jcf->filename    = file_name;
       jcf->zipd        = zdir;

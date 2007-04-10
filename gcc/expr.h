@@ -378,6 +378,8 @@ extern void init_block_clear_fn (const char *);
 
 extern rtx emit_block_move (rtx, rtx, rtx, enum block_op_methods);
 extern rtx emit_block_move_via_libcall (rtx, rtx, rtx, bool);
+extern rtx emit_block_move_hints (rtx, rtx, rtx, enum block_op_methods,
+			          unsigned int, HOST_WIDE_INT);
 
 /* Copy all or part of a value X into registers starting at REGNO.
    The number of registers to be filled is NREGS.  */
@@ -424,11 +426,14 @@ extern void use_group_regs (rtx *, rtx);
 /* Write zeros through the storage of OBJECT.
    If OBJECT has BLKmode, SIZE is its length in bytes.  */
 extern rtx clear_storage (rtx, rtx, enum block_op_methods);
+extern rtx clear_storage_hints (rtx, rtx, enum block_op_methods,
+			        unsigned int, HOST_WIDE_INT);
 /* The same, but always output an library call.  */
 rtx set_storage_via_libcall (rtx, rtx, rtx, bool);
 
 /* Expand a setmem pattern; return true if successful.  */
-extern bool set_storage_via_setmem (rtx, rtx, rtx, unsigned int);
+extern bool set_storage_via_setmem (rtx, rtx, rtx, unsigned int, 
+				    unsigned int, HOST_WIDE_INT);
 
 /* Determine whether the LEN bytes can be moved by using several move
    instructions.  Return nonzero if a call to move_by_pieces should
@@ -459,6 +464,9 @@ extern rtx emit_move_insn (rtx, rtx);
 
 /* Emit insns to set X from Y, with no frills.  */
 extern rtx emit_move_insn_1 (rtx, rtx);
+
+extern rtx emit_move_complex_push (enum machine_mode, rtx, rtx);
+extern rtx emit_move_complex_parts (rtx, rtx);
 
 /* Push a block of length SIZE (perhaps variable)
    and return an rtx to address the beginning of the block.  */
@@ -588,9 +596,6 @@ extern rtx label_rtx (tree);
    list of its containing function (i.e. it is treated as reachable even
    if how is not obvious).  */
 extern rtx force_label_rtx (tree);
-
-/* Indicate how an input argument register was promoted.  */
-extern rtx promoted_input_arg (unsigned int, enum machine_mode *, int *);
 
 /* Return an rtx like arg but sans any constant terms.
    Returns the original rtx if it has no constant terms.

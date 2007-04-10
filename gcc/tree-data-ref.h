@@ -1,5 +1,5 @@
 /* Data references and dependences detectors. 
-   Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
 This file is part of GCC.
@@ -23,6 +23,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #define GCC_TREE_DATA_REF_H
 
 #include "lambda.h"
+#include "omega.h"
 
 /*
   The first location accessed by data-ref in the loop is the address of data-ref's 
@@ -195,10 +196,6 @@ DEF_VEC_ALLOC_P (data_reference_p, heap);
 #define DR_OFFSET_MISALIGNMENT(DR) (DR)->misalignment
 #define DR_PTR_INFO(DR)            (DR)->ptr_info
 #define DR_SUBVARS(DR)             (DR)->subvars
-
-#define DR_ACCESS_FNS_ADDR(DR)       \
-  (DR_TYPE(DR) == ARRAY_REF_TYPE ?   \
-   &((DR)->object_info.access_fns) : &((DR)->first_location.access_fns))
 #define DR_SET_ACCESS_FNS(DR, ACC_FNS)         \
 {                                              \
   if (DR_TYPE(DR) == ARRAY_REF_TYPE)           \
@@ -225,6 +222,29 @@ enum data_dependence_direction {
   dir_independent
 };
 
+/* The description of the grid of iterations that overlap.  At most
+   two loops are considered at the same time just now, hence at most
+   two functions are needed.  For each of the functions, we store
+   the vector of coefficients, f[0] + x * f[1] + y * f[2] + ...,
+   where x, y, ... are variables.  */
+
+#define MAX_DIM 2
+
+/* Special values of N.  */
+#define NO_DEPENDENCE 0
+#define NOT_KNOWN (MAX_DIM + 1)
+#define CF_NONTRIVIAL_P(CF) ((CF)->n != NO_DEPENDENCE && (CF)->n != NOT_KNOWN)
+#define CF_NOT_KNOWN_P(CF) ((CF)->n == NOT_KNOWN)
+#define CF_NO_DEPENDENCE_P(CF) ((CF)->n == NO_DEPENDENCE)
+
+typedef VEC (tree, heap) *affine_fn;
+
+typedef struct
+{
+  unsigned n;
+  affine_fn fns[MAX_DIM];
+} conflict_function;
+
 /* What is a subscript?  Given two array accesses a subscript is the
    tuple composed of the access functions for a given dimension.
    Example: Given A[f1][f2][f3] and B[g1][g2][g3], there are three
@@ -236,8 +256,8 @@ struct subscript
 {
   /* A description of the iterations for which the elements are
      accessed twice.  */
-  tree conflicting_iterations_in_a;
-  tree conflicting_iterations_in_b;
+  conflict_function *conflicting_iterations_in_a;
+  conflict_function *conflicting_iterations_in_b;
   
   /* This field stores the information about the iteration domain
      validity of the dependence relation.  */
@@ -293,6 +313,10 @@ struct data_dependence_relation
   /* The analyzed loop nest.  */
   VEC (loop_p, heap) *loop_nest;
 
+  /* An index in loop_nest for the innermost loop that varies for
+     this data dependence relation.  */
+  unsigned inner_loop;
+
   /* The classic direction vector.  */
   VEC (lambda_vector, heap) *dir_vects;
 
@@ -317,6 +341,7 @@ DEF_VEC_ALLOC_P(ddr_p,heap);
 /* The size of the direction/distance vectors: the number of loops in
    the loop nest.  */
 #define DDR_NB_LOOPS(DDR) (VEC_length (loop_p, DDR_LOOP_NEST (DDR)))
+#define DDR_INNER_LOOP(DDR) DDR->inner_loop
 
 #define DDR_DIST_VECTS(DDR) ((DDR)->dist_vects)
 #define DDR_DIR_VECTS(DDR) ((DDR)->dir_vects)
@@ -369,7 +394,6 @@ extern void free_dependence_relation (struct data_dependence_relation *);
 extern void free_dependence_relations (VEC (ddr_p, heap) *);
 extern void free_data_ref (data_reference_p);
 extern void free_data_refs (VEC (data_reference_p, heap) *);
-extern struct data_reference *analyze_array (tree, tree, bool);
 extern struct data_reference *create_data_ref (tree, tree, bool);
 extern bool find_data_references_in_stmt (tree, VEC (data_reference_p, heap) **);
 extern bool build_access_matrix_with_af (tree, lambda_vector,

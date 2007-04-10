@@ -1,3 +1,133 @@
+2007-04-06  Richard Henderson  <rth@redhat.com>
+
+	* configure.ac: Tidy target case.
+	(HAVE_LONG_DOUBLE): Allow the target to override.
+	* configure: Regenerate.
+	* include/ffi.h.in: Don't define ffi_type_foo if
+	LIBFFI_HIDE_BASIC_TYPES is defined.
+	(ffi_type_longdouble): If not HAVE_LONG_DOUBLE, define
+	to ffi_type_double.
+	* types.c (LIBFFI_HIDE_BASIC_TYPES): Define.
+	(FFI_TYPEDEF, ffi_type_void): Mark the data const.
+	(ffi_type_longdouble): Special case for Alpha.  Don't define
+	if long double == double.
+
+	* src/alpha/ffi.c (FFI_TYPE_LONGDOUBLE): Assert unique value.
+	(ffi_prep_cif_machdep): Handle it as the 128-bit type.
+	(ffi_call, ffi_closure_osf_inner): Likewise.
+	(ffi_closure_osf_inner): Likewise.  Mark hidden.
+	(ffi_call_osf, ffi_closure_osf): Mark hidden.
+	* src/alpha/ffitarget.h (FFI_LAST_ABI): Tidy definition.
+	* src/alpha/osf.S (ffi_call_osf, ffi_closure_osf): Mark hidden.
+	(load_table): Handle 128-bit long double.
+
+	* testsuite/libffi.call/float4.c: Add -mieee for alpha.
+
+2007-04-06  Tom Tromey  <tromey@redhat.com>
+
+	PR libffi/31491:
+	* README: Fixed bug in example.
+
+2007-04-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/closures.c: Include sys/statfs.h.
+	(_GNU_SOURCE): Define on Linux.
+	(FFI_MMAP_EXEC_SELINUX): Define.
+	(selinux_enabled): New variable.
+	(selinux_enabled_check): New function.
+	(is_selinux_enabled): Define.
+	(dlmmap): Use it.
+
+2007-03-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	* testsuite/libffi.call/return_fl2.c (return_fl): Mark as static.
+	Use 'volatile float sum' to create sum of floats to avoid false
+	negative due to excess precision on ix86 targets.
+	(main): Ditto. 
+
+2007-03-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* src/powerpc/ffi.c (flush_icache): Fix left-over from previous
+	patch.
+	(ffi_prep_closure_loc): Remove unneeded casts.  Add needed ones.
+
+2007-03-07  Alexandre Oliva  <aoliva@redhat.com>
+
+	* include/ffi.h.in (ffi_closure_alloc, ffi_closure_free): New.
+	(ffi_prep_closure_loc): New.
+	(ffi_prep_raw_closure_loc): New.
+	(ffi_prep_java_raw_closure_loc): New.
+	* src/closures.c: New file.
+	* src/dlmalloc.c [FFI_MMAP_EXEC_WRIT] (struct malloc_segment):
+	Replace sflags with exec_offset.
+	[FFI_MMAP_EXEC_WRIT] (mmap_exec_offset, add_segment_exec_offset,
+	sub_segment_exec_offset): New macros.
+	(get_segment_flags, set_segment_flags, check_segment_merge): New
+	macros.
+	(is_mmapped_segment, is_extern_segment): Use get_segment_flags.
+	(add_segment, sys_alloc, create_mspace, create_mspace_with_base,
+	destroy_mspace): Use new macros.
+	(sys_alloc): Silence warning.
+	* Makefile.am (libffi_la_SOURCES): Add src/closures.c.
+	* Makefile.in: Rebuilt.
+	* src/prep_cif [FFI_CLOSURES] (ffi_prep_closure): Implement in
+	terms of ffi_prep_closure_loc.
+	* src/raw_api.c (ffi_prep_raw_closure_loc): Renamed and adjusted
+	from...
+	(ffi_prep_raw_closure): ... this.  Re-implement in terms of the
+	renamed version.
+	* src/java_raw_api (ffi_prep_java_raw_closure_loc): Renamed and
+	adjusted from...
+	(ffi_prep_java_raw_closure): ... this.  Re-implement in terms of
+	the renamed version.
+	* src/alpha/ffi.c (ffi_prep_closure_loc): Renamed from
+	(ffi_prep_closure): ... this.
+	* src/pa/ffi.c: Likewise.
+	* src/cris/ffi.c: Likewise.  Adjust.
+	* src/frv/ffi.c: Likewise.
+	* src/ia64/ffi.c: Likewise.
+	* src/mips/ffi.c: Likewise.
+	* src/powerpc/ffi_darwin.c: Likewise.
+	* src/s390/ffi.c: Likewise.
+	* src/sh/ffi.c: Likewise.
+	* src/sh64/ffi.c: Likewise.
+	* src/sparc/ffi.c: Likewise.
+	* src/x86/ffi64.c: Likewise.
+	* src/x86/ffi.c: Likewise.
+	(FFI_INIT_TRAMPOLINE): Adjust.
+	(ffi_prep_raw_closure_loc): Renamed and adjusted from...
+	(ffi_prep_raw_closure): ... this.
+	* src/powerpc/ffi.c (ffi_prep_closure_loc): Renamed from
+	(ffi_prep_closure): ... this.
+	(flush_icache): Adjust.
+
+2007-03-07  Alexandre Oliva  <aoliva@redhat.com>
+
+	* src/dlmalloc.c: New file, imported version 2.8.3 of Doug
+	Lea's malloc.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.am: Add dummy install-pdf target.
+	* Makefile.in: Regenerate
+
+2007-02-13  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* src/s390/ffi.c (ffi_prep_args, ffi_prep_cif_machdep,
+	ffi_closure_helper_SYSV): Add long double handling.
+
+2007-02-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/powerpc/linux64.S (ffi_call_LINUX64): Move restore of r2
+	immediately after bctrl instruction.
+
+2007-01-18  Alexandre Oliva  <aoliva@redhat.com>
+
+	* Makefile.am (all-recursive, install-recursive,
+	mostlyclean-recursive, clean-recursive, distclean-recursive,
+	maintainer-clean-recursive): Add missing targets.
+	* Makefile.in: Rebuilt.
+
 2006-12-14  Andreas Tobler  <a.tobler@schweiz.org>
 
 	* configure.ac: Add TARGET for x86_64-*-darwin*.
