@@ -1,6 +1,5 @@
 /* Tree pattern matching and checking using concrete syntax.
-  Copyright (C) 2006
-  Free Software Foundation, Inc.
+  Copyright (C) 2006, 2007 Free Software Foundation, Inc.
   Contributed by Nic Volanschi <nic.volanschi@free.fr>
 
 This file is part of GCC.
@@ -24,27 +23,27 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include <stdlib.h>
 #include <string.h>
 
-/* At the statement level, a node in the CFG has the following type: */
+/* At the statement level, a node in the CFG has the following type.  */
 typedef struct tree_statement_list_node *cfg_node;
 
 DEF_VEC_P (cfg_node);
 DEF_VEC_ALLOC_P (cfg_node, heap);
 
-/* Accessor for a CFG node */
+/* Accessor for a CFG node.  */
 static inline tree
 cfg_node_stmt (cfg_node node)
 {
   return node->stmt;
 }
 
-/* Map a statement iterator to a CFG node */
+/* Map a statement iterator to a CFG node.  */
 static inline cfg_node
 bsi_cfg_node (block_stmt_iterator bsi)
 {
   return bsi.tsi.ptr;
 }
 
-/* Get 1st CFG node in a basic block */
+/* Get 1st CFG node in a basic block.  */
 static inline cfg_node
 bb_1st_cfg_node (basic_block bb)
 {
@@ -64,7 +63,7 @@ typedef struct patt_info_s {
 
 typedef patt_info *pattern;
 
-/* Atomic pattern constructor */
+/* Atomic pattern constructor.  */
 static inline pattern 
 mkpat (const char *str) 
 {
@@ -75,7 +74,7 @@ mkpat (const char *str)
   return res;
 }
 
-/* Disjunctive pattern constructor */
+/* Disjunctive pattern constructor.  */
 static inline pattern 
 pat_or (pattern p1, pattern p2) 
 {
@@ -83,7 +82,7 @@ pat_or (pattern p1, pattern p2)
   return p1;
 }
 
-/* Pattern destructor */
+/* Pattern destructor.  */
 static inline void 
 rmpat (pattern p) 
 {
@@ -93,7 +92,7 @@ rmpat (pattern p)
   free (p);
 }
 
-/* Display a pattern to stderr */
+/* Display a pattern to stderr.  */
 static inline void 
 pat_print (pattern p) 
 {
@@ -111,12 +110,11 @@ pat_print (pattern p)
     }
 }
 
-/* A "hole" is a pattern variable (aka meta-variable). It contains a
+/* A "hole" is a pattern variable (aka meta-variable).  It contains a
    tree (which is NULL when the var is unistantiated), and a CFG
-   "context" node which points to the stmt containing the tree. The
+   "context" node which points to the stmt containing the tree.  The
    context is useful to interpret temporary variables, or other
-   dataflow data.
- */
+   dataflow data.  */
 typedef struct hole_s {
   tree tree;
   cfg_node ctx;
@@ -127,16 +125,17 @@ typedef hole *hole_p;
 DEF_VEC_P (hole_p);
 DEF_VEC_ALLOC_P (hole_p, heap);
 
-/* Named local holes are noted by a single lowercase letter */
+/* Named local holes are noted by a single lowercase letter.  */
 #define LOCAL_MAX 26
-/* Named global holes are noted by a single capital letter */
+/* Named global holes are noted by a single capital letter.  */
 #define GLOBAL_MAX 26
-/* Named local holes are used locally within each pattern. Thus, a
-   variable %x may have different values in different patterns. */
+
+/* Named local holes are used locally within each pattern.  Thus, a
+   variable %x may have different values in different patterns.  */
 extern hole local_holes[LOCAL_MAX];
 /* Named global holes are shared between all the patterns in a same
-   property. Thus, a variable %X has the same value in different
-   patterns. */
+   property.  Thus, a variable %X has the same value in different
+   patterns.  */
 extern hole global_holes[GLOBAL_MAX];
 
 extern bool is_global_hole (char c);
@@ -149,29 +148,28 @@ extern bool eq_global_holes (hole *holes1, hole *holes2);
 extern void print_local_holes (void);
 extern void print_global_holes (void);
 
-/* User interface to AST pattern matching */
+/* User interface to AST pattern matching.  */
 extern bool tree_scanf (tree t, const char *fmt, cfg_node ctx_node, ...);
 extern bool tree_match (tree t, const char *fmt, cfg_node ctx_node);
 extern bool tree_match_disj (tree t, pattern fmt, cfg_node ctx_node);
 
 /* A "condate" is a program property involving CONtrol, DATa, and
-   other aspects such as syntactic and semantic information. For
+   other aspects such as syntactic and semantic information.  For
    example, '[there is a path] from "lock(%X)" to "unlock(%X)"
    avoiding "return" or "return %_"' is a condate specifying
    lock-unlock bugs.  Thus, condates are built upon patterns, CFG and
-   dataflow information.
- */
+   dataflow information.  */
 typedef struct condate_s {
-  char *name;    /* Used to identify the condate in warning messages. */
-  pattern from;  /* Paths start at nodes matching this pattern. */
-  pattern to;    /* Paths end at nodes matching this pattern. */
-  pattern avoid; /* Paths must avoid nodes matching this pattern, */
-  pattern avoid_then; /* ... successful conditions matching this pattern, */
-  pattern avoid_else; /* ... and unsuccessful conditions mathing this one. */
-  const char *msg; /* message to print if the condate is matched */
+  char *name;    /* Used to identify the condate in warning messages.  */
+  pattern from;  /* Paths start at nodes matching this pattern.  */
+  pattern to;    /* Paths end at nodes matching this pattern.  */
+  pattern avoid; /* Paths must avoid nodes matching this pattern. */
+  pattern avoid_then; /* ... successful conditions matching this pattern. */
+  pattern avoid_else; /* ... and unsuccessful conditions mathing this one.  */
+  const char *msg; /* Message to print if the condate is matched. */
 } *condate;
 
-/* Condate constructor */
+/* Condate constructor.  */
 static inline condate 
 mkcond (const char *name, pattern from, pattern to, pattern avoid, 
 	pattern avoid_then, pattern avoid_else) 
@@ -190,7 +188,7 @@ mkcond (const char *name, pattern from, pattern to, pattern avoid,
   return cond;
 }
 
-/* Condate destructor */
+/* Condate destructor.  */
 static inline void 
 rmcond (condate cond) 
 {
@@ -207,8 +205,8 @@ rmcond (condate cond)
 extern void print_cond (condate cond);
 
 #define CONDMAX 100
-extern condate conds[CONDMAX];  /* list of condated to check */
-extern int n_conds;         /* number of condates to check */
+extern condate conds[CONDMAX];  /* List of condated to check.  */
+extern int n_conds;         /* Number of condates to check.  */
 
 extern void normalize_condate(condate cond);
 extern void name_condate(condate cond);
@@ -217,7 +215,7 @@ extern void add_condate(condate cond);
 extern FILE *checkfile;
 extern int condate_parse (void);
 
-/* Tracing levels & macros */
+/* Tracing levels & macros.  */
 enum trace_level {
   TRACE_ALWAYS = 0,
   TRACE_CHECK,
@@ -226,7 +224,7 @@ enum trace_level {
   TRACE_MATCH_STEPS
 };
 
-/* current tracing level */
+/* Current tracing level.  */
 #define pp_trace_level TRACE_ALWAYS
-/* use this macro to conditionally execute a tracing action */
+/* Use this macro to conditionally execute a tracing action.  */
 #define PP_TRACE(lev, stmt) if (lev <= pp_trace_level) stmt;

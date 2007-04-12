@@ -1,5 +1,5 @@
 /* Tree/CFG checking pass.
-  Copyright (C) 2006 Free Software Foundation, Inc.
+  Copyright (C) 2006, 2007 Free Software Foundation, Inc.
   Contributed by Nic Volanschi <nic.volanschi@free.fr>
 
 This file is part of GCC.
@@ -73,17 +73,13 @@ static void
 tree_check_init (void) 
 {
   basic_block bb;
+  block_stmt_iterator bsi;
+
   reset_global_holes ();
+
   FOR_EACH_BB (bb)
-    {
-      block_stmt_iterator bsi;
-      tree stmt;
-      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	{
-	  stmt = bsi_stmt (bsi);
-	  TREE_VISITED (stmt) = 0;
-	}
-    }
+    for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+      TREE_VISITED (bsi_stmt (bsi)) = 0;
 }
 
 /* Visit a CFG node.  Used in tree_check_instance.  */
@@ -305,7 +301,7 @@ tree_check (condate cond)
   pattern patt = cond->from;
   basic_block bb;
 
-  /* Check for trivial condates */
+  /* Check for trivial condates.  */
   if (!cond->to)
     {
       tree_scan (cond);
@@ -414,7 +410,7 @@ delete_conds (condate conds[], int n)
   n_conds = 0;
 }
 
-/* Open file containing the checks. Used by the parser condate.y */
+/* Open file containing the checks.  Used by the parser condate.y.  */
 FILE *checkfile;
 
 /* Parse the file containing condates definitions, and cache the result.  */

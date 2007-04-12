@@ -1,6 +1,5 @@
 /* Library for tree matching.
-  Copyright (C) 2006
-  Free Software Foundation, Inc.
+  Copyright (C) 2006, 2007 Free Software Foundation, Inc.
   Contributed by Nic Volanschi <nic.volanschi@free.fr>
 
 This file is part of GCC.
@@ -42,12 +41,12 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "toplev.h"
 #include "tree-match.h"
 
-/* The tree matching user interface is described in tree-pattern.h  */
+/* The tree matching user interface is described in tree-pattern.h.  */
 
-hole global_holes[GLOBAL_MAX]; /* global holes */
-hole local_holes[LOCAL_MAX]; /* local holes */
+hole global_holes[GLOBAL_MAX];
+hole local_holes[LOCAL_MAX];
 
-/* Check whether a variable is a temporary introduced by the compiler */
+/* Check whether a variable is a temporary introduced by the compiler.  */
 
 static bool 
 is_tmp_var (tree var) 
@@ -56,7 +55,7 @@ is_tmp_var (tree var)
   if (TREE_CODE (var) != VAR_DECL)
     return false;
 
-  /* artificial decls like return values have no name, so don't get hung */
+  /* Artificial decls like return values have no name, so don't get hung.  */
   if (!DECL_NAME (var)) 
     return true;
 
@@ -64,7 +63,7 @@ is_tmp_var (tree var)
   return !strncmp (name, "D.", 2) || strchr (name, '.');
 }
 
-/* If t is a cast expression, return the value without the cast */
+/* If t is a cast expression, return the value without the cast.  */
 
 static tree 
 substitute_cast_expr (tree t) 
@@ -176,7 +175,7 @@ tree_equal (tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
 }
 
 /* Check if two trees are equal, modulo casts and substitutions of
-   tmp vars with their values. */
+   tmp vars with their values.  */
 
 static bool 
 tree_equal_mod_tmps (tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2) 
@@ -199,7 +198,7 @@ tree_equal_mod_tmps (tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
 	  
 static char tree_1st_char (tree);
 
-/* Get the first character of (the printed form of) a tree chunk */
+/* Get the first character of (the printed form of) a tree chunk.  */
 
 static char 
 chunk_1st_char (tree_chunk chunk) 
@@ -214,7 +213,7 @@ chunk_1st_char (tree_chunk chunk)
     return chunk->c;
 }
 
-/* Search the first chunk of a lazy list not consisting of whitespace */
+/* Search the first chunk of a lazy list not consisting of whitespace.  */
 
 static tree_chunk
 chunks_lookahead (VEC (tree_chunk, heap) *chunks, unsigned int i) 
@@ -228,7 +227,7 @@ chunks_lookahead (VEC (tree_chunk, heap) *chunks, unsigned int i)
   return chunk;
 }
 
-/* Get the first character of (the printed form of) a tree */
+/* Get the first character of (the printed form of) a tree.  */
 
 static char 
 tree_1st_char (tree t) 
@@ -247,7 +246,7 @@ tree_1st_char (tree t)
   return chunk_1st_char (chunk);
 }
 
-/* Get the first non-space character in a pattern */
+/* Get the first non-space character in a pattern.  */
 
 static char 
 pattern_lookahead (patt_info *patt, int n) 
@@ -274,7 +273,7 @@ pattern_lookahead (patt_info *patt, int n)
 static bool match_tree_pattinfo (tree, patt_info *, const char *, cfg_node);
 
 /* Worker function for match_tree_pattinfo.  Matches a lazy list with
-   a pattern. */
+   a pattern.  */
 
 static bool 
 match_chunks_pattinfo (VEC (tree_chunk, heap) *chunks, patt_info *patt,
@@ -506,7 +505,7 @@ match_tree_pattinfo (tree t, patt_info *patt, const char *delim,
     }
 }
 
-/* Check whether a hole name represents a global variable */
+/* Check whether a hole name represents a global variable.  */
 
 inline bool 
 is_global_hole (char c) 
@@ -514,7 +513,7 @@ is_global_hole (char c)
   return 'A' <= c && c <= 'Z';
 }
 
-/* Get the hole named by a (local or global) variable name */
+/* Get the hole named by a (local or global) variable name.  */
 
 hole *
 get_hole_named (char c) 
@@ -528,7 +527,7 @@ get_hole_named (char c)
   return NULL;
 }
 
-/* Unbind all global variables */
+/* Unbind all global variables.  */
 
 void 
 reset_global_holes (void) 
@@ -541,7 +540,7 @@ reset_global_holes (void)
     }
 }
 
-/* Unbind all local variables */
+/* Unbind all local variables.  */
 
 void 
 reset_local_holes (void) 
@@ -554,7 +553,7 @@ reset_local_holes (void)
     }
 }
 
-/* Save the values of all global variables in a buffer */
+/* Save the values of all global variables in a buffer.  */
 
 hole *
 save_global_holes (void) 
@@ -564,7 +563,7 @@ save_global_holes (void)
   return buf;
 }
 
-/* Restore the values of all global variables from a buffer */
+/* Restore the values of all global variables from a buffer.  */
 
 void 
 restore_global_holes (hole_p saved) 
@@ -573,7 +572,7 @@ restore_global_holes (hole_p saved)
   free (saved);
 }
 
-/* Compare two sets of global variables */
+/* Compare two sets of global variables.  */
 
 bool 
 eq_global_holes (hole *holes1, hole *holes2) 
@@ -588,7 +587,7 @@ eq_global_holes (hole *holes1, hole *holes2)
   return 1;
 }
 
-/* Print the list of bounded local variables */
+/* Print the list of bounded local variables.  */
 
 void 
 print_local_holes (void) 
@@ -606,7 +605,7 @@ print_local_holes (void)
     }
 }
 
-/* Print the list of bounded global variables */
+/* Print the list of bounded global variables.  */
 
 void 
 print_global_holes (void) 
@@ -688,7 +687,7 @@ tree_match (tree t, const char *fmt, cfg_node ctx_node)
     }
 }
 
-/* Match a tree against a disjunctive pattern with named holes. */
+/* Match a tree against a disjunctive pattern with named holes.  */
 
 bool 
 tree_match_disj (tree t, pattern patt, cfg_node ctx_node) 

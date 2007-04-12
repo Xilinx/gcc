@@ -1,3 +1,10 @@
+2007-04-12  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* tree-match.c: Fix comments formatting.
+	* tree-match.h: Fix comments formatting.
+	* tree-check.c: Fix comments formatting.
+	(tree_check_init): Restructure.
+
 2007-04-12  Nic Volanschi  <nic.volanschi@free.fr>
 
 	* doc/invoke.texi (-ftree-check, -ftree-checks): Documented.
