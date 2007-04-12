@@ -130,6 +130,7 @@ only one of these two forms, whichever one is not the default.
 * Language Independent Options:: Controlling how diagnostics should be
                         formatted.
 * Warning Options::     How picky should the compiler be?
+* User-Defined Checking Options:: Customizing the compiler checks
 * Debugging Options::   Symbol tables, measurements, and debugging dumps.
 * Optimize Options::    How much optimization?
 * Preprocessor Options:: Controlling header files and macro definitions.
@@ -351,7 +352,7 @@ Objective-C and Objective-C++ Dialects}.
 -fvariable-expansion-in-unroller @gol
 -ftree-pre  -ftree-ccp  -ftree-dce -ftree-loop-optimize @gol
 -ftree-loop-linear -fgraphite -ftree-loop-im -ftree-loop-ivcanon -fivopts @gol
--fcheck-data-deps @gol
+-fcheck-data-deps -ftree-check=@var{pattern} -ftree-checks=@var{file} @gol
 -ftree-dominator-opts -ftree-dse -ftree-copyrename -ftree-sink @gol
 -ftree-ch -ftree-sra -ftree-ter -ftree-fre -ftree-vectorize @gol
 -ftree-vect-loop-version -ftree-salias -fipa-pta -fweb @gol
@@ -3823,6 +3824,187 @@ minimum maximum, so we do not diagnose overlength strings in C++@.
 
 This option is implied by @option{-pedantic}, and can be disabled with
 @option{-Wno-overlength-strings}.
+@end table
+
+@node User-Defined Checking Options
+@section User-Defined Checks
+@cindex condates
+
+GCC can be customized very easily to perform user-defined checks for
+detecting for example memory leaks, unreleased locks, or null pointer
+dereferences.  User-defined checks are performed in addition to normal
+compilation, and may result in additional warning messages.
+
+Currently, only the C language takes into account user-defined
+checking options.
+
+The following options control user-defined checks:
+
+@table @gcctabopt
+@cindex syntax checking
+@item -ftree-check=@var{pattern}
+@opindex ftree-check
+Raise a warning for every statement matching an atomic syntactic
+@var{pattern} in the source files being compiled.
+
+Atomic syntactic patterns are plain C code fragments but possibly
+containing pattern variables.  Pattern variables are sometimes called
+meta-variables, to distinguish them from variables of the C language.
+Pattern variables are represented by the @code{%} character followed
+by a variable name consisting of one letter.  For example, @code{%X =
+malloc (%Y)}, @code{return %X}, @code{%X = %X + 1}, @code{%X++},
+@code{%X * 3}, @code{sizeof (%X)}, and @code{%X == 0} are atomic
+patterns representing C statements or expressions.  Note that there is
+no special difference between atomic statement patterns and atomic
+expression patterns.
+
+A C fragment matches an atomic pattern if there is a substitution
+mapping the pattern variables to C sub-fragments that makes the
+pattern equal to the C fragment.  This means that a same variable
+occurring twice in a pattern stands for the same sub-fragment.  By
+exception, there is an anonymous variable, noted @code{%_} whose
+occurrences may stand for different sub-fragments.  For instance, the
+code fragment @code{a[i] = a[i] + 1} matches the pattern @code{%X = %X
++ 1}.  The fragment @code{a[i] = a[i - 1] + 1} does not match the
+pattern @code{%X = %X + 1}, but it matches the pattern @code{%X = %Y +
+1} and also the pattern @code{%_ = %_ + 1}.
+
+Using @option{-ftree-check=@var{pattern}}, one can search for
+dangerous or unrecommended statements.  For instance, the standard
+library call @code{gets ()} is unrecommended because it can be used in
+a malicious way by an external attack that overruns the corresponding
+buffer in the program.  All these cases may be warned by supplying the
+option @code{-ftree-check="gets (%_)"}.
+
+Note that patterns are tried only on the top level of a statement.
+Thus, pattern @code{gets (%_)} would not match statement @code{i = gets (buff)}.
+This latter form can be matched by the pattern @code{%_ = gets (%_)}.
+If you want to match both forms of calling @code{gets ()}, you should use
+a disjunctive pattern, as described later on.
+
+@item -ftree-checks=@var{file}
+@opindex ftree-checks
+Perform the series of user-defined checks defined in @var{file} over
+the source files being compiled.
+
+More complex user-defined checks take into account not only syntax,
+but also control flow and data flow information.  These control flow
+and dataflow patterns are called ``condates''.  A condate encodes an
+example of programming error that should never occur.
+
+GCC traverses the CFG and prints a warning for each example of condate
+it finds.  Condates express reachability properties on the
+control-flow graph of each function, having the general form:
+
+@smallexample
+from @var{s1} to @var{s2} avoid @var{e};
+@end smallexample
+
+interpreted as ``find some path in the CFG starting with a statement
+matching @var{s1}, finishing with a statement matching @var{s2} while
+avoiding all edges matching @var{e}'', where @var{s1}, @var{s2} are
+statement patterns, and @var{e} is an edge pattern.
+
+A statement pattern is either an atomic statement pattern, as
+described above, or a disjunction of atomic statement patterns
+separated by the @code{or} operator.  For example the statement
+pattern @code{"gets (%_)" or "%_ = gets (%_)"} matches any call
+to @code{gets ()}.
+
+An edge pattern may have one of the following forms: 
+
+@itemize @bullet
+@item @code{@var{s}}, where @var{s} is an atomic statement pattern: 
+      matches any edge leaving a statement matching @var{s},
+
+@item @code{+@var{exp}}, where @var{exp} is an atomic expression pattern:
+      matches the @code{then} edge of any conditional statement whose 
+      test expression matches @var{exp},
+
+@item @code{-@var{exp}}, where @var{exp} is an atomic expression pattern:
+      matches the @code{else} edge of any conditional statement whose 
+      test expression matches @var{exp},
+
+@item @code{@var{p1} or @var{p2}}, where @var{p1} and @var{p2} are edge
+      patterns: matches any edge matching one of the two patterns.
+@end itemize
+
+All parts of a condate except the first part may be omitted.  The
+default pattern for the @code{to} pattern @var{s2} is the @code{%_}
+pattern matching anything.  The default pattern for the @code{avoid}
+pattern @var{p3} is the null pattern, matching nothing.  In
+particular, if only the @code{from} part is specified, meaning that
+there is a path from @var{p1} to anywhere avoiding nothing, the
+compiler simply issues a warning for all statements matching pattern
+@var{p1}.
+
+For example, the following check detects cases when a function exits
+with interrupts disabled: 
+
+@smallexample
+from "disable_interrupts (%X)" to "return" or "return %_"
+avoid "enable_interrupts (%X)";
+@end smallexample
+
+Here is a slightly more complex example involving all the three
+patterns, and looking for pointers obtained through @code{malloc ()}
+being dereferenced without being checked as non-null:
+
+@smallexample
+from "%X = malloc(%_)"
+to "%_ = %X->%_" or "%X->%_ = %_"
+avoid "%X = %_" or +"%X != 0B" or -"%X == 0B";
+@end smallexample
+
+Note that @code{NULL} values are represented as @code{0B} above
+because condates are checked on the Gimple form, where @code{NULL}
+pointers are represented as such.  To see the Gimple form, use
+@option{-fdump-tree-gimple}, which generates it in file
+@file{@var{name}.c.004t.gimple}.
+
+Pattern variables occuring in checks are of two kinds:
+
+@itemize @bullet
+@item global variables, named by upper case letters (%A, %X, ...), shared
+      between the patterns of a same check
+
+@item local variables, named by lower case letters (%b, %i, ...), that are
+      local to each pattern.  Recall however, that even a local variable 
+      occuring twice in the same pattern must stand for the same value.
+@end itemize
+
+Using @option{-ftree-checks=@var{file}}, one can check for a series of
+condates defined in the given @var{file} as described above.  Comments
+may be added at any place within the file, preceded by a @code{#}
+character.
+
+All the condates described so far are anonymous condates.  When raising
+a warning on an anonymous condate, GCC refers to it by its indexing
+number in @var{file}, and prints a generic warning message.  There is
+an alternate syntax for condates allowing to give them a name and to
+customize the corresponding warning message:
+
+@smallexample
+condate @var{name} @{ @var{condate} @} warning(``@var{message}'');
+@end smallexample
+
+For example (a slightly extended version of) the malloc check above
+can be defined as a named condate as follows:
+
+@smallexample
+@group
+condate malloc_deref @{
+  from "%X = malloc (%_)"   # any malloc
+  to "%_ = %X->%_" or "%X->%_ = %_" 
+     or "*%X = %_" or "%_ = *%X"
+  avoid "%X = %_" or +"%X != 0B" or -"%X == 0B"
+@} warning("unsafe dereference of X after malloc");
+@end group
+@end smallexample
+
+Named condates should be preferred over anonymous condates as
+they generate more explicit warnings.
+
 @end table
 
 @node Debugging Options

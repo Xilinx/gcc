@@ -1,3 +1,7 @@
+2007-04-12  Nic Volanschi  <nic.volanschi@free.fr>
+
+	* doc/invoke.texi (-ftree-check, -ftree-checks): Documented.
+
 2007-04-10  Sebastian Pop  <sebastian.pop@inria.fr>
 
 	* Merge from mainline (r120733:123693).
