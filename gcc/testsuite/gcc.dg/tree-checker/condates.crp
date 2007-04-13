@@ -1,0 +1,32 @@
+#
+# Examples of condates
+#
+
+condate malloc_deref {
+  from "%X = malloc (%_)"   # any malloc
+  to "%_ = %X->%_" or "%X->%_ = %_" 
+     or "*%X = %_" or "%_ = *%X"
+  avoid "%X = %_" or +"%X != 0B" or -"%X == 0B"
+} warning("Unsafe dereference of X after malloc");
+
+condate unfreed {
+  from "%X = malloc (%_)" to "return" or "return %_"
+  avoid "free (%X)" or +"%X == 0B" or -"%X != 0B"
+} warning("Un-freed memory for variable X");
+
+condate missing_unlock {
+  from "flockfile (%X)"
+  to ("return" or "return %_") 
+  avoid "funlockfile (%X)"
+} warning("Unreleased lock on file X");
+
+condate missing_tryunlock {
+  from "%L = ftrylockfile (%X)"
+  to ("return" or "return %_") 
+  avoid "funlockfile (%X)" or +"%L != 0" or -"%L == 0"
+} warning("Unreleased (successful) trylock on file X");
+
+condate gets {   # "degenerate" crq, of only one pattern
+  # 'from' keyword must be omitted:
+  "%X = gets(%Y)" or "gets(%Y)"
+} warning("Never use gets(), see man gets");

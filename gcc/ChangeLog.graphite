@@ -1,3 +1,16 @@
+2007-04-13  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* doc/invoke.texi (-ftree-check-verbose): Documented.
+	* testsuite/gcc.dg/tree-checker/tree-checks-1.c: New.
+	* testsuite/gcc.dg/tree-checker/tree-checks-2.c: New.
+	* testsuite/gcc.dg/tree-checker/tree-checks-3.c: New.
+	* testsuite/gcc.dg/tree-checker/tree-checks-4.c: New.
+	* testsuite/gcc.dg/tree-checker/tree-checks.exp: New.
+	* testsuite/gcc.dg/tree-checker/condates.crp: New.
+	* common.opt (ftree-checks-verbose): New.
+	* tree-check.c (tree_check_warning): Move extra stderr output under control
+	of flag_tree_check_verbose.
+
 2007-04-12  Sebastian Pop  <sebastian.pop@inria.fr>
 
 	* tree-match.c: Fix comments formatting.

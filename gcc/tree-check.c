@@ -54,16 +54,20 @@ tree_check_warning (condate cond, tree stmt, int check_option)
   if (EXPR_HAS_LOCATION (stmt))
     input_location = EXPR_LOCATION (stmt);
 
-  warning (check_option, "user-defined warning %s:", cond->name);
-  if (cond->msg) 
-    fprintf (stderr, "%s:%d: %s\n", input_location.file, input_location.line, cond->msg);
-  fprintf (stderr, "%s:%d: instance = ", input_location.file, input_location.line);
-  /*   print_local_holes (); */
-  print_global_holes ();
-  fprintf (stderr, ",\n");
-  fprintf (stderr, "%s:%d: reached: ", input_location.file, input_location.line); 
-  print_generic_expr (stderr, stmt, 0);
-  fprintf (stderr, ".\n");
+  warning (check_option, "user-defined warning %s: %s.",
+	   cond->name, cond->msg ? cond->msg : "");
+
+  if (flag_tree_check_verbose)
+    {
+      fprintf (stderr, "%s:%d: instance = ", input_location.file, input_location.line);
+      /*   print_local_holes (); */
+      print_global_holes ();
+      fprintf (stderr, ",\n");
+      fprintf (stderr, "%s:%d: reached: ", input_location.file, input_location.line); 
+      print_generic_expr (stderr, stmt, 0);
+      fprintf (stderr, ".\n");
+    }
+
   input_location = saved_location;
 }
 
