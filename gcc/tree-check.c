@@ -57,7 +57,7 @@ tree_check_warning (condate cond, tree stmt, int check_option)
   warning (check_option, "user-defined warning %s: %s.",
 	   cond->name, cond->msg ? cond->msg : "");
 
-  if (flag_tree_check_verbose)
+  if (flag_tree_checks_verbose)
     {
       fprintf (stderr, "%s:%d: instance = ", input_location.file, input_location.line);
       /*   print_local_holes (); */

@@ -1,5 +1,11 @@
 2007-04-14  Sebastian Pop  <sebastian.pop@inria.fr>
 
+	* doc/invoke.texi (-ftree-check-verbose): Renamed -ftree-checks-verbose.
+	* common.opt (flag_tree_check_verbose): Renamed flag_tree_checks_verbose.
+	* tree-check.c (tree_check_warning): Use flag_tree_checks_verbose.
+
+2007-04-14  Sebastian Pop  <sebastian.pop@inria.fr>
+
 	* configure: Regenerated.
 	* config.in: Regenerated.
 	* tree-ssa-loop.c (graphite_transforms): Execute graphite_transform_loops

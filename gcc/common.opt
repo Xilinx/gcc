@@ -999,7 +999,7 @@ Common Joined RejectNegative
 -ftree-checks=file: Take checking rules from file
 
 ftree-checks-verbose
-Common Report Var(flag_tree_check_verbose)
+Common Report Var(flag_tree_checks_verbose)
 Outputs more information on stderr for each tree-check warning
 
 ftree-copyrename
