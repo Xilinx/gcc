@@ -986,7 +986,7 @@ bool sra_type_can_be_decomposed_p (tree);
 extern void linear_transform_loops (void);
 
 /* In graphite.c  */
-extern void graphite_transform_loops (struct loops *);
+extern void graphite_transform_loops (void);
 
 /* In tree-data-ref.c  */
 extern void tree_check_data_deps (void);

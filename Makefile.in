@@ -174,6 +174,10 @@ HOST_EXPORTS = \
 	TOPLEVEL_CONFIGURE_ARGUMENTS="$(TOPLEVEL_CONFIGURE_ARGUMENTS)"; export TOPLEVEL_CONFIGURE_ARGUMENTS; \
 	GMPLIBS="$(HOST_GMPLIBS)"; export GMPLIBS; \
 	GMPINC="$(HOST_GMPINC)"; export GMPINC; \
+	POLYLIBLIBS="$(HOST_POLYLIBLIBS)"; export POLYLIBLIBS; \
+	POLYLIBINC="$(HOST_POLYLIBINC)"; export POLYLIBINC; \
+	CLOOGLIBS="$(HOST_CLOOGLIBS)"; export CLOOGLIBS; \
+	CLOOGINC="$(HOST_CLOOGINC)"; export CLOOGINC; \
 @if gcc-bootstrap
 	$(RPATH_ENVVAR)=`echo "$(TARGET_LIB_PATH)$$$(RPATH_ENVVAR)" | sed 's,::*,:,g;s,^:*,,;s,:*$$,,'`; export $(RPATH_ENVVAR); \
 @endif gcc-bootstrap
@@ -232,6 +236,14 @@ NORMAL_TARGET_EXPORTS = \
 # Where to find GMP
 HOST_GMPLIBS = @gmplibs@
 HOST_GMPINC = @gmpinc@
+
+# Where to find POLYLIB
+HOST_POLYLIBLIBS = @polyliblibs@
+HOST_POLYLIBINC = @polylibinc@
+
+# Where to find CLOOG
+HOST_CLOOGLIBS = @clooglibs@
+HOST_CLOOGINC = @clooginc@
 
 # ----------------------------------------------
 # Programs producing files for the BUILD machine
@@ -401,7 +413,7 @@ TARGET_LIB_PATH_libgomp = $$r/$(TARGET_SUBDIR)/libgomp/.libs:
 
 # This is the list of directories that may be needed in RPATH_ENVVAR
 # so that programs built for the host machine work.
-HOST_LIB_PATH = $(HOST_LIB_PATH_bfd)$(HOST_LIB_PATH_opcodes)$(HOST_LIB_PATH_gmp)$(HOST_LIB_PATH_mpfr)
+HOST_LIB_PATH = $(HOST_LIB_PATH_bfd)$(HOST_LIB_PATH_opcodes)$(HOST_LIB_PATH_gmp)$(HOST_LIB_PATH_mpfr)$(HOST_LIB_PATH_polylib)$(HOST_LIB_PATH_cloog)
 
 # Define HOST_LIB_PATH_gcc here, for the sake of TARGET_LIB_PATH, ouch
 @if gcc
@@ -428,6 +440,16 @@ HOST_LIB_PATH_gmp = \
 HOST_LIB_PATH_mpfr = \
   $$r/$(HOST_SUBDIR)/mpfr/.libs:$$r/$(HOST_SUBDIR)/prev-mpfr/.libs:
 @endif mpfr
+
+@if polylib
+HOST_LIB_PATH_polylib = \
+  $$r/$(HOST_SUBDIR)/polylib/.libs:$$r/$(HOST_SUBDIR)/prev-polylib/.libs:
+@endif polylib
+
+@if cloog
+HOST_LIB_PATH_cloog = \
+  $$r/$(HOST_SUBDIR)/cloog/.libs:$$r/$(HOST_SUBDIR)/prev-cloog/.libs:
+@endif cloog
 
 
 # Flags to pass down to all sub-makes.
@@ -624,6 +646,8 @@ configure-host:  \
     maybe-configure-gettext \
     maybe-configure-gmp \
     maybe-configure-mpfr \
+    maybe-configure-polylib \
+    maybe-configure-cloog \
     maybe-configure-gnuserv \
     maybe-configure-gprof \
     maybe-configure-gzip \
@@ -762,6 +786,12 @@ all-host: maybe-all-gmp
 @if mpfr-no-bootstrap
 all-host: maybe-all-mpfr
 @endif mpfr-no-bootstrap
+@if polylib-no-bootstrap
+all-host: maybe-all-polylib
+@endif polylib-no-bootstrap
+@if cloog-no-bootstrap
+all-host: maybe-all-cloog
+@endif cloog-no-bootstrap
 all-host: maybe-all-gnuserv
 all-host: maybe-all-gprof
 all-host: maybe-all-gzip
@@ -887,6 +917,8 @@ info-host: maybe-info-gawk
 info-host: maybe-info-gettext
 info-host: maybe-info-gmp
 info-host: maybe-info-mpfr
+info-host: maybe-info-polylib
+info-host: maybe-info-cloog
 info-host: maybe-info-gnuserv
 info-host: maybe-info-gprof
 info-host: maybe-info-gzip
@@ -993,6 +1025,8 @@ dvi-host: maybe-dvi-gawk
 dvi-host: maybe-dvi-gettext
 dvi-host: maybe-dvi-gmp
 dvi-host: maybe-dvi-mpfr
+dvi-host: maybe-dvi-polylib
+dvi-host: maybe-dvi-cloog
 dvi-host: maybe-dvi-gnuserv
 dvi-host: maybe-dvi-gprof
 dvi-host: maybe-dvi-gzip
@@ -1099,6 +1133,8 @@ pdf-host: maybe-pdf-gawk
 pdf-host: maybe-pdf-gettext
 pdf-host: maybe-pdf-gmp
 pdf-host: maybe-pdf-mpfr
+pdf-host: maybe-pdf-polylib
+pdf-host: maybe-pdf-cloog
 pdf-host: maybe-pdf-gnuserv
 pdf-host: maybe-pdf-gprof
 pdf-host: maybe-pdf-gzip
@@ -1205,6 +1241,8 @@ html-host: maybe-html-gawk
 html-host: maybe-html-gettext
 html-host: maybe-html-gmp
 html-host: maybe-html-mpfr
+html-host: maybe-html-polylib
+html-host: maybe-html-cloog
 html-host: maybe-html-gnuserv
 html-host: maybe-html-gprof
 html-host: maybe-html-gzip
@@ -1311,6 +1349,8 @@ TAGS-host: maybe-TAGS-gawk
 TAGS-host: maybe-TAGS-gettext
 TAGS-host: maybe-TAGS-gmp
 TAGS-host: maybe-TAGS-mpfr
+TAGS-host: maybe-TAGS-polylib
+TAGS-host: maybe-TAGS-cloog
 TAGS-host: maybe-TAGS-gnuserv
 TAGS-host: maybe-TAGS-gprof
 TAGS-host: maybe-TAGS-gzip
@@ -1417,6 +1457,8 @@ install-info-host: maybe-install-info-gawk
 install-info-host: maybe-install-info-gettext
 install-info-host: maybe-install-info-gmp
 install-info-host: maybe-install-info-mpfr
+install-info-host: maybe-install-info-polylib
+install-info-host: maybe-install-info-cloog
 install-info-host: maybe-install-info-gnuserv
 install-info-host: maybe-install-info-gprof
 install-info-host: maybe-install-info-gzip
@@ -1523,6 +1565,8 @@ install-pdf-host: maybe-install-pdf-gawk
 install-pdf-host: maybe-install-pdf-gettext
 install-pdf-host: maybe-install-pdf-gmp
 install-pdf-host: maybe-install-pdf-mpfr
+install-pdf-host: maybe-install-pdf-polylib
+install-pdf-host: maybe-install-pdf-cloog
 install-pdf-host: maybe-install-pdf-gnuserv
 install-pdf-host: maybe-install-pdf-gprof
 install-pdf-host: maybe-install-pdf-gzip
@@ -1629,6 +1673,8 @@ install-html-host: maybe-install-html-gawk
 install-html-host: maybe-install-html-gettext
 install-html-host: maybe-install-html-gmp
 install-html-host: maybe-install-html-mpfr
+install-html-host: maybe-install-html-polylib
+install-html-host: maybe-install-html-cloog
 install-html-host: maybe-install-html-gnuserv
 install-html-host: maybe-install-html-gprof
 install-html-host: maybe-install-html-gzip
@@ -1735,6 +1781,8 @@ installcheck-host: maybe-installcheck-gawk
 installcheck-host: maybe-installcheck-gettext
 installcheck-host: maybe-installcheck-gmp
 installcheck-host: maybe-installcheck-mpfr
+installcheck-host: maybe-installcheck-polylib
+installcheck-host: maybe-installcheck-cloog
 installcheck-host: maybe-installcheck-gnuserv
 installcheck-host: maybe-installcheck-gprof
 installcheck-host: maybe-installcheck-gzip
@@ -1841,6 +1889,8 @@ mostlyclean-host: maybe-mostlyclean-gawk
 mostlyclean-host: maybe-mostlyclean-gettext
 mostlyclean-host: maybe-mostlyclean-gmp
 mostlyclean-host: maybe-mostlyclean-mpfr
+mostlyclean-host: maybe-mostlyclean-polylib
+mostlyclean-host: maybe-mostlyclean-cloog
 mostlyclean-host: maybe-mostlyclean-gnuserv
 mostlyclean-host: maybe-mostlyclean-gprof
 mostlyclean-host: maybe-mostlyclean-gzip
@@ -1947,6 +1997,8 @@ clean-host: maybe-clean-gawk
 clean-host: maybe-clean-gettext
 clean-host: maybe-clean-gmp
 clean-host: maybe-clean-mpfr
+clean-host: maybe-clean-polylib
+clean-host: maybe-clean-cloog
 clean-host: maybe-clean-gnuserv
 clean-host: maybe-clean-gprof
 clean-host: maybe-clean-gzip
@@ -2053,6 +2105,8 @@ distclean-host: maybe-distclean-gawk
 distclean-host: maybe-distclean-gettext
 distclean-host: maybe-distclean-gmp
 distclean-host: maybe-distclean-mpfr
+distclean-host: maybe-distclean-polylib
+distclean-host: maybe-distclean-cloog
 distclean-host: maybe-distclean-gnuserv
 distclean-host: maybe-distclean-gprof
 distclean-host: maybe-distclean-gzip
@@ -2159,6 +2213,8 @@ maintainer-clean-host: maybe-maintainer-clean-gawk
 maintainer-clean-host: maybe-maintainer-clean-gettext
 maintainer-clean-host: maybe-maintainer-clean-gmp
 maintainer-clean-host: maybe-maintainer-clean-mpfr
+maintainer-clean-host: maybe-maintainer-clean-polylib
+maintainer-clean-host: maybe-maintainer-clean-cloog
 maintainer-clean-host: maybe-maintainer-clean-gnuserv
 maintainer-clean-host: maybe-maintainer-clean-gprof
 maintainer-clean-host: maybe-maintainer-clean-gzip
@@ -2319,6 +2375,8 @@ check-host:  \
     maybe-check-gettext \
     maybe-check-gmp \
     maybe-check-mpfr \
+    maybe-check-polylib \
+    maybe-check-cloog \
     maybe-check-gnuserv \
     maybe-check-gprof \
     maybe-check-gzip \
@@ -2451,6 +2509,8 @@ install-host-nogcc:  \
     maybe-install-gettext \
     maybe-install-gmp \
     maybe-install-mpfr \
+    maybe-install-polylib \
+    maybe-install-cloog \
     maybe-install-gnuserv \
     maybe-install-gprof \
     maybe-install-gzip \
@@ -2524,6 +2584,8 @@ install-host:  \
     maybe-install-gettext \
     maybe-install-gmp \
     maybe-install-mpfr \
+    maybe-install-polylib \
+    maybe-install-cloog \
     maybe-install-gnuserv \
     maybe-install-gprof \
     maybe-install-gzip \
@@ -16594,6 +16656,1570 @@ maintainer-clean-mpfr:
 	  || exit 1
 
 @endif mpfr
+
+
+
+.PHONY: configure-polylib maybe-configure-polylib
+maybe-configure-polylib:
+@if gcc-bootstrap
+configure-polylib: stage_current
+@endif gcc-bootstrap
+@if polylib
+maybe-configure-polylib: configure-polylib
+configure-polylib: 
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/polylib/Makefile || exit 0; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib ; \
+	$(HOST_EXPORTS) \
+	echo Configuring in $(HOST_SUBDIR)/polylib; \
+	cd "$(HOST_SUBDIR)/polylib" || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/polylib/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/polylib"; \
+	libsrcdir="$$s/polylib"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} --disable-shared --with-gmp-libs=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-includes=$$r/$(HOST_SUBDIR)/gmp \
+	  || exit 1
+@endif polylib
+
+
+
+.PHONY: configure-stage1-polylib maybe-configure-stage1-polylib
+maybe-configure-stage1-polylib:
+@if polylib-bootstrap
+maybe-configure-stage1-polylib: configure-stage1-polylib
+configure-stage1-polylib:
+	@[ $(current_stage) = stage1 ] || $(MAKE) stage1-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/polylib/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	echo Configuring stage 1 in $(HOST_SUBDIR)/polylib ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib ; \
+	cd $(HOST_SUBDIR)/polylib || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/polylib/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/polylib"; \
+	libsrcdir="$$s/polylib"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	   \
+	  --disable-intermodule $(STAGE1_CHECKING) 	  --disable-coverage --enable-languages="$(STAGE1_LANGUAGES)" --disable-shared --with-gmp-libs=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-includes=$$r/$(HOST_SUBDIR)/gmp
+@endif polylib-bootstrap
+
+.PHONY: configure-stage2-polylib maybe-configure-stage2-polylib
+maybe-configure-stage2-polylib:
+@if polylib-bootstrap
+maybe-configure-stage2-polylib: configure-stage2-polylib
+configure-stage2-polylib:
+	@[ $(current_stage) = stage2 ] || $(MAKE) stage2-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/polylib/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	echo Configuring stage 2 in $(HOST_SUBDIR)/polylib ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib ; \
+	cd $(HOST_SUBDIR)/polylib || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/polylib/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/polylib"; \
+	libsrcdir="$$s/polylib"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ --disable-shared --with-gmp-libs=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-includes=$$r/$(HOST_SUBDIR)/gmp
+@endif polylib-bootstrap
+
+.PHONY: configure-stage3-polylib maybe-configure-stage3-polylib
+maybe-configure-stage3-polylib:
+@if polylib-bootstrap
+maybe-configure-stage3-polylib: configure-stage3-polylib
+configure-stage3-polylib:
+	@[ $(current_stage) = stage3 ] || $(MAKE) stage3-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/polylib/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	echo Configuring stage 3 in $(HOST_SUBDIR)/polylib ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib ; \
+	cd $(HOST_SUBDIR)/polylib || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/polylib/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/polylib"; \
+	libsrcdir="$$s/polylib"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ --disable-shared --with-gmp-libs=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-includes=$$r/$(HOST_SUBDIR)/gmp
+@endif polylib-bootstrap
+
+.PHONY: configure-stage4-polylib maybe-configure-stage4-polylib
+maybe-configure-stage4-polylib:
+@if polylib-bootstrap
+maybe-configure-stage4-polylib: configure-stage4-polylib
+configure-stage4-polylib:
+	@[ $(current_stage) = stage4 ] || $(MAKE) stage4-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/polylib/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	echo Configuring stage 4 in $(HOST_SUBDIR)/polylib ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib ; \
+	cd $(HOST_SUBDIR)/polylib || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/polylib/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/polylib"; \
+	libsrcdir="$$s/polylib"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ --disable-shared --with-gmp-libs=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-includes=$$r/$(HOST_SUBDIR)/gmp
+@endif polylib-bootstrap
+
+.PHONY: configure-stageprofile-polylib maybe-configure-stageprofile-polylib
+maybe-configure-stageprofile-polylib:
+@if polylib-bootstrap
+maybe-configure-stageprofile-polylib: configure-stageprofile-polylib
+configure-stageprofile-polylib:
+	@[ $(current_stage) = stageprofile ] || $(MAKE) stageprofile-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/polylib/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	echo Configuring stage profile in $(HOST_SUBDIR)/polylib ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib ; \
+	cd $(HOST_SUBDIR)/polylib || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/polylib/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/polylib"; \
+	libsrcdir="$$s/polylib"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ --disable-shared --with-gmp-libs=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-includes=$$r/$(HOST_SUBDIR)/gmp
+@endif polylib-bootstrap
+
+.PHONY: configure-stagefeedback-polylib maybe-configure-stagefeedback-polylib
+maybe-configure-stagefeedback-polylib:
+@if polylib-bootstrap
+maybe-configure-stagefeedback-polylib: configure-stagefeedback-polylib
+configure-stagefeedback-polylib:
+	@[ $(current_stage) = stagefeedback ] || $(MAKE) stagefeedback-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/polylib/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	echo Configuring stage feedback in $(HOST_SUBDIR)/polylib ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/polylib ; \
+	cd $(HOST_SUBDIR)/polylib || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/polylib/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/polylib"; \
+	libsrcdir="$$s/polylib"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ --disable-shared --with-gmp-libs=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-includes=$$r/$(HOST_SUBDIR)/gmp
+@endif polylib-bootstrap
+
+
+
+
+
+.PHONY: all-polylib maybe-all-polylib
+maybe-all-polylib:
+@if gcc-bootstrap
+all-polylib: stage_current
+@endif gcc-bootstrap
+@if polylib
+TARGET-polylib=all
+maybe-all-polylib: all-polylib
+all-polylib: configure-polylib
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(FLAGS_TO_PASS)  $(TARGET-polylib))
+@endif polylib
+
+
+
+.PHONY: all-stage1-polylib maybe-all-stage1-polylib
+.PHONY: clean-stage1-polylib maybe-clean-stage1-polylib
+maybe-all-stage1-polylib:
+maybe-clean-stage1-polylib:
+@if polylib-bootstrap
+maybe-all-stage1-polylib: all-stage1-polylib
+all-stage1: all-stage1-polylib
+TARGET-stage1-polylib = $(TARGET-polylib)
+all-stage1-polylib: configure-stage1-polylib
+	@[ $(current_stage) = stage1 ] || $(MAKE) stage1-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS)  CFLAGS="$(STAGE1_CFLAGS)" LIBCFLAGS="$(STAGE1_CFLAGS)"  \
+		$(TARGET-stage1-polylib)
+
+maybe-clean-stage1-polylib: clean-stage1-polylib
+clean-stage1: clean-stage1-polylib
+clean-stage1-polylib:
+	@if [ $(current_stage) = stage1 ]; then \
+	  [ -f $(HOST_SUBDIR)/polylib/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage1-polylib/Makefile ] || exit 0; \
+	  $(MAKE) stage1-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		CFLAGS="$(STAGE1_CFLAGS)" LIBCFLAGS="$(STAGE1_CFLAGS)"  clean
+@endif polylib-bootstrap
+
+
+.PHONY: all-stage2-polylib maybe-all-stage2-polylib
+.PHONY: clean-stage2-polylib maybe-clean-stage2-polylib
+maybe-all-stage2-polylib:
+maybe-clean-stage2-polylib:
+@if polylib-bootstrap
+maybe-all-stage2-polylib: all-stage2-polylib
+all-stage2: all-stage2-polylib
+TARGET-stage2-polylib = $(TARGET-polylib)
+all-stage2-polylib: configure-stage2-polylib
+	@[ $(current_stage) = stage2 ] || $(MAKE) stage2-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS) $(POSTSTAGE1_FLAGS_TO_PASS)   \
+		$(TARGET-stage2-polylib)
+
+maybe-clean-stage2-polylib: clean-stage2-polylib
+clean-stage2: clean-stage2-polylib
+clean-stage2-polylib:
+	@if [ $(current_stage) = stage2 ]; then \
+	  [ -f $(HOST_SUBDIR)/polylib/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage2-polylib/Makefile ] || exit 0; \
+	  $(MAKE) stage2-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		  clean
+@endif polylib-bootstrap
+
+
+.PHONY: all-stage3-polylib maybe-all-stage3-polylib
+.PHONY: clean-stage3-polylib maybe-clean-stage3-polylib
+maybe-all-stage3-polylib:
+maybe-clean-stage3-polylib:
+@if polylib-bootstrap
+maybe-all-stage3-polylib: all-stage3-polylib
+all-stage3: all-stage3-polylib
+TARGET-stage3-polylib = $(TARGET-polylib)
+all-stage3-polylib: configure-stage3-polylib
+	@[ $(current_stage) = stage3 ] || $(MAKE) stage3-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS) $(POSTSTAGE1_FLAGS_TO_PASS)   \
+		$(TARGET-stage3-polylib)
+
+maybe-clean-stage3-polylib: clean-stage3-polylib
+clean-stage3: clean-stage3-polylib
+clean-stage3-polylib:
+	@if [ $(current_stage) = stage3 ]; then \
+	  [ -f $(HOST_SUBDIR)/polylib/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage3-polylib/Makefile ] || exit 0; \
+	  $(MAKE) stage3-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		  clean
+@endif polylib-bootstrap
+
+
+.PHONY: all-stage4-polylib maybe-all-stage4-polylib
+.PHONY: clean-stage4-polylib maybe-clean-stage4-polylib
+maybe-all-stage4-polylib:
+maybe-clean-stage4-polylib:
+@if polylib-bootstrap
+maybe-all-stage4-polylib: all-stage4-polylib
+all-stage4: all-stage4-polylib
+TARGET-stage4-polylib = $(TARGET-polylib)
+all-stage4-polylib: configure-stage4-polylib
+	@[ $(current_stage) = stage4 ] || $(MAKE) stage4-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS) $(POSTSTAGE1_FLAGS_TO_PASS)   \
+		$(TARGET-stage4-polylib)
+
+maybe-clean-stage4-polylib: clean-stage4-polylib
+clean-stage4: clean-stage4-polylib
+clean-stage4-polylib:
+	@if [ $(current_stage) = stage4 ]; then \
+	  [ -f $(HOST_SUBDIR)/polylib/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage4-polylib/Makefile ] || exit 0; \
+	  $(MAKE) stage4-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		  clean
+@endif polylib-bootstrap
+
+
+.PHONY: all-stageprofile-polylib maybe-all-stageprofile-polylib
+.PHONY: clean-stageprofile-polylib maybe-clean-stageprofile-polylib
+maybe-all-stageprofile-polylib:
+maybe-clean-stageprofile-polylib:
+@if polylib-bootstrap
+maybe-all-stageprofile-polylib: all-stageprofile-polylib
+all-stageprofile: all-stageprofile-polylib
+TARGET-stageprofile-polylib = $(TARGET-polylib)
+all-stageprofile-polylib: configure-stageprofile-polylib
+	@[ $(current_stage) = stageprofile ] || $(MAKE) stageprofile-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS) $(POSTSTAGE1_FLAGS_TO_PASS) CFLAGS="$(BOOT_CFLAGS) -fprofile-generate"  \
+		$(TARGET-stageprofile-polylib)
+
+maybe-clean-stageprofile-polylib: clean-stageprofile-polylib
+clean-stageprofile: clean-stageprofile-polylib
+clean-stageprofile-polylib:
+	@if [ $(current_stage) = stageprofile ]; then \
+	  [ -f $(HOST_SUBDIR)/polylib/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stageprofile-polylib/Makefile ] || exit 0; \
+	  $(MAKE) stageprofile-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		CFLAGS="$(BOOT_CFLAGS) -fprofile-generate"  clean
+@endif polylib-bootstrap
+
+
+.PHONY: all-stagefeedback-polylib maybe-all-stagefeedback-polylib
+.PHONY: clean-stagefeedback-polylib maybe-clean-stagefeedback-polylib
+maybe-all-stagefeedback-polylib:
+maybe-clean-stagefeedback-polylib:
+@if polylib-bootstrap
+maybe-all-stagefeedback-polylib: all-stagefeedback-polylib
+all-stagefeedback: all-stagefeedback-polylib
+TARGET-stagefeedback-polylib = $(TARGET-polylib)
+all-stagefeedback-polylib: configure-stagefeedback-polylib
+	@[ $(current_stage) = stagefeedback ] || $(MAKE) stagefeedback-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS) $(POSTSTAGE1_FLAGS_TO_PASS) CFLAGS="$(BOOT_CFLAGS) -fprofile-use"  \
+		$(TARGET-stagefeedback-polylib)
+
+maybe-clean-stagefeedback-polylib: clean-stagefeedback-polylib
+clean-stagefeedback: clean-stagefeedback-polylib
+clean-stagefeedback-polylib:
+	@if [ $(current_stage) = stagefeedback ]; then \
+	  [ -f $(HOST_SUBDIR)/polylib/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stagefeedback-polylib/Makefile ] || exit 0; \
+	  $(MAKE) stagefeedback-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/polylib && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		CFLAGS="$(BOOT_CFLAGS) -fprofile-use"  clean
+@endif polylib-bootstrap
+
+
+
+
+
+.PHONY: check-polylib maybe-check-polylib
+maybe-check-polylib:
+@if polylib
+maybe-check-polylib: check-polylib
+
+check-polylib:
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(FLAGS_TO_PASS)  check)
+
+@endif polylib
+
+.PHONY: install-polylib maybe-install-polylib
+maybe-install-polylib:
+@if polylib
+maybe-install-polylib: install-polylib
+
+install-polylib:
+
+@endif polylib
+
+# Other targets (info, dvi, pdf, etc.)
+
+.PHONY: maybe-info-polylib info-polylib
+maybe-info-polylib:
+@if polylib
+maybe-info-polylib: info-polylib
+
+info-polylib: \
+    configure-polylib 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing info in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          info) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-dvi-polylib dvi-polylib
+maybe-dvi-polylib:
+@if polylib
+maybe-dvi-polylib: dvi-polylib
+
+dvi-polylib: \
+    configure-polylib 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing dvi in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          dvi) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-pdf-polylib pdf-polylib
+maybe-pdf-polylib:
+@if polylib
+maybe-pdf-polylib: pdf-polylib
+
+pdf-polylib: \
+    configure-polylib 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing pdf in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          pdf) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-html-polylib html-polylib
+maybe-html-polylib:
+@if polylib
+maybe-html-polylib: html-polylib
+
+html-polylib: \
+    configure-polylib 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing html in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          html) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-TAGS-polylib TAGS-polylib
+maybe-TAGS-polylib:
+@if polylib
+maybe-TAGS-polylib: TAGS-polylib
+
+TAGS-polylib: \
+    configure-polylib 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing TAGS in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          TAGS) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-install-info-polylib install-info-polylib
+maybe-install-info-polylib:
+@if polylib
+maybe-install-info-polylib: install-info-polylib
+
+install-info-polylib: \
+    configure-polylib \
+    info-polylib 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-info in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          install-info) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-install-pdf-polylib install-pdf-polylib
+maybe-install-pdf-polylib:
+@if polylib
+maybe-install-pdf-polylib: install-pdf-polylib
+
+install-pdf-polylib: \
+    configure-polylib \
+    pdf-polylib 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-pdf in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          install-pdf) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-install-html-polylib install-html-polylib
+maybe-install-html-polylib:
+@if polylib
+maybe-install-html-polylib: install-html-polylib
+
+install-html-polylib: \
+    configure-polylib \
+    html-polylib 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-html in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          install-html) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-installcheck-polylib installcheck-polylib
+maybe-installcheck-polylib:
+@if polylib
+maybe-installcheck-polylib: installcheck-polylib
+
+installcheck-polylib: \
+    configure-polylib 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing installcheck in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          installcheck) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-mostlyclean-polylib mostlyclean-polylib
+maybe-mostlyclean-polylib:
+@if polylib
+maybe-mostlyclean-polylib: mostlyclean-polylib
+
+mostlyclean-polylib: 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing mostlyclean in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          mostlyclean) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-clean-polylib clean-polylib
+maybe-clean-polylib:
+@if polylib
+maybe-clean-polylib: clean-polylib
+
+clean-polylib: 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing clean in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          clean) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-distclean-polylib distclean-polylib
+maybe-distclean-polylib:
+@if polylib
+maybe-distclean-polylib: distclean-polylib
+
+distclean-polylib: 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing distclean in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          distclean) \
+	  || exit 1
+
+@endif polylib
+
+.PHONY: maybe-maintainer-clean-polylib maintainer-clean-polylib
+maybe-maintainer-clean-polylib:
+@if polylib
+maybe-maintainer-clean-polylib: maintainer-clean-polylib
+
+maintainer-clean-polylib: 
+	@[ -f ./polylib/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing maintainer-clean in polylib" ; \
+	(cd $(HOST_SUBDIR)/polylib && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          maintainer-clean) \
+	  || exit 1
+
+@endif polylib
+
+
+
+.PHONY: configure-cloog maybe-configure-cloog
+maybe-configure-cloog:
+@if gcc-bootstrap
+configure-cloog: stage_current
+@endif gcc-bootstrap
+@if cloog
+maybe-configure-cloog: configure-cloog
+configure-cloog: 
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/cloog/Makefile || exit 0; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog ; \
+	$(HOST_EXPORTS) \
+	echo Configuring in $(HOST_SUBDIR)/cloog; \
+	cd "$(HOST_SUBDIR)/cloog" || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/cloog/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/cloog"; \
+	libsrcdir="$$s/cloog"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp \
+	  || exit 1
+@endif cloog
+
+
+
+.PHONY: configure-stage1-cloog maybe-configure-stage1-cloog
+maybe-configure-stage1-cloog:
+@if cloog-bootstrap
+maybe-configure-stage1-cloog: configure-stage1-cloog
+configure-stage1-cloog:
+	@[ $(current_stage) = stage1 ] || $(MAKE) stage1-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/cloog/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	echo Configuring stage 1 in $(HOST_SUBDIR)/cloog ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog ; \
+	cd $(HOST_SUBDIR)/cloog || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/cloog/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/cloog"; \
+	libsrcdir="$$s/cloog"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	   \
+	  --disable-intermodule $(STAGE1_CHECKING) 	  --disable-coverage --enable-languages="$(STAGE1_LANGUAGES)" --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+@endif cloog-bootstrap
+
+.PHONY: configure-stage2-cloog maybe-configure-stage2-cloog
+maybe-configure-stage2-cloog:
+@if cloog-bootstrap
+maybe-configure-stage2-cloog: configure-stage2-cloog
+configure-stage2-cloog:
+	@[ $(current_stage) = stage2 ] || $(MAKE) stage2-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/cloog/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	echo Configuring stage 2 in $(HOST_SUBDIR)/cloog ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog ; \
+	cd $(HOST_SUBDIR)/cloog || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/cloog/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/cloog"; \
+	libsrcdir="$$s/cloog"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+@endif cloog-bootstrap
+
+.PHONY: configure-stage3-cloog maybe-configure-stage3-cloog
+maybe-configure-stage3-cloog:
+@if cloog-bootstrap
+maybe-configure-stage3-cloog: configure-stage3-cloog
+configure-stage3-cloog:
+	@[ $(current_stage) = stage3 ] || $(MAKE) stage3-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/cloog/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	echo Configuring stage 3 in $(HOST_SUBDIR)/cloog ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog ; \
+	cd $(HOST_SUBDIR)/cloog || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/cloog/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/cloog"; \
+	libsrcdir="$$s/cloog"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+@endif cloog-bootstrap
+
+.PHONY: configure-stage4-cloog maybe-configure-stage4-cloog
+maybe-configure-stage4-cloog:
+@if cloog-bootstrap
+maybe-configure-stage4-cloog: configure-stage4-cloog
+configure-stage4-cloog:
+	@[ $(current_stage) = stage4 ] || $(MAKE) stage4-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/cloog/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	echo Configuring stage 4 in $(HOST_SUBDIR)/cloog ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog ; \
+	cd $(HOST_SUBDIR)/cloog || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/cloog/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/cloog"; \
+	libsrcdir="$$s/cloog"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+@endif cloog-bootstrap
+
+.PHONY: configure-stageprofile-cloog maybe-configure-stageprofile-cloog
+maybe-configure-stageprofile-cloog:
+@if cloog-bootstrap
+maybe-configure-stageprofile-cloog: configure-stageprofile-cloog
+configure-stageprofile-cloog:
+	@[ $(current_stage) = stageprofile ] || $(MAKE) stageprofile-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/cloog/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	echo Configuring stage profile in $(HOST_SUBDIR)/cloog ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog ; \
+	cd $(HOST_SUBDIR)/cloog || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/cloog/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/cloog"; \
+	libsrcdir="$$s/cloog"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+@endif cloog-bootstrap
+
+.PHONY: configure-stagefeedback-cloog maybe-configure-stagefeedback-cloog
+maybe-configure-stagefeedback-cloog:
+@if cloog-bootstrap
+maybe-configure-stagefeedback-cloog: configure-stagefeedback-cloog
+configure-stagefeedback-cloog:
+	@[ $(current_stage) = stagefeedback ] || $(MAKE) stagefeedback-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/cloog/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	echo Configuring stage feedback in $(HOST_SUBDIR)/cloog ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/cloog ; \
+	cd $(HOST_SUBDIR)/cloog || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/cloog/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/cloog"; \
+	libsrcdir="$$s/cloog"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+@endif cloog-bootstrap
+
+
+
+
+
+.PHONY: all-cloog maybe-all-cloog
+maybe-all-cloog:
+@if gcc-bootstrap
+all-cloog: stage_current
+@endif gcc-bootstrap
+@if cloog
+TARGET-cloog=all
+maybe-all-cloog: all-cloog
+all-cloog: configure-cloog
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(FLAGS_TO_PASS)  $(TARGET-cloog))
+@endif cloog
+
+
+
+.PHONY: all-stage1-cloog maybe-all-stage1-cloog
+.PHONY: clean-stage1-cloog maybe-clean-stage1-cloog
+maybe-all-stage1-cloog:
+maybe-clean-stage1-cloog:
+@if cloog-bootstrap
+maybe-all-stage1-cloog: all-stage1-cloog
+all-stage1: all-stage1-cloog
+TARGET-stage1-cloog = $(TARGET-cloog)
+all-stage1-cloog: configure-stage1-cloog
+	@[ $(current_stage) = stage1 ] || $(MAKE) stage1-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS)  CFLAGS="$(STAGE1_CFLAGS)" LIBCFLAGS="$(STAGE1_CFLAGS)"  \
+		$(TARGET-stage1-cloog)
+
+maybe-clean-stage1-cloog: clean-stage1-cloog
+clean-stage1: clean-stage1-cloog
+clean-stage1-cloog:
+	@if [ $(current_stage) = stage1 ]; then \
+	  [ -f $(HOST_SUBDIR)/cloog/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage1-cloog/Makefile ] || exit 0; \
+	  $(MAKE) stage1-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		CFLAGS="$(STAGE1_CFLAGS)" LIBCFLAGS="$(STAGE1_CFLAGS)"  clean
+@endif cloog-bootstrap
+
+
+.PHONY: all-stage2-cloog maybe-all-stage2-cloog
+.PHONY: clean-stage2-cloog maybe-clean-stage2-cloog
+maybe-all-stage2-cloog:
+maybe-clean-stage2-cloog:
+@if cloog-bootstrap
+maybe-all-stage2-cloog: all-stage2-cloog
+all-stage2: all-stage2-cloog
+TARGET-stage2-cloog = $(TARGET-cloog)
+all-stage2-cloog: configure-stage2-cloog
+	@[ $(current_stage) = stage2 ] || $(MAKE) stage2-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS) $(POSTSTAGE1_FLAGS_TO_PASS)   \
+		$(TARGET-stage2-cloog)
+
+maybe-clean-stage2-cloog: clean-stage2-cloog
+clean-stage2: clean-stage2-cloog
+clean-stage2-cloog:
+	@if [ $(current_stage) = stage2 ]; then \
+	  [ -f $(HOST_SUBDIR)/cloog/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage2-cloog/Makefile ] || exit 0; \
+	  $(MAKE) stage2-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		  clean
+@endif cloog-bootstrap
+
+
+.PHONY: all-stage3-cloog maybe-all-stage3-cloog
+.PHONY: clean-stage3-cloog maybe-clean-stage3-cloog
+maybe-all-stage3-cloog:
+maybe-clean-stage3-cloog:
+@if cloog-bootstrap
+maybe-all-stage3-cloog: all-stage3-cloog
+all-stage3: all-stage3-cloog
+TARGET-stage3-cloog = $(TARGET-cloog)
+all-stage3-cloog: configure-stage3-cloog
+	@[ $(current_stage) = stage3 ] || $(MAKE) stage3-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS) $(POSTSTAGE1_FLAGS_TO_PASS)   \
+		$(TARGET-stage3-cloog)
+
+maybe-clean-stage3-cloog: clean-stage3-cloog
+clean-stage3: clean-stage3-cloog
+clean-stage3-cloog:
+	@if [ $(current_stage) = stage3 ]; then \
+	  [ -f $(HOST_SUBDIR)/cloog/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage3-cloog/Makefile ] || exit 0; \
+	  $(MAKE) stage3-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		  clean
+@endif cloog-bootstrap
+
+
+.PHONY: all-stage4-cloog maybe-all-stage4-cloog
+.PHONY: clean-stage4-cloog maybe-clean-stage4-cloog
+maybe-all-stage4-cloog:
+maybe-clean-stage4-cloog:
+@if cloog-bootstrap
+maybe-all-stage4-cloog: all-stage4-cloog
+all-stage4: all-stage4-cloog
+TARGET-stage4-cloog = $(TARGET-cloog)
+all-stage4-cloog: configure-stage4-cloog
+	@[ $(current_stage) = stage4 ] || $(MAKE) stage4-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS) $(POSTSTAGE1_FLAGS_TO_PASS)   \
+		$(TARGET-stage4-cloog)
+
+maybe-clean-stage4-cloog: clean-stage4-cloog
+clean-stage4: clean-stage4-cloog
+clean-stage4-cloog:
+	@if [ $(current_stage) = stage4 ]; then \
+	  [ -f $(HOST_SUBDIR)/cloog/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage4-cloog/Makefile ] || exit 0; \
+	  $(MAKE) stage4-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		  clean
+@endif cloog-bootstrap
+
+
+.PHONY: all-stageprofile-cloog maybe-all-stageprofile-cloog
+.PHONY: clean-stageprofile-cloog maybe-clean-stageprofile-cloog
+maybe-all-stageprofile-cloog:
+maybe-clean-stageprofile-cloog:
+@if cloog-bootstrap
+maybe-all-stageprofile-cloog: all-stageprofile-cloog
+all-stageprofile: all-stageprofile-cloog
+TARGET-stageprofile-cloog = $(TARGET-cloog)
+all-stageprofile-cloog: configure-stageprofile-cloog
+	@[ $(current_stage) = stageprofile ] || $(MAKE) stageprofile-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS) $(POSTSTAGE1_FLAGS_TO_PASS) CFLAGS="$(BOOT_CFLAGS) -fprofile-generate"  \
+		$(TARGET-stageprofile-cloog)
+
+maybe-clean-stageprofile-cloog: clean-stageprofile-cloog
+clean-stageprofile: clean-stageprofile-cloog
+clean-stageprofile-cloog:
+	@if [ $(current_stage) = stageprofile ]; then \
+	  [ -f $(HOST_SUBDIR)/cloog/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stageprofile-cloog/Makefile ] || exit 0; \
+	  $(MAKE) stageprofile-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		CFLAGS="$(BOOT_CFLAGS) -fprofile-generate"  clean
+@endif cloog-bootstrap
+
+
+.PHONY: all-stagefeedback-cloog maybe-all-stagefeedback-cloog
+.PHONY: clean-stagefeedback-cloog maybe-clean-stagefeedback-cloog
+maybe-all-stagefeedback-cloog:
+maybe-clean-stagefeedback-cloog:
+@if cloog-bootstrap
+maybe-all-stagefeedback-cloog: all-stagefeedback-cloog
+all-stagefeedback: all-stagefeedback-cloog
+TARGET-stagefeedback-cloog = $(TARGET-cloog)
+all-stagefeedback-cloog: configure-stagefeedback-cloog
+	@[ $(current_stage) = stagefeedback ] || $(MAKE) stagefeedback-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS) $(POSTSTAGE1_FLAGS_TO_PASS) CFLAGS="$(BOOT_CFLAGS) -fprofile-use"  \
+		$(TARGET-stagefeedback-cloog)
+
+maybe-clean-stagefeedback-cloog: clean-stagefeedback-cloog
+clean-stagefeedback: clean-stagefeedback-cloog
+clean-stagefeedback-cloog:
+	@if [ $(current_stage) = stagefeedback ]; then \
+	  [ -f $(HOST_SUBDIR)/cloog/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stagefeedback-cloog/Makefile ] || exit 0; \
+	  $(MAKE) stagefeedback-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/cloog && \
+	$(MAKE) $(FLAGS_TO_PASS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		CFLAGS="$(BOOT_CFLAGS) -fprofile-use"  clean
+@endif cloog-bootstrap
+
+
+
+
+
+.PHONY: check-cloog maybe-check-cloog
+maybe-check-cloog:
+@if cloog
+maybe-check-cloog: check-cloog
+
+check-cloog:
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(FLAGS_TO_PASS)  check)
+
+@endif cloog
+
+.PHONY: install-cloog maybe-install-cloog
+maybe-install-cloog:
+@if cloog
+maybe-install-cloog: install-cloog
+
+install-cloog:
+
+@endif cloog
+
+# Other targets (info, dvi, pdf, etc.)
+
+.PHONY: maybe-info-cloog info-cloog
+maybe-info-cloog:
+@if cloog
+maybe-info-cloog: info-cloog
+
+info-cloog: \
+    configure-cloog 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing info in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          info) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-dvi-cloog dvi-cloog
+maybe-dvi-cloog:
+@if cloog
+maybe-dvi-cloog: dvi-cloog
+
+dvi-cloog: \
+    configure-cloog 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing dvi in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          dvi) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-pdf-cloog pdf-cloog
+maybe-pdf-cloog:
+@if cloog
+maybe-pdf-cloog: pdf-cloog
+
+pdf-cloog: \
+    configure-cloog 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing pdf in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          pdf) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-html-cloog html-cloog
+maybe-html-cloog:
+@if cloog
+maybe-html-cloog: html-cloog
+
+html-cloog: \
+    configure-cloog 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing html in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          html) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-TAGS-cloog TAGS-cloog
+maybe-TAGS-cloog:
+@if cloog
+maybe-TAGS-cloog: TAGS-cloog
+
+TAGS-cloog: \
+    configure-cloog 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing TAGS in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          TAGS) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-install-info-cloog install-info-cloog
+maybe-install-info-cloog:
+@if cloog
+maybe-install-info-cloog: install-info-cloog
+
+install-info-cloog: \
+    configure-cloog \
+    info-cloog 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-info in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          install-info) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-install-pdf-cloog install-pdf-cloog
+maybe-install-pdf-cloog:
+@if cloog
+maybe-install-pdf-cloog: install-pdf-cloog
+
+install-pdf-cloog: \
+    configure-cloog \
+    pdf-cloog 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-pdf in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          install-pdf) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-install-html-cloog install-html-cloog
+maybe-install-html-cloog:
+@if cloog
+maybe-install-html-cloog: install-html-cloog
+
+install-html-cloog: \
+    configure-cloog \
+    html-cloog 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-html in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          install-html) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-installcheck-cloog installcheck-cloog
+maybe-installcheck-cloog:
+@if cloog
+maybe-installcheck-cloog: installcheck-cloog
+
+installcheck-cloog: \
+    configure-cloog 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing installcheck in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          installcheck) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-mostlyclean-cloog mostlyclean-cloog
+maybe-mostlyclean-cloog:
+@if cloog
+maybe-mostlyclean-cloog: mostlyclean-cloog
+
+mostlyclean-cloog: 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing mostlyclean in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          mostlyclean) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-clean-cloog clean-cloog
+maybe-clean-cloog:
+@if cloog
+maybe-clean-cloog: clean-cloog
+
+clean-cloog: 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing clean in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          clean) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-distclean-cloog distclean-cloog
+maybe-distclean-cloog:
+@if cloog
+maybe-distclean-cloog: distclean-cloog
+
+distclean-cloog: 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing distclean in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          distclean) \
+	  || exit 1
+
+@endif cloog
+
+.PHONY: maybe-maintainer-clean-cloog maintainer-clean-cloog
+maybe-maintainer-clean-cloog:
+@if cloog
+maybe-maintainer-clean-cloog: maintainer-clean-cloog
+
+maintainer-clean-cloog: 
+	@[ -f ./cloog/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing maintainer-clean in cloog" ; \
+	(cd $(HOST_SUBDIR)/cloog && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" \
+	          maintainer-clean) \
+	  || exit 1
+
+@endif cloog
 
 
 
@@ -47095,6 +48721,16 @@ stage1-start::
 	  mkdir stage1-mpfr; \
 	mv stage1-mpfr mpfr 
 @endif mpfr
+@if polylib
+	@cd $(HOST_SUBDIR); [ -d stage1-polylib ] || \
+	  mkdir stage1-polylib; \
+	mv stage1-polylib polylib 
+@endif polylib
+@if cloog
+	@cd $(HOST_SUBDIR); [ -d stage1-cloog ] || \
+	  mkdir stage1-cloog; \
+	mv stage1-cloog cloog 
+@endif cloog
 @if intl
 	@cd $(HOST_SUBDIR); [ -d stage1-intl ] || \
 	  mkdir stage1-intl; \
@@ -47165,6 +48801,16 @@ stage1-end::
 	  cd $(HOST_SUBDIR); mv mpfr stage1-mpfr  ; \
 	fi
 @endif mpfr
+@if polylib
+	@if test -d $(HOST_SUBDIR)/polylib ; then \
+	  cd $(HOST_SUBDIR); mv polylib stage1-polylib  ; \
+	fi
+@endif polylib
+@if cloog
+	@if test -d $(HOST_SUBDIR)/cloog ; then \
+	  cd $(HOST_SUBDIR); mv cloog stage1-cloog  ; \
+	fi
+@endif cloog
 @if intl
 	@if test -d $(HOST_SUBDIR)/intl ; then \
 	  cd $(HOST_SUBDIR); mv intl stage1-intl  ; \
@@ -47284,6 +48930,18 @@ stage2-start::
 	mv stage2-mpfr mpfr  ; \
 	mv stage1-mpfr prev-mpfr || test -f stage1-lean 
 @endif mpfr
+@if polylib
+	@cd $(HOST_SUBDIR); [ -d stage2-polylib ] || \
+	  mkdir stage2-polylib; \
+	mv stage2-polylib polylib  ; \
+	mv stage1-polylib prev-polylib || test -f stage1-lean 
+@endif polylib
+@if cloog
+	@cd $(HOST_SUBDIR); [ -d stage2-cloog ] || \
+	  mkdir stage2-cloog; \
+	mv stage2-cloog cloog  ; \
+	mv stage1-cloog prev-cloog || test -f stage1-lean 
+@endif cloog
 @if intl
 	@cd $(HOST_SUBDIR); [ -d stage2-intl ] || \
 	  mkdir stage2-intl; \
@@ -47368,6 +49026,18 @@ stage2-end::
 	  mv prev-mpfr stage1-mpfr ; :  ; \
 	fi
 @endif mpfr
+@if polylib
+	@if test -d $(HOST_SUBDIR)/polylib ; then \
+	  cd $(HOST_SUBDIR); mv polylib stage2-polylib ; \
+	  mv prev-polylib stage1-polylib ; :  ; \
+	fi
+@endif polylib
+@if cloog
+	@if test -d $(HOST_SUBDIR)/cloog ; then \
+	  cd $(HOST_SUBDIR); mv cloog stage2-cloog ; \
+	  mv prev-cloog stage1-cloog ; :  ; \
+	fi
+@endif cloog
 @if intl
 	@if test -d $(HOST_SUBDIR)/intl ; then \
 	  cd $(HOST_SUBDIR); mv intl stage2-intl ; \
@@ -47515,6 +49185,18 @@ stage3-start::
 	mv stage3-mpfr mpfr  ; \
 	mv stage2-mpfr prev-mpfr || test -f stage2-lean 
 @endif mpfr
+@if polylib
+	@cd $(HOST_SUBDIR); [ -d stage3-polylib ] || \
+	  mkdir stage3-polylib; \
+	mv stage3-polylib polylib  ; \
+	mv stage2-polylib prev-polylib || test -f stage2-lean 
+@endif polylib
+@if cloog
+	@cd $(HOST_SUBDIR); [ -d stage3-cloog ] || \
+	  mkdir stage3-cloog; \
+	mv stage3-cloog cloog  ; \
+	mv stage2-cloog prev-cloog || test -f stage2-lean 
+@endif cloog
 @if intl
 	@cd $(HOST_SUBDIR); [ -d stage3-intl ] || \
 	  mkdir stage3-intl; \
@@ -47599,6 +49281,18 @@ stage3-end::
 	  mv prev-mpfr stage2-mpfr ; :  ; \
 	fi
 @endif mpfr
+@if polylib
+	@if test -d $(HOST_SUBDIR)/polylib ; then \
+	  cd $(HOST_SUBDIR); mv polylib stage3-polylib ; \
+	  mv prev-polylib stage2-polylib ; :  ; \
+	fi
+@endif polylib
+@if cloog
+	@if test -d $(HOST_SUBDIR)/cloog ; then \
+	  cd $(HOST_SUBDIR); mv cloog stage3-cloog ; \
+	  mv prev-cloog stage2-cloog ; :  ; \
+	fi
+@endif cloog
 @if intl
 	@if test -d $(HOST_SUBDIR)/intl ; then \
 	  cd $(HOST_SUBDIR); mv intl stage3-intl ; \
@@ -47792,6 +49486,18 @@ stage4-start::
 	mv stage4-mpfr mpfr  ; \
 	mv stage3-mpfr prev-mpfr || test -f stage3-lean 
 @endif mpfr
+@if polylib
+	@cd $(HOST_SUBDIR); [ -d stage4-polylib ] || \
+	  mkdir stage4-polylib; \
+	mv stage4-polylib polylib  ; \
+	mv stage3-polylib prev-polylib || test -f stage3-lean 
+@endif polylib
+@if cloog
+	@cd $(HOST_SUBDIR); [ -d stage4-cloog ] || \
+	  mkdir stage4-cloog; \
+	mv stage4-cloog cloog  ; \
+	mv stage3-cloog prev-cloog || test -f stage3-lean 
+@endif cloog
 @if intl
 	@cd $(HOST_SUBDIR); [ -d stage4-intl ] || \
 	  mkdir stage4-intl; \
@@ -47876,6 +49582,18 @@ stage4-end::
 	  mv prev-mpfr stage3-mpfr ; :  ; \
 	fi
 @endif mpfr
+@if polylib
+	@if test -d $(HOST_SUBDIR)/polylib ; then \
+	  cd $(HOST_SUBDIR); mv polylib stage4-polylib ; \
+	  mv prev-polylib stage3-polylib ; :  ; \
+	fi
+@endif polylib
+@if cloog
+	@if test -d $(HOST_SUBDIR)/cloog ; then \
+	  cd $(HOST_SUBDIR); mv cloog stage4-cloog ; \
+	  mv prev-cloog stage3-cloog ; :  ; \
+	fi
+@endif cloog
 @if intl
 	@if test -d $(HOST_SUBDIR)/intl ; then \
 	  cd $(HOST_SUBDIR); mv intl stage4-intl ; \
@@ -48066,6 +49784,18 @@ stageprofile-start::
 	mv stageprofile-mpfr mpfr  ; \
 	mv stage1-mpfr prev-mpfr || test -f stage1-lean 
 @endif mpfr
+@if polylib
+	@cd $(HOST_SUBDIR); [ -d stageprofile-polylib ] || \
+	  mkdir stageprofile-polylib; \
+	mv stageprofile-polylib polylib  ; \
+	mv stage1-polylib prev-polylib || test -f stage1-lean 
+@endif polylib
+@if cloog
+	@cd $(HOST_SUBDIR); [ -d stageprofile-cloog ] || \
+	  mkdir stageprofile-cloog; \
+	mv stageprofile-cloog cloog  ; \
+	mv stage1-cloog prev-cloog || test -f stage1-lean 
+@endif cloog
 @if intl
 	@cd $(HOST_SUBDIR); [ -d stageprofile-intl ] || \
 	  mkdir stageprofile-intl; \
@@ -48150,6 +49880,18 @@ stageprofile-end::
 	  mv prev-mpfr stage1-mpfr ; :  ; \
 	fi
 @endif mpfr
+@if polylib
+	@if test -d $(HOST_SUBDIR)/polylib ; then \
+	  cd $(HOST_SUBDIR); mv polylib stageprofile-polylib ; \
+	  mv prev-polylib stage1-polylib ; :  ; \
+	fi
+@endif polylib
+@if cloog
+	@if test -d $(HOST_SUBDIR)/cloog ; then \
+	  cd $(HOST_SUBDIR); mv cloog stageprofile-cloog ; \
+	  mv prev-cloog stage1-cloog ; :  ; \
+	fi
+@endif cloog
 @if intl
 	@if test -d $(HOST_SUBDIR)/intl ; then \
 	  cd $(HOST_SUBDIR); mv intl stageprofile-intl ; \
@@ -48276,6 +50018,18 @@ stagefeedback-start::
 	mv stagefeedback-mpfr mpfr  ; \
 	mv stageprofile-mpfr prev-mpfr || test -f stageprofile-lean 
 @endif mpfr
+@if polylib
+	@cd $(HOST_SUBDIR); [ -d stagefeedback-polylib ] || \
+	  mkdir stagefeedback-polylib; \
+	mv stagefeedback-polylib polylib  ; \
+	mv stageprofile-polylib prev-polylib || test -f stageprofile-lean 
+@endif polylib
+@if cloog
+	@cd $(HOST_SUBDIR); [ -d stagefeedback-cloog ] || \
+	  mkdir stagefeedback-cloog; \
+	mv stagefeedback-cloog cloog  ; \
+	mv stageprofile-cloog prev-cloog || test -f stageprofile-lean 
+@endif cloog
 @if intl
 	@cd $(HOST_SUBDIR); [ -d stagefeedback-intl ] || \
 	  mkdir stagefeedback-intl; \
@@ -48360,6 +50114,18 @@ stagefeedback-end::
 	  mv prev-mpfr stageprofile-mpfr ; :  ; \
 	fi
 @endif mpfr
+@if polylib
+	@if test -d $(HOST_SUBDIR)/polylib ; then \
+	  cd $(HOST_SUBDIR); mv polylib stagefeedback-polylib ; \
+	  mv prev-polylib stageprofile-polylib ; :  ; \
+	fi
+@endif polylib
+@if cloog
+	@if test -d $(HOST_SUBDIR)/cloog ; then \
+	  cd $(HOST_SUBDIR); mv cloog stagefeedback-cloog ; \
+	  mv prev-cloog stageprofile-cloog ; :  ; \
+	fi
+@endif cloog
 @if intl
 	@if test -d $(HOST_SUBDIR)/intl ; then \
 	  cd $(HOST_SUBDIR); mv intl stagefeedback-intl ; \
@@ -48641,6 +50407,22 @@ all-stage3-gcc: maybe-all-stage3-mpfr
 all-stage4-gcc: maybe-all-stage4-mpfr
 all-stageprofile-gcc: maybe-all-stageprofile-mpfr
 all-stagefeedback-gcc: maybe-all-stagefeedback-mpfr
+all-gcc: maybe-all-polylib
+
+all-stage1-gcc: maybe-all-stage1-polylib
+all-stage2-gcc: maybe-all-stage2-polylib
+all-stage3-gcc: maybe-all-stage3-polylib
+all-stage4-gcc: maybe-all-stage4-polylib
+all-stageprofile-gcc: maybe-all-stageprofile-polylib
+all-stagefeedback-gcc: maybe-all-stagefeedback-polylib
+all-gcc: maybe-all-cloog
+
+all-stage1-gcc: maybe-all-stage1-cloog
+all-stage2-gcc: maybe-all-stage2-cloog
+all-stage3-gcc: maybe-all-stage3-cloog
+all-stage4-gcc: maybe-all-stage4-cloog
+all-stageprofile-gcc: maybe-all-stageprofile-cloog
+all-stagefeedback-gcc: maybe-all-stagefeedback-cloog
 all-gcc: maybe-all-build-texinfo
 
 all-stage1-gcc: maybe-all-build-texinfo
@@ -48765,6 +50547,30 @@ configure-stage3-mpfr: maybe-all-stage3-gmp
 configure-stage4-mpfr: maybe-all-stage4-gmp
 configure-stageprofile-mpfr: maybe-all-stageprofile-gmp
 configure-stagefeedback-mpfr: maybe-all-stagefeedback-gmp
+configure-polylib: maybe-all-gmp
+
+configure-stage1-polylib: maybe-all-stage1-gmp
+configure-stage2-polylib: maybe-all-stage2-gmp
+configure-stage3-polylib: maybe-all-stage3-gmp
+configure-stage4-polylib: maybe-all-stage4-gmp
+configure-stageprofile-polylib: maybe-all-stageprofile-gmp
+configure-stagefeedback-polylib: maybe-all-stagefeedback-gmp
+configure-polylib: maybe-all-mpfr
+
+configure-stage1-polylib: maybe-all-stage1-mpfr
+configure-stage2-polylib: maybe-all-stage2-mpfr
+configure-stage3-polylib: maybe-all-stage3-mpfr
+configure-stage4-polylib: maybe-all-stage4-mpfr
+configure-stageprofile-polylib: maybe-all-stageprofile-mpfr
+configure-stagefeedback-polylib: maybe-all-stagefeedback-mpfr
+configure-cloog: maybe-all-polylib
+
+configure-stage1-cloog: maybe-all-stage1-polylib
+configure-stage2-cloog: maybe-all-stage2-polylib
+configure-stage3-cloog: maybe-all-stage3-polylib
+configure-stage4-cloog: maybe-all-stage4-polylib
+configure-stageprofile-cloog: maybe-all-stageprofile-polylib
+configure-stagefeedback-cloog: maybe-all-stagefeedback-polylib
 configure-gdb: maybe-configure-intl
 configure-gdb: maybe-configure-sim
 all-gdb: maybe-all-intl

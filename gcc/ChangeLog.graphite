@@ -1,3 +1,19 @@
+2007-04-14  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* configure: Regenerated.
+	* config.in: Regenerated.
+	* tree-ssa-loop.c (graphite_transforms): Execute graphite_transform_loops
+	only when HAVE_cloog.
+	* configure.ac (HAVE_polylib, HAVE_cloog, GRAPHITE): Defined.
+	* graphite.c: Include polylibgmp.h and cloog.h.
+	(graphite_transform_loops): Removed loops parameter.
+	* tree-flow.h (graphite_transform_loops): Update declaration.
+	* Makefile.in (POLYLIBLIBS, POLYLIBINC, CLOOGLIBS, CLOOGINC): New.
+	(LIBS): Depend on CLOOGLIBS and on POLYLIBLIBS.
+	(INCLUDES): Depend on POLYLIBINC and on CLOOGINC.
+	(OBJS-common): Remove dependence on graphite.o.
+	(BACKEND): Depend on @GRAPHITE@.
+
 2007-04-13  Sebastian Pop  <sebastian.pop@inria.fr>
 
 	* doc/invoke.texi (-ftree-check-verbose): Documented.

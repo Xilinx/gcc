@@ -1,0 +1,10 @@
+2007-04-14  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* configure: Regenerated.
+	* Makefile.in: Regenerated.
+	* configure.ac: Detect polylib and cloog libraries.
+	* Makefile.def: Declare dependences of polylib and cloog on other libs.
+	* Makefile.tpl (POLYLIBLIBS, POLYLIBINC, CLOOGLIBS, CLOOGINC,
+	HOST_POLYLIBLIBS, HOST_POLYLIBINC, HOST_CLOOGLIBS, HOST_CLOOGINC): New.
+	* contrib/get_graphite_libs.sh: New.
+

@@ -272,7 +272,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
 ac_unique_file="move-if-change"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os build_noncanonical host_noncanonical target_noncanonical host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LN LN_S TOPLEVEL_CONFIGURE_ARGUMENTS build_libsubdir build_subdir host_subdir target_subdir CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX GNATBIND ac_ct_GNATBIND GNATMAKE ac_ct_GNATMAKE do_compare gmplibs gmpinc stage1_languages SYSROOT_CFLAGS_FOR_TARGET RPATH_ENVVAR tooldir build_tooldir CONFIGURE_GDB_TK GDB_TK INSTALL_GDB_TK build_configargs build_configdirs host_configargs configdirs target_configargs CC_FOR_BUILD config_shell YACC BISON M4 LEX FLEX MAKEINFO EXPECT RUNTEST AR AS DLLTOOL LD LIPO NM RANLIB STRIP WINDRES OBJCOPY OBJDUMP CFLAGS_FOR_BUILD CC_FOR_TARGET CXX_FOR_TARGET GCC_FOR_TARGET GCJ_FOR_TARGET GFORTRAN_FOR_TARGET AR_FOR_TARGET AS_FOR_TARGET DLLTOOL_FOR_TARGET LD_FOR_TARGET LIPO_FOR_TARGET NM_FOR_TARGET OBJDUMP_FOR_TARGET RANLIB_FOR_TARGET STRIP_FOR_TARGET WINDRES_FOR_TARGET RAW_CXX_FOR_TARGET FLAGS_FOR_TARGET COMPILER_AS_FOR_TARGET COMPILER_LD_FOR_TARGET COMPILER_NM_FOR_TARGET MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT stage1_cflags stage1_checking stage2_werror_flag datarootdir docdir pdfdir htmldir LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os build_noncanonical host_noncanonical target_noncanonical host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LN LN_S TOPLEVEL_CONFIGURE_ARGUMENTS build_libsubdir build_subdir host_subdir target_subdir CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX GNATBIND ac_ct_GNATBIND GNATMAKE ac_ct_GNATMAKE do_compare gmplibs gmpinc polyliblibs polylibinc clooglibs clooginc stage1_languages SYSROOT_CFLAGS_FOR_TARGET RPATH_ENVVAR tooldir build_tooldir CONFIGURE_GDB_TK GDB_TK INSTALL_GDB_TK build_configargs build_configdirs host_configargs configdirs target_configargs CC_FOR_BUILD config_shell YACC BISON M4 LEX FLEX MAKEINFO EXPECT RUNTEST AR AS DLLTOOL LD LIPO NM RANLIB STRIP WINDRES OBJCOPY OBJDUMP CFLAGS_FOR_BUILD CC_FOR_TARGET CXX_FOR_TARGET GCC_FOR_TARGET GCJ_FOR_TARGET GFORTRAN_FOR_TARGET AR_FOR_TARGET AS_FOR_TARGET DLLTOOL_FOR_TARGET LD_FOR_TARGET LIPO_FOR_TARGET NM_FOR_TARGET OBJDUMP_FOR_TARGET RANLIB_FOR_TARGET STRIP_FOR_TARGET WINDRES_FOR_TARGET RAW_CXX_FOR_TARGET FLAGS_FOR_TARGET COMPILER_AS_FOR_TARGET COMPILER_LD_FOR_TARGET COMPILER_NM_FOR_TARGET MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT stage1_cflags stage1_checking stage2_werror_flag datarootdir docdir pdfdir htmldir LIBOBJS LTLIBOBJS'
 ac_subst_files='serialization_dependencies host_makefile_frag target_makefile_frag alphaieee_frag ospace_frag'
 
 # Initialize some variables set by options.
@@ -955,6 +955,16 @@ Optional Packages:
                           plus --with-gmp-lib=PATH/lib
   --with-gmp-include=PATH Specify directory for installed GMP include files
   --with-gmp-lib=PATH     Specify the directory for the installed GMP library
+  --with-polylib=PATH         Specify prefix directory for the installed POLYLIB package
+                          Equivalent to --with-polylib-include=PATH/include
+                          plus --with-polylib-lib=PATH/lib
+  --with-polylib-include=PATH Specify directory for installed POLYLIB include files
+  --with-polylib-lib=PATH     Specify the directory for the installed POLYLIB library
+  --with-cloog=PATH         Specify prefix directory for the installed CLOOG package
+                          Equivalent to --with-cloog-include=PATH/include
+                          plus --with-cloog-lib=PATH/lib
+  --with-cloog-include=PATH Specify directory for installed CLOOG include files
+  --with-cloog-lib=PATH     Specify the directory for the installed CLOOG library
   --with-build-sysroot=sysroot
                           use sysroot as the system root during the build
   --with-build-time-tools=path
@@ -1827,7 +1837,7 @@ build_tools="build-texinfo build-byacc build-flex build-bison build-m4 build-fix
 
 # these libraries are used by various programs built for the host environment
 #
-host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr"
+host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr polylib cloog"
 
 # these tools are built for the host environment
 # Note, the powerpc-eabi build depends on sim occurring before gdb in order to
@@ -4601,6 +4611,99 @@ They may be located in separate packages." >&2;}
 fi
 
 # Flags needed for both GMP and/or MPFR
+
+
+
+
+# Check for POLYLIB
+polyliblibs=
+polylibinc=
+
+
+# Check whether --with-polylib or --without-polylib was given.
+if test "${with_polylib+set}" = set; then
+  withval="$with_polylib"
+
+fi;
+
+# Check whether --with-polylib_include or --without-polylib_include was given.
+if test "${with_polylib_include+set}" = set; then
+  withval="$with_polylib_include"
+
+fi;
+
+# Check whether --with-polylib_lib or --without-polylib_lib was given.
+if test "${with_polylib_lib+set}" = set; then
+  withval="$with_polylib_lib"
+
+fi;
+
+if test "x$with_polylib" != x; then
+  polyliblibs="-L$with_polylib/ -lpolylibgmp"
+  polylibinc="-I$with_polylib/include $polylibinc"
+  LIBS="$polyliblibs $LIBS"
+fi
+if test "x$with_polylib_include" != x; then
+  polylibinc="-I$with_polylib_include $polylibinc"
+fi
+if test "x$with_polylib_lib" != x; then
+  polyliblibs="-L$with_polylib_lib -lpolylibgmp"
+  LIBS="$polyliblibs $LIBS"
+fi
+if test "x$with_polylib$with_polylib_include$with_polylib_lib" = x && test -d ${srcdir}/polylib; then
+  polyliblibs='-L$$r/$(HOST_SUBDIR)/polylib/.libs -L$$r/$(HOST_SUBDIR)/polylib/_libs -lpolylibgmp '
+  polylibinc='-I$$r/$(HOST_SUBDIR)/polylib/include -I$$s/polylib/include '
+  LIBS="$polyliblibs $LIBS"
+fi
+
+# Flags needed for POLYLIB
+
+
+
+
+# Check for CLOOG
+clooglibs=
+clooginc=
+
+
+# Check whether --with-cloog or --without-cloog was given.
+if test "${with_cloog+set}" = set; then
+  withval="$with_cloog"
+
+fi;
+
+# Check whether --with-cloog_include or --without-cloog_include was given.
+if test "${with_cloog_include+set}" = set; then
+  withval="$with_cloog_include"
+
+fi;
+
+# Check whether --with-cloog_lib or --without-cloog_lib was given.
+if test "${with_cloog_lib+set}" = set; then
+  withval="$with_cloog_lib"
+
+fi;
+
+if test "x$with_cloog" != x; then
+  clooglibs="-L$with_cloog/ -lcloog"
+  clooginc="-I$with_cloog/include"
+  LIBS="$clooglibs $LIBS"
+fi
+	if test "x$with_cloog_include" != x; then
+  clooginc="-I$with_cloog_include"
+fi
+if test "x$with_cloog_lib" != x; then
+  clooglibs="-L$with_cloog_lib -lcloog"
+  LIBS="$clooglibs $LIBS"
+fi
+if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir}/cloog; then
+  clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/.libs -L$$r/$(HOST_SUBDIR)/cloog/_libs -lcloog '
+  clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include '
+  LIBS="$clooglibs $LIBS"
+fi
+
+# Flags needed for CLOOG
+
 
 
 
@@ -12262,6 +12365,10 @@ s,@ac_ct_GNATMAKE@,$ac_ct_GNATMAKE,;t t
 s,@do_compare@,$do_compare,;t t
 s,@gmplibs@,$gmplibs,;t t
 s,@gmpinc@,$gmpinc,;t t
+s,@polyliblibs@,$polyliblibs,;t t
+s,@polylibinc@,$polylibinc,;t t
+s,@clooglibs@,$clooglibs,;t t
+s,@clooginc@,$clooginc,;t t
 s,@stage1_languages@,$stage1_languages,;t t
 s,@SYSROOT_CFLAGS_FOR_TARGET@,$SYSROOT_CFLAGS_FOR_TARGET,;t t
 s,@RPATH_ENVVAR@,$RPATH_ENVVAR,;t t

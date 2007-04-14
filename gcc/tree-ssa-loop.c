@@ -249,7 +249,10 @@ graphite_transforms (void)
   if (!current_loops)
     return 0;
 
-  graphite_transform_loops (current_loops);
+#ifdef HAVE_cloog
+  graphite_transform_loops ();
+#endif
+
   return 0;
 }
 

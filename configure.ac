@@ -151,7 +151,7 @@ build_tools="build-texinfo build-byacc build-flex build-bison build-m4 build-fix
 
 # these libraries are used by various programs built for the host environment
 #
-host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr"
+host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr polylib cloog"
 
 # these tools are built for the host environment
 # Note, the powerpc-eabi build depends on sim occurring before gdb in order to
@@ -1198,6 +1198,73 @@ fi
 # Flags needed for both GMP and/or MPFR
 AC_SUBST(gmplibs)
 AC_SUBST(gmpinc)
+
+
+# Check for POLYLIB
+polyliblibs=
+polylibinc=
+
+AC_ARG_WITH(polylib, [  --with-polylib=PATH         Specify prefix directory for the installed POLYLIB package
+                          Equivalent to --with-polylib-include=PATH/include
+                          plus --with-polylib-lib=PATH/lib])
+AC_ARG_WITH(polylib_include, [  --with-polylib-include=PATH Specify directory for installed POLYLIB include files])
+AC_ARG_WITH(polylib_lib, [  --with-polylib-lib=PATH     Specify the directory for the installed POLYLIB library])
+
+if test "x$with_polylib" != x; then
+  polyliblibs="-L$with_polylib/ -lpolylibgmp"
+  polylibinc="-I$with_polylib/include $polylibinc"
+  LIBS="$polyliblibs $LIBS"
+fi
+if test "x$with_polylib_include" != x; then
+  polylibinc="-I$with_polylib_include $polylibinc"
+fi
+if test "x$with_polylib_lib" != x; then
+  polyliblibs="-L$with_polylib_lib -lpolylibgmp"
+  LIBS="$polyliblibs $LIBS"
+fi
+if test "x$with_polylib$with_polylib_include$with_polylib_lib" = x && test -d ${srcdir}/polylib; then
+  polyliblibs='-L$$r/$(HOST_SUBDIR)/polylib/.libs -L$$r/$(HOST_SUBDIR)/polylib/_libs -lpolylibgmp '
+  polylibinc='-I$$r/$(HOST_SUBDIR)/polylib/include -I$$s/polylib/include '
+  LIBS="$polyliblibs $LIBS"
+fi
+
+# Flags needed for POLYLIB
+AC_SUBST(polyliblibs)
+AC_SUBST(polylibinc)
+
+
+# Check for CLOOG
+clooglibs=
+clooginc=
+
+AC_ARG_WITH(cloog, [  --with-cloog=PATH         Specify prefix directory for the installed CLOOG package
+                          Equivalent to --with-cloog-include=PATH/include
+                          plus --with-cloog-lib=PATH/lib])
+AC_ARG_WITH(cloog_include, [  --with-cloog-include=PATH Specify directory for installed CLOOG include files])
+AC_ARG_WITH(cloog_lib, [  --with-cloog-lib=PATH     Specify the directory for the installed CLOOG library])
+
+if test "x$with_cloog" != x; then
+  clooglibs="-L$with_cloog/ -lcloog"
+  clooginc="-I$with_cloog/include"
+  LIBS="$clooglibs $LIBS"
+fi
+	if test "x$with_cloog_include" != x; then
+  clooginc="-I$with_cloog_include"
+fi
+if test "x$with_cloog_lib" != x; then
+  clooglibs="-L$with_cloog_lib -lcloog"
+  LIBS="$clooglibs $LIBS"
+fi
+if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir}/cloog; then
+  clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/.libs -L$$r/$(HOST_SUBDIR)/cloog/_libs -lcloog '
+  clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include '
+  LIBS="$clooglibs $LIBS"
+fi
+
+# Flags needed for CLOOG
+AC_SUBST(clooglibs)
+AC_SUBST(clooginc)
+
 
 # By default, C is the only stage 1 language.
 stage1_languages=,c,

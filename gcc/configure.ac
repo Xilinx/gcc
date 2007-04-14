@@ -3820,6 +3820,20 @@ fi
 AC_ARG_VAR(GMPLIBS,[How to link GMP])
 AC_ARG_VAR(GMPINC,[How to find GMP include files])
 
+AC_ARG_VAR(POLYLIBLIBS,[How to link POLYLIB])
+AC_ARG_VAR(POLYLIBINC,[How to find POLYLIB include files])
+if test "x${POLYLIBLIBS}" != "x" ; then 
+   AC_DEFINE(HAVE_polylib, 1, [Define if polylib is in use.])
+fi
+
+AC_ARG_VAR(CLOOGLIBS,[How to link CLOOG])
+AC_ARG_VAR(CLOOGINC,[How to find CLOOG include files])
+if test "x${CLOOGLIBS}" != "x" ; then 
+   AC_DEFINE(HAVE_cloog, 1, [Define if cloog is in use.])
+   GRAPHITE=graphite.o
+fi
+AC_SUBST(GRAPHITE)
+
 # Configure the subdirectories
 # AC_CONFIG_SUBDIRS($subdirs)
 

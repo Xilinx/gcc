@@ -1,5 +1,5 @@
 /* Gimple Represented as Polyhedra.
-   Copyright (C) 2006 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@inria.fr>.
 
 This file is part of GCC.
@@ -41,6 +41,8 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "tree-scalar-evolution.h"
 #include "tree-pass.h"
 #include "domwalk.h"
+#include "polylib/polylibgmp.h"
+#include "cloog/cloog.h"
 #include "graphite.h"
 
 
@@ -794,7 +796,7 @@ gloog (scop_p scop ATTRIBUTE_UNUSED)
 /* Perform a set of linear transforms on LOOPS.  */
 
 void
-graphite_transform_loops (struct loops *loops ATTRIBUTE_UNUSED)
+graphite_transform_loops (void)
 {
   unsigned i;
   scop_p scop;

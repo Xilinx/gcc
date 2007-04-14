@@ -177,6 +177,10 @@ HOST_EXPORTS = \
 	TOPLEVEL_CONFIGURE_ARGUMENTS="$(TOPLEVEL_CONFIGURE_ARGUMENTS)"; export TOPLEVEL_CONFIGURE_ARGUMENTS; \
 	GMPLIBS="$(HOST_GMPLIBS)"; export GMPLIBS; \
 	GMPINC="$(HOST_GMPINC)"; export GMPINC; \
+	POLYLIBLIBS="$(HOST_POLYLIBLIBS)"; export POLYLIBLIBS; \
+	POLYLIBINC="$(HOST_POLYLIBINC)"; export POLYLIBINC; \
+	CLOOGLIBS="$(HOST_CLOOGLIBS)"; export CLOOGLIBS; \
+	CLOOGINC="$(HOST_CLOOGINC)"; export CLOOGINC; \
 @if gcc-bootstrap
 	$(RPATH_ENVVAR)=`echo "$(TARGET_LIB_PATH)$$$(RPATH_ENVVAR)" | sed 's,::*,:,g;s,^:*,,;s,:*$$,,'`; export $(RPATH_ENVVAR); \
 @endif gcc-bootstrap
@@ -235,6 +239,14 @@ NORMAL_TARGET_EXPORTS = \
 # Where to find GMP
 HOST_GMPLIBS = @gmplibs@
 HOST_GMPINC = @gmpinc@
+
+# Where to find POLYLIB
+HOST_POLYLIBLIBS = @polyliblibs@
+HOST_POLYLIBINC = @polylibinc@
+
+# Where to find CLOOG
+HOST_CLOOGLIBS = @clooglibs@
+HOST_CLOOGINC = @clooginc@
 
 # ----------------------------------------------
 # Programs producing files for the BUILD machine
