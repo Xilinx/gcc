@@ -1,5 +1,5 @@
 /* Gimple Represented as Polyhedra.
-   Copyright (C) 2006 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@inria.fr>.
 
 This file is part of GCC.
@@ -38,6 +38,7 @@ struct graphite_bb
 };
 
 #define GBB_BB(GBB) GBB->bb
+#define GBB_LOOP(GBB) GBB->bb->loop_father
 #define GBB_SCOP(GBB) GBB->scop
 #define GBB_STATIC_SCHEDULE(GBB) GBB->static_schedule
 #define GBB_DATA_REFS(GBB) GBB->data_refs
@@ -63,7 +64,11 @@ struct scop
   /* Loops contained in the scop.  */
   VEC (loop_p, heap) *loop_nest;
 
+  /* Constraints on loop iterations.  */
   VEC (lambda_vector, heap) *iteration_domain;
+
+  /* Cloog representation of this scop.  */
+  CloogProgram *program;
 };
 
 #define SCOP_BBS(S) S->bbs
@@ -72,12 +77,13 @@ struct scop
 #define SCOP_STATIC_SCHEDULE(S) S->static_schedule
 #define SCOP_LOOP_NEST(S) S->loop_nest
 #define SCOP_PARAMS(S) S->params
-
 #define SCOP_DOMAIN(S) S->iteration_domain
+#define SCOP_PROG(S) S->program
 
 extern void debug_scop (scop_p, int);
 extern void debug_scops (int);
 extern void print_graphite_bb (FILE *, graphite_bb_p, int, int);
+extern void dot_scop (scop_p);
 
 /* Return the number of parameters used in SCOP.  */
 

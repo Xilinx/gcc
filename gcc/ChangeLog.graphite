@@ -1,3 +1,29 @@
+2007-05-09  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* tree-data-ref.c: Don't include graphite.h.
+	Comment out the code for printing data reference's scop.
+	(build_access_matrix_with_af): Moved...
+	* tree-data-ref.h (build_access_matrix_with_af): Removed declaration.
+	* graphite.c (build_access_matrix_with_af): ... here.  Now static.
+	(print_graphite_bb): Print basic block's schedule.
+	(print_scop): Don't print the schedule, call cloog's pretty printer.
+	(bb_in_scop_p): A basic block is in a scop only if it is both
+	dominated and postdominated by the scop's entry and exit basic blocks.
+	(function_parameter_p): New.
+	(invariant_in_scop_p): Use function_parameter_p.
+	(new_scop, save_scop): New.
+	(end_scop, test_for_scop_bound, build_scops): Use new_scop, and 
+	save_scop.
+	(scan_tree_for_params): Directly build the constraint as CloogMatrix.
+	(loop_in_scop_p): New.
+	(scop_record_loop): Use loop_in_scop_p.
+	(build_scop_domain): Renamed build_scop_iteration_domain.
+	(setup_cloog_loop, initialize_cloog_names, find_scop_parameters,
+	nb_params_in_scop, build_scop_context, first_loop_in_scop, 
+	setup_cloog_loop, dot_scop_1, dot_scop): New.
+	* graphite.h (GBB_LOOP, SCOP_PROG, dot_scop): New.
+	(struct scop): Add a pointer to cloog's representation of a program.
+
 2007-04-14  Sebastian Pop  <sebastian.pop@inria.fr>
 
 	* doc/invoke.texi (-ftree-check-verbose): Renamed -ftree-checks-verbose.

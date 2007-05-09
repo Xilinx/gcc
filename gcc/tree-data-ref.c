@@ -92,7 +92,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "tree-chrec.h"
 #include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
-#include "graphite.h"
+/* #include "graphite.h" */
 #include "tree-pass.h"
 #include "langhooks.h"
 
@@ -646,6 +646,7 @@ dump_data_reference (FILE *outf,
       print_generic_stmt (outf, DR_ACCESS_FN (dr, i), 0);
     }
 
+  /*
   if (DR_SCOP (dr))
     {
       lambda_vector v;
@@ -655,6 +656,7 @@ dump_data_reference (FILE *outf,
       for (i = 0; VEC_iterate (lambda_vector, DR_ACCESS_MATRIX (dr), i, v); i++)
 	print_lambda_vector (outf, v, scop_dim_domain (DR_SCOP (dr)));
     }
+  */
 
   fprintf (outf, ")\n");
 }
@@ -5029,73 +5031,6 @@ find_data_references_in_loop (struct loop *loop,
   free (bbs);
 
   return NULL_TREE;
-}
-
-/* Initializes an equation CY of the access matrix using the
-   information for a subscript from ACCESS_FUN, relatively to the loop
-   indexes from LOOP_NEST and parameter indexes from PARAMS.  Returns
-   true when the operation succeeded.  */
-
-bool
-build_access_matrix_with_af (tree access_fun, lambda_vector cy,
-			     VEC (loop_p, heap) *loop_nest, 
-			     VEC (tree, heap) *params)
-{
-  switch (TREE_CODE (access_fun))
-    {
-    case POLYNOMIAL_CHREC:
-      {
-	tree left = CHREC_LEFT (access_fun);
-	tree right = CHREC_RIGHT (access_fun);
-	int var = CHREC_VARIABLE (access_fun);
-	unsigned var_idx;
-	struct loop *loopi;
-
-	if (TREE_CODE (right) != INTEGER_CST)
-	  return false;
-
-	/* Find the index of the current variable VAR_IDX in the
-	   LOOP_NEST array.  */
-	for (var_idx = 0; VEC_iterate (loop_p, loop_nest, var_idx, loopi);
-	     var_idx++)
-	  if (loopi->num == var)
-	    break;
-
-	gcc_assert (loopi && loopi->num == var);
-
-	cy[var_idx] = int_cst_value (right);
-
-	switch (TREE_CODE (left))
-	  {
-	  case POLYNOMIAL_CHREC:
-	    return build_access_matrix_with_af (left, cy, loop_nest, params);
-
-	  case INTEGER_CST:
-	    {
-	      /* Constant part.  */
-	      unsigned nb_loops = VEC_length (loop_p, loop_nest);
-	      unsigned nb_params = VEC_length (tree, params);
-
-	      cy[nb_loops + nb_params] = int_cst_value (left);
-	      return true;
-	    }
-
-	  default:
-	    return false;
-	  }
-      }
-    case INTEGER_CST:
-      {
-	/* Constant part.  */
-	unsigned nb_loops = VEC_length (loop_p, loop_nest);
-	unsigned nb_params = VEC_length (tree, params);
-	cy[nb_loops + nb_params] = int_cst_value (access_fun);
-	return true;
-      }
-
-    default:
-      return false;
-    }
 }
 
 /* Recursive helper function.  */

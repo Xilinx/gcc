@@ -396,10 +396,6 @@ extern void free_data_ref (data_reference_p);
 extern void free_data_refs (VEC (data_reference_p, heap) *);
 extern struct data_reference *create_data_ref (tree, tree, bool);
 extern bool find_data_references_in_stmt (tree, VEC (data_reference_p, heap) **);
-extern bool build_access_matrix_with_af (tree, lambda_vector,
-					 VEC (loop_p, heap) *,
-					 VEC (tree, heap) *);
-extern unsigned dr_num_subscripts (data_reference_p);
 
 /* Return the index of the variable VAR in the LOOP_NEST array.  */
 
