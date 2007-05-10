@@ -1211,7 +1211,7 @@ AC_ARG_WITH(polylib_include, [  --with-polylib-include=PATH Specify directory fo
 AC_ARG_WITH(polylib_lib, [  --with-polylib-lib=PATH     Specify the directory for the installed POLYLIB library])
 
 if test "x$with_polylib" != x; then
-  polyliblibs="-L$with_polylib/ -lpolylibgmp"
+  polyliblibs="-L$with_polylib/lib -lpolylibgmp"
   polylibinc="-I$with_polylib/include $polylibinc"
   LIBS="$polyliblibs $LIBS"
 fi
@@ -1244,7 +1244,7 @@ AC_ARG_WITH(cloog_include, [  --with-cloog-include=PATH Specify directory for in
 AC_ARG_WITH(cloog_lib, [  --with-cloog-lib=PATH     Specify the directory for the installed CLOOG library])
 
 if test "x$with_cloog" != x; then
-  clooglibs="-L$with_cloog/ -lcloog"
+  clooglibs="-L$with_cloog/lib -lcloog"
   clooginc="-I$with_cloog/include"
   LIBS="$clooglibs $LIBS"
 fi
