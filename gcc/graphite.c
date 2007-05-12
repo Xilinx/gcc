@@ -61,7 +61,10 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
   fprintf (file, "       )\n");
 
   print_loop_ir_bb (file, GBB_BB (gb), indent+2, verbosity);
-  dump_data_references (file, GBB_DATA_REFS (gb));
+
+  if (0)
+    dump_data_references (file, GBB_DATA_REFS (gb));
+
   fprintf (file, ")\n");
 }
 
@@ -70,6 +73,9 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 static void
 print_scop (FILE *file, scop_p scop, int verbosity)
 {
+  if (scop == NULL)
+    return;
+
   fprintf (file, "\nSCoP_%d_%d (\n",
 	   SCOP_ENTRY (scop)->index, SCOP_EXIT (scop)->index);
 
@@ -712,15 +718,11 @@ build_scop_context (scop_p scop)
   unsigned nb_params = nb_params_in_scop (scop);
   CloogMatrix *matrix = cloog_matrix_alloc (1, nb_params + 2);
 
-  cloog_matrix_print (stderr, matrix);
-
   value_init (matrix->p[0][0]);
   value_set_si (matrix->p[0][0], 1);
 
   value_init (matrix->p[0][nb_params + 1]);
   value_set_si (matrix->p[0][nb_params + 1], -1);
-
-  cloog_matrix_print (stderr, matrix);
 
   SCOP_PROG (scop)->context = cloog_domain_matrix2domain (matrix);
 }
@@ -1039,17 +1041,11 @@ build_scop_data_accesses (scop_p scop)
    representing the new form of the program.  */
 
 static struct clast_stmt *
-find_transform (scop_p scop)
+find_transform (scop_p scop ATTRIBUTE_UNUSED)
 {
-  struct clast_stmt *stmt;
   CloogOptions *options = cloog_options_malloc ();
-  CloogProgram *prog = SCOP_PROG (scop);
-
-  prog = cloog_program_generate (prog, options);
-  stmt = cloog_clast_create (prog, options);
-
-  pprint (stderr, stmt, 0, options);
-  cloog_program_dump_cloog (stderr, prog);
+  CloogProgram *prog = cloog_program_generate (SCOP_PROG (scop), options);
+  struct clast_stmt *stmt = cloog_clast_create (prog, options);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -1124,6 +1120,7 @@ graphite_transform_loops (void)
 {
   unsigned i;
   scop_p scop;
+
   current_scops = VEC_alloc (scop_p, heap, 3);
 
   calculate_dominance_info (CDI_POST_DOMINATORS);
