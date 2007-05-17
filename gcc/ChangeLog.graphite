@@ -1,3 +1,19 @@
+2007-05-17  Georges-Andre Silber  <silber@cri.ensmp.fr>
+            Sebastian Pop  <sebpop@gmail.com>
+
+        * doc/invoke.texi (-ftree-loop-distribution): Document.
+        * tree-loop-distribution.c: New file.
+        * tree-pass.h (pass_loop_distribution): Declared.
+        * timevar.def (TV_TREE_LOOP_DISTRIBUTION): New.
+        * tree-data-ref.c (initialize_data_dependence_relation): Initialize and
+	set reversed_p.
+        * tree-data-ref.h (data_dependence_relation): Add reversed_p.
+	(DDR_REVERSED_P): New.
+        * common.opt (-ftree-loop-distribution): New.
+        * tree-flow.h (distribute_loops): Declared.
+        * Makefile.in (OBJS-common): Depend on tree-loop-distribution.o.
+        * passes.c (init_optimization_passes): Schedule loop distribution.
+
 2007-05-12  Sebastian Pop  <sebastian.pop@inria.fr>
 
 	* graphite.c (print_graphite_bb): Don't call dump_data_references.

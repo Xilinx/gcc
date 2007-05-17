@@ -2281,7 +2281,8 @@ initialize_data_dependence_relation (struct data_reference *a,
   DDR_A (res) = a;
   DDR_B (res) = b;
   DDR_LOOP_NEST (res) = NULL;
-
+  DDR_REVERSED_P (res) = false;
+  
   if (a == NULL || b == NULL)
     {
       DDR_ARE_DEPENDENT (res) = chrec_dont_know;    
@@ -3995,6 +3996,7 @@ build_classic_dist_vector (struct data_dependence_relation *ddr)
 	  build_classic_dist_vector_1 (ddr, DDR_B (ddr), DDR_A (ddr),
 				       save_v, &init_b, &index_carry);
 	  save_dist_v (ddr, save_v);
+	  DDR_REVERSED_P (ddr) = true;
 
 	  /* In this case there is a dependence forward for all the
 	     outer loops:

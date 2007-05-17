@@ -352,6 +352,7 @@ Objective-C and Objective-C++ Dialects}.
 -fvariable-expansion-in-unroller @gol
 -ftree-pre  -ftree-ccp  -ftree-dce -ftree-loop-optimize @gol
 -ftree-loop-linear -fgraphite -ftree-loop-im -ftree-loop-ivcanon -fivopts @gol
+-ftree-loop-distribution @gol
 -fcheck-data-deps @gol
 -ftree-check=@var{pattern} -ftree-checks=@var{file} -ftree-checks-verbose @gol
 -ftree-dominator-opts -ftree-dse -ftree-copyrename -ftree-sink @gol
@@ -5677,6 +5678,11 @@ Perform polyhedral transformations on loops.
 @item -fcheck-data-deps
 Compare the results of several data dependence analyzers.  This option
 is used for debugging the data dependence analyzers.
+
+@item -ftree-loop-distribution
+Perform loop distribution.  This flag can improve cache performance on
+big loop bodies and allow further loop optimizations, like
+parallelization or vectorization, to take place.
 
 @item -ftree-loop-im
 Perform loop invariant motion on trees.  This pass moves only invariants that
