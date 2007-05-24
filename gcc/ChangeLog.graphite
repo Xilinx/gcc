@@ -1,3 +1,14 @@
+2007-05-24  Sebastian Pop  <sebpop@gmail.com>
+
+	* tree-loop-distribution.c (struct rdg): Replace arrays by 
+	VECs for edges and vertices.
+	(RDG_NBV, RDG_NBE, RDG_VERTEX, RDG_EDGE): Removed.
+	(RDGV_NB_PARTITIONS): New.
+	(PRDG_NBV, PRDG_NBE): Removed.
+	(build_scc_graph, correct_partitions_p, mark_partitions, build_prdg,
+	dump_rdg, find_vertex_with_stmt, create_vertices, free_rdg,
+	number_of_scalar_dependences, create_edges, build_rdg): Use VECs.
+
 2007-05-17  Georges-Andre Silber  <silber@cri.ensmp.fr>
             Sebastian Pop  <sebpop@gmail.com>
 
