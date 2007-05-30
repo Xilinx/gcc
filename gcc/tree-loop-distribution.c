@@ -104,7 +104,7 @@ struct rdg
   /* The SSA_NAME used for loop index.  */
   tree loop_index;
   
-  /* The MODIFY_EXPR used to update the loop index.  */
+  /* The GIMPLE_MODIFY_STMT used to update the loop index.  */
   tree loop_index_update;
   
   /* The COND_EXPR that is the exit condition of the loop.  */
@@ -1063,14 +1063,14 @@ create_vertices (rdg_p rdg)
    can deal with.  */
 
 static bool
-correct_modify_expr_p (tree stmt)
+correct_modify_p (tree stmt)
 {
   tree lhs;
   
-  if (TREE_CODE (stmt) != MODIFY_EXPR)
+  if (TREE_CODE (stmt) != GIMPLE_MODIFY_STMT)
     return false;
   
-  lhs = TREE_OPERAND (stmt, 0);
+  lhs = GIMPLE_STMT_OPERAND (stmt, 0);
     
   switch (TREE_CODE (lhs))
     {
@@ -1103,8 +1103,8 @@ check_statements (struct loop *loop)
         {
           tree stmt = bsi_stmt (bsi);
         
-          if (TREE_CODE (stmt) == MODIFY_EXPR
-	      && !correct_modify_expr_p (stmt))
+          if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+	      && !correct_modify_p (stmt))
 	    return false;
         }
     }
@@ -1120,9 +1120,9 @@ number_of_lvalue_uses (rdg_p rdg, tree stmt)
 {
   tree lhs;
   
-  gcc_assert (TREE_CODE (stmt) == MODIFY_EXPR);
+  gcc_assert (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT);
   
-  lhs = TREE_OPERAND (stmt, 0);
+  lhs = GIMPLE_STMT_OPERAND (stmt, 0);
   
   if (TREE_CODE (lhs) == SSA_NAME)
     {
@@ -1150,7 +1150,7 @@ number_of_scalar_dependences (rdg_p rdg)
   rdg_vertex_p v;
 
   for (i = 0; VEC_iterate (rdg_vertex_p, RDG_V (rdg), i, v); i++)
-    if (TREE_CODE (RDGV_STMT (v)) == MODIFY_EXPR)
+    if (TREE_CODE (RDGV_STMT (v)) == GIMPLE_MODIFY_STMT)
       nb_deps += number_of_lvalue_uses (rdg, RDGV_STMT (v));
 
   return nb_deps;
@@ -1192,15 +1192,16 @@ get_dependence_level (lambda_vector dist_vect, unsigned int length)
 /* Creates an edge with a data dependence vector.  */
 
 static void
-update_edge_with_ddv (ddr_p ddr, unsigned int index_of_vector, rdg_p rdg,
-                      unsigned int index_of_edge)
+update_edge_with_ddv (ddr_p ddr, unsigned int index_of_vector, rdg_p rdg)
 {
   data_reference_p dra;
   data_reference_p drb;
-  rdg_edge_p edge = VEC_index (rdg_edge_p, RDG_E (rdg), index_of_edge);
+  rdg_edge_p edge = XNEW (struct rdg_edge);
   rdg_vertex_p va;
   rdg_vertex_p vb;
   
+  VEC_quick_push (rdg_edge_p, RDG_E (rdg), edge);
+
   /* Invert data references according to the direction of the 
      dependence.  */
   if (DDR_REVERSED_P (ddr))
@@ -1259,7 +1260,7 @@ create_edges (rdg_p rdg)
   struct data_dependence_relation *ddr;
   rdg_vertex_p def_vertex;
 
-  scalar_edges = number_of_scalar_dependences (rdg);  
+  scalar_edges = number_of_scalar_dependences (rdg);
   data_edges = number_of_data_dependences (rdg);
   
   if (scalar_edges == 0 && data_edges == 0)
@@ -1274,17 +1275,17 @@ create_edges (rdg_p rdg)
   for (i = 0; VEC_iterate (ddr_p, RDG_DDR (rdg), i, ddr); i++)
     if (DDR_ARE_DEPENDENT (ddr) == NULL_TREE) 
       for (j = 0; j < DDR_NUM_DIST_VECTS (ddr); j++)
-        update_edge_with_ddv (ddr, j, rdg, edge_index++);
-          
+        update_edge_with_ddv (ddr, j, rdg);
+
   /* Create scalar edges.  The principle is as follows: for each
      vertex, if the vertex represents an assignment, we create one
      edge for each use of the SSA_NAME on the LHS.  This edge
      represents a flow scalar dependence of level 0.  */
 
   for (i = 0; VEC_iterate (rdg_vertex_p, RDG_V (rdg), i, def_vertex); i++)
-    if (TREE_CODE (RDGV_STMT (def_vertex)) == MODIFY_EXPR)
+    if (TREE_CODE (RDGV_STMT (def_vertex)) == GIMPLE_MODIFY_STMT)
       {
-	tree lhs = TREE_OPERAND (RDGV_STMT (def_vertex), 0);
+	tree lhs = GIMPLE_STMT_OPERAND (RDGV_STMT (def_vertex), 0);
 	
 	if (TREE_CODE (lhs) == SSA_NAME)
 	  {
@@ -1320,10 +1321,10 @@ create_edges (rdg_p rdg)
 		    edge_index++;
 		  }
 	      }
-	  }  
+	  }
       }
 
-  gcc_assert (edge_index == scalar_edges + data_edges);
+  gcc_assert (VEC_length (rdg_edge_p, RDG_E (rdg)) == scalar_edges + data_edges);
 }
 
 /* Get the loop index of a loop nest.  */

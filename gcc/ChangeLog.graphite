@@ -1,3 +1,13 @@
+2007-05-30  Sebastian Pop  <sebpop@gmail.com>
+
+	* tree-loop-distribution.c (correct_modify_expr_p): Renamed
+	correct_modify_p
+	(correct_modify_p, check_statements, number_of_lvalue_uses,
+	number_of_scalar_dependences, create_edges): Use GIMPLE_MODIFY_STMT
+	instead of MODIFY_EXPR.
+	(update_edge_with_ddv): Don't pass index_of_edge.  Initialize
+	and push new edges.
+
 2007-05-24  Sebastian Pop  <sebpop@gmail.com>
 
 	* tree-loop-distribution.c (struct rdg): Replace arrays by 
