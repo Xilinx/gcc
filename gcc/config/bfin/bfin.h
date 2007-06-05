@@ -34,6 +34,10 @@
 
 extern int target_flags;
 
+#ifndef DEFAULT_CPU_TYPE
+#define DEFAULT_CPU_TYPE BFIN_CPU_BF532
+#endif
+
 /* Predefinition in the preprocessor for this target machine */
 #ifndef TARGET_CPU_CPP_BUILTINS
 #define TARGET_CPU_CPP_BUILTINS()               \
@@ -42,6 +46,33 @@ extern int target_flags;
       builtin_define_std ("bfin");              \
       builtin_define_std ("BFIN");              \
       builtin_define ("__ADSPBLACKFIN__");	\
+      builtin_define ("__ADSPLPBLACKFIN__");	\
+						\
+      switch (bfin_cpu_type)			\
+	{					\
+	case BFIN_CPU_BF531:			\
+	  builtin_define ("__ADSPBF531__");	\
+	  break;				\
+	case BFIN_CPU_BF532:			\
+	  builtin_define ("__ADSPBF532__");	\
+	  break;				\
+	case BFIN_CPU_BF533:			\
+	  builtin_define ("__ADSPBF533__");	\
+	  break;				\
+	case BFIN_CPU_BF534:			\
+	  builtin_define ("__ADSPBF534__");	\
+	  break;				\
+	case BFIN_CPU_BF536:			\
+	  builtin_define ("__ADSPBF536__");	\
+	  break;				\
+	case BFIN_CPU_BF537:			\
+	  builtin_define ("__ADSPBF537__");	\
+	  break;				\
+	case BFIN_CPU_BF561:			\
+	  builtin_define ("__ADSPBF561__");	\
+	  break;				\
+	}					\
+						\
       if (TARGET_FDPIC)				\
 	builtin_define ("__BFIN_FDPIC__");	\
       if (TARGET_ID_SHARED_LIBRARY)		\
@@ -195,6 +226,18 @@ extern const char *bfin_library_id_string;
 #define FRAME_POINTER_REQUIRED (bfin_frame_pointer_required ())
 
 /*#define DATA_ALIGNMENT(TYPE, BASIC-ALIGN) for arrays.. */
+
+/* If defined, a C expression to compute the alignment for a local
+   variable.  TYPE is the data type, and ALIGN is the alignment that
+   the object would ordinarily have.  The value of this macro is used
+   instead of that alignment to align the object.
+
+   If this macro is not defined, then ALIGN is used.
+
+   One use of this macro is to increase alignment of medium-size
+   data to make it all fit in fewer cache lines.  */
+
+#define LOCAL_ALIGNMENT(TYPE, ALIGN) bfin_local_alignment ((TYPE), (ALIGN))
 
 /* Make strings word-aligned so strcpy from constants will be faster.  */
 #define CONSTANT_ALIGNMENT(EXP, ALIGN)  \
@@ -662,7 +705,15 @@ enum reg_class
    If `HARD_REGNO_MODE_OK (R, MODE1)' and `HARD_REGNO_MODE_OK (R,
    MODE2)' are ever different for any R, then `MODES_TIEABLE_P (MODE1,
    MODE2)' must be zero. */
-#define MODES_TIEABLE_P(MODE1, MODE2) ((MODE1) == (MODE2))
+#define MODES_TIEABLE_P(MODE1, MODE2)			\
+ ((MODE1) == (MODE2)					\
+  || ((GET_MODE_CLASS (MODE1) == MODE_INT		\
+       || GET_MODE_CLASS (MODE1) == MODE_FLOAT)		\
+      && (GET_MODE_CLASS (MODE2) == MODE_INT		\
+	  || GET_MODE_CLASS (MODE2) == MODE_FLOAT)	\
+      && (MODE1) != BImode && (MODE2) != BImode		\
+      && GET_MODE_SIZE (MODE1) <= UNITS_PER_WORD	\
+      && GET_MODE_SIZE (MODE2) <= UNITS_PER_WORD))
 
 /* `PREFERRED_RELOAD_CLASS (X, CLASS)'
    A C expression that places additional restrictions on the register
@@ -883,6 +934,10 @@ do {					       \
    in one reasonably fast instruction.  */
 #define MOVE_MAX UNITS_PER_WORD
 
+/* If a memory-to-memory move would take MOVE_RATIO or more simple
+   move-instruction pairs, we will do a movmem or libcall instead.  */
+
+#define MOVE_RATIO 5
 
 /* STORAGE LAYOUT: target machine storage layout
    Define this macro as a C expression which is nonzero if accessing
@@ -1084,6 +1139,8 @@ do {					       \
      : (STR)[1] == '2' ? (VALUE) == 2 \
      : (STR)[1] == '3' ? (VALUE) == 3 \
      : (STR)[1] == '4' ? (VALUE) == 4 \
+     : (STR)[1] == 'A' ? (VALUE) != MACFLAG_M && (VALUE) != MACFLAG_IS_M \
+     : (STR)[1] == 'B' ? (VALUE) == MACFLAG_M || (VALUE) == MACFLAG_IS_M \
      : 0)
 
 #define CONST_OK_FOR_K(VALUE, STR)			\
@@ -1142,6 +1199,17 @@ do {					       \
 
 #define EXTRA_CONSTRAINT(VALUE, D) \
     ((D) == 'Q' ? GET_CODE (VALUE) == SYMBOL_REF : 0)
+
+/* Evaluates to true if A and B are mac flags that can be used
+   together in a single multiply insn.  That is the case if they are
+   both the same flag not involving M, or if one is a combination of
+   the other with M.  */
+#define MACFLAGS_MATCH_P(A, B) \
+ ((A) == (B) \
+  || ((A) == MACFLAG_NONE && (B) == MACFLAG_M) \
+  || ((A) == MACFLAG_M && (B) == MACFLAG_NONE) \
+  || ((A) == MACFLAG_IS && (B) == MACFLAG_IS_M) \
+  || ((A) == MACFLAG_IS_M && (B) == MACFLAG_IS))
 
 /* Switch into a generic section.  */
 #define TARGET_ASM_NAMED_SECTION  default_elf_asm_named_section

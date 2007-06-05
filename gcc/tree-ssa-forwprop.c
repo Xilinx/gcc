@@ -33,6 +33,7 @@ Boston, MA 02110-1301, USA.  */
 #include "tree-pass.h"
 #include "tree-dump.h"
 #include "langhooks.h"
+#include "flags.h"
 
 /* This pass propagates the RHS of assignment statements into use
    sites of the LHS of the assignment.  It's basically a specialized
@@ -155,424 +156,309 @@ static bool forward_propagate_addr_expr (tree name, tree rhs);
 static bool cfg_changed;
 
 
-/* Given an SSA_NAME VAR, return true if and only if VAR is defined by
-   a comparison.  */
+/* Get the next statement we can propagate NAME's value into skipping
+   trivial copies.  Returns the statement that is suitable as a
+   propagation destination or NULL_TREE if there is no such one.
+   This only returns destinations in a single-use chain.  FINAL_NAME_P
+   if non-NULL is written to the ssa name that represents the use.  */
+
+static tree
+get_prop_dest_stmt (tree name, tree *final_name_p)
+{
+  use_operand_p use;
+  tree use_stmt;
+
+  do {
+    /* If name has multiple uses, bail out.  */
+    if (!single_imm_use (name, &use, &use_stmt))
+      return NULL_TREE;
+
+    /* If this is not a trivial copy, we found it.  */
+    if (TREE_CODE (use_stmt) != GIMPLE_MODIFY_STMT
+	|| TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 0)) != SSA_NAME
+	|| GIMPLE_STMT_OPERAND (use_stmt, 1) != name)
+      break;
+
+    /* Continue searching uses of the copy destination.  */
+    name = GIMPLE_STMT_OPERAND (use_stmt, 0);
+  } while (1);
+
+  if (final_name_p)
+    *final_name_p = name;
+
+  return use_stmt;
+}
+
+/* Get the statement we can propagate from into NAME skipping
+   trivial copies.  Returns the statement which defines the
+   propagation source or NULL_TREE if there is no such one.
+   If SINGLE_USE_ONLY is set considers only sources which have
+   a single use chain up to NAME.  If SINGLE_USE_P is non-null,
+   it is set to whether the chain to NAME is a single use chain
+   or not.  SINGLE_USE_P is not written to if SINGLE_USE_ONLY is set.  */
+
+static tree
+get_prop_source_stmt (tree name, bool single_use_only, bool *single_use_p)
+{
+  bool single_use = true;
+
+  do {
+    tree def_stmt = SSA_NAME_DEF_STMT (name);
+
+    if (!has_single_use (name))
+      {
+	single_use = false;
+	if (single_use_only)
+	  return NULL_TREE;
+      }
+
+    /* If name is defined by a PHI node or is the default def, bail out.  */
+    if (TREE_CODE (def_stmt) != GIMPLE_MODIFY_STMT)
+      return NULL_TREE;
+
+    /* If name is not a simple copy destination, we found it.  */
+    if (TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) != SSA_NAME)
+      {
+	if (!single_use_only && single_use_p)
+	  *single_use_p = single_use;
+
+	return def_stmt;
+      }
+
+    /* Continue searching the def of the copy source name.  */
+    name = GIMPLE_STMT_OPERAND (def_stmt, 1);
+  } while (1);
+}
+
+/* Checks if the destination ssa name in DEF_STMT can be used as
+   propagation source.  Returns true if so, otherwise false.  */
 
 static bool
-ssa_name_defined_by_comparison_p (tree var)
+can_propagate_from (tree def_stmt)
 {
-  tree def = SSA_NAME_DEF_STMT (var);
+  tree rhs = GIMPLE_STMT_OPERAND (def_stmt, 1);
 
-  if (TREE_CODE (def) == GIMPLE_MODIFY_STMT)
+  /* We cannot propagate ssa names that occur in abnormal phi nodes.  */
+  switch (TREE_CODE_LENGTH (TREE_CODE (rhs)))
     {
-      tree rhs = GIMPLE_STMT_OPERAND (def, 1);
-      return COMPARISON_CLASS_P (rhs);
+    case 3:
+      if (TREE_OPERAND (rhs, 2) != NULL_TREE
+	  && TREE_CODE (TREE_OPERAND (rhs, 2)) == SSA_NAME
+	  && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (TREE_OPERAND (rhs, 2)))
+	return false;
+    case 2:
+      if (TREE_OPERAND (rhs, 1) != NULL_TREE
+	  && TREE_CODE (TREE_OPERAND (rhs, 1)) == SSA_NAME
+	  && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (TREE_OPERAND (rhs, 1)))
+	return false;
+    case 1:
+      if (TREE_OPERAND (rhs, 0) != NULL_TREE
+	  && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME
+	  && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (TREE_OPERAND (rhs, 0)))
+	return false;
+      break;
+
+    default:
+      return false;
     }
 
-  return 0;
+  /* If the definition is a conversion of a pointer to a function type,
+     then we can not apply optimizations as some targets require function
+     pointers to be canonicalized and in this case this optimization could
+     eliminate a necessary canonicalization.  */
+  if ((TREE_CODE (rhs) == NOP_EXPR
+       || TREE_CODE (rhs) == CONVERT_EXPR)
+      && POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (rhs, 0)))
+      && TREE_CODE (TREE_TYPE (TREE_TYPE
+			        (TREE_OPERAND (rhs, 0)))) == FUNCTION_TYPE)
+    return false;
+
+  return true;
 }
 
-/* Forward propagate a single-use variable into COND once.  Return a
-   new condition if successful.  Return NULL_TREE otherwise.  */
+/* Remove a copy chain ending in NAME along the defs but not
+   further or including UP_TO_STMT.  If NAME was replaced in
+   its only use then this function can be used to clean up
+   dead stmts.  Returns true if UP_TO_STMT can be removed
+   as well, otherwise false.  */
+
+static bool
+remove_prop_source_from_use (tree name, tree up_to_stmt)
+{
+  block_stmt_iterator bsi;
+  tree stmt;
+
+  do {
+    if (!has_zero_uses (name))
+      return false;
+
+    stmt = SSA_NAME_DEF_STMT (name);
+    if (stmt == up_to_stmt)
+      return true;
+
+    bsi = bsi_for_stmt (stmt);
+    release_defs (stmt);
+    bsi_remove (&bsi, true);
+
+    name = GIMPLE_STMT_OPERAND (stmt, 1);
+  } while (TREE_CODE (name) == SSA_NAME);
+
+  return false;
+}
+
+/* Combine OP0 CODE OP1 in the context of a COND_EXPR.  Returns
+   the folded result in a form suitable for COND_EXPR_COND or
+   NULL_TREE, if there is no suitable simplified form.  If
+   INVARIANT_ONLY is true only gimple_min_invariant results are
+   considered simplified.  */
 
 static tree
-forward_propagate_into_cond_1 (tree cond, tree *test_var_p)
+combine_cond_expr_cond (enum tree_code code, tree type,
+			tree op0, tree op1, bool invariant_only)
 {
-  tree new_cond = NULL_TREE;
-  enum tree_code cond_code = TREE_CODE (cond);
-  tree test_var = NULL_TREE;
-  tree def;
-  tree def_rhs;
+  tree t;
 
-  /* If the condition is not a lone variable or an equality test of an
-     SSA_NAME against an integral constant, then we do not have an
-     optimizable case.
+  gcc_assert (TREE_CODE_CLASS (code) == tcc_comparison);
 
-     Note these conditions also ensure the COND_EXPR has no
-     virtual operands or other side effects.  */
-  if (cond_code != SSA_NAME
-      && !((cond_code == EQ_EXPR || cond_code == NE_EXPR)
-	   && TREE_CODE (TREE_OPERAND (cond, 0)) == SSA_NAME
-	   && CONSTANT_CLASS_P (TREE_OPERAND (cond, 1))
-	   && INTEGRAL_TYPE_P (TREE_TYPE (TREE_OPERAND (cond, 1)))))
+  t = fold_binary (code, type, op0, op1);
+  if (!t)
     return NULL_TREE;
 
-  /* Extract the single variable used in the test into TEST_VAR.  */
-  if (cond_code == SSA_NAME)
-    test_var = cond;
-  else
-    test_var = TREE_OPERAND (cond, 0);
+  /* Require that we got a boolean type out if we put one in.  */
+  gcc_assert (TREE_CODE (TREE_TYPE (t)) == TREE_CODE (type));
 
-  /* Now get the defining statement for TEST_VAR.  Skip this case if
-     it's not defined by some GIMPLE_MODIFY_STMT.  */
-  def = SSA_NAME_DEF_STMT (test_var);
-  if (TREE_CODE (def) != GIMPLE_MODIFY_STMT)
+  /* For (bool)x use x != 0.  */
+  if (TREE_CODE (t) == NOP_EXPR
+      && TREE_TYPE (t) == boolean_type_node)
+    {
+      tree top0 = TREE_OPERAND (t, 0);
+      t = build2 (NE_EXPR, type,
+		  top0, build_int_cst (TREE_TYPE (top0), 0));
+    }
+  /* For !x use x == 0.  */
+  else if (TREE_CODE (t) == TRUTH_NOT_EXPR)
+    {
+      tree top0 = TREE_OPERAND (t, 0);
+      t = build2 (EQ_EXPR, type,
+		  top0, build_int_cst (TREE_TYPE (top0), 0));
+    }
+  /* For cmp ? 1 : 0 use cmp.  */
+  else if (TREE_CODE (t) == COND_EXPR
+	   && COMPARISON_CLASS_P (TREE_OPERAND (t, 0))
+	   && integer_onep (TREE_OPERAND (t, 1))
+	   && integer_zerop (TREE_OPERAND (t, 2)))
+    {
+      tree top0 = TREE_OPERAND (t, 0);
+      t = build2 (TREE_CODE (top0), type,
+		  TREE_OPERAND (top0, 0), TREE_OPERAND (top0, 1));
+    }
+
+  /* Bail out if we required an invariant but didn't get one.  */
+  if (invariant_only
+      && !is_gimple_min_invariant (t))
     return NULL_TREE;
 
-  def_rhs = GIMPLE_STMT_OPERAND (def, 1);
+  /* A valid conditional for a COND_EXPR is either a gimple value
+     or a comparison with two gimple value operands.  */
+  if (is_gimple_val (t)
+      || (COMPARISON_CLASS_P (t)
+	  && is_gimple_val (TREE_OPERAND (t, 0))
+	  && is_gimple_val (TREE_OPERAND (t, 1))))
+    return t;
 
-  /* If TEST_VAR is set by adding or subtracting a constant
-     from an SSA_NAME, then it is interesting to us as we
-     can adjust the constant in the conditional and thus
-     eliminate the arithmetic operation.  */
-  if (TREE_CODE (def_rhs) == PLUS_EXPR
-      || TREE_CODE (def_rhs) == MINUS_EXPR)
-    {
-      tree op0 = TREE_OPERAND (def_rhs, 0);
-      tree op1 = TREE_OPERAND (def_rhs, 1);
-
-      /* The first operand must be an SSA_NAME and the second
-	 operand must be a constant.  */
-      if (TREE_CODE (op0) != SSA_NAME
-	  || !CONSTANT_CLASS_P (op1)
-	  || !INTEGRAL_TYPE_P (TREE_TYPE (op1)))
-	return NULL_TREE;
-
-      /* Don't propagate if the first operand occurs in
-	 an abnormal PHI.  */
-      if (SSA_NAME_OCCURS_IN_ABNORMAL_PHI (op0))
-	return NULL_TREE;
-
-      if (has_single_use (test_var))
-	{
-	  enum tree_code new_code;
-	  tree t;
-
-	  /* If the variable was defined via X + C, then we must
-	     subtract C from the constant in the conditional.
-	     Otherwise we add C to the constant in the
-	     conditional.  The result must fold into a valid
-	     gimple operand to be optimizable.  */
-	  new_code = (TREE_CODE (def_rhs) == PLUS_EXPR
-		      ? MINUS_EXPR : PLUS_EXPR);
-	  t = int_const_binop (new_code, TREE_OPERAND (cond, 1), op1, 0);
-	  if (!is_gimple_val (t))
-	    return NULL_TREE;
-
-	  new_cond = build2 (cond_code, boolean_type_node, op0, t);
-	}
-    }
-
-  /* These cases require comparisons of a naked SSA_NAME or
-     comparison of an SSA_NAME against zero or one.  */
-  else if (TREE_CODE (cond) == SSA_NAME
-	   || integer_zerop (TREE_OPERAND (cond, 1))
-	   || integer_onep (TREE_OPERAND (cond, 1)))
-    {
-      /* If TEST_VAR is set from a relational operation
-	 between two SSA_NAMEs or a combination of an SSA_NAME
-	 and a constant, then it is interesting.  */
-      if (COMPARISON_CLASS_P (def_rhs))
-	{
-	  tree op0 = TREE_OPERAND (def_rhs, 0);
-	  tree op1 = TREE_OPERAND (def_rhs, 1);
-
-	  /* Both operands of DEF_RHS must be SSA_NAMEs or
-	     constants.  */
-	  if ((TREE_CODE (op0) != SSA_NAME
-	       && !is_gimple_min_invariant (op0))
-	      || (TREE_CODE (op1) != SSA_NAME
-		  && !is_gimple_min_invariant (op1)))
-	    return NULL_TREE;
-
-	  /* Don't propagate if the first operand occurs in
-	     an abnormal PHI.  */
-	  if (TREE_CODE (op0) == SSA_NAME
-	      && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (op0))
-	    return NULL_TREE;
-
-	  /* Don't propagate if the second operand occurs in
-	     an abnormal PHI.  */
-	  if (TREE_CODE (op1) == SSA_NAME
-	      && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (op1))
-	    return NULL_TREE;
-
-	  if (has_single_use (test_var))
-	    {
-	      /* TEST_VAR was set from a relational operator.  */
-	      new_cond = build2 (TREE_CODE (def_rhs),
-				 boolean_type_node, op0, op1);
-
-	      /* Invert the conditional if necessary.  */
-	      if ((cond_code == EQ_EXPR
-		   && integer_zerop (TREE_OPERAND (cond, 1)))
-		  || (cond_code == NE_EXPR
-		      && integer_onep (TREE_OPERAND (cond, 1))))
-		{
-		  new_cond = invert_truthvalue (new_cond);
-
-		  /* If we did not get a simple relational
-		     expression or bare SSA_NAME, then we can
-		     not optimize this case.  */
-		  if (!COMPARISON_CLASS_P (new_cond)
-		      && TREE_CODE (new_cond) != SSA_NAME)
-		    new_cond = NULL_TREE;
-		}
-	    }
-	}
-
-      /* If TEST_VAR is set from a TRUTH_NOT_EXPR, then it
-	 is interesting.  */
-      else if (TREE_CODE (def_rhs) == TRUTH_NOT_EXPR)
-	{
-	  enum tree_code new_code;
-
-	  def_rhs = TREE_OPERAND (def_rhs, 0);
-
-	  /* DEF_RHS must be an SSA_NAME or constant.  */
-	  if (TREE_CODE (def_rhs) != SSA_NAME
-	      && !is_gimple_min_invariant (def_rhs))
-	    return NULL_TREE;
-
-	  /* Don't propagate if the operand occurs in
-	     an abnormal PHI.  */
-	  if (TREE_CODE (def_rhs) == SSA_NAME
-	      && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (def_rhs))
-	    return NULL_TREE;
-
-	  if (cond_code == SSA_NAME
-	      || (cond_code == NE_EXPR
-		  && integer_zerop (TREE_OPERAND (cond, 1)))
-	      || (cond_code == EQ_EXPR
-		  && integer_onep (TREE_OPERAND (cond, 1))))
-	    new_code = EQ_EXPR;
-	  else
-	    new_code = NE_EXPR;
-
-	  new_cond = build2 (new_code, boolean_type_node, def_rhs,
-			     fold_convert (TREE_TYPE (def_rhs),
-					   integer_zero_node));
-	}
-
-      /* If TEST_VAR was set from a cast of an integer type
-	 to a boolean type or a cast of a boolean to an
-	 integral, then it is interesting.  */
-      else if (TREE_CODE (def_rhs) == NOP_EXPR
-	       || TREE_CODE (def_rhs) == CONVERT_EXPR)
-	{
-	  tree outer_type;
-	  tree inner_type;
-
-	  outer_type = TREE_TYPE (def_rhs);
-	  inner_type = TREE_TYPE (TREE_OPERAND (def_rhs, 0));
-
-	  if ((TREE_CODE (outer_type) == BOOLEAN_TYPE
-	       && INTEGRAL_TYPE_P (inner_type))
-	      || (TREE_CODE (inner_type) == BOOLEAN_TYPE
-		  && INTEGRAL_TYPE_P (outer_type)))
-	    ;
-	  else if (INTEGRAL_TYPE_P (outer_type)
-		   && INTEGRAL_TYPE_P (inner_type)
-		   && TREE_CODE (TREE_OPERAND (def_rhs, 0)) == SSA_NAME
-		   && ssa_name_defined_by_comparison_p (TREE_OPERAND (def_rhs,
-								      0)))
-	    ;
-	  else
-	    return NULL_TREE;
-
-	  /* Don't propagate if the operand occurs in
-	     an abnormal PHI.  */
-	  if (TREE_CODE (TREE_OPERAND (def_rhs, 0)) == SSA_NAME
-	      && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (TREE_OPERAND
-						  (def_rhs, 0)))
-	    return NULL_TREE;
-
-	  if (has_single_use (test_var))
-	    {
-	      enum tree_code new_code;
-	      tree new_arg;
-
-	      if (cond_code == SSA_NAME
-		  || (cond_code == NE_EXPR
-		      && integer_zerop (TREE_OPERAND (cond, 1)))
-		  || (cond_code == EQ_EXPR
-		      && integer_onep (TREE_OPERAND (cond, 1))))
-		new_code = NE_EXPR;
-	      else
-		new_code = EQ_EXPR;
-
-	      new_arg = TREE_OPERAND (def_rhs, 0);
-	      new_cond = build2 (new_code, boolean_type_node, new_arg,
-				 fold_convert (TREE_TYPE (new_arg),
-					       integer_zero_node));
-	    }
-	}
-    }
-
-  *test_var_p = test_var;
-  return new_cond;
+  return NULL_TREE;
 }
 
-/* COND is a condition of the form:
+/* Propagate from the ssa name definition statements of COND_EXPR
+   in statement STMT into the conditional if that simplifies it.  */
 
-     x == const or x != const
-
-   Look back to x's defining statement and see if x is defined as
-
-     x = (type) y;
-
-   If const is unchanged if we convert it to type, then we can build
-   the equivalent expression:
-
-
-      y == const or y != const
-
-   Which may allow further optimizations.
-
-   Return the equivalent comparison or NULL if no such equivalent comparison
-   was found.  */
-
-static tree
-find_equivalent_equality_comparison (tree cond)
-{
-  tree op0 = TREE_OPERAND (cond, 0);
-  tree op1 = TREE_OPERAND (cond, 1);
-  tree def_stmt = SSA_NAME_DEF_STMT (op0);
-
-  while (def_stmt
-	 && TREE_CODE (def_stmt) == GIMPLE_MODIFY_STMT
-	 && TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) == SSA_NAME)
-    def_stmt = SSA_NAME_DEF_STMT (GIMPLE_STMT_OPERAND (def_stmt, 1));
-
-  /* OP0 might have been a parameter, so first make sure it
-     was defined by a GIMPLE_MODIFY_STMT.  */
-  if (def_stmt && TREE_CODE (def_stmt) == GIMPLE_MODIFY_STMT)
-    {
-      tree def_rhs = GIMPLE_STMT_OPERAND (def_stmt, 1);
-
-      /* If either operand to the comparison is a pointer to
-	 a function, then we can not apply this optimization
-	 as some targets require function pointers to be
-	 canonicalized and in this case this optimization would
-	 eliminate a necessary canonicalization.  */
-      if ((POINTER_TYPE_P (TREE_TYPE (op0))
-	   && TREE_CODE (TREE_TYPE (TREE_TYPE (op0))) == FUNCTION_TYPE)
-	  || (POINTER_TYPE_P (TREE_TYPE (op1))
-	      && TREE_CODE (TREE_TYPE (TREE_TYPE (op1))) == FUNCTION_TYPE))
-	return NULL;
-	      
-      /* Now make sure the RHS of the GIMPLE_MODIFY_STMT is a typecast.  */
-      if ((TREE_CODE (def_rhs) == NOP_EXPR
-	   || TREE_CODE (def_rhs) == CONVERT_EXPR)
-	  && TREE_CODE (TREE_OPERAND (def_rhs, 0)) == SSA_NAME)
-	{
-	  tree def_rhs_inner = TREE_OPERAND (def_rhs, 0);
-	  tree def_rhs_inner_type = TREE_TYPE (def_rhs_inner);
-	  tree new;
-
-	  if (TYPE_PRECISION (def_rhs_inner_type)
-	      > TYPE_PRECISION (TREE_TYPE (def_rhs)))
-	    return NULL;
-
-	  /* If the inner type of the conversion is a pointer to
-	     a function, then we can not apply this optimization
-	     as some targets require function pointers to be
-	     canonicalized.  This optimization would result in
-	     canonicalization of the pointer when it was not originally
-	     needed/intended.  */
-	  if (POINTER_TYPE_P (def_rhs_inner_type)
-	      && TREE_CODE (TREE_TYPE (def_rhs_inner_type)) == FUNCTION_TYPE)
-	    return NULL;
-
-	  /* What we want to prove is that if we convert OP1 to
-	     the type of the object inside the NOP_EXPR that the
-	     result is still equivalent to SRC. 
-
-	     If that is true, the build and return new equivalent
-	     condition which uses the source of the typecast and the
-	     new constant (which has only changed its type).  */
-	  new = fold_build1 (TREE_CODE (def_rhs), def_rhs_inner_type, op1);
-	  STRIP_USELESS_TYPE_CONVERSION (new);
-	  if (is_gimple_val (new) && tree_int_cst_equal (new, op1))
-	    return build2 (TREE_CODE (cond), TREE_TYPE (cond),
-			   def_rhs_inner, new);
-	}
-    }
-  return NULL;
-}
-
-/* EXPR is a COND_EXPR
-   STMT is the statement containing EXPR.
-
-   This routine attempts to find equivalent forms of the condition
-   which we may be able to optimize better.  */
-
-static void
-simplify_cond (tree cond_expr, tree stmt)
-{
-  tree cond = COND_EXPR_COND (cond_expr);
-
-  if (COMPARISON_CLASS_P (cond))
-    {
-      tree op0 = TREE_OPERAND (cond, 0);
-      tree op1 = TREE_OPERAND (cond, 1);
-
-      if (TREE_CODE (op0) == SSA_NAME && is_gimple_min_invariant (op1))
-	{
-	  /* First see if we have test of an SSA_NAME against a constant
-	     where the SSA_NAME is defined by an earlier typecast which
-	     is irrelevant when performing tests against the given
-	     constant.  */
-	  if (TREE_CODE (cond) == EQ_EXPR || TREE_CODE (cond) == NE_EXPR)
-	    {
-	      tree new_cond = find_equivalent_equality_comparison (cond);
-
-	      if (new_cond)
-		{
-		  COND_EXPR_COND (cond_expr) = new_cond;
-		  update_stmt (stmt);
-		}
-	    }
-	}
-    }
-}
-
-/* Forward propagate a single-use variable into COND_EXPR as many
-   times as possible.  */
-
-static void
+static bool
 forward_propagate_into_cond (tree cond_expr, tree stmt)
 {
-  gcc_assert (TREE_CODE (cond_expr) == COND_EXPR);
+  bool did_something = false;
 
-  while (1)
-    {
-      tree test_var = NULL_TREE;
-      tree cond = COND_EXPR_COND (cond_expr);
-      tree new_cond = forward_propagate_into_cond_1 (cond, &test_var);
+  do {
+    tree tmp = NULL_TREE;
+    tree cond = COND_EXPR_COND (cond_expr);
+    tree name, def_stmt, rhs;
+    bool single_use_p;
 
-      /* Return if unsuccessful.  */
-      if (new_cond == NULL_TREE)
-	break;
+    /* We can do tree combining on SSA_NAME and comparison expressions.  */
+    if (COMPARISON_CLASS_P (cond)
+	&& TREE_CODE (TREE_OPERAND (cond, 0)) == SSA_NAME)
+      {
+	/* For comparisons use the first operand, that is likely to
+	   simplify comparisons against constants.  */
+	name = TREE_OPERAND (cond, 0);
+	def_stmt = get_prop_source_stmt (name, false, &single_use_p);
+	if (def_stmt != NULL_TREE
+	    && can_propagate_from (def_stmt))
+	  {
+	    tree op1 = TREE_OPERAND (cond, 1);
+	    rhs = GIMPLE_STMT_OPERAND (def_stmt, 1);
+	    tmp = combine_cond_expr_cond (TREE_CODE (cond), boolean_type_node,
+				          fold_convert (TREE_TYPE (op1), rhs),
+				          op1, !single_use_p);
+	  }
+	/* If that wasn't successful, try the second operand.  */
+	if (tmp == NULL_TREE
+	    && TREE_CODE (TREE_OPERAND (cond, 1)) == SSA_NAME)
+	  {
+	    tree op0 = TREE_OPERAND (cond, 0);
+	    name = TREE_OPERAND (cond, 1);
+	    def_stmt = get_prop_source_stmt (name, false, &single_use_p);
+	    if (def_stmt == NULL_TREE
+	        || !can_propagate_from (def_stmt))
+	      return did_something;
 
-      /* Dump details.  */
-      if (dump_file && (dump_flags & TDF_DETAILS))
-	{
-	  fprintf (dump_file, "  Replaced '");
-	  print_generic_expr (dump_file, cond, dump_flags);
-	  fprintf (dump_file, "' with '");
-	  print_generic_expr (dump_file, new_cond, dump_flags);
-	  fprintf (dump_file, "'\n");
-	}
+	    rhs = GIMPLE_STMT_OPERAND (def_stmt, 1);
+	    tmp = combine_cond_expr_cond (TREE_CODE (cond), boolean_type_node,
+					  op0,
+				          fold_convert (TREE_TYPE (op0), rhs),
+					  !single_use_p);
+	  }
+      }
+    else if (TREE_CODE (cond) == SSA_NAME)
+      {
+	name = cond;
+	def_stmt = get_prop_source_stmt (name, true, NULL);
+	if (def_stmt == NULL_TREE
+	    || !can_propagate_from (def_stmt))
+	  return did_something;
 
-      COND_EXPR_COND (cond_expr) = new_cond;
-      update_stmt (stmt);
+	rhs = GIMPLE_STMT_OPERAND (def_stmt, 1);
+	tmp = combine_cond_expr_cond (NE_EXPR, boolean_type_node, rhs,
+				      build_int_cst (TREE_TYPE (rhs), 0),
+				      false);
+      }
 
-      if (has_zero_uses (test_var))
-	{
-	  tree def = SSA_NAME_DEF_STMT (test_var);
-	  block_stmt_iterator bsi = bsi_for_stmt (def);
-	  bsi_remove (&bsi, true);
-	  release_defs (def);
-	}
-    }
+    if (tmp)
+      {
+	if (dump_file && tmp)
+	  {
+	    fprintf (dump_file, "  Replaced '");
+	    print_generic_expr (dump_file, cond, 0);
+	    fprintf (dump_file, "' with '");
+	    print_generic_expr (dump_file, tmp, 0);
+	    fprintf (dump_file, "'\n");
+	  }
 
-  /* There are further simplifications that can be performed
-     on COND_EXPRs.  Specifically, when comparing an SSA_NAME
-     against a constant where the SSA_NAME is the result of a
-     conversion.  Perhaps this should be folded into the rest
-     of the COND_EXPR simplification code.  */
-  simplify_cond (cond_expr, stmt);
+	COND_EXPR_COND (cond_expr) = unshare_expr (tmp);
+	update_stmt (stmt);
+
+	/* Remove defining statements.  */
+	remove_prop_source_from_use (name, NULL);
+
+	did_something = true;
+
+	/* Continue combining.  */
+	continue;
+      }
+
+    break;
+  } while (1);
+
+  return did_something;
 }
 
 /* We've just substituted an ADDR_EXPR into stmt.  Update all the 
@@ -592,8 +478,8 @@ tidy_after_forward_propagate_addr (tree stmt)
   mark_symbols_for_renaming (stmt);
 }
 
-/* DEF_RHS defines LHS which is contains the address of the 0th element
-   in an array.  USE_STMT uses LHS to compute the address of an
+/* DEF_RHS contains the address of the 0th element in an array. 
+   USE_STMT uses type of DEF_RHS to compute the address of an
    arbitrary element within the array.  The (variable) byte offset
    of the element is contained in OFFSET.
 
@@ -608,7 +494,7 @@ tidy_after_forward_propagate_addr (tree stmt)
    with the new address computation.  */
 
 static bool
-forward_propagate_addr_into_variable_array_index (tree offset, tree lhs,
+forward_propagate_addr_into_variable_array_index (tree offset,
 						  tree def_rhs, tree use_stmt)
 {
   tree index;
@@ -627,28 +513,30 @@ forward_propagate_addr_into_variable_array_index (tree offset, tree lhs,
   if (TREE_CODE (offset) != SSA_NAME)
     return false;
 
-  /* Get the defining statement of the offset before type
-     conversion.  */
-  offset = SSA_NAME_DEF_STMT (offset);
+  /* Try to find an expression for a proper index.  This is either
+     a multiplication expression by the element size or just the
+     ssa name we came along in case the element size is one.  */
+  if (integer_onep (TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (def_rhs)))))
+    index = offset;
+  else
+    {
+      offset = SSA_NAME_DEF_STMT (offset);
 
-  /* The statement which defines OFFSET before type conversion
-     must be a simple GIMPLE_MODIFY_STMT.  */
-  if (TREE_CODE (offset) != GIMPLE_MODIFY_STMT)
-    return false;
+      /* The RHS of the statement which defines OFFSET must be a
+	 multiplication of an object by the size of the array elements.  */
+      if (TREE_CODE (offset) != GIMPLE_MODIFY_STMT)
+	return false;
 
-  /* The RHS of the statement which defines OFFSET must be a
-     multiplication of an object by the size of the array elements. 
-     This implicitly verifies that the size of the array elements
-     is constant.  */
-  offset = GIMPLE_STMT_OPERAND (offset, 1);
-  if (TREE_CODE (offset) != MULT_EXPR
-      || TREE_CODE (TREE_OPERAND (offset, 1)) != INTEGER_CST
-      || !simple_cst_equal (TREE_OPERAND (offset, 1),
-			    TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (lhs)))))
-    return false;
+      offset = GIMPLE_STMT_OPERAND (offset, 1);
+      if (TREE_CODE (offset) != MULT_EXPR
+	  || TREE_CODE (TREE_OPERAND (offset, 1)) != INTEGER_CST
+	  || !simple_cst_equal (TREE_OPERAND (offset, 1),
+				TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (def_rhs)))))
+	return false;
 
-  /* The first operand to the MULT_EXPR is the desired index.  */
-  index = TREE_OPERAND (offset, 0);
+      /* The first operand to the MULT_EXPR is the desired index.  */
+      index = TREE_OPERAND (offset, 0);
+    }
 
   /* Replace the pointer addition with array indexing.  */
   GIMPLE_STMT_OPERAND (use_stmt, 1) = unshare_expr (def_rhs);
@@ -673,7 +561,8 @@ forward_propagate_addr_into_variable_array_index (tree offset, tree lhs,
    be not totally successful, yet things may have been changed).  */
 
 static bool
-forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt)
+forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt,
+			       bool single_use_p)
 {
   tree lhs, rhs, array_ref;
 
@@ -698,10 +587,20 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt)
       /* Continue propagating into the RHS.  */
     }
 
-  /* Trivial case.  The use statement could be a trivial copy or a
+  /* Trivial cases.  The use statement could be a trivial copy or a
      useless conversion.  Recurse to the uses of the lhs as copyprop does
      not copy through differen variant pointers and FRE does not catch
-     all useless conversions.  */
+     all useless conversions.  Treat the case of a single-use name and
+     a conversion to def_rhs type separate, though.  */
+  else if (TREE_CODE (lhs) == SSA_NAME
+	   && (TREE_CODE (rhs) == NOP_EXPR
+	       || TREE_CODE (rhs) == CONVERT_EXPR)
+	   && TREE_TYPE (rhs) == TREE_TYPE (def_rhs)
+	   && single_use_p)
+    {
+      GIMPLE_STMT_OPERAND (use_stmt, 1) = unshare_expr (def_rhs);
+      return true;
+    }
   else if ((TREE_CODE (lhs) == SSA_NAME
       	    && rhs == name)
 	   || ((TREE_CODE (rhs) == NOP_EXPR
@@ -780,7 +679,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt)
       bool res;
       tree offset_stmt = SSA_NAME_DEF_STMT (TREE_OPERAND (rhs, 1));
       
-      res = forward_propagate_addr_into_variable_array_index (offset_stmt, lhs,
+      res = forward_propagate_addr_into_variable_array_index (offset_stmt,
 							      def_rhs, use_stmt);
       return res;
     }
@@ -795,7 +694,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt)
     {
       bool res;
       tree offset_stmt = SSA_NAME_DEF_STMT (TREE_OPERAND (rhs, 0));
-      res = forward_propagate_addr_into_variable_array_index (offset_stmt, lhs,
+      res = forward_propagate_addr_into_variable_array_index (offset_stmt,
 							      def_rhs, use_stmt);
       return res;
     }
@@ -816,6 +715,7 @@ forward_propagate_addr_expr (tree name, tree rhs)
   imm_use_iterator iter;
   tree use_stmt;
   bool all = true;
+  bool single_use_p = has_single_use (name);
 
   FOR_EACH_IMM_USE_STMT (use_stmt, iter, name)
     {
@@ -829,7 +729,7 @@ forward_propagate_addr_expr (tree name, tree rhs)
 	  continue;
 	}
 
-     /* If the use is in a deeper loop nest, then we do not want
+      /* If the use is in a deeper loop nest, then we do not want
 	to propagate the ADDR_EXPR into the loop as that is likely
 	adding expression evaluations into the loop.  */
       if (bb_for_stmt (use_stmt)->loop_depth > stmt_loop_depth)
@@ -837,10 +737,18 @@ forward_propagate_addr_expr (tree name, tree rhs)
 	  all = false;
 	  continue;
 	}
-      
+
+      /* If the use_stmt has side-effects, don't propagate into it.  */
+      if (stmt_ann (use_stmt)->has_volatile_ops)
+	{
+	  all = false;
+	  continue;
+	}
+
       push_stmt_changes (&use_stmt);
 
-      result = forward_propagate_addr_expr_1 (name, rhs, use_stmt);
+      result = forward_propagate_addr_expr_1 (name, rhs, use_stmt,
+					      single_use_p);
       all &= result;
 
       pop_stmt_changes (&use_stmt);
@@ -859,6 +767,104 @@ forward_propagate_addr_expr (tree name, tree rhs)
     }
 
   return all;
+}
+
+/* Forward propagate the comparison COND defined in STMT like
+   cond_1 = x CMP y to uses of the form
+     a_1 = (T')cond_1
+     a_1 = !cond_1
+     a_1 = cond_1 != 0
+   Returns true if stmt is now unused.  */
+
+static bool
+forward_propagate_comparison (tree cond, tree stmt)
+{
+  tree name = GIMPLE_STMT_OPERAND (stmt, 0);
+  tree use_stmt, tmp = NULL_TREE;
+
+  /* Don't propagate ssa names that occur in abnormal phis.  */
+  if ((TREE_CODE (TREE_OPERAND (cond, 0)) == SSA_NAME
+       && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (TREE_OPERAND (cond, 0)))
+      || (TREE_CODE (TREE_OPERAND (cond, 1)) == SSA_NAME
+	  && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (TREE_OPERAND (cond, 1))))
+    return false;
+
+  /* Do not un-cse comparisons.  But propagate through copies.  */
+  use_stmt = get_prop_dest_stmt (name, &name);
+  if (use_stmt == NULL_TREE)
+    return false;
+
+  /* Conversion of the condition result to another integral type.  */
+  if (TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
+      && (TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == CONVERT_EXPR
+	  || TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == NOP_EXPR
+          || COMPARISON_CLASS_P (GIMPLE_STMT_OPERAND (use_stmt, 1))
+          || TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == TRUTH_NOT_EXPR)
+      && INTEGRAL_TYPE_P (TREE_TYPE (GIMPLE_STMT_OPERAND (use_stmt, 0))))
+    {
+      tree lhs = GIMPLE_STMT_OPERAND (use_stmt, 0);
+      tree rhs = GIMPLE_STMT_OPERAND (use_stmt, 1);
+
+      /* We can propagate the condition into a conversion.  */
+      if (TREE_CODE (rhs) == CONVERT_EXPR
+	  || TREE_CODE (rhs) == NOP_EXPR)
+	{
+	  /* Avoid using fold here as that may create a COND_EXPR with
+	     non-boolean condition as canonical form.  */
+	  tmp = build2 (TREE_CODE (cond), TREE_TYPE (lhs),
+			TREE_OPERAND (cond, 0), TREE_OPERAND (cond, 1));
+	}
+      /* We can propagate the condition into X op CST where op
+	 is EQ_EXRP or NE_EXPR and CST is either one or zero.  */
+      else if (COMPARISON_CLASS_P (rhs)
+	       && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME
+	       && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST)
+	{
+	  enum tree_code code = TREE_CODE (rhs);
+	  tree cst = TREE_OPERAND (rhs, 1);
+
+	  tmp = combine_cond_expr_cond (code, TREE_TYPE (lhs),
+					fold_convert (TREE_TYPE (cst), cond),
+					cst, false);
+	  if (tmp == NULL_TREE)
+	    return false;
+	}
+      /* We can propagate the condition into a statement that
+	 computes the logical negation of the comparison result.  */
+      else if (TREE_CODE (rhs) == TRUTH_NOT_EXPR)
+	{
+	  tree type = TREE_TYPE (TREE_OPERAND (cond, 0));
+	  bool nans = HONOR_NANS (TYPE_MODE (type));
+	  enum tree_code code;
+	  code = invert_tree_comparison (TREE_CODE (cond), nans);
+	  if (code == ERROR_MARK)
+	    return false;
+
+	  tmp = build2 (code, TREE_TYPE (lhs), TREE_OPERAND (cond, 0),
+			TREE_OPERAND (cond, 1));
+	}
+      else
+	return false;
+
+      GIMPLE_STMT_OPERAND (use_stmt, 1) = unshare_expr (tmp);
+      update_stmt (use_stmt);
+
+      /* Remove defining statements.  */
+      remove_prop_source_from_use (name, stmt);
+
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	{
+	  fprintf (dump_file, "  Replaced '");
+	  print_generic_expr (dump_file, rhs, dump_flags);
+	  fprintf (dump_file, "' with '");
+	  print_generic_expr (dump_file, tmp, dump_flags);
+	  fprintf (dump_file, "'\n");
+	}
+
+      return true;
+    }
+
+  return false;
 }
 
 /* If we have lhs = ~x (STMT), look and see if earlier we had x = ~y.
@@ -1008,9 +1014,24 @@ tree_ssa_forward_propagate_single_use_vars (void)
 		}
               else if (TREE_CODE (rhs) == COND_EXPR)
                 {
-                  forward_propagate_into_cond (rhs, stmt);
+		  bool did_something;
+		  fold_defer_overflow_warnings ();
+                  did_something = forward_propagate_into_cond (rhs, stmt);
+		  fold_undefer_overflow_warnings (!TREE_NO_WARNING (rhs)
+		    && did_something, stmt, WARN_STRICT_OVERFLOW_CONDITIONAL);
 		  bsi_next (&bsi);
                 }
+	      else if (COMPARISON_CLASS_P (rhs))
+		{
+		  if (forward_propagate_comparison (rhs, stmt))
+		    {
+		      release_defs (stmt);
+		      todoflags |= TODO_remove_unused_locals;
+		      bsi_remove (&bsi, true);
+		    }
+		  else
+		    bsi_next (&bsi);
+		}
 	      else
 		bsi_next (&bsi);
 	    }
@@ -1021,7 +1042,12 @@ tree_ssa_forward_propagate_single_use_vars (void)
 	    }
 	  else if (TREE_CODE (stmt) == COND_EXPR)
 	    {
-	      forward_propagate_into_cond (stmt, stmt);
+	      bool did_something;
+	      fold_defer_overflow_warnings ();
+	      did_something = forward_propagate_into_cond (stmt, stmt);
+	      fold_undefer_overflow_warnings (!TREE_NO_WARNING (stmt)
+					      && did_something, stmt,
+					      WARN_STRICT_OVERFLOW_CONDITIONAL);
 	      bsi_next (&bsi);
 	    }
 	  else
@@ -1045,6 +1071,305 @@ struct tree_opt_pass pass_forwprop = {
   "forwprop",			/* name */
   gate_forwprop,		/* gate */
   tree_ssa_forward_propagate_single_use_vars,	/* execute */
+  NULL,				/* sub */
+  NULL,				/* next */
+  0,				/* static_pass_number */
+  TV_TREE_FORWPROP,		/* tv_id */
+  PROP_cfg | PROP_ssa,		/* properties_required */
+  0,				/* properties_provided */
+  0,				/* properties_destroyed */
+  0,				/* todo_flags_start */
+  TODO_dump_func
+  | TODO_ggc_collect
+  | TODO_update_ssa
+  | TODO_verify_ssa,		/* todo_flags_finish */
+  0				/* letter */
+};
+
+
+/* Structure to keep track of the value of a dereferenced PHI result
+   and the set of virtual operands used for that dereference.  */
+
+struct phiprop_d
+{
+  tree value;
+  tree vop_stmt;
+};
+
+/* Verify if the value recorded for NAME in PHIVN is still valid at
+   the start of basic block BB.  */
+
+static bool
+phivn_valid_p (struct phiprop_d *phivn, tree name, basic_block bb)
+{
+  tree vop_stmt = phivn[SSA_NAME_VERSION (name)].vop_stmt;
+  ssa_op_iter ui;
+  tree vuse;
+
+  /* The def stmts of all virtual uses need to be post-dominated
+     by bb.  */
+  FOR_EACH_SSA_TREE_OPERAND (vuse, vop_stmt, ui, SSA_OP_VUSE)
+    {
+      tree use_stmt;
+      imm_use_iterator ui2;
+      bool ok = true;
+
+      FOR_EACH_IMM_USE_STMT (use_stmt, ui2, vuse)
+	{
+	  /* If BB does not dominate a VDEF, the value is invalid.  */
+	  if (((TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
+	        && !ZERO_SSA_OPERANDS (use_stmt, SSA_OP_VDEF))
+	       || TREE_CODE (use_stmt) == PHI_NODE)
+	      && !dominated_by_p (CDI_DOMINATORS, bb_for_stmt (use_stmt), bb))
+	    {
+	      ok = false;
+	      BREAK_FROM_IMM_USE_STMT (ui2);
+	    }
+	}
+      if (!ok)
+	return false;
+    }
+
+  return true;
+}
+
+/* Insert a new phi node for the dereference of PHI at basic_block
+   BB with the virtual operands from USE_STMT.  */
+
+static tree
+phiprop_insert_phi (basic_block bb, tree phi, tree use_stmt,
+		    struct phiprop_d *phivn, size_t n)
+{
+  tree res, new_phi;
+  edge_iterator ei;
+  edge e;
+
+  /* Build a new PHI node to replace the definition of
+     the indirect reference lhs.  */
+  res = GIMPLE_STMT_OPERAND (use_stmt, 0);
+  SSA_NAME_DEF_STMT (res) = new_phi = create_phi_node (res, bb);
+
+  /* Add PHI arguments for each edge inserting loads of the
+     addressable operands.  */
+  FOR_EACH_EDGE (e, ei, bb->preds)
+    {
+      tree old_arg, new_var, tmp;
+
+      old_arg = PHI_ARG_DEF_FROM_EDGE (phi, e);
+      while (TREE_CODE (old_arg) == SSA_NAME
+	     && (SSA_NAME_VERSION (old_arg) >= n
+	         || phivn[SSA_NAME_VERSION (old_arg)].value == NULL_TREE))
+	{
+	  tree def_stmt = SSA_NAME_DEF_STMT (old_arg);
+	  old_arg = GIMPLE_STMT_OPERAND (def_stmt, 1);
+	}
+
+      if (TREE_CODE (old_arg) == SSA_NAME)
+	/* Reuse a formerly created dereference.  */
+	new_var = phivn[SSA_NAME_VERSION (old_arg)].value;
+      else
+	{
+	  old_arg = TREE_OPERAND (old_arg, 0);
+	  new_var = create_tmp_var (TREE_TYPE (old_arg), NULL);
+	  tmp = build2 (GIMPLE_MODIFY_STMT, void_type_node,
+			NULL_TREE, unshare_expr (old_arg));
+	  if (TREE_CODE (TREE_TYPE (old_arg)) == COMPLEX_TYPE
+	      || TREE_CODE (TREE_TYPE (old_arg)) == VECTOR_TYPE)
+	    DECL_GIMPLE_REG_P (new_var) = 1;
+	  add_referenced_var (new_var);
+	  new_var = make_ssa_name (new_var, tmp);
+	  GIMPLE_STMT_OPERAND (tmp, 0) = new_var;
+
+	  bsi_insert_on_edge (e, tmp);
+
+	  update_stmt (tmp);
+	  mark_symbols_for_renaming (tmp);
+	}
+
+      add_phi_arg (new_phi, new_var, e);
+    }
+
+  update_stmt (new_phi);
+
+  return res;
+}
+
+/* Propagate between the phi node arguments of PHI in BB and phi result
+   users.  For now this matches
+        # p_2 = PHI <&x, &y>
+      <Lx>:;
+	p_3 = p_2;
+	z_2 = *p_3;
+   and converts it to
+	# z_2 = PHI <x, y>
+      <Lx>:;
+   Returns true if a transformation was done and edge insertions
+   need to be committed.  Global data PHIVN and N is used to track
+   past transformation results.  We need to be especially careful here
+   with aliasing issues as we are moving memory reads.  */
+
+static bool
+propagate_with_phi (basic_block bb, tree phi, struct phiprop_d *phivn, size_t n)
+{
+  tree ptr = PHI_RESULT (phi);
+  tree use_stmt, res = NULL_TREE;
+  block_stmt_iterator bsi;
+  imm_use_iterator ui;
+  use_operand_p arg_p, use;
+  ssa_op_iter i;
+  bool phi_inserted;
+
+  if (MTAG_P (SSA_NAME_VAR (ptr))
+      || !POINTER_TYPE_P (TREE_TYPE (ptr))
+      || !is_gimple_reg_type (TREE_TYPE (TREE_TYPE (ptr))))
+    return false;
+
+  /* Check if we can "cheaply" dereference all phi arguments.  */
+  FOR_EACH_PHI_ARG (arg_p, phi, i, SSA_OP_USE)
+    {
+      tree arg = USE_FROM_PTR (arg_p);
+      /* Walk the ssa chain until we reach a ssa name we already
+	 created a value for or we reach a definition of the form
+	 ssa_name_n = &var;  */
+      while (TREE_CODE (arg) == SSA_NAME
+	     && !SSA_NAME_IS_DEFAULT_DEF (arg)
+	     && (SSA_NAME_VERSION (arg) >= n
+	         || phivn[SSA_NAME_VERSION (arg)].value == NULL_TREE))
+	{
+	  tree def_stmt = SSA_NAME_DEF_STMT (arg);
+	  if (TREE_CODE (def_stmt) != GIMPLE_MODIFY_STMT)
+	    return false;
+	  arg = GIMPLE_STMT_OPERAND (def_stmt, 1);
+	}
+      if ((TREE_CODE (arg) != ADDR_EXPR
+	   /* Avoid to have to decay *&a to a[0] later.  */
+	   || !is_gimple_reg_type (TREE_TYPE (TREE_OPERAND (arg, 0))))
+	  && !(TREE_CODE (arg) == SSA_NAME
+	       && phivn[SSA_NAME_VERSION (arg)].value != NULL_TREE
+	       && phivn_valid_p (phivn, arg, bb)))
+	return false;
+    }
+
+  /* Find a dereferencing use.  First follow (single use) ssa
+     copy chains for ptr.  */
+  while (single_imm_use (ptr, &use, &use_stmt)
+	 && TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
+	 && GIMPLE_STMT_OPERAND (use_stmt, 1) == ptr
+	 && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 0)) == SSA_NAME)
+    ptr = GIMPLE_STMT_OPERAND (use_stmt, 0);
+
+  /* Replace the first dereference of *ptr if there is one and if we
+     can move the loads to the place of the ptr phi node.  */
+  phi_inserted = false;
+  FOR_EACH_IMM_USE_STMT (use_stmt, ui, ptr)
+    {
+      ssa_op_iter ui2;
+      tree vuse;
+
+      /* Check whether this is a load of *ptr.  */
+      if (!(TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
+	    && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 0)) == SSA_NAME 
+	    && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == INDIRECT_REF
+	    && TREE_OPERAND (GIMPLE_STMT_OPERAND (use_stmt, 1), 0) == ptr
+	    /* We cannot replace a load that may throw or is volatile.  */
+	    && !tree_can_throw_internal (use_stmt)))
+	continue;
+
+      /* Check if we can move the loads.  The def stmts of all virtual uses
+	 need to be post-dominated by bb.  */
+      FOR_EACH_SSA_TREE_OPERAND (vuse, use_stmt, ui2, SSA_OP_VUSE)
+	{
+	  tree def_stmt = SSA_NAME_DEF_STMT (vuse);
+	  if (!SSA_NAME_IS_DEFAULT_DEF (vuse)
+	      && (bb_for_stmt (def_stmt) == bb
+		  || !dominated_by_p (CDI_DOMINATORS,
+				      bb, bb_for_stmt (def_stmt))))
+	    goto next;
+	}
+
+      /* Found a proper dereference.  Insert a phi node if this
+	 is the first load transformation.  */
+      if (!phi_inserted)
+	{
+	  res = phiprop_insert_phi (bb, phi, use_stmt, phivn, n);
+
+	  /* Remember the value we created for *ptr.  */
+	  phivn[SSA_NAME_VERSION (ptr)].value = res;
+	  phivn[SSA_NAME_VERSION (ptr)].vop_stmt = use_stmt;
+
+	  /* Remove old stmt.  The phi is taken care of by DCE, if we
+	     want to delete it here we also have to delete all intermediate
+	     copies.  */
+	  bsi = bsi_for_stmt (use_stmt);
+	  bsi_remove (&bsi, 0);
+
+	  phi_inserted = true;
+	}
+      else
+	{
+	  /* Further replacements are easy, just make a copy out of the
+	     load.  */
+	  GIMPLE_STMT_OPERAND (use_stmt, 1) = res;
+	  update_stmt (use_stmt);
+	}
+
+next:;
+      /* Continue searching for a proper dereference.  */
+    }
+
+  return phi_inserted;
+}
+
+/* Helper walking the dominator tree starting from BB and processing
+   phi nodes with global data PHIVN and N.  */
+
+static bool
+tree_ssa_phiprop_1 (basic_block bb, struct phiprop_d *phivn, size_t n)
+{
+  bool did_something = false; 
+  basic_block son;
+  tree phi;
+
+  for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
+    did_something |= propagate_with_phi (bb, phi, phivn, n);
+
+  for (son = first_dom_son (CDI_DOMINATORS, bb);
+       son;
+       son = next_dom_son (CDI_DOMINATORS, son))
+    did_something |= tree_ssa_phiprop_1 (son, phivn, n);
+
+  return did_something;
+}
+
+/* Main entry for phiprop pass.  */
+
+static unsigned int
+tree_ssa_phiprop (void)
+{
+  struct phiprop_d *phivn;
+
+  calculate_dominance_info (CDI_DOMINATORS);
+
+  phivn = XCNEWVEC (struct phiprop_d, num_ssa_names);
+
+  if (tree_ssa_phiprop_1 (ENTRY_BLOCK_PTR, phivn, num_ssa_names))
+    bsi_commit_edge_inserts ();
+
+  free (phivn);
+
+  return 0;
+}
+
+static bool
+gate_phiprop (void)
+{
+  return 1;
+}
+
+struct tree_opt_pass pass_phiprop = {
+  "phiprop",			/* name */
+  gate_phiprop,			/* gate */
+  tree_ssa_phiprop,		/* execute */
   NULL,				/* sub */
   NULL,				/* next */
   0,				/* static_pass_number */

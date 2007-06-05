@@ -471,8 +471,8 @@ fforce-addr
 Common Report Var(flag_force_addr) Optimization
 Copy memory address constants into registers before use
 
-fforward-propagate Optimization
-Common Report Var(flag_forward_propagate)
+fforward-propagate
+Common Report Var(flag_forward_propagate) Optimization
 Perform a forward propagation pass on RTL
 
 ; Nonzero means don't put addresses of constant functions in registers.
@@ -587,6 +587,11 @@ Discover readonly and non addressable static variables
 fipa-type-escape
 Common Report Var(flag_ipa_type_escape) Init(0) Optimization
 Type based escape and alias analysis
+
+fipa-matrix-reorg
+Common Report Var(flag_ipa_matrix_reorg)
+Perform matrix layout flattening and transposing based
+on profiling information.
 
 fivopts
 Common Report Var(flag_ivopts) Init(1) Optimization
@@ -722,6 +727,10 @@ Generate position-independent code if possible (small mode)
 fpie
 Common Report Var(flag_pie,1) VarExists
 Generate position-independent code for executables if possible (small mode)
+
+fpredictive-commoning
+Common Report Var(flag_predictive_commoning)
+Run predictive commoning optimization.
 
 fprefetch-loop-arrays
 Common Report Var(flag_prefetch_loop_arrays) Optimization

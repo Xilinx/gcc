@@ -333,19 +333,33 @@ optab_for_tree_code (enum tree_code code, tree type)
 	vec_widen_umult_lo_optab : vec_widen_smult_lo_optab;
 
     case VEC_UNPACK_HI_EXPR:
-      return TYPE_UNSIGNED (type) ? 
+      return TYPE_UNSIGNED (type) ?
 	vec_unpacku_hi_optab : vec_unpacks_hi_optab;
 
     case VEC_UNPACK_LO_EXPR:
       return TYPE_UNSIGNED (type) ? 
 	vec_unpacku_lo_optab : vec_unpacks_lo_optab;
 
-    case VEC_PACK_MOD_EXPR:
-      return vec_pack_mod_optab;
-                                                                                
+    case VEC_UNPACK_FLOAT_HI_EXPR:
+      /* The signedness is determined from input operand.  */
+      return TYPE_UNSIGNED (type) ?
+	vec_unpacku_float_hi_optab : vec_unpacks_float_hi_optab;
+
+    case VEC_UNPACK_FLOAT_LO_EXPR:
+      /* The signedness is determined from input operand.  */
+      return TYPE_UNSIGNED (type) ? 
+	vec_unpacku_float_lo_optab : vec_unpacks_float_lo_optab;
+
+    case VEC_PACK_TRUNC_EXPR:
+      return vec_pack_trunc_optab;
+
     case VEC_PACK_SAT_EXPR:
       return TYPE_UNSIGNED (type) ? vec_pack_usat_optab : vec_pack_ssat_optab;
-                                                                                
+
+    case VEC_PACK_FIX_TRUNC_EXPR:
+      return TYPE_UNSIGNED (type) ?
+	vec_pack_ufix_trunc_optab : vec_pack_sfix_trunc_optab;
+
     default:
       break;
     }
@@ -684,12 +698,12 @@ expand_vec_shift_expr (tree vec_shift_expr, rtx target)
   mode1 = insn_data[icode].operand[1].mode;
   mode2 = insn_data[icode].operand[2].mode;
 
-  rtx_op1 = expand_expr (vec_oprnd, NULL_RTX, VOIDmode, EXPAND_NORMAL);
+  rtx_op1 = expand_normal (vec_oprnd);
   if (!(*insn_data[icode].operand[1].predicate) (rtx_op1, mode1)
       && mode1 != VOIDmode)
     rtx_op1 = force_reg (mode1, rtx_op1);
 
-  rtx_op2 = expand_expr (shift_oprnd, NULL_RTX, VOIDmode, EXPAND_NORMAL);
+  rtx_op2 = expand_normal (shift_oprnd);
   if (!(*insn_data[icode].operand[2].predicate) (rtx_op2, mode2)
       && mode2 != VOIDmode)
     rtx_op2 = force_reg (mode2, rtx_op2);
@@ -1373,9 +1387,11 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	  && mode1 != VOIDmode)
 	xop1 = copy_to_mode_reg (mode1, xop1);
 
-      if (binoptab == vec_pack_mod_optab 
+      if (binoptab == vec_pack_trunc_optab 
 	  || binoptab == vec_pack_usat_optab
-          || binoptab == vec_pack_ssat_optab)
+	  || binoptab == vec_pack_ssat_optab
+	  || binoptab == vec_pack_ufix_trunc_optab
+	  || binoptab == vec_pack_sfix_trunc_optab)
 	{
 	  /* The mode of the result is different then the mode of the
 	     arguments.  */
@@ -5411,6 +5427,7 @@ void
 init_optabs (void)
 {
   unsigned int i;
+  enum machine_mode int_mode;
 
   /* Start by initializing all tables to contain CODE_FOR_nothing.  */
 
@@ -5439,6 +5456,10 @@ init_optabs (void)
   smul_widen_optab = init_optab (UNKNOWN);
   umul_widen_optab = init_optab (UNKNOWN);
   usmul_widen_optab = init_optab (UNKNOWN);
+  smadd_widen_optab = init_optab (UNKNOWN);
+  umadd_widen_optab = init_optab (UNKNOWN);
+  smsub_widen_optab = init_optab (UNKNOWN);
+  umsub_widen_optab = init_optab (UNKNOWN);
   sdiv_optab = init_optab (DIV);
   sdivv_optab = init_optabv (DIV);
   sdivmod_optab = init_optab (UNKNOWN);
@@ -5560,9 +5581,15 @@ init_optabs (void)
   vec_unpacks_lo_optab = init_optab (UNKNOWN);
   vec_unpacku_hi_optab = init_optab (UNKNOWN);
   vec_unpacku_lo_optab = init_optab (UNKNOWN);
-  vec_pack_mod_optab = init_optab (UNKNOWN);
+  vec_unpacks_float_hi_optab = init_optab (UNKNOWN);
+  vec_unpacks_float_lo_optab = init_optab (UNKNOWN);
+  vec_unpacku_float_hi_optab = init_optab (UNKNOWN);
+  vec_unpacku_float_lo_optab = init_optab (UNKNOWN);
+  vec_pack_trunc_optab = init_optab (UNKNOWN);
   vec_pack_usat_optab = init_optab (UNKNOWN);
   vec_pack_ssat_optab = init_optab (UNKNOWN);
+  vec_pack_ufix_trunc_optab = init_optab (UNKNOWN);
+  vec_pack_sfix_trunc_optab = init_optab (UNKNOWN);
 
   powi_optab = init_optab (UNKNOWN);
 
@@ -5617,6 +5644,11 @@ init_optabs (void)
 
   /* Fill in the optabs with the insns we support.  */
   init_all_optabs ();
+
+  /* The ffs function operates on `int'.  Fall back on it if we do not
+     have a libgcc2 function for that width.  */
+  int_mode = mode_for_size (INT_TYPE_SIZE, MODE_INT, 0);
+  ffs_optab->handlers[(int) int_mode].libfunc = init_one_libfunc ("ffs");
 
   /* Initialize the optabs with the names of the library functions.  */
   init_integral_libfuncs (add_optab, "add", '3');
@@ -5728,10 +5760,6 @@ init_optabs (void)
   if (complex_double_type_node)
     abs_optab->handlers[TYPE_MODE (complex_double_type_node)].libfunc
       = init_one_libfunc ("cabs");
-
-  /* The ffs function operates on `int'.  */
-  ffs_optab->handlers[(int) mode_for_size (INT_TYPE_SIZE, MODE_INT, 0)].libfunc
-    = init_one_libfunc ("ffs");
 
   abort_libfunc = init_one_libfunc ("abort");
   memcpy_libfunc = init_one_libfunc ("memcpy");
@@ -5944,8 +5972,10 @@ vector_compare_rtx (tree cond, bool unsignedp, enum insn_code icode)
   t_op1 = TREE_OPERAND (cond, 1);
 
   /* Expand operands.  */
-  rtx_op0 = expand_expr (t_op0, NULL_RTX, TYPE_MODE (TREE_TYPE (t_op0)), 1);
-  rtx_op1 = expand_expr (t_op1, NULL_RTX, TYPE_MODE (TREE_TYPE (t_op1)), 1);
+  rtx_op0 = expand_expr (t_op0, NULL_RTX, TYPE_MODE (TREE_TYPE (t_op0)),
+			 EXPAND_STACK_PARM);
+  rtx_op1 = expand_expr (t_op1, NULL_RTX, TYPE_MODE (TREE_TYPE (t_op1)),
+			 EXPAND_STACK_PARM);
 
   if (!insn_data[icode].operand[4].predicate (rtx_op0, GET_MODE (rtx_op0))
       && GET_MODE (rtx_op0) != VOIDmode)
@@ -6006,14 +6036,12 @@ expand_vec_cond_expr (tree vec_cond_expr, rtx target)
   cc_op0 = XEXP (comparison, 0);
   cc_op1 = XEXP (comparison, 1);
   /* Expand both operands and force them in reg, if required.  */
-  rtx_op1 = expand_expr (TREE_OPERAND (vec_cond_expr, 1),
-			 NULL_RTX, VOIDmode, EXPAND_NORMAL);
+  rtx_op1 = expand_normal (TREE_OPERAND (vec_cond_expr, 1));
   if (!insn_data[icode].operand[1].predicate (rtx_op1, mode)
       && mode != VOIDmode)
     rtx_op1 = force_reg (mode, rtx_op1);
 
-  rtx_op2 = expand_expr (TREE_OPERAND (vec_cond_expr, 2),
-			 NULL_RTX, VOIDmode, EXPAND_NORMAL);
+  rtx_op2 = expand_normal (TREE_OPERAND (vec_cond_expr, 2));
   if (!insn_data[icode].operand[2].predicate (rtx_op2, mode)
       && mode != VOIDmode)
     rtx_op2 = force_reg (mode, rtx_op2);

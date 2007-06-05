@@ -122,13 +122,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 
 	  gcc_assert (stmt_info);
 
-	  /* Two cases of "relevant" phis: those that define an 
-	     induction that is used in the loop, and those that
-	     define a reduction.  */
-	  if ((STMT_VINFO_RELEVANT (stmt_info) == vect_used_in_loop
-	       && STMT_VINFO_DEF_TYPE (stmt_info) == vect_induction_def)
-	      || (STMT_VINFO_RELEVANT (stmt_info) == vect_used_by_reduction
-		  && STMT_VINFO_DEF_TYPE (stmt_info) == vect_reduction_def))
+	  if (STMT_VINFO_RELEVANT_P (stmt_info))
             {
 	      gcc_assert (!STMT_VINFO_VECTYPE (stmt_info));
               scalar_type = TREE_TYPE (PHI_RESULT (phi));
@@ -268,7 +262,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
     }
 
   /* TODO: Analyze cost. Decide if worth while to vectorize.  */
-
+  if (vect_print_dump_info (REPORT_DETAILS))
+    fprintf (vect_dump, "vectorization factor = %d", vectorization_factor);
   if (vectorization_factor <= 1)
     {
       if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
@@ -311,6 +306,8 @@ vect_analyze_operations (loop_vec_info loop_vinfo)
 
       for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
         {
+	  ok = true;
+
 	  stmt_info = vinfo_for_stmt (phi);
 	  if (vect_print_dump_info (REPORT_DETAILS))
 	    {
@@ -325,17 +322,34 @@ vect_analyze_operations (loop_vec_info loop_vinfo)
 	      /* FORNOW: not yet supported.  */
 	      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
 		fprintf (vect_dump, "not vectorized: value used after loop.");
-	    return false;
-	  }
+	      return false;
+	    }
 
 	  if (STMT_VINFO_RELEVANT (stmt_info) == vect_used_in_loop
 	      && STMT_VINFO_DEF_TYPE (stmt_info) != vect_induction_def)
 	    {
-	      /* Most likely a reduction-like computation that is used
-		 in the loop.  */
+	      /* A scalar-dependence cycle that we don't support.  */
 	      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
-	        fprintf (vect_dump, "not vectorized: unsupported pattern.");
- 	     return false;
+		fprintf (vect_dump, "not vectorized: scalar dependence cycle.");
+	      return false;
+	    }
+
+	  if (STMT_VINFO_RELEVANT_P (stmt_info))
+	    {
+	      need_to_vectorize = true;
+	      if (STMT_VINFO_DEF_TYPE (stmt_info) == vect_induction_def)
+		ok = vectorizable_induction (phi, NULL, NULL);
+	    }
+
+	  if (!ok)
+	    {
+	      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
+		{
+		  fprintf (vect_dump,
+			   "not vectorized: relevant phi not supported: ");
+		  print_generic_expr (vect_dump, phi, TDF_SLIM);
+		}
+	      return false;
 	    }
 	}
 
@@ -343,6 +357,7 @@ vect_analyze_operations (loop_vec_info loop_vinfo)
 	{
 	  tree stmt = bsi_stmt (si);
 	  stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
+	  enum vect_def_type relevance = STMT_VINFO_RELEVANT (stmt_info);
 
 	  if (vect_print_dump_info (REPORT_DETAILS))
 	    {
@@ -367,55 +382,57 @@ vect_analyze_operations (loop_vec_info loop_vinfo)
 	      continue;
 	    }
 
-          if (STMT_VINFO_RELEVANT_P (stmt_info))
-            {
-              gcc_assert (GIMPLE_STMT_P (stmt)
-		  	  || !VECTOR_MODE_P (TYPE_MODE (TREE_TYPE (stmt))));
-              gcc_assert (STMT_VINFO_VECTYPE (stmt_info));
-
-	      ok = (vectorizable_type_promotion (stmt, NULL, NULL)
-		    || vectorizable_type_demotion (stmt, NULL, NULL)
-		    || vectorizable_conversion (stmt, NULL, NULL)
-		    || vectorizable_operation (stmt, NULL, NULL)
-		    || vectorizable_assignment (stmt, NULL, NULL)
-		    || vectorizable_load (stmt, NULL, NULL)
-		    || vectorizable_call (stmt, NULL, NULL)
-		    || vectorizable_store (stmt, NULL, NULL)
-		    || vectorizable_condition (stmt, NULL, NULL));
-
-	      if (!ok)
-		{
-		  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
-		    {
-		      fprintf (vect_dump, 
-			       "not vectorized: relevant stmt not supported: ");
-		      print_generic_expr (vect_dump, stmt, TDF_SLIM);
-		    }
-		  return false;
-		}	
-	      need_to_vectorize = true;
-            }
-
-	  if (STMT_VINFO_LIVE_P (stmt_info))
+	  switch (STMT_VINFO_DEF_TYPE (stmt_info))
 	    {
-	      ok = vectorizable_reduction (stmt, NULL, NULL);
+ 	    case vect_loop_def:
+	      break;
+	
+	    case vect_reduction_def:
+	      gcc_assert (relevance == vect_unused_in_loop);
+	      break;	
 
-	      if (ok)
-                need_to_vectorize = true;
-              else
-	        ok = vectorizable_live_operation (stmt, NULL, NULL);
-
-	      if (!ok)
-		{
-		  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
-		    {
-		      fprintf (vect_dump, 
-			       "not vectorized: live stmt not supported: ");
-		      print_generic_expr (vect_dump, stmt, TDF_SLIM);
-		    }
-		  return false;
-		}
+	    case vect_induction_def:
+	    case vect_constant_def:
+	    case vect_invariant_def:
+	    case vect_unknown_def_type:
+	    default:
+	      gcc_unreachable ();	
 	    }
+
+	  if (STMT_VINFO_RELEVANT_P (stmt_info))
+	    {
+	      gcc_assert (GIMPLE_STMT_P (stmt)
+			  || !VECTOR_MODE_P (TYPE_MODE (TREE_TYPE (stmt))));
+	      gcc_assert (STMT_VINFO_VECTYPE (stmt_info));
+	      need_to_vectorize = true;
+	    }
+
+	  ok = (vectorizable_type_promotion (stmt, NULL, NULL)
+		|| vectorizable_type_demotion (stmt, NULL, NULL)
+		|| vectorizable_conversion (stmt, NULL, NULL)
+		|| vectorizable_operation (stmt, NULL, NULL)
+		|| vectorizable_assignment (stmt, NULL, NULL)
+		|| vectorizable_load (stmt, NULL, NULL)
+		|| vectorizable_call (stmt, NULL, NULL)
+		|| vectorizable_store (stmt, NULL, NULL)
+		|| vectorizable_condition (stmt, NULL, NULL)
+		|| vectorizable_reduction (stmt, NULL, NULL));
+
+	  /* Stmts that are (also) "live" (i.e. - that are used out of the loop)
+	     need extra handling, except for vectorizable reductions.  */
+	  if (STMT_VINFO_LIVE_P (stmt_info)
+	      && STMT_VINFO_TYPE (stmt_info) != reduc_vec_info_type) 
+	    ok |= vectorizable_live_operation (stmt, NULL, NULL);
+
+	  if (!ok)
+	    {
+	      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
+		{
+		  fprintf (vect_dump, "not vectorized: stmt not supported: ");
+		  print_generic_expr (vect_dump, stmt, TDF_SLIM);
+		}
+	      return false;
+	    }	
 	} /* stmts in bb */
     } /* bbs */
 
@@ -1111,17 +1128,16 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
     fprintf (vect_dump, "vect_compute_data_ref_alignment:");
 
   /* Initialize misalignment to unknown.  */
-  DR_MISALIGNMENT (dr) = -1;
+  SET_DR_MISALIGNMENT (dr, -1);
 
-  misalign = DR_OFFSET_MISALIGNMENT (dr);
+  misalign = DR_INIT (dr);
   aligned_to = DR_ALIGNED_TO (dr);
   base_addr = DR_BASE_ADDRESS (dr);
   base = build_fold_indirect_ref (base_addr);
   vectype = STMT_VINFO_VECTYPE (stmt_info);
   alignment = ssize_int (TYPE_ALIGN (vectype)/BITS_PER_UNIT);
 
-  if ((aligned_to && tree_int_cst_compare (aligned_to, alignment) < 0)
-      || !misalign)
+  if (tree_int_cst_compare (aligned_to, alignment) < 0)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
 	{
@@ -1182,7 +1198,7 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
       return false;
     }
 
-  DR_MISALIGNMENT (dr) = TREE_INT_CST_LOW (misalign);
+  SET_DR_MISALIGNMENT (dr, TREE_INT_CST_LOW (misalign));
 
   if (vect_print_dump_info (REPORT_DETAILS))
     {
@@ -1241,15 +1257,6 @@ vect_update_misalignment_for_peel (struct data_reference *dr,
   if (DR_GROUP_FIRST_DR (peel_stmt_info))
     dr_peel_size *= DR_GROUP_SIZE (peel_stmt_info);
 
-  if (known_alignment_for_access_p (dr)
-      && known_alignment_for_access_p (dr_peel)
-      && (DR_MISALIGNMENT (dr) / dr_size ==
-          DR_MISALIGNMENT (dr_peel) / dr_peel_size))
-    {
-      DR_MISALIGNMENT (dr) = 0;
-      return;
-    }
-
   /* It can be assumed that the data refs with the same alignment as dr_peel
      are aligned in the vector loop.  */
   same_align_drs
@@ -1260,21 +1267,23 @@ vect_update_misalignment_for_peel (struct data_reference *dr,
         continue;
       gcc_assert (DR_MISALIGNMENT (dr) / dr_size ==
                   DR_MISALIGNMENT (dr_peel) / dr_peel_size);
-      DR_MISALIGNMENT (dr) = 0;
+      SET_DR_MISALIGNMENT (dr, 0);
       return;
     }
 
   if (known_alignment_for_access_p (dr)
       && known_alignment_for_access_p (dr_peel))
     {
-      DR_MISALIGNMENT (dr) += npeel * dr_size;
-      DR_MISALIGNMENT (dr) %= UNITS_PER_SIMD_WORD;
+      int misal = DR_MISALIGNMENT (dr);
+      misal += npeel * dr_size;
+      misal %= UNITS_PER_SIMD_WORD;
+      SET_DR_MISALIGNMENT (dr, misal);
       return;
     }
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "Setting misalignment to -1.");
-  DR_MISALIGNMENT (dr) = -1;
+  SET_DR_MISALIGNMENT (dr, -1);
 }
 
 
@@ -1418,6 +1427,7 @@ static bool
 vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
 {
   VEC (data_reference_p, heap) *datarefs = LOOP_VINFO_DATAREFS (loop_vinfo);
+  struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
   enum dr_alignment_support supportable_dr_alignment;
   struct data_reference *dr0 = NULL;
   struct data_reference *dr;
@@ -1489,7 +1499,8 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
 		 the prolog loop ({VF - misalignment}), is a multiple of the
 		 number of the interleaved accesses.  */
 	      int elem_size, mis_in_elements;
-	      int vf = LOOP_VINFO_VECT_FACTOR (loop_vinfo);
+	      tree vectype = STMT_VINFO_VECTYPE (stmt_info);
+	      int nelements = TYPE_VECTOR_SUBPARTS (vectype);
 
 	      /* FORNOW: handle only known alignment.  */
 	      if (!known_alignment_for_access_p (dr))
@@ -1498,10 +1509,10 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
 		  break;
 		}
 
-	      elem_size = UNITS_PER_SIMD_WORD / vf;
+	      elem_size = UNITS_PER_SIMD_WORD / nelements;
 	      mis_in_elements = DR_MISALIGNMENT (dr) / elem_size;
 
-	      if ((vf - mis_in_elements) % DR_GROUP_SIZE (stmt_info))
+	      if ((nelements - mis_in_elements) % DR_GROUP_SIZE (stmt_info))
 		{
 		  do_peeling = false;
 		  break;
@@ -1515,13 +1526,18 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
 
   /* Often peeling for alignment will require peeling for loop-bound, which in 
      turn requires that we know how to adjust the loop ivs after the loop.  */
-  if (!vect_can_advance_ivs_p (loop_vinfo))
+  if (!vect_can_advance_ivs_p (loop_vinfo)
+      || !slpeel_can_duplicate_loop_p (loop, single_exit (loop)))
     do_peeling = false;
 
   if (do_peeling)
     {
       int mis;
       int npeel = 0;
+      tree stmt = DR_STMT (dr0);
+      stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
+      tree vectype = STMT_VINFO_VECTYPE (stmt_info);
+      int nelements = TYPE_VECTOR_SUBPARTS (vectype);
 
       if (known_alignment_for_access_p (dr0))
         {
@@ -1531,7 +1547,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
              factor minus the misalignment as an element count.  */
           mis = DR_MISALIGNMENT (dr0);
           mis /= GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (DR_REF (dr0))));
-          npeel = LOOP_VINFO_VECT_FACTOR (loop_vinfo) - mis;
+          npeel = nelements - mis;
 
 	  /* For interleaved data access every iteration accesses all the 
 	     members of the group, therefore we divide the number of iterations
@@ -1563,7 +1579,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
 	  save_misalignment = DR_MISALIGNMENT (dr);
 	  vect_update_misalignment_for_peel (dr, dr0, npeel);
 	  supportable_dr_alignment = vect_supportable_dr_alignment (dr);
-	  DR_MISALIGNMENT (dr) = save_misalignment;
+	  SET_DR_MISALIGNMENT (dr, save_misalignment);
 	  
 	  if (!supportable_dr_alignment)
 	    {
@@ -1587,7 +1603,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
 
           LOOP_VINFO_UNALIGNED_DR (loop_vinfo) = dr0;
           LOOP_PEELING_FOR_ALIGNMENT (loop_vinfo) = DR_MISALIGNMENT (dr0);
-          DR_MISALIGNMENT (dr0) = 0;
+	  SET_DR_MISALIGNMENT (dr0, 0);
 	  if (vect_print_dump_info (REPORT_ALIGNMENT))
             fprintf (vect_dump, "Alignment of access forced using peeling.");
 
@@ -1688,7 +1704,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
         {
           stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
           dr = STMT_VINFO_DATA_REF (stmt_info);
-          DR_MISALIGNMENT (dr) = 0;
+	  SET_DR_MISALIGNMENT (dr, 0);
 	  if (vect_print_dump_info (REPORT_ALIGNMENT))
             fprintf (vect_dump, "Alignment of access forced using versioning.");
         }
@@ -2029,7 +2045,7 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo)
             }
           return false;
         }
-      if (!DR_MEMTAG (dr))
+      if (!DR_SYMBOL_TAG (dr))
         {
           if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
             {
@@ -2099,11 +2115,6 @@ vect_mark_relevant (VEC(tree,heap) **worklist, tree stmt,
   STMT_VINFO_LIVE_P (stmt_info) |= live_p;
   if (relevant > STMT_VINFO_RELEVANT (stmt_info))
     STMT_VINFO_RELEVANT (stmt_info) = relevant;
-
-  if (TREE_CODE (stmt) == PHI_NODE)
-    /* Don't put phi-nodes in the worklist. Phis that are marked relevant
-       or live will fail vectorization later on.  */
-    return;
 
   if (STMT_VINFO_RELEVANT (stmt_info) == save_relevant
       && STMT_VINFO_LIVE_P (stmt_info) == save_live_p)
@@ -2180,6 +2191,81 @@ vect_stmt_relevant_p (tree stmt, loop_vec_info loop_vinfo,
 }
 
 
+/* 
+   Function process_use.
+
+   Inputs:
+   - a USE in STMT in a loop represented by LOOP_VINFO
+   - LIVE_P, RELEVANT - enum values to be set in the STMT_VINFO of the stmt 
+     that defined USE. This is dont by calling mark_relevant and passing it
+     the WORKLIST (to add DEF_STMT to the WORKlist in case itis relevant). 
+
+   Outputs:
+   Generally, LIVE_P and RELEVANT are used to define the liveness and
+   relevance info of the DEF_STMT of this USE:
+       STMT_VINFO_LIVE_P (DEF_STMT_info) <-- live_p
+       STMT_VINFO_RELEVANT (DEF_STMT_info) <-- relevant
+   Exceptions:
+   - case 1: If USE is used only for address computations (e.g. array indexing),
+   which does not need to be directly vectorized, then the liveness/relevance 
+   of the respective DEF_STMT is left unchanged.
+   - case 2: If STMT is a reduction phi and DEF_STMT is a reduction stmt, we 
+   skip DEF_STMT cause it had already been processed.  
+
+   Return true if everything is as expected. Return false otherwise.  */
+
+static bool
+process_use (tree stmt, tree use, loop_vec_info loop_vinfo, bool live_p, 
+	     enum vect_relevant relevant, VEC(tree,heap) **worklist)
+{
+  struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
+  stmt_vec_info stmt_vinfo = vinfo_for_stmt (stmt);
+  stmt_vec_info dstmt_vinfo;
+  basic_block def_bb;
+  tree def, def_stmt;
+  enum vect_def_type dt;
+
+  /* case 1: we are only interested in uses that need to be vectorized.  Uses 
+     that are used for address computation are not considered relevant.  */
+  if (!exist_non_indexing_operands_for_use_p (use, stmt))
+     return true;
+
+  if (!vect_is_simple_use (use, loop_vinfo, &def_stmt, &def, &dt))
+    { 
+      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
+        fprintf (vect_dump, "not vectorized: unsupported use in stmt.");
+      return false;
+    }
+
+  if (!def_stmt || IS_EMPTY_STMT (def_stmt))
+    return true;
+
+  def_bb = bb_for_stmt (def_stmt);
+  if (!flow_bb_inside_loop_p (loop, def_bb))
+    return true;
+
+  /* case 2: A reduction phi defining a reduction stmt (DEF_STMT). DEF_STMT 
+     must have already been processed, so we just check that everything is as 
+     expected, and we are done.  */
+  dstmt_vinfo = vinfo_for_stmt (def_stmt);
+  if (TREE_CODE (stmt) == PHI_NODE
+      && STMT_VINFO_DEF_TYPE (stmt_vinfo) == vect_reduction_def
+      && TREE_CODE (def_stmt) != PHI_NODE
+      && STMT_VINFO_DEF_TYPE (dstmt_vinfo) == vect_reduction_def)
+    {
+      if (STMT_VINFO_IN_PATTERN_P (dstmt_vinfo))
+	dstmt_vinfo = vinfo_for_stmt (STMT_VINFO_RELATED_STMT (dstmt_vinfo));
+      gcc_assert (STMT_VINFO_RELEVANT (dstmt_vinfo) < vect_used_by_reduction);
+      gcc_assert (STMT_VINFO_LIVE_P (dstmt_vinfo) 
+		  || STMT_VINFO_RELEVANT (dstmt_vinfo) > vect_unused_in_loop);
+      return true;
+    }
+
+  vect_mark_relevant (worklist, def_stmt, relevant, live_p);
+  return true;
+}
+
+
 /* Function vect_mark_stmts_to_be_vectorized.
 
    Not all stmts in the loop need to be vectorized. For example:
@@ -2204,17 +2290,14 @@ vect_mark_stmts_to_be_vectorized (loop_vec_info loop_vinfo)
   basic_block *bbs = LOOP_VINFO_BBS (loop_vinfo);
   unsigned int nbbs = loop->num_nodes;
   block_stmt_iterator si;
-  tree stmt, use;
+  tree stmt;
   stmt_ann_t ann;
-  ssa_op_iter iter;
   unsigned int i;
   stmt_vec_info stmt_vinfo;
   basic_block bb;
   tree phi;
   bool live_p;
   enum vect_relevant relevant;
-  tree def, def_stmt;
-  enum vect_def_type dt;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vect_mark_stmts_to_be_vectorized ===");
@@ -2222,27 +2305,23 @@ vect_mark_stmts_to_be_vectorized (loop_vec_info loop_vinfo)
   worklist = VEC_alloc (tree, heap, 64);
 
   /* 1. Init worklist.  */
-
-  bb = loop->header;
-  for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
-    {
-      if (vect_print_dump_info (REPORT_DETAILS))
-        {
-          fprintf (vect_dump, "init: phi relevant? ");
-          print_generic_expr (vect_dump, phi, TDF_SLIM);
-        }
-
-      if (vect_stmt_relevant_p (phi, loop_vinfo, &relevant, &live_p))
-	vect_mark_relevant (&worklist, phi, relevant, live_p);
-    }
-
   for (i = 0; i < nbbs; i++)
     {
       bb = bbs[i];
+      for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
+	{ 
+	  if (vect_print_dump_info (REPORT_DETAILS))
+	    {
+	      fprintf (vect_dump, "init: phi relevant? ");
+	      print_generic_expr (vect_dump, phi, TDF_SLIM);
+	    }
+
+	  if (vect_stmt_relevant_p (phi, loop_vinfo, &relevant, &live_p))
+	    vect_mark_relevant (&worklist, phi, relevant, live_p);
+	}
       for (si = bsi_start (bb); !bsi_end_p (si); bsi_next (&si))
 	{
 	  stmt = bsi_stmt (si);
-
 	  if (vect_print_dump_info (REPORT_DETAILS))
 	    {
 	      fprintf (vect_dump, "init: stmt relevant? ");
@@ -2254,102 +2333,82 @@ vect_mark_stmts_to_be_vectorized (loop_vec_info loop_vinfo)
 	}
     }
 
-
   /* 2. Process_worklist */
-
   while (VEC_length (tree, worklist) > 0)
     {
-      stmt = VEC_pop (tree, worklist);
+      use_operand_p use_p;
+      ssa_op_iter iter;
 
+      stmt = VEC_pop (tree, worklist);
       if (vect_print_dump_info (REPORT_DETAILS))
 	{
           fprintf (vect_dump, "worklist: examine stmt: ");
           print_generic_expr (vect_dump, stmt, TDF_SLIM);
 	}
 
-      /* Examine the USEs of STMT. For each ssa-name USE that is defined
-         in the loop, mark the stmt that defines it (DEF_STMT) as
-         relevant/irrelevant and live/dead according to the liveness and
-         relevance properties of STMT.
-       */
-
-      gcc_assert (TREE_CODE (stmt) != PHI_NODE);
-
+      /* Examine the USEs of STMT. For each USE, mark the stmt that defines it 
+	 (DEF_STMT) as relevant/irrelevant and live/dead according to the 
+	 liveness and relevance properties of STMT.  */
       ann = stmt_ann (stmt);
       stmt_vinfo = vinfo_for_stmt (stmt);
-
       relevant = STMT_VINFO_RELEVANT (stmt_vinfo);
       live_p = STMT_VINFO_LIVE_P (stmt_vinfo);
 
       /* Generally, the liveness and relevance properties of STMT are
-         propagated to the DEF_STMTs of its USEs:
-             STMT_VINFO_LIVE_P (DEF_STMT_info) <-- live_p
-             STMT_VINFO_RELEVANT (DEF_STMT_info) <-- relevant
+	 propagated as is to the DEF_STMTs of its USEs:
+	  live_p <-- STMT_VINFO_LIVE_P (STMT_VINFO)
+	  relevant <-- STMT_VINFO_RELEVANT (STMT_VINFO)
 
-         Exceptions:
+	 One exception is when STMT has been identified as defining a reduction
+	 variable; in this case we set the liveness/relevance as follows:
+	   live_p = false
+	   relevant = vect_used_by_reduction
+	 This is because we distinguish between two kinds of relevant stmts -
+	 those that are used by a reduction computation, and those that are 
+	 (also) used by a regular computation. This allows us later on to 
+	 identify stmts that are used solely by a reduction, and therefore the 
+	 order of the results that they produce does not have to be kept.
 
-	 (case 1)
-           If USE is used only for address computations (e.g. array indexing),
-           which does not need to be directly vectorized, then the
-           liveness/relevance of the respective DEF_STMT is left unchanged.
+         Reduction phis are expected to be used by a reduction stmt;  Other 
+	 reduction stmts are expected to be unused in the loop.  These are the 
+	 expected values of "relevant" for reduction phis/stmts in the loop:
 
-	 (case 2)
-           If STMT has been identified as defining a reduction variable, then
-           we want to set liveness/relevance as follows:
-               STMT_VINFO_LIVE_P (DEF_STMT_info) <-- false
-               STMT_VINFO_RELEVANT (DEF_STMT_info) <-- vect_used_by_reduction
-             because even though STMT is classified as live (since it defines a
-             value that is used across loop iterations) and irrelevant (since it
-             is not used inside the loop), it will be vectorized, and therefore
-             the corresponding DEF_STMTs need to marked as relevant.
-	     We distinguish between two kinds of relevant stmts - those that are
-	     used by a reduction computation, and those that are (also) used by
- 	     a regular computation. This allows us later on to identify stmts
-	     that are used solely by a reduction, and therefore the order of 
-	     the results that they produce does not have to be kept.
-       */
+	 relevance:				phi	stmt
+	 vect_unused_in_loop				ok
+	 vect_used_by_reduction			ok
+	 vect_used_in_loop 						  */
 
-      /* case 2.2:  */
       if (STMT_VINFO_DEF_TYPE (stmt_vinfo) == vect_reduction_def)
-	{
-	  gcc_assert (relevant == vect_unused_in_loop && live_p);
-	  relevant = vect_used_by_reduction;
-	  live_p = false;
-	}
-
-      i = 0;
-      FOR_EACH_SSA_TREE_OPERAND (use, stmt, iter, SSA_OP_USE)
-	{
-	  if (vect_print_dump_info (REPORT_DETAILS))
+        {
+	  switch (relevant)
 	    {
-	      fprintf (vect_dump, "worklist: examine use %d: ", i++);
-	      print_generic_expr (vect_dump, use, TDF_SLIM);
-	    }
-
-	  /* case 1: we are only interested in uses that need to be vectorized. 
-	     Uses that are used for address computation are not considered 
-	     relevant.
-	   */
-	  if (!exist_non_indexing_operands_for_use_p (use, stmt))
-	    continue;
-
-	  if (!vect_is_simple_use (use, loop_vinfo, &def_stmt, &def, &dt))
-	    {
-	      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
-		fprintf (vect_dump, "not vectorized: unsupported use in stmt.");
+	    case vect_unused_in_loop:
+	      gcc_assert (TREE_CODE (stmt) != PHI_NODE);
+	      break;
+	    case vect_used_by_reduction:
+	      if (TREE_CODE (stmt) == PHI_NODE)
+		break;
+	    case vect_used_in_loop:
+	    default:
+	      if (vect_print_dump_info (REPORT_DETAILS))
+	        fprintf (vect_dump, "unsupported use of reduction.");
 	      VEC_free (tree, heap, worklist);
 	      return false;
-            }
-
-	  if (!def_stmt || IS_EMPTY_STMT (def_stmt))
-	    continue;
-
-	  bb = bb_for_stmt (def_stmt);
-	  if (!flow_bb_inside_loop_p (loop, bb))
-	    continue;
-	  vect_mark_relevant (&worklist, def_stmt, relevant, live_p);
+	    }
+	  relevant = vect_used_by_reduction;
+	  live_p = false;	
 	}
-    }				/* while worklist */
+
+      FOR_EACH_PHI_OR_STMT_USE (use_p, stmt, iter, SSA_OP_USE)
+	{
+	  tree op = USE_FROM_PTR (use_p);
+	  if (!process_use (stmt, op, loop_vinfo, live_p, relevant, &worklist))
+	    {
+	      VEC_free (tree, heap, worklist);
+	      return false;
+	    }
+	}
+    } /* while worklist */
 
   VEC_free (tree, heap, worklist);
   return true;
@@ -2582,10 +2641,7 @@ vect_analyze_loop_form (struct loop *loop)
       return false;
     }
 
-  loop_vinfo = new_loop_vec_info (loop);
-  LOOP_VINFO_NITERS (loop_vinfo) = number_of_iterations;
-
-  if (!LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo))
+  if (!NITERS_KNOWN_P (number_of_iterations))
     {
       if (vect_print_dump_info (REPORT_DETAILS))
         {
@@ -2593,16 +2649,19 @@ vect_analyze_loop_form (struct loop *loop)
           print_generic_expr (vect_dump, number_of_iterations, TDF_DETAILS);
         }
     }
-  else
-  if (LOOP_VINFO_INT_NITERS (loop_vinfo) == 0)
+  else if (TREE_INT_CST_LOW (number_of_iterations) == 0)
     {
       if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
         fprintf (vect_dump, "not vectorized: number of iterations = 0.");
       return NULL;
     }
 
+  loop_vinfo = new_loop_vec_info (loop);
+  LOOP_VINFO_NITERS (loop_vinfo) = number_of_iterations;
   LOOP_VINFO_EXIT_COND (loop_vinfo) = loop_cond;
 
+  gcc_assert (!loop->aux);
+  loop->aux = loop_vinfo;
   return loop_vinfo;
 }
 

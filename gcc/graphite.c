@@ -134,8 +134,8 @@ affine_expr (struct loop *loop, tree expr)
 
   scev = instantiate_parameters (loop, scev);
 
-  return (evolution_function_is_affine_multivariate_p (scev)
-	  || evolution_function_is_constant_p (scev));
+  return (evolution_function_is_constant_p (scev)
+	  || evolution_function_is_affine_multivariate_p (scev, 0));
 }
 
 
@@ -189,16 +189,23 @@ stmt_simple_for_scop_p (tree stmt)
 	     || TREE_CODE (opnd0) == INDIRECT_REF
 	     || TREE_CODE (opnd0) == COMPONENT_REF)
 	  {
-	    if (!create_data_ref (opnd0, stmt, false))
+	    data_reference_p dr;
+
+	    dr = create_data_ref (loop, opnd0, stmt, false);
+	    if (!dr)
 	      return false;
+
+	    free_data_ref (dr);
 
 	    if (TREE_CODE (opnd1) == ARRAY_REF 
 		|| TREE_CODE (opnd1) == INDIRECT_REF
 		|| TREE_CODE (opnd1) == COMPONENT_REF)
 	      {
-		if (!create_data_ref (opnd1, stmt, true))
+		dr = create_data_ref (loop, opnd1, stmt, true);
+		if (!dr)
 		  return false;
 
+		free_data_ref (dr);
 		return true;
 	      }
 	  }
@@ -207,9 +214,13 @@ stmt_simple_for_scop_p (tree stmt)
 	     || TREE_CODE (opnd1) == INDIRECT_REF
 	     || TREE_CODE (opnd1) == COMPONENT_REF)
 	  {
-	    if (!create_data_ref (opnd1, stmt, true))
+	    data_reference_p dr;
+
+	    dr = create_data_ref (loop, opnd1, stmt, true);
+	    if (!dr)
 	      return false;
 
+	    free_data_ref (dr);
 	    return true;
 	  }
 
@@ -237,11 +248,18 @@ stmt_simple_for_scop_p (tree stmt)
 	tree args;
 
 	for (args = TREE_OPERAND (stmt, 1); args; args = TREE_CHAIN (args))
-	  if ((TREE_CODE (TREE_VALUE (args)) == ARRAY_REF
-	       || TREE_CODE (TREE_VALUE (args)) == INDIRECT_REF
-	       || TREE_CODE (TREE_VALUE (args)) == COMPONENT_REF)
-	      && !create_data_ref (TREE_VALUE (args), stmt, true))
-	    return false;
+	  if (TREE_CODE (TREE_VALUE (args)) == ARRAY_REF
+	      || TREE_CODE (TREE_VALUE (args)) == INDIRECT_REF
+	      || TREE_CODE (TREE_VALUE (args)) == COMPONENT_REF)
+	    {
+	      data_reference_p dr;
+
+	      dr = create_data_ref (loop, TREE_VALUE (args), stmt, true);
+	      if (!dr)
+		return false;
+
+	      free_data_ref (dr);
+	    }
 
 	return true;
       }
@@ -275,8 +293,7 @@ basic_block_simple_for_scop_p (basic_block bb)
 static inline bool
 bb_in_scop_p (basic_block bb, scop_p scop)
 {
-  return (dominated_by_p (CDI_DOMINATORS, bb, SCOP_ENTRY (scop))
-	  && dominated_by_p (CDI_POST_DOMINATORS, bb, SCOP_EXIT (scop)));
+  return bitmap_bit_p (SCOP_BBS_B (scop), bb->index);
 }
 
 /* Return true when STMT is contained in SCOP.  */
@@ -307,17 +324,16 @@ invariant_in_scop_p (tree var, scop_p scop)
 
 /* Find the first basic block that dominates BB and that exits the
    current loop.  */
-
 static basic_block
 get_loop_start (basic_block bb)
 {
   basic_block res = bb;
-  int depth;
+  unsigned depth;
 
   do {
     res = get_immediate_dominator (CDI_DOMINATORS, res);
-    depth = res->loop_father->depth;
-  } while (depth != 0 && depth >= bb->loop_father->depth);
+    depth = loop_depth (res->loop_father);
+  } while (depth != 0 && depth >= loop_depth (bb->loop_father));
 
   return res;
 }
@@ -333,12 +349,38 @@ new_scop (basic_block bb)
 
   SCOP_ENTRY (scop) = bb;
   SCOP_BBS (scop) = VEC_alloc (graphite_bb_p, heap, 3);
+  SCOP_BBS_B (scop) = BITMAP_ALLOC (NULL);
   SCOP_LOOP_NEST (scop) = VEC_alloc (loop_p, heap, 3);
   SCOP_PARAMS (scop) = VEC_alloc (tree, heap, 3);
   SCOP_PROG (scop) = cloog_program_malloc ();
   SCOP_PROG (scop)->names = cloog_names_malloc ();
 
   return scop;
+}
+
+/* Deletes the scop.  */
+
+static void
+free_scop (scop_p scop)
+{
+  VEC_free (graphite_bb_p, heap, SCOP_BBS (scop));
+  BITMAP_FREE (SCOP_BBS_B (scop));
+  VEC_free (loop_p, heap, SCOP_LOOP_NEST (scop));
+  VEC_free (tree, heap, SCOP_PARAMS (scop));
+  cloog_program_free (SCOP_PROG (scop));
+  free (scop);
+}
+
+static void
+free_scops (VEC (scop_p, heap) *scops)
+{
+  unsigned i;
+  scop_p scop;
+
+  for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
+    free_scop (scop);
+
+  VEC_free (scop_p, heap, scops);
 }
 
 /* Save the SCOP.  */
@@ -386,7 +428,8 @@ test_for_scop_bound (struct dom_walk_data *dw_data ATTRIBUTE_UNUSED,
     fprintf (dump_file, "down bb_%d\n", bb->index);
 
   /* Exiting the loop containing the open scop ends the scop.  */
-  if (SCOP_ENTRY (down_open_scop)->loop_father->depth > bb->loop_father->depth)
+  if (loop_depth (SCOP_ENTRY (down_open_scop)->loop_father) 
+      > loop_depth (bb->loop_father))
     {
       SCOP_EXIT (down_open_scop) = bb;
       save_scop (down_open_scop);
@@ -419,6 +462,7 @@ build_scops (void)
 
   down_open_scop = new_scop (ENTRY_BLOCK_PTR);
   memset (&walk_data, 0, sizeof (struct dom_walk_data));
+  walk_data.dom_direction = CDI_DOMINATORS;
   walk_data.before_dom_children_before_stmts = test_for_scop_bound;
 
   init_walk_dominator_tree (&walk_data);
@@ -473,6 +517,7 @@ build_graphite_bb (struct dom_walk_data *dw_data, basic_block bb)
 
   /* Store the GRAPHITE representation of the current BB.  */
   VEC_safe_push (graphite_bb_p, heap, scop->bbs, gb);
+  bitmap_set_bit (SCOP_BBS_B (scop), bb->index);
 }
 
 /* Gather the basic blocks belonging to the SCOP.  */
@@ -489,6 +534,7 @@ build_scop_bbs (scop_p scop)
      (pseudo exec order = the branches of a condition are scheduled
      sequentially: the then clause comes before the else clause.)  */
   walk_data.before_dom_children_before_stmts = build_graphite_bb;
+  walk_data.dom_direction = CDI_DOMINATORS;
 
   walk_data.global_data = scop;
   init_walk_dominator_tree (&walk_data);
@@ -605,6 +651,20 @@ idx_record_params (tree base, tree *idx, void *dta)
   return true;
 }
 
+/* Returns the outermost loop in SCOP that contains BB.  */
+
+static struct loop *
+outermost_loop_in_scop (scop_p scop, basic_block bb)
+{
+  struct loop *nest;
+
+  nest = bb->loop_father;
+  while (loop_outer (nest) && loop_in_scop_p (loop_outer (nest), scop))
+    nest = loop_outer (nest);
+
+  return nest;
+}
+
 /* Helper function for walking in dominance order basic blocks.  Find
    parameters with respect to SCOP in memory access functions used in
    BB.  DW_DATA contains the context and the results for extract
@@ -618,11 +678,12 @@ find_params_in_bb (struct dom_walk_data *dw_data, basic_block bb)
   VEC (data_reference_p, heap) *drs;
   block_stmt_iterator bsi;
   scop_p scop = (scop_p) dw_data->global_data;
+  struct loop *nest = outermost_loop_in_scop (scop, bb);
 
   /* Find the parameters used in the memory access functions.  */
   drs = VEC_alloc (data_reference_p, heap, 5);
   for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-    find_data_references_in_stmt (bsi_stmt (bsi), &drs);
+    find_data_references_in_stmt (nest, bsi_stmt (bsi), &drs);
 
   for (i = 0; VEC_iterate (data_reference_p, drs, i, dr); i++)
     {
@@ -693,6 +754,7 @@ find_scop_parameters (scop_p scop)
   /* Find the parameters used in data accesses.  */
   memset (&walk_data, 0, sizeof (struct dom_walk_data));
   walk_data.before_dom_children_before_stmts = find_params_in_bb;
+  walk_data.dom_direction = CDI_DOMINATORS;
   walk_data.global_data = scop;
   init_walk_dominator_tree (&walk_data);
   walk_dominator_tree (&walk_data, SCOP_ENTRY (scop));
@@ -1023,12 +1085,14 @@ build_scop_data_accesses (scop_p scop)
       unsigned j;
       block_stmt_iterator bsi;
       data_reference_p dr;
+      struct loop *nest = outermost_loop_in_scop (scop, GBB_BB (gb));
 
       /* On each statement of the basic block, gather all the occurences
 	 to read/write memory.  */
       GBB_DATA_REFS (gb) = VEC_alloc (data_reference_p, heap, 5);
       for (bsi = bsi_start (GBB_BB (gb)); !bsi_end_p (bsi); bsi_next (&bsi))
-	find_data_references_in_stmt (bsi_stmt (bsi), &GBB_DATA_REFS (gb));
+	find_data_references_in_stmt (nest, bsi_stmt (bsi),
+				      &GBB_DATA_REFS (gb));
 
       /* Construct the access matrix for each data ref, with respect to
 	 the loop nest of the current BB in the considered SCOP.  */
@@ -1123,7 +1187,6 @@ graphite_transform_loops (void)
 
   current_scops = VEC_alloc (scop_p, heap, 3);
 
-  calculate_dominance_info (CDI_POST_DOMINATORS);
   calculate_dominance_info (CDI_DOMINATORS);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -1152,4 +1215,6 @@ graphite_transform_loops (void)
       fprintf (dump_file, "\nnumber of SCoPs: %d\n",
 	       VEC_length (scop_p, current_scops));
     }
+
+  free_scops (current_scops);
 }

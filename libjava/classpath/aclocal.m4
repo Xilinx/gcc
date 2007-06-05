@@ -549,6 +549,34 @@ AC_MSG_RESULT([$_am_result])
 rm -f confinc confmf
 ])
 
+# Copyright (C) 1999, 2000, 2001, 2003, 2005  Free Software Foundation, Inc.
+#
+# This file is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# serial 3
+
+# AM_PROG_CC_C_O
+# --------------
+# Like AC_PROG_CC_C_O, but changed for automake.
+AC_DEFUN([AM_PROG_CC_C_O],
+[AC_REQUIRE([AC_PROG_CC_C_O])dnl
+AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
+# FIXME: we rely on the cache variable name because
+# there is no other way.
+set dummy $CC
+ac_cc=`echo $[2] | sed ['s/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/']`
+if eval "test \"`echo '$ac_cv_prog_cc_'${ac_cc}_c_o`\" != yes"; then
+   # Losing compiler, so override with the script.
+   # FIXME: It is wrong to rewrite CC.
+   # But if we don't then we get into trouble of one sort or another.
+   # A longer-term fix would be to have automake use am__CC in this case,
+   # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
+   CC="$am_aux_dir/compile $CC"
+fi
+])
+
 # Fake the existence of programs that GNU maintainers use.  -*- Autoconf -*-
 
 # Copyright (C) 1997, 1999, 2000, 2001, 2003, 2005
@@ -878,10 +906,14 @@ m4_include([../../config/lead-dot.m4])
 m4_include([../../config/multi.m4])
 m4_include([../../config/no-executables.m4])
 m4_include([../../libtool.m4])
+m4_include([../../ltoptions.m4])
+m4_include([../../ltsugar.m4])
+m4_include([../../ltversion.m4])
 m4_include([m4/acattribute.m4])
 m4_include([m4/accross.m4])
 m4_include([m4/acinclude.m4])
 m4_include([m4/ax_create_stdint_h.m4])
+m4_include([m4/ax_func_which_gethostbyname_r.m4])
 m4_include([m4/gcc_attribute.m4])
 m4_include([m4/iconv.m4])
 m4_include([m4/lib-ld.m4])

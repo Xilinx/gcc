@@ -1033,7 +1033,7 @@ load_line (FILE *input, char **pbuf, int *pbuflen)
   buffer = *pbuf;
 
   preprocessor_flag = 0;
-  c = fgetc (input);
+  c = getc (input);
   if (c == '#')
     /* In order to not truncate preprocessor lines, we have to
        remember that this is one.  */
@@ -1042,7 +1042,7 @@ load_line (FILE *input, char **pbuf, int *pbuflen)
 
   for (;;)
     {
-      c = fgetc (input);
+      c = getc (input);
 
       if (c == EOF)
 	break;
@@ -1050,7 +1050,7 @@ load_line (FILE *input, char **pbuf, int *pbuflen)
 	{
 	  /* Check for illegal use of ampersand. See F95 Standard 3.3.1.3.  */
 	  if (gfc_current_form == FORM_FREE 
-		&& !seen_printable && seen_ampersand)
+	      && !seen_printable && seen_ampersand)
 	    {
 	      if (pedantic)
 		gfc_error_now ("'&' not allowed by itself in line %d",
@@ -1067,24 +1067,16 @@ load_line (FILE *input, char **pbuf, int *pbuflen)
       if (c == '\0')
 	continue;
 
-      /* Check for illegal use of ampersand. See F95 Standard 3.3.1.3.  */
       if (c == '&')
-	seen_ampersand = 1;
-
-      if ((c != ' ' && c != '&' && c != '!') || (c == '!' && !seen_ampersand))
-	seen_printable = 1;
-      
-      if (gfc_current_form == FORM_FREE 
-	    && c == '!' && !seen_printable && seen_ampersand)
 	{
-	  if (pedantic)
-	    gfc_error_now ("'&' not allowed by itself with comment in "
-			   "line %d", current_line);
+	  if (seen_ampersand)
+	    seen_ampersand = 0;
 	  else
-	    gfc_warning_now ("'&' not allowed by itself with comment in "
-			     "line %d", current_line);
-	  seen_printable = 1;
+	    seen_ampersand = 1;
 	}
+
+      if ((c != '&' && c != '!') || (c == '!' && !seen_ampersand))
+	seen_printable = 1;
 
       /* Is this a fixed-form comment?  */
       if (gfc_current_form == FORM_FIXED && i == 0
@@ -1129,7 +1121,7 @@ load_line (FILE *input, char **pbuf, int *pbuflen)
 	  /* Truncate the rest of the line.  */
 	  for (;;)
 	    {
-	      c = fgetc (input);
+	      c = getc (input);
 	      if (c == '\n' || c == EOF)
 		break;
 
@@ -1412,6 +1404,7 @@ load_file (const char *filename, bool initial)
   gfc_file *f;
   FILE *input;
   int len, line_len;
+  bool first_line;
 
   for (f = current_file; f; f = f->up)
     if (strcmp (filename, f->filename) == 0)
@@ -1453,6 +1446,7 @@ load_file (const char *filename, bool initial)
   current_file->line = 1;
   line = NULL;
   line_len = 0;
+  first_line = true;
 
   if (initial && gfc_src_preprocessor_lines[0])
     {
@@ -1475,6 +1469,26 @@ load_file (const char *filename, bool initial)
       if (feof (input) && len == 0)
 	break;
 
+      /* If this is the first line of the file, it can contain a byte
+	 order mark (BOM), which we will ignore:
+	   FF FE is UTF-16 little endian,
+	   FE FF is UTF-16 big endian,
+	   EF BB BF is UTF-8.  */
+      if (first_line
+	  && ((line_len >= 2 && line[0] == '\xFF' && line[1] == '\xFE')
+	      || (line_len >= 2 && line[0] == '\xFE' && line[1] == '\xFF')
+	      || (line_len >= 3 && line[0] == '\xEF' && line[1] == '\xBB'
+		  && line[2] == '\xBF')))
+	{
+	  int n = line[1] == '\xBB' ? 3 : 2;
+	  char * new = gfc_getmem (line_len);
+
+	  strcpy (new, line + n);
+	  gfc_free (line);
+	  line = new;
+	  len -= n;
+	}
+
       /* There are three things this line can be: a line of Fortran
 	 source, an include line or a C preprocessor directive.  */
 
@@ -1483,6 +1497,11 @@ load_file (const char *filename, bool initial)
 	  preprocessor_line (line);
 	  continue;
 	}
+
+      /* Preprocessed files have preprocessor lines added before the byte
+         order mark, so first_line is not about the first line of the file
+	 but the first line that's not a preprocessor line.  */
+      first_line = false;
 
       if (include_line (line))
 	{
@@ -1610,7 +1629,7 @@ gfc_read_orig_filename (const char *filename, const char **canon_source_file)
   if (gfc_src_file == NULL)
     return NULL;
 
-  c = fgetc (gfc_src_file);
+  c = getc (gfc_src_file);
   ungetc (c, gfc_src_file);
 
   if (c != '#')
@@ -1626,7 +1645,7 @@ gfc_read_orig_filename (const char *filename, const char **canon_source_file)
   if (filename == NULL)
     return NULL;
 
-  c = fgetc (gfc_src_file);
+  c = getc (gfc_src_file);
   ungetc (c, gfc_src_file);
 
   if (c != '#')

@@ -1,6 +1,6 @@
 /* Maintain binary trees of symbols.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software
-   Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
@@ -271,13 +271,18 @@ gfc_check_function_type (gfc_namespace *ns)
 		== SUCCESS)
 	{
 	  if (proc->result != proc)
-	    proc->ts = proc->result->ts;
+	    {
+	      proc->ts = proc->result->ts;
+	      proc->as = gfc_copy_array_spec (proc->result->as);
+	      proc->attr.dimension = proc->result->attr.dimension;
+	      proc->attr.pointer = proc->result->attr.pointer;
+	      proc->attr.allocatable = proc->result->attr.allocatable;
+	    }
 	}
       else
 	{
-	  gfc_error ("unable to implicitly type the function result "
-		     "'%s' at %L", proc->result->name,
-		     &proc->result->declared_at);
+	  gfc_error ("Function result '%s' at %L has no IMPLICIT type",
+		     proc->result->name, &proc->result->declared_at);
 	  proc->result->attr.untyped = 1;
 	}
     }
@@ -477,6 +482,7 @@ check_conflict (symbol_attribute * attr, const char * name, locus * where)
 
   if (attr->in_namelist
       && attr->flavor != FL_VARIABLE
+      && attr->flavor != FL_PROCEDURE
       && attr->flavor != FL_UNKNOWN)
     {
 
@@ -1155,9 +1161,14 @@ gfc_add_flavor (symbol_attribute * attr, sym_flavor f, const char *name,
       if (where == NULL)
 	where = &gfc_current_locus;
 
-      gfc_error ("%s attribute conflicts with %s attribute at %L",
-		 gfc_code2string (flavors, attr->flavor),
-		 gfc_code2string (flavors, f), where);
+      if (name)
+        gfc_error ("%s attribute of '%s' conflicts with %s attribute at %L",
+		   gfc_code2string (flavors, attr->flavor), name,
+		   gfc_code2string (flavors, f), where);
+      else
+        gfc_error ("%s attribute conflicts with %s attribute at %L",
+		   gfc_code2string (flavors, attr->flavor),
+		   gfc_code2string (flavors, f), where);
 
       return FAILURE;
     }

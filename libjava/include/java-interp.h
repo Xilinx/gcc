@@ -274,6 +274,9 @@ class _Jv_InterpMethod : public _Jv_MethodBase
      the insn or NULL if index is invalid. */
   pc_t set_insn (jlong index, pc_t insn);
 
+  // Is the given location in this method a breakpoint?
+  bool breakpoint_at (jlong index);
+
 #ifdef DIRECT_THREADED
   friend void _Jv_CompileMethod (_Jv_InterpMethod*);
 #endif
@@ -422,6 +425,9 @@ public:
     pc_t pc;
     jclass proxyClass;
   };
+  
+  // Pointer to the actual pc value.
+  pc_t *pc_ptr;
 
   //Debug info for local variables.
   _Jv_word *locals;
@@ -430,7 +436,8 @@ public:
   // Object pointer for this frame ("this")
   jobject obj_ptr;
 
-  _Jv_InterpFrame (void *meth, java::lang::Thread *thr, jclass proxyCls = NULL)
+  _Jv_InterpFrame (void *meth, java::lang::Thread *thr, jclass proxyCls = NULL,
+                   pc_t *pc = NULL)
   : _Jv_Frame (reinterpret_cast<_Jv_MethodBase *> (meth), thr,
 	             frame_interpreter)
   {
@@ -438,6 +445,7 @@ public:
     proxyClass = proxyCls;
     thr->interp_frame = (gnu::gcj::RawData *) this;
     obj_ptr = NULL;
+    pc_ptr = pc;
   }
 
   ~_Jv_InterpFrame ()
@@ -448,7 +456,20 @@ public:
   jobject get_this_ptr ()
   {
     return obj_ptr;
-  } 
+  }
+  
+  pc_t get_pc ()
+  {
+    pc_t pc;
+    
+    // If the PC_PTR is NULL, we are not debugging.
+    if (pc_ptr == NULL)
+      pc = 0;
+    else
+      pc = *pc_ptr - 1;
+    
+    return pc;
+  }
 };
 
 // A native frame in the call stack really just a placeholder

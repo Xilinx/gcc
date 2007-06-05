@@ -244,7 +244,7 @@ find_uses_to_rename_use (basic_block bb, tree use, bitmap *use_blocks,
   def_loop = def_bb->loop_father;
 
   /* If the definition is not inside loop, it is not interesting.  */
-  if (!def_loop->outer)
+  if (!loop_outer (def_loop))
     return;
 
   if (!use_blocks[ver])
@@ -360,7 +360,8 @@ rewrite_into_loop_closed_ssa (bitmap changed_bbs, unsigned update_flag)
   unsigned i, old_num_ssa_names;
   bitmap names_to_rename;
 
-  if (!current_loops)
+  current_loops->state |= LOOP_CLOSED_SSA;
+  if (number_of_loops () <= 1)
     return;
 
   loop_exits = get_loops_exits ();
@@ -389,8 +390,6 @@ rewrite_into_loop_closed_ssa (bitmap changed_bbs, unsigned update_flag)
   /* Fix up all the names found to be used outside their original
      loops.  */
   update_ssa (TODO_update_ssa);
-
-  current_loops->state |= LOOP_CLOSED_SSA;
 }
 
 /* Check invariants of the loop closed ssa form for the USE in BB.  */
@@ -432,7 +431,7 @@ verify_loop_closed_ssa (void)
   tree phi;
   unsigned i;
 
-  if (current_loops == NULL)
+  if (number_of_loops () <= 1)
     return;
 
   verify_ssa (false);
@@ -505,7 +504,8 @@ ip_normal_pos (struct loop *loop)
 
   bb = single_pred (loop->latch);
   last = last_stmt (bb);
-  if (TREE_CODE (last) != COND_EXPR)
+  if (!last
+      || TREE_CODE (last) != COND_EXPR)
     return NULL;
 
   exit = EDGE_SUCC (bb, 0);
@@ -602,17 +602,6 @@ tree_duplicate_loop_to_header_edge (struct loop *loop, edge e,
   scev_reset ();
 
   return true;
-}
-
-/* Build if (COND) goto THEN_LABEL; else goto ELSE_LABEL;  */
-
-static tree
-build_if_stmt (tree cond, tree then_label, tree else_label)
-{
-  return build3 (COND_EXPR, void_type_node,
-		 cond,
-		 build1 (GOTO_EXPR, void_type_node, then_label),
-		 build1 (GOTO_EXPR, void_type_node, else_label));
 }
 
 /* Returns true if we can unroll LOOP FACTOR times.  Number
@@ -932,9 +921,9 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
 				  REG_BR_PROB_BASE - exit->probability);
 
   bsi = bsi_last (exit_bb);
-  exit_if = build_if_stmt (boolean_true_node,
-			   tree_block_label (loop->latch),
-			   tree_block_label (rest));
+  exit_if = build3 (COND_EXPR, void_type_node, boolean_true_node,
+		    NULL_TREE, NULL_TREE);
+
   bsi_insert_after (&bsi, exit_if, BSI_NEW_STMT);
   new_exit = make_edge (exit_bb, rest, EDGE_FALSE_VALUE | irr);
   rescan_loop_exit (new_exit, true, false);

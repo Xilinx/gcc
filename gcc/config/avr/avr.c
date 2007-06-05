@@ -56,8 +56,7 @@ static int sequent_regs_live (void);
 static const char *ptrreg_to_str (int);
 static const char *cond_string (enum rtx_code);
 static int avr_num_arg_regs (enum machine_mode, tree);
-static int out_adj_frame_ptr (FILE *, int);
-static int out_set_stack_ptr (FILE *, int, int);
+
 static RTX_CODE compare_condition (rtx insn);
 static int compare_sign_p (rtx insn);
 static tree avr_handle_progmem_attribute (tree *, tree, tree, int, bool *);
@@ -66,8 +65,8 @@ const struct attribute_spec avr_attribute_table[];
 static bool avr_assemble_integer (rtx, unsigned int, int);
 static void avr_file_start (void);
 static void avr_file_end (void);
-static void avr_output_function_prologue (FILE *, HOST_WIDE_INT);
-static void avr_output_function_epilogue (FILE *, HOST_WIDE_INT);
+static void avr_asm_function_end_prologue (FILE *);
+static void avr_asm_function_begin_epilogue (FILE *);
 static void avr_insert_attributes (tree, tree *);
 static void avr_asm_init_sections (void);
 static unsigned int avr_section_type_flags (tree, const char *, int);
@@ -79,7 +78,7 @@ static int avr_operand_rtx_cost (rtx, enum machine_mode, enum rtx_code);
 static bool avr_rtx_costs (rtx, int, int, int *);
 static int avr_address_cost (rtx);
 static bool avr_return_in_memory (tree, tree);
-
+static struct machine_function * avr_init_machine_status (void);
 /* Allocate registers from r25 to r8 for parameters for function calls.  */
 #define FIRST_CUM_REG 26
 
@@ -103,13 +102,6 @@ static int commands_in_prologues;
 
 /* Commands in the functions epilogues in the compiled file */
 static int commands_in_epilogues;
-
-/* Prologue/Epilogue size in words */
-static int prologue_size;
-static int epilogue_size;
-
-/* Size of all jump tables in the current function, in words.  */
-static int jump_tables_size;
 
 /* Preprocessor macros to define depending on MCU type.  */
 const char *avr_base_arch_macro;
@@ -141,10 +133,24 @@ static const struct base_arch_s avr_arch_types[] = {
   { 1, 0, 0, 0,  NULL },  /* unknown device specified */
   { 1, 0, 0, 0, "__AVR_ARCH__=1" },
   { 0, 0, 0, 0, "__AVR_ARCH__=2" },
+  { 0, 0, 0, 1, "__AVR_ARCH__=25"},
   { 0, 0, 1, 0, "__AVR_ARCH__=3" },
   { 0, 1, 0, 1, "__AVR_ARCH__=4" },
-  { 0, 1, 1, 1, "__AVR_ARCH__=5" },
-  { 0, 0, 0, 1, "__AVR_ARCH__=25"}
+  { 0, 1, 1, 1, "__AVR_ARCH__=5" }
+};
+
+/* These names are used as the index into the avr_arch_types[] table 
+   above.  */
+
+enum avr_arch
+{
+  ARCH_UNKNOWN,
+  ARCH_AVR1,
+  ARCH_AVR2,
+  ARCH_AVR25,
+  ARCH_AVR3,
+  ARCH_AVR4,
+  ARCH_AVR5
 };
 
 struct mcu_type_s {
@@ -164,103 +170,105 @@ struct mcu_type_s {
 
 static const struct mcu_type_s avr_mcu_types[] = {
     /* Classic, <= 8K.  */
-  { "avr2",      2, NULL },
-  { "at90s2313", 2, "__AVR_AT90S2313__" },
-  { "at90s2323", 2, "__AVR_AT90S2323__" },
-  { "at90s2333", 2, "__AVR_AT90S2333__" },
-  { "at90s2343", 2, "__AVR_AT90S2343__" },
-  { "attiny22",  2, "__AVR_ATtiny22__" },
-  { "attiny26",  2, "__AVR_ATtiny26__" },
-  { "at90s4414", 2, "__AVR_AT90S4414__" },
-  { "at90s4433", 2, "__AVR_AT90S4433__" },
-  { "at90s4434", 2, "__AVR_AT90S4434__" },
-  { "at90s8515", 2, "__AVR_AT90S8515__" },
-  { "at90c8534", 2, "__AVR_AT90C8534__" },
-  { "at90s8535", 2, "__AVR_AT90S8535__" },
+  { "avr2",         ARCH_AVR2, NULL },
+  { "at90s2313",    ARCH_AVR2, "__AVR_AT90S2313__" },
+  { "at90s2323",    ARCH_AVR2, "__AVR_AT90S2323__" },
+  { "at90s2333",    ARCH_AVR2, "__AVR_AT90S2333__" },
+  { "at90s2343",    ARCH_AVR2, "__AVR_AT90S2343__" },
+  { "attiny22",     ARCH_AVR2, "__AVR_ATtiny22__" },
+  { "attiny26",     ARCH_AVR2, "__AVR_ATtiny26__" },
+  { "at90s4414",    ARCH_AVR2, "__AVR_AT90S4414__" },
+  { "at90s4433",    ARCH_AVR2, "__AVR_AT90S4433__" },
+  { "at90s4434",    ARCH_AVR2, "__AVR_AT90S4434__" },
+  { "at90s8515",    ARCH_AVR2, "__AVR_AT90S8515__" },
+  { "at90c8534",    ARCH_AVR2, "__AVR_AT90C8534__" },
+  { "at90s8535",    ARCH_AVR2, "__AVR_AT90S8535__" },
     /* Classic + MOVW, <= 8K.  */
-  { "avr25",      6, NULL },
-  { "attiny13",   6, "__AVR_ATtiny13__" },
-  { "attiny2313", 6, "__AVR_ATtiny2313__" },
-  { "attiny24",   6, "__AVR_ATtiny24__" },
-  { "attiny44",   6, "__AVR_ATtiny44__" },
-  { "attiny84",   6, "__AVR_ATtiny84__" },
-  { "attiny25",   6, "__AVR_ATtiny25__" },
-  { "attiny45",   6, "__AVR_ATtiny45__" },
-  { "attiny85",   6, "__AVR_ATtiny85__" },
-  { "attiny261",  6, "__AVR_ATtiny261__" },
-  { "attiny461",  6, "__AVR_ATtiny461__" },
-  { "attiny861",  6, "__AVR_ATtiny861__" },
-  { "at86rf401",  6, "__AVR_AT86RF401__" },
+  { "avr25",        ARCH_AVR25, NULL },
+  { "attiny13",     ARCH_AVR25, "__AVR_ATtiny13__" },
+  { "attiny2313",   ARCH_AVR25, "__AVR_ATtiny2313__" },
+  { "attiny24",     ARCH_AVR25, "__AVR_ATtiny24__" },
+  { "attiny44",     ARCH_AVR25, "__AVR_ATtiny44__" },
+  { "attiny84",     ARCH_AVR25, "__AVR_ATtiny84__" },
+  { "attiny25",     ARCH_AVR25, "__AVR_ATtiny25__" },
+  { "attiny45",     ARCH_AVR25, "__AVR_ATtiny45__" },
+  { "attiny85",     ARCH_AVR25, "__AVR_ATtiny85__" },
+  { "attiny261",    ARCH_AVR25, "__AVR_ATtiny261__" },
+  { "attiny461",    ARCH_AVR25, "__AVR_ATtiny461__" },
+  { "attiny861",    ARCH_AVR25, "__AVR_ATtiny861__" },
+  { "at86rf401",    ARCH_AVR25, "__AVR_AT86RF401__" },
     /* Classic, > 8K.  */
-  { "avr3",      3, NULL },
-  { "atmega103", 3, "__AVR_ATmega103__" },
-  { "atmega603", 3, "__AVR_ATmega603__" },
-  { "at43usb320", 3, "__AVR_AT43USB320__" },
-  { "at43usb355", 3, "__AVR_AT43USB355__" },
-  { "at76c711",  3, "__AVR_AT76C711__" },
+  { "avr3",         ARCH_AVR3, NULL },
+  { "atmega103",    ARCH_AVR3, "__AVR_ATmega103__" },
+  { "atmega603",    ARCH_AVR3, "__AVR_ATmega603__" },
+  { "at43usb320",   ARCH_AVR3, "__AVR_AT43USB320__" },
+  { "at43usb355",   ARCH_AVR3, "__AVR_AT43USB355__" },
+  { "at76c711",     ARCH_AVR3, "__AVR_AT76C711__" },
     /* Enhanced, <= 8K.  */
-  { "avr4",      4, NULL },
-  { "atmega8",   4, "__AVR_ATmega8__" },
-  { "atmega48",   4, "__AVR_ATmega48__" },
-  { "atmega88",   4, "__AVR_ATmega88__" },
-  { "atmega8515", 4, "__AVR_ATmega8515__" },
-  { "atmega8535", 4, "__AVR_ATmega8535__" },
-  { "at90pwm1",  4, "__AVR_AT90PWM1__" },
-  { "at90pwm2",  4, "__AVR_AT90PWM2__" },
-  { "at90pwm3",  4, "__AVR_AT90PWM3__" },
-  { "at90usb82",   4, "__AVR_AT90USB82__" },
+  { "avr4",         ARCH_AVR4, NULL },
+  { "atmega8",      ARCH_AVR4, "__AVR_ATmega8__" },
+  { "atmega48",     ARCH_AVR4, "__AVR_ATmega48__" },
+  { "atmega88",     ARCH_AVR4, "__AVR_ATmega88__" },
+  { "atmega8515",   ARCH_AVR4, "__AVR_ATmega8515__" },
+  { "atmega8535",   ARCH_AVR4, "__AVR_ATmega8535__" },
+  { "atmega8hva",   ARCH_AVR4, "__AVR_ATmega8HVA__" },
+  { "at90pwm1",     ARCH_AVR4, "__AVR_AT90PWM1__" },
+  { "at90pwm2",     ARCH_AVR4, "__AVR_AT90PWM2__" },
+  { "at90pwm3",     ARCH_AVR4, "__AVR_AT90PWM3__" },
     /* Enhanced, > 8K.  */
-  { "avr5",      5, NULL },
-  { "atmega16",  5, "__AVR_ATmega16__" },
-  { "atmega161", 5, "__AVR_ATmega161__" },
-  { "atmega162", 5, "__AVR_ATmega162__" },
-  { "atmega163", 5, "__AVR_ATmega163__" },
-  { "atmega164p",5, "__AVR_ATmega164P__" },
-  { "atmega165", 5, "__AVR_ATmega165__" },
-  { "atmega165p",5, "__AVR_ATmega165P__" },
-  { "atmega168", 5, "__AVR_ATmega168__" },
-  { "atmega169", 5, "__AVR_ATmega169__" },
-  { "atmega169p",5, "__AVR_ATmega169P__" },
-  { "atmega32",  5, "__AVR_ATmega32__" },
-  { "atmega323", 5, "__AVR_ATmega323__" },
-  { "atmega324p",5, "__AVR_ATmega324P__" },
-  { "atmega325", 5, "__AVR_ATmega325__" },
-  { "atmega325p",  5, "__AVR_ATmega325P__" },
-  { "atmega3250", 5, "__AVR_ATmega3250__" },
-  { "atmega3250p", 5, "__AVR_ATmega3250P__" },
-  { "atmega329", 5, "__AVR_ATmega329__" },
-  { "atmega329p",  5, "__AVR_ATmega329P__" },
-  { "atmega3290", 5, "__AVR_ATmega3290__" },
-  { "atmega3290p", 5, "__AVR_ATmega3290P__" },
-  { "atmega406", 5, "__AVR_ATmega406__" },
-  { "atmega64",  5, "__AVR_ATmega64__" },
-  { "atmega640", 5, "__AVR_ATmega640__" },
-  { "atmega644", 5, "__AVR_ATmega644__" },
-  { "atmega644p",5, "__AVR_ATmega644P__" },
-  { "atmega645", 5, "__AVR_ATmega645__" },
-  { "atmega6450", 5, "__AVR_ATmega6450__" },
-  { "atmega649", 5, "__AVR_ATmega649__" },
-  { "atmega6490", 5, "__AVR_ATmega6490__" },
-  { "atmega128", 5, "__AVR_ATmega128__" },
-  { "atmega1280",5, "__AVR_ATmega1280__" },
-  { "atmega1281",5, "__AVR_ATmega1281__" },
-  { "at90can32", 5, "__AVR_AT90CAN32__" },
-  { "at90can64", 5, "__AVR_AT90CAN64__" },
-  { "at90can128", 5, "__AVR_AT90CAN128__" },
-  { "at90usb162",  5, "__AVR_AT90USB162__" },
-  { "at90usb646", 5, "__AVR_AT90USB646__" },
-  { "at90usb647", 5, "__AVR_AT90USB647__" },
-  { "at90usb1286", 5, "__AVR_AT90USB1286__" },
-  { "at90usb1287", 5, "__AVR_AT90USB1287__" },
-  { "at94k",     5, "__AVR_AT94K__" },
+  { "avr5",         ARCH_AVR5, NULL },
+  { "atmega16",     ARCH_AVR5, "__AVR_ATmega16__" },
+  { "atmega161",    ARCH_AVR5, "__AVR_ATmega161__" },
+  { "atmega162",    ARCH_AVR5, "__AVR_ATmega162__" },
+  { "atmega163",    ARCH_AVR5, "__AVR_ATmega163__" },
+  { "atmega164p",   ARCH_AVR5, "__AVR_ATmega164P__" },
+  { "atmega165",    ARCH_AVR5, "__AVR_ATmega165__" },
+  { "atmega165p",   ARCH_AVR5, "__AVR_ATmega165P__" },
+  { "atmega168",    ARCH_AVR5, "__AVR_ATmega168__" },
+  { "atmega169",    ARCH_AVR5, "__AVR_ATmega169__" },
+  { "atmega169p",   ARCH_AVR5, "__AVR_ATmega169P__" },
+  { "atmega32",     ARCH_AVR5, "__AVR_ATmega32__" },
+  { "atmega323",    ARCH_AVR5, "__AVR_ATmega323__" },
+  { "atmega324p",   ARCH_AVR5, "__AVR_ATmega324P__" },
+  { "atmega325",    ARCH_AVR5, "__AVR_ATmega325__" },
+  { "atmega325p",   ARCH_AVR5, "__AVR_ATmega325P__" },
+  { "atmega3250",   ARCH_AVR5, "__AVR_ATmega3250__" },
+  { "atmega3250p",  ARCH_AVR5, "__AVR_ATmega3250P__" },
+  { "atmega329",    ARCH_AVR5, "__AVR_ATmega329__" },
+  { "atmega329p",   ARCH_AVR5, "__AVR_ATmega329P__" },
+  { "atmega3290",   ARCH_AVR5, "__AVR_ATmega3290__" },
+  { "atmega3290p",  ARCH_AVR5, "__AVR_ATmega3290P__" },
+  { "atmega406",    ARCH_AVR5, "__AVR_ATmega406__" },
+  { "atmega64",     ARCH_AVR5, "__AVR_ATmega64__" },
+  { "atmega640",    ARCH_AVR5, "__AVR_ATmega640__" },
+  { "atmega644",    ARCH_AVR5, "__AVR_ATmega644__" },
+  { "atmega644p",   ARCH_AVR5, "__AVR_ATmega644P__" },
+  { "atmega645",    ARCH_AVR5, "__AVR_ATmega645__" },
+  { "atmega6450",   ARCH_AVR5, "__AVR_ATmega6450__" },
+  { "atmega649",    ARCH_AVR5, "__AVR_ATmega649__" },
+  { "atmega6490",   ARCH_AVR5, "__AVR_ATmega6490__" },
+  { "atmega128",    ARCH_AVR5, "__AVR_ATmega128__" },
+  { "atmega1280",   ARCH_AVR5, "__AVR_ATmega1280__" },
+  { "atmega1281",   ARCH_AVR5, "__AVR_ATmega1281__" },
+  { "atmega16hva",  ARCH_AVR5, "__AVR_ATmega16HVA__" },
+  { "at90can32",    ARCH_AVR5, "__AVR_AT90CAN32__" },
+  { "at90can64",    ARCH_AVR5, "__AVR_AT90CAN64__" },
+  { "at90can128",   ARCH_AVR5, "__AVR_AT90CAN128__" },
+  { "at90usb82",    ARCH_AVR5, "__AVR_AT90USB82__" },
+  { "at90usb162",   ARCH_AVR5, "__AVR_AT90USB162__" },
+  { "at90usb646",   ARCH_AVR5, "__AVR_AT90USB646__" },
+  { "at90usb647",   ARCH_AVR5, "__AVR_AT90USB647__" },
+  { "at90usb1286",  ARCH_AVR5, "__AVR_AT90USB1286__" },
+  { "at90usb1287",  ARCH_AVR5, "__AVR_AT90USB1287__" },
+  { "at94k",        ARCH_AVR5, "__AVR_AT94K__" },
     /* Assembler only.  */
-  { "avr1",      1, NULL },
-  { "at90s1200", 1, "__AVR_AT90S1200__" },
-  { "attiny11",  1, "__AVR_ATtiny11__" },
-  { "attiny12",  1, "__AVR_ATtiny12__" },
-  { "attiny15",  1, "__AVR_ATtiny15__" },
-  { "attiny28",  1, "__AVR_ATtiny28__" },
-  { NULL,        0, NULL }
+  { "avr1",         ARCH_AVR1, NULL },
+  { "at90s1200",    ARCH_AVR1, "__AVR_AT90S1200__" },
+  { "attiny11",     ARCH_AVR1, "__AVR_ATtiny11__" },
+  { "attiny12",     ARCH_AVR1, "__AVR_ATtiny12__" },
+  { "attiny15",     ARCH_AVR1, "__AVR_ATtiny15__" },
+  { "attiny28",     ARCH_AVR1, "__AVR_ATtiny28__" },
+  { NULL,           ARCH_UNKNOWN, NULL }
 };
 
 int avr_case_values_threshold = 30000;
@@ -283,10 +291,10 @@ int avr_case_values_threshold = 30000;
 #undef TARGET_ASM_FILE_END
 #define TARGET_ASM_FILE_END avr_file_end
 
-#undef TARGET_ASM_FUNCTION_PROLOGUE
-#define TARGET_ASM_FUNCTION_PROLOGUE avr_output_function_prologue
-#undef TARGET_ASM_FUNCTION_EPILOGUE
-#define TARGET_ASM_FUNCTION_EPILOGUE avr_output_function_epilogue
+#undef TARGET_ASM_FUNCTION_END_PROLOGUE
+#define TARGET_ASM_FUNCTION_END_PROLOGUE avr_asm_function_end_prologue
+#undef TARGET_ASM_FUNCTION_BEGIN_EPILOGUE
+#define TARGET_ASM_FUNCTION_BEGIN_EPILOGUE avr_asm_function_begin_epilogue
 #undef TARGET_ATTRIBUTE_TABLE
 #define TARGET_ATTRIBUTE_TABLE avr_attribute_table
 #undef TARGET_ASM_FUNCTION_RODATA_SECTION
@@ -343,6 +351,8 @@ avr_override_options (void)
 
   tmp_reg_rtx  = gen_rtx_REG (QImode, TMP_REGNO);
   zero_reg_rtx = gen_rtx_REG (QImode, ZERO_REGNO);
+
+  init_machine_status = avr_init_machine_status;
 }
 
 /*  return register class from register number.  */
@@ -360,6 +370,15 @@ static const int reg_class_tab[]={
   POINTER_Z_REGS,POINTER_Z_REGS, /* r30,r31 */
   STACK_REG,STACK_REG           /* SPL,SPH */
 };
+
+/* Function to set up the backend function structure.  */
+
+static struct machine_function *
+avr_init_machine_status (void)
+{
+  return ((struct machine_function *) 
+          ggc_alloc_cleared (sizeof (struct machine_function)));
+}
 
 /* Return register class for register R.  */
 
@@ -534,388 +553,382 @@ sequent_regs_live (void)
   return (cur_seq == live_seq) ? live_seq : 0;
 }
 
+/*  Output function prologue.  */
 
-/* Output to FILE the asm instructions to adjust the frame pointer by
-   ADJ (r29:r28 -= ADJ;) which can be positive (prologue) or negative
-   (epilogue).  Returns the number of instructions generated.  */
-
-static int
-out_adj_frame_ptr (FILE *file, int adj)
+void
+expand_prologue (void)
 {
-  int size = 0;
-
-  if (adj)
-    {
-      if (TARGET_TINY_STACK)
-	{
-	  if (adj < -63 || adj > 63)
-	    warning (0, "large frame pointer change (%d) with -mtiny-stack", adj);
-
-	  /* The high byte (r29) doesn't change - prefer "subi" (1 cycle)
-	     over "sbiw" (2 cycles, same size).  */
-
-	  fprintf (file, (AS2 (subi, r28, %d) CR_TAB), adj);
-	  size++;
-	}
-      else if (adj < -63 || adj > 63)
-	{
-	  fprintf (file, (AS2 (subi, r28, lo8(%d)) CR_TAB
-			  AS2 (sbci, r29, hi8(%d)) CR_TAB),
-		   adj, adj);
-	  size += 2;
-	}
-      else if (adj < 0)
-	{
-	  fprintf (file, (AS2 (adiw, r28, %d) CR_TAB), -adj);
-	  size++;
-	}
-      else
-	{
-	  fprintf (file, (AS2 (sbiw, r28, %d) CR_TAB), adj);
-	  size++;
-	}
-    }
-  return size;
-}
-
-
-/* Output to FILE the asm instructions to copy r29:r28 to SPH:SPL,
-   handling various cases of interrupt enable flag state BEFORE and AFTER
-   (0=disabled, 1=enabled, -1=unknown/unchanged) and target_flags.
-   Returns the number of instructions generated.  */
-
-static int
-out_set_stack_ptr (FILE *file, int before, int after)
-{
-  int do_sph, do_cli, do_save, do_sei, lock_sph, size;
-
-  /* The logic here is so that -mno-interrupts actually means
-     "it is safe to write SPH in one instruction, then SPL in the
-     next instruction, without disabling interrupts first".
-     The after != -1 case (interrupt/signal) is not affected.  */
-
-  do_sph = !TARGET_TINY_STACK;
-  lock_sph = do_sph && !TARGET_NO_INTERRUPTS;
-  do_cli = (before != 0 && (after == 0 || lock_sph));
-  do_save = (do_cli && before == -1 && after == -1);
-  do_sei = ((do_cli || before != 1) && after == 1);
-  size = 1;
-
-  if (do_save)
-    {
-      fprintf (file, AS2 (in, __tmp_reg__, __SREG__) CR_TAB);
-      size++;
-    }
-
-  if (do_cli)
-    {
-      fprintf (file, "cli" CR_TAB);
-      size++;
-    }
-
-  /* Do SPH first - maybe this will disable interrupts for one instruction
-     someday (a suggestion has been sent to avr@atmel.com for consideration
-     in future devices - that would make -mno-interrupts always safe).  */
-  if (do_sph)
-    {
-      fprintf (file, AS2 (out, __SP_H__, r29) CR_TAB);
-      size++;
-    }
-
-  /* Set/restore the I flag now - interrupts will be really enabled only
-     after the next instruction.  This is not clearly documented, but
-     believed to be true for all AVR devices.  */
-  if (do_save)
-    {
-      fprintf (file, AS2 (out, __SREG__, __tmp_reg__) CR_TAB);
-      size++;
-    }
-  else if (do_sei)
-    {
-      fprintf (file, "sei" CR_TAB);
-      size++;
-    }
-
-  fprintf (file, AS2 (out, __SP_L__, r28) "\n");
-
-  return size;
-}
-
-
-/* Output function prologue.  */
-
-static void
-avr_output_function_prologue (FILE *file, HOST_WIDE_INT size)
-{
-  int reg;
-  int interrupt_func_p;
-  int signal_func_p;
-  int main_p;
   int live_seq;
   int minimize;
+  HOST_WIDE_INT size = get_frame_size();
+  /* Define templates for push instructions.  */
+  rtx pushbyte = gen_rtx_MEM (QImode,
+                  gen_rtx_POST_DEC (HImode, stack_pointer_rtx));
+  rtx pushword = gen_rtx_MEM (HImode,
+                  gen_rtx_POST_DEC (HImode, stack_pointer_rtx));
+  rtx insn;
 
   last_insn_address = 0;
-  jump_tables_size = 0;
-  prologue_size = 0;
-  fprintf (file, "/* prologue: frame size=" HOST_WIDE_INT_PRINT_DEC " */\n",
-	   size);
-
-  if (avr_naked_function_p (current_function_decl))
+  
+  /* Init cfun->machine.  */
+  cfun->machine->is_main = MAIN_NAME_P (DECL_NAME (current_function_decl));
+  cfun->machine->is_naked = avr_naked_function_p (current_function_decl);
+  cfun->machine->is_interrupt = interrupt_function_p (current_function_decl);
+  cfun->machine->is_signal = signal_function_p (current_function_decl);
+  
+  /* Prologue: naked.  */
+  if (cfun->machine->is_naked)
     {
-      fputs ("/* prologue: naked */\n", file);
-      goto out;
+      return;
     }
 
-  interrupt_func_p = interrupt_function_p (current_function_decl);
-  signal_func_p = signal_function_p (current_function_decl);
-  main_p = MAIN_NAME_P (DECL_NAME (current_function_decl));
   live_seq = sequent_regs_live ();
   minimize = (TARGET_CALL_PROLOGUES
-	      && !interrupt_func_p && !signal_func_p && live_seq);
+	      && !(cfun->machine->is_interrupt || cfun->machine->is_signal) 
+	      && live_seq);
 
-  if (interrupt_func_p)
+  if (cfun->machine->is_interrupt || cfun->machine->is_signal)
     {
-      fprintf (file,"\tsei\n");
-      ++prologue_size;
-    }
-  if (interrupt_func_p || signal_func_p)
-    {
-      fprintf (file, "\t"
-               AS1 (push,__zero_reg__)   CR_TAB
-               AS1 (push,__tmp_reg__)    CR_TAB
-	       AS2 (in,__tmp_reg__,__SREG__) CR_TAB
-	       AS1 (push,__tmp_reg__)    CR_TAB
-	       AS1 (clr,__zero_reg__)    "\n");
-      prologue_size += 5;
-    }
-  if (main_p)
-    {
-      fprintf (file, ("\t" 
-		      AS1 (ldi,r28) ",lo8(%s - " HOST_WIDE_INT_PRINT_DEC ")" CR_TAB
-		      AS1 (ldi,r29) ",hi8(%s - " HOST_WIDE_INT_PRINT_DEC ")" CR_TAB
-		      AS2 (out,__SP_H__,r29)     CR_TAB
-		      AS2 (out,__SP_L__,r28) "\n"),
-	       avr_init_stack, size, avr_init_stack, size);
+      if (cfun->machine->is_interrupt)
+        {
+          /* Enable interrupts.  */
+          insn = emit_insn (gen_enable_interrupt ());
+          RTX_FRAME_RELATED_P (insn) = 1;
+        }
+	
+      /* Push zero reg.  */
+      insn = emit_move_insn (pushbyte, zero_reg_rtx);
+      RTX_FRAME_RELATED_P (insn) = 1;
+
+      /* Push tmp reg.  */
+      insn = emit_move_insn (pushbyte, tmp_reg_rtx);
+      RTX_FRAME_RELATED_P (insn) = 1;
+
+      /* Push SREG.  */
+      insn = emit_move_insn (tmp_reg_rtx, 
+                             gen_rtx_MEM (QImode, GEN_INT (SREG_ADDR)));
+      RTX_FRAME_RELATED_P (insn) = 1;
+      insn = emit_move_insn (pushbyte, tmp_reg_rtx);
+      RTX_FRAME_RELATED_P (insn) = 1;
       
-      prologue_size += 4;
+      /* Clear zero reg.  */
+      insn = emit_move_insn (zero_reg_rtx, const0_rtx);
+      RTX_FRAME_RELATED_P (insn) = 1;
+
+      /* Prevent any attempt to delete the setting of ZERO_REG!  */
+      emit_insn (gen_rtx_USE (VOIDmode, zero_reg_rtx));
+    }
+  if (cfun->machine->is_main)
+    {
+      char buffer[40];
+      sprintf (buffer, "%s - %d", avr_init_stack, (int) size);
+      rtx sym = gen_rtx_SYMBOL_REF (HImode, ggc_strdup (buffer));
+      /* Initialize stack pointer using frame pointer.  */
+      insn = emit_move_insn (frame_pointer_rtx, sym);
+      RTX_FRAME_RELATED_P (insn) = 1;
+      insn = emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
+      RTX_FRAME_RELATED_P (insn) = 1;
     }
   else if (minimize && (frame_pointer_needed || live_seq > 6)) 
     {
-      fprintf (file, ("\t"
-		      AS1 (ldi, r26) ",lo8(" HOST_WIDE_INT_PRINT_DEC ")" CR_TAB
-		      AS1 (ldi, r27) ",hi8(" HOST_WIDE_INT_PRINT_DEC ")" CR_TAB), size, size);
-
-      fputs ((AS2 (ldi,r30,pm_lo8(1f)) CR_TAB
-	      AS2 (ldi,r31,pm_hi8(1f)) CR_TAB), file);
-      
-      prologue_size += 4;
-      
-      if (AVR_MEGA)
-	{
-	  fprintf (file, AS1 (jmp,__prologue_saves__+%d) "\n",
-		   (18 - live_seq) * 2);
-	  prologue_size += 2;
-	}
-      else
-	{
-	  fprintf (file, AS1 (rjmp,__prologue_saves__+%d) "\n",
-		   (18 - live_seq) * 2);
-	  ++prologue_size;
-	}
-      fputs ("1:\n", file);
+      insn = 
+        emit_insn (gen_call_prologue_saves (gen_int_mode (size, HImode),
+                                            gen_int_mode (live_seq, HImode)));
+      RTX_FRAME_RELATED_P (insn) = 1;
     }
   else
     {
       HARD_REG_SET set;
-
-      prologue_size += avr_regs_to_save (&set);
+      avr_regs_to_save (&set);
+      int reg;
       for (reg = 0; reg < 32; ++reg)
-	{
-	  if (TEST_HARD_REG_BIT (set, reg))
-	    {
-	      fprintf (file, "\t" AS1 (push,%s) "\n", avr_regnames[reg]);
-	    }
-	}
+        {
+          if (TEST_HARD_REG_BIT (set, reg))
+            {
+              /* Emit push of register to save.  */
+              insn=emit_move_insn (pushbyte, gen_rtx_REG (QImode, reg));
+              RTX_FRAME_RELATED_P (insn) = 1;
+            }
+        }
       if (frame_pointer_needed)
-	{
-	  fprintf (file, "\t"
-		   AS1 (push,r28) CR_TAB
-		   AS1 (push,r29) CR_TAB
-		   AS2 (in,r28,__SP_L__) CR_TAB
-		   AS2 (in,r29,__SP_H__) "\n");
-	  prologue_size += 4;
-	  if (size)
-	    {
-	      fputs ("\t", file);
-	      prologue_size += out_adj_frame_ptr (file, size);
-
-	      if (interrupt_func_p)
-		{
-		  prologue_size += out_set_stack_ptr (file, 1, 1);
-		}
-	      else if (signal_func_p)
-		{
-		  prologue_size += out_set_stack_ptr (file, 0, 0);
-		}
-	      else
-		{
-		  prologue_size += out_set_stack_ptr (file, -1, -1);
-		}
-	    }
-	}
+        {
+          /* Push frame pointer.  */
+	  insn = emit_move_insn (pushword, frame_pointer_rtx);
+          RTX_FRAME_RELATED_P (insn) = 1;
+          if (!size)
+            {
+              insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+              RTX_FRAME_RELATED_P (insn) = 1;
+            }
+          else
+            {
+              /*  Creating a frame can be done by direct manipulation of the
+                  stack or via the frame pointer. These two methods are:
+                    fp=sp
+                    fp-=size
+                    sp=fp
+                OR
+                    sp-=size
+                    fp=sp
+              the optimum method depends on function type, stack and frame size.
+              To avoid a complex logic, both methods are tested and shortest
+              is selected.  */
+              rtx myfp;
+              /*  First method.  */
+              if (TARGET_TINY_STACK)
+                {
+                  if (size < -63 || size > 63)
+                    warning (0, "large frame pointer change (%d) with -mtiny-stack", size);
+                    
+                  /* The high byte (r29) doesn't change - prefer 'subi' (1 cycle)
+                     over 'sbiw' (2 cycles, same size).  */
+                  myfp = gen_rtx_REG (QImode, REGNO (frame_pointer_rtx));
+                }
+              else 
+                {
+                  /*  Normal sized addition.  */
+                  myfp = frame_pointer_rtx;
+                }
+              /* Calculate length.  */ 
+              int method1_length;
+              method1_length =
+	        get_attr_length (gen_move_insn (frame_pointer_rtx, stack_pointer_rtx));
+              method1_length +=
+	        get_attr_length (gen_move_insn (myfp, 
+                                                gen_rtx_PLUS (GET_MODE(myfp), myfp,
+                                                              gen_int_mode (-size, 
+							                    GET_MODE(myfp)))));
+              method1_length += 
+	        get_attr_length (gen_move_insn (stack_pointer_rtx, frame_pointer_rtx));
+              
+	      /* Method 2-Adjust Stack pointer.  */
+              int sp_plus_length = 0;
+              if (size <= 6)
+                {
+                  sp_plus_length = 
+		    get_attr_length (gen_move_insn (stack_pointer_rtx,
+                                                    gen_rtx_PLUS (HImode, stack_pointer_rtx,
+                                                                  gen_int_mode (-size, 
+								                HImode))));
+		  sp_plus_length += 
+		    get_attr_length (gen_move_insn (frame_pointer_rtx, stack_pointer_rtx));
+                }
+              /* Use shortest method.  */
+              if (size <= 6 && (sp_plus_length < method1_length))
+                {
+                  insn = emit_move_insn (stack_pointer_rtx,
+                                         gen_rtx_PLUS (HImode, stack_pointer_rtx, 
+                                                       gen_int_mode (-size, HImode)));
+                  RTX_FRAME_RELATED_P (insn) = 1;
+		  insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+                  RTX_FRAME_RELATED_P (insn) = 1;
+                }
+              else
+                {		
+                  insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+                  RTX_FRAME_RELATED_P (insn) = 1;
+                  insn = emit_move_insn (myfp,
+                                         gen_rtx_PLUS (GET_MODE(myfp), frame_pointer_rtx, 
+                                                       gen_int_mode (-size, GET_MODE(myfp))));
+                  RTX_FRAME_RELATED_P (insn) = 1;
+                  insn = emit_move_insn ( stack_pointer_rtx, frame_pointer_rtx);
+                  RTX_FRAME_RELATED_P (insn) = 1;
+                }
+            }
+        }
     }
-
- out:
-  fprintf (file, "/* prologue end (size=%d) */\n", prologue_size);
 }
 
-/* Output function epilogue.  */
+/* Output summary at end of function prologue.  */
 
 static void
-avr_output_function_epilogue (FILE *file, HOST_WIDE_INT size)
+avr_asm_function_end_prologue (FILE *file)
+{
+  if (cfun->machine->is_naked)
+    {
+      fputs ("/* prologue: naked */\n", file);
+    }
+  else
+    {
+      if (cfun->machine->is_interrupt)
+        {
+          fputs ("/* prologue: Interrupt */\n", file);
+        }
+      else if (cfun->machine->is_signal)
+        {
+          fputs ("/* prologue: Signal */\n", file);
+        }
+      else if (cfun->machine->is_main)
+        {
+          fputs ("/* prologue: main */\n", file);
+        }
+      else
+        fputs ("/* prologue: function */\n", file);
+    }
+  fprintf (file, "/* frame size = " HOST_WIDE_INT_PRINT_DEC " */\n",
+                 get_frame_size());
+}
+
+
+/* Implement EPILOGUE_USES.  */
+
+int
+avr_epilogue_uses (int regno ATTRIBUTE_UNUSED)
+{
+  if (reload_completed 
+      && cfun->machine
+      && (cfun->machine->is_interrupt || cfun->machine->is_signal))
+    return 1;
+  return 0;
+}
+
+/*  Output RTL epilogue.  */
+
+void
+expand_epilogue (void)
 {
   int reg;
-  int interrupt_func_p;
-  int signal_func_p;
-  int main_p;
-  int function_size;
   int live_seq;
   int minimize;
-  rtx last = get_last_nonnote_insn ();
-
-  function_size = jump_tables_size;
-  if (last)
+  HOST_WIDE_INT size = get_frame_size();
+  rtx insn;
+  
+  /* epilogue: naked  */
+  if (cfun->machine->is_naked)
     {
-      rtx first = get_first_nonnote_insn ();
-      function_size += (INSN_ADDRESSES (INSN_UID (last)) -
-			INSN_ADDRESSES (INSN_UID (first)));
-      function_size += get_attr_length (last);
+      insn = emit_jump_insn (gen_return ());
+      RTX_FRAME_RELATED_P (insn) = 1;
+      return;
     }
 
-  fprintf (file, "/* epilogue: frame size=" HOST_WIDE_INT_PRINT_DEC " */\n", size);
-  epilogue_size = 0;
-
-  if (avr_naked_function_p (current_function_decl))
-    {
-      fputs ("/* epilogue: naked */\n", file);
-      goto out;
-    }
-
-  if (last && GET_CODE (last) == BARRIER)
-    {
-      fputs ("/* epilogue: noreturn */\n", file);
-      goto out;
-    }
-
-  interrupt_func_p = interrupt_function_p (current_function_decl);
-  signal_func_p = signal_function_p (current_function_decl);
-  main_p = MAIN_NAME_P (DECL_NAME (current_function_decl));
   live_seq = sequent_regs_live ();
   minimize = (TARGET_CALL_PROLOGUES
-	      && !interrupt_func_p && !signal_func_p && live_seq);
+	      && !(cfun->machine->is_interrupt || cfun->machine->is_signal)
+	      && live_seq);
   
-  if (main_p)
+  if (cfun->machine->is_main)
     {
       /* Return value from main() is already in the correct registers
-	 (r25:r24) as the exit() argument.  */
-      if (AVR_MEGA)
-	{
-	  fputs ("\t" AS1 (jmp,exit) "\n", file);
-	  epilogue_size += 2;
-	}
-      else
-	{
-	  fputs ("\t" AS1 (rjmp,exit) "\n", file);
-	  ++epilogue_size;
-	}
+         (r25:r24) as the exit() argument.  */
+      insn = emit_jump_insn (gen_return ());
+      RTX_FRAME_RELATED_P (insn) = 1;
     }
   else if (minimize && (frame_pointer_needed || live_seq > 4))
     {
-      fprintf (file, ("\t" AS2 (ldi, r30, %d) CR_TAB), live_seq);
-      ++epilogue_size;
       if (frame_pointer_needed)
 	{
-	  epilogue_size += out_adj_frame_ptr (file, -size);
+          /*  Get rid of frame.  */
+          insn = 
+	    emit_move_insn(frame_pointer_rtx,
+                           gen_rtx_PLUS (HImode, frame_pointer_rtx, 
+                                         gen_int_mode (size, HImode)));
+          RTX_FRAME_RELATED_P (insn) = 1;
 	}
       else
 	{
-	  fprintf (file, (AS2 (in , r28, __SP_L__) CR_TAB
-			  AS2 (in , r29, __SP_H__) CR_TAB));
-	  epilogue_size += 2;
+          insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+          RTX_FRAME_RELATED_P (insn) = 1;
 	}
-      
-      if (AVR_MEGA)
-	{
-	  fprintf (file, AS1 (jmp,__epilogue_restores__+%d) "\n",
-		   (18 - live_seq) * 2);
-	  epilogue_size += 2;
-	}
-      else
-	{
-	  fprintf (file, AS1 (rjmp,__epilogue_restores__+%d) "\n",
-		   (18 - live_seq) * 2);
-	  ++epilogue_size;
-	}
+	
+      insn = 
+        emit_insn (gen_epilogue_restores (gen_int_mode (live_seq, HImode)));
+      RTX_FRAME_RELATED_P (insn) = 1;
     }
   else
     {
-      HARD_REG_SET set;
-
       if (frame_pointer_needed)
 	{
 	  if (size)
 	    {
-	      fputs ("\t", file);
-	      epilogue_size += out_adj_frame_ptr (file, -size);
-
-	      if (interrupt_func_p || signal_func_p)
-		{
-		  epilogue_size += out_set_stack_ptr (file, -1, 0);
-		}
-	      else
-		{
-		  epilogue_size += out_set_stack_ptr (file, -1, -1);
-		}
-	    }
-	  fprintf (file, "\t"
-		   AS1 (pop,r29) CR_TAB
-		   AS1 (pop,r28) "\n");
-	  epilogue_size += 2;
+              /* Try two methods to adjust stack and select shortest.  */
+              int fp_plus_length;
+              /* Method 1-Adjust frame pointer.  */
+              fp_plus_length = 
+	        get_attr_length (gen_move_insn (frame_pointer_rtx,
+                                                gen_rtx_PLUS (HImode, frame_pointer_rtx,
+                                                              gen_int_mode (size, 
+									    HImode))));
+              /* Copy to stack pointer.  */
+              fp_plus_length += 
+	        get_attr_length (gen_move_insn (stack_pointer_rtx, frame_pointer_rtx));    
+          
+              /* Method 2-Adjust Stack pointer.  */
+              int sp_plus_length = 0;
+              if (size <= 5)
+                {
+                  sp_plus_length = 
+		    get_attr_length (gen_move_insn (stack_pointer_rtx,
+                                                    gen_rtx_PLUS (HImode, stack_pointer_rtx,
+                                                                  gen_int_mode (size, 
+										HImode))));
+                }
+              /* Use shortest method.  */
+              if (size <= 5 && (sp_plus_length < fp_plus_length))
+                {
+                  insn = emit_move_insn (stack_pointer_rtx,
+                                         gen_rtx_PLUS (HImode, stack_pointer_rtx,
+                                                       gen_int_mode (size, HImode)));
+                  RTX_FRAME_RELATED_P (insn) = 1;
+                }
+              else
+                {
+                  insn = emit_move_insn (frame_pointer_rtx,
+                                         gen_rtx_PLUS (HImode, frame_pointer_rtx,
+                                                       gen_int_mode (size, HImode)));
+	          RTX_FRAME_RELATED_P (insn) = 1;	   
+                  /* Copy to stack pointer.  */
+                  insn = emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
+	          RTX_FRAME_RELATED_P (insn) = 1;
+                }
+            }
+        
+          /* Restore previous frame_pointer.  */
+	  insn = emit_insn (gen_pophi (frame_pointer_rtx));
+          RTX_FRAME_RELATED_P (insn) = 1;
 	}
-
-      epilogue_size += avr_regs_to_save (&set);
+      /* Restore used registers.  */
+      HARD_REG_SET set;      
+      avr_regs_to_save (&set);
       for (reg = 31; reg >= 0; --reg)
-	{
-	  if (TEST_HARD_REG_BIT (set, reg))
-	    {
-	      fprintf (file, "\t" AS1 (pop,%s) "\n", avr_regnames[reg]);
-	    }
-	}
+        {
+          if (TEST_HARD_REG_BIT (set, reg))
+            {
+              insn = emit_insn (gen_popqi (gen_rtx_REG (QImode, reg)));
+              RTX_FRAME_RELATED_P (insn) = 1;
+            }
+        }
+      if (cfun->machine->is_interrupt || cfun->machine->is_signal)
+        {
 
-      if (interrupt_func_p || signal_func_p)
-	{
-	  fprintf (file, "\t"
-		   AS1 (pop,__tmp_reg__)      CR_TAB
-		   AS2 (out,__SREG__,__tmp_reg__) CR_TAB
-		   AS1 (pop,__tmp_reg__)      CR_TAB
-		   AS1 (pop,__zero_reg__)     "\n");
-	  epilogue_size += 4;
-	  fprintf (file, "\treti\n");
-	}
-      else
-	fprintf (file, "\tret\n");
-      ++epilogue_size;
+          /* Restore SREG using tmp reg as scratch.  */
+          insn = emit_insn (gen_popqi (tmp_reg_rtx));
+          RTX_FRAME_RELATED_P (insn) = 1;
+      
+          insn = emit_move_insn (gen_rtx_MEM(QImode, GEN_INT(SREG_ADDR)), 
+				 tmp_reg_rtx);
+          RTX_FRAME_RELATED_P (insn) = 1;
+
+          /* Restore tmp REG.  */
+          insn = emit_insn (gen_popqi (tmp_reg_rtx));
+          RTX_FRAME_RELATED_P (insn) = 1;
+
+          /* Restore zero REG.  */
+          insn = emit_insn (gen_popqi (zero_reg_rtx));
+	  RTX_FRAME_RELATED_P (insn) = 1;
+        }
+
+      insn = emit_jump_insn (gen_return ());
+      RTX_FRAME_RELATED_P (insn) = 1;
     }
-
- out:
-  fprintf (file, "/* epilogue end (size=%d) */\n", epilogue_size);
-  fprintf (file, "/* function %s size %d (%d) */\n", current_function_name (),
-	   prologue_size + function_size + epilogue_size, function_size);
-  commands_in_file += prologue_size + function_size + epilogue_size;
-  commands_in_prologues += prologue_size;
-  commands_in_epilogues += epilogue_size;
 }
 
+/* Output summary messages at beginning of function epilogue.  */
+
+static void
+avr_asm_function_begin_epilogue (FILE *file)
+{
+  fprintf (file, "/* epilogue start */\n");
+}
 
 /* Return nonzero if X (an RTX) is a legitimate memory address on the target
    machine for a memory operand of mode MODE.  */
@@ -1027,7 +1040,7 @@ ptrreg_to_str (int regno)
     case REG_Y: return "Y";
     case REG_Z: return "Z";
     default:
-      gcc_unreachable ();
+      output_operand_lossage ("address operand requires constraint for X, Y, or Z register");
     }
   return NULL;
 }
@@ -1635,13 +1648,31 @@ output_movhi (rtx insn, rtx operands[], int *l)
 		  *l = 1;
 		  return AS2 (out,__SP_L__,%A1);
 		}
-	      else if (TARGET_NO_INTERRUPTS)
-		{
-		  *l = 2;
-		  return (AS2 (out,__SP_H__,%B1) CR_TAB
-			  AS2 (out,__SP_L__,%A1));
-		}
-
+              /*  Use simple load of stack pointer if no interrupts are used
+              or inside main or signal function prologue where they disabled.  */
+	      else if (TARGET_NO_INTERRUPTS 
+                        || (reload_completed 
+                            && cfun->machine->is_main 
+                            && prologue_epilogue_contains (insn))
+                        || (reload_completed 
+                            && cfun->machine->is_signal 
+                            && prologue_epilogue_contains (insn)))
+                {
+                  *l = 2;
+                  return (AS2 (out,__SP_H__,%B1) CR_TAB
+                          AS2 (out,__SP_L__,%A1));
+                }
+              /*  In interrupt prolog we know interrupts are enabled.  */
+              else if (reload_completed 
+                        && cfun->machine->is_interrupt
+                        && prologue_epilogue_contains (insn))
+                {
+                  *l = 4;
+	           return ("cli"                   CR_TAB
+                           AS2 (out,__SP_H__,%B1) CR_TAB
+                           "sei"                   CR_TAB
+                           AS2 (out,__SP_L__,%A1));
+                }
 	      *l = 5;
 	      return (AS2 (in,__tmp_reg__,__SREG__)  CR_TAB
 		      "cli"                          CR_TAB
@@ -1782,6 +1813,11 @@ out_movqi_r_mr (rtx insn, rtx op[], int *l)
   
   if (CONSTANT_ADDRESS_P (x))
     {
+      if (CONST_INT_P (x) && INTVAL (x) == SREG_ADDR)
+	{
+	  *l = 1;
+	  return AS2 (in,%0,__SREG__);
+	}
       if (avr_io_address_p (x, 1))
 	{
 	  *l = 1;
@@ -2465,6 +2501,11 @@ out_movqi_mr_r (rtx insn, rtx op[], int *l)
   
   if (CONSTANT_ADDRESS_P (x))
     {
+      if (CONST_INT_P (x) && INTVAL (x) == SREG_ADDR)
+	{
+	  *l = 1;
+	  return AS2 (out,__SREG__,%1);
+	}
       if (avr_io_address_p (x, 1))
 	{
 	  *l = 1;
@@ -5756,8 +5797,6 @@ avr_output_addr_vec_elt (FILE *stream, int value)
     fprintf (stream, "\t.word pm(.L%d)\n", value);
   else
     fprintf (stream, "\trjmp .L%d\n", value);
-
-  jump_tables_size++;
 }
 
 /* Returns 1 if SCRATCH are safe to be allocated as a scratch

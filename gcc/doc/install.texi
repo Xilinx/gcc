@@ -324,13 +324,11 @@ Necessary to build libgcj, the GCJ runtime.
 
 @heading Tools/packages necessary for modifying GCC
 @table @asis
-@item autoconf versions 2.13 and 2.59
+@item autoconf version 2.59
 @itemx GNU m4 version 1.4 (or later)
 
 Necessary when modifying @file{configure.ac}, @file{aclocal.m4}, etc.@:
-to regenerate @file{configure} and @file{config.in} files.  Most
-directories require autoconf 2.59 (exactly), but the toplevel
-still requires autoconf 2.13 (exactly).
+to regenerate @file{configure} and @file{config.in} files.
 
 @item automake version 1.9.6
 
@@ -1766,6 +1764,13 @@ To build a cross compiler, we first recommend building and installing a
 native compiler.  You can then use the native GCC compiler to build the
 cross compiler.  The installed native compiler needs to be GCC version
 2.95 or later.
+
+If the cross compiler is to be built with support for the Java
+programming language and the ability to compile .java source files is
+desired, the installed native compiler used to build the cross
+compiler needs to be the same GCC version as the cross compiler.  In
+addition the cross compiler needs to be configured with
+@option{--with-ecj-jar=@dots{}}.
 
 Assuming you have already installed a native copy of GCC and configured
 your cross compiler, issue the command @command{make}, which performs the

@@ -7,6 +7,8 @@
 #pragma interface
 
 #include <gnu/java/awt/peer/gtk/CairoGraphics2D.h>
+#include <gcj/array.h>
+
 extern "Java"
 {
   namespace gnu
@@ -23,6 +25,7 @@ extern "Java"
         {
           namespace gtk
           {
+              class CairoSurface;
               class ComponentGraphics;
               class GtkComponentPeer;
               class GtkImage;
@@ -72,10 +75,6 @@ private:
   jlong initState(::gnu::java::awt::peer::gtk::GtkComponentPeer *);
   void lock();
   void unlock();
-public:
-  virtual void dispose();
-private:
-  void disposeSurface(jlong);
 public: // actually protected
   virtual jlong initFromVolatile(jlong, jint, jint);
 private:
@@ -105,12 +104,37 @@ public:
   virtual void drawGlyphVector(::java::awt::font::GlyphVector *, jfloat, jfloat);
   virtual jboolean drawImage(::java::awt::Image *, jint, jint, ::java::awt::image::ImageObserver *);
   virtual jboolean drawImage(::java::awt::Image *, jint, jint, jint, jint, ::java::awt::image::ImageObserver *);
-  virtual void setClip(::java::awt::Shape *);
 private:
   jboolean drawComposite(::java::awt::geom::Rectangle2D *, ::java::awt::image::ImageObserver *);
   void createBuffer();
 public: // actually protected
   virtual ::java::awt::image::ColorModel * getNativeCM();
+  virtual jlong init(jlong);
+  virtual void drawPixels(jlong, JArray< jint > *, jint, jint, jint, JArray< jdouble > *, jdouble, jint);
+  virtual void setGradient(jlong, jdouble, jdouble, jdouble, jdouble, jint, jint, jint, jint, jint, jint, jint, jint, jboolean);
+  virtual void setPaintPixels(jlong, JArray< jint > *, jint, jint, jint, jboolean, jint, jint);
+  virtual void cairoSetMatrix(jlong, JArray< jdouble > *);
+  virtual void cairoScale(jlong, jdouble, jdouble);
+  virtual void cairoSetOperator(jlong, jint);
+  virtual void cairoSetRGBAColor(jlong, jdouble, jdouble, jdouble, jdouble);
+  virtual void cairoSetFillRule(jlong, jint);
+  virtual void cairoSetLine(jlong, jdouble, jint, jint, jdouble);
+  virtual void cairoSetDash(jlong, JArray< jdouble > *, jint, jdouble);
+  virtual void cairoRectangle(jlong, jdouble, jdouble, jdouble, jdouble);
+  virtual void cairoArc(jlong, jdouble, jdouble, jdouble, jdouble, jdouble);
+  virtual void cairoSave(jlong);
+  virtual void cairoRestore(jlong);
+  virtual void cairoNewPath(jlong);
+  virtual void cairoClosePath(jlong);
+  virtual void cairoMoveTo(jlong, jdouble, jdouble);
+  virtual void cairoLineTo(jlong, jdouble, jdouble);
+  virtual void cairoCurveTo(jlong, jdouble, jdouble, jdouble, jdouble, jdouble, jdouble);
+  virtual void cairoStroke(jlong);
+  virtual void cairoFill(jlong, jdouble);
+  virtual void cairoClip(jlong);
+  virtual void cairoResetClip(jlong);
+  virtual void cairoSetAntialias(jlong, jboolean);
+  virtual void drawCairoSurface(::gnu::java::awt::peer::gtk::CairoSurface *, ::java::awt::geom::AffineTransform *, jdouble, jint);
 private:
   static jboolean hasXRenderExtension;
   ::gnu::java::awt::peer::gtk::GtkComponentPeer * __attribute__((aligned(__alignof__( ::gnu::java::awt::peer::gtk::CairoGraphics2D)))) component;

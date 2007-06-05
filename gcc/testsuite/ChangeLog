@@ -1,3 +1,1844 @@
+2007-05-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/32124
+	* gfortran.dg/allocate_stat_1.f90: Remove.
+
+2007-06-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/sse4_2-check.h: New.
+	* gcc.target/i386/sse4_2-crc32b.c: Likewise.
+	* gcc.target/i386/sse4_2-crc32.h: Likewise.
+	* gcc.target/i386/sse4_2-crc32l.c: Likewise.
+	* gcc.target/i386/sse4_2-crc32q.c: Likewise.
+	* gcc.target/i386/sse4_2-crc32w.c: Likewise.
+	* gcc.target/i386/sse4_2-pcmpestri-1.c: Likewise.
+	* gcc.target/i386/sse4_2-pcmpestri-2.c: Likewise.
+	* gcc.target/i386/sse4_2-pcmpestrm-1.c: Likewise.
+	* gcc.target/i386/sse4_2-pcmpestrm-2.c: Likewise.
+	* gcc.target/i386/sse4_2-pcmpgtq.c: Likewise.
+	* gcc.target/i386/sse4_2-pcmpistri-1.c: Likewise.
+	* gcc.target/i386/sse4_2-pcmpistri-2.c: Likewise.
+	* gcc.target/i386/sse4_2-pcmpistrm-1.c: Likewise.
+	* gcc.target/i386/sse4_2-pcmpistrm-2.c: Likewise.
+	* gcc.target/i386/sse4_2-pcmpstr.h: Likewise.
+	* gcc.target/i386/sse4_2-popcnt.h: Likewise.
+	* gcc.target/i386/sse4_2-popcntl.c: Likewise.
+	* gcc.target/i386/sse4_2-popcntq.c: Likewise.
+
+2007-06-01  Geoffrey Keating  <geoffk@apple.com>
+
+	* gcc.dg/pie-link.c: New test.
+
+2007-06-01  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wstrict-overflow-17.c: New test.
+
+2007-06-01  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.dg/builtin-return-1.c (g): New.
+	(main): Allocate at least 64 bytes on the stack.
+
+2007-05-31  Mark Mitchell  <mark@codesourcery.com>
+
+	* g++.dg/init/cleanup3.C: New test.
+
+2007-05-31  Rask Ingemann Lambertsen  <rask@sygehus.dk>
+
+	* gcc.c-torture/compile/limits-caselabels.c: Fix for targets where
+	int is 16 bits.
+
+007-05-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/32156
+	* gfortran.dg/char_array_constructor_3.f90: New test.
+
+2007-05-31  Zdenek Dvorak  <dvorakz@suse.cz>
+
+	PR tree-optimization/32160
+	* gfortran.dg/predcom-1.f: New test.
+
+2007-05-31  Richard Guenther  <rguenther@suse.de>
+
+	* g++.dg/other/str_empty.C: Move...
+	* g++.dg/other/pr30567.C: Move...
+	* g++.dg/tree-ssa/pr27218.C: Move...
+	* g++.dg/torture: ...here and remove dg-options.
+
+2007-05-31  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/32158
+	* g++.dg/ext/is_pod_incomplete.C: New.
+
+2007-05-31  Russell Yanofsky <russ@yanofsky.org>
+            Douglas Gregor <doug.gregor@gmail.com>
+            Pedro Lamarao <pedro.lamarao@mndfck.org>
+            Howard Hinnant <howard.hinnant@gmail.com>
+
+	PR c++/7412
+	PR c++/29939
+        * g++.dg/cpp0x/rv8p.C: New.
+        * g++.dg/cpp0x/temp-constructor-bug.C: New.
+        * g++.dg/cpp0x/cast-bug.C: New.
+        * g++.dg/cpp0x/elision_weak.C: New.
+        * g++.dg/cpp0x/collapse-bug.C: New.
+        * g++.dg/cpp0x/rv3p.C: New.
+        * g++.dg/cpp0x/rv7n.C: New.
+        * g++.dg/cpp0x/overload-conv-1.C: New.
+        * g++.dg/cpp0x/rv2n.C: New.
+        * g++.dg/cpp0x/deduce.C: New.
+        * g++.dg/cpp0x/temp-va-arg-bug.C: New.
+        * g++.dg/cpp0x/rv6p.C: New.
+        * g++.dg/cpp0x/template_deduction.C: New.
+        * g++.dg/cpp0x/implicit-copy.C: New.
+        * g++.dg/cpp0x/rv1p.C: New.
+        * g++.dg/cpp0x/cast.C: New.
+        * g++.dg/cpp0x/rv5n.C: New.
+        * g++.dg/cpp0x/collapse.C: New.
+        * g++.dg/cpp0x/overload-conv-2.C: New.
+        * g++.dg/cpp0x/rv4p.C: New.
+	* g++.dg/cpp0x/rvo.C: New.
+        * g++.dg/cpp0x/iop.C: New.
+        * g++.dg/cpp0x/rv3n.C: New.
+        * g++.dg/cpp0x/rv7p.C: New.
+        * g++.dg/cpp0x/reference_collapsing.C: New.
+        * g++.dg/cpp0x/overload.C: New.
+        * g++.dg/cpp0x/named.C: New.
+        * g++.dg/cpp0x/rv2p.C: New.
+        * g++.dg/cpp0x/rv6n.C: New.
+        * g++.dg/cpp0x/not_special.C: New.
+        * g++.dg/cpp0x/bind.C: New.
+        * g++.dg/cpp0x/rv1n.C: New.
+        * g++.dg/cpp0x/rv5p.C: New.
+        * g++.dg/cpp0x/elision.C: New.
+        * g++.dg/cpp0x/named_refs.C: New.
+        * g++.dg/cpp0x/unnamed_refs.C: New.
+        * g++.dg/cpp0x/rv4n.C: New.
+        * g++.dg/cpp0x/elision_neg.C: New.
+        * g++.dg/init/copy7.C: Run in C++98 mode.
+        * g++.dg/overload/arg1.C: Ditto.
+        * g++.dg/overload/arg4.C: Ditto.
+
+2007-05-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/31809
+	* g++.dg/opt/static5.C: New test.
+
+2007-05-30  Richard Guenther  <rguenther@suse.de>
+
+	* g++.dg/dg.exp: Prune torture/.
+	* g++.dg/torture/dg-torture.exp: New testsuite.
+
+2007-05-30  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.target/arm/pr27387.C: Move and rename to ...
+	* g++.dg/inherit/thunk8.C: ... here.
+
+2007-05-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/31769
+	* g++.dg/gomp/pr31769.C: New test.
+
+2007-05-29  Hui-May Chang  <hm.chang@apple.com>
+
+	* gcc.target/i386/stack-realign.c: New.
+
+2007-05-29  Zdenek Dvorak  <dvorakz@suse.cz>
+
+	* gcc.dg/tree-ssa/prefetch-6.c: New test.
+
+2007-05-29  Tobias Schlüter  <tobi@gcc.gnu.org>
+
+	* gfortran.dg/sizeof.f90: New.
+
+2007-05-28  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR c/31339
+	* gcc.dg/boolcomplex-1.c: New test.
+
+	PR c++/31339
+	* g++.dg/ext/boolcomplex-1.c: New test.
+
+2007-05-28  Razya Ladelsky  <razya@il.ibm.com>
+
+	* gcc.dg/matrix: New directory.
+
+2007-05-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/32124
+	* gfortran.dg/allocate_stat_1.f90: New.
+
+2007-05-28  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	PR fortran/31972
+	* transfer_hollerith_1.f90: New test.
+
+2007-05-28  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR tree-opt/32100
+	* gcc.c-torture/execute/vrp-7.c: New test.
+	 
+2007-05-28  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* gfortran.dg/transfer_simplify_4.f90: New test.
+
+2007-05-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/32088
+	* gfortran.dg/func_result_3.f90: New.
+
+2007-05-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR middle-end/32083
+	* gfortran.dg/transfer_simplify_3.f90: New.
+
+2007-05-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/32065
+	* gcc.target/i386/pr32065-1.c: Rename from pr32065.c.  Add -std=gnu99
+	to compile options.
+	* gcc.target/i386/pr32065-2.c: New test.
+
+2007-05-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/31813
+	* gfortran.dg/io_constraints_2.f90: Update.
+
+2007-05-26  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31219
+	* gfortran.dg/array_constructor_17.f90: New test.
+
+2007-05-25  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR tree-opt/32090
+	* g++.dg/opt/array2.C: New testcase.
+
+2007-05-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/32065
+	* gcc.target/i386/pr32065.c: New test.
+
+2007-05-25  Dirk Mueller  <dmueller@suse.de>
+	    Marcus Meissner <meissner@suse.de>
+
+	* testsuite/gcc.dg/attr-alloc_size.c: New.
+
+2007-05-25  Simon Martin  <simartin@users.sourceforge.net>
+	    Lee Millward  <lee.millward@gmail.com>
+
+	PR c++/31745
+	* g++.dg/parse/crash34.C: New test.
+
+	* g++.dg/parse/crash35.C: New test.
+
+2007-05-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/sse2-check.h: New.
+	* gcc.target/i386/sse2-vec-1.c: Likewise.
+	* gcc.target/i386/sse2-vec-2.c: Likewise.
+	* gcc.target/i386/sse2-vec-3.c: Likewise.
+	* gcc.target/i386/sse2-vec-4.c: Likewise.
+	* gcc.target/i386/sse2-vec-5.c: Likewise.
+	* gcc.target/i386/sse2-vec-6.c: Likewise.
+
+2007-05-25  Douglas Gregor <doug.gregor@gmail.com>
+
+	PR c++/31431
+	PR c++/31432
+	PR c++/31434
+	PR c++/31435
+	PR c++/31437
+	PR c++/31438
+	PR c++/31442
+	PR c++/31443
+	PR c++/31444
+	PR c++/31445
+	* g++.dg/cpp0x/pr31431.C: New.
+	* g++.dg/cpp0x/pr31437.C: New.
+	* g++.dg/cpp0x/pr31442.C: New.
+	* g++.dg/cpp0x/pr31444.C: New.
+	* g++.dg/cpp0x/pr31431-2.C: New.
+	* g++.dg/cpp0x/pr31432.C: New.
+	* g++.dg/cpp0x/pr31434.C: New.
+	* g++.dg/cpp0x/pr31438.C: New.
+	* g++.dg/cpp0x/pr31443.C: New.
+	* g++.dg/cpp0x/pr31445.C: New.
+	* g++.dg/cpp0x/variadic-crash1.C: New.
+
+2007-05-25  Richard Sandiford  <richard@codesourcery.com>
+
+	* gcc.target/arm/long-calls-1.c: New test.
+	* gcc.target/arm/long-calls-2.c: Likewise.
+	* gcc.target/arm/long-calls-3.c: Likewise.
+	* gcc.target/arm/long-calls-4.c: Likewise.
+
+2007-05-25  Richard Guenther  <rguenther@suse.de>
+	Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR tree-optimization/31982
+	* gcc.dg/tree-ssa/forwprop-2.c: New testcase.
+
+2007-05-25  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/32047
+	* gfortran.dg/result_in_spec_2.f90: New test.
+
+2007-05-24  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/torture/builtin-math-4.c: Fix dg-xfail-if.
+
+2007-05-24  Ollie Wild  <aaw@google.com>
+
+	* gcc.dg/cpp/counter-1.c: New test.
+	* gcc.dg/pch/counter-1.c: New test.
+	* gcc.dg/pch/counter-1.hs: New file.
+	* gcc.dg/pch/counter-2.c: New test.
+	* gcc.dg/pch/counter-2.hs: New file.
+	* gcc.dg/pch/counter-3.c: New test.
+	* gcc.dg/pch/counter-3.hs: New file.
+
+2007-05-24  Zdenek Dvorak  <dvorakz@suse.cz>
+
+	* gcc.dg/tree-ssa/predcom-1.c: New test.
+	* gcc.dg/tree-ssa/predcom-2.c: New test.
+	* gcc.dg/tree-ssa/predcom-3.c: New test.
+	* gcc.dg/tree-ssa/predcom-4.c: New test.
+	* gcc.dg/tree-ssa/predcom-5.c: New test.
+	* gcc.dg/vect/dump-tree-dceloop-pr26359.c: Test dceloop2 dumps.
+
+2007-05-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/32062
+	* gcc.target/i386/sse4_1-check.h (MASK): New.
+
+2007-05-24 Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
+
+	PR fortran/32038
+	* gfortran.dg/pr25603.f: Initialize integer variables.
+
+2007-05-23  Ian Lance Taylor  <iant@google.com>
+
+	* g++.dg/other/vrp1.C: New test.
+
+2007-05-23  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR preprocessor/20077
+	* gcc.dg/cpp/paste15.c: New test.
+
+2007-05-23  Sandra Loosemore  <sandra@codesourcery.com>
+	    Nigel Stephens  <nigel@mips.com>
+	    Richard Sandiford  <richard@codesourcery.com>
+
+	* gcc.target/mips/inter/mips16_stubs_1_main.c: New.
+	* gcc.target/mips/inter/mips16_stubs_1_x.c: New.
+	* gcc.target/mips/inter/mips16_stubs_1_y.c: New.
+	* gcc.target/mips/inter/mips16-inter.exp: New.
+
+2007-05-23  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.dg/bf-spl1.c, gcc.dg/m68k-pic-1.c: Enable on fido-*-*.
+
+2007-05-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/sse3-addsubpd.c: Don't include stdlib.h
+	nor i386-cpuid.h.  Include sse3-check.h.  Remove main ().
+	* gcc.target/i386/sse3-addsubps.c: Likewise.
+	* gcc.target/i386/sse3-haddpd.c: Likewise.
+	* gcc.target/i386/sse3-haddps.c: Likewise.
+	* gcc.target/i386/sse3-hsubpd.c: Likewise.
+	* gcc.target/i386/sse3-hsubps.c: Likewise.
+	* gcc.target/i386/sse3-lddqu.c: Likewise.
+	* gcc.target/i386/sse3-movddup.c: Likewise.
+	* gcc.target/i386/sse3-movshdup.c: Likewise.
+	* gcc.target/i386/sse3-movsldup.c: Likewise.
+
+	* gcc.target/i386/ssse3-pabsb.c: Don't include stdlib.h
+	nor i386-cpuid.h.  Include ssse3-check.h.  Remove main ().
+	* gcc.target/i386/ssse3-pabsd.c: Likewise.
+	* gcc.target/i386/ssse3-pabsw.c: Likewise.
+	* gcc.target/i386/ssse3-palignr.c: Likewise.
+	* gcc.target/i386/ssse3-phaddd.c: Likewise.
+	* gcc.target/i386/ssse3-phaddsw.c: Likewise.
+	* gcc.target/i386/ssse3-phaddw.c: Likewise.
+	* gcc.target/i386/ssse3-phsubd.c: Likewise.
+	* gcc.target/i386/ssse3-phsubsw.c: Likewise.
+	* gcc.target/i386/ssse3-phsubw.c: Likewise.
+	* gcc.target/i386/ssse3-pmaddubsw.c: Likewise.
+	* gcc.target/i386/ssse3-pmulhrsw.c: Likewise.
+	* gcc.target/i386/ssse3-pshufb.c: Likewise.
+	* gcc.target/i386/ssse3-psignb.c: Likewise.
+	* gcc.target/i386/ssse3-psignd.c: Likewise.
+	* gcc.target/i386/ssse3-psignw.c: Likewise.
+	* gcc.target/i386/ssse3-vals.h: Likewise.
+
+	* gcc.target/i386/sse3-check.h: New file.
+	* gcc.target/i386/ssse3-check.h: Likewise.
+
+2007-05-22  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/31095
+	* gcc.c-torture/compile/bcopy-1.c: New testcase.
+
+2007-05-22  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/31606
+	* gcc.c-torture/20070522-1.c: New testcase.
+
+2007-05-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/sse4_1-check.h: Don't include <stdio.h>.
+
+2007-05-22  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.c-torture/execute/ieee/20000320-1.x,
+	gcc.c-torture/execute/ieee/mul-subnormal-single-1.x: XFAIL on
+	m68k-*-* and check_effective_target_coldfire_fpu.
+
+2007-05-22  Ollie Wild  <aaw@google.com>
+
+	* g++.dg/lookup/hidden-class10.C: New test.
+	* g++.dg/lookup/hidden-class11.C: New test.
+
+2007-05-22  Ollie Wild  <aaw@google.com>
+
+	* g++.dg/lookup/name-clash5.C: New test.
+	* g++.dg/lookup/name-clash6.C: New test.
+
+2007-05-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* g++.dg/other/i386-2.C: Update comments on header files tested.
+	Use -msse4.1 instead of -mssse3.  Include <smmintrin.h> instead
+	of <tmmintrin.h>.
+	* gcc.target/i386/sse-12.c: Likewise.
+	* gcc.target/i386/sse-13.c: Likewise.
+	* gcc.target/i386/sse-14.c: Likewise.
+
+	* gcc.target/i386/sse-13.c (__builtin_ia32_pblendw128): New.
+	Redefined to test with immediate operand.
+	(__builtin_ia32_blendps): Likewise.
+	(__builtin_ia32_blendpd): Likewise.
+	(__builtin_ia32_dpps): Likewise.
+	(__builtin_ia32_dpps): Likewise.
+	(__builtin_ia32_insertps128): Likewise.
+	(__builtin_ia32_vec_ext_v4sf): Likewise.
+	(__builtin_ia32_vec_set_v16qi): Likewise.
+	(__builtin_ia32_vec_set_v4si): Likewise.
+	(__builtin_ia32_vec_set_v2di): Likewise.
+	(__builtin_ia32_vec_ext_v16qi): Likewise.
+	(__builtin_ia32_vec_ext_v4si): Likewise.
+	(__builtin_ia32_vec_ext_v2di): Likewise.
+	(__builtin_ia32_roundpd): Likewise.
+	(__builtin_ia32_roundsd): Likewise.
+	(__builtin_ia32_roundps): Likewise.
+	(__builtin_ia32_roundss): Likewise.
+	(__builtin_ia32_mpsadbw128): Likewise.
+
+2007-05-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/sse4_1-check.h: Don't include ../auto-host.h.
+
+2007-05-22  Janis Johnson  <janis187@us.ibm.com>
+
+	* gcc.dg/dfp/func-array.c: Support -DDBG to report individual
+	failures.
+	* gcc.dg/dfp/func-struct.c: Ditto.
+	* gcc.dg/dfp/operator-assignment.c: Ditto.
+	* gcc.dg/dfp/convert-bfp.c: Ditto.
+	* gcc.dg/dfp/convert-int.c: Ditto.
+	* gcc.dg/dfp/convert-int-max.c: Ditto.
+	* gcc.dg/dfp/func-scalar.c: Ditto.
+	* gcc.dg/dfp/cast.c: Ditto.
+	* gcc.dg/dfp/func-mixed.c: Support -DDBG to report individual
+	failures, and fix a typo in return type of arg1_128.
+	* gcc.dg/dfp/convert-dfp.c: Support -DDBG to report individual
+	failures, and fix a typo in a constant suffix.
+	* gcc.dg/dfp/func-vararg-dfp.c: Return zero at the end.
+	* gcc.dg/dfp/convert-complex.c: With -DDBG, abort for failures.
+
+2007-05-22  Janis Johnson  <janis187@us.ibm.com>
+	    Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* lib/gcc-dg.exp(process_message): New proc.
+	(dg-message): New test directive.
+	* gcc.dg/always_inline.c: Use dg-message.
+	* gcc.dg/always_inline2.c: Ditto.
+	* gcc.dg/always_inline3.c: Ditto.
+	* gcc.dg/invalid-call-1.c: Ditto.
+	* gcc.dg/pr17506.c: Ditto.
+	* gcc.dg/simd-5.c: Ditto.
+	* gcc.dg/simd-6.c: Ditto.
+	* gcc.dg/va-arg-2.c: Ditto.
+	* gcc.dg/cpp/syshdr.c: Ditto.
+	* gcc.dg/cpp/unc4.c: Ditto.
+	* gcc.dg/cpp/trad/mi1.c: Ditto.
+	* gcc.dg/cpp/trad/mi5.c: Ditto.
+	* gcc.dg/cpp/trad/mi7.c: Ditto.
+	* gcc.test-framework/dg-outexistsnot-exp-P.c: Ditto.
+	* gcc.test-framework/dg-outexists-exp-F.c: Ditto.
+	* gcc.test-framework/test-framework.awk: Special-case outexists
+	tests.
+
+2007-05-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/i386-cpuid.h (bit_SSE4_1): New.
+	(bit_SSE4_2): Likewise.
+	(bit_POPCNT): Likewise.
+
+	* gcc.target/i386/i386.exp (check_effective_target_sse4): New.
+	Check if assembler supports SSE4 instructions.
+
+	* gcc.target/i386/sse4_1-blendpd.c: New file.
+	* gcc.target/i386/sse4_1-blendps.c: Likewise.
+	* gcc.target/i386/sse4_1-blendvpd.c: Likewise.
+	* gcc.target/i386/sse4_1-blendvps.c: Likewise.
+	* gcc.target/i386/sse4_1-check.h: Likewise.
+	* gcc.target/i386/sse4_1-dppd-1.c: Likewise.
+	* gcc.target/i386/sse4_1-dppd-2.c: Likewise.
+	* gcc.target/i386/sse4_1-dpps-1.c: Likewise.
+	* gcc.target/i386/sse4_1-dpps-2.c: Likewise.
+	* gcc.target/i386/sse4_1-extractps.c: Likewise.
+	* gcc.target/i386/sse4_1-insertps-1.c: Likewise.
+	* gcc.target/i386/sse4_1-insertps-2.c: Likewise.
+	* gcc.target/i386/sse4_1-movntdqa.c: Likewise.
+	* gcc.target/i386/sse4_1-mpsadbw.c: Likewise.
+	* gcc.target/i386/sse4_1-packusdw.c: Likewise.
+	* gcc.target/i386/sse4_1-pblendvb.c: Likewise.
+	* gcc.target/i386/sse4_1-pblendw.c: Likewise.
+	* gcc.target/i386/sse4_1-pcmpeqq.c: Likewise.
+	* gcc.target/i386/sse4_1-pextrb.c: Likewise.
+	* gcc.target/i386/sse4_1-pextrd.c: Likewise.
+	* gcc.target/i386/sse4_1-pextrq.c: Likewise.
+	* gcc.target/i386/sse4_1-pextrw.c: Likewise.
+	* gcc.target/i386/sse4_1-phminposuw.c: Likewise.
+	* gcc.target/i386/sse4_1-pinsrb.c: Likewise.
+	* gcc.target/i386/sse4_1-pinsrd.c: Likewise.
+	* gcc.target/i386/sse4_1-pinsrq.c: Likewise.
+	* gcc.target/i386/sse4_1-pmaxsb.c: Likewise.
+	* gcc.target/i386/sse4_1-pmaxsd.c: Likewise.
+	* gcc.target/i386/sse4_1-pmaxud.c: Likewise.
+	* gcc.target/i386/sse4_1-pmaxuw.c: Likewise.
+	* gcc.target/i386/sse4_1-pminsb.c: Likewise.
+	* gcc.target/i386/sse4_1-pminsd.c: Likewise.
+	* gcc.target/i386/sse4_1-pminud.c: Likewise.
+	* gcc.target/i386/sse4_1-pminuw.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovsxbd.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovsxbq.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovsxbw.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovsxdq.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovsxwd.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovsxwq.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovzxbd.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovzxbq.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovzxbw.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovzxdq.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovzxwd.c: Likewise.
+	* gcc.target/i386/sse4_1-pmovzxwq.c: Likewise.
+	* gcc.target/i386/sse4_1-pmuldq.c: Likewise.
+	* gcc.target/i386/sse4_1-pmulld.c: Likewise.
+	* gcc.target/i386/sse4_1-ptest-1.c: Likewise.
+	* gcc.target/i386/sse4_1-ptest-2.c: Likewise.
+	* gcc.target/i386/sse4_1-ptest-3.c: Likewise.
+	* gcc.target/i386/sse4_1-round.h: Likewise.
+	* gcc.target/i386/sse4_1-roundpd-1.c: Likewise.
+	* gcc.target/i386/sse4_1-roundpd-2.c: Likewise.
+	* gcc.target/i386/sse4_1-roundpd-3.c: Likewise.
+	* gcc.target/i386/sse4_1-roundps-1.c: Likewise.
+	* gcc.target/i386/sse4_1-roundps-2.c: Likewise.
+	* gcc.target/i386/sse4_1-roundps-3.c: Likewise.
+	* gcc.target/i386/sse4_1-roundsd-1.c: Likewise.
+	* gcc.target/i386/sse4_1-roundsd-2.c: Likewise.
+	* gcc.target/i386/sse4_1-roundsd-3.c: Likewise.
+	* gcc.target/i386/sse4_1-roundsd-4.c: Likewise.
+	* gcc.target/i386/sse4_1-roundss-1.c: Likewise.
+	* gcc.target/i386/sse4_1-roundss-2.c: Likewise.
+	* gcc.target/i386/sse4_1-roundss-3.c: Likewise.
+	* gcc.target/i386/sse4_1-roundss-4.c: Likewise.
+
+2007-05-22 Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31627
+	* gfortran.dg/bounds_check_7.f90: New test.
+
+2007-05-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/i386.exp (check_effective_target_ssse3): New.
+	(check_effective_target_sse4a): Ditto.
+
+	* gcc.target/i386/ssse3-phsubw.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-phaddd.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-pabsb.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-psignb.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-phaddsw.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-pabsd.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-psignd.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-pmaddubsw.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-pmulhrsw.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-phaddw.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-phsubd.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-pabsw.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-psignw.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-pshufb.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-phsubsw.c: Require effective target ssse3.
+	* gcc.target/i386/ssse3-palignr.c: Require effective target ssse3.
+	* gcc.target/i386/sse4a-insert.c: Require effective target sse4a.
+	* gcc.target/i386/sse4a-extract.c: Require effective target sse4a.
+	* gcc.target/i386/sse4a-montss.c: Require effective target sse4a.
+	* gcc.target/i386/sse4a-montsd.c: Require effective target sse4a.
+
+2007-05-21  Mark Mitchell  <mark@codesourcery.com>
+
+	* g++.dg/ext/cleanup-1.C: New test.
+	* g++.dg/ext/cleanup-2.C: Likewise.
+	* g++.dg/ext/cleanup-3.C: Likewise.
+	* g++.dg/ext/cleanup-4.C: Likewise.
+	* g++.dg/ext/cleanup-5.C: Likewise.
+	* g++.dg/ext/cleanup-6.C: Likewise.
+	* g++.dg/ext/cleanup-8.C: Likewise.
+	* g++.dg/ext/cleanup-9.C: Likewise.
+	* g++.dg/ext/cleanup-10.C: Likewise.
+	* g++.dg/ext/cleanup-11.C: Likewise.
+	* g++.dg/ext/cleanup-dtor.C: Likewise.
+
+2007-05-21  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/31995
+	* gcc.dg/vect/vect-102a.c: New test.
+
+2007-05-21  Paolo Bonzini  <bonzini@gnu.org>
+	    Paolo Carlini  <pcarlini@suse.de>
+	    Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/gcc-have-sync-compare-and-swap.c,
+	gcc.target/i386/gcc-have-sync-compare-and-swap-1.c,
+	gcc.target/i386/gcc-have-sync-compare-and-swap-2.c,
+	gcc.target/i386/gcc-have-sync-compare-and-swap-3.c,
+	gcc.target/i386/gcc-have-sync-compare-and-swap-4.c,
+	New testcases.
+
+2005-05-21  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/32002
+	* gfortran.dg/compliant_elemental_intrinsics_2.f90: New test.
+
+2007-05-21  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/32027
+	* gfortran.dg/do_3.F90: Add checks for the final value of the
+	loop variable.
+
+2007-05-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.c-torture/execute/990127-2.x: New file.
+
+2007-05-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse-14.c: Remove all intrinsic redefines.
+	* gcc.target/i386/sse-12: Add -O to compile options.
+	* g++.dg/other/i386-2.C: Use "-march=k8 -m3dnow -mssse3
+	-msse4a" instead of "-msse3".  Include only ammintrin.h, tmmintrin.h
+	and mm3dnow.h.  Add -O to compile options.
+
+2007-05-21  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31867
+	* gfortran.dg/char_length_5.f90: New test.
+
+	PR fortran/31994
+	* gfortran.dg/array_reference_1.f90: New test.
+
+2007-05-20  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR middle-end/7651
+	PR c++/11856
+	PR c/12963
+	PR c/23587
+	PR other/29694
+	* gcc.dg/compare6.c: Replace Wall with Wtype-limits.
+	* gcc.dg/Wtype-limits.c: New.
+	* gcc.dg/Wtype-limits-Wextra.c: New.
+	* gcc.dg/Wtype-limits-no.c: New.
+	* g++.dg/warn/Wtype-limits.C: New.
+	* g++.dg/warn/Wtype-limits-Wextra.C: New.
+	* g++.dg/warn/Wtype-limits-no.C: New.
+
+2007-05-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse-vect-types.c: Revert 'Use "-msse"
+	instead of "-msse2".'
+	* gcc.target/i386/sse-12.c: Use "-march=k8 -m3dnow -mssse3 -msse4a"
+	instead of "-msse3".  Include only ammintrin.h, tmmintrin.h
+	and mm3dnow.h.
+	* gcc.target/i386/sse-13.c (__builtin_ia32_extrqi): Redefine
+	to test with immediate operand.
+	(__builtin_ia32_insertqi): Ditto.
+	(__builtin_ia32_palignr128): Ditto.
+	(__builtin_ia32_palignr): Ditto.
+	(__builtin_ia32_pshufhw): Ditto.
+	(__builtin_ia32_pshuflw): Ditto.
+	(__builtin_ia32_pshufd): Ditto.
+	(__builtin_ia32_vec_set_v8hi): Ditto.
+	(__builtin_ia32_vec_ext_v8hi): Ditto.
+	(__builtin_ia32_shufpd): Ditto.
+	* gcc.target/i386/sse-14.c: Same changes as sse-13.c.
+
+2007-05-20  Daniel Franke  <franke.daniel@gmail.org>
+
+	PR fortran/32001
+	* gfortran.dg/min_max_conformance.f90: Added more testcases.
+
+2007-05-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/31585
+	* gcc.target/i386/sse-vect-types.c: Do not redefine "static"
+	and "__inline".  Use "-msse" instead of "-msse2".
+
+2007-05-20  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR middle-end/7651
+	* gcc.dg/20030906-1.c: Replace Wextra with Wreturn-type.
+	* gcc.dg/20030906-2.c: Likewise.
+	* objc.dg/method-17.m: Add -Wreturn-type.
+	* obj-c++.dg/method-21.mm: Likewise.
+	
+2007-05-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/31585
+	* gcc.target/i386/sse-13.c: Use "-mssse3 -msse4a" compile options.
+	(__builtin_ia32_psllwi128): Redefine to test with immediate operand.
+	(__builtin_ia32_psrlqi128): Ditto.
+	(__builtin_ia32_psrlwi128): Ditto.
+	(__builtin_ia32_psrldi128): Ditto.
+	(__builtin_ia32_psrldqi128): Ditto.
+	(__builtin_ia32_pslldqi128): Ditto.
+	(__builtin_ia32_psrawi128): Ditto.
+	(__builtin_ia32_psradi128): Ditto.
+	(__builtin_ia32_psllqi128): Ditto.
+	(__builtin_ia32_pslldi128): Ditto.
+	(__builtin_prefetch): Ditto.
+	(__builtin_ia32_pshufw): Ditto.
+	(__builtin_ia32_vec_set_v4hi): Ditto.
+	(__builtin_ia32_vec_ext_v4hi): Ditto.
+	(__builtin_ia32_shufps): Ditto.
+	* gcc.target/i386/sse-14.c: Same changes as sse-13.c.
+
+2007-05-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31974
+	* gfortran.dg/char_allocation_1.f90: New test.
+
+2007-05-19  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* gcc.dg/Wconversion-integer.c: Group testcases and add more.
+	* gcc.dg/Wconversion-sign.c: New.
+	* gcc.dg/Wconversion-integer-no-sign.c: New.
+	* g++.dg/warn/Wconversion-integer.C: Move some warnings to
+	Wconversion-sign.C
+	* g++.dg/warn/Wconversion-sign.C: New.
+	* g++.old-deja/g++.other/warn4.C: Update.
+	* g++.dg/warn/Wconversion1.C: Likewise.
+	
+2007-05-19  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/torture/builtin-math-2.c: Add gamma_r/lgamma_r tests.
+	* gcc.dg/torture/builtin-math-4.c: Likewise.
+
+2007-05-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/31964
+	* gfortran.fortran-torture/execute/intrinsic_bitops.f90: Update.
+
+2007-05-18  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* gcc.dg/tree-ssa/forwprop-1.c: New testcase.
+
+2007-05-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/31628
+	* gcc.target/i386/pr31628.c: New.
+
+2007-05-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/31344
+	* gcc.dg/pr31344.c: New test.
+
+2007-05-17  Ian Lance Taylor  <iant@google.com>
+
+	PR tree-optimization/31953
+	* gcc.c-torture/compile/pr31953.c: New test.
+
+2007-05-17  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/builtins-1.c: Test reentrant gamma functions.
+
+	* gcc.dg/torture/builtin-math-2.c: Add tests for remquo, remainder
+	and drem.
+	* gcc.dg/torture/builtin-math-4.c: Likewise.
+
+	* gcc.dg/torture/builtin-math-2.c: Test y0, y1, yn.
+	* gcc.dg/torture/builtin-math-4.c: Likewise.
+
+	* gcc.dg/torture/builtin-math-4.c: New test.
+
+2007-05-17  Janis Johnson  <janis187@us.ibm.com>
+	    Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* gcc.target/powerpc/pr18096-1.c: Change dg-warning to dg-error.
+	* gcc.dg/cpp/include2.c: Ditto.
+	* gcc.dg/cpp/mac-dir-2.c: Ditto.
+	* gcc.dg/cpp/paste5.c: Ditto.
+	* gcc.dg/cpp/paste6.c: Ditto.
+	* gcc.dg/cpp/paste8.c: Ditto.
+	* gcc.dg/cpp/paste11.c: Ditto.
+	* gcc.dg/cpp/paste13.c: Ditto.
+	* gcc.dg/cpp/skipping2.c: Ditto.
+	* gcc.dg/reg-vol-struct-1.c: Ditto.
+	* gcc.dg/Wshadow-1.c: Ditto.
+	* gcc.dg/cpp/trad/comment.c: Ditto.
+	* gcc.dg/cpp/trad/literals-2.c: Change dg-error to dg-warning.
+	* gcc.dg/cpp/if-2.c: Ditto.
+	* gcc.dg/array-5.c: Ditto.
+	* gcc.dg/inline-15.c: Ditto.
+	* gcc.dg/pr27953.c: Ditto.
+	* gcc.dg/Wno-c++-compat.c: Ditto.
+
+2007-05-17  Kazu Hirata  <kazu@codesourcery.com>
+
+	* g++.dg/cpp/_Pragma1.C: Skip on fido-*-* and m68k-*-*.
+
+2007-05-17  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* gcc.c-torture/execute/20070517-1.c: New test.
+
+2007-05-17  Daniel Franke <franke.daniel@gmail.com>
+
+	PR fortran/31919
+	* gfortran.dg/min_max_conformance.f90: New test.
+
+2007-05-17  Zdenek Dvorak  <dvorakz@suse.cz>
+
+	* gcc.dg/tree-ssa/ssa-dom-thread-2.c: New test.
+	* gcc.dg/vect/vect-102.c, gcc.dg/vect/vect-103.c,
+	gcc.dg/vect/vect-104.c: Use more complex construction to prevent vectorizing.
+	* gcc.dg/tree-ssa/pr21559.c: Update outcome.
+
+2007-05-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR tree-optimization/24659
+	* gcc.dg/vect/vect-floatint-conversion-2.c: New test.
+	* gcc.dg/vect/vect-intfloat-conversion-1.c: Require vect_float,
+	not vect_int target.
+	* gcc.dg/vect/vect-intfloat-conversion-2.c: Require vect_float,
+	not vect_int target.  Loop is vectorized for vect_intfloat_cvt
+	targets.
+	* gcc.dg/vect/vect-intfloat-conversion-3.c: New test.
+	* gcc.dg/vect/vect-intfloat-conversion-4a.c: New test.
+	* gcc.dg/vect/vect-intfloat-conversion-4b.c: New test.
+
+2007-05-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/torture/fp-int-convert-float128.c: Do not xfail for i?86-*-*
+	and x86_64-*-* targets.
+	* gcc.dg/torture/fp-int-convert-float128-timode.c: Ditto.
+
+2007-05-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/18769
+	PR fortran/30881
+	PR fortran/31194
+	PR fortran/31216
+	PR fortran/31427
+	* transfer_simplify_1.f90: New test.
+	* transfer_simplify_2.f90: New test.
+
+2007-05-15  Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	* gfortran.dg/unf_io_convert_3.f90: Fix dg directive.
+
+2007-05-14  Janis Johnson  <janis187@us.ibm.com>
+
+	* gcc.dg/dfp/usual-arith-conv-bad.c: New test.
+
+	* gcc.dg/fltconst-pedantic-dfp.c: New test.
+
+	PR c/31924
+	* gcc.dg/fltconst-1.c: New test.
+
+	* gcc.dg/dfp/func-mixed.c: Replace invalid constant suffixes.
+	* gcc.dg/dfp/operator-assignment.c: Ditto.
+
+2007-05-14  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/29928
+	* g++.dg/rtti/typeid5.C: New.
+
+2007-05-14  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31725
+	* gfortran.dg/substr_4.f: New test.
+
+2007-05-14  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.target/m68k/interrupt_thread-1.c,
+	gcc.target/m68k/interrupt_thread-2.c,
+	gcc.target/m68k/interrupt_thread-3.c: New.
+	* gcc.target/m68k/m68k.exp: Accept fido.
+
+2007-05-13  Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	* gfortran.dg/alloc_comp_basics_1.f90: Fix dg directive.
+	* gfortran.dg/altreturn_3.f90: Likewise.
+	* gfortran.dg/assumed_dummy_1.f90: Likewise.
+	* gfortran.dg/default_numeric_type_1.f90: Likewise.
+	* gfortran.dg/inquire_iolength.f90: Likewise.
+	* gfortran.dg/module_naming_1.f90: Likewise.
+	* gfortran.dg/oldstyle_2.f90: Likewise.
+	* gfortran.dg/operator_2.f90: Likewise.
+	* gfortran.dg/parameter_array_element_1.f90: Likewise.
+	* gfortran.dg/used_types_11.f90: Likewise.
+	* gfortran.dg/zero_array_components_1.f90: Likewise.
+	* gfortran.dg/fmt_zero_precision.f90: Fix dg-output directives.
+	* gfortran.dg/parameter_array_dummy.f90: Likewise.
+	* gfortran.dg/real_const_3.f90: Likewise.
+
+2007-05-13  Zdenek Dvorak  <dvorakz@suse.cz>
+
+	* gcc.dg/vect/no-section-anchors-vect-69.c: Fix outcome.
+	* gcc.dg/tree-ssa/loop-30.c: New test.
+
+2007-05-13  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/pr17141-1.c: Scan in forwprop2, xfail
+	scanning forwprop1.
+	* g++.dg/tree-ssa/pr31146.C: Likewise.
+
+2007-05-13  Revital Eres  <eres@il.ibm.com>
+
+	* gcc.dg/dse.c: New test.
+
+2007-05-12  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/31797
+	* gcc.c-torture/compile/pr31797.c: New testcase.
+
+2007-05-12  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/30746
+	* gfortran.dg/host_assoc_function_1.f90: New test.
+
+2007-05-11  Steve Ellcey  <sje@cup.hp.com>
+
+	PR c++/31829
+	* g++.dg/warn/multiple-overflow-warn-3.C: Change wchar_t to short.
+
+2007-05-11  Silvius Rus  <rus@google.com>
+
+	* gcc.dg/Wstrict-aliasing-bogus-const-ptr-nonconst-ptr.c: New test.
+	* gcc.dg/Wstrict-aliasing-bogus-never-dereferenced.c: New test.
+	* gcc.dg/Wstrict-aliasing-bogus-struct-included.c: New test.
+	* gcc.dg/Wstrict-aliasing-converted-assigned.c: New test.
+	* gcc.dg/Wstrict-aliasing-float-ptr-int-obj.c: New test.
+	* gcc.dg/alias-1.c: Update option: -Wstrict-aliasing=2.
+	* gcc.dg/alias-9.c: Update option: -Wstrict-aliasing=2.
+	* g++.dg/warn/Wstrict-aliasing-7.C: Update option: -Wstrict-aliasing=2.
+	* g++.dg/warn/Wstrict-aliasing-bogus-base-derived.C: New test.
+	* g++.dg/warn/Wstrict-aliasing-bogus-char-1.C: New test.
+	* g++.dg/warn/Wstrict-aliasing-bogus-const.C: New test.
+	* g++.dg/warn/Wstrict-aliasing-bogus-nested-arrays.C: New test.
+	* g++.dg/warn/Wstrict-aliasing-bogus-signed-unsigned.C: New test.
+	* g++.dg/warn/Wstrict-aliasing-bogus-struct-included.C: New test.
+	* g++.dg/warn/Wstrict-aliasing-bogus-union.C: New test.
+	* g++.dg/warn/Wstrict-aliasing-float-ref-int-obj.C: New test. 
+
+2007-05-11  Paolo Carlini  <pcarlini@suse.de>
+
+	PR other/31852
+	* gcc.c-torture/execute/builtins/memchr.c: New.
+	* gcc.c-torture/execute/builtins/memchr-lib.c: New.
+	* gcc.c-torture/execute/builtins/lib/memchr.c: New.
+
+2007-05-11 Paul Thomas <pault@gcc.gnu.org>
+
+	PR fortran/30876
+	* gfortran.dg/recursive_reference_1.f90: Put error at correct
+	line.
+	* gfortran.dg/recursive_reference_2.f90: New test.
+
+2007-05-11 Paul Thomas <pault@gcc.gnu.org>
+
+	PR fortran/30878
+	* gfortran.dg/namelist_29.f90: New test.
+
+2007-05-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31474
+	* gfortran.dg/entry_10.f90: New test.
+
+2007-05-10  Zdenek Dvorak  <dvorakz@suse.cz>
+
+	PR tree-optimization/31885
+	* gcc.dg/tree-ssa/loop-29.c: New test.
+
+2007-05-10 Dominique d'Humières <dominiq@lps.ens.fr>
+
+	* assumed_dummy_1.f90: Fix dg directive.
+	* char_initialiser_actual.f90: Likewise.
+	* nested_modules_2.f90: Likewise.
+	* shift-alloc.f90: Likewise.
+
+2007-05-10  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.dg/20070507-1.c: Disable for non-pic targets.
+
+2007-05-09  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/31880
+	* gfortran.dg/unf_read_corrupted_2.f90: New test.
+
+2007-05-09  Mike Stump  <mrs@apple.com>
+
+	* g++.dg/other/first-global.C: Add -fpie for darwin.
+	* g++.dg/parse/attr-externally-visible-1.C: Likewise.
+
+2007-05-09  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.dg/20070507-1.c: New testcase.
+
+2007-05-08  Chao-ying Fu  <fu@mips.com>
+
+	* gcc.target/mips/msub-1.c, gcc.target/mips/msub-2.c,
+	* gcc.target/mips/msub-3.c, gcc.target/mips/msub-4.c,
+	* gcc.target/mips/msubu-1.c, gcc.target/mips/msubu-2.c,
+	* gcc.target/mips/msubu-3.c, gcc.target/mips/msubu-4.c: New tests.
+
+2007-05-08  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR 31847
+	* gcc.dg/pr31847.c: New test.
+
+2007-05-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31692
+	* gfortran.dg/actual_array_result_1.f90: New test.
+
+2007-05-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/29397
+	* gfortran.dg/parameter_array_init_1.f90: New test.
+
+	PR fortran/29400
+	* gfortran.dg/parameter_array_init_2.f90: New test.
+
+2007-05-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/31854
+	* gcc.target/i386/pr31854.c: New test.
+	
+2007-05-07  Janis Johnson  <janis187@us.ibm.com>
+
+	* gcc.dg/pch/pch.exp: XFAIL largefile on Solaris 10 x86.
+
+2007-05-07  Mike Stump  <mrs@apple.com>
+
+	* g++.old-deja/g++.mike/empty.C: Add.
+
+2007-05-07  Eric Christopher  <echristo@apple.com>
+
+	* gcc.dg/invalid-call-1.c: Fix options for 32-bit x86.
+
+2007-05-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/dfp/convert-bfp-fold.c: Remove extra assignment to 'sf'
+	variable.  Rearrange conversions from binary float to decimal float.
+
+2007-05-07  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.dg/special/gcsec-1.c: Don't link statically on Solaris 10
+	x86.
+
+2007-05-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt1.ad[sb]: New testcase.
+
+2007-05-07  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31399
+	* gfortran.dg/do_3.F90: New test.
+
+2007-05-07  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31764
+	* gfortran.dg/new_line.f90: Add new checks.
+
+2007-05-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/31201
+	* gfortran.dg/large_unit_1.f90: New.
+	* gfortran.dg/large_unit_2.f90: New.
+	* gfortran.dg/iostat_4.f90: New
+	* gfortran.dg/bounds_check_fail_1.f90: Updated.
+
+2007-05-06  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31540
+	* gfortran.dg/char_result_4.f90: New test.
+
+2007-06-05  Revital Eres  <eres@il.ibm.com>
+
+	PR 30957
+	* gcc.dg/pr30957-1.c: New test.
+
+2007-05-05  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/31251
+	* gfortran.dg/char_type_len_2.f90: New test.
+
+2007-05-05  Geoffrey Keating  <geoffk@apple.com>
+
+	PR 31775
+	* g++.dg/other/nested-extern.cc: New.
+	* g++.dg/other/nested-extern-1.C: New.
+	* g++.dg/other/nested-extern-2.C: New.
+
+2007-05-04  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/31760
+	* gfortran.dg/erf.f90: New test.
+	* gfortran.dg/besxy.f90: New test.
+
+2007-05-04  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/22359
+	* gfortran.dg/fseek.f90: New test.
+
+2007-05-04  Bob Wilson  <bob.wilson@acm.org>
+
+	* g++.old-deja/g++.pt/static11.C: Remove xtensa-*-elf* xfail.
+
+2007-05-04  Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/31210
+	* gfortran.dg/zero_length_1.f90: New test.
+
+2007-05-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/31803
+	* gfortran.dg/char_pointer_assign_3.f90: New test.
+	* gfortran.dg/char_result_2.f90: Re-enable test.
+
+2007-05-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/25071
+	* gfortran.dg/char_length_3.f90: New test.
+	* gfortran.dg/char_result_2.f90: Fix test.
+
+2007-05-03  Zdenek Dvorak  <dvorakz@suse.cz>
+
+	PR tree-optimization/30565
+	* gcc.dg/tree-ssa/loop-27.c: New test.
+
+2007-05-03  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* gcc.target/bfin/frmul.c (__v2hi): Use short as base type, not itn.
+	* gcc.target/bfin/arith.c (__v2hi): Likewise.
+	* gcc.target/bfin/mul-combine.c (__v2hi): Likewise.
+	* gcc.target/bfin/shift.c (__v2hi): Likewise.
+
+2007-05-03  Dorit Nuzman  <dorit@il.ibm.com>
+
+	PR tree-optimization/31699
+	* lib/target-supports.exp (check_effective_target_vect_intfloat_cvt):
+	New.
+	(check_effective_target_vect_floatint_cvt): New.
+	* gcc.dg/vect/vect-floatint-conversion-1.c: Use new keyword instead
+	of specific targets.
+	* gcc.dg/vect/vect-intfloat-conversion-1.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-1.c: One less loop gets vectorized.
+	* gcc.dg/vect/vect-multitypes-4.c: Likewise.
+	* gcc.dg/vect/vect-iv-4.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-11.c: New.
+	* gcc.dg/vect/pr31699.c: New.
+
+2007-05-02  Geoffrey Keating  <geoffk@apple.com>
+
+	* gcc.c-torture/compile-limits-stringlit.c: Reduce size of string.
+
+2007-05-02  Seongbae Park  <seongbae.park@gmail.com>
+
+	PR C++/31663
+	* g++.dg/warn/anonymous-namespace-2.C: New.
+	* g++.dg/warn/anonymous-namespace-2.h: New.
+
+2007-05-02  Paul Brook  <paul@codesourcery.com>
+
+	* gcc.dg/arm-eabi1.c: Move debug output.  Augment lcmp/ulcmp tests.
+
+2007-05-02  Eric Christopher  <echristo@apple.com>
+
+	* gcc.dg/cpp/if-div.c: New file.
+
+2007-05-02  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/28709:
+	* gcc.dg/cpp/pr28709.c: New file.
+
+2007-05-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/31146
+	* g++.dg/tree-ssa/pr31146-2.C: New testcase.
+
+2007-05-01  Geoffrey Keating  <geoffk@apple.com>
+
+	* gcc.c-torture/compile/limits-blockid.c: New.
+	* gcc.c-torture/compile/limits-caselabels.c: New.
+	* gcc.c-torture/compile/limits-declparen.c: New.
+	* gcc.c-torture/compile/limits-enumconst.c: New.
+	* gcc.c-torture/compile/limits-exprparen.c: New.
+	* gcc.c-torture/compile/limits-externalid.c: New.
+	* gcc.c-torture/compile/limits-fnargs.c: New.
+	* gcc.c-torture/compile/limits-fndefn.c: New.
+	* gcc.c-torture/compile/limits-idexternal.c: New.
+	* gcc.c-torture/compile/limits-idinternal.c: New.
+	* gcc.c-torture/compile/limits-pointer.c: New.
+	* gcc.c-torture/compile/limits-stringlit.c: New.
+	* gcc.c-torture/compile/limits-structmem.c: New.
+	* gcc.c-torture/compile/limits-structnest.c: New.
+
+2007-04-29  Geoffrey Keating  <geoffk@apple.com>
+
+	* gfortran.dg/bom_UTF-8_F.F90: Rename from bom_UTF-8.F90.
+
+2007-05-01  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/31740
+	* gcc.c-torture/compile/20070501-1.c: New testcase.
+
+2007-05-01  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/31732
+	* gfortran.dg/array_memset_2:  New test case.
+
+2007-05-01  Dorit Nuzman  <dorit@il.ibm.com>
+
+	PR testsuite/31615
+	* gfortran.dg/vect/vect-5.f90: Fix dg-final test.
+
+2007-05-01  Dorit Nuzman  <dorit@il.ibm.com>
+
+	PR testsuite/31589
+	* gcc.dg/vect/vect-iv-9.c: Added vect_int_mult target keyword to
+	dg-final test.
+	* gcc.dg/vect/vect-reduc-dot-u16b.c: Added vect_pack_trunc target
+	keyword to dg-final test.
+	* gcc.dg/vect/vect-iv-4.c: Likewise.
+	* gcc.dg/vect/vect-widen-mult-u16.c: Likewise.
+	* gcc.dg/vect/pr30771.c: Added vect_unapck target keyword to dg-final
+	test.
+	* gcc.dg/vect/vect-reduc-dot-u16a.c: Change variable type to avoid a
+	cast.
+	* gcc.dg/vect/no-section-anchors-vect-69.c: xfail on is64.
+	* lib/target-supports.exp
+	(check_effective_target_vect_widen_sum_hi_to_si): Added ia64.
+	(check_effective_target_vect_widen_sum_qi_to_hi): Added ia64.
+
+2007-04-30  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.c-torture/execute/ieee/20000320-1.c: Use
+	__LONG_LONG_MAX__ and its friends instead of those supplied by
+	limits.h.
+
+2007-04-30  Andrew pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C++/31721
+	* g++.dg/ext/vector7.C: New testcase.
+
+2007-04-29  Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31591
+	* gfortran.dg/bound_simplification_1.f90: New test.
+
+2007-04-29  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31645
+	* testsuite/gfortran.dg/bom_error.f90: New test.
+	* testsuite/gfortran.dg/bom_include.f90: New test.
+	* testsuite/gfortran.dg/bom_UTF16-LE.f90: New test.
+	* testsuite/gfortran.dg/bom_UTF16-BE.f90: New test.
+	* testsuite/gfortran.dg/bom_UTF-8.f90: New test.
+	* testsuite/gfortran.dg/bom_UTF-32.f90: New test.
+	* testsuite/gfortran.dg/bom_UTF-8.F90: New test.
+	* testsuite/gfortran.dg/bom_include.inc: New file.
+
+2007-04-28  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C++/30221
+	* g++.dg/init/ptrfn2.C: New test.
+	* g++.dg/init/ptrfn3.C: New test.
+
+2007-04-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31711
+	* gfortran.dg/dependency_21.f90: New test.
+
+2007-04-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* gfortran.dg/secnds.f: Use real*8.
+	* gfortran.dg/secnds-1.f: Use real*8.
+
+2007-04-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/31532
+	* gfortran.dg/inquire_5.f90: Update test.
+
+2007-04-27  Ian Lance Taylor  <iant@google.com>
+
+	PR middle-end/31710
+	* gcc.c-torture/compile/pr31710.c: New test.
+
+2007-04-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/30965
+	PR tree-optimization/30978
+	* gcc.dg/tree-ssa/pr30978.c: New testcase.
+	* gcc.dg/tree-ssa/bool-3.c: Remove XFAIL, explain why.
+	* gcc.dg/tree-ssa/ssa-fre-4.c: Use char instead of bool
+	* gcc.dg/strict-overflow-5.c: Adjust tree dump scanning.
+
+2007-04-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/31715
+	* gcc.dg/Warray-bounds-4.c: New testcase.
+
+2007-04-26  Ian Lance Taylor  <iant@google.com>
+
+	PR target/28675
+	* gcc.c-torture/compile/pr28675.c: New test.
+
+2007-04-26  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C++/30016
+	* g++.dg/ext/vector6.C: New test.
+
+2007-04-26  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.c-torture/execute/ieee/20000320-1.x: New.
+
+2007-04-26  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/31617
+	* g++.dg/other/str_empty.C: Add expected warning.
+
+2007-04-26  Richard Guenther  <rguenther@suse.de>
+	Daniel Berlin  <dberlin@dberlin.org>
+
+	PR tree-optimization/30567
+	* g++.dg/other/pr30567.C: New testcase.
+
+2007-04-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/31703
+	* gcc.c-torture/compile/pr31703.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-lim-1.c: Adjust pattern.
+	* gcc.dg/tree-ssa/ssa-lim-2.c: Likewise.
+
+2007-04-26  Wolfgang Gellerich  <gellerich@de.ibm.com>
+
+	* gfortran.dg/open_errors.f90: Added if statements checking
+	the value of iostat.
+
+2007-04-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/31598
+	* g++.dg/gomp/pr31598.C: New test.
+
+	PR tree-optimization/30558
+	* g++.dg/gomp/pr30558.C: New test.
+
+2007-04-24  Mark Mitchell  <mark@codesourcery.com>
+
+	PR c++/31338
+	* g++.dg/ext/complex2.C: New test.
+
+2007-04-25  Paolo Carlini  <pcarlini@suse.de>
+
+	* g++.dg/ext/has_nothrow_assign.C: Adjust per N2255.
+
+2007-04-25  Thiemo Seufer  <ths@mips.com>
+
+	* gcc.target/mips/mips16e-extends.c (cksum8): Change return
+	value to signed char.
+
+2007-04-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/reload-1.c. Include <stdint.h>.  Compile for all
+	ilp32 i?86-*-* and x86_64-*-* targets.  Do not skip test for -m64.
+	Use scan-rtl-dump-not procedure to scan RTL dump.  Cleanup csa dump.
+
+2007-04-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/31668
+	* gfortran.dg/c_by_val_2.f90: Add rejection test of %VAL with
+	statement functions.
+	* gfortran.dg/c_by_val_5.f90: New test.
+
+2007-04-25  Wolfgang Gellerich  <gellerich@de.ibm.com>
+
+	* gfortran.dg/equiv_6.f90 (set_arrays): Replaced subroutine
+	with two new subroutines to avoid parameter-induced aliasing.
+	* gfortran.dg/equiv_6.f90 (set_array_listpr): New.
+	* gfortran.dg/equiv_6.f90 (set_array_lisbit): New.
+
+2007-04-24  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* gcc.dg/Warray-bounds.c: XFAIL test on 32-bit hppa targets.
+	* g++.dg/warn/Warray-bounds.C: Likewise.
+
+2007-04-24  Ian Lance Taylor  <iant@google.com>
+
+	PR tree-optimization/31605
+	* gcc.c-torture/execute/pr31605.c: New test.
+
+2007-04-24  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31587
+	* lib/gcc-dg.exp (scan-module): New function.
+	* gfortran.dg/module_md5_1.f90: New test.
+
+2007-04-24  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* g++.old-deja/g++.pt/defarg6.C: Only run with
+	-std=gnu++98.
+	* g++.old-deja/g++.pt/ucnid-1.C: Ditto.
+	* g++.dg/cpp0x/variadic61.C: Ditto.
+	* g++.dg/cpp0x/warn_cxx0x.C: Ditto.
+	* g++.dg/cpp0x/variadic62.C: Ditto.
+	* g++.dg/template/meminit1.C: Ditto.
+	* g++.dg/template/operator7.C: Ditto.
+	* g++.dg/template/static15.C: Ditto.
+	* g++.dg/template/invalid1.C: Ditto.
+	* g++.dg/template/shift1.C: Ditto.
+	* g++.dg/template/error10.C: Ditto.
+
+2007-04-24  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR diagnostic/25923
+	* gfortran.dg/pr25923.f90: New test.
+
+2007-04-24  Ian Lance Taylor  <iant@google.com>
+
+	PR tree-optimization/31602
+	* gcc.dg/Wstrict-overflow-11.c: We no longer issue a warning.
+
+2007-04-24  Janis Johnson  <janis187@us.ibm.com>
+
+	* gcc.target/powerpc/ppc32-abi-dfp-1.c: New test.
+	* gcc.target/powerpc/ppc64-abi-dfp-1.c: New test.
+
+2007-04-24  Hui-May Chang  <hm.chang@apple.com>
+
+	* gcc.target/i386/reload-1.c. New.
+
+2007-04-24  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+	    Olga Golovanevsky  <olga@il.ibm.com>
+
+	* g++.dg/other/str_empty.C: New test.
+
+2007-04-24  Richard Henderson  <rth@redhat.com>
+
+	* gcc.dg/vect/vect.exp: Don't run tests on Alpha.
+
+2007-04-24  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	PR target/31641
+	* gcc.c-torture/compile/pr31641.c: New testcase.
+
+2007-04-24  Richard Sandiford  <richard@nildram.co.uk>
+
+	* gcc.target/mips/madd-1.c, gcc.target/mips/madd-2.c,
+	* gcc.target/mips/madd-3.c, gcc.target/mips/madd-4.c,
+	* gcc.target/mips/maddu-1.c, gcc.target/mips/maddu-2.c,
+	* gcc.target/mips/maddu-3.c, gcc.target/mips/maddu-4.c: New tests.
+
+2007-04-23  Simon Baldwin  <simonb@google.com>
+
+	* g++.dg/other/error15.C: New.
+	* g++.dg/cpp0x/variadic-ex9.C: Renamed function parameter to avoid
+	triggering a "multiple parameters named" error.
+
+2007-04-23  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/31618
+	* gfortran.dg/backspace_8.f:  New test case.
+
+2007-04-23  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31630
+	* gfortran.dg/used_types_17.f90: New test.
+
+	PR fortran/31620
+	* gfortran.dg/zero_array_components_1.f90: New test.
+
+2007-04-23  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR fortran/31616
+	* gfortran.dg/open_errors.f90: Allow a different error message.
+
+2007-04-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/target-supports.exp (check_effective_target_vect_pack_trunc):
+	Rename from check_effective_target_vect_pack_mod.  Rename global
+	variable et_vect_pack_mod to et_vect_pack_trunc.  Update debug
+	messages.
+	* gcc.dg/vect/vect-iv-8.c: Update target check for vect_pack_trunc
+	rename.
+	* gcc.dg/vect/vect-iv-8a.c: Ditto.
+	* gcc.dg/vect/vect-multitypes-8.c: Ditto.
+
+2007-04-22  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/31448
+	* gcc.c-torture/execute/pr31448.c: New testcase.
+
+2007-04-22  Nick Clifton  <nickc@redhat.com>
+
+	* gcc.dg/20020312-2.c: Add support for the FRV.
+
+2007-04-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR tree-optimization/24659
+	* gcc.dg/vect/vect-float-extend-1.c: New test.
+	* gcc.dg/vect/vect-float-truncate-1.c: New test.
+
+2007-04-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/29789
+	* gcc.dg/tree-ssa/ssa-lim-1.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-lim-2.c: Likewise.
+
+2007-04-22  Revital Eres  <eres@il.ibm.com>
+
+	* gcc.dg/var-expand2.c: New test.
+
+2007-04-22  Revital Eres  <eres@il.ibm.com>
+
+	* gcc.dg/var-expand3.c: New test.
+
+2007-04-21  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/31495
+	* gfortran.dg/continuation_8.f90: New test.
+
+2007-04-21  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C/30265
+	* gcc.c-torture/compile/compound-literal-2.c: New testcase.
+	* gcc.c-torture/compile/compound-literal-3.c: New testcase.
+
+2007-04-21  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/31136
+	* gcc.c-torture/execute/pr31136.c: New testcase.
+
+2007-04-21  Alexandre Oliva  <aoliva@redhat.com>
+
+	* gcc.target/i386/movsi-sm-1.c: New.
+
+2007-04-20  Richard Henderson  <rth@redhat.com>
+
+	* gcc.dg/pr28796-2.c: Add -mieee for alpha.
+	* gcc.dg/pr27095.c: Cope with alpha GOT load.
+
+2007-04-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/i386/ordcmp-1.c: New test.
+	* gcc.target/i386/unordcmp-1.c: New test.
+
+	PR tree-optimization/31632
+	* gcc.c-torture/compile/20070419-1.c: New test.
+
+2007-04-19  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* gcc.dg/invalid-call-1.c: New test.
+
+2007-04-18  Dirk Mueller  <dmueller@suse.de>
+
+	PR diagnostic/31227
+	* gcc.dg/Warray-bounds-3.c: New.
+
+2007-04-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/19431
+	PR tree-optimization/21463
+	* gcc.c-torture/execute/20070212-1.c: New testcase.
+	* gcc.c-torture/execute/20070212-2.c: Likewise.
+	* gcc.c-torture/execute/20070212-3.c: Likewise.
+	* gcc.dg/tree-ssa/pr19431.c: Likewise.
+	* gcc.dg/tree-ssa/pr21463.c: Likewise.
+	* g++.dg/tree-ssa/pr21463.C: Likewise.
+	* g++.dg/tree-ssa/pr30738.C: Likewise.
+
+2007-04-17  Mark Mitchell  <mark@codesourcery.com>
+
+	PR c++/31513
+	* g++.dg/expr/bitfield8.C: New test.
+
+2007-04-17  Joseph Myers  <joseph@codesourcery.com>
+	    Richard Sandiford  <richard@codesourcery.com>
+
+	* lib/target-supports.exp (check_profiling_available): Return 0
+	for uClibc with -p or -pg.
+
+2007-04-17  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/31517
+	* g++.dg/template/init7.C: New test.
+
+2007-04-17  Zdenek Dvorak  <dvorakz@suse.cz>
+
+	PR rtl-optimization/31360
+	* gcc.dg/loop-7.c: New test.
+
+2007-04-17  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.misc-tests/linkage.exp: Do not run on remote hosts.
+	* lib/compat.exp (compat-run): Use file_on_host, not remote_file
+	build.
+	(compat-execute): Likewise.
+	* lib/copy-file.exp (gcc_copy_files): Use remote_download to copy
+	files to remote hosts.
+	* lib/c-ctorture.exp (c-torture-compile): Likewise.
+	(c-torture-execute): Likewise.
+	* lib/dg-pch.exp (dg-pch): Use file_on_host, not remote_file build
+	or plain file.  Use remote_upload and remote_download to copy
+	files about.
+	* lib/scanasm.exp (dg-scan): Upload the file from the remote host
+	before scanning it.
+
+2007-04-17  Dorit Nuzman  <dorit@il.ibm.com>
+
+	* gcc.dg/vect/no-tree-scev-cprop-vect-iv-3.c: New test.
+
+2007-04-16  Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/other/fesd-any.C: Test -femit-struct-debug-detailed=any.
+	* g++.dg/other/fesd-any.h: Test -femit-struct-debug-detailed=any.
+	* g++.dg/other/fesd-baseonly.C: Test -femit-struct-debug-baseonly.
+	* g++.dg/other/fesd-baseonly.h: Test -femit-struct-debug-baseonly.
+	* g++.dg/other/fesd-none.C: Test -femit-struct-debug-detailed=none.
+	* g++.dg/other/fesd-none.h: Test -femit-struct-debug-detailed=none.
+	* g++.dg/other/fesd-reduced.C: Test -femit-struct-debug-reduced.
+	* g++.dg/other/fesd-reduced.h: Test -femit-struct-debug-reduced.
+	* g++.dg/other/fesd-sys.C: Test -femit-struct-debug-detailed=sys.
+	* g++.dg/other/fesd-sys.h: Test -femit-struct-debug-detailed=sys.
+	* g++.dg/other/fesd.h: Common to -femit-struct-debug-... tests.
+
+	* gcc.dg/fesd-any.c: Test -femit-struct-debug-detailed=any.
+	* gcc.dg/fesd-any.h: Test -femit-struct-debug-detailed=any.
+	* gcc.dg/fesd-baseonly.c: Test -femit-struct-debug-baseonly.
+	* gcc.dg/fesd-baseonly.h: Test -femit-struct-debug-baseonly.
+	* gcc.dg/fesd-none.c: Test -femit-struct-debug-detailed=none.
+	* gcc.dg/fesd-none.h: Test -femit-struct-debug-detailed=none.
+	* gcc.dg/fesd-reduced.c: Test -femit-struct-debug-reduced.
+	* gcc.dg/fesd-reduced.h: Test -femit-struct-debug-reduced.
+	* gcc.dg/fesd-sys.c: Test -femit-struct-debug-detailed=sys.
+	* gcc.dg/fesd-sys.h: Test -femit-struct-debug-detailed=sys.
+	* gcc.dg/fesd.h: Common to -femit-struct-debug-... tests.
+
+2007-04-16  Ian Lance Taylor  <iant@google.com>
+
+	PR tree-optimization/31522
+	* gcc.dg/Wstrict-overflow-16.c: New test.
+
+2007-04-17  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.dg/cpp/_Pragma6.c: Skip on fido-*-* and m68k-*-*.
+
+2007-04-17  Tobias Schlüter  <tobi@gcc.gnu.org>
+
+	PR fortran/31144
+	* gfortran.dg/module_naming_1.f90: New.
+
+2007-04-16  Richard Sandiford  <richard@codesourcery.com>
+
+	* lib/target-supports.exp (check_profiling_available): Return
+	false for m68k-*-uclinux.
+
+2007-04-16  Seongbae Park <seongbae.park@gmail.com>
+
+	PR c++/29365
+	Testcase for c++ anonymous namespace warning
+
+	* g++.dg/warn/anonymous-namespace-1.C: New test
+	* g++.dg/warn/anonymous-namespace-1.h: New test
+
+2007-04-14  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR testsuite/31578
+	* gcc.dg/gnu89-init-4.c: Change to a compile only test.
+
+2007-04-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* gfortran.dg/warnings_are_errors_1.f90: Add -std=f95 to options.
+
+2007-04-15  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31204
+	* gfortran.dg/array_constructor_16.f90: New test.
+
+2007-04-15  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.dg/pr19340.c, gcc.dg/tree-ssa/loop-1.c,
+	gcc.dg/weak/typeof-2.c: Skip on fido-*-*.
+
+2007-04-14  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR rtl-optimization/31500
+	* gcc.dg/Warray-bounds.c: Skip on hppa*-*-*.
+	* g++.dg/warn/Warray-bounds.C: Likewise.
+
+2007-04-14  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C/31520
+	* gcc.dg/gnu89-init-4.c: New testcase.
+
+2007-04-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/25874
+	* gcc.dg/gomp/pr25874.c: Add dg-options.
+	* g++.dg/gomp/pr25874.C: Add dg-options.
+
+2007-04-14  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	PR fortran/21061
+	* gfortran.dg/warnings_are_errors_1.f90: New testcase.
+	* gfortran.dg/warnings_are_errors_1.f: New testcase.
+
+2007-04-14  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/31561
+	* gfortran.dg/vect/vect-4.f90: xfail on vect_no_align targets.
+
+2007-04-14 Paul Thomas <pault@gcc.gnu.org>
+
+	PR fortran/29507
+	PR fortran/31404
+	* gfortran.dg/initialization_6.f90: New test.
+
+2007-04-14  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.c-torture/compile/pr27528.c: Require nonpic.
+
+	* lib/target-supports.exp (check_gc_sections_available):
+	Return false if ldflags includes -elf2flt.
+
+2007-04-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/31074
+	* conv3.C: New test.
+
+2007-04-13  Mike Stump  <mrs@apple.com>
+
+	* obj-c++.dg/stubify-1.mm: Only run on powerpc.
+	* obj-c++.dg/template-4.mm: Don't run when 64-bit.
+
+2007-04-13  Joseph Myers  <joseph@codesourcery.com>
+
+	PR tree-optimization/29598
+	* gcc.dg/tree-ssa/loadpre1.c: XFAIL.
+
+2007-04-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/31559
+	* gfortran.dg/func_assign.f90: New test.
+
+2007-04-13  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31550
+	* gfortran.dg/used_types_16.f90: New test.
+
+2007-04-13  Tobias Schlüter  <tobi@gcc.gnu.org>
+
+	PR fortran/18937
+	* gfortran.dg/goto_2.f90: New.
+	* gfortran.dg/goto_3.f90: New.
+	* gfortran.dg/pr17708.f90: Rename to ...
+	* gfortran.dg/goto_4.f90: ... this, add comment pointing to PR.
+
+2007-04-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/31562
+	* gfortran.dg/f2c_4.c: Use GNU extensions for complex
+	instead of a struct.
+
+2007-04-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/31562
+	* gfortran.dg/value_4.c: Use GNU extensions for complex
+	instead of a struct.
+
+2007-04-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/21258
+	* gcc.dg/tree-ssa/vrp34.c: New testcase.
+
+2007-04-12  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/c_by_val.c: Use GCC extensions instead of including
+	<complex.h>.
+
+2007-04-12  Tobias Schlüter  <tobi@gcc.gnu.org>
+
+	PR fortran/31250
+	* gfortran.dg/char_length_2.f90: New.
+	* gfortran.dg/repeat_2.f90: Add dg-warning annotations.
+	* gfortran.dg/repeat_4.f90: Likewise.
+
+	PR fortran/31266
+	* gfortran.dg/char_assign_1.f90: New.
+
+	PR fortran/31471
+	* gfortran.dg/block_name_1.f90: New.
+	* gfortran.dg/block_name_2.f90: New.
+
+2007-04-12  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/31078
+	* g++.dg/other/pr31078.C: New.
+
+2007-04-12  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/31169
+	* gcc.c-torture/execute/pr31169.c: New testcase.
+
+2007-04-12  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/24689
+	PR tree-optimization/31307
+	* g++.dg/tree-ssa/pr31307.C: New testcase.
+	* gcc.dg/tree-ssa/pr24689.c: Likewise.
+
+2007-04-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/31472
+	* gfortran.dg/access_spec_1.f90: New test.
+	* gfortran.dg/access_spec_2.f90: New test.
+	* gfortran.dg/non_module_public.f90: Match new error message.
+
+2007-04-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR testsuite/31538
+	* gfortran.dg/result_in_spec_1.f90: Increase dimension from 2
+	to 4 at line 38 to fix bounds problem.
+
+2007-04-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR testsuite/31240
+	* gfortran.dg/pointer_intent_1.f90: Fix test.
+
+2007-04-10  Eric Christopher  <echristo@apple.com>
+
+	* lib/target-supports.exp
+	(check_effective_target_fstack_protector): Rewrite.
+
 2007-04-09  Mark Mitchell  <mark@codesourcery.com>
 
 	PR c++/31449
@@ -1718,7 +3559,7 @@
 	    Dorit Nuzman  <dorit@il.ibm.com>
 
 	* gcc.dg/vect/vect-intfloat-conversion-1.c:  New test.
-	* gcc.dg/vect/vect-intfloat-conversion-1.c:  New test.
+	* gcc.dg/vect/vect-floatint-conversion-1.c:  New test.
 	* gcc.dg/vect/vect-93.c: Another loop gets vectorized on powerpc.
 	* gcc.dg/vect/vect-113.c: Likewise.
 
@@ -2744,8 +4585,8 @@
 2007-01-02  Manuel Lopez-Ibanez <manu@gcc.gnu.org>
 
 	PR c/19977
-	* gcc/testsuite/gcc.dg/overflow-warn-3.c: Remove XFAIL.
-	* gcc/testsuite/gcc.dg/overflow-warn-4.c: Remove XFAIL.
+	* gcc.dg/overflow-warn-3.c: Remove XFAIL.
+	* gcc.dg/overflow-warn-4.c: Remove XFAIL.
 
 2006-01-02  Ian Lance Taylor  <iant@google.com>
 
@@ -3106,7 +4947,7 @@
 	* gcc.dg/builtin-bswap-3.c: Likewise.
 	* gcc.dg/builtin-bswap-4.c: Likewise.
 	* lib/target-supports.exp (check_effective_target_stdint_types): New.
-	* cc.c-torture/execute/mode-dependent-address.x: New file.
+	* gcc.c-torture/execute/mode-dependent-address.x: New file.
 
 2006-12-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
@@ -4011,8 +5852,8 @@
 
 	PR fortran/29391
 	PR fortran/29489
-	* gcc/testsuite/gfortran.dg/bound_2.f90: Add more checks.
-	* gcc/testsuite/gfortran.dg/bound_3.f90: New test.
+	* gfortran.dg/bound_2.f90: Add more checks.
+	* gfortran.dg/bound_3.f90: New test.
 
 2006-11-16  Maxim Kuvyrkov  <mkuvyrkov@ispras.ru>
 
@@ -5060,16 +6901,16 @@
 2006-10-13  Francois-Xavier Coudert  <coudert@clipper.ens.fr>
 
 	PR fortran/21435
-	* gcc/testsuite/gfortran.dg/io_constraints_3.f90: New test.
-	* gcc/testsuite/gfortran.dg/open_access_append_1.f90: Add checks
+	* gfortran.dg/io_constraints_3.f90: New test.
+	* gfortran.dg/open_access_append_1.f90: Add checks
 	for compile-time warnings.
-	* gcc/testsuite/gfortran.dg/pr20163-2.f: Likewise.
-	* gcc/testsuite/gfortran.dg/iostat_2.f90: Likewise.
-	* gcc/testsuite/gfortran.dg/label_4.f90: Delete the temporary
+	* gfortran.dg/pr20163-2.f: Likewise.
+	* gfortran.dg/iostat_2.f90: Likewise.
+	* gfortran.dg/label_4.f90: Delete the temporary
 	file.
-	* gcc/testsuite/gfortran.dg/direct_io_2.f90: Add a FILE=
+	* gfortran.dg/direct_io_2.f90: Add a FILE=
 	specifier.
-	* gcc/testsuite/gfortran.dg/iomsg_1.f90: Add check for
+	* gfortran.dg/iomsg_1.f90: Add check for
 	compile-time warning.
 
 2006-10-12  Jan Hubicka  <jh@suse.cz>
@@ -5206,12 +7047,12 @@
 
 	PR fortran/16580
 	PR fortran/29288
-	* gcc/testsuite/gfortran.fortran-torture/execute/specifics.f90:
+	* gfortran.fortran-torture/execute/specifics.f90:
 	Add tests for using all possible intrinsics as actual arguments.
-	* gcc/testsuite/gfortran.dg/specifics_1.f90: Add tests for using
+	* gfortran.dg/specifics_1.f90: Add tests for using
 	all possible intrinsics as actual arguments.
-	* gcc/testsuite/gfortran.dg/specifics_2.f90: New file.
-	* gcc/testsuite/gfortran.dg/specifics_3.f90: New file.
+	* gfortran.dg/specifics_2.f90: New file.
+	* gfortran.dg/specifics_3.f90: New file.
 
 2006-10-07  Richard Sandiford  <richard@codesourcery.com>
 
@@ -7465,7 +9306,7 @@
 2006-06-08  Francois-Xavier Coudert  <coudert@clipper.ens.fr>
 
 	PR fortran/27958
-	* gcc/testsuite/gfortran.dg/substr_2.f: New test.
+	* gfortran.dg/substr_2.f: New test.
 
 2006-06-08  Asher Langton  <langton2@llnl.gov>
 
@@ -9502,7 +11343,7 @@
 
 2006-03-03  Paul Brook  <paul@codesourcery.com>
 
-	* gcc/testsuite/lib/target-supports.exp (check_profiling_available):
+	* lib/target-supports.exp (check_profiling_available):
 	Add m68k-*-elf.
 
 2006-03-03  Thomas Koenig  <Thomas.Koenig@online.de>
@@ -13258,11 +15099,11 @@
 2005-11-04  Francois-Xavier Coudert  <coudert@clipper.ens.fr>
 
 	PR libfortran/22298
-	* gcc/testsuite/lib/target-supports.exp
+	* lib/target-supports.exp
 	(check_effective_target_static_libgfortran): New
 	static_libgfortran effective target.
-	* gcc/testsuite/gfortran.dg/static_linking_1.f: New test.
-	* gcc/testsuite/gfortran.dg/static_linking_1.c: New file.
+	* gfortran.dg/static_linking_1.f: New test.
+	* gfortran.dg/static_linking_1.c: New file.
 
 2005-11-04  Hans-Peter Nilsson  <hp@axis.com>
 
@@ -20778,7 +22619,7 @@
 2005-02-11  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/19666
-	* gcc/testsuite/g++.dg/other/ptrmem6.C: New test.
+	* g++.dg/other/ptrmem6.C: New test.
 
 	PR middle-end/19858
 	* gcc.c-torture/compile/20050210-1.c: New test.
@@ -36396,33 +38237,33 @@
 
 2003-01-16  Mark Mitchell  <mark@codesourcery.com>
 
-	* gcc/testsuite/g++.dg/ext/typename1.C: Add typename keyword.
-	* gcc/testsuite/g++.dg/template/crash1.C: Update error messages.
-	* gcc/testsuite/g++.dg/template/crash2.C: Remove error message.
-	* gcc/testsuite/g++.dg/parse/typename2.C: New test.
-	* gcc/testsuite/g++.dg/template/typename2.C: Change implicit
+	* g++.dg/ext/typename1.C: Add typename keyword.
+	* g++.dg/template/crash1.C: Update error messages.
+	* g++.dg/template/crash2.C: Remove error message.
+	* g++.dg/parse/typename2.C: New test.
+	* g++.dg/template/typename2.C: Change implicit
 	typename warning into error.
-	* gcc/testsuite/g++.old-deja/g++.benjamin/tem03.C: Issue more
+	* g++.old-deja/g++.benjamin/tem03.C: Issue more
 	error messages.
-	* gcc/testsuite/g++.old-deja/g++.benjamin/tem04.C: Fix typos.
-	* gcc/testsuite/g++.old-deja/g++.brendan/crash56.C: Add this->.
-	* gcc/testsuite/g++.old-deja/g++.law/visibility13.C: Remove error
+	* g++.old-deja/g++.benjamin/tem04.C: Fix typos.
+	* g++.old-deja/g++.brendan/crash56.C: Add this->.
+	* g++.old-deja/g++.law/visibility13.C: Remove error
 	messages.
-	* gcc/testsuite/g++.old-deja/g++.ns/template17.C: Reorder code to
+	* g++.old-deja/g++.ns/template17.C: Reorder code to
 	make declaration visible in template.
-	* gcc/testsuite/g++.old-deja/g++.pt/crash3.C: Fix typos.
-	* gcc/testsuite/g++.old-deja/g++.pt/crash36.C: Issue more error
+	* g++.old-deja/g++.pt/crash3.C: Fix typos.
+	* g++.old-deja/g++.pt/crash36.C: Issue more error
 	messages.
-	* gcc/testsuite/g++.old-deja/g++.pt/crash5.C: Improve error
+	* g++.old-deja/g++.pt/crash5.C: Improve error
 	message.
-	* gcc/testsuite/g++.old-deja/g++.pt/crash67.C: Remove warning.
-	* gcc/testsuite/g++.old-deja/g++.pt/inherit1.C: Add this->.
-	* gcc/testsuite/g++.old-deja/g++.pt/niklas01a.C: Add error message.
-	* gcc/testsuite/g++.old-deja/g++.pt/typename16.C: Replace implicit
+	* g++.old-deja/g++.pt/crash67.C: Remove warning.
+	* g++.old-deja/g++.pt/inherit1.C: Add this->.
+	* g++.old-deja/g++.pt/niklas01a.C: Add error message.
+	* g++.old-deja/g++.pt/typename16.C: Replace implicit
 	typename warning with error message.
-	* gcc/testsuite/g++.old-deja/g++.pt/typename19.C: Remove warning.
-	* gcc/testsuite/g++.old-deja/g++.robertl/eb112.C: Fix typo.
-	* gcc/testsuite/g++.old-deja/g++.robertl/eb24.C: Use this->.
+	* g++.old-deja/g++.pt/typename19.C: Remove warning.
+	* g++.old-deja/g++.robertl/eb112.C: Fix typo.
+	* g++.old-deja/g++.robertl/eb24.C: Use this->.
 
 2003-01-16  Nathan Sidwell  <nathan@codesourcery.com>
 
@@ -38013,9 +39854,9 @@
 
 2002-09-25  Mark Mitchell  <mark@codesourcery.com>
 
-	* gcc/testsuite/g++.dg/abi/empty5.C: New test.
-	* gcc/testsuite/g++.dg/abi/empty6.C: New test.
-	* gcc/testsuite/g++.dg/abi/vbase12.C: New test.
+	* g++.dg/abi/empty5.C: New test.
+	* g++.dg/abi/empty6.C: New test.
+	* g++.dg/abi/vbase12.C: New test.
 
 2002-09-25  Richard Henderson  <rth@redhat.com>
 
@@ -39037,7 +40878,7 @@
 
 2002-05-23  Mark Mitchell  <mark@codesourcery.com>
 
-	* gcc/testsuite/gcc.dg/weak-8.c: New test.
+	* gcc.dg/weak-8.c: New test.
 
 2002-05-23  J"orn Rennecke <joern.rennecke@superh.com>
 

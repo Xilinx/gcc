@@ -430,7 +430,10 @@ print_value (char *buf, rtx x, int verbose)
       if (FLOAT_MODE_P (GET_MODE (x)))
 	real_to_decimal (t, CONST_DOUBLE_REAL_VALUE (x), sizeof (t), 0, 1);
       else
-	sprintf (t, "<0x%lx,0x%lx>", (long) CONST_DOUBLE_LOW (x), (long) CONST_DOUBLE_HIGH (x));
+	sprintf (t,
+		 "<" HOST_WIDE_INT_PRINT_HEX "," HOST_WIDE_INT_PRINT_HEX ">",
+		 (unsigned HOST_WIDE_INT) CONST_DOUBLE_LOW (x),
+		 (unsigned HOST_WIDE_INT) CONST_DOUBLE_HIGH (x));
       cur = safe_concat (buf, cur, t);
       break;
     case CONST_STRING:
@@ -674,16 +677,8 @@ print_insn (char *buf, rtx x, int verbose)
       sprintf (buf, "i%4d: barrier", INSN_UID (x));
       break;
     case NOTE:
-      if (NOTE_LINE_NUMBER (x) > 0)
-	{
-	  expanded_location xloc;
-	  NOTE_EXPANDED_LOCATION (xloc, x);
-	  sprintf (buf, " %4d note \"%s\" %d", INSN_UID (x),
-		   xloc.file, xloc.line);
-	}
-      else
-	sprintf (buf, " %4d %s", INSN_UID (x),
-		 GET_NOTE_INSN_NAME (NOTE_LINE_NUMBER (x)));
+      sprintf (buf, " %4d %s", INSN_UID (x),
+	       GET_NOTE_INSN_NAME (NOTE_KIND (x)));
       break;
     default:
       sprintf (buf, "i%4d  <What %s?>", INSN_UID (x),

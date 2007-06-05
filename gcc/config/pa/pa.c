@@ -558,12 +558,12 @@ symbolic_expression_p (rtx x)
 /* Accept any constant that can be moved in one instruction into a
    general register.  */
 int
-cint_ok_for_move (HOST_WIDE_INT intval)
+cint_ok_for_move (HOST_WIDE_INT ival)
 {
   /* OK if ldo, ldil, or zdepi, can be used.  */
-  return (CONST_OK_FOR_LETTER_P (intval, 'J')
-	  || CONST_OK_FOR_LETTER_P (intval, 'N')
-	  || CONST_OK_FOR_LETTER_P (intval, 'K'));
+  return (VAL_14_BITS_P (ival)
+	  || ldil_cint_p (ival)
+	  || zdepi_cint_p (ival));
 }
 
 /* Return truth value of whether OP can be used as an operand in a
@@ -574,6 +574,36 @@ adddi3_operand (rtx op, enum machine_mode mode)
   return (register_operand (op, mode)
 	  || (GET_CODE (op) == CONST_INT
 	      && (TARGET_64BIT ? INT_14_BITS (op) : INT_11_BITS (op))));
+}
+
+/* True iff the operand OP can be used as the destination operand of
+   an integer store.  This also implies the operand could be used as
+   the source operand of an integer load.  Symbolic, lo_sum and indexed
+   memory operands are not allowed.  We accept reloading pseudos and
+   other memory operands.  */
+int
+integer_store_memory_operand (rtx op, enum machine_mode mode)
+{
+  return ((reload_in_progress
+	   && REG_P (op)
+	   && REGNO (op) >= FIRST_PSEUDO_REGISTER
+	   && reg_renumber [REGNO (op)] < 0)
+	  || (GET_CODE (op) == MEM
+	      && (reload_in_progress || memory_address_p (mode, XEXP (op, 0)))
+	      && !symbolic_memory_operand (op, VOIDmode)
+	      && !IS_LO_SUM_DLT_ADDR_P (XEXP (op, 0))
+	      && !IS_INDEX_ADDR_P (XEXP (op, 0))));
+}
+
+/* True iff ldil can be used to load this CONST_INT.  The least
+   significant 11 bits of the value must be zero and the value must
+   not change sign when extended from 32 to 64 bits.  */
+int
+ldil_cint_p (HOST_WIDE_INT ival)
+{
+  HOST_WIDE_INT x = ival & (((HOST_WIDE_INT) -1 << 31) | 0x7ff);
+
+  return x == 0 || x == ((HOST_WIDE_INT) -1 << 31);
 }
 
 /* True iff zdepi can be used to generate this CONST_INT.
@@ -733,7 +763,10 @@ legitimize_tls_address (rtx addr)
     {
       case TLS_MODEL_GLOBAL_DYNAMIC:
 	tmp = gen_reg_rtx (Pmode);
-	emit_insn (gen_tgd_load (tmp, addr));
+	if (flag_pic)
+	  emit_insn (gen_tgd_load_pic (tmp, addr));
+	else
+	  emit_insn (gen_tgd_load (tmp, addr));
 	ret = hppa_tls_call (tmp);
 	break;
 
@@ -741,7 +774,10 @@ legitimize_tls_address (rtx addr)
 	ret = gen_reg_rtx (Pmode);
 	tmp = gen_reg_rtx (Pmode);
 	start_sequence ();
-	emit_insn (gen_tld_load (tmp, addr));
+	if (flag_pic)
+	  emit_insn (gen_tld_load_pic (tmp, addr));
+	else
+	  emit_insn (gen_tld_load (tmp, addr));
 	t1 = hppa_tls_call (tmp);
 	insn = get_insns ();
 	end_sequence ();
@@ -757,7 +793,10 @@ legitimize_tls_address (rtx addr)
 	tmp = gen_reg_rtx (Pmode);
 	ret = gen_reg_rtx (Pmode);
 	emit_insn (gen_tp_load (tp));
-	emit_insn (gen_tie_load (tmp, addr));
+	if (flag_pic)
+	  emit_insn (gen_tie_load_pic (tmp, addr));
+	else
+	  emit_insn (gen_tie_load (tmp, addr));
 	emit_move_insn (ret, gen_rtx_PLUS (Pmode, tp, tmp));
 	break;
 
@@ -4211,7 +4250,7 @@ hppa_profile_hook (int label_no)
 
   emit_move_insn (gen_rtx_REG (word_mode, 26), gen_rtx_REG (word_mode, 2));
 
-  /* The address of the function is loaded into %r25 with a instruction-
+  /* The address of the function is loaded into %r25 with an instruction-
      relative sequence that avoids the use of relocations.  The sequence
      is split so that the load_offset_label_address instruction can
      occupy the delay slot of the call to _mcount.  */
@@ -6192,9 +6231,7 @@ output_lbranch (rtx dest, rtx insn, int xdelay)
 		       optimize, 0, NULL);
 
       /* Now delete the delay insn.  */
-      PUT_CODE (NEXT_INSN (insn), NOTE);
-      NOTE_LINE_NUMBER (NEXT_INSN (insn)) = NOTE_INSN_DELETED;
-      NOTE_SOURCE_FILE (NEXT_INSN (insn)) = 0;
+      SET_INSN_DELETED (NEXT_INSN (insn));
     }
 
   /* Output an insn to save %r1.  The runtime documentation doesn't
@@ -7210,9 +7247,7 @@ output_millicode_call (rtx insn, rtx call_dest)
     output_asm_insn ("nop\n\tb,n %0", xoperands);
 
   /* Delete the jump.  */
-  PUT_CODE (NEXT_INSN (insn), NOTE);
-  NOTE_LINE_NUMBER (NEXT_INSN (insn)) = NOTE_INSN_DELETED;
-  NOTE_SOURCE_FILE (NEXT_INSN (insn)) = 0;
+  SET_INSN_DELETED (NEXT_INSN (insn));
 
   return "";
 }
@@ -7355,9 +7390,7 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 			       optimize, 0, NULL);
 
 	      /* Now delete the delay insn.  */
-	      PUT_CODE (NEXT_INSN (insn), NOTE);
-	      NOTE_LINE_NUMBER (NEXT_INSN (insn)) = NOTE_INSN_DELETED;
-	      NOTE_SOURCE_FILE (NEXT_INSN (insn)) = 0;
+	      SET_INSN_DELETED (NEXT_INSN (insn));
 	      delay_insn_deleted = 1;
 	    }
 
@@ -7405,9 +7438,7 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 			       NULL);
 
 	      /* Now delete the delay insn.  */
-	      PUT_CODE (NEXT_INSN (insn), NOTE);
-	      NOTE_LINE_NUMBER (NEXT_INSN (insn)) = NOTE_INSN_DELETED;
-	      NOTE_SOURCE_FILE (NEXT_INSN (insn)) = 0;
+	      SET_INSN_DELETED (NEXT_INSN (insn));
 	      delay_insn_deleted = 1;
 	    }
 
@@ -7592,9 +7623,7 @@ output_call (rtx insn, rtx call_dest, int sibcall)
     output_asm_insn ("b,n %0", xoperands);
 
   /* Delete the jump.  */
-  PUT_CODE (NEXT_INSN (insn), NOTE);
-  NOTE_LINE_NUMBER (NEXT_INSN (insn)) = NOTE_INSN_DELETED;
-  NOTE_SOURCE_FILE (NEXT_INSN (insn)) = 0;
+  SET_INSN_DELETED (NEXT_INSN (insn));
 
   return "";
 }
@@ -8845,9 +8874,7 @@ pa_combine_instructions (void)
 					    PATTERN (floater))),
 				anchor);
 
-	      PUT_CODE (anchor, NOTE);
-	      NOTE_LINE_NUMBER (anchor) = NOTE_INSN_DELETED;
-	      NOTE_SOURCE_FILE (anchor) = 0;
+	      SET_INSN_DELETED (anchor);
 
 	      /* Emit a special USE insn for FLOATER, then delete
 		 the floating insn.  */
@@ -8869,9 +8896,7 @@ pa_combine_instructions (void)
 					 anchor);
 
 	      JUMP_LABEL (temp) = JUMP_LABEL (anchor);
-	      PUT_CODE (anchor, NOTE);
-	      NOTE_LINE_NUMBER (anchor) = NOTE_INSN_DELETED;
-	      NOTE_SOURCE_FILE (anchor) = 0;
+	      SET_INSN_DELETED (anchor);
 
 	      /* Emit a special USE insn for FLOATER, then delete
 		 the floating insn.  */
@@ -9279,7 +9304,7 @@ som_output_text_section_asm_op (const void *data ATTRIBUTE_UNUSED)
   gcc_assert (TARGET_SOM);
   if (TARGET_GAS)
     {
-      if (cfun && !cfun->machine->in_nsubspa)
+      if (cfun && cfun->machine && !cfun->machine->in_nsubspa)
 	{
 	  /* We only want to emit a .nsubspa directive once at the
 	     start of the function.  */
@@ -9304,7 +9329,8 @@ som_output_text_section_asm_op (const void *data ATTRIBUTE_UNUSED)
 	     text section to output debugging information.  Thus, we
 	     need to forget that we are in the text section so that
 	     varasm.c will call us when text_section is selected again.  */
-	  gcc_assert (!cfun || cfun->machine->in_nsubspa == 2);
+	  gcc_assert (!cfun || !cfun->machine
+		      || cfun->machine->in_nsubspa == 2);
 	  in_section = NULL;
 	}
       output_section_asm_op ("\t.SPACE $TEXT$\n\t.NSUBSPA $CODE$");

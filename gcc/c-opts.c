@@ -73,7 +73,7 @@ static bool deps_seen;
 static bool verbose;
 
 /* If -lang-fortran seen.  */
-static bool lang_fortran = false;
+bool lang_fortran = false;
 
 /* Dependency output file.  */
 static const char *deps_file;
@@ -400,7 +400,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       if (c_dialect_cxx ())
 	warn_sign_compare = value;
       warn_switch = value;
-      warn_strict_aliasing = value;
+      set_Wstrict_aliasing (value);
       warn_address = value;
       warn_strict_overflow = value;
       warn_array_bounds = value;
@@ -832,6 +832,18 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       flag_gen_declaration = 1;
       break;
 
+    case OPT_femit_struct_debug_baseonly:
+      set_struct_debug_option ("base");
+      break;
+
+    case OPT_femit_struct_debug_reduced:
+      set_struct_debug_option ("dir:ord:sys,dir:gen:any,ind:base");
+      break;
+
+    case OPT_femit_struct_debug_detailed_:
+      set_struct_debug_option (arg);
+      break;
+
     case OPT_idirafter:
       add_path (xstrdup (arg), AFTER, 0, true);
       break;
@@ -1047,10 +1059,13 @@ c_common_post_options (const char **pfilename)
   if (flag_objc_exceptions && !flag_objc_sjlj_exceptions)
     flag_exceptions = 1;
 
-  /* -Wextra implies -Wclobbered, -Wempty-body, -Wsign-compare, 
+  /* -Wextra implies -Wtype-limits, -Wclobbered, 
+     -Wempty-body, -Wsign-compare, 
      -Wmissing-field-initializers, -Wmissing-parameter-type
      -Wold-style-declaration, and -Woverride-init, 
      but not if explicitly overridden.  */
+  if (warn_type_limits == -1)
+    warn_type_limits = extra_warnings;
   if (warn_clobbered == -1)
     warn_clobbered = extra_warnings;
   if (warn_empty_body == -1)
@@ -1092,7 +1107,14 @@ c_common_post_options (const char **pfilename)
 	}
       if (flag_inline_functions)
 	flag_inline_trees = 2;
-    }
+    } 
+
+  /* In C, -Wconversion enables -Wsign-conversion (unless disabled
+     through -Wno-sign-conversion). While in C++,
+     -Wsign-conversion needs to be requested explicitly.  */
+  if (warn_sign_conversion == -1)
+    warn_sign_conversion =  (c_dialect_cxx ()) ? 0 : warn_conversion;
+
 
   /* Special format checking options don't work without -Wformat; warn if
      they are used.  */

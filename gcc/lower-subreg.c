@@ -281,6 +281,18 @@ find_decomposable_subregs (rtx *px, void *data)
 	  bitmap_set_bit (decomposable_context, regno);
 	  return -1;
 	}
+
+      /* If this is a cast from one mode to another, where the modes
+	 have the same size, and they are not tieable, then mark this
+	 register as non-decomposable.  If we decompose it we are
+	 likely to mess up whatever the backend is trying to do.  */
+      if (outer_words > 1
+	  && outer_size == inner_size
+	  && !MODES_TIEABLE_P (GET_MODE (x), GET_MODE (inner)))
+	{
+	  bitmap_set_bit (non_decomposable_context, regno);
+	  return -1;
+	}
     }
   else if (REG_P (x))
     {
@@ -1128,6 +1140,8 @@ decompose_multiword_subregs (bool update_life)
 			{
 			  changed = true;
 
+			  remove_retval_note (insn);
+
 			  recog_memoized (insn);
 			  extract_insn (insn);
 
@@ -1156,6 +1170,8 @@ decompose_multiword_subregs (bool update_life)
 
 		      i = apply_change_group ();
 		      gcc_assert (i);
+
+		      remove_retval_note (insn);
 
 		      changed = true;
 		    }

@@ -77,46 +77,6 @@ internal_malloc_size (size_t size)
   return get_mem (size);
 }
 
-extern void *internal_malloc (GFC_INTEGER_4);
-export_proto(internal_malloc);
-
-void *
-internal_malloc (GFC_INTEGER_4 size)
-{
-#ifdef GFC_CHECK_MEMORY
-  /* Under normal circumstances, this is _never_ going to happen!  */
-  if (size < 0)
-    runtime_error ("Attempt to allocate a negative amount of memory.");
-
-#endif
-  return internal_malloc_size ((size_t) size);
-}
-
-extern void *internal_malloc64 (GFC_INTEGER_8);
-export_proto(internal_malloc64);
-
-void *
-internal_malloc64 (GFC_INTEGER_8 size)
-{
-#ifdef GFC_CHECK_MEMORY
-  /* Under normal circumstances, this is _never_ going to happen!  */
-  if (size < 0)
-    runtime_error ("Attempt to allocate a negative amount of memory.");
-#endif
-  return internal_malloc_size ((size_t) size);
-}
-
-
-/* Free internally allocated memory.  Pointer is NULLified.  Also used to
-   free user allocated memory.  */
-
-void
-internal_free (void *mem)
-{
-  if (mem != NULL)
-    free (mem);
-}
-iexport(internal_free);
 
 /* Reallocate internal memory MEM so it has SIZE bytes of data.
    Allocate a new block if MEM is zero, and free the block if
@@ -184,7 +144,7 @@ allocate_size (size_t size, GFC_INTEGER_4 * stat)
     {
       if (stat)
 	{
-	  *stat = 1;
+	  *stat = ERROR_ALLOCATION;
 	  return newmem;
 	}
       else
@@ -204,8 +164,16 @@ void *
 allocate (GFC_INTEGER_4 size, GFC_INTEGER_4 * stat)
 {
   if (size < 0)
-    runtime_error ("Attempt to allocate negative amount of memory.  "
-		   "Possible integer overflow");
+    {
+      if (stat)
+	{
+	  *stat = ERROR_ALLOCATION;
+	  return NULL;
+	}
+      else
+	runtime_error ("Attempt to allocate negative amount of memory. "
+		       "Possible integer overflow");
+    }
 
   return allocate_size ((size_t) size, stat);
 }
@@ -217,8 +185,16 @@ void *
 allocate64 (GFC_INTEGER_8 size, GFC_INTEGER_4 * stat)
 {
   if (size < 0)
-    runtime_error ("ALLOCATE64: Attempt to allocate negative amount of "
-		   "memory. Possible integer overflow");
+    {
+      if (stat)
+	{
+	  *stat = ERROR_ALLOCATION;
+	  return NULL;
+	}
+      else
+	runtime_error ("ALLOCATE64: Attempt to allocate negative amount of "
+		       "memory. Possible integer overflow");
+    }
 
   return allocate_size ((size_t) size, stat);
 }

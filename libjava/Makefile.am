@@ -851,7 +851,6 @@ gnu/gcj/convert/natOutput_SJIS.cc \
 gnu/gcj/io/natSimpleSHSStream.cc \
 gnu/gcj/io/shs.cc \
 gnu/gcj/jvmti/natBreakpoint.cc \
-gnu/gcj/jvmti/natExceptionEvent.cc \
 gnu/gcj/runtime/natFinalizerThread.cc \
 gnu/gcj/runtime/natSharedLibLoader.cc \
 gnu/gcj/runtime/natSystemClassLoader.cc \
@@ -865,6 +864,7 @@ gnu/java/lang/management/natVMGarbageCollectorMXBeanImpl.cc \
 gnu/java/lang/management/natVMMemoryMXBeanImpl.cc \
 gnu/java/lang/management/natVMMemoryManagerMXBeanImpl.cc \
 gnu/java/lang/management/natVMMemoryPoolMXBeanImpl.cc \
+gnu/java/lang/management/natVMOperatingSystemMXBeanImpl.cc \
 gnu/java/lang/management/natVMRuntimeMXBeanImpl.cc \
 gnu/java/lang/management/natVMThreadMXBeanImpl.cc \
 gnu/java/net/natPlainDatagramSocketImpl.cc \

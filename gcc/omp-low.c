@@ -2203,7 +2203,7 @@ expand_parallel_call (struct omp_region *region, basic_block bb,
 	{
 	  basic_block cond_bb, then_bb, else_bb;
 	  edge e;
-	  tree t, then_lab, else_lab, tmp;
+	  tree t, tmp;
 
 	  tmp = create_tmp_var (TREE_TYPE (val), NULL);
 	  e = split_block (bb, NULL);
@@ -2213,26 +2213,18 @@ expand_parallel_call (struct omp_region *region, basic_block bb,
 
 	  then_bb = create_empty_bb (cond_bb);
 	  else_bb = create_empty_bb (then_bb);
-	  then_lab = create_artificial_label ();
-	  else_lab = create_artificial_label ();
 
 	  t = build3 (COND_EXPR, void_type_node,
-		      cond,
-		      build_and_jump (&then_lab),
-		      build_and_jump (&else_lab));
+		      cond, NULL_TREE, NULL_TREE);
 
 	  si = bsi_start (cond_bb);
 	  bsi_insert_after (&si, t, BSI_CONTINUE_LINKING);
 
 	  si = bsi_start (then_bb);
-	  t = build1 (LABEL_EXPR, void_type_node, then_lab);
-	  bsi_insert_after (&si, t, BSI_CONTINUE_LINKING);
 	  t = build_gimple_modify_stmt (tmp, val);
 	  bsi_insert_after (&si, t, BSI_CONTINUE_LINKING);
 
 	  si = bsi_start (else_bb);
-	  t = build1 (LABEL_EXPR, void_type_node, else_lab);
-	  bsi_insert_after (&si, t, BSI_CONTINUE_LINKING);
 	  t = build_gimple_modify_stmt (tmp, 
 					build_int_cst (unsigned_type_node, 1));
 	  bsi_insert_after (&si, t, BSI_CONTINUE_LINKING);
@@ -2409,6 +2401,7 @@ expand_omp_parallel (struct omp_region *region)
   block_stmt_iterator si;
   tree entry_stmt;
   edge e;
+  bool do_cleanup_cfg = false;
 
   entry_stmt = last_stmt (region->entry);
   child_fn = OMP_PARALLEL_FN (entry_stmt);
@@ -2444,6 +2437,7 @@ expand_omp_parallel (struct omp_region *region)
 	  exit_succ_e = single_succ_edge (exit_bb);
 	  make_edge (new_bb, exit_succ_e->dest, EDGE_FALLTHRU);
 	}
+      do_cleanup_cfg = true;
     }
   else
     {
@@ -2493,7 +2487,7 @@ expand_omp_parallel (struct omp_region *region)
       /* Declare local variables needed in CHILD_CFUN.  */
       block = DECL_INITIAL (child_fn);
       BLOCK_VARS (block) = list2chain (child_cfun->unexpanded_var_list);
-      DECL_SAVED_TREE (child_fn) = single_succ (entry_bb)->stmt_list;
+      DECL_SAVED_TREE (child_fn) = bb_stmt_list (single_succ (entry_bb));
 
       /* Reset DECL_CONTEXT on locals and function arguments.  */
       for (t = BLOCK_VARS (block); t; t = TREE_CHAIN (t))
@@ -2537,6 +2531,14 @@ expand_omp_parallel (struct omp_region *region)
 
   /* Emit a library call to launch the children threads.  */
   expand_parallel_call (region, new_bb, entry_stmt, ws_args);
+
+  if (do_cleanup_cfg)
+    {
+      /* Clean up the unreachable sub-graph we created above.  */
+      free_dominance_info (CDI_DOMINATORS);
+      free_dominance_info (CDI_POST_DOMINATORS);
+      cleanup_tree_cfg ();
+    }
 }
 
 
@@ -2569,7 +2571,6 @@ expand_omp_for_generic (struct omp_region *region,
 			enum built_in_function start_fn,
 			enum built_in_function next_fn)
 {
-  tree l0, l1, l2 = NULL, l3 = NULL;
   tree type, istart0, iend0, iend;
   tree t, list;
   basic_block entry_bb, cont_bb, exit_bb, l0_bb, l1_bb;
@@ -2591,18 +2592,12 @@ expand_omp_for_generic (struct omp_region *region,
   l0_bb = create_empty_bb (entry_bb);
   l1_bb = single_succ (entry_bb);
 
-  l0 = tree_block_label (l0_bb);
-  l1 = tree_block_label (l1_bb);
-
   cont_bb = region->cont;
   exit_bb = region->exit;
   if (cont_bb)
     {
       l2_bb = create_empty_bb (cont_bb);
       l3_bb = single_succ (cont_bb);
-
-      l2 = tree_block_label (l2_bb);
-      l3 = tree_block_label (l3_bb);
     }
 
   si = bsi_last (entry_bb);
@@ -2630,8 +2625,7 @@ expand_omp_for_generic (struct omp_region *region,
       t = get_formal_tmp_var (t, &list);
       if (cont_bb)
 	{
-	  t = build3 (COND_EXPR, void_type_node, t, build_and_jump (&l0),
-		      build_and_jump (&l3));
+	  t = build3 (COND_EXPR, void_type_node, t, NULL_TREE, NULL_TREE);
 	  append_to_statement_list (t, &list);
 	}
       bsi_insert_after (&si, list, BSI_SAME_STMT);
@@ -2672,8 +2666,7 @@ expand_omp_for_generic (struct omp_region *region,
   
   t = build2 (fd->cond_code, boolean_type_node, fd->v, iend);
   t = get_formal_tmp_var (t, &list);
-  t = build3 (COND_EXPR, void_type_node, t, build_and_jump (&l1),
-	      build_and_jump (&l2));
+  t = build3 (COND_EXPR, void_type_node, t, NULL_TREE, NULL_TREE);
   append_to_statement_list (t, &list);
 
   si = bsi_last (cont_bb);
@@ -2688,8 +2681,7 @@ expand_omp_for_generic (struct omp_region *region,
 		       build_fold_addr_expr (istart0),
 		       build_fold_addr_expr (iend0));
   t = get_formal_tmp_var (t, &list);
-  t = build3 (COND_EXPR, void_type_node, t, build_and_jump (&l0),
-	      build_and_jump (&l3));
+  t = build3 (COND_EXPR, void_type_node, t, NULL_TREE, NULL_TREE);
   append_to_statement_list (t, &list);
   
   si = bsi_start (l2_bb);
@@ -2758,7 +2750,7 @@ static void
 expand_omp_for_static_nochunk (struct omp_region *region,
 			       struct omp_for_data *fd)
 {
-  tree l0, l1, l2, n, q, s0, e0, e, t, nthreads, threadid;
+  tree n, q, s0, e0, e, t, nthreads, threadid;
   tree type, list;
   basic_block entry_bb, exit_bb, seq_start_bb, body_bb, cont_bb;
   basic_block fin_bb;
@@ -2772,10 +2764,6 @@ expand_omp_for_static_nochunk (struct omp_region *region,
   cont_bb = region->cont;
   fin_bb = single_succ (cont_bb);
   exit_bb = region->exit;
-
-  l0 = tree_block_label (seq_start_bb);
-  l1 = tree_block_label (body_bb);
-  l2 = tree_block_label (fin_bb);
 
   /* Iteration space partitioning goes in ENTRY_BB.  */
   list = alloc_stmt_list ();
@@ -2827,8 +2815,7 @@ expand_omp_for_static_nochunk (struct omp_region *region,
   e0 = get_formal_tmp_var (t, &list);
 
   t = build2 (GE_EXPR, boolean_type_node, s0, e0);
-  t = build3 (COND_EXPR, void_type_node, t, build_and_jump (&l2),
-	      build_and_jump (&l0));
+  t = build3 (COND_EXPR, void_type_node, t, NULL_TREE, NULL_TREE);
   append_to_statement_list (t, &list);
 
   si = bsi_last (entry_bb);
@@ -2862,8 +2849,7 @@ expand_omp_for_static_nochunk (struct omp_region *region,
 
   t = build2 (fd->cond_code, boolean_type_node, fd->v, e);
   t = get_formal_tmp_var (t, &list);
-  t = build3 (COND_EXPR, void_type_node, t, build_and_jump (&l1),
-	      build_and_jump (&l2));
+  t = build3 (COND_EXPR, void_type_node, t, NULL_TREE, NULL_TREE);
   append_to_statement_list (t, &list);
 
   si = bsi_last (cont_bb);
@@ -2927,7 +2913,7 @@ expand_omp_for_static_nochunk (struct omp_region *region,
 static void
 expand_omp_for_static_chunk (struct omp_region *region, struct omp_for_data *fd)
 {
-  tree l0, l1, l2, l3, l4, n, s0, e0, e, t;
+  tree n, s0, e0, e, t;
   tree trip, nthreads, threadid;
   tree type;
   basic_block entry_bb, exit_bb, body_bb, seq_start_bb, iter_part_bb;
@@ -2945,12 +2931,6 @@ expand_omp_for_static_chunk (struct omp_region *region, struct omp_for_data *fd)
   trip_update_bb = create_empty_bb (cont_bb);
   fin_bb = single_succ (cont_bb);
   exit_bb = region->exit;
-
-  l0 = tree_block_label (iter_part_bb);
-  l1 = tree_block_label (seq_start_bb);
-  l2 = tree_block_label (body_bb);
-  l3 = tree_block_label (trip_update_bb);
-  l4 = tree_block_label (fin_bb);
 
   /* Trip and adjustment setup goes in ENTRY_BB.  */
   list = alloc_stmt_list ();
@@ -3011,8 +2991,7 @@ expand_omp_for_static_chunk (struct omp_region *region, struct omp_for_data *fd)
   e0 = get_formal_tmp_var (t, &list);
 
   t = build2 (LT_EXPR, boolean_type_node, s0, n);
-  t = build3 (COND_EXPR, void_type_node, t,
-	      build_and_jump (&l1), build_and_jump (&l4));
+  t = build3 (COND_EXPR, void_type_node, t, NULL_TREE, NULL_TREE);
   append_to_statement_list (t, &list);
 
   si = bsi_start (iter_part_bb);
@@ -3045,8 +3024,7 @@ expand_omp_for_static_chunk (struct omp_region *region, struct omp_for_data *fd)
 
   t = build2 (fd->cond_code, boolean_type_node, fd->v, e);
   t = get_formal_tmp_var (t, &list);
-  t = build3 (COND_EXPR, void_type_node, t,
-	      build_and_jump (&l2), build_and_jump (&l3));
+  t = build3 (COND_EXPR, void_type_node, t, NULL_TREE, NULL_TREE);
   append_to_statement_list (t, &list);
   
   si = bsi_last (cont_bb);

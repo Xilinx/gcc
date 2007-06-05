@@ -789,7 +789,7 @@ gcse_main (rtx f ATTRIBUTE_UNUSED)
   alloc_gcse_mem ();
   /* This time, go ahead and allow cprop to alter jumps.  */
   timevar_push (TV_CPROP2);
-  one_cprop_pass (pass + 1, true, false);
+  one_cprop_pass (pass + 1, true, true);
   timevar_pop (TV_CPROP2);
   free_gcse_mem ();
 
@@ -4829,8 +4829,7 @@ static void
 hoist_code (void)
 {
   basic_block bb, dominated;
-  basic_block *domby;
-  unsigned int domby_len;
+  VEC (basic_block, heap) *domby;
   unsigned int i,j;
   struct expr **index_map;
   struct expr *expr;
@@ -4852,7 +4851,7 @@ hoist_code (void)
       int found = 0;
       int insn_inserted_p;
 
-      domby_len = get_dominated_by (CDI_DOMINATORS, bb, &domby);
+      domby = get_dominated_by (CDI_DOMINATORS, bb);
       /* Examine each expression that is very busy at the exit of this
 	 block.  These are the potentially hoistable expressions.  */
       for (i = 0; i < hoist_vbeout[bb->index]->n_bits; i++)
@@ -4865,9 +4864,8 @@ hoist_code (void)
 	      /* We've found a potentially hoistable expression, now
 		 we look at every block BB dominates to see if it
 		 computes the expression.  */
-	      for (j = 0; j < domby_len; j++)
+	      for (j = 0; VEC_iterate (basic_block, domby, j, dominated); j++)
 		{
-		  dominated = domby[j];
 		  /* Ignore self dominance.  */
 		  if (bb == dominated)
 		    continue;
@@ -4906,8 +4904,8 @@ hoist_code (void)
       /* If we found nothing to hoist, then quit now.  */
       if (! found)
         {
-	  free (domby);
-	continue;
+	  VEC_free (basic_block, heap, domby);
+	  continue;
 	}
 
       /* Loop over all the hoistable expressions.  */
@@ -4923,9 +4921,8 @@ hoist_code (void)
 	      /* We've found a potentially hoistable expression, now
 		 we look at every block BB dominates to see if it
 		 computes the expression.  */
-	      for (j = 0; j < domby_len; j++)
+	      for (j = 0; VEC_iterate (basic_block, domby, j, dominated); j++)
 		{
-		  dominated = domby[j];
 		  /* Ignore self dominance.  */
 		  if (bb == dominated)
 		    continue;
@@ -4976,7 +4973,7 @@ hoist_code (void)
 		}
 	    }
 	}
-      free (domby);
+      VEC_free (basic_block, heap, domby);
     }
 
   free (index_map);
@@ -5909,6 +5906,39 @@ find_loads (rtx x, rtx store_pattern, int after)
   return ret;
 }
 
+static inline bool
+store_killed_in_pat (rtx x, rtx pat, int after)
+{
+  if (GET_CODE (pat) == SET)
+    {
+      rtx dest = SET_DEST (pat);
+
+      if (GET_CODE (dest) == ZERO_EXTRACT)
+	dest = XEXP (dest, 0);
+
+      /* Check for memory stores to aliased objects.  */
+      if (MEM_P (dest)
+	  && !expr_equiv_p (dest, x))
+	{
+	  if (after)
+	    {
+	      if (output_dependence (dest, x))
+		return true;
+	    }
+	  else
+	    {
+	      if (output_dependence (x, dest))
+		return true;
+	    }
+	}
+    }
+
+  if (find_loads (pat, x, after))
+    return true;
+
+  return false;
+}
+
 /* Check if INSN kills the store pattern X (is aliased with it).
    AFTER is true if we are checking the case when store X occurs
    after the insn.  Return true if it does.  */
@@ -5916,7 +5946,7 @@ find_loads (rtx x, rtx store_pattern, int after)
 static bool
 store_killed_in_insn (rtx x, rtx x_regs, rtx insn, int after)
 {
-  rtx reg, base, note;
+  rtx reg, base, note, pat;
 
   if (!INSN_P (insn))
     return false;
@@ -5943,31 +5973,19 @@ store_killed_in_insn (rtx x, rtx x_regs, rtx insn, int after)
       return false;
     }
 
-  if (GET_CODE (PATTERN (insn)) == SET)
+  pat = PATTERN (insn);
+  if (GET_CODE (pat) == SET)
     {
-      rtx pat = PATTERN (insn);
-      rtx dest = SET_DEST (pat);
-
-      if (GET_CODE (dest) == ZERO_EXTRACT)
-	dest = XEXP (dest, 0);
-
-      /* Check for memory stores to aliased objects.  */
-      if (MEM_P (dest)
-	  && !expr_equiv_p (dest, x))
-	{
-	  if (after)
-	    {
-	      if (output_dependence (dest, x))
-		return true;
-	    }
-	  else
-	    {
-	      if (output_dependence (x, dest))
-		return true;
-	    }
-	}
-      if (find_loads (SET_SRC (pat), x, after))
+      if (store_killed_in_pat (x, pat, after))
 	return true;
+    }
+  else if (GET_CODE (pat) == PARALLEL)
+    {
+      int i;
+
+      for (i = 0; i < XVECLEN (pat, 0); i++)
+	if (store_killed_in_pat (x, XVECEXP (pat, 0, i), after))
+	  return true;
     }
   else if (find_loads (PATTERN (insn), x, after))
     return true;
@@ -6138,8 +6156,7 @@ insert_insn_start_bb (rtx insn, basic_block bb)
   while (before != 0)
     {
       if (! LABEL_P (before)
-	  && (! NOTE_P (before)
-	      || NOTE_LINE_NUMBER (before) != NOTE_INSN_BASIC_BLOCK))
+	  && !NOTE_INSN_BASIC_BLOCK_P (before))
 	break;
       prev = before;
       if (prev == BB_END (bb))

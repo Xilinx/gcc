@@ -1,3 +1,49 @@
+2007-05-22  Alexandre Oliva  <aoliva@redhat.com>
+
+	* misc.c (enumerate_modes): Consider log2_b to always be one.
+
+2007-05-14  Rafael Avila de Espindola  <espindola@google.com>
+
+	* misc.c (LANG_HOOKS_UNSIGNED_TYPE): Remove.
+
+2007-05-02  Pascal Obry  <obry@adacore.com>
+
+	* gnatchop.adb (Write_Source_Reference_Pragma): Change implementation
+	to use Stream_IO.File_Type. This is needed to make use of the UTF-8
+	encoding support of Stream_IO.
+	(Write_Unit): Idem.
+
+	* adaint.h, adaint.c (__gnat_os_filename): New routine. Returns the
+	filename and corresponding encoding to match the OS requirement.
+	(__gnat_file_exists): Do not call __gnat_stat() on Windows as this
+	routine will fail on specific devices like CON: AUX: ...
+
+	PR ada/29856: Add missing braces
+
+2007-04-22  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR ada/31660
+	* ada-tree.h (lang_tree_node): Fix typo in chain_next.
+
+2007-04-21  Jan Hubicka  <jh@suse.cz>
+
+	* misc.c (gnat_expand_body): Don't call target for destructors,
+	avoid redundant check on syntax errors.
+
+2007-04-21  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* ada-tree.h (lang_tree_node): Use GENERIC_NEXT
+	instead of checking GIMPLE_STMT_P in chain_next.
+
+2007-04-17  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	PR ada/31576
+	* system-linux-alpha.ads: Disable constant condition warning for the
+	Default_Bit_Order variable.
+	* system-linux-s390.ads: Likewise.
+	* system-linux-s390x.ads: Likewise.
+	* system-linux-sparc.ads: Likewise.
+
 2007-04-06  Javier Miranda  <miranda@adacore.com>
 	    Matt Heaney  <heaney@adacore.com>
 	    Robert Dewar  <dewar@adacore.com>

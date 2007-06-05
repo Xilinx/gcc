@@ -395,12 +395,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       {
 	const difference_type __d = difference_type(__n1 - __n2);
 
-	if (__d > numeric_limits<int>::max())
-	  return numeric_limits<int>::max();
-	else if (__d < numeric_limits<int>::min())
-	  return numeric_limits<int>::min();
+	if (__d > __gnu_cxx::__numeric_traits<int>::__max)
+	  return __gnu_cxx::__numeric_traits<int>::__max;
+	else if (__d < __gnu_cxx::__numeric_traits<int>::__min)
+	  return __gnu_cxx::__numeric_traits<int>::__min;
 	else
-	  return int(__d);	
+	  return int(__d);
       }
 
       void
@@ -1467,12 +1467,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
           return _S_construct(__beg, __end, __a, _Tag());
 	}
 
-      template<class _InIterator>
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 438. Ambiguity in the "do the right thing" clause
+      template<class _Integer>
         static _CharT*
-        _S_construct_aux(_InIterator __beg, _InIterator __end,
+        _S_construct_aux(_Integer __beg, _Integer __end,
 			 const _Alloc& __a, __true_type)
-	{ return _S_construct(static_cast<size_type>(__beg),
-			      static_cast<value_type>(__end), __a); }
+        { return _S_construct(static_cast<size_type>(__beg), __end, __a); }
 
       template<class _InIterator>
         static _CharT*

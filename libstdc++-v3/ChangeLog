@@ -1,3 +1,1887 @@
+2007-06-02  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1_impl/type_traits (is_reference, add_reference,
+	remove_reference): Remove.
+	* include/tr1/type_traits (is_reference, add_reference,
+	remove_reference): Add.
+	* include/std/type_traits (is_lvalue_reference, is_rvalue_reference,
+	is_reference, remove_reference, add_lvalue_reference,
+	add_rvalue_reference): Add.
+	* include/tr1_impl/boost_shared_ptr.h (operator*): Adjust.
+	* testsuite/20_util/add_lvalue_reference/requirements/
+	explicit_instantiation.cc: New.
+	* testsuite/20_util/add_lvalue_reference/value.cc: Likewise.
+	* testsuite/20_util/add_rvalue_reference/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/add_rvalue_reference/value.cc: Likewise.
+	* testsuite/20_util/is_lvalue_reference/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_lvalue_reference/requirements/
+	typedefs.cc: Likewise.
+	* testsuite/20_util/is_lvalue_reference/value.cc: Likewise.
+	* testsuite/20_util/is_rvalue_reference/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_rvalue_reference/requirements/
+	typedefs.cc: Likewise.
+	* testsuite/20_util/is_rvalue_reference/value.cc: Likewise.
+	* testsuite/20_util/is_reference/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_reference/requirements/typedefs.cc: Likewise.
+	* testsuite/20_util/is_reference/value.cc: Likewise.
+	* testsuite/20_util/remove_reference/requirements/
+	explicit_instantiation.cc: New.
+	* testsuite/20_util/remove_reference/value.cc: Likewise.
+
+	* testsuite/tr1/4_metaprogramming/add_const/requirements/
+	typedefs.cc: Move...
+	* testsuite/tr1/4_metaprogramming/add_const/value.cc: ... here.
+	* testsuite/tr1/4_metaprogramming/add_cv/requirements/
+	typedefs.cc: Move...
+	* testsuite/tr1/4_metaprogramming/add_cv/value.cc: ... here.
+	* testsuite/tr1/4_metaprogramming/add_pointer/requirements/
+	typedefs.cc: Move...
+	* testsuite/tr1/4_metaprogramming/add_pointer/value.cc: ... here.
+	* testsuite/tr1/4_metaprogramming/add_reference/requirements/
+	typedefs.cc: Move...
+	* testsuite/tr1/4_metaprogramming/add_reference/value.cc: ... here.
+	* testsuite/tr1/4_metaprogramming/add_volatile/requirements/
+	typedefs.cc: Move...
+	* testsuite/tr1/4_metaprogramming/add_volatile/value.cc: ... here.
+	* testsuite/tr1/4_metaprogramming/aligned_storage/requirements/
+	typedefs.cc: Move...
+	* testsuite/tr1/4_metaprogramming/aligned_storage/value.cc: ... here.
+
+2007-06-02  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2007-06-01  Benjamin Kosnik  <bkoz@redhat.com>
+	
+	* testsuite/19_diagnostics/logic_error/what-big.cc: New.
+	* testsuite/19_diagnostics/logic_error/what-3.cc: Same.
+	* testsuite/19_diagnostics/runtime_error/what-big.cc: Same.
+	* testsuite/19_diagnostics/runtime_error/what-3.cc: Same.
+
+	* testsuite/18_support/14493.cc: Break into...
+	* testsuite/18_support/exception/what.cc: ...this.
+	* testsuite/18_support/bad_cast/what.cc: ...this.
+	* testsuite/18_support/bad_alloc/what.cc: ...this.
+	* testsuite/18_support/bad_typeid/what.cc: ...this.
+	* testsuite/18_support/bad_exception/what.cc: ...this.
+
+	* testsuite/19_diagnostics/bad_exception/23591_thread-1.c: Move...
+	* testsuite/18_support/bad_exception/23591_thread-1.c: ...here.
+
+	* testsuite/18_support/14026.cc: Move...
+	* testsuite/18_support/uncaught_exception/14026.cc: ...here.
+
+2007-06-01  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/throw_allocator.h (__throw_allocator::allocate):
+	Throw bad_alloc for out of memory conditions.	
+	* testsuite/ext/throw_allocator/deallocate_global.cc: New.
+	* testsuite/ext/throw_allocator/check_delete.cc: Same.
+	* testsuite/ext/throw_allocator/check_allocate_max_size.cc: Same.
+	* testsuite/ext/throw_allocator/check_deallocate_null.cc: Same.
+	* testsuite/ext/throw_allocator/explicit_instantiation.cc: Same.
+	* testsuite/ext/throw_allocator/check_new.cc: Same.
+	* testsuite/ext/throw_allocator/deallocate_local.cc: Same.
+
+2007-05-31  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31426
+	* include/bits/c++config: Remove namespace association bits
+	from tr1 to std.
+
+	* include/ext/type_traits.h (__promote, __promote2,
+	__promote3, __promote4): Add.
+
+	* include/bits/hashtable.h: New.
+	* include/bits/functional_hash.h: Likewise.
+	* include/tr1/hashtable.h: Likewise.
+
+	* include/tr1_impl/random: New.
+	* include/tr1_impl/cinttypes: Likewise.
+	* include/tr1_impl/cstdlib: Likewise.
+	* include/tr1_impl/unordered_map: Likewise.
+	* include/tr1_impl/cstdio: Likewise.
+	* include/tr1_impl/boost_shared_ptr.h: Likewise.
+	* include/tr1_impl/cctype: Likewise.
+	* include/tr1_impl/random.tcc: Likewise.
+	* include/tr1_impl/tuple: Likewise.
+	* include/tr1_impl/functional_hash.h: Likewise.
+	* include/tr1_impl/hashtable: Likewise.
+	* include/tr1_impl/cmath: Likewise.
+	* include/tr1_impl/type_traitsfwd.h: Likewise.
+	* include/tr1_impl/hashtable_policy.h: Likewise.
+	* include/tr1_impl/cfenv: Likewise.
+	* include/tr1_impl/unordered_set: Likewise.
+	* include/tr1_impl/functional: Likewise.
+	* include/tr1_impl/utility: Likewise.
+	* include/tr1_impl/complex: Likewise.
+	* include/tr1_impl/type_traits: Likewise.
+	* include/tr1_impl/cwchar: Likewise.
+	* include/tr1_impl/cstdint: Likewise.
+	* include/tr1_impl/regex: Likewise.
+	* include/tr1_impl/array: Likewise.
+	* include/tr1_impl/cwctype: Likewise.
+
+	* include/tr1/type_traitsfwd.h: Remove.
+	* include/tr1/boost_shared_ptr.h: Likewise.
+	* include/tr1/common.h: Likewise.
+	* include/tr1/hashtable: Likewise.
+	* include/tr1/hashtable_policy.h: Likewise.
+	* include/tr1/random.tcc: Likewise.
+
+	* include/c_global/cinttypes: Include tr1_impl/cinttypes.
+	* include/c_global/cstdlib: Likewise for cstdlib.
+	* include/c_global/cstdio: Likewise for cstdio.
+	* include/c_global/cctype: Likewise for cctype.
+	* include/c_global/cmath: Likewise for cmath.
+	* include/c_global/cfenv: Likewise for cfenv.
+	* include/c_global/cwchar: Likewise for cwchar.
+	* include/c_global/cstdint: Likewise for cstdint.
+	* include/c_global/cwctype: Likewise for cwctype.
+	* include/tr1/cinttypes: Likewise for cinttypes.
+	* include/tr1/cstdlib: Likewise for cstdlib.
+	* include/tr1/cstdio: Likewise for cstdio.
+	* include/tr1/cctype: Likewise for cctype.
+	* include/tr1/cmath: Likewise for cmath.
+	* include/tr1/cfenv: Likewise for cfenv.
+	* include/tr1/cwchar: Likewise for cwchar.
+	* include/tr1/cstdint: Likewise for cstdint.
+	* include/tr1/cwctype: Likewise for cwctype.
+	* include/tr1/functional_hash.h: Likewise for functional_hash.
+
+	* include/std/tuple: Include tr1_impl/tuple.
+	* include/std/utility: Likewise for utility.
+	* include/std/type_traits: Likewise for type_traits.
+	(is_pod): Just forward to __is_pod.
+	(has_trivial_default_constructor): Just forward to
+	__has_trivial_constructor.
+	(has_trivial_copy_constructor): Just forward to __has_trivial_copy.
+	(has_trivial_assign): Just forward to __has_trivial_assign.
+	(has_trivial_destructor): Just forward to __has_trivial_destructor.
+	(has_nothrow_default_constructor): Just forward to
+	__has_nothrow_constructor.
+	(has_nothrow_copy_constructor): Just forward to __has_nothrow_copy.
+	(has_nothrow_assign): Just forward to __has_nothrow_assign.
+	(is_base_of): Just forward to __is_base_of.
+	(is_signed, is_unsigned): Implement according to the C++0x
+	specifications.
+	* include/std/memory: Likewise for memory.
+	* include/std/regex: Likewise for regex.
+	* include/std/random: Likewise for random.
+	* include/std/unordered_map: Likewise for unordered_map.
+	* include/std/unordered_set: Likewise for unordered_set.
+	* include/std/functional: Likewise for functional.
+	* include/std/complex: Likewise for complex.
+	* include/std/array: Likewise for array.
+	* include/tr1/tuple: Likewise for tuple.
+	* include/tr1/utility: Likewise for utility.
+	* include/tr1/type_traits: Likewise for type_traits
+	* include/tr1/memory: Likewise for memory.
+	* include/tr1/regex: Likewise for regex.
+	* include/tr1/random: Likewise for random.
+	* include/tr1/unordered_map: Likewise for unordered_map.
+	* include/tr1/unordered_set: Likewise for unordered_set.
+	* include/tr1/functional: Likewise for functional.
+	* include/tr1/complex: Likewise for complex.
+	* include/tr1/array: Likewise for array.
+
+	* include/c_global/ctgmath: Tweak.
+	* include/c_global/cstdarg: Likewise.
+	* include/c_global/ctime: Likewise.
+	* include/c_global/climits: Likewise.
+	* include/c_global/cfloat: Likewise.	
+	* include/c_global/ccomplex: Likewise.
+	* include/c_global/cstdbool: Likewise.
+
+	* include/tr1/poly_laguerre.tcc: Tweak, don't use _GLIBCXX_TR1.
+	* include/tr1/riemann_zeta.tcc: Likewise.
+	* include/tr1/beta_function.tcc: Likewise.
+	* include/tr1/exp_integral.tcc: Likewise.
+	* include/tr1/hypergeometric.tcc: Likewise.
+	* include/tr1/modified_bessel_func.tcc: Likewise.
+	* include/tr1/legendre_function.tcc: Likewise.
+	* include/tr1/special_function_util.h: Likewise.
+	* include/tr1/bessel_function.tcc: Likewise.
+	* include/tr1/poly_hermite.tcc: Likewise.
+	* include/tr1/ell_integral.tcc: Likewise.
+	* include/tr1/gamma.tcc: Likewise.
+	* include/tr1/stdlib.h: Likewise.
+	* include/tr1/math.h: Likewise.
+
+	* include/tr1/complex.h: Minor tweaks.
+	* include/tr1/wctype.h: Likewise.
+	* include/tr1/wchar.h: Likewise.
+	* include/tr1/inttypes.h: Likewise.
+	* include/tr1/tgmath.h: Likewise.
+	* include/tr1/cstdbool: Likewise.
+	* include/tr1/cfloat: Likewise.
+	* include/tr1/ccomplex: Likewise.
+	* include/tr1/ctime: Likewise.
+	* include/tr1/climits: Likewise.
+	* include/tr1/ctgmath: Likewise.
+	* include/tr1/cstdarg: Likewise.
+
+	* testsuite/tr1/headers.cc: Move...
+	* testsuite/tr1/headers/all.cc: ... here.
+	* testsuite/tr1/using_namespace_std_tr1.cc: Move...
+	* testsuite/tr1/headers/c++200x/using_namespace_std_tr1.cc: ... here.
+	* testsuite/tr1/headers/using_namespace_std_tr1.cc ... here.
+	* testsuite/tr1/headers/c++200x/using_namespace_std_tr1.cc: New.
+
+	* testsuite/20_util/tuple/requirements/explicit_instantiation.cc:
+	Adjust namespace.
+	* testsuite/20_util/has_nothrow_copy_constructor/value.cc: Adjust to
+	the C++0x requirements.
+	* testsuite/20_util/has_nothrow_default_constructor/value.cc: Likewise.
+	* testsuite/20_util/has_trivial_copy_constructor/value.cc: Likewise.
+	* testsuite/20_util/has_trivial_default_constructor/value.cc: Likewise.
+
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Adjust
+	dg-error lines.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+	* testsuite/20_util/headers/type_traits/types_std_c++0x_neg.cc:
+	Un-xfail.
+
+	* testsuite/20_util/is_signed/value.cc: New.
+	* testsuite/20_util/is_signed/requirements/typedefs.cc: Likewise.
+	* testsuite/20_util/is_signed/requirements/explicit_instantiation.cc:
+	Likewise.
+	* testsuite/20_util/is_unsigned/value.cc: Likewise..
+	* testsuite/20_util/is_unsigned/requirements/typedefs.cc: Likewise.
+	* testsuite/20_util/is_unsigned/requirements/explicit_instantiation.cc:
+	Likewise.
+
+	* include/Makefile.am: Adjust.	
+	* include/Makefile.in: Regenerate.
+
+2007-05-31  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/32158 (libstdc++ bits)
+	* include/bits/stl_uninitialized.h (__uninitialized_copy_aux,
+	__uninitialized_fill_aux, __uninitialized_fill_n_aux):
+	Remove.
+	(struct __uninitialized_copy, struct __uninitialized_fill,
+	struct __uninitialized_fill_n): Add.
+	(uninitialized_copy, uninitialized_fill, uninitialized_fill_n):
+	Adjust.
+	* testsuite/20_util/specialized_algorithms/32158.cc: New.
+
+	* include/bits/stl_uninitialized.h (uninitialized_copy(_InputIterator,
+	_InputIterator, _ForwardIterator)): Robustify vs non-POD input.
+
+	* include/bits/stl_vector.h (_M_fill_initialize): New.
+	(vector(size_type, const value_type&, const allocator_type&),
+	_M_initialize_dispatch(_Integer, _Integer, __true_type)): Use it.
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2007-05-29  Paolo Carlini  <pcarlini@suse.de>
+
+	* aclocal.m4: Regenerate.
+
+	* testsuite/17_intro/headers/c++1998/c++_for_c.tar: Remove.
+	* testsuite/17_intro/headers/c++1998/c++.tar: Likewise.
+
+2007-05-28  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/31717 
+	* acinclude.m4 (GLIBCXX_ENABLE_CLOCALE): Re-organize. Sanity check
+	gnu locale model requests to make sure it will work for the requested
+	target. Add checks for strxfrm_l, strerror_l when in gnu locale,
+	and strerror_r everywhere.
+	* aclocal.m4: Regenerated.
+	* configure: Regenerated.
+	* config.h.in: Regenerated.
+	
+2007-05-27  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/boost_shared_ptr.h
+	(_Sp_counted_base<_S_mutex>::_M_add_ref_lock()): Do not wrap in
+	#ifdef __GTHREADS.
+
+2007-05-27  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/c_global/cwchar: Do not include <ctime>.
+	* include/c_std/cwchar: Likewise.
+	* include/ext/throw_allocator.h: Do it here.
+	
+2007-05-25  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/locale/gnu/c_locale.h (__convert_from_v): Fix typo.
+
+2007-05-24  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/concurrence.h: Use __GCC_HAVE_SYNC_COMPARE_AND_SWAP_*.
+
+2007-05-24  Steve Ellcey  <sje@cup.hp.com>
+
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+	* aclocal.m4: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* libmath/Makefile.in: Regenerate.
+	* libsupc++/Makefile.in: Regenerate.
+	* po/Makefile.in: Regenerate.
+	* src/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2007-05-24  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/locale/gnu/c_locale.h (__convert_from_v): Only switch to the
+	"C" locale if the current one isn't already "C" (for old glibcs).
+	* config/os/gnu-linux/ctype_noninline.h (ctype<char>::classic_table,
+	ctype<char>::ctype(__c_locale, const mask*, bool, size_t),
+	ctype<char>::ctype(const mask*, bool, size_t)): Likewise, for generic
+	locale model.
+	* config/locale/gnu/messages_members.h
+	(messages<>::messages(__c_locale, const char*, size_t),
+	messages_byname<_CharT>::messages_byname(const char*, size_t)):
+	Only dynamically allocate memory if __s != "C".
+	* config/locale/gnu/time_members.h
+	(__timepunct<_CharT>::__timepunct(__c_locale, const char*, size_t)):
+	Likewise.
+	* config/locale/generic/time_members.h
+	(__timepunct<_CharT>::__timepunct(__c_locale, const char*, size_t)):
+	Likewise.
+
+	* testsuite/util/testsuite_allocator.h: Revert last change.
+
+2007-05-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/util/testsuite_allocator.h (check_new): Assign false
+	to new_called.
+	(check_delete): Likewise for delete_called.
+
+2007-05-21  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/locale/gnu/c_locale.h: Do not include <cstdarg>, use builtins.
+	* config/locale/generic/c_locale.h: Likewise.
+
+2007-05-21  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31621
+	* acinclude.m4 ([GLIBCXX_CHECK_LINKER_FEATURES]): Use the C compiler.
+	* configure: Regenerate.
+
+2007-05-20  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algo.h: Shuffle the functions to better match the
+	order in the standard.
+
+2007-05-17  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/locale/gnu/c_locale.h: Do not include <libintl.h>.
+	* config/locale/gnu/messages_members.h: Do it here.
+	
+	* config/locale/gnu/c_locale.h: Do not include <cstdio>, use
+	the builtins.
+	* config/locale/generic/c_locale.h: Likewise.
+
+2007-05-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* acinclude.m4 (GLIBCXX_CHECK_COMPILER_FEATURES): Add -g to
+	compile flags, move code to test to global scope.
+	* configure: Regenerate.
+	
+2007-05-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/21_strings/char_traits/requirements/wchar_t/typedefs.cc: 
+	Fix dg bits.
+	* testsuite/21_strings/char_traits/requirements/char/typedefs.cc: Same.
+
+2007-05-17  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algobase.h (mismatch): Move...
+	* include/bits/stl_algo.h: ... here.
+
+2007-05-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/tr1/cmath: Guard special math with
+	__GXX_EXPERIMENTAL_CXX0X__.
+	* testsuite/26_numerics/headers/cmath/types_std_c++0x_neg.cc:
+	Remove xfail.
+
+2007-05-17  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.tcc (__pad<>::_S_pad): Minor tweaks, avoid
+	unnecessary casts, do widenings just in time.
+
+2007-05-16  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* acinclude.m4 (GLIBCXX_CHECK_COMPILER_FEATURES): Add a function
+	to the test code compiled with -ffunction-sections -fdata-sections.
+	* configure: Regenerate.
+
+	* testsuite/22_locale/ctype/scan/wchar_t/1.cc: Remove
+	_GLIBCXX_USE_WCHAR_T guards as superfluous.
+	
+	* testsuite/20_util/make_signed/requirements/typedefs-1.cc: Add
+	_GLIBCXX_USE_WCHAR_T guards.	
+	* testsuite/20_util/make_signed/requirements/typedefs-2.cc: Same.
+	* testsuite/20_util/make_unsigned/requirements/typedefs-1.cc: Same.
+	* testsuite/20_util/make_unsigned/requirements/typedefs-2.cc: Same.
+
+	* testsuite/21_strings/char_traits/requirements/wchar_t/typedefs.cc: 
+	Add.
+	* testsuite/21_strings/char_traits/typedefs/char/1.cc: Move...
+	* testsuite/21_strings/char_traits/requirements/char/typedefs.cc: 
+	...here.
+	* testsuite/21_strings/char_traits/typedefs: Remove.
+	* testsuite/21_strings/char_traits/typedefs/char: Remove.
+	
+2007-05-16  Benjamin Kosnik  <bkoz@redhat.com>	
+
+	* docs/html/abi.html: Update for gcc-4.1.2 and gcc-4.2.0.
+	
+2007-05-14  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	17_hyperg/check_nan.cc: Add -mieee for sh.
+
+2007-05-14  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/util/testsuite_io.h: Only include <ios>.
+
+2007-05-14  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/allocator.h: Do not include cpp_type_traits.h.
+
+2007-05-14  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/postypes.h (class fpos<>): Remove redundant forward
+	declaration.
+
+2007-05-13  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_tempbuf.h (return_temporary_buffer(_Tp*)): Inline.
+
+2007-05-13  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/type_traitsfwd.h: Fix include guard typo.
+
+2007-05-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/pod_char_traits.h (char_traits<>::move):
+	Use __builtin_memmove.
+	* include/bits/locale_classes.h (locale::_Impl::_M_check_same_name,
+	collate_byname(const char*, size_t)): Use __builtin_strcmp.
+	* include/bits/locale_facets.h: Use __builtin_mem* and
+	__builtin_str* everywhere.
+	* include/bits/codecvt.h (codecvt_byname(const char*, size_t)):
+	Use __builtin_strcmp.
+	* include/bits/char_traits.h: Use __builtin_mem* everywhere.
+	* include/bits/fstream.tcc (basic_filebuf<>::underflow, imbue):
+	Use __builtin_memcpy and __builtin_memmove.
+	* include/bits/locale_facets_nonio.h (moneypunct_byname(const char*,
+	size_t __refs)): Use __builtin_strcmp.
+	* include/std/bitset (bitset<>::_M_do_reset): Use __builtin_memset.
+	* config/locale/gnu/c_locale.h: Use __builtin_strlen, __builtin_strcmp,
+	and __builtin_memcpy.
+	* config/locale/gnu/messages_members.h: Likewise.
+	* config/locale/gnu/time_members.h: Likewise.
+	* config/locale/generic/c_locale.h: Likewise.
+	* config/locale/generic/messages_members.h: Likewise.
+	* config/locale/generic/time_members.h: Likewise.
+	* config/os/gnu-linux/ctype_noninline.h: Likewise, avoid strdup.
+	* config/os/tpf/ctype_noninline.h: Likewise.
+	* config/locale/generic/codecvt_members.cc: Include <cstring>. 
+	* config/locale/generic/ctype_members.cc: Likewise.
+	* config/locale/generic/collate_members.cc: Likewise.
+	* config/locale/gnu/c++locale_internal.h: Likewise.
+	* config/locale/darwin/ctype_members.cc: Likewise.
+	* src/ctype.cc: Likewise.
+	* testsuite/19_diagnostics/logic_error/what-1.cc: Likewise.
+	* testsuite/19_diagnostics/logic_error/what-2.cc: Likewise.
+	* testsuite/19_diagnostics/runtime_error/what-1.cc: Likewise.
+	* testsuite/19_diagnostics/runtime_error/what-2.cc: Likewise.
+	* testsuite/19_diagnostics/runtime_error/what-3.cc: Likewise.
+	* config/locale/gnu/messages_members.cc: Avoid strdup.
+	* config/locale/gnu/monetary_members.cc: Likewise.
+	* config/locale/gnu/time_members.cc: Likewise.	
+	* config/locale/gnu/time_members.cc: Likewise.
+	* config/locale/generic/c_locale.cc: Likewise.
+
+2007-05-11  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/stdexcept: Remove extra spacing.
+
+	* testsuite/19_diagnostics/stdexceptions.cc: Break into...
+	* testsuite/19_diagnostics/bad_exception: ...this. Populate.
+	* testsuite/19_diagnostics/logic_error: ... this.
+	* testsuite/19_diagnostics/logic_error/what-1.cc: ...this.
+	* testsuite/19_diagnostics/logic_error/what-2.cc: ...this.
+	* testsuite/19_diagnostics/runtime_error: ...this.
+	* testsuite/19_diagnostics/runtime_error/what-1.cc: ...this.
+	* testsuite/19_diagnostics/runtime_error/what-2.cc: ...this.
+	* testsuite/19_diagnostics/runtime_error/what-3.cc: ...this.
+	* testsuite/19_diagnostics/23591_thread-1.c: Move...
+	* testsuite/19_diagnostics/bad_exception/23591_thread-1.c: ...here.
+
+2007-05-10  Paolo Carlini  <pcarlini@suse.de>
+
+	* 27_io/objects/wchar_t/11.cc: Include <cstring>.
+	* 27_io/objects/wchar_t/10.cc: Likewise.
+	* 27_io/objects/wchar_t/12.cc: Likewise.
+	* 27_io/basic_streambuf/sputbackc/char/9538.cc: Likewise.
+	* 27_io/basic_streambuf/sgetn/char/1.cc: Likewise.
+	* 27_io/basic_streambuf/overflow/char/1.cc: Likewise.
+	* 27_io/basic_streambuf/sgetc/char/1.cc: Likewise.
+	* 27_io/basic_streambuf/sputn/wchar_t/1.cc: Likewise.
+	* 27_io/basic_streambuf/sputn/char/1.cc: Likewise.
+	* 27_io/basic_ios/cons/char/3.cc: Likewise.
+	* 27_io/basic_stringbuf/setbuf/char/2.cc: Likewise.
+	* 27_io/basic_stringbuf/setbuf/char/3.cc: Likewise.
+	* 27_io/basic_stringbuf/setbuf/char/4.cc: Likewise.
+	* 27_io/basic_istream/extractors_character/char/4.cc: Likewise.
+	* 27_io/fpos/mbstate_t/1.cc: Likewise.
+	* 27_io/basic_filebuf/setbuf/char/2.cc: Likewise.
+	* 27_io/basic_filebuf/setbuf/char/3.cc: Likewise.
+	* 25_algorithms/copy/streambuf_iterators/char/2.cc: Likewise.
+	* 25_algorithms/copy/streambuf_iterators/char/4.cc: Likewise.
+	* 19_diagnostics/stdexceptions.cc: Likewise.
+	* 21_strings/char_traits/requirements/short/1.cc: Likewise.
+	* 21_strings/basic_string/compare/char/1.cc: Likewise.
+	* 21_strings/basic_string/capacity/1.cc: Likewise.
+	* ext/codecvt/char-1.cc: Likewise.
+	* ext/codecvt/char-2.cc: Likewise.
+	* ext/codecvt/1.cc: Likewise.
+	* ext/stdio_sync_filebuf/wchar_t/1.cc: Likewise.
+	* ext/stdio_sync_filebuf/char/1.cc: Likewise.
+	* ext/stdio_filebuf/char/2.cc: Likewise.
+	* ext/stdio_filebuf/char/10063-1.cc: Likewise.
+	* 22_locale/ctype/narrow/char/19955.cc: Likewise.
+	* 22_locale/codecvt/unshift/wchar_t/1.cc: Likewise.
+	* 22_locale/codecvt/unshift/wchar_t/2.cc: Likewise.
+	* 22_locale/codecvt/unshift/wchar_t/3.cc: Likewise.
+	* 22_locale/codecvt/unshift/wchar_t/4.cc: Likewise.
+	* 22_locale/codecvt/unshift/char/1.cc: Likewise.
+	* 22_locale/codecvt/length/wchar_t/1.cc: Likewise.
+	* 22_locale/codecvt/length/wchar_t/2.cc: Likewise.
+	* 22_locale/codecvt/length/wchar_t/3.cc: Likewise.
+	* 22_locale/codecvt/length/wchar_t/4.cc: Likewise.
+	* 22_locale/codecvt/length/wchar_t/5.cc: Likewise.
+	* 22_locale/codecvt/length/wchar_t/6.cc: Likewise.
+	* 22_locale/codecvt/length/wchar_t/7.cc: Likewise.
+	* 22_locale/codecvt/always_noconv/char/1.cc: Likewise.
+	* 22_locale/codecvt/encoding/char/1.cc: Likewise.
+	* 22_locale/codecvt/in/wchar_t/1.cc: Likewise.
+	* 22_locale/codecvt/in/wchar_t/2.cc: Likewise.
+	* 22_locale/codecvt/in/wchar_t/3.cc: Likewise.
+	* 22_locale/codecvt/in/wchar_t/4.cc: Likewise.
+	* 22_locale/codecvt/in/wchar_t/5.cc: Likewise.
+	* 22_locale/codecvt/in/wchar_t/6.cc: Likewise.
+	* 22_locale/codecvt/in/wchar_t/7.cc: Likewise.
+	* 22_locale/codecvt/in/wchar_t/8.cc: Likewise.
+	* 22_locale/codecvt/in/wchar_t/9.cc: Likewise.
+	* 22_locale/codecvt/in/char/1.cc: Likewise.
+	* 22_locale/codecvt/max_length/char/1.cc: Likewise.
+	* 22_locale/codecvt/out/wchar_t/1.cc: Likewise.
+	* 22_locale/codecvt/out/wchar_t/2.cc: Likewise.
+	* 22_locale/codecvt/out/wchar_t/3.cc: Likewise.
+	* 22_locale/codecvt/out/wchar_t/4.cc: Likewise.
+	* 22_locale/codecvt/out/wchar_t/5.cc: Likewise.
+	* 22_locale/codecvt/out/wchar_t/6.cc: Likewise.
+	* 22_locale/codecvt/out/wchar_t/7.cc: Likewise.
+	* 22_locale/codecvt/out/char/1.cc: Likewise.
+	* 22_locale/locale/cons/5.cc: Likewise.
+	* 22_locale/collate_byname/named_equivalence.cc: Likewise.
+
+2007-05-07  Mark Mitchell  <mark@codesourcery.com>
+
+	* libstdc++-v3/libsupc++/cxxabi.h (_GLIBCXX_NOTHROW): New macro.
+	(__cxa_atexit): Use it.
+
+	* testsuite/lib/libstdc++.exp (v3_target_compile_as_c): For
+	installed-tree testing, search more include directories.
+
+2007-05-08  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/type_traits (make_signed): Remove specializations
+	for floating point types.
+	(make_unsigned): Same.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Fix.
+	* testsuite/20_util/make_signed/requirements/typedefs-1.cc: Same.
+	* testsuite/20_util/make_signed/requirements/typedefs-2.cc: Same.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc: Same.
+	* testsuite/20_util/make_unsigned/requirements/typedefs-1.cc: Same.
+	* testsuite/20_util/make_unsigned/requirements/typedefs-2.cc: Same.
+	
+2007-05-08  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/26_numerics/headers/cmath/types_std_c++0x_neg.cc: New.
+
+2007-05-08  Jason Merrill  <jason@redhat.com>
+
+	* libsupc++/cxxabi-internal.h: Remove, to be replaced by...
+	* libsupc++/cxxabi-forced.h: ...this new file.
+	* include/ext/vstring.tcc: Include cxxabi-forced.h instead.
+	* include/bits/istream.tcc: Likewise.
+	* include/bits/ostream.tcc: Likewise.
+	* include/bits/basic_string.tcc: Likewise.
+	* include/bits/ostream_insert.h: Likewise.
+	* include/bits/fstream.tcc: Likewise.
+	* include/std/bitset: Likewise.
+	* libsupc++/cxxabi.h: Restore previous contents.
+	* Makefile.am (headers): Add cxxabi-forced.h.
+	* Makefile.in: Regenerate.
+
+2007-05-08  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/util/testsuite_abi.cc: Add CXXABI_1.3.2.
+
+	* libsupc++/cxxabi-internal.h (__foreign_exception::__pure): To
+	__pure_virtual.
+
+2007-05-07  Jason Merrill  <jason@redhat.com>
+
+	* include/bits/ostream.tcc (operator<<(char*)): Add __s.
+
+	* config/abi/pre/gnu.ver: Fix symbol versions.
+	* config/abi/pre/gnu-versioned-namespace.ver: Likewise.
+
+2007-05-07  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* config/os/mingw32/os_defines.h (NOMINMAX): Update comment.
+
+2007-05-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28145
+	* libsupc++/cxxabi.h (__forced_unwind, __foreign_exception):
+	New classes.
+	* libsupc++/eh_exception.cc: Define their destructors.
+	* config/abi/pre/gnu.ver: Export their type_infos.
+	* config/abi/pre/gnu-versioned-namespace.ver: Likewise.
+	* libsupc++/eh_personality.cc: A handler for abi::__forced_unwind
+	matches a forced unwind, and a handler for abi::__foreign_exception
+	matches a foreign exception.
+	
+	* include/bits/istream.tcc: Rethrow forced unwind.
+	* include/bits/ostream.tcc: Likewise.
+	* include/bits/ostream_insert.h: Likewise.
+	* include/bits/basic_string.tcc (operator>>, getline): Likewise.
+	* include/bits/fstream.tcc (basic_filebuf::close): Likewise.
+	* include/ext/vstring.cc (operator>>, getline): Likewise.
+	* src/istream.cc: Likewise.
+	* src/compatibility.cc (basic_istream::ignore): Likewise.
+	* include/std/bitset (operator>>): Likewise.
+	* include/std/fstream (basic_filebuf::close): Remove throw() spec.
+	* libsupc++/cxxabi-internal.h: Split out from...
+	* libsupc++/cxxabi.h: ...here.
+
+2007-05-07  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algobase.h: Do not include <cstring>.
+	(copy(const _Tp*, const _Tp*, _Tp*), __copy_b(const _Tp*, const _Tp*,
+	_Tp*)): Use __builtin_memmove.
+	(__fill_aux): Use __builtin_memset.
+	(equal(const _Tp*, const _Tp*, const _Tp*),
+	lexicographical_compare(const unsigned char*, const unsigned char*,
+	const unsigned char*, const unsigned char*)): Use __builtin_memcmp.
+	* include/bits/valarray_array.h: Do not include <cstring>.
+	(_Array_default_ctor<, true>::_S_do_it): Use __builtin_memset.
+	(_Array_copy_ctor<, true>::_S_do_it, _Array_copier<, true>::_S_do_it):
+	Use __builtin_memcpy.
+	* include/ext/algorithm
+	(__lexicographical_compare_3way(const unsigned char*,
+	const unsigned char*, const unsigned char*, const unsigned char*)):
+	Use __builtin_memcmp.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Adjust dg-error line number.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2007-05-07  Mark Mitchell  <mark@codesourcery.com>
+
+	* testsuite/lib/libstdc++.exp (v3_target_compile_as_c): For
+	installed-tree testing, search more include directories.
+
+	* testsuite/22_locale/num_put/put/char/14220.cc: XFAIL on Solaris
+	2.10.
+	* testsuite/22_locale/num_put/put/wchar_t/14220.cc: Likewise.
+
+	* testsuite/lib/libstdc++.exp (v3_target_compile_as_c): In
+	installed-tree testing, use "remote_exec host", not "remote_exec
+	exec".  Trip trailing newlines from output of -dumpversion and
+	-dumpmachine.
+
+2007-05-07  Benjamin Kosnik  <bkoz@redhat.com>
+            Howard Hinnant  <hhinnant@apple.com>
+
+	* include/std/type_traits: (make_signed, make_unsigned): Adjust
+	for enum sizes.	
+	* testsuite/20_util/make_unsigned/requirements/typedefs.cc: Move to...
+	* testsuite/20_util/make_unsigned/requirements/typedefs-1.cc: ...here.
+	* testsuite/20_util/make_unsigned/requirements/typedefs-2.cc: Add,
+	compile with -funsigned-char -fshort-enums.
+	* testsuite/20_util/make_signed/requirements/typedefs.cc: Move to...
+	* testsuite/20_util/make_signed/requirements/typedefs-1.cc: ...here.
+	* testsuite/20_util/make_signed/requirements/typedefs-2.cc: Add,
+	compile with -funsigned-char -fshort-enums.
+
+	* testsuite/20_util/headers/type_traits/types_std_c++0x_neg.cc:
+	Add a temporary xfail to this test for all platforms.
+	
+2007-05-06  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/std/complex: Add missing extern template declarations.
+	* testsuite/26_numerics/complex/complex_inserters_extractors.cc:
+	Move...
+	* testsuite/26_numerics/complex/inserters_extractors/char/1.cc:
+	... here.
+	* testsuite/26_numerics/complex/inserters_extractors/wchar_t/1.cc:
+	New.
+
+2007-05-06  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31834
+	* testsuite/17_intro/headers/c++200x/all.cc: Protect inclusion
+	of C99 headers.
+	* testsuite/17_intro/headers/c++200x/all_multiple_inclusion.cc:
+	Likewise.
+
+2007-05-06  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/locale/generic/c_locale.cc: Don't use __builtin_huge_val*
+	when __*_HAS_INFINITY__ is false.
+
+2007-05-04  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_raw_storage_iter.h (class raw_storage_iterator):
+	Adjust template parameter name.
+
+2007-05-04  Mark Mitchell  <mark@codesourcery.com>
+
+	* libsupc++/cxxabi.h (__cxa_atexit): Conditionalize exception
+	specification on #ifdef __cplusplus.
+	
+2007-05-04  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_memory.h: Rename to stl_auto_ptr.h.
+	(__get_temporary_buffer, get_temporary_buffer,
+	return_temporary_buffer): Move...
+	* include/bits/stl_tempbuf.h: ... here.
+	* include/std/memory: Adjust includes.
+	* testsuite/20_util/auto_ptr/assign_neg.cc: Adjust dg-error line
+	numbers.
+	* include/Makefile.am: Adjust.
+	* include/Makefile.in: Regenerate.
+
+	* testsuite/util/testsuite_iterators.h: Do not include the entire
+	<iterator>.
+	* include/bits/stl_iterator_base_types.h: Adjust includes.
+	* testsuite/25_algorithms/unique_copy/2.cc: Include <functional>.
+
+2007-05-04  Mark Mitchell  <mark@codesourcery.com>
+
+	* libsupc++/atexit_arm.cc: New file.
+	* libsupc++/vec.cc (__aeabi_atexit): Remove.
+	* libsupc++/cxxabi.h (__cxa_atexit): Add exception specification.
+
+	* libsupc++/Makefile.am: Add atexit_arm.cc.
+	* libsupc++/Makefile.in: Regenerated.
+
+2007-05-04  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_construct.h (_Destroy(_ForwardIterator,
+	_ForwardIterator __last, _Allocator)): Change the last parameter
+	to _Allocator&.
+	* include/bits/stl_uninitialized.h (__uninitialized_copy_a,
+	__uninitialized_fill_a, __uninitialized_fill_n_a,
+	__uninitialized_fill_copy, __uninitialized_copy_fill,
+	__uninitialized_copy_copy): Likewise.
+	* include/ext/rope: Adjust everywhere.
+	* include/ext/ropeimpl.h: Likewise.
+
+2007-05-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/type_traits (enable_if): New.
+	(conditional): New.
+	(__decay_selector, decay): New.
+	(__cv_selector, __match_cv_qualifiers): New.
+	(__make_unsigned, __make_unsigned_selector, make_unsigned): New.
+	(__make_signed, __make_signed_selector, make_signed): New.
+	(has_trivial_constructor): ... to has_trivial_default_constructor.
+	(has_nothrow_constructor): ... to has_nothrow_default_constructor.
+	(has_trivial_copy): ... to has_trivial_copy_constructor.
+	(has_nothrow_copy): ... to has_nothrow_copy_constructor.
+
+	* include/tr1/type_traits_fwd: Move to...
+	* include/tr1/type_traitsfwd: ... this, consistency with
+	ios/string/locale forward headers.
+	* include/tr1/type_traits: Adjust include.	
+	* include/Makefile.am (tr1_headers): Change type_traits_fwd.h to
+	type_traitsfwd.h.
+	* include/Makefile.in: Regenerate.
+
+	* testsuite/23_containers/tuple: Move...
+	* testsuite/20_util/tuple:... here.
+
+	* testsuite/20_util/conditional: New.
+	* testsuite/20_util/conditional/requirements: Same.
+	* testsuite/20_util/conditional/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/conditional/requirements/typedefs.cc: Same.
+	* testsuite/20_util/decay: Same.
+	* testsuite/20_util/decay/requirements: Same.
+	* testsuite/20_util/decay/requirements/explicit_instantiation.cc: Same.
+	* testsuite/20_util/decay/requirements/typedefs.cc: Same.
+	* testsuite/20_util/enable_if: Same.
+	* testsuite/20_util/enable_if/requirements: Same.
+	* testsuite/20_util/enable_if/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/enable_if/requirements/typedefs.cc: Same.
+	* testsuite/20_util/enable_if/requirements/typedefs_neg.cc: Same.
+	* testsuite/20_util/has_nothrow_copy_constructor: Same.
+	* testsuite/20_util/has_nothrow_copy_constructor/requirements: Same.
+	* testsuite/20_util/has_nothrow_copy_constructor/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/has_nothrow_copy_constructor/requirements/
+	typedefs.cc: Same.
+	* testsuite/20_util/has_nothrow_copy_constructor/value.cc: Same.
+	* testsuite/20_util/has_nothrow_default_constructor: Same.
+	* testsuite/20_util/has_nothrow_default_constructor/requirements: Same.
+	* testsuite/20_util/has_nothrow_default_constructor/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/has_nothrow_default_constructor/requirements/
+	typedefs.cc: Same.
+	* testsuite/20_util/has_nothrow_default_constructor/value.cc: Same.
+	* testsuite/20_util/has_trivial_copy_constructor: Same.
+	* testsuite/20_util/has_trivial_copy_constructor/requirements: Same.
+	* testsuite/20_util/has_trivial_copy_constructor/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/has_trivial_copy_constructor/requirements/
+	typedefs.cc: Same.
+	* testsuite/20_util/has_trivial_copy_constructor/value.cc: Same.
+	* testsuite/20_util/has_trivial_default_constructor: Same.
+	* testsuite/20_util/has_trivial_default_constructor/requirements: Same.
+	* testsuite/20_util/has_trivial_default_constructor/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/has_trivial_default_constructor/requirements/
+	typedefs.cc: Same.
+	* testsuite/20_util/has_trivial_default_constructor/value.cc: Same.
+	* testsuite/20_util/headers/type_traits/types_std_c++0x_neg.cc: Same.
+	* testsuite/20_util/make_signed: Same.
+	* testsuite/20_util/make_signed/requirements: Same.
+	* testsuite/20_util/make_signed/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/make_signed/requirements/typedefs.cc: Same.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Same.
+	* testsuite/20_util/make_unsigned: Same.
+	* testsuite/20_util/make_unsigned/requirements: Same.
+	* testsuite/20_util/make_unsigned/requirements/
+	explicit_instantiation.cc: Same.
+	* testsuite/20_util/make_unsigned/requirements/typedefs.cc: Same.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc: Same.
+	
+2007-05-02  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31777
+	* include/ext/pool_allocator.h (__pool_alloc<>::allocate,
+	__pool_alloc<>::deallocate): Fix _S_force_new check.
+
+2007-05-01  Benjamin Kosnik  <bkoz@redhat.com>
+	
+	* 23_containers/requirements/sequences/dr438/deque/*: Move to...
+	* 23_containers/deque/requirements/dr438: ...here.
+	
+	* 23_containers/requirements/sequences/dr438/list/*: Move to...
+	* 23_containers/list/requirements/dr438: ...here.
+	
+	* 23_containers/requirements/sequences/dr438/vector/*: Move to...
+	* 23_containers/vector/requirements/dr438: ...here.
+
+2007-05-01  Benjamin Kosnik  <bkoz@redhat.com>
+	
+	* testsuite/*/explicit_instantiations.cc: Change to...
+	* testsuite/*/explicit_instantiation.cc: ... this.
+
+2007-05-01  Benjamin Kosnik  <bkoz@redhat.com>
+	
+	* testsuite/tr1/4_metaprogramming/*/explicit_instantiations.cc: Change
+	"basic_ofstream" in comment to type_traits.
+
+2007-04-30  Benjamin Kosnik  <bkoz@redhat.com>
+
+	Directory layout flattening.
+
+	Added in testsuite:
+	* tr1/4_metaprogramming/add_const
+	* tr1/4_metaprogramming/add_const/requirements
+	* tr1/4_metaprogramming/add_const/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/add_const/requirements/typedefs.cc
+	* tr1/4_metaprogramming/add_cv
+	* tr1/4_metaprogramming/add_cv/requirements
+	* tr1/4_metaprogramming/add_cv/requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/add_cv/requirements/typedefs.cc
+	* tr1/4_metaprogramming/add_pointer
+	* tr1/4_metaprogramming/add_pointer/requirements
+	* tr1/4_metaprogramming/add_pointer/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/add_pointer/requirements/typedefs.cc
+	* tr1/4_metaprogramming/add_reference
+	* tr1/4_metaprogramming/add_reference/requirements
+	* tr1/4_metaprogramming/add_reference/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/add_reference/requirements/typedefs.cc
+	* tr1/4_metaprogramming/add_volatile
+	* tr1/4_metaprogramming/add_volatile/requirements
+	* tr1/4_metaprogramming/add_volatile/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/add_volatile/requirements/typedefs.cc
+	* tr1/4_metaprogramming/aligned_storage
+	* tr1/4_metaprogramming/aligned_storage/requirements
+	* tr1/4_metaprogramming/aligned_storage/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/aligned_storage/requirements/typedefs.cc
+	* tr1/4_metaprogramming/alignment_of
+	* tr1/4_metaprogramming/alignment_of/requirements
+	* tr1/4_metaprogramming/alignment_of/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/alignment_of/requirements/typedefs.cc
+	* tr1/4_metaprogramming/alignment_of/value.cc
+	* tr1/4_metaprogramming/extent
+	* tr1/4_metaprogramming/extent/requirements
+	* tr1/4_metaprogramming/extent/requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/extent/requirements/typedefs.cc
+	* tr1/4_metaprogramming/extent/value.cc
+	* tr1/4_metaprogramming/has_nothrow_assign
+	* tr1/4_metaprogramming/has_nothrow_assign/requirements
+	* tr1/4_metaprogramming/has_nothrow_assign/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/has_nothrow_assign/requirements/typedefs.cc
+	* tr1/4_metaprogramming/has_nothrow_assign/value.cc
+	* tr1/4_metaprogramming/has_nothrow_constructor
+	* tr1/4_metaprogramming/has_nothrow_constructor/requirements
+	* tr1/4_metaprogramming/has_nothrow_constructor/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/has_nothrow_constructor/
+	requirements/typedefs.cc
+	* tr1/4_metaprogramming/has_nothrow_constructor/value.cc
+	* tr1/4_metaprogramming/has_nothrow_copy
+	* tr1/4_metaprogramming/has_nothrow_copy/requirements
+	* tr1/4_metaprogramming/has_nothrow_copy/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/has_nothrow_copy/requirements/typedefs.cc
+	* tr1/4_metaprogramming/has_nothrow_copy/value.cc
+	* tr1/4_metaprogramming/has_trivial_assign
+	* tr1/4_metaprogramming/has_trivial_assign/requirements
+	* tr1/4_metaprogramming/has_trivial_assign/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/has_trivial_assign/requirements/typedefs.cc
+	* tr1/4_metaprogramming/has_trivial_assign/value.cc
+	* tr1/4_metaprogramming/has_trivial_constructor
+	* tr1/4_metaprogramming/has_trivial_constructor/requirements
+	* tr1/4_metaprogramming/has_trivial_constructor/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/has_trivial_constructor/
+	requirements/typedefs.cc
+	* tr1/4_metaprogramming/has_trivial_constructor/value.cc
+	* tr1/4_metaprogramming/has_trivial_copy
+	* tr1/4_metaprogramming/has_trivial_copy/requirements
+	* tr1/4_metaprogramming/has_trivial_copy/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/has_trivial_copy/requirements/typedefs.cc
+	* tr1/4_metaprogramming/has_trivial_copy/value.cc
+	* tr1/4_metaprogramming/has_trivial_destructor
+	* tr1/4_metaprogramming/has_trivial_destructor/requirements
+	* tr1/4_metaprogramming/has_trivial_destructor/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/has_trivial_destructor/requirements/typedefs.cc
+	* tr1/4_metaprogramming/has_trivial_destructor/value.cc
+	* tr1/4_metaprogramming/has_virtual_destructor
+	* tr1/4_metaprogramming/has_virtual_destructor/requirements
+	* tr1/4_metaprogramming/has_virtual_destructor/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/has_virtual_destructor/requirements/typedefs.cc
+	* tr1/4_metaprogramming/has_virtual_destructor/value.cc
+	* tr1/4_metaprogramming/integral_constant
+	* tr1/4_metaprogramming/integral_constant/requirements
+	* tr1/4_metaprogramming/integral_constant/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/integral_constant/requirements/typedefs.cc
+	* tr1/4_metaprogramming/integral_constant/true_false_value.cc
+	* tr1/4_metaprogramming/is_abstract
+	* tr1/4_metaprogramming/is_abstract/requirements
+	* tr1/4_metaprogramming/is_abstract/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_abstract/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_abstract/value.cc
+	* tr1/4_metaprogramming/is_arithmetic
+	* tr1/4_metaprogramming/is_arithmetic/requirements
+	* tr1/4_metaprogramming/is_arithmetic/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_arithmetic/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_arithmetic/value.cc
+	* tr1/4_metaprogramming/is_array
+	* tr1/4_metaprogramming/is_array/requirements
+	* tr1/4_metaprogramming/is_array/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_array/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_array/value.cc
+	* tr1/4_metaprogramming/is_base_of
+	* tr1/4_metaprogramming/is_base_of/requirements
+	* tr1/4_metaprogramming/is_base_of/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_base_of/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_base_of/value.cc
+	* tr1/4_metaprogramming/is_class
+	* tr1/4_metaprogramming/is_class/requirements
+	* tr1/4_metaprogramming/is_class/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_class/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_class/value.cc
+	* tr1/4_metaprogramming/is_compound
+	* tr1/4_metaprogramming/is_compound/requirements
+	* tr1/4_metaprogramming/is_compound/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_compound/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_compound/value.cc
+	* tr1/4_metaprogramming/is_const
+	* tr1/4_metaprogramming/is_const/requirements
+	* tr1/4_metaprogramming/is_const/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_const/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_const/value.cc
+	* tr1/4_metaprogramming/is_convertible
+	* tr1/4_metaprogramming/is_convertible/requirements
+	* tr1/4_metaprogramming/is_convertible/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_convertible/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_convertible/value.cc
+	* tr1/4_metaprogramming/is_empty
+	* tr1/4_metaprogramming/is_empty/requirements
+	* tr1/4_metaprogramming/is_empty/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_empty/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_empty/value.cc
+	* tr1/4_metaprogramming/is_enum
+	* tr1/4_metaprogramming/is_enum/requirements
+	* tr1/4_metaprogramming/is_enum/requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_enum/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_enum/value.cc
+	* tr1/4_metaprogramming/is_floating_point
+	* tr1/4_metaprogramming/is_floating_point/requirements
+	* tr1/4_metaprogramming/is_floating_point/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_floating_point/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_floating_point/value.cc
+	* tr1/4_metaprogramming/is_function
+	* tr1/4_metaprogramming/is_function/requirements
+	* tr1/4_metaprogramming/is_function/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_function/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_function/value.cc
+	* tr1/4_metaprogramming/is_fundamental
+	* tr1/4_metaprogramming/is_fundamental/requirements
+	* tr1/4_metaprogramming/is_fundamental/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_fundamental/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_fundamental/value.cc
+	* tr1/4_metaprogramming/is_integral
+	* tr1/4_metaprogramming/is_integral/requirements
+	* tr1/4_metaprogramming/is_integral/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_integral/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_integral/value.cc
+	* tr1/4_metaprogramming/is_member_function_pointer
+	* tr1/4_metaprogramming/is_member_function_pointer/requirements
+	* tr1/4_metaprogramming/is_member_function_pointer/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_member_function_pointer/
+	requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_member_function_pointer/value.cc
+	* tr1/4_metaprogramming/is_member_object_pointer
+	* tr1/4_metaprogramming/is_member_object_pointer/requirements
+	* tr1/4_metaprogramming/is_member_object_pointer/
+	requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_member_object_pointer/
+	requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_member_object_pointer/value.cc
+	* tr1/4_metaprogramming/is_member_pointer
+	* tr1/4_metaprogramming/is_member_pointer/requirements
+	* tr1/4_metaprogramming/is_member_pointer/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_member_pointer/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_member_pointer/value.cc
+	* tr1/4_metaprogramming/is_object
+	* tr1/4_metaprogramming/is_object/requirements
+	* tr1/4_metaprogramming/is_object/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_object/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_object/value.cc
+	* tr1/4_metaprogramming/is_pod
+	* tr1/4_metaprogramming/is_pod/requirements
+	* tr1/4_metaprogramming/is_pod/requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_pod/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_pod/value.cc
+	* tr1/4_metaprogramming/is_pointer
+	* tr1/4_metaprogramming/is_pointer/requirements
+	* tr1/4_metaprogramming/is_pointer/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_pointer/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_pointer/value.cc
+	* tr1/4_metaprogramming/is_polymorphic
+	* tr1/4_metaprogramming/is_polymorphic/requirements
+	* tr1/4_metaprogramming/is_polymorphic/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_polymorphic/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_polymorphic/value.cc
+	* tr1/4_metaprogramming/is_reference
+	* tr1/4_metaprogramming/is_reference/requirements
+	* tr1/4_metaprogramming/is_reference/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_reference/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_reference/value.cc
+	* tr1/4_metaprogramming/is_same
+	* tr1/4_metaprogramming/is_same/requirements
+	* tr1/4_metaprogramming/is_same/requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_same/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_same/value.cc
+	* tr1/4_metaprogramming/is_scalar
+	* tr1/4_metaprogramming/is_scalar/requirements
+	* tr1/4_metaprogramming/is_scalar/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_scalar/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_scalar/value.cc
+	* tr1/4_metaprogramming/is_signed
+	* tr1/4_metaprogramming/is_signed/requirements
+	* tr1/4_metaprogramming/is_signed/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_signed/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_signed/value.cc
+	* tr1/4_metaprogramming/is_union
+	* tr1/4_metaprogramming/is_union/requirements
+	* tr1/4_metaprogramming/is_union/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_union/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_union/value.cc
+	* tr1/4_metaprogramming/is_unsigned
+	* tr1/4_metaprogramming/is_unsigned/requirements
+	* tr1/4_metaprogramming/is_unsigned/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_unsigned/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_unsigned/value.cc
+	* tr1/4_metaprogramming/is_void
+	* tr1/4_metaprogramming/is_void/requirements
+	* tr1/4_metaprogramming/is_void/requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_void/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_void/value.cc
+	* tr1/4_metaprogramming/is_volatile
+	* tr1/4_metaprogramming/is_volatile/requirements
+	* tr1/4_metaprogramming/is_volatile/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/is_volatile/requirements/typedefs.cc
+	* tr1/4_metaprogramming/is_volatile/value.cc
+	* tr1/4_metaprogramming/rank
+	* tr1/4_metaprogramming/rank/requirements
+	* tr1/4_metaprogramming/rank/requirements/explicit_instantiations.cc
+	* tr1/4_metaprogramming/rank/requirements/typedefs.cc
+	* tr1/4_metaprogramming/rank/value.cc
+	* tr1/4_metaprogramming/remove_all_extents
+	* tr1/4_metaprogramming/remove_all_extents/requirements
+	* tr1/4_metaprogramming/remove_all_extents/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/remove_all_extents/value.cc
+	* tr1/4_metaprogramming/remove_const
+	* tr1/4_metaprogramming/remove_const/requirements
+	* tr1/4_metaprogramming/remove_const/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/remove_const/value.cc
+	* tr1/4_metaprogramming/remove_cv
+	* tr1/4_metaprogramming/remove_cv/requirements
+	* tr1/4_metaprogramming/remove_cv/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/remove_cv/value.cc
+	* tr1/4_metaprogramming/remove_extent
+	* tr1/4_metaprogramming/remove_extent/requirements
+	* tr1/4_metaprogramming/remove_extent/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/remove_extent/value.cc
+	* tr1/4_metaprogramming/remove_pointer
+	* tr1/4_metaprogramming/remove_pointer/requirements
+	* tr1/4_metaprogramming/remove_pointer/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/remove_pointer/value.cc
+	* tr1/4_metaprogramming/remove_reference
+	* tr1/4_metaprogramming/remove_reference/requirements
+	* tr1/4_metaprogramming/remove_reference/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/remove_reference/value.cc
+	* tr1/4_metaprogramming/remove_volatile
+	* tr1/4_metaprogramming/remove_volatile/requirements
+	* tr1/4_metaprogramming/remove_volatile/requirements/
+	explicit_instantiations.cc
+	* tr1/4_metaprogramming/remove_volatile/value.cc
+
+	Deleted in testsuite:	
+	* tr1/4_metaprogramming/alignment_of/alignment_of.cc
+	* tr1/4_metaprogramming/alignment_of/typedefs.cc
+	* tr1/4_metaprogramming/array_modifications
+	* tr1/4_metaprogramming/array_modifications/remove_all_extents.cc
+	* tr1/4_metaprogramming/array_modifications/remove_extent.cc
+	* tr1/4_metaprogramming/composite_type_traits
+	* tr1/4_metaprogramming/composite_type_traits/is_arithmetic
+	* tr1/4_metaprogramming/composite_type_traits/is_arithmetic/
+	is_arithmetic.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_arithmetic/typedefs.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_compound
+	* tr1/4_metaprogramming/composite_type_traits/is_compound/
+	is_compound.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_compound/typedefs.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_fundamental
+	* tr1/4_metaprogramming/composite_type_traits/is_fundamental/
+	is_fundamental.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_fundamental/
+	typedefs.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_member_pointer
+	* tr1/4_metaprogramming/composite_type_traits/is_member_pointer/
+	is_member_pointer.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_member_pointer/
+	typedefs.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_object
+	* tr1/4_metaprogramming/composite_type_traits/is_object/24808.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_object/is_object.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_object/typedefs.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_scalar
+	* tr1/4_metaprogramming/composite_type_traits/is_scalar/is_scalar.cc
+	* tr1/4_metaprogramming/composite_type_traits/is_scalar/typedefs.cc
+	* tr1/4_metaprogramming/const_volatile_modifications
+	* tr1/4_metaprogramming/const_volatile_modifications/add_const.cc
+	* tr1/4_metaprogramming/const_volatile_modifications/add_cv.cc
+	* tr1/4_metaprogramming/const_volatile_modifications/add_volatile.cc
+	* tr1/4_metaprogramming/const_volatile_modifications/remove_const.cc
+	* tr1/4_metaprogramming/const_volatile_modifications/remove_cv.cc
+	* tr1/4_metaprogramming/const_volatile_modifications/remove_volatile.cc
+	* tr1/4_metaprogramming/extent/extent.cc
+	* tr1/4_metaprogramming/extent/typedefs.cc
+	* tr1/4_metaprogramming/has_nothrow_assign/has_nothrow_assign.cc
+	* tr1/4_metaprogramming/has_nothrow_assign/typedefs.cc
+	* tr1/4_metaprogramming/has_nothrow_constructor/
+	has_nothrow_constructor.cc
+	* tr1/4_metaprogramming/has_nothrow_constructor/typedefs.cc
+	* tr1/4_metaprogramming/has_nothrow_copy/has_nothrow_copy.cc
+	* tr1/4_metaprogramming/has_nothrow_copy/typedefs.cc
+	* tr1/4_metaprogramming/has_trivial_assign/has_trivial_assign.cc
+	* tr1/4_metaprogramming/has_trivial_assign/typedefs.cc
+	* tr1/4_metaprogramming/has_trivial_constructor/
+	has_trivial_constructor.cc
+	* tr1/4_metaprogramming/has_trivial_constructor/typedefs.cc
+	* tr1/4_metaprogramming/has_trivial_copy/has_trivial_copy.cc
+	* tr1/4_metaprogramming/has_trivial_copy/typedefs.cc
+	* tr1/4_metaprogramming/has_trivial_destructor/
+	has_trivial_destructor.cc
+	* tr1/4_metaprogramming/has_trivial_destructor/typedefs.cc
+	* tr1/4_metaprogramming/has_virtual_destructor/
+	has_virtual_destructor.cc
+	* tr1/4_metaprogramming/has_virtual_destructor/typedefs.cc
+	* tr1/4_metaprogramming/helper_classes
+	* tr1/4_metaprogramming/helper_classes/static_definition.cc
+	* tr1/4_metaprogramming/helper_classes/true_false_type.cc
+	* tr1/4_metaprogramming/helper_classes/true_false_type_typedefs.cc
+	* tr1/4_metaprogramming/helper_classes/typedefs.cc
+	* tr1/4_metaprogramming/integral_constant/true_false_type.cc
+	* tr1/4_metaprogramming/integral_constant/typedefs.cc
+	* tr1/4_metaprogramming/is_abstract/is_abstract.cc
+	* tr1/4_metaprogramming/is_abstract/typedefs.cc
+	* tr1/4_metaprogramming/is_arithmetic/is_arithmetic.cc
+	* tr1/4_metaprogramming/is_arithmetic/typedefs.cc
+	* tr1/4_metaprogramming/is_array/is_array.cc
+	* tr1/4_metaprogramming/is_array/typedefs.cc
+	* tr1/4_metaprogramming/is_base_of/is_base_of.cc
+	* tr1/4_metaprogramming/is_base_of/typedefs.cc
+	* tr1/4_metaprogramming/is_class/is_class.cc
+	* tr1/4_metaprogramming/is_class/typedefs.cc
+	* tr1/4_metaprogramming/is_compound/is_compound.cc
+	* tr1/4_metaprogramming/is_compound/typedefs.cc
+	* tr1/4_metaprogramming/is_const/is_const.cc
+	* tr1/4_metaprogramming/is_const/typedefs.cc
+	* tr1/4_metaprogramming/is_convertible/is_convertible.cc
+	* tr1/4_metaprogramming/is_convertible/typedefs.cc
+	* tr1/4_metaprogramming/is_empty/is_empty.cc
+	* tr1/4_metaprogramming/is_empty/typedefs.cc
+	* tr1/4_metaprogramming/is_enum/is_enum.cc
+	* tr1/4_metaprogramming/is_enum/typedefs.cc
+	* tr1/4_metaprogramming/is_floating_point/is_floating_point.cc
+	* tr1/4_metaprogramming/is_floating_point/typedefs.cc
+	* tr1/4_metaprogramming/is_function/is_function.cc
+	* tr1/4_metaprogramming/is_function/typedefs.cc
+	* tr1/4_metaprogramming/is_fundamental/is_fundamental.cc
+	* tr1/4_metaprogramming/is_fundamental/typedefs.cc
+	* tr1/4_metaprogramming/is_integral/is_integral.cc
+	* tr1/4_metaprogramming/is_integral/typedefs.cc
+	* tr1/4_metaprogramming/is_member_function_pointer/
+	is_member_function_pointer.cc
+	* tr1/4_metaprogramming/is_member_function_pointer/typedefs.cc
+	* tr1/4_metaprogramming/is_member_object_pointer/
+	is_member_object_pointer.cc
+	* tr1/4_metaprogramming/is_member_object_pointer/typedefs.cc
+	* tr1/4_metaprogramming/is_member_pointer/is_member_pointer.cc
+	* tr1/4_metaprogramming/is_member_pointer/typedefs.cc
+	* tr1/4_metaprogramming/is_object/is_object.cc
+	* tr1/4_metaprogramming/is_object/typedefs.cc
+	* tr1/4_metaprogramming/is_pod/is_pod.cc
+	* tr1/4_metaprogramming/is_pod/typedefs.cc
+	* tr1/4_metaprogramming/is_pointer/is_pointer.cc
+	* tr1/4_metaprogramming/is_pointer/typedefs.cc
+	* tr1/4_metaprogramming/is_polymorphic/is_polymorphic.cc
+	* tr1/4_metaprogramming/is_polymorphic/typedefs.cc
+	* tr1/4_metaprogramming/is_reference/is_reference.cc
+	* tr1/4_metaprogramming/is_reference/typedefs.cc
+	* tr1/4_metaprogramming/is_same/is_same.cc
+	* tr1/4_metaprogramming/is_same/typedefs.cc
+	* tr1/4_metaprogramming/is_scalar/is_scalar.cc
+	* tr1/4_metaprogramming/is_scalar/typedefs.cc
+	* tr1/4_metaprogramming/is_signed/is_signed.cc
+	* tr1/4_metaprogramming/is_signed/typedefs.cc
+	* tr1/4_metaprogramming/is_union/is_union.cc
+	* tr1/4_metaprogramming/is_union/typedefs.cc
+	* tr1/4_metaprogramming/is_unsigned/is_unsigned.cc
+	* tr1/4_metaprogramming/is_unsigned/typedefs.cc
+	* tr1/4_metaprogramming/is_void/is_void.cc
+	* tr1/4_metaprogramming/is_void/typedefs.cc
+	* tr1/4_metaprogramming/is_volatile/is_volatile.cc
+	* tr1/4_metaprogramming/is_volatile/typedefs.cc
+	* tr1/4_metaprogramming/other_transformations
+	* tr1/4_metaprogramming/other_transformations/aligned_storage
+	* tr1/4_metaprogramming/other_transformations/aligned_storage/
+	aligned_storage.cc
+	* tr1/4_metaprogramming/other_transformations/aligned_storage/
+	typedefs.cc
+	* tr1/4_metaprogramming/pointer_modifications
+	* tr1/4_metaprogramming/pointer_modifications/add_pointer.cc
+	* tr1/4_metaprogramming/pointer_modifications/remove_pointer.cc
+	* tr1/4_metaprogramming/primary_type_categories
+	* tr1/4_metaprogramming/primary_type_categories/is_array
+	* tr1/4_metaprogramming/primary_type_categories/is_array/is_array.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_array/typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_class
+	* tr1/4_metaprogramming/primary_type_categories/is_class/is_class.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_class/typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_enum
+	* tr1/4_metaprogramming/primary_type_categories/is_enum/24808.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_enum/is_enum.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_enum/typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_floating_point
+	* tr1/4_metaprogramming/primary_type_categories/is_floating_point/
+	is_floating_point.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_floating_point/
+	typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_function
+	* tr1/4_metaprogramming/primary_type_categories/is_function/24808.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_function/
+	is_function.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_function/typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_integral
+	* tr1/4_metaprogramming/primary_type_categories/is_integral/
+	is_integral.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_integral/typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/
+	is_member_function_pointer
+	* tr1/4_metaprogramming/primary_type_categories/
+	is_member_function_pointer/is_member_function_pointer.cc
+	* tr1/4_metaprogramming/primary_type_categories/
+	is_member_function_pointer/typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/
+	is_member_object_pointer
+	* tr1/4_metaprogramming/primary_type_categories/
+	is_member_object_pointer/is_member_object_pointer.cc
+	* tr1/4_metaprogramming/primary_type_categories/
+	is_member_object_pointer/typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_pointer
+	* tr1/4_metaprogramming/primary_type_categories/is_pointer/
+	is_pointer.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_pointer/typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_reference
+	* tr1/4_metaprogramming/primary_type_categories/is_reference/
+	is_reference.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_reference/
+	typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_union
+	* tr1/4_metaprogramming/primary_type_categories/is_union/is_union.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_union/typedefs.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_void
+	* tr1/4_metaprogramming/primary_type_categories/is_void/is_void.cc
+	* tr1/4_metaprogramming/primary_type_categories/is_void/typedefs.cc
+	* tr1/4_metaprogramming/rank/rank.cc
+	* tr1/4_metaprogramming/rank/typedefs.cc
+	* tr1/4_metaprogramming/reference_modifications/add_reference.cc
+	* tr1/4_metaprogramming/reference_modifications/remove_reference.cc
+	* tr1/4_metaprogramming/relationships_between_types
+	* tr1/4_metaprogramming/relationships_between_types/is_base_of
+	* tr1/4_metaprogramming/relationships_between_types/is_base_of/
+	is_base_of.cc
+	* tr1/4_metaprogramming/relationships_between_types/is_base_of/
+	typedefs.cc
+	* tr1/4_metaprogramming/relationships_between_types/is_convertible
+	* tr1/4_metaprogramming/relationships_between_types/is_convertible/
+	is_convertible.cc
+	* tr1/4_metaprogramming/relationships_between_types/is_convertible/
+	typedefs.cc
+	* tr1/4_metaprogramming/relationships_between_types/is_same
+	* tr1/4_metaprogramming/relationships_between_types/is_same/is_same.cc
+	* tr1/4_metaprogramming/relationships_between_types/is_same/typedefs.cc
+	* tr1/4_metaprogramming/type_properties
+	* tr1/4_metaprogramming/type_properties/alignment_of
+	* tr1/4_metaprogramming/type_properties/alignment_of/alignment_of.cc
+	* tr1/4_metaprogramming/type_properties/alignment_of/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/extent
+	* tr1/4_metaprogramming/type_properties/extent/extent.cc
+	* tr1/4_metaprogramming/type_properties/extent/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/has_nothrow_assign
+	* tr1/4_metaprogramming/type_properties/has_nothrow_assign/
+	has_nothrow_assign.cc
+	* tr1/4_metaprogramming/type_properties/has_nothrow_assign/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/has_nothrow_constructor
+	* tr1/4_metaprogramming/type_properties/has_nothrow_constructor/
+	has_nothrow_constructor.cc
+	* tr1/4_metaprogramming/type_properties/has_nothrow_constructor/
+	typedefs.cc
+	* tr1/4_metaprogramming/type_properties/has_nothrow_copy
+	* tr1/4_metaprogramming/type_properties/has_nothrow_copy/
+	has_nothrow_copy.cc
+	* tr1/4_metaprogramming/type_properties/has_nothrow_copy/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/has_trivial_assign
+	* tr1/4_metaprogramming/type_properties/has_trivial_assign/
+	has_trivial_assign.cc
+	* tr1/4_metaprogramming/type_properties/has_trivial_assign/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/has_trivial_constructor
+	* tr1/4_metaprogramming/type_properties/has_trivial_constructor/
+	has_trivial_constructor.cc
+	* tr1/4_metaprogramming/type_properties/has_trivial_constructor/
+	typedefs.cc
+	* tr1/4_metaprogramming/type_properties/has_trivial_copy
+	* tr1/4_metaprogramming/type_properties/has_trivial_copy/
+	has_trivial_copy.cc
+	* tr1/4_metaprogramming/type_properties/has_trivial_copy/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/has_trivial_destructor
+	* tr1/4_metaprogramming/type_properties/has_trivial_destructor/
+	has_trivial_destructor.cc
+	* tr1/4_metaprogramming/type_properties/has_trivial_destructor/
+	typedefs.cc
+	* tr1/4_metaprogramming/type_properties/has_virtual_destructor
+	* tr1/4_metaprogramming/type_properties/has_virtual_destructor/
+	has_virtual_destructor.cc
+	* tr1/4_metaprogramming/type_properties/has_virtual_destructor/
+	typedefs.cc
+	* tr1/4_metaprogramming/type_properties/is_abstract
+	* tr1/4_metaprogramming/type_properties/is_abstract/is_abstract.cc
+	* tr1/4_metaprogramming/type_properties/is_abstract/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/is_const
+	* tr1/4_metaprogramming/type_properties/is_const/is_const.cc
+	* tr1/4_metaprogramming/type_properties/is_const/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/is_empty
+	* tr1/4_metaprogramming/type_properties/is_empty/is_empty.cc
+	* tr1/4_metaprogramming/type_properties/is_empty/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/is_pod
+	* tr1/4_metaprogramming/type_properties/is_pod/is_pod.cc
+	* tr1/4_metaprogramming/type_properties/is_pod/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/is_polymorphic
+	* tr1/4_metaprogramming/type_properties/is_polymorphic/24809.cc
+	* tr1/4_metaprogramming/type_properties/is_polymorphic/
+	is_polymorphic.cc
+	* tr1/4_metaprogramming/type_properties/is_polymorphic/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/is_signed
+	* tr1/4_metaprogramming/type_properties/is_signed/is_signed.cc
+	* tr1/4_metaprogramming/type_properties/is_signed/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/is_unsigned
+	* tr1/4_metaprogramming/type_properties/is_unsigned/is_unsigned.cc
+	* tr1/4_metaprogramming/type_properties/is_unsigned/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/is_volatile
+	* tr1/4_metaprogramming/type_properties/is_volatile/is_volatile.cc
+	* tr1/4_metaprogramming/type_properties/is_volatile/typedefs.cc
+	* tr1/4_metaprogramming/type_properties/rank
+	* tr1/4_metaprogramming/type_properties/rank/rank.cc
+	* tr1/4_metaprogramming/type_properties/rank/typedefs.cc
+
+2007-04-30  Hans-Peter Nilsson  <hp@axis.com>
+
+	* testsuite/lib/libstdc++.exp (v3_target_compile_as_c): Correct
+	regexp to filter out -nostdinc++.
+
+2007-04-30  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/30449 (equal)
+	* include/bits/stl_algobase.h (struct __niter_base): Add.
+	(copy(_II, _II, _OI), copy_backward(_BI1, _BI1, _BI2),
+	fill(_ForwardIterator, _ForwardIterator, const _Tp&),
+	fill_n(_OI, _Size, const _Tp&), equal(_II1, _II1, _II2)):
+	Use it.
+	(struct __copy_normal, __copy_backward_normal,
+	struct __fill_normal, struct __fill_n_normal): Remove.
+	(struct __equal, struct __equal_aux): Add.
+	* include/bits/stl_iterator.h: Add _Iterator_type typedef.
+
+	* include/bits/stl_algobase.h (__fill_aux(wchar_t*,
+	wchar_t*, wchar_t), __fill_n_aux(wchar_t*, _Size, wchar_t)):
+	Remove.
+
+	* testsuite/23_containers/requirements/sequences/dr438/vector/
+	constructor_1_neg.cc: Adjust dg-error line number.
+	* testsuite/23_containers/requirements/sequences/dr438/vector/
+	constructor_2_neg.cc: Likewise.
+
+2007-04-30  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/type_traits (is_pod): Use __is_pod.
+	* testsuite/tr1/4_metaprogramming/type_properties/
+	has_trivial_destructor/has_trivial_destructor.cc: Adjust.
+	* testsuite/tr1/4_metaprogramming/type_properties/
+	has_nothrow_constructor/has_nothrow_constructor.cc: Likewise.
+	* testsuite/tr1/4_metaprogramming/type_properties/
+	has_trivial_constructor/has_trivial_constructor.cc: Likewise.
+	* testsuite/tr1/4_metaprogramming/type_properties/
+	is_pod/is_pod.cc: Likewise.
+
+2007-04-29  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/localefwd.h: Remove redundant inline qualifiers.
+	(__check_facet): Move...
+	* include/bits/basic_ios.h: ... here.
+	(widen(char), narrow(char_type, char)): Define inline.
+	* include/bits/basic_ios.tcc (widen(char), narrow(char_type, char)):
+	Remove.
+
+2007-04-27  Paolo Carlini  <pcarlini@suse.de>
+
+	DR 438, [DR].
+	* include/bits/basic_string.h (_S_construct_aux(_InIterator,
+	_InIterator, const _Alloc&, __true_type)): Do not cast the
+	second argument.
+	* include/ext/rc_string_base.h (_S_construct_aux(_Integer,
+	_Integer, const _Alloc&, std::__true_type)): Likewise.
+	* include/ext/sso_string_base.h (_M_construct_aux(_InIterator,
+	_InIterator, std::__true_type)): Likewise.
+	* include/bits/stl_deque.h (_M_initialize_dispatch(_Integer,
+	_Integer, __true_type)): Cast the first argument.
+	(_M_assign_dispatch(_Integer, _Integer, __true_type)): Do
+	not cast the arguments.
+	(_M_insert_dispatch(iterator, _Integer, _Integer, __true_type)):
+	Likewise.
+	* include/bits/stl_list.h (_M_initialize_dispatch(_Integer,
+	_Integer, __true_type)): Likewise.
+	(_M_assign_dispatch(_Integer, _Integer, __true_type)): Do
+	not cast both arguments.
+	* include/bits/stl_bvector.h (_M_initialize_dispatch(_Integer,
+	_Integer, __true_type)): Cast the first argument.
+	(_M_assign_dispatch(_Integer, _Integer, __true_type)): Do not
+	cast the arguments.
+	* include/bits/stl_vector.h (_M_initialize_dispatch(_Integer,
+	_Integer, __true_type)): Cast the first argument.
+	(_M_assign_dispatch(_Integer, _Integer, __true_type)): Do not
+	cast the arguments.
+	(_M_insert_dispatch(iterator, _Integer, _Integer, __true_type)):
+	Likewise.
+	* testsuite/21_strings/basic_string/requirements/dr438/
+	constructor.cc: New.
+	* testsuite/ext/vstring/requirements/dr438/constructor.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/deque/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/deque/
+	constructor.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/deque/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/deque/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/deque/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/list/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/list/
+	constructor.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/list/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/list/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/list/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/vector/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/vector/
+	constructor.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/vector/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/vector/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/vector/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/requirements/sequences/dr438/vector/
+	bool/constructor.cc: Likewise.
+	* docs/html/ext/howto.html: Add an entry for DR 438.
+
+2007-04-25  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_classes.h: Remove redundant inline specifiers.
+	* include/bits/ios_base.h: Likewise.
+	* testsuite/27_io/ios_base/cons/assign_neg.cc: Adjust dg-error line
+	numbers.
+	* testsuite/27_io/ios_base/cons/copy_neg.cc: Likewise.
+
+2007-04-24  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.h (class collate, class collate_byname):
+	Move...
+	* include/bits/locale_classes.h: ... here.
+	* include/bits/locale_facets.tcc (locale::combine, locale::operator(),
+	has_facet, use_facet, collate::_M_compare, collate::_M_transform,
+	collate::do_compare, collate::do_transform, collate::do_hash): Move...
+	* include/bits/locale_classes.tcc: ... here, new.
+	* include/Makefile.am: Add.
+	* testsuite/util/testsuite_abi.h: Include <locale>.
+	* include/std/locale: Tweak.
+	* include/std/istream: Likewise.
+	* include/std/ostream: Likewise.
+	* include/bits/codecvt.h: Likewise.
+	* include/Makefile.in: Regenerate.
+
+	* include/bits/codecvt.h: Adjust extern template declarations.
+	* include/bits/ostream_insert.h: Likewise.
+	* include/bits/ostream.tcc: Likewise.
+
+	* include/bits/locale_facets.h: Do not include <bits/codecvt.h>.
+	* include/std/fstream: Do it here.
+	* include/bits/locale_facets_nonio.h: Likewise.
+
+2007-04-23  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.h (class time_base,
+	struct __timepunct_cache, class __timepunct, class time_get,
+	class time_get_byname, class time_put, class time_put_byname,
+	class money_base, struct __moneypunct_cache, class moneypunct,
+	class moneypunct_byname, class money_get, class money_put,
+	struct messages_base, class messages, class messages_byname): Move...
+	* include/bits/locale_facets_nonio.h: ... here.
+	* include/bits/locale_facets.tcc
+	(struct __use_cache<__moneypunct_cache<> >,
+	__moneypunct_cache<>::_M_cache, money_get<>::_M_extract,
+	money_get<>::__do_get, money_get<>::do_get, money_put<>::_M_insert,
+	money_put<>::__do_put, money_put<>::do_put, time_get<>::do_date_order,
+	time_get<>::_M_extract_via_format, time_get<>::_M_extract_num,
+	time_get<>::_M_extract_name, time_get<>::do_get_time,
+	time_get<>::do_get_date, time_get<>::do_get_weekday,
+	time_get<>::do_get_monthname, time_get<>::do_get_year, time_put<>::put,
+	time_put<>::do_put): Move...
+	* include/bits/locale_facets_nonio.tcc: ... here.
+	* include/Makefile.am: Add.
+	* include/std/locale: Adjust includes.
+	* include/std/fstream: Likewise.
+	* include/std/istream: Likewise.
+	* include/std/ostream: Likewise.
+	* include/Makefile.in: Regenerate.
+
+2007-04-23  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* scripts/testsuite_flags.in: Add --build-cc option.
+	* testsuite/lib/libstdc++.exp (libstdc++_init): Set cc.  Fix typo
+	in previous change.
+	(v3_target_compile_as_c): Use cc.
+
+2007-04-22  Mark Mitchell  <mark@codesourcery.com>
+
+	* testsuite/lib/libstdc++.exp (libstdc++_init): Use the same flags
+	for remote host testing we use for local host testing.  Copy all
+	testsuite headers to the remote host
+	(v3_target_compile_as_c): Use remote_exec, not just exec.
+
+2007-04-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/functional: Formatting fixes.
+
+2007-04-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/concurrence.h: Do not include <cstdlib>, use
+	__builtin_abort.
+	* include/debug/debug.h: Likewise.
+	* include/tr1/memory: Likewise.
+	* include/tr1/boost_shared_ptr.h: Likewise.
+	* include/tr1/functional: Likewise.
+
+2007-04-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.tcc: Do not include <typeinfo>.
+	* testsuite/27_io/basic_ios/imbue/14072.cc: Do it here.
+	* testsuite/27_io/basic_ios/cons/char/3.cc: Likewise.
+	* testsuite/27_io/basic_istream/sentry/pod/1.cc: Likewise.
+	* testsuite/27_io/basic_ostream/sentry/pod/1.cc: Likewise.
+	* testsuite/21_strings/basic_string/inserters_extractors/
+	pod/10081-in.cc: Likewise.
+	* testsuite/21_strings/basic_string/inserters_extractors/
+	pod/10081-out.cc: Likewise.
+	* testsuite/22_locale/locale/cons/2.cc: Likewise.
+	* testsuite/22_locale/locale/cons/unicode.cc: Likewise.
+	* testsuite/22_locale/numpunct/members/pod/2.cc: Likewise.
+	* testsuite/22_locale/global_templates/1.cc: Likewise.
+
+2007-04-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure.ac: Allow both powerpc*-*-linux* and powerpc*-*-gnu*
+	for long double compatibility.
+	* configure: Regenerate.
+	* src/complex_io.cc, src/istream-inst.cc, src/ostream-inst.cc:
+	Condition some _GLIBCXX_LDBL_COMPAT calls on _GLIBCXX_USE_WCHAR_T.
+
+2007-04-14  Steve Ellcey  <sje@cup.hp.com>
+
+	* configure.ac: Change how LIBSUPCXX_PICFLAGS is set.
+	* configure: Regenerate.
+
+2007-04-14  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/locale/generic/c_locale.cc: Include <limits>.
+
+2007-04-13  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31556
+	* include/bits/stl_algobase.h (equal(_InputIterator1, _InputIterator1,
+	_InputIterator2, _BinaryPredicate), mismatch(_InputIterator1,
+	_InputIterator1, _InputIterator2, _BinaryPredicate)): Convert
+	predicate return to bool.
+	* include/bits/stl_algo.h (__find_if(_InputIterator, _InputIterator,
+	_Predicate, input_iterator_tag), search(_ForwardIterator1,
+	_ForwardIterator1, _ForwardIterator2, _ForwardIterator2,
+	_BinaryPredicate), __search_n(_ForwardIterator, _ForwardIterator,
+	_Integer, const _Tp&, _BinaryPredicate, std::forward_iterator_tag),
+	__search_n(_RandomAccessIter, _RandomAccessIter, _Integer, const _Tp&,
+	_BinaryPredicate, std::random_access_iterator_tag),
+	search_n(_ForwardIterator, _ForwardIterator, _Integer, const _Tp&,
+	_BinaryPredicate), remove_copy_if(_InputIterator, _InputIterator,
+	_OutputIterator, _Predicate), __unique_copy(_ForwardIterator,
+	_ForwardIterator, _OutputIterator, _BinaryPredicate,
+	forward_iterator_tag, output_iterator_tag),
+	__unique_copy(_InputIterator, _InputIterator, _OutputIterator,
+	_BinaryPredicate, input_iterator_tag, output_iterator_tag),
+	__unique_copy(_InputIterator, _InputIterator, _OutputIterator,
+	_BinaryPredicate, input_iterator_tag, output_iterator_tag),
+	__unique_copy(_InputIterator, _InputIterator, _ForwardIterator,
+	_BinaryPredicate, input_iterator_tag, forward_iterator_tag),
+	unique(_ForwardIterator, _ForwardIterator, _BinaryPredicate),
+	__partition(_BidirectionalIterator, _BidirectionalIterator, _Predicate,
+	bidirectional_iterator_tag), binary_search(_ForwardIterator,
+	_ForwardIterator, const _Tp&, _Compare),
+	next_permutation(_BidirectionalIterator, _BidirectionalIterator,
+	_Compare), prev_permutation(_BidirectionalIterator,
+	_BidirectionalIterator, _Compare)): Likewise.
+
+2007-04-13  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/31554
+	* include/bits/stl_algo.h (stable_partition): Convert __buf.size()
+	to _DistanceType.
+
+2007-04-13  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/ext/numeric_traits.h: Do not include <limits>.
+	(__numeric_traits_integer::__is_signed, __digits): Add.
+	(__numeric_traits_floating::__digits10, __max_exponent10): Add.
+	* src/istream.cc (ignore<char>(streamsize, int_type), operator>>
+	(basic_istream<char>&, char*), ignore<wchar_t>(streamsize,
+	int_type)): Use the latter.
+	* src/compatibility.cc (ignore<char>(streamsize),
+	ignore<wchar_t>(streamsize)): Likewise.
+	* include/ext/vstring_util.h (__vstring_utility<>::_S_compare):
+	Likewise.
+	* include/bits/stl_memory.h (__get_temporary_buffer): Likewise.
+	* include/bits/stl_algobase.h (lexicographical_compare(const char*,
+	const char*, const char*, const char*)): Likewise.
+	* include/bits/locale_facets.tcc (num_get<>::_M_extract_int(_InIter,
+	_InIter, ios_base&, ios_base::iostate&, _ValueT&),
+	num_put<>::_M_insert_int(_OutIter, ios_base&, _CharT, _ValueT),
+	num_put<>::_M_insert_float(_OutIter, ios_base&, _CharT, char,
+	_ValueT), collate<>::do_hash(const _CharT*, const _CharT*)): Likewise.
+	* include/bits/basic_string.h (basic_string<>::_S_compare): Likewise.
+	* include/bits/istream.tcc (operator>>(short&), operator>>(int&),
+	ignore(streamsize), ignore(streamsize, int_type), operator>>
+	(basic_istream<>&, _CharT*)): Likewise.
+	* include/bits/stl_bvector.h (vector<bool>::max_size): Likewise.
+	* include/tr1/functional_hash.h (struct hash<long double>): Likewise.
+	* include/std/istream: Do not include <limits>.
+	* include/tr1/cmath: Include <limits>.
+	* testsuite/23_containers/vector/bool/capacity/29134.cc: Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/char/12.cc:
+	Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/char/13.cc:
+	Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/wchar_t/12.cc:
+	Likewise.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/wchar_t/13.cc:
+	Likewise.
+	* testsuite/27_io/ios_base/storage/2.cc: Likewise.
+
+	* include/tr1/hashtable: Do not include the whole <iterator>.
+
+2007-04-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/locale/gnu/c_locale.h: Do not include <langinfo.h>
+	and <iconv.h>.
+	* config/locale/gnu/c++locale_internal.h: Include <langinfo.h>.
+
+2007-04-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/std/istream (class basic_istream<>): Remove unneded friend
+	declarations.
+
+2007-04-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/22_locale/num_get/get/wchar_t/1.cc: Initialize v.
+
+2007-04-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.tcc (num_get<>::do_get(iter_type,
+	ios_base&, ios_base::iostate&, void*&)): Fix for sizeof(void*)
+	> sizeof(unsigned long).
+
+	* testsuite/22_locale/num_get/get/char/1.cc: Fix void* test.
+	* testsuite/22_locale/num_get/get/wchar_t/1.cc: Likewise.
+
+	* testsuite/22_locale/num_put/put/char/1.cc: Tweak comment.
+	* testsuite/22_locale/num_put/put/wchar_t/1.cc: Likewise.
+
+2007-04-11  Zack Weinberg  <zackw@panix.com>
+
+	* include/std/iosfwd: Do not include <bits/c++locale.h> and
+	<bits/functexcept.h>.
+
+2007-04-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pb_ds/detail/resize_policy/
+	cc_hash_max_collision_check_resize_trigger_imp.hpp: Qualify
+	namespace std members.	
+	* include/ext/pb_ds/detail/list_update_policy/
+	counter_lu_metadata.hpp: Same.
+	* include/ext/throw_allocator.h: Same.
+	* include/ext/pod_char_traits.h: Same.
+	* include/ext/malloc_allocator.h: Same.
+	* libsupc++/del_op.cc: Same, simplify.
+
+	* include/bits/c++config: Adjust macro name.
+	
+	* include/c_global/cstring: Alphabetize.
+	* include/c_global/cwctype: Same.
+	
+2007-04-10  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/cmath: Include <bits/stl_algobase.h> instead of
+	the whole <algorithm>.
+
+2007-04-10  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1/type_traits (__is_function_helper): New, uses
+	variadic templates.
+	(is_function): Forward to the latter.
+	* testsuite/tr1/4_metaprogramming/primary_type_categories/
+	is_function/is_function.cc: Add test.
+
 2007-04-10  Paolo Carlini  <pcarlini@suse.de>
 
 	PR libstdc++/28277 (partial: vstring bits)

@@ -183,7 +183,6 @@ th_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   /* Pretend to be a post-reload pass while generating rtl.  */
   no_new_pseudos = 1;
   reload_completed = 1;
-  reset_block_changes ();
 
   /* We need two temporary registers in some cases.  */
   temp1 = gen_rtx_REG (Pmode, 8);
@@ -231,7 +230,7 @@ th_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   /* Run just enough of rest_of_compilation.  This sequence was
      "borrowed" from alpha.c.  */
   insn = get_insns ();
-  insn_locators_initialize ();
+  insn_locators_alloc ();
   split_all_insns_noflow ();
   shorten_branches (insn);
   final_start_function (insn, file, 1);
@@ -1168,7 +1167,7 @@ score_print_operand (FILE *file, rtx op, int c)
     {
       gcc_assert (code == CONST_INT);
       fprintf (file, HOST_WIDE_INT_PRINT_HEX,
-               (unsigned HOST_WIDE_INT) INTVAL (op) >> 16);
+               (INTVAL (op) >> 16) & 0xffff);
     }
   else if (c == 'D')
     {
@@ -1176,7 +1175,7 @@ score_print_operand (FILE *file, rtx op, int c)
         {
           rtx temp = gen_lowpart (SImode, op);
           gcc_assert (GET_MODE (op) == SFmode);
-          fprintf (file, HOST_WIDE_INT_PRINT_HEX, INTVAL (temp));
+          fprintf (file, HOST_WIDE_INT_PRINT_HEX, INTVAL (temp) & 0xffffffff); 
         }
       else
         output_addr_const (file, op);

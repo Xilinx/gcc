@@ -27,7 +27,8 @@ Boston, MA 02110-1301, USA.  */
 #define TARGET_VERSION fprintf (stderr," (x86 MinGW)");
 #endif
 
-/* See i386/crtdll.h for an alternative definition.  */
+/* See i386/crtdll.h for an alternative definition. _INTEGRAL_MAX_BITS
+   is for compatibility with native compiler.  */
 #define EXTRA_OS_CPP_BUILTINS()					\
   do								\
     {								\
@@ -36,16 +37,13 @@ Boston, MA 02110-1301, USA.  */
       builtin_define ("_WIN32");				\
       builtin_define_std ("WIN32");				\
       builtin_define_std ("WINNT");				\
+      builtin_define_with_int_value ("_INTEGRAL_MAX_BITS",	\
+				     TYPE_PRECISION (intmax_type_node));\
       if (TARGET_64BIT_MS_ABI)					\
 	{							\
 	  builtin_define ("__MINGW64__");			\
-	  builtin_define_with_value("_INTEGRAL_MAX_BITS","64",0); \
 	  builtin_define_std ("WIN64");				\
 	  builtin_define_std ("_WIN64");			\
-	}							\
-      else							\
-	{							\
-	  builtin_define_with_value("_INTEGRAL_MAX_BITS","32",0); \
 	}							\
     }								\
   while (0)
@@ -87,6 +85,10 @@ Boston, MA 02110-1301, USA.  */
 #undef STARTFILE_SPEC
 #define STARTFILE_SPEC "%{shared|mdll:dllcrt2%O%s} \
   %{!shared:%{!mdll:crt2%O%s}} %{pg:gcrt2%O%s}"
+
+#undef ENDFILE_SPEC
+#define ENDFILE_SPEC \
+  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
 
 /* Override startfile prefix defaults.  */
 #ifndef STANDARD_STARTFILE_PREFIX_1

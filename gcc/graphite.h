@@ -54,7 +54,13 @@ struct scop
      statements or difficult constructs, and thus they are not
      considered part of the scop, but just boundaries.  */
   basic_block entry, exit;
+
+  /* All the basic blocks in the scope.  They have extra information
+     attached to them, in the graphite_bb structure.  */
   VEC (graphite_bb_p, heap) *bbs;
+
+  /* Set for a basic block index when it belongs to this scope.  */
+  bitmap bbs_b;
 
   lambda_vector static_schedule;
 
@@ -64,20 +70,17 @@ struct scop
   /* Loops contained in the scop.  */
   VEC (loop_p, heap) *loop_nest;
 
-  /* Constraints on loop iterations.  */
-  VEC (lambda_vector, heap) *iteration_domain;
-
   /* Cloog representation of this scop.  */
   CloogProgram *program;
 };
 
 #define SCOP_BBS(S) S->bbs
+#define SCOP_BBS_B(S) S->bbs_b
 #define SCOP_ENTRY(S) S->entry
 #define SCOP_EXIT(S) S->exit
 #define SCOP_STATIC_SCHEDULE(S) S->static_schedule
 #define SCOP_LOOP_NEST(S) S->loop_nest
 #define SCOP_PARAMS(S) S->params
-#define SCOP_DOMAIN(S) S->iteration_domain
 #define SCOP_PROG(S) S->program
 
 extern void debug_scop (scop_p, int);

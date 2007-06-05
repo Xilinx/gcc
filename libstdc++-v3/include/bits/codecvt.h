@@ -1,6 +1,6 @@
 // Locale support (codecvt) -*- C++ -*-
 
-// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005
+// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
 //  Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -457,7 +457,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       codecvt_byname(const char* __s, size_t __refs = 0)
       : codecvt<_InternT, _ExternT, _StateT>(__refs)
       {
-	if (std::strcmp(__s, "C") != 0 && std::strcmp(__s, "POSIX") != 0)
+	if (__builtin_strcmp(__s, "C") != 0
+	    && __builtin_strcmp(__s, "POSIX") != 0)
 	  {
 	    this->_S_destroy_c_locale(this->_M_c_locale_codecvt);
 	    this->_S_create_c_locale(this->_M_c_locale_codecvt, __s);
@@ -468,6 +469,33 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       virtual
       ~codecvt_byname() { }
     };
+
+  // Inhibit implicit instantiations for required instantiations,
+  // which are defined via explicit instantiations elsewhere.
+  // NB: This syntax is a GNU extension.
+#if _GLIBCXX_EXTERN_TEMPLATE
+  extern template class codecvt_byname<char, char, mbstate_t>;
+
+  extern template
+    const codecvt<char, char, mbstate_t>&
+    use_facet<codecvt<char, char, mbstate_t> >(const locale&);
+
+  extern template
+    bool
+    has_facet<codecvt<char, char, mbstate_t> >(const locale&);
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  extern template class codecvt_byname<wchar_t, char, mbstate_t>;
+
+  extern template
+    const codecvt<wchar_t, char, mbstate_t>&
+    use_facet<codecvt<wchar_t, char, mbstate_t> >(const locale&);
+
+  extern template
+    bool
+    has_facet<codecvt<wchar_t, char, mbstate_t> >(const locale&);
+#endif
+#endif
 
 _GLIBCXX_END_NAMESPACE
 

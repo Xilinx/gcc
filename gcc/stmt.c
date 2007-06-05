@@ -575,14 +575,9 @@ decl_overlaps_hard_reg_set_p (tree *declp, int *walk_subtrees ATTRIBUTE_UNUSED,
 	  && REGNO (DECL_RTL (decl)) < FIRST_PSEUDO_REGISTER)
 	{
 	  rtx reg = DECL_RTL (decl);
-	  unsigned int regno;
 
-	  for (regno = REGNO (reg);
-	       regno < (REGNO (reg)
-			+ hard_regno_nregs[REGNO (reg)][GET_MODE (reg)]);
-	       regno++)
-	    if (TEST_HARD_REG_BIT (*regs, regno))
-	      return decl;
+	  if (overlaps_hard_reg_set_p (*regs, GET_MODE (reg), REGNO (reg)))
+	    return decl;
 	}
       walk_subtrees = 0;
     }
@@ -1362,7 +1357,7 @@ expand_expr_stmt (tree exp)
   rtx value;
   tree type;
 
-  value = expand_expr (exp, const0_rtx, VOIDmode, 0);
+  value = expand_expr (exp, const0_rtx, VOIDmode, EXPAND_NORMAL);
   if (GIMPLE_TUPLE_P (exp))
     type = void_type_node;
   else
@@ -1728,7 +1723,7 @@ expand_return (tree retval)
       tree nt = build_qualified_type (ot, TYPE_QUALS (ot) | TYPE_QUAL_CONST);
 
       val = assign_temp (nt, 0, 0, 1);
-      val = expand_expr (retval_rhs, val, GET_MODE (val), 0);
+      val = expand_expr (retval_rhs, val, GET_MODE (val), EXPAND_NORMAL);
       val = force_not_mem (val);
       /* Return the calculated value.  */
       expand_value_return (val);
@@ -1736,7 +1731,7 @@ expand_return (tree retval)
   else
     {
       /* No hard reg used; calculate value into hard return reg.  */
-      expand_expr (retval, const0_rtx, VOIDmode, 0);
+      expand_expr (retval, const0_rtx, VOIDmode, EXPAND_NORMAL);
       expand_value_return (result_rtl);
     }
 }
@@ -2317,7 +2312,7 @@ expand_case (tree exp)
   rtx table_label;
   int ncases;
   rtx *labelvec;
-  int i, fail;
+  int i;
   rtx before_case, end, lab;
 
   tree vec = SWITCH_LABELS (exp);
@@ -2591,8 +2586,6 @@ expand_case (tree exp)
 
       before_case = NEXT_INSN (before_case);
       end = get_last_insn ();
-      fail = squeeze_notes (&before_case, &end);
-      gcc_assert (!fail);
       reorder_insns (before_case, end, start);
     }
 

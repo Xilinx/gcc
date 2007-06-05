@@ -983,37 +983,34 @@ get_inv_cost (struct invariant *inv, int *comp_cost, unsigned *regs_needed)
 }
 
 /* Calculates gain for eliminating invariant INV.  REGS_USED is the number
-   of registers used in the loop, N_INV_USES is the number of uses of
-   invariants, NEW_REGS is the number of new variables already added due to
-   the invariant motion.  The number of registers needed for it is stored in
-   *REGS_NEEDED.  */
+   of registers used in the loop, NEW_REGS is the number of new variables
+   already added due to the invariant motion.  The number of registers needed
+   for it is stored in *REGS_NEEDED.  */
 
 static int
 gain_for_invariant (struct invariant *inv, unsigned *regs_needed,
-		    unsigned new_regs, unsigned regs_used, unsigned n_inv_uses)
+		    unsigned new_regs, unsigned regs_used)
 {
   int comp_cost, size_cost;
 
   get_inv_cost (inv, &comp_cost, regs_needed);
   actual_stamp++;
 
-  size_cost = (global_cost_for_size (new_regs + *regs_needed,
-				     regs_used, n_inv_uses)
-	       - global_cost_for_size (new_regs, regs_used, n_inv_uses));
+  size_cost = (estimate_reg_pressure_cost (new_regs + *regs_needed, regs_used)
+	       - estimate_reg_pressure_cost (new_regs, regs_used));
 
   return comp_cost - size_cost;
 }
 
 /* Finds invariant with best gain for moving.  Returns the gain, stores
    the invariant in *BEST and number of registers needed for it to
-   *REGS_NEEDED.  REGS_USED is the number of registers used in
-   the loop, N_INV_USES is the number of uses of invariants.  NEW_REGS
-   is the number of new variables already added due to invariant motion.  */
+   *REGS_NEEDED.  REGS_USED is the number of registers used in the loop.
+   NEW_REGS is the number of new variables already added due to invariant
+   motion.  */
 
 static int
 best_gain_for_invariant (struct invariant **best, unsigned *regs_needed,
-			 unsigned new_regs, unsigned regs_used,
-			 unsigned n_inv_uses)
+			 unsigned new_regs, unsigned regs_used)
 {
   struct invariant *inv;
   int gain = 0, again;
@@ -1028,8 +1025,7 @@ best_gain_for_invariant (struct invariant **best, unsigned *regs_needed,
       if (inv->eqto != inv->invno)
 	continue;
 
-      again = gain_for_invariant (inv, &aregs_needed,
-				  new_regs, regs_used, n_inv_uses);
+      again = gain_for_invariant (inv, &aregs_needed, new_regs, regs_used);
       if (again > gain)
 	{
 	  gain = again;
@@ -1070,19 +1066,16 @@ set_move_mark (unsigned invno)
 static void
 find_invariants_to_move (void)
 {
-  unsigned i, regs_used, n_inv_uses, regs_needed = 0, new_regs;
+  unsigned i, regs_used, regs_needed = 0, new_regs;
   struct invariant *inv = NULL;
   unsigned int n_regs = DF_REG_SIZE (df);
 
   if (!VEC_length (invariant_p, invariants))
     return;
 
-  /* Now something slightly more involved.  First estimate the number of used
-     registers.  */
-  n_inv_uses = 0;
-
-  /* We do not really do a good job in this estimation; put some initial bound
-     here to stand for induction variables etc. that we do not detect.  */
+  /* We do not really do a good job in estimating number of registers used;
+     we put some initial bound here to stand for induction variables etc.
+     that we do not detect.  */
   regs_used = 2;
 
   for (i = 0; i < n_regs; i++)
@@ -1094,15 +1087,8 @@ find_invariants_to_move (void)
 	}
     }
 
-  for (i = 0; VEC_iterate (invariant_p, invariants, i, inv); i++)
-    {
-      if (inv->def)
-	n_inv_uses += inv->def->n_uses;
-    }
-
   new_regs = 0;
-  while (best_gain_for_invariant (&inv, &regs_needed,
-				  new_regs, regs_used, n_inv_uses) > 0)
+  while (best_gain_for_invariant (&inv, &regs_needed, new_regs, regs_used) > 0)
     {
       set_move_mark (inv->invno);
       new_regs += regs_needed;
@@ -1170,9 +1156,21 @@ move_invariant_reg (struct loop *loop, unsigned invno)
 	 to let emit_move_insn produce a valid instruction stream.  */
       if (REG_P (dest) && !HARD_REGISTER_P (dest))
 	{
+	  rtx note;
+
 	  emit_insn_after (gen_move_insn (dest, reg), inv->insn);
 	  SET_DEST (set) = reg;
 	  reorder_insns (inv->insn, inv->insn, BB_END (preheader));
+
+	  /* If there is a REG_EQUAL note on the insn we just moved, and
+	     insn is in a basic block that is not always executed, the note
+	     may no longer be valid after we move the insn.
+	     Note that uses in REG_EQUAL notes are taken into account in
+	     the computation of invariants.  Hence it is safe to retain the
+	     note even if the note contains register references.  */
+	  if (! inv->always_executed
+	      && (note = find_reg_note (inv->insn, REG_EQUAL, NULL_RTX)))
+	    remove_note (inv->insn, note);
 	}
       else
 	{

@@ -24,6 +24,12 @@ extern void fool (long double);
   fool (__builtin_##FUNC##l (ARG1##L, ARG2##L)); \
 } while (0)
 
+#define TESTIT2_I1(FUNC, ARG1, ARG2) do { \
+  foof (__builtin_##FUNC##f (ARG1, ARG2##F)); \
+  foo (__builtin_##FUNC (ARG1, ARG2)); \
+  fool (__builtin_##FUNC##l (ARG1, ARG2##L)); \
+} while (0)
+
 #define TESTIT2_I2ALL(FUNC, ARGF, MAXF, ARGD, MAXD, ARGLD, MAXLD) do { \
   foof (__builtin_##FUNC##f (ARGF, MAXF)); \
   foo (__builtin_##FUNC (ARGD, MAXD)); \
@@ -34,6 +40,20 @@ extern void fool (long double);
   foof (__builtin_##FUNC##f (ARG1##F, ARG2)); \
   foo (__builtin_##FUNC (ARG1, ARG2)); \
   fool (__builtin_##FUNC##l (ARG1##L, ARG2)); \
+} while (0)
+
+#define TESTIT_REMQUO(ARG1, ARG2) do { \
+  int quo; \
+  foof (__builtin_remquof (ARG1##F, ARG2##F, &quo)); \
+  foo (__builtin_remquo (ARG1, ARG2, &quo)); \
+  fool (__builtin_remquol (ARG1##L, ARG2##L, &quo)); \
+} while (0)
+
+#define TESTIT_REENT(FUNC,ARG1) do { \
+  int sg; \
+  foof (__builtin_##FUNC##f_r (ARG1##F, &sg)); \
+  foo (__builtin_##FUNC##_r (ARG1, &sg)); \
+  fool (__builtin_##FUNC##l_r (ARG1##L, &sg)); \
 } while (0)
 
 void bar()
@@ -228,6 +248,46 @@ void bar()
   foof (__builtin_ilogbf (-__builtin_nanf("")));
   foo (__builtin_ilogb (-__builtin_nan("")));
   fool (__builtin_ilogbl (-__builtin_nanl("")));
+
+  /* The y* arg must be [0 ... Inf] EXclusive.  */
+  TESTIT (y0, -1.0);
+  TESTIT (y0, 0.0);
+  TESTIT (y0, -0.0);
+
+  TESTIT (y1, -1.0);
+  TESTIT (y1, 0.0);
+  TESTIT (y1, -0.0);
+
+  TESTIT2_I1 (yn, 2, -1.0);
+  TESTIT2_I1 (yn, 2, 0.0);
+  TESTIT2_I1 (yn, 2, -0.0);
+
+  TESTIT2_I1 (yn, -3, -1.0);
+  TESTIT2_I1 (yn, -3, 0.0);
+  TESTIT2_I1 (yn, -3, -0.0);
+
+  /* The second argument of remquo/remainder/drem must not be 0.  */
+  TESTIT_REMQUO (1.0, 0.0);
+  TESTIT_REMQUO (1.0, -0.0);
+  TESTIT2 (remainder, 1.0, 0.0);
+  TESTIT2 (remainder, 1.0, -0.0);
+  TESTIT2 (drem, 1.0, 0.0);
+  TESTIT2 (drem, 1.0, -0.0);
+
+  /* The argument to lgamma* cannot be zero or a negative integer.  */
+  TESTIT_REENT (lgamma, -4.0); /* lgamma_r */
+  TESTIT_REENT (lgamma, -3.0); /* lgamma_r */
+  TESTIT_REENT (lgamma, -2.0); /* lgamma_r */
+  TESTIT_REENT (lgamma, -1.0); /* lgamma_r */
+  TESTIT_REENT (lgamma, -0.0); /* lgamma_r */
+  TESTIT_REENT (lgamma, 0.0); /* lgamma_r */
+  
+  TESTIT_REENT (gamma, -4.0); /* gamma_r */
+  TESTIT_REENT (gamma, -3.0); /* gamma_r */
+  TESTIT_REENT (gamma, -2.0); /* gamma_r */
+  TESTIT_REENT (gamma, -1.0); /* gamma_r */
+  TESTIT_REENT (gamma, -0.0); /* gamma_r */
+  TESTIT_REENT (gamma, 0.0); /* gamma_r */
 }
 
 /* { dg-final { scan-tree-dump-times "exp2 " 9 "original" } } */
@@ -284,4 +344,28 @@ void bar()
 /* { dg-final { scan-tree-dump-times "ilogb " 6 "original" } } */
 /* { dg-final { scan-tree-dump-times "ilogbf" 6 "original" } } */
 /* { dg-final { scan-tree-dump-times "ilogbl" 6 "original" } } */
+/* { dg-final { scan-tree-dump-times "y0 " 3 "original" } } */
+/* { dg-final { scan-tree-dump-times "y0f" 3 "original" } } */
+/* { dg-final { scan-tree-dump-times "y0l" 3 "original" } } */
+/* { dg-final { scan-tree-dump-times "y1 " 3 "original" } } */
+/* { dg-final { scan-tree-dump-times "y1f" 3 "original" } } */
+/* { dg-final { scan-tree-dump-times "y1l" 3 "original" } } */
+/* { dg-final { scan-tree-dump-times "yn " 6 "original" } } */
+/* { dg-final { scan-tree-dump-times "ynf" 6 "original" } } */
+/* { dg-final { scan-tree-dump-times "ynl" 6 "original" } } */
+/* { dg-final { scan-tree-dump-times "remquo " 2 "original" } } */
+/* { dg-final { scan-tree-dump-times "remquof" 2 "original" } } */
+/* { dg-final { scan-tree-dump-times "remquol" 2 "original" } } */
+/* { dg-final { scan-tree-dump-times "remainder " 2 "original" } } */
+/* { dg-final { scan-tree-dump-times "remainderf" 2 "original" } } */
+/* { dg-final { scan-tree-dump-times "remainderl" 2 "original" } } */
+/* { dg-final { scan-tree-dump-times "drem " 2 "original" } } */
+/* { dg-final { scan-tree-dump-times "dremf" 2 "original" } } */
+/* { dg-final { scan-tree-dump-times "dreml" 2 "original" } } */
+/* { dg-final { scan-tree-dump-times "lgamma_r " 6 "original" } } */
+/* { dg-final { scan-tree-dump-times "lgammaf_r" 6 "original" } } */
+/* { dg-final { scan-tree-dump-times "lgammal_r" 6 "original" } } */
+/* { dg-final { scan-tree-dump-times "_gamma_r " 6 "original" } } */
+/* { dg-final { scan-tree-dump-times "_gammaf_r" 6 "original" } } */
+/* { dg-final { scan-tree-dump-times "_gammal_r" 6 "original" } } */
 /* { dg-final { cleanup-tree-dump "original" } } */

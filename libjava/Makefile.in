@@ -94,9 +94,10 @@ am__aclocal_m4_deps = $(top_srcdir)/../config/acx.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
 	$(top_srcdir)/../config/tls.m4 \
 	$(top_srcdir)/../config/unwind_ipinfo.m4 \
-	$(top_srcdir)/../libtool.m4 $(top_srcdir)/mingwld.m4 \
-	$(top_srcdir)/pkg.m4 $(top_srcdir)/shlibpath.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/../libtool.m4 $(top_srcdir)/../ltoptions.m4 \
+	$(top_srcdir)/../ltsugar.m4 $(top_srcdir)/../ltversion.m4 \
+	$(top_srcdir)/mingwld.m4 $(top_srcdir)/pkg.m4 \
+	$(top_srcdir)/shlibpath.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -243,11 +244,12 @@ am__DEPENDENCIES_1 = gnu/awt.lo gnu/awt/j2d.lo gnu/classpath.lo \
 	java/rmi/activation.lo java/rmi/dgc.lo java/rmi/registry.lo \
 	java/rmi/server.lo java/security.lo java/security/acl.lo \
 	java/security/cert.lo java/security/interfaces.lo \
-	java/security/spec.lo java/sql.lo java/text.lo java/util.lo \
-	java/util/concurrent.lo java/util/concurrent/atomic.lo \
-	java/util/concurrent/locks.lo java/util/jar.lo \
-	java/util/logging.lo java/util/prefs.lo java/util/regex.lo \
-	java/util/zip.lo javax/accessibility.lo javax/crypto.lo \
+	java/security/spec.lo java/sql.lo java/text.lo \
+	java/text/spi.lo java/util.lo java/util/concurrent.lo \
+	java/util/concurrent/atomic.lo java/util/concurrent/locks.lo \
+	java/util/jar.lo java/util/logging.lo java/util/prefs.lo \
+	java/util/regex.lo java/util/spi.lo java/util/zip.lo \
+	javax/accessibility.lo javax/activity.lo javax/crypto.lo \
 	javax/crypto/interfaces.lo javax/crypto/spec.lo \
 	javax/management.lo javax/management/loading.lo \
 	javax/management/openmbean.lo javax/naming.lo \
@@ -302,7 +304,6 @@ am__libgcj_la_SOURCES_DIST = prims.cc jni.cc jvmti.cc exception.cc \
 	gnu/gcj/convert/natOutput_SJIS.cc \
 	gnu/gcj/io/natSimpleSHSStream.cc gnu/gcj/io/shs.cc \
 	gnu/gcj/jvmti/natBreakpoint.cc \
-	gnu/gcj/jvmti/natExceptionEvent.cc \
 	gnu/gcj/runtime/natFinalizerThread.cc \
 	gnu/gcj/runtime/natSharedLibLoader.cc \
 	gnu/gcj/runtime/natSystemClassLoader.cc \
@@ -314,6 +315,7 @@ am__libgcj_la_SOURCES_DIST = prims.cc jni.cc jvmti.cc exception.cc \
 	gnu/java/lang/management/natVMMemoryMXBeanImpl.cc \
 	gnu/java/lang/management/natVMMemoryManagerMXBeanImpl.cc \
 	gnu/java/lang/management/natVMMemoryPoolMXBeanImpl.cc \
+	gnu/java/lang/management/natVMOperatingSystemMXBeanImpl.cc \
 	gnu/java/lang/management/natVMRuntimeMXBeanImpl.cc \
 	gnu/java/lang/management/natVMThreadMXBeanImpl.cc \
 	gnu/java/net/natPlainDatagramSocketImpl.cc \
@@ -365,7 +367,6 @@ am__objects_2 = gnu/classpath/jdwp/natVMFrame.lo \
 	gnu/gcj/convert/natOutput_SJIS.lo \
 	gnu/gcj/io/natSimpleSHSStream.lo gnu/gcj/io/shs.lo \
 	gnu/gcj/jvmti/natBreakpoint.lo \
-	gnu/gcj/jvmti/natExceptionEvent.lo \
 	gnu/gcj/runtime/natFinalizerThread.lo \
 	gnu/gcj/runtime/natSharedLibLoader.lo \
 	gnu/gcj/runtime/natSystemClassLoader.lo \
@@ -377,6 +378,7 @@ am__objects_2 = gnu/classpath/jdwp/natVMFrame.lo \
 	gnu/java/lang/management/natVMMemoryMXBeanImpl.lo \
 	gnu/java/lang/management/natVMMemoryManagerMXBeanImpl.lo \
 	gnu/java/lang/management/natVMMemoryPoolMXBeanImpl.lo \
+	gnu/java/lang/management/natVMOperatingSystemMXBeanImpl.lo \
 	gnu/java/lang/management/natVMRuntimeMXBeanImpl.lo \
 	gnu/java/lang/management/natVMThreadMXBeanImpl.lo \
 	gnu/java/net/natPlainDatagramSocketImpl.lo \
@@ -484,23 +486,23 @@ depcomp = $(SHELL) $(top_srcdir)/../depcomp
 am__depfiles_maybe = depfiles
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) \
+LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
 	$(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
-LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
-LTCXXCOMPILE = $(LIBTOOL) --mode=compile $(CXX) $(DEFS) \
+LTCXXCOMPILE = $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) \
 	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
 	$(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
-CXXLINK = $(LIBTOOL) --mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+CXXLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 GCJCOMPILE = $(GCJ) $(AM_GCJFLAGS) $(GCJFLAGS)
-LTGCJCOMPILE = $(LIBTOOL) --mode=compile $(GCJ) $(AM_GCJFLAGS) \
-	$(GCJFLAGS)
+LTGCJCOMPILE = $(LIBTOOL) --tag=GCJ --mode=compile $(GCJ) \
+	$(AM_GCJFLAGS) $(GCJFLAGS)
 GCJLD = $(GCJ)
 SOURCES = $(lib_gnu_awt_xlib_la_SOURCES) $(libgcj_tools_la_SOURCES) \
 	$(libgcj_la_SOURCES) $(EXTRA_libgcj_la_SOURCES) \
@@ -579,6 +581,7 @@ DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DIRLTDL = @DIRLTDL@
 DIVIDESPEC = @DIVIDESPEC@
+DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -589,6 +592,7 @@ ENABLE_SHARED_FALSE = @ENABLE_SHARED_FALSE@
 ENABLE_SHARED_TRUE = @ENABLE_SHARED_TRUE@
 EXCEPTIONSPEC = @EXCEPTIONSPEC@
 EXEEXT = @EXEEXT@
+FGREP = @FGREP@
 GCC_UNWIND_INCLUDE = @GCC_UNWIND_INCLUDE@
 GCDEPS = @GCDEPS@
 GCINCS = @GCINCS@
@@ -603,6 +607,7 @@ GCSPEC = @GCSPEC@
 GCTESTSPEC = @GCTESTSPEC@
 GLIB_CFLAGS = @GLIB_CFLAGS@
 GLIB_LIBS = @GLIB_LIBS@
+GREP = @GREP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_LIBS = @GTK_LIBS@
 HASH_SYNC_SPEC = @HASH_SYNC_SPEC@
@@ -654,6 +659,7 @@ NATIVE_FALSE = @NATIVE_FALSE@
 NATIVE_TRUE = @NATIVE_TRUE@
 NEEDS_DATA_START_FALSE = @NEEDS_DATA_START_FALSE@
 NEEDS_DATA_START_TRUE = @NEEDS_DATA_START_TRUE@
+NM = nm
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -666,6 +672,7 @@ PERL = @PERL@
 PKG_CONFIG = @PKG_CONFIG@
 PLATFORM = @PLATFORM@
 RANLIB = @RANLIB@
+SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -721,7 +728,7 @@ ac_ct_AR = @ac_ct_AR@
 ac_ct_AS = @ac_ct_AS@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
-ac_ct_GCJ = @ac_ct_GCJ@
+ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 ac_ct_LD = @ac_ct_LD@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
@@ -764,6 +771,7 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 libstdcxx_incdir = @libstdcxx_incdir@
 localstatedir = @localstatedir@
+lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 mkinstalldirs = @mkinstalldirs@
@@ -1147,6 +1155,7 @@ gnu_awt_xlib_header_files = $(patsubst %.java,%.h,$(gnu_awt_xlib_source_files))
 gnu_classpath_source_files = \
 gnu/classpath/Configuration.java \
 classpath/gnu/classpath/NotImplementedException.java \
+classpath/gnu/classpath/Pair.java \
 classpath/gnu/classpath/Pointer.java \
 classpath/gnu/classpath/Pointer32.java \
 classpath/gnu/classpath/Pointer64.java \
@@ -1289,11 +1298,11 @@ classpath/gnu/classpath/jdwp/util/MethodResult.java \
 classpath/gnu/classpath/jdwp/util/MonitorInfo.java \
 classpath/gnu/classpath/jdwp/util/NullObject.java \
 classpath/gnu/classpath/jdwp/util/Signature.java \
-classpath/gnu/classpath/jdwp/util/Value.java \
 classpath/gnu/classpath/jdwp/util/VariableTable.java
 
 gnu_classpath_jdwp_util_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_classpath_jdwp_util_source_files)))
 gnu_classpath_jdwp_value_source_files = \
+classpath/gnu/classpath/jdwp/value/ArrayValue.java \
 classpath/gnu/classpath/jdwp/value/BooleanValue.java \
 classpath/gnu/classpath/jdwp/value/ByteValue.java \
 classpath/gnu/classpath/jdwp/value/CharValue.java \
@@ -1348,7 +1357,6 @@ gnu_gcj_io_header_files = $(patsubst %.java,%.h,$(gnu_gcj_io_source_files))
 gnu_gcj_jvmti_source_files = \
 gnu/gcj/jvmti/Breakpoint.java \
 gnu/gcj/jvmti/BreakpointManager.java \
-gnu/gcj/jvmti/ExceptionEvent.java \
 gnu/gcj/jvmti/Location.java
 
 gnu_gcj_jvmti_header_files = $(patsubst %.java,%.h,$(gnu_gcj_jvmti_source_files))
@@ -1407,6 +1415,7 @@ classpath/gnu/java/awt/AWTUtilities.java \
 classpath/gnu/java/awt/BitMaskExtent.java \
 classpath/gnu/java/awt/BitwiseXORComposite.java \
 classpath/gnu/java/awt/Buffers.java \
+classpath/gnu/java/awt/ClasspathGraphicsEnvironment.java \
 classpath/gnu/java/awt/ClasspathToolkit.java \
 classpath/gnu/java/awt/ComponentDataBlitOp.java \
 classpath/gnu/java/awt/ComponentReshapeEvent.java \
@@ -1448,22 +1457,27 @@ classpath/gnu/java/awt/font/GNUGlyphVector.java
 
 gnu_java_awt_font_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_awt_font_source_files)))
 gnu_java_awt_font_autofit_source_files = \
+classpath/gnu/java/awt/font/autofit/AutoHinter.java \
 classpath/gnu/java/awt/font/autofit/AxisHints.java \
 classpath/gnu/java/awt/font/autofit/Constants.java \
+classpath/gnu/java/awt/font/autofit/Edge.java \
 classpath/gnu/java/awt/font/autofit/GlyphHints.java \
+classpath/gnu/java/awt/font/autofit/HintScaler.java \
 classpath/gnu/java/awt/font/autofit/Latin.java \
 classpath/gnu/java/awt/font/autofit/LatinAxis.java \
+classpath/gnu/java/awt/font/autofit/LatinBlue.java \
 classpath/gnu/java/awt/font/autofit/LatinMetrics.java \
-classpath/gnu/java/awt/font/autofit/Scaler.java \
 classpath/gnu/java/awt/font/autofit/Script.java \
 classpath/gnu/java/awt/font/autofit/ScriptMetrics.java \
 classpath/gnu/java/awt/font/autofit/Segment.java \
+classpath/gnu/java/awt/font/autofit/Utils.java \
 classpath/gnu/java/awt/font/autofit/Width.java
 
 gnu_java_awt_font_autofit_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_awt_font_autofit_source_files)))
 gnu_java_awt_font_opentype_source_files = \
 classpath/gnu/java/awt/font/opentype/CharGlyphMap.java \
 classpath/gnu/java/awt/font/opentype/GlyphNamer.java \
+classpath/gnu/java/awt/font/opentype/Hinter.java \
 classpath/gnu/java/awt/font/opentype/MacResourceFork.java \
 classpath/gnu/java/awt/font/opentype/NameDecoder.java \
 classpath/gnu/java/awt/font/opentype/OpenTypeFont.java \
@@ -1476,6 +1490,7 @@ classpath/gnu/java/awt/font/opentype/truetype/Fixed.java \
 classpath/gnu/java/awt/font/opentype/truetype/GlyphLoader.java \
 classpath/gnu/java/awt/font/opentype/truetype/GlyphLocator.java \
 classpath/gnu/java/awt/font/opentype/truetype/GlyphMeasurer.java \
+classpath/gnu/java/awt/font/opentype/truetype/Point.java \
 classpath/gnu/java/awt/font/opentype/truetype/TrueTypeScaler.java \
 classpath/gnu/java/awt/font/opentype/truetype/VirtualMachine.java \
 classpath/gnu/java/awt/font/opentype/truetype/Zone.java \
@@ -1489,6 +1504,7 @@ classpath/gnu/java/awt/image/XBMDecoder.java
 gnu_java_awt_image_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_awt_image_source_files)))
 gnu_java_awt_java2d_source_files = \
 classpath/gnu/java/awt/java2d/AbstractGraphics2D.java \
+classpath/gnu/java/awt/java2d/ActiveEdges.java \
 classpath/gnu/java/awt/java2d/AlphaCompositeContext.java \
 classpath/gnu/java/awt/java2d/CubicSegment.java \
 classpath/gnu/java/awt/java2d/ImagePaint.java \
@@ -1497,15 +1513,20 @@ classpath/gnu/java/awt/java2d/PolyEdge.java \
 classpath/gnu/java/awt/java2d/PolyEdgeComparator.java \
 classpath/gnu/java/awt/java2d/QuadSegment.java \
 classpath/gnu/java/awt/java2d/RasterGraphics.java \
+classpath/gnu/java/awt/java2d/Scanline.java \
+classpath/gnu/java/awt/java2d/ScanlineConverter.java \
 classpath/gnu/java/awt/java2d/Segment.java \
 classpath/gnu/java/awt/java2d/ShapeCache.java \
 classpath/gnu/java/awt/java2d/TexturePaintContext.java
 
 gnu_java_awt_java2d_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_awt_java2d_source_files)))
 gnu_java_awt_peer_source_files = \
+classpath/gnu/java/awt/peer/ClasspathDesktopPeer.java \
 classpath/gnu/java/awt/peer/ClasspathFontPeer.java \
 classpath/gnu/java/awt/peer/EmbeddedWindowPeer.java \
 classpath/gnu/java/awt/peer/GLightweightPeer.java \
+classpath/gnu/java/awt/peer/GnomeDesktopPeer.java \
+classpath/gnu/java/awt/peer/KDEDesktopPeer.java \
 classpath/gnu/java/awt/peer/NativeEventLoopRunningEvent.java
 
 gnu_java_awt_peer_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_awt_peer_source_files)))
@@ -1518,8 +1539,6 @@ classpath/gnu/java/awt/peer/gtk/CairoSurfaceGraphics.java \
 classpath/gnu/java/awt/peer/gtk/ComponentGraphics.java \
 classpath/gnu/java/awt/peer/gtk/ComponentGraphicsCopy.java \
 classpath/gnu/java/awt/peer/gtk/FreetypeGlyphVector.java \
-classpath/gnu/java/awt/peer/gtk/GThreadMutex.java \
-classpath/gnu/java/awt/peer/gtk/GThreadNativeMethodRunner.java \
 classpath/gnu/java/awt/peer/gtk/GdkFontPeer.java \
 classpath/gnu/java/awt/peer/gtk/GdkGraphicsConfiguration.java \
 classpath/gnu/java/awt/peer/gtk/GdkGraphicsEnvironment.java \
@@ -1777,6 +1796,7 @@ gnu/java/lang/management/VMGarbageCollectorMXBeanImpl.java \
 gnu/java/lang/management/VMMemoryMXBeanImpl.java \
 gnu/java/lang/management/VMMemoryManagerMXBeanImpl.java \
 gnu/java/lang/management/VMMemoryPoolMXBeanImpl.java \
+gnu/java/lang/management/VMOperatingSystemMXBeanImpl.java \
 gnu/java/lang/management/VMRuntimeMXBeanImpl.java \
 gnu/java/lang/management/VMThreadMXBeanImpl.java
 
@@ -1935,11 +1955,11 @@ gnu/java/locale/LocaleInformation_zh_TW.java
 
 gnu_java_locale_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_locale_source_files)))
 gnu_java_math_source_files = \
+classpath/gnu/java/math/Fixed.java \
 classpath/gnu/java/math/MPN.java
 
 gnu_java_math_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_math_source_files)))
 gnu_java_net_source_files = \
-classpath/gnu/java/net/BASE64.java \
 classpath/gnu/java/net/CRLFInputStream.java \
 classpath/gnu/java/net/CRLFOutputStream.java \
 classpath/gnu/java/net/DefaultContentHandlerFactory.java \
@@ -2366,7 +2386,6 @@ classpath/gnu/java/security/sig/rsa/RSASignatureFactory.java
 
 gnu_java_security_sig_rsa_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_security_sig_rsa_source_files)))
 gnu_java_security_util_source_files = \
-classpath/gnu/java/security/util/Base64.java \
 classpath/gnu/java/security/util/ByteArray.java \
 classpath/gnu/java/security/util/ByteBufferOutputStream.java \
 classpath/gnu/java/security/util/DerUtil.java \
@@ -2400,9 +2419,12 @@ classpath/gnu/java/security/x509/ext/CRLNumber.java \
 classpath/gnu/java/security/x509/ext/CertificatePolicies.java \
 classpath/gnu/java/security/x509/ext/ExtendedKeyUsage.java \
 classpath/gnu/java/security/x509/ext/Extension.java \
+classpath/gnu/java/security/x509/ext/GeneralName.java \
 classpath/gnu/java/security/x509/ext/GeneralNames.java \
+classpath/gnu/java/security/x509/ext/GeneralSubtree.java \
 classpath/gnu/java/security/x509/ext/IssuerAlternativeNames.java \
 classpath/gnu/java/security/x509/ext/KeyUsage.java \
+classpath/gnu/java/security/x509/ext/NameConstraints.java \
 classpath/gnu/java/security/x509/ext/PolicyConstraint.java \
 classpath/gnu/java/security/x509/ext/PolicyMappings.java \
 classpath/gnu/java/security/x509/ext/PrivateKeyUsagePeriod.java \
@@ -2424,6 +2446,7 @@ classpath/gnu/java/text/WordBreakIterator.java
 
 gnu_java_text_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_java_text_source_files)))
 gnu_java_util_source_files = \
+classpath/gnu/java/util/Base64.java \
 classpath/gnu/java/util/DoubleEnumeration.java \
 classpath/gnu/java/util/EmptyEnumeration.java \
 classpath/gnu/java/util/WeakIdentityHashMap.java \
@@ -2909,7 +2932,8 @@ classpath/gnu/javax/imageio/png/PNGTime.java
 gnu_javax_imageio_png_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_javax_imageio_png_source_files)))
 gnu_javax_management_source_files = \
 classpath/gnu/javax/management/ListenerData.java \
-classpath/gnu/javax/management/Server.java
+classpath/gnu/javax/management/Server.java \
+classpath/gnu/javax/management/Translator.java
 
 gnu_javax_naming_giop_source_files = \
 classpath/gnu/javax/naming/giop/ContextContinuation.java \
@@ -2941,7 +2965,6 @@ classpath/gnu/javax/naming/jndi/url/rmi/rmiURLContextFactory.java
 gnu_javax_naming_jndi_url_rmi_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(gnu_javax_naming_jndi_url_rmi_source_files)))
 gnu_javax_net_ssl_source_files = \
 classpath/gnu/javax/net/ssl/AbstractSessionContext.java \
-classpath/gnu/javax/net/ssl/Base64.java \
 classpath/gnu/javax/net/ssl/EntropySource.java \
 classpath/gnu/javax/net/ssl/NullManagerParameters.java \
 classpath/gnu/javax/net/ssl/PreSharedKeyManager.java \
@@ -3749,6 +3772,7 @@ classpath/java/awt/ContainerOrderFocusTraversalPolicy.java \
 classpath/java/awt/Cursor.java \
 classpath/java/awt/DefaultFocusTraversalPolicy.java \
 classpath/java/awt/DefaultKeyboardFocusManager.java \
+classpath/java/awt/Desktop.java \
 classpath/java/awt/Dialog.java \
 classpath/java/awt/Dimension.java \
 classpath/java/awt/DisplayMode.java \
@@ -4054,6 +4078,7 @@ classpath/java/awt/peer/CheckboxPeer.java \
 classpath/java/awt/peer/ChoicePeer.java \
 classpath/java/awt/peer/ComponentPeer.java \
 classpath/java/awt/peer/ContainerPeer.java \
+classpath/java/awt/peer/DesktopPeer.java \
 classpath/java/awt/peer/DialogPeer.java \
 classpath/java/awt/peer/FileDialogPeer.java \
 classpath/java/awt/peer/FontPeer.java \
@@ -4096,6 +4121,7 @@ classpath/java/beans/AppletInitializer.java \
 classpath/java/beans/BeanDescriptor.java \
 classpath/java/beans/BeanInfo.java \
 classpath/java/beans/Beans.java \
+classpath/java/beans/ConstructorProperties.java \
 classpath/java/beans/Customizer.java \
 classpath/java/beans/DefaultPersistenceDelegate.java \
 classpath/java/beans/DesignMode.java \
@@ -4362,6 +4388,7 @@ java_lang_management_source_files = \
 classpath/java/lang/management/ClassLoadingMXBean.java \
 classpath/java/lang/management/CompilationMXBean.java \
 classpath/java/lang/management/GarbageCollectorMXBean.java \
+classpath/java/lang/management/LockInfo.java \
 classpath/java/lang/management/ManagementFactory.java \
 classpath/java/lang/management/ManagementPermission.java \
 classpath/java/lang/management/MemoryMXBean.java \
@@ -4370,6 +4397,7 @@ classpath/java/lang/management/MemoryNotificationInfo.java \
 classpath/java/lang/management/MemoryPoolMXBean.java \
 classpath/java/lang/management/MemoryType.java \
 classpath/java/lang/management/MemoryUsage.java \
+classpath/java/lang/management/MonitorInfo.java \
 classpath/java/lang/management/OperatingSystemMXBean.java \
 classpath/java/lang/management/RuntimeMXBean.java \
 classpath/java/lang/management/ThreadInfo.java \
@@ -4873,6 +4901,15 @@ classpath/java/text/SimpleDateFormat.java \
 classpath/java/text/StringCharacterIterator.java
 
 java_text_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(java_text_source_files)))
+java_text_spi_source_files = \
+classpath/java/text/spi/BreakIteratorProvider.java \
+classpath/java/text/spi/CollatorProvider.java \
+classpath/java/text/spi/DateFormatProvider.java \
+classpath/java/text/spi/DateFormatSymbolsProvider.java \
+classpath/java/text/spi/DecimalFormatSymbolsProvider.java \
+classpath/java/text/spi/NumberFormatProvider.java
+
+java_text_spi_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(java_text_spi_source_files)))
 java_util_source_files = \
 classpath/java/util/AbstractCollection.java \
 classpath/java/util/AbstractList.java \
@@ -4926,7 +4963,7 @@ classpath/java/util/LinkedList.java \
 classpath/java/util/List.java \
 classpath/java/util/ListIterator.java \
 classpath/java/util/ListResourceBundle.java \
-java/util/Locale.java \
+classpath/java/util/Locale.java \
 classpath/java/util/Map.java \
 classpath/java/util/MissingFormatArgumentException.java \
 classpath/java/util/MissingFormatWidthException.java \
@@ -4945,6 +4982,8 @@ classpath/external/jsr166/java/util/Queue.java \
 classpath/java/util/Random.java \
 classpath/java/util/RandomAccess.java \
 classpath/java/util/ResourceBundle.java \
+classpath/java/util/ServiceConfigurationError.java \
+classpath/java/util/ServiceLoader.java \
 classpath/java/util/Set.java \
 classpath/java/util/SimpleTimeZone.java \
 classpath/java/util/SortedMap.java \
@@ -5088,6 +5127,13 @@ classpath/java/util/regex/Pattern.java \
 classpath/java/util/regex/PatternSyntaxException.java
 
 java_util_regex_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(java_util_regex_source_files)))
+java_util_spi_source_files = \
+classpath/java/util/spi/CurrencyNameProvider.java \
+classpath/java/util/spi/LocaleNameProvider.java \
+classpath/java/util/spi/LocaleServiceProvider.java \
+classpath/java/util/spi/TimeZoneNameProvider.java
+
+java_util_spi_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(java_util_spi_source_files)))
 java_util_zip_source_files = \
 classpath/java/util/zip/Adler32.java \
 classpath/java/util/zip/CRC32.java \
@@ -5139,6 +5185,12 @@ classpath/javax/accessibility/AccessibleTextSequence.java \
 classpath/javax/accessibility/AccessibleValue.java
 
 javax_accessibility_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(javax_accessibility_source_files)))
+javax_activity_source_files = \
+classpath/javax/activity/ActivityCompletedException.java \
+classpath/javax/activity/ActivityRequiredException.java \
+classpath/javax/activity/InvalidActivityException.java
+
+javax_activity_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(javax_activity_source_files)))
 javax_crypto_source_files = \
 classpath/javax/crypto/BadPaddingException.java \
 classpath/javax/crypto/Cipher.java \
@@ -5240,11 +5292,18 @@ classpath/javax/imageio/stream/MemoryCacheImageOutputStream.java
 
 javax_management_source_files = \
 classpath/javax/management/Attribute.java \
+classpath/javax/management/AttributeChangeNotification.java \
+classpath/javax/management/AttributeChangeNotificationFilter.java \
 classpath/javax/management/AttributeList.java \
 classpath/javax/management/AttributeNotFoundException.java \
+classpath/javax/management/AttributeValueExp.java \
 classpath/javax/management/BadAttributeValueExpException.java \
 classpath/javax/management/BadBinaryOpValueExpException.java \
 classpath/javax/management/BadStringOperationException.java \
+classpath/javax/management/DefaultLoaderRepository.java \
+classpath/javax/management/Descriptor.java \
+classpath/javax/management/DescriptorAccess.java \
+classpath/javax/management/DescriptorRead.java \
 classpath/javax/management/DynamicMBean.java \
 classpath/javax/management/InstanceAlreadyExistsException.java \
 classpath/javax/management/InstanceNotFoundException.java \
@@ -5253,6 +5312,7 @@ classpath/javax/management/InvalidApplicationException.java \
 classpath/javax/management/InvalidAttributeValueException.java \
 classpath/javax/management/JMException.java \
 classpath/javax/management/JMRuntimeException.java \
+classpath/javax/management/JMX.java \
 classpath/javax/management/ListenerNotFoundException.java \
 classpath/javax/management/MBeanAttributeInfo.java \
 classpath/javax/management/MBeanConstructorInfo.java \
@@ -5271,19 +5331,26 @@ classpath/javax/management/MBeanServerConnection.java \
 classpath/javax/management/MBeanServerDelegate.java \
 classpath/javax/management/MBeanServerDelegateMBean.java \
 classpath/javax/management/MBeanServerFactory.java \
+classpath/javax/management/MBeanServerInvocationHandler.java \
 classpath/javax/management/MBeanServerNotification.java \
 classpath/javax/management/MBeanServerPermission.java \
 classpath/javax/management/MBeanTrustPermission.java \
+classpath/javax/management/MXBean.java \
 classpath/javax/management/MalformedObjectNameException.java \
 classpath/javax/management/NotCompliantMBeanException.java \
 classpath/javax/management/Notification.java \
 classpath/javax/management/NotificationBroadcaster.java \
+classpath/javax/management/NotificationBroadcasterSupport.java \
 classpath/javax/management/NotificationEmitter.java \
 classpath/javax/management/NotificationFilter.java \
+classpath/javax/management/NotificationFilterSupport.java \
 classpath/javax/management/NotificationListener.java \
 classpath/javax/management/ObjectInstance.java \
 classpath/javax/management/ObjectName.java \
 classpath/javax/management/OperationsException.java \
+classpath/javax/management/PersistentMBean.java \
+classpath/javax/management/Query.java \
+classpath/javax/management/QueryEval.java \
 classpath/javax/management/QueryExp.java \
 classpath/javax/management/ReflectionException.java \
 classpath/javax/management/RuntimeErrorException.java \
@@ -5291,6 +5358,7 @@ classpath/javax/management/RuntimeMBeanException.java \
 classpath/javax/management/RuntimeOperationsException.java \
 classpath/javax/management/ServiceNotFoundException.java \
 classpath/javax/management/StandardMBean.java \
+classpath/javax/management/StringValueExp.java \
 classpath/javax/management/ValueExp.java
 
 javax_management_header_files = $(patsubst classpath/%,%,$(patsubst %.java,%.h,$(javax_management_source_files)))
@@ -5301,6 +5369,7 @@ javax_management_loading_header_files = $(patsubst classpath/%,%,$(patsubst %.ja
 javax_management_openmbean_source_files = \
 classpath/javax/management/openmbean/ArrayType.java \
 classpath/javax/management/openmbean/CompositeData.java \
+classpath/javax/management/openmbean/CompositeDataInvocationHandler.java \
 classpath/javax/management/openmbean/CompositeDataSupport.java \
 classpath/javax/management/openmbean/CompositeType.java \
 classpath/javax/management/openmbean/InvalidKeyException.java \
@@ -7418,6 +7487,7 @@ all_packages_source_files = \
   java/security/spec.list \
   java/sql.list \
   java/text.list \
+  java/text/spi.list \
   java/util.list \
   java/util/concurrent.list \
   java/util/concurrent/atomic.list \
@@ -7426,8 +7496,10 @@ all_packages_source_files = \
   java/util/logging.list \
   java/util/prefs.list \
   java/util/regex.list \
+  java/util/spi.list \
   java/util/zip.list \
   javax/accessibility.list \
+  javax/activity.list \
   javax/crypto.list \
   javax/crypto/interfaces.list \
   javax/crypto/spec.list \
@@ -7665,6 +7737,7 @@ ordinary_header_files = \
   $(java_security_spec_header_files) \
   $(java_sql_header_files) \
   $(java_text_header_files) \
+  $(java_text_spi_header_files) \
   $(java_util_header_files) \
   $(java_util_concurrent_header_files) \
   $(java_util_concurrent_atomic_header_files) \
@@ -7673,8 +7746,10 @@ ordinary_header_files = \
   $(java_util_logging_header_files) \
   $(java_util_prefs_header_files) \
   $(java_util_regex_header_files) \
+  $(java_util_spi_header_files) \
   $(java_util_zip_header_files) \
   $(javax_accessibility_header_files) \
+  $(javax_activity_header_files) \
   $(javax_crypto_header_files) \
   $(javax_crypto_interfaces_header_files) \
   $(javax_crypto_spec_header_files) \
@@ -7785,9 +7860,11 @@ property_files = \
   classpath/resource/gnu/javax/security/auth/callback/MessagesBundle.properties \
   classpath/resource/java/util/iso4217.properties \
   classpath/resource/javax/imageio/plugins/jpeg/MessagesBundle.properties \
+  classpath/resource/javax/swing/text/html/default.css \
   classpath/resource/org/ietf/jgss/MessagesBundle.properties \
   classpath/resource/sun/rmi/rmic/messages.properties \
   classpath/resource/com/sun/tools/javac/messages.properties \
+  classpath/resource/META-INF/services/java.util.prefs.PreferencesFactory \
   classpath/resource/META-INF/services/java.util.prefs.PreferencesFactory.in \
   classpath/resource/META-INF/services/javax.sound.midi.spi.MidiDeviceProvider \
   classpath/resource/META-INF/services/javax.sound.midi.spi.MidiFileReader \
@@ -7820,7 +7897,6 @@ nat_headers = $(ordinary_header_files) $(inner_nat_headers)
 nat_headers_install = $(ordinary_header_files)
 xlib_nat_headers = $(gnu_awt_xlib_header_files) $(gnu_gcj_xlib_header_files)
 extra_headers = java/lang/Object.h java/lang/Class.h
-NM = nm
 @MAINTAINER_MODE_TRUE@@NATIVE_TRUE@gen_from_JIS_SOURCES = \
 @MAINTAINER_MODE_TRUE@@NATIVE_TRUE@	gnu/gcj/convert/gen-from-JIS.c \
 @MAINTAINER_MODE_TRUE@@NATIVE_TRUE@	gnu/gcj/convert/make-trie.c
@@ -7984,7 +8060,6 @@ gnu/gcj/convert/natOutput_SJIS.cc \
 gnu/gcj/io/natSimpleSHSStream.cc \
 gnu/gcj/io/shs.cc \
 gnu/gcj/jvmti/natBreakpoint.cc \
-gnu/gcj/jvmti/natExceptionEvent.cc \
 gnu/gcj/runtime/natFinalizerThread.cc \
 gnu/gcj/runtime/natSharedLibLoader.cc \
 gnu/gcj/runtime/natSystemClassLoader.cc \
@@ -7998,6 +8073,7 @@ gnu/java/lang/management/natVMGarbageCollectorMXBeanImpl.cc \
 gnu/java/lang/management/natVMMemoryMXBeanImpl.cc \
 gnu/java/lang/management/natVMMemoryManagerMXBeanImpl.cc \
 gnu/java/lang/management/natVMMemoryPoolMXBeanImpl.cc \
+gnu/java/lang/management/natVMOperatingSystemMXBeanImpl.cc \
 gnu/java/lang/management/natVMRuntimeMXBeanImpl.cc \
 gnu/java/lang/management/natVMThreadMXBeanImpl.cc \
 gnu/java/net/natPlainDatagramSocketImpl.cc \
@@ -8380,8 +8456,6 @@ gnu/gcj/jvmti/$(DEPDIR)/$(am__dirstamp):
 	@: > gnu/gcj/jvmti/$(DEPDIR)/$(am__dirstamp)
 gnu/gcj/jvmti/natBreakpoint.lo: gnu/gcj/jvmti/$(am__dirstamp) \
 	gnu/gcj/jvmti/$(DEPDIR)/$(am__dirstamp)
-gnu/gcj/jvmti/natExceptionEvent.lo: gnu/gcj/jvmti/$(am__dirstamp) \
-	gnu/gcj/jvmti/$(DEPDIR)/$(am__dirstamp)
 gnu/gcj/runtime/$(am__dirstamp):
 	@$(mkdir_p) gnu/gcj/runtime
 	@: > gnu/gcj/runtime/$(am__dirstamp)
@@ -8439,6 +8513,9 @@ gnu/java/lang/management/natVMMemoryManagerMXBeanImpl.lo:  \
 	gnu/java/lang/management/$(am__dirstamp) \
 	gnu/java/lang/management/$(DEPDIR)/$(am__dirstamp)
 gnu/java/lang/management/natVMMemoryPoolMXBeanImpl.lo:  \
+	gnu/java/lang/management/$(am__dirstamp) \
+	gnu/java/lang/management/$(DEPDIR)/$(am__dirstamp)
+gnu/java/lang/management/natVMOperatingSystemMXBeanImpl.lo:  \
 	gnu/java/lang/management/$(am__dirstamp) \
 	gnu/java/lang/management/$(DEPDIR)/$(am__dirstamp)
 gnu/java/lang/management/natVMRuntimeMXBeanImpl.lo:  \
@@ -8861,8 +8938,6 @@ mostlyclean-compile:
 	-rm -f gnu/gcj/io/shs.lo
 	-rm -f gnu/gcj/jvmti/natBreakpoint.$(OBJEXT)
 	-rm -f gnu/gcj/jvmti/natBreakpoint.lo
-	-rm -f gnu/gcj/jvmti/natExceptionEvent.$(OBJEXT)
-	-rm -f gnu/gcj/jvmti/natExceptionEvent.lo
 	-rm -f gnu/gcj/natCore.$(OBJEXT)
 	-rm -f gnu/gcj/natCore.lo
 	-rm -f gnu/gcj/runtime/natFinalizerThread.$(OBJEXT)
@@ -8930,6 +9005,8 @@ mostlyclean-compile:
 	-rm -f gnu/java/lang/management/natVMMemoryManagerMXBeanImpl.lo
 	-rm -f gnu/java/lang/management/natVMMemoryPoolMXBeanImpl.$(OBJEXT)
 	-rm -f gnu/java/lang/management/natVMMemoryPoolMXBeanImpl.lo
+	-rm -f gnu/java/lang/management/natVMOperatingSystemMXBeanImpl.$(OBJEXT)
+	-rm -f gnu/java/lang/management/natVMOperatingSystemMXBeanImpl.lo
 	-rm -f gnu/java/lang/management/natVMRuntimeMXBeanImpl.$(OBJEXT)
 	-rm -f gnu/java/lang/management/natVMRuntimeMXBeanImpl.lo
 	-rm -f gnu/java/lang/management/natVMThreadMXBeanImpl.$(OBJEXT)
@@ -9081,7 +9158,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/io/$(DEPDIR)/natSimpleSHSStream.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/io/$(DEPDIR)/shs.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/jvmti/$(DEPDIR)/natBreakpoint.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/jvmti/$(DEPDIR)/natExceptionEvent.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/runtime/$(DEPDIR)/natFinalizerThread.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/runtime/$(DEPDIR)/natSharedLibLoader.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/gcj/runtime/$(DEPDIR)/natStringBuffer.Plo@am__quote@
@@ -9116,6 +9192,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/lang/management/$(DEPDIR)/natVMMemoryMXBeanImpl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/lang/management/$(DEPDIR)/natVMMemoryManagerMXBeanImpl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/lang/management/$(DEPDIR)/natVMMemoryPoolMXBeanImpl.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@gnu/java/lang/management/$(DEPDIR)/natVMOperatingSystemMXBeanImpl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/lang/management/$(DEPDIR)/natVMRuntimeMXBeanImpl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/lang/management/$(DEPDIR)/natVMThreadMXBeanImpl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@gnu/java/net/$(DEPDIR)/natPlainDatagramSocketImpl.Plo@am__quote@
@@ -9218,144 +9295,144 @@ distclean-compile:
 @am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ $<
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natClip.lo: gnu/gcj/xlib/natClip.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natClip.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natClip.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natClip.lo `test -f 'gnu/gcj/xlib/natClip.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natClip.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natClip.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natClip.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natClip.lo `test -f 'gnu/gcj/xlib/natClip.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natClip.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natClip.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natClip.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natClip.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natClip.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natClip.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natClip.lo `test -f 'gnu/gcj/xlib/natClip.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natClip.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natClip.lo `test -f 'gnu/gcj/xlib/natClip.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natClip.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natColormap.lo: gnu/gcj/xlib/natColormap.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natColormap.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natColormap.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natColormap.lo `test -f 'gnu/gcj/xlib/natColormap.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natColormap.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natColormap.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natColormap.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natColormap.lo `test -f 'gnu/gcj/xlib/natColormap.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natColormap.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natColormap.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natColormap.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natColormap.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natColormap.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natColormap.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natColormap.lo `test -f 'gnu/gcj/xlib/natColormap.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natColormap.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natColormap.lo `test -f 'gnu/gcj/xlib/natColormap.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natColormap.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDisplay.lo: gnu/gcj/xlib/natDisplay.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDisplay.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDisplay.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDisplay.lo `test -f 'gnu/gcj/xlib/natDisplay.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natDisplay.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDisplay.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDisplay.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDisplay.lo `test -f 'gnu/gcj/xlib/natDisplay.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natDisplay.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDisplay.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDisplay.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDisplay.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natDisplay.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDisplay.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDisplay.lo `test -f 'gnu/gcj/xlib/natDisplay.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natDisplay.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDisplay.lo `test -f 'gnu/gcj/xlib/natDisplay.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natDisplay.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDrawable.lo: gnu/gcj/xlib/natDrawable.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDrawable.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDrawable.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDrawable.lo `test -f 'gnu/gcj/xlib/natDrawable.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natDrawable.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDrawable.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDrawable.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDrawable.lo `test -f 'gnu/gcj/xlib/natDrawable.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natDrawable.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDrawable.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDrawable.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natDrawable.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natDrawable.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDrawable.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDrawable.lo `test -f 'gnu/gcj/xlib/natDrawable.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natDrawable.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natDrawable.lo `test -f 'gnu/gcj/xlib/natDrawable.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natDrawable.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natFont.lo: gnu/gcj/xlib/natFont.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natFont.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natFont.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natFont.lo `test -f 'gnu/gcj/xlib/natFont.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natFont.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natFont.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natFont.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natFont.lo `test -f 'gnu/gcj/xlib/natFont.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natFont.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natFont.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natFont.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natFont.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natFont.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natFont.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natFont.lo `test -f 'gnu/gcj/xlib/natFont.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natFont.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natFont.lo `test -f 'gnu/gcj/xlib/natFont.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natFont.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natGC.lo: gnu/gcj/xlib/natGC.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natGC.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natGC.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natGC.lo `test -f 'gnu/gcj/xlib/natGC.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natGC.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natGC.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natGC.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natGC.lo `test -f 'gnu/gcj/xlib/natGC.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natGC.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natGC.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natGC.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natGC.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natGC.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natGC.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natGC.lo `test -f 'gnu/gcj/xlib/natGC.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natGC.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natGC.lo `test -f 'gnu/gcj/xlib/natGC.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natGC.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natPixmap.lo: gnu/gcj/xlib/natPixmap.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natPixmap.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natPixmap.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natPixmap.lo `test -f 'gnu/gcj/xlib/natPixmap.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natPixmap.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natPixmap.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natPixmap.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natPixmap.lo `test -f 'gnu/gcj/xlib/natPixmap.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natPixmap.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natPixmap.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natPixmap.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natPixmap.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natPixmap.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natPixmap.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natPixmap.lo `test -f 'gnu/gcj/xlib/natPixmap.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natPixmap.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natPixmap.lo `test -f 'gnu/gcj/xlib/natPixmap.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natPixmap.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natScreen.lo: gnu/gcj/xlib/natScreen.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natScreen.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natScreen.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natScreen.lo `test -f 'gnu/gcj/xlib/natScreen.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natScreen.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natScreen.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natScreen.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natScreen.lo `test -f 'gnu/gcj/xlib/natScreen.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natScreen.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natScreen.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natScreen.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natScreen.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natScreen.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natScreen.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natScreen.lo `test -f 'gnu/gcj/xlib/natScreen.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natScreen.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natScreen.lo `test -f 'gnu/gcj/xlib/natScreen.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natScreen.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natVisual.lo: gnu/gcj/xlib/natVisual.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natVisual.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natVisual.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natVisual.lo `test -f 'gnu/gcj/xlib/natVisual.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natVisual.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natVisual.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natVisual.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natVisual.lo `test -f 'gnu/gcj/xlib/natVisual.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natVisual.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natVisual.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natVisual.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natVisual.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natVisual.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natVisual.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natVisual.lo `test -f 'gnu/gcj/xlib/natVisual.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natVisual.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natVisual.lo `test -f 'gnu/gcj/xlib/natVisual.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natVisual.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWMSizeHints.lo: gnu/gcj/xlib/natWMSizeHints.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWMSizeHints.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWMSizeHints.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWMSizeHints.lo `test -f 'gnu/gcj/xlib/natWMSizeHints.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWMSizeHints.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWMSizeHints.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWMSizeHints.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWMSizeHints.lo `test -f 'gnu/gcj/xlib/natWMSizeHints.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWMSizeHints.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWMSizeHints.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWMSizeHints.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWMSizeHints.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natWMSizeHints.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWMSizeHints.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWMSizeHints.lo `test -f 'gnu/gcj/xlib/natWMSizeHints.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWMSizeHints.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWMSizeHints.lo `test -f 'gnu/gcj/xlib/natWMSizeHints.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWMSizeHints.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindow.lo: gnu/gcj/xlib/natWindow.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindow.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWindow.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindow.lo `test -f 'gnu/gcj/xlib/natWindow.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWindow.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindow.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWindow.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindow.lo `test -f 'gnu/gcj/xlib/natWindow.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWindow.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWindow.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWindow.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWindow.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natWindow.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindow.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindow.lo `test -f 'gnu/gcj/xlib/natWindow.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWindow.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindow.lo `test -f 'gnu/gcj/xlib/natWindow.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWindow.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindowAttributes.lo: gnu/gcj/xlib/natWindowAttributes.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindowAttributes.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWindowAttributes.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindowAttributes.lo `test -f 'gnu/gcj/xlib/natWindowAttributes.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWindowAttributes.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindowAttributes.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWindowAttributes.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindowAttributes.lo `test -f 'gnu/gcj/xlib/natWindowAttributes.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWindowAttributes.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWindowAttributes.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWindowAttributes.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natWindowAttributes.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natWindowAttributes.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindowAttributes.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindowAttributes.lo `test -f 'gnu/gcj/xlib/natWindowAttributes.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWindowAttributes.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natWindowAttributes.lo `test -f 'gnu/gcj/xlib/natWindowAttributes.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natWindowAttributes.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXAnyEvent.lo: gnu/gcj/xlib/natXAnyEvent.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXAnyEvent.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXAnyEvent.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXAnyEvent.lo `test -f 'gnu/gcj/xlib/natXAnyEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXAnyEvent.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXAnyEvent.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXAnyEvent.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXAnyEvent.lo `test -f 'gnu/gcj/xlib/natXAnyEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXAnyEvent.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXAnyEvent.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXAnyEvent.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXAnyEvent.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natXAnyEvent.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXAnyEvent.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXAnyEvent.lo `test -f 'gnu/gcj/xlib/natXAnyEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXAnyEvent.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXAnyEvent.lo `test -f 'gnu/gcj/xlib/natXAnyEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXAnyEvent.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXButtonEvent.lo: gnu/gcj/xlib/natXButtonEvent.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXButtonEvent.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXButtonEvent.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXButtonEvent.lo `test -f 'gnu/gcj/xlib/natXButtonEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXButtonEvent.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXButtonEvent.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXButtonEvent.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXButtonEvent.lo `test -f 'gnu/gcj/xlib/natXButtonEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXButtonEvent.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXButtonEvent.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXButtonEvent.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXButtonEvent.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natXButtonEvent.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXButtonEvent.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXButtonEvent.lo `test -f 'gnu/gcj/xlib/natXButtonEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXButtonEvent.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXButtonEvent.lo `test -f 'gnu/gcj/xlib/natXButtonEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXButtonEvent.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXColor.lo: gnu/gcj/xlib/natXColor.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXColor.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXColor.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXColor.lo `test -f 'gnu/gcj/xlib/natXColor.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXColor.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXColor.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXColor.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXColor.lo `test -f 'gnu/gcj/xlib/natXColor.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXColor.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXColor.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXColor.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXColor.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natXColor.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXColor.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXColor.lo `test -f 'gnu/gcj/xlib/natXColor.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXColor.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXColor.lo `test -f 'gnu/gcj/xlib/natXColor.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXColor.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXConfigureEvent.lo: gnu/gcj/xlib/natXConfigureEvent.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXConfigureEvent.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXConfigureEvent.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXConfigureEvent.lo `test -f 'gnu/gcj/xlib/natXConfigureEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXConfigureEvent.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXConfigureEvent.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXConfigureEvent.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXConfigureEvent.lo `test -f 'gnu/gcj/xlib/natXConfigureEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXConfigureEvent.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXConfigureEvent.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXConfigureEvent.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXConfigureEvent.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natXConfigureEvent.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXConfigureEvent.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXConfigureEvent.lo `test -f 'gnu/gcj/xlib/natXConfigureEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXConfigureEvent.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXConfigureEvent.lo `test -f 'gnu/gcj/xlib/natXConfigureEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXConfigureEvent.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXException.lo: gnu/gcj/xlib/natXException.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXException.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXException.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXException.lo `test -f 'gnu/gcj/xlib/natXException.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXException.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXException.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXException.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXException.lo `test -f 'gnu/gcj/xlib/natXException.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXException.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXException.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXException.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXException.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natXException.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXException.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXException.lo `test -f 'gnu/gcj/xlib/natXException.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXException.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXException.lo `test -f 'gnu/gcj/xlib/natXException.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXException.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXExposeEvent.lo: gnu/gcj/xlib/natXExposeEvent.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXExposeEvent.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXExposeEvent.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXExposeEvent.lo `test -f 'gnu/gcj/xlib/natXExposeEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXExposeEvent.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXExposeEvent.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXExposeEvent.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXExposeEvent.lo `test -f 'gnu/gcj/xlib/natXExposeEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXExposeEvent.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXExposeEvent.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXExposeEvent.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXExposeEvent.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natXExposeEvent.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXExposeEvent.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXExposeEvent.lo `test -f 'gnu/gcj/xlib/natXExposeEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXExposeEvent.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXExposeEvent.lo `test -f 'gnu/gcj/xlib/natXExposeEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXExposeEvent.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXImage.lo: gnu/gcj/xlib/natXImage.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXImage.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXImage.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXImage.lo `test -f 'gnu/gcj/xlib/natXImage.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXImage.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXImage.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXImage.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXImage.lo `test -f 'gnu/gcj/xlib/natXImage.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXImage.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXImage.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXImage.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXImage.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natXImage.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXImage.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXImage.lo `test -f 'gnu/gcj/xlib/natXImage.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXImage.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXImage.lo `test -f 'gnu/gcj/xlib/natXImage.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXImage.cc
 
 gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXUnmapEvent.lo: gnu/gcj/xlib/natXUnmapEvent.cc
-@am__fastdepCXX_TRUE@	if $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXUnmapEvent.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXUnmapEvent.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXUnmapEvent.lo `test -f 'gnu/gcj/xlib/natXUnmapEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXUnmapEvent.cc; \
+@am__fastdepCXX_TRUE@	if $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXUnmapEvent.lo -MD -MP -MF "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXUnmapEvent.Tpo" -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXUnmapEvent.lo `test -f 'gnu/gcj/xlib/natXUnmapEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXUnmapEvent.cc; \
 @am__fastdepCXX_TRUE@	then mv -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXUnmapEvent.Tpo" "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXUnmapEvent.Plo"; else rm -f "gnu/gcj/xlib/$(DEPDIR)/lib_gnu_awt_xlib_la-natXUnmapEvent.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gnu/gcj/xlib/natXUnmapEvent.cc' object='gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXUnmapEvent.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXUnmapEvent.lo `test -f 'gnu/gcj/xlib/natXUnmapEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXUnmapEvent.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lib_gnu_awt_xlib_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXUnmapEvent.lo `test -f 'gnu/gcj/xlib/natXUnmapEvent.cc' || echo '$(srcdir)/'`gnu/gcj/xlib/natXUnmapEvent.cc
 
 .java.o:
 @am__fastdepGCJ_TRUE@	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`; \
@@ -9382,11 +9459,11 @@ gnu/gcj/xlib/lib_gnu_awt_xlib_la-natXUnmapEvent.lo: gnu/gcj/xlib/natXUnmapEvent.
 @am__fastdepGCJ_FALSE@	$(LTGCJCOMPILE) -c -o $@ $<
 
 classpath/tools/libgcj_tools_la-tools.lo: classpath/tools/tools.zip
-@am__fastdepGCJ_TRUE@	if $(LIBTOOL) --mode=compile $(GCJ) $(libgcj_tools_la_GCJFLAGS) $(GCJFLAGS) -MT classpath/tools/libgcj_tools_la-tools.lo -MD -MP -MF "classpath/tools/$(DEPDIR)/libgcj_tools_la-tools.Tpo" -c -o classpath/tools/libgcj_tools_la-tools.lo `test -f 'classpath/tools/tools.zip' || echo '$(srcdir)/'`classpath/tools/tools.zip; \
+@am__fastdepGCJ_TRUE@	if $(LIBTOOL) --tag=GCJ --mode=compile $(GCJ) $(libgcj_tools_la_GCJFLAGS) $(GCJFLAGS) -MT classpath/tools/libgcj_tools_la-tools.lo -MD -MP -MF "classpath/tools/$(DEPDIR)/libgcj_tools_la-tools.Tpo" -c -o classpath/tools/libgcj_tools_la-tools.lo `test -f 'classpath/tools/tools.zip' || echo '$(srcdir)/'`classpath/tools/tools.zip; \
 @am__fastdepGCJ_TRUE@	then mv -f "classpath/tools/$(DEPDIR)/libgcj_tools_la-tools.Tpo" "classpath/tools/$(DEPDIR)/libgcj_tools_la-tools.Plo"; else rm -f "classpath/tools/$(DEPDIR)/libgcj_tools_la-tools.Tpo"; exit 1; fi
 @AMDEP_TRUE@@am__fastdepGCJ_FALSE@	source='classpath/tools/tools.zip' object='classpath/tools/libgcj_tools_la-tools.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepGCJ_FALSE@	DEPDIR=$(DEPDIR) $(GCJDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepGCJ_FALSE@	$(LIBTOOL) --mode=compile $(GCJ) $(libgcj_tools_la_GCJFLAGS) $(GCJFLAGS) -c -o classpath/tools/libgcj_tools_la-tools.lo `test -f 'classpath/tools/tools.zip' || echo '$(srcdir)/'`classpath/tools/tools.zip
+@am__fastdepGCJ_FALSE@	$(LIBTOOL) --tag=GCJ --mode=compile $(GCJ) $(libgcj_tools_la_GCJFLAGS) $(GCJFLAGS) -c -o classpath/tools/libgcj_tools_la-tools.lo `test -f 'classpath/tools/tools.zip' || echo '$(srcdir)/'`classpath/tools/tools.zip
 
 .zip.o:
 @am__fastdepGCJ_TRUE@	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`; \
@@ -11255,6 +11332,12 @@ java/text.list: $(java_text_source_files)
 
 -include java/text.deps
 
+java/text/spi.list: $(java_text_spi_source_files)
+	@$(mkinstalldirs) $(dir $@)
+	echo $(srcdir)/classpath/lib/java/text/spi/*.class > java/text/spi.list
+
+-include java/text/spi.deps
+
 java/util.list: $(java_util_source_files)
 	@$(mkinstalldirs) $(dir $@)
 	echo $(srcdir)/classpath/lib/java/util/*.class > java/util.list
@@ -11303,6 +11386,12 @@ java/util/regex.list: $(java_util_regex_source_files)
 
 -include java/util/regex.deps
 
+java/util/spi.list: $(java_util_spi_source_files)
+	@$(mkinstalldirs) $(dir $@)
+	echo $(srcdir)/classpath/lib/java/util/spi/*.class > java/util/spi.list
+
+-include java/util/spi.deps
+
 java/util/zip.list: $(java_util_zip_source_files)
 	@$(mkinstalldirs) $(dir $@)
 	echo $(srcdir)/classpath/lib/java/util/zip/*.class > java/util/zip.list
@@ -11314,6 +11403,12 @@ javax/accessibility.list: $(javax_accessibility_source_files)
 	echo $(srcdir)/classpath/lib/javax/accessibility/*.class > javax/accessibility.list
 
 -include javax/accessibility.deps
+
+javax/activity.list: $(javax_activity_source_files)
+	@$(mkinstalldirs) $(dir $@)
+	echo $(srcdir)/classpath/lib/javax/activity/*.class > javax/activity.list
+
+-include javax/activity.deps
 
 javax/crypto.list: $(javax_crypto_source_files)
 	@$(mkinstalldirs) $(dir $@)

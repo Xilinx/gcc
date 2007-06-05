@@ -1,6 +1,6 @@
 // Wrapper for underlying C-language localization -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -45,9 +45,7 @@
 #pragma GCC system_header
 
 #include <clocale>
-#include <cstring>   // get std::strlen
-#include <cstdio>    // get std::vsnprintf or std::vsprintf
-#include <cstdarg>
+#include <cstddef>
 
 #define _GLIBCXX_NUM_CATEGORIES 0
 
@@ -66,24 +64,25 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   {
     char* __old = std::setlocale(LC_NUMERIC, NULL);
     char* __sav = NULL;
-    if (std::strcmp(__old, "C"))
+    if (__builtin_strcmp(__old, "C"))
       {
-	__sav = new char[std::strlen(__old) + 1];
-	std::strcpy(__sav, __old);
+	const size_t __len = __builtin_strlen(__old) + 1;
+	__sav = new char[__len];
+	__builtin_memcpy(__sav, __old, __len);
 	std::setlocale(LC_NUMERIC, "C");
       }
 
-    va_list __args;
-    va_start(__args, __fmt);
+    __builtin_va_list __args;
+    __builtin_va_start(__args, __fmt);
 
 #ifdef _GLIBCXX_USE_C99
-    const int __ret = std::vsnprintf(__out, __size, __fmt, __args);
+    const int __ret = __builtin_vsnprintf(__out, __size, __fmt, __args);
 #else
-    const int __ret = std::vsprintf(__out, __fmt, __args);
+    const int __ret = __builtin_vsprintf(__out, __fmt, __args);
 #endif
 
-    va_end(__args);
-      
+    __builtin_va_end(__args);
+
     if (__sav)
       {
 	std::setlocale(LC_NUMERIC, __sav);

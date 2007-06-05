@@ -1,6 +1,7 @@
 // The template and inlines for the -*- C++ -*- complex number classes.
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -46,6 +47,7 @@
 
 #include <bits/c++config.h>
 #include <bits/cpp_type_traits.h>
+#include <ext/type_traits.h>
 #include <cmath>
 #include <sstream>
 
@@ -1484,10 +1486,73 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   complex<long double>::complex(const complex<double>& __z)
   : _M_value(__z.__rep()) { }
 
+  // Inhibit implicit instantiations for required instantiations,
+  // which are defined via explicit instantiations elsewhere.
+  // NB:  This syntax is a GNU extension.
+#if _GLIBCXX_EXTERN_TEMPLATE
+  extern template istream& operator>>(istream&, complex<float>&);
+  extern template ostream& operator<<(ostream&, const complex<float>&);
+  extern template istream& operator>>(istream&, complex<double>&);
+  extern template ostream& operator<<(ostream&, const complex<double>&);
+  extern template istream& operator>>(istream&, complex<long double>&);
+  extern template ostream& operator<<(ostream&, const complex<long double>&);
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  extern template wistream& operator>>(wistream&, complex<float>&);
+  extern template wostream& operator<<(wostream&, const complex<float>&);
+  extern template wistream& operator>>(wistream&, complex<double>&);
+  extern template wostream& operator<<(wostream&, const complex<double>&);
+  extern template wistream& operator>>(wistream&, complex<long double>&);
+  extern template wostream& operator<<(wostream&, const complex<long double>&);
+#endif
+#endif
+
+_GLIBCXX_END_NAMESPACE
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+  // See ext/type_traits.h for the primary template.
+  template<typename _Tp, typename _Up>
+    struct __promote_2<std::complex<_Tp>, _Up>
+    {
+    public:
+      typedef std::complex<typename __promote_2<_Tp, _Up>::__type> __type;
+    };
+
+  template<typename _Tp, typename _Up>
+    struct __promote_2<_Tp, std::complex<_Up> >
+    {
+    public:
+      typedef std::complex<typename __promote_2<_Tp, _Up>::__type> __type;
+    };
+  
+  template<typename _Tp, typename _Up>
+    struct __promote_2<std::complex<_Tp>, std::complex<_Up> >
+    {
+    public:
+      typedef std::complex<typename __promote_2<_Tp, _Up>::__type> __type;
+    };
+
 _GLIBCXX_END_NAMESPACE
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-# include <tr1/complex>
+#  if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#    error C++0x header cannot be included from TR1 header
+#  endif
+#  include <type_traits>
+#  if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
+#    include <tr1_impl/complex>
+#  else
+#    define _GLIBCXX_INCLUDE_AS_CXX0X
+#    define _GLIBCXX_BEGIN_NAMESPACE_TR1
+#    define _GLIBCXX_END_NAMESPACE_TR1
+#    define _GLIBCXX_TR1
+#    include <tr1_impl/complex>
+#    undef _GLIBCXX_TR1
+#    undef _GLIBCXX_END_NAMESPACE_TR1
+#    undef _GLIBCXX_BEGIN_NAMESPACE_TR1
+#    undef _GLIBCXX_INCLUDE_AS_CXX0X
+#  endif
 #endif
 
 #endif	/* _GLIBCXX_COMPLEX */

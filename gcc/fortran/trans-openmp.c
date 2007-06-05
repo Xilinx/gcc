@@ -1,5 +1,5 @@
 /* OpenMP directive translation -- generate GCC trees from gfc_code.
-   Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Jakub Jelinek <jakub@redhat.com>
 
 This file is part of GCC.
@@ -733,7 +733,7 @@ gfc_trans_omp_atomic (gfc_code *code)
 
   expr2 = code->expr2;
   if (expr2->expr_type == EXPR_FUNCTION
-      && expr2->value.function.isym->generic_id == GFC_ISYM_CONVERSION)
+      && expr2->value.function.isym->id == GFC_ISYM_CONVERSION)
     expr2 = expr2->value.function.actual->expr;
 
   if (expr2->expr_type == EXPR_OP)
@@ -773,7 +773,7 @@ gfc_trans_omp_atomic (gfc_code *code)
 	}
       e = expr2->value.op.op1;
       if (e->expr_type == EXPR_FUNCTION
-	  && e->value.function.isym->generic_id == GFC_ISYM_CONVERSION)
+	  && e->value.function.isym->id == GFC_ISYM_CONVERSION)
 	e = e->value.function.actual->expr;
       if (e->expr_type == EXPR_VARIABLE
 	  && e->symtree != NULL
@@ -786,7 +786,7 @@ gfc_trans_omp_atomic (gfc_code *code)
 	{
 	  e = expr2->value.op.op2;
 	  if (e->expr_type == EXPR_FUNCTION
-	      && e->value.function.isym->generic_id == GFC_ISYM_CONVERSION)
+	      && e->value.function.isym->id == GFC_ISYM_CONVERSION)
 	    e = e->value.function.actual->expr;
 	  gcc_assert (e->expr_type == EXPR_VARIABLE
 		      && e->symtree != NULL
@@ -800,7 +800,7 @@ gfc_trans_omp_atomic (gfc_code *code)
   else
     {
       gcc_assert (expr2->expr_type == EXPR_FUNCTION);
-      switch (expr2->value.function.isym->generic_id)
+      switch (expr2->value.function.isym->id)
 	{
 	case GFC_ISYM_MIN:
 	  op = MIN_EXPR;

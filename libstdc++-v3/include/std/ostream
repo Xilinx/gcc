@@ -43,7 +43,6 @@
 #pragma GCC system_header
 
 #include <ios>
-#include <locale>
 #include <bits/ostream_insert.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)

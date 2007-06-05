@@ -38,6 +38,7 @@
 #pragma GCC system_header
 
 #include <iosfwd>
+#include <cxxabi-forced.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
@@ -103,11 +104,28 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		__ostream_write(__out, __s, __n);
 	      __out.width(0);
 	    }
+	  catch(__cxxabiv1::__forced_unwind&)
+	    {
+	      __out._M_setstate(__ios_base::badbit);
+	      __throw_exception_again;
+	    }
 	  catch(...)
 	    { __out._M_setstate(__ios_base::badbit); }
 	}
       return __out;
     }
+
+  // Inhibit implicit instantiations for required instantiations,
+  // which are defined via explicit instantiations elsewhere.
+  // NB:  This syntax is a GNU extension.
+#if _GLIBCXX_EXTERN_TEMPLATE
+  extern template ostream& __ostream_insert(ostream&, const char*, streamsize);
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  extern template wostream& __ostream_insert(wostream&, const wchar_t*,
+					     streamsize);
+#endif
+#endif
 
 _GLIBCXX_END_NAMESPACE
 

@@ -21,6 +21,7 @@ details. */
 #include <java/lang/String.h>
 #include <java/lang/StringBuilder.h>
 #include <java/lang/Thread.h>
+#include <java/lang/Throwable.h>
 #include <java/nio/ByteBuffer.h>
 #include <java/nio/ByteBufferImpl.h>
 #include <java/util/ArrayList.h>
@@ -31,11 +32,13 @@ details. */
 #include <gnu/classpath/jdwp/Jdwp.h>
 #include <gnu/classpath/jdwp/JdwpConstants$StepDepth.h>
 #include <gnu/classpath/jdwp/JdwpConstants$StepSize.h>
+#include <gnu/classpath/jdwp/JdwpConstants$ThreadStatus.h>
 #include <gnu/classpath/jdwp/VMFrame.h>
 #include <gnu/classpath/jdwp/VMMethod.h>
 #include <gnu/classpath/jdwp/VMVirtualMachine.h>
 #include <gnu/classpath/jdwp/event/BreakpointEvent.h>
 #include <gnu/classpath/jdwp/event/ClassPrepareEvent.h>
+#include <gnu/classpath/jdwp/event/ExceptionEvent.h>
 #include <gnu/classpath/jdwp/event/EventManager.h>
 #include <gnu/classpath/jdwp/event/EventRequest.h>
 #include <gnu/classpath/jdwp/event/SingleStepEvent.h>
@@ -46,6 +49,7 @@ details. */
 #include <gnu/classpath/jdwp/event/filters/IEventFilter.h>
 #include <gnu/classpath/jdwp/event/filters/LocationOnlyFilter.h>
 #include <gnu/classpath/jdwp/event/filters/StepFilter.h>
+#include <gnu/classpath/jdwp/exception/AbsentInformationException.h>
 #include <gnu/classpath/jdwp/exception/InvalidFrameException.h>
 #include <gnu/classpath/jdwp/exception/InvalidLocationException.h>
 #include <gnu/classpath/jdwp/exception/InvalidMethodException.h>
@@ -80,6 +84,9 @@ static void handle_single_step (jvmtiEnv *, struct step_info *, jthread,
 static void JNICALL jdwpBreakpointCB (jvmtiEnv *, JNIEnv *, jthread,
 				      jmethodID, jlocation);
 static void JNICALL jdwpClassPrepareCB (jvmtiEnv *, JNIEnv *, jthread, jclass);
+static void JNICALL jdwpExceptionCB (jvmtiEnv *, JNIEnv *jni_env, jthread,
+				     jmethodID, jlocation, jobject,
+				     jmethodID, jlocation);
 static void JNICALL jdwpSingleStepCB (jvmtiEnv *, JNIEnv *, jthread,
 				      jmethodID, jlocation);
 static void JNICALL jdwpThreadEndCB (jvmtiEnv *, JNIEnv *, jthread);
@@ -109,6 +116,7 @@ gnu::classpath::jdwp::VMVirtualMachine::initialize ()
 {
   _jdwp_suspend_counts = new ::java::util::Hashtable ();
   _stepping_threads = new ::java::util::Hashtable ();
+  _event_list = new ::java::util::ArrayList ();
 
   JavaVM *vm = _Jv_GetJavaVM ();
   union
@@ -503,12 +511,25 @@ gnu::classpath::jdwp::VMMethod *
 gnu::classpath::jdwp::VMVirtualMachine::
 getClassMethod (jclass klass, jlong id)
 {
-  jmethodID method = reinterpret_cast<jmethodID> (id);
-  _Jv_MethodBase *bmeth = _Jv_FindInterpreterMethod (klass, method);
-  if (bmeth != NULL)
-    return new gnu::classpath::jdwp::VMMethod (klass, id);
+  jint count;
+  jmethodID *methods;
+  jvmtiError err = _jdwp_jvmtiEnv->GetClassMethods (klass, &count, &methods);
+  if (err != JVMTI_ERROR_NONE)
+    throw_jvmti_error (err);
 
-  throw new gnu::classpath::jdwp::exception::InvalidMethodException (id);
+  jmethodID meth_id = reinterpret_cast<jmethodID> (id);
+
+  using namespace gnu::classpath::jdwp;
+
+  // Check if this method is defined for the given class and if so return a
+  // VMMethod representing it.
+  for (int i = 0; i < count; i++)
+    {
+      if (methods[i] == meth_id)
+        return new VMMethod (klass, reinterpret_cast<jlong> (meth_id));
+    }
+
+  throw new exception::InvalidMethodException (id);
 }
 
 java::util::ArrayList *
@@ -597,12 +618,22 @@ getFrame (Thread *thread, jlong frameID)
   VMMethod *meth 
     = getClassMethod (klass, reinterpret_cast<jlong> (info.method));
   
-  if (info.location == -1)
-    loc = new Location (meth, 0);
-  else
-    loc = new Location (meth, info.location);
+  jobject this_obj;
   
-  return new VMFrame (thread, reinterpret_cast<jlong> (vm_frame), loc); 
+  if (info.location == -1)
+    {
+      loc = new Location (meth, 0);
+      this_obj = NULL;
+    }
+  else
+    {
+      loc = new Location (meth, info.location);
+      _Jv_InterpFrame *iframe = reinterpret_cast<_Jv_InterpFrame *> (vm_frame);
+      this_obj = iframe->get_this_ptr ();
+    }
+  
+  return new VMFrame (thread, reinterpret_cast<jlong> (vm_frame), loc,
+                      this_obj); 
 }
 
 jint
@@ -621,9 +652,37 @@ getFrameCount (Thread *thread)
 
 jint
 gnu::classpath::jdwp::VMVirtualMachine::
-getThreadStatus (MAYBE_UNUSED Thread *thread)
+getThreadStatus (Thread *thread)
 {
-  return 0;
+  jint thr_state, status;
+  
+  jvmtiError jerr = _jdwp_jvmtiEnv->GetThreadState (thread, &thr_state);
+  if (jerr != JVMTI_ERROR_NONE)
+    throw_jvmti_error (jerr);
+  
+  if (thr_state & JVMTI_THREAD_STATE_SLEEPING)
+    status = gnu::classpath::jdwp::JdwpConstants$ThreadStatus::SLEEPING;
+  else if (thr_state & JVMTI_THREAD_STATE_RUNNABLE)
+    status = gnu::classpath::jdwp::JdwpConstants$ThreadStatus::RUNNING;
+  else if (thr_state & JVMTI_THREAD_STATE_WAITING)
+    {
+      if (thr_state & (JVMTI_THREAD_STATE_IN_OBJECT_WAIT
+                       | JVMTI_THREAD_STATE_BLOCKED_ON_MONITOR_ENTER))
+        status = gnu::classpath::jdwp::JdwpConstants$ThreadStatus::MONITOR;
+      else
+        status = gnu::classpath::jdwp::JdwpConstants$ThreadStatus::WAIT;
+    }
+  else
+    {
+      // The thread is not SLEEPING, MONITOR, or WAIT.  It may, however, be
+      // alive but not yet started.
+      if (!(thr_state & (JVMTI_THREAD_STATE_ALIVE 
+                         | JVMTI_THREAD_STATE_TERMINATED)))
+        status = gnu::classpath::jdwp::JdwpConstants$ThreadStatus::RUNNING;
+      status = gnu::classpath::jdwp::JdwpConstants$ThreadStatus::ZOMBIE;     
+    }   
+
+  return status;
 }
 
 java::util::ArrayList *
@@ -647,7 +706,14 @@ jstring
 gnu::classpath::jdwp::VMVirtualMachine::
 getSourceFile (jclass clazz)
 {
-  return _Jv_GetInterpClassSourceFile (clazz);
+  jstring file = _Jv_GetInterpClassSourceFile (clazz);
+  
+  // Check if the source file was found.
+  if (file == NULL)
+    throw new exception::AbsentInformationException (
+                           _Jv_NewStringUTF("Source file not found"));
+  
+  return file;
 }
 
 void
@@ -840,7 +906,23 @@ handle_single_step (jvmtiEnv *env, struct step_info *sinfo, jthread thread,
   jobject instance = iframe->get_this_ptr ();
   event::SingleStepEvent *event
     = new event::SingleStepEvent (thread, loc, instance);
-  Jdwp::notify (event);
+
+  // We only want to send the notification (and consequently
+  // suspend) if we are not about to execute a breakpoint.
+  _Jv_InterpMethod *im = reinterpret_cast<_Jv_InterpMethod *> (iframe->self);
+  if (im->breakpoint_at (location))
+    {
+      // Next insn is a breakpoint -- record event and
+      // wait for the JVMTI breakpoint notification to
+      // enforce a suspension policy.
+      VMVirtualMachine::_event_list->add (event);
+    }
+  else
+    {
+      // Next insn is not a breakpoint, so send notification
+      // and enforce the suspend policy.
+      Jdwp::notify (event);
+    }
 }
 
 static void
@@ -870,6 +952,7 @@ jdwpBreakpointCB (jvmtiEnv *env, MAYBE_UNUSED JNIEnv *jni_env,
   JvAssert (err == JVMTI_ERROR_NONE);
 
   using namespace gnu::classpath::jdwp;
+  using namespace gnu::classpath::jdwp::event;
 
   jlong methodId = reinterpret_cast<jlong> (method);
   VMMethod *meth = VMVirtualMachine::getClassMethod (klass, methodId);
@@ -878,9 +961,16 @@ jdwpBreakpointCB (jvmtiEnv *env, MAYBE_UNUSED JNIEnv *jni_env,
   _Jv_InterpFrame *iframe
     = reinterpret_cast<_Jv_InterpFrame *> (thread->interp_frame);
   jobject instance = iframe->get_this_ptr ();
-  event::BreakpointEvent *event
-    = new event::BreakpointEvent (thread, loc, instance);
-  Jdwp::notify (event);
+  BreakpointEvent *event = new BreakpointEvent (thread, loc, instance);
+  
+  VMVirtualMachine::_event_list->add (event);
+  JArray<Event *> *events
+    = ((JArray<Event *> *)
+       JvNewObjectArray (VMVirtualMachine::_event_list->size (),
+			 &Event::class$, NULL));
+  VMVirtualMachine::_event_list->toArray ((jobjectArray) events);
+  VMVirtualMachine::_event_list->clear ();
+  Jdwp::notify (events);
 }
 
 static void JNICALL
@@ -896,7 +986,57 @@ jdwpClassPrepareCB (MAYBE_UNUSED jvmtiEnv *env, MAYBE_UNUSED JNIEnv *jni_env,
 }
 
 static void JNICALL
-jdwpSingleStepCB (jvmtiEnv *env, JNIEnv *jni_env, jthread thread,
+jdwpExceptionCB (jvmtiEnv *env, MAYBE_UNUSED JNIEnv *jni_env, jthread thread,
+		 jmethodID method, jlocation location, jobject exception,
+		 jmethodID catch_method, jlocation catch_location)
+{
+  using namespace gnu::classpath::jdwp;
+  jclass throw_klass;
+  jvmtiError err = env->GetMethodDeclaringClass (method, &throw_klass);
+  if (err != JVMTI_ERROR_NONE)
+    {
+      fprintf (stderr, "libgcj: internal error: could not find class for ");
+      fprintf (stderr, "method throwing exception -- continuing\n");
+      return;
+    }
+
+  VMMethod *vmmethod = new VMMethod (throw_klass,
+				     reinterpret_cast<jlong> (method));
+  Location *throw_loc = new Location (vmmethod, location);  
+  Location *catch_loc = NULL;
+  if (catch_method == 0)
+    catch_loc = Location::getEmptyLocation ();
+  else
+    {
+      jclass catch_klass;
+      err = env->GetMethodDeclaringClass (catch_method, &catch_klass);
+      if (err != JVMTI_ERROR_NONE)
+	{
+	  fprintf (stderr,
+		   "libgcj: internal error: could not find class for ");
+	  fprintf (stderr,
+		   "method catching exception -- ignoring\n");
+	}
+      else
+	{
+	  vmmethod = new VMMethod (catch_klass,
+				   reinterpret_cast<jlong> (catch_method));
+	  catch_loc = new Location (vmmethod, catch_location);
+	}
+    }
+
+  _Jv_InterpFrame *iframe
+    = reinterpret_cast<_Jv_InterpFrame *> (thread->interp_frame);
+  jobject instance = (iframe == NULL) ? NULL : iframe->get_this_ptr ();
+  Throwable *throwable = reinterpret_cast<Throwable *> (exception);
+  event::ExceptionEvent *e = new ExceptionEvent (throwable, thread,
+						 throw_loc, catch_loc,
+						 throw_klass, instance);
+  Jdwp::notify (e);
+}
+
+static void JNICALL
+jdwpSingleStepCB (jvmtiEnv *env, MAYBE_UNUSED JNIEnv *jni_env, jthread thread,
 		  jmethodID method, jlocation location)
 {
   jobject si =
@@ -997,6 +1137,7 @@ jdwpVMInitCB (MAYBE_UNUSED jvmtiEnv *env, MAYBE_UNUSED JNIEnv *jni_env,
   jvmtiEventCallbacks callbacks;
   DEFINE_CALLBACK (callbacks, Breakpoint);
   DEFINE_CALLBACK (callbacks, ClassPrepare);
+  DEFINE_CALLBACK (callbacks, Exception);
   DEFINE_CALLBACK (callbacks, SingleStep);
   DEFINE_CALLBACK (callbacks, ThreadEnd);
   DEFINE_CALLBACK (callbacks, ThreadStart);
@@ -1006,6 +1147,7 @@ jdwpVMInitCB (MAYBE_UNUSED jvmtiEnv *env, MAYBE_UNUSED JNIEnv *jni_env,
   // Enable callbacks
   ENABLE_EVENT (BREAKPOINT, NULL);
   ENABLE_EVENT (CLASS_PREPARE, NULL);
+  ENABLE_EVENT (EXCEPTION, NULL);
   // SingleStep is enabled only when needed
   ENABLE_EVENT (THREAD_END, NULL);
   ENABLE_EVENT (THREAD_START, NULL);

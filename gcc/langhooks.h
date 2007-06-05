@@ -103,10 +103,6 @@ struct lang_hooks_for_types
      integer type with at least that precision.  */
   tree (*type_for_size) (unsigned, int);
 
-  /* Given an integer type T, return a type like T but unsigned.
-     If T is unsigned, the value is T.  */
-  tree (*unsigned_type) (tree);
-
   /* Given an integer type T, return a type like T but signed.
      If T is signed, the value is T.  */
   tree (*signed_type) (tree);
@@ -114,6 +110,10 @@ struct lang_hooks_for_types
   /* Return a type the same as TYPE except unsigned or signed
      according to UNSIGNEDP.  */
   tree (*signed_or_unsigned_type) (int, tree);
+
+  /* True if the type is an instantiation of a generic type,
+     e.g. C++ template implicit specializations.  */
+  bool (*generic_p) (tree);
 
   /* Given a type, apply default promotions to unnamed function
      arguments and return the new type.  Return the same type if no

@@ -41,10 +41,85 @@ typedef struct basic_block_def *basic_block;
 #endif
 struct static_var_ann_d;
 
+/* Memory reference statistics for individual memory symbols,
+   collected during alias analysis.  */
+struct mem_sym_stats_d GTY(())
+{
+  /* Memory symbol.  */
+  tree var;
+
+  /* Nonzero if this entry has been assigned a partition.  */
+  unsigned int partitioned_p : 1;
+
+  /* Nonzero if VAR is a memory partition tag that already contains
+     call-clobbered variables in its partition set.  */
+  unsigned int has_call_clobbered_vars : 1;
+
+  /* Number of direct reference sites.  A direct reference to VAR is any
+     reference of the form 'VAR = ' or ' = VAR'.  For GIMPLE reg
+     pointers, this is the number of sites where the pointer is
+     dereferenced.  */
+  long num_direct_writes;
+  long num_direct_reads;
+
+  /* Number of indirect reference sites.  An indirect reference to VAR
+     is any reference via a pointer that contains VAR in its points-to
+     set or, in the case of call-clobbered symbols, a function call.  */
+  long num_indirect_writes;
+  long num_indirect_reads;
+
+  /* Execution frequency.  This is the sum of the execution
+     frequencies of all the statements that reference this object
+     weighted by the number of references in each statement.  This is
+     the main key used to sort the list of symbols to partition.
+     Symbols with high execution frequencies are put at the bottom of
+     the work list (ie, they are partitioned last).
+     Execution frequencies are taken directly from each basic block,
+     so compiling with PGO enabled will increase the precision of this
+     estimate.  */
+  long frequency_reads;
+  long frequency_writes;
+
+  /* Set of memory tags that contain VAR in their alias set.  */
+  bitmap parent_tags;
+};
+
+typedef struct mem_sym_stats_d *mem_sym_stats_t;
+DEF_VEC_P(mem_sym_stats_t);
+DEF_VEC_ALLOC_P(mem_sym_stats_t, heap);
+
+/* Memory reference statistics collected during alias analysis.  */
+struct mem_ref_stats_d GTY(())
+{
+  /* Number of statements that make memory references.  */
+  long num_mem_stmts;
+
+  /* Number of statements that make function calls.  */
+  long num_call_sites;
+
+  /* Number of statements that make calls to pure/const functions.  */
+  long num_pure_const_call_sites;
+
+  /* Number of ASM statements.  */
+  long num_asm_sites;
+
+  /* Estimated number of virtual operands needed as computed by
+   compute_memory_partitions.  */
+  long num_vuses;
+  long num_vdefs;
+
+  /* This maps every symbol used to make "memory" references
+     (pointers, arrays, structures, etc) to an instance of struct
+     mem_sym_stats_d describing reference statistics for the symbol.  */
+  struct pointer_map_t * GTY((skip)) mem_sym_stats;
+};
+
+
 /* Gimple dataflow datastructure. All publicly available fields shall have
    gimple_ accessor defined in tree-flow-inline.h, all publicly modifiable
    fields should have gimple_set accessor.  */
-struct gimple_df GTY(()) {
+struct gimple_df GTY(())
+{
   /* Array of all variables referenced in the function.  */
   htab_t GTY((param_is (struct int_tree_map))) referenced_vars;
 
@@ -98,6 +173,11 @@ struct gimple_df GTY(()) {
   /* Hashtable of variables annotations.  Used for static variables only;
      local variables have direct pointer in the tree node.  */
   htab_t GTY((param_is (struct static_var_ann_d))) var_anns;
+
+  /* Memory reference statistics collected during alias analysis.
+     This information is used to drive the memory partitioning
+     heuristics in compute_memory_partitions.  */
+  struct mem_ref_stats_d mem_ref_stats;
 };
 
 /* Accessors for internal use only.  Generic code should use abstraction
@@ -205,6 +285,30 @@ enum need_phi_state {
   NEED_PHI_STATE_MAYBE
 };
 
+
+/* The "no alias" attribute allows alias analysis to make more
+   aggressive assumptions when assigning alias sets, computing
+   points-to information and memory partitions.  These attributes
+   are the result of user annotations or flags (e.g.,
+   -fargument-noalias).  */
+enum noalias_state {
+    /* Default state.  No special assumptions can be made about this
+       symbol.  */
+    MAY_ALIAS = 0,
+
+    /* The symbol does not alias with other symbols that have a
+       NO_ALIAS* attribute.  */
+    NO_ALIAS,
+
+    /* The symbol does not alias with other symbols that have a
+       NO_ALIAS*, and it may not alias with global symbols.  */
+    NO_ALIAS_GLOBAL,
+
+    /* The symbol does not alias with any other symbols.  */
+    NO_ALIAS_ANYTHING
+};
+
+
 struct subvar;
 typedef struct subvar *subvar_t;
 
@@ -246,11 +350,17 @@ struct var_ann_d GTY(())
      in the VDEF list.  */
   unsigned in_vdef_list : 1;
 
-  /* True for HEAP and PARM_NOALIAS artificial variables.  */
+  /* True for HEAP artificial variables.  These variables represent
+     the memory area allocated by a call to malloc.  */
   unsigned is_heapvar : 1;
 
   /* True if the variable is call clobbered.  */
   unsigned int call_clobbered : 1;
+
+  /* This field describes several "no alias" attributes that some
+     symbols are known to have.  See the enum's definition for more
+     information on each attribute.  */
+  ENUM_BITFIELD (noalias_state) noalias_state : 2;
 
   /* Memory partition tag assigned to this symbol.  */
   tree mpt;
@@ -612,7 +722,6 @@ extern void free_omp_regions (void);
 #define PENDING_STMT(e)	((e)->insns.t)
 
 extern void delete_tree_cfg_annotations (void);
-extern void disband_implicit_edges (void);
 extern bool stmt_ends_bb_p (tree);
 extern bool is_ctrl_stmt (tree);
 extern bool is_ctrl_altering_stmt (tree);
@@ -669,13 +778,16 @@ extern void start_recording_case_labels (void);
 extern void end_recording_case_labels (void);
 extern basic_block move_sese_region_to_fn (struct function *, basic_block,
 				           basic_block);
+void remove_edge_and_dominated_blocks (edge);
 
 /* In tree-cfgcleanup.c  */
+extern bitmap cfgcleanup_altered_bbs;
 extern bool cleanup_tree_cfg (void);
 extern bool cleanup_tree_cfg_loop (void);
 
 /* In tree-pretty-print.c.  */
 extern void dump_generic_bb (FILE *, basic_block, int, int);
+extern const char *op_symbol_code (enum tree_code);
 
 /* In tree-dfa.c  */
 extern var_ann_t create_var_ann (tree);
@@ -695,10 +807,10 @@ extern void add_referenced_var (tree);
 extern void remove_referenced_var (tree);
 extern void mark_symbols_for_renaming (tree);
 extern void find_new_referenced_vars (tree *);
-
 extern tree make_rename_temp (tree, const char *);
 extern void set_default_def (tree, tree);
 extern tree gimple_default_def (struct function *, tree);
+extern struct mem_sym_stats_d *mem_sym_stats (struct function *, tree);
 
 /* In tree-phinodes.c  */
 extern void reserve_phi_args_for_new_edge (basic_block);
@@ -723,10 +835,10 @@ extern void debug_points_to_info (void);
 extern void dump_points_to_info_for (FILE *, tree);
 extern void debug_points_to_info_for (tree);
 extern bool may_be_aliased (tree);
-extern bool is_aliased_with (tree, tree);
 extern struct ptr_info_def *get_ptr_info (tree);
 extern void new_type_alias (tree, tree, tree);
-extern void count_uses_and_derefs (tree, tree, unsigned *, unsigned *, bool *);
+extern void count_uses_and_derefs (tree, tree, unsigned *, unsigned *,
+				   unsigned *);
 static inline subvar_t get_subvars_for_var (tree);
 static inline tree get_subvar_at (tree, unsigned HOST_WIDE_INT);
 static inline bool ref_contains_array_ref (tree);
@@ -738,11 +850,19 @@ static inline bool overlap_subvar (unsigned HOST_WIDE_INT,
 				   unsigned HOST_WIDE_INT,
 				   tree, bool *);
 extern tree create_tag_raw (enum tree_code, tree, const char *);
+extern void delete_mem_ref_stats (struct function *);
+extern void dump_mem_ref_stats (FILE *);
+extern void debug_mem_ref_stats (void);
+extern void debug_memory_partitions (void);
+extern void debug_mem_sym_stats (tree var);
+extern void debug_all_mem_sym_stats (void);
 
 /* Call-back function for walk_use_def_chains().  At each reaching
    definition, a function with this prototype is called.  */
 typedef bool (*walk_use_def_chains_fn) (tree, tree, void *);
 
+/* In tree-ssa-alias-warnings.c  */
+extern void strict_aliasing_warning_backend (void);
 
 /* In tree-ssa.c  */
 extern void init_tree_ssa (void);
@@ -853,6 +973,7 @@ unsigned int tree_unroll_loops_completely (bool);
 unsigned int tree_ssa_prefetch_arrays (void);
 unsigned int remove_empty_loops (void);
 void tree_ssa_iv_optimize (void);
+void tree_predictive_commoning (void);
 
 bool number_of_iterations_exit (struct loop *, edge,
 				struct tree_niter_desc *niter, bool);
@@ -898,6 +1019,7 @@ void tree_transform_and_unroll_loop (struct loop *, unsigned,
 				     edge, struct tree_niter_desc *,
 				     transform_callback, void *);
 bool contains_abnormal_ssa_name_p (tree);
+bool stmt_dominates_stmt_p (tree, tree);
 
 /* In tree-ssa-threadedge.c */
 extern bool potentially_threadable_block (basic_block);
@@ -915,6 +1037,7 @@ enum move_pos
     MOVE_POSSIBLE		/* Unlimited movement.  */
   };
 extern enum move_pos movement_possibility (tree);
+char *get_lsm_tmp_name (tree, unsigned);
 
 /* The reasons a variable may escape a function.  */
 enum escape_type 
@@ -1000,7 +1123,7 @@ bool multiplier_allowed_in_address_p (HOST_WIDE_INT, enum machine_mode);
 unsigned multiply_by_cost (HOST_WIDE_INT, enum machine_mode);
 
 /* In tree-ssa-threadupdate.c.  */
-extern bool thread_through_all_blocks (void);
+extern bool thread_through_all_blocks (bool);
 extern void register_jump_thread (edge, edge);
 
 /* In gimplify.c  */

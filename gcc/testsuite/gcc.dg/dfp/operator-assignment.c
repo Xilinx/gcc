@@ -6,10 +6,20 @@
    float types cast to decimal float types.  */
 
 extern void abort (void);
+static int failcnt;
+
+/* Support compiling the test to report individual failures; default is
+   to abort as soon as a check fails.  */
+#ifdef DBG
+#include <stdio.h>
+#define FAILURE { printf ("failed at line %d\n", __LINE__); failcnt++; }
+#else
+#define FAILURE abort ();
+#endif
 
 #define OPERATE(OPRD1,OPRT,OPRD2,RLT)		\
   if (( OPRD1 OPRT OPRD2 )!= RLT)		\
-    abort ();
+    FAILURE
 
 #define DECIMAL_COMPOUND_ASSIGNMENT(TYPE, OPRD)	\
 {						\
@@ -46,13 +56,16 @@ extern void abort (void);
 int
 main ()
 {
-  _Decimal32 d32 = 1.23456fd, d32a = 1.2df;
+  _Decimal32 d32 = 1.23456df, d32a = 1.2df;
   _Decimal64 d64 = 23.456789dd, d64a = 2.8dd;
-  _Decimal128 d128 = 345.67890123456789ld, d128a = 4.7dl;
+  _Decimal128 d128 = 345.67890123456789dl, d128a = 4.7dl;
 
   DECIMAL_COMPOUND_ASSIGNMENT(32, d32);
   DECIMAL_COMPOUND_ASSIGNMENT(64, d64);
   DECIMAL_COMPOUND_ASSIGNMENT(128, d128);
+
+  if (failcnt != 0)
+    abort ();
 
   return 0;
 }

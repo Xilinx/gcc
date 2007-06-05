@@ -355,6 +355,10 @@ struct cpp_reader
   struct file_hash_entry *file_hash_entries;
   unsigned int file_hash_entries_allocated, file_hash_entries_used;
 
+  /* Negative path lookup hash table.  */
+  struct htab *nonexistent_file_hash;
+  struct obstack nonexistent_file_ob;
+
   /* Nonzero means don't look for #include "foo" the source-file
      directory.  */
   bool quote_ignores_source_dir;
@@ -448,6 +452,9 @@ struct cpp_reader
   /* A saved list of the defined macros, for dependency checking
      of precompiled headers.  */
   struct cpp_savedstate *savedstate;
+
+  /* Next value of __COUNTER__ macro. */
+  unsigned int counter;
 };
 
 /* Character classes.  Based on the more primitive macros in safe-ctype.h.

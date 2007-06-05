@@ -45,7 +45,6 @@ extern void arm_output_fn_unwind (FILE *, bool);
 
 #ifdef TREE_CODE
 extern int arm_return_in_memory (tree);
-extern void arm_encode_call_attribute (tree, int);
 #endif
 #ifdef RTX_CODE
 extern bool arm_vector_mode_supported_p (enum machine_mode);
@@ -103,6 +102,7 @@ extern void arm_reload_out_hi (rtx *);
 extern int arm_const_double_inline_cost (rtx);
 extern bool arm_const_double_by_parts (rtx);
 extern const char *fp_immediate_constant (rtx);
+extern void arm_emit_call_insn (rtx, rtx);
 extern const char *output_call (rtx *);
 extern const char *output_call_mem (rtx *);
 extern const char *output_mov_long_double_fpa_from_arm (rtx *);
@@ -121,7 +121,7 @@ extern void arm_print_operand (FILE *, rtx, int);
 extern void arm_print_operand_address (FILE *, rtx);
 extern void arm_final_prescan_insn (rtx);
 extern int arm_debugger_arg_offset (int, rtx);
-extern int arm_is_longcall_p (rtx, int, int);
+extern bool arm_is_long_call_p (tree);
 extern int    arm_emit_vector_const (FILE *, rtx);
 extern const char * arm_output_load_gr (rtx *);
 extern const char *vfp_output_fstmd (rtx *);

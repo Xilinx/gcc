@@ -623,7 +623,6 @@ static void
 merge_blocks_move_predecessor_nojumps (basic_block a, basic_block b)
 {
   rtx barrier;
-  bool only_notes;
 
   /* If we are partitioning hot/cold basic blocks, we don't want to
      mess up unconditional or indirect jumps that cross between hot
@@ -641,16 +640,6 @@ merge_blocks_move_predecessor_nojumps (basic_block a, basic_block b)
   barrier = next_nonnote_insn (BB_END (a));
   gcc_assert (BARRIER_P (barrier));
   delete_insn (barrier);
-
-  /* Move block and loop notes out of the chain so that we do not
-     disturb their order.
-
-     ??? A better solution would be to squeeze out all the non-nested notes
-     and adjust the block trees appropriately.   Even better would be to have
-     a tighter connection between block trees and rtl so that this is not
-     necessary.  */
-  only_notes = squeeze_notes (&BB_HEAD (a), &BB_END (a));
-  gcc_assert (!only_notes);
 
   /* Scramble the insn chain.  */
   if (BB_END (a) != PREV_INSN (BB_HEAD (b)))
@@ -679,7 +668,6 @@ merge_blocks_move_successor_nojumps (basic_block a, basic_block b)
 {
   rtx barrier, real_b_end;
   rtx label, table;
-  bool only_notes;
 
   /* If we are partitioning hot/cold basic blocks, we don't want to
      mess up unconditional or indirect jumps that cross between hot
@@ -708,16 +696,6 @@ merge_blocks_move_successor_nojumps (basic_block a, basic_block b)
   barrier = NEXT_INSN (BB_END (b));
   if (barrier && BARRIER_P (barrier))
     delete_insn (barrier);
-
-  /* Move block and loop notes out of the chain so that we do not
-     disturb their order.
-
-     ??? A better solution would be to squeeze out all the non-nested notes
-     and adjust the block trees appropriately.   Even better would be to have
-     a tighter connection between block trees and rtl so that this is not
-     necessary.  */
-  only_notes = squeeze_notes (&BB_HEAD (b), &BB_END (b));
-  gcc_assert (!only_notes);
 
 
   /* Scramble the insn chain.  */
@@ -996,12 +974,8 @@ old_insns_match_p (int mode ATTRIBUTE_UNUSED, rtx i1, rtx i2)
 	if (REG_NOTE_KIND (note) == REG_DEAD && STACK_REG_P (XEXP (note, 0)))
 	  SET_HARD_REG_BIT (i2_regset, REGNO (XEXP (note, 0)));
 
-      GO_IF_HARD_REG_EQUAL (i1_regset, i2_regset, done);
-
-      return false;
-
-    done:
-      ;
+      if (!hard_reg_set_equal_p (i1_regset, i2_regset))
+	return false;
     }
 #endif
 
@@ -2028,7 +2002,7 @@ try_optimize_cfg (int mode)
 		  delete_insn_chain (label, label);
 		  /* In the case label is undeletable, move it after the
 		     BASIC_BLOCK note.  */
-		  if (NOTE_LINE_NUMBER (BB_HEAD (b)) == NOTE_INSN_DELETED_LABEL)
+		  if (NOTE_KIND (BB_HEAD (b)) == NOTE_INSN_DELETED_LABEL)
 		    {
 		      rtx bb_note = NEXT_INSN (BB_HEAD (b));
 
@@ -2190,31 +2164,6 @@ delete_unreachable_blocks (void)
 
   if (changed)
     tidy_fallthru_edges ();
-  return changed;
-}
-
-/* Merges sequential blocks if possible.  */
-
-bool
-merge_seq_blocks (void)
-{
-  basic_block bb;
-  bool changed = false;
-
-  for (bb = ENTRY_BLOCK_PTR->next_bb; bb != EXIT_BLOCK_PTR; )
-    {
-      if (single_succ_p (bb)
-	  && can_merge_blocks_p (bb, single_succ (bb)))
-	{
-	  /* Merge the blocks and retry.  */
-	  merge_blocks (bb, single_succ (bb));
-	  changed = true;
-	  continue;
-	}
-
-      bb = bb->next_bb;
-    }
-
   return changed;
 }
 

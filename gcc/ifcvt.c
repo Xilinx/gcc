@@ -2932,7 +2932,7 @@ find_if_header (basic_block test_bb, int pass)
       && find_cond_trap (test_bb, then_edge, else_edge))
     goto success;
 
-  if (dom_computed[CDI_POST_DOMINATORS] >= DOM_NO_FAST_QUERY
+  if (dom_info_state (CDI_POST_DOMINATORS) >= DOM_NO_FAST_QUERY
       && (! HAVE_conditional_execution || reload_completed))
     {
       if (find_if_case_1 (test_bb, then_edge, else_edge))
@@ -3899,9 +3899,6 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
       if (end == BB_END (merge_bb))
 	BB_END (merge_bb) = PREV_INSN (head);
 
-      if (squeeze_notes (&head, &end))
-	return TRUE;
-
       /* PR 21767: When moving insns above a conditional branch, REG_EQUAL
 	 notes might become invalid.  */
       insn = head;
@@ -3956,11 +3953,8 @@ if_convert (int x_life_data_ok)
   gcc_assert (! no_new_pseudos || reload_completed);
 
   loop_optimizer_init (AVOID_CFG_MODIFICATIONS);
-  if (current_loops)
-    {
-      mark_loop_exit_edges ();
-      loop_optimizer_finalize ();
-    }
+  mark_loop_exit_edges ();
+  loop_optimizer_finalize ();
   free_dominance_info (CDI_DOMINATORS);
 
   /* Compute postdominators if we think we'll use them.  */

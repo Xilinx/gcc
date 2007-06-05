@@ -47,7 +47,7 @@ bsi_cfg_node (block_stmt_iterator bsi)
 static inline cfg_node
 bb_1st_cfg_node (basic_block bb)
 {
-  return STATEMENT_LIST_HEAD (bb->stmt_list);
+  return STATEMENT_LIST_HEAD (bb->il.tree->stmt_list);
 }
 
 /* Patterns are of 2 kinds:

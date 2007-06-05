@@ -221,15 +221,16 @@
 ;; This attribute is YES if the instruction is a jal macro (not a
 ;; real jal instruction).
 ;;
-;; jal is always a macro for o32 and o64 abicalls because it includes an
-;; instruction to restore $gp.  Direct jals are also macros for -mshared
-;; abicalls because they first load the target address into $25.
+;; jal is always a macro for TARGET_CALL_CLOBBERED_GP because it includes
+;; an instruction to restore $gp.  Direct jals are also macros for
+;; flag_pic && !TARGET_ABSOLUTE_ABICALLS because they first load
+;; the target address into a register.
 (define_attr "jal_macro" "no,yes"
   (cond [(eq_attr "jal" "direct")
-	 (symbol_ref "TARGET_ABICALLS
-		      && (TARGET_OLDABI || !TARGET_ABSOLUTE_ABICALLS)")
+	 (symbol_ref "TARGET_CALL_CLOBBERED_GP
+		      || (flag_pic && !TARGET_ABSOLUTE_ABICALLS)")
 	 (eq_attr "jal" "indirect")
-	 (symbol_ref "TARGET_ABICALLS && TARGET_OLDABI")]
+	 (symbol_ref "TARGET_CALL_CLOBBERED_GP")]
 	(const_string "no")))
 
 ;; Classification of each insn.
@@ -395,7 +396,7 @@
 ;; Attribute describing the processor.  This attribute must match exactly
 ;; with the processor_type enumeration in mips.h.
 (define_attr "cpu"
-  "r3000,4kc,4kp,5kc,5kf,20kc,24kc,24kf,24kx,m4k,r3900,r6000,r4000,r4100,r4111,r4120,r4130,r4300,r4600,r4650,r5000,r5400,r5500,r7000,r8000,r9000,sb1,sb1a,sr71000"
+  "r3000,4kc,4kp,5kc,5kf,20kc,24kc,24kf,24kx,74kc,74kf,74kx,m4k,r3900,r6000,r4000,r4100,r4111,r4120,r4130,r4300,r4600,r4650,r5000,r5400,r5500,r7000,r8000,r9000,sb1,sb1a,sr71000"
   (const (symbol_ref "mips_tune")))
 
 ;; The type of hardware hazard associated with this instruction.
@@ -632,6 +633,7 @@
 (include "4k.md")
 (include "5k.md")
 (include "24k.md")
+(include "74k.md")
 (include "3000.md")
 (include "4000.md")
 (include "4100.md")
@@ -1207,13 +1209,13 @@
    (clobber (match_scratch:SI 5 "=X,3,l"))
    (clobber (match_scratch:SI 6 "=X,X,&d"))]
   "(TARGET_MIPS3900
-   || ISA_HAS_MADD_MSUB)
+   || GENERATE_MADD_MSUB)
    && !TARGET_MIPS16"
 {
   static const char *const madd[] = { "madd\t%1,%2", "madd\t%0,%1,%2" };
   if (which_alternative == 2)
     return "#";
-  if (ISA_HAS_MADD_MSUB && which_alternative != 0)
+  if (GENERATE_MADD_MSUB && which_alternative != 0)
     return "#";
   return madd[which_alternative];
 }
@@ -1467,7 +1469,7 @@
    (clobber (match_scratch:SI 4 "=h,h,h"))
    (clobber (match_scratch:SI 5 "=X,1,l"))
    (clobber (match_scratch:SI 6 "=X,X,&d"))]
-  "ISA_HAS_MADD_MSUB"
+  "GENERATE_MADD_MSUB"
   "@
    msub\t%2,%3
    #
@@ -1647,16 +1649,18 @@
   [(set_attr "type" "imul")
    (set_attr "mode" "SI")])
 
-(define_insn "*msac<u>_di"
-  [(set (match_operand:DI 0 "register_operand" "=x")
+(define_insn "<u>msubsidi4"
+  [(set (match_operand:DI 0 "register_operand" "=ka")
         (minus:DI
 	   (match_operand:DI 3 "register_operand" "0")
 	   (mult:DI
 	      (any_extend:DI (match_operand:SI 1 "register_operand" "d"))
 	      (any_extend:DI (match_operand:SI 2 "register_operand" "d")))))]
-  "!TARGET_64BIT && ISA_HAS_MSAC"
+  "!TARGET_64BIT && (ISA_HAS_MSAC || GENERATE_MADD_MSUB || TARGET_DSPR2)"
 {
-  if (TARGET_MIPS5500)
+  if (TARGET_DSPR2)
+    return "msub<u>\t%q0,%1,%2";
+  else if (TARGET_MIPS5500 || GENERATE_MADD_MSUB)
     return "msub<u>\t%1,%2";
   else
     return "msac<u>\t$0,%1,%2";
@@ -1765,18 +1769,20 @@
   [(set_attr "type"	"imadd")
    (set_attr "mode"	"SI")])
 
-(define_insn "*<su>mul_acc_di"
-  [(set (match_operand:DI 0 "register_operand" "=x")
+(define_insn "<u>maddsidi4"
+  [(set (match_operand:DI 0 "register_operand" "=ka")
 	(plus:DI
 	 (mult:DI (any_extend:DI (match_operand:SI 1 "register_operand" "d"))
 		  (any_extend:DI (match_operand:SI 2 "register_operand" "d")))
 	 (match_operand:DI 3 "register_operand" "0")))]
-  "(TARGET_MAD || ISA_HAS_MACC)
+  "(TARGET_MAD || ISA_HAS_MACC || GENERATE_MADD_MSUB || TARGET_DSPR2)
    && !TARGET_64BIT"
 {
   if (TARGET_MAD)
     return "mad<u>\t%1,%2";
-  else if (TARGET_MIPS5500)
+  else if (TARGET_DSPR2)
+    return "madd<u>\t%q0,%1,%2";
+  else if (GENERATE_MADD_MSUB || TARGET_MIPS5500)
     return "madd<u>\t%1,%2";
   else
     /* See comment in *macc.  */
@@ -3155,18 +3161,18 @@
 }
   [(set_attr "length" "24")])
 
-;; Insns to fetch a global symbol from a big GOT.
+;; Insns to fetch a symbol from a big GOT.
 
 (define_insn_and_split "*xgot_hi<mode>"
   [(set (match_operand:P 0 "register_operand" "=d")
-	(high:P (match_operand:P 1 "global_got_operand" "")))]
+	(high:P (match_operand:P 1 "got_disp_operand" "")))]
   "TARGET_EXPLICIT_RELOCS && TARGET_XGOT"
   "#"
   "&& reload_completed"
   [(set (match_dup 0) (high:P (match_dup 2)))
    (set (match_dup 0) (plus:P (match_dup 0) (match_dup 3)))]
 {
-  operands[2] = mips_unspec_address (operands[1], SYMBOL_GOTOFF_GLOBAL);
+  operands[2] = mips_unspec_address (operands[1], SYMBOL_GOTOFF_DISP);
   operands[3] = pic_offset_table_rtx;
 }
   [(set_attr "got" "xgot_high")
@@ -3175,21 +3181,21 @@
 (define_insn_and_split "*xgot_lo<mode>"
   [(set (match_operand:P 0 "register_operand" "=d")
 	(lo_sum:P (match_operand:P 1 "register_operand" "d")
-		  (match_operand:P 2 "global_got_operand" "")))]
+		  (match_operand:P 2 "got_disp_operand" "")))]
   "TARGET_EXPLICIT_RELOCS && TARGET_XGOT"
   "#"
   "&& reload_completed"
   [(set (match_dup 0)
 	(unspec:P [(match_dup 1) (match_dup 3)] UNSPEC_LOAD_GOT))]
-  { operands[3] = mips_unspec_address (operands[2], SYMBOL_GOTOFF_GLOBAL); }
+  { operands[3] = mips_unspec_address (operands[2], SYMBOL_GOTOFF_DISP); }
   [(set_attr "got" "load")
    (set_attr "mode" "<MODE>")])
 
-;; Insns to fetch a global symbol from a normal GOT.
+;; Insns to fetch a symbol from a normal GOT.
 
 (define_insn_and_split "*got_disp<mode>"
   [(set (match_operand:P 0 "register_operand" "=d")
-	(match_operand:P 1 "global_got_operand" ""))]
+	(match_operand:P 1 "got_disp_operand" ""))]
   "TARGET_EXPLICIT_RELOCS && !TARGET_XGOT"
   "#"
   "&& reload_completed"
@@ -3197,16 +3203,16 @@
 	(unspec:P [(match_dup 2) (match_dup 3)] UNSPEC_LOAD_GOT))]
 {
   operands[2] = pic_offset_table_rtx;
-  operands[3] = mips_unspec_address (operands[1], SYMBOL_GOTOFF_GLOBAL);
+  operands[3] = mips_unspec_address (operands[1], SYMBOL_GOTOFF_DISP);
 }
   [(set_attr "got" "load")
    (set_attr "mode" "<MODE>")])
 
-;; Insns for loading the high part of a local symbol.
+;; Insns for loading the "page" part of a page/ofst address from the GOT.
 
 (define_insn_and_split "*got_page<mode>"
   [(set (match_operand:P 0 "register_operand" "=d")
-	(high:P (match_operand:P 1 "local_got_operand" "")))]
+	(high:P (match_operand:P 1 "got_page_ofst_operand" "")))]
   "TARGET_EXPLICIT_RELOCS"
   "#"
   "&& reload_completed"
@@ -4082,7 +4088,7 @@
 ;; Insn to initialize $gp for n32/n64 abicalls.  Operand 0 is the offset
 ;; of _gp from the start of this function.  Operand 1 is the incoming
 ;; function address.
-(define_insn_and_split "loadgp"
+(define_insn_and_split "loadgp_newabi"
   [(unspec_volatile [(match_operand 0 "" "")
 		     (match_operand 1 "register_operand" "")] UNSPEC_LOADGP)]
   "mips_current_loadgp_style () == LOADGP_NEWABI"
@@ -4100,7 +4106,7 @@
   [(set_attr "length" "12")])
 
 ;; Likewise, for -mno-shared code.  Operand 0 is the __gnu_local_gp symbol.
-(define_insn_and_split "loadgp_noshared"
+(define_insn_and_split "loadgp_absolute"
   [(unspec_volatile [(match_operand 0 "" "")] UNSPEC_LOADGP)]
   "mips_current_loadgp_style () == LOADGP_ABSOLUTE"
   "#"
@@ -4123,6 +4129,30 @@
   [(set_attr "type"	"unknown")
    (set_attr "mode"	"none")
    (set_attr "length"	"0")])
+
+;; Initialize $gp for RTP PIC.  Operand 0 is the __GOTT_BASE__ symbol
+;; and operand 1 is the __GOTT_INDEX__ symbol.
+(define_insn "loadgp_rtp"
+  [(unspec_volatile [(match_operand 0 "symbol_ref_operand")
+		     (match_operand 1 "symbol_ref_operand")] UNSPEC_LOADGP)]
+  "mips_current_loadgp_style () == LOADGP_RTP"
+  "#"
+  [(set_attr "length" "12")])
+
+(define_split
+  [(unspec_volatile [(match_operand:P 0 "symbol_ref_operand")
+		     (match_operand:P 1 "symbol_ref_operand")] UNSPEC_LOADGP)]
+  "mips_current_loadgp_style () == LOADGP_RTP"
+  [(set (match_dup 2) (high:P (match_dup 3)))
+   (set (match_dup 2) (unspec:P [(match_dup 2)
+				 (match_dup 3)] UNSPEC_LOAD_GOT))
+   (set (match_dup 2) (unspec:P [(match_dup 2)
+				 (match_dup 4)] UNSPEC_LOAD_GOT))]
+{
+  operands[2] = pic_offset_table_rtx;
+  operands[3] = mips_unspec_address (operands[0], SYMBOL_GENERAL);
+  operands[4] = mips_unspec_address (operands[1], SYMBOL_HALF);
+})
 
 ;; Emit a .cprestore directive, which normally expands to a single store
 ;; instruction.  Note that we continue to use .cprestore for explicit reloc
@@ -4930,6 +4960,15 @@
   else if (TARGET_GPWORD)
     operands[0] = expand_binop (Pmode, add_optab, operands[0],
 				pic_offset_table_rtx, 0, 0, OPTAB_WIDEN);
+  else if (TARGET_RTP_PIC)
+    {
+      /* When generating RTP PIC, we use case table entries that are relative
+	 to the start of the function.  Add the function's address to the
+	 value we loaded.  */
+      rtx start = get_hard_reg_initial_val (Pmode, PIC_FUNCTION_ADDR_REGNUM);
+      operands[0] = expand_binop (ptr_mode, add_optab, operands[0],
+				  start, 0, 0, OPTAB_WIDEN);
+    }
 
   if (Pmode == SImode)
     emit_jump_insn (gen_tablejumpsi (operands[0], operands[1]));
@@ -4947,14 +4986,14 @@
   [(set_attr "type" "jump")
    (set_attr "mode" "none")])
 
-;; For TARGET_ABICALLS, we save the gp in the jmp_buf as well.
+;; For TARGET_USE_GOT, we save the gp in the jmp_buf as well.
 ;; While it is possible to either pull it off the stack (in the
 ;; o32 case) or recalculate it given t9 and our target label,
 ;; it takes 3 or 4 insns to do so.
 
 (define_expand "builtin_setjmp_setup"
   [(use (match_operand 0 "register_operand"))]
-  "TARGET_ABICALLS"
+  "TARGET_USE_GOT"
 {
   rtx addr;
 
@@ -4969,7 +5008,7 @@
 
 (define_expand "builtin_longjmp"
   [(use (match_operand 0 "register_operand"))]
-  "TARGET_ABICALLS"
+  "TARGET_USE_GOT"
 {
   /* The elements of the buffer are, in order:  */
   int W = GET_MODE_SIZE (Pmode);
@@ -5105,7 +5144,7 @@
 (define_insn_and_split "exception_receiver"
   [(set (reg:SI 28)
 	(unspec_volatile:SI [(const_int 0)] UNSPEC_EH_RECEIVER))]
-  "TARGET_ABICALLS && TARGET_OLDABI"
+  "TARGET_CALL_CLOBBERED_GP"
   "#"
   "&& reload_completed"
   [(const_int 0)]
@@ -5138,12 +5177,12 @@
 ;; we tell the target-independent code that the address could be changed
 ;; by any call insn.
 (define_insn "load_call<mode>"
-  [(set (match_operand:P 0 "register_operand" "=c")
+  [(set (match_operand:P 0 "register_operand" "=d")
 	(unspec:P [(match_operand:P 1 "register_operand" "r")
 		   (match_operand:P 2 "immediate_operand" "")
 		   (reg:P FAKE_CALL_REGNO)]
 		  UNSPEC_LOAD_CALL))]
-  "TARGET_ABICALLS"
+  "TARGET_USE_GOT"
   "<load>\t%0,%R2(%1)"
   [(set_attr "type" "load")
    (set_attr "mode" "<MODE>")
@@ -5157,9 +5196,10 @@
 ;; constraints.
 
 ;; When we use an indirect jump, we need a register that will be
-;; preserved by the epilogue.  Since TARGET_ABICALLS forces us to
-;; use $25 for this purpose -- and $25 is never clobbered by the
-;; epilogue -- we might as well use it for !TARGET_ABICALLS as well.
+;; preserved by the epilogue.  Since TARGET_USE_PIC_FN_ADDR_REG forces
+;; us to use $25 for this purpose -- and $25 is never clobbered by the
+;; epilogue -- we might as well use it for !TARGET_USE_PIC_FN_ADDR_REG
+;; as well.
 
 (define_expand "sibcall"
   [(parallel [(call (match_operand 0 "")
@@ -5192,7 +5232,7 @@
 })
 
 (define_insn "sibcall_value_internal"
-  [(set (match_operand 0 "register_operand" "=df,df")
+  [(set (match_operand 0 "register_operand" "")
         (call (mem:SI (match_operand 1 "call_insn_operand" "j,S"))
               (match_operand 2 "" "")))]
   "TARGET_SIBCALLS && SIBLING_CALL_P (insn)"
@@ -5200,10 +5240,10 @@
   [(set_attr "type" "call")])
 
 (define_insn "sibcall_value_multiple_internal"
-  [(set (match_operand 0 "register_operand" "=df,df")
+  [(set (match_operand 0 "register_operand" "")
         (call (mem:SI (match_operand 1 "call_insn_operand" "j,S"))
               (match_operand 2 "" "")))
-   (set (match_operand 3 "register_operand" "=df,df")
+   (set (match_operand 3 "register_operand" "")
 	(call (mem:SI (match_dup 1))
 	      (match_dup 2)))]
   "TARGET_SIBCALLS && SIBLING_CALL_P (insn)"
@@ -5298,7 +5338,7 @@
 
 ;; See comment for call_internal.
 (define_insn_and_split "call_value_internal"
-  [(set (match_operand 0 "register_operand" "=df,df")
+  [(set (match_operand 0 "register_operand" "")
         (call (mem:SI (match_operand 1 "call_insn_operand" "c,S"))
               (match_operand 2 "" "")))
    (clobber (reg:SI 31))]
@@ -5317,7 +5357,7 @@
    (set_attr "extended_mips16" "no,yes")])
 
 (define_insn "call_value_split"
-  [(set (match_operand 0 "register_operand" "=df")
+  [(set (match_operand 0 "register_operand" "")
         (call (mem:SI (match_operand 1 "call_insn_operand" "cS"))
               (match_operand 2 "" "")))
    (clobber (reg:SI 31))
@@ -5328,10 +5368,10 @@
 
 ;; See comment for call_internal.
 (define_insn_and_split "call_value_multiple_internal"
-  [(set (match_operand 0 "register_operand" "=df,df")
+  [(set (match_operand 0 "register_operand" "")
         (call (mem:SI (match_operand 1 "call_insn_operand" "c,S"))
               (match_operand 2 "" "")))
-   (set (match_operand 3 "register_operand" "=df,df")
+   (set (match_operand 3 "register_operand" "")
 	(call (mem:SI (match_dup 1))
 	      (match_dup 2)))
    (clobber (reg:SI 31))]
@@ -5350,10 +5390,10 @@
    (set_attr "extended_mips16" "no,yes")])
 
 (define_insn "call_value_multiple_split"
-  [(set (match_operand 0 "register_operand" "=df")
+  [(set (match_operand 0 "register_operand" "")
         (call (mem:SI (match_operand 1 "call_insn_operand" "cS"))
               (match_operand 2 "" "")))
-   (set (match_operand 3 "register_operand" "=df")
+   (set (match_operand 3 "register_operand" "")
 	(call (mem:SI (match_dup 1))
 	      (match_dup 2)))
    (clobber (reg:SI 31))

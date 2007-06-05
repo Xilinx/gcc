@@ -688,7 +688,8 @@ write_mangled_name (const tree decl, bool top_level)
 	}
     }
   else if (TREE_CODE (decl) == VAR_DECL
-	   /* The names of global variables aren't mangled.  */
+	   /* The names of non-static global variables aren't mangled.  */
+	   && DECL_EXTERNAL_LINKAGE_P (decl)
 	   && (CP_DECL_CONTEXT (decl) == global_namespace
 	       /* And neither are `extern "C"' variables.  */
 	       || DECL_EXTERN_C_P (decl)))
@@ -1086,7 +1087,10 @@ write_template_prefix (const tree node)
 
     <unqualified-name>  ::= <operator-name>
 			::= <special-name>
-			::= <source-name>  */
+			::= <source-name>
+			::= <local-source-name> 
+
+    <local-source-name>	::= L <source-name> <discriminator> */
 
 static void
 write_unqualified_name (const tree decl)
@@ -1125,6 +1129,16 @@ write_unqualified_name (const tree decl)
 	oni = operator_name_info;
 
       write_string (oni[DECL_OVERLOADED_OPERATOR_P (decl)].mangled_name);
+    }
+  else if (VAR_OR_FUNCTION_DECL_P (decl) && ! TREE_PUBLIC (decl)
+	   && DECL_NAMESPACE_SCOPE_P (decl)
+	   && decl_linkage (decl) == lk_internal)
+    {
+      MANGLE_TRACE_TREE ("local-source-name", decl);
+      write_char ('L');
+      write_source_name (DECL_NAME (decl));
+      /* The default discriminator is 1, and that's all we ever use,
+	 so there's no code to output one here.  */
     }
   else
     write_source_name (DECL_NAME (decl));
@@ -1326,7 +1340,7 @@ write_real_cst (const tree value)
 
       for (; i != limit; i += dir)
 	{
-	  sprintf (buffer, "%08lx", target_real[i]);
+	  sprintf (buffer, "%08lx", (unsigned long) target_real[i]);
 	  write_chars (buffer, 8);
 	}
     }
@@ -1527,6 +1541,10 @@ write_local_name (const tree function, const tree local_entity,
 	    ::= G <type>    # imaginary (C 2000)     [not supported]
 	    ::= U <source-name> <type>   # vendor extended type qualifier
 
+   C++0x extensions
+
+     <type> ::= RR <type>   # rvalue reference-to
+
    TYPE is a type node.  */
 
 static void
@@ -1621,6 +1639,8 @@ write_type (tree type)
 	  break;
 
 	case REFERENCE_TYPE:
+	  if (TYPE_REF_IS_RVALUE (type))
+            write_char('R');
 	  write_char ('R');
 	  write_type (TREE_TYPE (type));
 	  break;
@@ -2607,8 +2627,9 @@ get_identifier_nocopy (const char *name)
 void
 mangle_decl (const tree decl)
 {
-  SET_DECL_ASSEMBLER_NAME (decl,
-			   get_identifier_nocopy (mangle_decl_string (decl)));
+  tree id = get_identifier_nocopy (mangle_decl_string (decl));
+  id = targetm.mangle_decl_assembler_name (decl, id);
+  SET_DECL_ASSEMBLER_NAME (decl, id);
 }
 
 /* Generate the mangled representation of TYPE.  */

@@ -88,6 +88,9 @@ a register with any other reload.  */
 
 #define REG_OK_STRICT
 
+/* We do not enable this with ENABLE_CHECKING, since it is awfully slow.  */
+#undef DEBUG_RELOAD
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -1180,7 +1183,7 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 
   /* If IN appears in OUT, we can't share any input-only reload for IN.  */
   if (in != 0 && out != 0 && MEM_P (out)
-      && (REG_P (in) || MEM_P (in))
+      && (REG_P (in) || MEM_P (in) || GET_CODE (in) == PLUS)
       && reg_overlap_mentioned_for_reload_p (in, XEXP (out, 0)))
     dont_share = 1;
 
@@ -1256,17 +1259,8 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	}
       for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
 	if (HARD_REGNO_MODE_OK (i, mode)
-	    && TEST_HARD_REG_BIT (reg_class_contents[(int) class], i))
-	  {
-	    int nregs = hard_regno_nregs[i][mode];
-
-	    int j;
-	    for (j = 1; j < nregs; j++)
-	      if (! TEST_HARD_REG_BIT (reg_class_contents[(int) class], i + j))
-		break;
-	    if (j == nregs)
-	      break;
-	  }
+	    && in_hard_reg_set_p (reg_class_contents[(int) class], mode, i))
+	  break;
       if (i == FIRST_PSEUDO_REGISTER)
 	{
 	  error_for_asm (this_insn, "impossible register constraint "
@@ -1530,18 +1524,15 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 		|| ! bitmap_bit_p (ENTRY_BLOCK_PTR->il.rtl->global_live_at_end,
 				   ORIGINAL_REGNO (XEXP (note, 0))))
 	    && ! refers_to_regno_for_reload_p (regno,
-					       (regno
-						+ hard_regno_nregs[regno]
-								  [rel_mode]),
+					       end_hard_regno (rel_mode,
+							       regno),
 					       PATTERN (this_insn), inloc)
 	    /* If this is also an output reload, IN cannot be used as
 	       the reload register if it is set in this insn unless IN
 	       is also OUT.  */
 	    && (out == 0 || in == out
 		|| ! hard_reg_set_here_p (regno,
-					  (regno
-					   + hard_regno_nregs[regno]
-							     [rel_mode]),
+					  end_hard_regno (rel_mode, regno),
 					  PATTERN (this_insn)))
 	    /* ??? Why is this code so different from the previous?
 	       Is there any simple coherent way to describe the two together?
@@ -1570,8 +1561,7 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 
 	    if (offs == nregs
 		&& (! (refers_to_regno_for_reload_p
-		       (regno, (regno + hard_regno_nregs[regno][inmode]),
-				in, (rtx *)0))
+		       (regno, end_hard_regno (inmode, regno), in, (rtx *) 0))
 		    || can_reload_into (in, regno, inmode)))
 	      {
 		rld[i].reg_rtx = gen_rtx_REG (rel_mode, regno);
@@ -1853,7 +1843,12 @@ combine_reloads (void)
 		    ||  ! (TEST_HARD_REG_BIT
 			   (reg_class_contents[(int) rld[secondary_out].class],
 			    REGNO (XEXP (note, 0)))))))
-	&& ! fixed_regs[REGNO (XEXP (note, 0))])
+	&& ! fixed_regs[REGNO (XEXP (note, 0))]
+	/* Check that we don't use a hardreg for an uninitialized
+	   pseudo.  See also find_dummy_reload().  */
+	&& (ORIGINAL_REGNO (XEXP (note, 0)) < FIRST_PSEUDO_REGISTER
+	    || ! bitmap_bit_p (ENTRY_BLOCK_PTR->il.rtl->global_live_at_end,
+			       ORIGINAL_REGNO (XEXP (note, 0)))))
       {
 	rld[output_reload].reg_rtx
 	  = gen_rtx_REG (rld[output_reload].outmode,
@@ -2081,7 +2076,7 @@ hard_reg_set_here_p (unsigned int beg_regno, unsigned int end_regno, rtx x)
 
 	  /* See if this reg overlaps range under consideration.  */
 	  if (r < end_regno
-	      && r + hard_regno_nregs[r][GET_MODE (op0)] > beg_regno)
+	      && end_hard_regno (GET_MODE (op0), r) > beg_regno)
 	    return 1;
 	}
     }
@@ -2401,7 +2396,7 @@ decompose (rtx x)
 	}
       else
 	/* A hard reg.  */
-	val.end = val.start + hard_regno_nregs[val.start][GET_MODE (x)];
+	val.end = end_hard_regno (GET_MODE (x), val.start);
       break;
 
     case SUBREG:
@@ -4460,7 +4455,8 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
     if (rld[i].when_needed == RELOAD_FOR_INPUT
 	&& GET_CODE (PATTERN (insn)) == SET
 	&& REG_P (SET_DEST (PATTERN (insn)))
-	&& SET_SRC (PATTERN (insn)) == rld[i].in)
+	&& SET_SRC (PATTERN (insn)) == rld[i].in
+	&& !elimination_target_reg_p (SET_DEST (PATTERN (insn))))
       {
 	rtx dest = SET_DEST (PATTERN (insn));
 	unsigned int regno = REGNO (dest);
@@ -4570,7 +4566,7 @@ find_reloads_toplev (rtx x, int opnum, enum reload_type type,
 	      x = mem;
 	      i = find_reloads_address (GET_MODE (x), &x, XEXP (x, 0), &XEXP (x, 0),
 					opnum, type, ind_levels, insn);
-	      if (x != mem)
+	      if (!rtx_equal_p (x, mem))
 		push_reg_equiv_alt_mem (regno, x);
 	      if (address_reloaded)
 		*address_reloaded = i;
@@ -4785,7 +4781,7 @@ find_reloads_address (enum machine_mode mode, rtx *memrefloc, rtx ad,
 		  find_reloads_address (GET_MODE (tem), &tem, XEXP (tem, 0),
 					&XEXP (tem, 0), opnum,
 					ADDR_TYPE (type), ind_levels, insn);
-		  if (tem != orig)
+		  if (!rtx_equal_p (tem, orig))
 		    push_reg_equiv_alt_mem (regno, tem);
 		}
 	      /* We can avoid a reload if the register's equivalent memory
@@ -5589,7 +5585,7 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 				      RELOAD_OTHER,
 				      ind_levels, insn);
 
-		if (tem != orig)
+		if (!rtx_equal_p (tem, orig))
 		  push_reg_equiv_alt_mem (regno, tem);
 
 		/* Then reload the memory location into a base
@@ -5656,7 +5652,7 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 		  find_reloads_address (GET_MODE (tem), &tem, XEXP (tem, 0),
 					&XEXP (tem, 0), opnum, type,
 					ind_levels, insn);
-		  if (tem != orig)
+		  if (!rtx_equal_p (tem, orig))
 		    push_reg_equiv_alt_mem (regno, tem);
 		  /* Put this inside a new increment-expression.  */
 		  x = gen_rtx_fmt_e (GET_CODE (x), GET_MODE (x), tem);
@@ -5811,7 +5807,7 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 		find_reloads_address (GET_MODE (x), &x, XEXP (x, 0),
 				      &XEXP (x, 0), opnum, ADDR_TYPE (type),
 				      ind_levels, insn);
-		if (x != tem)
+		if (!rtx_equal_p (x, tem))
 		  push_reg_equiv_alt_mem (regno, x);
 	      }
 	  }
@@ -6001,6 +5997,8 @@ find_reloads_subreg_address (rtx x, int force_replace, int opnum,
 	      unsigned inner_size = GET_MODE_SIZE (GET_MODE (SUBREG_REG (x)));
 	      int offset;
 	      rtx orig = tem;
+	      enum machine_mode orig_mode = GET_MODE (orig);
+	      int reloaded;
 
 	      /* For big-endian paradoxical subregs, SUBREG_BYTE does not
 		 hold the correct (negative) byte offset.  */
@@ -6033,12 +6031,31 @@ find_reloads_subreg_address (rtx x, int force_replace, int opnum,
 		    return x;
 		}
 
-	      find_reloads_address (GET_MODE (tem), &tem, XEXP (tem, 0),
-				    &XEXP (tem, 0), opnum, type,
-				    ind_levels, insn);
+	      reloaded = find_reloads_address (GET_MODE (tem), &tem,
+					       XEXP (tem, 0), &XEXP (tem, 0),
+					       opnum, type, ind_levels, insn);
 	      /* ??? Do we need to handle nonzero offsets somehow?  */
-	      if (!offset && tem != orig)
+	      if (!offset && !rtx_equal_p (tem, orig))
 		push_reg_equiv_alt_mem (regno, tem);
+
+	      /* For some processors an address may be valid in the
+		 original mode but not in a smaller mode.  For
+		 example, ARM accepts a scaled index register in
+		 SImode but not in HImode.  find_reloads_address
+		 assumes that we pass it a valid address, and doesn't
+		 force a reload.  This will probably be fine if
+		 find_reloads_address finds some reloads.  But if it
+		 doesn't find any, then we may have just converted a
+		 valid address into an invalid one.  Check for that
+		 here.  */
+	      if (reloaded != 1
+		  && strict_memory_address_p (orig_mode, XEXP (tem, 0))
+		  && !strict_memory_address_p (GET_MODE (tem),
+					       XEXP (tem, 0)))
+		push_reload (XEXP (tem, 0), NULL_RTX, &XEXP (tem, 0), (rtx*) 0,
+			     base_reg_class (GET_MODE (tem), MEM, SCRATCH),
+			     GET_MODE (XEXP (tem, 0)), VOIDmode, 0, 0,
+			     opnum, type);
 
 	      /* If this is not a toplevel operand, find_reloads doesn't see
 		 this substitution.  We have to emit a USE of the pseudo so
@@ -6075,8 +6092,12 @@ subst_reloads (rtx insn)
       rtx reloadreg = rld[r->what].reg_rtx;
       if (reloadreg)
 	{
-#ifdef ENABLE_CHECKING
-	  /* Internal consistency test.  Check that we don't modify
+#ifdef DEBUG_RELOAD
+	  /* This checking takes a very long time on some platforms
+	     causing the gcc.c-torture/compile/limits-fnargs.c test
+	     to time out during testing.  See PR 31850.
+
+	     Internal consistency test.  Check that we don't modify
 	     anything in the equivalence arrays.  Whenever something from
 	     those arrays needs to be reloaded, it must be unshared before
 	     being substituted into; the equivalence must not be modified.
@@ -6098,7 +6119,7 @@ subst_reloads (rtx insn)
 	      CHECK_MODF (reg_equiv_mem);
 #undef CHECK_MODF
 	    }
-#endif /* ENABLE_CHECKING */
+#endif /* DEBUG_RELOAD */
 
 	  /* If we're replacing a LABEL_REF with a register, add a
 	     REG_LABEL note to indicate to flow which label this
@@ -6466,7 +6487,7 @@ reg_overlap_mentioned_for_reload_p (rtx x, rtx in)
 	  return 0;
 	}
 
-      endregno = regno + hard_regno_nregs[regno][GET_MODE (x)];
+      endregno = END_HARD_REGNO (x);
 
       return refers_to_regno_for_reload_p (regno, endregno, in, (rtx*) 0);
     }
@@ -6489,7 +6510,8 @@ reg_overlap_mentioned_for_reload_p (rtx x, rtx in)
       if (REG_P (in))
 	return 0;
       else if (GET_CODE (in) == PLUS)
-	return (reg_overlap_mentioned_for_reload_p (x, XEXP (in, 0))
+	return (rtx_equal_p (x, in)
+		|| reg_overlap_mentioned_for_reload_p (x, XEXP (in, 0))
 		|| reg_overlap_mentioned_for_reload_p (x, XEXP (in, 1)));
       else return (reg_overlap_mentioned_for_reload_p (XEXP (x, 0), in)
 		   || reg_overlap_mentioned_for_reload_p (XEXP (x, 1), in));
@@ -6698,17 +6720,9 @@ find_equiv_reg (rtx goal, rtx insn, enum reg_class class, int other,
 		}
 	      else if ((unsigned) valueno >= FIRST_PSEUDO_REGISTER)
 		continue;
-	      else
-		{
-		  int i;
-
-		  for (i = hard_regno_nregs[valueno][mode] - 1; i >= 0; i--)
-		    if (! TEST_HARD_REG_BIT (reg_class_contents[(int) class],
-					     valueno + i))
-		      break;
-		  if (i >= 0)
-		    continue;
-		}
+	      else if (!in_hard_reg_set_p (reg_class_contents[(int) class],
+					  mode, valueno))
+		continue;
 	      value = valtry;
 	      where = p;
 	      break;
@@ -6742,9 +6756,7 @@ find_equiv_reg (rtx goal, rtx insn, enum reg_class class, int other,
      and is also a register that appears in the address of GOAL.  */
 
   if (goal_mem && value == SET_DEST (single_set (where))
-      && refers_to_regno_for_reload_p (valueno,
-				       (valueno
-					+ hard_regno_nregs[valueno][mode]),
+      && refers_to_regno_for_reload_p (valueno, end_hard_regno (mode, valueno),
 				       goal, (rtx*) 0))
     return 0;
 

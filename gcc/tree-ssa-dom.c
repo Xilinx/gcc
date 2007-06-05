@@ -275,26 +275,19 @@ tree_ssa_dominator_optimize (void)
   init_walk_dominator_tree (&walk_data);
 
   calculate_dominance_info (CDI_DOMINATORS);
+  cfg_altered = false;
 
-  /* We need to know which edges exit loops so that we can
-     aggressively thread through loop headers to an exit
-     edge.  */
-  loop_optimizer_init (AVOID_CFG_MODIFICATIONS);
-  if (current_loops)
-    {
-      mark_loop_exit_edges ();
-      loop_optimizer_finalize ();
-    }
-
-  /* Clean up the CFG so that any forwarder blocks created by loop
-     canonicalization are removed.  */
-  cleanup_tree_cfg ();
-  calculate_dominance_info (CDI_DOMINATORS);
+  /* We need to know loop structures in order to avoid destroying them
+     in jump threading.  Note that we still can e.g. thread through loop
+     headers to an exit edge, or through loop header to the loop body, assuming
+     that we update the loop info.  */
+  loop_optimizer_init (LOOPS_HAVE_SIMPLE_LATCHES);
 
   /* We need accurate information regarding back edges in the CFG
-     for jump threading.  */
+     for jump threading; this may include back edes that are not part of
+     a single loop.  */
   mark_dfs_back_edges ();
-
+      
   /* Recursively walk the dominator tree optimizing statements.  */
   walk_dominator_tree (&walk_data, ENTRY_BLOCK_PTR);
 
@@ -318,18 +311,18 @@ tree_ssa_dominator_optimize (void)
   free_all_edge_infos ();
 
   /* Thread jumps, creating duplicate blocks as needed.  */
-  cfg_altered |= thread_through_all_blocks ();
+  cfg_altered |= thread_through_all_blocks (first_pass_instance);
+
+  if (cfg_altered)
+    free_dominance_info (CDI_DOMINATORS);
 
   /* Removal of statements may make some EH edges dead.  Purge
      such edges from the CFG as needed.  */
   if (!bitmap_empty_p (need_eh_cleanup))
     {
-      cfg_altered |= tree_purge_all_dead_eh_edges (need_eh_cleanup);
+      tree_purge_all_dead_eh_edges (need_eh_cleanup);
       bitmap_zero (need_eh_cleanup);
     }
-
-  if (cfg_altered)
-    free_dominance_info (CDI_DOMINATORS);
 
   /* Finally, remove everything except invariants in SSA_NAME_VALUE.
 
@@ -351,6 +344,8 @@ tree_ssa_dominator_optimize (void)
   /* Debugging dumps.  */
   if (dump_file && (dump_flags & TDF_STATS))
     dump_dominator_optimization_stats (dump_file);
+
+  loop_optimizer_finalize ();
 
   /* Delete our main hashtable.  */
   htab_delete (avail_exprs);
@@ -2336,7 +2331,7 @@ propagate_rhs_into_lhs (tree stmt, tree lhs, tree rhs, bitmap interesting_names)
 
 			  te->count += e->count;
 			  remove_edge (e);
-			  cfg_altered = 1;
+			  cfg_altered = true;
 			}
 		      else
 			ei_next (&ei);
@@ -2485,6 +2480,9 @@ eliminate_degenerate_phis (void)
   interesting_names = BITMAP_ALLOC (NULL);
   interesting_names1 = BITMAP_ALLOC (NULL);
 
+  calculate_dominance_info (CDI_DOMINATORS);
+  cfg_altered = false;
+
   /* First phase.  Eliminate degenerate PHIs via a dominator
      walk of the CFG.
 
@@ -2493,7 +2491,6 @@ eliminate_degenerate_phis (void)
      phase in dominator order.  Presumably this is because walking
      in dominator order leaves fewer PHIs for later examination
      by the worklist phase.  */
-  calculate_dominance_info (CDI_DOMINATORS);
   eliminate_degenerate_phis_1 (ENTRY_BLOCK_PTR, interesting_names);
 
   /* Second phase.  Eliminate second order degenerate PHIs as well
@@ -2522,18 +2519,19 @@ eliminate_degenerate_phis (void)
 	}
     }
 
+  if (cfg_altered)
+    free_dominance_info (CDI_DOMINATORS);
+
   /* Propagation of const and copies may make some EH edges dead.  Purge
      such edges from the CFG as needed.  */
   if (!bitmap_empty_p (need_eh_cleanup))
     {
-      cfg_altered |= tree_purge_all_dead_eh_edges (need_eh_cleanup);
+      tree_purge_all_dead_eh_edges (need_eh_cleanup);
       BITMAP_FREE (need_eh_cleanup);
     }
 
   BITMAP_FREE (interesting_names);
   BITMAP_FREE (interesting_names1);
-  if (cfg_altered)
-    free_dominance_info (CDI_DOMINATORS);
   return 0;
 }
 

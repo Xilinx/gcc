@@ -51,9 +51,11 @@ am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
 	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
 	$(top_srcdir)/../config/unwind_ipinfo.m4 \
-	$(top_srcdir)/../libtool.m4 $(top_srcdir)/crossconfig.m4 \
-	$(top_srcdir)/linkage.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/../libtool.m4 $(top_srcdir)/../ltoptions.m4 \
+	$(top_srcdir)/../ltsugar.m4 $(top_srcdir)/../ltversion.m4 \
+	$(top_srcdir)/crossconfig.m4 $(top_srcdir)/linkage.m4 \
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/../config/tls.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 CONFIG_HEADER = $(top_builddir)/config.h
@@ -69,21 +71,21 @@ am__installdirs = "$(DESTDIR)$(toolexeclibdir)" \
 toolexeclibLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(noinst_LTLIBRARIES) $(toolexeclib_LTLIBRARIES)
 libsupc___la_LIBADD =
-am__libsupc___la_SOURCES_DIST = array_type_info.cc bad_cast.cc \
-	bad_typeid.cc class_type_info.cc del_op.cc del_opnt.cc \
-	del_opv.cc del_opvnt.cc dyncast.cc eh_alloc.cc eh_arm.cc \
-	eh_aux_runtime.cc eh_call.cc eh_catch.cc eh_exception.cc \
-	eh_globals.cc eh_personality.cc eh_term_handler.cc \
-	eh_terminate.cc eh_throw.cc eh_type.cc eh_unex_handler.cc \
-	enum_type_info.cc function_type_info.cc \
+am__libsupc___la_SOURCES_DIST = array_type_info.cc atexit_arm.cc \
+	bad_cast.cc bad_typeid.cc class_type_info.cc del_op.cc \
+	del_opnt.cc del_opv.cc del_opvnt.cc dyncast.cc eh_alloc.cc \
+	eh_arm.cc eh_aux_runtime.cc eh_call.cc eh_catch.cc \
+	eh_exception.cc eh_globals.cc eh_personality.cc \
+	eh_term_handler.cc eh_terminate.cc eh_throw.cc eh_type.cc \
+	eh_unex_handler.cc enum_type_info.cc function_type_info.cc \
 	fundamental_type_info.cc guard.cc new_handler.cc new_op.cc \
 	new_opnt.cc new_opv.cc new_opvnt.cc pbase_type_info.cc \
 	pmem_type_info.cc pointer_type_info.cc pure.cc \
 	si_class_type_info.cc tinfo.cc tinfo2.cc vec.cc \
 	vmi_class_type_info.cc vterminate.cc cp-demangle.c
-am__objects_1 = array_type_info.lo bad_cast.lo bad_typeid.lo \
-	class_type_info.lo del_op.lo del_opnt.lo del_opv.lo \
-	del_opvnt.lo dyncast.lo eh_alloc.lo eh_arm.lo \
+am__objects_1 = array_type_info.lo atexit_arm.lo bad_cast.lo \
+	bad_typeid.lo class_type_info.lo del_op.lo del_opnt.lo \
+	del_opv.lo del_opvnt.lo dyncast.lo eh_alloc.lo eh_arm.lo \
 	eh_aux_runtime.lo eh_call.lo eh_catch.lo eh_exception.lo \
 	eh_globals.lo eh_personality.lo eh_term_handler.lo \
 	eh_terminate.lo eh_throw.lo eh_type.lo eh_unex_handler.lo \
@@ -98,9 +100,9 @@ am_libsupc___la_OBJECTS = $(am__objects_1) $(am__objects_2)
 libsupc___la_OBJECTS = $(am_libsupc___la_OBJECTS)
 libsupc__convenience_la_LIBADD =
 am__libsupc__convenience_la_SOURCES_DIST = array_type_info.cc \
-	bad_cast.cc bad_typeid.cc class_type_info.cc del_op.cc \
-	del_opnt.cc del_opv.cc del_opvnt.cc dyncast.cc eh_alloc.cc \
-	eh_arm.cc eh_aux_runtime.cc eh_call.cc eh_catch.cc \
+	atexit_arm.cc bad_cast.cc bad_typeid.cc class_type_info.cc \
+	del_op.cc del_opnt.cc del_opv.cc del_opvnt.cc dyncast.cc \
+	eh_alloc.cc eh_arm.cc eh_aux_runtime.cc eh_call.cc eh_catch.cc \
 	eh_exception.cc eh_globals.cc eh_personality.cc \
 	eh_term_handler.cc eh_terminate.cc eh_throw.cc eh_type.cc \
 	eh_unex_handler.cc enum_type_info.cc function_type_info.cc \
@@ -118,7 +120,7 @@ am__depfiles_maybe =
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
-LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -171,6 +173,7 @@ CYGPATH_W = @CYGPATH_W@
 C_INCLUDE_DIR = @C_INCLUDE_DIR@
 DEBUG_FLAGS = @DEBUG_FLAGS@
 DEFS = @DEFS@
+DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -187,6 +190,7 @@ ENABLE_VISIBILITY_FALSE = @ENABLE_VISIBILITY_FALSE@
 ENABLE_VISIBILITY_TRUE = @ENABLE_VISIBILITY_TRUE@
 EXEEXT = @EXEEXT@
 EXTRA_CXX_FLAGS = @EXTRA_CXX_FLAGS@
+FGREP = @FGREP@
 GLIBCXX_BUILD_DEBUG_FALSE = @GLIBCXX_BUILD_DEBUG_FALSE@
 GLIBCXX_BUILD_DEBUG_TRUE = @GLIBCXX_BUILD_DEBUG_TRUE@
 GLIBCXX_BUILD_PCH_FALSE = @GLIBCXX_BUILD_PCH_FALSE@
@@ -206,10 +210,13 @@ GLIBCXX_HOSTED_TRUE = @GLIBCXX_HOSTED_TRUE@
 GLIBCXX_INCLUDES = @GLIBCXX_INCLUDES@
 GLIBCXX_LDBL_COMPAT_FALSE = @GLIBCXX_LDBL_COMPAT_FALSE@
 GLIBCXX_LDBL_COMPAT_TRUE = @GLIBCXX_LDBL_COMPAT_TRUE@
+GREP = @GREP@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LD = @LD@
+LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
 LIBMATHOBJS = @LIBMATHOBJS@
 LIBOBJS = @LIBOBJS@
@@ -223,6 +230,7 @@ MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
+NM = @NM@
 OBJEXT = @OBJEXT@
 OPTIMIZE_CXXFLAGS = @OPTIMIZE_CXXFLAGS@
 OPT_LDFLAGS = @OPT_LDFLAGS@
@@ -237,6 +245,7 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 RANLIB = @RANLIB@
 SECTION_FLAGS = @SECTION_FLAGS@
 SECTION_LDFLAGS = @SECTION_LDFLAGS@
+SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -250,6 +259,7 @@ ac_ct_AR = @ac_ct_AR@
 ac_ct_AS = @ac_ct_AS@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
+ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 am__leading_dot = @am__leading_dot@
@@ -290,6 +300,7 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 libtool_VERSION = @libtool_VERSION@
 localstatedir = @localstatedir@
+lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 multi_basedir = @multi_basedir@
@@ -335,13 +346,14 @@ toolexeclib_LTLIBRARIES = libsupc++.la
 # 2) integrated libsupc++convenience.la that is to be a part of libstdc++.a
 noinst_LTLIBRARIES = libsupc++convenience.la
 headers = \
-	exception new typeinfo cxxabi.h exception_defines.h
+	exception new typeinfo cxxabi.h cxxabi-forced.h exception_defines.h
 
 @GLIBCXX_HOSTED_TRUE@c_sources = \
 @GLIBCXX_HOSTED_TRUE@	cp-demangle.c 
 
 sources = \
 	array_type_info.cc \
+	atexit_arm.cc \
 	bad_cast.cc \
 	bad_typeid.cc \
 	class_type_info.cc \

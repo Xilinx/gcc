@@ -167,7 +167,6 @@ static GTY ((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
 
 static rtx make_call_insn_raw (rtx);
 static rtx change_address_1 (rtx, enum machine_mode, rtx, int);
-static void unshare_all_decls (tree);
 static void reset_used_decls (tree);
 static void mark_label_nuses (rtx);
 static hashval_t const_int_htab_hash (const void *);
@@ -2115,17 +2114,8 @@ set_new_first_and_last_insn (rtx first, rtx last)
    structure.  This routine should only be called once.  */
 
 static void
-unshare_all_rtl_1 (tree fndecl, rtx insn)
+unshare_all_rtl_1 (rtx insn)
 {
-  tree decl;
-
-  /* Make sure that virtual parameters are not shared.  */
-  for (decl = DECL_ARGUMENTS (fndecl); decl; decl = TREE_CHAIN (decl))
-    SET_DECL_RTL (decl, copy_rtx_if_shared (DECL_RTL (decl)));
-
-  /* Make sure that virtual stack slots are not shared.  */
-  unshare_all_decls (DECL_INITIAL (fndecl));
-
   /* Unshare just about everything else.  */
   unshare_all_rtl_in_chain (insn);
 
@@ -2166,13 +2156,13 @@ unshare_all_rtl_again (rtx insn)
 
   reset_used_flags (stack_slot_list);
 
-  unshare_all_rtl_1 (cfun->decl, insn);
+  unshare_all_rtl_1 (insn);
 }
 
 unsigned int
 unshare_all_rtl (void)
 {
-  unshare_all_rtl_1 (current_function_decl, get_insns ());
+  unshare_all_rtl_1 (get_insns ());
   return 0;
 }
 
@@ -2356,23 +2346,6 @@ unshare_all_rtl_in_chain (rtx insn)
 	REG_NOTES (insn) = copy_rtx_if_shared (REG_NOTES (insn));
 	LOG_LINKS (insn) = copy_rtx_if_shared (LOG_LINKS (insn));
       }
-}
-
-/* Go through all virtual stack slots of a function and copy any
-   shared structure.  */
-static void
-unshare_all_decls (tree blk)
-{
-  tree t;
-
-  /* Copy shared decls.  */
-  for (t = BLOCK_VARS (blk); t; t = TREE_CHAIN (t))
-    if (DECL_RTL_SET_P (t))
-      SET_DECL_RTL (t, copy_rtx_if_shared (DECL_RTL (t)));
-
-  /* Now process sub-blocks.  */
-  for (t = BLOCK_SUBBLOCKS (blk); t; t = TREE_CHAIN (t))
-    unshare_all_decls (t);
 }
 
 /* Go through all virtual stack slots of a function and mark them as
@@ -3336,7 +3309,7 @@ make_insn_raw (rtx pattern)
   INSN_CODE (insn) = -1;
   LOG_LINKS (insn) = NULL;
   REG_NOTES (insn) = NULL;
-  INSN_LOCATOR (insn) = 0;
+  INSN_LOCATOR (insn) = curr_insn_locator ();
   BLOCK_FOR_INSN (insn) = NULL;
 
 #ifdef ENABLE_RTL_CHECKING
@@ -3369,7 +3342,7 @@ make_jump_insn_raw (rtx pattern)
   LOG_LINKS (insn) = NULL;
   REG_NOTES (insn) = NULL;
   JUMP_LABEL (insn) = NULL;
-  INSN_LOCATOR (insn) = 0;
+  INSN_LOCATOR (insn) = curr_insn_locator ();
   BLOCK_FOR_INSN (insn) = NULL;
 
   return insn;
@@ -3390,7 +3363,7 @@ make_call_insn_raw (rtx pattern)
   LOG_LINKS (insn) = NULL;
   REG_NOTES (insn) = NULL;
   CALL_INSN_FUNCTION_USAGE (insn) = NULL;
-  INSN_LOCATOR (insn) = 0;
+  INSN_LOCATOR (insn) = curr_insn_locator ();
   BLOCK_FOR_INSN (insn) = NULL;
 
   return insn;
@@ -3464,8 +3437,7 @@ add_insn_after (rtx insn, rtx after)
       if (BB_END (bb) == after
 	  /* Avoid clobbering of structure when creating new BB.  */
 	  && !BARRIER_P (insn)
-	  && (!NOTE_P (insn)
-	      || NOTE_LINE_NUMBER (insn) != NOTE_INSN_BASIC_BLOCK))
+	  && !NOTE_INSN_BASIC_BLOCK_P (insn))
 	BB_END (bb) = insn;
     }
 
@@ -3530,8 +3502,7 @@ add_insn_before (rtx insn, rtx before)
       gcc_assert (BB_HEAD (bb) != insn
 		  /* Avoid clobbering of structure when creating new BB.  */
 		  || BARRIER_P (insn)
-		  || (NOTE_P (insn)
-		      && NOTE_LINE_NUMBER (insn) == NOTE_INSN_BASIC_BLOCK));
+		  || NOTE_INSN_BASIC_BLOCK_P (insn));
     }
 
   PREV_INSN (before) = insn;
@@ -3904,15 +3875,13 @@ emit_label_before (rtx label, rtx before)
 /* Emit a note of subtype SUBTYPE before the insn BEFORE.  */
 
 rtx
-emit_note_before (int subtype, rtx before)
+emit_note_before (enum insn_note subtype, rtx before)
 {
   rtx note = rtx_alloc (NOTE);
   INSN_UID (note) = cur_insn_uid++;
-#ifndef USE_MAPPED_LOCATION
-  NOTE_SOURCE_FILE (note) = 0;
-#endif
-  NOTE_LINE_NUMBER (note) = subtype;
+  NOTE_KIND (note) = subtype;
   BLOCK_FOR_INSN (note) = NULL;
+  memset (&NOTE_DATA (note), 0, sizeof (NOTE_DATA (note)));
 
   add_insn_before (note, before);
   return note;
@@ -4104,15 +4073,13 @@ emit_label_after (rtx label, rtx after)
 /* Emit a note of subtype SUBTYPE after the insn AFTER.  */
 
 rtx
-emit_note_after (int subtype, rtx after)
+emit_note_after (enum insn_note subtype, rtx after)
 {
   rtx note = rtx_alloc (NOTE);
   INSN_UID (note) = cur_insn_uid++;
-#ifndef USE_MAPPED_LOCATION
-  NOTE_SOURCE_FILE (note) = 0;
-#endif
-  NOTE_LINE_NUMBER (note) = subtype;
+  NOTE_KIND (note) = subtype;
   BLOCK_FOR_INSN (note) = NULL;
+  memset (&NOTE_DATA (note), 0, sizeof (NOTE_DATA (note)));
   add_insn_after (note, after);
   return note;
 }
@@ -4460,42 +4427,6 @@ emit_barrier (void)
   return barrier;
 }
 
-/* Make line numbering NOTE insn for LOCATION add it to the end
-   of the doubly-linked list, but only if line-numbers are desired for
-   debugging info and it doesn't match the previous one.  */
-
-rtx
-emit_line_note (location_t location)
-{
-  rtx note;
-  
-#ifdef USE_MAPPED_LOCATION
-  if (location == last_location)
-    return NULL_RTX;
-#else
-  if (location.file && last_location.file
-      && !strcmp (location.file, last_location.file)
-      && location.line == last_location.line)
-    return NULL_RTX;
-#endif
-  last_location = location;
-  
-  if (no_line_numbers)
-    {
-      cur_insn_uid++;
-      return NULL_RTX;
-    }
-
-#ifdef USE_MAPPED_LOCATION
-  note = emit_note ((int) location);
-#else
-  note = emit_note (location.line);
-  NOTE_SOURCE_FILE (note) = location.file;
-#endif
-  
-  return note;
-}
-
 /* Emit a copy of note ORIG.  */
 
 rtx
@@ -4507,7 +4438,7 @@ emit_note_copy (rtx orig)
   
   INSN_UID (note) = cur_insn_uid++;
   NOTE_DATA (note) = NOTE_DATA (orig);
-  NOTE_LINE_NUMBER (note) = NOTE_LINE_NUMBER (orig);
+  NOTE_KIND (note) = NOTE_KIND (orig);
   BLOCK_FOR_INSN (note) = NULL;
   add_insn (note);
   
@@ -4518,13 +4449,13 @@ emit_note_copy (rtx orig)
    and add it to the end of the doubly-linked list.  */
 
 rtx
-emit_note (int note_no)
+emit_note (enum insn_note kind)
 {
   rtx note;
 
   note = rtx_alloc (NOTE);
   INSN_UID (note) = cur_insn_uid++;
-  NOTE_LINE_NUMBER (note) = note_no;
+  NOTE_KIND (note) = kind;
   memset (&NOTE_DATA (note), 0, sizeof (NOTE_DATA (note)));
   BLOCK_FOR_INSN (note) = NULL;
   add_insn (note);

@@ -1,3 +1,44 @@
+2007-06-02  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2007-05-23  Steve Ellcey  <sje@cup.hp.com>
+
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+	* aclocal.m4: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2007-05-10  Roman Zippel <zippel@linux-m68k.org>
+
+	* src/m68k/ffi.c (ffi_prep_incoming_args_SYSV,
+	ffi_closure_SYSV_inner,ffi_prep_closure): New, add closure support.
+	* src/m68k/sysv.S(ffi_closure_SYSV,ffi_closure_struct_SYSV): Likewise.
+	* src/m68k/ffitarget.h (FFI_TRAMPOLINE_SIZE): Likewise.
+	(FFI_CLOSURES): Enable closure support.
+
+2007-05-10  Roman Zippel <zippel@linux-m68k.org>
+
+	* configure.ac (HAVE_AS_CFI_PSEUDO_OP): New test.
+	* configure: Regenerate.
+	* fficonfig.h.in: Regenerate.
+	* src/m68k/sysv.S (CFI_STARTPROC,CFI_ENDPROC,
+	CFI_OFFSET,CFI_DEF_CFA): New macros.
+	(ffi_call_SYSV): Add callframe annotation.
+
+2007-05-10  Roman Zippel <zippel@linux-m68k.org>
+
+	* src/m68k/ffi.c (ffi_prep_args,ffi_prep_cif_machdep): Fix
+	numerous test suite failures.
+	* src/m68k/sysv.S (ffi_call_SYSV): Likewise.
+
+2007-04-11  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.am (EXTRA_DIST): Bring up to date.
+	* Makefile.in: Regenerate.
+	* src/frv/eabi.S: Remove RCS keyword.
+
 2007-04-06  Richard Henderson  <rth@redhat.com>
 
 	* configure.ac: Tidy target case.

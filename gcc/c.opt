@@ -124,6 +124,10 @@ Wall
 C ObjC C++ ObjC++ Warning
 Enable most warning messages
 
+Wtype-limits
+C ObjC C++ ObjC++ Var(warn_type_limits) Init(-1) Warning
+Warn if a comparison is always true or always false due to the limited range of the data type
+
 Wassign-intercept
 ObjC ObjC++ Var(warn_assign_intercept) Warning
 Warn whenever an Objective-C assignment is being intercepted by the garbage collector
@@ -163,6 +167,10 @@ Synonym for -Wcomment
 Wconversion
 C ObjC C++ ObjC++ Var(warn_conversion) Warning
 Warn for implicit type conversions that may change a value
+
+Wsign-conversion
+C ObjC C++ ObjC++ Var(warn_sign_conversion) Init(-1)
+Warn for implicit type conversions between signed and unsigned integers
 
 Wctor-dtor-privacy
 C++ ObjC++ Var(warn_ctor_dtor_privacy) Warning
@@ -217,7 +225,7 @@ C ObjC C++ ObjC++ Var(warn_format_nonliteral) Warning
 Warn about format strings that are not literals
 
 Wformat-contains-nul
-C ObjC C++ ObjC++ Var(warn_format_contains_nul)
+C ObjC C++ ObjC++ Var(warn_format_contains_nul) Warning
 Warn about format strings that contain NUL bytes
 
 Wformat-security
@@ -271,7 +279,7 @@ C ObjC C++ ObjC++ Var(warn_long_long) Init(1) Warning
 Do not warn about using \"long long\" when -pedantic
 
 Wmain
-C ObjC Warning
+C ObjC C++ ObjC++ Warning
 Warn about suspicious declarations of \"main\"
 
 Wmissing-braces
@@ -551,7 +559,7 @@ C++ ObjC++
 Scope of for-init-statement variables is local to the loop
 
 ffreestanding
-C ObjC
+C ObjC C++ ObjC++
 Do not assume that standard C libraries and \"main\" exist
 
 fgnu-keywords
@@ -790,6 +798,18 @@ Generate lazy class lookup (via objc_getClass()) for use in Zero-Link mode
 gen-decls
 ObjC ObjC++
 Dump declarations to a .decl file
+
+femit-struct-debug-baseonly
+C ObjC C++ ObjC++
+-femit-struct-debug-baseonly	Aggressive reduced debug info for structs
+
+femit-struct-debug-reduced
+C ObjC C++ ObjC++
+-femit-struct-debug-reduced	Conservative reduced debug info for structs
+
+femit-struct-debug-detailed=
+C ObjC C++ ObjC++ Joined
+-femit-struct-debug-detailed=<spec-list>	Detailed reduced debug info for structs
 
 idirafter
 C ObjC C++ ObjC++ Joined Separate

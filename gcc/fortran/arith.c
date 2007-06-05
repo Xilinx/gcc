@@ -30,6 +30,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "flags.h"
 #include "gfortran.h"
 #include "arith.h"
+#include "target-memory.h"
 
 /* MPFR does not have a direct replacement for mpz_set_f() from GMP.
    It's easily implemented with a few calls though.  */
@@ -595,10 +596,11 @@ check_result (arith rc, gfc_expr *x, gfc_expr *r, gfc_expr **rp)
 
 /* It may seem silly to have a subroutine that actually computes the
    unary plus of a constant, but it prevents us from making exceptions
-   in the code elsewhere.  */
+   in the code elsewhere.  Used for unary plus and parenthesized
+   expressions.  */
 
 static arith
-gfc_arith_uplus (gfc_expr *op1, gfc_expr **resultp)
+gfc_arith_identity (gfc_expr *op1, gfc_expr **resultp)
 {
   *resultp = gfc_copy_expr (op1);
   return ARITH_OK;
@@ -1612,17 +1614,15 @@ eval_intrinsic (gfc_intrinsic_op operator,
   if (operator == INTRINSIC_POWER && op2->ts.type != BT_INTEGER)
     goto runtime;
 
-  if (op1->from_H
-      || (op1->expr_type != EXPR_CONSTANT
-	  && (op1->expr_type != EXPR_ARRAY
-	      || !gfc_is_constant_expr (op1) || !gfc_expanded_ac (op1))))
+  if (op1->expr_type != EXPR_CONSTANT
+      && (op1->expr_type != EXPR_ARRAY
+	  || !gfc_is_constant_expr (op1) || !gfc_expanded_ac (op1)))
     goto runtime;
 
   if (op2 != NULL
-      && (op2->from_H
-	  || (op2->expr_type != EXPR_CONSTANT
-	      && (op2->expr_type != EXPR_ARRAY
-		  || !gfc_is_constant_expr (op2) || !gfc_expanded_ac (op2)))))
+      && op2->expr_type != EXPR_CONSTANT
+	 && (op2->expr_type != EXPR_ARRAY
+	     || !gfc_is_constant_expr (op2) || !gfc_expanded_ac (op2)))
     goto runtime;
 
   if (unary)
@@ -1763,9 +1763,16 @@ eval_intrinsic_f3 (gfc_intrinsic_op operator,
 
 
 gfc_expr *
+gfc_parentheses (gfc_expr *op)
+{
+  return eval_intrinsic_f2 (INTRINSIC_PARENTHESES, gfc_arith_identity,
+			    op, NULL);
+}
+
+gfc_expr *
 gfc_uplus (gfc_expr *op)
 {
-  return eval_intrinsic_f2 (INTRINSIC_UPLUS, gfc_arith_uplus, op, NULL);
+  return eval_intrinsic_f2 (INTRINSIC_UPLUS, gfc_arith_identity, op, NULL);
 }
 
 
@@ -2299,37 +2306,52 @@ gfc_int2log (gfc_expr *src, int kind)
 }
 
 
+/* Helper function to set the representation in a Hollerith conversion.  
+   This assumes that the ts.type and ts.kind of the result have already
+   been set.  */
+
+static void
+hollerith2representation (gfc_expr *result, gfc_expr *src)
+{
+  int src_len, result_len;
+
+  src_len = src->representation.length;
+  result_len = gfc_target_expr_size (result);
+
+  if (src_len > result_len)
+    {
+      gfc_warning ("The Hollerith constant at %L is too long to convert to %s",
+		   &src->where, gfc_typename(&result->ts));
+    }
+
+  result->representation.string = gfc_getmem (result_len + 1);
+  memcpy (result->representation.string, src->representation.string,
+	MIN (result_len, src_len));
+
+  if (src_len < result_len)
+    memset (&result->representation.string[src_len], ' ', result_len - src_len);
+
+  result->representation.string[result_len] = '\0'; /* For debugger  */
+  result->representation.length = result_len;
+}
+
+
 /* Convert Hollerith to integer. The constant will be padded or truncated.  */
 
 gfc_expr *
 gfc_hollerith2int (gfc_expr *src, int kind)
 {
   gfc_expr *result;
-  int len;
-
-  len = src->value.character.length;
 
   result = gfc_get_expr ();
   result->expr_type = EXPR_CONSTANT;
   result->ts.type = BT_INTEGER;
   result->ts.kind = kind;
   result->where = src->where;
-  result->from_H = 1;
 
-  if (len > kind)
-    {
-      gfc_warning ("The Hollerith constant at %L is too long to convert to %s",
-		   &src->where, gfc_typename(&result->ts));
-    }
-  result->value.character.string = gfc_getmem (kind + 1);
-  memcpy (result->value.character.string, src->value.character.string,
-	MIN (kind, len));
-
-  if (len < kind)
-    memset (&result->value.character.string[len], ' ', kind - len);
-
-  result->value.character.string[kind] = '\0'; /* For debugger  */
-  result->value.character.length = kind;
+  hollerith2representation (result, src);
+  gfc_interpret_integer(kind, (unsigned char *) result->representation.string,
+			result->representation.length, result->value.integer);
 
   return result;
 }
@@ -2350,22 +2372,10 @@ gfc_hollerith2real (gfc_expr *src, int kind)
   result->ts.type = BT_REAL;
   result->ts.kind = kind;
   result->where = src->where;
-  result->from_H = 1;
 
-  if (len > kind)
-    {
-      gfc_warning ("The Hollerith constant at %L is too long to convert to %s",
-		   &src->where, gfc_typename(&result->ts));
-    }
-  result->value.character.string = gfc_getmem (kind + 1);
-  memcpy (result->value.character.string, src->value.character.string,
-	MIN (kind, len));
-
-  if (len < kind)
-    memset (&result->value.character.string[len], ' ', kind - len);
-
-  result->value.character.string[kind] = '\0'; /* For debugger.  */
-  result->value.character.length = kind;
+  hollerith2representation (result, src);
+  gfc_interpret_float(kind, (unsigned char *) result->representation.string,
+		      result->representation.length, result->value.real);
 
   return result;
 }
@@ -2386,24 +2396,11 @@ gfc_hollerith2complex (gfc_expr *src, int kind)
   result->ts.type = BT_COMPLEX;
   result->ts.kind = kind;
   result->where = src->where;
-  result->from_H = 1;
 
-  kind = kind * 2;
-
-  if (len > kind)
-    {
-      gfc_warning ("The Hollerith constant at %L is too long to convert to %s",
-		   &src->where, gfc_typename(&result->ts));
-    }
-  result->value.character.string = gfc_getmem (kind + 1);
-  memcpy (result->value.character.string, src->value.character.string,
-	  MIN (kind, len));
-
-  if (len < kind)
-    memset (&result->value.character.string[len], ' ', kind - len);
-
-  result->value.character.string[kind] = '\0'; /* For debugger  */
-  result->value.character.length = kind;
+  hollerith2representation (result, src);
+  gfc_interpret_complex(kind, (unsigned char *) result->representation.string,
+			result->representation.length, result->value.complex.r,
+			result->value.complex.i);
 
   return result;
 }
@@ -2419,7 +2416,9 @@ gfc_hollerith2character (gfc_expr *src, int kind)
   result = gfc_copy_expr (src);
   result->ts.type = BT_CHARACTER;
   result->ts.kind = kind;
-  result->from_H = 1;
+
+  result->value.character.string = result->representation.string;
+  result->value.character.length = result->representation.length;
 
   return result;
 }
@@ -2440,22 +2439,10 @@ gfc_hollerith2logical (gfc_expr *src, int kind)
   result->ts.type = BT_LOGICAL;
   result->ts.kind = kind;
   result->where = src->where;
-  result->from_H = 1;
 
-  if (len > kind)
-    {
-      gfc_warning ("The Hollerith constant at %L is too long to convert to %s",
-		   &src->where, gfc_typename(&result->ts));
-    }
-  result->value.character.string = gfc_getmem (kind + 1);
-  memcpy (result->value.character.string, src->value.character.string,
-	MIN (kind, len));
-
-  if (len < kind)
-    memset (&result->value.character.string[len], ' ', kind - len);
-
-  result->value.character.string[kind] = '\0'; /* For debugger  */
-  result->value.character.length = kind;
+  hollerith2representation (result, src);
+  gfc_interpret_logical(kind, (unsigned char *) result->representation.string,
+			result->representation.length, &result->value.logical);
 
   return result;
 }

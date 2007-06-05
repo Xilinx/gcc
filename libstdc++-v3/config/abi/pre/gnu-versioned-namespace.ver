@@ -1,6 +1,6 @@
 ## Linker script for GNU namespace versioning.
 ##
-## Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+## Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 ##
 ## This file is part of the libstdc++ version 3 distribution.
 ##
@@ -200,3 +200,11 @@ CXXABI_1.7 {
   local:
     *;
 };
+
+CXXABI_1.7.1 {
+
+    # typeinfo structures
+    _ZTIN10__cxxabiv115__forced_unwindE;
+    _ZTIN10__cxxabiv119__foreign_exceptionE;
+
+} CXXABI_1.7;

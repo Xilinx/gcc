@@ -1876,6 +1876,19 @@ build_indirect_ref (tree ptr, const char *errorstring)
 
   if (TREE_CODE (type) == POINTER_TYPE)
     {
+      if (TREE_CODE (pointer) == CONVERT_EXPR
+          || TREE_CODE (pointer) == NOP_EXPR
+          || TREE_CODE (pointer) == VIEW_CONVERT_EXPR)
+	{
+	  /* If a warning is issued, mark it to avoid duplicates from
+	     the backend.  This only needs to be done at
+	     warn_strict_aliasing > 2.  */
+	  if (warn_strict_aliasing > 2)
+	    if (strict_aliasing_warning (TREE_TYPE (TREE_OPERAND (pointer, 0)),
+					 type, TREE_OPERAND (pointer, 0)))
+	      TREE_NO_WARNING (pointer) = 1;
+	}
+
       if (TREE_CODE (pointer) == ADDR_EXPR
 	  && (TREE_TYPE (TREE_OPERAND (pointer, 0))
 	      == TREE_TYPE (type)))
@@ -1910,7 +1923,7 @@ build_indirect_ref (tree ptr, const char *errorstring)
 	}
     }
   else if (TREE_CODE (pointer) != ERROR_MARK)
-    error ("invalid type argument of %qs", errorstring);
+    error ("invalid type argument of %qs (have %qT)", errorstring, type);
   return error_mark_node;
 }
 
@@ -2649,11 +2662,11 @@ parser_build_binary_op (enum tree_code code, struct c_expr arg1,
     {
       if ((code1 == STRING_CST && !integer_zerop (arg2.value))
 	  || (code2 == STRING_CST && !integer_zerop (arg1.value)))
-	warning (OPT_Waddress, "comparison with string literal results in unspecified behaviour");
+	warning (OPT_Waddress, "comparison with string literal results in unspecified behavior");
     }
   else if (TREE_CODE_CLASS (code) == tcc_comparison
 	   && (code1 == STRING_CST || code2 == STRING_CST))
-    warning (OPT_Waddress, "comparison with string literal results in unspecified behaviour");
+    warning (OPT_Waddress, "comparison with string literal results in unspecified behavior");
 
   if (TREE_OVERFLOW_P (result.value) 
       && !TREE_OVERFLOW_P (arg1.value) 
@@ -2895,8 +2908,11 @@ build_unary_op (enum tree_code code, tree xarg, int flag)
 	  arg = stabilize_reference (arg);
 	  real = build_unary_op (REALPART_EXPR, arg, 1);
 	  imag = build_unary_op (IMAGPART_EXPR, arg, 1);
+	  real = build_unary_op (code, real, 1);
+	  if (real == error_mark_node || imag == error_mark_node)
+	    return error_mark_node;
 	  return build2 (COMPLEX_EXPR, TREE_TYPE (arg),
-			 build_unary_op (code, real, 1), imag);
+			 real, imag);
 	}
 
       /* Report invalid types.  */
@@ -3402,7 +3418,8 @@ build_compound_expr (tree expr1, tree expr2)
 		       || TREE_CODE (TREE_OPERAND (expr1, 1)) == NOP_EXPR))
 	    ; /* (void) a, (void) b, c */
 	  else
-	    warning (0, "left-hand operand of comma expression has no effect");
+	    warning (OPT_Wunused_value, 
+		     "left-hand operand of comma expression has no effect");
 	}
     }
 
@@ -3573,7 +3590,8 @@ build_c_cast (tree type, tree expr)
 	warning (OPT_Wint_to_pointer_cast, "cast to pointer from integer "
 		 "of different size");
 
-      strict_aliasing_warning (otype, type, expr);
+      if (warn_strict_aliasing <= 2)
+        strict_aliasing_warning (otype, type, expr);
 
       /* If pedantic, warn for conversions between function and object
 	 pointer types, except for converting a null pointer constant
@@ -4080,8 +4098,8 @@ convert_for_assignment (tree type, tree rhs, enum impl_conv errtype,
       if (VOID_TYPE_P (ttl) || VOID_TYPE_P (ttr)
 	  || (target_cmp = comp_target_types (type, rhstype))
 	  || is_opaque_pointer
-	  || (c_common_unsigned_type (mvl)
-	      == c_common_unsigned_type (mvr)))
+	  || (unsigned_type_for (mvl)
+	      == unsigned_type_for (mvr)))
 	{
 	  if (pedantic
 	      && ((VOID_TYPE_P (ttl) && TREE_CODE (ttr) == FUNCTION_TYPE)
@@ -8120,7 +8138,7 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 	  || !same_scalar_type_ignoring_signedness (TREE_TYPE (type0),
 						    TREE_TYPE (type1))))
     {
-      binary_op_error (code);
+      binary_op_error (code, type0, type1);
       return error_mark_node;
     }
 
@@ -8133,7 +8151,11 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
       int none_complex = (code0 != COMPLEX_TYPE && code1 != COMPLEX_TYPE);
 
       if (shorten || common || short_compare)
-	result_type = c_common_type (type0, type1);
+	{
+	  result_type = c_common_type (type0, type1);
+	  if (result_type == error_mark_node)
+	    return error_mark_node;
+	}
 
       /* For certain operations (which identify themselves by shorten != 0)
 	 if both args were extended from the same smaller type,
@@ -8416,7 +8438,7 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 
   if (!result_type)
     {
-      binary_op_error (code);
+      binary_op_error (code, TREE_TYPE (op0), TREE_TYPE (op1));
       return error_mark_node;
     }
 

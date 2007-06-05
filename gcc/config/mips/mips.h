@@ -24,6 +24,8 @@ the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
 
+#include "config/vxworks-dummy.h"
+
 /* MIPS external variables defined in mips.c.  */
 
 /* Which processor to schedule for.  Since there is no difference between
@@ -41,6 +43,9 @@ enum processor_type {
   PROCESSOR_24KC,
   PROCESSOR_24KF,
   PROCESSOR_24KX,
+  PROCESSOR_74KC,
+  PROCESSOR_74KF,
+  PROCESSOR_74KX,
   PROCESSOR_M4K,
   PROCESSOR_R3900,
   PROCESSOR_R6000,
@@ -143,13 +148,15 @@ extern const struct mips_rtx_cost_data *mips_cost;
 
 /* Run-time compilation parameters selecting different hardware subsets.  */
 
+/* True if we are generating position-independent VxWorks RTP code.  */
+#define TARGET_RTP_PIC (TARGET_VXWORKS_RTP && flag_pic)
+
 /* True if the call patterns should be split into a jalr followed by
-   an instruction to restore $gp.  This is only ever true for SVR4 PIC,
-   in which $gp is call-clobbered.  It is only safe to split the load
+   an instruction to restore $gp.  It is only safe to split the load
    from the call when every use of $gp is explicit.  */
 
 #define TARGET_SPLIT_CALLS \
-  (TARGET_EXPLICIT_RELOCS && TARGET_ABICALLS && !TARGET_NEWABI)
+  (TARGET_EXPLICIT_RELOCS && TARGET_CALL_CLOBBERED_GP)
 
 /* True if we're generating a form of -mabicalls in which we can use
    operators like %hi and %lo to refer to locally-binding symbols.
@@ -173,12 +180,23 @@ extern const struct mips_rtx_cost_data *mips_cost;
 	using sibling calls in this case anyway; they would usually
 	be longer than normal calls.
 
-      - TARGET_ABICALLS && !TARGET_EXPLICIT_RELOCS.  call_insn_operand
-	accepts global constants, but "jr $25" is the only allowed
-	sibcall.  */
-
+      - TARGET_USE_GOT && !TARGET_EXPLICIT_RELOCS.  call_insn_operand
+	accepts global constants, but all sibcalls must be indirect.  */
 #define TARGET_SIBCALLS \
-  (!TARGET_MIPS16 && (!TARGET_ABICALLS || TARGET_EXPLICIT_RELOCS))
+  (!TARGET_MIPS16 && (!TARGET_USE_GOT || TARGET_EXPLICIT_RELOCS))
+
+/* True if we need to use a global offset table to access some symbols.  */
+#define TARGET_USE_GOT (TARGET_ABICALLS || TARGET_RTP_PIC)
+
+/* True if TARGET_USE_GOT and if $gp is a call-clobbered register.  */
+#define TARGET_CALL_CLOBBERED_GP (TARGET_ABICALLS && TARGET_OLDABI)
+
+/* True if TARGET_USE_GOT and if $gp is a call-saved register.  */
+#define TARGET_CALL_SAVED_GP (TARGET_USE_GOT && !TARGET_CALL_CLOBBERED_GP)
+
+/* True if indirect calls must use register class PIC_FN_ADDR_REG.
+   This is true for both the PIC and non-PIC VxWorks RTP modes.  */
+#define TARGET_USE_PIC_FN_ADDR_REG (TARGET_ABICALLS || TARGET_VXWORKS_RTP)
 
 /* True if .gpword or .gpdword should be used for switch tables.
 
@@ -228,6 +246,9 @@ extern const struct mips_rtx_cost_data *mips_cost;
 #define TUNE_MIPS9000               (mips_tune == PROCESSOR_R9000)
 #define TUNE_SB1                    (mips_tune == PROCESSOR_SB1		\
 				     || mips_tune == PROCESSOR_SB1A)
+#define TUNE_74K                    (mips_tune == PROCESSOR_74KC	\
+				     || mips_tune == PROCESSOR_74KF	\
+				     || mips_tune == PROCESSOR_74KX)
 
 /* True if the pre-reload scheduler should try to create chains of
    multiply-add or multiply-subtract instructions.  For example,
@@ -266,6 +287,11 @@ extern const struct mips_rtx_cost_data *mips_cost;
 
 #define TARGET_OLDABI		    (mips_abi == ABI_32 || mips_abi == ABI_O64)
 #define TARGET_NEWABI		    (mips_abi == ABI_N32 || mips_abi == ABI_64)
+
+/* Similar to TARGET_HARD_FLOAT and TARGET_SOFT_FLOAT, but reflect the ABI
+   in use rather than whether the FPU is directly accessible.  */
+#define TARGET_HARD_FLOAT_ABI (TARGET_HARD_FLOAT || mips16_hard_float)
+#define TARGET_SOFT_FLOAT_ABI (!TARGET_HARD_FLOAT_ABI)
 
 /* IRIX specific stuff.  */
 #define TARGET_IRIX	   0
@@ -385,9 +411,11 @@ extern const struct mips_rtx_cost_data *mips_cost;
 	  builtin_define ("_MIPS_ISA=_MIPS_ISA_MIPS64");	\
 	}							\
 								\
-      if (TARGET_HARD_FLOAT)					\
+      /* These defines reflect the ABI in use, not whether the  \
+	 FPU is directly accessible.  */			\
+      if (TARGET_HARD_FLOAT_ABI)				\
 	builtin_define ("__mips_hard_float");			\
-      else if (TARGET_SOFT_FLOAT)				\
+      else							\
 	builtin_define ("__mips_soft_float");			\
 								\
       if (TARGET_SINGLE_FLOAT)					\
@@ -624,6 +652,9 @@ extern const struct mips_rtx_cost_data *mips_cost;
 				  || ISA_MIPS64)			\
 				 && !TARGET_MIPS16)
 
+/* Integer multiply-accumulate instructions should be generated.  */
+#define GENERATE_MADD_MSUB      (ISA_HAS_MADD_MSUB && !TUNE_74K)
+
 /* ISA has floating-point nmadd and nmsub instructions.  */
 #define ISA_HAS_NMADD_NMSUB	((ISA_MIPS4				\
 				  || ISA_MIPS64)			\
@@ -820,10 +851,12 @@ extern const struct mips_rtx_cost_data *mips_cost;
 #define ASM_SPEC "\
 %{G*} %(endian_spec) %{mips1} %{mips2} %{mips3} %{mips4} \
 %{mips32} %{mips32r2} %{mips64} \
-%{mips16:%{!mno-mips16:-mips16}} %{mno-mips16:-no-mips16} \
-%{mips3d:-mips3d} \
-%{mdsp} \
-%{mdspr2} \
+%{mips16} %{mno-mips16:-no-mips16} \
+%{mips3d} %{mno-mips3d:-no-mips3d} \
+%{mdmx} %{mno-mdmx:-no-mdmx} \
+%{mdsp} %{mno-dsp} \
+%{mdspr2} %{mno-dspr2} \
+%{mmt} %{mno-mt} \
 %{mfix-vr4120} %{mfix-vr4130} \
 %(subtarget_asm_optimizing_spec) \
 %(subtarget_asm_debugging_spec) \
@@ -995,18 +1028,24 @@ extern const struct mips_rtx_cost_data *mips_cost;
 /* For MIPS, width of a floating point register.  */
 #define UNITS_PER_FPREG (TARGET_FLOAT64 ? 8 : 4)
 
-/* If register $f0 holds a floating-point value, $f(0 + FP_INC) is
-   the next available register.  */
-#define FP_INC (TARGET_FLOAT64 || TARGET_SINGLE_FLOAT ? 1 : 2)
+/* The number of consecutive floating-point registers needed to store the
+   largest format supported by the FPU.  */
+#define MAX_FPRS_PER_FMT (TARGET_FLOAT64 || TARGET_SINGLE_FLOAT ? 1 : 2)
+
+/* The number of consecutive floating-point registers needed to store the
+   smallest format supported by the FPU.  */
+#define MIN_FPRS_PER_FMT \
+  (ISA_MIPS32 || ISA_MIPS32R2 || ISA_MIPS64 ? 1 : MAX_FPRS_PER_FMT) 
 
 /* The largest size of value that can be held in floating-point
    registers and moved with a single instruction.  */
-#define UNITS_PER_HWFPVALUE (TARGET_SOFT_FLOAT ? 0 : FP_INC * UNITS_PER_FPREG)
+#define UNITS_PER_HWFPVALUE \
+  (TARGET_SOFT_FLOAT_ABI ? 0 : MAX_FPRS_PER_FMT * UNITS_PER_FPREG)
 
 /* The largest size of value that can be held in floating-point
    registers.  */
 #define UNITS_PER_FPVALUE			\
-  (TARGET_SOFT_FLOAT ? 0			\
+  (TARGET_SOFT_FLOAT_ABI ? 0			\
    : TARGET_SINGLE_FLOAT ? UNITS_PER_FPREG	\
    : LONG_DOUBLE_TYPE_SIZE / BITS_PER_UNIT)
 
@@ -1746,8 +1785,7 @@ extern const enum reg_class mips_regno_to_class[];
   ((flag_profile_values && ! TARGET_64BIT				\
     ? MAX (REG_PARM_STACK_SPACE(NULL), current_function_outgoing_args_size) \
     : current_function_outgoing_args_size)				\
-   + (TARGET_ABICALLS && !TARGET_NEWABI					\
-      ? MIPS_STACK_ALIGN (UNITS_PER_WORD) : 0))
+   + (TARGET_CALL_CLOBBERED_GP ? MIPS_STACK_ALIGN (UNITS_PER_WORD) : 0))
 
 #define RETURN_ADDR_RTX mips_return_addr
 
@@ -2215,8 +2253,11 @@ typedef struct mips_args {
    difference in cost between byte and (aligned) word loads.
 
    On RISC machines, it tends to generate better code to define
-   this as 1, since it avoids making a QI or HI mode register.  */
-#define SLOW_BYTE_ACCESS 1
+   this as 1, since it avoids making a QI or HI mode register.
+
+   But, generating word accesses for -mips16 is generally bad as shifts
+   (often extended) would be needed for byte accesses.  */
+#define SLOW_BYTE_ACCESS (!TARGET_MIPS16)
 
 /* Define this to be nonzero if shift instructions ignore all but the low-order
    few bits.  */
@@ -2301,13 +2342,13 @@ typedef struct mips_args {
    ("j" or "jal"), OPERANDS are its operands, and OPNO is the operand number
    of the target.
 
-   When generating -mabicalls without explicit relocation operators,
+   When generating GOT code without explicit relocation operators,
    all calls should use assembly macros.  Otherwise, all indirect
    calls should use "jr" or "jalr"; we will arrange to restore $gp
    afterwards if necessary.  Finally, we can only generate direct
    calls for -mabicalls by temporarily switching to non-PIC mode.  */
 #define MIPS_CALL(INSN, OPERANDS, OPNO)				\
-  (TARGET_ABICALLS && !TARGET_EXPLICIT_RELOCS			\
+  (TARGET_USE_GOT && !TARGET_EXPLICIT_RELOCS			\
    ? "%*" INSN "\t%" #OPNO "%/"					\
    : REG_P (OPERANDS[OPNO])					\
    ? "%*" INSN "r\t%" #OPNO "%/"				\
@@ -2570,6 +2611,16 @@ do {									\
     fprintf (STREAM, "\t%s\t%sL%d\n",					\
 	     ptr_mode == DImode ? ".gpdword" : ".gpword",		\
 	     LOCAL_LABEL_PREFIX, VALUE);				\
+  else if (TARGET_RTP_PIC)						\
+    {									\
+      /* Make the entry relative to the start of the function.  */	\
+      rtx fnsym = XEXP (DECL_RTL (current_function_decl), 0);		\
+      fprintf (STREAM, "\t%s\t%sL%d-",					\
+	       Pmode == DImode ? ".dword" : ".word",			\
+	       LOCAL_LABEL_PREFIX, VALUE);				\
+      assemble_name (STREAM, XSTR (fnsym, 0));				\
+      fprintf (STREAM, "\n");						\
+    }									\
   else									\
     fprintf (STREAM, "\t%s\t%sL%d\n",					\
 	     ptr_mode == DImode ? ".dword" : ".word",			\

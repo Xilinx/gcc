@@ -1,3 +1,7 @@
+2007-06-05  Sebastian Pop  <sebpop@gmail.com>
+
+	* Merge from mainline (r123693:125309).
+
 2007-05-30  Sebastian Pop  <sebpop@gmail.com>
 
 	* tree-loop-distribution.c (correct_modify_expr_p): Renamed

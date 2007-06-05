@@ -54,6 +54,8 @@ Boston, MA 02110-1301, USA.  */
 #ifdef __ELF__
 #ifdef __thumb__
 #define __PLT__  /* Not supported in Thumb assembler (for now).  */
+#elif defined __vxworks && !defined __PIC__
+#define __PLT__ /* Not supported by the kernel loader.  */
 #else
 #define __PLT__ (PLT)
 #endif
@@ -68,6 +70,14 @@ Boston, MA 02110-1301, USA.  */
 #endif
 
 /* Function end macros.  Variants for interworking.  */
+
+#if defined(__ARM_ARCH_2__)
+# define __ARM_ARCH__ 2
+#endif
+
+#if defined(__ARM_ARCH_3__)
+# define __ARM_ARCH__ 3
+#endif
 
 #if defined(__ARM_ARCH_3M__) || defined(__ARM_ARCH_4__) \
 	|| defined(__ARM_ARCH_4T__)

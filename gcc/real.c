@@ -1,6 +1,6 @@
 /* real.c - software floating point emulation.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   2000, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Stephen L. Moshier (moshier@world.std.com).
    Re-written by Richard Henderson <rth@redhat.com>
 
@@ -65,12 +65,7 @@
    have guard digits or rounding, the computation of 10**exp can
    accumulate more than a few digits of error.  The previous incarnation
    of real.c successfully used a 144-bit fraction; given the current
-   layout of REAL_VALUE_TYPE we're forced to expand to at least 160 bits.
-
-   Target floating point models that use base 16 instead of base 2
-   (i.e. IBM 370), are handled during round_for_format, in which we
-   canonicalize the exponent to be a multiple of 4 (log2(16)), and
-   adjust the significand to match.  */
+   layout of REAL_VALUE_TYPE we're forced to expand to at least 160 bits.  */
 
 
 /* Used to classify two numbers simultaneously.  */
@@ -2282,9 +2277,9 @@ real_maxval (REAL_VALUE_TYPE *r, int sign, enum machine_mode mode)
     {
       r->cl = rvc_normal;
       r->sign = sign;
-      SET_REAL_EXP (r, fmt->emax * fmt->log2_b);
+      SET_REAL_EXP (r, fmt->emax);
 
-      np2 = SIGNIFICAND_BITS - fmt->p * fmt->log2_b;
+      np2 = SIGNIFICAND_BITS - fmt->p;
       memset (r->sig, -1, SIGSZ * sizeof (unsigned long));
       clear_significand_below (r, np2);
 
@@ -2342,9 +2337,9 @@ round_for_format (const struct real_format *fmt, REAL_VALUE_TYPE *r)
       decimal_real_convert (r, DFmode, r);
     }
 
-  p2 = fmt->p * fmt->log2_b;
-  emin2m1 = (fmt->emin - 1) * fmt->log2_b;
-  emax2 = fmt->emax * fmt->log2_b;
+  p2 = fmt->p;
+  emin2m1 = fmt->emin - 1;
+  emax2 = fmt->emax;
 
   np2 = SIGNIFICAND_BITS - p2;
   switch (r->cl)
@@ -2370,22 +2365,6 @@ round_for_format (const struct real_format *fmt, REAL_VALUE_TYPE *r)
 
     default:
       gcc_unreachable ();
-    }
-
-  /* If we're not base2, normalize the exponent to a multiple of
-     the true base.  */
-  if (fmt->log2_b != 1)
-    {
-      int shift;
-
-      gcc_assert (fmt->b != 10);
-      shift = REAL_EXP (r) & (fmt->log2_b - 1);
-      if (shift)
-	{
-	  shift = fmt->log2_b - shift;
-	  r->sig[0] |= sticky_rshift_significand (r, r, shift);
-	  SET_REAL_EXP (r, REAL_EXP (r) + shift);
-	}
     }
 
   /* Check the range of the exponent.  If we're out of range,
@@ -2443,19 +2422,6 @@ round_for_format (const struct real_format *fmt, REAL_VALUE_TYPE *r)
 	  if (REAL_EXP (r) > emax2)
 	    goto overflow;
 	  r->sig[SIGSZ-1] = SIG_MSB;
-
-	  if (fmt->log2_b != 1)
-	    {
-	      int shift = REAL_EXP (r) & (fmt->log2_b - 1);
-	      if (shift)
-		{
-		  shift = fmt->log2_b - shift;
-		  rshift_significand (r, r, shift);
-		  SET_REAL_EXP (r, REAL_EXP (r) + shift);
-		  if (REAL_EXP (r) > emax2)
-		    goto overflow;
-		}
-	    }
 	}
     }
 
@@ -2513,7 +2479,7 @@ exact_real_truncate (enum machine_mode mode, const REAL_VALUE_TYPE *a)
   gcc_assert (fmt);
 
   /* Don't allow conversion to denormals.  */
-  emin2m1 = (fmt->emin - 1) * fmt->log2_b;
+  emin2m1 = fmt->emin - 1;
   if (REAL_EXP (a) <= emin2m1)
     return false;
 
@@ -2604,7 +2570,7 @@ significand_size (enum machine_mode mode)
       double log2_10 = 3.3219281;
       return fmt->p * log2_10;
     }
-  return fmt->p * fmt->log2_b;
+  return fmt->p;
 }
 
 /* Return a hash value for the given real value.  */
@@ -2775,7 +2741,6 @@ const struct real_format ieee_single_format =
     encode_ieee_single,
     decode_ieee_single,
     2,
-    1,
     24,
     24,
     -125,
@@ -2795,7 +2760,6 @@ const struct real_format mips_single_format =
     encode_ieee_single,
     decode_ieee_single,
     2,
-    1,
     24,
     24,
     -125,
@@ -2810,12 +2774,11 @@ const struct real_format mips_single_format =
     true
   };
 
-const struct real_format coldfire_single_format =
+const struct real_format motorola_single_format =
   {
     encode_ieee_single,
     decode_ieee_single,
     2,
-    1,
     24,
     24,
     -125,
@@ -3023,7 +2986,6 @@ const struct real_format ieee_double_format =
     encode_ieee_double,
     decode_ieee_double,
     2,
-    1,
     53,
     53,
     -1021,
@@ -3043,7 +3005,6 @@ const struct real_format mips_double_format =
     encode_ieee_double,
     decode_ieee_double,
     2,
-    1,
     53,
     53,
     -1021,
@@ -3058,12 +3019,11 @@ const struct real_format mips_double_format =
     true
   };
 
-const struct real_format coldfire_double_format =
+const struct real_format motorola_double_format =
   {
     encode_ieee_double,
     decode_ieee_double,
     2,
-    1,
     53,
     53,
     -1021,
@@ -3122,7 +3082,15 @@ encode_ieee_extended (const struct real_format *fmt, long *buf,
       if (fmt->has_nans)
 	{
 	  image_hi |= 32767;
-	  if (HOST_BITS_PER_LONG == 32)
+	  if (r->canonical)
+	    {
+	      if (fmt->canonical_nan_lsbs_set)
+		{
+		  sig_hi = (1 << 30) - 1;
+		  sig_lo = 0xffffffff;
+		}
+	    }
+	  else if (HOST_BITS_PER_LONG == 32)
 	    {
 	      sig_hi = r->sig[SIGSZ-1];
 	      sig_lo = r->sig[SIGSZ-2];
@@ -3393,7 +3361,6 @@ const struct real_format ieee_extended_motorola_format =
     encode_ieee_extended_motorola,
     decode_ieee_extended_motorola,
     2,
-    1,
     64,
     64,
     -16382,
@@ -3405,7 +3372,7 @@ const struct real_format ieee_extended_motorola_format =
     true,
     true,
     true,
-    false
+    true
   };
 
 const struct real_format ieee_extended_intel_96_format =
@@ -3413,7 +3380,6 @@ const struct real_format ieee_extended_intel_96_format =
     encode_ieee_extended_intel_96,
     decode_ieee_extended_intel_96,
     2,
-    1,
     64,
     64,
     -16381,
@@ -3433,7 +3399,6 @@ const struct real_format ieee_extended_intel_128_format =
     encode_ieee_extended_intel_128,
     decode_ieee_extended_intel_128,
     2,
-    1,
     64,
     64,
     -16381,
@@ -3455,7 +3420,6 @@ const struct real_format ieee_extended_intel_96_round_53_format =
     encode_ieee_extended_intel_96,
     decode_ieee_extended_intel_96,
     2,
-    1,
     53,
     53,
     -16381,
@@ -3542,7 +3506,6 @@ const struct real_format ibm_extended_format =
     encode_ibm_extended,
     decode_ibm_extended,
     2,
-    1,
     53 + 53,
     53,
     -1021 + 53,
@@ -3562,7 +3525,6 @@ const struct real_format mips_extended_format =
     encode_ibm_extended,
     decode_ibm_extended,
     2,
-    1,
     53 + 53,
     53,
     -1021 + 53,
@@ -3824,7 +3786,6 @@ const struct real_format ieee_quad_format =
     encode_ieee_quad,
     decode_ieee_quad,
     2,
-    1,
     113,
     113,
     -16381,
@@ -3844,7 +3805,6 @@ const struct real_format mips_quad_format =
     encode_ieee_quad,
     decode_ieee_quad,
     2,
-    1,
     113,
     113,
     -16381,
@@ -4143,7 +4103,6 @@ const struct real_format vax_f_format =
     encode_vax_f,
     decode_vax_f,
     2,
-    1,
     24,
     24,
     -127,
@@ -4163,7 +4122,6 @@ const struct real_format vax_d_format =
     encode_vax_d,
     decode_vax_d,
     2,
-    1,
     56,
     56,
     -127,
@@ -4183,7 +4141,6 @@ const struct real_format vax_g_format =
     encode_vax_g,
     decode_vax_g,
     2,
-    1,
     53,
     53,
     -1023,
@@ -4194,203 +4151,6 @@ const struct real_format vax_g_format =
     false,
     false,
     false,
-    false,
-    false
-  };
-
-/* A good reference for these can be found in chapter 9 of
-   "ESA/390 Principles of Operation", IBM document number SA22-7201-01.
-   An on-line version can be found here:
-
-   http://publibz.boulder.ibm.com/cgi-bin/bookmgr_OS390/BOOKS/DZ9AR001/9.1?DT=19930923083613
-*/
-
-static void encode_i370_single (const struct real_format *fmt,
-				long *, const REAL_VALUE_TYPE *);
-static void decode_i370_single (const struct real_format *,
-				REAL_VALUE_TYPE *, const long *);
-static void encode_i370_double (const struct real_format *fmt,
-				long *, const REAL_VALUE_TYPE *);
-static void decode_i370_double (const struct real_format *,
-				REAL_VALUE_TYPE *, const long *);
-
-static void
-encode_i370_single (const struct real_format *fmt ATTRIBUTE_UNUSED,
-		    long *buf, const REAL_VALUE_TYPE *r)
-{
-  unsigned long sign, exp, sig, image;
-
-  sign = r->sign << 31;
-
-  switch (r->cl)
-    {
-    case rvc_zero:
-      image = 0;
-      break;
-
-    case rvc_inf:
-    case rvc_nan:
-      image = 0x7fffffff | sign;
-      break;
-
-    case rvc_normal:
-      sig = (r->sig[SIGSZ-1] >> (HOST_BITS_PER_LONG - 24)) & 0xffffff;
-      exp = ((REAL_EXP (r) / 4) + 64) << 24;
-      image = sign | exp | sig;
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  buf[0] = image;
-}
-
-static void
-decode_i370_single (const struct real_format *fmt ATTRIBUTE_UNUSED,
-		    REAL_VALUE_TYPE *r, const long *buf)
-{
-  unsigned long sign, sig, image = buf[0];
-  int exp;
-
-  sign = (image >> 31) & 1;
-  exp = (image >> 24) & 0x7f;
-  sig = image & 0xffffff;
-
-  memset (r, 0, sizeof (*r));
-
-  if (exp || sig)
-    {
-      r->cl = rvc_normal;
-      r->sign = sign;
-      SET_REAL_EXP (r, (exp - 64) * 4);
-      r->sig[SIGSZ-1] = sig << (HOST_BITS_PER_LONG - 24);
-      normalize (r);
-    }
-}
-
-static void
-encode_i370_double (const struct real_format *fmt ATTRIBUTE_UNUSED,
-		    long *buf, const REAL_VALUE_TYPE *r)
-{
-  unsigned long sign, exp, image_hi, image_lo;
-
-  sign = r->sign << 31;
-
-  switch (r->cl)
-    {
-    case rvc_zero:
-      image_hi = image_lo = 0;
-      break;
-
-    case rvc_inf:
-    case rvc_nan:
-      image_hi = 0x7fffffff | sign;
-      image_lo = 0xffffffff;
-      break;
-
-    case rvc_normal:
-      if (HOST_BITS_PER_LONG == 64)
-	{
-	  image_hi = r->sig[SIGSZ-1];
-	  image_lo = (image_hi >> (64 - 56)) & 0xffffffff;
-	  image_hi = (image_hi >> (64 - 56 + 1) >> 31) & 0xffffff;
-	}
-      else
-	{
-	  image_hi = r->sig[SIGSZ-1];
-	  image_lo = r->sig[SIGSZ-2];
-	  image_lo = (image_lo >> 8) | (image_hi << 24);
-	  image_hi >>= 8;
-	}
-
-      exp = ((REAL_EXP (r) / 4) + 64) << 24;
-      image_hi |= sign | exp;
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  if (FLOAT_WORDS_BIG_ENDIAN)
-    buf[0] = image_hi, buf[1] = image_lo;
-  else
-    buf[0] = image_lo, buf[1] = image_hi;
-}
-
-static void
-decode_i370_double (const struct real_format *fmt ATTRIBUTE_UNUSED,
-		    REAL_VALUE_TYPE *r, const long *buf)
-{
-  unsigned long sign, image_hi, image_lo;
-  int exp;
-
-  if (FLOAT_WORDS_BIG_ENDIAN)
-    image_hi = buf[0], image_lo = buf[1];
-  else
-    image_lo = buf[0], image_hi = buf[1];
-
-  sign = (image_hi >> 31) & 1;
-  exp = (image_hi >> 24) & 0x7f;
-  image_hi &= 0xffffff;
-  image_lo &= 0xffffffff;
-
-  memset (r, 0, sizeof (*r));
-
-  if (exp || image_hi || image_lo)
-    {
-      r->cl = rvc_normal;
-      r->sign = sign;
-      SET_REAL_EXP (r, (exp - 64) * 4 + (SIGNIFICAND_BITS - 56));
-
-      if (HOST_BITS_PER_LONG == 32)
-	{
-	  r->sig[0] = image_lo;
-	  r->sig[1] = image_hi;
-	}
-      else
-	r->sig[0] = image_lo | (image_hi << 31 << 1);
-
-      normalize (r);
-    }
-}
-
-const struct real_format i370_single_format =
-  {
-    encode_i370_single,
-    decode_i370_single,
-    16,
-    4,
-    6,
-    6,
-    -64,
-    63,
-    31,
-    31,
-    false,
-    false,
-    false, /* ??? The encoding does allow for "unnormals".  */
-    false, /* ??? The encoding does allow for "unnormals".  */
-    false,
-    false
-  };
-
-const struct real_format i370_double_format =
-  {
-    encode_i370_double,
-    decode_i370_double,
-    16,
-    4,
-    14,
-    14,
-    -64,
-    63,
-    63,
-    63,
-    false,
-    false,
-    false, /* ??? The encoding does allow for "unnormals".  */
-    false, /* ??? The encoding does allow for "unnormals".  */
     false,
     false
   };
@@ -4455,7 +4215,6 @@ const struct real_format decimal_single_format =
     encode_decimal_single,
     decode_decimal_single,
     10, 
-    1,  /* log10 */
     7,
     7,
     -95,
@@ -4476,7 +4235,6 @@ const struct real_format decimal_double_format =
     encode_decimal_double,
     decode_decimal_double,
     10,
-    1,  /* log10 */
     16,
     16,
     -383,
@@ -4497,7 +4255,6 @@ const struct real_format decimal_quad_format =
     encode_decimal_quad,
     decode_decimal_quad,
     10,
-    1,  /* log10 */
     34,
     34,
     -6143,
@@ -4707,7 +4464,6 @@ const struct real_format c4x_single_format =
     encode_c4x_single,
     decode_c4x_single,
     2,
-    1,
     24,
     24,
     -126,
@@ -4727,7 +4483,6 @@ const struct real_format c4x_extended_format =
     encode_c4x_extended,
     decode_c4x_extended,
     2,
-    1,
     32,
     32,
     -126,
@@ -4772,7 +4527,6 @@ const struct real_format real_internal_format =
     encode_internal,
     decode_internal,
     2,
-    1,
     SIGNIFICAND_BITS - 2,
     SIGNIFICAND_BITS - 2,
     -MAX_EXP,
@@ -4991,29 +4745,58 @@ real_copysign (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *x)
    for initializing and clearing the MPFR parameter.  */
 
 void
-mpfr_from_real (mpfr_ptr m, const REAL_VALUE_TYPE *r)
+mpfr_from_real (mpfr_ptr m, const REAL_VALUE_TYPE *r, mp_rnd_t rndmode)
 {
   /* We use a string as an intermediate type.  */
   char buf[128];
   int ret;
 
+  /* Take care of Infinity and NaN.  */
+  if (r->cl == rvc_inf)
+    {
+      mpfr_set_inf (m, r->sign == 1 ? -1 : 1);
+      return;
+    }
+  
+  if (r->cl == rvc_nan)
+    {
+      mpfr_set_nan (m);
+      return;
+    }
+  
   real_to_hexadecimal (buf, r, sizeof (buf), 0, 1);
   /* mpfr_set_str() parses hexadecimal floats from strings in the same
      format that GCC will output them.  Nothing extra is needed.  */
-  ret = mpfr_set_str (m, buf, 16, GMP_RNDN);
+  ret = mpfr_set_str (m, buf, 16, rndmode);
   gcc_assert (ret == 0);
 }
 
-/* Convert from MPFR to REAL_VALUE_TYPE.  */
+/* Convert from MPFR to REAL_VALUE_TYPE, for a given type TYPE and rounding
+   mode RNDMODE.  TYPE is only relevant if M is a NaN.  */
 
 void
-real_from_mpfr (REAL_VALUE_TYPE *r, mpfr_srcptr m)
+real_from_mpfr (REAL_VALUE_TYPE *r, mpfr_srcptr m, tree type, mp_rnd_t rndmode)
 {
   /* We use a string as an intermediate type.  */
   char buf[128], *rstr;
   mp_exp_t exp;
 
-  rstr = mpfr_get_str (NULL, &exp, 16, 0, m, GMP_RNDN);
+  /* Take care of Infinity and NaN.  */
+  if (mpfr_inf_p (m))
+    {
+      real_inf (r);
+      if (mpfr_sgn (m) < 0)
+	*r = REAL_VALUE_NEGATE (*r);
+      return;
+    }
+
+  if (mpfr_nan_p (m))
+    {
+      real_nan (r, "", 1, TYPE_MODE (type));
+      return;
+    }
+
+  rstr = mpfr_get_str (NULL, &exp, 16, 0, m, rndmode);
 
   /* The additional 12 chars add space for the sprintf below.  This
      leaves 6 digits for the exponent which is supposedly enough.  */

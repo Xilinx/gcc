@@ -196,8 +196,9 @@ compare_type_brand (splay_tree_key sk1, splay_tree_key sk2)
 /* This is a trivial algorithm for removing duplicate types.  This
    would not work for any language that used structural equivalence as
    the basis of its type system.  */
-/* Return either TYPE if this is first time TYPE has been seen an
-   compatible TYPE that has already been processed.  */ 
+/* Return TYPE if no type compatible with TYPE has been seen so far,
+   otherwise return a type compatible with TYPE that has already been
+   processed.  */
 
 static tree
 discover_unique_type (tree type)
@@ -655,7 +656,7 @@ check_cast_type (tree to_type, tree from_type)
   return CT_SIDEWAYS;
 }     
 
-/* This function returns non-zero if VAR is result of call 
+/* This function returns nonzero if VAR is result of call 
    to malloc function.  */
 
 static bool
@@ -1662,7 +1663,7 @@ ipa_init (void)
 
 /* Check out the rhs of a static or global initialization VNODE to see
    if any of them contain addressof operations.  Note that some of
-   these variables may  not even be referenced in the code in this
+   these variables may not even be referenced in the code in this
    compilation unit but their right hand sides may contain references
    to variables defined within this unit.  */
 

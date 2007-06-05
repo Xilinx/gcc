@@ -49,7 +49,7 @@ typedef struct gfc_intrinsic_map_t	GTY(())
 {
   /* The explicit enum is required to work around inadequacies in the
      garbage collection/gengtype parsing mechanism.  */
-  enum gfc_generic_isym_id id;
+  enum gfc_isym_id id;
 
   /* Enum value from the "language-independent", aka C-centric, part
      of gcc, or END_BUILTINS of no such value set.  */
@@ -649,9 +649,9 @@ gfc_conv_intrinsic_lib_function (gfc_se * se, gfc_expr * expr)
   gfc_intrinsic_map_t *m;
   tree args;
   tree fndecl;
-  gfc_generic_isym_id id;
+  gfc_isym_id id;
 
-  id = expr->value.function.isym->generic_id;
+  id = expr->value.function.isym->id;
   /* Find the entry for this function.  */
   for (m = gfc_intrinsic_map; m->id != GFC_ISYM_NONE; m++)
     {
@@ -1275,7 +1275,7 @@ gfc_conv_intrinsic_ctime (gfc_se * se, gfc_expr * expr)
   /* Free the temporary afterwards, if necessary.  */
   cond = build2 (GT_EXPR, boolean_type_node, len,
 		 build_int_cst (TREE_TYPE (len), 0));
-  tmp = build_call_expr (gfor_fndecl_internal_free, 1, var);
+  tmp = gfc_call_free (var);
   tmp = build3_v (COND_EXPR, cond, tmp, build_empty_stmt ());
   gfc_add_expr_to_block (&se->post, tmp);
 
@@ -1310,7 +1310,7 @@ gfc_conv_intrinsic_fdate (gfc_se * se, gfc_expr * expr)
   /* Free the temporary afterwards, if necessary.  */
   cond = build2 (GT_EXPR, boolean_type_node, len,
 		 build_int_cst (TREE_TYPE (len), 0));
-  tmp = build_call_expr (gfor_fndecl_internal_free, 1, var);
+  tmp = gfc_call_free (var);
   tmp = build3_v (COND_EXPR, cond, tmp, build_empty_stmt ());
   gfc_add_expr_to_block (&se->post, tmp);
 
@@ -1347,7 +1347,7 @@ gfc_conv_intrinsic_ttynam (gfc_se * se, gfc_expr * expr)
   /* Free the temporary afterwards, if necessary.  */
   cond = build2 (GT_EXPR, boolean_type_node, len,
 		 build_int_cst (TREE_TYPE (len), 0));
-  tmp = build_call_expr (gfor_fndecl_internal_free, 1, var);
+  tmp = gfc_call_free (var);
   tmp = build3_v (COND_EXPR, cond, tmp, build_empty_stmt ());
   gfc_add_expr_to_block (&se->post, tmp);
 
@@ -1468,7 +1468,7 @@ gfc_conv_intrinsic_funcall (gfc_se * se, gfc_expr * expr)
   /* Calls to libgfortran_matmul need to be appended special arguments,
      to be able to call the BLAS ?gemm functions if required and possible.  */
   append_args = NULL_TREE;
-  if (expr->value.function.isym->generic_id == GFC_ISYM_MATMUL
+  if (expr->value.function.isym->id == GFC_ISYM_MATMUL
       && sym->ts.type != BT_LOGICAL)
     {
       tree cint = gfc_get_int_type (gfc_c_int_kind);
@@ -2400,7 +2400,7 @@ gfc_conv_intrinsic_ishft (gfc_se * se, gfc_expr * expr)
   arg2 = TREE_VALUE (TREE_CHAIN (arg));
   arg = TREE_VALUE (arg);
   type = TREE_TYPE (arg);
-  utype = gfc_unsigned_type (type);
+  utype = unsigned_type_for (type);
 
   width = fold_build1 (ABS_EXPR, TREE_TYPE (arg2), arg2);
 
@@ -2537,7 +2537,7 @@ gfc_conv_intrinsic_len (gfc_se * se, gfc_expr * expr)
       /* Obtain the string length from the function used by
          trans-array.c(gfc_trans_array_constructor).  */
       len = NULL_TREE;
-      get_array_ctor_strlen (arg->value.constructor, &len);
+      get_array_ctor_strlen (&se->pre, arg->value.constructor, &len);
       break;
 
     case EXPR_VARIABLE:
@@ -2745,9 +2745,83 @@ gfc_conv_intrinsic_size (gfc_se * se, gfc_expr * expr)
 }
 
 
+static void
+gfc_conv_intrinsic_sizeof (gfc_se *se, gfc_expr *expr)
+{
+  gfc_expr *arg;
+  gfc_ss *ss;
+  gfc_se argse;
+  tree source;
+  tree source_bytes;
+  tree type;
+  tree tmp;
+  tree lower;
+  tree upper;
+  /*tree stride;*/
+  int n;
+
+  arg = expr->value.function.actual->expr;
+
+  gfc_init_se (&argse, NULL);
+  ss = gfc_walk_expr (arg);
+
+  source_bytes = gfc_create_var (gfc_array_index_type, "bytes");
+
+  if (ss == gfc_ss_terminator)
+    {
+      gfc_conv_expr_reference (&argse, arg);
+      source = argse.expr;
+
+      type = TREE_TYPE (build_fold_indirect_ref (argse.expr));
+
+      /* Obtain the source word length.  */
+      if (arg->ts.type == BT_CHARACTER)
+	source_bytes = fold_convert (gfc_array_index_type,
+				     argse.string_length);
+      else
+	source_bytes = fold_convert (gfc_array_index_type,
+				     size_in_bytes (type)); 
+    }
+  else
+    {
+      argse.want_pointer = 0;
+      gfc_conv_expr_descriptor (&argse, arg, ss);
+      source = gfc_conv_descriptor_data_get (argse.expr);
+      type = gfc_get_element_type (TREE_TYPE (argse.expr));
+
+      /* Obtain the argument's word length.  */
+      if (arg->ts.type == BT_CHARACTER)
+	tmp = fold_convert (gfc_array_index_type, argse.string_length);
+      else
+	tmp = fold_convert (gfc_array_index_type,
+			    size_in_bytes (type)); 
+      gfc_add_modify_expr (&argse.pre, source_bytes, tmp);
+
+      /* Obtain the size of the array in bytes.  */
+      for (n = 0; n < arg->rank; n++)
+	{
+	  tree idx;
+	  idx = gfc_rank_cst[n];
+	  lower = gfc_conv_descriptor_lbound (argse.expr, idx);
+	  upper = gfc_conv_descriptor_ubound (argse.expr, idx);
+	  tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type,
+			     upper, lower);
+	  tmp = fold_build2 (PLUS_EXPR, gfc_array_index_type,
+			     tmp, gfc_index_one_node);
+	  tmp = fold_build2 (MULT_EXPR, gfc_array_index_type,
+			     tmp, source_bytes);
+	  gfc_add_modify_expr (&argse.pre, source_bytes, tmp);
+	}
+    }
+
+  gfc_add_block_to_block (&se->pre, &argse.pre);
+  se->expr = source_bytes;
+}
+
+
 /* Intrinsic string comparison functions.  */
 
-  static void
+static void
 gfc_conv_intrinsic_strcmp (gfc_se * se, gfc_expr * expr, int op)
 {
   tree type;
@@ -2850,7 +2924,6 @@ gfc_conv_intrinsic_array_transfer (gfc_se * se, gfc_expr * expr)
     }
   else
     {
-      gfc_init_se (&argse, NULL);
       argse.want_pointer = 0;
       gfc_conv_expr_descriptor (&argse, arg->expr, ss);
       source = gfc_conv_descriptor_data_get (argse.expr);
@@ -2866,8 +2939,7 @@ gfc_conv_intrinsic_array_transfer (gfc_se * se, gfc_expr * expr)
 
 	  /* Free the temporary.  */
 	  gfc_start_block (&block);
-	  tmp = convert (pvoid_type_node, source);
-	  tmp = build_call_expr (gfor_fndecl_internal_free, 1, tmp);
+	  tmp = gfc_call_free (convert (pvoid_type_node, source));
 	  gfc_add_expr_to_block (&block, tmp);
 	  stmt = gfc_finish_block (&block);
 
@@ -2899,13 +2971,13 @@ gfc_conv_intrinsic_array_transfer (gfc_se * se, gfc_expr * expr)
 	  stride = gfc_conv_descriptor_stride (argse.expr, idx);
 	  lower = gfc_conv_descriptor_lbound (argse.expr, idx);
 	  upper = gfc_conv_descriptor_ubound (argse.expr, idx);
-	  tmp = build2 (MINUS_EXPR, gfc_array_index_type,
-			upper, lower);
+	  tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type,
+			     upper, lower);
 	  gfc_add_modify_expr (&argse.pre, extent, tmp);
-	  tmp = build2 (PLUS_EXPR, gfc_array_index_type,
-			extent, gfc_index_one_node);
-	  tmp = build2 (MULT_EXPR, gfc_array_index_type,
-			tmp, source_bytes);
+	  tmp = fold_build2 (PLUS_EXPR, gfc_array_index_type,
+			     extent, gfc_index_one_node);
+	  tmp = fold_build2 (MULT_EXPR, gfc_array_index_type,
+			     tmp, source_bytes);
 	}
     }
 
@@ -2965,17 +3037,18 @@ gfc_conv_intrinsic_array_transfer (gfc_se * se, gfc_expr * expr)
   size_bytes = gfc_create_var (gfc_array_index_type, NULL);
   if (tmp != NULL_TREE)
     {
-      tmp = build2 (MULT_EXPR, gfc_array_index_type,
-		    tmp, dest_word_len);
-      tmp = build2 (MIN_EXPR, gfc_array_index_type, tmp, source_bytes);
+      tmp = fold_build2 (MULT_EXPR, gfc_array_index_type,
+			 tmp, dest_word_len);
+      tmp = fold_build2 (MIN_EXPR, gfc_array_index_type,
+			 tmp, source_bytes);
     }
   else
     tmp = source_bytes;
 
   gfc_add_modify_expr (&se->pre, size_bytes, tmp);
   gfc_add_modify_expr (&se->pre, size_words,
-		       build2 (CEIL_DIV_EXPR, gfc_array_index_type,
-			       size_bytes, dest_word_len));
+		       fold_build2 (CEIL_DIV_EXPR, gfc_array_index_type,
+				    size_bytes, dest_word_len));
 
   /* Evaluate the bounds of the result.  If the loop range exists, we have
      to check if it is too large.  If so, we modify loop->to be consistent
@@ -2986,23 +3059,23 @@ gfc_conv_intrinsic_array_transfer (gfc_se * se, gfc_expr * expr)
     {
       tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type,
 			 se->loop->to[n], se->loop->from[n]);
-      tmp = build2 (PLUS_EXPR, gfc_array_index_type,
-		    tmp, gfc_index_one_node);
-      tmp = build2 (MIN_EXPR, gfc_array_index_type,
-		    tmp, size_words);
+      tmp = fold_build2 (PLUS_EXPR, gfc_array_index_type,
+			 tmp, gfc_index_one_node);
+      tmp = fold_build2 (MIN_EXPR, gfc_array_index_type,
+			 tmp, size_words);
       gfc_add_modify_expr (&se->pre, size_words, tmp);
       gfc_add_modify_expr (&se->pre, size_bytes,
-			   build2 (MULT_EXPR, gfc_array_index_type,
-			   size_words, dest_word_len));
-      upper = build2 (PLUS_EXPR, gfc_array_index_type,
-		      size_words, se->loop->from[n]);
-      upper = build2 (MINUS_EXPR, gfc_array_index_type,
-		      upper, gfc_index_one_node);
+			   fold_build2 (MULT_EXPR, gfc_array_index_type,
+					size_words, dest_word_len));
+      upper = fold_build2 (PLUS_EXPR, gfc_array_index_type,
+			   size_words, se->loop->from[n]);
+      upper = fold_build2 (MINUS_EXPR, gfc_array_index_type,
+			   upper, gfc_index_one_node);
     }
   else
     {
-      upper = build2 (MINUS_EXPR, gfc_array_index_type,
-		      size_words, gfc_index_one_node);
+      upper = fold_build2 (MINUS_EXPR, gfc_array_index_type,
+			   size_words, gfc_index_one_node);
       se->loop->from[n] = gfc_index_zero_node;
     }
 
@@ -3198,7 +3271,7 @@ gfc_conv_associated (gfc_se *se, gfc_expr *expr)
 	  tmp = gfc_conv_descriptor_stride (arg1se.expr,
 					    gfc_rank_cst[arg1->expr->rank - 1]);
 	  nonzero_arraylen = build2 (NE_EXPR, boolean_type_node,
-				 tmp, integer_zero_node);
+				     tmp, build_int_cst (TREE_TYPE (tmp), 0));
 
           /* A pointer to an array, call library function _gfor_associated.  */
           gcc_assert (ss2 != gfc_ss_terminator);
@@ -3364,7 +3437,7 @@ gfc_conv_intrinsic_trim (gfc_se * se, gfc_expr * expr)
   /* Free the temporary afterwards, if necessary.  */
   cond = build2 (GT_EXPR, boolean_type_node, len,
 		 build_int_cst (TREE_TYPE (len), 0));
-  tmp = build_call_expr (gfor_fndecl_internal_free, 1, var);
+  tmp = gfc_call_free (var);
   tmp = build3_v (COND_EXPR, cond, tmp, build_empty_stmt ());
   gfc_add_expr_to_block (&se->post, tmp);
 
@@ -3561,7 +3634,7 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
 	}
     }
 
-  switch (expr->value.function.isym->generic_id)
+  switch (expr->value.function.isym->id)
     {
     case GFC_ISYM_NONE:
       gcc_unreachable ();
@@ -3867,6 +3940,10 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       gfc_conv_intrinsic_size (se, expr);
       break;
 
+    case GFC_ISYM_SIZEOF:
+      gfc_conv_intrinsic_sizeof (se, expr);
+      break;
+
     case GFC_ISYM_SUM:
       gfc_conv_intrinsic_arith (se, expr, PLUS_EXPR);
       break;
@@ -3958,7 +4035,7 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
 void
 gfc_add_intrinsic_ss_code (gfc_loopinfo * loop ATTRIBUTE_UNUSED, gfc_ss * ss)
 {
-  switch (ss->expr->value.function.isym->generic_id)
+  switch (ss->expr->value.function.isym->id)
     {
     case GFC_ISYM_UBOUND:
     case GFC_ISYM_LBOUND:
@@ -4021,7 +4098,7 @@ gfc_is_intrinsic_libcall (gfc_expr * expr)
   gcc_assert (expr->expr_type == EXPR_FUNCTION && expr->value.function.isym);
   gcc_assert (expr->rank > 0);
 
-  switch (expr->value.function.isym->generic_id)
+  switch (expr->value.function.isym->id)
     {
     case GFC_ISYM_ALL:
     case GFC_ISYM_ANY:
@@ -4069,7 +4146,7 @@ gfc_walk_intrinsic_function (gfc_ss * ss, gfc_expr * expr,
     return gfc_walk_intrinsic_libfunc (ss, expr);
 
   /* Special cases.  */
-  switch (isym->generic_id)
+  switch (isym->id)
     {
     case GFC_ISYM_LBOUND:
     case GFC_ISYM_UBOUND:

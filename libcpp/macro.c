@@ -263,6 +263,10 @@ _cpp_builtin_macro_text (cpp_reader *pfile, cpp_hashnode *node)
       else
 	result = pfile->time;
       break;
+
+    case BT_COUNTER:
+      number = pfile->counter++;
+      break;
     }
 
   if (result == NULL)
@@ -432,19 +436,18 @@ static bool
 paste_tokens (cpp_reader *pfile, const cpp_token **plhs, const cpp_token *rhs)
 {
   unsigned char *buf, *end, *lhsend;
-  const cpp_token *lhs;
+  cpp_token *lhs;
   unsigned int len;
 
-  lhs = *plhs;
-  len = cpp_token_len (lhs) + cpp_token_len (rhs) + 1;
+  len = cpp_token_len (*plhs) + cpp_token_len (rhs) + 1;
   buf = (unsigned char *) alloca (len);
-  end = lhsend = cpp_spell_token (pfile, lhs, buf, false);
+  end = lhsend = cpp_spell_token (pfile, *plhs, buf, false);
 
   /* Avoid comment headers, since they are still processed in stage 3.
      It is simpler to insert a space here, rather than modifying the
      lexer to ignore comments in some circumstances.  Simply returning
      false doesn't work, since we want to clear the PASTE_LEFT flag.  */
-  if (lhs->type == CPP_DIV && rhs->type != CPP_EQ)
+  if ((*plhs)->type == CPP_DIV && rhs->type != CPP_EQ)
     *end++ = ' ';
   end = cpp_spell_token (pfile, rhs, end, false);
   *end = '\n';
@@ -454,12 +457,21 @@ paste_tokens (cpp_reader *pfile, const cpp_token **plhs, const cpp_token *rhs)
 
   /* Set pfile->cur_token as required by _cpp_lex_direct.  */
   pfile->cur_token = _cpp_temp_token (pfile);
-  *plhs = _cpp_lex_direct (pfile);
+  lhs = _cpp_lex_direct (pfile);
   if (pfile->buffer->cur != pfile->buffer->rlimit)
     {
+      source_location saved_loc = lhs->src_loc;
+
       _cpp_pop_buffer (pfile);
       _cpp_backup_tokens (pfile, 1);
       *lhsend = '\0';
+
+      /* We have to remove the PASTE_LEFT flag from the old lhs, but
+	 we want to keep the new location.  */
+      *lhs = **plhs;
+      *plhs = lhs;
+      lhs->src_loc = saved_loc;
+      lhs->flags &= ~PASTE_LEFT;
 
       /* Mandatory error for all apart from assembler.  */
       if (CPP_OPTION (pfile, lang) != CLK_ASM)
@@ -469,6 +481,7 @@ paste_tokens (cpp_reader *pfile, const cpp_token **plhs, const cpp_token *rhs)
       return false;
     }
 
+  *plhs = lhs;
   _cpp_pop_buffer (pfile);
   return true;
 }
@@ -1425,6 +1438,9 @@ create_iso_definition (cpp_reader *pfile, cpp_macro *macro)
 {
   cpp_token *token;
   const cpp_token *ctoken;
+  bool following_paste_op = false;
+  const char *paste_op_error_msg =
+    N_("'##' cannot appear at either end of a macro expansion");
 
   /* Get the first token of the expansion (or the '(' of a
      function-like macro).  */
@@ -1518,26 +1534,34 @@ create_iso_definition (cpp_reader *pfile, cpp_macro *macro)
 	}
 
       if (token->type == CPP_EOF)
-	break;
+	{
+	  /* Paste operator constraint 6.10.3.3.1:
+	     Token-paste ##, can appear in both object-like and
+	     function-like macros, but not at the end.  */
+	  if (following_paste_op)
+	    {
+	      cpp_error (pfile, CPP_DL_ERROR, paste_op_error_msg);
+	      return false;
+	    }
+	  break;
+	}
 
       /* Paste operator constraint 6.10.3.3.1.  */
       if (token->type == CPP_PASTE)
 	{
 	  /* Token-paste ##, can appear in both object-like and
-	     function-like macros, but not at the ends.  */
-	  if (--macro->count > 0)
-	    token = lex_expansion_token (pfile, macro);
-
-	  if (macro->count == 0 || token->type == CPP_EOF)
+	     function-like macros, but not at the beginning.  */
+	  if (macro->count == 1)
 	    {
-	      cpp_error (pfile, CPP_DL_ERROR,
-		 "'##' cannot appear at either end of a macro expansion");
+	      cpp_error (pfile, CPP_DL_ERROR, paste_op_error_msg);
 	      return false;
 	    }
 
+	  --macro->count;
 	  token[-1].flags |= PASTE_LEFT;
 	}
 
+      following_paste_op = (token->type == CPP_PASTE);
       token = lex_expansion_token (pfile, macro);
     }
 

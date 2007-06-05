@@ -127,6 +127,9 @@ static const char dir_separator_str[] = { DIR_SEPARATOR, 0 };
 /* Flag set by cppspec.c to 1.  */
 int is_cpp_driver;
 
+/* Flag set to nonzero if an @file argument has been supplied to gcc.  */
+static bool at_file_supplied;
+
 /* Flag saying to pass the greatest exit code returned by a sub-process
    to the calling program.  */
 static int pass_exit_codes;
@@ -361,6 +364,7 @@ static const char *if_exists_else_spec_function (int, const char **);
 static const char *replace_outfile_spec_function (int, const char **);
 static const char *version_compare_spec_function (int, const char **);
 static const char *include_spec_function (int, const char **);
+static const char *print_asm_header_spec_function (int, const char **);
 
 /* The Specs Language
 
@@ -821,7 +825,8 @@ static const char *cc1_options =
  %{coverage:-fprofile-arcs -ftest-coverage}";
 
 static const char *asm_options =
-"%a %Y %{c:%W{o*}%{!o*:-o %w%b%O}}%{!c:-o %d%w%u%O}";
+"%{ftarget-help:%:print-asm-header()} \
+%a %Y %{c:%W{o*}%{!o*:-o %w%b%O}}%{!c:-o %d%w%u%O}";
 
 static const char *invoke_as =
 #ifdef AS_NEEDS_DASH_FOR_PIPED_INPUT
@@ -1617,6 +1622,7 @@ static const struct spec_function static_spec_functions[] =
   { "replace-outfile",		replace_outfile_spec_function },
   { "version-compare",		version_compare_spec_function },
   { "include",			include_spec_function },
+  { "print-asm-header",		print_asm_header_spec_function },
 #ifdef EXTRA_SPEC_FUNCTIONS
   EXTRA_SPEC_FUNCTIONS
 #endif
@@ -5006,9 +5012,63 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	      int max = n_infiles;
 	      max += lang_specific_extra_outfiles;
 
-	      for (i = 0; i < max; i++)
-		if (outfiles[i])
-		  store_arg (outfiles[i], 0, 0);
+              if (HAVE_GNU_LD && at_file_supplied)
+                {
+                  /* We are going to expand `%o' to `@FILE', where FILE
+                     is a newly-created temporary filename.  The filenames
+                     that would usually be expanded in place of %o will be
+                     written to the temporary file.  */
+
+                  char *temp_file = make_temp_file ("");
+                  char *at_argument;
+                  char **argv;
+                  int n_files, j, status;
+                  FILE *f;
+
+                  at_argument = concat ("@", temp_file, NULL);
+                  store_arg (at_argument, 0, 0);
+
+                  /* Convert OUTFILES into a form suitable for writeargv.  */
+
+                  /* Determine how many are non-NULL.  */
+                  for (n_files = 0, i = 0; i < max; i++)
+                    n_files += outfiles[i] != NULL;
+
+                  argv = alloca (sizeof (char *) * (n_files + 1));
+
+                  /* Copy the strings over.  */
+                  for (i = 0, j = 0; i < max; i++)
+                    if (outfiles[i])
+                      {
+                        argv[j] = (char *) outfiles[i];
+                        j++;
+                      }
+                  argv[j] = NULL;
+
+                  f = fopen (temp_file, "w");
+
+                  if (f == NULL)
+                    fatal ("could not open temporary response file %s",
+                           temp_file);
+
+                  status = writeargv (argv, f);
+
+                  if (status)
+                    fatal ("could not write to temporary response file %s",
+                           temp_file);
+
+                  status = fclose (f);
+
+                  if (EOF == status)
+                    fatal ("could not close temporary response file %s",
+                           temp_file);
+
+                  record_temp_file (temp_file, !save_temps_flag, !save_temps_flag);
+                }
+              else
+                for (i = 0; i < max; i++)
+	          if (outfiles[i])
+		    store_arg (outfiles[i], 0, 0);
 	      break;
 	    }
 
@@ -6090,6 +6150,7 @@ main (int argc, char **argv)
   char *specs_file;
   const char *p;
   struct user_specs *uptr;
+  char **old_argv = argv;
 
   p = argv[0] + strlen (argv[0]);
   while (p != argv[0] && !IS_DIR_SEPARATOR (p[-1]))
@@ -6099,6 +6160,10 @@ main (int argc, char **argv)
   xmalloc_set_program_name (programname);
 
   expandargv (&argc, &argv);
+
+  /* Determine if any expansions were made.  */
+  if (argv != old_argv)
+    at_file_supplied = true;
 
   prune_options (&argc, &argv);
 
@@ -6708,6 +6773,13 @@ main (int argc, char **argv)
       putenv_from_prefixes (&exec_prefixes, "COMPILER_PATH", false);
       putenv_from_prefixes (&startfile_prefixes, LIBRARY_PATH_ENV, true);
 
+      if (print_subprocess_help == 1)
+	{
+	  printf (_("\nLinker options\n==============\n\n"));
+	  printf (_("Use \"-Wl,OPTION\" to pass \"OPTION\""
+		    " to the linker.\n\n"));
+	  fflush (stdout);
+	}
       value = do_spec (link_command_spec);
       if (value < 0)
 	error_count = 1;
@@ -6719,7 +6791,8 @@ main (int argc, char **argv)
 
   if (! linker_was_run && error_count == 0)
     for (i = 0; (int) i < n_infiles; i++)
-      if (explicit_link_files[i])
+      if (explicit_link_files[i]
+	  && !(infiles[i].language && infiles[i].language[0] == '*'))
 	error ("%s: linker input file unused because linking not done",
 	       outfiles[i]);
 
@@ -7881,5 +7954,18 @@ include_spec_function (int argc, const char **argv)
   file = find_a_file (&startfile_prefixes, argv[0], R_OK, 0);
   read_specs (file ? file : argv[0], FALSE);
 
+  return NULL;
+}
+
+/* %:print-asm-header spec function.  Print a banner to say that the
+   following output is from the assembler.  */
+
+static const char *
+print_asm_header_spec_function (int arg ATTRIBUTE_UNUSED,
+				const char **argv ATTRIBUTE_UNUSED)
+{
+  printf (_("Assembler options\n=================\n\n"));
+  printf (_("Use \"-Wa,OPTION\" to pass \"OPTION\" to the assembler.\n\n"));
+  fflush (stdout);
   return NULL;
 }

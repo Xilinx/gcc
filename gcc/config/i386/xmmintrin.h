@@ -716,9 +716,9 @@ _mm_cvtps_pi8(__m128 __A)
 }
 
 /* Selects four specific SPFP values from A and B based on MASK.  */
-#if 0
+#ifdef __OPTIMIZE__
 static __inline __m128 __attribute__((__always_inline__))
-_mm_shuffle_ps (__m128 __A, __m128 __B, int __mask)
+_mm_shuffle_ps (__m128 __A, __m128 __B, int const __mask)
 {
   return (__m128) __builtin_ia32_shufps ((__v4sf)__A, (__v4sf)__B, __mask);
 }
@@ -726,7 +726,6 @@ _mm_shuffle_ps (__m128 __A, __m128 __B, int __mask)
 #define _mm_shuffle_ps(A, B, MASK) \
  ((__m128) __builtin_ia32_shufps ((__v4sf)(A), (__v4sf)(B), (MASK)))
 #endif
-
 
 /* Selects and interleaves the upper two SPFP values from A and B.  */
 static __inline __m128 __attribute__((__always_inline__))
@@ -861,7 +860,7 @@ _MM_SET_FLUSH_ZERO_MODE (unsigned int __mode)
 static __inline __m128 __attribute__((__always_inline__))
 _mm_set_ss (float __F)
 {
-  return __extension__ (__m128)(__v4sf){ __F, 0, 0, 0 };
+  return __extension__ (__m128)(__v4sf){ __F, 0.0f, 0.0f, 0.0f };
 }
 
 /* Create a vector with all four elements equal to F.  */
@@ -992,7 +991,7 @@ _mm_move_ss (__m128 __A, __m128 __B)
 }
 
 /* Extracts one of the four words of A.  The selector N must be immediate.  */
-#if 0
+#ifdef __OPTIMIZE__
 static __inline int __attribute__((__always_inline__))
 _mm_extract_pi16 (__m64 const __A, int const __N)
 {
@@ -1011,7 +1010,7 @@ _m_pextrw (__m64 const __A, int const __N)
 
 /* Inserts word D into one of four words of A.  The selector N must be
    immediate.  */
-#if 0
+#ifdef __OPTIMIZE__
 static __inline __m64 __attribute__((__always_inline__))
 _mm_insert_pi16 (__m64 const __A, int const __D, int const __N)
 {
@@ -1110,15 +1109,15 @@ _m_pmulhuw (__m64 __A, __m64 __B)
 
 /* Return a combination of the four 16-bit values in A.  The selector
    must be an immediate.  */
-#if 0
+#ifdef __OPTIMIZE__
 static __inline __m64 __attribute__((__always_inline__))
-_mm_shuffle_pi16 (__m64 __A, int __N)
+_mm_shuffle_pi16 (__m64 __A, int const __N)
 {
   return (__m64) __builtin_ia32_pshufw ((__v4hi)__A, __N);
 }
 
 static __inline __m64 __attribute__((__always_inline__))
-_m_pshufw (__m64 __A, int __N)
+_m_pshufw (__m64 __A, int const __N)
 {
   return _mm_shuffle_pi16 (__A, __N);
 }
@@ -1186,7 +1185,7 @@ _m_psadbw (__m64 __A, __m64 __B)
 
 /* Loads one cache line from address P to a location "closer" to the
    processor.  The selector I specifies the type of prefetch operation.  */
-#if 0
+#ifdef __OPTIMIZE__
 static __inline void __attribute__((__always_inline__))
 _mm_prefetch (void *__P, enum _mm_hint __I)
 {

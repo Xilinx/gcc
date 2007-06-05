@@ -92,7 +92,7 @@ static sbitmap *comp;
 
 static struct seginfo * new_seginfo (int, rtx, int, HARD_REG_SET);
 static void add_seginfo (struct bb_info *, struct seginfo *);
-static void reg_dies (rtx, HARD_REG_SET);
+static void reg_dies (rtx, HARD_REG_SET *);
 static void reg_becomes_live (rtx, rtx, void *);
 static void make_preds_opaque (basic_block, int);
 
@@ -160,18 +160,16 @@ make_preds_opaque (basic_block b, int j)
 /* Record in LIVE that register REG died.  */
 
 static void
-reg_dies (rtx reg, HARD_REG_SET live)
+reg_dies (rtx reg, HARD_REG_SET *live)
 {
-  int regno, nregs;
+  int regno;
 
   if (!REG_P (reg))
     return;
 
   regno = REGNO (reg);
   if (regno < FIRST_PSEUDO_REGISTER)
-    for (nregs = hard_regno_nregs[regno][GET_MODE (reg)] - 1; nregs >= 0;
-	 nregs--)
-      CLEAR_HARD_REG_BIT (live, regno + nregs);
+    remove_from_hard_reg_set (live, GET_MODE (reg), regno);
 }
 
 /* Record in LIVE that register REG became live.
@@ -180,7 +178,7 @@ reg_dies (rtx reg, HARD_REG_SET live)
 static void
 reg_becomes_live (rtx reg, rtx setter ATTRIBUTE_UNUSED, void *live)
 {
-  int regno, nregs;
+  int regno;
 
   if (GET_CODE (reg) == SUBREG)
     reg = SUBREG_REG (reg);
@@ -190,9 +188,7 @@ reg_becomes_live (rtx reg, rtx setter ATTRIBUTE_UNUSED, void *live)
 
   regno = REGNO (reg);
   if (regno < FIRST_PSEUDO_REGISTER)
-    for (nregs = hard_regno_nregs[regno][GET_MODE (reg)] - 1; nregs >= 0;
-	 nregs--)
-      SET_HARD_REG_BIT (* (HARD_REG_SET *) live, regno + nregs);
+    add_to_hard_reg_set ((HARD_REG_SET *) live, GET_MODE (reg), regno);
 }
 
 /* Make sure if MODE_ENTRY is defined the MODE_EXIT is defined
@@ -500,12 +496,12 @@ optimize_mode_switching (void)
 		  /* Update LIVE_NOW.  */
 		  for (link = REG_NOTES (insn); link; link = XEXP (link, 1))
 		    if (REG_NOTE_KIND (link) == REG_DEAD)
-		      reg_dies (XEXP (link, 0), live_now);
+		      reg_dies (XEXP (link, 0), &live_now);
 
 		  note_stores (PATTERN (insn), reg_becomes_live, &live_now);
 		  for (link = REG_NOTES (insn); link; link = XEXP (link, 1))
 		    if (REG_NOTE_KIND (link) == REG_UNUSED)
-		      reg_dies (XEXP (link, 0), live_now);
+		      reg_dies (XEXP (link, 0), &live_now);
 		}
 	    }
 
@@ -664,9 +660,7 @@ optimize_mode_switching (void)
 		  if (mode_set != NULL_RTX)
 		    {
 		      emited = true;
-		      if (NOTE_P (ptr->insn_ptr)
-			  && (NOTE_LINE_NUMBER (ptr->insn_ptr)
-			      == NOTE_INSN_BASIC_BLOCK))
+		      if (NOTE_INSN_BASIC_BLOCK_P (ptr->insn_ptr))
 			emit_insn_after (mode_set, ptr->insn_ptr);
 		      else
 			emit_insn_before (mode_set, ptr->insn_ptr);

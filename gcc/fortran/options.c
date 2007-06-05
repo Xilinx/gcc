@@ -117,10 +117,6 @@ gfc_init_options (unsigned int argc ATTRIBUTE_UNUSED,
   /* -fshort-enums can be default on some targets.  */
   gfc_option.fshort_enums = targetm.default_short_enums ();
 
-  /* Increase MAX_ALIASED_VOPS to account for different characteristics
-     of Fortran regarding VOPs.  */
-  MAX_ALIASED_VOPS = 50;
-
   return CL_Fortran;
 }
 
@@ -542,6 +538,8 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_ffree_line_length_:
+      if (value != 0 && value < 4)
+	gfc_fatal_error ("Free line length must be at least three.");
       gfc_option.free_line_length = value;
       break;
 

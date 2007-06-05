@@ -34,6 +34,7 @@ Boston, MA 02110-1301, USA.  */
 #include "integrate.h"
 #include "flags.h"
 #include "langhooks.h"
+#include "target.h"
 #include "langhooks-def.h"
 #include "ggc.h"
 #include "diagnostic.h"
@@ -147,6 +148,8 @@ lhd_warn_unused_global_decl (tree decl)
 void
 lhd_set_decl_assembler_name (tree decl)
 {
+  tree id;
+
   /* The language-independent code should never use the
      DECL_ASSEMBLER_NAME for lots of DECLs.  Only FUNCTION_DECLs and
      VAR_DECLs for variables with static storage duration need a real
@@ -161,21 +164,26 @@ lhd_set_decl_assembler_name (tree decl)
      as that used in the source language.  (That's correct for C, and
      GCC used to set DECL_ASSEMBLER_NAME to the same value as
      DECL_NAME in build_decl, so this choice provides backwards
-     compatibility with existing front-ends.
-      
+     compatibility with existing front-ends.  This assumption is wrapped
+     in a target hook, to allow for target-specific modification of the
+     identifier.
+ 
      Can't use just the variable's own name for a variable whose scope
      is less than the whole compilation.  Concatenate a distinguishing
      number - we use the DECL_UID.  */
+
   if (TREE_PUBLIC (decl) || DECL_CONTEXT (decl) == NULL_TREE)
-    SET_DECL_ASSEMBLER_NAME (decl, DECL_NAME (decl));
+    id = targetm.mangle_decl_assembler_name (decl, DECL_NAME (decl));
   else
     {
       const char *name = IDENTIFIER_POINTER (DECL_NAME (decl));
       char *label;
       
       ASM_FORMAT_PRIVATE_NAME (label, name, DECL_UID (decl));
-      SET_DECL_ASSEMBLER_NAME (decl, get_identifier (label));
+      id = get_identifier (label);
     }
+  SET_DECL_ASSEMBLER_NAME (decl, id);
+
 }
 
 /* Type promotion for variable arguments.  */
@@ -207,15 +215,6 @@ HOST_WIDE_INT
 lhd_get_alias_set (tree ARG_UNUSED (t))
 {
   return -1;
-}
-
-/* Provide a hook routine for alias sets that always returns 0.  This is
-   used by languages that haven't deal with alias sets yet.  */
-
-HOST_WIDE_INT
-hook_get_alias_set_0 (tree ARG_UNUSED (t))
-{
-  return 0;
 }
 
 /* This is the default expand_expr function.  */
@@ -579,9 +578,6 @@ lhd_builtin_function (tree decl)
 tree
 get_signed_or_unsigned_type (int unsignedp, tree type)
 {
-  if (!INTEGRAL_TYPE_P (type) || TYPE_UNSIGNED (type) == unsignedp)
-    return type;
-
   return lang_hooks.types.signed_or_unsigned_type(unsignedp, type);
 }
 
@@ -590,5 +586,8 @@ get_signed_or_unsigned_type (int unsignedp, tree type)
 tree
 lhd_signed_or_unsigned_type (int unsignedp, tree type)
 {
+  if (!INTEGRAL_TYPE_P (type) || TYPE_UNSIGNED (type) == unsignedp)
+    return type;
+
   return lang_hooks.types.type_for_size (TYPE_PRECISION (type), unsignedp);
 }

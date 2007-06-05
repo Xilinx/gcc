@@ -1093,11 +1093,10 @@ df_ref_record (struct dataflow *dflow, rtx reg, rtx *loc,
 	{
 	  regno += subreg_regno_offset (regno, GET_MODE (SUBREG_REG (reg)),
 					SUBREG_BYTE (reg), GET_MODE (reg));
-	  endregno = subreg_nregs (reg);
+	  endregno = regno + subreg_nregs (reg);
 	}
       else
-	endregno = hard_regno_nregs[regno][GET_MODE (reg)];
-      endregno += regno;
+	endregno = END_HARD_REGNO (reg);
 
       /*  If this is a multiword hardreg, we create some extra datastructures that 
 	  will enable us to easily build REG_DEAD and REG_UNUSED notes.  */
@@ -1682,7 +1681,7 @@ df_bb_refs_record (struct dataflow *dflow, basic_block bb)
     {
 #ifdef EH_USES
       unsigned int i;
-      /* This code is putting in a artificial ref for the use at the
+      /* This code is putting in an artificial ref for the use at the
 	 TOP of the block that receives the exception.  It is too
 	 cumbersome to actually put the ref on the edge.  We could
 	 either model this at the top of the receiver block or the
@@ -1765,6 +1764,32 @@ df_bb_refs_record (struct dataflow *dflow, basic_block bb)
     }
 }
 
+/* Records the implicit definitions at targets of nonlocal gotos in BLOCKS.  */
+
+static void
+record_nonlocal_goto_receiver_defs (struct dataflow *dflow, bitmap blocks)
+{
+  rtx x;
+  basic_block bb;
+
+  /* See expand_builtin_setjmp_receiver; hard_frame_pointer_rtx is used in
+     the nonlocal goto receiver, and needs to be considered defined
+     implicitly.  */
+  if (!(dflow->flags & DF_HARD_REGS))
+    return;
+
+  for (x = nonlocal_goto_handler_labels; x; x = XEXP (x, 1))
+    {
+      bb = BLOCK_FOR_INSN (XEXP (x, 0));
+      if (!bitmap_bit_p (blocks, bb->index))
+	continue;
+
+      df_ref_record (dflow, hard_frame_pointer_rtx, &hard_frame_pointer_rtx,
+		     bb, NULL,
+		     DF_REF_REG_DEF, DF_REF_ARTIFICIAL | DF_REF_AT_TOP,
+		     false);
+    }
+}
 
 /* Record all the refs in the basic blocks specified by BLOCKS.  */
 
@@ -1785,6 +1810,9 @@ df_refs_record (struct dataflow *dflow, bitmap blocks)
 
   if (bitmap_bit_p (blocks, ENTRY_BLOCK))
     df_record_entry_block_defs (dflow);
+
+  if (current_function_has_nonlocal_label)
+    record_nonlocal_goto_receiver_defs (dflow, blocks);
 }
 
 

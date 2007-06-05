@@ -2286,42 +2286,40 @@ find_free_reg (enum reg_class class, enum machine_mode mode, int qtyno,
 	IOR_COMPL_HARD_REG_SET (first_used, qty_phys_sugg[qtyno]);
     }
 
-  /* If all registers are excluded, we can't do anything.  */
-  GO_IF_HARD_REG_SUBSET (reg_class_contents[(int) ALL_REGS], first_used, fail);
-
   /* If at least one would be suitable, test each hard reg.  */
-
-  for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
-    {
+  if (!hard_reg_set_subset_p (reg_class_contents[(int) ALL_REGS], first_used))
+    for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
+      {
 #ifdef REG_ALLOC_ORDER
-      int regno = reg_alloc_order[i];
+	int regno = reg_alloc_order[i];
 #else
-      int regno = i;
+	int regno = i;
 #endif
-      if (! TEST_HARD_REG_BIT (first_used, regno)
-	  && HARD_REGNO_MODE_OK (regno, mode)
-	  && (qty[qtyno].n_calls_crossed == 0
-	      || accept_call_clobbered
-	      || ! HARD_REGNO_CALL_PART_CLOBBERED (regno, mode)))
-	{
-	  int j;
-	  int size1 = hard_regno_nregs[regno][mode];
-	  for (j = 1; j < size1 && ! TEST_HARD_REG_BIT (used, regno + j); j++);
-	  if (j == size1)
-	    {
-	      /* Mark that this register is in use between its birth and death
-		 insns.  */
-	      post_mark_life (regno, mode, 1, born_index, dead_index);
-	      return regno;
-	    }
+	if (!TEST_HARD_REG_BIT (first_used, regno)
+	    && HARD_REGNO_MODE_OK (regno, mode)
+	    && (qty[qtyno].n_calls_crossed == 0
+		|| accept_call_clobbered
+		|| !HARD_REGNO_CALL_PART_CLOBBERED (regno, mode)))
+	  {
+	    int j;
+	    int size1 = hard_regno_nregs[regno][mode];
+	    j = 1;
+	    while (j < size1 && !TEST_HARD_REG_BIT (used, regno + j))
+	      j++;
+	    if (j == size1)
+	      {
+		/* Mark that this register is in use between its birth
+		   and death insns.  */
+		post_mark_life (regno, mode, 1, born_index, dead_index);
+		return regno;
+	      }
 #ifndef REG_ALLOC_ORDER
-	  /* Skip starting points we know will lose.  */
-	  i += j;
+	    /* Skip starting points we know will lose.  */
+	    i += j;
 #endif
-	}
-    }
+	  }
+      }
 
- fail:
   /* If we are just trying suggested register, we have just tried copy-
      suggested registers, and there are arithmetic-suggested registers,
      try them.  */
@@ -2365,13 +2363,10 @@ find_free_reg (enum reg_class class, enum machine_mode mode, int qtyno,
 static void
 mark_life (int regno, enum machine_mode mode, int life)
 {
-  int j = hard_regno_nregs[regno][mode];
   if (life)
-    while (--j >= 0)
-      SET_HARD_REG_BIT (regs_live, regno + j);
+    add_to_hard_reg_set (&regs_live, mode, regno);
   else
-    while (--j >= 0)
-      CLEAR_HARD_REG_BIT (regs_live, regno + j);
+    remove_from_hard_reg_set (&regs_live, mode, regno);
 }
 
 /* Mark register number REGNO (with machine-mode MODE) as live (if LIFE
@@ -2382,12 +2377,10 @@ static void
 post_mark_life (int regno, enum machine_mode mode, int life, int birth,
 		int death)
 {
-  int j = hard_regno_nregs[regno][mode];
   HARD_REG_SET this_reg;
 
   CLEAR_HARD_REG_SET (this_reg);
-  while (--j >= 0)
-    SET_HARD_REG_BIT (this_reg, regno + j);
+  add_to_hard_reg_set (&this_reg, mode, regno);
 
   if (life)
     while (birth < death)

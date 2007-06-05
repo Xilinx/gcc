@@ -16,8 +16,10 @@ class java::io::ObjectInputStream : public ::java::io::InputStream
 public:
   ObjectInputStream(::java::io::InputStream *);
   virtual ::java::lang::Object * readObject();
+  virtual ::java::lang::Object * readUnshared();
 private:
-  ::java::lang::Object * parseContent(jbyte);
+  ::java::lang::Object * readObject(jboolean);
+  ::java::lang::Object * parseContent(jbyte, jboolean);
   void checkTypeConsistency(::java::lang::String *, JArray< ::java::io::ObjectStreamField * > *, JArray< ::java::io::ObjectStreamField * > *);
 public: // actually protected
   virtual ::java::io::ObjectStreamClass * readClassDescriptor();
@@ -60,10 +62,10 @@ public: // actually protected
   ObjectInputStream();
   virtual ::java::lang::Object * readObjectOverride();
 private:
-  jint assignNewHandle(::java::lang::Object *);
-  void rememberHandle(::java::lang::Object *, jint);
+  jint assignNewHandle(::java::lang::Object *, jboolean);
+  void rememberHandle(::java::lang::Object *, jboolean, jint);
   ::java::lang::Object * lookupHandle(jint);
-  ::java::lang::Object * processResolution(::java::io::ObjectStreamClass *, ::java::lang::Object *, jint);
+  ::java::lang::Object * processResolution(::java::io::ObjectStreamClass *, ::java::lang::Object *, jint, jboolean);
   void clearHandles();
   void readNextBlock();
   void readNextBlock(jbyte);
@@ -75,6 +77,7 @@ private:
   void callReadMethod(::java::lang::reflect::Method *, ::java::lang::Class *, ::java::lang::Object *);
   void dumpElement(::java::lang::String *);
   void dumpElementln(::java::lang::String *);
+  void dumpElementln(::java::lang::String *, ::java::lang::Object *);
   static const jint BUFFER_SIZE = 1024;
   ::java::io::DataInputStream * __attribute__((aligned(__alignof__( ::java::io::InputStream)))) realInputStream;
   ::java::io::DataInputStream * dataInputStream;
@@ -85,7 +88,7 @@ private:
   jboolean useSubclassMethod;
   jint nextOID;
   jboolean resolveEnabled;
-  ::java::util::Vector * objectLookupTable;
+  ::java::util::Map * handles;
   ::java::lang::Object * currentObject;
   ::java::io::ObjectStreamClass * currentObjectStreamClass;
   ::java::util::TreeSet * currentObjectValidators;

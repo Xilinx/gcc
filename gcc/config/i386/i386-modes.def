@@ -53,11 +53,19 @@ ADJUST_ALIGNMENT (XF, TARGET_128BIT_LONG_DOUBLE ? 16 : 4);
    mode is used to simulate comparisons of (a-b) and (a+b)
    against zero using sub/cmp/add operations.
 
+   Add CCA to indicate that only the Above flag is valid.
+   Add CCC to indicate that only the Carry flag is valid.
+   Add CCO to indicate that only the Overflow flag is valid.
+   Add CCS to indicate that only the Sign flag is valid.
    Add CCZ to indicate that only the Zero flag is valid.  */
 
 CC_MODE (CCGC);
 CC_MODE (CCGOC);
 CC_MODE (CCNO);
+CC_MODE (CCA);
+CC_MODE (CCC);
+CC_MODE (CCO);
+CC_MODE (CCS);
 CC_MODE (CCZ);
 CC_MODE (CCFP);
 CC_MODE (CCFPU);
@@ -68,6 +76,7 @@ VECTOR_MODES (INT, 8);        /*       V8QI V4HI V2SI */
 VECTOR_MODES (INT, 16);       /* V16QI V8HI V4SI V2DI */
 VECTOR_MODES (FLOAT, 8);      /*            V4HF V2SF */
 VECTOR_MODES (FLOAT, 16);     /*       V8HF V4SF V2DF */
+VECTOR_MODE (INT, QI, 2);     /*                 V2QI */
 VECTOR_MODE (INT, DI, 4);     /*                 V4DI */
 VECTOR_MODE (INT, SI, 8);     /*                 V8SI */
 VECTOR_MODE (INT, HI, 16);    /*                V16HI */

@@ -1,4 +1,4 @@
-/* { dg-require-effective-target vect_int } */
+/* { dg-require-effective-target vect_float } */
 
 #include <stdarg.h>
 #include "tree-vect.h"
@@ -36,5 +36,5 @@ int main (void)
   return main1 ();
 }
 
-/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" { target powerpc*-*-* i?86-*-* x86_64-*-* } } } */
+/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" { target vect_intfloat_cvt } } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

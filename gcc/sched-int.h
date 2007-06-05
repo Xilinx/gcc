@@ -278,11 +278,16 @@ struct deps
   /* An EXPR_LIST containing all MEM rtx's which are pending writes.  */
   rtx pending_write_mems;
 
-  /* Indicates the combined length of the two pending lists.  We must prevent
-     these lists from ever growing too large since the number of dependencies
-     produced is at least O(N*N), and execution time is at least O(4*N*N), as
-     a function of the length of these pending lists.  */
-  int pending_lists_length;
+  /* We must prevent the above lists from ever growing too large since
+     the number of dependencies produced is at least O(N*N),
+     and execution time is at least O(4*N*N), as a function of the
+     length of these pending lists.  */
+
+  /* Indicates the length of the pending_read list.  */
+  int pending_read_list_length;
+
+  /* Indicates the length of the pending_write list.  */
+  int pending_write_list_length;
 
   /* Length of the pending memory flush list. Large functions with no
      calls may build up extremely large lists.  */
@@ -532,8 +537,10 @@ struct haifa_insn_data
   unsigned int fed_by_spec_load : 1;
   unsigned int is_load_insn : 1;
 
-  /* Nonzero if priority has been computed already.  */
-  unsigned int priority_known : 1;
+  /* '> 0' if priority is valid,
+     '== 0' if priority was not yet computed,
+     '< 0' if priority in invalid and should be recomputed.  */
+  signed char priority_status;
 
   /* Nonzero if instruction has internal dependence
      (e.g. add_dependence was invoked with (insn == elem)).  */
@@ -569,7 +576,8 @@ extern regset *glat_start, *glat_end;
 #define CANT_MOVE(insn)		(h_i_d[INSN_UID (insn)].cant_move)
 #define INSN_DEP_COUNT(INSN)	(h_i_d[INSN_UID (INSN)].dep_count)
 #define INSN_PRIORITY(INSN)	(h_i_d[INSN_UID (INSN)].priority)
-#define INSN_PRIORITY_KNOWN(INSN) (h_i_d[INSN_UID (INSN)].priority_known)
+#define INSN_PRIORITY_STATUS(INSN) (h_i_d[INSN_UID (INSN)].priority_status)
+#define INSN_PRIORITY_KNOWN(INSN) (INSN_PRIORITY_STATUS (INSN) > 0)
 #define INSN_REG_WEIGHT(INSN)	(h_i_d[INSN_UID (INSN)].reg_weight)
 #define HAS_INTERNAL_DEP(INSN)  (h_i_d[INSN_UID (INSN)].has_internal_dep)
 #define TODO_SPEC(INSN)         (h_i_d[INSN_UID (INSN)].todo_spec)
@@ -737,7 +745,7 @@ enum SPEC_SCHED_FLAGS {
   PREFER_NON_CONTROL_SPEC = PREFER_NON_DATA_SPEC << 1
 };
 
-#define NOTE_NOT_BB_P(NOTE) (NOTE_P (NOTE) && (NOTE_LINE_NUMBER (NOTE)	\
+#define NOTE_NOT_BB_P(NOTE) (NOTE_P (NOTE) && (NOTE_KIND (NOTE)	\
 					       != NOTE_INSN_BASIC_BLOCK))
 
 extern FILE *sched_dump;
@@ -871,5 +879,8 @@ extern rtx bb_note (basic_block);
 #ifdef ENABLE_CHECKING
 extern void check_reg_live (bool);
 #endif
+
+/* Functions in sched-rgn.c.  */
+extern void debug_dependencies (rtx, rtx);
 
 #endif /* GCC_SCHED_INT_H */

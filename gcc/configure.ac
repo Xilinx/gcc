@@ -206,6 +206,9 @@ if test x"${DEFAULT_LINKER+set}" = x"set"; then
 	[Define to enable the use of a default linker.])
 fi
 
+gnu_ld=`if test x"$gnu_ld_flag" = x"yes"; then echo 1; else echo 0; fi`
+AC_DEFINE_UNQUOTED(HAVE_GNU_LD, $gnu_ld, [Define if using GNU ld.])
+
 AC_MSG_CHECKING([whether a default linker was specified])
 if test x"${DEFAULT_LINKER+set}" = x"set"; then
   if test x"$gnu_ld_flag" = x"no"; then
@@ -787,17 +790,20 @@ AC_ARG_WITH(sysroot,
  TARGET_SYSTEM_ROOT_DEFINE='-DTARGET_SYSTEM_ROOT=\"$(TARGET_SYSTEM_ROOT)\"'
  CROSS_SYSTEM_HEADER_DIR='$(TARGET_SYSTEM_ROOT)$${sysroot_headers_suffix}$(NATIVE_SYSTEM_HEADER_DIR)'
 	
- if test "x$exec_prefix" = xNONE; then
-  if test "x$prefix" = xNONE; then
-   test_prefix=/usr/local
-  else
-   test_prefix=$prefix
-  fi
+ if test "x$prefix" = xNONE; then
+  test_prefix=/usr/local
  else
-  test_prefix=$exec_prefix
+  test_prefix=$prefix
+ fi
+ if test "x$exec_prefix" = xNONE; then
+  test_exec_prefix=$test_prefix
+ else
+  test_exec_prefix=$exec_prefix
  fi
  case ${TARGET_SYSTEM_ROOT} in
  "${test_prefix}"|"${test_prefix}/"*|\
+ "${test_exec_prefix}"|"${test_exec_prefix}/"*|\
+ '${prefix}'|'${prefix}/'*|\
  '${exec_prefix}'|'${exec_prefix}/'*)
    t="$TARGET_SYSTEM_ROOT_DEFINE -DTARGET_SYSTEM_ROOT_RELOCATABLE"
    TARGET_SYSTEM_ROOT_DEFINE="$t"
@@ -1884,6 +1890,10 @@ fi])
 
 ORIGINAL_AS_FOR_TARGET=$gcc_cv_as
 AC_SUBST(ORIGINAL_AS_FOR_TARGET)
+case "$ORIGINAL_AS_FOR_TARGET" in
+  ./as | ./as$build_exeext) ;;
+  *) AC_CONFIG_FILES(as:exec-tool.in, [chmod +x as]) ;;
+esac 
 
 AC_MSG_CHECKING(what assembler to use)
 if test "$gcc_cv_as" = ../gas/as-new$build_exeext; then
@@ -1935,6 +1945,10 @@ fi])
 
 ORIGINAL_LD_FOR_TARGET=$gcc_cv_ld
 AC_SUBST(ORIGINAL_LD_FOR_TARGET)
+case "$ORIGINAL_LD_FOR_TARGET" in
+  ./collect-ld | ./collect-ld$build_exeext) ;;
+  *) AC_CONFIG_FILES(collect-ld:exec-tool.in, [chmod +x collect-ld]) ;;
+esac 
 
 AC_MSG_CHECKING(what linker to use)
 if test "$gcc_cv_ld" = ../ld/ld-new$build_exeext; then
@@ -1992,6 +2006,11 @@ fi
 
 ORIGINAL_NM_FOR_TARGET=$gcc_cv_nm
 AC_SUBST(ORIGINAL_NM_FOR_TARGET)
+case "$ORIGINAL_NM_FOR_TARGET" in
+  ./nm | ./nm$build_exeext) ;;
+  *) AC_CONFIG_FILES(nm:exec-tool.in, [chmod +x nm]) ;;
+esac
+
 
 # Figure out what objdump we will be using.
 AS_VAR_SET_IF(gcc_cv_objdump,, [
@@ -3427,7 +3446,8 @@ fi
 # Some glibc targets used DFmode long double, but with glibc 2.4
 # and later they can use TFmode.
 case "$target" in
-  powerpc*-*-*gnu* | \
+  powerpc*-*-linux* | \
+  powerpc*-*-gnu* | \
   sparc*-*-linux* | \
   s390*-*-linux* | \
   alpha*-*-linux*)

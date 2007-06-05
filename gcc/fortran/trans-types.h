@@ -1,5 +1,6 @@
 /* Header for Fortran 95 types backend support.
-   Copyright (C) 2002, 2003, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation,
+   Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
 
@@ -53,6 +54,13 @@ extern GTY(()) tree pchar_type_node;
    and runtime library.  */
 extern GTY(()) tree gfc_charlen_type_node;
 
+typedef enum {
+  PACKED_NO = 0,
+  PACKED_PARTIAL,
+  PACKED_FULL,
+  PACKED_STATIC
+} gfc_packed;
+
 /* be-function.c */
 void gfc_convert_function_code (gfc_namespace *);
 
@@ -74,12 +82,11 @@ tree gfc_get_function_type (gfc_symbol *);
 
 tree gfc_type_for_size (unsigned, int);
 tree gfc_type_for_mode (enum machine_mode, int);
-tree gfc_unsigned_type (tree);
 tree gfc_signed_type (tree);
 
 tree gfc_get_element_type (tree);
 tree gfc_get_array_type_bounds (tree, int, tree *, tree *, int);
-tree gfc_get_nodesc_array_type (tree, gfc_array_spec *, int);
+tree gfc_get_nodesc_array_type (tree, gfc_array_spec *, gfc_packed);
 
 /* Add a field of given name and type to a UNION_TYPE or RECORD_TYPE.  */
 tree gfc_add_field_to_struct (tree *, tree, tree, tree);

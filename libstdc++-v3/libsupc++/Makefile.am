@@ -1,6 +1,6 @@
 ## Makefile for the GNU C++ Support library.
 ##
-## Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005
+## Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007
 ## Free Software Foundation, Inc.
 ##
 ## Process this file with automake to produce Makefile.in.
@@ -33,7 +33,7 @@ noinst_LTLIBRARIES = libsupc++convenience.la
 
 
 headers = \
-	exception new typeinfo cxxabi.h exception_defines.h
+	exception new typeinfo cxxabi.h cxxabi-forced.h exception_defines.h
 
 if GLIBCXX_HOSTED
   c_sources = \
@@ -42,6 +42,7 @@ endif
 
 sources = \
 	array_type_info.cc \
+	atexit_arm.cc \
 	bad_cast.cc \
 	bad_typeid.cc \
 	class_type_info.cc \

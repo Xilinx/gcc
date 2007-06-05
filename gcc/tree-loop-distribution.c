@@ -866,7 +866,7 @@ dump_loop_infos (FILE *outf, struct loop *loop)
 	     LOC_FILE (dist_loop_location), LOC_LINE (dist_loop_location));
   
   fprintf (outf, " </location>\n");
-  fprintf (outf, " <depth>%d</depth>\n", loop->depth);
+  fprintf (outf, " <depth>%d</depth>\n", loop_depth (loop));
   fprintf (outf, " <nodes>%d</nodes>\n", loop->num_nodes);
 }
 
@@ -1419,7 +1419,7 @@ static bool
 can_be_distributed (struct loop *loop)
 {
   /* Right now, we only deal with loop nests that are at depth 1.  */
-  if (loop->depth != 1)
+  if (loop_depth (loop) != 1)
     {
       dump_check_info ("depth != 1");
       return false;
@@ -1600,23 +1600,19 @@ free_rdg (rdg_p rdg)
 
 /* Sort topologically PRDG vertices.  */
 
-static VEC (prdg_vertex_p, heap) *
-topological_sort (prdg_p g)
+static void
+topological_sort (prdg_p g, VEC (prdg_vertex_p, heap) **sorted_vertices)
 {
   unsigned int max_f, i;
   prdg_vertex_p *vertices;
   prdg_vertex_p v;
-  VEC (prdg_vertex_p, heap) *sorted_vertices;
-  
+
   /* Depth First Search.  */
   max_f = dfs_rdgp (g);
   
   /* Allocate array of vertices.  */
   vertices = XCNEWVEC (prdg_vertex_p, max_f+1);
-  
-  /* Allocate a vector for sorted vertices.  */ 
-  sorted_vertices = VEC_alloc (prdg_vertex_p, heap, RDG_VS);
-  
+
   /* All vertices are set to NULL.  */
   for (i = 0; i <= max_f; i++)
     vertices[i] = NULL;
@@ -1629,11 +1625,9 @@ topological_sort (prdg_p g)
   /* Push all non-NULL vertices to vector of vertices.  */
   for (i = max_f; i > 0; i--)
     if (vertices[i])
-      VEC_safe_push (prdg_vertex_p, heap, sorted_vertices, vertices[i]);
+      VEC_safe_push (prdg_vertex_p, heap, *sorted_vertices, vertices[i]);
   
   free (vertices);
-  
-  return sorted_vertices;
 }
 
 /* Distributes the code from LOOP in such a way that producer
@@ -1694,7 +1688,8 @@ distribute_loop (struct loop *loop)
       fprintf (dump_file, "</sccp>\n");
     }
   
-  dloops = topological_sort (sccg);
+  dloops = VEC_alloc (prdg_vertex_p, heap, RDG_VS);
+  topological_sort (sccg, &dloops);
 
   if (dump_file)
     {

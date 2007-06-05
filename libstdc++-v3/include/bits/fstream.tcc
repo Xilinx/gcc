@@ -1,6 +1,7 @@
 // File based streams -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+// 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -41,6 +42,8 @@
 #define _FSTREAM_TCC 1
 
 #pragma GCC system_header
+
+#include <cxxabi-forced.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
@@ -127,36 +130,51 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _CharT, typename _Traits>
     typename basic_filebuf<_CharT, _Traits>::__filebuf_type*
     basic_filebuf<_CharT, _Traits>::
-    close() throw()
+    close()
     {
-      __filebuf_type* __ret = NULL;
-      if (this->is_open())
+      if (!this->is_open())
+	return NULL;
+
+      bool __testfail = false;
+      {
+	// NB: Do this here so that re-opened filebufs will be cool...
+	struct __close_sentry
 	{
-	  bool __testfail = false;
-	  try
-	    {
-	      if (!_M_terminate_output())
-		__testfail = true;
-	    }
-	  catch(...)
-	    { __testfail = true; }
+	  basic_filebuf *__fb;
+	  __close_sentry (basic_filebuf *__fbi): __fb(__fbi) { }
+	  ~__close_sentry ()
+	  {
+	    __fb->_M_mode = ios_base::openmode(0);
+	    __fb->_M_pback_init = false;
+	    __fb->_M_destroy_internal_buffer();
+	    __fb->_M_reading = false;
+	    __fb->_M_writing = false;
+	    __fb->_M_set_buffer(-1);
+	    __fb->_M_state_last = __fb->_M_state_cur = __fb->_M_state_beg;
+	  }
+	} __cs (this);
 
-	  // NB: Do this here so that re-opened filebufs will be cool...
-	  _M_mode = ios_base::openmode(0);
-	  _M_pback_init = false;
-	  _M_destroy_internal_buffer();
-	  _M_reading = false;
-	  _M_writing = false;
-	  _M_set_buffer(-1);
-	  _M_state_last = _M_state_cur = _M_state_beg;
+	try
+	  {
+	    if (!_M_terminate_output())
+	      __testfail = true;
+	  }
+	catch(__cxxabiv1::__forced_unwind&)
+	  {
+	    _M_file.close();
+	    __throw_exception_again;
+	  }
+	catch(...)
+	  { __testfail = true; }
+      }
 
-	  if (!_M_file.close())
-	    __testfail = true;
+      if (!_M_file.close())
+	__testfail = true;
 
-	  if (!__testfail)
-	    __ret = this;
-	}
-      return __ret;
+      if (__testfail)
+	return NULL;
+      else
+	return this;
     }
 
   template<typename _CharT, typename _Traits>
@@ -245,14 +263,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		{
 		  char* __buf = new char[__blen];
 		  if (__remainder)
-		    std::memcpy(__buf, _M_ext_next, __remainder);
+		    __builtin_memcpy(__buf, _M_ext_next, __remainder);
 
 		  delete [] _M_ext_buf;
 		  _M_ext_buf = __buf;
 		  _M_ext_buf_size = __blen;
 		}
 	      else if (__remainder)
-		std::memmove(_M_ext_buf, _M_ext_next, __remainder);
+		__builtin_memmove(_M_ext_buf, _M_ext_next, __remainder);
 
 	      _M_ext_next = _M_ext_buf;
 	      _M_ext_end = _M_ext_buf + __remainder;
@@ -870,7 +888,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 					     this->gptr() - this->eback());
 		      const streamsize __remainder = _M_ext_end - _M_ext_next;
 		      if (__remainder)
-			std::memmove(_M_ext_buf, _M_ext_next, __remainder);
+			__builtin_memmove(_M_ext_buf, _M_ext_next, __remainder);
 
 		      _M_ext_next = _M_ext_buf;
 		      _M_ext_end = _M_ext_buf + __remainder;

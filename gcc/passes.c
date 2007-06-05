@@ -105,6 +105,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 /* Global variables used to communicate with passes.  */
 int dump_flags;
 bool in_gimple_form;
+bool first_pass_instance;
 
 
 /* This is called from various places for FUNCTION_DECL, VAR_DECL,
@@ -392,6 +393,8 @@ next_pass_1 (struct tree_opt_pass **list, struct tree_opt_pass *pass)
       memcpy (new, pass, sizeof (*new));
       new->next = NULL;
 
+      new->todo_flags_start &= ~TODO_mark_first_instance;
+
       /* Indicate to register_dump_files that this pass has duplicates,
          and so it should rename the dump file.  The first instance will
          be -1, and be number of duplicates = -static_pass_number - 1.
@@ -406,6 +409,7 @@ next_pass_1 (struct tree_opt_pass **list, struct tree_opt_pass *pass)
     }
   else
     {
+      pass->todo_flags_start |= TODO_mark_first_instance;
       pass->static_pass_number = -1;
       *list = pass;
     }  
@@ -503,6 +507,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_inline_parameters);
     }
   NEXT_PASS (pass_ipa_increase_alignment);
+  NEXT_PASS (pass_ipa_matrix_reorg);
   NEXT_PASS (pass_ipa_cp);
   NEXT_PASS (pass_ipa_inline);
   NEXT_PASS (pass_ipa_reference);
@@ -525,6 +530,7 @@ init_optimization_passes (void)
 
       /* Initial scalar cleanups.  */
       NEXT_PASS (pass_ccp);
+      NEXT_PASS (pass_phiprop);
       NEXT_PASS (pass_fre);
       NEXT_PASS (pass_dce);
       NEXT_PASS (pass_forwprop);
@@ -586,7 +592,9 @@ init_optimization_passes (void)
 	  struct tree_opt_pass **p = &pass_tree_loop.sub;
 	  NEXT_PASS (pass_tree_loop_init);
 	  NEXT_PASS (pass_copy_prop);
+	  NEXT_PASS (pass_dce_loop);
 	  NEXT_PASS (pass_lim);
+	  NEXT_PASS (pass_predcom);
 	  NEXT_PASS (pass_tree_unswitch);
 	  NEXT_PASS (pass_scev_cprop);
 	  NEXT_PASS (pass_empty_loop);
@@ -656,7 +664,6 @@ init_optimization_passes (void)
       struct tree_opt_pass **p = &pass_rest_of_compilation.sub;
       NEXT_PASS (pass_init_function);
       NEXT_PASS (pass_jump);
-      NEXT_PASS (pass_insn_locators_initialize);
       NEXT_PASS (pass_rtl_eh);
       NEXT_PASS (pass_initial_value_sets);
       NEXT_PASS (pass_unshare_all_rtl);
@@ -667,7 +674,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_cse);
       NEXT_PASS (pass_rtl_fwprop);
       NEXT_PASS (pass_gcse);
-      NEXT_PASS (pass_jump_bypass);
       NEXT_PASS (pass_rtl_ifcvt);
       NEXT_PASS (pass_tracer);
       /* Perform loop optimizations.  It might be better to do them a bit
@@ -685,6 +691,7 @@ init_optimization_passes (void)
 	  *p = NULL;
 	}
       NEXT_PASS (pass_web);
+      NEXT_PASS (pass_jump_bypass);
       NEXT_PASS (pass_cse2);
       NEXT_PASS (pass_rtl_fwprop_addr);
       NEXT_PASS (pass_outof_cfg_layout_mode);
@@ -934,6 +941,9 @@ execute_todo (unsigned int flags)
   if (need_ssa_update_p ())
     gcc_assert (flags & TODO_update_ssa_any);
 #endif
+
+  /* Inform the pass whether it is the first time it is run.  */
+  first_pass_instance = (flags & TODO_mark_first_instance) != 0;
 
   do_per_function (execute_function_todo, (void *)(size_t) flags);
 

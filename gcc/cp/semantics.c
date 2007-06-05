@@ -2283,6 +2283,11 @@ finish_member_declaration (tree decl)
   /* Mark the DECL as a member of the current class.  */
   DECL_CONTEXT (decl) = current_class_type;
 
+  /* Check for bare parameter packs in the member variable declaration.  */
+  if (TREE_CODE (decl) == FIELD_DECL
+      && !check_for_bare_parameter_packs (TREE_TYPE (decl)))
+    TREE_TYPE (decl) = error_mark_node;
+
   /* [dcl.link]
 
      A C language linkage is ignored for the names of class members
@@ -3188,10 +3193,6 @@ expand_or_defer_fn (tree fn)
       return;
     }
 
-  /* Keep track of functions declared with the "constructor" and
-     "destructor" attribute.  */
-  c_record_cdtor_fn (fn);
-
   /* We make a decision about linkage for these functions at the end
      of the compilation.  Until that point, we do not want the back
      end to output them -- but we do want it to see the bodies of
@@ -3627,7 +3628,8 @@ finish_omp_clauses (tree clauses)
 	 Save the results, because later we won't be in the right context
 	 for making these queries.  */
       if (CLASS_TYPE_P (inner_type)
-	  && (need_default_ctor || need_copy_ctor || need_copy_assignment))
+	  && (need_default_ctor || need_copy_ctor || need_copy_assignment)
+	  && !type_dependent_expression_p (t))
 	{
 	  int save_errorcount = errorcount;
 	  tree info;
@@ -4007,62 +4009,36 @@ finish_static_assert (tree condition, tree message, location_t location,
     }
 }
 
-/* Called from trait_expr_value to evaluate either __has_nothrow_copy or 
-   __has_nothrow_assign, depending on copy_p.  */
+/* Called from trait_expr_value to evaluate either __has_nothrow_assign or 
+   __has_nothrow_copy, depending on assign_p.  */
 
 static bool
-classtype_has_nothrow_copy_or_assign_p (tree type, bool copy_p)
+classtype_has_nothrow_assign_or_copy_p (tree type, bool assign_p)
 {
-  if ((copy_p && TYPE_HAS_INIT_REF (type))
-      || (!copy_p && TYPE_HAS_ASSIGN_REF (type)))
+  tree fns;
+
+  if (assign_p)
     {
-      bool const_p = false;
-      tree t;
-
-      struct copy_data 
-      {
-	tree name;
-	int quals;
-      } data;
-
-      data.name = copy_p ? NULL_TREE : ansi_assopname (NOP_EXPR);
-
-      data.quals = TYPE_QUAL_CONST;
-      t = locate_copy (type, &data);
-      if (t)
-	{
-	  const_p = true;
-	  if (!TREE_NOTHROW (t))
-	    return false;
-	}
-
-      if (copy_p || !CP_TYPE_CONST_P (type))
-	{
-	  data.quals = TYPE_UNQUALIFIED;
-	  t = locate_copy (type, &data);
-	  if (t && !TREE_NOTHROW (t))
-	    return false;
-
-	  data.quals = TYPE_QUAL_VOLATILE;
-	  t = locate_copy (type, &data);
-	  if (t && !TREE_NOTHROW (t))
-	    return false;
-	}
-
-      data.quals = (TYPE_QUAL_CONST | TYPE_QUAL_VOLATILE);
-      t = locate_copy (type, &data);
-      if (t)
-	{
-	  const_p = true;
-	  if (!TREE_NOTHROW (t))
-	    return false;
-	}
-
-      if (!copy_p && CP_TYPE_CONST_P (type) && !const_p)
+      int ix;
+      ix = lookup_fnfields_1 (type, ansi_assopname (NOP_EXPR));
+      if (ix < 0)
 	return false;
+      fns = VEC_index (tree, CLASSTYPE_METHOD_VEC (type), ix);
+    } 
+  else if (TYPE_HAS_INIT_REF (type))
+    {
+      /* If construction of the copy constructor was postponed, create
+	 it now.  */
+      if (CLASSTYPE_LAZY_COPY_CTOR (type))
+	lazily_declare_fn (sfk_copy_constructor, type);
+      fns = CLASSTYPE_CONSTRUCTORS (type);
     }
   else
     return false;
+
+  for (; fns; fns = OVL_NEXT (fns))
+    if (!TREE_NOTHROW (OVL_CURRENT (fns)))
+      return false;
 
   return true;
 }
@@ -4080,9 +4056,11 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
   switch (kind)
     {
     case CPTK_HAS_NOTHROW_ASSIGN:
-      return (trait_expr_value (CPTK_HAS_TRIVIAL_ASSIGN, type1, type2)
-	      || (CLASS_TYPE_P (type1)
-		  && classtype_has_nothrow_copy_or_assign_p (type1, false)));
+      return (!CP_TYPE_CONST_P (type1) && type_code1 != REFERENCE_TYPE
+	      && (trait_expr_value (CPTK_HAS_TRIVIAL_ASSIGN, type1, type2)
+		  || (CLASS_TYPE_P (type1)
+		      && classtype_has_nothrow_assign_or_copy_p (type1,
+								 true))));
 
     case CPTK_HAS_TRIVIAL_ASSIGN:
       return (!CP_TYPE_CONST_P (type1) && type_code1 != REFERENCE_TYPE
@@ -4104,7 +4082,7 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
     case CPTK_HAS_NOTHROW_COPY:
       return (trait_expr_value (CPTK_HAS_TRIVIAL_COPY, type1, type2)
 	      || (CLASS_TYPE_P (type1)
-		  && classtype_has_nothrow_copy_or_assign_p (type1, true)));
+		  && classtype_has_nothrow_assign_or_copy_p (type1, false)));
 
     case CPTK_HAS_TRIVIAL_COPY:
       return (pod_type_p (type1) || type_code1 == REFERENCE_TYPE
@@ -4199,11 +4177,15 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
       return trait_expr;
     }
 
+  complete_type (type1);
+  if (type2)
+    complete_type (type2);
+
   /* The only required diagnostic.  */
   if (kind == CPTK_IS_BASE_OF
       && NON_UNION_CLASS_TYPE_P (type1) && NON_UNION_CLASS_TYPE_P (type2)
       && !same_type_ignoring_top_level_qualifiers_p (type1, type2)
-      && !COMPLETE_TYPE_P (complete_type (type2)))
+      && !COMPLETE_TYPE_P (type2))
     {
       error ("incomplete type %qT not allowed", type2);
       return error_mark_node;

@@ -395,6 +395,19 @@ dump_type (tree t, int flags)
       pp_cxx_identifier (cxx_pp, "...");
       break;
 
+    case TYPE_ARGUMENT_PACK:
+      {
+        tree args = ARGUMENT_PACK_ARGS (t);
+        int i;
+        for (i = 0; i < TREE_VEC_LENGTH (args); ++i)
+          {
+            if (i)
+              pp_separate_with_comma (cxx_pp);
+            dump_type (TREE_VEC_ELT (args, i), flags);
+          }
+      }
+      break;
+
     default:
       pp_unsupported_tree (cxx_pp, t);
       /* Fall through to error.  */
@@ -529,7 +542,15 @@ dump_type_prefix (tree t, int flags)
 	    pp_cxx_whitespace (cxx_pp);
 	    pp_cxx_left_paren (cxx_pp);
 	  }
-	pp_character (cxx_pp, "&*"[TREE_CODE (t) == POINTER_TYPE]);
+	if (TREE_CODE (t) == POINTER_TYPE)
+	  pp_character(cxx_pp, '*');
+	else if (TREE_CODE (t) == REFERENCE_TYPE)
+	{
+	  if (TYPE_REF_IS_RVALUE (t))
+	    pp_string (cxx_pp, "&&");
+	  else
+	    pp_character (cxx_pp, '&');
+	}
 	pp_base (cxx_pp)->padding = pp_before;
 	pp_cxx_cv_qualifier_seq (cxx_pp, t);
       }
@@ -2528,8 +2549,8 @@ cp_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
 void
 maybe_warn_variadic_templates (void)
 {
-  if ((!flag_cpp0x || flag_iso) && !in_system_header)
-    /* We really want to surpress this warning in system headers,
+  if (!flag_cpp0x && !in_system_header)
+    /* We really want to suppress this warning in system headers,
        because libstdc++ uses variadic templates even when we aren't
        in C++0x mode. */
     pedwarn ("ISO C++ does not include variadic templates");

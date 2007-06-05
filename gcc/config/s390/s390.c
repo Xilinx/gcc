@@ -81,11 +81,8 @@ struct processor_costs
   const int maebr;    /* cost of multiply and add in SFmode.  */
   /* division */
   const int dxbr;
-  const int dxr;
   const int ddbr;
-  const int ddr;
   const int debr;
-  const int der;
   const int dlgr;
   const int dlr;
   const int dr;
@@ -118,11 +115,8 @@ struct processor_costs z900_cost =
   COSTS_N_INSNS (18),    /* MADBR */
   COSTS_N_INSNS (13),    /* MAEBR */
   COSTS_N_INSNS (134),   /* DXBR */
-  COSTS_N_INSNS (135),   /* DXR */
   COSTS_N_INSNS (30),    /* DDBR */
-  COSTS_N_INSNS (30),    /* DDR  */
   COSTS_N_INSNS (27),    /* DEBR */
-  COSTS_N_INSNS (26),    /* DER  */
   COSTS_N_INSNS (220),   /* DLGR */
   COSTS_N_INSNS (34),    /* DLR */
   COSTS_N_INSNS (34),    /* DR */
@@ -153,11 +147,8 @@ struct processor_costs z990_cost =
   COSTS_N_INSNS (1),     /* MADBR */
   COSTS_N_INSNS (1),     /* MAEBR */
   COSTS_N_INSNS (60),    /* DXBR */
-  COSTS_N_INSNS (72),    /* DXR */
   COSTS_N_INSNS (40),    /* DDBR */
-  COSTS_N_INSNS (44),    /* DDR  */
-  COSTS_N_INSNS (26),    /* DDBR */
-  COSTS_N_INSNS (28),    /* DER  */
+  COSTS_N_INSNS (26),    /* DEBR */
   COSTS_N_INSNS (176),   /* DLGR */
   COSTS_N_INSNS (31),    /* DLR */
   COSTS_N_INSNS (31),    /* DR */
@@ -188,11 +179,8 @@ struct processor_costs z9_109_cost =
   COSTS_N_INSNS (1),     /* MADBR */
   COSTS_N_INSNS (1),     /* MAEBR */
   COSTS_N_INSNS (60),    /* DXBR */
-  COSTS_N_INSNS (72),    /* DXR */
   COSTS_N_INSNS (40),    /* DDBR */
-  COSTS_N_INSNS (37),    /* DDR  */
-  COSTS_N_INSNS (26),    /* DDBR */
-  COSTS_N_INSNS (28),    /* DER  */
+  COSTS_N_INSNS (26),    /* DEBR */
   COSTS_N_INSNS (30),    /* DLGR */
   COSTS_N_INSNS (23),    /* DLR */
   COSTS_N_INSNS (23),    /* DR */
@@ -699,10 +687,9 @@ s390_canonicalize_comparison (enum rtx_code *code, rtx *op0, rtx *op1)
       *op1 = constm1_rtx;
     }
 
-
-  /* Remove redundant UNSPEC_CMPINT conversions if possible.  */
+  /* Remove redundant UNSPEC_CCU_TO_INT conversions if possible.  */
   if (GET_CODE (*op0) == UNSPEC
-      && XINT (*op0, 1) == UNSPEC_CMPINT
+      && XINT (*op0, 1) == UNSPEC_CCU_TO_INT
       && XVECLEN (*op0, 0) == 1
       && GET_MODE (XVECEXP (*op0, 0, 0)) == CCUmode
       && GET_CODE (XVECEXP (*op0, 0, 0)) == REG
@@ -718,6 +705,30 @@ s390_canonicalize_comparison (enum rtx_code *code, rtx *op0, rtx *op1)
 	  case GT: new_code = LTU; break;
 	  case LE: new_code = GEU; break;
 	  case GE: new_code = LEU; break;
+	  default: break;
+	}
+
+      if (new_code != UNKNOWN)
+	{
+	  *op0 = XVECEXP (*op0, 0, 0);
+	  *code = new_code;
+	}
+    }
+
+  /* Remove redundant UNSPEC_CCZ_TO_INT conversions if possible.  */
+  if (GET_CODE (*op0) == UNSPEC
+      && XINT (*op0, 1) == UNSPEC_CCZ_TO_INT
+      && XVECLEN (*op0, 0) == 1
+      && GET_MODE (XVECEXP (*op0, 0, 0)) == CCZmode
+      && GET_CODE (XVECEXP (*op0, 0, 0)) == REG
+      && REGNO (XVECEXP (*op0, 0, 0)) == CC_REGNUM
+      && *op1 == const0_rtx)
+    {
+      enum rtx_code new_code = UNKNOWN;
+      switch (*code)
+	{
+	  case EQ: new_code = EQ;  break;
+	  case NE: new_code = NE;  break;
 	  default: break;
 	}
 
@@ -2162,7 +2173,7 @@ s390_rtx_costs (rtx x, int code, int outer_code, int *total)
       /* Check for multiply and add.  */
       if ((GET_MODE (x) == DFmode || GET_MODE (x) == SFmode)
 	  && GET_CODE (XEXP (x, 0)) == MULT
-	  && TARGET_HARD_FLOAT && TARGET_IEEE_FLOAT && TARGET_FUSED_MADD)
+	  && TARGET_HARD_FLOAT && TARGET_FUSED_MADD)
 	{
 	  /* This is the multiply and add case.  */
 	  if (GET_MODE (x) == DFmode)
@@ -2269,24 +2280,15 @@ s390_rtx_costs (rtx x, int code, int outer_code, int *total)
 	*total = s390_cost->dlr;
       else if (GET_MODE (x) == SFmode)
 	{
-	  if (TARGET_IEEE_FLOAT)
-	    *total = s390_cost->debr;
-	  else /* TARGET_IBM_FLOAT */
-	    *total = s390_cost->der;
+	  *total = s390_cost->debr;
 	}
       else if (GET_MODE (x) == DFmode)
 	{
-	  if (TARGET_IEEE_FLOAT)
-	    *total = s390_cost->ddbr;
-	  else /* TARGET_IBM_FLOAT */
-	    *total = s390_cost->ddr;
+	  *total = s390_cost->ddbr;
 	}
       else if (GET_MODE (x) == TFmode)
 	{
-	  if (TARGET_IEEE_FLOAT)
-	    *total = s390_cost->dxbr;
-	  else /* TARGET_IBM_FLOAT */
-	    *total = s390_cost->dxr;
+	  *total = s390_cost->dxbr;
 	}
       return false;
 
@@ -2656,7 +2658,7 @@ s390_secondary_reload (bool in_p, rtx x, enum reg_class class,
     sri->icode = (TARGET_64BIT ?
 		  CODE_FOR_reloaddi_plus : CODE_FOR_reloadsi_plus);
 
-  /* Peforming a multiword move from or to memory we have to make sure the
+  /* Performing a multiword move from or to memory we have to make sure the
      second chunk in memory is addressable without causing a displacement
      overflow.  If that would be the case we calculate the address in
      a scratch register.  */
@@ -2666,7 +2668,7 @@ s390_secondary_reload (bool in_p, rtx x, enum reg_class class,
       && !DISP_IN_RANGE (INTVAL (XEXP (XEXP (x, 0), 1))
 			 + GET_MODE_SIZE (mode) - 1))
     {
-      /* For GENERAL_REGS a displacement overflow is no problem if occuring
+      /* For GENERAL_REGS a displacement overflow is no problem if occurring
 	 in a s_operand address since we may fallback to lm/stm.  So we only
 	 have to care about overflows in the b+i+d case.  */
       if ((reg_classes_intersect_p (GENERAL_REGS, class)
@@ -3568,7 +3570,7 @@ s390_expand_movmem (rtx dst, rtx src, rtx len)
       if (temp != count)
         emit_move_insn (count, temp);
 
-      temp = expand_binop (mode, ashr_optab, count, GEN_INT (8), blocks, 1, 0);
+      temp = expand_binop (mode, lshr_optab, count, GEN_INT (8), blocks, 1, 0);
       if (temp != blocks)
         emit_move_insn (blocks, temp);
 
@@ -3605,10 +3607,12 @@ s390_expand_movmem (rtx dst, rtx src, rtx len)
 void
 s390_expand_setmem (rtx dst, rtx len, rtx val)
 {
-  gcc_assert (GET_CODE (len) != CONST_INT || INTVAL (len) > 0);
+  if (GET_CODE (len) == CONST_INT && INTVAL (len) == 0)
+    return;
+
   gcc_assert (GET_CODE (val) == CONST_INT || GET_MODE (val) == QImode);
   
-  if (GET_CODE (len) == CONST_INT && INTVAL (len) <= 257)
+  if (GET_CODE (len) == CONST_INT && INTVAL (len) > 0 && INTVAL (len) <= 257)
     {
       if (val == const0_rtx && INTVAL (len) <= 256)
         emit_insn (gen_clrmem_short (dst, GEN_INT (INTVAL (len) - 1)));
@@ -3682,7 +3686,7 @@ s390_expand_setmem (rtx dst, rtx len, rtx val)
       if (temp != count)
         emit_move_insn (count, temp);
 
-      temp = expand_binop (mode, ashr_optab, count, GEN_INT (8), blocks, 1, 0);
+      temp = expand_binop (mode, lshr_optab, count, GEN_INT (8), blocks, 1, 0);
       if (temp != blocks)
         emit_move_insn (blocks, temp);
 
@@ -3774,7 +3778,7 @@ s390_expand_cmpmem (rtx target, rtx op0, rtx op1, rtx len)
       if (temp != count)
         emit_move_insn (count, temp);
 
-      temp = expand_binop (mode, ashr_optab, count, GEN_INT (8), blocks, 1, 0);
+      temp = expand_binop (mode, lshr_optab, count, GEN_INT (8), blocks, 1, 0);
       if (temp != blocks)
         emit_move_insn (blocks, temp);
 
@@ -8364,28 +8368,6 @@ s390_initialize_trampoline (rtx addr, rtx fnaddr, rtx cxt)
   emit_move_insn (gen_rtx_MEM (Pmode,
 		   memory_address (Pmode,
 		   plus_constant (addr, (TARGET_64BIT ? 24 : 12)))), fnaddr);
-}
-
-/* Return rtx for 64-bit constant formed from the 32-bit subwords
-   LOW and HIGH, independent of the host word size.  */
-
-rtx
-s390_gen_rtx_const_DI (int high, int low)
-{
-#if HOST_BITS_PER_WIDE_INT >= 64
-  HOST_WIDE_INT val;
-  val = (HOST_WIDE_INT)high;
-  val <<= 32;
-  val |= (HOST_WIDE_INT)low;
-
-  return GEN_INT (val);
-#else
-#if HOST_BITS_PER_WIDE_INT >= 32
-  return immed_double_const ((HOST_WIDE_INT)low, (HOST_WIDE_INT)high, DImode);
-#else
-  gcc_unreachable ();
-#endif
-#endif
 }
 
 /* Output assembler code to FILE to increment profiler label # LABELNO

@@ -42,7 +42,7 @@
 (define_register_constraint "b" "ALL_REGS"
   "@internal")
 
-(define_register_constraint "c" "TARGET_ABICALLS ? PIC_FN_ADDR_REG
+(define_register_constraint "c" "TARGET_USE_PIC_FN_ADDR_REG ? PIC_FN_ADDR_REG
 				 : TARGET_MIPS16 ? M16_NA_REGS
 				 : GR_REGS"
   "A register suitable for use in an indirect jump.  This will always be
@@ -77,6 +77,11 @@
 
 (define_register_constraint "D" "COP3_REGS"
   "@internal")
+
+;; Registers that can be used as the target of multiply-accumulate
+;; instructions.  The core MIPS32 ISA provides a hi/lo madd,
+;; but the DSPr2 version allows any accumulator target.
+(define_register_constraint "ka" "TARGET_DSPR2 ? ACC_REGS : MD_REGS")
 
 ;; Integer constraints
 

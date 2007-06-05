@@ -64,25 +64,38 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
-  template<typename _InputIterator, typename _ForwardIterator>
-    _ForwardIterator
-    __uninitialized_copy_aux(_InputIterator __first,
-			     _InputIterator __last,
-			     _ForwardIterator __result)
+  template<bool>
+    struct __uninitialized_copy
     {
-      _ForwardIterator __cur = __result;
-      try
-	{
-	  for (; __first != __last; ++__first, ++__cur)
-	    std::_Construct(&*__cur, *__first);
-	  return __cur;
+      template<typename _InputIterator, typename _ForwardIterator>
+        static _ForwardIterator
+        uninitialized_copy(_InputIterator __first, _InputIterator __last,
+			   _ForwardIterator __result)
+        {
+	  _ForwardIterator __cur = __result;
+	  try
+	    {
+	      for (; __first != __last; ++__first, ++__cur)
+		std::_Construct(&*__cur, *__first);
+	      return __cur;
+	    }
+	  catch(...)
+	    {
+	      std::_Destroy(__result, __cur);
+	      __throw_exception_again;
+	    }
 	}
-      catch(...)
-	{
-	  std::_Destroy(__result, __cur);
-	  __throw_exception_again;
-	}
-    }
+    };
+
+  template<>
+    struct __uninitialized_copy<true>
+    {
+      template<typename _InputIterator, typename _ForwardIterator>
+        static _ForwardIterator
+        uninitialized_copy(_InputIterator __first, _InputIterator __last,
+			   _ForwardIterator __result)
+        { return std::copy(__first, __last, __result); }
+    };
 
   /**
    *  @brief Copies the range [first,last) into result.
@@ -98,33 +111,48 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     uninitialized_copy(_InputIterator __first, _InputIterator __last,
 		       _ForwardIterator __result)
     {
+      typedef typename iterator_traits<_InputIterator>::value_type
+	_ValueType1;
       typedef typename iterator_traits<_ForwardIterator>::value_type
-	_ValueType;
-      if (__is_pod(_ValueType))
-	return std::copy(__first, __last, __result);
-      else
-	return std::__uninitialized_copy_aux(__first, __last, __result);
+	_ValueType2;
+
+      return std::__uninitialized_copy<(__is_pod(_ValueType1)
+					&& __is_pod(_ValueType2))>::
+	uninitialized_copy(__first, __last, __result);
     }
 
 
-  template<typename _ForwardIterator, typename _Tp>
-    void
-    __uninitialized_fill_aux(_ForwardIterator __first,
-			     _ForwardIterator __last,
-			     const _Tp& __x)
+  template<bool>
+    struct __uninitialized_fill
     {
-      _ForwardIterator __cur = __first;
-      try
-	{
-	  for (; __cur != __last; ++__cur)
-	    std::_Construct(&*__cur, __x);
+      template<typename _ForwardIterator, typename _Tp>
+        static void
+        uninitialized_fill(_ForwardIterator __first,
+			   _ForwardIterator __last, const _Tp& __x)
+        {
+	  _ForwardIterator __cur = __first;
+	  try
+	    {
+	      for (; __cur != __last; ++__cur)
+		std::_Construct(&*__cur, __x);
+	    }
+	  catch(...)
+	    {
+	      std::_Destroy(__first, __cur);
+	      __throw_exception_again;
+	    }
 	}
-      catch(...)
-	{
-	  std::_Destroy(__first, __cur);
-	  __throw_exception_again;
-	}
-    }
+    };
+
+  template<>
+    struct __uninitialized_fill<true>
+    {
+      template<typename _ForwardIterator, typename _Tp>
+        static void
+        uninitialized_fill(_ForwardIterator __first,
+			   _ForwardIterator __last, const _Tp& __x)
+        { std::fill(__first, __last, __x); }
+    };
 
   /**
    *  @brief Copies the value x into the range [first,last).
@@ -142,30 +170,43 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     {
       typedef typename iterator_traits<_ForwardIterator>::value_type
 	_ValueType;
-      if (__is_pod(_ValueType))
-	std::fill(__first, __last, __x);
-      else
-	std::__uninitialized_fill_aux(__first, __last, __x);
+
+      std::__uninitialized_fill<__is_pod(_ValueType)>::
+	uninitialized_fill(__first, __last, __x);
     }
 
 
-  template<typename _ForwardIterator, typename _Size, typename _Tp>
-    void
-    __uninitialized_fill_n_aux(_ForwardIterator __first, _Size __n,
-			       const _Tp& __x)
+  template<bool>
+    struct __uninitialized_fill_n
     {
-      _ForwardIterator __cur = __first;
-      try
-	{
-	  for (; __n > 0; --__n, ++__cur)
-	    std::_Construct(&*__cur, __x);
+      template<typename _ForwardIterator, typename _Size, typename _Tp>
+        static void
+        uninitialized_fill_n(_ForwardIterator __first, _Size __n,
+			     const _Tp& __x)
+        {
+	  _ForwardIterator __cur = __first;
+	  try
+	    {
+	      for (; __n > 0; --__n, ++__cur)
+		std::_Construct(&*__cur, __x);
+	    }
+	  catch(...)
+	    {
+	      std::_Destroy(__first, __cur);
+	      __throw_exception_again;
+	    }
 	}
-      catch(...)
-	{
-	  std::_Destroy(__first, __cur);
-	  __throw_exception_again;
-	}
-    }
+    };
+
+  template<>
+    struct __uninitialized_fill_n<true>
+    {
+      template<typename _ForwardIterator, typename _Size, typename _Tp>
+        static void
+        uninitialized_fill_n(_ForwardIterator __first, _Size __n,
+			     const _Tp& __x)
+        { std::fill_n(__first, __n, __x); }
+    };
 
   /**
    *  @brief Copies the value x into the range [first,first+n).
@@ -182,10 +223,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     {
       typedef typename iterator_traits<_ForwardIterator>::value_type
 	_ValueType;
-      if (__is_pod(_ValueType))
-	std::fill_n(__first, __n, __x);
-      else
-	std::__uninitialized_fill_n_aux(__first, __n, __x);
+
+      std::__uninitialized_fill_n<__is_pod(_ValueType)>::
+	uninitialized_fill_n(__first, __n, __x);
     }
 
   // Extensions: versions of uninitialized_copy, uninitialized_fill,
@@ -198,8 +238,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	   typename _Allocator>
     _ForwardIterator
     __uninitialized_copy_a(_InputIterator __first, _InputIterator __last,
-			   _ForwardIterator __result,
-			   _Allocator __alloc)
+			   _ForwardIterator __result, _Allocator& __alloc)
     {
       _ForwardIterator __cur = __result;
       try
@@ -218,14 +257,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _InputIterator, typename _ForwardIterator, typename _Tp>
     inline _ForwardIterator
     __uninitialized_copy_a(_InputIterator __first, _InputIterator __last,
-			   _ForwardIterator __result,
-			   allocator<_Tp>)
+			   _ForwardIterator __result, allocator<_Tp>&)
     { return std::uninitialized_copy(__first, __last, __result); }
 
   template<typename _ForwardIterator, typename _Tp, typename _Allocator>
     void
     __uninitialized_fill_a(_ForwardIterator __first, _ForwardIterator __last,
-			   const _Tp& __x, _Allocator __alloc)
+			   const _Tp& __x, _Allocator& __alloc)
     {
       _ForwardIterator __cur = __first;
       try
@@ -243,15 +281,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _ForwardIterator, typename _Tp, typename _Tp2>
     inline void
     __uninitialized_fill_a(_ForwardIterator __first, _ForwardIterator __last,
-			   const _Tp& __x, allocator<_Tp2>)
+			   const _Tp& __x, allocator<_Tp2>&)
     { std::uninitialized_fill(__first, __last, __x); }
 
   template<typename _ForwardIterator, typename _Size, typename _Tp,
 	   typename _Allocator>
     void
     __uninitialized_fill_n_a(_ForwardIterator __first, _Size __n, 
-			     const _Tp& __x,
-			     _Allocator __alloc)
+			     const _Tp& __x, _Allocator& __alloc)
     {
       _ForwardIterator __cur = __first;
       try
@@ -270,8 +307,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	   typename _Tp2>
     inline void
     __uninitialized_fill_n_a(_ForwardIterator __first, _Size __n, 
-			     const _Tp& __x,
-			     allocator<_Tp2>)
+			     const _Tp& __x, allocator<_Tp2>&)
     { std::uninitialized_fill_n(__first, __n, __x); }
 
 
@@ -292,7 +328,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 			      _InputIterator2 __first2,
 			      _InputIterator2 __last2,
 			      _ForwardIterator __result,
-			      _Allocator __alloc)
+			      _Allocator& __alloc)
     {
       _ForwardIterator __mid = std::__uninitialized_copy_a(__first1, __last1,
 							   __result,
@@ -316,8 +352,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     inline _ForwardIterator
     __uninitialized_fill_copy(_ForwardIterator __result, _ForwardIterator __mid,
 			      const _Tp& __x, _InputIterator __first,
-			      _InputIterator __last,
-			      _Allocator __alloc)
+			      _InputIterator __last, _Allocator& __alloc)
     {
       std::__uninitialized_fill_a(__result, __mid, __x, __alloc);
       try
@@ -340,7 +375,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     __uninitialized_copy_fill(_InputIterator __first1, _InputIterator __last1,
 			      _ForwardIterator __first2,
 			      _ForwardIterator __last2, const _Tp& __x,
-			      _Allocator __alloc)
+			      _Allocator& __alloc)
     {
       _ForwardIterator __mid2 = std::__uninitialized_copy_a(__first1, __last1,
 							    __first2,

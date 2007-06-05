@@ -767,12 +767,8 @@ slpeel_make_loop_iterate_ntimes (struct loop *loop, tree niters)
   block_stmt_iterator loop_cond_bsi;
   block_stmt_iterator incr_bsi;
   bool insert_after;
-  tree begin_label = tree_block_label (loop->latch);
-  tree exit_label = tree_block_label (single_exit (loop)->dest);
   tree init = build_int_cst (TREE_TYPE (niters), 0);
   tree step = build_int_cst (TREE_TYPE (niters), 1);
-  tree then_label;
-  tree else_label;
   LOC loop_loc;
 
   orig_cond = get_loop_exit_condition (loop);
@@ -784,20 +780,12 @@ slpeel_make_loop_iterate_ntimes (struct loop *loop, tree niters)
              &incr_bsi, insert_after, &indx_before_incr, &indx_after_incr);
 
   if (exit_edge->flags & EDGE_TRUE_VALUE) /* 'then' edge exits the loop.  */
-    {
-      cond = build2 (GE_EXPR, boolean_type_node, indx_after_incr, niters);
-      then_label = build1 (GOTO_EXPR, void_type_node, exit_label);
-      else_label = build1 (GOTO_EXPR, void_type_node, begin_label);
-    }
+    cond = build2 (GE_EXPR, boolean_type_node, indx_after_incr, niters);
   else /* 'then' edge loops back.  */
-    {
-      cond = build2 (LT_EXPR, boolean_type_node, indx_after_incr, niters);
-      then_label = build1 (GOTO_EXPR, void_type_node, begin_label);
-      else_label = build1 (GOTO_EXPR, void_type_node, exit_label);
-    }
+    cond = build2 (LT_EXPR, boolean_type_node, indx_after_incr, niters);
 
   cond_stmt = build3 (COND_EXPR, TREE_TYPE (orig_cond), cond,
-		     then_label, else_label);
+		      NULL_TREE, NULL_TREE);
   bsi_insert_before (&loop_cond_bsi, cond_stmt, BSI_SAME_STMT);
 
   /* Remove old loop exit test:  */
@@ -844,7 +832,7 @@ slpeel_tree_duplicate_loop_to_edge_cfg (struct loop *loop, edge e)
     }
 
   /* Generate new loop structure.  */
-  new_loop = duplicate_loop (loop, loop->outer);
+  new_loop = duplicate_loop (loop, loop_outer (loop));
   if (!new_loop)
     {
       free (bbs);
@@ -935,19 +923,15 @@ slpeel_add_loop_guard (basic_block guard_bb, tree cond, basic_block exit_bb,
 {
   block_stmt_iterator bsi;
   edge new_e, enter_e;
-  tree cond_stmt, then_label, else_label;
+  tree cond_stmt;
 
   enter_e = EDGE_SUCC (guard_bb, 0);
   enter_e->flags &= ~EDGE_FALLTHRU;
   enter_e->flags |= EDGE_FALSE_VALUE;
   bsi = bsi_last (guard_bb);
 
-  then_label = build1 (GOTO_EXPR, void_type_node,
-                       tree_block_label (exit_bb));
-  else_label = build1 (GOTO_EXPR, void_type_node,
-                       tree_block_label (enter_e->dest));
   cond_stmt = build3 (COND_EXPR, void_type_node, cond,
-   		     then_label, else_label);
+		      NULL_TREE, NULL_TREE);
   bsi_insert_after (&bsi, cond_stmt, BSI_NEW_STMT);
   /* Add new edge to connect guard block to the merge/loop-exit block.  */
   new_e = make_edge (guard_bb, exit_bb, EDGE_TRUE_VALUE);
@@ -978,7 +962,7 @@ slpeel_can_duplicate_loop_p (struct loop *loop, edge e)
   if (loop->inner
       /* All loops have an outer scope; the only case loop->outer is NULL is for
          the function itself.  */
-      || !loop->outer
+      || !loop_outer (loop)
       || loop->num_nodes != 2
       || !empty_block_p (loop->latch)
       || !single_exit (loop)
@@ -1511,6 +1495,7 @@ destroy_loop_vec_info (loop_vec_info loop_vinfo)
   VEC_free (tree, heap, LOOP_VINFO_MAY_MISALIGN_STMTS (loop_vinfo));
 
   free (loop_vinfo);
+  loop->aux = NULL;
 }
 
 
@@ -1659,6 +1644,12 @@ vect_is_simple_use (tree operand, loop_vec_info loop_vinfo, tree *def_stmt,
       *dt = vect_constant_def;
       return true;
     }
+  if (is_gimple_min_invariant (operand))
+   {
+      *def = operand;
+      *dt = vect_invariant_def;
+      return true;
+   }
     
   if (TREE_CODE (operand) != SSA_NAME)
     {
@@ -1686,7 +1677,7 @@ vect_is_simple_use (tree operand, loop_vec_info loop_vinfo, tree *def_stmt,
   if (IS_EMPTY_STMT (*def_stmt))
     {
       tree arg = TREE_OPERAND (*def_stmt, 0);
-      if (TREE_CODE (arg) == INTEGER_CST || TREE_CODE (arg) == REAL_CST)
+      if (is_gimple_min_invariant (arg))
         {
           *def = operand;
           *dt = vect_invariant_def;
@@ -1714,15 +1705,6 @@ vect_is_simple_use (tree operand, loop_vec_info loop_vinfo, tree *def_stmt,
       return false;
     }
 
-  /* stmts inside the loop that have been identified as performing
-     a reduction operation cannot have uses in the loop.  */
-  if (*dt == vect_reduction_def && TREE_CODE (*def_stmt) != PHI_NODE)
-    {
-      if (vect_print_dump_info (REPORT_DETAILS))
-        fprintf (vect_dump, "reduction used in loop.");
-      return false;
-    }
-
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "type of def: %d.",*dt);
 
@@ -1731,12 +1713,11 @@ vect_is_simple_use (tree operand, loop_vec_info loop_vinfo, tree *def_stmt,
     case PHI_NODE:
       *def = PHI_RESULT (*def_stmt);
       gcc_assert (*dt == vect_induction_def || *dt == vect_reduction_def
-                  || *dt == vect_invariant_def);
+		  || *dt == vect_invariant_def);
       break;
 
     case GIMPLE_MODIFY_STMT:
       *def = GIMPLE_STMT_OPERAND (*def_stmt, 0);
-      gcc_assert (*dt == vect_loop_def || *dt == vect_invariant_def);
       break;
 
     default:
@@ -1755,10 +1736,10 @@ vect_is_simple_use (tree operand, loop_vec_info loop_vinfo, tree *def_stmt,
    widening operation that is supported by the target platform in 
    vector form (i.e., when operating on arguments of type VECTYPE).
     
-   The two kinds of widening operations we currently support are
-   NOP and WIDEN_MULT. This function checks if these operations
-   are supported by the target platform either directly (via vector 
-   tree-codes), or via target builtins.
+   Widening operations we currently support are NOP (CONVERT), FLOAT
+   and WIDEN_MULT.  This function checks if these operations are supported
+   by the target platform either directly (via vector tree-codes), or via
+   target builtins.
 
    Output:
    - CODE1 and CODE2 are codes of vector operations to be used when 
@@ -1782,7 +1763,7 @@ supportable_widening_operation (enum tree_code code, tree stmt, tree vectype,
   tree wide_vectype = get_vectype_for_scalar_type (type);
   enum tree_code c1, c2;
 
-  /* The result of a vectorized widening operation usually requires two vectors 
+  /* The result of a vectorized widening operation usually requires two vectors
      (because the widened results do not fit int one vector). The generated 
      vector results would normally be expected to be generated in the same 
      order as in the original scalar computation. i.e. if 8 results are 
@@ -1834,6 +1815,7 @@ supportable_widening_operation (enum tree_code code, tree stmt, tree vectype,
       break;
 
     case NOP_EXPR:
+    case CONVERT_EXPR:
       if (BYTES_BIG_ENDIAN)
         {
           c1 = VEC_UNPACK_HI_EXPR;
@@ -1843,6 +1825,19 @@ supportable_widening_operation (enum tree_code code, tree stmt, tree vectype,
         {
           c2 = VEC_UNPACK_HI_EXPR;
           c1 = VEC_UNPACK_LO_EXPR;
+        }
+      break;
+
+    case FLOAT_EXPR:
+      if (BYTES_BIG_ENDIAN)
+        {
+          c1 = VEC_UNPACK_FLOAT_HI_EXPR;
+          c2 = VEC_UNPACK_FLOAT_LO_EXPR;
+        }
+      else
+        {
+          c2 = VEC_UNPACK_FLOAT_HI_EXPR;
+          c1 = VEC_UNPACK_FLOAT_LO_EXPR;
         }
       break;
 
@@ -1864,6 +1859,63 @@ supportable_widening_operation (enum tree_code code, tree stmt, tree vectype,
       || (icode2 = optab2->handlers[(int) vec_mode].insn_code)
                                                         == CODE_FOR_nothing
       || insn_data[icode2].operand[0].mode != TYPE_MODE (wide_vectype))
+    return false;
+
+  return true;
+}
+
+
+/* Function supportable_narrowing_operation
+
+   Check whether an operation represented by the code CODE is a 
+   narrowing operation that is supported by the target platform in 
+   vector form (i.e., when operating on arguments of type VECTYPE).
+    
+   Narrowing operations we currently support are NOP (CONVERT) and
+   FIX_TRUNC. This function checks if these operations are supported by
+   the target platform directly via vector tree-codes.
+
+   Output:
+   - CODE1 is the code of a vector operation to be used when 
+   vectorizing the operation, if available.  */
+
+bool
+supportable_narrowing_operation (enum tree_code code,
+				 tree stmt, tree vectype,
+				 enum tree_code *code1)
+{
+  enum machine_mode vec_mode;
+  enum insn_code icode1;
+  optab optab1;
+  tree expr = GIMPLE_STMT_OPERAND (stmt, 1);
+  tree type = TREE_TYPE (expr);
+  tree narrow_vectype = get_vectype_for_scalar_type (type);
+  enum tree_code c1;
+
+  switch (code)
+    {
+    case NOP_EXPR:
+    case CONVERT_EXPR:
+      c1 = VEC_PACK_TRUNC_EXPR;
+      break;
+
+    case FIX_TRUNC_EXPR:
+      c1 = VEC_PACK_FIX_TRUNC_EXPR;
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  *code1 = c1;
+  optab1 = optab_for_tree_code (c1, vectype);
+
+  if (!optab1)
+    return false;
+
+  vec_mode = TYPE_MODE (vectype);
+  if ((icode1 = optab1->handlers[(int) vec_mode].insn_code) == CODE_FOR_nothing
+      || insn_data[icode1].operand[0].mode != TYPE_MODE (narrow_vectype))
     return false;
 
   return true;

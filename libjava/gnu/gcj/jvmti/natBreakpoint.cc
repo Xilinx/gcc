@@ -1,6 +1,6 @@
 // natBreakpoint.cc - C++ side of Breakpoint
 
-/* Copyright (C) 2006  Free Software Foundation
+/* Copyright (C) 2006, 2007  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -17,6 +17,7 @@ details.  */
 #include <jvmti.h>
 
 #include <gnu/gcj/jvmti/Breakpoint.h>
+#include <gnu/gcj/jvmti/BreakpointManager.h>
 
 static _Jv_InterpMethod *
 get_interp_method (jlong method)
@@ -39,7 +40,6 @@ gnu::gcj::jvmti::Breakpoint::initialize_native ()
   pc_t code = imeth->get_insn (location);
   data = (RawDataManaged *) JvAllocBytes (sizeof (*code));
   memcpy (data, code, sizeof (*code));
-  install ();
 }
 
 void
@@ -55,3 +55,18 @@ gnu::gcj::jvmti::Breakpoint::remove ()
   _Jv_InterpMethod *imeth = get_interp_method (method);
   imeth->set_insn (location, reinterpret_cast<pc_t> (data));
 }
+
+#ifdef DIRECT_THREADED
+void
+_Jv_RewriteBreakpointInsn (jmethodID mid, jlocation loc, pc_t new_insn)
+{
+  using namespace ::gnu::gcj::jvmti;
+  Breakpoint *bp
+    = BreakpointManager::getBreakpoint (reinterpret_cast<jlong> (mid), loc);
+  if (bp != NULL)
+    {
+      pc_t old_insn = (pc_t) bp->data;
+      old_insn->insn = new_insn;
+    }
+}
+#endif // DIRECT_THREADED

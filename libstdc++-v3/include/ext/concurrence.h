@@ -1,6 +1,6 @@
 // Support for concurrent programing -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006
+// Copyright (C) 2003, 2004, 2005, 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -36,7 +36,6 @@
 #ifndef _CONCURRENCE_H
 #define _CONCURRENCE_H 1
 
-#include <cstdlib>
 #include <exception>
 #include <bits/gthr.h> 
 #include <bits/functexcept.h>
@@ -54,9 +53,8 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
   // the current configuration.
   static const _Lock_policy __default_lock_policy = 
 #ifdef __GTHREADS
-  // NB: This macro doesn't actually exist yet in the compiler, but is
-  // set somewhat haphazardly at configure time.
-#ifdef _GLIBCXX_ATOMIC_BUILTINS
+#if (defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2) \
+     && defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4))
   _S_atomic;
 #else
   _S_mutex;
@@ -64,7 +62,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 #else
   _S_single;
 #endif
-  
+
   // NB: As this is used in libsupc++, need to only depend on
   // exception. No stdexception classes, no use of std::string.
   class __concurrence_lock_error : public std::exception
@@ -90,7 +88,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 #if __EXCEPTIONS
     throw __concurrence_lock_error();
 #else
-    std::abort();
+    __builtin_abort();
 #endif
   }
 
@@ -100,7 +98,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 #if __EXCEPTIONS
     throw __concurrence_unlock_error();
 #else
-    std::abort();
+    __builtin_abort();
 #endif
   }
 

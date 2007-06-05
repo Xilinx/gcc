@@ -3170,16 +3170,9 @@ delete_prior_computation (rtx note, rtx insn)
 		   && REG_P (SET_DEST (pat)))
 	    {
 	      int dest_regno = REGNO (SET_DEST (pat));
-	      int dest_endregno
-		= (dest_regno
-		   + (dest_regno < FIRST_PSEUDO_REGISTER
-		      ? hard_regno_nregs[dest_regno]
-					[GET_MODE (SET_DEST (pat))] : 1));
+	      int dest_endregno = END_REGNO (SET_DEST (pat));
 	      int regno = REGNO (reg);
-	      int endregno
-		= (regno
-		   + (regno < FIRST_PSEUDO_REGISTER
-		      ? hard_regno_nregs[regno][GET_MODE (reg)] : 1));
+	      int endregno = END_REGNO (reg);
 
 	      if (dest_regno >= regno
 		  && dest_endregno <= endregno)
@@ -3807,7 +3800,7 @@ dbr_schedule (rtx first)
       if (INSN_UID (insn) > max_uid)
 	max_uid = INSN_UID (insn);
       if (NOTE_P (insn)
-	  && NOTE_LINE_NUMBER (insn) == NOTE_INSN_EPILOGUE_BEG)
+	  && NOTE_KIND (insn) == NOTE_INSN_EPILOGUE_BEG)
 	epilogue_insn = insn;
     }
 

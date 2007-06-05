@@ -1075,8 +1075,8 @@ phi_translate (tree expr, bitmap_set_t set1, bitmap_set_t set2,
 		newexpr->base.ann = NULL;
 		vn_lookup_or_add_with_vuses (newexpr, tvuses);
 		expr = newexpr;
-		phi_trans_add (oldexpr, newexpr, pred, tvuses);
 	      }
+	    phi_trans_add (oldexpr, expr, pred, tvuses);
 	  }
       }
       return expr;
@@ -1188,8 +1188,8 @@ phi_translate (tree expr, bitmap_set_t set1, bitmap_set_t set2,
 		vn_lookup_or_add_with_vuses (newexpr, newvuses);
 	      }
 	    expr = newexpr;
-	    phi_trans_add (oldexpr, newexpr, pred, newvuses);
 	  }
+	phi_trans_add (oldexpr, expr, pred, newvuses);
       }
       return expr;
       break;
@@ -1233,8 +1233,8 @@ phi_translate (tree expr, bitmap_set_t set1, bitmap_set_t set2,
 		vn_lookup_or_add (newexpr, NULL);
 	      }
 	    expr = newexpr;
-	    phi_trans_add (oldexpr, newexpr, pred, NULL);
 	  }
+	phi_trans_add (oldexpr, expr, pred, NULL);
       }
       return expr;
 
@@ -1266,8 +1266,8 @@ phi_translate (tree expr, bitmap_set_t set1, bitmap_set_t set2,
 		vn_lookup_or_add (newexpr, NULL);
 	      }
 	    expr = newexpr;
-	    phi_trans_add (oldexpr, newexpr, pred, NULL);
 	  }
+	phi_trans_add (oldexpr, expr, pred, NULL);
       }
       return expr;
 
@@ -3801,7 +3801,7 @@ init_pre (bool do_fre)
 /* Deallocate data structures used by PRE.  */
 
 static void
-fini_pre (bool do_fre)
+fini_pre (void)
 {
   basic_block bb;
   unsigned int i;
@@ -3849,7 +3849,7 @@ fini_pre (bool do_fre)
 	  && TREE_CODE (SSA_NAME_VALUE (name)) == VALUE_HANDLE)
 	SSA_NAME_VALUE (name) = NULL;
     }
-  if (!do_fre && current_loops)
+  if (current_loops != NULL)
     loop_optimizer_finalize ();
 }
 
@@ -3915,7 +3915,7 @@ execute_pre (bool do_fre)
       realify_fake_stores ();
     }
 
-  fini_pre (do_fre);
+  fini_pre ();
 }
 
 /* Gate and execute functions for PRE.  */

@@ -151,9 +151,12 @@ typedef struct _loop_vec_info {
 #define LOOP_VINFO_MAY_MISALIGN_STMTS(L) (L)->may_misalign_stmts
 #define LOOP_VINFO_LOC(L)             (L)->loop_line_number
 
+#define NITERS_KNOWN_P(n)                     \
+(host_integerp ((n),0)                        \
+&& TREE_INT_CST_LOW ((n)) > 0)
+
 #define LOOP_VINFO_NITERS_KNOWN_P(L)                     \
-(host_integerp ((L)->num_iters,0)                        \
-&& TREE_INT_CST_LOW ((L)->num_iters) > 0)
+NITERS_KNOWN_P((L)->num_iters)
 
 /*-----------------------------------------------------------------*/
 /* Info on vectorized defs.                                        */
@@ -167,6 +170,7 @@ enum stmt_vec_info_type {
   assignment_vec_info_type,
   condition_vec_info_type,
   reduc_vec_info_type,
+  induc_vec_info_type,
   type_promotion_vec_info_type,
   type_demotion_vec_info_type,
   type_conversion_vec_info_type
@@ -335,7 +339,8 @@ is_pattern_stmt_p (stmt_vec_info stmt_info)
 
 /* Reflects actual alignment of first access in the vectorized loop,
    taking into account peeling/versioning if applied.  */
-#define DR_MISALIGNMENT(DR)   (DR)->aux
+#define DR_MISALIGNMENT(DR)   ((int) (size_t) (DR)->aux)
+#define SET_DR_MISALIGNMENT(DR, VAL)   ((DR)->aux = (void *) (size_t) (VAL))
 
 static inline bool
 aligned_access_p (struct data_reference *data_ref_info)
@@ -394,6 +399,9 @@ extern enum dr_alignment_support vect_supportable_dr_alignment
 extern bool reduction_code_for_scalar_code (enum tree_code, enum tree_code *);
 extern bool supportable_widening_operation (enum tree_code, tree, tree,
   tree *, tree *, enum tree_code *, enum tree_code *);
+extern bool supportable_narrowing_operation (enum tree_code, tree, tree,
+					     enum tree_code *);
+
 /* Creation and deletion of loop and stmt info structs.  */
 extern loop_vec_info new_loop_vec_info (struct loop *loop);
 extern void destroy_loop_vec_info (loop_vec_info);
@@ -428,6 +436,7 @@ extern bool vectorizable_call (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_condition (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_live_operation (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_reduction (tree, block_stmt_iterator *, tree *);
+extern bool vectorizable_induction (tree, block_stmt_iterator *, tree *);
 /* Driver for transformation stage.  */
 extern void vect_transform_loop (loop_vec_info);
 

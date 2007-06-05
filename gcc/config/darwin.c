@@ -1415,14 +1415,14 @@ darwin_handle_kext_attribute (tree *node, tree name,
   /* APPLE KEXT stuff -- only applies with pure static C++ code.  */
   if (! TARGET_KEXTABI)
     {
-      warning (0, "%<%s%> 2.95 vtable-compatability attribute applies "
+      warning (0, "%<%s%> 2.95 vtable-compatibility attribute applies "
 	       "only when compiling a kext", IDENTIFIER_POINTER (name));
 
       *no_add_attrs = true;
     }
   else if (TREE_CODE (*node) != RECORD_TYPE)
     {
-      warning (0, "%<%s%> 2.95 vtable-compatability attribute applies "
+      warning (0, "%<%s%> 2.95 vtable-compatibility attribute applies "
 	       "only to C++ classes", IDENTIFIER_POINTER (name));
 
       *no_add_attrs = true;
@@ -1708,11 +1708,6 @@ darwin_kextabi_p (void) {
 void
 darwin_override_options (void)
 {
-  if (flag_apple_kext && strcmp (lang_hooks.name, "GNU C++") != 0)
-    {
-      warning (0, "command line option %<-fapple-kext%> is only valid for C++");
-      flag_apple_kext = 0;
-    }
   if (flag_mkernel || flag_apple_kext)
     {
       /* -mkernel implies -fapple-kext for C++ */

@@ -731,7 +731,7 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 	    (NULL_TREE,
 	     id->eh_region_offset + TREE_INT_CST_LOW (TREE_OPERAND (*tp, 0)));
 
-      if (!GIMPLE_TUPLE_P (*tp))
+      if (!GIMPLE_TUPLE_P (*tp) && TREE_CODE (*tp) != OMP_CLAUSE)
 	TREE_TYPE (*tp) = remap_type (TREE_TYPE (*tp), id);
 
       /* The copied TARGET_EXPR has never been expanded, even if the
@@ -1117,7 +1117,6 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
   new_cfun->unexpanded_var_list = NULL;
   new_cfun->cfg = NULL;
   new_cfun->decl = new_fndecl /*= copy_node (callee_fndecl)*/;
-  new_cfun->ib_boundaries_block = NULL;
   DECL_STRUCT_FUNCTION (new_fndecl) = new_cfun;
   push_cfun (new_cfun);
   init_empty_tree_cfg ();
@@ -1205,7 +1204,7 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency,
       new->aux = bb;
     }
 
-  last = n_basic_blocks;
+  last = last_basic_block;
   /* Now that we've duplicated the blocks, duplicate their edges.  */
   FOR_ALL_BB_FN (bb, cfun_to_copy)
     copy_edges_for_bb (bb, count_scale);
@@ -1219,7 +1218,7 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency,
     }
   /* Zero out AUX fields of newly created block during EH edge
      insertion. */
-  for (; last < n_basic_blocks; last++)
+  for (; last < last_basic_block; last++)
     BASIC_BLOCK (last)->aux = NULL;
   entry_block_map->aux = NULL;
   exit_block_map->aux = NULL;
@@ -2149,8 +2148,11 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case VEC_WIDEN_MULT_LO_EXPR:
     case VEC_UNPACK_HI_EXPR:
     case VEC_UNPACK_LO_EXPR:
-    case VEC_PACK_MOD_EXPR:
+    case VEC_UNPACK_FLOAT_HI_EXPR:
+    case VEC_UNPACK_FLOAT_LO_EXPR:
+    case VEC_PACK_TRUNC_EXPR:
     case VEC_PACK_SAT_EXPR:
+    case VEC_PACK_FIX_TRUNC_EXPR:
 
     case WIDEN_MULT_EXPR:
 
@@ -2804,6 +2806,10 @@ optimize_inline_calls (tree fn)
 
   push_gimplify_context ();
 
+  /* We make no attempts to keep dominance info up-to-date.  */
+  free_dominance_info (CDI_DOMINATORS);
+  free_dominance_info (CDI_POST_DOMINATORS);
+
   /* Reach the trees by walking over the CFG, and note the
      enclosing basic-blocks in the call edges.  */
   /* We walk the blocks going forward, because inlined function bodies
@@ -2840,9 +2846,6 @@ optimize_inline_calls (tree fn)
   fold_cond_expr_cond ();
   if (current_function_has_nonlocal_label)
     make_nonlocal_label_edges ();
-  /* We make no attempts to keep dominance info up-to-date.  */
-  free_dominance_info (CDI_DOMINATORS);
-  free_dominance_info (CDI_POST_DOMINATORS);
   /* It would be nice to check SSA/CFG/statement consistency here, but it is
      not possible yet - the IPA passes might make various functions to not
      throw and they don't care to proactively update local EH info.  This is

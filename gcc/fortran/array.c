@@ -1714,7 +1714,7 @@ gfc_get_array_element (gfc_expr *array, int element)
 /* Get the size of single dimension of an array specification.  The
    array is guaranteed to be one dimensional.  */
 
-static try
+try
 spec_dimen_size (gfc_array_spec *as, int dimen, mpz_t *result)
 {
   if (as == NULL)
@@ -1725,7 +1725,9 @@ spec_dimen_size (gfc_array_spec *as, int dimen, mpz_t *result)
 
   if (as->type != AS_EXPLICIT
       || as->lower[dimen]->expr_type != EXPR_CONSTANT
-      || as->upper[dimen]->expr_type != EXPR_CONSTANT)
+      || as->upper[dimen]->expr_type != EXPR_CONSTANT
+      || as->lower[dimen]->ts.type != BT_INTEGER
+      || as->upper[dimen]->ts.type != BT_INTEGER)
     return FAILURE;
 
   mpz_init (*result);

@@ -300,7 +300,8 @@ GLIBCXX_ENABLE_VISIBILITY([yes])
 
 ac_ldbl_compat=no
 case "$target" in
-  powerpc*-*-*gnu* | \
+  powerpc*-*-linux* | \
+  powerpc*-*-gnu* | \
   sparc*-*-linux* | \
   s390*-*-linux* | \
   alpha*-*-linux*)
@@ -355,10 +356,8 @@ GLIBCXX_EXPORT_INSTALL_INFO
 GLIBCXX_EXPORT_INCLUDES
 GLIBCXX_EXPORT_FLAGS
 
-if ${CONFIG_SHELL-/bin/sh} ./libtool --tag CXX --features |
-   grep "enable shared" > /dev/null;
-then
-  LIBSUPCXX_PICFLAGS=-prefer-pic
+if test "$enable_shared" = yes; then
+  LIBSUPCXX_PICFLAGS="-prefer-pic"
 else
   LIBSUPCXX_PICFLAGS=
 fi

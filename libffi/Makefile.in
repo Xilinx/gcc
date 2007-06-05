@@ -72,7 +72,9 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/depstand.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
 	$(top_srcdir)/../config/multi.m4 $(top_srcdir)/../libtool.m4 \
-	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/../ltoptions.m4 $(top_srcdir)/../ltsugar.m4 \
+	$(top_srcdir)/../ltversion.m4 $(top_srcdir)/acinclude.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -162,11 +164,11 @@ LTCCASCOMPILE = $(LIBTOOL) --mode=compile $(CCAS) $(AM_CCASFLAGS) \
 	$(CCASFLAGS)
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) \
+LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
 	$(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
-LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(libffi_la_SOURCES) $(nodist_libffi_la_SOURCES) \
 	$(libffi_convenience_la_SOURCES) \
@@ -206,6 +208,7 @@ AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
 AM_RUNTESTFLAGS = @AM_RUNTESTFLAGS@
+AR = @AR@
 ARM_FALSE = @ARM_FALSE@
 ARM_TRUE = @ARM_TRUE@
 AUTOCONF = @AUTOCONF@
@@ -222,13 +225,16 @@ CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+FGREP = @FGREP@
 FRV_FALSE = @FRV_FALSE@
 FRV_TRUE = @FRV_TRUE@
+GREP = @GREP@
 HAVE_LONG_DOUBLE = @HAVE_LONG_DOUBLE@
 IA64_FALSE = @IA64_FALSE@
 IA64_TRUE = @IA64_TRUE@
@@ -236,6 +242,7 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LD = @LD@
 LIBFFI_CRIS_FALSE = @LIBFFI_CRIS_FALSE@
 LIBFFI_CRIS_TRUE = @LIBFFI_CRIS_TRUE@
 LIBOBJS = @LIBOBJS@
@@ -255,6 +262,7 @@ MIPS_IRIX_FALSE = @MIPS_IRIX_FALSE@
 MIPS_IRIX_TRUE = @MIPS_IRIX_TRUE@
 MIPS_LINUX_FALSE = @MIPS_LINUX_FALSE@
 MIPS_LINUX_TRUE = @MIPS_LINUX_TRUE@
+NM = @NM@
 OBJEXT = @OBJEXT@
 PA64_HPUX_FALSE = @PA64_HPUX_FALSE@
 PA64_HPUX_TRUE = @PA64_HPUX_TRUE@
@@ -280,6 +288,7 @@ POWERPC_TRUE = @POWERPC_TRUE@
 RANLIB = @RANLIB@
 S390_FALSE = @S390_FALSE@
 S390_TRUE = @S390_TRUE@
+SED = @SED@
 SET_MAKE = @SET_MAKE@
 SH64_FALSE = @SH64_FALSE@
 SH64_TRUE = @SH64_TRUE@
@@ -302,7 +311,9 @@ X86_FALSE = @X86_FALSE@
 X86_TRUE = @X86_TRUE@
 X86_WIN32_FALSE = @X86_WIN32_FALSE@
 X86_WIN32_TRUE = @X86_WIN32_TRUE@
+ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
+ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
@@ -331,6 +342,7 @@ install_sh = @install_sh@
 libdir = @libdir@
 libexecdir = @libexecdir@
 localstatedir = @localstatedir@
+lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 multi_basedir = @multi_basedir@
@@ -350,10 +362,12 @@ toolexeclibdir = @toolexeclibdir@
 AUTOMAKE_OPTIONS = foreign subdir-objects
 ACLOCAL_AMFLAGS = -I .. -I ../config
 SUBDIRS = include testsuite
-EXTRA_DIST = LICENSE ChangeLog.v1 \
+EXTRA_DIST = LICENSE ChangeLog.v1 ChangeLog.libgcj configure.host \
 	src/alpha/ffi.c src/alpha/osf.S src/alpha/ffitarget.h \
 	src/arm/ffi.c src/arm/sysv.S src/arm/ffitarget.h \
 	src/cris/ffi.c src/cris/sysv.S src/cris/ffitarget.h \
+	src/ia64/ffi.c src/ia64/ffitarget.h src/ia64/ia64_flags.h \
+	src/ia64/unix.S \
 	src/mips/ffi.c src/mips/n32.S src/mips/o32.S \
 	src/mips/ffitarget.h \
 	src/m32r/ffi.c src/m32r/sysv.S src/m32r/ffitarget.h \
@@ -371,8 +385,8 @@ EXTRA_DIST = LICENSE ChangeLog.v1 \
 	src/sparc/ffi.c \
 	src/x86/ffi.c src/x86/sysv.S src/x86/win32.S src/x86/darwin.S \
 	src/x86/ffi64.c src/x86/unix64.S src/x86/ffitarget.h \
-	src/pa/ffi.c src/pa/linux.S src/pa/hpux32.S \
-	src/frv/eabi.S src/frv/ffitarget.h
+	src/pa/ffitarget.h src/pa/ffi.c src/pa/linux.S src/pa/hpux32.S \
+	src/frv/ffi.c src/frv/eabi.S src/frv/ffitarget.h
 
 
 # Work around what appears to be a GNU make bug handling MAKEFLAGS
@@ -1065,7 +1079,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/.. $(distdir)/../config $(distdir)/include $(distdir)/src/alpha $(distdir)/src/arm $(distdir)/src/cris $(distdir)/src/frv $(distdir)/src/m32r $(distdir)/src/m68k $(distdir)/src/mips $(distdir)/src/pa $(distdir)/src/powerpc $(distdir)/src/s390 $(distdir)/src/sh $(distdir)/src/sh64 $(distdir)/src/sparc $(distdir)/src/x86
+	$(mkdir_p) $(distdir)/.. $(distdir)/../config $(distdir)/include $(distdir)/src/alpha $(distdir)/src/arm $(distdir)/src/cris $(distdir)/src/frv $(distdir)/src/ia64 $(distdir)/src/m32r $(distdir)/src/m68k $(distdir)/src/mips $(distdir)/src/pa $(distdir)/src/powerpc $(distdir)/src/s390 $(distdir)/src/sh $(distdir)/src/sh64 $(distdir)/src/sparc $(distdir)/src/x86
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

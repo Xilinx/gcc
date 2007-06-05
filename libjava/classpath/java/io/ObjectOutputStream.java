@@ -170,6 +170,7 @@ public class ObjectOutputStream extends OutputStream
    * If an exception is thrown from this method, the stream is left in
    * an undefined state.
    *
+   * @param obj the object to serialize.
    * @exception NotSerializableException An attempt was made to
    * serialize an <code>Object</code> that is not serializable.
    *
@@ -178,8 +179,70 @@ public class ObjectOutputStream extends OutputStream
    *
    * @exception IOException Exception from underlying
    * <code>OutputStream</code>.
+   * @see #writeUnshared(Object)
    */
   public final void writeObject(Object obj) throws IOException
+  {
+    writeObject(obj, true);
+  }
+
+  /**
+   * Writes an object to the stream in the same manner as
+   * {@link #writeObject(Object)}, but without the use of
+   * references.  As a result, the object is always written
+   * to the stream in full.  Likewise, if an object is written
+   * by this method and is then later written again by
+   * {@link #writeObject(Object)}, both calls will write out
+   * the object in full, as the later call to
+   * {@link #writeObject(Object)} will know nothing of the
+   * earlier use of {@link #writeUnshared(Object)}.
+   *
+   * @param obj the object to serialize.
+   * @throws NotSerializableException if the object being
+   *                                  serialized does not implement
+   *                                  {@link Serializable}.
+   * @throws InvalidClassException if a problem occurs with
+   *                               the class of the object being
+   *                               serialized.
+   * @throws IOException if an I/O error occurs on the underlying
+   *                     <code>OutputStream</code>.
+   * @since 1.4
+   * @see #writeObject(Object)
+   */
+  public void writeUnshared(Object obj)
+    throws IOException
+  {
+    writeObject(obj, false);
+  }
+
+  /**
+   * Writes a representation of <code>obj</code> to the underlying
+   * output stream by writing out information about its class, then
+   * writing out each of the objects non-transient, non-static
+   * fields.  If any of these fields are other objects,
+   * they are written out in the same manner.
+   *
+   * This method can be overriden by a class by implementing
+   * <code>private void writeObject (ObjectOutputStream)</code>.
+   *
+   * If an exception is thrown from this method, the stream is left in
+   * an undefined state.
+   *
+   * @param obj the object to serialize.
+   * @param shared true if the serialized object should be
+   *               shared with later calls.
+   * @exception NotSerializableException An attempt was made to
+   * serialize an <code>Object</code> that is not serializable.
+   *
+   * @exception InvalidClassException Somebody tried to serialize
+   * an object which is wrongly formatted.
+   *
+   * @exception IOException Exception from underlying
+   * <code>OutputStream</code>.
+   * @see #writeUnshared(Object)
+   */
+  private final void writeObject(Object obj, boolean shared)
+    throws IOException
   {
     if (useSubclassMethod)
       {
@@ -191,7 +254,7 @@ public class ObjectOutputStream extends OutputStream
       }
 
     if (dump)
-      dumpElementln ("WRITE: " + obj);
+      dumpElementln ("WRITE: ", obj);
     
     depth += 2;    
 
@@ -212,7 +275,7 @@ public class ObjectOutputStream extends OutputStream
 	      }
 
 	    int handle = findHandle(obj);
-	    if (handle >= 0)
+	    if (handle >= 0 && shared)
 	      {
 		realOutput.writeByte(TC_REFERENCE);
 		realOutput.writeInt(handle);
@@ -243,7 +306,8 @@ public class ObjectOutputStream extends OutputStream
 		    
 		    writeObject(osc.getSuper());
 		  }
-		assignNewHandle(obj);
+		if (shared)
+		  assignNewHandle(obj);
 		break;
 	      }
 
@@ -263,7 +327,8 @@ public class ObjectOutputStream extends OutputStream
 		/* TC_ENUM classDesc newHandle enumConstantName */
 		realOutput.writeByte(TC_ENUM);
 		writeObject(osc);
-		assignNewHandle(obj);
+		if (shared)
+		  assignNewHandle(obj);
 		writeObject(((Enum) obj).name());
 		break;
 	      }
@@ -299,7 +364,8 @@ public class ObjectOutputStream extends OutputStream
 	    if (obj instanceof String)
 	      {
 		realOutput.writeByte(TC_STRING);
-		assignNewHandle(obj);
+		if (shared)
+		  assignNewHandle(obj);
 		realOutput.writeUTF((String)obj);
 		break;
 	      }
@@ -308,7 +374,8 @@ public class ObjectOutputStream extends OutputStream
 	      {
 		realOutput.writeByte(TC_ARRAY);
 		writeObject(osc);
-		assignNewHandle(obj);
+		if (shared)
+		  assignNewHandle(obj);
 		writeArraySizeAndElements(obj, clazz.getComponentType());
 		break;
 	      }
@@ -316,11 +383,12 @@ public class ObjectOutputStream extends OutputStream
 	    realOutput.writeByte(TC_OBJECT);
 	    writeObject(osc);
 
-	    if (replaceDone)
-	      assignNewHandle(replacedObject);
-	    else
-	      assignNewHandle(obj);
-
+	    if (shared)
+	      if (replaceDone)
+		assignNewHandle(replacedObject);
+	      else
+		assignNewHandle(obj);
+	    
 	    if (obj instanceof Externalizable)
 	      {
 		if (protocolVersion == PROTOCOL_VERSION_2)
@@ -352,18 +420,18 @@ public class ObjectOutputStream extends OutputStream
 		    if (currentObjectStreamClass.hasWriteMethod())
 		      {
 			if (dump)
-			  dumpElementln ("WRITE METHOD CALLED FOR: " + obj);
+			  dumpElementln ("WRITE METHOD CALLED FOR: ", obj);
 			setBlockDataMode(true);
 			callWriteMethod(obj, currentObjectStreamClass);
 			setBlockDataMode(false);
 			realOutput.writeByte(TC_ENDBLOCKDATA);
 			if (dump)
-			  dumpElementln ("WRITE ENDBLOCKDATA FOR: " + obj);
+			  dumpElementln ("WRITE ENDBLOCKDATA FOR: ", obj);
 		      }
 		    else
 		      {
 			if (dump)
-			  dumpElementln ("WRITE FIELDS CALLED FOR: " + obj);
+			  dumpElementln ("WRITE FIELDS CALLED FOR: ", obj);
 			writeFields(obj, currentObjectStreamClass);
 		      }
 		  }
@@ -420,7 +488,7 @@ public class ObjectOutputStream extends OutputStream
 	depth -= 2;
 
 	if (dump)
-	  dumpElementln ("END: " + obj);
+	  dumpElementln ("END: ", obj);
       }
   }
 
@@ -1211,11 +1279,17 @@ public class ObjectOutputStream extends OutputStream
   }
 
 
+/* GCJ LOCAL */
   // writes out FIELDS of OBJECT for the specified ObjectStreamClass.
-  // FIELDS are already in canonical order.
+  // FIELDS are already supposed already to be in canonical order, but
+  // under some circumstances (to do with Proxies) this isn't the
+  // case, so we call ensureFieldsSet().
   private void writeFields(Object obj, ObjectStreamClass osc)
     throws IOException
   {
+    osc.ensureFieldsSet(osc.forClass());
+/* END GCJ LOCAL */
+
     ObjectStreamField[] fields = osc.fields;
     boolean oldmode = setBlockDataMode(false);
 
@@ -1337,6 +1411,28 @@ public class ObjectOutputStream extends OutputStream
 			    x.getClass().getName());
 	ioe.initCause(x);
 	throw ioe;
+      }
+  }
+
+  private void dumpElementln (String msg, Object obj)
+  {
+    try
+      {
+	for (int i = 0; i < depth; i++)
+	  System.out.print (" ");
+	System.out.print (Thread.currentThread() + ": ");
+	System.out.print (msg);
+	if (java.lang.reflect.Proxy.isProxyClass(obj.getClass()))
+	  System.out.print (obj.getClass());
+	else
+	  System.out.print (obj);
+      }
+    catch (Exception _)
+      {
+      }
+    finally
+      {
+	System.out.println ();
       }
   }
 

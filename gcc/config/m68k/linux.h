@@ -25,8 +25,8 @@ Boston, MA 02110-1301, USA.  */
 
 /* Add %(asm_cpu_spec) to the svr4.h definition of ASM_SPEC.  */
 #undef ASM_SPEC
-#define ASM_SPEC \
-  "%(asm_cpu_spec) %{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*}"
+#define ASM_SPEC "%(asm_cpu_spec) %(asm_pcrel_spec) \
+  %{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*}"
 
 /* for 68k machines this only needs to be TRUE for the 68000 */
 
@@ -160,7 +160,7 @@ Boston, MA 02110-1301, USA.  */
 
 #undef FUNCTION_VALUE_REGNO_P
 #define FUNCTION_VALUE_REGNO_P(N) \
-  ((N) == 0 || (N) == 8 || (TARGET_68881 && (N) == 16))
+  ((N) == D0_REG || (N) == A0_REG || (TARGET_68881 && (N) == FP0_REG))
 
 /* Define this to be true when FUNCTION_VALUE_REGNO_P is true for
    more than one register.  */

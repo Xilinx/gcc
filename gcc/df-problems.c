@@ -2138,7 +2138,7 @@ df_ur_add_problem (struct df *df, int flags)
 
    This is a variant of the UR problem above that has a lot of special
    features just for the register allocation phase.  This problem
-   should go a away if someone would fix the interference graph.
+   should go away if someone would fix the interference graph.
 
    ----------------------------------------------------------------------------*/
 
@@ -2259,12 +2259,10 @@ df_urec_mark_reg_change (rtx reg, rtx setter, void *data)
   if (!REG_P (reg))
     return;
   
-  
-  endregno = regno = REGNO (reg);
+  regno = REGNO (reg);
   if (regno < FIRST_PSEUDO_REGISTER)
     {
-      endregno +=hard_regno_nregs[regno][GET_MODE (reg)];
-      
+      endregno = END_HARD_REGNO (reg);
       for (i = regno; i < endregno; i++)
 	{
 	  bitmap_set_bit (bb_info->kill, i);
@@ -2487,7 +2485,7 @@ df_urec_local_compute (struct dataflow *dflow,
   bitmap_iterator bi;
 #ifdef STACK_REGS
   int i;
-  HARD_REG_SET zero, stack_hard_regs, used;
+  HARD_REG_SET stack_hard_regs, used;
   struct df_urec_problem_data *problem_data
     = (struct df_urec_problem_data *) dflow->problem_data;
   
@@ -2498,7 +2496,6 @@ df_urec_local_compute (struct dataflow *dflow,
 
      FIXME: This seems like an incredibly poor idea.  */
 
-  CLEAR_HARD_REG_SET (zero);
   CLEAR_HARD_REG_SET (stack_hard_regs);
   for (i = FIRST_STACK_REG; i <= LAST_STACK_REG; i++)
     SET_HARD_REG_BIT (stack_hard_regs, i);
@@ -2508,10 +2505,8 @@ df_urec_local_compute (struct dataflow *dflow,
       COPY_HARD_REG_SET (used, reg_class_contents[reg_preferred_class (i)]);
       IOR_HARD_REG_SET (used, reg_class_contents[reg_alternate_class (i)]);
       AND_HARD_REG_SET (used, stack_hard_regs);
-      GO_IF_HARD_REG_EQUAL (used, zero, skip);
-      bitmap_set_bit (problem_data->stack_regs, i);
-    skip:
-      ;
+      if (!hard_reg_set_empty_p (used))
+	bitmap_set_bit (problem_data->stack_regs, i);
     }
 #endif
 

@@ -216,7 +216,8 @@ match_integer_constant (gfc_expr **result, int signflag)
 
   if (gfc_range_check (e) != ARITH_OK)
     {
-      gfc_error ("Integer too big for its kind at %C");
+      gfc_error ("Integer too big for its kind at %C. This check can be "
+		 "disabled with the option -fno-range-check");
 
       gfc_free_expr (e);
       return MATCH_ERROR;
@@ -235,7 +236,6 @@ match_hollerith_constant (gfc_expr **result)
   locus old_loc;
   gfc_expr *e = NULL;
   const char *msg;
-  char *buffer;
   int num;
   int i;  
 
@@ -269,18 +269,18 @@ match_hollerith_constant (gfc_expr **result)
 	}
       else
 	{
-	  buffer = (char *) gfc_getmem (sizeof(char) * num + 1);
-	  for (i = 0; i < num; i++)
-	    {
-	      buffer[i] = gfc_next_char_literal (1);
-	    }
 	  gfc_free_expr (e);
 	  e = gfc_constant_result (BT_HOLLERITH, gfc_default_character_kind,
 				   &gfc_current_locus);
-	  e->value.character.string = gfc_getmem (num + 1);
-	  memcpy (e->value.character.string, buffer, num);
-	  e->value.character.string[num] = '\0';
-	  e->value.character.length = num;
+
+	  e->representation.string = gfc_getmem (num + 1);
+	  for (i = 0; i < num; i++)
+	    {
+	      e->representation.string[i] = gfc_next_char_literal (1);
+	    }
+	  e->representation.string[num] = '\0';
+	  e->representation.length = num;
+
 	  *result = e;
 	  return MATCH_YES;
 	}
@@ -1516,7 +1516,7 @@ cleanup:
    the opening parenthesis to the closing parenthesis.  The argument
    list is assumed to allow keyword arguments because we don't know if
    the symbol associated with the procedure has an implicit interface
-   or not.  We make sure keywords are unique. If SUB_FLAG is set,
+   or not.  We make sure keywords are unique. If sub_flag is set,
    we're matching the argument list of a subroutine.  */
 
 match
@@ -1844,7 +1844,14 @@ gfc_variable_attr (gfc_expr *expr, gfc_typespec *ts)
       case REF_COMPONENT:
 	gfc_get_component_attr (&attr, ref->u.c.component);
 	if (ts != NULL)
-	  *ts = ref->u.c.component->ts;
+	  {
+	    *ts = ref->u.c.component->ts;
+	    /* Don't set the string length if a substring reference
+	       follows.  */
+	    if (ts->type == BT_CHARACTER
+		&& ref->next && ref->next->type == REF_SUBSTRING)
+		ts->cl = NULL;
+	  }
 
 	pointer = ref->u.c.component->pointer;
 	allocatable = ref->u.c.component->allocatable;
@@ -1982,6 +1989,28 @@ cleanup:
 }
 
 
+/* If the symbol is an implicit do loop index and implicitly typed,
+   it should not be host associated.  Provide a symtree from the
+   current namespace.  */
+static match
+check_for_implicit_index (gfc_symtree **st, gfc_symbol **sym)
+{
+  if ((*sym)->attr.flavor == FL_VARIABLE
+      && (*sym)->ns != gfc_current_ns
+      && (*sym)->attr.implied_index
+      && (*sym)->attr.implicit_type
+      && !(*sym)->attr.use_assoc)
+    {
+      int i;
+      i = gfc_get_sym_tree ((*sym)->name, NULL, st);
+      if (i)
+	return MATCH_ERROR;
+      *sym = (*st)->n.sym;
+    }
+  return MATCH_YES;
+}
+
+
 /* Matches a variable name followed by anything that might follow it--
    array reference, argument list of a function, etc.  */
 
@@ -2017,7 +2046,14 @@ gfc_match_rvalue (gfc_expr **result)
   e = NULL;
   where = gfc_current_locus;
 
+  /* If this is an implicit do loop index and implicitly typed,
+     it should not be host associated.  */
+  m = check_for_implicit_index (&symtree, &sym);
+  if (m != MATCH_YES)
+    return m;
+
   gfc_set_sym_referenced (sym);
+  sym->attr.implied_index = 0;
 
   if (sym->attr.function && sym->result == sym)
     {
@@ -2025,17 +2061,16 @@ gfc_match_rvalue (gfc_expr **result)
       gfc_gobble_whitespace ();
       if (sym->attr.recursive
 	  && gfc_peek_char () == '('
-	  && gfc_current_ns->proc_name == sym)
+	  && gfc_current_ns->proc_name == sym
+	  && !sym->attr.dimension)
 	{
-	  if (!sym->attr.dimension)
-	    goto function0;
-
-	  gfc_error ("'%s' is array valued and directly recursive "
-		     "at %C , so the keyword RESULT must be specified "
-		     "in the FUNCTION statement", sym->name);
+	  gfc_error ("'%s' at %C is the name of a recursive function "
+		     "and so refers to the result variable. Use an "
+		     "explicit RESULT variable for direct recursion "
+		     "(12.5.2.1)", sym->name);
 	  return MATCH_ERROR;
 	}
-	
+
       if (gfc_current_ns->proc_name == sym
 	  || (gfc_current_ns->parent != NULL
 	      && gfc_current_ns->parent->proc_name == sym))
@@ -2226,6 +2261,7 @@ gfc_match_rvalue (gfc_expr **result)
 	      break;
 	    }
 
+	  /*FIXME:??? match_varspec does set this for us: */
 	  e->ts = sym->ts;
 	  m = match_varspec (e, 0);
 	  break;
@@ -2386,6 +2422,15 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
   where = gfc_current_locus;
 
   sym = st->n.sym;
+
+  /* If this is an implicit do loop index and implicitly typed,
+     it should not be host associated.  */
+  m = check_for_implicit_index (&st, &sym);
+  if (m != MATCH_YES)
+    return m;
+
+  sym->attr.implied_index = 0;
+
   gfc_set_sym_referenced (sym);
   switch (sym->attr.flavor)
     {
@@ -2413,7 +2458,8 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
 
     case FL_PROCEDURE:
       /* Check for a nonrecursive function result */
-      if (sym->attr.function && (sym->result == sym || sym->attr.entry))
+      if (sym->attr.function && (sym->result == sym || sym->attr.entry)
+	  && !sym->attr.external)
 	{
 	  /* If a function result is a derived type, then the derived
 	     type may still have to be resolved.  */

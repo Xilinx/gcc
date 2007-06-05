@@ -1,3 +1,111 @@
+2007-06-01  Steve Ellcey  <sje@cup.hp.com>
+
+	* libtool.m4 (LT_CMD_MAX_LEN): Try using getconf to set
+	lt_cv_sys_max_cmd_len.
+
+2007-05-31  Dorit Nuzman   <dorit@il.ibm.com>
+
+	* MAINTAINERS (Various Maintainers): Add myself as
+	auto-vectorizer maintainer.
+
+2003-05-31  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR libjava/32098
+	* libtool.m4: Revert previous change.
+	* ltgcc.m4: Put it here.
+
+2003-05-30  Zdenek Dvorak  <dvorakz@suse.cz>
+
+	* MAINTAINERS (Various Maintainers): Add myself as
+	auto-vectorizer maintainer.
+
+2007-05-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR libjava/32098
+	* libtool.m4 (_LT_LANG_GCJ_CONFIG): Use gcc to test gcj features.
+
+2007-05-30  Richard Guenther  <rguenther@suse.de>
+
+	* MAINTAINERS (Various Maintainers): Add myself as
+	auto-vectorizer maintainer.
+
+2007-05-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/29382
+	* configure.ac: Don't use -fkeep-inline-functions for GCC < 3.3.1.
+	* configure: Rebuilt.
+
+2007-05-28  Roberto Costa  <robsettantasei@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Removed my name.
+
+2007-05-25  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* MAINTAINERS (Write After Approval): Remove myself.
+
+2007-05-25  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* ltmain.sh: Fix Darwin verstring, remove ${wl}.
+
+2007-05-23  Steve Ellcey  <sje@cup.hp.com>
+
+	* ltmain.sh: Update from ToT Libtool.
+	* libtool.m4: Update from ToT Libtool.
+	* ltsugar.m4: New. Update from ToT Libtool.
+	* ltversion.m4: New. Update from ToT Libtool.
+	* ltoptions.m4: New. Update from ToT Libtool.
+	* ltconfig: Remove.
+	* ltcf-c.sh: Remove.
+	* ltcf-cxx.sh: Remove.
+	* ltcf-gcj.sh: Remove.
+
+2007-05-22  Ollie Wild  <aaw@google.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2007-05-16  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.def (bootstrap_stage): Replace stage_make_flags with
+	stage_cflags.
+	* Makefile.tpl (POSTSTAGE1_HOST_EXPORTS, POSTSTAGE1_FLAGS_TO_PASS):
+	Remove CFLAGS/LIBCFLAGS.
+	(configure-stage[+id+]-[+prefix+][+module+],
+	all-stage[+id+]-[+prefix+][+module+]): Pass it from [+stage_cflags+].
+	* Makefile.in: Regenerate.
+
+2007-05-15  Diego Novillo  <dnovillo@google.com>
+
+	* MAINTAINERS: Update e-mail address.
+
+2007-05-15  Revital Eres  <eres@il.ibm.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2007-05-14  Roberto Costa  <robsettantasei@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Updated my address.
+
+2007-05-14  Thomas Neumann  <tneumann@users.sourceforge.net>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2007-05-11  Silvius Rus  <rus@google.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2007-04-23  Tom Tromey  <tromey@redhat.com>
+
+	* MAINTAINERS: Added myself as non-algorithmic libcpp maintainer.
+
+2007-04-22  Mark Mitchell  <mark@codesourcery.com>
+
+	* MAINTAINERS (cpplib): Rename to ...
+	(libcpp): ... this.  Add C/C++ front end maintainers.
+
+2007-04-14  Steve Ellcey  <sje@cup.hp.com>
+
+	* config-ml.in: Pass ${ml_config_env} to configure calls.
+
 2007-04-04  Christian Bruel  <christian.bruel@st.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.

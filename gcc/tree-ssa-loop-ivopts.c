@@ -3908,7 +3908,9 @@ determine_iv_costs (struct ivopts_data *data)
 static unsigned
 ivopts_global_cost_for_size (struct ivopts_data *data, unsigned size)
 {
-  return global_cost_for_size (size, data->regs_used, n_iv_uses (data));
+  /* We add size to the cost, so that we prefer eliminating ivs
+     if possible.  */
+  return size + estimate_reg_pressure_cost (size, data->regs_used);
 }
 
 /* For each size of the induction variable set determine the penalty.  */
@@ -3945,8 +3947,7 @@ determine_set_costs (struct ivopts_data *data)
     {
       fprintf (dump_file, "Global costs:\n");
       fprintf (dump_file, "  target_avail_regs %d\n", target_avail_regs);
-      fprintf (dump_file, "  target_small_cost %d\n", target_small_cost);
-      fprintf (dump_file, "  target_pres_cost %d\n", target_pres_cost);
+      fprintf (dump_file, "  target_reg_cost %d\n", target_reg_cost);
       fprintf (dump_file, "  target_spill_cost %d\n", target_spill_cost);
     }
 
@@ -4865,7 +4866,7 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
 {
   tree comp;
   tree op, stmts, tgt, ass;
-  block_stmt_iterator bsi, pbsi;
+  block_stmt_iterator bsi;
 
   /* An important special case -- if we are asked to express value of
      the original iv by itself, just exit; there is no need to
@@ -4936,13 +4937,7 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
       if (name_info (data, tgt)->preserve_biv)
 	return;
 
-      pbsi = bsi = bsi_start (bb_for_stmt (use->stmt));
-      while (!bsi_end_p (pbsi)
-	     && TREE_CODE (bsi_stmt (pbsi)) == LABEL_EXPR)
-	{
-	  bsi = pbsi;
-	  bsi_next (&pbsi);
-	}
+      bsi = bsi_after_labels (bb_for_stmt (use->stmt));
       break;
 
     case GIMPLE_MODIFY_STMT:
@@ -4955,22 +4950,18 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
     }
 
   op = force_gimple_operand (comp, &stmts, false, SSA_NAME_VAR (tgt));
+  if (stmts)
+    bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
 
   if (TREE_CODE (use->stmt) == PHI_NODE)
     {
-      if (stmts)
-	bsi_insert_after (&bsi, stmts, BSI_CONTINUE_LINKING);
       ass = build_gimple_modify_stmt (tgt, op);
-      bsi_insert_after (&bsi, ass, BSI_NEW_STMT);
+      bsi_insert_before (&bsi, ass, BSI_SAME_STMT);
       remove_statement (use->stmt, false);
       SSA_NAME_DEF_STMT (tgt) = ass;
     }
   else
-    {
-      if (stmts)
-	bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
-      GIMPLE_STMT_OPERAND (use->stmt, 1) = op;
-    }
+    GIMPLE_STMT_OPERAND (use->stmt, 1) = op;
 }
 
 /* Replaces ssa name in index IDX by its basic variable.  Callback for

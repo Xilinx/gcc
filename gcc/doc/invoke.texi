@@ -102,9 +102,10 @@ may @emph{not} be grouped: @option{-dr} is very different from @w{@samp{-d
 @cindex order of options
 @cindex options, order
 You can mix options and other arguments.  For the most part, the order
-you use doesn't matter.  Order does matter when you use several options
-of the same kind; for example, if you specify @option{-L} more than once,
-the directories are searched in the order specified.
+you use doesn't matter.  Order does matter when you use several
+options of the same kind; for example, if you specify @option{-L} more
+than once, the directories are searched in the order specified.  Also,
+the placement of the @option{-l} option is significant.
 
 Many options have long names starting with @samp{-f} or with
 @samp{-W}---for example,
@@ -225,10 +226,10 @@ Objective-C and Objective-C++ Dialects}.
 @item Warning Options
 @xref{Warning Options,,Options to Request or Suppress Warnings}.
 @gccoptlist{-fsyntax-only  -pedantic  -pedantic-errors @gol
--w  -Wextra  -Wall  -Waddress  -Waggregate-return -Warray-bounds @gol
+-w  -Wextra  -Wall  -Waddress  -Waggregate-return  -Warray-bounds @gol
 -Wno-attributes -Wc++-compat -Wc++0x-compat -Wcast-align  -Wcast-qual  @gol
 -Wchar-subscripts -Wclobbered  -Wcomment @gol
--Wconversion -Wcoverage-mismatch -Wno-deprecated-declarations @gol
+-Wconversion  -Wcoverage-mismatch  -Wno-deprecated-declarations @gol
 -Wdisabled-optimization  -Wno-div-by-zero  @gol
 -Wempty-body  -Wno-endif-labels @gol
 -Werror  -Werror=* @gol
@@ -248,11 +249,11 @@ Objective-C and Objective-C++ Dialects}.
 -Wparentheses  -Wpointer-arith  -Wno-pointer-to-int-cast @gol
 -Wredundant-decls @gol
 -Wreturn-type  -Wsequence-point  -Wshadow @gol
--Wsign-compare  -Wstack-protector @gol
--Wstrict-aliasing -Wstrict-aliasing=2 @gol
+-Wsign-compare  -Wsign-conversion  -Wstack-protector @gol
+-Wstrict-aliasing -Wstrict-aliasing=n @gol
 -Wstrict-overflow -Wstrict-overflow=@var{n} @gol
 -Wswitch  -Wswitch-default  -Wswitch-enum @gol
--Wsystem-headers  -Wtrigraphs  -Wundef  -Wuninitialized @gol
+-Wsystem-headers  -Wtrigraphs  -Wtype-limits  -Wundef  -Wuninitialized @gol
 -Wunknown-pragmas  -Wno-pragmas -Wunreachable-code @gol
 -Wunused  -Wunused-function  -Wunused-label  -Wunused-parameter @gol
 -Wunused-value  -Wunused-variable @gol
@@ -301,6 +302,8 @@ Objective-C and Objective-C++ Dialects}.
 -ftest-coverage  -ftime-report -fvar-tracking @gol
 -g  -g@var{level}  -gcoff -gdwarf-2 @gol
 -ggdb  -gstabs  -gstabs+  -gvms  -gxcoff  -gxcoff+ @gol
+-femit-struct-debug-baseonly -femit-struct-debug-reduced @gol
+-femit-struct-debug-detailed@r{[}=@var{spec-list}@r{]} @gol
 -p  -pg  -print-file-name=@var{library}  -print-libgcc-file-name @gol
 -print-multi-directory  -print-multi-lib @gol
 -print-prog-name=@var{program}  -print-search-dirs  -Q @gol
@@ -332,7 +335,7 @@ Objective-C and Objective-C++ Dialects}.
 -ffinite-math-only  -fno-signed-zeros @gol
 -fno-toplevel-reorder -fno-trapping-math  -fno-zero-initialized-in-bss @gol
 -fomit-frame-pointer  -foptimize-register-move @gol
--foptimize-sibling-calls  -fprefetch-loop-arrays @gol
+-foptimize-sibling-calls  -fpredictive-commoning -fprefetch-loop-arrays @gol
 -fprofile-generate -fprofile-use @gol
 -fregmove  -frename-registers @gol
 -freorder-blocks  -freorder-blocks-and-partition -freorder-functions @gol
@@ -440,12 +443,13 @@ Objective-C and Objective-C++ Dialects}.
 -mcall-prologues  -mno-tablejump  -mtiny-stack  -mint8}
 
 @emph{Blackfin Options}
-@gccoptlist{-momit-leaf-frame-pointer -mno-omit-leaf-frame-pointer @gol
--mspecld-anomaly -mno-specld-anomaly -mcsync-anomaly -mno-csync-anomaly @gol
--mlow-64k  -mno-low64k  -mstack-check-l1  -mid-shared-library @gol
--mno-id-shared-library -mshared-library-id=@var{n} @gol
--mleaf-id-shared-library  -mno-leaf-id-shared-library @gol
--msep-data  -mno-sep-data  -mlong-calls  -mno-long-calls}
+@gccoptlist{-mcpu=@var{cpu}  -msim  -momit-leaf-frame-pointer @gol
+-mno-omit-leaf-frame-pointer  -mspecld-anomaly  -mno-specld-anomaly @gol
+-mcsync-anomaly  -mno-csync-anomaly  -mlow-64k  -mno-low64k @gol
+-mstack-check-l1  -mid-shared-library  -mno-id-shared-library @gol
+-mshared-library-id=@var{n}  -mleaf-id-shared-library @gol
+-mno-leaf-id-shared-library  -msep-data  -mno-sep-data  -mlong-calls @gol
+-mno-long-calls}
 
 @emph{CRIS Options}
 @gccoptlist{-mcpu=@var{cpu}  -march=@var{cpu}  -mtune=@var{cpu} @gol
@@ -544,10 +548,11 @@ Objective-C and Objective-C++ Dialects}.
 @gccoptlist{-mtune=@var{cpu-type}  -march=@var{cpu-type} @gol
 -mfpmath=@var{unit} @gol
 -masm=@var{dialect}  -mno-fancy-math-387 @gol
--mno-fp-ret-in-387  -msoft-float  -msvr3-shlib @gol
+-mno-fp-ret-in-387  -msoft-float @gol
 -mno-wide-multiply  -mrtd  -malign-double @gol
 -mpreferred-stack-boundary=@var{num} -mcx16 -msahf @gol
--mmmx  -msse  -msse2 -msse3 -mssse3 -msse4a -m3dnow -mpopcnt -mabm @gol
+-mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 @gol
+-msse4a -m3dnow -mpopcnt -mabm @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
 -m96bit-long-double  -mregparm=@var{num}  -msseregparm @gol
@@ -615,20 +620,22 @@ Objective-C and Objective-C++ Dialects}.
 @gccoptlist{-EL  -EB  -march=@var{arch}  -mtune=@var{arch} @gol
 -mips1  -mips2  -mips3  -mips4  -mips32  -mips32r2  -mips64 @gol
 -mips16  -mno-mips16  -mabi=@var{abi}  -mabicalls  -mno-abicalls @gol
--mshared  -mno-shared  -mxgot  -mno-xgot  -mgp32  -mgp64  @gol
--mfp32  -mfp64  -mhard-float  -msoft-float  @gol
--msingle-float  -mdouble-float  -mdsp  -mdspr2  -mpaired-single  -mips3d @gol
+-mshared  -mno-shared  -mxgot  -mno-xgot  -mgp32  -mgp64 @gol
+-mfp32  -mfp64  -mhard-float  -msoft-float @gol
+-msingle-float  -mdouble-float  -mdsp  -mno-dsp  -mdspr2  -mno-dspr2 @gol
+-mpaired-single  -mno-paired-single  -mdmx  -mno-mdmx @gol
+-mips3d  -mno-mips3d  -mmt  -mno-mt @gol
 -mlong64  -mlong32  -msym32  -mno-sym32 @gol
 -G@var{num}  -membedded-data  -mno-embedded-data @gol
 -muninit-const-in-rodata  -mno-uninit-const-in-rodata @gol
--msplit-addresses  -mno-split-addresses  @gol
--mexplicit-relocs  -mno-explicit-relocs  @gol
+-msplit-addresses  -mno-split-addresses @gol
+-mexplicit-relocs  -mno-explicit-relocs @gol
 -mcheck-zero-division  -mno-check-zero-division @gol
 -mdivide-traps  -mdivide-breaks @gol
 -mmemcpy  -mno-memcpy  -mlong-calls  -mno-long-calls @gol
 -mmad  -mno-mad  -mfused-madd  -mno-fused-madd  -nocpp @gol
 -mfix-r4000  -mno-fix-r4000  -mfix-r4400  -mno-fix-r4400 @gol
--mfix-vr4120  -mno-fix-vr4120  -mfix-vr4130 @gol
+-mfix-vr4120  -mno-fix-vr4120  -mfix-vr4130  -mno-fix-vr4130 @gol
 -mfix-sb1  -mno-fix-sb1 @gol
 -mflush-func=@var{func}  -mno-flush-func @gol
 -mbranch-likely  -mno-branch-likely @gol
@@ -1131,6 +1138,9 @@ option.
 This will display the options supported for @var{language}, where 
 @var{language} is the name of one of the languages supported in this 
 version of GCC.
+
+@item @samp{common}
+This will display the options that are common to all languages.
 @end table
 
 It is possible to further refine the output of the @option{--help=}
@@ -2802,9 +2812,13 @@ This warning is enabled by @option{-Wall} for C and C++.
 
 @item -Wreturn-type
 @opindex Wreturn-type
-Warn whenever a function is defined with a return-type that defaults to
-@code{int}.  Also warn about any @code{return} statement with no
-return-value in a function whose return-type is not @code{void}.
+@opindex Wno-return-type
+Warn whenever a function is defined with a return-type that defaults
+to @code{int}.  Also warn about any @code{return} statement with no
+return-value in a function whose return-type is not @code{void}
+(falling off the end of the function body is considered returning
+without a value), and about a @code{return} statement with a
+expression in a function whose return-type is @code{void}.
 
 Also warn if the return type of a function has a type qualifier
 such as @code{const}.  For ISO C such a type qualifier has no effect,
@@ -3003,18 +3017,44 @@ It warns about code which might break the strict aliasing rules that the
 compiler is using for optimization.  The warning does not catch all
 cases, but does attempt to catch the more common pitfalls.  It is
 included in @option{-Wall}.
+It is equivalent to -Wstrict-aliasing=3
 
-@item -Wstrict-aliasing=2
-@opindex Wstrict-aliasing=2
+@item -Wstrict-aliasing=n
+@opindex Wstrict-aliasing=n
 This option is only active when @option{-fstrict-aliasing} is active.
 It warns about code which might break the strict aliasing rules that the
-compiler is using for optimization.  This warning catches more cases than
-@option{-Wstrict-aliasing}, but it will also give a warning for some ambiguous
-cases that are safe.
+compiler is using for optimization.
+Higher levels correspond to higher accuracy (fewer false positives).
+Higher levels also correspond to more effort, similar to the way -O works.
+@option{-Wstrict-aliasing} is equivalent to @option{-Wstrict-aliasing=n},
+with n=3.
+
+Level 1: Most aggressive, quick, least accurate.
+Possibly useful when higher levels
+do not warn but -fstrict-aliasing still breaks the code, as it has very few 
+false negatives.  However, it has many false positives.
+Warns for all pointer conversions between possibly incompatible types, 
+even if never dereferenced.  Runs in the frontend only.
+
+Level 2: Aggressive, quick, not too precise.
+May still have many false positives (not as many as level 1 though),
+and few false negatives (but possibly more than level 1).
+Unlike level 1, it only warns when an address is taken.  Warns about
+incomplete types.  Runs in the frontend only.
+
+Level 3 (default for @option{-Wstrict-aliasing}): 
+Should have very few false positives and few false 
+negatives.  Slightly slower than levels 1 or 2 when optimization is enabled.
+Takes care of the common punn+dereference pattern in the frontend:
+@code{*(int*)&some_float}.
+If optimization is enabled, it also runs in the backend, where it deals 
+with multiple statement cases using flow-sensitive points-to information.
+Only warns when the converted pointer is dereferenced.
+Does not warn about incomplete types.
 
 @item -Wstrict-overflow
 @item -Wstrict-overflow=@var{n}
-@opindex -Wstrict-overflow
+@opindex Wstrict-overflow
 This option is only active when @option{-fstrict-overflow} is active.
 It warns about cases where the compiler optimizes based on the
 assumption that signed overflow does not occur.  Note that it does not
@@ -3027,7 +3067,10 @@ perfectly safe if the values of the variables involved are such that
 overflow never does, in fact, occur.  Therefore this warning can
 easily give a false positive: a warning about code which is not
 actually a problem.  To help focus on important issues, several
-warning levels are defined.
+warning levels are defined.  No warnings are issued for the use of
+undefined signed overflow when estimating how many iterations a loop
+will require, in particular when determining whether a loop will be
+executed at all.
 
 @table @option
 @item -Wstrict-overflow=1
@@ -3096,23 +3139,11 @@ messages for these events:
 
 @itemize @bullet
 @item
-A function can return either with or without a value.  (Falling
-off the end of the function body is considered returning without
-a value.)  For example, this function would evoke such a
-warning:
-
-@smallexample
-@group
-foo (a)
-@{
-  if (a > 0)
-    return a;
-@}
-@end group
-@end smallexample
-
-@item
-An unsigned value is compared against zero with @samp{<} or @samp{>=}.
+Warn if a comparison is always true or always false due to the limited
+range of the data type, but do not warn for constant expressions.  For
+example, warn if an unsigned variable is compared against zero with
+@samp{<} or @samp{>=}.  This warning can be independently controlled
+by @option{-Wtype-limits}.
 
 @item @r{(C only)}
 Storage-class specifiers like @code{static} are not the first things
@@ -3148,6 +3179,11 @@ functions.  This warning can be independently controlled by
 @item
 An empty body occurs in an @samp{if}, @samp{else} or
 @samp{do while} statement. This warning can be independently
+controlled by @option{-Wempty-body}.
+
+@item @r{(C++ only)}
+An empty body occurs in a @samp{while} or @samp{for} statement with no
+whitespacing before the semicolon. This warning can be independently
 controlled by @option{-Wempty-body}.
 
 @item
@@ -3349,6 +3385,15 @@ convenience in calculations with @code{void *} pointers and pointers
 to functions.  In C++, warn also when an arithmetic operation involves
 @code{NULL}.  This warning is also enabled by @option{-pedantic}.
 
+@item -Wtype-limits
+@opindex Wtype-limits
+@opindex Wno-type-limits
+Warn if a comparison is always true or always false due to the limited
+range of the data type, but do not warn for constant expressions.  For
+example, warn if an unsigned variable is compared against zero with
+@samp{<} or @samp{>=}.  This warning is also enabled by
+@option{-Wextra}.
+
 @item -Wbad-function-cast @r{(C only)}
 @opindex Wbad-function-cast
 Warn whenever a function call is cast to a non-matching type.
@@ -3398,24 +3443,31 @@ Warn for variables that might be changed by @samp{longjmp} or
 
 @item -Wconversion
 @opindex Wconversion
+@opindex Wno-conversion
 Warn for implicit conversions that may alter a value. This includes
 conversions between real and integer, like @code{abs (x)} when
 @code{x} is @code{double}; conversions between signed and unsigned,
 like @code{unsigned ui = -1}; and conversions to smaller types, like
 @code{sqrtf (M_PI)}. Do not warn for explicit casts like @code{abs
 ((int) x)} and @code{ui = (unsigned) -1}, or if the value is not
-changed by the conversion like in @code{abs (2.0)}.
+changed by the conversion like in @code{abs (2.0)}.  Warnings about
+conversions between signed and unsigned integers can be disabled by
+using @option{-Wno-sign-conversion}.
 
 For C++, also warn for conversions between @code{NULL} and non-pointer
 types; confusing overload resolution for user-defined conversions; and
 conversions that will never use a type conversion operator:
 conversions to @code{void}, the same type, a base class or a reference
-to them.
+to them. Warnings about conversions between signed and unsigned
+integers are disabled by default in C++ unless
+@option{-Wsign-conversion} is explicitly enabled.
 
 @item -Wempty-body
 @opindex Wempty-body
-An empty body occurs in an @samp{if}, @samp{else} or @samp{do while}
-statement.  This warning is also enabled by @option{-Wextra}.
+Warn if an empty body occurs in an @samp{if}, @samp{else} or @samp{do
+while} statement.  Additionally, in C++, warn when an empty body occurs
+in a @samp{while} or @samp{for} statement with no whitespacing before
+the semicolon.  This warning is also enabled by @option{-Wextra}.
 
 @item -Wsign-compare
 @opindex Wsign-compare
@@ -3426,6 +3478,14 @@ Warn when a comparison between signed and unsigned values could produce
 an incorrect result when the signed value is converted to unsigned.
 This warning is also enabled by @option{-Wextra}; to get the other warnings
 of @option{-Wextra} without this warning, use @samp{-Wextra -Wno-sign-compare}.
+
+@item -Wsign-conversion
+@opindex Wsign-conversion
+@opindex Wno-sign-conversion
+Warn for implicit conversions that may change the sign of an integer
+value, like assigning a signed integer expression to an unsigned
+integer variable. An explicit cast silences the warning. In C, this
+option is enabled also by @option{-Wconversion}.
 
 @item -Waddress
 @opindex Waddress
@@ -4155,6 +4215,78 @@ Compress DWARF2 debugging information by eliminating duplicated
 information about each symbol.  This option only makes sense when
 generating DWARF2 debugging information with @option{-gdwarf-2}.
 
+@item -femit-struct-debug-baseonly
+Emit debug information for struct-like types
+only when the base name of the compilation source file
+matches the base name of file in which the struct was defined.
+
+This option substantially reduces the size of debugging information,
+but at significant potential loss in type information to the debugger.
+See @option{-femit-struct-debug-reduced} for a less aggressive option.
+See @option{-femit-struct-debug-detailed} for more detailed control.
+
+This option works only with DWARF 2.
+
+@item -femit-struct-debug-reduced
+Emit debug information for struct-like types
+only when the base name of the compilation source file
+matches the base name of file in which the type was defined,
+unless the struct is a template or defined in a system header.
+
+This option significantly reduces the size of debugging information,
+with some potential loss in type information to the debugger.
+See @option{-femit-struct-debug-baseonly} for a more aggressive option.
+See @option{-femit-struct-debug-detailed} for more detailed control.
+
+This option works only with DWARF 2.
+
+@item -femit-struct-debug-detailed@r{[}=@var{spec-list}@r{]}
+Specify the struct-like types
+for which the compiler will generate debug information.
+The intent is to reduce duplicate struct debug information
+between different object files within the same program.
+
+This option is a detailed version of
+@option{-femit-struct-debug-reduced} and @option{-femit-struct-debug-baseonly},
+which will serve for most needs.
+
+A specification has the syntax
+[@samp{dir:}|@samp{ind:}][@samp{ord:}|@samp{gen:}](@samp{any}|@samp{sys}|@samp{base}|@samp{none})
+
+The optional first word limits the specification to
+structs that are used directly (@samp{dir:}) or used indirectly (@samp{ind:}).
+A struct type is used directly when it is the type of a variable, member.
+Indirect uses arise through pointers to structs.
+That is, when use of an incomplete struct would be legal, the use is indirect.
+An example is
+@samp{struct one direct; struct two * indirect;}.
+
+The optional second word limits the specification to
+ordinary structs (@samp{ord:}) or generic structs (@samp{gen:}).
+Generic structs are a bit complicated to explain.
+For C++, these are non-explicit specializations of template classes,
+or non-template classes within the above.
+Other programming languages have generics,
+but @samp{-femit-struct-debug-detailed} does not yet implement them.
+
+The third word specifies the source files for those
+structs for which the compiler will emit debug information.
+The values @samp{none} and @samp{any} have the normal meaning.
+The value @samp{base} means that
+the base of name of the file in which the type declaration appears
+must match the base of the name of the main compilation file.
+In practice, this means that
+types declared in @file{foo.c} and @file{foo.h} will have debug information,
+but types declared in other header will not.
+The value @samp{sys} means those types satisfying @samp{base}
+or declared in system or compiler headers.
+
+You may need to experiment to determine the best settings for your application.
+
+The default is @samp{-femit-struct-debug-detailed=all}.
+
+This option works only with DWARF 2.
+
 @cindex @command{prof}
 @item -p
 @opindex p
@@ -4554,7 +4686,7 @@ different text / bss / data / heap / stack / dso start locations.
 @item -fdump-unnumbered
 @opindex fdump-unnumbered
 When doing debugging dumps (see @option{-d} option above), suppress instruction
-numbers, line number note and address output.  This makes it more feasible to
+numbers and address output.  This makes it more feasible to
 use diff on debugging dumps for compiler invocations with different
 options, in particular with and without @option{-g}.
 
@@ -5060,7 +5192,8 @@ invoking @option{-O2} on programs that use computed gotos.
 @opindex O3
 Optimize yet more.  @option{-O3} turns on all optimizations specified by
 @option{-O2} and also turns on the @option{-finline-functions},
-@option{-funswitch-loops} and @option{-fgcse-after-reload} options.
+@option{-funswitch-loops}, @option{-fpredictive-commoning} and
+@option{-fgcse-after-reload} options.
 
 @item -O0
 @opindex O0
@@ -5346,7 +5479,7 @@ the condition is known to be true or false.
 Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fsplit-wide-types
-@opindex -fsplit-wide-types
+@opindex fsplit-wide-types
 When using a type that occupies multiple registers, such as @code{long
 long} on a 32-bit system, split the registers apart and allocate them
 independently.  This normally generates better code for those types,
@@ -5611,7 +5744,7 @@ enabled by default at @option{-O2} and @option{-O3}.
 Perform Full Redundancy Elimination (FRE) on trees.  The difference
 between FRE and PRE is that FRE only considers expressions
 that are computed on all paths leading to the redundant computation.
-This analysis faster than PRE, though it exposes fewer redundancies.
+This analysis is faster than PRE, though it exposes fewer redundancies.
 This flag is enabled by default at @option{-O} and higher.
 
 @item -ftree-copy-prop
@@ -5762,7 +5895,7 @@ the loop is entered.  This usually makes programs run more slowly.
 @option{-funroll-loops},
 
 @item -fsplit-ivs-in-unroller
-@opindex -fsplit-ivs-in-unroller
+@opindex fsplit-ivs-in-unroller
 Enables expressing of values of induction variables in later iterations
 of the unrolled loop using the value in the first iteration.  This breaks
 long dependency chains, thus improving efficiency of the scheduling passes.
@@ -5775,9 +5908,17 @@ on some of the architectures due to restrictions in the CSE pass.
 This optimization is enabled by default.
 
 @item -fvariable-expansion-in-unroller
-@opindex -fvariable-expansion-in-unroller
+@opindex fvariable-expansion-in-unroller
 With this option, the compiler will create multiple copies of some
 local variables when unrolling a loop which can result in superior code.
+
+@item -fpredictive-commoning
+@opindex fpredictive-commoning
+Perform predictive commoning optimization, i.e., reusing computations
+(especially memory loads and stores) performed in previous
+iterations of loops.
+
+This option is enabled at level @option{-O3}.
 
 @item -fprefetch-loop-arrays
 @opindex fprefetch-loop-arrays
@@ -6787,10 +6928,29 @@ The maximum instructions CSE process before flushing. The default is 1000.
 
 @item max-aliased-vops
 
-Maximum number of virtual operands per statement allowed to represent
-aliases before triggering the alias grouping heuristic.  Alias
-grouping reduces compile times and memory consumption needed for
-aliasing at the expense of precision loss in alias information.
+Maximum number of virtual operands per function allowed to represent
+aliases before triggering the alias partitioning heuristic.  Alias
+partitioning reduces compile times and memory consumption needed for
+aliasing at the expense of precision loss in alias information.  The
+default value for this parameter is 100 for -O1, 500 for -O2 and 1000
+for -O3.
+
+Notice that if a function contains more memory statements than the
+value of this parameter, it is not really possible to achieve this
+reduction.  In this case, the compiler will use the number of memory
+statements as the value for @option{max-aliased-vops}.
+
+@item avg-aliased-vops
+
+Average number of virtual operands per statement allowed to represent
+aliases before triggering the alias partitioning heuristic.  This
+works in conjunction with @option{max-aliased-vops}.  If a function
+contains more than @option{max-aliased-vops} virtual operators, then
+memory symbols will be grouped into memory partitions until either the
+total number of virtual operators is below @option{max-aliased-vops}
+or the average number of virtual operators per memory statement is
+below @option{avg-aliased-vops}.  The default value for this parameter
+is 1 for -O1 and -O2, and 3 for -O3.
 
 @item ggc-min-expand
 
@@ -7761,6 +7921,19 @@ is a small example of its usage:
 %@{fgnu-runtime:%:replace-outfile(-lobjc -lobjc-gnu)@}
 @end smallexample
 
+@item @code{print-asm-header}
+The @code{print-asm-header} function takes no arguments and simply
+prints a banner like:
+
+@smallexample
+Assembler options
+=================
+
+Use "-Wa,OPTION" to pass "OPTION" to the assembler.
+@end smallexample
+
+It is used to separate compiler options from assembler options
+in the @option{--target-help} output.
 @end table
 
 @item %@{@code{S}@}
@@ -8427,6 +8600,23 @@ size.
 @cindex Blackfin Options
 
 @table @gcctabopt
+@item -mcpu=@var{cpu}
+@opindex mcpu=
+Specifies the name of the target Blackfin processor. Currently, @var{cpu}
+can be one of @samp{bf531}, @samp{bf532}, @samp{bf533},
+@samp{bf534}, @samp{bf536}, @samp{bf537}, @samp{bf561}.
+Without this option, @samp{bf532} is used as the processor by default.
+The corresponding predefined processor macros for @var{cpu} is to
+be defined.  For the @samp{bfin-elf} toolchain, this causes the hardware
+BSP provided by libgloss to be linked in if @samp{-msim} is not given.
+Support for @samp{bf561} is incomplete; only the processor macro is defined.
+
+@item -msim
+@opindex msim
+Specifies that the program will be run on the simulator.  This causes
+the simulator BSP provided by libgloss to be linked in.  This option
+has effect only for @samp{bfin-elf} toolchain.
+
 @item -momit-leaf-frame-pointer
 @opindex momit-leaf-frame-pointer
 Don't keep the frame pointer in a register for leaf functions.  This
@@ -8758,13 +8948,13 @@ warn about constructs contained within header files found via
 @var{dir}.  This option is valid only for the C family of languages.
 
 @item -gused
-@opindex -gused
+@opindex gused
 Emit debugging information for symbols that are used.  For STABS
 debugging format, this enables @option{-feliminate-unused-debug-symbols}.
 This is by default ON@.
 
 @item -gfull
-@opindex -gfull
+@opindex gfull
 Emit debugging information for all symbols and types.
 
 @item -mmacosx-version-min=@var{version}
@@ -8786,7 +8976,7 @@ applicable.  This mode also sets @option{-mno-altivec},
 @option{-mlong-branch} for PowerPC targets.
 
 @item -mone-byte-bool
-@opindex -mone-byte-bool
+@opindex mone-byte-bool
 Override the defaults for @samp{bool} so that @samp{sizeof(bool)==1}.
 By default @samp{sizeof(bool)} is @samp{4} when compiling for
 Darwin/PowerPC and @samp{1} when compiling for Darwin/x86, so this
@@ -8835,12 +9025,12 @@ This option specifies the @var{executable} that will be loading the build
 output file being linked.  See man ld(1) for more information.
 
 @item -dynamiclib
-@opindex -dynamiclib
+@opindex dynamiclib
 When passed this option, GCC will produce a dynamic library instead of
 an executable when linking, using the Darwin @file{libtool} command.
 
 @item -force_cpusubtype_ALL
-@opindex -force_cpusubtype_ALL
+@opindex force_cpusubtype_ALL
 This causes GCC's output file to have the @var{ALL} subtype, instead of
 one controlled by the @option{-mcpu} or @option{-march} option.
 
@@ -9976,8 +10166,10 @@ instruction set support.
 @item k8, opteron, athlon64, athlon-fx
 AMD K8 core based CPUs with x86-64 instruction set support.  (This supersets
 MMX, SSE, SSE2, 3dNOW!, enhanced 3dNOW! and 64-bit instruction set extensions.)
+@item k8-sse3, opteron-sse3, athlon64-sse3
+Improved versions of k8, opteron and athlon64 with SSE3 instruction set support.
 @item amdfam10, barcelona
-AMD Family 10 core based CPUs with x86-64 instruction set support.  (This
+AMD Family 10h core based CPUs with x86-64 instruction set support.  (This
 supersets MMX, SSE, SSE2, SSE3, SSE4A, 3dNOW!, enhanced 3dNOW!, ABM and 64-bit
 instruction set extensions.)
 @item winchip-c6
@@ -10010,18 +10202,6 @@ specifying @option{-march=@var{cpu-type}} implies @option{-mtune=@var{cpu-type}}
 @item -mcpu=@var{cpu-type}
 @opindex mcpu
 A deprecated synonym for @option{-mtune}.
-
-@item -m386
-@itemx -m486
-@itemx -mpentium
-@itemx -mpentiumpro
-@opindex m386
-@opindex m486
-@opindex mpentium
-@opindex mpentiumpro
-These options are synonyms for @option{-mtune=i386}, @option{-mtune=i486},
-@option{-mtune=pentium}, and @option{-mtune=pentiumpro} respectively.
-These synonyms are deprecated.
 
 @item -mfpmath=@var{unit}
 @opindex march
@@ -10166,14 +10346,6 @@ When @option{-mcmodel=medium} is specified, the data greater than
 @var{threshold} are placed in large data section.  This value must be the
 same across all object linked into the binary and defaults to 65535.
 
-@item -msvr3-shlib
-@itemx -mno-svr3-shlib
-@opindex msvr3-shlib
-@opindex mno-svr3-shlib
-Control whether GCC places uninitialized local variables into the
-@code{bss} or @code{data} segments.  @option{-msvr3-shlib} places them
-into @code{bss}.  These options are meaningful only on System V Release 3.
-
 @item -mrtd
 @opindex mrtd
 Use a different function-calling convention, in which functions that
@@ -10232,12 +10404,21 @@ the system libraries and startup modules.
 @opindex mpc80
 
 Set 80387 floating-point precision to 32, 64 or 80 bits.  When @option{-mpc32}
-is specified, the significand of floating-point operations is rounded to 24
-bits (single precision), @option{-mpc64} rounds the significand of
-floating-point operations to 53 bits (double precision) and @option{-mpc80}
-rounds the significand of floating-point operations to 64 bits (extended
-double precision).  Note that a change of default precision control may
-affect the results returned by some of the mathematical functions.
+is specified, the significands of results of floating-point operations are
+rounded to 24 bits (single precision); @option{-mpc64} rounds the the
+significands of results of floating-point operations to 53 bits (double
+precision) and @option{-mpc80} rounds the significands of results of
+floating-point operations to 64 bits (extended double precision), which is
+the default.  When this option is used, floating-point operations in higher
+precisions are not available to the programmer without setting the FPU
+control word explicitly.
+
+Setting the rounding of floating-point operations to less than the default
+80 bits can speed some programs by 2% or more.  Note that some mathematical
+libraries assume that extended precision (80 bit) floating-point operations
+are enabled by default; routines in such libraries could suffer significant
+loss of accuracy, typically through so-called "catastrophic cancellation",
+when this option is used to set the precision to less than extended precision. 
 
 @item -mstackrealign
 @opindex mstackrealign
@@ -10289,6 +10470,12 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-sse3
 @item -mssse3
 @itemx -mno-ssse3
+@item -msse4.1
+@itemx -mno-sse4.1
+@item -msse4.2
+@itemx -mno-sse4.2
+@item -msse4
+@itemx -mno-sse4
 @item -msse4a
 @item -mno-sse4a
 @item -m3dnow
@@ -10304,7 +10491,8 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4A, ABM or 3DNow! extended instruction sets.
+SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4A, ABM or 3DNow! extended
+instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
 disabled by these switches.
@@ -10320,7 +10508,7 @@ the file containing the CPU detection code should be compiled without
 these options.
 
 @item -mcx16
-@opindex -mcx16
+@opindex mcx16
 This option will enable GCC to use CMPXCHG16B instruction in generated code.
 CMPXCHG16B allows for atomic operations on 128-bit double quadword (or oword)
 data types.  This is useful for high resolution counters that could be updated
@@ -10328,7 +10516,7 @@ by multiple processors (or cores).  This instruction is generated as part of
 atomic built-in functions: see @ref{Atomic Builtins} for details.
 
 @item -msahf
-@opindex -msahf
+@opindex msahf
 This option will enable GCC to use SAHF instruction in generated 64-bit code.
 Early Intel CPUs with Intel 64 lacked LAHF and SAHF instructions supported
 by AMD64 until introduction of Pentium 4 G1 step in December 2005.  LAHF and
@@ -10608,8 +10796,8 @@ to 64 bits.  These are HP-UX specific flags.
 
 @item -mno-sched-br-data-spec
 @itemx -msched-br-data-spec
-@opindex -mno-sched-br-data-spec
-@opindex -msched-br-data-spec
+@opindex mno-sched-br-data-spec
+@opindex msched-br-data-spec
 (Dis/En)able data speculative scheduling before reload.
 This will result in generation of the ld.a instructions and
 the corresponding check instructions (ld.c / chk.a).
@@ -10617,8 +10805,8 @@ The default is 'disable'.
 
 @item -msched-ar-data-spec
 @itemx -mno-sched-ar-data-spec
-@opindex -msched-ar-data-spec
-@opindex -mno-sched-ar-data-spec
+@opindex msched-ar-data-spec
+@opindex mno-sched-ar-data-spec
 (En/Dis)able data speculative scheduling after reload.
 This will result in generation of the ld.a instructions and
 the corresponding check instructions (ld.c / chk.a).
@@ -10626,8 +10814,8 @@ The default is 'enable'.
 
 @item -mno-sched-control-spec
 @itemx -msched-control-spec
-@opindex -mno-sched-control-spec
-@opindex -msched-control-spec
+@opindex mno-sched-control-spec
+@opindex msched-control-spec
 (Dis/En)able control speculative scheduling.  This feature is
 available only during region scheduling (i.e. before reload).
 This will result in generation of the ld.s instructions and
@@ -10636,8 +10824,8 @@ The default is 'disable'.
 
 @item -msched-br-in-data-spec
 @itemx -mno-sched-br-in-data-spec
-@opindex -msched-br-in-data-spec
-@opindex -mno-sched-br-in-data-spec
+@opindex msched-br-in-data-spec
+@opindex mno-sched-br-in-data-spec
 (En/Dis)able speculative scheduling of the instructions that
 are dependent on the data speculative loads before reload.
 This is effective only with @option{-msched-br-data-spec} enabled.
@@ -10645,8 +10833,8 @@ The default is 'enable'.
 
 @item -msched-ar-in-data-spec
 @itemx -mno-sched-ar-in-data-spec
-@opindex -msched-ar-in-data-spec
-@opindex -mno-sched-ar-in-data-spec
+@opindex msched-ar-in-data-spec
+@opindex mno-sched-ar-in-data-spec
 (En/Dis)able speculative scheduling of the instructions that
 are dependent on the data speculative loads after reload.
 This is effective only with @option{-msched-ar-data-spec} enabled.
@@ -10654,8 +10842,8 @@ The default is 'enable'.
 
 @item -msched-in-control-spec
 @itemx -mno-sched-in-control-spec
-@opindex -msched-in-control-spec
-@opindex -mno-sched-in-control-spec
+@opindex msched-in-control-spec
+@opindex mno-sched-in-control-spec
 (En/Dis)able speculative scheduling of the instructions that
 are dependent on the control speculative loads.
 This is effective only with @option{-msched-control-spec} enabled.
@@ -10663,8 +10851,8 @@ The default is 'enable'.
 
 @item -msched-ldc
 @itemx -mno-sched-ldc
-@opindex -msched-ldc
-@opindex -mno-sched-ldc
+@opindex msched-ldc
+@opindex mno-sched-ldc
 (En/Dis)able use of simple data speculation checks ld.c .
 If disabled, only chk.a instructions will be emitted to check
 data speculative loads.
@@ -10672,8 +10860,8 @@ The default is 'enable'.
 
 @item -mno-sched-control-ldc
 @itemx -msched-control-ldc
-@opindex -mno-sched-control-ldc
-@opindex -msched-control-ldc
+@opindex mno-sched-control-ldc
+@opindex msched-control-ldc
 (Dis/En)able use of ld.c instructions to check control speculative loads.
 If enabled, in case of control speculative load with no speculatively
 scheduled dependent instructions this load will be emitted as ld.sa and
@@ -10682,14 +10870,14 @@ The default is 'disable'.
 
 @item -mno-sched-spec-verbose
 @itemx -msched-spec-verbose
-@opindex -mno-sched-spec-verbose
-@opindex -msched-spec-verbose
+@opindex mno-sched-spec-verbose
+@opindex msched-spec-verbose
 (Dis/En)able printing of the information about speculative motions.
 
 @item -mno-sched-prefer-non-data-spec-insns
 @itemx -msched-prefer-non-data-spec-insns
-@opindex -mno-sched-prefer-non-data-spec-insns
-@opindex -msched-prefer-non-data-spec-insns
+@opindex mno-sched-prefer-non-data-spec-insns
+@opindex msched-prefer-non-data-spec-insns
 If enabled, data speculative instructions will be chosen for schedule
 only if there are no other choices at the moment.  This will make
 the use of the data speculation much more conservative.
@@ -10697,8 +10885,8 @@ The default is 'disable'.
 
 @item -mno-sched-prefer-non-control-spec-insns
 @itemx -msched-prefer-non-control-spec-insns
-@opindex -mno-sched-prefer-non-control-spec-insns
-@opindex -msched-prefer-non-control-spec-insns
+@opindex mno-sched-prefer-non-control-spec-insns
+@opindex msched-prefer-non-control-spec-insns
 If enabled, control speculative instructions will be chosen for schedule
 only if there are no other choices at the moment.  This will make
 the use of the control speculation much more conservative.
@@ -10706,8 +10894,8 @@ The default is 'disable'.
 
 @item -mno-sched-count-spec-in-critical-path
 @itemx -msched-count-spec-in-critical-path
-@opindex -mno-sched-count-spec-in-critical-path
-@opindex -msched-count-spec-in-critical-path
+@opindex mno-sched-count-spec-in-critical-path
+@opindex msched-count-spec-in-critical-path
 If enabled, speculative dependencies will be considered during
 computation of the instructions priorities.  This will make the use of the
 speculation a bit more conservative.
@@ -11118,7 +11306,7 @@ Additionally, parameters passed on the stack are also aligned to a
 16-bit boundary even on targets whose API mandates promotion to 32-bit.
 
 @item -mno-short
-@opindex -mno-short
+@opindex mno-short
 Do not consider type @code{int} to be 16 bits wide.  This is the default.
 
 @item -mnobitfield
@@ -11376,6 +11564,7 @@ The processor names are:
 @samp{24kc}, @samp{24kf}, @samp{24kx},
 @samp{24kec}, @samp{24kef}, @samp{24kex},
 @samp{34kc}, @samp{34kf}, @samp{34kx},
+@samp{74kc}, @samp{74kf}, @samp{74kx},
 @samp{m4k},
 @samp{orion},
 @samp{r2000}, @samp{r3000}, @samp{r3900}, @samp{r4000}, @samp{r4400},
@@ -11579,25 +11768,25 @@ floating-point calculations using library calls instead.
 Assume that the floating-point coprocessor only supports single-precision
 operations.
 
-@itemx -mdouble-float
+@item -mdouble-float
 @opindex mdouble-float
 Assume that the floating-point coprocessor supports double-precision
 operations.  This is the default.
 
-@itemx -mdsp
+@item -mdsp
 @itemx -mno-dsp
 @opindex mdsp
 @opindex mno-dsp
 Use (do not use) the MIPS DSP ASE.  @xref{MIPS DSP Built-in Functions}.
 
-@itemx -mdspr2
+@item -mdspr2
 @itemx -mno-dspr2
 @opindex mdspr2
 @opindex mno-dspr2
 Use (do not use) the MIPS DSP ASE REV 2.  @xref{MIPS DSP Built-in Functions}.
 The option @option{-mdspr2} implies @option{-mdsp}.
 
-@itemx -mpaired-single
+@item -mpaired-single
 @itemx -mno-paired-single
 @opindex mpaired-single
 @opindex mno-paired-single
@@ -11606,12 +11795,26 @@ Use (do not use) paired-single floating-point instructions.
 when generating 64-bit code and requires hardware floating-point
 support to be enabled.
 
-@itemx -mips3d
+@item -mdmx
+@itemx -mno-mdmx
+@opindex mdmx
+@opindex mno-mdmx
+Use (do not use) MIPS Digital Media Extension instructions.
+This option can only be used when generating 64-bit code and requires
+hardware floating-point support to be enabled.
+
+@item -mips3d
 @itemx -mno-mips3d
 @opindex mips3d
 @opindex mno-mips3d
 Use (do not use) the MIPS-3D ASE@.  @xref{MIPS-3D Built-in Functions}.
 The option @option{-mips3d} implies @option{-mpaired-single}.
+
+@item -mmt
+@itemx -mno-mt
+@opindex mmt
+@opindex mno-mt
+Use (do not use) MT Multithreading instructions.
 
 @item -mlong64
 @opindex mlong64
@@ -13135,15 +13338,15 @@ These options are defined for Score implementations:
 Compile code for big endian mode.  This is the default.
 
 @item -mel
-@opindex -mel
+@opindex mel
 Compile code for little endian mode. 
 
 @item -mnhwloop
-@opindex -mnhwloop
+@opindex mnhwloop
 Disable generate bcnz instruction.
 
 @item -muls
-@opindex -muls
+@opindex muls
 Enable generate unaligned load and store instruction.
 
 @item -mmac

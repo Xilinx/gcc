@@ -18,13 +18,16 @@ public:
   virtual jboolean equals(::java::lang::Object *);
   virtual jint hashCode();
   virtual ::java::lang::String * toString();
-  virtual jint target$compareTo(::java::lang::Enum *);
+  virtual jint Enum$compareTo(::java::lang::Enum *);
 public: // actually protected
   virtual ::java::lang::Object * clone();
 public:
   virtual ::java::lang::String * name();
   virtual jint ordinal();
   virtual ::java::lang::Class * getDeclaringClass();
+public: // actually protected
+  virtual void finalize();
+public:
   virtual jint compareTo(::java::lang::Object *);
 private:
   static const jlong serialVersionUID = -4300926546619394005LL;

@@ -87,6 +87,16 @@
    (UNSPECV_SC		16)	; store-conditional
   ])
 
+;; On non-BWX targets, CQImode must be handled the similarly to HImode
+;; when generating reloads.
+(define_mode_macro RELOAD12 [QI HI CQI])
+(define_mode_attr reloadmode [(QI "qi") (HI "hi") (CQI "hi")])
+
+;; Other mode macros
+(define_mode_macro I12MODE [QI HI])
+(define_mode_macro I48MODE [SI DI])
+(define_mode_attr modesuffix [(SI "l") (DI "q")])
+
 ;; Where necessary, the suffixes _le and _be are used to distinguish between
 ;; little-endian and big-endian patterns.
 ;;
@@ -1664,10 +1674,7 @@
 
   if (unaligned_memory_operand (operands[1], QImode))
     {
-      rtx seq
-	= gen_unaligned_extendqidi (operands[0],
-				    get_unaligned_address (operands[1], 1));
-
+      rtx seq = gen_unaligned_extendqidi (operands[0], XEXP (operands[1], 0));
       alpha_set_memflags (seq, operands[1]);
       emit_insn (seq);
       DONE;
@@ -1727,9 +1734,7 @@
 
   if (unaligned_memory_operand (operands[1], HImode))
     {
-      rtx seq
-	= gen_unaligned_extendhidi (operands[0],
-				    get_unaligned_address (operands[1], 2));
+      rtx seq = gen_unaligned_extendhidi (operands[0], XEXP (operands[1], 0));
 
       alpha_set_memflags (seq, operands[1]);
       emit_insn (seq);
@@ -1744,12 +1749,13 @@
 ;; as a pattern saves one instruction.  The code is similar to that for
 ;; the unaligned loads (see below).
 ;;
-;; Operand 1 is the address + 1 (+2 for HI), operand 0 is the result.
+;; Operand 1 is the address, operand 0 is the result.
 (define_expand "unaligned_extendqidi"
   [(use (match_operand:QI 0 "register_operand" ""))
    (use (match_operand:DI 1 "address_operand" ""))]
   ""
 {
+  operands[0] = gen_lowpart (DImode, operands[0]);
   if (WORDS_BIG_ENDIAN)
     emit_insn (gen_unaligned_extendqidi_be (operands[0], operands[1]));
   else
@@ -1758,48 +1764,40 @@
 })
 
 (define_expand "unaligned_extendqidi_le"
-  [(set (match_dup 2) (match_operand:DI 1 "address_operand" ""))
-   (set (match_dup 3)
-	(mem:DI (and:DI (plus:DI (match_dup 2) (const_int -1))
-			(const_int -8))))
+  [(set (match_dup 3)
+	(mem:DI (and:DI (match_operand:DI 1 "" "") (const_int -8))))
    (set (match_dup 4)
 	(ashift:DI (match_dup 3)
 		   (minus:DI (const_int 64)
 			     (ashift:DI
 			      (and:DI (match_dup 2) (const_int 7))
 			      (const_int 3)))))
-   (set (subreg:DI (match_operand:QI 0 "register_operand" "") 0)
+   (set (match_operand:DI 0 "register_operand" "")
 	(ashiftrt:DI (match_dup 4) (const_int 56)))]
   "! WORDS_BIG_ENDIAN"
 {
-  operands[2] = gen_reg_rtx (DImode);
+  operands[2] = get_unaligned_offset (operands[1], 1);
   operands[3] = gen_reg_rtx (DImode);
   operands[4] = gen_reg_rtx (DImode);
 })
 
 (define_expand "unaligned_extendqidi_be"
-  [(set (match_dup 2) (match_operand:DI 1 "address_operand" ""))
-   (set (match_dup 3) (plus:DI (match_dup 2) (const_int -1)))
+  [(set (match_dup 3)
+	(mem:DI (and:DI (match_operand:DI 1 "" "") (const_int -8))))
    (set (match_dup 4)
-	(mem:DI (and:DI (match_dup 3)
-			(const_int -8))))
-   (set (match_dup 5) (plus:DI (match_dup 2) (const_int -2)))
-   (set (match_dup 6)
-	(ashift:DI (match_dup 4)
+	(ashift:DI (match_dup 3)
 		   (ashift:DI
 		     (and:DI
-		       (plus:DI (match_dup 5) (const_int 1))
+		       (plus:DI (match_dup 2) (const_int 1))
 		       (const_int 7))
 		     (const_int 3))))
-   (set (subreg:DI (match_operand:QI 0 "register_operand" "") 0)
-	(ashiftrt:DI (match_dup 6) (const_int 56)))]
+   (set (match_operand:DI 0 "register_operand" "")
+	(ashiftrt:DI (match_dup 4) (const_int 56)))]
   "WORDS_BIG_ENDIAN"
 {
-  operands[2] = gen_reg_rtx (DImode);
+  operands[2] = get_unaligned_offset (operands[1], -1);
   operands[3] = gen_reg_rtx (DImode);
   operands[4] = gen_reg_rtx (DImode);
-  operands[5] = gen_reg_rtx (DImode);
-  operands[6] = gen_reg_rtx (DImode);
 })
 
 (define_expand "unaligned_extendhidi"
@@ -1808,17 +1806,16 @@
   ""
 {
   operands[0] = gen_lowpart (DImode, operands[0]);
-  emit_insn ((WORDS_BIG_ENDIAN
-	      ? gen_unaligned_extendhidi_be
-	      : gen_unaligned_extendhidi_le) (operands[0], operands[1]));
+  if (WORDS_BIG_ENDIAN)
+    emit_insn (gen_unaligned_extendhidi_be (operands[0], operands[1]));
+  else
+    emit_insn (gen_unaligned_extendhidi_le (operands[0], operands[1]));
   DONE;
 })
 
 (define_expand "unaligned_extendhidi_le"
-  [(set (match_dup 2) (match_operand:DI 1 "address_operand" ""))
-   (set (match_dup 3)
-	(mem:DI (and:DI (plus:DI (match_dup 2) (const_int -2))
-			(const_int -8))))
+  [(set (match_dup 3)
+	(mem:DI (and:DI (match_operand:DI 1 "" "") (const_int -8))))
    (set (match_dup 4)
 	(ashift:DI (match_dup 3)
 		   (minus:DI (const_int 64)
@@ -1829,34 +1826,28 @@
 	(ashiftrt:DI (match_dup 4) (const_int 48)))]
   "! WORDS_BIG_ENDIAN"
 {
-  operands[2] = gen_reg_rtx (DImode);
+  operands[2] = get_unaligned_offset (operands[1], 2);
   operands[3] = gen_reg_rtx (DImode);
   operands[4] = gen_reg_rtx (DImode);
 })
 
 (define_expand "unaligned_extendhidi_be"
-  [(set (match_dup 2) (match_operand:DI 1 "address_operand" ""))
-   (set (match_dup 3) (plus:DI (match_dup 2) (const_int -2)))
+  [(set (match_dup 3)
+	(mem:DI (and:DI (match_operand:DI 1 "" "") (const_int -8))))
    (set (match_dup 4)
-	(mem:DI (and:DI (match_dup 3)
-			(const_int -8))))
-   (set (match_dup 5) (plus:DI (match_dup 2) (const_int -3)))
-   (set (match_dup 6)
-	(ashift:DI (match_dup 4)
+	(ashift:DI (match_dup 3)
 		   (ashift:DI
 		     (and:DI
-		       (plus:DI (match_dup 5) (const_int 1))
+		       (plus:DI (match_dup 2) (const_int 1))
 		       (const_int 7))
 		     (const_int 3))))
    (set (match_operand:DI 0 "register_operand" "")
-	(ashiftrt:DI (match_dup 6) (const_int 48)))]
+	(ashiftrt:DI (match_dup 4) (const_int 48)))]
   "WORDS_BIG_ENDIAN"
 {
-  operands[2] = gen_reg_rtx (DImode);
+  operands[2] = get_unaligned_offset (operands[1], -1);
   operands[3] = gen_reg_rtx (DImode);
   operands[4] = gen_reg_rtx (DImode);
-  operands[5] = gen_reg_rtx (DImode);
-  operands[6] = gen_reg_rtx (DImode);
 })
 
 (define_insn "*extxl_const"
@@ -6104,136 +6095,120 @@
     DONE;
 })
 
-;; Here are the versions for reload.  Note that in the unaligned cases
-;; we know that the operand must not be a pseudo-register because stack
-;; slots are always aligned references.
-
-(define_expand "reload_inqi"
-  [(parallel [(match_operand:QI 0 "register_operand" "=r")
-	      (match_operand:QI 1 "any_memory_operand" "m")
-	      (match_operand:TI 2 "register_operand" "=&r")])]
-  "! TARGET_BWX"
+;; We need to hook into the extra support that we have for HImode 
+;; reloads when BWX insns are not available.
+(define_expand "movcqi"
+  [(set (match_operand:CQI 0 "nonimmediate_operand" "")
+	(match_operand:CQI 1 "general_operand" ""))]
+  "!TARGET_BWX"
 {
-  rtx scratch, seq;
-
-  if (aligned_memory_operand (operands[1], QImode))
+  if (GET_CODE (operands[0]) == CONCAT || GET_CODE (operands[1]) == CONCAT)
+    ;
+  else if (!any_memory_operand (operands[0], CQImode))
     {
-      seq = gen_reload_inqi_help (operands[0], operands[1],
-				  gen_rtx_REG (SImode, REGNO (operands[2])));
+      if (!any_memory_operand (operands[1], CQImode))
+	{
+	  emit_move_insn (gen_lowpart (HImode, operands[0]),
+			  gen_lowpart (HImode, operands[1]));
+	  DONE;
+	}
+      if (aligned_memory_operand (operands[1], CQImode))
+	{
+	  bool done;
+	do_aligned1:
+	  operands[1] = gen_lowpart (HImode, operands[1]);
+	do_aligned2:
+	  operands[0] = gen_lowpart (HImode, operands[0]);
+	  done = alpha_expand_mov_nobwx (HImode, operands);
+	  gcc_assert (done);
+	  DONE;
+	}
     }
-  else
+  else if (aligned_memory_operand (operands[0], CQImode))
     {
-      rtx addr;
-
-      /* It is possible that one of the registers we got for operands[2]
-	 might coincide with that of operands[0] (which is why we made
-	 it TImode).  Pick the other one to use as our scratch.  */
-      if (REGNO (operands[0]) == REGNO (operands[2]))
-	scratch = gen_rtx_REG (DImode, REGNO (operands[2]) + 1);
-      else
-	scratch = gen_rtx_REG (DImode, REGNO (operands[2]));
-
-      addr = get_unaligned_address (operands[1], 0);
-      operands[0] = gen_rtx_REG (DImode, REGNO (operands[0]));
-      seq = gen_unaligned_loadqi (operands[0], addr, scratch, operands[0]);
-      alpha_set_memflags (seq, operands[1]);
+      if (MEM_P (operands[1]))
+	{
+	  rtx x = gen_reg_rtx (HImode);
+	  emit_move_insn (gen_lowpart (CQImode, x), operands[1]);
+	  operands[1] = x;
+	  goto do_aligned2;
+	}
+      goto do_aligned1;
     }
+
+  gcc_assert (!reload_in_progress);
+  emit_move_complex_parts (operands[0], operands[1]);
+  DONE;
+})
+
+;; Here are the versions for reload.
+;; 
+;; The aligned input case is recognized early in alpha_secondary_reload
+;; in order to avoid allocating an unnecessary scratch register.
+;; 
+;; Note that in the unaligned cases we know that the operand must not be
+;; a pseudo-register because stack slots are always aligned references.
+
+(define_expand "reload_in<mode>"
+  [(parallel [(match_operand:RELOAD12 0 "register_operand" "=r")
+	      (match_operand:RELOAD12 1 "any_memory_operand" "m")
+	      (match_operand:TI 2 "register_operand" "=&r")])]
+  "!TARGET_BWX"
+{
+  rtx scratch, seq, addr;
+  unsigned regno = REGNO (operands[2]);
+
+  /* It is possible that one of the registers we got for operands[2]
+     might coincide with that of operands[0] (which is why we made
+     it TImode).  Pick the other one to use as our scratch.  */
+  if (regno == REGNO (operands[0]))
+    regno++;
+  scratch = gen_rtx_REG (DImode, regno);
+
+  addr = get_unaligned_address (operands[1]);
+  operands[0] = gen_rtx_REG (DImode, REGNO (operands[0]));
+  seq = gen_unaligned_load<reloadmode> (operands[0], addr,
+					scratch, operands[0]);
+  alpha_set_memflags (seq, operands[1]);
+
   emit_insn (seq);
   DONE;
 })
 
-(define_expand "reload_inhi"
-  [(parallel [(match_operand:HI 0 "register_operand" "=r")
-	      (match_operand:HI 1 "any_memory_operand" "m")
+(define_expand "reload_out<mode>"
+  [(parallel [(match_operand:RELOAD12 0 "any_memory_operand" "=m")
+	      (match_operand:RELOAD12 1 "register_operand" "r")
 	      (match_operand:TI 2 "register_operand" "=&r")])]
   "! TARGET_BWX"
 {
-  rtx scratch, seq;
+  unsigned regno = REGNO (operands[2]);
 
-  if (aligned_memory_operand (operands[1], HImode))
+  if (<MODE>mode == CQImode)
     {
-      seq = gen_reload_inhi_help (operands[0], operands[1],
-				  gen_rtx_REG (SImode, REGNO (operands[2])));
+      operands[0] = gen_lowpart (HImode, operands[0]);
+      operands[1] = gen_lowpart (HImode, operands[1]);
     }
-  else
+
+  if (aligned_memory_operand (operands[0], <MODE>mode))
     {
-      rtx addr;
-
-      /* It is possible that one of the registers we got for operands[2]
-	 might coincide with that of operands[0] (which is why we made
-	 it TImode).  Pick the other one to use as our scratch.  */
-      if (REGNO (operands[0]) == REGNO (operands[2]))
-	scratch = gen_rtx_REG (DImode, REGNO (operands[2]) + 1);
-      else
-	scratch = gen_rtx_REG (DImode, REGNO (operands[2]));
-
-      addr = get_unaligned_address (operands[1], 0);
-      operands[0] = gen_rtx_REG (DImode, REGNO (operands[0]));
-      seq = gen_unaligned_loadhi (operands[0], addr, scratch, operands[0]);
-      alpha_set_memflags (seq, operands[1]);
-    }
-  emit_insn (seq);
-  DONE;
-})
-
-(define_expand "reload_outqi"
-  [(parallel [(match_operand:QI 0 "any_memory_operand" "=m")
-	      (match_operand:QI 1 "register_operand" "r")
-	      (match_operand:TI 2 "register_operand" "=&r")])]
-  "! TARGET_BWX"
-{
-  if (aligned_memory_operand (operands[0], QImode))
-    {
-      emit_insn (gen_reload_outqi_help
+      emit_insn (gen_reload_out<reloadmode>_aligned
 		 (operands[0], operands[1],
-		  gen_rtx_REG (SImode, REGNO (operands[2])),
-		  gen_rtx_REG (SImode, REGNO (operands[2]) + 1)));
+		  gen_rtx_REG (SImode, regno),
+		  gen_rtx_REG (SImode, regno + 1)));
     }
   else
     {
-      rtx addr = get_unaligned_address (operands[0], 0);
-      rtx scratch1 = gen_rtx_REG (DImode, REGNO (operands[2]));
-      rtx scratch2 = gen_rtx_REG (DImode, REGNO (operands[2]) + 1);
+      rtx addr = get_unaligned_address (operands[0]);
+      rtx scratch1 = gen_rtx_REG (DImode, regno);
+      rtx scratch2 = gen_rtx_REG (DImode, regno + 1);
       rtx scratch3 = scratch1;
       rtx seq;
 
       if (GET_CODE (addr) == REG)
 	scratch1 = addr;
 
-      seq = gen_unaligned_storeqi (addr, operands[1], scratch1,
-				   scratch2, scratch3);
-      alpha_set_memflags (seq, operands[0]);
-      emit_insn (seq);
-    }
-  DONE;
-})
-
-(define_expand "reload_outhi"
-  [(parallel [(match_operand:HI 0 "any_memory_operand" "=m")
-	      (match_operand:HI 1 "register_operand" "r")
-	      (match_operand:TI 2 "register_operand" "=&r")])]
-  "! TARGET_BWX"
-{
-  if (aligned_memory_operand (operands[0], HImode))
-    {
-      emit_insn (gen_reload_outhi_help
-		 (operands[0], operands[1],
-		  gen_rtx_REG (SImode, REGNO (operands[2])),
-		  gen_rtx_REG (SImode, REGNO (operands[2]) + 1)));
-    }
-  else
-    {
-      rtx addr = get_unaligned_address (operands[0], 0);
-      rtx scratch1 = gen_rtx_REG (DImode, REGNO (operands[2]));
-      rtx scratch2 = gen_rtx_REG (DImode, REGNO (operands[2]) + 1);
-      rtx scratch3 = scratch1;
-      rtx seq;
-
-      if (GET_CODE (addr) == REG)
-	scratch1 = addr;
-
-      seq = gen_unaligned_storehi (addr, operands[1], scratch1,
-				   scratch2, scratch3);
+      seq = gen_unaligned_store<reloadmode> (addr, operands[1], scratch1,
+					     scratch2, scratch3);
       alpha_set_memflags (seq, operands[0]);
       emit_insn (seq);
     }
@@ -6244,65 +6219,30 @@
 ;; always get a proper address for a stack slot during reload_foo
 ;; expansion, so we must delay our address manipulations until after.
 
-(define_insn_and_split "reload_inqi_help"
-  [(set (match_operand:QI 0 "register_operand" "=r")
-        (match_operand:QI 1 "memory_operand" "m"))
-   (clobber (match_operand:SI 2 "register_operand" "=r"))]
-  "! TARGET_BWX && (reload_in_progress || reload_completed)"
+(define_insn_and_split "reload_in<mode>_aligned"
+  [(set (match_operand:I12MODE 0 "register_operand" "=r")
+        (match_operand:I12MODE 1 "memory_operand" "m"))]
+  "!TARGET_BWX && (reload_in_progress || reload_completed)"
   "#"
-  "! TARGET_BWX && reload_completed"
+  "!TARGET_BWX && reload_completed"
   [(const_int 0)]
 {
   rtx aligned_mem, bitnum;
   get_aligned_mem (operands[1], &aligned_mem, &bitnum);
-  operands[0] = gen_lowpart (DImode, operands[0]);
-  emit_insn (gen_aligned_loadqi (operands[0], aligned_mem, bitnum,
-				 operands[2]));
+  emit_insn (gen_aligned_load<reloadmode>
+	     (gen_lowpart (DImode, operands[0]), aligned_mem, bitnum,
+	      gen_rtx_REG (SImode, REGNO (operands[0]))));
   DONE;
 })
 
-(define_insn_and_split "reload_inhi_help"
-  [(set (match_operand:HI 0 "register_operand" "=r")
-        (match_operand:HI 1 "memory_operand" "m"))
-   (clobber (match_operand:SI 2 "register_operand" "=r"))]
-  "! TARGET_BWX && (reload_in_progress || reload_completed)"
-  "#"
-  "! TARGET_BWX && reload_completed"
-  [(const_int 0)]
-{
-  rtx aligned_mem, bitnum;
-  get_aligned_mem (operands[1], &aligned_mem, &bitnum);
-  operands[0] = gen_lowpart (DImode, operands[0]);
-  emit_insn (gen_aligned_loadhi (operands[0], aligned_mem, bitnum,
-				 operands[2]));
-  DONE;
-})
-
-(define_insn_and_split "reload_outqi_help"
-  [(set (match_operand:QI 0 "memory_operand" "=m")
-        (match_operand:QI 1 "register_operand" "r"))
+(define_insn_and_split "reload_out<mode>_aligned"
+  [(set (match_operand:I12MODE 0 "memory_operand" "=m")
+        (match_operand:I12MODE 1 "register_operand" "r"))
    (clobber (match_operand:SI 2 "register_operand" "=r"))
    (clobber (match_operand:SI 3 "register_operand" "=r"))]
-  "! TARGET_BWX && (reload_in_progress || reload_completed)"
+  "!TARGET_BWX && (reload_in_progress || reload_completed)"
   "#"
-  "! TARGET_BWX && reload_completed"
-  [(const_int 0)]
-{
-  rtx aligned_mem, bitnum;
-  get_aligned_mem (operands[0], &aligned_mem, &bitnum);
-  emit_insn (gen_aligned_store (aligned_mem, operands[1], bitnum,
-				operands[2], operands[3]));
-  DONE;
-})
-
-(define_insn_and_split "reload_outhi_help"
-  [(set (match_operand:HI 0 "memory_operand" "=m")
-        (match_operand:HI 1 "register_operand" "r"))
-   (clobber (match_operand:SI 2 "register_operand" "=r"))
-   (clobber (match_operand:SI 3 "register_operand" "=r"))]
-  "! TARGET_BWX && (reload_in_progress || reload_completed)"
-  "#"
-  "! TARGET_BWX && reload_completed"
+  "!TARGET_BWX && reload_completed"
   [(const_int 0)]
 {
   rtx aligned_mem, bitnum;

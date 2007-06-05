@@ -72,6 +72,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "arith.h"
 #include "match.h"
 #include "parse.h" /* FIXME */
+#include "md5.h"
 
 #define MODULE_EXTENSION ".mod"
 
@@ -170,6 +171,9 @@ gfc_use_rename;
 /* The FILE for the module we're reading or writing.  */
 static FILE *module_fp;
 
+/* MD5 context structure.  */
+static struct md5_ctx ctx;
+
 /* The name of the module we're reading (USE'ing) or writing.  */
 static char module_name[GFC_MAX_SYMBOL_LEN + 1];
 
@@ -185,7 +189,7 @@ static gfc_use_rename *gfc_rename_list;
 static pointer_info *pi_root;
 static int symbol_number;	/* Counter for assigning symbol numbers */
 
-/* Tells mio_expr_ref not to load unused equivalence members.  */
+/* Tells mio_expr_ref to make symbols for unused equivalence members.  */
 static bool in_load_equiv;
 
 
@@ -952,7 +956,7 @@ module_char (void)
 {
   int c;
 
-  c = fgetc (module_fp);
+  c = getc (module_fp);
 
   if (c == EOF)
     bad_module ("Unexpected EOF");
@@ -1272,9 +1276,12 @@ find_enum (const mstring *m)
 static void
 write_char (char out)
 {
-  if (fputc (out, module_fp) == EOF)
+  if (putc (out, module_fp) == EOF)
     gfc_fatal_error ("Error writing modules file: %s", strerror (errno));
 
+  /* Add this to our MD5.  */
+  md5_process_bytes (&out, sizeof (out), &ctx);
+  
   if (out != '\n')
     module_column++;
   else
@@ -2227,9 +2234,25 @@ mio_symtree_ref (gfc_symtree **stp)
       require_atom (ATOM_INTEGER);
       p = get_integer (atom_int);
 
-      /* An unused equivalence member; bail out.  */
+      /* An unused equivalence member; make a symbol and a symtree
+	 for it.  */
       if (in_load_equiv && p->u.rsym.symtree == NULL)
-	return;
+	{
+	  /* Since this is not used, it must have a unique name.  */
+	  p->u.rsym.symtree = get_unique_symtree (gfc_current_ns);
+
+	  /* Make the symbol.  */
+	  if (p->u.rsym.sym == NULL)
+	    {
+	      p->u.rsym.sym = gfc_new_symbol (p->u.rsym.true_name,
+					      gfc_current_ns);
+	      p->u.rsym.sym->module = gfc_get_string (p->u.rsym.module);
+	    }
+
+	  p->u.rsym.symtree->n.sym = p->u.rsym.sym;
+	  p->u.rsym.symtree->n.sym->refs++;
+	  p->u.rsym.referenced = 1;
+	}
       
       if (p->type == P_UNKNOWN)
 	p->type = P_SYMBOL;
@@ -3199,13 +3222,13 @@ load_equiv (void)
 	mio_expr (&tail->expr);
       }
 
-    /* Unused variables have no symtree.  */
-    unused = false;
+    /* Unused equivalence members have a unique name.  */
+    unused = true;
     for (eq = head; eq; eq = eq->eq)
       {
-	if (!eq->expr->symtree)
+	if (!check_unique_name (eq->expr->symtree->name))
 	  {
-	    unused = true;
+	    unused = false;
 	    break;
 	  }
       }
@@ -3916,6 +3939,49 @@ write_module (void)
 }
 
 
+/* Read a MD5 sum from the header of a module file.  If the file cannot
+   be opened, or we have any other error, we return -1.  */
+
+static int
+read_md5_from_module_file (const char * filename, unsigned char md5[16])
+{
+  FILE *file;
+  char buf[1024];
+  int n;
+
+  /* Open the file.  */
+  if ((file = fopen (filename, "r")) == NULL)
+    return -1;
+
+  /* Read two lines.  */
+  if (fgets (buf, sizeof (buf) - 1, file) == NULL
+      || fgets (buf, sizeof (buf) - 1, file) == NULL)
+    {
+      fclose (file);
+      return -1;
+    }
+
+  /* Close the file.  */
+  fclose (file);
+
+  /* If the header is not what we expect, or is too short, bail out.  */
+  if (strncmp (buf, "MD5:", 4) != 0 || strlen (buf) < 4 + 16)
+    return -1;
+
+  /* Now, we have a real MD5, read it into the array.  */
+  for (n = 0; n < 16; n++)
+    {
+      unsigned int x;
+
+      if (sscanf (&(buf[4+2*n]), "%02x", &x) != 1)
+       return -1;
+
+      md5[n] = x;
+    }
+
+  return 0;
+}
+
 /* Given module, dump it to disk.  If there was an error while
    processing the module, dump_flag will be set to zero and we delete
    the module file, even if it was already there.  */
@@ -3924,13 +3990,16 @@ void
 gfc_dump_module (const char *name, int dump_flag)
 {
   int n;
-  char *filename, *p;
+  char *filename, *filename_tmp, *p;
   time_t now;
+  fpos_t md5_pos;
+  unsigned char md5_new[16], md5_old[16];
 
   n = strlen (name) + strlen (MODULE_EXTENSION) + 1;
   if (gfc_option.module_dir != NULL)
     {
-      filename = (char *) alloca (n + strlen (gfc_option.module_dir));
+      n += strlen (gfc_option.module_dir);
+      filename = (char *) alloca (n);
       strcpy (filename, gfc_option.module_dir);
       strcat (filename, name);
     }
@@ -3941,26 +4010,41 @@ gfc_dump_module (const char *name, int dump_flag)
     }
   strcat (filename, MODULE_EXTENSION);
 
+  /* Name of the temporary file used to write the module.  */
+  filename_tmp = (char *) alloca (n + 1);
+  strcpy (filename_tmp, filename);
+  strcat (filename_tmp, "0");
+
+  /* There was an error while processing the module.  We delete the
+     module file, even if it was already there.  */
   if (!dump_flag)
     {
       unlink (filename);
       return;
     }
 
-  module_fp = fopen (filename, "w");
+  /* Write the module to the temporary file.  */
+  module_fp = fopen (filename_tmp, "w");
   if (module_fp == NULL)
     gfc_fatal_error ("Can't open module file '%s' for writing at %C: %s",
-		     filename, strerror (errno));
+		     filename_tmp, strerror (errno));
 
+  /* Write the header, including space reserved for the MD5 sum.  */
   now = time (NULL);
   p = ctime (&now);
 
   *strchr (p, '\n') = '\0';
 
-  fprintf (module_fp, "GFORTRAN module created from %s on %s\n", 
+  fprintf (module_fp, "GFORTRAN module created from %s on %s\nMD5:", 
 	   gfc_source_file, p);
-  fputs ("If you edit this, you'll get what you deserve.\n\n", module_fp);
+  fgetpos (module_fp, &md5_pos);
+  fputs ("00000000000000000000000000000000 -- "
+        "If you edit this, you'll get what you deserve.\n\n", module_fp);
 
+  /* Initialize the MD5 context that will be used for output.  */
+  md5_init_ctx (&ctx);
+
+  /* Write the module itself.  */
   iomode = IO_OUTPUT;
   strcpy (module_name, name);
 
@@ -3973,9 +4057,26 @@ gfc_dump_module (const char *name, int dump_flag)
 
   write_char ('\n');
 
+  /* Write the MD5 sum to the header of the module file.  */
+  md5_finish_ctx (&ctx, md5_new);
+  fsetpos (module_fp, &md5_pos);
+  for (n = 0; n < 16; n++)
+    fprintf (module_fp, "%02x", md5_new[n]);
+
   if (fclose (module_fp))
     gfc_fatal_error ("Error writing module file '%s' for writing: %s",
-		     filename, strerror (errno));
+		     filename_tmp, strerror (errno));
+
+  /* Read the MD5 from the header of the old module file and compare.  */
+  if (read_md5_from_module_file (filename, md5_old) != 0
+      || memcmp (md5_old, md5_new, sizeof (md5_old)) != 0)
+    {
+      /* Module file have changed, replace the old one.  */
+      unlink (filename);
+      rename (filename_tmp, filename);
+    }
+  else
+    unlink (filename_tmp);
 }
 
 

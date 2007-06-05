@@ -36,6 +36,9 @@ class java::io::ObjectOutputStream : public ::java::io::OutputStream
 public:
   ObjectOutputStream(::java::io::OutputStream *);
   virtual void writeObject(::java::lang::Object *);
+  virtual void writeUnshared(::java::lang::Object *);
+private:
+  void writeObject(::java::lang::Object *, jboolean);
 public: // actually protected
   virtual void writeClassDescriptor(::java::io::ObjectStreamClass *);
 public:
@@ -90,6 +93,7 @@ public: // actually package-private
   virtual jboolean setBlockDataMode(jboolean);
 private:
   void callWriteMethod(::java::lang::Object *, ::java::io::ObjectStreamClass *);
+  void dumpElementln(::java::lang::String *, ::java::lang::Object *);
   void dumpElementln(::java::lang::String *);
   static const jint BUFFER_SIZE = 1024;
   static jint defaultProtocolVersion;

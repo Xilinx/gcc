@@ -1,3 +1,239 @@
+2007-06-02  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2007-05-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/32124
+	* runtime/memory.c (allocate_size): Use ERROR_ALLOCATION.
+	(allocate,allocate64): Use stat variable if present.
+
+2007-05-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* runtime/string.c (compare0): Use gfc_charlen_type instead of
+	int.
+	(fstrlen): Likewise.
+	(find_option): Likewise.
+	(fstrcpy): Use gfc_charlen_type instead of int, return length.
+	(cf_strcpy): Likewise.
+	* libgfortran.h: Change string prototypes to use gfc_charlen_type.
+	* io/open.c (new_unit): Use snprintf if available.
+	* io/list_read.c (nml_touch_nodes): Use memcpy instead of
+	strcpy/strcat.
+	(nml_read_obj): Likewise.
+	* io/transfer.c (st_set_nml_var): Likewise.
+	* io/write.c (output_float): Use snprintf if available.
+	(nml_write_obj) Use memcpy instead of strcpy/strcat.
+
+2007-05-26  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/unix.c (unix_stream): Rearrange struct members, remove
+	small_buffer.
+	(int_stream): New struct.
+	(fd_alloc): Always use existing buffer, never reallocate.
+	(fd_sfree): Remove check for buffer != small_buffer.
+	(fd_close): Likewise.
+	(mem_alloc_r_at): Change to use int_stream.
+	(mem_alloc_w_at): Likewise.
+	(mem_read): Likewise.
+	(mem_write): Likewise.
+	(mem_set): Likewise.
+	(mem_truncate): Likewise.
+	(mem_close): Likewise.
+	(mem_sfree): Likewise.
+	(empty_internal_buffer): Likewise.
+	(open_internal): Likewise.
+	
+2007-05-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* io/transfer.c (unformatted_read): Use size from front end eliminating
+	use of size_from_real_kind. (unformatted_write): Ditto.
+
+2007-05-23  Steve Ellcey  <sje@cup.hp.com>
+
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+	* aclocal.m4: Regenerate.
+
+2007-05-22  Tobias Burnus  <burnus@net-b.de>
+
+	* libgfortran.h: Mark stop_numeric as noreturn.
+
+2007-05-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR libgfortran/31295
+	* intrinsics/eoshift0.c (eoshift0): Silence uninitialized warning.
+	* intrinsics/eoshift2.c (eoshift2): Ditto.
+
+2007-05-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/31964
+	* intrinsics/ishftc.c (ishftc4, ishftc8, ishftc16): Fix mask to handle
+	shift of bit-size number of bits.
+
+2007-05-17  Tobias Burnus <burnus@net-b.de>
+
+	PR fortran/31917
+	* runtime/environ.c (mark_range): Fix setting default convert unit.
+
+2007-05-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/31922
+	* intrinsics/string_intrinsics.c (string_trim): Set result to null if
+	string length is zero.
+
+2007-05-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR libfortran/31915
+	* io/transfer.c (unformatted_read): Use proper size for real(10).
+	  (unformatted_write): Ditto.
+
+2007-05-14  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/30723
+	* runtime/memory.c (internal_malloc, internal_malloc64,
+	internal_free): Remove.
+	* runtime/error.c (os_error): Export function.
+	* intrinsics/move_alloc.c: Include stdlib.h.
+	(move_alloc): Call free instead of internal_free.
+	(move_alloc_c): Wrap long lines.
+	* libgfortran.h (os_error): Export prototype.
+	(internal_free): Remove prototype.
+	* gfortran.map (GFORTRAN_1.0): Remove _gfortran_internal_free,
+	_gfortran_internal_malloc and _gfortran_internal_malloc64.
+	Add _gfortran_os_error.
+
+2007-05-09  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/31880
+	* io/unix.c (fd_alloc_r_at): Fix calculation of physical offset.
+
+2007-05-07  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/31607
+	* intrinsics/system.c (system_sub): Call flush_all_units.
+	* io/io.h (flush_all_units): Move prototype to libgfortran.h.
+	* libgfortran.h (flush_all_units): Add prototype.
+
+2007-05-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/31201
+	* runtime/error.c (runtime_error_at): New function.
+	(generate_error): Export this function.
+	* gfortran.map: Add _gfortran_generate_error and
+	_gfortran_runtime_error_at.
+	* libgfortran.h: Add comment to reference error codes in front end.
+	(library_start): Locate prototype with library_end macro and add
+	a new comment.  Add prototype for runtime_error_at. Export prototype for
+	generate_error.
+	* io/lock.c (library_start): Fix check for error condition.
+	* io/transfer.c (data_transfer_init): Add library check.
+
+2007-05-04  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/22359
+	* io/intrinsics.c (fseek_sub): New.
+	* io/unix.c (fd_fseek): Change logical and physical offsets only
+	if seek succeeds.
+	* gfortran.map (fseek_sub): New.
+
+2007-05-04  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/31210
+	* io/transfer.c (transfer_character): Avoid passing a NULL
+	pointer as source to the transfer routines, if the string length
+	is zero.
+
+2007-04-28  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/31501
+	* io/list_read.c (next_char): Fix whitespace.
+	* io/io.h: Remove prototypes and define macros for is_array_io,
+	is_stream_io, and is_internal_unit.
+	* io/unit.c (is_array_io), (is_internal_unit), (is_stream_io): Delete
+	these functions.
+	* io/transfer.c (read_sf): Change handling of internal_unit to make a
+	single call to salloc_r and use memcpy to transfer the data. 
+
+2007-04-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/31532
+	* io/file_pos.c (st_backspace): Set flags.position for end of file
+	condition and use new function update_position.
+	(st_endfile): Use new function update_position.
+	* io/io.h: Add prototype for new function.
+	* io/inquire.c (inquire_via_unit): If not direct access, set NEXTREC
+	to zero.
+	* io/unit.c (update_position): New function to update position info
+	used by inquire.
+	* io/transfer.c (next_record): Fix typo and use new function.
+
+2007-04-25  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/31299
+	* intrinsics/getlog.c: Use getpwuid and geteuid instead of
+	getlogin if they are available.
+	* configure.ac: Add checks for getpwuid and geteuid.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+
+2007-04-25  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* configure: Regenerate using autoconf 2.59.
+	* Makefile.in: Likewise.  
+	* config.h.in: Likewise.
+
+2007-04-24  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/27740
+	* configure.ac: New test to determine if symbol versioning is
+	supported.
+	* Makefile.am: Use result of above test to add appropriate linker
+	flags.
+	* gfortran.map: New file.
+	* configure: Regenerated.
+	* Makefile.in: Regenerated.
+	* config.h.in: Regenerated.
+
+2007-04-23  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/31618
+	* io/transfer.c (read_block_direct):  Instead of calling us_read,
+	set dtp->u.p.current_unit->current_record = 0 so that pre_position
+	will read the record marker.
+	(data_transfer_init):  For different error conditions, call
+	generate_error, then return.
+
+2007-04-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* runtime/main.c (please_free_exe_path_when_done): New variable.
+	(store_exe_path): Initialize character buffer, and mark whether
+	exe_path should be free'd by the library destructor function.
+	(cleanup): Only free exe_path if needed.
+
+2007-04-18  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR libfortran/31286
+	PR libfortran/31296
+	* intrinsics/cshift0.c (cshift0): Initialize sstride[0] and rstride[0].
+	* intrinsics/unpack_generic.c (unpack0, unpack0_char): Zero the
+	array structures we pass to unpack_internal.
+
+2007-04-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* io/open.c (test_endfile): Revert changes for 31052, restoring this
+	function. 
+
+2007-04-14  Steve Ellcey  <sje@cup.hp.com>
+
+	* Makefile.am: Add -I .. to ACLOCAL_AMFLAGS.  Add libgfortran_la_LINK.
+	* Makefile.in: Regenerate.
+
+2007-04-11  Kai Tietz  <kai.tietz@onevision.com>
+
+	* configure: Regenerate.
+
 2007-04-06  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	* intrinsics/cpu_time.c: Don't include headers already included
@@ -187,7 +423,7 @@
 
 2007-04-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31395
+	PR libfortran/31395
 	* io/format.c (parse_format_list): Fix parsing.
 
 2007-04-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
@@ -197,7 +433,7 @@
 
 2007-04-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31052
+	PR libfortran/31052
 	* io/open.c (test_endfile): Delete this function.
 	(edit_modes): Delete call to test_endfile.
 	(new_unit): Likewise.
@@ -207,13 +443,13 @@
 
 2007-04-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31366
+	PR libfortran/31366
 	* io/transfer.c (read_block_direct): Do not generate error when reading
 	past EOF on a short record that is less than the RECL= specified.
 	
 2007-04-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31207
+	PR libfortran/31207
 	* io/unit.c (close_unit_1): If there are bytes previously written from
 	ADVANCE="no", move to the end before closing.
 
@@ -229,13 +465,13 @@
 
 2007-03-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31052
+	PR libfortran/31052
 	* io/transfer.c (next_record_r): Do not call test_endfile if in namelist
 	mode.
 
 2007-03-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31199
+	PR libfortran/31199
 	* io/io.h: Add saved_pos to gfc_unit structure.
 	* io/open.c (new_unit): Initialize saved_pos.
 	* io/transfer.c (data_transfer_init): Set max_pos to value in saved_pos.
@@ -251,7 +487,7 @@
 
 2007-03-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31052
+	PR libfortran/31052
 	* file_pos.c: Update Copyright year.
 	* io/open.c (test_endfile): Restore test_endfile to fix SPEC regression.
 	Update Copyright year.
@@ -269,7 +505,7 @@
 
 2007-03-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31052
+	PR libfortran/31052
 	* io/file_position (st_rewind): Fix comments. Remove use of
 	test_endfile. Don't seek if already at 0 position.  Use new is_special
 	function to set endfile state.
@@ -285,7 +521,7 @@
 
 2007-03-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31099
+	PR libfortran/31099
 	* io/file_pos.c (st_rewind): Don't set bytes_left to zero.
 
 2007-03-15  Francois-Xavier Coudert  <coudert@clipper.ens.fr>
@@ -309,7 +545,7 @@
 
 2007-03-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31051
+	PR libfortran/31051
 	* io/transfer.c (formatted_transfer_scalar): Adjust position for pending
 	spaces when in writing mode.  Clean up some formatting.
 
@@ -345,7 +581,7 @@
 
 2007-03-09  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/31099
+	PR libfortran/31099
 	* io/open.c (new_unit): Initialize bytes_left and recl_subrecord.
 	* io/transfer.c (next_record_w): Set bytes left to record length for
 	sequential unformatted I/O.
@@ -409,12 +645,12 @@
 
 2007-02-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/30918
+	PR libfortran/30918
 	* io/listread.c (namelist_read): Eat comment line.
 
 2007-02-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/30910
+	PR libfortran/30910
 	* io/write.c (output_float): Add condition of format F only for
 	special case rounding with zero precision.
 
@@ -739,7 +975,7 @@
 
 2007-01-17  Tom Tromey  <tromey@redhat.com>
 
-	PR libgfortran/27107:
+	PR libfortran/27107:
 	* aclocal.m4, configure, Makefile.in: Rebuilt.
 	* configure.ac: Enable automake dependency tracking.  Update
 	minimum automake version.
@@ -775,14 +1011,14 @@
 
 2007-01-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/30435
+	PR libfortran/30435
 	* io/list_read.c (finish_separator): Don't call next_record.
 	(list_formatted_read_scalar): Clean up some comments and whitespace.
 	(nml_read_obj): Whitespace fix.
 
 2007-01-05  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
-	PR libgfortran/30162
+	PR libfortran/30162
 	* io/unix.c (fd_flush): Don't seek if file is not seekable, defined as
 	s->file_length == -1.
 	(fd_alloc_w_at): Do not adjust file_length if file is not seekable.

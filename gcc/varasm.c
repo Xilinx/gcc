@@ -1097,11 +1097,22 @@ align_variable (tree decl, bool dont_output_data)
   if (! DECL_USER_ALIGN (decl))
     {
 #ifdef DATA_ALIGNMENT
-      align = DATA_ALIGNMENT (TREE_TYPE (decl), align);
+      unsigned int data_align = DATA_ALIGNMENT (TREE_TYPE (decl), align);
+      /* Don't increase alignment too much for TLS variables - TLS space
+	 is too precious.  */
+      if (! DECL_THREAD_LOCAL_P (decl) || data_align <= BITS_PER_WORD)
+	align = data_align;
 #endif
 #ifdef CONSTANT_ALIGNMENT
       if (DECL_INITIAL (decl) != 0 && DECL_INITIAL (decl) != error_mark_node)
-	align = CONSTANT_ALIGNMENT (DECL_INITIAL (decl), align);
+	{
+	  unsigned int const_align = CONSTANT_ALIGNMENT (DECL_INITIAL (decl),
+							 align);
+	  /* Don't increase alignment too much for TLS variables - TLS space
+	     is too precious.  */
+	  if (! DECL_THREAD_LOCAL_P (decl) || const_align <= BITS_PER_WORD)
+	    align = const_align;
+	}
 #endif
     }
 
@@ -3684,7 +3695,7 @@ output_constant_pool_1 (struct constant_descriptor_rtx *desc,
       tmp = XEXP (x, 0);
       gcc_assert (!INSN_DELETED_P (tmp));
       gcc_assert (!NOTE_P (tmp)
-		  || NOTE_LINE_NUMBER (tmp) != NOTE_INSN_DELETED);
+		  || NOTE_KIND (tmp) != NOTE_INSN_DELETED);
       break;
 
     default:

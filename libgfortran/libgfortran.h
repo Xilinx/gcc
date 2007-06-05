@@ -1,5 +1,5 @@
 /* Common declarations for all of libgfortran.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>, and
    Andy Vaught <andy@xena.eas.asu.edu>
 
@@ -401,7 +401,9 @@ typedef struct
 }
 st_option;
 
-/* Runtime errors.  The EOR and EOF errors are required to be negative.  */
+/* Runtime errors.  The EOR and EOF errors are required to be negative.
+   These codes must be kept sychronized with their equivalents in
+   gcc/fortran/gfortran.h .  */
 
 typedef enum
 {
@@ -534,16 +536,18 @@ st_parameter_common;
 #define IOPARM_OPEN_HAS_PAD             (1 << 16)
 #define IOPARM_OPEN_HAS_CONVERT         (1 << 17)
 
-
-/* main.c */
-
-extern void stupid_function_name_for_static_linking (void);
-internal_proto(stupid_function_name_for_static_linking);
+/* library start function and end macro.  These can be expanded if needed
+   in the future.  cmp is st_parameter_common *cmp  */
 
 extern void library_start (st_parameter_common *);
 internal_proto(library_start);
 
 #define library_end()
+
+/* main.c */
+
+extern void stupid_function_name_for_static_linking (void);
+internal_proto(stupid_function_name_for_static_linking);
 
 extern void set_args (int, char **);
 export_proto(set_args);
@@ -579,13 +583,17 @@ extern const char *xtoa (GFC_UINTEGER_LARGEST, char *, size_t);
 internal_proto(xtoa);
 
 extern void os_error (const char *) __attribute__ ((noreturn));
-internal_proto(os_error);
+iexport_proto(os_error);
 
 extern void show_locus (st_parameter_common *);
 internal_proto(show_locus);
 
 extern void runtime_error (const char *) __attribute__ ((noreturn));
 iexport_proto(runtime_error);
+
+extern void runtime_error_at (const char *, const char *)
+__attribute__ ((noreturn));
+iexport_proto(runtime_error_at);
 
 extern void internal_error (st_parameter_common *, const char *)
   __attribute__ ((noreturn));
@@ -602,7 +610,7 @@ extern const char *translate_error (int);
 internal_proto(translate_error);
 
 extern void generate_error (st_parameter_common *, int, const char *);
-internal_proto(generate_error);
+iexport_proto(generate_error);
 
 extern try notify_std (st_parameter_common *, int, const char *);
 internal_proto(notify_std);
@@ -626,9 +634,6 @@ internal_proto(free_mem);
 extern void *internal_malloc_size (size_t);
 internal_proto(internal_malloc_size);
 
-extern void internal_free (void *);
-iexport_proto(internal_free);
-
 /* environ.c */
 
 extern int check_buffered (int);
@@ -645,18 +650,23 @@ internal_proto(get_unformatted_convert);
 
 /* string.c */
 
-extern int find_option (st_parameter_common *, const char *, int,
+extern int find_option (st_parameter_common *, const char *, gfc_charlen_type,
 			const st_option *, const char *);
 internal_proto(find_option);
 
-extern int fstrlen (const char *, int);
+extern gfc_charlen_type fstrlen (const char *, gfc_charlen_type);
 internal_proto(fstrlen);
 
-extern void fstrcpy (char *, int, const char *, int);
+extern gfc_charlen_type fstrcpy (char *, gfc_charlen_type, const char *, gfc_charlen_type);
 internal_proto(fstrcpy);
 
-extern void cf_strcpy (char *, int, const char *);
+extern gfc_charlen_type cf_strcpy (char *, gfc_charlen_type, const char *);
 internal_proto(cf_strcpy);
+
+/* io/intrinsics.c */
+
+extern void flush_all_units (void);
+internal_proto(flush_all_units);
 
 /* io.c */
 
@@ -675,7 +685,7 @@ internal_proto(st_printf);
 
 /* stop.c */
 
-extern void stop_numeric (GFC_INTEGER_4);
+extern void stop_numeric (GFC_INTEGER_4) __attribute__ ((noreturn));
 iexport_proto(stop_numeric);
 
 /* reshape_packed.c */

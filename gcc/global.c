@@ -204,16 +204,6 @@ do {									\
     }									\
 } while (0)
 
-/* This doesn't work for non-GNU C due to the way CODE is macro expanded.  */
-#if 0
-/* For any allocno that conflicts with IN_ALLOCNO, set OUT_ALLOCNO to
-   the conflicting allocno, and execute CODE.  This macro assumes that
-   mirror_conflicts has been run.  */
-#define EXECUTE_IF_CONFLICT(IN_ALLOCNO, OUT_ALLOCNO, CODE)\
-  EXECUTE_IF_SET_IN_ALLOCNO_SET (conflicts + (IN_ALLOCNO) * allocno_row_words,\
-				 OUT_ALLOCNO, (CODE))
-#endif
-
 /* Set of hard regs currently live (during scan of all insns).  */
 
 static HARD_REG_SET hard_regs_live;
@@ -306,7 +296,6 @@ static void mark_reg_store (rtx, rtx, void *);
 static void mark_reg_clobber (rtx, rtx, void *);
 static void mark_reg_conflicts (rtx);
 static void mark_reg_death (rtx);
-static void mark_reg_live_nc (int, enum machine_mode);
 static void set_preference (rtx, rtx);
 static void dump_conflicts (FILE *);
 static void reg_becomes_live (rtx, rtx, void *);
@@ -529,7 +518,7 @@ global_alloc (void)
     if (reg_renumber[i] >= 0)
       {
 	int regno = reg_renumber[i];
-	int endregno = regno + hard_regno_nregs[regno][PSEUDO_REGNO_MODE (i)];
+	int endregno = end_hard_regno (PSEUDO_REGNO_MODE (i), regno);
 	int j;
 
 	for (j = regno; j < endregno; j++)
@@ -737,7 +726,7 @@ global_conflicts (void)
 		block_start_allocnos[ax++] = a;
 	      }
 	    else if ((a = reg_renumber[i]) >= 0)
-	      mark_reg_live_nc (a, PSEUDO_REGNO_MODE (i));
+	      add_to_hard_reg_set (&hard_regs_live, PSEUDO_REGNO_MODE (i), a);
 	  }
 
 	/* Record that each allocno now live conflicts with each hard reg
@@ -1132,7 +1121,7 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
 		  || ! HARD_REGNO_CALL_PART_CLOBBERED (regno, mode)))
 	    {
 	      int j;
-	      int lim = regno + hard_regno_nregs[regno][mode];
+	      int lim = end_hard_regno (mode, regno);
 	      for (j = regno + 1;
 		   (j < lim
 		    && ! TEST_HARD_REG_BIT (used, j));
@@ -1161,10 +1150,8 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
      preferred registers.  */
 
   AND_COMPL_HARD_REG_SET (allocno[num].hard_reg_copy_preferences, used);
-  GO_IF_HARD_REG_SUBSET (allocno[num].hard_reg_copy_preferences,
-			 reg_class_contents[(int) NO_REGS], no_copy_prefs);
-
-  if (best_reg >= 0)
+  if (!hard_reg_set_empty_p (allocno[num].hard_reg_copy_preferences)
+      && best_reg >= 0)
     {
       for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
 	if (TEST_HARD_REG_BIT (allocno[num].hard_reg_copy_preferences, i)
@@ -1179,7 +1166,7 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
 				       REGNO_REG_CLASS (i))))
 	    {
 	      int j;
-	      int lim = i + hard_regno_nregs[i][mode];
+	      int lim = end_hard_regno (mode, i);
 	      for (j = i + 1;
 		   (j < lim
 		    && ! TEST_HARD_REG_BIT (used, j)
@@ -1197,13 +1184,10 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
 		}
 	    }
     }
- no_copy_prefs:
 
   AND_COMPL_HARD_REG_SET (allocno[num].hard_reg_preferences, used);
-  GO_IF_HARD_REG_SUBSET (allocno[num].hard_reg_preferences,
-			 reg_class_contents[(int) NO_REGS], no_prefs);
-
-  if (best_reg >= 0)
+  if (!hard_reg_set_empty_p (allocno[num].hard_reg_preferences)
+      && best_reg >= 0)
     {
       for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
 	if (TEST_HARD_REG_BIT (allocno[num].hard_reg_preferences, i)
@@ -1218,7 +1202,7 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
 				       REGNO_REG_CLASS (i))))
 	    {
 	      int j;
-	      int lim = i + hard_regno_nregs[i][mode];
+	      int lim = end_hard_regno (mode, i);
 	      for (j = i + 1;
 		   (j < lim
 		    && ! TEST_HARD_REG_BIT (used, j)
@@ -1344,7 +1328,7 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
 		      {
 			int r = reg_renumber[k];
 			int endregno
-			  = r + hard_regno_nregs[r][PSEUDO_REGNO_MODE (k)];
+			  = end_hard_regno (PSEUDO_REGNO_MODE (k), r);
 
 			if (regno >= r && regno < endregno)
 			  {
@@ -1379,7 +1363,7 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
 
       /* Make a set of the hard regs being allocated.  */
       CLEAR_HARD_REG_SET (this_reg);
-      lim = best_reg + hard_regno_nregs[best_reg][mode];
+      lim = end_hard_regno (mode, best_reg);
       for (j = best_reg; j < lim; j++)
 	{
 	  SET_HARD_REG_BIT (this_reg, j);
@@ -1560,7 +1544,7 @@ mark_reg_store (rtx reg, rtx setter, void *data ATTRIBUTE_UNUSED)
   /* Handle hardware regs (and pseudos allocated to hard regs).  */
   if (regno < FIRST_PSEUDO_REGISTER && ! fixed_regs[regno])
     {
-      int last = regno + hard_regno_nregs[regno][GET_MODE (reg)];
+      int last = end_hard_regno (GET_MODE (reg), regno);
       while (regno < last)
 	{
 	  record_one_conflict (regno);
@@ -1609,7 +1593,7 @@ mark_reg_conflicts (rtx reg)
   /* Handle hardware regs (and pseudos allocated to hard regs).  */
   if (regno < FIRST_PSEUDO_REGISTER && ! fixed_regs[regno])
     {
-      int last = regno + hard_regno_nregs[regno][GET_MODE (reg)];
+      int last = end_hard_regno (GET_MODE (reg), regno);
       while (regno < last)
 	{
 	  record_one_conflict (regno);
@@ -1640,32 +1624,9 @@ mark_reg_death (rtx reg)
 
   /* Handle hardware regs (and pseudos allocated to hard regs).  */
   if (regno < FIRST_PSEUDO_REGISTER && ! fixed_regs[regno])
-    {
-      /* Pseudo regs already assigned hardware regs are treated
-	 almost the same as explicit hardware regs.  */
-      int last = regno + hard_regno_nregs[regno][GET_MODE (reg)];
-      while (regno < last)
-	{
-	  CLEAR_HARD_REG_BIT (hard_regs_live, regno);
-	  regno++;
-	}
-    }
-}
-
-/* Mark hard reg REGNO as currently live, assuming machine mode MODE
-   for the value stored in it.  MODE determines how many consecutive
-   registers are actually in use.  Do not record conflicts;
-   it is assumed that the caller will do that.  */
-
-static void
-mark_reg_live_nc (int regno, enum machine_mode mode)
-{
-  int last = regno + hard_regno_nregs[regno][mode];
-  while (regno < last)
-    {
-      SET_HARD_REG_BIT (hard_regs_live, regno);
-      regno++;
-    }
+    /* Pseudo regs already assigned hardware regs are treated
+       almost the same as explicit hardware regs.  */
+    remove_from_hard_reg_set (&hard_regs_live, GET_MODE (reg), regno);
 }
 
 /* Try to set a preference for an allocno to a hard register.
@@ -1680,7 +1641,7 @@ mark_reg_live_nc (int regno, enum machine_mode mode)
 static void
 set_preference (rtx dest, rtx src)
 {
-  unsigned int src_regno, dest_regno;
+  unsigned int src_regno, dest_regno, end_regno;
   /* Amount to add to the hard regno for SRC, or subtract from that for DEST,
      to compensate for subregs in SRC or DEST.  */
   int offset = 0;
@@ -1752,9 +1713,8 @@ set_preference (rtx dest, rtx src)
 
 	  SET_REGBIT (hard_reg_preferences,
 		      reg_allocno[src_regno], dest_regno);
-	  for (i = dest_regno;
-	       i < dest_regno + hard_regno_nregs[dest_regno][GET_MODE (dest)];
-	       i++)
+	  end_regno = end_hard_regno (GET_MODE (dest), dest_regno);
+	  for (i = dest_regno; i < end_regno; i++)
 	    SET_REGBIT (hard_reg_full_preferences, reg_allocno[src_regno], i);
 	}
     }
@@ -1771,9 +1731,8 @@ set_preference (rtx dest, rtx src)
 
 	  SET_REGBIT (hard_reg_preferences,
 		      reg_allocno[dest_regno], src_regno);
-	  for (i = src_regno;
-	       i < src_regno + hard_regno_nregs[src_regno][GET_MODE (src)];
-	       i++)
+	  end_regno = end_hard_regno (GET_MODE (src), src_regno);
+	  for (i = src_regno; i < end_regno; i++)
 	    SET_REGBIT (hard_reg_full_preferences, reg_allocno[dest_regno], i);
 	}
     }
@@ -2437,10 +2396,9 @@ modify_reg_pav (void)
   struct bb_info *bb_info;
 #ifdef STACK_REGS
   int i;
-  HARD_REG_SET zero, stack_hard_regs, used;
+  HARD_REG_SET stack_hard_regs, used;
   bitmap stack_regs;
 
-  CLEAR_HARD_REG_SET (zero);
   CLEAR_HARD_REG_SET (stack_hard_regs);
   for (i = FIRST_STACK_REG; i <= LAST_STACK_REG; i++)
     SET_HARD_REG_BIT(stack_hard_regs, i);
@@ -2450,10 +2408,8 @@ modify_reg_pav (void)
       COPY_HARD_REG_SET (used, reg_class_contents[reg_preferred_class (i)]);
       IOR_HARD_REG_SET (used, reg_class_contents[reg_alternate_class (i)]);
       AND_HARD_REG_SET (used, stack_hard_regs);
-      GO_IF_HARD_REG_EQUAL(used, zero, skip);
-      bitmap_set_bit (stack_regs, i);
-    skip:
-      ;
+      if (!hard_reg_set_empty_p (used))
+	bitmap_set_bit (stack_regs, i);
     }
 #endif
   FOR_EACH_BB (bb)

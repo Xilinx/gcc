@@ -536,6 +536,8 @@ gfc_match_iterator (gfc_iterator *iter, int init_flag)
       goto cleanup;
     }
 
+  var->symtree->n.sym->attr.implied_index = 1;
+
   m = init_flag ? gfc_match_init_expr (&e1) : gfc_match_expr (&e1);
   if (m == MATCH_NO)
     goto syntax;
@@ -3053,7 +3055,7 @@ match_case_eos (void)
      should have matched the EOS.  */
   if (!gfc_current_block ())
     {
-      gfc_error ("Expected the name of the select case construct at %C");
+      gfc_error ("Expected the name of the SELECT CASE construct at %C");
       return MATCH_ERROR;
     }
 
@@ -3299,7 +3301,14 @@ gfc_match_elsewhere (void)
     }
 
   if (gfc_match_eos () != MATCH_YES)
-    {				/* Better be a name at this point */
+    {
+      /* Only makes sense if we have a where-construct-name.  */
+      if (!gfc_current_block ())
+	{
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
+      /* Better be a name at this point */
       m = gfc_match_name (name);
       if (m == MATCH_NO)
 	goto syntax;
