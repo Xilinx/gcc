@@ -17606,7 +17606,7 @@ configure-cloog:
 	libsrcdir="$$s/cloog"; \
 	$(SHELL) $${libsrcdir}/configure \
 	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
-	  --target=none-${host_vendor}-${host_os} $${srcdiroption} --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp \
+	  --target=none-${host_vendor}-${host_os} $${srcdiroption} --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-builddir=$$r/$(HOST_SUBDIR)/polylib/ --with-bits=gmp \
 	  || exit 1
 @endif cloog
 
@@ -17639,7 +17639,7 @@ configure-stage1-cloog:
 	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
 	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
 	   \
-	  --disable-intermodule $(STAGE1_CHECKING) 	  --disable-coverage --enable-languages="$(STAGE1_LANGUAGES)" --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+	  --disable-intermodule $(STAGE1_CHECKING) 	  --disable-coverage --enable-languages="$(STAGE1_LANGUAGES)" --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-builddir=$$r/$(HOST_SUBDIR)/polylib/ --with-bits=gmp
 @endif cloog-bootstrap
 
 .PHONY: configure-stage2-cloog maybe-configure-stage2-cloog
@@ -17670,7 +17670,7 @@ configure-stage2-cloog:
 	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
 	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
 	  --with-build-libsubdir=$(HOST_SUBDIR) \
-	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-builddir=$$r/$(HOST_SUBDIR)/polylib/ --with-bits=gmp
 @endif cloog-bootstrap
 
 .PHONY: configure-stage3-cloog maybe-configure-stage3-cloog
@@ -17701,7 +17701,7 @@ configure-stage3-cloog:
 	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
 	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
 	  --with-build-libsubdir=$(HOST_SUBDIR) \
-	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-builddir=$$r/$(HOST_SUBDIR)/polylib/ --with-bits=gmp
 @endif cloog-bootstrap
 
 .PHONY: configure-stage4-cloog maybe-configure-stage4-cloog
@@ -17732,7 +17732,7 @@ configure-stage4-cloog:
 	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
 	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
 	  --with-build-libsubdir=$(HOST_SUBDIR) \
-	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-builddir=$$r/$(HOST_SUBDIR)/polylib/ --with-bits=gmp
 @endif cloog-bootstrap
 
 .PHONY: configure-stageprofile-cloog maybe-configure-stageprofile-cloog
@@ -17763,7 +17763,7 @@ configure-stageprofile-cloog:
 	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
 	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
 	  --with-build-libsubdir=$(HOST_SUBDIR) \
-	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-builddir=$$r/$(HOST_SUBDIR)/polylib/ --with-bits=gmp
 @endif cloog-bootstrap
 
 .PHONY: configure-stagefeedback-cloog maybe-configure-stagefeedback-cloog
@@ -17794,7 +17794,7 @@ configure-stagefeedback-cloog:
 	  $(HOST_CONFIGARGS) --build=${build_alias} --host=none-${host_vendor}-${host_os} \
 	  --target=none-${host_vendor}-${host_os} $${srcdiroption} \
 	  --with-build-libsubdir=$(HOST_SUBDIR) \
-	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-library=$$r/$(HOST_SUBDIR)/polylib/.libs --with-polylib-include=$$s/polylib/include --with-bits=gmp
+	  @stage2_werror_flag@ --disable-shared --with-gmp-library=$$r/$(HOST_SUBDIR)/gmp/.libs --with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-polylib-builddir=$$r/$(HOST_SUBDIR)/polylib/ --with-bits=gmp
 @endif cloog-bootstrap
 
 

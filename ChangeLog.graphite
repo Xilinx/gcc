@@ -1,3 +1,12 @@
+2007-08-03  Sebastian Pop  <sebastian.pop@inria.fr>
+
+	* Makefile.in: Regenerated.
+	* Makefile.def: Update cloog configure flags for detecting build dir
+	of polylib.
+	* cloog: Imported sources.
+	* polylib: Imported sources.
+	* contrib/get_graphite_libs.sh: Removed.
+
 2007-05-10  Tobias Grosser  <tobi-grosser@web.de>
 	    Sebastian Pop  <sebastian.pop@inria.fr>
 
