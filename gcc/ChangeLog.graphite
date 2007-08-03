@@ -1,3 +1,8 @@
+2007-08-03  Sebastian Pop  <sebpop@gmail.com>
+
+	* Merge from mainline (125309:127169).
+	* tree-loop-distribution.c: Disabled.
+
 2007-06-05  Sebastian Pop  <sebpop@gmail.com>
 
 	* Merge from mainline (r123693:125309).

@@ -1,13 +1,13 @@
 /* Control flow graph manipulation code for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file contains low level functions to manipulate the CFG and
    analyze it.  All other modules should not transform the data structure
@@ -66,6 +65,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "ggc.h"
 #include "hashtab.h"
 #include "alloc-pool.h"
+#include "df.h"
 #include "cfgloop.h"
 
 /* The obstack on which the flow graph components are allocated.  */
@@ -83,11 +83,11 @@ void
 init_flow (void)
 {
   if (!cfun->cfg)
-    cfun->cfg = ggc_alloc_cleared (sizeof (struct control_flow_graph));
+    cfun->cfg = GGC_CNEW (struct control_flow_graph);
   n_edges = 0;
-  ENTRY_BLOCK_PTR = ggc_alloc_cleared (sizeof (struct basic_block_def));
+  ENTRY_BLOCK_PTR = GGC_CNEW (struct basic_block_def);
   ENTRY_BLOCK_PTR->index = ENTRY_BLOCK;
-  EXIT_BLOCK_PTR = ggc_alloc_cleared (sizeof (struct basic_block_def));
+  EXIT_BLOCK_PTR = GGC_CNEW (struct basic_block_def);
   EXIT_BLOCK_PTR->index = EXIT_BLOCK;
   ENTRY_BLOCK_PTR->next_bb = EXIT_BLOCK_PTR;
   EXIT_BLOCK_PTR->prev_bb = ENTRY_BLOCK_PTR;
@@ -134,7 +134,7 @@ basic_block
 alloc_block (void)
 {
   basic_block bb;
-  bb = ggc_alloc_cleared (sizeof (*bb));
+  bb = GGC_CNEW (struct basic_block_def);
   return bb;
 }
 
@@ -163,24 +163,28 @@ void
 compact_blocks (void)
 {
   int i;
-  basic_block bb;
 
   SET_BASIC_BLOCK (ENTRY_BLOCK, ENTRY_BLOCK_PTR);
   SET_BASIC_BLOCK (EXIT_BLOCK, EXIT_BLOCK_PTR);
-
-  i = NUM_FIXED_BLOCKS;
-  FOR_EACH_BB (bb) 
+  
+  if (df)
+    df_compact_blocks ();
+  else 
     {
-      SET_BASIC_BLOCK (i, bb);
-      bb->index = i;
-      i++;
+      basic_block bb;
+      
+      i = NUM_FIXED_BLOCKS;
+      FOR_EACH_BB (bb)
+	{
+	  SET_BASIC_BLOCK (i, bb);
+	  bb->index = i;
+	  i++;
+	}
+      gcc_assert (i == n_basic_blocks);
+
+      for (; i < last_basic_block; i++)
+	SET_BASIC_BLOCK (i, NULL);
     }
-
-  gcc_assert (i == n_basic_blocks);
-
-  for (; i < last_basic_block; i++)
-    SET_BASIC_BLOCK (i, NULL);
-
   last_basic_block = n_basic_blocks;
 }
 
@@ -205,6 +209,7 @@ static inline void
 connect_src (edge e)
 {
   VEC_safe_push (edge, gc, e->src->succs, e);
+  df_mark_solutions_dirty ();
 }
 
 /* Connect E to E->dest.  */
@@ -215,6 +220,7 @@ connect_dest (edge e)
   basic_block dest = e->dest;
   VEC_safe_push (edge, gc, dest->preds, e);
   e->dest_idx = EDGE_COUNT (dest->preds) - 1;
+  df_mark_solutions_dirty ();
 }
 
 /* Disconnect edge E from E->src.  */
@@ -237,6 +243,7 @@ disconnect_src (edge e)
 	ei_next (&ei);
     }
 
+  df_mark_solutions_dirty ();
   gcc_unreachable ();
 }
 
@@ -254,6 +261,7 @@ disconnect_dest (edge e)
      to update dest_idx of the edge that moved into the "hole".  */
   if (dest_idx < EDGE_COUNT (dest->preds))
     EDGE_PRED (dest, dest_idx)->dest_idx = dest_idx;
+  df_mark_solutions_dirty ();
 }
 
 /* Create an edge connecting SRC and DEST with flags FLAGS.  Return newly
@@ -264,7 +272,7 @@ edge
 unchecked_make_edge (basic_block src, basic_block dst, int flags)
 {
   edge e;
-  e = ggc_alloc_cleared (sizeof (*e));
+  e = GGC_CNEW (struct edge_def);
   n_edges++;
 
   e->src = src;
@@ -275,7 +283,6 @@ unchecked_make_edge (basic_block src, basic_block dst, int flags)
   connect_dest (e);
 
   execute_on_growing_pred (e);
-
   return e;
 }
 
@@ -344,7 +351,7 @@ make_single_succ_edge (basic_block src, basic_block dest, int flags)
 /* This function will remove an edge from the flow graph.  */
 
 void
-remove_edge (edge e)
+remove_edge_raw (edge e)
 {
   remove_predictions_associated_with_edge (e);
   execute_on_shrinking_pred (e);
@@ -409,15 +416,16 @@ redirect_edge_pred (edge e, basic_block new_pred)
   connect_src (e);
 }
 
-/* Clear all basic block flags, with the exception of partitioning.  */
+/* Clear all basic block flags, with the exception of partitioning and
+   setjmp_target.  */
 void
 clear_bb_flags (void)
 {
   basic_block bb;
 
   FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
-    bb->flags = (BB_PARTITION (bb)  | (bb->flags & BB_DISABLE_SCHEDULE)
-		 | (bb->flags & BB_RTL));
+    bb->flags = (BB_PARTITION (bb)  
+		 | (bb->flags & (BB_DISABLE_SCHEDULE + BB_RTL + BB_NON_LOCAL_GOTO_TARGET)));
 }
 
 /* Check the consistency of profile information.  We can't do that
@@ -469,6 +477,41 @@ check_bb_profile (basic_block bb, FILE * file)
     }
 }
 
+/* Write information about registers and basic blocks into FILE.
+   This is part of making a debugging dump.  */
+
+void
+dump_regset (regset r, FILE *outf)
+{
+  unsigned i;
+  reg_set_iterator rsi;
+
+  if (r == NULL)
+    {
+      fputs (" (nil)", outf);
+      return;
+    }
+
+  EXECUTE_IF_SET_IN_REG_SET (r, 0, i, rsi)
+    {
+      fprintf (outf, " %d", i);
+      if (i < FIRST_PSEUDO_REGISTER)
+	fprintf (outf, " [%s]",
+		 reg_names[i]);
+    }
+}
+
+/* Print a human-readable representation of R on the standard error
+   stream.  This function is designed to be used from within the
+   debugger.  */
+
+void
+debug_regset (regset r)
+{
+  dump_regset (r, stderr);
+  putc ('\n', stderr);
+}
+
 /* Emit basic block information for BB.  HEADER is true if the user wants
    the generic information and the predecessors, FOOTER is true if they want
    the successors.  FLAGS is the dump flags of interest; TDF_DETAILS emit
@@ -500,6 +543,14 @@ dump_bb_info (basic_block bb, bool header, bool footer, int flags,
       fprintf (file, "%sPredecessors: ", prefix);
       FOR_EACH_EDGE (e, ei, bb->preds)
 	dump_edge_info (file, e, 0);
+
+      if ((flags & TDF_DETAILS)
+	  && (bb->flags & BB_RTL)
+	  && df)
+	{
+	  fprintf (file, "\n");
+	  df_dump_top (bb, file);
+	}
    }
 
   if (footer)
@@ -507,26 +558,83 @@ dump_bb_info (basic_block bb, bool header, bool footer, int flags,
       fprintf (file, "\n%sSuccessors: ", prefix);
       FOR_EACH_EDGE (e, ei, bb->succs)
 	dump_edge_info (file, e, 1);
-   }
 
-  if ((flags & TDF_DETAILS)
-      && (bb->flags & BB_RTL))
-    {
-      if (bb->il.rtl->global_live_at_start && header)
+      if ((flags & TDF_DETAILS)
+	  && (bb->flags & BB_RTL)
+	  && df)
 	{
-	  fprintf (file, "\n%sRegisters live at start:", prefix);
-	  dump_regset (bb->il.rtl->global_live_at_start, file);
-	}
-
-      if (bb->il.rtl->global_live_at_end && footer)
-	{
-	  fprintf (file, "\n%sRegisters live at end:", prefix);
-	  dump_regset (bb->il.rtl->global_live_at_end, file);
+	  fprintf (file, "\n");
+	  df_dump_bottom (bb, file);
 	}
    }
 
   putc ('\n', file);
 }
+
+/* Dump the register info to FILE.  */
+
+void 
+dump_reg_info (FILE *file)
+{
+  unsigned int i, max = max_reg_num ();
+  if (reload_completed)
+    return;
+
+  if (reg_info_p_size < max)
+    max = reg_info_p_size;
+
+  fprintf (file, "%d registers.\n", max);
+  for (i = FIRST_PSEUDO_REGISTER; i < max; i++)
+    {
+      enum reg_class class, altclass;
+      
+      if (regstat_n_sets_and_refs)
+	fprintf (file, "\nRegister %d used %d times across %d insns",
+		 i, REG_N_REFS (i), REG_LIVE_LENGTH (i));
+      else if (df)
+	fprintf (file, "\nRegister %d used %d times across %d insns",
+		 i, DF_REG_USE_COUNT (i) + DF_REG_DEF_COUNT (i), REG_LIVE_LENGTH (i));
+      
+      if (REG_BASIC_BLOCK (i) >= NUM_FIXED_BLOCKS)
+	fprintf (file, " in block %d", REG_BASIC_BLOCK (i));
+      if (regstat_n_sets_and_refs)
+	fprintf (file, "; set %d time%s", REG_N_SETS (i),
+		 (REG_N_SETS (i) == 1) ? "" : "s");
+      else if (df)
+	fprintf (file, "; set %d time%s", DF_REG_DEF_COUNT (i),
+		 (DF_REG_DEF_COUNT (i) == 1) ? "" : "s");
+      if (regno_reg_rtx[i] != NULL && REG_USERVAR_P (regno_reg_rtx[i]))
+	fprintf (file, "; user var");
+      if (REG_N_DEATHS (i) != 1)
+	fprintf (file, "; dies in %d places", REG_N_DEATHS (i));
+      if (REG_N_CALLS_CROSSED (i) == 1)
+	fprintf (file, "; crosses 1 call");
+      else if (REG_N_CALLS_CROSSED (i))
+	fprintf (file, "; crosses %d calls", REG_N_CALLS_CROSSED (i));
+      if (regno_reg_rtx[i] != NULL
+	  && PSEUDO_REGNO_BYTES (i) != UNITS_PER_WORD)
+	fprintf (file, "; %d bytes", PSEUDO_REGNO_BYTES (i));
+      
+      class = reg_preferred_class (i);
+      altclass = reg_alternate_class (i);
+      if (class != GENERAL_REGS || altclass != ALL_REGS)
+	{
+	  if (altclass == ALL_REGS || class == ALL_REGS)
+	    fprintf (file, "; pref %s", reg_class_names[(int) class]);
+	  else if (altclass == NO_REGS)
+	    fprintf (file, "; %s or none", reg_class_names[(int) class]);
+	  else
+	    fprintf (file, "; pref %s, else %s",
+		     reg_class_names[(int) class],
+		     reg_class_names[(int) altclass]);
+	}
+      
+      if (regno_reg_rtx[i] != NULL && REG_POINTER (regno_reg_rtx[i]))
+	fprintf (file, "; pointer");
+      fprintf (file, ".\n");
+    }
+}
+
 
 void
 dump_flow_info (FILE *file, int flags)
@@ -534,54 +642,8 @@ dump_flow_info (FILE *file, int flags)
   basic_block bb;
 
   /* There are no pseudo registers after reload.  Don't dump them.  */
-  if (reg_n_info && !reload_completed
-      && (flags & TDF_DETAILS) != 0)
-    {
-      unsigned int i, max = max_reg_num ();
-      fprintf (file, "%d registers.\n", max);
-      for (i = FIRST_PSEUDO_REGISTER; i < max; i++)
-	if (REG_N_REFS (i))
-	  {
-	    enum reg_class class, altclass;
-
-	    fprintf (file, "\nRegister %d used %d times across %d insns",
-		     i, REG_N_REFS (i), REG_LIVE_LENGTH (i));
-	    if (REG_BASIC_BLOCK (i) >= 0)
-	      fprintf (file, " in block %d", REG_BASIC_BLOCK (i));
-	    if (REG_N_SETS (i))
-	      fprintf (file, "; set %d time%s", REG_N_SETS (i),
-		       (REG_N_SETS (i) == 1) ? "" : "s");
-	    if (regno_reg_rtx[i] != NULL && REG_USERVAR_P (regno_reg_rtx[i]))
-	      fprintf (file, "; user var");
-	    if (REG_N_DEATHS (i) != 1)
-	      fprintf (file, "; dies in %d places", REG_N_DEATHS (i));
-	    if (REG_N_CALLS_CROSSED (i) == 1)
-	      fprintf (file, "; crosses 1 call");
-	    else if (REG_N_CALLS_CROSSED (i))
-	      fprintf (file, "; crosses %d calls", REG_N_CALLS_CROSSED (i));
-	    if (regno_reg_rtx[i] != NULL
-		&& PSEUDO_REGNO_BYTES (i) != UNITS_PER_WORD)
-	      fprintf (file, "; %d bytes", PSEUDO_REGNO_BYTES (i));
-
-	    class = reg_preferred_class (i);
-	    altclass = reg_alternate_class (i);
-	    if (class != GENERAL_REGS || altclass != ALL_REGS)
-	      {
-		if (altclass == ALL_REGS || class == ALL_REGS)
-		  fprintf (file, "; pref %s", reg_class_names[(int) class]);
-		else if (altclass == NO_REGS)
-		  fprintf (file, "; %s or none", reg_class_names[(int) class]);
-		else
-		  fprintf (file, "; pref %s, else %s",
-			   reg_class_names[(int) class],
-			   reg_class_names[(int) altclass]);
-	      }
-
-	    if (regno_reg_rtx[i] != NULL && REG_POINTER (regno_reg_rtx[i]))
-	      fprintf (file, "; pointer");
-	    fprintf (file, ".\n");
-	  }
-    }
+  if (reg_info_p_size && (flags & TDF_DETAILS) != 0)
+    dump_reg_info (file);
 
   fprintf (file, "\n%d basic blocks, %d edges.\n", n_basic_blocks, n_edges);
   FOR_EACH_BB (bb)
@@ -1044,18 +1106,18 @@ struct htab_bb_copy_original_entry
 static hashval_t
 bb_copy_original_hash (const void *p)
 {
-  struct htab_bb_copy_original_entry *data
-    = ((struct htab_bb_copy_original_entry *)p);
+  const struct htab_bb_copy_original_entry *data
+    = ((const struct htab_bb_copy_original_entry *)p);
 
   return data->index1;
 }
 static int
 bb_copy_original_eq (const void *p, const void *q)
 {
-  struct htab_bb_copy_original_entry *data
-    = ((struct htab_bb_copy_original_entry *)p);
-  struct htab_bb_copy_original_entry *data2
-    = ((struct htab_bb_copy_original_entry *)q);
+  const struct htab_bb_copy_original_entry *data
+    = ((const struct htab_bb_copy_original_entry *)p);
+  const struct htab_bb_copy_original_entry *data2
+    = ((const struct htab_bb_copy_original_entry *)q);
 
   return data->index1 == data2->index1;
 }
@@ -1107,7 +1169,7 @@ copy_original_table_clear (htab_t tab, unsigned obj)
   if (!slot)
     return;
 
-  elt = *slot;
+  elt = (struct htab_bb_copy_original_entry *) *slot;
   htab_clear_slot (tab, slot);
   pool_free (original_copy_bb_pool, elt);
 }
@@ -1129,7 +1191,8 @@ copy_original_table_set (htab_t tab, unsigned obj, unsigned val)
 		htab_find_slot (tab, &key, INSERT);
   if (!*slot)
     {
-      *slot = pool_alloc (original_copy_bb_pool);
+      *slot = (struct htab_bb_copy_original_entry *)
+		pool_alloc (original_copy_bb_pool);
       (*slot)->index1 = obj;
     }
   (*slot)->index2 = val;

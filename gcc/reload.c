@@ -1,13 +1,13 @@
 /* Search an insn for pseudo regs that must be in hard regs and are not.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation,
-   Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file contains subroutines used only from the file reload1.c.
    It knows how to scan one insn for operands and values
@@ -112,6 +111,7 @@ a register with any other reload.  */
 #include "toplev.h"
 #include "params.h"
 #include "target.h"
+#include "df.h"
 
 /* True if X is a constant that can be forced into the constant pool.  */
 #define CONST_POOL_OK_P(X)			\
@@ -1521,7 +1521,7 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	    /* Check that we don't use a hardreg for an uninitialized
 	       pseudo.  See also find_dummy_reload().  */
 	    && (ORIGINAL_REGNO (XEXP (note, 0)) < FIRST_PSEUDO_REGISTER
-		|| ! bitmap_bit_p (ENTRY_BLOCK_PTR->il.rtl->global_live_at_end,
+		|| ! bitmap_bit_p (DF_RA_LIVE_OUT (ENTRY_BLOCK_PTR),
 				   ORIGINAL_REGNO (XEXP (note, 0))))
 	    && ! refers_to_regno_for_reload_p (regno,
 					       end_hard_regno (rel_mode,
@@ -1847,7 +1847,7 @@ combine_reloads (void)
 	/* Check that we don't use a hardreg for an uninitialized
 	   pseudo.  See also find_dummy_reload().  */
 	&& (ORIGINAL_REGNO (XEXP (note, 0)) < FIRST_PSEUDO_REGISTER
-	    || ! bitmap_bit_p (ENTRY_BLOCK_PTR->il.rtl->global_live_at_end,
+	    || ! bitmap_bit_p (DF_LR_OUT (ENTRY_BLOCK_PTR),
 			       ORIGINAL_REGNO (XEXP (note, 0)))))
       {
 	rld[output_reload].reg_rtx
@@ -2000,7 +2000,7 @@ find_dummy_reload (rtx real_in, rtx real_out, rtx *inloc, rtx *outloc,
 	   as they would clobber the other live pseudo using the same.
 	   See also PR20973.  */
       && (ORIGINAL_REGNO (in) < FIRST_PSEUDO_REGISTER
-          || ! bitmap_bit_p (ENTRY_BLOCK_PTR->il.rtl->global_live_at_end,
+          || ! bitmap_bit_p (DF_RA_LIVE_OUT (ENTRY_BLOCK_PTR),
 			     ORIGINAL_REGNO (in))))
     {
       unsigned int regno = REGNO (in) + in_offset;
@@ -5923,10 +5923,8 @@ find_reloads_address_part (rtx x, rtx *loc, enum reg_class class,
       && (! LEGITIMATE_CONSTANT_P (x)
 	  || PREFERRED_RELOAD_CLASS (x, class) == NO_REGS))
     {
-      rtx tem;
-
-      tem = x = force_const_mem (mode, x);
-      find_reloads_address (mode, &tem, XEXP (tem, 0), &XEXP (tem, 0),
+      x = force_const_mem (mode, x);
+      find_reloads_address (mode, &x, XEXP (x, 0), &XEXP (x, 0),
 			    opnum, type, ind_levels, 0);
     }
 
@@ -5939,7 +5937,7 @@ find_reloads_address_part (rtx x, rtx *loc, enum reg_class class,
 
       tem = force_const_mem (GET_MODE (x), XEXP (x, 1));
       x = gen_rtx_PLUS (GET_MODE (x), XEXP (x, 0), tem);
-      find_reloads_address (mode, &tem, XEXP (tem, 0), &XEXP (tem, 0),
+      find_reloads_address (mode, &XEXP (x, 1), XEXP (tem, 0), &XEXP (tem, 0),
 			    opnum, type, ind_levels, 0);
     }
 

@@ -192,6 +192,7 @@ in the following sections.
 -frepo  -fno-rtti  -fstats  -ftemplate-depth-@var{n} @gol
 -fno-threadsafe-statics -fuse-cxa-atexit  -fno-weak  -nostdinc++ @gol
 -fno-default-inline  -fvisibility-inlines-hidden @gol
+-fvisibility-ms-compat @gol
 -Wabi  -Wctor-dtor-privacy @gol
 -Wnon-virtual-dtor  -Wreorder @gol
 -Weffc++  -Wno-deprecated  -Wstrict-null-sentinel @gol
@@ -270,6 +271,7 @@ Objective-C and Objective-C++ Dialects}.
 @item Debugging Options
 @xref{Debugging Options,,Options for Debugging Your Program or GCC}.
 @gccoptlist{-d@var{letters}  -dumpspecs  -dumpmachine  -dumpversion @gol
+-fdbg-cnt-list -fdbg-cnt=@var{counter-value-list} @gol
 -fdump-noaddr -fdump-unnumbered  -fdump-translation-unit@r{[}-@var{n}@r{]} @gol
 -fdump-class-hierarchy@r{[}-@var{n}@r{]} @gol
 -fdump-ipa-all -fdump-ipa-cgraph @gol
@@ -352,7 +354,7 @@ Objective-C and Objective-C++ Dialects}.
 -fstrict-aliasing  -fstrict-overflow  -ftracer  -fthread-jumps @gol
 -funroll-all-loops  -funroll-loops  -fpeel-loops @gol
 -fsplit-ivs-in-unroller -funswitch-loops @gol
--fvariable-expansion-in-unroller @gol
+-fvariable-expansion-in-unroller -ftree-reassoc @gol
 -ftree-pre  -ftree-ccp  -ftree-dce -ftree-loop-optimize @gol
 -ftree-loop-linear -fgraphite -ftree-loop-im -ftree-loop-ivcanon -fivopts @gol
 -ftree-loop-distribution @gol
@@ -360,7 +362,7 @@ Objective-C and Objective-C++ Dialects}.
 -ftree-check=@var{pattern} -ftree-checks=@var{file} -ftree-checks-verbose @gol
 -ftree-dominator-opts -ftree-dse -ftree-copyrename -ftree-sink @gol
 -ftree-ch -ftree-sra -ftree-ter -ftree-fre -ftree-vectorize @gol
--ftree-vect-loop-version -ftree-salias -fipa-pta -fweb @gol
+-ftree-vect-loop-version -fvect-cost-model -ftree-salias -fipa-pta -fweb @gol
 -ftree-copy-prop -ftree-store-ccp -ftree-store-copy-prop -fwhole-program @gol
 --param @var{name}=@var{value}
 -O  -O0  -O1  -O2  -O3  -Os}
@@ -550,7 +552,7 @@ Objective-C and Objective-C++ Dialects}.
 -masm=@var{dialect}  -mno-fancy-math-387 @gol
 -mno-fp-ret-in-387  -msoft-float @gol
 -mno-wide-multiply  -mrtd  -malign-double @gol
--mpreferred-stack-boundary=@var{num} -mcx16 -msahf @gol
+-mpreferred-stack-boundary=@var{num} -mcx16 -msahf -mrecip @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 @gol
 -msse4a -m3dnow -mpopcnt -mabm @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
@@ -623,6 +625,7 @@ Objective-C and Objective-C++ Dialects}.
 -mshared  -mno-shared  -mxgot  -mno-xgot  -mgp32  -mgp64 @gol
 -mfp32  -mfp64  -mhard-float  -msoft-float @gol
 -msingle-float  -mdouble-float  -mdsp  -mno-dsp  -mdspr2  -mno-dspr2 @gol
+-msmartmips  -mno-smartmips @gol
 -mpaired-single  -mno-paired-single  -mdmx  -mno-mdmx @gol
 -mips3d  -mno-mips3d  -mmt  -mno-mt @gol
 -mlong64  -mlong32  -msym32  -mno-sym32 @gol
@@ -638,7 +641,7 @@ Objective-C and Objective-C++ Dialects}.
 -mfix-vr4120  -mno-fix-vr4120  -mfix-vr4130  -mno-fix-vr4130 @gol
 -mfix-sb1  -mno-fix-sb1 @gol
 -mflush-func=@var{func}  -mno-flush-func @gol
--mbranch-likely  -mno-branch-likely @gol
+-mbranch-cost=@var{num}  -mbranch-likely  -mno-branch-likely @gol
 -mfp-exceptions -mno-fp-exceptions @gol
 -mvr4130-align -mno-vr4130-align}
 
@@ -1107,7 +1110,8 @@ have no documentation associated with them will also be displayed.
 @item --target-help
 @opindex target-help
 Print (on the standard output) a description of target-specific command
-line options for each tool.
+line options for each tool.  For some targets extra target-specific
+information may also be printed.
 
 @item --help=@var{class}@r{[},@var{qualifier}@r{]}
 Print (on the standard output) a description of the command line
@@ -1831,6 +1835,40 @@ visibility will have no effect.
 Explicitly instantiated inline methods are unaffected by this option
 as their linkage might otherwise cross a shared library boundary.
 @xref{Template Instantiation}.
+
+@item -fvisibility-ms-compat
+@opindex fvisibility-ms-compat
+This flag attempts to use visibility settings to make GCC's C++
+linkage model compatible with that of Microsoft Visual Studio.
+
+The flag makes these changes to GCC's linkage model:
+
+@enumerate
+@item
+It sets the default visibility to @code{hidden}, like
+@option{-fvisibility=hidden}.
+
+@item
+Types, but not their members, are not hidden by default.
+
+@item
+The One Definition Rule is relaxed for types without explicit
+visibility specifications which are defined in more than one different
+shared object: those declarations are permitted if they would have
+been permitted when this option was not used.
+@end enumerate
+
+In new code it is better to use @option{-fvisibility=hidden} and
+export those classes which are intended to be externally visible.
+Unfortunately it is possible for code to rely, perhaps accidentally,
+on the Visual Studio behavior.
+
+Among the consequences of these changes are that static data members
+of the same type with the same name but defined in different shared
+objects will be different, so changing one will not change the other;
+and that pointers to function members defined in different shared
+objects may not compare equal.  When this flag is given, it is a
+violation of the ODR to define types with the same name differently.
 
 @item -fno-weak
 @opindex fno-weak
@@ -4402,6 +4440,21 @@ above for a description of @var{auxname} and instructions on how to
 generate test coverage data.  Coverage data will match the source files
 more closely, if you do not optimize.
 
+@item -fdbg-cnt-list
+@opindex fdbg-cnt-list
+Print the name and the counter upperbound for all debug counters.
+
+@item -fdbg-cnt=@var{counter-value-list}
+@opindex fdbg-cnt
+Set the internal debug counter upperbound. @var{counter-value-list} 
+is a comma-separated list of @var{name}:@var{value} pairs
+which sets the upperbound of each debug counter @var{name} to @var{value}.
+All debug counters have the initial upperbound of @var{UINT_MAX},
+thus dbg_cnt() returns true always unless the upperbound is set by this option.
+e.g. With -fdbg-cnt=dce:10,tail_call:0
+dbg_cnt(dce) will return true only for first 10 invocations
+and dbg_cnt(tail_call) will return false always.
+
 @item -d@var{letters}
 @item -fdump-rtl-@var{pass}
 @opindex d
@@ -4410,7 +4463,9 @@ Says to make debugging dumps during compilation at times specified by
 compiler.  The file names for most of the dumps are made by appending a
 pass number and a word to the @var{dumpname}.  @var{dumpname} is generated
 from the name of the output file, if explicitly specified and it is not
-an executable, otherwise it is the basename of the source file.
+an executable, otherwise it is the basename of the source file. These
+switches may have different effects when @option{-E} is used for
+preprocessing.
 
 Most debug dumps can be enabled either passing a letter to the @option{-d}
 option, or with a long @option{-fdump-rtl} switch; here are the possible
@@ -4547,7 +4602,7 @@ Dump after modulo scheduling, to @file{@var{file}.136r.sms}.
 @opindex dM
 @opindex fdump-rtl-mach
 Dump after performing the machine dependent reorganization pass, to
-@file{@var{file}.155r.mach}.
+@file{@var{file}.155r.mach} if that pass exists.
 
 @item -dn
 @itemx -fdump-rtl-rnreg
@@ -5720,9 +5775,9 @@ ones to optimal placement using LCM.
 
 @item -freschedule-modulo-scheduled-loops
 @opindex fscheduling-in-modulo-scheduled-loops
-The modulo scheduling comes before the traditional scheduling, if a loop was modulo scheduled
-we may want to prevent the later scheduling passes from changing its schedule, we use this
-option to control that.
+The modulo scheduling comes before the traditional scheduling, if a loop
+was modulo scheduled we may want to prevent the later scheduling passes
+from changing its schedule, we use this option to control that.
 
 @item -fcaller-saves
 @opindex fcaller-saves
@@ -5735,6 +5790,10 @@ This option is always enabled by default on certain machines, usually
 those which have no call-preserved registers to use instead.
 
 Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+
+@item -ftree-reassoc
+Perform Reassociation on trees  This flag is enabled by default
+at @option{-O} and higher.
 
 @item -ftree-pre
 Perform Partial Redundancy Elimination (PRE) on trees.  This flag is
@@ -5864,6 +5923,9 @@ be determined at compile time then vectorized and non-vectorized versions of
 the loop are generated along with runtime checks for alignment or dependence
 to control which version is executed.  This option is enabled by default
 except at level @option{-Os} where it is disabled.
+
+@item -fvect-cost-model
+Enable cost model for vectorization.
 
 @item -ftree-vrp
 Perform Value Range Propagation on trees.  This is similar to the
@@ -7095,14 +7157,17 @@ Maximum number of prefetches that can run at the same time.
 The size of cache line in L1 cache, in bytes.
 
 @item l1-cache-size
-The number of cache lines in L1 cache.
+The size of L1 cache, in kilobytes.
 
-@item verify-canonical-types
-Whether the compiler should verify the ``canonical'' types used for
-type equality comparisons within the C++ and Objective-C++ front
-ends. Set to 1 (the default when GCC is configured with
---enable-checking) to enable verification, 0 to disable verification
-(the default when GCC is configured with --disable-checking).
+@item l2-cache-size
+The size of L2 cache, in kilobytes.
+
+@item use-canonical-types
+Whether the compiler should use the ``canonical'' type system.  By
+default, this should always be 1, which uses a more efficient internal
+mechanism for comparing types in C++ and Objective-C++.  However, if
+bugs in the canonical type system are causing compilation failures,
+set this value to 0 to disable canonical types.
 
 @end table
 @end table
@@ -8962,8 +9027,10 @@ The earliest version of MacOS X that this executable will run on
 is @var{version}.  Typical values of @var{version} include @code{10.1},
 @code{10.2}, and @code{10.3.9}.
 
-The default for this option is to make choices that seem to be most
-useful.
+If the compiler was built to use the system's headers by default,
+then the default for this option is the system version on which the
+compiler is running, otherwise the default is to make choices which
+are compatible with as many systems and code bases as possible.
 
 @item -mkernel
 @opindex mkernel
@@ -9479,7 +9546,7 @@ These @samp{-m} options are defined for the DEC Alpha/VMS implementations:
 @item -mvms-return-codes
 @opindex mvms-return-codes
 Return VMS condition codes from main.  The default is to return POSIX
-style condition (e.g.@ error) codes.
+style condition (e.g.@: error) codes.
 @end table
 
 @node FRV Options
@@ -10524,6 +10591,13 @@ SAHF are load and store instructions, respectively, for certain status flags.
 In 64-bit mode, SAHF instruction is used to optimize @code{fmod}, @code{drem}
 or @code{remainder} built-in functions: see @ref{Other Builtins} for details.
 
+@item -mrecip
+@opindex mrecip
+This option will enable GCC to use RCPSS and RSQRTSS instructions (and their
+vectorized variants RCPPS and RSQRTPS) instead of DIVSS and SQRTSS (and their
+vectorized variants).  These instructions will be generated only when
+@option{-funsafe-math-optimizations} is enabled.
+
 @item -mpush-args
 @itemx -mno-push-args
 @opindex mpush-args
@@ -11557,14 +11631,14 @@ The ISA names are:
 @samp{mips1}, @samp{mips2}, @samp{mips3}, @samp{mips4},
 @samp{mips32}, @samp{mips32r2}, and @samp{mips64}.
 The processor names are:
-@samp{4kc}, @samp{4km}, @samp{4kp},
-@samp{4kec}, @samp{4kem}, @samp{4kep},
+@samp{4kc}, @samp{4km}, @samp{4kp}, @samp{4ksc},
+@samp{4kec}, @samp{4kem}, @samp{4kep}, @samp{4ksd},
 @samp{5kc}, @samp{5kf},
 @samp{20kc},
-@samp{24kc}, @samp{24kf}, @samp{24kx},
-@samp{24kec}, @samp{24kef}, @samp{24kex},
-@samp{34kc}, @samp{34kf}, @samp{34kx},
-@samp{74kc}, @samp{74kf}, @samp{74kx},
+@samp{24kc}, @samp{24kf2_1}, @samp{24kf1_1},
+@samp{24kec}, @samp{24kef2_1}, @samp{24kef1_1},
+@samp{34kc}, @samp{34kf2_1}, @samp{34kf1_1},
+@samp{74kc}, @samp{74kf2_1}, @samp{74kf1_1}, @samp{74kf3_2},
 @samp{m4k},
 @samp{orion},
 @samp{r2000}, @samp{r3000}, @samp{r3900}, @samp{r4000}, @samp{r4400},
@@ -11581,6 +11655,15 @@ most compatible architecture for the selected ABI (that is,
 In processor names, a final @samp{000} can be abbreviated as @samp{k}
 (for example, @samp{-march=r2k}).  Prefixes are optional, and
 @samp{vr} may be written @samp{r}.
+
+Names of the form @samp{@var{n}f2_1} refer to processors with
+FPUs clocked at half the rate of the core, names of the form
+@samp{@var{n}f1_1} refer to processors with FPUs clocked at the same
+rate as the core, and names of the form @samp{@var{n}f3_2} refer to
+processors with FPUs clocked a ratio of 3:2 with respect to the core.
+For compatibility reasons, @samp{@var{n}f} is accepted as a synonym
+for @samp{@var{n}f2_1} while @samp{@var{n}x} and @samp{@var{b}fx} are
+accepted as synonyms for @samp{@var{n}f1_1}.
 
 GCC defines two macros based on the value of this option.  The first
 is @samp{_MIPS_ARCH}, which gives the name of target architecture, as
@@ -11777,14 +11860,25 @@ operations.  This is the default.
 @itemx -mno-dsp
 @opindex mdsp
 @opindex mno-dsp
-Use (do not use) the MIPS DSP ASE.  @xref{MIPS DSP Built-in Functions}.
+Use (do not use) revision 1 of the MIPS DSP ASE.
+@xref{MIPS DSP Built-in Functions}.  This option defines the
+preprocessor macro @samp{__mips_dsp}.  It also defines
+@samp{__mips_dsp_rev} to 1.
 
 @item -mdspr2
 @itemx -mno-dspr2
 @opindex mdspr2
 @opindex mno-dspr2
-Use (do not use) the MIPS DSP ASE REV 2.  @xref{MIPS DSP Built-in Functions}.
-The option @option{-mdspr2} implies @option{-mdsp}.
+Use (do not use) revision 2 of the MIPS DSP ASE.
+@xref{MIPS DSP Built-in Functions}.  This option defines the
+preprocessor macros @samp{__mips_dsp} and @samp{__mips_dspr2}.
+It also defines @samp{__mips_dsp_rev} to 2.
+
+@item -msmartmips
+@itemx -mno-smartmips
+@opindex msmartmips
+@opindex mno-smartmips
+Use (do not use) the MIPS SmartMIPS ASE.
 
 @item -mpaired-single
 @itemx -mno-paired-single
@@ -12027,6 +12121,13 @@ memory range for which the cache is being flushed, the size of the
 memory range, and the number 3 (to flush both caches).  The default
 depends on the target GCC was configured for, but commonly is either
 @samp{_flush_func} or @samp{__cpu_flush}.
+
+@item mbranch-cost=@var{num}
+@opindex mbranch-cost
+Set the cost of branches to roughly @var{num} ``simple'' instructions.
+This cost is only a heuristic and is not guaranteed to produce
+consistent results across releases.  A zero cost redundantly selects
+the default, which is based on the @option{-mtune} setting.
 
 @item -mbranch-likely
 @itemx -mno-branch-likely

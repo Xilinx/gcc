@@ -5,7 +5,7 @@ This file is part of GCC.
    
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
    
 GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
    
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -96,7 +95,13 @@ create_iv (tree base, tree step, tree var, struct loop *loop,
 	    }
 	}
     }
-
+  if (POINTER_TYPE_P (TREE_TYPE (base)))
+    {
+      step = fold_convert (sizetype, step);
+      if (incr_op == MINUS_EXPR)
+	step = fold_build1 (NEGATE_EXPR, sizetype, step);
+      incr_op = POINTER_PLUS_EXPR;
+    }
   /* Gimplify the step if necessary.  We put the computations in front of the
      loop (i.e. the step should be loop invariant).  */
   step = force_gimple_operand (step, &stmts, true, var);
@@ -664,12 +669,16 @@ determine_exit_conditions (struct loop *loop, struct tree_niter_desc *desc,
   tree base = desc->control.base;
   tree step = desc->control.step;
   tree bound = desc->bound;
-  tree type = TREE_TYPE (base);
+  tree type = TREE_TYPE (step);
   tree bigstep, delta;
   tree min = lower_bound_in_type (type, type);
   tree max = upper_bound_in_type (type, type);
   enum tree_code cmp = desc->cmp;
   tree cond = boolean_true_node, assum;
+
+  /* For pointers, do the arithmetics in the type of step (sizetype).  */
+  base = fold_convert (type, base);
+  bound = fold_convert (type, bound);
 
   *enter_cond = boolean_false_node;
   *exit_base = NULL_TREE;
@@ -1026,8 +1035,9 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
   new_nonexit->count = exit_bb->count - new_exit->count;
   if (new_nonexit->count < 0)
     new_nonexit->count = 0;
-  scale_bbs_frequencies_int (&loop->latch, 1, new_nonexit->probability,
-			     prob);
+  if (prob > 0)
+    scale_bbs_frequencies_int (&loop->latch, 1, new_nonexit->probability,
+			       prob);
 
   /* Finally create the new counter for number of iterations and add the new
      exit instruction.  */

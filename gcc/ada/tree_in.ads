@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---     Copyright (C) 1992,1993,1994,1995 Free Software Foundation, Inc.     --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -36,7 +36,7 @@
 --  tools that need to read the tree to the tree reading routines, and is
 --  thus bound as part of such tools.
 
-with GNAT.OS_Lib; use GNAT.OS_Lib;
+with System.OS_Lib; use System.OS_Lib;
 
 procedure Tree_In (Desc : File_Descriptor);
 --  Desc is the file descriptor for the file containing the tree, as written

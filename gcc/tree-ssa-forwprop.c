@@ -1,11 +1,11 @@
 /* Forward propagation of expressions for single use variables.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -370,12 +369,14 @@ combine_cond_expr_cond (enum tree_code code, tree type,
 }
 
 /* Propagate from the ssa name definition statements of COND_EXPR
-   in statement STMT into the conditional if that simplifies it.  */
+   in statement STMT into the conditional if that simplifies it.
+   Returns zero if no statement was changed, one if there were
+   changes and two if cfg_cleanup needs to run.  */
 
-static bool
+static int
 forward_propagate_into_cond (tree cond_expr, tree stmt)
 {
-  bool did_something = false;
+  int did_something = 0;
 
   do {
     tree tmp = NULL_TREE;
@@ -449,7 +450,10 @@ forward_propagate_into_cond (tree cond_expr, tree stmt)
 	/* Remove defining statements.  */
 	remove_prop_source_from_use (name, NULL);
 
-	did_something = true;
+	if (is_gimple_min_invariant (tmp))
+	  did_something = 2;
+	else if (did_something == 0)
+	  did_something = 1;
 
 	/* Continue combining.  */
 	continue;
@@ -499,20 +503,6 @@ forward_propagate_addr_into_variable_array_index (tree offset,
 {
   tree index;
 
-  /* The offset must be defined by a simple GIMPLE_MODIFY_STMT statement.  */
-  if (TREE_CODE (offset) != GIMPLE_MODIFY_STMT)
-    return false;
-
-  /* The RHS of the statement which defines OFFSET must be a gimple
-     cast of another SSA_NAME.  */
-  offset = GIMPLE_STMT_OPERAND (offset, 1);
-  if (!is_gimple_cast (offset))
-    return false;
-
-  offset = TREE_OPERAND (offset, 0);
-  if (TREE_CODE (offset) != SSA_NAME)
-    return false;
-
   /* Try to find an expression for a proper index.  This is either
      a multiplication expression by the element size or just the
      ssa name we came along in case the element size is one.  */
@@ -520,14 +510,19 @@ forward_propagate_addr_into_variable_array_index (tree offset,
     index = offset;
   else
     {
+      /* Get the offset's defining statement.  */
       offset = SSA_NAME_DEF_STMT (offset);
 
-      /* The RHS of the statement which defines OFFSET must be a
-	 multiplication of an object by the size of the array elements.  */
+      /* The statement which defines OFFSET before type conversion
+         must be a simple GIMPLE_MODIFY_STMT.  */
       if (TREE_CODE (offset) != GIMPLE_MODIFY_STMT)
 	return false;
 
-      offset = GIMPLE_STMT_OPERAND (offset, 1);
+      /* The RHS of the statement which defines OFFSET must be a
+	 multiplication of an object by the size of the array elements. 
+	 This implicitly verifies that the size of the array elements
+	 is constant.  */
+     offset = GIMPLE_STMT_OPERAND (offset, 1);
       if (TREE_CODE (offset) != MULT_EXPR
 	  || TREE_CODE (TREE_OPERAND (offset, 1)) != INTEGER_CST
 	  || !simple_cst_equal (TREE_OPERAND (offset, 1),
@@ -605,8 +600,8 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt,
       	    && rhs == name)
 	   || ((TREE_CODE (rhs) == NOP_EXPR
 		|| TREE_CODE (rhs) == CONVERT_EXPR)
-	       && tree_ssa_useless_type_conversion_1 (TREE_TYPE (rhs),
-						      TREE_TYPE (def_rhs))))
+	       && useless_type_conversion_p (TREE_TYPE (rhs),
+					    TREE_TYPE (def_rhs))))
     return forward_propagate_addr_expr (lhs, def_rhs);
 
   /* Strip away any outer COMPONENT_REF, ARRAY_REF or ADDR_EXPR
@@ -637,12 +632,12 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt,
       || !integer_zerop (TREE_OPERAND (array_ref, 1)))
     return false;
 
-  /* If the use of the ADDR_EXPR must be a PLUS_EXPR, or else there
+  /* If the use of the ADDR_EXPR is not a POINTER_PLUS_EXPR, there
      is nothing to do. */
-  if (TREE_CODE (rhs) != PLUS_EXPR)
+  if (TREE_CODE (rhs) != POINTER_PLUS_EXPR)
     return false;
 
-  /* Try to optimize &x[0] + C where C is a multiple of the size
+  /* Try to optimize &x[0] p+ C where C is a multiple of the size
      of the elements in X into &x[C/element size].  */
   if (TREE_OPERAND (rhs, 0) == name
       && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST)
@@ -666,7 +661,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt,
 	}
     }
 
-  /* Try to optimize &x[0] + OFFSET where OFFSET is defined by
+  /* Try to optimize &x[0] p+ OFFSET where OFFSET is defined by
      converting a multiplication of an index by the size of the
      array elements, then the result is converted into the proper
      type for the arithmetic.  */
@@ -674,27 +669,11 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt,
       && TREE_CODE (TREE_OPERAND (rhs, 1)) == SSA_NAME
       /* Avoid problems with IVopts creating PLUS_EXPRs with a
 	 different type than their operands.  */
-      && lang_hooks.types_compatible_p (TREE_TYPE (name), TREE_TYPE (rhs)))
+      && useless_type_conversion_p (TREE_TYPE (rhs), TREE_TYPE (name)))
     {
       bool res;
-      tree offset_stmt = SSA_NAME_DEF_STMT (TREE_OPERAND (rhs, 1));
       
-      res = forward_propagate_addr_into_variable_array_index (offset_stmt,
-							      def_rhs, use_stmt);
-      return res;
-    }
-	      
-  /* Same as the previous case, except the operands of the PLUS_EXPR
-     were reversed.  */
-  if (TREE_OPERAND (rhs, 1) == name
-      && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME
-      /* Avoid problems with IVopts creating PLUS_EXPRs with a
-	 different type than their operands.  */
-      && lang_hooks.types_compatible_p (TREE_TYPE (name), TREE_TYPE (rhs)))
-    {
-      bool res;
-      tree offset_stmt = SSA_NAME_DEF_STMT (TREE_OPERAND (rhs, 0));
-      res = forward_propagate_addr_into_variable_array_index (offset_stmt,
+      res = forward_propagate_addr_into_variable_array_index (TREE_OPERAND (rhs, 1),
 							      def_rhs, use_stmt);
       return res;
     }
@@ -1014,9 +993,11 @@ tree_ssa_forward_propagate_single_use_vars (void)
 		}
               else if (TREE_CODE (rhs) == COND_EXPR)
                 {
-		  bool did_something;
+		  int did_something;
 		  fold_defer_overflow_warnings ();
                   did_something = forward_propagate_into_cond (rhs, stmt);
+		  if (did_something == 2)
+		    cfg_changed = true;
 		  fold_undefer_overflow_warnings (!TREE_NO_WARNING (rhs)
 		    && did_something, stmt, WARN_STRICT_OVERFLOW_CONDITIONAL);
 		  bsi_next (&bsi);
@@ -1042,9 +1023,11 @@ tree_ssa_forward_propagate_single_use_vars (void)
 	    }
 	  else if (TREE_CODE (stmt) == COND_EXPR)
 	    {
-	      bool did_something;
+	      int did_something;
 	      fold_defer_overflow_warnings ();
 	      did_something = forward_propagate_into_cond (stmt, stmt);
+	      if (did_something == 2)
+		cfg_changed = true;
 	      fold_undefer_overflow_warnings (!TREE_NO_WARNING (stmt)
 					      && did_something, stmt,
 					      WARN_STRICT_OVERFLOW_CONDITIONAL);

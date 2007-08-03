@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -188,7 +187,7 @@ mode_for_size (unsigned int size, enum mode_class class, int limit)
 /* Similar, except passed a tree node.  */
 
 enum machine_mode
-mode_for_size_tree (tree size, enum mode_class class, int limit)
+mode_for_size_tree (const_tree size, enum mode_class class, int limit)
 {
   unsigned HOST_WIDE_INT uhwi;
   unsigned int ui;
@@ -1808,8 +1807,7 @@ layout_type (tree type)
 
 	    if (TYPE_MODE (type) != BLKmode
 		&& STRICT_ALIGNMENT && TYPE_ALIGN (type) < BIGGEST_ALIGNMENT
-		&& TYPE_ALIGN (type) < GET_MODE_ALIGNMENT (TYPE_MODE (type))
-		&& TYPE_MODE (type) != BLKmode)
+		&& TYPE_ALIGN (type) < GET_MODE_ALIGNMENT (TYPE_MODE (type)))
 	      {
 		TYPE_NO_FORCE_BLK (type) = 1;
 		TYPE_MODE (type) = BLKmode;

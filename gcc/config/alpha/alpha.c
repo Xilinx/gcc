@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -56,7 +55,7 @@ Boston, MA 02110-1301, USA.  */
 #include "tree-flow.h"
 #include "tree-stdarg.h"
 #include "tm-constrs.h"
-
+#include "df.h"
 
 /* Specify which cpu to schedule for.  */
 enum processor_type alpha_tune;
@@ -238,10 +237,10 @@ alpha_handle_option (size_t code, const char *arg, int value)
 }
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
-/* Implement TARGET_MANGLE_FUNDAMENTAL_TYPE.  */
+/* Implement TARGET_MANGLE_TYPE.  */
 
 static const char *
-alpha_mangle_fundamental_type (tree type)
+alpha_mangle_type (tree type)
 {
   if (TYPE_MAIN_VARIANT (type) == long_double_type_node
       && TARGET_LONG_DOUBLE_128)
@@ -933,7 +932,7 @@ alpha_legitimize_address (rtx x, rtx scratch,
      part of the CONST_INT.  Then load FOO plus any high-order part of the
      CONST_INT into a register.  Our address is (plus reg low-part-const).
      This is done to reduce the number of GOT entries.  */
-  if (!no_new_pseudos
+  if (can_create_pseudo_p ()
       && GET_CODE (x) == CONST
       && GET_CODE (XEXP (x, 0)) == PLUS
       && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT)
@@ -946,7 +945,7 @@ alpha_legitimize_address (rtx x, rtx scratch,
   /* If we have a (plus reg const), emit the load as in (2), then add
      the two registers, and finally generate (plus reg low-part-const) as
      our address.  */
-  if (!no_new_pseudos
+  if (can_create_pseudo_p ()
       && GET_CODE (x) == PLUS
       && GET_CODE (XEXP (x, 0)) == REG
       && GET_CODE (XEXP (x, 1)) == CONST
@@ -1069,7 +1068,7 @@ alpha_legitimize_address (rtx x, rtx scratch,
 	    return x;
 	  else
 	    {
-	      if (!no_new_pseudos)
+	      if (can_create_pseudo_p ())
 	        scratch = gen_reg_rtx (Pmode);
 	      emit_insn (gen_rtx_SET (VOIDmode, scratch,
 				      gen_rtx_HIGH (Pmode, x)));
@@ -1091,11 +1090,11 @@ alpha_legitimize_address (rtx x, rtx scratch,
 
     if (addend)
       x = expand_simple_binop (Pmode, PLUS, x, GEN_INT (addend),
-			       (no_new_pseudos ? scratch : NULL_RTX),
+			       (!can_create_pseudo_p () ? scratch : NULL_RTX),
 			       1, OPTAB_LIB_WIDEN);
     if (high)
       x = expand_simple_binop (Pmode, PLUS, x, GEN_INT (high),
-			       (no_new_pseudos ? scratch : NULL_RTX),
+			       (!can_create_pseudo_p () ? scratch : NULL_RTX),
 			       1, OPTAB_LIB_WIDEN);
 
     return plus_constant (x, low);
@@ -1644,7 +1643,7 @@ alpha_emit_set_const_1 (rtx target, enum machine_mode mode,
   int i, bits;
   /* Use a pseudo if highly optimizing and still generating RTL.  */
   rtx subtarget
-    = (flag_expensive_optimizations && !no_new_pseudos ? 0 : target);
+    = (flag_expensive_optimizations && can_create_pseudo_p () ? 0 : target);
   rtx temp, insn;
 
   /* If this is a sign-extended 32-bit constant, we can do this in at most
@@ -1688,7 +1687,7 @@ alpha_emit_set_const_1 (rtx target, enum machine_mode mode,
 	{
 	  if (no_output)
 	    return pc_rtx;
-	  if (no_new_pseudos)
+	  if (!can_create_pseudo_p ())
 	    {
 	      emit_insn (gen_rtx_SET (VOIDmode, target, GEN_INT (high << 16)));
 	      temp = target;
@@ -1727,7 +1726,7 @@ alpha_emit_set_const_1 (rtx target, enum machine_mode mode,
      we can't make pseudos, we can't do anything since the expand_binop
      and expand_unop calls will widen and try to make pseudos.  */
 
-  if (n == 1 || (mode == SImode && no_new_pseudos))
+  if (n == 1 || (mode == SImode && !can_create_pseudo_p ()))
     return 0;
 
   /* Next, see if we can load a related constant and then shift and possibly
@@ -1895,7 +1894,7 @@ alpha_emit_set_const (rtx target, enum machine_mode mode,
 
   /* If we can't make any pseudos, TARGET is an SImode hard register, we
      can't load this constant in one insn, do this in DImode.  */
-  if (no_new_pseudos && mode == SImode
+  if (!can_create_pseudo_p () && mode == SImode
       && GET_CODE (target) == REG && REGNO (target) < FIRST_PSEUDO_REGISTER)
     {
       result = alpha_emit_set_const_1 (target, mode, c, 1, no_output);
@@ -2700,7 +2699,7 @@ alpha_emit_conditional_move (rtx cmp, enum machine_mode mode)
      conditional move.  Make sure we emit only comparisons we have;
      swap or reverse as necessary.  */
 
-  if (no_new_pseudos)
+  if (!can_create_pseudo_p ())
     return NULL_RTX;
 
   switch (code)
@@ -2777,7 +2776,7 @@ alpha_split_conditional_move (enum rtx_code code, rtx dest, rtx cond,
   if (mode != DImode)
     {
       target = gen_lowpart (DImode, dest);
-      if (! no_new_pseudos)
+      if (can_create_pseudo_p ())
         subtarget = gen_reg_rtx (DImode);
       else
 	subtarget = target;
@@ -4795,7 +4794,7 @@ alpha_ra_ever_killed (void)
   rtx top;
 
   if (!has_hard_reg_initial_val (Pmode, REG_RA))
-    return regs_ever_live[REG_RA];
+    return (int)df_regs_ever_live_p (REG_RA);
 
   push_topmost_sequence ();
   top = get_insns ();
@@ -7091,7 +7090,7 @@ alpha_sa_mask (unsigned long *imaskP, unsigned long *fmaskP)
   /* One for every register we have to save.  */
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     if (! fixed_regs[i] && ! call_used_regs[i]
-	&& regs_ever_live[i] && i != REG_RA
+	&& df_regs_ever_live_p (i) && i != REG_RA
 	&& (!TARGET_ABI_UNICOSMK || i != HARD_FRAME_POINTER_REGNUM))
       {
 	if (i < 32)
@@ -7199,7 +7198,7 @@ alpha_sa_size (void)
       vms_save_fp_regno = -1;
       if (vms_base_regno == HARD_FRAME_POINTER_REGNUM)
 	for (i = 0; i < 32; i++)
-	  if (! fixed_regs[i] && call_used_regs[i] && ! regs_ever_live[i])
+	  if (! fixed_regs[i] && call_used_regs[i] && ! df_regs_ever_live_p (i))
 	    vms_save_fp_regno = i;
 
       if (vms_save_fp_regno == -1 && alpha_procedure_type == PT_REGISTER)
@@ -10709,8 +10708,8 @@ alpha_init_libfuncs (void)
 #define TARGET_HANDLE_OPTION alpha_handle_option
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
-#undef TARGET_MANGLE_FUNDAMENTAL_TYPE
-#define TARGET_MANGLE_FUNDAMENTAL_TYPE alpha_mangle_fundamental_type
+#undef TARGET_MANGLE_TYPE
+#define TARGET_MANGLE_TYPE alpha_mangle_type
 #endif
 
 struct gcc_target targetm = TARGET_INITIALIZER;

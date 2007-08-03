@@ -1,8 +1,8 @@
-/* Copyright (C) 2006 Free Software Foundation, Inc.
+/* Copyright (C) 2006, 2007 Free Software Foundation, Inc.
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
-   Software Foundation; either version 2 of the License, or (at your option) 
+   Software Foundation; either version 3 of the License, or (at your option) 
    any later version.
 
    This file is distributed in the hope that it will be useful, but WITHOUT
@@ -11,9 +11,8 @@
    for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this file; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 
 /* Run-time Target */
@@ -31,6 +30,23 @@
 
 extern int target_flags;
 extern const char *spu_fixed_range_string;
+
+/* Which processor to generate code or schedule for.  */
+enum processor_type
+{
+  PROCESSOR_CELL,
+  PROCESSOR_CELLEDP
+};
+
+extern GTY(()) int spu_arch;
+extern GTY(()) int spu_tune;
+
+/* Support for a compile-time default architecture and tuning.  The rules are:
+   --with-arch is ignored if -march is specified.
+   --with-tune is ignored if -mtune is specified.  */
+#define OPTION_DEFAULT_SPECS \
+  {"arch", "%{!march=*:-march=%(VALUE)}" }, \
+  {"tune", "%{!mtune=*:-mtune=%(VALUE)}" }
 
 /* Default target_flags if no switches specified.  */
 #ifndef TARGET_DEFAULT
@@ -542,6 +558,52 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
   do { if (LOG!=0) fprintf (FILE, "\t.align\t%d\n", (LOG)); } while (0)
 
 
+/* Model costs for the vectorizer.  */
+
+/* Cost of conditional branch.  */
+#ifndef TARG_COND_BRANCH_COST
+#define TARG_COND_BRANCH_COST        6
+#endif
+
+/* Cost of any scalar operation, excluding load and store.  */
+#ifndef TARG_SCALAR_STMT_COST
+#define TARG_SCALAR_STMT_COST        1
+#endif
+
+/* Cost of scalar load. */
+#undef TARG_SCALAR_LOAD_COST
+#define TARG_SCALAR_LOAD_COST        2 /* load + rotate */
+
+/* Cost of scalar store.  */
+#undef TARG_SCALAR_STORE_COST
+#define TARG_SCALAR_STORE_COST       10
+
+/* Cost of any vector operation, excluding load, store,
+   or vector to scalar operation.  */
+#undef TARG_VEC_STMT_COST
+#define TARG_VEC_STMT_COST           1
+
+/* Cost of vector to scalar operation.  */
+#undef TARG_VEC_TO_SCALAR_COST
+#define TARG_VEC_TO_SCALAR_COST      1
+
+/* Cost of scalar to vector operation.  */
+#undef TARG_SCALAR_TO_VEC_COST
+#define TARG_SCALAR_TO_VEC_COST      1
+
+/* Cost of aligned vector load.  */
+#undef TARG_VEC_LOAD_COST
+#define TARG_VEC_LOAD_COST           1
+
+/* Cost of misaligned vector load.  */
+#undef TARG_VEC_UNALIGNED_LOAD_COST
+#define TARG_VEC_UNALIGNED_LOAD_COST 2
+
+/* Cost of vector store.  */
+#undef TARG_VEC_STORE_COST
+#define TARG_VEC_STORE_COST          1
+
+
 /* Misc */
 
 #define CASE_VECTOR_MODE SImode
@@ -559,7 +621,18 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 #define NO_IMPLICIT_EXTERN_C 1
 
 #define HANDLE_PRAGMA_PACK_PUSH_POP 1
-
+
+/* Canonicalize a comparison from one we don't have to one we do have.  */
+#define CANONICALIZE_COMPARISON(CODE,OP0,OP1) \
+  do {                                                                    \
+    if (((CODE) == LE || (CODE) == LT || (CODE) == LEU || (CODE) == LTU)) \
+      {                                                                   \
+        rtx tem = (OP0);                                                  \
+        (OP0) = (OP1);                                                    \
+        (OP1) = tem;                                                      \
+        (CODE) = swap_condition (CODE);                                   \
+      }                                                                   \
+  } while (0)
 
 /* These are set by the cmp patterns and used while expanding
    conditional branches. */

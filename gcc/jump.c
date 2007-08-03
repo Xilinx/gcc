@@ -1,13 +1,13 @@
 /* Optimize jump instructions, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1991, 1992, 1993, 1994, 1995, 1996, 1997
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This is the pathetic reminder of old fame of the jump-optimization pass
    of the compiler.  Now it contains basically a set of utility functions to
@@ -303,7 +302,7 @@ reversed_comparison_code_parts (enum rtx_code code, rtx arg0, rtx arg1, rtx insn
 	   prev != 0 && !LABEL_P (prev);
 	   prev = prev_nonnote_insn (prev))
 	{
-	  rtx set = set_of (arg0, prev);
+	  const_rtx set = set_of (arg0, prev);
 	  if (set && GET_CODE (set) == SET
 	      && rtx_equal_p (SET_DEST (set), arg0))
 	    {
@@ -655,7 +654,7 @@ comparison_dominates_p (enum rtx_code code1, enum rtx_code code2)
 /* Return 1 if INSN is an unconditional jump and nothing else.  */
 
 int
-simplejump_p (rtx insn)
+simplejump_p (const_rtx insn)
 {
   return (JUMP_P (insn)
 	  && GET_CODE (PATTERN (insn)) == SET
@@ -670,9 +669,9 @@ simplejump_p (rtx insn)
    branch and compare insns.  Use any_condjump_p instead whenever possible.  */
 
 int
-condjump_p (rtx insn)
+condjump_p (const_rtx insn)
 {
-  rtx x = PATTERN (insn);
+  const_rtx x = PATTERN (insn);
 
   if (GET_CODE (x) != SET
       || GET_CODE (SET_DEST (x)) != PC)
@@ -698,9 +697,9 @@ condjump_p (rtx insn)
    branch and compare insns.  Use any_condjump_p instead whenever possible.  */
 
 int
-condjump_in_parallel_p (rtx insn)
+condjump_in_parallel_p (const_rtx insn)
 {
-  rtx x = PATTERN (insn);
+  const_rtx x = PATTERN (insn);
 
   if (GET_CODE (x) != PARALLEL)
     return 0;
@@ -729,7 +728,7 @@ condjump_in_parallel_p (rtx insn)
 /* Return set of PC, otherwise NULL.  */
 
 rtx
-pc_set (rtx insn)
+pc_set (const_rtx insn)
 {
   rtx pat;
   if (!JUMP_P (insn))
@@ -750,9 +749,9 @@ pc_set (rtx insn)
    possibly bundled inside a PARALLEL.  */
 
 int
-any_uncondjump_p (rtx insn)
+any_uncondjump_p (const_rtx insn)
 {
-  rtx x = pc_set (insn);
+  const_rtx x = pc_set (insn);
   if (!x)
     return 0;
   if (GET_CODE (SET_SRC (x)) != LABEL_REF)
@@ -770,9 +769,9 @@ any_uncondjump_p (rtx insn)
    Note that unlike condjump_p it returns false for unconditional jumps.  */
 
 int
-any_condjump_p (rtx insn)
+any_condjump_p (const_rtx insn)
 {
-  rtx x = pc_set (insn);
+  const_rtx x = pc_set (insn);
   enum rtx_code a, b;
 
   if (!x)
@@ -831,7 +830,7 @@ returnjump_p (rtx insn)
    nothing more.  */
 
 int
-onlyjump_p (rtx insn)
+onlyjump_p (const_rtx insn)
 {
   rtx set;
 
@@ -855,7 +854,7 @@ onlyjump_p (rtx insn)
    and has no side effects.  */
 
 int
-only_sets_cc0_p (rtx x)
+only_sets_cc0_p (const_rtx x)
 {
   if (! x)
     return 0;
@@ -872,7 +871,7 @@ only_sets_cc0_p (rtx x)
    but also does other things.  */
 
 int
-sets_cc0_p (rtx x)
+sets_cc0_p (const_rtx x)
 {
   if (! x)
     return 0;
@@ -1423,7 +1422,7 @@ int
 rtx_renumbered_equal_p (rtx x, rtx y)
 {
   int i;
-  enum rtx_code code = GET_CODE (x);
+  const enum rtx_code code = GET_CODE (x);
   const char *fmt;
 
   if (x == y)
@@ -1605,7 +1604,7 @@ rtx_renumbered_equal_p (rtx x, rtx y)
    return -1.  Any rtx is valid for X.  */
 
 int
-true_regnum (rtx x)
+true_regnum (const_rtx x)
 {
   if (REG_P (x))
     {
@@ -1630,7 +1629,7 @@ true_regnum (rtx x)
 
 /* Return regno of the register REG and handle subregs too.  */
 unsigned int
-reg_or_subregno (rtx reg)
+reg_or_subregno (const_rtx reg)
 {
   if (GET_CODE (reg) == SUBREG)
     reg = SUBREG_REG (reg);

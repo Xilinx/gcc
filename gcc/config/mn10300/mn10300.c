@@ -1,13 +1,13 @@
 /* Subroutines for insn-output.c for Matsushita MN10300 series
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+   2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -60,12 +59,12 @@ enum processor_type mn10300_processor = PROCESSOR_DEFAULT;
 /* The size of the callee register save area.  Right now we save everything
    on entry since it costs us nothing in code size.  It does cost us from a
    speed standpoint, so we want to optimize this sooner or later.  */
-#define REG_SAVE_BYTES (4 * regs_ever_live[2] \
-			+ 4 * regs_ever_live[3] \
-		        + 4 * regs_ever_live[6] \
-			+ 4 * regs_ever_live[7] \
-			+ 16 * (regs_ever_live[14] || regs_ever_live[15] \
-				|| regs_ever_live[16] || regs_ever_live[17]))
+#define REG_SAVE_BYTES (4 * df_regs_ever_live_p (2)	\
+			+ 4 * df_regs_ever_live_p (3)	\
+		        + 4 * df_regs_ever_live_p (6)	\
+			+ 4 * df_regs_ever_live_p (7)			\
+			+ 16 * (df_regs_ever_live_p (14) || df_regs_ever_live_p (15) \
+				|| df_regs_ever_live_p (16) || df_regs_ever_live_p (17)))
 
 
 static bool mn10300_handle_option (size_t, const char *, int);
@@ -537,7 +536,7 @@ fp_regs_to_save (void)
     return 0;
 
   for (i = FIRST_FP_REGNUM; i <= LAST_FP_REGNUM; ++i)
-    if (regs_ever_live[i] && ! call_used_regs[i])
+    if (df_regs_ever_live_p (i) && ! call_used_regs[i])
       ++n;
 
   return n;
@@ -590,14 +589,14 @@ can_use_return_insn (void)
 
   return (reload_completed
 	  && size == 0
-	  && !regs_ever_live[2]
-	  && !regs_ever_live[3]
-	  && !regs_ever_live[6]
-	  && !regs_ever_live[7]
-	  && !regs_ever_live[14]
-	  && !regs_ever_live[15]
-	  && !regs_ever_live[16]
-	  && !regs_ever_live[17]
+	  && !df_regs_ever_live_p (2)
+	  && !df_regs_ever_live_p (3)
+	  && !df_regs_ever_live_p (6)
+	  && !df_regs_ever_live_p (7)
+	  && !df_regs_ever_live_p (14)
+	  && !df_regs_ever_live_p (15)
+	  && !df_regs_ever_live_p (16)
+	  && !df_regs_ever_live_p (17)
 	  && fp_regs_to_save () == 0
 	  && !frame_pointer_needed);
 }
@@ -614,7 +613,7 @@ mn10300_get_live_callee_saved_regs (void)
 
   mask = 0;
   for (i = 0; i <= LAST_EXTENDED_REGNUM; i++)
-    if (regs_ever_live[i] && ! call_used_regs[i])
+    if (df_regs_ever_live_p (i) && ! call_used_regs[i])
       mask |= (1 << i);
   if ((mask & 0x3c000) != 0)
     mask |= 0x3c000;
@@ -907,7 +906,7 @@ expand_prologue (void)
 
       /* Now actually save the FP registers.  */
       for (i = FIRST_FP_REGNUM; i <= LAST_FP_REGNUM; ++i)
-	if (regs_ever_live[i] && ! call_used_regs[i])
+	if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	  {
 	    rtx addr;
 
@@ -944,24 +943,8 @@ expand_prologue (void)
     emit_insn (gen_addsi3 (stack_pointer_rtx,
 			   stack_pointer_rtx,
 			   GEN_INT (-size)));
-  if (flag_pic && regs_ever_live[PIC_OFFSET_TABLE_REGNUM])
-    {
-      rtx insn = get_last_insn ();
-      rtx last = emit_insn (gen_GOTaddr2picreg ());
-
-      /* Mark these insns as possibly dead.  Sometimes, flow2 may
-	 delete all uses of the PIC register.  In this case, let it
-	 delete the initialization too.  */
-      do
-	{
-	  insn = NEXT_INSN (insn);
-
-	  REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD,
-						const0_rtx,
-						REG_NOTES (insn));
-	}
-      while (insn != last);
-    }
+  if (flag_pic && df_regs_ever_live_p (PIC_OFFSET_TABLE_REGNUM))
+    emit_insn (gen_GOTaddr2picreg ());
 }
 
 void
@@ -1127,7 +1110,7 @@ expand_epilogue (void)
 	reg = gen_rtx_POST_INC (SImode, reg);
 
       for (i = FIRST_FP_REGNUM; i <= LAST_FP_REGNUM; ++i)
-	if (regs_ever_live[i] && ! call_used_regs[i])
+	if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	  {
 	    rtx addr;
 
@@ -1189,10 +1172,10 @@ expand_epilogue (void)
     }
 
   /* Adjust the stack and restore callee-saved registers, if any.  */
-  if (size || regs_ever_live[2] || regs_ever_live[3]
-      || regs_ever_live[6] || regs_ever_live[7]
-      || regs_ever_live[14] || regs_ever_live[15]
-      || regs_ever_live[16] || regs_ever_live[17]
+  if (size || df_regs_ever_live_p (2) || df_regs_ever_live_p (3)
+      || df_regs_ever_live_p (6) || df_regs_ever_live_p (7)
+      || df_regs_ever_live_p (14) || df_regs_ever_live_p (15)
+      || df_regs_ever_live_p (16) || df_regs_ever_live_p (17)
       || frame_pointer_needed)
     emit_jump_insn (gen_return_internal_regs
 		    (GEN_INT (size + REG_SAVE_BYTES)));
@@ -1401,10 +1384,10 @@ initial_offset (int from, int to)
      is the size of the callee register save area.  */
   if (from == ARG_POINTER_REGNUM && to == FRAME_POINTER_REGNUM)
     {
-      if (regs_ever_live[2] || regs_ever_live[3]
-	  || regs_ever_live[6] || regs_ever_live[7]
-	  || regs_ever_live[14] || regs_ever_live[15]
-	  || regs_ever_live[16] || regs_ever_live[17]
+      if (df_regs_ever_live_p (2) || df_regs_ever_live_p (3)
+	  || df_regs_ever_live_p (6) || df_regs_ever_live_p (7)
+	  || df_regs_ever_live_p (14) || df_regs_ever_live_p (15)
+	  || df_regs_ever_live_p (16) || df_regs_ever_live_p (17)
 	  || fp_regs_to_save ()
 	  || frame_pointer_needed)
 	return REG_SAVE_BYTES
@@ -1418,10 +1401,10 @@ initial_offset (int from, int to)
      area, and the fixed stack space needed for function calls (if any).  */
   if (from == ARG_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
     {
-      if (regs_ever_live[2] || regs_ever_live[3]
-	  || regs_ever_live[6] || regs_ever_live[7]
-	  || regs_ever_live[14] || regs_ever_live[15]
-	  || regs_ever_live[16] || regs_ever_live[17]
+      if (df_regs_ever_live_p (2) || df_regs_ever_live_p (3)
+	  || df_regs_ever_live_p (6) || df_regs_ever_live_p (7)
+	  || df_regs_ever_live_p (14) || df_regs_ever_live_p (15)
+	  || df_regs_ever_live_p (16) || df_regs_ever_live_p (17)
 	  || fp_regs_to_save ()
 	  || frame_pointer_needed)
 	return (get_frame_size () + REG_SAVE_BYTES

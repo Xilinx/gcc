@@ -6,7 +6,7 @@
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +15,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 /* This (greedy) algorithm constructs traces in several rounds.
    The construction starts from "seeds".  The seed for the first round
@@ -85,6 +84,7 @@
 #include "params.h"
 #include "toplev.h"
 #include "tree-pass.h"
+#include "df.h"
 
 #ifndef HAVE_conditional_execution
 #define HAVE_conditional_execution 0
@@ -179,7 +179,7 @@ static void connect_traces (int, struct trace *);
 static bool copy_bb_p (basic_block, int);
 static int get_uncond_jump_length (void);
 static bool push_to_next_round_p (basic_block, int, int, int, gcov_type);
-static void find_rarely_executed_basic_blocks_and_crossing_edges (edge *,
+static void find_rarely_executed_basic_blocks_and_crossing_edges (edge **,
 								  int *,
 								  int *);
 static void add_labels_and_missing_jumps (edge *, int);
@@ -1218,7 +1218,7 @@ get_uncond_jump_length (void)
    cache locality).  */
 
 static void
-find_rarely_executed_basic_blocks_and_crossing_edges (edge *crossing_edges,
+find_rarely_executed_basic_blocks_and_crossing_edges (edge **crossing_edges,
 						      int *n_crossing_edges,
 						      int *max_idx)
 {
@@ -1255,10 +1255,10 @@ find_rarely_executed_basic_blocks_and_crossing_edges (edge *crossing_edges,
 	  if (i == *max_idx)
 	    {
 	      *max_idx *= 2;
-	      crossing_edges = xrealloc (crossing_edges,
+	      *crossing_edges = xrealloc (*crossing_edges,
 					 (*max_idx) * sizeof (edge));
 	    }
-	  crossing_edges[i++] = e;
+	  (*crossing_edges)[i++] = e;
 	}
       else
 	e->flags &= ~EDGE_CROSSING;
@@ -1607,16 +1607,6 @@ fix_crossing_conditional_branches (void)
 		  last_bb->aux = new_bb;
 		  prev_bb = last_bb;
 		  last_bb = new_bb;
-
-		  /* Update register liveness information.  */
-
-		  new_bb->il.rtl->global_live_at_start = ALLOC_REG_SET (&reg_obstack);
-		  new_bb->il.rtl->global_live_at_end = ALLOC_REG_SET (&reg_obstack);
-		  COPY_REG_SET (new_bb->il.rtl->global_live_at_end,
-				prev_bb->il.rtl->global_live_at_end);
-		  COPY_REG_SET (new_bb->il.rtl->global_live_at_start,
-				prev_bb->il.rtl->global_live_at_end);
-
 		  /* Put appropriate instructions in new bb.  */
 
 		  new_label = gen_label_rtx ();
@@ -1840,10 +1830,7 @@ fix_edges_for_rarely_executed_code (edge *crossing_edges,
      well.  */
 
   if (!HAS_LONG_UNCOND_BRANCH)
-    {
-      fix_crossing_unconditional_branches ();
-      reg_scan (get_insns (), max_reg_num ());
-    }
+    fix_crossing_unconditional_branches ();
 
   add_reg_crossing_jump_notes ();
 }
@@ -2180,7 +2167,7 @@ partition_hot_cold_basic_blocks (void)
 	&& cur_bb->next_bb->index >= NUM_FIXED_BLOCKS)
       cur_bb->aux = cur_bb->next_bb;
 
-  find_rarely_executed_basic_blocks_and_crossing_edges (crossing_edges,
+  find_rarely_executed_basic_blocks_and_crossing_edges (&crossing_edges,
 							&n_crossing_edges,
 							&max_edges);
 
@@ -2205,13 +2192,11 @@ gate_handle_reorder_blocks (void)
 static unsigned int
 rest_of_handle_reorder_blocks (void)
 {
-  unsigned int liveness_flags;
   basic_block bb;
 
   /* Last attempt to optimize CFG, as scheduling, peepholing and insn
      splitting possibly introduced more crossjumping opportunities.  */
-  liveness_flags = (!HAVE_conditional_execution ? CLEANUP_UPDATE_LIFE : 0);
-  cfg_layout_initialize (CLEANUP_EXPENSIVE | liveness_flags);
+  cfg_layout_initialize (CLEANUP_EXPENSIVE);
 
   if (flag_sched2_use_traces && flag_schedule_insns_after_reload)
     {
@@ -2224,14 +2209,7 @@ rest_of_handle_reorder_blocks (void)
     reorder_basic_blocks ();
   if (flag_reorder_blocks || flag_reorder_blocks_and_partition
       || (flag_sched2_use_traces && flag_schedule_insns_after_reload))
-    cleanup_cfg (CLEANUP_EXPENSIVE | liveness_flags);
-
-  /* On conditional execution targets we can not update the life cheaply, so
-     we deffer the updating to after both cleanups.  This may lose some cases
-     but should not be terribly bad.  */
-  if (HAVE_conditional_execution)
-    update_life_info (NULL, UPDATE_LIFE_GLOBAL_RM_NOTES,
-		      PROP_DEATH_NOTES);
+    cleanup_cfg (CLEANUP_EXPENSIVE);
 
   FOR_EACH_BB (bb)
     if (bb->next_bb != EXIT_BLOCK_PTR)
@@ -2277,12 +2255,7 @@ gate_handle_partition_blocks (void)
 static unsigned int
 rest_of_handle_partition_blocks (void)
 {
-  no_new_pseudos = 0;
   partition_hot_cold_basic_blocks ();
-  allocate_reg_life_data ();
-  update_life_info (NULL, UPDATE_LIFE_GLOBAL_RM_NOTES,
-		    PROP_LOG_LINKS | PROP_REG_INFO | PROP_DEATH_NOTES);
-  no_new_pseudos = 1;
   return 0;
 }
 

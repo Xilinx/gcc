@@ -1,14 +1,15 @@
 /* Handle the hair of processing (but not expanding) inline functions.
    Also manage function and variable name overloading.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +18,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* Handle method declarations.  */
@@ -220,8 +220,8 @@ thunk_adjust (tree ptr, bool this_adjusting,
 {
   if (this_adjusting)
     /* Adjust the pointer by the constant.  */
-    ptr = fold_build2 (PLUS_EXPR, TREE_TYPE (ptr), ptr,
-		       ssize_int (fixed_offset));
+    ptr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
+		       size_int (fixed_offset));
 
   /* If there's a virtual offset, look up that value in the vtable and
      adjust the pointer again.  */
@@ -238,17 +238,19 @@ thunk_adjust (tree ptr, bool this_adjusting,
       /* Form the vtable address.  */
       vtable = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (vtable)), vtable);
       /* Find the entry with the vcall offset.  */
-      vtable = build2 (PLUS_EXPR, TREE_TYPE (vtable), vtable, virtual_offset);
+      vtable = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (vtable), vtable,
+		       fold_convert (sizetype, virtual_offset));
       /* Get the offset itself.  */
       vtable = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (vtable)), vtable);
       /* Adjust the `this' pointer.  */
-      ptr = fold_build2 (PLUS_EXPR, TREE_TYPE (ptr), ptr, vtable);
+      ptr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
+			 fold_convert (sizetype, vtable));
     }
 
   if (!this_adjusting)
     /* Adjust the pointer by the constant.  */
-    ptr = fold_build2 (PLUS_EXPR, TREE_TYPE (ptr), ptr,
-		       ssize_int (fixed_offset));
+    ptr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (ptr), ptr,
+		       size_int (fixed_offset));
 
   return ptr;
 }
@@ -1076,6 +1078,14 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
       DECL_ASSIGNMENT_OPERATOR_P (fn) = 1;
       SET_OVERLOADED_OPERATOR_CODE (fn, NOP_EXPR);
     }
+  
+  /* If pointers to member functions use the least significant bit to
+     indicate whether a function is virtual, ensure a pointer
+     to this function will have that bit clear.  */
+  if (TARGET_PTRMEMFUNC_VBIT_LOCATION == ptrmemfunc_vbit_in_pfn
+      && DECL_ALIGN (fn) < 2 * BITS_PER_UNIT)
+    DECL_ALIGN (fn) = 2 * BITS_PER_UNIT;
+
   /* Create the explicit arguments.  */
   if (rhs_parm_type)
     {

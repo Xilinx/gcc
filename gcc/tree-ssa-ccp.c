@@ -8,7 +8,7 @@ This file is part of GCC.
    
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
    
 GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -17,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
    
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Conditional constant propagation (CCP) is based on the SSA
    propagation engine (tree-ssa-propagate.c).  Constant assignments of
@@ -899,8 +898,7 @@ ccp_fold (tree stmt)
 	}
 
       if ((code == NOP_EXPR || code == CONVERT_EXPR)
-	  && tree_ssa_useless_type_conversion_1 (TREE_TYPE (rhs),
-		  				 TREE_TYPE (op0)))
+	  && useless_type_conversion_p (TREE_TYPE (rhs), TREE_TYPE (op0)))
 	return op0;
       return fold_unary (code, TREE_TYPE (rhs), op0);
     }
@@ -1054,8 +1052,9 @@ fold_const_aggregate_ref (tree t)
 	          == MODE_INT)
 	      && GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (TREE_TYPE (ctor)))) == 1
 	      && compare_tree_int (idx, TREE_STRING_LENGTH (ctor)) < 0)
-	    return build_int_cst (TREE_TYPE (t), (TREE_STRING_POINTER (ctor)
-					          [TREE_INT_CST_LOW (idx)]));
+	    return build_int_cst_type (TREE_TYPE (t),
+				       (TREE_STRING_POINTER (ctor)
+					[TREE_INT_CST_LOW (idx)]));
 	  return NULL_TREE;
 	}
 
@@ -1576,7 +1575,7 @@ maybe_fold_offset_to_array_ref (tree base, tree offset, tree orig_type)
   if (TREE_CODE (array_type) != ARRAY_TYPE)
     return NULL_TREE;
   elt_type = TREE_TYPE (array_type);
-  if (!lang_hooks.types_compatible_p (orig_type, elt_type))
+  if (!useless_type_conversion_p (orig_type, elt_type))
     return NULL_TREE;
 
   /* Use signed size type for intermediate computation on the index.  */
@@ -1667,7 +1666,7 @@ maybe_fold_offset_to_component_ref (tree record_type, tree base, tree offset,
     return NULL_TREE;
 
   /* Short-circuit silly cases.  */
-  if (lang_hooks.types_compatible_p (record_type, orig_type))
+  if (useless_type_conversion_p (record_type, orig_type))
     return NULL_TREE;
 
   tail_array_field = NULL_TREE;
@@ -1705,7 +1704,7 @@ maybe_fold_offset_to_component_ref (tree record_type, tree base, tree offset,
       /* Here we exactly match the offset being checked.  If the types match,
 	 then we can return that field.  */
       if (cmp == 0
-	  && lang_hooks.types_compatible_p (orig_type, field_type))
+	  && useless_type_conversion_p (orig_type, field_type))
 	{
 	  if (base_is_ptr)
 	    base = build1 (INDIRECT_REF, record_type, base);
@@ -1810,7 +1809,7 @@ maybe_fold_offset_to_reference (tree base, tree offset, tree orig_type)
 					  sub_offset / BITS_PER_UNIT), 1);
 	    }
 	}
-      if (lang_hooks.types_compatible_p (orig_type, TREE_TYPE (base))
+      if (useless_type_conversion_p (orig_type, TREE_TYPE (base))
 	  && integer_zerop (offset))
 	return base;
       type = TREE_TYPE (base);
@@ -1840,6 +1839,7 @@ static tree
 maybe_fold_stmt_indirect (tree expr, tree base, tree offset)
 {
   tree t;
+  bool volatile_p = TREE_THIS_VOLATILE (expr);
 
   /* We may well have constructed a double-nested PLUS_EXPR via multiple
      substitutions.  Fold that down to one.  Remove NON_LVALUE_EXPRs that
@@ -1853,8 +1853,8 @@ maybe_fold_stmt_indirect (tree expr, tree base, tree offset)
   if (t)
     return t;
 
-  /* Add in any offset from a PLUS_EXPR.  */
-  if (TREE_CODE (base) == PLUS_EXPR)
+  /* Add in any offset from a POINTER_PLUS_EXPR.  */
+  if (TREE_CODE (base) == POINTER_PLUS_EXPR)
     {
       tree offset2;
 
@@ -1863,7 +1863,8 @@ maybe_fold_stmt_indirect (tree expr, tree base, tree offset)
 	return NULL_TREE;
       base = TREE_OPERAND (base, 0);
 
-      offset = int_const_binop (PLUS_EXPR, offset, offset2, 1);
+      offset = fold_convert (sizetype,
+			     int_const_binop (PLUS_EXPR, offset, offset2, 1));
     }
 
   if (TREE_CODE (base) == ADDR_EXPR)
@@ -1882,7 +1883,10 @@ maybe_fold_stmt_indirect (tree expr, tree base, tree offset)
       t = maybe_fold_offset_to_reference (base_addr, offset,
 					  TREE_TYPE (expr));
       if (t)
-	return t;
+	{
+	  TREE_THIS_VOLATILE (t) = volatile_p;
+	  return t;
+	}
     }
   else
     {
@@ -1923,7 +1927,7 @@ maybe_fold_stmt_indirect (tree expr, tree base, tree offset)
 }
 
 
-/* A subroutine of fold_stmt_r.  EXPR is a PLUS_EXPR.
+/* A subroutine of fold_stmt_r.  EXPR is a POINTER_PLUS_EXPR.
 
    A quaint feature extant in our address arithmetic is that there
    can be hidden type changes here.  The type of the result need
@@ -1932,7 +1936,7 @@ maybe_fold_stmt_indirect (tree expr, tree base, tree offset)
    What we're after here is an expression of the form
 	(T *)(&array + const)
    where the cast doesn't actually exist, but is implicit in the
-   type of the PLUS_EXPR.  We'd like to turn this into
+   type of the POINTER_PLUS_EXPR.  We'd like to turn this into
 	&array[x]
    which may be able to propagate further.  */
 
@@ -1944,18 +1948,9 @@ maybe_fold_stmt_addition (tree expr)
   tree ptr_type = TREE_TYPE (expr);
   tree ptd_type;
   tree t;
-  bool subtract = (TREE_CODE (expr) == MINUS_EXPR);
 
-  /* We're only interested in pointer arithmetic.  */
-  if (!POINTER_TYPE_P (ptr_type))
-    return NULL_TREE;
-  /* Canonicalize the integral operand to op1.  */
-  if (INTEGRAL_TYPE_P (TREE_TYPE (op0)))
-    {
-      if (subtract)
-	return NULL_TREE;
-      t = op0, op0 = op1, op1 = t;
-    }
+  gcc_assert (TREE_CODE (expr) == POINTER_PLUS_EXPR);
+
   /* It had better be a constant.  */
   if (TREE_CODE (op1) != INTEGER_CST)
     return NULL_TREE;
@@ -2001,30 +1996,9 @@ maybe_fold_stmt_addition (tree expr)
       array_idx = int_const_binop (MULT_EXPR, array_idx, elt_size, 0);
 
       /* Update the operands for the next round, or for folding.  */
-      /* If we're manipulating unsigned types, then folding into negative
-	 values can produce incorrect results.  Particularly if the type
-	 is smaller than the width of the pointer.  */
-      if (subtract
-	  && TYPE_UNSIGNED (TREE_TYPE (op1))
-	  && tree_int_cst_lt (array_idx, op1))
-	return NULL;
-      op1 = int_const_binop (subtract ? MINUS_EXPR : PLUS_EXPR,
+      op1 = int_const_binop (PLUS_EXPR,
 			     array_idx, op1, 0);
-      subtract = false;
       op0 = array_obj;
-    }
-
-  /* If we weren't able to fold the subtraction into another array reference,
-     canonicalize the integer for passing to the array and component ref
-     simplification functions.  */
-  if (subtract)
-    {
-      if (TYPE_UNSIGNED (TREE_TYPE (op1)))
-	return NULL;
-      op1 = fold_unary (NEGATE_EXPR, TREE_TYPE (op1), op1);
-      /* ??? In theory fold should always produce another integer.  */
-      if (op1 == NULL || TREE_CODE (op1) != INTEGER_CST)
-	return NULL;
     }
 
   ptd_type = TREE_TYPE (ptr_type);
@@ -2116,8 +2090,7 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
         recompute_tree_invariant_for_addr_expr (expr);
       return NULL_TREE;
 
-    case PLUS_EXPR:
-    case MINUS_EXPR:
+    case POINTER_PLUS_EXPR:
       t = walk_tree (&TREE_OPERAND (expr, 0), fold_stmt_r, data, NULL);
       if (t)
 	return t;
@@ -2395,14 +2368,14 @@ ccp_fold_builtin (tree stmt, tree fn)
     case BUILT_IN_STRLEN:
       if (val[0])
 	{
-	  tree new = fold_convert (TREE_TYPE (fn), val[0]);
+	  tree new_val = fold_convert (TREE_TYPE (fn), val[0]);
 
 	  /* If the result is not a valid gimple value, or not a cast
 	     of a valid gimple value, then we can not use the result.  */
-	  if (is_gimple_val (new)
-	      || (is_gimple_cast (new)
-		  && is_gimple_val (TREE_OPERAND (new, 0))))
-	    return new;
+	  if (is_gimple_val (new_val)
+	      || (is_gimple_cast (new_val)
+		  && is_gimple_val (TREE_OPERAND (new_val, 0))))
+	    return new_val;
 	}
       break;
 

@@ -1,5 +1,5 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -496,8 +495,6 @@ cris_operand_lossage (const char *msgid, rtx op)
 static void
 cris_print_index (rtx index, FILE *file)
 {
-  rtx inner = XEXP (index, 0);
-
   /* Make the index "additive" unless we'll output a negative number, in
      which case the sign character is free (as in free beer).  */
   if (!CONST_INT_P (index) || INTVAL (index) >= 0)
@@ -514,8 +511,9 @@ cris_print_index (rtx index, FILE *file)
 
       putc (INTVAL (XEXP (index, 1)) == 2 ? 'w' : 'd', file);
     }
-  else if (GET_CODE (index) == SIGN_EXTEND && MEM_P (inner))
+  else if (GET_CODE (index) == SIGN_EXTEND && MEM_P (XEXP (index, 0)))
     {
+      rtx inner = XEXP (index, 0);
       rtx inner_inner = XEXP (inner, 0);
 
       if (GET_CODE (inner_inner) == POST_INC)
@@ -533,6 +531,7 @@ cris_print_index (rtx index, FILE *file)
     }
   else if (MEM_P (index))
     {
+      rtx inner = XEXP (index, 0);
       if (GET_CODE (inner) == POST_INC)
 	fprintf (file, "[$%s+].d", reg_names[REGNO (XEXP (inner, 0))]);
       else
@@ -578,13 +577,13 @@ static int
 cris_reg_saved_in_regsave_area (unsigned int regno, bool got_really_used)
 {
   return
-    (((regs_ever_live[regno]
+    (((df_regs_ever_live_p (regno)
        && !call_used_regs[regno])
       || (regno == PIC_OFFSET_TABLE_REGNUM
 	  && (got_really_used
 	      /* It is saved anyway, if there would be a gap.  */
 	      || (flag_pic
-		  && regs_ever_live[regno + 1]
+		  && df_regs_ever_live_p (regno + 1)
 		  && !call_used_regs[regno + 1]))))
      && (regno != FRAME_POINTER_REGNUM || !frame_pointer_needed)
      && regno != CRIS_SRP_REGNUM)
@@ -1122,7 +1121,7 @@ cris_return_addr_rtx (int count, rtx frameaddr ATTRIBUTE_UNUSED)
 bool
 cris_return_address_on_stack (void)
 {
-  return regs_ever_live[CRIS_SRP_REGNUM]
+  return df_regs_ever_live_p (CRIS_SRP_REGNUM)
     || cfun->machine->needs_return_address_on_stack;
 }
 
@@ -3181,7 +3180,7 @@ cris_expand_pic_call_address (rtx *opp)
     {
       enum cris_pic_symbol_type t = cris_pic_symbol_type_of (op);
 
-      CRIS_ASSERT (!no_new_pseudos);
+      CRIS_ASSERT (can_create_pseudo_p ());
 
       /* For local symbols (non-PLT), just get the plain symbol
 	 reference into a register.  For symbols that can be PLT, make
@@ -3196,7 +3195,7 @@ cris_expand_pic_call_address (rtx *opp)
 		 "move.d (const (unspec [sym] CRIS_UNSPEC_PLT)),rM"
 		 "add.d rPIC,rM,rO", "jsr rO".  */
 	      rtx tem, rm, ro;
-	      gcc_assert (! no_new_pseudos);
+	      gcc_assert (can_create_pseudo_p ());
 	      current_function_uses_pic_offset_table = 1;
 	      tem = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, op), CRIS_UNSPEC_PLT);
 	      rm = gen_reg_rtx (Pmode);
@@ -3222,7 +3221,7 @@ cris_expand_pic_call_address (rtx *opp)
 		 access of the PLTGOT isn't constant).  */
 	      rtx tem, mem, rm, ro;
 
-	      gcc_assert (! no_new_pseudos);
+	      gcc_assert (can_create_pseudo_p ());
 	      current_function_uses_pic_offset_table = 1;
 	      tem = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, op),
 				    CRIS_UNSPEC_PLTGOTREAD);

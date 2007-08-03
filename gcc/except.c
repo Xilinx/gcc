@@ -1,13 +1,14 @@
 /* Implements exception handling.
    Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Mike Stump <mrs@cygnus.com>.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* An exception is an event that can be signaled from within a
@@ -1129,8 +1129,8 @@ eh_region_outermost (struct function *ifun, int region_a, int region_b)
 static int
 t2r_eq (const void *pentry, const void *pdata)
 {
-  tree entry = (tree) pentry;
-  tree data = (tree) pdata;
+  const_tree const entry = (const_tree) pentry;
+  const_tree const data = (const_tree) pdata;
 
   return TREE_PURPOSE (entry) == data;
 }
@@ -1138,7 +1138,7 @@ t2r_eq (const void *pentry, const void *pdata)
 static hashval_t
 t2r_hash (const void *pentry)
 {
-  tree entry = (tree) pentry;
+  const_tree const entry = (const_tree) pentry;
   return TREE_HASH (TREE_PURPOSE (entry));
 }
 
@@ -1183,8 +1183,9 @@ struct ttypes_filter GTY(())
 static int
 ttypes_filter_eq (const void *pentry, const void *pdata)
 {
-  const struct ttypes_filter *entry = (const struct ttypes_filter *) pentry;
-  tree data = (tree) pdata;
+  const struct ttypes_filter *const entry
+    = (const struct ttypes_filter *) pentry;
+  const_tree const data = (const_tree) pdata;
 
   return entry->t == data;
 }
@@ -2131,7 +2132,8 @@ finish_eh_generation (void)
 static hashval_t
 ehl_hash (const void *pentry)
 {
-  struct ehl_map_entry *entry = (struct ehl_map_entry *) pentry;
+  const struct ehl_map_entry *const entry
+    = (const struct ehl_map_entry *) pentry;
 
   /* 2^32 * ((sqrt(5) - 1) / 2) */
   const hashval_t scaled_golden_ratio = 0x9e3779b9;
@@ -2141,8 +2143,10 @@ ehl_hash (const void *pentry)
 static int
 ehl_eq (const void *pentry, const void *pdata)
 {
-  struct ehl_map_entry *entry = (struct ehl_map_entry *) pentry;
-  struct ehl_map_entry *data = (struct ehl_map_entry *) pdata;
+  const struct ehl_map_entry *const entry
+    = (const struct ehl_map_entry *) pentry;
+  const struct ehl_map_entry *const data
+    = (const struct ehl_map_entry *) pdata;
 
   return entry->label == data->label;
 }

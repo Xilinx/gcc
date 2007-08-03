@@ -18,6 +18,9 @@ details.  */
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
@@ -28,10 +31,9 @@ details.  */
 #include <unistd.h>
 #include <pthread.h>
 
-#include <gcj/cni.h>
-#include <jvm.h>
 #include <posix.h>
 #include <posix-threads.h>
+#include <jvm.h>
 
 #include <java/lang/PosixProcess$ProcessManager.h>
 #include <java/lang/PosixProcess.h>

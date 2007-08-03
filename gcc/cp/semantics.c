@@ -12,7 +12,7 @@
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful, but
@@ -20,10 +20,9 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -1343,8 +1342,13 @@ finish_label_stmt (tree name)
 void
 finish_label_decl (tree name)
 {
-  tree decl = declare_local_label (name);
-  add_decl_expr (decl);
+  if (!at_function_scope_p ())
+    {
+      error ("__label__ declarations are only allowed in function scopes");
+      return;
+    }
+
+  add_decl_expr (declare_local_label (name));
 }
 
 /* When DECL goes out of scope, make sure that CLEANUP is executed.  */
@@ -2935,6 +2939,7 @@ finish_typeof (tree expr)
     {
       type = make_aggr_type (TYPEOF_TYPE);
       TYPEOF_TYPE_EXPR (type) = expr;
+      SET_TYPE_STRUCTURAL_EQUALITY (type);
 
       return type;
     }
@@ -3377,14 +3382,17 @@ finish_omp_clauses (tree clauses)
 	    {
 	      if (processing_template_decl)
 		break;
-	      error ("%qE is not a variable in clause %qs", t, name);
+	      if (DECL_P (t))
+		error ("%qD is not a variable in clause %qs", t, name);
+	      else
+		error ("%qE is not a variable in clause %qs", t, name);
 	      remove = true;
 	    }
 	  else if (bitmap_bit_p (&generic_head, DECL_UID (t))
 		   || bitmap_bit_p (&firstprivate_head, DECL_UID (t))
 		   || bitmap_bit_p (&lastprivate_head, DECL_UID (t)))
 	    {
-	      error ("%qE appears more than once in data clauses", t);
+	      error ("%qD appears more than once in data clauses", t);
 	      remove = true;
 	    }
 	  else
@@ -3806,6 +3814,8 @@ tree
 finish_omp_for (location_t locus, tree decl, tree init, tree cond,
 		tree incr, tree body, tree pre_body)
 {
+  tree omp_for;
+
   if (decl == NULL)
     {
       if (init != NULL)
@@ -3883,8 +3893,31 @@ finish_omp_for (location_t locus, tree decl, tree init, tree cond,
       add_stmt (pre_body);
       pre_body = NULL;
     }
+
+  init = fold_build_cleanup_point_expr (TREE_TYPE (init), init);
   init = build_modify_expr (decl, NOP_EXPR, init);
-  return c_finish_omp_for (locus, decl, init, cond, incr, body, pre_body);
+  if (cond && TREE_SIDE_EFFECTS (cond) && COMPARISON_CLASS_P (cond))
+    {
+      int n = TREE_SIDE_EFFECTS (TREE_OPERAND (cond, 1)) != 0;
+      tree t = TREE_OPERAND (cond, n);
+
+      TREE_OPERAND (cond, n)
+	= fold_build_cleanup_point_expr (TREE_TYPE (t), t);
+    }
+  omp_for = c_finish_omp_for (locus, decl, init, cond, incr, body, pre_body);
+  if (omp_for != NULL
+      && TREE_CODE (OMP_FOR_INCR (omp_for)) == MODIFY_EXPR
+      && TREE_SIDE_EFFECTS (TREE_OPERAND (OMP_FOR_INCR (omp_for), 1))
+      && BINARY_CLASS_P (TREE_OPERAND (OMP_FOR_INCR (omp_for), 1)))
+    {
+      tree t = TREE_OPERAND (OMP_FOR_INCR (omp_for), 1);
+      int n = TREE_SIDE_EFFECTS (TREE_OPERAND (t, 1)) != 0;
+
+      TREE_OPERAND (t, n)
+	= fold_build_cleanup_point_expr (TREE_TYPE (TREE_OPERAND (t, n)),
+					 TREE_OPERAND (t, n));
+    }
+  return omp_for;
 }
 
 void
@@ -4007,6 +4040,169 @@ finish_static_assert (tree condition, tree message, location_t location,
         error ("non-constant condition for static assertion");
       input_location = saved_loc;
     }
+}
+
+/* Implements the C++0x decltype keyword. Returns the type of EXPR,
+   suitable for use as a type-specifier.
+
+   ID_EXPRESSION_OR_MEMBER_ACCESS_P is true when EXPR was parsed as an
+   id-expression or a class member access, FALSE when it was parsed as
+   a full expression.  */
+tree
+finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
+{
+  tree orig_expr = expr;
+  tree type;
+
+  if (type_dependent_expression_p (expr))
+    {
+      type = make_aggr_type (DECLTYPE_TYPE);
+      DECLTYPE_TYPE_EXPR (type) = expr;
+      DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (type)
+        = id_expression_or_member_access_p;
+      SET_TYPE_STRUCTURAL_EQUALITY (type);
+
+      return type;
+    }
+
+  /* The type denoted by decltype(e) is defined as follows:  */
+
+  if (id_expression_or_member_access_p)
+    {
+      /* If e is an id-expression or a class member access (5.2.5
+         [expr.ref]), decltype(e) is defined as the type of the entity
+         named by e. If there is no such entity, or e names a set of
+         overloaded functions, the program is ill-formed.  */
+      if (TREE_CODE (expr) == IDENTIFIER_NODE)
+        expr = lookup_name (expr);
+
+      if (TREE_CODE (expr) == INDIRECT_REF)
+        /* This can happen when the expression is, e.g., "a.b". Just
+           look at the underlying operand.  */
+        expr = TREE_OPERAND (expr, 0);
+
+      if (TREE_CODE (expr) == OFFSET_REF
+          || TREE_CODE (expr) == MEMBER_REF)
+        /* We're only interested in the field itself. If it is a
+           BASELINK, we will need to see through it in the next
+           step.  */
+        expr = TREE_OPERAND (expr, 1);
+
+      if (TREE_CODE (expr) == BASELINK)
+        /* See through BASELINK nodes to the underlying functions.  */
+        expr = BASELINK_FUNCTIONS (expr);
+
+      if (TREE_CODE (expr) == OVERLOAD)
+        {
+          if (OVL_CHAIN (expr))
+            {
+              error ("%qE refers to a set of overloaded functions", orig_expr);
+              return error_mark_node;
+            }
+          else
+            /* An overload set containing only one function: just look
+               at that function.  */
+            expr = OVL_FUNCTION (expr);
+        }
+
+      switch (TREE_CODE (expr))
+        {
+        case FIELD_DECL:
+          if (DECL_C_BIT_FIELD (expr))
+            {
+              type = DECL_BIT_FIELD_TYPE (expr);
+              break;
+            }
+          /* Fall through for fields that aren't bitfields.  */
+
+        case FUNCTION_DECL:
+        case VAR_DECL:
+        case CONST_DECL:
+        case PARM_DECL:
+        case RESULT_DECL:
+          type = TREE_TYPE (expr);
+          break;
+
+        case ERROR_MARK:
+          type = error_mark_node;
+          break;
+
+        case COMPONENT_REF:
+          type = is_bitfield_expr_with_lowered_type (expr);
+          if (!type)
+            type = TREE_TYPE (TREE_OPERAND (expr, 1));
+          break;
+
+        case BIT_FIELD_REF:
+          gcc_unreachable ();
+
+        case INTEGER_CST:
+          /* We can get here when the id-expression refers to an
+             enumerator.  */
+          type = TREE_TYPE (expr);
+          break;
+
+        default:
+          gcc_assert (TYPE_P (expr) || DECL_P (expr));
+          error ("argument to decltype must be an expression");
+          return error_mark_node;
+        }
+    }
+  else
+    {
+      tree fndecl;
+
+      if (TREE_CODE (expr) == CALL_EXPR
+          && (fndecl = get_callee_fndecl (expr))
+          && (fndecl != error_mark_node))
+        /* If e is a function call (5.2.2 [expr.call]) or an
+           invocation of an overloaded operator (parentheses around e
+           are ignored), decltype(e) is defined as the return type of
+           that function.  */
+        type = TREE_TYPE (TREE_TYPE (fndecl));
+      else 
+        {
+          type = is_bitfield_expr_with_lowered_type (expr);
+          if (type)
+            {
+              /* Bitfields are special, because their type encodes the
+                 number of bits they store.  If the expression referenced a
+                 bitfield, TYPE now has the declared type of that
+                 bitfield.  */
+              type = cp_build_qualified_type (type, 
+                                              cp_type_quals (TREE_TYPE (expr)));
+              
+              if (real_lvalue_p (expr))
+                type = build_reference_type (type);
+            }
+          else
+            {
+              /* Otherwise, where T is the type of e, if e is an lvalue,
+                 decltype(e) is defined as T&, otherwise decltype(e) is
+                 defined as T.  */
+              type = TREE_TYPE (expr);
+              if (expr == current_class_ptr)
+                /* If the expression is just "this", we want the
+                   cv-unqualified pointer for the "this" type.  */
+                type = TYPE_MAIN_VARIANT (type);
+              else if (real_lvalue_p (expr))
+                {
+                  if (TREE_CODE (type) != REFERENCE_TYPE)
+                    type = build_reference_type (type);
+                }
+              else
+                type = non_reference (type);
+            }
+        }
+    }
+
+  if (!type || type == unknown_type_node)
+    {
+      error ("type of %qE is unknown", expr);
+      return error_mark_node;
+    }
+
+  return type;
 }
 
 /* Called from trait_expr_value to evaluate either __has_nothrow_assign or 

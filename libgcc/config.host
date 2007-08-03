@@ -370,8 +370,8 @@ i[4567]86-wrs-vxworks|i[4567]86-wrs-vxworksae)
 i[34567]86-*-pe)
 	;;
 i[34567]86-*-cygwin* | i[34567]86-*-mingw*)
-	extra_parts="crtfastmath.o"
-	tmake_file="i386/t-crtfm"
+	extra_parts="crtbegin.o crtend.o crtfastmath.o"
+	tmake_file="i386/t-cygming i386/t-crtfm"
 	;;
 x86_64-*-mingw*)
 	;;
@@ -652,5 +652,11 @@ m32c-*-elf*)
 *)
 	echo "*** Configuration ${host} not supported" 1>&2
 	exit 1
+	;;
+esac
+
+case ${host} in
+i[34567]86-*-linux* | x86_64-*-linux*)
+	tmake_file="${tmake_file} t-tls"
 	;;
 esac

@@ -852,8 +852,8 @@ require_type (st_parameter_dt *dtp, bt expected, bt actual, const fnode *f)
   if (actual == expected)
     return 0;
 
-  st_sprintf (buffer, "Expected %s for item %d in formatted transfer, got %s",
-	      type_name (expected), dtp->u.p.item_count, type_name (actual));
+  sprintf (buffer, "Expected %s for item %d in formatted transfer, got %s",
+	   type_name (expected), dtp->u.p.item_count, type_name (actual));
 
   format_error (dtp, f, buffer);
   return 1;
@@ -949,7 +949,10 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int len,
 	}
 
       bytes_used = (int)(dtp->u.p.current_unit->recl
-			 - dtp->u.p.current_unit->bytes_left);
+		   - dtp->u.p.current_unit->bytes_left);
+
+      if (is_stream_io(dtp))
+	bytes_used = 0;
 
       switch (t)
 	{
@@ -1156,9 +1159,9 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int len,
 	case FMT_TR:
 	  consume_data_flag = 0;
 
-	  pos = bytes_used + f->u.n + dtp->u.p.skips;
-	  dtp->u.p.skips = f->u.n + dtp->u.p.skips;
-	  dtp->u.p.pending_spaces = pos - dtp->u.p.max_pos;
+	  dtp->u.p.skips += f->u.n;
+	  pos = bytes_used + dtp->u.p.skips - 1;
+	  dtp->u.p.pending_spaces = pos - dtp->u.p.max_pos + 1;
 
 	  /* Writes occur just before the switch on f->format, above, so
 	     that trailing blanks are suppressed, unless we are doing a
@@ -1188,8 +1191,6 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int len,
 	      if (bytes_used == 0)
 		{
 		  dtp->u.p.pending_spaces -= f->u.n;
-		  dtp->u.p.pending_spaces = dtp->u.p.pending_spaces < 0 ? 0
-					    : dtp->u.p.pending_spaces;
 		  dtp->u.p.skips -= f->u.n;
 		  dtp->u.p.skips = dtp->u.p.skips < 0 ? 0 : dtp->u.p.skips;
 		}
@@ -1213,6 +1214,8 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int len,
 	  dtp->u.p.skips = dtp->u.p.skips + pos - bytes_used;
 	  dtp->u.p.pending_spaces = dtp->u.p.pending_spaces
 				    + pos - dtp->u.p.max_pos;
+	  dtp->u.p.pending_spaces = dtp->u.p.pending_spaces < 0
+				    ? 0 : dtp->u.p.pending_spaces;
 
 	  if (dtp->u.p.skips == 0)
 	    break;
@@ -2268,6 +2271,14 @@ next_record_r (st_parameter_dt *dtp)
 
       break;
     }
+
+  if (dtp->u.p.current_unit->flags.access == ACCESS_SEQUENTIAL
+      && !dtp->u.p.namelist_mode
+      && dtp->u.p.current_unit->endfile == NO_ENDFILE
+      && (file_length (dtp->u.p.current_unit->s) ==
+	 file_position (dtp->u.p.current_unit->s)))
+    dtp->u.p.current_unit->endfile = AT_ENDFILE;
+
 }
 
 
@@ -2742,9 +2753,6 @@ st_read (st_parameter_dt *dtp)
     switch (dtp->u.p.current_unit->endfile)
       {
       case NO_ENDFILE:
-	if (file_length (dtp->u.p.current_unit->s)
-	    == file_position (dtp->u.p.current_unit->s))
-	  dtp->u.p.current_unit->endfile = AT_ENDFILE;
 	break;
 
       case AT_ENDFILE:
@@ -2898,14 +2906,14 @@ st_set_nml_var (st_parameter_dt *dtp, void * var_addr, char * var_name,
 
 /* Store the dimensional information for the namelist object.  */
 extern void st_set_nml_var_dim (st_parameter_dt *, GFC_INTEGER_4,
-				GFC_INTEGER_4, GFC_INTEGER_4,
-				GFC_INTEGER_4);
+				index_type, index_type,
+				index_type);
 export_proto(st_set_nml_var_dim);
 
 void
 st_set_nml_var_dim (st_parameter_dt *dtp, GFC_INTEGER_4 n_dim,
-		    GFC_INTEGER_4 stride, GFC_INTEGER_4 lbound,
-		    GFC_INTEGER_4 ubound)
+		    index_type stride, index_type lbound,
+		    index_type ubound)
 {
   namelist_info * nml;
   int n;
@@ -2914,9 +2922,9 @@ st_set_nml_var_dim (st_parameter_dt *dtp, GFC_INTEGER_4 n_dim,
 
   for (nml = dtp->u.p.ionml; nml->next; nml = nml->next);
 
-  nml->dim[n].stride = (ssize_t)stride;
-  nml->dim[n].lbound = (ssize_t)lbound;
-  nml->dim[n].ubound = (ssize_t)ubound;
+  nml->dim[n].stride = stride;
+  nml->dim[n].lbound = lbound;
+  nml->dim[n].ubound = ubound;
 }
 
 /* Reverse memcpy - used for byte swapping.  */

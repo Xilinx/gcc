@@ -56,6 +56,8 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "lambda.h"
 #include "langhooks.h"
 
+#if 0
+
 #ifdef USE_MAPPED_LOCATION
 typedef source_location LOC;
 #define UNKNOWN_LOC UNKNOWN_LOCATION
@@ -1745,6 +1747,15 @@ tree_loop_distribution (void)
       fprintf (dump_file, "</distribute_loops>\n");
     }
   
+  return 0;
+}
+
+#endif
+
+
+static unsigned int
+tree_loop_distribution (void)
+{
   return 0;
 }
 

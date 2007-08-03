@@ -1,13 +1,14 @@
 /* Separate lexical analyzer for GNU C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* This file is the lexical analyzer for GNU C++.  */
@@ -197,6 +197,7 @@ static const struct resword reswords[] =
   { "__complex__",	RID_COMPLEX,	0 },
   { "__const",		RID_CONST,	0 },
   { "__const__",	RID_CONST,	0 },
+  { "__decltype",       RID_DECLTYPE,   0 },
   { "__extension__",	RID_EXTENSION,	0 },
   { "__func__",		RID_C99_FUNCTION_NAME,	0 },
   { "__has_nothrow_assign", RID_HAS_NOTHROW_ASSIGN, 0 },
@@ -244,6 +245,7 @@ static const struct resword reswords[] =
   { "const",		RID_CONST,	0 },
   { "const_cast",	RID_CONSTCAST,	0 },
   { "continue",		RID_CONTINUE,	0 },
+  { "decltype",         RID_DECLTYPE,   D_CXX0X },
   { "default",		RID_DEFAULT,	0 },
   { "delete",		RID_DELETE,	0 },
   { "do",		RID_DO,		0 },
@@ -334,7 +336,7 @@ init_reswords (void)
   int mask = ((flag_no_asm ? D_ASM : 0)
 	      | D_OBJC
 	      | (flag_no_gnu_keywords ? D_EXT : 0)
-              | (flag_cpp0x ? 0 : D_CXX0X));
+              | ((cxx_dialect == cxx0x) ? 0 : D_CXX0X));
 
   ridpointers = GGC_CNEWVEC (tree, (int) RID_MAX);
   for (i = 0; i < ARRAY_SIZE (reswords); i++)

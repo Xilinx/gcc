@@ -6,7 +6,7 @@
 ;
 ; GCC is free software; you can redistribute it and/or modify it under
 ; the terms of the GNU General Public License as published by the Free
-; Software Foundation; either version 2, or (at your option) any later
+; Software Foundation; either version 3, or (at your option) any later
 ; version.
 ;
 ; GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@
 ; for more details.
 ;
 ; You should have received a copy of the GNU General Public License
-; along with GCC; see the file COPYING.  If not, write to the Free
-; Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-; 02110-1301, USA.
+; along with GCC; see the file COPYING3.  If not see
+; <http://www.gnu.org/licenses/>.
 
 ; See the GCC internals manual for a description of this file's format.
 
@@ -313,6 +312,10 @@ fasynchronous-unwind-tables
 Common Report Var(flag_asynchronous_unwind_tables) Optimization
 Generate unwind tables that are exact at each instruction boundary
 
+fauto-inc-dec
+Common Report Var(flag_auto_inc_dec) Init(1)
+Generate auto-inc/dec instructions
+
 ; -fcheck-bounds causes gcc to generate array bounds checks.
 ; For C, C++ and ObjC: defaults off.
 ; For Java: defaults to on.
@@ -387,6 +390,14 @@ Omit range reduction step when performing complex division
 fdata-sections
 Common Report Var(flag_data_sections) Optimization
 Place data items into their own section
+
+fdbg-cnt-list
+Common Report
+List all available debugging counters with their limits and counts.
+
+fdbg-cnt=
+Common RejectNegative Joined
+-fdbg-cnt=<counter>:<limit>[,<counter>:<limit>,...]    Set the debug counter limit.   
 
 ; Nonzero for -fdefer-pop: don't pop args after each function call
 ; instead save them up to pop many calls' args with one insns.
@@ -589,7 +600,7 @@ Common Report Var(flag_ipa_type_escape) Init(0) Optimization
 Type based escape and alias analysis
 
 fipa-matrix-reorg
-Common Report Var(flag_ipa_matrix_reorg)
+Common Report Var(flag_ipa_matrix_reorg) Optimization
 Perform matrix layout flattening and transposing based
 on profiling information.
 
@@ -660,6 +671,14 @@ fmudflapir
 Common RejectNegative Report Var(flag_mudflap_ignore_reads)
 Ignore read operations when inserting mudflap instrumentation
 
+fdce
+Common Var(flag_dce) Init(1) Optimization
+Use the RTL dead code elimination pass
+
+fdse
+Common Var(flag_dse) Init(1) Optimization
+Use the RTL dead store elimination pass
+
 freschedule-modulo-scheduled-loops
 Common Report Var(flag_resched_modulo_sched) Optimization
 Enable/Disable the traditional scheduling in loops that already passed modulo scheduling
@@ -729,7 +748,7 @@ Common Report Var(flag_pie,1) VarExists
 Generate position-independent code for executables if possible (small mode)
 
 fpredictive-commoning
-Common Report Var(flag_predictive_commoning)
+Common Report Var(flag_predictive_commoning) Optimization
 Run predictive commoning optimization.
 
 fprefetch-loop-arrays
@@ -1063,6 +1082,10 @@ ftree-pre
 Common Report Var(flag_tree_pre) Optimization
 Enable SSA-PRE optimization on trees
 
+ftree-reassoc
+Common Report Var(flag_tree_reassoc) Init(1) Optimization
+Enable reassociation on tree level
+
 ftree-salias
 Common Report Var(flag_tree_salias) Optimization
 Perform structural alias analysis
@@ -1126,9 +1149,17 @@ fvar-tracking
 Common Report Var(flag_var_tracking) VarExists Optimization
 Perform variable tracking
 
+fvar-tracking-uninit
+Common Report Var(flag_var_tracking_uninit) Optimization
+Perform variable tracking and also tag variables that are uninitialized
+
 ftree-vectorize
 Common Report Var(flag_tree_vectorize) Optimization
 Enable loop vectorization on trees
+
+fvect-cost-model
+Common Report Var(flag_vect_cost_model) Optimization
+Enable use of cost model in vectorization
 
 ftree-vect-loop-version
 Common Report Var(flag_tree_vect_loop_version) Init(1) Optimization

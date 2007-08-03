@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* This file handles generation of all the assembler code
@@ -1638,7 +1637,7 @@ assemble_start_function (tree decl, const char *fnname)
   if (flag_reorder_blocks_and_partition)
     {
       switch_to_section (unlikely_text_section ());
-      assemble_align (FUNCTION_BOUNDARY);
+      assemble_align (DECL_ALIGN (decl));
       ASM_OUTPUT_LABEL (asm_out_file, cfun->cold_section_label);
 
       /* When the function starts with a cold section, we need to explicitly
@@ -1648,7 +1647,7 @@ assemble_start_function (tree decl, const char *fnname)
 	  && BB_PARTITION (ENTRY_BLOCK_PTR->next_bb) == BB_COLD_PARTITION)
 	{
 	  switch_to_section (text_section);
-	  assemble_align (FUNCTION_BOUNDARY);
+	  assemble_align (DECL_ALIGN (decl));
 	  ASM_OUTPUT_LABEL (asm_out_file, cfun->hot_section_label);
 	  hot_label_written = true;
 	  first_function_block_is_cold = true;
@@ -1679,18 +1678,17 @@ assemble_start_function (tree decl, const char *fnname)
     ASM_OUTPUT_LABEL (asm_out_file, cfun->hot_section_label);
 
   /* Tell assembler to move to target machine's alignment for functions.  */
-  align = floor_log2 (FUNCTION_BOUNDARY / BITS_PER_UNIT);
-  if (align < force_align_functions_log)
-    align = force_align_functions_log;
+  align = floor_log2 (DECL_ALIGN (decl) / BITS_PER_UNIT);
   if (align > 0)
     {
       ASM_OUTPUT_ALIGN (asm_out_file, align);
     }
 
   /* Handle a user-specified function alignment.
-     Note that we still need to align to FUNCTION_BOUNDARY, as above,
+     Note that we still need to align to DECL_ALIGN, as above,
      because ASM_OUTPUT_MAX_SKIP_ALIGN might not do any alignment at all.  */
-  if (align_functions_log > align
+  if (! DECL_USER_ALIGN (decl)
+      && align_functions_log > align
       && cfun->function_frequency != FUNCTION_FREQUENCY_UNLIKELY_EXECUTED)
     {
 #ifdef ASM_OUTPUT_MAX_SKIP_ALIGN
@@ -2735,7 +2733,7 @@ static void maybe_output_constant_def_contents (struct constant_descriptor_tree 
 static hashval_t
 const_desc_hash (const void *ptr)
 {
-  return ((struct constant_descriptor_tree *)ptr)->hash;
+  return ((const struct constant_descriptor_tree *)ptr)->hash;
 }
 
 static hashval_t
@@ -2810,6 +2808,7 @@ const_hash_1 (const tree exp)
       return hi;
 
     case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
     case MINUS_EXPR:
       return (const_hash_1 (TREE_OPERAND (exp, 0)) * 9
 	      + const_hash_1 (TREE_OPERAND (exp, 1)));
@@ -2956,6 +2955,7 @@ compare_constant (const tree t1, const tree t2)
       }
 
     case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
     case MINUS_EXPR:
     case RANGE_EXPR:
       return (compare_constant (TREE_OPERAND (t1, 0), TREE_OPERAND (t2, 0))
@@ -3010,6 +3010,7 @@ copy_constant (tree exp)
 			    copy_constant (TREE_IMAGPART (exp)));
 
     case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
     case MINUS_EXPR:
       return build2 (TREE_CODE (exp), TREE_TYPE (exp),
 		     copy_constant (TREE_OPERAND (exp, 0)),
@@ -3601,7 +3602,7 @@ get_pool_constant_mark (rtx addr, bool *pmarked)
 /* Similar, return the mode.  */
 
 enum machine_mode
-get_pool_mode (rtx addr)
+get_pool_mode (const_rtx addr)
 {
   return SYMBOL_REF_CONSTANT (addr)->mode;
 }
@@ -3901,6 +3902,7 @@ compute_reloc_for_constant (tree exp)
       break;
 
     case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
       reloc = compute_reloc_for_constant (TREE_OPERAND (exp, 0));
       reloc |= compute_reloc_for_constant (TREE_OPERAND (exp, 1));
       break;
@@ -3970,6 +3972,7 @@ output_addressed_constants (tree exp)
       break;
 
     case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
     case MINUS_EXPR:
       output_addressed_constants (TREE_OPERAND (exp, 1));
       /* Fall through.  */
@@ -4001,7 +4004,7 @@ output_addressed_constants (tree exp)
    evaluate the property while walking a constructor for other purposes.  */
 
 bool
-constructor_static_from_elts_p (tree ctor)
+constructor_static_from_elts_p (const_tree ctor)
 {
   return (TREE_CONSTANT (ctor)
 	  && (TREE_CODE (TREE_TYPE (ctor)) == UNION_TYPE
@@ -4147,6 +4150,7 @@ initializer_constant_valid_p (tree value, tree endtype)
       }
       break;
 
+    case POINTER_PLUS_EXPR:
     case PLUS_EXPR:
       if (! INTEGRAL_TYPE_P (endtype)
 	  || TYPE_PRECISION (endtype) >= POINTER_SIZE)
@@ -6194,9 +6198,10 @@ default_binds_local_p_1 (tree exp, int shlib)
   else if (DECL_WEAK (exp))
     local_p = false;
   /* If PIC, then assume that any global name can be overridden by
-     symbols resolved from other modules.  */
+     symbols resolved from other modules, unless we are compiling with
+     -fwhole-program, which assumes that names are local.  */
   else if (shlib)
-    local_p = false;
+    local_p = flag_whole_program;
   /* Uninitialized COMMON variable may be unified with symbols
      resolved from other modules.  */
   else if (DECL_COMMON (exp)

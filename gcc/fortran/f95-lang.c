@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* f95-lang.c-- GCC backend interface stuff */
 
@@ -113,7 +112,6 @@ static HOST_WIDE_INT gfc_get_alias_set (tree);
 #undef LANG_HOOKS_MARK_ADDRESSABLE
 #undef LANG_HOOKS_TYPE_FOR_MODE
 #undef LANG_HOOKS_TYPE_FOR_SIZE
-#undef LANG_HOOKS_SIGNED_TYPE
 #undef LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION
 #undef LANG_HOOKS_CLEAR_BINDING_STACK
 #undef LANG_HOOKS_GET_ALIAS_SET
@@ -137,7 +135,6 @@ static HOST_WIDE_INT gfc_get_alias_set (tree);
 #define LANG_HOOKS_MARK_ADDRESSABLE        gfc_mark_addressable
 #define LANG_HOOKS_TYPE_FOR_MODE           gfc_type_for_mode
 #define LANG_HOOKS_TYPE_FOR_SIZE           gfc_type_for_size
-#define LANG_HOOKS_SIGNED_TYPE             gfc_signed_type
 #define LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION gfc_expand_function
 #define LANG_HOOKS_CLEAR_BINDING_STACK     gfc_clear_binding_stack
 #define LANG_HOOKS_GET_ALIAS_SET	   gfc_get_alias_set
@@ -952,6 +949,13 @@ gfc_init_builtin_functions (void)
 		      BUILT_IN_POW, "pow", true);
   gfc_define_builtin ("__builtin_powf", mfunc_float[1], 
 		      BUILT_IN_POWF, "powf", true);
+  gfc_define_builtin ("__builtin_powil", mfunc_longdouble[2], 
+		      BUILT_IN_POWIL, "powil", true);
+  gfc_define_builtin ("__builtin_powi", mfunc_double[2], 
+		      BUILT_IN_POWI, "powi", true);
+  gfc_define_builtin ("__builtin_powif", mfunc_float[2], 
+		      BUILT_IN_POWIF, "powif", true);
+
 
   if (TARGET_C99_FUNCTIONS)
     {
@@ -998,6 +1002,11 @@ gfc_init_builtin_functions (void)
   gfc_define_builtin ("__builtin_malloc", ftype, BUILT_IN_MALLOC,
 		      "malloc", false);
   DECL_IS_MALLOC (built_in_decls[BUILT_IN_MALLOC]) = 1;
+
+  tmp = tree_cons (NULL_TREE, void_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_isnan", ftype, BUILT_IN_ISNAN,
+		      "__builtin_isnan", true);
 
 #define DEF_PRIMITIVE_TYPE(ENUM, VALUE) \
   builtin_types[(int) ENUM] = VALUE;

@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for the HP Spectrum.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) of Cygnus Support
    and Tim Moore (moore@defmacro.cs.utah.edu) of the Center for
    Software Science at the University of Utah.
@@ -9,7 +9,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -18,9 +18,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 enum cmp_type				/* comparison type */
 {
@@ -372,7 +371,7 @@ typedef struct machine_function GTY(())
    is already live or already being saved (due to eh).  */
 
 #define HARD_REGNO_RENAME_OK(OLD_REG, NEW_REG) \
-  ((NEW_REG) != 2 || regs_ever_live[2] || current_function_calls_eh_return)
+  ((NEW_REG) != 2 || df_regs_ever_live_p (2) || current_function_calls_eh_return)
 
 /* C statement to store the difference between the frame pointer
    and the stack pointer values immediately after the function prologue.
@@ -410,10 +409,7 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
 #define EH_RETURN_DATA_REGNO(N)	\
   ((N) < 3 ? (N) + 20 : (N) == 3 ? 31 : INVALID_REGNUM)
 #define EH_RETURN_STACKADJ_RTX	gen_rtx_REG (Pmode, 29)
-#define EH_RETURN_HANDLER_RTX \
-  gen_rtx_MEM (word_mode,						\
-	       gen_rtx_PLUS (word_mode, frame_pointer_rtx,		\
-			     TARGET_64BIT ? GEN_INT (-16) : GEN_INT (-20)))
+#define EH_RETURN_HANDLER_RTX pa_eh_return_handler_rtx ()
 
 /* Offset from the frame pointer register value to the top of stack.  */
 #define FRAME_POINTER_CFA_OFFSET(FNDECL) 0

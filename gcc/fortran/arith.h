@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GFC_ARITH_H
 #define GFC_ARITH_H
@@ -57,12 +56,12 @@ gfc_expr *gfc_or (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_not (gfc_expr *);
 gfc_expr *gfc_eqv (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_neqv (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_eq (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_ne (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_gt (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_ge (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_lt (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_le (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_eq (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
+gfc_expr *gfc_ne (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
+gfc_expr *gfc_gt (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
+gfc_expr *gfc_ge (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
+gfc_expr *gfc_lt (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
+gfc_expr *gfc_le (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
 
 /* Convert strings to literal constants.  */
 gfc_expr *gfc_convert_integer (const char *, int, int, locus *);

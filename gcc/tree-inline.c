@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -1278,9 +1277,14 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
   tree init_stmt;
   tree var;
   tree var_sub;
-  tree rhs = value ? fold_convert (TREE_TYPE (p), value) : NULL;
+  tree rhs = value;
   tree def = (gimple_in_ssa_p (cfun)
 	      ? gimple_default_def (id->src_cfun, p) : NULL);
+
+  if (value
+      && value != error_mark_node
+      && !useless_type_conversion_p (TREE_TYPE (p), TREE_TYPE (value)))
+    rhs = fold_build1 (NOP_EXPR, TREE_TYPE (p), value);
 
   /* If the parameter is never assigned to, has no SSA_NAMEs created,
      we may not need to create a new variable here at all.  Instead, we may
@@ -1295,7 +1299,8 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 	 It is not big deal to prohibit constant propagation here as
 	 we will constant propagate in DOM1 pass anyway.  */
       if (is_gimple_min_invariant (value)
-	  && lang_hooks.types_compatible_p (TREE_TYPE (value), TREE_TYPE (p))
+	  && useless_type_conversion_p (TREE_TYPE (p),
+						 TREE_TYPE (value))
 	  /* We have to be very careful about ADDR_EXPR.  Make sure
 	     the base variable isn't a local variable of the inlined
 	     function, e.g., when doing recursive inlining, direct or
@@ -1451,7 +1456,6 @@ initialize_inlined_parameters (copy_body_data *id, tree exp,
   tree a;
   tree p;
   tree vars = NULL_TREE;
-  int argnum = 0;
   call_expr_arg_iterator iter;
   tree static_chain = CALL_EXPR_STATIC_CHAIN (exp);
 
@@ -1462,17 +1466,7 @@ initialize_inlined_parameters (copy_body_data *id, tree exp,
      equivalent VAR_DECL, appropriately initialized.  */
   for (p = parms, a = first_call_expr_arg (exp, &iter); p;
        a = next_call_expr_arg (&iter), p = TREE_CHAIN (p))
-    {
-      tree value;
-
-      ++argnum;
-
-      /* Find the initializer.  */
-      value = lang_hooks.tree_inlining.convert_parm_for_inlining
-	      (p, a, fn, argnum);
-
-      setup_one_parameter (id, p, value, fn, bb, &vars);
-    }
+    setup_one_parameter (id, p, a, fn, bb, &vars);
 
   /* Initialize the static chain.  */
   p = DECL_STRUCT_FUNCTION (fn)->static_chain_decl;
@@ -1584,7 +1578,7 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
       bool use_it = false;
 
       /* We can't use MODIFY_DEST if there's type promotion involved.  */
-      if (!lang_hooks.types_compatible_p (caller_type, callee_type))
+      if (!useless_type_conversion_p (callee_type, caller_type))
 	use_it = false;
 
       /* ??? If we're assigning to a variable sized type, then we must
@@ -1648,7 +1642,7 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
   /* Build the use expr.  If the return type of the function was
      promoted, convert it back to the expected type.  */
   use = var;
-  if (!lang_hooks.types_compatible_p (TREE_TYPE (var), caller_type))
+  if (!useless_type_conversion_p (caller_type, TREE_TYPE (var)))
     use = fold_convert (caller_type, var);
     
   STRIP_USELESS_TYPE_CONVERSION (use);
@@ -1989,6 +1983,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case BIND_EXPR:
     case WITH_CLEANUP_EXPR:
     case NOP_EXPR:
+    case CONVERT_EXPR:
     case VIEW_CONVERT_EXPR:
     case SAVE_EXPR:
     case ADDR_EXPR:
@@ -2015,6 +2010,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case OMP_CLAUSE:
     case OMP_RETURN:
     case OMP_CONTINUE:
+    case OMP_SECTIONS_SWITCH:
       break;
 
     /* We don't account constants for now.  Assume that the cost is amortized
@@ -2027,6 +2023,11 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case COMPLEX_CST:
     case VECTOR_CST:
     case STRING_CST:
+      *walk_subtrees = 0;
+      return NULL;
+
+      /* CHANGE_DYNAMIC_TYPE_EXPR explicitly expands to nothing.  */
+    case CHANGE_DYNAMIC_TYPE_EXPR:
       *walk_subtrees = 0;
       return NULL;
 
@@ -2080,6 +2081,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case VEC_COND_EXPR:
 
     case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
     case MINUS_EXPR:
     case MULT_EXPR:
 
@@ -2125,8 +2127,6 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case UNGE_EXPR:
     case UNEQ_EXPR:
     case LTGT_EXPR:
-
-    case CONVERT_EXPR:
 
     case CONJ_EXPR:
 
@@ -3217,6 +3217,7 @@ copy_decl_to_var (tree decl, copy_body_data *id)
   TREE_READONLY (copy) = TREE_READONLY (decl);
   TREE_THIS_VOLATILE (copy) = TREE_THIS_VOLATILE (decl);
   DECL_GIMPLE_REG_P (copy) = DECL_GIMPLE_REG_P (decl);
+  DECL_NO_TBAA_P (copy) = DECL_NO_TBAA_P (decl);
 
   return copy_decl_for_dup_finish (id, decl, copy);
 }
@@ -3243,6 +3244,7 @@ copy_result_decl_to_var (tree decl, copy_body_data *id)
     {
       TREE_ADDRESSABLE (copy) = TREE_ADDRESSABLE (decl);
       DECL_GIMPLE_REG_P (copy) = DECL_GIMPLE_REG_P (decl);
+      DECL_NO_TBAA_P (copy) = DECL_NO_TBAA_P (decl);
     }
 
   return copy_decl_for_dup_finish (id, decl, copy);

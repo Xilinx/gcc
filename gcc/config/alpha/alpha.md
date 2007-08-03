@@ -7,7 +7,7 @@
 ;;
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;;- See file "rtl.def" for documentation on define_insn, match_*, et. al.
 
@@ -506,7 +505,7 @@
   operands[4] = GEN_INT (low);
   if (satisfies_constraint_L (rest_rtx))
     operands[3] = rest_rtx;
-  else if (! no_new_pseudos)
+  else if (can_create_pseudo_p ())
     {
       operands[3] = gen_reg_rtx (DImode);
       emit_move_insn (operands[3], operands[2]);
@@ -4370,14 +4369,14 @@
    (clobber (match_scratch:DI 5 "=r"))]
   ""
   "#"
-  "! no_new_pseudos || reload_completed"
+  ""
   [(set (match_dup 5)
 	(match_op_dup:DI 1 [(match_dup 2) (const_int 0)]))
    (set (match_dup 0)
 	(plus:DI (mult:DI (match_dup 5) (match_dup 3))
 		 (match_dup 4)))]
 {
-  if (! no_new_pseudos)
+  if (can_create_pseudo_p ())
     operands[5] = gen_reg_rtx (DImode);
   else if (reg_overlap_mentioned_p (operands[5], operands[4]))
     operands[5] = operands[0];
@@ -4395,14 +4394,14 @@
    (clobber (match_scratch:SI 5 "=r"))]
   ""
   "#"
-  "! no_new_pseudos || reload_completed"
+  ""
   [(set (match_dup 5)
 	(match_op_dup:SI 1 [(match_dup 2) (const_int 0)]))
    (set (match_dup 0)
 	(plus:SI (mult:SI (match_dup 5) (match_dup 3))
 		 (match_dup 4)))]
 {
-  if (! no_new_pseudos)
+  if (can_create_pseudo_p ())
     operands[5] = gen_reg_rtx (DImode);
   else if (reg_overlap_mentioned_p (operands[5], operands[4]))
     operands[5] = operands[0];
@@ -4421,14 +4420,14 @@
    (clobber (match_scratch:SI 5 "=r"))]
   ""
   "#"
-  "! no_new_pseudos || reload_completed"
+  ""
   [(set (match_dup 5)
 	(match_op_dup:SI 1 [(match_dup 2) (const_int 0)]))
    (set (match_dup 0)
 	(sign_extend:DI (plus:SI (mult:SI (match_dup 5) (match_dup 3))
 				 (match_dup 4))))]
 {
-  if (! no_new_pseudos)
+  if (can_create_pseudo_p ())
     operands[5] = gen_reg_rtx (DImode);
   else if (reg_overlap_mentioned_p (operands[5], operands[4]))
     operands[5] = operands[0];
@@ -4446,14 +4445,14 @@
    (clobber (match_scratch:DI 5 "=r"))]
   ""
   "#"
-  "! no_new_pseudos || reload_completed"
+  ""
   [(set (match_dup 5)
 	(match_op_dup:DI 1 [(match_dup 2) (const_int 0)]))
    (set (match_dup 0)
 	(minus:DI (mult:DI (match_dup 5) (match_dup 3))
 		  (match_dup 4)))]
 {
-  if (! no_new_pseudos)
+  if (can_create_pseudo_p ())
     operands[5] = gen_reg_rtx (DImode);
   else if (reg_overlap_mentioned_p (operands[5], operands[4]))
     operands[5] = operands[0];
@@ -4471,14 +4470,14 @@
    (clobber (match_scratch:SI 5 "=r"))]
   ""
   "#"
-  "! no_new_pseudos || reload_completed"
+  ""
   [(set (match_dup 5)
 	(match_op_dup:SI 1 [(match_dup 2) (const_int 0)]))
    (set (match_dup 0)
 	(minus:SI (mult:SI (match_dup 5) (match_dup 3))
 		 (match_dup 4)))]
 {
-  if (! no_new_pseudos)
+  if (can_create_pseudo_p ())
     operands[5] = gen_reg_rtx (DImode);
   else if (reg_overlap_mentioned_p (operands[5], operands[4]))
     operands[5] = operands[0];
@@ -4497,14 +4496,14 @@
    (clobber (match_scratch:SI 5 "=r"))]
   ""
   "#"
-  "! no_new_pseudos || reload_completed"
+  ""
   [(set (match_dup 5)
 	(match_op_dup:SI 1 [(match_dup 2) (const_int 0)]))
    (set (match_dup 0)
 	(sign_extend:DI (minus:SI (mult:SI (match_dup 5) (match_dup 3))
 				  (match_dup 4))))]
 {
-  if (! no_new_pseudos)
+  if (can_create_pseudo_p ())
     operands[5] = gen_reg_rtx (DImode);
   else if (reg_overlap_mentioned_p (operands[5], operands[4]))
     operands[5] = operands[0];
@@ -5760,7 +5759,7 @@
     {
       rtx in[2], out[2], target;
 
-      gcc_assert (!no_new_pseudos);
+      gcc_assert (can_create_pseudo_p ());
 
       split_double (operands[1], &in[0], &in[1]);
 

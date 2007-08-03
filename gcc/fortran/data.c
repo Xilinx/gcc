@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor,Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* Notes for DATA statement implementation:
@@ -245,7 +244,7 @@ create_character_intializer (gfc_expr *init, gfc_typespec *ts,
    LVALUE already has an initialization, we extend this, otherwise we
    create a new one.  */
 
-void
+try
 gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
 {
   gfc_ref *ref;
@@ -288,6 +287,14 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
       switch (ref->type)
 	{
 	case REF_ARRAY:
+	  if (init && expr->expr_type != EXPR_ARRAY)
+	    {
+	      gfc_error ("'%s' at %L already is initialized at %L",
+			 lvalue->symtree->n.sym->name, &lvalue->where,
+			 &init->where);
+	      return FAILURE;
+	    }
+
 	  if (init == NULL)
 	    {
 	      /* The element typespec will be the same as the array
@@ -297,8 +304,6 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
 	      expr->expr_type = EXPR_ARRAY;
 	      expr->rank = ref->u.ar.as->rank;
 	    }
-	  else
-	    gcc_assert (expr->expr_type == EXPR_ARRAY);
 
 	  if (ref->u.ar.type == AR_ELEMENT)
 	    get_array_index (&ref->u.ar, &offset);
@@ -416,6 +421,8 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
     symbol->value = expr;
   else
     last_con->expr = expr;
+
+  return SUCCESS;
 }
 
 

@@ -1,11 +1,11 @@
 ;; Constraint definitions for MIPS.
-;; Copyright (C) 2006 Free Software Foundation, Inc.
+;; Copyright (C) 2006, 2007 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;; Register constraints
 
@@ -30,10 +29,10 @@
 (define_register_constraint "f" "TARGET_HARD_FLOAT ? FP_REGS : NO_REGS"
   "A floating-point register (if available).")
 
-(define_register_constraint "h" "HI_REG"
+(define_register_constraint "h" "TARGET_BIG_ENDIAN ? MD0_REG : MD1_REG"
   "The @code{hi} register.")
 
-(define_register_constraint "l" "LO_REG"
+(define_register_constraint "l" "TARGET_BIG_ENDIAN ? MD1_REG : MD0_REG"
   "The @code{lo} register.")
 
 (define_register_constraint "x" "MD_REGS"
@@ -82,6 +81,13 @@
 ;; instructions.  The core MIPS32 ISA provides a hi/lo madd,
 ;; but the DSPr2 version allows any accumulator target.
 (define_register_constraint "ka" "TARGET_DSPR2 ? ACC_REGS : MD_REGS")
+
+;; This is a normal rather than a register constraint because we can
+;; never use the stack pointer as a reload register.
+(define_constraint "ks"
+  "@internal"
+  (and (match_code "reg")
+       (match_test "REGNO (op) == STACK_POINTER_REGNUM")))
 
 ;; Integer constraints
 

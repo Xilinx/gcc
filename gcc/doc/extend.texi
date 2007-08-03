@@ -33,6 +33,7 @@ extensions, accepted by GCC in C89 mode and in C++.
 * Conditionals::        Omitting the middle operand of a @samp{?:} expression.
 * Long Long::		Double-word integers---@code{long long int}.
 * Complex::             Data types for complex numbers.
+* Floating Types::      Additional Floating Types.
 * Decimal Float::       Decimal Floating Types. 
 * Hex Floats::          Hexadecimal floating-point constants.
 * Zero Length::         Zero-length arrays.
@@ -81,6 +82,7 @@ extensions, accepted by GCC in C89 mode and in C++.
 * Pragmas::             Pragmas accepted by GCC.
 * Unnamed Fields::      Unnamed struct/union fields within structs/unions.
 * Thread-Local::        Per-thread variables.
+* Binary constants::    Binary constants using the @samp{0b} prefix.
 @end menu
 
 @node Statement Exprs
@@ -814,6 +816,37 @@ complex variable as if it were two separate variables of noncomplex type.
 If the variable's actual name is @code{foo}, the two fictitious
 variables are named @code{foo$real} and @code{foo$imag}.  You can
 examine and set these two fictitious variables with your debugger.
+
+@node Floating Types
+@section Additional Floating Types
+@cindex additional floating types
+@cindex @code{__float80} data type
+@cindex @code{__float128} data type
+@cindex @code{w} floating point suffix
+@cindex @code{q} floating point suffix
+@cindex @code{W} floating point suffix
+@cindex @code{Q} floating point suffix
+
+As an extension, the GNU C compiler supports additional floating
+types, @code{__float80} and @code{__float128} to support 80bit
+(@code{XFmode}) and 128 bit (@code{TFmode}) floating types.
+Support for additional types includes the arithmetic operators:
+add, subtract, multiply, divide; unary arithmetic operators;
+relational operators; equality operators; and conversions to and from
+integer and other floating types.  Use a suffix @samp{w} or @samp{W}
+in a literal constant of type @code{__float80} and @samp{q} or @samp{Q}
+for @code{_float128}.  You can declare complex types using the
+corresponding internal complex type, @code{XCmode} for @code{__float80}
+type and @code{TCmode} for @code{__float128} type:
+
+@smallexample
+typedef _Complex float __attribute__((mode(TC))) _Complex128;
+typedef _Complex float __attribute__((mode(XC))) _Complex80;
+@end smallexample
+
+Not all targets support additional floating point types.  @code{__float80}
+is supported on i386, x86_64 and ia64 targets and target @code{__float128}
+is supported on x86_64 and ia64 targets.
 
 @node Decimal Float
 @section Decimal Floating Types
@@ -1572,18 +1605,19 @@ The keyword @code{__attribute__} allows you to specify special
 attributes when making a declaration.  This keyword is followed by an
 attribute specification inside double parentheses.  The following
 attributes are currently defined for functions on all targets:
-@code{alloc_size}, @code{noreturn}, @code{returns_twice}, @code{noinline},
-@code{always_inline}, @code{flatten}, @code{pure}, @code{const},
-@code{nothrow}, @code{sentinel}, @code{format}, @code{format_arg},
+@code{aligned}, @code{alloc_size}, @code{noreturn},
+@code{returns_twice}, @code{noinline}, @code{always_inline},
+@code{flatten}, @code{pure}, @code{const}, @code{nothrow},
+@code{sentinel}, @code{format}, @code{format_arg},
 @code{no_instrument_function}, @code{section}, @code{constructor},
 @code{destructor}, @code{used}, @code{unused}, @code{deprecated},
 @code{weak}, @code{malloc}, @code{alias}, @code{warn_unused_result},
 @code{nonnull}, @code{gnu_inline} and @code{externally_visible},
 @code{hot}, @code{cold}.
-Several other attributes are defined for functions on particular target
-systems.  Other attributes, including @code{section} are supported for
-variables declarations (@pxref{Variable Attributes}) and for types (@pxref{Type
-Attributes}).
+Several other attributes are defined for functions on particular
+target systems.  Other attributes, including @code{section} are
+supported for variables declarations (@pxref{Variable Attributes}) and
+for types (@pxref{Type Attributes}).
 
 You may also specify attributes with @samp{__} preceding and following
 each keyword.  This allows you to use them in header files without
@@ -1611,6 +1645,27 @@ mangled name for the target must be used.  It is an error if @samp{__f}
 is not defined in the same translation unit.
 
 Not all target machines support this attribute.
+
+@item aligned (@var{alignment})
+@cindex @code{aligned} attribute
+This attribute specifies a minimum alignment for the function,
+measured in bytes.
+
+You cannot use this attribute to decrease the alignment of a function,
+only to increase it.  However, when you explicitly specify a function
+alignment this will override the effect of the
+@option{-falign-functions} (@pxref{Optimize Options}) option for this
+function.
+
+Note that the effectiveness of @code{aligned} attributes may be
+limited by inherent limitations in your linker.  On many systems, the
+linker is only able to arrange for functions to be aligned up to a
+certain maximum alignment.  (For some linkers, the maximum supported
+alignment may be very very small.)  See your linker documentation for
+further information.
+
+The @code{aligned} attribute can also be used for variables and fields
+(@pxref{Variable Attributes}.)
 
 @item alloc_size
 @cindex @code{alloc_size} attribute
@@ -1781,10 +1836,8 @@ You can use @code{__declspec(dllexport)} as a synonym for
 compilers.
 
 On systems that support the @code{visibility} attribute, this
-attribute also implies ``default'' visibility, unless a
-@code{visibility} attribute is explicitly specified.  You should avoid
-the use of @code{dllexport} with ``hidden'' or ``internal''
-visibility; in the future GCC may issue an error for those cases.
+attribute also implies ``default'' visibility.  It is an error to
+explicitly specify any other visibility.
 
 Currently, the @code{dllexport} attribute is ignored for inlined
 functions, unless the @option{-fkeep-inline-functions} flag has been
@@ -1805,13 +1858,17 @@ the @option{--export-all} linker flag.
 On Microsoft Windows and Symbian OS targets, the @code{dllimport}
 attribute causes the compiler to reference a function or variable via
 a global pointer to a pointer that is set up by the DLL exporting the
-symbol.  The attribute implies @code{extern} storage.  On Microsoft
-Windows targets, the pointer name is formed by combining @code{_imp__}
-and the function or variable name.
+symbol.  The attribute implies @code{extern}.  On Microsoft Windows
+targets, the pointer name is formed by combining @code{_imp__} and the
+function or variable name.
 
 You can use @code{__declspec(dllimport)} as a synonym for
 @code{__attribute__ ((dllimport))} for compatibility with other
 compilers.
+
+On systems that support the @code{visibility} attribute, this
+attribute also implies ``default'' visibility.  It is an error to
+explicitly specify any other visibility.
 
 Currently, the attribute is ignored for inlined functions.  If the
 attribute is applied to a symbol @emph{definition}, an error is reported.
@@ -3152,8 +3209,11 @@ copy operations more efficient, because the compiler can use whatever
 instructions copy the biggest chunks of memory when performing copies to
 or from the variables or fields that you have aligned this way.
 
-The @code{aligned} attribute can only increase the alignment; but you
-can decrease it by specifying @code{packed} as well.  See below.
+When used on a struct, or struct member, the @code{aligned} attribute can
+only increase the alignment; in order to decrease it, the @code{packed}
+attribute must be specified as well.  When used as part of a typedef, the
+@code{aligned} attribute can both increase and decrease alignment, and
+specifying the @code{packed} attribute will generate a warning.
 
 Note that the effectiveness of @code{aligned} attributes may be limited
 by inherent limitations in your linker.  On many systems, the linker is
@@ -3163,6 +3223,9 @@ be very very small.)  If your linker is only able to align variables
 up to a maximum of 8 byte alignment, then specifying @code{aligned(16)}
 in an @code{__attribute__} will still only provide you with 8 byte
 alignment.  See your linker documentation for further information.
+
+The @code{aligned} attribute can also be used for functions 
+(@pxref{Function Attributes}.)
 
 @item cleanup (@var{cleanup_function})
 @cindex @code{cleanup} attribute
@@ -5374,6 +5437,8 @@ should be called and the @var{flag} argument passed to it.
 @node Other Builtins
 @section Other built-in functions provided by GCC
 @cindex built-in functions
+@findex __builtin_isfinite
+@findex __builtin_isnormal
 @findex __builtin_isgreater
 @findex __builtin_isgreaterequal
 @findex __builtin_isless
@@ -5902,6 +5967,8 @@ the same names as the standard macros ( @code{isgreater},
 @code{islessgreater}, and @code{isunordered}) , with @code{__builtin_}
 prefixed.  We intend for a library implementor to be able to simply
 @code{#define} each standard macro to its built-in equivalent.
+In the same fashion, GCC provides @code{isfinite} and @code{isnormal}
+built-ins used with @code{__builtin_} prefixed.
 
 @deftypefn {Built-in Function} int __builtin_types_compatible_p (@var{type1}, @var{type2})
 
@@ -6078,6 +6145,19 @@ if (__builtin_expect (ptr != NULL, 1))
 
 @noindent
 when testing pointer or floating-point values.
+@end deftypefn
+
+@deftypefn {Built-in Function} void __builtin___clear_cache (char *@var{begin}, char *@var{end})
+This function is used to flush the processor's instruction cache for
+the region of memory between @var{begin} inclusive and @var{end}
+exclusive.  Some targets require that the instruction cache be
+flushed, after modifying memory containing code, in order to obtain
+deterministic behavior.
+
+If the target does not require instruction cache flushes,
+@code{__builtin___clear_cache} has no effect.  Otherwise either
+instructions are emitted in-line to clear the instruction cache or a
+call to the @code{__clear_cache} function in libgcc is made.
 @end deftypefn
 
 @deftypefn {Built-in Function} void __builtin_prefetch (const void *@var{addr}, ...)
@@ -6324,7 +6404,8 @@ instructions, but allow the compiler to schedule those calls.
 
 @menu
 * Alpha Built-in Functions::
-* ARM Built-in Functions::
+* ARM iWMMXt Built-in Functions::
+* ARM NEON Intrinsics::
 * Blackfin Built-in Functions::
 * FR-V Built-in Functions::
 * X86 Built-in Functions::
@@ -6417,11 +6498,11 @@ void *__builtin_thread_pointer (void)
 void __builtin_set_thread_pointer (void *)
 @end smallexample
 
-@node ARM Built-in Functions
-@subsection ARM Built-in Functions
+@node ARM iWMMXt Built-in Functions
+@subsection ARM iWMMXt Built-in Functions
 
 These built-in functions are available for the ARM family of
-processors, when the @option{-mcpu=iwmmxt} switch is used:
+processors when the @option{-mcpu=iwmmxt} switch is used:
 
 @smallexample
 typedef int v2si __attribute__ ((vector_size (8)));
@@ -6563,6 +6644,14 @@ v2si __builtin_arm_wunpckilw (v2si, v2si)
 long long __builtin_arm_wxor (long long, long long)
 long long __builtin_arm_wzero ()
 @end smallexample
+
+@node ARM NEON Intrinsics
+@subsection ARM NEON Intrinsics
+
+These built-in intrinsics for the ARM Advanced SIMD extension are available
+when the @option{-mfpu=neon} switch is used:
+
+@include arm-neon-intrinsics.texi
 
 @node Blackfin Built-in Functions
 @subsection Blackfin Built-in Functions
@@ -7033,6 +7122,26 @@ integers, these use @code{V4SI}.  Finally, some instructions operate on an
 entire vector register, interpreting it as a 128-bit integer, these use mode
 @code{TI}.
 
+In the 64-bit mode, x86-64 family of processors uses additional built-in
+functions for efficient use of @code{TF} (@code{__float128}) 128-bit
+floating point and @code{TC} 128-bit complex floating point values.
+
+The following floating point built-in functions are made available in the
+64-bit mode.  All of them implement the function that is part of the name.
+
+@smallexample
+__float128 __builtin_fabsq (__float128)
+__float128 __builtin_copysignq (__float128, __float128)
+@end smallexample
+
+The following floating point built-in functions are made available in the
+64-bit mode.
+
+@table @code
+@item __float128 __builtin_infq (void)
+Similar to @code{__builtin_inf}, except the return type is @code{__float128}.
+@end table
+
 The following built-in functions are made available by @option{-mmmx}.
 All of them generate the machine instruction that is part of the name.
 
@@ -7434,7 +7543,7 @@ v2df __builtin_ia32_blendpd (v2df, v2df, const int)
 v4sf __builtin_ia32_blendps (v4sf, v4sf, const int)
 v2df __builtin_ia32_blendvpd (v2df, v2df, v2df)
 v4sf __builtin_ia32_blendvps (v4sf, v4sf, v4sf)
-v2df __builtin_ia32_dppd (__v2df, __v2df, const int)
+v2df __builtin_ia32_dppd (v2df, v2df, const int)
 v4sf __builtin_ia32_dpps (v4sf, v4sf, const int)
 v4sf __builtin_ia32_insertps128 (v4sf, v4sf, const int)
 v2di __builtin_ia32_movntdqa (v2di *);
@@ -7522,50 +7631,45 @@ int __builtin_ia32_pcmpistric128 (v16qi, v16qi, const int)
 int __builtin_ia32_pcmpistrio128 (v16qi, v16qi, const int)
 int __builtin_ia32_pcmpistris128 (v16qi, v16qi, const int)
 int __builtin_ia32_pcmpistriz128 (v16qi, v16qi, const int)
-__v2di __builtin_ia32_pcmpgtq (__v2di, __v2di)
+v2di __builtin_ia32_pcmpgtq (v2di, v2di)
 @end smallexample
 
 The following built-in functions are available when @option{-msse4.2} is
 used.
 
 @table @code
-unsigned int __builtin_ia32_crc32qi (unsigned int, unsigned char)
+@item unsigned int __builtin_ia32_crc32qi (unsigned int, unsigned char)
 Generates the @code{crc32b} machine instruction.
-unsigned int __builtin_ia32_crc32hi (unsigned int, unsigned short)
+@item unsigned int __builtin_ia32_crc32hi (unsigned int, unsigned short)
 Generates the @code{crc32w} machine instruction.
-unsigned int __builtin_ia32_crc32si (unsigned int, unsigned int)
+@item unsigned int __builtin_ia32_crc32si (unsigned int, unsigned int)
 Generates the @code{crc32l} machine instruction.
-unsigned long long __builtin_ia32_crc32di (unsigned int, unsigned long long)
+@item unsigned long long __builtin_ia32_crc32di (unsigned int, unsigned long long)
 @end table
 
 The following built-in functions are changed to generate new SSE4.2
 instructions when @option{-msse4.2} is used.
 
 @table @code
-int __builtin_popcount (unsigned int)
+@item int __builtin_popcount (unsigned int)
 Generates the @code{popcntl} machine instruction.
-int __builtin_popcountl (unsigned long)
+@item int __builtin_popcountl (unsigned long)
 Generates the @code{popcntl} or @code{popcntq} machine instruction,
 depending on the size of @code{unsigned long}.
-int __builtin_popcountll (unsigned long long)
+@item int __builtin_popcountll (unsigned long long)
 Generates the @code{popcntq} machine instruction.
 @end table
 
 The following built-in functions are available when @option{-msse4a} is used.
+All of them generate the machine instruction that is part of the name.
 
 @smallexample
-void             _mm_stream_sd (double*,__m128d);
-Generates the @code{movntsd} machine instruction.
-void             _mm_stream_ss (float*,__m128);
-Generates the @code{movntss} machine instruction.
-__m128i          _mm_extract_si64 (__m128i, __m128i);
-Generates the @code{extrq} machine instruction with only SSE register operands.
-__m128i          _mm_extracti_si64 (__m128i, int, int);
-Generates the @code{extrq} machine instruction with SSE register and immediate operands.
-__m128i          _mm_insert_si64 (__m128i, __m128i);
-Generates the @code{insertq} machine instruction with only SSE register operands.
-__m128i          _mm_inserti_si64 (__m128i, __m128i, int, int);
-Generates the @code{insertq} machine instruction with SSE register and immediate operands.
+void __builtin_ia32_movntsd (double *, v2df)
+void __builtin_ia32_movntss (float *, v4sf)
+v2di __builtin_ia32_extrq  (v2di, v16qi)
+v2di __builtin_ia32_extrqi (v2di, const unsigned int, const unsigned int)
+v2di __builtin_ia32_insertq (v2di, v2di)
+v2di __builtin_ia32_insertqi (v2di, v2di, const unsigned int, const unsigned int)
 @end smallexample
 
 The following built-in functions are available when @option{-m3dnow} is used.
@@ -10859,6 +10963,28 @@ Add after paragraph 6
 Non-@code{static} members shall not be @code{__thread}.
 @end quotation
 @end itemize
+
+@node Binary constants
+@section Binary constants using the @samp{0b} prefix
+@cindex Binary constants using the @samp{0b} prefix
+
+Integer constants can be written as binary constants, consisting of a
+sequence of @samp{0} and @samp{1} digits, prefixed by @samp{0b} or
+@samp{0B}.  This is particularly useful in environments that operate a
+lot on the bit-level (like microcontrollers).
+
+The following statements are identical:
+
+@smallexample
+i =       42;
+i =     0x2a;
+i =      052;
+i = 0b101010;
+@end smallexample
+
+The type of these constants follows the same rules as for octal or
+hexadecimal integer constants, so suffixes like @samp{L} or @samp{UL}
+can be applied.
 
 @node C++ Extensions
 @chapter Extensions to the C++ Language

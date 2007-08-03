@@ -1,11 +1,11 @@
 /* Copy propagation and SSA_NAME replacement support routines.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -82,7 +81,7 @@ may_propagate_copy (tree dest, tree orig)
 	                         DECL_UID (SSA_NAME_VAR (dest)))));
   
   /* Do not copy between types for which we *do* need a conversion.  */
-  if (!tree_ssa_useless_type_conversion_1 (type_d, type_o))
+  if (!useless_type_conversion_p (type_d, type_o))
     return false;
 
   /* FIXME.  GIMPLE is allowing pointer assignments and comparisons of
@@ -130,7 +129,7 @@ may_propagate_copy (tree dest, tree orig)
       tree mt_orig = symbol_mem_tag (SSA_NAME_VAR (orig));
       if (mt_dest && mt_orig && mt_dest != mt_orig)
 	return false;
-      else if (!lang_hooks.types_compatible_p (type_d, type_o))
+      else if (!useless_type_conversion_p (type_d, type_o))
 	return false;
       else if (get_alias_set (TREE_TYPE (type_d)) != 
 	       get_alias_set (TREE_TYPE (type_o)))
@@ -199,31 +198,31 @@ may_propagate_copy_into_asm (tree dest)
    they both share the same memory tags.  */
 
 void
-merge_alias_info (tree orig, tree new)
+merge_alias_info (tree orig_name, tree new_name)
 {
-  tree new_sym = SSA_NAME_VAR (new);
-  tree orig_sym = SSA_NAME_VAR (orig);
+  tree new_sym = SSA_NAME_VAR (new_name);
+  tree orig_sym = SSA_NAME_VAR (orig_name);
   var_ann_t new_ann = var_ann (new_sym);
   var_ann_t orig_ann = var_ann (orig_sym);
 
   /* No merging necessary when memory partitions are involved.  */
-  if (factoring_name_p (new))
+  if (factoring_name_p (new_name))
     {
       gcc_assert (!is_gimple_reg (orig_sym));
       return;
     }
-  else if (factoring_name_p (orig))
+  else if (factoring_name_p (orig_name))
     {
       gcc_assert (!is_gimple_reg (new_sym));
       return;
     }
 
-  gcc_assert (POINTER_TYPE_P (TREE_TYPE (orig)));
-  gcc_assert (POINTER_TYPE_P (TREE_TYPE (new)));
+  gcc_assert (POINTER_TYPE_P (TREE_TYPE (orig_name)));
+  gcc_assert (POINTER_TYPE_P (TREE_TYPE (new_name)));
 
 #if defined ENABLE_CHECKING
-  gcc_assert (lang_hooks.types_compatible_p (TREE_TYPE (orig),
-					     TREE_TYPE (new)));
+  gcc_assert (useless_type_conversion_p (TREE_TYPE (orig_name),
+					TREE_TYPE (new_name)));
 
   /* If the pointed-to alias sets are different, these two pointers
      would never have the same memory tag.  In this case, NEW should
@@ -259,10 +258,10 @@ merge_alias_info (tree orig, tree new)
      Since we cannot distinguish one case from another in this
      function, we can only make sure that if P_i and Q_j have
      flow-sensitive information, they should be compatible.  */
-  if (SSA_NAME_PTR_INFO (orig) && SSA_NAME_PTR_INFO (new))
+  if (SSA_NAME_PTR_INFO (orig_name) && SSA_NAME_PTR_INFO (new_name))
     {
-      struct ptr_info_def *orig_ptr_info = SSA_NAME_PTR_INFO (orig);
-      struct ptr_info_def *new_ptr_info = SSA_NAME_PTR_INFO (new);
+      struct ptr_info_def *orig_ptr_info = SSA_NAME_PTR_INFO (orig_name);
+      struct ptr_info_def *new_ptr_info = SSA_NAME_PTR_INFO (new_name);
 
       /* Note that pointer NEW and ORIG may actually have different
 	 pointed-to variables (e.g., PR 18291 represented in

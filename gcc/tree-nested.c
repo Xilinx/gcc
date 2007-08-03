@@ -5,7 +5,7 @@
 
    GCC is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -1035,6 +1034,13 @@ convert_nonlocal_reference (tree *tp, int *walk_subtrees, void *data)
       walk_tree (tp, convert_nonlocal_reference, wi, NULL);
       break;
 
+    case VIEW_CONVERT_EXPR:
+      /* Just request to look at the subtrees, leaving val_only and lhs
+	 untouched.  This might actually be for !val_only + lhs, in which
+	 case we don't want to force a replacement by a temporary.  */
+      *walk_subtrees = 1;
+      break;
+
     case OMP_PARALLEL:
       save_suppress = info->suppress_expansion;
       if (convert_nonlocal_omp_clauses (&OMP_PARALLEL_CLAUSES (t), wi))
@@ -1311,6 +1317,13 @@ convert_local_reference (tree *tp, int *walk_subtrees, void *data)
       wi->val_only = false;
       walk_tree (tp, convert_local_reference, wi, NULL);
       wi->val_only = save_val_only;
+      break;
+
+    case VIEW_CONVERT_EXPR:
+      /* Just request to look at the subtrees, leaving val_only and lhs
+	 untouched.  This might actually be for !val_only + lhs, in which
+	 case we don't want to force a replacement by a temporary.  */
+      *walk_subtrees = 1;
       break;
 
     case OMP_PARALLEL:

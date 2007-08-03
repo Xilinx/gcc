@@ -7,7 +7,7 @@
 
 #GCC is free software; you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
-#the Free Software Foundation; either version 2, or (at your option)
+#the Free Software Foundation; either version 3, or (at your option)
 #any later version.
 
 #GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@
 #GNU General Public License for more details.
 
 #You should have received a copy of the GNU General Public License
-#along with GCC; see the file COPYING.  If not, write to
-#the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-#Boston, MA 02110-1301, USA.
+#along with GCC; see the file COPYING3.  If not see
+#<http://www.gnu.org/licenses/>.
 
 #Java and all Java-based marks are trademarks or registered trademarks
 #of Sun Microsystems, Inc. in the United States and other countries.
@@ -318,19 +317,21 @@ TEXI_JAVA_FILES = java/gcj.texi $(gcc_docdir)/include/fdl.texi		\
 doc/gcj.info: $(TEXI_JAVA_FILES)
 	if test "x$(BUILD_INFO)" = xinfo; then \
 	  rm -f doc/gcj.info*; \
-	  $(MAKEINFO) $(MAKEINFOFLAGS) -I $(gcc_docdir)/include -o $@ $<; \
+	  $(MAKEINFO) $(MAKEINFOFLAGS) -I $(gcc_docdir) \
+		-I $(gcc_docdir)/include -o $@ $<; \
 	else true; fi
 
 doc/gcj.dvi: $(TEXI_JAVA_FILES)
-	$(TEXI2DVI) -I $(abs_docdir)/include -o $@ $<
+	$(TEXI2DVI) -I $(abs_docdir) -I $(abs_docdir)/include -o $@ $<
 
 doc/gcj.pdf: $(TEXI_JAVA_FILES)
-	$(TEXI2PDF) -I $(abs_docdir)/include -o $@ $<
+	$(TEXI2PDF) -I $(abs_docdir) -I $(abs_docdir)/include -o $@ $<
 
 $(build_htmldir)/java/index.html: $(TEXI_JAVA_FILES)
 	$(mkinstalldirs) $(@D)
 	rm -f $(@D)/*
-	$(TEXI2HTML) -I $(gcc_docdir)/include -I $(srcdir)/java -o $(@D) $<
+	$(TEXI2HTML) -I $(gcc_docdir) -I $(gcc_docdir)/include \
+		-I $(srcdir)/java -o $(@D) $<
 
 .INTERMEDIATE: gcj.pod jcf-dump.pod gij.pod \
   jv-convert.pod grmic.pod gcj-dbtool.pod gc-analyze.pod

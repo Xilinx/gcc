@@ -1,13 +1,13 @@
 /* Print RTL for GCC.
    Copyright (C) 1987, 1988, 1992, 1997, 1998, 1999, 2000, 2002, 2003,
-   2004, 2005
+   2004, 2005, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file is compiled twice: once for the generator programs,
    once for the compiler.  */
@@ -49,7 +48,7 @@ static int sawclose = 0;
 
 static int indent;
 
-static void print_rtx (rtx);
+static void print_rtx (const_rtx);
 
 /* String printed at beginning of each RTL when it is dumped.
    This string is set to ASM_COMMENT_START when the RTL is dumped in
@@ -69,7 +68,7 @@ int dump_for_graph;
 
 #ifndef GENERATOR_FILE
 static void
-print_decl_name (FILE *outfile, tree node)
+print_decl_name (FILE *outfile, const_tree node)
 {
   if (DECL_NAME (node))
     fputs (IDENTIFIER_POINTER (DECL_NAME (node)), outfile);
@@ -86,7 +85,7 @@ print_decl_name (FILE *outfile, tree node)
 }
 
 void
-print_mem_expr (FILE *outfile, tree expr)
+print_mem_expr (FILE *outfile, const_tree expr)
 {
   if (TREE_CODE (expr) == COMPONENT_REF)
     {
@@ -128,7 +127,7 @@ print_mem_expr (FILE *outfile, tree expr)
 /* Print IN_RTX onto OUTFILE.  This is the recursive part of printing.  */
 
 static void
-print_rtx (rtx in_rtx)
+print_rtx (const_rtx in_rtx)
 {
   int i = 0;
   int j;
@@ -325,6 +324,9 @@ print_rtx (rtx in_rtx)
 		print_mem_expr (outfile, NOTE_VAR_LOCATION_DECL (in_rtx));
 		fprintf (outfile, " ");
 		print_rtx (NOTE_VAR_LOCATION_LOC (in_rtx));
+		if (NOTE_VAR_LOCATION_STATUS (in_rtx) == 
+		                                 VAR_INIT_STATUS_UNINITIALIZED)
+		  fprintf (outfile, " [uninit]");
 		fprintf (outfile, ")");
 #endif
 		break;
@@ -600,7 +602,7 @@ print_rtx (rtx in_rtx)
    characters.  */
 
 void
-print_inline_rtx (FILE *outf, rtx x, int ind)
+print_inline_rtx (FILE *outf, const_rtx x, int ind)
 {
   int oldsaw = sawclose;
   int oldindent = indent;
@@ -616,7 +618,7 @@ print_inline_rtx (FILE *outf, rtx x, int ind)
 /* Call this function from the debugger to see what X looks like.  */
 
 void
-debug_rtx (rtx x)
+debug_rtx (const_rtx x)
 {
   outfile = stderr;
   sawclose = 0;
@@ -636,10 +638,10 @@ int debug_rtx_count = 0;	/* 0 is treated as equivalent to 1 */
    EG: -5 prints 2 rtx's on either side (in addition to the specified rtx).  */
 
 void
-debug_rtx_list (rtx x, int n)
+debug_rtx_list (const_rtx x, int n)
 {
   int i,count;
-  rtx insn;
+  const_rtx insn;
 
   count = n == 0 ? 1 : n < 0 ? -n : n;
 
@@ -663,7 +665,7 @@ debug_rtx_list (rtx x, int n)
 /* Call this function to print an rtx list from START to END inclusive.  */
 
 void
-debug_rtx_range (rtx start, rtx end)
+debug_rtx_range (const_rtx start, const_rtx end)
 {
   while (1)
     {
@@ -679,8 +681,8 @@ debug_rtx_range (rtx start, rtx end)
    and then call debug_rtx_list to print it, using DEBUG_RTX_COUNT.
    The found insn is returned to enable further debugging analysis.  */
 
-rtx
-debug_rtx_find (rtx x, int uid)
+const_rtx
+debug_rtx_find (const_rtx x, int uid)
 {
   while (x != 0 && INSN_UID (x) != uid)
     x = NEXT_INSN (x);
@@ -703,9 +705,9 @@ debug_rtx_find (rtx x, int uid)
    If RTX_FIRST is not an insn, then it alone is printed, with no newline.  */
 
 void
-print_rtl (FILE *outf, rtx rtx_first)
+print_rtl (FILE *outf, const_rtx rtx_first)
 {
-  rtx tmp_rtx;
+  const_rtx tmp_rtx;
 
   outfile = outf;
   sawclose = 0;
@@ -742,7 +744,7 @@ print_rtl (FILE *outf, rtx rtx_first)
 /* Return nonzero if we actually printed anything.  */
 
 int
-print_rtl_single (FILE *outf, rtx x)
+print_rtl_single (FILE *outf, const_rtx x)
 {
   outfile = outf;
   sawclose = 0;
@@ -761,7 +763,7 @@ print_rtl_single (FILE *outf, rtx x)
    if RTX is a CONST_INT then print in decimal format.  */
 
 void
-print_simple_rtl (FILE *outf, rtx x)
+print_simple_rtl (FILE *outf, const_rtx x)
 {
   flag_simple = 1;
   print_rtl (outf, x);

@@ -61,8 +61,8 @@ symbol::init(string& data)
       n = data.find_first_of(delim);
       if (n != npos)
 	{
-	  string size(data.begin(), data.begin() + n);
-	  istringstream iss(size);
+	  string objectsize(data.begin(), data.begin() + n);
+	  istringstream iss(objectsize);
 	  int x;
 	  iss >> x;
 	  if (!iss.fail())
@@ -189,6 +189,7 @@ check_version(symbol& test, bool added)
       known_versions.push_back("GLIBCXX_3.4.7");
       known_versions.push_back("GLIBCXX_3.4.8");
       known_versions.push_back("GLIBCXX_3.4.9");
+      known_versions.push_back("GLIBCXX_3.4.10");
       known_versions.push_back("GLIBCXX_LDBL_3.4");
       known_versions.push_back("GLIBCXX_LDBL_3.4.7");
       known_versions.push_back("CXXABI_1.3");

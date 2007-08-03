@@ -81,6 +81,11 @@ case "${host}" in
 	enable_java_net_default=no
 	enable_getenv_properties_default=no
 	enable_main_args_default=no
+	sysdeps_dir=arm
+	;;
+  arm*-linux*)
+	libgcj_interpreter=yes
+	sysdeps_dir=arm
 	;;
   mips-tx39-*|mipstx39-unknown-*)
 	libgcj_flags="${libgcj_flags} -G 0"
@@ -101,6 +106,9 @@ case "${host}" in
 	# the .text section of libgcj.so is 30k larger, and the .eh_frame
 	# section is 1.4M smaller.
 	libgcj_flags="${libgcj_flags} -ffloat-store -fomit-frame-pointer"
+	# On Solaris we have defined 'sun' which later conflicts with 
+	# namespace usage. So to work this away we use the below undefine.
+	libgcj_flags="${libgcj_flags} -Usun"
 	libgcj_interpreter=yes
 	libgcj_cxxflags=
 	libgcj_cflags=
@@ -253,6 +261,11 @@ EOF
   i[34567]86-*-solaris2.1[0-9]* )
 	sysdeps_dir=x86-64
 	DIVIDESPEC=-f%{m32:no-}%{!m32:%{!m64:no-}}%{m64:}use-divide-subroutine
+	;;
+  mips-sgi-irix6* )
+	sysdeps_dir=mips
+	# disable interpreter, no closure support for N32 and N64 ABIs
+	libgcj_interpreter=no
 	;;
   mips*-*-linux* )
   	sysdeps_dir=mips

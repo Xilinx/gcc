@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -97,6 +96,14 @@ lhd_return_null_tree_v (void)
 
 tree
 lhd_return_null_tree (tree ARG_UNUSED (t))
+{
+  return NULL_TREE;
+}
+
+/* Do nothing (return NULL_TREE).  */
+
+tree
+lhd_return_null_const_tree (const_tree ARG_UNUSED (t))
 {
   return NULL_TREE;
 }
@@ -330,18 +337,6 @@ lhd_tree_inlining_auto_var_in_fn_p (tree var, tree fn)
 	      || TREE_CODE (var) == RESULT_DECL));
 }
 
-/* lang_hooks.tree_inlining.convert_parm_for_inlining performs any
-   language-specific conversion before assigning VALUE to PARM.  */
-
-tree
-lhd_tree_inlining_convert_parm_for_inlining (tree parm ATTRIBUTE_UNUSED,
-					     tree value,
-					     tree fndecl ATTRIBUTE_UNUSED,
-					     int argnum ATTRIBUTE_UNUSED)
-{
-  return value;
-}
-
 /* lang_hooks.tree_dump.dump_tree:  Dump language-specific parts of tree
    nodes.  Returns nonzero if it does not want the usual dumping of the
    second argument.  */
@@ -569,25 +564,4 @@ lhd_builtin_function (tree decl)
 {
   lang_hooks.decls.pushdecl (decl);
   return decl;
-}
-
-/* If TYPE is an integral type, return an equivalent type which is
-    unsigned iff UNSIGNEDP is true.  If TYPE is not an integral type,
-    return TYPE itself.  */
-
-tree
-get_signed_or_unsigned_type (int unsignedp, tree type)
-{
-  return lang_hooks.types.signed_or_unsigned_type(unsignedp, type);
-}
-
-/* Default implementation of the signed_or_unsigned_type language hook */
-
-tree
-lhd_signed_or_unsigned_type (int unsignedp, tree type)
-{
-  if (!INTEGRAL_TYPE_P (type) || TYPE_UNSIGNED (type) == unsignedp)
-    return type;
-
-  return lang_hooks.types.type_for_size (TYPE_PRECISION (type), unsignedp);
 }

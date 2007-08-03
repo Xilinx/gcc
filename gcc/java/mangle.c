@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA. 
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>. 
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -749,27 +748,21 @@ set_type_package_list (tree type)
 {
   int i;
   const char *type_string = IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (type)));
-  char *ptr;
+  const char *ptr;
   int qualifications;
   tree list = NULL_TREE, elt;
 
-  for (ptr = (char *)type_string, qualifications = 0; *ptr; ptr++)
+  for (ptr = type_string, qualifications = 0; *ptr; ptr++)
     if (*ptr == '.')
       qualifications += 1;
 
-  for (ptr = (char *)type_string, i = 0; i < qualifications; ptr++)
+  for (ptr = type_string, i = 0; i < qualifications; ptr++)
     {
       if (ptr [0] == '.')
 	{
-	  char c;
-	  tree identifier;
+	  tree const identifier
+	    = get_identifier_with_length (type_string, ptr - type_string);
 
-	  /* Can't use an obstack, we're already using it to
-	     accumulate the mangling. */
-	  c = ptr [0];
-	  ptr [0] = '\0';
-	  identifier = get_identifier (type_string);
-	  ptr [0] = c;
 	  elt = build_tree_list (identifier, identifier);
 	  TREE_CHAIN (elt) = list;
 	  list = elt;

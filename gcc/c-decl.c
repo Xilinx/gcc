@@ -6,7 +6,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Process declarations and symbol lookup for C front end.
    Also constructs types; the standard scalar types at initialization,
@@ -70,6 +69,16 @@ enum decl_context
   FIELD,			/* Declaration inside struct or union */
   TYPENAME};			/* Typename (inside cast or sizeof)  */
 
+/* States indicating how grokdeclarator() should handle declspecs marked
+   with __attribute__((deprecated)).  An object declared as
+   __attribute__((deprecated)) suppresses warnings of uses of other
+   deprecated items.  */
+
+enum deprecated_states {
+  DEPRECATED_NORMAL,
+  DEPRECATED_SUPPRESS
+};
+
 
 /* Nonzero if we have seen an invalid cross reference
    to a struct, union, or enum, but not yet printed the message.  */
@@ -80,18 +89,6 @@ location_t pending_invalid_xref_location;
 
 /* True means we've initialized exception handling.  */
 bool c_eh_initialized_p;
-
-/* While defining an enum type, this is 1 plus the last enumerator
-   constant value.  Note that will do not have to save this or `enum_overflow'
-   around nested function definition since such a definition could only
-   occur in an enum value expression and we don't use these variables in
-   that case.  */
-
-static tree enum_next_value;
-
-/* Nonzero means that there was overflow computing enum_next_value.  */
-
-static int enum_overflow;
 
 /* The file and line that the prototype came from if this is an
    old-style definition; used for diagnostics in
@@ -410,7 +407,8 @@ static tree lookup_name_in_scope (tree, struct c_scope *);
 static tree c_make_fname_decl (tree, int);
 static tree grokdeclarator (const struct c_declarator *,
 			    struct c_declspecs *,
-			    enum decl_context, bool, tree *);
+			    enum decl_context, bool, tree *,
+			    enum deprecated_states);
 static tree grokparms (struct c_arg_info *, bool);
 static void layout_array_type (tree);
 
@@ -439,17 +437,6 @@ add_stmt (tree t)
   return t;
 }
 
-/* States indicating how grokdeclarator() should handle declspecs marked
-   with __attribute__((deprecated)).  An object declared as
-   __attribute__((deprecated)) suppresses warnings of uses of other
-   deprecated items.  */
-
-enum deprecated_states {
-  DEPRECATED_NORMAL,
-  DEPRECATED_SUPPRESS
-};
-
-static enum deprecated_states deprecated_state = DEPRECATED_NORMAL;
 
 void
 c_print_identifier (FILE *file, tree node, int indent)
@@ -1676,12 +1663,11 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
       DECL_SIZE (newdecl) = DECL_SIZE (olddecl);
       DECL_SIZE_UNIT (newdecl) = DECL_SIZE_UNIT (olddecl);
       DECL_MODE (newdecl) = DECL_MODE (olddecl);
-      if (TREE_CODE (olddecl) != FUNCTION_DECL)
-	if (DECL_ALIGN (olddecl) > DECL_ALIGN (newdecl))
-	  {
-	    DECL_ALIGN (newdecl) = DECL_ALIGN (olddecl);
-	    DECL_USER_ALIGN (newdecl) |= DECL_ALIGN (olddecl);
-	  }
+      if (DECL_ALIGN (olddecl) > DECL_ALIGN (newdecl))
+	{
+	  DECL_ALIGN (newdecl) = DECL_ALIGN (olddecl);
+	  DECL_USER_ALIGN (newdecl) |= DECL_ALIGN (olddecl);
+	}
     }
 
 
@@ -3154,7 +3140,7 @@ groktypename (struct c_type_name *type_name)
   type_name->specs->attrs = NULL_TREE;
 
   type = grokdeclarator (type_name->declarator, type_name->specs, TYPENAME,
-			 false, NULL);
+			 false, NULL, DEPRECATED_NORMAL);
 
   /* Apply attributes.  */
   decl_attributes (&type, attrs, 0);
@@ -3183,6 +3169,7 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
 {
   tree decl;
   tree tem;
+  enum deprecated_states deprecated_state = DEPRECATED_NORMAL;
 
   /* An object declared as __attribute__((deprecated)) suppresses
      warnings of uses of other deprecated items.  */
@@ -3190,11 +3177,10 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
     deprecated_state = DEPRECATED_SUPPRESS;
 
   decl = grokdeclarator (declarator, declspecs,
-			 NORMAL, initialized, NULL);
+			 NORMAL, initialized, NULL,
+			 deprecated_state);
   if (!decl)
     return 0;
-
-  deprecated_state = DEPRECATED_NORMAL;
 
   if (warn_main > 0 && TREE_CODE (decl) != FUNCTION_DECL
       && MAIN_NAME_P (DECL_NAME (decl)))
@@ -3681,7 +3667,7 @@ tree
 grokparm (const struct c_parm *parm)
 {
   tree decl = grokdeclarator (parm->declarator, parm->specs, PARM, false,
-			      NULL);
+			      NULL, DEPRECATED_NORMAL);
 
   decl_attributes (&decl, parm->attrs, 0);
 
@@ -3696,7 +3682,8 @@ push_parm_decl (const struct c_parm *parm)
 {
   tree decl;
 
-  decl = grokdeclarator (parm->declarator, parm->specs, PARM, false, NULL);
+  decl = grokdeclarator (parm->declarator, parm->specs, PARM, false, NULL,
+			 DEPRECATED_NORMAL);
   decl_attributes (&decl, parm->attrs, 0);
 
   decl = pushdecl (decl);
@@ -3969,6 +3956,8 @@ warn_variable_length_array (const char *name, tree size)
    INITIALIZED is true if the decl has an initializer.
    WIDTH is non-NULL for bit-fields, and is a pointer to an INTEGER_CST node
    representing the width of the bit-field.
+   DEPRECATED_STATE is a deprecated_states value indicating whether
+   deprecation warnings should be suppressed.
 
    In the TYPENAME case, DECLARATOR is really an absolute declarator.
    It may also be so in the PARM case, for a prototype where the
@@ -3980,7 +3969,8 @@ warn_variable_length_array (const char *name, tree size)
 static tree
 grokdeclarator (const struct c_declarator *declarator,
 		struct c_declspecs *declspecs,
-		enum decl_context decl_context, bool initialized, tree *width)
+		enum decl_context decl_context, bool initialized, tree *width,
+		enum deprecated_states deprecated_state)
 {
   tree type = declspecs->type;
   bool threadp = declspecs->thread_p;
@@ -4086,7 +4076,7 @@ grokdeclarator (const struct c_declarator *declarator,
      "signed".  */
   if (bitfield && !flag_signed_bitfields && !declspecs->explicit_signed_p
       && TREE_CODE (type) == INTEGER_TYPE)
-    type = unsigned_type_for (type);
+    type = c_common_unsigned_type (type);
 
   /* Figure out the type qualifiers for the declaration.  There are
      two ways a declaration can become qualified.  One is something
@@ -5457,7 +5447,7 @@ grokfield (struct c_declarator *declarator, struct c_declspecs *declspecs,
     }
 
   value = grokdeclarator (declarator, declspecs, FIELD, false,
-			  width ? &width : NULL);
+			  width ? &width : NULL, DEPRECATED_NORMAL);
 
   finish_decl (value, NULL_TREE, NULL_TREE);
   DECL_INITIAL (value) = width;
@@ -5801,7 +5791,7 @@ layout_array_type (tree t)
    may be used to declare the individual values as they are read.  */
 
 tree
-start_enum (tree name)
+start_enum (struct c_enum_contents *the_enum, tree name)
 {
   tree enumtype = 0;
 
@@ -5833,8 +5823,8 @@ start_enum (tree name)
       TYPE_VALUES (enumtype) = 0;
     }
 
-  enum_next_value = integer_zero_node;
-  enum_overflow = 0;
+  the_enum->enum_next_value = integer_zero_node;
+  the_enum->enum_overflow = 0;
 
   if (flag_short_enums)
     TYPE_PACKED (enumtype) = 1;
@@ -5987,7 +5977,7 @@ finish_enum (tree enumtype, tree values, tree attributes)
    Assignment of sequential values by default is handled here.  */
 
 tree
-build_enumerator (tree name, tree value)
+build_enumerator (struct c_enum_contents *the_enum, tree name, tree value)
 {
   tree decl, type;
 
@@ -6017,8 +6007,8 @@ build_enumerator (tree name, tree value)
      in the default.  */
   if (value == 0)
     {
-      value = enum_next_value;
-      if (enum_overflow)
+      value = the_enum->enum_next_value;
+      if (the_enum->enum_overflow)
 	error ("overflow in enumeration values");
     }
 
@@ -6031,8 +6021,9 @@ build_enumerator (tree name, tree value)
     }
 
   /* Set basis for default for next value.  */
-  enum_next_value = build_binary_op (PLUS_EXPR, value, integer_one_node, 0);
-  enum_overflow = tree_int_cst_lt (enum_next_value, value);
+  the_enum->enum_next_value = build_binary_op (PLUS_EXPR, value,
+					       integer_one_node, 0);
+  the_enum->enum_overflow = tree_int_cst_lt (the_enum->enum_next_value, value);
 
   /* Now create a declaration for the enum value name.  */
 
@@ -6096,7 +6087,8 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
      error message in c_finish_bc_stmt.  */
   c_break_label = c_cont_label = size_zero_node;
 
-  decl1 = grokdeclarator (declarator, declspecs, FUNCDEF, true, NULL);
+  decl1 = grokdeclarator (declarator, declspecs, FUNCDEF, true, NULL,
+			  DEPRECATED_NORMAL);
 
   /* If the declarator is not suitable for a function definition,
      cause a syntax error.  */
@@ -6276,18 +6268,6 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
   declare_parm_level ();
 
   restype = TREE_TYPE (TREE_TYPE (current_function_decl));
-  /* Promote the value to int before returning it.  */
-  if (c_promoting_integer_type_p (restype))
-    {
-      /* It retains unsignedness if not really getting wider.  */
-      if (TYPE_UNSIGNED (restype)
-	  && (TYPE_PRECISION (restype)
-		  == TYPE_PRECISION (integer_type_node)))
-	restype = unsigned_type_node;
-      else
-	restype = integer_type_node;
-    }
-
   resdecl = build_decl (RESULT_DECL, NULL_TREE, restype);
   DECL_ARTIFICIAL (resdecl) = 1;
   DECL_IGNORED_P (resdecl) = 1;

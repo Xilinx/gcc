@@ -5,7 +5,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_TREE_SSA_OPERANDS_H
 #define GCC_TREE_SSA_OPERANDS_H
@@ -203,9 +202,6 @@ typedef struct stmt_operands_d *stmt_operands_p;
 #define PHI_ARG_INDEX_FROM_USE(USE)   phi_arg_index_from_use (USE)
 
 
-extern struct voptype_d *realloc_vdef (struct voptype_d *, unsigned int);
-extern struct voptype_d *realloc_vuse (struct voptype_d *, unsigned int);
-
 extern void init_ssa_operands (void);
 extern void fini_ssa_operands (void);
 extern void free_ssa_operands (stmt_operands_p);
@@ -299,12 +295,12 @@ typedef struct ssa_operand_iterator_d
        DEFVAR = op_iter_next_def (&(ITER)))
 
 /* This macro executes a loop over the VDEF operands of STMT.  The def
-   and use for each VDEF is returned in DEFVAR and USEVAR. 
+   and use vector for each VDEF is returned in DEFVAR and USEVECT. 
    ITER is an ssa_op_iter structure used to control the loop.  */
-#define FOR_EACH_SSA_VDEF_OPERAND(DEFVAR, USEVAR, STMT, ITER)	\
-  for (op_iter_init_vdef (&(ITER), STMT, &(USEVAR), &(DEFVAR));	\
+#define FOR_EACH_SSA_VDEF_OPERAND(DEFVAR, USEVECT, STMT, ITER)	\
+  for (op_iter_init_vdef (&(ITER), STMT, &(USEVECT), &(DEFVAR));	\
        !op_iter_done (&(ITER));					\
-       op_iter_next_vdef (&(USEVAR), &(DEFVAR), &(ITER)))
+       op_iter_next_vdef (&(USEVECT), &(DEFVAR), &(ITER)))
 
 /* This macro will execute a loop over all the arguments of a PHI which
    match FLAGS.   A use_operand_p is always returned via USEVAR.  FLAGS

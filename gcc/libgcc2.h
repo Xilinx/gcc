@@ -173,7 +173,8 @@ typedef		float TFtype	__attribute__ ((mode (TF)));
 typedef _Complex float TCtype	__attribute__ ((mode (TC)));
 #endif
 
-typedef int word_type __attribute__ ((mode (__word__)));
+typedef int cmp_return_type __attribute__((mode (__libgcc_cmp_return__)));
+typedef int shift_count_type __attribute__((mode (__libgcc_shift_count__)));
 
 /* Make sure that we don't accidentally use any normal C language built-in
    type names in the first part of this file.  Instead we want to use *only*
@@ -329,9 +330,9 @@ extern UDWtype __udivmoddi4 (UDWtype, UDWtype, UDWtype *);
 extern DWtype __negdi2 (DWtype);
 #endif
 
-extern DWtype __lshrdi3 (DWtype, word_type);
-extern DWtype __ashldi3 (DWtype, word_type);
-extern DWtype __ashrdi3 (DWtype, word_type);
+extern DWtype __lshrdi3 (DWtype, shift_count_type);
+extern DWtype __ashldi3 (DWtype, shift_count_type);
+extern DWtype __ashrdi3 (DWtype, shift_count_type);
 
 /* __udiv_w_sdiv is static inline when building other libgcc2 portions.  */
 #if (!defined(L_udivdi3) && !defined(L_divdi3) && \
@@ -339,21 +340,26 @@ extern DWtype __ashrdi3 (DWtype, word_type);
 extern UWtype __udiv_w_sdiv (UWtype *, UWtype, UWtype, UWtype);
 #endif
 
-extern word_type __cmpdi2 (DWtype, DWtype);
-extern word_type __ucmpdi2 (DWtype, DWtype);
+extern cmp_return_type __cmpdi2 (DWtype, DWtype);
+extern cmp_return_type __ucmpdi2 (DWtype, DWtype);
+
+#if MIN_UNITS_PER_WORD > 1
+extern SItype __bswapsi2 (SItype);
+#endif
+#if LONG_LONG_TYPE_SIZE > 32
+extern DItype __bswapdi2 (DItype);
+#endif
 
 extern Wtype __absvSI2 (Wtype);
 extern Wtype __addvSI3 (Wtype, Wtype);
 extern Wtype __subvSI3 (Wtype, Wtype);
 extern Wtype __mulvSI3 (Wtype, Wtype);
 extern Wtype __negvSI2 (Wtype);
-extern SItype __bswapsi2 (SItype);
 extern DWtype __absvDI2 (DWtype);
 extern DWtype __addvDI3 (DWtype, DWtype);
 extern DWtype __subvDI3 (DWtype, DWtype);
 extern DWtype __mulvDI3 (DWtype, DWtype);
 extern DWtype __negvDI2 (DWtype);
-extern DItype __bswapdi2 (DItype);
 
 #ifdef COMPAT_SIMODE_TRAPPING_ARITHMETIC
 extern SItype __absvsi2 (SItype);

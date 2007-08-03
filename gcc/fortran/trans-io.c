@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -276,7 +275,6 @@ gfc_build_io_library_fndecls (void)
   tree types[IOPARM_type_num], pad_idx, gfc_int4_type_node;
   tree gfc_intio_type_node;
   tree parm_type, dt_parm_type;
-  tree gfc_c_int_type_node;
   HOST_WIDE_INT pad_size;
   enum ioparam_type ptype;
 
@@ -299,8 +297,6 @@ gfc_build_io_library_fndecls (void)
      what really goes into this space.  */
   TYPE_ALIGN (types[IOPARM_type_pad]) = MAX (TYPE_ALIGN (pchar_type_node),
 		     TYPE_ALIGN (gfc_get_int_type (gfc_max_integer_kind)));
-
-  gfc_c_int_type_node = gfc_get_int_type (gfc_c_int_kind);
 
   for (ptype = IOPARM_ptype_common; ptype < IOPARM_ptype_num; ptype++)
     gfc_build_st_parameter (ptype, types);
@@ -342,7 +338,7 @@ gfc_build_io_library_fndecls (void)
     gfc_build_library_function_decl (get_identifier
 				     (PREFIX("transfer_array")),
 				     void_type_node, 4, dt_parm_type,
-				     pvoid_type_node, gfc_c_int_type_node,
+				     pvoid_type_node, integer_type_node,
 				     gfc_charlen_type_node);
 
   /* Library entry points */
@@ -417,8 +413,8 @@ gfc_build_io_library_fndecls (void)
   iocall[IOCALL_SET_NML_VAL_DIM] =
     gfc_build_library_function_decl (get_identifier (PREFIX("st_set_nml_var_dim")),
 				     void_type_node, 5, dt_parm_type,
-				     gfc_int4_type_node, gfc_int4_type_node,
-				     gfc_int4_type_node, gfc_int4_type_node);
+				     gfc_int4_type_node, gfc_array_index_type,
+				     gfc_array_index_type, gfc_array_index_type);
 }
 
 
@@ -623,7 +619,8 @@ gfc_convert_array_to_string (gfc_se * se, gfc_expr * e)
     }
 
   tmp = TYPE_SIZE_UNIT (gfc_get_element_type (type));
-  size = fold_build2 (MULT_EXPR, gfc_array_index_type, size, tmp);
+  size = fold_build2 (MULT_EXPR, gfc_array_index_type, size,
+		      fold_convert (gfc_array_index_type, tmp));
 
   se->string_length = fold_convert (gfc_charlen_type_node, size);
 }
@@ -1261,7 +1258,7 @@ gfc_new_nml_name_expr (const char * name)
 }
 
 /* nml_full_name builds up the fully qualified name of a
-   derived type component. */
+   derived type component.  */
 
 static char*
 nml_full_name (const char* var_name, const char* cmp_name)
@@ -1281,7 +1278,7 @@ nml_full_name (const char* var_name, const char* cmp_name)
    gfc_symbol or gfc_component backend_decl's. An offset is
    provided so that the address of an element of an array of
    derived types is returned. This is used in the runtime to
-   determine that span of the derived type. */
+   determine that span of the derived type.  */
 
 static tree
 nml_get_addr_expr (gfc_symbol * sym, gfc_component * c,
@@ -1711,7 +1708,7 @@ gfc_trans_dt_end (gfc_code * code)
 }
 
 static void
-transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr);
+transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr, gfc_code * code);
 
 /* Given an array field in a derived type variable, generate the code
    for the loop that iterates over array elements, and the code that
@@ -1779,7 +1776,7 @@ transfer_array_component (tree expr, gfc_component * cm)
   /* Now se.expr contains an element of the array.  Take the address and pass
      it to the IO routines.  */
   tmp = build_fold_addr_expr (se.expr);
-  transfer_expr (&se, &cm->ts, tmp);
+  transfer_expr (&se, &cm->ts, tmp, NULL);
 
   /* We are done now with the loop body.  Wrap up the scalarizer and
      return.  */
@@ -1804,12 +1801,37 @@ transfer_array_component (tree expr, gfc_component * cm)
 /* Generate the call for a scalar transfer node.  */
 
 static void
-transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr)
+transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr, gfc_code * code)
 {
   tree tmp, function, arg2, field, expr;
   gfc_component *c;
   int kind;
 
+  /* It is possible to get a C_NULL_PTR or C_NULL_FUNPTR expression here if
+     the user says something like: print *, 'c_null_ptr: ', c_null_ptr
+     We need to translate the expression to a constant if it's either
+     C_NULL_PTR or C_NULL_FUNPTR.  We could also get a user variable of
+     type C_PTR or C_FUNPTR, in which case the ts->type may no longer be
+     BT_DERIVED (could have been changed by gfc_conv_expr).  */
+  if ((ts->type == BT_DERIVED && ts->is_iso_c == 1 && ts->derived != NULL)
+      || (ts->derived != NULL && ts->derived->ts.is_iso_c == 1))
+    {
+      /* C_PTR and C_FUNPTR have private components which means they can not
+         be printed.  However, if -std=gnu and not -pedantic, allow
+         the component to be printed to help debugging.  */
+      if (gfc_notification_std (GFC_STD_GNU) != SILENT)
+	{
+	  gfc_error_now ("Derived type '%s' at %L has PRIVATE components",
+			 ts->derived->name, code != NULL ? &(code->loc) : 
+			 &gfc_current_locus);
+	  return;
+	}
+
+      ts->type = ts->derived->ts.type;
+      ts->kind = ts->derived->ts.kind;
+      ts->f90_type = ts->derived->ts.f90_type;
+    }
+  
   kind = ts->kind;
   function = NULL;
   arg2 = NULL;
@@ -1871,7 +1893,7 @@ transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr)
             {
               if (!c->pointer)
                 tmp = build_fold_addr_expr (tmp);
-              transfer_expr (se, &c->ts, tmp);
+              transfer_expr (se, &c->ts, tmp, code);
             }
 	}
       return;
@@ -1937,7 +1959,7 @@ gfc_trans_transfer (gfc_code * code)
     {
       /* Transfer a scalar value.  */
       gfc_conv_expr_reference (&se, expr);
-      transfer_expr (&se, &expr->ts, se.expr);
+      transfer_expr (&se, &expr->ts, se.expr, code);
     }
   else
     {
@@ -1976,7 +1998,7 @@ gfc_trans_transfer (gfc_code * code)
       se.ss = ss;
 
       gfc_conv_expr_reference (&se, expr);
-      transfer_expr (&se, &expr->ts, se.expr);
+      transfer_expr (&se, &expr->ts, se.expr, code);
     }
 
  finish_block_label:

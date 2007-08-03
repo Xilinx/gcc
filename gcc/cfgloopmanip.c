@@ -1,11 +1,11 @@
 /* Loop manipulation code for GNU compiler.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -49,7 +48,7 @@ static void unloop (struct loop *, bool *);
 static bool
 rpe_enum_p (basic_block bb, void *data)
 {
-  return dominated_by_p (CDI_DOMINATORS, bb, data);
+  return dominated_by_p (CDI_DOMINATORS, bb, (basic_block) data);
 }
 
 /* Remove basic blocks BBS.  NBBS is the number of the basic blocks.  */
@@ -411,6 +410,8 @@ add_loop (struct loop *loop, struct loop *outer)
   basic_block *bbs;
   int i, n;
   struct loop *subloop;
+  edge e;
+  edge_iterator ei;
 
   /* Add it to loop structure.  */
   place_new_loop (loop);
@@ -438,6 +439,15 @@ add_loop (struct loop *loop, struct loop *outer)
 	{
 	  flow_loop_tree_node_remove (subloop);
 	  flow_loop_tree_node_add (loop, subloop);
+	}
+    }
+
+  /* Update the information about loop exit edges.  */
+  for (i = 0; i < n; i++)
+    {
+      FOR_EACH_EDGE (e, ei, bbs[i]->succs)
+	{
+	  rescan_loop_exit (e, false, false);
 	}
     }
 
@@ -1283,10 +1293,6 @@ loop_version (struct loop *loop,
   struct loop *nloop;
   basic_block cond_bb;
 
-  /* CHECKME: Loop versioning does not handle nested loop at this point.  */
-  if (loop->inner)
-    return NULL;
-
   /* Record entry and latch edges for the loop */
   entry = loop_preheader_edge (loop);
   irred_flag = entry->flags & EDGE_IRREDUCIBLE_LOOP;
@@ -1460,6 +1466,9 @@ fix_loop_structure (bitmap changed_bbs)
 
   if (current_loops->state & LOOPS_HAVE_PREHEADERS)
     create_preheaders (CP_SIMPLE_PREHEADERS);
+
+  if (current_loops->state & LOOPS_HAVE_SIMPLE_LATCHES)
+    force_single_succ_latches ();
 
   if (current_loops->state & LOOPS_HAVE_MARKED_IRREDUCIBLE_REGIONS)
     mark_irreducible_loops ();

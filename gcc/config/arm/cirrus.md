@@ -7,7 +7,7 @@
 
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 
 ; Cirrus types for invalid insn combinations
@@ -404,28 +403,6 @@
 ;; Cirrus SI values have been outlawed.  Look in arm.h for the comment
 ;; on HARD_REGNO_MODE_OK.
 
-(define_insn "*cirrus_arm_movsi_insn"
-  [(set (match_operand:SI 0 "general_operand" "=r,r,r,m,*v,r,*v,T,*v")
-        (match_operand:SI 1 "general_operand" "rI,K,mi,r,r,*v,T,*v,*v"))]
-  "TARGET_ARM && TARGET_HARD_FLOAT && TARGET_MAVERICK && 0
-   && (register_operand (operands[0], SImode)
-       || register_operand (operands[1], SImode))"
-  "@
-   mov%?\\t%0, %1
-   mvn%?\\t%0, #%B1
-   ldr%?\\t%0, %1
-   str%?\\t%1, %0
-   cfmv64lr%?\\t%Z0, %1
-   cfmvr64l%?\\t%0, %Z1
-   cfldr32%?\\t%V0, %1
-   cfstr32%?\\t%V1, %0
-   cfsh32%?\\t%V0, %V1, #0"
-  [(set_attr "type"           "*,  *,  load1,store1,   *,     *,  load1,store1,     *")
-   (set_attr "pool_range"     "*,  *,  4096,     *,   *,     *,  1024,     *,     *")
-   (set_attr "neg_pool_range" "*,  *,  4084,     *,   *,     *,  1012,     *,     *")
-   (set_attr "cirrus"         "not,not, not,   not,move,normal,normal,normal,normal")]
-)
-
 (define_insn "*cirrus_movsf_hard_insn"
   [(set (match_operand:SF 0 "nonimmediate_operand" "=v,v,v,r,m,r,r,m")
         (match_operand:SF 1 "general_operand"      "v,mE,r,v,v,r,mE,r"))]
@@ -508,31 +485,6 @@
    (set_attr "pool_range"     "  *,4096,     *,   *,     *,  1020,     *,     *")
    (set_attr "neg_pool_range" "  *,   0,     *,   *,     *,  1008,     *,     *")
    (set_attr "cirrus"         "not, not,   not,move,normal,double,double,normal")]
-)
-
-;; Cirrus SI values have been outlawed.  Look in arm.h for the comment
-;; on HARD_REGNO_MODE_OK.
-
-(define_insn "*cirrus_thumb2_movsi_insn"
-  [(set (match_operand:SI 0 "general_operand" "=r,r,r,m,*v,r,*v,T,*v")
-        (match_operand:SI 1 "general_operand" "rI,K,mi,r,r,*v,T,*v,*v"))]
-  "TARGET_THUMB2 && TARGET_HARD_FLOAT && TARGET_MAVERICK && 0
-   && (register_operand (operands[0], SImode)
-       || register_operand (operands[1], SImode))"
-  "@
-   mov%?\\t%0, %1
-   mvn%?\\t%0, #%B1
-   ldr%?\\t%0, %1
-   str%?\\t%1, %0
-   cfmv64lr%?\\t%Z0, %1
-   cfmvr64l%?\\t%0, %Z1
-   cfldr32%?\\t%V0, %1
-   cfstr32%?\\t%V1, %0
-   cfsh32%?\\t%V0, %V1, #0"
-  [(set_attr "type"           "*,  *,  load1,store1,   *,     *,  load1,store1,     *")
-   (set_attr "pool_range"     "*,  *,  4096,     *,   *,     *,  1024,     *,     *")
-   (set_attr "neg_pool_range" "*,  *,     0,     *,   *,     *,  1012,     *,     *")
-   (set_attr "cirrus"         "not,not, not,   not,move,normal,normal,normal,normal")]
 )
 
 (define_insn "*thumb2_cirrus_movsf_hard_insn"

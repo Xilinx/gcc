@@ -332,7 +332,7 @@ esac
 
 
 AC_ARG_ENABLE(libada,
-[  --enable-libada        Builds libada directory],
+[  --enable-libada         build libada directory],
 ENABLE_LIBADA=$enableval,
 ENABLE_LIBADA=yes)
 if test "${ENABLE_LIBADA}" != "yes" ; then
@@ -340,7 +340,7 @@ if test "${ENABLE_LIBADA}" != "yes" ; then
 fi
 
 AC_ARG_ENABLE(libssp,
-[  --enable-libssp        Builds libssp directory],
+[  --enable-libssp         build libssp directory],
 ENABLE_LIBSSP=$enableval,
 ENABLE_LIBSSP=yes)
 
@@ -364,7 +364,7 @@ esac
 # Disable libmudflap on some systems.
 if test x$enable_libmudflap = x ; then
     case "${target}" in
-    *-*-linux* | *-*-gnu* | *-*-k*bsd*-gnu)
+    *-*-linux* | *-*-gnu* | *-*-k*bsd*-gnu | bfin*-*-uclinux*)
         # Enable libmudflap by default in GNU and friends.
 	;;
     *-*-freebsd*)
@@ -516,6 +516,9 @@ case "${target}" in
   arm*-*-linux-gnueabi)
     noconfigdirs="$noconfigdirs target-libffi target-qthreads"
     noconfigdirs="$noconfigdirs target-libjava target-libobjc"
+    case ${with_newlib} in
+      no) noconfigdirs="$noconfigdirs target-newlib target-libgloss"
+    esac
     ;;
   arm*-*-symbianelf*)
     noconfigdirs="$noconfigdirs ${libgcj} target-libiberty"
@@ -1078,16 +1081,16 @@ have_gmp=no
 
 # Specify a location for mpfr
 # check for this first so it ends up on the link line before gmp.
-AC_ARG_WITH(mpfr-dir, [  --with-mpfr-dir=PATH    This option has been REMOVED],
+AC_ARG_WITH(mpfr-dir, [  --with-mpfr-dir=PATH    this option has been REMOVED],
   AC_MSG_ERROR([The --with-mpfr-dir=PATH option has been removed.
 Use --with-mpfr=PATH or --with-mpfr-include=PATH plus --with-mpfr-lib=PATH]))
 
-AC_ARG_WITH(mpfr, [  --with-mpfr=PATH        Specify prefix directory for installed MPFR package
+AC_ARG_WITH(mpfr, [  --with-mpfr=PATH        specify prefix directory for installed MPFR package.
                           Equivalent to --with-mpfr-include=PATH/include
                           plus --with-mpfr-lib=PATH/lib])
 AC_ARG_WITH(mpfr_include, [  --with-mpfr-include=PATH
-                          Specify directory for installed MPFR include files])
-AC_ARG_WITH(mpfr_lib, [  --with-mpfr-lib=PATH    Specify the directory for the installed MPFR library])
+                          specify directory for installed MPFR include files])
+AC_ARG_WITH(mpfr_lib, [  --with-mpfr-lib=PATH    specify directory for the installed MPFR library])
 
 if test "x$with_mpfr" != x; then
   gmplibs="-L$with_mpfr/lib $gmplibs"
@@ -1110,15 +1113,15 @@ if test "x$with_mpfr$with_mpfr_include$with_mpfr_lib" = x && test -d ${srcdir}/m
 fi
 
 # Specify a location for gmp
-AC_ARG_WITH(gmp-dir, [  --with-gmp-dir=PATH     This option has been REMOVED],
+AC_ARG_WITH(gmp-dir, [  --with-gmp-dir=PATH     this option has been REMOVED],
   AC_MSG_ERROR([The --with-gmp-dir=PATH option has been removed.
 Use --with-gmp=PATH or --with-gmp-include=PATH plus --with-gmp-lib=PATH]))
 
-AC_ARG_WITH(gmp, [  --with-gmp=PATH         Specify prefix directory for the installed GMP package
+AC_ARG_WITH(gmp, [  --with-gmp=PATH         specify prefix directory for the installed GMP package.
                           Equivalent to --with-gmp-include=PATH/include
                           plus --with-gmp-lib=PATH/lib])
-AC_ARG_WITH(gmp_include, [  --with-gmp-include=PATH Specify directory for installed GMP include files])
-AC_ARG_WITH(gmp_lib, [  --with-gmp-lib=PATH     Specify the directory for the installed GMP library])
+AC_ARG_WITH(gmp_include, [  --with-gmp-include=PATH specify directory for installed GMP include files])
+AC_ARG_WITH(gmp_lib, [  --with-gmp-lib=PATH     specify directory for the installed GMP library])
 
 
 if test "x$with_gmp" != x; then
@@ -1429,7 +1432,7 @@ if test -d ${srcdir}/gcc; then
   done
 
   AC_ARG_ENABLE(stage1-languages,
-[  --enable-stage1-languages[=all]   choose additional languages to build during
+[  --enable-stage1-languages@<:@=all@:>@   choose additional languages to build during
                           stage1.  Mostly useful for compiler development.],
   [case ,${enable_stage1_languages}, in
     ,no,|,,)
@@ -1490,8 +1493,8 @@ done
 
 # Check for Boehm's garbage collector
 AC_ARG_ENABLE(objc-gc,
-[  --enable-objc-gc       enable the use of Boehm's garbage collector with
-                          the GNU Objective-C runtime.],
+[  --enable-objc-gc        enable use of Boehm's garbage collector with the
+                          GNU Objective-C runtime],
 [case ,${enable_languages},:${enable_objc_gc}:${noconfigdirs} in
   *,objc,*:*:yes:*target-boehm-gc*)
     AC_MSG_ERROR([Boehm's garbage collector was requested yet not supported in this configuration])
@@ -1646,7 +1649,7 @@ ACX_TOOL_DIRS
 copy_dirs=
 
 AC_ARG_WITH([build-sysroot], 
-  [  --with-build-sysroot=sysroot
+  [  --with-build-sysroot=SYSROOT
                           use sysroot as the system root during the build],
   [if test x"$withval" != x ; then
      SYSROOT_CFLAGS_FOR_TARGET="--sysroot=$withval"
@@ -1757,10 +1760,10 @@ case "${target}" in
   alpha*-*-*vms*)
     md_exec_prefix=/gnu/lib/gcc-lib
     ;;
-  i[34567]86-pc-msdosdjgpp*)
+  i[[34567]]86-pc-msdosdjgpp*)
     md_exec_prefix=/dev/env/DJDIR/bin
     ;;
-  i[34567]86-*-sco3.2v5*)
+  i[[34567]]86-*-sco3.2v5*)
     if test $with_gnu_as = yes; then
       md_exec_prefix=/usr/gnu/bin
     else
@@ -1791,7 +1794,7 @@ case "${target}" in
   *-*-nto-qnx* | \
   *-*-rtems* | \
   *-*-solaris2* | \
-  *-*-sysv[45]* | \
+  *-*-sysv[[45]]* | \
   *-*-vxworks* | \
   *-wrs-windiss)
     md_exec_prefix=/usr/ccs/bin
@@ -2005,7 +2008,7 @@ INSTALL_GDB_TK=`echo ${GDB_TK} | sed s/-all-/-install-/g`
 # not to nest @if/@endif pairs, because configure will not warn you at all.
 
 AC_ARG_ENABLE([bootstrap],
-[  --enable-bootstrap           Enable bootstrapping [yes if native build]],,
+[  --enable-bootstrap      enable bootstrapping @<:@yes if native build@:>@],,
 enable_bootstrap=default)
 
 # Issue errors and warnings for invalid/strange bootstrap combinations.
@@ -2099,10 +2102,10 @@ extrasub="$extrasub
 # Create the serialization dependencies.  This uses a temporary file.
 
 AC_ARG_ENABLE([serial-configure],
-[  --enable-serial-[{host,target,build}-]configure
-                          Force sequential configuration of
+[  --enable-serial-@<:@{host,target,build}-@:>@configure
+                          force sequential configuration of
                           sub-packages for the host, target or build
-			  machine, or all sub-packages])
+                          machine, or all sub-packages])
 
 case ${enable_serial_configure} in
   yes)
@@ -2503,6 +2506,7 @@ NCN_STRICT_CHECK_TOOLS(NM, nm)
 NCN_STRICT_CHECK_TOOLS(RANLIB, ranlib, :)
 NCN_STRICT_CHECK_TOOLS(STRIP, strip, :)
 NCN_STRICT_CHECK_TOOLS(WINDRES, windres)
+NCN_STRICT_CHECK_TOOLS(WINDMC, windmc)
 NCN_STRICT_CHECK_TOOLS(OBJCOPY, objcopy)
 NCN_STRICT_CHECK_TOOLS(OBJDUMP, objdump)
 AC_SUBST(CC)
@@ -2513,7 +2517,7 @@ AC_SUBST(CXXFLAGS)
 
 # Target tools.
 AC_ARG_WITH([build-time-tools], 
-  [  --with-build-time-tools=path
+  [  --with-build-time-tools=PATH
                           use given path to find target tools during the build],
   [case x"$withval" in
      x/*) ;;
@@ -2540,6 +2544,7 @@ ACX_CHECK_INSTALLED_TARGET_TOOL(OBJDUMP_FOR_TARGET, objdump)
 ACX_CHECK_INSTALLED_TARGET_TOOL(RANLIB_FOR_TARGET, ranlib, :)
 ACX_CHECK_INSTALLED_TARGET_TOOL(STRIP_FOR_TARGET, strip)
 ACX_CHECK_INSTALLED_TARGET_TOOL(WINDRES_FOR_TARGET, windres)
+ACX_CHECK_INSTALLED_TARGET_TOOL(WINDMC_FOR_TARGET, windmc)
 
 RAW_CXX_FOR_TARGET="$CXX_FOR_TARGET"
 
@@ -2565,6 +2570,7 @@ GCC_TARGET_TOOL(objdump, OBJDUMP_FOR_TARGET, OBJDUMP, [binutils/objdump])
 GCC_TARGET_TOOL(ranlib, RANLIB_FOR_TARGET, RANLIB, [binutils/ranlib])
 GCC_TARGET_TOOL(strip, STRIP_FOR_TARGET, STRIP, [binutils/strip])
 GCC_TARGET_TOOL(windres, WINDRES_FOR_TARGET, WINDRES, [binutils/windres])
+GCC_TARGET_TOOL(windmc, WINDMC_FOR_TARGET, WINDMC, [binutils/windmc])
 
 AC_SUBST(FLAGS_FOR_TARGET)
 AC_SUBST(RAW_CXX_FOR_TARGET)
@@ -2650,13 +2656,13 @@ AC_SUBST(stage1_cflags)
 
 # Enable --enable-checking in stage1 of the compiler.
 AC_ARG_ENABLE(stage1-checking,
-[  --enable-stage1-checking[=all]   choose additional checking for stage1
-                          of the compiler.],
+[  --enable-stage1-checking@<:@=all@:>@   choose additional checking for stage1
+                          of the compiler],
 [stage1_checking=--enable-checking=${enable_stage1_checking}],
 [if test "x$enable_checking" = xno; then
-  stage1_checking=--enable-checking
+  stage1_checking=--enable-checking=yes,types
 else
-  stage1_checking=--enable-checking${enable_checking+=}$enable_checking
+  stage1_checking=--enable-checking=types${enable_checking+,}$enable_checking
 fi])
 AC_SUBST(stage1_checking)
 
@@ -2676,22 +2682,22 @@ AC_SUBST(stage2_werror_flag)
 
 # Flags needed to enable html installing and building
 AC_ARG_WITH(datarootdir,
-[  --with-datarootdir	Use datarootdir as the data root directory.],
+[  --with-datarootdir      use datarootdir as the data root directory.],
 [datarootdir="\${prefix}/${withval}"],
 [datarootdir="\${prefix}/share"])
 
 AC_ARG_WITH(docdir,
-[  --with-docdir	Install documentation in this directory.],
+[  --with-docdir           install documentation in this directory.],
 [docdir="\${prefix}/${withval}"],
 [docdir="\${datarootdir}/doc"])
 
 AC_ARG_WITH(pdfdir,
-[  --with-pdfdir	Install pdf in this directory.],
+[  --with-pdfdir           install pdf in this directory.],
 [pdfdir="\${prefix}/${withval}"],
 [pdfdir="\${docdir}"])
 
 AC_ARG_WITH(htmldir,
-[  --with-htmldir	Install html in this directory.],
+[  --with-htmldir          install html in this directory.],
 [htmldir="\${prefix}/${withval}"],
 [htmldir="\${docdir}"])
 

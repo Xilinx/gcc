@@ -1,12 +1,12 @@
 /* Coalesce SSA_NAMES together for the out-of-ssa pass.
-   Copyright (C) 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Andrew MacLeod <amacleod@redhat.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -48,6 +47,7 @@ typedef struct coalesce_pair
   int second_element;
   int cost;
 } * coalesce_pair_p;
+typedef const struct coalesce_pair *const_coalesce_pair_p;
 
 typedef struct cost_one_pair_d
 {
@@ -174,8 +174,8 @@ pop_best_coalesce (coalesce_list_p cl, int *p1, int *p2)
 static unsigned int 
 coalesce_pair_map_hash (const void *pair)
 {
-  hashval_t a = (hashval_t)(((coalesce_pair_p)pair)->first_element);
-  hashval_t b = (hashval_t)(((coalesce_pair_p)pair)->second_element);
+  hashval_t a = (hashval_t)(((const_coalesce_pair_p)pair)->first_element);
+  hashval_t b = (hashval_t)(((const_coalesce_pair_p)pair)->second_element);
 
   return COALESCE_HASH_FN (a,b);
 }
@@ -187,8 +187,8 @@ coalesce_pair_map_hash (const void *pair)
 static int 
 coalesce_pair_map_eq (const void *pair1, const void *pair2)
 {
-  coalesce_pair_p p1 = (coalesce_pair_p) pair1;
-  coalesce_pair_p p2 = (coalesce_pair_p) pair2;
+  const_coalesce_pair_p const p1 = (const_coalesce_pair_p) pair1;
+  const_coalesce_pair_p const p2 = (const_coalesce_pair_p) pair2;
 
   return (p1->first_element == p2->first_element
 	  && p1->second_element == p2->second_element);
@@ -260,7 +260,7 @@ find_coalesce_pair (coalesce_list_p cl, int p1, int p2, bool create)
   if (create && !pair)
     {
       gcc_assert (cl->sorted == NULL);
-      pair = xmalloc (sizeof (struct coalesce_pair));
+      pair = XNEW (struct coalesce_pair);
       pair->first_element = p.first_element;
       pair->second_element = p.second_element;
       pair->cost = 0;
@@ -276,7 +276,7 @@ add_cost_one_coalesce (coalesce_list_p cl, int p1, int p2)
 {
   cost_one_pair_p pair;
 
-  pair = xmalloc (sizeof (struct cost_one_pair_d));
+  pair = XNEW (struct cost_one_pair_d);
   pair->first_element = p1;
   pair->second_element = p2;
   pair->next = cl->cost_one_list;
@@ -314,7 +314,8 @@ add_coalesce (coalesce_list_p cl, int p1, int p2,
 static int 
 compare_pairs (const void *p1, const void *p2)
 {
-  return (*(coalesce_pair_p *)p1)->cost - (*(coalesce_pair_p *)p2)->cost;
+  return (*(const_coalesce_pair_p const*)p1)->cost
+    - (*(const_coalesce_pair_p const*)p2)->cost;
 }
 
 
@@ -585,6 +586,24 @@ ssa_conflicts_merge (ssa_conflicts_p ptr, unsigned x, unsigned y)
       ptr->conflicts[x] = ptr->conflicts[y];
       ptr->conflicts[y] = NULL;
     }
+}
+
+
+/* Dump a conflicts graph.  */
+
+static void
+ssa_conflicts_dump (FILE *file, ssa_conflicts_p ptr)
+{
+  unsigned x;
+
+  fprintf (file, "\nConflict graph:\n");
+
+  for (x = 0; x < ptr->size; x++)
+    if (ptr->conflicts[x])
+      {
+	fprintf (dump_file, "%d: ", x);
+	dump_bitmap (file, ptr->conflicts[x]);
+      }
 }
 
 
@@ -1037,7 +1056,7 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 		    char *end;
 		    unsigned long match;
 
-		    if (TREE_CODE (input) != SSA_NAME && !DECL_P (input))
+		    if (TREE_CODE (input) != SSA_NAME)
 		      continue;
 
 		    match = strtoul (constraint, &end, 10);
@@ -1301,6 +1320,8 @@ coalesce_ssa_name (void)
   /* Build a conflict graph.  */
   graph = build_ssa_conflict_graph (liveinfo);
   delete_tree_live_info (liveinfo);
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    ssa_conflicts_dump (dump_file, graph);
 
   sort_coalesce_list (cl);
 

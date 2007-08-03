@@ -1,12 +1,12 @@
 /* Output routines for Sunplus S+CORE processor
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
    Contributed by Sunnorth.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +15,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -181,7 +180,6 @@ th_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   rtx this, temp1, temp2, insn, fnaddr;
 
   /* Pretend to be a post-reload pass while generating rtl.  */
-  no_new_pseudos = 1;
   reload_completed = 1;
 
   /* We need two temporary registers in some cases.  */
@@ -240,7 +238,6 @@ th_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   /* Clean up the vars set above.  Note that final_end_function resets
      the global pointer for us.  */
   reload_completed = 0;
-  no_new_pseudos = 0;
 }
 
 /* Implement TARGET_STRICT_ARGUMENT_NAMING.  */
@@ -812,7 +809,7 @@ score_address_p (enum machine_mode mode, rtx x, int strict)
 static rtx
 score_force_temporary (rtx dest, rtx value)
 {
-  if (!no_new_pseudos)
+  if (can_create_pseudo_p ())
     return force_reg (Pmode, value);
   else
     {

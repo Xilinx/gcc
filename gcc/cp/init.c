@@ -1,13 +1,14 @@
 /* Handle initialization things in C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* High-level class interface.  */
 
@@ -195,7 +195,7 @@ build_zero_init (tree type, tree nelts, bool static_storage_p)
 	     corresponding to base classes as well.  Thus, iterating
 	     over TYPE_FIELDs will result in correct initialization of
 	     all of the subobjects.  */
-	  if (static_storage_p && !zero_init_p (TREE_TYPE (field)))
+	  if (!static_storage_p || !zero_init_p (TREE_TYPE (field)))
 	    {
 	      tree value = build_zero_init (TREE_TYPE (field),
 					    /*nelts=*/NULL_TREE,
@@ -785,7 +785,7 @@ expand_virtual_init (tree binfo, tree decl)
 
       /* Compute the value to use, when there's a VTT.  */
       vtt_parm = current_vtt_parm;
-      vtbl2 = build2 (PLUS_EXPR,
+      vtbl2 = build2 (POINTER_PLUS_EXPR,
 		      TREE_TYPE (vtt_parm),
 		      vtt_parm,
 		      vtt_index);
@@ -1564,6 +1564,55 @@ build_raw_new_expr (tree placement, tree type, tree nelts, tree init,
   return new_expr;
 }
 
+/* Make sure that there are no aliasing issues with T, a placement new
+   expression applied to PLACEMENT, by recording the change in dynamic
+   type.  If placement new is inlined, as it is with libstdc++, and if
+   the type of the placement new differs from the type of the
+   placement location itself, then alias analysis may think it is OK
+   to interchange writes to the location from before the placement new
+   and from after the placement new.  We have to prevent type-based
+   alias analysis from applying.  PLACEMENT may be NULL, which means
+   that we couldn't capture it in a temporary variable, in which case
+   we use a memory clobber.  */
+
+static tree
+avoid_placement_new_aliasing (tree t, tree placement)
+{
+  tree type_change;
+
+  if (processing_template_decl)
+    return t;
+
+  /* If we are not using type based aliasing, we don't have to do
+     anything.  */
+  if (!flag_strict_aliasing)
+    return t;
+
+  /* If we have a pointer and a location, record the change in dynamic
+     type.  Otherwise we need a general memory clobber.  */
+  if (TREE_CODE (TREE_TYPE (t)) == POINTER_TYPE
+      && placement != NULL_TREE
+      && TREE_CODE (TREE_TYPE (placement)) == POINTER_TYPE)
+    type_change = build_stmt (CHANGE_DYNAMIC_TYPE_EXPR,
+			      TREE_TYPE (t),
+			      placement);
+  else
+    {
+      /* Build a memory clobber.  */
+      type_change = build_stmt (ASM_EXPR,
+				build_string (0, ""),
+				NULL_TREE,
+				NULL_TREE,
+				tree_cons (NULL_TREE,
+					   build_string (6, "memory"),
+					   NULL_TREE));
+
+      ASM_VOLATILE_P (type_change) = 1;
+    }
+
+  return build2 (COMPOUND_EXPR, TREE_TYPE (t), type_change, t);
+}
+
 /* Generate code for a new-expression, including calling the "operator
    new" function, initializing the object, and, if an exception occurs
    during construction, cleaning up.  The arguments are as for
@@ -1607,6 +1656,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
      beginning of the storage allocated for an array-new expression in
      order to store the number of elements.  */
   tree cookie_size = NULL_TREE;
+  tree placement_var;
   /* True if the function we are calling is a placement allocation
      function.  */
   bool placement_allocation_fn_p;
@@ -1640,6 +1690,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
          of the incomplete array type.  */
       full_type = build_distinct_type_copy (full_type);
       TYPE_DOMAIN (full_type) = index;
+      SET_TYPE_STRUCTURAL_EQUALITY (full_type);
     }
   else
     {
@@ -1652,9 +1703,6 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
 	  type = TREE_TYPE (type);
 	}
     }
-
-  if (!complete_type_or_else (type, NULL_TREE))
-    return error_mark_node;
 
   /* If our base type is an array, then make sure we know how many elements
      it has.  */
@@ -1699,6 +1747,20 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
     }
 
   alloc_fn = NULL_TREE;
+
+  /* If PLACEMENT is a simple pointer type, then copy it into
+     PLACEMENT_VAR.  */
+  if (processing_template_decl
+      || placement == NULL_TREE
+      || TREE_CHAIN (placement) != NULL_TREE
+      || TREE_CODE (TREE_TYPE (TREE_VALUE (placement))) != POINTER_TYPE)
+    placement_var = NULL_TREE;
+  else
+    {
+      placement_var = get_temp_regvar (TREE_TYPE (TREE_VALUE (placement)),
+				       TREE_VALUE (placement));
+      placement = tree_cons (NULL_TREE, placement_var, NULL_TREE);
+    }
 
   /* Allocate the object.  */
   if (! placement && TYPE_FOR_JAVA (elt_type))
@@ -1792,7 +1854,12 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
   /* In the simple case, we can stop now.  */
   pointer_type = build_pointer_type (type);
   if (!cookie_size && !is_initialized)
-    return build_nop (pointer_type, alloc_call);
+    {
+      rval = build_nop (pointer_type, alloc_call);
+      if (placement != NULL)
+	rval = avoid_placement_new_aliasing (rval, placement_var);
+      return rval;
+    }
 
   /* While we're working, use a pointer to the type we've actually
      allocated. Store the result of the call in a variable so that we
@@ -1847,16 +1914,19 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
     {
       tree cookie;
       tree cookie_ptr;
+      tree size_ptr_type;
 
       /* Adjust so we're pointing to the start of the object.  */
-      data_addr = get_target_expr (build2 (PLUS_EXPR, full_pointer_type,
+      data_addr = get_target_expr (build2 (POINTER_PLUS_EXPR, full_pointer_type,
 					   alloc_node, cookie_size));
 
       /* Store the number of bytes allocated so that we can know how
 	 many elements to destroy later.  We use the last sizeof
 	 (size_t) bytes to store the number of elements.  */
-      cookie_ptr = build2 (MINUS_EXPR, build_pointer_type (sizetype),
-			   data_addr, size_in_bytes (sizetype));
+      cookie_ptr = fold_build1 (NEGATE_EXPR, sizetype, size_in_bytes (sizetype));
+      size_ptr_type = build_pointer_type (sizetype);
+      cookie_ptr = build2 (POINTER_PLUS_EXPR, size_ptr_type,
+			   fold_convert (size_ptr_type, data_addr), cookie_ptr);
       cookie = build_indirect_ref (cookie_ptr, NULL);
 
       cookie_expr = build2 (MODIFY_EXPR, sizetype, cookie, nelts);
@@ -1969,8 +2039,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
 					  globally_qualified_p,
 					  (placement_allocation_fn_p
 					   ? alloc_call : NULL_TREE),
-					  (placement_allocation_fn_p
-					   ? alloc_fn : NULL_TREE));
+					  alloc_fn);
 
 	  if (!cleanup)
 	    /* We're done.  */;
@@ -2051,6 +2120,9 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
 
   /* A new-expression is never an lvalue.  */
   gcc_assert (!lvalue_p (rval));
+
+  if (placement != NULL)
+    rval = avoid_placement_new_aliasing (rval, placement_var);
 
   return rval;
 }
@@ -2134,6 +2206,12 @@ build_new (tree placement, tree type, tree nelts, tree init,
       error ("new cannot be applied to a function type");
       return error_mark_node;
     }
+
+  /* The type allocated must be complete.  If the new-type-id was
+     "T[N]" then we are just checking that "T" is complete here, but
+     that is equivalent, since the value of "N" doesn't matter.  */
+  if (!complete_type_or_else (type, NULL_TREE))
+    return error_mark_node;
 
   rval = build_new_1 (placement, type, nelts, init, use_global_new);
   if (rval == error_mark_node)
@@ -2228,6 +2306,7 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
      executing any other code in the loop.
      This is also the containing expression returned by this function.  */
   tree controller = NULL_TREE;
+  tree tmp;
 
   /* We should only have 1-D arrays here.  */
   gcc_assert (TREE_CODE (type) != ARRAY_TYPE);
@@ -2241,7 +2320,7 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
 
   tbase = create_temporary_var (ptype);
   tbase_init = build_modify_expr (tbase, NOP_EXPR,
-				  fold_build2 (PLUS_EXPR, ptype,
+				  fold_build2 (POINTER_PLUS_EXPR, ptype,
 					       base,
 					       virtual_size));
   DECL_REGISTER (tbase) = 1;
@@ -2252,9 +2331,10 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
   body = build1 (EXIT_EXPR, void_type_node,
 		 build2 (EQ_EXPR, boolean_type_node, tbase,
 			 fold_convert (ptype, base)));
+  tmp = fold_build1 (NEGATE_EXPR, sizetype, size_exp);
   body = build_compound_expr
     (body, build_modify_expr (tbase, NOP_EXPR,
-			      build2 (MINUS_EXPR, ptype, tbase, size_exp)));
+			      build2 (POINTER_PLUS_EXPR, ptype, tbase, tmp)));
   body = build_compound_expr
     (body, build_delete (ptype, tbase, sfk_complete_destructor,
 			 LOOKUP_NORMAL|LOOKUP_DESTRUCTOR, 1));
@@ -2975,10 +3055,11 @@ build_vec_delete (tree base, tree maxindex,
 	  base = TARGET_EXPR_SLOT (base_init);
 	}
       type = strip_array_types (TREE_TYPE (type));
-      cookie_addr = build2 (MINUS_EXPR,
+      cookie_addr = fold_build1 (NEGATE_EXPR, sizetype, TYPE_SIZE_UNIT (sizetype));
+      cookie_addr = build2 (POINTER_PLUS_EXPR,
 			    build_pointer_type (sizetype),
 			    base,
-			    TYPE_SIZE_UNIT (sizetype));
+			    cookie_addr);
       maxindex = build_indirect_ref (cookie_addr, NULL);
     }
   else if (TREE_CODE (type) == ARRAY_TYPE)

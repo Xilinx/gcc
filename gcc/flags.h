@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_FLAGS_H
 #define GCC_FLAGS_H
@@ -249,10 +248,6 @@ extern int align_jumps_max_skip;
 extern int align_labels_log;
 extern int align_labels_max_skip;
 extern int align_functions_log;
-
-/* Like align_functions_log above, but used by front-ends to force the
-   minimum function alignment.  Zero means no alignment is forced.  */
-extern int force_align_functions_log;
 
 /* Nonzero if we dump in VCG format, not plain text.  */
 extern int dump_for_graph;

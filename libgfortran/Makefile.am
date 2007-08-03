@@ -71,9 +71,11 @@ intrinsics/getcwd.c \
 intrinsics/getlog.c \
 intrinsics/getXid.c \
 intrinsics/hostnm.c \
-intrinsics/kill.c \
 intrinsics/ierrno.c \
 intrinsics/ishftc.c \
+intrinsics/iso_c_generated_procs.c \
+intrinsics/iso_c_binding.c \
+intrinsics/kill.c \
 intrinsics/link.c \
 intrinsics/malloc.c \
 intrinsics/mvbits.c \
@@ -430,10 +432,6 @@ i_pow_c = \
 $(srcdir)/generated/pow_i4_i4.c \
 $(srcdir)/generated/pow_i8_i4.c \
 $(srcdir)/generated/pow_i16_i4.c \
-$(srcdir)/generated/pow_r4_i4.c \
-$(srcdir)/generated/pow_r8_i4.c \
-$(srcdir)/generated/pow_r10_i4.c \
-$(srcdir)/generated/pow_r16_i4.c \
 $(srcdir)/generated/pow_c4_i4.c \
 $(srcdir)/generated/pow_c8_i4.c \
 $(srcdir)/generated/pow_c10_i4.c \

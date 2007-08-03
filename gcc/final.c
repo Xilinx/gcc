@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This is the final pass of the compiler.
    It looks at the rtl code for a function and outputs assembler code.
@@ -76,6 +75,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "timevar.h"
 #include "cgraph.h"
 #include "coverage.h"
+#include "df.h"
 #include "vecprim.h"
 
 #ifdef XCOFF_DEBUGGING_INFO
@@ -171,23 +171,6 @@ CC_STATUS cc_status;
 CC_STATUS cc_prev_status;
 #endif
 
-/* Indexed by hardware reg number, is 1 if that register is ever
-   used in the current function.
-
-   In life_analysis, or in stupid_life_analysis, this is set
-   up to record the hard regs used explicitly.  Reload adds
-   in the hard regs used for holding pseudo regs.  Final uses
-   it to generate the code in the function prologue and epilogue
-   to save and restore registers as needed.  */
-
-char regs_ever_live[FIRST_PSEUDO_REGISTER];
-
-/* Like regs_ever_live, but 1 if a reg is set or clobbered from an asm.
-   Unlike regs_ever_live, elements of this array corresponding to
-   eliminable regs like the frame pointer are set if an asm sets them.  */
-
-char regs_asm_clobbered[FIRST_PSEUDO_REGISTER];
-
 /* Nonzero means current function must be given a frame pointer.
    Initialized in function.c to 0.  Set only in reload1.c as per
    the needs of the function.  */
@@ -224,7 +207,7 @@ static int asm_insn_count (rtx);
 static void profile_function (FILE *);
 static void profile_after_prologue (FILE *);
 static bool notice_source_line (rtx);
-static rtx walk_alter_subreg (rtx *);
+static rtx walk_alter_subreg (rtx *, bool *);
 static void output_asm_name (void);
 static void output_alternate_entry_point (FILE *, rtx);
 static tree get_mem_expr_from_op (rtx, int *);
@@ -2577,6 +2560,7 @@ void
 cleanup_subreg_operands (rtx insn)
 {
   int i;
+  bool changed = false;
   extract_insn_cached (insn);
   for (i = 0; i < recog_data.n_operands; i++)
     {
@@ -2586,22 +2570,30 @@ cleanup_subreg_operands (rtx insn)
 	 matches the else clause.  Instead we test the underlying
 	 expression directly.  */
       if (GET_CODE (*recog_data.operand_loc[i]) == SUBREG)
-	recog_data.operand[i] = alter_subreg (recog_data.operand_loc[i]);
+	{
+	  recog_data.operand[i] = alter_subreg (recog_data.operand_loc[i]);
+	  changed = true;
+	}
       else if (GET_CODE (recog_data.operand[i]) == PLUS
 	       || GET_CODE (recog_data.operand[i]) == MULT
 	       || MEM_P (recog_data.operand[i]))
-	recog_data.operand[i] = walk_alter_subreg (recog_data.operand_loc[i]);
+	recog_data.operand[i] = walk_alter_subreg (recog_data.operand_loc[i], &changed);
     }
 
   for (i = 0; i < recog_data.n_dups; i++)
     {
       if (GET_CODE (*recog_data.dup_loc[i]) == SUBREG)
-	*recog_data.dup_loc[i] = alter_subreg (recog_data.dup_loc[i]);
+	{
+	  *recog_data.dup_loc[i] = alter_subreg (recog_data.dup_loc[i]);
+	  changed = true;
+	}
       else if (GET_CODE (*recog_data.dup_loc[i]) == PLUS
 	       || GET_CODE (*recog_data.dup_loc[i]) == MULT
 	       || MEM_P (*recog_data.dup_loc[i]))
-	*recog_data.dup_loc[i] = walk_alter_subreg (recog_data.dup_loc[i]);
+	*recog_data.dup_loc[i] = walk_alter_subreg (recog_data.dup_loc[i], &changed);
     }
+  if (changed)
+    df_insn_rescan (insn);
 }
 
 /* If X is a SUBREG, replace it with a REG or a MEM,
@@ -2655,7 +2647,7 @@ alter_subreg (rtx *xp)
 /* Do alter_subreg on all the SUBREGs contained in X.  */
 
 static rtx
-walk_alter_subreg (rtx *xp)
+walk_alter_subreg (rtx *xp, bool *changed)
 {
   rtx x = *xp;
   switch (GET_CODE (x))
@@ -2663,16 +2655,17 @@ walk_alter_subreg (rtx *xp)
     case PLUS:
     case MULT:
     case AND:
-      XEXP (x, 0) = walk_alter_subreg (&XEXP (x, 0));
-      XEXP (x, 1) = walk_alter_subreg (&XEXP (x, 1));
+      XEXP (x, 0) = walk_alter_subreg (&XEXP (x, 0), changed);
+      XEXP (x, 1) = walk_alter_subreg (&XEXP (x, 1), changed);
       break;
 
     case MEM:
     case ZERO_EXTEND:
-      XEXP (x, 0) = walk_alter_subreg (&XEXP (x, 0));
+      XEXP (x, 0) = walk_alter_subreg (&XEXP (x, 0), changed);
       break;
 
     case SUBREG:
+      *changed = true;
       return alter_subreg (xp);
 
     default:
@@ -3242,7 +3235,8 @@ output_operand (rtx x, int code ATTRIBUTE_UNUSED)
 void
 output_address (rtx x)
 {
-  walk_alter_subreg (&x);
+  bool changed = false;
+  walk_alter_subreg (&x, &changed);
   PRINT_OPERAND_ADDRESS (asm_out_file, x);
 }
 
@@ -3760,7 +3754,7 @@ only_leaf_regs_used (void)
   const char *const permitted_reg_in_leaf_functions = LEAF_REGISTERS;
 
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
-    if ((regs_ever_live[i] || global_regs[i])
+    if ((df_regs_ever_live_p (i) || global_regs[i])
 	&& ! permitted_reg_in_leaf_functions[i])
       return 0;
 
@@ -3828,9 +3822,9 @@ leaf_renumber_regs_insn (rtx in_rtx)
 	}
       newreg = LEAF_REG_REMAP (newreg);
       gcc_assert (newreg >= 0);
-      regs_ever_live[REGNO (in_rtx)] = 0;
-      regs_ever_live[newreg] = 1;
-      REGNO (in_rtx) = newreg;
+      df_set_regs_ever_live (REGNO (in_rtx), false);
+      df_set_regs_ever_live (newreg, true);
+      SET_REGNO (in_rtx, newreg);
       in_rtx->used = 1;
     }
 
@@ -3993,11 +3987,11 @@ rest_of_handle_final (void)
 
   user_defined_section_attribute = false;
 
+  /* Free up reg info memory.  */
+  free_reg_info ();
+
   if (! quiet_flag)
     fflush (asm_out_file);
-
-  /* Release all memory allocated by flow.  */
-  free_basic_block_vars ();
 
   /* Write DBX symbols if requested.  */
 
@@ -4096,8 +4090,6 @@ rest_of_clean_state (void)
 
   reload_completed = 0;
   epilogue_completed = 0;
-  flow2_completed = 0;
-  no_new_pseudos = 0;
 #ifdef STACK_REGS
   regstack_completed = 0;
 #endif
@@ -4109,9 +4101,7 @@ rest_of_clean_state (void)
   /* Show no temporary slots allocated.  */
   init_temp_slots ();
 
-  free_basic_block_vars ();
   free_bb_for_insn ();
-
 
   if (targetm.binds_local_p (current_function_decl))
     {

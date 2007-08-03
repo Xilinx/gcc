@@ -32,8 +32,10 @@ details.  */
 #include <java/lang/ThreadGroup.h>
 #endif
 
+#ifdef INTERPRETER
 #include <jvmti.h>
 #include "jvmti-int.h"
+#endif
 
 #ifndef DISABLE_GETENV_PROPERTIES
 #include <ctype.h>
@@ -67,8 +69,12 @@ details.  */
 #include <gnu/gcj/runtime/ExtensionClassLoader.h>
 #include <gnu/gcj/runtime/FinalizerThread.h>
 #include <execution.h>
+
+#ifdef INTERPRETER
 #include <gnu/classpath/jdwp/Jdwp.h>
 #include <gnu/classpath/jdwp/VMVirtualMachine.h>
+#endif // INTERPRETER
+
 #include <gnu/java/lang/MainThread.h>
 
 #ifdef USE_LTDL
@@ -105,6 +111,7 @@ int _Jv_argc;
 
 // Debugging options
 static bool remoteDebug = false;
+#ifdef INTERPRETER
 static char defaultJdwpOptions[] = "";
 static char *jdwpOptions = defaultJdwpOptions;
 
@@ -117,6 +124,7 @@ typedef jint jvmti_agent_onunload_func (JavaVM *vm);
 static jvmti_agent_onload_func *jvmti_agentonload = NULL;
 static jvmti_agent_onunload_func *jvmti_agentonunload = NULL;
 static char *jvmti_agent_opts;
+#endif // INTERPRETER
 
 // Argument support.
 int
@@ -1173,6 +1181,7 @@ parse_x_arg (char* option_string)
     {
       remoteDebug = true;
     }
+#ifdef INTERPRETER
   else if (! strncmp (option_string, "runjdwp:", 8))
     {
       if (strlen (option_string) > 8)
@@ -1184,6 +1193,7 @@ parse_x_arg (char* option_string)
 	  return -1;
 	}
     }
+#endif // INTERPRETER
   else if (! strncmp (option_string, "bootclasspath:", 14))
     {
       // FIXME: add a parse_bootclasspath_arg function
@@ -1262,7 +1272,11 @@ parse_x_arg (char* option_string)
     {
       // FIXME: fail if impossible to share class data
     }
-
+  else
+    {
+      // Unrecognized.
+      return -1;
+    }
   return 0;
 }
 
@@ -1368,6 +1382,7 @@ parse_verbose_args (char* option_string,
   return 0;
 }
 
+#ifdef INTERPRETER
 // This function loads the agent functions for JVMTI from the library indicated
 // by name.  It returns a negative value on failure, the value of which
 // indicates where ltdl failed, it also prints an error message.
@@ -1423,6 +1438,7 @@ load_jvmti_agent (const char *name)
   // If LTDL cannot be used, return an error code indicating this.
   return -99;
 }
+#endif // INTERPRETER
 
 static jint
 parse_init_args (JvVMInitArgs* vm_args)
@@ -1477,6 +1493,7 @@ parse_init_args (JvVMInitArgs* vm_args)
 
 	  continue;
 	}
+#ifdef INTERPRETER
       else if (! strncmp (option_string, "-agentlib", sizeof ("-agentlib") - 1))
 	{
           char *strPtr;
@@ -1571,21 +1588,21 @@ parse_init_args (JvVMInitArgs* vm_args)
 	  JVMTI::enabled = true;
           continue;
 	}
-      else if (vm_args->ignoreUnrecognized)
+#endif // INTERPRETER
+      else
         {
+	  int r = -1;
           if (option_string[0] == '_')
-            parse_x_arg (option_string + 1);
-          else if (! strncmp (option_string, "-X", 2))
-            parse_x_arg (option_string + 2);
-          else
+	    r = parse_x_arg (option_string + 1);
+	  else if (! strncmp (option_string, "-X", 2))
+	    r = parse_x_arg (option_string + 2);
+
+	  if (r == -1 && ! vm_args->ignoreUnrecognized)
             {
-            unknown_option:
               fprintf (stderr, "libgcj: unknown option: %s\n", option_string);
               return -1;
             }
 	}
-      else
-        goto unknown_option;
     }
   return 0;
 }
@@ -1663,7 +1680,10 @@ _Jv_CreateJavaVM (JvVMInitArgs* vm_args)
   _Jv_platform_initialize ();
 
   _Jv_JNI_Init ();
+
+#ifdef INTERPRETER
   _Jv_JVMTI_Init ();
+#endif
 
   _Jv_GCInitializeFinalizers (&::gnu::gcj::runtime::FinalizerThread::finalizerReady);
 
@@ -1731,7 +1751,8 @@ _Jv_RunMain (JvVMInitArgs *vm_args, jclass klass, const char *name, int argc,
 	main_thread = new MainThread (JvNewStringUTF (name),
 				      arg_vec, is_jar);
       _Jv_AttachCurrentThread (main_thread);
-      
+
+#ifdef INTERPRETER
       // Start JVMTI if an agent function has been found.
       if (jvmti_agentonload)
         (*jvmti_agentonload) (_Jv_GetJavaVM (), jvmti_agent_opts, NULL);
@@ -1752,6 +1773,7 @@ _Jv_RunMain (JvVMInitArgs *vm_args, jclass klass, const char *name, int argc,
       // Send VMInit
       if (JVMTI_REQUESTED_EVENT (VMInit))
 	_Jv_JVMTI_PostEvent (JVMTI_EVENT_VM_INIT, main_thread);
+#endif // INTERPRETER
     }
   catch (java::lang::Throwable *t)
     {
@@ -1766,6 +1788,7 @@ _Jv_RunMain (JvVMInitArgs *vm_args, jclass klass, const char *name, int argc,
 
   _Jv_ThreadRun (main_thread);
 
+#ifdef INTERPRETER
   // Send VMDeath
   if (JVMTI_REQUESTED_EVENT (VMDeath))
     {
@@ -1773,10 +1796,11 @@ _Jv_RunMain (JvVMInitArgs *vm_args, jclass klass, const char *name, int argc,
       JNIEnv *jni_env = _Jv_GetCurrentJNIEnv ();
       _Jv_JVMTI_PostEvent (JVMTI_EVENT_VM_DEATH, thread, jni_env);
     }
-    
-   // Run JVMTI AgentOnUnload if it exists and an agent is loaded.
+
+  // Run JVMTI AgentOnUnload if it exists and an agent is loaded.
   if (jvmti_agentonunload)
     (*jvmti_agentonunload) (_Jv_GetJavaVM ());
+#endif // INTERPRETER
 
   // If we got here then something went wrong, as MainThread is not
   // supposed to terminate.

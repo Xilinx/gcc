@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for SPARC.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
    64-bit SPARC-V9 support by Michael Tiemann, Jim Wilson, and Doug Evans,
@@ -10,7 +10,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -19,9 +19,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -52,6 +51,7 @@ Boston, MA 02110-1301, USA.  */
 #include "tree-gimple.h"
 #include "langhooks.h"
 #include "params.h"
+#include "df.h"
 
 /* Processor costs */
 static const
@@ -395,7 +395,7 @@ static void sparc_dwarf_handle_frame_unspec (const char *, rtx, int);
 static void sparc_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static void sparc_file_end (void);
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
-static const char *sparc_mangle_fundamental_type (tree);
+static const char *sparc_mangle_type (tree);
 #endif
 #ifdef SUBTARGET_ATTRIBUTE_TABLE
 const struct attribute_spec sparc_attribute_table[];
@@ -557,8 +557,8 @@ static bool fpu_option_set = false;
 #define TARGET_ASM_FILE_END sparc_file_end
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
-#undef TARGET_MANGLE_FUNDAMENTAL_TYPE
-#define TARGET_MANGLE_FUNDAMENTAL_TYPE sparc_mangle_fundamental_type
+#undef TARGET_MANGLE_TYPE
+#define TARGET_MANGLE_TYPE sparc_mangle_type
 #endif
 
 struct gcc_target targetm = TARGET_INITIALIZER;
@@ -704,7 +704,7 @@ sparc_override_options (void)
 	error ("-mcmodel= is not supported on 32 bit systems");
     }
 
-  fpu = TARGET_FPU; /* save current -mfpu status */
+  fpu = target_flags & MASK_FPU; /* save current -mfpu status */
 
   /* Set the default CPU.  */
   for (def = &cpu_default[0]; def->name; ++def)
@@ -3087,7 +3087,7 @@ legitimize_tls_address (rtx addr)
 {
   rtx temp1, temp2, temp3, ret, o0, got, insn;
 
-  gcc_assert (! no_new_pseudos);
+  gcc_assert (can_create_pseudo_p ());
 
   if (GET_CODE (addr) == SYMBOL_REF)
     switch (SYMBOL_REF_TLS_MODEL (addr))
@@ -3742,20 +3742,20 @@ sparc_compute_frame_size (HOST_WIDE_INT size, int leaf_function_p)
   if (TARGET_ARCH64)
     {
       for (i = 0; i < 8; i++)
-	if (regs_ever_live[i] && ! call_used_regs[i])
+	if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	  n_regs += 2;
     }
   else
     {
       for (i = 0; i < 8; i += 2)
-	if ((regs_ever_live[i] && ! call_used_regs[i])
-	    || (regs_ever_live[i+1] && ! call_used_regs[i+1]))
+	if ((df_regs_ever_live_p (i) && ! call_used_regs[i])
+	    || (df_regs_ever_live_p (i+1) && ! call_used_regs[i+1]))
 	  n_regs += 2;
     }
 
   for (i = 32; i < (TARGET_V9 ? 96 : 64); i += 2)
-    if ((regs_ever_live[i] && ! call_used_regs[i])
-	|| (regs_ever_live[i+1] && ! call_used_regs[i+1]))
+    if ((df_regs_ever_live_p (i) && ! call_used_regs[i])
+	|| (df_regs_ever_live_p (i+1) && ! call_used_regs[i+1]))
       n_regs += 2;
 
   /* Set up values for use in prologue and epilogue.  */
@@ -3798,7 +3798,7 @@ sparc_output_scratch_registers (FILE *file ATTRIBUTE_UNUSED)
      .register being printed for them already.  */
   for (i = 2; i < 8; i++)
     {
-      if (regs_ever_live [i]
+      if (df_regs_ever_live_p (i)
 	  && ! sparc_hard_reg_printed [i])
 	{
 	  sparc_hard_reg_printed [i] = 1;
@@ -3829,7 +3829,7 @@ save_or_restore_regs (int low, int high, rtx base, int offset, int action)
     {
       for (i = low; i < high; i++)
 	{
-	  if (regs_ever_live[i] && ! call_used_regs[i])
+	  if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	    {
 	      mem = gen_rtx_MEM (DImode, plus_constant (base, offset));
 	      set_mem_alias_set (mem, sparc_sr_alias_set);
@@ -3848,8 +3848,8 @@ save_or_restore_regs (int low, int high, rtx base, int offset, int action)
     {
       for (i = low; i < high; i += 2)
 	{
-	  bool reg0 = regs_ever_live[i] && ! call_used_regs[i];
-	  bool reg1 = regs_ever_live[i+1] && ! call_used_regs[i+1];
+	  bool reg0 = df_regs_ever_live_p (i) && ! call_used_regs[i];
+	  bool reg1 = df_regs_ever_live_p (i+1) && ! call_used_regs[i+1];
 	  enum machine_mode mode;
 	  int regno;
 
@@ -5715,18 +5715,20 @@ sparc_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
   incr = valist;
   if (align)
     {
-      incr = fold_build2 (PLUS_EXPR, ptr_type_node, incr,
-			  ssize_int (align - 1));
-      incr = fold_build2 (BIT_AND_EXPR, ptr_type_node, incr,
-			  ssize_int (-align));
+      incr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr,
+			  size_int (align - 1));
+      incr = fold_convert (sizetype, incr);
+      incr = fold_build2 (BIT_AND_EXPR, sizetype, incr,
+			  size_int (-align));
+      incr = fold_convert (ptr_type_node, incr);
     }
 
   gimplify_expr (&incr, pre_p, post_p, is_gimple_val, fb_rvalue);
   addr = incr;
 
   if (BYTES_BIG_ENDIAN && size < rsize)
-    addr = fold_build2 (PLUS_EXPR, ptr_type_node, incr,
-			ssize_int (rsize - size));
+    addr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr,
+			size_int (rsize - size));
 
   if (indirect)
     {
@@ -5754,7 +5756,7 @@ sparc_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
   else
     addr = fold_convert (ptrtype, addr);
 
-  incr = fold_build2 (PLUS_EXPR, ptr_type_node, incr, ssize_int (rsize));
+  incr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr, size_int (rsize));
   incr = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, valist, incr);
   gimplify_and_add (incr, post_p);
 
@@ -6509,7 +6511,7 @@ order_regs_for_local_alloc (void)
 {
   static int last_order_nonleaf = 1;
 
-  if (regs_ever_live[15] != last_order_nonleaf)
+  if (df_regs_ever_live_p (15) != last_order_nonleaf)
     {
       last_order_nonleaf = !last_order_nonleaf;
       memcpy ((char *) reg_alloc_order,
@@ -7673,7 +7675,7 @@ sparc_check_64 (rtx x, rtx insn)
     y = gen_rtx_REG (SImode, REGNO (x) + WORDS_BIG_ENDIAN);
 
   if (flag_expensive_optimizations
-      && REG_N_SETS (REGNO (y)) == 1)
+      && df && DF_REG_DEF_COUNT (REGNO (y)) == 1)
     set_once = 1;
 
   if (insn == 0)
@@ -8028,8 +8030,10 @@ sparc_vis_init_builtins (void)
    Expand builtin functions for sparc intrinsics.  */
 
 static rtx
-sparc_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
-		      enum machine_mode tmode, int ignore ATTRIBUTE_UNUSED)
+sparc_expand_builtin (tree exp, rtx target,
+		      rtx subtarget ATTRIBUTE_UNUSED,
+		      enum machine_mode tmode ATTRIBUTE_UNUSED,
+		      int ignore ATTRIBUTE_UNUSED)
 {
   tree arg;
   call_expr_arg_iterator iter;
@@ -8039,14 +8043,13 @@ sparc_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
   enum machine_mode mode[4];
   int arg_count = 0;
 
-  mode[arg_count] = tmode;
-
-  if (target == 0
-      || GET_MODE (target) != tmode
-      || ! (*insn_data[icode].operand[0].predicate) (target, tmode))
-    op[arg_count] = gen_reg_rtx (tmode);
+  mode[0] = insn_data[icode].operand[0].mode;
+  if (!target
+      || GET_MODE (target) != mode[0]
+      || ! (*insn_data[icode].operand[0].predicate) (target, mode[0]))
+    op[0] = gen_reg_rtx (mode[0]);
   else
-    op[arg_count] = target;
+    op[0] = target;
 
   FOR_EACH_CALL_EXPR_ARG (arg, iter, exp)
     {
@@ -8159,11 +8162,11 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
 {
   tree arg0, arg1, arg2;
   tree rtype = TREE_TYPE (TREE_TYPE (fndecl));
-  
 
-  if (ignore && DECL_FUNCTION_CODE (fndecl) != CODE_FOR_alignaddrsi_vis
+  if (ignore
+      && DECL_FUNCTION_CODE (fndecl) != CODE_FOR_alignaddrsi_vis
       && DECL_FUNCTION_CODE (fndecl) != CODE_FOR_alignaddrdi_vis)
-    return build_int_cst (rtype, 0);
+    return fold_convert (rtype, integer_zero_node);
 
   switch (DECL_FUNCTION_CODE (fndecl))
     {
@@ -8277,6 +8280,7 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
     default:
       break;
     }
+
   return NULL_TREE;
 }
 
@@ -8593,7 +8597,6 @@ sparc_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 
   reload_completed = 1;
   epilogue_completed = 1;
-  no_new_pseudos = 1;
 
   emit_note (NOTE_INSN_PROLOGUE_END);
 
@@ -8779,7 +8782,6 @@ sparc_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 
   reload_completed = 0;
   epilogue_completed = 0;
-  no_new_pseudos = 0;
 }
 
 /* Return true if sparc_output_mi_thunk would be able to output the
@@ -8885,10 +8887,10 @@ sparc_file_end (void)
 }
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
-/* Implement TARGET_MANGLE_FUNDAMENTAL_TYPE.  */
+/* Implement TARGET_MANGLE_TYPE.  */
 
 static const char *
-sparc_mangle_fundamental_type (tree type)
+sparc_mangle_type (tree type)
 {
   if (!TARGET_64BIT
       && TYPE_MAIN_VARIANT (type) == long_double_type_node

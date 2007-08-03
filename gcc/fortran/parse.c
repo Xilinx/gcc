@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -41,6 +40,7 @@ gfc_state_data *gfc_state_stack;
 static void check_statement_label (gfc_statement);
 static void undo_new_statement (void);
 static void reject_statement (void);
+
 
 /* A sort of half-matching function.  We try to match the word on the
    input with the passed string.  If this succeeds, we call the
@@ -117,8 +117,8 @@ decode_statement (void)
 	return ST_FUNCTION;
       else if (m == MATCH_ERROR)
 	reject_statement ();
-
-      gfc_undo_symbols ();
+      else 
+	gfc_undo_symbols ();
       gfc_current_locus = old_locus;
     }
 
@@ -180,6 +180,7 @@ decode_statement (void)
     case 'b':
       match ("backspace", gfc_match_backspace, ST_BACKSPACE);
       match ("block data", gfc_match_block_data, ST_BLOCK_DATA);
+      match (NULL, gfc_match_bind_c_stmt, ST_ATTR_DECL);
       break;
 
     case 'c':
@@ -740,7 +741,6 @@ push_state (gfc_state_data *p, gfc_compile_state new_state, gfc_symbol *sym)
 
 
 /* Pop the current state.  */
-
 static void
 pop_state (void)
 {
@@ -1510,6 +1510,7 @@ parse_derived (void)
   int compiling_type, seen_private, seen_sequence, seen_component, error_flag;
   gfc_statement st;
   gfc_state_data s;
+  gfc_symbol *derived_sym = NULL;
   gfc_symbol *sym;
   gfc_component *c;
 
@@ -1608,17 +1609,39 @@ parse_derived (void)
 	}
     }
 
-  /* Look for allocatable components.  */
+  /* need to verify that all fields of the derived type are
+   * interoperable with C if the type is declared to be bind(c)
+   */
+  derived_sym = gfc_current_block();
+
   sym = gfc_current_block ();
   for (c = sym->components; c; c = c->next)
     {
+      /* Look for allocatable components.  */
       if (c->allocatable
 	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.alloc_comp))
 	{
 	  sym->attr.alloc_comp = 1;
 	  break;
 	}
-     }
+
+      /* Look for pointer components.  */
+      if (c->pointer
+	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.pointer_comp))
+	{
+	  sym->attr.pointer_comp = 1;
+	  break;
+	}
+
+      /* Look for private components.  */
+      if (sym->component_access == ACCESS_PRIVATE
+	  || c->access == ACCESS_PRIVATE
+	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.private_comp))
+	{
+	  sym->attr.private_comp = 1;
+	  break;
+	}
+    }
 
   pop_state ();
 }
@@ -1894,6 +1917,13 @@ loop:
 	    ? ACCESS_PUBLIC : ACCESS_PRIVATE;
 
 	  break;
+
+	case ST_STATEMENT_FUNCTION:
+	  if (gfc_current_state () == COMP_MODULE)
+	    {
+	      unexpected_statement (st);
+	      break;
+	    }
 
 	default:
 	  break;
@@ -2755,7 +2785,8 @@ gfc_fixup_sibling_symbols (gfc_symbol *sym, gfc_namespace *siblings)
       if ((old_sym->attr.flavor == FL_PROCEDURE
 	   || old_sym->ts.type == BT_UNKNOWN)
 	  && old_sym->ns == ns
-	  && !old_sym->attr.contained)
+	  && !old_sym->attr.contained
+	  && old_sym->attr.flavor != FL_NAMELIST)
 	{
 	  /* Replace it with the symbol from the parent namespace.  */
 	  st->n.sym = sym;
@@ -2775,12 +2806,13 @@ gfc_fixup_sibling_symbols (gfc_symbol *sym, gfc_namespace *siblings)
 static void
 parse_contained (int module)
 {
-  gfc_namespace *ns, *parent_ns;
+  gfc_namespace *ns, *parent_ns, *tmp;
   gfc_state_data s1, s2;
   gfc_statement st;
   gfc_symbol *sym;
   gfc_entry_list *el;
   int contains_statements = 0;
+  int seen_error = 0;
 
   push_state (&s1, COMP_CONTAINS, NULL);
   parent_ns = gfc_current_ns;
@@ -2792,6 +2824,9 @@ parse_contained (int module)
       gfc_current_ns->sibling = parent_ns->contained;
       parent_ns->contained = gfc_current_ns;
 
+ next:
+      /* Process the next available statement.  We come here if we got an error
+	 and rejected the last statement.  */
       st = next_statement ();
 
       switch (st)
@@ -2867,6 +2902,8 @@ parse_contained (int module)
 	  gfc_error ("Unexpected %s statement in CONTAINS section at %C",
 		     gfc_ascii_statement (st));
 	  reject_statement ();
+	  seen_error = 1;
+	  goto next;
 	  break;
 	}
     }
@@ -2875,8 +2912,10 @@ parse_contained (int module)
 
   /* The first namespace in the list is guaranteed to not have
      anything (worthwhile) in it.  */
-
+  tmp = gfc_current_ns;
   gfc_current_ns = parent_ns;
+  if (seen_error && tmp->refs > 1)
+    gfc_free_namespace (tmp);
 
   ns = gfc_current_ns->contained;
   gfc_current_ns->contained = ns->sibling;

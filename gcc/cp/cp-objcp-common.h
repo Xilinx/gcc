@@ -1,12 +1,12 @@
 /* Language hooks common to C++ and ObjC++ front ends.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Ziemowit Laski  <zlaski@apple.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_CP_OBJCP_COMMON
 #define GCC_CP_OBJCP_COMMON
@@ -134,10 +133,6 @@ extern tree objcp_tsubst_copy_and_build (tree, tree, tsubst_flags_t,
 #define LANG_HOOKS_TYPE_FOR_MODE c_common_type_for_mode
 #undef LANG_HOOKS_TYPE_FOR_SIZE
 #define LANG_HOOKS_TYPE_FOR_SIZE c_common_type_for_size
-#undef LANG_HOOKS_SIGNED_TYPE
-#define LANG_HOOKS_SIGNED_TYPE c_common_signed_type
-#undef LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE
-#define LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE c_common_signed_or_unsigned_type
 #undef LANG_HOOKS_INCOMPLETE_TYPE_ERROR
 #define LANG_HOOKS_INCOMPLETE_TYPE_ERROR cxx_incomplete_type_error
 #undef LANG_HOOKS_TYPE_PROMOTES_TO

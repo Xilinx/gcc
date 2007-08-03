@@ -42,6 +42,7 @@ details.  */
 #include <java/lang/IllegalArgumentException.h>
 #include <java/lang/Integer.h>
 #include <java/lang/StringBuffer.h>
+#include <java/lang/UnsupportedOperationException.h>
 #include <java/lang/VMClassLoader.h>
 #include <java/lang/VMCompiler.h>
 #include <java/lang/reflect/InvocationHandler.h>
@@ -65,6 +66,15 @@ details.  */
 using namespace java::lang::reflect;
 using namespace java::lang;
 
+#ifndef INTERPRETER
+jclass
+java::lang::reflect::VMProxy::generateProxyClass
+  (ClassLoader *, Proxy$ProxyData *)
+{
+  throw new UnsupportedOperationException (
+    JvNewStringLatin1 ("Interpreter not available"));
+}
+#else
 typedef void (*closure_fun) (ffi_cif*, void*, void**, void*);
 static void *ncode (int method_index, jclass klass, _Jv_Method *self, closure_fun fun);
 static void run_proxy (ffi_cif*, void*, void**, void*);
@@ -299,6 +309,15 @@ unbox (jobject o, jclass klass, void *rvalue, FFI_TYPE type)
     JvFail ("Bad ffi type in proxy");
 }
 
+// _Jv_getFieldInternal is declared as a friend of reflect.Field in
+// libjava/headers.txt.  This gives us a way to call the private
+// method Field.get (Class caller, Object obj).
+extern inline jobject
+_Jv_getFieldInternal (java::lang::reflect::Field *f, jclass c, jobject o)
+{
+  return f->get(c, o);
+}
+
 // run_proxy is the entry point for all proxy methods.  It boxes up
 // all the arguments and then invokes the invocation handler's invoke()
 // method.  Exceptions are caught and propagated.
@@ -340,7 +359,8 @@ run_proxy (ffi_cif *cif,
   // difference.  We'd still have to save the method array because
   // ncode structs are not scanned by the gc.
   Field *f = proxyClass->getDeclaredField (JvNewStringLatin1 ("m"));
-  JArray<Method*> *methods = (JArray<Method*>*)f->get (NULL);
+  JArray<Method*> *methods 
+    = (JArray<Method*>*)_Jv_getFieldInternal (f, proxyClass, NULL);
   Method *meth = elements(methods)[self->method_index];
 
   JArray<jclass> *parameter_types = meth->internalGetParameterTypes ();
@@ -434,3 +454,5 @@ ncode (int method_index, jclass klass, _Jv_Method *self, closure_fun fun)
   self->ncode = code;
   return self->ncode;
 }
+
+#endif // INTERPRETER

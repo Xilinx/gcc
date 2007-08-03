@@ -1,12 +1,12 @@
 /* Reassociation for trees.
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@dberlin.org>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -337,7 +336,7 @@ sort_by_operand_rank (const void *pa, const void *pb)
 static void
 add_to_ops_vec (VEC(operand_entry_t, heap) **ops, tree op)
 {
-  operand_entry_t oe = pool_alloc (operand_entry_pool);
+  operand_entry_t oe = (operand_entry_t) pool_alloc (operand_entry_pool);
 
   oe->op = op;
   oe->rank = get_rank (op);
@@ -727,8 +726,8 @@ optimize_ops_list (enum tree_code opcode,
 
       if (oelm1->rank == 0
 	  && is_gimple_min_invariant (oelm1->op)
-	  && lang_hooks.types_compatible_p (TREE_TYPE (oelm1->op),
-					    TREE_TYPE (oelast->op)))
+	  && useless_type_conversion_p (TREE_TYPE (oelm1->op),
+				       TREE_TYPE (oelast->op)))
 	{
 	  tree folded = fold_binary (opcode, TREE_TYPE (oelm1->op),
 				     oelm1->op, oelast->op);
@@ -1026,7 +1025,7 @@ negate_value (tree tonegate, block_stmt_iterator *bsi)
 
   tonegate = fold_build1 (NEGATE_EXPR, TREE_TYPE (tonegate), tonegate);
   resultofnegate = force_gimple_operand_bsi (bsi, tonegate, true,
-					     NULL_TREE);
+					     NULL_TREE, true, BSI_SAME_STMT);
   VEC_safe_push (tree, heap, broken_up_subtracts, resultofnegate);
   return resultofnegate;
 
@@ -1476,15 +1475,21 @@ execute_reassoc (void)
   return 0;
 }
 
+static bool
+gate_tree_ssa_reassoc (void)
+{
+  return flag_tree_reassoc != 0;
+}
+
 struct tree_opt_pass pass_reassoc =
 {
   "reassoc",				/* name */
-  NULL,				/* gate */
-  execute_reassoc,				/* execute */
+  gate_tree_ssa_reassoc,		/* gate */
+  execute_reassoc,			/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  TV_TREE_REASSOC,				/* tv_id */
+  TV_TREE_REASSOC,			/* tv_id */
   PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

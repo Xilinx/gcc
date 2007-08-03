@@ -1,8 +1,8 @@
-# Copyright (C) 1997, 2004, 2005, 2006 Free Software Foundation, Inc.
+# Copyright (C) 1997, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -11,8 +11,8 @@
 # GNU General Public License for more details.
 # 
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 
 # GCC testsuite that uses the `dg.exp' driver.
 
@@ -63,7 +63,11 @@ if [istarget "powerpc*-*-*"] {
     set dg-do-what-default run
 } elseif [istarget "sparc*-*-*"] {
     lappend DEFAULT_VECTCFLAGS "-mcpu=ultrasparc" "-mvis"
-    set dg-do-what-default run
+    if [check_effective_target_ultrasparc_hw] {
+	set dg-do-what-default run
+    } else {
+	set dg-do-what-default compile
+    }
 } elseif [istarget "alpha*-*-*"] {
     # Alpha's vectorization capabilities are extremely limited.
     # It's more effort than its worth disabling all of the tests
@@ -79,6 +83,13 @@ if [istarget "powerpc*-*-*"] {
     }
 } elseif [istarget "ia64-*-*"] {
     set dg-do-what-default run
+} elseif [is-effective-target arm_neon_ok] {
+    lappend DEFAULT_VECTCFLAGS "-mfpu=neon" "-mfloat-abi=softfp"
+    if [is-effective-target arm_neon_hw] {
+      set dg-do-what-default run
+    } else {
+      set dg-do-what-default compile
+    }
 } else {
     return
 }
@@ -175,8 +186,15 @@ dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-tree-dom-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
 # With -Os
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-Os"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/Os-vect-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
+
+# With -O3
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-O3"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/O3-vect-*.\[cS\]]]  \
         "" $DEFAULT_VECTCFLAGS
 
 # Clean up.

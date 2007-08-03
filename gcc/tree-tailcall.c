@@ -5,7 +5,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -35,6 +34,7 @@ Boston, MA 02110-1301, USA.  */
 #include "tree-pass.h"
 #include "flags.h"
 #include "langhooks.h"
+#include "dbgcnt.h"
 
 /* The file implements the tail recursion elimination.  It is also used to
    analyze the tail calls in general, passing the results to the rtl level
@@ -346,7 +346,7 @@ process_assignment (tree ass, tree stmt, block_stmt_iterator call, tree *m,
       *ass_var = dest;
       return true;
 
-      /* TODO -- Handle other codes (NEGATE_EXPR, MINUS_EXPR).  */
+      /* TODO -- Handle other codes (NEGATE_EXPR, MINUS_EXPR, POINTER_PLUS_EXPR).  */
 
     default:
       return false;
@@ -447,8 +447,8 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
 	         equivalent types.  The latter requirement could be relaxed if
 	         we emitted a suitable type conversion statement.  */
 	      if (!is_gimple_reg_type (TREE_TYPE (param))
-		  || !lang_hooks.types_compatible_p (TREE_TYPE (param),
-						     TREE_TYPE (arg)))
+		  || !useless_type_conversion_p (TREE_TYPE (param),
+					        TREE_TYPE (arg)))
 		break;
 
 	      /* The parameter should be a real operand, so that phi node
@@ -1007,7 +1007,7 @@ execute_tail_recursion (void)
 static bool
 gate_tail_calls (void)
 {
-  return flag_optimize_sibling_calls != 0;
+  return flag_optimize_sibling_calls != 0 && dbg_cnt (tail_call);
 }
 
 static unsigned int

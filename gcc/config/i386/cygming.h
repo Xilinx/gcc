@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,23 +17,17 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
-
-#if TARGET_64BIT_DEFAULT
-#ifndef DWARF2_DEBUGGING_INFO
-#define DWARF2_DEBUGGING_INFO 1
-#endif
-#ifndef DWARF2_UNWIND_INFO
-#define DWARF2_UNWIND_INFO 1
-#endif
-#endif
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #define DBX_DEBUGGING_INFO 1
 #define SDB_DEBUGGING_INFO 1
+#if TARGET_64BIT_DEFAULT || defined (HAVE_GAS_PE_SECREL32_RELOC)
+#define DWARF2_DEBUGGING_INFO 1
+#endif
+
 #undef PREFERRED_DEBUGGING_TYPE
-#if TARGET_64BIT_DEFAULT
+#if (DWARF2_DEBUGGING_INFO)
 #define PREFERRED_DEBUGGING_TYPE DWARF2_DEBUG
 #else
 #define PREFERRED_DEBUGGING_TYPE DBX_DEBUG
@@ -42,15 +36,20 @@ Boston, MA 02110-1301, USA.  */
 #undef TARGET_64BIT_MS_ABI
 #define TARGET_64BIT_MS_ABI TARGET_64BIT
 
-#ifdef HAVE_GAS_PE_SECREL32_RELOC
-#define DWARF2_DEBUGGING_INFO 1
-
 #undef DBX_REGISTER_NUMBER
 #define DBX_REGISTER_NUMBER(n)				\
   (TARGET_64BIT ? dbx64_register_map[n]			\
    : (write_symbols == DWARF2_DEBUG			\
       ? svr4_dbx_register_map[n] : dbx_register_map[n]))
 
+/* Map gcc register number to DWARF 2 CFA column number. For 32 bit
+   target, always use the svr4_dbx_register_map for DWARF .eh_frame
+   even if we don't use DWARF .debug_frame. */
+#undef DWARF_FRAME_REGNUM
+#define DWARF_FRAME_REGNUM(n) TARGET_64BIT \
+	? dbx64_register_map[(n)] : svr4_dbx_register_map[(n)] 
+
+#ifdef HAVE_GAS_PE_SECREL32_RELOC
 /* Use section relative relocations for debugging offsets.  Unlike
    other targets that fake this by putting the section VMA at 0, PE
    won't allow it.  */
@@ -279,11 +278,16 @@ do {							\
 #undef ASM_COMMENT_START
 #define ASM_COMMENT_START " #"
 
-/* DWARF2 Unwinding doesn't work with exception handling yet.  To make
-   it work, we need to build a libgcc_s.dll, and dcrt0.o should be
-   changed to call __register_frame_info/__deregister_frame_info.  */
 #ifndef DWARF2_UNWIND_INFO
+/* 64-bit target uses DWARF2 unwind by default. If 32-bit target
+   configured with --disable-sjlj-exceptions, use DWARF2, else default
+   to SJLJ.  */
+#if TARGET_64BIT_DEFAULT \
+    || (defined (CONFIG_SJLJ_EXCEPTIONS) && !CONFIG_SJLJ_EXCEPTIONS)
+#define DWARF2_UNWIND_INFO 1
+#else
 #define DWARF2_UNWIND_INFO 0
+#endif
 #endif
 
 /* Don't assume anything about the header files.  */

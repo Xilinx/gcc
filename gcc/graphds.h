@@ -6,7 +6,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,16 +15,15 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Structure representing edge of a graph.  */
 
-struct edge
+struct graph_edge
 {
   int src, dest;	/* Source and destination.  */
-  struct edge *pred_next, *succ_next;
+  struct graph_edge *pred_next, *succ_next;
 			/* Next edge in predecessor and successor lists.  */
   void *data;		/* Data attached to the edge.  */
 };
@@ -33,7 +32,7 @@ struct edge
 
 struct vertex
 {
-  struct edge *pred, *succ;
+  struct graph_edge *pred, *succ;
 			/* Lists of predecessors and successors.  */
   int component;	/* Number of dfs restarts before reaching the
 			   vertex.  */
@@ -52,12 +51,12 @@ struct graph
 
 struct graph *new_graph (int);
 void dump_graph (FILE *, struct graph *);
-struct edge *add_edge (struct graph *, int, int);
+struct graph_edge *add_edge (struct graph *, int, int);
 void identify_vertices (struct graph *, int, int);
 int graphds_dfs (struct graph *, int *, int,
 		 VEC (int, heap) **, bool, bitmap);
 int graphds_scc (struct graph *, bitmap);
 void graphds_domtree (struct graph *, int, int *, int *, int *);
-typedef void (*graphds_edge_callback) (struct graph *, struct edge *);
+typedef void (*graphds_edge_callback) (struct graph *, struct graph_edge *);
 void for_each_edge (struct graph *, graphds_edge_callback);
 void free_graph (struct graph *g);

@@ -6,7 +6,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -36,6 +35,8 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "toplev.h"
 #include "tm_p.h"
 #include "addresses.h"
+#include "df.h"
+#include "ggc.h"
 
 #ifndef MAX_MOVE_MAX
 #define MAX_MOVE_MAX MOVE_MAX
@@ -68,9 +69,9 @@ static rtx
    be recognized.  */
 
 static int
-  reg_save_code[FIRST_PSEUDO_REGISTER][MAX_MACHINE_MODE];
+  cached_reg_save_code[FIRST_PSEUDO_REGISTER][MAX_MACHINE_MODE];
 static int
-  reg_restore_code[FIRST_PSEUDO_REGISTER][MAX_MACHINE_MODE];
+  cached_reg_restore_code[FIRST_PSEUDO_REGISTER][MAX_MACHINE_MODE];
 
 /* Set of hard regs currently residing in save area (during insn scan).  */
 
@@ -85,7 +86,7 @@ static int n_regs_saved;
 static HARD_REG_SET referenced_regs;
 
 
-static void mark_set_regs (rtx, rtx, void *);
+static void mark_set_regs (rtx, const_rtx, void *);
 static void mark_referenced_regs (rtx);
 static int insert_save (struct insn_chain *, int, int, HARD_REG_SET *,
 			enum machine_mode *);
@@ -93,7 +94,71 @@ static int insert_restore (struct insn_chain *, int, int, int,
 			   enum machine_mode *);
 static struct insn_chain *insert_one_insn (struct insn_chain *, int, int,
 					   rtx);
-static void add_stored_regs (rtx, rtx, void *);
+static void add_stored_regs (rtx, const_rtx, void *);
+
+static GTY(()) rtx savepat;
+static GTY(()) rtx restpat;
+static GTY(()) rtx test_reg;
+static GTY(()) rtx test_mem;
+static GTY(()) rtx saveinsn;
+static GTY(()) rtx restinsn;
+
+/* Return the INSN_CODE used to save register REG in mode MODE.  */
+static int
+reg_save_code (int reg, enum machine_mode mode)
+{
+  bool ok;
+  if (cached_reg_save_code[reg][mode])
+     return cached_reg_save_code[reg][mode];
+  if (!HARD_REGNO_MODE_OK (reg, mode))
+     {
+       cached_reg_save_code[reg][mode] = -1;
+       return -1;
+     }
+
+  /* Update the register number and modes of the register
+     and memory operand.  */
+  SET_REGNO (test_reg, reg);
+  PUT_MODE (test_reg, mode);
+  PUT_MODE (test_mem, mode);
+
+  /* Force re-recognition of the modified insns.  */
+  INSN_CODE (saveinsn) = -1;
+
+  cached_reg_save_code[reg][mode] = recog_memoized (saveinsn);
+  cached_reg_restore_code[reg][mode] = recog_memoized (restinsn);
+
+  /* Now extract both insns and see if we can meet their
+     constraints.  */
+  ok = (cached_reg_save_code[reg][mode] != -1
+	&& cached_reg_restore_code[reg][mode] != -1);
+  if (ok)
+    {
+      extract_insn (saveinsn);
+      ok = constrain_operands (1);
+      extract_insn (restinsn);
+      ok &= constrain_operands (1);
+    }
+
+  if (! ok)
+    {
+      cached_reg_save_code[reg][mode] = -1;
+      cached_reg_restore_code[reg][mode] = -1;
+    }
+  gcc_assert (cached_reg_save_code[reg][mode]);
+  return cached_reg_save_code[reg][mode];
+}
+
+/* Return the INSN_CODE used to restore register REG in mode MODE.  */
+static int
+reg_restore_code (int reg, enum machine_mode mode)
+{
+  if (cached_reg_restore_code[reg][mode])
+     return cached_reg_restore_code[reg][mode];
+  /* Populate our cache.  */
+  reg_save_code (reg, mode);
+  return cached_reg_restore_code[reg][mode];
+}
 
 /* Initialize for caller-save.
 
@@ -112,10 +177,6 @@ init_caller_save (void)
   int offset;
   rtx address;
   int i, j;
-  enum machine_mode mode;
-  rtx savepat, restpat;
-  rtx test_reg, test_mem;
-  rtx saveinsn, restinsn;
 
   /* First find all the registers that we need to deal with and all
      the modes that they can have.  If we can't find a mode to use,
@@ -189,55 +250,12 @@ init_caller_save (void)
   savepat = gen_rtx_SET (VOIDmode, test_mem, test_reg);
   restpat = gen_rtx_SET (VOIDmode, test_reg, test_mem);
 
-  saveinsn = gen_rtx_INSN (VOIDmode, 0, 0, 0, 0, 0, savepat, -1, 0, 0);
-  restinsn = gen_rtx_INSN (VOIDmode, 0, 0, 0, 0, 0, restpat, -1, 0, 0);
-
-  for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
-    for (mode = 0 ; mode < MAX_MACHINE_MODE; mode++)
-      if (HARD_REGNO_MODE_OK (i, mode))
-	{
-	  int ok;
-
-	  /* Update the register number and modes of the register
-	     and memory operand.  */
-	  REGNO (test_reg) = i;
-	  PUT_MODE (test_reg, mode);
-	  PUT_MODE (test_mem, mode);
-
-	  /* Force re-recognition of the modified insns.  */
-	  INSN_CODE (saveinsn) = -1;
-	  INSN_CODE (restinsn) = -1;
-
-	  reg_save_code[i][mode] = recog_memoized (saveinsn);
-	  reg_restore_code[i][mode] = recog_memoized (restinsn);
-
-	  /* Now extract both insns and see if we can meet their
-	     constraints.  */
-	  ok = (reg_save_code[i][mode] != -1
-		&& reg_restore_code[i][mode] != -1);
-	  if (ok)
-	    {
-	      extract_insn (saveinsn);
-	      ok = constrain_operands (1);
-	      extract_insn (restinsn);
-	      ok &= constrain_operands (1);
-	    }
-
-	  if (! ok)
-	    {
-	      reg_save_code[i][mode] = -1;
-	      reg_restore_code[i][mode] = -1;
-	    }
-	}
-      else
-	{
-	  reg_save_code[i][mode] = -1;
-	  reg_restore_code[i][mode] = -1;
-	}
+  saveinsn = gen_rtx_INSN (VOIDmode, 0, 0, 0, 0, 0, savepat, -1, 0);
+  restinsn = gen_rtx_INSN (VOIDmode, 0, 0, 0, 0, 0, restpat, -1, 0);
 
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     for (j = 1; j <= MOVE_MAX_WORDS; j++)
-      if (reg_save_code [i][regno_save_mode[i][j]] == -1)
+      if (reg_save_code (i,regno_save_mode[i][j]) == -1)
 	{
 	  regno_save_mode[i][j] = VOIDmode;
 	  if (j == 1)
@@ -493,7 +511,7 @@ save_call_clobbered_regs (void)
    been assigned hard regs have had their register number changed already,
    so we can ignore pseudos.  */
 static void
-mark_set_regs (rtx reg, rtx setter ATTRIBUTE_UNUSED, void *data)
+mark_set_regs (rtx reg, const_rtx setter ATTRIBUTE_UNUSED, void *data)
 {
   int regno, endregno, i;
   HARD_REG_SET *this_insn_sets = data;
@@ -524,7 +542,7 @@ mark_set_regs (rtx reg, rtx setter ATTRIBUTE_UNUSED, void *data)
    been assigned hard regs have had their register number changed already,
    so we can ignore pseudos.  */
 static void
-add_stored_regs (rtx reg, rtx setter, void *data)
+add_stored_regs (rtx reg, const_rtx setter, void *data)
 {
   int regno, endregno, i;
   enum machine_mode mode = GET_MODE (reg);
@@ -687,7 +705,7 @@ insert_restore (struct insn_chain *chain, int before_p, int regno,
   pat = gen_rtx_SET (VOIDmode,
 		     gen_rtx_REG (GET_MODE (mem),
 				  regno), mem);
-  code = reg_restore_code[regno][GET_MODE (mem)];
+  code = reg_restore_code (regno, GET_MODE (mem));
   new = insert_one_insn (chain, before_p, code, pat);
 
   /* Clear status for all registers we restored.  */
@@ -759,7 +777,7 @@ insert_save (struct insn_chain *chain, int before_p, int regno,
   pat = gen_rtx_SET (VOIDmode, mem,
 		     gen_rtx_REG (GET_MODE (mem),
 				  regno));
-  code = reg_save_code[regno][GET_MODE (mem)];
+  code = reg_save_code (regno, GET_MODE (mem));
   new = insert_one_insn (chain, before_p, code, pat);
 
   /* Set hard_regs_saved and dead_or_set for all the registers we saved.  */
@@ -860,3 +878,4 @@ insert_one_insn (struct insn_chain *chain, int before_p, int code, rtx pat)
   INSN_CODE (new->insn) = code;
   return new;
 }
+#include "gt-caller-save.h"

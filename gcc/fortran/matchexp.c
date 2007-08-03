@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -131,6 +130,13 @@ gfc_get_parentheses (gfc_expr *e)
 {
   gfc_expr *e2;
 
+  /* This is a temporary fix, awaiting the patch for various
+     other character problems.  The resolution and translation
+     of substrings and concatenations are so kludged up that
+     putting parentheses around them breaks everything.  */
+  if (e->ts.type == BT_CHARACTER && e->ref)
+    return e;
+
   e2 = gfc_get_expr();
   e2->expr_type = EXPR_OP;
   e2->ts = e->ts;
@@ -181,13 +187,9 @@ match_primary (gfc_expr **result)
     gfc_error ("Expected a right parenthesis in expression at %C");
 
   /* Now we have the expression inside the parentheses, build the
-     expression pointing to it. By 7.1.7.2 the integrity of
-     parentheses is only conserved in numerical calculations, so we
-     don't bother to keep the parentheses otherwise.  */
-  if(!gfc_numeric_ts(&e->ts))
-    *result = e;
-  else
-    *result = gfc_get_parentheses (e);
+     expression pointing to it. By 7.1.7.2, any expression in
+     parentheses shall be treated as a data entity.  */
+  *result = gfc_get_parentheses (e);
 
   if (m != MATCH_YES)
     {
@@ -628,7 +630,9 @@ match_level_4 (gfc_expr **result)
     }
 
   if (i != INTRINSIC_EQ && i != INTRINSIC_NE && i != INTRINSIC_GE
-      && i != INTRINSIC_LE && i != INTRINSIC_LT && i != INTRINSIC_GT)
+      && i != INTRINSIC_LE && i != INTRINSIC_LT && i != INTRINSIC_GT
+      && i != INTRINSIC_EQ_OS && i != INTRINSIC_NE_OS && i != INTRINSIC_GE_OS
+      && i != INTRINSIC_LE_OS && i != INTRINSIC_LT_OS && i != INTRINSIC_GT_OS)
     {
       gfc_current_locus = old_loc;
       *result = left;
@@ -649,27 +653,33 @@ match_level_4 (gfc_expr **result)
   switch (i)
     {
     case INTRINSIC_EQ:
-      r = gfc_eq (left, right);
+    case INTRINSIC_EQ_OS:
+      r = gfc_eq (left, right, i);
       break;
 
     case INTRINSIC_NE:
-      r = gfc_ne (left, right);
+    case INTRINSIC_NE_OS:
+      r = gfc_ne (left, right, i);
       break;
 
     case INTRINSIC_LT:
-      r = gfc_lt (left, right);
+    case INTRINSIC_LT_OS:
+      r = gfc_lt (left, right, i);
       break;
 
     case INTRINSIC_LE:
-      r = gfc_le (left, right);
+    case INTRINSIC_LE_OS:
+      r = gfc_le (left, right, i);
       break;
 
     case INTRINSIC_GT:
-      r = gfc_gt (left, right);
+    case INTRINSIC_GT_OS:
+      r = gfc_gt (left, right, i);
       break;
 
     case INTRINSIC_GE:
-      r = gfc_ge (left, right);
+    case INTRINSIC_GE_OS:
+      r = gfc_ge (left, right, i);
       break;
 
     default:

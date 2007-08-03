@@ -1,12 +1,13 @@
 /* Combine stack adjustments.
-   Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Track stack adjustments and stack memory references.  Attempt to
    reduce the number of stack adjustments by back-propagating across
@@ -55,6 +55,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "function.h"
 #include "expr.h"
 #include "basic-block.h"
+#include "df.h"
 #include "except.h"
 #include "toplev.h"
 #include "reload.h"
@@ -454,9 +455,7 @@ gate_handle_stack_adjustments (void)
 static unsigned int
 rest_of_handle_stack_adjustments (void)
 {
-  life_analysis (PROP_POSTRELOAD);
-  cleanup_cfg (CLEANUP_EXPENSIVE | CLEANUP_UPDATE_LIFE
-               | (flag_crossjumping ? CLEANUP_CROSSJUMP : 0));
+  cleanup_cfg (flag_crossjumping ? CLEANUP_CROSSJUMP : 0);
 
   /* This is kind of a heuristic.  We need to run combine_stack_adjustments
      even for machines with possibly nonzero RETURN_POPS_ARGS
@@ -465,7 +464,11 @@ rest_of_handle_stack_adjustments (void)
 #ifndef PUSH_ROUNDING
   if (!ACCUMULATE_OUTGOING_ARGS)
 #endif
-    combine_stack_adjustments ();
+    {
+      df_note_add_problem ();
+      df_analyze ();
+      combine_stack_adjustments ();
+    }
   return 0;
 }
 
@@ -482,6 +485,7 @@ struct tree_opt_pass pass_stack_adjustments =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
+  TODO_df_finish |
   TODO_dump_func |
   TODO_ggc_collect,                     /* todo_flags_finish */
   0                                     /* letter */

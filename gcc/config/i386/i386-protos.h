@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Functions in i386.c */
 extern void override_options (void);
@@ -163,6 +162,8 @@ extern void x86_emit_floatuns (rtx [2]);
 extern void ix86_emit_fp_unordered_jump (rtx);
 
 extern void ix86_emit_i387_log1p (rtx, rtx);
+extern void ix86_emit_swdivsf (rtx, rtx, rtx, enum machine_mode);
+extern void ix86_emit_swsqrtsf (rtx, rtx, enum machine_mode, bool);
 
 extern enum rtx_code ix86_reverse_condition (enum rtx_code, enum machine_mode);
 
@@ -209,7 +210,6 @@ extern void i386_pe_unique_section (tree, int);
 extern void i386_pe_declare_function_type (FILE *, const char *, int);
 extern void i386_pe_record_external_function (tree, const char *);
 extern void i386_pe_maybe_record_exported_symbol (tree, const char *, int);
-extern void i386_pe_asm_file_end (FILE *);
 extern void i386_pe_encode_section_info (tree, rtx, int);
 extern bool i386_pe_binds_local_p (tree);
 extern const char *i386_pe_strip_name_encoding_full (const char *);

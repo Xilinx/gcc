@@ -1,11 +1,11 @@
 /* Language independent return value optimizations
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -159,8 +158,8 @@ tree_nrv (void)
 		  || TREE_STATIC (found)
 		  || TREE_ADDRESSABLE (found)
 		  || DECL_ALIGN (found) > DECL_ALIGN (result)
-		  || !lang_hooks.types_compatible_p (TREE_TYPE (found), 
-						     result_type))
+		  || !useless_type_conversion_p (result_type,
+					        TREE_TYPE (found)))
 		return 0;
 	    }
 	  else if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
@@ -250,26 +249,23 @@ struct tree_opt_pass pass_nrv =
 static bool
 dest_safe_for_nrv_p (tree dest)
 {
-  switch (TREE_CODE (dest))
-    {
-      case VAR_DECL:
-	{
-	  subvar_t subvar;
-	  if (is_call_clobbered (dest))
-	    return false;
-	  for (subvar = get_subvars_for_var (dest);
-	       subvar;
-	       subvar = subvar->next)
-	    if (is_call_clobbered (subvar->var))
-	      return false;
-	  return true;
-	}
-      case ARRAY_REF:
-      case COMPONENT_REF:
-	return dest_safe_for_nrv_p (TREE_OPERAND (dest, 0));
-      default:
-	return false;
-    }
+  subvar_t subvar;
+
+  while (handled_component_p (dest))
+    dest = TREE_OPERAND (dest, 0);
+
+  if (! SSA_VAR_P (dest))
+    return false;
+
+  if (TREE_CODE (dest) == SSA_NAME)
+    dest = SSA_NAME_VAR (dest);
+
+  if (is_call_clobbered (dest))
+    return false;
+  for (subvar = get_subvars_for_var (dest); subvar; subvar = subvar->next)
+    if (is_call_clobbered (subvar->var))
+      return false;
+  return true;
 }
 
 /* Walk through the function looking for GIMPLE_MODIFY_STMTs with calls that

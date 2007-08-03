@@ -1,12 +1,12 @@
 /* Control flow graph building code for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* find_basic_blocks divides the current function's rtl into basic
    blocks and constructs the CFG.  The blocks are recorded in the
@@ -630,7 +629,7 @@ find_bb_boundaries (basic_block bb)
 {
   basic_block orig_bb = bb;
   rtx insn = BB_HEAD (bb);
-  rtx end = BB_END (bb);
+  rtx end = BB_END (bb), x;
   rtx table;
   rtx flow_transfer_insn = NULL_RTX;
   edge fallthru = NULL;
@@ -651,7 +650,16 @@ find_bb_boundaries (basic_block bb)
 	{
 	  fallthru = split_block (bb, PREV_INSN (insn));
 	  if (flow_transfer_insn)
-	    BB_END (bb) = flow_transfer_insn;
+	    {
+	      BB_END (bb) = flow_transfer_insn;
+
+	      /* Clean up the bb field for the insns between the blocks.  */
+	      for (x = NEXT_INSN (flow_transfer_insn);
+		   x != BB_HEAD (fallthru->dest);
+		   x = NEXT_INSN (x))
+		if (!BARRIER_P (x))
+		  set_block_for_insn (x, NULL);
+	    }
 
 	  bb = fallthru->dest;
 	  remove_edge (fallthru);
@@ -666,6 +674,14 @@ find_bb_boundaries (basic_block bb)
 	{
 	  fallthru = split_block (bb, PREV_INSN (insn));
 	  BB_END (bb) = flow_transfer_insn;
+
+	  /* Clean up the bb field for the insns between the blocks.  */
+	  for (x = NEXT_INSN (flow_transfer_insn);
+	       x != BB_HEAD (fallthru->dest);
+	       x = NEXT_INSN (x))
+	    if (!BARRIER_P (x))
+	      set_block_for_insn (x, NULL);
+
 	  bb = fallthru->dest;
 	  remove_edge (fallthru);
 	  flow_transfer_insn = NULL_RTX;
@@ -682,7 +698,18 @@ find_bb_boundaries (basic_block bb)
      return and barrier, or possibly other sequence not behaving like
      ordinary jump, we need to take care and move basic block boundary.  */
   if (flow_transfer_insn)
-    BB_END (bb) = flow_transfer_insn;
+    {
+      BB_END (bb) = flow_transfer_insn;
+
+      /* Clean up the bb field for the insns that do not belong to BB.  */
+      x = flow_transfer_insn;
+      while (x != end)
+	{
+	  x = NEXT_INSN (x);
+	  if (!BARRIER_P (x))
+	    set_block_for_insn (x, NULL);
+	}
+    }
 
   /* We've possibly replaced the conditional jump by conditional jump
      followed by cleanup at fallthru edge, so the outgoing edges may

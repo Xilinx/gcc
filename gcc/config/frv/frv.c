@@ -1,4 +1,4 @@
-/* Copyright (C) 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005
+/* Copyright (C) 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
@@ -6,7 +6,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -51,6 +50,7 @@ Boston, MA 02110-1301, USA.  */
 #include "targhooks.h"
 #include "integrate.h"
 #include "langhooks.h"
+#include "df.h"
 
 #ifndef FRV_INLINE
 #define FRV_INLINE inline
@@ -330,7 +330,7 @@ static int frv_cond_flags 			(rtx);
 static bool frv_regstate_conflict_p 		(regstate_t, regstate_t);
 static int frv_registers_conflict_p_1 		(rtx *, void *);
 static bool frv_registers_conflict_p 		(rtx);
-static void frv_registers_update_1 		(rtx, rtx, void *);
+static void frv_registers_update_1 		(rtx, const_rtx, void *);
 static void frv_registers_update 		(rtx);
 static void frv_start_packet 			(void);
 static void frv_start_packet_block 		(void);
@@ -1167,7 +1167,7 @@ frv_stack_info (void)
 	default:
 	  for (regno = first; regno <= last; regno++)
 	    {
-	      if ((regs_ever_live[regno] && !call_used_regs[regno])
+	      if ((df_regs_ever_live_p (regno) && !call_used_regs[regno])
 		  || (current_function_calls_eh_return
 		      && (regno >= FIRST_EH_REGNUM && regno <= LAST_EH_REGNUM))
 		  || (!TARGET_FDPIC && flag_pic
@@ -1185,7 +1185,7 @@ frv_stack_info (void)
 	  break;
 
 	case STACK_REGS_LR:
-	  if (regs_ever_live[LR_REGNO]
+	  if (df_regs_ever_live_p (LR_REGNO)
               || profile_flag
 	      /* This is set for __builtin_return_address, etc.  */
 	      || cfun->machine->frame_needed
@@ -1498,7 +1498,7 @@ frv_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
       rtx insn;
 
       /* Just to check that the above comment is true.  */
-      gcc_assert (!regs_ever_live[GPR_FIRST + 3]);
+      gcc_assert (!df_regs_ever_live_p (GPR_FIRST + 3));
 
       /* Generate the instruction that saves the link register.  */
       fprintf (file, "\tmovsg lr,gr3\n");
@@ -1518,7 +1518,7 @@ frv_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 	      {
 		rtx address = XEXP (XVECEXP (pattern, 0, 1), 0);
 		if (GET_CODE (address) == REG && REGNO (address) == LR_REGNO)
-		  REGNO (address) = GPR_FIRST + 3;
+		  SET_REGNO (address, GPR_FIRST + 3);
 	      }
 	  }
     }
@@ -2204,7 +2204,8 @@ frv_expand_builtin_va_start (tree valist, rtx nextarg)
     }
 
   t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (valist), valist,
-	      make_tree (ptr_type_node, nextarg));
+	      fold_convert (TREE_TYPE (valist),
+			    make_tree (sizetype, nextarg)));
   TREE_SIDE_EFFECTS (t) = 1;
 
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -5293,15 +5294,15 @@ frv_ifcvt_modify_tests (ce_if_block_t *ce_info, rtx *p_true, rtx *p_false)
       for (j = CC_FIRST; j <= CC_LAST; j++)
 	if (TEST_HARD_REG_BIT (tmp_reg->regs, j))
 	  {
-	    if (REGNO_REG_SET_P (then_bb->il.rtl->global_live_at_start, j))
+	    if (REGNO_REG_SET_P (df_get_live_in (then_bb), j))
 	      continue;
 
 	    if (else_bb
-		&& REGNO_REG_SET_P (else_bb->il.rtl->global_live_at_start, j))
+		&& REGNO_REG_SET_P (df_get_live_in (else_bb), j))
 	      continue;
 
 	    if (join_bb
-		&& REGNO_REG_SET_P (join_bb->il.rtl->global_live_at_start, j))
+		&& REGNO_REG_SET_P (df_get_live_in (join_bb), j))
 	      continue;
 
 	    SET_HARD_REG_BIT (frv_ifcvt.nested_cc_ok_rewrite, j);
@@ -5323,7 +5324,7 @@ frv_ifcvt_modify_tests (ce_if_block_t *ce_info, rtx *p_true, rtx *p_false)
 
       /* Remove anything live at the beginning of the join block from being
          available for allocation.  */
-      EXECUTE_IF_SET_IN_REG_SET (join_bb->il.rtl->global_live_at_start, 0, regno, rsi)
+      EXECUTE_IF_SET_IN_REG_SET (df_get_live_in (join_bb), 0, regno, rsi)
 	{
 	  if (regno < FIRST_PSEUDO_REGISTER)
 	    CLEAR_HARD_REG_BIT (tmp_reg->regs, regno);
@@ -5367,7 +5368,7 @@ frv_ifcvt_modify_tests (ce_if_block_t *ce_info, rtx *p_true, rtx *p_false)
 
       /* Anything live at the beginning of the block is obviously unavailable
          for allocation.  */
-      EXECUTE_IF_SET_IN_REG_SET (bb[j]->il.rtl->global_live_at_start, 0, regno, rsi)
+      EXECUTE_IF_SET_IN_REG_SET (df_get_live_in (bb[j]), 0, regno, rsi)
 	{
 	  if (regno < FIRST_PSEUDO_REGISTER)
 	    CLEAR_HARD_REG_BIT (tmp_reg->regs, regno);
@@ -6020,17 +6021,15 @@ frv_ifcvt_modify_insn (ce_if_block_t *ce_info,
 		  limit scheduling of the combined block quite
 		  severely.  */
 	       && ce_info->join_bb
-	       && ! (REGNO_REG_SET_P
-		     (ce_info->join_bb->il.rtl->global_live_at_start,
-		      REGNO (SET_DEST (set))))
+	       && ! (REGNO_REG_SET_P (df_get_live_in (ce_info->join_bb),
+				      REGNO (SET_DEST (set))))
 	       /* Similarly, we must not unconditionally set a reg
 		  used as scratch in the THEN branch if the same reg
 		  is live in the ELSE branch.  */
 	       && (! ce_info->else_bb
 		   || BLOCK_FOR_INSN (insn) == ce_info->else_bb
-		   || ! (REGNO_REG_SET_P
-			 (ce_info->else_bb->il.rtl->global_live_at_start,
-			  REGNO (SET_DEST (set))))))
+		   || ! (REGNO_REG_SET_P (df_get_live_in (ce_info->else_bb),
+					  REGNO (SET_DEST (set))))))
 	pattern = set;
 
       else if (mode == QImode || mode == HImode || mode == SImode
@@ -7215,7 +7214,7 @@ frv_registers_conflict_p (rtx x)
    under which X is modified.  Update FRV_PACKET accordingly.  */
 
 static void
-frv_registers_update_1 (rtx x, rtx pat ATTRIBUTE_UNUSED, void *data)
+frv_registers_update_1 (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 {
   unsigned int regno;
 
@@ -7641,7 +7640,7 @@ frv_reorder_packet (void)
   for (from = 0; from < to - 1; from++)
     {
       remove_insn (insns[from]);
-      add_insn_before (insns[from], insns[to - 1]);
+      add_insn_before (insns[from], insns[to - 1], NULL);
       SET_PACKING_FLAG (insns[from]);
     }
 }
@@ -7753,7 +7752,7 @@ frv_extract_membar (struct frv_io *io, rtx insn)
    if X is a register and *DATA depends on X.  */
 
 static void
-frv_io_check_address (rtx x, rtx pat ATTRIBUTE_UNUSED, void *data)
+frv_io_check_address (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 {
   rtx *other = data;
 
@@ -7765,7 +7764,7 @@ frv_io_check_address (rtx x, rtx pat ATTRIBUTE_UNUSED, void *data)
    Remove every modified register from the set.  */
 
 static void
-frv_io_handle_set (rtx x, rtx pat ATTRIBUTE_UNUSED, void *data)
+frv_io_handle_set (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 {
   HARD_REG_SET *set = data;
   unsigned int regno;
@@ -8632,7 +8631,7 @@ frv_int_to_acc (enum insn_code icode, int opnum, rtx opval)
   reg = gen_rtx_REG (insn_data[icode].operand[opnum].mode,
 		     ACC_FIRST + INTVAL (opval));
   if (! (*insn_data[icode].operand[opnum].predicate) (reg, VOIDmode))
-    REGNO (reg) = ACCG_FIRST + INTVAL (opval);
+    SET_REGNO (reg, ACCG_FIRST + INTVAL (opval));
 
   if (! (*insn_data[icode].operand[opnum].predicate) (reg, VOIDmode))
     {

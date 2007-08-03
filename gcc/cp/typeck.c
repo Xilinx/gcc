@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* This file is part of the C++ front end.
@@ -943,20 +942,10 @@ structural_comptypes (tree t1, tree t2, int strict)
   /* TYPENAME_TYPEs should be resolved if the qualifying scope is the
      current instantiation.  */
   if (TREE_CODE (t1) == TYPENAME_TYPE)
-    {
-      tree resolved = resolve_typename_type (t1, /*only_current_p=*/true);
-
-      if (resolved != error_mark_node)
-	t1 = resolved;
-    }
+    t1 = resolve_typename_type (t1, /*only_current_p=*/true);
 
   if (TREE_CODE (t2) == TYPENAME_TYPE)
-    {
-      tree resolved = resolve_typename_type (t2, /*only_current_p=*/true);
-
-      if (resolved != error_mark_node)
-	t2 = resolved;
-    }
+    t2 = resolve_typename_type (t2, /*only_current_p=*/true);
 
   if (TYPE_PTRMEMFUNC_P (t1))
     t1 = TYPE_PTRMEMFUNC_FN_TYPE (t1);
@@ -1090,6 +1079,14 @@ structural_comptypes (tree t1, tree t2, int strict)
       return same_type_p (PACK_EXPANSION_PATTERN (t1), 
                           PACK_EXPANSION_PATTERN (t2));
 
+    case DECLTYPE_TYPE:
+      if (DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t1)
+          != DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t2)
+          || !cp_tree_equal (DECLTYPE_TYPE_EXPR (t1), 
+                             DECLTYPE_TYPE_EXPR (t2)))
+        return false;
+      break;
+
     default:
       return false;
     }
@@ -1108,8 +1105,6 @@ comptypes (tree t1, tree t2, int strict)
 {
   if (strict == COMPARE_STRICT)
     {
-      bool result;
-
       if (t1 == t2)
 	return true;
 
@@ -1121,37 +1116,34 @@ comptypes (tree t1, tree t2, int strict)
 	   perform a deep check. */
 	return structural_comptypes (t1, t2, strict);
 
-      if (VERIFY_CANONICAL_TYPES)
+#ifdef ENABLE_CHECKING
+      if (USE_CANONICAL_TYPES)
 	{
-	  result = structural_comptypes (t1, t2, strict);
-
+	  bool result = structural_comptypes (t1, t2, strict);
+	  
 	  if (result && TYPE_CANONICAL (t1) != TYPE_CANONICAL (t2))
-	    {
-	      /* The two types are structurally equivalent, but their
-		 canonical types were different. This is a failure of the
-		 canonical type propagation code.*/
-	      warning(0,
-		      "canonical types differ for identical types %T and %T", 
-		      t1, t2);
-	      debug_tree (t1);
-	      debug_tree (t2);
-	    }
+	    /* The two types are structurally equivalent, but their
+	       canonical types were different. This is a failure of the
+	       canonical type propagation code.*/
+	    internal_error 
+	      ("canonical types differ for identical types %T and %T", 
+	       t1, t2);
 	  else if (!result && TYPE_CANONICAL (t1) == TYPE_CANONICAL (t2))
-	    {
-	      /* Two types are structurally different, but the canonical
-		 types are the same. This means we were over-eager in
-		 assigning canonical types. */
-	      warning (0, 
-		       "same canonical type node for different types %T and %T",
-		       t1, t2);
-	      debug_tree (t1);
-	      debug_tree (t2);
-	    }
+	    /* Two types are structurally different, but the canonical
+	       types are the same. This means we were over-eager in
+	       assigning canonical types. */
+	    internal_error 
+	      ("same canonical type node for different types %T and %T",
+	       t1, t2);
 	  
 	  return result;
 	}
-      else
+#else
+      if (USE_CANONICAL_TYPES)
 	return TYPE_CANONICAL (t1) == TYPE_CANONICAL (t2);
+#endif
+      else
+	return structural_comptypes (t1, t2, strict);
     }
   else if (strict == COMPARE_STRUCTURAL)
     return structural_comptypes (t1, t2, COMPARE_STRICT);
@@ -1361,7 +1353,10 @@ cxx_alignof_expr (tree e)
     {
       pedwarn ("ISO C++ forbids applying %<__alignof%> to an expression of "
 	       "function type");
-      t = size_one_node;
+      if (TREE_CODE (e) == FUNCTION_DECL)
+	t = size_int (DECL_ALIGN_UNIT (e));
+      else
+	t = size_one_node;
     }
   else if (type_unknown_p (e))
     {
@@ -2627,8 +2622,8 @@ get_member_function_from_ptrfunc (tree *instance_ptrptr, tree function)
 	    return error_mark_node;
 	}
       /* ...and then the delta in the PMF.  */
-      instance_ptr = build2 (PLUS_EXPR, TREE_TYPE (instance_ptr),
-			     instance_ptr, delta);
+      instance_ptr = build2 (POINTER_PLUS_EXPR, TREE_TYPE (instance_ptr),
+			     instance_ptr, fold_convert (sizetype, delta));
 
       /* Hand back the adjusted 'this' argument to our caller.  */
       *instance_ptrptr = instance_ptr;
@@ -2639,7 +2634,8 @@ get_member_function_from_ptrfunc (tree *instance_ptrptr, tree function)
       vtbl = build_indirect_ref (vtbl, NULL);
 
       /* Finally, extract the function pointer from the vtable.  */
-      e2 = fold_build2 (PLUS_EXPR, TREE_TYPE (vtbl), vtbl, idx);
+      e2 = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (vtbl), vtbl,
+			fold_convert (sizetype, idx));
       e2 = build_indirect_ref (e2, NULL);
       TREE_CONSTANT (e2) = 1;
       TREE_INVARIANT (e2) = 1;
@@ -2896,8 +2892,14 @@ convert_arguments (int nargs, tree *argarray,
 
   if (typetail != 0 && typetail != void_list_node)
     {
-      /* See if there are default arguments that can be used.  */
-      if (TREE_PURPOSE (typetail)
+      /* See if there are default arguments that can be used.  Because
+	 we hold default arguments in the FUNCTION_TYPE (which is so
+	 wrong), we can see default parameters here from deduced
+	 contexts (and via typeof) for indirect function calls.
+	 Fortunately we know whether we have a function decl to
+	 provide default arguments in a language conformant
+	 manner.  */
+      if (fndecl && TREE_PURPOSE (typetail)
 	  && TREE_CODE (TREE_PURPOSE (typetail)) != DEFAULT_ARG)
 	{
 	  for (; typetail != void_list_node; ++i)
@@ -3578,9 +3580,17 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
   /* If we're in a template, the only thing we need to know is the
      RESULT_TYPE.  */
   if (processing_template_decl)
-    return build2 (resultcode,
-		   build_type ? build_type : result_type,
-		   op0, op1);
+    {
+      /* Since the middle-end checks the type when doing a build2, we
+	 need to build the tree in pieces.  This built tree will never
+	 get out of the front-end as we replace it when instantiating
+	 the template.  */
+      tree tmp = build2 (resultcode,
+			 build_type ? build_type : result_type,
+			 NULL_TREE, op1);
+      TREE_OPERAND (tmp, 0) = op0;
+      return tmp;
+    }
 
   if (arithmetic_types_p)
     {
@@ -6636,7 +6646,7 @@ check_return_expr (tree retval, bool *no_warning)
        || DECL_OVERLOADED_OPERATOR_P (current_function_decl) == VEC_NEW_EXPR)
       && !TYPE_NOTHROW_P (TREE_TYPE (current_function_decl))
       && ! flag_check_new
-      && null_ptr_cst_p (retval))
+      && retval && null_ptr_cst_p (retval))
     warning (0, "%<operator new%> must not return NULL unless it is "
 	     "declared %<throw()%> (or -fcheck-new is in effect)");
 
@@ -6733,7 +6743,7 @@ check_return_expr (tree retval, bool *no_warning)
       /* Under C++0x [12.8/16 class.copy], a returned lvalue is sometimes
 	 treated as an rvalue for the purposes of overload resolution to
 	 favor move constructors over copy constructors.  */
-      if (flag_cpp0x 
+      if ((cxx_dialect != cxx98) 
           && named_return_value_okay_p
           /* The variable must not have the `volatile' qualifier.  */
 	  && !(cp_type_quals (TREE_TYPE (retval)) & TYPE_QUAL_VOLATILE)

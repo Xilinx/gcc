@@ -5,7 +5,7 @@ This file is part of GCC.
    
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
    
 GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
    
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -412,17 +411,22 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
     return;
   
   gcc_assert (code != CONVERT_EXPR);
+
+  /* The signedness is determined from input argument.  */
+  if (code == VEC_UNPACK_FLOAT_HI_EXPR
+      || code == VEC_UNPACK_FLOAT_LO_EXPR)
+    type = TREE_TYPE (TREE_OPERAND (rhs, 0));
+
   op = optab_for_tree_code (code, type);
 
   /* For widening/narrowing vector operations, the relevant type is of the 
-     arguments, not the widened result.  */
+     arguments, not the widened result.  VEC_UNPACK_FLOAT_*_EXPR is
+     calculated in the same way above.  */
   if (code == WIDEN_SUM_EXPR
       || code == VEC_WIDEN_MULT_HI_EXPR
       || code == VEC_WIDEN_MULT_LO_EXPR
       || code == VEC_UNPACK_HI_EXPR
       || code == VEC_UNPACK_LO_EXPR
-      || code == VEC_UNPACK_FLOAT_HI_EXPR
-      || code == VEC_UNPACK_FLOAT_LO_EXPR
       || code == VEC_PACK_TRUNC_EXPR
       || code == VEC_PACK_SAT_EXPR
       || code == VEC_PACK_FIX_TRUNC_EXPR)
@@ -464,7 +468,7 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
 
   gcc_assert (code != VEC_LSHIFT_EXPR && code != VEC_RSHIFT_EXPR);
   rhs = expand_vector_operation (bsi, type, compute_type, rhs, code);
-  if (lang_hooks.types_compatible_p (TREE_TYPE (lhs), TREE_TYPE (rhs)))
+  if (useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (rhs)))
     *p_rhs = rhs;
   else
     *p_rhs = gimplify_build1 (bsi, VIEW_CONVERT_EXPR, TREE_TYPE (lhs), rhs);

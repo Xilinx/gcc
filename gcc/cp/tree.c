@@ -1,13 +1,14 @@
 /* Language-dependent node constructors for parse phase of GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -83,7 +83,7 @@ lvalue_p_1 (tree ref,
 	  && TREE_CODE (ref) != COMPONENT_REF)
 	return clk_none;
 
-      /* lvalue references and named rvalue refences are lvalues */
+      /* lvalue references and named rvalue references are lvalues.  */
       return clk_ordinary;
     }
 
@@ -489,7 +489,7 @@ static hashval_t
 cplus_array_hash (const void* k)
 {
   hashval_t hash;
-  tree t = (tree) k;
+  const_tree const t = (const_tree) k;
 
   hash = (htab_hash_pointer (TREE_TYPE (t))
 	  ^ htab_hash_pointer (TYPE_DOMAIN (t)));
@@ -508,8 +508,8 @@ typedef struct cplus_array_info {
 static int
 cplus_array_compare (const void * k1, const void * k2)
 {
-  tree t1 = (tree) k1;
-  const cplus_array_info *t2 = (const cplus_array_info*) k2;
+  const_tree const t1 = (const_tree) k1;
+  const cplus_array_info *const t2 = (const cplus_array_info*) k2;
 
   if (!comptypes (TREE_TYPE (t1), t2->type, COMPARE_STRUCTURAL))
     return 0;
@@ -967,8 +967,8 @@ struct list_proxy
 static int
 list_hash_eq (const void* entry, const void* data)
 {
-  tree t = (tree) entry;
-  struct list_proxy *proxy = (struct list_proxy *) data;
+  const_tree const t = (const_tree) entry;
+  const struct list_proxy *const proxy = (const struct list_proxy *) data;
 
   return (TREE_VALUE (t) == proxy->value
 	  && TREE_PURPOSE (t) == proxy->purpose
@@ -1003,7 +1003,7 @@ list_hash_pieces (tree purpose, tree value, tree chain)
 static hashval_t
 list_hash (const void* p)
 {
-  tree t = (tree) p;
+  const_tree const t = (const_tree) p;
   return list_hash_pieces (TREE_PURPOSE (t),
 			   TREE_VALUE (t),
 			   TREE_CHAIN (t));
@@ -2379,6 +2379,12 @@ cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func,
       WALK_SUBTREE (TRAIT_EXPR_TYPE2 (*tp));
       *walk_subtrees_p = 0;
       break;
+
+    case DECLTYPE_TYPE:
+      WALK_SUBTREE (DECLTYPE_TYPE_EXPR (*tp));
+      *walk_subtrees_p = 0;
+      break;
+ 
 
     default:
       return NULL_TREE;

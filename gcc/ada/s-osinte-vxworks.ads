@@ -198,7 +198,7 @@ package System.OS_Interface is
    -- Utility Routines --
    ----------------------
 
-   function To_VxWorks_Priority (Priority : in int) return int;
+   function To_VxWorks_Priority (Priority : int) return int;
    pragma Inline (To_VxWorks_Priority);
    --  Convenience routine to convert between VxWorks priority and Ada priority
 

@@ -1,12 +1,12 @@
 /* Check calls to formatted I/O functions (-Wformat).
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -1313,7 +1312,7 @@ check_format_arg (void *ctx, tree format_tree,
     }
 
   offset = 0;
-  if (TREE_CODE (format_tree) == PLUS_EXPR)
+  if (TREE_CODE (format_tree) == POINTER_PLUS_EXPR)
     {
       tree arg0, arg1;
 
@@ -1323,11 +1322,6 @@ check_format_arg (void *ctx, tree format_tree,
       STRIP_NOPS (arg1);
       if (TREE_CODE (arg1) == INTEGER_CST)
 	format_tree = arg0;
-      else if (TREE_CODE (arg0) == INTEGER_CST)
-	{
-	  format_tree = arg1;
-	  arg1 = arg0;
-	}
       else
 	{
 	  res->number_non_literal++;
@@ -2249,7 +2243,7 @@ check_format_types (format_wanted_type *types, const char *format_start,
 	  && TREE_CODE (cur_type) == INTEGER_TYPE
 	  && (!pedantic || i == 0 || (i == 1 && char_type_flag))
 	  && (TYPE_UNSIGNED (wanted_type)
-	      ? wanted_type == unsigned_type_for (cur_type)
+	      ? wanted_type == c_common_unsigned_type (cur_type)
 	      : wanted_type == c_common_signed_type (cur_type)))
 	continue;
       /* Likewise, "signed char", "unsigned char" and "char" are

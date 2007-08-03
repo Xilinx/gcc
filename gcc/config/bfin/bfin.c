@@ -1,12 +1,12 @@
 /* The Blackfin code generation auxiliary output file.
-   Copyright (C) 2005, 2006  Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Analog Devices.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +15,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -54,6 +53,7 @@
 #include "basic-block.h"
 #include "cfglayout.h"
 #include "timevar.h"
+#include "df.h"
 
 /* A C structure for machine-specific, per-function data.
    This is added to the cfun structure.  */
@@ -180,7 +180,7 @@ legitimize_pic_address (rtx orig, rtx reg, rtx picreg)
 
       if (reg == 0)
 	{
-	  gcc_assert (!no_new_pseudos);
+	  gcc_assert (can_create_pseudo_p ());
 	  reg = gen_reg_rtx (Pmode);
 	}
 
@@ -208,7 +208,7 @@ legitimize_pic_address (rtx orig, rtx reg, rtx picreg)
 
       if (reg == 0)
 	{
-	  gcc_assert (!no_new_pseudos);
+	  gcc_assert (can_create_pseudo_p ());
 	  reg = gen_reg_rtx (Pmode);
 	}
 
@@ -250,7 +250,7 @@ n_dregs_to_save (bool is_inthandler)
 
   for (i = REG_R0; i <= REG_R7; i++)
     {
-      if (regs_ever_live[i] && (is_inthandler || ! call_used_regs[i]))
+      if (df_regs_ever_live_p (i) && (is_inthandler || ! call_used_regs[i]))
 	return REG_R7 - i + 1;
 
       if (current_function_calls_eh_return)
@@ -278,7 +278,7 @@ n_pregs_to_save (bool is_inthandler)
   unsigned i;
 
   for (i = REG_P0; i <= REG_P5; i++)
-    if ((regs_ever_live[i] && (is_inthandler || ! call_used_regs[i]))
+    if ((df_regs_ever_live_p (i) && (is_inthandler || ! call_used_regs[i]))
 	|| (!TARGET_FDPIC
 	    && i == PIC_OFFSET_TABLE_REGNUM
 	    && (current_function_uses_pic_offset_table
@@ -292,7 +292,7 @@ n_pregs_to_save (bool is_inthandler)
 static bool
 must_save_fp_p (void)
 {
-  return frame_pointer_needed || regs_ever_live[REG_FP];
+  return frame_pointer_needed || df_regs_ever_live_p (REG_FP);
 }
 
 static bool
@@ -513,7 +513,7 @@ n_regs_saved_by_prologue (void)
 
       for (i = REG_P7 + 1; i < REG_CC; i++)
 	if (all 
-	    || regs_ever_live[i]
+	    || df_regs_ever_live_p (i)
 	    || (!leaf_function_p () && call_used_regs[i]))
 	  n += i == REG_A0 || i == REG_A1 ? 2 : 1;
     }
@@ -604,7 +604,7 @@ add_to_reg (rtx reg, HOST_WIDE_INT value, int frame, int epilogue_p)
 	{
 	  int i;
 	  for (i = REG_P0; i <= REG_P5; i++)
-	    if ((regs_ever_live[i] && ! call_used_regs[i])
+	    if ((df_regs_ever_live_p (i) && ! call_used_regs[i])
 		|| (!TARGET_FDPIC
 		    && i == PIC_OFFSET_TABLE_REGNUM
 		    && (current_function_uses_pic_offset_table
@@ -815,7 +815,7 @@ expand_interrupt_handler_prologue (rtx spreg, e_funkind fkind)
 
   for (i = REG_P7 + 1; i < REG_CC; i++)
     if (all 
-	|| regs_ever_live[i]
+	|| df_regs_ever_live_p (i)
 	|| (!leaf_function_p () && call_used_regs[i]))
       {
 	if (i == REG_A0 || i == REG_A1)
@@ -845,23 +845,11 @@ expand_interrupt_handler_prologue (rtx spreg, e_funkind fkind)
       rtx insn;
 
       insn = emit_move_insn (r0reg, gen_rtx_REG (SImode, REG_SEQSTAT));
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, const0_rtx,
-					    NULL_RTX);
       insn = emit_insn (gen_ashrsi3 (r0reg, r0reg, GEN_INT (26)));
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, const0_rtx,
-					    NULL_RTX);
       insn = emit_insn (gen_ashlsi3 (r0reg, r0reg, GEN_INT (26)));
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, const0_rtx,
-					    NULL_RTX);
       insn = emit_move_insn (r1reg, spreg);
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, const0_rtx,
-					    NULL_RTX);
       insn = emit_move_insn (r2reg, gen_rtx_REG (Pmode, REG_FP));
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, const0_rtx,
-					    NULL_RTX);
       insn = emit_insn (gen_addsi3 (r2reg, r2reg, GEN_INT (8)));
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, const0_rtx,
-					    NULL_RTX);
     }
 }
 
@@ -899,7 +887,7 @@ expand_interrupt_handler_epilogue (rtx spreg, e_funkind fkind)
 
   for (i = REG_CC - 1; i > REG_P7; i--)
     if (all
-	|| regs_ever_live[i]
+	|| df_regs_ever_live_p (i)
 	|| (!leaf_function_p () && call_used_regs[i]))
       {
 	if (i == REG_A0 || i == REG_A1)
@@ -948,7 +936,6 @@ bfin_load_pic_reg (rtx dest)
 			 gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx),
 					 UNSPEC_LIBRARY_OFFSET));
   insn = emit_insn (gen_movsi (dest, gen_rtx_MEM (Pmode, addr)));
-  REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, const0_rtx, NULL);
   return dest;
 }
 
@@ -1068,7 +1055,7 @@ bfin_hard_regno_rename_ok (unsigned int old_reg ATTRIBUTE_UNUSED,
      call-clobbered.  */
 
   if (funkind (TREE_TYPE (current_function_decl)) != SUBROUTINE
-      && !regs_ever_live[new_reg])
+      && !df_regs_ever_live_p (new_reg))
     return 0;
 
   return 1;
@@ -2753,12 +2740,6 @@ bfin_rtx_costs (rtx x, int code, int outer_code, int *total)
       return false;
     }
 }
-
-static void
-bfin_internal_label (FILE *stream, const char *prefix, unsigned long num)
-{
-  fprintf (stream, "%s%s$%ld:\n", LOCAL_LABEL_PREFIX, prefix, num);
-}
 
 /* Used for communication between {push,pop}_multiple_operation (which
    we use not only as a predicate) and the corresponding output functions.  */
@@ -3758,7 +3739,7 @@ bfin_discover_loop (loop_info loop, basic_block tail_bb, rtx tail_insn)
 	  FOR_EACH_EDGE (e, ei, bb->succs)
 	    {
 	      basic_block succ = EDGE_SUCC (bb, ei.index)->dest;
-	      if (!REGNO_REG_SET_P (succ->il.rtl->global_live_at_start,
+	      if (!REGNO_REG_SET_P (df_get_live_in (succ),
 				    REGNO (loop->iter_reg)))
 		continue;
 	      if (!VEC_space (basic_block, works, 1))
@@ -3987,7 +3968,7 @@ bfin_reorder_loops (loop_info loops, FILE *dump_file)
 
   FOR_EACH_BB (bb)
     bb->aux = NULL;
-  cfg_layout_initialize (CLEANUP_UPDATE_LIFE);
+  cfg_layout_initialize (0);
 
   for (loop = loops; loop; loop = loop->next)
     {
@@ -4039,6 +4020,7 @@ bfin_reorder_loops (loop_info loops, FILE *dump_file)
 	bb->aux = NULL;
     }
   cfg_layout_finalize ();
+  df_analyze ();
 }
 
 /* Run from machine_dependent_reorg, this pass looks for doloop_end insns
@@ -4100,8 +4082,6 @@ bfin_reorg_loops (FILE *dump_file)
 static bool
 gen_one_bundle (rtx slot[3])
 {
-  rtx bundle;
-
   gcc_assert (slot[1] != NULL_RTX);
 
   /* Verify that we really can do the multi-issue.  */
@@ -4129,9 +4109,15 @@ gen_one_bundle (rtx slot[3])
     }
 
   if (slot[0] == NULL_RTX)
-    slot[0] = emit_insn_before (gen_mnop (), slot[1]);
+    {
+      slot[0] = emit_insn_before (gen_mnop (), slot[1]);
+      df_insn_rescan (slot[0]);
+    }
   if (slot[2] == NULL_RTX)
-    slot[2] = emit_insn_after (gen_nop (), slot[1]);
+    {
+      slot[2] = emit_insn_after (gen_forced_nop (), slot[1]);
+      df_insn_rescan (slot[2]);
+    }
 
   /* Avoid line number information being printed inside one bundle.  */
   if (INSN_LOCATOR (slot[1])
@@ -4144,17 +4130,8 @@ gen_one_bundle (rtx slot[3])
   /* Terminate them with "|| " instead of ";" in the output.  */
   PUT_MODE (slot[0], SImode);
   PUT_MODE (slot[1], SImode);
-
-  /* This is a cheat to avoid emit_insn's special handling of SEQUENCEs.
-     Generating a PARALLEL first and changing its code later is the
-     easiest way to emit a SEQUENCE insn.  */
-  bundle = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (3, slot[0], slot[1], slot[2]));
-  emit_insn_before (bundle, slot[0]);
-  remove_insn (slot[0]);
-  remove_insn (slot[1]);
-  remove_insn (slot[2]);
-  PUT_CODE (bundle, SEQUENCE);
-  
+  /* Terminate the bundle, for the benefit of reorder_var_tracking_notes.  */
+  PUT_MODE (slot[2], QImode);
   return true;
 }
 
@@ -4212,6 +4189,7 @@ bfin_gen_bundles (void)
 		    {
 		      SET_SRC (pat) = XVECEXP (SET_SRC (pat), 0, 0);
 		      INSN_CODE (slot[0]) = -1;
+		      df_insn_rescan (slot[0]);
 		    }
 		}
 	      n_filled = 0;
@@ -4219,6 +4197,58 @@ bfin_gen_bundles (void)
 	    }
 	  if (at_end)
 	    break;
+	}
+    }
+}
+
+/* Ensure that no var tracking notes are emitted in the middle of a
+   three-instruction bundle.  */
+
+static void
+reorder_var_tracking_notes (void)
+{
+  basic_block bb;
+  FOR_EACH_BB (bb)
+    {
+      rtx insn, next;
+      rtx queue = NULL_RTX;
+      bool in_bundle = false;
+
+      for (insn = BB_HEAD (bb); insn != BB_END (bb); insn = next)
+	{
+	  next = NEXT_INSN (insn);
+
+	  if (INSN_P (insn))
+	    {
+	      /* Emit queued up notes at the last instruction of a bundle.  */
+	      if (GET_MODE (insn) == QImode)
+		{
+		  while (queue)
+		    {
+		      rtx next_queue = PREV_INSN (queue);
+		      PREV_INSN (NEXT_INSN (insn)) = queue;
+		      NEXT_INSN (queue) = NEXT_INSN (insn);
+		      NEXT_INSN (insn) = queue;
+		      PREV_INSN (queue) = insn;
+		      queue = next_queue;
+		    }
+		  in_bundle = false;
+		}
+	      else if (GET_MODE (insn) == SImode)
+		in_bundle = true;
+	    }
+	  else if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_VAR_LOCATION)
+	    {
+	      if (in_bundle)
+		{
+		  rtx prev = PREV_INSN (insn);
+		  PREV_INSN (next) = prev;
+		  NEXT_INSN (prev) = next;
+
+		  PREV_INSN (insn) = queue;
+		  queue = insn;
+		}
+	    }
 	}
     }
 }
@@ -4270,6 +4300,39 @@ trapping_loads_p (rtx insn)
     return may_trap_p (SET_SRC (single_set (insn)));
 }
 
+/* This function acts like NEXT_INSN, but is aware of three-insn bundles and
+   skips all subsequent parallel instructions if INSN is the start of such
+   a group.  */
+static rtx
+find_next_insn_start (rtx insn)
+{
+  if (GET_MODE (insn) == SImode)
+    {
+      while (GET_MODE (insn) != QImode)
+	insn = NEXT_INSN (insn);
+    }
+  return NEXT_INSN (insn);
+}
+
+/* Return INSN if it is of TYPE_MCLD.  Alternatively, if INSN is the start of
+   a three-insn bundle, see if one of them is a load and return that if so.
+   Return NULL_RTX if the insn does not contain loads.  */
+static rtx
+find_load (rtx insn)
+{
+  if (get_attr_type (insn) == TYPE_MCLD)
+    return insn;
+  if (GET_MODE (insn) != SImode)
+    return NULL_RTX;
+  do {
+    insn = NEXT_INSN (insn);
+    if ((GET_MODE (insn) == SImode || GET_MODE (insn) == QImode)
+	&& get_attr_type (insn) == TYPE_MCLD)
+      return insn;
+  } while (GET_MODE (insn) != QImode);
+  return NULL_RTX;
+}
+
 /* We use the machine specific reorg pass for emitting CSYNC instructions
    after conditional branches as needed.
 
@@ -4293,7 +4356,8 @@ trapping_loads_p (rtx insn)
 static void
 bfin_reorg (void)
 {
-  rtx insn, last_condjump = NULL_RTX;
+  rtx insn, next;
+  rtx last_condjump = NULL_RTX;
   int cycles_since_jump = INT_MAX;
 
   /* We are freeing block_for_insn in the toplev to keep compatibility
@@ -4303,10 +4367,8 @@ bfin_reorg (void)
   if (bfin_flag_schedule_insns2)
     {
       splitting_for_sched = 1;
-      split_all_insns (0);
+      split_all_insns ();
       splitting_for_sched = 0;
-
-      update_life_info (NULL, UPDATE_LIFE_GLOBAL_RM_NOTES, PROP_DEATH_NOTES);
 
       timevar_push (TV_SCHED2);
       schedule_insns ();
@@ -4317,6 +4379,8 @@ bfin_reorg (void)
       bfin_gen_bundles ();
     }
 
+  df_analyze ();
+
   /* Doloop optimization */
   if (cfun->machine->has_hardware_loops)
     bfin_reorg_loops (dump_file);
@@ -4326,10 +4390,12 @@ bfin_reorg (void)
 
   /* First pass: find predicted-false branches; if something after them
      needs nops, insert them or change the branch to predict true.  */
-  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+  for (insn = get_insns (); insn; insn = next)
     {
       rtx pat;
 
+      next = find_next_insn_start (insn);
+      
       if (NOTE_P (insn) || BARRIER_P (insn) || LABEL_P (insn))
 	continue;
 
@@ -4352,14 +4418,15 @@ bfin_reorg (void)
 	}
       else if (INSN_P (insn))
 	{
+	  rtx load_insn = find_load (insn);
 	  enum attr_type type = type_for_anomaly (insn);
 	  int delay_needed = 0;
 	  if (cycles_since_jump < INT_MAX)
 	    cycles_since_jump++;
 
-	  if (type == TYPE_MCLD && TARGET_SPECLD_ANOMALY)
+	  if (load_insn && TARGET_SPECLD_ANOMALY)
 	    {
-	      if (trapping_loads_p (insn))
+	      if (trapping_loads_p (load_insn))
 		delay_needed = 3;
 	    }
 	  else if (type == TYPE_SYNC && TARGET_CSYNC_ANOMALY)
@@ -4464,8 +4531,10 @@ bfin_reorg (void)
     {
       timevar_push (TV_VAR_TRACKING);
       variable_tracking_main ();
+      reorder_var_tracking_notes ();
       timevar_pop (TV_VAR_TRACKING);
     }
+  df_finish_pass ();
 }
 
 /* Handle interrupt_handler, exception_handler and nmi_handler function
@@ -5283,9 +5352,6 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
 
 #undef  TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST bfin_address_cost
-
-#undef TARGET_ASM_INTERNAL_LABEL
-#define TARGET_ASM_INTERNAL_LABEL bfin_internal_label
 
 #undef  TARGET_ASM_INTEGER
 #define TARGET_ASM_INTEGER bfin_assemble_integer

@@ -6,7 +6,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -293,7 +292,7 @@ static int
 compare_path (const void *key, const void *entry)
 {
   return strcmp ((const char *) key, 
-		 (*((const struct dirent **) entry))->d_name);
+		 (*((const struct dirent *const*) entry))->d_name);
 }
 
 /* Returns nonzero if ENTRY names a .java or .class file.  */
@@ -541,14 +540,17 @@ find_class (const char *classname, int classname_length, JCF *jcf)
 
   /* Remember that this class could not be found so that we do not
      have to look again.  */
-  *htab_find_slot_with_hash (memoized_class_lookups, classname, hash, INSERT) 
-    = (void *) classname;
+  *(const void **)htab_find_slot_with_hash (memoized_class_lookups,
+					    classname, hash, INSERT)
+    = classname;
 
   return NULL;
  found:
-  buffer = (char *) open_class (buffer, jcf, fd, dep_file);
-  jcf->classname = xstrdup (classname);
-  return buffer;
+  {
+    const char *const tmp = open_class (buffer, jcf, fd, dep_file);
+    jcf->classname = xstrdup (classname);
+    return tmp;
+  }
 }
 
 void

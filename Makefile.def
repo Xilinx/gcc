@@ -270,6 +270,7 @@ flags_to_pass = { flag= OBJDUMP_FOR_TARGET ; };
 flags_to_pass = { flag= RANLIB_FOR_TARGET ; };
 flags_to_pass = { flag= STRIP_FOR_TARGET ; };
 flags_to_pass = { flag= WINDRES_FOR_TARGET ; };
+flags_to_pass = { flag= WINDMC_FOR_TARGET ; };
 
 // Miscellaneous
 flags_to_pass = { flag= LANGUAGES ; optional=true ; };
@@ -329,10 +330,10 @@ dependencies = { module=configure-cloog; on=all-polylib; };
 // Host modules specific to gdb.
 dependencies = { module=configure-gdb; on=configure-intl; };
 dependencies = { module=configure-gdb; on=configure-sim; };
+dependencies = { module=configure-gdb; on=all-bfd; };
 dependencies = { module=all-gdb; on=all-intl; };
 dependencies = { module=all-gdb; on=all-libiberty; };
 dependencies = { module=all-gdb; on=all-opcodes; };
-dependencies = { module=all-gdb; on=all-bfd; };
 dependencies = { module=all-gdb; on=all-readline; };
 dependencies = { module=all-gdb; on=all-build-bison; };
 dependencies = { module=all-gdb; on=all-build-byacc; };

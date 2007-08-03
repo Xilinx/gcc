@@ -1,11 +1,12 @@
 /* Natural loop discovery code for GNU compiler.
-   Copyright (C) 2000, 2001, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -284,9 +284,6 @@ establish_preds (struct loop *loop, struct loop *father)
   unsigned depth = loop_depth (father) + 1;
   unsigned i;
 
-  /* Remember the current loop depth if it is the largest seen so far.  */
-  cfun->max_loop_depth = MAX (cfun->max_loop_depth, (int) depth);
-
   VEC_truncate (loop_p, loop->superloops, 0);
   VEC_reserve (loop_p, gc, loop->superloops, depth);
   for (i = 0; VEC_iterate (loop_p, father->superloops, i, ploop); i++)
@@ -345,6 +342,29 @@ alloc_loop (void)
   return loop;
 }
 
+/* Initializes loops structure LOOPS, reserving place for NUM_LOOPS loops
+   (including the root of the loop tree).  */
+
+static void
+init_loops_structure (struct loops *loops, unsigned num_loops)
+{
+  struct loop *root;
+
+  memset (loops, 0, sizeof *loops);
+  loops->larray = VEC_alloc (loop_p, gc, num_loops);
+
+  /* Dummy loop containing whole function.  */
+  root = alloc_loop ();
+  root->num_nodes = n_basic_blocks;
+  root->latch = EXIT_BLOCK_PTR;
+  root->header = ENTRY_BLOCK_PTR;
+  ENTRY_BLOCK_PTR->loop_father = root;
+  EXIT_BLOCK_PTR->loop_father = root;
+
+  VEC_quick_push (loop_p, loops->larray, root);
+  loops->tree_root = root;
+}
+
 /* Find all the natural loops in the function and save in LOOPS structure and
    recalculate loop_depth information in basic block structures.
    Return the number of natural loops found.  */
@@ -360,24 +380,20 @@ flow_loops_find (struct loops *loops)
   int *rc_order;
   basic_block header;
   basic_block bb;
-  struct loop *root;
 
-  memset (loops, 0, sizeof *loops);
-
-  /* We are going to recount the maximum loop depth,
-     so throw away the last count.  */
-  cfun->max_loop_depth = 0;
+  /* Ensure that the dominators are computed.  */
+  calculate_dominance_info (CDI_DOMINATORS);
 
   /* Taking care of this degenerate case makes the rest of
      this code simpler.  */
   if (n_basic_blocks == NUM_FIXED_BLOCKS)
-    return 0;
+    {
+      init_loops_structure (loops, 1);
+      return 1;
+    }
 
   dfs_order = NULL;
   rc_order = NULL;
-
-  /* Ensure that the dominators are computed.  */
-  calculate_dominance_info (CDI_DOMINATORS);
 
   /* Count the number of loop headers.  This should be the
      same as the number of natural loops.  */
@@ -421,18 +437,7 @@ flow_loops_find (struct loops *loops)
     }
 
   /* Allocate loop structures.  */
-  loops->larray = VEC_alloc (loop_p, gc, num_loops + 1);
-
-  /* Dummy loop containing whole function.  */
-  root = alloc_loop ();
-  root->num_nodes = n_basic_blocks;
-  root->latch = EXIT_BLOCK_PTR;
-  root->header = ENTRY_BLOCK_PTR;
-  ENTRY_BLOCK_PTR->loop_father = root;
-  EXIT_BLOCK_PTR->loop_father = root;
-
-  VEC_quick_push (loop_p, loops->larray, root);
-  loops->tree_root = root;
+  init_loops_structure (loops, num_loops + 1);
 
   /* Find and record information about all the natural loops
      in the CFG.  */
@@ -776,7 +781,7 @@ flow_bb_inside_loop_p (const struct loop *loop, const basic_block bb)
 static bool
 glb_enum_p (basic_block bb, void *glb_loop)
 {
-  struct loop *loop = glb_loop;
+  struct loop *loop = (struct loop *) glb_loop;
   return (bb != loop->header
 	  && dominated_by_p (CDI_DOMINATORS, bb, loop->header));
 }
@@ -936,7 +941,7 @@ get_loop_body_in_bfs_order (const struct loop *loop)
 static hashval_t
 loop_exit_hash (const void *ex)
 {
-  struct loop_exit *exit = (struct loop_exit *) ex;
+  const struct loop_exit *const exit = (const struct loop_exit *) ex;
 
   return htab_hash_pointer (exit->e);
 }
@@ -946,7 +951,7 @@ loop_exit_hash (const void *ex)
 static int
 loop_exit_eq (const void *ex, const void *e)
 {
-  struct loop_exit *exit = (struct loop_exit *) ex;
+  const struct loop_exit *const exit = (const struct loop_exit *) ex;
 
   return exit->e == e;
 }
@@ -974,8 +979,8 @@ loop_exit_free (void *ex)
 static struct loop_exit *
 get_exit_descriptions (edge e)
 {
-  return htab_find_with_hash (current_loops->exits, e,
-			      htab_hash_pointer (e));
+  return (struct loop_exit *) htab_find_with_hash (current_loops->exits, e,
+			                           htab_hash_pointer (e));
 }
 
 /* Updates the lists of loop exits in that E appears.
@@ -1075,14 +1080,14 @@ record_loop_exits (void)
 static int
 dump_recorded_exit (void **slot, void *file)
 {
-  struct loop_exit *exit = *slot;
+  struct loop_exit *exit = (struct loop_exit *) *slot;
   unsigned n = 0;
   edge e = exit->e;
 
   for (; exit != NULL; exit = exit->next_e)
     n++;
 
-  fprintf (file, "Edge %d->%d exits %u loops\n",
+  fprintf ((FILE*) file, "Edge %d->%d exits %u loops\n",
 	   e->src->index, e->dest->index, n);
 
   return 1;

@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /*
    Matrix flattening optimization tries to replace a N-dimensional 
@@ -224,10 +223,10 @@ collect_data_for_malloc_call (tree stmt, struct malloc_call_data *m_data)
    initial address and index of each dimension.  */
 struct access_site_info
 {
-  /* The statement (INDIRECT_REF or PLUS_EXPR).  */
+  /* The statement (INDIRECT_REF or POINTER_PLUS_EXPR).  */
   tree stmt;
 
-  /* In case of PLUS_EXPR, what is the offset.  */
+  /* In case of POINTER_PLUS_EXPR, what is the offset.  */
   tree offset;
 
   /* The index which created the offset.  */
@@ -390,7 +389,7 @@ static htab_t matrices_to_reorg = NULL;
 static hashval_t
 mtt_info_hash (const void *mtt)
 {
-  return htab_hash_pointer (((struct matrix_info *) mtt)->decl);
+  return htab_hash_pointer (((const struct matrix_info *) mtt)->decl);
 }
 
 /* Return true if MTT1 and MTT2 (which are really both of type
@@ -609,7 +608,7 @@ mark_min_matrix_escape_level (struct matrix_info *mi, int l, tree s)
 /* Find if the SSA variable is accessed inside the
    tree and record the tree containing it.
    The only relevant uses are the case of SSA_NAME, or SSA inside
-   INDIRECT_REF, CALL_EXPR, PLUS_EXPR, MULT_EXPR.  */
+   INDIRECT_REF, CALL_EXPR, PLUS_EXPR, POINTER_PLUS_EXPR, MULT_EXPR.  */
 static void
 ssa_accessed_in_tree (tree t, struct ssa_acc_in_tree *a)
 {
@@ -644,6 +643,7 @@ ssa_accessed_in_tree (tree t, struct ssa_acc_in_tree *a)
 	  }
       }
       break;
+    case POINTER_PLUS_EXPR:
     case PLUS_EXPR:
     case MULT_EXPR:
       op1 = TREE_OPERAND (t, 0);
@@ -818,11 +818,15 @@ analyze_matrix_allocation_site (struct matrix_info *mi, tree stmt,
 		  return;
 		}
 	    }
-	  /* This is a call to malloc.  Check to see if this is the first
-	     call in this indirection level; if so, mark it; if not, mark
-	     as escaping.  */
+	  /* This is a call to malloc of level 'level'.  
+	     mi->max_malloced_level-1 == level  means that we've 
+	     seen a malloc statement of level 'level' before.  
+	     If the statement is not the same one that we've 
+	     seen before, then there's another malloc statement 
+	     for the same level, which means that we need to mark 
+	     it escaping.  */
 	  if (mi->malloc_for_level
-	      && mi->malloc_for_level[level]
+	      && mi->max_malloced_level-1 == level
 	      && mi->malloc_for_level[level] != stmt)
 	    {
 	      mark_min_matrix_escape_level (mi, level, stmt);
@@ -903,7 +907,7 @@ analyze_transpose (void **slot, void *data ATTRIBUTE_UNUSED)
   for (i = 0; VEC_iterate (access_site_info_p, mi->access_l, i, acc_info);
        i++)
     {
-      if (TREE_CODE (GIMPLE_STMT_OPERAND (acc_info->stmt, 1)) == PLUS_EXPR
+      if (TREE_CODE (GIMPLE_STMT_OPERAND (acc_info->stmt, 1)) == POINTER_PLUS_EXPR
 	  && acc_info->level < min_escape_l)
 	{
 	  loop = loop_containing_stmt (acc_info->stmt);
@@ -1197,7 +1201,7 @@ analyze_accesses_for_modify_stmt (struct matrix_info *mi, tree ssa_var,
 	  return current_indirect_level;
 	}
       if (rhs_acc.t_code != INDIRECT_REF
-	  && rhs_acc.t_code != PLUS_EXPR && rhs_acc.t_code != SSA_NAME)
+	  && rhs_acc.t_code != POINTER_PLUS_EXPR && rhs_acc.t_code != SSA_NAME)
 	{
 	  mark_min_matrix_escape_level (mi, current_indirect_level, use_stmt);
 	  return current_indirect_level;
@@ -1212,11 +1216,8 @@ analyze_accesses_for_modify_stmt (struct matrix_info *mi, tree ssa_var,
 					   current_indirect_level, true);
 	  current_indirect_level += 1;
 	}
-      else if (rhs_acc.t_code == PLUS_EXPR)
+      else if (rhs_acc.t_code == POINTER_PLUS_EXPR)
 	{
-	  /* ??? maybe we should check
-	     the type of the PLUS_EXP and make sure it's
-	     integral type.  */
 	  gcc_assert (rhs_acc.second_op);
 	  if (last_op)
 	    /* Currently we support only one PLUS expression on the
@@ -1286,7 +1287,7 @@ analyze_accesses_for_modify_stmt (struct matrix_info *mi, tree ssa_var,
 	  /* We are placing it in an SSA, follow that SSA.  */
 	  analyze_matrix_accesses (mi, lhs,
 				   current_indirect_level,
-				   rhs_acc.t_code == PLUS_EXPR,
+				   rhs_acc.t_code == POINTER_PLUS_EXPR,
 				   visited, record_accesses);
 	}
     }
@@ -1321,7 +1322,7 @@ analyze_matrix_accesses (struct matrix_info *mi, tree ssa_var,
 
 /* Now go over the uses of the SSA_NAME and check how it is used in
    each one of them.  We are mainly looking for the pattern INDIRECT_REF,
-   then a PLUS_EXPR, then INDIRECT_REF etc.  while in between there could
+   then a POINTER_PLUS_EXPR, then INDIRECT_REF etc.  while in between there could
    be any number of copies and casts.  */
   gcc_assert (TREE_CODE (ssa_var) == SSA_NAME);
 
@@ -1405,6 +1406,7 @@ can_calculate_expr_before_stmt (tree expr, sbitmap visited)
     case PARM_DECL:
     case INTEGER_CST:
       return expr;
+    case POINTER_PLUS_EXPR:
     case PLUS_EXPR:
     case MINUS_EXPR:
     case MULT_EXPR:
@@ -1482,10 +1484,13 @@ check_allocation_function (void **slot, void *data ATTRIBUTE_UNUSED)
   block_stmt_iterator bsi;
   basic_block bb_level_0;
   struct matrix_info *mi = *slot;
-  sbitmap visited = sbitmap_alloc (num_ssa_names);
+  sbitmap visited;
 
   if (!mi->malloc_for_level)
     return 1;
+
+  visited = sbitmap_alloc (num_ssa_names);
+
   /* Do nothing if the current function is not the allocation
      function of MI.  */
   if (mi->allocation_function_decl != current_function_decl
@@ -1654,6 +1659,42 @@ record_all_accesses_in_func (void)
   sbitmap_free (visited_stmts_1);
 }
 
+/* Used when we want to convert the expression: RESULT =  something * ORIG to RESULT = something * NEW. If ORIG and NEW are power of 2, shift operations can be done, else division and multiplication.  */
+static tree
+compute_offset (HOST_WIDE_INT orig, HOST_WIDE_INT new, tree result)
+{
+
+  int x, y;
+  tree result1, ratio, log, orig_tree, new_tree;
+
+  x = exact_log2 (orig);
+  y = exact_log2 (new);
+
+  if (x != -1 && y != -1)
+    {
+      if (x == y)
+        return result;
+      else if (x > y)
+        {
+          log = build_int_cst (TREE_TYPE (result), x - y);
+          result1 =
+            fold_build2 (LSHIFT_EXPR, TREE_TYPE (result), result, log);
+          return result1;
+        }
+      log = build_int_cst (TREE_TYPE (result), y - x);
+      result1 = fold_build2 (RSHIFT_EXPR, TREE_TYPE (result), result, log);
+
+      return result1;
+    }
+  orig_tree = build_int_cst (TREE_TYPE (result), orig);
+  new_tree = build_int_cst (TREE_TYPE (result), new);
+  ratio = fold_build2 (TRUNC_DIV_EXPR, TREE_TYPE (result), result, orig_tree);
+  result1 = fold_build2 (MULT_EXPR, TREE_TYPE (result), ratio, new_tree);
+
+  return result1;
+}
+
+
 /* We know that we are allowed to perform matrix flattening (according to the
    escape analysis), so we traverse the use-def chains of the SSA vars
    defined by the global variables pointing to the matrices of our interest.
@@ -1673,7 +1714,6 @@ record_all_accesses_in_func (void)
 static int
 transform_access_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 {
-  tree stmts;
   block_stmt_iterator bsi;
   struct matrix_info *mi = *slot;
   int min_escape_l = mi->min_indirect_level_escape;
@@ -1762,7 +1802,7 @@ transform_access_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 		    GIMPLE_STMT_OPERAND (orig, 0));
 	  GIMPLE_STMT_OPERAND (acc_info->stmt, 1) = orig;
 	}
-      else if (TREE_CODE (orig) == PLUS_EXPR
+      else if (TREE_CODE (orig) == POINTER_PLUS_EXPR
 	       && acc_info->level < (min_escape_l))
 	{
 	  imm_use_iterator imm_iter;
@@ -1783,55 +1823,23 @@ transform_access_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 		tmp1 = offset;
 	      else
 		{
-		  int x, y;
-		  tree ratio;
 		  tree new_offset;
 		  tree d_type_size, d_type_size_k;
 
-		  d_type_size =
-		    build_int_cst (type,
-				   mi->dimension_type_size[min_escape_l]);
-		  d_type_size_k =
-		    build_int_cst (type, mi->dimension_type_size[k + 1]);
-		  x = exact_log2 (mi->dimension_type_size[min_escape_l]);
-		  y = exact_log2 (mi->dimension_type_size[k + 1]);
+		  d_type_size = size_int (mi->dimension_type_size[min_escape_l]);
+		  d_type_size_k = size_int (mi->dimension_type_size[k + 1]);
 
-		  if (x != -1 && y != -1)
-		    {
-		      if (x - y == 0)
-			new_offset = offset;
-		      else
-			{
-			  tree log = build_int_cst (type, x - y);
-			  new_offset =
-			    fold_build2 (LSHIFT_EXPR, TREE_TYPE (offset),
-					 offset, log);
-			}
-		    }
-		  else
-		    {
-		      ratio =
-			fold_build2 (TRUNC_DIV_EXPR, type, d_type_size,
-				     d_type_size_k);
-		      new_offset =
-			fold_build2 (MULT_EXPR, type, offset, ratio);
-		    }
+		  new_offset =
+		    compute_offset (mi->dimension_type_size[min_escape_l],
+				    mi->dimension_type_size[k + 1], offset);
+
 		  total_elements = new_offset;
 		  if (new_offset != offset)
 		    {
-		      tmp1 =
-			force_gimple_operand (total_elements, &stmts, true,
-					      NULL);
-		      if (stmts)
-			{
-			  tree_stmt_iterator tsi;
-
-			  for (tsi = tsi_start (stmts); !tsi_end_p (tsi);
-			       tsi_next (&tsi))
-			    mark_symbols_for_renaming (tsi_stmt (tsi));
-			  bsi = bsi_for_stmt (acc_info->stmt);
-			  bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
-			}
+		      bsi = bsi_for_stmt (acc_info->stmt);
+		      tmp1 = force_gimple_operand_bsi (&bsi, total_elements,
+						       true, NULL,
+						       true, BSI_SAME_STMT);
 		    }
 		  else
 		    tmp1 = offset;
@@ -1841,19 +1849,12 @@ transform_access_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 	    {
 	      d_size = mi->dimension_size[mi->dim_map[k] + 1];
 	      num_elements =
-		fold_build2 (MULT_EXPR, type, acc_info->index, d_size);
-	      tmp1 = force_gimple_operand (num_elements, &stmts, true, NULL);
+		fold_build2 (MULT_EXPR, sizetype, fold_convert (sizetype, acc_info->index),
+			    fold_convert (sizetype, d_size));
 	      add_referenced_var (d_size);
-	      if (stmts)
-		{
-		  tree_stmt_iterator tsi;
-
-		  for (tsi = tsi_start (stmts); !tsi_end_p (tsi);
-		       tsi_next (&tsi))
-		    mark_symbols_for_renaming (tsi_stmt (tsi));
-		  bsi = bsi_for_stmt (acc_info->stmt);
-		  bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
-		}
+	      bsi = bsi_for_stmt (acc_info->stmt);
+	      tmp1 = force_gimple_operand_bsi (&bsi, num_elements, true,
+					       NULL, true, BSI_SAME_STMT);
 	    }
 	  /* Replace the offset if needed.  */
 	  if (tmp1 != offset)
@@ -1864,8 +1865,8 @@ transform_access_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 
 		  FOR_EACH_IMM_USE_STMT (use_stmt, imm_iter, offset)
 		    FOR_EACH_IMM_USE_ON_STMT (use_p, imm_iter)
-		    if (use_stmt == acc_info->stmt)
-		    SET_USE (use_p, tmp1);
+		      if (use_stmt == acc_info->stmt)
+		        SET_USE (use_p, tmp1);
 		}
 	      else
 		{
@@ -1916,7 +1917,6 @@ sort_dim_hot_level (gcov_type * a, int *dim_map, int n)
     }
 }
 
-
 /* Replace multiple mallocs (one for each dimension) to one malloc
    with the size of DIM1*DIM2*...*DIMN*size_of_element
    Make sure that we hold the size in the malloc site inside a
@@ -1930,7 +1930,7 @@ transform_allocation_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 {
   int i;
   struct matrix_info *mi;
-  tree type, call_stmt_0, malloc_stmt, oldfn, stmts, prev_dim_size, use_stmt;
+  tree type, call_stmt_0, malloc_stmt, oldfn, prev_dim_size, use_stmt;
   struct cgraph_node *c_node;
   struct cgraph_edge *e;
   block_stmt_iterator bsi;
@@ -2057,7 +2057,6 @@ transform_allocation_sites (void **slot, void *data ATTRIBUTE_UNUSED)
     {
       tree dim_size, dim_var, tmp;
       tree d_type_size;
-      tree_stmt_iterator tsi;
 
       /* Now put the size expression in a global variable and initialize it to
          the size expression before the malloc of level 0.  */
@@ -2065,14 +2064,14 @@ transform_allocation_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 	add_new_static_var (TREE_TYPE
 			    (mi->dimension_size_orig[mi->dim_map[i]]));
       type = TREE_TYPE (mi->dimension_size_orig[mi->dim_map[i]]);
-      d_type_size =
-	build_int_cst (type, mi->dimension_type_size[mi->dim_map[i] + 1]);
 
       /* DIM_SIZE = MALLOC_SIZE_PARAM / TYPE_SIZE.  */
       /* Find which dim ID becomes dim I.  */
       for (id = 0; id < mi->min_indirect_level_escape; id++)
 	if (mi->dim_map[id] == i)
 	  break;
+       d_type_size =
+        build_int_cst (type, mi->dimension_type_size[id + 1]);
       if (!prev_dim_size)
 	prev_dim_size = build_int_cst (type, element_size);
       if (!check_transpose_p && i == mi->min_indirect_level_escape - 1)
@@ -2087,20 +2086,13 @@ transform_allocation_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 
 	  dim_size = fold_build2 (MULT_EXPR, type, dim_size, prev_dim_size);
 	}
-      dim_size = force_gimple_operand (dim_size, &stmts, true, NULL);
-      if (stmts)
-	{
-	  for (tsi = tsi_start (stmts); !tsi_end_p (tsi); tsi_next (&tsi))
-	    mark_symbols_for_renaming (tsi_stmt (tsi));
-	  bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
-	  bsi = bsi_for_stmt (call_stmt_0);
-	}
+      dim_size = force_gimple_operand_bsi (&bsi, dim_size, true, NULL,
+					   true, BSI_SAME_STMT);
       /* GLOBAL_HOLDING_THE_SIZE = DIM_SIZE.  */
       tmp = fold_build2 (GIMPLE_MODIFY_STMT, type, dim_var, dim_size);
       GIMPLE_STMT_OPERAND (tmp, 0) = dim_var;
       mark_symbols_for_renaming (tmp);
-      bsi_insert_before (&bsi, tmp, BSI_NEW_STMT);
-      bsi = bsi_for_stmt (call_stmt_0);
+      bsi_insert_before (&bsi, tmp, BSI_SAME_STMT);
 
       prev_dim_size = mi->dimension_size[i] = dim_var;
     }
@@ -2110,17 +2102,8 @@ transform_allocation_sites (void **slot, void *data ATTRIBUTE_UNUSED)
   malloc_stmt = GIMPLE_STMT_OPERAND (call_stmt_0, 1);
   c_node = cgraph_node (mi->allocation_function_decl);
   old_size_0 = CALL_EXPR_ARG (malloc_stmt, 0);
-  bsi = bsi_for_stmt (call_stmt_0);
-  tmp = force_gimple_operand (mi->dimension_size[0], &stmts, true, NULL);
-  if (stmts)
-    {
-      tree_stmt_iterator tsi;
-
-      for (tsi = tsi_start (stmts); !tsi_end_p (tsi); tsi_next (&tsi))
-	mark_symbols_for_renaming (tsi_stmt (tsi));
-      bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
-      bsi = bsi_for_stmt (call_stmt_0);
-    }
+  tmp = force_gimple_operand_bsi (&bsi, mi->dimension_size[0], true,
+				  NULL, true, BSI_SAME_STMT);
   if (TREE_CODE (old_size_0) == SSA_NAME)
     {
       FOR_EACH_IMM_USE_STMT (use_stmt, imm_iter, old_size_0)

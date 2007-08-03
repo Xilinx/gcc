@@ -59,8 +59,8 @@
  *  You should not attempt to use it directly.
  */
 
-#ifndef _ALGO_H
-#define _ALGO_H 1
+#ifndef _STL_ALGO_H
+#define _STL_ALGO_H 1
 
 #include <bits/stl_heap.h>
 #include <bits/stl_tempbuf.h>  // for _Temporary_buffer
@@ -624,22 +624,21 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	    typename iterator_traits<_ForwardIterator2>::value_type>)
       __glibcxx_requires_valid_range(__first1, __last1);
       __glibcxx_requires_valid_range(__first2, __last2);
+
       // Test for empty ranges
       if (__first1 == __last1 || __first2 == __last2)
 	return __first1;
 
       // Test for a pattern of length 1.
-      _ForwardIterator2 __tmp(__first2);
-      ++__tmp;
-      if (__tmp == __last2)
+      _ForwardIterator2 __p1(__first2);
+      if (++__p1 == __last2)
 	return std::find(__first1, __last1, *__first2);
 
       // General case.
-      _ForwardIterator2 __p1, __p;
-      __p1 = __first2; ++__p1;
+      _ForwardIterator2 __p;
       _ForwardIterator1 __current = __first1;
 
-      while (__first1 != __last1)
+      for (;;)
 	{
 	  __first1 = std::find(__first1, __last1, *__first2);
 	  if (__first1 == __last1)
@@ -703,9 +702,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	return __first1;
 
       // Test for a pattern of length 1.
-      _ForwardIterator2 __tmp(__first2);
-      ++__tmp;
-      if (__tmp == __last2)
+      _ForwardIterator2 __p1(__first2);
+      if (++__p1 == __last2)
 	{
 	  while (__first1 != __last1
 		 && !bool(__predicate(*__first1, *__first2)))
@@ -714,20 +712,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       // General case.
-      _ForwardIterator2 __p1, __p;
-      __p1 = __first2; ++__p1;
+      _ForwardIterator2 __p;
       _ForwardIterator1 __current = __first1;
 
-      while (__first1 != __last1)
+      for (;;)
 	{
-	  while (__first1 != __last1)
-	    {
-	      if (__predicate(*__first1, *__first2))
-		break;
-	      ++__first1;
-	    }
-	  while (__first1 != __last1 &&
-		 !bool(__predicate(*__first1, *__first2)))
+	  while (__first1 != __last1
+		 && !bool(__predicate(*__first1, *__first2)))
 	    ++__first1;
 	  if (__first1 == __last1)
 	    return __last1;
@@ -5516,4 +5507,4 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 _GLIBCXX_END_NAMESPACE
 
-#endif /* _ALGO_H */
+#endif /* _STL_ALGO_H */

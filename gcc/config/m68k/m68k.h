@@ -1,12 +1,12 @@
 /* Definitions of target machine for GCC for Motorola 680x0/ColdFire.
    Copyright (C) 1987, 1988, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* We need to have MOTOROLA always defined (either 0 or 1) because we use
    if-statements and ?: on it.  This way we have compile-time error checking
@@ -244,6 +243,10 @@ Boston, MA 02110-1301, USA.  */
 #define TARGET_ISAAPLUS		((m68k_cpu_flags & FL_ISA_APLUS) != 0)
 #define TARGET_ISAB		((m68k_cpu_flags & FL_ISA_B) != 0)
 #define TARGET_ISAC		((m68k_cpu_flags & FL_ISA_C) != 0)
+
+/* Some instructions are common to more than one ISA.  */
+#define ISA_HAS_MVS_MVZ	(TARGET_ISAB || TARGET_ISAC)
+#define ISA_HAS_FF1	(TARGET_ISAAPLUS || TARGET_ISAC)
 
 #define TUNE_68000	(m68k_tune == u68000)
 #define TUNE_68010	(m68k_tune == u68010)
@@ -658,16 +661,16 @@ __transfer_from_trampoline ()					\
 /* Macros to check register numbers against specific register classes.  */
 
 /* True for data registers, D0 through D7.  */
-#define DATA_REGNO_P(REGNO) ((unsigned int) (REGNO) < 8)
+#define DATA_REGNO_P(REGNO)	IN_RANGE (REGNO, 0, 7)
 
 /* True for address registers, A0 through A7.  */
-#define ADDRESS_REGNO_P(REGNO) (((unsigned int) (REGNO) - 8) < 8)
+#define ADDRESS_REGNO_P(REGNO)	IN_RANGE (REGNO, 8, 15)
 
 /* True for integer registers, D0 through D7 and A0 through A7.  */
-#define INT_REGNO_P(REGNO) ((unsigned int) (REGNO) < 16)
+#define INT_REGNO_P(REGNO)	IN_RANGE (REGNO, 0, 15)
 
 /* True for floating point registers, FP0 through FP7.  */
-#define FP_REGNO_P(REGNO) (((unsigned int) (REGNO) - 16) < 8)
+#define FP_REGNO_P(REGNO)	IN_RANGE (REGNO, 16, 23)
 
 #define REGNO_OK_FOR_INDEX_P(REGNO)			\
   (INT_REGNO_P (REGNO)					\
@@ -677,13 +680,15 @@ __transfer_from_trampoline ()					\
   (ADDRESS_REGNO_P (REGNO)				\
    || ADDRESS_REGNO_P (reg_renumber[REGNO]))
 
-#define REGNO_OK_FOR_DATA_P(REGNO)			\
-  (DATA_REGNO_P (REGNO)					\
-   || DATA_REGNO_P (reg_renumber[REGNO]))
+#define REGNO_OK_FOR_INDEX_NONSTRICT_P(REGNO)		\
+  (INT_REGNO_P (REGNO)					\
+   || REGNO == ARG_POINTER_REGNUM			\
+   || REGNO >= FIRST_PSEUDO_REGISTER)
 
-#define REGNO_OK_FOR_FP_P(REGNO)			\
-  (FP_REGNO_P (REGNO)					\
-   || FP_REGNO_P (reg_renumber[REGNO]))
+#define REGNO_OK_FOR_BASE_NONSTRICT_P(REGNO)		\
+  (ADDRESS_REGNO_P (REGNO)				\
+   || REGNO == ARG_POINTER_REGNUM			\
+   || REGNO >= FIRST_PSEUDO_REGISTER)
 
 /* Now macros that check whether X is a register and also,
    strictly, whether it is in a specified class.
@@ -693,13 +698,13 @@ __transfer_from_trampoline ()					\
    define_optimization.  */
 
 /* 1 if X is a data register.  */
-#define DATA_REG_P(X) (REG_P (X) && REGNO_OK_FOR_DATA_P (REGNO (X)))
+#define DATA_REG_P(X)	(REG_P (X) && DATA_REGNO_P (REGNO (X)))
 
 /* 1 if X is an fp register.  */
-#define FP_REG_P(X) (REG_P (X) && REGNO_OK_FOR_FP_P (REGNO (X)))
+#define FP_REG_P(X)	(REG_P (X) && FP_REGNO_P (REGNO (X)))
 
 /* 1 if X is an address register  */
-#define ADDRESS_REG_P(X) (REG_P (X) && REGNO_OK_FOR_BASE_P (REGNO (X)))
+#define ADDRESS_REG_P(X) (REG_P (X) && ADDRESS_REGNO_P (REGNO (X)))
 
 /* True if SYMBOL + OFFSET constants must refer to something within
    SYMBOL's section.  */

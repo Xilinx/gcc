@@ -1,11 +1,11 @@
 /* Loop unrolling and peeling.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -1025,6 +1024,7 @@ unroll_loop_runtime_iterations (struct loop *loop)
 
   init_code = get_insns ();
   end_sequence ();
+  unshare_all_rtl_in_chain (init_code);
 
   /* Precondition the loop.  */
   split_edge_and_insert (loop_preheader_edge (loop), init_code);
@@ -1483,7 +1483,7 @@ unroll_loop_stupid (struct loop *loop)
 static hashval_t
 si_info_hash (const void *ivts)
 {
-  return (hashval_t) INSN_UID (((struct iv_to_split *) ivts)->insn);
+  return (hashval_t) INSN_UID (((const struct iv_to_split *) ivts)->insn);
 }
 
 /* An equality functions for information about insns to split.  */
@@ -1502,7 +1502,7 @@ si_info_eq (const void *ivts1, const void *ivts2)
 static hashval_t
 ve_info_hash (const void *ves)
 {
-  return (hashval_t) INSN_UID (((struct var_to_expand *) ves)->insn);
+  return (hashval_t) INSN_UID (((const struct var_to_expand *) ves)->insn);
 }
 
 /* Return true if IVTS1 and IVTS2 (which are really both of type 

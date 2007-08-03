@@ -1,12 +1,12 @@
 /* Define control and data flow tables, and regsets.
-   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+   2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_BASIC_BLOCK_H
 #define GCC_BASIC_BLOCK_H
@@ -257,12 +256,6 @@ struct rtl_bb_info GTY(())
   rtx head_;
   rtx end_;
 
-  /* The registers that are live on entry to this block.  */
-  bitmap GTY ((skip (""))) global_live_at_start;
-
-  /* The registers that are live on exit from this block.  */
-  bitmap GTY ((skip (""))) global_live_at_end;
-
   /* In CFGlayout mode points to insn notes/jumptables to be placed just before
      and after the block.   */
   rtx header;
@@ -299,46 +292,45 @@ DEF_VEC_ALLOC_P(basic_block,heap);
 
 enum bb_flags
 {
-
-  /* Set if insns in BB have are modified.  Used for updating liveness info.  */
-  BB_DIRTY = 1,
-
   /* Only set on blocks that have just been created by create_bb.  */
-  BB_NEW = 2,
+  BB_NEW = 1 << 0,
 
   /* Set by find_unreachable_blocks.  Do not rely on this being set in any
      pass.  */
-  BB_REACHABLE = 4,
+  BB_REACHABLE = 1 << 1,
 
   /* Set for blocks in an irreducible loop by loop analysis.  */
-  BB_IRREDUCIBLE_LOOP = 8,
+  BB_IRREDUCIBLE_LOOP = 1 << 2,
 
   /* Set on blocks that may actually not be single-entry single-exit block.  */
-  BB_SUPERBLOCK = 16,
+  BB_SUPERBLOCK = 1 << 3,
 
   /* Set on basic blocks that the scheduler should not touch.  This is used
      by SMS to prevent other schedulers from messing with the loop schedule.  */
-  BB_DISABLE_SCHEDULE = 32,
+  BB_DISABLE_SCHEDULE = 1 << 4,
 
   /* Set on blocks that should be put in a hot section.  */
-  BB_HOT_PARTITION = 64,
+  BB_HOT_PARTITION = 1 << 5,
 
   /* Set on blocks that should be put in a cold section.  */
-  BB_COLD_PARTITION = 128,
+  BB_COLD_PARTITION = 1 << 6,
 
   /* Set on block that was duplicated.  */
-  BB_DUPLICATED = 256,
+  BB_DUPLICATED = 1 << 7,
+
+  /* Set if the label at the top of this block is the target of a non-local goto.  */
+  BB_NON_LOCAL_GOTO_TARGET = 1 << 8,
 
   /* Set on blocks that are in RTL format.  */
-  BB_RTL = 1024,
+  BB_RTL = 1 << 9 ,
 
   /* Set on blocks that are forwarder blocks.
      Only used in cfgcleanup.c.  */
-  BB_FORWARDER_BLOCK = 2048,
+  BB_FORWARDER_BLOCK = 1 << 10,
 
   /* Set on blocks that cannot be threaded through.
      Only used in cfgcleanup.c.  */
-  BB_NONTHREADABLE_BLOCK = 4096
+  BB_NONTHREADABLE_BLOCK = 1 << 11
 };
 
 /* Dummy flag for convenience in the hot/cold partitioning code.  */
@@ -355,6 +347,15 @@ enum bb_flags
 
 #define BB_COPY_PARTITION(dstbb, srcbb) \
   BB_SET_PARTITION (dstbb, BB_PARTITION (srcbb))
+
+/* State of dominance information.  */
+
+enum dom_state
+{
+  DOM_NONE,		/* Not computed at all.  */
+  DOM_NO_FAST_QUERY,	/* The data is OK, but the fast query data are not usable.  */
+  DOM_OK		/* Everything is ok.  */
+};
 
 /* A structure to group all the per-function control flow graph data.
    The x_* prefixing is necessary because otherwise references to the
@@ -388,6 +389,12 @@ struct control_flow_graph GTY(())
     PROFILE_GUESSED,
     PROFILE_READ
   } x_profile_status;
+
+  /* Whether the dominators and the postdominators are available.  */
+  enum dom_state x_dom_computed[2];
+
+  /* Number of basic blocks in the dominance tree.  */
+  unsigned x_n_bbs_in_dom_tree[2];
 };
 
 /* Defines for accessing the fields of the CFG structure for function FN.  */
@@ -435,10 +442,22 @@ struct control_flow_graph GTY(())
        (INSN) && (INSN) != NEXT_INSN (BB_END (BB));	\
        (INSN) = NEXT_INSN (INSN))
 
+/* For iterating over insns in basic block when we might remove the
+   current insn.  */
+#define FOR_BB_INSNS_SAFE(BB, INSN, CURR)			\
+  for ((INSN) = BB_HEAD (BB), (CURR) = (INSN) ? NEXT_INSN ((INSN)): NULL;	\
+       (INSN) && (INSN) != NEXT_INSN (BB_END (BB));	\
+       (INSN) = (CURR), (CURR) = (INSN) ? NEXT_INSN ((INSN)) : NULL)
+       
 #define FOR_BB_INSNS_REVERSE(BB, INSN)		\
   for ((INSN) = BB_END (BB);			\
        (INSN) && (INSN) != PREV_INSN (BB_HEAD (BB));	\
        (INSN) = PREV_INSN (INSN))
+
+#define FOR_BB_INSNS_REVERSE_SAFE(BB, INSN, CURR)	\
+  for ((INSN) = BB_END (BB),(CURR) = (INSN) ? PREV_INSN ((INSN)) : NULL;	\
+       (INSN) && (INSN) != PREV_INSN (BB_HEAD (BB));	\
+       (INSN) = (CURR), (CURR) = (INSN) ? PREV_INSN ((INSN)) : NULL)
 
 /* Cycles through _all_ basic blocks, even the fake ones (entry and
    exit block).  */
@@ -451,18 +470,6 @@ struct control_flow_graph GTY(())
 
 extern bitmap_obstack reg_obstack;
 
-/* Indexed by n, gives number of basic block that  (REG n) is used in.
-   If the value is REG_BLOCK_GLOBAL (-2),
-   it means (REG n) is used in more than one basic block.
-   REG_BLOCK_UNKNOWN (-1) means it hasn't been seen yet so we don't know.
-   This information remains valid for the rest of the compilation
-   of the current function; it is used to control register allocation.  */
-
-#define REG_BLOCK_UNKNOWN -1
-#define REG_BLOCK_GLOBAL -2
-
-#define REG_BASIC_BLOCK(N)				\
-  (VEC_index (reg_info_p, reg_n_info, N)->basic_block)
 
 /* Stuff for recording basic block info.  */
 
@@ -484,8 +491,6 @@ extern void compute_bb_for_insn (void);
 extern unsigned int free_bb_for_insn (void);
 extern void update_bb_for_insn (basic_block);
 
-extern void free_basic_block_vars (void);
-
 extern void insert_insn_on_edge (rtx, edge);
 basic_block split_edge_and_insert (edge, rtx);
 
@@ -499,13 +504,14 @@ extern edge unchecked_make_edge (basic_block, basic_block, int);
 extern edge cached_make_edge (sbitmap, basic_block, basic_block, int);
 extern edge make_edge (basic_block, basic_block, int);
 extern edge make_single_succ_edge (basic_block, basic_block, int);
-extern void remove_edge (edge);
+extern void remove_edge_raw (edge);
 extern void redirect_edge_succ (edge, basic_block);
 extern edge redirect_edge_succ_nodup (edge, basic_block);
 extern void redirect_edge_pred (edge, basic_block);
 extern basic_block create_basic_block_structure (rtx, rtx, rtx, basic_block);
 extern void clear_bb_flags (void);
-extern int post_order_compute (int *, bool);
+extern int post_order_compute (int *, bool, bool);
+extern int inverted_post_order_compute (int *);
 extern int pre_and_rev_post_order_compute (int *, int *, bool);
 extern int dfs_enumerate_from (basic_block, int,
 			       bool (*)(basic_block, void *),
@@ -515,7 +521,6 @@ extern void dump_bb_info (basic_block, bool, bool, int, const char *, FILE *);
 extern void dump_edge_info (FILE *, edge, int);
 extern void brief_dump_cfg (FILE *);
 extern void clear_edges (void);
-extern rtx first_insn_after_basic_block_note (basic_block);
 extern void scale_bbs_frequencies_int (basic_block *, int, int, int);
 extern void scale_bbs_frequencies_gcov_type (basic_block *, int, gcov_type,
 					     gcov_type);
@@ -788,76 +793,26 @@ void verify_edge_list (FILE *, struct edge_list *);
 int find_edge_index (struct edge_list *, basic_block, basic_block);
 edge find_edge (basic_block, basic_block);
 
-
-enum update_life_extent
-{
-  UPDATE_LIFE_LOCAL = 0,
-  UPDATE_LIFE_GLOBAL = 1,
-  UPDATE_LIFE_GLOBAL_RM_NOTES = 2
-};
-
-/* Flags for life_analysis and update_life_info.  */
-
-#define PROP_DEATH_NOTES	1	/* Create DEAD and UNUSED notes.  */
-#define PROP_LOG_LINKS		2	/* Create LOG_LINKS.  */
-#define PROP_REG_INFO		4	/* Update regs_ever_live et al.  */
-#define PROP_KILL_DEAD_CODE	8	/* Remove dead code.  */
-#define PROP_SCAN_DEAD_CODE	16	/* Scan for dead code.  */
-#define PROP_ALLOW_CFG_CHANGES	32	/* Allow the CFG to be changed
-					   by dead code removal.  */
-#define PROP_AUTOINC		64	/* Create autoinc mem references.  */
-#define PROP_SCAN_DEAD_STORES	128	/* Scan for dead code.  */
-#define PROP_ASM_SCAN		256	/* Internal flag used within flow.c
-					   to flag analysis of asms.  */
-#define PROP_DEAD_INSN		1024	/* Internal flag used within flow.c
-					   to flag analysis of dead insn.  */
-#define PROP_POST_REGSTACK	2048	/* We run after reg-stack and need
-					   to preserve REG_DEAD notes for
-					   stack regs.  */
-#define PROP_FINAL		(PROP_DEATH_NOTES | PROP_LOG_LINKS  \
-				 | PROP_REG_INFO | PROP_KILL_DEAD_CODE  \
-				 | PROP_SCAN_DEAD_CODE | PROP_AUTOINC \
-				 | PROP_ALLOW_CFG_CHANGES \
-				 | PROP_SCAN_DEAD_STORES)
-#define PROP_POSTRELOAD		(PROP_DEATH_NOTES  \
-				 | PROP_KILL_DEAD_CODE  \
-				 | PROP_SCAN_DEAD_CODE \
-				 | PROP_SCAN_DEAD_STORES)
-
 #define CLEANUP_EXPENSIVE	1	/* Do relatively expensive optimizations
 					   except for edge forwarding */
 #define CLEANUP_CROSSJUMP	2	/* Do crossjumping.  */
 #define CLEANUP_POST_REGSTACK	4	/* We run after reg-stack and need
 					   to care REG_DEAD notes.  */
-#define CLEANUP_UPDATE_LIFE	8	/* Keep life information up to date.  */
-#define CLEANUP_THREADING	16	/* Do jump threading.  */
-#define CLEANUP_NO_INSN_DEL	32	/* Do not try to delete trivially dead
+#define CLEANUP_THREADING	8	/* Do jump threading.  */
+#define CLEANUP_NO_INSN_DEL	16	/* Do not try to delete trivially dead
 					   insns.  */
-#define CLEANUP_CFGLAYOUT	64	/* Do cleanup in cfglayout mode.  */
-#define CLEANUP_LOG_LINKS	128	/* Update log links.  */
+#define CLEANUP_CFGLAYOUT	32	/* Do cleanup in cfglayout mode.  */
 
 /* The following are ORed in on top of the CLEANUP* flags in calls to
    struct_equiv_block_eq.  */
-#define STRUCT_EQUIV_START	256	 /* Initializes the search range.  */
-#define STRUCT_EQUIV_RERUN	512	/* Rerun to find register use in
+#define STRUCT_EQUIV_START	64	 /* Initializes the search range.  */
+#define STRUCT_EQUIV_RERUN	128	/* Rerun to find register use in
 					   found equivalence.  */
-#define STRUCT_EQUIV_FINAL	1024	/* Make any changes necessary to get
+#define STRUCT_EQUIV_FINAL	256	/* Make any changes necessary to get
 					   actual equivalence.  */
-#define STRUCT_EQUIV_NEED_FULL_BLOCK 2048 /* struct_equiv_block_eq is required
+#define STRUCT_EQUIV_NEED_FULL_BLOCK 512 /* struct_equiv_block_eq is required
 					     to match only full blocks  */
-#define STRUCT_EQUIV_MATCH_JUMPS 4096	/* Also include the jumps at the end of the block in the comparison.  */
-
-extern void life_analysis (int);
-extern int update_life_info (sbitmap, enum update_life_extent, int);
-extern int update_life_info_in_dirty_blocks (enum update_life_extent, int);
-extern int count_or_remove_death_notes (sbitmap, int);
-extern int propagate_block (basic_block, regset, regset, regset, int);
-
-struct propagate_block_info;
-extern rtx propagate_one_insn (struct propagate_block_info *, rtx);
-extern struct propagate_block_info *init_propagate_block_info
- (basic_block, regset, regset, regset, int);
-extern void free_propagate_block_info (struct propagate_block_info *);
+#define STRUCT_EQUIV_MATCH_JUMPS 1024	/* Also include the jumps at the end of the block in the comparison.  */
 
 /* In lcm.c */
 extern struct edge_list *pre_edge_lcm (int, sbitmap *, sbitmap *,
@@ -883,31 +838,19 @@ extern void remove_predictions_associated_with_edge (edge);
 extern bool edge_probability_reliable_p (edge);
 extern bool br_prob_note_reliable_p (rtx);
 
-/* In flow.c */
+/* In cfg.c  */
+extern void dump_regset (regset, FILE *);
+extern void debug_regset (regset);
 extern void init_flow (void);
 extern void debug_bb (basic_block);
 extern basic_block debug_bb_n (int);
 extern void dump_regset (regset, FILE *);
 extern void debug_regset (regset);
-extern void allocate_reg_life_data (void);
 extern void expunge_block (basic_block);
 extern void link_block (basic_block, basic_block);
 extern void unlink_block (basic_block);
 extern void compact_blocks (void);
 extern basic_block alloc_block (void);
-extern void find_unreachable_blocks (void);
-extern int delete_noop_moves (void);
-extern basic_block force_nonfallthru (edge);
-extern rtx block_label (basic_block);
-extern bool forwarder_block_p (basic_block);
-extern bool purge_all_dead_edges (void);
-extern bool purge_dead_edges (basic_block);
-extern void find_many_sub_basic_blocks (sbitmap);
-extern void rtl_make_eh_edge (sbitmap, basic_block, rtx);
-extern bool can_fallthru (basic_block, basic_block);
-extern bool could_fall_through (basic_block, basic_block);
-extern void flow_nodes_print (const char *, const sbitmap, FILE *);
-extern void flow_edge_list_print (const char *, const edge *, int, FILE *);
 extern void alloc_aux_for_block (basic_block, int);
 extern void alloc_aux_for_blocks (int);
 extern void clear_aux_for_blocks (void);
@@ -916,7 +859,27 @@ extern void alloc_aux_for_edge (edge, int);
 extern void alloc_aux_for_edges (int);
 extern void clear_aux_for_edges (void);
 extern void free_aux_for_edges (void);
+
+/* In cfganal.c  */
+extern void find_unreachable_blocks (void);
+extern bool forwarder_block_p (basic_block);
+extern bool can_fallthru (basic_block, basic_block);
+extern bool could_fall_through (basic_block, basic_block);
+extern void flow_nodes_print (const char *, const sbitmap, FILE *);
+extern void flow_edge_list_print (const char *, const edge *, int, FILE *);
+
+/* In cfgrtl.c  */
+extern basic_block force_nonfallthru (edge);
+extern rtx block_label (basic_block);
+extern bool purge_all_dead_edges (void);
+extern bool purge_dead_edges (basic_block);
+
+/* In cfgbuild.c.  */
+extern void find_many_sub_basic_blocks (sbitmap);
+extern void rtl_make_eh_edge (sbitmap, basic_block, rtx);
 extern void find_basic_blocks (rtx);
+
+/* In cfgcleanup.c.  */
 extern bool cleanup_cfg (int);
 extern bool delete_unreachable_blocks (void);
 
@@ -937,13 +900,6 @@ enum cdi_direction
 {
   CDI_DOMINATORS = 1,
   CDI_POST_DOMINATORS = 2
-};
-
-enum dom_state
-{
-  DOM_NONE,		/* Not computed at all.  */
-  DOM_NO_FAST_QUERY,	/* The data is OK, but the fast query data are not usable.  */
-  DOM_OK		/* Everything is ok.  */
 };
 
 extern enum dom_state dom_info_state (enum cdi_direction);

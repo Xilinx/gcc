@@ -6,7 +6,7 @@
 
    GCC is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
-   Software Foundation; either version 2, or (at your option) any later
+   Software Foundation; either version 3, or (at your option) any later
    version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@
    for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_REAL_H
 #define GCC_REAL_H
@@ -191,6 +190,9 @@ extern bool real_isinf (const REAL_VALUE_TYPE *);
 
 /* Determine whether a floating-point value X is a NaN.  */
 extern bool real_isnan (const REAL_VALUE_TYPE *);
+
+/* Determine whether a floating-point value X is finite.  */
+extern bool real_isfinite (const REAL_VALUE_TYPE *);
 
 /* Determine whether a floating-point value X is negative.  */
 extern bool real_isneg (const REAL_VALUE_TYPE *);
@@ -388,7 +390,7 @@ extern REAL_VALUE_TYPE dconste;
 
 /* Function to return a real value (not a tree node)
    from a given integer constant.  */
-REAL_VALUE_TYPE real_value_from_int_cst (tree, tree);
+REAL_VALUE_TYPE real_value_from_int_cst (const_tree, const_tree);
 
 /* Given a CONST_DOUBLE in FROM, store into TO the value it represents.  */
 #define REAL_VALUE_FROM_CONST_DOUBLE(to, from) \
@@ -435,4 +437,8 @@ extern void mpfr_from_real (mpfr_ptr, const REAL_VALUE_TYPE *, mp_rnd_t);
 /* Check whether the real constant value given is an integer.  */
 extern bool real_isinteger (const REAL_VALUE_TYPE *c, enum machine_mode mode);
 
+/* Write into BUF the maximum representable finite floating-point
+   number, (1 - b**-p) * b**emax for a given FP format FMT as a hex
+   float string.  BUF must be large enough to contain the result.  */
+extern void get_max_float (const struct real_format *, char *, size_t);
 #endif /* ! GCC_REAL_H */

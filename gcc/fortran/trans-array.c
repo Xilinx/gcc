@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* trans-array.c-- Various array related code, including scalarization,
                    allocation, initialization and other support routines.  */
@@ -842,11 +841,9 @@ gfc_grow_array (stmtblock_t * pblock, tree desc, tree extra)
   arg1 = build2 (MULT_EXPR, gfc_array_index_type, tmp,
 		 fold_convert (gfc_array_index_type, size));
 
-  /* Pick the appropriate realloc function.  */
-  if (gfc_index_integer_kind == 4)
+  /* Pick the realloc function.  */
+  if (gfc_index_integer_kind == 4 || gfc_index_integer_kind == 8)
     tmp = gfor_fndecl_internal_realloc;
-  else if (gfc_index_integer_kind == 8)
-    tmp = gfor_fndecl_internal_realloc64;
   else
     gcc_unreachable ();
 
@@ -1596,7 +1593,7 @@ constant_array_constructor_loop_size (gfc_loopinfo * loop)
 	return NULL_TREE;
       if (!integer_zerop (loop->from[i]))
 	{
-	  /* Only allow non-zero "from" in one-dimensional arrays.  */
+	  /* Only allow nonzero "from" in one-dimensional arrays.  */
 	  if (loop->dimen != 1)
 	    return NULL_TREE;
 	  tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type,
@@ -1658,6 +1655,21 @@ gfc_trans_array_constructor (gfc_loopinfo * loop, gfc_ss * ss)
 
   /* See if the constructor determines the loop bounds.  */
   dynamic = false;
+
+  if (ss->expr->shape && loop->dimen > 1 && loop->to[0] == NULL_TREE)
+    {
+      /* We have a multidimensional parameter.  */
+      int n;
+      for (n = 0; n < ss->expr->rank; n++)
+      {
+	loop->from[n] = gfc_index_zero_node;
+	loop->to[n] = gfc_conv_mpz_to_tree (ss->expr->shape [n],
+					    gfc_index_integer_kind);
+	loop->to[n] = fold_build2 (MINUS_EXPR, gfc_array_index_type,
+				   loop->to[n], gfc_index_one_node);
+      }
+    }
+
   if (loop->to[0] == NULL_TREE)
     {
       mpz_t size;
@@ -1697,6 +1709,7 @@ gfc_trans_array_constructor (gfc_loopinfo * loop, gfc_ss * ss)
   desc = ss->data.info.descriptor;
   offset = gfc_index_zero_node;
   offsetvar = gfc_create_var_np (gfc_array_index_type, "offset");
+  TREE_NO_WARNING (offsetvar) = 1;
   TREE_USED (offsetvar) = 0;
   gfc_trans_array_constructor_value (&loop->pre, type, desc, c,
 				     &offset, &offsetvar, dynamic);
@@ -2278,6 +2291,9 @@ gfc_conv_array_ref (gfc_se * se, gfc_array_ref * ar, gfc_symbol * sym,
 	  /* Check array bounds.  */
 	  tree cond;
 	  char *msg;
+
+	  /* Evaluate the indexse.expr only once.  */
+	  indexse.expr = save_expr (indexse.expr);
 
 	  /* Lower bound.  */
 	  tmp = gfc_conv_array_lbound (se->expr, n);
@@ -3575,19 +3591,13 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree pstat)
   pointer = gfc_conv_descriptor_data_get (se->expr);
   STRIP_NOPS (pointer);
 
-  if (TYPE_PRECISION (gfc_array_index_type) == 32)
+  if (TYPE_PRECISION (gfc_array_index_type) == 32 ||
+      TYPE_PRECISION (gfc_array_index_type) == 64)
     {
       if (allocatable_array)
 	allocate = gfor_fndecl_allocate_array;
       else
 	allocate = gfor_fndecl_allocate;
-    }
-  else if (TYPE_PRECISION (gfc_array_index_type) == 64)
-    {
-      if (allocatable_array)
-	allocate = gfor_fndecl_allocate64_array;
-      else
-	allocate = gfor_fndecl_allocate64;
     }
   else
     gcc_unreachable ();
@@ -4819,7 +4829,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77)
 {
   tree ptr;
   tree desc;
-  tree tmp;
+  tree tmp = NULL_TREE;
   tree stmt;
   tree parent = DECL_CONTEXT (current_function_decl);
   bool full_array_var, this_array_result;
@@ -4931,7 +4941,8 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77)
          loop cleanup code.  */
       tmp = build_fold_indirect_ref (desc);
       tmp = gfc_conv_array_data (tmp);
-      tmp = build2 (NE_EXPR, boolean_type_node, ptr, tmp);
+      tmp = build2 (NE_EXPR, boolean_type_node,
+		    fold_convert (TREE_TYPE (tmp), ptr), tmp);
       tmp = build3_v (COND_EXPR, tmp, stmt, build_empty_stmt ());
 
       gfc_add_expr_to_block (&block, tmp);
@@ -5009,7 +5020,7 @@ gfc_duplicate_allocatable(tree dest, tree src, tree type, int rank)
   tree null_data;
   stmtblock_t block;
 
-  /* If the source is null, set the destination to null. */
+  /* If the source is null, set the destination to null.  */
   gfc_init_block (&block);
   gfc_conv_descriptor_data_set (&block, dest, null_pointer_node);
   null_data = gfc_finish_block (&block);
@@ -5126,7 +5137,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 
       gfc_add_expr_to_block (&loopbody, tmp);
 
-      /* Build the loop and return. */
+      /* Build the loop and return.  */
       gfc_init_loopinfo (&loop);
       loop.dimen = 1;
       loop.from[0] = gfc_index_zero_node;
@@ -5143,7 +5154,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
     }
 
   /* Otherwise, act on the components or recursively call self to
-     act on a chain of components. */
+     act on a chain of components.  */
   for (c = der_type->components; c; c = c->next)
     {
       bool cmp_has_alloc_comps = (c->ts.type == BT_DERIVED)

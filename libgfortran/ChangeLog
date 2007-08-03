@@ -1,3 +1,290 @@
+2007-07-30  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* libgfortran.h: Include <stdarg.h>.
+
+2007-07-29  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/32858
+	PR libfortran/30814
+	* configure.ac:  Added checks for presence of stdio.h and
+	stdarg.h.  Test presence of vsnprintf().
+	* configure: Regenerated.
+	* config.h.in:  Regenerated.
+	* libgfortran.h:  Include <stdio.h>.  Add printf attribute to
+	prototype of runtime_error.  Remove prototype for st_sprintf.
+	Add prototype for st_vprintf.
+	* runtime/main.c (store_exec_path):  Replace st_sprintf by sprintf.
+	* runtime/error.c (st_sprintf):  Remove.
+	(runtime_error):  Rewrite as a variadic function.  Call
+	st_vprintf().
+	* intrinsics/pack_generic.c:  Output extents of LHS and RHS for
+	bounds error.
+	* io/open.c (new_unit):  Replace st_sprintf by sprintf.
+	* io/list_read.c (convert_integer):  Likewise.
+	(parse_repeat):  Likewise.
+	(read_logical):  Likewise.
+	(read_character):  Likewise.
+	(parse_real):  Likewise.
+	(read_real):  Likewise.
+	(check_type):  Likewise.
+	(nml_parse_qualifyer):  Likewise.
+	(nml_read_obj):  Likewise.
+	(nml_get_ojb_data):  Likewise.
+	* io/unix.c (init_error_stream):  Remove.
+	(tempfile):  Replace st_sprintf by sprintf.
+	(st_vprintf):  New function.
+	(st_printf):  Rewrite to call st_vprintf.
+	* io/transfer.c (require_type):  Replace st_sprintf by sprintf.
+	* io/format.c (format_error):  Likewise.
+	* io/write.c (nml_write_obj):  Likewise.
+
+2007-07-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/transfer.c (st_set_nml_var_dim): Use index_type instead of
+	GFC_INTEGER_4 for array descriptor triplets.
+
+2007-07-27  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* io/unix.c (stream_ttyname): Mark argument as potentialy unused.
+
+2007-07-27  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/32035
+	* runtime/select.c (select_string): Adjust prototype and function
+	so that the return value is an integer, not a pointer.
+
+2007-07-24  Tobias Burnus  <burnus@net-b.de>
+
+	* libgfortran.h:  Add bounds_check to compile_options_t.
+
+2007-07-24  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/30814
+	* libgfortran.h:  Add bounds_check to compile_options_t.
+	* runtime/compile_options.c (set_options):  Add handling
+	of compile_options.bounds_check.
+	* intrinsics/pack_generic.c (pack_internal):  Also determine
+	the number of elements if compile_options.bounds_check is
+	true.  Raise runtime error if a different array shape is
+	detected.
+
+2007-07-23  Christopher D. Rickett  <crickett@lanl.gov>
+
+	PR fortran/32600
+	* intrinsics/iso_c_binding.c (c_funloc): Remove.
+	* intrinsics/iso_c_binding.h: Remove c_funloc.
+	* gfortran.map: Ditto.
+
+2007-07-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* io/read.c (convert_real): Generate error only on EINVAL.
+
+2007-07-21  Christopher D. Rickett  <crickett@lanl.gov>
+
+	PR fortran/32627
+	* libgfortran/intrinsics/iso_c_generated_procs.c: Add c_f_pointer
+	for character/string arguments.
+	* libgfortran/intrinsic/iso_c_binding.c (c_f_pointer_u0): Allow
+	the optional SHAPE arg to be any valid integer kind.
+	* libgfortran/gfortran.map: Add c_f_pointer_s0.
+	* libgfortran/mk-kinds-h.sh: Save smallest integer kind as default
+	character kind.
+	* libgfortran/intrinsics/iso_c_generated_procs.c: Add versions of
+	c_f_pointer for complex and logical types.
+	* libgfortran/gfortran.map: Add c_f_pointer versions for logical
+	and complex types.
+
+2007-07-19  Christopher D. Rickett  <crickett@lanl.gov>
+
+	PR fortran/32600
+	* libgfortran/intrinsics/iso_c_binding.c: Remove C_LOC.
+	* libgfortran/intrinsics/iso_c_binding.h: Ditto.
+	* libgfortran/gfortran.map: Ditto.
+
+2007-07-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+	    Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/32611
+	* runtime/compile_options.c (set_std): Remove.
+	(set_options): New function.
+	(init_compile_options): Add initialization for -fsign-zero option.
+	* gfortran.map (GFORTRAN_1.0): Rename _gfortran_set_std into
+	_gfortran_set_options.
+	* libgfortran.h (compile_options_t): Add sign_zero field.
+	* io/write.c (output_float): Use the sign bit of the value to determine
+	if a negative sign should be emitted for zero values.  Do not emit the
+	negative sign for zero if -fno-sign-zero was set during compile.
+	
+2007-07-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/32752
+	* io/unix.c (unix_stream): Move buffer pointer adjacent to small_buffer.
+	* io/transfer.c (formatted_transfer_scalar): If stream I/O, set
+	bytes_used to zero. Fix off by one error in calculation of pos and
+	skips. Eliminate duplicate pending_spaces check.
+
+2007-07-15  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/32357
+	* intrinsics/mvbits.c: Change prototype so that FROMPOS, LEN and
+	TOPOS arguments are C int.
+
+2007-07-09  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/32702
+	* io/unix.c (unix_stream): Restore buffer pointer and small_buffer.
+	(fd_alloc): If the number of bytes needed is greater than the default
+	BUFFER_SIZE, allocate a new buffer large enough.  Free the old buffer if
+	necessary. (fd_sfree): Restore use of buffer pointer.
+	(fd_close): Likewise. (fd_open): Likewise.
+	(init_error_stream): Likewise.
+	
+2007-07-09  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/32336
+	* m4/matmul.m4:  When the dimension of b is incorrect,
+	raise a runtime error instead of a failed assertion.
+	* generated/matmul_i1.c:  Regenerated.
+	* generated/matmul_i2.c:  Regenerated.
+	* generated/matmul_i4.c:  Regenerated.
+	* generated/matmul_i8.c:  Regenerated.
+	* generated/matmul_i16.c:  Regenerated.
+	* generated/matmul_r4.c:  Regenerated.
+	* generated/matmul_r8.c:  Regenerated.
+	* generated/matmul_r10.c:  Regenerated.
+	* generated/matmul_r16.c:  Regenerated.
+
+2007-07-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/32678
+	* io/transfer.c (formatted_transfer_scalar): Don't allow pending_spaces
+	to go negative.
+
+2007-07-08  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/32217
+	* intrinsics/unpack_generic.c:  If the destination array is
+	empty, return early.
+
+2007-07-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* aclocal.m4: Regenerated.
+
+2007-07-04  David Edelsohn  <edelsohn@gnu.org>
+
+	* configure.ac: SUBST CFLAGS.
+	* configure: Regenerate.
+
+2007-07-03  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* libgfortran.h: Mark internal_malloc_size as a malloc function.
+	* runtime/memory.c (internal_realloc_size): Remove.
+	(internal_realloc): Call realloc directly instead of
+	internal_realloc_size.
+	(allocate_size): Remove.
+	(allocate): Call malloc directly instead of allocate_size, mark as
+	malloc function.
+
+2007-07-02  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	Restore collateral damage from ISO C Binding merge.
+
+2007-06-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/32456
+	* io/unit.c (filename_from_unit): Don't use find_unit, instead search
+	for unit directly.
+
+2007-07-02  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* Makefile.in:  Regenerated with automake 1.9.6.
+
+2007-07-02  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* Makefile.in:  Remove extraneous kill.lo rule.
+
+2007-07-02  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/32239
+	* generated/pow_r*_i4.c: Removed.
+
+2007-07-01  Christopher D. Rickett  <crickett@lanl.gov>
+
+	* Makefile.in: Add support for iso_c_generated_procs.c and
+	iso_c_binding.c.
+	* Makefile.am: Ditto.
+	* intrinsics/iso_c_generated_procs.c: New file containing helper
+	functions.
+	* intrinsics/iso_c_binding.c: Ditto.
+	* intrinsics/iso_c_binding.h: New file
+	* gfortran.map: Include the __iso_c_binding_c_* functions.
+	* libgfortran.h: define GFC_NUM_RANK_BITS.
+
+2007-07-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/32239
+	* Makefile.am: Don't generate real**int4 pow functions.
+	* gfortran.map: Remove real**int4 pow symbols.
+	* Makefile.in: Regenerated.
+
+2007-07-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/32554
+	* io/write.c (output_float): Set edigits to a fixed size, avoiding
+	variation in field width calculation and eliminate buffer overrun.
+
+2007-07-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* runtime/memory.c (internal_realloc): Use index_type for size
+	argument instead of GFC_INTEGER_4.
+	(allocate_array): Likewise.
+	(allocate): Likewise, add ifdef around unnecessary check.
+	(internal_reallo64): Remove.
+	(allocate_array64): Remove.
+	(allocate64): Remove.
+	* gfortran.map: Remove symbols for 64-bit allocation functions.
+
+2007-06-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/32456
+	* io/unit.c (filename_from_unit): Don't use find_unit, instead search
+	for unit directly.
+
+2007-06-24  Adam Nemet  <anemet@caviumnetworks.com>
+
+	PR libfortran/32495
+	* runtime/backtrace.c (local_strcasestr): Rename from strcasestr.
+	(show_backtrace): Rename strcasestr to local_strcasestr.
+
+2007-06-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/32456
+	* runtime/error.c (show_locus): Update to emit the unit number
+	and file name involved with the error.  Use new function
+	filename_from_unit.
+	* libgfortran.h (filename_from_unit): Declare new function.
+	* io/unit.c (init_units): Set the unit file name for stdin, stdout,
+	and stderr for use later in error reporting.
+	(filename_from_unit): Add this new function.
+
+2007-06-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/32446
+	* io/write.c (output_float): Calculate ndigits correctly for large
+	numbered formats that must pad zeros before the decimal point.
+
+2007-06-15  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	PR libfortran/32345
+	* runtime/backtrace.c (show_backtrace): Only use snprintf if
+	available.
+
+2007-06-10  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/32235
+	* io/transfer.c (st_read): Remove test for end of file condition.
+	(next_record_r): Add test for end of file condition.
+
 2007-06-02  Paolo Bonzini  <bonzini@gnu.org>
 
 	* configure: Regenerate.

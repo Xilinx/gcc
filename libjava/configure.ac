@@ -564,6 +564,7 @@ if test "$libgcj_interpreter" = yes; then
 fi
 INTERPRETER="$libgcj_interpreter"
 AC_SUBST(INTERPRETER)
+AM_CONDITIONAL(INTERPRETER, test "$libgcj_interpreter" = yes)
 
 AC_MSG_CHECKING([for exception model to use])
 AC_LANG_PUSH(C++)
@@ -985,7 +986,6 @@ if test "x${with_newlib}" = "xyes"; then
    # we'll have.
    AC_DEFINE(HAVE_MEMMOVE, 1, [Define if you have memmove.])
    AC_DEFINE(HAVE_MEMCPY, 1, [Define if you have memcpy.])
-   AC_DEFINE(HAVE_STRERROR, 1, [Define if you have strerror.])
    AC_DEFINE(HAVE_TIME, 1, [Define if you have time.])
    AC_DEFINE(HAVE_GMTIME_R, 1, [Define if you have the 'gmtime_r' function])
    AC_DEFINE(HAVE_LOCALTIME_R, 1, [Define if you have the 'localtime_r' function.])
@@ -997,7 +997,7 @@ if test "x${with_newlib}" = "xyes"; then
    AC_DEFINE(NO_GETUID, 1, [Define if getuid() and friends are missing.])
    PLATFORMNET=NoNet
 else
-   AC_CHECK_FUNCS([strerror select fstat open fsync sleep opendir \
+   AC_CHECK_FUNCS([strerror_r select fstat open fsync sleep opendir \
                    localtime_r readdir_r getpwuid_r getcwd \
 		   access stat lstat mkdir rename rmdir unlink utime chmod readlink \
 		   nl_langinfo setlocale \
@@ -1248,7 +1248,16 @@ else
    # On Solaris, and maybe other architectures, the Boehm collector
    # requires -ldl.
    if test "$GC" = boehm; then
-      AC_CHECK_LIB(dl, main, SYSTEMSPEC="$SYSTEMSPEC -ldl")
+      case "${host}" in
+          mips-sgi-irix6*)
+	    # IRIX 6 lacks a N64 libdl.so, but only the N32 (default multilib)
+	    # libgcj.spec is used, so override here
+	    SYSTEMSPEC="$SYSTEMSPEC %{!mabi=64:-ldl}"
+	  ;;
+	  *)
+            AC_CHECK_LIB(dl, main, SYSTEMSPEC="$SYSTEMSPEC -ldl")
+	  ;;
+      esac
    fi
 fi
 
@@ -1359,24 +1368,26 @@ AC_SUBST(toolexecdir)
 AC_SUBST(toolexecmainlibdir)
 AC_SUBST(toolexeclibdir)
 
+# Determine gcj and libgcj version number.
+gcjversion=`$GCJ -v 2>&1 | sed -n 's/^.*version \([[^ ]]*\).*$/\1/p'`
+libgcj_soversion=`awk -F: '/^[[^#]].*:/ { print $1 }' $srcdir/libtool-version`
+GCJVERSION=$gcjversion
+AC_SUBST(GCJVERSION)
+AC_DEFINE_UNQUOTED(GCJVERSION, "$GCJVERSION", [Short GCJ version ID])
+
 # Determine where the standard .db file and GNU Classpath JNI
 # libraries are found.
 multi_os_directory=`$CC -print-multi-os-directory`
 case $multi_os_directory in
   .)
-   dbexecdir='$(libdir)/gcj-$(gcc_version)' # Avoid /.
+   dbexecdir='$(libdir)/gcj-$(gcc_version)'-$libgcj_soversion # Avoid /.
    ;;
   *)
-   dbexecdir='$(libdir)/'$multi_os_directory'/gcj-$(gcc_version)'
+   dbexecdir='$(libdir)/'$multi_os_directory'/gcj-$(gcc_version)'-$libgcj_soversion
    ;;
 esac
 AC_SUBST(dbexecdir)
-
-# Determine gcj version number.
-gcjversion=`$GCJ -v 2>&1 | sed -n 's/^.*version \([[^ ]]*\).*$/\1/p'`
-GCJVERSION=$gcjversion
-AC_SUBST(GCJVERSION)
-AC_DEFINE_UNQUOTED(GCJVERSION, "$GCJVERSION", [Short GCJ version ID])
+ac_configure_args="$ac_configure_args --with-native-libdir=\$\(toolexeclibdir\)/gcj-$gcjversion-$libgcj_soversion"
 
 AC_DEFINE(JV_VERSION, "1.5.0", [Compatibility version string])
 AC_DEFINE(JV_API_VERSION, "1.5", [API compatibility version string])

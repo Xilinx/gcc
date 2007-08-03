@@ -1,11 +1,11 @@
 ;; Predicate definitions for Motorola 68000.
-;; Copyright (C) 2005 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;; Special case of a general operand that's used as a source
 ;; operand. Use this to permit reads from PC-relative memory when
@@ -159,7 +158,7 @@
     }
 })
 
-;; A constant that can be used the address in a call or sibcall insn.
+;; A constant that can be used the address in a call insn
 (define_predicate "const_call_operand"
   (ior (match_operand 0 "const_int_operand")
        (and (match_test "m68k_symbolic_call != NULL")
@@ -170,9 +169,15 @@
   (ior (match_operand 0 "const_call_operand")
        (match_operand 0 "register_operand")))
 
+;; A constant that can be used the address in a sibcall insn
+(define_predicate "const_sibcall_operand"
+  (ior (match_operand 0 "const_int_operand")
+       (and (match_test "m68k_symbolic_jump != NULL")
+	    (match_operand 0 "symbolic_operand"))))
+
 ;; An operand that can be used as the address in a sibcall insn.
 (define_predicate "sibcall_operand"
-  (ior (match_operand 0 "const_call_operand")
+  (ior (match_operand 0 "const_sibcall_operand")
        (and (match_code "reg")
 	    (match_test "REGNO (op) == STATIC_CHAIN_REGNUM"))))
 

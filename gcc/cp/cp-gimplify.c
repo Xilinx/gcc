@@ -1,13 +1,14 @@
 /* C++-specific tree lowering bits; see also c-gimplify.c and tree-gimple.c.
 
-   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Jason Merrill <jason@redhat.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -802,8 +802,7 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
 	start2 = build_fold_addr_expr (start2);
 
       end1 = TYPE_SIZE_UNIT (TREE_TYPE (arg1));
-      end1 = fold_convert (TREE_TYPE (start1), end1);
-      end1 = build2 (PLUS_EXPR, TREE_TYPE (start1), start1, end1);
+      end1 = build2 (POINTER_PLUS_EXPR, TREE_TYPE (start1), start1, end1);
 
       p1 = create_tmp_var (TREE_TYPE (start1), NULL);
       t = build2 (GIMPLE_MODIFY_STMT, void_type_node, p1, start1);
@@ -830,15 +829,15 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
       t = build_call_a (fn, i, argarray);
       append_to_statement_list (t, &ret);
 
-      t = fold_convert (TREE_TYPE (p1), TYPE_SIZE_UNIT (inner_type));
-      t = build2 (PLUS_EXPR, TREE_TYPE (p1), p1, t);
+      t = TYPE_SIZE_UNIT (inner_type);
+      t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (p1), p1, t);
       t = build2 (GIMPLE_MODIFY_STMT, void_type_node, p1, t);
       append_to_statement_list (t, &ret);
 
       if (arg2)
 	{
-	  t = fold_convert (TREE_TYPE (p2), TYPE_SIZE_UNIT (inner_type));
-	  t = build2 (PLUS_EXPR, TREE_TYPE (p2), p2, t);
+	  t = TYPE_SIZE_UNIT (inner_type);
+	  t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (p2), p2, t);
 	  t = build2 (GIMPLE_MODIFY_STMT, void_type_node, p2, t);
 	  append_to_statement_list (t, &ret);
 	}

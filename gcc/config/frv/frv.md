@@ -1,13 +1,13 @@
 ;; Frv Machine Description
-;; Copyright (C) 1999, 2000, 2001, 2003, 2004, 2005 Free Software Foundation,
-;; Inc.
+;; Copyright (C) 1999, 2000, 2001, 2003, 2004, 2005, 2007
+;; Free Software Foundation, Inc.
 ;; Contributed by Red Hat, Inc.
 
 ;; This file is part of GCC.
 
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;;- See file "rtl.def" for documentation on define_insn, match_*, et. al.
 
@@ -7874,7 +7873,7 @@
   ""
   "
 {
-  if (no_new_pseudos)
+  if (!can_create_pseudo_p ())
     operands[6] = operands[5] = operands[0];
   else
     {
@@ -7902,7 +7901,7 @@
   ""
   "
 {
-  if (no_new_pseudos)
+  if (!can_create_pseudo_p ())
     operands[6] = operands[5] = operands[0];
   else
     {
@@ -7950,7 +7949,7 @@
 {
   rtx insn;
 
-  if (no_new_pseudos)
+  if (!can_create_pseudo_p ())
     operands[4] = operands[0];
   else
     operands[4] = gen_reg_rtx (SImode);
@@ -7976,7 +7975,7 @@
 {
   rtx insn;
 
-  if (no_new_pseudos)
+  if (!can_create_pseudo_p ())
     {
       emit_insn (gen_symGOT2reg (operands[0], operands[1], operands[2],
 				 GEN_INT (R_FRV_GOT12)));

@@ -1,12 +1,12 @@
 /* Definitions for c-common.c.
    Copyright (C) 1987, 1993, 1994, 1995, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_C_COMMON_H
 #define GCC_C_COMMON_H
@@ -102,7 +101,7 @@ enum rid
   RID_IS_UNION,
 
   /* C++0x */
-  RID_STATIC_ASSERT,
+  RID_STATIC_ASSERT, RID_DECLTYPE,
 
   /* Objective-C */
   RID_AT_ENCODE,   RID_AT_END,
@@ -120,7 +119,7 @@ enum rid
   RID_LAST_MODIFIER = RID_ONEWAY,
 
   RID_FIRST_CXX0X = RID_STATIC_ASSERT,
-  RID_LAST_CXX0X = RID_STATIC_ASSERT,
+  RID_LAST_CXX0X = RID_DECLTYPE,
   RID_FIRST_AT = RID_AT_ENCODE,
   RID_LAST_AT = RID_AT_IMPLEMENTATION,
   RID_FIRST_PQ = RID_IN,
@@ -543,10 +542,18 @@ extern int flag_access_control;
 
 extern int flag_check_new;
 
-/* Nonzero if we want to allow the use of experimental features that
-   are likely to become part of C++0x. */
+/* The supported C++ dialects.  */
 
-extern int flag_cpp0x;
+enum cxx_dialect {
+  /* C++98  */
+  cxx98,
+  /* Experimental features that are likely to become part of
+     C++0x.  */
+  cxx0x
+};
+
+/* The C++ dialect being used. C++98 is the default.  */
+extern enum cxx_dialect cxx_dialect;
 
 /* Nonzero if we want the new ISO rules for pushing a new scope for `for'
    initialization variables.
@@ -667,6 +674,7 @@ extern int c_common_handle_option (size_t code, const char *arg, int value);
 extern bool c_common_missing_argument (const char *opt, size_t code);
 extern tree c_common_type_for_mode (enum machine_mode, int);
 extern tree c_common_type_for_size (unsigned int, int);
+extern tree c_common_unsigned_type (tree);
 extern tree c_common_signed_type (tree);
 extern tree c_common_signed_or_unsigned_type (int, tree);
 extern tree c_build_bitfield_integer_type (unsigned HOST_WIDE_INT, int);

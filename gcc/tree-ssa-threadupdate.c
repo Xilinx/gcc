@@ -1,11 +1,11 @@
 /* Thread edges through blocks and update the control flow and SSA graphs.
-   Copyright (C) 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -223,15 +222,15 @@ create_block_for_threading (basic_block bb, struct redirection_data *rd)
 static hashval_t
 redirection_data_hash (const void *p)
 {
-  edge e = ((struct redirection_data *)p)->outgoing_edge;
+  edge e = ((const struct redirection_data *)p)->outgoing_edge;
   return e->dest->index;
 }
 
 static int
 redirection_data_eq (const void *p1, const void *p2)
 {
-  edge e1 = ((struct redirection_data *)p1)->outgoing_edge;
-  edge e2 = ((struct redirection_data *)p2)->outgoing_edge;
+  edge e1 = ((const struct redirection_data *)p1)->outgoing_edge;
+  edge e2 = ((const struct redirection_data *)p2)->outgoing_edge;
 
   return e1 == e2;
 }
@@ -313,6 +312,7 @@ create_edge_and_update_destination_phis (struct redirection_data *rd)
   edge e = make_edge (rd->dup_block, rd->outgoing_edge->dest, EDGE_FALLTHRU);
   tree phi;
 
+  rescan_loop_exit (e, true, false);
   e->probability = REG_BR_PROB_BASE;
   e->count = rd->dup_block->count;
   e->aux = rd->outgoing_edge->aux;
@@ -533,7 +533,7 @@ thread_block (basic_block bb, bool noloop_only)
   if (loop->header == bb)
     {
       e = loop_latch_edge (loop);
-      e2 = e->aux;
+      e2 = (edge) e->aux;
 
       if (e2 && loop_exit_edge_p (loop, e2))
 	{
@@ -546,7 +546,7 @@ thread_block (basic_block bb, bool noloop_only)
      efficient lookups.  */
   FOR_EACH_EDGE (e, ei, bb->preds)
     {
-      e2 = e->aux;
+      e2 = (edge) e->aux;
 
       if (!e2
 	  /* If NOLOOP_ONLY is true, we only allow threading through the
@@ -560,7 +560,7 @@ thread_block (basic_block bb, bool noloop_only)
 	}
 
       update_bb_profile_for_threading (e->dest, EDGE_FREQUENCY (e),
-				       e->count, e->aux);
+				       e->count, (edge) e->aux);
 
       /* Insert the outgoing edge into the hash table if it is not
 	 already in the hash table.  */
@@ -573,7 +573,7 @@ thread_block (basic_block bb, bool noloop_only)
      DO_NOT_DUPLICATE attribute.  */
   if (all)
     {
-      edge e = EDGE_PRED (bb, 0)->aux;
+      edge e = (edge) EDGE_PRED (bb, 0)->aux;
       lookup_redirection_data (e, NULL, NO_INSERT)->do_not_duplicate = true;
     }
 
@@ -623,7 +623,7 @@ static basic_block
 thread_single_edge (edge e)
 {
   basic_block bb = e->dest;
-  edge eto = e->aux;
+  edge eto = (edge) e->aux;
   struct redirection_data rd;
   struct local_info local_info;
 
@@ -636,6 +636,11 @@ thread_single_edge (edge e)
       /* If BB has just a single predecessor, we should only remove the
 	 control statements at its end, and successors except for ETO.  */
       remove_ctrl_stmt_and_useless_edges (bb, eto->dest);
+
+      /* And fixup the flags on the single remaining edge.  */
+      eto->flags &= ~(EDGE_TRUE_VALUE | EDGE_FALSE_VALUE | EDGE_ABNORMAL);
+      eto->flags |= EDGE_FALLTHRU;
+
       return bb;
     }
 
@@ -822,7 +827,7 @@ thread_through_loop_header (struct loop *loop, bool may_peel_loop_headers)
 
   if (latch->aux)
     {
-      tgt_edge = latch->aux;
+      tgt_edge = (edge) latch->aux;
       tgt_bb = tgt_edge->dest;
     }
   else if (!may_peel_loop_headers
@@ -845,7 +850,7 @@ thread_through_loop_header (struct loop *loop, bool may_peel_loop_headers)
 	      goto fail;
 	    }
 
-	  tgt_edge = e->aux;
+	  tgt_edge = (edge) e->aux;
 	  atgt_bb = tgt_edge->dest;
 	  if (!tgt_bb)
 	    tgt_bb = atgt_bb;
@@ -1070,6 +1075,9 @@ thread_through_all_blocks (bool may_peel_loop_headers)
   threaded_blocks = NULL;
   VEC_free (edge, heap, threaded_edges);
   threaded_edges = NULL;
+
+  if (retval)
+    current_loops->state |= LOOPS_NEED_FIXUP;
 
   return retval;
 }

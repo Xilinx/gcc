@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -50,6 +49,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "target-def.h"
 #include "langhooks.h"
 #include "tree-gimple.h"
+#include "df.h"
 
 
 /* Enumeration for all of the relational tests, so that we can build
@@ -1180,9 +1180,8 @@ xtensa_expand_nonlocal_goto (rtx *operands)
   if (GET_CODE (containing_fp) != REG)
     containing_fp = force_reg (Pmode, containing_fp);
 
-  goto_handler = replace_rtx (copy_rtx (goto_handler),
-			      virtual_stack_vars_rtx,
-			      containing_fp);
+  goto_handler = copy_rtx (goto_handler);
+  validate_replace_rtx (virtual_stack_vars_rtx, containing_fp, goto_handler);
 
   emit_library_call (gen_rtx_SYMBOL_REF (Pmode, "__xtensa_nonlocal_goto"),
 		     0, VOIDmode, 2,
@@ -1195,6 +1194,263 @@ static struct machine_function *
 xtensa_init_machine_status (void)
 {
   return ggc_alloc_cleared (sizeof (struct machine_function));
+}
+
+
+/* Shift VAL of mode MODE left by COUNT bits.  */
+
+static inline rtx
+xtensa_expand_mask_and_shift (rtx val, enum machine_mode mode, rtx count)
+{
+  val = expand_simple_binop (SImode, AND, val, GEN_INT (GET_MODE_MASK (mode)),
+			     NULL_RTX, 1, OPTAB_DIRECT);
+  return expand_simple_binop (SImode, ASHIFT, val, count,
+			      NULL_RTX, 1, OPTAB_DIRECT);
+}
+
+
+/* Structure to hold the initial parameters for a compare_and_swap operation
+   in HImode and QImode.  */
+
+struct alignment_context
+{
+  rtx memsi;	  /* SI aligned memory location.  */
+  rtx shift;	  /* Bit offset with regard to lsb.  */
+  rtx modemask;	  /* Mask of the HQImode shifted by SHIFT bits.  */
+  rtx modemaski;  /* ~modemask */
+};
+
+
+/* Initialize structure AC for word access to HI and QI mode memory.  */
+
+static void
+init_alignment_context (struct alignment_context *ac, rtx mem)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  rtx byteoffset = NULL_RTX;
+  bool aligned = (MEM_ALIGN (mem) >= GET_MODE_BITSIZE (SImode));
+
+  if (aligned)
+    ac->memsi = adjust_address (mem, SImode, 0); /* Memory is aligned.  */
+  else
+    {
+      /* Alignment is unknown.  */
+      rtx addr, align;
+
+      /* Force the address into a register.  */
+      addr = force_reg (Pmode, XEXP (mem, 0));
+
+      /* Align it to SImode.  */
+      align = expand_simple_binop (Pmode, AND, addr,
+				   GEN_INT (-GET_MODE_SIZE (SImode)),
+				   NULL_RTX, 1, OPTAB_DIRECT);
+      /* Generate MEM.  */
+      ac->memsi = gen_rtx_MEM (SImode, align);
+      MEM_VOLATILE_P (ac->memsi) = MEM_VOLATILE_P (mem);
+      set_mem_alias_set (ac->memsi, ALIAS_SET_MEMORY_BARRIER);
+      set_mem_align (ac->memsi, GET_MODE_BITSIZE (SImode));
+
+      byteoffset = expand_simple_binop (Pmode, AND, addr,
+					GEN_INT (GET_MODE_SIZE (SImode) - 1),
+					NULL_RTX, 1, OPTAB_DIRECT);
+    }
+
+  /* Calculate shiftcount.  */
+  if (TARGET_BIG_ENDIAN)
+    {
+      ac->shift = GEN_INT (GET_MODE_SIZE (SImode) - GET_MODE_SIZE (mode));
+      if (!aligned)
+	ac->shift = expand_simple_binop (SImode, MINUS, ac->shift, byteoffset,
+					 NULL_RTX, 1, OPTAB_DIRECT);
+    }
+  else
+    {
+      if (aligned)
+	ac->shift = NULL_RTX;
+      else
+	ac->shift = byteoffset;
+    }
+
+  if (ac->shift != NULL_RTX)
+    {
+      /* Shift is the byte count, but we need the bitcount.  */
+      ac->shift = expand_simple_binop (SImode, MULT, ac->shift,
+				       GEN_INT (BITS_PER_UNIT),
+				       NULL_RTX, 1, OPTAB_DIRECT);
+      ac->modemask = expand_simple_binop (SImode, ASHIFT,
+					  GEN_INT (GET_MODE_MASK (mode)),
+					  ac->shift,
+					  NULL_RTX, 1, OPTAB_DIRECT);
+    }
+  else
+    ac->modemask = GEN_INT (GET_MODE_MASK (mode));
+
+  ac->modemaski = expand_simple_unop (SImode, NOT, ac->modemask, NULL_RTX, 1);
+}
+
+
+/* Expand an atomic compare and swap operation for HImode and QImode.
+   MEM is the memory location, CMP the old value to compare MEM with
+   and NEW the value to set if CMP == MEM.  */
+
+void
+xtensa_expand_compare_and_swap (rtx target, rtx mem, rtx cmp, rtx new)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  struct alignment_context ac;
+  rtx tmp, cmpv, newv, val;
+  rtx oldval = gen_reg_rtx (SImode);
+  rtx res = gen_reg_rtx (SImode);
+  rtx csloop = gen_label_rtx ();
+  rtx csend = gen_label_rtx ();
+
+  init_alignment_context (&ac, mem);
+
+  if (ac.shift != NULL_RTX)
+    {
+      cmp = xtensa_expand_mask_and_shift (cmp, mode, ac.shift);
+      new = xtensa_expand_mask_and_shift (new, mode, ac.shift);
+    }
+
+  /* Load the surrounding word into VAL with the MEM value masked out.  */
+  val = force_reg (SImode, expand_simple_binop (SImode, AND, ac.memsi,
+						ac.modemaski, NULL_RTX, 1,
+						OPTAB_DIRECT));
+  emit_label (csloop);
+
+  /* Patch CMP and NEW into VAL at correct position.  */
+  cmpv = force_reg (SImode, expand_simple_binop (SImode, IOR, cmp, val,
+						 NULL_RTX, 1, OPTAB_DIRECT));
+  newv = force_reg (SImode, expand_simple_binop (SImode, IOR, new, val,
+						 NULL_RTX, 1, OPTAB_DIRECT));
+
+  /* Jump to end if we're done.  */
+  emit_insn (gen_sync_compare_and_swapsi (res, ac.memsi, cmpv, newv));
+  emit_cmp_and_jump_insns (res, cmpv, EQ, const0_rtx, SImode, true, csend);
+
+  /* Check for changes outside mode.  */
+  emit_move_insn (oldval, val);
+  tmp = expand_simple_binop (SImode, AND, res, ac.modemaski,
+			     val, 1, OPTAB_DIRECT);
+  if (tmp != val)
+    emit_move_insn (val, tmp);
+
+  /* Loop internal if so.  */
+  emit_cmp_and_jump_insns (oldval, val, NE, const0_rtx, SImode, true, csloop);
+
+  emit_label (csend);
+
+  /* Return the correct part of the bitfield.  */
+  convert_move (target,
+		(ac.shift == NULL_RTX ? res
+		 : expand_simple_binop (SImode, LSHIFTRT, res, ac.shift,
+					NULL_RTX, 1, OPTAB_DIRECT)),
+		1);
+}
+
+
+/* Expand an atomic operation CODE of mode MODE (either HImode or QImode --
+   the default expansion works fine for SImode).  MEM is the memory location
+   and VAL the value to play with.  If AFTER is true then store the value
+   MEM holds after the operation, if AFTER is false then store the value MEM
+   holds before the operation.  If TARGET is zero then discard that value, else
+   store it to TARGET.  */
+
+void
+xtensa_expand_atomic (enum rtx_code code, rtx target, rtx mem, rtx val,
+		      bool after)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  struct alignment_context ac;
+  rtx csloop = gen_label_rtx ();
+  rtx cmp, tmp;
+  rtx old = gen_reg_rtx (SImode);
+  rtx new = gen_reg_rtx (SImode);
+  rtx orig = NULL_RTX;
+
+  init_alignment_context (&ac, mem);
+
+  /* Prepare values before the compare-and-swap loop.  */
+  if (ac.shift != NULL_RTX)
+    val = xtensa_expand_mask_and_shift (val, mode, ac.shift);
+  switch (code)
+    {
+    case PLUS:
+    case MINUS:
+      orig = gen_reg_rtx (SImode);
+      convert_move (orig, val, 1);
+      break;
+
+    case SET:
+    case IOR:
+    case XOR:
+      break;
+
+    case MULT: /* NAND */
+    case AND:
+      /* val = "11..1<val>11..1" */
+      val = expand_simple_binop (SImode, XOR, val, ac.modemaski,
+				 NULL_RTX, 1, OPTAB_DIRECT);
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  /* Load full word.  Subsequent loads are performed by S32C1I.  */
+  cmp = force_reg (SImode, ac.memsi);
+
+  emit_label (csloop);
+  emit_move_insn (old, cmp);
+
+  switch (code)
+    {
+    case PLUS:
+    case MINUS:
+      val = expand_simple_binop (SImode, code, old, orig,
+				 NULL_RTX, 1, OPTAB_DIRECT);
+      val = expand_simple_binop (SImode, AND, val, ac.modemask,
+				 NULL_RTX, 1, OPTAB_DIRECT);
+      /* FALLTHRU */
+    case SET:
+      tmp = expand_simple_binop (SImode, AND, old, ac.modemaski,
+				 NULL_RTX, 1, OPTAB_DIRECT);
+      tmp = expand_simple_binop (SImode, IOR, tmp, val,
+				 new, 1, OPTAB_DIRECT);
+      break;
+
+    case AND:
+    case IOR:
+    case XOR:
+      tmp = expand_simple_binop (SImode, code, old, val,
+				 new, 1, OPTAB_DIRECT);
+      break;
+
+    case MULT: /* NAND */
+      tmp = expand_simple_binop (SImode, XOR, old, ac.modemask,
+				 NULL_RTX, 1, OPTAB_DIRECT);
+      tmp = expand_simple_binop (SImode, AND, tmp, val,
+				 new, 1, OPTAB_DIRECT);
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  if (tmp != new)
+    emit_move_insn (new, tmp);
+  emit_insn (gen_sync_compare_and_swapsi (cmp, ac.memsi, old, new));
+  emit_cmp_and_jump_insns (cmp, old, NE, const0_rtx, SImode, true, csloop);
+
+  if (target)
+    {
+      tmp = (after ? new : cmp);
+      convert_move (target,
+		    (ac.shift == NULL_RTX ? tmp
+		     : expand_simple_binop (SImode, LSHIFTRT, tmp, ac.shift,
+					    NULL_RTX, 1, OPTAB_DIRECT)),
+		    1);
+    }
 }
 
 
@@ -2078,9 +2334,12 @@ xtensa_expand_prologue (void)
 	       insn = NEXT_INSN (insn))
 	    {
 	      if (INSN_P (insn))
-		PATTERN (insn) = replace_rtx (copy_rtx (PATTERN (insn)),
-					      hard_frame_pointer_rtx,
-					      stack_pointer_rtx);
+		{
+		  PATTERN (insn) = replace_rtx (copy_rtx (PATTERN (insn)),
+						hard_frame_pointer_rtx,
+						stack_pointer_rtx);
+		  df_insn_rescan (insn);
+		}
 	    }
 	}
       else
@@ -2176,7 +2435,7 @@ xtensa_build_builtin_va_list (void)
 static rtx
 xtensa_builtin_saveregs (void)
 {
-  rtx gp_regs, dest;
+  rtx gp_regs;
   int arg_words = current_function_args_info.arg_words;
   int gp_left = MAX_ARGS_IN_REGISTERS - arg_words;
 
@@ -2189,12 +2448,12 @@ xtensa_builtin_saveregs (void)
   set_mem_alias_set (gp_regs, get_varargs_alias_set ());
 
   /* Now store the incoming registers.  */
-  dest = change_address (gp_regs, SImode,
-			 plus_constant (XEXP (gp_regs, 0),
-					arg_words * UNITS_PER_WORD));
   cfun->machine->need_a7_copy = true;
   cfun->machine->vararg_a7 = true;
-  move_block_from_reg (GP_ARG_FIRST + arg_words, dest, gp_left);
+  move_block_from_reg (GP_ARG_FIRST + arg_words,
+		       adjust_address (gp_regs, BLKmode,
+				       arg_words * UNITS_PER_WORD),
+		       gp_left);
 
   return XEXP (gp_regs, 0);
 }
@@ -2223,15 +2482,15 @@ xtensa_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   ndx = build3 (COMPONENT_REF, TREE_TYPE (f_ndx), valist, f_ndx, NULL_TREE);
 
   /* Call __builtin_saveregs; save the result in __va_reg */
-  u = make_tree (ptr_type_node, expand_builtin_saveregs ());
+  u = make_tree (sizetype, expand_builtin_saveregs ());
+  u = fold_convert (ptr_type_node, u);
   t = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, reg, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
   /* Set the __va_stk member to ($arg_ptr - 32).  */
   u = make_tree (ptr_type_node, virtual_incoming_args_rtx);
-  u = fold_build2 (PLUS_EXPR, ptr_type_node, u,
-		   build_int_cst (NULL_TREE, -32));
+  u = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, u, size_int (-32));
   t = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, stk, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -2241,8 +2500,8 @@ xtensa_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
      alignment offset for __va_stk.  */
   if (arg_words >= MAX_ARGS_IN_REGISTERS)
     arg_words += 2;
-  u = build_int_cst (NULL_TREE, arg_words * UNITS_PER_WORD);
-  t = build2 (GIMPLE_MODIFY_STMT, integer_type_node, ndx, u);
+  t = build2 (GIMPLE_MODIFY_STMT, integer_type_node, ndx,
+	      size_int (arg_words * UNITS_PER_WORD));
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 }
@@ -2307,10 +2566,8 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
     {
       int align = MIN (TYPE_ALIGN (type), STACK_BOUNDARY) / BITS_PER_UNIT;
 
-      t = build2 (PLUS_EXPR, integer_type_node, orig_ndx,
-		  build_int_cst (NULL_TREE, align - 1));
-      t = build2 (BIT_AND_EXPR, integer_type_node, t,
-		  build_int_cst (NULL_TREE, -align));
+      t = build2 (PLUS_EXPR, integer_type_node, orig_ndx, size_int (align - 1));
+      t = build2 (BIT_AND_EXPR, integer_type_node, t, size_int (-align));
       t = build2 (GIMPLE_MODIFY_STMT, integer_type_node, orig_ndx, t);
       gimplify_and_add (t, pre_p);
     }
@@ -2340,8 +2597,8 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
       lab_false = create_artificial_label ();
       lab_over = create_artificial_label ();
 
-      t = build_int_cst (NULL_TREE, MAX_ARGS_IN_REGISTERS * UNITS_PER_WORD);
-      t = build2 (GT_EXPR, boolean_type_node, ndx, t);
+      t = build2 (GT_EXPR, boolean_type_node, ndx,
+		  size_int (MAX_ARGS_IN_REGISTERS * UNITS_PER_WORD));
       t = build3 (COND_EXPR, void_type_node, t,
 		  build1 (GOTO_EXPR, void_type_node, lab_false),
 		  NULL_TREE);
@@ -2370,8 +2627,8 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
 
   lab_false2 = create_artificial_label ();
 
-  t = build_int_cst (NULL_TREE, MAX_ARGS_IN_REGISTERS * UNITS_PER_WORD);
-  t = build2 (GT_EXPR, boolean_type_node, orig_ndx, t);
+  t = build2 (GT_EXPR, boolean_type_node, orig_ndx,
+	      size_int (MAX_ARGS_IN_REGISTERS * UNITS_PER_WORD));
   t = build3 (COND_EXPR, void_type_node, t,
 	      build1 (GOTO_EXPR, void_type_node, lab_false2),
 	      NULL_TREE);
@@ -2408,18 +2665,16 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p,
 
   if (BYTES_BIG_ENDIAN && TREE_CODE (type_size) == INTEGER_CST)
     {
-      t = size_int (PARM_BOUNDARY / BITS_PER_UNIT);
-      t = fold_build2 (GE_EXPR, boolean_type_node, type_size, t);
+      t = fold_build2 (GE_EXPR, boolean_type_node, type_size,
+		       size_int (PARM_BOUNDARY / BITS_PER_UNIT));
       t = fold_build3 (COND_EXPR, sizetype, t, va_size, type_size);
       size = t;
     }
   else
     size = va_size;
 
-  t = fold_convert (ptr_type_node, ndx);
-  addr = build2 (PLUS_EXPR, ptr_type_node, array, t);
-  t = fold_convert (ptr_type_node, size);
-  addr = build2 (MINUS_EXPR, ptr_type_node, addr, t);
+  t = build2 (MINUS_EXPR, sizetype, ndx, size);
+  addr = build2 (POINTER_PLUS_EXPR, ptr_type_node, array, t);
 
   addr = fold_convert (build_pointer_type (type), addr);
   if (indirect)

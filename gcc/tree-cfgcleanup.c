@@ -6,7 +6,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -508,6 +507,36 @@ split_bbs_on_noreturn_calls (void)
   return changed;
 }
 
+/* If OMP_RETURN in basic block BB is unreachable, remove it.  */
+
+static bool
+cleanup_omp_return (basic_block bb)
+{
+  tree stmt = last_stmt (bb);
+  basic_block control_bb;
+
+  if (stmt == NULL_TREE
+      || TREE_CODE (stmt) != OMP_RETURN
+      || !single_pred_p (bb))
+    return false;
+
+  control_bb = single_pred (bb);
+  stmt = last_stmt (control_bb);
+
+  if (TREE_CODE (stmt) != OMP_SECTIONS_SWITCH)
+    return false;
+
+  /* The block with the control statement normally has two entry edges -- one
+     from entry, one from continue.  If continue is removed, return is
+     unreachable, so we remove it here as well.  */
+  if (EDGE_COUNT (control_bb->preds) == 2)
+    return false;
+
+  gcc_assert (EDGE_COUNT (control_bb->preds) == 1);
+  remove_edge_and_dominated_blocks (single_pred_edge (bb));
+  return true;
+}
+
 /* Tries to cleanup cfg in basic block BB.  Returns true if anything
    changes.  */
 
@@ -516,8 +545,11 @@ cleanup_tree_cfg_bb (basic_block bb)
 {
   bool retval = false;
 
-  retval = cleanup_control_flow_bb (bb);
+  if (cleanup_omp_return (bb))
+    return true;
 
+  retval = cleanup_control_flow_bb (bb);
+  
   /* Forwarder blocks can carry line number information which is
      useful when debugging, so we only clean them up when
      optimizing.  */
@@ -597,8 +629,8 @@ cleanup_tree_cfg_1 (void)
 /* Remove unreachable blocks and other miscellaneous clean up work.
    Return true if the flowgraph was modified, false otherwise.  */
 
-bool
-cleanup_tree_cfg (void)
+static bool
+cleanup_tree_cfg_noloop (void)
 {
   bool changed;
 
@@ -633,34 +665,47 @@ cleanup_tree_cfg (void)
 
   timevar_pop (TV_TREE_CLEANUP_CFG);
 
+  if (changed && current_loops)
+    current_loops->state |= LOOPS_NEED_FIXUP;
+
   return changed;
+}
+
+/* Repairs loop structures.  */
+
+static void
+repair_loop_structures (void)
+{
+  bitmap changed_bbs = BITMAP_ALLOC (NULL);
+  fix_loop_structure (changed_bbs);
+
+  /* This usually does nothing.  But sometimes parts of cfg that originally
+     were inside a loop get out of it due to edge removal (since they
+     become unreachable by back edges from latch).  */
+  if ((current_loops->state & LOOP_CLOSED_SSA) != 0)
+    rewrite_into_loop_closed_ssa (changed_bbs, TODO_update_ssa);
+
+  BITMAP_FREE (changed_bbs);
+
+#ifdef ENABLE_CHECKING
+  verify_loop_structure ();
+#endif
+  scev_reset ();
+
+  current_loops->state &= ~LOOPS_NEED_FIXUP;
 }
 
 /* Cleanup cfg and repair loop structures.  */
 
 bool
-cleanup_tree_cfg_loop (void)
+cleanup_tree_cfg (void)
 {
-  bool changed = cleanup_tree_cfg ();
+  bool changed = cleanup_tree_cfg_noloop ();
 
-  if (changed && current_loops != NULL)
-    {
-      bitmap changed_bbs = BITMAP_ALLOC (NULL);
-      fix_loop_structure (changed_bbs);
+  if (current_loops != NULL
+      && (current_loops->state & LOOPS_NEED_FIXUP))
+    repair_loop_structures ();
 
-      /* This usually does nothing.  But sometimes parts of cfg that originally
-	 were inside a loop get out of it due to edge removal (since they
-	 become unreachable by back edges from latch).  */
-      if ((current_loops->state & LOOP_CLOSED_SSA) != 0)
-	rewrite_into_loop_closed_ssa (changed_bbs, TODO_update_ssa);
-
-      BITMAP_FREE (changed_bbs);
-
-#ifdef ENABLE_CHECKING
-      verify_loop_structure ();
-#endif
-      scev_reset ();
-    }
   return changed;
 }
 

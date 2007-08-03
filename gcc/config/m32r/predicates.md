@@ -1,11 +1,11 @@
 ;; Predicate definitions for Renesas M32R.
-;; Copyright (C) 2005 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;; Return true if OP is a register or the constant 0.
 
@@ -51,7 +50,7 @@
       return 1;
 
     case CONST_INT:
-      return INT8_P (INTVAL (op));
+      return satisfies_constraint_I (op);
 
     default:
 #if 0
@@ -229,9 +228,9 @@
 {
   if (GET_CODE (op) != CONST_INT)
     return 0;
-  if (INT16_P (INTVAL (op))
-      || UINT24_P (INTVAL (op))
-      || UPPER16_P (INTVAL (op)))
+  if (satisfies_constraint_J (op)
+      || satisfies_constraint_M (op)
+      || satisfies_constraint_L (op))
     return 0;
   return 1;
 })
@@ -260,7 +259,7 @@
 {
   if (GET_CODE (op) != CONST_INT)
     return 0;
-  return INT8_P (INTVAL (op));
+  return satisfies_constraint_I (op);
 })
 
 ;; Return true if OP is an unsigned 16-bit immediate value.
@@ -270,7 +269,7 @@
 {
   if (GET_CODE (op) != CONST_INT)
     return 0;
-  return UINT16_P (INTVAL (op));
+  return satisfies_constraint_K (op);
 })
 
 ;; Return true if OP is a register or signed 16-bit value.
@@ -282,7 +281,7 @@
     return register_operand (op, mode);
   if (GET_CODE (op) != CONST_INT)
     return 0;
-  return INT16_P (INTVAL (op));
+  return satisfies_constraint_J (op);
 })
 
 ;; Return true if OP is a register or an unsigned 16-bit value.
@@ -294,7 +293,7 @@
     return register_operand (op, mode);
   if (GET_CODE (op) != CONST_INT)
     return 0;
-  return UINT16_P (INTVAL (op));
+  return satisfies_constraint_K (op);
 })
 
 ;; Return true if OP is a register or signed 16-bit value for
@@ -307,7 +306,7 @@
     return register_operand (op, mode);
   if (GET_CODE (op) != CONST_INT)
     return 0;
-  return CMP_INT16_P (INTVAL (op));
+  return satisfies_constraint_P (op);
 })
 
 ;; Return true if OP is a register or an integer value that can be
@@ -338,7 +337,7 @@
 {
   if (GET_CODE (op) != CONST_INT)
     return 0;
-  return CMP_INT16_P (INTVAL (op));
+  return satisfies_constraint_P (op);
 })
 
 ;; Acceptable arguments to the call insn.
@@ -434,8 +433,7 @@
   if (GET_CODE (op) == CONST
       && GET_CODE (XEXP (op, 0)) == PLUS
       && GET_CODE (XEXP (XEXP (op, 0), 0)) == SYMBOL_REF
-      && GET_CODE (XEXP (XEXP (op, 0), 1)) == CONST_INT
-      && INT16_P (INTVAL (XEXP (XEXP (op, 0), 1))))
+      && satisfies_constraint_J (XEXP (XEXP (op, 0), 1)))
     return 1;
 
   return 0;

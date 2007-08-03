@@ -8,7 +8,7 @@
 
    GCC is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
-   Software Foundation; either version 2, or (at your option) any later
+   Software Foundation; either version 3, or (at your option) any later
    version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,9 +17,8 @@
    for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -1161,6 +1160,14 @@ bool
 real_isnan (const REAL_VALUE_TYPE *r)
 {
   return (r->cl == rvc_nan);
+}
+
+/* Determine whether a floating-point value X is finite.  */
+
+bool
+real_isfinite (const REAL_VALUE_TYPE *r)
+{
+  return (r->cl != rvc_nan) && (r->cl != rvc_inf);
 }
 
 /* Determine whether a floating-point value X is negative.  */
@@ -4571,7 +4578,7 @@ real_sqrt (REAL_VALUE_TYPE *r, enum machine_mode mode,
     }
 
   /* Infinity and NaN return themselves.  */
-  if (real_isinf (x) || real_isnan (x))
+  if (!real_isfinite (x))
     {
       *r = *x;
       return false;
@@ -4826,4 +4833,36 @@ real_isinteger (const REAL_VALUE_TYPE *c, enum machine_mode mode)
 
   real_trunc (&cint, mode, c);
   return real_identical (c, &cint);
+}
+
+/* Write into BUF the maximum representable finite floating-point
+   number, (1 - b**-p) * b**emax for a given FP format FMT as a hex
+   float string.  LEN is the size of BUF, and the buffer must be large
+   enough to contain the resulting string.  */
+
+void
+get_max_float (const struct real_format *fmt, char *buf, size_t len)
+{
+  int i, n;
+  char *p;
+
+  strcpy (buf, "0x0.");
+  n = fmt->p;
+  for (i = 0, p = buf + 4; i + 3 < n; i += 4)
+    *p++ = 'f';
+  if (i < n)
+    *p++ = "08ce"[n - i];
+  sprintf (p, "p%d", fmt->emax);
+  if (fmt->pnan < fmt->p)
+    {
+      /* This is an IBM extended double format made up of two IEEE
+	 doubles.  The value of the long double is the sum of the
+	 values of the two parts.  The most significant part is
+	 required to be the value of the long double rounded to the
+	 nearest double.  Rounding means we need a slightly smaller
+	 value for LDBL_MAX.  */
+      buf[4 + fmt->pnan / 4] = "7bde"[fmt->pnan % 4];
+    }
+
+  gcc_assert (strlen (buf) < len);
 }

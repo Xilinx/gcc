@@ -2,7 +2,7 @@
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
-   Software Foundation; either version 2 of the License, or (at your option) 
+   Software Foundation; either version 3 of the License, or (at your option) 
    any later version.
 
    This file is distributed in the hope that it will be useful, but WITHOUT
@@ -11,9 +11,8 @@
    for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this file; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #ifndef _SPU_PROTOS_
 #define _SPU_PROTOS_
@@ -32,6 +31,7 @@ extern void spu_expand_insv (rtx * ops);
 extern int spu_expand_block_move (rtx * ops);
 extern void spu_emit_branch_or_set (int is_set, enum rtx_code code,
 				    rtx * operands);
+extern int spu_emit_vector_cond_expr (rtx, rtx, rtx, rtx, rtx, rtx);
 extern HOST_WIDE_INT const_double_to_hwint (rtx x);
 extern rtx hwint_to_const_double (enum machine_mode mode, HOST_WIDE_INT v);
 extern void print_operand_address (FILE * file, register rtx addr);
@@ -43,6 +43,8 @@ extern void spu_expand_prologue (void);
 extern void spu_expand_epilogue (unsigned char sibcall_p);
 extern rtx spu_return_addr (int count, rtx frame);
 extern rtx spu_const (enum machine_mode mode, HOST_WIDE_INT val);
+extern rtx spu_const_from_ints (enum machine_mode mode, 
+			        int a, int b, int c, int d);
 extern struct rtx_def *spu_float_const (const char *string,
 					enum machine_mode mode);
 extern int immediate_load_p (rtx op, enum machine_mode mode);

@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -45,7 +44,6 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "expr.h"
 #include "params.h"
 #include "gcov-io.h"
-#include "df.h"
 #include "ddg.h"
 #include "timevar.h"
 #include "tree-pass.h"
@@ -260,9 +258,6 @@ static struct sched_info sms_sched_info =
   0, 0, 0,
 
   NULL, NULL, NULL, NULL, NULL,
-#ifdef ENABLE_CHECKING
-  NULL,
-#endif
   0
 };
 
@@ -430,7 +425,7 @@ calculate_maxii (ddg_ptr g)
                             ii                          { 1 if not.
 */
 static struct undo_replace_buff_elem *
-generate_reg_moves (partial_schedule_ptr ps)
+generate_reg_moves (partial_schedule_ptr ps, bool rescan)
 {
   ddg_ptr g = ps->g;
   int ii = ps->ii;
@@ -502,7 +497,7 @@ generate_reg_moves (partial_schedule_ptr ps)
 	  rtx reg_move = gen_move_insn (new_reg, prev_reg);
 	  sbitmap_iterator sbi;
 
-	  add_insn_before (reg_move, last_reg_move);
+	  add_insn_before (reg_move, last_reg_move, NULL);
 	  last_reg_move = reg_move;
 
 	  if (!SCHED_FIRST_REG_MOVE (u))
@@ -527,6 +522,8 @@ generate_reg_moves (partial_schedule_ptr ps)
 		}
 
 	      replace_rtx (g->nodes[i_use].insn, old_reg, new_reg);
+	      if (rescan)
+		df_insn_rescan (g->nodes[i_use].insn);
 	    }
 
 	  prev_reg = new_reg;
@@ -884,7 +881,6 @@ sms_schedule (void)
   int maxii;
   loop_iterator li;
   partial_schedule_ptr ps;
-  struct df *df;
   basic_block bb = NULL;
   struct loop *loop;
   basic_block condition_bb = NULL;
@@ -913,17 +909,15 @@ sms_schedule (void)
 
   /* Initialize the scheduler.  */
   current_sched_info = &sms_sched_info;
-  sched_init ();
 
   /* Init Data Flow analysis, to be used in interloop dep calculation.  */
-  df = df_init (DF_HARD_REGS | DF_EQUIV_NOTES | DF_SUBREGS);
-  df_rd_add_problem (df, 0);
-  df_ru_add_problem (df, 0);
-  df_chain_add_problem (df, DF_DU_CHAIN | DF_UD_CHAIN);
-  df_analyze (df);
-
-  if (dump_file)
-    df_dump (df, dump_file);
+  df_set_flags (DF_LR_RUN_DCE);
+  df_rd_add_problem ();
+  df_note_add_problem ();
+  df_chain_add_problem (DF_DU_CHAIN);
+  df_analyze ();
+  regstat_compute_calls_crossed ();
+  sched_init ();
 
   /* Allocate memory to hold the DDG array one entry for each loop.
      We use loop->num as index into this array.  */
@@ -992,12 +986,16 @@ sms_schedule (void)
       if ( !(count_reg = doloop_register_get (tail)))
 	continue;
 
-      /* Don't handle BBs with calls or barriers, or !single_set insns.  */
+      /* Don't handle BBs with calls or barriers, or !single_set insns,
+         or auto-increment insns (to avoid creating invalid reg-moves
+         for the auto-increment insns).  
+         ??? Should handle auto-increment insns.  */
       for (insn = head; insn != NEXT_INSN (tail); insn = NEXT_INSN (insn))
 	if (CALL_P (insn)
 	    || BARRIER_P (insn)
 	    || (INSN_P (insn) && !JUMP_P (insn)
-		&& !single_set (insn) && GET_CODE (PATTERN (insn)) != USE))
+		&& !single_set (insn) && GET_CODE (PATTERN (insn)) != USE)
+            || (FIND_REG_INC_NOTE (insn, NULL_RTX) != 0))
 	  break;
 
       if (insn != NEXT_INSN (tail))
@@ -1008,6 +1006,8 @@ sms_schedule (void)
 		fprintf (dump_file, "SMS loop-with-call\n");
 	      else if (BARRIER_P (insn))
 		fprintf (dump_file, "SMS loop-with-barrier\n");
+              else if (FIND_REG_INC_NOTE (insn, NULL_RTX) != 0)
+                fprintf (dump_file, "SMS reg inc\n");
 	      else
 		fprintf (dump_file, "SMS loop-with-not-single-set\n");
 	      print_rtl_single (dump_file, insn);
@@ -1016,7 +1016,7 @@ sms_schedule (void)
 	  continue;
 	}
 
-      if (! (g = create_ddg (bb, df, 0)))
+      if (! (g = create_ddg (bb, 0)))
         {
           if (dump_file)
 	    fprintf (dump_file, "SMS doloop\n");
@@ -1025,10 +1025,6 @@ sms_schedule (void)
 
       g_arr[loop->num] = g;
     }
-
-  /* Release Data Flow analysis data structures.  */
-  df_finish (df);
-  df = NULL;
 
   /* We don't want to perform SMS on new loops - created by versioning.  */
   FOR_EACH_LOOP (li, loop, 0)
@@ -1161,7 +1157,7 @@ sms_schedule (void)
 
 	  /* Generate the kernel just to be able to measure its cycles.  */
 	  permute_partial_schedule (ps, g->closing_branch->first_note);
-	  reg_move_replaces = generate_reg_moves (ps);
+	  reg_move_replaces = generate_reg_moves (ps, false);
 
 	  /* Get the number of cycles the new kernel expect to execute in.  */
 	  new_cycles = kernel_number_of_cycles (BB_HEAD (g->bb), BB_END (g->bb));
@@ -1209,9 +1205,9 @@ sms_schedule (void)
 	      if (! flag_resched_modulo_sched)
 		g->bb->flags |= BB_DISABLE_SCHEDULE;
 	      /* The life-info is not valid any more.  */
-	      g->bb->flags |= BB_DIRTY;
+	      df_set_bb_dirty (g->bb);
 
-	      reg_move_replaces = generate_reg_moves (ps);
+	      reg_move_replaces = generate_reg_moves (ps, true);
 	      if (dump_file)
 		print_node_sched_params (dump_file, g->num_nodes);
 	      /* Generate prolog and epilog.  */
@@ -1229,6 +1225,7 @@ sms_schedule (void)
       free_ddg (g);
     }
 
+  regstat_free_calls_crossed ();
   free (g_arr);
 
   /* Release scheduler data, needed until now because of DFA.  */
@@ -1654,6 +1651,9 @@ sms_order_nodes (ddg_ptr g, int mii, int * node_order)
   ddg_all_sccs_ptr sccs = create_ddg_all_sccs (g);
 
   nopa nops = calculate_order_params (g, mii);
+
+  if (dump_file)
+    print_sccs (dump_file, sccs, g);
 
   order_nodes_of_sccs (sccs, node_order);
 
@@ -2476,29 +2476,19 @@ rest_of_handle_sms (void)
 #ifdef INSN_SCHEDULING
   basic_block bb;
 
-  /* We want to be able to create new pseudos.  */
-  no_new_pseudos = 0;
   /* Collect loop information to be used in SMS.  */
-  cfg_layout_initialize (CLEANUP_UPDATE_LIFE);
+  cfg_layout_initialize (0);
   sms_schedule ();
 
   /* Update the life information, because we add pseudos.  */
   max_regno = max_reg_num ();
-  allocate_reg_info (max_regno, FALSE, FALSE);
-  update_life_info (NULL, UPDATE_LIFE_GLOBAL_RM_NOTES,
-                    (PROP_DEATH_NOTES
-                     | PROP_REG_INFO
-                     | PROP_KILL_DEAD_CODE
-                     | PROP_SCAN_DEAD_CODE));
-
-  no_new_pseudos = 1;
 
   /* Finalize layout changes.  */
   FOR_EACH_BB (bb)
     if (bb->next_bb != EXIT_BLOCK_PTR)
       bb->aux = bb->next_bb;
-  cfg_layout_finalize ();
   free_dominance_info (CDI_DOMINATORS);
+  cfg_layout_finalize ();
 #endif /* INSN_SCHEDULING */
   return 0;
 }
@@ -2516,6 +2506,7 @@ struct tree_opt_pass pass_sms =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   TODO_dump_func,                       /* todo_flags_start */
+  TODO_df_finish |
   TODO_dump_func |
   TODO_ggc_collect,                     /* todo_flags_finish */
   'm'                                   /* letter */

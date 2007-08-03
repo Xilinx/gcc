@@ -1,12 +1,12 @@
 /* Alias analysis for trees.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -48,6 +47,7 @@ Boston, MA 02110-1301, USA.  */
 #include "bitmap.h"
 #include "vecprim.h"
 #include "pointer-set.h"
+#include "alloc-pool.h"
 
 /* Broad overview of how aliasing works:
    
@@ -213,7 +213,7 @@ static void set_pt_anything (tree);
 
 void debug_mp_info (VEC(mem_sym_stats_t,heap) *);
 
-
+static alloc_pool mem_sym_stats_pool;
 
 /* Return memory reference stats for symbol VAR.  Create a new slot in
    cfun->gimple_df->mem_sym_stats if needed.  */
@@ -230,7 +230,8 @@ get_mem_sym_stats_for (tree var)
   slot = pointer_map_insert (map, var);
   if (*slot == NULL)
     {
-      stats = XCNEW (struct mem_sym_stats_d);
+      stats = pool_alloc (mem_sym_stats_pool);
+      memset (stats, 0, sizeof (*stats));
       stats->var = var;
       *slot = (void *) stats;
     }
@@ -309,8 +310,8 @@ mark_non_addressable (tree var)
 static int
 sort_tags_by_id (const void *pa, const void *pb)
 {
-  tree a = *(tree *)pa;
-  tree b = *(tree *)pb;
+  const_tree const a = *(const_tree const *)pa;
+  const_tree const b = *(const_tree const *)pb;
  
   return DECL_UID (a) - DECL_UID (b);
 }
@@ -574,6 +575,7 @@ compute_call_clobbered (struct alias_info *ai)
   VEC (tree, heap) *worklist = NULL;
   VEC(int,heap) *worklist2 = NULL;
   
+  timevar_push (TV_CALL_CLOBBER);
   set_initial_properties (ai);
   init_transitive_clobber_worklist (&worklist, &worklist2);
   while (VEC_length (tree, worklist) != 0)
@@ -587,6 +589,7 @@ compute_call_clobbered (struct alias_info *ai)
   VEC_free (tree, heap, worklist);
   VEC_free (int, heap, worklist2);
   compute_tag_properties ();
+  timevar_pop (TV_CALL_CLOBBER);
 }
 
 
@@ -1875,20 +1878,6 @@ count_uses_and_derefs (tree ptr, tree stmt, unsigned *num_uses_p,
   gcc_assert (*num_uses_p >= *num_loads_p + *num_stores_p);
 }
 
-
-/* Helper for delete_mem_ref_stats.  Free all the slots in the
-   mem_sym_stats map.  */
-
-static bool
-delete_mem_sym_stats (void *key ATTRIBUTE_UNUSED, void **value,
-		       void *data ATTRIBUTE_UNUSED)
-{
-  XDELETE (*value);
-  *value = NULL;
-  return false;
-}
-
-
 /* Remove memory references stats for function FN.  */
 
 void
@@ -1896,11 +1885,9 @@ delete_mem_ref_stats (struct function *fn)
 {
   if (gimple_mem_ref_stats (fn)->mem_sym_stats)
     {
-      pointer_map_traverse (gimple_mem_ref_stats (fn)->mem_sym_stats,
-			    delete_mem_sym_stats, NULL);
+      free_alloc_pool (mem_sym_stats_pool);
       pointer_map_destroy (gimple_mem_ref_stats (fn)->mem_sym_stats);
     }
-
   gimple_mem_ref_stats (fn)->mem_sym_stats = NULL;
 }
 
@@ -1912,9 +1899,9 @@ init_mem_ref_stats (void)
 {
   struct mem_ref_stats_d *mem_ref_stats = gimple_mem_ref_stats (cfun);
 
-  if (mem_ref_stats->mem_sym_stats)
-    delete_mem_ref_stats (cfun);
-
+  mem_sym_stats_pool = create_alloc_pool ("Mem sym stats",
+					  sizeof (struct mem_sym_stats_d),
+					  100);
   memset (mem_ref_stats, 0, sizeof (struct mem_ref_stats_d));
   mem_ref_stats->mem_sym_stats = pointer_map_create ();
 }
@@ -1944,8 +1931,6 @@ init_alias_info (void)
   if (gimple_aliases_computed_p (cfun))
     {
       unsigned i;
-      
-      bitmap_obstack_release (&alias_bitmap_obstack);
       
       /* Similarly, clear the set of addressable variables.  In this
 	 case, we can just clear the set because addressability is
@@ -2020,6 +2005,8 @@ init_alias_info (void)
 
   /* Next time, we will need to reset alias information.  */
   cfun->gimple_df->aliases_computed_p = true;
+  if (alias_bitmap_obstack.elements != NULL)
+    bitmap_obstack_release (&alias_bitmap_obstack);    
   bitmap_obstack_initialize (&alias_bitmap_obstack);
 
   return ai;
@@ -2050,6 +2037,7 @@ delete_alias_info (struct alias_info *ai)
   pointer_set_destroy (ai->dereferenced_ptrs_load);
   free (ai);
 
+  delete_mem_ref_stats (cfun);
   delete_points_to_sets ();
 }
 
@@ -2207,6 +2195,7 @@ compute_flow_sensitive_aliasing (struct alias_info *ai)
   size_t i;
   tree ptr;
   
+  timevar_push (TV_FLOW_SENSITIVE);
   set_used_smts ();
   
   for (i = 0; VEC_iterate (tree, ai->processed_ptrs, i, ptr); i++)
@@ -2242,6 +2231,7 @@ compute_flow_sensitive_aliasing (struct alias_info *ai)
 	    }
 	}
     }
+  timevar_pop (TV_FLOW_SENSITIVE);
 }
 
 
@@ -2277,6 +2267,7 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
 {
   size_t i;
 
+  timevar_push (TV_FLOW_INSENSITIVE);
   /* For every pointer P, determine which addressable variables may alias
      with P's symbol memory tag.  */
   for (i = 0; i < ai->num_pointers; i++)
@@ -2385,6 +2376,7 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
 	}
 
     }
+  timevar_pop (TV_FLOW_INSENSITIVE);
 }
 
 
@@ -2415,8 +2407,14 @@ finalize_ref_all_pointers (struct alias_info *ai)
   for (i = 0; i < ai->num_pointers; i++)
     {
       tree ptr = ai->pointers[i]->var, tag;
+      /* Avoid adding to self and clean up.  */
       if (PTR_IS_REF_ALL (ptr))
-	continue;
+	{
+	  struct ptr_info_def *pi = get_ptr_info (ptr);
+	  if (pi->is_dereferenced)
+	    pi->pt_anything = 0;
+	  continue;
+	}
       tag = symbol_mem_tag (ptr);
       if (is_call_clobbered (tag))
 	add_may_alias (ai->ref_all_symbol_mem_tag, tag);
@@ -2720,68 +2718,71 @@ may_alias_p (tree ptr, HOST_WIDE_INT mem_alias_set,
 
   gcc_assert (TREE_CODE (mem) == SYMBOL_MEMORY_TAG);
 
-  alias_stats.tbaa_queries++;
-
-  /* If the alias sets don't conflict then MEM cannot alias VAR.  */
-  if (!alias_sets_conflict_p (mem_alias_set, var_alias_set))
+  if (!DECL_NO_TBAA_P (ptr))
     {
-      alias_stats.alias_noalias++;
-      alias_stats.tbaa_resolved++;
-      return false;
-    }
+      alias_stats.tbaa_queries++;
 
-  /* If VAR is a record or union type, PTR cannot point into VAR
-     unless there is some explicit address operation in the
-     program that can reference a field of the type pointed-to by PTR.
-     This also assumes that the types of both VAR and PTR are
-     contained within the compilation unit, and that there is no fancy
-     addressing arithmetic associated with any of the types
-     involved.  */
-  if (mem_alias_set != 0 && var_alias_set != 0)
-    {
-      tree ptr_type = TREE_TYPE (ptr);
-      tree var_type = TREE_TYPE (var);
-      
-      /* The star count is -1 if the type at the end of the pointer_to 
-	 chain is not a record or union type. */ 
-      if ((!alias_set_only) && 
-	  ipa_type_escape_star_count_of_interesting_type (var_type) >= 0)
+      /* If the alias sets don't conflict then MEM cannot alias VAR.  */
+      if (!alias_sets_conflict_p (mem_alias_set, var_alias_set))
 	{
-	  int ptr_star_count = 0;
-	  
-	  /* ipa_type_escape_star_count_of_interesting_type is a
-	     little too restrictive for the pointer type, need to
-	     allow pointers to primitive types as long as those types
-	     cannot be pointers to everything.  */
-	  while (POINTER_TYPE_P (ptr_type))
+	  alias_stats.alias_noalias++;
+	  alias_stats.tbaa_resolved++;
+	  return false;
+	}
+
+      /* If VAR is a record or union type, PTR cannot point into VAR
+	 unless there is some explicit address operation in the
+	 program that can reference a field of the type pointed-to by
+	 PTR.  This also assumes that the types of both VAR and PTR
+	 are contained within the compilation unit, and that there is
+	 no fancy addressing arithmetic associated with any of the
+	 types involved.  */
+      if (mem_alias_set != 0 && var_alias_set != 0)
+	{
+	  tree ptr_type = TREE_TYPE (ptr);
+	  tree var_type = TREE_TYPE (var);
+      
+	  /* The star count is -1 if the type at the end of the
+	     pointer_to chain is not a record or union type. */ 
+	  if ((!alias_set_only) && 
+	      ipa_type_escape_star_count_of_interesting_type (var_type) >= 0)
 	    {
-	      /* Strip the *s off.  */ 
-	      ptr_type = TREE_TYPE (ptr_type);
-	      ptr_star_count++;
-	    }
+	      int ptr_star_count = 0;
 	  
-	  /* There does not appear to be a better test to see if the 
-	     pointer type was one of the pointer to everything 
-	     types.  */
-	  if (ptr_star_count > 0)
-	    {
-	      alias_stats.structnoaddress_queries++;
-	      if (ipa_type_escape_field_does_not_clobber_p (var_type, 
-							    TREE_TYPE (ptr))) 
+	      /* ipa_type_escape_star_count_of_interesting_type is a
+		 little too restrictive for the pointer type, need to
+		 allow pointers to primitive types as long as those
+		 types cannot be pointers to everything.  */
+	      while (POINTER_TYPE_P (ptr_type))
 		{
+		  /* Strip the *s off.  */ 
+		  ptr_type = TREE_TYPE (ptr_type);
+		  ptr_star_count++;
+		}
+	  
+	      /* There does not appear to be a better test to see if
+		 the pointer type was one of the pointer to everything
+		 types.  */
+	      if (ptr_star_count > 0)
+		{
+		  alias_stats.structnoaddress_queries++;
+		  if (ipa_type_escape_field_does_not_clobber_p (var_type, 
+								TREE_TYPE (ptr)))
+		    {
+		      alias_stats.structnoaddress_resolved++;
+		      alias_stats.alias_noalias++;
+		      return false;
+		    }
+		}
+	      else if (ptr_star_count == 0)
+		{
+		  /* If PTR_TYPE was not really a pointer to type, it cannot 
+		     alias.  */ 
+		  alias_stats.structnoaddress_queries++;
 		  alias_stats.structnoaddress_resolved++;
 		  alias_stats.alias_noalias++;
 		  return false;
 		}
-	    }
-	  else if (ptr_star_count == 0)
-	    {
-	      /* If PTR_TYPE was not really a pointer to type, it cannot 
-		 alias.  */ 
-	      alias_stats.structnoaddress_queries++;
-	      alias_stats.structnoaddress_resolved++;
-	      alias_stats.alias_noalias++;
-	      return false;
 	    }
 	}
     }
@@ -3637,11 +3638,13 @@ get_or_create_used_part_for (size_t uid)
 
 
 /* Create and return a structure sub-variable for field type FIELD at
-   offset OFFSET, with size SIZE, of variable VAR.  */
+   offset OFFSET, with size SIZE, of variable VAR.  If ALIAS_SET not
+   -1 this field is non-addressable and we should use this alias set
+   with this field.  */
 
 static tree
 create_sft (tree var, tree field, unsigned HOST_WIDE_INT offset,
-	    unsigned HOST_WIDE_INT size)
+	    unsigned HOST_WIDE_INT size, HOST_WIDE_INT alias_set)
 {
   tree subvar = create_tag_raw (STRUCT_FIELD_TAG, field, "SFT");
 
@@ -3660,6 +3663,7 @@ create_sft (tree var, tree field, unsigned HOST_WIDE_INT offset,
   SFT_PARENT_VAR (subvar) = var;
   SFT_OFFSET (subvar) = offset;
   SFT_SIZE (subvar) = size;
+  SFT_ALIAS_SET (subvar) = alias_set;
   return subvar;
 }
 
@@ -3679,7 +3683,8 @@ create_overlap_variables_for (tree var)
       || up->write_only)
     return;
 
-  push_fields_onto_fieldstack (TREE_TYPE (var), &fieldstack, 0, NULL);
+  push_fields_onto_fieldstack (TREE_TYPE (var), &fieldstack, 0, NULL,
+			       TREE_TYPE (var));
   if (VEC_length (fieldoff_s, fieldstack) != 0)
     {
       subvar_t *subvars;
@@ -3771,7 +3776,8 @@ create_overlap_variables_for (tree var)
 	    continue;
 	  sv = GGC_NEW (struct subvar);
 	  sv->next = *subvars;
-	  sv->var = create_sft (var, fo->type, fo->offset, fosize);
+	  sv->var =
+	    create_sft (var, fo->type, fo->offset, fosize, fo->alias_set);
 
 	  if (dump_file)
 	    {

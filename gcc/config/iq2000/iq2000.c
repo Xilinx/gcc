@@ -1,11 +1,11 @@
 /* Subroutines used for code generation on Vitesse IQ2000 processors
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -1964,13 +1963,6 @@ iq2000_expand_prologue (void)
 	  PUT_CODE (SET_SRC (pattern), ASHIFTRT);
 
 	  insn = emit_insn (pattern);
-
-	  /* Global life information isn't valid at this point, so we
-	     can't check whether these shifts are actually used.  Mark
-	     them MAYBE_DEAD so that flow2 will remove them, and not
-	     complain about dead code in the prologue.  */
-	  REG_NOTES(insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, NULL_RTX,
-					       REG_NOTES (insn));
 	}
     }
 
@@ -2119,7 +2111,7 @@ iq2000_can_use_return_insn (void)
   if (! reload_completed)
     return 0;
 
-  if (regs_ever_live[31] || profile_flag)
+  if (df_regs_ever_live_p (31) || profile_flag)
     return 0;
 
   if (cfun->machine->initialized)

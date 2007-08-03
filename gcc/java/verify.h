@@ -1,11 +1,11 @@
 /* Declarations to interface gcj with bytecode verifier.
-   Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -97,7 +96,6 @@ vfy_constants *vfy_get_constants (vfy_jclass klass);
 int vfy_get_constants_size (vfy_jclass klass);
 vfy_string vfy_get_pool_string (vfy_constants *pool, int index);
 vfy_jclass vfy_get_pool_class (vfy_constants *pool, int index);
-vfy_string vfy_make_string (const char *s, int len);
 vfy_string vfy_get_class_name (vfy_jclass klass);
 bool vfy_is_assignable_from (vfy_jclass target, vfy_jclass source);
 char vfy_get_primitive_char (vfy_jclass klass);

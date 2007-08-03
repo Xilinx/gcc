@@ -1,11 +1,11 @@
 /* Operations with affine combinations of trees.
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
    
 GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
    
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -111,6 +110,9 @@ aff_combination_scale (aff_tree *comb, double_int scale)
 
   if (comb->rest)
     {
+      tree type = comb->type;
+      if (POINTER_TYPE_P (type))
+	type = sizetype;
       if (comb->n < MAX_AFF_ELTS)
 	{
 	  comb->elts[comb->n].coef = scale;
@@ -119,8 +121,8 @@ aff_combination_scale (aff_tree *comb, double_int scale)
 	  comb->n++;
 	}
       else
-	comb->rest = fold_build2 (MULT_EXPR, comb->type, comb->rest, 
-				  double_int_to_tree (comb->type, scale));
+	comb->rest = fold_build2 (MULT_EXPR, type, comb->rest, 
+				  double_int_to_tree (type, scale));
     }
 }
 
@@ -130,6 +132,7 @@ void
 aff_combination_add_elt (aff_tree *comb, tree elt, double_int scale)
 {
   unsigned i;
+  tree type;
 
   scale = double_int_ext_for_comb (scale, comb);
   if (double_int_zero_p (scale))
@@ -169,15 +172,20 @@ aff_combination_add_elt (aff_tree *comb, tree elt, double_int scale)
       return;
     }
 
+  type = comb->type;
+  if (POINTER_TYPE_P (type))
+    type = sizetype;
+
   if (double_int_one_p (scale))
-    elt = fold_convert (comb->type, elt);
+    elt = fold_convert (type, elt);
   else
-    elt = fold_build2 (MULT_EXPR, comb->type,
-		       fold_convert (comb->type, elt),
-		       double_int_to_tree (comb->type, scale)); 
+    elt = fold_build2 (MULT_EXPR, type,
+		       fold_convert (type, elt),
+		       double_int_to_tree (type, scale)); 
 
   if (comb->rest)
-    comb->rest = fold_build2 (PLUS_EXPR, comb->type, comb->rest, elt);
+    comb->rest = fold_build2 (PLUS_EXPR, type, comb->rest,
+			      elt);
   else
     comb->rest = elt;
 }
@@ -220,7 +228,7 @@ aff_combination_convert (aff_tree *comb, tree type)
     }
 
   comb->type = type;
-  if (comb->rest)
+  if (comb->rest && !POINTER_TYPE_P (type))
     comb->rest = fold_convert (type, comb->rest);
 
   if (TYPE_PRECISION (type) == TYPE_PRECISION (comb_type))
@@ -266,6 +274,13 @@ tree_to_aff_combination (tree expr, tree type, aff_tree *comb)
     {
     case INTEGER_CST:
       aff_combination_const (comb, type, tree_to_double_int (expr));
+      return;
+
+    case POINTER_PLUS_EXPR:
+      tree_to_aff_combination (TREE_OPERAND (expr, 0), type, comb);
+      tree_to_aff_combination (TREE_OPERAND (expr, 1), sizetype, &tmp);
+      aff_combination_convert (&tmp, type);
+      aff_combination_add (comb, &tmp);
       return;
 
     case PLUS_EXPR:

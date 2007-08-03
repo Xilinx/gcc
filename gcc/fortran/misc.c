@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -78,6 +77,12 @@ gfc_clear_ts (gfc_typespec *ts)
   ts->kind = 0;
   ts->derived = NULL;
   ts->cl = NULL;
+  /* flag that says if the type is C interoperable */
+  ts->is_c_interop = 0;
+  /* says what f90 type the C kind interops with */
+  ts->f90_type = BT_UNKNOWN;
+  /* flag that says whether it's from iso_c_binding or not */
+  ts->is_iso_c = 0;
 }
 
 
@@ -285,3 +290,18 @@ gfc_done_2 (void)
   gfc_module_done_2 ();
 }
 
+
+/* Returns the index into the table of C interoperable kinds where the
+   kind with the given name (c_kind_name) was found.  */
+
+int
+get_c_kind(const char *c_kind_name, CInteropKind_t kinds_table[])
+{
+  int index = 0;
+
+  for (index = 0; index < ISOCBINDING_LAST; index++)
+    if (strcmp (kinds_table[index].name, c_kind_name) == 0)
+      return index;
+
+  return ISOCBINDING_INVALID;
+}

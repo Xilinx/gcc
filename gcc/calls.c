@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -41,6 +40,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "target.h"
 #include "cgraph.h"
 #include "except.h"
+#include "dbgcnt.h"
 
 /* Like PREFERRED_STACK_BOUNDARY but in units of bytes, not bits.  */
 #define STACK_BYTES (PREFERRED_STACK_BOUNDARY / BITS_PER_UNIT)
@@ -143,7 +143,7 @@ static void load_register_parameters (struct arg_data *, int, rtx *, int,
 				      int, int *);
 static rtx emit_library_call_value_1 (int, rtx, rtx, enum libcall_type,
 				      enum machine_mode, int, va_list);
-static int special_function_p (tree, int);
+static int special_function_p (const_tree, int);
 static int check_sibcall_argument_overlap_1 (rtx);
 static int check_sibcall_argument_overlap (rtx, struct arg_data *, int);
 
@@ -469,7 +469,7 @@ emit_call_1 (rtx funexp, tree fntree, tree fndecl ATTRIBUTE_UNUSED,
    space from the stack such as alloca.  */
 
 static int
-special_function_p (tree fndecl, int flags)
+special_function_p (const_tree fndecl, int flags)
 {
   if (fndecl && DECL_NAME (fndecl)
       && IDENTIFIER_LENGTH (DECL_NAME (fndecl)) <= 17
@@ -543,14 +543,14 @@ special_function_p (tree fndecl, int flags)
 /* Return nonzero when FNDECL represents a call to setjmp.  */
 
 int
-setjmp_call_p (tree fndecl)
+setjmp_call_p (const_tree fndecl)
 {
   return special_function_p (fndecl, 0) & ECF_RETURNS_TWICE;
 }
 
 /* Return true when exp contains alloca call.  */
 bool
-alloca_call_p (tree exp)
+alloca_call_p (const_tree exp)
 {
   if (TREE_CODE (exp) == CALL_EXPR
       && TREE_CODE (CALL_EXPR_FN (exp)) == ADDR_EXPR
@@ -564,10 +564,10 @@ alloca_call_p (tree exp)
 /* Detect flags (function attributes) from the function decl or type node.  */
 
 int
-flags_from_decl_or_type (tree exp)
+flags_from_decl_or_type (const_tree exp)
 {
   int flags = 0;
-  tree type = exp;
+  const_tree type = exp;
 
   if (DECL_P (exp))
     {
@@ -616,7 +616,7 @@ flags_from_decl_or_type (tree exp)
 /* Detect flags from a CALL_EXPR.  */
 
 int
-call_expr_flags (tree t)
+call_expr_flags (const_tree t)
 {
   int flags;
   tree decl = get_callee_fndecl (t);
@@ -1080,7 +1080,7 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 	      else
 		copy = assign_temp (type, 0, 1, 0);
 
-	      store_expr (args[i].tree_value, copy, 0);
+	      store_expr (args[i].tree_value, copy, 0, false);
 
 	      if (callee_copies)
 		*ecf_flags &= ~(ECF_CONST | ECF_LIBCALL_BLOCK);
@@ -1268,12 +1268,24 @@ precompute_arguments (int flags, int num_actuals, struct arg_data *args)
 
   /* If this is a libcall, then precompute all arguments so that we do not
      get extraneous instructions emitted as part of the libcall sequence.  */
-  if ((flags & ECF_LIBCALL_BLOCK) == 0)
+
+  /* If we preallocated the stack space, and some arguments must be passed
+     on the stack, then we must precompute any parameter which contains a
+     function call which will store arguments on the stack.
+     Otherwise, evaluating the parameter may clobber previous parameters
+     which have already been stored into the stack.  (we have code to avoid
+     such case by saving the outgoing stack arguments, but it results in
+     worse code)  */
+  if ((flags & ECF_LIBCALL_BLOCK) == 0 && !ACCUMULATE_OUTGOING_ARGS)
     return;
 
   for (i = 0; i < num_actuals; i++)
     {
       enum machine_mode mode;
+
+      if ((flags & ECF_LIBCALL_BLOCK) == 0
+	  && TREE_CODE (args[i].tree_value) != CALL_EXPR)
+	continue;
 
       /* If this is an addressable type, we cannot pre-evaluate it.  */
       gcc_assert (!TREE_ADDRESSABLE (TREE_TYPE (args[i].tree_value)));
@@ -1480,7 +1492,7 @@ rtx_for_function_call (tree fndecl, tree addr)
     {
       /* If this is the first use of the function, see if we need to
 	 make an external definition for it.  */
-      if (! TREE_USED (fndecl))
+      if (!TREE_USED (fndecl) && fndecl != current_function_decl)
 	{
 	  assemble_external (fndecl);
 	  TREE_USED (fndecl) = 1;
@@ -2222,7 +2234,8 @@ expand_call (tree exp, rtx target, int ignore)
   if (currently_expanding_call++ != 0
       || !flag_optimize_sibling_calls
       || args_size.var
-      || lookup_stmt_eh_region (exp) >= 0)
+      || lookup_stmt_eh_region (exp) >= 0
+      || dbg_cnt (tail_call) == false)
     try_tail_call = 0;
 
   /*  Rest of purposes for tail call optimizations to fail.  */
@@ -2855,9 +2868,10 @@ expand_call (tree exp, rtx target, int ignore)
 	  valreg = temp;
 	}
 
-      /* For calls to `setjmp', etc., inform flow.c it should complain
-	 if nonvolatile values are live.  For functions that cannot return,
-	 inform flow that control does not fall through.  */
+      /* For calls to `setjmp', etc., inform
+	 function.c:setjmp_warnings that it should complain if
+	 nonvolatile values are live.  For functions that cannot
+	 return, inform flow that control does not fall through.  */
 
       if ((flags & ECF_NORETURN) || pass == 0)
 	{
@@ -3816,9 +3830,10 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	       valreg,
 	       old_inhibit_defer_pop + 1, call_fusage, flags, & args_so_far);
 
-  /* For calls to `setjmp', etc., inform flow.c it should complain
-     if nonvolatile values are live.  For functions that cannot return,
-     inform flow that control does not fall through.  */
+  /* For calls to `setjmp', etc., inform function.c:setjmp_warnings
+     that it should complain if nonvolatile values are live.  For
+     functions that cannot return, inform flow that control does not
+     fall through.  */
 
   if (flags & ECF_NORETURN)
     {
@@ -4310,6 +4325,7 @@ store_one_arg (struct arg_data *arg, rtx argblock, int flags,
 
 	      /* expand_call should ensure this.  */
 	      gcc_assert (!arg->locate.offset.var
+			  && arg->locate.size.var == 0
 			  && GET_CODE (size_rtx) == CONST_INT);
 
 	      if (arg->locate.offset.constant > i)
@@ -4319,7 +4335,21 @@ store_one_arg (struct arg_data *arg, rtx argblock, int flags,
 		}
 	      else if (arg->locate.offset.constant < i)
 		{
-		  if (i < arg->locate.offset.constant + INTVAL (size_rtx))
+		  /* Use arg->locate.size.constant instead of size_rtx
+		     because we only care about the part of the argument
+		     on the stack.  */
+		  if (i < (arg->locate.offset.constant
+			   + arg->locate.size.constant))
+		    sibcall_failure = 1;
+		}
+	      else
+		{
+		  /* Even though they appear to be at the same location,
+		     if part of the outgoing argument is in registers,
+		     they aren't really at the same location.  Check for
+		     this by making sure that the incoming size is the
+		     same as the outgoing size.  */
+		  if (arg->locate.size.constant != INTVAL (size_rtx))
 		    sibcall_failure = 1;
 		}
 	    }

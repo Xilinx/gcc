@@ -1,13 +1,13 @@
 /* Mainly the interface between cpplib and the C front ends.
    Copyright (C) 1987, 1988, 1989, 1992, 1994, 1995, 1996, 1997
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -41,6 +40,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "tm_p.h"
 #include "splay-tree.h"
 #include "debug.h"
+#include "target.h"
 
 /* We may keep statistics about how long which files took to compile.  */
 static int header_time, body_time;
@@ -459,7 +459,7 @@ c_lex_with_flags (tree *value, location_t *loc, unsigned char *cpp_flags)
 	  type = lex_string (tok, value, false);
 	  break;
 	}
-      *value = build_string (tok->val.str.len, (char *) tok->val.str.text);
+      *value = build_string (tok->val.str.len, (const char *) tok->val.str.text);
       break;
       
     case CPP_PRAGMA:
@@ -649,7 +649,31 @@ interpret_float (const cpp_token *token, unsigned int flags)
     else
       type = dfloat64_type_node;
   else
-    if ((flags & CPP_N_WIDTH) == CPP_N_LARGE)
+    if (flags & CPP_N_WIDTH_MD)
+      {
+	char suffix;
+	enum machine_mode mode;
+
+	if ((flags & CPP_N_WIDTH_MD) == CPP_N_MD_W)
+	  suffix = 'w';
+	else
+	  suffix = 'q';
+
+	mode = targetm.c.mode_for_suffix (suffix);
+	if (mode == VOIDmode)
+	  {
+	    error ("unsupported non-standard suffix on floating constant");
+	    errorcount++;
+
+	    return error_mark_node;
+	  }
+	else if (pedantic)
+	  pedwarn ("non-standard suffix on floating constant");
+
+	type = c_common_type_for_mode (mode, 0);
+	gcc_assert (type);
+      }
+    else if ((flags & CPP_N_WIDTH) == CPP_N_LARGE)
       type = long_double_type_node;
     else if ((flags & CPP_N_WIDTH) == CPP_N_SMALL
 	     || flag_single_precision_constant)
@@ -666,7 +690,7 @@ interpret_float (const cpp_token *token, unsigned int flags)
   else 
     {
       if ((flags & CPP_N_WIDTH) != CPP_N_MEDIUM)
-	/* Must be an F or L suffix.  */
+	/* Must be an F or L or machine defined suffix.  */
 	copylen--;
       if (flags & CPP_N_IMAGINARY)
 	/* I or J suffix.  */
@@ -786,7 +810,7 @@ lex_string (const cpp_token *tok, tree *valp, bool objc_string)
        ? cpp_interpret_string : cpp_interpret_string_notranslate)
       (parse_in, strs, concats + 1, &istr, wide))
     {
-      value = build_string (istr.len, (char *) istr.text);
+      value = build_string (istr.len, (const char *) istr.text);
       free ((void *) istr.text);
 
       if (c_lex_string_translate == -1)
@@ -799,13 +823,13 @@ lex_string (const cpp_token *tok, tree *valp, bool objc_string)
 	  gcc_assert (xlated);
 
 	  if (TREE_STRING_LENGTH (value) != (int) istr.len
-	      || 0 != strncmp (TREE_STRING_POINTER (value), (char *) istr.text,
-			       istr.len))
+	      || 0 != strncmp (TREE_STRING_POINTER (value),
+			       (const char *) istr.text, istr.len))
 	    {
 	      /* Arrange for us to return the untranslated string in
 		 *valp, but to set up the C type of the translated
 		 one.  */
-	      *valp = build_string (istr.len, (char *) istr.text);
+	      *valp = build_string (istr.len, (const char *) istr.text);
 	      valp = &TREE_CHAIN (*valp);
 	    }
 	  free ((void *) istr.text);

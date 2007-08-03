@@ -2,22 +2,21 @@
    Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dberlin@dberlin.org>
 
-This file is part of GCC.
+   This file is part of GCC.
 
-GCC is free software; you can redistribute it and/or modify
-under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+   GCC is free software; you can redistribute it and/or modify
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
 
-GCC is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   GCC is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+   You should have received a copy of the GNU General Public License
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -250,6 +249,10 @@ struct variable_info
   /* True if this is a heap variable.  */
   unsigned int is_heap_var:1;
 
+  /* True if we may not use TBAA to prune references to this
+     variable.  This is used for C++ placement new.  */
+  unsigned int no_tbaa_pruning : 1;
+
   /* Points-to set for this variable.  */
   bitmap solution;
 
@@ -328,7 +331,8 @@ heapvar_lookup (tree from)
   struct tree_map *h, in;
   in.base.from = from;
 
-  h = htab_find_with_hash (heapvar_for_stmt, &in, htab_hash_pointer (from));
+  h = (struct tree_map *) htab_find_with_hash (heapvar_for_stmt, &in,
+					       htab_hash_pointer (from));
   if (h)
     return h->to;
   return NULL_TREE;
@@ -343,7 +347,7 @@ heapvar_insert (tree from, tree to)
   struct tree_map *h;
   void **loc;
 
-  h = ggc_alloc (sizeof (struct tree_map));
+  h = GGC_NEW (struct tree_map);
   h->hash = htab_hash_pointer (from);
   h->base.from = from;
   h->to = to;
@@ -357,7 +361,8 @@ heapvar_insert (tree from, tree to)
 static varinfo_t
 new_var_info (tree t, unsigned int id, const char *name)
 {
-  varinfo_t ret = pool_alloc (variable_info_pool);
+  varinfo_t ret = (varinfo_t) pool_alloc (variable_info_pool);
+  tree var;
 
   ret->id = id;
   ret->name = name;
@@ -368,6 +373,12 @@ new_var_info (tree t, unsigned int id, const char *name)
   ret->is_special_var = false;
   ret->is_unknown_size_var = false;
   ret->has_union = false;
+  var = t;
+  if (TREE_CODE (var) == SSA_NAME)
+    var = SSA_NAME_VAR (var);
+  ret->no_tbaa_pruning = (DECL_P (var)
+			  && POINTER_TYPE_P (TREE_TYPE (var))
+			  && DECL_NO_TBAA_P (var));
   ret->solution = BITMAP_ALLOC (&pta_obstack);
   ret->oldsolution = BITMAP_ALLOC (&oldpta_obstack);
   ret->next = NULL;
@@ -513,7 +524,7 @@ static constraint_t
 new_constraint (const struct constraint_expr lhs,
 		const struct constraint_expr rhs)
 {
-  constraint_t ret = pool_alloc (constraint_pool);
+  constraint_t ret = (constraint_t) pool_alloc (constraint_pool);
   ret->lhs = lhs;
   ret->rhs = rhs;
   return ret;
@@ -1193,6 +1204,9 @@ unify_nodes (constraint_graph_t graph, unsigned int to, unsigned int from,
 
   merge_graph_nodes (graph, to, from);
   merge_node_constraints (graph, to, from);
+
+  if (get_varinfo (from)->no_tbaa_pruning)
+    get_varinfo (to)->no_tbaa_pruning = true;
 
   if (update_changed && TEST_BIT (changed, from))
     {
@@ -3276,25 +3290,26 @@ handle_ptr_arith (VEC (ce_s, heap) *lhsc, tree expr)
   unsigned int i = 0;
   unsigned int j = 0;
   VEC (ce_s, heap) *temp = NULL;
-  unsigned int rhsoffset = 0;
+  unsigned HOST_WIDE_INT rhsoffset = 0;
 
-  if (TREE_CODE (expr) != PLUS_EXPR
-      && TREE_CODE (expr) != MINUS_EXPR)
+  if (TREE_CODE (expr) != POINTER_PLUS_EXPR)
     return false;
 
   op0 = TREE_OPERAND (expr, 0);
   op1 = TREE_OPERAND (expr, 1);
+  gcc_assert (POINTER_TYPE_P (TREE_TYPE (op0)));
 
   get_constraint_for (op0, &temp);
-  if (POINTER_TYPE_P (TREE_TYPE (op0))
-      && TREE_CODE (op1) == INTEGER_CST
-      && TREE_CODE (expr) == PLUS_EXPR)
+
+  /* We can only handle positive offsets that do not overflow
+     if we multiply it by BITS_PER_UNIT.  */
+  if (host_integerp (op1, 1))
     {
       rhsoffset = TREE_INT_CST_LOW (op1) * BITS_PER_UNIT;
-    }
-  else
-    return false;
 
+      if (rhsoffset / BITS_PER_UNIT != TREE_INT_CST_LOW (op1))
+	return false;
+    }
 
   for (i = 0; VEC_iterate (ce_s, lhsc, i, c); i++)
     for (j = 0; VEC_iterate (ce_s, temp, j, c2); j++)
@@ -3562,6 +3577,14 @@ find_func_aliases (tree origt)
 	    }
 	}
     }
+  else if (TREE_CODE (t) == CHANGE_DYNAMIC_TYPE_EXPR)
+    {
+      unsigned int j;
+
+      get_constraint_for (CHANGE_DYNAMIC_TYPE_LOCATION (t), &lhsc);
+      for (j = 0; VEC_iterate (ce_s, lhsc, j, c); ++j)
+	get_varinfo (c->var)->no_tbaa_pruning = true;
+    }
 
   /* After promoting variables and computing aliasing we will
      need to re-scan most statements.  FIXME: Try to minimize the
@@ -3671,11 +3694,13 @@ sort_fieldstack (VEC(fieldoff_s,heap) *fieldstack)
    than just the immediately containing structure.  Returns the number
    of fields pushed.
    HAS_UNION is set to true if we find a union type as a field of
-   TYPE.  */
+   TYPE.  ADDRESSABLE_TYPE is the type of the outermost object that could have
+   its address taken.  */
 
 int
 push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
-			     HOST_WIDE_INT offset, bool *has_union)
+			     HOST_WIDE_INT offset, bool *has_union,
+			     tree addressable_type)
 {
   tree field;
   int count = 0;
@@ -3688,12 +3713,14 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
       real_part->size = TYPE_SIZE (TREE_TYPE (type));
       real_part->offset = offset;
       real_part->decl = NULL_TREE;
+      real_part->alias_set = -1;
 
       img_part = VEC_safe_push (fieldoff_s, heap, *fieldstack, NULL);
       img_part->type = TREE_TYPE (type);
       img_part->size = TYPE_SIZE (TREE_TYPE (type));
       img_part->offset = offset + TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (type)));
       img_part->decl = NULL_TREE;
+      img_part->alias_set = -1;
 
       return 2;
     }
@@ -3731,7 +3758,8 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 	    push = true;
 	  else if (!(pushed = push_fields_onto_fieldstack
 		     (TREE_TYPE (type), fieldstack,
-		      offset + i * TREE_INT_CST_LOW (elsz), has_union)))
+		      offset + i * TREE_INT_CST_LOW (elsz), has_union,
+		      TREE_TYPE (type))))
 	    /* Empty structures may have actual size, like in C++. So
 	       see if we didn't push any subfields and the size is
 	       nonzero, push the field onto the stack */
@@ -3746,6 +3774,7 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 	      pair->size = elsz;
 	      pair->decl = NULL_TREE;
 	      pair->offset = offset + i * TREE_INT_CST_LOW (elsz);
+	      pair->alias_set = -1;
 	      count++;
 	    }
 	  else
@@ -3770,7 +3799,10 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 	  push = true;
 	else if (!(pushed = push_fields_onto_fieldstack
 		   (TREE_TYPE (field), fieldstack,
-		    offset + bitpos_of_field (field), has_union))
+		    offset + bitpos_of_field (field), has_union,
+		    (DECL_NONADDRESSABLE_P (field)
+		     ? addressable_type
+		     : TREE_TYPE (field))))
 		 && DECL_SIZE (field)
 		 && !integer_zerop (DECL_SIZE (field)))
 	  /* Empty structures may have actual size, like in C++. So
@@ -3787,6 +3819,10 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 	    pair->size = DECL_SIZE (field);
 	    pair->decl = field;
 	    pair->offset = offset + bitpos_of_field (field);
+	    if (DECL_NONADDRESSABLE_P (field))
+	      pair->alias_set = get_alias_set (addressable_type);
+	    else
+	      pair->alias_set = -1;
 	    count++;
 	  }
 	else
@@ -3985,7 +4021,8 @@ create_variable_info_for (tree decl, const char *name)
 	     || TREE_CODE (decltype) == QUAL_UNION_TYPE;
   if (var_can_have_subvars (decl) && use_field_sensitive && !hasunion)
     {
-      push_fields_onto_fieldstack (decltype, &fieldstack, 0, &hasunion);
+      push_fields_onto_fieldstack (decltype, &fieldstack, 0, &hasunion,
+				   decltype);
       if (hasunion)
 	{
 	  VEC_free (fieldoff_s, heap, fieldstack);
@@ -4129,7 +4166,10 @@ dump_solution_for_var (FILE *file, unsigned int var)
 	{
 	  fprintf (file, "%s ", get_varinfo (i)->name);
 	}
-      fprintf (file, "}\n");
+      fprintf (file, "}");
+      if (vi->no_tbaa_pruning)
+	fprintf (file, " no-tbaa-pruning");
+      fprintf (file, "\n");
     }
 }
 
@@ -4225,6 +4265,7 @@ typedef struct shared_bitmap_info
   bitmap pt_vars;
   hashval_t hashcode;
 } *shared_bitmap_info_t;
+typedef const struct shared_bitmap_info *const_shared_bitmap_info_t;
 
 static htab_t shared_bitmap_table;
 
@@ -4233,7 +4274,7 @@ static htab_t shared_bitmap_table;
 static hashval_t
 shared_bitmap_hash (const void *p)
 {
-  const shared_bitmap_info_t bi = (shared_bitmap_info_t) p;
+  const_shared_bitmap_info_t const bi = (const_shared_bitmap_info_t) p;
   return bi->hashcode;
 }
 
@@ -4242,8 +4283,8 @@ shared_bitmap_hash (const void *p)
 static int
 shared_bitmap_eq (const void *p1, const void *p2)
 {
-  const shared_bitmap_info_t sbi1 = (shared_bitmap_info_t) p1;
-  const shared_bitmap_info_t sbi2 = (shared_bitmap_info_t) p2;
+  const_shared_bitmap_info_t const sbi1 = (const_shared_bitmap_info_t) p1;
+  const_shared_bitmap_info_t const sbi2 = (const_shared_bitmap_info_t) p2;
   return bitmap_equal_p (sbi1->pt_vars, sbi2->pt_vars);
 }
 
@@ -4289,10 +4330,15 @@ shared_bitmap_add (bitmap pt_vars)
 /* Set bits in INTO corresponding to the variable uids in solution set
    FROM, which came from variable PTR.
    For variables that are actually dereferenced, we also use type
-   based alias analysis to prune the points-to sets.  */
+   based alias analysis to prune the points-to sets.
+   IS_DEREFED is true if PTR was directly dereferenced, which we use to
+   help determine whether we are we are allowed to prune using TBAA.
+   If NO_TBAA_PRUNING is true, we do not perform any TBAA pruning of
+   the from set.  */
 
 static void
-set_uids_in_ptset (tree ptr, bitmap into, bitmap from)
+set_uids_in_ptset (tree ptr, bitmap into, bitmap from, bool is_derefed,
+		   bool no_tbaa_pruning)
 {
   unsigned int i;
   bitmap_iterator bi;
@@ -4317,7 +4363,8 @@ set_uids_in_ptset (tree ptr, bitmap into, bitmap from)
 	    bitmap_set_bit (into, DECL_UID (sv->var));
 	}
       else if (TREE_CODE (vi->decl) == VAR_DECL
-	       || TREE_CODE (vi->decl) == PARM_DECL)
+	       || TREE_CODE (vi->decl) == PARM_DECL
+	       || TREE_CODE (vi->decl) == RESULT_DECL)
 	{
 	  if (var_can_have_subvars (vi->decl)
 	      && get_subvars_for_var (vi->decl))
@@ -4328,7 +4375,8 @@ set_uids_in_ptset (tree ptr, bitmap into, bitmap from)
 	      if (sft)
 		{
 		  var_alias_set = get_alias_set (sft);
-		  if (!vi->directly_dereferenced
+		  if (no_tbaa_pruning
+		      || (!is_derefed && !vi->directly_dereferenced)
 		      || alias_sets_conflict_p (ptr_alias_set, var_alias_set))
 		    bitmap_set_bit (into, DECL_UID (sft));
 		}
@@ -4342,7 +4390,8 @@ set_uids_in_ptset (tree ptr, bitmap into, bitmap from)
 	      else
 		{
 		  var_alias_set = get_alias_set (vi->decl);
-		  if (!vi->directly_dereferenced
+		  if (no_tbaa_pruning
+		      || (!is_derefed && !vi->directly_dereferenced)
 		      || alias_sets_conflict_p (ptr_alias_set, var_alias_set))
 		    bitmap_set_bit (into, DECL_UID (vi->decl));
 		}
@@ -4537,15 +4586,26 @@ find_what_p_points_to (tree p)
 	  finished_solution = BITMAP_GGC_ALLOC ();
 	  stats.points_to_sets_created++;
 	  
-	  /* Instead of using pt_anything, we instead merge in the SMT
-	     aliases for the underlying SMT.  */
+	  /* Instead of using pt_anything, we merge in the SMT aliases
+	     for the underlying SMT.  In addition, if they could have
+	     pointed to anything, they could point to global memory.
+	     But we cannot do that for ref-all pointers because these
+	     aliases have not been computed yet.  */
 	  if (was_pt_anything)
 	    {
+	      if (PTR_IS_REF_ALL (p))
+		{
+		  pi->pt_anything = 1;
+		  return false;
+		}
+
 	      merge_smts_into (p, finished_solution);
 	      pi->pt_global_mem = 1;
 	    }
 	  
-	  set_uids_in_ptset (vi->decl, finished_solution, vi->solution);
+	  set_uids_in_ptset (vi->decl, finished_solution, vi->solution,
+			     vi->directly_dereferenced,
+			     vi->no_tbaa_pruning);
 	  result = shared_bitmap_lookup (finished_solution);
 
 	  if (!result)
@@ -4762,13 +4822,149 @@ remove_preds_and_fake_succs (constraint_graph_t graph)
   /* Now reallocate the size of the successor list as, and blow away
      the predecessor bitmaps.  */
   graph->size = VEC_length (varinfo_t, varmap);
-  graph->succs = xrealloc (graph->succs, graph->size * sizeof (bitmap));
+  graph->succs = XRESIZEVEC (bitmap, graph->succs, graph->size);
 
   free (graph->implicit_preds);
   graph->implicit_preds = NULL;
   free (graph->preds);
   graph->preds = NULL;
   bitmap_obstack_release (&predbitmap_obstack);
+}
+
+/* Compute the set of variables we can't TBAA prune.  */
+
+static void
+compute_tbaa_pruning (void)
+{
+  unsigned int size = VEC_length (varinfo_t, varmap);
+  unsigned int i;
+  bool any;
+
+  changed_count = 0;
+  changed = sbitmap_alloc (size);
+  sbitmap_zero (changed);
+
+  /* Mark all initial no_tbaa_pruning nodes as changed.  */
+  any = false;
+  for (i = 0; i < size; ++i)
+    {
+      varinfo_t ivi = get_varinfo (i);
+
+      if (find (i) == i && ivi->no_tbaa_pruning)
+	{
+	  any = true;
+	  if ((graph->succs[i] && !bitmap_empty_p (graph->succs[i]))
+	      || VEC_length (constraint_t, graph->complex[i]) > 0)
+	    {
+	      SET_BIT (changed, i);
+	      ++changed_count;
+	    }
+	}
+    }
+
+  while (changed_count > 0)
+    {
+      struct topo_info *ti = init_topo_info ();
+      ++stats.iterations;
+
+      bitmap_obstack_initialize (&iteration_obstack);
+
+      compute_topo_order (graph, ti);
+
+      while (VEC_length (unsigned, ti->topo_order) != 0)
+	{
+	  bitmap_iterator bi;
+
+	  i = VEC_pop (unsigned, ti->topo_order);
+
+	  /* If this variable is not a representative, skip it.  */
+	  if (find (i) != i)
+	    continue;
+
+	  /* If the node has changed, we need to process the complex
+	     constraints and outgoing edges again.  */
+	  if (TEST_BIT (changed, i))
+	    {
+	      unsigned int j;
+	      constraint_t c;
+	      VEC(constraint_t,heap) *complex = graph->complex[i];
+
+	      RESET_BIT (changed, i);
+	      --changed_count;
+
+	      /* Process the complex copy constraints.  */
+	      for (j = 0; VEC_iterate (constraint_t, complex, j, c); ++j)
+		{
+		  if (c->lhs.type == SCALAR && c->rhs.type == SCALAR)
+		    {
+		      varinfo_t lhsvi = get_varinfo (find (c->lhs.var));
+
+		      if (!lhsvi->no_tbaa_pruning)
+			{
+			  lhsvi->no_tbaa_pruning = true;
+			  if (!TEST_BIT (changed, lhsvi->id))
+			    {
+			      SET_BIT (changed, lhsvi->id);
+			      ++changed_count;
+			    }
+			}
+		    }
+		}
+
+	      /* Propagate to all successors.  */
+	      EXECUTE_IF_IN_NONNULL_BITMAP (graph->succs[i], 0, j, bi)
+		{
+		  unsigned int to = find (j);
+		  varinfo_t tovi = get_varinfo (to);
+
+		  /* Don't propagate to ourselves.  */
+		  if (to == i)
+		    continue;
+
+		  if (!tovi->no_tbaa_pruning)
+		    {
+		      tovi->no_tbaa_pruning = true;
+		      if (!TEST_BIT (changed, to))
+			{
+			  SET_BIT (changed, to);
+			  ++changed_count;
+			}
+		    }
+		}
+	    }
+	}
+
+      free_topo_info (ti);
+      bitmap_obstack_release (&iteration_obstack);
+    }
+
+  sbitmap_free (changed);
+
+  if (any)
+    {
+      for (i = 0; i < size; ++i)
+	{
+	  varinfo_t ivi = get_varinfo (i);
+	  varinfo_t ivip = get_varinfo (find (i));
+
+	  if (ivip->no_tbaa_pruning)
+	    {
+	      tree var = ivi->decl;
+
+	      if (TREE_CODE (var) == SSA_NAME)
+		var = SSA_NAME_VAR (var);
+
+	      if (POINTER_TYPE_P (TREE_TYPE (var)))
+		{
+		  DECL_NO_TBAA_P (var) = 1;
+
+		  /* Tell the RTL layer that this pointer can alias
+		     anything.  */
+		  DECL_POINTER_ALIAS_SET (var) = 0;
+		}
+	    }
+	}
+    }
 }
 
 /* Create points-to sets for the current function.  See the comments
@@ -4807,7 +5003,7 @@ compute_points_to_sets (struct alias_info *ai)
 	    }
 	}
 
-      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+      for (bsi = bsi_start (bb); !bsi_end_p (bsi); )
 	{
 	  tree stmt = bsi_stmt (bsi);
 
@@ -4818,6 +5014,13 @@ compute_points_to_sets (struct alias_info *ai)
 	     This is used when creating name tags and alias
 	     sets.  */
 	  update_alias_info (stmt, ai);
+
+	  /* The information in CHANGE_DYNAMIC_TYPE_EXPR nodes has now
+	     been captured, and we can remove them.  */
+	  if (TREE_CODE (stmt) == CHANGE_DYNAMIC_TYPE_EXPR)
+	    bsi_remove (&bsi, true);
+	  else
+	    bsi_next (&bsi);
 	}
     }
 
@@ -4848,6 +5051,8 @@ compute_points_to_sets (struct alias_info *ai)
     fprintf (dump_file, "\nSolving graph:\n");
 
   solve_graph (graph);
+
+  compute_tbaa_pruning ();
 
   if (dump_file)
     dump_sa_points_to_info (dump_file);

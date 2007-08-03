@@ -9,7 +9,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -18,9 +18,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* Expression definitions and descriptions for all targets are in this file.
@@ -113,26 +112,26 @@ DEF_RTL_EXPR(ADDRESS, "address", "e", RTX_MATCH)
    ---------------------------------------------------------------------- */
 
 /* An instruction that cannot jump.  */
-DEF_RTL_EXPR(INSN, "insn", "iuuBieiee", RTX_INSN)
+DEF_RTL_EXPR(INSN, "insn", "iuuBieie", RTX_INSN)
 
 /* An instruction that can possibly jump.
    Fields ( rtx->u.fld[] ) have exact same meaning as INSN's.  */
-DEF_RTL_EXPR(JUMP_INSN, "jump_insn", "iuuBieiee0", RTX_INSN)
+DEF_RTL_EXPR(JUMP_INSN, "jump_insn", "iuuBieie0", RTX_INSN)
 
 /* An instruction that can possibly call a subroutine
    but which will not change which instruction comes next
    in the current function.
-   Field ( rtx->u.fld[9] ) is CALL_INSN_FUNCTION_USAGE.
+   Field ( rtx->u.fld[8] ) is CALL_INSN_FUNCTION_USAGE.
    All other fields ( rtx->u.fld[] ) have exact same meaning as INSN's.  */
-DEF_RTL_EXPR(CALL_INSN, "call_insn", "iuuBieieee", RTX_INSN)
+DEF_RTL_EXPR(CALL_INSN, "call_insn", "iuuBieiee", RTX_INSN)
 
 /* A marker that indicates that control will not flow through.  */
-DEF_RTL_EXPR(BARRIER, "barrier", "iuu000000", RTX_EXTRA)
+DEF_RTL_EXPR(BARRIER, "barrier", "iuu00000", RTX_EXTRA)
 
 /* Holds a label that is followed by instructions.
    Operand:
    4: is used in jump.c for the use-count of the label.
-   5: is used in flow.c to point to the chain of label_ref's to this label.
+   5: is used in the sh backend.
    6: is a number that is unique in the entire compilation.
    7: is the user-given name of the label, if any.  */
 DEF_RTL_EXPR(CODE_LABEL, "code_label", "iuuB00is", RTX_EXTRA)
@@ -140,9 +139,9 @@ DEF_RTL_EXPR(CODE_LABEL, "code_label", "iuuB00is", RTX_EXTRA)
 /* Say where in the code a source line starts, for symbol table's sake.
    Operand:
    4: note-specific data
-   5: unused (memory layout has to match code_label above)
-   6: unique number if line number == note_insn_deleted_label.  */
-DEF_RTL_EXPR(NOTE, "note", "iuuB00i", RTX_EXTRA)
+   5: enum insn_note
+   6: unique number if insn_note == note_insn_deleted_label.  */
+DEF_RTL_EXPR(NOTE, "note", "iuuB0ni", RTX_EXTRA)
 
 /* ----------------------------------------------------------------------
    Top level constituents of INSN, JUMP_INSN and CALL_INSN.
@@ -212,8 +211,15 @@ DEF_RTL_EXPR(ASM_OPERANDS, "asm_operands", "ssiEEsi", RTX_EXTRA)
      operations is to be performed.
    (Note that the vector must be the first operand because of the way that
    genrecog.c record positions within an insn.)
-   This can occur all by itself in a PATTERN, as a component of a PARALLEL,
-   or inside an expression.  */
+
+   UNSPEC can occur all by itself in a PATTERN, as a component of a PARALLEL,
+   or inside an expression.  
+   UNSPEC by itself or as a component of a PARALLEL
+   is currently considered not deletable.
+
+   FIXME: Replace all uses of UNSPEC that appears by itself or as a component
+   of a PARALLEL with USE.
+   */
 DEF_RTL_EXPR(UNSPEC, "unspec", "Ei", RTX_EXTRA)
 
 /* Similar, but a volatile operation and one which may trap.  */
@@ -273,12 +279,20 @@ DEF_RTL_EXPR(SET, "set", "ee", RTX_EXTRA)
 
 /* Indicate something is used in a way that we don't want to explain.
    For example, subroutine calls will use the register
-   in which the static chain is passed.  */
+   in which the static chain is passed.  
+
+   USE can not appear as an operand of other rtx except for PARALLEL.
+   USE is not deletable, as it indicates that the operand
+   is used in some unknown way.  */
 DEF_RTL_EXPR(USE, "use", "e", RTX_EXTRA)
 
 /* Indicate something is clobbered in a way that we don't want to explain.
    For example, subroutine calls will clobber some physical registers
-   (the ones that are by convention not saved).  */
+   (the ones that are by convention not saved).  
+
+   CLOBBER can not appear as an operand of other rtx except for PARALLEL.
+   CLOBBER of a hard register appearing by itself (not within PARALLEL)
+   is considered undeletable before reload.  */
 DEF_RTL_EXPR(CLOBBER, "clobber", "e", RTX_EXTRA)
 
 /* Call a subroutine.
@@ -665,7 +679,9 @@ DEF_RTL_EXPR(SS_TRUNCATE, "ss_truncate", "e", RTX_UNARY)
 DEF_RTL_EXPR(US_TRUNCATE, "us_truncate", "e", RTX_UNARY)
 
 /* Information about the variable and its location.  */
-DEF_RTL_EXPR(VAR_LOCATION, "var_location", "te", RTX_EXTRA)
+/* Changed 'te' to 'tei'; the 'i' field is for recording
+   initialization status of variables.  */
+DEF_RTL_EXPR(VAR_LOCATION, "var_location", "tei", RTX_EXTRA)
 
 /* All expressions from this point forward appear only in machine
    descriptions.  */

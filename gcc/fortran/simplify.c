@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -2858,6 +2857,7 @@ gfc_simplify_repeat (gfc_expr *e, gfc_expr *n)
   gfc_expr *result;
   int i, j, len, ncop, nlen;
   mpz_t ncopies;
+  bool have_length = false;
 
   /* If NCOPIES isn't a constant, there's nothing we can do.  */
   if (n->expr_type != EXPR_CONSTANT)
@@ -2872,29 +2872,49 @@ gfc_simplify_repeat (gfc_expr *e, gfc_expr *n)
     }
 
   /* If we don't know the character length, we can do no more.  */
-  if (e->ts.cl == NULL || e->ts.cl->length == NULL
-      || e->ts.cl->length->expr_type != EXPR_CONSTANT)
+  if (e->ts.cl && e->ts.cl->length
+	&& e->ts.cl->length->expr_type == EXPR_CONSTANT)
+    {
+      len = mpz_get_si (e->ts.cl->length->value.integer);
+      have_length = true;
+    }
+  else if (e->expr_type == EXPR_CONSTANT
+	     && (e->ts.cl == NULL || e->ts.cl->length == NULL))
+    {
+      len = e->value.character.length;
+    }
+  else
     return NULL;
 
   /* If the source length is 0, any value of NCOPIES is valid
      and everything behaves as if NCOPIES == 0.  */
   mpz_init (ncopies);
-  if (mpz_sgn (e->ts.cl->length->value.integer) == 0)
+  if (len == 0)
     mpz_set_ui (ncopies, 0);
   else
     mpz_set (ncopies, n->value.integer);
 
   /* Check that NCOPIES isn't too large.  */
-  if (mpz_sgn (e->ts.cl->length->value.integer) != 0)
+  if (len)
     {
-      mpz_t max;
+      mpz_t max, mlen;
       int i;
 
       /* Compute the maximum value allowed for NCOPIES: huge(cl) / len.  */
       mpz_init (max);
       i = gfc_validate_kind (BT_INTEGER, gfc_charlen_int_kind, false);
-      mpz_tdiv_q (max, gfc_integer_kinds[i].huge,
-		  e->ts.cl->length->value.integer);
+
+      if (have_length)
+	{
+	  mpz_tdiv_q (max, gfc_integer_kinds[i].huge,
+		      e->ts.cl->length->value.integer);
+	}
+      else
+	{
+	  mpz_init_set_si (mlen, len);
+	  mpz_tdiv_q (max, gfc_integer_kinds[i].huge, mlen);
+	  mpz_clear (mlen);
+	}
 
       /* The check itself.  */
       if (mpz_cmp (ncopies, max) > 0)
@@ -2915,7 +2935,7 @@ gfc_simplify_repeat (gfc_expr *e, gfc_expr *n)
   if (e->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (mpz_sgn (e->ts.cl->length->value.integer) != 0)
+  if (len || mpz_sgn (e->ts.cl->length->value.integer) != 0)
     {
       const char *res = gfc_extract_int (n, &ncop);
       gcc_assert (res == NULL);
@@ -3903,7 +3923,7 @@ gfc_simplify_transfer (gfc_expr *source, gfc_expr *mold, gfc_expr *size)
   
   /* Set the number of elements in the result, and determine its size.  */
   result_elt_size = gfc_target_expr_size (mold_element);
-  if (mold->expr_type == EXPR_ARRAY || size)
+  if (mold->expr_type == EXPR_ARRAY || mold->rank || size)
     {
       int result_length;
 

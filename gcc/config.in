@@ -59,6 +59,12 @@
 #endif
 
 
+/* Define if you want more run-time sanity checks for dataflow. */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_DF_CHECKING
+#endif
+
+
 /* Define if you want fold checked that it never destructs its argument. This
    is quite expensive. */
 #ifndef USED_FOR_TARGET
@@ -112,6 +118,12 @@
    enabled by this option. */
 #ifndef USED_FOR_TARGET
 #undef ENABLE_TREE_CHECKING
+#endif
+
+
+/* Define if you want all gimple types to be verified after gimplifiation. */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_TYPES_CHECKING
 #endif
 
 
@@ -179,6 +191,12 @@
 #endif
 
 
+/* Define if your assembler supports .dtprelword. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_DTPRELWORD
+#endif
+
+
 /* Define if your assembler supports dwarf2 .file/.loc directives, and
    preserves file table indices exactly as given. */
 #ifndef USED_FOR_TARGET
@@ -201,6 +219,12 @@
 /* Define if your assembler supports the --gdwarf2 option. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_GDWARF2_DEBUG_FLAG
+#endif
+
+
+/* Define if your assembler supports .gnu_attribute. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_GNU_ATTRIBUTE
 #endif
 
 

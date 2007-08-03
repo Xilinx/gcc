@@ -8,7 +8,7 @@
 
 #GCC is free software; you can redistribute it and/or modify it under
 #the terms of the GNU General Public License as published by the Free
-#Software Foundation; either version 2, or (at your option) any later
+#Software Foundation; either version 3, or (at your option) any later
 #version.
 
 #GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -17,9 +17,8 @@
 #for more details.
 
 #You should have received a copy of the GNU General Public License
-#along with GCC; see the file COPYING.  If not, write to the Free
-#Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-#02110-1301, USA.
+#along with GCC; see the file COPYING3.  If not see
+#<http://www.gnu.org/licenses/>.
 
 # --------------------------------
 # Initialization and sanity checks
@@ -141,9 +140,7 @@ if test x${gcc_gxx_include_dir} = x; then
     if test x$host != x$target; then
        libstdcxx_incdir="$target_alias/$libstdcxx_incdir"
     fi
-changequote(<<, >>)dnl
-    gcc_gxx_include_dir="\$(libsubdir)/\$(unlibsubdir)/..\`echo \$(exec_prefix) | sed -e 's|^\$(prefix)||' -e 's|/[^/]*|/..|g'\`/$libstdcxx_incdir"
-changequote([, ])dnl
+    gcc_gxx_include_dir="\$(libsubdir)/\$(libsubdir_to_prefix)$libstdcxx_incdir"
   fi
 fi
 
@@ -319,105 +316,18 @@ AC_CHECK_TYPES([__int64], [AC_CHECK_SIZEOF(__int64)])
 # * overlong strings
 # So, we only use -pedantic if we can disable those warnings.
 
-AC_CACHE_CHECK(
-  [whether ${CC} accepts -Wno-long-long],
-  [ac_cv_prog_cc_w_no_long_long],
-  [save_CFLAGS="$CFLAGS"
-  CFLAGS="-Wno-long-long"
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[]])],
-                    [ac_cv_prog_cc_w_no_long_long=yes],
-                    [ac_cv_prog_cc_w_no_long_long=no])
-  CFLAGS="$save_CFLAGS"
-  ])
+ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wwrite-strings -Wstrict-prototypes \
+			  -Wmissing-prototypes], [loose_warn])
+ACX_PROG_CC_WARNING_OPTS([-Wc++-compat], [cxx_compat_warn])
+ACX_PROG_CC_WARNING_OPTS([-Wold-style-definition \
+                          -Wmissing-format-attribute], [strict_warn])
+ACX_PROG_CC_WARNING_ALMOST_PEDANTIC([-Wno-long-long -Wno-variadic-macros \
+				     -Wno-overlength-strings], [strict_warn])
+ACX_PROG_CC_WARNINGS_ARE_ERRORS([manual], [strict_warn])
 
-AC_CACHE_CHECK(
-  [whether ${CC} accepts -Wno-variadic-macros],
-  [ac_cv_prog_cc_w_no_variadic_macros],
-  [save_CFLAGS="$CFLAGS"
-  CFLAGS="-Wno-variadic-macros"
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[]])],
-                    [ac_cv_prog_cc_w_no_variadic_macros=yes],
-                    [ac_cv_prog_cc_w_no_variadic_macros=no])
-  CFLAGS="$save_CFLAGS"
-  ])
-
-AC_CACHE_CHECK(
-  [whether ${CC} accepts -Wno-overlength-strings],
-  [ac_cv_prog_cc_w_no_overlength_strings],
-  [save_CFLAGS="$CFLAGS"
-  CFLAGS="-Wno-overlength-strings"
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[]])],
-                    [ac_cv_prog_cc_w_no_overlength_strings=yes],
-                    [ac_cv_prog_cc_w_no_overlength_strings=no])
-  CFLAGS="$save_CFLAGS"
-  ])
-
-strict_warn=
-if test $ac_cv_prog_cc_w_no_long_long = yes \
-   && test $ac_cv_prog_cc_w_no_variadic_macros = yes \
-   && test $ac_cv_prog_cc_w_no_overlength_strings = yes ; then
-  strict_warn="-pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings"
-fi
-
-# Add -Wold-style-definition if it's accepted
-AC_CACHE_CHECK(
-  [whether ${CC} accepts -Wold-style-definition],
-  [ac_cv_prog_cc_w_old_style_definition],
-  [save_CFLAGS="$CFLAGS"
-  CFLAGS="-Wold-style-definition"
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[]])],
-                    [ac_cv_prog_cc_w_old_style_definition=yes],
-                    [ac_cv_prog_cc_w_old_style_definition=no])
-  CFLAGS="$save_CFLAGS"
-  ])
-if test $ac_cv_prog_cc_w_old_style_definition = yes ; then
-  strict_warn="${strict_warn} -Wold-style-definition"
-fi
-
-# Add -Wmissing-format-attribute if it's accepted
-AC_CACHE_CHECK(
-  [whether ${CC} accepts -Wmissing-format-attribute],
-  [ac_cv_prog_cc_w_missing_format_attribute],
-  [save_CFLAGS="$CFLAGS"
-  CFLAGS="-Wmissing-format-attribute"
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[]])],
-                    [ac_cv_prog_cc_w_missing_format_attribute=yes],
-                    [ac_cv_prog_cc_w_missing_format_attribute=no])
-  CFLAGS="$save_CFLAGS"
-  ])
-if test $ac_cv_prog_cc_w_missing_format_attribute = yes ; then
-  strict_warn="${strict_warn} -Wmissing-format-attribute"
-fi
-
-# Enable -Werror, period.
-AC_ARG_ENABLE(werror_always, 
-[  --enable-werror-always         enable -Werror always], [],
-[enable_werror_always=no])
-if test x${enable_werror_always} = xyes ; then
-  strict_warn="${strict_warn} -Werror"
-fi
-AC_SUBST(strict_warn)
-
-# Get C++ compatibility warning flag, if supported.
-AC_CACHE_CHECK(
-  [whether ${CC} accepts -Wc++-compat],
-  [ac_cv_prog_cc_w_cxx_compat],
-  [save_CFLAGS="$CFLAGS"
-  CFLAGS="-Wc++-compat"
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[]])],
-                    [ac_cv_prog_cc_w_cxx_compat=yes],
-                    [ac_cv_prog_cc_w_cxx_compat=no])
-  CFLAGS="$save_CFLAGS"
-  ])
-if test x${ac_cv_prog_cc_w_cxx_compat} = xyes; then
-  cxx_compat_warn="-Wc++-compat"
-fi
-AC_SUBST(cxx_compat_warn)
-
-
-# If the native compiler is GCC, we can enable warnings even in stage1.  
-# That's useful for people building cross-compilers, or just running a
-# quick `make'.
+# The above macros do nothing if the compiler is not GCC.  However, the
+# Makefile has more goo to add other flags, so this variabl is used to
+# enables warnings only for GCC.
 warn_cflags=
 if test "x$GCC" = "xyes"; then
   warn_cflags='$(GCC_WARN_CFLAGS)'
@@ -435,8 +345,8 @@ AC_ARG_ENABLE(checking,
 			  enable expensive run-time checks.  With LIST,
 			  enable only specific categories of checks.
 			  Categories are: yes,no,all,none,release.
-			  Flags are: assert,fold,gc,gcac,misc,
-			  rtlflag,rtl,runtime,tree,valgrind.],
+			  Flags are: assert,df,fold,gc,gcac,misc,
+			  rtlflag,rtl,runtime,tree,valgrind,types.],
 [ac_checking_flags="${enableval}"],[
 # Determine the default checks.
 if test x$is_release = x ; then
@@ -444,43 +354,38 @@ if test x$is_release = x ; then
 else
   ac_checking_flags=release
 fi])
-ac_assert_checking=1
-ac_checking=
-ac_fold_checking=
-ac_gc_checking=
-ac_gc_always_collect=
-ac_rtl_checking=
-ac_rtlflag_checking=
-ac_runtime_checking=1
-ac_tree_checking=
-ac_valgrind_checking=
 IFS="${IFS= 	}"; ac_save_IFS="$IFS"; IFS="$IFS,"
-for check in $ac_checking_flags
+for check in release $ac_checking_flags
 do
 	case $check in
 	# these set all the flags to specific states
-	yes)		ac_assert_checking=1 ; ac_checking=1 ;
+	yes)		ac_assert_checking=1 ; ac_checking=1 ; ac_df_checking=1 ;
 			ac_fold_checking= ; ac_gc_checking=1 ;
 			ac_gc_always_collect= ; ac_rtl_checking= ;
 			ac_rtlflag_checking=1 ; ac_runtime_checking=1 ;
-			ac_tree_checking=1 ; ac_valgrind_checking= ;;
-	no|none)	ac_assert_checking= ; ac_checking= ;
+			ac_tree_checking=1 ; ac_valgrind_checking= ;
+			ac_types_checking= ;;
+	no|none)	ac_assert_checking= ; ac_checking= ; ac_df_checking= ;
 			ac_fold_checking= ; ac_gc_checking= ;
 			ac_gc_always_collect= ; ac_rtl_checking= ;
 			ac_rtlflag_checking= ; ac_runtime_checking= ;
-			ac_tree_checking= ; ac_valgrind_checking= ;;
-	all)		ac_assert_checking=1 ; ac_checking=1 ;
+			ac_tree_checking= ; ac_valgrind_checking= ;
+			ac_types_checking= ;;
+	all)		ac_assert_checking=1 ; ac_checking=1 ; ac_df_checking=1 ;
 			ac_fold_checking=1 ; ac_gc_checking=1 ;
 			ac_gc_always_collect=1 ; ac_rtl_checking=1 ;
 			ac_rtlflag_checking=1 ; ac_runtime_checking=1 ;
-			ac_tree_checking=1 ; ac_valgrind_checking= ;;
-	release)	ac_assert_checking=1 ; ac_checking= ;
+			ac_tree_checking=1 ; ac_valgrind_checking= ;
+			ac_types_checking=1 ;;
+	release)	ac_assert_checking=1 ; ac_checking= ; ac_df_checking= ;
 			ac_fold_checking= ; ac_gc_checking= ;
 			ac_gc_always_collect= ; ac_rtl_checking= ;
 			ac_rtlflag_checking= ; ac_runtime_checking=1 ;
-			ac_tree_checking= ; ac_valgrind_checking= ;;
+			ac_tree_checking= ; ac_valgrind_checking= ;
+			ac_types_checking= ;;
 	# these enable particular checks
 	assert) 	ac_assert_checking=1 ;;
+	df)	 	ac_df_checking=1 ;;
 	fold)		ac_fold_checking=1 ;;
 	gc)		ac_gc_checking=1 ;;
 	gcac)		ac_gc_always_collect=1 ;;
@@ -489,6 +394,7 @@ do
 	rtlflag)	ac_rtlflag_checking=1 ;;
 	runtime)	ac_runtime_checking=1 ;;
 	tree)		ac_tree_checking=1 ;;
+	types)		ac_types_checking=1 ;;
 	valgrind)	ac_valgrind_checking=1 ;;
 	*)	AC_MSG_ERROR(unknown check category $check) ;;
 	esac
@@ -503,6 +409,10 @@ if test x$ac_checking != x ; then
   nocommon_flag=-fno-common
 fi
 AC_SUBST(nocommon_flag)
+if test x$ac_df_checking != x ; then
+  AC_DEFINE(ENABLE_DF_CHECKING, 1,
+[Define if you want more run-time sanity checks for dataflow.])
+fi
 if test x$ac_assert_checking != x ; then
   AC_DEFINE(ENABLE_ASSERT_CHECKING, 1,
 [Define if you want assertions enabled.  This is a cheap check.])
@@ -520,6 +430,12 @@ if test x$ac_tree_checking != x ; then
    routines will also be enabled by this option.
    ])
   TREEBROWSER=tree-browser.o
+fi
+if test x$ac_types_checking != x ; then
+  AC_DEFINE(ENABLE_TYPES_CHECKING, 1,
+[Define if you want all gimple types to be verified after gimplifiation.
+   This is cheap.
+   ])
 fi
 AC_SUBST(TREEBROWSER)
 if test x$ac_rtl_checking != x ; then
@@ -893,15 +809,12 @@ gcc_AC_PROG_CMP_IGNORE_INITIAL
 # See if we have the mktemp command.
 AC_CHECK_PROG(have_mktemp_command, mktemp, yes, no)
 
-MISSING="${CONFIG_SHELL-/bin/sh} $srcdir/../missing"
-
 # See if makeinfo has been installed and is modern enough
 # that we can use it.
-gcc_AC_CHECK_PROG_VER(MAKEINFO, makeinfo, --version,
+ACX_CHECK_PROG_VER(MAKEINFO, makeinfo, --version,
   [GNU texinfo.* \([0-9][0-9.]*\)],
   [4.[4-9]*])
 if test $gcc_cv_prog_makeinfo_modern = no; then
-  MAKEINFO="$MISSING makeinfo"
   AC_MSG_WARN([
 *** Makeinfo is missing or too old.
 *** Info documentation will not be built.])
@@ -921,6 +834,8 @@ else
   GENERATED_MANPAGES=
 fi
 AC_SUBST(GENERATED_MANPAGES)
+
+MISSING="${CONFIG_SHELL-/bin/sh} $ac_aux_dir/missing"
 
 # How about lex?
 dnl Don't use AC_PROG_LEX; we insist on flex.
@@ -1833,6 +1748,11 @@ extra_headers_list=
 for file in ${extra_headers} ; do
   extra_headers_list="${extra_headers_list} \$(srcdir)/config/${cpu_type}/${file}"
 done
+
+# If use_gcc_tgmath is set, append ginclude/tgmath.h.
+if test x"$use_gcc_tgmath" = xyes
+then extra_headers_list="${extra_headers_list} \$(srcdir)/ginclude/tgmath.h"
+fi
 
 # Define collect2 in Makefile.
 case $host_can_use_collect2 in
@@ -3022,6 +2942,12 @@ LCF0:
       [$conftest_s],,
       [AC_DEFINE(HAVE_AS_DFP, 1,
 	  [Define if your assembler supports DFP instructions.])])
+
+    gcc_GAS_CHECK_FEATURE([.gnu_attribute support],
+      gcc_cv_as_powerpc_gnu_attribute, [2,18,0],,
+      [.gnu_attribute 4,1],,
+      [AC_DEFINE(HAVE_AS_GNU_ATTRIBUTE, 1,
+	  [Define if your assembler supports .gnu_attribute.])])
     ;;
 
   mips*-*-*)
@@ -3036,6 +2962,22 @@ LCF0:
       gcc_cv_as_mips_no_shared, [2,16,0], [-mno-shared], [nop],,
       [AC_DEFINE(HAVE_AS_NO_SHARED, 1,
 		 [Define if the assembler understands -mno-shared.])])
+
+    gcc_GAS_CHECK_FEATURE([.gnu_attribute support],
+      gcc_cv_as_mips_gnu_attribute, [2,18,0],,
+      [.gnu_attribute 4,1],,
+      [AC_DEFINE(HAVE_AS_GNU_ATTRIBUTE, 1,
+	  [Define if your assembler supports .gnu_attribute.])])
+
+    gcc_GAS_CHECK_FEATURE([.dtprelword support],
+      gcc_cv_as_mips_dtprelword, [2,18,0],,
+      [.section .tdata,"awT",@progbits
+x:
+	.word 2
+	.text
+	.dtprelword x+0x8000],,
+      [AC_DEFINE(HAVE_AS_DTPRELWORD, 1,
+	  [Define if your assembler supports .dtprelword.])])
     ;;
 esac
 
@@ -3684,42 +3626,7 @@ if test "x$subdirs" != x; then
 fi
 echo "source ${srcdir}/gdbinit.in" >> .gdbinit
 
-# If $(exec_prefix) exists and is not the same as $(prefix), then compute an
-# absolute path for gcc_tooldir based on inserting the number of up-directory
-# movements required to get from $(exec_prefix) to $(prefix) into the basic
-# $(libsubdir)/@(unlibsubdir) based path.
-# Don't set gcc_tooldir to tooldir since that's only passed in by the toplevel
-# make and thus we'd get different behavior depending on where we built the
-# sources.
-if test x$exec_prefix = xNONE -o x$exec_prefix = x$prefix; then
-    gcc_tooldir='$(libsubdir)/$(unlibsubdir)/../$(target_noncanonical)'
-else
-changequote(<<, >>)dnl
-# An explanation of the sed strings:
-#  -e 's|^\$(prefix)||'   matches and eliminates 'prefix' from 'exec_prefix'
-#  -e 's|/$||'            match a trailing forward slash and eliminates it
-#  -e 's|^[^/]|/|'        forces the string to start with a forward slash (*)
-#  -e 's|/[^/]*|../|g'    replaces each occurrence of /<directory> with ../
-#
-# (*) Note this pattern overwrites the first character of the string
-# with a forward slash if one is not already present.  This is not a
-# problem because the exact names of the sub-directories concerned is
-# unimportant, just the number of them matters.
-#
-# The practical upshot of these patterns is like this:
-#
-#  prefix     exec_prefix        result
-#  ------     -----------        ------
-#   /foo        /foo/bar          ../
-#   /foo/       /foo/bar          ../
-#   /foo        /foo/bar/         ../
-#   /foo/       /foo/bar/         ../
-#   /foo        /foo/bar/ugg      ../../
-#
-    dollar='$$'
-    gcc_tooldir="\$(libsubdir)/\$(unlibsubdir)/\`echo \$(exec_prefix) | sed -e 's|^\$(prefix)||' -e 's|/\$(dollar)||' -e 's|^[^/]|/|' -e 's|/[^/]*|../|g'\`\$(target_noncanonical)"
-changequote([, ])dnl
-fi
+gcc_tooldir='$(libsubdir)/$(libsubdir_to_prefix)$(target_noncanonical)'
 AC_SUBST(gcc_tooldir)
 AC_SUBST(dollar)
 

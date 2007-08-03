@@ -59,8 +59,8 @@
  *  You should not attempt to use it directly.
  */
 
-#ifndef _VECTOR_H
-#define _VECTOR_H 1
+#ifndef _STL_VECTOR_H
+#define _STL_VECTOR_H 1
 
 #include <bits/stl_iterator_base_funcs.h>
 #include <bits/functexcept.h>
@@ -825,6 +825,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 
       // Called by the first initialize_dispatch above and by the
       // vector(n,value,a) constructor.
+      void
       _M_fill_initialize(size_type __n, const value_type& __value)
       {
 	std::__uninitialized_fill_n_a(this->_M_impl._M_start, __n, __value, 
@@ -1007,4 +1008,4 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 
 _GLIBCXX_END_NESTED_NAMESPACE
 
-#endif /* _VECTOR_H */
+#endif /* _STL_VECTOR_H */

@@ -1,6 +1,6 @@
 /* Subroutines used for code generation on IBM S/390 and zSeries
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+   2007 Free Software Foundation, Inc.
    Contributed by Hartmut Penner (hpenner@de.ibm.com) and
                   Ulrich Weigand (uweigand@de.ibm.com).
 
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -51,6 +50,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "langhooks.h"
 #include "optabs.h"
 #include "tree-gimple.h"
+#include "df.h"
 
 
 /* Define the specific costs for a given cpu.  */
@@ -321,6 +321,18 @@ struct machine_function GTY(())
 
 #define REGNO_PAIR_OK(REGNO, MODE)                               \
   (HARD_REGNO_NREGS ((REGNO), (MODE)) == 1 || !((REGNO) & 1))
+
+static enum machine_mode
+s390_libgcc_cmp_return_mode (void)
+{
+  return TARGET_64BIT ? DImode : SImode;
+}
+
+static enum machine_mode
+s390_libgcc_shift_count_mode (void)
+{
+  return TARGET_64BIT ? DImode : SImode;
+}
 
 /* Return true if the back end supports mode MODE.  */
 static bool
@@ -2890,7 +2902,7 @@ legitimize_pic_address (rtx orig, rtx reg)
           rtx temp = reg? reg : gen_reg_rtx (Pmode);
 
 	  if (reload_in_progress || reload_completed)
-	    regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 
           addr = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr), UNSPEC_GOTOFF);
           addr = gen_rtx_CONST (Pmode, addr);
@@ -2916,7 +2928,7 @@ legitimize_pic_address (rtx orig, rtx reg)
              in both 31- and 64-bit code (@GOT).  */
 
 	  if (reload_in_progress || reload_completed)
-	    regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 
           new = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr), UNSPEC_GOT);
           new = gen_rtx_CONST (Pmode, new);
@@ -2948,7 +2960,7 @@ legitimize_pic_address (rtx orig, rtx reg)
           rtx temp = gen_reg_rtx (Pmode);
 
 	  if (reload_in_progress || reload_completed)
-	    regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 
           addr = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr), UNSPEC_GOT);
           addr = gen_rtx_CONST (Pmode, addr);
@@ -2996,7 +3008,7 @@ legitimize_pic_address (rtx orig, rtx reg)
                         rtx temp = reg? reg : gen_reg_rtx (Pmode);
 
 			if (reload_in_progress || reload_completed)
-			  regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+			  df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 
                         addr = XVECEXP (addr, 0, 0);
                         addr = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr),
@@ -3076,7 +3088,7 @@ legitimize_pic_address (rtx orig, rtx reg)
                   rtx temp = reg? reg : gen_reg_rtx (Pmode);
 
 		  if (reload_in_progress || reload_completed)
-		    regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+		    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 
                   addr = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, op0),
 					 UNSPEC_GOTOFF);
@@ -3244,7 +3256,7 @@ legitimize_tls_address (rtx addr, rtx reg)
 	       in both 31- and 64-bit code.  */
 
 	    if (reload_in_progress || reload_completed)
-	      regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+	      df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 
 	    new = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr), UNSPEC_GOTNTPOFF);
 	    new = gen_rtx_CONST (Pmode, new);
@@ -3273,7 +3285,7 @@ legitimize_tls_address (rtx addr, rtx reg)
 	       from the literal pool.  */
 
 	    if (reload_in_progress || reload_completed)
-	      regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+	      df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 
 	    new = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr), UNSPEC_GOTNTPOFF);
 	    new = gen_rtx_CONST (Pmode, new);
@@ -3370,7 +3382,7 @@ legitimize_tls_address (rtx addr, rtx reg)
 void
 emit_symbolic_move (rtx *operands)
 {
-  rtx temp = no_new_pseudos ? operands[0] : gen_reg_rtx (Pmode);
+  rtx temp = !can_create_pseudo_p () ? operands[0] : gen_reg_rtx (Pmode);
 
   if (GET_CODE (operands[0]) == MEM)
     operands[1] = force_reg (Pmode, operands[1]);
@@ -4355,10 +4367,10 @@ s390_output_dwarf_dtprel (FILE *file, int size, rtx x)
 }
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
-/* Implement TARGET_MANGLE_FUNDAMENTAL_TYPE.  */
+/* Implement TARGET_MANGLE_TYPE.  */
 
 static const char *
-s390_mangle_fundamental_type (tree type)
+s390_mangle_type (tree type)
 {
   if (TYPE_MAIN_VARIANT (type) == long_double_type_node
       && TARGET_LONG_DOUBLE_128)
@@ -6325,7 +6337,7 @@ find_unused_clobbered_reg (void)
 {
   int i;
   for (i = 0; i < 6; i++)
-    if (!regs_ever_live[i])
+    if (!df_regs_ever_live_p (i))
       return i;
   return 0;
 }
@@ -6335,7 +6347,7 @@ find_unused_clobbered_reg (void)
    clobbered hard regs in SETREG.  */
 
 static void
-s390_reg_clobbered_rtx (rtx setreg, rtx set_insn ATTRIBUTE_UNUSED, void *data)
+s390_reg_clobbered_rtx (rtx setreg, const_rtx set_insn ATTRIBUTE_UNUSED, void *data)
 {
   int *regs_ever_clobbered = (int *)data;
   unsigned int i, regno;
@@ -6391,7 +6403,7 @@ s390_regs_ever_clobbered (int *regs_ever_clobbered)
     for (i = 0; EH_RETURN_DATA_REGNO (i) != INVALID_REGNUM ; i++)
       if (current_function_calls_eh_return 
 	  || (cfun->machine->has_landing_pad_p 
-	      && regs_ever_live [EH_RETURN_DATA_REGNO (i)]))
+	      && df_regs_ever_live_p (EH_RETURN_DATA_REGNO (i))))
 	regs_ever_clobbered[EH_RETURN_DATA_REGNO (i)] = 1;
 
   /* For nonlocal gotos all call-saved registers have to be saved.
@@ -6470,7 +6482,7 @@ s390_register_info (int clobbered_regs[])
   cfun_frame_layout.high_fprs = 0;
   if (TARGET_64BIT)
     for (i = 24; i < 32; i++)
-      if (regs_ever_live[i] && !global_regs[i])
+      if (df_regs_ever_live_p (i) && !global_regs[i])
 	{
 	  cfun_set_fpr_bit (i - 16);
 	  cfun_frame_layout.high_fprs++;
@@ -6492,7 +6504,7 @@ s390_register_info (int clobbered_regs[])
 
   if (flag_pic)
     clobbered_regs[PIC_OFFSET_TABLE_REGNUM] 
-      |= regs_ever_live[PIC_OFFSET_TABLE_REGNUM];
+      |= df_regs_ever_live_p (PIC_OFFSET_TABLE_REGNUM);
 
   clobbered_regs[BASE_REGNUM] 
     |= (cfun->machine->base_reg
@@ -6515,10 +6527,10 @@ s390_register_info (int clobbered_regs[])
 	|| current_function_stdarg);
 
   for (i = 6; i < 16; i++)
-    if (regs_ever_live[i] || clobbered_regs[i])
+    if (df_regs_ever_live_p (i) || clobbered_regs[i])
       break;
   for (j = 15; j > i; j--)
-    if (regs_ever_live[j] || clobbered_regs[j])
+    if (df_regs_ever_live_p (j) || clobbered_regs[j])
       break;
 
   if (i == 16)
@@ -6612,7 +6624,7 @@ s390_register_info (int clobbered_regs[])
 
   if (!TARGET_64BIT)
     for (i = 2; i < 4; i++)
-      if (regs_ever_live[i + 16] && !global_regs[i + 16])
+      if (df_regs_ever_live_p (i + 16) && !global_regs[i + 16])
 	cfun_set_fpr_bit (i);
 }
 
@@ -6758,7 +6770,7 @@ s390_init_frame_layout (void)
 	 as base register to avoid save/restore overhead.  */
       if (!base_used)
 	cfun->machine->base_reg = NULL_RTX;
-      else if (current_function_is_leaf && !regs_ever_live[5])
+      else if (current_function_is_leaf && !df_regs_ever_live_p (5))
 	cfun->machine->base_reg = gen_rtx_REG (Pmode, 5);
       else
 	cfun->machine->base_reg = gen_rtx_REG (Pmode, BASE_REGNUM);
@@ -6781,12 +6793,15 @@ s390_update_frame_layout (void)
 
   s390_register_info (clobbered_regs);
 
-  regs_ever_live[BASE_REGNUM] = clobbered_regs[BASE_REGNUM];
-  regs_ever_live[RETURN_REGNUM] = clobbered_regs[RETURN_REGNUM];
-  regs_ever_live[STACK_POINTER_REGNUM] = clobbered_regs[STACK_POINTER_REGNUM];
+  df_set_regs_ever_live (BASE_REGNUM, 
+			 clobbered_regs[BASE_REGNUM] ? true : false);
+  df_set_regs_ever_live (RETURN_REGNUM, 
+			 clobbered_regs[RETURN_REGNUM] ? true : false);
+  df_set_regs_ever_live (STACK_POINTER_REGNUM, 
+			 clobbered_regs[STACK_POINTER_REGNUM] ? true : false);
 
   if (cfun->machine->base_reg)
-    regs_ever_live[REGNO (cfun->machine->base_reg)] = 1;
+    df_set_regs_ever_live (REGNO (cfun->machine->base_reg), true);
 }
 
 /* Return true if it is legal to put a value with MODE into REGNO.  */
@@ -7169,7 +7184,10 @@ s390_emit_prologue (void)
 
   for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
     if (INSN_P (insn))
-      annotate_constant_pool_refs (&PATTERN (insn));
+      {
+	annotate_constant_pool_refs (&PATTERN (insn));
+	df_insn_rescan (insn);
+      }
 
   pop_topmost_sequence ();
 
@@ -7407,17 +7425,12 @@ s390_emit_prologue (void)
 
   /* Set up got pointer, if needed.  */
 
-  if (flag_pic && regs_ever_live[PIC_OFFSET_TABLE_REGNUM])
+  if (flag_pic && df_regs_ever_live_p (PIC_OFFSET_TABLE_REGNUM))
     {
       rtx insns = s390_load_got ();
 
       for (insn = insns; insn; insn = NEXT_INSN (insn))
-	{
-	  annotate_constant_pool_refs (&PATTERN (insn));
-
-	  REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, NULL_RTX,
-						REG_NOTES (insn));
-	}
+	annotate_constant_pool_refs (&PATTERN (insn));
 
       emit_insn (insns);
     }
@@ -8000,7 +8013,7 @@ s390_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
 	fprintf (stderr, "va_start: n_gpr = %d, n_fpr = %d off %d\n",
 		 (int)n_gpr, (int)n_fpr, off);
 
-      t = build2 (PLUS_EXPR, TREE_TYPE (ovf), t, build_int_cst (NULL_TREE, off));
+      t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (ovf), t, size_int (off));
 
       t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (ovf), ovf, t);
       TREE_SIDE_EFFECTS (t) = 1;
@@ -8012,8 +8025,8 @@ s390_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
       || (cfun->va_list_fpr_size && n_fpr < FP_ARG_NUM_REG))
     {
       t = make_tree (TREE_TYPE (sav), return_address_pointer_rtx);
-      t = build2 (PLUS_EXPR, TREE_TYPE (sav), t,
-	          build_int_cst (NULL_TREE, -RETURN_REGNUM * UNITS_PER_WORD));
+      t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (sav), t,
+	          size_int (-RETURN_REGNUM * UNITS_PER_WORD));
   
       t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (sav), sav, t);
       TREE_SIDE_EFFECTS (t) = 1;
@@ -8142,11 +8155,11 @@ s390_gimplify_va_arg (tree valist, tree type, tree *pre_p,
   t = build3 (COND_EXPR, void_type_node, t, u, NULL_TREE);
   gimplify_and_add (t, pre_p);
 
-  t = build2 (PLUS_EXPR, ptr_type_node, sav, 
-	      fold_convert (ptr_type_node, size_int (sav_ofs)));
+  t = build2 (POINTER_PLUS_EXPR, ptr_type_node, sav, 
+	      size_int (sav_ofs));
   u = build2 (MULT_EXPR, TREE_TYPE (reg), reg, 
 	      fold_convert (TREE_TYPE (reg), size_int (sav_scale)));
-  t = build2 (PLUS_EXPR, ptr_type_node, t, fold_convert (ptr_type_node, u));
+  t = build2 (POINTER_PLUS_EXPR, ptr_type_node, t, fold_convert (sizetype, u));
 
   t = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, t);
   gimplify_and_add (t, pre_p);
@@ -8162,16 +8175,16 @@ s390_gimplify_va_arg (tree valist, tree type, tree *pre_p,
 
   t = ovf;
   if (size < UNITS_PER_WORD)
-    t = build2 (PLUS_EXPR, ptr_type_node, t, 
-		fold_convert (ptr_type_node, size_int (UNITS_PER_WORD - size)));
+    t = build2 (POINTER_PLUS_EXPR, ptr_type_node, t, 
+		size_int (UNITS_PER_WORD - size));
 
   gimplify_expr (&t, pre_p, NULL, is_gimple_val, fb_rvalue);
 
   u = build2 (GIMPLE_MODIFY_STMT, void_type_node, addr, t);
   gimplify_and_add (u, pre_p);
 
-  t = build2 (PLUS_EXPR, ptr_type_node, t, 
-	      fold_convert (ptr_type_node, size_int (size)));
+  t = build2 (POINTER_PLUS_EXPR, ptr_type_node, t, 
+	      size_int (size));
   t = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, ovf, t);
   gimplify_and_add (t, pre_p);
 
@@ -9329,8 +9342,8 @@ s390_reorg (void)
 #endif
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
-#undef TARGET_MANGLE_FUNDAMENTAL_TYPE
-#define TARGET_MANGLE_FUNDAMENTAL_TYPE s390_mangle_fundamental_type
+#undef TARGET_MANGLE_TYPE
+#define TARGET_MANGLE_TYPE s390_mangle_type
 #endif
 
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
@@ -9338,6 +9351,12 @@ s390_reorg (void)
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD s390_secondary_reload
+
+#undef TARGET_LIBGCC_CMP_RETURN_MODE
+#define TARGET_LIBGCC_CMP_RETURN_MODE s390_libgcc_cmp_return_mode
+
+#undef TARGET_LIBGCC_SHIFT_COUNT_MODE
+#define TARGET_LIBGCC_SHIFT_COUNT_MODE s390_libgcc_shift_count_mode
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

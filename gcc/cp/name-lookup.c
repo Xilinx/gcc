@@ -1,12 +1,13 @@
 /* Definitions for C++ name lookup routines.
-   Copyright (C) 2003, 2004, 2005, 2006  Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@integrable-solutions.net>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -42,7 +42,6 @@ struct scope_binding {
 #define EMPTY_SCOPE_BINDING { NULL_TREE, NULL_TREE }
 
 static cxx_scope *innermost_nonclass_level (void);
-static tree select_decl (const struct scope_binding *, int);
 static cxx_binding *binding_for_name (cxx_scope *, tree);
 static tree lookup_name_innermost_nonclass_level (tree);
 static tree push_overloaded_decl (tree, int, bool);
@@ -3497,36 +3496,55 @@ ambiguous_decl (tree name, struct scope_binding *old, cxx_binding *new,
 {
   tree val, type;
   gcc_assert (old != NULL);
+
+  /* Copy the type.  */
+  type = new->type;
+  if (LOOKUP_NAMESPACES_ONLY (flags)
+      || (type && hidden_name_p (type) && !(flags & LOOKUP_HIDDEN)))
+    type = NULL_TREE;
+
   /* Copy the value.  */
   val = new->value;
   if (val)
-    switch (TREE_CODE (val))
-      {
-      case TEMPLATE_DECL:
-	/* If we expect types or namespaces, and not templates,
-	   or this is not a template class.  */
-	if ((LOOKUP_QUALIFIERS_ONLY (flags)
-	     && !DECL_CLASS_TEMPLATE_P (val))
-	    || hidden_name_p (val))
-	  val = NULL_TREE;
-	break;
-      case TYPE_DECL:
-	if (LOOKUP_NAMESPACES_ONLY (flags) || hidden_name_p (val))
-	  val = NULL_TREE;
-	break;
-      case NAMESPACE_DECL:
-	if (LOOKUP_TYPES_ONLY (flags))
-	  val = NULL_TREE;
-	break;
-      case FUNCTION_DECL:
-	/* Ignore built-in functions that are still anticipated.  */
-	if (LOOKUP_QUALIFIERS_ONLY (flags) || hidden_name_p (val))
-	  val = NULL_TREE;
-	break;
-      default:
-	if (LOOKUP_QUALIFIERS_ONLY (flags))
-	  val = NULL_TREE;
-      }
+    {
+      if (hidden_name_p (val) && !(flags & LOOKUP_HIDDEN))
+	val = NULL_TREE;
+      else
+	switch (TREE_CODE (val))
+	  {
+	  case TEMPLATE_DECL:
+	    /* If we expect types or namespaces, and not templates,
+	       or this is not a template class.  */
+	    if ((LOOKUP_QUALIFIERS_ONLY (flags)
+		 && !DECL_CLASS_TEMPLATE_P (val)))
+	      val = NULL_TREE;
+	    break;
+	  case TYPE_DECL:
+	    if (LOOKUP_NAMESPACES_ONLY (flags)
+		|| (type && (flags & LOOKUP_PREFER_TYPES)))
+	      val = NULL_TREE;
+	    break;
+	  case NAMESPACE_DECL:
+	    if (LOOKUP_TYPES_ONLY (flags))
+	      val = NULL_TREE;
+	    break;
+	  case FUNCTION_DECL:
+	    /* Ignore built-in functions that are still anticipated.  */
+	    if (LOOKUP_QUALIFIERS_ONLY (flags))
+	      val = NULL_TREE;
+	    break;
+	  default:
+	    if (LOOKUP_QUALIFIERS_ONLY (flags))
+	      val = NULL_TREE;
+	  }
+    }
+
+  /* If val is hidden, shift down any class or enumeration name.  */
+  if (!val)
+    {
+      val = type;
+      type = NULL_TREE;
+    }
 
   if (!old->value)
     old->value = val;
@@ -3537,14 +3555,11 @@ ambiguous_decl (tree name, struct scope_binding *old, cxx_binding *new,
       else
 	{
 	  old->value = tree_cons (NULL_TREE, old->value,
-				  build_tree_list (NULL_TREE, new->value));
+				  build_tree_list (NULL_TREE, val));
 	  TREE_TYPE (old->value) = error_mark_node;
 	}
     }
-  /* ... and copy the type.  */
-  type = new->type;
-  if (LOOKUP_NAMESPACES_ONLY (flags) || (type && hidden_name_p (type)))
-    type = NULL_TREE;
+
   if (!old->type)
     old->type = type;
   else if (type && old->type != type)
@@ -3644,36 +3659,6 @@ remove_hidden_names (tree fns)
   return fns;
 }
 
-/* Select the right _DECL from multiple choices.  */
-
-static tree
-select_decl (const struct scope_binding *binding, int flags)
-{
-  tree val;
-  val = binding->value;
-
-  timevar_push (TV_NAME_LOOKUP);
-  if (LOOKUP_NAMESPACES_ONLY (flags))
-    {
-      /* We are not interested in types.  */
-      if (val && (TREE_CODE (val) == NAMESPACE_DECL
-		  || TREE_CODE (val) == TREE_LIST))
-	POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, val);
-      POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, NULL_TREE);
-    }
-
-  /* If looking for a type, or if there is no non-type binding, select
-     the value binding.  */
-  if (binding->type && (!val || (flags & LOOKUP_PREFER_TYPES)))
-    val = binding->type;
-  /* Don't return non-types if we really prefer types.  */
-  else if (val && LOOKUP_TYPES_ONLY (flags)
-	   && ! DECL_DECLARES_TYPE_P (val))
-    val = NULL_TREE;
-
-  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, val);
-}
-
 /* Unscoped lookup of a global: iterate over current namespaces,
    considering using-directives.  */
 
@@ -3685,24 +3670,17 @@ unqualified_namespace_lookup (tree name, int flags)
   tree siter;
   struct cp_binding_level *level;
   tree val = NULL_TREE;
-  struct scope_binding binding = EMPTY_SCOPE_BINDING;
 
   timevar_push (TV_NAME_LOOKUP);
 
   for (; !val; scope = CP_DECL_CONTEXT (scope))
     {
+      struct scope_binding binding = EMPTY_SCOPE_BINDING;
       cxx_binding *b =
 	 cxx_scope_find_binding_for_name (NAMESPACE_LEVEL (scope), name);
 
       if (b)
-	{
-	  if (b->value
-	      && ((flags & LOOKUP_HIDDEN) || !hidden_name_p (b->value)))
-	    binding.value = b->value;
-	  if (b->type
-	      && ((flags & LOOKUP_HIDDEN) || !hidden_name_p (b->type)))
-	    binding.type = b->type;
-	}
+	ambiguous_decl (name, &binding, b, flags);
 
       /* Add all _DECLs seen through local using-directives.  */
       for (level = current_binding_level;
@@ -3727,7 +3705,7 @@ unqualified_namespace_lookup (tree name, int flags)
 	  siter = CP_DECL_CONTEXT (siter);
 	}
 
-      val = select_decl (&binding, flags);
+      val = binding.value;
       if (scope == global_namespace)
 	break;
     }
@@ -3757,7 +3735,7 @@ lookup_qualified_name (tree scope, tree name, bool is_type_p, bool complain)
       if (is_type_p)
 	flags |= LOOKUP_PREFER_TYPES;
       if (qualified_lookup_using_namespace (name, scope, &binding, flags))
-	t = select_decl (&binding, flags);
+	t = binding.value;
     }
   else if (is_aggr_type (scope, complain))
     t = lookup_member (scope, name, 2, is_type_p);
@@ -4012,8 +3990,49 @@ lookup_name_real (tree name, int prefer_type, int nonclass, bool block_p,
 
 	if (binding)
 	  {
-	    /* Only namespace-scope bindings can be hidden.  */
-	    gcc_assert (!hidden_name_p (binding));
+	    if (hidden_name_p (binding))
+	      {
+		/* A non namespace-scope binding can only be hidden if
+		   we are in a local class, due to friend declarations.
+		   In particular, consider:
+
+		   void f() {
+		     struct A {
+		       friend struct B;
+		       void g() { B* b; } // error: B is hidden
+		     }
+		     struct B {};
+		   }
+
+		   The standard says that "B" is a local class in "f"
+		   (but not nested within "A") -- but that name lookup
+		   for "B" does not find this declaration until it is
+		   declared directly with "f".
+
+		   In particular:
+
+		   [class.friend]
+
+		   If a friend declaration appears in a local class and
+		   the name specified is an unqualified name, a prior
+		   declaration is looked up without considering scopes
+		   that are outside the innermost enclosing non-class
+		   scope. For a friend class declaration, if there is no
+		   prior declaration, the class that is specified 
+		   belongs to the innermost enclosing non-class scope,
+		   but if it is subsequently referenced, its name is not
+		   found by name lookup until a matching declaration is
+		   provided in the innermost enclosing nonclass scope.
+		*/
+		gcc_assert (current_class_type &&
+			    LOCAL_CLASS_P (current_class_type));
+
+		/* This binding comes from a friend declaration in the local
+		   class. The standard (11.4.8) states that the lookup can
+		   only succeed if there is a non-hidden declaration in the
+		   current scope, which is not the case here.  */
+		POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, NULL_TREE);
+	      }
 	    val = binding;
 	    break;
 	  }

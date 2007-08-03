@@ -1,21 +1,21 @@
 /* Preprocess only, using cpplib.
-   Copyright (C) 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
+   Copyright (C) 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007
    Free Software Foundation, Inc.
    Written by Per Bothner, 1994-95.
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
-later version.
+   This program is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by the
+   Free Software Foundation; either version 3, or (at your option) any
+   later version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
+   You should have received a copy of the GNU General Public License
+   along with this program; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -41,6 +41,8 @@ static struct
 
 /* General output routines.  */
 static void scan_translation_unit (cpp_reader *);
+static void print_lines_directives_only (int, const void *, size_t);
+static void scan_translation_unit_directives_only (cpp_reader *);
 static void scan_translation_unit_trad (cpp_reader *);
 static void account_for_newlines (const unsigned char *, size_t);
 static int dump_macro (cpp_reader *, cpp_hashnode *, void *);
@@ -75,6 +77,9 @@ preprocess_file (cpp_reader *pfile)
     }
   else if (cpp_get_options (pfile)->traditional)
     scan_translation_unit_trad (pfile);
+  else if (cpp_get_options (pfile)->directives_only
+	   && !cpp_get_options (pfile)->preprocessed)
+    scan_translation_unit_directives_only (pfile);
   else
     scan_translation_unit (pfile);
 
@@ -179,6 +184,26 @@ scan_translation_unit (cpp_reader *pfile)
     }
 }
 
+static void
+print_lines_directives_only (int lines, const void *buf, size_t size)
+{
+  print.src_line += lines;
+  fwrite (buf, 1, size, print.outf);
+}
+
+/* Writes out the preprocessed file, handling spacing and paste
+   avoidance issues.  */
+static void
+scan_translation_unit_directives_only (cpp_reader *pfile)
+{
+  struct _cpp_dir_only_callbacks cb;
+
+  cb.print_lines = print_lines_directives_only;
+  cb.maybe_print_line = maybe_print_line;
+
+  _cpp_preprocess_dir_only (pfile, &cb);
+}
+
 /* Adjust print.src_line for newlines embedded in output.  */
 static void
 account_for_newlines (const unsigned char *str, size_t len)
@@ -255,7 +280,7 @@ print_line (source_location src_loc, const char *special_flags)
       /* cpp_quote_string does not nul-terminate, so we have to do it
 	 ourselves.  */
       p = cpp_quote_string (to_file_quoted,
-			    (unsigned char *) map->to_file, to_file_len);
+			    (const unsigned char *) map->to_file, to_file_len);
       *p = '\0';
       fprintf (print.outf, "# %u \"%s\"%s",
 	       print.src_line == 0 ? 1 : print.src_line,
@@ -375,7 +400,7 @@ pp_dir_change (cpp_reader *pfile ATTRIBUTE_UNUSED, const char *dir)
   unsigned char *p;
 
   /* cpp_quote_string does not nul-terminate, so we have to do it ourselves.  */
-  p = cpp_quote_string (to_file_quoted, (unsigned char *) dir, to_file_len);
+  p = cpp_quote_string (to_file_quoted, (const unsigned char *) dir, to_file_len);
   *p = '\0';
   fprintf (print.outf, "# 1 \"%s//\"\n", to_file_quoted);
 }

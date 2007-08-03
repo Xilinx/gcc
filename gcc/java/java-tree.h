@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -1099,7 +1098,6 @@ extern void java_parse_file (int);
 extern bool java_mark_addressable (tree);
 extern tree java_type_for_mode (enum machine_mode, int);
 extern tree java_type_for_size (unsigned int, int);
-extern tree java_signed_type (tree);
 extern tree java_truthvalue_conversion (tree);
 extern void add_assume_compiled (const char *, int);
 extern void add_enable_assert (const char *, int);
@@ -1199,12 +1197,10 @@ extern tree java_check_reference (tree, int);
 extern tree build_get_class (tree);
 extern tree build_instanceof (tree, tree);
 extern tree create_label_decl (tree);
-extern void push_labeled_block (tree);
 extern tree prepare_eh_table_type (tree);
 extern void java_expand_catch_classes (tree);
 extern tree build_exception_object_ref (tree);
 extern tree generate_name (void);
-extern void pop_labeled_block (void);
 extern const char *lang_printable_name (tree, int);
 extern tree maybe_add_interface (tree, tree);
 extern void set_super_info (int, tree, tree, int);
@@ -1666,16 +1662,6 @@ enum
 };
 
 #undef DEBUG_JAVA_BINDING_LEVELS
-
-/* In a LABELED_BLOCK_EXPR node.  */
-#define LABELED_BLOCK_LABEL(NODE) \
-  TREE_OPERAND_CHECK_CODE (NODE, LABELED_BLOCK_EXPR, 0)
-#define LABELED_BLOCK_BODY(NODE) \
-  TREE_OPERAND_CHECK_CODE (NODE, LABELED_BLOCK_EXPR, 1)
-
-/* In an EXIT_BLOCK_EXPR node.  */
-#define EXIT_BLOCK_LABELED_BLOCK(NODE) \
-  TREE_OPERAND_CHECK_CODE (NODE, EXIT_BLOCK_EXPR, 0)
 
 extern void java_genericize (tree);
 extern int java_gimplify_expr (tree *, tree *, tree *);

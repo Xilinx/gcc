@@ -1,12 +1,12 @@
 /* Perform branch target register load optimizations.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -37,6 +36,8 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "tm_p.h"
 #include "toplev.h"
 #include "tree-pass.h"
+#include "recog.h"
+#include "df.h"
 
 /* Target register optimizations - these are performed after reload.  */
 
@@ -140,7 +141,7 @@ static void move_btr_def (basic_block, int, btr_def, bitmap, HARD_REG_SET *);
 static int migrate_btr_def (btr_def, int);
 static void migrate_btr_defs (enum reg_class, int);
 static int can_move_up (basic_block, rtx, int);
-static void note_btr_set (rtx, rtx, void *);
+static void note_btr_set (rtx, const_rtx, void *);
 
 /* The following code performs code motion of target load instructions
    (instructions that set branch target registers), to move them
@@ -422,7 +423,7 @@ typedef struct {
    straightforward definitions.  DATA points to information about the
    current basic block that needs updating.  */
 static void
-note_btr_set (rtx dest, rtx set ATTRIBUTE_UNUSED, void *data)
+note_btr_set (rtx dest, const_rtx set ATTRIBUTE_UNUSED, void *data)
 {
   defs_uses_info *info = data;
   int regno, end_regno;
@@ -476,7 +477,7 @@ compute_defs_uses_and_gen (fibheap_t all_btr_defs, btr_def *def_array,
       CLEAR_HARD_REG_SET (info.btrs_written_in_block);
       for (reg = first_btr; reg <= last_btr; reg++)
 	if (TEST_HARD_REG_BIT (all_btrs, reg)
-	    && REGNO_REG_SET_P (bb->il.rtl->global_live_at_start, reg))
+	    && REGNO_REG_SET_P (df_get_live_in (bb), reg))
 	  SET_HARD_REG_BIT (info.btrs_live_in_block, reg);
 
       for (insn = BB_HEAD (bb), last = NEXT_INSN (BB_END (bb));
@@ -508,7 +509,7 @@ compute_defs_uses_and_gen (fibheap_t all_btr_defs, btr_def *def_array,
 		}
 	      /* Check for the blockage emitted by expand_nl_goto_receiver.  */
 	      else if (current_function_has_nonlocal_label
-		       && GET_CODE (PATTERN (insn)) == ASM_INPUT)
+		       && GET_CODE (PATTERN (insn)) == UNSPEC_VOLATILE)
 		{
 		  btr_user user;
 
@@ -577,7 +578,7 @@ compute_defs_uses_and_gen (fibheap_t all_btr_defs, btr_def *def_array,
       COPY_HARD_REG_SET (btrs_live[i], info.btrs_live_in_block);
       COPY_HARD_REG_SET (btrs_written[i], info.btrs_written_in_block);
 
-      REG_SET_TO_HARD_REG_SET (btrs_live_at_end[i], bb->il.rtl->global_live_at_end);
+      REG_SET_TO_HARD_REG_SET (btrs_live_at_end[i], df_get_live_out (bb));
       /* If this block ends in a jump insn, add any uses or even clobbers
 	 of branch target registers that it might have.  */
       for (insn = BB_END (bb); insn != BB_HEAD (bb) && ! INSN_P (insn); )
@@ -1203,7 +1204,7 @@ move_btr_def (basic_block new_def_bb, int btr, btr_def def, bitmap live_range,
   /* Insert target register initialization at head of basic block.  */
   def->insn = emit_insn_after (new_insn, insp);
 
-  regs_ever_live[btr] = 1;
+  df_set_regs_ever_live (btr, true);
 
   if (dump_file)
     fprintf (dump_file, "New pt is insn %d, inserted after insn %d\n",
@@ -1226,7 +1227,7 @@ move_btr_def (basic_block new_def_bb, int btr, btr_def def, bitmap live_range,
 	replacement_rtx = btr_rtx;
       else
 	replacement_rtx = gen_rtx_REG (GET_MODE (user->use), btr);
-      replace_rtx (user->insn, user->use, replacement_rtx);
+      validate_replace_rtx (user->use, replacement_rtx, user->insn);
       user->use = replacement_rtx;
     }
 }
@@ -1418,7 +1419,8 @@ migrate_btr_defs (enum reg_class btr_class, int allow_callee_save)
   CLEAR_HARD_REG_SET (all_btrs);
   for (first_btr = -1, reg = 0; reg < FIRST_PSEUDO_REGISTER; reg++)
     if (TEST_HARD_REG_BIT (reg_class_contents[(int) btr_class], reg)
-	&& (allow_callee_save || call_used_regs[reg] || regs_ever_live[reg]))
+	&& (allow_callee_save || call_used_regs[reg] 
+	    || df_regs_ever_live_p (reg)))
       {
 	SET_HARD_REG_BIT (all_btrs, reg);
 	last_btr = reg;
@@ -1455,7 +1457,7 @@ migrate_btr_defs (enum reg_class btr_class, int allow_callee_save)
   fibheap_delete (all_btr_defs);
 }
 
-void
+static void
 branch_target_load_optimize (bool after_prologue_epilogue_gen)
 {
   enum reg_class class = targetm.branch_target_register_class ();
@@ -1467,14 +1469,17 @@ branch_target_load_optimize (bool after_prologue_epilogue_gen)
       else
 	issue_rate = 1;
 
-      /* Build the CFG for migrate_btr_defs.  */
+      if (!after_prologue_epilogue_gen)
+	{
+	  /* Build the CFG for migrate_btr_defs.  */
 #if 1
-      /* This may or may not be needed, depending on where we
-	 run this phase.  */
-      cleanup_cfg (optimize ? CLEANUP_EXPENSIVE : 0);
+	  /* This may or may not be needed, depending on where we
+	     run this phase.  */
+	  cleanup_cfg (optimize ? CLEANUP_EXPENSIVE : 0);
 #endif
+	}
+      df_analyze ();
 
-      life_analysis (0);
 
       /* Dominator info is also needed for migrate_btr_def.  */
       calculate_dominance_info (CDI_DOMINATORS);
@@ -1483,21 +1488,50 @@ branch_target_load_optimize (bool after_prologue_epilogue_gen)
 			(after_prologue_epilogue_gen)));
 
       free_dominance_info (CDI_DOMINATORS);
-
-      update_life_info (NULL, UPDATE_LIFE_GLOBAL_RM_NOTES,
-			PROP_DEATH_NOTES | PROP_REG_INFO);
     }
 }
 
 static bool
-gate_handle_branch_target_load_optimize (void)
+gate_handle_branch_target_load_optimize1 (void)
+{
+  return flag_branch_target_load_optimize;
+}
+
+
+static unsigned int
+rest_of_handle_branch_target_load_optimize1 (void)
+{
+  branch_target_load_optimize (epilogue_completed);
+  return 0;
+}
+
+struct tree_opt_pass pass_branch_target_load_optimize1 =
+{
+  "btl1",                               /* name */
+  gate_handle_branch_target_load_optimize1,      /* gate */
+  rest_of_handle_branch_target_load_optimize1,   /* execute */
+  NULL,                                 /* sub */
+  NULL,                                 /* next */
+  0,                                    /* static_pass_number */
+  0,		                        /* tv_id */
+  0,                                    /* properties_required */
+  0,                                    /* properties_provided */
+  0,                                    /* properties_destroyed */
+  0,                                    /* todo_flags_start */
+  TODO_dump_func |
+  TODO_ggc_collect,                     /* todo_flags_finish */
+  'd'                                   /* letter */
+};
+
+static bool
+gate_handle_branch_target_load_optimize2 (void)
 {
   return (optimize > 0 && flag_branch_target_load_optimize2);
 }
 
 
 static unsigned int
-rest_of_handle_branch_target_load_optimize (void)
+rest_of_handle_branch_target_load_optimize2 (void)
 {
   static int warned = 0;
 
@@ -1518,11 +1552,11 @@ rest_of_handle_branch_target_load_optimize (void)
   return 0;
 }
 
-struct tree_opt_pass pass_branch_target_load_optimize =
+struct tree_opt_pass pass_branch_target_load_optimize2 =
 {
-  "btl",                               /* name */
-  gate_handle_branch_target_load_optimize,      /* gate */
-  rest_of_handle_branch_target_load_optimize,   /* execute */
+  "btl2",                               /* name */
+  gate_handle_branch_target_load_optimize2,      /* gate */
+  rest_of_handle_branch_target_load_optimize2,   /* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */

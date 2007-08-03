@@ -6,7 +6,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -200,31 +199,8 @@ builtin_define_float_constants (const char *name_prefix,
   /* Since, for the supported formats, B is always a power of 2, we
      construct the following numbers directly as a hexadecimal
      constants.  */
-
-  /* The maximum representable finite floating-point number,
-     (1 - b**-p) * b**emax  */
-  {
-    int i, n;
-    char *p;
-
-    strcpy (buf, "0x0.");
-    n = fmt->p;
-    for (i = 0, p = buf + 4; i + 3 < n; i += 4)
-      *p++ = 'f';
-    if (i < n)
-      *p++ = "08ce"[n - i];
-    sprintf (p, "p%d", fmt->emax);
-    if (fmt->pnan < fmt->p)
-      {
-	/* This is an IBM extended double format made up of two IEEE
-	   doubles.  The value of the long double is the sum of the
-	   values of the two parts.  The most significant part is
-	   required to be the value of the long double rounded to the
-	   nearest double.  Rounding means we need a slightly smaller
-	   value for LDBL_MAX.  */
-	buf[4 + fmt->pnan / 4] = "7bde"[fmt->pnan % 4];
-      }
-  }
+  get_max_float (fmt, buf, sizeof (buf));
+  
   sprintf (name, "__%s_MAX__", name_prefix);
   builtin_define_with_hex_fp_value (name, type, decimal_dig, buf, fp_suffix, fp_cast);
 
@@ -419,7 +395,7 @@ c_cpp_builtins (cpp_reader *pfile)
 	cpp_define (pfile, "__GXX_WEAK__=0");
       if (warn_deprecated)
 	cpp_define (pfile, "__DEPRECATED");
-      if (flag_cpp0x)
+      if (cxx_dialect == cxx0x)
         cpp_define (pfile, "__GXX_EXPERIMENTAL_CXX0X__");
     }
   /* Note that we define this for C as well, so that we know if

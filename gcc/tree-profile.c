@@ -11,7 +11,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -20,9 +20,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Generate basic block profile instrumentation and auxiliary files.
    Tree-based version.  See profile.c for overview.  */
@@ -192,7 +191,7 @@ prepare_instrumented_value (block_stmt_iterator *bsi,
 {
   tree val = value->hvalue.value;
   return force_gimple_operand_bsi (bsi, fold_convert (gcov_type_node, val),
-				   true, NULL_TREE);
+				   true, NULL_TREE, true, BSI_SAME_STMT);
 }
 
 /* Output instructions as GIMPLE trees to increment the interval histogram 
@@ -211,7 +210,7 @@ tree_gen_interval_profiler (histogram_value value, unsigned tag, unsigned base)
   
   ref_ptr = force_gimple_operand_bsi (&bsi,
 				      build_addr (ref, current_function_decl),
-				      true, NULL_TREE);
+				      true, NULL_TREE, true, BSI_SAME_STMT);
   val = prepare_instrumented_value (&bsi, value);
   call = build_call_expr (tree_interval_profiler_fn, 4,
 			  ref_ptr, val, start, steps);
@@ -232,7 +231,7 @@ tree_gen_pow2_profiler (histogram_value value, unsigned tag, unsigned base)
   
   ref_ptr = force_gimple_operand_bsi (&bsi,
 				      build_addr (ref, current_function_decl),
-				      true, NULL_TREE);
+				      true, NULL_TREE, true, BSI_SAME_STMT);
   val = prepare_instrumented_value (&bsi, value);
   call = build_call_expr (tree_pow2_profiler_fn, 2, ref_ptr, val);
   bsi_insert_before (&bsi, call, BSI_SAME_STMT);
@@ -252,7 +251,7 @@ tree_gen_one_value_profiler (histogram_value value, unsigned tag, unsigned base)
   
   ref_ptr = force_gimple_operand_bsi (&bsi,
 				      build_addr (ref, current_function_decl),
-				      true, NULL_TREE);
+				      true, NULL_TREE, true, BSI_SAME_STMT);
   val = prepare_instrumented_value (&bsi, value);
   call = build_call_expr (tree_one_value_profiler_fn, 2, ref_ptr, val);
   bsi_insert_before (&bsi, call, BSI_SAME_STMT);
@@ -275,7 +274,7 @@ tree_gen_ic_profiler (histogram_value value, unsigned tag, unsigned base)
 
   ref_ptr = force_gimple_operand_bsi (&bsi,
 				      build_addr (ref, current_function_decl),
-				      true, NULL_TREE);
+				      true, NULL_TREE, true, BSI_SAME_STMT);
 
   /* Insert code:
     
@@ -325,7 +324,8 @@ tree_gen_ic_func_profiler (void)
       cur_func = force_gimple_operand_bsi (&bsi,
 					   build_addr (current_function_decl, 
 						       current_function_decl),
-					   true, NULL_TREE);
+					   true, NULL_TREE,
+					   true, BSI_SAME_STMT);
       tree_uid = build_int_cst (gcov_type_node, c_node->pid);
       stmt1 = build_call_expr (tree_indirect_call_profiler_fn, 4,
 			       ic_gcov_type_ptr_var,
@@ -367,7 +367,8 @@ tree_gen_average_profiler (histogram_value value, unsigned tag, unsigned base)
   
   ref_ptr = force_gimple_operand_bsi (&bsi,
 				      build_addr (ref, current_function_decl),
-				      true, NULL_TREE);
+				      true, NULL_TREE,
+				      true, BSI_SAME_STMT);
   val = prepare_instrumented_value (&bsi, value);
   call = build_call_expr (tree_average_profiler_fn, 2, ref_ptr, val);
   bsi_insert_before (&bsi, call, BSI_SAME_STMT);
@@ -387,7 +388,7 @@ tree_gen_ior_profiler (histogram_value value, unsigned tag, unsigned base)
   
   ref_ptr = force_gimple_operand_bsi (&bsi,
 				      build_addr (ref, current_function_decl),
-				      true, NULL_TREE);
+				      true, NULL_TREE, true, BSI_SAME_STMT);
   val = prepare_instrumented_value (&bsi, value);
   call = build_call_expr (tree_ior_profiler_fn, 2, ref_ptr, val);
   bsi_insert_before (&bsi, call, BSI_SAME_STMT);

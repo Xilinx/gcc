@@ -1,12 +1,12 @@
 /* m68k device names -*- C -*-
-   Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
    Written by CodeSourcery
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful, but
@@ -15,9 +15,8 @@
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 /* This file lists each target device that we support.  It is used by
    both C code and build scripts.
@@ -91,6 +90,8 @@ M68K_DEVICE ("5212",  mcf5212,  "5213",  "5213",  cfv2,     isa_aplus, FL_CF_HWD
 M68K_DEVICE ("5213",  mcf5213,  "5213",  "5213",  cfv2,     isa_aplus, FL_CF_HWDIV | FL_CF_MAC)
 M68K_DEVICE ("5214",  mcf5214,  "5216",  "5208",  cfv2,     isa_aplus, FL_CF_HWDIV | FL_CF_EMAC)
 M68K_DEVICE ("5216",  mcf5216,  "5216",  "5208",  cfv2,     isa_aplus, FL_CF_HWDIV | FL_CF_EMAC)
+M68K_DEVICE ("52221", mcf52221, "52223", "5213",  cfv2,     isa_aplus, FL_CF_HWDIV | FL_CF_MAC)
+M68K_DEVICE ("52223", mcf52223, "52223", "5213",  cfv2,     isa_aplus, FL_CF_HWDIV | FL_CF_MAC)
 M68K_DEVICE ("52230", mcf52230, "52235", "5208",  cfv2,     isa_aplus, FL_CF_HWDIV | FL_CF_EMAC)
 M68K_DEVICE ("52231", mcf52231, "52235", "5208",  cfv2,     isa_aplus, FL_CF_HWDIV | FL_CF_EMAC)
 M68K_DEVICE ("52232", mcf52232, "52235", "5208",  cfv2,     isa_aplus, FL_CF_HWDIV | FL_CF_EMAC)
@@ -106,6 +107,7 @@ M68K_DEVICE ("5235",  mcf5235,  "5235",  "5208",  cfv2,     isa_aplus, FL_CF_HWD
 M68K_DEVICE ("523x",  mcf523x,  "5235",  "5208",  cfv2,     isa_aplus, FL_CF_HWDIV | FL_CF_EMAC)
 M68K_DEVICE ("5249",  mcf5249,  "5249",  "5249",  cfv2,     isa_a,     FL_CF_HWDIV | FL_CF_EMAC)
 M68K_DEVICE ("5250",  mcf5250,  "5250",  "5249",  cfv2,     isa_a,     FL_CF_HWDIV | FL_CF_EMAC)
+M68K_DEVICE ("5253",  mcf5253,  "5253",  "5249",  cfv2,     isa_a,     FL_CF_HWDIV | FL_CF_EMAC)
 M68K_DEVICE ("5270",  mcf5270,  "5271",  "5208",  cfv2,     isa_aplus, FL_CF_HWDIV | FL_CF_EMAC)
 M68K_DEVICE ("5271",  mcf5271,  "5271",  "5208",  cfv2,     isa_aplus, FL_CF_HWDIV)
 M68K_DEVICE ("5272",  mcf5272,  "5272",  "5206e", cfv2,     isa_a,     FL_CF_HWDIV | FL_CF_MAC)
@@ -128,6 +130,12 @@ M68K_DEVICE ("537x",  mcf537x,  "5373",  "5329",  cfv3,     isa_aplus, FL_CF_HWD
 
 /* CFV4/CFV4e processors.  */
 M68K_DEVICE ("5407",  mcf5407,  "5407",  "5407",  cfv4,     isa_b,     FL_CF_MAC)
+M68K_DEVICE ("54450", mcf54450, "54455", "54455", cfv4,     isa_c,     FL_CF_USP | FL_CF_EMAC | FL_MMU)
+M68K_DEVICE ("54451", mcf54451, "54455", "54455", cfv4,     isa_c,     FL_CF_USP | FL_CF_EMAC | FL_MMU)
+M68K_DEVICE ("54452", mcf54452, "54455", "54455", cfv4,     isa_c,     FL_CF_USP | FL_CF_EMAC | FL_MMU)
+M68K_DEVICE ("54453", mcf54453, "54455", "54455", cfv4,     isa_c,     FL_CF_USP | FL_CF_EMAC | FL_MMU)
+M68K_DEVICE ("54454", mcf54454, "54455", "54455", cfv4,     isa_c,     FL_CF_USP | FL_CF_EMAC | FL_MMU)
+M68K_DEVICE ("54455", mcf54455, "54455", "54455", cfv4,     isa_c,     FL_CF_USP | FL_CF_EMAC | FL_MMU)
 M68K_DEVICE ("5470",  mcf5470,  "5475",  "5475",  cfv4e,    isa_b,     FL_CF_USP | FL_CF_EMAC | FL_CF_FPU | FL_MMU)
 M68K_DEVICE ("5471",  mcf5471,  "5475",  "5475",  cfv4e,    isa_b,     FL_CF_USP | FL_CF_EMAC | FL_CF_FPU | FL_MMU)
 M68K_DEVICE ("5472",  mcf5472,  "5475",  "5475",  cfv4e,    isa_b,     FL_CF_USP | FL_CF_EMAC | FL_CF_FPU | FL_MMU)

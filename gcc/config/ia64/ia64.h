@@ -1,5 +1,5 @@
 /* Definitions of target machine GNU compiler.  IA-64 version.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by James E. Wilson <wilson@cygnus.com> and
    		  David Mosberger <davidm@hpl.hp.com>.
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* ??? Look at ABI group documents for list of preprocessor macros and
    other features required for ABI compliance.  */
@@ -285,6 +284,9 @@ while (0)
 
 /* We always want the XFmode operations from libgcc2.c.  */
 #define LIBGCC2_LONG_DOUBLE_TYPE_SIZE 80
+
+/* On HP-UX, we use the l suffix for TFmode in libgcc2.c.  */
+#define LIBGCC2_TF_CEXT l
 
 #define DEFAULT_SIGNED_CHAR 1
 
@@ -642,6 +644,7 @@ while (0)
    : PR_REGNO_P (REGNO) && (MODE) == BImode ? 2				\
    : PR_REGNO_P (REGNO) && (MODE) == CCImode ? 1			\
    : FR_REGNO_P (REGNO) && (MODE) == XFmode ? 1				\
+   : FR_REGNO_P (REGNO) && (MODE) == RFmode ? 1				\
    : FR_REGNO_P (REGNO) && (MODE) == XCmode ? 2				\
    : (GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD)
 
@@ -657,7 +660,7 @@ while (0)
    : PR_REGNO_P (REGNO) ?					\
      (MODE) == BImode || GET_MODE_CLASS (MODE) == MODE_CC	\
    : GR_REGNO_P (REGNO) ?					\
-     (MODE) != CCImode && (MODE) != XFmode && (MODE) != XCmode	\
+     (MODE) != CCImode && (MODE) != XFmode && (MODE) != XCmode && (MODE) != RFmode \
    : AR_REGNO_P (REGNO) ? (MODE) == DImode			\
    : BR_REGNO_P (REGNO) ? (MODE) == DImode			\
    : 0)
@@ -674,15 +677,15 @@ while (0)
    we can't tie it with any other modes.  */
 #define MODES_TIEABLE_P(MODE1, MODE2)			\
   (GET_MODE_CLASS (MODE1) == GET_MODE_CLASS (MODE2)	\
-   && ((((MODE1) == XFmode) || ((MODE1) == XCmode))	\
-       == (((MODE2) == XFmode) || ((MODE2) == XCmode)))	\
+   && ((((MODE1) == XFmode) || ((MODE1) == XCmode) || ((MODE1) == RFmode))	\
+       == (((MODE2) == XFmode) || ((MODE2) == XCmode) || ((MODE1) == RFmode)))	\
    && (((MODE1) == BImode) == ((MODE2) == BImode)))
 
 /* Specify the modes required to caller save a given hard regno.
    We need to ensure floating pt regs are not saved as DImode.  */
 
 #define HARD_REGNO_CALLER_SAVE_MODE(REGNO, NREGS, MODE) \
-  ((FR_REGNO_P (REGNO) && (NREGS) == 1) ? XFmode        \
+  ((FR_REGNO_P (REGNO) && (NREGS) == 1) ? RFmode        \
    : choose_hard_reg_mode ((REGNO), (NREGS), false))
 
 /* Handling Leaf Functions */
@@ -880,6 +883,7 @@ enum reg_class
 #define CLASS_MAX_NREGS(CLASS, MODE) \
   ((MODE) == BImode && (CLASS) == PR_REGS ? 2			\
    : (((CLASS) == FR_REGS || (CLASS) == FP_REGS) && (MODE) == XFmode) ? 1 \
+   : (((CLASS) == FR_REGS || (CLASS) == FP_REGS) && (MODE) == RFmode) ? 1 \
    : (((CLASS) == FR_REGS || (CLASS) == FP_REGS) && (MODE) == XCmode) ? 2 \
    : (GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD)
 
@@ -985,6 +989,7 @@ enum reg_class
    pointer is not 16-byte aligned like the stack pointer.  */
 #define INIT_EXPANDERS					\
   do {							\
+    ia64_init_expanders ();                             \
     if (cfun && cfun->emit->regno_pointer_align)	\
       REGNO_POINTER_ALIGN (ARG_POINTER_REGNUM) = 64;	\
   } while (0)

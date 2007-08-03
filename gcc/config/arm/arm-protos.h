@@ -8,7 +8,7 @@
 
    GCC is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_ARM_PROTOS_H
 #define GCC_ARM_PROTOS_H
@@ -67,16 +66,37 @@ extern rtx thumb_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 					    int);
 extern int arm_const_double_rtx (rtx);
 extern int neg_const_double_rtx_ok_for_fpa (rtx);
+extern int vfp3_const_double_rtx (rtx);
+extern int neon_immediate_valid_for_move (rtx, enum machine_mode, rtx *, int *);
+extern int neon_immediate_valid_for_logic (rtx, enum machine_mode, int, rtx *,
+					   int *);
+extern char *neon_output_logic_immediate (const char *, rtx *,
+					  enum machine_mode, int, int);
+extern void neon_pairwise_reduce (rtx, rtx, enum machine_mode,
+				  rtx (*) (rtx, rtx, rtx));
+extern void neon_expand_vector_init (rtx, rtx);
+extern void neon_lane_bounds (rtx, HOST_WIDE_INT, HOST_WIDE_INT);
+extern void neon_const_bounds (rtx, HOST_WIDE_INT, HOST_WIDE_INT);
+extern HOST_WIDE_INT neon_element_bits (enum machine_mode);
+extern void neon_reinterpret (rtx, rtx);
+extern void neon_emit_pair_result_insn (enum machine_mode,
+					rtx (*) (rtx, rtx, rtx, rtx),
+					rtx, rtx, rtx);
+extern void neon_disambiguate_copy (rtx *, rtx *, rtx *, unsigned int);
 extern enum reg_class coproc_secondary_reload_class (enum machine_mode, rtx,
 						     bool);
 extern bool arm_tls_referenced_p (rtx);
+extern bool arm_cannot_force_const_mem (rtx);
 
 extern int cirrus_memory_offset (rtx);
 extern int arm_coproc_mem_operand (rtx, bool);
+extern int neon_vector_mem_operand (rtx, bool);
+extern int neon_struct_mem_operand (rtx);
 extern int arm_no_early_store_addr_dep (rtx, rtx);
 extern int arm_no_early_alu_shift_dep (rtx, rtx);
 extern int arm_no_early_alu_shift_value_dep (rtx, rtx);
 extern int arm_no_early_mul_dep (rtx, rtx);
+extern int arm_mac_accumulator_is_mul_result (rtx, rtx);
 
 extern int tls_mentioned_p (rtx);
 extern int symbol_mentioned_p (rtx);
@@ -111,7 +131,9 @@ extern const char *output_mov_long_double_arm_from_arm (rtx *);
 extern const char *output_mov_double_fpa_from_arm (rtx *);
 extern const char *output_mov_double_arm_from_fpa (rtx *);
 extern const char *output_move_double (rtx *);
+extern const char *output_move_quad (rtx *);
 extern const char *output_move_vfp (rtx *operands);
+extern const char *output_move_neon (rtx *operands);
 extern const char *output_add_immediate (rtx *);
 extern const char *arithmetic_instr (rtx, int);
 extern void output_ascii_pseudo_op (FILE *, const unsigned char *, int);
@@ -191,5 +213,7 @@ extern void arm_mark_dllimport (tree);
 extern void arm_pr_long_calls (struct cpp_reader *);
 extern void arm_pr_no_long_calls (struct cpp_reader *);
 extern void arm_pr_long_calls_off (struct cpp_reader *);
+
+extern const char *arm_mangle_type (tree);
 
 #endif /* ! GCC_ARM_PROTOS_H */

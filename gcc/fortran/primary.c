@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -732,38 +731,8 @@ next_string_char (char delimiter)
     {
       old_locus = gfc_current_locus;
 
-      switch (gfc_next_char_literal (1))
-	{
-	case 'a':
-	  c = '\a';
-	  break;
-	case 'b':
-	  c = '\b';
-	  break;
-	case 't':
-	  c = '\t';
-	  break;
-	case 'f':
-	  c = '\f';
-	  break;
-	case 'n':
-	  c = '\n';
-	  break;
-	case 'r':
-	  c = '\r';
-	  break;
-	case 'v':
-	  c = '\v';
-	  break;
-	case '\\':
-	  c = '\\';
-	  break;
-
-	default:
-	  /* Unknown backslash codes are simply not expanded */
-	  gfc_current_locus = old_locus;
-	  break;
-	}
+      if (gfc_match_special_char (&c) == MATCH_NO)
+	gfc_current_locus = old_locus;
 
       if (!(gfc_option.allow_std & GFC_STD_GNU) && !inhibit_warnings)
 	gfc_warning ("Extension: backslash character at %C");
@@ -971,6 +940,8 @@ got_delim:
   e->ref = NULL;
   e->ts.type = BT_CHARACTER;
   e->ts.kind = kind;
+  e->ts.is_c_interop = 0;
+  e->ts.is_iso_c = 0;
   e->where = start_locus;
 
   e->value.character.string = p = gfc_getmem (length + 1);
@@ -1042,6 +1013,8 @@ match_logical_constant (gfc_expr **result)
   e->value.logical = i;
   e->ts.type = BT_LOGICAL;
   e->ts.kind = kind;
+  e->ts.is_c_interop = 0;
+  e->ts.is_iso_c = 0;
   e->where = gfc_current_locus;
 
   *result = e;
@@ -1226,6 +1199,8 @@ match_complex_constant (gfc_expr **result)
     }
   target.type = BT_REAL;
   target.kind = kind;
+  target.is_c_interop = 0;
+  target.is_iso_c = 0;
 
   if (real->ts.type != BT_REAL || kind != real->ts.kind)
     gfc_convert_type (real, &target, 2);
@@ -1918,6 +1893,7 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result)
   gfc_expr *e;
   locus where;
   match m;
+  bool private_comp = false;
 
   head = tail = NULL;
 
@@ -1930,6 +1906,11 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result)
 
   for (comp = sym->components; comp; comp = comp->next)
     {
+      if (comp->access == ACCESS_PRIVATE)
+	{
+	  private_comp = true;
+	  break;
+	}
       if (head == NULL)
 	tail = head = gfc_get_constructor ();
       else
@@ -1956,6 +1937,14 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result)
 	}
 
       break;
+    }
+
+  if (sym->attr.use_assoc
+      && (sym->component_access == ACCESS_PRIVATE || private_comp))
+    {
+      gfc_error ("Structure constructor for '%s' at %C has PRIVATE "
+		 "components", sym->name);
+      goto cleanup;
     }
 
   if (gfc_match_char (')') != MATCH_YES)
@@ -2206,6 +2195,25 @@ gfc_match_rvalue (gfc_expr **result)
 	  break;
 	}
 
+      /* Check here for the existence of at least one argument for the
+         iso_c_binding functions C_LOC, C_FUNLOC, and C_ASSOCIATED.  The
+         argument(s) given will be checked in gfc_iso_c_func_interface,
+         during resolution of the function call.  */
+      if (sym->attr.is_iso_c == 1
+	  && (sym->from_intmod == INTMOD_ISO_C_BINDING
+	      && (sym->intmod_sym_id == ISOCBINDING_LOC
+		  || sym->intmod_sym_id == ISOCBINDING_FUNLOC
+		  || sym->intmod_sym_id == ISOCBINDING_ASSOCIATED)))
+        {
+          /* make sure we were given a param */
+          if (actual_arglist == NULL)
+            {
+              gfc_error ("Missing argument to '%s' at %C", sym->name);
+              m = MATCH_ERROR;
+              break;
+            }
+        }
+
       if (sym->result == NULL)
 	sym->result = sym;
 
@@ -2443,6 +2451,9 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
       break;
 
     case FL_UNKNOWN:
+      if (sym->attr.access == ACCESS_PUBLIC
+	  || sym->attr.access == ACCESS_PRIVATE)
+	break;
       if (gfc_add_flavor (&sym->attr, FL_VARIABLE,
 			  sym->name, NULL) == FAILURE)
 	return MATCH_ERROR;

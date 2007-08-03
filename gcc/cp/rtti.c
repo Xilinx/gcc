@@ -1,6 +1,6 @@
 /* RunTime Type Identification
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006
+   2005, 2006, 2007
    Free Software Foundation, Inc.
    Mostly written by Jason Merrill (jason@cygnus.com).
 
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -180,8 +179,8 @@ build_headof (tree exp)
 
   type = build_qualified_type (ptr_type_node,
 			       cp_type_quals (TREE_TYPE (exp)));
-  return build2 (PLUS_EXPR, type, exp,
-		 convert_to_integer (ptrdiff_type_node, offset));
+  return build2 (POINTER_PLUS_EXPR, type, exp,
+		 convert_to_integer (sizetype, offset));
 }
 
 /* Get a bad_cast node for the program to throw...
@@ -856,7 +855,7 @@ tinfo_base_init (tinfo_s *ti, tree target)
 
       /* We need to point into the middle of the vtable.  */
       vtable_ptr = build2
-	(PLUS_EXPR, TREE_TYPE (vtable_ptr), vtable_ptr,
+	(POINTER_PLUS_EXPR, TREE_TYPE (vtable_ptr), vtable_ptr,
 	 size_binop (MULT_EXPR,
 		     size_int (2 * TARGET_VTABLE_DATA_ENTRY_DISTANCE),
 		     TYPE_SIZE_UNIT (vtable_entry_type)));

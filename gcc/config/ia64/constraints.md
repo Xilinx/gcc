@@ -1,11 +1,11 @@
 ;; Constraint definitions for IA-64
-;; Copyright (C) 2006 Free Software Foundation, Inc.
+;; Copyright (C) 2006, 2007 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;; Register constraints
 
@@ -90,6 +89,11 @@
   (and (match_code "const_double")
        (match_test "op == CONST0_RTX (mode) || op == CONST1_RTX (mode)")))
 
+(define_constraint "H"
+  "0.0"
+  (and (match_code "const_double")
+       (match_test "op == CONST0_RTX (mode)")))
+
 ;; Extra constraints
 
 ;; Note that while this accepts mem, it only accepts non-volatile mem,
@@ -109,11 +113,9 @@
   "Symbol ref to small-address-area"
   (match_operand 0 "small_addr_symbolic_operand"))
 
-;; ??? Original definition didn't test for vector only.  
-;; Need to verify that only used in vector context.
 (define_constraint "U"
   "vector zero constant"
-  (and (match_code "const_int,const_double,const_vector")
+  (and (match_code "const_vector")
        (match_test "op == CONST0_RTX (mode)")))
 
 (define_constraint "W"

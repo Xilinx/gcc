@@ -6,7 +6,7 @@
 
 #GCC is free software; you can redistribute it and/or modify it under
 #the terms of the GNU General Public License as published by the Free
-#Software Foundation; either version 2, or (at your option) any later
+#Software Foundation; either version 3, or (at your option) any later
 #version.
 
 #GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +15,8 @@
 #for more details.
 
 #You should have received a copy of the GNU General Public License
-#along with GCC; see the file COPYING.  If not, write to the Free
-#Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-#02110-1301, USA.
+#along with GCC; see the file COPYING3.  If not see
+#<http://www.gnu.org/licenses/>.
 
 # This is the GCC target-specific configuration file
 # where a configuration type is mapped to different system-specific
@@ -98,6 +97,9 @@
 #  extra_headers	List of used header files from the directory
 #			config/${cpu_type}.
 #
+#  use_gcc_tgmath	If set, add tgmath.h to the list of used header
+#			files.
+#
 #  extra_passes		List of extra executables compiled for this target
 #			machine, used for compiling from source to object.
 #
@@ -156,6 +158,7 @@
 out_file=
 tmake_file=
 extra_headers=
+use_gcc_tgmath=yes
 extra_passes=
 extra_parts=
 extra_programs=
@@ -255,7 +258,7 @@ strongarm*-*-*)
 	;;
 arm*-*-*)
 	cpu_type=arm
-	extra_headers="mmintrin.h"
+	extra_headers="mmintrin.h arm_neon.h"
 	;;
 bfin*-*)
 	cpu_type=bfin
@@ -393,6 +396,7 @@ case ${target} in
   c_target_objs="darwin-c.o"
   cxx_target_objs="darwin-c.o"
   extra_objs="darwin.o"
+  extra_gcc_objs="darwin-driver.o"
   default_use_cxa_atexit=yes
   case ${enable_threads} in
     "" | yes | posix) thread_file='posix' ;;
@@ -492,6 +496,7 @@ case ${target} in
   esac
   # Assume that glibc or uClibc are being used and so __cxa_atexit is provided.
   default_use_cxa_atexit=yes
+  use_gcc_tgmath=no
   ;;
 *-*-gnu*)
   # On the Hurd, the setup is just about the same on
@@ -515,6 +520,7 @@ case ${target} in
   esac
   # Assume that glibc is being used and so __cxa_atexit is provided.
   default_use_cxa_atexit=yes
+  use_gcc_tgmath=no
   ;;
 *-*-netbsd*)
   tmake_file="t-slibgcc-elf-ver t-libc-ok t-netbsd t-libgcc-pic"
@@ -699,7 +705,7 @@ arm-semi-aof | armel-semi-aof)
 	tmake_file="arm/t-arm arm/t-semi"
 	;;
 arm-wrs-vxworks)
-	tm_file="elfos.h svr4.h arm/elf.h arm/aout.h ${tm_file} vx-common.h vxworks.h arm/vxworks.h"
+	tm_file="elfos.h arm/elf.h arm/aout.h ${tm_file} vx-common.h vxworks.h arm/vxworks.h"
 	tmake_file="${tmake_file} arm/t-arm arm/t-vxworks"
 	;;
 arm*-*-freebsd*|strongarm*-*-freebsd*)
@@ -1052,14 +1058,12 @@ i[34567]86-*-darwin*)
 	# config.guess deciding that the configuration is i386-*-darwin* and
 	# then this file using that to set --with-cpu=i386 which has no -m64
 	# support.
-	with_arch=${with_arch:-nocona}
 	with_cpu=${with_cpu:-generic}
-	tmake_file="${tmake_file} i386/t-fprules-softfp64 soft-fp/t-softfp"
+	tmake_file="${tmake_file} i386/t-fprules-softfp64 soft-fp/t-softfp i386/t-crtpc i386/t-crtfm"
 	;;
 x86_64-*-darwin*)
-	with_arch=${with_arch:-nocona}
 	with_cpu=${with_cpu:-generic}
-	tmake_file="t-darwin ${cpu_type}/t-darwin64 t-slibgcc-darwin i386/t-fprules-softfp64 soft-fp/t-softfp"
+	tmake_file="t-darwin ${cpu_type}/t-darwin64 t-slibgcc-darwin i386/t-fprules-softfp64 soft-fp/t-softfp i386/t-crtpc i386/t-crtfm"
 	tm_file="${tm_file} ${cpu_type}/darwin64.h"
 	;;
 i[34567]86-*-elf*)
@@ -1639,9 +1643,9 @@ mips-sgi-irix[56]*)
 	then
 		tm_defines="${tm_defines} IRIX_USING_GNU_LD"
 	fi
-#	if test x$enable_threads = xyes; then
-#		thread_file='irix'
-#	fi
+	case ${enable_threads}:${have_pthread_h} in
+	  "":yes | yes:yes ) thread_file=posix ;;
+	esac
 	use_fixproto=yes
 	;;
 mips*-*-netbsd*)			# NetBSD/mips, either endian.
@@ -1674,24 +1678,50 @@ mips*-*-openbsd*)
 	*)  tm_defines="${tm_defines} TARGET_ENDIAN_DEFAULT=MASK_BIG_ENDIAN";;
         esac
 	;;
-mipsisa32-*-elf* | mipsisa32el-*-elf*)
-	tm_file="elfos.h ${tm_file} mips/elf.h"
-	tmake_file=mips/t-isa3264
-	tm_defines="${tm_defines} MIPS_ISA_DEFAULT=32 MIPS_ABI_DEFAULT=ABI_EABI"
-	use_fixproto=yes
+mips*-sde-elf*)
+	tm_file="elfos.h ${tm_file} mips/elf.h mips/sde.h"
+	tmake_file="mips/t-sde mips/t-libgcc-mips16"
+	case ${target} in
+	  mipsisa32r2*)
+	    tm_defines="MIPS_ISA_DEFAULT=33 MIPS_ABI_DEFAULT=ABI_32"
+	    ;;
+	  mipsisa32*)
+	    tm_defines="MIPS_ISA_DEFAULT=32 MIPS_ABI_DEFAULT=ABI_32"
+	    ;;
+	  mipsisa64*)
+	    tm_defines="MIPS_ISA_DEFAULT=64 MIPS_ABI_DEFAULT=ABI_N32"
+	    ;;
+	esac
 	;;
-mipsisa32r2-*-elf* | mipsisa32r2el-*-elf*)
-	tm_file="elfos.h ${tm_file} mips/elf.h"
-	tmake_file=mips/t-isa3264
-	tm_defines="${tm_defines} MIPS_ISA_DEFAULT=33 MIPS_ABI_DEFAULT=ABI_EABI"
-	use_fixproto=yes
-	;;
+mipsisa32-*-elf* | mipsisa32el-*-elf* | \
+mipsisa32r2-*-elf* | mipsisa32r2el-*-elf* | \
 mipsisa64-*-elf* | mipsisa64el-*-elf*)
 	tm_file="elfos.h ${tm_file} mips/elf.h"
-	tmake_file=mips/t-isa3264
-	target_cpu_default="MASK_64BIT|MASK_FLOAT64"
-	tm_defines="${tm_defines} MIPS_ISA_DEFAULT=64 MIPS_ABI_DEFAULT=ABI_EABI"
-	use_fixproto=yes
+	tmake_file="mips/t-isa3264 mips/t-libgcc-mips16"
+	case ${target} in
+	  mipsisa32r2*)
+	    tm_defines="${tm_defines} MIPS_ISA_DEFAULT=33"
+	    ;;
+	  mipsisa32*)
+	    tm_defines="${tm_defines} MIPS_ISA_DEFAULT=32"
+	    ;;
+	  mipsisa64*)
+	    tm_defines="${tm_defines} MIPS_ISA_DEFAULT=64"
+	    ;;
+	esac
+	case ${target} in
+	  mipsisa32*-*-elfoabi*)
+	    tm_defines="${tm_defines} MIPS_ABI_DEFAULT=ABI_32"
+	    tm_file="${tm_file} mips/elfoabi.h"
+	    ;;
+	  mipsisa64*-*-elfoabi*)
+	    tm_defines="${tm_defines} MIPS_ABI_DEFAULT=ABI_O64"
+	    tm_file="${tm_file} mips/elfoabi.h"
+	    ;;
+	  *-*-elf*)
+	    tm_defines="${tm_defines} MIPS_ABI_DEFAULT=ABI_EABI"
+	    ;;
+	esac
 	;;
 mipsisa64sr71k-*-elf*)
         tm_file="elfos.h ${tm_file} mips/elf.h"
@@ -1702,19 +1732,19 @@ mipsisa64sr71k-*-elf*)
         ;;
 mipsisa64sb1-*-elf* | mipsisa64sb1el-*-elf*)
 	tm_file="elfos.h ${tm_file} mips/elf.h"
-	tmake_file="mips/t-elf mips/t-sb1"
+	tmake_file="mips/t-elf mips/t-libgcc-mips16 mips/t-sb1"
 	target_cpu_default="MASK_64BIT|MASK_FLOAT64"
 	tm_defines="${tm_defines} MIPS_ISA_DEFAULT=64 MIPS_CPU_STRING_DEFAULT=\\\"sb1\\\" MIPS_ABI_DEFAULT=ABI_O64"
 	use_fixproto=yes
 	;;
 mips-*-elf* | mipsel-*-elf*)
 	tm_file="elfos.h ${tm_file} mips/elf.h"
-	tmake_file=mips/t-elf
+	tmake_file="mips/t-elf mips/t-libgcc-mips16"
 	use_fixproto=yes
 	;;
 mips64-*-elf* | mips64el-*-elf*)
 	tm_file="elfos.h ${tm_file} mips/elf.h"
-	tmake_file=mips/t-elf
+	tmake_file="mips/t-elf mips/t-libgcc-mips16"
 	target_cpu_default="MASK_64BIT|MASK_FLOAT64"
 	tm_defines="${tm_defines} MIPS_ISA_DEFAULT=3 MIPS_ABI_DEFAULT=ABI_O64"
 	use_fixproto=yes
@@ -1726,14 +1756,14 @@ mips64vr-*-elf* | mips64vrel-*-elf*)
         ;;
 mips64orion-*-elf* | mips64orionel-*-elf*)
 	tm_file="elfos.h ${tm_file} mips/elforion.h mips/elf.h"
-	tmake_file=mips/t-elf
+	tmake_file="mips/t-elf mips/t-libgcc-mips16"
 	target_cpu_default="MASK_64BIT|MASK_FLOAT64"
 	tm_defines="${tm_defines} MIPS_ISA_DEFAULT=3 MIPS_ABI_DEFAULT=ABI_O64"
 	use_fixproto=yes
 	;;
 mips*-*-rtems*)
 	tm_file="elfos.h ${tm_file} mips/elf.h mips/rtems.h rtems.h"
-	tmake_file="mips/t-elf t-rtems mips/t-rtems"
+	tmake_file="mips/t-elf mips/t-libgcc-mips16 t-rtems mips/t-rtems"
 	;;
 mips-wrs-vxworks)
 	tm_file="elfos.h ${tm_file} svr4.h mips/elf.h vx-common.h vxworks.h mips/vxworks.h"
@@ -1742,12 +1772,12 @@ mips-wrs-vxworks)
 mips-wrs-windiss)	# Instruction-level simulator for VxWorks.
 	xm_defines=POSIX
 	tm_file="elfos.h mips/mips.h svr4.h mips/elf.h windiss.h mips/windiss.h"
-	tmake_file="${tmake_file} mips/t-elf"
+	tmake_file="${tmake_file} mips/t-elf mips/t-libgcc-mips16"
 	thread_file=
 	;;
 mipstx39-*-elf* | mipstx39el-*-elf*)
 	tm_file="elfos.h ${tm_file} mips/r3900.h mips/elf.h"
-	tmake_file=mips/t-r3900
+	tmake_file="mips/t-r3900 mips/t-libgcc-mips16"
 	use_fixproto=yes
 	;;
 mmix-knuth-mmixware)
@@ -2825,7 +2855,7 @@ case "${target}" in
 
 		case "$with_fpu" in
 		"" \
-		| fpa | fpe2 | fpe3 | maverick | vfp )
+		| fpa | fpe2 | fpe3 | maverick | vfp | vfp3 | neon )
 			# OK
 			;;
 		*)
@@ -3124,6 +3154,23 @@ case "${target}" in
 			exit 1
 			;;
 		esac
+		;;
+
+	spu-*-*)
+		supported_defaults="arch tune"
+
+		for which in arch tune; do
+			eval "val=\$with_$which"
+			case ${val} in
+			"" | cell | celledp)
+				# OK
+				;;
+			*)
+				echo "Unknown cpu used in --with-$which=$val." 1>&2
+				exit 1
+				;;
+			esac
+		done
 		;;
 
 	v850*-*-*)

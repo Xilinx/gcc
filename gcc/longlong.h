@@ -1,11 +1,11 @@
 /* longlong.h -- definitions for mixed size 32/64 bit arithmetic.
    Copyright (C) 1991, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2004,
-   2005  Free Software Foundation, Inc.
+   2005, 2007  Free Software Foundation, Inc.
 
    This definition file is free software; you can redistribute it
    and/or modify it under the terms of the GNU General Public
    License as published by the Free Software Foundation; either
-   version 2, or (at your option) any later version.
+   version 3, or (at your option) any later version.
 
    This definition file is distributed in the hope that it will be
    useful, but WITHOUT ANY WARRANTY; without even the implied
@@ -13,9 +13,8 @@
    See the GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with this program; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 /* You have to define the following before including this file:
 
@@ -625,6 +624,11 @@ UDItype __umulsidi3 (USItype, USItype);
 	     "d" ((USItype) (v)))
 #define UMUL_TIME 10
 #define UDIV_TIME 100
+
+#if (__mips == 32 || __mips == 64) && ! __mips16
+#define count_leading_zeros(COUNT,X)	((COUNT) = __builtin_clz (X))
+#define COUNT_LEADING_ZEROS_0 32
+#endif
 #endif /* __mips__ */
 
 #if defined (__ns32000__) && W_TYPE_SIZE == 32

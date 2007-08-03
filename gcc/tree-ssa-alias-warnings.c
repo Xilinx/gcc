@@ -6,7 +6,7 @@
 
    GCC is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -379,7 +378,7 @@ match (htab_t ref_map, tree key)
 static inline void
 maybe_add_match (htab_t ref_map, struct tree_map *key)
 {
-  struct tree_map *found = htab_find (ref_map, key);
+  struct tree_map *found = (struct tree_map *) htab_find (ref_map, key);
 
   if (found && !found->to)
     found->to = key->to;
@@ -392,7 +391,7 @@ static void
 add_key (htab_t ht, tree t, alloc_pool references_pool)
 {
   void **slot;
-  struct tree_map *tp = pool_alloc (references_pool);
+  struct tree_map *tp = (struct tree_map *) pool_alloc (references_pool);
 
   tp->base.from = t;
   tp->to = NULL_TREE;
@@ -635,7 +634,7 @@ ffan_walker (tree *t,
              int *go_below ATTRIBUTE_UNUSED,
              void *data ATTRIBUTE_UNUSED)
 {
-  if (DECL_P (*t) && DECL_ARTIFICIAL (*t))
+  if (DECL_P (*t) && !MTAG_P (*t) && DECL_ARTIFICIAL (*t))
     return *t;
   else
     return NULL_TREE;

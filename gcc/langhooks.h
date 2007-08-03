@@ -1,11 +1,12 @@
 /* The lang_hooks data structure.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_LANG_HOOKS_H
 #define GCC_LANG_HOOKS_H
@@ -42,7 +42,6 @@ struct lang_hooks_for_tree_inlining
   int (*disregard_inline_limits) (tree);
   int (*auto_var_in_fn_p) (tree, tree);
   bool (*var_mod_type_p) (tree, tree);
-  tree (*convert_parm_for_inlining) (tree, tree, tree, int);
 };
 
 struct lang_hooks_for_callgraph
@@ -102,14 +101,6 @@ struct lang_hooks_for_types
   /* Given PRECISION and UNSIGNEDP, return a suitable type-tree for an
      integer type with at least that precision.  */
   tree (*type_for_size) (unsigned, int);
-
-  /* Given an integer type T, return a type like T but signed.
-     If T is signed, the value is T.  */
-  tree (*signed_type) (tree);
-
-  /* Return a type the same as TYPE except unsigned or signed
-     according to UNSIGNEDP.  */
-  tree (*signed_or_unsigned_type) (int, tree);
 
   /* True if the type is an instantiation of a generic type,
      e.g. C++ template implicit specializations.  */
@@ -373,7 +364,7 @@ struct lang_hooks
   int (*types_compatible_p) (tree x, tree y);
 
   /* Given a CALL_EXPR, return a function decl that is its target.  */
-  tree (*lang_get_callee_fndecl) (tree);
+  tree (*lang_get_callee_fndecl) (const_tree);
 
   /* Called by report_error_function to print out function name.  */
   void (*print_error_function) (struct diagnostic_context *, const char *);
@@ -445,6 +436,5 @@ extern tree add_builtin_function (const char *name, tree type,
 				  int function_code, enum built_in_class cl,
 				  const char *library_name,
 				  tree attrs);
-extern tree lhd_signed_or_unsigned_type (int unsignedp, tree type);
 
 #endif /* GCC_LANG_HOOKS_H */

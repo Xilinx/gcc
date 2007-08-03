@@ -1,3 +1,34 @@
+2007-07-24  Krister Walfridsson  <cato@df.lth.se>
+
+	PR target/30058
+	* inclhack.def (netbsd_c99_inline_2): New.
+	* fixincl.x: Regenerate.
+	* tests/base/signal.h: Update.
+
+2007-07-18  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR target/32641
+
+	* inclhack.def (solaris_math_4, solaris_math_5, solaris_math_6,
+	solaris_math_7): Constify and make FP exception-safe.
+	* tests/base/iso/math_c99.h: Update.
+
+	* fixincl.x: Regenerate.
+
+2007-07-05  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	PR libgcj/28190
+	* inclhack.def (irix_stdint_c99): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/stdint.h: New test.
+
+2007-06-06  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/31828
+	* inclhack.def (hppa_hpux_fp_macros): New.
+	* fixincl.x: Regenerate.
+	* tests/base/math.h: Update.
+
 2007-03-26  Jakub Jelinek  <jakub@redhat.com>
 
 	* inclhack.def (glibc_c99_inline_1): Define __USE_EXTERN_INLINES

@@ -1,13 +1,12 @@
 /* Subroutines used for code generation on the Argonaut ARC cpu.
-   Copyright (C) 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
+   2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* ??? This is an old port, and is undoubtedly suffering from bit rot.  */
 
@@ -1057,9 +1055,9 @@ arc_compute_function_type (tree decl)
    Don't consider them here.  */
 #define MUST_SAVE_REGISTER(regno, interrupt_p) \
 ((regno) != RETURN_ADDR_REGNUM && (regno) != FRAME_POINTER_REGNUM \
- && (regs_ever_live[regno] && (!call_used_regs[regno] || interrupt_p)))
+ && (df_regs_ever_live_p (regno) && (!call_used_regs[regno] || interrupt_p)))
 
-#define MUST_SAVE_RETURN_ADDR (regs_ever_live[RETURN_ADDR_REGNUM])
+#define MUST_SAVE_RETURN_ADDR (df_regs_ever_live_p (RETURN_ADDR_REGNUM))
 
 /* Return the bytes needed to compute the frame pointer from the current
    stack pointer.

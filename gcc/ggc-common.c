@@ -1,12 +1,12 @@
 /* Simple garbage collection for the GNU compiler.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Generic garbage collection (GC) functions and data, not specific to
    any particular GC implementation.  */
@@ -305,13 +304,13 @@ gt_pch_note_reorder (void *obj, void *note_ptr_cookie,
 static hashval_t
 saving_htab_hash (const void *p)
 {
-  return POINTER_HASH (((struct ptr_data *)p)->obj);
+  return POINTER_HASH (((const struct ptr_data *)p)->obj);
 }
 
 static int
 saving_htab_eq (const void *p1, const void *p2)
 {
-  return ((struct ptr_data *)p1)->obj == p2;
+  return ((const struct ptr_data *)p1)->obj == p2;
 }
 
 /* Handy state for the traversal functions.  */

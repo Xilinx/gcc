@@ -1,11 +1,11 @@
 /* Predictive commoning.
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
    
 GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
    
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file implements the predictive commoning optimization.  Predictive
    commoning can be viewed as CSE around a loop, and with some improvements,
@@ -633,7 +632,7 @@ determine_offset (struct data_reference *a, struct data_reference *b,
   /* Check that both the references access the location in the same type.  */
   typea = TREE_TYPE (DR_REF (a));
   typeb = TREE_TYPE (DR_REF (b));
-  if (!tree_ssa_useless_type_conversion_1 (typeb, typea))
+  if (!useless_type_conversion_p (typeb, typea))
     return false;
 
   /* Check whether the base address and the step of both references is the
@@ -1350,9 +1349,18 @@ ref_at_iteration (struct loop *loop, tree ref, int iter)
   else
     {
       type = TREE_TYPE (iv.base);
-      val = fold_build2 (MULT_EXPR, type, iv.step,
-			 build_int_cst_type (type, iter));
-      val = fold_build2 (PLUS_EXPR, type, iv.base, val);
+      if (POINTER_TYPE_P (type))
+	{
+	  val = fold_build2 (MULT_EXPR, sizetype, iv.step,
+			     size_int (iter));
+	  val = fold_build2 (POINTER_PLUS_EXPR, type, iv.base, val);
+	}
+      else
+	{
+	  val = fold_build2 (MULT_EXPR, type, iv.step,
+			     build_int_cst_type (type, iter));
+	  val = fold_build2 (PLUS_EXPR, type, iv.base, val);
+	}
       *idx_p = unshare_expr (val);
     }
 
@@ -1378,7 +1386,7 @@ get_init_expr (chain_p chain, unsigned index)
 
 /* Marks all virtual operands of statement STMT for renaming.  */
 
-static void
+void
 mark_virtual_ops_for_renaming (tree stmt)
 {
   ssa_op_iter iter;
@@ -1932,7 +1940,13 @@ eliminate_temp_copies (struct loop *loop, bitmap tmp_vars)
 
       /* Base all the ssa names in the ud and du chain of NAME on VAR.  */
       stmt = SSA_NAME_DEF_STMT (use);
-      while (TREE_CODE (stmt) == PHI_NODE)
+      while (TREE_CODE (stmt) == PHI_NODE
+	     /* In case we could not unroll the loop enough to eliminate
+		all copies, we may reach the loop header before the defining
+		statement (in that case, some register copies will be present
+		in loop latch in the final code, corresponding to the newly
+		created looparound phi nodes).  */
+	     && bb_for_stmt (stmt) != loop->header)
 	{
 	  gcc_assert (single_pred_p (bb_for_stmt (stmt)));
 	  use = PHI_ARG_DEF (stmt, 0);
@@ -2568,12 +2582,13 @@ end: ;
 
 /* Runs predictive commoning.  */
 
-void
+unsigned
 tree_predictive_commoning (void)
 {
   bool unrolled = false;
   struct loop *loop;
   loop_iterator li;
+  unsigned ret = 0;
 
   initialize_original_copy_tables ();
   FOR_EACH_LOOP (li, loop, LI_ONLY_INNERMOST)
@@ -2584,7 +2599,9 @@ tree_predictive_commoning (void)
   if (unrolled)
     {
       scev_reset ();
-      cleanup_tree_cfg_loop ();
+      ret = TODO_cleanup_cfg;
     }
   free_original_copy_tables ();
+
+  return ret;
 }

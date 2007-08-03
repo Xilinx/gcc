@@ -1,11 +1,11 @@
 /* Miscellaneous SSA utility functions.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -781,7 +780,7 @@ static int
 var_ann_eq (const void *va, const void *vb)
 {
   const struct static_var_ann_d *a = (const struct static_var_ann_d *) va;
-  tree b = (tree) vb;
+  const_tree const b = (const_tree) vb;
   return (a->uid == DECL_UID (b));
 }
 
@@ -799,7 +798,7 @@ var_ann_hash (const void *item)
 void
 init_tree_ssa (void)
 {
-  cfun->gimple_df = ggc_alloc_cleared (sizeof (struct gimple_df));
+  cfun->gimple_df = GGC_CNEW (struct gimple_df);
   cfun->gimple_df->referenced_vars = htab_create_ggc (20, int_tree_map_hash, 
 				     		      int_tree_map_eq, NULL);
   cfun->gimple_df->default_defs = htab_create_ggc (20, int_tree_map_hash, 
@@ -888,85 +887,165 @@ delete_tree_ssa (void)
 
 
 /* Return true if the conversion from INNER_TYPE to OUTER_TYPE is a
-   useless type conversion, otherwise return false.  */
+   useless type conversion, otherwise return false.
+
+   This function implicitly defines the middle-end type system.  With
+   the notion of 'a < b' meaning that useless_type_conversion_p (a, b)
+   holds and 'a > b' meaning that useless_type_conversion_p (b, a) holds,
+   the following invariants shall be fulfilled:
+
+     1) useless_type_conversion_p is transitive.
+	If a < b and b < c then a < c.
+
+     2) useless_type_conversion_p is not symmetric.
+	From a < b does not follow a > b.
+
+     3) Types define the available set of operations applicable to values.
+	A type conversion is useless if the operations for the target type
+	is a subset of the operations for the source type.  For example
+	casts to void* are useless, casts from void* are not (void* can't
+	be dereferenced or offsetted, but copied, hence its set of operations
+	is a strict subset of that of all other data pointer types).  Casts
+	to const T* are useless (can't be written to), casts from const T*
+	to T* are not.  */
 
 bool
-tree_ssa_useless_type_conversion_1 (tree outer_type, tree inner_type)
+useless_type_conversion_p (tree outer_type, tree inner_type)
 {
+  /* Qualifiers on value types do not matter.  */
+  inner_type = TYPE_MAIN_VARIANT (inner_type);
+  outer_type = TYPE_MAIN_VARIANT (outer_type);
+
   if (inner_type == outer_type)
+    return true;
+
+  /* If we know the canonical types, compare them.  */
+  if (TYPE_CANONICAL (inner_type)
+      && TYPE_CANONICAL (inner_type) == TYPE_CANONICAL (outer_type))
     return true;
 
   /* Changes in machine mode are never useless conversions.  */
   if (TYPE_MODE (inner_type) != TYPE_MODE (outer_type))
     return false;
 
-  /* If the inner and outer types are effectively the same, then
-     strip the type conversion and enter the equivalence into
-     the table.  */
-  if (lang_hooks.types_compatible_p (inner_type, outer_type))
-    return true;
-
-  /* If both types are pointers and the outer type is a (void *), then
-     the conversion is not necessary.  The opposite is not true since
-     that conversion would result in a loss of information if the
-     equivalence was used.  Consider an indirect function call where
-     we need to know the exact type of the function to correctly
-     implement the ABI.  */
-  else if (POINTER_TYPE_P (inner_type)
-           && POINTER_TYPE_P (outer_type)
-	   && TYPE_REF_CAN_ALIAS_ALL (inner_type)
-	      == TYPE_REF_CAN_ALIAS_ALL (outer_type)
-	   && TREE_CODE (TREE_TYPE (outer_type)) == VOID_TYPE)
-    return true;
-
-  /* Don't lose casts between pointers to volatile and non-volatile
-     qualified types.  Doing so would result in changing the semantics
-     of later accesses.  */
-  else if (POINTER_TYPE_P (inner_type)
-           && POINTER_TYPE_P (outer_type)
-	   && TYPE_VOLATILE (TREE_TYPE (outer_type))
-	      != TYPE_VOLATILE (TREE_TYPE (inner_type)))
-    return false;
-
-  /* Pointers/references are equivalent if their pointed to types
-     are effectively the same.  This allows to strip conversions between
-     pointer types with different type qualifiers.  */
-  else if (POINTER_TYPE_P (inner_type)
-           && POINTER_TYPE_P (outer_type)
-	   && TYPE_REF_CAN_ALIAS_ALL (inner_type)
-	      == TYPE_REF_CAN_ALIAS_ALL (outer_type)
-           && lang_hooks.types_compatible_p (TREE_TYPE (inner_type),
-					     TREE_TYPE (outer_type)))
-    return true;
-
   /* If both the inner and outer types are integral types, then the
      conversion is not necessary if they have the same mode and
-     signedness and precision, and both or neither are boolean.  Some
-     code assumes an invariant that boolean types stay boolean and do
-     not become 1-bit bit-field types.  Note that types with precision
-     not using all bits of the mode (such as bit-field types in C)
-     mean that testing of precision is necessary.  */
-  else if (INTEGRAL_TYPE_P (inner_type)
-           && INTEGRAL_TYPE_P (outer_type)
-	   && TYPE_UNSIGNED (inner_type) == TYPE_UNSIGNED (outer_type)
-	   && TYPE_PRECISION (inner_type) == TYPE_PRECISION (outer_type)
-	   && simple_cst_equal (TYPE_MAX_VALUE (inner_type), TYPE_MAX_VALUE (outer_type))
-	   && simple_cst_equal (TYPE_MIN_VALUE (inner_type), TYPE_MIN_VALUE (outer_type)))
+     signedness and precision, and both or neither are boolean.  */
+  if (INTEGRAL_TYPE_P (inner_type)
+      && INTEGRAL_TYPE_P (outer_type))
     {
-      bool first_boolean = (TREE_CODE (inner_type) == BOOLEAN_TYPE);
-      bool second_boolean = (TREE_CODE (outer_type) == BOOLEAN_TYPE);
-      if (first_boolean == second_boolean)
+      /* Preserve changes in signedness or precision.  */
+      if (TYPE_UNSIGNED (inner_type) != TYPE_UNSIGNED (outer_type)
+	  || TYPE_PRECISION (inner_type) != TYPE_PRECISION (outer_type))
+	return false;
+
+      /* Conversions from a non-base to a base type are not useless.
+	 This way we preserve the invariant to do arithmetic in
+	 base types only.  */
+      if (TREE_TYPE (inner_type)
+	  && TREE_TYPE (inner_type) != inner_type
+	  && (TREE_TYPE (outer_type) == outer_type
+	      || TREE_TYPE (outer_type) == NULL_TREE))
+	return false;
+
+      /* We don't need to preserve changes in the types minimum or
+	 maximum value in general as these do not generate code
+	 unless the types precisions are different.  */
+
+      return true;
+    }
+
+  /* Scalar floating point types with the same mode are compatible.  */
+  else if (SCALAR_FLOAT_TYPE_P (inner_type)
+	   && SCALAR_FLOAT_TYPE_P (outer_type))
+    return true;
+
+  /* We need to take special care recursing to pointed-to types.  */
+  else if (POINTER_TYPE_P (inner_type)
+	   && POINTER_TYPE_P (outer_type))
+    {
+      /* If the outer type is (void *), then the conversion is not
+	 necessary.  */
+      if (TREE_CODE (TREE_TYPE (outer_type)) == VOID_TYPE)
 	return true;
+
+      /* Don't lose casts between pointers to volatile and non-volatile
+	 qualified types.  Doing so would result in changing the semantics
+	 of later accesses.  */
+      if ((TYPE_VOLATILE (TREE_TYPE (outer_type))
+	   != TYPE_VOLATILE (TREE_TYPE (inner_type)))
+	  && TYPE_VOLATILE (TREE_TYPE (outer_type)))
+	return false;
+
+      /* Do not lose casts between pointers with different
+	 TYPE_REF_CAN_ALIAS_ALL setting or alias sets.  */
+      if ((TYPE_REF_CAN_ALIAS_ALL (inner_type)
+	   != TYPE_REF_CAN_ALIAS_ALL (outer_type))
+	  || (get_alias_set (TREE_TYPE (inner_type))
+	      != get_alias_set (TREE_TYPE (outer_type))))
+	return false;
+
+      /* Do not lose casts from const qualified to non-const
+	 qualified.  */
+      if ((TYPE_READONLY (TREE_TYPE (outer_type))
+	   != TYPE_READONLY (TREE_TYPE (inner_type)))
+	  && TYPE_READONLY (TREE_TYPE (inner_type)))
+	return false;
+
+      /* Do not lose casts to restrict qualified pointers.  */
+      if ((TYPE_RESTRICT (outer_type)
+	   != TYPE_RESTRICT (inner_type))
+	  && TYPE_RESTRICT (outer_type))
+	return false;
+
+      /* Otherwise pointers/references are equivalent if their pointed
+	 to types are effectively the same.  We can strip qualifiers
+	 on pointed-to types for further comparison, which is done in
+	 the callee.  */
+      return useless_type_conversion_p (TREE_TYPE (outer_type),
+				        TREE_TYPE (inner_type));
     }
 
   /* Recurse for complex types.  */
   else if (TREE_CODE (inner_type) == COMPLEX_TYPE
-	   && TREE_CODE (outer_type) == COMPLEX_TYPE
-	   && tree_ssa_useless_type_conversion_1 (TREE_TYPE (outer_type),
-						  TREE_TYPE (inner_type)))
-    return true;
+	   && TREE_CODE (outer_type) == COMPLEX_TYPE)
+    return useless_type_conversion_p (TREE_TYPE (outer_type),
+				      TREE_TYPE (inner_type));
+
+  /* Recurse for vector types with the same number of subparts.  */
+  else if (TREE_CODE (inner_type) == VECTOR_TYPE
+	   && TREE_CODE (outer_type) == VECTOR_TYPE
+	   && TYPE_PRECISION (inner_type) == TYPE_PRECISION (outer_type))
+    return useless_type_conversion_p (TREE_TYPE (outer_type),
+				      TREE_TYPE (inner_type));
+
+  /* For aggregates we may need to fall back to structural equality
+     checks.  */
+  else if (AGGREGATE_TYPE_P (inner_type)
+	   && AGGREGATE_TYPE_P (outer_type))
+    {
+      /* Different types of aggregates are incompatible.  */
+      if (TREE_CODE (inner_type) != TREE_CODE (outer_type))
+	return false;
+
+      /* ???  Add structural equivalence check.  */
+
+      /* ???  This should eventually just return false.  */
+      return lang_hooks.types_compatible_p (inner_type, outer_type);
+    }
 
   return false;
+}
+
+/* Return true if a conversion from either type of TYPE1 and TYPE2
+   to the other is not required.  Otherwise return false.  */
+
+bool
+types_compatible_p (tree type1, tree type2)
+{
+  return (type1 == type2
+	  || (useless_type_conversion_p (type1, type2)
+	      && useless_type_conversion_p (type2, type1)));
 }
 
 /* Return true if EXPR is a useless type conversion, otherwise return
@@ -985,7 +1064,7 @@ tree_ssa_useless_type_conversion (tree expr)
     /* FIXME: Use of GENERIC_TREE_TYPE here is a temporary measure to work
        around known bugs with GIMPLE_MODIFY_STMTs appearing in places
        they shouldn't.  See PR 30391.  */
-    return tree_ssa_useless_type_conversion_1
+    return useless_type_conversion_p
       (TREE_TYPE (expr),
        GENERIC_TREE_TYPE (TREE_OPERAND (expr, 0)));
 

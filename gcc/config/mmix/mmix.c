@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler, for MMIX.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Hans-Peter Nilsson (hp@bitrange.com)
 
@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -56,7 +55,7 @@ Boston, MA 02110-1301, USA.  */
 /* We have no means to tell DWARF 2 about the register stack, so we need
    to store the return address on the stack if an exception can get into
    this function.  FIXME: Narrow condition.  Before any whole-function
-   analysis, regs_ever_live[] isn't initialized.  We know it's up-to-date
+   analysis, df_regs_ever_live_p () isn't initialized.  We know it's up-to-date
    after reload_completed; it may contain incorrect information some time
    before that.  Within a RTL sequence (after a call to start_sequence,
    such as in RTL expanders), leaf_function_p doesn't see all insns
@@ -66,7 +65,7 @@ Boston, MA 02110-1301, USA.  */
    preferable.  */
 #define MMIX_CFUN_NEEDS_SAVED_EH_RETURN_ADDRESS			\
  (flag_exceptions						\
-  && ((reload_completed && regs_ever_live[MMIX_rJ_REGNUM])	\
+  && ((reload_completed && df_regs_ever_live_p (MMIX_rJ_REGNUM))	\
       || !leaf_function_p ()))
 
 #define IS_MMIX_EH_RETURN_DATA_REG(REGNO)	\
@@ -547,7 +546,7 @@ mmix_initial_elimination_offset (int fromreg, int toreg)
   for (regno = MMIX_FIRST_GLOBAL_REGNUM;
        regno <= 255;
        regno++)
-    if ((regs_ever_live[regno] && ! call_used_regs[regno])
+    if ((df_regs_ever_live_p (regno) && ! call_used_regs[regno])
 	|| IS_MMIX_EH_RETURN_DATA_REG (regno))
       fp_sp_offset += 8;
 
@@ -765,7 +764,7 @@ mmix_reorg (void)
   for (regno = MMIX_LAST_STACK_REGISTER_REGNUM;
        regno >= 0;
        regno--)
-    if ((regs_ever_live[regno] && !call_used_regs[regno])
+    if ((df_regs_ever_live_p (regno) && !call_used_regs[regno])
 	|| (regno == MMIX_FRAME_POINTER_REGNUM && frame_pointer_needed))
       break;
 
@@ -774,7 +773,7 @@ mmix_reorg (void)
      insns to see whether they're actually used (and indeed do other less
      trivial register usage analysis and transformations), but it seems
      wasteful to optimize for unused parameter registers.  As of
-     2002-04-30, regs_ever_live[n] seems to be set for only-reads too, but
+     2002-04-30, df_regs_ever_live_p (n) seems to be set for only-reads too, but
      that might change.  */
   if (!TARGET_ABI_GNU && regno < current_function_args_info.regs - 1)
     {
@@ -1836,7 +1835,7 @@ mmix_use_simple_return (void)
     /* Note that we assume that the frame-pointer-register is one of these
        registers, in which case we don't count it here.  */
     if ((((regno != MMIX_FRAME_POINTER_REGNUM || !frame_pointer_needed)
-	  && regs_ever_live[regno] && !call_used_regs[regno]))
+	  && df_regs_ever_live_p (regno) && !call_used_regs[regno]))
 	|| IS_MMIX_EH_RETURN_DATA_REG (regno))
       return 0;
 
@@ -1872,7 +1871,7 @@ mmix_expand_prologue (void)
     /* Note that we assume that the frame-pointer-register is one of these
        registers, in which case we don't count it here.  */
     if ((((regno != MMIX_FRAME_POINTER_REGNUM || !frame_pointer_needed)
-	  && regs_ever_live[regno] && !call_used_regs[regno]))
+	  && df_regs_ever_live_p (regno) && !call_used_regs[regno]))
 	|| IS_MMIX_EH_RETURN_DATA_REG (regno))
       stack_space_to_allocate += 8;
 
@@ -2057,7 +2056,7 @@ mmix_expand_prologue (void)
        regno >= MMIX_FIRST_GLOBAL_REGNUM;
        regno--)
     if (((regno != MMIX_FRAME_POINTER_REGNUM || !frame_pointer_needed)
-	 && regs_ever_live[regno] && ! call_used_regs[regno])
+	 && df_regs_ever_live_p (regno) && ! call_used_regs[regno])
 	|| IS_MMIX_EH_RETURN_DATA_REG (regno))
       {
 	rtx insn;
@@ -2109,7 +2108,7 @@ mmix_expand_epilogue (void)
        regno >= MMIX_FIRST_GLOBAL_REGNUM;
        regno--)
     if (((regno != MMIX_FRAME_POINTER_REGNUM || !frame_pointer_needed)
-	 && regs_ever_live[regno] && !call_used_regs[regno])
+	 && df_regs_ever_live_p (regno) && !call_used_regs[regno])
 	|| IS_MMIX_EH_RETURN_DATA_REG (regno))
       stack_space_to_deallocate += 8;
 
@@ -2138,7 +2137,7 @@ mmix_expand_epilogue (void)
        regno <= 255;
        regno++)
     if (((regno != MMIX_FRAME_POINTER_REGNUM || !frame_pointer_needed)
-	 && regs_ever_live[regno] && !call_used_regs[regno])
+	 && df_regs_ever_live_p (regno) && !call_used_regs[regno])
 	|| IS_MMIX_EH_RETURN_DATA_REG (regno))
       {
 	if (offset > 255)

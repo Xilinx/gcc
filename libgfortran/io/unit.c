@@ -84,6 +84,12 @@ __gthread_mutex_t unit_lock = __GTHREAD_MUTEX_INIT;
 __gthread_mutex_t unit_lock;
 #endif
 
+/* We use these filenames for error reporting.  */
+
+static char stdin_name[] = "stdin";
+static char stdout_name[] = "stdout";
+static char stderr_name[] = "stderr";
+
 /* This implementation is based on Stefan Nilsson's article in the
  * July 1997 Doctor Dobb's Journal, "Treaps in Java". */
 
@@ -506,6 +512,10 @@ init_units (void)
       u->recl = options.default_recl;
       u->endfile = NO_ENDFILE;
 
+      u->file_len = strlen (stdin_name);
+      u->file = get_mem (u->file_len);
+      memmove (u->file, stdin_name, u->file_len);
+    
       __gthread_mutex_unlock (&u->lock);
     }
 
@@ -524,6 +534,10 @@ init_units (void)
 
       u->recl = options.default_recl;
       u->endfile = AT_ENDFILE;
+    
+      u->file_len = strlen (stdout_name);
+      u->file = get_mem (u->file_len);
+      memmove (u->file, stdout_name, u->file_len);
 
       __gthread_mutex_unlock (&u->lock);
     }
@@ -543,6 +557,10 @@ init_units (void)
 
       u->recl = options.default_recl;
       u->endfile = AT_ENDFILE;
+
+      u->file_len = strlen (stderr_name);
+      u->file = get_mem (u->file_len);
+      memmove (u->file, stderr_name, u->file_len);
 
       __gthread_mutex_unlock (&u->lock);
     }
@@ -665,3 +683,40 @@ update_position (gfc_unit *u)
   else
     u->flags.position = POSITION_ASIS;
 }
+
+
+/* filename_from_unit()-- If the unit_number exists, return a pointer to the
+   name of the associated file, otherwise return the empty string.  The caller
+   must free memory allocated for the filename string.  */
+
+char *
+filename_from_unit (int n)
+{
+  char *filename;
+  gfc_unit *u;
+  int c;
+
+  /* Find the unit.  */
+  u = unit_root;
+  while (u != NULL)
+    {
+      c = compare (n, u->unit_number);
+      if (c < 0)
+	u = u->left;
+      if (c > 0)
+	u = u->right;
+      if (c == 0)
+	break;
+    }
+
+  /* Get the filename.  */
+  if (u != NULL)
+    {
+      filename = (char *) get_mem (u->file_len + 1);
+      unpack_filename (filename, u->file, u->file_len);
+      return filename;
+    }
+  else
+    return (char *) NULL;
+}
+

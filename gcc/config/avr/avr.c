@@ -7,7 +7,7 @@
 
    GCC is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
    
    GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@
    GNU General Public License for more details.
    
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -44,6 +43,7 @@
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
+#include "df.h"
 
 /* Maximal allowed offset for an address in the LD command */
 #define MAX_LD_OFFSET(MODE) (64 - (signed)GET_MODE_SIZE (MODE))
@@ -61,6 +61,7 @@ static RTX_CODE compare_condition (rtx insn);
 static int compare_sign_p (rtx insn);
 static tree avr_handle_progmem_attribute (tree *, tree, tree, int, bool *);
 static tree avr_handle_fndecl_attribute (tree *, tree, tree, int, bool *);
+static tree avr_handle_fntype_attribute (tree *, tree, tree, int, bool *);
 const struct attribute_spec avr_attribute_table[];
 static bool avr_assemble_integer (rtx, unsigned int, int);
 static void avr_file_start (void);
@@ -399,7 +400,7 @@ avr_naked_function_p (tree func)
 
   gcc_assert (TREE_CODE (func) == FUNCTION_DECL);
   
-  a = lookup_attribute ("naked", DECL_ATTRIBUTES (func));
+  a = lookup_attribute ("naked", TYPE_ATTRIBUTES (TREE_TYPE (func)));
   return a != NULL_TREE;
 }
 
@@ -460,7 +461,7 @@ avr_regs_to_save (HARD_REG_SET *set)
 	continue;
 
       if ((int_or_sig_p && !leaf_func_p && call_used_regs[reg])
-	  || (regs_ever_live[reg]
+	  || (df_regs_ever_live_p (reg)
 	      && (int_or_sig_p || !call_used_regs[reg])
 	      && !(frame_pointer_needed
 		   && (reg == REG_Y || reg == (REG_Y+1)))))
@@ -517,7 +518,7 @@ sequent_regs_live (void)
     {
       if (!call_used_regs[reg])
 	{
-	  if (regs_ever_live[reg])
+	  if (df_regs_ever_live_p (reg))
 	    {
 	      ++live_seq;
 	      ++cur_seq;
@@ -529,7 +530,7 @@ sequent_regs_live (void)
 
   if (!frame_pointer_needed)
     {
-      if (regs_ever_live[REG_Y])
+      if (df_regs_ever_live_p (REG_Y))
 	{
 	  ++live_seq;
 	  ++cur_seq;
@@ -537,7 +538,7 @@ sequent_regs_live (void)
       else
 	cur_seq = 0;
 
-      if (regs_ever_live[REG_Y+1])
+      if (df_regs_ever_live_p (REG_Y+1))
 	{
 	  ++live_seq;
 	  ++cur_seq;
@@ -631,9 +632,13 @@ expand_prologue (void)
     }
   else if (minimize && (frame_pointer_needed || live_seq > 6)) 
     {
+      insn = emit_move_insn (gen_rtx_REG (HImode, REG_X), 
+                             gen_int_mode (size, HImode));
+      RTX_FRAME_RELATED_P (insn) = 1;
+
       insn = 
-        emit_insn (gen_call_prologue_saves (gen_int_mode (size, HImode),
-                                            gen_int_mode (live_seq, HImode)));
+        emit_insn (gen_call_prologue_saves (gen_int_mode (live_seq, HImode),
+					    gen_int_mode (size + live_seq, HImode)));
       RTX_FRAME_RELATED_P (insn) = 1;
     }
   else
@@ -4580,7 +4585,7 @@ const struct attribute_spec avr_attribute_table[] =
   { "progmem",   0, 0, false, false, false,  avr_handle_progmem_attribute },
   { "signal",    0, 0, true,  false, false,  avr_handle_fndecl_attribute },
   { "interrupt", 0, 0, true,  false, false,  avr_handle_fndecl_attribute },
-  { "naked",     0, 0, true,  false, false,  avr_handle_fndecl_attribute },
+  { "naked",     0, 0, false, true,  true,   avr_handle_fntype_attribute },
   { NULL,        0, 0, false, false, false, NULL }
 };
 
@@ -4667,6 +4672,22 @@ avr_handle_fndecl_attribute (tree *node, tree name,
                        func_name);
             }
         }
+    }
+
+  return NULL_TREE;
+}
+
+static tree
+avr_handle_fntype_attribute (tree *node, tree name,
+                             tree args ATTRIBUTE_UNUSED,
+                             int flags ATTRIBUTE_UNUSED,
+                             bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_TYPE)
+    {
+      warning (OPT_Wattributes, "%qs attribute only applies to functions",
+	       IDENTIFIER_POINTER (name));
+      *no_add_attrs = true;
     }
 
   return NULL_TREE;
@@ -5815,7 +5836,7 @@ avr_peep2_scratch_safe (rtx scratch)
 
       for (reg = first_reg; reg <= last_reg; reg++)
 	{
-	  if (!regs_ever_live[reg])
+	  if (!df_regs_ever_live_p (reg))
 	    return 0;
 	}
     }

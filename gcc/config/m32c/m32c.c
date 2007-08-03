@@ -1,5 +1,5 @@
 /* Target Code for R8C/M16C/M32C
-   Copyright (C) 2005
+   Copyright (C) 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Red Hat.
 
@@ -7,7 +7,7 @@
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -16,9 +16,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -49,6 +48,7 @@
 #include "tm_p.h"
 #include "langhooks.h"
 #include "tree-gimple.h"
+#include "df.h"
 
 /* Prototypes */
 
@@ -1142,7 +1142,7 @@ m32c_eh_return_stackadj_rtx (void)
     {
       rtx sa;
 
-      sa = gen_reg_rtx (Pmode);
+      sa = gen_rtx_REG (Pmode, R0_REGNO);
       cfun->machine->eh_stack_adjust = sa;
     }
   return cfun->machine->eh_stack_adjust;
@@ -1248,7 +1248,7 @@ need_to_save (int regno)
   if (cfun->machine->is_interrupt
       && (!cfun->machine->is_leaf || regno == A0_REGNO))
     return 1;
-  if (regs_ever_live[regno]
+  if (df_regs_ever_live_p (regno)
       && (!call_used_regs[regno] || cfun->machine->is_interrupt))
     return 1;
   return 0;
@@ -3154,7 +3154,7 @@ m32c_prepare_move (rtx * operands, enum machine_mode mode)
       emit_insn (gen_rtx_SET (Pmode, dest_reg, dest_mod));
       operands[0] = gen_rtx_MEM (mode, dest_reg);
     }
-  if (!no_new_pseudos && MEM_P (operands[0]) && MEM_P (operands[1]))
+  if (can_create_pseudo_p () && MEM_P (operands[0]) && MEM_P (operands[1]))
     operands[1] = copy_to_mode_reg (mode, operands[1]);
   return 0;
 }
@@ -3219,7 +3219,7 @@ m32c_split_move (rtx * operands, enum machine_mode mode, int split_all)
 
   /* Before splitting mem-mem moves, force one operand into a
      register.  */
-  if (!no_new_pseudos && MEM_P (operands[0]) && MEM_P (operands[1]))
+  if (can_create_pseudo_p () && MEM_P (operands[0]) && MEM_P (operands[1]))
     {
 #if DEBUG0
       fprintf (stderr, "force_reg...\n");
@@ -3234,7 +3234,8 @@ m32c_split_move (rtx * operands, enum machine_mode mode, int split_all)
   parts = 2;
 
 #if DEBUG_SPLIT
-  fprintf (stderr, "\nsplit_move %d all=%d\n", no_new_pseudos, split_all);
+  fprintf (stderr, "\nsplit_move %d all=%d\n", !can_create_pseudo_p (),
+	   split_all);
   debug_rtx (operands[0]);
   debug_rtx (operands[1]);
 #endif
@@ -3773,7 +3774,7 @@ m32c_expand_insv (rtx *operands)
 	op0 = sub;
     }
 
-  if (no_new_pseudos
+  if (!can_create_pseudo_p ()
       || (GET_CODE (op0) == MEM && MEM_VOLATILE_P (op0)))
     src0 = op0;
   else
@@ -3977,8 +3978,8 @@ m32c_emit_prologue (void)
   if (cfun->machine->use_rts == 0)
     F (emit_insn (m32c_all_frame_related
 		  (TARGET_A16
-		   ? gen_prologue_enter_16 (GEN_INT (frame_size))
-		   : gen_prologue_enter_24 (GEN_INT (frame_size)))));
+		   ? gen_prologue_enter_16 (GEN_INT (frame_size + 2))
+		   : gen_prologue_enter_24 (GEN_INT (frame_size + 4)))));
 
   if (extra_frame_size)
     {
@@ -4025,12 +4026,17 @@ m32c_emit_epilogue (void)
       else
 	emit_insn (gen_poppsi (gen_rtx_REG (PSImode, FP_REGNO)));
       emit_insn (gen_popm (GEN_INT (cfun->machine->intr_pushm)));
-      emit_jump_insn (gen_epilogue_reit (GEN_INT (TARGET_A16 ? 4 : 6)));
+      if (TARGET_A16)
+	emit_jump_insn (gen_epilogue_reit_16 ());
+      else
+	emit_jump_insn (gen_epilogue_reit_24 ());
     }
   else if (cfun->machine->use_rts)
     emit_jump_insn (gen_epilogue_rts ());
+  else if (TARGET_A16)
+    emit_jump_insn (gen_epilogue_exitd_16 ());
   else
-    emit_jump_insn (gen_epilogue_exitd (GEN_INT (TARGET_A16 ? 2 : 4)));
+    emit_jump_insn (gen_epilogue_exitd_24 ());
   emit_barrier ();
 }
 

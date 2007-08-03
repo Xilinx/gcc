@@ -1,5 +1,5 @@
 /* Common VxWorks target definitions for GNU compiler.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
    Contributed by Wind River Systems.
    Rewritten by CodeSourcery, LLC.
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* In kernel mode, VxWorks provides all the libraries itself, as well as
    the functionality of startup files, etc.  In RTP mode, it behaves more
@@ -59,7 +58,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
    %{mrtp:-q %{h*}					\
           %{R*} %{!Wl,-T*: %{!T*: %(link_start) }}	\
           %(link_target) %(link_os)}}			\
- %{v:-V}						\
+ %{v:-v}						\
  %{shared:-shared}					\
  %{Bstatic:-Bstatic}					\
  %{Bdynamic:-Bdynamic}					\
@@ -106,6 +105,16 @@ extern void vxworks_asm_out_destructor (rtx symbol, int priority);
 #undef VXWORKS_GOTT_INDEX
 #define VXWORKS_GOTT_INDEX "__GOTT_INDEX__"
 
+/* As for svr4.h (which not all VxWorks targets include). */
+#undef PTRDIFF_TYPE
+#define PTRDIFF_TYPE "int"
+
+#undef SIZE_TYPE
+#define SIZE_TYPE "unsigned int"
+
+/* Both kernels and RTPs have the facilities required by this macro.  */
+#define TARGET_POSIX_IO
+
 /* A VxWorks implementation of TARGET_OS_CPP_BUILTINS.  */
 #define VXWORKS_OS_CPP_BUILTINS()					\
   do									\
@@ -121,3 +130,6 @@ extern void vxworks_asm_out_destructor (rtx symbol, int priority);
   while (0)
 
 #define VXWORKS_KIND VXWORKS_KIND_NORMAL
+
+/* The diab linker does not handle .gnu_attribute sections.  */
+#undef HAVE_AS_GNU_ATTRIBUTE

@@ -9,7 +9,7 @@
 
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; GCC is distributed in the hope that it will be useful,
@@ -18,9 +18,8 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;; Special characters after '%':
 ;;  A  No effect (add 0).
@@ -1685,39 +1684,95 @@
 ;; xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x
 ;; zero extend
 
-(define_insn "zero_extendqihi2"
-  [(set (match_operand:HI 0 "register_operand" "=r,r")
-        (zero_extend:HI (match_operand:QI 1 "register_operand" "0,*r")))]
+(define_insn_and_split "zero_extendqihi2"
+  [(set (match_operand:HI 0 "register_operand" "=r")
+        (zero_extend:HI (match_operand:QI 1 "register_operand" "r")))]
   ""
-  "@
-	clr %B0
-	mov %A0,%A1\;clr %B0"
-  [(set_attr "length" "1,2")
-   (set_attr "cc" "set_n,set_n")])
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (match_dup 1))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (QImode, HImode);
+   unsigned int high_off = subreg_highpart_offset (QImode, HImode);
+   
+   operands[2] = simplify_gen_subreg (QImode, operands[0], HImode, low_off);
+   operands[3] = simplify_gen_subreg (QImode, operands[0], HImode, high_off);
+  ")
 
-(define_insn "zero_extendqisi2"
-  [(set (match_operand:SI 0 "register_operand" "=r,r")
-        (zero_extend:SI (match_operand:QI 1 "register_operand" "0,*r")))]
+(define_insn_and_split "zero_extendqisi2"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (zero_extend:SI (match_operand:QI 1 "register_operand" "r")))]
   ""
-  "@
-	clr %B0\;clr %C0\;clr %D0
-	mov %A0,%A1\;clr %B0\;clr %C0\;clr %D0"
-  [(set_attr "length" "3,4")
-   (set_attr "cc" "set_n,set_n")])
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (zero_extend:HI (match_dup 1)))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (HImode, SImode);
+   unsigned int high_off = subreg_highpart_offset (HImode, SImode);
+   
+   operands[2] = simplify_gen_subreg (HImode, operands[0], SImode, low_off);
+   operands[3] = simplify_gen_subreg (HImode, operands[0], SImode, high_off);
+  ")
 
-(define_insn "zero_extendhisi2"
-  [(set (match_operand:SI 0 "register_operand" "=r,&r")
-        (zero_extend:SI (match_operand:HI 1 "register_operand" "0,*r")))]
+(define_insn_and_split "zero_extendhisi2"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (zero_extend:SI (match_operand:HI 1 "register_operand" "r")))]
   ""
-  "@
-	clr %C0\;clr %D0
-	{mov %A0,%A1\;mov %B0,%B1|movw %A0,%A1}\;clr %C0\;clr %D0"
-  [(set_attr_alternative "length"
-			 [(const_int 2)
-			  (if_then_else (eq_attr "mcu_have_movw" "yes")
-					(const_int 3)
-					(const_int 4))])
-   (set_attr "cc" "set_n,set_n")])
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (match_dup 1))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (HImode, SImode);
+   unsigned int high_off = subreg_highpart_offset (HImode, SImode);
+   
+   operands[2] = simplify_gen_subreg (HImode, operands[0], SImode, low_off);
+   operands[3] = simplify_gen_subreg (HImode, operands[0], SImode, high_off);
+  ")
+
+(define_insn_and_split "zero_extendqidi2"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (zero_extend:DI (match_operand:QI 1 "register_operand" "r")))]
+  ""
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (zero_extend:SI (match_dup 1)))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (SImode, DImode);
+   unsigned int high_off = subreg_highpart_offset (SImode, DImode);
+   
+   operands[2] = simplify_gen_subreg (SImode, operands[0], DImode, low_off);
+   operands[3] = simplify_gen_subreg (SImode, operands[0], DImode, high_off);
+  ")
+
+(define_insn_and_split "zero_extendhidi2"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (zero_extend:DI (match_operand:HI 1 "register_operand" "r")))]
+  ""
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (zero_extend:SI (match_dup 1)))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (SImode, DImode);
+   unsigned int high_off = subreg_highpart_offset (SImode, DImode);
+   
+   operands[2] = simplify_gen_subreg (SImode, operands[0], DImode, low_off);
+   operands[3] = simplify_gen_subreg (SImode, operands[0], DImode, high_off);
+  ")
+
+(define_insn_and_split "zero_extendsidi2"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (zero_extend:DI (match_operand:SI 1 "register_operand" "r")))]
+  ""
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (match_dup 1))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (SImode, DImode);
+   unsigned int high_off = subreg_highpart_offset (SImode, DImode);
+   
+   operands[2] = simplify_gen_subreg (SImode, operands[0], DImode, low_off);
+   operands[3] = simplify_gen_subreg (SImode, operands[0], DImode, high_off);
+  ")
 
 ;;<=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=>
 ;; compare
@@ -2706,20 +2761,16 @@
 ;;  Library prologue saves
 (define_insn "call_prologue_saves"
   [(unspec_volatile:HI [(const_int 0)] UNSPECV_PROLOGUE_SAVES)
-   (set (reg:HI REG_SP) (minus:HI 
-                           (reg:HI REG_SP)
-                           (match_operand:HI 0 "immediate_operand" "")))
+   (match_operand:HI 0 "immediate_operand" "")
    (set (reg:HI REG_SP) (minus:HI 
                            (reg:HI REG_SP)
                            (match_operand:HI 1 "immediate_operand" "")))
-   (set (reg:HI REG_X) (match_dup 0))
+   (use (reg:HI REG_X))
    (clobber (reg:HI REG_Z))]
   ""
-  "ldi r26,lo8(%0)
-	ldi r27,hi8(%0)
-	ldi r30,pm_lo8(1f)
+  "ldi r30,pm_lo8(1f)
 	ldi r31,pm_hi8(1f)
-	%~jmp __prologue_saves__+((18 - %1) * 2)
+	%~jmp __prologue_saves__+((18 - %0) * 2)
 1:"
   [(set_attr_alternative "length"
 			 [(if_then_else (eq_attr "mcu_mega" "yes")

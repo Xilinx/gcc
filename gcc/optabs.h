@@ -1,12 +1,12 @@
 /* Definitions for code generation pass of GNU compiler.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006 
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_OPTABS_H
 #define GCC_OPTABS_H
@@ -151,6 +150,8 @@ enum optab_index
   OTI_movstrict,
   /* Move, with a misaligned memory.  */
   OTI_movmisalign,
+  /* Nontemporal store.  */
+  OTI_storent,
 
   /* Unary operations */
   /* Negation */
@@ -217,7 +218,8 @@ enum optab_index
   OTI_atan,
   /* Copy sign */
   OTI_copysign,
-
+  /* Signbit */
+  OTI_signbit,
   /* Test for infinite value */
   OTI_isinf,
 
@@ -367,6 +369,7 @@ extern GTY(()) optab optab_table[OTI_MAX];
 #define mov_optab (optab_table[OTI_mov])
 #define movstrict_optab (optab_table[OTI_movstrict])
 #define movmisalign_optab (optab_table[OTI_movmisalign])
+#define storent_optab (optab_table[OTI_storent])
 
 #define neg_optab (optab_table[OTI_neg])
 #define negv_optab (optab_table[OTI_negv])
@@ -406,7 +409,7 @@ extern GTY(()) optab optab_table[OTI_MAX];
 #define tan_optab (optab_table[OTI_tan])
 #define atan_optab (optab_table[OTI_atan])
 #define copysign_optab (optab_table[OTI_copysign])
-
+#define signbit_optab (optab_table[OTI_signbit])
 #define isinf_optab (optab_table[OTI_isinf])
 
 #define cmp_optab (optab_table[OTI_cmp])
@@ -640,6 +643,10 @@ extern rtx expand_copysign (rtx, rtx, rtx);
 /* Generate an instruction with a given INSN_CODE with an output and
    an input.  */
 extern void emit_unop_insn (int, rtx, rtx, enum rtx_code);
+
+/* Excapsulate the block in REG_LIBCALL, and REG_RETVAL reg notes and add 
+   REG_LIBCALL_ID notes to all insns in block.  */
+extern void maybe_encapsulate_block (rtx, rtx, rtx);
 
 /* Emit code to perform a series of operations on a multi-word quantity, one
    word at a time.  */

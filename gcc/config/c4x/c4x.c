@@ -1,6 +1,6 @@
 /* Subroutines for assembler code output on the TMS320C[34]x
    Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2003,
-   2004, 2005
+   2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
    Contributed by Michael Hayes (m.hayes@elec.canterbury.ac.nz)
@@ -10,7 +10,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -19,9 +19,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Some output-actions in c4x.md need these.  */
 #include "config.h"
@@ -750,13 +749,13 @@ c4x_isr_reg_used_p (unsigned int regno)
 
   /* Only save/restore regs in leaf function that are used.  */
   if (c4x_leaf_function)
-    return regs_ever_live[regno] && fixed_regs[regno] == 0;
+    return df_regs_ever_live_p (regno) && fixed_regs[regno] == 0;
 
   /* Only save/restore regs that are used by the ISR and regs
      that are likely to be used by functions the ISR calls
      if they are not fixed.  */
   return IS_EXT_REGNO (regno)
-    || ((regs_ever_live[regno] || call_used_regs[regno]) 
+    || ((df_regs_ever_live_p (regno) || call_used_regs[regno]) 
 	&& fixed_regs[regno] == 0);
 }
 
@@ -890,9 +889,9 @@ c4x_expand_prologue (void)
       /* We need to clear the repeat mode flag if the ISR is
          going to use a RPTB instruction or uses the RC, RS, or RE
          registers.  */
-      if (regs_ever_live[RC_REGNO] 
-	  || regs_ever_live[RS_REGNO] 
-	  || regs_ever_live[RE_REGNO])
+      if (df_regs_ever_live_p (RC_REGNO) 
+	  || df_regs_ever_live_p (RS_REGNO) 
+	  || df_regs_ever_live_p (RE_REGNO))
 	{
           insn = emit_insn (gen_andn_st (GEN_INT(~0x100)));
           RTX_FRAME_RELATED_P (insn) = 1;
@@ -983,7 +982,7 @@ c4x_expand_prologue (void)
       
       for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
 	{
-	  if (regs_ever_live[regno] && ! call_used_regs[regno])
+	  if (df_regs_ever_live_p (regno) && ! call_used_regs[regno])
 	    {
 	      if (IS_FLOAT_CALL_SAVED_REGNO (regno))
 		{
@@ -1111,7 +1110,7 @@ c4x_expand_epilogue(void)
          where required.  */
       for (regno = FIRST_PSEUDO_REGISTER - 1; regno >= 0; regno--)
 	{
-	  if (regs_ever_live[regno] && ! call_used_regs[regno])
+	  if (df_regs_ever_live_p (regno) && ! call_used_regs[regno])
 	    {
 	      if (regno == AR3_REGNO && dont_pop_ar3)
 		continue;
@@ -1220,7 +1219,7 @@ c4x_null_epilogue_p (void)
       && ! get_frame_size ())
     {
       for (regno = FIRST_PSEUDO_REGISTER - 1; regno >= 0; regno--)
-	if (regs_ever_live[regno] && ! call_used_regs[regno]
+	if (df_regs_ever_live_p (regno) && ! call_used_regs[regno]
 	    && (regno != AR3_REGNO))
 	  return 1;
       return 0;

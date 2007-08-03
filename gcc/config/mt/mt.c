@@ -1,12 +1,12 @@
 /* Target definitions for the MorphoRISC1
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +15,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -156,7 +155,7 @@ mt_get_attr_type (rtx complete_insn)
 /* A helper routine for insn_dependent_p called through note_stores.  */
 
 static void
-insn_dependent_p_1 (rtx x, rtx pat ATTRIBUTE_UNUSED, void *data)
+insn_dependent_p_1 (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 {
   rtx * pinsn = (rtx *) data;
 
@@ -353,7 +352,7 @@ mt_print_operand_simple_address (FILE * file, rtx addr)
     switch (GET_CODE (addr))
       {
       case REG:
-	fprintf (file, "%s, #0", reg_names [REGNO (addr)]);
+	fprintf (file, "%s, #0", reg_names[REGNO (addr)]);
 	break;
 	
       case PLUS:
@@ -375,11 +374,11 @@ mt_print_operand_simple_address (FILE * file, rtx addr)
 	      reg = arg1, offset = arg0;
 	  else if (CONSTANT_P (arg0) && CONSTANT_P (arg1))
 	    {
-	      fprintf (file, "%s, #", reg_names [GPR_R0]);
+	      fprintf (file, "%s, #", reg_names[GPR_R0]);
 	      output_addr_const (file, addr);
 	      break;
 	    }
-	  fprintf (file, "%s, #", reg_names [REGNO (reg)]);
+	  fprintf (file, "%s, #", reg_names[REGNO (reg)]);
 	  output_addr_const (file, offset);
 	  break;
 	}
@@ -457,7 +456,7 @@ mt_print_operand (FILE * file, rtx x, int code)
   switch (GET_CODE (x))
     {
     case REG:
-      fputs (reg_names [REGNO (x)], file);
+      fputs (reg_names[REGNO (x)], file);
       break;
 
     case CONST:
@@ -884,10 +883,10 @@ mt_compute_frame_size (int size)
         }
     }
 
-  current_frame_info.save_fp = (regs_ever_live [GPR_FP]
+  current_frame_info.save_fp = (df_regs_ever_live_p (GPR_FP)
 				|| frame_pointer_needed
 				|| interrupt_handler);
-  current_frame_info.save_lr = (regs_ever_live [GPR_LINK]
+  current_frame_info.save_lr = (df_regs_ever_live_p (GPR_LINK)
 				|| profile_flag
 				|| interrupt_handler);
  

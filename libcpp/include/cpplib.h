@@ -440,6 +440,9 @@ struct cpp_options
 
   /* True means error callback should be used for diagnostics.  */
   bool client_diagnostic;
+
+  /* True disables tokenization outside of preprocessing directives. */
+  bool directives_only;
 };
 
 /* Callback for header lookup for HEADER, which is the name of a
@@ -644,6 +647,10 @@ extern struct deps *cpp_get_deps (cpp_reader *);
    too.  If there was an error opening the file, it returns NULL.  */
 extern const char *cpp_read_main_file (cpp_reader *, const char *);
 
+/* Set up built-ins with special behavior.  Use cpp_init_builtins()
+   instead unless your know what you are doing.  */
+extern void cpp_init_special_builtins (cpp_reader *);
+
 /* Set up built-ins like __FILE__.  */
 extern void cpp_init_builtins (cpp_reader *, int);
 
@@ -744,10 +751,15 @@ struct cpp_num
 #define CPP_N_MEDIUM	0x0020	/* long, double.  */
 #define CPP_N_LARGE	0x0040	/* long long, long double.  */
 
+#define CPP_N_WIDTH_MD	0xF0000	/* machine defined.  */
+#define CPP_N_MD_W	0x10000
+#define CPP_N_MD_Q	0x20000
+
 #define CPP_N_RADIX	0x0F00
 #define CPP_N_DECIMAL	0x0100
 #define CPP_N_HEX	0x0200
 #define CPP_N_OCTAL	0x0400
+#define CPP_N_BINARY	0x0800
 
 #define CPP_N_UNSIGNED	0x1000	/* Properties.  */
 #define CPP_N_IMAGINARY	0x2000

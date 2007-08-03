@@ -1,12 +1,12 @@
 /* Target Definitions for MorphoRISC1
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +15,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 extern struct rtx_def * mt_ucmpsi3_libcall;
 
@@ -414,11 +413,11 @@ enum save_direction
    && (regno) != GPR_FP		  				\
    && (regno) != GPR_SP		  				\
    && (regno) != GPR_R0		  				\
-   &&   (( regs_ever_live [regno] && ! call_used_regs [regno] ) \
+      &&   (( df_regs_ever_live_p (regno) && ! call_used_regs[regno] ) \
        /* Save ira register in an interrupt handler.  */	\
 	|| (interrupt_handler && (regno) == GPR_INTERRUPT_LINK)	\
        /* Save any register used in an interrupt handler.  */	\
-	|| (interrupt_handler && regs_ever_live [regno])	\
+	|| (interrupt_handler && df_regs_ever_live_p (regno))	\
        /* Save call clobbered registers in non-leaf interrupt	\
 	  handlers.  */						\
 	|| (interrupt_handler && call_used_regs[regno] 		\

@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -1079,6 +1078,9 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
 	  		 false);
       pp_space (buffer);
       pp_character (buffer, '=');
+      if (TREE_CODE (node) == GIMPLE_MODIFY_STMT
+	  && MOVE_NONTEMPORAL (node))
+	pp_string (buffer, "{nt}");
       pp_space (buffer);
       dump_generic_node (buffer, GENERIC_TREE_OPERAND (node, 1), spc, flags,
 	  		 false);
@@ -1246,6 +1248,7 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
     case WIDEN_MULT_EXPR:
     case MULT_EXPR:
     case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
     case MINUS_EXPR:
     case TRUNC_DIV_EXPR:
     case CEIL_DIV_EXPR:
@@ -1506,6 +1509,17 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
       dump_generic_node (buffer, EH_FILTER_FAILURE (node), spc+4, flags, true);
       newline_and_indent (buffer, spc+2);
       pp_string (buffer, "}");
+      is_expr = false;
+      break;
+
+    case CHANGE_DYNAMIC_TYPE_EXPR:
+      pp_string (buffer, "<<<change_dynamic_type (");
+      dump_generic_node (buffer, CHANGE_DYNAMIC_TYPE_NEW_TYPE (node), spc + 2,
+			 flags, false);
+      pp_string (buffer, ") ");
+      dump_generic_node (buffer, CHANGE_DYNAMIC_TYPE_LOCATION (node), spc + 2,
+			 flags, false);
+      pp_string (buffer, ")>>>");
       is_expr = false;
       break;
 
@@ -1853,9 +1867,21 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
 
     case OMP_SECTIONS:
       pp_string (buffer, "#pragma omp sections");
+      if (OMP_SECTIONS_CONTROL (node))
+	{
+	  pp_string (buffer, " <");
+	  dump_generic_node (buffer, OMP_SECTIONS_CONTROL (node), spc,
+			     flags, false);
+	  pp_string (buffer, ">");
+	}
       dump_omp_clauses (buffer, OMP_SECTIONS_CLAUSES (node), spc, flags);
       goto dump_omp_body;
 
+    case OMP_SECTIONS_SWITCH:
+      pp_string (buffer, "OMP_SECTIONS_SWITCH");
+      is_expr = false;
+      break;
+ 
     case OMP_SECTION:
       pp_string (buffer, "#pragma omp section");
       goto dump_omp_body;
@@ -1903,7 +1929,11 @@ dump_generic_node_aux (pretty_printer *buffer, tree node, int spc, int flags,
       break;
 
     case OMP_CONTINUE:
-      pp_string (buffer, "OMP_CONTINUE");
+      pp_string (buffer, "OMP_CONTINUE <");
+      dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
+      pp_string (buffer, " <- ");
+      dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);
+      pp_string (buffer, ">");
       is_expr = false;
       break;
 
@@ -2330,6 +2360,7 @@ op_prio (tree op)
 
     case WIDEN_SUM_EXPR:
     case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
     case MINUS_EXPR:
       return 12;
 
@@ -2488,6 +2519,9 @@ op_symbol_code (enum tree_code code)
 
     case VEC_RSHIFT_EXPR:
       return "v>>";
+
+    case POINTER_PLUS_EXPR:
+      return "+";
  
     case PLUS_EXPR:
       return "+";

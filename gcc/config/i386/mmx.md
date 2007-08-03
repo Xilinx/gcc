@@ -1,12 +1,12 @@
 ;; GCC machine description for MMX and 3dNOW! instructions
-;; Copyright (C) 2005
+;; Copyright (C) 2005, 2007
 ;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;; The MMX and 3dNOW! patterns are in the same file because they use
 ;; the same register file, and 3dNOW! adds a number of extensions to
@@ -64,9 +63,9 @@
 
 (define_insn "*mov<mode>_internal_rex64"
   [(set (match_operand:MMXMODEI 0 "nonimmediate_operand"
-				"=rm,r,*y,*y ,m ,*y,Y2,x,x ,m,r,x")
+				"=rm,r,*y,*y ,m ,*y,Yt,x,x ,m,r,x")
 	(match_operand:MMXMODEI 1 "vector_move_operand"
-				"Cr ,m,C ,*ym,*y,Y2,*y,C,xm,x,x,r"))]
+				"Cr ,m,C ,*ym,*y,Yt,*y,C,xm,x,x,r"))]
   "TARGET_64BIT && TARGET_MMX
    && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@
@@ -88,9 +87,9 @@
 
 (define_insn "*mov<mode>_internal"
   [(set (match_operand:MMXMODEI 0 "nonimmediate_operand"
-			"=*y,*y ,m ,*y ,*Y2,*Y2,*Y2 ,m  ,*x,*x,*x,m ,?r ,?m")
+			"=*y,*y ,m ,*y ,*Yt,*Yt,*Yt ,m  ,*x,*x,*x,m ,?r ,?m")
 	(match_operand:MMXMODEI 1 "vector_move_operand"
-			"C  ,*ym,*y,*Y2,*y ,C  ,*Y2m,*Y2,C ,*x,m ,*x,irm,r"))]
+			"C  ,*ym,*y,*Yt,*y ,C  ,*Ytm,*Yt,C ,*x,m ,*x,irm,r"))]
   "TARGET_MMX
    && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@
@@ -123,9 +122,9 @@
 
 (define_insn "*movv2sf_internal_rex64"
   [(set (match_operand:V2SF 0 "nonimmediate_operand"
-				"=rm,r,*y ,*y ,m ,*y,Y2,x,x,x,m,r,x")
+				"=rm,r,*y ,*y ,m ,*y,Yt,x,x,x,m,r,x")
         (match_operand:V2SF 1 "vector_move_operand"
-				"Cr ,m ,C ,*ym,*y,Y2,*y,C,x,m,x,x,r"))]
+				"Cr ,m ,C ,*ym,*y,Yt,*y,C,x,m,x,x,r"))]
   "TARGET_64BIT && TARGET_MMX
    && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@
@@ -148,9 +147,9 @@
 
 (define_insn "*movv2sf_internal"
   [(set (match_operand:V2SF 0 "nonimmediate_operand"
-			"=*y,*y ,m,*y ,*Y2,*x,*x,*x,m ,?r ,?m")
+			"=*y,*y ,m,*y ,*Yt,*x,*x,*x,m ,?r ,?m")
         (match_operand:V2SF 1 "vector_move_operand"
-			"C ,*ym,*y,*Y2,*y ,C ,*x,m ,*x,irm,r"))]
+			"C ,*ym,*y,*Yt,*y ,C ,*x,m ,*x,irm,r"))]
   "TARGET_MMX
    && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@
@@ -1172,9 +1171,9 @@
 })
 
 (define_insn "*vec_extractv2si_1"
-  [(set (match_operand:SI 0 "nonimmediate_operand"     "=y,Y2,Y2,x,frxy")
+  [(set (match_operand:SI 0 "nonimmediate_operand"     "=y,Yt,Yt,x,frxy")
 	(vec_select:SI
-	  (match_operand:V2SI 1 "nonimmediate_operand" " 0,0 ,Y2,0,o")
+	  (match_operand:V2SI 1 "nonimmediate_operand" " 0,0 ,Yt,0,o")
 	  (parallel [(const_int 1)])))]
   "TARGET_MMX && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@

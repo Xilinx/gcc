@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -97,7 +96,7 @@ static edge tree_try_redirect_by_replacing_jump (edge, basic_block);
 static unsigned int split_critical_edges (void);
 
 /* Various helpers.  */
-static inline bool stmt_starts_bb_p (tree, tree);
+static inline bool stmt_starts_bb_p (const_tree, const_tree);
 static int tree_verify_flow_info (void);
 static void tree_make_forwarder_block (edge);
 static void tree_cfg2vcg (FILE *);
@@ -518,6 +517,10 @@ make_edges (void)
 
 	    case OMP_SECTIONS:
 	      cur_region = new_omp_region (bb, code, cur_region);
+	      fallthru = true;
+	      break;
+
+	    case OMP_SECTIONS_SWITCH:
 	      fallthru = false;
 	      break;
 
@@ -534,31 +537,42 @@ make_edges (void)
 	      switch (cur_region->type)
 		{
 		case OMP_FOR:
-		  /* ??? Technically there should be a some sort of loopback
-		     edge here, but it goes to a block that doesn't exist yet,
-		     and without it, updating the ssa form would be a real
-		     bear.  Fortunately, we don't yet do ssa before expanding
-		     these nodes.  */
+		  /* Make the loopback edge.  */
+		  make_edge (bb, single_succ (cur_region->entry), 0);
+	      
+		  /* Create an edge from OMP_FOR to exit, which corresponds to
+		     the case that the body of the loop is not executed at
+		     all.  */
+		  make_edge (cur_region->entry, bb->next_bb, 0);
+		  fallthru = true;
 		  break;
 
 		case OMP_SECTIONS:
 		  /* Wire up the edges into and out of the nested sections.  */
-		  /* ??? Similarly wrt loopback.  */
 		  {
+		    basic_block switch_bb = single_succ (cur_region->entry);
+
 		    struct omp_region *i;
 		    for (i = cur_region->inner; i ; i = i->next)
 		      {
 			gcc_assert (i->type == OMP_SECTION);
-			make_edge (cur_region->entry, i->entry, 0);
+			make_edge (switch_bb, i->entry, 0);
 			make_edge (i->exit, bb, EDGE_FALLTHRU);
 		      }
+
+		    /* Make the loopback edge to the block with
+		       OMP_SECTIONS_SWITCH.  */
+		    make_edge (bb, switch_bb, 0);
+
+		    /* Make the edge from the switch to exit.  */
+		    make_edge (switch_bb, bb->next_bb, 0);
+		    fallthru = false;
 		  }
 		  break;
 
 		default:
 		  gcc_unreachable ();
 		}
-	      fallthru = true;
 	      break;
 
 	    default:
@@ -1275,9 +1289,10 @@ tree_merge_blocks (basic_block a, basic_block b)
       tree copy;
       bool may_replace_uses = may_propagate_copy (def, use);
 
-      /* In case we have loops to care about, do not propagate arguments of
-	 loop closed ssa phi nodes.  */
+      /* In case we maintain loop closed ssa form, do not propagate arguments
+	 of loop exit phi nodes.  */
       if (current_loops
+	  && (current_loops->state & LOOP_CLOSED_SSA)
 	  && is_gimple_reg (def)
 	  && TREE_CODE (use) == SSA_NAME
 	  && a->loop_father != b->loop_father)
@@ -2422,7 +2437,7 @@ tree_cfg2vcg (FILE *file)
 /* Return true if T represents a stmt that always transfers control.  */
 
 bool
-is_ctrl_stmt (tree t)
+is_ctrl_stmt (const_tree t)
 {
   return (TREE_CODE (t) == COND_EXPR
 	  || TREE_CODE (t) == SWITCH_EXPR
@@ -2466,7 +2481,7 @@ is_ctrl_altering_stmt (tree t)
 /* Return true if T is a computed goto.  */
 
 bool
-computed_goto_p (tree t)
+computed_goto_p (const_tree t)
 {
   return (TREE_CODE (t) == GOTO_EXPR
 	  && TREE_CODE (GOTO_DESTINATION (t)) != LABEL_DECL);
@@ -2476,7 +2491,7 @@ computed_goto_p (tree t)
 /* Return true if T is a simple local goto.  */
 
 bool
-simple_goto_p (tree t)
+simple_goto_p (const_tree t)
 {
   return (TREE_CODE (t) == GOTO_EXPR
 	  && TREE_CODE (GOTO_DESTINATION (t)) == LABEL_DECL);
@@ -2487,7 +2502,7 @@ simple_goto_p (tree t)
    Transfers of control flow associated with EH are excluded.  */
 
 bool
-tree_can_make_abnormal_goto (tree t)
+tree_can_make_abnormal_goto (const_tree t)
 {
   if (computed_goto_p (t))
     return true;
@@ -2508,7 +2523,7 @@ tree_can_make_abnormal_goto (tree t)
    unnecessary basic blocks that only contain a single label.  */
 
 static inline bool
-stmt_starts_bb_p (tree t, tree prev_t)
+stmt_starts_bb_p (const_tree t, const_tree prev_t)
 {
   if (t == NULL_TREE)
     return false;
@@ -3201,9 +3216,9 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 
     case COND_EXPR:
       x = COND_EXPR_COND (t);
-      if (TREE_CODE (TREE_TYPE (x)) != BOOLEAN_TYPE)
+      if (!INTEGRAL_TYPE_P (TREE_TYPE (x)))
 	{
-	  error ("non-boolean used in condition");
+	  error ("non-integral used in condition");
 	  return x;
 	}
       if (!is_gimple_condexpr (x))
@@ -3265,7 +3280,36 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	}
       *walk_subtrees = 0;
       break;
+    case PLUS_EXPR:
+    case MINUS_EXPR:
+      /* PLUS_EXPR and MINUS_EXPR don't work on pointers, they should be done using
+	 POINTER_PLUS_EXPR. */
+      if (POINTER_TYPE_P (TREE_TYPE (t)))
+	{
+	  error ("invalid operand to plus/minus, type is a pointer");
+	  return t;
+	}
+      CHECK_OP (0, "invalid operand to binary operator");
+      CHECK_OP (1, "invalid operand to binary operator");
+      break;
 
+    case POINTER_PLUS_EXPR:
+      /* Check to make sure the first operand is a pointer or reference type. */
+      if (!POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (t, 0))))
+	{
+	  error ("invalid operand to pointer plus, first operand is not a pointer");
+	  return t;
+	}
+      /* Check to make sure the second operand is an integer with type of
+	 sizetype.  */
+      if (!useless_type_conversion_p (sizetype,
+				     TREE_TYPE (TREE_OPERAND (t, 1))))
+	{
+	  error ("invalid operand to pointer plus, second operand is not an "
+		 "integer with type of sizetype.");
+	  return t;
+	}
+      /* FALLTHROUGH */
     case LT_EXPR:
     case LE_EXPR:
     case GT_EXPR:
@@ -3280,8 +3324,6 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
     case UNGE_EXPR:
     case UNEQ_EXPR:
     case LTGT_EXPR:
-    case PLUS_EXPR:
-    case MINUS_EXPR:
     case MULT_EXPR:
     case TRUNC_DIV_EXPR:
     case CEIL_DIV_EXPR:
@@ -3319,6 +3361,710 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 #undef CHECK_OP
 }
 
+/* Verifies if EXPR is a valid GIMPLE unary expression.  Returns true
+   if there is an error, otherwise false.  */
+
+static bool
+verify_gimple_unary_expr (tree expr)
+{
+  tree op = TREE_OPERAND (expr, 0);
+  tree type = TREE_TYPE (expr);
+
+  if (!is_gimple_val (op))
+    {
+      error ("invalid operand in unary expression");
+      return true;
+    }
+
+  /* For general unary expressions we have the operations type
+     as the effective type the operation is carried out on.  So all
+     we need to require is that the operand is trivially convertible
+     to that type.  */
+  if (!useless_type_conversion_p (type, TREE_TYPE (op)))
+    {
+      error ("type mismatch in unary expression");
+      debug_generic_expr (type);
+      debug_generic_expr (TREE_TYPE (op));
+      return true;
+    }
+
+  return false;
+}
+
+/* Verifies if EXPR is a valid GIMPLE binary expression.  Returns true
+   if there is an error, otherwise false.  */
+
+static bool
+verify_gimple_binary_expr (tree expr)
+{
+  tree op0 = TREE_OPERAND (expr, 0);
+  tree op1 = TREE_OPERAND (expr, 1);
+  tree type = TREE_TYPE (expr);
+
+  if (!is_gimple_val (op0) || !is_gimple_val (op1))
+    {
+      error ("invalid operands in binary expression");
+      return true;
+    }
+
+  /* For general binary expressions we have the operations type
+     as the effective type the operation is carried out on.  So all
+     we need to require is that both operands are trivially convertible
+     to that type.  */
+  if (!useless_type_conversion_p (type, TREE_TYPE (op0))
+      || !useless_type_conversion_p (type, TREE_TYPE (op1)))
+    {
+      error ("type mismatch in binary expression");
+      debug_generic_stmt (type);
+      debug_generic_stmt (TREE_TYPE (op0));
+      debug_generic_stmt (TREE_TYPE (op1));
+      return true;
+    }
+
+  return false;
+}
+
+/* Verify if EXPR is either a GIMPLE ID or a GIMPLE indirect reference.
+   Returns true if there is an error, otherwise false.  */
+
+static bool
+verify_gimple_min_lval (tree expr)
+{
+  tree op;
+
+  if (is_gimple_id (expr))
+    return false;
+
+  if (TREE_CODE (expr) != INDIRECT_REF
+      && TREE_CODE (expr) != ALIGN_INDIRECT_REF
+      && TREE_CODE (expr) != MISALIGNED_INDIRECT_REF)
+    {
+      error ("invalid expression for min lvalue");
+      return true;
+    }
+
+  op = TREE_OPERAND (expr, 0);
+  if (!is_gimple_val (op))
+    {
+      error ("invalid operand in indirect reference");
+      debug_generic_stmt (op);
+      return true;
+    }
+  if (!useless_type_conversion_p (TREE_TYPE (expr),
+				  TREE_TYPE (TREE_TYPE (op))))
+    {
+      error ("type mismatch in indirect reference");
+      debug_generic_stmt (TREE_TYPE (expr));
+      debug_generic_stmt (TREE_TYPE (TREE_TYPE (op)));
+      return true;
+    }
+
+  return false;
+}
+
+/* Verify if EXPR is a valid GIMPLE reference expression.  Returns true
+   if there is an error, otherwise false.  */
+
+static bool
+verify_gimple_reference (tree expr)
+{
+  while (handled_component_p (expr))
+    {
+      tree op = TREE_OPERAND (expr, 0);
+
+      if (TREE_CODE (expr) == ARRAY_REF
+	  || TREE_CODE (expr) == ARRAY_RANGE_REF)
+	{
+	  if (!is_gimple_val (TREE_OPERAND (expr, 1))
+	      || (TREE_OPERAND (expr, 2)
+		  && !is_gimple_val (TREE_OPERAND (expr, 2)))
+	      || (TREE_OPERAND (expr, 3)
+		  && !is_gimple_val (TREE_OPERAND (expr, 3))))
+	    {
+	      error ("invalid operands to array reference");
+	      debug_generic_stmt (expr);
+	      return true;
+	    }
+	}
+
+      /* Verify if the reference array element types are compatible.  */
+      if (TREE_CODE (expr) == ARRAY_REF
+	  && !useless_type_conversion_p (TREE_TYPE (expr),
+					 TREE_TYPE (TREE_TYPE (op))))
+	{
+	  error ("type mismatch in array reference");
+	  debug_generic_stmt (TREE_TYPE (expr));
+	  debug_generic_stmt (TREE_TYPE (TREE_TYPE (op)));
+	  return true;
+	}
+      if (TREE_CODE (expr) == ARRAY_RANGE_REF
+	  && !useless_type_conversion_p (TREE_TYPE (TREE_TYPE (expr)),
+					 TREE_TYPE (TREE_TYPE (op))))
+	{
+	  error ("type mismatch in array range reference");
+	  debug_generic_stmt (TREE_TYPE (TREE_TYPE (expr)));
+	  debug_generic_stmt (TREE_TYPE (TREE_TYPE (op)));
+	  return true;
+	}
+
+      if ((TREE_CODE (expr) == REALPART_EXPR
+	   || TREE_CODE (expr) == IMAGPART_EXPR)
+	  && !useless_type_conversion_p (TREE_TYPE (expr),
+					 TREE_TYPE (TREE_TYPE (op))))
+	{
+	  error ("type mismatch in real/imagpart reference");
+	  debug_generic_stmt (TREE_TYPE (expr));
+	  debug_generic_stmt (TREE_TYPE (TREE_TYPE (op)));
+	  return true;
+	}
+
+      if (TREE_CODE (expr) == COMPONENT_REF
+	  && !useless_type_conversion_p (TREE_TYPE (expr),
+					 TREE_TYPE (TREE_OPERAND (expr, 1))))
+	{
+	  error ("type mismatch in component reference");
+	  debug_generic_stmt (TREE_TYPE (expr));
+	  debug_generic_stmt (TREE_TYPE (TREE_OPERAND (expr, 1)));
+	  return true;
+	}
+
+      /* For VIEW_CONVERT_EXPRs which are allowed here, too, there
+	 is nothing to verify.  Gross mismatches at most invoke
+	 undefined behavior.  */
+
+      expr = op;
+    }
+
+  return verify_gimple_min_lval (expr);
+}
+
+/* Verify the GIMPLE expression EXPR.  Returns true if there is an
+   error, otherwise false.  */
+
+static bool
+verify_gimple_expr (tree expr)
+{
+  tree type = TREE_TYPE (expr);
+
+  if (is_gimple_val (expr))
+    return false;
+
+  /* Special codes we cannot handle via their class.  */
+  switch (TREE_CODE (expr))
+    {
+    case NOP_EXPR:
+    case CONVERT_EXPR:
+      {
+	tree op = TREE_OPERAND (expr, 0);
+	if (!is_gimple_val (op))
+	  {
+	    error ("invalid operand in conversion");
+	    return true;
+	  }
+
+	/* Allow conversions between integral types.  */
+        if (INTEGRAL_TYPE_P (type) == INTEGRAL_TYPE_P (TREE_TYPE (op)))
+	  return false;
+
+	/* Allow conversions between integral types and pointers only if
+	   there is no sign or zero extension involved.  */
+	if (((POINTER_TYPE_P (type) && INTEGRAL_TYPE_P (TREE_TYPE (op)))
+	     || (POINTER_TYPE_P (TREE_TYPE (op)) && INTEGRAL_TYPE_P (type)))
+	    && TYPE_PRECISION (type) == TYPE_PRECISION (TREE_TYPE (op)))
+	  return false;
+
+	/* Allow conversion from integer to offset type and vice versa.  */
+	if ((TREE_CODE (type) == OFFSET_TYPE
+	     && TREE_CODE (TREE_TYPE (op)) == INTEGER_TYPE)
+	    || (TREE_CODE (type) == INTEGER_TYPE
+		&& TREE_CODE (TREE_TYPE (op)) == OFFSET_TYPE))
+	  return false;
+
+	/* Otherwise assert we are converting between types of the
+	   same kind.  */
+	if (TREE_CODE (type) != TREE_CODE (TREE_TYPE (op)))
+	  {
+	    error ("invalid types in nop conversion");
+	    debug_generic_expr (type);
+	    debug_generic_expr (TREE_TYPE (op));
+	    return true;
+	  }
+
+	return false;
+      }
+
+    case FLOAT_EXPR:
+      {
+	tree op = TREE_OPERAND (expr, 0);
+	if (!is_gimple_val (op))
+	  {
+	    error ("invalid operand in int to float conversion");
+	    return true;
+	  }
+	if (!INTEGRAL_TYPE_P (TREE_TYPE (op))
+	    || !SCALAR_FLOAT_TYPE_P (type))
+	  {
+	    error ("invalid types in conversion to floating point");
+	    debug_generic_expr (type);
+	    debug_generic_expr (TREE_TYPE (op));
+	    return true;
+	  }
+        return false;
+      }
+
+    case FIX_TRUNC_EXPR:
+      {
+	tree op = TREE_OPERAND (expr, 0);
+	if (!is_gimple_val (op))
+	  {
+	    error ("invalid operand in float to int conversion");
+	    return true;
+	  }
+	if (!INTEGRAL_TYPE_P (type)
+	    || !SCALAR_FLOAT_TYPE_P (TREE_TYPE (op)))
+	  {
+	    error ("invalid types in conversion to integer");
+	    debug_generic_expr (type);
+	    debug_generic_expr (TREE_TYPE (op));
+	    return true;
+	  }
+        return false;
+      }
+
+    case COMPLEX_EXPR:
+      {
+	tree op0 = TREE_OPERAND (expr, 0);
+	tree op1 = TREE_OPERAND (expr, 1);
+	if (!is_gimple_val (op0) || !is_gimple_val (op1))
+	  {
+	    error ("invalid operands in complex expression");
+	    return true;
+	  }
+	if (!TREE_CODE (type) == COMPLEX_TYPE
+	    || !(TREE_CODE (TREE_TYPE (op0)) == INTEGER_TYPE
+	         || SCALAR_FLOAT_TYPE_P (TREE_TYPE (op0)))
+	    || !(TREE_CODE (TREE_TYPE (op1)) == INTEGER_TYPE
+	         || SCALAR_FLOAT_TYPE_P (TREE_TYPE (op1)))
+	    || !useless_type_conversion_p (TREE_TYPE (type),
+					   TREE_TYPE (op0))
+	    || !useless_type_conversion_p (TREE_TYPE (type),
+					   TREE_TYPE (op1)))
+	  {
+	    error ("type mismatch in complex expression");
+	    debug_generic_stmt (TREE_TYPE (expr));
+	    debug_generic_stmt (TREE_TYPE (op0));
+	    debug_generic_stmt (TREE_TYPE (op1));
+	    return true;
+	  }
+	return false;
+      }
+
+    case CONSTRUCTOR:
+      {
+	/* This is used like COMPLEX_EXPR but for vectors.  */
+	if (TREE_CODE (type) != VECTOR_TYPE)
+	  {
+	    error ("constructor not allowed for non-vector types");
+	    debug_generic_stmt (type);
+	    return true;
+	  }
+	/* FIXME: verify constructor arguments.  */
+	return false;
+      }
+
+    case LSHIFT_EXPR:
+    case RSHIFT_EXPR:
+    case LROTATE_EXPR:
+    case RROTATE_EXPR:
+      {
+	tree op0 = TREE_OPERAND (expr, 0);
+	tree op1 = TREE_OPERAND (expr, 1);
+	if (!is_gimple_val (op0) || !is_gimple_val (op1))
+	  {
+	    error ("invalid operands in shift expression");
+	    return true;
+	  }
+	if (!TREE_CODE (TREE_TYPE (op1)) == INTEGER_TYPE
+	    || !useless_type_conversion_p (type, TREE_TYPE (op0)))
+	  {
+	    error ("type mismatch in shift expression");
+	    debug_generic_stmt (TREE_TYPE (expr));
+	    debug_generic_stmt (TREE_TYPE (op0));
+	    debug_generic_stmt (TREE_TYPE (op1));
+	    return true;
+	  }
+	return false;
+      }
+
+    case PLUS_EXPR:
+    case MINUS_EXPR:
+      {
+	tree op0 = TREE_OPERAND (expr, 0);
+	tree op1 = TREE_OPERAND (expr, 1);
+	if (POINTER_TYPE_P (type)
+	    || POINTER_TYPE_P (TREE_TYPE (op0))
+	    || POINTER_TYPE_P (TREE_TYPE (op1)))
+	  {
+	    error ("invalid (pointer) operands to plus/minus");
+	    return true;
+	  }
+	/* Continue with generic binary expression handling.  */
+	break;
+      }
+
+    case POINTER_PLUS_EXPR:
+      {
+	tree op0 = TREE_OPERAND (expr, 0);
+	tree op1 = TREE_OPERAND (expr, 1);
+      	if (!is_gimple_val (op0) || !is_gimple_val (op1))
+	  {
+	    error ("invalid operands in pointer plus expression");
+	    return true;
+	  }
+	if (!POINTER_TYPE_P (TREE_TYPE (op0))
+	    || TREE_CODE (TREE_TYPE (op1)) != INTEGER_TYPE
+	    || !useless_type_conversion_p (type, TREE_TYPE (op0))
+	    || !useless_type_conversion_p (sizetype, TREE_TYPE (op1)))
+	  {
+	    error ("type mismatch in pointer plus expression");
+	    debug_generic_stmt (type);
+	    debug_generic_stmt (TREE_TYPE (op0));
+	    debug_generic_stmt (TREE_TYPE (op1));
+	    return true;
+	  }
+	return false;
+      }
+
+    case COND_EXPR:
+      {
+	tree op0 = TREE_OPERAND (expr, 0);
+	tree op1 = TREE_OPERAND (expr, 1);
+	tree op2 = TREE_OPERAND (expr, 2);
+	if ((!is_gimple_val (op1)
+	     && TREE_CODE (TREE_TYPE (op1)) != VOID_TYPE)
+	    || (!is_gimple_val (op2)
+		&& TREE_CODE (TREE_TYPE (op2)) != VOID_TYPE))
+	  {
+	    error ("invalid operands in conditional expression");
+	    return true;
+	  }
+	if (!INTEGRAL_TYPE_P (TREE_TYPE (op0))
+	    || (TREE_CODE (TREE_TYPE (op1)) != VOID_TYPE
+	        && !useless_type_conversion_p (type, TREE_TYPE (op1)))
+	    || (TREE_CODE (TREE_TYPE (op2)) != VOID_TYPE
+	        && !useless_type_conversion_p (type, TREE_TYPE (op2))))
+	  {
+	    error ("type mismatch in conditional expression");
+	    debug_generic_stmt (type);
+	    debug_generic_stmt (TREE_TYPE (op0));
+	    debug_generic_stmt (TREE_TYPE (op1));
+	    debug_generic_stmt (TREE_TYPE (op2));
+	    return true;
+	  }
+	return verify_gimple_expr (op0);
+      }
+
+    case ADDR_EXPR:
+      {
+	tree op = TREE_OPERAND (expr, 0);
+	tree ptr_type;
+	if (!is_gimple_addressable (op))
+	  {
+	    error ("invalid operand in unary expression");
+	    return true;
+	  }
+	ptr_type = build_pointer_type (TREE_TYPE (op));
+	if (!useless_type_conversion_p (type, ptr_type)
+	    /* FIXME: a longstanding wart, &a == &a[0].  */
+	    && (TREE_CODE (TREE_TYPE (op)) != ARRAY_TYPE
+		|| !useless_type_conversion_p (type,
+			build_pointer_type (TREE_TYPE (TREE_TYPE (op))))))
+	  {
+	    error ("type mismatch in address expression");
+	    debug_generic_stmt (TREE_TYPE (expr));
+	    debug_generic_stmt (ptr_type);
+	    return true;
+	  }
+
+	return verify_gimple_reference (op);
+      }
+
+    case TRUTH_ANDIF_EXPR:
+    case TRUTH_ORIF_EXPR:
+    case TRUTH_AND_EXPR:
+    case TRUTH_OR_EXPR:
+    case TRUTH_XOR_EXPR:
+      {
+	tree op0 = TREE_OPERAND (expr, 0);
+	tree op1 = TREE_OPERAND (expr, 1);
+
+      	if (!is_gimple_val (op0) || !is_gimple_val (op1))
+	  {
+	    error ("invalid operands in truth expression");
+	    return true;
+	  }
+
+	/* We allow any kind of integral typed argument and result.  */
+	if (!INTEGRAL_TYPE_P (TREE_TYPE (op0))
+	    || !INTEGRAL_TYPE_P (TREE_TYPE (op1))
+	    || !INTEGRAL_TYPE_P (type))
+	  {
+	    error ("type mismatch in binary truth expression");
+	    debug_generic_stmt (type);
+	    debug_generic_stmt (TREE_TYPE (op0));
+	    debug_generic_stmt (TREE_TYPE (op1));
+	    return true;
+	  }
+
+	return false;
+      }
+
+    case TRUTH_NOT_EXPR:
+      {
+	tree op = TREE_OPERAND (expr, 0);
+
+	if (!is_gimple_val (op))
+	  {
+	    error ("invalid operand in unary not");
+	    return true;
+	  }
+
+	/* For TRUTH_NOT_EXPR we can have any kind of integral
+	   typed arguments and results.  */
+	if (!INTEGRAL_TYPE_P (TREE_TYPE (op))
+	    || !INTEGRAL_TYPE_P (type))
+	  {
+	    error ("type mismatch in not expression");
+	    debug_generic_expr (TREE_TYPE (expr));
+	    debug_generic_expr (TREE_TYPE (op));
+	    return true;
+	  }
+
+	return false;
+      }
+
+    case CALL_EXPR:
+      /* FIXME.  The C frontend passes unpromoted arguments in case it
+	 didn't see a function declaration before the call.  */
+      return false;
+
+    default:;
+    }
+
+  /* Generic handling via classes.  */
+  switch (TREE_CODE_CLASS (TREE_CODE (expr)))
+    {
+    case tcc_unary:
+      return verify_gimple_unary_expr (expr);
+
+    case tcc_binary:
+      return verify_gimple_binary_expr (expr);
+
+    case tcc_reference:
+      return verify_gimple_reference (expr);
+
+    case tcc_comparison:
+      {
+	tree op0 = TREE_OPERAND (expr, 0);
+	tree op1 = TREE_OPERAND (expr, 1);
+	if (!is_gimple_val (op0) || !is_gimple_val (op1))
+	  {
+	    error ("invalid operands in comparison expression");
+	    return true;
+	  }
+	/* For comparisons we do not have the operations type as the
+	   effective type the comparison is carried out in.  Instead
+	   we require that either the first operand is trivially
+	   convertible into the second, or the other way around.
+	   The resulting type of a comparison may be any integral type.
+	   Because we special-case pointers to void we allow
+	   comparisons of pointers with the same mode as well.  */
+	if ((!useless_type_conversion_p (TREE_TYPE (op0), TREE_TYPE (op1))
+	     && !useless_type_conversion_p (TREE_TYPE (op1), TREE_TYPE (op0))
+	     && (!POINTER_TYPE_P (TREE_TYPE (op0))
+		 || !POINTER_TYPE_P (TREE_TYPE (op1))
+		 || TYPE_MODE (TREE_TYPE (op0)) != TYPE_MODE (TREE_TYPE (op1))))
+	    || !INTEGRAL_TYPE_P (type))
+	  {
+	    error ("type mismatch in comparison expression");
+	    debug_generic_stmt (TREE_TYPE (expr));
+	    debug_generic_stmt (TREE_TYPE (op0));
+	    debug_generic_stmt (TREE_TYPE (op1));
+	    return true;
+	  }
+        break;
+      }
+
+    default:
+      gcc_unreachable ();
+    }
+
+  return false;
+}
+
+/* Verify the GIMPLE assignment statement STMT.  Returns true if there
+   is an error, otherwise false.  */
+
+static bool
+verify_gimple_modify_stmt (tree stmt)
+{
+  tree lhs = GIMPLE_STMT_OPERAND (stmt, 0);
+  tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
+
+  gcc_assert (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT);
+
+  if (!useless_type_conversion_p (TREE_TYPE (lhs),
+				  TREE_TYPE (rhs)))
+    {
+      error ("non-trivial conversion at assignment");
+      debug_generic_expr (TREE_TYPE (lhs));
+      debug_generic_expr (TREE_TYPE (rhs));
+      return true;
+    }
+
+  /* Loads/stores from/to a variable are ok.  */
+  if ((is_gimple_val (lhs)
+       && is_gimple_variable (rhs))
+      || (is_gimple_val (rhs)
+	  && is_gimple_variable (lhs)))
+    return false;
+
+  /* Aggregate copies are ok.  */
+  if (!is_gimple_reg_type (TREE_TYPE (lhs))
+      && !is_gimple_reg_type (TREE_TYPE (rhs)))
+    return false;
+
+  /* We might get 'loads' from a parameter which is not a gimple value.  */
+  if (TREE_CODE (rhs) == PARM_DECL)
+    return verify_gimple_expr (lhs);
+
+  if (!is_gimple_variable (lhs)
+      && verify_gimple_expr (lhs))
+    return true;
+
+  if (!is_gimple_variable (rhs)
+      && verify_gimple_expr (rhs))
+    return true;
+
+  return false;
+}
+
+/* Verify the GIMPLE statement STMT.  Returns true if there is an
+   error, otherwise false.  */
+
+static bool
+verify_gimple_stmt (tree stmt)
+{
+  if (!is_gimple_stmt (stmt))
+    {
+      error ("is not a valid GIMPLE statement");
+      return true;
+    }
+
+  if (OMP_DIRECTIVE_P (stmt))
+    {
+      /* OpenMP directives are validated by the FE and never operated
+	 on by the optimizers.  Furthermore, OMP_FOR may contain
+	 non-gimple expressions when the main index variable has had
+	 its address taken.  This does not affect the loop itself
+	 because the header of an OMP_FOR is merely used to determine
+	 how to setup the parallel iteration.  */
+      return false;
+    }
+
+  switch (TREE_CODE (stmt))
+    {
+    case GIMPLE_MODIFY_STMT:
+      return verify_gimple_modify_stmt (stmt);
+
+    case GOTO_EXPR:
+    case LABEL_EXPR:
+      return false;
+
+    case SWITCH_EXPR:
+      if (!is_gimple_val (TREE_OPERAND (stmt, 0)))
+	{
+	  error ("invalid operand to switch statement");
+	  debug_generic_expr (TREE_OPERAND (stmt, 0));
+	}
+      return false;
+
+    case RETURN_EXPR:
+      {
+	tree op = TREE_OPERAND (stmt, 0);
+
+	if (TREE_CODE (TREE_TYPE (stmt)) != VOID_TYPE)
+	  {
+	    error ("type error in return expression");
+	    return true;
+	  }
+
+	if (op == NULL_TREE
+	    || TREE_CODE (op) == RESULT_DECL)
+	  return false;
+
+	return verify_gimple_modify_stmt (op);
+      }
+
+    case CALL_EXPR:
+    case COND_EXPR:
+      return verify_gimple_expr (stmt);
+
+    case NOP_EXPR:
+    case CHANGE_DYNAMIC_TYPE_EXPR:
+    case ASM_EXPR:
+      return false;
+
+    default:
+      gcc_unreachable ();
+    }
+}
+
+/* Verify the GIMPLE statements inside the statement list STMTS.  */
+
+void
+verify_gimple_1 (tree stmts)
+{
+  tree_stmt_iterator tsi;
+
+  for (tsi = tsi_start (stmts); !tsi_end_p (tsi); tsi_next (&tsi))
+    {
+      tree stmt = tsi_stmt (tsi);
+
+      switch (TREE_CODE (stmt))
+	{
+	case BIND_EXPR:
+	  verify_gimple_1 (BIND_EXPR_BODY (stmt));
+	  break;
+
+	case TRY_CATCH_EXPR:
+	case TRY_FINALLY_EXPR:
+	  verify_gimple_1 (TREE_OPERAND (stmt, 0));
+	  verify_gimple_1 (TREE_OPERAND (stmt, 1));
+	  break;
+
+	case CATCH_EXPR:
+	  verify_gimple_1 (CATCH_BODY (stmt));
+	  break;
+
+	case EH_FILTER_EXPR:
+	  verify_gimple_1 (EH_FILTER_FAILURE (stmt));
+	  break;
+
+	default:
+	  if (verify_gimple_stmt (stmt))
+	    debug_generic_expr (stmt);
+	}
+    }
+}
+
+/* Verify the GIMPLE statements inside the current function.  */
+
+void
+verify_gimple (void)
+{
+  verify_gimple_1 (BIND_EXPR_BODY (DECL_SAVED_TREE (cfun->decl)));
+}
 
 /* Verify STMT, return true if STMT is not in GIMPLE form.
    TODO: Implement type checking.  */
@@ -4074,6 +4820,13 @@ tree_redirect_edge_and_branch (edge e, basic_block dest)
     case RETURN_EXPR:
       bsi_remove (&bsi, true);
       e->flags |= EDGE_FALLTHRU;
+      break;
+
+    case OMP_RETURN:
+    case OMP_CONTINUE:
+    case OMP_SECTIONS_SWITCH:
+    case OMP_FOR:
+      /* The edges from OMP constructs can be simply redirected.  */
       break;
 
     default:
@@ -5544,7 +6297,7 @@ tree_purge_dead_eh_edges (basic_block bb)
 }
 
 bool
-tree_purge_all_dead_eh_edges (bitmap blocks)
+tree_purge_all_dead_eh_edges (const_bitmap blocks)
 {
   bool changed = false;
   unsigned i;

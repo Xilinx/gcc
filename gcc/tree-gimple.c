@@ -1,5 +1,6 @@
 /* Functions to analyze and validate GIMPLE trees.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
    Rewritten by Jason Merrill <jason@redhat.com>
 
@@ -7,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -165,11 +165,11 @@ is_gimple_addressable (tree t)
 	  || INDIRECT_REF_P (t));
 }
 
-/* Return true if T is function invariant.  Or rather a restricted
+/* Return true if T is a GIMPLE minimal invariant.  It's a restricted
    form of function invariant.  */
 
 bool
-is_gimple_min_invariant (tree t)
+is_gimple_min_invariant (const_tree t)
 {
   switch (TREE_CODE (t))
     {
@@ -222,6 +222,7 @@ is_gimple_stmt (tree t)
     case TRY_FINALLY_EXPR:
     case EH_FILTER_EXPR:
     case CATCH_EXPR:
+    case CHANGE_DYNAMIC_TYPE_EXPR:
     case ASM_EXPR:
     case RESX_EXPR:
     case PHI_NODE:
@@ -229,6 +230,7 @@ is_gimple_stmt (tree t)
     case OMP_PARALLEL:
     case OMP_FOR:
     case OMP_SECTIONS:
+    case OMP_SECTIONS_SWITCH:
     case OMP_SECTION:
     case OMP_SINGLE:
     case OMP_MASTER:

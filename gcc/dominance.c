@@ -1,12 +1,12 @@
 /* Calculate (post)dominators in slightly super-linear time.
-   Copyright (C) 2000, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Michael Matz (matz@ifh.de).
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +15,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 /* This file implements the well known algorithm from Lengauer and Tarjan
    to compute the dominators in a control flow graph.  A basic block D is said
@@ -47,9 +46,6 @@
 #include "vecprim.h"
 #include "pointer-set.h"
 #include "graphds.h"
-
-/* Whether the dominators and the postdominators are available.  */
-static enum dom_state dom_computed[2];
 
 /* We name our nodes with integers, beginning with 1.  Zero is reserved for
    'undefined' or 'end of list'.  The name of each node is given by the dfs
@@ -124,9 +120,7 @@ static TBB eval (struct dom_info *, TBB);
 static void link_roots (struct dom_info *, TBB, TBB);
 static void calc_idoms (struct dom_info *, bool);
 void debug_dominance_info (enum cdi_direction);
-
-/* Keeps track of the*/
-static unsigned n_bbs_in_dom_tree[2];
+void debug_dominance_tree (enum cdi_direction, basic_block);
 
 /* Helper macro for allocating and initializing an array,
    for aesthetic reasons.  */
@@ -151,6 +145,7 @@ static unsigned n_bbs_in_dom_tree[2];
 static void
 init_dom_info (struct dom_info *di, enum cdi_direction dir)
 {
+  /* We need memory for n_basic_blocks nodes.  */
   unsigned int num = n_basic_blocks;
   init_ar (di->dfs_parent, TBB, num, 0);
   init_ar (di->path_min, TBB, num, i);
@@ -970,37 +965,35 @@ void
 verify_dominators (enum cdi_direction dir)
 {
   int err = 0;
-  basic_block *old_dom = XNEWVEC (basic_block, last_basic_block);
-  basic_block bb, imm_bb;
+  basic_block bb, imm_bb, imm_bb_correct;
+  struct dom_info di;
+  bool reverse = (dir == CDI_POST_DOMINATORS) ? true : false;
 
   gcc_assert (dom_info_available_p (dir));
 
-  FOR_EACH_BB (bb)
-    {
-      old_dom[bb->index] = get_immediate_dominator (dir, bb);
-
-      if (!old_dom[bb->index])
-	{
-	  error ("dominator of %d status unknown", bb->index);
-	  err = 1;
-	}
-    }
-
-  free_dominance_info (dir);
-  calculate_dominance_info (dir);
+  init_dom_info (&di, dir);
+  calc_dfs_tree (&di, reverse);
+  calc_idoms (&di, reverse);
 
   FOR_EACH_BB (bb)
     {
       imm_bb = get_immediate_dominator (dir, bb);
-      if (old_dom[bb->index] != imm_bb)
+      if (!imm_bb)
+	{
+	  error ("dominator of %d status unknown", bb->index);
+	  err = 1;
+	}
+
+      imm_bb_correct = di.dfs_to_bb[di.dom[di.dfs_order[bb->index]]];
+      if (imm_bb != imm_bb_correct)
 	{
 	  error ("dominator of %d should be %d, not %d",
-		 bb->index, imm_bb->index, old_dom[bb->index]->index);
+		 bb->index, imm_bb_correct->index, imm_bb->index);
 	  err = 1;
 	}
     }
 
-  free (old_dom);
+  free_dom_info (&di);
   gcc_assert (!err);
 }
 
@@ -1242,9 +1235,9 @@ iterate_fix_dominators (enum cdi_direction dir, VEC (basic_block, heap) *bbs,
 
      Then, we need to establish the dominance relation among the basic blocks
      in BBS.  We split the dominance tree by removing the immediate dominator
-     edges from BBS, creating a forrest F.  We form a graph G whose vertices
+     edges from BBS, creating a forest F.  We form a graph G whose vertices
      are BBS and ENTRY and X -> Y is an edge of G if there exists an edge
-     X' -> Y in CFG such that X' belongs to the tree of the dominance forrest
+     X' -> Y in CFG such that X' belongs to the tree of the dominance forest
      whose root is X.  We then determine dominance tree of G.  Note that
      for X, Y in BBS, X dominates Y in CFG if and only if X dominates Y in G.
      In this step, we can use arbitrary algorithm to determine dominators.
@@ -1452,4 +1445,42 @@ debug_dominance_info (enum cdi_direction dir)
   FOR_EACH_BB (bb)
     if ((bb2 = get_immediate_dominator (dir, bb)))
       fprintf (stderr, "%i %i\n", bb->index, bb2->index);
+}
+
+/* Prints to stderr representation of the dominance tree (for direction DIR)
+   rooted in ROOT, indented by INDENT tabulators.  If INDENT_FIRST is false,
+   the first line of the output is not indented.  */
+
+static void
+debug_dominance_tree_1 (enum cdi_direction dir, basic_block root,
+			unsigned indent, bool indent_first)
+{
+  basic_block son;
+  unsigned i;
+  bool first = true;
+
+  if (indent_first)
+    for (i = 0; i < indent; i++)
+      fprintf (stderr, "\t");
+  fprintf (stderr, "%d\t", root->index);
+
+  for (son = first_dom_son (dir, root);
+       son;
+       son = next_dom_son (dir, son))
+    {
+      debug_dominance_tree_1 (dir, son, indent + 1, !first);
+      first = false;
+    }
+
+  if (first)
+    fprintf (stderr, "\n");
+}
+
+/* Prints to stderr representation of the dominance tree (for direction DIR)
+   rooted in ROOT.  */
+
+void
+debug_dominance_tree (enum cdi_direction dir, basic_block root)
+{
+  debug_dominance_tree_1 (dir, root, 0, false);
 }

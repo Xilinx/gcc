@@ -1,13 +1,13 @@
 /* Definitions of target machine for GCC for IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation,
-   Inc.
+   2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* The purpose of this file is to define the characteristics of the i386,
    independent of assembler syntax or operating system.
@@ -124,6 +123,8 @@ struct processor_costs {
 				   in SImode, DImode and TImode*/
   const int mmxsse_to_integer;	/* cost of moving mmxsse register to
 				   integer and vice versa.  */
+  const int l1_cache_size;	/* size of l1 cache, in kilobytes.  */
+  const int l2_cache_size;	/* size of l2 cache, in kilobytes.  */
   const int prefetch_block;	/* bytes moved to cache for prefetch.  */
   const int simultaneous_prefetches; /* number of parallel prefetch
 				   operations.  */
@@ -365,6 +366,7 @@ extern int x86_prefetch_sse;
 #define TARGET_POPCNT		x86_popcnt
 #define TARGET_PREFETCH_SSE	x86_prefetch_sse
 #define TARGET_SAHF		x86_sahf
+#define TARGET_RECIP		x86_recip
 
 #define ASSEMBLER_DIALECT	(ix86_asm_dialect)
 
@@ -385,6 +387,11 @@ extern int ix86_isa_flags;
 #ifndef TARGET_TLS_DIRECT_SEG_REFS_DEFAULT
 #define TARGET_TLS_DIRECT_SEG_REFS_DEFAULT 0
 #endif
+
+/* Fence to use after loop using storent.  */
+
+extern tree x86_mfence;
+#define FENCE_FOLLOWING_MOVNT x86_mfence
 
 /* Once GDB has been enhanced to deal with functions without frame
    pointers, we can change this to allow for elimination of
@@ -1315,7 +1322,7 @@ enum reg_class
    "GENERAL_REGS",			\
    "FP_TOP_REG", "FP_SECOND_REG",	\
    "FLOAT_REGS",			\
-   "FIRST_SSE_REG",			\
+   "SSE_FIRST_REG",			\
    "SSE_REGS",				\
    "MMX_REGS",				\
    "FP_TOP_SSE_REGS",			\
@@ -1343,7 +1350,7 @@ enum reg_class
   { 0x1100ff,  0x1fe0 },		/* GENERAL_REGS */		\
      { 0x100,     0x0 }, { 0x0200, 0x0 },/* FP_TOP_REG, FP_SECOND_REG */\
     { 0xff00,     0x0 },		/* FLOAT_REGS */		\
-  { 0x200000,     0x0 },		/* FIRST_SSE_REG */		\
+  { 0x200000,     0x0 },		/* SSE_FIRST_REG */		\
 { 0x1fe00000,0x1fe000 },		/* SSE_REGS */			\
 { 0xe0000000,    0x1f },		/* MMX_REGS */			\
 { 0x1fe00100,0x1fe000 },		/* FP_TOP_SSE_REG */		\
@@ -2328,7 +2335,8 @@ enum ix86_entity
 
 enum ix86_stack_slot
 {
-  SLOT_TEMP = 0,
+  SLOT_VIRTUAL = 0,
+  SLOT_TEMP,
   SLOT_CW_STORED,
   SLOT_CW_TRUNC,
   SLOT_CW_FLOOR,
@@ -2426,7 +2434,7 @@ struct machine_function GTY(())
    verify whether there's any such instruction live by testing that
    REG_SP is live.  */
 #define ix86_current_function_calls_tls_descriptor \
-  (ix86_tls_descriptor_calls_expanded_in_cfun && regs_ever_live[SP_REG])
+  (ix86_tls_descriptor_calls_expanded_in_cfun && df_regs_ever_live_p (SP_REG))
 
 /* Control behavior of x86_file_start.  */
 #define X86_FILE_START_VERSION_DIRECTIVE false

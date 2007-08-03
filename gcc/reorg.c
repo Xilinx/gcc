@@ -1,6 +1,7 @@
 /* Perform instruction reorganizations for delay slot filling.
-   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
+   2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu).
    Hacked by Michael Tiemann (tiemann@cygnus.com).
 
@@ -8,7 +9,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,9 +18,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Instruction reorganization pass.
 
@@ -211,7 +211,8 @@ static void update_reg_dead_notes (rtx, rtx);
 static void fix_reg_dead_note (rtx, rtx);
 static void update_reg_unused_notes (rtx, rtx);
 static void fill_simple_delay_slots (int);
-static rtx fill_slots_from_thread (rtx, rtx, rtx, rtx, int, int, int, int,
+static rtx fill_slots_from_thread (rtx, rtx, rtx, rtx,
+				   int, int, int, int,
 				   int *, rtx);
 static void fill_eager_delay_slots (void);
 static void relax_delay_slots (rtx);
@@ -638,7 +639,7 @@ delete_from_delay_slot (rtx insn)
   prev = PREV_INSN (seq_insn);
   trial = XVECEXP (seq, 0, 0);
   delete_related_insns (seq_insn);
-  add_insn_after (trial, prev);
+  add_insn_after (trial, prev, NULL);
 
   /* If there was a barrier after the old SEQUENCE, remit it.  */
   if (had_barrier)
@@ -3440,7 +3441,7 @@ relax_delay_slots (rtx first)
 	  for (i = 0; i < XVECLEN (pat, 0); i++)
 	    {
 	      rtx this_insn = XVECEXP (pat, 0, i);
-	      add_insn_after (this_insn, after);
+	      add_insn_after (this_insn, after, NULL);
 	      after = this_insn;
 	    }
 	  delete_scheduled_jump (delay_insn);
@@ -3558,7 +3559,7 @@ relax_delay_slots (rtx first)
 	  for (i = 0; i < XVECLEN (pat, 0); i++)
 	    {
 	      rtx this_insn = XVECEXP (pat, 0, i);
-	      add_insn_after (this_insn, after);
+	      add_insn_after (this_insn, after, NULL);
 	      after = this_insn;
 	    }
 	  delete_scheduled_jump (delay_insn);
@@ -4011,6 +4012,7 @@ dbr_schedule (rtx first)
          link = XEXP (link, 1))
       INSN_LOCATOR (XEXP (link, 0)) = 0;
   }
+
 #endif
 }
 #endif /* DELAY_SLOTS */
@@ -4020,7 +4022,7 @@ gate_handle_delay_slots (void)
 {
 #ifdef DELAY_SLOTS
   return flag_delayed_branch;
-#else 
+#else
   return 0;
 #endif
 }
@@ -4033,7 +4035,7 @@ rest_of_handle_delay_slots (void)
   dbr_schedule (get_insns ());
 #endif
   return 0;
-}   
+}
 
 struct tree_opt_pass pass_delay_slots =
 {
@@ -4085,4 +4087,3 @@ struct tree_opt_pass pass_machine_reorg =
   TODO_ggc_collect,                     /* todo_flags_finish */
   'M'                                   /* letter */
 };
-

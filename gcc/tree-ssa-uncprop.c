@@ -1,11 +1,11 @@
 /* Routines for discovering and unpropagating edge equivalences.
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -316,15 +315,15 @@ static void uncprop_into_successor_phis (struct dom_walk_data *, basic_block);
 static hashval_t
 equiv_hash (const void *p)
 {
-  tree value = ((struct equiv_hash_elt *)p)->value;
+  tree const value = ((const struct equiv_hash_elt *)p)->value;
   return iterative_hash_expr (value, 0);
 }
 
 static int
 equiv_eq (const void *p1, const void *p2)
 {
-  tree value1 = ((struct equiv_hash_elt *)p1)->value;
-  tree value2 = ((struct equiv_hash_elt *)p2)->value;
+  tree value1 = ((const struct equiv_hash_elt *)p1)->value;
+  tree value2 = ((const struct equiv_hash_elt *)p2)->value;
 
   return operand_equal_p (value1, value2, 0);
 }

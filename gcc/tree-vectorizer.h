@@ -1,12 +1,12 @@
 /* Loop Vectorization
-   Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_TREE_VECTORIZER_H
 #define GCC_TREE_VECTORIZER_H
@@ -99,6 +98,13 @@ typedef struct _loop_vec_info {
   /* Number of iterations.  */
   tree num_iters;
 
+  /* Minimum number of iterations below which vectorization is expected to
+     not be profitable (as estimated by the cost model). 
+     -1 indicates that vectorization will not be profitable.
+     FORNOW: This field is an int. Will be a tree in the future, to represent
+	     values unknown at compile time.  */ 
+  int min_profitable_iters;  
+  
   /* Is the loop vectorizable? */
   bool vectorizable;
 
@@ -140,6 +146,7 @@ typedef struct _loop_vec_info {
 #define LOOP_VINFO_BBS(L)             (L)->bbs
 #define LOOP_VINFO_EXIT_COND(L)       (L)->exit_cond
 #define LOOP_VINFO_NITERS(L)          (L)->num_iters
+#define LOOP_VINFO_COST_MODEL_MIN_ITERS(L)	(L)->min_profitable_iters
 #define LOOP_VINFO_VECTORIZABLE_P(L)  (L)->vectorizable
 #define LOOP_VINFO_VECT_FACTOR(L)     (L)->vectorization_factor
 #define LOOP_VINFO_PTR_MASK(L)        (L)->ptr_mask
@@ -268,6 +275,13 @@ typedef struct _stmt_vec_info {
   /* For loads only, if there is a store with the same location, this field is
      TRUE.  */
   bool read_write_dep;
+
+  /* Vectorization costs associated with statement.  */
+  struct  
+  {
+    int outside_of_loop;     /* Statements generated outside loop.  */
+    int inside_of_loop;      /* Statements generated inside loop.  */
+  } cost;
 } *stmt_vec_info;
 
 /* Access Functions.  */
@@ -300,6 +314,62 @@ typedef struct _stmt_vec_info {
 #define DR_GROUP_READ_WRITE_DEPENDENCE(S)  (S)->read_write_dep
 
 #define STMT_VINFO_RELEVANT_P(S)          ((S)->relevant != vect_unused_in_loop)
+#define STMT_VINFO_OUTSIDE_OF_LOOP_COST(S) (S)->cost.outside_of_loop
+#define STMT_VINFO_INSIDE_OF_LOOP_COST(S)  (S)->cost.inside_of_loop
+
+/* These are some defines for the initial implementation of the vectorizer's
+   cost model.  These will later be target specific hooks.  */
+
+/* Cost of conditional branch.  */
+#ifndef TARG_COND_BRANCH_COST
+#define TARG_COND_BRANCH_COST        3
+#endif
+
+/* Cost of any scalar operation, excluding load and store.  */
+#ifndef TARG_SCALAR_STMT_COST
+#define TARG_SCALAR_STMT_COST           1
+#endif
+
+/* Cost of scalar load.  */
+#ifndef TARG_SCALAR_LOAD_COST
+#define TARG_SCALAR_LOAD_COST           1
+#endif
+
+/* Cost of scalar store.  */
+#ifndef TARG_SCALAR_STORE_COST
+#define TARG_SCALAR_STORE_COST           1
+#endif
+
+/* Cost of any vector operation, excluding load, store or vector to scalar
+   operation.  */ 
+#ifndef TARG_VEC_STMT_COST
+#define TARG_VEC_STMT_COST           1
+#endif
+
+/* Cost of vector to scalar operation.  */
+#ifndef TARG_VEC_TO_SCALAR_COST
+#define TARG_VEC_TO_SCALAR_COST      1
+#endif
+
+/* Cost of scalar to vector operation.  */
+#ifndef TARG_SCALAR_TO_VEC_COST
+#define TARG_SCALAR_TO_VEC_COST      1
+#endif
+
+/* Cost of aligned vector load.  */
+#ifndef TARG_VEC_LOAD_COST
+#define TARG_VEC_LOAD_COST           1
+#endif
+
+/* Cost of misaligned vector load.  */
+#ifndef TARG_VEC_UNALIGNED_LOAD_COST
+#define TARG_VEC_UNALIGNED_LOAD_COST 2
+#endif
+
+/* Cost of vector store.  */
+#ifndef TARG_VEC_STORE_COST
+#define TARG_VEC_STORE_COST          1
+#endif
 
 static inline void set_stmt_info (stmt_ann_t ann, stmt_vec_info stmt_info);
 static inline stmt_vec_info vinfo_for_stmt (tree stmt);
@@ -437,6 +507,7 @@ extern bool vectorizable_condition (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_live_operation (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_reduction (tree, block_stmt_iterator *, tree *);
 extern bool vectorizable_induction (tree, block_stmt_iterator *, tree *);
+extern int  vect_estimate_min_profitable_iters (loop_vec_info);
 /* Driver for transformation stage.  */
 extern void vect_transform_loop (loop_vec_info);
 

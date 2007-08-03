@@ -228,6 +228,22 @@ open_file (_cpp_file *file)
       close (file->fd);
       file->fd = -1;
     }
+#if defined(_WIN32) && !defined(__CYGWIN__)
+  else if (errno == EACCES)
+    {
+      /* On most UNIX systems, open succeeds on a directory.  Above,
+         we check if we have opened a directory and if so, set errno
+         to ENOENT.  However, on Windows, opening a directory
+         fails with EACCES.  We want to return ENOENT in that
+         case too.  */
+      if (stat (file->path, &file->st) == 0
+          && S_ISDIR (file->st.st_mode))
+        errno = ENOENT;
+      else
+	/* The call to stat may have reset errno.  */
+	errno = EACCES;
+    }
+#endif    
   else if (errno == ENOTDIR)
     errno = ENOENT;
 
@@ -775,7 +791,8 @@ _cpp_stack_file (cpp_reader *pfile, _cpp_file *file, bool import)
 
   /* Stack the buffer.  */
   buffer = cpp_push_buffer (pfile, file->buffer, file->st.st_size,
-			    CPP_OPTION (pfile, preprocessed));
+			    CPP_OPTION (pfile, preprocessed)
+			    && !CPP_OPTION (pfile, directives_only));
   buffer->file = file;
   buffer->sysp = sysp;
 

@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.
 
 This paragraph is here to try to keep Sun CC from dying.
 The number of chars here seems crucial!!!!  */
@@ -4214,11 +4213,13 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  switches[n_switches].live_cond = SWITCH_OK;
 	  switches[n_switches].validated = 0;
 	  switches[n_switches].ordering = 0;
-	  /* These are always valid, since gcc.c itself understands them.  */
+	  /* These are always valid, since gcc.c itself understands the
+	     first four and gfortranspec.c understands -static-libgfortran.  */
 	  if (!strcmp (p, "save-temps")
 	      || !strcmp (p, "static-libgcc")
 	      || !strcmp (p, "shared-libgcc")
-	      || !strcmp (p, "pipe"))
+	      || !strcmp (p, "pipe")
+	      || !strcmp (p, "static-libgfortran"))
 	    switches[n_switches].validated = 1;
 	  else
 	    {
@@ -4372,6 +4373,26 @@ static int input_from_pipe;
    arguments.  */
 static const char *suffix_subst;
 
+/* If there is an argument being accumulated, terminate it and store it.  */
+
+static void
+end_going_arg (void)
+{
+  if (arg_going)
+    {
+      const char *string;
+
+      obstack_1grow (&obstack, 0);
+      string = XOBFINISH (&obstack, const char *);
+      if (this_is_library_file)
+	string = find_file (string);
+      store_arg (string, delete_this_arg, this_is_output_file);
+      if (this_is_output_file)
+	outfiles[input_file_number] = string;
+      arg_going = 0;
+    }
+}
+
 /* Process the spec SPEC and run the commands specified therein.
    Returns 0 if the spec is successfully processed; -1 if failed.  */
 
@@ -4401,7 +4422,6 @@ do_spec (const char *spec)
 static int
 do_spec_2 (const char *spec)
 {
-  const char *string;
   int result;
 
   clear_args ();
@@ -4414,18 +4434,7 @@ do_spec_2 (const char *spec)
 
   result = do_spec_1 (spec, 0, NULL);
 
-  /* End any pending argument.  */
-  if (arg_going)
-    {
-      obstack_1grow (&obstack, 0);
-      string = XOBFINISH (&obstack, const char *);
-      if (this_is_library_file)
-	string = find_file (string);
-      store_arg (string, delete_this_arg, this_is_output_file);
-      if (this_is_output_file)
-	outfiles[input_file_number] = string;
-      arg_going = 0;
-    }
+  end_going_arg ();
 
   return result;
 }
@@ -4586,7 +4595,6 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
   const char *p = spec;
   int c;
   int i;
-  const char *string;
   int value;
 
   while ((c = *p++))
@@ -4595,19 +4603,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
     switch (inswitch ? 'a' : c)
       {
       case '\n':
-	/* End of line: finish any pending argument,
-	   then run the pending command if one has been started.  */
-	if (arg_going)
-	  {
-	    obstack_1grow (&obstack, 0);
-	    string = XOBFINISH (&obstack, const char *);
-	    if (this_is_library_file)
-	      string = find_file (string);
-	    store_arg (string, delete_this_arg, this_is_output_file);
-	    if (this_is_output_file)
-	      outfiles[input_file_number] = string;
-	  }
-	arg_going = 0;
+	end_going_arg ();
 
 	if (argbuf_index > 0 && !strcmp (argbuf[argbuf_index - 1], "|"))
 	  {
@@ -4641,17 +4637,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	break;
 
       case '|':
-	/* End any pending argument.  */
-	if (arg_going)
-	  {
-	    obstack_1grow (&obstack, 0);
-	    string = XOBFINISH (&obstack, const char *);
-	    if (this_is_library_file)
-	      string = find_file (string);
-	    store_arg (string, delete_this_arg, this_is_output_file);
-	    if (this_is_output_file)
-	      outfiles[input_file_number] = string;
-	  }
+	end_going_arg ();
 
 	/* Use pipe */
 	obstack_1grow (&obstack, c);
@@ -4660,19 +4646,9 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 
       case '\t':
       case ' ':
-	/* Space or tab ends an argument if one is pending.  */
-	if (arg_going)
-	  {
-	    obstack_1grow (&obstack, 0);
-	    string = XOBFINISH (&obstack, const char *);
-	    if (this_is_library_file)
-	      string = find_file (string);
-	    store_arg (string, delete_this_arg, this_is_output_file);
-	    if (this_is_output_file)
-	      outfiles[input_file_number] = string;
-	  }
+	end_going_arg ();
+
 	/* Reinitialize for a new argument.  */
-	arg_going = 0;
 	delete_this_arg = 0;
 	this_is_output_file = 0;
 	this_is_library_file = 0;
@@ -4846,12 +4822,14 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 
 		if (save_temps_flag)
 		  {
+		    char *tmp;
+		    
 		    temp_filename_length = basename_length + suffix_length;
-		    temp_filename = alloca (temp_filename_length + 1);
-		    strncpy ((char *) temp_filename, input_basename, basename_length);
-		    strncpy ((char *) temp_filename + basename_length, suffix,
-			     suffix_length);
-		    *((char *) temp_filename + temp_filename_length) = '\0';
+		    tmp = alloca (temp_filename_length + 1);
+		    strncpy (tmp, input_basename, basename_length);
+		    strncpy (tmp + basename_length, suffix, suffix_length);
+		    tmp[temp_filename_length] = '\0';
+		    temp_filename = tmp;
 		    if (strcmp (temp_filename, input_filename) != 0)
 		      {
 #ifndef HOST_LACKS_INODE_NUMBERS
@@ -5098,18 +5076,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	      p = handle_braces (p + 1);
 	      if (p == 0)
 		return -1;
-	      /* End any pending argument.  */
-	      if (arg_going)
-		{
-		  obstack_1grow (&obstack, 0);
-		  string = XOBFINISH (&obstack, const char *);
-		  if (this_is_library_file)
-		    string = find_file (string);
-		  store_arg (string, delete_this_arg, this_is_output_file);
-		  if (this_is_output_file)
-		    outfiles[input_file_number] = string;
-		  arg_going = 0;
-		}
+	      end_going_arg ();
 	      /* If any args were output, mark the last one for deletion
 		 on failure.  */
 	      if (argbuf_index != cur_index)
@@ -5428,17 +5395,8 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 
   /* End of string.  If we are processing a spec function, we need to
      end any pending argument.  */
-  if (processing_spec_function && arg_going)
-    {
-      obstack_1grow (&obstack, 0);
-      string = XOBFINISH (&obstack, const char *);
-      if (this_is_library_file)
-        string = find_file (string);
-      store_arg (string, delete_this_arg, this_is_output_file);
-      if (this_is_output_file)
-        outfiles[input_file_number] = string;
-      arg_going = 0;
-    }
+  if (processing_spec_function)
+    end_going_arg ();
 
   return 0;
 }

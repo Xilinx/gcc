@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file handles the generation of rtl code from tree structure
    above the level of expressions, using subroutines in exp*.c and emit-rtl.c.
@@ -1078,6 +1077,7 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
     if (real_output_rtx[i])
       emit_move_insn (real_output_rtx[i], output_rtx[i]);
 
+  cfun->has_asm_statement = 1;
   free_temp_slots ();
 }
 
@@ -1114,7 +1114,7 @@ expand_asm_expr (tree exp)
     {
       if (o[i] != TREE_VALUE (tail))
 	{
-	  expand_assignment (o[i], TREE_VALUE (tail));
+	  expand_assignment (o[i], TREE_VALUE (tail), false);
 	  free_temp_slots ();
 
 	  /* Restore the original value so that it's correct the next
@@ -1392,7 +1392,7 @@ expand_expr_stmt (tree exp)
    (potential) location of the expression.  */
 
 int
-warn_if_unused_value (tree exp, location_t locus)
+warn_if_unused_value (const_tree exp, location_t locus)
 {
  restart:
   if (TREE_USED (exp) || TREE_NO_WARNING (exp))
@@ -1747,7 +1747,7 @@ expand_return (tree retval)
    *that* node in turn will point to the relevant FUNCTION_DECL node.  */
 
 int
-is_body_block (tree stmt)
+is_body_block (const_tree stmt)
 {
   if (lang_hooks.no_body_blocks)
     return 0;
@@ -1830,12 +1830,10 @@ expand_nl_goto_receiver (void)
     emit_insn (gen_nonlocal_goto_receiver ());
 #endif
 
-  /* @@@ This is a kludge.  Not all machine descriptions define a blockage
-     insn, but we must not allow the code we just generated to be reordered
-     by scheduling.  Specifically, the update of the frame pointer must
-     happen immediately, not later.  So emit an ASM_INPUT to act as blockage
-     insn.  */
-  emit_insn (gen_rtx_ASM_INPUT (VOIDmode, ""));
+  /* We must not allow the code we just generated to be reordered by
+     scheduling.  Specifically, the update of the frame pointer must
+     happen immediately, not later.  */
+  emit_insn (gen_blockage ());
 }
 
 /* Generate RTL for the automatic variable declaration DECL.

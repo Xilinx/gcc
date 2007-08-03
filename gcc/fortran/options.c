@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -102,6 +101,7 @@ gfc_init_options (unsigned int argc ATTRIBUTE_UNUSED,
   gfc_option.flag_cray_pointer = 0;
   gfc_option.flag_d_lines = -1;
   gfc_option.flag_openmp = 0;
+  gfc_option.flag_sign_zero = 1;
 
   gfc_option.fpe = 0;
 
@@ -551,6 +551,13 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_option.flag_second_underscore = value;
       break;
 
+    case OPT_static_libgfortran:
+#ifndef HAVE_LD_STATIC_DYNAMIC
+      gfc_fatal_error ("-static-libgfortran is not supported in this "
+		       "configuration");
+#endif
+      break;
+
     case OPT_fimplicit_none:
       gfc_option.flag_implicit_none = value;
       break;
@@ -610,6 +617,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
     case OPT_J:
     case OPT_M:
       gfc_handle_module_path_options (arg);
+      break;
+    
+    case OPT_fsign_zero:
+      gfc_option.flag_sign_zero = value;
       break;
     
     case OPT_ffpe_trap_:

@@ -6,7 +6,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -691,10 +690,12 @@ build_java_method_type (tree fntype, tree this_class, int access_flags)
 }
 
 static void
-hide (tree decl)
+hide (tree decl ATTRIBUTE_UNUSED)
 {
+#ifdef HAVE_GAS_HIDDEN
   DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
   DECL_VISIBILITY_SPECIFIED (decl) = 1;
+#endif
 }
 
 tree
@@ -724,6 +725,14 @@ add_method_1 (tree this_class, int access_flags, tree name, tree function_type)
 
   TREE_CHAIN (fndecl) = TYPE_METHODS (this_class);
   TYPE_METHODS (this_class) = fndecl;
+
+  /* If pointers to member functions use the least significant bit to
+     indicate whether a function is virtual, ensure a pointer
+     to this function will have that bit clear.  */
+  if (TARGET_PTRMEMFUNC_VBIT_LOCATION == ptrmemfunc_vbit_in_pfn
+      && !(access_flags & ACC_STATIC)
+      && DECL_ALIGN (fndecl) < 2 * BITS_PER_UNIT)
+    DECL_ALIGN (fndecl) = 2 * BITS_PER_UNIT;
 
   /* Notice that this is a finalizer and update the class type
      accordingly. This is used to optimize instance allocation. */
@@ -1669,8 +1678,7 @@ make_class_data (tree type)
   tree id_class = get_identifier("java.lang.Class");
   /** Offset from start of virtual function table declaration
       to where objects actually point at, following new g++ ABI. */
-  tree dtable_start_offset = build_int_cst (NULL_TREE,
-					    2 * POINTER_SIZE / BITS_PER_UNIT);
+  tree dtable_start_offset = size_int (2 * POINTER_SIZE / BITS_PER_UNIT);
   VEC(int, heap) *field_indexes;
   tree first_real_field;
 
@@ -1957,7 +1965,7 @@ make_class_data (tree type)
   PUSH_FIELD_VALUE (temp, "vtable",
 		    (flag_indirect_classes 
 		     ? null_pointer_node
-		     : build2 (PLUS_EXPR, dtable_ptr_type,
+		     : build2 (POINTER_PLUS_EXPR, dtable_ptr_type,
 			       build1 (ADDR_EXPR, dtable_ptr_type,
 				       class_dtable_decl),
 			       dtable_start_offset)));
@@ -2005,7 +2013,7 @@ make_class_data (tree type)
   else
     PUSH_FIELD_VALUE (cons, "vtable",
 		      dtable_decl == NULL_TREE ? null_pointer_node
-		      : build2 (PLUS_EXPR, dtable_ptr_type,
+		      : build2 (POINTER_PLUS_EXPR, dtable_ptr_type,
 				build1 (ADDR_EXPR, dtable_ptr_type,
 					dtable_decl),
 				dtable_start_offset));
@@ -2807,7 +2815,8 @@ build_symbol_entry (tree decl, tree special)
      system that this is a "special" symbol, i.e. one that should
      bypass access controls.  */
   if (special != NULL_TREE)
-    signature = build2 (PLUS_EXPR, TREE_TYPE (signature), signature, special);
+    signature = build2 (POINTER_PLUS_EXPR, TREE_TYPE (signature), signature,
+			fold_convert (sizetype, special));
       
   START_RECORD_CONSTRUCTOR (sym, symbol_type);
   PUSH_FIELD_VALUE (sym, "clname", clname);
@@ -3038,15 +3047,17 @@ static int java_treetreehash_compare (const void *, const void *);
 static hashval_t
 java_treetreehash_hash (const void *k_p)
 {
-  struct treetreehash_entry *k = (struct treetreehash_entry *) k_p;
+  const struct treetreehash_entry *const k
+    = (const struct treetreehash_entry *) k_p;
   return JAVA_TREEHASHHASH_H (k->key);
 }
 
 static int
 java_treetreehash_compare (const void * k1_p, const void * k2_p)
 {
-  struct treetreehash_entry * k1 = (struct treetreehash_entry *) k1_p;
-  tree k2 = (tree) k2_p;
+  const struct treetreehash_entry *const k1
+    = (const struct treetreehash_entry *) k1_p;
+  const_tree const k2 = (const_tree) k2_p;
   return (k1->key == k2);
 }
 

@@ -1,12 +1,12 @@
 /* -*- indented-text -*- */
 /* Process source files and output type information.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 %{
 #include "bconfig.h"
@@ -65,36 +64,36 @@ EOID	[^[:alnum:]_]
 
   /* Things we look for in skipping mode: */
 <INITIAL>{
-^typedef/{EOID} {
+^{HWS}typedef/{EOID} {
   BEGIN(in_struct);
   return TYPEDEF;
 }
-^struct/{EOID} {
+^{HWS}struct/{EOID} {
   BEGIN(in_struct);
   return STRUCT;
 }
-^union/{EOID} {
+^{HWS}union/{EOID} {
   BEGIN(in_struct);
   return UNION;
 }
-^extern/{EOID} {
+^{HWS}extern/{EOID} {
   BEGIN(in_struct);
   return EXTERN;
 }
-^static/{EOID} {
+^{HWS}static/{EOID} {
   BEGIN(in_struct);
   return STATIC;
 }
 
-^DEF_VEC_[OP]/{EOID} {
+^{HWS}DEF_VEC_[OP]/{EOID} {
   BEGIN(in_struct);
   return DEFVEC_OP;
 }
-^DEF_VEC_I/{EOID} {
+^{HWS}DEF_VEC_I/{EOID} {
   BEGIN(in_struct);
   return DEFVEC_I;
 }
-^DEF_VEC_ALLOC_[IOP]/{EOID} {
+^{HWS}DEF_VEC_ALLOC_[IOP]/{EOID} {
   BEGIN(in_struct);
   return DEFVEC_ALLOC;
 }
@@ -186,7 +185,7 @@ EOID	[^[:alnum:]_]
 		 "unterminated comment or string; unexpected EOF");
 }
 
-^"#define"{WS}"GTY(" /* do nothing */
+^{HWS}"#"{HWS}"define"{WS}"GTY(" /* do nothing */
 {WS}"GTY"{WS}?"("	{
   error_at_line (&lexer_line, "stray GTY marker");
 }

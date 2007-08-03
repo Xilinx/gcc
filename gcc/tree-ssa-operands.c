@@ -5,7 +5,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -592,13 +591,13 @@ set_virtual_use_link (use_operand_p ptr, tree stmt)
 static inline def_optype_p 
 add_def_op (tree *op, def_optype_p last)
 {
-  def_optype_p new;
+  def_optype_p new_def;
 
-  new = alloc_def ();
-  DEF_OP_PTR (new) = op;
-  last->next = new;
-  new->next = NULL;
-  return new;
+  new_def = alloc_def ();
+  DEF_OP_PTR (new_def) = op;
+  last->next = new_def;
+  new_def->next = NULL;
+  return new_def;
 }
 
 
@@ -607,14 +606,14 @@ add_def_op (tree *op, def_optype_p last)
 static inline use_optype_p
 add_use_op (tree stmt, tree *op, use_optype_p last)
 {
-  use_optype_p new;
+  use_optype_p new_use;
 
-  new = alloc_use ();
-  USE_OP_PTR (new)->use = op;
-  link_imm_use_stmt (USE_OP_PTR (new), *op, stmt);
-  last->next = new;
-  new->next = NULL;
-  return new;
+  new_use = alloc_use ();
+  USE_OP_PTR (new_use)->use = op;
+  link_imm_use_stmt (USE_OP_PTR (new_use), *op, stmt);
+  last->next = new_use;
+  new_use->next = NULL;
+  return new_use;
 }
 
 
@@ -625,22 +624,23 @@ add_use_op (tree stmt, tree *op, use_optype_p last)
 static inline voptype_p
 add_vop (tree stmt, tree op, int num, voptype_p prev)
 {
-  voptype_p new;
+  voptype_p new_vop;
   int x;
 
-  new = alloc_vop (num);
+  new_vop = alloc_vop (num);
   for (x = 0; x < num; x++)
     {
-      VUSE_OP_PTR (new, x)->prev = NULL;
-      SET_VUSE_OP (new, x, op);
-      VUSE_OP_PTR (new, x)->use = &new->usev.uses[x].use_var;
-      link_imm_use_stmt (VUSE_OP_PTR (new, x), new->usev.uses[x].use_var, stmt);
+      VUSE_OP_PTR (new_vop, x)->prev = NULL;
+      SET_VUSE_OP (new_vop, x, op);
+      VUSE_OP_PTR (new_vop, x)->use = &new_vop->usev.uses[x].use_var;
+      link_imm_use_stmt (VUSE_OP_PTR (new_vop, x),
+			 new_vop->usev.uses[x].use_var, stmt);
     }
 
   if (prev)
-    prev->next = new;
-  new->next = NULL;
-  return new;
+    prev->next = new_vop;
+  new_vop->next = NULL;
+  return new_vop;
 }
 
 
@@ -650,9 +650,9 @@ add_vop (tree stmt, tree op, int num, voptype_p prev)
 static inline voptype_p
 add_vuse_op (tree stmt, tree op, int num, voptype_p last)
 {
-  voptype_p new = add_vop (stmt, op, num, last);
-  VDEF_RESULT (new) = NULL_TREE;
-  return new;
+  voptype_p new_vop = add_vop (stmt, op, num, last);
+  VDEF_RESULT (new_vop) = NULL_TREE;
+  return new_vop;
 }
 
 
@@ -662,104 +662,11 @@ add_vuse_op (tree stmt, tree op, int num, voptype_p last)
 static inline voptype_p
 add_vdef_op (tree stmt, tree op, int num, voptype_p last)
 {
-  voptype_p new = add_vop (stmt, op, num, last);
-  VDEF_RESULT (new) = op;
-  return new;
+  voptype_p new_vop = add_vop (stmt, op, num, last);
+  VDEF_RESULT (new_vop) = op;
+  return new_vop;
 }
   
-
-/* Reallocate the virtual operand PTR so that it has NUM_ELEM use slots.  ROOT
-   is the head of the operand list it belongs to.  */
-
-static inline struct voptype_d *
-realloc_vop (struct voptype_d *ptr, unsigned int num_elem,
-	     struct voptype_d **root)
-{
-  unsigned int x, lim;
-  tree stmt, val;
-  struct voptype_d *ret, *tmp;
-
-  if (VUSE_VECT_NUM_ELEM (ptr->usev) == num_elem)
-    return ptr; 
-
-  val = VUSE_OP (ptr, 0);
-  if (TREE_CODE (val) == SSA_NAME)
-    val = SSA_NAME_VAR (val);
-
-  stmt = USE_STMT (VUSE_OP_PTR (ptr, 0));
-
-  /* Delink all the existing uses.  */
-  for (x = 0; x < VUSE_VECT_NUM_ELEM (ptr->usev); x++)
-    {
-      use_operand_p use_p = VUSE_OP_PTR (ptr, x);
-      delink_imm_use (use_p);
-    }
-
-  /* If we want less space, simply use this one, and shrink the size.  */
-  if (VUSE_VECT_NUM_ELEM (ptr->usev) > num_elem)
-    {
-      VUSE_VECT_NUM_ELEM (ptr->usev) = num_elem;
-      return ptr;
-    }
-
-  /* It is growing.  Allocate a new one and replace the old one.  */
-  ret = add_vuse_op (stmt, val, num_elem, ptr);
-
-  /* Clear PTR and add its memory to the free list.  */
-  lim = VUSE_VECT_NUM_ELEM (ptr->usev);
-  memset (ptr, 0,
-          sizeof (struct voptype_d) + sizeof (vuse_element_t) * (lim- 1));
-  add_vop_to_freelist (ptr);
-
-  /* Now simply remove the old one.  */
-  if (*root == ptr)
-    {
-      *root = ret;
-      return ret;
-    }
-  else
-    for (tmp = *root; 
-	 tmp != NULL && tmp->next != ptr; 
-	 tmp = tmp->next)
-      {
-	tmp->next = ret;
-	return ret;
-      }
-
-  /* The pointer passed in isn't in STMT's VDEF lists.  */
-  gcc_unreachable ();
-}
- 
-
-/* Reallocate the PTR vdef so that it has NUM_ELEM use slots.  */
-
-struct voptype_d *
-realloc_vdef (struct voptype_d *ptr, unsigned int num_elem)
-{
-  tree val, stmt;
-  struct voptype_d *ret;
-
-  val = VDEF_RESULT (ptr);
-  stmt = USE_STMT (VDEF_OP_PTR (ptr, 0));
-  ret = realloc_vop (ptr, num_elem, &(VDEF_OPS (stmt)));
-  VDEF_RESULT (ret) = val;
-  return ret;
-}
-  
-
-/* Reallocate the PTR vuse so that it has NUM_ELEM use slots.  */
-
-struct voptype_d *
-realloc_vuse (struct voptype_d *ptr, unsigned int num_elem)
-{
-  tree stmt;
-  struct voptype_d *ret;
-
-  stmt = USE_STMT (VUSE_OP_PTR (ptr, 0));
-  ret = realloc_vop (ptr, num_elem, &(VUSE_OPS (stmt)));
-  return ret;
-}
-
 
 /* Takes elements from build_defs and turns them into def operands of STMT.
    TODO -- Make build_defs VEC of tree *.  */
@@ -2059,7 +1966,7 @@ static void
 get_expr_operands (tree stmt, tree *expr_p, int flags)
 {
   enum tree_code code;
-  enum tree_code_class class;
+  enum tree_code_class codeclass;
   tree expr = *expr_p;
   stmt_ann_t s_ann = stmt_ann (stmt);
 
@@ -2067,7 +1974,7 @@ get_expr_operands (tree stmt, tree *expr_p, int flags)
     return;
 
   code = TREE_CODE (expr);
-  class = TREE_CODE_CLASS (code);
+  codeclass = TREE_CODE_CLASS (code);
 
   switch (code)
     {
@@ -2170,6 +2077,9 @@ get_expr_operands (tree stmt, tree *expr_p, int flags)
 
 	    if (!none)
 	      flags |= opf_no_vops;
+
+	    if (TREE_THIS_VOLATILE (expr))
+	      get_stmt_ann (stmt)->has_volatile_ops = true;
 	  }
 	else if (TREE_CODE (ref) == INDIRECT_REF)
 	  {
@@ -2265,6 +2175,10 @@ get_expr_operands (tree stmt, tree *expr_p, int flags)
         return;
       }
 
+    case CHANGE_DYNAMIC_TYPE_EXPR:
+      get_expr_operands (stmt, &CHANGE_DYNAMIC_TYPE_LOCATION (expr), opf_use);
+      return;
+
     case BLOCK:
     case FUNCTION_DECL:
     case EXC_PTR_EXPR:
@@ -2284,11 +2198,11 @@ get_expr_operands (tree stmt, tree *expr_p, int flags)
       return;
 
     default:
-      if (class == tcc_unary)
+      if (codeclass == tcc_unary)
 	goto do_unary;
-      if (class == tcc_binary || class == tcc_comparison)
+      if (codeclass == tcc_binary || codeclass == tcc_comparison)
 	goto do_binary;
-      if (class == tcc_constant || class == tcc_type)
+      if (codeclass == tcc_constant || codeclass == tcc_type)
 	return;
     }
 
@@ -2794,7 +2708,7 @@ push_stmt_changes (tree *stmt_p)
   if (TREE_CODE (stmt) == PHI_NODE)
     return;
 
-  buf = xmalloc (sizeof *buf);
+  buf = XNEW (struct scb_d);
   memset (buf, 0, sizeof *buf);
 
   buf->stmt_p = stmt_p;

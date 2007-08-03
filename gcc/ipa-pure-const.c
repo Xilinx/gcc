@@ -1,12 +1,12 @@
 /* Callgraph based analysis of static variables.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file mark functions as being either const (TREE_READONLY) or
    pure (DECL_IS_PURE).
@@ -80,8 +79,8 @@ typedef struct funct_state_d * funct_state;
 static inline funct_state
 get_function_state (struct cgraph_node *node)
 {
-  struct ipa_dfs_info * info = node->aux;
-  return info->aux;
+  struct ipa_dfs_info * info = (struct ipa_dfs_info *) node->aux;
+  return (funct_state) info->aux;
 }
 
 /* Check to see if the use (or definition when CHECHING_WRITE is true) 
@@ -396,7 +395,7 @@ scan_function (tree *tp,
 		      int *walk_subtrees, 
 		      void *data)
 {
-  struct cgraph_node *fn = data;
+  struct cgraph_node *fn = (struct cgraph_node *) data;
   tree t = *tp;
   funct_state local = get_function_state (fn);
 
@@ -505,7 +504,7 @@ analyze_function (struct cgraph_node *fn)
 {
   funct_state l = XCNEW (struct funct_state_d);
   tree decl = fn->decl;
-  struct ipa_dfs_info * w_info = fn->aux;
+  struct ipa_dfs_info * w_info = (struct ipa_dfs_info *) fn->aux;
 
   w_info->aux = l;
 
@@ -602,7 +601,7 @@ static_execute (void)
   struct cgraph_node *w;
   struct cgraph_node **order =
     XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
-  int order_pos = order_pos = ipa_utils_reduced_inorder (order, true, false);
+  int order_pos = ipa_utils_reduced_inorder (order, true, false);
   int i;
   struct ipa_dfs_info * w_info;
 
@@ -673,7 +672,7 @@ static_execute (void)
 		    }
 		}
 	    }
-	  w_info = w->aux;
+	  w_info = (struct ipa_dfs_info *) w->aux;
 	  w = w_info->next_cycle;
 	}
 
@@ -708,7 +707,7 @@ static_execute (void)
 		  break;
 		}
 	    }
-	  w_info = w->aux;
+	  w_info = (struct ipa_dfs_info *) w->aux;
 	  w = w_info->next_cycle;
 	}
     }
@@ -718,7 +717,7 @@ static_execute (void)
     /* Get rid of the aux information.  */
     if (node->aux)
       {
-	w_info = node->aux;
+	w_info = (struct ipa_dfs_info *) node->aux;
 	if (w_info->aux)
 	  free (w_info->aux);
 	free (node->aux);

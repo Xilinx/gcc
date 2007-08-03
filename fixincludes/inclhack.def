@@ -1558,6 +1558,27 @@ fix = {
 };
 
 
+fix = {
+     hackname  = hppa_hpux_fp_macros;
+     mach      = hppa*-hp-hpux11*;
+     files     = math.h;
+     select    = "#[ \t]*define[ \t]*FP_NORMAL.*\n"
+		 "#[ \t]*define[ \t]*FP_ZERO.*\n"
+		 "#[ \t]*define[ \t]*FP_INFINITE.*\n"
+		 "#[ \t]*define[ \t]*FP_SUBNORMAL.*\n"
+		 "#[ \t]*define[ \t]*FP_NAN.*\n";
+     c_fix     = format;
+     c_fix_arg = "#endif /* _INCLUDE_HPUX_SOURCE */\n\n#if defined(_INCLUDE_HPUX_SOURCE) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L))\n%0#endif\n\n#ifdef _INCLUDE_HPUX_SOURCE\n";
+
+     test_text =
+            "#  define FP_NORMAL     0\n"
+            "#  define FP_ZERO       1\n"
+            "#  define FP_INFINITE   2\n"
+            "#  define FP_SUBNORMAL  3\n"
+            "#  define FP_NAN        4\n";
+};
+
+
 /*
  *  Fix hpux 10.X missing ctype declarations 1
  */
@@ -2190,6 +2211,24 @@ fix = {
 };
 
 /*
+ *  IRIX 6.5 <stdint.h> only works with ISO C99 and errors out
+ *  otherwise.
+ */
+fix = {
+    hackname  = irix_stdint_c99;
+    files     = stdint.h;
+    select = "(#ifndef __c99\n)(#error This header file is to be used only for c99 mode compilations)";
+
+    mach      = "mips-sgi-irix6.5";
+    c_fix  = format;
+    c_fix_arg = "#if 0\n"
+	        "%2";
+    test_text =
+    "#ifndef __c99\n#error This header file is to be used only for c99 mode compilations\n#else";
+};
+
+
+/*
  *  IRIX 5.x's stdio.h and IRIX 6.5's internal/stdio_core.h declare
  *  some functions that take a va_list as
  *  taking char *.  However, GCC uses void * for va_list, so
@@ -2566,6 +2605,25 @@ fix = {
     c_fix_arg = "extern\n#ifdef __GNUC_STDC_INLINE__\n__attribute__((__gnu_inline__))\n#endif\n__inline int";
 
     test_text = "extern __inline int\nsigaddset(sigset_t *set, int signo)\n{}";
+};
+
+
+fix = {
+    hackname  = netbsd_c99_inline_2;
+    mach      = *-*-netbsd*;
+    files     = signal.h;
+    select    = "#define _SIGINLINE extern __inline";
+
+    c_fix     = format;
+    c_fix_arg = <<- _EOArg_
+	#ifdef __GNUC_STDC_INLINE__
+	#define _SIGINLINE extern __attribute__((__gnu_inline__)) __inline
+	#else
+	%0
+	#endif
+	_EOArg_;
+
+    test_text = "#define _SIGINLINE extern __inline";
 };
 
 
@@ -3049,7 +3107,7 @@ fix = {
     files = iso/math_c99.h;
     c_fix = format;
     c_fix_arg = "#define\tfpclassify(x) \\\n"
-                "  __extension__ ({ __typeof(x) __x_fp = (x); \\\n"
+                "  __extension__ ({ const __typeof(x) __x_fp = (x); \\\n"
                 "\t\t   isnan(__x_fp) \\\n"
                 "\t\t     ? FP_NAN \\\n"
                 "\t\t     : isinf(__x_fp) \\\n"
@@ -3073,8 +3131,12 @@ fix = {
     files = iso/math_c99.h;
     c_fix = format;
     c_fix_arg = "#define\tisfinite(x) \\\n"
-                "  __extension__ ({ __typeof (x) __x_f = (x); \\\n"
-                "\t\t   __builtin_expect(!isnan(__x_f - __x_f), 1); })";
+                "  __extension__ ({ const __typeof (x) __x_f = (x); \\\n"
+                "\t\t    __builtin_expect(sizeof(__x_f) == sizeof(float) \\\n"
+                "\t\t\t  ? islessequal(__builtin_fabsf(__x_f),__FLT_MAX__) \\\n"
+                "\t\t\t  : sizeof(__x_f) == sizeof(long double) \\\n"
+                "\t\t\t    ? islessequal(__builtin_fabsl(__x_f),__LDBL_MAX__) \\\n"
+                "\t\t\t    : islessequal(__builtin_fabs(__x_f),__DBL_MAX__), 1); })";
     c_fix_arg = "^#define[ \t]+isfinite\\(x\\)[ \t]+__builtin_isfinite\\(x\\)";
     test_text =
     '#ident	"@(#)math_c99.h	1.9	04/11/01 SMI"'"\n"
@@ -3089,8 +3151,12 @@ fix = {
     files = iso/math_c99.h;
     c_fix = format;
     c_fix_arg = "#define\tisinf(x) \\\n"
-                "  __extension__ ({ __typeof (x) __x_i = (x); \\\n"
-                "\t\t   __builtin_expect(!isnan(__x_i) && !isfinite(__x_i), 0); })";
+                "  __extension__ ({ const __typeof (x) __x_i = (x); \\\n"
+                "\t\t    __builtin_expect(sizeof(__x_i) == sizeof(float) \\\n"
+                "\t\t\t  ? isgreater(__builtin_fabsf(__x_i),__FLT_MAX__) \\\n"
+                "\t\t\t  : sizeof(__x_i) == sizeof(long double) \\\n"
+                "\t\t\t    ? isgreater(__builtin_fabsl(__x_i),__LDBL_MAX__) \\\n"
+                "\t\t\t    : isgreater(__builtin_fabs(__x_i),__DBL_MAX__), 0); })";
     c_fix_arg = "^#define[ \t]+isinf\\(x\\)[ \t]+__builtin_isinf\\(x\\)";
     test_text =
     '#ident	"@(#)math_c99.h	1.9	04/11/01 SMI"'"\n"
@@ -3105,14 +3171,13 @@ fix = {
     files = iso/math_c99.h;
     c_fix = format;
     c_fix_arg = "#define\tisnormal(x) \\\n"
-                "  __extension__ ({ __typeof(x) __x_n = (x); \\\n"
-                "\t\t   if (__x_n < 0.0) __x_n = -__x_n; \\\n"
+                "  __extension__ ({ const __typeof(x) __x_n = (x); \\\n"
                 "\t\t   __builtin_expect(isfinite(__x_n) \\\n"
                 "\t\t\t\t    && (sizeof(__x_n) == sizeof(float) \\\n"
-                "\t\t\t\t\t  ? __x_n >= __FLT_MIN__ \\\n"
+                "\t\t\t\t\t  ? isgreaterequal(__builtin_fabsf(__x_n),__FLT_MIN__) \\\n"
                 "\t\t\t\t\t  : sizeof(__x_n) == sizeof(long double) \\\n"
-                "\t\t\t\t\t    ? __x_n >= __LDBL_MIN__ \\\n"
-                "\t\t\t\t\t    : __x_n >= __DBL_MIN__), 1); })";
+                "\t\t\t\t\t    ? isgreaterequal(__builtin_fabsl(__x_n),__LDBL_MIN__) \\\n"
+                "\t\t\t\t\t    : isgreaterequal(__builtin_fabs(__x_n),__DBL_MIN__)), 1); })";
     c_fix_arg = "^#define[ \t]+isnormal\\(x\\)[ \t]+__builtin_isnormal\\(x\\)";
     test_text =
     '#ident	"@(#)math_c99.h	1.9	04/11/01 SMI"'"\n"

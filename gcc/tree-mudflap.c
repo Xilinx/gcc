@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -328,17 +327,23 @@ mf_make_mf_cache_struct_type (tree field_type)
   return struct_type;
 }
 
-#define build_function_type_0(rtype)            \
+#define build_function_type_0(rtype)           				\
   build_function_type (rtype, void_list_node)
-#define build_function_type_1(rtype, arg1)                 \
+#define build_function_type_1(rtype, arg1)                		\
   build_function_type (rtype, tree_cons (0, arg1, void_list_node))
 #define build_function_type_3(rtype, arg1, arg2, arg3)                  \
-  build_function_type (rtype, tree_cons (0, arg1, tree_cons (0, arg2,   \
-                                                             tree_cons (0, arg3, void_list_node))))
+  build_function_type (rtype,						\
+		       tree_cons (0, arg1, 				\
+				  tree_cons (0, arg2,  			\
+                                              tree_cons (0, arg3, 	\
+							 void_list_node))))
 #define build_function_type_4(rtype, arg1, arg2, arg3, arg4)            \
-  build_function_type (rtype, tree_cons (0, arg1, tree_cons (0, arg2,   \
-                                                             tree_cons (0, arg3, tree_cons (0, arg4, \
-                                                                                            void_list_node)))))
+  build_function_type (rtype, 						\
+		       tree_cons (0, arg1,				\
+				  tree_cons (0, arg2,   		\
+                                             tree_cons (0, arg3,	\
+							tree_cons (0, arg4, \
+                                                		   void_list_node)))))
 
 /* Initialize the global tree nodes that correspond to mf-runtime.h
    declarations.  */
@@ -571,9 +576,11 @@ mf_build_check_statement_for (tree base, tree limit,
   /* Build: __mf_elem = &__mf_lookup_cache [(__mf_base >> __mf_shift)
                                             & __mf_mask].  */
   t = build2 (RSHIFT_EXPR, mf_uintptr_type, mf_base,
-              (flag_mudflap_threads ? mf_cache_shift_decl : mf_cache_shift_decl_l));
+              flag_mudflap_threads ? mf_cache_shift_decl
+	       : mf_cache_shift_decl_l);
   t = build2 (BIT_AND_EXPR, mf_uintptr_type, t,
-              (flag_mudflap_threads ? mf_cache_mask_decl : mf_cache_mask_decl_l));
+              flag_mudflap_threads ? mf_cache_mask_decl
+	       : mf_cache_mask_decl_l);
   t = build4 (ARRAY_REF,
               TREE_TYPE (TREE_TYPE (mf_cache_array_decl)),
               mf_cache_array_decl, t, NULL_TREE, NULL_TREE);
@@ -699,7 +706,8 @@ mf_decl_eligible_p (tree decl)
           /* The decl must have its address taken.  In the case of
              arrays, this flag is also set if the indexes are not
              compile-time known valid constants.  */
-          && TREE_ADDRESSABLE (decl)    /* XXX: not sufficient: return-by-value structs! */
+	  /* XXX: not sufficient: return-by-value structs! */
+          && TREE_ADDRESSABLE (decl)
           /* The type of the variable must be complete.  */
           && COMPLETE_OR_VOID_TYPE_P (TREE_TYPE (decl))
 	  /* The decl hasn't been decomposed somehow.  */
@@ -758,7 +766,8 @@ mf_xform_derefs_1 (block_stmt_iterator *iter, tree *tp,
         while (1)
           {
 	    if (bitfield_ref_p && elt == NULL_TREE
-		&& (TREE_CODE (var) == ARRAY_REF || TREE_CODE (var) == COMPONENT_REF))
+		&& (TREE_CODE (var) == ARRAY_REF
+		    || TREE_CODE (var) == COMPONENT_REF))
 	      elt = var;
 	
             if (TREE_CODE (var) == ARRAY_REF)
@@ -787,7 +796,8 @@ mf_xform_derefs_1 (block_stmt_iterator *iter, tree *tp,
                   return;
                 else
 		  {
-		    base = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (var)), var);
+		    base = build1 (ADDR_EXPR,
+				   build_pointer_type (TREE_TYPE (var)), var);
 		    break;
 		  }
               }
@@ -810,10 +820,11 @@ mf_xform_derefs_1 (block_stmt_iterator *iter, tree *tp,
               size = DECL_SIZE_UNIT (field);
             
 	    if (elt)
-	      elt = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (elt)), elt);
+	      elt = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (elt)),
+			    elt);
             addr = fold_convert (ptr_type_node, elt ? elt : base);
-            addr = fold_build2 (PLUS_EXPR, ptr_type_node,
-				addr, fold_convert (ptr_type_node,
+            addr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node,
+				addr, fold_convert (sizetype,
 						    byte_position (field)));
           }
         else
@@ -830,17 +841,19 @@ mf_xform_derefs_1 (block_stmt_iterator *iter, tree *tp,
     case INDIRECT_REF:
       addr = TREE_OPERAND (t, 0);
       base = addr;
-      limit = fold_build2 (MINUS_EXPR, ptr_type_node,
-                           fold_build2 (PLUS_EXPR, ptr_type_node, base, size),
-                           integer_one_node);
+      limit = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node,
+			   fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, base,
+					size),
+			   size_int (-1));
       break;
 
     case TARGET_MEM_REF:
       addr = tree_mem_ref_addr (ptr_type_node, t);
       base = addr;
-      limit = fold_build2 (MINUS_EXPR, ptr_type_node,
-			   fold_build2 (PLUS_EXPR, ptr_type_node, base, size),
-			   build_int_cst (ptr_type_node, 1));
+      limit = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node,
+			   fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, base,
+					size),
+			   size_int (-1));
       break;
 
     case ARRAY_RANGE_REF:
@@ -860,7 +873,7 @@ mf_xform_derefs_1 (block_stmt_iterator *iter, tree *tp,
         bpu = bitsize_int (BITS_PER_UNIT);
         ofs = convert (bitsizetype, TREE_OPERAND (t, 2));
         rem = size_binop (TRUNC_MOD_EXPR, ofs, bpu);
-        ofs = size_binop (TRUNC_DIV_EXPR, ofs, bpu);
+        ofs = fold_convert (sizetype, size_binop (TRUNC_DIV_EXPR, ofs, bpu));
 
         size = convert (bitsizetype, TREE_OPERAND (t, 1));
         size = size_binop (PLUS_EXPR, size, rem);
@@ -869,12 +882,13 @@ mf_xform_derefs_1 (block_stmt_iterator *iter, tree *tp,
 
         addr = TREE_OPERAND (TREE_OPERAND (t, 0), 0);
         addr = convert (ptr_type_node, addr);
-        addr = fold_build2 (PLUS_EXPR, ptr_type_node, addr, ofs);
+        addr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, addr, ofs);
 
         base = addr;
-        limit = fold_build2 (MINUS_EXPR, ptr_type_node,
-                             fold_build2 (PLUS_EXPR, ptr_type_node, base, size),
-                             integer_one_node);
+        limit = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node,
+                             fold_build2 (POINTER_PLUS_EXPR, ptr_type_node,
+					   base, size),
+                             size_int (-1));
       }
       break;
 
@@ -1031,7 +1045,8 @@ mx_register_decls (tree decl, tree *stmt_list)
 		     IDENTIFIER_POINTER (DECL_NAME (decl)));
 	  else
 	    {
-	      tsi_link_before (&initially_stmts, register_fncall, TSI_SAME_STMT);
+	      tsi_link_before (&initially_stmts, register_fncall,
+			       TSI_SAME_STMT);
 
 	      /* Accumulate the FINALLY piece.  */
 	      append_to_statement_list (unregister_fncall, &finally_stmts);
@@ -1117,7 +1132,8 @@ mf_mark (tree t)
   void **slot;
 
   if (marked_trees == NULL)
-    marked_trees = htab_create_ggc (31, htab_hash_pointer, htab_eq_pointer, NULL);
+    marked_trees = htab_create_ggc (31, htab_hash_pointer, htab_eq_pointer,
+				    NULL);
 
   slot = htab_find_slot (marked_trees, t, INSERT);
   *slot = t;

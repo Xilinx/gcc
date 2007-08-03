@@ -5,7 +5,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -1262,7 +1261,7 @@ label_rtx_for_bb (basic_block bb)
 
   elt = pointer_map_contains (lab_rtx_for_bb, bb);
   if (elt)
-    return *elt;
+    return (rtx) *elt;
 
   /* Find the tree label if it is present.  */
      
@@ -1281,7 +1280,7 @@ label_rtx_for_bb (basic_block bb)
 
   elt = pointer_map_insert (lab_rtx_for_bb, bb);
   *elt = gen_label_rtx ();
-  return *elt;
+  return (rtx) *elt;
 }
 
 /* A subroutine of expand_gimple_basic_block.  Expand one COND_EXPR.
@@ -1538,7 +1537,7 @@ expand_gimple_basic_block (basic_block bb)
 	}
 
       if (elt)
-	emit_label (*elt);
+	emit_label ((rtx) *elt);
 
       /* Java emits line number notes in the top of labels.
 	 ??? Make this go away once line number notes are obsoleted.  */

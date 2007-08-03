@@ -1,11 +1,11 @@
 /* Dead store elimination
-   Copyright (C) 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -168,7 +167,8 @@ dse_initialize_block_local_data (struct dom_walk_data *walk_data,
 				 bool recycled)
 {
   struct dse_block_local_data *bd
-    = VEC_last (void_p, walk_data->block_data_stack);
+    = (struct dse_block_local_data *)
+	VEC_last (void_p, walk_data->block_data_stack);
 
   /* If we are given a recycled block local data structure, ensure any
      bitmap associated with the block is cleared.  */
@@ -190,7 +190,7 @@ static tree
 memory_ssa_name_same (tree *expr_p, int *walk_subtrees ATTRIBUTE_UNUSED,
 		      void *data)
 {
-  struct address_walk_data *walk_data = data;
+  struct address_walk_data *walk_data = (struct address_walk_data *) data;
   tree expr = *expr_p;
   tree def_stmt;
   basic_block def_bb;
@@ -615,8 +615,10 @@ dse_optimize_stmt (struct dom_walk_data *walk_data,
 		   block_stmt_iterator bsi)
 {
   struct dse_block_local_data *bd
-    = VEC_last (void_p, walk_data->block_data_stack);
-  struct dse_global_data *dse_gd = walk_data->global_data;
+    = (struct dse_block_local_data *)
+	VEC_last (void_p, walk_data->block_data_stack);
+  struct dse_global_data *dse_gd
+    = (struct dse_global_data *) walk_data->global_data;
   tree stmt = bsi_stmt (bsi);
   stmt_ann_t ann = stmt_ann (stmt);
 
@@ -722,8 +724,10 @@ static void
 dse_record_phis (struct dom_walk_data *walk_data, basic_block bb)
 {
   struct dse_block_local_data *bd
-    = VEC_last (void_p, walk_data->block_data_stack);
-  struct dse_global_data *dse_gd = walk_data->global_data;
+    = (struct dse_block_local_data *)
+	VEC_last (void_p, walk_data->block_data_stack);
+  struct dse_global_data *dse_gd
+    = (struct dse_global_data *) walk_data->global_data;
   tree phi;
 
   for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
@@ -738,8 +742,10 @@ dse_finalize_block (struct dom_walk_data *walk_data,
 		    basic_block bb ATTRIBUTE_UNUSED)
 {
   struct dse_block_local_data *bd
-    = VEC_last (void_p, walk_data->block_data_stack);
-  struct dse_global_data *dse_gd = walk_data->global_data;
+    = (struct dse_block_local_data *)
+	VEC_last (void_p, walk_data->block_data_stack);
+  struct dse_global_data *dse_gd
+    = (struct dse_global_data *) walk_data->global_data;
   bitmap stores = dse_gd->stores;
   unsigned int i;
   bitmap_iterator bi;

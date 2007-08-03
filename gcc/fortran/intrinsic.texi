@@ -70,6 +70,11 @@ Some basic guidelines for editing this document:
 * @code{BESYN}:         BESYN,     Bessel function of the second kind
 * @code{BIT_SIZE}:      BIT_SIZE,  Bit size inquiry function
 * @code{BTEST}:         BTEST,     Bit test function
+* @code{C_ASSOCIATED}:  C_ASSOCIATED, Status of a C pointer
+* @code{C_F_POINTER}:   C_F_POINTER, Convert C into Fortran pointer
+* @code{C_F_PROCPOINTER}: C_F_PROCPOINTER, Convert C into Fortran procedure pointer
+* @code{C_FUNLOC}:      C_FUNLOC,  Obtain the C address of a procedure
+* @code{C_LOC}:         C_LOC,     Obtain the C address of an object
 * @code{CEILING}:       CEILING,   Integer ceiling function
 * @code{CHAR}:          CHAR,      Integer-to-character conversion function
 * @code{CHDIR}:         CHDIR,     Change working directory
@@ -309,7 +314,7 @@ which is suitable for debugging purposes.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine
 
 @item @emph{Syntax}:
 @code{CALL ABORT}
@@ -871,7 +876,7 @@ in the array along dimension @var{DIM}.
 F95 and later
 
 @item @emph{Class}:
-transformational function
+Transformational function
 
 @item @emph{Syntax}:
 @code{RESULT = ALL(MASK [, DIM])}
@@ -981,7 +986,7 @@ the use of the @ref{IAND} intrinsic defined by the Fortran standard.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = AND(I, J)}
@@ -1085,7 +1090,7 @@ end program test_anint
 F95 and later
 
 @item @emph{Class}:
-transformational function
+Transformational function
 
 @item @emph{Syntax}:
 @code{RESULT = ANY(MASK [, DIM])}
@@ -1837,6 +1842,271 @@ end program test_btest
 @end table
 
 
+@node C_ASSOCIATED
+@section @code{C_ASSOCIATED} --- Status of a C pointer
+@fnindex C_ASSOCIATED
+@cindex association status, C pointer
+@cindex pointer, C association status
+
+@table @asis
+@item @emph{Description}:
+@code{C_ASSOICATED(c_prt1[, c_ptr2])} determines the status of the C pointer @var{c_ptr1}
+or if @var{c_ptr1} is associated with the target @var{c_ptr2}.
+
+@item @emph{Standard}:
+F2003 and later
+
+@item @emph{Class}:
+Inquiry function
+
+@item @emph{Syntax}:
+@code{RESULT = C_ASSOICATED(c_prt1[, c_ptr2])}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{c_ptr1} @tab Scalar of the type @code{C_PTR} or @code{C_FUNPTR}.
+@item @var{c_ptr2} @tab (Optional) Scalar of the same type as @var{c_ptr1}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{LOGICAL}; it is @code{.false.} if either
+@var{c_ptr1} is a C NULL pointer or if @var{c_ptr1} and @var{c_ptr2}
+point to different addresses.
+
+@item @emph{Example}:
+@smallexample
+subroutine association_test(a,b)
+  use iso_c_binding, only: c_associated, c_loc, c_ptr
+  implicit none
+  real, pointer :: a
+  type(c_ptr) :: b
+  if(c_associated(b, c_loc(a))) &
+     stop 'b and a do not point to same target'
+end subroutine association_test
+@end smallexample
+
+@item @emph{See also}:
+@ref{C_LOC}, @ref{C_FUNLOC}
+@end table
+
+
+@node C_FUNLOC
+@section @code{C_FUNLOC} --- Obtain the C address of a procedure
+@fnindex C_FUNLOC
+@cindex pointer, C address of procedures
+
+@table @asis
+@item @emph{Description}:
+@code{C_FUNLOC(x)} determines the C address of the argument.
+
+@item @emph{Standard}:
+F2003 and later
+
+@item @emph{Class}:
+Inquiry function
+
+@item @emph{Syntax}:
+@code{RESULT = C_FUNLOC(x)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{x} @tab Interoperable function or pointer to such function.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{C_FUNPTR} and contains the C address
+of the argument.
+
+@item @emph{Example}:
+@smallexample
+module x
+  use iso_c_binding
+  implicit none
+contains
+  subroutine sub(a) bind(c)
+    real(c_float) :: a
+    a = sqrt(a)+5.0
+  end subroutine sub
+end module x
+program main
+  use iso_c_binding
+  use x
+  implicit none
+  interface
+    subroutine my_routine(p) bind(c,name='myC_func')
+      import :: c_funptr
+      type(c_funptr), intent(in) :: p
+    end subroutine
+  end interface
+  call my_routine(c_funloc(sub))
+end program main
+@end smallexample
+
+@item @emph{See also}:
+@ref{C_ASSOCIATED}, @ref{C_LOC}, @ref{C_F_POINTER}, @ref{C_F_PROCPOINTER}
+@end table
+
+
+@node C_F_PROCPOINTER
+@section @code{C_F_PROCPOINTER} --- Convert C into Fortran procedure pointer
+@fnindex C_F_PROCPOINTER
+@cindex pointer, C address of pointers
+
+@table @asis
+@item @emph{Description}:
+@code{C_F_PROCPOINTER(cptr, fptr)} Assign the target of the C function pointer
+@var{cptr} to the Fortran procedure pointer @var{fptr}.
+
+Note: Due to the currently lacking support of procedure pointers in GNU Fortran
+this function is not fully operable.
+
+@item @emph{Standard}:
+F2003 and later
+
+@item @emph{Class}:
+Subroutine
+
+@item @emph{Syntax}:
+@code{CALL C_F_PROCPOINTER(cptr, fptr)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{cptr}  @tab scalar of the type @code{C_FUNPTR}. It is
+		       @code{INTENT(IN)}.
+@item @var{fptr}  @tab procedure pointer interoperable with @var{cptr}. It is
+		       @code{INTENT(OUT)}.
+@end multitable
+
+@item @emph{Example}:
+@smallexample
+program main
+  use iso_c_binding
+  implicit none
+  abstract interface
+    function func(a)
+      import :: c_float
+      real(c_float), intent(in) :: a
+      real(c_float) :: func
+    end function
+  end interface
+  interface
+     function getIterFunc() bind(c,name="getIterFunc")
+       import :: c_funptr
+       type(c_funptr) :: getIterFunc
+     end function
+  end interface
+  type(c_funptr) :: cfunptr
+  procedure(func), pointer :: myFunc
+  cfunptr = getIterFunc()
+  call c_f_procpointer(cfunptr, myFunc)
+end program main
+@end smallexample
+
+@item @emph{See also}:
+@ref{C_LOC}, @ref{C_F_POINTER}
+@end table
+
+
+@node C_F_POINTER
+@section @code{C_F_POINTER} --- Convert C into Fortran pointer
+@fnindex C_F_POINTER
+@cindex pointer, convert C to Fortran
+
+@table @asis
+@item @emph{Description}:
+@code{C_F_POINTER(cptr, fptr[, shape])} Assign the target the C pointer
+@var{cptr} to the Fortran pointer @var{fptr} and specify its
+shape.
+
+@item @emph{Standard}:
+F2003 and later
+
+@item @emph{Class}:
+Subroutine
+
+@item @emph{Syntax}:
+@code{CALL C_F_POINTER(cptr, fptr[, shape])}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{cptr}  @tab scalar of the type @code{C_PTR}. It is
+		       @code{INTENT(IN)}.
+@item @var{fptr}  @tab pointer interoperable with @var{cptr}. It is
+		       @code{INTENT(OUT)}.
+@item @var{shape} @tab (Optional) Rank-one array of type @code{INTEGER}
+                       with @code{INTENT(IN)}. It shall be present
+		       if and only if @var{fptr} is an array. The size
+		       must be equal to the rank of @var{fptr}.
+@end multitable
+
+@item @emph{Example}:
+@smallexample
+program main
+  use iso_c_binding
+  implicit none
+  interface
+    subroutine my_routine(p) bind(c,name='myC_func')
+      import :: c_ptr
+      type(c_ptr), intent(out) :: p
+    end subroutine
+  end interface
+  type(c_ptr) :: cptr
+  real,pointer :: a(:)
+  call my_routine(cptr)
+  call c_f_pointer(cptr, a, [12])
+end program main
+@end smallexample
+
+@item @emph{See also}:
+@ref{C_LOC}, @ref{C_F_PROCPOINTER}
+@end table
+
+
+@node C_LOC
+@section @code{C_LOC} --- Obtain the C address of an object
+@fnindex C_LOC
+@cindex procedure pointer, convert C to Fortran
+
+@table @asis
+@item @emph{Description}:
+@code{C_LOC(x)} determines the C address of the argument.
+
+@item @emph{Standard}:
+F2003 and later
+
+@item @emph{Class}:
+Inquiry function
+
+@item @emph{Syntax}:
+@code{RESULT = C_LOC(x)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{x} @tab Associated scalar pointer or interoperable scalar
+		   or allocated allocatable variable with @code{TARGET}
+		   attribute.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{C_PTR} and contains the C address
+of the argument.
+
+@item @emph{Example}:
+@smallexample
+subroutine association_test(a,b)
+  use iso_c_binding, only: c_associated, c_loc, c_ptr
+  implicit none
+  real, pointer :: a
+  type(c_ptr) :: b
+  if(c_associated(b, c_loc(a))) &
+     stop 'b and a do not point to same target'
+end subroutine association_test
+@end smallexample
+
+@item @emph{See also}:
+@ref{C_ASSOCIATED}, @ref{C_FUNLOC}, @ref{C_F_POINTER}, @ref{C_F_PROCPOINTER}
+@end table
+
 
 @node CEILING
 @section @code{CEILING} --- Integer ceiling function
@@ -1951,7 +2221,7 @@ only one form can be used in any given program unit.
 GNU extension
 
 @item @emph{Class}:
-Subroutine, non-elemental function
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -1965,7 +2235,7 @@ Subroutine, non-elemental function
                         specify a valid path within the file system.
 @item @var{STATUS} @tab (Optional) @code{INTEGER} status flag of the default
                         kind.  Returns 0 on success, and a system specific
-                        and non-zero error code otherwise.
+                        and nonzero error code otherwise.
 @end multitable
 
 @item @emph{Example}:
@@ -2003,7 +2273,7 @@ only one form can be used in any given program unit.
 GNU extension
 
 @item @emph{Class}:
-Subroutine, non-elemental function
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -2023,11 +2293,11 @@ used as the file name.
 @code{/bin/chmod}.
 
 @item @var{STATUS} @tab (optional) scalar @code{INTEGER}, which is
-@code{0} on success and non-zero otherwise.
+@code{0} on success and nonzero otherwise.
 @end multitable
 
 @item @emph{Return value}:
-In either syntax, @var{STATUS} is set to @code{0} on success and non-zero
+In either syntax, @var{STATUS} is set to @code{0} on success and nonzero
 otherwise.
 
 @item @emph{Example}:
@@ -2040,7 +2310,7 @@ program chmod_test
   print *, 'Status: ', status
 end program chmod_test
 @end smallexample
-@code{CHMOD} as non-elemental function:
+@code{CHMOD} as function:
 @smallexample
 program chmod_test
   implicit none
@@ -2382,7 +2652,7 @@ range of @math{1 /leq DIM /leq n)} where @math{n} is the rank of @var{MASK}.
 F95 and later
 
 @item @emph{Class}:
-transformational function
+Transformational function
 
 @item @emph{Syntax}:
 @code{RESULT = COUNT(MASK [, DIM])}
@@ -2544,7 +2814,7 @@ only one form can be used in any given program unit.
 GNU extension
 
 @item @emph{Class}:
-Subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -2902,7 +3172,7 @@ vectors are @code{LOGICAL}, the result is @code{ANY(X.AND.Y)}.
 F95 and later
 
 @item @emph{Class}:
-transformational function
+Transformational function
 
 @item @emph{Syntax}:
 @code{RESULT = DOT_PRODUCT(X, Y)}
@@ -3040,8 +3310,8 @@ sufficiently small limits that overflows (wrap around) are possible, such as
 become, negative, or numerically less than previous values, during a single
 run of the compiled program.
 
-If @code{DTIME} is invoked as a function, it can not be invoked as a
-subroutine, and vice versa.
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
 
 @var{TARRAY} and @var{RESULT} are @code{INTENT(OUT)} and provide the following:
 
@@ -3055,7 +3325,7 @@ subroutine, and vice versa.
 GNU extension
 
 @item @emph{Class}:
-Subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -3305,8 +3575,8 @@ sufficiently small limits that overflows (wrap around) are possible, such as
 become, negative, or numerically less than previous values, during a single
 run of the compiled program.
 
-If @code{ETIME} is invoked as a function, it can not be invoked as a
-subroutine, and vice versa.
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
 
 @var{TARRAY} and @var{RESULT} are @code{INTENT(OUT)} and provide the following:
 
@@ -3320,7 +3590,7 @@ subroutine, and vice versa.
 GNU extension
 
 @item @emph{Class}:
-Subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -3516,8 +3786,8 @@ end program test_exponent
 @code{CTIME}) in @var{DATE}. It is equivalent to @code{CALL CTIME(DATE,
 TIME())}.
 
-If @code{FDATE} is invoked as a function, it can not be invoked as a
-subroutine, and vice versa.
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
 
 @var{DATE} is an @code{INTENT(OUT)} @code{CHARACTER} variable.
 
@@ -3525,7 +3795,7 @@ subroutine, and vice versa.
 GNU extension
 
 @item @emph{Class}:
-Subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -3612,7 +3882,10 @@ Read a single character in stream mode from stdin by bypassing normal
 formatted output. Stream I/O should not be mixed with normal record-oriented 
 (formatted or unformatted) I/O on the same unit; the results are unpredictable.
 
-This intrinsic routine is provided for backwards compatibility with 
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
+
+Note that the @code{FGET} intrinsic is provided for backwards compatibility with 
 @command{g77}.  GNU Fortran provides the Fortran 2003 Stream facility.
 Programmers should consider the use of new stream IO feature in new code 
 for future portability. See also @ref{Fortran 2003 status}.
@@ -3621,7 +3894,7 @@ for future portability. See also @ref{Fortran 2003 status}.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @code{CALL FGET(C [, STATUS])}
@@ -3670,8 +3943,11 @@ Read a single character in stream mode by bypassing normal formatted output.
 Stream I/O should not be mixed with normal record-oriented (formatted or 
 unformatted) I/O on the same unit; the results are unpredictable.
 
-This intrinsic routine is provided for backwards compatibility with 
-@command{g77}.  GNU Fortran provides the Fortran 2003 Stream facility.
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
+
+Note that the @code{FGET} intrinsic is provided for backwards compatibility
+with @command{g77}.  GNU Fortran provides the Fortran 2003 Stream facility.
 Programmers should consider the use of new stream IO feature in new code 
 for future portability. See also @ref{Fortran 2003 status}.
 
@@ -3679,7 +3955,7 @@ for future portability. See also @ref{Fortran 2003 status}.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @code{CALL FGETC(UNIT, C [, STATUS])}
@@ -3775,7 +4051,7 @@ argument, all units are flushed, otherwise just the unit specified.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine
 
 @item @emph{Syntax}:
 @code{CALL FLUSH(UNIT)}
@@ -3807,7 +4083,7 @@ open Fortran I/O unit @code{UNIT}.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = FNUM(UNIT)}
@@ -3847,7 +4123,10 @@ Write a single character in stream mode to stdout by bypassing normal
 formatted output. Stream I/O should not be mixed with normal record-oriented 
 (formatted or unformatted) I/O on the same unit; the results are unpredictable.
 
-This intrinsic routine is provided for backwards compatibility with 
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
+
+Note that the @code{FGET} intrinsic is provided for backwards compatibility with 
 @command{g77}.  GNU Fortran provides the Fortran 2003 Stream facility.
 Programmers should consider the use of new stream IO feature in new code 
 for future portability. See also @ref{Fortran 2003 status}.
@@ -3856,7 +4135,7 @@ for future portability. See also @ref{Fortran 2003 status}.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @code{CALL FPUT(C [, STATUS])}
@@ -3898,7 +4177,10 @@ Write a single character in stream mode by bypassing normal formatted
 output. Stream I/O should not be mixed with normal record-oriented 
 (formatted or unformatted) I/O on the same unit; the results are unpredictable.
 
-This intrinsic routine is provided for backwards compatibility with 
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
+
+Note that the @code{FGET} intrinsic is provided for backwards compatibility with 
 @command{g77}.  GNU Fortran provides the Fortran 2003 Stream facility.
 Programmers should consider the use of new stream IO feature in new code 
 for future portability. See also @ref{Fortran 2003 status}.
@@ -3907,7 +4189,7 @@ for future portability. See also @ref{Fortran 2003 status}.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @code{CALL FPUTC(UNIT, C [, STATUS])}
@@ -4035,7 +4317,7 @@ Moves @var{UNIT} to the specified @var{OFFSET}. If @var{WHENCE}
 is set to 0, the @var{OFFSET} is taken as an absolute value @code{SEEK_SET},
 if set to 1, @var{OFFSET} is taken to be relative to the current position 
 @code{SEEK_CUR}, and if set to 2 relative to the end of the file @code{SEEK_END}.
-On error, @var{STATUS} is set to a non-zero value. If @var{STATUS} the seek 
+On error, @var{STATUS} is set to a nonzero value. If @var{STATUS} the seek 
 fails silently.
 
 This intrinsic routine is not fully backwards compatible with @command{g77}. 
@@ -4116,11 +4398,14 @@ already opened file is obtained.
 
 The elements in @code{BUFF} are the same as described by @ref{STAT}.
 
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
+
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @code{CALL FSTAT(UNIT, BUFF [, STATUS])}
@@ -4401,11 +4686,14 @@ END PROGRAM
 @item @emph{Description}:
 Get current working directory.
 
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
+
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine.
+Subroutine, function
 
 @item @emph{Syntax}:
 @code{CALL GETCWD(CWD [, STATUS])}
@@ -4414,7 +4702,7 @@ Non-elemental subroutine.
 @multitable @columnfractions .15 .70
 @item @var{CWD}    @tab The type shall be @code{CHARACTER(*)}.
 @item @var{STATUS} @tab (Optional) status flag. Returns 0 on success, 
-                        a system specific and non-zero error code otherwise.
+                        a system specific and nonzero error code otherwise.
 @end multitable
 
 @item @emph{Example}:
@@ -4535,7 +4823,7 @@ Returns the numerical group ID of the current process.
 GNU extension
 
 @item @emph{Class}:
-function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = GETGID()}
@@ -4613,7 +4901,7 @@ Returns the numerical process identifier of the current process.
 GNU extension
 
 @item @emph{Class}:
-function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = GETPID()}
@@ -4652,7 +4940,7 @@ Returns the numerical user ID of the current process.
 GNU extension
 
 @item @emph{Class}:
-function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = GETUID()}
@@ -4922,7 +5210,7 @@ standard.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental Function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = IARGC()}
@@ -5224,7 +5512,7 @@ function.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = IERRNO()}
@@ -5476,11 +5764,16 @@ in the current sequence is returned; if @var{FLAG} is 1, the generator
 is restarted by @code{CALL SRAND(0)}; if @var{FLAG} has any other value,
 it is used as a new seed with @code{SRAND}.
 
+This intrinsic routine is provided for backwards compatibility with
+GNU Fortran 77. It implements a simple modulo generator as provided 
+by @command{g77}. For new code, one should consider the use of 
+@ref{RANDOM_NUMBER} as it implements a superior algorithm.
+
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = IRAND(FLAG)}
@@ -5521,7 +5814,7 @@ Determine whether a unit is connected to a terminal device.
 GNU extension.
 
 @item @emph{Class}:
-Non-elemental function.
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = ISATTY(UNIT)}
@@ -5690,8 +5983,11 @@ end program test_itime
 Sends the signal specified by @var{SIGNAL} to the process @var{PID}.
 See @code{kill(2)}.
 
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
+
 @item @emph{Class}:
-Subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @code{CALL KILL(PID, SIGNAL [, STATUS])}
@@ -5977,7 +6273,7 @@ however, only one form can be used in any given program unit.
 GNU extension
 
 @item @emph{Class}:
-Subroutine, non-elemental function
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -6398,11 +6694,14 @@ then the link itself is statted, not the file that it refers to.
 
 The elements in @code{BUFF} are the same as described by @ref{STAT}.
 
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
+
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @code{CALL LSTAT(FILE, BUFF [, STATUS])}
@@ -6495,7 +6794,7 @@ using Fortran 95 pointers, the memory allocation intrinsic is
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{PTR = MALLOC(SIZE)}
@@ -6818,7 +7117,7 @@ compiled program.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = MCLOCK()}
@@ -6858,7 +7157,7 @@ less than previous values during a single run of the compiled program.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = MCLOCK8()}
@@ -7555,7 +7854,7 @@ the use of the @ref{IOR} intrinsic defined by the Fortran standard.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = OR(X, Y)}
@@ -7632,7 +7931,7 @@ If @var{VECTOR} is present, the result size is that of @var{VECTOR}, the
 number of @code{TRUE} values in @var{MASK} otherwise.
 
 @item @emph{Example}:
-Gathering non-zero elements from an array:
+Gathering nonzero elements from an array:
 @smallexample
 PROGRAM test_pack_1
   INTEGER :: m(6)
@@ -7641,7 +7940,7 @@ PROGRAM test_pack_1
 END PROGRAM
 @end smallexample
 
-Gathering non-zero elements from an array and appending elements from @var{VECTOR}:
+Gathering nonzero elements from an array and appending elements from @var{VECTOR}:
 @smallexample
 PROGRAM test_pack_2
   INTEGER :: m(4)
@@ -7885,7 +8184,7 @@ documentation.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{See also}:
 @ref{RAND}, @ref{RANDOM_NUMBER}
@@ -7906,11 +8205,16 @@ in the current sequence is returned; if @var{FLAG} is 1, the generator
 is restarted by @code{CALL SRAND(0)}; if @var{FLAG} has any other value,
 it is used as a new seed with @code{SRAND}.
 
+This intrinsic routine is provided for backwards compatibility with
+GNU Fortran 77. It implements a simple modulo generator as provided 
+by @command{g77}. For new code, one should consider the use of 
+@ref{RANDOM_NUMBER} as it implements a superior algorithm.
+
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = RAND(FLAG)}
@@ -7951,6 +8255,24 @@ end program test_rand
 Returns a single pseudorandom number or an array of pseudorandom numbers
 from the uniform distribution over the range @math{ 0 \leq x < 1}.
 
+The runtime-library implements George Marsaglia's KISS (Keep It Simple 
+Stupid) random number generator (RNG). This RNG combines:
+@enumerate
+@item The congruential generator @math{x(n) = 69069 \cdot x(n-1) + 1327217885}
+with a period of @math{2^{32}},
+@item A 3-shift shift-register generator with a period of @math{2^{32} - 1},
+@item  Two 16-bit multiply-with-carry generators with a period of
+@math{597273182964842497 > 2^{59}}.
+@end enumerate
+The overall period exceeds @math{2^{123}}.
+
+Please note, this RNG is thread safe if used within OpenMP directives,
+i. e. its state will be consistent while called from multiple threads.
+However, the KISS generator does not create random numbers in parallel 
+from multiple sources, but in sequence from a single source. If an
+OpenMP-enabled application heavily relies on random numbers, one should 
+consider employing a dedicated parallel random number generator instead.
+
 @item @emph{Standard}:
 F95 and later
 
@@ -7973,15 +8295,6 @@ program test_random_number
   CALL RANDOM_NUMBER(r)
 end program
 @end smallexample
-
-@item @emph{Note}:
-The implemented random number generator is thread safe if used within
-OpenMP directives, i. e. its state will be consistent while called from
-multiple threads. Please note that the currently implemented KISS generator 
-does not create random numbers in parallel from multiple sources, but in
-sequence from a single source. If your OpenMP-enabled application heavily
-relies on random numbers, you should consider employing a dedicated parallel
-random number generator instead.
 
 @item @emph{See also}:
 @ref{RANDOM_SEED}
@@ -8173,7 +8486,7 @@ however, only one form can be used in any given program unit.
 GNU extension
 
 @item @emph{Class}:
-Subroutine, non-elemental function
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -8477,7 +8790,7 @@ use is discouraged.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = SECNDS (X)}
@@ -8528,7 +8841,7 @@ however, only one form can be used in any given program unit.
 GNU extension
 
 @item @emph{Class}:
-Subroutine, non-elemental function
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -8826,7 +9139,7 @@ is supplied, it is set to the value returned by @code{signal(2)}.
 GNU extension
 
 @item @emph{Class}:
-Subroutine, non-elemental function
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -9289,7 +9602,7 @@ generator is specified by the required argument @var{SEED}.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine
 
 @item @emph{Syntax}:
 @code{CALL SRAND(SEED)}
@@ -9352,12 +9665,14 @@ The elements that are obtained and stored in the array @code{BUFF}:
 Not all these elements are relevant on all systems. 
 If an element is not relevant, it is returned as 0.
 
+This intrinsic is provided in both subroutine and function forms; however,
+only one form can be used in any given program unit.
 
 @item @emph{Standard}:
 GNU extension
 
 @item @emph{Class}:
-Non-elemental subroutine
+Subroutine, function
 
 @item @emph{Syntax}:
 @code{CALL STAT(FILE,BUFF[,STATUS])}
@@ -9482,7 +9797,7 @@ however, only one form can be used in any given program unit.
 GNU extension
 
 @item @emph{Class}:
-Subroutine, non-elemental function
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -9524,7 +9839,7 @@ however, only one form can be used in any given program unit.
 GNU extension
 
 @item @emph{Class}:
-Subroutine, non-elemental function
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -9720,7 +10035,7 @@ compilers.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = TIME()}
@@ -9759,7 +10074,7 @@ less than previous values during a single run of the compiled program.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = TIME8()}
@@ -9962,7 +10277,7 @@ however, only one form can be used in any given program unit.
 GNU extension
 
 @item @emph{Class}:
-Subroutine, non-elemental function
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -10081,7 +10396,7 @@ however, only one form can be used in any given program unit.
 GNU extension
 
 @item @emph{Class}:
-Subroutine, non-elemental function
+Subroutine, function
 
 @item @emph{Syntax}:
 @multitable @columnfractions .80
@@ -10174,7 +10489,7 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{RESULT = VERFIY(STRING, SET[, BACK])}
+@code{RESULT = VERIFY(STRING, SET[, BACK])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -10222,7 +10537,7 @@ the use of the @ref{IEOR} intrinsic defined by the Fortran standard.
 GNU extension
 
 @item @emph{Class}:
-Non-elemental function
+Function
 
 @item @emph{Syntax}:
 @code{RESULT = XOR(X, Y)}

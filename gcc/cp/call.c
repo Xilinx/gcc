@@ -9,7 +9,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -18,9 +18,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* High-level class interface.  */
@@ -1160,7 +1159,7 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
      DR391. */
   if (compatible_p
       && (lvalue_p
-	  || (flag_cpp0x
+	  || ((cxx_dialect != cxx98)
 	      && (CP_TYPE_CONST_NON_VOLATILE_P(to) || TYPE_REF_IS_RVALUE (rto))
 	      && CLASS_TYPE_P (from))))
     {
@@ -4062,8 +4061,12 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
    GLOBAL_P is true if the delete-expression should not consider
    class-specific delete operators.
    PLACEMENT is the corresponding placement new call, or NULL_TREE.
-   If PLACEMENT is non-NULL, then ALLOC_FN is the allocation function
-   called to perform the placement new.  */
+
+   If this call to "operator delete" is being generated as part to
+   deallocate memory allocated via a new-expression (as per [expr.new]
+   which requires that if the initialization throws an exception then
+   we call a deallocation function), then ALLOC_FN is the allocation
+   function.  */
 
 tree
 build_op_delete_call (enum tree_code code, tree addr, tree size,
@@ -4151,9 +4154,13 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	      if (!a && !t)
 		break;
 	    }
-	  /* On the second pass, the second argument must be
-	     "size_t".  */
+	  /* On the second pass, look for a function with exactly two
+	     arguments: "void *" and "size_t".  */
 	  else if (pass == 1
+		   /* For "operator delete(void *, ...)" there will be
+		      no second argument, but we will not get an exact
+		      match above.  */
+		   && t
 		   && same_type_p (TREE_VALUE (t), size_type_node)
 		   && TREE_CHAIN (t) == void_list_node)
 	    break;
@@ -4201,10 +4208,18 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	}
     }
 
-  /* If we are doing placement delete we do nothing if we don't find a
-     matching op delete.  */
-  if (placement)
-    return NULL_TREE;
+  /* [expr.new]
+
+     If no unambiguous matching deallocation function can be found,
+     propagating the exception does not cause the object's memory to
+     be freed.  */
+  if (alloc_fn)
+    {
+      if (!placement)
+	warning (0, "no corresponding deallocation function for `%D'", 
+		 alloc_fn);
+      return NULL_TREE;
+    }
 
   error ("no suitable %<operator %s%> for %qT",
 	 operator_name_info[(int)code].name, type);
@@ -4358,22 +4373,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
       {
 	struct z_candidate *cand = convs->cand;
 	tree convfn = cand->fn;
-	tree args;
 
-	if (DECL_CONSTRUCTOR_P (convfn))
-	  {
-	    tree t = build_int_cst (build_pointer_type (DECL_CONTEXT (convfn)),
-				    0);
-
-	    args = build_tree_list (NULL_TREE, expr);
-	    /* We should never try to call the abstract or base constructor
-	       from here.  */
-	    gcc_assert (!DECL_HAS_IN_CHARGE_PARM_P (convfn)
-			&& !DECL_HAS_VTT_PARM_P (convfn));
-	    args = tree_cons (NULL_TREE, t, args);
-	  }
-	else
-	  args = build_this (expr);
 	expr = build_over_call (cand, LOOKUP_NORMAL);
 
 	/* If this is a constructor or a function returning an aggr type,
@@ -4751,7 +4751,27 @@ type_passed_as (tree type)
 tree
 convert_for_arg_passing (tree type, tree val)
 {
-  val = convert_bitfield_to_declared_type (val);
+  tree bitfield_type;
+
+  /* If VAL is a bitfield, then -- since it has already been converted
+     to TYPE -- it cannot have a precision greater than TYPE.  
+
+     If it has a smaller precision, we must widen it here.  For
+     example, passing "int f:3;" to a function expecting an "int" will
+     not result in any conversion before this point.
+
+     If the precision is the same we must not risk widening.  For
+     example, the COMPONENT_REF for a 32-bit "long long" bitfield will
+     often have type "int", even though the C++ type for the field is
+     "long long".  If the value is being passed to a function
+     expecting an "int", then no conversions will be required.  But,
+     if we call convert_bitfield_to_declared_type, the bitfield will
+     be converted to "long long".  */
+  bitfield_type = is_bitfield_expr_with_lowered_type (val);
+  if (bitfield_type 
+      && TYPE_PRECISION (TREE_TYPE (val)) < TYPE_PRECISION (type))
+    val = convert_to_integer (TYPE_MAIN_VARIANT (bitfield_type), val);
+
   if (val == error_mark_node)
     ;
   /* Pass classes with copy ctors by invisible reference.  */
@@ -4795,6 +4815,8 @@ magic_varargs_p (tree fn)
 	return true;
 
       default:;
+	return lookup_attribute ("type generic",
+				 TYPE_ATTRIBUTES (TREE_TYPE (fn))) != 0;
       }
 
   return false;
@@ -5336,7 +5358,7 @@ build_special_member_call (tree instance, tree name, tree args,
 		    current_vtt_parm,
 		    vtt);
       gcc_assert (BINFO_SUBVTT_INDEX (binfo));
-      sub_vtt = build2 (PLUS_EXPR, TREE_TYPE (vtt), vtt,
+      sub_vtt = build2 (POINTER_PLUS_EXPR, TREE_TYPE (vtt), vtt,
 			BINFO_SUBVTT_INDEX (binfo));
 
       args = tree_cons (NULL_TREE, sub_vtt, args);

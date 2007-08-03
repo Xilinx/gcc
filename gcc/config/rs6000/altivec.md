@@ -1,12 +1,13 @@
 ;; AltiVec patterns.
-;; Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+;; Free Software Foundation, Inc.
 ;; Contributed by Aldy Hernandez (aldy@quesejoda.com)
 
 ;; This file is part of GCC.
 
 ;; GCC is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published
-;; by the Free Software Foundation; either version 2, or (at your
+;; by the Free Software Foundation; either version 3, or (at your
 ;; option) any later version.
 
 ;; GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +16,8 @@
 ;; License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to the
-;; Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
-;; MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 (define_constants
   [(UNSPEC_VCMPBFP       50)
@@ -147,6 +147,10 @@
    (UNSPEC_VPERMHI	321)
    (UNSPEC_INTERHI      322)
    (UNSPEC_INTERLO      323)
+   (UNSPEC_VUPKHS_V4SF   324)
+   (UNSPEC_VUPKLS_V4SF   325)
+   (UNSPEC_VUPKHU_V4SF   326)
+   (UNSPEC_VUPKLU_V4SF   327)
 ])
 
 (define_constants
@@ -2931,5 +2935,61 @@
   "
 {
   emit_insn (gen_altivec_vmrgl<VI_char> (operands[0], operands[1], operands[2]));
+  DONE;
+}")
+
+(define_expand "vec_unpacks_float_hi_v8hi"
+ [(set (match_operand:V4SF 0 "register_operand" "")
+        (unspec:V4SF [(match_operand:V8HI 1 "register_operand" "")]
+                     UNSPEC_VUPKHS_V4SF))]
+  "TARGET_ALTIVEC"
+  "
+{
+  rtx tmp = gen_reg_rtx (V4SImode);
+
+  emit_insn (gen_vec_unpacks_hi_v8hi (tmp, operands[1]));
+  emit_insn (gen_altivec_vcfsx (operands[0], tmp, const0_rtx));
+  DONE;
+}")
+
+(define_expand "vec_unpacks_float_lo_v8hi"
+ [(set (match_operand:V4SF 0 "register_operand" "")
+        (unspec:V4SF [(match_operand:V8HI 1 "register_operand" "")]
+                     UNSPEC_VUPKLS_V4SF))]
+  "TARGET_ALTIVEC"
+  "
+{
+  rtx tmp = gen_reg_rtx (V4SImode);
+
+  emit_insn (gen_vec_unpacks_lo_v8hi (tmp, operands[1]));
+  emit_insn (gen_altivec_vcfsx (operands[0], tmp, const0_rtx));
+  DONE;
+}")
+
+(define_expand "vec_unpacku_float_hi_v8hi"
+ [(set (match_operand:V4SF 0 "register_operand" "")
+        (unspec:V4SF [(match_operand:V8HI 1 "register_operand" "")]
+                     UNSPEC_VUPKHU_V4SF))]
+  "TARGET_ALTIVEC"
+  "
+{
+  rtx tmp = gen_reg_rtx (V4SImode);
+
+  emit_insn (gen_vec_unpacku_hi_v8hi (tmp, operands[1]));
+  emit_insn (gen_altivec_vcfux (operands[0], tmp, const0_rtx));
+  DONE;
+}")
+
+(define_expand "vec_unpacku_float_lo_v8hi"
+ [(set (match_operand:V4SF 0 "register_operand" "")
+        (unspec:V4SF [(match_operand:V8HI 1 "register_operand" "")]
+                     UNSPEC_VUPKLU_V4SF))]
+  "TARGET_ALTIVEC"
+  "
+{
+  rtx tmp = gen_reg_rtx (V4SImode);
+
+  emit_insn (gen_vec_unpacku_lo_v8hi (tmp, operands[1]));
+  emit_insn (gen_altivec_vcfux (operands[0], tmp, const0_rtx));
   DONE;
 }")

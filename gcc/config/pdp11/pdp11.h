@@ -1,13 +1,13 @@
 /* Definitions of target machine for GNU compiler, for the pdp-11
-   Copyright (C) 1994, 1995, 1996, 1998, 1999, 2000, 2001, 2002, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1994, 1995, 1996, 1998, 1999, 2000, 2001, 2002, 2004, 2005,
+   2006, 2007 Free Software Foundation, Inc.
    Contributed by Michael K. Gschwind (mike@vlsivie.tuwien.ac.at).
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #define CONSTANT_POOL_BEFORE_FUNCTION	0
 
@@ -566,10 +565,10 @@ extern int may_call_alloca;
   int offset, regno;		      				\
   offset = get_frame_size();					\
   for (regno = 0; regno < 8; regno++)				\
-    if (regs_ever_live[regno] && ! call_used_regs[regno])	\
+    if (df_regs_ever_live_p (regno) && ! call_used_regs[regno])	\
       offset += 2;						\
   for (regno = 8; regno < 14; regno++)				\
-    if (regs_ever_live[regno] && ! call_used_regs[regno])	\
+    if (df_regs_ever_live_p (regno) && ! call_used_regs[regno])	\
       offset += 8;						\
   /* offset -= 2;   no fp on stack frame */			\
   (DEPTH_VAR) = offset;						\

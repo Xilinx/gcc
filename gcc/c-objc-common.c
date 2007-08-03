@@ -1,11 +1,11 @@
 /* Some code common to C and ObjC front ends.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -73,9 +72,9 @@ c_cannot_inline_tree_fn (tree *fnp)
 		     && DECL_INLINE (fn)
 		     && DECL_DECLARED_INLINE_P (fn)
 		     && !DECL_IN_SYSTEM_HEADER (fn));
+  tree always_inline = lookup_attribute ("always_inline", DECL_ATTRIBUTES (fn));
 
-  if (flag_really_no_inline
-      && lookup_attribute ("always_inline", DECL_ATTRIBUTES (fn)) == NULL)
+  if (flag_really_no_inline && always_inline == NULL)
     {
       if (do_warning)
 	warning (OPT_Winline, "function %q+F can never be inlined because it "
@@ -85,7 +84,9 @@ c_cannot_inline_tree_fn (tree *fnp)
 
   /* Don't auto-inline anything that might not be bound within
      this unit of translation.  */
-  if (!DECL_DECLARED_INLINE_P (fn) && !targetm.binds_local_p (fn))
+  if (always_inline == NULL
+      && !DECL_DECLARED_INLINE_P (fn)
+      && !targetm.binds_local_p (fn))
     {
       if (do_warning)
 	warning (OPT_Winline, "function %q+F can never be inlined because it "
@@ -245,7 +246,7 @@ c_initialize_diagnostics (diagnostic_context *context)
 int
 c_types_compatible_p (tree x, tree y)
 {
-    return comptypes (TYPE_MAIN_VARIANT (x), TYPE_MAIN_VARIANT (y));
+  return comptypes (TYPE_MAIN_VARIANT (x), TYPE_MAIN_VARIANT (y));
 }
 
 /* Determine if the type is a vla type for the backend.  */

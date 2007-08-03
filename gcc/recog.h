@@ -1,12 +1,12 @@
 /* Declarations for interface to insn recognizer and insn-output.c.
-   Copyright (C) 1987, 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1987, 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004,
+   2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Random number that should be large enough for all purposes.  */
 #define MAX_RECOG_ALTERNATIVES 30
@@ -73,7 +72,8 @@ extern void init_recog (void);
 extern void init_recog_no_volatile (void);
 extern int check_asm_operands (rtx);
 extern int asm_operand_ok (rtx, const char *);
-extern int validate_change (rtx, rtx *, rtx, int);
+extern bool validate_change (rtx, rtx *, rtx, bool);
+extern bool validate_unshare_change (rtx, rtx *, rtx, bool);
 extern bool canonicalize_change_group (rtx insn, rtx x);
 extern int insn_invalid_p (rtx);
 extern int verify_changes (int);
@@ -94,7 +94,6 @@ extern int num_changes_pending (void);
 extern int next_insn_tests_no_inequality (rtx);
 #endif
 extern int reg_fits_class_p (rtx, enum reg_class, int, enum machine_mode);
-extern rtx *find_single_use (rtx, rtx, rtx *);
 
 extern int offsettable_memref_p (rtx);
 extern int offsettable_nonstrict_memref_p (rtx);

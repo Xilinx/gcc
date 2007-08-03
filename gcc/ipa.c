@@ -1,11 +1,11 @@
 /* Basic IPA optimizations and utilities.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.  
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.  
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -58,7 +57,7 @@ cgraph_postorder (struct cgraph_node **order)
 	  {
 	    while (node2->aux != &last)
 	      {
-		edge = node2->aux;
+		edge = (struct cgraph_edge *) node2->aux;
 		if (edge->next_caller)
 		  node2->aux = edge->next_caller;
 		else
@@ -98,7 +97,7 @@ cgraph_postorder (struct cgraph_node **order)
 bool
 cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 {
-  struct cgraph_node *first = (void *) 1;
+  struct cgraph_node *first = (struct cgraph_node *) (void *) 1;
   struct cgraph_node *node, *next;
   bool changed = false;
   int insns = 0;
@@ -131,7 +130,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
     {
       struct cgraph_edge *e;
       node = first;
-      first = first->aux;
+      first = (struct cgraph_node *) first->aux;
 
       for (e = node->callees; e; e = e->next_callee)
 	if (!e->callee->aux

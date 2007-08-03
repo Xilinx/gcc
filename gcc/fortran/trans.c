@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -266,7 +265,15 @@ gfc_build_addr_expr (tree type, tree t)
       && TREE_CODE (base_type) == ARRAY_TYPE
       && TYPE_MAIN_VARIANT (TREE_TYPE (type))
 	 == TYPE_MAIN_VARIANT (TREE_TYPE (base_type)))
-    natural_type = type;
+    {
+      tree min_val = size_zero_node;
+      tree type_domain = TYPE_DOMAIN (base_type);
+      if (type_domain && TYPE_MIN_VALUE (type_domain))
+        min_val = TYPE_MIN_VALUE (type_domain);
+      t = build4 (ARRAY_REF, TREE_TYPE (type), t, min_val,
+		  NULL_TREE, NULL_TREE);
+      natural_type = type;
+    }
   else
     natural_type = build_pointer_type (base_type);
 

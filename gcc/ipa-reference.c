@@ -1,12 +1,12 @@
 /* Callgraph based analysis of static variables.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,10 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  
-*/
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file gathers information about how variables whose scope is
    confined to the compilation unit are used.  
@@ -475,7 +473,7 @@ scan_for_static_refs (tree *tp,
 		      int *walk_subtrees, 
 		      void *data)
 {
-  struct cgraph_node *fn = data;
+  struct cgraph_node *fn = (struct cgraph_node *) data;
   tree t = *tp;
   ipa_reference_local_vars_info_t local = NULL;
   if (fn)
@@ -692,7 +690,7 @@ merge_callee_local_info (struct cgraph_node *target,
     get_reference_vars_info_from_cgraph (target)->local;
 
   /* Make the world safe for tail recursion.  */
-  struct ipa_dfs_info *node_info = x->aux;
+  struct ipa_dfs_info *node_info = (struct ipa_dfs_info *) x->aux;
   
   if (node_info->aux) 
     return;
@@ -787,9 +785,9 @@ static void
 analyze_function (struct cgraph_node *fn)
 {
   ipa_reference_vars_info_t info 
-    = xcalloc (1, sizeof (struct ipa_reference_vars_info_d));
+    = XCNEW (struct ipa_reference_vars_info_d);
   ipa_reference_local_vars_info_t l
-    = xcalloc (1, sizeof (struct ipa_reference_local_vars_info_d));
+    = XCNEW (struct ipa_reference_local_vars_info_d);
   tree decl = fn->decl;
 
   /* Add the info to the tree's annotation.  */
@@ -908,8 +906,8 @@ static_execute (void)
   struct varpool_node *vnode;
   struct cgraph_node *w;
   struct cgraph_node **order =
-    xcalloc (cgraph_n_nodes, sizeof (struct cgraph_node *));
-  int order_pos = order_pos = ipa_utils_reduced_inorder (order, false, true);
+    XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
+  int order_pos = ipa_utils_reduced_inorder (order, false, true);
   int i;
 
   ipa_init ();
@@ -1080,7 +1078,7 @@ static_execute (void)
     {
       ipa_reference_vars_info_t node_info;
       ipa_reference_global_vars_info_t node_g = 
-	xcalloc (1, sizeof (struct ipa_reference_global_vars_info_d));
+	XCNEW (struct ipa_reference_global_vars_info_d);
       ipa_reference_local_vars_info_t node_l;
       
       bool read_all;
@@ -1104,7 +1102,7 @@ static_execute (void)
 
       /* If any node in a cycle is calls_read_all or calls_write_all
 	 they all are. */
-      w_info = node->aux;
+      w_info = (struct ipa_dfs_info *) node->aux;
       w = w_info->next_cycle;
       while (w)
 	{
@@ -1113,7 +1111,7 @@ static_execute (void)
 	  read_all |= w_l->calls_read_all;
 	  write_all |= w_l->calls_write_all;
 
-	  w_info = w->aux;
+	  w_info = (struct ipa_dfs_info *) w->aux;
 	  w = w_info->next_cycle;
 	}
 
@@ -1136,7 +1134,7 @@ static_execute (void)
 		       node_l->statics_written);
 	}
 
-      w_info = node->aux;
+      w_info = (struct ipa_dfs_info *) node->aux;
       w = w_info->next_cycle;
       while (w)
 	{
@@ -1157,7 +1155,7 @@ static_execute (void)
 	  if (!write_all)
 	    bitmap_ior_into (node_g->statics_written,
 			     w_l->statics_written);
-	  w_info = w->aux;
+	  w_info = (struct ipa_dfs_info *) w->aux;
 	  w = w_info->next_cycle;
 	}
 
@@ -1165,7 +1163,7 @@ static_execute (void)
       while (w)
 	{
 	  propagate_bits (w);
-	  w_info = w->aux;
+	  w_info = (struct ipa_dfs_info *) w->aux;
 	  w = w_info->next_cycle;
 	}
     }
@@ -1182,12 +1180,12 @@ static_execute (void)
       node = order[i];
       merge_callee_local_info (node, node);
       
-      w_info = node->aux;
+      w_info = (struct ipa_dfs_info *) node->aux;
       w = w_info->next_cycle;
       while (w)
 	{
 	  merge_callee_local_info (w, w);
-	  w_info = w->aux;
+	  w_info = (struct ipa_dfs_info *) w->aux;
 	  w = w_info->next_cycle;
 	}
     }
@@ -1225,7 +1223,7 @@ static_execute (void)
 		      get_static_name (index));
 	    }
 
-	  w_info = node->aux;
+	  w_info = (struct ipa_dfs_info *) node->aux;
 	  w = w_info->next_cycle;
 	  while (w) 
 	    {
@@ -1251,7 +1249,7 @@ static_execute (void)
 		}
 	      
 
-	      w_info = w->aux;
+	      w_info = (struct ipa_dfs_info *) w->aux;
 	      w = w_info->next_cycle;
 	    }
 	  fprintf (dump_file, "\n  globals read: ");
