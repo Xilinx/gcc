@@ -1,5 +1,9 @@
 2007-08-03  Sebastian Pop  <sebpop@gmail.com>
 
+	* Makefile.in: Fix merge problem.
+
+2007-08-03  Sebastian Pop  <sebpop@gmail.com>
+
 	* Merge from mainline (125309:127169).
 	* tree-loop-distribution.c: Disabled.
 
