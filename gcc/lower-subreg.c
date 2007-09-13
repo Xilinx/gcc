@@ -1254,9 +1254,9 @@ decompose_multiword_subregs (void)
 
       FOR_EACH_BB (bb)
 	{
-	  rtx insn;
+          rtx insn, next_insn;
 
-	  FOR_BB_INSNS (bb, insn)
+          FOR_BB_INSNS_SAFE (bb, insn, next_insn)
 	    {
 	      rtx next, pat;
 

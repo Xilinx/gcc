@@ -1,0 +1,13 @@
+2007-09-13  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* regrename.c (copyprop_hardreg_forward_1): New variable next. Use
+	FOR_BB_INSNS_SAFE.
+	* cse.c (cse_extended_basic_block): Likewise.
+	* lower-subreg.c (decompose_multiword_subregs): Likewise.
+	* postreload.c (reload_cse_regs_1): New variable next. Make sure
+	that the for loop does not invoke NEXT_INSN on a deleted insn.
+	* function.c (instantiate_virtual_regs): Likewise.
+	* reload1.c (reload): New variable next. Make sure that the for
+	loop does not invoke NEXT_INSN on a deleted insn.
+	(delete_output_reload): New variable prev. Make sure the the for
+	loops do not invoke PREV_INSN on a deleted insn.
