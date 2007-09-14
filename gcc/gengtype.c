@@ -1940,6 +1940,8 @@ walk_type (type_p t, struct walk_type_data *d)
       ;
     else if (strcmp (oo->name, "reorder") == 0)
       ;
+    else if (strcmp (oo->name, "variable_size") == 0)
+      ;
     else
       error_at_line (d->line, "unknown option `%s'\n", oo->name);
 
@@ -2854,6 +2856,101 @@ write_enum_defn (type_p structures, type_p param_structs)
   oprintf (header_file, "};\n");
 }
 
+static bool
+variable_size_p (const type_p s)
+{
+  options_p o;
+  for (o = s->u.s.opt; o; o = o->next)
+    if (strcmp (o->name, "variable_size") == 0)
+      return true;
+  return false;
+}
+
+static const char *
+get_tag_string (const type_p s)
+{
+  if (s->kind == TYPE_STRUCT || s->kind == TYPE_LANG_STRUCT)
+    return "struct ";
+  if (s->kind == TYPE_UNION)
+    return "union ";
+  return "";
+}
+
+static void
+write_typed_alloc_end (const type_p s,
+                       const char * const allocator_type,
+                       bool is_vector)
+{
+  const bool variable_size = variable_size_p (s);
+  const char * const type_tag = get_tag_string (s);
+
+  oprintf (header_file, "(ggc_internal_%s%salloc (", allocator_type,
+           (variable_size ? "sized_" : ""));
+  oprintf (header_file, "%s%s", type_tag, s->u.s.tag);
+  oprintf (header_file, "%s", variable_size ? ", SIZE" : "");
+  oprintf (header_file, "%s", is_vector ? ", n" : "");
+  oprintf (header_file, "))\n");
+}
+
+static void
+write_typed_struct_alloc_def (const type_p s,
+                              const char * const allocator_type,
+                              bool is_vector)
+{
+  const bool variable_size = variable_size_p (s);
+  const bool two_args = variable_size && is_vector;
+
+  oprintf (header_file, "#define ggc_alloc_%s%s", allocator_type, s->u.s.tag);
+  oprintf (header_file, "(%s%s%s) ", (variable_size ? "SIZE" : ""),
+           (two_args ? ", " : ""), (is_vector ? "n" : ""));
+  write_typed_alloc_end (s, allocator_type, is_vector);
+}
+
+static void
+write_typed_typedef_alloc_def (const pair_p p,
+                               const char * const allocator_type,
+                               bool is_vector)
+{
+  const type_p s = p->type;
+
+  oprintf (header_file, "#define ggc_alloc_%s%s  ", allocator_type, p->name);
+  oprintf (header_file, "(%s) ", is_vector ? "n" : "");
+  write_typed_alloc_end (s, allocator_type, is_vector);
+}
+
+static void
+write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
+{
+  type_p s;
+  pair_p p;
+
+  oprintf (header_file, "\n/* Allocators for known structs and unions.  */\n");
+  for (s = structures; s; s = s->next)
+    {
+      if (s->gc_used != GC_POINTED_TO && s->gc_used != GC_MAYBE_POINTED_TO)
+        continue;
+      write_typed_struct_alloc_def (s, "", false);
+      write_typed_struct_alloc_def (s, "cleared_", false);
+      write_typed_struct_alloc_def (s, "vec_", true);
+      write_typed_struct_alloc_def (s, "cleared_vec_", true);
+    }
+  oprintf (header_file, "\n/* Allocators for known typedefs.  */\n");
+  for (p = typedefs; p; p = p->next)
+    {
+      s = p->type;
+      if (s->gc_used != GC_POINTED_TO && s->gc_used != GC_MAYBE_POINTED_TO)
+        continue;
+      if (!UNION_OR_STRUCT_P (s))
+        continue;
+      if (strcmp (p->name, s->u.s.tag) == 0)
+        continue;
+      write_typed_typedef_alloc_def (p, "", false);
+      write_typed_typedef_alloc_def (p, "cleared_", false);
+      write_typed_typedef_alloc_def (p, "vec_", true);
+      write_typed_typedef_alloc_def (p, "cleared_vec_", true);
+    }
+}
+
 /* Might T contain any non-pointer elements?  */
 
 static int
@@ -3552,6 +3649,7 @@ main (int argc, char **argv)
 
   open_base_files ();
   write_enum_defn (structures, param_structs);
+  write_typed_alloc_defns (structures, typedefs);
   write_types (structures, param_structs, &ggc_wtd);
   write_types (structures, param_structs, &pch_wtd);
   write_local (structures, param_structs);

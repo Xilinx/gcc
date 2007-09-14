@@ -234,7 +234,7 @@ struct object_block GTY(())
 /* RTL expression ("rtx").  */
 
 struct rtx_def GTY((chain_next ("RTX_NEXT (&%h)"),
-		    chain_prev ("RTX_PREV (&%h)")))
+                    chain_prev ("RTX_PREV (&%h)"), variable_size))
 {
   /* The kind of expression this is.  */
   ENUM_BITFIELD(rtx_code) code: 16;

@@ -232,6 +232,16 @@ extern void dump_ggc_loc_statistics (bool);
 #define GGC_CNEWVAR(T, S)	((T *) ggc_alloc_cleared ((S)))
 #define GGC_RESIZEVEC(T, P, N)  ((T *) ggc_realloc ((P), (N) * sizeof (T)))
 
+#define ggc_internal_alloc(T) ((T *) ggc_alloc (sizeof (T)))
+#define ggc_internal_cleared_alloc(T) ((T *) ggc_alloc_cleared (sizeof (T)))
+#define ggc_internal_vec_alloc(T, c) ((T *) ggc_alloc (sizeof (T) * c))
+#define ggc_internal_cleared_vec_alloc(T, c)    \
+  ((T *) ggc_alloc_cleared (sizeof (T) * c))
+#define ggc_internal_sized_alloc(T, n) ((T *) ggc_alloc (n))
+#define ggc_internal_cleared_sized_alloc(T, n) ((T *) ggc_alloc_cleared (n))
+#define ggc_internal_cleared_vec_sized_alloc(T, n, c) ((T *) \
+                                                 ggc_alloc_cleared ((n) * (c)))
+
 #define ggc_alloc_rtvec(NELT)						 \
   ((rtvec) ggc_alloc_zone (sizeof (struct rtvec_def) + ((NELT) - 1)	 \
 			   * sizeof (rtx), &rtl_zone))

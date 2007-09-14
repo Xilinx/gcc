@@ -1,5 +1,26 @@
 2007-09-13  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
+	* gengtype.c (walk_type): Handle "variable_size" option.
+	(variable_size_p): New.
+	(get_tag_string): New.
+	(write_typed_alloc_end): New.
+	(write_typed_struct_alloc_def): New.
+	(write_typed_typedef_alloc_def): New.
+	(write_typed_alloc_defns): New.
+	(main): Call write_typed_alloc_defns.
+	* tree.h (union tree_node): Add GTY option variable_size.
+	* ggc.h (ggc_internal_alloc): New.
+	(ggc_internal_cleared_alloc): New.
+	(ggc_internal_vec_alloc): New.
+	(ggc_internal_cleared_vec_alloc): New.
+	(ggc_internal_sized_alloc): New.
+	(ggc_internal_cleared_sized_alloc): New.
+	(ggc_internal_cleared_vec_sized_alloc): New.
+	* rtl.h (struct rtx_def): Add GTY option variable_size.
+
+
+2007-09-13  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
 	* regrename.c (copyprop_hardreg_forward_1): New variable next. Use
 	FOR_BB_INSNS_SAFE.
 	* cse.c (cse_extended_basic_block): Likewise.
