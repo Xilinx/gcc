@@ -2913,7 +2913,7 @@ write_typed_typedef_alloc_def (const pair_p p,
 {
   const type_p s = p->type;
 
-  oprintf (header_file, "#define ggc_alloc_%s%s  ", allocator_type, p->name);
+  oprintf (header_file, "#define ggc_alloc_%s%s", allocator_type, p->name);
   oprintf (header_file, "(%s) ", is_vector ? "n" : "");
   write_typed_alloc_end (s, allocator_type, is_vector);
 }

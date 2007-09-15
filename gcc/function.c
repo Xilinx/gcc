@@ -669,7 +669,7 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
 
 	  if (best_p->size - rounded_size >= alignment)
 	    {
-	      p = ggc_alloc (sizeof (struct temp_slot));
+              p = ggc_alloc_temp_slot();
 	      p->in_use = p->addr_taken = 0;
 	      p->size = best_p->size - rounded_size;
 	      p->base_offset = best_p->base_offset + rounded_size;
@@ -694,7 +694,7 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
     {
       HOST_WIDE_INT frame_offset_old = frame_offset;
 
-      p = ggc_alloc (sizeof (struct temp_slot));
+      p = ggc_alloc_temp_slot();
 
       /* We are passing an explicit alignment request to assign_stack_local.
 	 One side effect of that is assign_stack_local will not round SIZE
@@ -3863,7 +3863,7 @@ allocate_struct_function (tree fndecl)
   tree result;
   tree fntype = fndecl ? TREE_TYPE (fndecl) : NULL_TREE;
 
-  cfun = ggc_alloc_cleared (sizeof (struct function));
+  cfun = ggc_alloc_cleared_function();
 
   cfun->stack_alignment_needed = STACK_BOUNDARY;
   cfun->preferred_stack_boundary = STACK_BOUNDARY;

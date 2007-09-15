@@ -438,7 +438,7 @@ init_eh (void)
 void
 init_eh_for_function (void)
 {
-  cfun->eh = ggc_alloc_cleared (sizeof (struct eh_status));
+  cfun->eh = ggc_alloc_cleared_eh_status();
 }
 
 /* Routines to generate the exception tree somewhat directly.
@@ -455,7 +455,7 @@ gen_eh_region (enum eh_region_type type, struct eh_region *outer)
 #endif
 
   /* Insert a new blank region as a leaf in the tree.  */
-  new = ggc_alloc_cleared (sizeof (*new));
+  new = ggc_alloc_cleared_eh_region();
   new->type = type;
   new->outer = outer;
   if (outer)
@@ -778,7 +778,7 @@ add_ehl_entry (rtx label, struct eh_region *region)
 
   LABEL_PRESERVE_P (label) = 1;
 
-  entry = ggc_alloc (sizeof (*entry));
+  entry = ggc_alloc_ehl_map_entry();
   entry->label = label;
   entry->region = region;
 
@@ -889,7 +889,7 @@ duplicate_eh_regions_1 (eh_region old, eh_region outer, int eh_offset)
 {
   eh_region ret, n;
 
-  ret = n = ggc_alloc (sizeof (struct eh_region));
+  ret = n = ggc_alloc_eh_region();
 
   *n = *old;
   n->outer = outer;

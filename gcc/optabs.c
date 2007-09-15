@@ -6203,7 +6203,7 @@ set_optab_libfunc (optab optable, enum machine_mode mode, const char *name)
     val = 0;
   slot = (struct libfunc_entry **) htab_find_slot (libfunc_hash, &e, INSERT);
   if (*slot == NULL)
-    *slot = ggc_alloc (sizeof (struct libfunc_entry));
+    *slot = ggc_alloc_libfunc_entry();
   (*slot)->optab = (size_t) (optab_table[0] - optable);
   (*slot)->mode1 = mode;
   (*slot)->mode2 = VOIDmode;
@@ -6230,7 +6230,7 @@ set_conv_libfunc (convert_optab optable, enum machine_mode tmode,
     val = 0;
   slot = (struct libfunc_entry **) htab_find_slot (libfunc_hash, &e, INSERT);
   if (*slot == NULL)
-    *slot = ggc_alloc (sizeof (struct libfunc_entry));
+    *slot = ggc_alloc_libfunc_entry();
   (*slot)->optab = (size_t) (convert_optab_table[0] - optable);
   (*slot)->mode1 = tmode;
   (*slot)->mode2 = fmode;

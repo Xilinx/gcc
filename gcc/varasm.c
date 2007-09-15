@@ -352,7 +352,7 @@ emutls_decl (tree decl)
       to = build_decl (VAR_DECL, get_emutls_object_name (name),
 		       get_emutls_object_type ());
 
-      h = ggc_alloc (sizeof (struct tree_map));
+      h = ggc_alloc_tree_map();
       h->hash = in.hash;
       h->base.from = decl;
       h->to = to;
@@ -576,8 +576,7 @@ get_block_for_section (section *sect)
   block = (struct object_block *) *slot;
   if (block == NULL)
     {
-      block = (struct object_block *)
-	ggc_alloc_cleared (sizeof (struct object_block));
+      block = ggc_alloc_cleared_object_block();
       block->sect = sect;
       *slot = block;
     }
@@ -3126,7 +3125,7 @@ build_constant_desc (tree exp)
   int labelno;
   struct constant_descriptor_tree *desc;
 
-  desc = ggc_alloc (sizeof (*desc));
+  desc = ggc_alloc_constant_descriptor_tree();
   desc->value = copy_constant (exp);
 
   /* Propagate marked-ness to copied constant.  */
@@ -3465,7 +3464,7 @@ create_constant_pool (void)
 {
   struct rtx_constant_pool *pool;
 
-  pool = ggc_alloc (sizeof (struct rtx_constant_pool));
+  pool = ggc_alloc_rtx_constant_pool();
   pool->const_rtx_htab = htab_create_ggc (31, const_desc_rtx_hash,
 					  const_desc_rtx_eq, NULL);
   pool->first = NULL;
@@ -3481,7 +3480,7 @@ init_varasm_status (struct function *f)
 {
   struct varasm_status *p;
 
-  p = ggc_alloc (sizeof (struct varasm_status));
+  p = ggc_alloc_varasm_status();
   f->varasm = p;
 
   p->pool = create_constant_pool ();
@@ -3536,7 +3535,7 @@ force_const_mem (enum machine_mode mode, rtx x)
     return copy_rtx (desc->mem);
 
   /* Otherwise, create a new descriptor.  */
-  desc = ggc_alloc (sizeof (*desc));
+  desc = ggc_alloc_constant_descriptor_rtx();
   *slot = desc;
 
   /* Align the location counter as required by EXP's data type.  */

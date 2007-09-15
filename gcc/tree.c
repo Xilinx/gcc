@@ -4401,7 +4401,7 @@ decl_restrict_base_insert (tree from, tree to)
   struct tree_map *h;
   void **loc;
 
-  h = ggc_alloc (sizeof (struct tree_map));
+  h = ggc_alloc_tree_map();
   h->hash = htab_hash_pointer (from);
   h->base.from = from;
   h->to = to;
@@ -4467,7 +4467,7 @@ decl_debug_expr_insert (tree from, tree to)
   struct tree_map *h;
   void **loc;
 
-  h = ggc_alloc (sizeof (struct tree_map));
+  h = ggc_alloc_tree_map();
   h->hash = htab_hash_pointer (from);
   h->base.from = from;
   h->to = to;
@@ -4497,7 +4497,7 @@ decl_value_expr_insert (tree from, tree to)
   struct tree_map *h;
   void **loc;
 
-  h = ggc_alloc (sizeof (struct tree_map));
+  h = ggc_alloc_tree_map();
   h->hash = htab_hash_pointer (from);
   h->base.from = from;
   h->to = to;
@@ -4659,7 +4659,7 @@ type_hash_add (hashval_t hashcode, tree type)
   struct type_hash *h;
   void **loc;
 
-  h = ggc_alloc (sizeof (struct type_hash));
+  h = ggc_alloc_type_hash();
   h->hash = hashcode;
   h->type = type;
   loc = htab_find_slot_with_hash (type_hash_table, h, hashcode, INSERT);
@@ -7744,8 +7744,7 @@ build_omp_clause (enum omp_clause_code code)
   length = omp_clause_num_ops[code];
   size = (sizeof (struct tree_omp_clause) + (length - 1) * sizeof (tree));
 
-  t = ggc_alloc (size);
-  memset (t, 0, size);
+  t = ggc_alloc_cleared_tree_node(size);
   TREE_SET_CODE (t, OMP_CLAUSE);
   OMP_CLAUSE_SET_CODE (t, code);
 

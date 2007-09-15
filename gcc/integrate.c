@@ -237,7 +237,7 @@ get_hard_reg_initial_val (enum machine_mode mode, unsigned int regno)
   ivs = cfun->hard_reg_initial_vals;
   if (ivs == 0)
     {
-      ivs = ggc_alloc (sizeof (initial_value_struct));
+      ivs = ggc_alloc_initial_value_struct();
       ivs->num_entries = 0;
       ivs->max_entries = 5;
       ivs->entries = ggc_alloc (5 * sizeof (initial_value_pair));

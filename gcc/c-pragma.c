@@ -318,7 +318,7 @@ handle_pragma_push_macro (cpp_reader *reader)
   c = *slot;
   if (c == NULL)
     {
-      *slot = c = ggc_alloc (sizeof (struct def_pragma_macro));
+      *slot = c = ggc_alloc_def_pragma_macro();
       c->hash = dummy.hash;
       c->name = ggc_alloc_string (macroname, TREE_STRING_LENGTH (id) - 1);
       c->value.prev = NULL;
@@ -326,7 +326,7 @@ handle_pragma_push_macro (cpp_reader *reader)
   else
     {
       struct def_pragma_macro_value *v;
-      v = ggc_alloc (sizeof (struct def_pragma_macro_value));
+      v = ggc_alloc_def_pragma_macro_value();
       *v = c->value;
       c->value.prev = v;
     }

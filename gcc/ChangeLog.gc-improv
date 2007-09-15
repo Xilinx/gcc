@@ -1,3 +1,50 @@
+2007-09-14  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* gengtype.c (write_typed_typedef_alloc_def): Fix typo.
+	* optabs.c (set_optab_libfunc): Use typed GC allocators.
+	(set_conv_libfunc): Likewise.
+	* tree.c (decl_restrict_base_insert): Likewise.
+	(decl_debug_expr_insert): Likewise.
+	(decl_value_expr_insert): Likewise.
+	(type_hash_add): Likewise.
+	(build_omp_clause): Likewise.
+	* tree-phinodes.c (allocate_phi_node): Likewise.
+	* dwarf2out.c (new_cfi): Likewise.
+	(queue_reg_save): Likewise.
+	(new_loc_descr): Likewise.
+	(add_AT_string): Likewise.
+	(new_die): Likewise.
+	(add_var_loc_to_decl): Likewise.
+	(new_loc_list): Likewise.
+	(lookup_filename): Likewise.
+	(dwarf2out_var_locaton): Likewise.
+	* expr.c (init_exprt): Likewise.
+	* function.c (assign_stack_temp_for_type): Likewise.
+	(allocate_struct_function): Likewise.
+	* alias.c (record_alias_subset): Likewise.
+	* c-pragma.c (handle_pragma_push_macro): Likewise.
+	* except.c (init_eh_for_function): Likewise.
+	(gen_eh_region): Likewise.
+	(add_ehl_entry): Likewise.
+	(duplicate_eh_regions_1): Likewise.
+	* emit-rtl.c (get_mem_attrs): Likewise.
+	(get_reg_attrs): Likewise.
+	(start_sequence): Likewise.
+	(init_emit): Likewise.
+	* stringpool.c (gt_pch_save_stringpool): Likewise.
+	* varasm.c (emutls_decl): Likewise.
+	(get_block_for_section): Likewise.
+	(build_constant_desc): Likewise.
+	(create_constant_pool): Likewise.
+	(init_varasm_status): Likewise.
+	(force_constant_mem): Likewise.
+	* tree-inline.c (initialize_cfun): Likewise.
+	* integrate.c (get_hard_reg_initial_val): Likewise.
+	* tree-iterator.c (tsi_link_before): Likewise.
+	(tsi_link_after): Likewise.
+	* config/i386/i386.c (get_dllimport_decl): Likewise.
+	(ix86_init_machine_status): Likewise.
+
 2007-09-13  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* gengtype.c (walk_type): Handle "variable_size" option.

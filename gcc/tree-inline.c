@@ -1169,8 +1169,7 @@ static void
 initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
 		 int frequency)
 {
-  struct function *new_cfun
-     = (struct function *) ggc_alloc_cleared (sizeof (struct function));
+  struct function *new_cfun = ggc_alloc_cleared_function();
   struct function *src_cfun = DECL_STRUCT_FUNCTION (callee_fndecl);
   int count_scale, frequency_scale;
 
