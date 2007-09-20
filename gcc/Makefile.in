@@ -1922,7 +1922,8 @@ gtype-desc.o: gtype-desc.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	$(CGRAPH_H) $(TREE_FLOW_H) reload.h $(CPP_ID_DATA_H)
 
 ggc-common.o: ggc-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(GGC_H) \
-	$(HASHTAB_H) toplev.h $(PARAMS_H) hosthooks.h $(HOSTHOOKS_DEF_H)
+	$(HASHTAB_H) toplev.h $(PARAMS_H) hosthooks.h $(HOSTHOOKS_DEF_H) \
+	$(SPLAY_TREE_H)
 
 ggc-page.o: ggc-page.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) $(TREE_H) \
 	$(FLAGS_H) toplev.h $(GGC_H) $(TIMEVAR_H) $(TM_P_H) $(PARAMS_H) $(TREE_FLOW_H)

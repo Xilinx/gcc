@@ -1,3 +1,24 @@
+2007-09-19  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* dwarf2asm.c (ggc_alloc_ip_splay_tree): New.
+	(ggc_alloc_ip_splay_node): New.
+	(record_alias_subset): Update splay_tree_new_gcc arguments.
+	* omp-low.c (ggc_alloc_cnm_splay_tree): New.
+	(ggc_alloc_cnm_splay_node): New.
+	(lower_omp_critical): Update splay_tree_new_gcc arguments.
+	* ipa-reference.c (ggc_alloc_rvtc_splay_tree): New.
+	(ggc_alloc_rvtc_splay_node): New.
+	(ipa_init): Update splay_tree_new_gcc arguments.
+	* alias.c (ggc_alloc_ase_splay_tree): New.
+	(ggc_alloc_ase_splay_node): New.
+	(record_alias_subset): Update splay_tree_new_gcc arguments.
+	* ggc.h (splay_tree_new_ggc): Add two allocator arguments, use
+	splay_tree_new_with_separate_allocators.
+	(ggc_splay_alloc): Add enum gt_types_enum type argument.
+	* ggc-common.c: include splay-tree.h.
+	(ggc_splay_alloc): New obj_type argument.  Call ggc_alloc_typed.
+	* Makefile.in (ggc-common.o): Add $(SPLAY_TREE_H) dependency.
+
 2007-09-14  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* gengtype.c (write_typed_typedef_alloc_def): Fix typo.

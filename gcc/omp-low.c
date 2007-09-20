@@ -4064,6 +4064,19 @@ lower_omp_ordered (tree *stmt_p, omp_context *ctx)
 static GTY((param1_is (tree), param2_is (tree)))
   splay_tree critical_name_mutexes;
 
+static void *
+ggc_alloc_cnm_splay_tree (int sz, void *nl)
+{
+  return ggc_splay_alloc (gt_e_P9tree_nodeP9tree_node12splay_tree_s, sz, nl);
+}
+
+static void *
+ggc_alloc_cnm_splay_node (int sz, void *nl)
+{
+  return ggc_splay_alloc (gt_e_P9tree_nodeP9tree_node17splay_tree_node_s, sz,
+                          nl);
+}
+
 static void
 lower_omp_critical (tree *stmt_p, omp_context *ctx)
 {
@@ -4077,8 +4090,10 @@ lower_omp_critical (tree *stmt_p, omp_context *ctx)
       splay_tree_node n;
 
       if (!critical_name_mutexes)
-	critical_name_mutexes
-	  = splay_tree_new_ggc (splay_tree_compare_pointers);
+        critical_name_mutexes
+            = splay_tree_new_ggc (splay_tree_compare_pointers,
+                                  ggc_alloc_cnm_splay_tree,
+                                  ggc_alloc_cnm_splay_node);
 
       n = splay_tree_lookup (critical_name_mutexes, (splay_tree_key) name);
       if (n == NULL)

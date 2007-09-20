@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "hashtab.h"
 #include "ggc.h"
+#include "splay-tree.h"
 #include "toplev.h"
 #include "params.h"
 #include "hosthooks.h"
@@ -192,12 +193,11 @@ ggc_calloc (size_t s1, size_t s2)
   return ggc_alloc_cleared (s1 * s2);
 }
 
-/* These are for splay_tree_new_ggc.  */
 void *
-ggc_splay_alloc (int sz, void *nl)
+ggc_splay_alloc (enum gt_types_enum obj_type, int sz, void *nl)
 {
   gcc_assert (!nl);
-  return ggc_alloc (sz);
+  return ggc_alloc_typed (obj_type, sz);
 }
 
 void

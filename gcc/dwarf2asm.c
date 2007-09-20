@@ -693,6 +693,18 @@ static int dw2_output_indirect_constant_1 (splay_tree_node, void *);
 
 static GTY((param1_is (char *), param2_is (tree))) splay_tree indirect_pool;
 
+static void *
+ggc_alloc_ip_splay_tree (int sz, void *nl)
+{
+  return ggc_splay_alloc (gt_e_SP9tree_node12splay_tree_s, sz, nl);
+}
+
+static void *
+ggc_alloc_ip_splay_node (int sz, void *nl)
+{
+  return ggc_splay_alloc (gt_e_SP9tree_node17splay_tree_node_s, sz, nl);
+}
+
 static GTY(()) int dw2_const_labelno;
 
 #if defined(HAVE_GAS_HIDDEN) && defined(SUPPORTS_ONE_ONLY)
@@ -715,7 +727,9 @@ dw2_force_const_mem (rtx x, bool public)
   tree decl;
 
   if (! indirect_pool)
-    indirect_pool = splay_tree_new_ggc (splay_tree_compare_pointers);
+    indirect_pool = splay_tree_new_ggc (splay_tree_compare_pointers,
+                                        ggc_alloc_ip_splay_tree,
+                                        ggc_alloc_ip_splay_node);
 
   gcc_assert (GET_CODE (x) == SYMBOL_REF);
 

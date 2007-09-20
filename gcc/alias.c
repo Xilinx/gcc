@@ -148,6 +148,18 @@ struct alias_set_entry GTY(())
 };
 typedef struct alias_set_entry *alias_set_entry;
 
+static void *
+ggc_alloc_ase_splay_tree (int sz, void *nl)
+{
+   return ggc_splay_alloc (gt_e_II12splay_tree_s, sz, nl);
+}
+
+static void *
+ggc_alloc_ase_splay_node (int sz, void *nl)
+{
+  return ggc_splay_alloc (gt_e_II17splay_tree_node_s, sz, nl);
+}
+
 static int rtx_equal_for_memref_p (const_rtx, const_rtx);
 static int memrefs_conflict_p (int, rtx, int, rtx, HOST_WIDE_INT);
 static void record_set (rtx, const_rtx, void *);
@@ -694,7 +706,9 @@ record_alias_subset (alias_set_type superset, alias_set_type subset)
       superset_entry = ggc_alloc_alias_set_entry();
       superset_entry->alias_set = superset;
       superset_entry->children
-	= splay_tree_new_ggc (splay_tree_compare_ints);
+          = splay_tree_new_ggc (splay_tree_compare_ints,
+                                ggc_alloc_ase_splay_tree,
+                                ggc_alloc_ase_splay_node);
       superset_entry->has_zero_child = 0;
       VEC_replace (alias_set_entry, alias_sets, superset, superset_entry);
     }
