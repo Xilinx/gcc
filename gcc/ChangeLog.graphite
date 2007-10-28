@@ -1,3 +1,13 @@
+2007-10-28  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (affine_expr): Renamed scop_affine_expr.  Use an extra 
+	parameter for the basic block that contains the expression.  Use
+	outermost_loop_in_scop for evolution_function_is_affine_multivariate_p.
+	(stmt_simple_for_scop_p): Pass to scop_affine_expr the basic block of
+	the expression.
+	* graphite.h (gbb_loop): New.
+	(GBB_LOOP): Removed.
+
 2007-08-03  Sebastian Pop  <sebpop@gmail.com>
 
 	* Makefile.in: Fix merge problem.

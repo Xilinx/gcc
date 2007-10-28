@@ -38,11 +38,17 @@ struct graphite_bb
 };
 
 #define GBB_BB(GBB) GBB->bb
-#define GBB_LOOP(GBB) GBB->bb->loop_father
 #define GBB_SCOP(GBB) GBB->scop
 #define GBB_STATIC_SCHEDULE(GBB) GBB->static_schedule
 #define GBB_DATA_REFS(GBB) GBB->data_refs
 
+/* Return the loop that contains the basic block GBB.  */
+
+static inline struct loop *
+gbb_loop (struct graphite_bb *gbb)
+{
+  return GBB_BB (gbb)->loop_father;
+}
 
 /* A SCoP is a Static Control Part of the program, simple enough to be
    represented in polyhedral form.  */

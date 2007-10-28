@@ -123,19 +123,107 @@ debug_scops (int verbosity)
   print_scops (stderr, verbosity);
 }
 
+/* Return true when BB is contained in SCOP.  */
+
+static inline bool
+bb_in_scop_p (basic_block bb, scop_p scop)
+{
+  return bitmap_bit_p (SCOP_BBS_B (scop), bb->index);
+}
+
+/* Pretty print a scop in DOT format.  */
+
+static void 
+dot_scop_1 (FILE *file, scop_p scop)
+{
+  edge e;
+  edge_iterator ei;
+  basic_block bb;
+  basic_block entry = SCOP_ENTRY (scop);
+  basic_block exit = SCOP_EXIT (scop);
+    
+  fprintf (file, "digraph SCoP_%d_%d {\n", entry->index,
+	   exit->index);
+
+  FOR_ALL_BB (bb)
+    {
+      if (bb == entry)
+	fprintf (file, "%d [shape=triangle];\n", bb->index);
+
+      if (bb == exit)
+	fprintf (file, "%d [shape=box];\n", bb->index);
+
+      if (bb_in_scop_p (bb, scop)) 
+	fprintf (file, "%d [color=red];\n", bb->index);
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	fprintf (file, "%d -> %d;\n", bb->index, e->dest->index);
+    }
+
+  fputs ("}\n\n", file);
+}
+
+/* Display SCOP using dotty.  */
+
+void
+dot_scop (scop_p scop)
+{
+  FILE *stream = fopen ("/tmp/foo.dot", "w");
+  gcc_assert (stream != NULL);
+
+  dot_scop_1 (stream, scop);
+  fclose (stream);
+
+  system ("dotty /tmp/foo.dot");
+}
+
 
 
-/* Return true when EXPR is an affine function in LOOP.  */
+static scop_p down_open_scop;
+
+/* Returns true when LOOP is in SCOP.  */
+
+static bool 
+loop_in_scop_p (struct loop *loop, scop_p scop)
+{
+  unsigned i;
+  struct loop *l;
+
+  for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, l); i++)
+    if (l == loop)
+      return true;
+
+  return false;
+}
+
+/* Returns the outermost loop in SCOP that contains BB.  */
+
+static struct loop *
+outermost_loop_in_scop (scop_p scop, basic_block bb)
+{
+  struct loop *nest;
+
+  nest = bb->loop_father;
+  while (loop_outer (nest) && loop_in_scop_p (loop_outer (nest), scop))
+    nest = loop_outer (nest);
+
+  return nest;
+}
+
+/* Return true when EXPR is an affine function in LOOP for the current
+   open scop.  EXPR is contained in BB.  */
 
 static bool
-affine_expr (struct loop *loop, tree expr)
+scop_affine_expr (struct loop *loop, tree expr, basic_block bb)
 {
   tree scev = analyze_scalar_evolution (loop, expr);
+  int outermost_loop = outermost_loop_in_scop (down_open_scop, bb)->num;
 
   scev = instantiate_parameters (loop, scev);
 
   return (evolution_function_is_constant_p (scev)
-	  || evolution_function_is_affine_multivariate_p (scev, 0));
+	  || evolution_function_is_affine_multivariate_p (scev,
+							  outermost_loop));
 }
 
 
@@ -145,7 +233,8 @@ affine_expr (struct loop *loop, tree expr)
 static bool
 stmt_simple_for_scop_p (tree stmt)
 {
-  struct loop *loop = bb_for_stmt (stmt)->loop_father;
+  basic_block bb = bb_for_stmt (stmt);
+  struct loop *loop = bb->loop_father;
 
   /* ASM_EXPR and CALL_EXPR may embed arbitrary side effects.
      Calls have side-effects, except those to const or pure
@@ -173,8 +262,8 @@ stmt_simple_for_scop_p (tree stmt)
 	  case GT_EXPR:
 	  case LE_EXPR:
 	  case GE_EXPR:
-	    return (affine_expr (loop, TREE_OPERAND (opnd0, 0)) 
-		    && affine_expr (loop, TREE_OPERAND (opnd0, 1)));
+	    return (scop_affine_expr (loop, TREE_OPERAND (opnd0, 0), bb) 
+		    && scop_affine_expr (loop, TREE_OPERAND (opnd0, 1), bb));
 	  default:
 	    return false;
 	  }
@@ -224,9 +313,9 @@ stmt_simple_for_scop_p (tree stmt)
 	    return true;
 	  }
 
-	/* We cannot return (affine_expr (loop, opnd0) &&
-	   affine_expr (loop, opnd1)) because D.1882_16 is not affine
-	   in the following:
+	/* We cannot return (scop_affine_expr (loop, opnd0) &&
+	   scop_affine_expr (loop, opnd1)) because D.1882_16 is
+	   not affine in the following:
 
 	   D.1881_15 = a[j_13][pretmp.22_20];
 	   D.1882_16 = D.1881_15 + 2;
@@ -288,40 +377,6 @@ basic_block_simple_for_scop_p (basic_block bb)
   return true;
 }
 
-/* Return true when BB is contained in SCOP.  */
-
-static inline bool
-bb_in_scop_p (basic_block bb, scop_p scop)
-{
-  return bitmap_bit_p (SCOP_BBS_B (scop), bb->index);
-}
-
-/* Return true when STMT is contained in SCOP.  */
-
-static inline bool
-stmt_in_scop_p (tree stmt, scop_p scop)
-{
-  return bb_in_scop_p (bb_for_stmt (stmt), scop);
-}
-
-static inline bool
-function_parameter_p (tree var)
-{
-  return (TREE_CODE (SSA_NAME_VAR (var)) == PARM_DECL);
-}
-
-/* Return true when VAR is invariant in SCOP.  In that case, VAR is a
-   parameter of SCOP.  */
-
-static inline bool
-invariant_in_scop_p (tree var, scop_p scop)
-{
-  gcc_assert (TREE_CODE (var) == SSA_NAME);
-
-  return (function_parameter_p (var)
-	  || !stmt_in_scop_p (SSA_NAME_DEF_STMT (var), scop));
-}
-
 /* Find the first basic block that dominates BB and that exits the
    current loop.  */
 static basic_block
@@ -337,8 +392,6 @@ get_loop_start (basic_block bb)
 
   return res;
 }
-
-static scop_p down_open_scop;
 
 /* Creates a new scop starting with BB.  */
 
@@ -474,29 +527,7 @@ build_scops (void)
   save_scop (down_open_scop);
 }
 
-
-
-/* Get the index corresponding to VAR in the current LOOP.  If
-   it's the first time we ask for this VAR, then we return
-   chrec_not_analyzed_yet for this VAR and return its index.  */
-
-static int
-param_index (tree var, scop_p scop)
-{
-  int i;
-  tree p;
-
-  gcc_assert (TREE_CODE (var) == SSA_NAME);
-
-  for (i = 0; VEC_iterate (tree, SCOP_PARAMS (scop), i, p); i++)
-    if (p == var)
-      return i;
-
-  VEC_safe_push (tree, heap, SCOP_PARAMS (scop), var);
-  return VEC_length (tree, SCOP_PARAMS (scop)) - 1;
-}
-
-/* Build for BB the static schedule.  */
+/* Store the GRAPHITE representation of BB.  */
 
 static void
 build_graphite_bb (struct dom_walk_data *dw_data, basic_block bb)
@@ -542,21 +573,6 @@ build_scop_bbs (scop_p scop)
   fini_walk_dominator_tree (&walk_data);
 }
 
-/* Returns true when LOOP is in SCOP.  */
-
-static bool 
-loop_in_scop_p (struct loop *loop, scop_p scop)
-{
-  unsigned i;
-  struct loop *l;
-
-  for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, l); i++)
-    if (l == loop)
-      return true;
-
-  return false;
-}
-
 /* Record LOOP as occuring in SCOP.  */
 
 static void
@@ -577,7 +593,7 @@ build_scop_loop_nests (scop_p scop)
   graphite_bb_p gb;
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    scop_record_loop (scop, GBB_LOOP (gb));
+    scop_record_loop (scop, gbb_loop (gb));
 }
 
 /* Build for BB the static schedule.  */
@@ -593,11 +609,55 @@ build_scop_canonical_schedules (scop_p scop)
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
-      SCOP_STATIC_SCHEDULE (scop)[scop_loop_index (scop, GBB_LOOP (gb))] += 1;
+      SCOP_STATIC_SCHEDULE (scop)[scop_loop_index (scop, gbb_loop (gb))] += 1;
       GBB_STATIC_SCHEDULE (gb) = lambda_vector_new (nb);
       lambda_vector_copy (SCOP_STATIC_SCHEDULE (scop), 
 			  GBB_STATIC_SCHEDULE (gb), nb);
     }
+}
+
+/* Return true when STMT is contained in SCOP.  */
+
+static inline bool
+stmt_in_scop_p (tree stmt, scop_p scop)
+{
+  return bb_in_scop_p (bb_for_stmt (stmt), scop);
+}
+
+static inline bool
+function_parameter_p (tree var)
+{
+  return (TREE_CODE (SSA_NAME_VAR (var)) == PARM_DECL);
+}
+
+/* Return true when VAR is invariant in SCOP.  In that case, VAR is a
+   parameter of SCOP.  */
+
+static inline bool
+invariant_in_scop_p (tree var, scop_p scop)
+{
+  gcc_assert (TREE_CODE (var) == SSA_NAME);
+
+  return (function_parameter_p (var)
+	  || !stmt_in_scop_p (SSA_NAME_DEF_STMT (var), scop));
+}
+
+/* Get the index corresponding to VAR in the current LOOP.  */
+
+static int
+param_index (tree var, scop_p scop)
+{
+  int i;
+  tree p;
+
+  gcc_assert (TREE_CODE (var) == SSA_NAME);
+
+  for (i = 0; VEC_iterate (tree, SCOP_PARAMS (scop), i, p); i++)
+    if (p == var)
+      return i;
+
+  VEC_safe_push (tree, heap, SCOP_PARAMS (scop), var);
+  return VEC_length (tree, SCOP_PARAMS (scop)) - 1;
 }
 
 struct irp_data
@@ -649,20 +709,6 @@ idx_record_params (tree base, tree *idx, void *dta)
     }
 
   return true;
-}
-
-/* Returns the outermost loop in SCOP that contains BB.  */
-
-static struct loop *
-outermost_loop_in_scop (scop_p scop, basic_block bb)
-{
-  struct loop *nest;
-
-  nest = bb->loop_father;
-  while (loop_outer (nest) && loop_in_scop_p (loop_outer (nest), scop))
-    nest = loop_outer (nest);
-
-  return nest;
 }
 
 /* Helper function for walking in dominance order basic blocks.  Find
@@ -1105,10 +1151,11 @@ build_scop_data_accesses (scop_p scop)
    representing the new form of the program.  */
 
 static struct clast_stmt *
-find_transform (scop_p scop ATTRIBUTE_UNUSED)
+find_transform (scop_p scop)
 {
   CloogOptions *options = cloog_options_malloc ();
   CloogProgram *prog = cloog_program_generate (SCOP_PROG (scop), options);
+  
   struct clast_stmt *stmt = cloog_clast_create (prog, options);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -1128,54 +1175,6 @@ gloog (scop_p scop ATTRIBUTE_UNUSED, struct clast_stmt *stmt)
 {
   cloog_clast_free (stmt);
 }
-
-
-/* Pretty print a scop in DOT format.  */
-
-static void 
-dot_scop_1 (FILE *file, scop_p scop)
-{
-  edge e;
-  edge_iterator ei;
-  basic_block bb;
-  basic_block entry = SCOP_ENTRY (scop);
-  basic_block exit = SCOP_EXIT (scop);
-    
-  fprintf (file, "digraph SCoP_%d_%d {\n", entry->index,
-	   exit->index);
-
-  FOR_ALL_BB (bb)
-    {
-      if (bb == entry)
-	fprintf (file, "%d [shape=triangle];\n", bb->index);
-
-      if (bb == exit)
-	fprintf (file, "%d [shape=box];\n", bb->index);
-
-      if (bb_in_scop_p (bb, scop)) 
-	fprintf (file, "%d [color=red];\n", bb->index);
-
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	fprintf (file, "%d -> %d;\n", bb->index, e->dest->index);
-    }
-
-  fputs ("}\n\n", file);
-}
-
-/* Display SCOP using dotty.  */
-
-void
-dot_scop (scop_p scop)
-{
-  FILE *stream = fopen ("/tmp/foo.dot", "w");
-  gcc_assert (stream != NULL);
-
-  dot_scop_1 (stream, scop);
-  fclose (stream);
-
-  system ("dotty /tmp/foo.dot");
-}
-
 
 /* Perform a set of linear transforms on LOOPS.  */
 
