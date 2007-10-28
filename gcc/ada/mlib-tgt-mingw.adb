@@ -11,14 +11,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -43,10 +42,7 @@ package body MLib.Tgt.Specific is
 
    procedure Build_Dynamic_Library
      (Ofiles       : Argument_List;
-      Foreign      : Argument_List;
-      Afiles       : Argument_List;
       Options      : Argument_List;
-      Options_2    : Argument_List;
       Interfaces   : Argument_List;
       Lib_Filename : String;
       Lib_Dir      : String;
@@ -61,6 +57,8 @@ package body MLib.Tgt.Specific is
 
    function Is_Archive_Ext (Ext : String) return Boolean;
 
+   function Library_Major_Minor_Id_Supported return Boolean;
+
    function PIC_Option return String;
 
    No_Argument_List : constant String_List := (1 .. 0 => null);
@@ -72,10 +70,7 @@ package body MLib.Tgt.Specific is
 
    procedure Build_Dynamic_Library
      (Ofiles       : Argument_List;
-      Foreign      : Argument_List;
-      Afiles       : Argument_List;
       Options      : Argument_List;
-      Options_2    : Argument_List;
       Interfaces   : Argument_List;
       Lib_Filename : String;
       Lib_Dir      : String;
@@ -84,8 +79,6 @@ package body MLib.Tgt.Specific is
       Lib_Version  : String  := "";
       Auto_Init    : Boolean := False)
    is
-      pragma Unreferenced (Foreign);
-      pragma Unreferenced (Afiles);
       pragma Unreferenced (Symbol_Data);
       pragma Unreferenced (Interfaces);
       pragma Unreferenced (Lib_Version);
@@ -93,7 +86,7 @@ package body MLib.Tgt.Specific is
 
       Lib_File : constant String :=
                    Lib_Dir & Directory_Separator &
-                   Files.Append_To (Lib_Filename, DLL_Ext);
+                   DLL_Prefix & Files.Append_To (Lib_Filename, DLL_Ext);
 
    --  Start of processing for Build_Dynamic_Library
 
@@ -107,7 +100,7 @@ package body MLib.Tgt.Specific is
         (Output_File => Lib_File,
          Objects     => Ofiles,
          Options     => No_Argument_List,
-         Options_2   => Options & Options_2,
+         Options_2   => Options,
          Driver_Name => Driver_Name);
    end Build_Dynamic_Library;
 
@@ -126,7 +119,7 @@ package body MLib.Tgt.Specific is
 
    function DLL_Prefix return String is
    begin
-      return "";
+      return "lib";
    end DLL_Prefix;
 
    --------------------
@@ -137,6 +130,15 @@ package body MLib.Tgt.Specific is
    begin
       return Ext = ".a" or else Ext = ".dll";
    end Is_Archive_Ext;
+
+   --------------------------------------
+   -- Library_Major_Minor_Id_Supported --
+   --------------------------------------
+
+   function Library_Major_Minor_Id_Supported return Boolean is
+   begin
+      return False;
+   end Library_Major_Minor_Id_Supported;
 
    ----------------
    -- PIC_Option --
@@ -149,8 +151,10 @@ package body MLib.Tgt.Specific is
 
 begin
    Build_Dynamic_Library_Ptr := Build_Dynamic_Library'Access;
-   DLL_Ext_Ptr := DLL_Ext'Access;
-   DLL_Prefix_Ptr := DLL_Prefix'Access;
-   Is_Archive_Ext_Ptr := Is_Archive_Ext'Access;
-   PIC_Option_Ptr := PIC_Option'Access;
+   DLL_Ext_Ptr               := DLL_Ext'Access;
+   DLL_Prefix_Ptr            := DLL_Prefix'Access;
+   Is_Archive_Ext_Ptr        := Is_Archive_Ext'Access;
+   PIC_Option_Ptr            := PIC_Option'Access;
+   Library_Major_Minor_Id_Supported_Ptr :=
+                                Library_Major_Minor_Id_Supported'Access;
 end MLib.Tgt.Specific;

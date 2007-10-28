@@ -83,6 +83,16 @@ DEFPARAM (PARAM_SRA_FIELD_STRUCTURE_RATIO,
 	  "The threshold ratio between instantiated fields and the total structure size",
 	  75, 0, 100)
 
+/* The threshold ratio between current and hotest structure counts.
+   We say that if the ratio of the current structure count, 
+   calculated by profiling, to the hotest structure count 
+   in the program is less than this parameter, then structure
+   reorganization is not applied. The default is 10%.  */
+DEFPARAM (PARAM_STRUCT_REORG_COLD_STRUCT_RATIO,
+	  "struct-reorg-cold-struct-ratio",
+	  "The threshold ratio between current and hotest structure counts",
+	  10, 0, 100)
+
 /* The single function inlining limit. This is the maximum size
    of a function counted in internal gcc instructions (not in
    real machine instructions) that is eligible for inlining
@@ -148,7 +158,7 @@ DEFPARAM (PARAM_MAX_VARIABLE_EXPANSIONS,
 DEFPARAM (PARAM_MIN_VECT_LOOP_BOUND,
 	  "min-vect-loop-bound",
 	  "If -ftree-vectorize is used, the minimal loop bound of a loop to be considered for vectorization",
-	  0, 0, 0)
+	  1, 1, 0)
 
 /* The maximum number of instructions to consider when looking for an
    instruction to fill a delay slot.  If more than this arbitrary
@@ -201,7 +211,7 @@ DEFPARAM(PARAM_INLINE_UNIT_GROWTH,
 DEFPARAM(PARAM_INLINE_CALL_COST,
 	 "inline-call-cost",
 	 "expense of call operation relative to ordinary arithmetic operations",
-	 16, 0, 0)
+	 12, 0, 0)
 DEFPARAM(PARAM_LARGE_STACK_FRAME,
 	 "large-stack-frame",
 	 "The size of stack frame to be considered large",
@@ -311,11 +321,6 @@ DEFPARAM(PARAM_MAX_ITERATIONS_COMPUTATION_COST,
 	"Bound on the cost of an expression to compute the number of iterations",
 	10, 0, 0)
 
-DEFPARAM(PARAM_MAX_SMS_LOOP_NUMBER,
-	 "max-sms-loop-number",
-	 "Maximum number of loops to perform swing modulo scheduling on (mainly for debugging)",
-	 -1, -1, -1)
-  
 /* This parameter is used to tune SMS MAX II calculations.  */
 DEFPARAM(PARAM_SMS_MAX_II_FACTOR,
 	 "sms-max-ii-factor",
@@ -338,6 +343,16 @@ DEFPARAM(HOT_BB_FREQUENCY_FRACTION,
 	 "hot-bb-frequency-fraction",
 	 "Select fraction of the maximal frequency of executions of basic block in function given basic block needs to have to be considered hot",
 	 1000, 0, 0)
+
+DEFPARAM (PARAM_ALIGN_THRESHOLD,
+	  "align-threshold",
+	  "Select fraction of the maximal frequency of executions of basic block in function given basic block get alignment",
+	  100, 0, 0)
+
+DEFPARAM (PARAM_ALIGN_LOOP_ITERATIONS,
+	  "align-loop-iterations",
+	  "Loops iterating at least selected number of iterations will get loop alignement.",
+	  4, 0, 0)
 
 /* For guessed profiles, the loops having unknown number of iterations
    are predicted to iterate relatively few (10) times at average.
@@ -485,10 +500,15 @@ DEFPARAM(PARAM_OMEGA_ELIMINATE_REDUNDANT_CONSTRAINTS,
 	 "When set to 1, use expensive methods to eliminate all redundant constraints",
 	 0, 0, 1)
 
-DEFPARAM(PARAM_VECT_MAX_VERSION_CHECKS,
-         "vect-max-version-checks",
-         "Bound on number of runtime checks inserted by the vectorizer's loop versioning",
+DEFPARAM(PARAM_VECT_MAX_VERSION_FOR_ALIGNMENT_CHECKS,
+         "vect-max-version-for-alignment-checks",
+         "Bound on number of runtime checks inserted by the vectorizer's loop versioning for alignment check",
          6, 0, 0)
+
+DEFPARAM(PARAM_VECT_MAX_VERSION_FOR_ALIAS_CHECKS,
+         "vect-max-version-for-alias-checks",
+         "Bound on number of runtime checks inserted by the vectorizer's loop versioning for alias check",
+         10, 0, 0)
 
 DEFPARAM(PARAM_MAX_CSELIB_MEMORY_LOCATIONS,
 	 "max-cselib-memory-locations",

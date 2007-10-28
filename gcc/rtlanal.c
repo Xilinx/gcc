@@ -120,6 +120,7 @@ rtx_unstable_p (const_rtx x)
     case CONST:
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -194,6 +195,7 @@ rtx_varies_p (const_rtx x, bool for_alias)
     case CONST:
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -573,6 +575,7 @@ count_occurrences (const_rtx x, const_rtx find, int count_dest)
     case REG:
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case SYMBOL_REF:
     case CODE_LABEL:
@@ -659,6 +662,7 @@ reg_mentioned_p (const_rtx reg, const_rtx in)
     case CONST_INT:
     case CONST_VECTOR:
     case CONST_DOUBLE:
+    case CONST_FIXED:
       /* These are kept unique for a given value.  */
       return 0;
 
@@ -802,9 +806,9 @@ reg_referenced_p (const_rtx x, const_rtx body)
    FROM_INSN and TO_INSN (exclusive of those two).  */
 
 int
-reg_set_between_p (rtx reg, rtx from_insn, rtx to_insn)
+reg_set_between_p (const_rtx reg, const_rtx from_insn, const_rtx to_insn)
 {
-  rtx insn;
+  const_rtx insn;
 
   if (from_insn == to_insn)
     return 0;
@@ -817,7 +821,7 @@ reg_set_between_p (rtx reg, rtx from_insn, rtx to_insn)
 
 /* Internals of reg_set_between_p.  */
 int
-reg_set_p (rtx reg, rtx insn)
+reg_set_p (const_rtx reg, const_rtx insn)
 {
   /* We can be passed an insn or part of one.  If we are passed an insn,
      check if a side-effect of the insn clobbers REG.  */
@@ -840,9 +844,9 @@ reg_set_p (rtx reg, rtx insn)
    X contains a MEM; this routine does usememory aliasing.  */
 
 int
-modified_between_p (rtx x, rtx start, rtx end)
+modified_between_p (const_rtx x, const_rtx start, const_rtx end)
 {
-  enum rtx_code code = GET_CODE (x);
+  const enum rtx_code code = GET_CODE (x);
   const char *fmt;
   int i, j;
   rtx insn;
@@ -854,6 +858,7 @@ modified_between_p (rtx x, rtx start, rtx end)
     {
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case CONST:
     case SYMBOL_REF:
@@ -902,9 +907,9 @@ modified_between_p (rtx x, rtx start, rtx end)
    does use memory aliasing.  */
 
 int
-modified_in_p (rtx x, rtx insn)
+modified_in_p (const_rtx x, const_rtx insn)
 {
-  enum rtx_code code = GET_CODE (x);
+  const enum rtx_code code = GET_CODE (x);
   const char *fmt;
   int i, j;
 
@@ -912,6 +917,7 @@ modified_in_p (rtx x, rtx insn)
     {
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case CONST:
     case SYMBOL_REF:
@@ -1974,6 +1980,7 @@ volatile_insn_p (const_rtx x)
     case CONST_INT:
     case CONST:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case CC0:
     case PC:
@@ -2038,6 +2045,7 @@ volatile_refs_p (const_rtx x)
     case CONST_INT:
     case CONST:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case CC0:
     case PC:
@@ -2100,6 +2108,7 @@ side_effects_p (const_rtx x)
     case CONST_INT:
     case CONST:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case CC0:
     case PC:
@@ -2173,7 +2182,7 @@ enum may_trap_p_flags
    cannot trap at its current location, but it might become trapping if moved
    elsewhere.  */
 
-static int
+int
 may_trap_p_1 (const_rtx x, unsigned flags)
 {
   int i;
@@ -2189,6 +2198,7 @@ may_trap_p_1 (const_rtx x, unsigned flags)
       /* Handle these cases quickly.  */
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -2199,8 +2209,11 @@ may_trap_p_1 (const_rtx x, unsigned flags)
     case SCRATCH:
       return 0;
 
-    case ASM_INPUT:
+    case UNSPEC:
     case UNSPEC_VOLATILE:
+      return targetm.unspec_may_trap_p (x, flags);
+
+    case ASM_INPUT:
     case TRAP_IF:
       return 1;
 
@@ -2388,6 +2401,7 @@ inequality_comparisons_p (const_rtx x)
     case CC0:
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case CONST:
     case LABEL_REF:
@@ -2637,6 +2651,7 @@ computed_jump_p_1 (const_rtx x)
     case CONST:
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case SYMBOL_REF:
     case REG:
@@ -2683,9 +2698,11 @@ computed_jump_p (const_rtx insn)
     {
       rtx pat = PATTERN (insn);
 
-      if (find_reg_note (insn, REG_LABEL, NULL_RTX))
+      /* If we have a JUMP_LABEL set, we're not a computed jump.  */
+      if (JUMP_LABEL (insn) != NULL)
 	return 0;
-      else if (GET_CODE (pat) == PARALLEL)
+
+      if (GET_CODE (pat) == PARALLEL)
 	{
 	  int len = XVECLEN (pat, 0);
 	  int has_use_labelref = 0;
@@ -2873,6 +2890,8 @@ commutative_operand_precedence (rtx op)
     return -8;
   if (code == CONST_DOUBLE)
     return -7;
+  if (code == CONST_FIXED)
+    return -7;
   op = avoid_constant_pool_reference (op);
   code = GET_CODE (op);
 
@@ -2882,6 +2901,8 @@ commutative_operand_precedence (rtx op)
       if (code == CONST_INT)
         return -6;
       if (code == CONST_DOUBLE)
+        return -5;
+      if (code == CONST_FIXED)
         return -5;
       return -4;
 
@@ -3245,14 +3266,24 @@ subreg_regno (const_rtx x)
 unsigned int
 subreg_nregs (const_rtx x)
 {
+  return subreg_nregs_with_regno (REGNO (SUBREG_REG (x)), x);
+}
+
+/* Return the number of registers that a subreg REG with REGNO
+   expression refers to.  This is a copy of the rtlanal.c:subreg_nregs
+   changed so that the regno can be passed in. */
+
+unsigned int
+subreg_nregs_with_regno (unsigned int regno, const_rtx x)
+{
   struct subreg_info info;
   rtx subreg = SUBREG_REG (x);
-  int regno = REGNO (subreg);
 
   subreg_get_info (regno, GET_MODE (subreg), SUBREG_BYTE (x), GET_MODE (x),
 		   &info);
   return info.nregs;
 }
+
 
 struct parms_set_data
 {
@@ -3347,7 +3378,7 @@ find_first_parameter_load (rtx call_insn, rtx boundary)
    call instruction.  */
 
 bool
-keep_with_call_p (rtx insn)
+keep_with_call_p (const_rtx insn)
 {
   rtx set;
 
@@ -3368,7 +3399,10 @@ keep_with_call_p (rtx insn)
 	 if we can break or not.  */
       if (SET_DEST (set) == stack_pointer_rtx)
 	{
-	  rtx i2 = next_nonnote_insn (insn);
+	  /* This CONST_CAST is okay because next_nonnote_insn just
+	     returns it's argument and we assign it to a const_rtx
+	     variable.  */
+	  const_rtx i2 = next_nonnote_insn (CONST_CAST_RTX(insn));
 	  if (i2 && keep_with_call_p (i2))
 	    return true;
 	}

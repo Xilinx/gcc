@@ -121,6 +121,7 @@ Some basic guidelines for editing this document:
 * @code{FSEEK}:         FSEEK,     Low level file positioning subroutine
 * @code{FSTAT}:         FSTAT,     Get file status
 * @code{FTELL}:         FTELL,     Current stream position
+* @code{GAMMA}:         GAMMA,     Gamma function
 * @code{GERROR}:        GERROR,    Get last system error message
 * @code{GETARG}:        GETARG,    Get command line arguments
 * @code{GET_COMMAND}:   GET_COMMAND, Get the entire command line
@@ -151,15 +152,19 @@ Some basic guidelines for editing this document:
 * @code{INT8}:          INT8,      Convert to 64-bit integer type
 * @code{IOR}:           IOR,       Bitwise logical or
 * @code{IRAND}:         IRAND,     Integer pseudo-random number
+* @code{IS_IOSTAT_END}:  IS_IOSTAT_END, Test for end-of-file value
+* @code{IS_IOSTAT_EOR}:  IS_IOSTAT_EOR, Test for end-of-record value
 * @code{ISATTY}:        ISATTY,    Whether a unit is a terminal device
 * @code{ISHFT}:         ISHFT,     Shift bits
 * @code{ISHFTC}:        ISHFTC,    Shift bits circularly
+* @code{ISNAN}:         ISNAN,     Tests for a NaN
 * @code{ITIME}:         ITIME,     Current local time (hour/minutes/seconds)
 * @code{KILL}:          KILL,      Send a signal to a process
 * @code{KIND}:          KIND,      Kind of an entity
 * @code{LBOUND}:        LBOUND,    Lower dimension bounds of an array
 * @code{LEN}:           LEN,       Length of a character entity
 * @code{LEN_TRIM}:      LEN_TRIM,  Length of a character entity without trailing blank characters
+* @code{LGAMMA}:        LGAMMA,    Logarithm of the Gamma function
 * @code{LGE}:           LGE,       Lexical greater than or equal
 * @code{LGT}:           LGT,       Lexical greater than
 * @code{LINK}:          LINK,      Create a hard link
@@ -2643,10 +2648,12 @@ Inverse function: @ref{ACOSH}
 
 @table @asis
 @item @emph{Description}:
-@code{COUNT(MASK [, DIM])} counts the number of @code{.TRUE.} elements of
-@var{MASK} along the dimension of @var{DIM}.  If @var{DIM} is omitted it is
-taken to be @code{1}.  @var{DIM} is a scaler of type @code{INTEGER} in the
-range of @math{1 /leq DIM /leq n)} where @math{n} is the rank of @var{MASK}.
+
+@code{COUNT(MASK [, DIM [, KIND]])} counts the number of @code{.TRUE.}
+elements of @var{MASK} along the dimension of @var{DIM}.  If @var{DIM} is
+omitted it is taken to be @code{1}.  @var{DIM} is a scaler of type
+@code{INTEGER} in the range of @math{1 /leq DIM /leq n)} where @math{n}
+is the rank of @var{MASK}.
 
 @item @emph{Standard}:
 F95 and later
@@ -2655,17 +2662,21 @@ F95 and later
 Transformational function
 
 @item @emph{Syntax}:
-@code{RESULT = COUNT(MASK [, DIM])}
+@code{RESULT = COUNT(MASK [, DIM [, KIND]])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{MASK} @tab The type shall be @code{LOGICAL}.
-@item @var{DIM}  @tab The type shall be @code{INTEGER}.
+@item @var{DIM}  @tab (Optional) The type shall be @code{INTEGER}.
+@item @var{KIND} @tab (Optional) An @code{INTEGER} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{INTEGER} with rank equal to that of
-@var{MASK}.
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
+The result has a rank equal to that of @var{MASK}.
 
 @item @emph{Example}:
 @smallexample
@@ -4477,6 +4488,65 @@ END PROGRAM
 
 
 
+@node GAMMA
+@section @code{GAMMA} --- Gamma function
+@fnindex GAMMA
+@fnindex DGAMMA
+@cindex Gamma function
+@cindex Factorial function
+
+@table @asis
+@item @emph{Description}:
+@code{GAMMA(X)} computes Gamma (@math{\Gamma}) of @var{X}. For positive,
+integer values of @var{X} the Gamma function simplifies to the factorial
+function @math{\Gamma(x)=(x-1)!}.
+
+@tex
+$$
+\Gamma(x) = \int_0^\infty t^{x-1}{\rm e}^{-t}\,{\rm d}t
+$$
+@end tex
+
+@item @emph{Standard}:
+GNU Extension
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{X = GAMMA(X)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL} and neither zero
+nor a negative integer.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{REAL} of the same kind as @var{X}.
+
+@item @emph{Example}:
+@smallexample
+program test_gamma
+  real :: x = 1.0
+  x = gamma(x) ! returns 1.0
+end program test_gamma
+@end smallexample
+
+@item @emph{Specific names}:
+@multitable @columnfractions .20 .20 .20 .25
+@item Name             @tab Argument         @tab Return type       @tab Standard
+@item @code{GAMMA(X)}  @tab @code{REAL(4) X} @tab @code{REAL(4)}    @tab GNU Extension
+@item @code{DGAMMA(X)} @tab @code{REAL(8) X} @tab @code{REAL(8)}    @tab GNU Extension
+@end multitable
+
+@item @emph{See also}:
+Logarithm of the Gamma function: @ref{LGAMMA}
+
+@end table
+
+
+
 @node GERROR
 @section @code{GERROR} --- Get last system error message
 @fnindex GERROR
@@ -4539,21 +4609,22 @@ GNU extension
 Subroutine
 
 @item @emph{Syntax}:
-@code{CALL GETARG(N, ARG)}
+@code{CALL GETARG(POS, VALUE)}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{N}   @tab Shall be of type @code{INTEGER(4)}, @math{@var{N} \geq 0}
-@item @var{ARG} @tab Shall be of type @code{CHARACTER(*)}. 
+@item @var{POS}   @tab Shall be of type @code{INTEGER} and not wider than
+the default integer kind; @math{@var{POS} \geq 0}
+@item @var{VALUE} @tab Shall be of type @code{CHARACTER(*)}. 
 @end multitable
 
 @item @emph{Return value}:
-After @code{GETARG} returns, the @var{ARG} argument holds the @var{N}th 
-command line argument. If @var{ARG} can not hold the argument, it is 
-truncated to fit the length of @var{ARG}. If there are less than @var{N}
-arguments specified at the command line, @var{ARG} will be filled with blanks.
-If @math{@var{N} = 0}, @var{ARG} is set to the name of the program (on systems
-that support this feature).
+After @code{GETARG} returns, the @var{VALUE} argument holds the
+@var{POS}th command line argument. If @var{VALUE} can not hold the
+argument, it is truncated to fit the length of @var{VALUE}. If there are
+less than @var{POS} arguments specified at the command line, @var{VALUE}
+will be filled with blanks. If @math{@var{POS} = 0}, @var{VALUE} is set
+to the name of the program (on systems that support this feature).
 
 @item @emph{Example}:
 @smallexample
@@ -5111,16 +5182,19 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{RESULT = IACHAR(C)}
+@code{RESULT = IACHAR(C [, KIND])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{C} @tab Shall be a scalar @code{CHARACTER}, with @code{INTENT(IN)}
+@item @var{C}    @tab Shall be a scalar @code{CHARACTER}, with @code{INTENT(IN)}
+@item @var{KIND} @tab (Optional) An @code{INTEGER} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{INTEGER} and of the default integer
-kind.
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
 
 @item @emph{Example}:
 @smallexample
@@ -5365,16 +5439,19 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{RESULT = ICHAR(C)}
+@code{RESULT = ICHAR(C [, KIND])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{C} @tab Shall be a scalar @code{CHARACTER}, with @code{INTENT(IN)}
+@item @var{C}    @tab Shall be a scalar @code{CHARACTER}, with @code{INTENT(IN)}
+@item @var{KIND} @tab (Optional) An @code{INTEGER} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{INTEGER} and of the default integer
-kind.
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
 
 @item @emph{Example}:
 @smallexample
@@ -5551,7 +5628,7 @@ F77 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{RESULT = INDEX(STRING, SUBSTRING [, BACK])}
+@code{RESULT = INDEX(STRING, SUBSTRING [, BACK [, KIND]])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -5561,11 +5638,14 @@ Elemental function
 @code{INTENT(IN)}
 @item @var{BACK} @tab (Optional) Shall be a scalar @code{LOGICAL(*)}, with
 @code{INTENT(IN)}
+@item @var{KIND} @tab (Optional) An @code{INTEGER} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{INTEGER} and of the default integer
-kind.
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
 
 @item @emph{See also}:
 @ref{SCAN}, @ref{VERIFY}
@@ -5719,7 +5799,7 @@ The return value is a @code{INTEGER(8)} variable.
 
 @table @asis
 @item @emph{Description}:
-@code{IEOR} returns the bitwise boolean OR of @var{I} and
+@code{IOR} returns the bitwise boolean inclusive-OR of @var{I} and
 @var{J}.
 
 @item @emph{Standard}:
@@ -5729,7 +5809,7 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{RESULT = IEOR(I, J)}
+@code{RESULT = IOR(I, J)}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -5797,6 +5877,96 @@ program test_irand
 end program test_irand
 @end smallexample
 
+@end table
+
+
+
+@node IS_IOSTAT_END
+@section @code{IS_IOSTAT_END} --- Test for end-of-file value
+@fnindex IS_IOSTAT_END
+@cindex IOSTAT, end of file
+
+@table @asis
+@item @emph{Description}:
+@code{IS_IOSTAT_END} tests whether an variable has the value of the I/O
+status ``end of file''. The function is equivalent to comparing the variable
+with the @code{IOSTAT_END} parameter of the intrinsic module
+@code{ISO_FORTRAN_ENV}.
+
+@item @emph{Standard}:
+Fortran 2003.
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = IS_IOSTAT_END(I)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of the type @code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+Returns a @code{LOGICAL} of the default kind, which @code{.TRUE.} if
+@var{I} has the value which indicates an end of file condition for
+IOSTAT= specifiers, and is @code{.FALSE.} otherwise.
+
+@item @emph{Example}:
+@smallexample
+PROGRAM iostat
+  IMPLICIT NONE
+  INTEGER :: stat, i
+  OPEN(88, FILE='test.dat')
+  READ(88, *, IOSTAT=stat) i
+  IF(IS_IOSTAT_END(stat)) STOP 'END OF FILE'
+END PROGRAM
+@end smallexample
+@end table
+
+
+
+@node IS_IOSTAT_EOR
+@section @code{IS_IOSTAT_EOR} --- Test for end-of-record value
+@fnindex IS_IOSTAT_EOR
+@cindex IOSTAT, end of record
+
+@table @asis
+@item @emph{Description}:
+@code{IS_IOSTAT_EOR} tests whether an variable has the value of the I/O
+status ``end of record''. The function is equivalent to comparing the
+variable with the @code{IOSTAT_EOR} parameter of the intrinsic module
+@code{ISO_FORTRAN_ENV}.
+
+@item @emph{Standard}:
+Fortran 2003.
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = IS_IOSTAT_EOR(I)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of the type @code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+Returns a @code{LOGICAL} of the default kind, which @code{.TRUE.} if
+@var{I} has the value which indicates an end of file condition for
+IOSTAT= specifiers, and is @code{.FALSE.} otherwise.
+
+@item @emph{Example}:
+@smallexample
+PROGRAM iostat
+  IMPLICIT NONE
+  INTEGER :: stat, i(50)
+  OPEN(88, FILE='test.dat', FORM='UNFORMATTED')
+  READ(88, IOSTAT=stat) i
+  IF(IS_IOSTAT_EOR(stat)) STOP 'END OF RECORD'
+END PROGRAM
+@end smallexample
 @end table
 
 
@@ -5923,6 +6093,48 @@ The return value is of type @code{INTEGER(*)} and of the same kind as
 
 @item @emph{See also}:
 @ref{ISHFT}
+@end table
+
+
+
+@node ISNAN
+@section @code{ISNAN} --- Test for a NaN
+@fnindex ISNAN
+@cindex IEEE, ISNAN
+
+@table @asis
+@item @emph{Description}:
+@code{ISNAN} tests whether a floating-point value is an IEEE
+Not-a-Number (NaN).
+@item @emph{Standard}:
+GNU extension
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{ISNAN(X)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Variable of the type @code{REAL}.
+
+@end multitable
+
+@item @emph{Return value}:
+Returns a default-kind @code{LOGICAL}. The returned value is @code{TRUE}
+if @var{X} is a NaN and @code{FALSE} otherwise.
+
+@item @emph{Example}:
+@smallexample
+program test_nan
+  implicit none
+  real :: x
+  x = -1.0
+  x = sqrt(x)
+  if (isnan(x)) stop '"x" is a NaN'
+end program test_nan
+@end smallexample
 @end table
 
 
@@ -6068,15 +6280,20 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{RESULT = LBOUND(ARRAY [, DIM])}
+@code{RESULT = LBOUND(ARRAY [, DIM [, KIND]])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{ARRAY} @tab Shall be an array, of any type.
 @item @var{DIM} @tab (Optional) Shall be a scalar @code{INTEGER(*)}.
+@item @var{KIND} @tab (Optional) An @code{INTEGER} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
 If @var{DIM} is absent, the result is an array of the lower bounds of
 @var{ARRAY}.  If @var{DIM} is present, the result is a scalar
 corresponding to the lower bound of the array along that dimension.  If
@@ -6109,16 +6326,20 @@ F77 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{L = LEN(STRING)}
+@code{L = LEN(STRING [, KIND])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{STRING} @tab Shall be a scalar or array of type
 @code{CHARACTER(*)}, with @code{INTENT(IN)}
+@item @var{KIND} @tab (Optional) An @code{INTEGER} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
-The return value is an @code{INTEGER} of the default kind.
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
 
 @item @emph{See also}:
 @ref{LEN_TRIM}, @ref{ADJUSTL}, @ref{ADJUSTR}
@@ -6142,19 +6363,76 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{RESULT = LEN_TRIM(STRING)}
+@code{RESULT = LEN_TRIM(STRING [, KIND])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{STRING} @tab Shall be a scalar of type @code{CHARACTER(*)},
 with @code{INTENT(IN)}
+@item @var{KIND} @tab (Optional) An @code{INTEGER} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
-The return value is an @code{INTEGER} of the default kind.
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
 
 @item @emph{See also}:
 @ref{LEN}, @ref{ADJUSTL}, @ref{ADJUSTR}
+@end table
+
+
+
+@node LGAMMA
+@section @code{LGAMMA} --- Logarithm of the Gamma function
+@fnindex GAMMA
+@fnindex ALGAMA
+@fnindex DLGAMA
+@cindex Gamma function, logarithm of
+
+@table @asis
+@item @emph{Description}:
+@code{GAMMA(X)} computes the natural logrithm of the absolute value of the
+Gamma (@math{\Gamma}) function.
+
+@item @emph{Standard}:
+GNU Extension
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{X = LGAMMA(X)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{X} @tab Shall be of type @code{REAL} and neither zero
+nor a negative integer.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{REAL} of the same kind as @var{X}.
+
+@item @emph{Example}:
+@smallexample
+program test_log_gamma
+  real :: x = 1.0
+  x = lgamma(x) ! returns 0.0
+end program test_log_gamma
+@end smallexample
+
+@item @emph{Specific names}:
+@multitable @columnfractions .20 .20 .20 .25
+@item Name             @tab Argument         @tab Return type       @tab Standard
+@item @code{LGAMMA(X)} @tab @code{REAL(4) X} @tab @code{REAL(4)}    @tab GNU Extension
+@item @code{ALGAMA(X)} @tab @code{REAL(4) X} @tab @code{REAL(4)}    @tab GNU Extension
+@item @code{DLGAMA(X)} @tab @code{REAL(8) X} @tab @code{REAL(8)}    @tab GNU Extension
+@end multitable
+
+@item @emph{See also}:
+Gamma function: @ref{GAMMA}
+
 @end table
 
 
@@ -8745,18 +9023,21 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{RESULT = SCAN(STRING, SET[, BACK])}
+@code{RESULT = SCAN(STRING, SET[, BACK [, KIND]])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{STRING} @tab Shall be of type @code{CHARACTER(*)}.
 @item @var{SET}    @tab Shall be of type @code{CHARACTER(*)}.
 @item @var{BACK}   @tab (Optional) shall be of type @code{LOGICAL}.
+@item @var{KIND}   @tab (Optional) An @code{INTEGER} initialization
+                        expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{INTEGER} and of the default
-integer kind.
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
 
 @item @emph{Example}:
 @smallexample
@@ -9299,7 +9580,7 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{RESULT = SIZE(ARRAY[, DIM])}
+@code{RESULT = SIZE(ARRAY[, DIM [, KIND]])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -9308,11 +9589,14 @@ a pointer it must be associated and allocatable arrays must be allocated.
 @item @var{DIM}   @tab (Optional) shall be a scalar of type @code{INTEGER} 
 and its value shall be in the range from 1 to n, where n equals the rank 
 of @var{ARRAY}.
+@item @var{KIND} @tab (Optional) An @code{INTEGER} initialization
+                      expression indicating the kind parameter of
+		      the result.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{INTEGER} and of the default
-integer kind.
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
 
 @item @emph{Example}:
 @smallexample
@@ -9352,11 +9636,12 @@ Intrinsic function
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type integer.  Its value is the number of bytes
-occupied by the argument.  If the argument has the @code{POINTER}
-attribute, the number of bytes of the storage area pointed to is
-returned.  If the argument is of a derived type with @code{POINTER} or
-@code{ALLOCATABLE} components, the return value doesn't account for
+The return value is of type integer and of the system-dependent kind
+@var{C_SIZE_T} (from the @var{ISO_C_BINDING} module). Its value is the
+number of bytes occupied by the argument.  If the argument has the
+@code{POINTER} attribute, the number of bytes of the storage area pointed
+to is returned.  If the argument is of a derived type with @code{POINTER}
+or @code{ALLOCATABLE} components, the return value doesn't account for
 the sizes of the data pointed to by these components.
 
 @item @emph{Example}:
@@ -10323,15 +10608,20 @@ F95 and later
 Inquiry function
 
 @item @emph{Syntax}:
-@code{RESULT = UBOUND(ARRAY [, DIM])}
+@code{RESULT = UBOUND(ARRAY [, DIM [, KIND]])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{ARRAY} @tab Shall be an array, of any type.
 @item @var{DIM} @tab (Optional) Shall be a scalar @code{INTEGER(*)}.
+@item @var{KIND}@tab (Optional) An @code{INTEGER} initialization
+                     expression indicating the kind parameter of
+		     the result.
 @end multitable
 
 @item @emph{Return value}:
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
 If @var{DIM} is absent, the result is an array of the upper bounds of
 @var{ARRAY}.  If @var{DIM} is present, the result is a scalar
 corresponding to the upper bound of the array along that dimension.  If
@@ -10489,18 +10779,21 @@ F95 and later
 Elemental function
 
 @item @emph{Syntax}:
-@code{RESULT = VERIFY(STRING, SET[, BACK])}
+@code{RESULT = VERIFY(STRING, SET[, BACK [, KIND]])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{STRING} @tab Shall be of type @code{CHARACTER(*)}.
 @item @var{SET}    @tab Shall be of type @code{CHARACTER(*)}.
 @item @var{BACK}   @tab (Optional) shall be of type @code{LOGICAL}.
+@item @var{KIND}   @tab (Optional) An @code{INTEGER} initialization
+                        expression indicating the kind parameter of
+		        the result.
 @end multitable
 
 @item @emph{Return value}:
-The return value is of type @code{INTEGER} and of the default
-integer kind.
+The return value is of type @code{INTEGER} and of kind @var{KIND}. If
+@var{KIND} is absent, the return value is of default integer kind.
 
 @item @emph{Example}:
 @smallexample
@@ -10569,3 +10862,150 @@ F95 elemental function: @ref{IEOR}
 @end table
 
 
+
+@node Intrinsic Modules
+@chapter Intrinsic Modules
+@cindex intrinsic Modules
+
+@c @node ISO_FORTRAN_ENV
+@section @code{ISO_FORTRAN_ENV}
+@table @asis
+@item @emph{Standard}:
+Fortran 2003
+@end table
+
+The @code{ISO_FORTRAN_ENV} module provides the following scalar default-integer
+named constants:
+
+@table @asis
+@item @code{CHARACTER_STORAGE_SIZE}:
+Size in bits of the character storage unit.
+
+@item @code{ERROR_UNIT}:
+Indentifies the preconnected unit used for error reporting.
+
+@item @code{FILE_STORAGE_SIZE}:
+Size in bits of the file-storage unit.
+
+@item @code{INPUT_UNIT}:
+Indentifies the preconnected unit indentified by the asterisk
+(@code{*}) in @code{READ} statement.
+
+@item @code{IOSTAT_END}:
+The value assigned to the variable passed to the IOSTAT= specifier of
+an input/output statement if an end-of-file condition occurred.
+
+@item @code{IOSTAT_EOR}:
+The value assigned to the variable passed to the IOSTAT= specifier of
+an input/output statement if an end-of-record condition occurred.
+
+@item @code{NUMERIC_STORAGE_SIZE}:
+The size in bits of the numeric storage unit.
+
+@item @code{OUTPUT_UNIT}:
+Indentifies the preconnected unit indentified by the asterisk
+(@code{*}) in @code{WRITE} statement.
+@end table
+
+@c @node ISO_C_BINDING
+@section @code{ISO_C_BINDING}
+@table @asis
+@item @emph{Standard}:
+Fortran 2003
+@end table
+
+The following intrinsic procedures are provided by the module; their
+definition can be found in the section Intrinsic Procedures of this
+manual.
+
+@table @asis
+@item @code{C_ASSOCIATED}
+@item @code{C_F_POINTER}
+@item @code{C_F_PROCPOINTER}
+@item @code{C_FUNLOC}
+@item @code{C_LOC}
+@end table
+
+The @code{ISO_C_BINDING} module provides the following named constants of the
+type integer, which can be used as KIND type parameter. Note that GNU
+Fortran currently does not support the @code{C_INT_FAST...} KIND type
+parameters (marked by an asterix (@code{*}) in the list below).
+The @code{C_INT_FAST...} parameters have therefore the value @math{-2}
+and cannot be used as KIND type parameter of the @code{INTEGER} type.
+
+@multitable @columnfractions .15 .35 .35
+@item Fortran Type  @tab Named constant         @tab C type
+@item @code{INTEGER}@tab @code{C_INT}           @tab @code{int}
+@item @code{INTEGER}@tab @code{C_SHORT}         @tab @code{short int}
+@item @code{INTEGER}@tab @code{C_LONG}          @tab @code{long int}
+@item @code{INTEGER}@tab @code{C_LONG_LONG}     @tab @code{long long int}
+@item @code{INTEGER}@tab @code{C_SIGNED_CHAR}   @tab @code{signed char}/@code{unsigned char}
+@item @code{INTEGER}@tab @code{C_SIZE_T}        @tab @code{size_t}
+@item @code{INTEGER}@tab @code{C_INT8_T}        @tab @code{int8_t}
+@item @code{INTEGER}@tab @code{C_INT16_T}       @tab @code{int16_t}
+@item @code{INTEGER}@tab @code{C_INT32_T}       @tab @code{int32_t}
+@item @code{INTEGER}@tab @code{C_INT64_T}       @tab @code{int64_t}
+@item @code{INTEGER}@tab @code{C_INT_LEAST8_T}  @tab @code{int_least8_t}
+@item @code{INTEGER}@tab @code{C_INT_LEAST16_T} @tab @code{int_least16_t}
+@item @code{INTEGER}@tab @code{C_INT_LEAST32_T} @tab @code{int_least32_t}
+@item @code{INTEGER}@tab @code{C_INT_LEAST64_T} @tab @code{int_least64_t}
+@item @code{INTEGER}@tab @code{C_INT_FAST8_T}*  @tab @code{int_fast8_t}
+@item @code{INTEGER}@tab @code{C_INT_FAST16_T}* @tab @code{int_fast16_t}
+@item @code{INTEGER}@tab @code{C_INT_FAST32_T}* @tab @code{int_fast32_t}
+@item @code{INTEGER}@tab @code{C_INT_FAST64_T}* @tab @code{int_fast64_t}
+@item @code{INTEGER}@tab @code{C_INTMAX_T}      @tab @code{intmax_t}
+@item @code{INTEGER}@tab @code{C_INTPTR_T}      @tab @code{intptr_t}
+@item @code{REAL}   @tab @code{C_FLOAT}         @tab @code{float}
+@item @code{REAL}   @tab @code{C_DOUBLE}        @tab @code{double}
+@item @code{REAL}   @tab @code{C_LONG_DOUBLE}   @tab @code{long double}
+@item @code{COMPLEX}@tab @code{C_FLOAT_COMPLEX} @tab @code{float _Complex}
+@item @code{COMPLEX}@tab @code{C_DOUBLE_COMPLEX}@tab @code{double _Complex}
+@item @code{COMPLEX}@tab @code{C_LONG_DOUBLE_COMPLEX}@tab @code{long double _Complex}
+@item @code{LOGICAL}@tab @code{C_BOOL}          @tab @code{_Bool}
+@item @code{CHARACTER}@tab @code{C_CHAR}        @tab @code{char}
+@end multitable
+
+Additionally, the following @code{(CHARACTER(KIND=C_CHAR)} are
+defined.
+
+@multitable @columnfractions .20 .45 .15
+@item Name                     @tab C definition    @tab Value
+@item @code{C_NULL_CHAR}       @tab null character  @tab @code{'\0'}
+@item @code{C_ALERT}           @tab alert           @tab @code{'\a'}
+@item @code{C_BACKSPACE}       @tab backspace       @tab @code{'\b'}
+@item @code{C_FORM_FEED}       @tab form feed       @tab @code{'\f'}
+@item @code{C_NEW_LINE}        @tab new line        @tab @code{'\n'}
+@item @code{C_CARRIAGE_RETURN} @tab carriage return @tab @code{'\r'}
+@item @code{C_HORIZONTAL_TAB}  @tab horizontal tab  @tab @code{'\t'}
+@item @code{C_VERTICAL_TAB}    @tab vertical tab    @tab @code{'\v'}
+@end multitable
+
+@c @node OpenMP Modules OMP_LIB and OMP_LIB_KINDS
+@section OpenMP Modules @code{OMP_LIB} and @code{OMP_LIB_KINDS}
+@table @asis
+@item @emph{Standard}:
+OpenMP Application Program Interface v2.5
+@end table
+
+
+The OpenMP Fortran runtime library routines are provided both in
+a form of two Fortran 90 modules, named @code{OMP_LIB} and 
+@code{OMP_LIB_KINDS}, and in a form of a Fortran @code{include} file named
+@file{omp_lib.h}. The procedures provided by @code{OMP_LIB} can be found
+in the @ref{Top,,Introduction,libgomp,GNU OpenMP runtime library} manual,
+the named constants defined in the @code{OMP_LIB_KINDS} module are listed
+below.
+
+For details refer to the actual
+@uref{http://www.openmp.org/drupal/mp-documents/spec25.pdf,
+OpenMP Application Program Interface v2.5}.
+
+@code{OMP_LIB_KINDS} provides the following scalar default-integer
+named constants:
+
+@table @asis
+@item @code{omp_integer_kind}
+@item @code{omp_logical_kind}
+@item @code{omp_lock_kind}
+@item @code{omp_nest_lock_kind}
+@end table

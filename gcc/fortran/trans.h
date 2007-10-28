@@ -295,6 +295,9 @@ void gfc_conv_expr_lhs (gfc_se * se, gfc_expr * expr);
 void gfc_conv_expr_reference (gfc_se * se, gfc_expr *);
 void gfc_conv_expr_type (gfc_se * se, gfc_expr *, tree);
 
+/* trans-expr.c */
+void gfc_conv_scalar_char_value (gfc_symbol *sym, gfc_se *se, gfc_expr **expr);
+
 /* Find the decl containing the auxiliary variables for assigned variables.  */
 void gfc_conv_label_variable (gfc_se * se, gfc_expr * expr);
 /* If the value is not constant, Create a temporary and copy the value.  */
@@ -313,8 +316,7 @@ tree gfc_conv_operator_assign (gfc_se *, gfc_se *, gfc_symbol *);
 int gfc_conv_function_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *,
 			    tree);
 
-void gfc_conv_aliased_arg (gfc_se *, gfc_expr *, int, sym_intent);
-bool is_aliased_array (gfc_expr *);
+void gfc_conv_subref_array_arg (gfc_se *, gfc_expr *, int, sym_intent);
 
 /* gfc_trans_* shouldn't call push/poplevel, use gfc_push/pop_scope */
 
@@ -337,7 +339,7 @@ tree gfc_conv_string_tmp (gfc_se *, tree, tree);
 /* Get the string length variable belonging to an expression.  */
 tree gfc_get_expr_charlen (gfc_expr *);
 /* Initialize a string length variable.  */
-void gfc_trans_init_string_length (gfc_charlen *, stmtblock_t *);
+void gfc_conv_string_length (gfc_charlen *, stmtblock_t *);
 /* Ensure type sizes can be gimplified.  */
 void gfc_trans_vla_type_sizes (gfc_symbol *, stmtblock_t *);
 
@@ -376,7 +378,7 @@ tree gfc_get_function_decl (gfc_symbol *);
 tree gfc_build_addr_expr (tree, tree);
 
 /* Build an ARRAY_REF.  */
-tree gfc_build_array_ref (tree, tree);
+tree gfc_build_array_ref (tree, tree, tree);
 
 /* Creates a label.  Decl is artificial if label_id == NULL_TREE.  */
 tree gfc_build_label_decl (tree);
@@ -439,13 +441,25 @@ void gfc_generate_constructors (void);
 bool get_array_ctor_strlen (stmtblock_t *, gfc_constructor *, tree *);
 
 /* Generate a runtime error check.  */
-void gfc_trans_runtime_check (tree, const char *, stmtblock_t *, locus *);
+void gfc_trans_runtime_check (tree, stmtblock_t *, locus *, const char *, ...);
 
 /* Generate a call to free() after checking that its arg is non-NULL.  */
 tree gfc_call_free (tree);
 
 /* Allocate memory after performing a few checks.  */
 tree gfc_call_malloc (stmtblock_t *, tree, tree);
+
+/* Allocate memory for arrays, with optional status variable.  */
+tree gfc_allocate_array_with_status (stmtblock_t *, tree, tree, tree);
+
+/* Allocate memory, with optional status variable.  */
+tree gfc_allocate_with_status (stmtblock_t *, tree, tree);
+
+/* Generate code to deallocate an array.  */
+tree gfc_deallocate_with_status (tree, tree, bool);
+
+/* Generate code to call realloc().  */
+tree gfc_call_realloc (stmtblock_t *, tree, tree);
 
 /* Generate code for an assignment, includes scalarization.  */
 tree gfc_trans_assignment (gfc_expr *, gfc_expr *, bool);
@@ -471,7 +485,7 @@ tree gfc_truthvalue_conversion (tree);
 tree gfc_builtin_function (tree);
 
 /* In trans-openmp.c */
-bool gfc_omp_privatize_by_reference (tree);
+bool gfc_omp_privatize_by_reference (const_tree);
 enum omp_clause_default_kind gfc_omp_predetermined_sharing (tree);
 tree gfc_omp_clause_default_ctor (tree, tree);
 bool gfc_omp_disregard_value_expr (tree, bool);
@@ -480,10 +494,6 @@ struct gimplify_omp_ctx;
 void gfc_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *, tree);
 
 /* Runtime library function decls.  */
-extern GTY(()) tree gfor_fndecl_internal_realloc;
-extern GTY(()) tree gfor_fndecl_allocate;
-extern GTY(()) tree gfor_fndecl_allocate_array;
-extern GTY(()) tree gfor_fndecl_deallocate;
 extern GTY(()) tree gfor_fndecl_pause_numeric;
 extern GTY(()) tree gfor_fndecl_pause_string;
 extern GTY(()) tree gfor_fndecl_stop_numeric;
@@ -540,6 +550,7 @@ extern GTY(()) tree gfor_fndecl_string_index;
 extern GTY(()) tree gfor_fndecl_string_scan;
 extern GTY(()) tree gfor_fndecl_string_verify;
 extern GTY(()) tree gfor_fndecl_string_trim;
+extern GTY(()) tree gfor_fndecl_string_minmax;
 extern GTY(()) tree gfor_fndecl_adjustl;
 extern GTY(()) tree gfor_fndecl_adjustr;
 
@@ -581,11 +592,13 @@ struct lang_decl		GTY(())
      address of target label.  */
   tree stringlen;
   tree addr;
+  tree span;
 };
 
 
 #define GFC_DECL_ASSIGN_ADDR(node) DECL_LANG_SPECIFIC(node)->addr
 #define GFC_DECL_STRING_LEN(node) DECL_LANG_SPECIFIC(node)->stringlen
+#define GFC_DECL_SPAN(node) DECL_LANG_SPECIFIC(node)->span
 #define GFC_DECL_SAVED_DESCRIPTOR(node) \
   (DECL_LANG_SPECIFIC(node)->saved_descriptor)
 #define GFC_DECL_PACKED_ARRAY(node) DECL_LANG_FLAG_0(node)
@@ -594,6 +607,7 @@ struct lang_decl		GTY(())
 #define GFC_DECL_COMMON_OR_EQUIV(node) DECL_LANG_FLAG_3(node)
 #define GFC_DECL_CRAY_POINTEE(node) DECL_LANG_FLAG_4(node)
 #define GFC_DECL_RESULT(node) DECL_LANG_FLAG_5(node)
+#define GFC_DECL_SUBREF_ARRAY_P(node) DECL_LANG_FLAG_6(node)
 
 /* An array descriptor.  */
 #define GFC_DESCRIPTOR_TYPE_P(node) TYPE_LANG_FLAG_1(node)
@@ -617,10 +631,6 @@ struct lang_decl		GTY(())
 #define GFC_TYPE_ARRAY_DTYPE(node) (TYPE_LANG_SPECIFIC(node)->dtype)
 #define GFC_TYPE_ARRAY_DATAPTR_TYPE(node) \
   (TYPE_LANG_SPECIFIC(node)->dataptr_type)
-
-/* I changed this from sorry(...) because it should not return.  */
-/* TODO: Remove gfc_todo_error before releasing version 1.0.  */
-#define gfc_todo_error(args...) fatal_error("gfc_todo: Not Implemented: " args)
 
 /* Build an expression with void type.  */
 #define build1_v(code, arg) build1(code, void_type_node, arg)
@@ -702,9 +712,9 @@ void gfc_apply_interface_mapping (gfc_interface_mapping *,
 
 
 /* Standard error messages used in all the trans-*.c files.  */
-extern char gfc_msg_bounds[];
-extern char gfc_msg_fault[];
-extern char gfc_msg_wrong_return[];
+extern const char gfc_msg_bounds[];
+extern const char gfc_msg_fault[];
+extern const char gfc_msg_wrong_return[];
 
 
 #endif /* GFC_TRANS_H */

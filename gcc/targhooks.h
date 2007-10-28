@@ -19,10 +19,12 @@ along with GCC; see the file COPYING3.  If not see
 
 extern void default_external_libcall (rtx);
 
+extern int default_unspec_may_trap_p (const_rtx, unsigned);
+
 extern enum machine_mode default_cc_modes_compatible (enum machine_mode,
 						      enum machine_mode);
 
-extern bool default_return_in_memory (tree, tree);
+extern bool default_return_in_memory (const_tree, const_tree);
 
 extern rtx default_expand_builtin_saveregs (void);
 extern void default_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode, tree, int *, int);
@@ -47,16 +49,17 @@ extern tree default_cxx_guard_type (void);
 extern tree default_cxx_get_cookie_size (tree);
 
 extern bool hook_pass_by_reference_must_pass_in_stack
-  (CUMULATIVE_ARGS *, enum machine_mode mode, tree, bool);
+  (CUMULATIVE_ARGS *, enum machine_mode mode, const_tree, bool);
 extern bool hook_callee_copies_named
-  (CUMULATIVE_ARGS *ca, enum machine_mode, tree, bool);
+  (CUMULATIVE_ARGS *ca, enum machine_mode, const_tree, bool);
 
 extern void default_unwind_emit (FILE *, rtx);
 
 extern bool default_scalar_mode_supported_p (enum machine_mode);
 extern bool default_decimal_float_supported_p (void);
+extern bool default_fixed_point_supported_p (void);
 
-extern const char * default_invalid_within_doloop (rtx);
+extern const char * default_invalid_within_doloop (const_rtx);
 
 extern tree default_builtin_vectorized_function
   (enum built_in_function, tree, tree);
@@ -65,7 +68,7 @@ extern tree default_builtin_vectorized_conversion (enum tree_code, tree);
 
 extern tree default_builtin_reciprocal (enum built_in_function, bool, bool);
 
-extern bool default_builtin_vector_alignment_reachable (tree, bool);
+extern bool default_builtin_vector_alignment_reachable (const_tree, bool);
 
 /* These are here, and not in hooks.[ch], because not all users of
    hooks.h include tm.h, and thus we don't have CUMULATIVE_ARGS.  */
@@ -74,15 +77,15 @@ extern bool hook_bool_CUMULATIVE_ARGS_false (CUMULATIVE_ARGS *);
 extern bool hook_bool_CUMULATIVE_ARGS_true (CUMULATIVE_ARGS *);
 
 extern bool hook_bool_CUMULATIVE_ARGS_mode_tree_bool_false
-  (CUMULATIVE_ARGS *, enum machine_mode, tree, bool);
+  (CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
 extern bool hook_bool_CUMULATIVE_ARGS_mode_tree_bool_true
-  (CUMULATIVE_ARGS *, enum machine_mode, tree, bool);
+  (CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
 extern int hook_int_CUMULATIVE_ARGS_mode_tree_bool_0
   (CUMULATIVE_ARGS *, enum machine_mode, tree, bool);
 extern const char *hook_invalid_arg_for_unprototyped_fn
-  (tree, tree, tree);
-extern bool hook_bool_rtx_commutative_p (rtx, int);
-extern rtx default_function_value (tree, tree, bool);
+  (const_tree, const_tree, const_tree);
+extern bool hook_bool_const_rtx_commutative_p (const_rtx, int);
+extern rtx default_function_value (const_tree, const_tree, bool);
 extern rtx default_internal_arg_pointer (void);
 extern enum reg_class default_secondary_reload (bool, rtx, enum reg_class,
 						enum machine_mode,

@@ -648,8 +648,8 @@ are already in a non-addressable component of an aggregate.
 Stored in the @code{jump} field and printed as @samp{/j}.
 
 @findex MEM_SCALAR_P
-@cindex @code{mem} and @samp{/f}
-@cindex @code{frame_related}, in @code{mem}
+@cindex @code{mem} and @samp{/i}
+@cindex @code{return_val}, in @code{mem}
 @item MEM_SCALAR_P (@var{x})
 In @code{mem} expressions, nonzero for reference to a scalar known not
 to be a member of a structure, union, or array.  Zero for such
@@ -657,7 +657,7 @@ references and for indirections through pointers, even pointers pointing
 to scalar types.  If both this flag and @code{MEM_IN_STRUCT_P} are clear,
 then we don't know whether this @code{mem} is in a structure or not.
 Both flags should never be simultaneously set.
-Stored in the @code{frame_related} field and printed as @samp{/f}.
+Stored in the @code{return_val} field and printed as @samp{/i}.
 
 @findex MEM_VOLATILE_P
 @cindex @code{mem} and @samp{/v}
@@ -676,13 +676,20 @@ Stored in the @code{volatil} field and printed as @samp{/v}.
 In @code{mem}, nonzero for memory references that will not trap.
 Stored in the @code{call} field and printed as @samp{/c}.
 
+@findex MEM_POINTER
+@cindex @code{mem} and @samp{/f}
+@cindex @code{frame_related}, in @code{mem}
+@item MEM_POINTER (@var{x})
+Nonzero in a @code{mem} if the memory reference holds a pointer.
+Stored in the @code{frame_related} field and printed as @samp{/f}.
+
 @findex REG_FUNCTION_VALUE_P
 @cindex @code{reg} and @samp{/i}
-@cindex @code{integrated}, in @code{reg}
+@cindex @code{return_val}, in @code{reg}
 @item REG_FUNCTION_VALUE_P (@var{x})
 Nonzero in a @code{reg} if it is the place in which this function's
 value is going to be returned.  (This happens only in a hard
-register.)  Stored in the @code{integrated} field and printed as
+register.)  Stored in the @code{return_val} field and printed as
 @samp{/i}.
 
 @findex REG_POINTER
@@ -738,19 +745,6 @@ computation performed by this instruction, i.e., one that
 
 This flag is required for exception handling support on targets with RTL
 prologues.
-
-@cindex @code{insn} and @samp{/i}
-@cindex @code{call_insn} and @samp{/i}
-@cindex @code{jump_insn} and @samp{/i}
-@cindex @code{barrier} and @samp{/i}
-@cindex @code{code_label} and @samp{/i}
-@cindex @code{insn_list} and @samp{/i}
-@cindex @code{const} and @samp{/i}
-@cindex @code{note} and @samp{/i}
-@cindex @code{integrated}, in @code{insn}, @code{call_insn}, @code{jump_insn}, @code{barrier}, @code{code_label}, @code{insn_list}, @code{const}, and @code{note}
-@code{code_label}, @code{insn_list}, @code{const}, or @code{note} if it
-resulted from an in-line function call.
-Stored in the @code{integrated} field and printed as @samp{/i}.
 
 @findex MEM_READONLY_P
 @cindex @code{mem} and @samp{/u}
@@ -850,10 +844,10 @@ once.  Stored in the @code{used} field.
 
 @findex SYMBOL_REF_WEAK
 @cindex @code{symbol_ref} and @samp{/i}
-@cindex @code{integrated}, in @code{symbol_ref}
+@cindex @code{return_val}, in @code{symbol_ref}
 @item SYMBOL_REF_WEAK (@var{x})
 In a @code{symbol_ref}, indicates that @var{x} has been declared weak.
-Stored in the @code{integrated} field and printed as @samp{/i}.
+Stored in the @code{return_val} field and printed as @samp{/i}.
 
 @findex SYMBOL_REF_FLAG
 @cindex @code{symbol_ref} and @samp{/v}
@@ -887,10 +881,10 @@ frame pointer.
 
 In @code{reg} expressions, 1 means that the register holds a pointer.
 
+In @code{mem} expressions, 1 means that the memory reference holds a pointer.
+
 In @code{symbol_ref} expressions, 1 means that the reference addresses
 this function's string constant pool.
-
-In @code{mem} expressions, 1 means that the reference is to a scalar.
 
 In an RTL dump, this flag is represented as @samp{/f}.
 
@@ -930,17 +924,17 @@ must be scheduled as part of a group together with the previous insn.
 
 In an RTL dump, this flag is represented as @samp{/s}.
 
-@findex integrated
+@findex return_val
 @cindex @samp{/i} in RTL dump
-@item integrated
-In an @code{insn}, @code{insn_list}, or @code{const}, 1 means the RTL was
-produced by procedure integration.
-
+@item return_val
 In @code{reg} expressions, 1 means the register contains
 the value to be returned by the current function.  On
 machines that pass parameters in registers, the same register number
 may be used for parameters as well, but this flag is not set on such
 uses.
+
+In @code{mem} expressions, 1 means the memory reference is to a scalar
+known not to be a member of a structure, union, or array.
 
 In @code{symbol_ref} expressions, 1 means the referenced symbol is weak.
 
@@ -1492,6 +1486,15 @@ bits but small enough to fit within twice that number of bits (GCC
 does not provide a mechanism to represent even larger constants).  In
 the latter case, @var{m} will be @code{VOIDmode}.
 
+@findex const_fixed
+@item (const_fixed:@var{m} @var{addr})
+Represents a fixed-point constant of mode @var{m}.
+The data structure, which contains data with the size of two
+@code{HOST_BITS_PER_WIDE_INT} and the associated fixed-point mode,
+is access with the macro @code{CONST_FIXED_VALUE}.  The high part of data
+is accessed with @code{CONST_FIXED_VALUE_HIGH}; the low part is accessed
+with @code{CONST_FIXED_VALUE_LOW}.
+
 @findex const_vector
 @item (const_vector:@var{m} [@var{x0} @var{x1} @dots{}])
 Represents a vector constant.  The square brackets stand for the vector
@@ -2013,24 +2016,35 @@ still known.
 
 @findex neg
 @findex ss_neg
+@findex us_neg
 @cindex negation
 @cindex negation with signed saturation
+@cindex negation with unsigned saturation
 @item (neg:@var{m} @var{x})
 @itemx (ss_neg:@var{m} @var{x})
+@itemx (us_neg:@var{m} @var{x})
 These two expressions represent the negation (subtraction from zero) of
 the value represented by @var{x}, carried out in mode @var{m}.  They
 differ in the behavior on overflow of integer modes.  In the case of
 @code{neg}, the negation of the operand may be a number not representable
 in mode @var{m}, in which case it is truncated to @var{m}.  @code{ss_neg}
-ensures that an out-of-bounds result saturates to the maximum or minimum
-representable value.
+and @code{us_neg} ensure that an out-of-bounds result saturates to the
+maximum or minimum signed or unsigned value.
 
 @findex mult
+@findex ss_mult
+@findex us_mult
 @cindex multiplication
 @cindex product
+@cindex multiplication with signed saturation
+@cindex multiplication with unsigned saturation
 @item (mult:@var{m} @var{x} @var{y})
+@itemx (ss_mult:@var{m} @var{x} @var{y})
+@itemx (us_mult:@var{m} @var{x} @var{y})
 Represents the signed product of the values represented by @var{x} and
 @var{y} carried out in machine mode @var{m}.
+@code{ss_mult} and @code{us_mult} ensure that an out-of-bounds result
+saturates to the maximum or minimum signed or unsigned value.
 
 Some machines support a multiplication that generates a product wider
 than the operands.  Write the pattern for this as
@@ -2046,14 +2060,19 @@ For unsigned widening multiplication, use the same idiom, but with
 @code{zero_extend} instead of @code{sign_extend}.
 
 @findex div
+@findex ss_div
 @cindex division
 @cindex signed division
+@cindex signed division with signed saturation
 @cindex quotient
 @item (div:@var{m} @var{x} @var{y})
+@itemx (ss_div:@var{m} @var{x} @var{y})
 Represents the quotient in signed division of @var{x} by @var{y},
 carried out in machine mode @var{m}.  If @var{m} is a floating point
 mode, it represents the exact quotient; otherwise, the integerized
 quotient.
+@code{ss_div} ensures that an out-of-bounds result saturates to the maximum
+or minimum signed value.
 
 Some machines have division instructions in which the operands and
 quotient widths are not all the same; you should represent
@@ -2065,9 +2084,13 @@ such instructions using @code{truncate} and @code{sign_extend} as in,
 
 @findex udiv
 @cindex unsigned division
+@cindex unsigned division with unsigned saturation
 @cindex division
 @item (udiv:@var{m} @var{x} @var{y})
+@itemx (us_div:@var{m} @var{x} @var{y})
 Like @code{div} but represents unsigned division.
+@code{us_div} ensures that an out-of-bounds result saturates to the maximum
+or minimum unsigned value.
 
 @findex mod
 @findex umod
@@ -2131,18 +2154,21 @@ fixed-point mode.
 
 @findex ashift
 @findex ss_ashift
+@findex us_ashift
 @cindex left shift
 @cindex shift
 @cindex arithmetic shift
 @cindex arithmetic shift with signed saturation
+@cindex arithmetic shift with unsigned saturation
 @item (ashift:@var{m} @var{x} @var{c})
 @itemx (ss_ashift:@var{m} @var{x} @var{c})
-These two expressions represent the result of arithmetically shifting @var{x}
+@itemx (us_ashift:@var{m} @var{x} @var{c})
+These three expressions represent the result of arithmetically shifting @var{x}
 left by @var{c} places.  They differ in their behavior on overflow of integer
 modes.  An @code{ashift} operation is a plain shift with no special behavior
-in case of a change in the sign bit; @code{ss_ashift} saturates to the minimum
-or maximum representable value if any of the bits shifted out differs from the
-final sign bit.
+in case of a change in the sign bit; @code{ss_ashift} and @code{us_ashift}
+saturates to the minimum or maximum representable value if any of the bits
+shifted out differs from the final sign bit.
 
 @var{x} have mode @var{m}, a fixed-point machine mode.  @var{c}
 be a fixed-point mode or be a constant with mode @code{VOIDmode}; which
@@ -2529,6 +2555,38 @@ When @var{m} is a floating point mode, represents the result of
 converting floating point value @var{x} (valid for mode @var{m}) to an
 integer, still represented in floating point mode @var{m}, by rounding
 towards zero.
+
+@findex fract_convert
+@item (fract_convert:@var{m} @var{x})
+Represents the result of converting fixed-point value @var{x} to
+fixed-point mode @var{m}, signed integer value @var{x} to
+fixed-point mode @var{m}, floating-point value @var{x} to
+fixed-point mode @var{m}, fixed-point value @var{x} to integer mode @var{m}
+regarded as signed, or fixed-point value @var{x} to floating-point mode @var{m}.
+When overflows or underflows happen, the results are undefined.
+
+@findex sat_fract
+@item (sat_fract:@var{m} @var{x})
+Represents the result of converting fixed-point value @var{x} to
+fixed-point mode @var{m}, signed integer value @var{x} to
+fixed-point mode @var{m}, or floating-point value @var{x} to
+fixed-point mode @var{m}.
+When overflows or underflows happen, the results are saturated to the
+maximum or the minimum.
+
+@findex unsigned_fract_convert
+@item (unsigned_fract_convert:@var{m} @var{x})
+Represents the result of converting fixed-point value @var{x} to
+integer mode @var{m} regarded as unsigned, or unsigned integer value @var{x} to
+fixed-point mode @var{m}.
+When overflows or underflows happen, the results are undefined.
+
+@findex unsigned_sat_fract
+@item (unsigned_sat_fract:@var{m} @var{x})
+Represents the result of converting unsigned integer value @var{x} to
+fixed-point mode @var{m}.
+When overflows or underflows happen, the results are saturated to the
+maximum or the minimum.
 @end table
 
 @node RTL Declarations
@@ -3137,9 +3195,10 @@ mandatory ones listed above.  These four are described in a table below.
 @findex jump_insn
 @item jump_insn
 The expression code @code{jump_insn} is used for instructions that may
-jump (or, more generally, may contain @code{label_ref} expressions).  If
-there is an instruction to return from the current function, it is
-recorded as a @code{jump_insn}.
+jump (or, more generally, may contain @code{label_ref} expressions to
+which @code{pc} can be set in that instruction).  If there is an
+instruction to return from the current function, it is recorded as a
+@code{jump_insn}.
 
 @findex JUMP_LABEL
 @code{jump_insn} insns have the same extra fields as @code{insn} insns,
@@ -3149,9 +3208,11 @@ accessed in the same way and in addition contain a field
 For simple conditional and unconditional jumps, this field contains
 the @code{code_label} to which this insn will (possibly conditionally)
 branch.  In a more complex jump, @code{JUMP_LABEL} records one of the
-labels that the insn refers to; the only way to find the others is to
-scan the entire body of the insn.  In an @code{addr_vec},
-@code{JUMP_LABEL} is @code{NULL_RTX}.
+labels that the insn refers to; other jump target labels are recorded
+as @code{REG_LABEL_TARGET} notes.  The exception is @code{addr_vec}
+and @code{addr_diff_vec}, where @code{JUMP_LABEL} is @code{NULL_RTX}
+and the only way to find the labels is to scan the entire body of the
+insn.
 
 Return insns count as jumps, but since they do not refer to any
 labels, their @code{JUMP_LABEL} is @code{NULL_RTX}.
@@ -3467,14 +3528,25 @@ note giving the expression being computed.  This block is encapsulated
 with @code{REG_LIBCALL} and @code{REG_RETVAL} notes on the first and
 last insns, respectively.
 
-@findex REG_LABEL
-@item REG_LABEL
+@findex REG_LABEL_OPERAND
+@item REG_LABEL_OPERAND
 This insn uses @var{op}, a @code{code_label} or a @code{note} of type
-@code{NOTE_INSN_DELETED_LABEL}, but is not a
-@code{jump_insn}, or it is a @code{jump_insn} that required the label to
-be held in a register.  The presence of this note allows jump
-optimization to be aware that @var{op} is, in fact, being used, and flow
-optimization to build an accurate flow graph.
+@code{NOTE_INSN_DELETED_LABEL}, but is not a @code{jump_insn}, or it
+is a @code{jump_insn} that refers to the operand as an ordinary
+operand.  The label may still eventually be a jump target, but if so
+in an indirect jump in a subsequent insn.  The presence of this note
+allows jump optimization to be aware that @var{op} is, in fact, being
+used, and flow optimization to build an accurate flow graph.
+
+@findex REG_LABEL_TARGET
+@item REG_LABEL_TARGET
+This insn is a @code{jump_insn} but not a @code{addr_vec} or
+@code{addr_diff_vec}.  It uses @var{op}, a @code{code_label} as a
+direct or indirect jump target.  Its purpose is similar to that of
+@code{REG_LABEL_OPERAND}.  This note is only present if the insn has
+multiple targets; the last label in the insn (in the highest numbered
+insn-field) goes into the @code{JUMP_LABEL} field and does not have a
+@code{REG_LABEL_TARGET} note.  @xref{Insns, JUMP_LABEL}.
 
 @findex REG_CROSSING_JUMP
 @item REG_CROSSING_JUMP

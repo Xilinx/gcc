@@ -1,5 +1,9 @@
 2007-10-28  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Merge from mainline (127169:129697).
+
+2007-10-28  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (affine_expr): Renamed scop_affine_expr.  Use an extra 
 	parameter for the basic block that contains the expression.  Use
 	outermost_loop_in_scop for evolution_function_is_affine_multivariate_p.

@@ -1288,7 +1288,8 @@ reduce_unary (arith (*eval) (gfc_expr *, gfc_expr **), gfc_expr *op,
 
   for (c = head; c; c = c->next)
     {
-      rc = eval (c->expr, &r);
+      rc = reduce_unary (eval, c->expr, &r);
+
       if (rc != ARITH_OK)
 	break;
 
@@ -1328,7 +1329,11 @@ reduce_binary_ac (arith (*eval) (gfc_expr *, gfc_expr *, gfc_expr **),
 
   for (c = head; c; c = c->next)
     {
-      rc = eval (c->expr, op2, &r);
+      if (c->expr->expr_type == EXPR_CONSTANT)
+        rc = eval (c->expr, op2, &r);
+      else
+	rc = reduce_binary_ac (eval, c->expr, op2, &r);
+
       if (rc != ARITH_OK)
 	break;
 
@@ -1368,7 +1373,11 @@ reduce_binary_ca (arith (*eval) (gfc_expr *, gfc_expr *, gfc_expr **),
 
   for (c = head; c; c = c->next)
     {
-      rc = eval (op1, c->expr, &r);
+      if (c->expr->expr_type == EXPR_CONSTANT)
+	rc = eval (op1, c->expr, &r);
+      else
+	rc = reduce_binary_ca (eval, op1, c->expr, &r);
+
       if (rc != ARITH_OK)
 	break;
 
@@ -1395,6 +1404,11 @@ reduce_binary_ca (arith (*eval) (gfc_expr *, gfc_expr *, gfc_expr **),
 }
 
 
+/* We need a forward declaration of reduce_binary.  */
+static arith reduce_binary (arith (*eval) (gfc_expr *, gfc_expr *, gfc_expr **),
+			    gfc_expr *op1, gfc_expr *op2, gfc_expr **result);
+
+
 static arith
 reduce_binary_aa (arith (*eval) (gfc_expr *, gfc_expr *, gfc_expr **),
 		  gfc_expr *op1, gfc_expr *op2, gfc_expr **result)
@@ -1408,7 +1422,7 @@ reduce_binary_aa (arith (*eval) (gfc_expr *, gfc_expr *, gfc_expr **),
   rc = ARITH_OK;
   d = op2->value.constructor;
 
-  if (gfc_check_conformance ("Elemental binary operation", op1, op2)
+  if (gfc_check_conformance ("elemental binary operation", op1, op2)
       != SUCCESS)
     rc = ARITH_INCOMMENSURATE;
   else
@@ -1421,7 +1435,7 @@ reduce_binary_aa (arith (*eval) (gfc_expr *, gfc_expr *, gfc_expr **),
 	      break;
 	    }
 
-	  rc = eval (c->expr, d->expr, &r);
+	  rc = reduce_binary (eval, c->expr, d->expr, &r);
 	  if (rc != ARITH_OK)
 	    break;
 
@@ -1779,6 +1793,9 @@ eval_intrinsic_f3 (gfc_intrinsic_op operator,
 gfc_expr *
 gfc_parentheses (gfc_expr *op)
 {
+  if (gfc_is_constant_expr (op))
+    return op;
+
   return eval_intrinsic_f2 (INTRINSIC_PARENTHESES, gfc_arith_identity,
 			    op, NULL);
 }
@@ -1981,7 +1998,8 @@ arith_error (arith rc, gfc_typespec *from, gfc_typespec *to, locus *where)
 		 gfc_typename (from), gfc_typename (to), where);
       break;
     case ARITH_OVERFLOW:
-      gfc_error ("Arithmetic overflow converting %s to %s at %L",
+      gfc_error ("Arithmetic overflow converting %s to %s at %L. This check "
+		 "can be disabled with the option -fno-range-check",
 		 gfc_typename (from), gfc_typename (to), where);
       break;
     case ARITH_UNDERFLOW:

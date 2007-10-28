@@ -23,7 +23,7 @@ load_lib gcc-dg.exp
 set DEFAULT_VECTCFLAGS ""
 
 # These flags are used for all targets.
-lappend DEFAULT_VECTCFLAGS "-O2" "-ftree-vectorize"
+lappend DEFAULT_VECTCFLAGS "-ftree-vectorize"
 
 # If the target system supports vector instructions, the default action
 # for a test is 'run', otherwise it's 'compile'.  Save current default.
@@ -48,7 +48,7 @@ if [istarget "powerpc*-*-*"] {
     } else {
 	if [is-effective-target ilp32] {
 	    # Specify a cpu that supports VMX for compile-only tests.
-	    lappend DEFAULT_VECTCFLAGS "-mcpu=7400"
+	    lappend DEFAULT_VECTCFLAGS "-mcpu=970"
 	}
 	set dg-do-what-default compile
     }
@@ -57,8 +57,9 @@ if [istarget "powerpc*-*-*"] {
 } elseif { [istarget "i?86-*-*"] || [istarget "x86_64-*-*"] } {
     lappend DEFAULT_VECTCFLAGS "-msse2"
     set dg-do-what-default run
-} elseif { [istarget "mipsisa64*-*-*"]
-	   && [check_effective_target_mpaired_single] } {
+} elseif { [istarget "mips*-*-*"]
+	   && [check_effective_target_mpaired_single]
+	   && [check_effective_target_nomips16] } {
     lappend DEFAULT_VECTCFLAGS "-mpaired-single"
     set dg-do-what-default run
 } elseif [istarget "sparc*-*-*"] {
@@ -97,6 +98,13 @@ if [istarget "powerpc*-*-*"] {
 # Initialize `dg'.
 dg-init
 
+global O1_VECTCFLAGS
+set O1_VECTCFLAGS $DEFAULT_VECTCFLAGS
+lappend O1_VECTCFLAGS "-O1"
+lappend O1_VECTCFLAGS "-fdump-tree-vect-details"
+
+lappend DEFAULT_VECTCFLAGS "-O2"
+
 # Tests that should be run without generating dump info
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/nodump-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
@@ -108,33 +116,41 @@ dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/pr*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/vect-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/slp-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
 
 #### Tests with special options
 global SAVED_DEFAULT_VECTCFLAGS
 set SAVED_DEFAULT_VECTCFLAGS $DEFAULT_VECTCFLAGS
 
+# --param vect-max-version-for-alias-checks=0 tests
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "--param" "vect-max-version-for-alias-checks=0"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-vfa-*.\[cS\]]]  \
+	"" $DEFAULT_VECTCFLAGS
+
 # -ffast-math tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-ffast-math"
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/fast-math-vect*.\[cS\]]]  \
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/fast-math-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
 # -fno-math-errno tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-fno-math-errno"
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-math-errno-vect*.\[cS\]]]  \
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-math-errno-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
 # -fwrapv tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-fwrapv"
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/wrapv-vect*.\[cS\]]]  \
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/wrapv-*.\[cS\]]]  \
         "" $DEFAULT_VECTCFLAGS
 
 # -ftrapv tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-ftrapv"
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/trapv-vect*.\[cS\]]]  \
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/trapv-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
 # -fdump-tree-dceloop-details tests
@@ -176,14 +192,38 @@ dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-trapping-math-*.\[cS\]]] 
 # -fno-tree-scev-cprop
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-fno-tree-scev-cprop"
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-tree-scev-cprop-*.\[cS\]]]  \
-	"" $DEFAULT_VECTCFLAGS
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-scevccp-vect-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
+
+# -fno-tree-scev-cprop
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fno-tree-scev-cprop"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-scevccp-outer-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
+
+# -fno-tree-scev-cprop -fno-tree-reassoc
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fno-tree-scev-cprop" "-fno-tree-reassoc"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-scevccp-noreassoc-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
+
+# -fno-tree-scev-cprop
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fno-tree-scev-cprop"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-scevccp-slp-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
 
 # -fno-tree-dominator-opts
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-fno-tree-dominator-opts"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-tree-dom-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
+
+# -fno-tree-pre
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fno-tree-pre"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-tree-pre-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
 
 # With -Os
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
@@ -196,6 +236,11 @@ set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-O3"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/O3-vect-*.\[cS\]]]  \
         "" $DEFAULT_VECTCFLAGS
+
+# With -O1
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/O1-*.\[cS\]]]  \
+        "" $O1_VECTCFLAGS
+
 
 # Clean up.
 set dg-do-what-default ${save-dg-do-what-default}

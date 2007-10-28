@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -171,7 +170,7 @@ procedure Gnat1drv is
            and then not Source_File_Is_Subunit (Src_Ind)
            and then not Source_File_Is_No_Body (Src_Ind)
          then
-            Errout.Finalize;
+            Errout.Finalize (Last_Call => False);
 
             Error_Msg_Unit_1 := Sname;
 
@@ -338,6 +337,16 @@ begin
          List_Representation_Info_Mechanisms := True;
       end if;
 
+      --  Disable static allocation of dispatch tables if -gnatd.t or if layout
+      --  is enabled. The front end's layout phase currently treats types that
+      --  have discriminant-dependent arrays as not being static even when a
+      --  discriminant constraint on the type is static, and this leads to
+      --  problems with subtypes of type Ada.Tags.Dispatch_Table_Wrapper. ???
+
+      if Debug_Flag_Dot_T or else Frontend_Layout_On_Target then
+         Static_Dispatch_Tables := False;
+      end if;
+
       --  Output copyright notice if full list mode unless we have a list
       --  file, in which case we defer this so that it is output in the file
 
@@ -417,7 +426,7 @@ begin
       --  Exit with errors if the main source could not be parsed
 
       if Sinput.Main_Source_File = No_Source_File then
-         Errout.Finalize;
+         Errout.Finalize (Last_Call => True);
          Errout.Output_Messages;
          Exit_Program (E_Errors);
       end if;
@@ -428,11 +437,12 @@ begin
 
       --  Exit if compilation errors detected
 
-      Errout.Finalize;
+      Errout.Finalize (Last_Call => False);
 
       if Compilation_Errors then
          Treepr.Tree_Dump;
          Sem_Ch13.Validate_Unchecked_Conversions;
+         Sem_Ch13.Validate_Address_Clauses;
          Errout.Output_Messages;
          Namet.Finalize;
 
@@ -443,6 +453,7 @@ begin
             Tree_Gen;
          end if;
 
+         Errout.Finalize (Last_Call => True);
          Exit_Program (E_Errors);
       end if;
 
@@ -466,7 +477,7 @@ begin
 
       if Original_Operating_Mode = Check_Syntax then
          Treepr.Tree_Dump;
-         Errout.Finalize;
+         Errout.Finalize (Last_Call => True);
          Errout.Output_Messages;
          Tree_Gen;
          Namet.Finalize;
@@ -612,7 +623,8 @@ begin
          Write_Eol;
 
          Sem_Ch13.Validate_Unchecked_Conversions;
-         Errout.Finalize;
+         Sem_Ch13.Validate_Address_Clauses;
+         Errout.Finalize (Last_Call => True);
          Errout.Output_Messages;
          Treepr.Tree_Dump;
          Tree_Gen;
@@ -644,7 +656,8 @@ begin
                    or else Targparm.VM_Target /= No_VM)
       then
          Sem_Ch13.Validate_Unchecked_Conversions;
-         Errout.Finalize;
+         Sem_Ch13.Validate_Address_Clauses;
+         Errout.Finalize (Last_Call => True);
          Errout.Output_Messages;
          Write_ALI (Object => False);
          Tree_Dump;
@@ -694,13 +707,18 @@ begin
 
       Sem_Ch13.Validate_Unchecked_Conversions;
 
+      --  Validate address clauses (again using alignment values annotated
+      --  by the backend where possible).
+
+      Sem_Ch13.Validate_Address_Clauses;
+
       --  Now we complete output of errors, rep info and the tree info. These
       --  are delayed till now, since it is perfectly possible for gigi to
       --  generate errors, modify the tree (in particular by setting flags
       --  indicating that elaboration is required, and also to back annotate
       --  representation information for List_Rep_Info.
 
-      Errout.Finalize;
+      Errout.Finalize (Last_Call => True);
       Errout.Output_Messages;
       List_Rep_Info;
 
@@ -758,7 +776,7 @@ begin
 
 exception
    when Unrecoverable_Error =>
-      Errout.Finalize;
+      Errout.Finalize (Last_Call => True);
       Errout.Output_Messages;
 
       Set_Standard_Error;

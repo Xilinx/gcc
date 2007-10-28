@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -489,11 +488,12 @@ package body Exp_Dist is
    type RPC_Target (PCS_Kind : PCS_Names) is record
       case PCS_Kind is
          when Name_PolyORB_DSA =>
-            Object       : Node_Id;
+            Object : Node_Id;
             --  An expression whose value is a PolyORB reference to the target
             --  object.
+
          when others           =>
-            Partition    : Entity_Id;
+            Partition : Entity_Id;
             --  A variable containing the Partition_ID of the target parition
 
             RPC_Receiver : Node_Id;
@@ -605,9 +605,8 @@ package body Exp_Dist is
 
       --  Support for generating DSA code that uses the GARLIC PCS
 
-      --  The subprograms below provide the GARLIC versions of
-      --  the corresponding Specific_<subprogram> routine declared
-      --  above.
+      --  The subprograms below provide the GARLIC versions of the
+      --  corresponding Specific_<subprogram> routine declared above.
 
       procedure Add_RACW_Features
         (RACW_Type         : Entity_Id;
@@ -642,8 +641,8 @@ package body Exp_Dist is
          Controlling_Parameter : Entity_Id) return RPC_Target;
 
       procedure Build_Stub_Type
-        (RACW_Type : Entity_Id;
-         Stub_Type : Entity_Id;
+        (RACW_Type         : Entity_Id;
+         Stub_Type         : Entity_Id;
          Stub_Type_Decl    : out Node_Id;
          RPC_Receiver_Decl : out Node_Id);
 
@@ -680,9 +679,8 @@ package body Exp_Dist is
 
       --  Support for generating DSA code that uses the PolyORB PCS
 
-      --  The subprograms below provide the PolyORB versions of
-      --  the corresponding Specific_<subprogram> routine declared
-      --  above.
+      --  The subprograms below provide the PolyORB versions of the
+      --  corresponding Specific_<subprogram> routine declared above.
 
       procedure Add_RACW_Features
         (RACW_Type         : Entity_Id;
@@ -763,13 +761,15 @@ package body Exp_Dist is
          --  over the PolyORB generic middleware components, it is necessary to
          --  generate several supporting subprograms for each application data
          --  type used in inter-partition communication. These subprograms are:
-         --    * a Typecode function returning a high-level description of the
-         --      type's structure;
-         --    * two conversion functions allowing conversion of values of the
-         --      type from and to the generic data containers used by PolyORB.
-         --      These generic containers are called 'Any' type values after
-         --      the CORBA terminology, and hence the conversion subprograms
-         --      are named To_Any and From_Any.
+
+         --    A Typecode function returning a high-level description of the
+         --    type's structure;
+
+         --    Two conversion functions allowing conversion of values of the
+         --    type from and to the generic data containers used by PolyORB.
+         --    These generic containers are called 'Any' type values after the
+         --    CORBA terminology, and hence the conversion subprograms are
+         --    named To_Any and From_Any.
 
          function Build_From_Any_Call
            (Typ   : Entity_Id;
@@ -871,18 +871,20 @@ package body Exp_Dist is
       --  Subprogram id 0 is reserved for calls received from
       --  remote access-to-subprogram dereferences.
 
-      Current_Declaration       : Node_Id;
-      Loc                       : constant Source_Ptr := Sloc (Pkg_Spec);
-      RCI_Instantiation         : Node_Id;
-      Subp_Stubs                : Node_Id;
-      Subp_Str                  : String_Id;
+      Current_Declaration : Node_Id;
+      Loc                 : constant Source_Ptr := Sloc (Pkg_Spec);
+      RCI_Instantiation   : Node_Id;
+      Subp_Stubs          : Node_Id;
+      Subp_Str            : String_Id;
+
+      pragma Warnings (Off, Subp_Str);
 
    begin
       --  The first thing added is an instantiation of the generic package
-      --  System.Partition_Interface.RCI_Locator with the name of this
-      --  remote package. This will act as an interface with the name server
-      --  to determine the Partition_ID and the RPC_Receiver for the
-      --  receiver of this package.
+      --  System.Partition_Interface.RCI_Locator with the name of this remote
+      --  package. This will act as an interface with the name server to
+      --  determine the Partition_ID and the RPC_Receiver for the receiver
+      --  of this package.
 
       RCI_Instantiation := RCI_Package_Locator (Loc, Pkg_Spec);
       RCI_Cache         := Defining_Unit_Name (RCI_Instantiation);
@@ -890,25 +892,24 @@ package body Exp_Dist is
       Append_To (Decls, RCI_Instantiation);
       Analyze (RCI_Instantiation);
 
-      --  For each subprogram declaration visible in the spec, we do
-      --  build a body. We also increment a counter to assign a different
-      --  Subprogram_Id to each subprograms. The receiving stubs processing
-      --  do use the same mechanism and will thus assign the same Id and
-      --  do the correct dispatching.
+      --  For each subprogram declaration visible in the spec, we do build a
+      --  body. We also increment a counter to assign a different Subprogram_Id
+      --  to each subprograms. The receiving stubs processing do use the same
+      --  mechanism and will thus assign the same Id and do the correct
+      --  dispatching.
 
       Overload_Counter_Table.Reset;
       PolyORB_Support.Reserve_NamingContext_Methods;
 
       Current_Declaration := First (Visible_Declarations (Pkg_Spec));
-
       while Present (Current_Declaration) loop
          if Nkind (Current_Declaration) = N_Subprogram_Declaration
            and then Comes_From_Source (Current_Declaration)
          then
-            Assign_Subprogram_Identifier (
-              Defining_Unit_Name (Specification (Current_Declaration)),
-              Current_Subprogram_Number,
-              Subp_Str);
+            Assign_Subprogram_Identifier
+              (Defining_Unit_Name (Specification (Current_Declaration)),
+               Current_Subprogram_Number,
+               Subp_Str);
 
             Subp_Stubs :=
               Build_Subprogram_Calling_Stubs (
@@ -952,9 +953,9 @@ package body Exp_Dist is
         (Loc         : Source_Ptr;
          Parameter   : Entity_Id;
          Constrained : Boolean) return Node_Id;
-      --  Return an expression that denotes the parameter passing
-      --  mode to be used for Parameter in distribution stubs,
-      --  where Constrained is Parameter's constrained status.
+      --  Return an expression that denotes the parameter passing mode to be
+      --  used for Parameter in distribution stubs, where Constrained is
+      --  Parameter's constrained status.
 
       ----------------------------
       -- Parameter_Passing_Mode --
@@ -994,8 +995,7 @@ package body Exp_Dist is
       if Nkind (Parameter) = N_Defining_Identifier then
          Get_Name_String (Chars (Parameter));
       else
-         Get_Name_String (Chars (Defining_Identifier
-                                  (Parameter)));
+         Get_Name_String (Chars (Defining_Identifier (Parameter)));
       end if;
 
       Parameter_Name_String := String_From_Name_Buffer;
@@ -1010,8 +1010,8 @@ package body Exp_Dist is
          Parameter_Mode := New_Occurrence_Of (RTE (RE_Mode_In), Loc);
 
       else
-         Parameter_Mode := Parameter_Passing_Mode (Loc,
-                             Parameter, Constrained);
+         Parameter_Mode :=
+           Parameter_Passing_Mode (Loc, Parameter, Constrained);
       end if;
 
       return
@@ -1166,6 +1166,7 @@ package body Exp_Dist is
       else
          --  Validate_RACW_Primitives will be called when the designated type
          --  is frozen, see Exp_Ch3.Freeze_Type.
+
          --  ??? Shouldn't we have a pragma Assert (not Is_Frozen (Desig))?
 
          Add_Access_Type_To_Process (E => Desig, A => RACW_Type);
@@ -1218,15 +1219,11 @@ package body Exp_Dist is
       Current_Primitive_Spec   : Node_Id;
       Current_Primitive_Decl   : Node_Id;
       Current_Primitive_Number : Int := 0;
-
-      Current_Primitive_Alias : Node_Id;
-
-      Current_Receiver      : Entity_Id;
-      Current_Receiver_Body : Node_Id;
-
-      RPC_Receiver_Decl : Node_Id;
-
-      Possibly_Asynchronous : Boolean;
+      Current_Primitive_Alias  : Node_Id;
+      Current_Receiver         : Entity_Id;
+      Current_Receiver_Body    : Node_Id;
+      RPC_Receiver_Decl        : Node_Id;
+      Possibly_Asynchronous    : Boolean;
 
    begin
       if not Expander_Active then
@@ -1234,15 +1231,16 @@ package body Exp_Dist is
       end if;
 
       if not Is_RAS then
-         RPC_Receiver := Make_Defining_Identifier (Loc,
-                           New_Internal_Name ('P'));
-         Specific_Build_RPC_Receiver_Body (
-           RPC_Receiver => RPC_Receiver,
-           Request      => RPC_Receiver_Request,
-           Subp_Id      => RPC_Receiver_Subp_Id,
-           Subp_Index   => RPC_Receiver_Subp_Index,
-           Stmts        => RPC_Receiver_Statements,
-           Decl         => RPC_Receiver_Decl);
+         RPC_Receiver :=
+           Make_Defining_Identifier (Loc,
+             Chars => New_Internal_Name ('P'));
+         Specific_Build_RPC_Receiver_Body
+           (RPC_Receiver => RPC_Receiver,
+            Request      => RPC_Receiver_Request,
+            Subp_Id      => RPC_Receiver_Subp_Id,
+            Subp_Index   => RPC_Receiver_Subp_Index,
+            Stmts        => RPC_Receiver_Statements,
+            Decl         => RPC_Receiver_Decl);
 
          if Get_PCS_Name = Name_PolyORB_DSA then
 
@@ -1266,7 +1264,9 @@ package body Exp_Dist is
             Current_Primitive := Node (Current_Primitive_Elmt);
 
             --  Copy the primitive of all the parents, except predefined ones
-            --  that are not remotely dispatching.
+            --  that are not remotely dispatching. Also omit hidden primitives
+            --  (occurs in the case of primitives of interface progenitors
+            --  other than immediate ancestors of the Designated_Type).
 
             if Chars (Current_Primitive) /= Name_uSize
               and then Chars (Current_Primitive) /= Name_uAlignment
@@ -1276,6 +1276,7 @@ package body Exp_Dist is
                  Is_TSS (Current_Primitive, TSS_Stream_Output) or else
                  Is_TSS (Current_Primitive, TSS_Stream_Read)   or else
                  Is_TSS (Current_Primitive, TSS_Stream_Write))
+              and then not Is_Hidden (Current_Primitive)
             then
                --  The first thing to do is build an up-to-date copy of the
                --  spec with all the formals referencing Designated_Type
@@ -1336,10 +1337,10 @@ package body Exp_Dist is
                        RACW_Type                => Stub_Elements.RACW_Type);
                   Append_To (Body_Decls, Current_Primitive_Body);
 
-                  --  Analyzing the body here would cause the Stub type to be
-                  --  frozen, thus preventing subsequent primitive
-                  --  declarations. For this reason, it will be analyzed later
-                  --  in the regular flow (and in the context of the
+                  --  Analyzing the body here would cause the Stub type to
+                  --  be frozen, thus preventing subsequent primitive
+                  --  declarations. For this reason, it will be analyzed
+                  --  later in the regular flow (and in the context of the
                   --  appropriate unit body, see Append_RACW_Bodies).
 
                end if;
@@ -1447,8 +1448,7 @@ package body Exp_Dist is
    procedure Add_RAS_Dereference_TSS (N : Node_Id) is
       Loc : constant Source_Ptr := Sloc (N);
 
-      Type_Def : constant Node_Id   := Type_Definition (N);
-
+      Type_Def  : constant Node_Id   := Type_Definition (N);
       RAS_Type  : constant Entity_Id := Defining_Identifier (N);
       Fat_Type  : constant Entity_Id := Equivalent_Type (RAS_Type);
       RACW_Type : constant Entity_Id := Underlying_RACW_Type (RAS_Type);
@@ -1540,9 +1540,9 @@ package body Exp_Dist is
 
          --  Generate a dummy body. This code will never actually be executed,
          --  because null is the only legal value for a degenerate RAS type.
-         --  For legality's sake (in order to avoid generating a function
-         --  that does not contain a return statement), we include a dummy
-         --  recursive call on the TSS itself.
+         --  For legality's sake (in order to avoid generating a function that
+         --  does not contain a return statement), we include a dummy recursive
+         --  call on the TSS itself.
 
          Append_To (Stmts,
            Make_Raise_Program_Error (Loc, Reason => PE_Explicit_Raise));
@@ -1565,7 +1565,7 @@ package body Exp_Dist is
 
       if Is_Function then
          Append_To (Stmts,
-            Make_Return_Statement (Loc,
+            Make_Simple_Return_Statement (Loc,
               Expression =>
                 Make_Function_Call (Loc,
                   Name                   => RACW_Primitive_Name,
@@ -1736,7 +1736,7 @@ package body Exp_Dist is
                Actuals);
       else
          Perform_Call :=
-           Make_Return_Statement (Loc,
+           Make_Simple_Return_Statement (Loc,
              Expression =>
            Make_Function_Call (Loc,
              Name =>
@@ -1853,18 +1853,18 @@ package body Exp_Dist is
          return;
       end if;
 
-      Existing         := False;
-      Stub_Type        :=
-        Make_Defining_Identifier (Loc, New_Internal_Name ('S'));
+      Existing := False;
+      Stub_Type :=
+        Make_Defining_Identifier (Loc,
+          Chars => New_Internal_Name ('S'));
       Stub_Type_Access :=
         Make_Defining_Identifier (Loc,
-          New_External_Name (
-            Related_Id => Chars (Stub_Type),
-            Suffix     => 'A'));
+          Chars => New_External_Name
+                     (Related_Id => Chars (Stub_Type), Suffix => 'A'));
 
-      Specific_Build_Stub_Type (
-        RACW_Type, Stub_Type,
-        Stub_Type_Decl, RPC_Receiver_Decl);
+      Specific_Build_Stub_Type
+        (RACW_Type, Stub_Type,
+         Stub_Type_Decl, RPC_Receiver_Decl);
 
       Stub_Type_Access_Decl :=
         Make_Full_Type_Declaration (Loc,
@@ -1908,7 +1908,6 @@ package body Exp_Dist is
 
    procedure Append_RACW_Bodies (Decls : List_Id; Spec_Id : Entity_Id) is
       E : Entity_Id;
-
    begin
       E := First_Entity (Spec_Id);
       while Present (E) loop
@@ -2452,6 +2451,8 @@ package body Exp_Dist is
             Current_Subp_Str    : String_Id;
             Current_Subp_Number : Int := First_RCI_Subprogram_Id;
 
+            pragma Warnings (Off, Current_Subp_Str);
+
          begin
             --  Build_Subprogram_Id is called outside of the context of
             --  generating calling or receiving stubs. Hence we are processing
@@ -2766,9 +2767,10 @@ package body Exp_Dist is
    -----------------------------------
 
    procedure Expand_Receiving_Stubs_Bodies (Unit_Node : Node_Id) is
-      Spec  : Node_Id;
-      Decls : List_Id;
-      Temp  : List_Id;
+      Spec        : Node_Id;
+      Decls       : List_Id;
+      Stubs_Decls : List_Id;
+      Stubs_Stmts : List_Id;
 
    begin
       if Nkind (Unit_Node) = N_Package_Declaration then
@@ -2780,18 +2782,32 @@ package body Exp_Dist is
          end if;
 
          Push_Scope (Scope_Of_Spec (Spec));
-         Specific_Add_Receiving_Stubs_To_Declarations
-           (Spec, Decls, Decls);
+         Specific_Add_Receiving_Stubs_To_Declarations (Spec, Decls, Decls);
+
       else
-         Spec  :=
+         Spec :=
            Package_Specification_Of_Scope (Corresponding_Spec (Unit_Node));
          Decls := Declarations (Unit_Node);
 
          Push_Scope (Scope_Of_Spec (Unit_Node));
-         Temp := New_List;
+         Stubs_Decls := New_List;
+         Stubs_Stmts := New_List;
          Specific_Add_Receiving_Stubs_To_Declarations
-           (Spec, Temp, Statements (Handled_Statement_Sequence (Unit_Node)));
-         Insert_List_Before (First (Decls), Temp);
+           (Spec, Stubs_Decls, Stubs_Stmts);
+
+         Insert_List_Before (First (Decls), Stubs_Decls);
+
+         declare
+            HSS_Stmts : constant List_Id :=
+                          Statements (Handled_Statement_Sequence (Unit_Node));
+            First_HSS_Stmt : constant Node_Id := First (HSS_Stmts);
+         begin
+            if No (First_HSS_Stmt) then
+               Append_List_To (HSS_Stmts, Stubs_Stmts);
+            else
+               Insert_List_Before (First_HSS_Stmt, Stubs_Stmts);
+            end if;
+         end;
       end if;
 
       Pop_Scope;
@@ -3034,7 +3050,7 @@ package body Exp_Dist is
                Make_Assignment_Statement (Loc,
                  Name       => Result,
                  Expression => Make_Null (Loc)),
-               Make_Return_Statement (Loc))));
+               Make_Simple_Return_Statement (Loc))));
 
          --  If the RACW denotes an object created on the current partition,
          --  Local_Statements will be executed. The real object will be used.
@@ -3464,7 +3480,7 @@ package body Exp_Dist is
                    Make_Op_Not (Loc,
                      New_Occurrence_Of (All_Calls_Remote, Loc))),
              Then_Statements => New_List (
-               Make_Return_Statement (Loc,
+               Make_Simple_Return_Statement (Loc,
                  Unchecked_Convert_To (Fat_Type,
                    OK_Convert_To (RTE (RE_Address),
                      New_Occurrence_Of (Proxy_Addr, Loc)))))),
@@ -3501,7 +3517,7 @@ package body Exp_Dist is
          --  Return the newly created value
 
          Append_To (Proc_Statements,
-           Make_Return_Statement (Loc,
+           Make_Simple_Return_Statement (Loc,
              Expression =>
                Unchecked_Convert_To (Fat_Type,
                  New_Occurrence_Of (Stub_Ptr, Loc))));
@@ -3738,8 +3754,9 @@ package body Exp_Dist is
          --  case statement will be made on the Subprogram_Id to dispatch
          --  to the right subprogram.
 
-         All_Calls_Remote_E := Boolean_Literals (
-           Has_All_Calls_Remote (Defining_Entity (Pkg_Spec)));
+         All_Calls_Remote_E :=
+           Boolean_Literals
+             (Has_All_Calls_Remote (Defining_Entity (Pkg_Spec)));
 
          Overload_Counter_Table.Reset;
 
@@ -3749,8 +3766,7 @@ package body Exp_Dist is
               and then Comes_From_Source (Current_Declaration)
             then
                declare
-                  Loc : constant Source_Ptr :=
-                          Sloc (Current_Declaration);
+                  Loc : constant Source_Ptr := Sloc (Current_Declaration);
                   --  While specifically processing Current_Declaration, use
                   --  its Sloc as the location of all generated nodes.
 
@@ -3759,6 +3775,7 @@ package body Exp_Dist is
                                  (Specification (Current_Declaration));
 
                   Subp_Val : String_Id;
+                  pragma Warnings (Off, Subp_Val);
 
                begin
                   --  Build receiving stub
@@ -3777,22 +3794,19 @@ package body Exp_Dist is
                   --  Build RAS proxy
 
                   Add_RAS_Proxy_And_Analyze (Decls,
-                    Vis_Decl           =>
-                      Current_Declaration,
-                    All_Calls_Remote_E =>
-                      All_Calls_Remote_E,
-                    Proxy_Object_Addr  =>
-                      Proxy_Object_Addr);
+                    Vis_Decl           => Current_Declaration,
+                    All_Calls_Remote_E => All_Calls_Remote_E,
+                    Proxy_Object_Addr  => Proxy_Object_Addr);
 
                   --  Compute distribution identifier
 
-                  Assign_Subprogram_Identifier (
-                    Subp_Def,
-                    Current_Subprogram_Number,
-                    Subp_Val);
+                  Assign_Subprogram_Identifier
+                    (Subp_Def,
+                     Current_Subprogram_Number,
+                     Subp_Val);
 
-                  pragma Assert (Current_Subprogram_Number =
-                    Get_Subprogram_Id (Subp_Def));
+                  pragma Assert
+                    (Current_Subprogram_Number = Get_Subprogram_Id (Subp_Def));
 
                   --  Add subprogram descriptor (RCI_Subp_Info) to the
                   --  subprograms table for this receiver. The aggregate
@@ -3924,7 +3938,7 @@ package body Exp_Dist is
                 Handled_Statement_Sequence =>
                   Make_Handled_Sequence_Of_Statements (Loc,
                     Statements => New_List (
-                      Make_Return_Statement (Loc,
+                      Make_Simple_Return_Statement (Loc,
                         Expression =>
                           OK_Convert_To (RTE (RE_Unsigned_64),
                                          Subp_Info_Addr))))));
@@ -4333,7 +4347,7 @@ package body Exp_Dist is
 
                Append_To (Non_Asynchronous_Statements,
                  Make_Tag_Check (Loc,
-                   Make_Return_Statement (Loc,
+                   Make_Simple_Return_Statement (Loc,
                      Expression =>
                        Make_Attribute_Reference (Loc,
                          Prefix         =>
@@ -5218,7 +5232,7 @@ package body Exp_Dist is
           Handled_Statement_Sequence =>
             Make_Handled_Sequence_Of_Statements (Loc, New_List (
               Make_Tag_Check (Loc,
-                Make_Return_Statement (Loc,
+                Make_Simple_Return_Statement (Loc,
                   Make_Attribute_Reference (Loc,
                     Prefix         => New_Occurrence_Of (Var_Type, Loc),
                     Attribute_Name => Name_Input,
@@ -5680,7 +5694,7 @@ package body Exp_Dist is
                  Parameter_Associations => New_List (
                    New_Occurrence_Of (Reference, Loc))),
              Then_Statements => New_List (
-               Make_Return_Statement (Loc,
+               Make_Simple_Return_Statement (Loc,
                  Expression =>
                    Make_Null (Loc)))));
 
@@ -5760,7 +5774,7 @@ package body Exp_Dist is
          end if;
 
          Local_Statements := New_List (
-           Make_Return_Statement (Loc,
+           Make_Simple_Return_Statement (Loc,
              Expression =>
                Unchecked_Convert_To (RACW_Type,
                  New_Occurrence_Of (Addr, Loc))));
@@ -5773,7 +5787,7 @@ package body Exp_Dist is
              Else_Statements => Stub_Statements));
 
          Append_To (Statements,
-           Make_Return_Statement (Loc,
+           Make_Simple_Return_Statement (Loc,
              Expression => Unchecked_Convert_To (RACW_Type,
                New_Occurrence_Of (Stubbed_Result, Loc))));
 
@@ -6084,7 +6098,7 @@ package body Exp_Dist is
                      Defining_Identifier (
                        Stub_Elements.RPC_Receiver_Decl),
                  Selector_Name => Name_Obj_TypeCode))),
-           Make_Return_Statement (Loc,
+           Make_Simple_Return_Statement (Loc,
              Expression =>
                New_Occurrence_Of (Any, Loc)));
 
@@ -6171,7 +6185,7 @@ package body Exp_Dist is
              Handled_Statement_Sequence =>
                Make_Handled_Sequence_Of_Statements (Loc,
                  Statements => New_List (
-                   Make_Return_Statement (Loc,
+                   Make_Simple_Return_Statement (Loc,
                      Expression =>
                        Make_Selected_Component (Loc,
                          Prefix =>
@@ -6532,7 +6546,7 @@ package body Exp_Dist is
                        New_Occurrence_Of (All_Calls_Remote, Loc)),
 
                    Then_Statements => New_List (
-                     Make_Return_Statement (Loc,
+                     Make_Simple_Return_Statement (Loc,
                        Unchecked_Convert_To (Fat_Type,
                          New_Occurrence_Of (Local_Addr, Loc))))))));
 
@@ -6575,7 +6589,7 @@ package body Exp_Dist is
              Stub_Ptr, Stub_Elements.Stub_Type));
 
          Append_To (Proc_Statements,
-           Make_Return_Statement (Loc,
+           Make_Simple_Return_Statement (Loc,
              Expression =>
                Unchecked_Convert_To (Fat_Type,
                  New_Occurrence_Of (Stub_Ptr, Loc))));
@@ -6643,7 +6657,7 @@ package body Exp_Dist is
 
       begin
          Statements := New_List (
-           Make_Return_Statement (Loc,
+           Make_Simple_Return_Statement (Loc,
              Expression =>
                Make_Aggregate (Loc,
                  Component_Associations => New_List (
@@ -6726,7 +6740,7 @@ package body Exp_Dist is
                New_Occurrence_Of (Any, Loc),
                PolyORB_Support.Helpers.Build_TypeCode_Call (Loc,
                  RAS_Type, Decls))),
-           Make_Return_Statement (Loc,
+           Make_Simple_Return_Statement (Loc,
              Expression =>
                New_Occurrence_Of (Any, Loc)));
 
@@ -6784,7 +6798,7 @@ package body Exp_Dist is
              Handled_Statement_Sequence =>
                Make_Handled_Sequence_Of_Statements (Loc,
                  Statements => New_List (
-                   Make_Return_Statement (Loc,
+                   Make_Simple_Return_Statement (Loc,
                      Expression =>
                        Make_Function_Call (Loc,
                          Name =>
@@ -6907,7 +6921,7 @@ package body Exp_Dist is
               or else not
                 Is_Asynchronous (Defining_Entity (Specification (Declaration)))
             then
-               Append_To (Case_Stmts, Make_Return_Statement (Loc));
+               Append_To (Case_Stmts, Make_Simple_Return_Statement (Loc));
             end if;
 
             Append_To (RPC_Receiver_Cases,
@@ -7019,8 +7033,7 @@ package body Exp_Dist is
               and then Comes_From_Source (Current_Declaration)
             then
                declare
-                  Loc : constant Source_Ptr :=
-                          Sloc (Current_Declaration);
+                  Loc : constant Source_Ptr := Sloc (Current_Declaration);
                   --  While specifically processing Current_Declaration, use
                   --  its Sloc as the location of all generated nodes.
 
@@ -7445,7 +7458,6 @@ package body Exp_Dist is
 
          Current_Parameter := First (Ordered_Parameters_List);
          while Present (Current_Parameter) loop
-
             if Is_RACW_Controlling_Formal (Current_Parameter, Stub_Type) then
                Is_Controlling_Formal := True;
                Is_First_Controlling_Formal :=
@@ -7685,7 +7697,7 @@ package body Exp_Dist is
 
                Append_To (Non_Asynchronous_Statements,
                  Make_Tag_Check (Loc,
-                   Make_Return_Statement (Loc,
+                   Make_Simple_Return_Statement (Loc,
                      PolyORB_Support.Helpers.Build_From_Any_Call (
                          Etype (Result_Definition (Spec)),
                          Make_Selected_Component (Loc,
@@ -8512,10 +8524,12 @@ package body Exp_Dist is
             Item := First (CI);
             while Present (Item) loop
                Def := Defining_Identifier (Item);
+
                if not Is_Internal_Name (Chars (Def)) then
                   Add_Process_Element
                     (Stmts, Container, Counter, Rec, Def);
                end if;
+
                Next (Item);
             end loop;
 
@@ -8703,7 +8717,7 @@ package body Exp_Dist is
               and then not Is_Tagged_Type (Typ)
             then
                Append_To (Stms,
-                 Make_Return_Statement (Loc,
+                 Make_Simple_Return_Statement (Loc,
                    Expression =>
                      OK_Convert_To (
                        Typ,
@@ -8718,7 +8732,7 @@ package body Exp_Dist is
             then
                if Nkind (Declaration_Node (Typ)) = N_Subtype_Declaration then
                   Append_To (Stms,
-                    Make_Return_Statement (Loc,
+                    Make_Simple_Return_Statement (Loc,
                       Expression =>
                         OK_Convert_To (
                           Typ,
@@ -8851,7 +8865,6 @@ package body Exp_Dist is
                                       Alt_List));
 
                               Variant := First_Non_Pragma (Variants (Field));
-
                               while Present (Variant) loop
                                  Choice_List := New_Copy_List_Tree
                                    (Discrete_Choices (Variant));
@@ -8888,15 +8901,17 @@ package body Exp_Dist is
                      --  First all discriminants
 
                      if Has_Discriminants (Typ) then
-                        Disc := First_Discriminant (Typ);
                         Discriminant_Associations := New_List;
 
+                        Disc := First_Discriminant (Typ);
                         while Present (Disc) loop
                            declare
                               Disc_Var_Name : constant Entity_Id :=
-                                Make_Defining_Identifier (Loc, Chars (Disc));
-                              Disc_Type : constant Entity_Id :=
-                                Etype (Disc);
+                                                Make_Defining_Identifier (Loc,
+                                                  Chars => Chars (Disc));
+                              Disc_Type     : constant Entity_Id :=
+                                                Etype (Disc);
+
                            begin
                               Append_To (Decls,
                                 Make_Object_Declaration (Loc,
@@ -8926,11 +8941,12 @@ package body Exp_Dist is
                            Next_Discriminant (Disc);
                         end loop;
 
-                        Res_Definition := Make_Subtype_Indication (Loc,
-                          Subtype_Mark => Res_Definition,
-                          Constraint   =>
-                            Make_Index_Or_Discriminant_Constraint (Loc,
-                              Discriminant_Associations));
+                        Res_Definition :=
+                          Make_Subtype_Indication (Loc,
+                            Subtype_Mark => Res_Definition,
+                            Constraint   =>
+                              Make_Index_Or_Discriminant_Constraint (Loc,
+                                Discriminant_Associations));
                      end if;
 
                      --  Now we have all the discriminants in variables, we can
@@ -8955,7 +8971,7 @@ package body Exp_Dist is
                        Counter   => Component_Counter);
 
                      Append_To (Stms,
-                       Make_Return_Statement (Loc,
+                       Make_Simple_Return_Statement (Loc,
                          Expression => New_Occurrence_Of (Res, Loc)));
                   end;
                end if;
@@ -8990,12 +9006,12 @@ package body Exp_Dist is
                          Expression => Empty);
 
                      Element_Any : Node_Id;
-                  begin
 
+                  begin
                      declare
                         Element_TC : Node_Id;
-                     begin
 
+                     begin
                         if Etype (Datum) = RTE (RE_Any) then
 
                            --  When Datum is an Any the Etype field is not
@@ -9056,9 +9072,14 @@ package body Exp_Dist is
                         else
                            Set_Expression (Assignment, Element_Any);
                         end if;
+
                         Prepend_To (Stmts, Assignment);
                      end if;
                   end FA_Ary_Add_Process_Element;
+
+                  ------------------------
+                  -- Local Declarations --
+                  ------------------------
 
                   Counter : constant Entity_Id :=
                               Make_Defining_Identifier (Loc, Name_J);
@@ -9202,13 +9223,13 @@ package body Exp_Dist is
                     Any_Parameter, Counter);
 
                   Append_To (Stms,
-                    Make_Return_Statement (Loc,
+                    Make_Simple_Return_Statement (Loc,
                       Expression => New_Occurrence_Of (Res, Loc)));
                end;
 
             elsif Is_Integer_Type (Typ) or else Is_Unsigned_Type (Typ) then
                Append_To (Stms,
-                 Make_Return_Statement (Loc,
+                 Make_Simple_Return_Statement (Loc,
                    Expression =>
                      Unchecked_Convert_To (
                        Typ,
@@ -9291,7 +9312,7 @@ package body Exp_Dist is
                             Parameter_Associations =>
                               New_List (
                                 New_Occurrence_Of (Strm, Loc))),
-                          Make_Return_Statement (Loc,
+                          Make_Simple_Return_Statement (Loc,
                             Expression => New_Occurrence_Of (Res, Loc))))));
 
                end;
@@ -9340,14 +9361,14 @@ package body Exp_Dist is
             Start_String;
             Store_String_Chars ("DSA:");
             Get_Library_Unit_Name_String (Scope (E));
-            Store_String_Chars (
-              Name_Buffer (Name_Buffer'First
-                .. Name_Buffer'First + Name_Len - 1));
+            Store_String_Chars
+              (Name_Buffer (Name_Buffer'First ..
+               Name_Buffer'First + Name_Len - 1));
             Store_String_Char ('.');
             Get_Name_String (Chars (E));
-            Store_String_Chars (
-              Name_Buffer (Name_Buffer'First
-                .. Name_Buffer'First + Name_Len - 1));
+            Store_String_Chars
+              (Name_Buffer (Name_Buffer'First ..
+               Name_Buffer'First + Name_Len - 1));
             Store_String_Chars (":1.0");
             Repo_Id_Str := End_String;
             Name_Str    := String_From_Name_Buffer;
@@ -9365,22 +9386,19 @@ package body Exp_Dist is
 
             Typ     : Entity_Id := Etype (N);
             U_Type  : Entity_Id;
-
             Fnam    : Entity_Id := Empty;
             Lib_RE  : RE_Id := RE_Null;
 
          begin
             --  If N is a selected component, then maybe its Etype has not been
-            --  set yet: try to use the Etype of the selector_name in that
-            --  case.
+            --  set yet: try to use Etype of the selector_name in that case.
 
             if No (Typ) and then Nkind (N) = N_Selected_Component then
                Typ := Etype (Selector_Name (N));
             end if;
             pragma Assert (Present (Typ));
 
-            --  The full view, if Typ is private; the completion, if Typ is
-            --  incomplete.
+            --  Get full view for private type, completion for incomplete type
 
             U_Type := Underlying_Type (Typ);
 
@@ -9814,19 +9832,20 @@ package body Exp_Dist is
 
                   begin
                      --  Records are encoded in a TC_STRUCT aggregate:
+
                      --  -- Outer aggregate (TC_STRUCT)
                      --  | [discriminant1]
                      --  | [discriminant2]
                      --  | ...
-                     --
+                     --  |
                      --  | [component1]
                      --  | [component2]
                      --  | ...
-                     --
-                     --  A component can be a common component or a variant
-                     --  part.
-                     --
+
+                     --  A component can be a common component or variant part
+
                      --  A variant part is encoded as a TC_UNION aggregate:
+
                      --  -- Variant Part Aggregate (TC_UNION)
                      --  | [discriminant choice for this Variant Part]
                      --  |
@@ -9835,20 +9854,20 @@ package body Exp_Dist is
                      --  | |  [component2]
                      --  | |  ...
 
-                     --  Let's start by building the outer aggregate
-                     --  First we construct an Elements array containing all
-                     --  the discriminants.
+                     --  Let's start by building the outer aggregate. First we
+                     --  construct Elements array containing all discriminants.
 
                      if Has_Discriminants (Typ) then
                         Disc := First_Discriminant (Typ);
-
                         while Present (Disc) loop
-
                            declare
                               Discriminant : constant Entity_Id :=
-                                 Make_Selected_Component (Loc,
-                                     Prefix        => Expr_Parameter,
-                                     Selector_Name => Chars (Disc));
+                                               Make_Selected_Component (Loc,
+                                                 Prefix        =>
+                                                   Expr_Parameter,
+                                                 Selector_Name =>
+                                                   Chars (Disc));
+
                            begin
                               Set_Etype (Discriminant, Etype (Disc));
 
@@ -9859,6 +9878,7 @@ package body Exp_Dist is
                                   Expression =>
                                     Build_To_Any_Call (Discriminant, Decls)));
                            end;
+
                            Counter := Counter + 1;
                            Next_Discriminant (Disc);
                         end loop;
@@ -10081,7 +10101,7 @@ package body Exp_Dist is
             end if;
 
             Append_To (Stms,
-              Make_Return_Statement (Loc,
+              Make_Simple_Return_Statement (Loc,
                 Expression => New_Occurrence_Of (Any, Loc)));
 
             Decl :=
@@ -10384,7 +10404,7 @@ package body Exp_Dist is
             procedure Return_Constructed_TypeCode (Kind : Entity_Id) is
             begin
                Append_To (Stms,
-                 Make_Return_Statement (Loc,
+                 Make_Simple_Return_Statement (Loc,
                    Expression =>
                       Make_Constructed_TypeCode (Kind, Parameters)));
             end Return_Constructed_TypeCode;
@@ -10549,13 +10569,7 @@ package body Exp_Dist is
                                             Make_Integer_Literal (Loc, J);
                                        end if;
                                        Append_To (Union_TC_Params,
-                                         Make_Function_Call (Loc,
-                                           Name => New_Occurrence_Of
-                                             (RTE (RE_TA_A), Loc),
-                                           Parameter_Associations =>
-                                             New_List (
-                                               Build_To_Any_Call
-                                                 (Expr, Decls))));
+                                         Build_To_Any_Call (Expr, Decls));
 
                                        Add_Params_For_Variant_Components;
                                        J := J + Uint_1;
@@ -10593,8 +10607,7 @@ package body Exp_Dist is
 
                                  --  Add a placeholder member label
                                  --  for the default case.
-                                 --  It must be of the discriminant
-                                 --  type.
+                                 --  It must be of the discriminant type.
 
                                  declare
                                     Exp : constant Node_Id :=
@@ -10605,30 +10618,21 @@ package body Exp_Dist is
                                  begin
                                     Set_Etype (Exp, Discriminant_Type);
                                     Append_To (Union_TC_Params,
-                                      Make_Function_Call (Loc,
-                                        Name => New_Occurrence_Of
-                                          (RTE (RE_TA_A), Loc),
-                                        Parameter_Associations =>
-                                          New_List (
-                                            Build_To_Any_Call
-                                              (Exp, Decls))));
+                                      Build_To_Any_Call (Exp, Decls));
                                  end;
 
                                  Add_Params_For_Variant_Components;
 
                               when others =>
+
+                                 --  Case of an explicit choice
+
                                  declare
                                     Exp : constant Node_Id :=
                                       New_Copy_Tree (Choice);
                                  begin
                                     Append_To (Union_TC_Params,
-                                      Make_Function_Call (Loc,
-                                        Name => New_Occurrence_Of
-                                          (RTE (RE_TA_A), Loc),
-                                        Parameter_Associations =>
-                                          New_List (
-                                            Build_To_Any_Call
-                                              (Exp, Decls))));
+                                      Build_To_Any_Call (Exp, Decls));
                                  end;
 
                                  Add_Params_For_Variant_Components;

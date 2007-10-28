@@ -39,16 +39,28 @@ extern int target_flags;
 
 /* Predefinition in the preprocessor for this target machine */
 #ifndef TARGET_CPU_CPP_BUILTINS
-#define TARGET_CPU_CPP_BUILTINS()               \
-  do                                            \
-    {                                           \
-      builtin_define_std ("bfin");              \
-      builtin_define_std ("BFIN");              \
+#define TARGET_CPU_CPP_BUILTINS()		\
+  do						\
+    {						\
+      builtin_define_std ("bfin");		\
+      builtin_define_std ("BFIN");		\
       builtin_define ("__ADSPBLACKFIN__");	\
       builtin_define ("__ADSPLPBLACKFIN__");	\
 						\
       switch (bfin_cpu_type)			\
 	{					\
+	case BFIN_CPU_BF522:			\
+	  builtin_define ("__ADSPBF522__");	\
+	  builtin_define ("__ADSPBF52x__");	\
+	  break;				\
+	case BFIN_CPU_BF525:			\
+	  builtin_define ("__ADSPBF525__");	\
+	  builtin_define ("__ADSPBF52x__");	\
+	  break;				\
+	case BFIN_CPU_BF527:			\
+	  builtin_define ("__ADSPBF527__");	\
+	  builtin_define ("__ADSPBF52x__");	\
+	  break;				\
 	case BFIN_CPU_BF531:			\
 	  builtin_define ("__ADSPBF531__");	\
 	  break;				\
@@ -67,20 +79,62 @@ extern int target_flags;
 	case BFIN_CPU_BF537:			\
 	  builtin_define ("__ADSPBF537__");	\
 	  break;				\
+	case BFIN_CPU_BF538:			\
+	  builtin_define ("__ADSPBF538__");	\
+	  break;				\
+	case BFIN_CPU_BF539:			\
+	  builtin_define ("__ADSPBF539__");	\
+	  break;				\
+	case BFIN_CPU_BF542:			\
+	  builtin_define ("__ADSPBF542__");	\
+	  builtin_define ("__ADSPBF54x__");	\
+	  break;				\
+	case BFIN_CPU_BF544:			\
+	  builtin_define ("__ADSPBF544__");	\
+	  builtin_define ("__ADSPBF54x__");	\
+	  break;				\
+	case BFIN_CPU_BF548:			\
+	  builtin_define ("__ADSPBF548__");	\
+	  builtin_define ("__ADSPBF54x__");	\
+	  break;				\
+	case BFIN_CPU_BF549:			\
+	  builtin_define ("__ADSPBF549__");	\
+	  builtin_define ("__ADSPBF54x__");	\
+	  break;				\
 	case BFIN_CPU_BF561:			\
 	  builtin_define ("__ADSPBF561__");	\
 	  break;				\
 	}					\
 						\
+      if (bfin_si_revision != -1)		\
+	{					\
+	  /* space of 0xnnnn and a NUL */	\
+	  char *buf = alloca (7);		\
+						\
+	  sprintf (buf, "0x%04x", bfin_si_revision);			\
+	  builtin_define_with_value ("__SILICON_REVISION__", buf, 0);	\
+	}								\
+									\
+      if (bfin_workarounds)						\
+	builtin_define ("__WORKAROUNDS_ENABLED");			\
+      if (ENABLE_WA_SPECULATIVE_LOADS)					\
+	builtin_define ("__WORKAROUND_SPECULATIVE_LOADS");		\
+      if (ENABLE_WA_SPECULATIVE_SYNCS)					\
+	builtin_define ("__WORKAROUND_SPECULATIVE_SYNCS");		\
+						\
       if (TARGET_FDPIC)				\
 	builtin_define ("__BFIN_FDPIC__");	\
-      if (TARGET_ID_SHARED_LIBRARY)		\
+      if (TARGET_ID_SHARED_LIBRARY		\
+	  && !TARGET_SEP_DATA)			\
 	builtin_define ("__ID_SHARED_LIB__");	\
-    }                                           \
+      if (flag_no_builtin)			\
+	builtin_define ("__NO_BUILTIN");	\
+    }						\
   while (0)
 #endif
 
 #define DRIVER_SELF_SPECS SUBTARGET_DRIVER_SELF_SPECS	"\
+ %{!mcpu=*:-mcpu=bf532} \
  %{mleaf-id-shared-library:%{!mid-shared-library:-mid-shared-library}} \
  %{mfdpic:%{!fpic:%{!fpie:%{!fPIC:%{!fPIE:\
    	    %{!fno-pic:%{!fno-pie:%{!fno-PIC:%{!fno-PIE:-fpie}}}}}}}}} \
@@ -89,9 +143,9 @@ extern int target_flags;
 # define SUBTARGET_DRIVER_SELF_SPECS
 #endif
 
-#define LINK_GCC_C_SEQUENCE_SPEC \
-  "%{mfdpic:%{!static: %L} %{static: %G %L %G}} \
-  %{!mfdpic:%G %L %G}"
+#define LINK_GCC_C_SEQUENCE_SPEC "\
+  %{mfast-fp:-lbffastfp} %G %L %{mfast-fp:-lbffastfp} %G \
+"
 
 /* A C string constant that tells the GCC driver program options to pass to
    the assembler.  It can also specify how to translate options you give to GNU
@@ -121,7 +175,7 @@ extern int target_flags;
 /* Generate DSP instructions, like DSP halfword loads */
 #define TARGET_DSP			(1)
 
-#define TARGET_DEFAULT (MASK_SPECLD_ANOMALY | MASK_CSYNC_ANOMALY)
+#define TARGET_DEFAULT 0
 
 /* Maximum number of library ids we permit */
 #define MAX_LIBRARY_ID 255
@@ -462,6 +516,7 @@ enum reg_class
   D6REGS,
   D7REGS,
   DREGS,
+  P0REGS,
   FDPIC_REGS,
   FDPIC_FPTR_REGS,
   PREGS_CLOBBERED,
@@ -506,6 +561,7 @@ enum reg_class
    "D6REGS",		\
    "D7REGS",		\
    "DREGS",		\
+   "P0REGS",		\
    "FDPIC_REGS",	\
    "FDPIC_FPTR_REGS",	\
    "PREGS_CLOBBERED",	\
@@ -558,6 +614,7 @@ enum reg_class
     { 0x00000040,    0 },		/* D6REGS */   \
     { 0x00000080,    0 },		/* D7REGS */   \
     { 0x000000ff,    0 },		/* DREGS */   \
+    { 0x00000100,    0x000 },		/* P0REGS */   \
     { 0x00000800,    0x000 },		/* FDPIC_REGS */   \
     { 0x00000200,    0x000 },		/* FDPIC_FPTR_REGS */   \
     { 0x00004700,    0x800 },		/* PREGS_CLOBBERED */   \
@@ -634,6 +691,7 @@ enum reg_class
        : (STR)[1] == '5' ? D5REGS \
        : (STR)[1] == '6' ? D6REGS \
        : (STR)[1] == '7' ? D7REGS \
+       : (STR)[1] == 'A' ? P0REGS \
        : NO_REGS) : \
    NO_REGS)
 
@@ -651,6 +709,7 @@ enum reg_class
  : (REGNO) == REG_R5 ? D5REGS				\
  : (REGNO) == REG_R6 ? D6REGS				\
  : (REGNO) == REG_R7 ? D7REGS				\
+ : (REGNO) == REG_P0 ? P0REGS				\
  : (REGNO) < REG_I0 ? PREGS				\
  : (REGNO) == REG_ARGP ? PREGS				\
  : (REGNO) >= REG_I0 && (REGNO) <= REG_I3 ? IREGS	\
@@ -673,6 +732,7 @@ enum reg_class
 #define CLASS_LIKELY_SPILLED_P(CLASS) \
     ((CLASS) == PREGS_CLOBBERED \
      || (CLASS) == PROLOGUE_REGS \
+     || (CLASS) == P0REGS \
      || (CLASS) == D0REGS \
      || (CLASS) == D1REGS \
      || (CLASS) == D2REGS \
@@ -719,7 +779,10 @@ enum reg_class
    class to use when it is necessary to copy value X into a register
    in class CLASS.  The value is a register class; perhaps CLASS, or
    perhaps another, smaller class.  */
-#define PREFERRED_RELOAD_CLASS(X, CLASS) (CLASS)
+#define PREFERRED_RELOAD_CLASS(X, CLASS)		\
+  (GET_CODE (X) == POST_INC				\
+   || GET_CODE (X) == POST_DEC				\
+   || GET_CODE (X) == PRE_DEC ? PREGS : (CLASS))
 
 /* Function Calling Conventions. */
 
@@ -1230,6 +1293,10 @@ typedef enum directives {
     INIT_DIR,
     LAST_DIR_NM
 } DIR_ENUM_T;
+
+#define IS_ASM_LOGICAL_LINE_SEPARATOR(C, STR)	\
+  ((C) == ';'					\
+   || ((C) == '|' && (STR)[1] == '|'))
 
 #define TEXT_SECTION_ASM_OP ".text;"
 #define DATA_SECTION_ASM_OP ".data;"

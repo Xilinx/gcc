@@ -80,6 +80,7 @@ package body System.Task_Primitives.Operations is
    use System.OS_Interface;
    use System.Parameters;
    use System.OS_Primitives;
+   use System.Task_Info;
 
    pragma Link_With ("-Xlinker --stack=0x200000,0x1000");
    --  Change the default stack size (2 MB) for tasking programs on Windows.
@@ -546,7 +547,9 @@ package body System.Task_Primitives.Operations is
       Check_Time : Duration := Monotonic_Clock;
       Rel_Time   : Duration;
       Abs_Time   : Duration;
-      Result     : Integer;
+
+      Result : Integer;
+      pragma Unreferenced (Result);
 
       Local_Timedout : Boolean;
 
@@ -606,10 +609,10 @@ package body System.Task_Primitives.Operations is
       Check_Time : Duration := Monotonic_Clock;
       Rel_Time   : Duration;
       Abs_Time   : Duration;
-      Timedout   : Boolean;
 
-      Result : Integer;
-      pragma Warnings (Off, Integer);
+      Timedout : Boolean;
+      Result   : Integer;
+      pragma Unreferenced (Timedout, Result);
 
    begin
       if Single_Lock then
@@ -786,6 +789,13 @@ package body System.Task_Primitives.Operations is
       Specific.Set (Self_ID);
       Init_Float;
 
+      if Self_ID.Common.Task_Info /= null
+        and then
+          Self_ID.Common.Task_Info.CPU >= CPU_Number (Number_Of_Processors)
+      then
+         raise Invalid_CPU_Number;
+      end if;
+
       Self_ID.Common.LL.Thread_Id := GetCurrentThreadId;
 
       Lock_RTS;
@@ -925,7 +935,16 @@ package body System.Task_Primitives.Operations is
          SetThreadPriorityBoost (hTask, DisablePriorityBoost => True);
       end if;
 
-      --  Step 4: Now, start it for good:
+      --  Step 4: Handle Task_Info
+
+      if T.Common.Task_Info /= null then
+         if T.Common.Task_Info.CPU /= Task_Info.Any_CPU then
+            Result := SetThreadIdealProcessor (hTask, T.Common.Task_Info.CPU);
+            pragma Assert (Result = 1);
+         end if;
+      end if;
+
+      --  Step 5: Now, start it for good:
 
       Result := ResumeThread (hTask);
       pragma Assert (Result = 1);
@@ -1274,5 +1293,34 @@ package body System.Task_Primitives.Operations is
          return True;
       end if;
    end Resume_Task;
+
+   --------------------
+   -- Stop_All_Tasks --
+   --------------------
+
+   procedure Stop_All_Tasks is
+   begin
+      null;
+   end Stop_All_Tasks;
+
+   ---------------
+   -- Stop_Task --
+   ---------------
+
+   function Stop_Task (T : ST.Task_Id) return Boolean is
+      pragma Unreferenced (T);
+   begin
+      return False;
+   end Stop_Task;
+
+   -------------------
+   -- Continue_Task --
+   -------------------
+
+   function Continue_Task (T : ST.Task_Id) return Boolean is
+      pragma Unreferenced (T);
+   begin
+      return False;
+   end Continue_Task;
 
 end System.Task_Primitives.Operations;

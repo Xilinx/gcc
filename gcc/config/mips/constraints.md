@@ -80,7 +80,11 @@
 ;; Registers that can be used as the target of multiply-accumulate
 ;; instructions.  The core MIPS32 ISA provides a hi/lo madd,
 ;; but the DSPr2 version allows any accumulator target.
-(define_register_constraint "ka" "TARGET_DSPR2 ? ACC_REGS : MD_REGS")
+(define_register_constraint "ka" "ISA_HAS_DSPR2 ? ACC_REGS : MD_REGS")
+
+(define_constraint "kf"
+  "@internal"
+  (match_operand 0 "force_to_mem_operand"))
 
 ;; This is a normal rather than a register constraint because we can
 ;; never use the stack pointer as a reload register.
@@ -151,7 +155,7 @@
 (define_memory_constraint "R"
   "An address that can be used in a non-macro load or store."
   (and (match_code "mem")
-       (match_test "mips_fetch_insns (op) == 1")))
+       (match_test "mips_address_insns (XEXP (op, 0), mode, false) == 1")))
 
 (define_constraint "S"
   "@internal

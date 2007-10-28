@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -927,6 +926,28 @@ package body CStand is
       Set_Directly_Designated_Type (Standard_A_Char, Standard_Character);
       Make_Name     (Standard_A_Char, "access_character");
 
+      --  Standard_Debug_Renaming_Type is used for the special objects created
+      --  to encode the names occurring in renaming declarations for use by the
+      --  debugger (see exp_dbug.adb). The type is a zero-sized subtype of
+      --  Standard.Integer.
+
+      Standard_Debug_Renaming_Type := New_Standard_Entity;
+
+      Set_Ekind (Standard_Debug_Renaming_Type, E_Signed_Integer_Subtype);
+      Set_Scope (Standard_Debug_Renaming_Type, Standard_Standard);
+      Set_Etype (Standard_Debug_Renaming_Type, Base_Type (Standard_Integer));
+      Init_Esize         (Standard_Debug_Renaming_Type, 0);
+      Init_RM_Size       (Standard_Debug_Renaming_Type, 0);
+      Set_Size_Known_At_Compile_Time (Standard_Debug_Renaming_Type);
+      Set_Integer_Bounds (Standard_Debug_Renaming_Type,
+        Typ => Base_Type (Standard_Debug_Renaming_Type),
+        Lb  => Uint_1,
+        Hb  => Uint_0);
+      Set_Is_Constrained (Standard_Debug_Renaming_Type);
+      Set_Has_Size_Clause (Standard_Debug_Renaming_Type);
+
+      Make_Name      (Standard_Debug_Renaming_Type, "_renaming_type");
+
       --  Note on type names. The type names for the following special types
       --  are constructed so that they will look reasonable should they ever
       --  appear in error messages etc, although in practice the use of the
@@ -948,7 +969,8 @@ package body CStand is
       Set_Ekind             (Any_Id, E_Variable);
       Set_Scope             (Any_Id, Standard_Standard);
       Set_Etype             (Any_Id, Any_Type);
-      Init_Size_Align       (Any_Id);
+      Init_Esize            (Any_Id);
+      Init_Alignment        (Any_Id);
       Make_Name             (Any_Id, "any id");
 
       Any_Access := New_Standard_Entity;

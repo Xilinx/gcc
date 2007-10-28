@@ -764,9 +764,6 @@ case "${host}" in
 esac
 AC_SUBST(SYSTEMSPEC)
 
-LIBGCJTESTSPEC="-L`${PWDCMD-pwd}`/.libs -rpath `${PWDCMD-pwd}`/.libs"
-AC_SUBST(LIBGCJTESTSPEC)
-
 AC_ARG_WITH(system-zlib,
   AS_HELP_STRING([--with-system-zlib],
                  [use installed libz]))
@@ -780,6 +777,9 @@ AC_PATH_XTRA
 # FIXME: this should be _libs on some hosts.
 libsubdir=.libs
 
+LIBGCJTESTSPEC="-L`${PWDCMD-pwd}`/.libs -rpath `${PWDCMD-pwd}`/.libs"
+
+LIBSTDCXXSPEC=
 # extra LD Flags which are required for targets
 case "${host}" in
 *-*-darwin[[0-7]].*)
@@ -788,8 +788,20 @@ case "${host}" in
     # on Darwin -single_module speeds up loading of the dynamic libraries.
     extra_ldflags_libjava=-Wl,-single_module
     ;;
+arm*linux*eabi)
+    # Some of the ARM unwinder code is actually in libstdc++.  We
+    # could in principle replicate it in libgcj, but it's better to
+    # have a dependency on libstdc++.
+    extra_ldflags='-L$(here)/../libstdc++-v3/src/.libs -lstdc++'
+    LIBSTDCXXSPEC=-lstdc++
+    LIBGCJTESTSPEC="-L`${PWDCMD-pwd}`/.libs -L`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -rpath `${PWDCMD-pwd}`/.libs:`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -lstdc++"
+    ;;
 esac
 AC_SUBST(extra_ldflags_libjava)
+AC_SUBST(extra_ldflags)
+AC_SUBST(LIBSTDCXXSPEC)
+
+AC_SUBST(LIBGCJTESTSPEC)
 
 # Allow the GC to be disabled.  Can be useful when debugging.
 AC_MSG_CHECKING([for garbage collector to use])
@@ -1369,7 +1381,7 @@ AC_SUBST(toolexecmainlibdir)
 AC_SUBST(toolexeclibdir)
 
 # Determine gcj and libgcj version number.
-gcjversion=`$GCJ -v 2>&1 | sed -n 's/^.*version \([[^ ]]*\).*$/\1/p'`
+gcjversion=`cat "$srcdir/../gcc/BASE-VER"`
 libgcj_soversion=`awk -F: '/^[[^#]].*:/ { print $1 }' $srcdir/libtool-version`
 GCJVERSION=$gcjversion
 AC_SUBST(GCJVERSION)
@@ -1377,17 +1389,17 @@ AC_DEFINE_UNQUOTED(GCJVERSION, "$GCJVERSION", [Short GCJ version ID])
 
 # Determine where the standard .db file and GNU Classpath JNI
 # libraries are found.
+gcjsubdir=gcj-$gcjversion-$libgcj_soversion
 multi_os_directory=`$CC -print-multi-os-directory`
 case $multi_os_directory in
   .)
-   dbexecdir='$(libdir)/gcj-$(gcc_version)'-$libgcj_soversion # Avoid /.
+   dbexecdir='$(libdir)/'$gcjsubdir # Avoid /.
    ;;
   *)
-   dbexecdir='$(libdir)/'$multi_os_directory'/gcj-$(gcc_version)'-$libgcj_soversion
+   dbexecdir='$(libdir)/'$multi_os_directory/$gcjsubdir
    ;;
 esac
 AC_SUBST(dbexecdir)
-ac_configure_args="$ac_configure_args --with-native-libdir=\$\(toolexeclibdir\)/gcj-$gcjversion-$libgcj_soversion"
 
 AC_DEFINE(JV_VERSION, "1.5.0", [Compatibility version string])
 AC_DEFINE(JV_API_VERSION, "1.5", [API compatibility version string])
@@ -1530,6 +1542,9 @@ case "${host}" in
     ;;
  mips*-*-linux*)
     SIGNAL_HANDLER=include/mips-signal.h
+    ;;
+ m68*-*-linux*)
+    SIGNAL_HANDLER=include/dwarf2-signal.h
     ;;
  powerpc*-*-darwin*)
     SIGNAL_HANDLER=include/darwin-signal.h

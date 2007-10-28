@@ -77,6 +77,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "coverage.h"
 #include "df.h"
 #include "vecprim.h"
+#include "ggc.h"
+#include "cfgloop.h"
+#include "params.h"
 
 #ifdef XCOFF_DEBUGGING_INFO
 #include "xcoffout.h"		/* Needed for external data
@@ -108,7 +111,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Is the given character a logical line separator for the assembler?  */
 #ifndef IS_ASM_LOGICAL_LINE_SEPARATOR
-#define IS_ASM_LOGICAL_LINE_SEPARATOR(C) ((C) == ';')
+#define IS_ASM_LOGICAL_LINE_SEPARATOR(C, STR) ((C) == ';')
 #endif
 
 #ifndef JUMP_TABLES_IN_TEXT_SECTION
@@ -135,6 +138,10 @@ static int high_function_linenum;
 
 /* Filename of last NOTE.  */
 static const char *last_filename;
+
+/* Override filename and line number.  */
+static const char *override_filename;
+static int override_linenum;
 
 /* Whether to force emission of a line note before the next insn.  */
 static bool force_source_line = false;
@@ -668,6 +675,8 @@ compute_alignments (void)
 {
   int log, max_skip, max_log;
   basic_block bb;
+  int freq_max = 0;
+  int freq_threshold = 0;
 
   if (label_align)
     {
@@ -683,6 +692,19 @@ compute_alignments (void)
   if (! optimize || optimize_size)
     return 0;
 
+  if (dump_file)
+    {
+      dump_flow_info (dump_file, TDF_DETAILS);
+      flow_loops_dump (dump_file, NULL, 1);
+      loop_optimizer_init (AVOID_CFG_MODIFICATIONS);
+    }
+  FOR_EACH_BB (bb)
+    if (bb->frequency > freq_max)
+      freq_max = bb->frequency;
+  freq_threshold = freq_max / PARAM_VALUE (PARAM_ALIGN_THRESHOLD);
+
+  if (dump_file)
+    fprintf(dump_file, "freq_max: %i\n",freq_max);
   FOR_EACH_BB (bb)
     {
       rtx label = BB_HEAD (bb);
@@ -692,7 +714,12 @@ compute_alignments (void)
 
       if (!LABEL_P (label)
 	  || probably_never_executed_bb_p (bb))
-	continue;
+	{
+	  if (dump_file)
+	    fprintf(dump_file, "BB %4i freq %4i loop %2i loop_depth %2i skipped.\n",
+		    bb->index, bb->frequency, bb->loop_father->num, bb->loop_depth);
+	  continue;
+	}
       max_log = LABEL_ALIGN (label);
       max_skip = LABEL_ALIGN_MAX_SKIP;
 
@@ -702,6 +729,18 @@ compute_alignments (void)
 	    has_fallthru = 1, fallthru_frequency += EDGE_FREQUENCY (e);
 	  else
 	    branch_frequency += EDGE_FREQUENCY (e);
+	}
+      if (dump_file)
+	{
+	  fprintf(dump_file, "BB %4i freq %4i loop %2i loop_depth %2i fall %4i branch %4i",
+		  bb->index, bb->frequency, bb->loop_father->num,
+		  bb->loop_depth,
+		  fallthru_frequency, branch_frequency);
+	  if (!bb->loop_father->inner && bb->loop_father->num)
+	    fprintf (dump_file, " inner_loop");
+	  if (bb->loop_father->header == bb)
+	    fprintf (dump_file, " loop_header");
+	  fprintf (dump_file, "\n");
 	}
 
       /* There are two purposes to align block with no fallthru incoming edge:
@@ -715,12 +754,14 @@ compute_alignments (void)
 	 when function is called.  */
 
       if (!has_fallthru
-	  && (branch_frequency > BB_FREQ_MAX / 10
+	  && (branch_frequency > freq_threshold
 	      || (bb->frequency > bb->prev_bb->frequency * 10
 		  && (bb->prev_bb->frequency
 		      <= ENTRY_BLOCK_PTR->frequency / 2))))
 	{
 	  log = JUMP_ALIGN (label);
+	  if (dump_file)
+	    fprintf(dump_file, "  jump alignment added.\n");
 	  if (max_log < log)
 	    {
 	      max_log = log;
@@ -731,10 +772,13 @@ compute_alignments (void)
 	 align it.  It is most likely a first block of loop.  */
       if (has_fallthru
 	  && maybe_hot_bb_p (bb)
-	  && branch_frequency + fallthru_frequency > BB_FREQ_MAX / 10
-	  && branch_frequency > fallthru_frequency * 2)
+	  && branch_frequency + fallthru_frequency > freq_threshold
+	  && (branch_frequency
+	      > fallthru_frequency * PARAM_VALUE (PARAM_ALIGN_LOOP_ITERATIONS)))
 	{
 	  log = LOOP_ALIGN (label);
+	  if (dump_file)
+	    fprintf(dump_file, "  internal loop alignment added.\n");
 	  if (max_log < log)
 	    {
 	      max_log = log;
@@ -744,12 +788,15 @@ compute_alignments (void)
       LABEL_TO_ALIGNMENT (label) = max_log;
       LABEL_TO_MAX_SKIP (label) = max_skip;
     }
+
+  if (dump_file)
+    loop_optimizer_finalize ();
   return 0;
 }
 
 struct tree_opt_pass pass_compute_alignments =
 {
-  NULL,                                 /* name */
+  "alignments",                         /* name */
   NULL,                                 /* gate */
   compute_alignments,                   /* execute */
   NULL,                                 /* sub */
@@ -760,7 +807,8 @@ struct tree_opt_pass pass_compute_alignments =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  0,                                    /* todo_flags_finish */
+  TODO_dump_func | TODO_verify_rtl_sharing
+  | TODO_ggc_collect,                   /* todo_flags_finish */
   0                                     /* letter */
 };
 
@@ -1343,12 +1391,79 @@ asm_insn_count (rtx body)
     template = decode_asm_operands (body, NULL, NULL, NULL, NULL, NULL);
 
   for (; *template; template++)
-    if (IS_ASM_LOGICAL_LINE_SEPARATOR (*template) || *template == '\n')
+    if (IS_ASM_LOGICAL_LINE_SEPARATOR (*template, template)
+	|| *template == '\n')
       count++;
 
   return count;
 }
 #endif
+
+/* ??? This is probably the wrong place for these.  */
+/* Structure recording the mapping from source file and directory
+   names at compile time to those to be embedded in debug
+   information.  */
+typedef struct debug_prefix_map
+{
+  const char *old_prefix;
+  const char *new_prefix;
+  size_t old_len;
+  size_t new_len;
+  struct debug_prefix_map *next;
+} debug_prefix_map;
+
+/* Linked list of such structures.  */
+debug_prefix_map *debug_prefix_maps;
+
+
+/* Record a debug file prefix mapping.  ARG is the argument to
+   -fdebug-prefix-map and must be of the form OLD=NEW.  */
+
+void
+add_debug_prefix_map (const char *arg)
+{
+  debug_prefix_map *map;
+  const char *p;
+
+  p = strchr (arg, '=');
+  if (!p)
+    {
+      error ("invalid argument %qs to -fdebug-prefix-map", arg);
+      return;
+    }
+  map = XNEW (debug_prefix_map);
+  map->old_prefix = ggc_alloc_string (arg, p - arg);
+  map->old_len = p - arg;
+  p++;
+  map->new_prefix = ggc_strdup (p);
+  map->new_len = strlen (p);
+  map->next = debug_prefix_maps;
+  debug_prefix_maps = map;
+}
+
+/* Perform user-specified mapping of debug filename prefixes.  Return
+   the new name corresponding to FILENAME.  */
+
+const char *
+remap_debug_filename (const char *filename)
+{
+  debug_prefix_map *map;
+  char *s;
+  const char *name;
+  size_t name_len;
+
+  for (map = debug_prefix_maps; map; map = map->next)
+    if (strncmp (filename, map->old_prefix, map->old_len) == 0)
+      break;
+  if (!map)
+    return filename;
+  name = filename + map->old_len;
+  name_len = strlen (name) + 1;
+  s = (char *) alloca (name_len + map->new_len);
+  memcpy (s, map->new_prefix, map->new_len);
+  memcpy (s + map->new_len, name, name_len);
+  return ggc_strdup (s);
+}
 
 /* Output assembler code for the start of a function,
    and initialize some of the variables in this file
@@ -1456,7 +1571,9 @@ profile_function (FILE *file ATTRIBUTE_UNUSED)
 
 #if defined(ASM_OUTPUT_REG_PUSH)
   if (sval && svrtx != NULL_RTX && REG_P (svrtx))
-    ASM_OUTPUT_REG_PUSH (file, REGNO (svrtx));
+    {
+      ASM_OUTPUT_REG_PUSH (file, REGNO (svrtx));
+    }
 #endif
 
 #if defined(STATIC_CHAIN_INCOMING_REGNUM) && defined(ASM_OUTPUT_REG_PUSH)
@@ -1487,7 +1604,9 @@ profile_function (FILE *file ATTRIBUTE_UNUSED)
 
 #if defined(ASM_OUTPUT_REG_PUSH)
   if (sval && svrtx != NULL_RTX && REG_P (svrtx))
-    ASM_OUTPUT_REG_POP (file, REGNO (svrtx));
+    {
+      ASM_OUTPUT_REG_POP (file, REGNO (svrtx));
+    }
 #endif
 }
 
@@ -1742,6 +1861,18 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	      /* Mark this block as output.  */
 	      TREE_ASM_WRITTEN (NOTE_BLOCK (insn)) = 1;
 	    }
+	  if (write_symbols == DBX_DEBUG
+	      || write_symbols == SDB_DEBUG)
+	    {
+	      location_t *locus_ptr
+		= block_nonartificial_location (NOTE_BLOCK (insn));
+
+	      if (locus_ptr != NULL)
+		{
+		  override_filename = LOCATION_FILE (*locus_ptr);
+		  override_linenum = LOCATION_LINE (*locus_ptr);
+		}
+	    }
 	  break;
 
 	case NOTE_INSN_BLOCK_END:
@@ -1760,6 +1891,24 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	      gcc_assert (block_depth >= 0);
 
 	      (*debug_hooks->end_block) (high_block_linenum, n);
+	    }
+	  if (write_symbols == DBX_DEBUG
+	      || write_symbols == SDB_DEBUG)
+	    {
+	      tree outer_block = BLOCK_SUPERCONTEXT (NOTE_BLOCK (insn));
+	      location_t *locus_ptr
+		= block_nonartificial_location (outer_block);
+
+	      if (locus_ptr != NULL)
+		{
+		  override_filename = LOCATION_FILE (*locus_ptr);
+		  override_linenum = LOCATION_LINE (*locus_ptr);
+		}
+	      else
+		{
+		  override_filename = NULL;
+		  override_linenum = 0;
+		}
 	    }
 	  break;
 
@@ -2021,7 +2170,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 
 	    if (string[0])
 	      {
-		location_t loc;
+		expanded_location loc;
 
 		if (! app_on)
 		  {
@@ -2029,7 +2178,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 		    app_on = 1;
 		  }
 #ifdef USE_MAPPED_LOCATION
-		loc = ASM_INPUT_SOURCE_LOCATION (body);
+		loc = expand_location (ASM_INPUT_SOURCE_LOCATION (body));
 #else
 		loc.file = ASM_INPUT_SOURCE_FILE (body);
 		loc.line = ASM_INPUT_SOURCE_LINE (body);
@@ -2053,6 +2202,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    rtx *ops = alloca (noperands * sizeof (rtx));
 	    const char *string;
 	    location_t loc;
+	    expanded_location expanded;
 
 	    /* There's no telling what that did to the condition codes.  */
 	    CC_STATUS_INIT;
@@ -2062,6 +2212,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    /* Inhibit dieing on what would otherwise be compiler bugs.  */
 	    insn_noperands = noperands;
 	    this_is_asm_operands = insn;
+	    expanded = expand_location (loc);
 
 #ifdef FINAL_PRESCAN_INSN
 	    FINAL_PRESCAN_INSN (insn, ops, insn_noperands);
@@ -2075,12 +2226,12 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 		    fputs (ASM_APP_ON, file);
 		    app_on = 1;
 		  }
-		if (loc.file && loc.line)
+		if (expanded.file && expanded.line)
 		  fprintf (asm_out_file, "%s %i \"%s\" 1\n",
-			   ASM_COMMENT_START, loc.line, loc.file);
+			   ASM_COMMENT_START, expanded.line, expanded.file);
 	        output_asm_insn (string, ops);
 #if HAVE_AS_LINE_ZERO
-		if (loc.file && loc.line)
+		if (expanded.file && expanded.line)
 		  fprintf (asm_out_file, "%s 0 \"\" 2\n", ASM_COMMENT_START);
 #endif
 	      }
@@ -2238,41 +2389,6 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    else if (GET_CODE (SET_SRC (body)) == RETURN)
 	      /* Replace (set (pc) (return)) with (return).  */
 	      PATTERN (insn) = body = SET_SRC (body);
-
-	    /* Rerecognize the instruction if it has changed.  */
-	    if (result != 0)
-	      INSN_CODE (insn) = -1;
-	  }
-
-	/* If this is a conditional trap, maybe modify it if the cc's
-	   are in a nonstandard state so that it accomplishes the same
-	   thing that it would do straightforwardly if the cc's were
-	   set up normally.  */
-	if (cc_status.flags != 0
-	    && NONJUMP_INSN_P (insn)
-	    && GET_CODE (body) == TRAP_IF
-	    && COMPARISON_P (TRAP_CONDITION (body))
-	    && XEXP (TRAP_CONDITION (body), 0) == cc0_rtx)
-	  {
-	    /* This function may alter the contents of its argument
-	       and clear some of the cc_status.flags bits.
-	       It may also return 1 meaning condition now always true
-	       or -1 meaning condition now always false
-	       or 2 meaning condition nontrivial but altered.  */
-	    int result = alter_cond (TRAP_CONDITION (body));
-
-	    /* If TRAP_CONDITION has become always false, delete the
-	       instruction.  */
-	    if (result == -1)
-	      {
-		delete_insn (insn);
-		break;
-	      }
-
-	    /* If TRAP_CONDITION has become always true, replace
-	       TRAP_CONDITION with const_true_rtx.  */
-	    if (result == 1)
-	      TRAP_CONDITION (body) = const_true_rtx;
 
 	    /* Rerecognize the instruction if it has changed.  */
 	    if (result != 0)
@@ -2535,8 +2651,19 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 static bool
 notice_source_line (rtx insn)
 {
-  const char *filename = insn_file (insn);
-  int linenum = insn_line (insn);
+  const char *filename;
+  int linenum;
+
+  if (override_filename)
+    {
+      filename = override_filename;
+      linenum = override_linenum;
+    }
+  else
+    {
+      filename = insn_file (insn);
+      linenum = insn_line (insn);
+    }
 
   if (filename
       && (force_source_line
@@ -3304,6 +3431,10 @@ output_addr_const (FILE *file, rtx x)
 	/* We can't handle floating point constants;
 	   PRINT_OPERAND must handle them.  */
 	output_operand_lossage ("floating constant misused");
+      break;
+
+    case CONST_FIXED:
+      fprintf (file, HOST_WIDE_INT_PRINT_HEX, CONST_FIXED_VALUE_LOW (x));
       break;
 
     case PLUS:

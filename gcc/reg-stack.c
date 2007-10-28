@@ -249,7 +249,7 @@ static rtx not_a_num;
 
 /* Forward declarations */
 
-static int stack_regs_mentioned_p (rtx pat);
+static int stack_regs_mentioned_p (const_rtx pat);
 static void pop_stack (stack, int);
 static rtx *get_true_reg (rtx *);
 
@@ -276,7 +276,7 @@ static rtx next_flags_user (rtx);
 /* Return nonzero if any stack register is mentioned somewhere within PAT.  */
 
 static int
-stack_regs_mentioned_p (rtx pat)
+stack_regs_mentioned_p (const_rtx pat)
 {
   const char *fmt;
   int i;
@@ -305,7 +305,7 @@ stack_regs_mentioned_p (rtx pat)
 /* Return nonzero if INSN mentions stacked registers, else return zero.  */
 
 int
-stack_regs_mentioned (rtx insn)
+stack_regs_mentioned (const_rtx insn)
 {
   unsigned int uid, max;
   int test;
@@ -1085,11 +1085,13 @@ move_for_stack_reg (rtx insn, stack regstack, rtx pat)
 	 special case with i387 UNSPEC_TAN, where destination is live
 	 (an argument to fptan) but inherent load of 1.0 is modelled
 	 as a load from a constant.  */
-      if (! (GET_CODE (pat) == PARALLEL
-	     && XVECLEN (pat, 0) == 2
-	     && GET_CODE (XVECEXP (pat, 0, 1)) == SET
-	     && GET_CODE (SET_SRC (XVECEXP (pat, 0, 1))) == UNSPEC
-	     && XINT (SET_SRC (XVECEXP (pat, 0, 1)), 1) == UNSPEC_TAN))
+      if (GET_CODE (pat) == PARALLEL
+	  && XVECLEN (pat, 0) == 2
+	  && GET_CODE (XVECEXP (pat, 0, 1)) == SET
+	  && GET_CODE (SET_SRC (XVECEXP (pat, 0, 1))) == UNSPEC
+	  && XINT (SET_SRC (XVECEXP (pat, 0, 1)), 1) == UNSPEC_TAN)
+	emit_swap_insn (insn, regstack, dest);
+      else
 	gcc_assert (get_hard_regnum (regstack, dest) < FIRST_STACK_REG);
 
       gcc_assert (regstack->top < REG_STACK_SIZE);
@@ -3242,7 +3244,7 @@ struct tree_opt_pass pass_stack_regs_run =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_df_finish |
+  TODO_df_finish | TODO_verify_rtl_sharing |
   TODO_dump_func |
   TODO_ggc_collect,                     /* todo_flags_finish */
   'k'                                   /* letter */

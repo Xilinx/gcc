@@ -107,7 +107,7 @@ static int *vr_phi_edge_counts;
    TYPE_{MIN,MAX}_VALUE.  */
 
 static inline bool
-needs_overflow_infinity (tree type)
+needs_overflow_infinity (const_tree type)
 {
   return INTEGRAL_TYPE_P (type) && !TYPE_OVERFLOW_WRAPS (type);
 }
@@ -119,7 +119,7 @@ needs_overflow_infinity (tree type)
    VARYING.  */
 
 static inline bool
-supports_overflow_infinity (tree type)
+supports_overflow_infinity (const_tree type)
 {
 #ifdef ENABLE_CHECKING
   gcc_assert (needs_overflow_infinity (type));
@@ -169,7 +169,7 @@ positive_overflow_infinity (tree type)
 /* Return whether VAL is a negative overflow infinity.  */
 
 static inline bool
-is_negative_overflow_infinity (tree val)
+is_negative_overflow_infinity (const_tree val)
 {
   return (needs_overflow_infinity (TREE_TYPE (val))
 	  && CONSTANT_CLASS_P (val)
@@ -180,7 +180,7 @@ is_negative_overflow_infinity (tree val)
 /* Return whether VAL is a positive overflow infinity.  */
 
 static inline bool
-is_positive_overflow_infinity (tree val)
+is_positive_overflow_infinity (const_tree val)
 {
   return (needs_overflow_infinity (TREE_TYPE (val))
 	  && CONSTANT_CLASS_P (val)
@@ -191,7 +191,7 @@ is_positive_overflow_infinity (tree val)
 /* Return whether VAL is a positive or negative overflow infinity.  */
 
 static inline bool
-is_overflow_infinity (tree val)
+is_overflow_infinity (const_tree val)
 {
   return (needs_overflow_infinity (TREE_TYPE (val))
 	  && CONSTANT_CLASS_P (val)
@@ -229,7 +229,7 @@ avoid_overflow_infinity (tree val)
    to the integer constant with the same value in the type.  */
 
 static inline bool
-vrp_val_is_max (tree val)
+vrp_val_is_max (const_tree val)
 {
   tree type_max = TYPE_MAX_VALUE (TREE_TYPE (val));
 
@@ -242,7 +242,7 @@ vrp_val_is_max (tree val)
    will be true for a negative overflow infinity.  */
 
 static inline bool
-vrp_val_is_min (tree val)
+vrp_val_is_min (const_tree val)
 {
   tree type_min = TYPE_MIN_VALUE (TREE_TYPE (val));
 
@@ -256,7 +256,7 @@ vrp_val_is_min (tree val)
    current function signature.  */
 
 static bool
-nonnull_arg_p (tree arg)
+nonnull_arg_p (const_tree arg)
 {
   tree t, attrs, fntype;
   unsigned HOST_WIDE_INT arg_num;
@@ -462,7 +462,7 @@ set_value_range_to_undefined (value_range_t *vr)
    return NULL.  Otherwise create an empty range if none existed for VAR.  */
 
 static value_range_t *
-get_value_range (tree var)
+get_value_range (const_tree var)
 {
   value_range_t *vr;
   tree sym;
@@ -504,7 +504,7 @@ get_value_range (tree var)
 /* Return true, if VAL1 and VAL2 are equal values for VRP purposes.  */
 
 static inline bool
-vrp_operand_equal_p (tree val1, tree val2)
+vrp_operand_equal_p (const_tree val1, const_tree val2)
 {
   if (val1 == val2)
     return true;
@@ -518,7 +518,7 @@ vrp_operand_equal_p (tree val1, tree val2)
 /* Return true, if the bitmaps B1 and B2 are equal.  */
 
 static inline bool
-vrp_bitmap_equal_p (bitmap b1, bitmap b2)
+vrp_bitmap_equal_p (const_bitmap b1, const_bitmap b2)
 {
   return (b1 == b2
 	  || (b1 && b2
@@ -536,7 +536,7 @@ vrp_bitmap_equal_p (bitmap b1, bitmap b2)
    is the range object associated with another SSA name.  */
 
 static inline bool
-update_value_range (tree var, value_range_t *new_vr)
+update_value_range (const_tree var, value_range_t *new_vr)
 {
   value_range_t *old_vr;
   bool is_new;
@@ -562,7 +562,7 @@ update_value_range (tree var, value_range_t *new_vr)
    point where equivalence processing can be turned on/off.  */
 
 static void
-add_equivalence (bitmap *equiv, tree var)
+add_equivalence (bitmap *equiv, const_tree var)
 {
   unsigned ver = SSA_NAME_VERSION (var);
   value_range_t *vr = vr_value[ver];
@@ -1044,7 +1044,7 @@ range_includes_zero_p (value_range_t *vr)
    false otherwise or if no value range information is available.  */
 
 bool
-ssa_name_nonnegative_p (tree t)
+ssa_name_nonnegative_p (const_tree t)
 {
   value_range_t *vr = get_value_range (t);
 
@@ -1066,7 +1066,7 @@ ssa_name_nonnegative_p (tree t)
    false otherwise or if no value range information is available.  */
 
 bool
-ssa_name_nonzero_p (tree t)
+ssa_name_nonzero_p (const_tree t)
 {
   value_range_t *vr = get_value_range (t);
 
@@ -2641,7 +2641,7 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop, tree stmt,
   /* Like in PR19590, scev can return a constant function.  */
   if (is_gimple_min_invariant (chrec))
     {
-      set_value_range (vr, VR_RANGE, chrec, chrec, vr->equiv);
+      set_value_range_to_value (vr, chrec, vr->equiv);
       return;
     }
 
@@ -3252,7 +3252,7 @@ build_assert_expr_for (tree cond, tree v)
    point values.  */
 
 static inline bool
-fp_predicate (tree expr)
+fp_predicate (const_tree expr)
 {
   return (COMPARISON_CLASS_P (expr)
 	  && FLOAT_TYPE_P (TREE_TYPE (TREE_OPERAND (expr, 0))));
@@ -5541,7 +5541,7 @@ simplify_div_or_mod_using_ranges (tree stmt, tree rhs, enum tree_code rhs_code)
     {
       bool sop = false;
 
-      val = compare_range_with_value (GT_EXPR, vr, integer_zero_node, &sop);
+      val = compare_range_with_value (GE_EXPR, vr, integer_zero_node, &sop);
 
       if (val
 	  && sop

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "../../tree-vect.h"
 
+__attribute__ ((noinline))
 void interp_pitch(float *exc, float *interp, int pitch, int len)
 {
    int i,k;
@@ -34,6 +35,6 @@ int main()
    return 0;
 }
 
-/* { dg-final { scan-tree-dump-times "vectorization not profitable" 1 "vect" } } */
+/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */
 

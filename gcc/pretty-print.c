@@ -205,6 +205,7 @@ pp_base_indent (pretty_printer *pp)
    %Ns: likewise, but length specified as constant in the format string.
    %H: location_t.
    %J: a decl tree, from which DECL_SOURCE_LOCATION will be recorded.
+   %K: a statement, from which EXPR_LOCATION and TREE_BLOCK will be recorded.
    Flag 'q': quote formatted text (must come immediately after '%').
 
    Arguments can be used sequentially, or through %N$ resp. *N$
@@ -509,6 +510,33 @@ pp_base_format (pretty_printer *pp, text_info *text)
 	  }
 	  break;
 
+	case 'K':
+	  {
+	    tree t = va_arg (*text->args_ptr, tree), block;
+	    gcc_assert (text->locus != NULL);
+	    *text->locus = EXPR_LOCATION (t);
+	    gcc_assert (text->abstract_origin != NULL);
+	    block = TREE_BLOCK (t);
+	    *text->abstract_origin = NULL;
+	    while (block
+		   && TREE_CODE (block) == BLOCK
+		   && BLOCK_ABSTRACT_ORIGIN (block))
+	      {
+		tree ao = BLOCK_ABSTRACT_ORIGIN (block);
+
+		while (TREE_CODE (ao) == BLOCK && BLOCK_ABSTRACT_ORIGIN (ao))
+		  ao = BLOCK_ABSTRACT_ORIGIN (ao);
+
+		if (TREE_CODE (ao) == FUNCTION_DECL)
+		  {
+		    *text->abstract_origin = block;
+		    break;
+		  }
+		block = BLOCK_SUPERCONTEXT (block);
+	      }
+	  }
+	  break;
+
 	case '.':
 	  {
 	    int n;
@@ -663,7 +691,7 @@ pp_base_destroy_prefix (pretty_printer *pp)
 {
   if (pp->prefix != NULL)
     {
-      free ((char *) pp->prefix);
+      free (CONST_CAST (char *, pp->prefix));
       pp->prefix = NULL;
     }
 }

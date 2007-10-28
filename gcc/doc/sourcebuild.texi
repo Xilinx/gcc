@@ -944,9 +944,9 @@ it is executed.  It is one of:
 @table @code
 @item preprocess
 Compile with @option{-E} to run only the preprocessor.
-@item assemble
-Compile with @option{-S} to produce an assembly code file.
 @item compile
+Compile with @option{-S} to produce an assembly code file.
+@item assemble
 Compile with @option{-c} to produce a relocatable object file.
 @item link
 Compile, assemble, and link to produce an executable file.
@@ -972,6 +972,22 @@ is expected to pass.
 This DejaGnu directive provides a list of compiler options, to be used
 if the target system matches @var{selector}, that replace the default
 options used for this set of tests.
+
+@item @{ dg-add-options @var{feature} ... @}
+Add any compiler options that are needed to access certain features.
+This directive does nothing on targets that enable the features by
+default, or that don't provide them at all.  It must come after
+all @code{dg-options} directives.
+
+The supported values of @var{feature} are:
+@table @code
+@item c99_runtime
+The target's C99 runtime (both headers and libraries).
+
+@item mips16_attribute
+@code{mips16} function attributes.  Only MIPS targets support this feature,
+and only then in certain modes.
+@end table
 
 @item @{ dg-skip-if @var{comment} @{ @var{selector} @} @{ @var{include-opts} @} @{ @var{exclude-opts} @} @}
 Skip the test if the test system is included in @var{selector} and if

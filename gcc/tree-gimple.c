@@ -67,6 +67,7 @@ is_gimple_formal_tmp_rhs (tree t)
     case COMPLEX_EXPR:
     case INTEGER_CST:
     case REAL_CST:
+    case FIXED_CST:
     case STRING_CST:
     case COMPLEX_CST:
     case VECTOR_CST:
@@ -178,6 +179,7 @@ is_gimple_min_invariant (const_tree t)
 
     case INTEGER_CST:
     case REAL_CST:
+    case FIXED_CST:
     case STRING_CST:
     case COMPLEX_CST:
     case VECTOR_CST:
@@ -200,7 +202,7 @@ is_gimple_min_invariant (const_tree t)
 bool
 is_gimple_stmt (tree t)
 {
-  enum tree_code code = TREE_CODE (t);
+  const enum tree_code code = TREE_CODE (t);
 
   switch (code)
     {
@@ -518,4 +520,48 @@ recalculate_side_effects (tree t)
       /* Can never be used with non-expressions.  */
       gcc_unreachable ();
    }
+}
+
+/* Canonicalize a tree T for use in a COND_EXPR as conditional.  Returns
+   a canonicalized tree that is valid for a COND_EXPR or NULL_TREE, if
+   we failed to create one.  */
+
+tree
+canonicalize_cond_expr_cond (tree t)
+{
+  /* For (bool)x use x != 0.  */
+  if (TREE_CODE (t) == NOP_EXPR
+      && TREE_TYPE (t) == boolean_type_node)
+    {
+      tree top0 = TREE_OPERAND (t, 0);
+      t = build2 (NE_EXPR, TREE_TYPE (t),
+		  top0, build_int_cst (TREE_TYPE (top0), 0));
+    }
+  /* For !x use x == 0.  */
+  else if (TREE_CODE (t) == TRUTH_NOT_EXPR)
+    {
+      tree top0 = TREE_OPERAND (t, 0);
+      t = build2 (EQ_EXPR, TREE_TYPE (t),
+		  top0, build_int_cst (TREE_TYPE (top0), 0));
+    }
+  /* For cmp ? 1 : 0 use cmp.  */
+  else if (TREE_CODE (t) == COND_EXPR
+	   && COMPARISON_CLASS_P (TREE_OPERAND (t, 0))
+	   && integer_onep (TREE_OPERAND (t, 1))
+	   && integer_zerop (TREE_OPERAND (t, 2)))
+    {
+      tree top0 = TREE_OPERAND (t, 0);
+      t = build2 (TREE_CODE (top0), TREE_TYPE (t),
+		  TREE_OPERAND (top0, 0), TREE_OPERAND (top0, 1));
+    }
+
+  /* A valid conditional for a COND_EXPR is either a gimple value
+     or a comparison with two gimple value operands.  */
+  if (is_gimple_val (t)
+      || (COMPARISON_CLASS_P (t)
+	  && is_gimple_val (TREE_OPERAND (t, 0))
+	  && is_gimple_val (TREE_OPERAND (t, 1))))
+    return t;
+
+  return NULL_TREE;
 }

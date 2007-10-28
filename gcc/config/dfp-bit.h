@@ -30,6 +30,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #ifndef _DFPBIT_H
 #define _DFPBIT_H
 
+#include <float.h>
 #include <fenv.h>
 #include <decRound.h>
 #include <decExcept.h>
@@ -49,10 +50,15 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #define LIBGCC2_LONG_DOUBLE_TYPE_SIZE LONG_DOUBLE_TYPE_SIZE
 #endif
 
-#ifndef LIBGCC2_HAS_XF_MODE
-#define LIBGCC2_HAS_XF_MODE \
+/* We need to know the size of long double that the C library supports.
+   Don't use LIBGCC2_HAS_XF_MODE or LIBGCC2_HAS_TF_MODE here because
+   some targets set both of those.  */
+
+#define LONG_DOUBLE_HAS_XF_MODE \
   (BITS_PER_UNIT == 8 && LIBGCC2_LONG_DOUBLE_TYPE_SIZE == 80)
-#endif
+
+#define LONG_DOUBLE_HAS_TF_MODE \
+  (BITS_PER_UNIT == 8 && LIBGCC2_LONG_DOUBLE_TYPE_SIZE == 128)
 
 /* Depending on WIDTH, define a number of macros:
 
@@ -242,6 +248,9 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #elif defined (L_sd_to_xf) || defined (L_dd_to_xf ) || defined (L_td_to_xf) \
  ||   defined (L_xf_to_sd) || defined (L_xf_to_dd) || defined (L_xf_to_td)
 #define BFP_KIND 3
+#elif defined (L_sd_to_tf) || defined (L_dd_to_tf) || defined (L_td_to_tf) \
+ ||   defined (L_tf_to_sd) || defined (L_tf_to_dd) || defined (L_tf_to_td)
+#define BFP_KIND 4
 #endif
 
 /*  If BFP_KIND is defined, define additional macros:
@@ -249,40 +258,62 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
     BFP_TYPE: The binary floating point data type.
 
     BFP_FMT: The format string for writing the value to a string.
+    The number of decimal digits printed is
+       ceil (nbits / log2 (10.) + 1)
+    as described in David Matula's CACM 19(3) 716-723 June 1968 paper.
 
+    BFP_VIA_TYPE: Type to which to cast a variable of BPF_TYPE for a
+    call to sprintf.
+    
     STR_TO_BFP: The function to read the value from a string.  */
 
 #if BFP_KIND == 1
-/* strtof is declared in <stdlib.h> only for C99.  */
-extern float strtof (const char *, char **);
 #define BFP_TYPE SFtype
-#define BFP_FMT "%e"
+#define BFP_FMT "%.9e"
+#define BFP_VIA_TYPE double
 #define STR_TO_BFP strtof
 
 #elif BFP_KIND == 2
 #define BFP_TYPE DFtype
-#define BFP_FMT "%e"
+#define BFP_FMT "%.17e"
+#define BFP_VIA_TYPE double
 #define STR_TO_BFP strtod
 
 #elif BFP_KIND == 3
-#if LIBGCC2_HAS_XF_MODE
-/* These aren't used if XF mode is not supported.  */
+#if LONG_DOUBLE_HAS_XF_MODE
 #define BFP_TYPE XFtype
-#define BFP_FMT "%e"
-#define BFP_VIA_TYPE double
-#define STR_TO_BFP strtod
-#endif
+#define BFP_FMT "%.21Le"
+#define BFP_VIA_TYPE long double
+#define STR_TO_BFP strtold
+#endif /* LONG_DOUBLE_HAS_XF_MODE */
+
+#elif BFP_KIND == 4
+#if LONG_DOUBLE_HAS_TF_MODE
+#define BFP_TYPE TFtype
+#if LDBL_MANT_DIG == 106
+#define BFP_FMT "%.33Le"
+#elif LDBL_MANT_DIG == 113
+#define BFP_FMT "%.36Le"
+#else
+#error "unknown long double size, cannot define BFP_FMT"
+#endif /* LDBL_MANT_DIG */
+#define STR_TO_BFP strtold
+#define BFP_VIA_TYPE long double
+#endif /* LONG_DOUBLE_HAS_TF_MODE */
 
 #endif /* BFP_KIND */
 
 #if WIDTH == 128 || WIDTH_TO == 128
 #include "decimal128.h"
+#include "decQuad.h"
 #endif
 #if WIDTH == 64 || WIDTH_TO == 64
 #include "decimal64.h"
+#include "decDouble.h"
 #endif
 #if WIDTH == 32 || WIDTH_TO == 32
 #include "decimal32.h"
+#include "decSingle.h"
 #endif
 #include "decNumber.h"
 
@@ -332,6 +363,46 @@ extern float strtof (const char *, char **);
 #define DFP_UNORD	DPD_BID_NAME(__dpd_unordtd2,__bid_unordtd2)
 #endif
 
+/* Names of decNumber functions for DPD arithmetic.  */
+
+#if WIDTH == 32
+#define decFloat		decDouble
+#define DFP_BINARY_OP		d32_binary_op
+#define DFP_COMPARE_OP		d32_compare_op
+#define DEC_FLOAT_ADD		decDoubleAdd
+#define DEC_FLOAT_SUBTRACT	decDoubleSubtract
+#define DEC_FLOAT_MULTIPLY	decDoubleMultiply
+#define DEC_FLOAT_DIVIDE	decDoubleDivide
+#define DEC_FLOAT_COMPARE	decDoubleCompare
+#define DEC_FLOAT_IS_ZERO	decDoubleIsZero
+#define DEC_FLOAT_IS_NAN	decDoubleIsNaN
+#define DEC_FLOAT_IS_SIGNED	decDoubleIsSigned
+#elif WIDTH == 64
+#define DFP_BINARY_OP		dnn_binary_op
+#define DFP_COMPARE_OP		dnn_compare_op
+#define decFloat		decDouble
+#define DEC_FLOAT_ADD		decDoubleAdd
+#define DEC_FLOAT_SUBTRACT	decDoubleSubtract
+#define DEC_FLOAT_MULTIPLY	decDoubleMultiply
+#define DEC_FLOAT_DIVIDE	decDoubleDivide
+#define DEC_FLOAT_COMPARE	decDoubleCompare
+#define DEC_FLOAT_IS_ZERO	decDoubleIsZero
+#define DEC_FLOAT_IS_NAN	decDoubleIsNaN
+#define DEC_FLOAT_IS_SIGNED	decDoubleIsSigned
+#elif WIDTH == 128
+#define DFP_BINARY_OP		dnn_binary_op
+#define DFP_COMPARE_OP		dnn_compare_op
+#define decFloat		decQuad
+#define DEC_FLOAT_ADD		decQuadAdd
+#define DEC_FLOAT_SUBTRACT	decQuadSubtract
+#define DEC_FLOAT_MULTIPLY	decQuadMultiply
+#define DEC_FLOAT_DIVIDE	decQuadDivide
+#define DEC_FLOAT_COMPARE	decQuadCompare
+#define DEC_FLOAT_IS_ZERO	decQuadIsZero
+#define DEC_FLOAT_IS_NAN	decQuadIsNaN
+#define DEC_FLOAT_IS_SIGNED	decQuadIsSigned
+#endif
+
 /* Names of functions to convert between different decimal float types.  */
 
 #if WIDTH == 32
@@ -360,40 +431,54 @@ extern float strtof (const char *, char **);
 #if INT_KIND == 1
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatsisd,__bid_floatsisd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixsdsi,__bid_fixsdsi)
+#define DEC_FLOAT_FROM_INT decDoubleFromInt32
+#define DEC_FLOAT_TO_INT   decDoubleToInt32
 #elif INT_KIND == 2
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatdisd,__bid_floatdisd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixsddi,__bid_fixsddi)
 #elif INT_KIND == 3
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunssisd,__bid_floatunssisd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunssdsi,__bid_fixunssdsi)
+#define DEC_FLOAT_FROM_INT decDoubleFromUInt32
+#define DEC_FLOAT_TO_INT   decDoubleToUInt32
 #elif INT_KIND == 4
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunsdisd,__bid_floatunsdisd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunssddi,__bid_fixunssddi)
 #endif
 #elif WIDTH == 64
+#define decFloat	decDouble
 #if INT_KIND == 1
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatsidd,__bid_floatsidd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixddsi,__bid_fixddsi)
+#define DEC_FLOAT_FROM_INT decDoubleFromInt32
+#define DEC_FLOAT_TO_INT   decDoubleToInt32
 #elif INT_KIND == 2
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatdidd,__bid_floatdidd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixdddi,__bid_fixdddi)
 #elif INT_KIND == 3
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunssidd,__bid_floatunssidd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunsddsi,__bid_fixunsddsi)
+#define DEC_FLOAT_FROM_INT decDoubleFromUInt32
+#define DEC_FLOAT_TO_INT   decDoubleToUInt32
 #elif INT_KIND == 4
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunsdidd,__bid_floatunsdidd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunsdddi,__bid_fixunsdddi)
 #endif
 #elif WIDTH == 128
+#define decFloat	decQuad
 #if INT_KIND == 1
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatsitd,__bid_floatsitd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixtdsi,__bid_fixtdsi)
+#define DEC_FLOAT_FROM_INT decQuadFromInt32
+#define DEC_FLOAT_TO_INT   decQuadToInt32
 #elif INT_KIND == 2
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatditd,__bid_floatditd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixtddi,__bid_fixtddi)
 #elif INT_KIND == 3
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunssitd,__bid_floatunssitd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunstdsi,__bid_fixunstdsi)
+#define DEC_FLOAT_FROM_INT decQuadFromUInt32
+#define DEC_FLOAT_TO_INT   decQuadToUInt32
 #elif INT_KIND == 4
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunsditd,__bid_floatunsditd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunstddi,__bid_fixunstddi)
@@ -412,6 +497,9 @@ extern float strtof (const char *, char **);
 #elif BFP_KIND == 3
 #define BFP_TO_DFP	DPD_BID_NAME(__dpd_truncxfsd,__bid_truncxfsd)
 #define DFP_TO_BFP	DPD_BID_NAME(__dpd_extendsdxf,__bid_extendsdxf)
+#elif BFP_KIND == 4
+#define BFP_TO_DFP	DPD_BID_NAME(__dpd_trunctfsd,__bid_trunctfsd)
+#define DFP_TO_BFP	DPD_BID_NAME(__dpd_extendsdtf,__bid_extendsdtf)
 #endif /* BFP_KIND */
 
 #elif WIDTH == 64
@@ -424,6 +512,9 @@ extern float strtof (const char *, char **);
 #elif BFP_KIND == 3
 #define BFP_TO_DFP	DPD_BID_NAME(__dpd_truncxfdd,__bid_truncxfdd)
 #define DFP_TO_BFP	DPD_BID_NAME(__dpd_extendddxf,__bid_extendddxf)
+#elif BFP_KIND == 4
+#define BFP_TO_DFP	DPD_BID_NAME(__dpd_trunctfdd,__bid_trunctfdd)
+#define DFP_TO_BFP	DPD_BID_NAME(__dpd_extendddtf,__bid_extendddtf)
 #endif /* BFP_KIND */
 
 #elif WIDTH == 128
@@ -436,6 +527,9 @@ extern float strtof (const char *, char **);
 #elif BFP_KIND == 3
 #define BFP_TO_DFP	DPD_BID_NAME(__dpd_extendxftd,__bid_extendxftd)
 #define DFP_TO_BFP	DPD_BID_NAME(__dpd_trunctdxf,__bid_trunctdxf)
+#elif BFP_KIND == 4
+#define BFP_TO_DFP	DPD_BID_NAME(__dpd_extendtftd,__bid_extendtftd)
+#define DFP_TO_BFP	DPD_BID_NAME(__dpd_trunctdtf,__bid_trunctdtf)
 #endif /* BFP_KIND */
 
 #endif /* WIDTH */
@@ -444,9 +538,12 @@ extern float strtof (const char *, char **);
 
 typedef float SFtype __attribute__ ((mode (SF)));
 typedef float DFtype __attribute__ ((mode (DF)));
-#if LIBGCC2_HAS_XF_MODE
+#if LONG_DOUBLE_HAS_XF_MODE
 typedef float XFtype __attribute__ ((mode (XF)));
-#endif /* LIBGCC2_HAS_XF_MODE */
+#endif /* LONG_DOUBLE_HAS_XF_MODE */
+#if LONG_DOUBLE_HAS_TF_MODE
+typedef float TFtype __attribute__ ((mode (TF)));
+#endif /* LONG_DOUBLE_HAS_TF_MODE */
 
 typedef int SItype __attribute__ ((mode (SI)));
 typedef int DItype __attribute__ ((mode (DI)));
@@ -454,9 +551,9 @@ typedef unsigned int USItype __attribute__ ((mode (SI)));
 typedef unsigned int UDItype __attribute__ ((mode (DI)));
 
 /* The type of the result of a decimal float comparison.  This must
-   match `word_mode' in GCC for the target.  */
+   match `__libgcc_cmp_return__' in GCC for the target.  */
 
-typedef int CMPtype __attribute__ ((mode (word)));
+typedef int CMPtype __attribute__ ((mode (__libgcc_cmp_return__)));
 
 /* Prototypes.  */
 
@@ -523,14 +620,18 @@ extern DFP_C_TYPE INT_TO_DFP (INT_TYPE);
 #if defined (L_sd_to_sf) || defined (L_dd_to_sf) || defined (L_td_to_sf) \
  || defined (L_sd_to_df) || defined (L_dd_to_df) || defined (L_td_to_df) \
  || ((defined (L_sd_to_xf) || defined (L_dd_to_xf) || defined (L_td_to_xf)) \
-     && LIBGCC2_HAS_XF_MODE)
+     && LONG_DOUBLE_HAS_XF_MODE) \
+ || ((defined (L_sd_to_tf) || defined (L_dd_to_tf) || defined (L_td_to_tf)) \
+     && LONG_DOUBLE_HAS_TF_MODE)
 extern BFP_TYPE DFP_TO_BFP (DFP_C_TYPE);
 #endif
 
 #if defined (L_sf_to_sd) || defined (L_sf_to_dd) || defined (L_sf_to_td) \
  || defined (L_df_to_sd) || defined (L_df_to_dd) || defined (L_df_to_td) \
  || ((defined (L_xf_to_sd) || defined (L_xf_to_dd) || defined (L_xf_to_td)) \
-     && LIBGCC2_HAS_XF_MODE)
+     && LONG_DOUBLE_HAS_XF_MODE) \
+ || ((defined (L_tf_to_sd) || defined (L_tf_to_dd) || defined (L_tf_to_td)) \
+     && LONG_DOUBLE_HAS_TF_MODE)
 extern DFP_C_TYPE BFP_TO_DFP (BFP_TYPE);
 #endif
 

@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -26,7 +25,6 @@
 
 with Debug;   use Debug;
 with Binderr; use Binderr;
-with Lib;     use Lib;
 with Opt;     use Opt;
 with Output;  use Output;
 with Osint;   use Osint;
@@ -248,21 +246,17 @@ package body ALI.Util is
             then
                Text := Read_Library_Info (Afile);
 
-               --  Return with an error if source cannot be found and if this
-               --  is not a library generic (now we can, but does not have to
-               --  compile library generics)
+               --  Return with an error if source cannot be found. We used to
+               --  skip this check when we did not compile library generics
+               --  separately, but we now always do, so there is no special
+               --  case here anymore.
 
                if Text = null then
-                  if Generic_Separately_Compiled (Withs.Table (W).Sfile) then
-                     Error_Msg_File_1 := Afile;
-                     Error_Msg_File_2 := Withs.Table (W).Sfile;
-                     Error_Msg ("{ not found, { must be compiled");
-                     Set_Name_Table_Info (Afile, Int (No_Unit_Id));
-                     return;
-
-                  else
-                     goto Skip_Library_Generics;
-                  end if;
+                  Error_Msg_File_1 := Afile;
+                  Error_Msg_File_2 := Withs.Table (W).Sfile;
+                  Error_Msg ("{ not found, { must be compiled");
+                  Set_Name_Table_Info (Afile, Int (No_Unit_Id));
+                  return;
                end if;
 
                --  Enter in ALIs table
@@ -306,8 +300,6 @@ package body ALI.Util is
 
                   Read_ALI (Idread);
                end if;
-
-               <<Skip_Library_Generics>> null;
 
             --  If the ALI file has already been processed and is an interface,
             --  set the flag in the entry of the Withs table.

@@ -1521,7 +1521,7 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	    /* Check that we don't use a hardreg for an uninitialized
 	       pseudo.  See also find_dummy_reload().  */
 	    && (ORIGINAL_REGNO (XEXP (note, 0)) < FIRST_PSEUDO_REGISTER
-		|| ! bitmap_bit_p (DF_RA_LIVE_OUT (ENTRY_BLOCK_PTR),
+		|| ! bitmap_bit_p (DF_LIVE_OUT (ENTRY_BLOCK_PTR),
 				   ORIGINAL_REGNO (XEXP (note, 0))))
 	    && ! refers_to_regno_for_reload_p (regno,
 					       end_hard_regno (rel_mode,
@@ -2000,7 +2000,7 @@ find_dummy_reload (rtx real_in, rtx real_out, rtx *inloc, rtx *outloc,
 	   as they would clobber the other live pseudo using the same.
 	   See also PR20973.  */
       && (ORIGINAL_REGNO (in) < FIRST_PSEUDO_REGISTER
-          || ! bitmap_bit_p (DF_RA_LIVE_OUT (ENTRY_BLOCK_PTR),
+          || ! bitmap_bit_p (DF_LIVE_OUT (ENTRY_BLOCK_PTR),
 			     ORIGINAL_REGNO (in))))
     {
       unsigned int regno = REGNO (in) + in_offset;
@@ -2210,6 +2210,7 @@ operands_match_p (rtx x, rtx y)
     {
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
       return 0;
 
     case LABEL_REF:
@@ -2794,7 +2795,8 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	      && MEM_P (op)
 	      && REG_P (reg)
 	      && (GET_MODE_SIZE (GET_MODE (reg))
-		  >= GET_MODE_SIZE (GET_MODE (op))))
+		  >= GET_MODE_SIZE (GET_MODE (op)))
+	      && reg_equiv_constant[REGNO (reg)] == 0)
 	    set_unique_reg_note (emit_insn_before (gen_rtx_USE (VOIDmode, reg),
 						   insn),
 				 REG_EQUAL, reg_equiv_memory_loc[REGNO (reg)]);
@@ -4101,13 +4103,18 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 
 	  *recog_data.operand_loc[i] = substitution;
 
-	  /* If we're replacing an operand with a LABEL_REF, we need
-	     to make sure that there's a REG_LABEL note attached to
+	  /* If we're replacing an operand with a LABEL_REF, we need to
+	     make sure that there's a REG_LABEL_OPERAND note attached to
 	     this instruction.  */
-	  if (!JUMP_P (insn)
-	      && GET_CODE (substitution) == LABEL_REF
-	      && !find_reg_note (insn, REG_LABEL, XEXP (substitution, 0)))
-	    REG_NOTES (insn) = gen_rtx_INSN_LIST (REG_LABEL,
+	  if (GET_CODE (substitution) == LABEL_REF
+	      && !find_reg_note (insn, REG_LABEL_OPERAND,
+				 XEXP (substitution, 0))
+	      /* For a JUMP_P, if it was a branch target it must have
+		 already been recorded as such.  */
+	      && (!JUMP_P (insn)
+		  || !label_is_jump_target_p (XEXP (substitution, 0),
+					      insn)))
+	    REG_NOTES (insn) = gen_rtx_INSN_LIST (REG_LABEL_OPERAND,
 						  XEXP (substitution, 0),
 						  REG_NOTES (insn));
 	}
@@ -4600,14 +4607,6 @@ find_reloads_toplev (rtx x, int opnum, enum reload_type type,
       int regno = REGNO (SUBREG_REG (x));
       rtx tem;
 
-      if (subreg_lowpart_p (x)
-	  && regno >= FIRST_PSEUDO_REGISTER
-	  && reg_renumber[regno] < 0
-	  && reg_equiv_constant[regno] != 0
-	  && (tem = gen_lowpart_common (GET_MODE (x),
-					reg_equiv_constant[regno])) != 0)
-	return tem;
-
       if (regno >= FIRST_PSEUDO_REGISTER
 	  && reg_renumber[regno] < 0
 	  && reg_equiv_constant[regno] != 0)
@@ -4616,6 +4615,15 @@ find_reloads_toplev (rtx x, int opnum, enum reload_type type,
 	    simplify_gen_subreg (GET_MODE (x), reg_equiv_constant[regno],
 				 GET_MODE (SUBREG_REG (x)), SUBREG_BYTE (x));
 	  gcc_assert (tem);
+	  if (CONSTANT_P (tem) && !LEGITIMATE_CONSTANT_P (tem))
+	    {
+	      tem = force_const_mem (GET_MODE (x), tem);
+	      i = find_reloads_address (GET_MODE (tem), &tem, XEXP (tem, 0),
+					&XEXP (tem, 0), opnum, type,
+					ind_levels, insn);
+	      if (address_reloaded)
+		*address_reloaded = i;
+	    }
 	  return tem;
 	}
 
@@ -5140,6 +5148,7 @@ subst_reg_equivs (rtx ad, rtx insn)
     case CONST_INT:
     case CONST:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -5460,16 +5469,12 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 
 	else if (code0 == REG && code1 == REG)
 	  {
-	    if (REGNO_OK_FOR_INDEX_P (REGNO (op0))
-		&& regno_ok_for_base_p (REGNO (op1), mode, PLUS, REG))
+	    if (REGNO_OK_FOR_INDEX_P (REGNO (op1))
+		&& regno_ok_for_base_p (REGNO (op0), mode, PLUS, REG))
 	      return 0;
-	    else if (REGNO_OK_FOR_INDEX_P (REGNO (op1))
-		     && regno_ok_for_base_p (REGNO (op0), mode, PLUS, REG))
+	    else if (REGNO_OK_FOR_INDEX_P (REGNO (op0))
+		     && regno_ok_for_base_p (REGNO (op1), mode, PLUS, REG))
 	      return 0;
-	    else if (regno_ok_for_base_p (REGNO (op1), mode, PLUS, REG))
-	      find_reloads_address_1 (mode, orig_op0, 1, PLUS, SCRATCH,
-				      &XEXP (x, 0), opnum, type, ind_levels,
-				      insn);
 	    else if (regno_ok_for_base_p (REGNO (op0), mode, PLUS, REG))
 	      find_reloads_address_1 (mode, orig_op1, 1, PLUS, SCRATCH,
 				      &XEXP (x, 1), opnum, type, ind_levels,
@@ -5478,16 +5483,20 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 	      find_reloads_address_1 (mode, orig_op0, 0, PLUS, REG,
 				      &XEXP (x, 0), opnum, type, ind_levels,
 				      insn);
+	    else if (regno_ok_for_base_p (REGNO (op1), mode, PLUS, REG))
+	      find_reloads_address_1 (mode, orig_op0, 1, PLUS, SCRATCH,
+				      &XEXP (x, 0), opnum, type, ind_levels,
+				      insn);
 	    else if (REGNO_OK_FOR_INDEX_P (REGNO (op0)))
 	      find_reloads_address_1 (mode, orig_op1, 0, PLUS, REG,
 				      &XEXP (x, 1), opnum, type, ind_levels,
 				      insn);
 	    else
 	      {
-		find_reloads_address_1 (mode, orig_op0, 1, PLUS, SCRATCH,
+		find_reloads_address_1 (mode, orig_op0, 0, PLUS, REG,
 					&XEXP (x, 0), opnum, type, ind_levels,
 					insn);
-		find_reloads_address_1 (mode, orig_op1, 0, PLUS, REG,
+		find_reloads_address_1 (mode, orig_op1, 1, PLUS, SCRATCH,
 					&XEXP (x, 1), opnum, type, ind_levels,
 					insn);
 	      }
@@ -5690,7 +5699,7 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 	      rtx equiv = (MEM_P (XEXP (x, 0))
 			   ? XEXP (x, 0)
 			   : reg_equiv_mem[regno]);
-	      int icode = (int) add_optab->handlers[(int) Pmode].insn_code;
+	      int icode = (int) optab_handler (add_optab, Pmode)->insn_code;
 	      if (insn && NONJUMP_INSN_P (insn) && equiv
 		  && memory_operand (equiv, GET_MODE (equiv))
 #ifdef HAVE_cc0
@@ -6119,17 +6128,15 @@ subst_reloads (rtx insn)
 	    }
 #endif /* DEBUG_RELOAD */
 
-	  /* If we're replacing a LABEL_REF with a register, add a
-	     REG_LABEL note to indicate to flow which label this
+	  /* If we're replacing a LABEL_REF with a register, there must
+	     already be an indication (to e.g. flow) which label this
 	     register refers to.  */
-	  if (GET_CODE (*r->where) == LABEL_REF
-	      && JUMP_P (insn))
-	    {
-	      REG_NOTES (insn) = gen_rtx_INSN_LIST (REG_LABEL,
-						    XEXP (*r->where, 0),
-						    REG_NOTES (insn));
-	      JUMP_LABEL (insn) = XEXP (*r->where, 0);
-	   }
+	  gcc_assert (GET_CODE (*r->where) != LABEL_REF
+		      || !JUMP_P (insn)
+		      || find_reg_note (insn,
+					REG_LABEL_OPERAND,
+					XEXP (*r->where, 0))
+		      || label_is_jump_target_p (XEXP (*r->where, 0), insn));
 
 	  /* Encapsulate RELOADREG so its machine mode matches what
 	     used to be there.  Note that gen_lowpart_common will

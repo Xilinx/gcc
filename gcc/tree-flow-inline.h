@@ -151,13 +151,8 @@ next_htab_element (htab_iterator *hti)
 static inline tree
 first_referenced_var (referenced_var_iterator *iter)
 {
-  struct int_tree_map *itm;
-  itm = (struct int_tree_map *) first_htab_element (&iter->hti,
-                                                    gimple_referenced_vars
-						    (cfun));
-  if (!itm) 
-    return NULL;
-  return itm->to;
+  return (tree) first_htab_element (&iter->hti,
+				    gimple_referenced_vars (cfun));
 }
 
 /* Return true if we have hit the end of the referenced variables ITER is
@@ -175,11 +170,7 @@ end_referenced_vars_p (const referenced_var_iterator *iter)
 static inline tree
 next_referenced_var (referenced_var_iterator *iter)
 {
-  struct int_tree_map *itm;
-  itm = (struct int_tree_map *) next_htab_element (&iter->hti);
-  if (!itm) 
-    return NULL;
-  return itm->to;
+  return (tree) next_htab_element (&iter->hti);
 } 
 
 /* Fill up VEC with the variables in the referenced vars hashtable.  */
@@ -313,7 +304,7 @@ may_aliases (const_tree var)
 /* Return the line number for EXPR, or return -1 if we have no line
    number information for it.  */
 static inline int
-get_lineno (tree expr)
+get_lineno (const_tree expr)
 {
   if (expr == NULL_TREE)
     return -1;
@@ -325,24 +316,6 @@ get_lineno (tree expr)
     return -1;
 
   return EXPR_LINENO (expr);
-}
-
-/* Return the file name for EXPR, or return "???" if we have no
-   filename information.  */
-static inline const char *
-get_filename (tree expr)
-{
-  const char *filename;
-  if (expr == NULL_TREE)
-    return "???";
-
-  if (TREE_CODE (expr) == COMPOUND_EXPR)
-    expr = TREE_OPERAND (expr, 0);
-
-  if (EXPR_HAS_LOCATION (expr) && (filename = EXPR_FILENAME (expr)))
-    return filename;
-  else
-    return "???";
 }
 
 /* Return true if T is a noreturn call.  */
@@ -629,7 +602,7 @@ addresses_taken (tree stmt)
 /* Return the PHI nodes for basic block BB, or NULL if there are no
    PHI nodes.  */
 static inline tree
-phi_nodes (basic_block bb)
+phi_nodes (const_basic_block bb)
 {
   gcc_assert (!(bb->flags & BB_RTL));
   if (!bb->il.tree)
@@ -699,31 +672,6 @@ set_is_used (tree var)
   ann->used = 1;
 }
 
-/* Return true if T is an executable statement.  */
-static inline bool
-is_exec_stmt (const_tree t)
-{
-  return (t && !IS_EMPTY_STMT (t) && t != error_mark_node);
-}
-
-
-/* Return true if this stmt can be the target of a control transfer stmt such
-   as a goto.  */
-static inline bool
-is_label_stmt (const_tree t)
-{
-  if (t)
-    switch (TREE_CODE (t))
-      {
-	case LABEL_DECL:
-	case LABEL_EXPR:
-	case CASE_LABEL_EXPR:
-	  return true;
-	default:
-	  return false;
-      }
-  return false;
-}
 
 /* Return true if T (assumed to be a DECL) is a global variable.  */
 
@@ -756,7 +704,7 @@ phi_ssa_name_p (const_tree t)
 /* Returns the list of statements in BB.  */
 
 static inline tree
-bb_stmt_list (basic_block bb)
+bb_stmt_list (const_basic_block bb)
 {
   gcc_assert (!(bb->flags & BB_RTL));
   return bb->il.tree->stmt_list;
@@ -1548,7 +1496,6 @@ next_imm_use_stmt (imm_use_iterator *imm)
 
   link_use_stmts_after (imm->imm_use, imm);
   return USE_STMT (imm->imm_use);
-
 }
 
 /* This routine will return the first use on the stmt IMM currently refers

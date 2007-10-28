@@ -27,9 +27,8 @@ along with libgfortran; see the file COPYING.  If not, write to
 the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
+#include "libgfortran.h"
 
-#include "config.h"
-#include <stdio.h>
 #include <string.h>
 
 #ifdef HAVE_STDLIB_H
@@ -58,16 +57,21 @@ Boston, MA 02110-1301, USA.  */
 #include <sys/wait.h>
 #endif
 
-#ifdef HAVE_STRING_H
-#include <string.h>
-#endif
-
 #include <ctype.h>
 
-#include "libgfortran.h"
+
+/* Macros for common sets of capabilities: can we fork and exec, can
+   we use glibc-style backtrace functions, and can we use pipes.  */
+#define CAN_FORK (defined(HAVE_FORK) && defined(HAVE_EXECVP) \
+		  && defined(HAVE_WAIT))
+#define GLIBC_BACKTRACE (defined(HAVE_BACKTRACE) \
+			 && defined(HAVE_BACKTRACE_SYMBOLS))
+#define CAN_PIPE (CAN_FORK && defined(HAVE_PIPE) \
+		  && defined(HAVE_DUP2) && defined(HAVE_FDOPEN) \
+		  && defined(HAVE_CLOSE))
 
 
-
+#if GLIBC_BACKTRACE && CAN_PIPE
 static char *
 local_strcasestr (const char *s1, const char *s2)
 {
@@ -92,14 +96,7 @@ local_strcasestr (const char *s1, const char *s2)
     }
 #endif
 }
-
-#define CAN_FORK (defined(HAVE_FORK) && defined(HAVE_EXECVP) \
-		  && defined(HAVE_WAIT))
-#define GLIBC_BACKTRACE (defined(HAVE_BACKTRACE) \
-			 && defined(HAVE_BACKTRACE_SYMBOLS))
-#define CAN_PIPE (CAN_FORK && defined(HAVE_PIPE) \
-		  && defined(HAVE_DUP2) && defined(HAVE_FDOPEN) \
-		  && defined(HAVE_CLOSE))
+#endif
 
 
 #if GLIBC_BACKTRACE
@@ -223,7 +220,8 @@ show_backtrace (void)
 	    /* Try to recognize the internal libgfortran functions.  */
 	    if (strncasecmp (func, "*_gfortran", 10) == 0
 		|| strncasecmp (func, "_gfortran", 9) == 0
-		|| strcmp (func, "main") == 0 || strcmp (func, "_start") == 0)
+		|| strcmp (func, "main") == 0 || strcmp (func, "_start") == 0
+		|| strcmp (func, "_gfortrani_handler") == 0)
 	      continue;
 
 	    if (local_strcasestr (str[i], "libgfortran.so") != NULL

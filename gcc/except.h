@@ -46,9 +46,9 @@ extern void for_each_eh_region (void (*) (struct eh_region *));
 
 /* Determine if the given INSN can throw an exception.  */
 extern bool can_throw_internal_1 (int, bool);
-extern bool can_throw_internal (rtx);
+extern bool can_throw_internal (const_rtx);
 extern bool can_throw_external_1 (int, bool);
-extern bool can_throw_external (rtx);
+extern bool can_throw_external (const_rtx);
 
 /* Set TREE_NOTHROW and cfun->all_throwers_are_sibcalls.  */
 extern unsigned int set_nothrow_function_flags (void);
@@ -112,8 +112,8 @@ extern int eh_region_outermost (struct function *, int, int);
 /* tree-eh.c */
 extern void add_stmt_to_eh_region_fn (struct function *, tree, int);
 extern bool remove_stmt_from_eh_region_fn (struct function *, tree);
-extern int lookup_stmt_eh_region_fn (struct function *, tree);
-extern int lookup_stmt_eh_region (tree);
+extern int lookup_stmt_eh_region_fn (struct function *, const_tree);
+extern int lookup_stmt_eh_region (const_tree);
 extern bool verify_eh_edges (tree);
 
 /* If non-NULL, this is a function that returns an expression to be

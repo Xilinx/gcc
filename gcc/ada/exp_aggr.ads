@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -40,11 +39,15 @@ package Exp_Aggr is
    --  an N_Aggregate or N_Extension_Aggregate with Expansion_Delayed
    --  This procedure performs in-place aggregate assignment.
 
-   procedure Convert_Aggr_In_Allocator (Decl, Aggr : Node_Id);
-   --  Decl is an access N_Object_Declaration (produced during
-   --  allocator expansion), Aggr is the initial expression aggregate
-   --  of an allocator. This procedure perform in-place aggregate
-   --  assignment in the newly allocated object.
+   procedure Convert_Aggr_In_Allocator
+     (Alloc :  Node_Id;
+      Decl  :  Node_Id;
+      Aggr  :  Node_Id);
+   --  Alloc is the allocator whose expression is the aggregate Aggr.
+   --  Decl is an N_Object_Declaration created during allocator expansion.
+   --  This procedure perform in-place aggregate assignment into the
+   --  temporary declared in Decl, and the allocator becomes an access to
+   --  that temporary.
 
    procedure Convert_Aggr_In_Assignment (N : Node_Id);
    --  If the right-hand side of an assignment is an aggregate, expand the

@@ -297,6 +297,7 @@ static void set_spec (const char *, const char *);
 static struct compiler *lookup_compiler (const char *, size_t, const char *);
 static char *build_search_list (const struct path_prefix *, const char *,
 				bool, bool);
+static void xputenv (const char *);
 static void putenv_from_prefixes (const struct path_prefix *, const char *,
 				  bool);
 static int access_check (const char *, int);
@@ -655,21 +656,27 @@ proper position among the other output files.  */
 #define LINKER_NAME "collect2"
 #endif
 
+#ifdef HAVE_AS_DEBUG_PREFIX_MAP
+#define ASM_MAP " %{fdebug-prefix-map=*:--debug-prefix-map %*}"
+#else
+#define ASM_MAP ""
+#endif
+
 /* Define ASM_DEBUG_SPEC to be a spec suitable for translating '-g'
    to the assembler.  */
 #ifndef ASM_DEBUG_SPEC
 # if defined(DBX_DEBUGGING_INFO) && defined(DWARF2_DEBUGGING_INFO) \
      && defined(HAVE_AS_GDWARF2_DEBUG_FLAG) && defined(HAVE_AS_GSTABS_DEBUG_FLAG)
-#  define ASM_DEBUG_SPEC					\
-      (PREFERRED_DEBUGGING_TYPE == DBX_DEBUG			\
-       ? "%{gdwarf-2*:--gdwarf2}%{!gdwarf-2*:%{g*:--gstabs}}"	\
-       : "%{gstabs*:--gstabs}%{!gstabs*:%{g*:--gdwarf2}}")
+#  define ASM_DEBUG_SPEC						\
+      (PREFERRED_DEBUGGING_TYPE == DBX_DEBUG				\
+       ? "%{gdwarf-2*:--gdwarf2}%{!gdwarf-2*:%{g*:--gstabs}}" ASM_MAP	\
+       : "%{gstabs*:--gstabs}%{!gstabs*:%{g*:--gdwarf2}}" ASM_MAP)
 # else
 #  if defined(DBX_DEBUGGING_INFO) && defined(HAVE_AS_GSTABS_DEBUG_FLAG)
-#   define ASM_DEBUG_SPEC "%{g*:--gstabs}"
+#   define ASM_DEBUG_SPEC "%{g*:--gstabs}" ASM_MAP
 #  endif
 #  if defined(DWARF2_DEBUGGING_INFO) && defined(HAVE_AS_GDWARF2_DEBUG_FLAG)
-#   define ASM_DEBUG_SPEC "%{g*:--gdwarf2}"
+#   define ASM_DEBUG_SPEC "%{g*:--gdwarf2}" ASM_MAP
 #  endif
 # endif
 #endif
@@ -824,8 +831,13 @@ static const char *cc1_options =
  %{coverage:-fprofile-arcs -ftest-coverage}";
 
 static const char *asm_options =
-"%{ftarget-help:%:print-asm-header()} \
-%a %Y %{c:%W{o*}%{!o*:-o %w%b%O}}%{!c:-o %d%w%u%O}";
+"%{--target-help:%:print-asm-header()} "
+#if HAVE_GNU_AS
+/* If GNU AS is used, then convert -w (no warnings), -I, and -v
+   to the assembler equivalents.  */
+"%{v} %{w:-W} %{I*} "
+#endif
+"%a %Y %{c:%W{o*}%{!o*:-o %w%b%O}}%{!c:-o %d%w%u%O}";
 
 static const char *invoke_as =
 #ifdef AS_NEEDS_DASH_FOR_PIPED_INPUT
@@ -1011,15 +1023,16 @@ static const struct compiler default_compilers[] =
   {".s", "@assembler", 0, 1, 0},
   {"@assembler",
    "%{!M:%{!MM:%{!E:%{!S:as %(asm_debug) %(asm_options) %i %A }}}}", 0, 1, 0},
+  {".sx", "@assembler-with-cpp", 0, 1, 0},
   {".S", "@assembler-with-cpp", 0, 1, 0},
   {"@assembler-with-cpp",
 #ifdef AS_NEEDS_DASH_FOR_PIPED_INPUT
-   "%(trad_capable_cpp) -lang-asm %(cpp_options)\
+   "%(trad_capable_cpp) -lang-asm %(cpp_options) -fno-directives-only\
       %{E|M|MM:%(cpp_debug_options)}\
       %{!M:%{!MM:%{!E:%{!S:-o %|.s |\n\
        as %(asm_debug) %(asm_options) %|.s %A }}}}"
 #else
-   "%(trad_capable_cpp) -lang-asm %(cpp_options)\
+   "%(trad_capable_cpp) -lang-asm %(cpp_options) -fno-directives-only\
       %{E|M|MM:%(cpp_debug_options)}\
       %{!M:%{!MM:%{!E:%{!S:-o %|.s |\n\
        as %(asm_debug) %(asm_options) %m.s %A }}}}"
@@ -1876,7 +1889,7 @@ set_spec (const char *name, const char *spec)
 
   /* Free the old spec.  */
   if (old_spec && sl->alloc_p)
-    free ((void *) old_spec);
+    free (CONST_CAST(char *, old_spec));
 
   sl->alloc_p = 1;
 }
@@ -2181,7 +2194,7 @@ read_specs (const char *filename, int main_p)
 
 	      set_spec (p2, *(sl->ptr_spec));
 	      if (sl->alloc_p)
-		free ((void *) *(sl->ptr_spec));
+		free (CONST_CAST (char *, *(sl->ptr_spec)));
 
 	      *(sl->ptr_spec) = "";
 	      sl->alloc_p = 0;
@@ -2531,18 +2544,18 @@ for_each_path (const struct path_prefix *paths,
 	 Don't repeat any we have already seen.  */
       if (multi_dir)
 	{
-	  free ((char *) multi_dir);
+	  free (CONST_CAST (char *, multi_dir));
 	  multi_dir = NULL;
-	  free ((char *) multi_suffix);
+	  free (CONST_CAST (char *, multi_suffix));
 	  multi_suffix = machine_suffix;
-	  free ((char *) just_multi_suffix);
+	  free (CONST_CAST (char *, just_multi_suffix));
 	  just_multi_suffix = just_machine_suffix;
 	}
       else
 	skip_multi_dir = true;
       if (multi_os_dir)
 	{
-	  free ((char *) multi_os_dir);
+	  free (CONST_CAST (char *, multi_os_dir));
 	  multi_os_dir = NULL;
 	}
       else
@@ -2551,12 +2564,12 @@ for_each_path (const struct path_prefix *paths,
 
   if (multi_dir)
     {
-      free ((char *) multi_dir);
-      free ((char *) multi_suffix);
-      free ((char *) just_multi_suffix);
+      free (CONST_CAST (char *, multi_dir));
+      free (CONST_CAST (char *, multi_suffix));
+      free (CONST_CAST (char *, just_multi_suffix));
     }
   if (multi_os_dir)
-    free ((char *) multi_os_dir);
+    free (CONST_CAST (char *, multi_os_dir));
   if (ret != path)
     free (path);
   return ret;
@@ -2585,6 +2598,16 @@ add_to_obstack (char *path, void *data)
 
   info->first_time = false;
   return NULL;
+}
+
+/* Add or change the value of an environment variable, outputting the
+   change to standard error if in verbose mode.  */
+static void
+xputenv (const char *string)
+{
+  if (verbose_flag)
+    notice ("%s\n", string);
+  putenv (CONST_CAST (char *, string));
 }
 
 /* Build a list of search directories from PATHS.
@@ -2621,7 +2644,7 @@ static void
 putenv_from_prefixes (const struct path_prefix *paths, const char *env_var,
 		      bool do_multi)
 {
-  putenv (build_search_list (paths, env_var, true, do_multi));
+  xputenv (build_search_list (paths, env_var, true, do_multi));
 }
 
 /* Check whether NAME can be accessed in MODE.  This is like access,
@@ -2963,7 +2986,7 @@ execute (void)
       errmsg = pex_run (pex,
 			((i + 1 == n_commands ? PEX_LAST : 0)
 			 | (string == commands[i].prog ? PEX_SEARCH : 0)),
-			string, (char * const *) commands[i].argv,
+			string, CONST_CAST (char **, commands[i].argv),
 			NULL, NULL, &err);
       if (errmsg != NULL)
 	{
@@ -2977,7 +3000,7 @@ execute (void)
 	}
 
       if (string != commands[i].prog)
-	free ((void *) string);
+	free (CONST_CAST (char *, string));
     }
 
   execution_count++;
@@ -3402,7 +3425,7 @@ process_command (int argc, const char **argv)
 						 standard_bindir_prefix,
 						 standard_libexec_prefix);
       if (gcc_exec_prefix)
-	putenv (concat ("GCC_EXEC_PREFIX=", gcc_exec_prefix, NULL));
+	xputenv (concat ("GCC_EXEC_PREFIX=", gcc_exec_prefix, NULL));
     }
   else
     {
@@ -3586,7 +3609,8 @@ process_command (int argc, const char **argv)
       else if (strcmp (argv[i], "-fversion") == 0)
 	{
 	  /* translate_options () has turned --version into -fversion.  */
-	  printf (_("%s (GCC) %s\n"), programname, version_string);
+	  printf (_("%s %s%s\n"), programname, pkgversion_string,
+		  version_string);
 	  printf ("Copyright %s 2007 Free Software Foundation, Inc.\n",
 		  _("(C)"));
 	  fputs (_("This is free software; see the source for copying conditions.  There is NO\n\
@@ -4320,7 +4344,7 @@ set_collect_gcc_options (void)
 	}
     }
   obstack_grow (&collect_obstack, "\0", 1);
-  putenv (XOBFINISH (&collect_obstack, char *));
+  xputenv (XOBFINISH (&collect_obstack, char *));
 }
 
 /* Process a spec string, accumulating and running commands.  */
@@ -5018,7 +5042,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
                   for (i = 0, j = 0; i < max; i++)
                     if (outfiles[i])
                       {
-                        argv[j] = (char *) outfiles[i];
+                        argv[j] = CONST_CAST (char *, outfiles[i]);
                         j++;
                       }
                   argv[j] = NULL;
@@ -5974,13 +5998,13 @@ give_switch (int switchnum, int omit_first_word)
 	      while (length-- && !IS_DIR_SEPARATOR (arg[length]))
 		if (arg[length] == '.')
 		  {
-		    ((char *)arg)[length] = 0;
+		    (CONST_CAST(char *, arg))[length] = 0;
 		    dot = 1;
 		    break;
 		  }
 	      do_spec_1 (arg, 1, NULL);
 	      if (dot)
-		((char *)arg)[length] = '.';
+		(CONST_CAST(char *, arg))[length] = '.';
 	      do_spec_1 (suffix_subst, 1, NULL);
 	    }
 	  else
@@ -6206,11 +6230,11 @@ main (int argc, char **argv)
   obstack_init (&collect_obstack);
   obstack_grow (&collect_obstack, "COLLECT_GCC=", sizeof ("COLLECT_GCC=") - 1);
   obstack_grow (&collect_obstack, argv[0], strlen (argv[0]) + 1);
-  putenv (XOBFINISH (&collect_obstack, char *));
+  xputenv (XOBFINISH (&collect_obstack, char *));
 
 #ifdef INIT_ENVIRONMENT
   /* Set up any other necessary machine specific environment variables.  */
-  putenv (INIT_ENVIRONMENT);
+  xputenv (INIT_ENVIRONMENT);
 #endif
 
   /* Make a table of what switches there are (switches, n_switches).
@@ -6504,10 +6528,10 @@ main (int argc, char **argv)
 
       if (! strncmp (version_string, compiler_version, n)
 	  && compiler_version[n] == 0)
-	notice ("gcc version %s\n", version_string);
+	notice ("gcc version %s %s\n", version_string, pkgversion_string);
       else
-	notice ("gcc driver version %s executing gcc version %s\n",
-		version_string, compiler_version);
+	notice ("gcc driver version %s %sexecuting gcc version %s\n",
+		version_string, pkgversion_string, compiler_version);
 
       if (n_infiles == 0)
 	return (0);
@@ -7433,7 +7457,7 @@ set_multilib_dir (void)
   if (multilib_dir == NULL && multilib_os_dir != NULL
       && strcmp (multilib_os_dir, ".") == 0)
     {
-      free ((char *) multilib_os_dir);
+      free (CONST_CAST (char *, multilib_os_dir));
       multilib_os_dir = NULL;
     }
   else if (multilib_dir != NULL && multilib_os_dir == NULL)

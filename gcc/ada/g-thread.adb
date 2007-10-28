@@ -68,6 +68,7 @@ package body GNAT.Threads is
       Parm : Void_Ptr;
       Code : Code_Proc)
    is
+      pragma Unreferenced (Parm);
       pragma Priority (Prio);
       pragma Storage_Size (Stsz);
    end Thread;
@@ -128,7 +129,12 @@ package body GNAT.Threads is
       T   : Tasking.Task_Id;
 
       use type Tasking.Task_Id;
+      --  This use clause should be removed once a visibility problem
+      --  with the MaRTE run time has been fixed. ???
+
+      pragma Warnings (Off);
       use type System.OS_Interface.Thread_Id;
+      pragma Warnings (On);
 
    begin
       STPO.Lock_RTS;

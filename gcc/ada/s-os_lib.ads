@@ -50,6 +50,10 @@
 --  be used by other predefined packages. User access to this package is via
 --  a renaming of this package in GNAT.OS_Lib (file g-os_lib.ads).
 
+pragma Warnings (Off);
+pragma Compiler_Unit;
+pragma Warnings (On);
+
 with System;
 with System.Strings;
 
@@ -814,12 +818,24 @@ package System.OS_Lib is
    --  changes made by Setenv calls. This procedure is not available on VMS.
 
    procedure OS_Exit (Status : Integer);
-   pragma Import (C, OS_Exit, "__gnat_os_exit");
    pragma No_Return (OS_Exit);
+
    --  Exit to OS with given status code (program is terminated). Note that
    --  this is abrupt termination. All tasks are immediately terminated. There
    --  are no finalization or other Ada-specific cleanup actions performed. On
-   --  systems with atexit handlers (such as Unix and Windows) are performed.
+   --  systems with atexit handlers (such as Unix and Windows), atexit handlers
+   --  are called.
+
+   type OS_Exit_Subprogram is access procedure (Status : Integer);
+
+   procedure OS_Exit_Default (Status : Integer);
+   pragma No_Return (OS_Exit_Default);
+   --  Default implementation of procedure OS_Exit
+
+   OS_Exit_Ptr : OS_Exit_Subprogram := OS_Exit_Default'Access;
+   --  OS_Exit is implemented through this access value. It it then possible to
+   --  change the implementation of OS_Exit by redirecting OS_Exit_Ptr to an
+   --  other implementation.
 
    procedure OS_Abort;
    pragma Import (C, OS_Abort, "abort");

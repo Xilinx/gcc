@@ -290,6 +290,28 @@ gfc_show_constructor (gfc_constructor *c)
 }
 
 
+static void
+show_char_const (const char *c, int length)
+{
+  int i;
+
+  gfc_status_char ('\'');
+  for (i = 0; i < length; i++)
+    {
+      if (c[i] == '\'')
+	gfc_status ("''");
+      else if (ISPRINT (c[i]))
+	gfc_status_char (c[i]);
+      else
+	{
+	  gfc_status ("' // ACHAR(");
+	  printf ("%d", c[i]);
+	  gfc_status (") // '");
+	}
+    }
+  gfc_status_char ('\'');
+}
+
 /* Show an expression.  */
 
 void
@@ -307,16 +329,7 @@ gfc_show_expr (gfc_expr *p)
   switch (p->expr_type)
     {
     case EXPR_SUBSTRING:
-      c = p->value.character.string;
-
-      for (i = 0; i < p->value.character.length; i++, c++)
-	{
-	  if (*c == '\'')
-	    gfc_status ("''");
-	  else
-	    gfc_status ("%c", *c);
-	}
-
+      show_char_const (p->value.character.string, p->value.character.length);
       gfc_show_ref (p->ref);
       break;
 
@@ -362,20 +375,8 @@ gfc_show_expr (gfc_expr *p)
 	  break;
 
 	case BT_CHARACTER:
-	  c = p->value.character.string;
-
-	  gfc_status_char ('\'');
-
-	  for (i = 0; i < p->value.character.length; i++, c++)
-	    {
-	      if (*c == '\'')
-		gfc_status ("''");
-	      else
-		gfc_status_char (*c);
-	    }
-
-	  gfc_status_char ('\'');
-
+	  show_char_const (p->value.character.string, 
+			   p->value.character.length);
 	  break;
 
 	case BT_COMPLEX:
@@ -591,6 +592,8 @@ gfc_show_attr (symbol_attribute *attr)
   if (attr->in_common)
     gfc_status (" IN-COMMON");
 
+  if (attr->abstract)
+    gfc_status (" ABSTRACT INTERFACE");
   if (attr->function)
     gfc_status (" FUNCTION");
   if (attr->subroutine)
@@ -1084,6 +1087,7 @@ gfc_show_code_node (int level, gfc_code *c)
       break;
 
     case EXEC_CALL:
+    case EXEC_ASSIGN_CALL:
       if (c->resolved_sym)
 	gfc_status ("CALL %s ", c->resolved_sym->name);
       else if (c->symtree)

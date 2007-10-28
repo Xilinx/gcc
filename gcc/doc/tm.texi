@@ -1004,14 +1004,15 @@ a value the default is @code{BITS_PER_WORD}.
 @end defmac
 
 @defmac POINTERS_EXTEND_UNSIGNED
-A C expression whose value is greater than zero if pointers that need to be
-extended from being @code{POINTER_SIZE} bits wide to @code{Pmode} are to
-be zero-extended and zero if they are to be sign-extended.  If the value
-is less then zero then there must be an "ptr_extend" instruction that
-extends a pointer from @code{POINTER_SIZE} to @code{Pmode}.
+A C expression that determines how pointers should be extended from
+@code{ptr_mode} to either @code{Pmode} or @code{word_mode}.  It is
+greater than zero if pointers should be zero-extended, zero if they
+should be sign-extended, and negative if some other sort of conversion
+is needed.  In the last case, the extension is done by the target's
+@code{ptr_extend} instruction.
 
-You need not define this macro if the @code{POINTER_SIZE} is equal
-to the width of @code{Pmode}.
+You need not define this macro if the @code{ptr_mode}, @code{Pmode}
+and @code{word_mode} are all the same width.
 @end defmac
 
 @defmac PROMOTE_MODE (@var{m}, @var{unsignedp}, @var{type})
@@ -1502,6 +1503,10 @@ may affect its placement.
 Returns true if the target supports decimal floating point.
 @end deftypefn
 
+@deftypefn {Target Hook} {bool} TARGET_FIXED_POINT_SUPPORTED_P (void)
+Returns true if the target supports fixed-point arithmetic.
+@end deftypefn
+
 @deftypefn {Target Hook} {const char *} TARGET_MANGLE_TYPE (tree @var{type})
 If your target defines any fundamental types, or any types your target
 uses should be mangled differently from the default, define this hook
@@ -1603,6 +1608,54 @@ words.
 A C expression for the size in bits of the type @code{long double} on
 the target machine.  If you don't define this, the default is two
 words.
+@end defmac
+
+@defmac SHORT_FRACT_TYPE_SIZE
+A C expression for the size in bits of the type @code{short _Fract} on
+the target machine.  If you don't define this, the default is
+@code{BITS_PER_UNIT}.
+@end defmac
+
+@defmac FRACT_TYPE_SIZE
+A C expression for the size in bits of the type @code{_Fract} on
+the target machine.  If you don't define this, the default is
+@code{BITS_PER_UNIT * 2}.
+@end defmac
+
+@defmac LONG_FRACT_TYPE_SIZE
+A C expression for the size in bits of the type @code{long _Fract} on
+the target machine.  If you don't define this, the default is
+@code{BITS_PER_UNIT * 4}.
+@end defmac
+
+@defmac LONG_LONG_FRACT_TYPE_SIZE
+A C expression for the size in bits of the type @code{long long _Fract} on
+the target machine.  If you don't define this, the default is
+@code{BITS_PER_UNIT * 8}.
+@end defmac
+
+@defmac SHORT_ACCUM_TYPE_SIZE
+A C expression for the size in bits of the type @code{short _Accum} on
+the target machine.  If you don't define this, the default is
+@code{BITS_PER_UNIT * 2}.
+@end defmac
+
+@defmac ACCUM_TYPE_SIZE
+A C expression for the size in bits of the type @code{_Accum} on
+the target machine.  If you don't define this, the default is
+@code{BITS_PER_UNIT * 4}.
+@end defmac
+
+@defmac LONG_ACCUM_TYPE_SIZE
+A C expression for the size in bits of the type @code{long _Accum} on
+the target machine.  If you don't define this, the default is
+@code{BITS_PER_UNIT * 8}.
+@end defmac
+
+@defmac LONG_LONG_ACCUM_TYPE_SIZE
+A C expression for the size in bits of the type @code{long long _Accum} on
+the target machine.  If you don't define this, the default is
+@code{BITS_PER_UNIT * 16}.
 @end defmac
 
 @defmac LIBGCC2_LONG_DOUBLE_TYPE_SIZE
@@ -5845,12 +5898,30 @@ will be used.  Defaults to 1 if @code{move_by_pieces_ninsns} returns less
 than @code{CLEAR_RATIO}.
 @end defmac
 
+@defmac SET_RATIO
+The threshold of number of scalar move insns, @emph{below} which a sequence
+of insns should be generated to set memory to a constant value, instead of
+a block set insn or a library call.  
+Increasing the value will always make code faster, but
+eventually incurs high cost in increased code size.
+
+If you don't define this, it defaults to the value of @code{MOVE_RATIO}.
+@end defmac
+
+@defmac SET_BY_PIECES_P (@var{size}, @var{alignment})
+A C expression used to determine whether @code{store_by_pieces} will be
+used to set a chunk of memory to a constant value, or whether some 
+other mechanism will be used.  Used by @code{__builtin_memset} when 
+storing values other than constant zero.
+Defaults to 1 if @code{move_by_pieces_ninsns} returns less
+than @code{SET_RATIO}.
+@end defmac
+
 @defmac STORE_BY_PIECES_P (@var{size}, @var{alignment})
 A C expression used to determine whether @code{store_by_pieces} will be
-used to set a chunk of memory to a constant value, or whether some other
-mechanism will be used.  Used by @code{__builtin_memset} when storing
-values other than constant zero and by @code{__builtin_strcpy} when
-when called with a constant source string.
+used to set a chunk of memory to a constant string value, or whether some 
+other mechanism will be used.  Used by @code{__builtin_strcpy} when
+called with a constant source string.
 Defaults to 1 if @code{move_by_pieces_ninsns} returns less
 than @code{MOVE_RATIO}.
 @end defmac
@@ -6128,6 +6199,20 @@ The hook is analogous to @samp{TARGET_SCHED_INIT_DFA_PRE_CYCLE_INSN} but
 used to initialize data used by the previous hook.
 @end deftypefn
 
+@deftypefn {Target Hook} void TARGET_SCHED_DFA_PRE_CYCLE_ADVANCE (void)
+The hook to notify target that the current simulated cycle is about to finish.
+The hook is analogous to @samp{TARGET_SCHED_DFA_PRE_CYCLE_INSN} but used
+to change the state in more complicated situations - e.g. when advancing
+state on a single insn is not enough.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_DFA_POST_CYCLE_ADVANCE (void)
+The hook to notify target that new simulated cycle has just started.
+The hook is analogous to @samp{TARGET_SCHED_DFA_POST_CYCLE_INSN} but used
+to change the state in more complicated situations - e.g. when advancing
+state on a single insn is not enough.
+@end deftypefn
+
 @deftypefn {Target Hook} int TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD (void)
 This hook controls better choosing an insn from the ready insn queue
 for the @acronym{DFA}-based insn scheduler.  Usually the scheduler
@@ -6256,6 +6341,15 @@ the bits corresponding to the following features: USE_DEPS_LIST, USE_GLAT,
 DETACH_LIFE_INFO, and DO_SPECULATION.  For the DO_SPECULATION feature
 an additional structure @var{spec_info} should be filled by the target.
 The structure describes speculation types that can be used in the scheduler.
+@end deftypefn
+
+@deftypefn {Target Hook} int TARGET_SCHED_SMS_RES_MII (struct ddg *@var{g})
+This hook is called by the swing modulo scheduler to calculate a
+resource-based lower bound which is based on the resources available in
+the machine and the resources required by each instruction.  The target
+backend can use @var{g} to calculate such bound.  A very simple lower
+bound will be used in case this hook is not implemented: the total number
+of instructions divided by the issue rate.
 @end deftypefn
 
 @node Sections
@@ -6954,9 +7048,11 @@ If no constant-pool epilogue is required, the usual case, you need not
 define this macro.
 @end defmac
 
-@defmac IS_ASM_LOGICAL_LINE_SEPARATOR (@var{C})
+@defmac IS_ASM_LOGICAL_LINE_SEPARATOR (@var{C}, @var{STR})
 Define this macro as a C expression which is nonzero if @var{C} is
-used as a logical line separator by the assembler.
+used as a logical line separator by the assembler.  @var{STR} points
+to the position in the string where @var{C} was found; this can be used if
+a line separator uses multiple characters.
 
 If you do not define this macro, the default is that only
 the character @samp{;} is treated as a logical line separator.
@@ -9590,14 +9686,23 @@ given mode.
 
 @defmac CLZ_DEFINED_VALUE_AT_ZERO (@var{mode}, @var{value})
 @defmacx CTZ_DEFINED_VALUE_AT_ZERO (@var{mode}, @var{value})
-A C expression that evaluates to true if the architecture defines a value
-for @code{clz} or @code{ctz} with a zero operand.  If so, @var{value}
-should be set to this value.  If this macro is not defined, the value of
-@code{clz} or @code{ctz} is assumed to be undefined.
+A C expression that indicates whether the architecture defines a value
+for @code{clz} or @code{ctz} with a zero operand.  
+A result of @code{0} indicates the value is undefined.
+If the value is defined for only the RTL expression, the macro should
+evaluate to @code{1}; if the value applies also to the corresponding optab
+entry (which is normally the case if it expands directly into
+the corresponding RTL), then the macro should evaluate to @code{2}.  
+In the cases where the value is defined, @var{value} should be set to
+this value.  
+
+If this macro is not defined, the value of @code{clz} or
+@code{ctz} at zero is assumed to be undefined.
 
 This macro must be defined if the target's expansion for @code{ffs}
 relies on a particular value to get correct results.  Otherwise it
-is not necessary, though it may be used to optimize some corner cases.
+is not necessary, though it may be used to optimize some corner cases, and
+to provide a default expansion for the @code{ffs} optab.
 
 Note that regardless of this macro the ``definedness'' of @code{clz}
 and @code{ctz} at zero do @emph{not} extend to the builtin functions
@@ -10046,6 +10151,32 @@ The default value of this hook is @code{NULL}, which disables any special
 allocation.
 @end deftypefn
 
+@deftypefn {Target Hook} int TARGET_UNSPEC_MAY_TRAP_P (const_rtx @var{x}, unsigned @var{flags})
+This target hook returns nonzero if @var{x}, an @code{unspec} or
+@code{unspec_volatile} operation, might cause a trap.  Targets can use
+this hook to enhance precision of analysis for @code{unspec} and
+@code{unspec_volatile} operations.  You may call @code{may_trap_p_1}
+to analyze inner elements of @var{x} in which case @var{flags} should be
+passed along.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SET_CURRENT_FUNCTION (tree @var{decl})
+The compiler invokes this hook whenever it changes its current function 
+context (@code{cfun}).  You can define this function if
+the back end needs to perform any initialization or reset actions on a
+per-function basis.  For example, it may be used to implement function
+attributes that affect register usage or code generation patterns.
+The argument @var{decl} is the declaration for the new function context,
+and may be null to indicate that the compiler has left a function context
+and is returning to processing at the top level.
+The default hook function does nothing.
+
+GCC sets @code{cfun} to a dummy function context during initialization of
+some parts of the back end.  The hook function is not invoked in this
+situation; you need not worry about the hook being invoked recursively,
+or when the back end is in a partially-initialized state.
+@end deftypefn
+
 @defmac TARGET_OBJECT_SUFFIX
 Define this macro to be a C string representing the suffix for object
 files on your target machine.  If you do not define this macro, GCC will
@@ -10216,4 +10347,11 @@ SUPPORTS_WEAK and TARGET_HAVE_NAMED_SECTIONS are true, else 0.
 @defmac OBJC_JBLEN
 This macro determines the size of the objective C jump buffer for the
 NeXT runtime. By default, OBJC_JBLEN is defined to an innocuous value.
+@end defmac
+
+@defmac LIBGCC2_UNWIND_ATTRIBUTE
+Define this macro if any target-specific attributes need to be attached
+to the functions in @file{libgcc} that provide low-level support for 
+call stack unwinding.  It is used in declarations in @file{unwind-generic.h}
+and the associated definitions of those functions.
 @end defmac

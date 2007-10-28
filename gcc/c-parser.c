@@ -80,6 +80,9 @@ static const struct resword reswords[] =
   { "_Decimal32",       RID_DFLOAT32,  D_EXT },
   { "_Decimal64",       RID_DFLOAT64,  D_EXT },
   { "_Decimal128",      RID_DFLOAT128, D_EXT },
+  { "_Fract",           RID_FRACT,     D_EXT },
+  { "_Accum",           RID_ACCUM,     D_EXT },
+  { "_Sat",             RID_SAT,       D_EXT },
   { "__FUNCTION__",	RID_FUNCTION_NAME, 0 },
   { "__PRETTY_FUNCTION__", RID_PRETTY_FUNCTION_NAME, 0 },
   { "__alignof",	RID_ALIGNOF,	0 },
@@ -277,6 +280,8 @@ typedef struct c_parser GTY(())
   /* True if we're processing a pragma, and shouldn't automatically
      consume CPP_PRAGMA_EOL.  */
   BOOL_BITFIELD in_pragma : 1;
+  /* True if we want to lex an untranslated string.  */
+  BOOL_BITFIELD lex_untranslated_string : 1;
   /* Objective-C specific parser/lexer information.  */
   BOOL_BITFIELD objc_pq_context : 1;
   /* The following flag is needed to contextualize Objective-C lexical
@@ -300,7 +305,9 @@ c_lex_one_token (c_parser *parser, c_token *token)
 {
   timevar_push (TV_LEX);
 
-  token->type = c_lex_with_flags (&token->value, &token->location, NULL);
+  token->type = c_lex_with_flags (&token->value, &token->location, NULL,
+				  (parser->lex_untranslated_string
+				   ? C_LEX_STRING_NO_TRANSLATE : 0));
   token->id_kind = C_ID_NONE;
   token->keyword = RID_MAX;
   token->pragma_kind = PRAGMA_NONE;
@@ -486,6 +493,9 @@ c_token_starts_typename (c_token *token)
 	case RID_VOLATILE:
 	case RID_RESTRICT:
 	case RID_ATTRIBUTE:
+	case RID_FRACT:
+	case RID_ACCUM:
+	case RID_SAT:
 	  return true;
 	default:
 	  return false;
@@ -560,6 +570,9 @@ c_token_starts_declspecs (c_token *token)
 	case RID_VOLATILE:
 	case RID_RESTRICT:
 	case RID_ATTRIBUTE:
+	case RID_FRACT:
+	case RID_ACCUM:
+	case RID_SAT:
 	  return true;
 	default:
 	  return false;
@@ -1493,6 +1506,12 @@ c_parser_asm_definition (c_parser *parser)
      _Decimal32
      _Decimal64
      _Decimal128
+     _Fract
+     _Accum
+     _Sat
+
+  (_Fract, _Accum, and _Sat are new from ISO/IEC DTR 18037:
+   http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1169.pdf)
 
    Objective-C:
 
@@ -1595,6 +1614,9 @@ c_parser_declspecs (c_parser *parser, struct c_declspecs *specs,
 	case RID_DFLOAT64:
 	case RID_DFLOAT128:
 	case RID_BOOL:
+	case RID_FRACT:
+	case RID_ACCUM:
+	case RID_SAT:
 	  if (!typespec_ok)
 	    goto out;
 	  attrs_ok = true;
@@ -2012,7 +2034,11 @@ c_parser_struct_declaration (c_parser *parser)
 	  /* Support for unnamed structs or unions as members of
 	     structs or unions (which is [a] useful and [b] supports
 	     MS P-SDK).  */
-	  ret = grokfield (build_id_declarator (NULL_TREE), specs, NULL_TREE);
+	  tree attrs = NULL;
+	  ret = grokfield (build_id_declarator (NULL_TREE), specs,
+			   NULL_TREE, &attrs);
+	  if (ret)
+	    decl_attributes (&ret, attrs, 0);
 	}
       return ret;
     }
@@ -2052,7 +2078,7 @@ c_parser_struct_declaration (c_parser *parser)
 	    }
 	  if (c_parser_next_token_is_keyword (parser, RID_ATTRIBUTE))
 	    postfix_attrs = c_parser_attributes (parser);
-	  d = grokfield (declarator, specs, width);
+	  d = grokfield (declarator, specs, width, &all_prefix_attrs);
 	  decl_attributes (&d, chainon (postfix_attrs,
 					all_prefix_attrs), 0);
 	  TREE_CHAIN (d) = decls;
@@ -2709,8 +2735,8 @@ c_parser_parameter_declaration (c_parser *parser, tree attrs)
      string-literal
 
    ??? At present, following the old parser, the caller needs to have
-   set c_lex_string_translate to 0.  It would be better to follow the
-   C++ parser rather than using the c_lex_string_translate kludge.  */
+   set lex_untranslated_string to 1.  It would be better to follow the
+   C++ parser rather than using this kludge.  */
 
 static tree
 c_parser_asm_string_literal (c_parser *parser)
@@ -2749,16 +2775,16 @@ c_parser_simple_asm_expr (c_parser *parser)
   tree str;
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_ASM));
   /* ??? Follow the C++ parser rather than using the
-     c_lex_string_translate kludge.  */
-  c_lex_string_translate = 0;
+     lex_untranslated_string kludge.  */
+  parser->lex_untranslated_string = true;
   c_parser_consume_token (parser);
   if (!c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
     {
-      c_lex_string_translate = 1;
+      parser->lex_untranslated_string = false;
       return NULL_TREE;
     }
   str = c_parser_asm_string_literal (parser);
-  c_lex_string_translate = 1;
+  parser->lex_untranslated_string = false;
   if (!c_parser_require (parser, CPP_CLOSE_PAREN, "expected %<)%>"))
     {
       c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
@@ -2801,17 +2827,17 @@ c_parser_attributes (c_parser *parser)
   while (c_parser_next_token_is_keyword (parser, RID_ATTRIBUTE))
     {
       /* ??? Follow the C++ parser rather than using the
-	 c_lex_string_translate kludge.  */
-      c_lex_string_translate = 0;
+	 lex_untranslated_string kludge.  */
+      parser->lex_untranslated_string = true;
       c_parser_consume_token (parser);
       if (!c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
 	{
-	  c_lex_string_translate = 1;
+	  parser->lex_untranslated_string = false;
 	  return attrs;
 	}
       if (!c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
 	{
-	  c_lex_string_translate = 1;
+	  parser->lex_untranslated_string = false;
 	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
 	  return attrs;
 	}
@@ -2857,6 +2883,9 @@ c_parser_attributes (c_parser *parser)
 		case RID_DFLOAT64:
 		case RID_DFLOAT128:
 		case RID_BOOL:
+		case RID_FRACT:
+		case RID_ACCUM:
+		case RID_SAT:
 		  ok = true;
 		  break;
 		default:
@@ -2908,7 +2937,7 @@ c_parser_attributes (c_parser *parser)
 	    c_parser_consume_token (parser);
 	  else
 	    {
-	      c_lex_string_translate = 1;
+	      parser->lex_untranslated_string = false;
 	      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN,
 					 "expected %<)%>");
 	      return attrs;
@@ -2919,7 +2948,7 @@ c_parser_attributes (c_parser *parser)
 	c_parser_consume_token (parser);
       else
 	{
-	  c_lex_string_translate = 1;
+	  parser->lex_untranslated_string = false;
 	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN,
 				     "expected %<)%>");
 	  return attrs;
@@ -2928,12 +2957,12 @@ c_parser_attributes (c_parser *parser)
 	c_parser_consume_token (parser);
       else
 	{
-	  c_lex_string_translate = 1;
+	  parser->lex_untranslated_string = false;
 	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN,
 				     "expected %<)%>");
 	  return attrs;
 	}
-      c_lex_string_translate = 1;
+      parser->lex_untranslated_string = false;
     }
   return attrs;
 }
@@ -4114,11 +4143,11 @@ c_parser_asm_statement (c_parser *parser)
   else
     quals = NULL_TREE;
   /* ??? Follow the C++ parser rather than using the
-     c_lex_string_translate kludge.  */
-  c_lex_string_translate = 0;
+     lex_untranslated_string kludge.  */
+  parser->lex_untranslated_string = true;
   if (!c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
     {
-      c_lex_string_translate = 1;
+      parser->lex_untranslated_string = false;
       return NULL_TREE;
     }
   str = c_parser_asm_string_literal (parser);
@@ -4132,7 +4161,7 @@ c_parser_asm_statement (c_parser *parser)
     }
   if (!c_parser_require (parser, CPP_COLON, "expected %<:%> or %<)%>"))
     {
-      c_lex_string_translate = 1;
+      parser->lex_untranslated_string = false;
       c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
       return NULL_TREE;
     }
@@ -4151,7 +4180,7 @@ c_parser_asm_statement (c_parser *parser)
     }
   if (!c_parser_require (parser, CPP_COLON, "expected %<:%> or %<)%>"))
     {
-      c_lex_string_translate = 1;
+      parser->lex_untranslated_string = false;
       c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
       return NULL_TREE;
     }
@@ -4168,14 +4197,14 @@ c_parser_asm_statement (c_parser *parser)
     }
   if (!c_parser_require (parser, CPP_COLON, "expected %<:%> or %<)%>"))
     {
-      c_lex_string_translate = 1;
+      parser->lex_untranslated_string = false;
       c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
       return NULL_TREE;
     }
   /* Parse clobbers.  */
   clobbers = c_parser_asm_clobbers (parser);
  done_asm:
-  c_lex_string_translate = 1;
+  parser->lex_untranslated_string = false;
   if (!c_parser_require (parser, CPP_CLOSE_PAREN, "expected %<)%>"))
     {
       c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
@@ -4233,16 +4262,16 @@ c_parser_asm_operands (c_parser *parser, bool convert_p)
       str = c_parser_asm_string_literal (parser);
       if (str == NULL_TREE)
 	return NULL_TREE;
-      c_lex_string_translate = 1;
+      parser->lex_untranslated_string = false;
       if (!c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
 	{
-	  c_lex_string_translate = 0;
+	  parser->lex_untranslated_string = true;
 	  return NULL_TREE;
 	}
       expr = c_parser_expression (parser);
       if (convert_p)
 	expr = default_function_array_conversion (expr);
-      c_lex_string_translate = 0;
+      parser->lex_untranslated_string = true;
       if (!c_parser_require (parser, CPP_CLOSE_PAREN, "expected %<)%>"))
 	{
 	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);

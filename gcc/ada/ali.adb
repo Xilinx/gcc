@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -2175,35 +2174,82 @@ package body ALI is
 
                   Skip_Space;
 
-                  --  See if type reference present
+                  XE.Oref_File_Num := No_Sdep_Id;
+                  XE.Tref_File_Num := No_Sdep_Id;
+                  XE.Tref          := Tref_None;
+                  XE.First_Xref    := Xref.Last + 1;
 
-                  Get_Typeref
-                    (Current_File_Num, XE.Tref, XE.Tref_File_Num, XE.Tref_Line,
-                     XE.Tref_Type, XE.Tref_Col, XE.Tref_Standard_Entity);
+                  --  Loop to check for additional info present
 
-                  --  Do we have an overriding procedure, instead ?
-                  if XE.Tref_Type = 'p' then
-                     XE.Oref_File_Num := XE.Tref_File_Num;
-                     XE.Oref_Line     := XE.Tref_Line;
-                     XE.Oref_Col      := XE.Tref_Col;
-                     XE.Tref_File_Num := No_Sdep_Id;
-                     XE.Tref          := Tref_None;
-                  else
-                     --  We might have additional information about the
-                     --  overloaded subprograms
+                  loop
                      declare
-                        Ref : Tref_Kind;
-                        Typ : Character;
-                        Standard_Entity : Name_Id;
+                        Ref  : Tref_Kind;
+                        File : Sdep_Id;
+                        Line : Nat;
+                        Typ  : Character;
+                        Col  : Nat;
+                        Std  : Name_Id;
+
                      begin
                         Get_Typeref
-                          (Current_File_Num,
-                           Ref, XE.Oref_File_Num,
-                           XE.Oref_Line, Typ, XE.Oref_Col, Standard_Entity);
-                     end;
-                  end if;
+                          (Current_File_Num, Ref, File, Line, Typ, Col, Std);
+                        exit when Ref = Tref_None;
 
-                  XE.First_Xref := Xref.Last + 1;
+                        --  Do we have an overriding procedure?
+
+                        if Ref = Tref_Derived and then Typ = 'p' then
+                           XE.Oref_File_Num := File;
+                           XE.Oref_Line     := Line;
+                           XE.Oref_Col      := Col;
+
+                        --  Arrays never override anything, and <> points to
+                        --  the index types instead
+
+                        elsif Ref = Tref_Derived and then XE.Etype = 'A' then
+
+                           --  Index types are stored in the list of references
+
+                           Xref.Increment_Last;
+
+                           declare
+                              XR : Xref_Record renames Xref.Table (Xref.Last);
+                           begin
+                              XR.File_Num := File;
+                              XR.Line     := Line;
+                              XR.Rtype    := Array_Index_Reference;
+                              XR.Col      := Col;
+                              XR.Name     := Std;
+                           end;
+
+                        --  Interfaces are stored in the list of references,
+                        --  although the parent type itself is stored in XE
+
+                        elsif Ref = Tref_Derived
+                          and then Typ = 'R'
+                          and then XE.Tref_File_Num /= No_Sdep_Id
+                        then
+                           Xref.Increment_Last;
+
+                           declare
+                              XR : Xref_Record renames Xref.Table (Xref.Last);
+                           begin
+                              XR.File_Num := File;
+                              XR.Line     := Line;
+                              XR.Rtype    := Interface_Reference;
+                              XR.Col      := Col;
+                              XR.Name     := Std;
+                           end;
+
+                        else
+                           XE.Tref                 := Ref;
+                           XE.Tref_File_Num        := File;
+                           XE.Tref_Line            := Line;
+                           XE.Tref_Type            := Typ;
+                           XE.Tref_Col             := Col;
+                           XE.Tref_Standard_Entity := Std;
+                        end if;
+                     end;
+                  end loop;
 
                   --  Loop through cross-references for this entity
 

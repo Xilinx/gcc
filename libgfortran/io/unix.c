@@ -30,13 +30,11 @@ Boston, MA 02110-1301, USA.  */
 
 /* Unix stream I/O module */
 
-#include "config.h"
+#include "io.h"
 #include <stdlib.h>
 #include <limits.h>
 
 #include <unistd.h>
-#include <stdio.h>
-#include <stdarg.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <assert.h>
@@ -44,8 +42,58 @@ Boston, MA 02110-1301, USA.  */
 #include <string.h>
 #include <errno.h>
 
-#include "libgfortran.h"
-#include "io.h"
+
+/* For mingw, we don't identify files by their inode number, but by a
+   64-bit identifier created from a BY_HANDLE_FILE_INFORMATION. */
+#if defined(__MINGW32__) && !HAVE_WORKING_STAT
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+static uint64_t
+id_from_handle (HANDLE hFile)
+{
+  BY_HANDLE_FILE_INFORMATION FileInformation;
+
+  if (hFile == INVALID_HANDLE_VALUE)
+      return 0;
+
+  memset (&FileInformation, 0, sizeof(FileInformation));
+  if (!GetFileInformationByHandle (hFile, &FileInformation))
+    return 0;
+
+  return ((uint64_t) FileInformation.nFileIndexLow)
+	 | (((uint64_t) FileInformation.nFileIndexHigh) << 32);
+}
+
+
+static uint64_t
+id_from_path (const char *path)
+{
+  HANDLE hFile;
+  uint64_t res;
+
+  if (!path || !*path || access (path, F_OK))
+    return (uint64_t) -1;
+
+  hFile = CreateFile (path, 0, 0, NULL, OPEN_EXISTING,
+		      FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_READONLY,
+		      NULL);
+  res = id_from_handle (hFile);
+  CloseHandle (hFile);
+  return res;
+}
+
+
+static uint64_t
+id_from_fd (const int fd)
+{
+  return id_from_handle ((HANDLE) _get_osfhandle (fd));
+}
+
+#endif
+
+
 
 #ifndef SSIZE_MAX
 #define SSIZE_MAX SHRT_MAX
@@ -216,13 +264,13 @@ move_pos_offset (stream* st, int pos_off)
 static int
 fix_fd (int fd)
 {
+#ifdef HAVE_DUP
   int input, output, error;
 
   input = output = error = 0;
 
   /* Unix allocates the lowest descriptors first, so a loop is not
      required, but this order is. */
-
   if (fd == STDIN_FILENO)
     {
       fd = dup (fd);
@@ -245,6 +293,7 @@ fix_fd (int fd)
     close (STDOUT_FILENO);
   if (error)
     close (STDERR_FILENO);
+#endif
 
   return fd;
 }
@@ -833,7 +882,7 @@ fd_open (unix_stream * s)
   s->st.sfree = (void *) fd_sfree;
   s->st.close = (void *) fd_close;
   s->st.seek = (void *) fd_seek;
-  s->st.truncate = (void *) fd_truncate;
+  s->st.trunc = (void *) fd_truncate;
   s->st.read = (void *) fd_read;
   s->st.write = (void *) fd_write;
   s->st.set = (void *) fd_sset;
@@ -1047,7 +1096,7 @@ open_internal (char *base, int length)
   s->st.sfree = (void *) mem_sfree;
   s->st.close = (void *) mem_close;
   s->st.seek = (void *) mem_seek;
-  s->st.truncate = (void *) mem_truncate;
+  s->st.trunc = (void *) mem_truncate;
   s->st.read = (void *) mem_read;
   s->st.write = (void *) mem_write;
   s->st.set = (void *) mem_set;
@@ -1362,10 +1411,16 @@ input_stream (void)
 stream *
 output_stream (void)
 {
+  stream * s;
+
 #if defined(HAVE_CRLF) && defined(HAVE_SETMODE)
   setmode (STDOUT_FILENO, O_BINARY);
 #endif
-  return fd_to_stream (STDOUT_FILENO, PROT_WRITE);
+
+  s = fd_to_stream (STDOUT_FILENO, PROT_WRITE);
+  if (options.unbuffered_preconnected)
+    ((unix_stream *) s)->unbuffered = 1;
+  return s;
 }
 
 
@@ -1375,10 +1430,16 @@ output_stream (void)
 stream *
 error_stream (void)
 {
+  stream * s;
+
 #if defined(HAVE_CRLF) && defined(HAVE_SETMODE)
   setmode (STDERR_FILENO, O_BINARY);
 #endif
-  return fd_to_stream (STDERR_FILENO, PROT_WRITE);
+
+  s = fd_to_stream (STDERR_FILENO, PROT_WRITE);
+  if (options.unbuffered_preconnected)
+    ((unix_stream *) s)->unbuffered = 1;
+  return s;
 }
 
 
@@ -1386,7 +1447,8 @@ error_stream (void)
    overruns, we limit the length of the buffer to ST_VPRINTF_SIZE.  2k
    is big enough to completely fill a 80x25 terminal, so it shuld be
    OK.  We use a direct write() because it is simpler and least likely
-   to be clobbered by memory corruption.  */
+   to be clobbered by memory corruption.  Writing an error message
+   longer than that is an error.  */
 
 #define ST_VPRINTF_SIZE 2048
 
@@ -1401,8 +1463,22 @@ st_vprintf (const char *format, va_list ap)
 #ifdef HAVE_VSNPRINTF
   written = vsnprintf(buffer, ST_VPRINTF_SIZE, format, ap);
 #else
-  written = __builtin_vsnprintf(buffer, ST_VPRINTF_SIZE, format, ap);
+  written = vsprintf(buffer, format, ap);
+
+  if (written >= ST_VPRINTF_SIZE-1)
+    {
+      /* The error message was longer than our buffer.  Ouch.  Because
+	 we may have messed up things badly, report the error and
+	 quit.  */
+#define ERROR_MESSAGE "Internal error: buffer overrun in st_vprintf()\n"
+      write (fd, buffer, ST_VPRINTF_SIZE-1);
+      write (fd, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
+      sys_exit(2);
+#undef ERROR_MESSAGE
+
+    }
 #endif
+
   written = write (fd, buffer, written);
   return written;
 }
@@ -1433,6 +1509,10 @@ compare_file_filename (gfc_unit *u, const char *name, int len)
   struct stat st1;
 #ifdef HAVE_WORKING_STAT
   struct stat st2;
+#else
+# ifdef __MINGW32__
+  uint64_t id1, id2;
+# endif
 #endif
 
   if (unpack_filename (path, name, len))
@@ -1448,6 +1528,17 @@ compare_file_filename (gfc_unit *u, const char *name, int len)
   fstat (((unix_stream *) (u->s))->fd, &st2);
   return (st1.st_dev == st2.st_dev) && (st1.st_ino == st2.st_ino);
 #else
+
+# ifdef __MINGW32__
+  /* We try to match files by a unique ID.  On some filesystems (network
+     fs and FAT), we can't generate this unique ID, and will simply compare
+     filenames.  */
+  id1 = id_from_path (path);
+  id2 = id_from_fd (((unix_stream *) (u->s))->fd);
+  if (id1 || id2)
+    return (id1 == id2);
+# endif
+
   if (len != u->file_len)
     return 0;
   return (memcmp(path, u->file, len) == 0);
@@ -1459,8 +1550,8 @@ compare_file_filename (gfc_unit *u, const char *name, int len)
 # define FIND_FILE0_DECL struct stat *st
 # define FIND_FILE0_ARGS st
 #else
-# define FIND_FILE0_DECL const char *file, gfc_charlen_type file_len
-# define FIND_FILE0_ARGS file, file_len
+# define FIND_FILE0_DECL uint64_t id, const char *file, gfc_charlen_type file_len
+# define FIND_FILE0_ARGS id, file, file_len
 #endif
 
 /* find_file0()-- Recursive work function for find_file() */
@@ -1469,6 +1560,9 @@ static gfc_unit *
 find_file0 (gfc_unit *u, FIND_FILE0_DECL)
 {
   gfc_unit *v;
+#if defined(__MINGW32__) && !HAVE_WORKING_STAT
+  uint64_t id1;
+#endif
 
   if (u == NULL)
     return NULL;
@@ -1479,8 +1573,16 @@ find_file0 (gfc_unit *u, FIND_FILE0_DECL)
       st[0].st_dev == st[1].st_dev && st[0].st_ino == st[1].st_ino)
     return u;
 #else
-  if (compare_string (u->file_len, u->file, file_len, file) == 0)
-    return u;
+# ifdef __MINGW32__ 
+  if (u->s && ((id1 = id_from_fd (((unix_stream *) u->s)->fd)) || id1))
+    {
+      if (id == id1)
+	return u;
+    }
+  else
+# endif
+    if (compare_string (u->file_len, u->file, file_len, file) == 0)
+      return u;
 #endif
 
   v = find_file0 (u->left, FIND_FILE0_ARGS);
@@ -1504,12 +1606,19 @@ find_file (const char *file, gfc_charlen_type file_len)
   char path[PATH_MAX + 1];
   struct stat st[2];
   gfc_unit *u;
+  uint64_t id;
 
   if (unpack_filename (path, file, file_len))
     return NULL;
 
   if (stat (path, &st[0]) < 0)
     return NULL;
+
+#if defined(__MINGW32__) && !HAVE_WORKING_STAT
+  id = id_from_path (path);
+#else
+  id = 0;
+#endif
 
   __gthread_mutex_lock (&unit_lock);
 retry:
@@ -1763,6 +1872,36 @@ inquire_unformatted (const char *string, int len)
 {
   return inquire_formatted (string, len);
 }
+
+
+#ifndef HAVE_ACCESS
+
+#ifndef W_OK
+#define W_OK 2
+#endif
+
+#ifndef R_OK
+#define R_OK 4
+#endif
+
+/* Fallback implementation of access() on systems that don't have it.
+   Only modes R_OK and W_OK are used in this file.  */
+
+static int
+fallback_access (const char *path, int mode)
+{
+  if ((mode & R_OK) && open (path, O_RDONLY) < 0)
+    return -1;
+
+  if ((mode & W_OK) && open (path, O_WRONLY) < 0)
+    return -1;
+
+  return 0;
+}
+
+#undef access
+#define access fallback_access
+#endif
 
 
 /* inquire_access()-- Given a fortran string, determine if the file is

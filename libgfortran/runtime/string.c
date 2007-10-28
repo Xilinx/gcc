@@ -27,10 +27,8 @@ along with libgfortran; see the file COPYING.  If not, write to
 the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
-#include <string.h>
-
 #include "libgfortran.h"
+#include <string.h>
 
 /* Compare a C-style string with a fortran style string in a case-insensitive
    manner.  Used for decoding string options to various statements.  Returns
@@ -124,7 +122,7 @@ find_option (st_parameter_common *cmp, const char *s1, gfc_charlen_type s1_len,
     if (compare0 (s1, s1_len, opts->name))
       return opts->value;
 
-  generate_error (cmp, ERROR_BAD_OPTION, error_message);
+  generate_error (cmp, LIBERROR_BAD_OPTION, error_message);
 
   return -1;
 }

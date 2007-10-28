@@ -251,6 +251,8 @@ Common Separate
 ;
 ; 1: The version of the ABI first used in G++ 3.2.
 ;
+; 2: The version of the ABI first used in G++ 3.4.
+;
 ; Additional positive integers will be assigned as new versions of
 ; the ABI become the default version of the ABI.
 fabi-version=
@@ -399,6 +401,10 @@ fdbg-cnt=
 Common RejectNegative Joined
 -fdbg-cnt=<counter>:<limit>[,<counter>:<limit>,...]    Set the debug counter limit.   
 
+fdebug-prefix-map=
+Common Joined RejectNegative
+Map one directory name to another in debug information
+
 ; Nonzero for -fdefer-pop: don't pop args after each function call
 ; instead save them up to pop many calls' args with one insns.
 fdefer-pop
@@ -450,7 +456,7 @@ Common Report Var(flag_eliminate_unused_debug_types) Init(1)
 Perform unused type elimination in debug info
 
 femit-class-debug-always
-Common Report Var(flag_emit_class_debug_always) Init(1)
+Common Report Var(flag_emit_class_debug_always) Init(0)
 Do not suppress C++ class debug information.
 
 fexceptions
@@ -560,6 +566,10 @@ finline
 Common Report Var(flag_no_inline,0) Init(2)
 Pay attention to the \"inline\" keyword
 
+finline-small-functions
+Common Report Var(flag_inline_small_functions) Optimization
+Integrate simple functions into their callers when code size is known to not growth
+
 finline-functions
 Common Report Var(flag_inline_functions) Optimization
 Integrate simple functions into their callers
@@ -578,6 +588,14 @@ Common RejectNegative Joined UInteger
 finstrument-functions
 Common Report Var(flag_instrument_function_entry_exit)
 Instrument function entry and exit with profiling calls
+
+finstrument-functions-exclude-function-list=
+Common RejectNegative Joined
+-finstrument-functions-exclude-function-list=name,...  Do not instrument listed functions
+
+finstrument-functions-exclude-file-list=
+Common RejectNegative Joined
+-finstrument-functions-exclude-file-list=filename,...  Do not instrument functions listed in files
 
 fipa-cp
 Common Report Var(flag_ipa_cp) Optimization
@@ -602,6 +620,11 @@ Type based escape and alias analysis
 fipa-matrix-reorg
 Common Report Var(flag_ipa_matrix_reorg) Optimization
 Perform matrix layout flattening and transposing based
+on profiling information.
+
+fipa-struct-reorg
+Common Report Var(flag_ipa_struct_reorg)
+Perform structure layout optimizations based
 on profiling information.
 
 fivopts
@@ -655,6 +678,10 @@ fmodulo-sched
 Common Report Var(flag_modulo_sched) Optimization
 Perform SMS based modulo scheduling before the first scheduling pass
 
+fmodulo-sched-allow-regmoves
+Common Report Var(flag_modulo_sched_allow_regmoves)
+Perform SMS based modulo scheduling with register moves allowed
+
 fmove-loop-invariants
 Common Report Var(flag_move_loop_invariants) Init(1) Optimization
 Move loop invariant computations out of loops
@@ -690,6 +717,10 @@ Support synchronous non-call exceptions
 fomit-frame-pointer
 Common Report Var(flag_omit_frame_pointer) Optimization
 When possible do not generate stack frames
+
+fopenmp-ssa
+Common Report Var(flag_openmp_ssa)
+Expand OpenMP operations on SSA form
 
 foptimize-register-move
 Common Report Var(flag_regmove) Optimization
@@ -1042,6 +1073,10 @@ ftree-store-copy-prop
 Common Report Var(flag_tree_store_copy_prop) Optimization
 Enable copy propagation for stores and loads
 
+ftree-cselim
+Common Report Var(flag_tree_cselim) Init(2) Optimization
+Transform condition stores into unconditional ones
+
 ftree-dce
 Common Report Var(flag_tree_dce) Optimization
 Enable SSA dead code elimination optimization on trees
@@ -1077,6 +1112,10 @@ Create canonical induction variables in loops
 ftree-loop-optimize
 Common Report Var(flag_tree_loop_optimize) Init(1) Optimization
 Enable loop optimizations on tree level
+
+ftree-parallelize-loops=
+Common Report Joined UInteger Var(flag_tree_parallelize_loops) Init(1)
+Enable automatic parallelization of loops
 
 ftree-pre
 Common Report Var(flag_tree_pre) Optimization
@@ -1128,6 +1167,15 @@ Perform loop unrolling for all loops
 funsafe-loop-optimizations
 Common Report Var(flag_unsafe_loop_optimizations) Optimization
 Allow loop optimizations to assume that the loops behave in normal way
+
+fassociative-math
+Common Report Var(flag_associative_math)
+Allow optimization for floating-point arithmetic which may change the
+result of the operation due to rounding.
+
+freciprocal-math
+Common Report Var(flag_reciprocal_math)
+Same as -fassociative-math for expressions which include division.
 
 ; Nonzero means that unsafe floating-point math optimizations are allowed
 ; for the sake of speed.  IEEE compliance is not guaranteed, and operations

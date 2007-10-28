@@ -75,6 +75,26 @@ default_external_libcall (rtx fun ATTRIBUTE_UNUSED)
 #endif
 }
 
+int
+default_unspec_may_trap_p (const_rtx x, unsigned flags)
+{
+  int i;
+
+  if (GET_CODE (x) == UNSPEC_VOLATILE
+      /* Any floating arithmetic may trap.  */
+      || (SCALAR_FLOAT_MODE_P (GET_MODE (x))
+	  && flag_trapping_math))
+    return 1;
+
+  for (i = 0; i < XVECLEN (x, 0); ++i)
+    {
+      if (may_trap_p_1 (XVECEXP (x, 0, i), flags))
+	return 1;
+    }
+
+  return 0;
+}
+
 enum machine_mode
 default_cc_modes_compatible (enum machine_mode m1, enum machine_mode m2)
 {
@@ -84,8 +104,8 @@ default_cc_modes_compatible (enum machine_mode m1, enum machine_mode m2)
 }
 
 bool
-default_return_in_memory (tree type,
-			  tree fntype ATTRIBUTE_UNUSED)
+default_return_in_memory (const_tree type,
+			  const_tree fntype ATTRIBUTE_UNUSED)
 {
 #ifndef RETURN_IN_MEMORY
   return (TYPE_MODE (type) == BLKmode);
@@ -229,7 +249,7 @@ default_cxx_get_cookie_size (tree type)
 
 bool
 hook_pass_by_reference_must_pass_in_stack (CUMULATIVE_ARGS *c ATTRIBUTE_UNUSED,
-	enum machine_mode mode ATTRIBUTE_UNUSED, tree type ATTRIBUTE_UNUSED,
+	enum machine_mode mode ATTRIBUTE_UNUSED, const_tree type ATTRIBUTE_UNUSED,
 	bool named_arg ATTRIBUTE_UNUSED)
 {
   return targetm.calls.must_pass_in_stack (mode, type);
@@ -241,7 +261,7 @@ hook_pass_by_reference_must_pass_in_stack (CUMULATIVE_ARGS *c ATTRIBUTE_UNUSED,
 bool
 hook_callee_copies_named (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 			  enum machine_mode mode ATTRIBUTE_UNUSED,
-			  tree type ATTRIBUTE_UNUSED, bool named)
+			  const_tree type ATTRIBUTE_UNUSED, bool named)
 {
   return named;
 }
@@ -298,6 +318,10 @@ default_scalar_mode_supported_p (enum machine_mode mode)
       return false;
 
     case MODE_DECIMAL_FLOAT:
+    case MODE_FRACT:
+    case MODE_UFRACT:
+    case MODE_ACCUM:
+    case MODE_UACCUM:
       return false;
 
     default:
@@ -313,6 +337,14 @@ default_decimal_float_supported_p (void)
   return ENABLE_DECIMAL_FLOAT;
 }
 
+/* True if the target supports fixed-point arithmetic.  */
+
+bool
+default_fixed_point_supported_p (void)
+{
+  return ENABLE_FIXED_POINT;
+}
+
 /* NULL if INSN insn is valid within a low-overhead loop, otherwise returns
    an error message.
   
@@ -324,7 +356,7 @@ default_decimal_float_supported_p (void)
    these cases.  */
 
 const char *
-default_invalid_within_doloop (rtx insn)
+default_invalid_within_doloop (const_rtx insn)
 {
   if (CALL_P (insn))
     return "Function call in loop.";
@@ -370,7 +402,7 @@ bool
 hook_bool_CUMULATIVE_ARGS_mode_tree_bool_false (
 	CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 	enum machine_mode mode ATTRIBUTE_UNUSED,
-	tree type ATTRIBUTE_UNUSED, bool named ATTRIBUTE_UNUSED)
+	const_tree type ATTRIBUTE_UNUSED, bool named ATTRIBUTE_UNUSED)
 {
   return false;
 }
@@ -379,7 +411,7 @@ bool
 hook_bool_CUMULATIVE_ARGS_mode_tree_bool_true (
 	CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 	enum machine_mode mode ATTRIBUTE_UNUSED,
-	tree type ATTRIBUTE_UNUSED, bool named ATTRIBUTE_UNUSED)
+	const_tree type ATTRIBUTE_UNUSED, bool named ATTRIBUTE_UNUSED)
 {
   return true;
 }
@@ -400,9 +432,9 @@ hook_void_bitmap (bitmap regs ATTRIBUTE_UNUSED)
 
 const char *
 hook_invalid_arg_for_unprototyped_fn (
-	tree typelist ATTRIBUTE_UNUSED,
-	tree funcdecl ATTRIBUTE_UNUSED,
-	tree val ATTRIBUTE_UNUSED)
+	const_tree typelist ATTRIBUTE_UNUSED,
+	const_tree funcdecl ATTRIBUTE_UNUSED,
+	const_tree val ATTRIBUTE_UNUSED)
 {
   return NULL;
 }
@@ -498,14 +530,15 @@ default_hidden_stack_protect_fail (void)
 }
 
 bool
-hook_bool_rtx_commutative_p (rtx x, int outer_code ATTRIBUTE_UNUSED)
+hook_bool_const_rtx_commutative_p (const_rtx x,
+				   int outer_code ATTRIBUTE_UNUSED)
 {
   return COMMUTATIVE_P (x);
 }
 
 rtx
-default_function_value (tree ret_type ATTRIBUTE_UNUSED,
-			tree fn_decl_or_type,
+default_function_value (const_tree ret_type ATTRIBUTE_UNUSED,
+			const_tree fn_decl_or_type,
 			bool outgoing ATTRIBUTE_UNUSED)
 {
   /* The old interface doesn't handle receiving the function type.  */
@@ -653,7 +686,7 @@ tree default_mangle_decl_assembler_name (tree decl ATTRIBUTE_UNUSED,
 }
 
 bool
-default_builtin_vector_alignment_reachable (tree type, bool is_packed)
+default_builtin_vector_alignment_reachable (const_tree type, bool is_packed)
 {
   if (is_packed)
     return false;

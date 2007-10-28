@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -37,7 +36,6 @@ with Csets;
 with Debug;    use Debug;
 with Fmap;
 with Fname;    use Fname;
-with Gnatvsn;  use Gnatvsn;
 with Namet;    use Namet;
 with Opt;      use Opt;
 with Osint;    use Osint;
@@ -65,6 +63,10 @@ procedure Gnatbind is
 
    Main_Lib_File : File_Name_Type;
    --  Current main library file
+
+   First_Main_Lib_File : File_Name_Type := No_File;
+   --  The first library file, that should be a main subprogram if neither -n
+   --  nor -z are used.
 
    Std_Lib_File : File_Name_Type;
    --  Standard library
@@ -423,6 +425,12 @@ begin
       Shared_Libgnat := (Shared_Libgnat_Default = SHARED);
    end;
 
+   --  Scan the switches and arguments
+
+   --  First, scan to detect --version and/or --help
+
+   Check_Version_And_Help ("GNATBIND", "1995", Bindusg.Display'Access);
+
    --  Use low level argument routines to avoid dragging in the secondary stack
 
    Next_Arg := 1;
@@ -553,13 +561,7 @@ begin
 
    if Verbose_Mode then
       Write_Eol;
-      Write_Str ("GNATBIND ");
-      Write_Str (Gnat_Version_String);
-      Write_Eol;
-      Write_Str ("Copyright 1995-" &
-                 Current_Year &
-                 ", Free Software Foundation, Inc.");
-      Write_Eol;
+      Display_Version ("GNATBIND", "1995");
    end if;
 
    --  Output usage information if no files
@@ -594,6 +596,10 @@ begin
 
       while More_Lib_Files loop
          Main_Lib_File := Next_Main_Lib_File;
+
+         if First_Main_Lib_File = No_File then
+            First_Main_Lib_File := Main_Lib_File;
+         end if;
 
          if Verbose_Mode then
             if Check_Only then
@@ -685,6 +691,15 @@ begin
 
       Set_Source_Table;
 
+      --  If there is main program to bind, set Main_Lib_File to the first
+      --  library file, and the name from which to derive the binder generate
+      --  file to the first ALI file.
+
+      if Bind_Main_Program then
+         Main_Lib_File := First_Main_Lib_File;
+         Set_Current_File_Name_Index (To => 1);
+      end if;
+
       --  Check that main library file is a suitable main program
 
       if Bind_Main_Program
@@ -692,7 +707,7 @@ begin
         and then not No_Main_Subprogram
       then
          Error_Msg_File_1 := Main_Lib_File;
-         Error_Msg ("% does not contain a unit that can be a main program");
+         Error_Msg ("{ does not contain a unit that can be a main program");
       end if;
 
       --  Perform consistency and correctness checks

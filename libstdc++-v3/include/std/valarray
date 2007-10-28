@@ -881,7 +881,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     valarray<_Tp>::min() const
     {
       _GLIBCXX_DEBUG_ASSERT(_M_size > 0);
-      return *std::min_element(_M_data, _M_data+_M_size);
+      return *std::min_element(_M_data, _M_data + _M_size);
     }
 
   template<typename _Tp>
@@ -889,7 +889,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     valarray<_Tp>::max() const
     {
       _GLIBCXX_DEBUG_ASSERT(_M_size > 0);
-      return *std::max_element(_M_data, _M_data+_M_size);
+      return *std::max_element(_M_data, _M_data + _M_size);
     }
   
   template<class _Tp>
@@ -1009,7 +1009,7 @@ _DEFINE_VALARRAY_EXPR_AUGMENTED_ASSIGNMENT(>>, __shift_right)
     {									\
       typedef _BinClos<_Name, _Constant, _ValArray, _Tp, _Tp> _Closure; \
       typedef typename __fun<_Name, _Tp>::result_type _Rt;              \
-      return _Expr<_Closure, _Tp>(_Closure(__t, __v));        	        \
+      return _Expr<_Closure, _Rt>(_Closure(__t, __v));        	        \
     }
 
 _DEFINE_BINARY_OPERATOR(+, __plus)

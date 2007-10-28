@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -63,7 +62,11 @@ package body Styleg is
    --  Check that token is first token on line, or else is not preceded
    --  by white space. Signal error of space not allowed if not.
 
+   procedure Check_Separate_Stmt_Lines_Cont;
+   --  Non-inlined continuation of Check_Separate_Stmt_Lines
+
    function Determine_Token_Casing return Casing_Type;
+   --  Determine casing of current token
 
    procedure Error_Space_Not_Allowed (S : Source_Ptr);
    --  Posts an error message indicating that a space is not allowed
@@ -698,6 +701,82 @@ package body Styleg is
          end if;
       end if;
    end Check_Semicolon;
+
+   -------------------------------
+   -- Check_Separate_Stmt_Lines --
+   -------------------------------
+
+   procedure Check_Separate_Stmt_Lines is
+   begin
+      if Style_Check_Separate_Stmt_Lines then
+         Check_Separate_Stmt_Lines_Cont;
+      end if;
+   end Check_Separate_Stmt_Lines;
+
+   ------------------------------------
+   -- Check_Separate_Stmt_Lines_Cont --
+   ------------------------------------
+
+   procedure Check_Separate_Stmt_Lines_Cont is
+      S : Source_Ptr;
+
+   begin
+      --  Skip past white space
+
+      S := Scan_Ptr;
+      while Is_White_Space (Source (S)) loop
+         S := S + 1;
+      end loop;
+
+      --  Line terminator is OK
+
+      if Source (S) in Line_Terminator then
+         return;
+
+      --  Comment is OK
+
+      elsif Source (S) = '-' and then Source (S + 1) = '-' then
+         return;
+
+      --  ABORT keyword is OK after THEN (THEN ABORT case)
+
+      elsif Token = Tok_Then
+        and then (Source (S + 0) = 'a' or else Source (S + 0) = 'A')
+        and then (Source (S + 1) = 'b' or else Source (S + 1) = 'B')
+        and then (Source (S + 2) = 'o' or else Source (S + 2) = 'O')
+        and then (Source (S + 3) = 'r' or else Source (S + 3) = 'R')
+        and then (Source (S + 4) = 't' or else Source (S + 4) = 'T')
+        and then (Source (S + 5) in Line_Terminator
+                   or else Is_White_Space (Source (S + 5)))
+      then
+         return;
+
+      --  PRAGMA keyword is OK after ELSE
+
+      elsif Token = Tok_Else
+        and then (Source (S + 0) = 'p' or else Source (S + 0) = 'P')
+        and then (Source (S + 1) = 'r' or else Source (S + 1) = 'R')
+        and then (Source (S + 2) = 'a' or else Source (S + 2) = 'A')
+        and then (Source (S + 3) = 'g' or else Source (S + 3) = 'G')
+        and then (Source (S + 4) = 'm' or else Source (S + 4) = 'M')
+        and then (Source (S + 5) = 'a' or else Source (S + 5) = 'A')
+        and then (Source (S + 6) in Line_Terminator
+                   or else Is_White_Space (Source (S + 6)))
+      then
+         return;
+
+         --  Otherwise we have the style violation we are looking for
+
+      else
+         if Token = Tok_Then then
+            Error_Msg
+              ("(style) no statements may follow THEN on same line", S);
+         else
+            Error_Msg
+              ("(style) no statements may follow ELSE on same line", S);
+         end if;
+      end if;
+   end Check_Separate_Stmt_Lines_Cont;
 
    ----------------
    -- Check_Then --

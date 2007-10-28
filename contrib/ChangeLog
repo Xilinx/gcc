@@ -1,3 +1,41 @@
+2007-10-08  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* texi2pod.pl: Handle @asis.
+	(postprocess): Move @gccoptlist{} after all formatting commands.
+	
+2007-10-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* compare-debug: Avoid spurious errors when .stripped files
+	exist.
+
+2007-09-22  Hans-Peter Nilsson  <hp@axis.com>
+
+	* warn_summary (srcdirFilter): Add fixincludes, sim,
+	newlib and mpfr.
+
+2007-08-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc_update: Handle different URL paths and tags.
+
+2007-08-16  Alexandre Oliva  <aoliva@redhat.com>
+
+	* compare-debug: New.
+
+2007-08-16  H.J. Lu  <hongjiu.lu@intel.com>
+	    Andreas Schwab <schwab@suse.de>
+
+	* gcc_update: Use "svn info" for revision number.  Create
+	gcc/REVISION with branch name and revision number.
+
+2007-08-10  Diego Novillo  <dnovillo@google.com>
+
+	* gcc.doxy: Rename from tree-ssa.doxy.
+
+2007-08-10  Diego Novillo  <dnovillo@google.com>
+
+	* tree-ssa.doxy: Update for doxygen 1.5.
+	Include all the files in the middle and back ends.
+
 2007-06-30  Hans-Peter Nilsson  <hp@axis.com>
 
 	* gcc_update (files_and_dependencies): Handle

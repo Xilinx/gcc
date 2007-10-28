@@ -120,7 +120,7 @@ struct mem_ref_stats_d GTY(())
 struct gimple_df GTY(())
 {
   /* Array of all variables referenced in the function.  */
-  htab_t GTY((param_is (struct int_tree_map))) referenced_vars;
+  htab_t GTY((param_is (union tree_node))) referenced_vars;
 
   /* A list of all the noreturn calls passed to modify_stmt.
      cleanup_control_flow uses it to detect cases where a mid-block
@@ -159,7 +159,7 @@ struct gimple_df GTY(())
      means that the first reference to this variable in the function is a
      USE or a VUSE.  In those cases, the SSA renamer creates an SSA name
      for this variable with an empty defining statement.  */
-  htab_t GTY((param_is (struct int_tree_map))) default_defs;
+  htab_t GTY((param_is (union tree_node))) default_defs;
 
   /* 'true' after aliases have been computed (see compute_may_aliases).  */
   unsigned int aliases_computed_p : 1;
@@ -498,10 +498,6 @@ struct stmt_ann_d GTY(())
 
   /* Nonzero if the statement makes references to volatile storage.  */
   unsigned has_volatile_ops : 1;
-
-  /* Nonzero if the statement makes a function call that may clobber global
-     and local addressable variables.  */
-  unsigned makes_clobbering_call : 1;
 };
 
 union tree_ann_d GTY((desc ("ann_type ((tree_ann_t)&%h)")))
@@ -534,10 +530,7 @@ static inline bool noreturn_call_p (tree);
 static inline void update_stmt (tree);
 static inline bool stmt_modified_p (tree);
 static inline bitmap may_aliases (const_tree);
-static inline int get_lineno (tree);
-static inline const char *get_filename (tree);
-static inline bool is_exec_stmt (const_tree);
-static inline bool is_label_stmt (const_tree);
+static inline int get_lineno (const_tree);
 static inline bitmap addresses_taken (tree);
 
 /*---------------------------------------------------------------------------
@@ -552,7 +545,7 @@ struct edge_prediction GTY((chain_next ("%h.ep_next")))
 };
 
 /* Accessors for basic block annotations.  */
-static inline tree phi_nodes (basic_block);
+static inline tree phi_nodes (const_basic_block);
 static inline void set_phi_nodes (basic_block, tree);
 
 /*---------------------------------------------------------------------------
@@ -567,6 +560,9 @@ struct int_tree_map GTY(())
 
 extern unsigned int int_tree_map_hash (const void *);
 extern int int_tree_map_eq (const void *, const void *);
+
+extern unsigned int uid_decl_map_hash (const void *);
+extern int uid_decl_map_eq (const void *, const void *);
 
 typedef struct 
 {
@@ -711,6 +707,9 @@ extern struct omp_region *root_omp_region;
 extern struct omp_region *new_omp_region (basic_block, enum tree_code,
 					  struct omp_region *);
 extern void free_omp_regions (void);
+void omp_expand_local (basic_block);
+extern tree find_omp_clause (tree, enum tree_code);
+tree copy_var_decl (tree, tree, tree);
 
 /*---------------------------------------------------------------------------
 			      Function prototypes
@@ -721,9 +720,9 @@ extern void free_omp_regions (void);
 #define PENDING_STMT(e)	((e)->insns.t)
 
 extern void delete_tree_cfg_annotations (void);
-extern bool stmt_ends_bb_p (tree);
+extern bool stmt_ends_bb_p (const_tree);
 extern bool is_ctrl_stmt (const_tree);
-extern bool is_ctrl_altering_stmt (tree);
+extern bool is_ctrl_altering_stmt (const_tree);
 extern bool computed_goto_p (const_tree);
 extern bool simple_goto_p (const_tree);
 extern bool tree_can_make_abnormal_goto (const_tree);
@@ -759,8 +758,10 @@ extern tree tree_block_label (basic_block);
 extern void extract_true_false_edges_from_block (basic_block, edge *, edge *);
 extern bool tree_duplicate_sese_region (edge, edge, basic_block *, unsigned,
 					basic_block *);
+extern bool tree_duplicate_sese_tail (edge, edge, basic_block *, unsigned,
+				      basic_block *);
 extern void add_phi_args_after_copy_bb (basic_block);
-extern void add_phi_args_after_copy (basic_block *, unsigned);
+extern void add_phi_args_after_copy (basic_block *, unsigned, edge);
 extern bool tree_purge_dead_abnormal_call_edges (basic_block);
 extern bool tree_purge_dead_eh_edges (basic_block);
 extern bool tree_purge_all_dead_eh_edges (const_bitmap);
@@ -810,7 +811,6 @@ extern void find_new_referenced_vars (tree *);
 extern tree make_rename_temp (tree, const char *);
 extern void set_default_def (tree, tree);
 extern tree gimple_default_def (struct function *, tree);
-extern struct mem_sym_stats_d *mem_sym_stats (struct function *, tree);
 
 /* In tree-phinodes.c  */
 extern void reserve_phi_args_for_new_edge (basic_block);
@@ -823,9 +823,10 @@ extern tree phi_reverse (tree);
 /* In gimple-low.c  */
 extern void record_vars_into (tree, tree);
 extern void record_vars (tree);
-extern bool block_may_fallthru (tree);
+extern bool block_may_fallthru (const_tree);
 
 /* In tree-ssa-alias.c  */
+extern unsigned int compute_may_aliases (void);
 extern void dump_may_aliases_for (FILE *, tree);
 extern void debug_may_aliases_for (tree);
 extern void dump_alias_info (FILE *);
@@ -855,6 +856,7 @@ extern void dump_mem_ref_stats (FILE *);
 extern void debug_mem_ref_stats (void);
 extern void debug_memory_partitions (void);
 extern void debug_mem_sym_stats (tree var);
+extern void dump_mem_sym_stats_for_var (FILE *, tree);
 extern void debug_all_mem_sym_stats (void);
 
 /* Call-back function for walk_use_def_chains().  At each reaching
@@ -959,7 +961,7 @@ struct tree_niter_desc
 
 /* In tree-vectorizer.c */
 unsigned vectorize_loops (void);
-extern bool vect_can_force_dr_alignment_p (tree, unsigned int);
+extern bool vect_can_force_dr_alignment_p (const_tree, unsigned int);
 extern tree get_vectype_for_scalar_type (tree);
 
 /* In tree-ssa-phiopt.c */
@@ -976,6 +978,7 @@ unsigned int tree_ssa_prefetch_arrays (void);
 unsigned int remove_empty_loops (void);
 void tree_ssa_iv_optimize (void);
 unsigned tree_predictive_commoning (void);
+bool parallelize_loops (void);
 
 bool number_of_iterations_exit (struct loop *, edge,
 				struct tree_niter_desc *niter, bool);
@@ -988,7 +991,7 @@ bool convert_affine_scev (struct loop *, tree, tree *, tree *, tree, bool);
 
 bool nowrap_type_p (tree);
 enum ev_direction {EV_DIR_GROWS, EV_DIR_DECREASES, EV_DIR_UNKNOWN};
-enum ev_direction scev_direction (tree);
+enum ev_direction scev_direction (const_tree);
 
 void free_numbers_of_iterations_estimates (void);
 void free_numbers_of_iterations_estimates_loop (struct loop *);
@@ -997,7 +1000,7 @@ void verify_loop_closed_ssa (void);
 bool for_each_index (tree *, bool (*) (tree, tree *, void *), void *);
 void create_iv (tree, tree, tree, struct loop *, block_stmt_iterator *, bool,
 		tree *, tree *);
-void split_loop_exit_edge (edge);
+basic_block split_loop_exit_edge (edge);
 unsigned force_expr_to_var_cost (tree);
 void standard_iv_increment_position (struct loop *, block_stmt_iterator *,
 				     bool *);
@@ -1071,9 +1074,9 @@ static inline bool unmodifiable_var_p (const_tree);
 extern void make_eh_edges (tree);
 extern bool tree_could_trap_p (tree);
 extern bool tree_could_throw_p (tree);
-extern bool tree_can_throw_internal (tree);
+extern bool tree_can_throw_internal (const_tree);
 extern bool tree_can_throw_external (tree);
-extern int lookup_stmt_eh_region (tree);
+extern int lookup_stmt_eh_region (const_tree);
 extern void add_stmt_to_eh_region (tree, int);
 extern bool remove_stmt_from_eh_region (tree);
 extern bool maybe_clean_or_replace_eh_stmt (tree, tree);
@@ -1169,7 +1172,7 @@ struct fieldoff
   tree size;
   tree decl;
   HOST_WIDE_INT offset;  
-  HOST_WIDE_INT alias_set;
+  alias_set_type alias_set;
 };
 typedef struct fieldoff fieldoff_s;
 

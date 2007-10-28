@@ -1673,7 +1673,7 @@ simplify_using_outer_evolutions (struct loop *loop, tree expr)
 /* Returns true if EXIT is the only possible exit from LOOP.  */
 
 static bool
-loop_only_exit_p (struct loop *loop, edge exit)
+loop_only_exit_p (const struct loop *loop, const_edge exit)
 {
   basic_block *body;
   block_stmt_iterator bsi;
@@ -2171,7 +2171,7 @@ find_loop_niter_by_eval (struct loop *loop, edge *exit)
    be nonnegative.  */
  
 static double_int
-derive_constant_upper_bound (tree val)
+derive_constant_upper_bound (const_tree val)
 {
   tree type = TREE_TYPE (val);
   tree op0, op1, subtype, maxt;
@@ -2969,8 +2969,7 @@ scev_probably_wraps_p (tree base, tree step,
      2032, 2040, 0, 8, ..., but the code is still legal.  */
 
   if (chrec_contains_undetermined (base)
-      || chrec_contains_undetermined (step)
-      || TREE_CODE (step) != INTEGER_CST)
+      || chrec_contains_undetermined (step))
     return true;
 
   if (integer_zerop (step))
@@ -2980,6 +2979,11 @@ scev_probably_wraps_p (tree base, tree step,
      wrap, we are done.  */
   if (use_overflow_semantics && nowrap_type_p (type))
     return false;
+
+  /* To be able to use estimates on number of iterations of the loop,
+     we must have an upper bound on the absolute value of the step.  */
+  if (TREE_CODE (step) != INTEGER_CST)
+    return true;
 
   /* Don't issue signed overflow warnings.  */
   fold_defer_overflow_warnings ();

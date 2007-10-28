@@ -47,6 +47,11 @@ typedef pthread_key_t __gthread_key_t;
 typedef pthread_once_t __gthread_once_t;
 typedef pthread_mutex_t __gthread_mutex_t;
 typedef pthread_mutex_t __gthread_recursive_mutex_t;
+typedef pthread_cond_t __gthread_cond_t;
+
+/* POSIX like conditional variables are supported.  Please look at comments
+   in gthr.h for details. */
+#define __GTHREAD_HAS_COND	1	
 
 #define __GTHREAD_MUTEX_INIT PTHREAD_MUTEX_INITIALIZER
 #define __GTHREAD_ONCE_INIT PTHREAD_ONCE_INIT
@@ -57,6 +62,7 @@ typedef pthread_mutex_t __gthread_recursive_mutex_t;
 #else
 #define __GTHREAD_RECURSIVE_MUTEX_INIT_FUNCTION __gthread_recursive_mutex_init_function
 #endif
+#define __GTHREAD_COND_INIT PTHREAD_COND_INITIALIZER
 
 #if SUPPORTS_WEAK && GTHREAD_USE_WEAK
 # ifndef __gthrw_pragma
@@ -88,6 +94,8 @@ __gthrw3(pthread_mutex_lock)
 __gthrw3(pthread_mutex_trylock)
 __gthrw3(pthread_mutex_unlock)
 __gthrw3(pthread_mutex_init)
+__gthrw3(pthread_cond_broadcast)
+__gthrw3(pthread_cond_wait)
 #else
 __gthrw(pthread_once)
 __gthrw(pthread_getspecific)
@@ -98,6 +106,8 @@ __gthrw(pthread_mutex_lock)
 __gthrw(pthread_mutex_trylock)
 __gthrw(pthread_mutex_unlock)
 __gthrw(pthread_mutex_init)
+__gthrw(pthread_cond_broadcast)
+__gthrw(pthread_cond_wait)
 #endif
 
 __gthrw(pthread_key_create)
@@ -110,20 +120,16 @@ __gthrw(pthread_mutexattr_destroy)
 #if defined(_LIBOBJC) || defined(_LIBOBJC_WEAK)
 /* Objective-C.  */
 #if defined(__osf__) && defined(_PTHREAD_USE_MANGLED_NAMES_)
-__gthrw3(pthread_cond_broadcast)
 __gthrw3(pthread_cond_destroy)
 __gthrw3(pthread_cond_init)
 __gthrw3(pthread_cond_signal)
-__gthrw3(pthread_cond_wait)
 __gthrw3(pthread_exit)
 __gthrw3(pthread_mutex_destroy)
 __gthrw3(pthread_self)
 #else
-__gthrw(pthread_cond_broadcast)
 __gthrw(pthread_cond_destroy)
 __gthrw(pthread_cond_init)
 __gthrw(pthread_cond_signal)
-__gthrw(pthread_cond_wait)
 __gthrw(pthread_exit)
 __gthrw(pthread_mutex_destroy)
 __gthrw(pthread_self)
@@ -211,11 +217,80 @@ __gthread_active_p (void)
 
 #else /* not SUPPORTS_WEAK */
 
+/* Similar to Solaris, HP-UX 11 for PA-RISC provides stubs for pthread
+   calls in shared flavors of the HP-UX C library.  Most of the stubs
+   have no functionality.  The details are described in the "libc cumulative
+   patch" for each subversion of HP-UX 11.  There are two special interfaces
+   provided for checking whether an application is linked to a pthread
+   library or not.  However, these interfaces aren't available in early
+   libc versions.  We also can't use pthread_once as some libc versions
+   call the init function.  So, we use pthread_create to check whether it
+   is possible to create a thread or not.  The stub implementation returns
+   the error number ENOSYS.  */
+
+#if defined(__hppa__) && defined(__hpux__)
+
+#include <errno.h>
+
+static volatile int __gthread_active = -1;
+
+static void *
+__gthread_start (void *arg __attribute__((unused)))
+{
+  return NULL;
+}
+
+static void __gthread_active_init (void) __attribute__((noinline));
+static void
+__gthread_active_init (void)
+{
+  static pthread_mutex_t __gthread_active_mutex = PTHREAD_MUTEX_INITIALIZER;
+  pthread_t t;
+  pthread_attr_t a;
+  int result;
+
+  __gthrw_(pthread_mutex_lock) (&__gthread_active_mutex);
+  if (__gthread_active < 0)
+    {
+      __gthrw_(pthread_attr_init) (&a);
+      __gthrw_(pthread_attr_setdetachstate) (&a, PTHREAD_CREATE_DETACHED);
+      result = __gthrw_(pthread_create) (&t, &a, __gthread_start, NULL);
+      if (result != ENOSYS)
+	__gthread_active = 1;
+      else
+	__gthread_active = 0;
+      __gthrw_(pthread_attr_destroy) (&a);
+    }
+  __gthrw_(pthread_mutex_unlock) (&__gthread_active_mutex);
+}
+
+static inline int
+__gthread_active_p (void)
+{
+  /* Avoid reading __gthread_active twice on the main code path.  */
+  int __gthread_active_latest_value = __gthread_active;
+
+  /* This test is not protected to avoid taking a lock on the main code
+     path so every update of __gthread_active in a threaded program must
+     be atomic with regard to the result of the test.  */
+  if (__builtin_expect (__gthread_active_latest_value < 0, 0))
+    {
+      __gthread_active_init ();
+      __gthread_active_latest_value = __gthread_active;
+    }
+
+  return __gthread_active_latest_value != 0;
+}
+
+#else /* not hppa-hpux */
+
 static inline int
 __gthread_active_p (void)
 {
   return 1;
 }
+
+#endif /* hppa-hpux */
 
 #endif /* SUPPORTS_WEAK */
 
@@ -666,6 +741,25 @@ static inline int
 __gthread_recursive_mutex_unlock (__gthread_recursive_mutex_t *mutex)
 {
   return __gthread_mutex_unlock (mutex);
+}
+
+static inline int
+__gthread_cond_broadcast (__gthread_cond_t *cond)
+{
+  return __gthrw_(pthread_cond_broadcast) (cond);
+}
+
+static inline int
+__gthread_cond_wait (__gthread_cond_t *cond, __gthread_mutex_t *mutex)
+{
+  return __gthrw_(pthread_cond_wait) (cond, mutex);
+}
+
+static inline int
+__gthread_cond_wait_recursive (__gthread_cond_t *cond,
+			       __gthread_recursive_mutex_t *mutex)
+{
+  return __gthread_cond_wait (cond, mutex);
 }
 
 #endif /* _LIBOBJC */

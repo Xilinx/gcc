@@ -522,6 +522,7 @@ oprs_unchanged_p (rtx x, rtx insn, bool after_insn)
     case CONST:
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -1321,8 +1322,8 @@ struct tree_opt_pass pass_gcse2 =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func |
-  TODO_verify_flow | TODO_ggc_collect,  /* todo_flags_finish */
+  TODO_dump_func | TODO_verify_rtl_sharing
+  | TODO_verify_flow | TODO_ggc_collect,/* todo_flags_finish */
   'J'                                   /* letter */
 };
 

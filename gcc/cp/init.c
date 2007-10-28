@@ -51,7 +51,6 @@ static tree initializing_context (tree);
 static void expand_cleanup_for_base (tree, tree);
 static tree get_temp_regvar (tree, tree);
 static tree dfs_initialize_vtbl_ptrs (tree, void *);
-static tree build_default_init (tree, tree);
 static tree build_dtor_call (tree, special_function_kind, int);
 static tree build_field_list (tree, tree, int *);
 static tree build_vtbl_address (tree);
@@ -137,11 +136,12 @@ initialize_vtbl_ptrs (tree addr)
 /* Return an expression for the zero-initialization of an object with
    type T.  This expression will either be a constant (in the case
    that T is a scalar), or a CONSTRUCTOR (in the case that T is an
-   aggregate).  In either case, the value can be used as DECL_INITIAL
-   for a decl of the indicated TYPE; it is a valid static initializer.
-   If NELTS is non-NULL, and TYPE is an ARRAY_TYPE, NELTS is the
-   number of elements in the array.  If STATIC_STORAGE_P is TRUE,
-   initializers are only generated for entities for which
+   aggregate), or NULL (in the case that T does not require
+   initialization).  In either case, the value can be used as
+   DECL_INITIAL for a decl of the indicated TYPE; it is a valid static
+   initializer. If NELTS is non-NULL, and TYPE is an ARRAY_TYPE, NELTS
+   is the number of elements in the array.  If STATIC_STORAGE_P is
+   TRUE, initializers are only generated for entities for which
    zero-initialization does not simply mean filling the storage with
    zero bytes.  */
 
@@ -200,7 +200,8 @@ build_zero_init (tree type, tree nelts, bool static_storage_p)
 	      tree value = build_zero_init (TREE_TYPE (field),
 					    /*nelts=*/NULL_TREE,
 					    static_storage_p);
-	      CONSTRUCTOR_APPEND_ELT(v, field, value);
+	      if (value)
+		CONSTRUCTOR_APPEND_ELT(v, field, value);
 	    }
 
 	  /* For unions, only the first field is initialized.  */
@@ -275,7 +276,7 @@ build_zero_init (tree type, tree nelts, bool static_storage_p)
    returns NULL_TREE; the caller is responsible for arranging for the
    constructors to be called.  */
 
-static tree
+tree
 build_default_init (tree type, tree nelts)
 {
   /* [dcl.init]:
@@ -1134,7 +1135,6 @@ build_aggr_init (tree exp, tree init, int flags)
     /* Just know that we've seen something for this node.  */
     TREE_USED (exp) = 1;
 
-  TREE_TYPE (exp) = TYPE_MAIN_VARIANT (type);
   is_global = begin_init_stmts (&stmt_expr, &compound_stmt);
   destroy_temps = stmts_are_full_exprs_p ();
   current_stmt_tree ()->stmts_are_full_exprs_p = 0;
@@ -1142,7 +1142,6 @@ build_aggr_init (tree exp, tree init, int flags)
 		      init, LOOKUP_NORMAL|flags);
   stmt_expr = finish_init_stmts (is_global, stmt_expr, compound_stmt);
   current_stmt_tree ()->stmts_are_full_exprs_p = destroy_temps;
-  TREE_TYPE (exp) = type;
   TREE_READONLY (exp) = was_const;
   TREE_THIS_VOLATILE (exp) = was_volatile;
 
@@ -1282,9 +1281,7 @@ is_aggr_type (tree type, int or_else)
   if (type == error_mark_node)
     return 0;
 
-  if (! IS_AGGR_TYPE (type)
-      && TREE_CODE (type) != TEMPLATE_TYPE_PARM
-      && TREE_CODE (type) != BOUND_TEMPLATE_TEMPLATE_PARM)
+  if (! IS_AGGR_TYPE (type))
     {
       if (or_else)
 	error ("%qT is not an aggregate type", type);
@@ -1656,7 +1653,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
      beginning of the storage allocated for an array-new expression in
      order to store the number of elements.  */
   tree cookie_size = NULL_TREE;
-  tree placement_var;
+  tree placement_expr;
   /* True if the function we are calling is a placement allocation
      function.  */
   bool placement_allocation_fn_p;
@@ -1749,17 +1746,16 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
   alloc_fn = NULL_TREE;
 
   /* If PLACEMENT is a simple pointer type, then copy it into
-     PLACEMENT_VAR.  */
+     PLACEMENT_EXPR.  */
   if (processing_template_decl
       || placement == NULL_TREE
       || TREE_CHAIN (placement) != NULL_TREE
       || TREE_CODE (TREE_TYPE (TREE_VALUE (placement))) != POINTER_TYPE)
-    placement_var = NULL_TREE;
+    placement_expr = NULL_TREE;
   else
     {
-      placement_var = get_temp_regvar (TREE_TYPE (TREE_VALUE (placement)),
-				       TREE_VALUE (placement));
-      placement = tree_cons (NULL_TREE, placement_var, NULL_TREE);
+      placement_expr = get_target_expr (TREE_VALUE (placement));
+      placement = tree_cons (NULL_TREE, placement_expr, NULL_TREE);
     }
 
   /* Allocate the object.  */
@@ -1857,7 +1853,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
     {
       rval = build_nop (pointer_type, alloc_call);
       if (placement != NULL)
-	rval = avoid_placement_new_aliasing (rval, placement_var);
+	rval = avoid_placement_new_aliasing (rval, placement_expr);
       return rval;
     }
 
@@ -1934,8 +1930,10 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
       if (targetm.cxx.cookie_has_size ())
 	{
 	  /* Also store the element size.  */
-	  cookie_ptr = build2 (MINUS_EXPR, build_pointer_type (sizetype),
-			       cookie_ptr, size_in_bytes (sizetype));
+	  cookie_ptr = build2 (POINTER_PLUS_EXPR, size_ptr_type, cookie_ptr,
+			       fold_build1 (NEGATE_EXPR, sizetype,
+					    size_in_bytes (sizetype)));
+
 	  cookie = build_indirect_ref (cookie_ptr, NULL);
 	  cookie = build2 (MODIFY_EXPR, sizetype, cookie,
 			   size_in_bytes(elt_type));
@@ -2122,7 +2120,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
   gcc_assert (!lvalue_p (rval));
 
   if (placement != NULL)
-    rval = avoid_placement_new_aliasing (rval, placement_var);
+    rval = avoid_placement_new_aliasing (rval, placement_expr);
 
   return rval;
 }
@@ -2175,21 +2173,6 @@ build_new (tree placement, tree type, tree nelts, tree init,
       if (!build_expr_type_conversion (WANT_INT | WANT_ENUM, nelts, false))
 	pedwarn ("size in array new must have integral type");
       nelts = cp_save_expr (cp_convert (sizetype, nelts));
-      /* It is valid to allocate a zero-element array:
-
-	   [expr.new]
-
-	   When the value of the expression in a direct-new-declarator
-	   is zero, the allocation function is called to allocate an
-	   array with no elements.  The pointer returned by the
-	   new-expression is non-null.  [Note: If the library allocation
-	   function is called, the pointer returned is distinct from the
-	   pointer to any other object.]
-
-	 However, that is not generally useful, so we issue a
-	 warning.  */
-      if (integer_zerop (nelts))
-	warning (0, "allocating zero-element array");
     }
 
   /* ``A reference cannot be created by the new operator.  A reference
@@ -2321,7 +2304,7 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
   tbase = create_temporary_var (ptype);
   tbase_init = build_modify_expr (tbase, NOP_EXPR,
 				  fold_build2 (POINTER_PLUS_EXPR, ptype,
-					       base,
+					       fold_convert (ptype, base),
 					       virtual_size));
   DECL_REGISTER (tbase) = 1;
   controller = build3 (BIND_EXPR, void_type_node, tbase,
@@ -2870,6 +2853,7 @@ build_delete (tree type, tree addr, special_function_kind auto_delete,
     }
   else
     {
+      tree head = NULL_TREE;
       tree do_delete = NULL_TREE;
       tree ifexp;
 
@@ -2883,8 +2867,9 @@ build_delete (tree type, tree addr, special_function_kind auto_delete,
 	{
 	  /* We will use ADDR multiple times so we must save it.  */
 	  addr = save_expr (addr);
+	  head = get_target_expr (build_headof (addr));
 	  /* Delete the object.  */
-	  do_delete = build_builtin_delete_call (addr);
+	  do_delete = build_builtin_delete_call (head);
 	  /* Otherwise, treat this like a complete object destructor
 	     call.  */
 	  auto_delete = sfk_complete_destructor;
@@ -2922,6 +2907,10 @@ build_delete (tree type, tree addr, special_function_kind auto_delete,
 			      auto_delete, flags);
       if (do_delete)
 	expr = build2 (COMPOUND_EXPR, void_type_node, expr, do_delete);
+
+      /* We need to calculate this before the dtor changes the vptr.  */
+      if (head)
+	expr = build2 (COMPOUND_EXPR, void_type_node, head, expr);
 
       if (flags & LOOKUP_DESTRUCTOR)
 	/* Explicit destructor call; don't check for null pointer.  */

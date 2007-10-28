@@ -1,5 +1,5 @@
 /* Implementation of the SUM intrinsic
-   Copyright 2002 Free Software Foundation, Inc.
+   Copyright 2002, 2007 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -28,10 +28,9 @@ License along with libgfortran; see the file COPYING.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
+#include "libgfortran.h"
 #include <stdlib.h>
 #include <assert.h>
-#include "libgfortran.h"
 
 
 #if defined (HAVE_GFC_COMPLEX_8) && defined (HAVE_GFC_COMPLEX_8)
@@ -184,14 +183,14 @@ sum_c8 (gfc_array_c8 * const restrict retarray,
 
 extern void msum_c8 (gfc_array_c8 * const restrict, 
 	gfc_array_c8 * const restrict, const index_type * const restrict,
-	gfc_array_l4 * const restrict);
+	gfc_array_l1 * const restrict);
 export_proto(msum_c8);
 
 void
 msum_c8 (gfc_array_c8 * const restrict retarray, 
 	gfc_array_c8 * const restrict array, 
 	const index_type * const restrict pdim, 
-	gfc_array_l4 * const restrict mask)
+	gfc_array_l1 * const restrict mask)
 {
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
@@ -200,13 +199,14 @@ msum_c8 (gfc_array_c8 * const restrict retarray,
   index_type mstride[GFC_MAX_DIMENSIONS];
   GFC_COMPLEX_8 * restrict dest;
   const GFC_COMPLEX_8 * restrict base;
-  const GFC_LOGICAL_4 * restrict mbase;
+  const GFC_LOGICAL_1 * restrict mbase;
   int rank;
   int dim;
   index_type n;
   index_type len;
   index_type delta;
   index_type mdelta;
+  int mask_kind;
 
   dim = (*pdim) - 1;
   rank = GFC_DESCRIPTOR_RANK (array) - 1;
@@ -214,13 +214,27 @@ msum_c8 (gfc_array_c8 * const restrict retarray,
   len = array->dim[dim].ubound + 1 - array->dim[dim].lbound;
   if (len <= 0)
     return;
+
+  mbase = mask->data;
+
+  mask_kind = GFC_DESCRIPTOR_SIZE (mask);
+
+  if (mask_kind == 1 || mask_kind == 2 || mask_kind == 4 || mask_kind == 8
+#ifdef HAVE_GFC_LOGICAL_16
+      || mask_kind == 16
+#endif
+      )
+    mbase = GFOR_POINTER_TO_L1 (mbase, mask_kind);
+  else
+    runtime_error ("Funny sized logical array");
+
   delta = array->dim[dim].stride;
-  mdelta = mask->dim[dim].stride;
+  mdelta = mask->dim[dim].stride * mask_kind;
 
   for (n = 0; n < dim; n++)
     {
       sstride[n] = array->dim[n].stride;
-      mstride[n] = mask->dim[n].stride;
+      mstride[n] = mask->dim[n].stride * mask_kind;
       extent[n] = array->dim[n].ubound + 1 - array->dim[n].lbound;
 
       if (extent[n] < 0)
@@ -230,7 +244,7 @@ msum_c8 (gfc_array_c8 * const restrict retarray,
   for (n = dim; n < rank; n++)
     {
       sstride[n] = array->dim[n + 1].stride;
-      mstride[n] = mask->dim[n + 1].stride;
+      mstride[n] = mask->dim[n + 1].stride * mask_kind;
       extent[n] =
         array->dim[n + 1].ubound + 1 - array->dim[n + 1].lbound;
 
@@ -285,22 +299,11 @@ msum_c8 (gfc_array_c8 * const restrict retarray,
 
   dest = retarray->data;
   base = array->data;
-  mbase = mask->data;
-
-  if (GFC_DESCRIPTOR_SIZE (mask) != 4)
-    {
-      /* This allows the same loop to be used for all logical types.  */
-      assert (GFC_DESCRIPTOR_SIZE (mask) == 8);
-      for (n = 0; n < rank; n++)
-        mstride[n] <<= 1;
-      mdelta <<= 1;
-      mbase = (GFOR_POINTER_L8_TO_L4 (mbase));
-    }
 
   while (base)
     {
       const GFC_COMPLEX_8 * restrict src;
-      const GFC_LOGICAL_4 * restrict msrc;
+      const GFC_LOGICAL_1 * restrict msrc;
       GFC_COMPLEX_8 result;
       src = base;
       msrc = mbase;

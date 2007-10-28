@@ -41,7 +41,7 @@
 
 /**
  * @file native_set.hpp
- * Contains an adapter to Dinkumware/SGI tree tables
+ * Contains an adapter to std::set
  */
 
 #ifndef PB_DS_NATIVE_SET_HPP
@@ -53,7 +53,7 @@
 #include <native_type/assoc/native_tree_tag.hpp>
 #include <io/xml.hpp>
 
-namespace pb_ds
+namespace __gnu_pbds
 {
   namespace test
   {
@@ -92,6 +92,6 @@ namespace pb_ds
 
 #undef PB_DS_BASE_C_DEC
   } // namespace test
-} // namespace pb_ds
+} // namespace __gnu_pbds
 
 #endif // #ifndef PB_DS_NATIVE_SET_HPP

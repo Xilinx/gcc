@@ -236,6 +236,14 @@ int_mode_for_mode (enum machine_mode mode)
     case MODE_DECIMAL_FLOAT:
     case MODE_VECTOR_INT:
     case MODE_VECTOR_FLOAT:
+    case MODE_FRACT:
+    case MODE_ACCUM:
+    case MODE_UFRACT:
+    case MODE_UACCUM:
+    case MODE_VECTOR_FRACT:
+    case MODE_VECTOR_ACCUM:
+    case MODE_VECTOR_UFRACT:
+    case MODE_VECTOR_UACCUM:
       mode = mode_for_size (GET_MODE_BITSIZE (mode), MODE_INT, 0);
       break;
 
@@ -406,18 +414,11 @@ layout_decl (tree decl, unsigned int known_align)
       else
 	do_type_align (type, decl);
 
-      /* If the field is of variable size, we can't misalign it since we
-	 have no way to make a temporary to align the result.  But this
-	 isn't an issue if the decl is not addressable.  Likewise if it
-	 is of unknown size.
-
-	 Note that do_type_align may set DECL_USER_ALIGN, so we need to
-	 check old_user_align instead.  */
+      /* If the field is packed and not explicitly aligned, give it the
+	 minimum alignment.  Note that do_type_align may set
+	 DECL_USER_ALIGN, so we need to check old_user_align instead.  */
       if (packed_p
-	  && !old_user_align
-	  && (DECL_NONADDRESSABLE_P (decl)
-	      || DECL_SIZE_UNIT (decl) == 0
-	      || TREE_CODE (DECL_SIZE_UNIT (decl)) == INTEGER_CST))
+	  && !old_user_align)
 	DECL_ALIGN (decl) = MIN (DECL_ALIGN (decl), BITS_PER_UNIT);
 
       if (! packed_p && ! DECL_USER_ALIGN (decl))
@@ -463,9 +464,9 @@ layout_decl (tree decl, unsigned int known_align)
 	  int size_as_int = TREE_INT_CST_LOW (size);
 
 	  if (compare_tree_int (size, size_as_int) == 0)
-	    warning (0, "size of %q+D is %d bytes", decl, size_as_int);
+	    warning (OPT_Wlarger_than_, "size of %q+D is %d bytes", decl, size_as_int);
 	  else
-	    warning (0, "size of %q+D is larger than %wd bytes",
+	    warning (OPT_Wlarger_than_, "size of %q+D is larger than %wd bytes",
                      decl, larger_than_size);
 	}
     }
@@ -1602,6 +1603,12 @@ layout_type (tree type)
       TYPE_SIZE_UNIT (type) = size_int (GET_MODE_SIZE (TYPE_MODE (type)));
       break;
 
+   case FIXED_POINT_TYPE:
+     /* TYPE_MODE (type) has been set already.  */
+     TYPE_SIZE (type) = bitsize_int (GET_MODE_BITSIZE (TYPE_MODE (type)));
+     TYPE_SIZE_UNIT (type) = size_int (GET_MODE_SIZE (TYPE_MODE (type)));
+     break;
+
     case COMPLEX_TYPE:
       TYPE_UNSIGNED (type) = TYPE_UNSIGNED (TREE_TYPE (type));
       TYPE_MODE (type)
@@ -1629,6 +1636,14 @@ layout_type (tree type)
 	    /* First, look for a supported vector type.  */
 	    if (SCALAR_FLOAT_MODE_P (innermode))
 	      mode = MIN_MODE_VECTOR_FLOAT;
+	    else if (SCALAR_FRACT_MODE_P (innermode))
+	      mode = MIN_MODE_VECTOR_FRACT;
+	    else if (SCALAR_UFRACT_MODE_P (innermode))
+	      mode = MIN_MODE_VECTOR_UFRACT;
+	    else if (SCALAR_ACCUM_MODE_P (innermode))
+	      mode = MIN_MODE_VECTOR_ACCUM;
+	    else if (SCALAR_UACCUM_MODE_P (innermode))
+	      mode = MIN_MODE_VECTOR_UACCUM;
 	    else
 	      mode = MIN_MODE_VECTOR_INT;
 
@@ -1650,6 +1665,7 @@ layout_type (tree type)
 	      TYPE_MODE (type) = mode;
 	  }
 
+	TYPE_SATURATING (type) = TYPE_SATURATING (TREE_TYPE (type));
         TYPE_UNSIGNED (type) = TYPE_UNSIGNED (TREE_TYPE (type));
 	TYPE_SIZE_UNIT (type) = int_const_binop (MULT_EXPR,
 					         TYPE_SIZE_UNIT (innertype),
@@ -1870,13 +1886,10 @@ layout_type (tree type)
       && TREE_CODE (type) != QUAL_UNION_TYPE)
     finalize_type_size (type);
 
-  /* If an alias set has been set for this aggregate when it was incomplete,
-     force it into alias set 0.
-     This is too conservative, but we cannot call record_component_aliases
-     here because some frontends still change the aggregates after
-     layout_type.  */
-  if (AGGREGATE_TYPE_P (type) && TYPE_ALIAS_SET_KNOWN_P (type))
-    TYPE_ALIAS_SET (type) = 0;
+  /* We should never see alias sets on incomplete aggregates.  And we
+     should not call layout_type on not incomplete aggregates.  */
+  if (AGGREGATE_TYPE_P (type))
+    gcc_assert (!TYPE_ALIAS_SET_KNOWN_P (type));
 }
 
 /* Create and return a type for signed integers of PRECISION bits.  */
@@ -1905,6 +1918,58 @@ make_unsigned_type (int precision)
   return type;
 }
 
+/* Create and return a type for fract of PRECISION bits, UNSIGNEDP,
+   and SATP.  */
+
+tree
+make_fract_type (int precision, int unsignedp, int satp)
+{
+  tree type = make_node (FIXED_POINT_TYPE);
+
+  TYPE_PRECISION (type) = precision;
+
+  if (satp)
+    TYPE_SATURATING (type) = 1;
+
+  /* Lay out the type: set its alignment, size, etc.  */
+  if (unsignedp)
+    {
+      TYPE_UNSIGNED (type) = 1;
+      TYPE_MODE (type) = mode_for_size (precision, MODE_UFRACT, 0);
+    }
+  else
+    TYPE_MODE (type) = mode_for_size (precision, MODE_FRACT, 0);
+  layout_type (type);
+
+  return type;
+}
+
+/* Create and return a type for accum of PRECISION bits, UNSIGNEDP,
+   and SATP.  */
+
+tree
+make_accum_type (int precision, int unsignedp, int satp)
+{
+  tree type = make_node (FIXED_POINT_TYPE);
+
+  TYPE_PRECISION (type) = precision;
+
+  if (satp)
+    TYPE_SATURATING (type) = 1;
+
+  /* Lay out the type: set its alignment, size, etc.  */
+  if (unsignedp)
+    {
+      TYPE_UNSIGNED (type) = 1;
+      TYPE_MODE (type) = mode_for_size (precision, MODE_UACCUM, 0);
+    }
+  else
+    TYPE_MODE (type) = mode_for_size (precision, MODE_ACCUM, 0);
+  layout_type (type);
+
+  return type;
+}
+
 /* Initialize sizetype and bitsizetype to a reasonable and temporary
    value to enable integer types to be created.  */
 

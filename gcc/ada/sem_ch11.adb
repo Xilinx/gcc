@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -225,9 +224,11 @@ package body Sem_Ch11 is
 
                Generate_Definition (Choice);
 
-               --  Set source assigned flag, since in effect this field is
-               --  always assigned an initial value by the exception.
+               --  Indicate that choice has an initial value, since in effect
+               --  this field is assigned an initial value by the exception.
+               --  We also consider that it is modified in the source.
 
+               Set_Has_Initial_Value (Choice, True);
                Set_Never_Set_In_Source (Choice, False);
             end if;
 
@@ -262,6 +263,17 @@ package body Sem_Ch11 is
                      Error_Msg_N ("exception name expected", Id);
 
                   else
+                     --  Emit a warning at the declaration level when a local
+                     --  exception is never raised explicitly.
+
+                     if Warn_On_Redundant_Constructs
+                       and then not Is_Raised (Entity (Id))
+                       and then Scope (Entity (Id)) = Current_Scope
+                     then
+                        Error_Msg_NE
+                          ("?exception & is never raised", Entity (Id), Id);
+                     end if;
+
                      if Present (Renamed_Entity (Entity (Id))) then
                         if Entity (Id) = Standard_Numeric_Error then
                            Check_Restriction (No_Obsolescent_Features, Id);
@@ -269,7 +281,7 @@ package body Sem_Ch11 is
                            if Warn_On_Obsolescent_Feature then
                               Error_Msg_N
                                 ("Numeric_Error is an " &
-                                 "obsolescent feature ('R'M 'J.6(1))?", Id);
+                                 "obsolescent feature (RM J.6(1))?", Id);
                               Error_Msg_N
                                 ("\use Constraint_Error instead?", Id);
                            end if;
@@ -306,7 +318,7 @@ package body Sem_Ch11 is
                                  "generic formal package", Id, Ent);
                               Error_Msg_N
                                 ("\and therefore cannot appear in " &
-                                 "handler ('R'M 11.2(8))", Id);
+                                 "handler (RM 11.2(8))", Id);
                               exit;
 
                            --  If the exception is declared in an inner
@@ -462,7 +474,7 @@ package body Sem_Ch11 is
                       P);
                   Error_Msg_N
                     ("\?RAISE statement may result in abnormal return" &
-                     " ('R'M 6.4.1(17))", P);
+                     " (RM 6.4.1(17))", P);
                end if;
             end if;
          end;
@@ -511,12 +523,19 @@ package body Sem_Ch11 is
          then
             Error_Msg_N
               ("exception name expected in raise statement", Exception_Id);
+         else
+            Set_Is_Raised (Exception_Name);
          end if;
 
+         --  Deal with RAISE WITH case
+
          if Present (Expression (N)) then
+            Check_Compiler_Unit (Expression (N));
             Analyze_And_Resolve (Expression (N), Standard_String);
          end if;
       end if;
+
+      Kill_Current_Values (Last_Assignment_Only => True);
    end Analyze_Raise_Statement;
 
    -----------------------------

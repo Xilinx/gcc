@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -29,14 +28,14 @@ with Makeutl;  use Makeutl;
 with Output;   use Output;
 with Osint;    use Osint;
 with Sdefault;
+with Table;
 
 with GNAT.HTable;
 
 package body Prj.Ext is
 
-   Gpr_Project_Path : constant String := "GPR_PROJECT_PATH";
    Ada_Project_Path : constant String := "ADA_PROJECT_PATH";
-   --  Name of the env. variables that contain path name(s) of directories
+   --  Name of alternate env. variable that contain path name(s) of directories
    --  where project files may reside. GPR_PROJECT_PATH has precedence over
    --  ADA_PROJECT_PATH.
 
@@ -67,6 +66,7 @@ package body Prj.Ext is
    --  first for external reference in this table, before checking the
    --  environment. Htable is emptied (reset) by procedure Reset.
 
+   ---------
    package Search_Directories is new Table.Table
      (Table_Component_Type => Name_Id,
       Table_Index_Type     => Natural,
@@ -76,7 +76,6 @@ package body Prj.Ext is
       Table_Name           => "Prj.Ext.Search_Directories");
    --  The table for the directories specified with -aP switches
 
-   ---------
    -- Add --
    ---------
 
@@ -97,6 +96,7 @@ package body Prj.Ext is
       Htable.Set (The_Key, The_Value);
    end Add;
 
+   -----------
    ----------------------------------
    -- Add_Search_Project_Directory --
    ----------------------------------
@@ -108,7 +108,6 @@ package body Prj.Ext is
       Search_Directories.Append (Name_Find);
    end Add_Search_Project_Directory;
 
-   -----------
    -- Check --
    -----------
 
@@ -140,28 +139,22 @@ package body Prj.Ext is
       Last            : Positive;
       New_Len         : Positive;
       New_Last        : Positive;
-      Prj_Path        : String_Access := null;
+      Prj_Path        : String_Access := Gpr_Prj_Path;
 
    begin
-      if Gpr_Prj_Path.all /= "" then
-         if Hostparm.OpenVMS then
-            Prj_Path := To_Canonical_Path_Spec ("GPR_PROJECT_PATH:");
+      if Get_Mode = Ada_Only then
+         if Gpr_Prj_Path.all /= "" then
+
+            --  Warn if both environment variables are defined
+
+            if Ada_Prj_Path.all /= "" then
+               Write_Line
+                 ("Warning: ADA_PROJECT_PATH is not taken into account");
+               Write_Line ("         when GPR_PROJECT_PATH is defined");
+            end if;
+
          else
-            Prj_Path := To_Canonical_Path_Spec (Gpr_Prj_Path.all);
-         end if;
-
-         --  Warn if both environment variables are defined
-
-         if Ada_Prj_Path.all /= "" then
-            Write_Line ("Warning: ADA_PROJECT_PATH is not taken into account");
-            Write_Line ("         when GPR_PROJECT_PATH is defined");
-         end if;
-
-      elsif Ada_Prj_Path.all /= "" then
-         if Hostparm.OpenVMS then
-            Prj_Path := To_Canonical_Path_Spec ("ADA_PROJECT_PATH:");
-         else
-            Prj_Path := To_Canonical_Path_Spec (Ada_Prj_Path.all);
+            Prj_Path := Ada_Prj_Path;
          end if;
       end if;
 
@@ -179,9 +172,9 @@ package body Prj.Ext is
            (Get_Name_String (Search_Directories.Table (J)));
       end loop;
 
-      --  If environment variable is defined, add its content
+      --  If environment variable is defined and not empty, add its content
 
-      if Prj_Path /= null then
+      if Prj_Path.all /= "" then
          Name_Len := Name_Len + 1;
          Name_Buffer (Name_Len) := Path_Separator;
 
@@ -222,6 +215,11 @@ package body Prj.Ext is
             end loop;
 
             Name_Len := Name_Len - No_Project_Default_Dir'Length - 1;
+
+            --  After removing the '-', go back one character to get the next
+            --  directory correctly.
+
+            Last := Last - 1;
 
          elsif not Hostparm.OpenVMS
            or else not Is_Absolute_Path (Name_Buffer (First .. Last))
@@ -264,9 +262,19 @@ package body Prj.Ext is
                Prefix := new String'(Executable_Prefix_Path);
 
                if Prefix.all /= "" then
-                  Current_Project_Path :=
-                    new String'(Name_Buffer (1 .. Name_Len) & Path_Separator &
-                                Prefix.all & Directory_Separator & "gnat");
+                  if Get_Mode = Ada_Only then
+                     Current_Project_Path :=
+                       new String'(Name_Buffer (1 .. Name_Len) &
+                                   Path_Separator &
+                                   Prefix.all & Directory_Separator & "gnat");
+
+                  else
+                     Current_Project_Path :=
+                       new String'(Name_Buffer (1 .. Name_Len) &
+                                   Path_Separator &
+                                   Prefix.all & Directory_Separator &
+                                   "share" & Directory_Separator & "gpr");
+                  end if;
                end if;
 
             else
@@ -278,7 +286,9 @@ package body Prj.Ext is
                              ".." & Directory_Separator & "gnat");
             end if;
          end;
-      else
+      end if;
+
+      if Current_Project_Path = null then
          Current_Project_Path := new String'(Name_Buffer (1 .. Name_Len));
       end if;
    end Initialize_Project_Path;

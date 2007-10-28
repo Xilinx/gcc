@@ -64,7 +64,7 @@
 
 #include <bits/concept_check.h>
 
-_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
   // Supporting structures are split into common and templated types; the
   // latter publicly inherits from the former in an effort to reduce code
@@ -305,6 +305,10 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       {
 	_List_node_base _M_node;
 
+	_List_impl()
+	: _Node_alloc_type(), _M_node()
+	{ }
+
 	_List_impl(const _Node_alloc_type& __a)
 	: _Node_alloc_type(__a), _M_node()
 	{ }
@@ -339,9 +343,22 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       get_allocator() const
       { return allocator_type(_M_get_Node_allocator()); }
 
+      _List_base()
+      : _M_impl()
+      { _M_init(); }
+
       _List_base(const allocator_type& __a)
       : _M_impl(__a)
       { _M_init(); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      _List_base(_List_base&& __x)
+      : _M_impl(__x._M_get_Node_allocator())
+      {
+	_M_init();
+	_List_node_base::swap(this->_M_impl._M_node, __x._M_impl._M_node);	
+      }
+#endif
 
       // This is what actually destroys the list.
       ~_List_base()
@@ -468,14 +485,22 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       /**
        *  @brief  Default constructor creates no elements.
        */
+      list()
+      : _Base() { }
+
+      /**
+       *  @brief  Creates a %list with no elements.
+       *  @param  a  An allocator object.
+       */
       explicit
-      list(const allocator_type& __a = allocator_type())
+      list(const allocator_type& __a)
       : _Base(__a) { }
 
       /**
-       *  @brief  Create a %list with copies of an exemplar element.
+       *  @brief  Creates a %list with copies of an exemplar element.
        *  @param  n  The number of elements to initially create.
        *  @param  value  An element to copy.
+       *  @param  a  An allocator object.
        *
        *  This constructor fills the %list with @a n copies of @a value.
        */
@@ -496,10 +521,23 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       : _Base(__x._M_get_Node_allocator())
       { _M_initialize_dispatch(__x.begin(), __x.end(), __false_type()); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  %List move constructor.
+       *  @param  x  A %list of identical element and allocator types.
+       *
+       *  The newly-created %list contains the exact contents of @a x.
+       *  The contents of @a x are a valid, but unspecified %list.
+       */
+      list(list&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+#endif
+
       /**
        *  @brief  Builds a %list from a range.
        *  @param  first  An input iterator.
        *  @param  last  An input iterator.
+       *  @param  a  An allocator object.
        *
        *  Create a %list consisting of copies of the elements from
        *  [@a first,@a last).  This is linear in N (where N is
@@ -532,6 +570,22 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        */
       list&
       operator=(const list& __x);
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  %List move assignment operator.
+       *  @param  x  A %list of identical element and allocator types.
+       *
+       *  The contents of @a x are moved into this %list (without copying).
+       *  @a x is a valid, but unspecified %list
+       */
+      list&
+      operator=(list&& __x)
+      {
+	this->swap(__x); 
+	return *this;
+      }
+#endif
 
       /**
        *  @brief  Assigns a given value to a %list.
@@ -644,6 +698,44 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       const_reverse_iterator
       rend() const
       { return const_reverse_iterator(begin()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read-only (constant) iterator that points to the
+       *  first element in the %list.  Iteration is done in ordinary
+       *  element order.
+       */
+      const_iterator
+      cbegin() const
+      { return const_iterator(this->_M_impl._M_node._M_next); }
+
+      /**
+       *  Returns a read-only (constant) iterator that points one past
+       *  the last element in the %list.  Iteration is done in ordinary
+       *  element order.
+       */
+      const_iterator
+      cend() const
+      { return const_iterator(&this->_M_impl._M_node); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points to
+       *  the last element in the %list.  Iteration is done in reverse
+       *  element order.
+       */
+      const_reverse_iterator
+      crbegin() const
+      { return const_reverse_iterator(end()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points to one
+       *  before the first element in the %list.  Iteration is done in reverse
+       *  element order.
+       */
+      const_reverse_iterator
+      crend() const
+      { return const_reverse_iterator(begin()); }
+#endif
 
       // [23.2.2.2] capacity
       /**
@@ -887,7 +979,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  function.
        */
       void
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      swap(list&& __x)
+#else
       swap(list& __x)
+#endif
       {
 	_List_node_base::swap(this->_M_impl._M_node, __x._M_impl._M_node);
 
@@ -1176,7 +1272,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       void
       _M_check_equal_allocators(list& __x)
       {
-	if (_M_get_Node_allocator() != __x._M_get_Node_allocator())
+	if (std::__alloc_neq<typename _Base::_Node_alloc_type>::
+	    _S_do_it(_M_get_Node_allocator(), __x._M_get_Node_allocator()))
 	  __throw_runtime_error(__N("list::_M_check_equal_allocators"));
       }
     };
@@ -1256,7 +1353,18 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
     swap(list<_Tp, _Alloc>& __x, list<_Tp, _Alloc>& __y)
     { __x.swap(__y); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp, typename _Alloc>
+    inline void
+    swap(list<_Tp, _Alloc>&& __x, list<_Tp, _Alloc>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Tp, typename _Alloc>
+    inline void
+    swap(list<_Tp, _Alloc>& __x, list<_Tp, _Alloc>&& __y)
+    { __x.swap(__y); }
+#endif
+
 _GLIBCXX_END_NESTED_NAMESPACE
 
 #endif /* _STL_LIST_H */
-

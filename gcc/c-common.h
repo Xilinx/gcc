@@ -52,7 +52,7 @@ enum rid
   RID_VOLATILE, RID_SIGNED,  RID_AUTO,  RID_RESTRICT,
 
   /* C extensions */
-  RID_COMPLEX, RID_THREAD,
+  RID_COMPLEX, RID_THREAD, RID_SAT,
 
   /* C++ */
   RID_FRIEND, RID_VIRTUAL, RID_EXPLICIT, RID_EXPORT, RID_MUTABLE,
@@ -72,6 +72,7 @@ enum rid
   RID_EXTENSION, RID_IMAGPART, RID_REALPART, RID_LABEL,      RID_CHOOSE_EXPR,
   RID_TYPES_COMPATIBLE_P,
   RID_DFLOAT32, RID_DFLOAT64, RID_DFLOAT128,
+  RID_FRACT, RID_ACCUM,
 
   /* Too many ways of getting the name of a function as a string */
   RID_FUNCTION_NAME, RID_PRETTY_FUNCTION_NAME, RID_C99_FUNCTION_NAME,
@@ -297,10 +298,6 @@ struct c_language_function GTY(()) {
 
 /* Language-specific hooks.  */
 
-/* Callback that determines if it's ok for a function to have no
-   noreturn attribute.  */
-extern int (*lang_missing_noreturn_ok_p) (tree);
-
 /* If non-NULL, this function is called after a precompile header file
    is loaded.  */
 extern void (*lang_post_pch_load) (void);
@@ -322,7 +319,7 @@ extern int c_expand_decl (tree);
 extern int field_decl_cmp (const void *, const void *);
 extern void resort_sorted_fields (void *, void *, gt_pointer_operator,
 				  void *);
-extern bool has_c_linkage (tree decl);
+extern bool has_c_linkage (const_tree decl);
 
 /* Switches common to the C front ends.  */
 
@@ -674,11 +671,13 @@ extern int c_common_handle_option (size_t code, const char *arg, int value);
 extern bool c_common_missing_argument (const char *opt, size_t code);
 extern tree c_common_type_for_mode (enum machine_mode, int);
 extern tree c_common_type_for_size (unsigned int, int);
+extern tree c_common_fixed_point_type_for_size (unsigned int, unsigned int,
+						int, int);
 extern tree c_common_unsigned_type (tree);
 extern tree c_common_signed_type (tree);
 extern tree c_common_signed_or_unsigned_type (int, tree);
 extern tree c_build_bitfield_integer_type (unsigned HOST_WIDE_INT, int);
-extern bool decl_with_nonnull_addr_p (tree);
+extern bool decl_with_nonnull_addr_p (const_tree);
 extern tree c_common_truthvalue_conversion (tree);
 extern void c_apply_type_quals_to_decl (int, tree);
 extern tree c_sizeof_or_alignof_type (tree, bool, int);
@@ -730,10 +729,10 @@ extern bool c_common_post_options (const char **);
 extern bool c_common_init (void);
 extern void c_common_finish (void);
 extern void c_common_parse_file (int);
-extern HOST_WIDE_INT c_common_get_alias_set (tree);
+extern alias_set_type c_common_get_alias_set (tree);
 extern void c_register_builtin_type (tree, const char*);
-extern bool c_promoting_integer_type_p (tree);
-extern int self_promoting_args_p (tree);
+extern bool c_promoting_integer_type_p (const_tree);
+extern int self_promoting_args_p (const_tree);
 extern tree strip_array_types (tree);
 extern tree strip_pointer_operator (tree);
 extern tree strip_pointer_or_array_types (tree);
@@ -772,7 +771,7 @@ enum c_tree_code {
 
 #undef DEFTREECODE
 
-extern int anon_aggr_type_p (tree);
+extern int anon_aggr_type_p (const_tree);
 
 /* For a VAR_DECL that is an anonymous union, these are the various
    sub-variables that make up the anonymous union.  */
@@ -830,10 +829,9 @@ extern tree finish_label_address_expr (tree);
 extern tree lookup_label (tree);
 extern tree lookup_name (tree);
 
-extern bool vector_types_convertible_p (tree t1, tree t2, bool emit_lax_note);
+extern bool vector_types_convertible_p (const_tree t1, const_tree t2, bool emit_lax_note);
 
 extern rtx c_expand_expr (tree, rtx, enum machine_mode, int, rtx *);
-extern void c_expand_body (tree);
 
 extern tree c_staticp (tree);
 

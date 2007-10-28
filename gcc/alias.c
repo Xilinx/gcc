@@ -131,7 +131,7 @@ along with GCC; see the file COPYING3.  If not see
 struct alias_set_entry GTY(())
 {
   /* The alias set number, as stored in MEM_ALIAS_SET.  */
-  HOST_WIDE_INT alias_set;
+  alias_set_type alias_set;
 
   /* The children of the alias set.  These are not just the immediate
      children, but, in fact, all descendants.  So, if we have:
@@ -148,7 +148,7 @@ struct alias_set_entry GTY(())
 };
 typedef struct alias_set_entry *alias_set_entry;
 
-static int rtx_equal_for_memref_p (rtx, rtx);
+static int rtx_equal_for_memref_p (const_rtx, const_rtx);
 static int memrefs_conflict_p (int, rtx, int, rtx, HOST_WIDE_INT);
 static void record_set (rtx, const_rtx, void *);
 static int base_alias_check (rtx, rtx, enum machine_mode,
@@ -157,7 +157,7 @@ static rtx find_base_value (rtx);
 static int mems_in_disjoint_alias_sets_p (const_rtx, const_rtx);
 static int insert_subset_children (splay_tree_node, void*);
 static tree find_base_decl (tree);
-static alias_set_entry get_alias_set_entry (HOST_WIDE_INT);
+static alias_set_entry get_alias_set_entry (alias_set_type);
 static const_rtx fixed_scalar_and_varying_struct_p (const_rtx, const_rtx, rtx, rtx,
 						    bool (*) (const_rtx, bool));
 static int aliases_everything_p (const_rtx);
@@ -168,7 +168,7 @@ static int nonoverlapping_memrefs_p (const_rtx, const_rtx);
 static int write_dependence_p (const_rtx, const_rtx, int);
 
 static void memory_modified_1 (rtx, const_rtx, void *);
-static void record_alias_subset (HOST_WIDE_INT, HOST_WIDE_INT);
+static void record_alias_subset (alias_set_type, alias_set_type);
 
 /* Set up all info needed to perform alias analysis on memory references.  */
 
@@ -257,7 +257,7 @@ static GTY (()) VEC(alias_set_entry,gc) *alias_sets;
    such an entry, or NULL otherwise.  */
 
 static inline alias_set_entry
-get_alias_set_entry (HOST_WIDE_INT alias_set)
+get_alias_set_entry (alias_set_type alias_set)
 {
   return VEC_index (alias_set_entry, alias_sets, alias_set);
 }
@@ -295,7 +295,7 @@ insert_subset_children (splay_tree_node node, void *data)
 /* Return true if the first alias set is a subset of the second.  */
 
 bool
-alias_set_subset_of (HOST_WIDE_INT set1, HOST_WIDE_INT set2)
+alias_set_subset_of (alias_set_type set1, alias_set_type set2)
 {
   alias_set_entry ase;
 
@@ -315,7 +315,7 @@ alias_set_subset_of (HOST_WIDE_INT set1, HOST_WIDE_INT set2)
 /* Return 1 if the two specified alias sets may conflict.  */
 
 int
-alias_sets_conflict_p (HOST_WIDE_INT set1, HOST_WIDE_INT set2)
+alias_sets_conflict_p (alias_set_type set1, alias_set_type set2)
 {
   alias_set_entry ase;
 
@@ -347,7 +347,7 @@ alias_sets_conflict_p (HOST_WIDE_INT set1, HOST_WIDE_INT set2)
 /* Return 1 if the two specified alias sets will always conflict.  */
 
 int
-alias_sets_must_conflict_p (HOST_WIDE_INT set1, HOST_WIDE_INT set2)
+alias_sets_must_conflict_p (alias_set_type set1, alias_set_type set2)
 {
   if (set1 == 0 || set2 == 0 || set1 == set2)
     return 1;
@@ -363,7 +363,7 @@ alias_sets_must_conflict_p (HOST_WIDE_INT set1, HOST_WIDE_INT set2)
 int
 objects_must_conflict_p (tree t1, tree t2)
 {
-  HOST_WIDE_INT set1, set2;
+  alias_set_type set1, set2;
 
   /* If neither has a type specified, we don't know if they'll conflict
      because we may be using them to store objects of various types, for
@@ -446,7 +446,7 @@ find_base_decl (tree t)
    assignable alias sets.  */
 
 bool
-component_uses_parent_alias_set (tree t)
+component_uses_parent_alias_set (const_tree t)
 {
   while (1)
     {
@@ -485,10 +485,10 @@ component_uses_parent_alias_set (tree t)
 /* Return the alias set for T, which may be either a type or an
    expression.  Call language-specific routine for help, if needed.  */
 
-HOST_WIDE_INT
+alias_set_type
 get_alias_set (tree t)
 {
-  HOST_WIDE_INT set;
+  alias_set_type set;
 
   /* If we're not doing any alias analysis, just assume everything
      aliases everything else.  Also return 0 if this or its type is
@@ -525,7 +525,12 @@ get_alias_set (tree t)
       /* Check for accesses through restrict-qualified pointers.  */
       if (INDIRECT_REF_P (inner))
 	{
-	  tree decl = find_base_decl (TREE_OPERAND (inner, 0));
+	  tree decl;
+
+	  if (TREE_CODE (TREE_OPERAND (inner, 0)) == SSA_NAME)
+	    decl = SSA_NAME_VAR (TREE_OPERAND (inner, 0));
+ 	  else
+	    decl = find_base_decl (TREE_OPERAND (inner, 0));
 
 	  if (decl && DECL_POINTER_ALIAS_SET_KNOWN_P (decl))
 	    {
@@ -541,7 +546,7 @@ get_alias_set (tree t)
 		     alias set for the restricted pointer a subset of the
 		     alias set for the type pointed to by the type of the
 		     decl.  */
-		  HOST_WIDE_INT pointed_to_alias_set
+		  alias_set_type pointed_to_alias_set
 		    = get_alias_set (pointed_to_type);
 
 		  if (pointed_to_alias_set == 0)
@@ -611,6 +616,18 @@ get_alias_set (tree t)
   if (TYPE_ALIAS_SET_KNOWN_P (t))
     return TYPE_ALIAS_SET (t);
 
+  /* We don't want to set TYPE_ALIAS_SET for incomplete types.  */
+  if (!COMPLETE_TYPE_P (t))
+    {
+      /* For arrays with unknown size the conservative answer is the
+	 alias set of the element type.  */
+      if (TREE_CODE (t) == ARRAY_TYPE)
+	return get_alias_set (TREE_TYPE (t));
+
+      /* But return zero as a conservative answer for incomplete types.  */
+      return 0;
+    }
+
   /* See if the language has special handling for this type.  */
   set = lang_hooks.get_alias_set (t);
   if (set != -1)
@@ -646,7 +663,7 @@ get_alias_set (tree t)
 
 /* Return a brand-new alias set.  */
 
-HOST_WIDE_INT
+alias_set_type
 new_alias_set (void)
 {
   if (flag_strict_aliasing)
@@ -674,7 +691,7 @@ new_alias_set (void)
    subset of alias set zero.  */
 
 static void
-record_alias_subset (HOST_WIDE_INT superset, HOST_WIDE_INT subset)
+record_alias_subset (alias_set_type superset, alias_set_type subset)
 {
   alias_set_entry superset_entry;
   alias_set_entry subset_entry;
@@ -730,7 +747,7 @@ record_alias_subset (HOST_WIDE_INT superset, HOST_WIDE_INT subset)
 void
 record_component_aliases (tree type)
 {
-  HOST_WIDE_INT superset = get_alias_set (type);
+  alias_set_type superset = get_alias_set (type);
   tree field;
 
   if (superset == 0)
@@ -774,9 +791,9 @@ record_component_aliases (tree type)
 /* Allocate an alias set for use in storing and reading from the varargs
    spill area.  */
 
-static GTY(()) HOST_WIDE_INT varargs_set = -1;
+static GTY(()) alias_set_type varargs_set = -1;
 
-HOST_WIDE_INT
+alias_set_type
 get_varargs_alias_set (void)
 {
 #if 1
@@ -796,9 +813,9 @@ get_varargs_alias_set (void)
 /* Likewise, but used for the fixed portions of the frame, e.g., register
    save areas.  */
 
-static GTY(()) HOST_WIDE_INT frame_set = -1;
+static GTY(()) alias_set_type frame_set = -1;
 
-HOST_WIDE_INT
+alias_set_type
 get_frame_alias_set (void)
 {
   if (frame_set == -1)
@@ -1192,7 +1209,7 @@ canon_rtx (rtx x)
    different numbers are, in fact, equivalent.  */
 
 static int
-rtx_equal_for_memref_p (rtx x, rtx y)
+rtx_equal_for_memref_p (const_rtx x, const_rtx y)
 {
   int i;
   int j;
@@ -1233,6 +1250,7 @@ rtx_equal_for_memref_p (rtx x, rtx y)
     case VALUE:
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
       /* There's no need to compare the contents of CONST_DOUBLEs or
 	 CONST_INTs because pointer equality is a good enough
 	 comparison for these nodes.  */
@@ -2324,9 +2342,11 @@ output_dependence (const_rtx mem, const_rtx x)
 
 
 void
-init_alias_once (void)
+init_alias_target (void)
 {
   int i;
+
+  memset (static_reg_base_value, 0, sizeof static_reg_base_value);
 
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     /* Check whether this register can hold an incoming pointer
@@ -2357,7 +2377,7 @@ memory_modified_1 (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 {
   if (MEM_P (x))
     {
-      if (anti_dependence (x, (rtx)data) || output_dependence (x, (rtx)data))
+      if (anti_dependence (x, (const_rtx)data) || output_dependence (x, (const_rtx)data))
 	memory_modified = true;
     }
 }
@@ -2366,12 +2386,12 @@ memory_modified_1 (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 /* Return true when INSN possibly modify memory contents of MEM
    (i.e. address can be modified).  */
 bool
-memory_modified_in_insn_p (rtx mem, rtx insn)
+memory_modified_in_insn_p (const_rtx mem, const_rtx insn)
 {
   if (!INSN_P (insn))
     return false;
   memory_modified = false;
-  note_stores (PATTERN (insn), memory_modified_1, mem);
+  note_stores (PATTERN (insn), memory_modified_1, CONST_CAST_RTX(mem));
   return memory_modified;
 }
 

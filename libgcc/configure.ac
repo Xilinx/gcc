@@ -145,6 +145,13 @@ if test x$enable_decimal_float = xyes; then
 fi
 AC_SUBST(enable_decimal_float)
 
+# Check for fixed-point support.
+AC_CACHE_CHECK([whether fixed-point is supported], [libgcc_cv_fixed_point],
+	       [AC_COMPILE_IFELSE([_Sat _Fract x;], [libgcc_cv_fixed_point=yes],
+				  [libgcc_cv_fixed_point=no])])
+fixed_point=$libgcc_cv_fixed_point
+AC_SUBST(fixed_point)
+
 # Collect host-machine-specific information.
 . ${srcdir}/config.host
 
@@ -175,7 +182,7 @@ AC_SUBST(vis_hide)
 # is yet to be built here.
 GCC_CHECK_CC_TLS
 set_have_cc_tls=
-if test "$enable_tls $have_cc_tls" = "yes yes"; then
+if test "$enable_tls $gcc_cv_have_cc_tls" = "yes yes"; then
   set_have_cc_tls="-DHAVE_CC_TLS"
 fi
 AC_SUBST(set_have_cc_tls)

@@ -51,7 +51,7 @@
 #include <ext/pb_ds/detail/type_utils.hpp>
 #include <utility>
 
-namespace pb_ds
+namespace __gnu_pbds
 {
   namespace detail
   {
@@ -74,12 +74,15 @@ namespace pb_ds
       typedef typename Alloc::size_type size_type;
 
       // Extra value (used when the extra value is stored with each value).
-      typedef std::pair<size_type, size_type> comp_hash;
+      typedef std::pair<size_type, size_type> 	comp_hash;
 
-      integral_constant<int, Store_Extra> m_store_extra_indicator;
-      typename no_throw_copies<Key, Mapped>::indicator m_no_throw_copies_indicator;
+      typedef integral_constant<int, Store_Extra> store_extra;
+      store_extra	m_store_extra_indicator;
+
+      typedef typename no_throw_copies<Key, Mapped>::indicator no_throw_copies;
+      no_throw_copies 	m_no_throw_copies_indicator;
     };
   } // namespace detail
-} // namespace pb_ds
+} // namespace __gnu_pbds
 
 #endif 

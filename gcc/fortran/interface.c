@@ -175,7 +175,8 @@ syntax:
 }
 
 
-/* Match one of the five forms of an interface statement.  */
+/* Match one of the five F95 forms of an interface statement.  The
+   matcher for the abstract interface follows.  */
 
 match
 gfc_match_interface (void)
@@ -232,10 +233,37 @@ gfc_match_interface (void)
       break;
 
     case INTERFACE_NAMELESS:
+    case INTERFACE_ABSTRACT:
       break;
     }
 
   return MATCH_YES;
+}
+
+
+
+/* Match a F2003 abstract interface.  */
+
+match
+gfc_match_abstract_interface (void)
+{
+  match m;
+
+  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ABSTRACT INTERFACE at %C")
+		      == FAILURE)
+    return MATCH_ERROR;
+
+  m = gfc_match_eos ();
+
+  if (m != MATCH_YES)
+    {
+      gfc_error ("Syntax error in ABSTRACT INTERFACE statement at %C");
+      return MATCH_ERROR;
+    }
+
+  current_interface.type = INTERFACE_ABSTRACT;
+
+  return m;
 }
 
 
@@ -270,7 +298,8 @@ gfc_match_end_interface (void)
   switch (current_interface.type)
     {
     case INTERFACE_NAMELESS:
-      if (type != current_interface.type)
+    case INTERFACE_ABSTRACT:
+      if (type != INTERFACE_NAMELESS)
 	{
 	  gfc_error ("Expected a nameless interface at %C");
 	  m = MATCH_ERROR;
@@ -957,11 +986,16 @@ check_interface0 (gfc_interface *p, const char *interface_name)
   /* Make sure all symbols in the interface have been defined as
      functions or subroutines.  */
   for (; p; p = p->next)
-    if (!p->sym->attr.function && !p->sym->attr.subroutine)
+    if ((!p->sym->attr.function && !p->sym->attr.subroutine)
+	|| !p->sym->attr.if_source)
       {
-	gfc_error ("Procedure '%s' in %s at %L is neither function nor "
-		   "subroutine", p->sym->name, interface_name,
-		   &p->sym->declared_at);
+	if (p->sym->attr.external)
+	  gfc_error ("Procedure '%s' in %s at %L has no explicit interface",
+		     p->sym->name, interface_name, &p->sym->declared_at);
+	else
+	  gfc_error ("Procedure '%s' in %s at %L is neither function nor "
+		     "subroutine", p->sym->name, interface_name,
+		     &p->sym->declared_at);
 	return 1;
       }
   p = psave;
@@ -1052,11 +1086,10 @@ check_sym_interfaces (gfc_symbol *sym)
 
       for (p = sym->generic; p; p = p->next)
 	{
-	  if (!p->sym->attr.use_assoc && p->sym->attr.mod_proc
-	      && p->sym->attr.if_source != IFSRC_DECL)
+	  if (p->sym->attr.mod_proc && p->sym->attr.if_source != IFSRC_DECL)
 	    {
-	      gfc_error ("MODULE PROCEDURE '%s' at %L does not come "
-			 "from a module", p->sym->name, &p->where);
+	      gfc_error ("'%s' at %L is not a module procedure",
+			 p->sym->name, &p->where);
 	      return;
 	    }
 	}
@@ -1680,14 +1713,14 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 	{
 	  if (a->expr->ts.type == BT_CHARACTER && !f->sym->as && where)
 	    gfc_warning ("Character length of actual argument shorter "
-			"than of dummy argument '%s' (%d/%d) at %L",
-			f->sym->name, (int) actual_size,
-			(int) formal_size, &a->expr->where);
+			"than of dummy argument '%s' (%lu/%lu) at %L",
+			f->sym->name, actual_size, formal_size,
+			&a->expr->where);
           else if (where)
 	    gfc_warning ("Actual argument contains too few "
-			"elements for dummy argument '%s' (%d/%d) at %L",
-			f->sym->name, (int) actual_size,
-			(int) formal_size, &a->expr->where);
+			"elements for dummy argument '%s' (%lu/%lu) at %L",
+			f->sym->name, actual_size, formal_size,
+			&a->expr->where);
 	  return  0;
 	}
 
@@ -2449,6 +2482,7 @@ gfc_add_interface (gfc_symbol *new)
   switch (current_interface.type)
     {
     case INTERFACE_NAMELESS:
+    case INTERFACE_ABSTRACT:
       return SUCCESS;
 
     case INTERFACE_INTRINSIC_OP:

@@ -11,7 +11,7 @@ typedef long long a64;
 a64 a[4];
 unsigned int b[4], c[4];
 
-void test ()
+NOMIPS16 void test ()
 {
   a[0] = (a64) b[0] * c[0];
   a[1] = (a64) b[1] * c[1];

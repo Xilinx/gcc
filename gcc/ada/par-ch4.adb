@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -27,6 +26,8 @@
 pragma Style_Checks (All_Checks);
 --  Turn off subprogram body ordering check. Subprograms are in order
 --  by RM section rather than alphabetical
+
+with Stringt; use Stringt;
 
 separate (Par)
 package body Ch4 is
@@ -69,7 +70,7 @@ package body Ch4 is
 
    procedure Bad_Range_Attribute (Loc : Source_Ptr) is
    begin
-      Error_Msg ("range attribute cannot be used in expression", Loc);
+      Error_Msg ("range attribute cannot be used in expression!", Loc);
       Resync_Expression;
    end Bad_Range_Attribute;
 
@@ -1267,18 +1268,14 @@ package body Ch4 is
             then
                Error_Msg
                  ("|parentheses not allowed for range attribute", Lparen_Sloc);
+               Scan; -- past right paren
                return Expr_Node;
             end if;
 
-            --  Bump paren count of expression, note that if the paren count
-            --  is already at the maximum, then we leave it alone. This will
-            --  cause some failures in pathalogical conformance tests, which
-            --  we do not shed a tear over!
+            --  Bump paren count of expression
 
             if Expr_Node /= Error then
-               if Paren_Count (Expr_Node) /= Paren_Count_Type'Last then
-                  Set_Paren_Count (Expr_Node, Paren_Count (Expr_Node) + 1);
-               end if;
+               Set_Paren_Count (Expr_Node, Paren_Count (Expr_Node) + 1);
             end if;
 
             T_Right_Paren; -- past right paren (error message if none)
@@ -1439,11 +1436,11 @@ package body Ch4 is
       if Token = Tok_Box then
 
          --  Ada 2005(AI-287): The box notation is used to indicate the
-         --  default initialization of limited aggregate components
+         --  default initialization of aggregate components
 
          if Ada_Version < Ada_05 then
             Error_Msg_SP
-              ("limited aggregate is an Ada 2005 extension");
+              ("component association with '<'> is an Ada 2005 extension");
             Error_Msg_SP ("\unit must be compiled with -gnat05 switch");
          end if;
 
@@ -1577,11 +1574,13 @@ package body Ch4 is
    --  called in all contexts where a right parenthesis cannot legitimately
    --  follow an expression.
 
-   --  Error recovery: can raise Error_Resync
+   --  Error recovery: can not raise Error_Resync
 
    function P_Expression_No_Right_Paren return Node_Id is
+      Expr : constant Node_Id := P_Expression;
    begin
-      return No_Right_Paren (P_Expression);
+      Check_No_Right_Paren;
+      return Expr;
    end P_Expression_No_Right_Paren;
 
    ----------------------------------------
@@ -1805,7 +1804,10 @@ package body Ch4 is
 
          else
             if Token = Tok_Double_Asterisk then
-               if Style_Check then Style.Check_Exponentiation_Operator; end if;
+               if Style_Check then
+                  Style.Check_Exponentiation_Operator;
+               end if;
+
                Node2 := New_Node (N_Op_Expon, Token_Ptr);
                Scan; -- past **
                Set_Left_Opnd (Node2, Node1);
@@ -1818,7 +1820,11 @@ package body Ch4 is
                exit when Token not in Token_Class_Mulop;
                Tokptr := Token_Ptr;
                Node2 := New_Node (P_Multiplying_Operator, Tokptr);
-               if Style_Check then Style.Check_Binary_Operator; end if;
+
+               if Style_Check then
+                  Style.Check_Binary_Operator;
+               end if;
+
                Scan; -- past operator
                Set_Left_Opnd (Node2, Node1);
                Set_Right_Opnd (Node2, P_Factor);
@@ -1830,7 +1836,11 @@ package body Ch4 is
                exit when Token not in Token_Class_Binary_Addop;
                Tokptr := Token_Ptr;
                Node2 := New_Node (P_Binary_Adding_Operator, Tokptr);
-               if Style_Check then Style.Check_Binary_Operator; end if;
+
+               if Style_Check then
+                  Style.Check_Binary_Operator;
+               end if;
+
                Scan; -- past operator
                Set_Left_Opnd (Node2, Node1);
                Set_Right_Opnd (Node2, P_Term);
@@ -1849,7 +1859,11 @@ package body Ch4 is
          if Token in Token_Class_Unary_Addop then
             Tokptr := Token_Ptr;
             Node1 := New_Node (P_Unary_Adding_Operator, Tokptr);
-            if Style_Check then Style.Check_Unary_Plus_Or_Minus; end if;
+
+            if Style_Check then
+               Style.Check_Unary_Plus_Or_Minus;
+            end if;
+
             Scan; -- past operator
             Set_Right_Opnd (Node1, P_Term);
             Set_Op_Name (Node1);
@@ -1857,18 +1871,122 @@ package body Ch4 is
             Node1 := P_Term;
          end if;
 
-         --  Scan out sequence of terms separated by binary adding operators
+         --  In the following, we special-case a sequence of concatentations of
+         --  string literals, such as "aaa" & "bbb" & ... & "ccc", with nothing
+         --  else mixed in. For such a sequence, we return a tree representing
+         --  "" & "aaabbb...ccc" (a single concatenation). This is done only if
+         --  the number of concatenations is large. If semantic analysis
+         --  resolves the "&" to a predefined one, then this folding gives the
+         --  right answer. Otherwise, semantic analysis will complain about a
+         --  capacity-exceeded error. The purpose of this trick is to avoid
+         --  creating a deeply nested tree, which would cause deep recursion
+         --  during semantics, causing stack overflow. This way, we can handle
+         --  enormous concatenations in the normal case of predefined "&".  We
+         --  first build up the normal tree, and then rewrite it if
+         --  appropriate.
 
-         loop
-            exit when Token not in Token_Class_Binary_Addop;
-            Tokptr := Token_Ptr;
-            Node2 := New_Node (P_Binary_Adding_Operator, Tokptr);
-            Scan; -- past operator
-            Set_Left_Opnd (Node2, Node1);
-            Set_Right_Opnd (Node2, P_Term);
-            Set_Op_Name (Node2);
-            Node1 := Node2;
-         end loop;
+         declare
+            Num_Concats_Threshold : constant Positive := 1000;
+            --  Arbitrary threshold value to enable optimization
+
+            First_Node : constant Node_Id := Node1;
+            Is_Strlit_Concat : Boolean;
+            --  True iff we've parsed a sequence of concatenations of string
+            --  literals, with nothing else mixed in.
+
+            Num_Concats : Natural;
+            --  Number of "&" operators if Is_Strlit_Concat is True
+
+         begin
+            Is_Strlit_Concat :=
+              Nkind (Node1) = N_String_Literal
+                and then Token = Tok_Ampersand;
+            Num_Concats := 0;
+
+            --  Scan out sequence of terms separated by binary adding operators
+
+            loop
+               exit when Token not in Token_Class_Binary_Addop;
+               Tokptr := Token_Ptr;
+               Node2 := New_Node (P_Binary_Adding_Operator, Tokptr);
+               Scan; -- past operator
+               Set_Left_Opnd (Node2, Node1);
+               Node1 := P_Term;
+               Set_Right_Opnd (Node2, Node1);
+               Set_Op_Name (Node2);
+
+               --  Check if we're still concatenating string literals
+
+               Is_Strlit_Concat :=
+                 Is_Strlit_Concat
+                   and then Nkind (Node2) = N_Op_Concat
+                 and then Nkind (Node1) = N_String_Literal;
+
+               if Is_Strlit_Concat then
+                  Num_Concats := Num_Concats + 1;
+               end if;
+
+               Node1 := Node2;
+            end loop;
+
+            --  If we have an enormous series of concatenations of string
+            --  literals, rewrite as explained above. The Is_Folded_In_Parser
+            --  flag tells semantic analysis that if the "&" is not predefined,
+            --  the folded value is wrong.
+
+            if Is_Strlit_Concat
+              and then Num_Concats >= Num_Concats_Threshold
+            then
+               declare
+                  Empty_String_Val : String_Id;
+                  --  String_Id for ""
+
+                  Strlit_Concat_Val : String_Id;
+                  --  Contains the folded value (which will be correct if the
+                  --  "&" operators are the predefined ones).
+
+                  Cur_Node : Node_Id;
+                  --  For walking up the tree
+
+                  New_Node : Node_Id;
+                  --  Folded node to replace Node1
+
+                  Loc : constant Source_Ptr := Sloc (First_Node);
+
+               begin
+                  --  Walk up the tree starting at the leftmost string literal
+                  --  (First_Node), building up the Strlit_Concat_Val as we
+                  --  go. Note that we do not use recursion here -- the whole
+                  --  point is to avoid recursively walking that enormous tree.
+
+                  Start_String;
+                  Store_String_Chars (Strval (First_Node));
+
+                  Cur_Node := Parent (First_Node);
+                  while Present (Cur_Node) loop
+                     pragma Assert (Nkind (Cur_Node) = N_Op_Concat and then
+                        Nkind (Right_Opnd (Cur_Node)) = N_String_Literal);
+
+                     Store_String_Chars (Strval (Right_Opnd (Cur_Node)));
+                     Cur_Node := Parent (Cur_Node);
+                  end loop;
+
+                  Strlit_Concat_Val := End_String;
+
+                  --  Create new folded node, and rewrite result with a concat-
+                  --  enation of an empty string literal and the folded node.
+
+                  Start_String;
+                  Empty_String_Val := End_String;
+                  New_Node :=
+                    Make_Op_Concat (Loc,
+                      Make_String_Literal (Loc, Empty_String_Val),
+                      Make_String_Literal (Loc, Strlit_Concat_Val,
+                        Is_Folded_In_Parser => True));
+                  Rewrite (Node1, New_Node);
+               end;
+            end if;
+         end;
 
          --  All done, we clearly do not have name or numeric literal so this
          --  is a case of a simple expression which is some other possibility.
@@ -1951,6 +2069,39 @@ package body Ch4 is
       Attr_Node : Node_Id;
 
    begin
+      --  We don't just want to roar ahead and call P_Simple_Expression
+      --  here, since we want to handle the case of a parenthesized range
+      --  attribute cleanly.
+
+      if Token = Tok_Left_Paren then
+         declare
+            Lptr       : constant Source_Ptr := Token_Ptr;
+            Scan_State : Saved_Scan_State;
+
+         begin
+            Save_Scan_State (Scan_State);
+            Scan; -- past left paren
+            Sexpr := P_Simple_Expression;
+
+            if Token = Tok_Apostrophe then
+               Attr_Node := P_Range_Attribute_Reference (Sexpr);
+               Expr_Form := EF_Range_Attr;
+
+               if Token = Tok_Right_Paren then
+                  Scan; -- scan past right paren if present
+               end if;
+
+               Error_Msg ("parentheses not allowed for range attribute", Lptr);
+
+               return Attr_Node;
+            end if;
+
+            Restore_Scan_State (Scan_State);
+         end;
+      end if;
+
+      --  Here after dealing with parenthesized range attribute
+
       Sexpr := P_Simple_Expression;
 
       if Token = Tok_Apostrophe then
@@ -2007,7 +2158,11 @@ package body Ch4 is
    begin
       if Token = Tok_Abs then
          Node1 := New_Node (N_Op_Abs, Token_Ptr);
-         if Style_Check then Style.Check_Abs_Not; end if;
+
+         if Style_Check then
+            Style.Check_Abs_Not;
+         end if;
+
          Scan; -- past ABS
          Set_Right_Opnd (Node1, P_Primary);
          Set_Op_Name (Node1);
@@ -2015,7 +2170,11 @@ package body Ch4 is
 
       elsif Token = Tok_Not then
          Node1 := New_Node (N_Op_Not, Token_Ptr);
-         if Style_Check then Style.Check_Abs_Not; end if;
+
+         if Style_Check then
+            Style.Check_Abs_Not;
+         end if;
+
          Scan; -- past NOT
          Set_Right_Opnd (Node1, P_Primary);
          Set_Op_Name (Node1);
@@ -2116,7 +2275,18 @@ package body Ch4 is
             --  Left paren, starts aggregate or parenthesized expression
 
             when Tok_Left_Paren =>
-               return P_Aggregate_Or_Paren_Expr;
+               declare
+                  Expr : constant Node_Id := P_Aggregate_Or_Paren_Expr;
+
+               begin
+                  if Nkind (Expr) = N_Attribute_Reference
+                    and then Attribute_Name (Expr) = Name_Range
+                  then
+                     Bad_Range_Attribute (Sloc (Expr));
+                  end if;
+
+                  return Expr;
+               end;
 
             --  Allocator
 
@@ -2174,7 +2344,10 @@ package body Ch4 is
    function P_Logical_Operator return Node_Kind is
    begin
       if Token = Tok_And then
-         if Style_Check then Style.Check_Binary_Operator; end if;
+         if Style_Check then
+            Style.Check_Binary_Operator;
+         end if;
+
          Scan; -- past AND
 
          if Token = Tok_Then then
@@ -2185,7 +2358,10 @@ package body Ch4 is
          end if;
 
       elsif Token = Tok_Or then
-         if Style_Check then Style.Check_Binary_Operator; end if;
+         if Style_Check then
+            Style.Check_Binary_Operator;
+         end if;
+
          Scan; -- past OR
 
          if Token = Tok_Else then
@@ -2196,7 +2372,10 @@ package body Ch4 is
          end if;
 
       else -- Token = Tok_Xor
-         if Style_Check then Style.Check_Binary_Operator; end if;
+         if Style_Check then
+            Style.Check_Binary_Operator;
+         end if;
+
          Scan; -- past XOR
          return N_Op_Xor;
       end if;
@@ -2235,7 +2414,11 @@ package body Ch4 is
       end if;
 
       Op_Kind := Relop_Node (Token);
-      if Style_Check then Style.Check_Binary_Operator; end if;
+
+      if Style_Check then
+         Style.Check_Binary_Operator;
+      end if;
+
       Scan; -- past operator token
 
       if Prev_Token = Tok_Not then

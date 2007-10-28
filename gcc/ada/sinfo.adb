@@ -185,6 +185,14 @@ package body Sinfo is
       return Node4 (N);
    end Actual_Designated_Subtype;
 
+   function Address_Warning_Posted
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Attribute_Definition_Clause);
+      return Flag18 (N);
+   end Address_Warning_Posted;
+
    function Aggregate_Bounds
       (N : Node_Id) return Node_Id is
    begin
@@ -1550,14 +1558,6 @@ package body Sinfo is
       return Flag7 (N);
    end Is_Asynchronous_Call_Block;
 
-   function Is_Coextension
-      (N : Node_Id) return Boolean is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Allocator);
-      return Flag18 (N);
-   end Is_Coextension;
-
    function Is_Component_Left_Opnd
       (N : Node_Id) return Boolean is
    begin
@@ -1582,6 +1582,14 @@ package body Sinfo is
       return Flag16 (N);
    end Is_Controlling_Actual;
 
+   function Is_Dynamic_Coextension
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Allocator);
+      return Flag18 (N);
+   end Is_Dynamic_Coextension;
+
    function Is_Entry_Barrier_Function
       (N : Node_Id) return Boolean is
    begin
@@ -1589,6 +1597,22 @@ package body Sinfo is
         or else NT (N).Nkind = N_Subprogram_Body);
       return Flag8 (N);
    end Is_Entry_Barrier_Function;
+
+   function Is_Expanded_Build_In_Place_Call
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Function_Call);
+      return Flag11 (N);
+   end Is_Expanded_Build_In_Place_Call;
+
+   function Is_Folded_In_Parser
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_String_Literal);
+      return Flag4 (N);
+   end Is_Folded_In_Parser;
 
    function Is_In_Discriminant_Check
       (N : Node_Id) return Boolean is
@@ -2892,6 +2916,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Free_Statement);
       Set_Node4 (N, Val);
    end Set_Actual_Designated_Subtype;
+
+   procedure Set_Address_Warning_Posted
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Attribute_Definition_Clause);
+      Set_Flag18 (N, Val);
+   end Set_Address_Warning_Posted;
 
    procedure Set_Aggregate_Bounds
       (N : Node_Id; Val : Node_Id) is
@@ -4249,14 +4281,6 @@ package body Sinfo is
       Set_Flag7 (N, Val);
    end Set_Is_Asynchronous_Call_Block;
 
-   procedure Set_Is_Coextension
-      (N : Node_Id; Val : Boolean := True) is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Allocator);
-      Set_Flag18 (N, Val);
-   end Set_Is_Coextension;
-
    procedure Set_Is_Component_Left_Opnd
       (N : Node_Id; Val : Boolean := True) is
    begin
@@ -4281,6 +4305,14 @@ package body Sinfo is
       Set_Flag16 (N, Val);
    end Set_Is_Controlling_Actual;
 
+   procedure Set_Is_Dynamic_Coextension
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Allocator);
+      Set_Flag18 (N, Val);
+   end Set_Is_Dynamic_Coextension;
+
    procedure Set_Is_Entry_Barrier_Function
       (N : Node_Id; Val : Boolean := True) is
    begin
@@ -4288,6 +4320,22 @@ package body Sinfo is
         or else NT (N).Nkind = N_Subprogram_Body);
       Set_Flag8 (N, Val);
    end Set_Is_Entry_Barrier_Function;
+
+   procedure Set_Is_Expanded_Build_In_Place_Call
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Function_Call);
+      Set_Flag11 (N, Val);
+   end Set_Is_Expanded_Build_In_Place_Call;
+
+   procedure Set_Is_Folded_In_Parser
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_String_Literal);
+      Set_Flag4 (N, Val);
+   end Set_Is_Folded_In_Parser;
 
    procedure Set_Is_In_Discriminant_Check
       (N : Node_Id; Val : Boolean := True) is

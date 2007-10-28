@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -1906,14 +1905,13 @@ package body Sem_Elab is
       --  Delay this call if we are still delaying calls
 
       if Delaying_Elab_Checks then
-         Delay_Check.Increment_Last;
-         Delay_Check.Table (Delay_Check.Last) :=
+         Delay_Check.Append (
            (N              => N,
             E              => E,
             Orig_Ent       => Orig_Ent,
             Curscop        => Current_Scope,
             Outer_Scope    => Outer_Scope,
-            From_Elab_Code => From_Elab_Code);
+            From_Elab_Code => From_Elab_Code));
          return;
 
       --  Otherwise, call phase 2 continuation right now
@@ -2031,8 +2029,7 @@ package body Sem_Elab is
          Outer_Level_Sloc := Loc;
       end if;
 
-      Elab_Visited.Increment_Last;
-      Elab_Visited.Table (Elab_Visited.Last) := E;
+      Elab_Visited.Append (E);
 
       --  If the call is to a function that renames a literal, no check
       --  is needed.
@@ -2076,9 +2073,7 @@ package body Sem_Elab is
       else
          pragma Assert (Nkind (Sbody) = N_Subprogram_Body);
 
-         Elab_Call.Increment_Last;
-         Elab_Call.Table (Elab_Call.Last).Cloc := Loc;
-         Elab_Call.Table (Elab_Call.Last).Ent  := E;
+         Elab_Call.Append ((Cloc => Loc, Ent => E));
 
          if Debug_Flag_LL then
             Write_Str ("Elab_Call.Last = ");

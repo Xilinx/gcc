@@ -1,4 +1,7 @@
 /* { dg-do compile } */
+/* If the target returns false for TARGET_PROMOTE_PROTOTYPES, then there
+   will be no casts for FRE to eliminate and the test will fail.  */
+/* { dg-skip-if "no promotion to eliminate" { cris-*-* mmix-*-* } { "*" } { "" } } */
 /* { dg-options "-O -fdump-tree-fre-details" } */
 
 /* From PR21608.  */
@@ -9,6 +12,5 @@ char bar(char f)
         return wrap(f);
 }
 
-/* { dg-final { scan-tree-dump "Replaced \\\(char\\\) .*with " "fre" { xfail *-*-* } } } */
-/* { dg-final { scan-tree-dump "Replaced \\\(int\\\) .*with " "fre" { xfail *-*-* } } } */
+/* { dg-final { scan-tree-dump "Replaced \\\(char\\\) .*with " "fre" } } */
 /* { dg-final { cleanup-tree-dump "fre" } } */

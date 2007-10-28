@@ -76,15 +76,6 @@ along with GCC; see the file COPYING3.  If not see
       ??? On the tree-ssa genericizing should take place here and we will avoid
       need for these hooks (replacing them by genericizing hook)
 
-    - expand_function callback
-
-      This function is used to expand function and pass it into RTL back-end.
-      Front-end should not make any assumptions about when this function can be
-      called.  In particular cgraph_assemble_pending_functions,
-      varpool_assemble_pending_variables, cgraph_finalize_function,
-      varpool_finalize_function, cgraph_optimize can cause arbitrarily
-      previously finalized functions to be expanded.
-
     We implement two compilation modes.
 
       - unit-at-a-time:  In this mode analyzing of all functions is deferred
@@ -180,21 +171,26 @@ static GTY (()) tree static_dtors;
 static void
 record_cdtor_fn (tree fndecl)
 {
-  if (targetm.have_ctors_dtors)
+  struct cgraph_node *node;
+  if (targetm.have_ctors_dtors
+      || (!DECL_STATIC_CONSTRUCTOR (fndecl)
+	  && !DECL_STATIC_DESTRUCTOR (fndecl)))
     return;
 
   if (DECL_STATIC_CONSTRUCTOR (fndecl))
     {
       static_ctors = tree_cons (NULL_TREE, fndecl, static_ctors);
       DECL_STATIC_CONSTRUCTOR (fndecl) = 0;
-      cgraph_mark_reachable_node (cgraph_node (fndecl));
     }
   if (DECL_STATIC_DESTRUCTOR (fndecl))
     {
       static_dtors = tree_cons (NULL_TREE, fndecl, static_dtors);
       DECL_STATIC_DESTRUCTOR (fndecl) = 0;
-      cgraph_mark_reachable_node (cgraph_node (fndecl));
     }
+  DECL_INLINE (fndecl) = 1;
+  node = cgraph_node (fndecl);
+  node->local.disregard_inline_limits = 1;
+  cgraph_mark_reachable_node (node);
 }
 
 /* Synthesize a function which calls all the global ctors or global
@@ -376,7 +372,7 @@ cgraph_process_new_functions (void)
 	  node->local.self_insns = estimate_num_insns (fndecl,
 						       &eni_inlining_weights);
 	  node->local.disregard_inline_limits
-	    = lang_hooks.tree_inlining.disregard_inline_limits (fndecl);
+	    |= DECL_DISREGARD_INLINE_LIMITS (fndecl);
 	  /* Inlining characteristics are maintained by the
 	     cgraph_mark_inline.  */
 	  node->global.insns = node->local.self_insns;
@@ -1048,8 +1044,6 @@ cgraph_mark_functions_to_output (void)
 static void
 cgraph_expand_function (struct cgraph_node *node)
 {
-  enum debug_info_type save_write_symbols = NO_DEBUG;
-  const struct gcc_debug_hooks *save_debug_hooks = NULL;
   tree decl = node->decl;
 
   /* We ought to not compile any inline clones.  */
@@ -1060,26 +1054,14 @@ cgraph_expand_function (struct cgraph_node *node)
 
   gcc_assert (node->lowered);
 
-  if (DECL_IGNORED_P (decl))
-    {
-      save_write_symbols = write_symbols;
-      write_symbols = NO_DEBUG;
-      save_debug_hooks = debug_hooks;
-      debug_hooks = &do_nothing_debug_hooks;
-    }
-
   /* Generate RTL for the body of DECL.  */
-  lang_hooks.callgraph.expand_function (decl);
+  if (lang_hooks.callgraph.emit_associated_thunks)
+    lang_hooks.callgraph.emit_associated_thunks (decl);
+  tree_rest_of_compilation (decl);
 
   /* Make sure that BE didn't give up on compiling.  */
   /* ??? Can happen with nested function of extern inline.  */
   gcc_assert (TREE_ASM_WRITTEN (node->decl));
-
-  if (DECL_IGNORED_P (decl))
-    {
-      write_symbols = save_write_symbols;
-      debug_hooks = save_debug_hooks;
-    }
 
   current_function_decl = NULL;
   if (!cgraph_preserve_function_body_p (node->decl))
@@ -1247,7 +1229,7 @@ cgraph_preserve_function_body_p (tree decl)
   struct cgraph_node *node;
   if (!cgraph_global_info_ready)
     return (flag_really_no_inline
-	    ? lang_hooks.tree_inlining.disregard_inline_limits (decl)
+	    ? DECL_DISREGARD_INLINE_LIMITS (decl)
 	    : DECL_INLINE (decl));
   /* Look if there is any clone around.  */
   for (node = cgraph_node (decl); node; node = node->next_clone)
@@ -1259,7 +1241,7 @@ cgraph_preserve_function_body_p (tree decl)
 static void
 ipa_passes (void)
 {
-  cfun = NULL;
+  set_cfun (NULL);
   current_function_decl = NULL;
   tree_register_cfg_hooks ();
   bitmap_obstack_initialize (NULL);
@@ -1402,7 +1384,6 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
 
   resdecl = build_decl (RESULT_DECL, NULL_TREE, void_type_node);
   DECL_ARTIFICIAL (resdecl) = 1;
-  DECL_IGNORED_P (resdecl) = 1;
   DECL_RESULT (decl) = resdecl;
 
   allocate_struct_function (decl);
@@ -1410,7 +1391,6 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
   TREE_STATIC (decl) = 1;
   TREE_USED (decl) = 1;
   DECL_ARTIFICIAL (decl) = 1;
-  DECL_IGNORED_P (decl) = 1;
   DECL_NO_INSTRUMENT_FUNCTION_ENTRY_EXIT (decl) = 1;
   DECL_SAVED_TREE (decl) = body;
   TREE_PUBLIC (decl) = ! targetm.have_ctors_dtors;

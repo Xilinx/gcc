@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -132,10 +131,9 @@ package body Sinput.L is
       A.Lo := Source_File.Table (Xold).Source_First;
       A.Hi := Source_File.Table (Xold).Source_Last;
 
-      Source_File.Increment_Last;
+      Source_File.Append (Source_File.Table (Xold));
       Xnew := Source_File.Last;
 
-      Source_File.Table (Xnew)               := Source_File.Table (Xold);
       Source_File.Table (Xnew).Inlined_Body  := Inlined_Body;
       Source_File.Table (Xnew).Instantiation := Sloc (Inst_Node);
       Source_File.Table (Xnew).Template      := Xold;
@@ -148,6 +146,7 @@ package body Sinput.L is
         Source_File.Table (Xnew - 1).Source_Last + 1;
       A.Adjust := Source_File.Table (Xnew).Source_First - A.Lo;
       Source_File.Table (Xnew).Source_Last := A.Hi + A.Adjust;
+
       Set_Source_File_Index_Table (Xnew);
 
       Source_File.Table (Xnew).Sloc_Adjust :=

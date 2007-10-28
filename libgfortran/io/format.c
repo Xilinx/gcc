@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -32,11 +32,9 @@ Boston, MA 02110-1301, USA.  */
 /* format.c-- parse a FORMAT string into a binary format suitable for
  * interpretation during I/O statements */
 
-#include "config.h"
+#include "io.h"
 #include <ctype.h>
 #include <string.h>
-#include "libgfortran.h"
-#include "io.h"
 
 #define FARRAY_SIZE 64
 
@@ -92,7 +90,7 @@ next_char (format_data *fmt, int literal)
       fmt->format_string_len--;
       c = toupper (*fmt->format_string++);
     }
-  while (c == ' ' && !literal);
+  while ((c == ' ' || c == '\t') && !literal);
 
   return c;
 }
@@ -944,7 +942,7 @@ format_error (st_parameter_dt *dtp, const fnode *f, const char *message)
   *p++ = '^';
   *p = '\0';
 
-  generate_error (&dtp->common, ERROR_FORMAT, buffer);
+  generate_error (&dtp->common, LIBERROR_FORMAT, buffer);
 }
 
 

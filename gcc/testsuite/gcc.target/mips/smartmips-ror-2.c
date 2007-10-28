@@ -1,7 +1,7 @@
 /* { dg-do compile } */
-/* { dg-mips-options "-O -msmartmips -mno-mips16" } */
+/* { dg-mips-options "-O -msmartmips" } */
 
-int rotate_right (unsigned a, unsigned s)
+NOMIPS16 int rotate_right (unsigned a, unsigned s)
 {
   return (a >> s) | (a << (32 - s));
 }

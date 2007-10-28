@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -41,50 +41,47 @@
 
 /**
  * @file native_hash_multimap.hpp
- * Contains an adapter to Dinkumware/SGI hash tables
+ * Contains an adapter to TR1 unordered containers.
  */
 
 #ifndef PB_DS_NATIVE_HASH_MULTIMAP_HPP
 #define PB_DS_NATIVE_HASH_MULTIMAP_HPP
 
 #include <string>
-#include <ext/hash_map>
+#include <tr1/unordered_map>
 #include <ext/pb_ds/detail/type_utils.hpp>
 #include <ext/pb_ds/detail/standard_policies.hpp>
 #include <native_type/assoc/native_hash_tag.hpp>
 #include <io/xml.hpp>
 
-namespace pb_ds
+namespace __gnu_pbds
 {
   namespace test
   {
 #define PB_DS_BASE_C_DEC \
-    __gnu_cxx::hash_multimap<Key, Data, Hash_Fn, Eq_Fn, Allocator>
+    std::tr1::unordered_multimap<Key, Data, Hash_Fn, Eq_Fn, Allocator>
 
     template<typename Key,
 	     typename Data,
 	     size_t Init_Size = 8,
-	     class Hash_Fn = typename pb_ds::detail::default_hash_fn<Key>::type,
+       class Hash_Fn = typename __gnu_pbds::detail::default_hash_fn<Key>::type,
 	     class Eq_Fn = std::equal_to<Key>,
 	     class Less_Fn = std::less<Key>,
 	     class Allocator = std::allocator<char> >
     class native_hash_multimap : public PB_DS_BASE_C_DEC
     {
     private:
-      typedef PB_DS_BASE_C_DEC base_type;
+      typedef PB_DS_BASE_C_DEC 			base_type;
+      typedef std::pair<Key, Data> 		pair_type;
 
     public:
-      typedef native_hash_tag container_category;
-
-      typedef Allocator allocator;
-
-      typedef typename base_type::iterator iterator;
-
+      typedef native_hash_tag 			container_category;
+      typedef Allocator 			allocator;
+      typedef typename base_type::iterator 	iterator;
       typedef typename base_type::const_iterator const_iterator;
 
       typedef
-      typename Allocator::template rebind<
-	std::pair<Key, Data> >::other::const_reference
+      typename allocator::template rebind<pair_type>::other::const_reference
       const_reference;
 
       native_hash_multimap() : base_type(Init_Size)
@@ -95,7 +92,7 @@ namespace pb_ds
       { }
 
       inline void
-      insert(typename base_type::const_reference r_val)
+      insert(const_reference r_val)
       {
         typedef std::pair<iterator, iterator> eq_range_t;
         eq_range_t f = base_type::equal_range(r_val.first);
@@ -148,14 +145,12 @@ namespace pb_ds
 
       static std::string
       desc()
-      {
-        return make_xml_tag("type", "value", "__gnucxx_hash_multimap");
-      }
+      { return make_xml_tag("type", "value", "__gnucxx_hash_multimap"); }
     };
 
 #undef PB_DS_BASE_C_DEC
 
   } // namespace test
-} // namespace pb_ds
+} // namespace __gnu_pbds
 
 #endif 

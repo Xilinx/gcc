@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -30,6 +29,7 @@ with Exp_Util; use Exp_Util;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Rtsfind;  use Rtsfind;
+with Sem_Util; use Sem_Util;
 with Stand;    use Stand;
 with Snames;   use Snames;
 with Tbuild;   use Tbuild;
@@ -139,7 +139,7 @@ package body Exp_Atag is
               Make_Assignment_Statement (Loc,
                 Name       => Make_Identifier (Loc, Name_uF),
                 Expression => New_Reference_To (Standard_True, Loc)),
-              Make_Return_Statement (Loc))));
+              Make_Simple_Return_Statement (Loc))));
    end Build_Common_Dispatching_Select_Statements;
 
    -------------------------
@@ -253,40 +253,67 @@ package body Exp_Atag is
 
    function Build_Inherit_Prims
      (Loc          : Source_Ptr;
+      Typ          : Entity_Id;
       Old_Tag_Node : Node_Id;
       New_Tag_Node : Node_Id;
       Num_Prims    : Nat) return Node_Id
    is
    begin
-      return
-        Make_Assignment_Statement (Loc,
-          Name =>
-            Make_Slice (Loc,
-              Prefix =>
-                Make_Selected_Component (Loc,
-                  Prefix =>
-                    Build_DT (Loc, New_Tag_Node),
-                  Selector_Name =>
-                    New_Reference_To
-                      (RTE_Record_Component (RE_Prims_Ptr), Loc)),
-              Discrete_Range =>
-                Make_Range (Loc,
-                Low_Bound  => Make_Integer_Literal (Loc, 1),
-                High_Bound => Make_Integer_Literal (Loc, Num_Prims))),
+      if RTE_Available (RE_DT) then
+         return
+           Make_Assignment_Statement (Loc,
+             Name =>
+               Make_Slice (Loc,
+                 Prefix =>
+                   Make_Selected_Component (Loc,
+                     Prefix =>
+                       Build_DT (Loc, New_Tag_Node),
+                     Selector_Name =>
+                       New_Reference_To
+                         (RTE_Record_Component (RE_Prims_Ptr), Loc)),
+                 Discrete_Range =>
+                   Make_Range (Loc,
+                   Low_Bound  => Make_Integer_Literal (Loc, 1),
+                   High_Bound => Make_Integer_Literal (Loc, Num_Prims))),
 
-          Expression =>
-            Make_Slice (Loc,
-              Prefix =>
-                Make_Selected_Component (Loc,
-                  Prefix =>
-                    Build_DT (Loc, Old_Tag_Node),
-                  Selector_Name =>
-                    New_Reference_To
-                      (RTE_Record_Component (RE_Prims_Ptr), Loc)),
-              Discrete_Range =>
-                Make_Range (Loc,
-                Low_Bound  => Make_Integer_Literal (Loc, 1),
-                High_Bound => Make_Integer_Literal (Loc, Num_Prims))));
+             Expression =>
+               Make_Slice (Loc,
+                 Prefix =>
+                   Make_Selected_Component (Loc,
+                     Prefix =>
+                       Build_DT (Loc, Old_Tag_Node),
+                     Selector_Name =>
+                       New_Reference_To
+                         (RTE_Record_Component (RE_Prims_Ptr), Loc)),
+                 Discrete_Range =>
+                   Make_Range (Loc,
+                     Low_Bound  => Make_Integer_Literal (Loc, 1),
+                     High_Bound => Make_Integer_Literal (Loc, Num_Prims))));
+      else
+         return
+           Make_Assignment_Statement (Loc,
+             Name =>
+               Make_Slice (Loc,
+                 Prefix =>
+                   Unchecked_Convert_To
+                     (Node (Last_Elmt (Access_Disp_Table (Typ))),
+                      New_Tag_Node),
+                 Discrete_Range =>
+                   Make_Range (Loc,
+                   Low_Bound  => Make_Integer_Literal (Loc, 1),
+                   High_Bound => Make_Integer_Literal (Loc, Num_Prims))),
+
+             Expression =>
+               Make_Slice (Loc,
+                 Prefix =>
+                   Unchecked_Convert_To
+                     (Node (Last_Elmt (Access_Disp_Table (Typ))),
+                      Old_Tag_Node),
+                 Discrete_Range =>
+                   Make_Range (Loc,
+                     Low_Bound  => Make_Integer_Literal (Loc, 1),
+                     High_Bound => Make_Integer_Literal (Loc, Num_Prims))));
+      end if;
    end Build_Inherit_Prims;
 
    -------------------------------
@@ -342,39 +369,64 @@ package body Exp_Atag is
       New_Tag_Node : Node_Id) return Node_Id
    is
    begin
-      return
-        Make_Assignment_Statement (Loc,
-          Name =>
-            Make_Slice (Loc,
-              Prefix =>
-                Make_Explicit_Dereference (Loc,
-                  Unchecked_Convert_To (RTE (RE_Predef_Prims_Table_Ptr),
-                    Make_Selected_Component (Loc,
-                      Prefix =>
-                        Build_DT (Loc, New_Tag_Node),
-                      Selector_Name =>
-                        New_Reference_To
-                          (RTE_Record_Component (RE_Predef_Prims), Loc)))),
-              Discrete_Range => Make_Range (Loc,
-                Make_Integer_Literal (Loc, Uint_1),
-                New_Reference_To (RTE (RE_Default_Prim_Op_Count), Loc))),
+      if RTE_Available (RE_DT) then
+         return
+           Make_Assignment_Statement (Loc,
+             Name =>
+               Make_Slice (Loc,
+                 Prefix =>
+                   Make_Explicit_Dereference (Loc,
+                     Unchecked_Convert_To (RTE (RE_Predef_Prims_Table_Ptr),
+                       Make_Selected_Component (Loc,
+                         Prefix =>
+                           Build_DT (Loc, New_Tag_Node),
+                         Selector_Name =>
+                           New_Reference_To
+                             (RTE_Record_Component (RE_Predef_Prims), Loc)))),
+                 Discrete_Range => Make_Range (Loc,
+                   Make_Integer_Literal (Loc, Uint_1),
+                   New_Reference_To (RTE (RE_Max_Predef_Prims), Loc))),
 
-          Expression =>
-            Make_Slice (Loc,
-              Prefix =>
-                Make_Explicit_Dereference (Loc,
-                  Unchecked_Convert_To (RTE (RE_Predef_Prims_Table_Ptr),
-                    Make_Selected_Component (Loc,
-                      Prefix =>
-                        Build_DT (Loc, Old_Tag_Node),
-                      Selector_Name =>
-                        New_Reference_To
-                          (RTE_Record_Component (RE_Predef_Prims), Loc)))),
-              Discrete_Range =>
-                Make_Range (Loc,
-                  Low_Bound  => Make_Integer_Literal (Loc, 1),
-                  High_Bound =>
-                    New_Reference_To (RTE (RE_Default_Prim_Op_Count), Loc))));
+             Expression =>
+               Make_Slice (Loc,
+                 Prefix =>
+                   Make_Explicit_Dereference (Loc,
+                     Unchecked_Convert_To (RTE (RE_Predef_Prims_Table_Ptr),
+                       Make_Selected_Component (Loc,
+                         Prefix =>
+                           Build_DT (Loc, Old_Tag_Node),
+                         Selector_Name =>
+                           New_Reference_To
+                             (RTE_Record_Component (RE_Predef_Prims), Loc)))),
+
+                 Discrete_Range =>
+                   Make_Range (Loc,
+                     Low_Bound  => Make_Integer_Literal (Loc, 1),
+                     High_Bound =>
+                       New_Reference_To (RTE (RE_Max_Predef_Prims), Loc))));
+      else
+         return
+           Make_Assignment_Statement (Loc,
+             Name =>
+               Make_Slice (Loc,
+                 Prefix =>
+                   Make_Explicit_Dereference (Loc,
+                     Build_Predef_Prims (Loc, New_Tag_Node)),
+                 Discrete_Range => Make_Range (Loc,
+                   Make_Integer_Literal (Loc, Uint_1),
+                   New_Reference_To (RTE (RE_Max_Predef_Prims), Loc))),
+
+             Expression =>
+               Make_Slice (Loc,
+                 Prefix =>
+                   Make_Explicit_Dereference (Loc,
+                     Build_Predef_Prims (Loc, Old_Tag_Node)),
+                 Discrete_Range =>
+                   Make_Range (Loc,
+                     Low_Bound  => Make_Integer_Literal (Loc, 1),
+                     High_Bound =>
+                       New_Reference_To (RTE (RE_Max_Predef_Prims), Loc))));
+      end if;
    end Build_Inherit_Predefined_Prims;
 
    ------------------------

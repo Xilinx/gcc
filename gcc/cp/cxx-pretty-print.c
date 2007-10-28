@@ -190,7 +190,14 @@ pp_cxx_unqualified_id (cxx_pretty_printer *pp, tree t)
     case RECORD_TYPE:
     case UNION_TYPE:
     case ENUMERAL_TYPE:
+    case TYPENAME_TYPE:
+    case UNBOUND_CLASS_TEMPLATE:
       pp_cxx_unqualified_id (pp, TYPE_NAME (t));
+      break;
+
+    case BIT_NOT_EXPR:
+      pp_cxx_complement (pp);
+      pp_cxx_unqualified_id (pp, TREE_OPERAND (t, 0));
       break;
 
     case TEMPLATE_TYPE_PARM:
@@ -205,8 +212,12 @@ pp_cxx_unqualified_id (cxx_pretty_printer *pp, tree t)
       pp_cxx_unqualified_id (pp, TEMPLATE_PARM_DECL (t));
       break;
 
-    case TYPENAME_TYPE:
-      pp_cxx_unqualified_id (pp, TYPE_NAME (t));
+    case BOUND_TEMPLATE_TEMPLATE_PARM:
+      pp_cxx_cv_qualifier_seq (pp, t);
+      pp_cxx_unqualified_id (pp, TYPE_IDENTIFIER (t));
+      pp_cxx_begin_template_argument_list (pp);
+      pp_cxx_template_argument_list (pp, TYPE_TI_ARGS (t));
+      pp_cxx_end_template_argument_list (pp);
       break;
 
     default:
@@ -342,7 +353,29 @@ pp_cxx_id_expression (cxx_pretty_printer *pp, tree t)
      :: operator-function-id
      :: qualifier-id
      ( expression )
-     id-expression   */
+     id-expression   
+
+   GNU Extensions:
+     __builtin_va_arg ( assignment-expression , type-id )
+     __builtin_offsetof ( type-id, offsetof-expression )
+
+     __has_nothrow_assign ( type-id )   
+     __has_nothrow_constructor ( type-id )
+     __has_nothrow_copy ( type-id )
+     __has_trivial_assign ( type-id )   
+     __has_trivial_constructor ( type-id )
+     __has_trivial_copy ( type-id )
+     __has_trivial_destructor ( type-id )
+     __has_virtual_destructor ( type-id )     
+     __is_abstract ( type-id )
+     __is_base_of ( type-id , type-id )
+     __is_class ( type-id )
+     __is_convertible_to ( type-id , type-id )     
+     __is_empty ( type-id )
+     __is_enum ( type-id )
+     __is_pod ( type-id )
+     __is_polymorphic ( type-id )
+     __is_union ( type-id )  */
 
 static void
 pp_cxx_primary_expression (cxx_pretty_printer *pp, tree t)
@@ -351,6 +384,7 @@ pp_cxx_primary_expression (cxx_pretty_printer *pp, tree t)
     {
     case INTEGER_CST:
     case REAL_CST:
+    case COMPLEX_CST:
     case STRING_CST:
       pp_cxx_constant (pp, t);
       break;
@@ -378,6 +412,18 @@ pp_cxx_primary_expression (cxx_pretty_printer *pp, tree t)
       pp_cxx_left_paren (pp);
       pp_cxx_statement (pp, STMT_EXPR_STMT (t));
       pp_cxx_right_paren (pp);
+      break;
+
+    case TRAIT_EXPR:
+      pp_cxx_trait_expression (pp, t);
+      break;
+
+    case VA_ARG_EXPR:
+      pp_cxx_va_arg_expression (pp, t);
+      break;
+
+    case OFFSETOF_EXPR:
+      pp_cxx_offsetof_expression (pp, t);
       break;
 
     default:
@@ -541,14 +587,7 @@ pp_cxx_postfix_expression (cxx_pretty_printer *pp, tree t)
       break;
 
     case TYPEID_EXPR:
-      t = TREE_OPERAND (t, 0);
-      pp_cxx_identifier (pp, "typeid");
-      pp_left_paren (pp);
-      if (TYPE_P (t))
-	pp_cxx_type_id (pp, t);
-      else
-	pp_cxx_expression (pp, t);
-      pp_right_paren (pp);
+      pp_cxx_typeid_expression (pp, t);
       break;
 
     case PSEUDO_DTOR_EXPR:
@@ -633,7 +672,7 @@ pp_cxx_new_expression (cxx_pretty_printer *pp, tree t)
       ::(opt) delete cast-expression
       ::(opt) delete [ ] cast-expression   */
 
-static void
+void
 pp_cxx_delete_expression (cxx_pretty_printer *pp, tree t)
 {
   enum tree_code code = TREE_CODE (t);
@@ -644,10 +683,13 @@ pp_cxx_delete_expression (cxx_pretty_printer *pp, tree t)
       if (DELETE_EXPR_USE_GLOBAL (t))
 	pp_cxx_colon_colon (pp);
       pp_cxx_identifier (pp, "delete");
-      if (code == VEC_DELETE_EXPR)
+      pp_space (pp);
+      if (code == VEC_DELETE_EXPR
+	  || DELETE_EXPR_USE_VEC (t))
 	{
 	  pp_left_bracket (pp);
 	  pp_right_bracket (pp);
+	  pp_space (pp);
 	}
       pp_c_cast_expression (pp_c_base (pp), TREE_OPERAND (t, 0));
       break;
@@ -772,7 +814,10 @@ pp_cxx_pm_expression (cxx_pretty_printer *pp, tree t)
     case MEMBER_REF:
     case DOTSTAR_EXPR:
       pp_cxx_pm_expression (pp, TREE_OPERAND (t, 0));
-      pp_cxx_dot (pp);
+      if (TREE_CODE (t) == MEMBER_REF)
+	pp_cxx_arrow (pp);
+      else
+	pp_cxx_dot (pp);
       pp_star(pp);
       pp_cxx_cast_expression (pp, TREE_OPERAND (t, 1));
       break;
@@ -927,6 +972,7 @@ pp_cxx_expression (cxx_pretty_printer *pp, tree t)
     case STRING_CST:
     case INTEGER_CST:
     case REAL_CST:
+    case COMPLEX_CST:
       pp_cxx_constant (pp, t);
       break;
 
@@ -2115,6 +2161,147 @@ pp_cxx_declaration (cxx_pretty_printer *pp, tree t)
     }
 }
 
+void
+pp_cxx_typeid_expression (cxx_pretty_printer *pp, tree t)
+{
+  t = TREE_OPERAND (t, 0);
+  pp_cxx_identifier (pp, "typeid");
+  pp_cxx_left_paren (pp);
+  if (TYPE_P (t))
+    pp_cxx_type_id (pp, t);
+  else
+    pp_cxx_expression (pp, t);
+  pp_cxx_right_paren (pp);
+}
+
+void
+pp_cxx_va_arg_expression (cxx_pretty_printer *pp, tree t)
+{
+  pp_cxx_identifier (pp, "va_arg");
+  pp_cxx_left_paren (pp);
+  pp_cxx_assignment_expression (pp, TREE_OPERAND (t, 0));
+  pp_cxx_separate_with (pp, ',');
+  pp_cxx_type_id (pp, TREE_TYPE (t));
+  pp_cxx_right_paren (pp);
+}
+
+static bool
+pp_cxx_offsetof_expression_1 (cxx_pretty_printer *pp, tree t)
+{
+  switch (TREE_CODE (t))
+    {
+    case ARROW_EXPR:
+      if (TREE_CODE (TREE_OPERAND (t, 0)) == STATIC_CAST_EXPR
+	  && POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (t, 0))))
+	{
+	  pp_cxx_type_id (pp, TREE_TYPE (TREE_TYPE (TREE_OPERAND (t, 0))));
+	  pp_cxx_separate_with (pp, ',');
+	  return true;
+	}
+      return false;
+    case COMPONENT_REF:
+      if (!pp_cxx_offsetof_expression_1 (pp, TREE_OPERAND (t, 0)))
+	return false;
+      if (TREE_CODE (TREE_OPERAND (t, 0)) != ARROW_EXPR)
+	pp_cxx_dot (pp);
+      pp_cxx_expression (pp, TREE_OPERAND (t, 1));
+      return true;
+    case ARRAY_REF:
+      if (!pp_cxx_offsetof_expression_1 (pp, TREE_OPERAND (t, 0)))
+	return false;
+      pp_left_bracket (pp);
+      pp_cxx_expression (pp, TREE_OPERAND (t, 1));
+      pp_right_bracket (pp);
+      return true;
+    default:
+      return false;
+    }
+}
+
+void
+pp_cxx_offsetof_expression (cxx_pretty_printer *pp, tree t)
+{
+  pp_cxx_identifier (pp, "offsetof");
+  pp_cxx_left_paren (pp);
+  if (!pp_cxx_offsetof_expression_1 (pp, TREE_OPERAND (t, 0)))
+    pp_cxx_expression (pp, TREE_OPERAND (t, 0));
+  pp_cxx_right_paren (pp);
+}
+
+void
+pp_cxx_trait_expression (cxx_pretty_printer *pp, tree t)
+{
+  cp_trait_kind kind = TRAIT_EXPR_KIND (t);
+
+  switch (kind)
+    {
+    case CPTK_HAS_NOTHROW_ASSIGN:
+      pp_cxx_identifier (pp, "__has_nothrow_assign");
+      break;
+    case CPTK_HAS_TRIVIAL_ASSIGN:
+      pp_cxx_identifier (pp, "__has_trivial_assign");
+      break;
+    case CPTK_HAS_NOTHROW_CONSTRUCTOR:
+      pp_cxx_identifier (pp, "__has_nothrow_constructor");
+      break;
+    case CPTK_HAS_TRIVIAL_CONSTRUCTOR:
+      pp_cxx_identifier (pp, "__has_trivial_constructor");
+      break;
+    case CPTK_HAS_NOTHROW_COPY:
+      pp_cxx_identifier (pp, "__has_nothrow_copy");
+      break;
+    case CPTK_HAS_TRIVIAL_COPY:
+      pp_cxx_identifier (pp, "__has_trivial_copy");
+      break;
+    case CPTK_HAS_TRIVIAL_DESTRUCTOR:
+      pp_cxx_identifier (pp, "__has_trivial_destructor");
+      break;
+    case CPTK_HAS_VIRTUAL_DESTRUCTOR:
+      pp_cxx_identifier (pp, "__has_virtual_destructor");
+      break;
+    case CPTK_IS_ABSTRACT:
+      pp_cxx_identifier (pp, "__is_abstract");
+      break;
+    case CPTK_IS_BASE_OF:
+      pp_cxx_identifier (pp, "__is_base_of");
+      break;
+    case CPTK_IS_CLASS:
+      pp_cxx_identifier (pp, "__is_class");
+      break;
+    case CPTK_IS_CONVERTIBLE_TO:
+      pp_cxx_identifier (pp, "__is_convertible_to");
+      break;
+    case CPTK_IS_EMPTY:
+      pp_cxx_identifier (pp, "__is_empty");
+      break;
+    case CPTK_IS_ENUM:
+      pp_cxx_identifier (pp, "__is_enum");
+      break;
+    case CPTK_IS_POD:
+      pp_cxx_identifier (pp, "__is_pod");
+      break;
+    case CPTK_IS_POLYMORPHIC:
+      pp_cxx_identifier (pp, "__is_polymorphic");
+      break;
+    case CPTK_IS_UNION:
+      pp_cxx_identifier (pp, "__is_union");
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  pp_cxx_left_paren (pp);
+  pp_cxx_type_id (pp, TRAIT_EXPR_TYPE1 (t));
+
+  if (kind == CPTK_IS_BASE_OF || kind == CPTK_IS_CONVERTIBLE_TO)
+    {
+      pp_cxx_separate_with (pp, ',');
+      pp_cxx_type_id (pp, TRAIT_EXPR_TYPE2 (t));
+    }
+
+  pp_cxx_right_paren (pp);
+}
 
 typedef c_pretty_print_fn pp_fun;
 

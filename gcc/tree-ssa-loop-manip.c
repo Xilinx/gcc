@@ -365,7 +365,7 @@ rewrite_into_loop_closed_ssa (bitmap changed_bbs, unsigned update_flag)
   unsigned i, old_num_ssa_names;
   bitmap names_to_rename;
 
-  current_loops->state |= LOOP_CLOSED_SSA;
+  loops_state_set (LOOP_CLOSED_SSA);
   if (number_of_loops () <= 1)
     return;
 
@@ -454,9 +454,9 @@ verify_loop_closed_ssa (void)
 }
 
 /* Split loop exit edge EXIT.  The things are a bit complicated by a need to
-   preserve the loop closed ssa form.  */
+   preserve the loop closed ssa form.  The newly created block is returned.  */
 
-void
+basic_block
 split_loop_exit_edge (edge exit)
 {
   basic_block dest = exit->dest;
@@ -483,6 +483,8 @@ split_loop_exit_edge (edge exit)
       add_phi_arg (new_phi, name, exit);
       SET_USE (op_p, new_name);
     }
+
+  return bb;
 }
 
 /* Returns the basic block in that statements should be emitted for induction
@@ -584,9 +586,9 @@ tree_duplicate_loop_to_header_edge (struct loop *loop, edge e,
 {
   unsigned first_new_block;
 
-  if (!(current_loops->state & LOOPS_HAVE_SIMPLE_LATCHES))
+  if (!loops_state_satisfies_p (LOOPS_HAVE_SIMPLE_LATCHES))
     return false;
-  if (!(current_loops->state & LOOPS_HAVE_PREHEADERS))
+  if (!loops_state_satisfies_p (LOOPS_HAVE_PREHEADERS))
     return false;
 
 #ifdef ENABLE_CHECKING

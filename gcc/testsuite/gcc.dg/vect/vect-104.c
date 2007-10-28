@@ -14,9 +14,10 @@ struct extraction
 
 static int a[N][N] = {{1,2,3},{4,5,6},{7,8,9}};
 static int b[N][N] = {{17,24,7},{0,2,3},{4,31,82}};
-static int c[N][N] = {{1,2,3},{4,6,8},{8,9,9}};
+static int c[N][N] = {{1,2,3},{4,5,5},{5,5,5}};
 volatile int foo;
 
+__attribute__ ((noinline))
 int main1 (int x) {
   int i,j;
   struct extraction *p;
@@ -38,7 +39,7 @@ int main1 (int x) {
   {
     for (j = 0; j < N; j++)
     {
-       *((int *)p + x + i + j) = *((int *)p + x + i + j + 1);
+       *((int *)p + x + i + j + 1) = *((int *)p + x + i + j);
     }
   }
 

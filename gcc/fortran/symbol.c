@@ -352,7 +352,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
     *use_assoc = "USE ASSOCIATED", *cray_pointer = "CRAY POINTER",
     *cray_pointee = "CRAY POINTEE", *data = "DATA", *value = "VALUE",
     *volatile_ = "VOLATILE", *protected = "PROTECTED",
-    *is_bind_c = "BIND(C)";
+    *is_bind_c = "BIND(C)", *procedure = "PROCEDURE";
   static const char *threadprivate = "THREADPRIVATE";
 
   const char *a1, *a2;
@@ -437,8 +437,9 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (external, dimension);   /* See Fortran 95's R504.  */
 
   conf (external, intrinsic);
+  conf (entry, intrinsic);
 
-  if (attr->if_source || attr->contained)
+  if ((attr->if_source && !attr->procedure) || attr->contained)
     {
       conf (external, subroutine);
       conf (external, function);
@@ -479,6 +480,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (is_bind_c, cray_pointer);
   conf (is_bind_c, cray_pointee);
   conf (is_bind_c, allocatable);
+  conf (is_bind_c, elemental);
 
   /* Need to also get volatile attr, according to 5.1 of F2003 draft.
      Parameter conflict caught below.  Also, value cannot be specified
@@ -543,6 +545,22 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       a1 = volatile_;
       a2 = intent_in;
       goto conflict;
+    }
+
+  conf (procedure, allocatable)
+  conf (procedure, dimension)
+  conf (procedure, intrinsic)
+  conf (procedure, protected)
+  conf (procedure, target)
+  conf (procedure, value)
+  conf (procedure, volatile_)
+  conf (procedure, entry)
+  /* TODO: Implement procedure pointers.  */
+  if (attr->procedure && attr->pointer)
+    {
+      gfc_error ("Fortran 2003: Procedure pointers at %L are "
+		 "not yet implemented in gfortran", where);
+      return FAILURE;
     }
 
   a1 = gfc_code2string (flavors, attr->flavor);
@@ -657,8 +675,8 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       conf2 (value);
       conf2 (volatile_);
       conf2 (threadprivate);
-      /* TODO: hmm, double check this.  */
       conf2 (value);
+      conf2 (is_bind_c);
       break;
 
     default:
@@ -1126,6 +1144,12 @@ gfc_add_elemental (symbol_attribute *attr, locus *where)
   if (check_used (attr, NULL, where))
     return FAILURE;
 
+  if (attr->elemental)
+    {
+      duplicate_attr ("ELEMENTAL", where);
+      return FAILURE;
+    }
+
   attr->elemental = 1;
   return check_conflict (attr, NULL, where);
 }
@@ -1138,6 +1162,12 @@ gfc_add_pure (symbol_attribute *attr, locus *where)
   if (check_used (attr, NULL, where))
     return FAILURE;
 
+  if (attr->pure)
+    {
+      duplicate_attr ("PURE", where);
+      return FAILURE;
+    }
+
   attr->pure = 1;
   return check_conflict (attr, NULL, where);
 }
@@ -1149,6 +1179,12 @@ gfc_add_recursive (symbol_attribute *attr, locus *where)
 
   if (check_used (attr, NULL, where))
     return FAILURE;
+
+  if (attr->recursive)
+    {
+      duplicate_attr ("RECURSIVE", where);
+      return FAILURE;
+    }
 
   attr->recursive = 1;
   return check_conflict (attr, NULL, where);
@@ -1209,6 +1245,29 @@ gfc_add_generic (symbol_attribute *attr, const char *name, locus *where)
 
   attr->generic = 1;
   return check_conflict (attr, name, where);
+}
+
+
+try
+gfc_add_proc (symbol_attribute *attr, const char *name, locus *where)
+{
+
+  if (check_used (attr, NULL, where))
+    return FAILURE;
+
+  if (attr->flavor != FL_PROCEDURE
+      && gfc_add_flavor (attr, FL_PROCEDURE, name, where) == FAILURE)
+    return FAILURE;
+
+  if (attr->procedure)
+    {
+      duplicate_attr ("PROCEDURE", where);
+      return FAILURE;
+    }
+
+  attr->procedure = 1;
+
+  return check_conflict (attr, NULL, where);
 }
 
 
@@ -1644,7 +1703,7 @@ gfc_use_derived (gfc_symbol *sym)
   gfc_symtree *st;
   int i;
 
-  if (sym->components != NULL)
+  if (sym->components != NULL || sym->attr.zero_comp)
     return sym;               /* Already defined.  */
 
   if (sym->ns->parent == NULL)
@@ -2129,6 +2188,20 @@ gfc_find_symtree (gfc_symtree *st, const char *name)
 }
 
 
+/* Return a symtree node with a name that is guaranteed to be unique
+   within the namespace and corresponds to an illegal fortran name.  */
+
+gfc_symtree *
+gfc_get_unique_symtree (gfc_namespace *ns)
+{
+  char name[GFC_MAX_SYMBOL_LEN + 1];
+  static int serial = 0;
+
+  sprintf (name, "@%d", serial++);
+  return gfc_new_symtree (&ns->sym_root, name);
+}
+
+
 /* Given a name find a user operator node, creating it if it doesn't
    exist.  These are much simpler than symbols because they can't be
    ambiguous with one another.  */
@@ -2379,7 +2452,10 @@ gfc_get_sym_tree (const char *name, gfc_namespace *ns, gfc_symtree **result)
 
       p = st->n.sym;
 
-      if (p->ns != ns && (!p->attr.function || ns->proc_name != p))
+      if (p->ns != ns && (!p->attr.function || ns->proc_name != p)
+	    && !(ns->proc_name
+		   && ns->proc_name->attr.if_source == IFSRC_IFBODY
+		   && (ns->has_import_set || p->attr.imported)))
 	{
 	  /* Symbol is from another namespace.  */
 	  gfc_error ("Symbol '%s' at %C has already been host associated",
@@ -2892,6 +2968,24 @@ gfc_traverse_ns (gfc_namespace *ns, void (*func) (gfc_symbol *))
 }
 
 
+/* Return TRUE when name is the name of an intrinsic type.  */
+
+bool
+gfc_is_intrinsic_typename (const char *name)
+{
+  if (strcmp (name, "integer") == 0
+      || strcmp (name, "real") == 0
+      || strcmp (name, "character") == 0
+      || strcmp (name, "logical") == 0
+      || strcmp (name, "complex") == 0
+      || strcmp (name, "doubleprecision") == 0
+      || strcmp (name, "doublecomplex") == 0)
+    return true;
+  else
+    return false;
+}
+
+
 /* Return TRUE if the symbol is an automatic variable.  */
 
 static bool
@@ -3260,10 +3354,10 @@ gen_special_c_interop_ptr (int ptr_id, const char *ptr_name,
   tmp_sym->value->expr_type = EXPR_STRUCTURE;
   tmp_sym->value->ts.type = BT_DERIVED;
   tmp_sym->value->ts.derived = tmp_sym->ts.derived;
+  /* Create a constructor with no expr, that way we can recognize if the user
+     tries to call the structure constructor for one of the iso_c_binding
+     derived types during resolution (resolve_structure_cons).  */
   tmp_sym->value->value.constructor = gfc_get_constructor ();
-  /* This line will initialize the c_null_ptr/c_null_funptr
-     c_address field to NULL.  */
-  tmp_sym->value->value.constructor->expr = gfc_int_expr (0);
   /* Must declare c_null_ptr and c_null_funptr as having the
      PARAMETER attribute so they can be used in init expressions.  */
   tmp_sym->attr.flavor = FL_PARAMETER;
@@ -3497,6 +3591,61 @@ add_proc_interface (gfc_symbol *sym, ifsrc source,
   sym->attr.if_source = source;
 }
 
+/* Copy the formal args from an existing symbol, src, into a new
+   symbol, dest.  New formal args are created, and the description of
+   each arg is set according to the existing ones.  This function is
+   used when creating procedure declaration variables from a procedure
+   declaration statement (see match_proc_decl()) to create the formal
+   args based on the args of a given named interface.  */
+
+void copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
+{
+  gfc_formal_arglist *head = NULL;
+  gfc_formal_arglist *tail = NULL;
+  gfc_formal_arglist *formal_arg = NULL;
+  gfc_formal_arglist *curr_arg = NULL;
+  gfc_formal_arglist *formal_prev = NULL;
+  /* Save current namespace so we can change it for formal args.  */
+  gfc_namespace *parent_ns = gfc_current_ns;
+
+  /* Create a new namespace, which will be the formal ns (namespace
+     of the formal args).  */
+  gfc_current_ns = gfc_get_namespace (parent_ns, 0);
+  gfc_current_ns->proc_name = dest;
+
+  for (curr_arg = src->formal; curr_arg; curr_arg = curr_arg->next)
+    {
+      formal_arg = gfc_get_formal_arglist ();
+      gfc_get_symbol (curr_arg->sym->name, gfc_current_ns, &(formal_arg->sym));
+
+      /* May need to copy more info for the symbol.  */
+      formal_arg->sym->attr = curr_arg->sym->attr;
+      formal_arg->sym->ts = curr_arg->sym->ts;
+
+      /* If this isn't the first arg, set up the next ptr.  For the
+        last arg built, the formal_arg->next will never get set to
+        anything other than NULL.  */
+      if (formal_prev != NULL)
+	formal_prev->next = formal_arg;
+      else
+	formal_arg->next = NULL;
+
+      formal_prev = formal_arg;
+
+      /* Add arg to list of formal args.  */
+      add_formal_arg (&head, &tail, formal_arg, formal_arg->sym);
+    }
+
+  /* Add the interface to the symbol.  */
+  add_proc_interface (dest, IFSRC_DECL, head);
+
+  /* Store the formal namespace information.  */
+  if (dest->formal != NULL)
+    /* The current ns should be that for the dest proc.  */
+    dest->formal_ns = gfc_current_ns;
+  /* Restore the current namespace to what it was on entry.  */
+  gfc_current_ns = parent_ns;
+}
 
 /* Builds the parameter list for the iso_c_binding procedure
    c_f_pointer or c_f_procpointer.  The old_sym typically refers to a
@@ -3880,6 +4029,8 @@ get_iso_c_sym (gfc_symbol *old_sym, char *new_name,
   new_symtree->n.sym->attr = old_sym->attr;
   new_symtree->n.sym->ts = old_sym->ts;
   new_symtree->n.sym->module = gfc_get_string (old_sym->module);
+  new_symtree->n.sym->from_intmod = old_sym->from_intmod;
+  new_symtree->n.sym->intmod_sym_id = old_sym->intmod_sym_id;
   /* Build the formal arg list.  */
   build_formal_args (new_symtree->n.sym, old_sym, add_optional_arg);
 

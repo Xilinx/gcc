@@ -387,7 +387,6 @@ tree_rest_of_compilation (tree fndecl)
 
   /* Initialize the RTL code for the function.  */
   current_function_decl = fndecl;
-  cfun = DECL_STRUCT_FUNCTION (fndecl);
   saved_loc = input_location;
   input_location = DECL_SOURCE_LOCATION (fndecl);
   init_function_start (fndecl);
@@ -410,7 +409,7 @@ tree_rest_of_compilation (tree fndecl)
   bitmap_obstack_release (NULL);
   
   DECL_SAVED_TREE (fndecl) = NULL;
-  cfun = 0;
+  set_cfun (NULL);
 
   /* If requested, warn about function definitions where the function will
      return a value (usually of some struct or union type) which itself will
@@ -428,10 +427,10 @@ tree_rest_of_compilation (tree fndecl)
 	    = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (ret_type));
 
 	  if (compare_tree_int (TYPE_SIZE_UNIT (ret_type), size_as_int) == 0)
-	    warning (0, "size of return value of %q+D is %u bytes",
+	    warning (OPT_Wlarger_than_, "size of return value of %q+D is %u bytes",
                      fndecl, size_as_int);
 	  else
-	    warning (0, "size of return value of %q+D is larger than %wd bytes",
+	    warning (OPT_Wlarger_than_, "size of return value of %q+D is larger than %wd bytes",
                      fndecl, larger_than_size);
 	}
     }

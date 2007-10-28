@@ -27,10 +27,15 @@ along with GCC; see the file COPYING3.  If not see
 #define ASM_SPEC "%(asm_cpu_spec) %(asm_pcrel_spec) \
   %{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*}"
 
+#undef PREFERRED_STACK_BOUNDARY
+#define PREFERRED_STACK_BOUNDARY 32
+
 /* for 68k machines this only needs to be TRUE for the 68000 */
 
 #undef STRICT_ALIGNMENT
 #define STRICT_ALIGNMENT 0
+#undef M68K_HONOR_TARGET_STRICT_ALIGNMENT
+#define M68K_HONOR_TARGET_STRICT_ALIGNMENT 0
 
 /* Here are four prefixes that are used by asm_fprintf to
    facilitate customization for alternate assembler syntaxes.
@@ -120,6 +125,13 @@ along with GCC; see the file COPYING3.  If not see
 #define ASM_OUTPUT_ALIGN(FILE,LOG)				\
   if ((LOG) > 0)						\
     fprintf ((FILE), "%s%u\n", ALIGN_ASM_OP, 1 << (LOG));
+
+#ifdef HAVE_GAS_BALIGN_AND_P2ALIGN
+/* Use "move.l %a4,%a4" to advance within code.  */
+#define ASM_OUTPUT_ALIGN_WITH_NOP(FILE,LOG)			\
+  if ((LOG) > 0)						\
+    fprintf ((FILE), "\t.balignw %u,0x284c\n", 1 << (LOG));
+#endif
 
 /* If defined, a C expression whose value is a string containing the
    assembler operation to identify the following data as uninitialized global

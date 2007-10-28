@@ -31,15 +31,14 @@ Boston, MA 02110-1301, USA.  */
 #ifndef LIBGFOR_H
 #define LIBGFOR_H
 
+/* config.h MUST be first because it can affect system headers.  */
+#include "config.h"
+
 #include <stdio.h>
 #include <math.h>
 #include <stddef.h>
 #include <float.h>
 #include <stdarg.h>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846264338327
-#endif
 
 #if HAVE_COMPLEX_H
 # include <complex.h>
@@ -47,7 +46,8 @@ Boston, MA 02110-1301, USA.  */
 #define complex __complex__
 #endif
 
-#include "config.h"
+#include "../gcc/fortran/libgfortran.h"
+
 #include "c99_protos.h"
 
 #if HAVE_IEEEFP_H
@@ -67,6 +67,16 @@ typedef off_t gfc_offset;
 
 #ifndef __GNUC__
 #define __attribute__(x)
+#endif
+
+
+/* On mingw, work around the buggy Windows snprintf() by using the one
+   mingw provides, __mingw_snprintf().  We also provide a prototype for
+   __mingw_snprintf(), because the mingw headers currently don't have one.  */
+#if HAVE_MINGW_SNPRINTF
+extern int __mingw_snprintf (char *, size_t, const char *, ...);
+#undef snprintf
+#define snprintf __mingw_snprintf
 #endif
 
 
@@ -223,8 +233,8 @@ typedef GFC_INTEGER_4 gfc_charlen_type;
 extern int l8_to_l4_offset;
 internal_proto(l8_to_l4_offset);
 
-#define GFOR_POINTER_L8_TO_L4(p8) \
-  (l8_to_l4_offset + (GFC_LOGICAL_4 *)(p8))
+#define GFOR_POINTER_TO_L1(p, kind) \
+  (l8_to_l4_offset * (kind - 1) + (GFC_LOGICAL_1 *)(p))
 
 #define GFC_INTEGER_1_HUGE \
   (GFC_INTEGER_1)((((GFC_UINTEGER_1)1) << 7) - 1)
@@ -239,36 +249,6 @@ internal_proto(l8_to_l4_offset);
   (GFC_INTEGER_16)((((GFC_UINTEGER_16)1) << 127) - 1)
 #endif
 
-#define GFC_REAL_4_HUGE FLT_MAX
-#define GFC_REAL_8_HUGE DBL_MAX
-#ifdef HAVE_GFC_REAL_10
-#define GFC_REAL_10_HUGE LDBL_MAX
-#endif
-#ifdef HAVE_GFC_REAL_16
-#define GFC_REAL_16_HUGE LDBL_MAX
-#endif
-
-#define GFC_REAL_4_DIGITS FLT_MANT_DIG
-#define GFC_REAL_8_DIGITS DBL_MANT_DIG
-#ifdef HAVE_GFC_REAL_10
-#define GFC_REAL_10_DIGITS LDBL_MANT_DIG
-#endif
-#ifdef HAVE_GFC_REAL_16
-#define GFC_REAL_16_DIGITS LDBL_MANT_DIG
-#endif
-
-#define GFC_REAL_4_RADIX FLT_RADIX
-#define GFC_REAL_8_RADIX FLT_RADIX
-#ifdef HAVE_GFC_REAL_10
-#define GFC_REAL_10_RADIX FLT_RADIX
-#endif
-#ifdef HAVE_GFC_REAL_16
-#define GFC_REAL_16_RADIX FLT_RADIX
-#endif
-
-#ifndef GFC_MAX_DIMENSIONS
-#define GFC_MAX_DIMENSIONS 7
-#endif
 
 typedef struct descriptor_dimension
 {
@@ -312,31 +292,14 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_COMPLEX_10) gfc_array_c10;
 #ifdef HAVE_GFC_COMPLEX_16
 typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_COMPLEX_16) gfc_array_c16;
 #endif
+typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_1) gfc_array_l1;
+typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_2) gfc_array_l2;
 typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_4) gfc_array_l4;
 typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_8) gfc_array_l8;
 #ifdef HAVE_GFC_LOGICAL_16
 typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_16) gfc_array_l16;
 #endif
 
-#define GFC_DTYPE_RANK_MASK 0x07
-#define GFC_DTYPE_TYPE_SHIFT 3
-#define GFC_DTYPE_TYPE_MASK 0x38
-#define GFC_DTYPE_SIZE_SHIFT 6
-
-/* added for f03.  --Rickett, 02.28.06 */
-#define GFC_NUM_RANK_BITS 3
-
-enum
-{
-  GFC_DTYPE_UNKNOWN = 0,
-  GFC_DTYPE_INTEGER,
-  /* TODO: recognize logical types.  */
-  GFC_DTYPE_LOGICAL,
-  GFC_DTYPE_REAL,
-  GFC_DTYPE_COMPLEX,
-  GFC_DTYPE_DERIVED,
-  GFC_DTYPE_CHARACTER
-};
 
 #define GFC_DESCRIPTOR_RANK(desc) ((desc)->dtype & GFC_DTYPE_RANK_MASK)
 #define GFC_DESCRIPTOR_TYPE(desc) (((desc)->dtype & GFC_DTYPE_TYPE_MASK) \
@@ -354,24 +317,21 @@ enum
 typedef struct
 {
   int stdin_unit, stdout_unit, stderr_unit, optional_plus;
-  int allocate_init_flag, allocate_init_value;
   int locus;
 
   int separator_len;
   const char *separator;
 
-  int mem_check;
-  int use_stderr, all_unbuffered, default_recl;
-
-  int fpu_round, fpu_precision, fpe;
-
-  int sighup, sigint;
-  int dump_core, backtrace;
+  int use_stderr, all_unbuffered, unbuffered_preconnected, default_recl;
+  int fpe, dump_core, backtrace;
 }
 options_t;
 
 extern options_t options;
 internal_proto(options);
+
+extern void handler (int);
+internal_proto(handler);
 
 
 /* Compile-time options that will influence the library.  */
@@ -408,58 +368,6 @@ typedef struct
 }
 st_option;
 
-/* Runtime errors.  The EOR and EOF errors are required to be negative.
-   These codes must be kept sychronized with their equivalents in
-   gcc/fortran/gfortran.h .  */
-
-typedef enum
-{
-  ERROR_FIRST = -3,		/* Marker for the first error.  */
-  ERROR_EOR = -2,
-  ERROR_END = -1,
-  ERROR_OK = 0,			/* Indicates success, must be zero.  */
-  ERROR_OS = 5000,		/* Operating system error, more info in errno.  */
-  ERROR_OPTION_CONFLICT,
-  ERROR_BAD_OPTION,
-  ERROR_MISSING_OPTION,
-  ERROR_ALREADY_OPEN,
-  ERROR_BAD_UNIT,
-  ERROR_FORMAT,
-  ERROR_BAD_ACTION,
-  ERROR_ENDFILE,
-  ERROR_BAD_US,
-  ERROR_READ_VALUE,
-  ERROR_READ_OVERFLOW,
-  ERROR_INTERNAL,
-  ERROR_INTERNAL_UNIT,
-  ERROR_ALLOCATION,
-  ERROR_DIRECT_EOR,
-  ERROR_SHORT_RECORD,
-  ERROR_CORRUPT_FILE,
-  ERROR_LAST			/* Not a real error, the last error # + 1.  */
-}
-error_codes;
-
-
-/* Flags to specify which standard/extension contains a feature.
-   Keep them in sync with their counterparts in gcc/fortran/gfortran.h.  */
-#define GFC_STD_LEGACY          (1<<6) /* Backward compatibility.  */
-#define GFC_STD_GNU             (1<<5)    /* GNU Fortran extension.  */
-#define GFC_STD_F2003           (1<<4)    /* New in F2003.  */
-/* Note that no features were obsoleted nor deleted in F2003.  */
-#define GFC_STD_F95             (1<<3)    /* New in F95.  */
-#define GFC_STD_F95_DEL         (1<<2)    /* Deleted in F95.  */
-#define GFC_STD_F95_OBS         (1<<1)    /* Obsoleted in F95.  */
-#define GFC_STD_F77             (1<<0)    /* Up to and including F77.  */
-
-/* Bitmasks for the various FPE that can be enabled.
-   Keep them in sync with their counterparts in gcc/fortran/gfortran.h.  */
-#define GFC_FPE_INVALID    (1<<0)
-#define GFC_FPE_DENORMAL   (1<<1)
-#define GFC_FPE_ZERO       (1<<2)
-#define GFC_FPE_OVERFLOW   (1<<3)
-#define GFC_FPE_UNDERFLOW  (1<<4)
-#define GFC_FPE_PRECISION  (1<<5)
 
 /* This is returned by notification_std to know if, given the flags
    that were given (-std=, -pedantic) we should issue an error, a warning
@@ -488,8 +396,8 @@ iexport_data_proto(filename);
 #define gfc_alloca(x)  __builtin_alloca(x)
 
 
-/* Various I/O stuff also used in other parts of the library.  */
-
+/* Directory for creating temporary files.  Only used when none of the
+   following environment variables exist: GFORTRAN_TMPDIR, TMP and TEMP.  */
 #define DEFAULT_TEMPDIR "/tmp"
 
 /* The default value of record length for preconnected units is defined
@@ -497,9 +405,6 @@ iexport_data_proto(filename);
    Default value is 1 Gb.  */
 #define DEFAULT_RECL 1073741824
 
-typedef enum
-{ CONVERT_NONE=-1, CONVERT_NATIVE, CONVERT_SWAP, CONVERT_BIG, CONVERT_LITTLE }
-unit_convert;
 
 #define CHARACTER2(name) \
               gfc_charlen_type name ## _len; \
@@ -599,8 +504,8 @@ extern void runtime_error (const char *, ...)
      __attribute__ ((noreturn, format (printf, 1, 2)));
 iexport_proto(runtime_error);
 
-extern void runtime_error_at (const char *, const char *)
-__attribute__ ((noreturn));
+extern void runtime_error_at (const char *, const char *, ...)
+     __attribute__ ((noreturn, format (printf, 2, 3)));
 iexport_proto(runtime_error_at);
 
 extern void internal_error (st_parameter_common *, const char *)
@@ -759,15 +664,18 @@ internal_proto(internal_unpack_c16);
 
 /* string_intrinsics.c */
 
-extern GFC_INTEGER_4 compare_string (GFC_INTEGER_4, const char *,
-				     GFC_INTEGER_4, const char *);
+extern int compare_string (GFC_INTEGER_4, const char *,
+			   GFC_INTEGER_4, const char *);
 iexport_proto(compare_string);
 
 /* random.c */
 
-extern void random_seed (GFC_INTEGER_4 * size, gfc_array_i4 * put,
-			 gfc_array_i4 * get);
-iexport_proto(random_seed);
+extern void random_seed_i4 (GFC_INTEGER_4 * size, gfc_array_i4 * put,
+			    gfc_array_i4 * get);
+iexport_proto(random_seed_i4);
+extern void random_seed_i8 (GFC_INTEGER_8 * size, gfc_array_i8 * put,
+			    gfc_array_i8 * get);
+iexport_proto(random_seed_i8);
 
 /* size.c */
 

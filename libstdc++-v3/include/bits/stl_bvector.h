@@ -62,7 +62,7 @@
 #ifndef _STL_BVECTOR_H
 #define _STL_BVECTOR_H 1
 
-_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
   typedef unsigned long _Bit_type;
   enum { _S_word_bit = int(__CHAR_BIT__ * sizeof(_Bit_type)) };
@@ -385,6 +385,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	_Bit_iterator 	_M_start;
 	_Bit_iterator 	_M_finish;
 	_Bit_type* 	_M_end_of_storage;
+
+	_Bvector_impl()
+	: _Bit_alloc_type(), _M_start(), _M_finish(), _M_end_of_storage(0)
+	{ }
+ 
 	_Bvector_impl(const _Bit_alloc_type& __a)
 	: _Bit_alloc_type(__a), _M_start(), _M_finish(), _M_end_of_storage(0)
 	{ }
@@ -405,7 +410,24 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       get_allocator() const
       { return allocator_type(_M_get_Bit_allocator()); }
 
-      _Bvector_base(const allocator_type& __a) : _M_impl(__a) { }
+      _Bvector_base()
+      : _M_impl() { }
+      
+      _Bvector_base(const allocator_type& __a)
+      : _M_impl(__a) { }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      _Bvector_base(_Bvector_base&& __x)
+      : _M_impl(__x._M_get_Bit_allocator())
+      {
+	this->_M_impl._M_start = __x._M_impl._M_start;
+	this->_M_impl._M_finish = __x._M_impl._M_finish;
+	this->_M_impl._M_end_of_storage = __x._M_impl._M_end_of_storage;
+	__x._M_impl._M_start = _Bit_iterator();
+	__x._M_impl._M_finish = _Bit_iterator();
+	__x._M_impl._M_end_of_storage = 0;
+      }
+#endif
 
       ~_Bvector_base()
       { this->_M_deallocate(); }
@@ -432,7 +454,7 @@ _GLIBCXX_END_NESTED_NAMESPACE
 // Declare a partial specialization of vector<T, Alloc>.
 #include <bits/stl_vector.h>
 
-_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
   /**
    *  @brief  A specialization of vector for booleans which offers fixed time
@@ -480,8 +502,11 @@ template<typename _Alloc>
     using _Base::_M_get_Bit_allocator;
 
   public:
+    vector()
+    : _Base() { }
+
     explicit
-    vector(const allocator_type& __a = allocator_type())
+    vector(const allocator_type& __a)
     : _Base(__a) { }
 
     explicit
@@ -500,6 +525,11 @@ template<typename _Alloc>
       _M_initialize(__x.size());
       _M_copy_aligned(__x.begin(), __x.end(), this->_M_impl._M_start);
     }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    vector(vector&& __x)
+    : _Base(std::forward<_Base>(__x)) { }
+#endif
 
     template<typename _InputIterator>
       vector(_InputIterator __first, _InputIterator __last,
@@ -526,6 +556,15 @@ template<typename _Alloc>
 						begin());
       return *this;
     }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    vector&
+    operator=(vector&& __x)
+    { 
+      this->swap(__x); 
+      return *this;
+    }
+#endif
 
     // assign(), a generalized assignment member function.  Two
     // versions: one that takes a count, and one that takes a range.
@@ -574,6 +613,24 @@ template<typename _Alloc>
     const_reverse_iterator
     rend() const
     { return const_reverse_iterator(begin()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    const_iterator
+    cbegin() const
+    { return this->_M_impl._M_start; }
+
+    const_iterator
+    cend() const
+    { return this->_M_impl._M_finish; }
+
+    const_reverse_iterator
+    crbegin() const
+    { return const_reverse_iterator(end()); }
+
+    const_reverse_iterator
+    crend() const
+    { return const_reverse_iterator(begin()); }
+#endif
 
     size_type
     size() const
@@ -681,7 +738,11 @@ template<typename _Alloc>
     }
 
     void
-    swap(vector<bool, _Alloc>& __x)
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    swap(vector&& __x)
+#else
+    swap(vector& __x)
+#endif
     {
       std::swap(this->_M_impl._M_start, __x._M_impl._M_start);
       std::swap(this->_M_impl._M_finish, __x._M_impl._M_finish);

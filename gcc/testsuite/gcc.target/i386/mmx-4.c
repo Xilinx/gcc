@@ -1,14 +1,10 @@
-/* { dg-do run { target i?86-*-* x86_64-*-* } } */
+/* { dg-do run } */
 /* { dg-options "-O2 -mmmx" } */
-#include <mmintrin.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "../../gcc.dg/i386-cpuid.h"
 
-#ifndef NOINLINE
-#define NOINLINE __attribute__ ((noinline))
-#endif
+#include "mmx-check.h"
+
+#include <mmintrin.h>
+#include <string.h>
 
 #define SHIFT (4)
 
@@ -20,7 +16,7 @@ typedef union {
   unsigned int u[2];
 }vecInWord;
 
-void mmx_tests (void) NOINLINE;
+void mmx_tests (void) __attribute__((noinline));
 void dump64_16 (char *, char *, vecInWord);
 void dump64_32 (char *, char *, vecInWord);
 void dump64_64 (char *, char *, vecInWord);
@@ -53,15 +49,10 @@ const char *reference_mmx[] = {
   ""
 };
 
-int main()
+
+static void
+mmx_test (void)
 {
-  unsigned long cpu_facilities;
-
-  cpu_facilities = i386_cpuid ();
-
-  if ((cpu_facilities & bit_MMX) == 0)
-    exit (0);
-
   d64.u[0]  = 0x01234567;
   d64.u[1]  = 0x01234567;
 
@@ -85,25 +76,21 @@ int main()
 
   s64 = b64.v;
 
-  if (cpu_facilities & bit_MMX)
-    {
-      mmx_tests();
-      check (buf, reference_mmx);
+  mmx_tests();
+  check (buf, reference_mmx);
 #ifdef DEBUG
-      printf ("mmx testing:\n");
-      printf (buf);
-      printf ("\ncomparison:\n");
-      printf (comparison);
+  printf ("mmx testing:\n");
+  printf (buf);
+  printf ("\ncomparison:\n");
+  printf (comparison);
 #endif
-      buf[0] = '\0';
-    }
+  buf[0] = '\0';
 
   if (errors != 0)
     abort ();
-  exit (0);
 }
 
-void NOINLINE
+void __attribute__((noinline))
 mmx_tests (void)
 {
   /* psraw */

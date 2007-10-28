@@ -64,13 +64,13 @@ static tree interrupt_handler (tree *, tree, tree, int, bool *);
 static tree function_vector_handler (tree *, tree, tree, int, bool *);
 static int interrupt_p (tree node);
 static bool m32c_asm_integer (rtx, unsigned int, int);
-static int m32c_comp_type_attributes (tree, tree);
+static int m32c_comp_type_attributes (const_tree, const_tree);
 static bool m32c_fixed_condition_code_regs (unsigned int *, unsigned int *);
 static struct machine_function *m32c_init_machine_status (void);
 static void m32c_insert_attributes (tree, tree *);
 static bool m32c_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
-				    tree, bool);
-static bool m32c_promote_prototypes (tree);
+				    const_tree, bool);
+static bool m32c_promote_prototypes (const_tree);
 static int m32c_pushm_popm (Push_Pop_Type);
 static bool m32c_strict_argument_naming (CUMULATIVE_ARGS *);
 static rtx m32c_struct_value_rtx (tree, int);
@@ -445,7 +445,7 @@ m32c_init_expanders (void)
 #undef TARGET_PROMOTE_FUNCTION_RETURN
 #define TARGET_PROMOTE_FUNCTION_RETURN m32c_promote_function_return
 bool
-m32c_promote_function_return (tree fntype ATTRIBUTE_UNUSED)
+m32c_promote_function_return (const_tree fntype ATTRIBUTE_UNUSED)
 {
   return false;
 }
@@ -1127,7 +1127,10 @@ m32c_eh_return_data_regno (int n)
     case 0:
       return A0_REGNO;
     case 1:
-      return A1_REGNO;
+      if (TARGET_A16)
+	return R3_REGNO;
+      else
+	return R1_REGNO;
     default:
       return INVALID_REGNUM;
     }
@@ -1427,7 +1430,7 @@ m32c_initial_elimination_offset (int from, int to)
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES m32c_promote_prototypes
 static bool
-m32c_promote_prototypes (tree fntype ATTRIBUTE_UNUSED)
+m32c_promote_prototypes (const_tree fntype ATTRIBUTE_UNUSED)
 {
   return 0;
 }
@@ -1514,7 +1517,7 @@ m32c_function_arg (CUMULATIVE_ARGS * ca,
 static bool
 m32c_pass_by_reference (CUMULATIVE_ARGS * ca ATTRIBUTE_UNUSED,
 			enum machine_mode mode ATTRIBUTE_UNUSED,
-			tree type ATTRIBUTE_UNUSED,
+			const_tree type ATTRIBUTE_UNUSED,
 			bool named ATTRIBUTE_UNUSED)
 {
   return 0;
@@ -1639,10 +1642,10 @@ m32c_libcall_value (enum machine_mode mode)
 /* Implements FUNCTION_VALUE.  Functions and libcalls have the same
    conventions.  */
 rtx
-m32c_function_value (tree valtype, tree func ATTRIBUTE_UNUSED)
+m32c_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
 {
   /* return reg or parallel */
-  enum machine_mode mode = TYPE_MODE (valtype);
+  const enum machine_mode mode = TYPE_MODE (valtype);
   return m32c_libcall_value (mode);
 }
 
@@ -2829,8 +2832,8 @@ static const struct attribute_spec m32c_attribute_table[] = {
 #undef TARGET_COMP_TYPE_ATTRIBUTES
 #define TARGET_COMP_TYPE_ATTRIBUTES m32c_comp_type_attributes
 static int
-m32c_comp_type_attributes (tree type1 ATTRIBUTE_UNUSED,
-			   tree type2 ATTRIBUTE_UNUSED)
+m32c_comp_type_attributes (const_tree type1 ATTRIBUTE_UNUSED,
+			   const_tree type2 ATTRIBUTE_UNUSED)
 {
   /* 0=incompatible 1=compatible 2=warning */
   return 1;
@@ -2990,7 +2993,7 @@ m32c_immd_dbl_mov (rtx * operands,
            && GET_CODE (XEXP (XEXP (XEXP (operands[0], 0), 0), 0)) == SYMBOL_REF
            && MEM_SCALAR_P (operands[0])
            && !MEM_IN_STRUCT_P (operands[0])
-           && !(XINT (XEXP (XEXP (XEXP (operands[0], 0), 0), 1), 0) %4)
+           && !(INTVAL (XEXP (XEXP (XEXP (operands[0], 0), 0), 1)) %4)
            && GET_CODE (XEXP (operands[2], 0)) == CONST
            && GET_CODE (XEXP (XEXP (operands[2], 0), 0)) == PLUS
            && GET_CODE (XEXP (XEXP (XEXP (operands[2], 0), 0), 0)) == SYMBOL_REF
@@ -3004,7 +3007,7 @@ m32c_immd_dbl_mov (rtx * operands,
            &&  GET_CODE (XEXP (XEXP (operands[0], 0), 1)) == CONST_INT
            &&  MEM_SCALAR_P (operands[0])
            &&  !MEM_IN_STRUCT_P (operands[0])
-           &&  !(XINT (XEXP (XEXP (operands[0], 0), 1), 0) %4)
+           &&  !(INTVAL (XEXP (XEXP (operands[0], 0), 1)) %4)
            &&  REGNO (XEXP (XEXP (operands[2], 0), 0)) == FB_REGNO 
            &&  GET_CODE (XEXP (XEXP (operands[2], 0), 1)) == CONST_INT
            &&  MEM_SCALAR_P (operands[2])
@@ -3033,8 +3036,8 @@ m32c_immd_dbl_mov (rtx * operands,
 	okflag = 0; 
       break; 
     case 3:
-      offset1 = XINT (XEXP (XEXP (operands[0], 0), 1), 0);
-      offset2 = XINT (XEXP (XEXP (operands[2], 0), 1), 0);
+      offset1 = INTVAL (XEXP (XEXP (operands[0], 0), 1));
+      offset2 = INTVAL (XEXP (XEXP (operands[2], 0), 1));
       offsetsign = offset1 >> ((sizeof (offset1) * 8) -1);
       if (((offset2-offset1) == 2) && offsetsign != 0)
 	okflag = 1;
@@ -3050,7 +3053,7 @@ m32c_immd_dbl_mov (rtx * operands,
       HOST_WIDE_INT val;
       operands[4] = gen_rtx_MEM (SImode, XEXP (operands[0], 0));
 
-      val = (XINT (operands[3], 0) << 16) + (XINT (operands[1], 0) & 0xFFFF);
+      val = (INTVAL (operands[3]) << 16) + (INTVAL (operands[1]) & 0xFFFF);
       operands[5] = gen_rtx_CONST_INT (VOIDmode, val);
      
       return true;

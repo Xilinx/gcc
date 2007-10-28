@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -35,14 +34,6 @@
 with Prj; use Prj;
 
 package MLib.Tgt is
-
-   type Library_Support is (None, Static_Only, Full);
-   --  Support for Library Project File.
-   --  - None: Library Project Files are not supported at all
-   --  - Static_Only: Library Project Files are only supported for static
-   --    libraries.
-   --  - Full: Library Project Files are supported for static and dynamic
-   --    (shared) libraries.
 
    function Support_For_Libraries return Library_Support;
    --  Indicates how building libraries by gnatmake is supported by the GNAT
@@ -113,29 +104,20 @@ package MLib.Tgt is
 
    procedure Build_Dynamic_Library
      (Ofiles       : Argument_List;
-      Foreign      : Argument_List;
-      Afiles       : Argument_List;
       Options      : Argument_List;
-      Options_2    : Argument_List;
       Interfaces   : Argument_List;
       Lib_Filename : String;
       Lib_Dir      : String;
       Symbol_Data  : Symbol_Record;
-      Driver_Name  : Name_Id  := No_Name;
-      Lib_Version  : String   := "";
-      Auto_Init    : Boolean  := False);
+      Driver_Name  : Name_Id := No_Name;
+      Lib_Version  : String  := "";
+      Auto_Init    : Boolean := False);
    --  Build a dynamic/relocatable library
    --
    --  Ofiles is the list of all object files in the library
    --
-   --  Foreign is the list of non Ada object files (also included in Ofiles)
-   --
-   --  Afiles is the list of ALI files for the Ada object files
-   --
-   --  Options and Options_2 are lists of options to be passed to the tool
-   --  (gcc or other) that effectively builds the dynamic library. Options
-   --  are passed before the object files, Options_2 are passed after the
-   --  object files.
+   --  Options is a list of options to be passed to the tool
+   --  (gcc or other) that effectively builds the dynamic library.
    --
    --  Interfaces is the list of ALI files for the interfaces of a SAL.
    --  It is empty if the library is not a SAL.
@@ -155,9 +137,9 @@ package MLib.Tgt is
    --  Symbol_Data is used for some patforms, including VMS, to generate
    --  the symbols to be exported by the library.
    --
-   --  Note: Depending on the OS, some of the parameters may not be taken
-   --  into account. For example, on Linux, Foreign, Afiles Lib_Address and
-   --  Relocatable are ignored.
+   --  Note: Depending on the OS, some of the parameters may not be taken into
+   --  account. For example, on Linux, Interfaces, Symbol_Data and Auto_Init
+   --  are ignored.
 
    function Library_Exists_For
      (Project : Project_Id; In_Tree : Project_Tree_Ref) return Boolean;
@@ -170,7 +152,16 @@ package MLib.Tgt is
    --  Returns the file name of the library file of a library project.
    --  This function can only be called for library projects.
 
+   function Library_Major_Minor_Id_Supported return Boolean;
+   --  Indicates if major and minor ids are supported for libraries.
+   --  If they are supported, then a Library_Version such as libtoto.so.1.2
+   --  will have a major id of 1 and a minor id of 2. Then litoto.so,
+   --  libtoto.so.1 and libtoto.so.1.2 will be created, all three designating
+   --  the same file.
+
 private
+   No_Argument_List : constant Argument_List := (1 .. 0 => null);
+
    --  Access to subprogram types for indirection
 
    type String_Function is access function return String;
@@ -179,10 +170,7 @@ private
      return String_List_Access;
    type Build_Dynamic_Library_Function is access procedure
      (Ofiles       : Argument_List;
-      Foreign      : Argument_List;
-      Afiles       : Argument_List;
       Options      : Argument_List;
-      Options_2    : Argument_List;
       Interfaces   : Argument_List;
       Lib_Filename : String;
       Lib_Dir      : String;
@@ -190,16 +178,12 @@ private
       Driver_Name  : Name_Id := No_Name;
       Lib_Version  : String  := "";
       Auto_Init    : Boolean := False);
-
    type Library_Exists_For_Function is access function
      (Project : Project_Id; In_Tree : Project_Tree_Ref) return Boolean;
-
    type Library_File_Name_For_Function is access function
      (Project : Project_Id;
       In_Tree : Project_Tree_Ref) return File_Name_Type;
-
    type Boolean_Function is access function return Boolean;
-
    type Library_Support_Function is access function return Library_Support;
 
    function Archive_Builder_Default return String;
@@ -210,10 +194,8 @@ private
                                    Archive_Builder_Options_Default'Access;
 
    function Archive_Builder_Append_Options_Default return String_List_Access;
-
-   Archive_Builder_Append_Options_Ptr :
-     String_List_Access_Function :=
-       Archive_Builder_Append_Options_Default'Access;
+   Archive_Builder_Append_Options_Ptr : String_List_Access_Function :=
+                                Archive_Builder_Append_Options_Default'Access;
 
    function Archive_Ext_Default return String;
    Archive_Ext_Ptr : String_Function := Archive_Ext_Default'Access;
@@ -276,4 +258,8 @@ private
    function Support_For_Libraries_Default return Library_Support;
    Support_For_Libraries_Ptr : Library_Support_Function :=
                                  Support_For_Libraries_Default'Access;
+
+   function Library_Major_Minor_Id_Supported_Default return Boolean;
+   Library_Major_Minor_Id_Supported_Ptr : Boolean_Function :=
+             Library_Major_Minor_Id_Supported_Default'Access;
 end MLib.Tgt;

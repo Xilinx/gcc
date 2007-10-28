@@ -42,9 +42,17 @@ mbranch-likely
 Target Report Mask(BRANCHLIKELY)
 Use Branch Likely instructions, overriding the architecture default
 
+mflip-mips16
+Target Report Var(TARGET_FLIP_MIPS16)
+Switch on/off MIPS16 ASE on alternating functions for compiler testing
+
 mcheck-zero-division
 Target Report Mask(CHECK_ZERO_DIV)
 Trap on integer divide by zero
+
+mcode-readable=
+Target RejectNegative Joined
+-mcode-readable=SETTING	Specify when instructions are allowed to access code
 
 mdivide-breaks
 Target Report RejectNegative Mask(DIVIDE_BREAKS)
@@ -91,6 +99,10 @@ Use ROM instead of RAM
 mexplicit-relocs
 Target Report Mask(EXPLICIT_RELOCS)
 Use NewABI-style %reloc() assembly operators
+
+mextern-sdata
+Target Report Var(TARGET_EXTERN_SDATA) Init(1)
+Use -G for data that is not defined by the current object
 
 mfix-r4000
 Target Report Mask(FIX_R4000)
@@ -144,9 +156,17 @@ mgp64
 Target Report RejectNegative Mask(64BIT)
 Use 64-bit general registers
 
+mgpopt
+Target Report Var(TARGET_GPOPT) Init(1)
+Use GP-relative addressing to access small data
+
 mhard-float
-Target Report RejectNegative InverseMask(SOFT_FLOAT, HARD_FLOAT)
-Allow the use of hardware floating-point instructions
+Target Report RejectNegative InverseMask(SOFT_FLOAT_ABI, HARD_FLOAT_ABI)
+Allow the use of hardware floating-point ABI and instructions
+
+minterlink-mips16
+Target Report Var(TARGET_INTERLINK_MIPS16) Init(0)
+Generate code that can be safely linked with MIPS16 code.
 
 mips
 Target RejectNegative Joined
@@ -159,6 +179,14 @@ Generate MIPS16 code
 mips3d
 Target Report RejectNegative Mask(MIPS3D)
 Use MIPS-3D instructions
+
+mllsc
+Target Report Mask(LLSC)
+Use ll, sc and sync instructions
+
+mlocal-sdata
+Target Report Var(TARGET_LOCAL_SDATA) Init(1)
+Use -G for object-local data
 
 mlong-calls
 Target Report Var(TARGET_LONG_CALLS)
@@ -173,7 +201,7 @@ Target Report RejectNegative Mask(LONG64)
 Use a 64-bit long type
 
 mmemcpy
-Target Report Var(TARGET_MEMCPY)
+Target Report Mask(MEMCPY)
 Don't optimize block moves
 
 mmips-tfile
@@ -217,7 +245,7 @@ Target Report RejectNegative Mask(SMARTMIPS)
 Use SmartMIPS instructions
 
 msoft-float
-Target Report RejectNegative Mask(SOFT_FLOAT)
+Target Report RejectNegative Mask(SOFT_FLOAT_ABI)
 Prevent the use of all hardware floating-point instructions
 
 msplit-addresses

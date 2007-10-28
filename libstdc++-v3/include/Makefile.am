@@ -58,6 +58,7 @@ std_headers = \
 	${std_srcdir}/stdexcept \
 	${std_srcdir}/streambuf \
 	${std_srcdir}/string \
+	${std_srcdir}/system_error \
 	${std_srcdir}/tuple \
 	${std_srcdir}/type_traits \
 	${std_srcdir}/unordered_map \
@@ -69,6 +70,7 @@ std_headers = \
 bits_srcdir = ${glibcxx_srcdir}/include/bits
 bits_builddir = ./bits
 bits_headers = \
+        ${bits_srcdir}/algorithmfwd.h \
 	${bits_srcdir}/allocator.h \
 	${bits_srcdir}/basic_ios.h \
 	${bits_srcdir}/basic_ios.tcc \
@@ -118,6 +120,7 @@ bits_headers = \
 	${bits_srcdir}/stl_list.h \
 	${bits_srcdir}/stl_map.h \
 	${bits_srcdir}/stl_auto_ptr.h \
+	${bits_srcdir}/stl_move.h \
 	${bits_srcdir}/stl_multimap.h \
 	${bits_srcdir}/stl_multiset.h \
 	${bits_srcdir}/stl_numeric.h \
@@ -142,41 +145,11 @@ bits_headers = \
 backward_srcdir = ${glibcxx_srcdir}/include/backward
 backward_builddir = ./backward
 backward_headers = \
-	${backward_srcdir}/complex.h \
-	${backward_srcdir}/iomanip.h \
-	${backward_srcdir}/istream.h \
-	${backward_srcdir}/ostream.h \
-	${backward_srcdir}/stream.h \
-	${backward_srcdir}/streambuf.h \
-	${backward_srcdir}/algo.h \
-	${backward_srcdir}/algobase.h \
-	${backward_srcdir}/alloc.h \
-	${backward_srcdir}/bvector.h \
-	${backward_srcdir}/defalloc.h \
-	${backward_srcdir}/deque.h \
-	${backward_srcdir}/function.h \
-	${backward_srcdir}/hash_map.h \
-	${backward_srcdir}/hash_set.h \
-	${backward_srcdir}/hashtable.h \
-	${backward_srcdir}/heap.h \
-	${backward_srcdir}/iostream.h \
-	${backward_srcdir}/iterator.h \
-	${backward_srcdir}/list.h \
-	${backward_srcdir}/map.h \
-	${backward_srcdir}/multimap.h \
-	${backward_srcdir}/new.h \
-	${backward_srcdir}/multiset.h \
-	${backward_srcdir}/pair.h \
-	${backward_srcdir}/queue.h \
-	${backward_srcdir}/rope.h \
-	${backward_srcdir}/set.h \
-	${backward_srcdir}/slist.h \
-	${backward_srcdir}/stack.h \
-	${backward_srcdir}/tempbuf.h \
-	${backward_srcdir}/tree.h \
-	${backward_srcdir}/vector.h \
-	${backward_srcdir}/fstream.h \
 	${backward_srcdir}/strstream \
+	${backward_srcdir}/hash_map \
+	${backward_srcdir}/hash_set \
+	${backward_srcdir}/hash_fun.h \
+	${backward_srcdir}/hashtable.h \
 	${backward_srcdir}/backward_warning.h
 
 pb_srcdir = ${glibcxx_srcdir}/include/ext/pb_ds
@@ -371,7 +344,7 @@ pb_headers4 = \
 	${pb_srcdir}/detail/list_update_policy/counter_lu_policy_imp.hpp \
 	${pb_srcdir}/detail/list_update_policy/mtf_lu_policy_imp.hpp \
 	${pb_srcdir}/detail/list_update_policy/sample_update_policy.hpp \
-	${pb_srcdir}/detail/map_debug_base.hpp \
+	${pb_srcdir}/detail/debug_map_base.hpp \
 	${pb_srcdir}/detail/ov_tree_map_/cond_dtor.hpp \
 	${pb_srcdir}/detail/ov_tree_map_/constructors_destructor_fn_imps.hpp \
 	${pb_srcdir}/detail/ov_tree_map_/debug_fn_imps.hpp \
@@ -493,7 +466,6 @@ pb_headers7 = \
 	${pb_srcdir}/detail/unordered_iterator/point_iterator.hpp 
 
 
-
 ext_srcdir = ${glibcxx_srcdir}/include/ext
 ext_builddir = ./ext 
 ext_headers = \
@@ -508,10 +480,6 @@ ext_headers = \
 	${ext_srcdir}/stdio_filebuf.h \
 	${ext_srcdir}/stdio_sync_filebuf.h \
 	${ext_srcdir}/functional \
-	${ext_srcdir}/hash_map \
-	${ext_srcdir}/hash_set \
-	${ext_srcdir}/hash_fun.h \
-	${ext_srcdir}/hashtable.h \
 	${ext_srcdir}/iterator \
 	${ext_srcdir}/malloc_allocator.h \
 	${ext_srcdir}/memory \
@@ -708,18 +676,13 @@ debug_headers = \
 	${debug_srcdir}/deque \
 	${debug_srcdir}/formatter.h \
 	${debug_srcdir}/functions.h \
-	${debug_srcdir}/hash_map \
-	${debug_srcdir}/hash_map.h \
-	${debug_srcdir}/hash_multimap.h \
-	${debug_srcdir}/hash_multiset.h \
-	${debug_srcdir}/hash_set \
-	${debug_srcdir}/hash_set.h \
 	${debug_srcdir}/list \
 	${debug_srcdir}/map \
 	${debug_srcdir}/macros.h \
 	${debug_srcdir}/map.h \
 	${debug_srcdir}/multimap.h \
 	${debug_srcdir}/multiset.h \
+	${debug_srcdir}/safe_association.h \
 	${debug_srcdir}/safe_base.h \
 	${debug_srcdir}/safe_iterator.h \
 	${debug_srcdir}/safe_iterator.tcc \
@@ -727,7 +690,60 @@ debug_headers = \
 	${debug_srcdir}/set \
 	${debug_srcdir}/set.h \
 	${debug_srcdir}/string \
+	${debug_srcdir}/unordered_map \
+	${debug_srcdir}/unordered_set \
 	${debug_srcdir}/vector
+
+# Parallel mode headers
+parallel_srcdir = ${glibcxx_srcdir}/include/parallel
+parallel_builddir = ./parallel
+parallel_headers = \
+        ${parallel_srcdir}/algorithm \
+        ${parallel_srcdir}/algobase.h \
+        ${parallel_srcdir}/algo.h \
+        ${parallel_srcdir}/algorithm \
+        ${parallel_srcdir}/algorithmfwd.h \
+        ${parallel_srcdir}/balanced_quicksort.h \
+        ${parallel_srcdir}/base.h \
+        ${parallel_srcdir}/basic_iterator.h \
+        ${parallel_srcdir}/checkers.h \
+        ${parallel_srcdir}/compatibility.h \
+        ${parallel_srcdir}/compiletime_settings.h \
+        ${parallel_srcdir}/equally_split.h \
+        ${parallel_srcdir}/features.h \
+        ${parallel_srcdir}/find.h \
+        ${parallel_srcdir}/find_selectors.h \
+        ${parallel_srcdir}/for_each.h \
+        ${parallel_srcdir}/for_each_selectors.h \
+        ${parallel_srcdir}/iterator.h \
+        ${parallel_srcdir}/list_partition.h \
+        ${parallel_srcdir}/losertree.h \
+        ${parallel_srcdir}/merge.h \
+        ${parallel_srcdir}/multiseq_selection.h \
+        ${parallel_srcdir}/multiway_merge.h \
+        ${parallel_srcdir}/multiway_mergesort.h \
+        ${parallel_srcdir}/numeric \
+        ${parallel_srcdir}/numericfwd.h \
+        ${parallel_srcdir}/omp_loop.h \
+        ${parallel_srcdir}/omp_loop_static.h \
+        ${parallel_srcdir}/parallel.h \
+        ${parallel_srcdir}/par_loop.h \
+        ${parallel_srcdir}/partial_sum.h \
+        ${parallel_srcdir}/partition.h \
+        ${parallel_srcdir}/queue.h \
+        ${parallel_srcdir}/quicksort.h \
+        ${parallel_srcdir}/random_number.h \
+        ${parallel_srcdir}/random_shuffle.h \
+        ${parallel_srcdir}/search.h \
+        ${parallel_srcdir}/set_operations.h \
+        ${parallel_srcdir}/settings.h \
+        ${parallel_srcdir}/sort.h \
+        ${parallel_srcdir}/tags.h \
+        ${parallel_srcdir}/tree.h \
+        ${parallel_srcdir}/types.h \
+        ${parallel_srcdir}/unique_copy.h \
+        ${parallel_srcdir}/workstealing.h 
+
 
 # Some of the different "C" header models need extra files.
 # Some "C" header schemes require the "C" compatibility headers.
@@ -754,7 +770,11 @@ host_headers = \
 	${host_srcdir}/os_defines.h \
 	${glibcxx_srcdir}/$(ATOMIC_WORD_SRCDIR)/atomic_word.h \
 	${glibcxx_srcdir}/$(ABI_TWEAKS_SRCDIR)/cxxabi_tweaks.h \
-	${glibcxx_srcdir}/$(CPU_DEFINES_SRCDIR)/cpu_defines.h	
+	${glibcxx_srcdir}/$(CPU_DEFINES_SRCDIR)/cpu_defines.h \
+	${glibcxx_srcdir}/$(ERROR_CONSTANTS_SRCDIR)/error_constants.h \
+	${glibcxx_srcdir}/include/precompiled/stdc++.h \
+	${glibcxx_srcdir}/include/precompiled/stdtr1c++.h \
+	${glibcxx_srcdir}/include/precompiled/extc++.h 
 
 # Non-installed host_header files.
 COMPATIBILITY_H = config/abi/compatibility.h
@@ -809,10 +829,8 @@ pch_output_anchors = \
 PCHFLAGS=-Winvalid-pch -Wno-deprecated -x c++-header $(CXXFLAGS)
 if GLIBCXX_BUILD_PCH
 pch_build = ${pch_output}
-pch_install = install-pch
 else
 pch_build =
-pch_install =
 endif
 
 # List of all timestamp files.  By keeping only one copy of this list, both
@@ -820,7 +838,7 @@ endif
 allstamped = \
 	stamp-std stamp-bits stamp-c_base stamp-c_base_extra \
 	stamp-c_compatibility  stamp-backward stamp-ext stamp-pb \
-	stamp-tr1 stamp-tr1-impl stamp-debug stamp-host
+	stamp-tr1 stamp-tr1-impl stamp-debug stamp-parallel stamp-host
 
 # List of all files that are created by explicit building, editing, or
 # catenation.
@@ -977,6 +995,15 @@ stamp-debug: ${debug_headers}
 	fi ;\
 	$(STAMP) stamp-debug
 
+stamp-parallel: ${parallel_headers}
+	@if [ ! -d "${parallel_builddir}" ]; then \
+	  mkdir -p ${parallel_builddir} ;\
+	fi ;\
+	if [ ! -f stamp-parallel ]; then \
+	  (cd ${parallel_builddir} && @LN_S@ $? . || true) ;\
+	fi ;\
+	$(STAMP) stamp-parallel
+
 stamp-${host_alias}:
 	@if [ ! -d ${host_builddir} ]; then \
 	  mkdir -p ${host_builddir} ;\
@@ -1129,7 +1156,7 @@ ${pch3_output}: ${pch3_source} ${pch2_output}
 # the rest are taken from the original source tree.
 
 if GLIBCXX_HOSTED
-install-data-local: install-headers ${pch_install}
+install-data-local: install-headers 
 else
 install-data-local: install-freestanding-headers
 endif
@@ -1214,20 +1241,13 @@ install-headers:
 	$(mkinstalldirs) $(DESTDIR)${gxx_include_dir}/${debug_builddir}
 	for file in ${debug_headers}; do \
 	  $(INSTALL_DATA) $${file} $(DESTDIR)${gxx_include_dir}/${debug_builddir}; done
+	$(mkinstalldirs) $(DESTDIR)${gxx_include_dir}/${parallel_builddir}
+	for file in ${parallel_headers}; do \
+	  $(INSTALL_DATA) $${file} $(DESTDIR)${gxx_include_dir}/${parallel_builddir}; done
 	$(mkinstalldirs) $(DESTDIR)${host_installdir}
 	for file in ${host_headers} ${host_headers_extra} \
 	 ${thread_host_headers}; do \
 	  $(INSTALL_DATA) $${file} $(DESTDIR)${host_installdir}; done
-
-install-pch:
-	$(mkinstalldirs) $(DESTDIR)${pch1_output_installdir}
-	for file in ${pch1_output_builddir}/*; do \
-	  $(INSTALL_DATA) $$file $(DESTDIR)${pch1_output_installdir}; done
-	$(mkinstalldirs) $(DESTDIR)${pch2_output_installdir}
-	for file in ${pch2_output_builddir}/*; do \
-	  $(INSTALL_DATA) $$file $(DESTDIR)${pch2_output_installdir}; done
-	$(INSTALL_DATA) ${pch1_output_anchor} $(DESTDIR)${host_installdir}
-	$(INSTALL_DATA) ${pch2_output_anchor} $(DESTDIR)${host_installdir}
 
 # By adding these files here, automake will remove them for 'make clean'
 CLEANFILES = ${pch_output} ${pch_output_anchors}

@@ -134,6 +134,9 @@ static void m68k_compute_frame_layout (void);
 static bool m68k_save_reg (unsigned int regno, bool interrupt_handler);
 static bool m68k_ok_for_sibcall_p (tree, tree);
 static bool m68k_rtx_costs (rtx, int, int, int *);
+#if M68K_HONOR_TARGET_STRICT_ALIGNMENT
+static bool m68k_return_in_memory (tree, tree);
+#endif
 
 
 /* Specify the identification number of the library being built */
@@ -177,13 +180,11 @@ int m68k_last_compare_had_fp_operands;
 #undef TARGET_ASM_OUTPUT_MI_THUNK
 #define TARGET_ASM_OUTPUT_MI_THUNK m68k_output_mi_thunk
 #undef TARGET_ASM_CAN_OUTPUT_MI_THUNK
-#define TARGET_ASM_CAN_OUTPUT_MI_THUNK hook_bool_tree_hwi_hwi_tree_true
+#define TARGET_ASM_CAN_OUTPUT_MI_THUNK hook_bool_const_tree_hwi_hwi_const_tree_true
 
 #undef TARGET_ASM_FILE_START_APP_OFF
 #define TARGET_ASM_FILE_START_APP_OFF true
 
-#undef TARGET_DEFAULT_TARGET_FLAGS
-#define TARGET_DEFAULT_TARGET_FLAGS MASK_STRICT_ALIGNMENT
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION m68k_handle_option
 
@@ -194,7 +195,7 @@ int m68k_last_compare_had_fp_operands;
 #define TARGET_ATTRIBUTE_TABLE m68k_attribute_table
 
 #undef TARGET_PROMOTE_PROTOTYPES
-#define TARGET_PROMOTE_PROTOTYPES hook_bool_tree_true
+#define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 
 #undef TARGET_STRUCT_VALUE_RTX
 #define TARGET_STRUCT_VALUE_RTX m68k_struct_value_rtx
@@ -204,6 +205,11 @@ int m68k_last_compare_had_fp_operands;
 
 #undef TARGET_FUNCTION_OK_FOR_SIBCALL
 #define TARGET_FUNCTION_OK_FOR_SIBCALL m68k_ok_for_sibcall_p
+
+#if M68K_HONOR_TARGET_STRICT_ALIGNMENT
+#undef TARGET_RETURN_IN_MEMORY
+#define TARGET_RETURN_IN_MEMORY m68k_return_in_memory
+#endif
 
 static const struct attribute_spec m68k_attribute_table[] =
 {
@@ -233,7 +239,7 @@ struct gcc_target targetm = TARGET_INITIALIZER;
 /* Note ISA_B doesn't necessarily include USP (user stack pointer) support.  */
 #define FL_FOR_isa_b     (FL_FOR_isa_a | FL_ISA_B | FL_CF_HWDIV)
 /* ISA_C is not upwardly compatible with ISA_B.  */
-#define FL_FOR_isa_c     (FL_FOR_isa_a | FL_ISA_C | FL_CF_HWDIV | FL_CF_USP)
+#define FL_FOR_isa_c     (FL_FOR_isa_a | FL_ISA_C | FL_CF_USP)
 
 enum m68k_isa
 {
@@ -296,7 +302,8 @@ static const struct m68k_target_selection all_isas[] =
   { "isaaplus", mcf5271,    NULL,  ucfv2,    isa_aplus, (FL_FOR_isa_aplus
 							 | FL_CF_HWDIV) },
   { "isab",     mcf5407,    NULL,  ucfv4,    isa_b,     FL_FOR_isa_b },
-  { "isac",     unk_device, NULL,  ucfv4,    isa_c,     FL_FOR_isa_c },
+  { "isac",     unk_device, NULL,  ucfv4,    isa_c,     (FL_FOR_isa_c
+							 | FL_CF_HWDIV) },
   { NULL,       unk_device, NULL,  unk_arch, isa_max,   0 }
 };
 
@@ -313,6 +320,7 @@ static const struct m68k_target_selection all_microarchs[] =
   { "68040",    m68040,     NULL,  u68040,    isa_40,  FL_FOR_isa_40 },
   { "68060",    m68060,     NULL,  u68060,    isa_40,  FL_FOR_isa_40 },
   { "cpu32",    cpu32,      NULL,  ucpu32,    isa_20,  FL_FOR_isa_cpu32 },
+  { "cfv1",     mcf51qe,    NULL,  ucfv1,     isa_c,   FL_FOR_isa_c },
   { "cfv2",     mcf5206,    NULL,  ucfv2,     isa_a,   FL_FOR_isa_a },
   { "cfv3",     mcf5307,    NULL,  ucfv3,     isa_a,   (FL_FOR_isa_a
 							| FL_CF_HWDIV) },
@@ -347,6 +355,10 @@ unsigned int m68k_cpu_flags;
    in operand 0.  */
 const char *m68k_symbolic_call;
 const char *m68k_symbolic_jump;
+
+/* Enum variable that corresponds to m68k_symbolic_call values.  */
+enum M68K_SYMBOLIC_CALL m68k_symbolic_call_var;
+
 
 /* See whether TABLE has an entry with name NAME.  Return true and
    store the entry in *ENTRY if so, otherwise return false and
@@ -502,6 +514,11 @@ override_options (void)
   /* Use the architecture setting to derive default values for
      certain flags.  */
   target_mask = 0;
+
+  /* ColdFire is lenient about alignment.  */
+  if (!TARGET_COLDFIRE)
+    target_mask |= MASK_STRICT_ALIGNMENT;
+
   if ((m68k_cpu_flags & FL_BITFIELD) != 0)
     target_mask |= MASK_BITFIELD;
   if ((m68k_cpu_flags & FL_CF_HWDIV) != 0)
@@ -552,13 +569,9 @@ override_options (void)
 
   if (!flag_pic)
     {
-#if MOTOROLA && !defined (USE_GAS)
-      m68k_symbolic_call = "jsr %a0";
-      m68k_symbolic_jump = "jmp %a0";
-#else
-      m68k_symbolic_call = "jbsr %a0";
+      m68k_symbolic_call_var = M68K_SYMBOLIC_CALL_JSR;
+
       m68k_symbolic_jump = "jra %a0";
-#endif
     }
   else if (TARGET_ID_SHARED_LIBRARY)
     /* All addresses must be loaded from the GOT.  */
@@ -566,27 +579,16 @@ override_options (void)
   else if (TARGET_68020 || TARGET_ISAB || TARGET_ISAC)
     {
       if (TARGET_PCREL)
-	m68k_symbolic_call = "bsr.l %c0";
+	m68k_symbolic_call_var = M68K_SYMBOLIC_CALL_BSR_C;
       else
-	{
-#if defined(USE_GAS)
-	  m68k_symbolic_call = "bsr.l %p0";
-#else
-	  m68k_symbolic_call = "bsr %p0";
-#endif
-	}
+	m68k_symbolic_call_var = M68K_SYMBOLIC_CALL_BSR_P;
+
       if (TARGET_ISAC)
 	/* No unconditional long branch */;
       else if (TARGET_PCREL)
-	m68k_symbolic_jump = "bra.l %c0";
+	m68k_symbolic_jump = "bra%.l %c0";
       else
-	{
-#if defined(USE_GAS)
-	  m68k_symbolic_jump = "bra.l %p0";
-#else
-	  m68k_symbolic_jump = "bra %p0";
-#endif
-	}
+	m68k_symbolic_jump = "bra%.l %p0";
       /* Turn off function cse if we are doing PIC.  We always want
 	 function call to be done as `bsr foo@PLTPC'.  */
       /* ??? It's traditional to do this for -mpcrel too, but it isn't
@@ -594,7 +596,53 @@ override_options (void)
       flag_no_function_cse = 1;
     }
 
+  switch (m68k_symbolic_call_var)
+    {
+    case M68K_SYMBOLIC_CALL_JSR:
+      m68k_symbolic_call = "jsr %a0";
+      break;
+
+    case M68K_SYMBOLIC_CALL_BSR_C:
+      m68k_symbolic_call = "bsr%.l %c0";
+      break;
+
+    case M68K_SYMBOLIC_CALL_BSR_P:
+      m68k_symbolic_call = "bsr%.l %p0";
+      break;
+
+    case M68K_SYMBOLIC_CALL_NONE:
+      gcc_assert (m68k_symbolic_call == NULL);
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+#ifndef ASM_OUTPUT_ALIGN_WITH_NOP
+  if (align_labels > 2)
+    {
+      warning (0, "-falign-labels=%d is not supported", align_labels);
+      align_labels = 0;
+    }
+  if (align_loops > 2)
+    {
+      warning (0, "-falign-loops=%d is not supported", align_loops);
+      align_loops = 0;
+    }
+#endif
+
   SUBTARGET_OVERRIDE_OPTIONS;
+
+  /* Setup scheduling options.  */
+  if (TUNE_CFV2)
+    m68k_sched_cpu = CPU_CF_V2;
+  else
+    {
+      m68k_sched_cpu = CPU_UNKNOWN;
+      flag_schedule_insns = 0;
+      flag_schedule_insns_after_reload = 0;
+      flag_modulo_sched = 0;
+    }
 }
 
 /* Generate a macro of the form __mPREFIX_cpu_NAME, where PREFIX is the
@@ -631,9 +679,8 @@ m68k_get_function_kind (tree func)
 {
   tree a;
 
-  if (TREE_CODE (func) != FUNCTION_DECL)
-    return false;
-
+  gcc_assert (TREE_CODE (func) == FUNCTION_DECL);
+  
   a = lookup_attribute ("interrupt", DECL_ATTRIBUTES (func));
   if (a != NULL_TREE)
     return m68k_fk_interrupt_handler;
@@ -770,9 +817,7 @@ m68k_save_reg (unsigned int regno, bool interrupt_handler)
 {
   if (flag_pic && regno == PIC_REG)
     {
-      /* A function that receives a nonlocal goto must save all call-saved
-	 registers.  */
-      if (current_function_has_nonlocal_label)
+      if (current_function_saves_all_registers)
 	return true;
       if (current_function_uses_pic_offset_table)
 	return true;
@@ -1250,14 +1295,30 @@ flags_in_68881 (void)
   return cc_status.flags & CC_IN_68881;
 }
 
-/* Implement TARGET_FUNCTION_OK_FOR_SIBCALL_P.  We cannot use sibcalls
-   for nested functions because we use the static chain register for
-   indirect calls.  */
+/* Implement TARGET_FUNCTION_OK_FOR_SIBCALL_P.  */
 
 static bool
-m68k_ok_for_sibcall_p (tree decl ATTRIBUTE_UNUSED, tree exp)
+m68k_ok_for_sibcall_p (tree decl, tree exp)
 {
-  return TREE_OPERAND (exp, 2) == NULL;
+  enum m68k_function_kind kind;
+  
+  /* We cannot use sibcalls for nested functions because we use the
+     static chain register for indirect calls.  */
+  if (CALL_EXPR_STATIC_CHAIN (exp))
+    return false;
+
+  kind = m68k_get_function_kind (current_function_decl);
+  if (kind == m68k_fk_normal_function)
+    /* We can always sibcall from a normal function, because it's
+       undefined if it is calling an interrupt function.  */
+    return true;
+
+  /* Otherwise we can only sibcall if the function kind is known to be
+     the same.  */
+  if (decl && m68k_get_function_kind (decl) == kind)
+    return true;
+  
+  return false;
 }
 
 /* Convert X to a legitimate function call memory reference and return the
@@ -1297,73 +1358,43 @@ output_dbcc_and_branch (rtx *operands)
   switch (GET_CODE (operands[3]))
     {
       case EQ:
-	output_asm_insn (MOTOROLA
-			 ? "dbeq %0,%l1\n\tjbeq %l2"
-			 : "dbeq %0,%l1\n\tjeq %l2",
-			 operands);
+	output_asm_insn ("dbeq %0,%l1\n\tjeq %l2", operands);
 	break;
 
       case NE:
-	output_asm_insn (MOTOROLA
-			 ? "dbne %0,%l1\n\tjbne %l2"
-			 : "dbne %0,%l1\n\tjne %l2",
-			 operands);
+	output_asm_insn ("dbne %0,%l1\n\tjne %l2", operands);
 	break;
 
       case GT:
-	output_asm_insn (MOTOROLA
-			 ? "dbgt %0,%l1\n\tjbgt %l2"
-			 : "dbgt %0,%l1\n\tjgt %l2",
-			 operands);
+	output_asm_insn ("dbgt %0,%l1\n\tjgt %l2", operands);
 	break;
 
       case GTU:
-	output_asm_insn (MOTOROLA
-			 ? "dbhi %0,%l1\n\tjbhi %l2"
-			 : "dbhi %0,%l1\n\tjhi %l2",
-			 operands);
+	output_asm_insn ("dbhi %0,%l1\n\tjhi %l2", operands);
 	break;
 
       case LT:
-	output_asm_insn (MOTOROLA
-			 ? "dblt %0,%l1\n\tjblt %l2"
-			 : "dblt %0,%l1\n\tjlt %l2",
-			 operands);
+	output_asm_insn ("dblt %0,%l1\n\tjlt %l2", operands);
 	break;
 
       case LTU:
-	output_asm_insn (MOTOROLA
-			 ? "dbcs %0,%l1\n\tjbcs %l2"
-			 : "dbcs %0,%l1\n\tjcs %l2",
-			 operands);
+	output_asm_insn ("dbcs %0,%l1\n\tjcs %l2", operands);
 	break;
 
       case GE:
-	output_asm_insn (MOTOROLA
-			 ? "dbge %0,%l1\n\tjbge %l2"
-			 : "dbge %0,%l1\n\tjge %l2",
-			 operands);
+	output_asm_insn ("dbge %0,%l1\n\tjge %l2", operands);
 	break;
 
       case GEU:
-	output_asm_insn (MOTOROLA
-			 ? "dbcc %0,%l1\n\tjbcc %l2"
-			 : "dbcc %0,%l1\n\tjcc %l2",
-			 operands);
+	output_asm_insn ("dbcc %0,%l1\n\tjcc %l2", operands);
 	break;
 
       case LE:
-	output_asm_insn (MOTOROLA
-			 ? "dble %0,%l1\n\tjble %l2"
-			 : "dble %0,%l1\n\tjle %l2",
-			 operands);
+	output_asm_insn ("dble %0,%l1\n\tjle %l2", operands);
 	break;
 
       case LEU:
-	output_asm_insn (MOTOROLA
-			 ? "dbls %0,%l1\n\tjbls %l2"
-			 : "dbls %0,%l1\n\tjls %l2",
-			 operands);
+	output_asm_insn ("dbls %0,%l1\n\tjls %l2", operands);
 	break;
 
       default:
@@ -1375,10 +1406,7 @@ output_dbcc_and_branch (rtx *operands)
   switch (GET_MODE (operands[0]))
     {
       case SImode:
-        output_asm_insn (MOTOROLA
-			 ? "clr%.w %0\n\tsubq%.l #1,%0\n\tjbpl %l1"
-			 : "clr%.w %0\n\tsubq%.l #1,%0\n\tjpl %l1",
-			 operands);
+        output_asm_insn ("clr%.w %0\n\tsubq%.l #1,%0\n\tjpl %l1", operands);
         break;
 
       case HImode:
@@ -1424,12 +1452,7 @@ output_scc_di (rtx op, rtx operand1, rtx operand2, rtx dest)
     }
   loperands[4] = gen_label_rtx ();
   if (operand2 != const0_rtx)
-    {
-      output_asm_insn (MOTOROLA
-		       ? "cmp%.l %2,%0\n\tjbne %l4\n\tcmp%.l %3,%1"
-		       : "cmp%.l %2,%0\n\tjne %l4\n\tcmp%.l %3,%1",
-		       loperands);
-    }
+    output_asm_insn ("cmp%.l %2,%0\n\tjne %l4\n\tcmp%.l %3,%1", loperands);
   else
     {
       if (TARGET_68020 || TARGET_COLDFIRE || ! ADDRESS_REG_P (loperands[0]))
@@ -1437,7 +1460,7 @@ output_scc_di (rtx op, rtx operand1, rtx operand2, rtx dest)
       else
 	output_asm_insn ("cmp%.w #0,%0", loperands);
 
-      output_asm_insn (MOTOROLA ? "jbne %l4" : "jne %l4", loperands);
+      output_asm_insn ("jne %l4", loperands);
 
       if (TARGET_68020 || TARGET_COLDFIRE || ! ADDRESS_REG_P (loperands[1]))
 	output_asm_insn ("tst%.l %1", loperands);
@@ -1463,8 +1486,7 @@ output_scc_di (rtx op, rtx operand1, rtx operand2, rtx dest)
 
       case GT:
         loperands[6] = gen_label_rtx ();
-        output_asm_insn (MOTOROLA ? "shi %5\n\tjbra %l6" : "shi %5\n\tjra %l6",
-			 loperands);
+        output_asm_insn ("shi %5\n\tjra %l6", loperands);
         (*targetm.asm_out.internal_label) (asm_out_file, "L",
 					   CODE_LABEL_NUMBER (loperands[4]));
         output_asm_insn ("sgt %5", loperands);
@@ -1480,8 +1502,7 @@ output_scc_di (rtx op, rtx operand1, rtx operand2, rtx dest)
 
       case LT:
         loperands[6] = gen_label_rtx ();
-        output_asm_insn (MOTOROLA ? "scs %5\n\tjbra %l6" : "scs %5\n\tjra %l6",
-			 loperands);
+        output_asm_insn ("scs %5\n\tjra %l6", loperands);
         (*targetm.asm_out.internal_label) (asm_out_file, "L",
 					   CODE_LABEL_NUMBER (loperands[4]));
         output_asm_insn ("slt %5", loperands);
@@ -1497,8 +1518,7 @@ output_scc_di (rtx op, rtx operand1, rtx operand2, rtx dest)
 
       case GE:
         loperands[6] = gen_label_rtx ();
-        output_asm_insn (MOTOROLA ? "scc %5\n\tjbra %l6" : "scc %5\n\tjra %l6",
-			 loperands);
+        output_asm_insn ("scc %5\n\tjra %l6", loperands);
         (*targetm.asm_out.internal_label) (asm_out_file, "L",
 					   CODE_LABEL_NUMBER (loperands[4]));
         output_asm_insn ("sge %5", loperands);
@@ -1514,8 +1534,7 @@ output_scc_di (rtx op, rtx operand1, rtx operand2, rtx dest)
 
       case LE:
         loperands[6] = gen_label_rtx ();
-        output_asm_insn (MOTOROLA ? "sls %5\n\tjbra %l6" : "sls %5\n\tjra %l6",
-			 loperands);
+        output_asm_insn ("sls %5\n\tjra %l6", loperands);
         (*targetm.asm_out.internal_label) (asm_out_file, "L",
 					   CODE_LABEL_NUMBER (loperands[4]));
         output_asm_insn ("sle %5", loperands);
@@ -2013,14 +2032,13 @@ legitimize_pic_address (rtx orig, enum machine_mode mode ATTRIBUTE_UNUSED,
 }
 
 
-typedef enum { MOVL, SWAP, NEGW, NOTW, NOTB, MOVQ, MVS, MVZ } CONST_METHOD;
 
 #define USE_MOVQ(i)	((unsigned) ((i) + 128) <= 255)
 
 /* Return the type of move that should be used for integer I.  */
 
-static CONST_METHOD
-const_method (HOST_WIDE_INT i)
+M68K_CONST_METHOD
+m68k_const_method (HOST_WIDE_INT i)
 {
   unsigned u;
 
@@ -2066,7 +2084,7 @@ const_method (HOST_WIDE_INT i)
 static int
 const_int_cost (HOST_WIDE_INT i)
 {
-  switch (const_method (i))
+  switch (m68k_const_method (i))
     {
     case MOVQ:
       /* Constants between -128 and 127 are cheap due to moveq.  */
@@ -2230,7 +2248,7 @@ output_move_const_into_data_reg (rtx *operands)
   HOST_WIDE_INT i;
 
   i = INTVAL (operands[1]);
-  switch (const_method (i))
+  switch (m68k_const_method (i))
     {
     case MVZ:
       return "mvzw %1,%0";
@@ -2354,25 +2372,6 @@ output_move_himode (rtx *operands)
     }
   else if (CONSTANT_P (operands[1]))
     return "move%.l %1,%0";
-  /* Recognize the insn before a tablejump, one that refers
-     to a table of offsets.  Such an insn will need to refer
-     to a label on the insn.  So output one.  Use the label-number
-     of the table of offsets to generate this label.  This code,
-     and similar code below, assumes that there will be at most one
-     reference to each table.  */
-  if (GET_CODE (operands[1]) == MEM
-      && GET_CODE (XEXP (operands[1], 0)) == PLUS
-      && GET_CODE (XEXP (XEXP (operands[1], 0), 1)) == LABEL_REF
-      && GET_CODE (XEXP (XEXP (operands[1], 0), 0)) != PLUS)
-    {
-      rtx labelref = XEXP (XEXP (operands[1], 0), 1);
-      if (MOTOROLA)
-	asm_fprintf (asm_out_file, "\t.set %LLI%d,.+2\n",
-		     CODE_LABEL_NUMBER (XEXP (labelref, 0)));
-      else
-	(*targetm.asm_out.internal_label) (asm_out_file, "LI",
-					   CODE_LABEL_NUMBER (XEXP (labelref, 0)));
-    }
   return "move%.w %1,%0";
 }
 
@@ -2454,11 +2453,18 @@ singlemove_string (rtx *operands)
 }
 
 
-/* Output assembler code to perform a doubleword move insn
-   with operands OPERANDS.  */
+/* Output assembler or rtl code to perform a doubleword move insn
+   with operands OPERANDS.
+   Pointers to 3 helper functions should be specified:
+   HANDLE_REG_ADJUST to adjust a register by a small value,
+   HANDLE_COMPADR to compute an address and
+   HANDLE_MOVSI to move 4 bytes.  */
 
-const char *
-output_move_double (rtx *operands)
+static void
+handle_move_double (rtx operands[2],
+		    void (*handle_reg_adjust) (rtx, int),
+		    void (*handle_compadr) (rtx [2]),
+		    void (*handle_movsi) (rtx [2]))
 {
   enum
     {
@@ -2516,10 +2522,9 @@ output_move_double (rtx *operands)
   if (optype0 == PUSHOP && optype1 == POPOP)
     {
       operands[0] = XEXP (XEXP (operands[0], 0), 0);
-      if (size == 12)
-        output_asm_insn ("sub%.l #12,%0", operands);
-      else
-        output_asm_insn ("subq%.l #8,%0", operands);
+
+      handle_reg_adjust (operands[0], -size);
+
       if (GET_MODE (operands[1]) == XFmode)
 	operands[0] = gen_rtx_MEM (XFmode, operands[0]);
       else if (GET_MODE (operands[0]) == DFmode)
@@ -2531,10 +2536,9 @@ output_move_double (rtx *operands)
   if (optype0 == POPOP && optype1 == PUSHOP)
     {
       operands[1] = XEXP (XEXP (operands[1], 0), 0);
-      if (size == 12)
-        output_asm_insn ("sub%.l #12,%1", operands);
-      else
-        output_asm_insn ("subq%.l #8,%1", operands);
+
+      handle_reg_adjust (operands[1], -size);
+
       if (GET_MODE (operands[1]) == XFmode)
 	operands[1] = gen_rtx_MEM (XFmode, operands[1]);
       else if (GET_MODE (operands[1]) == DFmode)
@@ -2576,8 +2580,8 @@ output_move_double (rtx *operands)
 	}
       else
 	{
-	  middlehalf[0] = operands[0];
-	  latehalf[0] = operands[0];
+	  middlehalf[0] = adjust_address (operands[0], SImode, 0);
+	  latehalf[0] = adjust_address (operands[0], SImode, 0);
 	}
 
       if (optype1 == REGOP)
@@ -2612,8 +2616,8 @@ output_move_double (rtx *operands)
 	}
       else
 	{
-	  middlehalf[1] = operands[1];
-	  latehalf[1] = operands[1];
+	  middlehalf[1] = adjust_address (operands[1], SImode, 0);
+	  latehalf[1] = adjust_address (operands[1], SImode, 0);
 	}
     }
   else
@@ -2624,7 +2628,7 @@ output_move_double (rtx *operands)
       else if (optype0 == OFFSOP)
 	latehalf[0] = adjust_address (operands[0], SImode, size - 4);
       else
-	latehalf[0] = operands[0];
+	latehalf[0] = adjust_address (operands[0], SImode, 0);
 
       if (optype1 == REGOP)
 	latehalf[1] = gen_rtx_REG (SImode, REGNO (operands[1]) + 1);
@@ -2633,7 +2637,7 @@ output_move_double (rtx *operands)
       else if (optype1 == CNSTOP)
 	split_double (operands[1], &operands[1], &latehalf[1]);
       else
-	latehalf[1] = operands[1];
+	latehalf[1] = adjust_address (operands[1], SImode, 0);
     }
 
   /* If insn is effectively movd N(sp),-(sp) then we will do the
@@ -2663,8 +2667,9 @@ output_move_double (rtx *operands)
 	compadr:
 	  xops[0] = latehalf[0];
 	  xops[1] = XEXP (operands[1], 0);
-	  output_asm_insn ("lea %a1,%0", xops);
-	  if (GET_MODE (operands[1]) == XFmode )
+
+	  handle_compadr (xops);
+	  if (GET_MODE (operands[1]) == XFmode)
 	    {
 	      operands[1] = gen_rtx_MEM (XFmode, latehalf[0]);
 	      middlehalf[1] = adjust_address (operands[1], DImode, size - 8);
@@ -2694,10 +2699,11 @@ output_move_double (rtx *operands)
 	  gcc_assert (!addreg0 && !addreg1);
 
 	  /* Only the middle reg conflicts; simply put it last.  */
-	  output_asm_insn (singlemove_string (operands), operands);
-	  output_asm_insn (singlemove_string (latehalf), latehalf);
-	  output_asm_insn (singlemove_string (middlehalf), middlehalf);
-	  return "";
+	  handle_movsi (operands);
+	  handle_movsi (latehalf);
+	  handle_movsi (middlehalf);
+
+	  return;
 	}
       else if (reg_overlap_mentioned_p (testlow, XEXP (operands[1], 0)))
 	/* If the low half of dest is mentioned in the source memory
@@ -2721,85 +2727,194 @@ output_move_double (rtx *operands)
     {
       /* Make any unoffsettable addresses point at high-numbered word.  */
       if (addreg0)
-	{
-	  if (size == 12)
-	    output_asm_insn ("addq%.l #8,%0", &addreg0);
-	  else
-	    output_asm_insn ("addq%.l #4,%0", &addreg0);
-	}
+	handle_reg_adjust (addreg0, size - 4);
       if (addreg1)
-	{
-	  if (size == 12)
-	    output_asm_insn ("addq%.l #8,%0", &addreg1);
-	  else
-	    output_asm_insn ("addq%.l #4,%0", &addreg1);
-	}
+	handle_reg_adjust (addreg1, size - 4);
 
       /* Do that word.  */
-      output_asm_insn (singlemove_string (latehalf), latehalf);
+      handle_movsi (latehalf);
 
       /* Undo the adds we just did.  */
       if (addreg0)
-	output_asm_insn ("subq%.l #4,%0", &addreg0);
+	handle_reg_adjust (addreg0, -4);
       if (addreg1)
-	output_asm_insn ("subq%.l #4,%0", &addreg1);
+	handle_reg_adjust (addreg1, -4);
 
       if (size == 12)
 	{
-	  output_asm_insn (singlemove_string (middlehalf), middlehalf);
+	  handle_movsi (middlehalf);
+
 	  if (addreg0)
-	    output_asm_insn ("subq%.l #4,%0", &addreg0);
+	    handle_reg_adjust (addreg0, -4);
 	  if (addreg1)
-	    output_asm_insn ("subq%.l #4,%0", &addreg1);
+	    handle_reg_adjust (addreg1, -4);
 	}
 
       /* Do low-numbered word.  */
-      return singlemove_string (operands);
+
+      handle_movsi (operands);
+      return;
     }
 
   /* Normal case: do the two words, low-numbered first.  */
 
-  output_asm_insn (singlemove_string (operands), operands);
+  handle_movsi (operands);
 
   /* Do the middle one of the three words for long double */
   if (size == 12)
     {
       if (addreg0)
-	output_asm_insn ("addq%.l #4,%0", &addreg0);
+	handle_reg_adjust (addreg0, 4);
       if (addreg1)
-	output_asm_insn ("addq%.l #4,%0", &addreg1);
+	handle_reg_adjust (addreg1, 4);
 
-      output_asm_insn (singlemove_string (middlehalf), middlehalf);
+      handle_movsi (middlehalf);
     }
 
   /* Make any unoffsettable addresses point at high-numbered word.  */
   if (addreg0)
-    output_asm_insn ("addq%.l #4,%0", &addreg0);
+    handle_reg_adjust (addreg0, 4);
   if (addreg1)
-    output_asm_insn ("addq%.l #4,%0", &addreg1);
+    handle_reg_adjust (addreg1, 4);
 
   /* Do that word.  */
-  output_asm_insn (singlemove_string (latehalf), latehalf);
+  handle_movsi (latehalf);
 
   /* Undo the adds we just did.  */
   if (addreg0)
-    {
-      if (size == 12)
-        output_asm_insn ("subq%.l #8,%0", &addreg0);
-      else
-        output_asm_insn ("subq%.l #4,%0", &addreg0);
-    }
+    handle_reg_adjust (addreg0, -(size - 4));
   if (addreg1)
+    handle_reg_adjust (addreg1, -(size - 4));
+
+  return;
+}
+
+/* Output assembler code to adjust REG by N.  */
+static void
+output_reg_adjust (rtx reg, int n)
+{
+  const char *s;
+
+  gcc_assert (GET_MODE (reg) == SImode
+	      && -12 <= n && n != 0 && n <= 12);
+
+  switch (n)
     {
-      if (size == 12)
-        output_asm_insn ("subq%.l #8,%0", &addreg1);
-      else
-        output_asm_insn ("subq%.l #4,%0", &addreg1);
+    case 12:
+      s = "add%.l #12,%0";
+      break;
+
+    case 8:
+      s = "addq%.l #8,%0";
+      break;
+
+    case 4:
+      s = "addq%.l #4,%0";
+      break;
+
+    case -12:
+      s = "sub%.l #12,%0";
+      break;
+
+    case -8:
+      s = "subq%.l #8,%0";
+      break;
+
+    case -4:
+      s = "subq%.l #4,%0";
+      break;
+
+    default:
+      gcc_unreachable ();
+      s = NULL;
     }
+
+  output_asm_insn (s, &reg);
+}
+
+/* Emit rtl code to adjust REG by N.  */
+static void
+emit_reg_adjust (rtx reg1, int n)
+{
+  rtx reg2;
+
+  gcc_assert (GET_MODE (reg1) == SImode
+	      && -12 <= n && n != 0 && n <= 12);
+
+  reg1 = copy_rtx (reg1);
+  reg2 = copy_rtx (reg1);
+
+  if (n < 0)
+    emit_insn (gen_subsi3 (reg1, reg2, GEN_INT (-n)));
+  else if (n > 0)
+    emit_insn (gen_addsi3 (reg1, reg2, GEN_INT (n)));
+  else
+    gcc_unreachable ();
+}
+
+/* Output assembler to load address OPERANDS[0] to register OPERANDS[1].  */
+static void
+output_compadr (rtx operands[2])
+{
+  output_asm_insn ("lea %a1,%0", operands);
+}
+
+/* Output the best assembler insn for moving operands[1] into operands[0]
+   as a fullword.  */
+static void
+output_movsi (rtx operands[2])
+{
+  output_asm_insn (singlemove_string (operands), operands);
+}
+
+/* Copy OP and change its mode to MODE.  */
+static rtx
+copy_operand (rtx op, enum machine_mode mode)
+{
+  /* ??? This looks really ugly.  There must be a better way
+     to change a mode on the operand.  */
+  if (GET_MODE (op) != VOIDmode)
+    {
+      if (REG_P (op))
+	op = gen_rtx_REG (mode, REGNO (op));
+      else
+	{
+	  op = copy_rtx (op);
+	  PUT_MODE (op, mode);
+	}
+    }
+
+  return op;
+}
+
+/* Emit rtl code for moving operands[1] into operands[0] as a fullword.  */
+static void
+emit_movsi (rtx operands[2])
+{
+  operands[0] = copy_operand (operands[0], SImode);
+  operands[1] = copy_operand (operands[1], SImode);
+
+  emit_insn (gen_movsi (operands[0], operands[1]));
+}
+
+/* Output assembler code to perform a doubleword move insn
+   with operands OPERANDS.  */
+const char *
+output_move_double (rtx *operands)
+{
+  handle_move_double (operands,
+		      output_reg_adjust, output_compadr, output_movsi);
 
   return "";
 }
 
+/* Output rtl code to perform a doubleword move insn
+   with operands OPERANDS.  */
+void
+m68k_emit_move_double (rtx operands[2])
+{
+  handle_move_double (operands, emit_reg_adjust, emit_movsi, emit_movsi);
+}
 
 /* Ensure mode of ORIG, a REG rtx, is MODE.  Returns either ORIG or a
    new rtx with the correct mode.  */
@@ -3203,16 +3318,16 @@ m68k_output_movem (rtx *operands, rtx pattern,
   if (FP_REGNO_P (REGNO (XEXP (XVECEXP (pattern, 0, first), store_p))))
     {
       if (store_p)
-	return MOTOROLA ? "fmovm %1,%a0" : "fmovem %1,%a0";
+	return "fmovem %1,%a0";
       else
-	return MOTOROLA ? "fmovm %a0,%1" : "fmovem %a0,%1";
+	return "fmovem %a0,%1";
     }
   else
     {
       if (store_p)
-	return MOTOROLA ? "movm.l %1,%a0" : "moveml %1,%a0";
+	return "movem%.l %1,%a0";
       else
-	return MOTOROLA ? "movm.l %a0,%1" : "moveml %a0,%1";
+	return "movem%.l %a0,%1";
     }
 }
 
@@ -3411,6 +3526,13 @@ notice_update_cc (rtx exp, rtx insn)
   if (((cc_status.value1 && FP_REG_P (cc_status.value1))
        || (cc_status.value2 && FP_REG_P (cc_status.value2))))
     cc_status.flags = CC_IN_68881;
+  if (cc_status.value2 && GET_CODE (cc_status.value2) == COMPARE
+      && GET_MODE_CLASS (GET_MODE (XEXP (cc_status.value2, 0))) == MODE_FLOAT)
+    {
+      cc_status.flags = CC_IN_68881;
+      if (!FP_REG_P (XEXP (cc_status.value2, 0)))
+	cc_status.flags |= CC_REVERSED;
+    }
 }
 
 const char *
@@ -3545,7 +3667,7 @@ floating_exact_log2 (rtx x)
     return 0;
 
   exp = real_exponent (&r);
-  real_2expN (&r1, exp);
+  real_2expN (&r1, exp, DFmode);
   if (REAL_VALUES_EQUAL (r1, r))
     return exp;
 
@@ -3698,19 +3820,6 @@ print_operand (FILE *file, rtx op, int letter)
    It is possible for PIC to generate a (plus (label_ref...) (reg...))
    and we handle that just like we would a (plus (symbol_ref...) (reg...)).
 
-   Some SGS assemblers have a bug such that "Lnnn-LInnn-2.b(pc,d0.l*2)"
-   fails to assemble.  Luckily "Lnnn(pc,d0.l*2)" produces the results
-   we want.  This difference can be accommodated by using an assembler
-   define such "LDnnn" to be either "Lnnn-LInnn-2.b", "Lnnn", or any other
-   string, as necessary.  This is accomplished via the ASM_OUTPUT_CASE_END
-   macro.  See m68k/sgs.h for an example; for versions without the bug.
-   Some assemblers refuse all the above solutions.  The workaround is to
-   emit "K(pc,d0.l*2)" with K being a small constant known to give the
-   right behavior.
-
-   They also do not like things like "pea 1.w", so we simple leave off
-   the .w on small constants. 
-
    This routine is responsible for distinguishing between -fpic and -fPIC 
    style relocations in an address.  When generating -fpic code the
    offset is output in word mode (e.g. movel a5@(_foo:w), a0).  When generating
@@ -3781,7 +3890,7 @@ print_operand_address (FILE *file, rtx addr)
 	{
 	  /* Print the "offset(base" component.  */
 	  if (labelno >= 0)
-	    asm_fprintf (file, "%LL%d-%LLI%d.b(%Rpc,", labelno, labelno);
+	    asm_fprintf (file, "%LL%d(%Rpc,", labelno);
 	  else
 	    {
 	      if (address.offset)
@@ -3819,7 +3928,7 @@ print_operand_address (FILE *file, rtx addr)
 	    {
 	      /* Print the "base@(offset" component.  */
 	      if (labelno >= 0)
-		asm_fprintf (file, "%Rpc@(%LL%d-%LLI%d-2:b", labelno, labelno);
+		asm_fprintf (file, "%Rpc@(%LL%d", labelno);
 	      else
 		{
 		  if (address.base)
@@ -3867,14 +3976,18 @@ bool
 strict_low_part_peephole_ok (enum machine_mode mode, rtx first_insn,
                              rtx target)
 {
-  rtx p;
+  rtx p = first_insn;
 
-  p = prev_nonnote_insn (first_insn);
-
-  while (p)
+  while ((p = PREV_INSN (p)))
     {
+      if (NOTE_INSN_BASIC_BLOCK_P (p))
+	return false;
+
+      if (NOTE_P (p))
+	continue;
+
       /* If it isn't an insn, then give up.  */
-      if (GET_CODE (p) != INSN)
+      if (!INSN_P (p))
 	return false;
 
       if (reg_set_p (target, p))
@@ -3904,8 +4017,6 @@ strict_low_part_peephole_ok (enum machine_mode mode, rtx first_insn,
 	  else
 	    return false;
 	}
-
-      p = prev_nonnote_insn (p);
     }
 
   return false;
@@ -4347,7 +4458,7 @@ m68k_libcall_value (enum machine_mode mode)
 }
 
 rtx
-m68k_function_value (tree valtype, tree func ATTRIBUTE_UNUSED)
+m68k_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode;
 
@@ -4385,4 +4496,478 @@ m68k_function_value (tree valtype, tree func ATTRIBUTE_UNUSED)
     return gen_rtx_REG (mode, A0_REG);
   else
     return gen_rtx_REG (mode, D0_REG);
+}
+
+/* Worker function for TARGET_RETURN_IN_MEMORY.  */
+#if M68K_HONOR_TARGET_STRICT_ALIGNMENT
+static bool
+m68k_return_in_memory (tree type, tree fntype ATTRIBUTE_UNUSED)
+{
+  enum machine_mode mode = TYPE_MODE (type);
+
+  if (mode == BLKmode)
+    return true;
+
+  /* If TYPE's known alignment is less than the alignment of MODE that
+     would contain the structure, then return in memory.  We need to
+     do so to maintain the compatibility between code compiled with
+     -mstrict-align and that compiled with -mno-strict-align.  */
+  if (AGGREGATE_TYPE_P (type)
+      && TYPE_ALIGN (type) < GET_MODE_ALIGNMENT (mode))
+    return true;
+
+  return false;
+}
+#endif
+
+/* CPU to schedule the program for.  */
+enum attr_cpu m68k_sched_cpu;
+
+/* Operand type.  */
+enum attr_op_type
+  {
+    /* No operand.  */
+    OP_TYPE_NONE,
+
+    /* Register.  */
+    OP_TYPE_REG,
+
+    /* Implicit mem reference (e.g. stack).  */
+    OP_TYPE_MEM1,
+
+    /* Memory without offset or indexing.  EA modes 2, 3 and 4.  */
+    OP_TYPE_MEM234,
+
+    /* Memory with offset but without indexing.  EA mode 5.  */
+    OP_TYPE_MEM5,
+
+    /* Memory with indexing.  EA mode 6.  */
+    OP_TYPE_MEM6,
+
+    /* Memory referenced by absolute address.  EA mode 7.  */
+    OP_TYPE_MEM7,
+
+    /* Immediate operand that doesn't require extension word.  */
+    OP_TYPE_IMM_Q,
+
+    /* Immediate 16 bit operand.  */
+    OP_TYPE_IMM_W,
+
+    /* Immediate 32 bit operand.  */
+    OP_TYPE_IMM_L
+  };
+
+/* True if current insn doesn't have complete pipeline description.  */
+static bool sched_guess_p;
+
+/* Return type of memory ADDR_RTX refers to.  */
+static enum attr_op_type
+sched_address_type (enum machine_mode mode, rtx addr_rtx)
+{
+  struct m68k_address address;
+
+  if (!m68k_decompose_address (mode, addr_rtx,
+			       reload_completed, &address))
+    {
+      gcc_assert (sched_guess_p);
+      /* Reload will likely fix the address to be in the register.  */
+      return OP_TYPE_MEM234;
+    }
+
+  if (address.scale != 0)
+    return OP_TYPE_MEM6;
+
+  if (address.base != NULL_RTX)
+    {
+      if (address.offset == NULL_RTX)
+	return OP_TYPE_MEM234;
+
+      return OP_TYPE_MEM5;
+    }
+
+  gcc_assert (address.offset != NULL_RTX);
+
+  return OP_TYPE_MEM7;
+}
+
+/* Return type of the operand OP.
+   If ADDRESS_P is true, return type of memory location OP refers to.  */
+static enum attr_op_type
+sched_operand_type (rtx op, bool address_p)
+{
+  gcc_assert (op != NULL_RTX);
+
+  if (address_p)
+    return sched_address_type (QImode, op);
+
+  if (memory_operand (op, VOIDmode))
+    return sched_address_type (GET_MODE (op), XEXP (op, 0));
+
+  if (register_operand (op, VOIDmode))
+    return OP_TYPE_REG;
+
+  if (GET_CODE (op) == CONST_INT)
+    {
+      /* ??? Below condition should probably check if the operation is
+	 signed or unsigned.  */
+      if (IN_RANGE (INTVAL (op), -0x8000, 0x7fff))
+	return OP_TYPE_IMM_W;
+
+      return OP_TYPE_IMM_L;
+    }
+
+  if (GET_CODE (op) == CONST_DOUBLE)
+    {
+      switch (GET_MODE (op))
+	{
+	case SFmode:
+	  return OP_TYPE_IMM_W;
+
+	case VOIDmode:
+	case DFmode:
+	  return OP_TYPE_IMM_L;
+
+	default:
+	  gcc_unreachable ();
+	}
+    }
+
+  if (symbolic_operand (op, VOIDmode)
+      || LABEL_P (op))
+    {
+      switch (GET_MODE (op))
+	{
+	case QImode:
+	  return OP_TYPE_IMM_Q;
+
+	case HImode:
+	  return OP_TYPE_IMM_W;
+
+	case SImode:
+	  return OP_TYPE_IMM_L;
+
+	default:
+	  if (GET_CODE (op) == SYMBOL_REF)
+	    /* ??? Just a guess.  Probably we can guess better using length
+	       attribute of the instructions.  */
+	    return OP_TYPE_IMM_W;
+
+	  return OP_TYPE_IMM_L;
+	}
+    }
+
+  gcc_assert (sched_guess_p);
+
+  return OP_TYPE_REG;
+}
+
+/* Return type of INSN's operand X (if OPX_P) or operand Y (if !OPX_P).
+   If ADDRESS_P is true, return type of memory location operand refers to.  */
+static enum attr_op_type
+sched_attr_op_type (rtx insn, bool opx_p, bool address_p)
+{
+  int i;
+
+  extract_constrain_insn_cached (insn);
+
+  if (opx_p)
+    i = get_attr_opx (insn);
+  else
+    i = get_attr_opy (insn);
+
+  if (i >= recog_data.n_operands)
+    {
+      gcc_assert (sched_guess_p);
+      return OP_TYPE_REG;
+    }
+
+  return sched_operand_type (recog_data.operand[i], address_p);
+}
+
+/* Implement opx_type attribute.
+   Return type of INSN's operand X.
+   If ADDRESS_P is true, return type of memory location operand refers to.  */
+enum attr_opx_type
+m68k_sched_attr_opx_type (rtx insn, int address_p)
+{
+  sched_guess_p = (get_attr_guess (insn) == GUESS_YES);
+
+  switch (sched_attr_op_type (insn, true, address_p != 0))
+    {
+    case OP_TYPE_REG:
+      return OPX_TYPE_REG;
+
+    case OP_TYPE_MEM1:
+      return OPX_TYPE_MEM1;
+
+    case OP_TYPE_MEM234:
+      return OPX_TYPE_MEM234;
+
+    case OP_TYPE_MEM5:
+      return OPX_TYPE_MEM5;
+
+    case OP_TYPE_MEM6:
+      return OPX_TYPE_MEM6;
+
+    case OP_TYPE_MEM7:
+      return OPX_TYPE_MEM7;
+
+    case OP_TYPE_IMM_Q:
+      return OPX_TYPE_IMM_Q;
+
+    case OP_TYPE_IMM_W:
+      return OPX_TYPE_IMM_W;
+
+    case OP_TYPE_IMM_L:
+      return OPX_TYPE_IMM_L;
+
+    default:
+      gcc_unreachable ();
+      return 0;
+    }
+}
+
+/* Implement opy_type attribute.
+   Return type of INSN's operand Y.
+   If ADDRESS_P is true, return type of memory location operand refers to.  */
+enum attr_opy_type
+m68k_sched_attr_opy_type (rtx insn, int address_p)
+{
+  sched_guess_p = (get_attr_guess (insn) == GUESS_YES);
+
+  switch (sched_attr_op_type (insn, false, address_p != 0))
+    {
+    case OP_TYPE_REG:
+      return OPY_TYPE_REG;
+
+    case OP_TYPE_MEM1:
+      return OPY_TYPE_MEM1;
+
+    case OP_TYPE_MEM234:
+      return OPY_TYPE_MEM234;
+
+    case OP_TYPE_MEM5:
+      return OPY_TYPE_MEM5;
+
+    case OP_TYPE_MEM6:
+      return OPY_TYPE_MEM6;
+
+    case OP_TYPE_MEM7:
+      return OPY_TYPE_MEM7;
+
+    case OP_TYPE_IMM_Q:
+      return OPY_TYPE_IMM_Q;
+
+    case OP_TYPE_IMM_W:
+      return OPY_TYPE_IMM_W;
+
+    case OP_TYPE_IMM_L:
+      return OPY_TYPE_IMM_L;
+
+    default:
+      gcc_unreachable ();
+      return 0;
+    }
+}
+
+/* Return the size of INSN.  */
+int
+m68k_sched_attr_size (rtx insn)
+{
+  int size;
+
+  sched_guess_p = (get_attr_guess (insn) == GUESS_YES);
+
+  switch (get_attr_type1 (insn))
+    {
+    case TYPE1_MUL_L:
+      size = 2;
+      break;
+
+    default:
+      size = 1;
+      break;
+    }
+
+  switch (get_attr_opx_type (insn))
+    {
+    case OPX_TYPE_NONE:
+    case OPX_TYPE_REG:
+    case OPX_TYPE_MEM1:
+    case OPX_TYPE_MEM234:
+    case OPY_TYPE_IMM_Q:
+      break;
+
+    case OPX_TYPE_MEM5:
+    case OPX_TYPE_MEM6:
+      /* Here we assume that most absolute references are short.  */
+    case OPX_TYPE_MEM7:
+    case OPY_TYPE_IMM_W:
+      ++size;
+      break;
+
+    case OPY_TYPE_IMM_L:
+      size += 2;
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  switch (get_attr_opy_type (insn))
+    {
+    case OPY_TYPE_NONE:
+    case OPY_TYPE_REG:
+    case OPY_TYPE_MEM1:
+    case OPY_TYPE_MEM234:
+    case OPY_TYPE_IMM_Q:
+      break;
+
+    case OPY_TYPE_MEM5:
+    case OPY_TYPE_MEM6:
+      /* Here we assume that most absolute references are short.  */
+    case OPY_TYPE_MEM7:
+    case OPY_TYPE_IMM_W:
+      ++size;
+      break;
+
+    case OPY_TYPE_IMM_L:
+      size += 2;
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  if (size > 3)
+    {
+      gcc_assert (sched_guess_p);
+
+      size = 3;
+    }
+
+  return size;
+}
+
+/* Implement op_mem attribute.  */
+enum attr_op_mem
+m68k_sched_attr_op_mem (rtx insn)
+{
+  enum attr_opy_mem opy;
+  enum attr_opx_mem opx;
+
+  sched_guess_p = (get_attr_guess (insn) == GUESS_YES);
+
+  opy = get_attr_opy_mem (insn);
+  opx = get_attr_opx_mem (insn);
+
+  if (opy == OPY_MEM_R && opx == OPX_MEM_R)
+    return OP_MEM_00;
+
+  if (opy == OPY_MEM_R && opx == OPX_MEM_M)
+    {
+      switch (get_attr_opx_access (insn))
+	{
+	case OPX_ACCESS_R:
+	  return OP_MEM_10;
+
+	case OPX_ACCESS_W:
+	  return OP_MEM_01;
+
+	case OPX_ACCESS_RW:
+	  return OP_MEM_11;
+
+	default:
+	  gcc_assert (sched_guess_p);
+	  return OP_MEM_UNKNOWN;
+	}
+    }
+
+  if (opy == OPY_MEM_R && opx == OPX_MEM_I)
+    {
+      switch (get_attr_opx_access (insn))
+	{
+	case OPX_ACCESS_R:
+	  return OP_MEM_I0;
+
+	case OPX_ACCESS_W:
+	  return OP_MEM_0I;
+
+	case OPX_ACCESS_RW:
+	  return OP_MEM_I1;
+
+	default:
+	  gcc_assert (sched_guess_p);
+	  return OP_MEM_UNKNOWN;
+	}
+    }
+
+  if (opy == OPY_MEM_M && opx == OPX_MEM_R)
+    return OP_MEM_10;
+
+  if (opy == OPY_MEM_M && opx == OPX_MEM_M)
+    {
+      switch (get_attr_opx_access (insn))
+	{
+	case OPX_ACCESS_W:
+	  return OP_MEM_11;
+
+	default:
+	  gcc_assert (sched_guess_p);
+	  return OP_MEM_UNKNOWN;
+	}
+    }
+
+  if (opy == OPY_MEM_M && opx == OPX_MEM_I)
+    {
+      switch (get_attr_opx_access (insn))
+	{
+	case OPX_ACCESS_W:
+	  return OP_MEM_1I;
+
+	default:
+	  gcc_assert (sched_guess_p);
+	  return OP_MEM_UNKNOWN;
+	}
+    }
+
+  if (opy == OPY_MEM_I && opx == OPX_MEM_R)
+    return OP_MEM_I0;
+
+
+  if (opy == OPY_MEM_I && opx == OPX_MEM_M)
+    {
+      switch (get_attr_opx_access (insn))
+	{
+	case OPX_ACCESS_W:
+	  return OP_MEM_I1;
+
+	default:
+	  gcc_assert (sched_guess_p);
+	  return OP_MEM_UNKNOWN;
+	}
+    }
+
+  gcc_assert (sched_guess_p);
+  return OP_MEM_UNKNOWN;
+}
+
+/* Jump instructions types.  Indexed by INSN_UID.
+   The same rtl insn can be expanded into different asm instructions
+   depending on the cc0_status.  To properly determine type of jump
+   instructions we scan instruction stream and map jumps types to this
+   array.  */
+static enum attr_type *sched_branch_type;
+
+/* Return the type of the jump insn.  */
+enum attr_type
+m68k_sched_branch_type (rtx insn)
+{
+  enum attr_type type;
+
+  type = sched_branch_type[INSN_UID (insn)];
+
+  gcc_assert (type != 0);
+
+  return type;
 }

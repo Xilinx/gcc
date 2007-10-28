@@ -10,14 +10,13 @@
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * for  more details.  You should have received a copy of the GNU General   *
+ * Public License along with GCC; see the file COPYING3.  If not see        *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -156,11 +155,6 @@ static GTY(()) VEC(tree,gc) *builtin_decls;
 /* An array of global renaming pointers.  */
 static GTY(()) VEC(tree,gc) *global_renaming_pointers;
 
-/* Arrays of functions called automatically at the beginning and
-   end of execution, on targets without .ctors/.dtors sections.  */
-static GTY(()) VEC(tree,gc) *static_ctors;
-static GTY(()) VEC(tree,gc) *static_dtors;
-
 /* A chain of unused BLOCK nodes. */
 static GTY((deletable)) tree free_block_chain;
 
@@ -168,7 +162,6 @@ static void gnat_install_builtins (void);
 static tree merge_sizes (tree, tree, tree, bool, bool);
 static tree compute_related_constant (tree, tree);
 static tree split_plus (tree, tree *);
-static bool value_zerop (tree);
 static void gnat_gimplify_function (tree);
 static tree float_type_for_precision (int, enum machine_mode);
 static tree convert_to_fat_pointer (tree, tree);
@@ -485,8 +478,6 @@ gnat_pushdecl (tree decl, Node_Id gnat_node)
 void
 gnat_init_decl_processing (void)
 {
-  input_line = 0;
-
   /* Make the binding_level structure for global names.  */
   current_function_decl = 0;
   current_binding_level = 0;
@@ -505,17 +496,14 @@ gnat_init_decl_processing (void)
   build_common_tree_nodes_2 (0);
 
   /* Give names and make TYPE_DECLs for common types.  */
-  gnat_pushdecl (build_decl (TYPE_DECL, get_identifier (SIZE_TYPE), sizetype),
-		 Empty);
-  gnat_pushdecl (build_decl (TYPE_DECL, get_identifier ("integer"),
-			     integer_type_node),
-		 Empty);
-  gnat_pushdecl (build_decl (TYPE_DECL, get_identifier ("unsigned char"),
-			     char_type_node),
-		 Empty);
-  gnat_pushdecl (build_decl (TYPE_DECL, get_identifier ("long integer"),
-			     long_integer_type_node),
-		 Empty);
+  create_type_decl (get_identifier (SIZE_TYPE), sizetype,
+		    NULL, false, true, Empty);
+  create_type_decl (get_identifier ("integer"), integer_type_node,
+		    NULL, false, true, Empty);
+  create_type_decl (get_identifier ("unsigned char"), char_type_node,
+		    NULL, false, true, Empty);
+  create_type_decl (get_identifier ("long integer"), long_integer_type_node,
+		    NULL, false, true, Empty);
 
   ptr_void_type_node = build_pointer_type (void_type_node);
 
@@ -601,7 +589,7 @@ init_gigi_decls (tree long_long_float_type, tree exception_type)
     = build_array_type (gnat_type_for_mode (Pmode, 0),
 			build_index_type (build_int_cst (NULL_TREE, 5)));
   create_type_decl (get_identifier ("JMPBUF_T"), jmpbuf_type, NULL,
-		    false, true, Empty);
+		    true, true, Empty);
   jmpbuf_ptr_type = build_pointer_type (jmpbuf_type);
 
   /* Functions to get and set the jumpbuf pointer for the current thread.  */
@@ -778,7 +766,7 @@ finish_record_type (tree record_type, tree fieldlist, int rep_level,
 
   TYPE_FIELDS (record_type) = fieldlist;
   TYPE_STUB_DECL (record_type)
-    = build_decl (TYPE_DECL, NULL_TREE, record_type);
+    = build_decl (TYPE_DECL, TYPE_NAME (record_type), record_type);
 
   /* We don't need both the typedef name and the record name output in
      the debugging information, since they are the same.  */
@@ -947,6 +935,7 @@ rest_of_record_type_compilation (tree record_type)
 {
   tree fieldlist = TYPE_FIELDS (record_type);
   tree field;
+  enum tree_code code = TREE_CODE (record_type);
   bool var_size = false;
 
   for (field = fieldlist; field; field = TREE_CHAIN (field))
@@ -957,7 +946,11 @@ rest_of_record_type_compilation (tree record_type)
 	 same size, in which case we'll use that size.  But the debug
 	 output routines (except Dwarf2) won't be able to output the fields,
 	 so we need to make the special record.  */
-      if (TREE_CODE (DECL_SIZE (field)) != INTEGER_CST)
+      if (TREE_CODE (DECL_SIZE (field)) != INTEGER_CST
+	  /* If a field has a non-constant qualifier, the record will have
+	     variable size too.  */
+	  || (code == QUAL_UNION_TYPE
+	      && TREE_CODE (DECL_QUALIFIER (field)) != INTEGER_CST))
 	{
 	  var_size = true;
 	  break;
@@ -991,7 +984,7 @@ rest_of_record_type_compilation (tree record_type)
       TYPE_NAME (new_record_type) = new_id;
       TYPE_ALIGN (new_record_type) = BIGGEST_ALIGNMENT;
       TYPE_STUB_DECL (new_record_type)
-	= build_decl (TYPE_DECL, NULL_TREE, new_record_type);
+	= build_decl (TYPE_DECL, new_id, new_record_type);
       DECL_ARTIFICIAL (TYPE_STUB_DECL (new_record_type)) = 1;
       DECL_IGNORED_P (TYPE_STUB_DECL (new_record_type))
 	= DECL_IGNORED_P (TYPE_STUB_DECL (record_type));
@@ -1483,8 +1476,6 @@ create_var_decl_1 (tree var_name, tree asm_name, tree type, tree var_init,
   if (TREE_CODE (var_decl) != CONST_DECL)
     rest_of_decl_compilation (var_decl, global_bindings_p (), 0);
   else
-    /* expand CONST_DECLs to set their MODE, ALIGN, SIZE and SIZE_UNIT,
-       which we need for later back-annotations.  */
     expand_decl (var_decl);
 
   return var_decl;
@@ -1631,34 +1622,20 @@ create_field_decl (tree field_name, tree field_type, tree record_type,
       DECL_HAS_REP_P (field_decl) = 1;
     }
 
-  /* If the field type is passed by reference, we will have pointers to the
-     field, so it is addressable. */
-  if (must_pass_by_ref (field_type) || default_pass_by_ref (field_type))
+  /* In addition to what our caller says, claim the field is addressable if we
+     know that its type is not suitable.
+
+     The field may also be "technically" nonaddressable, meaning that even if
+     we attempt to take the field's address we will actually get the address
+     of a copy.  This is the case for true bitfields, but the DECL_BIT_FIELD
+     value we have at this point is not accurate enough, so we don't account
+     for this here and let finish_record_type decide.  */
+  if (!type_for_nonaliased_component_p (field_type))
     addressable = 1;
 
-  /* Mark the decl as nonaddressable if it is indicated so semantically,
-     meaning we won't ever attempt to take the address of the field.
-
-     It may also be "technically" nonaddressable, meaning that even if we
-     attempt to take the field's address we will actually get the address of a
-     copy. This is the case for true bitfields, but the DECL_BIT_FIELD value
-     we have at this point is not accurate enough, so we don't account for
-     this here and let finish_record_type decide.  */
   DECL_NONADDRESSABLE_P (field_decl) = !addressable;
 
   return field_decl;
-}
-
-/* Subroutine of previous function: return nonzero if EXP, ignoring any side
-   effects, has the value of zero.  */
-
-static bool
-value_zerop (tree exp)
-{
-  if (TREE_CODE (exp) == COMPOUND_EXPR)
-    return value_zerop (TREE_OPERAND (exp, 1));
-
-  return integer_zerop (exp);
 }
 
 /* Returns a PARM_DECL node. PARAM_NAME is the name of the parameter,
@@ -2133,7 +2110,7 @@ end_subprog_body (tree body)
   DECL_SAVED_TREE (fndecl) = body;
 
   current_function_decl = DECL_CONTEXT (fndecl);
-  cfun = NULL;
+  set_cfun (NULL);
 
   /* We cannot track the location of errors past this point.  */
   error_gnat_node = Empty;
@@ -2141,14 +2118,6 @@ end_subprog_body (tree body)
   /* If we're only annotating types, don't actually compile this function.  */
   if (type_annotate_only)
     return;
-
-  /* If we don't have .ctors/.dtors sections, and this is a static
-     constructor or destructor, it must be recorded now.  */
-  if (DECL_STATIC_CONSTRUCTOR (fndecl) && !targetm.have_ctors_dtors)
-    VEC_safe_push (tree, gc, static_ctors, fndecl);
-
-  if (DECL_STATIC_DESTRUCTOR (fndecl) && !targetm.have_ctors_dtors)
-    VEC_safe_push (tree, gc, static_dtors, fndecl);
 
   /* Perform the required pre-gimplfication transformations on the tree.  */
   gnat_genericize (fndecl);
@@ -3474,6 +3443,22 @@ convert (tree type, tree expr)
 	}
       break;
 
+    case CONSTRUCTOR:
+      /* If we are converting a CONSTRUCTOR to another constrained array type
+	 with the same domain, just make a new one in the proper type.  */
+      if (code == ecode && code == ARRAY_TYPE
+	  && TREE_TYPE (type) == TREE_TYPE (etype)
+	  && tree_int_cst_equal (TYPE_MIN_VALUE (TYPE_DOMAIN (type)),
+				 TYPE_MIN_VALUE (TYPE_DOMAIN (etype)))
+	  && tree_int_cst_equal (TYPE_MAX_VALUE (TYPE_DOMAIN (type)),
+				 TYPE_MAX_VALUE (TYPE_DOMAIN (etype))))
+	{
+	  expr = copy_node (expr);
+	  TREE_TYPE (expr) = type;
+	  return expr;
+	}
+      break;
+
     case UNCONSTRAINED_ARRAY_REF:
       /* Convert this to the type of the inner array by getting the address of
 	 the array from the template.  */
@@ -3821,7 +3806,7 @@ unchecked_convert (tree type, tree expr, bool notrunc_p)
 	  TYPE_MAIN_VARIANT (rtype) = rtype;
 	}
 
-      /* We have another special case.  If we are unchecked converting subtype
+      /* We have another special case: if we are unchecked converting subtype
 	 into a base type, we need to ensure that VRP doesn't propagate range
 	 information since this conversion may be done precisely to validate
 	 that the object is within the range it is supposed to have.  */
@@ -3831,21 +3816,18 @@ unchecked_convert (tree type, tree expr, bool notrunc_p)
 		   || TREE_CODE (etype) == ENUMERAL_TYPE
 		   || TREE_CODE (etype) == BOOLEAN_TYPE))
 	{
-	  /* ??? The pattern to be "preserved" by the middle-end and the
-	     optimizers is a VIEW_CONVERT_EXPR between a pair of different
-	     "base" types (integer types without TREE_TYPE).  But this may
-	     raise addressability/aliasing issues because VIEW_CONVERT_EXPR
-	     gets gimplified as an lvalue, thus causing the address of its
-	     operand to be taken if it is deemed addressable and not already
-	     in GIMPLE form.  */
+	  /* The optimization barrier is a VIEW_CONVERT_EXPR node; moreover,
+	     in order not to be deemed an useless type conversion, it must
+	     be from subtype to base type.
+
+	     ??? This may raise addressability and/or aliasing issues because
+	     VIEW_CONVERT_EXPR gets gimplified as an lvalue, thus causing the
+	     address of its operand to be taken if it is deemed addressable
+	     and not already in GIMPLE form.  */
 	  rtype = gnat_type_for_mode (TYPE_MODE (type), TYPE_UNSIGNED (type));
-
-	  if (rtype == type)
-	    {
-	      rtype = copy_type (rtype);
-	      TYPE_MAIN_VARIANT (rtype) = rtype;
-	    }
-
+	  rtype = copy_type (rtype);
+	  TYPE_MAIN_VARIANT (rtype) = rtype;
+	  TREE_TYPE (rtype) = type;
 	  final_unchecked = true;
 	}
 
@@ -4010,26 +3992,36 @@ tree_code_for_record_type (Entity_Id gnat_type)
   return UNION_TYPE;
 }
 
-/* Build a global constructor or destructor function.  METHOD_TYPE gives
-   the type of the function and VEC points to the vector of constructor
-   or destructor functions to be invoked.  FIXME: Migrate into cgraph.  */
+/* Return true if GNU_TYPE is suitable as the type of a non-aliased
+   component of an aggregate type.  */
 
-static void
-build_global_cdtor (int method_type, tree *vec, int len)
+bool
+type_for_nonaliased_component_p (tree gnu_type)
 {
-  tree body = NULL_TREE;
-  int i;
+  /* If the type is passed by reference, we may have pointers to the
+     component so it cannot be made non-aliased. */
+  if (must_pass_by_ref (gnu_type) || default_pass_by_ref (gnu_type))
+    return false;
 
-  for (i = 0; i < len; i++)
-    {
-      tree fntype = TREE_TYPE (vec[i]);
-      tree fnaddr = build1 (ADDR_EXPR, build_pointer_type (fntype), vec[i]);
-      tree fncall = build_call_nary (TREE_TYPE (fntype), fnaddr, 0);
-      append_to_statement_list (fncall, &body);
-    }
+  /* We used to say that any component of aggregate type is aliased
+     because the front-end may take 'Reference of it.  The front-end
+     has been enhanced in the meantime so as to use a renaming instead
+     in most cases, but the back-end can probably take the address of
+     such a component too so we go for the conservative stance.
 
-  if (body)
-    cgraph_build_static_cdtor (method_type, body, DEFAULT_INIT_PRIORITY);
+     For instance, we might need the address of any array type, even
+     if normally passed by copy, to construct a fat pointer if the
+     component is used as an actual for an unconstrained formal.
+
+     Likewise for record types: even if a specific record subtype is
+     passed by copy, the parent type might be passed by ref (e.g. if
+     it's of variable size) and we might take the address of a child
+     component to pass to a parent formal.  We have no way to check
+     for such conditions here.  */
+  if (AGGREGATE_TYPE_P (gnu_type))
+    return false;
+
+  return true;
 }
 
 /* Perform final processing on global variables.  */
@@ -4037,14 +4029,6 @@ build_global_cdtor (int method_type, tree *vec, int len)
 void
 gnat_write_global_declarations (void)
 {
-  /* Generate functions to call static constructors and destructors
-     for targets that do not support .ctors/.dtors sections.  These
-     functions have magic names which are detected by collect2.  */
-  build_global_cdtor ('I', VEC_address (tree, static_ctors),
-			   VEC_length (tree, static_ctors));
-  build_global_cdtor ('D', VEC_address (tree, static_dtors),
-			   VEC_length (tree, static_dtors));
-
   /* Proceed to optimize and emit assembly.
      FIXME: shouldn't be the front end's responsibility to call this.  */
   cgraph_optimize ();

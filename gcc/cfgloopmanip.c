@@ -35,7 +35,7 @@ static void copy_loops_to (struct loop **, int,
 			   struct loop *);
 static void loop_redirect_edge (edge, basic_block);
 static void remove_bbs (basic_block *, int);
-static bool rpe_enum_p (basic_block, void *);
+static bool rpe_enum_p (const_basic_block, const void *);
 static int find_path (edge, basic_block **);
 static void fix_loop_placements (struct loop *, bool *);
 static bool fix_bb_placement (basic_block);
@@ -46,9 +46,9 @@ static void unloop (struct loop *, bool *);
 
 /* Checks whether basic block BB is dominated by DATA.  */
 static bool
-rpe_enum_p (basic_block bb, void *data)
+rpe_enum_p (const_basic_block bb, const void *data)
 {
-  return dominated_by_p (CDI_DOMINATORS, bb, (basic_block) data);
+  return dominated_by_p (CDI_DOMINATORS, bb, (const_basic_block) data);
 }
 
 /* Remove basic blocks BBS.  NBBS is the number of the basic blocks.  */
@@ -385,7 +385,7 @@ remove_path (edge e)
   fix_loop_placements (from->loop_father, &irred_invalidated);
 
   if (irred_invalidated
-      && (current_loops->state & LOOPS_HAVE_MARKED_IRREDUCIBLE_REGIONS) != 0)
+      && loops_state_satisfies_p (LOOPS_HAVE_MARKED_IRREDUCIBLE_REGIONS))
     mark_irreducible_loops ();
 
   return true;
@@ -712,7 +712,7 @@ loop_redirect_edge (edge e, basic_block dest)
 
 /* Check whether LOOP's body can be duplicated.  */
 bool
-can_duplicate_loop_p (struct loop *loop)
+can_duplicate_loop_p (const struct loop *loop)
 {
   int ret;
   basic_block *bbs = get_loop_body (loop);
@@ -1190,7 +1190,7 @@ create_preheaders (int flags)
 
   FOR_EACH_LOOP (li, loop, 0)
     create_preheader (loop, flags);
-  current_loops->state |= LOOPS_HAVE_PREHEADERS;
+  loops_state_set (LOOPS_HAVE_PREHEADERS);
 }
 
 /* Forces all loop latches to have only single successor.  */
@@ -1211,7 +1211,7 @@ force_single_succ_latches (void)
 
       split_edge (e);
     }
-  current_loops->state |= LOOPS_HAVE_SIMPLE_LATCHES;
+  loops_state_set (LOOPS_HAVE_SIMPLE_LATCHES);
 }
 
 /* This function is called from loop_version.  It splits the entry edge
@@ -1390,8 +1390,6 @@ fix_loop_structure (bitmap changed_bbs)
   bool record_exits = false;
   struct loop **superloop = XNEWVEC (struct loop *, number_of_loops ());
 
-  gcc_assert (current_loops->state & LOOPS_HAVE_SIMPLE_LATCHES);
-
   /* Remove the old bb -> loop mapping.  Remember the depth of the blocks in
      the loop hierarchy, so that we can recognize blocks whose loop nesting
      relationship has changed.  */
@@ -1402,7 +1400,7 @@ fix_loop_structure (bitmap changed_bbs)
       bb->loop_father = current_loops->tree_root;
     }
 
-  if (current_loops->state & LOOPS_HAVE_RECORDED_EXITS)
+  if (loops_state_satisfies_p (LOOPS_HAVE_RECORDED_EXITS))
     {
       release_recorded_exits ();
       record_exits = true;
@@ -1464,13 +1462,13 @@ fix_loop_structure (bitmap changed_bbs)
 	}
     }
 
-  if (current_loops->state & LOOPS_HAVE_PREHEADERS)
+  if (loops_state_satisfies_p (LOOPS_HAVE_PREHEADERS))
     create_preheaders (CP_SIMPLE_PREHEADERS);
 
-  if (current_loops->state & LOOPS_HAVE_SIMPLE_LATCHES)
+  if (loops_state_satisfies_p (LOOPS_HAVE_SIMPLE_LATCHES))
     force_single_succ_latches ();
 
-  if (current_loops->state & LOOPS_HAVE_MARKED_IRREDUCIBLE_REGIONS)
+  if (loops_state_satisfies_p (LOOPS_HAVE_MARKED_IRREDUCIBLE_REGIONS))
     mark_irreducible_loops ();
 
   if (record_exits)

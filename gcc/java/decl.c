@@ -737,7 +737,6 @@ java_init_decl_processing (void)
   void_signature_node = get_identifier ("()V");
   finalize_identifier_node = get_identifier ("finalize");
   this_identifier_node = get_identifier ("this");
-  classdollar_identifier_node = get_identifier ("class$");
 
   java_lang_cloneable_identifier_node = get_identifier ("java.lang.Cloneable");
   java_io_serializable_identifier_node =
@@ -1076,7 +1075,10 @@ java_init_decl_processing (void)
   eh_personality_libfunc = init_one_libfunc (USING_SJLJ_EXCEPTIONS
                                              ? "__gcj_personality_sj0"
                                              : "__gcj_personality_v0");
-  default_init_unwind_resume_libfunc ();
+  if (targetm.arm_eabi_unwinder)
+    unwind_resume_libfunc = init_one_libfunc ("__cxa_end_cleanup");
+  else
+    default_init_unwind_resume_libfunc ();
 
   lang_eh_runtime_type = do_nothing;
 
@@ -1846,7 +1848,7 @@ finish_method (tree fndecl)
   /* Store the end of the function, so that we get good line number
      info for the epilogue.  */
   if (DECL_STRUCT_FUNCTION (fndecl))
-    cfun = DECL_STRUCT_FUNCTION (fndecl);
+    set_cfun (DECL_STRUCT_FUNCTION (fndecl));
   else
     allocate_struct_function (fndecl);
 #ifdef USE_MAPPED_LOCATION
@@ -1858,14 +1860,6 @@ finish_method (tree fndecl)
 
   /* Defer inlining and expansion to the cgraph optimizers.  */
   cgraph_finalize_function (fndecl, false);
-}
-
-/* Optimize and expand a function's entire body.  */
-
-void
-java_expand_body (tree fndecl)
-{
-  tree_rest_of_compilation (fndecl);
 }
 
 /* We pessimistically marked all methods and fields external until we

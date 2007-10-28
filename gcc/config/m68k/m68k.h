@@ -108,6 +108,10 @@ along with GCC; see the file COPYING3.  If not see
 	  builtin_define_std ("mc68020");				\
 	  break;							\
 									\
+	case ucfv1:							\
+	  builtin_define ("__mcfv1__");					\
+	  break;							\
+									\
 	case ucfv2:							\
 	  builtin_define ("__mcfv2__");					\
 	  break;							\
@@ -260,6 +264,7 @@ along with GCC; see the file COPYING3.  If not see
 #define TUNE_68060	(m68k_tune == u68060 || m68k_tune == u68020_60)
 #define TUNE_68040_60	(TUNE_68040 || TUNE_68060)
 #define TUNE_CPU32	(m68k_tune == ucpu32)
+#define TUNE_CFV1       (m68k_tune == ucfv1)
 #define TUNE_CFV2	(m68k_tune == ucfv2)
 
 #define OVERRIDE_OPTIONS   override_options()
@@ -305,11 +310,11 @@ along with GCC; see the file COPYING3.  If not see
 /* No data type wants to be aligned rounder than this.
    Most published ABIs say that ints should be aligned on 16-bit
    boundaries, but CPUs with 32-bit busses get better performance
-   aligned on 32-bit boundaries.  ColdFires without a misalignment
-   module require 32-bit alignment.  */
+   aligned on 32-bit boundaries.  */
 #define BIGGEST_ALIGNMENT (TARGET_ALIGN_INT ? 32 : 16)
 
 #define STRICT_ALIGNMENT (TARGET_STRICT_ALIGNMENT)
+#define M68K_HONOR_TARGET_STRICT_ALIGNMENT 1
 
 #define INT_TYPE_SIZE (TARGET_SHORT ? 16 : 32)
 
@@ -1084,6 +1089,7 @@ enum uarch_type
   u68040,
   u68060,
   ucpu32,
+  ucfv1,
   ucfv2,
   ucfv3,
   ucfv4,
@@ -1125,3 +1131,20 @@ extern enum fpu_type m68k_fpu;
 extern unsigned int m68k_cpu_flags;
 extern const char *m68k_symbolic_call;
 extern const char *m68k_symbolic_jump;
+
+enum M68K_SYMBOLIC_CALL { M68K_SYMBOLIC_CALL_NONE, M68K_SYMBOLIC_CALL_JSR,
+			  M68K_SYMBOLIC_CALL_BSR_C, M68K_SYMBOLIC_CALL_BSR_P };
+
+extern enum M68K_SYMBOLIC_CALL m68k_symbolic_call_var;
+
+/* ??? HOST_WIDE_INT is not being defined for auto-generated files.
+   Workaround that.  */
+#ifdef HOST_WIDE_INT
+typedef enum { MOVL, SWAP, NEGW, NOTW, NOTB, MOVQ, MVS, MVZ }
+  M68K_CONST_METHOD;
+
+extern M68K_CONST_METHOD m68k_const_method (HOST_WIDE_INT);
+#endif
+
+extern void m68k_emit_move_double (rtx [2]);
+

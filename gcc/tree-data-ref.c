@@ -129,7 +129,7 @@ static bool subscript_dependence_tester_1 (struct data_dependence_relation *,
 /* Returns true iff A divides B.  */
 
 static inline bool 
-tree_fold_divides_p (tree a, tree b)
+tree_fold_divides_p (const_tree a, const_tree b)
 {
   gcc_assert (TREE_CODE (a) == INTEGER_CST);
   gcc_assert (TREE_CODE (b) == INTEGER_CST);
@@ -503,7 +503,7 @@ dump_ddrs (FILE *file, VEC (ddr_p, heap) *ddrs)
 /* Expresses EXP as VAR + OFF, where off is a constant.  The type of OFF
    will be ssizetype.  */
 
-static void
+void
 split_constant_offset (tree exp, tree *var, tree *off)
 {
   tree type = TREE_TYPE (exp), otype;
@@ -588,7 +588,8 @@ split_constant_offset (tree exp, tree *var, tree *off)
 
 	    if (!TREE_SIDE_EFFECTS (def_stmt_rhs) 
 		&& EXPR_P (def_stmt_rhs)
-		&& !REFERENCE_CLASS_P (def_stmt_rhs))
+		&& !REFERENCE_CLASS_P (def_stmt_rhs)
+		&& !get_call_expr_in (def_stmt_rhs))
 	      {
 		split_constant_offset (def_stmt_rhs, &var0, &off0);
 		var0 = fold_convert (type, var0);
@@ -1054,7 +1055,7 @@ conflict_fn_no_dependence (void)
 /* Returns true if the address of OBJ is invariant in LOOP.  */
 
 static bool
-object_address_invariant_in_loop_p (struct loop *loop, tree obj)
+object_address_invariant_in_loop_p (const struct loop *loop, const_tree obj)
 {
   while (handled_component_p (obj))
     {
@@ -1173,12 +1174,12 @@ disjoint_objects_p (tree a, tree b)
    true otherwise.  */
 
 static bool
-dr_may_alias_p (struct data_reference *a, struct data_reference *b)
+dr_may_alias_p (const struct data_reference *a, const struct data_reference *b)
 {
-  tree addr_a = DR_BASE_ADDRESS (a);
-  tree addr_b = DR_BASE_ADDRESS (b);
-  tree type_a, type_b;
-  tree decl_a = NULL_TREE, decl_b = NULL_TREE;
+  const_tree addr_a = DR_BASE_ADDRESS (a);
+  const_tree addr_b = DR_BASE_ADDRESS (b);
+  const_tree type_a, type_b;
+  const_tree decl_a = NULL_TREE, decl_b = NULL_TREE;
 
   /* If the sets of virtual operands are disjoint, the memory references do not
      alias.  */
@@ -1243,6 +1244,9 @@ initialize_data_dependence_relation (struct data_reference *a,
   DDR_B (res) = b;
   DDR_LOOP_NEST (res) = NULL;
   DDR_REVERSED_P (res) = false;
+  DDR_SUBSCRIPTS (res) = NULL;
+  DDR_DIR_VECTS (res) = NULL;
+  DDR_DIST_VECTS (res) = NULL;
 
   if (a == NULL || b == NULL)
     {
@@ -1282,8 +1286,6 @@ initialize_data_dependence_relation (struct data_reference *a,
   DDR_SUBSCRIPTS (res) = VEC_alloc (subscript_p, heap, DR_NUM_DIMENSIONS (a));
   DDR_LOOP_NEST (res) = loop_nest;
   DDR_INNER_LOOP (res) = 0;
-  DDR_DIR_VECTS (res) = NULL;
-  DDR_DIST_VECTS (res) = NULL;
 
   for (i = 0; i < DR_NUM_DIMENSIONS (a); i++)
     {
@@ -1347,6 +1349,7 @@ finalize_ddr_dependent (struct data_dependence_relation *ddr,
 
   DDR_ARE_DEPENDENT (ddr) = chrec;  
   free_subscripts (DDR_SUBSCRIPTS (ddr));
+  DDR_SUBSCRIPTS (ddr) = NULL;
 }
 
 /* The dependence relation DDR cannot be represented by a distance
@@ -1369,8 +1372,7 @@ non_affine_dependence_relation (struct data_dependence_relation *ddr)
    variables, i.e., if the ZIV (Zero Index Variable) test is true.  */
 
 static inline bool
-ziv_subscript_p (tree chrec_a, 
-		 tree chrec_b)
+ziv_subscript_p (const_tree chrec_a, const_tree chrec_b)
 {
   return (evolution_function_is_constant_p (chrec_a)
 	  && evolution_function_is_constant_p (chrec_b));
@@ -1380,8 +1382,7 @@ ziv_subscript_p (tree chrec_a,
    variable, i.e., if the SIV (Single Index Variable) test is true.  */
 
 static bool
-siv_subscript_p (tree chrec_a,
-		 tree chrec_b)
+siv_subscript_p (const_tree chrec_a, const_tree chrec_b)
 {
   if ((evolution_function_is_constant_p (chrec_a)
        && evolution_function_is_univariate_p (chrec_b))
@@ -2430,7 +2431,7 @@ analyze_siv_subscript (tree chrec_a,
    of CHREC does not divide CST, false otherwise.  */
 
 static bool
-gcd_of_steps_may_divide_p (tree chrec, tree cst)
+gcd_of_steps_may_divide_p (const_tree chrec, const_tree cst)
 {
   HOST_WIDE_INT cd = 0, val;
   tree step;
@@ -2804,7 +2805,7 @@ build_classic_dist_vector_1 (struct data_dependence_relation *ddr,
    same access functions.  */
 
 static bool
-same_access_functions (struct data_dependence_relation *ddr)
+same_access_functions (const struct data_dependence_relation *ddr)
 {
   unsigned i;
 
@@ -2819,7 +2820,7 @@ same_access_functions (struct data_dependence_relation *ddr)
 /* Return true when the DDR contains only constant access functions.  */
 
 static bool
-constant_access_functions (struct data_dependence_relation *ddr)
+constant_access_functions (const struct data_dependence_relation *ddr)
 {
   unsigned i;
 
@@ -2977,7 +2978,7 @@ build_classic_dist_vector (struct data_dependence_relation *ddr,
   lambda_vector dist_v;
 
   if (DDR_ARE_DEPENDENT (ddr) != NULL_TREE)
-    return true;
+    return false;
 
   if (same_access_functions (ddr))
     {
@@ -3029,11 +3030,13 @@ build_classic_dist_vector (struct data_dependence_relation *ddr,
       if (!lambda_vector_lexico_pos (dist_v, DDR_NB_LOOPS (ddr)))
 	{
 	  lambda_vector save_v = lambda_vector_new (DDR_NB_LOOPS (ddr));
-	  subscript_dependence_tester_1 (ddr, DDR_B (ddr), DDR_A (ddr),
-					 loop_nest);
+	  if (!subscript_dependence_tester_1 (ddr, DDR_B (ddr), DDR_A (ddr),
+					      loop_nest))
+	    return false;
 	  compute_subscript_distance (ddr);
-	  build_classic_dist_vector_1 (ddr, DDR_B (ddr), DDR_A (ddr),
-				       save_v, &init_b, &index_carry);
+	  if (!build_classic_dist_vector_1 (ddr, DDR_B (ddr), DDR_A (ddr),
+					    save_v, &init_b, &index_carry))
+	    return false;
 	  save_dist_v (ddr, save_v);
 	  DDR_REVERSED_P (ddr) = true;
 
@@ -3063,21 +3066,26 @@ build_classic_dist_vector (struct data_dependence_relation *ddr,
 	{
 	  lambda_vector save_v = lambda_vector_new (DDR_NB_LOOPS (ddr));
 	  lambda_vector_copy (dist_v, save_v, DDR_NB_LOOPS (ddr));
-	  save_dist_v (ddr, save_v);
 
 	  if (DDR_NB_LOOPS (ddr) > 1)
 	    {
 	      lambda_vector opposite_v = lambda_vector_new (DDR_NB_LOOPS (ddr));
 
-	      subscript_dependence_tester_1 (ddr, DDR_B (ddr), DDR_A (ddr),
-					     loop_nest);
+	      if (!subscript_dependence_tester_1 (ddr, DDR_B (ddr),
+						  DDR_A (ddr), loop_nest))
+		return false;
 	      compute_subscript_distance (ddr);
-	      build_classic_dist_vector_1 (ddr, DDR_B (ddr), DDR_A (ddr),
-					   opposite_v, &init_b, &index_carry);
+	      if (!build_classic_dist_vector_1 (ddr, DDR_B (ddr), DDR_A (ddr),
+						opposite_v, &init_b,
+						&index_carry))
+		return false;
 
+	      save_dist_v (ddr, save_v);
 	      add_outer_distances (ddr, dist_v, index_carry);
 	      add_outer_distances (ddr, opposite_v, index_carry);
 	    }
+	  else
+	    save_dist_v (ddr, save_v);
 	}
     }
   else
@@ -3226,8 +3234,8 @@ subscript_dependence_tester (struct data_dependence_relation *ddr,
    constant with respect to LOOP_NEST.  */
 
 static bool 
-access_functions_are_affine_or_constant_p (struct data_reference *a,
-					   struct loop *loop_nest)
+access_functions_are_affine_or_constant_p (const struct data_reference *a,
+					   const struct loop *loop_nest)
 {
   unsigned int i;
   VEC(tree,heap) *fns = DR_ACCESS_FNS (a);
@@ -4304,8 +4312,12 @@ free_dependence_relation (struct data_dependence_relation *ddr)
   if (ddr == NULL)
     return;
 
-  if (DDR_ARE_DEPENDENT (ddr) == NULL_TREE && DDR_SUBSCRIPTS (ddr))
+  if (DDR_SUBSCRIPTS (ddr))
     free_subscripts (DDR_SUBSCRIPTS (ddr));
+  if (DDR_DIST_VECTS (ddr))
+    VEC_free (lambda_vector, heap, DDR_DIST_VECTS (ddr));
+  if (DDR_DIR_VECTS (ddr))
+    VEC_free (lambda_vector, heap, DDR_DIR_VECTS (ddr));
 
   free (ddr);
 }
@@ -4355,7 +4367,7 @@ free_data_refs (VEC (data_reference_p, heap) *datarefs)
 /* Returns the index of STMT in RDG.  */
 
 static int
-find_vertex_for_stmt (struct graph *rdg, tree stmt)
+find_vertex_for_stmt (const struct graph *rdg, const_tree stmt)
 {
   int i;
 

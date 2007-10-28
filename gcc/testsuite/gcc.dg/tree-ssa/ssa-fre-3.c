@@ -1,4 +1,11 @@
-/* { dg-do compile } */
+/* This test requires:
+
+      TRULY_NOOP_TRUNCATION (sizeof (int) * CHAR_BIT,
+			     sizeof (long long) * CHAR_BIT)
+
+   When the condition is true, we distribute "(int) (a + b)" as
+   "(int) a + (int) b", otherwise we keep the original.  */
+/* { dg-do compile { target { ! mips64 } } } */
 /* { dg-options "-O -fwrapv -fdump-tree-fre-details" } */
 
 /* From PR14844.  */
@@ -11,5 +18,5 @@ foo (int a, int b)
   return aa + bb;
 }
 
-/* { dg-final { scan-tree-dump "Replaced \\\(int\\\) aa_.*with a_" "fre" { xfail *-*-* } } } */
+/* { dg-final { scan-tree-dump "Replaced \\\(int\\\) aa_.*with a_" "fre" } } */
 /* { dg-final { cleanup-tree-dump "fre" } } */

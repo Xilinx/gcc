@@ -4,13 +4,13 @@ GFORTRAN_1.0 {
     _gfortran_access_func;
     _gfortran_adjustl;
     _gfortran_adjustr;
-    _gfortran_alarm_sub;
-    _gfortran_alarm_sub_int;
+    _gfortran_alarm_sub_i4;
+    _gfortran_alarm_sub_i8;
+    _gfortran_alarm_sub_int_i4;
+    _gfortran_alarm_sub_int_i8;
     _gfortran_all_l16;
     _gfortran_all_l4;
     _gfortran_all_l8;
-    _gfortran_allocate;
-    _gfortran_allocate_array;
     _gfortran_any_l16;
     _gfortran_any_l4;
     _gfortran_any_l8;
@@ -58,7 +58,6 @@ GFORTRAN_1.0 {
     _gfortran_ctime;
     _gfortran_ctime_sub;
     _gfortran_date_and_time;
-    _gfortran_deallocate;
     _gfortran_eoshift0_1;
     _gfortran_eoshift0_1_char;
     _gfortran_eoshift0_2;
@@ -165,7 +164,6 @@ GFORTRAN_1.0 {
     _gfortran_ierrno_i4;
     _gfortran_ierrno_i8;
     _gfortran_internal_pack;
-    _gfortran_internal_realloc;
     _gfortran_internal_unpack;
     _gfortran_irand;
     _gfortran_isatty_l4;
@@ -551,7 +549,8 @@ GFORTRAN_1.0 {
     _gfortran_random_r16;
     _gfortran_random_r4;
     _gfortran_random_r8;
-    _gfortran_random_seed;
+    _gfortran_random_seed_i4;
+    _gfortran_random_seed_i8;
     _gfortran_rename_i4;
     _gfortran_rename_i4_sub;
     _gfortran_rename_i8;
@@ -941,6 +940,7 @@ GFORTRAN_1.0 {
     _gfortran_st_rewind;
     _gfortran_string_index;
     _gfortran_string_len_trim;
+    _gfortran_string_minmax;
     _gfortran_string_scan;
     _gfortran_string_trim;
     _gfortran_string_verify;
@@ -1003,8 +1003,6 @@ GFORTRAN_1.0 {
     _gfortran_unpack0_char;
     _gfortran_unpack1;
     _gfortran_unpack1_char;
-    __iso_c_binding_c_associated_1;
-    __iso_c_binding_c_associated_2;
     __iso_c_binding_c_f_pointer;
     __iso_c_binding_c_f_pointer_d0;
     __iso_c_binding_c_f_pointer_i1;

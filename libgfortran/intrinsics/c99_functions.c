@@ -341,7 +341,11 @@ log10f(float x)
 double
 scalbn(double x, int y)
 {
+#if (FLT_RADIX == 2) && defined(HAVE_LDEXP)
+  return ldexp (x, y);
+#else
   return x * pow(FLT_RADIX, y);
+#endif
 }
 #endif
 
@@ -500,6 +504,57 @@ powf(float x, float y)
 
 /* Algorithm by Steven G. Kargl.  */
 
+#if !defined(HAVE_ROUNDL)
+#define HAVE_ROUNDL 1
+#if defined(HAVE_CEILL)
+/* Round to nearest integral value.  If the argument is halfway between two
+   integral values then round away from zero.  */
+
+long double
+roundl(long double x)
+{
+   long double t;
+   if (!isfinite (x))
+     return (x);
+
+   if (x >= 0.0)
+    {
+      t = ceill(x);
+      if (t - x > 0.5)
+	t -= 1.0;
+      return (t);
+    } 
+   else 
+    {
+      t = ceill(-x);
+      if (t + x > 0.5)
+	t -= 1.0;
+      return (-t);
+    }
+}
+#else
+
+/* Poor version of roundl for system that don't have ceill.  */
+long double
+roundl(long double x)
+{
+  if (x > DBL_MAX || x < -DBL_MAX)
+    {
+#ifdef HAVE_NEXTAFTERL
+      static long double prechalf = nexafterl (0.5L, LDBL_MAX);
+#else
+      static long double prechalf = 0.5L;
+#endif
+      return (GFC_INTEGER_LARGEST) (x + (x > 0 ? prechalf : -prechalf));
+    }
+  else
+    /* Use round().  */
+    return round((double) x);
+}
+
+#endif
+#endif
+
 #ifndef HAVE_ROUND
 #define HAVE_ROUND 1
 /* Round to nearest integral value.  If the argument is halfway between two
@@ -557,6 +612,64 @@ roundf(float x)
     }
 }
 #endif
+
+
+/* lround{f,,l} and llround{f,,l} functions.  */
+
+#if !defined(HAVE_LROUNDF) && defined(HAVE_ROUNDF)
+#define HAVE_LROUNDF 1
+long int
+lroundf (float x)
+{
+  return (long int) roundf (x);
+}
+#endif
+
+#if !defined(HAVE_LROUND) && defined(HAVE_ROUND)
+#define HAVE_LROUND 1
+long int
+lround (double x)
+{
+  return (long int) round (x);
+}
+#endif
+
+#if !defined(HAVE_LROUNDL) && defined(HAVE_ROUNDL)
+#define HAVE_LROUNDL 1
+long int
+lroundl (long double x)
+{
+  return (long long int) roundl (x);
+}
+#endif
+
+#if !defined(HAVE_LLROUNDF) && defined(HAVE_ROUNDF)
+#define HAVE_LLROUNDF 1
+long long int
+llroundf (float x)
+{
+  return (long long int) roundf (x);
+}
+#endif
+
+#if !defined(HAVE_LLROUND) && defined(HAVE_ROUND)
+#define HAVE_LLROUND 1
+long long int
+llround (double x)
+{
+  return (long long int) round (x);
+}
+#endif
+
+#if !defined(HAVE_LLROUNDL) && defined(HAVE_ROUNDL)
+#define HAVE_LLROUNDL 1
+long long int
+llroundl (long double x)
+{
+  return (long long int) roundl (x);
+}
+#endif
+
 
 #ifndef HAVE_LOG10L
 #define HAVE_LOG10L 1

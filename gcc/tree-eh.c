@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "ggc.h"
 #include "toplev.h"
+#include "pointer-set.h"
 
 
 /* Nonzero if we are using EH to handle cleanups.  */
@@ -147,14 +148,16 @@ remove_stmt_from_eh_region (tree t)
 }
 
 int
-lookup_stmt_eh_region_fn (struct function *ifun, tree t)
+lookup_stmt_eh_region_fn (struct function *ifun, const_tree t)
 {
   struct throw_stmt_node *p, n;
 
   if (!get_eh_throw_stmt_table (ifun))
     return -2;
 
-  n.stmt = t;
+  /* The CONST_CAST is okay because we don't modify n.stmt throughout
+     its scope, or the scope of p.  */
+  n.stmt = CONST_CAST_TREE (t);
   p = (struct throw_stmt_node *) htab_find (get_eh_throw_stmt_table (ifun),
                                             &n);
 
@@ -162,7 +165,7 @@ lookup_stmt_eh_region_fn (struct function *ifun, tree t)
 }
 
 int
-lookup_stmt_eh_region (tree t)
+lookup_stmt_eh_region (const_tree t)
 {
   /* We can get called from initialized data when -fnon-call-exceptions
      is on; prevent crash.  */
@@ -311,6 +314,9 @@ struct leh_tf_state
   size_t goto_queue_size;
   size_t goto_queue_active;
 
+  /* Pointer map to help in searching qoto_queue when it is large.  */
+  struct pointer_map_t *goto_queue_map;
+
   /* The set of unique labels seen as entries in the goto queue.  */
   VEC(tree,heap) *dest_array;
 
@@ -338,29 +344,44 @@ struct leh_tf_state
 static void lower_eh_filter (struct leh_state *, tree *);
 static void lower_eh_constructs_1 (struct leh_state *, tree *);
 
-/* Comparison function for qsort/bsearch.  We're interested in
-   searching goto queue elements for source statements.  */
-
-static int
-goto_queue_cmp (const void *x, const void *y)
-{
-  tree a = ((const struct goto_queue_node *)x)->stmt;
-  tree b = ((const struct goto_queue_node *)y)->stmt;
-  return (a == b ? 0 : a < b ? -1 : 1);
-}
-
 /* Search for STMT in the goto queue.  Return the replacement,
    or null if the statement isn't in the queue.  */
+
+#define LARGE_GOTO_QUEUE 20
 
 static tree
 find_goto_replacement (struct leh_tf_state *tf, tree stmt)
 {
-  struct goto_queue_node tmp, *ret;
-  tmp.stmt = stmt;
-  ret = (struct goto_queue_node *)
-     bsearch (&tmp, tf->goto_queue, tf->goto_queue_active,
-		 sizeof (struct goto_queue_node), goto_queue_cmp);
-  return (ret ? ret->repl_stmt : NULL);
+  unsigned int i;
+  void **slot;
+
+  if (tf->goto_queue_active < LARGE_GOTO_QUEUE)
+    {
+      for (i = 0; i < tf->goto_queue_active; i++)
+	if (tf->goto_queue[i].stmt == stmt)
+	  return tf->goto_queue[i].repl_stmt;
+      return NULL;
+    }
+
+  /* If we have a large number of entries in the goto_queue, create a
+     pointer map and use that for searching.  */
+
+  if (!tf->goto_queue_map)
+    {
+      tf->goto_queue_map = pointer_map_create ();
+      for (i = 0; i < tf->goto_queue_active; i++)
+	{
+	  slot = pointer_map_insert (tf->goto_queue_map, tf->goto_queue[i].stmt);
+          gcc_assert (*slot == NULL);
+	  *slot = (void *) &tf->goto_queue[i];
+	}
+    }
+
+  slot = pointer_map_contains (tf->goto_queue_map, stmt);
+  if (slot != NULL)
+    return (((struct goto_queue_node *) *slot)->repl_stmt);
+
+  return NULL;
 }
 
 /* A subroutine of replace_goto_queue_1.  Handles the sub-clauses of a
@@ -518,6 +539,8 @@ maybe_record_in_goto_queue (struct leh_state *state, tree stmt)
     default:
       gcc_unreachable ();
     }
+
+  gcc_assert (!tf->goto_queue_map);
 
   active = tf->goto_queue_active;
   size = tf->goto_queue_size;
@@ -999,6 +1022,9 @@ lower_try_finally_onedest (struct leh_state *state, struct leh_tf_state *tf)
 	}
     }
 
+  /* Reset the locus of the goto since we're moving 
+     goto to a different block which might be on a different line. */
+  SET_EXPR_LOCUS (tf->goto_queue[0].cont_stmt, NULL);
   append_to_statement_list (tf->goto_queue[0].cont_stmt, tf->top_p);
   maybe_record_in_goto_queue (state, tf->goto_queue[0].cont_stmt);
 }
@@ -1371,11 +1397,6 @@ lower_try_finally (struct leh_state *state, tree *tp)
       honor_protect_cleanup_actions (state, &this_state, &this_tf);
     }
 
-  /* Sort the goto queue for efficient searching later.  */
-  if (this_tf.goto_queue_active > 1)
-    qsort (this_tf.goto_queue, this_tf.goto_queue_active,
-	   sizeof (struct goto_queue_node), goto_queue_cmp);
-
   /* Determine how many edges (still) reach the finally block.  Or rather,
      how many destinations are reached by the finally block.  Use this to
      determine how we process the finally block itself.  */
@@ -1415,6 +1436,8 @@ lower_try_finally (struct leh_state *state, tree *tp)
   VEC_free (tree, heap, this_tf.dest_array);
   if (this_tf.goto_queue)
     free (this_tf.goto_queue);
+  if (this_tf.goto_queue_map)
+    pointer_map_destroy (this_tf.goto_queue_map);
 }
 
 /* A subroutine of lower_eh_constructs_1.  Lower a TRY_CATCH_EXPR with a
@@ -2011,7 +2034,7 @@ tree_could_throw_p (tree t)
 }
 
 bool
-tree_can_throw_internal (tree stmt)
+tree_can_throw_internal (const_tree stmt)
 {
   int region_nr;
   bool is_resx = false;
@@ -2070,3 +2093,153 @@ maybe_clean_or_replace_eh_stmt (tree old_stmt, tree new_stmt)
 
   return false;
 }
+
+/* Returns TRUE if oneh and twoh are exception handlers (op 1 of
+   TRY_CATCH_EXPR or TRY_FINALLY_EXPR that are similar enough to be
+   considered the same.  Currently this only handles handlers consisting of
+   a single call, as that's the important case for C++: a destructor call
+   for a particular object showing up in multiple handlers.  */
+
+static bool
+same_handler_p (tree oneh, tree twoh)
+{
+  tree_stmt_iterator i;
+  tree ones, twos;
+  int ai;
+
+  i = tsi_start (oneh);
+  if (!tsi_one_before_end_p (i))
+    return false;
+  ones = tsi_stmt (i);
+
+  i = tsi_start (twoh);
+  if (!tsi_one_before_end_p (i))
+    return false;
+  twos = tsi_stmt (i);
+
+  if (TREE_CODE (ones) != CALL_EXPR
+      || TREE_CODE (twos) != CALL_EXPR
+      || !operand_equal_p (CALL_EXPR_FN (ones), CALL_EXPR_FN (twos), 0)
+      || call_expr_nargs (ones) != call_expr_nargs (twos))
+    return false;
+
+  for (ai = 0; ai < call_expr_nargs (ones); ++ai)
+    if (!operand_equal_p (CALL_EXPR_ARG (ones, ai),
+			  CALL_EXPR_ARG (twos, ai), 0))
+      return false;
+
+  return true;
+}
+
+/* Optimize
+    try { A() } finally { try { ~B() } catch { ~A() } }
+    try { ... } finally { ~A() }
+   into
+    try { A() } catch { ~B() }
+    try { ~B() ... } finally { ~A() }
+
+   This occurs frequently in C++, where A is a local variable and B is a
+   temporary used in the initializer for A.  */
+
+static void
+optimize_double_finally (tree one, tree two)
+{
+  tree oneh;
+  tree_stmt_iterator i;
+
+  i = tsi_start (TREE_OPERAND (one, 1));
+  if (!tsi_one_before_end_p (i))
+    return;
+
+  oneh = tsi_stmt (i);
+  if (TREE_CODE (oneh) != TRY_CATCH_EXPR)
+    return;
+
+  if (same_handler_p (TREE_OPERAND (oneh, 1), TREE_OPERAND (two, 1)))
+    {
+      tree b = TREE_OPERAND (oneh, 0);
+      TREE_OPERAND (one, 1) = b;
+      TREE_SET_CODE (one, TRY_CATCH_EXPR);
+
+      i = tsi_start (TREE_OPERAND (two, 0));
+      tsi_link_before (&i, unsave_expr_now (b), TSI_SAME_STMT);
+    }
+}
+
+/* Perform EH refactoring optimizations that are simpler to do when code
+   flow has been lowered but EH structures haven't.  */
+
+static void
+refactor_eh_r (tree t)
+{
+ tailrecurse:
+  switch (TREE_CODE (t))
+    {
+    case TRY_FINALLY_EXPR:
+    case TRY_CATCH_EXPR:
+      refactor_eh_r (TREE_OPERAND (t, 0));
+      t = TREE_OPERAND (t, 1);
+      goto tailrecurse;
+
+    case CATCH_EXPR:
+      t = CATCH_BODY (t);
+      goto tailrecurse;
+
+    case EH_FILTER_EXPR:
+      t = EH_FILTER_FAILURE (t);
+      goto tailrecurse;
+
+    case STATEMENT_LIST:
+      {
+	tree_stmt_iterator i;
+	tree one = NULL_TREE, two = NULL_TREE;
+	/* Try to refactor double try/finally.  */
+	for (i = tsi_start (t); !tsi_end_p (i); tsi_next (&i))
+	  {
+	    one = two;
+	    two = tsi_stmt (i);
+	    if (one && two
+		&& TREE_CODE (one) == TRY_FINALLY_EXPR
+		&& TREE_CODE (two) == TRY_FINALLY_EXPR)
+	      optimize_double_finally (one, two);
+	    if (one)
+	      refactor_eh_r (one);
+	  }
+	if (two)
+	  {
+	    t = two;
+	    goto tailrecurse;
+	  }
+      }
+      break;
+
+    default:
+      /* A type, a decl, or some kind of statement that we're not
+	 interested in.  Don't walk them.  */
+      break;
+    }
+}
+
+static unsigned
+refactor_eh (void)
+{
+  refactor_eh_r (DECL_SAVED_TREE (current_function_decl));
+  return 0;
+}
+
+struct tree_opt_pass pass_refactor_eh =
+{
+  "ehopt",				/* name */
+  NULL,					/* gate */
+  refactor_eh,				/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_TREE_EH,				/* tv_id */
+  PROP_gimple_lcf,			/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_dump_func,			/* todo_flags_finish */
+  0					/* letter */
+};

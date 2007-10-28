@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -205,6 +204,9 @@ procedure Gnatlink is
    procedure Process_Binder_File (Name : String);
    --  Reads the binder file and extracts linker arguments
 
+   procedure Usage;
+   --  Display usage
+
    procedure Write_Header;
    --  Show user the program name, version and copyright
 
@@ -291,6 +293,10 @@ procedure Gnatlink is
       --  linker's argument without parsing it.
 
    begin
+      --  First, check for --version and --help
+
+      Check_Version_And_Help ("GNATLINK", "1995", Usage'Unrestricted_Access);
+
       --  Loop through arguments of gnatlink command
 
       Next_Arg := 1;
@@ -686,6 +692,7 @@ procedure Gnatlink is
       --  Used for various Interfaces.C_Streams calls
 
       Closing_Status : Boolean;
+      pragma Warnings (Off, Closing_Status);
       --  For call to Close
 
       GNAT_Static : Boolean := False;
@@ -1329,32 +1336,12 @@ procedure Gnatlink is
       Status := fclose (Fd);
    end Process_Binder_File;
 
-   ------------------
-   -- Write_Header --
-   ------------------
+   -----------
+   -- Usage --
+   -----------
 
-   procedure Write_Header is
+   procedure Usage is
    begin
-      if Verbose_Mode then
-         Write_Eol;
-         Write_Str ("GNATLINK ");
-         Write_Str (Gnat_Version_String);
-         Write_Eol;
-         Write_Str ("Copyright 1995-" &
-                    Current_Year &
-                    ", Free Software Foundation, Inc");
-         Write_Eol;
-      end if;
-   end Write_Header;
-
-   -----------------
-   -- Write_Usage --
-   -----------------
-
-   procedure Write_Usage is
-   begin
-      Write_Header;
-
       Write_Str ("Usage: ");
       Write_Str (Base_Name (Command_Name));
       Write_Str (" switches mainprog.ali [non-Ada-objects] [linker-options]");
@@ -1385,6 +1372,28 @@ procedure Gnatlink is
       Write_Eol;
       Write_Line ("  [non-Ada-objects]  list of non Ada object files");
       Write_Line ("  [linker-options]   other options for the linker");
+   end Usage;
+
+   ------------------
+   -- Write_Header --
+   ------------------
+
+   procedure Write_Header is
+   begin
+      if Verbose_Mode then
+         Write_Eol;
+         Display_Version ("GNATLINK", "1995");
+      end if;
+   end Write_Header;
+
+   -----------------
+   -- Write_Usage --
+   -----------------
+
+   procedure Write_Usage is
+   begin
+      Write_Header;
+      Usage;
    end Write_Usage;
 
 --  Start of processing for Gnatlink
@@ -1549,21 +1558,58 @@ begin
               Index in Units.Table (ALIs.Table (A).First_Unit).First_Arg ..
                        Units.Table (ALIs.Table (A).First_Unit).Last_Arg
             loop
-               --  Do not compile with the front end switches except for --RTS
-               --  if the binder generated file is in Ada.
+               --  Do not compile with the front end switches. However, --RTS
+               --  is to be dealt with specially because it needs to be passed
+               --  if the binder-generated file is in Ada and may also be used
+               --  to drive the linker.
 
                declare
                   Arg : String_Ptr renames Args.Table (Index);
                begin
-                  if not Is_Front_End_Switch (Arg.all)
-                    or else
-                      (Ada_Bind_File
-                        and then Arg'Length > 5
-                        and then Arg (Arg'First + 2 .. Arg'First + 5) = "RTS=")
-                  then
+                  if not Is_Front_End_Switch (Arg.all) then
                      Binder_Options_From_ALI.Increment_Last;
                      Binder_Options_From_ALI.Table
                        (Binder_Options_From_ALI.Last) := String_Access (Arg);
+
+                  elsif Arg'Length > 5
+                    and then Arg (Arg'First + 2 .. Arg'First + 5) = "RTS="
+                  then
+                     if Ada_Bind_File then
+                        Binder_Options_From_ALI.Increment_Last;
+                        Binder_Options_From_ALI.Table
+                          (Binder_Options_From_ALI.Last)
+                            := String_Access (Arg);
+                     end if;
+
+                     --  GNAT doesn't support the GCC multilib mechanism.
+                     --  This means that, when a multilib switch is used
+                     --  to request a particular compilation mode, the
+                     --  corresponding runtime switch (--RTS) must also be
+                     --  specified. The long-term goal is to fully support the
+                     --  multilib mechanism; however, in the meantime, it is
+                     --  convenient to eliminate the redundancy by keying the
+                     --  compilation mode on a single switch, namely --RTS.
+
+                     --  Pass -mrtp to the linker if --RTS=rtp was passed
+
+                     if Linker_Path = Gcc_Path
+                       and then Arg'Length > 8
+                       and then Arg (Arg'First + 6 .. Arg'First + 8) = "rtp"
+                     then
+                        Linker_Options.Increment_Last;
+                        Linker_Options.Table (Linker_Options.Last) :=
+                          new String'("-mrtp");
+
+                     --  Pass -fsjlj to the linker if --RTS=sjlj was passed
+
+                     elsif Linker_Path = Gcc_Path
+                       and then Arg'Length > 9
+                       and then Arg (Arg'First + 6 .. Arg'First + 9) = "sjlj"
+                     then
+                        Linker_Options.Increment_Last;
+                        Linker_Options.Table (Linker_Options.Last) :=
+                          new String'("-fsjlj");
+                     end if;
                   end if;
                end;
             end loop;

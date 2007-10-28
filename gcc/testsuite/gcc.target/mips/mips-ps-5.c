@@ -1,9 +1,9 @@
 /* { dg-do compile } */
-/* { dg-mips-options "-mips64 -O2 -mpaired-single -mhard-float -mgp64 -ftree-vectorize" } */
+/* { dg-mips-options "-mips64 -O2 -mpaired-single -mgp64 -ftree-vectorize" } */
 
 extern float a[], b[], c[];
 
-void
+NOMIPS16 void
 foo (void)
 {
   int i;

@@ -46,7 +46,6 @@ match gfc_match_st_label (gfc_st_label **);
 match gfc_match_label (void);
 match gfc_match_small_int (int *);
 match gfc_match_small_int_expr (int *, gfc_expr **);
-int gfc_match_strings (mstring *);
 match gfc_match_name (char *);
 match gfc_match_name_C (char *buffer);
 match gfc_match_symbol (gfc_symbol **, int);
@@ -128,12 +127,14 @@ match gfc_match_omp_end_single (void);
 
 match gfc_match_data (void);
 match gfc_match_null (gfc_expr **);
-match gfc_match_kind_spec (gfc_typespec *);
+match gfc_match_kind_spec (gfc_typespec *, bool);
 match gfc_match_old_kind_spec (gfc_typespec *);
+match gfc_match_type_spec (gfc_typespec *, int);
 
 match gfc_match_end (gfc_statement *);
 match gfc_match_data_decl (void);
 match gfc_match_formal_arglist (gfc_symbol *, int, int);
+match gfc_match_procedure (void);
 match gfc_match_function_decl (void);
 match gfc_match_entry (void);
 match gfc_match_subroutine (void);
@@ -195,6 +196,7 @@ match gfc_match_array_ref (gfc_array_ref *, gfc_array_spec *, int);
 match gfc_match_array_constructor (gfc_expr **);
 
 /* interface.c.  */
+match gfc_match_abstract_interface (void);
 match gfc_match_generic_spec (interface_type *, char *, gfc_intrinsic_op *);
 match gfc_match_interface (void);
 match gfc_match_end_interface (void);

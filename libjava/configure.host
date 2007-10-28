@@ -86,6 +86,7 @@ case "${host}" in
   arm*-linux*)
 	libgcj_interpreter=yes
 	sysdeps_dir=arm
+	fallback_backtrace_h=sysdep/arm/backtrace.h
 	;;
   mips-tx39-*|mipstx39-unknown-*)
 	libgcj_flags="${libgcj_flags} -G 0"
@@ -97,7 +98,7 @@ case "${host}" in
  	enable_java_net_default=no
  	enable_getenv_properties_default=no
 	;;
-  mipsel-*|mips-*)
+  mips*-*)
 	libgcj_interpreter=yes
 	;;
   i686-*|i586-*|i486-*|i386-*)
@@ -144,6 +145,10 @@ case "${host}" in
 	sysdeps_dir=pa
 	libgcj_interpreter=yes
 	enable_hash_synchronization_default=no
+	;;
+  m68k-*)
+	sysdeps_dir=m68k
+	libgcj_interpreter=yes
 	;;
   powerpc64*-*)
 	sysdeps_dir=powerpc
@@ -201,6 +206,7 @@ case "${host}" in
   ia64-* | \
   x86_64*-linux* | \
   hppa*-linux* | \
+  m68k*-linux* | \
   sh-linux* | sh[34]*-linux*)
   	can_unwind_signal=yes
 	libgcj_ld_symbolic='-Wl,-Bsymbolic'
@@ -267,15 +273,17 @@ EOF
 	# disable interpreter, no closure support for N32 and N64 ABIs
 	libgcj_interpreter=no
 	;;
+  arm*-linux* )
+	slow_pthread_self=no
+	can_unwind_signal=no
+	CHECKREFSPEC=-fcheck-references
+	DIVIDESPEC=-fuse-divide-subroutine
+	;;
   mips*-*-linux* )
   	sysdeps_dir=mips
   	can_unwind_signal=yes
 	DIVIDESPEC=-fno-use-divide-subroutine
-	case "${host}" in
-	    mipsel*-linux* | mipsisa32el*-linux*)
-		enable_hash_synchronization_default=yes
-	    ;;
-	esac
+	enable_hash_synchronization_default=yes
 	;;
   powerpc*-*-darwin*)
 	enable_hash_synchronization_default=yes
@@ -346,7 +354,7 @@ case "${host}" in
 esac
 
 case "${host}" in
-  *linux*|*-kfreebsd*-gnu)
+  *linux*|*-kfreebsd*-gnu|*-gnu*)
     use_libgcj_bc=yes
   ;;
   *)

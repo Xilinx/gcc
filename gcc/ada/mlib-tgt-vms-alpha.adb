@@ -11,14 +11,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -36,8 +35,8 @@ with MLib.Tgt.VMS;
 pragma Warnings (Off, MLib.Tgt.VMS);
 --  MLib.Tgt.VMS is with'ed only for elaboration purposes
 
-with Opt;    use Opt;
-with Output; use Output;
+with Opt;      use Opt;
+with Output;   use Output;
 
 with GNAT.Directory_Operations; use GNAT.Directory_Operations;
 
@@ -51,10 +50,7 @@ package body MLib.Tgt.Specific is
 
    procedure Build_Dynamic_Library
      (Ofiles       : Argument_List;
-      Foreign      : Argument_List;
-      Afiles       : Argument_List;
       Options      : Argument_List;
-      Options_2    : Argument_List;
       Interfaces   : Argument_List;
       Lib_Filename : String;
       Lib_Dir      : String;
@@ -95,10 +91,7 @@ package body MLib.Tgt.Specific is
 
    procedure Build_Dynamic_Library
      (Ofiles       : Argument_List;
-      Foreign      : Argument_List;
-      Afiles       : Argument_List;
       Options      : Argument_List;
-      Options_2    : Argument_List;
       Interfaces   : Argument_List;
       Lib_Filename : String;
       Lib_Dir      : String;
@@ -107,8 +100,6 @@ package body MLib.Tgt.Specific is
       Lib_Version  : String  := "";
       Auto_Init    : Boolean := False)
    is
-      pragma Unreferenced (Foreign);
-      pragma Unreferenced (Afiles);
 
       Lib_File : constant String :=
                    Lib_Dir & Directory_Separator & "lib" &
@@ -171,7 +162,7 @@ package body MLib.Tgt.Specific is
 
       function Option_File_Name return String is
       begin
-         if Symbol_Data.Symbol_File = No_Name then
+         if Symbol_Data.Symbol_File = No_Path then
             return "symvec.opt";
          else
             Get_Name_String (Symbol_Data.Symbol_File);
@@ -386,7 +377,7 @@ package body MLib.Tgt.Specific is
 
       --  Reference Symbol File
 
-      if Symbol_Data.Reference /= No_Name then
+      if Symbol_Data.Reference /= No_Path then
          Last_Argument := Last_Argument + 1;
          Arguments (Last_Argument) := new String'("-r");
          Last_Argument := Last_Argument + 1;
@@ -477,7 +468,7 @@ package body MLib.Tgt.Specific is
          Options     => VMS_Options,
          Options_2   => Shared_Libgcc_Switch &
                         Opts (Opts'First .. Last_Opt) &
-                        Opts2 (Opts2'First .. Last_Opt2) & Options_2,
+                        Opts2 (Opts2'First .. Last_Opt2),
          Driver_Name => Driver_Name);
 
       --  The auto-init object file need to be deleted, so that it will not

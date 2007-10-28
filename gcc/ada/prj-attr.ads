@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -153,6 +152,8 @@ package Prj.Attr is
    --  Returns True if Attribute is a known attribute and may have an
    --  optional index. Returns False otherwise.
 
+   function Is_Read_Only (Attribute : Attribute_Node_Id) return Boolean;
+
    function Next_Attribute
      (After : Attribute_Node_Id) return Attribute_Node_Id;
    --  Returns the attribute that follow After in the list of project level
@@ -269,18 +270,18 @@ private
       Var_Kind       : Variable_Kind;
       Optional_Index : Boolean;
       Attr_Kind      : Attribute_Kind;
+      Read_Only      : Boolean;
       Next           : Attr_Node_Id;
    end record;
    --  Data for an attribute
 
    package Attrs is
-     new Table.Table
-       (Table_Component_Type => Attribute_Record,
-        Table_Index_Type     => Attr_Node_Id,
-        Table_Low_Bound      => First_Attribute,
-        Table_Initial        => Attributes_Initial,
-        Table_Increment      => Attributes_Increment,
-        Table_Name           => "Prj.Attr.Attrs");
+      new Table.Table (Table_Component_Type => Attribute_Record,
+                       Table_Index_Type     => Attr_Node_Id,
+                       Table_Low_Bound      => First_Attribute,
+                       Table_Initial        => Attributes_Initial,
+                       Table_Increment      => Attributes_Increment,
+                       Table_Name           => "Prj.Attr.Attrs");
    --  The table of the attributes
 
    --------------
@@ -288,20 +289,19 @@ private
    --------------
 
    type Package_Record is record
-      Name            : Name_Id;
-      Known           : Boolean := True;
-      First_Attribute : Attr_Node_Id;
+      Name             : Name_Id;
+      Known            : Boolean := True;
+      First_Attribute  : Attr_Node_Id;
    end record;
    --  Data for a package
 
    package Package_Attributes is
-     new Table.Table
-       (Table_Component_Type => Package_Record,
-        Table_Index_Type     => Pkg_Node_Id,
-        Table_Low_Bound      => First_Package,
-        Table_Initial        => Packages_Initial,
-        Table_Increment      => Packages_Increment,
-        Table_Name           => "Prj.Attr.Packages");
+      new Table.Table (Table_Component_Type => Package_Record,
+                       Table_Index_Type     => Pkg_Node_Id,
+                       Table_Low_Bound      => First_Package,
+                       Table_Initial        => Packages_Initial,
+                       Table_Increment      => Packages_Increment,
+                       Table_Name           => "Prj.Attr.Packages");
    --  The table of the packages
 
 end Prj.Attr;

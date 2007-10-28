@@ -2,11 +2,11 @@
    This testcase used to trigger an unrecognizable insn.  */
 
 /* { dg-do compile } */
-/* { dg-options "-O2 -w" } */
+/* { dg-mips-options "-O2 -w" } */
 
 __thread int *a = 0;
 
-void foo (void)
+NOMIPS16 void foo (void)
 {
   extern int *b;
   b = (int *) ((*a));

@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -520,6 +519,14 @@ package Osint is
    -- Termination --
    -----------------
 
+   Current_Exit_Status : Integer := 0;
+   --  Exit status that is set with procedure OS_Exit_Through_Exception below
+   --  and can be used in exception handler for Types.Terminate_Program to call
+   --  Set_Exit_Status as the last action of the program.
+
+   procedure OS_Exit_Through_Exception (Status : Integer);
+   --  Set the Current_Exit_Status, then raise Types.Terminate_Program
+
    type Exit_Code_Type is (
       E_Success,    -- No warnings or errors
       E_Warnings,   -- Compiler warnings generated
@@ -583,7 +590,7 @@ private
    type File_Name_Array_Ptr is access File_Name_Array;
    File_Names : File_Name_Array_Ptr :=
                   new File_Name_Array (1 .. Int (Argument_Count) + 2);
-   --  As arguments are scanned, file names are stored in this array The
+   --  As arguments are scanned, file names are stored in this array. The
    --  strings do not have terminating NUL files. The array is extensible,
    --  because when using project files, there may be more files than
    --  arguments on the command line.

@@ -1,3 +1,201 @@
+2007-09-04    <aph@redhat.com>
+
+	* src/arm/sysv.S (UNWIND): New.
+	(Whole file): Conditionally compile unwinder directives.
+	* src/arm/sysv.S: Add unwinder directives.
+
+	* src/arm/ffi.c (ffi_prep_args): Align structs by at least 4 bytes.
+	Only treat r0 as a struct address if we're actually returning a
+	struct by address.
+	Only copy the bytes that are actually within a struct.
+	(ffi_prep_cif_machdep): A Composite Type not larger than 4 bytes
+	is returned in r0, not passed by address.
+	(ffi_call): Allocate a word-sized temporary for the case where
+	a composite is returned in r0.
+	(ffi_prep_incoming_args_SYSV): Align as necessary.
+
+2007-08-05  Steven Newbury  <s_j_newbury@yahoo.co.uk>
+
+	* src/arm/ffi.c (FFI_INIT_TRAMPOLINE): Use __clear_cache instead of 
+	directly using the sys_cacheflush syscall.
+
+2007-07-27  Andrew Haley  <aph@redhat.com>
+
+	* src/arm/sysv.S (ffi_closure_SYSV): Add soft-float.
+
+2007-09-03  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* Makefile.am: Unify MIPS_IRIX and MIPS_LINUX into MIPS.
+	* configure.ac: Likewise.
+	* Makefile.in: Regenerate.
+	* include/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+	* configure: Likewise.
+
+2007-08-24  David Daney  <ddaney@avtrex.com>
+
+	* testsuite/libffi.call/return_sl.c: New test.
+
+2007-08-10  David Daney  <ddaney@avtrex.com>
+
+	* testsuite/libffi.call/cls_multi_ushort.c,
+	testsuite/libffi.call/cls_align_uint16.c,
+	testsuite/libffi.call/nested_struct1.c,
+	testsuite/libffi.call/nested_struct3.c,
+	testsuite/libffi.call/cls_7_1_byte.c,
+	testsuite/libffi.call/nested_struct5.c,
+	testsuite/libffi.call/cls_double.c,
+	testsuite/libffi.call/nested_struct7.c,
+	testsuite/libffi.call/cls_sint.c,
+	testsuite/libffi.call/nested_struct9.c,
+	testsuite/libffi.call/cls_20byte1.c,
+	testsuite/libffi.call/cls_multi_sshortchar.c,
+	testsuite/libffi.call/cls_align_sint64.c,
+	testsuite/libffi.call/cls_3byte2.c,
+	testsuite/libffi.call/cls_multi_schar.c,
+	testsuite/libffi.call/cls_multi_uchar.c,
+	testsuite/libffi.call/cls_19byte.c,
+	testsuite/libffi.call/cls_9byte1.c,
+	testsuite/libffi.call/cls_align_float.c,
+	testsuite/libffi.call/closure_fn1.c,
+	testsuite/libffi.call/problem1.c,
+	testsuite/libffi.call/closure_fn3.c,
+	testsuite/libffi.call/cls_sshort.c,
+	testsuite/libffi.call/closure_fn5.c,
+	testsuite/libffi.call/cls_align_double.c,
+	testsuite/libffi.call/nested_struct.c,
+	testsuite/libffi.call/cls_2byte.c,
+	testsuite/libffi.call/nested_struct10.c,
+	testsuite/libffi.call/cls_4byte.c,
+	testsuite/libffi.call/cls_6byte.c,
+	testsuite/libffi.call/cls_8byte.c,
+	testsuite/libffi.call/cls_multi_sshort.c,
+	testsuite/libffi.call/cls_align_sint16.c,
+	testsuite/libffi.call/cls_align_uint32.c,
+	testsuite/libffi.call/cls_20byte.c,
+	testsuite/libffi.call/cls_float.c,
+	testsuite/libffi.call/nested_struct2.c,
+	testsuite/libffi.call/cls_5_1_byte.c,
+	testsuite/libffi.call/nested_struct4.c,
+	testsuite/libffi.call/cls_24byte.c,
+	testsuite/libffi.call/nested_struct6.c,
+	testsuite/libffi.call/cls_64byte.c,
+	testsuite/libffi.call/nested_struct8.c,
+	testsuite/libffi.call/cls_uint.c,
+	testsuite/libffi.call/cls_multi_ushortchar.c,
+	testsuite/libffi.call/cls_schar.c,
+	testsuite/libffi.call/cls_uchar.c,
+	testsuite/libffi.call/cls_align_uint64.c,
+	testsuite/libffi.call/cls_ulonglong.c,
+	testsuite/libffi.call/cls_align_longdouble.c,
+	testsuite/libffi.call/cls_1_1byte.c,
+	testsuite/libffi.call/cls_12byte.c,
+	testsuite/libffi.call/cls_3_1byte.c,
+	testsuite/libffi.call/cls_3byte1.c,
+	testsuite/libffi.call/cls_4_1byte.c,
+	testsuite/libffi.call/cls_6_1_byte.c,
+	testsuite/libffi.call/cls_16byte.c,
+	testsuite/libffi.call/cls_18byte.c,
+	testsuite/libffi.call/closure_fn0.c,
+	testsuite/libffi.call/cls_9byte2.c,
+	testsuite/libffi.call/closure_fn2.c,
+	testsuite/libffi.call/closure_fn4.c,
+	testsuite/libffi.call/cls_ushort.c,
+	testsuite/libffi.call/closure_fn6.c,
+	testsuite/libffi.call/cls_5byte.c,
+	testsuite/libffi.call/cls_align_pointer.c,
+	testsuite/libffi.call/cls_7byte.c,
+	testsuite/libffi.call/cls_align_sint32.c,
+	testsuite/libffi.special/unwindtest_ffi_call.cc,
+	testsuite/libffi.special/unwindtest.cc: Remove xfail for mips64*-*-*.
+
+2007-08-10  David Daney  <ddaney@avtrex.com>
+
+	PR libffi/28313
+	* configure.ac: Don't treat mips64 as a special case.
+	* Makefile.am (nodist_libffi_la_SOURCES): Add n32.S.
+	* configure: Regenerate
+	* Makefile.in: Ditto.
+	* fficonfig.h.in: Ditto.
+	* src/mips/ffitarget.h (REG_L, REG_S, SUBU, ADDU, SRL, LI): Indent.
+	(LA, EH_FRAME_ALIGN, FDE_ADDR_BYTES): New preprocessor macros.
+	(FFI_DEFAULT_ABI): Set for n64 case.
+	(FFI_CLOSURES, FFI_TRAMPOLINE_SIZE): Define for n32 and n64 cases.
+	* src/mips/n32.S (ffi_call_N32): Add debug macros and labels for FDE.
+	(ffi_closure_N32): New function.
+	(.eh_frame): New section
+	* src/mips/o32.S: Clean up comments.
+	(ffi_closure_O32): Pass ffi_closure parameter in $12.
+	* src/mips/ffi.c: Use FFI_MIPS_N32 instead of
+	_MIPS_SIM == _ABIN32 throughout.
+	(FFI_MIPS_STOP_HERE): New, use in place of
+	ffi_stop_here.
+	(ffi_prep_args): Use unsigned long to hold pointer values.  Rewrite
+	to support n32/n64 ABIs.
+	(calc_n32_struct_flags): Rewrite.
+	(calc_n32_return_struct_flags): Remove unused variable.  Reverse
+	position of flag bits.
+	(ffi_prep_cif_machdep): Rewrite n32 portion.
+	(ffi_call): Enable for n64.  Add special handling for small structure
+	return values.
+	(ffi_prep_closure_loc): Add n32 and n64 support.
+	(ffi_closure_mips_inner_O32): Add cast to silence warning.
+	(copy_struct_N32, ffi_closure_mips_inner_N32): New functions.
+
+2007-08-08  David Daney  <ddaney@avtrex.com>
+
+	* testsuite/libffi.call/ffitest.h (ffi_type_mylong): Remove definition.
+	* testsuite/libffi.call/cls_align_uint16.c (main): Use correct type
+	specifiers.
+	* testsuite/libffi.call/nested_struct1.c (main): Ditto.
+	* testsuite/libffi.call/cls_sint.c (main): Ditto.
+	* testsuite/libffi.call/nested_struct9.c (main): Ditto.
+	* testsuite/libffi.call/cls_20byte1.c (main): Ditto.
+	* testsuite/libffi.call/cls_9byte1.c (main): Ditto.
+	* testsuite/libffi.call/closure_fn1.c (main): Ditto.
+	* testsuite/libffi.call/closure_fn3.c (main): Ditto.
+	* testsuite/libffi.call/return_dbl2.c (main): Ditto.
+	* testsuite/libffi.call/cls_sshort.c (main): Ditto.
+	* testsuite/libffi.call/return_fl3.c (main): Ditto.
+	* testsuite/libffi.call/closure_fn5.c (main): Ditto.
+	* testsuite/libffi.call/nested_struct.c (main): Ditto.
+	* testsuite/libffi.call/nested_struct10.c (main): Ditto.
+	* testsuite/libffi.call/return_ll1.c (main): Ditto.
+	* testsuite/libffi.call/cls_8byte.c (main): Ditto.
+	* testsuite/libffi.call/cls_align_uint32.c (main): Ditto.
+	* testsuite/libffi.call/cls_align_sint16.c (main): Ditto.
+	* testsuite/libffi.call/cls_20byte.c (main): Ditto.
+	* testsuite/libffi.call/nested_struct2.c (main): Ditto.
+	* testsuite/libffi.call/cls_24byte.c (main): Ditto.
+	* testsuite/libffi.call/nested_struct6.c (main): Ditto.
+	* testsuite/libffi.call/cls_uint.c (main): Ditto.
+	* testsuite/libffi.call/cls_12byte.c (main): Ditto.
+	* testsuite/libffi.call/cls_16byte.c (main): Ditto.
+	* testsuite/libffi.call/closure_fn0.c (main): Ditto.
+	* testsuite/libffi.call/cls_9byte2.c (main): Ditto.
+	* testsuite/libffi.call/closure_fn2.c (main): Ditto.
+	* testsuite/libffi.call/return_dbl1.c (main): Ditto.
+	* testsuite/libffi.call/closure_fn4.c (main): Ditto.
+	* testsuite/libffi.call/closure_fn6.c (main): Ditto.
+	* testsuite/libffi.call/cls_align_sint32.c (main): Ditto.
+
+2007-08-07  Andrew Haley  <aph@redhat.com>
+
+	* src/x86/sysv.S (ffi_closure_raw_SYSV): Fix typo in previous
+	checkin.
+
+2007-08-06  Andrew Haley  <aph@redhat.com>
+
+	PR testsuite/32843
+	* src/x86/sysv.S (ffi_closure_raw_SYSV): Handle FFI_TYPE_UINT8,
+	FFI_TYPE_SINT8, FFI_TYPE_UINT16, FFI_TYPE_SINT16, FFI_TYPE_UINT32,
+	FFI_TYPE_SINT32.
+
+2007-08-02  David Daney  <ddaney@avtrex.com>
+
+	* testsuite/libffi.call/return_ul.c (main): Define return type as
+	ffi_arg.  Use proper printf conversion specifier.
+	
 2007-07-30  Andrew Haley  <aph@redhat.com>
 
 	PR testsuite/32843

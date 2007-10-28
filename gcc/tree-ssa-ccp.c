@@ -1644,7 +1644,7 @@ maybe_fold_offset_to_array_ref (tree base, tree offset, tree orig_type)
   /* Make sure to possibly truncate late after offsetting.  */
   idx = fold_convert (idx_type, idx);
 
-  return build4 (ARRAY_REF, orig_type, base, idx, NULL_TREE, NULL_TREE);
+  return build4 (ARRAY_REF, elt_type, base, idx, NULL_TREE, NULL_TREE);
 }
 
 
@@ -2060,7 +2060,12 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
 		      (TREE_OPERAND (expr, 0),
 		       integer_zero_node,
 		       TREE_TYPE (TREE_TYPE (expr)))))
-        t = build_fold_addr_expr_with_type (t, TREE_TYPE (expr));
+	{
+	  tree ptr_type = build_pointer_type (TREE_TYPE (t));
+	  if (!useless_type_conversion_p (TREE_TYPE (expr), ptr_type))
+	    return NULL_TREE;
+          t = build_fold_addr_expr_with_type (t, ptr_type);
+	}
       break;
 
       /* ??? Could handle more ARRAY_REFs here, as a variant of INDIRECT_REF.
@@ -2640,6 +2645,8 @@ execute_fold_all_builtins (void)
 {
   bool cfg_changed = false;
   basic_block bb;
+  unsigned int todoflags = 0;
+  
   FOR_EACH_BB (bb)
     {
       block_stmt_iterator i;
@@ -2697,6 +2704,7 @@ execute_fold_all_builtins (void)
 		{
 		  bool ok = set_rhs (stmtp, result);
 		  gcc_assert (ok);
+		  todoflags |= TODO_rebuild_alias;
 		}
 	    }
 
@@ -2728,9 +2736,12 @@ execute_fold_all_builtins (void)
 	    bsi_next (&i);
 	}
     }
-
+  
   /* Delete unreachable blocks.  */
-  return cfg_changed ? TODO_cleanup_cfg : 0;
+  if (cfg_changed)
+    todoflags |= TODO_cleanup_cfg;
+  
+  return todoflags;
 }
 
 

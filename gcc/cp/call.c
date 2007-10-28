@@ -89,10 +89,6 @@ struct conversion {
      temporary should be created to hold the result of the
      conversion.  */
   BOOL_BITFIELD need_temporary_p : 1;
-  /* If KIND is ck_identity or ck_base_conv, true to indicate that the
-     copy constructor must be accessible, even though it is not being
-     used.  */
-  BOOL_BITFIELD check_copy_constructor_p : 1;
   /* If KIND is ck_ptr or ck_pmem, true to indicate that a conversion
      from a pointer-to-derived to pointer-to-base is being performed.  */
   BOOL_BITFIELD base_p : 1;
@@ -201,7 +197,6 @@ static conversion *merge_conversion_sequences (conversion *, conversion *);
 static bool magic_varargs_p (tree);
 typedef void (*diagnostic_fn_t) (const char *, ...) ATTRIBUTE_GCC_CXXDIAG(1,2);
 static tree build_temp (tree, tree, int, diagnostic_fn_t *);
-static void check_constructor_callable (tree, tree);
 
 /* Returns nonzero iff the destructor name specified in NAME matches BASETYPE.
    NAME can take many forms...  */
@@ -467,7 +462,7 @@ null_ptr_cst_p (tree t)
    ellipsis.  */
 
 bool
-sufficient_parms_p (tree parmlist)
+sufficient_parms_p (const_tree parmlist)
 {
   for (; parmlist && parmlist != void_list_node;
        parmlist = TREE_CHAIN (parmlist))
@@ -866,7 +861,13 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
   else if (fcode == VECTOR_TYPE && tcode == VECTOR_TYPE
 	   && vector_types_convertible_p (from, to, false))
     return build_conv (ck_std, to, conv);
-  else if (!(flags & LOOKUP_CONSTRUCTOR_CALLABLE)
+  /* A derived-to-base conversion sequence is a user-defined conversion
+     because it involves a constructor call, even though it has the rank of
+     a standard conversion, so we don't consider it if we aren't allowing
+     user-defined conversions.  But if we're binding directly to a
+     reference, it's only a pointer conversion.  */
+  else if ((!(flags & LOOKUP_NO_CONVERSION)
+	    || (flags & LOOKUP_NO_TEMP_BIND))
 	   && IS_AGGR_TYPE (to) && IS_AGGR_TYPE (from)
 	   && is_properly_derived_from (from, to))
     {
@@ -876,8 +877,8 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
       /* The derived-to-base conversion indicates the initialization
 	 of a parameter with base type from an object of a derived
 	 type.  A temporary object is created to hold the result of
-	 the conversion.  */
-      conv->need_temporary_p = true;
+	 the conversion unless we're binding directly to a reference.  */
+      conv->need_temporary_p = !(flags & LOOKUP_NO_TEMP_BIND);
     }
   else
     return NULL;
@@ -1153,14 +1154,12 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
   compatible_p = reference_compatible_p (to, from);
 
   /* Directly bind reference when target expression's type is compatible with
-     the reference and expression is an lvalue. In C++0x, the wording in
-     [8.5.3/5 dcl.init.ref] is changed to also allow direct bindings for const
-     and rvalue references to rvalues of compatible class type, as part of
-     DR391. */
+     the reference and expression is an lvalue. In DR391, the wording in
+     [8.5.3/5 dcl.init.ref] is changed to also require direct bindings for
+     const and rvalue references to rvalues of compatible class type. */
   if (compatible_p
       && (lvalue_p
-	  || ((cxx_dialect != cxx98)
-	      && (CP_TYPE_CONST_NON_VOLATILE_P(to) || TYPE_REF_IS_RVALUE (rto))
+	  || ((CP_TYPE_CONST_NON_VOLATILE_P(to) || TYPE_REF_IS_RVALUE (rto))
 	      && CLASS_TYPE_P (from))))
     {
       /* [dcl.init.ref]
@@ -1171,7 +1170,14 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
 	    is reference-compatible with "cv2 T2,"
 
 	 the reference is bound directly to the initializer expression
-	 lvalue.  */
+	 lvalue.
+
+	 [...]
+	 If the initializer expression is an rvalue, with T2 a class type,
+	 and "cv1 T1" is reference-compatible with "cv2 T2", the reference
+	 is bound to the object represented by the rvalue or to a sub-object
+	 within that object.  */
+
       conv = build_identity_conv (from, expr);
       conv = direct_reference_binding (rto, conv);
 
@@ -1200,7 +1206,12 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
 
       return conv;
     }
-  else if (CLASS_TYPE_P (from) && !(flags & LOOKUP_NO_CONVERSION))
+  /* [class.conv.fct] A conversion function is never used to convert a
+     (possibly cv-qualified) object to the (possibly cv-qualified) same
+     object type (or a reference to it), to a (possibly cv-qualified) base
+     class of that type (or a reference to it).... */
+  else if (CLASS_TYPE_P (from) && !related_p
+	   && !(flags & LOOKUP_NO_CONVERSION))
     {
       /* [dcl.init.ref]
 
@@ -1246,32 +1257,6 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
 
   /* [dcl.init.ref]
 
-     If the initializer expression is an rvalue, with T2 a class type,
-     and "cv1 T1" is reference-compatible with "cv2 T2", the reference
-     is bound in one of the following ways:
-
-     -- The reference is bound to the object represented by the rvalue
-	or to a sub-object within that object.
-
-     -- ...
-
-     We use the first alternative.  The implicit conversion sequence
-     is supposed to be same as we would obtain by generating a
-     temporary.  Fortunately, if the types are reference compatible,
-     then this is either an identity conversion or the derived-to-base
-     conversion, just as for direct binding.  */
-  if (CLASS_TYPE_P (from) && compatible_p)
-    {
-      conv = build_identity_conv (from, expr);
-      conv = direct_reference_binding (rto, conv);
-      conv->rvaluedness_matches_p = TYPE_REF_IS_RVALUE (rto);
-      if (!(flags & LOOKUP_CONSTRUCTOR_CALLABLE))
-	conv->u.next->check_copy_constructor_p = true;
-      return conv;
-    }
-
-  /* [dcl.init.ref]
-
      Otherwise, a temporary of type "cv1 T1" is created and
      initialized from the initializer expression using the rules for a
      non-reference copy initialization.  If T1 is reference-related to
@@ -1279,6 +1264,11 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
      cv-qualification than, cv2; otherwise, the program is ill-formed.  */
   if (related_p && !at_least_as_qualified_p (to, from))
     return NULL;
+
+  /* We're generating a temporary now, but don't bind any more in the
+     conversion (specifically, don't slice the temporary returned by a
+     conversion operator).  */
+  flags |= LOOKUP_NO_TEMP_BIND;
 
   conv = implicit_conversion (to, from, expr, c_cast_p,
 			      flags);
@@ -1324,9 +1314,10 @@ implicit_conversion (tree to, tree from, tree expr, bool c_cast_p,
       && (flags & LOOKUP_NO_CONVERSION) == 0)
     {
       struct z_candidate *cand;
+      int convflags = ((flags & LOOKUP_NO_TEMP_BIND)
+		       |LOOKUP_ONLYCONVERTING);
 
-      cand = build_user_type_conversion_1
-	(to, expr, LOOKUP_ONLYCONVERTING);
+      cand = build_user_type_conversion_1 (to, expr, convflags);
       if (cand)
 	conv = cand->second_conv;
 
@@ -2585,6 +2576,7 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
   conversion *conv = NULL;
   tree args = NULL_TREE;
   bool any_viable_p;
+  int convflags;
 
   /* We represent conversion within a hierarchy using RVALUE_CONV and
      BASE_CONV, as specified by [over.best.ics]; these become plain
@@ -2596,10 +2588,29 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
     ctors = lookup_fnfields (totype, complete_ctor_identifier, 0);
 
   if (IS_AGGR_TYPE (fromtype))
-    conv_fns = lookup_conversions (fromtype);
+    {
+      tree to_nonref = non_reference (totype);
+      if (same_type_ignoring_top_level_qualifiers_p (to_nonref, fromtype) ||
+	  (CLASS_TYPE_P (to_nonref) && CLASS_TYPE_P (fromtype)
+	   && DERIVED_FROM_P (to_nonref, fromtype)))
+	{
+	  /* [class.conv.fct] A conversion function is never used to
+	     convert a (possibly cv-qualified) object to the (possibly
+	     cv-qualified) same object type (or a reference to it), to a
+	     (possibly cv-qualified) base class of that type (or a
+	     reference to it)...  */
+	}
+      else
+	conv_fns = lookup_conversions (fromtype);
+    }
 
   candidates = 0;
   flags |= LOOKUP_NO_CONVERSION;
+
+  /* It's OK to bind a temporary for converting constructor arguments, but
+     not in converting the return value of a conversion operator.  */
+  convflags = ((flags & LOOKUP_NO_TEMP_BIND) | LOOKUP_NO_CONVERSION);
+  flags &= ~LOOKUP_NO_TEMP_BIND;
 
   if (ctors)
     {
@@ -2645,7 +2656,6 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
     {
       tree fns;
       tree conversion_path = TREE_PURPOSE (conv_fns);
-      int convflags = LOOKUP_NO_CONVERSION;
 
       /* If we are called to convert to a reference type, we are trying to
 	 find an lvalue binding, so don't even consider temporaries.  If
@@ -4251,21 +4261,6 @@ enforce_access (tree basetype_path, tree decl, tree diag_decl)
   return true;
 }
 
-/* Check that a callable constructor to initialize a temporary of
-   TYPE from an EXPR exists.  */
-
-static void
-check_constructor_callable (tree type, tree expr)
-{
-  build_special_member_call (NULL_TREE,
-			     complete_ctor_identifier,
-			     build_tree_list (NULL_TREE, expr),
-			     type,
-			     LOOKUP_NORMAL | LOOKUP_ONLYCONVERTING
-			     | LOOKUP_NO_CONVERSION
-			     | LOOKUP_CONSTRUCTOR_CALLABLE);
-}
-
 /* Initialize a temporary of type TYPE with EXPR.  The FLAGS are a
    bitwise or of LOOKUP_* values.  If any errors are warnings are
    generated, set *DIAGNOSTIC_FN to "error" or "warning",
@@ -4423,8 +4418,6 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	 leave it as an lvalue.  */
       if (inner >= 0)
 	expr = decl_constant_value (expr);
-      if (convs->check_copy_constructor_p)
-	check_constructor_callable (totype, expr);
       return expr;
     case ck_ambig:
       /* Call build_user_type_conversion again for the error.  */
@@ -4454,8 +4447,6 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	{
 	  /* We are going to bind a reference directly to a base-class
 	     subobject of EXPR.  */
-	  if (convs->check_copy_constructor_p)
-	    check_constructor_callable (TREE_TYPE (expr), expr);
 	  /* Build an expression for `*((base*) &expr)'.  */
 	  expr = build_unary_op (ADDR_EXPR, expr, 0);
 	  expr = convert_to_base (expr, build_pointer_type (totype),
@@ -4681,9 +4672,14 @@ cxx_type_promotes_to (tree type)
    the indicated TYPE, which is a parameter to FN.  Do any required
    conversions.  Return the converted value.  */
 
+static GTY(()) VEC(tree,gc) *default_arg_context;
+
 tree
 convert_default_arg (tree type, tree arg, tree fn, int parmnum)
 {
+  int i;
+  tree t;
+
   /* If the ARG is an unparsed default argument expression, the
      conversion cannot be performed.  */
   if (TREE_CODE (arg) == DEFAULT_ARG)
@@ -4693,6 +4689,15 @@ convert_default_arg (tree type, tree arg, tree fn, int parmnum)
 	     parmnum, fn);
       return error_mark_node;
     }
+
+  /* Detect recursion.  */
+  for (i = 0; VEC_iterate (tree, default_arg_context, i, t); ++i)
+    if (t == fn)
+      {
+	error ("recursive evaluation of default argument for %q#D", fn);
+	return error_mark_node;
+      }
+  VEC_safe_push (tree, gc, default_arg_context, fn);
 
   if (fn && DECL_TEMPLATE_INFO (fn))
     arg = tsubst_default_argument (fn, type, arg);
@@ -4719,6 +4724,8 @@ convert_default_arg (tree type, tree arg, tree fn, int parmnum)
 					"default argument", fn, parmnum);
       arg = convert_for_arg_passing (type, arg);
     }
+
+  VEC_pop (tree, default_arg_context);
 
   return arg;
 }
@@ -5123,6 +5130,11 @@ build_over_call (struct z_candidate *cand, int flags)
 				ba_any, NULL);
       gcc_assert (binfo && binfo != error_mark_node);
 
+      /* Warn about deprecated virtual functions now, since we're about
+	 to throw away the decl.  */
+      if (TREE_DEPRECATED (fn))
+	warn_deprecated_use (fn);
+
       argarray[0] = build_base_path (PLUS_EXPR, argarray[0], binfo, 1);
       if (TREE_SIDE_EFFECTS (argarray[0]))
 	argarray[0] = save_expr (argarray[0]);
@@ -5388,7 +5400,7 @@ name_as_c_string (tree name, tree type, bool *free_p)
   if (IDENTIFIER_CTOR_OR_DTOR_P (name))
     {
       pretty_name
-	= (char *) IDENTIFIER_POINTER (constructor_name (type));
+	= CONST_CAST (char *, IDENTIFIER_POINTER (constructor_name (type)));
       /* For a destructor, add the '~'.  */
       if (name == complete_dtor_identifier
 	  || name == base_dtor_identifier
@@ -5409,7 +5421,7 @@ name_as_c_string (tree name, tree type, bool *free_p)
       *free_p = true;
     }
   else
-    pretty_name = (char *) IDENTIFIER_POINTER (name);
+    pretty_name = CONST_CAST (char *, IDENTIFIER_POINTER (name));
 
   return pretty_name;
 }
@@ -5514,15 +5526,18 @@ build_new_method_call (tree instance, tree fns, tree args,
 
   instance_ptr = build_this (instance);
 
-  /* It's OK to call destructors on cv-qualified objects.  Therefore,
-     convert the INSTANCE_PTR to the unqualified type, if necessary.  */
-  if (DECL_DESTRUCTOR_P (fn))
+  /* It's OK to call destructors and constructors on cv-qualified objects.
+     Therefore, convert the INSTANCE_PTR to the unqualified type, if
+     necessary.  */
+  if (DECL_DESTRUCTOR_P (fn)
+      || DECL_CONSTRUCTOR_P (fn))
     {
       tree type = build_pointer_type (basetype);
       if (!same_type_p (type, TREE_TYPE (instance_ptr)))
 	instance_ptr = build_nop (type, instance_ptr);
-      name = complete_dtor_identifier;
     }
+  if (DECL_DESTRUCTOR_P (fn))
+    name = complete_dtor_identifier;
 
   class_type = (conversion_path ? BINFO_TYPE (conversion_path) : NULL_TREE);
   mem_args = tree_cons (NULL_TREE, instance_ptr, args);
@@ -5759,7 +5774,8 @@ maybe_handle_implicit_object (conversion **ics)
 	t = t->u.next;
       t = build_identity_conv (TREE_TYPE (t->type), NULL_TREE);
       t = direct_reference_binding (reference_type, t);
-      t->rvaluedness_matches_p = 1;
+      t->this_p = 1;
+      t->rvaluedness_matches_p = 0;
       *ics = t;
     }
 }
@@ -6118,18 +6134,21 @@ compare_ics (conversion *ics1, conversion *ics2)
      initialized by S2 refers is more cv-qualified than the type to
      which the reference initialized by S1 refers */
 
-  if (ref_conv1 && ref_conv2
-      && same_type_ignoring_top_level_qualifiers_p (to_type1, to_type2))
+  if (ref_conv1 && ref_conv2)
     {
-      if (ref_conv1->rvaluedness_matches_p
-	  && !ref_conv2->rvaluedness_matches_p)
-	return 1;
-      else if (!ref_conv1->rvaluedness_matches_p
-	  && ref_conv2->rvaluedness_matches_p)
-	return -1;
+      if (!ref_conv1->this_p && !ref_conv2->this_p
+	  && (TYPE_REF_IS_RVALUE (ref_conv1->type)
+	      != TYPE_REF_IS_RVALUE (ref_conv2->type)))
+	{
+	  if (ref_conv1->rvaluedness_matches_p)
+	    return 1;
+	  if (ref_conv2->rvaluedness_matches_p)
+	    return -1;
+	}
 
-      return comp_cv_qualification (TREE_TYPE (ref_conv2->type),
-				    TREE_TYPE (ref_conv1->type));
+      if (same_type_ignoring_top_level_qualifiers_p (to_type1, to_type2))
+	return comp_cv_qualification (TREE_TYPE (ref_conv2->type),
+				      TREE_TYPE (ref_conv1->type));
     }
 
   /* Neither conversion sequence is better than the other.  */
@@ -6765,8 +6784,6 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup)
 	 remember that the conversion was required.  */
       if (conv->kind == ck_base)
 	{
-	  if (conv->check_copy_constructor_p)
-	    check_constructor_callable (TREE_TYPE (expr), expr);
 	  base_conv_type = conv->type;
 	  conv = conv->u.next;
 	}
@@ -6807,7 +6824,11 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup)
 	      if (at_function_scope_p ())
 		{
 		  add_decl_expr (var);
-		  *cleanup = cxx_maybe_build_cleanup (var);
+
+		  if (TREE_STATIC (var))
+		    init = add_stmt_to_compound (init, register_dtor_fn (var));
+		  else
+		    *cleanup = cxx_maybe_build_cleanup (var);
 
 		  /* We must be careful to destroy the temporary only
 		     after its initialization has taken place.  If the

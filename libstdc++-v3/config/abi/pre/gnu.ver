@@ -60,7 +60,8 @@ GLIBCXX_3.4 {
 #     std::c[i-z]*;
       std::c[i-s]*;
       std::c[u-z]*;
-      std::[d-h]*;
+      std::[d-g]*;
+      std::h[^a]*;
       std::i[a-n]*;
       std::ios_base::[A-Ha-z]*;
       std::ios_base::_M_grow_words*;
@@ -107,7 +108,10 @@ GLIBCXX_3.4 {
 #     std::string
       std::strstream*;
       std::strstreambuf*;
-      std::[A-Zt-z]*;
+      std::t[a-q]*;
+      std::tr1::h[^a]*;
+      std::t[s-z]*;
+      std::[A-Zu-z]*;
       std::_List_node_base::hook*;
       std::_List_node_base::swap*;
       std::_List_node_base::unhook*;
@@ -447,7 +451,14 @@ GLIBCXX_3.4 {
     _ZTVNSt6locale5facetE;
     _ZTVS[a-z];
     _ZTVSt[0-9][A-Za-z]*;
-    _ZTVSt[0-9][0-9][A-Za-z]*;
+#   _ZTVSt[0-9][0-9][A-Za-z]*;
+    _ZTVSt[0-9][0-9][A-Z]*;
+    _ZTVSt[0-9][0-9][a-d]*;
+    _ZTVSt[0-9][0-9][f-r]*;
+    _ZTVSt[0-9][0-9][t-z]*;
+    _ZTVSt[0-9][0-9]e[^r]*;
+    _ZTVSt[0-9][0-9]s[^y]*;
+
     _ZTVSt11__timepunctI[cw]E;
     _ZTVSt23__codecvt_abstract_baseI[cw]c11__mbstate_tE;
     _ZTVSt21__ctype_abstract_baseI[cw]E;
@@ -459,14 +470,23 @@ GLIBCXX_3.4 {
 
     # typeinfo structure
     _ZTIS[a-z];
-    _ZTINSt8ios_base7failureE;
-    _ZTINSt6locale5facetE;
     _ZTISt[0-9][A-Za-z]*;
-    _ZTISt[0-9][0-9][A-Za-z]*;
+#   _ZTISt[0-9][0-9][A-Za-z]*;
+    _ZTISt[0-9][0-9][A-Z]*;
+    _ZTISt[0-9][0-9][a-d]*;
+    _ZTISt[0-9][0-9][f-r]*;
+    _ZTISt[0-9][0-9][t-z]*;
+    _ZTISt[0-9][0-9]e[^r]*;
+    _ZTISt[0-9][0-9]s[^y]*;
     _ZTISt11__timepunctI[cw]E;
     _ZTISt10__num_base;
     _ZTISt21__ctype_abstract_baseI[cw]E;
     _ZTISt23__codecvt_abstract_baseI[cw]c11__mbstate_tE;
+#    _ZTISt16__numpunct_cacheI[cw]E;
+#    _ZTISt17__timepunct_cacheI[cw]E;
+#    _ZTISt18__moneypunct_cacheI[cw]Lb?EE;
+    _ZTINSt8ios_base7failureE;
+    _ZTINSt6locale5facetE;
     _ZTIN9__gnu_cxx18stdio_sync_filebufI[cw]St11char_traitsI[cw]EEE;
     _ZTIN9__gnu_cxx13stdio_filebufI[cw]St11char_traitsI[cw]EEE;
 
@@ -475,7 +495,14 @@ GLIBCXX_3.4 {
     _ZTSNSt6locale5facetE;
     _ZTSS[a-z];
     _ZTSSt[0-9][A-Za-z]*;
-    _ZTSSt[0-9][0-9][A-Za-z]*;
+#    _ZTSSt[0-9][0-9][A-Za-z]*;
+    _ZTSSt[0-9][0-9][A-Z]*;
+    _ZTSSt[0-9][0-9][a-d]*;
+    _ZTSSt[0-9][0-9][f-r]*;
+    _ZTSSt[0-9][0-9][t-z]*;
+    _ZTSSt[0-9][0-9]e[^r]*;
+    _ZTSSt[0-9][0-9]s[^y]*;
+
     _ZTSSt11__timepunctI[cw]E;
     _ZTSSt10__num_base;
     _ZTSSt21__ctype_abstract_baseI[cw]E;
@@ -718,6 +745,37 @@ GLIBCXX_3.4.9 {
 GLIBCXX_3.4.10 {
 
     _ZNK11__gnu_debug16_Error_formatter17_M_get_max_lengthEv;
+
+    # system_error
+    _ZSt15system_category;
+
+    _ZTISt14error_category;
+    _ZTSSt14error_category;
+    _ZTVSt14error_category;
+
+    _ZTSSt12system_error;
+    _ZTISt12system_error;
+    _ZTVSt12system_error;
+    _ZNSt12system_errorD*Ev;
+    _ZNSt12system_errorC*;
+
+    _ZNKSt3tr14hashIRKSbIwSt11char_traitsIwESaIwEEEclES6_;
+    _ZNKSt3tr14hashIRKSsEclES2_;
+    _ZNKSt3tr14hashISbIwSt11char_traitsIwESaIwEEEclES4_;
+    _ZNKSt3tr14hashISsEclESs;
+
+    _ZNKSt4hashIRKSbIwSt11char_traitsIwESaIwEEEclES5_;
+    _ZNKSt4hashIRKSsEclES1_;
+    _ZNKSt4hashISbIwSt11char_traitsIwESaIwEEEclES3_;
+    _ZNKSt4hashISsEclESs;
+    _ZNKSt4hashISt10error_codeEclES0_;
+
+    # for parallel mode
+    _ZNSt9__cxx199815_List_node_base4hook*;
+    _ZNSt9__cxx199815_List_node_base4swap*;
+    _ZNSt9__cxx199815_List_node_base6unhookEv;
+    _ZNSt9__cxx199815_List_node_base7reverseEv;
+    _ZNSt9__cxx199815_List_node_base8transfer*;
 
 } GLIBCXX_3.4.9;
 

@@ -10,14 +10,13 @@
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * for  more details.  You should have received a copy of the GNU General   *
+ * Public License along with GCC; see the file COPYING3.  If not see        *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -758,8 +757,17 @@ build_binary_op (enum tree_code op_code, tree result_type,
       /* ... fall through ... */
 
     case ARRAY_RANGE_REF:
+      /* First look through conversion between type variants.  Note that
+	 this changes neither the operation type nor the type domain.  */
+      if (TREE_CODE (left_operand) == VIEW_CONVERT_EXPR
+	  && TYPE_MAIN_VARIANT (TREE_TYPE (TREE_OPERAND (left_operand, 0)))
+	     == TYPE_MAIN_VARIANT (left_type))
+	{
+	  left_operand = TREE_OPERAND (left_operand, 0);
+	  left_type = TREE_TYPE (left_operand);
+	}
 
-      /* First convert the right operand to its base type.  This will
+      /* Then convert the right operand to its base type.  This will
 	 prevent unneeded signedness conversions when sizetype is wider than
 	 integer.  */
       right_operand = convert (right_base_type, right_operand);
@@ -1070,6 +1078,25 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
 	     GCC wants pointer types for function addresses.  */
 	  if (!result_type)
 	    result_type = build_pointer_type (type);
+
+	  /* If the underlying object can alias everything, propagate the
+	     property since we are effectively retrieving the object.  */
+	  if (POINTER_TYPE_P (TREE_TYPE (result))
+	      && TYPE_REF_CAN_ALIAS_ALL (TREE_TYPE (result)))
+	    {
+	      if (TREE_CODE (result_type) == POINTER_TYPE
+		  && !TYPE_REF_CAN_ALIAS_ALL (result_type))
+		result_type
+		  = build_pointer_type_for_mode (TREE_TYPE (result_type),
+						 TYPE_MODE (result_type),
+						 true);
+	      else if (TREE_CODE (result_type) == REFERENCE_TYPE
+		       && !TYPE_REF_CAN_ALIAS_ALL (result_type))
+	        result_type
+		  = build_reference_type_for_mode (TREE_TYPE (result_type),
+						   TYPE_MODE (result_type),
+						   true);
+	    }
 	  break;
 
 	case NULL_EXPR:
@@ -1542,13 +1569,13 @@ build_call_raise (int msg, Node_Id gnat_node, char kind)
 static int
 compare_elmt_bitpos (const PTR rt1, const PTR rt2)
 {
-  tree elmt1 = * (tree *) rt1;
-  tree elmt2 = * (tree *) rt2;
-  tree field1 = TREE_PURPOSE (elmt1);
-  tree field2 = TREE_PURPOSE (elmt2);
-  int ret;
+  const_tree const elmt1 = * (const_tree const *) rt1;
+  const_tree const elmt2 = * (const_tree const *) rt2;
+  const_tree const field1 = TREE_PURPOSE (elmt1);
+  const_tree const field2 = TREE_PURPOSE (elmt2);
+  const int ret
+    = tree_int_cst_compare (bit_position (field1), bit_position (field2));
 
-  ret = tree_int_cst_compare (bit_position (field1), bit_position (field2));
   return ret ? ret : (int) (DECL_UID (field1) - DECL_UID (field2));
 }
 
@@ -1632,7 +1659,7 @@ build_simple_component_ref (tree record_variable, tree component,
                             tree field, bool no_fold_p)
 {
   tree record_type = TYPE_MAIN_VARIANT (TREE_TYPE (record_variable));
-  tree ref;
+  tree ref, inner_variable;
 
   gcc_assert ((TREE_CODE (record_type) == RECORD_TYPE
 	       || TREE_CODE (record_type) == UNION_TYPE
@@ -1704,9 +1731,16 @@ build_simple_component_ref (tree record_variable, tree component,
       && TREE_OVERFLOW (DECL_FIELD_OFFSET (field)))
     return NULL_TREE;
 
-  /* It would be nice to call "fold" here, but that can lose a type
-     we need to tag a PLACEHOLDER_EXPR with, so we can't do it.  */
-  ref = build3 (COMPONENT_REF, TREE_TYPE (field), record_variable, field,
+  /* Look through conversion between type variants.  Note that this
+     is transparent as far as the field is concerned.  */
+  if (TREE_CODE (record_variable) == VIEW_CONVERT_EXPR
+      && TYPE_MAIN_VARIANT (TREE_TYPE (TREE_OPERAND (record_variable, 0)))
+	 == record_type)
+    inner_variable = TREE_OPERAND (record_variable, 0);
+  else
+    inner_variable = record_variable;
+
+  ref = build3 (COMPONENT_REF, TREE_TYPE (field), inner_variable, field,
 		NULL_TREE);
 
   if (TREE_READONLY (record_variable) || TREE_READONLY (field))
@@ -1715,7 +1749,25 @@ build_simple_component_ref (tree record_variable, tree component,
       || TYPE_VOLATILE (record_type))
     TREE_THIS_VOLATILE (ref) = 1;
 
-  return no_fold_p ? ref : fold (ref);
+  if (no_fold_p)
+    return ref;
+
+  /* The generic folder may punt in this case because the inner array type
+     can be self-referential, but folding is in fact not problematic.  */
+  else if (TREE_CODE (record_variable) == CONSTRUCTOR
+	   && TYPE_CONTAINS_TEMPLATE_P (TREE_TYPE (record_variable)))
+    {
+      VEC(constructor_elt,gc) *elts = CONSTRUCTOR_ELTS (record_variable);
+      unsigned HOST_WIDE_INT idx;
+      tree index, value;
+      FOR_EACH_CONSTRUCTOR_ELT (elts, idx, index, value)
+	if (index == field)
+	  return value;
+      return ref;
+    }
+
+  else
+    return fold (ref);
 }
 
 /* Like build_simple_component_ref, except that we give an error if the
@@ -1822,12 +1874,17 @@ build_call_alloc_dealloc (tree gnu_obj, tree gnu_size, unsigned align,
 
   else if (gnu_obj)
     {
-      /* If the required alignement was greater than what malloc guarantees,
-	 what we have in gnu_obj here is an address dynamically adjusted to
-	 match the requirement (see build_allocator).  What we need to pass
-	 to free is the initial underlying allocator's return value, which
-	 has been stored just in front of the block we have.  */
-      if (align > BIGGEST_ALIGNMENT)
+      /* If the required alignement was greater than what the default
+	 allocator guarantees, what we have in gnu_obj here is an address
+	 dynamically adjusted to match the requirement (see build_allocator).
+	 What we need to pass to free is the initial underlying allocator's
+	 return value, which has been stored just in front of the block we
+	 have.  */
+
+      unsigned int default_allocator_alignment
+	= get_target_default_allocator_alignment () * BITS_PER_UNIT;
+
+      if (align > default_allocator_alignment)
 	{
 	  /* We set GNU_OBJ
 	     as * (void **)((void *)GNU_OBJ - (void *)sizeof(void *))
@@ -1900,6 +1957,8 @@ build_allocator (tree type, tree init, tree result_type, Entity_Id gnat_proc,
 {
   tree size = TYPE_SIZE_UNIT (type);
   tree result;
+  unsigned int default_allocator_alignment
+    = get_target_default_allocator_alignment () * BITS_PER_UNIT;
 
   /* If the initializer, if present, is a NULL_EXPR, just return a new one.  */
   if (init && TREE_CODE (init) == NULL_EXPR)
@@ -1999,25 +2058,26 @@ build_allocator (tree type, tree init, tree result_type, Entity_Id gnat_proc,
   if (TREE_CODE (size) == INTEGER_CST && TREE_OVERFLOW (size))
     size = ssize_int (-1);
 
-  /* If this is a type whose alignment is larger than what the underlying
-     allocator supports and this is in the default storage pool, make an
-     "aligning" record type with room to store a pointer before the field,
-     allocate an object of that type, store the system's allocator return
-     value just in front of the field and return the field's address.  */
+  /* If this is in the default storage pool and the type alignment is larger
+     than what the default allocator supports, make an "aligning" record type
+     with room to store a pointer before the field, allocate an object of that
+     type, store the system's allocator return value just in front of the
+     field and return the field's address.  */
 
-  if (TYPE_ALIGN (type) > BIGGEST_ALIGNMENT && No (gnat_proc))
+  if (No (gnat_proc) && TYPE_ALIGN (type) > default_allocator_alignment)
     {
       /* Construct the aligning type with enough room for a pointer ahead
 	 of the field, then allocate.  */
       tree record_type
 	= make_aligning_type (type, TYPE_ALIGN (type), size,
-			      BIGGEST_ALIGNMENT, POINTER_SIZE / BITS_PER_UNIT);
+			      default_allocator_alignment,
+			      POINTER_SIZE / BITS_PER_UNIT);
 
       tree record, record_addr;
 
       record_addr
 	= build_call_alloc_dealloc (NULL_TREE, TYPE_SIZE_UNIT (record_type),
-				    BIGGEST_ALIGNMENT, Empty, Empty,
+				    default_allocator_alignment, Empty, Empty,
 				    gnat_node);
 
       record_addr

@@ -52,7 +52,7 @@
 #include <common_type/assoc/string_form.hpp>
 #include <iterator>
 
-namespace pb_ds
+namespace __gnu_pbds
 {
   namespace test
   {
@@ -97,7 +97,7 @@ namespace pb_ds
 	    {
 	      Cntnr cntnr;
 	      for (It ins_it = m_ins_it_b; ins_it != m_ins_it_e; ++ins_it)
-                cntnr.insert((typename Cntnr::const_reference)(*ins_it));
+		cntnr.insert((typename Cntnr::const_reference)(*ins_it));
 	    }
 	}
 
@@ -108,7 +108,8 @@ namespace pb_ds
     } // namespace detail
 
     template<typename It, bool Native>
-    class multimap_insert_test : private pb_ds::test::detail::timing_test_base
+    class multimap_insert_test 
+    : private __gnu_pbds::test::detail::timing_test_base
     {
     public:
       multimap_insert_test(It b, size_t ins_vn, size_t ins_vs, size_t ins_vm) 
@@ -122,7 +123,6 @@ namespace pb_ds
     private:
       multimap_insert_test(const multimap_insert_test&);
 
-    private:
       const It m_ins_b;
       const size_t m_ins_vn;
       const size_t m_ins_vs;
@@ -146,16 +146,16 @@ namespace pb_ds
 	  It ins_it_e = m_ins_b;
 	  std::advance(ins_it_e, v);
 
-	  pb_ds::test::detail::multimap_insert_functor<It, Cntnr, Native>
+	  __gnu_pbds::test::detail::multimap_insert_functor<It, Cntnr, Native>
             fn(ins_it_b, ins_it_e);
 
 	  const double res =
-            pb_ds::test::detail::timing_test_base::operator()(fn);
+            __gnu_pbds::test::detail::timing_test_base::operator()(fn);
 	  res_set_fmt.add_res(v, res / v);
 	}
     }
   } // namespace test
-} // namespace pb_ds
+} // namespace __gnu_pbds
 
 #endif
 

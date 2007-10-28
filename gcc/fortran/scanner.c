@@ -45,6 +45,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "gfortran.h"
 #include "toplev.h"
+#include "debug.h"
+#include "flags.h"
 
 /* Structure for holding module and include file search path.  */
 typedef struct gfc_directorylist
@@ -312,6 +314,29 @@ gfc_advance_line (void)
       return;
     } 
 
+  if (gfc_current_locus.lb->next
+      && gfc_current_locus.lb->next->file != gfc_current_locus.lb->file)
+    {
+      if (gfc_current_locus.lb->next->file
+	  && !gfc_current_locus.lb->next->dbg_emitted
+	  && gfc_current_locus.lb->file->up == gfc_current_locus.lb->next->file)
+	{
+	  /* We exit from an included file. */
+	  (*debug_hooks->end_source_file)
+		(gfc_linebuf_linenum (gfc_current_locus.lb->next));
+	  gfc_current_locus.lb->next->dbg_emitted = true;
+	}
+      else if (gfc_current_locus.lb->next->file != gfc_current_locus.lb->file
+	       && !gfc_current_locus.lb->next->dbg_emitted)
+	{
+	  /* We enter into a new file.  */
+	  (*debug_hooks->start_source_file)
+		(gfc_linebuf_linenum (gfc_current_locus.lb),
+		 gfc_current_locus.lb->next->file->filename);
+	  gfc_current_locus.lb->next->dbg_emitted = true;
+	}
+    }
+
   gfc_current_locus.lb = gfc_current_locus.lb->next;
 
   if (gfc_current_locus.lb != NULL)	 
@@ -372,6 +397,28 @@ skip_comment_line (void)
 }
 
 
+int
+gfc_define_undef_line (void)
+{
+  /* All lines beginning with '#' are either #define or #undef.  */
+  if (debug_info_level != DINFO_LEVEL_VERBOSE || gfc_peek_char () != '#')
+    return 0;
+
+  if (strncmp (gfc_current_locus.nextc, "#define ", 8) == 0)
+    (*debug_hooks->define) (gfc_linebuf_linenum (gfc_current_locus.lb),
+			    &(gfc_current_locus.nextc[8]));
+
+  if (strncmp (gfc_current_locus.nextc, "#undef ", 7) == 0)
+    (*debug_hooks->undef) (gfc_linebuf_linenum (gfc_current_locus.lb),
+			   &(gfc_current_locus.nextc[7]));
+
+  /* Skip the rest of the line.  */
+  skip_comment_line ();
+
+  return 1;
+}
+
+
 /* Comment lines are null lines, lines containing only blanks or lines
    on which the first nonblank line is a '!'.
    Return true if !$ openmp conditional compilation sentinel was
@@ -417,18 +464,25 @@ skip_free_comments (void)
 		  if (c == 'o' || c == 'O')
 		    {
 		      if (((c = next_char ()) == 'm' || c == 'M')
-			  && ((c = next_char ()) == 'p' || c == 'P')
-			  && ((c = next_char ()) == ' ' || continue_flag))
+			  && ((c = next_char ()) == 'p' || c == 'P'))
 			{
-			  while (gfc_is_whitespace (c))
-			    c = next_char ();
-			  if (c != '\n' && c != '!')
+			  if ((c = next_char ()) == ' ' || continue_flag)
 			    {
-			      openmp_flag = 1;
-			      openmp_locus = old_loc;
-			      gfc_current_locus = start;
-			      return false;
+			      while (gfc_is_whitespace (c))
+				c = next_char ();
+			      if (c != '\n' && c != '!')
+				{
+				  openmp_flag = 1;
+				  openmp_locus = old_loc;
+				  gfc_current_locus = start;
+				  return false;
+				}
 			    }
+			  else
+			    gfc_warning_now ("!$OMP at %C starts a commented "
+					     "line as it neither is followed "
+					     "by a space nor is a "
+					     "continuation line");
 			}
 		      gfc_current_locus = old_loc;
 		      next_char ();
@@ -710,7 +764,7 @@ restart:
       /* We've got a continuation line.  If we are on the very next line after
 	 the last continuation, increment the continuation line count and
 	 check whether the limit has been exceeded.  */
-      if (gfc_current_locus.lb->linenum == continue_line + 1)
+      if (gfc_linebuf_linenum (gfc_current_locus.lb) == continue_line + 1)
 	{
 	  if (++continue_count == gfc_option.max_continue_free)
 	    {
@@ -719,7 +773,7 @@ restart:
 			     "statement at %C", gfc_option.max_continue_free);
 	    }
 	}
-      continue_line = gfc_current_locus.lb->linenum;
+      continue_line = gfc_linebuf_linenum (gfc_current_locus.lb);
 
       /* Now find where it continues. First eat any comment lines.  */
       openmp_cond_flag = skip_free_comments ();
@@ -831,7 +885,7 @@ restart:
       /* We've got a continuation line.  If we are on the very next line after
 	 the last continuation, increment the continuation line count and
 	 check whether the limit has been exceeded.  */
-      if (gfc_current_locus.lb->linenum == continue_line + 1)
+      if (gfc_linebuf_linenum (gfc_current_locus.lb) == continue_line + 1)
 	{
 	  if (++continue_count == gfc_option.max_continue_fixed)
 	    {
@@ -842,8 +896,8 @@ restart:
 	    }
 	}
 
-      if (continue_line < gfc_current_locus.lb->linenum)
-	continue_line = gfc_current_locus.lb->linenum;
+      if (continue_line < gfc_linebuf_linenum (gfc_current_locus.lb))
+	continue_line = gfc_linebuf_linenum (gfc_current_locus.lb);
     }
 
   /* Ready to read first character of continuation line, which might
@@ -1170,7 +1224,7 @@ get_file (const char *name, enum lc_reason reason ATTRIBUTE_UNUSED)
     f->inclusion_line = current_file->line;
 
 #ifdef USE_MAPPED_LOCATION
-  linemap_add (&line_table, reason, false, f->filename, 1);
+  linemap_add (line_table, reason, false, f->filename, 1);
 #endif
 
   return f;
@@ -1293,7 +1347,12 @@ preprocessor_line (char *c)
 	    gfc_free (filename);
 	  return;
 	}
+
       current_file = current_file->up;
+#ifdef USE_MAPPED_LOCATION
+      linemap_add (line_table, LC_RENAME, false, current_file->filename,
+		   current_file->line);
+#endif
     }
 
   /* The name of the file can be a temporary file produced by
@@ -1493,8 +1552,18 @@ load_file (const char *filename, bool initial)
 
       if (line[0] == '#')
 	{
-	  preprocessor_line (line);
-	  continue;
+	  /* When -g3 is specified, it's possible that we emit #define
+	     and #undef lines, which we need to pass to the middle-end
+	     so that it can emit correct debug info.  */
+	  if (debug_info_level == DINFO_LEVEL_VERBOSE
+	      && (strncmp (line, "#define ", 8) == 0
+		  || strncmp (line, "#undef ", 7) == 0))
+	    ;
+	  else
+	    {
+	      preprocessor_line (line);
+	      continue;
+	    }
 	}
 
       /* Preprocessed files have preprocessor lines added before the byte
@@ -1514,7 +1583,7 @@ load_file (const char *filename, bool initial)
 
 #ifdef USE_MAPPED_LOCATION
       b->location
-	= linemap_line_start (&line_table, current_file->line++, 120);
+	= linemap_line_start (line_table, current_file->line++, 120);
 #else
       b->linenum = current_file->line++;
 #endif
@@ -1537,7 +1606,7 @@ load_file (const char *filename, bool initial)
 
   current_file = current_file->up;
 #ifdef USE_MAPPED_LOCATION
-  linemap_add (&line_table, LC_LEAVE, 0, NULL, 0);
+  linemap_add (line_table, LC_LEAVE, 0, NULL, 0);
 #endif
   return SUCCESS;
 }
@@ -1560,10 +1629,12 @@ gfc_new_file (void)
 
 #if 0 /* Debugging aid.  */
   for (; line_head; line_head = line_head->next)
-    gfc_status ("%s:%3d %s\n", line_head->file->filename, 
+    gfc_status ("%s:%3d %s\n",
 #ifdef USE_MAPPED_LOCATION
+		LOCATION_FILE (line_head->location),
 		LOCATION_LINE (line_head->location),
 #else
+		line_head->file->filename, 
 		line_head->linenum,
 #endif
 		line_head->line);

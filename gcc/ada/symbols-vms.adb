@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -41,6 +40,9 @@ package body Symbols is
 
    Symbol_File_Name : String_Access := null;
    --  Name of the symbol file
+
+   Long_Symbol_Length : constant := 100;
+   --  Magic length of symbols, over which the lines are split
 
    Sym_Policy : Policy := Autonomous;
    --  The symbol policy. Set by Initialize
@@ -101,7 +103,6 @@ package body Symbols is
    begin
       if Result (Result'First) = ' ' then
          return Result (Result'First + 1 .. Result'Last);
-
       else
          return Result;
       end if;
@@ -120,8 +121,10 @@ package body Symbols is
       Success       : out Boolean)
    is
       File : Ada.Text_IO.File_Type;
-      Line : String (1 .. 1_000);
+      Line : String (1 .. 2_000);
       Last : Natural;
+
+      Offset : Natural;
 
    begin
       --  Record the symbol file name
@@ -221,7 +224,26 @@ package body Symbols is
          --  Read line by line
 
          while not End_Of_File (File) loop
-            Get_Line (File, Line, Last);
+            Offset := 0;
+            loop
+               Get_Line (File, Line (Offset + 1 .. Line'Last), Last);
+               exit when Line (Last) /= '-';
+
+               if End_Of_File (File) then
+                  if not Quiet then
+                     Put_Line ("symbol file """ & Reference &
+                               """ is incorrectly formatted:");
+                     Put_Line ("""" & Line (1 .. Last) & """");
+                  end if;
+
+                  Close (File);
+                  Success := False;
+                  return;
+
+               else
+                  Offset := Last - 1;
+               end if;
+            end loop;
 
             --  Ignore empty lines
 
@@ -246,14 +268,12 @@ package body Symbols is
                if Last > Symbol_Vector'Length + Equal_Data'Length and then
                  Line (Last - Equal_Data'Length + 1 .. Last) = Equal_Data
                then
-                  Symbol_Table.Increment_Last (Original_Symbols);
-                  Original_Symbols.Table
-                    (Symbol_Table.Last (Original_Symbols)) :=
-                      (Name =>
-                         new String'(Line (Symbol_Vector'Length + 1 ..
-                                           Last - Equal_Data'Length)),
-                       Kind => Data,
-                       Present => True);
+                  Symbol_Table.Append (Original_Symbols,
+                    (Name =>
+                       new String'(Line (Symbol_Vector'Length + 1 ..
+                                         Last - Equal_Data'Length)),
+                     Kind => Data,
+                     Present => True));
 
                --  SYMBOL_VECTOR=(<symbol>=PROCEDURE)
 
@@ -262,14 +282,12 @@ package body Symbols is
                   Line (Last - Equal_Procedure'Length + 1 .. Last) =
                                                               Equal_Procedure
                then
-                  Symbol_Table.Increment_Last (Original_Symbols);
-                  Original_Symbols.Table
-                    (Symbol_Table.Last (Original_Symbols)) :=
+                  Symbol_Table.Append (Original_Symbols,
                     (Name =>
                        new String'(Line (Symbol_Vector'Length + 1 ..
                                          Last - Equal_Procedure'Length)),
                      Kind => Proc,
-                     Present => True);
+                     Present => True));
 
                --  Anything else is incorrectly formatted
 
@@ -536,9 +554,7 @@ package body Symbols is
                      Soft_Minor_ID := False;
                   end if;
 
-                  Symbol_Table.Increment_Last (Original_Symbols);
-                  Original_Symbols.Table
-                    (Symbol_Table.Last (Original_Symbols)) := S_Data;
+                  Symbol_Table.Append (Original_Symbols, S_Data);
                   Complete_Symbols.Table (Index).Present := False;
                end if;
             end loop;
@@ -555,7 +571,22 @@ package body Symbols is
             for Index in 1 .. Symbol_Table.Last (Original_Symbols) loop
                if Original_Symbols.Table (Index).Present then
                   Put (File, Symbol_Vector);
+
+                  --  Split the line if symbol name length is too large
+
+                  if Original_Symbols.Table (Index).Name'Length >
+                    Long_Symbol_Length
+                  then
+                     Put_Line (File, "-");
+                  end if;
+
                   Put (File, Original_Symbols.Table (Index).Name.all);
+
+                  if Original_Symbols.Table (Index).Name'Length >
+                    Long_Symbol_Length
+                  then
+                     Put_Line (File, "-");
+                  end if;
 
                   if Original_Symbols.Table (Index).Kind = Data then
                      Put_Line (File, Equal_Data);

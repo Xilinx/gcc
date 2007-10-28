@@ -1,6 +1,6 @@
 // Debugging list implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006
+// Copyright (C) 2003, 2004, 2005, 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -73,10 +73,10 @@ namespace __debug
 {
   template<typename _Tp, typename _Allocator = std::allocator<_Tp> >
     class list
-    : public _GLIBCXX_STD::list<_Tp, _Allocator>,
+    : public _GLIBCXX_STD_D::list<_Tp, _Allocator>,
       public __gnu_debug::_Safe_sequence<list<_Tp, _Allocator> >
     {
-      typedef _GLIBCXX_STD::list<_Tp, _Allocator> _Base;
+      typedef _GLIBCXX_STD_D::list<_Tp, _Allocator> _Base;
       typedef __gnu_debug::_Safe_sequence<list>  _Safe_base;
 
     public:
@@ -113,9 +113,17 @@ namespace __debug
       { }
 
 
-      list(const list& __x) : _Base(__x), _Safe_base() { }
+      list(const list& __x)
+      : _Base(__x), _Safe_base() { }
 
-      list(const _Base& __x) : _Base(__x), _Safe_base() { }
+      list(const _Base& __x)
+      : _Base(__x), _Safe_base() { }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      list(list&& __x)
+      : _Base(std::forward<list>(__x)), _Safe_base()
+      { this->_M_swap(__x); }
+#endif
 
       ~list() { }
 
@@ -126,6 +134,15 @@ namespace __debug
 	this->_M_invalidate_all();
 	return *this;
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      list&
+      operator=(list&& __x)
+      {
+	swap(__x);
+	return *this;
+      }
+#endif
 
       template<class _InputIterator>
         void
@@ -177,6 +194,24 @@ namespace __debug
       const_reverse_iterator
       rend() const
       { return const_reverse_iterator(begin()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      const_iterator
+      cbegin() const
+      { return const_iterator(_Base::begin(), this); }
+
+      const_iterator
+      cend() const
+      { return const_iterator(_Base::end(), this); }
+
+      const_reverse_iterator
+      crbegin() const
+      { return const_reverse_iterator(end()); }
+
+      const_reverse_iterator
+      crend() const
+      { return const_reverse_iterator(begin()); }
+#endif
 
       // 23.2.2.2 capacity:
       using _Base::empty;
@@ -311,7 +346,11 @@ namespace __debug
       }
 
       void
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      swap(list&& __x)
+#else
       swap(list& __x)
+#endif
       {
 	_Base::swap(__x);
 	this->_M_swap(__x);
@@ -502,38 +541,57 @@ namespace __debug
 
   template<typename _Tp, typename _Alloc>
     inline bool
-    operator==(const list<_Tp, _Alloc>& __lhs, const list<_Tp, _Alloc>& __rhs)
+    operator==(const list<_Tp, _Alloc>& __lhs,
+	       const list<_Tp, _Alloc>& __rhs)
     { return __lhs._M_base() == __rhs._M_base(); }
 
   template<typename _Tp, typename _Alloc>
     inline bool
-    operator!=(const list<_Tp, _Alloc>& __lhs, const list<_Tp, _Alloc>& __rhs)
+    operator!=(const list<_Tp, _Alloc>& __lhs,
+	       const list<_Tp, _Alloc>& __rhs)
     { return __lhs._M_base() != __rhs._M_base(); }
 
   template<typename _Tp, typename _Alloc>
     inline bool
-    operator<(const list<_Tp, _Alloc>& __lhs, const list<_Tp, _Alloc>& __rhs)
+    operator<(const list<_Tp, _Alloc>& __lhs,
+	      const list<_Tp, _Alloc>& __rhs)
     { return __lhs._M_base() < __rhs._M_base(); }
 
   template<typename _Tp, typename _Alloc>
     inline bool
-    operator<=(const list<_Tp, _Alloc>& __lhs, const list<_Tp, _Alloc>& __rhs)
+    operator<=(const list<_Tp, _Alloc>& __lhs,
+	       const list<_Tp, _Alloc>& __rhs)
     { return __lhs._M_base() <= __rhs._M_base(); }
 
   template<typename _Tp, typename _Alloc>
     inline bool
-    operator>=(const list<_Tp, _Alloc>& __lhs, const list<_Tp, _Alloc>& __rhs)
+    operator>=(const list<_Tp, _Alloc>& __lhs,
+	       const list<_Tp, _Alloc>& __rhs)
     { return __lhs._M_base() >= __rhs._M_base(); }
 
   template<typename _Tp, typename _Alloc>
     inline bool
-    operator>(const list<_Tp, _Alloc>& __lhs, const list<_Tp, _Alloc>& __rhs)
+    operator>(const list<_Tp, _Alloc>& __lhs,
+	      const list<_Tp, _Alloc>& __rhs)
     { return __lhs._M_base() > __rhs._M_base(); }
 
   template<typename _Tp, typename _Alloc>
     inline void
     swap(list<_Tp, _Alloc>& __lhs, list<_Tp, _Alloc>& __rhs)
     { __lhs.swap(__rhs); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp, typename _Alloc>
+    inline void
+    swap(list<_Tp, _Alloc>&& __lhs, list<_Tp, _Alloc>& __rhs)
+    { __lhs.swap(__rhs); }
+
+  template<typename _Tp, typename _Alloc>
+    inline void
+    swap(list<_Tp, _Alloc>& __lhs, list<_Tp, _Alloc>&& __rhs)
+    { __lhs.swap(__rhs); }
+#endif
+
 } // namespace __debug
 } // namespace std
 

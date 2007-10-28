@@ -120,6 +120,11 @@ package body Lib is
       return Units.Table (U).Has_RACW;
    end Has_RACW;
 
+   function Is_Compiler_Unit (U : Unit_Number_Type) return Boolean is
+   begin
+      return Units.Table (U).Is_Compiler_Unit;
+   end Is_Compiler_Unit;
+
    function Ident_String (U : Unit_Number_Type) return Node_Id is
    begin
       return Units.Table (U).Ident_String;
@@ -194,6 +199,14 @@ package body Lib is
    begin
       Units.Table (U).Has_RACW := B;
    end Set_Has_RACW;
+
+   procedure Set_Is_Compiler_Unit
+     (U : Unit_Number_Type;
+      B : Boolean := True)
+   is
+   begin
+      Units.Table (U).Is_Compiler_Unit := B;
+   end Set_Is_Compiler_Unit;
 
    procedure Set_Ident_String (U : Unit_Number_Type; N : Node_Id) is
    begin
@@ -447,49 +460,23 @@ package body Lib is
       return False;
    end Entity_Is_In_Main_Unit;
 
-   ---------------------------------
-   -- Generic_Separately_Compiled --
-   ---------------------------------
+   --------------------------
+   -- Generic_May_Lack_ALI --
+   --------------------------
 
-   function Generic_Separately_Compiled (E : Entity_Id) return Boolean is
+   function Generic_May_Lack_ALI (Sfile : File_Name_Type) return Boolean is
    begin
-      --  We do not generate object files for internal generics, because
-      --  the only thing they would contain is the elaboration boolean, and
-      --  we are careful to elaborate all predefined units first anyway, so
-      --  this boolean is not needed.
+      --  We allow internal generic units to be used without having a
+      --  corresponding ALI files to help bootstrapping with older compilers
+      --  that did not support generating ALIs for such generics. It is safe
+      --  to do so because the only thing the generated code would contain
+      --  is the elaboration boolean, and we are careful to elaborate all
+      --  predefined units first anyway.
 
-      if Is_Internal_File_Name
-          (Fname => Unit_File_Name (Get_Source_Unit (E)),
-           Renamings_Included => True)
-      then
-         return False;
-
-      --  All other generic units do generate object files
-
-      else
-         return True;
-      end if;
-   end Generic_Separately_Compiled;
-
-   function Generic_Separately_Compiled
-     (Sfile : File_Name_Type) return Boolean
-   is
-   begin
-      --  Exactly the same as previous function, but works directly on a file
-      --  name.
-
-      if Is_Internal_File_Name
-          (Fname              => Sfile,
-           Renamings_Included => True)
-      then
-         return False;
-
-      --  All other generic units do generate object files
-
-      else
-         return True;
-      end if;
-   end Generic_Separately_Compiled;
+      return Is_Internal_File_Name
+               (Fname              => Sfile,
+                Renamings_Included => True);
+   end Generic_May_Lack_ALI;
 
    -----------------------------
    -- Get_Code_Or_Source_Unit --

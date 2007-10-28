@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -52,7 +51,7 @@ package body Lib.Load is
    -- Local Subprograms --
    -----------------------
 
-   function From_Limited_With_Chain (Lim : Boolean) return Boolean;
+   function From_Limited_With_Chain return Boolean;
    --  Check whether a possible circular dependence includes units that
    --  have been loaded through limited_with clauses, in which case there
    --  is no real circularity.
@@ -207,24 +206,25 @@ package body Lib.Load is
       Unum := Units.Last;
 
       Units.Table (Unum) := (
-        Cunit           => Cunit,
-        Cunit_Entity    => Cunit_Entity,
-        Dependency_Num  => 0,
-        Dynamic_Elab    => False,
-        Error_Location  => Sloc (With_Node),
-        Expected_Unit   => Spec_Name,
-        Fatal_Error     => True,
-        Generate_Code   => False,
-        Has_RACW        => False,
-        Ident_String    => Empty,
-        Loading         => False,
-        Main_Priority   => Default_Main_Priority,
-        Munit_Index     => 0,
-        Serial_Number   => 0,
-        Source_Index    => No_Source_File,
-        Unit_File_Name  => Get_File_Name (Spec_Name, Subunit => False),
-        Unit_Name       => Spec_Name,
-        Version         => 0);
+        Cunit            => Cunit,
+        Cunit_Entity     => Cunit_Entity,
+        Dependency_Num   => 0,
+        Dynamic_Elab     => False,
+        Error_Location   => Sloc (With_Node),
+        Expected_Unit    => Spec_Name,
+        Fatal_Error      => True,
+        Generate_Code    => False,
+        Has_RACW         => False,
+        Is_Compiler_Unit => False,
+        Ident_String     => Empty,
+        Loading          => False,
+        Main_Priority    => Default_Main_Priority,
+        Munit_Index      => 0,
+        Serial_Number    => 0,
+        Source_Index     => No_Source_File,
+        Unit_File_Name   => Get_File_Name (Spec_Name, Subunit => False),
+        Unit_Name        => Spec_Name,
+        Version          => 0);
 
       Set_Comes_From_Source_Default (Save_CS);
       Set_Error_Posted (Cunit_Entity);
@@ -236,22 +236,24 @@ package body Lib.Load is
    -- From_Limited_With_Chain --
    -----------------------------
 
-   function From_Limited_With_Chain (Lim : Boolean) return Boolean is
+   function From_Limited_With_Chain return Boolean is
+      Curr_Num : constant Unit_Number_Type :=
+                   Load_Stack.Table (Load_Stack.Last).Unit_Number;
+
    begin
       --  True if the current load operation is through a limited_with clause
+      --  and we are not within a loop of regular with_clauses.
 
-      if Lim then
-         return True;
+      for U in reverse Load_Stack.First .. Load_Stack.Last - 1 loop
+         if Load_Stack.Table (U).Unit_Number = Curr_Num then
+            return False;
 
-      --  Examine the Load_Stack to locate any previous Limited_with clause
-
-      elsif Load_Stack.Last - 1 > Load_Stack.First then
-         for U in Load_Stack.First .. Load_Stack.Last - 1 loop
-            if Load_Stack.Table (U).From_Limited_With then
-               return True;
-            end if;
-         end loop;
-      end if;
+         elsif Present (Load_Stack.Table (U).With_Node)
+           and then Limited_Present (Load_Stack.Table (U).With_Node)
+         then
+            return True;
+         end if;
+      end loop;
 
       return False;
    end From_Limited_With_Chain;
@@ -285,7 +287,7 @@ package body Lib.Load is
 
    begin
       Load_Stack.Increment_Last;
-      Load_Stack.Table (Load_Stack.Last) := (Main_Unit, False);
+      Load_Stack.Table (Load_Stack.Last) := (Main_Unit, Empty);
 
       --  Initialize unit table entry for Main_Unit. Note that we don't know
       --  the unit name yet, that gets filled in when the parser parses the
@@ -307,24 +309,25 @@ package body Lib.Load is
          end if;
 
          Units.Table (Main_Unit) := (
-           Cunit           => Empty,
-           Cunit_Entity    => Empty,
-           Dependency_Num  => 0,
-           Dynamic_Elab    => False,
-           Error_Location  => No_Location,
-           Expected_Unit   => No_Unit_Name,
-           Fatal_Error     => False,
-           Generate_Code   => False,
-           Has_RACW        => False,
-           Ident_String    => Empty,
-           Loading         => True,
-           Main_Priority   => Default_Main_Priority,
-           Munit_Index     => 0,
-           Serial_Number   => 0,
-           Source_Index    => Main_Source_File,
-           Unit_File_Name  => Fname,
-           Unit_Name       => No_Unit_Name,
-           Version         => Version);
+           Cunit            => Empty,
+           Cunit_Entity     => Empty,
+           Dependency_Num   => 0,
+           Dynamic_Elab     => False,
+           Error_Location   => No_Location,
+           Expected_Unit    => No_Unit_Name,
+           Fatal_Error      => False,
+           Generate_Code    => False,
+           Has_RACW         => False,
+           Is_Compiler_Unit => False,
+           Ident_String     => Empty,
+           Loading          => True,
+           Main_Priority    => Default_Main_Priority,
+           Munit_Index      => 0,
+           Serial_Number    => 0,
+           Source_Index     => Main_Source_File,
+           Unit_File_Name   => Fname,
+           Unit_Name        => No_Unit_Name,
+           Version          => Version);
       end if;
    end Load_Main_Source;
 
@@ -339,7 +342,7 @@ package body Lib.Load is
       Subunit           : Boolean;
       Corr_Body         : Unit_Number_Type := No_Unit;
       Renamings         : Boolean          := False;
-      From_Limited_With : Boolean          := False) return Unit_Number_Type
+      With_Node         : Node_Id          := Empty) return Unit_Number_Type
    is
       Calling_Unit : Unit_Number_Type;
       Uname_Actual : Unit_Name_Type;
@@ -558,7 +561,7 @@ package body Lib.Load is
       --  and indicate the kind of with_clause responsible for the load.
 
       Load_Stack.Increment_Last;
-      Load_Stack.Table (Load_Stack.Last) := (Unum, From_Limited_With);
+      Load_Stack.Table (Load_Stack.Last) := (Unum, With_Node);
 
       --  Case of entry already in table
 
@@ -579,7 +582,7 @@ package body Lib.Load is
                        or else Acts_As_Spec (Units.Table (Unum).Cunit))
            and then (Nkind (Error_Node) /= N_With_Clause
                        or else not Limited_Present (Error_Node))
-           and then not From_Limited_With_Chain (From_Limited_With)
+           and then not From_Limited_With_Chain
          then
             if Debug_Flag_L then
                Write_Str ("  circular dependency encountered");
@@ -626,24 +629,25 @@ package body Lib.Load is
 
          if Src_Ind /= No_Source_File then
             Units.Table (Unum) := (
-              Cunit           => Empty,
-              Cunit_Entity    => Empty,
-              Dependency_Num  => 0,
-              Dynamic_Elab    => False,
-              Error_Location  => Sloc (Error_Node),
-              Expected_Unit   => Uname_Actual,
-              Fatal_Error     => False,
-              Generate_Code   => False,
-              Has_RACW        => False,
-              Ident_String    => Empty,
-              Loading         => True,
-              Main_Priority   => Default_Main_Priority,
-              Munit_Index     => 0,
-              Serial_Number   => 0,
-              Source_Index    => Src_Ind,
-              Unit_File_Name  => Fname,
-              Unit_Name       => Uname_Actual,
-              Version         => Source_Checksum (Src_Ind));
+              Cunit            => Empty,
+              Cunit_Entity     => Empty,
+              Dependency_Num   => 0,
+              Dynamic_Elab     => False,
+              Error_Location   => Sloc (Error_Node),
+              Expected_Unit    => Uname_Actual,
+              Fatal_Error      => False,
+              Generate_Code    => False,
+              Has_RACW         => False,
+              Is_Compiler_Unit => False,
+              Ident_String     => Empty,
+              Loading          => True,
+              Main_Priority    => Default_Main_Priority,
+              Munit_Index      => 0,
+              Serial_Number    => 0,
+              Source_Index     => Src_Ind,
+              Unit_File_Name   => Fname,
+              Unit_Name        => Uname_Actual,
+              Version          => Source_Checksum (Src_Ind));
 
             --  Parse the new unit
 
@@ -653,8 +657,7 @@ package body Lib.Load is
                Multiple_Unit_Index := Get_Unit_Index (Uname_Actual);
                Units.Table (Unum).Munit_Index := Multiple_Unit_Index;
                Initialize_Scanner (Unum, Source_Index (Unum));
-               Discard_List (Par (Configuration_Pragmas => False,
-                                  From_Limited_With     => From_Limited_With));
+               Discard_List (Par (Configuration_Pragmas => False));
                Multiple_Unit_Index := Save_Index;
                Set_Loading (Unum, False);
             end;

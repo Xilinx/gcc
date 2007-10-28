@@ -62,6 +62,9 @@
 #ifndef _STL_PAIR_H
 #define _STL_PAIR_H 1
 
+#include <bits/stl_move.h> // for std::move / std::forward, std::decay, and
+                           // std::swap
+
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /// pair holds two objects of arbitrary type.
@@ -85,10 +88,54 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       pair(const _T1& __a, const _T2& __b)
       : first(__a), second(__b) { }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<class _U1, class _U2>
+        pair(_U1&& __x, _U2&& __y)
+	: first(std::forward<_U1>(__x)),
+	  second(std::forward<_U2>(__y)) { }
+
+      pair(pair&& __p)
+      : first(std::move(__p.first)),
+	second(std::move(__p.second)) { }
+#endif
+
       /** There is also a templated copy ctor for the @c pair class itself.  */
       template<class _U1, class _U2>
         pair(const pair<_U1, _U2>& __p)
-	: first(__p.first), second(__p.second) { }
+	: first(__p.first),
+	  second(__p.second) { }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<class _U1, class _U2>
+        pair(pair<_U1, _U2>&& __p)
+	: first(std::move(__p.first)),
+	  second(std::move(__p.second)) { }
+
+      pair&
+      operator=(pair&& __p)
+      { 
+	first = std::move(__p.first);
+	second = std::move(__p.second);
+	return *this;
+      }
+
+      template<class _U1, class _U2>
+        pair&
+        operator=(pair<_U1, _U2>&& __p)
+	{
+	  first = std::move(__p.first);
+	  second = std::move(__p.second);
+	  return *this;
+	}
+
+      void
+      swap(pair&& __p)
+      {
+	using std::swap;
+	swap(first, __p.first);
+	swap(second, __p.second);	
+      }
+#endif
     };
 
   /// Two pairs of the same type are equal iff their members are equal.
@@ -128,6 +175,24 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     operator>=(const pair<_T1, _T2>& __x, const pair<_T1, _T2>& __y)
     { return !(__x < __y); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  /// See std::pair::swap().
+  template<class _T1, class _T2>
+    inline void
+    swap(pair<_T1, _T2>& __x, pair<_T1, _T2>& __y)
+    { __x.swap(__y); }
+
+  template<class _T1, class _T2>
+    inline void
+    swap(pair<_T1, _T2>&& __x, pair<_T1, _T2>& __y)
+    { __x.swap(__y); }
+
+  template<class _T1, class _T2>
+    inline void
+    swap(pair<_T1, _T2>& __x, pair<_T1, _T2>&& __y)
+    { __x.swap(__y); }
+#endif
+
   /**
    *  @brief A convenience wrapper for creating a pair from two objects.
    *  @param  x  The first object.
@@ -140,10 +205,22 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    */
   // _GLIBCXX_RESOLVE_LIB_DEFECTS
   // 181.  make_pair() unintended behavior
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
   template<class _T1, class _T2>
     inline pair<_T1, _T2>
     make_pair(_T1 __x, _T2 __y)
     { return pair<_T1, _T2>(__x, __y); }
+#else
+  template<class _T1, class _T2>
+    inline pair<typename std::decay<_T1>::type,
+		typename std::decay<_T2>::type>
+    make_pair(_T1&& __x, _T2&& __y)
+    {
+      return pair<typename std::decay<_T1>::type,
+	          typename std::decay<_T2>::type>(std::forward<_T1>(__x),
+						  std::forward<_T2>(__y));
+    }
+#endif
 
 _GLIBCXX_END_NAMESPACE
 

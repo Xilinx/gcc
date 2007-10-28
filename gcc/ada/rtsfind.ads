@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -492,7 +491,6 @@ package Rtsfind is
      RE_Addr_Ptr,                        -- Ada.Tags
      RE_Base_Address,                    -- Ada.Tags
      RE_Cstring_Ptr,                     -- Ada.Tags
-     RE_Default_Prim_Op_Count,           -- Ada.Tags
      RE_Descendant_Tag,                  -- Ada.Tags
      RE_Dispatch_Table,                  -- Ada.Tags
      RE_Dispatch_Table_Wrapper,          -- Ada.Tags
@@ -500,9 +498,7 @@ package Rtsfind is
      RE_DT,                              -- Ada.Tags
      RE_DT_Predef_Prims_Offset,          -- Ada.Tags
      RE_DT_Typeinfo_Ptr_Size,            -- Ada.Tags
-     RE_Expanded_Name,                   -- Ada.Tags
      RE_External_Tag,                    -- Ada.Tags
-     RE_HT_Link,                         -- Ada.Tags
      RO_TA_External_Tag,                 -- Ada.Tags
      RE_Get_Access_Level,                -- Ada.Tags
      RE_Get_Entry_Index,                 -- Ada.Tags
@@ -510,13 +506,13 @@ package Rtsfind is
      RE_Get_Prim_Op_Kind,                -- Ada.Tags
      RE_Get_Tagged_Kind,                 -- Ada.Tags
      RE_Idepth,                          -- Ada.Tags
-     RE_Iface_Tag,                       -- Ada.Tags
-     RE_Ifaces_Table,                    -- Ada.Tags
+     RE_Interfaces_Array,                -- Ada.Tags
      RE_Interfaces_Table,                -- Ada.Tags
      RE_Interface_Data,                  -- Ada.Tags
+     RE_Interface_Data_Element,          -- Ada.Tags
      RE_Interface_Tag,                   -- Ada.Tags
      RE_IW_Membership,                   -- Ada.Tags
-     RE_Nb_Ifaces,                       -- Ada.Tags
+     RE_Max_Predef_Prims,                -- Ada.Tags
      RE_No_Dispatch_Table_Wrapper,       -- Ada.Tags
      RE_NDT_Prims_Ptr,                   -- Ada.Tags
      RE_NDT_TSD,                         -- Ada.Tags
@@ -545,13 +541,11 @@ package Rtsfind is
      RE_Type_Specific_Data,              -- Ada.Tags
      RE_Register_Tag,                    -- Ada.Tags
      RE_Transportable,                   -- Ada.Tags
-     RE_RC_Offset,                       -- Ada.Tags
      RE_Secondary_DT,                    -- Ada.Tags
      RE_Select_Specific_Data,            -- Ada.Tags
      RE_Set_Entry_Index,                 -- Ada.Tags
      RE_Set_Offset_To_Top,               -- Ada.Tags
      RE_Set_Prim_Op_Kind,                -- Ada.Tags
-     RE_Static_Offset_To_Top,            -- Ada.Tags
      RE_Tag,                             -- Ada.Tags
      RE_Tag_Error,                       -- Ada.Tags
      RE_Tag_Kind,                        -- Ada.Tags
@@ -1050,6 +1044,7 @@ package Rtsfind is
      RE_Unspecified_Size,                -- System.Parameters
 
      RE_DSA_Implementation,              -- System.Partition_Interface
+     RE_PCS_Version,                     -- System.Partition_Interface
      RE_Get_RCI_Package_Receiver,        -- System.Partition_Interface
      RE_Get_Unique_Remote_Pointer,       -- System.Partition_Interface
      RE_RACW_Stub_Type_Access,           -- System.Partition_Interface
@@ -1598,7 +1593,6 @@ package Rtsfind is
      RE_Addr_Ptr                         => Ada_Tags,
      RE_Base_Address                     => Ada_Tags,
      RE_Cstring_Ptr                      => Ada_Tags,
-     RE_Default_Prim_Op_Count            => Ada_Tags,
      RE_Descendant_Tag                   => Ada_Tags,
      RE_Dispatch_Table                   => Ada_Tags,
      RE_Dispatch_Table_Wrapper           => Ada_Tags,
@@ -1606,9 +1600,7 @@ package Rtsfind is
      RE_DT                               => Ada_Tags,
      RE_DT_Predef_Prims_Offset           => Ada_Tags,
      RE_DT_Typeinfo_Ptr_Size             => Ada_Tags,
-     RE_Expanded_Name                    => Ada_Tags,
      RE_External_Tag                     => Ada_Tags,
-     RE_HT_Link                          => Ada_Tags,
      RO_TA_External_Tag                  => Ada_Tags,
      RE_Get_Access_Level                 => Ada_Tags,
      RE_Get_Entry_Index                  => Ada_Tags,
@@ -1616,13 +1608,13 @@ package Rtsfind is
      RE_Get_Prim_Op_Kind                 => Ada_Tags,
      RE_Get_Tagged_Kind                  => Ada_Tags,
      RE_Idepth                           => Ada_Tags,
-     RE_Iface_Tag                        => Ada_Tags,
-     RE_Ifaces_Table                     => Ada_Tags,
+     RE_Interfaces_Array                 => Ada_Tags,
      RE_Interfaces_Table                 => Ada_Tags,
      RE_Interface_Data                   => Ada_Tags,
+     RE_Interface_Data_Element           => Ada_Tags,
      RE_Interface_Tag                    => Ada_Tags,
      RE_IW_Membership                    => Ada_Tags,
-     RE_Nb_Ifaces                        => Ada_Tags,
+     RE_Max_Predef_Prims                 => Ada_Tags,
      RE_No_Dispatch_Table_Wrapper        => Ada_Tags,
      RE_NDT_Prims_Ptr                    => Ada_Tags,
      RE_NDT_TSD                          => Ada_Tags,
@@ -1651,13 +1643,11 @@ package Rtsfind is
      RE_Type_Specific_Data               => Ada_Tags,
      RE_Register_Tag                     => Ada_Tags,
      RE_Transportable                    => Ada_Tags,
-     RE_RC_Offset                        => Ada_Tags,
      RE_Secondary_DT                     => Ada_Tags,
      RE_Select_Specific_Data             => Ada_Tags,
      RE_Set_Entry_Index                  => Ada_Tags,
      RE_Set_Offset_To_Top                => Ada_Tags,
      RE_Set_Prim_Op_Kind                 => Ada_Tags,
-     RE_Static_Offset_To_Top             => Ada_Tags,
      RE_Tag                              => Ada_Tags,
      RE_Tag_Error                        => Ada_Tags,
      RE_Tag_Kind                         => Ada_Tags,
@@ -2154,6 +2144,7 @@ package Rtsfind is
      RE_Unspecified_Size                 => System_Parameters,
 
      RE_DSA_Implementation               => System_Partition_Interface,
+     RE_PCS_Version                      => System_Partition_Interface,
      RE_Get_RCI_Package_Receiver         => System_Partition_Interface,
      RE_Get_Unique_Remote_Pointer        => System_Partition_Interface,
      RE_RACW_Stub_Type_Access            => System_Partition_Interface,

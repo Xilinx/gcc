@@ -112,6 +112,8 @@ extern bool ix86_expand_fp_vcond (rtx[]);
 extern bool ix86_expand_int_vcond (rtx[]);
 extern void ix86_expand_sse_unpack (rtx[], bool, bool);
 extern void ix86_expand_sse4_unpack (rtx[], bool, bool);
+extern void ix86_expand_sse5_unpack (rtx[], bool, bool);
+extern void ix86_expand_sse5_pack (rtx[]);
 extern int ix86_expand_int_addcc (rtx[]);
 extern void ix86_expand_call (rtx, rtx, rtx, rtx, rtx, int);
 extern void x86_initialize_trampoline (rtx, rtx, rtx);
@@ -133,8 +135,8 @@ extern rtx ix86_libcall_value (enum machine_mode);
 extern bool ix86_function_value_regno_p (int);
 extern bool ix86_function_arg_regno_p (int);
 extern int ix86_function_arg_boundary (enum machine_mode, tree);
-extern int ix86_return_in_memory (tree);
-extern int ix86_sol10_return_in_memory (tree);
+extern int ix86_return_in_memory (const_tree);
+extern int ix86_sol10_return_in_memory (const_tree);
 extern void ix86_va_start (tree, rtx);
 extern rtx ix86_va_arg (tree, tree);
 
@@ -205,15 +207,18 @@ extern void ix86_expand_vector_set (bool, rtx, rtx, int);
 extern void ix86_expand_vector_extract (bool, rtx, rtx, int);
 extern void ix86_expand_reduc_v4sf (rtx (*)(rtx, rtx, rtx), rtx, rtx);
 
+extern bool ix86_sse5_valid_op_p (rtx [], rtx, int, bool, int);
+extern void ix86_expand_sse5_multiple_memory (rtx [], int, enum machine_mode);
+
 /* In winnt.c  */
 extern void i386_pe_unique_section (tree, int);
 extern void i386_pe_declare_function_type (FILE *, const char *, int);
 extern void i386_pe_record_external_function (tree, const char *);
 extern void i386_pe_maybe_record_exported_symbol (tree, const char *, int);
 extern void i386_pe_encode_section_info (tree, rtx, int);
-extern bool i386_pe_binds_local_p (tree);
+extern bool i386_pe_binds_local_p (const_tree);
 extern const char *i386_pe_strip_name_encoding_full (const char *);
-extern bool i386_pe_valid_dllimport_attribute_p (tree);
+extern bool i386_pe_valid_dllimport_attribute_p (const_tree);
 extern unsigned int i386_pe_section_type_flags (tree, const char *, int);
 extern void i386_pe_asm_named_section (const char *, unsigned int, tree);
 extern void i386_pe_asm_output_aligned_decl_common (FILE *, tree,

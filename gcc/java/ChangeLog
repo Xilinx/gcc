@@ -1,3 +1,171 @@
+2007-10-17  Richard Guenther  <rguenther@suse.de>
+
+	* Make-lang.in (java/builtins.o): Add $(OPTABS_H) and $(EXPR_H)
+	dependencies.
+
+2007-10-03  Andrew Haley  <aph@redhat.com>
+
+	PR java/33639
+	* class.c (mangled_classname): Detect and replace illegal
+	characters in assembly language symbols.
+	(gen_indirect_dispatch_tables): Call mangled_classname() on
+	the type.
+
+2007-09-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* lang.c (java_print_error_function): Add third argument.
+
+2007-09-15  Tom Tromey  <tromey@redhat.com>
+
+	* java-tree.h (struct lang_decl_func) <function_decl_body>:
+	Remove.
+	<init_final>: Likewise.
+	* lang.c (java_dump_tree): Update.
+	* java-tree.h (DECL_FUNCTION_BODY): Remove.
+
+2007-09-11  Jan Hubicka <jh@suse.cz>
+
+	* decl.c (java_expand_body): Kill.
+	(LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION): Kill.
+
+2007-09-06  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-parse.c (parse_class_file): Re-enter the current file.
+
+2007-09-07  Roman Zippel  <zippel@linux-m68k.org>
+
+	boehm.c (mark_reference_fields): Move misaligned pointer check
+	after JREFERENCE_TYPE_P test
+
+2007-09-06  Roman Zippel  <zippel@linux-m68k.org>
+
+	* boehm.c (mark_reference_fields): Don't use bitmap as gc_descr
+	if pointer is misaligned.
+
+2007-09-06  Tom Tromey  <tromey@redhat.com>
+
+	* lang.c (java_post_options): Update.
+	* jcf-parse.c (set_source_filename): Update.
+	(give_name_to_class): Update.
+	(jcf_parse): Update.
+	(duplicate_class_warning): Update.
+	(parse_class_file): Update.
+	(java_parse_file): Update.
+	* expr.c (expand_byte_code): Update.
+
+2007-09-05  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* decl.c (finish_method): Use set_cfun.
+
+2007-09-04  Andrew Haley  <aph@redhat.com>
+
+	* decl.c (java_init_decl_processing): Call "__cxa_end_cleanup"
+	when using the ARM EABI.
+
+2007-09-03  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Make-lang.in (jvspec.o): Remove SHLIB_MULTILIB.
+
+2007-09-03  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* jcf-parse.c (read_class, java_parse_file): Supply a TYPE for
+	CONST_CAST.
+	* jcf.h (JCF_FINISH): Likewise.
+
+2007-08-28  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (java.tags): Don't tag '*.y' files.
+
+2007-08-25  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* lang.c (java_decl_ok_for_sibcall): Likewise.
+
+2007-08-21  Paul Brook  <paul@codesourcery.com>
+	    Nathan Sidwell  <nathan@codesourcery.com>
+	    Mark Mitchell  <mark@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* jcf-dump.c (version): Use pkgversion_string.  Update copyright
+	date.
+
+2007-08-20  Richard Guenther  <rguenther@suse.de>
+
+	* lang.c (java_tree_inlining_walk_subtrees): Remove.
+	(LANG_HOOKS_TREE_INLINING_WALK_SUBTREES): Remove.
+
+2007-08-17  Tom Tromey  <tromey@redhat.com>
+
+	* typeck.c (find_method_in_interfaces): Update.
+	* jcf-parse.c (load_class): Update.
+	* java-gimplify.c (java_gimplify_component_ref): Removed.
+	(java_gimplify_modify_expr): Update.  Removed pre_p and post_p
+	arguments.
+	(java_gimplify_expr): Update.
+	* decl.c (java_init_decl_processing): Update.
+	* class.c (set_constant_value): Update.
+	(make_class_data): Update.
+	(finish_class): Update.
+	(build_static_field_ref): Update.
+	(is_compiled_class): Update.
+	(maybe_layout_super_class): Update.
+	(layout_class): Update.
+	(layout_class_method): Update.
+	* java-tree.h (CAN_COMPLETE_NORMALLY): Removed.
+	(lang_decl_var) <am, final_iud, cif>: Removed fields.
+	(lang_decl_func) <init_calls_this>: Removed field.
+	(lang_type) <dot_class, verify_method>: Removed fields.
+	(FIELD_NESTED_ACCESS): Removed.
+	(FIELD_NESTED_ACCESS_P): Removed.
+	(DECL_FIELD_FINAL_IUD): Removed.
+	(DECL_LOCAL_FINAL_IUD): Removed
+	(LOCAL_FINAL_P): Removed.
+	(FINAL_VARIABLE_P): Removed.
+	(CLASS_FINAL_VARIABLE_P): Removed.
+	(DECL_BIT_INDEX): Removed.
+	(DECL_INIT_CALLS_THIS): Removed.
+	(FIELD_LOCAL_ALIAS): Removed.
+	(FIELD_LOCAL_ALIAS_USED): Removed.
+	(FIELD_THISN): Removed.
+	(DECL_FUNCTION_INIT_TEST_CLASS): Removed.
+	(LOCAL_CLASS_INITIALIZATION_FLAG): Removed.
+	(LOCAL_CLASS_INITIALIZATION_FLAG_P): Removed.
+	(TYPE_DOT_CLASS): Removed.
+	(TYPE_VERIFY_METHOD): Removed.
+	(ID_CLASSDOLLAR_P): Removed.
+	(enum java_tree_index) <JTI_CLASSDOLLAR_IDENTIFIER_NODE>:
+	Removed.
+	(classdollar_identifier_node): Removed.
+	(TYPE_UNKNOWN): Removed.
+	(CLASS_FROM_SOURCE_P): Removed.
+	* expr.c (build_jni_stub): Update.
+	(force_evaluation_order): Update.
+	(build_java_empty_stmt): Update.
+	(build_class_init): Update.
+	(java_stack_swap): Update.
+	(build_jni_stub): Update.
+
+2007-08-17  Tom Tromey  <tromey@redhat.com>
+
+	* java-tree.h (LABEL_TYPE_STATE): Removed.
+	(load_type_state): Removed.
+	(LABEL_PC): Removed.
+	(LABEL_VERIFIED): Removed.
+	(type_states): Declare.
+	* expr.c (type_states): New global.
+	(load_type_state): Now static.  Use type_states.  Changed
+	argument.
+	(lookup_label): Don't set LABEL_PC.
+	(expand_byte_code): Don't use LABEL_VERIFIED.
+	(note_instructions): Initialize type_states.
+	* verify-glue.c (vfy_note_stack_depth): Rewrote.
+	(vfy_note_stack_type): Use type_states.
+	(vfy_note_local_type): Likewise.
+
+2007-08-10  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* jcf-parse.c (read_class, java_parse_file): Use CONST_CAST.
+	* jcf.h (JCF_FINISH): Likewise.
+
 2007-07-31  Nick Clifton  <nickc@redhat.com>
 
 	* java-gimplify.c: Change copyright header to refer to version 3

@@ -475,17 +475,6 @@ package Sinfo is
    --    refers to a node or is posted on its source location, and has the
    --    effect of inhibiting further messages involving this same node.
 
-   --  Local_Raise_Statements (Elist1)
-   --    This field is present in exception handler nodes. It is set to
-   --    No_Elist in the normal case. If there is at least one raise statement
-   --    which can potentially be handled as a local raise, then this field
-   --    points to a list of raise nodes, which are calls to a routine to raise
-   --    an exception. These are raise nodes which can be optimized into gotos
-   --    if the handler turns out to meet the conditions which permit this
-   --    transformation. Note that this does NOT include instances of the
-   --    N_Raise_xxx_Error nodes since the transformation of these nodes is
-   --    handled by the back end (using the N_Push/N_Pop mechanism).
-
    --  Has_Dynamic_Length_Check (Flag10-Sem)
    --    This flag is present on all nodes. It is set to indicate that one of
    --    the routines in unit Checks has generated a length check action which
@@ -573,6 +562,11 @@ package Sinfo is
    --    the designated type is an unconstrained packed array and the
    --    dereference is the prefix of a 'Size attribute reference.
 
+   --  Address_Warning_Posted (Flag18-Sem)
+   --    Present in N_Attribute_Definition nodes. Set to indicate that we have
+   --    posted a warning for the address clause regarding size or alignment
+   --    issues. Used to inhibit multiple redundant messages.
+
    --  Aggregate_Bounds (Node3-Sem)
    --    Present in array N_Aggregate nodes. If the aggregate contains
    --    component associations this field points to an N_Range node whose
@@ -630,7 +624,7 @@ package Sinfo is
    --    starting at the highest addressed element. Note that if neither of the
    --    flags Forwards_OK or Backwards_OK is set, it means that the front end
    --    could not determine that either direction is definitely safe, and a
-   --    runtime check is required.
+   --    runtime check may be required if the backend cannot figure it out.
 
    --  Body_To_Inline (Node3-Sem)
    --    present in subprogram declarations. Denotes analyzed but unexpanded
@@ -651,7 +645,7 @@ package Sinfo is
    --    permitted (in Ada 83 or Ada 95).
 
    --  By_Ref (Flag5-Sem)
-   --    A flag present in N_Return_Statement and
+   --    A flag present in N_Simple_Return_Statement and
    --    N_Extended_Return_Statement.
    --    It is set when the returned expression is already allocated on the
    --    secondary stack and thus the result is passed by reference rather
@@ -671,7 +665,7 @@ package Sinfo is
    --    access discriminants of the allocated object.
 
    --  Comes_From_Extended_Return_Statement (Flag18-Sem)
-   --    Present in N_Return_Statement nodes. True if this node was
+   --    Present in N_Simple_Return_Statement nodes. True if this node was
    --    constructed as part of the expansion of an
    --    N_Extended_Return_Statement.
 
@@ -866,7 +860,7 @@ package Sinfo is
    --  Do_Tag_Check (Flag13-Sem)
    --    This flag is set on an N_Assignment_Statement, N_Function_Call,
    --    N_Procedure_Call_Statement, N_Type_Conversion,
-   --    N_Return_Statement, or N_Extended_Return_Statement
+   --    N_Simple_Return_Statement, or N_Extended_Return_Statement
    --    node to indicate that the tag check can be suppressed. It is not
    --    yet decided how this flag is used (TBD ???).
 
@@ -1145,12 +1139,6 @@ package Sinfo is
    --    expansion of an asynchronous entry call. Such a block needs cleanup
    --    handler to assure that the call is cancelled.
 
-   --  Is_Coextension (Flag18-Sem)
-   --    Present in allocator nodes, to indicate that this is an allocator
-   --    for an access discriminant of a dynamically allocated object. The
-   --    coextension must be deallocated and finalized at the same time as
-   --    the enclosing object.
-
    --  Is_Component_Left_Opnd  (Flag13-Sem)
    --  Is_Component_Right_Opnd (Flag14-Sem)
    --    Present in concatenation nodes, to indicate that the corresponding
@@ -1162,10 +1150,21 @@ package Sinfo is
    --    a dispatching call. It is off in all other cases. See Sem_Disp for
    --    details of its use.
 
+   --  Is_Dynamic_Coextension (Flag18-Sem)
+   --    Present in allocator nodes, to indicate that this is an allocator
+   --    for an access discriminant of a dynamically allocated object. The
+   --    coextension must be deallocated and finalized at the same time as
+   --    the enclosing object.
+
    --  Is_Entry_Barrier_Function (Flag8-Sem)
    --    This flag is set in an N_Subprogram_Body node which is the expansion
    --    of an entry barrier from a protected entry body. It is used for the
    --    circuitry checking for incorrect use of Current_Task.
+
+   --  Is_Expanded_Build_In_Place_Call (Flag11-Sem)
+   --    This flag is set in an N_Function_Call node to indicate that the extra
+   --    actuals to support a build-in-place style of call have been added to
+   --    the call.
 
    --  Is_In_Discriminant_Check (Flag11-Sem)
    --    This flag is present in a selected component, and is used to indicate
@@ -1201,11 +1200,6 @@ package Sinfo is
    --    the exponentiation and the multiply/divide node. If this set of
    --    conditions holds, and the flag is set, then the division or
    --    multiplication can be (and is) converted to a shift.
-
-   --  Is_Overloaded (Flag5-Sem)
-   --    A flag present in all expression nodes. Used temporarily during
-   --    overloading determination. The setting of this flag is not relevant
-   --    once overloading analysis is complete.
 
    --  Is_Protected_Subprogram_Body (Flag7-Sem)
    --    A flag set in a Subprogram_Body block to indicate that it is the
@@ -1286,6 +1280,17 @@ package Sinfo is
    --    unit (which might in any case need to use it for some other purpose as
    --    described above). Instead for a child unit, implicit with's are
    --    generated for all parents.
+
+   --  Local_Raise_Statements (Elist1)
+   --    This field is present in exception handler nodes. It is set to
+   --    No_Elist in the normal case. If there is at least one raise statement
+   --    which can potentially be handled as a local raise, then this field
+   --    points to a list of raise nodes, which are calls to a routine to raise
+   --    an exception. These are raise nodes which can be optimized into gotos
+   --    if the handler turns out to meet the conditions which permit this
+   --    transformation. Note that this does NOT include instances of the
+   --    N_Raise_xxx_Error nodes since the transformation of these nodes is
+   --    handled by the back end (using the N_Push/N_Pop mechanism).
 
    --  Loop_Actions (List2-Sem)
    --    A list present in Component_Association nodes in array aggregates.
@@ -1462,11 +1467,11 @@ package Sinfo is
    --    is used to clarify output from the packed array cases.
 
    --  Procedure_To_Call (Node2-Sem)
-   --    Present in N_Allocator, N_Free_Statement, N_Return_Statement,
+   --    Present in N_Allocator, N_Free_Statement, N_Simple_Return_Statement,
    --    and N_Extended_Return_Statement nodes. References the entity for the
    --    declaration of the procedure to be called to accomplish the required
    --    operation (i.e. for the Allocate procedure in the case of N_Allocator
-   --    and N_Return_Statement and N_Extended_Return_Statement (for
+   --    and N_Simple_Return_Statement and N_Extended_Return_Statement (for
    --    allocating the return value), and for the Deallocate procedure in the
    --    case of N_Free_Statement.
 
@@ -1497,7 +1502,7 @@ package Sinfo is
    --    renaming declaration allows registering of the proper exception name.
 
    --  Return_Statement_Entity (Node5-Sem)
-   --    Present in N_Return_Statement and N_Extended_Return_Statement.
+   --    Present in N_Simple_Return_Statement and N_Extended_Return_Statement.
    --    Points to an E_Return_Statement representing the return statement.
 
    --  Return_Object_Declarations (List3)
@@ -1547,8 +1552,8 @@ package Sinfo is
    --    Static_Processing_OK flag set.
 
    --  Storage_Pool (Node1-Sem)
-   --    Present in N_Allocator, N_Free_Statement, N_Return_Statement, and
-   --    N_Extended_Return_Statement nodes. References the entity for the
+   --    Present in N_Allocator, N_Free_Statement, N_Simple_Return_Statement,
+   --    and N_Extended_Return_Statement nodes. References the entity for the
    --    storage pool to be used for the allocate or free call or for the
    --    allocation of the returned value from function. Empty indicates that
    --    the global default default pool is to be used. Note that in the case
@@ -1820,11 +1825,19 @@ package Sinfo is
 
       --  A STRING_ELEMENT is either a pair of quotation marks ("), or a
       --  single GRAPHIC_CHARACTER other than a quotation mark.
+      --
+      --  Is_Folded_In_Parser is True if the parser created this literal by
+      --  folding a sequence of "&" operators. For example, if the source code
+      --  says "aaa" & "bbb" & "ccc", and this produces "aaabbbccc", the flag
+      --  is set. This flag is needed because the parser doesn't know about
+      --  visibility, so the folded result might be wrong, and semantic
+      --  analysis needs to check for that.
 
       --  N_String_Literal
       --  Sloc points to literal
       --  Strval (Str3) contains Id of string value
       --  Has_Wide_Character (Flag11-Sem)
+      --  Is_Folded_In_Parser (Flag4)
       --  plus fields for expression
 
       ------------------
@@ -3659,14 +3672,14 @@ package Sinfo is
       --  N_Allocator
       --  Sloc points to NEW
       --  Expression (Node3) subtype indication or qualified expression
-      --  Null_Exclusion_Present (Flag11)
       --  Storage_Pool (Node1-Sem)
       --  Procedure_To_Call (Node2-Sem)
       --  Coextensions (Elist4-Sem)
+      --  Null_Exclusion_Present (Flag11)
       --  No_Initialization (Flag13-Sem)
       --  Is_Static_Coextension (Flag14-Sem)
       --  Do_Storage_Check (Flag17-Sem)
-      --  Is_Coextension (Flag18-Sem)
+      --  Is_Dynamic_Coextension (Flag18-Sem)
       --  plus fields for expression
 
       ---------------------------------
@@ -4292,6 +4305,7 @@ package Sinfo is
       --   actual parameter part)
       --  First_Named_Actual (Node4-Sem)
       --  Controlling_Argument (Node1-Sem) (set to Empty if not dispatching)
+      --  Is_Expanded_Build_In_Place_Call (Flag11-Sem)
       --  Do_Tag_Check (Flag13-Sem)
       --  No_Elaboration_Check (Flag14-Sem)
       --  Parameter_List_Truncated (Flag17-Sem)
@@ -4347,7 +4361,9 @@ package Sinfo is
 
       --  RETURN_SUBTYPE_INDICATION ::= SUBTYPE_INDICATION | ACCESS_DEFINITION
 
-      --  So in Ada 2005, RETURN_STATEMENT is no longer a nonterminal
+      --  So in Ada 2005, RETURN_STATEMENT is no longer a nonterminal, but
+      --  "return statement" is defined in 6.5 to mean a
+      --  SIMPLE_RETURN_STATEMENT or an EXTENDED_RETURN_STATEMENT.
 
       --  N_Return_Statement
       --  Sloc points to RETURN
@@ -4359,8 +4375,11 @@ package Sinfo is
       --  By_Ref (Flag5-Sem)
       --  Comes_From_Extended_Return_Statement (Flag18-Sem)
 
-      --  ???N_Return_Statement represents a simple_return_statement,
-      --  and should be renamed to N_Simple_Return_Statement.
+      --  N_Return_Statement represents a simple_return_statement, and is
+      --  renamed to be N_Simple_Return_Statement below. Clients should refer
+      --  to N_Simple_Return_Statement. We retain N_Return_Statement because
+      --  that's how gigi knows it. See also renaming of Make_Return_Statement
+      --  as Make_Simple_Return_Statement in Sem_Util.
 
       --  Note: Return_Statement_Entity points to an E_Return_Statement
 
@@ -4391,7 +4410,7 @@ package Sinfo is
       --  the Return_Statement_Entity represents the statement itself, and the
       --  Defining_Identifier of the Object_Declaration in
       --  Return_Object_Declarations represents the object being
-      --  returned. N_Return_Statement has only the former.
+      --  returned. N_Simple_Return_Statement has only the former.
 
       ------------------------------
       -- 7.1  Package Declaration --
@@ -6106,6 +6125,7 @@ package Sinfo is
       --  Next_Rep_Item (Node5-Sem)
       --  From_At_Mod (Flag4-Sem)
       --  Check_Address_Alignment (Flag11-Sem)
+      --  Address_Warning_Posted (Flag18-Sem)
 
       ---------------------------------------------
       -- 13.4  Enumeration representation clause --
@@ -7091,7 +7111,7 @@ package Sinfo is
       N_Null_Statement,
       N_Raise_Statement,
       N_Requeue_Statement,
-      N_Return_Statement,
+      N_Return_Statement, -- renamed as N_Simple_Return_Statement in Sem_Util
       N_Extended_Return_Statement,
       N_Selective_Accept,
       N_Timed_Entry_Call,
@@ -7417,6 +7437,9 @@ package Sinfo is
 
    function Actual_Designated_Subtype
      (N : Node_Id) return Node_Id;    -- Node4
+
+   function Address_Warning_Posted
+     (N : Node_Id) return Boolean;    -- Flag18
 
    function Aggregate_Bounds
      (N : Node_Id) return Node_Id;    -- Node3
@@ -7850,9 +7873,6 @@ package Sinfo is
    function Is_Asynchronous_Call_Block
      (N : Node_Id) return Boolean;    -- Flag7
 
-   function Is_Coextension
-     (N : Node_Id) return Boolean;    -- Flag18
-
    function Is_Component_Left_Opnd
      (N : Node_Id) return Boolean;    -- Flag13
 
@@ -7862,8 +7882,17 @@ package Sinfo is
    function Is_Controlling_Actual
      (N : Node_Id) return Boolean;    -- Flag16
 
+   function Is_Dynamic_Coextension
+     (N : Node_Id) return Boolean;    -- Flag18
+
    function Is_Entry_Barrier_Function
      (N : Node_Id) return Boolean;    -- Flag8
+
+   function Is_Expanded_Build_In_Place_Call
+     (N : Node_Id) return Boolean;    -- Flag11
+
+   function Is_Folded_In_Parser
+     (N : Node_Id) return Boolean;    -- Flag4
 
    function Is_In_Discriminant_Check
      (N : Node_Id) return Boolean;    -- Flag11
@@ -8275,6 +8304,9 @@ package Sinfo is
 
    procedure Set_Actual_Designated_Subtype
      (N : Node_Id; Val : Node_Id);            -- Node4
+
+   procedure Set_Address_Warning_Posted
+     (N : Node_Id; Val : Boolean := True);    -- Flag18
 
    procedure Set_Aggregate_Bounds
      (N : Node_Id; Val : Node_Id);            -- Node3
@@ -8705,9 +8737,6 @@ package Sinfo is
    procedure Set_Is_Asynchronous_Call_Block
      (N : Node_Id; Val : Boolean := True);    -- Flag7
 
-   procedure Set_Is_Coextension
-     (N : Node_Id; Val : Boolean := True);    -- Flag18
-
    procedure Set_Is_Component_Left_Opnd
      (N : Node_Id; Val : Boolean := True);    -- Flag13
 
@@ -8717,8 +8746,17 @@ package Sinfo is
    procedure Set_Is_Controlling_Actual
      (N : Node_Id; Val : Boolean := True);    -- Flag16
 
+   procedure Set_Is_Dynamic_Coextension
+     (N : Node_Id; Val : Boolean := True);    -- Flag18
+
    procedure Set_Is_Entry_Barrier_Function
      (N : Node_Id; Val : Boolean := True);    -- Flag8
+
+   procedure Set_Is_Expanded_Build_In_Place_Call
+     (N : Node_Id; Val : Boolean := True);    -- Flag11
+
+   procedure Set_Is_Folded_In_Parser
+     (N : Node_Id; Val : Boolean := True);    -- Flag4
 
    procedure Set_Is_In_Discriminant_Check
      (N : Node_Id; Val : Boolean := True);    -- Flag11
@@ -10663,6 +10701,7 @@ package Sinfo is
    pragma Inline (Activation_Chain_Entity);
    pragma Inline (Acts_As_Spec);
    pragma Inline (Actual_Designated_Subtype);
+   pragma Inline (Address_Warning_Posted);
    pragma Inline (Aggregate_Bounds);
    pragma Inline (Aliased_Present);
    pragma Inline (All_Others);
@@ -10807,11 +10846,13 @@ package Sinfo is
    pragma Inline (Instance_Spec);
    pragma Inline (Intval);
    pragma Inline (Is_Asynchronous_Call_Block);
-   pragma Inline (Is_Coextension);
    pragma Inline (Is_Component_Left_Opnd);
    pragma Inline (Is_Component_Right_Opnd);
    pragma Inline (Is_Controlling_Actual);
+   pragma Inline (Is_Dynamic_Coextension);
    pragma Inline (Is_Entry_Barrier_Function);
+   pragma Inline (Is_Expanded_Build_In_Place_Call);
+   pragma Inline (Is_Folded_In_Parser);
    pragma Inline (Is_In_Discriminant_Check);
    pragma Inline (Is_Machine_Number);
    pragma Inline (Is_Null_Loop);
@@ -10946,6 +10987,7 @@ package Sinfo is
    pragma Inline (Set_Activation_Chain_Entity);
    pragma Inline (Set_Acts_As_Spec);
    pragma Inline (Set_Actual_Designated_Subtype);
+   pragma Inline (Set_Address_Warning_Posted);
    pragma Inline (Set_Aggregate_Bounds);
    pragma Inline (Set_Aliased_Present);
    pragma Inline (Set_All_Others);
@@ -11088,11 +11130,13 @@ package Sinfo is
    pragma Inline (Set_Instance_Spec);
    pragma Inline (Set_Intval);
    pragma Inline (Set_Is_Asynchronous_Call_Block);
-   pragma Inline (Set_Is_Coextension);
    pragma Inline (Set_Is_Component_Left_Opnd);
    pragma Inline (Set_Is_Component_Right_Opnd);
    pragma Inline (Set_Is_Controlling_Actual);
+   pragma Inline (Set_Is_Dynamic_Coextension);
    pragma Inline (Set_Is_Entry_Barrier_Function);
+   pragma Inline (Set_Is_Expanded_Build_In_Place_Call);
+   pragma Inline (Set_Is_Folded_In_Parser);
    pragma Inline (Set_Is_In_Discriminant_Check);
    pragma Inline (Set_Is_Machine_Number);
    pragma Inline (Set_Is_Null_Loop);
@@ -11212,5 +11256,9 @@ package Sinfo is
    pragma Inline (Set_Visible_Declarations);
    pragma Inline (Set_Was_Originally_Stub);
    pragma Inline (Set_Zero_Cost_Handling);
+
+   N_Simple_Return_Statement : constant Node_Kind := N_Return_Statement;
+   --  Rename N_Return_Statement to be N_Simple_Return_Statement. Clients
+   --  should refer to N_Simple_Return_Statement.
 
 end Sinfo;

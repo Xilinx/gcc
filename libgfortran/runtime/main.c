@@ -1,4 +1,4 @@
-/* Copyright (C) 2002-2003, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2002-2003, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Andy Vaught and Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -27,13 +27,11 @@ along with libgfortran; see the file COPYING.  If not, write to
 the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
-#include <stdio.h>
+#include "libgfortran.h"
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 
-#include "libgfortran.h"
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -122,7 +120,11 @@ store_exe_path (const char * argv0)
     }
 
   memset (buf, 0, sizeof (buf));
+#ifdef HAVE_GETCWD
   cwd = getcwd (buf, sizeof (buf));
+#else
+  cwd = "";
+#endif
 
   /* exe_path will be cwd + "/" + argv[0] + "\0" */
   path = malloc (strlen (cwd) + 1 + strlen (argv0) + 1);
@@ -162,7 +164,7 @@ init (void)
   /* if (argc > 1 && strcmp(argv[1], "--resume") == 0) resume();  */
 #endif
 
-  random_seed(NULL,NULL,NULL);
+  random_seed_i4 (NULL, NULL, NULL);
 }
 
 
@@ -174,5 +176,5 @@ cleanup (void)
   close_units ();
   
   if (please_free_exe_path_when_done)
-    free (exe_path);
+    free ((char *) exe_path);
 }

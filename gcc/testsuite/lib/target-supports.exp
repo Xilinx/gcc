@@ -87,43 +87,41 @@ proc current_target_name { } {
 }
 
 # Implement an effective-target check for property PROP by invoking
-# the compiler and seeing if it prints any messages.  Assume that the
-# property holds if the compiler doesn't print anything.  The other
-# arguments are as for get_compiler_messages, starting with TYPE.
-proc check_no_compiler_messages {prop args} {
+# the Tcl command ARGS and seeing if it returns true.
+
+proc check_cached_effective_target { prop args } {
     global et_cache
 
     set target [current_target_name]
     if {![info exists et_cache($prop,target)]
 	|| $et_cache($prop,target) != $target} {
-	verbose "check_no_compiler_messages $prop: compiling source for $target" 2
+	verbose "check_cached_effective_target $prop: checking $target" 2
 	set et_cache($prop,target) $target
-	set et_cache($prop,value) \
-	    [string match "" [eval get_compiler_messages $prop 0 $args]]
+	set et_cache($prop,value) [uplevel eval $args]
     }
     set value $et_cache($prop,value)
-    verbose "check_no_compiler_messages $prop: returning $value for $target" 2
+    verbose "check_cached_effective_target $prop: returning $value for $target" 2
     return $value
+}
+
+# Implement an effective-target check for property PROP by invoking
+# the compiler and seeing if it prints any messages.  Assume that the
+# property holds if the compiler doesn't print anything.  The other
+# arguments are as for get_compiler_messages, starting with TYPE.
+proc check_no_compiler_messages {prop args} {
+    return [check_cached_effective_target $prop {
+	string match "" [eval get_compiler_messages $prop 0 $args]
+    }]
 }
 
 # Similar to check_no_compiler_messages, but also verify that the regular
 # expression PATTERN matches the compiler's output.
 proc check_no_messages_and_pattern {prop pattern args} {
-    global et_cache
-
-    set target [current_target_name]
-    if {![info exists et_cache($prop,target)]
-	|| $et_cache($prop,target) != $target} {
-	verbose "check_no_messages_and_pattern $prop: compiling source for $target" 2
-	set et_cache($prop,target) $target
+    return [check_cached_effective_target $prop {
 	set results [eval get_compiler_messages $prop 1 $args]
-	set et_cache($prop,value) \
-	    [expr [string match "" [lindex $results 0]] \
-		 && [regexp $pattern [lindex $results 1]]]
-    }
-    set value $et_cache($prop,value)
-    verbose "check_no_messages_and_pattern $prop: returning $value for $target" 2
-    return $value
+	expr { [string match "" [lindex $results 0]]
+	       && [regexp $pattern [lindex $results 1]] }
+    }]
 }
 
 ###############################
@@ -368,11 +366,12 @@ proc check_profiling_available { test_what } {
 	     || [istarget strongarm*-*-elf]
 	     || [istarget xscale*-*-elf]
 	     || [istarget cris-*-*]
+	     || [istarget fido-*-elf]
 	     || [istarget h8300-*-*]
 	     || [istarget m32c-*-elf]
 	     || [istarget m68k-*-elf]
 	     || [istarget m68k-*-uclinux*]
-	     || [istarget mips*-*-elf]
+	     || [istarget mips*-*-elf*]
 	     || [istarget xtensa-*-elf]
 	     || [istarget *-*-vxworks*]
 	     || [istarget *-*-windiss] } {
@@ -410,7 +409,7 @@ proc check_effective_target_pcc_bitfield_type_matters { } {
     }]
 }
 
-# Return 1 if *native* thread local storage (TLS) is supported, 0 otherwise.
+# Return 1 if thread local storage (TLS) is supported, 0 otherwise.
 #
 # This won't change for different subtargets so cache the result.
 
@@ -421,35 +420,75 @@ proc check_effective_target_tls {} {
     if [info exists et_tls_saved] {
 	verbose "check_effective_target_tls: using cached result" 2
     } else {
-	set et_tls_saved 1
+	set et_tls_saved 0
 
 	set src tls[pid].c
 	set asm tls[pid].S
 	verbose "check_effective_target_tls: compiling testfile $src" 2
 	set f [open $src "w"]
-	# Compile a small test program.
+	# Compile a small test program.  Make sure that we test accesses
+	# as well as declarations.  
 	puts $f "__thread int i;\n"
+	puts $f "int f (void) { return i; }\n"
+	puts $f "void g (int j) { i = j; }\n"
 	close $f
 
 	# Test for thread-local data supported by the platform.
-	set comp_output [${tool}_target_compile $src $asm assembly ""]
+	set comp_output \
+	    [${tool}_target_compile $src $asm assembly ""]
 	file delete $src
-	if { [string match "*not supported*" $comp_output] } {
-	    set et_tls_saved 0
-	} else {
-	    set fd [open $asm r]
-	    set text [read $fd]
-	    close $fd
-	    if { [string match "*emutls*" $text]} {
-		set et_tls_saved 0
-	    } else {
-		set et_tls_saved 1
-	    }
+	if { [string match "" $comp_output] } {
+	    # No error messages, everything is OK.
+	    set et_tls_saved 1
 	}
 	remove-build-file $asm
     }
     verbose "check_effective_target_tls: returning $et_tls_saved" 2
     return $et_tls_saved
+}
+
+# Return 1 if *native* thread local storage (TLS) is supported, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_tls_native {} {
+    global et_tls_native_saved
+    global tool
+
+    if [info exists et_tls_saved] {
+	verbose "check_effective_target_tls_native: using cached result" 2
+    } else {
+	set et_tls_native_saved 0
+
+	set src tls[pid].c
+	set asm tls[pid].S
+	verbose "check_effective_target_tls_native: compiling testfile $src" 2
+	set f [open $src "w"]
+	# Compile a small test program.  Make sure that we test accesses
+	# as well as declarations.  
+	puts $f "__thread int i;\n"
+	puts $f "int f (void) { return i; }\n"
+	puts $f "void g (int j) { i = j; }\n"
+	close $f
+
+	# Test for thread-local data supported by the platform.
+	set comp_output [${tool}_target_compile $src $asm assembly ""]
+	file delete $src
+	if { [string match "" $comp_output] } {
+	    # No error messages, everything is OK.
+	    set fd [open $asm r]
+	    set text [read $fd]
+	    close $fd
+	    if { [string match "*emutls*" $text]} {
+		set et_tls_native_saved 0
+	    } else {
+		set et_tls_native_saved 1
+	    }
+	}
+	remove-build-file $asm
+    }
+    verbose "check_effective_target_tls_native: returning $et_tls_native_saved" 2
+    return $et_tls_native_saved
 }
 
 # Return 1 if TLS executables can run correctly, 0 otherwise.
@@ -574,6 +613,55 @@ proc check_effective_target_mpaired_single { } {
     return [check_no_compiler_messages mpaired_single object {
 	void foo (void) { }
     } "-mpaired-single"]
+}
+
+# Return true if the target is a 64-bit MIPS target.
+
+proc check_effective_target_mips64 { } {
+    return [check_no_compiler_messages mips64 assembly {
+	#ifndef __mips64
+	#error FOO
+	#endif
+    }]
+}
+
+# Return true if the target is a MIPS target that does not produce
+# MIPS16 code.
+
+proc check_effective_target_nomips16 { } {
+    return [check_no_compiler_messages nomips16 object {
+	#ifndef __mips
+	#error FOO
+	#else
+	/* A cheap way of testing for -mflip-mips16.  */
+	void foo (void) { asm ("addiu $20,$20,1"); }
+	void bar (void) { asm ("addiu $20,$20,1"); }
+	#endif
+    }]
+}
+
+# Add the options needed for MIPS16 function attributes.  At the moment,
+# we don't support MIPS16 PIC.
+
+proc add_options_for_mips16_attribute { flags } {
+    return "$flags -mno-abicalls -fno-pic"
+}
+
+# Return true if we can force a mode that allows MIPS16 code generation.
+# We don't support MIPS16 PIC, and only support MIPS16 -mhard-float
+# for o32 and o64.
+
+proc check_effective_target_mips16_attribute { } {
+    return [check_no_compiler_messages mips16_attribute assembly {
+	#ifdef PIC
+	#error FOO
+	#endif
+	#if defined __mips_hard_float \
+	    && (!defined _ABIO32 || _MIPS_SIM != _ABIO32) \
+	    && (!defined _ABIO64 || _MIPS_SIM != _ABIO64)
+	#error FOO
+	#endif
+    } [add_options_for_mips16_attribute ""]]
 }
 
 # Return 1 if the current multilib does not generate PIC by default.
@@ -855,7 +943,8 @@ proc check_vmx_hw_available { } {
 
 	# Most targets don't require special flags for this test case, but
 	# Darwin does.
-	if [istarget *-*-darwin*] {
+	if { [istarget *-*-darwin*] 
+	     || [istarget *-*-aix*] } {
 	  set opts "additional_flags=-maltivec"
 	} else {
 	  set opts ""
@@ -1220,6 +1309,14 @@ proc check_effective_target_large_long_double { } {
     }]
 }
 
+# Return 1 if the target supports compiling fixed-point,
+# 0 otherwise.
+
+proc check_effective_target_fixed_point { } {
+    return [check_no_compiler_messages fixed_point object {
+        _Sat _Fract x; _Sat _Accum y;
+    }]
+}
 
 # Return 1 if the target supports compiling decimal floating point,
 # 0 otherwise.
@@ -1410,42 +1507,13 @@ proc check_effective_target_vect_floatint_cvt { } {
     return $et_vect_floatint_cvt_saved
 }
 
-
 # Return 1 is this is an arm target using 32-bit instructions
 proc check_effective_target_arm32 { } {
-    global et_arm32_saved
-    global et_arm32_target_name
-    global compiler_flags
-
-    if { ![info exists et_arm32_target_name] } {
-	set et_arm32_target_name ""
-    }
-
-    # If the target has changed since we set the cached value, clear it.
-    set current_target [current_target_name]
-    if { $current_target != $et_arm32_target_name } {
-	verbose "check_effective_target_arm32: `$et_arm32_target_name' `$current_target'" 2
-	set et_arm32_target_name $current_target
-	if { [info exists et_arm32_saved] } {
-	    verbose "check_effective_target_arm32: removing cached result" 2
-	    unset et_arm32_saved
-	}
-    }
-
-    if [info exists et_arm32_saved] {
-	verbose "check-effective_target_arm32: using cached result" 2
-    } else {
-	set et_arm32_saved 0
-	if { [istarget arm-*-*]
-	      || [istarget strongarm*-*-*]
-	      || [istarget xscale-*-*] } {
-	    if ![string match "*-mthumb *" $compiler_flags] {
-		set et_arm32_saved 1
-	    }
-	}
-    }
-    verbose "check_effective_target_arm32: returning $et_arm32_saved" 2
-    return $et_arm32_saved
+    return [check_no_compiler_messages arm32 assembly {
+	#if !defined(__arm__) || (defined(__thumb__) && !defined(__thumb2__))
+	#error FOO
+	#endif
+    }]
 }
 
 # Return 1 if this is an ARM target supporting -mfpu=vfp
@@ -1552,8 +1620,10 @@ proc check_effective_target_powerpc_fprs { } {
 proc check_effective_target_powerpc_altivec_ok { } {
     if { [istarget powerpc*-*-*]
 	 || [istarget rs6000-*-*] } {
-	# AltiVec is not supported on Aix.
-	if { [istarget powerpc*-*-aix*] } {
+	# AltiVec is not supported on AIX before 5.3.
+	if { [istarget powerpc*-*-aix4*]
+	     || [istarget powerpc*-*-aix5.1*] 
+	     || [istarget powerpc*-*-aix5.2*] } {
 	    return 0
 	}
 	return [check_no_compiler_messages powerpc_altivec_ok object {
@@ -1725,23 +1795,6 @@ proc check_effective_target_vect_double { } {
 
     verbose "check_effective_target_vect_double: returning $et_vect_double_saved" 2
     return $et_vect_double_saved
-}
-
-# Return 1 if the target supports hardware comparison of vectors of double, 0 otherwise.
-#
-# This won't change for different subtargets so cache the result.
-
-proc check_effective_target_vect_no_compare_double { } {
-    global et_vect_no_compare_double_saved
-
-    if [info exists et_vect_no_compare_double_saved] {
-        verbose "check_effective_target_vect_no_compare_double: using cached result" 2
-    } else {
-        set et_vect_no_compare_double_saved 0
-    }
-
-    verbose "check_effective_target_vect_no_compare_double: returning $et_vect_no_compare_double_saved" 2
-    return $et_vect_no_compare_double_saved
 }
 
 # Return 1 if the target plus current options does not support a vector
@@ -2070,7 +2123,7 @@ proc check_effective_target_vect_no_align { } {
 	set et_vect_no_align_saved 0
 	if { [istarget mipsisa64*-*-*]
 	     || [istarget sparc*-*-*]
-	     || [istarget ia64-*-*] } {
+	     || [istarget ia64-*-*] } { 
 	    set et_vect_no_align_saved 1
 	}
     }
@@ -2090,8 +2143,9 @@ proc check_effective_target_vect_aligned_arrays { } {
 	verbose "check_effective_target_vect_aligned_arrays: using cached result" 2
     } else {
 	set et_vect_aligned_arrays_saved 0
-	if { ([istarget x86_64-*-*]
-	      || [istarget i?86-*-*]) && [is-effective-target lp64] } {
+        if { (([istarget x86_64-*-*]
+              || [istarget i?86-*-*]) && [is-effective-target lp64])
+              || [istarget spu-*-*] } {
 	    set et_vect_aligned_arrays_saved 1
 	}
     }
@@ -2099,27 +2153,49 @@ proc check_effective_target_vect_aligned_arrays { } {
     return $et_vect_aligned_arrays_saved
 }
 
-# Return 1 if types are naturally aligned (aligned to their type-size),
-# 0 otherwise.
+# Return 1 if types of size 32 bit or less are naturally aligned
+# (aligned to their type-size), 0 otherwise.
 #
 # This won't change for different subtargets so cache the result.
 
-proc check_effective_target_natural_alignment { } {
-    global et_natural_alignment
+proc check_effective_target_natural_alignment_32 { } {
+    global et_natural_alignment_32
 
-    if [info exists et_natural_alignment_saved] {
-        verbose "check_effective_target_natural_alignment: using cached result" 2
+    if [info exists et_natural_alignment_32_saved] {
+        verbose "check_effective_target_natural_alignment_32: using cached result" 2
     } else {
-        set et_natural_alignment_saved 0
-        if { [istarget spu-*-*] } {
-            set et_natural_alignment_saved 1
+        # FIXME: 32bit powerpc: guaranteed only if MASK_ALIGN_NATURAL/POWER.
+        set et_natural_alignment_32_saved 1
+        if { ([istarget *-*-darwin*] && [is-effective-target lp64]) } {
+            set et_natural_alignment_32_saved 0
         }
     }
-    verbose "check_effective_target_natural_alignment: returning $et_natural_alignment_saved" 2
-    return $et_natural_alignment_saved
+    verbose "check_effective_target_natural_alignment_32: returning $et_natural_alignment_32_saved" 2
+    return $et_natural_alignment_32_saved
 }
 
-# Return 1 if vector alignment is reachable, 0 otherwise.
+# Return 1 if types of size 64 bit or less are naturally aligned (aligned to their
+# type-size), 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_natural_alignment_64 { } {
+    global et_natural_alignment_64
+
+    if [info exists et_natural_alignment_64_saved] {
+        verbose "check_effective_target_natural_alignment_64: using cached result" 2
+    } else {
+        set et_natural_alignment_64_saved 0
+        if { ([is-effective-target lp64] && ![istarget *-*-darwin*])
+             || [istarget spu-*-*] } {
+            set et_natural_alignment_64_saved 1
+        }
+    }
+    verbose "check_effective_target_natural_alignment_64: returning $et_natural_alignment_64_saved" 2
+    return $et_natural_alignment_64_saved
+}
+
+# Return 1 if vector alignment (for types of size 32 bit or less) is reachable, 0 otherwise.
 #
 # This won't change for different subtargets so cache the result.
 
@@ -2130,7 +2206,7 @@ proc check_effective_target_vector_alignment_reachable { } {
         verbose "check_effective_target_vector_alignment_reachable: using cached result" 2
     } else {
         if { [check_effective_target_vect_aligned_arrays]
-             || [check_effective_target_natural_alignment] } {
+             || [check_effective_target_natural_alignment_32] } {
             set et_vector_alignment_reachable_saved 1
         } else {
             set et_vector_alignment_reachable_saved 0
@@ -2138,6 +2214,27 @@ proc check_effective_target_vector_alignment_reachable { } {
     }
     verbose "check_effective_target_vector_alignment_reachable: returning $et_vector_alignment_reachable_saved" 2
     return $et_vector_alignment_reachable_saved
+}
+
+# Return 1 if vector alignment for 64 bit is reachable, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_vector_alignment_reachable_for_64bit { } {
+    global et_vector_alignment_reachable_for_64bit
+
+    if [info exists et_vector_alignment_reachable_for_64bit_saved] {
+        verbose "check_effective_target_vector_alignment_reachable_for_64bit: using cached result" 2
+    } else {
+        if { [check_effective_target_vect_aligned_arrays] 
+             || [check_effective_target_natural_alignment_64] } {
+            set et_vector_alignment_reachable_for_64bit_saved 1
+        } else {
+            set et_vector_alignment_reachable_for_64bit_saved 0
+        }
+    }
+    verbose "check_effective_target_vector_alignment_reachable_for_64bit: returning $et_vector_alignment_reachable_for_64bit_saved" 2
+    return $et_vector_alignment_reachable_for_64bit_saved
 }
 
 # Return 1 if the target supports vector conditional operations, 0 otherwise.
@@ -2261,6 +2358,24 @@ proc check_effective_target_vect_interleave { } {
     return $et_vect_interleave_saved
 }
 
+# Return 1 if the target supports vector interleaving and extract even/odd, 0 otherwise.
+proc check_effective_target_vect_strided { } {
+    global et_vect_strided_saved
+
+    if [info exists et_vect_strided_saved] {
+        verbose "check_effective_target_vect_strided: using cached result" 2
+    } else {
+        set et_vect_strided_saved 0
+        if { [check_effective_target_vect_interleave]
+             && [check_effective_target_vect_extract_even_odd] } {
+           set et_vect_strided_saved 1
+        }
+    }
+
+    verbose "check_effective_target_vect_strided: returning $et_vect_strided_saved" 2
+    return $et_vect_strided_saved
+}
+
 # Return 1 if the target supports section-anchors
 
 proc check_effective_target_section_anchors { } {
@@ -2297,8 +2412,7 @@ proc check_effective_target_sync_int_long { } {
 	     || [istarget s390*-*-*] 
 	     || [istarget powerpc*-*-*]
 	     || [istarget sparc64-*-*]
-	     || [istarget sparcv9-*-*]
-	     || [istarget xtensa-*-*] } {
+	     || [istarget sparcv9-*-*] } {
            set et_sync_int_long_saved 1
         }
     }
@@ -2325,8 +2439,7 @@ proc check_effective_target_sync_char_short { } {
 	     || [istarget s390*-*-*] 
 	     || [istarget powerpc*-*-*]
 	     || [istarget sparc64-*-*]
-	     || [istarget sparcv9-*-*]
-	     || [istarget xtensa-*-*] } {
+	     || [istarget sparcv9-*-*] } {
            set et_sync_char_short_saved 1
         }
     }
@@ -2509,5 +2622,36 @@ proc check_effective_target_wchar { } {
     }
     return [check_no_compiler_messages wchar assembly {
 	#include <wchar.h>
+    }]
+}
+
+# Add to FLAGS all the target-specific flags needed to access the c99 runtime.
+
+proc add_options_for_c99_runtime { flags } {
+    if { [istarget *-*-solaris2*] } {
+	return "$flags -std=c99"
+    }
+    if { [istarget powerpc-*-darwin*] } {
+	return "$flags -mmacosx-version-min=10.3"
+    }
+    return $flags
+}
+
+# Return 1 if the target provides a full C99 runtime.
+
+proc check_effective_target_c99_runtime { } {
+    return [check_cached_effective_target c99_runtime {
+	global srcdir
+
+	set file [open "$srcdir/gcc.dg/builtins-config.h"]
+	set contents [read $file]
+	close $file
+	append contents {
+	    #ifndef HAVE_C99_RUNTIME
+	    #error FOO
+	    #endif
+	}
+	string match "" [get_compiler_messages c99_runtime 0 assembly \
+			     $contents [add_options_for_c99_runtime ""]]
     }]
 }

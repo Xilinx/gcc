@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -77,7 +76,7 @@ package body Bindgen is
 
    --  This table assembles the interface state pragma information from
    --  all the units in the partition. Note that Bcheck has already checked
-   --  that the information is consistent across partitions. The entries
+   --  that the information is consistent across units. The entries
    --  in this table are n/u/r/s for not set/user/runtime/system.
 
    package IS_Pragma_Settings is new Table.Table (
@@ -90,7 +89,7 @@ package body Bindgen is
 
    --  This table assembles the Priority_Specific_Dispatching pragma
    --  information from all the units in the partition. Note that Bcheck has
-   --  already checked that the information is consistent across partitions.
+   --  already checked that the information is consistent across units.
    --  The entries in this table are the upper case first character of the
    --  policy name, e.g. 'F' for FIFO_Within_Priorities.
 
@@ -125,6 +124,7 @@ package body Bindgen is
    --     Zero_Cost_Exceptions          : Integer;
    --     Detect_Blocking               : Integer;
    --     Default_Stack_Size            : Integer;
+   --     Leap_Seconds_Support          : Integer;
 
    --  Main_Priority is the priority value set by pragma Priority in the
    --  main program. If no such pragma is present, the value is -1.
@@ -207,6 +207,10 @@ package body Bindgen is
 
    --  Default_Stack_Size is the default stack size used when creating an
    --  Ada task with no explicit Storize_Size clause.
+
+   --  Leap_Seconds_Support denotes whether leap seconds have been enabled or
+   --  disabled. A value of zero indicates that leap seconds are turned "off",
+   --  while a value of one signifies "on" status.
 
    -----------------------
    -- Local Subprograms --
@@ -576,6 +580,9 @@ package body Bindgen is
          WBI ("      Default_Stack_Size : Integer;");
          WBI ("      pragma Import (C, Default_Stack_Size, " &
               """__gl_default_stack_size"");");
+         WBI ("      Leap_Seconds_Support : Integer;");
+         WBI ("      pragma Import (C, Leap_Seconds_Support, " &
+              """__gl_leap_seconds_support"");");
 
          --  Import entry point for elaboration time signal handler
          --  installation, and indication of if it's been called previously.
@@ -684,6 +691,17 @@ package body Bindgen is
 
          Set_String ("      Default_Stack_Size := ");
          Set_Int (Default_Stack_Size);
+         Set_String (";");
+         Write_Statement_Buffer;
+
+         Set_String ("      Leap_Seconds_Support := ");
+
+         if Leap_Seconds_Support then
+            Set_Int (1);
+         else
+            Set_Int (0);
+         end if;
+
          Set_String (";");
          Write_Statement_Buffer;
 
@@ -923,6 +941,18 @@ package body Bindgen is
          WBI ("   extern int __gl_default_stack_size;");
          Set_String ("   __gl_default_stack_size = ");
          Set_Int    (Default_Stack_Size);
+         Set_String (";");
+         Write_Statement_Buffer;
+
+         WBI ("   extern int __gl_leap_seconds_support;");
+         Set_String ("   __gl_leap_seconds_support = ");
+
+         if Leap_Seconds_Support then
+            Set_Int (1);
+         else
+            Set_Int (0);
+         end if;
+
          Set_String (";");
          Write_Statement_Buffer;
 
@@ -1590,7 +1620,6 @@ package body Bindgen is
       --  if no command line arguments on target, set dummy values
 
       else
-         WBI ("   int result;");
          WBI ("   gnat_argc = 0;");
          WBI ("   gnat_argv = 0;");
          WBI ("   gnat_envp = 0;");
@@ -2371,9 +2400,9 @@ package body Bindgen is
    -----------------------
 
    procedure Gen_Output_File_C (Filename : String) is
-
       Bfile : Name_Id;
-      --  Name of generated bind file
+      pragma Warnings (Off, Bfile);
+      --  Name of generated bind file (not referenced)
 
    begin
       Create_Binder_Output (Filename, 'c', Bfile);
@@ -2392,7 +2421,6 @@ package body Bindgen is
       if Use_Pragma_Linker_Constructor then
          WBI ("extern void " & Ada_Init_Name.all &
               " (void) __attribute__((constructor));");
-
       else
          WBI ("extern void " & Ada_Init_Name.all & " (void);");
       end if;

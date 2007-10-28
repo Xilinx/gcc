@@ -321,7 +321,7 @@ redirect_edge_and_branch (edge e, basic_block dest)
    to the destination of the other edge going from its source.  */
 
 bool
-can_remove_branch_p (edge e)
+can_remove_branch_p (const_edge e)
 {
   if (!cfg_hooks->can_remove_branch_p)
     internal_error ("%s does not support can_remove_branch_p",
@@ -638,7 +638,7 @@ predict_edge (edge e, enum br_predictor predictor, int probability)
 }
 
 bool
-predicted_by_p (basic_block bb, enum br_predictor predictor)
+predicted_by_p (const_basic_block bb, enum br_predictor predictor)
 {
   if (!cfg_hooks->predict_edge)
     internal_error ("%s does not support predicted_by_p", cfg_hooks->name);
@@ -839,7 +839,7 @@ tidy_fallthru_edges (void)
 /* Returns true if we can duplicate basic block BB.  */
 
 bool
-can_duplicate_block_p (basic_block bb)
+can_duplicate_block_p (const_basic_block bb)
 {
   if (!cfg_hooks->can_duplicate_block_p)
     internal_error ("%s does not support can_duplicate_block_p",
@@ -949,7 +949,7 @@ block_ends_with_call_p (basic_block bb)
 /* Return 1 if BB ends with a conditional branch, 0 otherwise.  */
 
 bool
-block_ends_with_condjump_p (basic_block bb)
+block_ends_with_condjump_p (const_basic_block bb)
 {
   if (!cfg_hooks->block_ends_with_condjump_p)
     internal_error ("%s does not support block_ends_with_condjump_p",

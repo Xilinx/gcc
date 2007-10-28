@@ -49,6 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "optabs.h"
 #include "target.h"
 #include "regs.h"
+#include "alloc-pool.h"
 
 /* Functions and data structures for expanding case statements.  */
 
@@ -79,7 +80,7 @@ along with GCC; see the file COPYING3.  If not see
    For very small, suitable switch statements, we can generate a series
    of simple bit test and branches instead.  */
 
-struct case_node GTY(())
+struct case_node
 {
   struct case_node	*left;	/* Left son in binary tree */
   struct case_node	*right;	/* Right son in binary tree; also node chain */
@@ -121,7 +122,7 @@ static int node_has_high_bound (case_node_ptr, tree);
 static int node_is_bounded (case_node_ptr, tree);
 static void emit_case_nodes (rtx, case_node_ptr, rtx, tree);
 static struct case_node *add_case_node (struct case_node *, tree,
-					tree, tree, tree);
+                                        tree, tree, tree, alloc_pool);
 
 
 /* Return the rtx-label that corresponds to a LABEL_DECL,
@@ -1478,7 +1479,7 @@ warn_if_unused_value (const_tree exp, location_t locus)
 	return 0;
 
     warn:
-      warning (0, "%Hvalue computed is not used", &locus);
+      warning (OPT_Wunused_value, "%Hvalue computed is not used", &locus);
       return 1;
     }
 }
@@ -1898,19 +1899,11 @@ expand_decl (tree decl)
 
       /* Note if the object is a user variable.  */
       if (!DECL_ARTIFICIAL (decl))
-	{
 	  mark_user_reg (DECL_RTL (decl));
 
-	  /* Trust user variables which have a pointer type to really
-	     be pointers.  Do not trust compiler generated temporaries
-	     as our type system is totally busted as it relates to
-	     pointer arithmetic which translates into lots of compiler
-	     generated objects with pointer types, but which are not really
-	     pointers.  */
-	  if (POINTER_TYPE_P (type))
-	    mark_reg_pointer (DECL_RTL (decl),
-			      TYPE_ALIGN (TREE_TYPE (TREE_TYPE (decl))));
-	}
+      if (POINTER_TYPE_P (type))
+	mark_reg_pointer (DECL_RTL (decl),
+			  TYPE_ALIGN (TREE_TYPE (TREE_TYPE (decl))));
     }
 
   else if (TREE_CODE (DECL_SIZE_UNIT (decl)) == INTEGER_CST
@@ -2075,7 +2068,7 @@ expand_anon_union_decl (tree decl, tree cleanup ATTRIBUTE_UNUSED,
 
 static struct case_node *
 add_case_node (struct case_node *head, tree type, tree low, tree high,
-	       tree label)
+               tree label, alloc_pool case_node_pool)
 {
   tree min_value, max_value;
   struct case_node *r;
@@ -2127,7 +2120,7 @@ add_case_node (struct case_node *head, tree type, tree low, tree high,
 
 
   /* Add this label to the chain.  Make sure to drop overflow flags.  */
-  r = ggc_alloc (sizeof (struct case_node));
+  r = (struct case_node *) pool_alloc (case_node_pool);
   r->low = build_int_cst_wide (TREE_TYPE (low), TREE_INT_CST_LOW (low),
 			       TREE_INT_CST_HIGH (low));
   r->high = build_int_cst_wide (TREE_TYPE (high), TREE_INT_CST_LOW (high),
@@ -2143,7 +2136,7 @@ add_case_node (struct case_node *head, tree type, tree low, tree high,
 
 /* By default, enable case bit tests on targets with ashlsi3.  */
 #ifndef CASE_USE_BIT_TESTS
-#define CASE_USE_BIT_TESTS  (ashl_optab->handlers[word_mode].insn_code \
+#define CASE_USE_BIT_TESTS  (optab_handler (ashl_optab, word_mode)->insn_code \
 			     != CODE_FOR_nothing)
 #endif
 
@@ -2330,6 +2323,10 @@ expand_case (tree exp)
   /* Label to jump to if no case matches.  */
   tree default_label_decl;
 
+  alloc_pool case_node_pool = create_alloc_pool ("struct case_node pool",
+                                                 sizeof (struct case_node),
+                                                 100);
+
   /* The switch body is lowered in gimplify.c, we should never have
      switches with a non-NULL SWITCH_BODY here.  */
   gcc_assert (!SWITCH_BODY (exp));
@@ -2367,7 +2364,7 @@ expand_case (tree exp)
 	    continue;
 
 	  case_list = add_case_node (case_list, index_type, low, high,
-				     CASE_LABEL (elt));
+                                     CASE_LABEL (elt), case_node_pool);
 	}
 
 
@@ -2418,6 +2415,7 @@ expand_case (tree exp)
       if (count == 0)
 	{
 	  emit_jump (default_label);
+          free_alloc_pool (case_node_pool);
 	  return;
 	}
 
@@ -2588,6 +2586,7 @@ expand_case (tree exp)
     }
 
   free_temp_slots ();
+  free_alloc_pool (case_node_pool);
 }
 
 /* Generate code to jump to LABEL if OP0 and OP1 are equal in mode MODE.  */

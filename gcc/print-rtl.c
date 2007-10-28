@@ -75,7 +75,7 @@ print_decl_name (FILE *outfile, const_tree node)
   else
     {
       if (TREE_CODE (node) == LABEL_DECL && LABEL_DECL_UID (node) != -1)
-	fprintf (outfile, "L." HOST_WIDE_INT_PRINT_DEC, LABEL_DECL_UID (node));
+	fprintf (outfile, "L.%d", (int) LABEL_DECL_UID (node));
       else
         {
           char c = TREE_CODE (node) == CONST_DECL ? 'C' : 'D';
@@ -335,6 +335,9 @@ print_rtx (const_rtx in_rtx)
 		break;
 	      }
 	  }
+	else if (i == 9 && JUMP_P (in_rtx) && XEXP (in_rtx, i) != NULL)
+	  /* Output the JUMP_LABEL reference.  */
+	  fprintf (outfile, "\n -> %d", INSN_UID (XEXP (in_rtx, i)));
 	break;
 
       case 'e':
@@ -536,7 +539,8 @@ print_rtx (const_rtx in_rtx)
     {
 #ifndef GENERATOR_FILE
     case MEM:
-      fprintf (outfile, " [" HOST_WIDE_INT_PRINT_DEC, MEM_ALIAS_SET (in_rtx));
+      fprintf (outfile, " [" HOST_WIDE_INT_PRINT_DEC,
+	       (HOST_WIDE_INT) MEM_ALIAS_SET (in_rtx));
 
       if (MEM_EXPR (in_rtx))
 	print_mem_expr (outfile, MEM_EXPR (in_rtx));
@@ -748,14 +752,10 @@ print_rtl_single (FILE *outf, const_rtx x)
 {
   outfile = outf;
   sawclose = 0;
-  if (! flag_dump_unnumbered)
-    {
-      fputs (print_rtx_head, outfile);
-      print_rtx (x);
-      putc ('\n', outf);
-      return 1;
-    }
-  return 0;
+  fputs (print_rtx_head, outfile);
+  print_rtx (x);
+  putc ('\n', outf);
+  return 1;
 }
 
 

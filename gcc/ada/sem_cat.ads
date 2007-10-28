@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -42,14 +41,18 @@ with Types;   use Types;
 package Sem_Cat is
 
    function Has_Stream_Attribute_Definition
-     (Typ : Entity_Id; Nam : TSS_Name_Type) return Boolean;
+     (Typ          : Entity_Id;
+      Nam          : TSS_Name_Type;
+      At_Any_Place : Boolean := False) return Boolean;
    --  True when there is a attribute definition clause specifying attribute
    --  Nam for Typ. In Ada 2005 mode, returns True only when the attribute
-   --  definition clause is visible. Note that attribute definition clauses
+   --  definition clause is visible, unless At_Any_Place is True (in which case
+   --  no visiblity test is made, and True is returned as long as an attribute
+   --  is visible at any place). Note that attribute definition clauses
    --  inherited from parent types are taken into account by this predicate
    --  (to test for presence of an attribute definition clause for one
    --  specific type, excluding inherited definitions, the flags
-   --  Has_Specicied_Stream_* can be used instead).
+   --  Has_Specified_Stream_* can be used instead).
 
    function In_Preelaborated_Unit return Boolean;
    --  Determines if the current scope is within a preelaborated compilation

@@ -97,7 +97,7 @@ typedef enum
   FMT_NONE, FMT_UNKNOWN, FMT_SIGNED_INT, FMT_ZERO, FMT_POSINT, FMT_PERIOD,
   FMT_COMMA, FMT_COLON, FMT_SLASH, FMT_DOLLAR, FMT_POS, FMT_LPAREN,
   FMT_RPAREN, FMT_X, FMT_SIGN, FMT_BLANK, FMT_CHAR, FMT_P, FMT_IBOZ, FMT_F,
-  FMT_E, FMT_EXT, FMT_G, FMT_L, FMT_A, FMT_D, FMT_H, FMT_END
+  FMT_E, FMT_EXT, FMT_G, FMT_L, FMT_A, FMT_D, FMT_H, FMT_END, FMT_ERROR
 }
 format_token;
 
@@ -175,12 +175,23 @@ unget_char (void)
 /* Eat up the spaces and return a character.  */
 
 static char
-next_char_not_space (void)
+next_char_not_space (bool *error)
 {
   char c;
   do
     {
       c = next_char (0);
+      if (c == '\t')
+	{
+	  if (gfc_option.allow_std & GFC_STD_GNU)
+	    gfc_warning ("Extension: Tab character in format at %C");
+	  else
+	    {
+	      gfc_error ("Extension: Tab character in format at %C");
+	      *error = true;
+	      return c;
+	    }
+	}
     }
   while (gfc_is_whitespace (c));
   return c;
@@ -198,6 +209,7 @@ format_lex (void)
   char c, delim;
   int zflag;
   int negative_flag;
+  bool error = false;
 
   if (saved_token != FMT_NONE)
     {
@@ -206,7 +218,7 @@ format_lex (void)
       return token;
     }
 
-  c = next_char_not_space ();
+  c = next_char_not_space (&error);
   
   negative_flag = 0;
   switch (c)
@@ -214,7 +226,7 @@ format_lex (void)
     case '-':
       negative_flag = 1;
     case '+':
-      c = next_char_not_space ();
+      c = next_char_not_space (&error);
       if (!ISDIGIT (c))
 	{
 	  token = FMT_UNKNOWN;
@@ -225,7 +237,7 @@ format_lex (void)
 
       do
 	{
-	  c = next_char_not_space ();
+	  c = next_char_not_space (&error);
 	  if (ISDIGIT (c))
 	    value = 10 * value + c - '0';
 	}
@@ -255,7 +267,7 @@ format_lex (void)
 
       do
 	{
-	  c = next_char_not_space ();
+	  c = next_char_not_space (&error);
 	  if (ISDIGIT (c))
 	    {
 	      value = 10 * value + c - '0';
@@ -290,7 +302,7 @@ format_lex (void)
       break;
 
     case 'T':
-      c = next_char_not_space ();
+      c = next_char_not_space (&error);
       if (c != 'L' && c != 'R')
 	unget_char ();
 
@@ -310,7 +322,7 @@ format_lex (void)
       break;
 
     case 'S':
-      c = next_char_not_space ();
+      c = next_char_not_space (&error);
       if (c != 'P' && c != 'S')
 	unget_char ();
 
@@ -318,7 +330,7 @@ format_lex (void)
       break;
 
     case 'B':
-      c = next_char_not_space ();
+      c = next_char_not_space (&error);
       if (c == 'N' || c == 'Z')
 	token = FMT_BLANK;
       else
@@ -380,7 +392,7 @@ format_lex (void)
       break;
 
     case 'E':
-      c = next_char_not_space ();
+      c = next_char_not_space (&error);
       if (c == 'N' || c == 'S')
 	token = FMT_EXT;
       else
@@ -420,6 +432,9 @@ format_lex (void)
       break;
     }
 
+  if (error)
+    return FMT_ERROR;
+
   return token;
 }
 
@@ -450,6 +465,8 @@ check_format (bool is_input)
   rv = SUCCESS;
 
   t = format_lex ();
+  if (t == FMT_ERROR)
+    goto fail;
   if (t != FMT_LPAREN)
     {
       error = _("Missing leading left parenthesis");
@@ -457,6 +474,8 @@ check_format (bool is_input)
     }
 
   t = format_lex ();
+  if (t == FMT_ERROR)
+    goto fail;
   if (t == FMT_RPAREN)
     goto finished;		/* Empty format is legal */
   saved_token = t;
@@ -464,12 +483,16 @@ check_format (bool is_input)
 format_item:
   /* In this state, the next thing has to be a format item.  */
   t = format_lex ();
+  if (t == FMT_ERROR)
+    goto fail;
 format_item_1:
   switch (t)
     {
     case FMT_POSINT:
       repeat = value;
       t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
       if (t == FMT_LPAREN)
 	{
 	  level++;
@@ -489,6 +512,8 @@ format_item_1:
     case FMT_ZERO:
       /* Signed integer can only precede a P format.  */
       t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
       if (t != FMT_P)
 	{
 	  error = _("Expected P edit descriptor");
@@ -523,6 +548,8 @@ format_item_1:
 
     case FMT_DOLLAR:
       t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
 
       if (gfc_notify_std (GFC_STD_GNU, "Extension: $ descriptor at %C")
 	  == FAILURE)
@@ -570,6 +597,8 @@ data_desc:
       if (pedantic)
 	{
 	  t = format_lex ();
+	  if (t == FMT_ERROR)
+	    goto fail;
 	  if (t == FMT_POSINT)
 	    {
 	      error = _("Repeat count cannot follow P descriptor");
@@ -584,6 +613,8 @@ data_desc:
     case FMT_POS:
     case FMT_L:
       t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
       if (t == FMT_POSINT)
 	break;
 
@@ -610,6 +641,8 @@ data_desc:
 
     case FMT_A:
       t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
       if (t != FMT_POSINT)
 	saved_token = t;
       break;
@@ -619,6 +652,8 @@ data_desc:
     case FMT_G:
     case FMT_EXT:
       u = format_lex ();
+      if (u == FMT_ERROR)
+	goto fail;
       if (u != FMT_POSINT)
 	{
 	  error = posint_required;
@@ -626,6 +661,8 @@ data_desc:
 	}
 
       u = format_lex ();
+      if (u == FMT_ERROR)
+	goto fail;
       if (u != FMT_PERIOD)
 	{
 	  /* Warn if -std=legacy, otherwise error.  */
@@ -638,6 +675,8 @@ data_desc:
 	}
 
       u = format_lex ();
+      if (u == FMT_ERROR)
+	goto fail;
       if (u != FMT_ZERO && u != FMT_POSINT)
 	{
 	  error = nonneg_required;
@@ -649,6 +688,8 @@ data_desc:
 
       /* Look for optional exponent.  */
       u = format_lex ();
+      if (u == FMT_ERROR)
+	goto fail;
       if (u != FMT_E)
 	{
 	  saved_token = u;
@@ -656,6 +697,8 @@ data_desc:
       else
 	{
 	  u = format_lex ();
+	  if (u == FMT_ERROR)
+	    goto fail;
 	  if (u != FMT_POSINT)
 	    {
 	      error = _("Positive exponent width required");
@@ -667,6 +710,8 @@ data_desc:
 
     case FMT_F:
       t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
       if (t != FMT_ZERO && t != FMT_POSINT)
 	{
 	  error = nonneg_required;
@@ -679,6 +724,8 @@ data_desc:
 	}
 
       t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
       if (t != FMT_PERIOD)
 	{
 	  /* Warn if -std=legacy, otherwise error.  */
@@ -691,6 +738,8 @@ data_desc:
 	}
 
       t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
       if (t != FMT_ZERO && t != FMT_POSINT)
 	{
 	  error = nonneg_required;
@@ -721,6 +770,8 @@ data_desc:
 
     case FMT_IBOZ:
       t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
       if (t != FMT_ZERO && t != FMT_POSINT)
 	{
 	  error = nonneg_required;
@@ -733,6 +784,8 @@ data_desc:
 	}
 
       t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
       if (t != FMT_PERIOD)
 	{
 	  saved_token = t;
@@ -740,6 +793,8 @@ data_desc:
       else
 	{
 	  t = format_lex ();
+	  if (t == FMT_ERROR)
+	    goto fail;
 	  if (t != FMT_ZERO && t != FMT_POSINT)
 	    {
 	      error = nonneg_required;
@@ -757,6 +812,8 @@ data_desc:
 between_desc:
   /* Between a descriptor and what comes next.  */
   t = format_lex ();
+  if (t == FMT_ERROR)
+    goto fail;
   switch (t)
     {
 
@@ -788,6 +845,8 @@ optional_comma:
   /* Optional comma is a weird between state where we've just finished
      reading a colon, slash, dollar or P descriptor.  */
   t = format_lex ();
+  if (t == FMT_ERROR)
+    goto fail;
 optional_comma_1:
   switch (t)
     {
@@ -811,6 +870,8 @@ optional_comma_1:
 extension_optional_comma:
   /* As a GNU extension, permit a missing comma after a string literal.  */
   t = format_lex ();
+  if (t == FMT_ERROR)
+    goto fail;
   switch (t)
     {
     case FMT_COMMA:
@@ -842,7 +903,7 @@ extension_optional_comma:
 
 syntax:
   gfc_error ("%s in format string at %C", error);
-
+fail:
   /* TODO: More elaborate measures are needed to show where a problem
      is within a format string that has been calculated.  */
   rv = FAILURE;
@@ -858,6 +919,9 @@ finished:
 static try
 check_format_string (gfc_expr *e, bool is_input)
 {
+  if (!e || e->expr_type != EXPR_CONSTANT)
+    return SUCCESS;
+
   mode = MODE_STRING;
   format_string = e->value.character.string;
   return check_format (is_input);
@@ -1030,6 +1094,75 @@ match_ltag (const io_tag *tag, gfc_st_label ** label)
 }
 
 
+/* Resolution of the FORMAT tag, to be called from resolve_tag.  */
+
+static try
+resolve_tag_format (const gfc_expr *e)
+{
+  if (e->expr_type == EXPR_CONSTANT
+      && (e->ts.type != BT_CHARACTER
+	  || e->ts.kind != gfc_default_character_kind))
+    {
+      gfc_error ("Constant expression in FORMAT tag at %L must be "
+		 "of type default CHARACTER", &e->where);
+      return FAILURE;
+    }
+
+  /* If e's rank is zero and e is not an element of an array, it should be
+     of integer or character type.  The integer variable should be
+     ASSIGNED.  */
+  if (e->symtree == NULL || e->symtree->n.sym->as == NULL
+      || e->symtree->n.sym->as->rank == 0)
+    {
+      if (e->ts.type != BT_CHARACTER && e->ts.type != BT_INTEGER)
+	{
+	  gfc_error ("FORMAT tag at %L must be of type CHARACTER or INTEGER",
+		     &e->where);
+	  return FAILURE;
+	}
+      else if (e->ts.type == BT_INTEGER && e->expr_type == EXPR_VARIABLE)
+	{
+	  if (gfc_notify_std (GFC_STD_F95_DEL, "Deleted feature: ASSIGNED "
+			      "variable in FORMAT tag at %L", &e->where)
+	      == FAILURE)
+	    return FAILURE;
+	  if (e->symtree->n.sym->attr.assign != 1)
+	    {
+	      gfc_error ("Variable '%s' at %L has not been assigned a "
+			 "format label", e->symtree->n.sym->name, &e->where);
+	      return FAILURE;
+	    }
+	}
+      else if (e->ts.type == BT_INTEGER)
+	{
+	  gfc_error ("Scalar '%s' in FORMAT tag at %L is not an ASSIGNED "
+		     "variable", gfc_basic_typename (e->ts.type), &e->where);
+	  return FAILURE;
+	}
+
+      return SUCCESS;
+    }
+
+  /* If rank is nonzero, we allow the type to be character under GFC_STD_GNU
+     and other type under GFC_STD_LEGACY. It may be assigned an Hollerith
+     constant.  */
+  if (e->ts.type == BT_CHARACTER)
+    {
+      if (gfc_notify_std (GFC_STD_GNU, "Extension: Character array "
+			  "in FORMAT tag at %L", &e->where) == FAILURE)
+	return FAILURE;
+    }
+  else
+    {
+      if (gfc_notify_std (GFC_STD_LEGACY, "Extension: Non-character "
+			  "in FORMAT tag at %L", &e->where) == FAILURE)
+	return FAILURE;
+    }
+
+  return SUCCESS;
+}
+
+
 /* Do expression resolution and type-checking on an expression tag.  */
 
 static try
@@ -1041,130 +1174,45 @@ resolve_tag (const io_tag *tag, gfc_expr *e)
   if (gfc_resolve_expr (e) == FAILURE)
     return FAILURE;
 
-  if (e->ts.type != tag->type && tag != &tag_format)
+  if (tag == &tag_format)
+    return resolve_tag_format (e);
+
+  if (e->ts.type != tag->type)
     {
       gfc_error ("%s tag at %L must be of type %s", tag->name,
 		 &e->where, gfc_basic_typename (tag->type));
       return FAILURE;
     }
 
-  if (tag == &tag_format)
+  if (e->rank != 0)
     {
-      if (e->expr_type == EXPR_CONSTANT
-	  && (e->ts.type != BT_CHARACTER
-	      || e->ts.kind != gfc_default_character_kind))
-	{
-	  gfc_error ("Constant expression in FORMAT tag at %L must be "
-		     "of type default CHARACTER", &e->where);
-	  return FAILURE;
-	}
-
-      /* If e's rank is zero and e is not an element of an array, it should be
-	 of integer or character type.  The integer variable should be
-	 ASSIGNED.  */
-      if (e->symtree == NULL || e->symtree->n.sym->as == NULL
-	  || e->symtree->n.sym->as->rank == 0)
-	{
-	  if (e->ts.type != BT_CHARACTER && e->ts.type != BT_INTEGER)
-	    {
-	      gfc_error ("%s tag at %L must be of type %s or %s", tag->name,
-			 &e->where, gfc_basic_typename (BT_CHARACTER),
-			 gfc_basic_typename (BT_INTEGER));
-	      return FAILURE;
-	    }
-	  else if (e->ts.type == BT_INTEGER && e->expr_type == EXPR_VARIABLE)
-	    {
-	      if (gfc_notify_std (GFC_STD_F95_DEL, "Deleted feature: ASSIGNED "
-				  "variable in FORMAT tag at %L", &e->where)
-		  == FAILURE)
-		return FAILURE;
-	      if (e->symtree->n.sym->attr.assign != 1)
-		{
-		  gfc_error ("Variable '%s' at %L has not been assigned a "
-			     "format label", e->symtree->n.sym->name,
-			     &e->where);
-		  return FAILURE;
-		}
-	    }
-	  else if (e->ts.type == BT_INTEGER)
-	    {
-	      gfc_error ("scalar '%s' FORMAT tag at %L is not an ASSIGNED "
-			 "variable", gfc_basic_typename (e->ts.type),
-			 &e->where);
-	      return FAILURE;
-	    }
-
-	  return SUCCESS;
-	}
-      else
-	{
-	  /* if rank is nonzero, we allow the type to be character under
-	     GFC_STD_GNU and other type under GFC_STD_LEGACY. It may be
-	     assigned an Hollerith constant.  */
-	  if (e->ts.type == BT_CHARACTER)
-	    {
-	      if (gfc_notify_std (GFC_STD_GNU, "Extension: Character array "
-				  "in FORMAT tag at %L", &e->where)
-		  == FAILURE)
-		return FAILURE;
-	    }
-	  else
-	    {
-	      if (gfc_notify_std (GFC_STD_LEGACY, "Extension: Non-character "
-				  "in FORMAT tag at %L", &e->where)
-		  == FAILURE)
-		return FAILURE;
-	    }
-	  return SUCCESS;
-	}
-    }
-  else
-    {
-      if (e->rank != 0)
-	{
-	  gfc_error ("%s tag at %L must be scalar", tag->name, &e->where);
-	  return FAILURE;
-	}
-
-      if (tag == &tag_iomsg)
-	{
-	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: IOMSG tag at %L",
-			      &e->where) == FAILURE)
-	    return FAILURE;
-	}
-
-      if (tag == &tag_iostat && e->ts.kind != gfc_default_integer_kind)
-	{
-	  if (gfc_notify_std (GFC_STD_GNU, "Fortran 95 requires default "
-			      "INTEGER in IOSTAT tag at %L", &e->where)
-	      == FAILURE)
-	    return FAILURE;
-	}
-
-      if (tag == &tag_size && e->ts.kind != gfc_default_integer_kind)
-	{
-	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 95 requires default "
-			      "INTEGER in SIZE tag at %L", &e->where)
-	      == FAILURE)
-	    return FAILURE;
-	}
-
-      if (tag == &tag_convert)
-	{
-	  if (gfc_notify_std (GFC_STD_GNU, "Extension: CONVERT tag at %L",
-			      &e->where) == FAILURE)
-	    return FAILURE;
-	}
-    
-      if (tag == &tag_iolength && e->ts.kind != gfc_default_integer_kind)
-	{
-	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 95 requires default "
-			      "INTEGER in IOLENGTH tag at %L", &e->where)
-	      == FAILURE)
-	    return FAILURE;
-	}
+      gfc_error ("%s tag at %L must be scalar", tag->name, &e->where);
+      return FAILURE;
     }
 
+  if (tag == &tag_iomsg)
+    {
+      if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: IOMSG tag at %L",
+			  &e->where) == FAILURE)
+	return FAILURE;
+    }
+
+  if ((tag == &tag_iostat || tag == &tag_size || tag == &tag_iolength)
+      && e->ts.kind != gfc_default_integer_kind)
+    {
+      if (gfc_notify_std (GFC_STD_F2003, "Fortran 95 requires default "
+			  "INTEGER in %s tag at %L", tag->name, &e->where)
+	  == FAILURE)
+	return FAILURE;
+    }
+
+  if (tag == &tag_convert)
+    {
+      if (gfc_notify_std (GFC_STD_GNU, "Extension: CONVERT tag at %L",
+			  &e->where) == FAILURE)
+	return FAILURE;
+    }
+  
   return SUCCESS;
 }
 
@@ -2741,8 +2789,8 @@ if (condition) \
     }
 
   expr = dt->format_expr;
-  if (expr != NULL && expr->expr_type == EXPR_CONSTANT
-      && check_format_string (expr, k == M_READ) == FAILURE)
+  if (gfc_simplify_expr (expr, 0) == FAILURE
+      || check_format_string (expr, k == M_READ) == FAILURE)
     return MATCH_ERROR;
 
   return m;
@@ -2914,9 +2962,8 @@ get_io_list:
   /* Optional leading comma (non-standard).  */
   if (!comma_flag
       && gfc_match_char (',') == MATCH_YES
-      && k == M_WRITE
-      && gfc_notify_std (GFC_STD_GNU, "Extension: Comma before output "
-			 "item list at %C is an extension") == FAILURE)
+      && gfc_notify_std (GFC_STD_GNU, "Extension: Comma before i/o "
+			 "item list at %C") == FAILURE)
     return MATCH_ERROR;
 
   io_code = NULL;

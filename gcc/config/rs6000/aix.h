@@ -36,11 +36,6 @@
 #undef  STACK_BOUNDARY
 #define STACK_BOUNDARY 128
 
-/* AIX does not support Altivec.  */
-#undef  TARGET_ALTIVEC
-#define TARGET_ALTIVEC 0
-#undef  TARGET_ALTIVEC_ABI
-#define TARGET_ALTIVEC_ABI 0
 #undef  TARGET_IEEEQUAD
 #define TARGET_IEEEQUAD 0
 
@@ -108,6 +103,8 @@
 
 #define CPP_SPEC "%{posix: -D_POSIX_SOURCE}\
    %{ansi: -D_ANSI_C_SOURCE}"
+
+#define CC1_SPEC "%(cc1_cpu)"
 
 #undef ASM_DEFAULT_SPEC
 #define ASM_DEFAULT_SPEC ""

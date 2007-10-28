@@ -58,8 +58,7 @@ JAVA_TARGET_INDEPENDENT_BIN_TOOLS = jcf-dump
 
 jvspec.o: $(srcdir)/java/jvspec.c $(SYSTEM_H) coretypes.h $(TM_H) \
   $(GCC_H) $(CONFIG_H)
-	(SHLIB_LINK='$(SHLIB_LINK)' \
-	SHLIB_MULTILIB='$(SHLIB_MULTILIB)'; \
+	(SHLIB_LINK='$(SHLIB_LINK)'; \
 	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(DRIVER_DEFINES) \
 		$(INCLUDES) $(srcdir)/java/jvspec.c $(OUTPUT_OPTION))
 
@@ -123,7 +122,7 @@ java.rest.encap:
 
 
 java.tags: force
-	cd $(srcdir)/java; etags -o TAGS.sub *.y *.c *.h --language=none \
+	cd $(srcdir)/java; etags -o TAGS.sub *.c *.h --language=none \
 	  --regex='/DEFTREECODE [(]\([A-Z_]+\)/\1/' java-tree.def; \
 	etags --include TAGS.sub --include ../TAGS.sub
 
@@ -249,7 +248,8 @@ java/jcf-dump.o: $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(JAVA_TREE_H) \
 java/boehm.o: java/boehm.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(TREE_H) $(JAVA_TREE_H) java/parse.h toplev.h
 java/builtins.o: java/builtins.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-  $(JAVA_TREE_H) $(GGC_H) $(FLAGS_H) langhooks.h gt-java-builtins.h
+  $(JAVA_TREE_H) $(GGC_H) $(FLAGS_H) $(OPTABS_H) $(EXPR_H) langhooks.h \
+  gt-java-builtins.h
 java/class.o: java/class.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(JAVA_TREE_H) $(RTL_H) java/jcf.h java/parse.h toplev.h output.h $(GGC_H) \
   $(TARGET_H) $(FUNCTION_H) gt-java-class.h $(CGRAPH_H)

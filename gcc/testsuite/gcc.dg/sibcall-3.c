@@ -5,7 +5,7 @@
    Copyright (C) 2002 Free Software Foundation Inc.
    Contributed by Hans-Peter Nilsson  <hp@bitrange.com>  */
 
-/* { dg-do run { xfail arc-*-* avr-*-* c4x-*-* cris-*-* h8300-*-* hppa*64*-*-* m32r-*-* m68hc1?-*-* m681?-*-* m680*-*-* m68k-*-* mcore-*-* mn10300-*-* xstormy16-*-* v850*-*-* vax-*-* xtensa-*-* } } */
+/* { dg-do run { xfail arc-*-* avr-*-* c4x-*-* cris-*-* h8300-*-* hppa*64*-*-* m32r-*-* m68hc1?-*-* mcore-*-* mn10300-*-* xstormy16-*-* v850*-*-* vax-*-* xtensa-*-* } } */
 /* -mlongcall disables sibcall patterns.  */
 /* { dg-skip-if "" { powerpc*-*-* } { "-mlongcall" } { "" } } */
 /* { dg-options "-O2 -foptimize-sibling-calls" } */
@@ -18,8 +18,16 @@
 extern void abort (void);
 extern void exit (int);
 
-static void recurser_void1 (int);
-static void recurser_void2 (int);
+/* Sibcalls are not supported in MIPS16 mode, which has direct calls but
+   not direct jumps.  */
+#ifdef __mips
+#define ATTR __attribute__((nomips16))
+#else
+#define ATTR
+#endif
+
+static ATTR void recurser_void1 (int);
+static ATTR void recurser_void2 (int);
 extern void track (int);
 
 int main ()
@@ -32,7 +40,7 @@ int main ()
    reasonably sure is to make them have the same contents (regarding the
    n tests).  */
 
-static void __attribute__((noinline))
+static void __attribute__((noinline)) ATTR
 recurser_void1 (int n)
 {
   if (n == 0 || n == 7 || n == 8)
@@ -44,7 +52,7 @@ recurser_void1 (int n)
   recurser_void2 (n + 1);
 }
 
-static void __attribute__((noinline))
+static void __attribute__((noinline)) ATTR
 recurser_void2 (int n)
 {
   if (n == 0 || n == 7 || n == 8)

@@ -1,3 +1,40 @@
+2007-10-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR regression/33926
+	* configure.ac: Replace have_cc_tls with gcc_cv_have_cc_tls.
+	* configure: Regenerated.
+
+2007-09-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* Makefile.in (dfp-filenames): Replace decimal_globals,
+	decimal_data, binarydecimal and convert_data with
+	bid_decimal_globals, bid_decimal_data, bid_binarydecimal
+	and bid_convert_data, respectively.
+
+2007-09-17  Chao-ying Fu  <fu@mips.com>
+	    Nigel Stephens  <nigel@mips.com>
+
+	* fixed-obj.mk: New file to support fine-grain fixed-point functions.
+	* Makefile.in (fixed_point): Define.
+	Check if fixed_point is yes to build support functions.
+	* configure.ac: Check for fixed_point support.
+	* configure: Regenerated.
+	* gen-fixed.sh: New file to generate lists of fixed-point labels,
+	funcs, modes, from, to.
+
+2007-09-11  Janis Johnson  <janis187@us.ibm.com
+
+	* Makefile.in (dfp-filenames): Add bid128_noncomp.
+
+2007-09-10  Janis Johnson  <janis187@us.ibm.com>
+
+	* Makefile.in (dfp-filenames): Remove decUtility, add
+	decDouble, decPacked, decQuad, decSingle.
+
+2007-08-27  Hans Kester  <hans.kester@ellips.nl>
+
+	* config.host : Add x86_64-elf target.
+
 2007-07-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* configure.ac (set_have_cc_tls): Add a missing =.

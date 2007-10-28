@@ -258,8 +258,20 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+rm -f LAST_UPDATED gcc/REVISION
+
+revision=`svn info | awk '/Revision:/ { print $2 }'`
+branch=`svn info | sed -ne "/URL:/ {
+s,.*/trunk,trunk,
+s,.*/branches/,,
+s,.*/tags/,,
+p
+}"`
 {
   date
-  echo "`TZ=UTC date` (revision `svnversion .`)"
+  echo "`TZ=UTC date` (revision $revision)"
 } > LAST_UPDATED
+
+echo "[$branch revision $revision]" > gcc/REVISION
+
 touch_files_reexec

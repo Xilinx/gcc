@@ -280,7 +280,7 @@ iv_analysis_loop_init (struct loop *loop)
   df_set_blocks (blocks);
   df_analyze ();
   if (dump_file)
-    df_dump (dump_file);
+    df_dump_region (dump_file);
 
   check_iv_ref_table_size ();
   BITMAP_FREE (blocks);
@@ -301,7 +301,8 @@ latch_dominating_def (rtx reg, struct df_ref **def)
 
   for (adef = DF_REG_DEF_CHAIN (regno); adef; adef = adef->next_reg)
     {
-      if (!bitmap_bit_p (bb_info->out, DF_REF_ID (adef)))
+      if (!bitmap_bit_p (df->blocks_to_analyze, DF_REF_BB (adef)->index)
+	  || !bitmap_bit_p (bb_info->out, DF_REF_ID (adef)))
 	continue;
 
       /* More than one reaching definition.  */
@@ -1266,7 +1267,7 @@ iv_analysis_done (void)
     {
       clear_iv_info ();
       clean_slate = true;
-      df_finish_pass ();
+      df_finish_pass (true);
       htab_delete (bivs);
       free (iv_ref_table);
       iv_ref_table = NULL;

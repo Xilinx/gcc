@@ -106,7 +106,7 @@ initialize_uninitialized_regs (void)
 		  emit_move_insn (reg, CONST0_RTX (GET_MODE (reg)));
 		  move_insn = get_insns ();
 		  end_sequence ();
-		  add_insn_before (move_insn, insn, bb);
+		  emit_insn_before (move_insn, insn);
 		  if (dump_file)
 		    fprintf (dump_file, 
 			     "adding initialization in %s of reg %d at in block %d for insn %d.\n", 
@@ -117,7 +117,11 @@ initialize_uninitialized_regs (void)
     }
 
   if (optimize == 1)
-    df_remove_problem (df_live);
+    {
+      if (dump_file) 
+	df_dump (dump_file);
+      df_remove_problem (df_live);
+    }
 
   BITMAP_FREE (already_genned);
 }

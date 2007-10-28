@@ -134,8 +134,8 @@ static void mmix_file_start (void);
 static void mmix_file_end (void);
 static bool mmix_rtx_costs (rtx, int, int, int *);
 static rtx mmix_struct_value_rtx (tree, int);
-static bool mmix_pass_by_reference (const CUMULATIVE_ARGS *,
-				    enum machine_mode, tree, bool);
+static bool mmix_pass_by_reference (CUMULATIVE_ARGS *,
+				    enum machine_mode, const_tree, bool);
 
 /* Target structure macros.  Listed by node.  See `Using and Porting GCC'
    for a general description.  */
@@ -187,7 +187,7 @@ static bool mmix_pass_by_reference (const CUMULATIVE_ARGS *,
 #define TARGET_MACHINE_DEPENDENT_REORG mmix_reorg
 
 #undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_tree_true
+#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
 #if 0
 /* Apparently not doing TRT if int < register-size.  FIXME: Perhaps
    FUNCTION_VALUE and LIBCALL_VALUE needs tweaking as some ports say.  */
@@ -317,6 +317,26 @@ mmix_conditional_register_usage (void)
     for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
       if (reg_names[i][0] == ':')
 	reg_names[i]++;
+}
+
+/* INCOMING_REGNO and OUTGOING_REGNO worker function.
+   Those two macros must only be applied to function argument
+   registers.  FIXME: for their current use in gcc, it'd be better
+   with an explicit specific additional FUNCTION_INCOMING_ARG_REGNO_P
+   a'la FUNCTION_ARG / FUNCTION_INCOMING_ARG instead of forcing the
+   target to commit to a fixed mapping and for any unspecified
+   register use.  */
+
+int
+mmix_opposite_regno (int regno, int incoming)
+{
+  if (!mmix_function_arg_regno_p (regno, incoming))
+    return regno;
+
+  return
+    regno - (incoming
+	     ? MMIX_FIRST_INCOMING_ARG_REGNUM - MMIX_FIRST_ARG_REGNUM
+	     : MMIX_FIRST_ARG_REGNUM - MMIX_FIRST_INCOMING_ARG_REGNUM);
 }
 
 /* LOCAL_REGNO.
@@ -592,8 +612,8 @@ mmix_function_arg (const CUMULATIVE_ARGS *argsp,
    everything that goes by value.  */
 
 static bool
-mmix_pass_by_reference (const CUMULATIVE_ARGS *argsp, enum machine_mode mode,
-			tree type, bool named ATTRIBUTE_UNUSED)
+mmix_pass_by_reference (CUMULATIVE_ARGS *argsp, enum machine_mode mode,
+			const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   /* FIXME: Check: I'm not sure the must_pass_in_stack check is
      necessary.  */
@@ -624,7 +644,7 @@ mmix_function_arg_regno_p (int regno, int incoming)
 /* FUNCTION_OUTGOING_VALUE.  */
 
 rtx
-mmix_function_outgoing_value (tree valtype, tree func ATTRIBUTE_UNUSED)
+mmix_function_outgoing_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode = TYPE_MODE (valtype);
   enum machine_mode cmode;
@@ -1141,7 +1161,7 @@ mmix_encode_section_info (tree decl, rtx rtl, int first)
       char *newstr;
 
       /* Why is the return type of ggc_alloc_string const?  */
-      newstr = (char *) ggc_alloc_string ("", len + 1);
+      newstr = CONST_CAST (char *, ggc_alloc_string ("", len + 1));
 
       strcpy (newstr + 1, str);
       *newstr = '@';

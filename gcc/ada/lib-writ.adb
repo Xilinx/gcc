@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -70,24 +69,25 @@ package body Lib.Writ is
    begin
       Units.Increment_Last;
       Units.Table (Units.Last) :=
-        (Unit_File_Name  => File_Name (S),
-         Unit_Name       => No_Unit_Name,
-         Expected_Unit   => No_Unit_Name,
-         Source_Index    => S,
-         Cunit           => Empty,
-         Cunit_Entity    => Empty,
-         Dependency_Num  => 0,
-         Dynamic_Elab    => False,
-         Fatal_Error     => False,
-         Generate_Code   => False,
-         Has_RACW        => False,
-         Ident_String    => Empty,
-         Loading         => False,
-         Main_Priority   => -1,
-         Munit_Index     => 0,
-         Serial_Number   => 0,
-         Version         => 0,
-         Error_Location  => No_Location);
+        (Unit_File_Name   => File_Name (S),
+         Unit_Name        => No_Unit_Name,
+         Expected_Unit    => No_Unit_Name,
+         Source_Index     => S,
+         Cunit            => Empty,
+         Cunit_Entity     => Empty,
+         Dependency_Num   => 0,
+         Dynamic_Elab     => False,
+         Fatal_Error      => False,
+         Generate_Code    => False,
+         Has_RACW         => False,
+         Is_Compiler_Unit => False,
+         Ident_String     => Empty,
+         Loading          => False,
+         Main_Priority    => -1,
+         Munit_Index      => 0,
+         Serial_Number    => 0,
+         Version          => 0,
+         Error_Location   => No_Location);
    end Add_Preprocessing_Dependency;
 
    ------------------------------
@@ -123,24 +123,25 @@ package body Lib.Writ is
 
       Units.Increment_Last;
       Units.Table (Units.Last) := (
-        Unit_File_Name  => System_Fname,
-        Unit_Name       => System_Uname,
-        Expected_Unit   => System_Uname,
-        Source_Index    => System_Source_File_Index,
-        Cunit           => Empty,
-        Cunit_Entity    => Empty,
-        Dependency_Num  => 0,
-        Dynamic_Elab    => False,
-        Fatal_Error     => False,
-        Generate_Code   => False,
-        Has_RACW        => False,
-        Ident_String    => Empty,
-        Loading         => False,
-        Main_Priority   => -1,
-        Munit_Index     => 0,
-        Serial_Number   => 0,
-        Version         => 0,
-        Error_Location  => No_Location);
+        Unit_File_Name   => System_Fname,
+        Unit_Name        => System_Uname,
+        Expected_Unit    => System_Uname,
+        Source_Index     => System_Source_File_Index,
+        Cunit            => Empty,
+        Cunit_Entity     => Empty,
+        Dependency_Num   => 0,
+        Dynamic_Elab     => False,
+        Fatal_Error      => False,
+        Generate_Code    => False,
+        Has_RACW         => False,
+        Is_Compiler_Unit => False,
+        Ident_String     => Empty,
+        Loading          => False,
+        Main_Priority    => -1,
+        Munit_Index      => 0,
+        Serial_Number    => 0,
+        Version          => 0,
+        Error_Location   => No_Location);
 
       --  Parse system.ads so that the checksum is set right
       --  Style checks are not applied.
@@ -376,11 +377,8 @@ package body Lib.Writ is
             Write_Info_Str (" DE");
          end if;
 
-         --  We set the Elaborate_Body indication if either an explicit pragma
-         --  was present, or if this is an instantiation. RM 12.3(20) requires
-         --  that the body be immediately elaborated after the spec. We would
-         --  normally do that anyway, but the EB we generate here ensures that
-         --  this gets done even when we use the -p gnatbind switch.
+         --  Set the Elaborate_Body indication if either an explicit pragma
+         --  was present, or if this is an instantiation.
 
          if Has_Pragma_Elaborate_Body (Uent)
            or else (Ukind = N_Package_Declaration
@@ -391,8 +389,8 @@ package body Lib.Writ is
          end if;
 
          --  Now see if we should tell the binder that an elaboration entity
-         --  is present, which must be reset to true during elaboration. We
-         --  generate the indication if the following condition is met:
+         --  is present, which must be set to true during elaboration.
+         --  We generate the indication if the following condition is met:
 
          --  If this is a spec ...
 
@@ -630,7 +628,6 @@ package body Lib.Writ is
          Num_Withs  : Int := 0;
          Unum       : Unit_Number_Type;
          Cunit      : Node_Id;
-         Cunite     : Entity_Id;
          Uname      : Unit_Name_Type;
          Fname      : File_Name_Type;
          Pname      : constant Unit_Name_Type :=
@@ -696,7 +693,6 @@ package body Lib.Writ is
          for J in 1 .. Num_Withs loop
             Unum   := With_Table (J);
             Cunit  := Units.Table (Unum).Cunit;
-            Cunite := Units.Table (Unum).Cunit_Entity;
             Uname  := Units.Table (Unum).Unit_Name;
             Fname  := Units.Table (Unum).Unit_File_Name;
 
@@ -706,12 +702,19 @@ package body Lib.Writ is
 
             --  Now we need to figure out the names of the files that contain
             --  the with'ed unit. These will usually be the files for the body,
-            --  except in the case of a package that has no body.
+            --  except in the case of a package that has no body. Note that we
+            --  have a specific exemption here for predefined library generics
+            --  (see comments for Generic_May_Lack_ALI). We do not generate
+            --  dependency upon the ALI file for such units. Older compilers
+            --  used to not support generating code (and ALI) for generics, and
+            --  we want to avoid having different processing (namely, different
+            --  lists of files to be compiled) for different stages of the
+            --  bootstrap.
 
-            if (Nkind (Unit (Cunit)) not in N_Generic_Declaration
-                  and then
-                Nkind (Unit (Cunit)) not in N_Generic_Renaming_Declaration)
-              or else Generic_Separately_Compiled (Cunite)
+            if not ((Nkind (Unit (Cunit)) in N_Generic_Declaration
+                      or else
+                     Nkind (Unit (Cunit)) in N_Generic_Renaming_Declaration)
+                    and then Generic_May_Lack_ALI (Fname))
             then
                Write_Info_Tab (25);
 

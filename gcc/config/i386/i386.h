@@ -47,6 +47,12 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_SSE4_1	OPTION_ISA_SSE4_1
 #define TARGET_SSE4_2	OPTION_ISA_SSE4_2
 #define TARGET_SSE4A	OPTION_ISA_SSE4A
+#define TARGET_SSE5	OPTION_ISA_SSE5
+#define TARGET_ROUND	OPTION_ISA_ROUND
+
+/* SSE5 and SSE4.1 define the same round instructions */
+#define	OPTION_MASK_ISA_ROUND	(OPTION_MASK_ISA_SSE4_1 | OPTION_MASK_ISA_SSE5)
+#define	OPTION_ISA_ROUND	((ix86_isa_flags & OPTION_MASK_ISA_ROUND) != 0)
 
 #include "config/vxworks-dummy.h"
 
@@ -69,9 +75,9 @@ enum stringop_alg
    When size is unknown, the UNKNOWN_SIZE alg is used.  When size is
    known at compile time or estimated via feedback, the SIZE array
    is walked in order until MAX is greater then the estimate (or -1
-   means infinity).  Corresponding ALG is used then.  
+   means infinity).  Corresponding ALG is used then.
    For example initializer:
-    {{256, loop}, {-1, rep_prefix_4_byte}}		
+    {{256, loop}, {-1, rep_prefix_4_byte}}
    will use loop for blocks smaller or equal to 256 bytes, rep prefix will
    be used otherwise.  */
 struct stringop_algs
@@ -138,6 +144,22 @@ struct processor_costs {
 				/* Specify what algorithm
 				   to use for stringops on unknown size.  */
   struct stringop_algs memcpy[2], memset[2];
+  const int scalar_stmt_cost;   /* Cost of any scalar operation, excluding
+				   load and store.  */
+  const int scalar_load_cost;   /* Cost of scalar load.  */
+  const int scalar_store_cost;  /* Cost of scalar store.  */
+  const int vec_stmt_cost;      /* Cost of any vector operation, excluding
+                                   load, store, vector-to-scalar and
+                                   scalar-to-vector operation.  */
+  const int vec_to_scalar_cost;    /* Cost of vect-to-scalar operation.  */
+  const int scalar_to_vec_cost;    /* Cost of scalar-to-vector operation.  */
+  const int vec_align_load_cost;   /* Cost of aligned vector load.  */
+  const int vec_unalign_load_cost; /* Cost of unaligned vector load.  */
+  const int vec_store_cost;        /* Cost of vector store.  */
+  const int cond_taken_branch_cost;    /* Cost of taken branch for vectorizer
+					  cost model.  */
+  const int cond_not_taken_branch_cost;/* Cost of not taken branch for
+					  vectorizer cost model.  */
 };
 
 extern const struct processor_costs *ix86_cost;
@@ -243,6 +265,7 @@ enum ix86_tune_indices {
   X86_TUNE_SHIFT1,
   X86_TUNE_USE_FFREEP,
   X86_TUNE_INTER_UNIT_MOVES,
+  X86_TUNE_INTER_UNIT_CONVERSIONS,
   X86_TUNE_FOUR_JUMP_LIMIT,
   X86_TUNE_SCHEDULE,
   X86_TUNE_USE_BT,
@@ -257,6 +280,7 @@ enum ix86_tune_indices {
   X86_TUNE_MOVE_M1_VIA_OR,
   X86_TUNE_NOT_UNPAIRABLE,
   X86_TUNE_NOT_VECTORMODE,
+  X86_TUNE_USE_VECTOR_CONVERTS,
 
   X86_TUNE_LAST
 };
@@ -319,6 +343,8 @@ extern unsigned int ix86_tune_features[X86_TUNE_LAST];
 #define TARGET_SHIFT1		ix86_tune_features[X86_TUNE_SHIFT1]
 #define TARGET_USE_FFREEP	ix86_tune_features[X86_TUNE_USE_FFREEP]
 #define TARGET_INTER_UNIT_MOVES	ix86_tune_features[X86_TUNE_INTER_UNIT_MOVES]
+#define TARGET_INTER_UNIT_CONVERSIONS\
+	ix86_tune_features[X86_TUNE_INTER_UNIT_CONVERSIONS]
 #define TARGET_FOUR_JUMP_LIMIT	ix86_tune_features[X86_TUNE_FOUR_JUMP_LIMIT]
 #define TARGET_SCHEDULE		ix86_tune_features[X86_TUNE_SCHEDULE]
 #define TARGET_USE_BT		ix86_tune_features[X86_TUNE_USE_BT]
@@ -337,6 +363,7 @@ extern unsigned int ix86_tune_features[X86_TUNE_LAST];
 #define	TARGET_MOVE_M1_VIA_OR	ix86_tune_features[X86_TUNE_MOVE_M1_VIA_OR]
 #define TARGET_NOT_UNPAIRABLE	ix86_tune_features[X86_TUNE_NOT_UNPAIRABLE]
 #define TARGET_NOT_VECTORMODE	ix86_tune_features[X86_TUNE_NOT_VECTORMODE]
+#define TARGET_USE_VECTOR_CONVERTS ix86_tune_features[X86_TUNE_USE_VECTOR_CONVERTS]
 
 /* Feature tests against the various architecture variations.  */
 enum ix86_arch_indices {
@@ -348,7 +375,7 @@ enum ix86_arch_indices {
 
   X86_ARCH_LAST
 };
-  
+
 extern unsigned int ix86_arch_features[X86_ARCH_LAST];
 
 #define TARGET_CMOVE		ix86_arch_features[X86_ARCH_CMOVE]
@@ -367,6 +394,7 @@ extern int x86_prefetch_sse;
 #define TARGET_PREFETCH_SSE	x86_prefetch_sse
 #define TARGET_SAHF		x86_sahf
 #define TARGET_RECIP		x86_recip
+#define TARGET_FUSED_MADD	x86_fused_muladd
 
 #define ASSEMBLER_DIALECT	(ix86_asm_dialect)
 
@@ -580,6 +608,8 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 	builtin_define ("__SSE4_2__");				\
       if (TARGET_SSE4A)						\
  	builtin_define ("__SSE4A__");		                \
+      if (TARGET_SSE5)						\
+	builtin_define ("__SSE5__");				\
       if (TARGET_SSE_MATH && TARGET_SSE)			\
 	builtin_define ("__SSE_MATH__");			\
       if (TARGET_SSE_MATH && TARGET_SSE2)			\
@@ -1087,6 +1117,9 @@ do {									\
 /* ??? No autovectorization into MMX or 3DNOW until we can reliably
    place emms and femms instructions.  */
 #define UNITS_PER_SIMD_WORD (TARGET_SSE ? 16 : UNITS_PER_WORD)
+
+#define VALID_DFP_MODE_P(MODE)						\
+    ((MODE) == SDmode || (MODE) == DDmode || (MODE) == TDmode)
 
 #define VALID_FP_MODE_P(MODE)						\
     ((MODE) == SFmode || (MODE) == DFmode || (MODE) == XFmode		\
@@ -2219,7 +2252,7 @@ do {									\
    print_operand function.  */
 
 #define PRINT_OPERAND_PUNCT_VALID_P(CODE) \
-  ((CODE) == '*' || (CODE) == '+' || (CODE) == '&')
+  ((CODE) == '*' || (CODE) == '+' || (CODE) == '&' || (CODE) == ';')
 
 #define PRINT_OPERAND(FILE, X, CODE)  \
   print_operand ((FILE), (X), (CODE))
@@ -2454,6 +2487,57 @@ struct machine_function GTY(())
 #define SYMBOL_FLAG_DLLEXPORT		(SYMBOL_FLAG_MACH_DEP << 2)
 #define SYMBOL_REF_DLLEXPORT_P(X) \
 	((SYMBOL_REF_FLAGS (X) & SYMBOL_FLAG_DLLEXPORT) != 0)
+
+/* Model costs for vectorizer.  */
+
+/* Cost of conditional branch.  */
+#undef TARG_COND_BRANCH_COST
+#define TARG_COND_BRANCH_COST           ix86_cost->branch_cost
+
+/* Cost of any scalar operation, excluding load and store.  */
+#undef TARG_SCALAR_STMT_COST
+#define TARG_SCALAR_STMT_COST           ix86_cost->scalar_stmt_cost
+
+/* Cost of scalar load.  */
+#undef TARG_SCALAR_LOAD_COST
+#define TARG_SCALAR_LOAD_COST           ix86_cost->scalar_load_cost
+
+/* Cost of scalar store.  */
+#undef TARG_SCALAR_STORE_COST
+#define TARG_SCALAR_STORE_COST          ix86_cost->scalar_store_cost
+
+/* Cost of any vector operation, excluding load, store or vector to scalar
+   operation.  */
+#undef TARG_VEC_STMT_COST
+#define TARG_VEC_STMT_COST              ix86_cost->vec_stmt_cost
+
+/* Cost of vector to scalar operation.  */
+#undef TARG_VEC_TO_SCALAR_COST
+#define TARG_VEC_TO_SCALAR_COST         ix86_cost->vec_to_scalar_cost
+
+/* Cost of scalar to vector operation.  */
+#undef TARG_SCALAR_TO_VEC_COST
+#define TARG_SCALAR_TO_VEC_COST         ix86_cost->scalar_to_vec_cost
+
+/* Cost of aligned vector load.  */
+#undef TARG_VEC_LOAD_COST
+#define TARG_VEC_LOAD_COST              ix86_cost->vec_align_load_cost
+
+/* Cost of misaligned vector load.  */
+#undef TARG_VEC_UNALIGNED_LOAD_COST
+#define TARG_VEC_UNALIGNED_LOAD_COST    ix86_cost->vec_unalign_load_cost
+
+/* Cost of vector store.  */
+#undef TARG_VEC_STORE_COST
+#define TARG_VEC_STORE_COST             ix86_cost->vec_store_cost
+
+/* Cost of conditional taken branch for vectorizer cost model.  */
+#undef TARG_COND_TAKEN_BRANCH_COST
+#define TARG_COND_TAKEN_BRANCH_COST     ix86_cost->cond_taken_branch_cost
+
+/* Cost of conditional not taken branch for vectorizer cost model.  */
+#undef TARG_COND_NOT_TAKEN_BRANCH_COST
+#define TARG_COND_NOT_TAKEN_BRANCH_COST ix86_cost->cond_not_taken_branch_cost
 
 /*
 Local variables:

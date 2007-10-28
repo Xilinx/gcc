@@ -766,8 +766,8 @@ gfc_is_constant_expr (gfc_expr *e)
       break;
 
     case EXPR_SUBSTRING:
-      rv = (gfc_is_constant_expr (e->ref->u.ss.start)
-	    && gfc_is_constant_expr (e->ref->u.ss.end));
+      rv = e->ref == NULL || (gfc_is_constant_expr (e->ref->u.ss.start)
+			      && gfc_is_constant_expr (e->ref->u.ss.end));
       break;
 
     case EXPR_STRUCTURE:
@@ -789,6 +789,35 @@ gfc_is_constant_expr (gfc_expr *e)
     }
 
   return rv;
+}
+
+
+/* Is true if an array reference is followed by a component or substring
+   reference.  */
+bool
+is_subref_array (gfc_expr * e)
+{
+  gfc_ref * ref;
+  bool seen_array;
+
+  if (e->expr_type != EXPR_VARIABLE)
+    return false;
+
+  if (e->symtree->n.sym->attr.subref_array_pointer)
+    return true;
+
+  seen_array = false;
+  for (ref = e->ref; ref; ref = ref->next)
+    {
+      if (ref->type == REF_ARRAY
+	    && ref->u.ar.type != AR_ELEMENT)
+	seen_array = true;
+
+      if (seen_array
+	    && ref->type != REF_ARRAY)
+	return seen_array;
+    }
+  return false;
 }
 
 
@@ -1136,7 +1165,7 @@ find_array_section (gfc_expr *expr, gfc_ref *ref)
 	{
 	  gcc_assert (begin);
 
-	  if (begin->expr_type != EXPR_ARRAY)
+	  if (begin->expr_type != EXPR_ARRAY || !gfc_is_constant_expr (begin))
 	    {
 	      t = FAILURE;
 	      goto cleanup;
@@ -1329,6 +1358,7 @@ find_substring_ref (gfc_expr *p, gfc_expr **newp)
 {
   int end;
   int start;
+  int length;
   char *chr;
 
   if (p->ref->u.ss.start->expr_type != EXPR_CONSTANT
@@ -1336,13 +1366,16 @@ find_substring_ref (gfc_expr *p, gfc_expr **newp)
     return FAILURE;
 
   *newp = gfc_copy_expr (p);
-  chr = p->value.character.string;
+  gfc_free ((*newp)->value.character.string);
+
   end = (int) mpz_get_ui (p->ref->u.ss.end->value.integer);
   start = (int) mpz_get_ui (p->ref->u.ss.start->value.integer);
+  length = end - start + 1;
 
-  (*newp)->value.character.length = end - start + 1;
-  strncpy ((*newp)->value.character.string, &chr[start - 1],
-	   (*newp)->value.character.length);
+  chr = (*newp)->value.character.string = gfc_getmem (length + 1);
+  (*newp)->value.character.length = length;
+  memcpy (chr, &p->value.character.string[start - 1], length);
+  chr[length] = '\0';
   return SUCCESS;
 }
 
@@ -1542,9 +1575,19 @@ gfc_simplify_expr (gfc_expr *p, int type)
 	  char *s;
 	  int start, end;
 
-	  gfc_extract_int (p->ref->u.ss.start, &start);
-	  start--;  /* Convert from one-based to zero-based.  */
-	  gfc_extract_int (p->ref->u.ss.end, &end);
+	  if (p->ref && p->ref->u.ss.start)
+	    {
+	      gfc_extract_int (p->ref->u.ss.start, &start);
+	      start--;  /* Convert from one-based to zero-based.  */
+	    }
+	  else
+	    start = 0;
+
+	  if (p->ref && p->ref->u.ss.end)
+	    gfc_extract_int (p->ref->u.ss.end, &end);
+	  else
+	    end = p->value.character.length;
+
 	  s = gfc_getmem (end - start + 2);
 	  memcpy (s, p->value.character.string + start, end - start);
 	  s[end - start + 1] = '\0';  /* TODO: C-style string.  */
@@ -1969,7 +2012,7 @@ check_inquiry (gfc_expr *e, int not_restricted)
 	    && ap->expr->symtree->n.sym->ts.type == BT_CHARACTER
 	    && ap->expr->symtree->n.sym->ts.cl->length == NULL)
 	  {
-	    gfc_error ("assumed character length variable '%s' in constant "
+	    gfc_error ("Assumed character length variable '%s' in constant "
 		       "expression at %L", e->symtree->n.sym->name, &e->where);
 	      return MATCH_ERROR;
 	  }
@@ -2161,19 +2204,19 @@ check_init_expr (gfc_expr *e)
 	  switch (e->symtree->n.sym->as->type)
 	    {
 	      case AS_ASSUMED_SIZE:
-		gfc_error ("assumed size array '%s' at %L is not permitted "
+		gfc_error ("Assumed size array '%s' at %L is not permitted "
 			   "in an initialization expression",
 			   e->symtree->n.sym->name, &e->where);
 		break;
 
 	      case AS_ASSUMED_SHAPE:
-		gfc_error ("assumed shape array '%s' at %L is not permitted "
+		gfc_error ("Assumed shape array '%s' at %L is not permitted "
 			   "in an initialization expression",
 			   e->symtree->n.sym->name, &e->where);
 		break;
 
 	      case AS_DEFERRED:
-		gfc_error ("deferred array '%s' at %L is not permitted "
+		gfc_error ("Deferred array '%s' at %L is not permitted "
 			   "in an initialization expression",
 			   e->symtree->n.sym->name, &e->where);
 		break;
@@ -2206,7 +2249,10 @@ check_init_expr (gfc_expr *e)
       break;
 
     case EXPR_STRUCTURE:
-      t = gfc_check_constructor (e, check_init_expr);
+      if (e->ts.is_iso_c)
+	t = SUCCESS;
+      else
+	t = gfc_check_constructor (e, check_init_expr);
       break;
 
     case EXPR_ARRAY:
@@ -2386,6 +2432,19 @@ check_restricted (gfc_expr *e)
       sym = e->symtree->n.sym;
       t = FAILURE;
 
+      /* If a dummy argument appears in a context that is valid for a
+	 restricted expression in an elemental procedure, it will have
+	 already been simplified away once we get here.  Therefore we
+	 don't need to jump through hoops to distinguish valid from
+	 invalid cases.  */
+      if (sym->attr.dummy && sym->ns == gfc_current_ns
+	  && sym->ns->proc_name && sym->ns->proc_name->attr.elemental)
+	{
+	  gfc_error ("Dummy argument '%s' not allowed in expression at %L",
+		     sym->name, &e->where);
+	  break;
+	}
+
       if (sym->attr.optional)
 	{
 	  gfc_error ("Dummy argument '%s' at %L cannot be OPTIONAL",
@@ -2470,6 +2529,18 @@ gfc_specification_expr (gfc_expr *e)
       return FAILURE;
     }
 
+  if (e->expr_type == EXPR_FUNCTION
+	  && !e->value.function.isym
+	  && !e->value.function.esym
+	  && !gfc_pure (e->symtree->n.sym))
+    {
+      gfc_error ("Function '%s' at %L must be PURE",
+		 e->symtree->n.sym->name, &e->where);
+      /* Prevent repeat error messages.  */
+      e->symtree->n.sym->attr.pure = 1;
+      return FAILURE;
+    }
+
   if (e->rank != 0)
     {
       gfc_error ("Expression at %L must be scalar", &e->where);
@@ -2499,8 +2570,8 @@ gfc_check_conformance (const char *optype_msgid, gfc_expr *op1, gfc_expr *op2)
 
   if (op1->rank != op2->rank)
     {
-      gfc_error ("Incompatible ranks in %s at %L", _(optype_msgid),
-		 &op1->where);
+      gfc_error ("Incompatible ranks in %s (%d and %d) at %L", _(optype_msgid),
+		 op1->rank, op2->rank, &op1->where);
       return FAILURE;
     }
 
@@ -2513,8 +2584,8 @@ gfc_check_conformance (const char *optype_msgid, gfc_expr *op1, gfc_expr *op2)
 
       if (op1_flag && op2_flag && mpz_cmp (op1_size, op2_size) != 0)
 	{
-	  gfc_error ("different shape for %s at %L on dimension %d (%d/%d)",
-		     _(optype_msgid), &op1->where, d + 1,
+	  gfc_error ("Different shape for %s at %L on dimension %d "
+		     "(%d and %d)", _(optype_msgid), &op1->where, d + 1,
 		     (int) mpz_get_si (op1_size),
 		     (int) mpz_get_si (op2_size));
 
@@ -2653,7 +2724,7 @@ gfc_check_assign (gfc_expr *lvalue, gfc_expr *rvalue, int conform)
 
   /* Check size of array assignments.  */
   if (lvalue->rank != 0 && rvalue->rank != 0
-      && gfc_check_conformance ("Array assignment", lvalue, rvalue) != SUCCESS)
+      && gfc_check_conformance ("array assignment", lvalue, rvalue) != SUCCESS)
     return FAILURE;
 
   if (gfc_compare_types (&lvalue->ts, &rvalue->ts))
@@ -2739,7 +2810,8 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 
   is_pure = gfc_pure (NULL);
 
-  if (is_pure && gfc_impure_variable (lvalue->symtree->n.sym))
+  if (is_pure && gfc_impure_variable (lvalue->symtree->n.sym)
+	&& lvalue->symtree->n.sym->value != rvalue)
     {
       gfc_error ("Bad pointer object in PURE procedure at %L", &lvalue->where);
       return FAILURE;
@@ -2786,6 +2858,9 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 		 "assignment at %L", &lvalue->where);
       return FAILURE;
     }
+
+  if (rvalue->expr_type == EXPR_VARIABLE && is_subref_array (rvalue))
+    lvalue->symtree->n.sym->attr.subref_array_pointer = 1;
 
   attr = gfc_expr_attr (rvalue);
   if (!attr.target && !attr.pointer)
@@ -2858,22 +2933,20 @@ gfc_default_initializer (gfc_typespec *ts)
   gfc_expr *init;
   gfc_component *c;
 
-  init = NULL;
-
   /* See if we have a default initializer.  */
   for (c = ts->derived->components; c; c = c->next)
-    {
-      if ((c->initializer || c->allocatable) && init == NULL)
-	init = gfc_get_expr ();
-    }
+    if (c->initializer || c->allocatable)
+      break;
 
-  if (init == NULL)
+  if (!c)
     return NULL;
 
   /* Build the constructor.  */
+  init = gfc_get_expr ();
   init->expr_type = EXPR_STRUCTURE;
   init->ts = *ts;
   init->where = ts->derived->declared_at;
+
   tail = NULL;
   for (c = ts->derived->components; c; c = c->next)
     {

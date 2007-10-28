@@ -314,10 +314,63 @@ identifier_subst (const tree old_id,
 tree
 mangled_classname (const char *prefix, tree type)
 {
+  tree result;
   tree ident = TYPE_NAME (type);
   if (TREE_CODE (ident) != IDENTIFIER_NODE)
     ident = DECL_NAME (ident);
-  return identifier_subst (ident, prefix, '.', '_', "");
+  result = identifier_subst (ident, prefix, '.', '_', "");
+
+  /* Replace any characters that aren't in the set [0-9a-zA-Z_$] with
+     "_0xXX".  Class names containing such chracters are uncommon, but
+     they do sometimes occur in class files.  Without this check,
+     these names cause assembly errors.
+
+     There is a possibility that a real class name could conflict with
+     the identifier we generate, but it is unlikely and will
+     immediately be detected as an assembler error.  At some point we
+     should do something more elaborate (perhaps using the full
+     unicode mangling scheme) in order to prevent such a conflict.  */
+  {
+    int i;
+    const int len = IDENTIFIER_LENGTH (result);
+    const char *p = IDENTIFIER_POINTER (result);
+    int illegal_chars = 0;
+
+    /* Make two passes over the identifier.  The first pass is merely
+       to count illegal characters; we need to do this in order to
+       allocate a buffer.  */
+    for (i = 0; i < len; i++)
+      {
+	char c = p[i];
+	illegal_chars += (! ISALNUM (c) && c != '_' && c != '$');
+      }
+
+    /* And the second pass, which is rarely executed, does the
+       rewriting.  */
+    if (illegal_chars != 0)
+      {
+	char *buffer = alloca (illegal_chars * 4 + len + 1);
+	int j;
+
+	for (i = 0, j = 0; i < len; i++)
+	  {
+	    char c = p[i];
+	    if (! ISALNUM (c) && c != '_' && c != '$')
+	      {
+		buffer[j++] = '_';
+		sprintf (&buffer[j], "0x%02x", c);
+		j += 4;
+	      }
+	    else
+	      buffer[j++] = c;
+	  }
+
+	buffer[j] = 0;
+	result = get_identifier (buffer);
+      }
+  }
+
+  return result;
 }
 
 tree
@@ -389,7 +442,7 @@ while (0)
 void
 gen_indirect_dispatch_tables (tree type)
 {
-  const char *typename = IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (type)));
+  const char *typename = IDENTIFIER_POINTER (mangled_classname ("", type));
   {  
     tree field = NULL;
     char *buf = alloca (strlen (typename) + strlen ("_catch_classes_") + 1);
@@ -851,8 +904,6 @@ set_constant_value (tree field, tree constant)
 		&& TREE_TYPE (field) == string_ptr_type_node))
 	error ("ConstantValue attribute of field '%s' has wrong type",
 	       IDENTIFIER_POINTER (DECL_NAME (field)));
-      if (FIELD_FINAL (field))
-	DECL_FIELD_FINAL_IUD (field) = 1;
     }
 }
 
@@ -1163,13 +1214,12 @@ build_static_field_ref (tree fdecl)
 {
   tree fclass = DECL_CONTEXT (fdecl);
   int is_compiled = is_compiled_class (fclass);
-  int from_class = ! CLASS_FROM_SOURCE_P (current_class);
 
   /* Allow static final fields to fold to a constant.  When using
      -findirect-dispatch, we simply never do this folding if compiling
      from .class; in the .class file constants will be referred to via
      the constant pool.  */
-  if ((!flag_indirect_dispatch || !from_class)
+  if (!flag_indirect_dispatch
       && (is_compiled
 	  || (FIELD_FINAL (fdecl) && DECL_INITIAL (fdecl) != NULL_TREE
 	      && (JSTRING_TYPE_P (TREE_TYPE (fdecl))
@@ -1853,8 +1903,7 @@ make_class_data (tree type)
           || DECL_CLINIT_P (method)
           || DECL_NAME (type_decl) == id_class
           || DECL_NAME (method) == id_main
-          || (METHOD_PUBLIC (method) && !METHOD_STATIC (method))
-          || TYPE_DOT_CLASS (type) == method)
+          || (METHOD_PUBLIC (method) && !METHOD_STATIC (method)))
         {
           init = make_method_value (method);
           method_count++;
@@ -2173,17 +2222,6 @@ make_class_data (tree type)
 void
 finish_class (void)
 {
-  if (TYPE_VERIFY_METHOD (output_class))
-    {
-      tree verify_method = TYPE_VERIFY_METHOD (output_class);
-      DECL_SAVED_TREE (verify_method) 
-	= add_stmt_to_compound (DECL_SAVED_TREE (verify_method), void_type_node,
-				build1 (RETURN_EXPR, void_type_node, NULL));
-      java_genericize (verify_method);
-      cgraph_finalize_function (verify_method, false);
-      TYPE_ASSERTIONS (current_class) = NULL;
-    }
-
   java_expand_catch_classes (current_class);
 
   current_function_decl = NULL_TREE;
@@ -2228,9 +2266,7 @@ is_compiled_class (tree class)
     {
       if (!CLASS_LOADED_P (class))
 	{
-	  if (CLASS_FROM_SOURCE_P (class))
-	    safe_layout_class (class);
-	  else if (class != current_class)
+	  if (class != current_class)
 	    load_class (class, 1);
 	}
       return 1;
@@ -2327,8 +2363,6 @@ maybe_layout_super_class (tree super_class, tree this_class ATTRIBUTE_UNUSED)
     return NULL_TREE;
   else if (TREE_CODE (super_class) == RECORD_TYPE)
     {
-      if (!CLASS_LOADED_P (super_class) && CLASS_FROM_SOURCE_P (super_class))
-	safe_layout_class (super_class);
       if (!CLASS_LOADED_P (super_class))
 	load_class (super_class, 1);
     }
@@ -2366,6 +2400,7 @@ safe_layout_class (tree class)
 void
 layout_class (tree this_class)
 {
+  int i;
   tree super_class = CLASSTYPE_SUPER (this_class);
 
   class_list = tree_cons (this_class, NULL_TREE, class_list);
@@ -2416,28 +2451,22 @@ layout_class (tree this_class)
 
   layout_type (this_class);
 
-  /* Also recursively load/layout any superinterfaces, but only if
-     class was loaded from bytecode.  The source parser will take care
-     of this itself.  */
-  if (!CLASS_FROM_SOURCE_P (this_class))
+  /* Also recursively load/layout any superinterfaces.  */
+  if (TYPE_BINFO (this_class))
     {
-      int i;
-            if (TYPE_BINFO (this_class))
+      for (i = BINFO_N_BASE_BINFOS (TYPE_BINFO (this_class)) - 1; i > 0; i--)
 	{
-	  for (i = BINFO_N_BASE_BINFOS (TYPE_BINFO (this_class)) - 1; i > 0; i--)
+	  tree binfo = BINFO_BASE_BINFO (TYPE_BINFO (this_class), i);
+	  tree super_interface = BINFO_TYPE (binfo);
+	  tree maybe_super_interface 
+	    = maybe_layout_super_class (super_interface, NULL_TREE);
+	  if (maybe_super_interface == NULL
+	      || TREE_CODE (TYPE_SIZE (maybe_super_interface)) == ERROR_MARK)
 	    {
-	      tree binfo = BINFO_BASE_BINFO (TYPE_BINFO (this_class), i);
-	      tree super_interface = BINFO_TYPE (binfo);
-	      tree maybe_super_interface 
-		= maybe_layout_super_class (super_interface, NULL_TREE);
-	      if (maybe_super_interface == NULL
-		  || TREE_CODE (TYPE_SIZE (maybe_super_interface)) == ERROR_MARK)
-		{
-		  TYPE_SIZE (this_class) = error_mark_node;
-		  CLASS_BEING_LAIDOUT (this_class) = 0;
-		  class_list = TREE_CHAIN (class_list);
-		  return;
-		}
+	      TYPE_SIZE (this_class) = error_mark_node;
+	      CLASS_BEING_LAIDOUT (this_class) = 0;
+	      class_list = TREE_CHAIN (class_list);
+	      return;
 	    }
 	}
     }
@@ -2632,7 +2661,6 @@ layout_class_method (tree this_class, tree super_class,
 	  set_method_index (method_decl, method_index);
 	  if (method_index == NULL_TREE 
 	      && ! flag_indirect_dispatch
-	      && !CLASS_FROM_SOURCE_P (this_class)
 	      && ! DECL_ARTIFICIAL (super_method))
 	    error ("non-static method %q+D overrides static method",
                    method_decl);

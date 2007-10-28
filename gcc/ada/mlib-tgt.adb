@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -151,25 +150,19 @@ package body MLib.Tgt is
 
    procedure Build_Dynamic_Library
      (Ofiles       : Argument_List;
-      Foreign      : Argument_List;
-      Afiles       : Argument_List;
       Options      : Argument_List;
-      Options_2    : Argument_List;
       Interfaces   : Argument_List;
       Lib_Filename : String;
       Lib_Dir      : String;
       Symbol_Data  : Symbol_Record;
-      Driver_Name  : Name_Id  := No_Name;
-      Lib_Version  : String   := "";
-      Auto_Init    : Boolean  := False)
+      Driver_Name  : Name_Id := No_Name;
+      Lib_Version  : String  := "";
+      Auto_Init    : Boolean := False)
    is
    begin
       Build_Dynamic_Library_Ptr
         (Ofiles,
-         Foreign,
-         Afiles,
          Options,
-         Options_2,
          Interfaces,
          Lib_Filename,
          Lib_Dir,
@@ -404,7 +397,9 @@ package body MLib.Tgt is
                            (In_Tree.Projects.Table (Project).Library_Name);
 
          begin
-            if In_Tree.Projects.Table (Project).Library_Kind = Static then
+            if In_Tree.Projects.Table (Project).Library_Kind =
+                 Static
+            then
                Name_Len := 3;
                Name_Buffer (1 .. Name_Len) := "lib";
                Add_Str_To_Name_Buffer (Fil.Append_To (Lib_Name, Archive_Ext));
@@ -418,6 +413,24 @@ package body MLib.Tgt is
          end;
       end if;
    end Library_File_Name_For_Default;
+
+   --------------------------------------
+   -- Library_Major_Minor_Id_Supported --
+   --------------------------------------
+
+   function Library_Major_Minor_Id_Supported return Boolean is
+   begin
+      return Library_Major_Minor_Id_Supported_Ptr.all;
+   end Library_Major_Minor_Id_Supported;
+
+   ----------------------------------------------
+   -- Library_Major_Minor_Id_Supported_Default --
+   ----------------------------------------------
+
+   function Library_Major_Minor_Id_Supported_Default return Boolean is
+   begin
+      return True;
+   end Library_Major_Minor_Id_Supported_Default;
 
    ----------------
    -- Object_Ext --
@@ -490,5 +503,4 @@ package body MLib.Tgt is
    begin
       return Full;
    end Support_For_Libraries_Default;
-
 end MLib.Tgt;

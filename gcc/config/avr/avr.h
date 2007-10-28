@@ -53,7 +53,7 @@ extern int avr_mega_p;
 extern int avr_have_mul_p;
 extern int avr_asm_only_p;
 extern int avr_have_movw_lpmx_p;
-#ifndef IN_LIBGCC2
+#if !defined(IN_LIBGCC2) && !defined(IN_TARGET_LIBS)
 extern GTY(()) section *progmem_section;
 #endif
 
@@ -99,6 +99,7 @@ extern GTY(()) section *progmem_section;
 /* No data type wants to be aligned rounder than this.  */
 #define BIGGEST_ALIGNMENT 8
 
+#define TARGET_VTABLE_ENTRY_ALIGN 8
 
 #define STRICT_ALIGNMENT 0
 
@@ -481,8 +482,7 @@ do {									    \
 
 #define ASM_OUTPUT_ASCII(FILE, P, SIZE)	 gas_output_ascii (FILE,P,SIZE)
 
-#define IS_ASM_LOGICAL_LINE_SEPARATOR(C) ((C) == '\n'			 \
-					  || ((C) == '$'))
+#define IS_ASM_LOGICAL_LINE_SEPARATOR(C, STR) ((C) == '\n' || ((C) == '$'))
 
 #define ASM_OUTPUT_COMMON(STREAM, NAME, SIZE, ROUNDED)			   \
 do {									   \
@@ -758,26 +758,32 @@ mmcu=*:-mmcu=%*}"
   mmcu=attiny4*|\
   mmcu=attiny8*:-m avr2}\
 %{mmcu=atmega103|\
-  mmcu=atmega603|\
   mmcu=at43*|\
   mmcu=at76*:-m avr3}\
 %{mmcu=atmega8*|\
-  mmcu=atmega48|\
-  mmcu=at90pwm*:-m avr4}\
+  mmcu=atmega48*|\
+  mmcu=at90pwm1|\
+  mmcu=at90pwm2|\
+  mmcu=at90pwm2b|\
+  mmcu=at90pwm3|\
+  mmcu=at90pwm3b:-m avr4}\
 %{mmcu=atmega16*|\
   mmcu=atmega32*|\
   mmcu=atmega406|\
   mmcu=atmega64*|\
   mmcu=atmega128*|\
   mmcu=at90can*|\
+  mmcu=at90pwm216|\
+  mmcu=at90pwm316|\
   mmcu=at90usb*|\
   mmcu=at94k:-m avr5}\
 %{mmcu=atmega324*|\
   mmcu=atmega325*|\
+  mmcu=atmega328p|\
   mmcu=atmega329*|\
   mmcu=atmega406|\
-  mmcu=atmega48|\
-  mmcu=atmega88|\
+  mmcu=atmega48*|\
+  mmcu=atmega88*|\
   mmcu=atmega64|\
   mmcu=atmega644*|\
   mmcu=atmega645*|\
@@ -786,10 +792,11 @@ mmcu=*:-mmcu=%*}"
   mmcu=atmega162|\
   mmcu=atmega164*|\
   mmcu=atmega165*|\
-  mmcu=atmega168|\
+  mmcu=atmega168*|\
   mmcu=atmega169*|\
   mmcu=atmega8hva|\
   mmcu=atmega16hva|\
+  mmcu=attiny48|\
   mmcu=at90can*|\
   mmcu=at90pwm*|\
   mmcu=at90usb*: -Tdata 0x800100}\
@@ -840,19 +847,24 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=attiny261:crttn261.o%s} \
 %{mmcu=attiny461:crttn461.o%s} \
 %{mmcu=attiny861:crttn861.o%s} \
+%{mmcu=attiny43u:crttn43u.o%s} \
+%{mmcu=attiny48:crttn48.o%s} \
 %{mmcu=atmega103|mmcu=avr3:crtm103.o%s} \
-%{mmcu=atmega603:crtm603.o%s} \
 %{mmcu=at43usb320:crt43320.o%s} \
 %{mmcu=at43usb355:crt43355.o%s} \
 %{mmcu=at76c711:crt76711.o%s} \
 %{mmcu=atmega8|mmcu=avr4:crtm8.o%s} \
 %{mmcu=atmega48:crtm48.o%s} \
+%{mmcu=atmega48p:crtm48p.o%s} \
 %{mmcu=atmega88:crtm88.o%s} \
+%{mmcu=atmega88p:crtm88p.o%s} \
 %{mmcu=atmega8515:crtm8515.o%s} \
 %{mmcu=atmega8535:crtm8535.o%s} \
 %{mmcu=at90pwm1:crt90pwm1.o%s} \
 %{mmcu=at90pwm2:crt90pwm2.o%s} \
+%{mmcu=at90pwm2b:crt90pwm2b.o%s} \
 %{mmcu=at90pwm3:crt90pwm3.o%s} \
+%{mmcu=at90pwm3b:crt90pwm3b.o%s} \
 %{mmcu=atmega16:crtm16.o%s} \
 %{mmcu=atmega161|mmcu=avr5:crtm161.o%s} \
 %{mmcu=atmega162:crtm162.o%s} \
@@ -861,6 +873,7 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=atmega165:crtm165.o%s} \
 %{mmcu=atmega165p:crtm165p.o%s} \
 %{mmcu=atmega168:crtm168.o%s} \
+%{mmcu=atmega168p:crtm168p.o%s} \
 %{mmcu=atmega169:crtm169.o%s} \
 %{mmcu=atmega169p:crtm169p.o%s} \
 %{mmcu=atmega32:crtm32.o%s} \
@@ -870,6 +883,7 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=atmega325p:crtm325p.o%s} \
 %{mmcu=atmega3250:crtm3250.o%s} \
 %{mmcu=atmega3250p:crtm3250p.o%s} \
+%{mmcu=atmega328p:crtm328p.o%s} \
 %{mmcu=atmega329:crtm329.o%s} \
 %{mmcu=atmega329p:crtm329p.o%s} \
 %{mmcu=atmega3290:crtm3290.o%s} \
@@ -891,6 +905,8 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=at90can32:crtcan32.o%s} \
 %{mmcu=at90can64:crtcan64.o%s} \
 %{mmcu=at90can128:crtcan128.o%s} \
+%{mmcu=at90pwm216:crt90pwm216.o%s} \
+%{mmcu=at90pwm316:crt90pwm316.o%s} \
 %{mmcu=at90usb82:crtusb82.o%s} \
 %{mmcu=at90usb162:crtusb162.o%s} \
 %{mmcu=at90usb646:crtusb646.o%s} \
@@ -940,9 +956,6 @@ mmcu=*:-mmcu=%*}"
    This is added to the cfun structure.  */
 struct machine_function GTY(())
 {
-  /* 'true' - if current function is a 'main' function.  */
-  int is_main;
-
   /* 'true' - if current function is a naked function.  */
   int is_naked;
 
@@ -953,4 +966,8 @@ struct machine_function GTY(())
   /* 'true' - if current function is a signal function 
      as specified by the "signal" attribute.  */
   int is_signal;
+  
+  /* 'true' - if current function is a signal function 
+     as specified by the "OS_task" attribute.  */
+  int is_OS_task;
 };

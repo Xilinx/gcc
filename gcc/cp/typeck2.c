@@ -104,7 +104,7 @@ readonly_error (tree arg, const char* string)
   else if (TREE_CODE (arg) == FUNCTION_DECL)
     error ("%s of function %qD", string, arg);
   else
-    error ("%s of read-only location", string);
+    error ("%s of read-only location %qE", string, arg);
 }
 
 
@@ -336,7 +336,7 @@ abstract_virtuals_error (tree decl, tree type)
    pedwarn.  */
 
 void
-cxx_incomplete_type_diagnostic (tree value, tree type, int diag_type)
+cxx_incomplete_type_diagnostic (const_tree value, const_tree type, int diag_type)
 {
   int decl = 0;
   void (*p_msg) (const char *, ...) ATTRIBUTE_GCC_CXXDIAG(1,2);
@@ -427,7 +427,7 @@ cxx_incomplete_type_diagnostic (tree value, tree type, int diag_type)
    required by ../tree.c.  */
 #undef cxx_incomplete_type_error
 void
-cxx_incomplete_type_error (tree value, tree type)
+cxx_incomplete_type_error (const_tree value, const_tree type)
 {
   cxx_incomplete_type_diagnostic (value, type, 0);
 }
@@ -703,8 +703,23 @@ digest_init (tree type, tree init)
   /* Handle scalar types (including conversions) and references.  */
   if (TREE_CODE (type) != COMPLEX_TYPE
       && (SCALAR_TYPE_P (type) || code == REFERENCE_TYPE))
-    return convert_for_initialization (0, type, init, LOOKUP_NORMAL,
-				       "initialization", NULL_TREE, 0);
+    {
+      tree *exp;
+
+      init = convert_for_initialization (0, type, init, LOOKUP_NORMAL,
+					 "initialization", NULL_TREE, 0);
+      exp = &init;
+
+      /* Skip any conversions since we'll be outputting the underlying
+	 constant.  */
+      while (TREE_CODE (*exp) == NOP_EXPR || TREE_CODE (*exp) == CONVERT_EXPR
+	     || TREE_CODE (*exp) == NON_LVALUE_EXPR)
+	exp = &TREE_OPERAND (*exp, 0);
+
+      *exp = cplus_expand_constant (*exp);
+
+      return init;
+    }
 
   /* Come here only for aggregates: records, arrays, unions, complex numbers
      and vectors.  */

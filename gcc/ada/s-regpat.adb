@@ -1457,6 +1457,10 @@ package body System.Regpat is
             elsif not In_Range then
                Last_Value := Value;
 
+               if Parse_Pos > Expression'Last then
+                  Fail ("Empty character class []");
+               end if;
+
                if Expression (Parse_Pos) = '-'
                  and then Parse_Pos < Parse_End
                  and then Expression (Parse_Pos + 1) /= ']'
@@ -2055,8 +2059,12 @@ package body System.Regpat is
          return Class;
       end Parse_Posix_Character_Class;
 
+      --  Local Declarations
+
+      Result : Pointer;
+
       Expr_Flags : Expression_Flags;
-      Result     : Pointer;
+      pragma Unreferenced (Expr_Flags);
 
    --  Start of processing for Compile
 
@@ -2086,6 +2094,7 @@ package body System.Regpat is
    is
       Size  : Program_Size;
       Dummy : Pattern_Matcher (0);
+      pragma Unreferenced (Dummy);
 
    begin
       Compile (Dummy, Expression, Size, Flags);
@@ -2104,6 +2113,7 @@ package body System.Regpat is
       Flags      : Regexp_Flags := No_Flags)
    is
       Size : Program_Size;
+      pragma Unreferenced (Size);
    begin
       Compile (Matcher, Expression, Size, Flags);
    end Compile;
@@ -3438,7 +3448,7 @@ package body System.Regpat is
    is
       PM            : Pattern_Matcher (Size);
       Finalize_Size : Program_Size;
-
+      pragma Unreferenced (Finalize_Size);
    begin
       if Size = 0 then
          Match (Compile (Expression), Data, Matches, Data_First, Data_Last);
@@ -3460,8 +3470,8 @@ package body System.Regpat is
       Data_Last  : Positive     := Positive'Last) return Natural
    is
       PM         : Pattern_Matcher (Size);
-      Final_Size : Program_Size; -- unused
-
+      Final_Size : Program_Size;
+      pragma Unreferenced (Final_Size);
    begin
       if Size = 0 then
          return Match (Compile (Expression), Data, Data_First, Data_Last);
@@ -3484,8 +3494,8 @@ package body System.Regpat is
    is
       Matches    : Match_Array (0 .. 0);
       PM         : Pattern_Matcher (Size);
-      Final_Size : Program_Size; -- unused
-
+      Final_Size : Program_Size;
+      pragma Unreferenced (Final_Size);
    begin
       if Size = 0 then
          Match (Compile (Expression), Data, Matches, Data_First, Data_Last);

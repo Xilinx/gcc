@@ -37,7 +37,7 @@
 // std::tr1::unordered_multiset, and std::tr1::unordered_multimap.
 // hashtable has many template parameters, partly to accommodate
 // the differences between those four classes and partly to 
-// accommodate policy choices that go beyond what TR1 calls for.
+// accommodate policy choices that go beyond TR1 specifications.
 
 // Class template hashtable attempts to encapsulate all reasonable
 // variation among hash tables that use chaining.  It does not handle
@@ -251,6 +251,21 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
       const_iterator
       end() const
       { return const_iterator(_M_buckets + _M_bucket_count); }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+      const_iterator
+      cbegin() const
+      {
+	const_iterator __i(_M_buckets);
+	if (!__i._M_cur_node)
+	  __i._M_incr_bucket();
+	return __i;
+      }
+
+      const_iterator
+      cend() const
+      { return const_iterator(_M_buckets + _M_bucket_count); }
+#endif
 
       size_type
       size() const

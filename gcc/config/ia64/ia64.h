@@ -678,7 +678,7 @@ while (0)
 #define MODES_TIEABLE_P(MODE1, MODE2)			\
   (GET_MODE_CLASS (MODE1) == GET_MODE_CLASS (MODE2)	\
    && ((((MODE1) == XFmode) || ((MODE1) == XCmode) || ((MODE1) == RFmode))	\
-       == (((MODE2) == XFmode) || ((MODE2) == XCmode) || ((MODE1) == RFmode)))	\
+       == (((MODE2) == XFmode) || ((MODE2) == XCmode) || ((MODE2) == RFmode)))	\
    && (((MODE1) == BImode) == ((MODE2) == BImode)))
 
 /* Specify the modes required to caller save a given hard regno.
@@ -935,18 +935,6 @@ enum reg_class
    or a `MEM' representing a location in the stack.  This enables DWARF2
    unwind info for C++ EH.  */
 #define INCOMING_RETURN_ADDR_RTX gen_rtx_REG (VOIDmode, BR_REG (0))
-
-/* ??? This is not defined because of three problems.
-   1) dwarf2out.c assumes that DWARF_FRAME_RETURN_COLUMN fits in one byte.
-   The default value is FIRST_PSEUDO_REGISTER which doesn't.  This can be
-   worked around by setting PC_REGNUM to FR_REG (0) which is an otherwise
-   unused register number.
-   2) dwarf2out_frame_debug core dumps while processing prologue insns.  We
-   need to refine which insns have RTX_FRAME_RELATED_P set and which don't.
-   3) It isn't possible to turn off EH frame info by defining DWARF2_UNIND_INFO
-   to zero, despite what the documentation implies, because it is tested in
-   a few places with #ifdef instead of #if.  */
-#undef INCOMING_RETURN_ADDR_RTX
 
 /* A C expression whose value is an integer giving the offset, in bytes, from
    the value of the stack pointer register to the top of the stack frame at the

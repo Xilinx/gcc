@@ -302,7 +302,7 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   g77_xargc = argc;
   g77_xargv = argv;
   g77_newargc = 0;
-  g77_newargv = (const char **) argv;
+  g77_newargv = CONST_CAST2 (const char **, const char *const *, argv);
 
   /* First pass through arglist.
 
@@ -375,7 +375,7 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  break;
 
 	case OPTION_version:
-	  printf ("GNU Fortran (GCC) %s\n", version_string);
+	  printf ("GNU Fortran %s%s\n", pkgversion_string, version_string);
 	  printf ("Copyright %s 2007 Free Software Foundation, Inc.\n\n",
 		  _("(C)"));
 	  printf (_("GNU Fortran comes with NO WARRANTY, to the extent permitted by law.\n\

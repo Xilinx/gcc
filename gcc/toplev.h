@@ -101,6 +101,8 @@ extern void write_global_declarations (void);
 
 extern void dump_memory_report (bool);
 
+extern void target_reinit (void);
+
 /* A unique local time stamp, might be zero if none is available.  */
 extern unsigned local_tick;
 
@@ -110,8 +112,6 @@ extern const char *aux_base_name;
 extern const char *aux_info_file_name;
 extern const char *asm_file_name;
 extern bool exit_after_options;
-
-extern int target_flags_explicit;
 
 /* True if the user has tagged the function with the 'section'
    attribute.  */
@@ -145,6 +145,8 @@ extern struct ht *ident_hash;
     implied by -ffast-math and -fno-fast-math.  */
 
 extern void set_fast_math_flags         (int);
+
+extern void set_unsafe_math_optimizations_flags (int);
 
 /* Handle -d switch.  */
 extern void decode_d_option		(const char *);

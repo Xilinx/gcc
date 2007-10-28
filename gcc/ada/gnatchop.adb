@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1998-2007, AdaCore                     --
+--          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -36,13 +35,11 @@ with GNAT.OS_Lib;                use GNAT.OS_Lib;
 with GNAT.Heap_Sort_G;
 with GNAT.Table;
 
-with Gnatvsn;
 with Hostparm;
+with Switch;   use Switch;
+with Types;
 
 procedure Gnatchop is
-
-   Terminate_Program : exception;
-   --  Used to terminate execution immediately
 
    Config_File_Name : constant String_Access := new String'("gnat.adc");
    --  The name of the file holding the GNAT configuration pragmas
@@ -362,7 +359,7 @@ procedure Gnatchop is
          Set_Exit_Status (Failure);
 
          if Exit_On_Error then
-            raise Terminate_Program;
+            raise Types.Terminate_Program;
          end if;
       end if;
    end Error_Msg;
@@ -431,8 +428,10 @@ procedure Gnatchop is
                   File.Table (Input).Name.all & ASCII.Nul;
       Length  : File_Offset;
       Buffer  : String_Access;
-      Success : Boolean;
       Result  : String_Access;
+
+      Success : Boolean;
+      pragma Warnings (Off, Success);
 
    begin
       FD := Open_Read (Name'Address, Binary);
@@ -696,7 +695,7 @@ procedure Gnatchop is
       return Success;
 
    exception
-      when Failure | Terminate_Program =>
+      when Failure | Types.Terminate_Program =>
          Close (Offset_FD);
          Delete_File (Offset_Name'Address, Success);
          return False;
@@ -1114,7 +1113,7 @@ procedure Gnatchop is
 
             when 'h' =>
                Usage;
-               raise Terminate_Program;
+               raise Types.Terminate_Program;
 
             when 'k' =>
                declare
@@ -1160,14 +1159,7 @@ procedure Gnatchop is
 
             when 'v' =>
                Verbose_Mode := True;
-
-               --  Why is following written to standard error. Most other
-               --  tools write to standard output ???
-
-               Put (Standard_Error, "GNATCHOP ");
-               Put_Line (Standard_Error, Gnatvsn.Gnat_Version_String);
-               Put_Line
-                 (Standard_Error, "Copyright 1998-2005, AdaCore");
+               Display_Version ("GNATCHOP", "1998");
 
             when 'w' =>
                Overwrite_Files := True;
@@ -1769,6 +1761,10 @@ begin
 
    --  Process command line options and initialize global variables
 
+   --  First, scan to detect --version and/or --help
+
+   Check_Version_And_Help ("GNATCHOP", "1998", Usage'Unrestricted_Access);
+
    if not Scan_Arguments then
       Set_Exit_Status (Failure);
       return;
@@ -1852,7 +1848,7 @@ begin
    return;
 
 exception
-   when Terminate_Program =>
+   when Types.Terminate_Program =>
       null;
 
 end Gnatchop;

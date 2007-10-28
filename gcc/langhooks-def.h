@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hooks.h"
 
 struct diagnostic_context;
+struct diagnostic_info;
 
 /* Note to creators of new hooks:
 
@@ -39,8 +40,7 @@ extern void lhd_do_nothing_t (tree);
 extern void lhd_do_nothing_i (int);
 extern void lhd_do_nothing_f (struct function *);
 extern bool lhd_post_options (const char **);
-extern HOST_WIDE_INT lhd_get_alias_set (tree);
-extern tree lhd_return_tree (tree);
+extern alias_set_type lhd_get_alias_set (tree);
 extern tree lhd_return_null_tree_v (void);
 extern tree lhd_return_null_tree (tree);
 extern tree lhd_return_null_const_tree (const_tree);
@@ -53,26 +53,21 @@ extern int lhd_types_compatible_p (tree, tree);
 extern rtx lhd_expand_expr (tree, rtx, enum machine_mode, int, rtx *);
 extern int lhd_expand_decl (tree);
 extern void lhd_print_error_function (struct diagnostic_context *,
-				      const char *);
+				      const char *, struct diagnostic_info *);
 extern void lhd_set_decl_assembler_name (tree);
-extern bool lhd_warn_unused_global_decl (tree);
-extern void lhd_incomplete_type_error (tree, tree);
+extern bool lhd_warn_unused_global_decl (const_tree);
+extern void lhd_incomplete_type_error (const_tree, const_tree);
 extern tree lhd_type_promotes_to (tree);
 extern void lhd_register_builtin_type (tree, const char *);
-extern bool lhd_decl_ok_for_sibcall (tree);
+extern bool lhd_decl_ok_for_sibcall (const_tree);
 extern const char *lhd_comdat_group (tree);
-extern tree lhd_expr_size (tree);
+extern tree lhd_expr_size (const_tree);
 extern size_t lhd_tree_size (enum tree_code);
 extern HOST_WIDE_INT lhd_to_target_charset (HOST_WIDE_INT);
 extern tree lhd_expr_to_decl (tree, bool *, bool *, bool *);
 extern tree lhd_builtin_function (tree decl);
 
 /* Declarations of default tree inlining hooks.  */
-extern tree lhd_tree_inlining_walk_subtrees (tree *, int *, walk_tree_fn,
-					     void *, struct pointer_set_t*);
-extern int lhd_tree_inlining_cannot_inline_tree_fn (tree *);
-extern int lhd_tree_inlining_disregard_inline_limits (tree);
-extern int lhd_tree_inlining_auto_var_in_fn_p (tree, tree);
 extern void lhd_initialize_diagnostics (struct diagnostic_context *);
 extern tree lhd_callgraph_analyze_expr (tree *, int *, tree);
 
@@ -97,7 +92,6 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_MISSING_ARGUMENT	hook_bool_constcharptr_size_t_false
 #define LANG_HOOKS_POST_OPTIONS		lhd_post_options
 #define LANG_HOOKS_GET_ALIAS_SET	lhd_get_alias_set
-#define LANG_HOOKS_EXPAND_CONSTANT	lhd_return_tree
 #define LANG_HOOKS_EXPAND_EXPR		lhd_expand_expr
 #define LANG_HOOKS_EXPAND_DECL		lhd_expand_decl
 #define LANG_HOOKS_FINISH_INCOMPLETE_DECL lhd_do_nothing_t
@@ -135,30 +129,19 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_FORMAT_ATTRIBUTE_TABLE	NULL
 
 /* Tree inlining hooks.  */
-#define LANG_HOOKS_TREE_INLINING_WALK_SUBTREES lhd_tree_inlining_walk_subtrees
-#define LANG_HOOKS_TREE_INLINING_CANNOT_INLINE_TREE_FN \
-  lhd_tree_inlining_cannot_inline_tree_fn
-#define LANG_HOOKS_TREE_INLINING_DISREGARD_INLINE_LIMITS \
-  lhd_tree_inlining_disregard_inline_limits
-#define LANG_HOOKS_TREE_INLINING_AUTO_VAR_IN_FN_P \
-  lhd_tree_inlining_auto_var_in_fn_p
 #define LANG_HOOKS_TREE_INLINING_VAR_MOD_TYPE_P \
   hook_bool_tree_tree_false
 
 #define LANG_HOOKS_TREE_INLINING_INITIALIZER { \
-  LANG_HOOKS_TREE_INLINING_WALK_SUBTREES, \
-  LANG_HOOKS_TREE_INLINING_CANNOT_INLINE_TREE_FN, \
-  LANG_HOOKS_TREE_INLINING_DISREGARD_INLINE_LIMITS, \
-  LANG_HOOKS_TREE_INLINING_AUTO_VAR_IN_FN_P, \
   LANG_HOOKS_TREE_INLINING_VAR_MOD_TYPE_P, \
 }
 
 #define LANG_HOOKS_CALLGRAPH_ANALYZE_EXPR lhd_callgraph_analyze_expr
-#define LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION NULL
+#define LANG_HOOKS_CALLGRAPH_EMIT_ASSOCIATED_THUNKS NULL
 
 #define LANG_HOOKS_CALLGRAPH_INITIALIZER { \
   LANG_HOOKS_CALLGRAPH_ANALYZE_EXPR, \
-  LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION, \
+  LANG_HOOKS_CALLGRAPH_EMIT_ASSOCIATED_THUNKS, \
 }
 
 #define LANG_HOOKS_FUNCTION_INITIALIZER {	\
@@ -175,7 +158,7 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 
 /* Tree dump hooks.  */
 extern bool lhd_tree_dump_dump_tree (void *, tree);
-extern int lhd_tree_dump_type_quals (tree);
+extern int lhd_tree_dump_type_quals (const_tree);
 extern tree lhd_make_node (enum tree_code);
 
 #define LANG_HOOKS_TREE_DUMP_DUMP_TREE_FN lhd_tree_dump_dump_tree
@@ -190,12 +173,13 @@ extern tree lhd_make_node (enum tree_code);
    so we create a compile-time error instead.  */
 #define LANG_HOOKS_MAKE_TYPE lhd_make_node
 #define LANG_HOOKS_INCOMPLETE_TYPE_ERROR lhd_incomplete_type_error
-#define LANG_HOOKS_GENERIC_TYPE_P	hook_bool_tree_false
+#define LANG_HOOKS_GENERIC_TYPE_P	hook_bool_const_tree_false
 #define LANG_HOOKS_TYPE_PROMOTES_TO lhd_type_promotes_to
 #define LANG_HOOKS_REGISTER_BUILTIN_TYPE lhd_register_builtin_type
-#define LANG_HOOKS_TYPE_MAX_SIZE	lhd_return_null_tree
+#define LANG_HOOKS_TYPE_MAX_SIZE	lhd_return_null_const_tree
 #define LANG_HOOKS_OMP_FIRSTPRIVATIZE_TYPE_SIZES \
   lhd_omp_firstprivatize_type_sizes
+#define LANG_HOOKS_TYPE_HASH_EQ		NULL
 #define LANG_HOOKS_HASH_TYPES		true
 
 #define LANG_HOOKS_FOR_TYPES_INITIALIZER { \
@@ -208,6 +192,7 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_INCOMPLETE_TYPE_ERROR, \
   LANG_HOOKS_TYPE_MAX_SIZE, \
   LANG_HOOKS_OMP_FIRSTPRIVATIZE_TYPE_SIZES, \
+  LANG_HOOKS_TYPE_HASH_EQ, \
   LANG_HOOKS_HASH_TYPES \
 }
 
@@ -220,7 +205,7 @@ extern tree lhd_make_node (enum tree_code);
 #define LANG_HOOKS_WRITE_GLOBALS write_global_declarations
 #define LANG_HOOKS_DECL_OK_FOR_SIBCALL	lhd_decl_ok_for_sibcall
 #define LANG_HOOKS_COMDAT_GROUP lhd_comdat_group
-#define LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE hook_bool_tree_false
+#define LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE hook_bool_const_tree_false
 #define LANG_HOOKS_OMP_PREDETERMINED_SHARING lhd_omp_predetermined_sharing
 #define LANG_HOOKS_OMP_DISREGARD_VALUE_EXPR hook_bool_tree_bool_false
 #define LANG_HOOKS_OMP_PRIVATE_DEBUG_CLAUSE hook_bool_tree_bool_false
@@ -263,7 +248,6 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_PARSE_FILE, \
   LANG_HOOKS_CLEAR_BINDING_STACK, \
   LANG_HOOKS_GET_ALIAS_SET, \
-  LANG_HOOKS_EXPAND_CONSTANT, \
   LANG_HOOKS_EXPAND_EXPR, \
   LANG_HOOKS_EXPAND_DECL, \
   LANG_HOOKS_FINISH_INCOMPLETE_DECL, \

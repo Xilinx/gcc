@@ -1134,6 +1134,7 @@ package body Ada.Wide_Text_IO is
       --  Procedure to output one character of a wide character sequence
 
       procedure WC_Out is new Wide_Char_To_Char_Sequence (Out_Char);
+
       --------------
       -- Out_Char --
       --------------
@@ -1806,6 +1807,9 @@ package body Ada.Wide_Text_IO is
      (File : in out Wide_Text_AFCB;
       Item : Stream_Element_Array)
    is
+      pragma Warnings (Off, File);
+      --  Because in this implementation we don't need IN OUT, we only read
+
       Siz : constant size_t := Item'Length;
 
    begin

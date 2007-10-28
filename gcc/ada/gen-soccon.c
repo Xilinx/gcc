@@ -24,11 +24,17 @@
 
 /* This program generates g-soccon.ads */
 
-/* To build using DEC C:
-  CC/DEFINE="TARGET=""OpenVMS""" gen-soccon
-  LINK gen-soccon
-  RUN gen-soccon
-*/
+/*
+ * To build using DEC C:
+ *
+ * CC/DEFINE="TARGET=""OpenVMS""" gen-soccon
+ * LINK gen-soccon
+ * RUN gen-soccon
+ *
+ * Note: OpenVMS versions older than 8.3 provide an incorrect value in
+ * the DEC C header files for MSG_WAITALL. To generate the VMS version
+ * of g-soccon.ads, gen-soccon should be run on an 8.3 or later machine.
+ */
 
 #ifndef TARGET
 # error Please define TARGET
@@ -496,6 +502,11 @@ CND(TCP_NODELAY, "Do not coalesce packets")
 #define SO_REUSEADDR -1
 #endif
 CND(SO_REUSEADDR, "Bind reuse local address")
+
+#ifndef SO_REUSEPORT
+#define SO_REUSEPORT -1
+#endif
+CND(SO_REUSEPORT, "Bind reuse port number")
 
 #ifndef SO_KEEPALIVE
 #define SO_KEEPALIVE -1

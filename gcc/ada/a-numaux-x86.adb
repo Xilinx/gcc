@@ -7,7 +7,7 @@
 --                                 B o d y                                  --
 --                        (Machine Version for x86)                         --
 --                                                                          --
---          Copyright (C) 1998-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -302,15 +302,14 @@ package body Ada.Numerics.Aux is
    begin
       Asm (Template => ""             --  X                  : Y
        & "fyl2x                " & NL --  Y * Log2 (X)
-       & "fst     %%st(1)      " & NL --  Y * Log2 (X)       : Y * Log2 (X)
+       & "fld     %%st(0)      " & NL --  Y * Log2 (X)       : Y * Log2 (X)
        & "frndint              " & NL --  Int (...)          : Y * Log2 (X)
        & "fsubr   %%st, %%st(1)" & NL --  Int (...)          : Fract (...)
        & "fxch                 " & NL --  Fract (...)        : Int (...)
        & "f2xm1                " & NL --  2**Fract (...) - 1 : Int (...)
        & "fld1                 " & NL --  1 : 2**Fract (...) - 1 : Int (...)
        & "faddp   %%st, %%st(1)" & NL --  2**Fract (...)     : Int (...)
-       & "fscale               " & NL --  2**(Fract (...) + Int (...))
-       & "fstp    %%st(1)      ",
+       & "fscale               ",     --  2**(Fract (...) + Int (...))
          Outputs  => Double'Asm_Output ("=t", Result),
          Inputs   =>
            (Double'Asm_Input  ("0", X),

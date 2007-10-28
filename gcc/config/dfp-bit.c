@@ -34,16 +34,11 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 
    Contributed by Ben Elliston  <bje@au.ibm.com>.  */
 
-/* The intended way to use this file is to make two copies, add `#define '
-   to one copy, then compile both copies and add them to libgcc.a.  */
-
-/* FIXME: This implementation doesn't support TFmode conversions.  */
-#if !(defined (L_sd_to_tf) || defined (L_dd_to_tf) \
-      || defined (L_td_to_tf) || defined (L_tf_to_sd) \
-      || defined (L_tf_to_dd) || defined (L_tf_to_td))
-
 #include <stdio.h>
 #include <stdlib.h>
+/* FIXME: compile with -std=gnu99 to get these from stdlib.h */
+extern float strtof (const char *, char **);
+extern long double strtold (const char *, char **);
 #include <string.h>
 #include <limits.h>
 
@@ -63,75 +58,25 @@ void __host_to_ieee_128 (_Decimal128 in, decimal128 *out);
 void __ieee_to_host_128 (decimal128 in, _Decimal128 *out);
 #endif
 
-/* A pointer to a unary decNumber operation.  */
-typedef decNumber* (*dfp_unary_func)
-     (decNumber *, decNumber *, decContext *);
-
-/* A pointer to a binary decNumber operation.  */
-typedef decNumber* (*dfp_binary_func)
-     (decNumber *, const decNumber *, const decNumber *, decContext *);
-
-extern uint32_t __dec_byte_swap (uint32_t);
+/* A pointer to a binary decFloat operation.  */
+typedef decFloat* (*dfp_binary_func)
+     (decFloat *, const decFloat *, const decFloat *, decContext *);
 
-/* Unary operations.  */
-
-static inline DFP_C_TYPE
-dfp_unary_op (dfp_unary_func op, DFP_C_TYPE arg)
-{
-  DFP_C_TYPE result;
-  decContext context;
-  decNumber arg1, res;
-  IEEE_TYPE a, encoded_result;
-
-  HOST_TO_IEEE (arg, &a);
-
-  decContextDefault (&context, CONTEXT_INIT);
-  DFP_INIT_ROUNDMODE (context.round);
-
-  TO_INTERNAL (&a, &arg1);
-
-  /* Perform the operation.  */
-  op (&res, &arg1, &context);
-
-  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
-    {
-      /* decNumber exception flags we care about here.  */
-      int ieee_flags;
-      int dec_flags = DEC_IEEE_854_Division_by_zero | DEC_IEEE_854_Inexact
-		      | DEC_IEEE_854_Invalid_operation | DEC_IEEE_854_Overflow
-		      | DEC_IEEE_854_Underflow;
-      dec_flags &= context.status;
-      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
-      if (ieee_flags != 0)
-        DFP_HANDLE_EXCEPTIONS (ieee_flags);
-    }
-
-  TO_ENCODED (&encoded_result, &res, &context);
-  IEEE_TO_HOST (encoded_result, &result);
-  return result;
-}
-
 /* Binary operations.  */
 
-static inline DFP_C_TYPE
-dfp_binary_op (dfp_binary_func op, DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
+/* Use a decFloat (decDouble or decQuad) function to perform a DFP
+   binary operation.  */
+static inline decFloat
+dfp_binary_op (dfp_binary_func op, decFloat arg_a, decFloat arg_b)
 {
-  DFP_C_TYPE result;
+  decFloat result;
   decContext context;
-  decNumber arg1, arg2, res;
-  IEEE_TYPE a, b, encoded_result;
-
-  HOST_TO_IEEE (arg_a, &a);
-  HOST_TO_IEEE (arg_b, &b);
 
   decContextDefault (&context, CONTEXT_INIT);
   DFP_INIT_ROUNDMODE (context.round);
 
-  TO_INTERNAL (&a, &arg1);
-  TO_INTERNAL (&b, &arg2);
-
   /* Perform the operation.  */
-  op (&res, &arg1, &arg2, &context);
+  op (&result, &arg_a, &arg_b, &context);
 
   if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
     {
@@ -146,145 +91,156 @@ dfp_binary_op (dfp_binary_func op, DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
         DFP_HANDLE_EXCEPTIONS (ieee_flags);
     }
 
-  TO_ENCODED (&encoded_result, &res, &context);
-  IEEE_TO_HOST (encoded_result, &result);
   return result;
 }
+
+#if WIDTH == 32
+/* The decNumber package doesn't provide arithmetic for decSingle (32 bits);
+   convert to decDouble, use the operation for that, and convert back.  */
+static inline _Decimal32
+d32_binary_op (dfp_binary_func op, _Decimal32 arg_a, _Decimal32 arg_b)
+{
+  union { _Decimal32 c; decSingle f; } a32, b32, res32;
+  decDouble a, b, res;
+  decContext context;
+
+  /* Widen the operands and perform the operation.  */
+  a32.c = arg_a;
+  b32.c = arg_b;
+  decSingleToWider (&a32.f, &a);
+  decSingleToWider (&b32.f, &b);
+  res = dfp_binary_op (op, a, b);
+
+  /* Narrow the result, which might result in an underflow or overflow.  */
+  decContextDefault (&context, CONTEXT_INIT);
+  DFP_INIT_ROUNDMODE (context.round);
+  decSingleFromWider (&res32.f, &res, &context);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    {
+      /* decNumber exception flags we care about here.  */
+      int ieee_flags;
+      int dec_flags = DEC_IEEE_854_Inexact | DEC_IEEE_854_Overflow
+		      | DEC_IEEE_854_Underflow;
+      dec_flags &= context.status;
+      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
+      if (ieee_flags != 0)
+        DFP_HANDLE_EXCEPTIONS (ieee_flags);
+    }
+
+  return res32.c;
+}
+#else
+/* decFloat operations are supported for decDouble (64 bits) and
+   decQuad (128 bits).  The bit patterns for the types are the same.  */
+static inline DFP_C_TYPE
+dnn_binary_op (dfp_binary_func op, DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
+{
+  union { DFP_C_TYPE c; decFloat f; } a, b, result;
+
+  a.c = arg_a;
+  b.c = arg_b;
+  result.f = dfp_binary_op (op, a.f, b.f);
+  return result.c;
+}
+#endif
 
 /* Comparison operations.  */
 
-static inline int
-dfp_compare_op (dfp_binary_func op, DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
+/* Use a decFloat (decDouble or decQuad) function to perform a DFP
+   comparison.  */
+static inline CMPtype
+dfp_compare_op (dfp_binary_func op, decFloat arg_a, decFloat arg_b)
 {
-  IEEE_TYPE a, b;
   decContext context;
-  decNumber arg1, arg2, res;
+  decFloat res;
   int result;
-
-  HOST_TO_IEEE (arg_a, &a);
-  HOST_TO_IEEE (arg_b, &b);
 
   decContextDefault (&context, CONTEXT_INIT);
   DFP_INIT_ROUNDMODE (context.round);
 
-  TO_INTERNAL (&a, &arg1);
-  TO_INTERNAL (&b, &arg2);
-
   /* Perform the comparison.  */
-  op (&res, &arg1, &arg2, &context);
+  op (&res, &arg_a, &arg_b, &context);
 
-  if (decNumberIsNegative (&res))
+  if (DEC_FLOAT_IS_SIGNED (&res))
     result = -1;
-  else if (decNumberIsZero (&res))
+  else if (DEC_FLOAT_IS_ZERO (&res))
     result = 0;
-  else if (decNumberIsNaN (&res))
+  else if (DEC_FLOAT_IS_NAN (&res))
     result = -2;
   else
     result = 1;
 
-  return result;
+  return (CMPtype) result;
 }
 
+#if WIDTH == 32
+/* The decNumber package doesn't provide comparisons for decSingle (32 bits);
+   convert to decDouble, use the operation for that, and convert back.  */
+static inline CMPtype
+d32_compare_op (dfp_binary_func op, _Decimal32 arg_a, _Decimal32 arg_b)
+{
+  union { _Decimal32 c; decSingle f; } a32, b32;
+  decDouble a, b;
+
+  a32.c = arg_a;
+  b32.c = arg_b;
+  decSingleToWider (&a32.f, &a);
+  decSingleToWider (&b32.f, &b);
+  return dfp_compare_op (op, a, b);  
+}
+#else
+/* decFloat comparisons are supported for decDouble (64 bits) and
+   decQuad (128 bits).  The bit patterns for the types are the same.  */
+static inline CMPtype
+dnn_compare_op (dfp_binary_func op, DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
+{
+  union { DFP_C_TYPE c; decFloat f; } a, b;
+
+  a.c = arg_a;
+  b.c = arg_b;
+  return dfp_compare_op (op, a.f, b.f);  
+}
+#endif
 
 #if defined(L_conv_sd)
 void
 __host_to_ieee_32 (_Decimal32 in, decimal32 *out)
 {
-  uint32_t t;
-
-  if (!LIBGCC2_FLOAT_WORDS_BIG_ENDIAN)
-    {
-      memcpy (&t, &in, 4);
-      t = __dec_byte_swap (t);
-      memcpy (out, &t, 4);
-    }
-  else
-    memcpy (out, &in, 4);
+  memcpy (out, &in, 4);
 }
 
 void
 __ieee_to_host_32 (decimal32 in, _Decimal32 *out)
 {
-  uint32_t t;
-
-  if (!LIBGCC2_FLOAT_WORDS_BIG_ENDIAN)
-    {
-      memcpy (&t, &in, 4);
-      t = __dec_byte_swap (t);
-      memcpy (out, &t, 4);
-    }
-  else
-    memcpy (out, &in, 4);
+  memcpy (out, &in, 4);
 }
 #endif /* L_conv_sd */
 
 #if defined(L_conv_dd)
-static void
-__swap64 (char *src, char *dst)
-{
-  uint32_t t1, t2;
-
-  if (!LIBGCC2_FLOAT_WORDS_BIG_ENDIAN) 
-    {
-      memcpy (&t1, src, 4);
-      memcpy (&t2, src + 4, 4);
-      t1 = __dec_byte_swap (t1);
-      t2 = __dec_byte_swap (t2);
-      memcpy (dst, &t2, 4);
-      memcpy (dst + 4, &t1, 4);
-    }
-  else
-    memcpy (dst, src, 8);
-}
-
 void
 __host_to_ieee_64 (_Decimal64 in, decimal64 *out)
 {
-  __swap64 ((char *) &in, (char *) out);
+  memcpy (out, &in, 8);
 }
 
 void
 __ieee_to_host_64 (decimal64 in, _Decimal64 *out)
 {
-  __swap64 ((char *) &in, (char *) out);
+  memcpy (out, &in, 8);
 }
 #endif /* L_conv_dd */
 
 #if defined(L_conv_td)
-static void
-__swap128 (char *src, char *dst)
-{
-  uint32_t t1, t2, t3, t4;
-
-  if (!LIBGCC2_FLOAT_WORDS_BIG_ENDIAN)
-    {
-      memcpy (&t1, src, 4);
-      memcpy (&t2, src + 4, 4);
-      memcpy (&t3, src + 8, 4);
-      memcpy (&t4, src + 12, 4);
-      t1 = __dec_byte_swap (t1);
-      t2 = __dec_byte_swap (t2);
-      t3 = __dec_byte_swap (t3);
-      t4 = __dec_byte_swap (t4);
-      memcpy (dst, &t4, 4);
-      memcpy (dst + 4, &t3, 4);
-      memcpy (dst + 8, &t2, 4);
-      memcpy (dst + 12, &t1, 4);
-    }
-  else
-    memcpy (dst, src, 16);
-}
-
 void
 __host_to_ieee_128 (_Decimal128 in, decimal128 *out)
 {
-  __swap128 ((char *) &in, (char *) out);
+  memcpy (out, &in, 16);
 }
 
 void
 __ieee_to_host_128 (decimal128 in, _Decimal128 *out)
 {
-  __swap128 ((char *) &in, (char *) out);
+  memcpy (out, &in, 16);
 }
 #endif /* L_conv_td */
 
@@ -292,13 +248,13 @@ __ieee_to_host_128 (decimal128 in, _Decimal128 *out)
 DFP_C_TYPE
 DFP_ADD (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
-  return dfp_binary_op (decNumberAdd, arg_a, arg_b);
+  return DFP_BINARY_OP (DEC_FLOAT_ADD, arg_a, arg_b);
 }
 
 DFP_C_TYPE
 DFP_SUB (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
-  return dfp_binary_op (decNumberSubtract, arg_a, arg_b);
+  return DFP_BINARY_OP (DEC_FLOAT_SUBTRACT, arg_a, arg_b);
 }
 #endif /* L_addsub */
 
@@ -306,7 +262,7 @@ DFP_SUB (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 DFP_C_TYPE
 DFP_MULTIPLY (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
-  return dfp_binary_op (decNumberMultiply, arg_a, arg_b);
+  return DFP_BINARY_OP (DEC_FLOAT_MULTIPLY, arg_a, arg_b);
 }
 #endif /* L_mul */
 
@@ -314,7 +270,7 @@ DFP_MULTIPLY (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 DFP_C_TYPE
 DFP_DIVIDE (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
-  return dfp_binary_op (decNumberDivide, arg_a, arg_b);
+  return DFP_BINARY_OP (DEC_FLOAT_DIVIDE, arg_a, arg_b);
 }
 #endif /* L_div */
 
@@ -322,8 +278,8 @@ DFP_DIVIDE (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 CMPtype
 DFP_EQ (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
-  int stat;
-  stat = dfp_compare_op (decNumberCompare, arg_a, arg_b);
+  CMPtype stat;
+  stat = DFP_COMPARE_OP (DEC_FLOAT_COMPARE, arg_a, arg_b);
   /* For EQ return zero for true, nonzero for false.  */
   return stat != 0;
 }
@@ -334,7 +290,7 @@ CMPtype
 DFP_NE (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
   int stat;
-  stat = dfp_compare_op (decNumberCompare, arg_a, arg_b);
+  stat = DFP_COMPARE_OP (DEC_FLOAT_COMPARE, arg_a, arg_b);
   /* For NE return zero for true, nonzero for false.  */
   if (__builtin_expect (stat == -2, 0))  /* An operand is NaN.  */
     return 1;
@@ -347,7 +303,7 @@ CMPtype
 DFP_LT (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
   int stat;
-  stat = dfp_compare_op (decNumberCompare, arg_a, arg_b);
+  stat = DFP_COMPARE_OP (DEC_FLOAT_COMPARE, arg_a, arg_b);
   /* For LT return -1 (<0) for true, 1 for false.  */
   return (stat == -1) ? -1 : 1;
 }
@@ -358,7 +314,7 @@ CMPtype
 DFP_GT (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
   int stat;
-  stat = dfp_compare_op (decNumberCompare, arg_a, arg_b);
+  stat = DFP_COMPARE_OP (DEC_FLOAT_COMPARE, arg_a, arg_b);
   /* For GT return 1 (>0) for true, -1 for false.  */
   return (stat == 1) ? 1 : -1;
 }
@@ -369,7 +325,7 @@ CMPtype
 DFP_LE (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
   int stat;
-  stat = dfp_compare_op (decNumberCompare, arg_a, arg_b);
+  stat = DFP_COMPARE_OP (DEC_FLOAT_COMPARE, arg_a, arg_b);
   /* For LE return 0 (<= 0) for true, 1 for false.  */
   if (__builtin_expect (stat == -2, 0))  /* An operand is NaN.  */
     return 1;
@@ -382,7 +338,7 @@ CMPtype
 DFP_GE (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 {
   int stat;
-  stat = dfp_compare_op (decNumberCompare, arg_a, arg_b);
+  stat = DFP_COMPARE_OP (DEC_FLOAT_COMPARE, arg_a, arg_b);
   /* For GE return 1 (>=0) for true, -1 for false.  */
   if (__builtin_expect (stat == -2, 0))  /* An operand is NaN.  */
     return -1;
@@ -392,44 +348,169 @@ DFP_GE (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 
 #define BUFMAX 128
 
-#if defined (L_sd_to_dd) || defined (L_sd_to_td) || defined (L_dd_to_sd) \
- || defined (L_dd_to_td) || defined (L_td_to_sd) || defined (L_td_to_dd)
-DFP_C_TYPE_TO
-DFP_TO_DFP (DFP_C_TYPE f_from)
+/* Check for floating point exceptions that are relevant for conversions
+   between decimal float values and handle them.  */
+static inline void
+dfp_conversion_exceptions (const int status)
 {
-  DFP_C_TYPE_TO f_to;
-  IEEE_TYPE s_from;
-  IEEE_TYPE_TO s_to;
-  decNumber d;
+  /* decNumber exception flags we care about here.  */
+  int ieee_flags;
+  int dec_flags = DEC_IEEE_854_Inexact | DEC_IEEE_854_Invalid_operation
+		  | DEC_IEEE_854_Overflow;
+  dec_flags &= status;
+  ieee_flags = DFP_IEEE_FLAGS (dec_flags);
+  if (ieee_flags != 0)
+    DFP_HANDLE_EXCEPTIONS (ieee_flags);
+}
+
+#if defined (L_sd_to_dd)
+/* Use decNumber to convert directly from _Decimal32 to _Decimal64.  */
+_Decimal64
+DFP_TO_DFP (_Decimal32 f_from)
+{
+  union { _Decimal32 c; decSingle f; } from;
+  union { _Decimal64 c; decDouble f; } to;
+
+  from.c = f_from;
+  to.f = *decSingleToWider (&from.f, &to.f);
+  return to.c;
+}
+#endif
+
+#if defined (L_sd_to_td)
+/* Use decNumber to convert directly from _Decimal32 to _Decimal128.  */
+_Decimal128
+DFP_TO_DFP (_Decimal32 f_from)
+{
+  union { _Decimal32 c; decSingle f; } from;
+  union { _Decimal128 c; decQuad f; } to;
+  decDouble temp;
+
+  from.c = f_from;
+  temp = *decSingleToWider (&from.f, &temp);
+  to.f = *decDoubleToWider (&temp, &to.f);
+  return to.c;
+}
+#endif
+
+#if defined (L_dd_to_td)
+/* Use decNumber to convert directly from _Decimal64 to _Decimal128.  */
+_Decimal128
+DFP_TO_DFP (_Decimal64 f_from)
+{
+  union { _Decimal64 c; decDouble f; } from;
+  union { _Decimal128 c; decQuad f; } to;
+
+  from.c = f_from;
+  to.f = *decDoubleToWider (&from.f, &to.f);
+  return to.c;
+}
+#endif
+
+#if defined (L_dd_to_sd)
+/* Use decNumber to convert directly from _Decimal64 to _Decimal32.  */
+_Decimal32
+DFP_TO_DFP (_Decimal64 f_from)
+{
+  union { _Decimal32 c; decSingle f; } to;
+  union { _Decimal64 c; decDouble f; } from;
   decContext context;
 
   decContextDefault (&context, CONTEXT_INIT);
   DFP_INIT_ROUNDMODE (context.round);
-
-  HOST_TO_IEEE (f_from, &s_from);
-  TO_INTERNAL (&s_from, &d);
-  TO_ENCODED_TO (&s_to, &d, &context);
-
+  from.c = f_from;
+  to.f = *decSingleFromWider (&to.f, &from.f, &context);
   if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
-    {
-      /* decNumber exception flags we care about here.  */
-      int ieee_flags;
-      int dec_flags = DEC_IEEE_854_Inexact | DEC_IEEE_854_Invalid_operation;
-      dec_flags &= context.status;
-      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
-      if (ieee_flags != 0)
-        DFP_HANDLE_EXCEPTIONS (ieee_flags);
-    }
-
-  IEEE_TO_HOST_TO (s_to, &f_to);
-  return f_to;
+    dfp_conversion_exceptions (context.status);
+  return to.c;
 }
 #endif
 
-#if defined (L_sd_to_si) || defined (L_dd_to_si) || defined (L_td_to_si) \
-  || defined (L_sd_to_di) || defined (L_dd_to_di) || defined (L_td_to_di) \
-  || defined (L_sd_to_usi) || defined (L_dd_to_usi) || defined (L_td_to_usi) \
+#if defined (L_td_to_sd)
+/* Use decNumber to convert directly from _Decimal128 to _Decimal32.  */
+_Decimal32
+DFP_TO_DFP (_Decimal128 f_from)
+{
+  union { _Decimal32 c; decSingle f; } to;
+  union { _Decimal128 c; decQuad f; } from;
+  decDouble temp;
+  decContext context;
+
+  decContextDefault (&context, CONTEXT_INIT);
+  DFP_INIT_ROUNDMODE (context.round);
+  from.c = f_from;
+  temp = *decDoubleFromWider (&temp, &from.f, &context);
+  to.f = *decSingleFromWider (&to.f, &temp, &context);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    dfp_conversion_exceptions (context.status);
+  return to.c;
+}
+#endif
+
+#if defined (L_td_to_dd)
+/* Use decNumber to convert directly from _Decimal128 to _Decimal64.  */
+_Decimal64
+DFP_TO_DFP (_Decimal128 f_from)
+{
+  union { _Decimal64 c; decDouble f; } to;
+  union { _Decimal128 c; decQuad f; } from;
+  decContext context;
+
+  decContextDefault (&context, CONTEXT_INIT);
+  DFP_INIT_ROUNDMODE (context.round);
+  from.c = f_from;
+  to.f = *decDoubleFromWider (&to.f, &from.f, &context);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    dfp_conversion_exceptions (context.status);
+  return to.c;
+}
+#endif
+
+#if defined (L_dd_to_si) || defined (L_td_to_si) \
+  || defined (L_dd_to_usi) || defined (L_td_to_usi)
+/* Use decNumber to convert directly from decimal float to integer types.  */
+INT_TYPE
+DFP_TO_INT (DFP_C_TYPE x)
+{
+  union { DFP_C_TYPE c; decFloat f; } u;
+  decContext context;
+  INT_TYPE i;
+
+  decContextDefault (&context, DEC_INIT_DECIMAL128);
+  context.round = DEC_ROUND_DOWN;
+  u.c = x;
+  i = DEC_FLOAT_TO_INT (&u.f, &context, context.round);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    dfp_conversion_exceptions (context.status);
+  return i;
+}
+#endif
+
+#if defined (L_sd_to_si) || (L_sd_to_usi)
+/* Use decNumber to convert directly from decimal float to integer types.  */
+INT_TYPE
+DFP_TO_INT (_Decimal32 x)
+{
+  union { _Decimal32 c; decSingle f; } u32;
+  decDouble f64;
+  decContext context;
+  INT_TYPE i;
+
+  decContextDefault (&context, DEC_INIT_DECIMAL128);
+  context.round = DEC_ROUND_DOWN;
+  u32.c = x;
+  f64 = *decSingleToWider (&u32.f, &f64);
+  i = DEC_FLOAT_TO_INT (&f64, &context, context.round);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    dfp_conversion_exceptions (context.status);
+  return i;
+}
+#endif
+
+#if defined (L_sd_to_di) || defined (L_dd_to_di) || defined (L_td_to_di) \
   || defined (L_sd_to_udi) || defined (L_dd_to_udi) || defined (L_td_to_udi)
+/* decNumber doesn't provide support for conversions to 64-bit integer
+   types, so do it the hard way.  */
 INT_TYPE
 DFP_TO_INT (DFP_C_TYPE x)
 {
@@ -469,10 +550,42 @@ DFP_TO_INT (DFP_C_TYPE x)
 }
 #endif
 
-#if defined (L_si_to_sd) || defined (L_si_to_dd) || defined (L_si_to_td) \
-  || defined (L_di_to_sd) || defined (L_di_to_dd) || defined (L_di_to_td) \
-  || defined (L_usi_to_sd) || defined (L_usi_to_dd) || defined (L_usi_to_td) \
+#if defined (L_si_to_dd) || defined (L_si_to_td) \
+  || defined (L_usi_to_dd) || defined (L_usi_to_td)
+/* Use decNumber to convert directly from integer to decimal float types.  */
+DFP_C_TYPE
+INT_TO_DFP (INT_TYPE i)
+{
+  union { DFP_C_TYPE c; decFloat f; } u;
+
+  u.f = *DEC_FLOAT_FROM_INT (&u.f, i);
+  return u.c;
+}
+#endif
+
+#if defined (L_si_to_sd) || defined (L_usi_to_sd)
+_Decimal32
+/* Use decNumber to convert directly from integer to decimal float types.  */
+INT_TO_DFP (INT_TYPE i)
+{
+  union { _Decimal32 c; decSingle f; } u32;
+  decDouble f64;
+  decContext context;
+
+  decContextDefault (&context, DEC_INIT_DECIMAL128);
+  context.round = DEC_ROUND_DOWN;
+  f64 = *DEC_FLOAT_FROM_INT (&f64, i);
+  u32.f = *decSingleFromWider (&u32.f, &f64, &context);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    dfp_conversion_exceptions (context.status);
+  return u32.c;
+}
+#endif
+
+#if defined (L_di_to_sd) || defined (L_di_to_dd) || defined (L_di_to_td) \
   || defined (L_udi_to_sd) || defined (L_udi_to_dd) || defined (L_udi_to_td)
+/* decNumber doesn't provide support for conversions from 64-bit integer
+   types, so do it the hard way.  */
 DFP_C_TYPE
 INT_TO_DFP (INT_TYPE i)
 {
@@ -491,16 +604,7 @@ INT_TO_DFP (INT_TYPE i)
   IEEE_TO_HOST (s, &f);
 
   if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
-    {
-      /* decNumber exception flags we care about here.  */
-      int ieee_flags;
-      int dec_flags = DEC_IEEE_854_Inexact | DEC_IEEE_854_Invalid_operation
-		      | DEC_IEEE_854_Overflow;
-      dec_flags &= context.status;
-      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
-      if (ieee_flags != 0)
-        DFP_HANDLE_EXCEPTIONS (ieee_flags);
-    }
+    dfp_conversion_exceptions (context.status);
 
   return f;
 }
@@ -509,7 +613,9 @@ INT_TO_DFP (INT_TYPE i)
 #if defined (L_sd_to_sf) || defined (L_dd_to_sf) || defined (L_td_to_sf) \
  || defined (L_sd_to_df) || defined (L_dd_to_df) || defined (L_td_to_df) \
  || ((defined (L_sd_to_xf) || defined (L_dd_to_xf) || defined (L_td_to_xf)) \
-     && LIBGCC2_HAS_XF_MODE)
+     && LONG_DOUBLE_HAS_XF_MODE) \
+ || ((defined (L_sd_to_tf) || defined (L_dd_to_tf) || defined (L_td_to_tf)) \
+     && LONG_DOUBLE_HAS_TF_MODE)
 BFP_TYPE
 DFP_TO_BFP (DFP_C_TYPE f)
 {
@@ -527,7 +633,9 @@ DFP_TO_BFP (DFP_C_TYPE f)
 #if defined (L_sf_to_sd) || defined (L_sf_to_dd) || defined (L_sf_to_td) \
  || defined (L_df_to_sd) || defined (L_df_to_dd) || defined (L_df_to_td) \
  || ((defined (L_xf_to_sd) || defined (L_xf_to_dd) || defined (L_xf_to_td)) \
-     && LIBGCC2_HAS_XF_MODE)
+     && LONG_DOUBLE_HAS_XF_MODE) \
+ || ((defined (L_tf_to_sd) || defined (L_tf_to_dd) || defined (L_tf_to_td)) \
+     && LONG_DOUBLE_HAS_TF_MODE)
 DFP_C_TYPE
 BFP_TO_DFP (BFP_TYPE x)
 {
@@ -540,12 +648,7 @@ BFP_TO_DFP (BFP_TYPE x)
   DFP_INIT_ROUNDMODE (context.round);
 
   /* Use a C library function to write the floating point value to a string.  */
-#ifdef BFP_VIA_TYPE
-  /* FIXME: Is there a better way to output an XFmode variable in C?  */
   sprintf (buf, BFP_FMT, (BFP_VIA_TYPE) x);
-#else
-  sprintf (buf, BFP_FMT, x);
-#endif
 
   /* Convert from the floating point string to a decimal* type.  */
   FROM_STRING (&s, buf, &context);
@@ -581,7 +684,3 @@ DFP_UNORD (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
   return (decNumberIsNaN (&arg1) || decNumberIsNaN (&arg2));
 }
 #endif /* L_unord_sd || L_unord_dd || L_unord_td */
-
-/* !(L_sd_to_tf || L_dd_to_tf || L_td_to_tf \
-     || L_tf_to_sd || L_tf_to_dd || L_tf_to_td)  */
-#endif

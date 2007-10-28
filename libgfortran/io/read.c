@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -27,15 +27,11 @@ along with Libgfortran; see the file COPYING.  If not, write to
 the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-
-#include "config.h"
+#include "io.h"
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include "libgfortran.h"
-#include "io.h"
 
 /* read.c -- Deal with formatted reads */
 
@@ -179,7 +175,7 @@ convert_real (st_parameter_dt *dtp, void *dest, const char *buffer, int length)
 
   if (errno == EINVAL)
     {
-      generate_error (&dtp->common, ERROR_READ_VALUE,
+      generate_error (&dtp->common, LIBERROR_READ_VALUE,
 		      "Error during floating point read");
       return 1;
     }
@@ -227,7 +223,7 @@ read_l (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
       break;
     default:
     bad:
-      generate_error (&dtp->common, ERROR_READ_VALUE,
+      generate_error (&dtp->common, LIBERROR_READ_VALUE,
 		      "Bad value on logical read");
       break;
     }
@@ -397,12 +393,12 @@ read_decimal (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
   return;
 
  bad:
-  generate_error (&dtp->common, ERROR_READ_VALUE,
+  generate_error (&dtp->common, LIBERROR_READ_VALUE,
 		  "Bad value during integer read");
   return;
 
  overflow:
-  generate_error (&dtp->common, ERROR_READ_OVERFLOW,
+  generate_error (&dtp->common, LIBERROR_READ_OVERFLOW,
 		  "Value overflowed during integer read");
   return;
 }
@@ -541,12 +537,12 @@ read_radix (st_parameter_dt *dtp, const fnode *f, char *dest, int length,
   return;
 
  bad:
-  generate_error (&dtp->common, ERROR_READ_VALUE,
+  generate_error (&dtp->common, LIBERROR_READ_VALUE,
 		  "Bad value during integer read");
   return;
 
  overflow:
-  generate_error (&dtp->common, ERROR_READ_OVERFLOW,
+  generate_error (&dtp->common, LIBERROR_READ_OVERFLOW,
 		  "Value overflowed during integer read");
   return;
 }
@@ -661,7 +657,7 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
   goto done;
 
  bad_float:
-  generate_error (&dtp->common, ERROR_READ_VALUE,
+  generate_error (&dtp->common, LIBERROR_READ_VALUE,
 		  "Bad value during floating point read");
   return;
 

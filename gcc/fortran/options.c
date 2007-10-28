@@ -62,7 +62,7 @@ gfc_init_options (unsigned int argc ATTRIBUTE_UNUSED,
   gfc_option.max_continue_free = 39;
   gfc_option.max_identifier_length = GFC_MAX_SYMBOL_LEN;
   gfc_option.max_subrecord_length = 0;
-  gfc_option.convert = CONVERT_NATIVE;
+  gfc_option.convert = GFC_CONVERT_NATIVE;
   gfc_option.record_marker = 0;
   gfc_option.verbose = 0;
 
@@ -86,13 +86,17 @@ gfc_init_options (unsigned int argc ATTRIBUTE_UNUSED,
   gfc_option.flag_f2c = 0;
   gfc_option.flag_second_underscore = -1;
   gfc_option.flag_implicit_none = 0;
-  gfc_option.flag_max_stack_var_size = 32768;
+
+  /* Default value of flag_max_stack_var_size is set in gfc_post_options.  */
+  gfc_option.flag_max_stack_var_size = -2;
+
   gfc_option.flag_range_check = 1;
   gfc_option.flag_pack_derived = 0;
   gfc_option.flag_repack_arrays = 0;
   gfc_option.flag_preprocessed = 0;
   gfc_option.flag_automatic = 1;
   gfc_option.flag_backslash = 1;
+  gfc_option.flag_module_private = 0;
   gfc_option.flag_backtrace = 0;
   gfc_option.flag_allow_leading_underscore = 0;
   gfc_option.flag_dump_core = 0;
@@ -102,7 +106,14 @@ gfc_init_options (unsigned int argc ATTRIBUTE_UNUSED,
   gfc_option.flag_d_lines = -1;
   gfc_option.flag_openmp = 0;
   gfc_option.flag_sign_zero = 1;
-
+  gfc_option.flag_recursive = 0;
+  gfc_option.flag_init_integer = GFC_INIT_INTEGER_OFF;
+  gfc_option.flag_init_integer_value = 0;
+  gfc_option.flag_init_real = GFC_INIT_REAL_OFF;
+  gfc_option.flag_init_logical = GFC_INIT_LOGICAL_OFF;
+  gfc_option.flag_init_character = GFC_INIT_CHARACTER_OFF;
+  gfc_option.flag_init_character_value = (char)0;
+  
   gfc_option.fpe = 0;
 
   /* Argument pointers cannot point to anything but their argument.  */
@@ -148,6 +159,9 @@ form_from_filename (const char *filename)
     ,
     {
     ".for", FORM_FIXED}
+    ,
+    {
+    ".ftn", FORM_FIXED}
     ,
     {
     "", FORM_UNKNOWN}
@@ -200,6 +214,10 @@ gfc_post_options (const char **pfilename)
   char *source_path;
   int i;
 
+  /* Issue an error if -fwhole-program was used.  */
+  if (flag_whole_program)
+    gfc_fatal_error ("Option -fwhole-program is not supported for Fortran");
+
   /* Verify the input file name.  */
   if (!filename || strcmp (filename, "-") == 0)
     {
@@ -239,7 +257,7 @@ gfc_post_options (const char **pfilename)
     gfc_add_include_path (".", true);
 
   if (canon_source_file != gfc_source_file)
-    gfc_free ((void *) canon_source_file);
+    gfc_free (CONST_CAST (char *, canon_source_file));
 
   /* Decide which form the file will be read in as.  */
 
@@ -288,6 +306,37 @@ gfc_post_options (const char **pfilename)
      otherwise.  */
   if (gfc_option.flag_second_underscore == -1)
     gfc_option.flag_second_underscore = gfc_option.flag_f2c;
+
+  if (!gfc_option.flag_automatic && gfc_option.flag_max_stack_var_size != -2
+      && gfc_option.flag_max_stack_var_size != 0)
+    gfc_warning_now ("Flag -fno-automatic overwrites -fmax-stack-var-size=%d",
+		     gfc_option.flag_max_stack_var_size);
+  else if (!gfc_option.flag_automatic && gfc_option.flag_recursive)
+    gfc_warning_now ("Flag -fno-automatic overwrites -frecursive");
+  else if (!gfc_option.flag_automatic && gfc_option.flag_openmp)
+    gfc_warning_now ("Flag -fno-automatic overwrites -frecursive implied by "
+		     "-fopenmp");
+  else if (gfc_option.flag_max_stack_var_size != -2
+	   && gfc_option.flag_recursive)
+    gfc_warning_now ("Flag -frecursive overwrites -fmax-stack-var-size=%d",
+		     gfc_option.flag_max_stack_var_size);
+  else if (gfc_option.flag_max_stack_var_size != -2
+	   && gfc_option.flag_openmp)
+    gfc_warning_now ("Flag -fmax-stack-var-size=%d overwrites -frecursive "
+		     "implied by -fopenmp", 
+		     gfc_option.flag_max_stack_var_size);
+
+  /* Implied -frecursive; implemented as -fmax-stack-var-size=-1.  */
+  if (gfc_option.flag_max_stack_var_size == -2 && gfc_option.flag_openmp)
+    gfc_option.flag_max_stack_var_size = -1;
+
+  /* Set default.  */
+  if (gfc_option.flag_max_stack_var_size == -2)
+    gfc_option.flag_max_stack_var_size = 32768;
+
+  /* Implement -frecursive as -fmax-stack-var-size=-1.  */
+  if (gfc_option.flag_recursive)
+    gfc_option.flag_max_stack_var_size = -1;
 
   /* Implement -fno-automatic as -fmax-stack-var-size=0.  */
   if (!gfc_option.flag_automatic)
@@ -575,6 +624,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_option.flag_max_stack_var_size = value;
       break;
 
+    case OPT_fmodule_private:
+      gfc_option.flag_module_private = value;
+      break;
+      
     case OPT_frange_check:
       gfc_option.flag_range_check = value;
       break;
@@ -608,6 +661,55 @@ gfc_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_fdefault_double_8:
       gfc_option.flag_default_double = value;
+      break;
+
+    case OPT_finit_local_zero:
+      gfc_option.flag_init_integer = GFC_INIT_INTEGER_ON;
+      gfc_option.flag_init_integer_value = 0;
+      gfc_option.flag_init_real = GFC_INIT_REAL_ZERO;
+      gfc_option.flag_init_logical = GFC_INIT_LOGICAL_FALSE;
+      gfc_option.flag_init_character = GFC_INIT_CHARACTER_ON;
+      gfc_option.flag_init_character_value = (char)0;
+      break;
+
+    case OPT_finit_logical_:
+      if (!strcasecmp (arg, "false"))
+	gfc_option.flag_init_logical = GFC_INIT_LOGICAL_FALSE;
+      else if (!strcasecmp (arg, "true"))
+	gfc_option.flag_init_logical = GFC_INIT_LOGICAL_TRUE;
+      else
+	gfc_fatal_error ("Unrecognized option to -finit-logical: %s",
+			 arg);
+      break;
+
+    case OPT_finit_real_:
+      if (!strcasecmp (arg, "zero"))
+	gfc_option.flag_init_real = GFC_INIT_REAL_ZERO;
+      else if (!strcasecmp (arg, "nan"))
+	gfc_option.flag_init_real = GFC_INIT_REAL_NAN;
+      else if (!strcasecmp (arg, "inf"))
+	gfc_option.flag_init_real = GFC_INIT_REAL_INF;
+      else if (!strcasecmp (arg, "-inf"))
+	gfc_option.flag_init_real = GFC_INIT_REAL_NEG_INF;
+      else
+	gfc_fatal_error ("Unrecognized option to -finit-real: %s",
+			 arg);
+      break;      
+
+    case OPT_finit_integer_:
+      gfc_option.flag_init_integer = GFC_INIT_INTEGER_ON;
+      gfc_option.flag_init_integer_value = atoi (arg);
+      break;
+
+    case OPT_finit_character_:
+      if (value >= 0 && value <= 127)
+	{
+	  gfc_option.flag_init_character = GFC_INIT_CHARACTER_ON;
+	  gfc_option.flag_init_character_value = (char)value;
+	}
+      else
+	gfc_fatal_error ("The value of n in -finit-character=n must be "
+			 "between 0 and 127");
       break;
 
     case OPT_I:
@@ -664,19 +766,19 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_fconvert_little_endian:
-      gfc_option.convert = CONVERT_LITTLE;
+      gfc_option.convert = GFC_CONVERT_LITTLE;
       break;
 
     case OPT_fconvert_big_endian:
-      gfc_option.convert = CONVERT_BIG;
+      gfc_option.convert = GFC_CONVERT_BIG;
       break;
 
     case OPT_fconvert_native:
-      gfc_option.convert = CONVERT_NATIVE;
+      gfc_option.convert = GFC_CONVERT_NATIVE;
       break;
 
     case OPT_fconvert_swap:
-      gfc_option.convert = CONVERT_SWAP;
+      gfc_option.convert = GFC_CONVERT_SWAP;
       break;
 
     case OPT_frecord_marker_4:
@@ -693,6 +795,11 @@ gfc_handle_option (size_t scode, const char *arg, int value)
 			 MAX_SUBRECORD_LENGTH);
 
       gfc_option.max_subrecord_length = value;
+      break;
+
+    case OPT_frecursive:
+      gfc_option.flag_recursive = 1;
+      break;
     }
 
   return result;

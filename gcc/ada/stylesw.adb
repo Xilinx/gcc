@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -54,6 +53,7 @@ package body Stylesw is
       Style_Check_Order_Subprograms     := False;
       Style_Check_Pragma_Casing         := False;
       Style_Check_References            := False;
+      Style_Check_Separate_Stmt_Lines   := False;
       Style_Check_Specs                 := False;
       Style_Check_Standard              := False;
       Style_Check_Tokens                := False;
@@ -65,7 +65,7 @@ package body Stylesw is
    ------------------------------
 
    procedure Save_Style_Check_Options (Options : out Style_Check_Options) is
-      P : Natural   := 0;
+      P : Natural := 0;
 
       procedure Add (C : Character; S : Boolean);
       --  Add given character C to string if switch S is true
@@ -126,6 +126,7 @@ package body Stylesw is
       Add ('p', Style_Check_Pragma_Casing);
       Add ('r', Style_Check_References);
       Add ('s', Style_Check_Specs);
+      Add ('S', Style_Check_Separate_Stmt_Lines);
       Add ('t', Style_Check_Tokens);
       Add ('u', Style_Check_Blank_Lines);
       Add ('x', Style_Check_Xtra_Parens);
@@ -167,7 +168,7 @@ package body Stylesw is
    procedure Set_GNAT_Style_Check_Options is
    begin
       Reset_Style_Check_Options;
-      Set_Style_Check_Options ("3aAbcdefhiklmnprstux");
+      Set_Style_Check_Options ("3aAbcdefhiklmnprsStux");
    end Set_GNAT_Style_Check_Options;
 
    -----------------------------
@@ -179,6 +180,7 @@ package body Stylesw is
    procedure Set_Style_Check_Options (Options : String) is
       OK : Boolean;
       EC : Natural;
+      pragma Warnings (Off, EC);
    begin
       Set_Style_Check_Options (Options, OK, EC);
       pragma Assert (OK);
@@ -358,6 +360,9 @@ package body Stylesw is
 
             when 's' =>
                Style_Check_Specs                 := True;
+
+            when 'S' =>
+               Style_Check_Separate_Stmt_Lines   := True;
 
             when 't' =>
                Style_Check_Tokens                := True;

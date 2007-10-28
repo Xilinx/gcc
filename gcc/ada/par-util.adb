@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2004, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -61,7 +60,7 @@ package body Util is
       end if;
 
       for J in S'Range loop
-         S (J) := Fold_Lower (Tname (Integer (J) + 4));
+         S (J) := Fold_Lower (Tname (J + 4));
       end loop;
 
       Get_Name_String (Token_Name);
@@ -175,6 +174,18 @@ package body Util is
          null;
       end if;
    end Check_Misspelling_Of;
+
+   --------------------------
+   -- Check_No_Right_Paren --
+   --------------------------
+
+   procedure Check_No_Right_Paren is
+   begin
+      if Token = Tok_Right_Paren then
+         Error_Msg_SC ("unexpected right parenthesis");
+         Scan; -- past unexpected right paren
+      end if;
+   end Check_No_Right_Paren;
 
    -----------------------------
    -- Check_Simple_Expression --
@@ -586,21 +597,6 @@ package body Util is
          Discard_Junk_Node (P_Constraint_Opt);
       end if;
    end No_Constraint;
-
-   --------------------
-   -- No_Right_Paren --
-   --------------------
-
-   function No_Right_Paren (Expr : Node_Id) return Node_Id is
-   begin
-      if Token = Tok_Right_Paren then
-         Error_Msg_SC ("unexpected right parenthesis");
-         Resync_Expression;
-         return Error;
-      else
-         return Expr;
-      end if;
-   end No_Right_Paren;
 
    ---------------------
    -- Pop_Scope_Stack --

@@ -39,16 +39,12 @@
 // purpose. It is provided "as is" without express or implied
 // warranty.
 
-/** @file ext/vstring.h
+/** @file ext/throw_allocator.h
  *  This file is a GNU extension to the Standard C++ Library.
  *
  *  Contains an exception-throwing allocator, useful for testing
  *  exception safety. In addition, allocation addresses are stored and
  *  sanity checked.
- */
-
-/**
- * @file throw_allocator.h 
  */
 
 #ifndef _THROW_ALLOCATOR_H
@@ -64,6 +60,7 @@
 #include <utility>
 #include <tr1/random>
 #include <bits/functexcept.h>
+#include <bits/stl_move.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
@@ -235,6 +232,16 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       void
       construct(pointer __p, const T& val)
       { return std::allocator<value_type>().construct(__p, val); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        void
+        construct(pointer __p, _Args&&... __args)
+	{ 
+	  return std::allocator<value_type>().
+	    construct(__p, std::forward<_Args>(__args)...);
+	}
+#endif
 
       void
       destroy(pointer __p)

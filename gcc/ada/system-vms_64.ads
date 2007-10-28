@@ -71,8 +71,7 @@ package System is
    --  literals with this type (use To_Address to convert integer literals).
    --
    --  Conversion to and from Short_Address is however freely permitted, and
-   --  is indeed the reason that Address is declared as an integer type. See
-   --
+   --  is indeed the reason that Address is declared as an integer type.
 
    Storage_Unit : constant := 8;
    Word_Size    : constant := 64;

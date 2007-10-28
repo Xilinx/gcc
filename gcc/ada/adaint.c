@@ -76,23 +76,43 @@
 #include "version.h"
 #endif
 
-#ifdef __MINGW32__
+#if defined (__MINGW32__)
+
 #include "mingw32.h"
 #include <sys/utime.h>
 #include <ctype.h>
-#else
-#ifndef VMS
+
+#elif defined (__Lynx__)
+
+/* Lynx utime.h only defines the entities of interest to us if
+   defined (VMOS_DEV), so ... */
+#define VMOS_DEV
+#include <utime.h>
+#undef VMOS_DEV
+
+#elif !defined (VMS)
 #include <utime.h>
 #endif
-#endif
 
+/* wait.h processing */
 #ifdef __MINGW32__
 #if OLD_MINGW
 #include <sys/wait.h>
 #endif
 #elif defined (__vxworks) && defined (__RTP__)
 #include <wait.h>
+#elif defined (__Lynx__)
+/* ??? We really need wait.h and it includes resource.h on Lynx.  GCC
+   has a resource.h header as well, included instead of the lynx
+   version in our setup, causing lots of errors.  We don't really need
+   the lynx contents of this file, so just workaround the issue by
+   preventing the inclusion of the GCC header from doing anything.  */
+#define GCC_RESOURCE_H
+#include <sys/wait.h>
+#elif defined (__nucleus__)
+/* No wait() or waitpid() calls available */
 #else
+/* Default case */
 #include <sys/wait.h>
 #endif
 
@@ -101,6 +121,7 @@
 
 /* Header files and definitions for __gnat_set_file_time_name.  */
 
+#define __NEW_STARLET 1
 #include <vms/rms.h>
 #include <vms/atrdef.h>
 #include <vms/fibdef.h>
@@ -119,17 +140,18 @@
     Y = tmptime * 10000000 + reftime; }
 
 /* descrip.h doesn't have everything ... */
+typedef struct fibdef* __fibdef_ptr32 __attribute__ (( mode (SI) ));
 struct dsc$descriptor_fib
 {
-  unsigned long fib$l_len;
-  struct fibdef *fib$l_addr;
+  unsigned int fib$l_len;
+  __fibdef_ptr32 fib$l_addr;
 };
 
 /* I/O Status Block.  */
 struct IOSB
 {
   unsigned short status, count;
-  unsigned long devdep;
+  unsigned int devdep;
 };
 
 static char *tryfile;
@@ -257,7 +279,7 @@ const int __gnat_vmsp = 0;
 #elif defined (VMS)
 #define GNAT_MAX_PATH_LEN 256 /* PATH_MAX */
 
-#elif defined (__vxworks) || defined (__OPENNT)
+#elif defined (__vxworks) || defined (__OPENNT) || defined(__nucleus__)
 #define GNAT_MAX_PATH_LEN PATH_MAX
 
 #else
@@ -373,38 +395,34 @@ __gnat_to_gm_time
 
 /* Place the contents of the symbolic link named PATH in the buffer BUF,
    which has size BUFSIZ.  If PATH is a symbolic link, then return the number
-   of characters of its content in BUF.  Otherwise, return -1.  For Windows,
-   OS/2 and vxworks, always return -1.  */
+   of characters of its content in BUF.  Otherwise, return -1.
+   For systems not supporting symbolic links, always return -1.  */
 
 int
 __gnat_readlink (char *path ATTRIBUTE_UNUSED,
 		 char *buf ATTRIBUTE_UNUSED,
 		 size_t bufsiz ATTRIBUTE_UNUSED)
 {
-#if defined (MSDOS) || defined (_WIN32) || defined (__EMX__)
-  return -1;
-#elif defined (__INTERIX) || defined (VMS)
-  return -1;
-#elif defined (__vxworks)
+#if defined (MSDOS) || defined (_WIN32) || defined (__EMX__) \
+  || defined (__INTERIX) || defined (VMS) \
+  || defined(__vxworks) || defined (__nucleus__)
   return -1;
 #else
   return readlink (path, buf, bufsiz);
 #endif
 }
 
-/* Creates a symbolic link named NEWPATH which contains the string OLDPATH.  If
-   NEWPATH exists it will NOT be overwritten.  For Windows, OS/2, VxWorks,
-   Interix and VMS, always return -1. */
+/* Creates a symbolic link named NEWPATH which contains the string OLDPATH.
+   If NEWPATH exists it will NOT be overwritten.
+   For systems not supporting symbolic links, always return -1.  */
 
 int
 __gnat_symlink (char *oldpath ATTRIBUTE_UNUSED,
 		char *newpath ATTRIBUTE_UNUSED)
 {
-#if defined (MSDOS) || defined (_WIN32) || defined (__EMX__)
-  return -1;
-#elif defined (__INTERIX) || defined (VMS)
-  return -1;
-#elif defined (__vxworks)
+#if defined (MSDOS) || defined (_WIN32) || defined (__EMX__) \
+  || defined (__INTERIX) || defined (VMS) \
+  || defined(__vxworks) || defined (__nucleus__)
   return -1;
 #else
   return symlink (oldpath, newpath);
@@ -413,7 +431,7 @@ __gnat_symlink (char *oldpath ATTRIBUTE_UNUSED,
 
 /* Try to lock a file, return 1 if success.  */
 
-#if defined (__vxworks) || defined (MSDOS) || defined (_WIN32)
+#if defined (__vxworks) || defined (__nucleus__) || defined (MSDOS) || defined (_WIN32)
 
 /* Version that does not use link. */
 
@@ -870,6 +888,8 @@ __gnat_open_new_temp (char *path, int fmode)
   return mkstemp (path);
 #elif defined (__Lynx__)
   mktemp (path);
+#elif defined (__nucleus__)
+  return -1;
 #else
   if (mktemp (path) == NULL)
     return -1;
@@ -1261,7 +1281,7 @@ __gnat_set_file_time_name (char *name, time_t time_stamp)
   struct
     {
       unsigned long long backup, create, expire, revise;
-      unsigned long uic;
+      unsigned int uic;
       union
 	{
 	  unsigned short value;
@@ -1552,12 +1572,36 @@ __gnat_file_exists (char *name)
 int
 __gnat_is_absolute_path (char *name, int length)
 {
+#ifdef __vxworks
+  /* On VxWorks systems, an absolute path can be represented (depending on
+     the host platform) as either /dir/file, or device:/dir/file, or
+     device:drive_letter:/dir/file. */
+
+  int index;
+
+  if (name[0] == '/')
+    return 1;
+
+  for (index = 0; index < length; index++)
+    {
+      if (name[index] == ':' &&
+          ((name[index + 1] == '/') ||
+           (isalpha (name[index + 1]) && index + 2 <= length &&
+            name[index + 2] == '/')))
+        return 1;
+
+      else if (name[index] == '/')
+        return 0;
+    }
+  return 0;
+#else
   return (length != 0) &&
      (*name == '/' || *name == DIR_SEPARATOR
 #if defined (__EMX__) || defined (MSDOS) || defined (WINNT)
       || (length > 1 && isalpha (name[0]) && name[1] == ':')
 #endif
 	  );
+#endif
 }
 
 int
@@ -1607,7 +1651,7 @@ __gnat_is_writable_file (char *name)
 void
 __gnat_set_writable (char *name)
 {
-#ifndef __vxworks
+#if ! defined (__vxworks) && ! defined(__nucleus__)
   struct stat statbuf;
 
   if (stat (name, &statbuf) == 0)
@@ -1621,7 +1665,7 @@ __gnat_set_writable (char *name)
 void
 __gnat_set_executable (char *name)
 {
-#ifndef __vxworks
+#if ! defined (__vxworks) && ! defined(__nucleus__)
   struct stat statbuf;
 
   if (stat (name, &statbuf) == 0)
@@ -1635,7 +1679,7 @@ __gnat_set_executable (char *name)
 void
 __gnat_set_readonly (char *name)
 {
-#ifndef __vxworks
+#if ! defined (__vxworks) && ! defined(__nucleus__)
   struct stat statbuf;
 
   if (stat (name, &statbuf) == 0)
@@ -1649,7 +1693,7 @@ __gnat_set_readonly (char *name)
 int
 __gnat_is_symbolic_link (char *name ATTRIBUTE_UNUSED)
 {
-#if defined (__vxworks)
+#if defined (__vxworks) || defined (__nucleus__)
   return 0;
 
 #elif defined (_AIX) || defined (__APPLE__) || defined (__unix__)
@@ -1697,7 +1741,7 @@ __gnat_portable_spawn (char *args[])
   else
     return status;
 
-#elif defined (__vxworks)
+#elif defined (__vxworks) || defined(__nucleus__)
   return -1;
 #else
 
@@ -1997,7 +2041,7 @@ __gnat_portable_no_block_spawn (char *args[])
   pid = win32_no_block_spawn (args[0], args);
   return pid;
 
-#elif defined (__vxworks)
+#elif defined (__vxworks) || defined (__nucleus__)
   return -1;
 
 #else
@@ -2032,7 +2076,7 @@ __gnat_portable_wait (int *process_status)
 #elif defined (__EMX__) || defined (MSDOS)
   /* ??? See corresponding comment in portable_no_block_spawn.  */
 
-#elif defined (__vxworks)
+#elif defined (__vxworks) || defined (__nucleus__)
   /* Not sure what to do here, so do same as __EMX__ case, i.e., nothing but
      return zero.  */
 #else
@@ -2330,6 +2374,137 @@ __gnat_to_canonical_file_list_free ()
   new_canonical_filelist = 0;
 }
 
+/* The functional equivalent of decc$translate_vms routine.
+   Designed to produce the same output, but is protected against
+   malformed paths (original version ACCVIOs in this case) and
+   does not require VMS-specific DECC RTL */
+
+#define NAM$C_MAXRSS 1024
+
+char *
+__gnat_translate_vms (char *src)
+{
+  static char retbuf [NAM$C_MAXRSS+1];
+  char *srcendpos, *pos1, *pos2, *retpos;
+  int disp, path_present = 0;
+
+  if (!src) return NULL;
+
+  srcendpos = strchr (src, '\0');
+  retpos = retbuf;
+
+  /* Look for the node and/or device in front of the path */
+  pos1 = src;
+  pos2 = strchr (pos1, ':');
+
+  if (pos2 && (pos2 < srcendpos) && (*(pos2 + 1) == ':')) {
+    /* There is a node name. "node_name::" becomes "node_name!" */
+    disp = pos2 - pos1;
+    strncpy (retbuf, pos1, disp);
+    retpos [disp] = '!';
+    retpos = retpos + disp + 1;
+    pos1 = pos2 + 2;
+    pos2 = strchr (pos1, ':');
+  }
+
+  if (pos2) {
+    /* There is a device name. "dev_name:" becomes "/dev_name/" */
+    *(retpos++) = '/';
+    disp = pos2 - pos1;
+    strncpy (retpos, pos1, disp);
+    retpos = retpos + disp;
+    pos1 = pos2 + 1;
+    *(retpos++) = '/';
+  }
+  else
+    /* No explicit device; we must look ahead and prepend /sys$disk/ if
+       the path is absolute */
+    if ((*pos1 == '[' || *pos1 == '<') && (pos1 < srcendpos)
+        && !strchr (".-]>", *(pos1 + 1))) {
+      strncpy (retpos, "/sys$disk/", 10);
+      retpos += 10;
+    }
+
+  /* Process the path part */
+  while (*pos1 == '[' || *pos1 == '<') {
+    path_present++;
+    pos1++;
+    if (*pos1 == ']' || *pos1 == '>') {
+      /* Special case, [] translates to '.' */
+      *(retpos++) = '.';
+      pos1++;
+    }
+    else {
+      /* '[000000' means root dir. It can be present in the middle of
+         the path due to expansion of logical devices, in which case
+         we skip it */
+      if (!strncmp (pos1, "000000", 6) && path_present > 1 &&
+         (*(pos1 + 6) == ']' || *(pos1 + 6) == '>' || *(pos1 + 6) == '.')) {
+          pos1 += 6;
+          if (*pos1 == '.') pos1++;
+        }
+      else if (*pos1 == '.') {
+        /* Relative path */
+        *(retpos++) = '.';
+      }
+
+      /* There is a qualified path */
+      while (*pos1 && *pos1 != ']' && *pos1 != '>') {
+        switch (*pos1) {
+          case '.':
+            /* '.' is used to separate directories. Replace it with '/' but
+               only if there isn't already '/' just before */
+            if (*(retpos - 1) != '/') *(retpos++) = '/';
+            pos1++;
+            if (pos1 + 1 < srcendpos && *pos1 == '.' && *(pos1 + 1) == '.') {
+              /* ellipsis refers to entire subtree; replace with '**' */
+              *(retpos++) = '*'; *(retpos++) = '*'; *(retpos++) = '/';
+              pos1 += 2;
+            }
+            break;
+          case '-' :
+            /* When after '.' '[' '<' is equivalent to Unix ".." but there
+            may be several in a row */
+            if (*(pos1 - 1) == '.' || *(pos1 - 1) == '[' ||
+                *(pos1 - 1) == '<') {
+              while (*pos1 == '-') {
+                pos1++;
+                *(retpos++) = '.'; *(retpos++) = '.'; *(retpos++) = '/';
+              }
+              retpos--;
+              break;
+            }
+            /* otherwise fall through to default */
+          default:
+            *(retpos++) = *(pos1++);
+        }
+      }
+      pos1++;
+    }
+  }
+
+  if (pos1 < srcendpos) {
+    /* Now add the actual file name, until the version suffix if any */
+    if (path_present) *(retpos++) = '/';
+    pos2 = strchr (pos1, ';');
+    disp = pos2? (pos2 - pos1) : (srcendpos - pos1);
+    strncpy (retpos, pos1, disp);
+    retpos += disp;
+    if (pos2 && pos2 < srcendpos) {
+      /* There is a non-empty version suffix. ";<ver>" becomes ".<ver>" */
+      *retpos++ = '.';
+      disp = srcendpos - pos2 - 1;
+      strncpy (retpos, pos2 + 1, disp);
+      retpos += disp;
+    }
+  }
+
+  *retpos = '\0';
+
+  return retbuf;
+
+}
+
 /* Translate a VMS syntax directory specification in to Unix syntax.  If
    PREFIXFLAG is set, append an underscore "/". If no indicators of VMS syntax
    found, return input string. Also translate a dirname that contains no
@@ -2348,13 +2523,13 @@ __gnat_to_canonical_dir_spec (char *dirspec, int prefixflag)
       if (strchr (dirspec, ']') || strchr (dirspec, ':'))
 	{
 	  strncpy (new_canonical_dirspec,
-		   (char *) decc$translate_vms (dirspec),
+		   __gnat_translate_vms (dirspec),
 		   MAXPATH);
 	}
       else if (!strchr (dirspec, '/') && (dirspec1 = getenv (dirspec)) != 0)
 	{
 	  strncpy (new_canonical_dirspec,
-		  (char *) decc$translate_vms (dirspec1),
+		  __gnat_translate_vms (dirspec1),
 		  MAXPATH);
 	}
       else
@@ -2388,7 +2563,7 @@ __gnat_to_canonical_file_spec (char *filespec)
 
   if (strchr (filespec, ']') || strchr (filespec, ':'))
     {
-      char *tspec = (char *) decc$translate_vms (filespec);
+      char *tspec = (char *) __gnat_translate_vms (filespec);
 
       if (tspec != (char *) -1)
 	strncpy (new_canonical_filespec, tspec, MAXPATH);
@@ -2397,7 +2572,7 @@ __gnat_to_canonical_file_spec (char *filespec)
 	    "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"))
 	&& (filespec1 = getenv (filespec)))
     {
-      char *tspec = (char *) decc$translate_vms (filespec1);
+      char *tspec = (char *) __gnat_translate_vms (filespec1);
 
       if (tspec != (char *) -1)
 	strncpy (new_canonical_filespec, tspec, MAXPATH);
@@ -2724,7 +2899,7 @@ char __gnat_environment_char = '$';
 int
 __gnat_copy_attribs (char *from, char *to, int mode)
 {
-#if defined (VMS) || defined (__vxworks)
+#if defined (VMS) || defined (__vxworks) || defined (__nucleus__)
   return -1;
 #else
   struct stat fbuf;

@@ -146,6 +146,18 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       __versa_string(const __versa_string& __str)
       : __vstring_base(__str) { }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  String move constructor.
+       *  @param  str  Source string.
+       *
+       *  The newly-constructed %string contains the exact contents of @a str.
+       *  The contents of @a str are a valid, but unspecified string.
+       */
+      __versa_string(__versa_string&& __str)
+      : __vstring_base(std::forward<__vstring_base>(__str)) { }
+#endif
+
       /**
        *  @brief  Construct string as copy of a substring.
        *  @param  str  Source string.
@@ -229,6 +241,23 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       __versa_string&
       operator=(const __versa_string& __str) 
       { return this->assign(__str); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  String move assignment operator.
+       *  @param  str  Source string.
+       *
+       *  The contents of @a str are moved into this string (without copying).
+       *  @a str is a valid, but unspecified string.
+       */
+      __versa_string&
+      operator=(__versa_string&& __str)
+      {
+	if (this != &__str)
+	  this->swap(__str);
+	return *this;
+      }
+#endif
 
       /**
        *  @brief  Copy contents of @a s into this string.
@@ -326,6 +355,42 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       const_reverse_iterator
       rend() const
       { return const_reverse_iterator(this->begin()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read-only (constant) iterator that points to the first
+       *  character in the %string.
+       */
+      const_iterator
+      cbegin() const
+      { return const_iterator(this->_M_data()); }
+
+      /**
+       *  Returns a read-only (constant) iterator that points one past the
+       *  last character in the %string.
+       */
+      const_iterator
+      cend() const
+      { return const_iterator(this->_M_data() + this->size()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to the last character in the %string.  Iteration is done in
+       *  reverse element order.
+       */
+      const_reverse_iterator
+      crbegin() const
+      { return const_reverse_iterator(this->end()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to one before the first character in the %string.  Iteration
+       *  is done in reverse element order.
+       */
+      const_reverse_iterator
+      crend() const
+      { return const_reverse_iterator(this->begin()); }
+#endif
 
     public:
       // Capacity:
@@ -492,6 +557,40 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	this->_M_leak();
 	return this->_M_data()[__n];
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read/write reference to the data at the first
+       *  element of the %string.
+       */
+      reference
+      front()
+      { return *begin(); }
+
+      /**
+       *  Returns a read-only (constant) reference to the data at the first
+       *  element of the %string.
+       */
+      const_reference
+      front() const
+      { return *begin(); }
+
+      /**
+       *  Returns a read/write reference to the data at the last
+       *  element of the %string.
+       */
+      reference
+      back()
+      { return *(end() - 1); }
+
+      /**
+       *  Returns a read-only (constant) reference to the data at the
+       *  last element of the %string.
+       */
+      const_reference
+      back() const
+      { return *(end() - 1); }
+#endif
 
       // Modifiers:
       /**
@@ -1243,7 +1342,11 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
        *  time.
       */
       void
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      swap(__versa_string&& __s)
+#else
       swap(__versa_string& __s)
+#endif
       { this->_M_swap(__s); }
 
       // String operations:
@@ -1407,7 +1510,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       /**
        *  @brief  Find position of a character of C substring.
        *  @param s  String containing characters to locate.
-       *  @param pos  Index of character to search from (default 0).
+       *  @param pos  Index of character to search from.
        *  @param n  Number of characters from s to search for.
        *  @return  Index of first occurrence.
        *
@@ -1468,7 +1571,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       /**
        *  @brief  Find last position of a character of C substring.
        *  @param s  C string containing characters to locate.
-       *  @param pos  Index of character to search back from (default end).
+       *  @param pos  Index of character to search back from.
        *  @param n  Number of characters from s to search for.
        *  @return  Index of last occurrence.
        *
@@ -1499,7 +1602,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       /**
        *  @brief  Find last position of a character.
        *  @param c  Character to locate.
-       *  @param pos  Index of character to search back from (default 0).
+       *  @param pos  Index of character to search back from (default end).
        *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for @a c within this string.
@@ -1529,7 +1632,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       /**
        *  @brief  Find position of a character not in C substring.
        *  @param s  C string containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
+       *  @param pos  Index of character to search from.
        *  @param n  Number of characters from s to consider.
        *  @return  Index of first occurrence.
        *
@@ -1574,8 +1677,8 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       /**
        *  @brief  Find last position of a character not in string.
        *  @param str  String containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
-       *  @return  Index of first occurrence.
+       *  @param pos  Index of character to search back from (default end).
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character not
        *  contained in @a str within this string.  If found, returns the index
@@ -1589,9 +1692,9 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       /**
        *  @brief  Find last position of a character not in C substring.
        *  @param s  C string containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
+       *  @param pos  Index of character to search back from.
        *  @param n  Number of characters from s to consider.
-       *  @return  Index of first occurrence.
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character not
        *  contained in the first @a n characters of @a s within this string.
@@ -1602,10 +1705,10 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       find_last_not_of(const _CharT* __s, size_type __pos,
 		       size_type __n) const;
       /**
-       *  @brief  Find position of a character not in C string.
+       *  @brief  Find last position of a character not in C string.
        *  @param s  C string containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
-       *  @return  Index of first occurrence.
+       *  @param pos  Index of character to search back from (default end).
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character not
        *  contained in @a s within this string.  If found, returns the index
@@ -1621,8 +1724,8 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       /**
        *  @brief  Find last position of a different character.
        *  @param c  Character to avoid.
-       *  @param pos  Index of character to search from (default 0).
-       *  @return  Index of first occurrence.
+       *  @param pos  Index of character to search back from (default end).
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character other than
        *  @a c within this string.  If found, returns the index where it was
@@ -2117,6 +2220,22 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     swap(__versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
 	 __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
     { __lhs.swap(__rhs); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline void
+    swap(__versa_string<_CharT, _Traits, _Alloc, _Base>&& __lhs,
+	 __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
+    { __lhs.swap(__rhs); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline void
+    swap(__versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
+	 __versa_string<_CharT, _Traits, _Alloc, _Base>&& __rhs)
+    { __lhs.swap(__rhs); }
+#endif
 
 _GLIBCXX_END_NAMESPACE
 

@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gfortran.h"
 #include "match.h"
 #include "parse.h"
+#include "debug.h"
 
 /* Current statement label.  Zero means no statement label.  Because new_st
    can get wiped during statement matching, we have to keep it separate.  */
@@ -172,6 +173,8 @@ decode_statement (void)
   switch (c)
     {
     case 'a':
+      match ("abstract% interface", gfc_match_abstract_interface,
+	     ST_INTERFACE);
       match ("allocate", gfc_match_allocate, ST_ALLOCATE);
       match ("allocatable", gfc_match_allocatable, ST_ATTR_DECL);
       match ("assign", gfc_match_assign, ST_LABEL_ASSIGNMENT);
@@ -256,6 +259,7 @@ decode_statement (void)
       match ("pointer", gfc_match_pointer, ST_ATTR_DECL);
       if (gfc_match_private (&st) == MATCH_YES)
 	return st;
+      match ("procedure", gfc_match_procedure, ST_PROCEDURE);
       match ("program", gfc_match_program, ST_PROGRAM);
       if (gfc_match_public (&st) == MATCH_YES)
 	return st;
@@ -670,6 +674,9 @@ next_statement (void)
 	  break;
 	}
 
+      if (gfc_define_undef_line ())
+	continue;
+
       st = (gfc_current_form == FORM_FIXED) ? next_fixed () : next_free ();
 
       if (st != ST_NONE)
@@ -717,7 +724,8 @@ next_statement (void)
 
 #define case_decl case ST_ATTR_DECL: case ST_COMMON: case ST_DATA_DECL: \
   case ST_EQUIVALENCE: case ST_NAMELIST: case ST_STATEMENT_FUNCTION: \
-  case ST_TYPE: case ST_INTERFACE: case ST_OMP_THREADPRIVATE
+  case ST_TYPE: case ST_INTERFACE: case ST_OMP_THREADPRIVATE: \
+  case ST_PROCEDURE
 
 /* Block end statements.  Errors associated with interchanging these
    are detected in gfc_match_end().  */
@@ -1075,6 +1083,9 @@ gfc_ascii_statement (gfc_statement st)
       break;
     case ST_PROGRAM:
       p = "PROGRAM";
+      break;
+    case ST_PROCEDURE:
+      p = "PROCEDURE";
       break;
     case ST_READ:
       p = "READ";
@@ -1535,6 +1546,7 @@ parse_derived (void)
 	  unexpected_eof ();
 
 	case ST_DATA_DECL:
+	case ST_PROCEDURE:
 	  accept_statement (st);
 	  seen_component = 1;
 	  break;
@@ -1542,11 +1554,11 @@ parse_derived (void)
 	case ST_END_TYPE:
 	  compiling_type = 0;
 
-	  if (!seen_component)
-	    {
-	      gfc_error ("Derived type definition at %C has no components");
-	      error_flag = 1;
-	    }
+	  if (!seen_component
+	      && (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Derived type "
+			         "definition at %C without components")
+		  == FAILURE))
+	    error_flag = 1;
 
 	  accept_statement (ST_END_TYPE);
 	  break;
@@ -1642,6 +1654,9 @@ parse_derived (void)
 	  break;
 	}
     }
+
+  if (!seen_component)
+    sym->attr.zero_comp = 1;
 
   pop_state ();
 }
@@ -1747,6 +1762,7 @@ loop:
 				  gfc_new_block->formal, NULL);
       break;
 
+    case ST_PROCEDURE:
     case ST_MODULE_PROC:	/* The module procedure matcher makes
 				   sure the context is correct.  */
       accept_statement (st);
@@ -1793,6 +1809,15 @@ loop:
 			   "generic subroutine interface");
 	    }
 	}
+    }
+
+  if (current_interface.type == INTERFACE_ABSTRACT)
+    {
+      gfc_new_block->attr.abstract = 1;
+      if (gfc_is_intrinsic_typename (gfc_new_block->name))
+	gfc_error ("Name '%s' of ABSTRACT INTERFACE at %C "
+		   "cannot be the same as an intrinsic type",
+		   gfc_new_block->name);
     }
 
   push_state (&s2, new_state, gfc_new_block);
@@ -1842,6 +1867,35 @@ decl:
 
 done:
   pop_state ();
+}
+
+
+/* Recover use associated or imported function characteristics.  */
+
+static try
+match_deferred_characteristics (gfc_typespec * ts)
+{
+  locus loc;
+  match m;
+
+  loc = gfc_current_locus;
+
+  if (gfc_current_block ()->ts.type != BT_UNKNOWN)
+    {
+      /* Kind expression for an intrinsic type.  */
+      gfc_current_locus = gfc_function_kind_locus;
+      m = gfc_match_kind_spec (ts, true);
+    }
+  else
+    {
+      /* A derived type.  */
+      gfc_current_locus = gfc_function_type_locus;
+      m = gfc_match_type_spec (ts, 0);
+    }
+
+  gfc_current_ns->proc_name->result->ts = *ts;
+  gfc_current_locus =loc;
+  return m;
 }
 
 
@@ -1930,6 +1984,15 @@ loop:
 	}
 
       accept_statement (st);
+
+      /* Look out for function kind/type information that used
+	 use associated or imported parameter.  This is signalled
+	 by kind = -1.  */
+      if (gfc_current_state () == COMP_FUNCTION
+	    && (st == ST_USE || st == ST_IMPORT || st == ST_DERIVED_DECL)
+	    && gfc_current_block ()->ts.kind == -1)
+	match_deferred_characteristics (&gfc_current_block ()->ts);
+
       st = next_statement ();
       goto loop;
 
@@ -1941,6 +2004,19 @@ loop:
 
     default:
       break;
+    }
+
+  /* If we still have kind = -1 at the end of the specification block,
+     then there is an error. */
+  if (gfc_current_state () == COMP_FUNCTION
+	&& gfc_current_block ()->ts.kind == -1)
+    {
+      if (gfc_current_block ()->ts.type != BT_UNKNOWN)
+	gfc_error ("Bad kind expression for function '%s' at %L",
+		   gfc_current_block ()->name, &gfc_function_kind_locus);
+      else
+	gfc_error ("The type for function '%s' at %L is not accessible",
+		   gfc_current_block ()->name, &gfc_function_type_locus);
     }
 
   return st;
@@ -2625,7 +2701,7 @@ parse_omp_structured_block (gfc_statement omp_st, bool workshare_stmts_only)
 	      && strcmp (cp->ext.omp_name, new_st.ext.omp_name) != 0))
 	gfc_error ("Name after !$omp critical and !$omp end critical does "
 		   "not match at %C");
-      gfc_free ((char *) new_st.ext.omp_name);
+      gfc_free (CONST_CAST (char *, new_st.ext.omp_name));
       break;
     case EXEC_OMP_END_SINGLE:
       cp->ext.omp_clauses->lists[OMP_LIST_COPYPRIVATE]
@@ -3012,7 +3088,7 @@ done:
    something else.  */
 
 void
-global_used (gfc_gsymbol *sym, locus *where)
+gfc_global_used (gfc_gsymbol *sym, locus *where)
 {
   const char *name;
 
@@ -3078,7 +3154,7 @@ parse_block_data (void)
       s = gfc_get_gsymbol (gfc_new_block->name);
       if (s->defined
 	  || (s->type != GSYM_UNKNOWN && s->type != GSYM_BLOCK_DATA))
-       global_used(s, NULL);
+       gfc_global_used(s, NULL);
       else
        {
 	 s->type = GSYM_BLOCK_DATA;
@@ -3109,7 +3185,7 @@ parse_module (void)
 
   s = gfc_get_gsymbol (gfc_new_block->name);
   if (s->defined || (s->type != GSYM_UNKNOWN && s->type != GSYM_MODULE))
-    global_used(s, NULL);
+    gfc_global_used(s, NULL);
   else
     {
       s->type = GSYM_MODULE;
@@ -3156,7 +3232,7 @@ add_global_procedure (int sub)
   if (s->defined
       || (s->type != GSYM_UNKNOWN
 	  && s->type != (sub ? GSYM_SUBROUTINE : GSYM_FUNCTION)))
-    global_used(s, NULL);
+    gfc_global_used(s, NULL);
   else
     {
       s->type = sub ? GSYM_SUBROUTINE : GSYM_FUNCTION;
@@ -3178,7 +3254,7 @@ add_global_program (void)
   s = gfc_get_gsymbol (gfc_new_block->name);
 
   if (s->defined || (s->type != GSYM_UNKNOWN && s->type != GSYM_PROGRAM))
-    global_used(s, NULL);
+    gfc_global_used(s, NULL);
   else
     {
       s->type = GSYM_PROGRAM;
@@ -3197,6 +3273,11 @@ gfc_parse_file (void)
   gfc_state_data top, s;
   gfc_statement st;
   locus prog_locus;
+
+  /* If the debugger wants the name of the main source file,
+     we give it.  */
+  if (debug_hooks->start_end_main_source_file)
+    (*debug_hooks->start_source_file) (0, gfc_source_file);
 
   top.state = COMP_NONE;
   top.sym = NULL;
@@ -3308,6 +3389,9 @@ loop:
   goto loop;
 
 done:
+  if (debug_hooks->start_end_main_source_file)
+    (*debug_hooks->end_source_file) (0);
+
   return SUCCESS;
 
 duplicate_main:

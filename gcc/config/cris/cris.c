@@ -119,7 +119,7 @@ static void cris_init_libfuncs (void);
 static bool cris_rtx_costs (rtx, int, int, int *);
 static int cris_address_cost (rtx);
 static bool cris_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
-				    tree, bool);
+				    const_tree, bool);
 static int cris_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				   tree, bool);
 static tree cris_md_asm_clobbers (tree, tree, tree);
@@ -169,7 +169,7 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 #define TARGET_ADDRESS_COST cris_address_cost
 
 #undef TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_tree_true
+#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
 #undef TARGET_STRUCT_VALUE_RTX
 #define TARGET_STRUCT_VALUE_RTX cris_struct_value_rtx
 #undef TARGET_SETUP_INCOMING_VARARGS
@@ -870,9 +870,8 @@ cris_print_operand (FILE *file, rtx x, int code)
 
     case 'e':
       /* Like 'E', but ignore state set by 'x'.  FIXME: Use code
-	 iterators ("code macros") and attributes in cris.md to avoid
-	 the need for %x and %E (and %e) and state passed between
-	 those modifiers.  */
+	 iterators and attributes in cris.md to avoid the need for %x
+	 and %E (and %e) and state passed between those modifiers.  */
       cris_output_insn_is_bound = 0;
       /* FALL THROUGH.  */
     case 'E':
@@ -3148,10 +3147,11 @@ cris_emit_movem_store (rtx dest, rtx nregs_rtx, int increment,
       if (increment != 0)
 	{
 	  rtx seq = gen_rtx_SEQUENCE (VOIDmode, rtvec_alloc (nregs + 1));
-	  XVECEXP (seq, 0, 0) = XVECEXP (PATTERN (insn), 0, 0);
+	  XVECEXP (seq, 0, 0) = copy_rtx (XVECEXP (PATTERN (insn), 0, 0));
 	  for (i = 1; i < nregs; i++)
-	    XVECEXP (seq, 0, i) = XVECEXP (PATTERN (insn), 0, i + 1);
-	  XVECEXP (seq, 0, nregs) = XVECEXP (PATTERN (insn), 0, 1);
+	    XVECEXP (seq, 0, i)
+	      = copy_rtx (XVECEXP (PATTERN (insn), 0, i + 1));
+	  XVECEXP (seq, 0, nregs) = copy_rtx (XVECEXP (PATTERN (insn), 0, 1));
 	  REG_NOTES (insn)
 	    = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, seq,
 				 REG_NOTES (insn));
@@ -3176,7 +3176,7 @@ cris_expand_pic_call_address (rtx *opp)
   /* It might be that code can be generated that jumps to 0 (or to a
      specific address).  Don't die on that.  (There is a
      testcase.)  */
-  if (CONSTANT_ADDRESS_P (op) && CONST_INT_P (op))
+  if (CONSTANT_ADDRESS_P (op) && !CONST_INT_P (op))
     {
       enum cris_pic_symbol_type t = cris_pic_symbol_type_of (op);
 
@@ -3403,7 +3403,7 @@ cris_setup_incoming_varargs (CUMULATIVE_ARGS *ca,
 
 static bool
 cris_pass_by_reference (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
-			enum machine_mode mode, tree type,
+			enum machine_mode mode, const_tree type,
 			bool named ATTRIBUTE_UNUSED)
 {
   return (targetm.calls.must_pass_in_stack (mode, type)

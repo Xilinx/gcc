@@ -189,8 +189,14 @@ tree_if_conversion (struct loop *loop, bool for_vectorizer)
       if (single_succ_p (bb))
 	{
 	  basic_block bb_n = single_succ (bb);
-	  if (cond != NULL_TREE)
-	    add_to_predicate_list (bb_n, cond);
+
+	  /* Successor bb inherits predicate of its predecessor. If there
+	     is no predicate in predecessor bb, then consider successor bb
+	     as always executed.  */
+	  if (cond == NULL_TREE)
+	    cond = boolean_true_node;
+
+	  add_to_predicate_list (bb_n, cond);
 	}
     }
 
@@ -724,6 +730,8 @@ find_phi_replacement_condition (struct loop *loop,
 
   /* Select condition that is not TRUTH_NOT_EXPR.  */
   tmp_cond = (first_edge->src)->aux;
+  gcc_assert (tmp_cond);
+
   if (TREE_CODE (tmp_cond) == TRUTH_NOT_EXPR)
     {
       edge tmp_edge;
@@ -985,7 +993,7 @@ combine_blocks (struct loop *loop)
       /* Update stmt list.  */
       last = tsi_last (bb_stmt_list (merge_target_bb));
       tsi_link_after (&last, bb_stmt_list (bb), TSI_NEW_STMT);
-      set_bb_stmt_list (bb, NULL);
+      set_bb_stmt_list (bb, alloc_stmt_list());
 
       delete_basic_block (bb);
     }

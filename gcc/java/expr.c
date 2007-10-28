@@ -638,9 +638,8 @@ java_stack_swap (void)
   tree decl1, decl2;
 
   if (stack_pointer < 2
-      || (type1 = stack_type_map[stack_pointer - 1]) == TYPE_UNKNOWN
-      || (type2 = stack_type_map[stack_pointer - 2]) == TYPE_UNKNOWN
-      || type1 == TYPE_SECOND || type2 == TYPE_SECOND
+      || (type1 = stack_type_map[stack_pointer - 1]) == TYPE_SECOND
+      || (type2 = stack_type_map[stack_pointer - 2]) == TYPE_SECOND
       || TYPE_IS_WIDE (type1) || TYPE_IS_WIDE (type2))
     /* Bad stack swap.  */
     abort ();
@@ -1772,7 +1771,6 @@ lookup_label (int pc)
     {
       /* The type of the address of a label is return_address_type_node. */
       tree decl = create_label_decl (name);
-      LABEL_PC (decl) = pc;
       return pushdecl (decl);
     }
 }
@@ -1801,8 +1799,14 @@ create_label_decl (tree name)
   return decl;
 }
 
-/* This maps a bytecode offset (PC) to various flags. */
+/* This maps a bytecode offset (PC) to various flags.  */
 char *instruction_bits;
+
+/* This is a vector of type states for the current method.  It is
+   indexed by PC.  Each element is a tree vector holding the type
+   state at that PC.  We only note type states at basic block
+   boundaries.  */
+VEC(tree, gc) *type_states;
 
 static void
 note_label (int current_pc ATTRIBUTE_UNUSED, int target_pc)
@@ -1993,13 +1997,7 @@ build_class_init (tree clas, tree expr)
 	  decl = build_decl (VAR_DECL, NULL_TREE,
 			     boolean_type_node);
 	  MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC (decl);
-	  LOCAL_CLASS_INITIALIZATION_FLAG (decl) = 1;
 	  DECL_CONTEXT (decl) = current_function_decl;
-	  DECL_FUNCTION_INIT_TEST_CLASS (decl) = clas;
-	  /* Tell the check-init code to ignore this decl when not
-             optimizing class initialization. */
-	  if (!STATIC_CLASS_INIT_OPT_P ())
-	    DECL_BIT_INDEX (decl) = -1;
 	  DECL_INITIAL (decl) = boolean_false_node;
 	  /* Don't emit any symbolic debugging info for this decl.  */
 	  DECL_IGNORED_P (decl) = 1;	  
@@ -2616,7 +2614,6 @@ build_jni_stub (tree method)
   int args_size = 0;
 
   tree klass = DECL_CONTEXT (method);
-  int from_class = ! CLASS_FROM_SOURCE_P (klass);
   klass = build_class_ref (klass);
 
   gcc_assert (METHOD_NATIVE (method) && flag_jni);
@@ -2646,25 +2643,16 @@ build_jni_stub (tree method)
   chainon (env_var, meth_var);
   build_result_decl (method);
 
-  /* One strange way that the front ends are different is that they
-     store arguments differently.  */
-  if (from_class)
-    method_args = DECL_ARGUMENTS (method);
-  else
-    method_args = BLOCK_EXPR_DECLS (DECL_FUNCTION_BODY (method));
+  method_args = DECL_ARGUMENTS (method);
   block = build_block (env_var, NULL_TREE, method_args, NULL_TREE);
   TREE_SIDE_EFFECTS (block) = 1;
-  /* When compiling from source we don't set the type of the block,
-     because that will prevent patch_return from ever being run.  */
-  if (from_class)
-    TREE_TYPE (block) = TREE_TYPE (TREE_TYPE (method));
+  TREE_TYPE (block) = TREE_TYPE (TREE_TYPE (method));
 
   /* Compute the local `env' by calling _Jv_GetJNIEnvNewFrame.  */
   body = build2 (MODIFY_EXPR, ptr_type_node, env_var,
 		 build_call_nary (ptr_type_node,
 				  build_address_of (soft_getjnienvnewframe_node),
 				  1, klass));
-  CAN_COMPLETE_NORMALLY (body) = 1;
 
   /* All the arguments to this method become arguments to the
      underlying JNI function.  If we had to wrap object arguments in a
@@ -2751,7 +2739,6 @@ build_jni_stub (tree method)
     }
 
   TREE_SIDE_EFFECTS (call) = 1;
-  CAN_COMPLETE_NORMALLY (call) = 1;
 
   body = build2 (COMPOUND_EXPR, void_type_node, body, call);
   TREE_SIDE_EFFECTS (body) = 1;
@@ -2761,7 +2748,6 @@ build_jni_stub (tree method)
 			  build_address_of (soft_jnipopsystemframe_node),
 			  1, env_var);
   TREE_SIDE_EFFECTS (call) = 1;
-  CAN_COMPLETE_NORMALLY (call) = 1;
   body = build2 (COMPOUND_EXPR, void_type_node, body, call);
   TREE_SIDE_EFFECTS (body) = 1;
 
@@ -2953,11 +2939,11 @@ expand_java_field_op (int is_static, int is_putting, int field_ref_index)
   TREE_THIS_VOLATILE (field_ref) = TREE_THIS_VOLATILE (field_decl);
 }
 
-void
-load_type_state (tree label)
+static void
+load_type_state (int pc)
 {
   int i;
-  tree vec = LABEL_TYPE_STATE (label);
+  tree vec = VEC_index (tree, type_states, pc);
   int cur_length = TREE_VEC_LENGTH (vec);
   stack_pointer = cur_length - DECL_MAX_LOCALS(current_function_decl);
   for (i = 0; i < cur_length; i++)
@@ -3000,6 +2986,8 @@ note_instructions (JCF *jcf, tree method)
   byte_ops = jcf->read_ptr;
   instruction_bits = xrealloc (instruction_bits, length + 1);
   memset (instruction_bits, 0, length + 1);
+  type_states = VEC_alloc (tree, gc, length + 1);
+  VEC_safe_grow_cleared (tree, gc, type_states, length + 1);
 
   /* This pass figures out which PC can be the targets of jumps. */
   for (PC = 0; PC < length;)
@@ -3158,8 +3146,8 @@ expand_byte_code (JCF *jcf, tree method)
           flush_quick_stack ();
 	  if ((instruction_bits [PC] & BCODE_TARGET) != 0)
 	    java_add_stmt (build1 (LABEL_EXPR, void_type_node, label));
-	  if (LABEL_VERIFIED (label) || PC == 0)
-	    load_type_state (label);
+	  if ((instruction_bits[PC] & BCODE_VERIFIED) != 0)
+	    load_type_state (PC);
 	}
 
       if (! (instruction_bits [PC] & BCODE_VERIFIED))
@@ -3206,7 +3194,7 @@ expand_byte_code (JCF *jcf, tree method)
 		{
 		  int line = GET_u2 (linenumber_pointer - 2);
 #ifdef USE_MAPPED_LOCATION
-		  input_location = linemap_line_start (&line_table, line, 1);
+		  input_location = linemap_line_start (line_table, line, 1);
 #else
 		  input_location.line = line;
 #endif
@@ -3743,7 +3731,6 @@ force_evaluation_order (tree node)
 	  cmp = build2 (COMPOUND_EXPR, TREE_TYPE (node), cmp, node);
 	  if (TREE_TYPE (cmp) != void_type_node)
 	    cmp = save_expr (cmp);
-	  CAN_COMPLETE_NORMALLY (cmp) = CAN_COMPLETE_NORMALLY (node);
 	  TREE_SIDE_EFFECTS (cmp) = 1;
 	  node = cmp;
 	}
@@ -3757,7 +3744,6 @@ tree
 build_java_empty_stmt (void)
 {
   tree t = build_empty_stmt ();
-  CAN_COMPLETE_NORMALLY (t) = 1;
   return t;
 }
 

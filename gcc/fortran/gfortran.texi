@@ -184,6 +184,7 @@ Part II: Language Reference
 * Fortran 2003 status::  Fortran 2003 features supported by GNU Fortran.
 * Extensions::           Language extensions implemented by GNU Fortran.
 * Intrinsic Procedures:: Intrinsic procedures supported by GNU Fortran.
+* Intrinsic Modules::    Intrinsic modules supported by GNU Fortran.
 
 * Contributing::         How you can help.
 * Copying::              GNU General Public License says
@@ -225,6 +226,7 @@ or alternative to, the unix @command{f95} command;
 @menu
 * About GNU Fortran::    What you should know about the GNU Fortran compiler.
 * GNU Fortran and GCC::  You can compile Fortran, C, or other programs.
+* Preprocessing and conditional compilation:: The Fortran preprocessor
 * GNU Fortran and G77::  Why we chose to start from scratch.
 * Project Status::       Status of GNU Fortran, roadmap, proposed extensions.
 * Standards::	         Standards supported by GNU Fortran.
@@ -366,11 +368,11 @@ the relevant compiler front-end program (e.g., @command{f951} for
 Fortran) for each file in the source code, and then calls the assembler
 and linker as appropriate to produce the compiled output. In a copy of
 GCC which has been compiled with Fortran language support enabled,
-@command{gcc} will recognize files with @file{.f}, @file{.f90}, @file{.f95},
-and @file{.f03} extensions as Fortran source code, and compile it
-accordingly.  A @command{gfortran} driver program is also provided,
-which is identical to @command{gcc} except that it automatically links
-the Fortran runtime libraries into the compiled program.
+@command{gcc} will recognize files with @file{.f}, @file{.for}, @file{.ftn},
+@file{.f90}, @file{.f95}, and @file{.f03} extensions as Fortran source code,
+and compile it accordingly. A @command{gfortran} driver program is also
+provided, which is identical to @command{gcc} except that it automatically
+links the Fortran runtime libraries into the compiled program.
 
 This manual specifically documents the Fortran front end, which handles
 the programming language's syntax and semantics.  The aspects of GCC
@@ -379,6 +381,40 @@ are documented in the GCC manual; see
 @ref{Top,,Introduction,gcc,Using the GNU Compiler Collection (GCC)}.
 The two manuals together provide a complete reference for the GNU
 Fortran compiler.
+
+
+@c ---------------------------------------------------------------------
+@c Preprocessing and conditional compilation
+@c ---------------------------------------------------------------------
+
+@node Preprocessing and conditional compilation
+@section Preprocessing and conditional compilation
+@cindex CPP
+@cindex FPP
+@cindex Conditional compilation
+@cindex Preprocessing
+
+Many Fortran compilers including GNU Fortran allow to pass the source code
+through a C preprocessor (CPP; sometimes also called Fortran preprocessor,
+FPP) to allow for conditional compilation. In case of GNU Fortran
+this is the GNU C Preprocessor in the traditional mode. On systems with
+case-preserving file names, the preprocessor is automatically invoked if the
+file extension is @code{.F}, @code{.FOR}, @code{.FTN}, @code{.F90},
+@code{.F95} or @code{.F03}; otherwise use for fixed-format code the option
+@code{-x f77-cpp-input} and for free-format code @code{-x f95-cpp-input}.
+Invocation of the preprocessor can be suppressed using @code{-x f77} or
+@code{-x f95}.
+
+If the GNU Fortran invoked the preprocessor, @code{__GFORTRAN__}
+is defined and @code{__GNUC__}, @code{__GNUC_MINOR__} and
+@code{__GNUC_PATCHLEVEL__} can be used to determine the version of the
+compiler. See @ref{Top,,Overview,cpp,The C Preprocessor} for details.
+
+While CPP is the de-facto standard for preprocessing Fortran code,
+Part 3 of the Fortran 95 standard (ISO/IEC 1539-3:1998) defines
+Conditional Compilation, which is not widely used and not directly
+supported by the GNU Fortran compiler. You can use the program coco
+to preprocess such files (@uref{http://users.erols.com/dnagle/coco.html}).
 
 
 @c ---------------------------------------------------------------------
@@ -512,8 +548,8 @@ Malformed environment variables are silently ignored.
 * GFORTRAN_STDERR_UNIT:: Unit number for standard error
 * GFORTRAN_USE_STDERR:: Send library output to standard error
 * GFORTRAN_TMPDIR:: Directory for scratch files
-* GFORTRAN_UNBUFFERED_n:: Don't buffer I/O for specific unit.
 * GFORTRAN_UNBUFFERED_ALL:: Don't buffer I/O for all units.
+* GFORTRAN_UNBUFFERED_PRECONNECTED:: Don't buffer I/O for preconnected units.
 * GFORTRAN_SHOW_LOCUS::  Show location for runtime errors
 * GFORTRAN_OPTIONAL_PLUS:: Print leading + where permitted
 * GFORTRAN_DEFAULT_RECL:: Default record length for new files
@@ -560,16 +596,6 @@ created.  If this environment variable is missing,
 GNU Fortran searches for the environment variable @env{TMP}.  If
 this is also missing, the default is @file{/tmp}.
 
-@node GFORTRAN_UNBUFFERED_n
-@section @env{GFORTRAN_UNBUFFERED_n}---Don't buffer I/O on unit n
-
-Environment variables named @env{GFORTRAN_UNBUFFERED_n}, where
-@samp{n} is an integer, control whether I/O on unit @samp{n} is
-unbuffered.  If the first letter is @samp{y}, @samp{Y} or @samp{1},
-I/O is unbuffered. This will slow down small sequential reads and
-writes.  If the first letter is @samp{n}, @samp{N} or @samp{0}, I/O is
-buffered.  This is the default.
-
 @node GFORTRAN_UNBUFFERED_ALL
 @section @env{GFORTRAN_UNBUFFERED_ALL}---Don't buffer I/O on all units
 
@@ -578,6 +604,16 @@ the first letter is @samp{y}, @samp{Y} or @samp{1}, all I/O is
 unbuffered. This will slow down small sequential reads and writes.  If
 the first letter is @samp{n}, @samp{N} or @samp{0}, I/O is buffered.
 This is the default.
+
+@node GFORTRAN_UNBUFFERED_PRECONNECTED
+@section @env{GFORTRAN_UNBUFFERED_PRECONNECTED}---Don't buffer I/O on
+preconnected units
+
+The environment variable named @env{GFORTRAN_UNBUFFERED_PRECONNECTED} controls
+whether I/O on a preconnected unit (i.e STDOUT or STDERR) is unbuffered.  If 
+the first letter is @samp{y}, @samp{Y} or @samp{1}, I/O is unbuffered. This
+will slow down small sequential reads and writes.  If the first letter
+is @samp{n}, @samp{N} or @samp{0}, I/O is buffered.  This is the default.
 
 @node GFORTRAN_SHOW_LOCUS
 @section @env{GFORTRAN_SHOW_LOCUS}---Show location for runtime errors
@@ -1103,6 +1139,9 @@ zero, and @code{.TRUE.} is interpreted as one.  When converting from
        IF (i) PRINT *, 'True'
 @end smallexample
 
+However, there is no implicit conversion of @code{LOGICAL} and
+@code{INTEGER} values performed during I/O operations.
+
 @node Hollerith constants support
 @section Hollerith constants support
 @cindex Hollerith constants
@@ -1336,7 +1375,8 @@ routines are provided both in a form of a Fortran 90 module named
 
 For details refer to the actual
 @uref{http://www.openmp.org/drupal/mp-documents/spec25.pdf,
-OpenMP Application Program Interface v2.5} specification.
+OpenMP Application Program Interface v2.5} specification and to the
+@ref{Top,,Introduction,libgomp,GNU OpenMP runtime library}.
 
 @node Argument list functions
 @section Argument list functions %VAL, %REF and %LOC

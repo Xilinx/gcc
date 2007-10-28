@@ -31,6 +31,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+pragma Warnings (Off);
+pragma Compiler_Unit;
+pragma Warnings (On);
+
 with System.Case_Util;
 with System.CRTL;
 with System.Soft_Links;
@@ -1087,12 +1091,15 @@ package body System.OS_Lib is
    ------------
 
    function GM_Day (Date : OS_Time) return Day_Type is
+      D  : Day_Type;
+
+      pragma Warnings (Off);
       Y  : Year_Type;
       Mo : Month_Type;
-      D  : Day_Type;
       H  : Hour_Type;
       Mn : Minute_Type;
       S  : Second_Type;
+      pragma Warnings (On);
 
    begin
       GM_Split (Date, Y, Mo, D, H, Mn, S);
@@ -1104,12 +1111,15 @@ package body System.OS_Lib is
    -------------
 
    function GM_Hour (Date : OS_Time) return Hour_Type is
+      H  : Hour_Type;
+
+      pragma Warnings (Off);
       Y  : Year_Type;
       Mo : Month_Type;
       D  : Day_Type;
-      H  : Hour_Type;
       Mn : Minute_Type;
       S  : Second_Type;
+      pragma Warnings (On);
 
    begin
       GM_Split (Date, Y, Mo, D, H, Mn, S);
@@ -1121,12 +1131,15 @@ package body System.OS_Lib is
    ---------------
 
    function GM_Minute (Date : OS_Time) return Minute_Type is
+      Mn : Minute_Type;
+
+      pragma Warnings (Off);
       Y  : Year_Type;
       Mo : Month_Type;
       D  : Day_Type;
       H  : Hour_Type;
-      Mn : Minute_Type;
       S  : Second_Type;
+      pragma Warnings (On);
 
    begin
       GM_Split (Date, Y, Mo, D, H, Mn, S);
@@ -1138,12 +1151,15 @@ package body System.OS_Lib is
    --------------
 
    function GM_Month (Date : OS_Time) return Month_Type is
-      Y  : Year_Type;
       Mo : Month_Type;
+
+      pragma Warnings (Off);
+      Y  : Year_Type;
       D  : Day_Type;
       H  : Hour_Type;
       Mn : Minute_Type;
       S  : Second_Type;
+      pragma Warnings (On);
 
    begin
       GM_Split (Date, Y, Mo, D, H, Mn, S);
@@ -1155,12 +1171,15 @@ package body System.OS_Lib is
    ---------------
 
    function GM_Second (Date : OS_Time) return Second_Type is
+      S  : Second_Type;
+
+      pragma Warnings (Off);
       Y  : Year_Type;
       Mo : Month_Type;
       D  : Day_Type;
       H  : Hour_Type;
       Mn : Minute_Type;
-      S  : Second_Type;
+      pragma Warnings (On);
 
    begin
       GM_Split (Date, Y, Mo, D, H, Mn, S);
@@ -1222,11 +1241,14 @@ package body System.OS_Lib is
 
    function GM_Year (Date : OS_Time) return Year_Type is
       Y  : Year_Type;
+
+      pragma Warnings (Off);
       Mo : Month_Type;
       D  : Day_Type;
       H  : Hour_Type;
       Mn : Minute_Type;
       S  : Second_Type;
+      pragma Warnings (On);
 
    begin
       GM_Split (Date, Y, Mo, D, H, Mn, S);
@@ -1460,9 +1482,9 @@ package body System.OS_Lib is
      (Program_Name : String;
       Args         : Argument_List) return Process_Id
    is
-      Junk : Integer;
       Pid  : Process_Id;
-
+      Junk : Integer;
+      pragma Warnings (Off, Junk);
    begin
       Spawn_Internal (Program_Name, Args, Junk, Pid, Blocking => False);
       return Pid;
@@ -1698,18 +1720,13 @@ package body System.OS_Lib is
       Canonical_File_Addr : System.Address;
       Canonical_File_Len  : Integer;
 
-      Need_To_Check_Drive_Letter : Boolean := False;
-      --  Set to true if Name is an absolute path that starts with "//"
-
       function Strlen (S : System.Address) return Integer;
       pragma Import (C, Strlen, "strlen");
 
       function Final_Value (S : String) return String;
-      --  Make final adjustment to the returned string.
-      --  To compensate for non standard path name in Interix,
-      --  if S is "/x" or starts with "/x", where x is a capital
-      --  letter 'A' to 'Z', add an additional '/' at the beginning
-      --  so that the returned value starts with "//x".
+      --  Make final adjustment to the returned string. This function strips
+      --  trailing directory separators, and folds returned string to lower
+      --  case if required.
 
       function Get_Directory  (Dir : String) return String;
       --  If Dir is not empty, return it, adding a directory separator
@@ -1727,71 +1744,33 @@ package body System.OS_Lib is
          Last : Natural;
 
       begin
-         --  Interix has the non standard notion of disk drive
-         --  indicated by two '/' followed by a capital letter
-         --  'A' .. 'Z'. One of the two '/' may have been removed
-         --  by Normalize_Pathname. It has to be added again.
-         --  For other OSes, this should not make no difference.
-
-         if Need_To_Check_Drive_Letter
-           and then S'Length >= 2
-           and then S (S'First) = '/'
-           and then S (S'First + 1) in 'A' .. 'Z'
-           and then (S'Length = 2 or else S (S'First + 2) = '/')
-         then
-            declare
-               Result : String (1 .. S'Length + 1);
-
-            begin
-               Result (1) := '/';
-               Result (2 .. Result'Last) := S;
-               Last := Result'Last;
-
-               if Fold_To_Lower_Case then
-                  System.Case_Util.To_Lower (Result);
-               end if;
-
-               --  Remove trailing directory separator, if any
-
-               if Last > 1 and then
-                 (Result (Last) = '/' or else
-                  Result (Last) = Directory_Separator)
-               then
-                  Last := Last - 1;
-               end if;
-
-               return Result (1 .. Last);
-            end;
-
-         else
-            if Fold_To_Lower_Case then
-               System.Case_Util.To_Lower (S1);
-            end if;
-
-            --  Remove trailing directory separator, if any
-
-            Last := S1'Last;
-
-            if Last > 1
-              and then (S1 (Last) = '/'
-                          or else
-                        S1 (Last) = Directory_Separator)
-            then
-               --  Special case for Windows: C:\
-
-               if Last = 3
-                 and then S1 (1) /= Directory_Separator
-                 and then S1 (2) = ':'
-               then
-                  null;
-
-               else
-                  Last := Last - 1;
-               end if;
-            end if;
-
-            return S1 (1 .. Last);
+         if Fold_To_Lower_Case then
+            System.Case_Util.To_Lower (S1);
          end if;
+
+         --  Remove trailing directory separator, if any
+
+         Last := S1'Last;
+
+         if Last > 1
+           and then (S1 (Last) = '/'
+                       or else
+                     S1 (Last) = Directory_Separator)
+         then
+            --  Special case for Windows: C:\
+
+            if Last = 3
+              and then S1 (1) /= Directory_Separator
+              and then S1 (2) = ':'
+            then
+               null;
+
+            else
+               Last := Last - 1;
+            end if;
+         end if;
+
+         return S1 (1 .. Last);
       end Final_Value;
 
       -------------------
@@ -1954,12 +1933,6 @@ package body System.OS_Lib is
             End_Path := Reference_Dir'Length + End_Path;
             Path_Buffer (1 .. Reference_Dir'Length) := Reference_Dir;
             Last := Reference_Dir'Length;
-         end if;
-
-         --  If name starts with "//", we may have a drive letter on Interix
-
-         if Last = 1 and then End_Path >= 3 then
-            Need_To_Check_Drive_Letter := (Path_Buffer (1 .. 2)) = "//";
          end if;
 
          Start  := Last + 1;
@@ -2167,6 +2140,28 @@ package body System.OS_Lib is
       return Open_Read_Write (C_Name (C_Name'First)'Address, Fmode);
    end Open_Read_Write;
 
+   -------------
+   -- OS_Exit --
+   -------------
+
+   procedure OS_Exit (Status : Integer) is
+   begin
+      OS_Exit_Ptr (Status);
+      raise Program_Error;
+   end OS_Exit;
+
+   ---------------------
+   -- OS_Exit_Default --
+   ---------------------
+
+   procedure OS_Exit_Default (Status : Integer) is
+      procedure GNAT_OS_Exit (Status : Integer);
+      pragma Import (C, GNAT_OS_Exit, "__gnat_os_exit");
+      pragma No_Return (GNAT_OS_Exit);
+   begin
+      GNAT_OS_Exit (Status);
+   end OS_Exit_Default;
+
    --------------------
    -- Pid_To_Integer --
    --------------------
@@ -2310,8 +2305,9 @@ package body System.OS_Lib is
      (Program_Name : String;
       Args         : Argument_List) return Integer
    is
-      Junk   : Process_Id;
       Result : Integer;
+      Junk   : Process_Id;
+      pragma Warnings (Off, Junk);
    begin
       Spawn_Internal (Program_Name, Args, Result, Junk, Blocking => True);
       return Result;

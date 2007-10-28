@@ -71,7 +71,7 @@ package body Debug is
    --  dC   Output debugging information on check suppression
    --  dD   Delete elaboration checks in inner level routines
    --  dE   Apply elaboration checks to predefined units
-   --  dF   Front end data layout enabled.
+   --  dF   Front end data layout enabled
    --  dG   Generate all warnings including those normally suppressed
    --  dH   Hold (kill) call to gigi
    --  dI   Inhibit internal name numbering in gnatG listing
@@ -93,7 +93,7 @@ package body Debug is
    --  dY   Enable configurable run-time mode
    --  dZ   Generate listing showing the contents of the dispatch tables
 
-   --  d.a
+   --  d.a  Disable OpenVMS alignment optimization on types
    --  d.b
    --  d.c
    --  d.d
@@ -111,8 +111,8 @@ package body Debug is
    --  d.p
    --  d.q
    --  d.r
-   --  d.s
-   --  d.t
+   --  d.s  Disable expansion of slice move, use memmove
+   --  d.t  Disable static allocation of library level dispatch tables
    --  d.u
    --  d.v
    --  d.w  Do not check for infinite while loops
@@ -128,7 +128,7 @@ package body Debug is
    --  d.F
    --  d.G
    --  d.H
-   --  d.I
+   --  d.I  Inspector mode
    --  d.J
    --  d.K
    --  d.L
@@ -393,11 +393,11 @@ package body Debug is
    --       layout, and may be useful in other debugging situations where
    --       you do not want gigi to intefere with the testing.
 
-   --  dI   Inhibit internal name numbering in gnatDG listing. For internal
-   --       names of the form <uppercase-letters><digits><suffix>, the output
-   --       will be modified to <uppercase-letters>...<suffix>. This is used
-   --       in the fixed bugs run to minimize system and version dependency
-   --       in filed -gnatDG output.
+   --  dI   Inhibit internal name numbering in gnatDG listing. Any sequence of
+   --       the form <uppercase-letter><digits><lowercase-letter> appearing in
+   --       a name is replaced by <uppercase-letter>...<lowercase-letter>. This
+   --       is used in the fixed bugs run to minimize system and version
+   --       dependency in filed -gnatD or -gnatG output.
 
    --  dJ   Generate debugging trace output for the JGNAT back end. This
    --       consists of symbolic Java Byte Code sequences for all generated
@@ -470,6 +470,37 @@ package body Debug is
    --       had Configurable_Run_Time_Mode set to True. This is useful in
    --       testing high integrity mode.
 
+   --  dZ   Generate listing showing the contents of the dispatch tables. Each
+   --       line has an internally generated number used for references between
+   --       tagged types and primitives. For each primitive the output has the
+   --       following fields:
+   --         - Letter 'P' or letter 's': The former indicates that this
+   --           primitive will be located in a primary dispatch table. The
+   --           latter indicates that it will be located in a secondary
+   --           dispatch table.
+   --         - Name of the primitive. In case of predefined Ada primitives
+   --           the text "(predefined)" is added before the name, and these
+   --           acronyms are used: SR (Stream_Read), SW (Stream_Write), SI
+   --           (Stream_Input), SO (Stream_Output), DA (Deep_Adjust), DF
+   --           (Deep_Finalize). In addition Oeq identifies the equality
+   --           operator, and "_assign" the assignment.
+   --         - If the primitive covers interface types, two extra fields
+   --           referencing other primitives are generated: "Alias" references
+   --           the primitive of the tagged type that covers an interface
+   --           primitive, and "AI_Alias" references the covered interface
+   --           primitive.
+   --         - The expression "at #xx" indicates the slot of the dispatch
+   --           table occupied by such primitive in its corresponding primary
+   --           or secondary dispatch table.
+   --         - In case of abstract subprograms the text "is abstract" is
+   --           added at the end of the line.
+
+   --  d.a  Disable OpenVMS alignment optimization on types.  On OpenVMS,
+   --       record types whose size is odd "in between" (e.g. 17 bits) are
+   --       over-aligned to the next power of 2 (until 8 bytes).  This over
+   --       alignment improve generated code and is more consistent with
+   --       what Dec Ada does.
+
    --  d.f  Suppress folding of static expressions. This of course results
    --       in seriously non-conforming behavior, but is useful sometimes
    --       when tracking down handling of complex expressions.
@@ -489,6 +520,17 @@ package body Debug is
    --       main source (this corresponds to a previous behavior of -gnatl and
    --       is used for running the ACATS tests).
 
+   --  d.s  Normally the compiler expands slice moves into loops if overlap
+   --       might be possible. This debug flag inhibits that expansion, and
+   --       the back end is expected to use an appropriate routine to handle
+   --       overlap, based on Forward_OK and Backwards_OK flags.
+
+   --  d.t  The compiler has been modified (a fairly extensive modification)
+   --       to generate static dispatch tables for library level tagged types.
+   --       This debug switch disables this modification and reverts to the
+   --       previous dynamic construction of tables. It is there as a possible
+   --       work around if we run into trouble with the new implementation.
+
    --  d.w  This flag turns off the scanning of while loops to detect possible
    --       infinite loops.
 
@@ -496,6 +538,10 @@ package body Debug is
    --       handlers to be eliminated from the generated code. They are still
    --       fully compiled and analyzed, they just get eliminated from the
    --       code generation step.
+
+   --  d.I  Inspector mode. Relevant for VM_Target /= None. Try to generate
+   --       byte code, even in case of unsupported construct, for the sake
+   --       of static analysis tools.
 
    --  d1   Error messages have node numbers where possible. Normally error
    --       messages have only source locations. This option is useful when

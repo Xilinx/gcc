@@ -184,8 +184,8 @@ regrename_optimize (void)
   df_set_flags (DF_LR_RUN_DCE);
   df_note_add_problem ();
   df_analyze ();
-  df_set_flags (DF_NO_INSN_RESCAN);
-  
+  df_set_flags (DF_DEFER_INSN_RESCAN);
+
   memset (tick, 0, sizeof tick);
 
   gcc_obstack_init (&rename_obstack);
@@ -345,8 +345,6 @@ regrename_optimize (void)
     }
 
   obstack_free (&rename_obstack, NULL);
-  df_clear_flags (DF_NO_INSN_RESCAN);
-  df_insn_rescan_all ();
 
   if (dump_file)
     fputc ('\n', dump_file);
@@ -364,6 +362,7 @@ do_replace (struct du_chain *chain, int reg)
       if (regno >= FIRST_PSEUDO_REGISTER)
 	ORIGINAL_REGNO (*chain->loc) = regno;
       REG_ATTRS (*chain->loc) = attr;
+      df_insn_rescan (chain->insn);
       chain = chain->next_use;
     }
 }
@@ -560,20 +559,19 @@ scan_rtx_address (rtx insn, rtx *loc, enum reg_class cl,
 	    int index_op;
 	    unsigned regno0 = REGNO (op0), regno1 = REGNO (op1);
 
-	    if (REGNO_OK_FOR_INDEX_P (regno0)
-		&& regno_ok_for_base_p (regno1, mode, PLUS, REG))
+	    if (REGNO_OK_FOR_INDEX_P (regno1)
+		&& regno_ok_for_base_p (regno0, mode, PLUS, REG))
+	      index_op = 1;
+	    else if (REGNO_OK_FOR_INDEX_P (regno0)
+		     && regno_ok_for_base_p (regno1, mode, PLUS, REG))
 	      index_op = 0;
-	    else if (REGNO_OK_FOR_INDEX_P (regno1)
-		     && regno_ok_for_base_p (regno0, mode, PLUS, REG))
+	    else if (regno_ok_for_base_p (regno0, mode, PLUS, REG)
+		     || REGNO_OK_FOR_INDEX_P (regno1))
 	      index_op = 1;
 	    else if (regno_ok_for_base_p (regno1, mode, PLUS, REG))
 	      index_op = 0;
-	    else if (regno_ok_for_base_p (regno0, mode, PLUS, REG))
-	      index_op = 1;
-	    else if (REGNO_OK_FOR_INDEX_P (regno1))
-	      index_op = 1;
 	    else
-	      index_op = 0;
+	      index_op = 1;
 
 	    locI = &XEXP (x, index_op);
 	    locB = &XEXP (x, !index_op);
@@ -654,6 +652,7 @@ scan_rtx (rtx insn, rtx *loc, enum reg_class cl,
     case CONST:
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -806,25 +805,19 @@ build_def_use (basic_block bb)
 	    }
 	  for (i = 0; i < recog_data.n_dups; i++)
 	    {
-	      int dup_num = recog_data.dup_num[i];
-
 	      old_dups[i] = *recog_data.dup_loc[i];
 	      *recog_data.dup_loc[i] = cc0_rtx;
-
-	      /* For match_dup of match_operator or match_parallel, share
-		 them, so that we don't miss changes in the dup.  */
-	      if (icode >= 0
-		  && insn_data[icode].operand[dup_num].eliminable == 0)
-		old_dups[i] = recog_data.operand[dup_num];
 	    }
 
 	  scan_rtx (insn, &PATTERN (insn), NO_REGS, terminate_all_read,
 		    OP_IN, 0);
 
 	  for (i = 0; i < recog_data.n_dups; i++)
-	    *recog_data.dup_loc[i] = old_dups[i];
+	    *recog_data.dup_loc[i] = copy_rtx (old_dups[i]);
 	  for (i = 0; i < n_ops; i++)
 	    *recog_data.operand_loc[i] = old_operands[i];
+	  if (recog_data.n_dups)
+	    df_insn_rescan (insn);
 
 	  /* Step 2B: Can't rename function call argument registers.  */
 	  if (CALL_P (insn) && CALL_INSN_FUNCTION_USAGE (insn))
@@ -1482,20 +1475,19 @@ replace_oldest_value_addr (rtx *loc, enum reg_class cl,
 	    int index_op;
 	    unsigned regno0 = REGNO (op0), regno1 = REGNO (op1);
 
-	    if (REGNO_OK_FOR_INDEX_P (regno0)
-		&& regno_ok_for_base_p (regno1, mode, PLUS, REG))
+	    if (REGNO_OK_FOR_INDEX_P (regno1)
+		&& regno_ok_for_base_p (regno0, mode, PLUS, REG))
+	      index_op = 1;
+	    else if (REGNO_OK_FOR_INDEX_P (regno0)
+		     && regno_ok_for_base_p (regno1, mode, PLUS, REG))
 	      index_op = 0;
-	    else if (REGNO_OK_FOR_INDEX_P (regno1)
-		     && regno_ok_for_base_p (regno0, mode, PLUS, REG))
+	    else if (regno_ok_for_base_p (regno0, mode, PLUS, REG)
+		     || REGNO_OK_FOR_INDEX_P (regno1))
 	      index_op = 1;
 	    else if (regno_ok_for_base_p (regno1, mode, PLUS, REG))
 	      index_op = 0;
-	    else if (regno_ok_for_base_p (regno0, mode, PLUS, REG))
-	      index_op = 1;
-	    else if (REGNO_OK_FOR_INDEX_P (regno1))
-	      index_op = 1;
 	    else
-	      index_op = 0;
+	      index_op = 1;
 
 	    locI = &XEXP (x, index_op);
 	    locB = &XEXP (x, !index_op);
@@ -1744,7 +1736,7 @@ copyprop_hardreg_forward_1 (basic_block bb, struct value_data *vd)
 	      recog_data.operand[i] = new;
 	      for (j = 0; j < recog_data.n_dups; j++)
 		if (recog_data.dup_num[j] == i)
-		  validate_change (insn, recog_data.dup_loc[j], new, 1);
+		  validate_unshare_change (insn, recog_data.dup_loc[j], new, 1);
 
 	      any_replacements = true;
 	    }
@@ -1959,7 +1951,7 @@ struct tree_opt_pass pass_regrename =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_df_finish |
+  TODO_df_finish | TODO_verify_rtl_sharing |
   TODO_dump_func,                       /* todo_flags_finish */
   'n'                                   /* letter */
 };
@@ -1992,7 +1984,7 @@ struct tree_opt_pass pass_cprop_hardreg =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func,                       /* todo_flags_finish */
+  TODO_dump_func | TODO_verify_rtl_sharing, /* todo_flags_finish */
   'n'                                   /* letter */
 };
 

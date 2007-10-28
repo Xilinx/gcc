@@ -6,7 +6,7 @@ in
 #
 # Makefile for directory with subdirs to build.
 #   Copyright (C) 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-#   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation
+#   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -266,10 +266,21 @@ PWD_COMMAND = $${PWDCMD-pwd}
 
 # compilers to use to create programs which must be run in the build
 # environment.
+AR_FOR_BUILD = @AR_FOR_BUILD@
+AS_FOR_BUILD = @AS_FOR_BUILD@
 CC_FOR_BUILD = @CC_FOR_BUILD@
 CFLAGS_FOR_BUILD = @CFLAGS_FOR_BUILD@
-
-CXX_FOR_BUILD = $(CXX)
+CXXFLAGS_FOR_BUILD = @CXXFLAGS_FOR_BUILD@
+CXX_FOR_BUILD = @CXX_FOR_BUILD@
+DLLTOOL_FOR_BUILD = @DLLTOOL_FOR_BUILD@
+GCJ_FOR_BUILD = @GCJ_FOR_BUILD@
+GFORTRAN_FOR_BUILD = @GFORTRAN_FOR_BUILD@
+LDFLAGS_FOR_BUILD = @LDFLAGS_FOR_BUILD@
+LD_FOR_BUILD = @LD_FOR_BUILD@
+NM_FOR_BUILD = @NM_FOR_BUILD@
+RANLIB_FOR_BUILD = @RANLIB_FOR_BUILD@
+WINDMC_FOR_BUILD = @WINDMC_FOR_BUILD@
+WINDRES_FOR_BUILD = @WINDRES_FOR_BUILD@
 
 # Special variables passed down in EXTRA_GCC_FLAGS.  They are defined
 # here so that they can be overridden by Makefile fragments.
@@ -335,6 +346,14 @@ STAGE1_CFLAGS=@stage1_cflags@
 STAGE1_CHECKING=@stage1_checking@
 STAGE1_LANGUAGES=@stage1_languages@
 
+STAGE2_CFLAGS=$(BOOT_CFLAGS)
+STAGE3_CFLAGS=$(BOOT_CFLAGS)
+STAGE4_CFLAGS=$(BOOT_CFLAGS)
+
+do-compare = @do_compare@
+do-compare3 = $(do-compare)
+do-compare-debug = $(SHELL) $(srcdir)/contrib/compare-debug $$f1 $$f2
+
 # -----------------------------------------------
 # Programs producing files for the TARGET machine
 # -----------------------------------------------
@@ -373,9 +392,12 @@ COMPILER_NM_FOR_TARGET=@COMPILER_NM_FOR_TARGET@
 # CFLAGS will be just -g.  We want to ensure that TARGET libraries
 # (which we know are built with gcc) are built with optimizations so
 # prepend -O2 when setting CFLAGS_FOR_TARGET.
-CFLAGS_FOR_TARGET = -O2 $(CFLAGS) $(SYSROOT_CFLAGS_FOR_TARGET)
+CFLAGS_FOR_TARGET = -O2 $(CFLAGS) $(SYSROOT_CFLAGS_FOR_TARGET) \
+	$(DEBUG_PREFIX_CFLAGS_FOR_TARGET)
 SYSROOT_CFLAGS_FOR_TARGET = @SYSROOT_CFLAGS_FOR_TARGET@
-CXXFLAGS_FOR_TARGET = $(CXXFLAGS) $(SYSROOT_CFLAGS_FOR_TARGET)
+DEBUG_PREFIX_CFLAGS_FOR_TARGET = @DEBUG_PREFIX_CFLAGS_FOR_TARGET@
+CXXFLAGS_FOR_TARGET = $(CXXFLAGS) $(SYSROOT_CFLAGS_FOR_TARGET) \
+	$(DEBUG_PREFIX_CFLAGS_FOR_TARGET)
 LIBCFLAGS_FOR_TARGET = $(CFLAGS_FOR_TARGET)
 LIBCXXFLAGS_FOR_TARGET = $(CXXFLAGS_FOR_TARGET) -fno-implicit-templates
 LDFLAGS_FOR_TARGET = 
@@ -1328,7 +1350,7 @@ do-clean: clean-stage[+id+]
 	cd .. ; \
 	for file in $${files} ; do \
 	  f1=$$r/stage[+prev+]-gcc/$$file; f2=$$r/stage[+id+]-gcc/$$file; \
-	  @do_compare@ > /dev/null 2>&1; \
+	  $(do-[+compare-target+]) > /dev/null 2>&1; \
 	  if test $$? -eq 1; then \
 	    case $$file in \
 	      ./cc*-checksum$(objext) | ./libgcc/* ) \

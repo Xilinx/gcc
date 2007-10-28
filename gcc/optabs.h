@@ -39,15 +39,17 @@ along with GCC; see the file COPYING3.  If not see
    A few optabs, such as move_optab and cmp_optab, are used
    by special code.  */
 
-struct optab_handlers GTY(())
+struct optab_handlers
 {
   enum insn_code insn_code;
-  rtx libfunc;
 };
 
-struct optab GTY(())
+struct optab
 {
   enum rtx_code code;
+  const char *libcall_basename;
+  char libcall_suffix;
+  void (*libcall_gen)(struct optab *, const char *name, char suffix, enum machine_mode);
   struct optab_handlers handlers[NUM_MACHINE_MODES];
 };
 typedef struct optab * optab;
@@ -55,9 +57,13 @@ typedef struct optab * optab;
 /* A convert_optab is for some sort of conversion operation between
    modes.  The first array index is the destination mode, the second
    is the source mode.  */
-struct convert_optab GTY(())
+struct convert_optab
 {
   enum rtx_code code;
+  const char *libcall_basename;
+  void (*libcall_gen)(struct convert_optab *, const char *name,
+		      enum machine_mode,
+		      enum machine_mode);
   struct optab_handlers handlers[NUM_MACHINE_MODES][NUM_MACHINE_MODES];
 };
 typedef struct convert_optab *convert_optab;
@@ -69,6 +75,20 @@ typedef struct convert_optab *convert_optab;
 /* Enumeration of valid indexes into optab_table.  */
 enum optab_index
 {
+  /* Fixed-point operators with signed/unsigned saturation */
+  OTI_ssadd,
+  OTI_usadd,
+  OTI_sssub,
+  OTI_ussub,
+  OTI_ssmul,
+  OTI_usmul,
+  OTI_ssdiv,
+  OTI_usdiv,
+  OTI_ssneg,
+  OTI_usneg,
+  OTI_ssashl,
+  OTI_usashl,
+
   OTI_add,
   OTI_addv,
   OTI_sub,
@@ -91,12 +111,28 @@ enum optab_index
   /* Unsigned multiply and add with the result and addend one machine mode
      wider than the multiplicand and multiplier.  */
   OTI_umadd_widen,
+  /* Signed multiply and add with the result and addend one machine mode
+     wider than the multiplicand and multiplier.
+     All involved operations are saturating.  */
+  OTI_ssmadd_widen,
+  /* Unigned multiply and add with the result and addend one machine mode
+     wider than the multiplicand and multiplier.
+     All involved operations are saturating.  */
+  OTI_usmadd_widen,
   /* Signed multiply and subtract the result and minuend one machine mode
      wider than the multiplicand and multiplier.  */
   OTI_smsub_widen,
   /* Unsigned multiply and subtract the result and minuend one machine mode
      wider than the multiplicand and multiplier.  */
   OTI_umsub_widen,
+  /* Signed multiply and subtract the result and minuend one machine mode
+     wider than the multiplicand and multiplier.
+     All involved operations are saturating.  */
+  OTI_ssmsub_widen,
+  /* Unigned multiply and subtract the result and minuend one machine mode
+     wider than the multiplicand and multiplier.
+     All involved operations are saturating.  */
+  OTI_usmsub_widen,
 
   /* Signed divide */
   OTI_sdiv,
@@ -324,7 +360,20 @@ enum optab_index
   OTI_MAX
 };
 
-extern GTY(()) optab optab_table[OTI_MAX];
+extern optab optab_table[OTI_MAX];
+
+#define ssadd_optab (optab_table[OTI_ssadd])
+#define usadd_optab (optab_table[OTI_usadd])
+#define sssub_optab (optab_table[OTI_sssub])
+#define ussub_optab (optab_table[OTI_ussub])
+#define ssmul_optab (optab_table[OTI_ssmul])
+#define usmul_optab (optab_table[OTI_usmul])
+#define ssdiv_optab (optab_table[OTI_ssdiv])
+#define usdiv_optab (optab_table[OTI_usdiv])
+#define ssneg_optab (optab_table[OTI_ssneg])
+#define usneg_optab (optab_table[OTI_usneg])
+#define ssashl_optab (optab_table[OTI_ssashl])
+#define usashl_optab (optab_table[OTI_usashl])
 
 #define add_optab (optab_table[OTI_add])
 #define sub_optab (optab_table[OTI_sub])
@@ -338,8 +387,12 @@ extern GTY(()) optab optab_table[OTI_MAX];
 #define usmul_widen_optab (optab_table[OTI_usmul_widen])
 #define smadd_widen_optab (optab_table[OTI_smadd_widen])
 #define umadd_widen_optab (optab_table[OTI_umadd_widen])
+#define ssmadd_widen_optab (optab_table[OTI_ssmadd_widen])
+#define usmadd_widen_optab (optab_table[OTI_usmadd_widen])
 #define smsub_widen_optab (optab_table[OTI_smsub_widen])
 #define umsub_widen_optab (optab_table[OTI_umsub_widen])
+#define ssmsub_widen_optab (optab_table[OTI_ssmsub_widen])
+#define usmsub_widen_optab (optab_table[OTI_usmsub_widen])
 #define sdiv_optab (optab_table[OTI_sdiv])
 #define smulv_optab (optab_table[OTI_smulv])
 #define sdivv_optab (optab_table[OTI_sdivv])
@@ -495,10 +548,15 @@ enum convert_optab_index
   COI_lfloor,
   COI_lceil,
 
+  COI_fract,
+  COI_fractuns,
+  COI_satfract,
+  COI_satfractuns,
+
   COI_MAX
 };
 
-extern GTY(()) convert_optab convert_optab_table[COI_MAX];
+extern convert_optab convert_optab_table[COI_MAX];
 
 #define sext_optab (convert_optab_table[COI_sext])
 #define zext_optab (convert_optab_table[COI_zext])
@@ -513,6 +571,10 @@ extern GTY(()) convert_optab convert_optab_table[COI_MAX];
 #define lround_optab (convert_optab_table[COI_lround])
 #define lfloor_optab (convert_optab_table[COI_lfloor])
 #define lceil_optab (convert_optab_table[COI_lceil])
+#define fract_optab (convert_optab_table[COI_fract])
+#define fractuns_optab (convert_optab_table[COI_fractuns])
+#define satfract_optab (convert_optab_table[COI_satfract])
+#define satfractuns_optab (convert_optab_table[COI_satfractuns])
 
 /* These arrays record the insn_code of insns that may be needed to
    perform input and output reloads of special objects.  They provide a
@@ -521,7 +583,7 @@ extern enum insn_code reload_in_optab[NUM_MACHINE_MODES];
 extern enum insn_code reload_out_optab[NUM_MACHINE_MODES];
 
 /* Contains the optab used for each rtx code.  */
-extern GTY(()) optab code_to_optab[NUM_RTX_CODE + 1];
+extern optab code_to_optab[NUM_RTX_CODE + 1];
 
 
 typedef rtx (*rtxfun) (rtx);
@@ -667,7 +729,7 @@ enum can_compare_purpose
 
 /* Return the optab used for computing the given operation on the type
    given by the second argument.  */
-extern optab optab_for_tree_code (enum tree_code, tree);
+extern optab optab_for_tree_code (enum tree_code, const_tree);
 
 /* Nonzero if a compare of mode MODE can be done straightforwardly
    (without splitting it into pieces).  */
@@ -687,6 +749,9 @@ extern void set_optab_libfunc (optab, enum machine_mode, const char *);
 extern void set_conv_libfunc (convert_optab, enum machine_mode,
 			      enum machine_mode, const char *);
 
+/* Generate code for a FIXED_CONVERT_EXPR.  */
+extern void expand_fixed_convert (rtx, rtx, int, int);
+
 /* Generate code for a FLOAT_EXPR.  */
 extern void expand_float (rtx, rtx, int);
 
@@ -705,4 +770,12 @@ extern rtx expand_vec_cond_expr (tree, rtx);
 /* Generate code for VEC_LSHIFT_EXPR and VEC_RSHIFT_EXPR.  */
 extern rtx expand_vec_shift_expr (tree, rtx);
 
+#define optab_handler(optab,mode) (&(optab)->handlers[(int) (mode)])
+#define convert_optab_handler(optab,mode,mode2) \
+	(&(optab)->handlers[(int) (mode)][(int) (mode2)])
+
+extern rtx optab_libfunc (optab optab, enum machine_mode mode);
+extern rtx optab_libfunc (optab optab, enum machine_mode mode);
+extern rtx convert_optab_libfunc (convert_optab optab, enum machine_mode mode1,
+			          enum machine_mode mode2);
 #endif /* GCC_OPTABS_H */

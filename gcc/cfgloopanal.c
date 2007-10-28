@@ -33,7 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 /* Checks whether BB is executed exactly once in each LOOP iteration.  */
 
 bool
-just_once_each_iteration_p (const struct loop *loop, basic_block bb)
+just_once_each_iteration_p (const struct loop *loop, const_basic_block bb)
 {
   /* It must be executed at least once each iteration.  */
   if (!dominated_by_p (CDI_DOMINATORS, loop->latch, bb))
@@ -156,12 +156,12 @@ mark_irreducible_loops (void)
 
   free_graph (g);
 
-  current_loops->state |= LOOPS_HAVE_MARKED_IRREDUCIBLE_REGIONS;
+  loops_state_set (LOOPS_HAVE_MARKED_IRREDUCIBLE_REGIONS);
 }
 
 /* Counts number of insns inside LOOP.  */
 int
-num_loop_insns (struct loop *loop)
+num_loop_insns (const struct loop *loop)
 {
   basic_block *bbs, bb;
   unsigned i, ninsns = 0;
@@ -183,7 +183,7 @@ num_loop_insns (struct loop *loop)
 
 /* Counts number of insns executed on average per iteration LOOP.  */
 int
-average_num_loop_insns (struct loop *loop)
+average_num_loop_insns (const struct loop *loop)
 {
   basic_block *bbs, bb;
   unsigned i, binsns, ninsns, ratio;
@@ -294,7 +294,7 @@ get_loop_level (const struct loop *loop)
 /* Returns estimate on cost of computing SEQ.  */
 
 static unsigned
-seq_cost (rtx seq)
+seq_cost (const_rtx seq)
 {
   unsigned cost = 0;
   rtx set;
@@ -334,6 +334,7 @@ init_set_costs (void)
   rtx mem = validize_mem (gen_rtx_MEM (SImode, addr));
   unsigned i;
 
+  target_avail_regs = 0;
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     if (TEST_HARD_REG_BIT (reg_class_contents[GENERAL_REGS], i)
 	&& !fixed_regs[i])

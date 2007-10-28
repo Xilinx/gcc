@@ -430,7 +430,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
       current_function_decl = thunk_fndecl;
       DECL_RESULT (thunk_fndecl)
 	= build_decl (RESULT_DECL, 0, integer_type_node);
-      fnname = XSTR (XEXP (DECL_RTL (thunk_fndecl), 0), 0);
+      fnname = IDENTIFIER_POINTER (DECL_NAME (thunk_fndecl));
       /* The back end expects DECL_INITIAL to contain a BLOCK, so we
 	 create one.  */
       fn_block = make_node (BLOCK);
@@ -446,7 +446,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
       assemble_end_function (thunk_fndecl, fnname);
       init_insn_lengths ();
       current_function_decl = 0;
-      cfun = 0;
+      set_cfun (NULL);
       TREE_ASM_WRITTEN (thunk_fndecl) = 1;
     }
   else
@@ -523,7 +523,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
 
       thunk_fndecl = finish_function (0);
       tree_lowering_passes (thunk_fndecl);
-      expand_body (thunk_fndecl);
+      tree_rest_of_compilation (thunk_fndecl);
     }
 
   pop_from_top_level ();
@@ -1185,7 +1185,7 @@ lazily_declare_fn (special_function_kind sfk, tree type)
    as there are artificial parms in FN.  */
 
 tree
-skip_artificial_parms_for (tree fn, tree list)
+skip_artificial_parms_for (const_tree fn, tree list)
 {
   if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fn))
     list = TREE_CHAIN (list);
@@ -1203,7 +1203,7 @@ skip_artificial_parms_for (tree fn, tree list)
    artificial parms in FN.  */
 
 int
-num_artificial_parms_for (tree fn)
+num_artificial_parms_for (const_tree fn)
 {
   int count = 0;
 

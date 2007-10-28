@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "rtl.h"
 #include "output.h"
 #include "toplev.h"
+#include "target.h"
 
 static int is_subobject_of_p (tree, tree);
 static tree dfs_lookup_base (tree, void *);
@@ -1199,6 +1200,9 @@ lookup_member (tree xbasetype, tree name, int protect, bool want_type)
 
   const char *errstr = 0;
 
+  if (name == error_mark_node)
+    return NULL_TREE;
+
   gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
 
   if (TREE_CODE (xbasetype) == TREE_BINFO)
@@ -1894,6 +1898,15 @@ check_final_overrider (tree overrider, tree basefn)
     {
       error ("looser throw specifier for %q+#F", overrider);
       error ("  overriding %q+#F", basefn);
+      DECL_INVALID_OVERRIDER_P (overrider) = 1;
+      return 0;
+    }
+
+  /* Check for conflicting type attributes.  */
+  if (!targetm.comp_type_attributes (over_type, base_type))
+    {
+      error ("conflicting type attributes specified for %q+#D", overrider);
+      error ("  overriding %q+#D", basefn);
       DECL_INVALID_OVERRIDER_P (overrider) = 1;
       return 0;
     }

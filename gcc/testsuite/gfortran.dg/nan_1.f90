@@ -2,8 +2,9 @@
 ! as arguments
 !
 ! { dg-do run }
+! { dg-options "-pedantic-errors -mieee" { target sh*-*-* } } 
 !
-module aux
+module aux2
   interface isnan
     module procedure isnan_r
     module procedure isnan_d
@@ -42,10 +43,10 @@ contains
 
     isinf = (x > huge(x)) .or. (x < -huge(x))
   end function isinf_d
-end module aux
+end module aux2
 
 program test
-  use aux
+  use aux2
   implicit none
   real :: nan, large, inf
 
@@ -121,4 +122,4 @@ program test
 
 end program test
 
-! { dg-final { cleanup-modules "aux" } }
+! { dg-final { cleanup-modules "aux2" } }

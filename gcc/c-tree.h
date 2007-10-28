@@ -202,7 +202,8 @@ enum c_storage_class {
 };
 
 /* A type specifier keyword "void", "_Bool", "char", "int", "float",
-   "double", or none of these.  */
+   "double", "_Decimal32", "_Decimal64", "_Decimal128", "_Fract", "_Accum",
+   or none of these.  */
 enum c_typespec_keyword {
   cts_none,
   cts_void,
@@ -213,7 +214,9 @@ enum c_typespec_keyword {
   cts_double,
   cts_dfloat32,
   cts_dfloat64,
-  cts_dfloat128
+  cts_dfloat128,
+  cts_fract,
+  cts_accum
 };
 
 /* A sequence of declaration specifiers in C.  */
@@ -281,6 +284,8 @@ struct c_declspecs {
   BOOL_BITFIELD volatile_p : 1;
   /* Whether "restrict" was specified.  */
   BOOL_BITFIELD restrict_p : 1;
+  /* Whether "_Sat" was specified.  */
+  BOOL_BITFIELD saturating_p : 1;
 };
 
 /* The various kinds of declarators in C.  */
@@ -471,7 +476,8 @@ extern tree finish_enum (tree, tree, tree);
 extern void finish_function (void);
 extern tree finish_struct (tree, tree, tree);
 extern struct c_arg_info *get_parm_info (bool);
-extern tree grokfield (struct c_declarator *, struct c_declspecs *, tree);
+extern tree grokfield (struct c_declarator *, struct c_declspecs *,
+		       tree, tree *);
 extern tree groktypename (struct c_type_name *);
 extern tree grokparm (const struct c_parm *);
 extern tree implicitly_declare (tree);
@@ -514,12 +520,10 @@ extern struct c_declspecs *declspecs_add_attrs (struct c_declspecs *, tree);
 extern struct c_declspecs *finish_declspecs (struct c_declspecs *);
 
 /* in c-objc-common.c */
-extern int c_disregard_inline_limits (tree);
-extern int c_cannot_inline_tree_fn (tree *);
 extern bool c_objc_common_init (void);
 extern bool c_missing_noreturn_ok_p (tree);
 extern tree c_objc_common_truthvalue_conversion (tree expr);
-extern bool c_warn_unused_global_decl (tree);
+extern bool c_warn_unused_global_decl (const_tree);
 extern void c_initialize_diagnostics (diagnostic_context *);
 extern bool c_vla_unspec_p (tree x, tree fn);
 
@@ -538,11 +542,11 @@ extern struct c_label_context_se *label_context_stack_se;
 extern struct c_label_context_vm *label_context_stack_vm;
 
 extern tree require_complete_type (tree);
-extern int same_translation_unit_p (tree, tree);
+extern int same_translation_unit_p (const_tree, const_tree);
 extern int comptypes (tree, tree);
-extern bool c_vla_type_p (tree);
+extern bool c_vla_type_p (const_tree);
 extern bool c_mark_addressable (tree);
-extern void c_incomplete_type_error (tree, tree);
+extern void c_incomplete_type_error (const_tree, const_tree);
 extern tree c_type_promotes_to (tree);
 extern struct c_expr default_function_array_conversion (struct c_expr);
 extern tree composite_type (tree, tree);

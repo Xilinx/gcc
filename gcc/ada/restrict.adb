@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -85,6 +84,17 @@ package body Restrict is
       end if;
    end Abort_Allowed;
 
+   -------------------------
+   -- Check_Compiler_Unit --
+   -------------------------
+
+   procedure Check_Compiler_Unit (N : Node_Id) is
+   begin
+      if Is_Compiler_Unit (Get_Source_Unit (N)) then
+         Error_Msg_N ("use of construct not allowed in compiler", N);
+      end if;
+   end Check_Compiler_Unit;
+
    ------------------------------------
    -- Check_Elaboration_Code_Allowed --
    ------------------------------------
@@ -99,7 +109,7 @@ package body Restrict is
         and then not Suppress_Restriction_Message (N)
       then
          Namet.Unlock;
-         Check_Restriction (Restriction_Id'(No_Elaboration_Code), N);
+         Check_Restriction (No_Elaboration_Code, N);
          Namet.Lock;
       end if;
    end Check_Elaboration_Code_Allowed;
@@ -110,7 +120,7 @@ package body Restrict is
 
    procedure Check_No_Implicit_Heap_Alloc (N : Node_Id) is
    begin
-      Check_Restriction (Restriction_Id'(No_Implicit_Heap_Allocations), N);
+      Check_Restriction (No_Implicit_Heap_Allocations, N);
    end Check_No_Implicit_Heap_Alloc;
 
    ---------------------------

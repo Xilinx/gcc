@@ -35,7 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Special routine to get the alias set for C++.  */
 
-HOST_WIDE_INT
+alias_set_type
 cxx_get_alias_set (tree t)
 {
   if (IS_FAKE_BASE_TYPE (t))
@@ -44,7 +44,9 @@ cxx_get_alias_set (tree t)
     return get_alias_set (TYPE_CONTEXT (t));
 
   /* Punt on PMFs until we canonicalize functions properly.  */
-  if (TYPE_PTRMEMFUNC_P (t))
+  if (TYPE_PTRMEMFUNC_P (t)
+      || (POINTER_TYPE_P (t)
+	  && TYPE_PTRMEMFUNC_P (TREE_TYPE (t))))
     return 0;
 
   return c_common_get_alias_set (t);
@@ -53,7 +55,7 @@ cxx_get_alias_set (tree t)
 /* Called from check_global_declarations.  */
 
 bool
-cxx_warn_unused_global_decl (tree decl)
+cxx_warn_unused_global_decl (const_tree decl)
 {
   if (TREE_CODE (decl) == FUNCTION_DECL && DECL_DECLARED_INLINE_P (decl))
     return false;
@@ -72,7 +74,7 @@ cxx_warn_unused_global_decl (tree decl)
    might have allocated something there.  */
 
 tree
-cp_expr_size (tree exp)
+cp_expr_size (const_tree exp)
 {
   tree type = TREE_TYPE (exp);
 
@@ -116,7 +118,6 @@ cp_tree_size (enum tree_code code)
 {
   switch (code)
     {
-    case TINST_LEVEL:		return sizeof (struct tinst_level_s);
     case PTRMEM_CST:		return sizeof (struct ptrmem_cst);
     case BASELINK:		return sizeof (struct tree_baselink);
     case TEMPLATE_PARM_INDEX:	return sizeof (template_parm_index);
@@ -227,7 +228,7 @@ pop_file_scope (void)
 
 /* c-pragma.c needs to query whether a decl has extern "C" linkage.  */
 bool
-has_c_linkage (tree decl)
+has_c_linkage (const_tree decl)
 {
   return DECL_EXTERN_C_P (decl);
 }

@@ -1,3 +1,198 @@
+2007-10-22  David Daney  <ddaney@avtrex.com>
+
+	* include/jvm.h (_Jv_SetGCFreeSpaceDivisor): Declare new function.
+	* boehm.cc (_Jv_SetGCFreeSpaceDivisor): Define it.
+
+2007-10-18  David Daney  <ddaney@avtrex.com>
+
+	* classpath/lib/gnu/java/locale/LocaleData.class: Regenerate
+	* classpath/lib/gnu/javax/sound/sampled/gstreamer: Add generated
+	files.
+	* gnu/javax/sound/sampled/gstreamer: Add generated files.
+	
+2007-10-15  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* configure: Regenerate following changes to ../config/tls.m4.
+
+2007-09-17  Tom Tromey  <tromey@redhat.com>
+
+	* defineclass.cc (MAJOR_1_6): New define.
+	(MINOR_1_6): Likewise.
+	(_Jv_ClassReader::parse): Handle 1.6 bytecode.
+
+2007-09-12  David Daney  <ddaney@avtrex.com>
+
+	* configure.host: Enable interpreter for mips64.  Enable hash
+	synchronization for all mips*-*-linux* targets.
+	* sysdep/mips/locks.h (compare_and_swap, compare_and_swap_release) Use
+	__sync_bool_compare_and_swap instead of in-line asm.
+	(release_set, read_barrier, write_barrier): Use __sync_synchronize
+	instead of in-line asm.
+
+2007-09-09  Andreas Tobler  <a.tobler@schweiz.org>
+
+	PR libgcj/33326
+	* testsuite/lib/libjava.exp (libjava_arguments): Append the test spec
+	only for linux targets.
+
+2007-09-09  Andrew Haley  <aph@redhat.com>
+
+	* interpret-run.cc (invokevirtual_resolved): Nullcheck object on
+	TOS.
+
+2007-09-06  Tom Tromey  <tromey@redhat.com>
+
+	* testsuite/libjava.lang/StackTrace2.jar: Rebuilt.
+	* testsuite/libjava.lang/StackTrace2.java (checkLine): Print file
+	name.
+
+2007-09-06  Roman Zippel  <zippel@linux-m68k.org>
+
+	* sysdep/m68k/locks.h: New file.
+	* configure.host: Set sysdeps_dir and libgcj_interpreter for m68k.
+	* configure.ac: Set SIGNAL_HANDLER for m68*-*-linux*.
+	* configure: Regenerate.
+
+2007-09-05  Samuel Thibault  <samuel.thibault@ens-lyon.org>
+
+	* configure.host(gnu*): Set use_libgcj_bc to yes.
+
+2007-09-04  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac: Do not pass --with-native-libdir to classpath.
+	* configure: Regenerate.
+
+2007-09-04  Matthias Klose  <doko@ubuntu.com>
+
+	PR libgcj/33278
+	* configure.ac: Robustify extraction of gcj version.
+	* configure: Regenerate.
+
+2007-09-04  Andrew Haley  <aph@redhat.com>
+
+	PR java/27908
+	* testsuite/libjava.lang/PR27908.java
+	({run1,run2,run3}.isRunning): New Method.
+	(main): Fix race condition.
+
+2007-08-29  Andrew Haley  <aph@redhat.com>
+
+	* gnu/classpath/natVMStackWalker.cc (VMStackWalker::getCallingClass):
+	Make sure we're not sibcalled.
+	(GET_CALLING_CLASS): Define for ARM EABI.
+
+2007-08-22  Andrew Haley  <aph@redhat.com>
+
+	* configure.host (BACKTRACESPEC): Add arm*-linux*.
+
+2007-08-22  Andrew Haley  <aph@redhat.com>
+
+	* configure.ac (LIBSTDCXXSPEC): New.
+	* configure.host: Add arm*-linux* to pthread test.
+	* configure.ac (LIBGCJTESTSPEC): Add path to libstdc++ for ARM
+	EABI.
+	* testsuite/libjava.jni/jni.exp (gcj_jni_compile_c_to_so): Use
+	-fexceptions for ARM EABI.
+	* testsuite/lib/libjava.exp (libjava_arguments): Add libgcj-test.spec.
+	(libjava_invoke): Log the invocation.
+
+2007-08-15  Andrew Haley  <aph@redhat.com>
+
+	* configure.ac (extra_ldflags): Define.
+	* Makefile.am: Use extra_ldflags for all executables.
+
+2007-08-14  Andrew Haley  <aph@redhat.com>
+
+	* sysdep/arm/backtrace.h: Remove stubs for _Unwind_GetIPInfo,
+	_Unwind_GetRegionStart, and _Unwind_Backtrace.
+
+2007-07-27  Andrew Haley  <aph@redhat.com>
+
+	* gnu/classpath/natVMStackWalker.cc (GET_CALLING_CLASS): Stub for
+	ARM EABI.
+	* exception.cc (get_exception_header_from_ue): New.
+	(get_ttype_entry): ARM EABI version.
+	(PERSONALITY_FUNCTION): Add ARM EABI code.
+	* sysdep/arm/backtrace.h: New file.
+	* stacktrace.cc (_URC_NORMAL_STOP): New.
+	* configure.ac (extra_ldflags_libjava): Add libsupc++.la for ARM
+	EABI.
+	* configure.host (BACKTRACESPEC): Add arm/backtrace.h.
+
+2007-08-31  Matthias Klose  <doko@ubuntu.com>
+
+	* classpath/lib/java/util/EnumSet*.class: Regenerate
+
+2007-08-30  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* gij.cc (version): Update Copyright year.
+
+2007-08-16  Samuel Thibault  <samuel.thibault@ens-lyon.org>
+
+	* configure.host (gnu*): Set use_libgcj_bc to yes.
+
+2007-08-15  Tom Tromey  <tromey@redhat.com>
+
+	* java/lang/Class.java (internalGetFields): Use LinkedHashSet.
+	* classpath/lib/java/lang/Class.class: Rebuilt.
+
+2007-08-15  Samuel Thibault  <samuel.thibault@ens-lyon.org>
+
+	* java/lang/natPosixProcess.cc (sigchld_handler) [!SA_SIGINFO]: Remove
+	'si' and 'third' parameters.  Disable calling
+	pmi->old_sigaction.sa_sigaction.
+	(java::lang::PosixProcess*ProcessManager::init) [!SA_SIGINFO]: Set
+	sa.sa_handler instead of sa.sa_sigaction, don't set SA_SIGINFO flag.
+
+2007-08-09  Andrew Haley  <aph@redhat.com>
+
+	* testsuite/lib/libjava.exp (libjava_invoke): Log the invocation.
+
+2007-08-08  Samuel Thibault  <samuel.thibault@ens-lyon.org>
+
+	* java/net/natVMInetAddressPosix.cc
+	(java::net::VMInetAddress::getLocalHostname) [!MAXHOSTNAMELEN]:
+	Allocate buffer dynamically.
+
+2007-08-04  Alfred M. Szmidt  <ams@gnu.org>
+
+	* java/io/natFilePosix.cc (init_native) [!MAXPATHLEN]: Define to 0.
+	* java/io/File.java (createTempFile): Don't truncate if the system
+	doesn't have a limit on the length of a file name.
+	* classpath/lib/java/io/File.class: Regenerate.
+
+2007-08-04  Matthias Klose  <doko@ubuntu.com>
+
+	Import GNU Classpath (libgcj-import-20070727).
+
+	* Regenerate class and header files.
+	* Regenerate auto* files.
+
+	* include/jvm.h:
+	* jni-libjvm.cc (Jv_JNI_InvokeFunctions): Rename type.
+	* jni.cc (_Jv_JNIFunctions, _Jv_JNI_InvokeFunctions): Likewise.
+	* jni.cc (_Jv_JNI_CallAnyMethodA, _Jv_JNI_CallAnyVoidMethodA,
+	_Jv_JNI_CallMethodA, _Jv_JNI_CallVoidMethodA,
+	_Jv_JNI_CallStaticMethodA, _Jv_JNI_CallStaticVoidMethodA,
+	_Jv_JNI_NewObjectA, _Jv_JNI_SetPrimitiveArrayRegion): Constify
+	jvalue parameter.
+	* java/lang/reflect/natMethod.cc (_Jv_CallAnyMethodA): Likewise.
+
+	* java/lang/VMFloat.java (toString, parseFloat): New.
+
+	* gnu/awt/xlib/XToolkit.java (setAlwaysOnTop, isModalityTypeSupported,
+	isModalExclusionTypeSupported): New (stub only).
+	* gnu/awt/xlib/XCanvasPeer.java (requestFocus): Likewise.
+	* gnu/awt/xlib/XFramePeer.java (updateMinimumSize, updateIconImages,
+	updateFocusableWindowState, setModalBlocked, getBoundsPrivate,
+	setAlwaysOnTop): Likewise.
+	* gnu/awt/xlib/XFontPeer.java (canDisplay): Update signature.
+
+	* scripts/makemake.tcl: Ignore gnu/javax/sound/sampled/gstreamer,
+	ignore javax.sound.sampled.spi.MixerProvider, ignore .in files.
+
+	* HACKING: Mention --enable-gstreamer-peer, removal of generated files.
+
 2007-07-31  David Daney  <ddaney@avtrex.com>
 
 	* HACKING: Document regenerating configure and aclocal.m4.

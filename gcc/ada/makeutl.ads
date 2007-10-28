@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -38,16 +37,35 @@ package Makeutl is
       S2 : String := "";
       S3 : String := "");
    Do_Fail : Fail_Proc := Osint.Fail'Access;
-   --  Comment required ???
+   --  Failing procedure called from procedure Test_If_Relative_Path below.
+   --  May be redirected.
 
-   function Unit_Index_Of (ALI_File : File_Name_Type) return Int;
-   --  Find the index of a unit in a source file. Return zero if the file
-   --  is not a multi-unit source file.
+   Project_Tree : constant Project_Tree_Ref := new Project_Tree_Data;
+   --  The project tree
+
+   procedure Add
+     (Option : String_Access;
+      To     : in out String_List_Access;
+      Last   : in out Natural);
+   procedure Add
+     (Option : String;
+      To     : in out String_List_Access;
+      Last   : in out Natural);
+   --  Add a string to a list of strings
+
+   function Create_Name (Name : String) return File_Name_Type;
+   function Create_Name (Name : String) return Name_Id;
+   function Create_Name (Name : String) return Path_Name_Type;
+   --  Get the Name_Id of a name
 
    function Executable_Prefix_Path return String;
    --  Return the absolute path parent directory of the directory where the
    --  current executable resides, if its directory is named "bin", otherwise
    --  return an empty string.
+
+   procedure Inform (N : Name_Id := No_Name; Msg : String);
+   procedure Inform (N : File_Name_Type; Msg : String);
+   --  Prints out the program name followed by a colon, N and S
 
    function Is_External_Assignment (Argv : String) return Boolean;
    --  Verify that an external assignment switch is syntactically correct
@@ -72,6 +90,10 @@ package Makeutl is
    --  Package Mains is used to store the mains specified on the command line
    --  and to retrieve them when a project file is used, to verify that the
    --  files exist and that they belong to a project file.
+
+   function Unit_Index_Of (ALI_File : File_Name_Type) return Int;
+   --  Find the index of a unit in a source file. Return zero if the file
+   --  is not a multi-unit source file.
 
    package Mains is
 
@@ -98,9 +120,10 @@ package Makeutl is
    end Mains;
 
    procedure Test_If_Relative_Path
-     (Switch             : in out String_Access;
-      Parent             : String_Access;
-      Including_L_Switch : Boolean := True);
+     (Switch               : in out String_Access;
+      Parent               : String_Access;
+      Including_L_Switch   : Boolean := True;
+      Including_Non_Switch : Boolean := True);
    --  Test if Switch is a relative search path switch.
    --  If it is, fail if Parent is null, otherwise prepend the path with
    --  Parent. This subprogram is only called when using project files.

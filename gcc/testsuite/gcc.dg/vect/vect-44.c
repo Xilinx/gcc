@@ -5,6 +5,7 @@
 
 #define N 256
 
+__attribute__ ((noinline))
 void bar (float *pa, float *pb, float *pc) 
 {
   int i;
@@ -27,7 +28,7 @@ void bar (float *pa, float *pb, float *pc)
    vect-45.c is similar to this one with one difference:
         can't prove that pointers don't alias.  */
 
-int
+__attribute__ ((noinline)) int
 main1 (float * __restrict__ pa, float * __restrict__ pb, float * __restrict__ pc)
 {
   int i;
@@ -65,6 +66,7 @@ int main (void)
 
 /* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" } } */
 /* { dg-final { scan-tree-dump-times "Vectorizing an unaligned access" 2 "vect" { xfail vect_no_align } } } */
-/* { dg-final { scan-tree-dump-times "Alignment of access forced using peeling" 1 "vect" { xfail vect_no_align } } } */
+/* { dg-final { scan-tree-dump-times "Alignment of access forced using peeling" 1 "vect" { xfail { vect_no_align || {! vector_alignment_reachable} } } } } */
 /* { dg-final { scan-tree-dump-times "Alignment of access forced using versioning." 3 "vect" { target vect_no_align } } } */
+/* { dg-final { scan-tree-dump-times "Alignment of access forced using versioning." 1 "vect" { target { {! vector_alignment_reachable} && {! vect_no_align} } } } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

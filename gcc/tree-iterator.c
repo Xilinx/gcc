@@ -313,11 +313,25 @@ expr_first (tree expr)
 
   while (TREE_CODE (expr) == COMPOUND_EXPR)
     expr = TREE_OPERAND (expr, 0);
+
   return expr;
 }
 
 /* Return the last expression in a sequence of COMPOUND_EXPRs,
    or in a STATEMENT_LIST.  */
+
+#define EXPR_LAST_BODY do { \
+  if (expr == NULL_TREE) \
+    return expr;\
+  if (TREE_CODE (expr) == STATEMENT_LIST) \
+    { \
+      struct tree_statement_list_node *n = STATEMENT_LIST_TAIL (expr); \
+      return n ? n->stmt : NULL_TREE; \
+    } \
+  while (TREE_CODE (expr) == COMPOUND_EXPR) \
+    expr = TREE_OPERAND (expr, 1); \
+  return expr; \
+} while (0)
 
 tree
 expr_last (tree expr)
@@ -333,6 +347,7 @@ expr_last (tree expr)
 
   while (TREE_CODE (expr) == COMPOUND_EXPR)
     expr = TREE_OPERAND (expr, 1);
+
   return expr;
 }
 

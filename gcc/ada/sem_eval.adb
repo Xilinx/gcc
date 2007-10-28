@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -1451,9 +1450,10 @@ package body Sem_Eval is
       --  concatenations with such aggregates.
 
       declare
-         Left_Str  : constant Node_Id := Get_String_Val (Left);
-         Left_Len  : Nat;
-         Right_Str : constant Node_Id := Get_String_Val (Right);
+         Left_Str   : constant Node_Id := Get_String_Val (Left);
+         Left_Len   : Nat;
+         Right_Str  : constant Node_Id := Get_String_Val (Right);
+         Folded_Val : String_Id;
 
       begin
          --  Establish new string literal, and store left operand. We make
@@ -1465,26 +1465,36 @@ package body Sem_Eval is
 
          if Nkind (Left_Str) = N_String_Literal then
             Left_Len :=  String_Length (Strval (Left_Str));
-            Start_String (Strval (Left_Str));
+
+            --  If the left operand is the empty string, and the right operand
+            --  is a string literal (the case of "" & "..."), the result is the
+            --  value of the right operand. This optimization is important when
+            --  Is_Folded_In_Parser, to avoid copying an enormous right
+            --  operand.
+
+            if Left_Len = 0 and then Nkind (Right_Str) = N_String_Literal then
+               Folded_Val := Strval (Right_Str);
+            else
+               Start_String (Strval (Left_Str));
+            end if;
+
          else
             Start_String;
             Store_String_Char (UI_To_CC (Char_Literal_Value (Left_Str)));
             Left_Len := 1;
          end if;
 
-         --  Now append the characters of the right operand
+         --  Now append the characters of the right operand, unless we
+         --  optimized the "" & "..." case above.
 
          if Nkind (Right_Str) = N_String_Literal then
-            declare
-               S : constant String_Id := Strval (Right_Str);
-
-            begin
-               for J in 1 .. String_Length (S) loop
-                  Store_String_Char (Get_String_Char (S, J));
-               end loop;
-            end;
+            if Left_Len /= 0 then
+               Store_String_Chars (Strval (Right_Str));
+               Folded_Val := End_String;
+            end if;
          else
             Store_String_Char (UI_To_CC (Char_Literal_Value (Right_Str)));
+            Folded_Val := End_String;
          end if;
 
          Set_Is_Static_Expression (N, Stat);
@@ -1501,7 +1511,7 @@ package body Sem_Eval is
                Set_Etype (N, Etype (Right));
             end if;
 
-            Fold_Str (N, End_String, True);
+            Fold_Str (N, Folded_Val, Static => True);
          end if;
       end;
    end Eval_Concatenation;
@@ -2732,7 +2742,7 @@ package body Sem_Eval is
       --  Fold conversion, case of string type. The result is not static
 
       if Is_String_Type (Target_Type) then
-         Fold_Str (N, Strval (Get_String_Val (Operand)), False);
+         Fold_Str (N, Strval (Get_String_Val (Operand)), Static => False);
 
          return;
 
@@ -4450,7 +4460,7 @@ package body Sem_Eval is
          if Raises_Constraint_Error (Expr) then
             Error_Msg_N
               ("expression raises exception, cannot be static " &
-               "('R'M 4.9(34))!", N);
+               "(RM 4.9(34))!", N);
             return;
          end if;
 
@@ -4469,7 +4479,7 @@ package body Sem_Eval is
          then
             Error_Msg_N
               ("static expression must have scalar or string type " &
-               "('R'M 4.9(2))!", N);
+               "(RM 4.9(2))!", N);
             return;
          end if;
       end if;
@@ -4486,19 +4496,19 @@ package body Sem_Eval is
             elsif Ekind (E) = E_Constant then
                if not Is_Static_Expression (Constant_Value (E)) then
                   Error_Msg_NE
-                    ("& is not a static constant ('R'M 4.9(5))!", N, E);
+                    ("& is not a static constant (RM 4.9(5))!", N, E);
                end if;
 
             else
                Error_Msg_NE
                  ("& is not static constant or named number " &
-                  "('R'M 4.9(5))!", N, E);
+                  "(RM 4.9(5))!", N, E);
             end if;
 
          when N_Binary_Op | N_And_Then | N_Or_Else | N_Membership_Test =>
             if Nkind (N) in N_Op_Shift then
                Error_Msg_N
-                ("shift functions are never static ('R'M 4.9(6,18))!", N);
+                ("shift functions are never static (RM 4.9(6,18))!", N);
 
             else
                Why_Not_Static (Left_Opnd (N));
@@ -4522,7 +4532,7 @@ package body Sem_Eval is
             if Attribute_Name (N) = Name_Size then
                Error_Msg_N
                  ("size attribute is only static for scalar type " &
-                  "('R'M 4.9(7,8))", N);
+                  "(RM 4.9(7,8))", N);
 
             --  Flag array cases
 
@@ -4535,14 +4545,14 @@ package body Sem_Eval is
                then
                   Error_Msg_N
                     ("static array attribute must be Length, First, or Last " &
-                     "('R'M 4.9(8))!", N);
+                     "(RM 4.9(8))!", N);
 
                --  Since we know the expression is not-static (we already
                --  tested for this, must mean array is not static).
 
                else
                   Error_Msg_N
-                    ("prefix is non-static array ('R'M 4.9(8))!", Prefix (N));
+                    ("prefix is non-static array (RM 4.9(8))!", Prefix (N));
                end if;
 
                return;
@@ -4556,7 +4566,7 @@ package body Sem_Eval is
             then
                Error_Msg_N
                  ("attribute of generic type is never static " &
-                  "('R'M 4.9(7,8))!", N);
+                  "(RM 4.9(7,8))!", N);
 
             elsif Is_Static_Subtype (E) then
                null;
@@ -4564,43 +4574,43 @@ package body Sem_Eval is
             elsif Is_Scalar_Type (E) then
                Error_Msg_N
                  ("prefix type for attribute is not static scalar subtype " &
-                  "('R'M 4.9(7))!", N);
+                  "(RM 4.9(7))!", N);
 
             else
                Error_Msg_N
                  ("static attribute must apply to array/scalar type " &
-                  "('R'M 4.9(7,8))!", N);
+                  "(RM 4.9(7,8))!", N);
             end if;
 
          when N_String_Literal =>
             Error_Msg_N
-              ("subtype of string literal is non-static ('R'M 4.9(4))!", N);
+              ("subtype of string literal is non-static (RM 4.9(4))!", N);
 
          when N_Explicit_Dereference =>
             Error_Msg_N
-              ("explicit dereference is never static ('R'M 4.9)!", N);
+              ("explicit dereference is never static (RM 4.9)!", N);
 
          when N_Function_Call =>
             Why_Not_Static_List (Parameter_Associations (N));
-            Error_Msg_N ("non-static function call ('R'M 4.9(6,18))!", N);
+            Error_Msg_N ("non-static function call (RM 4.9(6,18))!", N);
 
          when N_Parameter_Association =>
             Why_Not_Static (Explicit_Actual_Parameter (N));
 
          when N_Indexed_Component =>
             Error_Msg_N
-              ("indexed component is never static ('R'M 4.9)!", N);
+              ("indexed component is never static (RM 4.9)!", N);
 
          when N_Procedure_Call_Statement =>
             Error_Msg_N
-              ("procedure call is never static ('R'M 4.9)!", N);
+              ("procedure call is never static (RM 4.9)!", N);
 
          when N_Qualified_Expression =>
             Why_Not_Static (Expression (N));
 
          when N_Aggregate | N_Extension_Aggregate =>
             Error_Msg_N
-              ("an aggregate is never static ('R'M 4.9)!", N);
+              ("an aggregate is never static (RM 4.9)!", N);
 
          when N_Range =>
             Why_Not_Static (Low_Bound (N));
@@ -4614,11 +4624,11 @@ package body Sem_Eval is
 
          when N_Selected_Component =>
             Error_Msg_N
-              ("selected component is never static ('R'M 4.9)!", N);
+              ("selected component is never static (RM 4.9)!", N);
 
          when N_Slice =>
             Error_Msg_N
-              ("slice is never static ('R'M 4.9)!", N);
+              ("slice is never static (RM 4.9)!", N);
 
          when N_Type_Conversion =>
             Why_Not_Static (Expression (N));
@@ -4628,12 +4638,12 @@ package body Sem_Eval is
             then
                Error_Msg_N
                  ("static conversion requires static scalar subtype result " &
-                  "('R'M 4.9(9))!", N);
+                  "(RM 4.9(9))!", N);
             end if;
 
          when N_Unchecked_Type_Conversion =>
             Error_Msg_N
-              ("unchecked type conversion is never static ('R'M 4.9)!", N);
+              ("unchecked type conversion is never static (RM 4.9)!", N);
 
          when others =>
             null;

@@ -1004,6 +1004,12 @@ extern void __gnat_notify_unhandled_exception (void);
 /* Below is the eh personality routine per se. We currently assume that only
    GNU-Ada exceptions are met.  */
 
+#ifdef __USING_SJLJ_EXCEPTIONS__
+#define PERSONALITY_FUNCTION    __gnat_eh_personality_sj
+#else
+#define PERSONALITY_FUNCTION    __gnat_eh_personality
+#endif
+
 /* Major tweak for ia64-vms : the CHF propagation phase calls this personality
    routine with sigargs/mechargs arguments and has very specific expectations
    on possible return values.
@@ -1036,11 +1042,11 @@ typedef _Unwind_Action phases_arg_t;
 #endif
 
 _Unwind_Reason_Code
-__gnat_eh_personality (version_arg_t version_arg,
-                       phases_arg_t phases_arg,
-                       _Unwind_Exception_Class uw_exception_class,
-                       _Unwind_Exception *uw_exception,
-                       _Unwind_Context *uw_context)
+PERSONALITY_FUNCTION (version_arg_t version_arg,
+                      phases_arg_t phases_arg,
+                      _Unwind_Exception_Class uw_exception_class,
+                      _Unwind_Exception *uw_exception,
+                      _Unwind_Context *uw_context)
 {
   /* Fetch the version and phases args with their nominal ABI types for later
      use. This is a noop everywhere except on ia64-vms when called from the

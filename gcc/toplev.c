@@ -146,7 +146,7 @@ location_t unknown_location = { NULL, 0 };
 
 location_t input_location;
 
-struct line_maps line_table;
+struct line_maps *line_table;
 
 /* Stack of currently pending input files.  */
 
@@ -172,12 +172,6 @@ const char *dump_base_name;
 /* Name to use as a base for auxiliary output files.  */
 
 const char *aux_base_name;
-
-/* Bit flags that specify the machine subtype we are compiling for.
-   Bits are tested using macros TARGET_... defined in the tm.h file
-   and set by `-m...' switches.  Must be defined in rtlanal.c.  */
-
-extern int target_flags;
 
 /* A mask of target_flags that includes bit X if X was set or cleared
    on the command line.  */
@@ -445,7 +439,7 @@ announce_function (tree decl)
 	fprintf (stderr, " %s", lang_hooks.decl_printable_name (decl, 2));
       fflush (stderr);
       pp_needs_newline (global_dc->printer) = true;
-      diagnostic_set_last_function (global_dc);
+      diagnostic_set_last_function (global_dc, (diagnostic_info *) NULL);
     }
 }
 
@@ -699,6 +693,8 @@ output_file_directive (FILE *asm_file, const char *input_name)
 
   if (input_name == NULL)
     input_name = "<stdin>";
+  else
+    input_name = remap_debug_filename (input_name);
 
   len = strlen (input_name);
   na = input_name + len;
@@ -855,7 +851,7 @@ check_global_declaration_1 (tree decl)
       if (TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
 	pedwarn ("%q+F used but never defined", decl);
       else
-	warning (0, "%q+F declared %<static%> but never defined", decl);
+	warning (OPT_Wunused_function, "%q+F declared %<static%> but never defined", decl);
       /* This symbol is effectively an "extern" declaration now.  */
       TREE_PUBLIC (decl) = 1;
       assemble_external (decl);
@@ -880,7 +876,10 @@ check_global_declaration_1 (tree decl)
       && ! (TREE_CODE (decl) == VAR_DECL && DECL_REGISTER (decl))
       /* Otherwise, ask the language.  */
       && lang_hooks.decls.warn_unused_global (decl))
-    warning (0, "%q+D defined but not used", decl);
+    warning ((TREE_CODE (decl) == FUNCTION_DECL) 
+	     ? OPT_Wunused_function 
+             : OPT_Wunused_variable, 
+	     "%q+D defined but not used", decl);
 }
 
 /* Issue appropriate warnings for the global declarations in VEC (of
@@ -1108,8 +1107,14 @@ compile_file (void)
      string is patterned after the ones produced by native SVR4 compilers.  */
 #ifdef IDENT_ASM_OP
   if (!flag_no_ident)
-    fprintf (asm_out_file, "%s\"GCC: (GNU) %s\"\n",
-	     IDENT_ASM_OP, version_string);
+    {
+      const char *pkg_version = "(GNU) ";
+
+      if (strcmp ("(GCC) ", pkgversion_string))
+	pkg_version = pkgversion_string;
+      fprintf (asm_out_file, "%s\"GCC: %s%s\"\n",
+	       IDENT_ASM_OP, pkg_version, version_string);
+    }
 #endif
 
   /* This must be at the end.  Some target ports emit end of file directives
@@ -1177,9 +1182,9 @@ print_version (FILE *file, const char *indent)
 {
   static const char fmt1[] =
 #ifdef __GNUC__
-    N_("%s%s%s version %s (%s)\n%s\tcompiled by GNU C version %s, ")
+    N_("%s%s%s %sversion %s (%s)\n%s\tcompiled by GNU C version %s, ")
 #else
-    N_("%s%s%s version %s (%s) compiled by CC, ")
+    N_("%s%s%s %sversion %s (%s) compiled by CC, ")
 #endif
     ;
   static const char fmt2[] =
@@ -1194,7 +1199,7 @@ print_version (FILE *file, const char *indent)
   fprintf (file,
 	   file == stderr ? _(fmt1) : fmt1,
 	   indent, *indent != 0 ? " " : "",
-	   lang_hooks.name, version_string, TARGET_NAME,
+	   lang_hooks.name, pkgversion_string, version_string, TARGET_NAME,
 	   indent, __VERSION__);
 
   /* We need to stringify the GMP macro values.  Ugh, gmp_version has
@@ -1598,6 +1603,14 @@ default_tree_printer (pretty_printer * pp, text_info *text, const char *spec,
   return true;
 }
 
+/* A helper function; used as the reallocator function for cpp's line
+   table.  */
+static void *
+realloc_for_line_map (void *ptr, size_t len)
+{
+  return ggc_realloc (ptr, len);
+}
+
 /* Initialization of the front end environment, before command line
    options are parsed.  Signal handlers, internationalization etc.
    ARGV0 is main's argv[0].  */
@@ -1654,7 +1667,9 @@ general_init (const char *argv0)
      table.  */
   init_ggc ();
   init_stringpool ();
-  linemap_init (&line_table);
+  line_table = GGC_NEW (struct line_maps);
+  linemap_init (line_table);
+  line_table->reallocator = realloc_for_line_map;
   init_ttree ();
 
   /* Initialize register usage now so switches may override.  */
@@ -1680,6 +1695,31 @@ target_supports_section_anchors_p (void)
     return false;
 
   return true;
+}
+
+/* Default the align_* variables to 1 if they're still unset, and
+   set up the align_*_log variables.  */
+static void
+init_alignments (void)
+{
+  if (align_loops <= 0)
+    align_loops = 1;
+  if (align_loops_max_skip > align_loops)
+    align_loops_max_skip = align_loops - 1;
+  align_loops_log = floor_log2 (align_loops * 2 - 1);
+  if (align_jumps <= 0)
+    align_jumps = 1;
+  if (align_jumps_max_skip > align_jumps)
+    align_jumps_max_skip = align_jumps - 1;
+  align_jumps_log = floor_log2 (align_jumps * 2 - 1);
+  if (align_labels <= 0)
+    align_labels = 1;
+  align_labels_log = floor_log2 (align_labels * 2 - 1);
+  if (align_labels_max_skip > align_labels)
+    align_labels_max_skip = align_labels - 1;
+  if (align_functions <= 0)
+    align_functions = 1;
+  align_functions_log = floor_log2 (align_functions * 2 - 1);
 }
 
 /* Process the options that have been parsed.  */
@@ -1727,23 +1767,6 @@ process_options (void)
   else
     aux_base_name = "gccaux";
 
-  /* Set up the align_*_log variables, defaulting them to 1 if they
-     were still unset.  */
-  if (align_loops <= 0) align_loops = 1;
-  if (align_loops_max_skip > align_loops || !align_loops)
-    align_loops_max_skip = align_loops - 1;
-  align_loops_log = floor_log2 (align_loops * 2 - 1);
-  if (align_jumps <= 0) align_jumps = 1;
-  if (align_jumps_max_skip > align_jumps || !align_jumps)
-    align_jumps_max_skip = align_jumps - 1;
-  align_jumps_log = floor_log2 (align_jumps * 2 - 1);
-  if (align_labels <= 0) align_labels = 1;
-  align_labels_log = floor_log2 (align_labels * 2 - 1);
-  if (align_labels_max_skip > align_labels || !align_labels)
-    align_labels_max_skip = align_labels - 1;
-  if (align_functions <= 0) align_functions = 1;
-  align_functions_log = floor_log2 (align_functions * 2 - 1);
-
   /* Unrolling all loops implies that standard loop unrolling must also
      be done.  */
   if (flag_unroll_all_loops)
@@ -1763,11 +1786,6 @@ process_options (void)
     flag_asynchronous_unwind_tables = 1;
   if (flag_asynchronous_unwind_tables)
     flag_unwind_tables = 1;
-
-  /* Disable unit-at-a-time mode for frontends not supporting callgraph
-     interface.  */
-  if (flag_unit_at_a_time && ! lang_hooks.callgraph.expand_function)
-    flag_unit_at_a_time = 0;
 
   if (!flag_unit_at_a_time)
     flag_section_anchors = 0;
@@ -1899,6 +1917,13 @@ process_options (void)
   if (flag_var_tracking == AUTODETECT_VALUE)
     flag_var_tracking = optimize >= 1;
 
+  if (flag_tree_cselim == AUTODETECT_VALUE)
+#ifdef HAVE_conditional_move
+    flag_tree_cselim = 1;
+#else
+    flag_tree_cselim = 0;
+#endif
+
   /* If the user specifically requested variable tracking with tagging
      uninitialized variables, we need to turn on variable tracking.
      (We already determined above that variable tracking is feasible.)  */
@@ -1995,7 +2020,50 @@ process_options (void)
     }
 }
 
-/* Initialize the compiler back end.  */
+/* This function can be called multiple times to reinitialize the compiler
+   back end when register classes or instruction sets have changed,
+   before each function.  */
+static void
+backend_init_target (void)
+{
+  /* Initialize alignment variables.  */
+  init_alignments ();
+
+  /* This reinitializes hard_frame_pointer, and calls init_reg_modes_target()
+     to initialize reg_raw_mode[].  */
+  init_emit_regs ();
+
+  /* This invokes target hooks to set fixed_reg[] etc, which is
+     mode-dependent.  */
+  init_regs ();
+
+  /* This depends on stack_pointer_rtx.  */
+  init_fake_stack_mems ();
+
+  /* Sets static_base_value[HARD_FRAME_POINTER_REGNUM], which is
+     mode-dependent.  */
+  init_alias_target ();
+
+  /* Depends on HARD_FRAME_POINTER_REGNUM.  */
+  init_reload ();
+
+  /* The following initialization functions need to generate rtl, so
+     provide a dummy function context for them.  */
+  init_dummy_function_start ();
+
+  /* rtx_cost is mode-dependent, so cached values need to be recomputed
+     on a mode change.  */
+  init_expmed ();
+
+  /* We may need to recompute regno_save_code[] and regno_restore_code[]
+     after a mode change as well.  */
+  if (flag_caller_saves)
+    init_caller_save ();
+  expand_dummy_function_end ();
+}
+
+/* Initialize the compiler back end.  This function is called only once,
+   when starting the compiler.  */
 static void
 backend_init (void)
 {
@@ -2008,19 +2076,35 @@ backend_init (void)
 		    || flag_test_coverage);
 
   init_rtlanal ();
-  init_regs ();
-  init_fake_stack_mems ();
-  init_alias_once ();
   init_inline_once ();
-  init_reload ();
   init_varasm_once ();
+  save_register_info ();
+
+  /* Initialize the target-specific back end pieces.  */
+  backend_init_target ();
+}
+
+/* Initialize things that are both lang-dependent and target-dependent.
+   This function can be called more than once if target parameters change.  */
+static void
+lang_dependent_init_target (void)
+{
+  /* This creates various _DECL nodes, so needs to be called after the
+     front end is initialized.  It also depends on the HAVE_xxx macros
+     generated from the target machine description.  */
+  init_optabs ();
 
   /* The following initialization functions need to generate rtl, so
      provide a dummy function context for them.  */
   init_dummy_function_start ();
-  init_expmed ();
-  if (flag_caller_saves)
-    init_caller_save ();
+
+  /* Do the target-specific parts of expr initialization.  */
+  init_expr_target ();
+
+  /* Although the actions of init_set_costs are language-independent,
+     it uses optabs, so we cannot call it from backend_init.  */
+  init_set_costs ();
+
   expand_dummy_function_end ();
 }
 
@@ -2045,21 +2129,12 @@ lang_dependent_init (const char *name)
 
   init_asm_output (name);
 
-  /* These create various _DECL nodes, so need to be called after the
+  /* This creates various _DECL nodes, so needs to be called after the
      front end is initialized.  */
   init_eh ();
-  init_optabs ();
 
-  /* The following initialization functions need to generate rtl, so
-     provide a dummy function context for them.  */
-  init_dummy_function_start ();
-  init_expr_once ();
-
-  /* Although the actions of init_set_costs are language-independent,
-     it uses optabs, so we cannot call it from backend_init.  */
-  init_set_costs ();
-
-  expand_dummy_function_end ();
+  /* Do the target-specific parts of the initialization.  */
+  lang_dependent_init_target ();
 
   /* If dbx symbol table desired, initialize writing it and output the
      predefined types.  */
@@ -2077,6 +2152,19 @@ lang_dependent_init (const char *name)
   timevar_pop (TV_SYMOUT);
 
   return 1;
+}
+
+
+/* Reinitialize everything when target parameters, such as register usage,
+   have changed.  */
+void
+target_reinit (void)
+{
+  /* Reinitialize RTL backend.  */
+  backend_init_target ();
+
+  /* Reinitialize lang-dependent parts.  */
+  lang_dependent_init_target ();
 }
 
 void

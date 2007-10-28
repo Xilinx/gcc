@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -327,7 +327,7 @@ package body Ada.Containers.Hashed_Sets is
       declare
          Size : constant Hash_Type := Prime_Numbers.To_Prime (Left.Length);
       begin
-         Buckets := new Buckets_Type (0 .. Size - 1);
+         Buckets := HT_Ops.New_Buckets (Length => Size);
       end;
 
       Length := 0;
@@ -645,6 +645,8 @@ package body Ada.Containers.Hashed_Sets is
       New_Item  : Element_Type)
    is
       Position : Cursor;
+      pragma Unreferenced (Position);
+
       Inserted : Boolean;
 
    begin
@@ -753,7 +755,7 @@ package body Ada.Containers.Hashed_Sets is
       declare
          Size : constant Hash_Type := Prime_Numbers.To_Prime (Length);
       begin
-         Buckets := new Buckets_Type (0 .. Size - 1);
+         Buckets := HT_Ops.New_Buckets (Length => Size);
       end;
 
       Length := 0;
@@ -1248,7 +1250,7 @@ package body Ada.Containers.Hashed_Sets is
          Size : constant Hash_Type :=
                   Prime_Numbers.To_Prime (Left.Length + Right.Length);
       begin
-         Buckets := new Buckets_Type (0 .. Size - 1);
+         Buckets := HT_Ops.New_Buckets (Length => Size);
       end;
 
       Length := 0;
@@ -1329,9 +1331,11 @@ package body Ada.Containers.Hashed_Sets is
    ------------
 
    function To_Set (New_Item : Element_Type) return Set is
-      HT       : Hash_Table_Type;
+      HT : Hash_Table_Type;
+
       Node     : Node_Access;
       Inserted : Boolean;
+      pragma Unreferenced (Node, Inserted);
 
    begin
       Insert (HT, New_Item, Node, Inserted);
@@ -1375,6 +1379,7 @@ package body Ada.Containers.Hashed_Sets is
 
          Tgt_Node : Node_Access;
          Success  : Boolean;
+         pragma Unreferenced (Tgt_Node, Success);
 
       --  Start of processing for Process
 
@@ -1426,7 +1431,7 @@ package body Ada.Containers.Hashed_Sets is
          Size : constant Hash_Type :=
                   Prime_Numbers.To_Prime (Left.Length + Right.Length);
       begin
-         Buckets := new Buckets_Type (0 .. Size - 1);
+         Buckets := HT_Ops.New_Buckets (Length => Size);
       end;
 
       Iterate_Left : declare

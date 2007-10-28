@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -989,6 +988,7 @@ package body Ch6 is
       Ident              : Nat;
       Ident_Sloc         : Source_Ptr;
       Not_Null_Present   : Boolean := False;
+      Not_Null_Sloc      : Source_Ptr;
 
       Idents : array (Int range 1 .. 4096) of Entity_Id;
       --  This array holds the list of defining identifiers. The upper bound
@@ -1087,6 +1087,7 @@ package body Ch6 is
 
                --  Scan possible NOT NULL for Ada 2005 (AI-231, AI-447)
 
+               Not_Null_Sloc := Token_Ptr;
                Not_Null_Present :=
                  P_Null_Exclusion (Allow_Anonymous_In_95 => True);
 
@@ -1109,8 +1110,19 @@ package body Ch6 is
                else
                   if Token = Tok_In or else Token = Tok_Out then
                      if Not_Null_Present then
-                        Error_Msg_SC
-                          ("ACCESS must be placed after the parameter mode");
+                        Error_Msg
+                          ("`NOT NULL` can only be used with `ACCESS`",
+                           Not_Null_Sloc);
+
+                        if Token = Tok_In then
+                           Error_Msg
+                             ("\`IN` not allowed together with `ACCESS`",
+                              Not_Null_Sloc);
+                        else
+                           Error_Msg
+                             ("\`OUT` not allowed together with `ACCESS`",
+                              Not_Null_Sloc);
+                        end if;
                      end if;
 
                      P_Mode (Specification_Node);
@@ -1454,14 +1466,14 @@ package body Ch6 is
    begin
       Scan; -- past RETURN
 
-      --  Simple_return_statement, no expression, return an N_Return_Statement
-      --  node with the expression field left Empty.
+      --  Simple_return_statement, no expression, return an
+      --  N_Simple_Return_Statement node with the expression field left Empty.
 
       if Token = Tok_Semicolon then
          Scan; -- past ;
-         Return_Node := New_Node (N_Return_Statement, Return_Sloc);
+         Return_Node := New_Node (N_Simple_Return_Statement, Return_Sloc);
 
-      --  Non-simple case
+      --  Non-trivial case
 
       else
          --  Simple_return_statement with expression
@@ -1471,7 +1483,7 @@ package body Ch6 is
          --  message is probably that we have a missing semicolon.
 
          if Is_Simple then
-            Return_Node := New_Node (N_Return_Statement, Return_Sloc);
+            Return_Node := New_Node (N_Simple_Return_Statement, Return_Sloc);
 
             if Token not in Token_Class_Eterm then
                Set_Expression (Return_Node, P_Expression_No_Right_Paren);

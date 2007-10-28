@@ -581,6 +581,29 @@ To configure GCC:
    % @var{srcdir}/configure [@var{options}] [@var{target}]
 @end smallexample
 
+@heading Distributor options
+
+If you will be distributing binary versions of GCC, with modifications
+to the source code, you should use the options described in this
+section to make clear that your version contains modifications.
+
+@table @code
+@item --with-pkgversion=@var{version}
+Specify a string that identifies your package.  You may wish
+to include a build number or build date.  This version string will be
+included in the output of @command{gcc --version}.  This suffix does
+not replace the default version string, only the @samp{GCC} part.
+
+The default value is @samp{GCC}.
+
+@item --with-bugurl=@var{url}
+Specify the URL that users should visit if they wish to report a bug.
+You are of course welcome to forward bugs reported to you to the FSF,
+if you determine that they are not bugs in your modifications.
+
+The default value refers to the FSF's GCC bug tracker.
+
+@end table
 
 @heading Target specification
 @itemize @bullet
@@ -1039,13 +1062,26 @@ systems that support conditional traps).
 Division by zero checks use the break instruction.
 @end table
 
+@c If you make --with-llsc the default for additional targets,
+@c update the --with-llsc description in the MIPS section below.
+
+@item --with-llsc
+On MIPS targets, make @option{-mllsc} the default when no
+@option{-mno-lsc} option is passed.  This is the default for
+Linux-based targets, as the kernel will emulate them if the ISA does
+not provide them.
+
+@item --without-llsc
+On MIPS targets, make @option{-mno-llsc} the default when no
+@option{-mllsc} option is passed.
+
 @item --enable-__cxa_atexit
 Define if you want to use __cxa_atexit, rather than atexit, to
 register C++ destructors for local statics and global objects.
 This is essential for fully standards-compliant handling of
 destructors, but requires __cxa_atexit in libc.  This option is currently
 only available on systems with GNU libc.  When enabled, this will cause
-@option{-fuse-cxa-exit} to be passed by default.
+@option{-fuse-cxa-atexit} to be passed by default.
 
 @item --enable-target-optspace
 Specify that target
@@ -1317,6 +1353,13 @@ or @samp{dpd}).  The @samp{bid} (binary integer decimal) format is
 default on i386 and x86_64 systems, and the @samp{dpd} (densely packed
 decimal) format is default on PowerPC systems.
 
+@item --enable-fixed-point
+@itemx --disable-fixed-point
+Enable (or disable) support for C fixed-point arithmetic.
+This option is enabled by default for some targets (such as MIPS) which
+have hardware-support for fixed-point operations.  On other targets, you
+may enable this option manually.
+
 @item --with-long-double-128
 Specify if @code{long double} type should be 128-bit by default on selected
 GNU/Linux architectures.  If using @code{--without-long-double-128},
@@ -1344,6 +1387,11 @@ GCC, you can explicitly specify the directory where they are installed
 @option{--with-mpfr-include=@var{mpfrinstalldir}/include}.  If these
 shorthand assumptions are not correct, you can use the explicit
 include and lib options directly.
+
+@item --with-debug-prefix-map=@var{map}
+Convert source directory names using @option{-fdebug-prefix-map} when
+building runtime libraries.  @samp{@var{map}} is a space-separated
+list of maps of the form @samp{@var{old}=@var{new}}.
 
 @end table
 
@@ -1950,6 +1998,9 @@ front ends and runtime libraries.  While running the testsuite, DejaGnu
 might emit some harmless messages resembling
 @samp{WARNING: Couldn't find the global config file.} or
 @samp{WARNING: Couldn't find tool init file} that can be ignored.
+
+If you are testing a cross-compiler, you may want to run the testsuite
+on a simulator as described at @uref{http://gcc.gnu.org/simtest-howto.html}.
 
 @section How can you run the testsuite on selected tests?
 
@@ -3571,6 +3622,20 @@ make @samp{mips*-*-*} use the generic implementation instead.  You can also
 configure for @samp{mipsel-elf} as a workaround.  The
 @samp{mips*-*-linux*} target continues to use the MIPS II routines.  More
 work on this is expected in future releases.
+
+@c If you make --with-llsc the default for another target, please also
+@c update the description of the --with-llsc option.
+
+The built-in @code{__sync_*} functions are available on MIPS II and
+later systems and others that support the @samp{ll}, @samp{sc} and
+@samp{sync} instructions.  This can be overridden by passing
+@option{--with-llsc} or @option{--without-llsc} when configuring GCC.
+Since the Linux kernel emulates these instructions if they are
+missing, the default for @samp{mips*-*-linux*} targets is
+@option{--with-llsc}.  The @option{--with-llsc} and
+@option{--without-llsc} configure options may be overridden at compile
+time by passing the @option{-mllsc} or @option{-mno-llsc} options to
+the compiler.
 
 MIPS systems check for division by zero (unless
 @option{-mno-check-zero-division} is passed to the compiler) by

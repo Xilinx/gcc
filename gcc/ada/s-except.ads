@@ -35,6 +35,10 @@
 --  It should be compiled without optimization to let debuggers inspect
 --  parameter values reliably from breakpoints on the routines.
 
+pragma Warnings (Off);
+pragma Compiler_Unit;
+pragma Warnings (On);
+
 with System.Standard_Library;
 
 package System.Exceptions is
@@ -42,7 +46,7 @@ package System.Exceptions is
    pragma Warnings (Off);
    pragma Preelaborate_05;
    pragma Warnings (On);
-   --  To let Ada.Exceptions "with" us and let us "with" Standard_Library.
+   --  To let Ada.Exceptions "with" us and let us "with" Standard_Library
 
    package SSL renames System.Standard_Library;
    --  To let some of the hooks below have formal parameters typed in

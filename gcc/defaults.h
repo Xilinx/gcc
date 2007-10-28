@@ -321,7 +321,8 @@ along with GCC; see the file COPYING3.  If not see
 
 /* If we have a definition of INCOMING_RETURN_ADDR_RTX, assume that
    the rest of the DWARF 2 frame unwind support is also provided.  */
-#if !defined (DWARF2_UNWIND_INFO) && defined (INCOMING_RETURN_ADDR_RTX)
+#if !defined (DWARF2_UNWIND_INFO) && defined (INCOMING_RETURN_ADDR_RTX) \
+    && !defined (TARGET_UNWIND_INFO)
 #define DWARF2_UNWIND_INFO 1
 #endif
 
@@ -452,6 +453,38 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef DECIMAL128_TYPE_SIZE
 #define DECIMAL128_TYPE_SIZE 128
+#endif
+
+#ifndef SHORT_FRACT_TYPE_SIZE
+#define SHORT_FRACT_TYPE_SIZE BITS_PER_UNIT
+#endif
+
+#ifndef FRACT_TYPE_SIZE
+#define FRACT_TYPE_SIZE (BITS_PER_UNIT * 2)
+#endif
+
+#ifndef LONG_FRACT_TYPE_SIZE
+#define LONG_FRACT_TYPE_SIZE (BITS_PER_UNIT * 4)
+#endif
+
+#ifndef LONG_LONG_FRACT_TYPE_SIZE
+#define LONG_LONG_FRACT_TYPE_SIZE (BITS_PER_UNIT * 8)
+#endif
+
+#ifndef SHORT_ACCUM_TYPE_SIZE
+#define SHORT_ACCUM_TYPE_SIZE (SHORT_FRACT_TYPE_SIZE * 2)
+#endif
+
+#ifndef ACCUM_TYPE_SIZE
+#define ACCUM_TYPE_SIZE (FRACT_TYPE_SIZE * 2)
+#endif
+
+#ifndef LONG_ACCUM_TYPE_SIZE
+#define LONG_ACCUM_TYPE_SIZE (LONG_FRACT_TYPE_SIZE * 2)
+#endif
+
+#ifndef LONG_LONG_ACCUM_TYPE_SIZE
+#define LONG_LONG_ACCUM_TYPE_SIZE (LONG_LONG_FRACT_TYPE_SIZE * 2)
 #endif
 
 /* Width in bits of a pointer.  Mind the value of the macro `Pmode'.  */

@@ -1,3 +1,35 @@
+2007-10-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libgomp/33275
+	* testsuite/libgomp.fortran/omp_parse3.f90 (test_threadprivate):
+	Make x and y integers rather than (implicit) reals.  Add private (j)
+	clause to the last omp parallel.
+
+2007-10-15  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* configure: Regenerate following changes to ../config/tls.m4.
+
+2007-09-28  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/libgomp.fortran/stack.f90: New test.
+
+2007-09-10  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* config/mingw32/proc.c: New file.
+
+2007-09-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* testsuite/libgomp.c/atomic-1.c: Include cpuid.h for i386 targets.
+	(main): Use __get_cpuid to get i386 target fetaures.
+	* testsuite/libgomp.c/atomic-2.c: Include cpuid.h for x86_64 targets.
+	(main): Use __get_cpuid to get x86_64 target fetaures.
+
+2007-08-15  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR target/32765
+	* testsuite/libgomp.fortran/pr32550.f90: Use -static-libgcc on Darwin.
+	* testsuite/libgomp.fortran/crayptr2.f90: Likwise.
+
 2007-07-12  Jakub Jelinek  <jakub@redhat.com>
 
 	PR fortran/32550

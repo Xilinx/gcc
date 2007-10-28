@@ -69,7 +69,8 @@
    (CRIS_UNSPEC_GOT 2)
    (CRIS_UNSPEC_GOTREL 3)
    (CRIS_UNSPEC_GOTREAD 4)
-   (CRIS_UNSPEC_PLTGOTREAD 5)])
+   (CRIS_UNSPEC_PLTGOTREAD 5)
+   (CRIS_UNSPEC_SWAP_BITS 6)])
 
 ;; Register numbers.
 (define_constants
@@ -150,9 +151,9 @@
 ;; Iterator definitions.
 
 ;; For the "usual" pattern size alternatives.
-(define_mode_macro BWD [SI HI QI])
-(define_mode_macro WD [SI HI])
-(define_mode_macro BW [HI QI])
+(define_mode_iterator BWD [SI HI QI])
+(define_mode_iterator WD [SI HI])
+(define_mode_iterator BW [HI QI])
 (define_mode_attr S [(SI "HI") (HI "QI")])
 (define_mode_attr s [(SI "hi") (HI "qi")])
 (define_mode_attr m [(SI ".d") (HI ".w") (QI ".b")])
@@ -160,19 +161,19 @@
 (define_mode_attr nbitsm1 [(SI "31") (HI "15") (QI "7")])
 
 ;; For the sign_extend+zero_extend variants.
-(define_code_macro szext [sign_extend zero_extend])
+(define_code_iterator szext [sign_extend zero_extend])
 (define_code_attr u [(sign_extend "") (zero_extend "u")])
 (define_code_attr su [(sign_extend "s") (zero_extend "u")])
 
 ;; For the shift variants.
-(define_code_macro shift [ashiftrt lshiftrt ashift])
-(define_code_macro shiftrt [ashiftrt lshiftrt])
+(define_code_iterator shift [ashiftrt lshiftrt ashift])
+(define_code_iterator shiftrt [ashiftrt lshiftrt])
 (define_code_attr shlr [(ashiftrt "ashr") (lshiftrt "lshr") (ashift "ashl")])
 (define_code_attr slr [(ashiftrt "asr") (lshiftrt "lsr") (ashift "lsl")])
 
-(define_code_macro ncond [eq ne gtu ltu geu leu])
-(define_code_macro ocond [gt le])
-(define_code_macro rcond [lt ge])
+(define_code_iterator ncond [eq ne gtu ltu geu leu])
+(define_code_iterator ocond [gt le])
+(define_code_iterator rcond [lt ge])
 (define_code_attr CC [(eq "eq") (ne "ne") (gt "gt") (gtu "hi") (lt "lt")
 		      (ltu "lo") (ge "ge") (geu "hs") (le "le") (leu "ls")])
 (define_code_attr rCC [(eq "ne") (ne "eq") (gt "le") (gtu "ls") (lt "ge")
@@ -2663,7 +2664,46 @@
 	(subreg:BW (match_dup 3) 0))]
   ""
   "operands[2] = gen_reg_rtx (SImode); operands[3] = gen_reg_rtx (SImode);")
-
+
+(define_insn "clzsi2"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+	(clz:SI (match_operand:SI 1 "register_operand" "r")))]
+  "TARGET_HAS_LZ"
+  "lz %1,%0"
+  [(set_attr "slottable" "yes")])
+
+(define_insn "bswapsi2"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (bswap:SI (match_operand:SI 1 "register_operand" "0")))]
+  "TARGET_HAS_SWAP"
+  "swapwb %0"
+  [(set_attr "slottable" "yes")])
+
+;; This instruction swaps all bits in a register.
+;; That means that the most significant bit is put in the place
+;; of the least significant bit, and so on.
+
+(define_insn "cris_swap_bits"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+	(unspec:SI [(match_operand:SI 1 "register_operand" "0")]
+		   CRIS_UNSPEC_SWAP_BITS))]
+  "TARGET_HAS_SWAP"
+  "swapwbr %0"
+  [(set_attr "slottable" "yes")])
+
+;; Implement ctz using two instructions, one for bit swap and one for clz.
+;; Defines a scratch register to avoid clobbering input.
+
+(define_expand "ctzsi2"
+  [(set (match_dup 2)
+	(match_operand:SI 1 "register_operand"))
+   (set (match_dup 2)
+	(unspec:SI [(match_dup 2)] CRIS_UNSPEC_SWAP_BITS))
+   (set (match_operand:SI 0 "register_operand")
+	(clz:SI (match_dup 2)))]
+  "TARGET_HAS_LZ && TARGET_HAS_SWAP"
+  "operands[2] = gen_reg_rtx (SImode);")
+
 ;; Bound-insn.  Defined to be the same as an unsigned minimum, which is an
 ;; operation supported by gcc.  Used in casesi, but used now and then in
 ;; normal code too.

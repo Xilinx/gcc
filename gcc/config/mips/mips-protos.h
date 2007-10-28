@@ -25,16 +25,38 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_MIPS_PROTOS_H
 #define GCC_MIPS_PROTOS_H
 
+/* Describes how a symbol is used.
+
+   SYMBOL_CONTEXT_CALL
+       The symbol is used as the target of a call instruction.
+
+   SYMBOL_CONTEXT_LEA
+       The symbol is used in a load-address operation.
+
+   SYMBOL_CONTEXT_MEM
+       The symbol is used as the address in a MEM.  */
+enum mips_symbol_context {
+  SYMBOL_CONTEXT_CALL,
+  SYMBOL_CONTEXT_LEA,
+  SYMBOL_CONTEXT_MEM
+};
+
 /* Classifies a SYMBOL_REF, LABEL_REF or UNSPEC address.
 
-   SYMBOL_GENERAL
-       Used when none of the below apply.
+   SYMBOL_ABSOLUTE
+       The symbol's value will be calculated using absolute relocations,
+       such as %hi and %lo.
 
-   SYMBOL_SMALL_DATA
-       The symbol refers to something in a small data section.
+   SYMBOL_GP_RELATIVE
+       The symbol's value will be calculated by adding a 16-bit offset
+       from $gp.
 
-   SYMBOL_CONSTANT_POOL
-       The symbol refers to something in the mips16 constant pool.
+   SYMBOL_PC_RELATIVE
+       The symbol's value will be calculated using a MIPS16 PC-relative
+       calculation.
+
+   SYMBOL_FORCE_TO_MEM
+       The symbol's value must be forced to memory and loaded from there.
 
    SYMBOL_GOT_PAGE_OFST
        The symbol's value will be calculated by loading an address
@@ -71,6 +93,9 @@ along with GCC; see the file COPYING3.  If not see
        UNSPEC wrappers around SYMBOL_TLS, corresponding to the
        thread-local storage relocation operators.
 
+   SYMBOL_32_HIGH
+       For a 32-bit symbolic address X, this is the value of %hi(X).
+
    SYMBOL_64_HIGH
        For a 64-bit symbolic address X, this is the value of
        (%highest(X) << 16) + %higher(X).
@@ -87,9 +112,10 @@ along with GCC; see the file COPYING3.  If not see
        An UNSPEC wrapper around any kind of address.  It represents the
        low 16 bits of that address.  */
 enum mips_symbol_type {
-  SYMBOL_GENERAL,
-  SYMBOL_SMALL_DATA,
-  SYMBOL_CONSTANT_POOL,
+  SYMBOL_ABSOLUTE,
+  SYMBOL_GP_RELATIVE,
+  SYMBOL_PC_RELATIVE,
+  SYMBOL_FORCE_TO_MEM,
   SYMBOL_GOT_PAGE_OFST,
   SYMBOL_GOT_DISP,
   SYMBOL_GOTOFF_PAGE,
@@ -102,6 +128,7 @@ enum mips_symbol_type {
   SYMBOL_DTPREL,
   SYMBOL_GOTTPREL,
   SYMBOL_TPREL,
+  SYMBOL_32_HIGH,
   SYMBOL_64_HIGH,
   SYMBOL_64_MID,
   SYMBOL_64_LOW,
@@ -137,17 +164,17 @@ enum mips_loadgp_style {
 
 struct mips16e_save_restore_info;
 
-extern bool mips_symbolic_constant_p (rtx, enum mips_symbol_type *);
-extern int mips_regno_mode_ok_for_base_p (int, enum machine_mode, int);
+extern bool mips_symbolic_constant_p (rtx, enum mips_symbol_context,
+				      enum mips_symbol_type *);
+extern int mips_regno_mode_ok_for_base_p (int, enum machine_mode, bool);
+extern bool mips_legitimate_address_p (enum machine_mode, rtx, bool);
 extern bool mips_stack_address_p (rtx, enum machine_mode);
-extern int mips_address_insns (rtx, enum machine_mode);
+extern int mips_address_insns (rtx, enum machine_mode, bool);
 extern int mips_const_insns (rtx);
-extern int mips_fetch_insns (rtx);
+extern int mips_load_store_insns (rtx, rtx);
 extern int mips_idiv_insns (void);
-extern int fp_register_operand (rtx, enum machine_mode);
-extern int lo_operand (rtx, enum machine_mode);
-extern bool mips_legitimate_address_p (enum machine_mode, rtx, int);
-extern rtx mips_split_symbol (rtx, rtx);
+extern rtx mips_emit_move (rtx, rtx);
+extern bool mips_split_symbol (rtx, rtx, enum machine_mode, rtx *);
 extern rtx mips_unspec_address (rtx, enum mips_symbol_type);
 extern bool mips_legitimize_address (rtx *, enum machine_mode);
 extern void mips_move_integer (rtx, rtx, unsigned HOST_WIDE_INT);
@@ -170,49 +197,49 @@ extern int m16_nuimm8_4 (rtx, enum machine_mode);
 extern int m16_simm8_8 (rtx, enum machine_mode);
 extern int m16_nsimm8_8 (rtx, enum machine_mode);
 
-extern rtx mips_subword (rtx, int);
+extern rtx mips_subword (rtx, bool);
 extern bool mips_split_64bit_move_p (rtx, rtx);
-extern void mips_split_64bit_move (rtx, rtx);
+extern void mips_split_doubleword_move (rtx, rtx);
 extern const char *mips_output_move (rtx, rtx);
 extern void mips_restore_gp (void);
 #ifdef RTX_CODE
-extern bool mips_emit_scc (enum rtx_code, rtx);
-extern void gen_conditional_branch (rtx *, enum rtx_code);
+extern bool mips_expand_scc (enum rtx_code, rtx);
+extern void mips_expand_conditional_branch (rtx *, enum rtx_code);
 extern void mips_expand_vcondv2sf (rtx, rtx, rtx, enum rtx_code, rtx, rtx);
+extern void mips_expand_conditional_move (rtx *);
+extern void mips_expand_conditional_trap (enum rtx_code);
 #endif
-extern void gen_conditional_move (rtx *);
-extern void mips_gen_conditional_trap (rtx *);
-extern void mips_expand_call (rtx, rtx, rtx, rtx, int);
-extern void mips_emit_fcc_reload (rtx, rtx, rtx);
+extern void mips_expand_call (rtx, rtx, rtx, rtx, bool);
+extern void mips_expand_fcc_reload (rtx, rtx, rtx);
 extern void mips_set_return_address (rtx, rtx);
 extern bool mips_expand_block_move (rtx, rtx, rtx);
 extern void mips_expand_synci_loop (rtx, rtx);
 
-extern void init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx);
-extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
-				  tree, int);
-extern struct rtx_def *function_arg (const CUMULATIVE_ARGS *,
-				     enum machine_mode, tree, int);
-extern int function_arg_boundary (enum machine_mode, tree);
-extern bool mips_pad_arg_upward (enum machine_mode, tree);
+extern void mips_init_cumulative_args (CUMULATIVE_ARGS *, tree);
+extern void mips_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				       tree, int);
+extern rtx mips_function_arg (const CUMULATIVE_ARGS *,
+			      enum machine_mode, tree, int);
+extern int mips_function_arg_boundary (enum machine_mode, tree);
+extern bool mips_pad_arg_upward (enum machine_mode, const_tree);
 extern bool mips_pad_reg_upward (enum machine_mode, tree);
 extern void mips_va_start (tree, rtx);
 
-extern bool mips_expand_unaligned_load (rtx, rtx, unsigned int, int);
-extern bool mips_expand_unaligned_store (rtx, rtx, unsigned int, int);
+extern bool mips_expand_ext_as_unaligned_load (rtx, rtx, HOST_WIDE_INT,
+					       HOST_WIDE_INT);
+extern bool mips_expand_ins_as_unaligned_store (rtx, rtx, HOST_WIDE_INT,
+						HOST_WIDE_INT);
 extern bool mips_mem_fits_mode_p (enum machine_mode mode, rtx x);
-extern void override_options (void);
+extern void mips_override_options (void);
 extern void mips_conditional_register_usage (void);
 extern void mips_order_regs_for_local_alloc (void);
 extern HOST_WIDE_INT mips_debugger_offset (rtx, HOST_WIDE_INT);
 
-extern void print_operand (FILE *, rtx, int);
-extern void print_operand_address (FILE *, rtx);
+extern void mips_print_operand (FILE *, rtx, int);
+extern void mips_print_operand_address (FILE *, rtx);
 extern void mips_output_external (FILE *, tree, const char *);
 extern void mips_output_filename (FILE *, const char *);
-extern void mips_output_ascii (FILE *, const char *, size_t, const char *);
-extern void mips_output_aligned_bss (FILE *, tree, const char *,
-				     unsigned HOST_WIDE_INT, int);
+extern void mips_output_ascii (FILE *, const char *, size_t);
 extern void mips_output_aligned_decl_common (FILE *, tree, const char *,
 					     unsigned HOST_WIDE_INT,
 					     unsigned int);
@@ -226,24 +253,24 @@ extern void mips_finish_declare_object (FILE *, tree, int, int);
 
 extern bool mips_small_data_pattern_p (rtx);
 extern rtx mips_rewrite_small_data (rtx);
-extern HOST_WIDE_INT compute_frame_size (HOST_WIDE_INT);
+extern bool mips_frame_pointer_required (void);
 extern HOST_WIDE_INT mips_initial_elimination_offset (int, int);
 extern rtx mips_return_addr (int, rtx);
 extern enum mips_loadgp_style mips_current_loadgp_style (void);
 extern void mips_expand_prologue (void);
-extern void mips_expand_epilogue (int);
-extern int mips_can_use_return_insn (void);
-extern struct rtx_def *mips_function_value (tree, tree, enum machine_mode);
+extern void mips_expand_epilogue (bool);
+extern bool mips_can_use_return_insn (void);
+extern rtx mips_function_value (const_tree, enum machine_mode);
 
 extern bool mips_cannot_change_mode_class (enum machine_mode,
 					   enum machine_mode, enum reg_class);
 extern bool mips_dangerous_for_la25_p (rtx);
+extern bool mips_modes_tieable_p (enum machine_mode, enum machine_mode);
 extern enum reg_class mips_preferred_reload_class (rtx, enum reg_class);
 extern enum reg_class mips_secondary_reload_class (enum reg_class,
 						   enum machine_mode,
-						   rtx, int);
+						   rtx, bool);
 extern int mips_class_max_nregs (enum reg_class, enum machine_mode);
-extern int build_mips16_call_stub (rtx, rtx, rtx, int);
 extern int mips_register_move_cost (enum machine_mode, enum reg_class,
 				    enum reg_class);
 
@@ -255,13 +282,13 @@ extern const char *mips_output_order_conditional_branch (rtx, rtx *, bool);
 extern const char *mips_output_division (const char *, rtx *);
 extern unsigned int mips_hard_regno_nregs (int, enum machine_mode);
 extern bool mips_linked_madd_p (rtx, rtx);
-extern int mips_store_data_bypass_p (rtx, rtx);
+extern bool mips_store_data_bypass_p (rtx, rtx);
 extern rtx mips_prefetch_cookie (rtx, rtx);
 
 extern void irix_asm_output_align (FILE *, unsigned);
 extern const char *current_section_name (void);
 extern unsigned int current_section_flags (void);
-extern bool mips_use_ins_ext_p (rtx, rtx, rtx);
+extern bool mips_use_ins_ext_p (rtx, HOST_WIDE_INT, HOST_WIDE_INT);
 
 extern const char *mips16e_output_save_restore (rtx, HOST_WIDE_INT);
 extern bool mips16e_save_restore_pattern_p (rtx, HOST_WIDE_INT,

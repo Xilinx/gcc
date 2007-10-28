@@ -6,30 +6,29 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Gnatvsn;  use Gnatvsn;
 with Hostparm;
 with Opt;
 with Osint;    use Osint;
 with Output;   use Output;
 with Prj.Makr;
+with Switch;   use Switch;
 with Table;
 
 with Ada.Command_Line;  use Ada.Command_Line;
@@ -169,12 +168,7 @@ procedure Gnatname is
       if not Version_Output then
          Version_Output := True;
          Output.Write_Eol;
-         Output.Write_Str ("GNATNAME ");
-         Output.Write_Line (Gnatvsn.Gnat_Version_String);
-         Output.Write_Line
-           ("Copyright 2001-" &
-            Current_Year &
-            ", Free Software Foundation, Inc.");
+         Display_Version ("GNATNAME", "2001");
       end if;
    end Output_Version;
 
@@ -184,6 +178,12 @@ procedure Gnatname is
 
    procedure Scan_Args is
    begin
+      --  First check for --version or --help
+
+      Check_Version_And_Help ("GNATNAME", "2001", Usage'Unrestricted_Access);
+
+      --  Now scan the other switches
+
       Initialize_Option_Scan;
 
       --  Scan options first
@@ -299,6 +299,8 @@ procedure Gnatname is
 --  Start of processing for Gnatname
 
 begin
+   Prj.Set_Mode (Prj.Ada_Only);
+
    --  Add the directory where gnatname is invoked in front of the
    --  path, if gnatname is invoked with directory information.
    --  Only do this if the platform is not VMS, where the notion of path

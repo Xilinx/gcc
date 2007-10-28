@@ -10,14 +10,13 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -133,15 +132,26 @@ package body Fmap is
       File_Name : File_Name_Type;
       Path_Name : File_Name_Type)
    is
+      Unit_Entry : constant Int := Unit_Hash_Table.Get (Unit_Name);
+      File_Entry : constant Int := File_Hash_Table.Get (File_Name);
    begin
-      File_Mapping.Increment_Last;
-      Unit_Hash_Table.Set (Unit_Name, File_Mapping.Last);
-      File_Mapping.Table (File_Mapping.Last) :=
-        (Uname => Unit_Name, Fname => File_Name);
-      Path_Mapping.Increment_Last;
-      File_Hash_Table.Set (File_Name, Path_Mapping.Last);
-      Path_Mapping.Table (Path_Mapping.Last) :=
-        (Uname => Unit_Name, Fname => Path_Name);
+      if Unit_Entry = No_Entry or else
+        File_Mapping.Table (Unit_Entry).Fname /= File_Name
+      then
+         File_Mapping.Increment_Last;
+         Unit_Hash_Table.Set (Unit_Name, File_Mapping.Last);
+         File_Mapping.Table (File_Mapping.Last) :=
+           (Uname => Unit_Name, Fname => File_Name);
+      end if;
+
+      if File_Entry = No_Entry or else
+        Path_Mapping.Table (File_Entry).Fname /= Path_Name
+      then
+         Path_Mapping.Increment_Last;
+         File_Hash_Table.Set (File_Name, Path_Mapping.Last);
+         Path_Mapping.Table (Path_Mapping.Last) :=
+           (Uname => Unit_Name, Fname => Path_Name);
+      end if;
    end Add_To_File_Map;
 
    ----------
@@ -352,18 +362,6 @@ package body Fmap is
             Name_Buffer (1 .. Name_Len) := SP (First .. Last);
             Pname := Find_File_Name;
 
-            --  Check for duplicate entries
-
-            if Unit_Hash_Table.Get (Uname) /= No_Entry then
-               Empty_Tables;
-               return;
-            end if;
-
-            if File_Hash_Table.Get (Fname) /= No_Entry then
-               Empty_Tables;
-               return;
-            end if;
-
             --  Add the mappings for this unit name
 
             Add_To_File_Map (Uname, Fname, Pname);
@@ -442,6 +440,8 @@ package body Fmap is
       File    : File_Descriptor;
       N_Bytes : Integer;
 
+      File_Entry : Int;
+
       Status : Boolean;
       --  For the call to Close
 
@@ -490,7 +490,7 @@ package body Fmap is
          if Last_In_Table = 0 then
             declare
                Discard : Boolean;
-
+               pragma Warnings (Off, Discard);
             begin
                Delete_File (File_Name, Discard);
             end;
@@ -509,13 +509,15 @@ package body Fmap is
             for Unit in Last_In_Table + 1 .. File_Mapping.Last loop
                Put_Line (Name_Id (File_Mapping.Table (Unit).Uname));
                Put_Line (Name_Id (File_Mapping.Table (Unit).Fname));
-               Put_Line (Name_Id (Path_Mapping.Table (Unit).Fname));
+               File_Entry :=
+                 File_Hash_Table.Get (File_Mapping.Table (Unit).Fname);
+               Put_Line (Name_Id (Path_Mapping.Table (File_Entry).Fname));
             end loop;
 
-            --  Before closing the file, write the buffer to the file.
-            --  It is guaranteed that the Buffer is not empty, because
-            --  Put_Line has been called at least 3 times, and after
-            --  a call to Put_Line, the Buffer is not empty.
+            --  Before closing the file, write the buffer to the file. It is
+            --  guaranteed that the Buffer is not empty, because Put_Line has
+            --  been called at least 3 times, and after a call to Put_Line, the
+            --  Buffer is not empty.
 
             N_Bytes := Write (File, Buffer (1)'Address, Buffer_Last);
 

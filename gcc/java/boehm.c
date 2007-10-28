@@ -97,6 +97,7 @@ mark_reference_fields (tree field,
 
       offset = int_byte_position (field);
       size_bytes = int_size_in_bytes (TREE_TYPE (field));
+
       if (JREFERENCE_TYPE_P (TREE_TYPE (field))
 	  /* An `object' of type gnu.gcj.RawData is actually non-Java
 	     data.  */
@@ -109,6 +110,13 @@ mark_reference_fields (tree field,
 	  /* If this reference slot appears to overlay a slot we think
 	     we already covered, then we are doomed.  */
 	  gcc_assert (offset > *last_view_index);
+
+	  if (offset % (POINTER_SIZE / BITS_PER_UNIT))
+	    {
+	      *all_bits_set = -1;
+	      *pointer_after_end = 1;
+	      break;
+	    }
 
 	  count = offset * BITS_PER_UNIT / POINTER_SIZE;
 	  size_words = size_bytes * BITS_PER_UNIT / POINTER_SIZE;

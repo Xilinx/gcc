@@ -1,10 +1,12 @@
 /* Execution test for argument passing with SSE and local functions
    Written by Paolo Bonzini, 25 January 2005 */
 
-/* { dg-do run { target i?86-*-* x86_64-*-* } } */
+/* { dg-do run } */
 /* { dg-options "-O2 -msse -mfpmath=sse" } */
+
+#include "sse-check.h"
+
 #include <assert.h>
-#include "../../gcc.dg/i386-cpuid.h"
 
 static float xs (void)
 {
@@ -26,18 +28,11 @@ double yd (double a)
   return xd () * a;
 }
 
-int main()
+static void
+sse_test (void)
 {
-  unsigned long cpu_facilities;
-
-  cpu_facilities = i386_cpuid ();
-
-  if (cpu_facilities & bit_SSE)
-    {
-      assert (ys (1) == xs ());
-      assert (ys (2) == xs () * 2);
-      assert (yd (1) == xd ());
-      assert (yd (2) == xd () * 2);
-    }
-  return 0;
+  assert (ys (1) == xs ());
+  assert (ys (2) == xs () * 2);
+  assert (yd (1) == xd ());
+  assert (yd (2) == xd () * 2);
 }
