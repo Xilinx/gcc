@@ -1,5 +1,10 @@
 2007-10-30  Ben Elliston  <bje@au.ibm.com>
 
+	* dwarf2out.c (modified_type_die): Add the DW_AT_address_class
+	attribute for __ea pointer and reference types.
+
+2007-10-30  Ben Elliston  <bje@au.ibm.com>
+
 	* config.gcc (spu-*-elf*) [extra_headers]: Add spu_cache.h.
 	* config/spu/spu_cache.h: New file.
 	* config/spu/cachemgr.c: Likewise.
