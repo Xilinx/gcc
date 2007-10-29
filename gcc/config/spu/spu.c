@@ -191,6 +191,10 @@ static enum machine_mode spu_ea_pointer_mode (void);
 #undef TARGET_EA_POINTER_MODE
 #define TARGET_EA_POINTER_MODE spu_ea_pointer_mode
 
+static bool spu_valid_pointer_mode (enum machine_mode mode);
+#undef TARGET_VALID_POINTER_MODE
+#define TARGET_VALID_POINTER_MODE spu_valid_pointer_mode
+
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS spu_init_builtins
 
@@ -5853,6 +5857,12 @@ static enum machine_mode
 spu_ea_pointer_mode (void)
 {
   return (spu_ea_model == 64 ? DImode : ptr_mode);
+}
+
+static bool
+spu_valid_pointer_mode (enum machine_mode mode)
+{
+  return (mode == ptr_mode || mode == Pmode || mode == spu_ea_pointer_mode ());
 }
 
 /* Count the total number of instructions in each pipe and return the

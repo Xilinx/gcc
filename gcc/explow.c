@@ -413,7 +413,8 @@ memory_address (enum machine_mode mode, rtx x)
 {
   rtx oldx = x;
 
-  x = convert_memory_address (Pmode, x);
+  if (MEM_P (x) && !targetm.valid_pointer_mode (GET_MODE (x)))
+    x = convert_memory_address (Pmode, x);
 
   /* By passing constant addresses through registers
      we get a chance to cse them.  */
@@ -480,6 +481,8 @@ memory_address (enum machine_mode mode, rtx x)
 
       /* Last resort: copy the value to a register, since
 	 the register is a valid address.  */
+      else if (targetm.valid_pointer_mode (GET_MODE (x)))
+	x = force_reg (GET_MODE (x), x);
       else
 	x = force_reg (Pmode, x);
 

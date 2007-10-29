@@ -1,5 +1,14 @@
 2007-10-30  Ben Elliston  <bje@au.ibm.com>
 
+	* explow.c (memory_address): Only convert a memory address if it
+	is not already a valid pointer mode.  If a value is already in a
+	valid pointer mode, force the value into a register of that mode,
+	not Pmode.
+	* config/spu/spu.c (TARGET_VALID_POINTER_MODE): Override.
+	(spu_valid_pointer_mode): New function.
+
+2007-10-30  Ben Elliston  <bje@au.ibm.com>
+
 	* target.h (struct gcc_target): Add ea_pointer_mode.
 	* tree.h (EA_POINTER_TYPE_P): New.
 	(NON_EA_POINTER_TYPE_P): Likewise.
