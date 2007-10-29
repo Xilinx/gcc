@@ -383,10 +383,11 @@ dequeue_and_dump (dump_info_p di)
 
       if (quals != TYPE_UNQUALIFIED)
 	{
-	  fprintf (di->stream, "qual: %c%c%c     ",
+	  fprintf (di->stream, "qual: %c%c%c%c    ",
 		   (quals & TYPE_QUAL_CONST) ? 'c' : ' ',
 		   (quals & TYPE_QUAL_VOLATILE) ? 'v' : ' ',
-		   (quals & TYPE_QUAL_RESTRICT) ? 'r' : ' ');
+		   (quals & TYPE_QUAL_RESTRICT) ? 'r' : ' ',
+		   (quals & TYPE_QUAL_EA) ? 'e' : ' ');
 	  di->column += 14;
 	}
 

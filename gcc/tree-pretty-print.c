@@ -549,6 +549,8 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	  pp_string (buffer, "volatile ");
 	else if (quals & TYPE_QUAL_RESTRICT)
 	  pp_string (buffer, "restrict ");
+	else if (quals & TYPE_QUAL_EA)
+	  pp_string (buffer, "__ea ");
 
 	class = TREE_CODE_CLASS (TREE_CODE (node));
 
@@ -625,6 +627,8 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	    pp_string (buffer, " volatile");
 	  if (quals & TYPE_QUAL_RESTRICT)
 	    pp_string (buffer, " restrict");
+	  else if (quals & TYPE_QUAL_EA)
+	    pp_string (buffer, " __ea");
 
 	  if (TYPE_REF_CAN_ALIAS_ALL (node))
 	    pp_string (buffer, " {ref-all}");

@@ -219,6 +219,7 @@ pp_c_space_for_pointer_operator (c_pretty_printer *pp, tree t)
        const
        restrict                              -- C99
        __restrict__                          -- GNU C
+       __ea				     -- GNU C
        volatile    */
 
 void
@@ -236,6 +237,8 @@ pp_c_type_qualifier_list (c_pretty_printer *pp, tree t)
     pp_c_cv_qualifier (pp, "volatile");
   if (qualifiers & TYPE_QUAL_RESTRICT)
     pp_c_cv_qualifier (pp, flag_isoc99 ? "restrict" : "__restrict__");
+  if (qualifiers & TYPE_QUAL_EA)
+    pp_c_cv_qualifier (pp, "__ea");
 }
 
 /* pointer:

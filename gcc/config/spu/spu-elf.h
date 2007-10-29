@@ -49,10 +49,26 @@
 
 #define EH_FRAME_IN_DATA_SECTION 1
 
+#define DRIVER_SELF_SPECS "\
+  %{mcache-size=128   : -lgcc_cache128k ; \
+    mcache-size=64    : -lgcc_cache64k ; \
+    mcache-size=32    : -lgcc_cache32k ; \
+    mcache-size=16    : -lgcc_cache16k ; \
+    mcache-size=8     : -lgcc_cache8k ; \
+    		      : -lgcc_cache64k } \
+  %<mcache-size=* \
+  %{mno-atomic-updates:-lgcc_cachemgr_nonatomic; :-lgcc_cachemgr} \
+  %<matomic-updates %<mno-atomic-updates"
+
 #define LINK_SPEC "%{mlarge-mem: --defsym __stack=0xfffffff0 }"
 
-#define LIB_SPEC \
-	"-( %{!shared:%{g*:-lg}} -lc -lgloss -)"
+/* Match each of the mutually exclusive cache<n>k libraries because
+   lgcc_cache* did not seem to work -- perhaps a bug in the specs
+   handling?  */
+#define LIB_SPEC "-( %{!shared:%{g*:-lg}} -lc -lgloss -) \
+    %{lgcc_cachemgr*:-lgcc_cachemgr%*} \
+    %{lgcc_cache128k} %{lgcc_cache64k} %{lgcc_cache32k} \
+    %{lgcc_cache16k} %{lgcc_cache8k}"
 
 /* Turn off warnings in the assembler too. */
 #undef ASM_SPEC

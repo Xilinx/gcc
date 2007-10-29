@@ -301,6 +301,8 @@ struct rtx_def GTY((chain_next ("RTX_NEXT (&%h)"),
      1 in a MEM if it refers to a scalar.
      1 in a SYMBOL_REF for a weak symbol.  */
   unsigned return_val : 1;
+  /* 1 in a MEM if it is in the extended address space.  */
+  unsigned ea : 1;
 
   /* The first element of the operands of this rtx.
      The number of operands and their types are controlled
@@ -1134,6 +1136,10 @@ do {									\
 #define MEM_VOLATILE_P(RTX)						\
   (RTL_FLAG_CHECK3("MEM_VOLATILE_P", (RTX), MEM, ASM_OPERANDS,		\
 		   ASM_INPUT)->volatil)
+
+/* 1 if RTX is a mem belonging to the extended address space.  */
+#define MEM_EA_P(RTX)							\
+  (RTL_FLAG_CHECK1("MEM_EA_P", (RTX), MEM)->ea)
 
 /* 1 if RTX is a mem that refers to an aggregate, either to the
    aggregate itself or to a field of the aggregate.  If zero, RTX may

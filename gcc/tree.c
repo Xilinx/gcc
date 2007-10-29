@@ -4137,6 +4137,7 @@ set_type_quals (tree type, int type_quals)
   TYPE_READONLY (type) = (type_quals & TYPE_QUAL_CONST) != 0;
   TYPE_VOLATILE (type) = (type_quals & TYPE_QUAL_VOLATILE) != 0;
   TYPE_RESTRICT (type) = (type_quals & TYPE_QUAL_RESTRICT) != 0;
+  TYPE_EA (type) = (type_quals & TYPE_QUAL_EA) != 0;
 }
 
 /* Returns true iff cand is equivalent to base with type_quals.  */

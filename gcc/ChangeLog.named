@@ -1,5 +1,45 @@
 2007-10-30  Ben Elliston  <bje@au.ibm.com>
 
+	* tree.h (TYPE_EA): New.
+	(TYPE_QUAL_EA): New.
+	(TYPE_QUALS): Include TYPE_EA.
+	(struct tree_type): Add ea_flag bit.
+	* target.h (struct gcc_target): Add have_ea.
+	* c-tree.h (struct c_declspecs): Add ea_p bitfield.
+	* target-def.h (TARGET_HAVE_EA): Define to false by default.
+	(TARGET_INITIALIZER): Add TARGET_HAVE_EA.
+	* rtl.h (struct rtx_def): Add ea bit.
+	* c-common.h (RID_EA): New.
+	* tree-dump.c (dequeue_and_dump): Handle TYPE_QUAL_EA.
+	* tree-pretty-print.c (dump_generic_node): Handle TYPE_QUAL_EA.
+	* tree.c (set_type_quals): Set TYPE_EA.
+	* c-decl.c (shadow_tag_warned): Handle declspecs->ea_p.
+	(quals_from_declspecs): Likewise, handle specs->ea_p.
+	(grokdeclarator): Warn about incorrect __ea usage.
+	(build_null_declspecs): Initialise ret->ea_p.
+	(declspecs_add_qual): Add RID_EA case.
+	* c-pretty-print.c (pp_c_type_qualifier_list): Print __ea.
+	* print-rtl.c (print_rtx): Print `/e' for __ea symbols.
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Set MEM_EA_P.
+	* print-tree.c (print_node): Handle trees with TYPE_EA.
+	* c-parser.c (reswords): Add __ea.
+	(c_token_starts_typename): Add RID_EA case.
+	(c_token_starts_declspecs): Likewise.
+	(c_parser_declspecs): Likewise.
+	(c_parser_attributes): Likewise.
+	(c_parser_asm_statement): Likewise.
+	(c_parser_objc_selector): Likewise.
+	* config/spu/spu.h (TARGET_HAVE_EA): Define to true.
+	* config/spu/spu-elf.h (DRIVER_SELF_SPECS): Handle -mcache-size=X
+	options; link the appropriate libgcc_cache library. Likewise for
+	-matomic-updates and -mno-atomic-updates.
+	(LIB_SPEC): Pass -lgcc_cache* options to the linker.
+	* config/spu/spu.opt (mea32, mea64): New options.
+	* config/spu/spu-c.c (spu_cpu_cpp_builtins): Define __EA32__ and
+	__EA64__ depending on the extended address pointer size.
+
+2007-10-30  Ben Elliston  <bje@au.ibm.com>
+
 	* config/spu/spu_mfcio.h: Avoid <stdint.h>.
 	(uint64_t): Typedef.
 

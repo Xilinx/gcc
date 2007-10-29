@@ -587,6 +587,9 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       if (TYPE_RESTRICT (node))
 	fputs (" restrict", file);
 
+      if (TYPE_EA (node))
+	fputs (" __ea", file);
+
       if (TYPE_LANG_FLAG_0 (node))
 	fputs (" type_0", file);
       if (TYPE_LANG_FLAG_1 (node))

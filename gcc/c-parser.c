@@ -99,6 +99,7 @@ static const struct resword reswords[] =
   { "__complex__",	RID_COMPLEX,	0 },
   { "__const",		RID_CONST,	0 },
   { "__const__",	RID_CONST,	0 },
+  { "__ea",		RID_EA,		D_EXT },
   { "__extension__",	RID_EXTENSION,	0 },
   { "__func__",		RID_C99_FUNCTION_NAME, 0 },
   { "__imag",		RID_IMAGPART,	0 },
@@ -496,6 +497,7 @@ c_token_starts_typename (c_token *token)
 	case RID_FRACT:
 	case RID_ACCUM:
 	case RID_SAT:
+	case RID_EA:
 	  return true;
 	default:
 	  return false;
@@ -573,6 +575,7 @@ c_token_starts_declspecs (c_token *token)
 	case RID_FRACT:
 	case RID_ACCUM:
 	case RID_SAT:
+	case RID_EA:
 	  return true;
 	default:
 	  return false;
@@ -1490,6 +1493,7 @@ c_parser_asm_definition (c_parser *parser)
      const
      restrict
      volatile
+     __ea
 
    (restrict is new in C99.)
 
@@ -1659,6 +1663,7 @@ c_parser_declspecs (c_parser *parser, struct c_declspecs *specs,
 	case RID_CONST:
 	case RID_VOLATILE:
 	case RID_RESTRICT:
+	case RID_EA:
 	  attrs_ok = true;
 	  declspecs_add_qual (specs, c_parser_peek_token (parser)->value);
 	  c_parser_consume_token (parser);
@@ -2886,6 +2891,7 @@ c_parser_attributes (c_parser *parser)
 		case RID_FRACT:
 		case RID_ACCUM:
 		case RID_SAT:
+		case RID_EA:
 		  ok = true;
 		  break;
 		default:
@@ -4133,7 +4139,8 @@ c_parser_asm_statement (c_parser *parser)
       c_parser_consume_token (parser);
     }
   else if (c_parser_next_token_is_keyword (parser, RID_CONST)
-	   || c_parser_next_token_is_keyword (parser, RID_RESTRICT))
+	   || c_parser_next_token_is_keyword (parser, RID_RESTRICT)
+	   || c_parser_next_token_is_keyword (parser, RID_EA))
     {
       warning (0, "%E qualifier ignored on asm",
 	       c_parser_peek_token (parser)->value);
@@ -6384,6 +6391,7 @@ c_parser_objc_selector (c_parser *parser)
     case RID_DOUBLE:
     case RID_VOID:
     case RID_BOOL:
+    case RID_EA:
       c_parser_consume_token (parser);
       return value;
     default:

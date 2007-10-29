@@ -929,6 +929,9 @@ struct gcc_target
   /* True if thread-local storage is supported.  */
   bool have_tls;
 
+  /* True if the __ea qualifier is supported.  */
+  bool have_ea;
+
   /* True if a small readonly data section is supported.  */
   bool have_srodata_section;
 

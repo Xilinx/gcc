@@ -2916,7 +2916,8 @@ shadow_tag_warned (const struct c_declspecs *declspecs, int warned)
 	  else if (!declspecs->tag_defined_p
 		   && (declspecs->const_p
 		       || declspecs->volatile_p
-		       || declspecs->restrict_p))
+		       || declspecs->restrict_p
+		       || declspecs->ea_p))
 	    {
 	      if (warned != 1)
 		pedwarn ("empty declaration with type qualifier "
@@ -2985,7 +2986,8 @@ shadow_tag_warned (const struct c_declspecs *declspecs, int warned)
 
   if (!warned && !in_system_header && (declspecs->const_p
 				       || declspecs->volatile_p
-				       || declspecs->restrict_p))
+				       || declspecs->restrict_p
+				       || declspecs->ea_p))
     {
       warning (0, "useless type qualifier in empty declaration");
       warned = 2;
@@ -3008,7 +3010,8 @@ quals_from_declspecs (const struct c_declspecs *specs)
 {
   int quals = ((specs->const_p ? TYPE_QUAL_CONST : 0)
 	       | (specs->volatile_p ? TYPE_QUAL_VOLATILE : 0)
-	       | (specs->restrict_p ? TYPE_QUAL_RESTRICT : 0));
+	       | (specs->restrict_p ? TYPE_QUAL_RESTRICT : 0)
+	       | (specs->ea_p ? TYPE_QUAL_EA : 0));
   gcc_assert (!specs->type
 	      && !specs->decl_attr
 	      && specs->typespec_word == cts_none
@@ -3976,6 +3979,7 @@ grokdeclarator (const struct c_declarator *declarator,
   int constp;
   int restrictp;
   int volatilep;
+  int ea_p;
   int type_quals = TYPE_UNQUALIFIED;
   const char *name, *orig_name;
   tree typedef_type = 0;
@@ -4091,6 +4095,7 @@ grokdeclarator (const struct c_declarator *declarator,
   constp = declspecs->const_p + TYPE_READONLY (element_type);
   restrictp = declspecs->restrict_p + TYPE_RESTRICT (element_type);
   volatilep = declspecs->volatile_p + TYPE_VOLATILE (element_type);
+  ea_p = declspecs->ea_p + TYPE_EA (element_type);
   if (pedantic && !flag_isoc99)
     {
       if (constp > 1)
@@ -4099,12 +4104,15 @@ grokdeclarator (const struct c_declarator *declarator,
 	pedwarn ("duplicate %<restrict%>");
       if (volatilep > 1)
 	pedwarn ("duplicate %<volatile%>");
+      if (ea_p > 1)
+	pedwarn ("duplicate %<__ea%>");
     }
   if (!flag_gen_aux_info && (TYPE_QUALS (element_type)))
     type = TYPE_MAIN_VARIANT (type);
   type_quals = ((constp ? TYPE_QUAL_CONST : 0)
 		| (restrictp ? TYPE_QUAL_RESTRICT : 0)
-		| (volatilep ? TYPE_QUAL_VOLATILE : 0));
+		| (volatilep ? TYPE_QUAL_VOLATILE : 0)
+		| (ea_p ? TYPE_QUAL_EA : 0));
 
   /* Warn about storage classes that are invalid for certain
      kinds of declarations (parameters, typenames, etc.).  */
@@ -4129,6 +4137,51 @@ grokdeclarator (const struct c_declarator *declarator,
 	  || storage_class == csc_register
 	  || storage_class == csc_typedef)
 	storage_class = csc_none;
+    }
+  else if (declspecs->ea_p)
+    {
+      if (!targetm.have_ea)
+	{
+	  /* A mere warning is sure to result in improper semantics
+	     at runtime.  Don't bother to allow this to compile.  */
+	  error ("extended address space not supported for this target");
+	  return 0;
+	}
+
+      if (decl_context == NORMAL)
+	{
+	  if (declarator->kind == cdk_function)
+	    error ("%<__ea%> specified for function %qs", name);
+	  else if (declarator->kind == cdk_id)
+	    {
+	      switch (storage_class)
+		{
+		case csc_auto:
+		  error ("%<__ea%> combined with %<auto%> qualifier for %qs", name);
+		  break;
+		case csc_register:
+		  error ("%<__ea%> combined with %<register%> qualifier for %qs", name);
+		  break;
+		case csc_static:
+		  error ("%<__ea%> combined with %<static%> qualifier for %qs", name);
+		  break;
+		case csc_none:
+		  if (current_function_scope)
+		    error ("%<__ea%> specified for auto variable %qs", name);
+		  else
+		    error ("%<__ea%> variable %qs must be extern", name);
+		  break;
+		case csc_extern:
+		  /* fall through */
+		case csc_typedef:
+		  break;
+		}
+	    }
+	}
+      else if (decl_context == PARM && declarator->kind == cdk_id)
+	error ("%<__ea%> specified for parameter %qs", name);
+      else if (decl_context == FIELD && declarator->kind == cdk_id)
+	error ("%<__ea%> specified for structure field %qs", name);
     }
   else if (decl_context != NORMAL && (storage_class != csc_none || threadp))
     {
@@ -7137,6 +7190,7 @@ build_null_declspecs (void)
   ret->volatile_p = false;
   ret->restrict_p = false;
   ret->saturating_p = false;
+  ret->ea_p = false;
   return ret;
 }
 
@@ -7166,6 +7220,10 @@ declspecs_add_qual (struct c_declspecs *specs, tree qual)
     case RID_RESTRICT:
       dupe = specs->restrict_p;
       specs->restrict_p = true;
+      break;
+    case RID_EA:
+      dupe = specs->ea_p;
+      specs->ea_p = true;
       break;
     default:
       gcc_unreachable ();

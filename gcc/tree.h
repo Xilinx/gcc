@@ -2211,6 +2211,9 @@ struct tree_block GTY(())
    the term.  */
 #define TYPE_RESTRICT(NODE) (TYPE_CHECK (NODE)->type.restrict_flag)
 
+/* If nonzero, this type is in the extended address space.  */
+#define TYPE_EA(NODE)	    (TYPE_CHECK (NODE)->type.ea_flag)
+
 /* There is a TYPE_QUAL value for each type qualifier.  They can be
    combined by bitwise-or to form the complete set of qualifiers for a
    type.  */
@@ -2219,12 +2222,14 @@ struct tree_block GTY(())
 #define TYPE_QUAL_CONST    0x1
 #define TYPE_QUAL_VOLATILE 0x2
 #define TYPE_QUAL_RESTRICT 0x4
+#define TYPE_QUAL_EA	   0x8
 
 /* The set of type qualifiers for this type.  */
 #define TYPE_QUALS(NODE)					\
   ((TYPE_READONLY (NODE) * TYPE_QUAL_CONST)			\
    | (TYPE_VOLATILE (NODE) * TYPE_QUAL_VOLATILE)		\
-   | (TYPE_RESTRICT (NODE) * TYPE_QUAL_RESTRICT))
+   | (TYPE_RESTRICT (NODE) * TYPE_QUAL_RESTRICT)		\
+   | (TYPE_EA (NODE) * TYPE_QUAL_EA))
 
 /* These flags are available for each language front end to use internally.  */
 #define TYPE_LANG_FLAG_0(NODE) (TYPE_CHECK (NODE)->type.lang_flag_0)
@@ -2305,6 +2310,7 @@ struct tree_type GTY(())
   unsigned packed_flag : 1;
   unsigned restrict_flag : 1;
   unsigned contains_placeholder_bits : 2;
+  unsigned ea_flag : 1;
 
   unsigned lang_flag_0 : 1;
   unsigned lang_flag_1 : 1;
