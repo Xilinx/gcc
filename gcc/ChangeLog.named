@@ -1,5 +1,19 @@
 2007-10-30  Ben Elliston  <bje@au.ibm.com>
 
+	* config/spu/spu.h (ASM_OUTPUT_SYMBOL_REF): Define.
+	* config/spu/spu.c (ea_symbol_ref): New function.
+	(spu_legitimate_constant_p): Reject any __ea qualified reference.
+	(spu_legitimate_address): Keep __ea references until reload so
+	that spu_expand_mov can see them in MEMs.
+	(spu_expand_mov): Handle MEM_EA_P operands.
+	(EAmode): Define.
+	(ea_load_store): New function.
+	(ea_load_store_inline): Likewise.
+	(ea_alias_set): New global.
+	(expand_ea_mem): New function.
+
+2007-10-30  Ben Elliston  <bje@au.ibm.com>
+
 	* dwarf2out.c (modified_type_die): Add the DW_AT_address_class
 	attribute for __ea pointer and reference types.
 

@@ -522,6 +522,16 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 ( (OUTPUT) = (char *) alloca (strlen ((NAME)) + 10),	\
   sprintf ((OUTPUT), "%s.%d", (NAME), (LABELNO)))
 
+#define ASM_OUTPUT_SYMBOL_REF(FILE, X) \
+  do								\
+    {								\
+      assemble_name (FILE, XSTR (X, 0));			\
+      if (SYMBOL_REF_DECL (X)					\
+	  && TREE_CODE (SYMBOL_REF_DECL (X)) == VAR_DECL	\
+	  && TYPE_EA (TREE_TYPE (SYMBOL_REF_DECL (X))))		\
+	fputs ("@ppu", FILE);					\
+    } while (0)
+
 
 /* Instruction Output */
 #define REGISTER_NAMES \

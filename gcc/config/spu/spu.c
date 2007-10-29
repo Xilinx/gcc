@@ -2834,6 +2834,17 @@ arith_immediate_p (rtx op, enum machine_mode mode,
   return val >= low && val <= high;
 }
 
+/* Return true if X is a SYMBOL_REF to an __ea qualified variable.  */
+
+static int
+ea_symbol_ref (rtx x)
+{
+  return (GET_CODE (x) == SYMBOL_REF
+	  && SYMBOL_REF_DECL (x)
+	  && TREE_CODE (SYMBOL_REF_DECL (x)) == VAR_DECL
+	  && TYPE_EA (TREE_TYPE (SYMBOL_REF_DECL (x))));
+}
+
 /* We accept:
    - any 32-bit constant (SImode, SFmode)
    - any constant that can be generated with fsmbi (any mode)
@@ -2845,19 +2856,28 @@ spu_legitimate_constant_p (rtx x)
 {
   if (GET_CODE (x) == HIGH)
     x = XEXP (x, 0);
-  /* V4SI with all identical symbols is valid. */
-  if (!flag_pic
-      && GET_MODE (x) == V4SImode
-      && (GET_CODE (CONST_VECTOR_ELT (x, 0)) == SYMBOL_REF
-	  || GET_CODE (CONST_VECTOR_ELT (x, 0)) == LABEL_REF
-	  || GET_CODE (CONST_VECTOR_ELT (x, 0)) == CONST))
-    return CONST_VECTOR_ELT (x, 0) == CONST_VECTOR_ELT (x, 1)
-	   && CONST_VECTOR_ELT (x, 1) == CONST_VECTOR_ELT (x, 2)
-	   && CONST_VECTOR_ELT (x, 2) == CONST_VECTOR_ELT (x, 3);
 
-  if (GET_CODE (x) == CONST_VECTOR
-      && !const_vector_immediate_p (x))
+  /* Reject any __ea qualified reference.  These can't appear in
+     instructions but must be forced to the constant pool.  */
+  if (ea_symbol_ref (x))
     return 0;
+
+  if (GET_CODE (x) == CONST_VECTOR)
+    {
+      /* V4SI with all identical symbols is valid. */
+      if (GET_CODE (CONST_VECTOR_ELT (x, 0)) == SYMBOL_REF
+ 	  || GET_CODE (CONST_VECTOR_ELT (x, 0)) == LABEL_REF
+ 	  || GET_CODE (CONST_VECTOR_ELT (x, 0)) == CONST)
+ 	return (!flag_pic
+ 		&& GET_MODE (x) == V4SImode
+ 		&& CONST_VECTOR_ELT (x, 0) == CONST_VECTOR_ELT (x, 1)
+ 		&& CONST_VECTOR_ELT (x, 1) == CONST_VECTOR_ELT (x, 2)
+ 		&& CONST_VECTOR_ELT (x, 2) == CONST_VECTOR_ELT (x, 3)
+ 		&& !ea_symbol_ref (CONST_VECTOR_ELT (x, 0)));
+
+      if (!const_vector_immediate_p (x))
+	return 0;
+    }
   return 1;
 }
 
@@ -2879,8 +2899,14 @@ spu_legitimate_address (enum machine_mode mode ATTRIBUTE_UNUSED,
     x = XEXP (x, 0);
   switch (GET_CODE (x))
     {
-    case SYMBOL_REF:
     case LABEL_REF:
+      return !TARGET_LARGE_MEM;
+
+    case SYMBOL_REF:
+      /* Keep __ea references until reload so that spu_expand_mov
+         can see them in MEMs.  */
+      if (ea_symbol_ref (x))
+        return !reload_in_progress && !reload_completed;
       return !TARGET_LARGE_MEM;
 
     case CONST:
@@ -3555,6 +3581,18 @@ spu_expand_mov (rtx * ops, enum machine_mode mode)
 	      return 1;
 	    }
 	}
+
+      if (MEM_P (ops[0]))
+	{
+ 	  if (MEM_EA_P (ops[0]))
+ 	    ops[0] = expand_ea_mem (ops[0], true);
+ 	}
+      else if (MEM_P (ops[1]))
+	{
+ 	  if (MEM_EA_P (ops[1]))
+ 	    ops[1] = expand_ea_mem (ops[1], false);
+ 	}
+
       /* Catch the SImode immediates greater than 0x7fffffff, and sign
          extend them. */
       if (GET_CODE (ops[1]) == CONST_INT)
@@ -4573,6 +4611,267 @@ spu_restore_stack_block (rtx op0 ATTRIBUTE_UNUSED, rtx op1)
 
   emit_insn (gen_addv4si3 (sp, sp, temp3));
   emit_move_insn (gen_frame_mem (V4SImode, stack_pointer_rtx), temp2);
+}
+
+#define EAmode (spu_ea_model != 32 ? DImode : SImode)
+
+/* MEM is known to be an __ea qualified memory access.  Emit a call to
+   fetch the ppu memory to local store, and return its address in local
+   store.  */
+
+static rtx
+ea_load_store (rtx mem, bool is_store)
+{
+  rtx ea_addr, miss_handler;
+  rtx data_addr = gen_reg_rtx (Pmode);
+
+  ea_addr = force_reg (EAmode, XEXP (mem, 0));
+  if (is_store)
+    {
+      rtx ndirty = GEN_INT (GET_MODE_SIZE (GET_MODE (mem)));
+      miss_handler = gen_rtx_SYMBOL_REF (Pmode, "__cache_fetch_dirty");
+      emit_library_call_value (miss_handler, data_addr, LCT_NORMAL, Pmode,
+			       2, ea_addr, EAmode, ndirty, SImode);
+    }
+  else
+    {
+      miss_handler = gen_rtx_SYMBOL_REF (Pmode, "__cache_fetch");
+      emit_library_call_value (miss_handler, data_addr, LCT_NORMAL, Pmode,
+			       1, ea_addr, EAmode);
+    }
+  return data_addr;
+}
+
+/* Like ea_load_store, but do the cache tag comparison and, for stores,
+   dirty bit marking, inline.
+
+   The cache control data structure is an array of
+
+   struct __cache_tag_array
+     {
+        unsigned int tag_lo[4];
+        unsigned int tag_hi[4];
+        void *data_pointer[4];
+        int reserved[4];
+        vector unsigned short dirty_bits[4];
+     }  */
+
+static rtx
+ea_load_store_inline (rtx mem, bool is_store)
+{
+  rtx ea_addr, ea_addr_si;
+  HOST_WIDE_INT v;
+  rtx tag_size_sym = gen_rtx_SYMBOL_REF (Pmode, "__cache_tag_array_size");
+  rtx tag_arr_sym = gen_rtx_SYMBOL_REF (Pmode, "__cache_tag_array");
+  rtx index_mask = gen_reg_rtx (SImode);
+  rtx tag_arr = gen_reg_rtx (Pmode);
+  rtx splat_mask = gen_reg_rtx (TImode);
+  rtx splat_mask_hi = NULL_RTX;
+  rtx splat = gen_reg_rtx (V4SImode);
+  rtx splat_hi = NULL_RTX;
+  rtx tag_index = gen_reg_rtx (Pmode);
+  rtx block_off = gen_reg_rtx (SImode);
+  rtx tag_addr = gen_reg_rtx (Pmode);
+  rtx tag = gen_reg_rtx (V4SImode);
+  rtx cache_tag = gen_reg_rtx (V4SImode);
+  rtx cache_tag_hi = NULL_RTX;
+  rtx cache_ptrs = gen_reg_rtx (TImode);
+  rtx cache_ptrs_si = gen_reg_rtx (SImode);
+  rtx tag_equal = gen_reg_rtx (V4SImode);
+  rtx tag_equal_hi = NULL_RTX;
+  rtx tag_eq_pack = gen_reg_rtx (V4SImode);
+  rtx tag_eq_pack_si = gen_reg_rtx (SImode);
+  rtx eq_index = gen_reg_rtx (SImode);
+  rtx data_addr = gen_reg_rtx (Pmode);
+  rtx bcomp, hit_label, hit_ref, miss_handler, insn;
+
+  if (spu_ea_model != 32)
+    {
+      splat_mask_hi = gen_reg_rtx (TImode);
+      splat_hi = gen_reg_rtx (V4SImode);
+      cache_tag_hi = gen_reg_rtx (V4SImode);
+      tag_equal_hi = gen_reg_rtx (V4SImode);
+    }
+
+  emit_move_insn (index_mask, plus_constant (tag_size_sym, -128));
+  emit_move_insn (tag_arr, tag_arr_sym);
+  v = 0x0001020300010203LL;
+  emit_move_insn (splat_mask, immed_double_const (v, v, TImode));
+  if (spu_ea_model != 32)
+    {
+      v = 0x0405060704050607LL;
+      emit_move_insn (splat_mask_hi, immed_double_const (v, v, TImode));
+    }
+  ea_addr = force_reg (EAmode, XEXP (mem, 0));
+  ea_addr_si = ea_addr;
+  if (spu_ea_model != 32)
+    {
+      ea_addr_si = gen_reg_rtx (SImode);
+      emit_insn (gen_spu_convert (ea_addr_si, ea_addr));
+    }
+
+  /* tag_index = ea_addr & (tag_array_size - 128)  */
+  emit_insn (gen_andsi3 (tag_index, ea_addr_si, index_mask));
+
+  /* splat ea_addr to all 4 slots.  */
+  emit_insn (gen_shufb (splat, ea_addr, ea_addr, splat_mask));
+  /* Similarly for high 32 bits of ea_addr.  */
+  if (spu_ea_model != 32)
+    emit_insn (gen_shufb (splat_hi, ea_addr, ea_addr, splat_mask_hi));
+
+  /* block_off = ea_addr & 127  */
+  emit_insn (gen_andsi3 (block_off, ea_addr_si, spu_const (SImode, 127)));
+
+  /* tag_addr = tag_arr + tag_index  */
+  emit_insn (gen_addsi3 (tag_addr, tag_arr, tag_index));
+
+  /* Read cache tags.  */
+  emit_move_insn (cache_tag, gen_rtx_MEM (V4SImode, tag_addr));
+  if (spu_ea_model != 32)
+    emit_move_insn (cache_tag_hi, gen_rtx_MEM (V4SImode,
+					       plus_constant (tag_addr, 16)));
+
+  /* tag = ea_addr & -128  */
+  emit_insn (gen_andv4si3 (tag, splat, spu_const (V4SImode, -128)));
+
+  /* Read all four cache data pointers.  */
+  emit_move_insn (cache_ptrs, gen_rtx_MEM (TImode,
+					   plus_constant (tag_addr, 32)));
+
+  /* Compare tags.  */
+  emit_insn (gen_ceq_v4si (tag_equal, tag, cache_tag));
+  if (spu_ea_model != 32)
+    {
+      emit_insn (gen_ceq_v4si (tag_equal_hi, splat_hi, cache_tag_hi));
+      emit_insn (gen_andv4si3 (tag_equal, tag_equal, tag_equal_hi));
+    }
+
+  /* At most one of the tags compare equal, so tag_equal has one
+     32-bit slot set to all 1's, with the other slots all zero.
+     gbb picks off low bit from each byte in the 128-bit registers,
+     so tag_eq_pack is one of 0xf000, 0x0f00, 0x00f0, 0x000f, assuming
+     we have a hit.  */
+  emit_insn (gen_spu_gbb (tag_eq_pack, spu_gen_subreg (V16QImode, tag_equal)));
+  emit_insn (gen_spu_convert (tag_eq_pack_si, tag_eq_pack));
+
+  /* So counting leading zeros will set eq_index to 16, 20, 24 or 28.  */
+  emit_insn (gen_clzsi2 (eq_index, tag_eq_pack_si));
+
+  /* Allowing us to rotate the corresponding cache data pointer to slot0.
+     (rotating eq_index mod 16 bytes).  */
+  emit_insn (gen_rotqby_ti (cache_ptrs, cache_ptrs, eq_index));
+  emit_insn (gen_spu_convert (cache_ptrs_si, cache_ptrs));
+
+  /* Add block offset to form final data address.  */
+  emit_insn (gen_addsi3 (data_addr, cache_ptrs_si, block_off));
+
+  /* Check that we did hit.  */
+  hit_label = gen_label_rtx ();
+  hit_ref = gen_rtx_LABEL_REF (VOIDmode, hit_label);
+  bcomp = gen_rtx_NE (SImode, tag_eq_pack_si, const0_rtx);
+  insn = emit_jump_insn (gen_rtx_SET (VOIDmode, pc_rtx,
+				      gen_rtx_IF_THEN_ELSE (VOIDmode, bcomp,
+							    hit_ref, pc_rtx)));
+  /* Say that this branch is very likely to happen.  */
+  v = REG_BR_PROB_BASE - REG_BR_PROB_BASE / 100 - 1;
+  REG_NOTES (insn)
+    = gen_rtx_EXPR_LIST (REG_BR_PROB, GEN_INT (v), REG_NOTES (insn));
+
+  miss_handler = gen_rtx_SYMBOL_REF (Pmode, "__cache_fetch");
+  emit_library_call_value (miss_handler, data_addr, LCT_NORMAL, Pmode,
+			   1, ea_addr, EAmode);
+
+  if (is_store)
+    {
+      /* Clobber ea_addr to convince gcc to use block_off in the
+	 rotqbi below.  Without the clobber, gcc figures that since
+	 rotqbi ANDs its rotate count by 7, the AND generating
+	 block_off from ea_addr is unnecessary and it can use ea_addr
+	 instead.  True, but causes us to keep one more register live
+	 to no purpose.  */
+      emit_insn (gen_rtx_CLOBBER (VOIDmode, ea_addr));
+
+      /* Likewise clobber tag_index so that we use tag_addr in the
+	 move below, again saving one register.  */
+      emit_insn (gen_rtx_CLOBBER (VOIDmode, tag_index));
+
+      /* Read updated cache tags.  */
+      emit_move_insn (cache_tag, gen_rtx_MEM (V4SImode, tag_addr));
+      if (spu_ea_model != 32)
+	emit_move_insn (cache_tag_hi,
+			gen_rtx_MEM (V4SImode,
+				     plus_constant (tag_addr, 16)));
+
+      /* Compare tags and set up rotate count as we did above.  */
+      emit_insn (gen_ceq_v4si (tag_equal, tag, cache_tag));
+      if (spu_ea_model != 32)
+	{
+	  emit_insn (gen_ceq_v4si (tag_equal_hi, splat_hi, cache_tag_hi));
+	  emit_insn (gen_andv4si3 (tag_equal, tag_equal, tag_equal_hi));
+	}
+      emit_insn (gen_spu_gbb (tag_eq_pack,
+			      spu_gen_subreg (V16QImode, tag_equal)));
+      emit_insn (gen_spu_convert (tag_eq_pack_si, tag_eq_pack));
+      emit_insn (gen_clzsi2 (eq_index, tag_eq_pack_si));
+    }
+
+  emit_label (hit_label);
+
+  if (is_store)
+    {
+      HOST_WIDE_INT v_hi;
+      rtx dirty_bits = gen_reg_rtx (TImode);
+      rtx dirty_off = gen_reg_rtx (SImode);
+      rtx dirty_128 = gen_reg_rtx (TImode);
+
+      /* Set up mask with one dirty bit per byte of the mem we are
+	 writing, starting from top bit.  */
+      v_hi = v = -1;
+      v <<= (128 - GET_MODE_SIZE (GET_MODE (mem))) & 63;
+      if ((128 - GET_MODE_SIZE (GET_MODE (mem))) >= 64)
+	{
+	  v_hi = v;
+	  v = 0;
+	}
+      emit_move_insn (dirty_bits, immed_double_const (v, v_hi, TImode));
+
+      /* Form index into cache dirty_bits.  eq_index is one of
+	 0x10, 0x14, 0x18 or 0x1c.  Multiplying by 4 gives us
+	 0x40, 0x50, 0x60 or 0x70 which just happens to be the
+	 offset to each of the four dirty_bits elements.  */
+      emit_insn (gen_ashlsi3 (dirty_off, eq_index, spu_const (SImode, 2)));
+
+      emit_insn (gen_spu_lqx (dirty_128, tag_addr, dirty_off));
+
+      /* Rotate bit mask to proper bit.  */
+      emit_insn (gen_rotqbybi_ti (dirty_bits, dirty_bits, block_off));
+      emit_insn (gen_rotqbi_ti (dirty_bits, dirty_bits, block_off));
+
+      /* Or in the new dirty bits.  */
+      emit_insn (gen_iorti3 (dirty_128, dirty_bits, dirty_128));
+
+      /* Store.  */
+      emit_insn (gen_spu_stqx (dirty_128, tag_addr, dirty_off));
+    }
+  return data_addr;
+}
+
+static GTY(()) int ea_alias_set = -1;
+
+static rtx
+expand_ea_mem (rtx mem, bool is_store)
+{
+  rtx data_addr;
+
+  if (optimize_size)
+    data_addr = ea_load_store (mem, is_store);
+  else
+    data_addr = ea_load_store_inline (mem, is_store);
+
+  if (ea_alias_set == -1)
+    ea_alias_set = new_alias_set ();
+  set_mem_alias_set (mem, ea_alias_set);
+  return change_address (mem, VOIDmode, data_addr);
 }
 
 int
