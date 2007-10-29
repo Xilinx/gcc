@@ -1,5 +1,22 @@
 2007-10-30  Ben Elliston  <bje@au.ibm.com>
 
+	* config.gcc (spu-*-elf*) [extra_headers]: Add spu_cache.h.
+	* config/spu/spu_cache.h: New file.
+	* config/spu/cachemgr.c: Likewise.
+	* config/spu/cache.S: Likewise.
+	* config/spu/t-spu-elf (EXTRA_MULTILIB_PARTS): Add
+	libgcc_cachemgr.a, libgcc_cachemgr_nonatomic.a, libgcc_cache8k.a,
+	libgcc_cache16k.a, libgcc_cache32k.a, libgcc_cache64k.a,
+	libgcc_cache128k.a.
+	(cachemgr.o, %/cachemgr.o): New targets.
+	(cachemgr_nonatomic.o, %/cachemgr_nonatomic.o): Likewise.
+	(libgcc_%.a, %/libgcc_%.a): Likewise.
+	(cache8k.o, cache16k.o, cache32k.o, cache64k.o, cache128k.o,
+	%/cache8k.o, %/cache16k.o, %/cache32k.o, %/cache64k.o,
+	%/cache128k.o): Likewise.
+	
+2007-10-30  Ben Elliston  <bje@au.ibm.com>
+
 	* tree.h (TYPE_EA): New.
 	(TYPE_QUAL_EA): New.
 	(TYPE_QUALS): Include TYPE_EA.
