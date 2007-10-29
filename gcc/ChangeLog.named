@@ -1,3 +1,8 @@
+2007-10-30  Ben Elliston  <bje@au.ibm.com>
+
+	* config/spu/spu_mfcio.h: Avoid <stdint.h>.
+	(uint64_t): Typedef.
+
 2007-10-29  Ben Elliston  <bje@au.ibm.com>
 
 	* New.

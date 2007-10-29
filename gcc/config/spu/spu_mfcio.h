@@ -25,8 +25,8 @@
 #define __SPU_MFCIO_H__ 1
 
 #include <spu_intrinsics.h>
-#include <stdint.h>
 
+typedef unsigned long long uint64_t;
 
 /****************************************************************/
 /* DMA list element structure*/
