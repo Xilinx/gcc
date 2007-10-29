@@ -1,8 +1,6 @@
 /* { dg-do run { target spu-*-* } } */
 /* { dg-options "-std=gnu99" } */
 
-#include <stdio.h>
-
 extern void abort (void);
 extern unsigned long long __ea_local_store;
 

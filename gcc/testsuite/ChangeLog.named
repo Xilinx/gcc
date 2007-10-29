@@ -1,5 +1,9 @@
 2007-10-29  Ben Elliston  <bje@au.ibm.com>
 
+	* gcc.target/spu/ea/cast1.c: Avoid <stdio.h>.
+
+2007-10-29  Ben Elliston  <bje@au.ibm.com>
+
 	* gcc.target/spu/ea/ea.exp: New file.
 	* gcc.target/spu/ea/cppdefine32.c: Likewise.
 	* gcc.target/spu/ea/cppdefine64.c: Likewise.
