@@ -4871,13 +4871,14 @@ expand_ea_mem (rtx mem, bool is_store)
 {
   rtx data_addr;
 
-  if (optimize_size)
+  if (optimize_size || optimize == 0)
     data_addr = ea_load_store (mem, is_store);
   else
     data_addr = ea_load_store_inline (mem, is_store);
 
   if (ea_alias_set == -1)
     ea_alias_set = new_alias_set ();
+  set_mem_alias_set (mem, 0);
   set_mem_alias_set (mem, ea_alias_set);
   return change_address (mem, VOIDmode, data_addr);
 }

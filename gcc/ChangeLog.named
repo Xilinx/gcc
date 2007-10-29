@@ -1,3 +1,8 @@
+2007-10-30  Alan Modra  <amodra@bigpond.net.au>
+
+	* config/spu/spu.c (expand_ea_mem): Mark __ea mems with their own
+	alias set.
+	
 2007-10-30  Ben Elliston  <bje@au.ibm.com>
 
 	* explow.c (memory_address): Only convert a memory address if it
