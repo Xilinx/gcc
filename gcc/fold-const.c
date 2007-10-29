@@ -208,7 +208,7 @@ fit_double_type (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
 
   if (EA_POINTER_TYPE_P (type))
     prec = GET_MODE_BITSIZE (targetm.ea_pointer_mode ());
-  else if (POINTER_TYPE_P (type))
+  else if (POINTER_TYPE_P (type)
 	   || TREE_CODE (type) == OFFSET_TYPE)
     prec = POINTER_SIZE;
   else
@@ -2389,7 +2389,9 @@ fold_convert_const (enum tree_code code, tree type, tree arg1)
   if (TREE_TYPE (arg1) == type)
     return arg1;
 
-  if (POINTER_TYPE_P (type) || INTEGRAL_TYPE_P (type))
+  if (EA_POINTER_TYPE_P (type))
+    return NULL_TREE;
+  else if (POINTER_TYPE_P (type) || INTEGRAL_TYPE_P (type))
     {
       if (TREE_CODE (arg1) == INTEGER_CST)
 	return fold_convert_const_int_from_int (type, arg1);

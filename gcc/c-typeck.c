@@ -8155,6 +8155,12 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 		  && TREE_CODE (tt1) == FUNCTION_TYPE)
 		pedwarn ("ISO C forbids comparison of %<void *%>"
 			 " with function pointer");
+
+	      /* If this operand is an __ea pointer, make the result
+		 of the comparison an __ea pointer also.  */
+	      if (EA_POINTER_TYPE_P (type0))
+		result_type = build_pointer_type
+		  (build_qualified_type (void_type_node, TYPE_QUAL_EA));
 	    }
 	  else if (VOID_TYPE_P (tt1))
 	    {
@@ -8162,6 +8168,12 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 		  && TREE_CODE (tt0) == FUNCTION_TYPE)
 		pedwarn ("ISO C forbids comparison of %<void *%>"
 			 " with function pointer");
+
+	      /* If this operand is an __ea pointer, make the result
+		 of the comparison an __ea pointer also.  */
+	      if (EA_POINTER_TYPE_P (type1))
+		result_type = build_pointer_type
+		  (build_qualified_type (void_type_node, TYPE_QUAL_EA));
 	    }
 	  else
 	    /* Avoid warning about the volatile ObjC EH puts on decls.  */

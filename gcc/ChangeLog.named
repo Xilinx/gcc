@@ -1,3 +1,11 @@
+2007-10-30  Ben Elliston  <bje@au.ibm.com>
+
+	* fold-const.c (fit_double_type): Fix typo.
+	(fold_convert_const): Fix comparisons between integer constants
+	and __ea pointers.
+	* c-typeck.c (build_binary_op): If either operand is an __ea
+	pointer, make the result of a comparison an __ea pointer also.
+
 2007-10-30  Alan Modra  <amodra@bigpond.net.au>
 
 	* expr.c (expand_expr_addr_expr): Do not assume pointers are
