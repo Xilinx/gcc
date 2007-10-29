@@ -1,5 +1,9 @@
 2007-10-30  Ben Elliston  <bje@au.ibm.com>
 
+	* config/spu/t-spu-elf (MULTILIB_OPTIONS): Add mea64.
+
+2007-10-30  Ben Elliston  <bje@au.ibm.com>
+
 	* config/spu/spu.h (ASM_OUTPUT_SYMBOL_REF): Define.
 	* config/spu/spu.c (ea_symbol_ref): New function.
 	(spu_legitimate_constant_p): Reject any __ea qualified reference.
