@@ -8104,6 +8104,26 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  return target;
 	}
 
+#if defined (HAVE_from_ea) && defined (HAVE_to_ea)
+      /* Handle casts of pointers to/from __ea qualified pointers.  */
+      if (EA_POINTER_TYPE_P (type)
+	  && NON_EA_POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0))))
+	{
+	  rtx reg = gen_reg_rtx (TYPE_MODE (type));
+	  op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, VOIDmode, modifier);
+	  emit_insn (gen_to_ea (reg, op0));
+	  return reg;
+	}
+      else if (NON_EA_POINTER_TYPE_P (type)
+	       && (EA_POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0)))))
+	{
+	  rtx reg = gen_reg_rtx (Pmode);
+	  op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, VOIDmode, modifier);
+	  emit_insn (gen_from_ea (reg, op0));
+	  return reg;
+	}
+#endif
+
       if (mode == TYPE_MODE (TREE_TYPE (TREE_OPERAND (exp, 0))))
 	{
 	  op0 = expand_expr (TREE_OPERAND (exp, 0), target, VOIDmode,

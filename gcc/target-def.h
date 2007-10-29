@@ -434,6 +434,10 @@
 #define TARGET_VALID_POINTER_MODE default_valid_pointer_mode
 #endif
 
+#ifndef TARGET_EA_POINTER_MODE
+#define TARGET_EA_POINTER_MODE default_ea_pointer_mode
+#endif
+
 #ifndef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P default_scalar_mode_supported_p
 #endif
@@ -741,6 +745,7 @@
   TARGET_MIN_DIVISIONS_FOR_RECIP_MUL,		\
   TARGET_MODE_REP_EXTENDED,			\
   TARGET_VALID_POINTER_MODE,                    \
+  TARGET_EA_POINTER_MODE,			\
   TARGET_SCALAR_MODE_SUPPORTED_P,		\
   TARGET_VECTOR_MODE_SUPPORTED_P,               \
   TARGET_VECTOR_OPAQUE_P,			\

@@ -6223,6 +6223,12 @@ default_valid_pointer_mode (enum machine_mode mode)
   return (mode == ptr_mode || mode == Pmode);
 }
 
+enum machine_mode
+default_ea_pointer_mode (void)
+{
+  return ptr_mode;
+}
+
 /* Default function to output code that will globalize a label.  A
    target must define GLOBAL_ASM_OP or provide its own function to
    globalize a label.  */

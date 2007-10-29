@@ -1,5 +1,27 @@
 2007-10-30  Ben Elliston  <bje@au.ibm.com>
 
+	* target.h (struct gcc_target): Add ea_pointer_mode.
+	* tree.h (EA_POINTER_TYPE_P): New.
+	(NON_EA_POINTER_TYPE_P): Likewise.
+	* tree.c (integer_pow2p): Avoid POINTER_SIZE for __ea types.
+	(tree_log2): Likewise.
+	(tree_floor_log2): Likewise.
+	(build_pointer_type_for_mode): Avoid ptr_mode for __ea types.
+	* c-objc-common.c (c_types_compatible_p): Handle __ea types.
+	* expr.c (expand_expr_real_1): Handle casts of pointers to/from
+	__ea qualified pointers.
+	* varasm.c (default_ea_pointer_mode): New function.
+	* tree-ssa.c (useless_type_conversion_p): Casts to void * are only
+	useless if both pointers are non-ea pointers.
+	* target-def.h (TARGET_EA_POINTER_MODE): New.
+	(TARGET_INITIALIZER): Add TARGET_EA_POINTER_MODE.
+	* output.h (default_ea_pointer_mode): Provide extern declaration.
+	* config/spu/spu.c (TARGET_EA_POINTER_MODE): Override.
+	(spu_ea_pointer_mode): New function.
+	* config/spu/spu.md (to_ea, from_ea): New expanders.
+
+2007-10-30  Ben Elliston  <bje@au.ibm.com>
+
 	* config/spu/t-spu-elf (MULTILIB_OPTIONS): Add mea64.
 
 2007-10-30  Ben Elliston  <bje@au.ibm.com>

@@ -187,6 +187,9 @@ c_initialize_diagnostics (diagnostic_context *context)
 int
 c_types_compatible_p (tree x, tree y)
 {
+  if (TYPE_EA (x) != TYPE_EA (y))
+    return false;
+
   return comptypes (TYPE_MAIN_VARIANT (x), TYPE_MAIN_VARIANT (y));
 }
 

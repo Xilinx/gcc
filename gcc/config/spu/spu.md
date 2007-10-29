@@ -4183,3 +4183,46 @@ selb\t%0,%4,%0,%3"
 
   DONE;
 }")
+
+(define_expand "to_ea"
+  [(use (match_operand 0 "" ""))
+   (use (match_operand 1 "" ""))]
+  ""
+{
+  rtx ls_mem, op0, op1;
+  enum machine_mode mode = (spu_ea_model == 32) ? Pmode : DImode;
+
+  ls_mem = gen_rtx_MEM (DImode, gen_rtx_SYMBOL_REF (Pmode, "__ea_local_store"));
+
+  op0 = force_reg (mode, operands[0]);
+  op1 = force_reg (Pmode, operands[1]);
+
+  if (mode == Pmode)
+    emit_insn (gen_addsi3 (op0, op1, force_reg (mode, gen_lowpart (mode, ls_mem))));
+  else
+    {
+      rtx tmp = gen_reg_rtx (DImode);
+      emit_move_insn (tmp, gen_rtx_ZERO_EXTEND (DImode, op1));
+      emit_insn (gen_adddi3 (op0, tmp, force_reg (mode, ls_mem)));
+    }
+  DONE;
+})
+
+(define_expand "from_ea"
+  [(use (match_operand 0 "" ""))
+   (use (match_operand 1 "" ""))]
+  ""
+{
+  rtx ls_mem, ls, op0, op1, tmp;
+  enum machine_mode mode = (spu_ea_model == 32) ? Pmode : DImode;
+
+  ls_mem = gen_rtx_MEM (DImode, gen_rtx_SYMBOL_REF (Pmode, "__ea_local_store"));
+  ls = force_reg (Pmode, gen_lowpart (Pmode, ls_mem));
+
+  op0 = force_reg (Pmode, operands[0]);
+  op1 = force_reg (mode, operands[1]);
+  tmp = (mode == Pmode) ? op1 : force_reg (Pmode, gen_lowpart (Pmode, op1));
+
+  emit_insn (gen_subsi3 (op0, tmp, ls));
+  DONE;
+})

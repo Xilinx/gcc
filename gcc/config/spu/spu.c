@@ -187,6 +187,10 @@ tree spu_builtin_types[SPU_BTI_MAX];
 
 /*  TARGET overrides.  */
 
+static enum machine_mode spu_ea_pointer_mode (void);
+#undef TARGET_EA_POINTER_MODE
+#define TARGET_EA_POINTER_MODE spu_ea_pointer_mode
+
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS spu_init_builtins
 
@@ -5843,6 +5847,12 @@ spu_vector_alignment_reachable (const_tree type ATTRIBUTE_UNUSED, bool is_packed
 
   /* All other types are naturally aligned.  */
   return true;
+}
+
+static enum machine_mode
+spu_ea_pointer_mode (void)
+{
+  return (spu_ea_model == 64 ? DImode : ptr_mode);
 }
 
 /* Count the total number of instructions in each pipe and return the

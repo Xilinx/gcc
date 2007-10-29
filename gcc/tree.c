@@ -1415,8 +1415,13 @@ integer_pow2p (const_tree expr)
   if (TREE_CODE (expr) != INTEGER_CST)
     return 0;
 
-  prec = (POINTER_TYPE_P (TREE_TYPE (expr))
-	  ? POINTER_SIZE : TYPE_PRECISION (TREE_TYPE (expr)));
+  if (EA_POINTER_TYPE_P (TREE_TYPE (expr)))
+    prec = GET_MODE_BITSIZE (targetm.ea_pointer_mode ());
+  else if (POINTER_TYPE_P (TREE_TYPE (expr)))
+    prec = POINTER_SIZE;
+  else
+    prec = TYPE_PRECISION (TREE_TYPE (expr));
+
   high = TREE_INT_CST_HIGH (expr);
   low = TREE_INT_CST_LOW (expr);
 
@@ -1480,8 +1485,12 @@ tree_log2 (const_tree expr)
   if (TREE_CODE (expr) == COMPLEX_CST)
     return tree_log2 (TREE_REALPART (expr));
 
-  prec = (POINTER_TYPE_P (TREE_TYPE (expr))
-	  ? POINTER_SIZE : TYPE_PRECISION (TREE_TYPE (expr)));
+  if (EA_POINTER_TYPE_P (TREE_TYPE (expr)))
+    prec = GET_MODE_BITSIZE (targetm.ea_pointer_mode ());
+  else if (POINTER_TYPE_P (TREE_TYPE (expr)))
+    prec = POINTER_SIZE;
+  else
+    prec = TYPE_PRECISION (TREE_TYPE (expr));
 
   high = TREE_INT_CST_HIGH (expr);
   low = TREE_INT_CST_LOW (expr);
@@ -1518,8 +1527,12 @@ tree_floor_log2 (const_tree expr)
   if (TREE_CODE (expr) == COMPLEX_CST)
     return tree_log2 (TREE_REALPART (expr));
 
-  prec = (POINTER_TYPE_P (TREE_TYPE (expr))
-	  ? POINTER_SIZE : TYPE_PRECISION (TREE_TYPE (expr)));
+  if (EA_POINTER_TYPE_P (TREE_TYPE (expr)))
+    prec = GET_MODE_BITSIZE (targetm.ea_pointer_mode ());
+  else if (POINTER_TYPE_P (TREE_TYPE (expr)))
+    prec = POINTER_SIZE;
+  else
+    prec = TYPE_PRECISION (TREE_TYPE (expr));
 
   high = TREE_INT_CST_HIGH (expr);
   low = TREE_INT_CST_LOW (expr);
@@ -5442,7 +5455,11 @@ build_pointer_type_for_mode (tree to_type, enum machine_mode mode,
 tree
 build_pointer_type (tree to_type)
 {
-  return build_pointer_type_for_mode (to_type, ptr_mode, false);
+  if (TYPE_EA (to_type))
+    return build_pointer_type_for_mode (to_type, targetm.ea_pointer_mode (),
+					false);
+  else
+    return build_pointer_type_for_mode (to_type, ptr_mode, false);
 }
 
 /* Same as build_pointer_type_for_mode, but for REFERENCE_TYPE.  */
