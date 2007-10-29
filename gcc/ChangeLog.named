@@ -1,5 +1,10 @@
 2007-10-30  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
+	* config/spu/spu.c (ea_load_store_inline): Fix inline-generated
+	__ea access code.  Fix -mea64 cache access problems.
+
+2007-10-30  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
 	* tree-ssa-loop-ivopts.c (generic_type_for): When generating a
 	type for an IV variable, ensure it is __ea-qualified, if
 	necessary.

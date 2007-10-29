@@ -4674,7 +4674,6 @@ ea_load_store_inline (rtx mem, bool is_store)
   rtx index_mask = gen_reg_rtx (SImode);
   rtx tag_arr = gen_reg_rtx (Pmode);
   rtx splat_mask = gen_reg_rtx (TImode);
-  rtx splat_mask_hi = NULL_RTX;
   rtx splat = gen_reg_rtx (V4SImode);
   rtx splat_hi = NULL_RTX;
   rtx tag_index = gen_reg_rtx (Pmode);
@@ -4695,7 +4694,6 @@ ea_load_store_inline (rtx mem, bool is_store)
 
   if (spu_ea_model != 32)
     {
-      splat_mask_hi = gen_reg_rtx (TImode);
       splat_hi = gen_reg_rtx (V4SImode);
       cache_tag_hi = gen_reg_rtx (V4SImode);
       tag_equal_hi = gen_reg_rtx (V4SImode);
@@ -4705,27 +4703,19 @@ ea_load_store_inline (rtx mem, bool is_store)
   emit_move_insn (tag_arr, tag_arr_sym);
   v = 0x0001020300010203LL;
   emit_move_insn (splat_mask, immed_double_const (v, v, TImode));
-  if (spu_ea_model != 32)
-    {
-      v = 0x0405060704050607LL;
-      emit_move_insn (splat_mask_hi, immed_double_const (v, v, TImode));
-    }
   ea_addr = force_reg (EAmode, XEXP (mem, 0));
   ea_addr_si = ea_addr;
   if (spu_ea_model != 32)
-    {
-      ea_addr_si = gen_reg_rtx (SImode);
-      emit_insn (gen_spu_convert (ea_addr_si, ea_addr));
-    }
+    ea_addr_si = convert_to_mode (SImode, ea_addr, 1);
 
   /* tag_index = ea_addr & (tag_array_size - 128)  */
   emit_insn (gen_andsi3 (tag_index, ea_addr_si, index_mask));
 
   /* splat ea_addr to all 4 slots.  */
-  emit_insn (gen_shufb (splat, ea_addr, ea_addr, splat_mask));
+  emit_insn (gen_shufb (splat, ea_addr_si, ea_addr_si, splat_mask));
   /* Similarly for high 32 bits of ea_addr.  */
   if (spu_ea_model != 32)
-    emit_insn (gen_shufb (splat_hi, ea_addr, ea_addr, splat_mask_hi));
+    emit_insn (gen_shufb (splat_hi, ea_addr, ea_addr, splat_mask));
 
   /* block_off = ea_addr & 127  */
   emit_insn (gen_andsi3 (block_off, ea_addr_si, spu_const (SImode, 127)));
@@ -4831,6 +4821,7 @@ ea_load_store_inline (rtx mem, bool is_store)
       rtx dirty_bits = gen_reg_rtx (TImode);
       rtx dirty_off = gen_reg_rtx (SImode);
       rtx dirty_128 = gen_reg_rtx (TImode);
+      rtx neg_block_off = gen_reg_rtx (SImode);
 
       /* Set up mask with one dirty bit per byte of the mem we are
 	 writing, starting from top bit.  */
@@ -4852,8 +4843,9 @@ ea_load_store_inline (rtx mem, bool is_store)
       emit_insn (gen_spu_lqx (dirty_128, tag_addr, dirty_off));
 
       /* Rotate bit mask to proper bit.  */
-      emit_insn (gen_rotqbybi_ti (dirty_bits, dirty_bits, block_off));
-      emit_insn (gen_rotqbi_ti (dirty_bits, dirty_bits, block_off));
+      emit_insn (gen_negsi2 (neg_block_off, block_off));
+      emit_insn (gen_rotqbybi_ti (dirty_bits, dirty_bits, neg_block_off));
+      emit_insn (gen_rotqbi_ti (dirty_bits, dirty_bits, neg_block_off));
 
       /* Or in the new dirty bits.  */
       emit_insn (gen_iorti3 (dirty_128, dirty_bits, dirty_128));
