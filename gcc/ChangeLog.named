@@ -1,3 +1,9 @@
+2007-10-30  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* tree-ssa-loop-ivopts.c (generic_type_for): When generating a
+	type for an IV variable, ensure it is __ea-qualified, if
+	necessary.
+
 2007-10-30  Ben Elliston  <bje@au.ibm.com>
 
 	* convert.c: Include "target.h".
