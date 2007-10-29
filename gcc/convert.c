@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "real.h"
 #include "fixed-value.h"
+#include "target.h"
 
 /* Convert EXPR to some pointer or reference type TYPE.
    EXPR must be pointer, reference, integer, enumeral, or literal zero;
@@ -58,11 +59,16 @@ convert_to_pointer (tree type, tree expr)
     case INTEGER_TYPE:
     case ENUMERAL_TYPE:
     case BOOLEAN_TYPE:
-      if (TYPE_PRECISION (TREE_TYPE (expr)) != POINTER_SIZE)
-	expr = fold_build1 (NOP_EXPR,
-                            lang_hooks.types.type_for_size (POINTER_SIZE, 0),
-			    expr);
-      return fold_build1 (CONVERT_EXPR, type, expr);
+    {
+      int pointer_size =
+	TYPE_EA (TREE_TYPE (type))
+	? GET_MODE_BITSIZE (targetm.ea_pointer_mode ())
+	: POINTER_SIZE;
+
+      if (TYPE_PRECISION (TREE_TYPE (expr)) != pointer_size)
+	expr = fold_build1 (NOP_EXPR, lang_hooks.types.type_for_size (pointer_size, 0), expr);
+    }
+    return fold_build1 (CONVERT_EXPR, type, expr);
 
 
     default:
@@ -449,15 +455,24 @@ convert_to_integer (tree type, tree expr)
     {
     case POINTER_TYPE:
     case REFERENCE_TYPE:
-      if (integer_zerop (expr))
-	return build_int_cst (type, 0);
+      {
+ 	int pointer_size;
 
-      /* Convert to an unsigned integer of the correct width first,
-	 and from there widen/truncate to the required type.  */
-      expr = fold_build1 (CONVERT_EXPR,
-			  lang_hooks.types.type_for_size (POINTER_SIZE, 0),
-			  expr);
-      return fold_convert (type, expr);
+ 	if (integer_zerop (expr))
+ 	  return build_int_cst (type, 0);
+
+ 	/* Convert to an unsigned integer of the correct width first,
+ 	   and from there widen/truncate to the required type.  */
+ 	pointer_size =
+ 	  TYPE_EA (TREE_TYPE (intype))
+ 	  ? GET_MODE_BITSIZE (targetm.ea_pointer_mode ())
+ 	  : POINTER_SIZE;
+
+ 	expr = fold_build1 (CONVERT_EXPR,
+ 			    lang_hooks.types.type_for_size (pointer_size, 0),
+ 			    expr);
+ 	return fold_build1 (NOP_EXPR, type, expr);
+      }
 
     case INTEGER_TYPE:
     case ENUMERAL_TYPE:

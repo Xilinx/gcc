@@ -1,3 +1,9 @@
+2007-10-30  Ben Elliston  <bje@au.ibm.com>
+
+	* convert.c: Include "target.h".
+	(convert_to_pointer): Do not assume pointers are POINTER_SIZE.
+	(convert_to_integer): Likewise.
+
 2007-10-30  Alan Modra  <amodra@bigpond.net.au>
 
 	* config/spu/spu.c (expand_ea_mem): Mark __ea mems with their own

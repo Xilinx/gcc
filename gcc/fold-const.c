@@ -64,6 +64,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "langhooks.h"
 #include "md5.h"
+#include "target.h"
 
 /* Nonzero if we are folding constants inside an initializer; zero
    otherwise.  */
@@ -205,8 +206,10 @@ fit_double_type (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
   unsigned int prec;
   int sign_extended_type;
 
-  if (POINTER_TYPE_P (type)
-      || TREE_CODE (type) == OFFSET_TYPE)
+  if (EA_POINTER_TYPE_P (type))
+    prec = GET_MODE_BITSIZE (targetm.ea_pointer_mode ());
+  else if (POINTER_TYPE_P (type))
+	   || TREE_CODE (type) == OFFSET_TYPE)
     prec = POINTER_SIZE;
   else
     prec = TYPE_PRECISION (type);
