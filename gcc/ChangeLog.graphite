@@ -1,3 +1,9 @@
+2007-10-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (build_graphite_bb): SCoP's basic blocks are post
+	dominated by SCoP's exit.
+	(graphite_transform_loops): Compute post dominators.
+
 2007-10-28  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (127169:129697).

@@ -537,8 +537,8 @@ build_graphite_bb (struct dom_walk_data *dw_data, basic_block bb)
 
   /* Scop's exit is not in the scop.  */
   if (bb == SCOP_EXIT (scop)
-      /* Every block in the scop dominates scop's exit.  */
-      || !dominated_by_p (CDI_DOMINATORS, SCOP_EXIT (scop), bb))
+      /* Every block in the scop is postdominated by scop's exit.  */
+      || !dominated_by_p (CDI_POST_DOMINATORS, bb, SCOP_EXIT (scop)))
     return;
 
   /* Build the new representation for the basic block.  */
@@ -1187,6 +1187,7 @@ graphite_transform_loops (void)
   current_scops = VEC_alloc (scop_p, heap, 3);
 
   calculate_dominance_info (CDI_DOMINATORS);
+  calculate_dominance_info (CDI_POST_DOMINATORS);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "Graphite loop transformations \n");
