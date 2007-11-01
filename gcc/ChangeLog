@@ -1,3 +1,241 @@
+2007-10-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/31507
+	* config/i386/i386.md (pushsf_rex64): Use X instead of < constraints
+	for the first push_operand.
+
+2007-10-31  Revital Eres  <eres@il.ibm.com>
+
+	* config/rs6000/paired.md (sminv2sf3, smaxv2sf3, reduc_smax_v2sf,
+	reduc_smin_v2sf vec_interleave_highv2sf, vec_interleave_lowv2sf,
+	vec_extract_evenv2sf, vec_extract_oddv2sf, reduc_splus_v2sf,
+	movmisalignv2sf, vcondv2sf): New.
+	(UNSPEC_INTERHI_V2SF, UNSPEC_INTERLO_V2SF, UNSPEC_EXTEVEN_V2SF,
+	UNSPEC_EXTODD_V2SF): Define new constants.
+	* config/rs6000/rs6000-protos.h (paired_expand_vector_move,
+	paired_emit_vector_cond_expr): New.
+	* config/rs6000/rs6000-c.c (__PAIRED__): Add new builtin_define.
+	* config/rs6000/rs6000.c (paired_expand_vector_move,
+	paired_emit_vector_cond_expr, paired_emit_vector_compare):
+	New functions.
+	* config/rs6000/750cl.h (ASM_CPU_SPEC): Pass down -m750cl option.
+
+2007-10-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/32377
+	* tree-data-ref.c (compute_overlap_steps_for_affine_univar): Make it
+	work also for unknown number of iterations.
+	(analyze_subscript_affine_affine): Clean up.  Don't fail when the 
+	number of iterations is not known.
+
+2007-10-31  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/33779
+	* fold-const.c (extract_muldiv_1): Make sure to not introduce
+	new undefined integer overflow.
+	(fold_binary): Avoid useless conversion.
+
+2007-10-31  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR target/33948
+	* config/mips/mips.c (mips_fpr_return_fields): Fix SCALAR_TYPE_P
+	check.
+
+2007-10-31  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* config/rs6000/rs6000.opt: Rename -mdfp option to -mhard-dfp.
+
+	* config/s390/s390.c: (override_options): Replace -mhard-dfp/-msoft-dfp
+	with -mhard-dfp/-mno-hard-dfp.
+	* config/s390/s390.opt: Likewise.
+	* config/s390/s390.h: Add MASK_HARD_DFP to the TARGET_DEFAULT
+	definition.
+
+2007-10-30  Janis Johnson  <janis187@us.ibm.com>
+
+	* tree-ssa.c (execute_update_addresses_taken): Initialize update_vops.
+
+2007-10-30  Janis Johnson  <janis187@us.ibm.com>
+
+	* doc/invoke.texi (Option Summary): Add -fdce and -fdse to list of
+	optimization options.
+	(Optimize Options): Add -fdce and -fdse to the list of optimizations
+	enabled by -O.  Document -fdce and -fdse.
+
+2007-10-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/33709
+	* fold-const.c (fold_binary): If one argument is COMPOUND_EXPR,
+	convert second operand of COMPOUND_EXPR to the original type of
+	that argument.
+
+2007-10-30  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-operands.c (add_vars_for_offset): Fix exit test
+	of loop adding SFTs as virtual operands.
+
+2007-10-30  Richard Guenther  <rguenther@suse.de>
+
+	* Makefile.in (dse.o): Add $(OPTABS_H) and $(RECOG_H) dependencies.
+
+2007-10-29  Dorit Nuzman  <dorit@il.ibm.com>
+
+	PR tree-optimization/32893
+	* tree-vectorize.c (vect_can_force_dr_alignment_p): Check
+	STACK_BOUNDARY instead of PREFERRED_STACK_BOUNDARY.
+
+2007-10-29  Rask Ingemann Lambertsen  <rask@sygehus.dk>
+
+	* longlong.h (add_ssaaaa): Support Intel asm syntax in i386 and
+	x86_64 versions.
+	(sub_ddmmss): Likewise.
+	(umul_ppmm): Likewise.
+	(udiv_qrnnd): Likewise.
+
+2007-10-29  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/24841
+	* doc/sourcebuild.texi (Test Directives): Document that dg-require
+	directives must come before dg-additional-sources.
+
+2007-10-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/33723
+	* c-gimplify.c (c_gimplify_expr): Optimize INIT_EXPR or
+	MODIFY_EXPR with non-addressable COMPOUND_LITERAL_EXPR as source.
+
+2007-10-29  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR tree-optimization/33614
+	* gimplify.c (gimplify_init_constructor): Gimplify vector constructors
+	if they can't be reduced to VECTOR_CSTs and aren't legitimate
+	initializer constants.
+
+2007-10-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/33870
+	* tree-ssa-operands.c (add_vars_for_offset): Remove mpt_vars parameter.
+	(add_virtual_operand): Do not recurse into MPTs looking for pointed-to
+	SFTs.
+
+2007-10-29  Richard Guenther  <rguenther@suse.de>
+
+	* passes.c (init_optimization_passes): Exchange store_copy_prop
+	with copy_prop.
+	* tree-pass.h (pass_store_copy_prop): Remove.
+	* tree-ssa-copy.c (do_store_copy_prop): Remove.
+	(stmt_may_generate-copy): Do not handle store_copy_prop.
+	(get_copy_of_val): Likewise.
+	(set_copy_of_val): Likewise.
+	(copy_prop_visit_assignment): Likewise.
+	(copy_prop_visit_stmt): Likewise.
+	(copy_prop_visit_phi_node): Likewise.
+	(init_copy_prop): Likewise.
+	(execute_copy_prop): Likewise.
+	(do_copy_prop): Remove.
+	(gate_store_copy_prop): Likewise.
+	(store_copy_prop): Likewise.
+	(pass_store_copy_prop): Likewise.
+	(pass_copy_prop): Call execute_copy_prop.
+	* opts.c (decode_options): Do not set flag_tree_store_copy_prop.
+	* common.opt (ftree-store-copy-prop): Mark obsolete.
+	* doc/invoke.texi (ftree-store-copy-prop): Remove documentation.
+
+2007-10-29  Ian Lance Taylor  <iant@google.com>
+
+	* ifcvt.c (noce_can_store_speculate_p): New static function.
+	(noce_process_if_block): Call it.
+	(if_convert): Remove recompute_dominance parameter.  Change all
+	callers.
+
+2007-10-29  Richard Guenther  <rguenther@suse.de>
+
+	* tree-flow-inline.h (get_subvar_at): Use binary search.
+	(get_first_overlapping_subvar): New function to binary search
+	for the first overlapping subvar.
+	* tree-ssa-operands.c (add_vars_for_offset): Strip down to
+	just handle adding subvars for a pointed-to subvar.  Optimize
+	and use get_first_overlapping_subvar.
+	(add_vars_for_bitmap): Fold into single caller.
+	(add_virtual_operand): Streamline, inherit add_vars_for_bitmap
+	and non pointed-to bits of add_vars_for_offset.
+
+2007-10-29  Revital Eres  <eres@il.ibm.com> 
+
+	* modulo-sched.c (sms_schedule): Add DF_UD_CHAIN problem.
+
+2007-10-29  Razya Ladelsky  <razya@il.ibm.com>
+            Zdenek Dvorak  <ook@ucw.cz>
+
+	OMP_ATOMIC Changes,
+	reduction support for automatic parallelization.
+
+	* expr.c (expand_expr_real_1): Add cases for OMP_ATOMIC_LOAD,
+	OMP_ATOMIC_STORE.
+	* Makefile.in: Add dependencies to expr.o, tree-parloops.o, omp-low.o
+	* tree-pretty-print.c (dump_generic_node): Add OMP_ATOMIC_LOAD
+	and OMP_ATOMIC_STORE.
+	* tree.h (OMP_DIRECTIVE_P): Add OMP_ATOMIC_LOAD, OMP_ATOMIC_STORE.
+	* gimple-low.c (lower_stmt): Same.
+	* gimplify.c (gimplify_expr): Same.
+	(gimplify_omp_atomic_fetch_op, gimplify_omp_atomic_pipeline,
+	gimplify_omp_atomic_mutex): Remove.
+	(gimplify_omp_atomic): Change it to simply gimplify the
+	statement instead of expanding it.
+	* omp-low.c: Add includes to optabs.h, cfgloop.h.
+	(expand_omp_atomic, expand_omp_atomic_pipeline,
+	goa_stabilize_expr, expand_omp_atomic_mutex,
+	expand_omp_atomic_fetch_op): New functions to implement
+	expansion of OMP_ATOMIC.
+	(expand_omp, build_omp_regions_1): Add support for
+	OMP_ATOMIC_LOAD/OMP_ATOMIC_STORE.
+	* tree-cfg.c (make_edges): add case for OMP_ATOMIC_LOAD,
+	OMP_ATOMIC_STORE.
+	* tree-gimple.c (is_gimple_stmt): Add OMP_ATOMIC_LOAD,
+	OMP_ATOMIC_STORE.
+	* tree-parloops.c: add include to tree-vectorizer.h.
+	(reduction_info): New structure for reduction.
+	(reduction_list): New list to represent list of reductions per loop.
+	(struct data_arg): New helper structure for reduction.
+	(reduction_info_hash, reduction_info_eq, reduction_phi,
+	initialize_reductions, create_call_for_reduction,
+	create_phi_for_local_result, create_call_for_reduction_1,
+	create_loads_for_reductions, create_final_loads_for_reduction):
+	New functions.
+	(loop_parallel_p): Identify reductions, add reduction_list parameter.
+	(separate_decls_in_loop_name): Support reduction variables.
+	(separate_decls_in_loop): Add reduction_list and ld_st_data arguments,
+	call create_loads_for_reduction for each reduction.
+	(canonicalize_loop_ivs): Identify reductions, add reduction_list
+	parameter.
+	(transform_to_exit_first_loop): Add reduction support, add
+	reduction_list parameter.
+	(gen_parallel_loop): Add reduction_list parameter.  Add call
+	separate_decls_in_loop with
+	the new argument.  Traverse reductions and call
+	initialize_reductions, create_call_for_reduction.
+	(parallelize_loops): Create and delete the reduction list.
+	(add_field_for_name): Change use of data parameter.  Add fields for
+	reductions.
+	* tree-vectorizer.h (vect_analyze_loop_form): Add declaration.
+	* tree-vect-analyze.c (vect_analyze_loop_form): export it.
+	* tree.def: Add definitions for OMP_ATOMIC_LOAD, OMP_ATOMIC_STORE.
+	* tree-inline.c (estimate_num_insns_1): add cases for
+	OMP_ATOMIC_LOAD, OMP_ATOMIC_STORE.
+	* tree-cfg.c (make_edges): Add OMP_ATOMIC_LOAD, OMP_ATOMIC_STORE.
+	* tree-ssa-operands.c (get_addr_dereference_operands):
+	New function.  Subroutine of get_indirect_ref_operands.
+	(get_indirect_ref_operands): Call get_addr_dereference_operands.
+	(get_expr_operands): Support OMP_ATOMIC_LOAD, OMP_ATOMIC_STORE.
+
+
+2007-10-29  Hans-Peter Nilsson  <hp@axis.com>
+
+	* config/cris/cris.c: Include df.h.
+	(cris_address_cost): Add gcc_assert for canonicalization
+	assumptions.  For PLUS with MULT or register, correct
+	test for register in other arm.  Tweak comments.
+
 2007-10-28  Richard Guenther  <rguenther@suse.de>
 
 	* tree-ssa-operands.c (add_vars_for_offset): Add parameter
@@ -174,7 +412,7 @@
 	DW_ATE_signed_fixed to describe FIXED_POINT_TYPE.
 
 2007-10-24  Samuel Tardieu  <sam@rfc1149.net>
-            Olga Golovanevsky <olga@il.ibm.com>
+	    Olga Golovanevsky <olga@il.ibm.com>
 	
 	* ipa-struct-reorg.c (replace_field_acc): Make it clear to
 	the compiler that wr.wrap and wr.domain are initialized in
@@ -1099,25 +1337,25 @@
 
 2007-10-18  Chen Liqin  <liqin@sunnorth.com.cn>
 
-        * config.gcc : update score-*-elf(extra_objs).
-        * config/score/mac.md : Remove.
-        * config/score/misc.md : Remove.
-        * config/score/score7.md : Remove.
-        * config/score/score-mdaux.h : Remove.
-        * config/score/score-mdaux.c : Remove.
-        * config/score/score-version.h : Remove.
-        * config/score/score-generic.md : New.
-        * config/score/score3.h : New.
-        * config/score/score3.c : New.
-        * config/score/score7.h : New.
-        * config/score/score7.c : New.
-        * config/score/mul-div.S : add flush_cache score3 support.
-        * config/score/elf.h : Fix some typos.
-        * config/score/score.md : merge score3 and score7 pattern.
-        * config/score/score.c : use to seperate which target it used.
-        * config/score/score.h : use to seperate the target macro.
-        * config/score/score.opt : remove -mmac option , add -mscore3,
-        -mscore3d and -march OPTION support.
+	* config.gcc : update score-*-elf(extra_objs).
+	* config/score/mac.md : Remove.
+	* config/score/misc.md : Remove.
+	* config/score/score7.md : Remove.
+	* config/score/score-mdaux.h : Remove.
+	* config/score/score-mdaux.c : Remove.
+	* config/score/score-version.h : Remove.
+	* config/score/score-generic.md : New.
+	* config/score/score3.h : New.
+	* config/score/score3.c : New.
+	* config/score/score7.h : New.
+	* config/score/score7.c : New.
+	* config/score/mul-div.S : add flush_cache score3 support.
+	* config/score/elf.h : Fix some typos.
+	* config/score/score.md : merge score3 and score7 pattern.
+	* config/score/score.c : use to seperate which target it used.
+	* config/score/score.h : use to seperate the target macro.
+	* config/score/score.opt : remove -mmac option , add -mscore3,
+	-mscore3d and -march OPTION support.
  
 2007-10-17  Andrew Pinski  <andrew_pinski@playstation.sony.com>
 
@@ -1287,8 +1525,8 @@
 
 2007-10-15  Razya Ladelsky  <razya@il.ibm.com>
 
-        * matrix-reorg.c (gate_matrix_reorg): Don't comment out whole
-        program flag.
+	* matrix-reorg.c (gate_matrix_reorg): Don't comment out whole
+	program flag.
 
 2007-10-15  Jakub Jelinek  <jakub@redhat.com>
 
@@ -1492,7 +1730,7 @@
 2007-10-10  Wolfgang Gellerich  <gellerich@de.ibm.com>
 
 	* opth-gen.awk: Fixed generation of comment stating the origin
-          of options.h
+	  of options.h
 
 2007-10-10  Kazu Hirata  <kazu@codesourcery.com>
 
@@ -1702,7 +1940,7 @@
 	* config/m68k/m68k.h (ASSEMBLER_DIALECT): New.
 
 2007-10-06  Eric Botcazou  <ebotcazou@adacore.com>
-            Nathan Froyd  <froydnj@codesourcery.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
 
 	* dwarf2out.c (dwarf2out_frame_init): Check for DWARF2_FRAME_INFO
 	when determining whether to record INCOMING_RETURN_ADDR_RTX.

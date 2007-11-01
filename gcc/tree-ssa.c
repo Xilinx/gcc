@@ -1428,7 +1428,7 @@ execute_update_addresses_taken (void)
   basic_block bb;
   bitmap addresses_taken = BITMAP_ALLOC (NULL);
   bitmap vars_updated = BITMAP_ALLOC (NULL);
-  bool update_vops;
+  bool update_vops = false;
   tree phi;
 
   /* Collect into ADDRESSES_TAKEN all variables whose address is taken within

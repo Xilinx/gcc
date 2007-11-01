@@ -36,7 +36,14 @@ set save-dg-do-what-default ${dg-do-what-default}
 # Skip these tests for targets that do not support generating vector
 # code.  Set additional target-dependent vector flags, which can be
 # overridden by using dg-options in individual tests.
-if [istarget "powerpc*-*-*"] {
+if  [istarget "powerpc-*paired*"]  {
+   lappend DEFAULT_VECTCFLAGS "-mpaired"
+    if [check_750cl_hw_available] {
+        set dg-do-what-default run 
+    } else {
+        set dg-do-what-default compile
+    }
+} elseif [istarget "powerpc*-*-*"] {
     # Skip targets not supporting -maltivec.
     if ![is-effective-target powerpc_altivec_ok] {
 	return
@@ -109,7 +116,7 @@ lappend DEFAULT_VECTCFLAGS "-O2"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/nodump-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
-lappend DEFAULT_VECTCFLAGS "-fdump-tree-vect-details"
+lappend DEFAULT_VECTCFLAGS "-fdump-tree-vect-details" 
 
 # Main loop.
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/pr*.\[cS\]]]  \

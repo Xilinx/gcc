@@ -1,3 +1,252 @@
+2007-10-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/31507
+	* gcc.dg/pr31507-1.c: New test.
+	* gcc.dg/pr31507-2.c: New test.
+
+2007-10-31  Revital Eres  <eres@il.ibm.com>
+
+	* gcc.dg/vect/vect.exp: Add support for powerpc-*paired
+	target.
+	* gcc.dg/vect/tree-vect.h (check_vect): Add
+	powerpc-*paired test.
+	* lib/target-supports.exp (check_750cl_hw_available):
+	New.
+	(check_effective_target_vect_int,
+	check_effective_target_vect_intfloat_cvt,
+	check_effective_target_powerpc_altivec_ok,
+	check_effective_target_vect_long,
+	check_effective_target_vect_sdot_hi,
+	check_effective_target_vect_udot_hi,
+	check_effective_target_vect_pack_trunc,
+	check_effective_target_vect_unpack,
+	check_effective_target_vect_shift,
+	check_effective_target_vect_int_mult): Disable for powerpc-*paired
+	target.
+	* gcc.dg/vect/vect-ifcvt-11.c: New.
+	* gcc.dg/vect/vect-ifcvt-12.c: Likewise.
+	* gcc.dg/vect/vect-ifcvt-13.c: Likewise.
+	* gcc.dg/vect/vect-ifcvt-14.c: Likewise.
+	* gcc.dg/vect/vect-ifcvt-15.c: Likewise.
+	* gcc.dg/vect/vect-ifcvt-16.c: Likewise.
+	* gcc.dg/vect/vect-ifcvt-17.c: Likewise.
+
+2007-10-31  Dominique d'Humieres  <dominiq@lps.ens.fr>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/33941
+	* gfortran.dg/module_read_1.f90: New.
+
+2007-10-31  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/30786:
+	* gcc.dg/cpp/pr30786.c: New file.
+
+2007-10-31  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/33162
+	* gfortran.dg/interface_19.f90: New.
+	* gfortran.dg/interface_20.f90: New.
+	* gfortran.dg/interface_21.f90: New.
+	
+2007-10-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/32377
+	* gfortran.dg/vect/pr32377.f90: New.
+	
+2007-10-31  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/33779
+	* gcc.c-torture/execute/pr33779-1.c: New testcase.
+	* gcc.c-torture/execute/pr33779-2.c: Likewise.
+
+2007-10-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/33897
+	* gfortran.dg/contained_3.f90: New.
+
+2007-10-31  Christian Bruel  <christian.bruel@st.com>
+
+	PR c++/19531
+	* g++.dg/opt/nrv8.C: New.
+	
+2007-10-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/33709
+	* g++.dg/opt/compound1.C: New test.
+
+	PR c++/33616
+	* g++.dg/template/ptrmem18.C: New test.
+
+2007-10-30  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33596
+	* gfortran.dg/isnan_2.f90: New test.
+
+2007-10-30  Ed Schouten  <ed@fxq.nl>
+
+	PR tree-optimization/32500
+	* gcc.c-torture/execute/pr32500.c: Fix buffer overflow in testcase.
+
+2007-10-30  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/31993
+	PR c++/32252
+	* g++.dg/cpp0x/pr31993.C: New
+	* g++.dg/cpp0x/pr32252.C: New
+
+2007-10-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/33723
+	* gcc.dg/tree-ssa/pr33723.c (T): Decrease size of field s.
+
+2007-10-30  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/20071030-1.c: New testcase copied from
+	gcc.target/i386/loop-3.c.
+
+2007-10-30  Revital Eres  <eres@il.ibm.com>
+
+	* testsuite/gcc.dg/vect/pr33866.c: Require vect_long.
+
+2007-10-30  Revital Eres  <eres@il.ibm.com>
+
+	* testsuite/gcc.dg/vect/vect-shift-1.c: Require vect_int.
+	* testsuite/gcc.dg/vect/vect-ifcvt-4.c: Likewise.
+
+2007-10-29  Dorit Nuzman  <dorit@il.ibm.com>
+
+	PR tree-optimization/32893
+	* testsuite/lib/target-supports.exp
+	(check_effective_target_unaligned_stack): new keyword.
+	* testsuite/gcc.dg/vect/vect-2.c: Globalize arrays to make the test
+	not sensitive to unaligned_stack.
+	* testsuite/gcc.dg/vect/vect-3.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-4.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-5.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-6.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-7.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-13.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-17.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-18.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-19.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-20.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-21.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-22.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-27.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-29.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-64.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-65.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-66.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-72.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-73.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-86.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-all.c: Likewise.
+	* testsuite/gcc.dg/vect/slp-25.c: Likewise.
+	* testsuite/gcc.dg/vect/wrapv-vect-7.c: Likewise.
+	* testsuite/gcc.dg/vect/costmodel/i386/costmodel-vect-31.c: Likewise.
+	* testsuite/gcc.dg/vect/costmodel/x86_64/costmodel-vect-31.c: Likewise.
+
+	* testsuite/gcc.dg/vect/vect-31.c: Removed alignment checks.        
+	* testsuite/gcc.dg/vect/vect-34.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-36.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-64.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-65.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-66.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-68.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-76.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-77.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-78.c: Likewise.
+
+	* testsuite/gcc.dg/vect/no-section-anchors-vect-31.c: New test, Like the
+	original testcase (without no-section-anchors prefix) but with global arrays.       
+	* testsuite/gcc.dg/vect/no-section-anchors-vect-34.c: Likewise.
+	* testsuite/gcc.dg/vect/no-section-anchors-vect-36.c: Likewsie.
+	* testsuite/gcc.dg/vect/no-section-anchors-vect-64.c: Likewise.
+	* testsuite/gcc.dg/vect/no-section-anchors-vect-65.c: Likewise.
+	* testsuite/gcc.dg/vect/no-section-anchors-vect-66.c: Likewise.
+	* testsuite/gcc.dg/vect/no-section-anchors-vect-68.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-77-global.c: Likewise.
+	* testsuite/gcc.dg/vect/vect-78-global.c: Likewise.
+
+	* testsuite/gcc.dg/vect/vect-77-alignchecks.c: New test. Like the
+	original testcase (without no-section-anchors prefix) but fix alignment checks 
+	to also consider unaligned_stack targets.
+	* testsuite/gcc.dg/vect/vect-78-alignchecks.c: Likewise.
+
+2007-10-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/33723
+	* gcc.c-torture/execute/20071029-1.c: New test.
+	* gcc.dg/tree-ssa/pr33723.c: New test.
+
+2007-10-29  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR tree-optimization/33614
+	* gcc.c-torture/compile/pr33614.c: New test.
+
+2007-10-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/33870
+	* gcc.c-torture/execute/pr33870.x: XFAIL testcase for -O2 and -Os.
+
+2007-10-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/33757
+	* gcc.dg/tree-ssa/ssa-fre-4.c: Run on selected TARGET_PROMOTE_PROTOTYPES
+	true architectures instead of having a big dg-skip-if.
+
+	PR c++/33841
+	* g++.dg/other/bitfield3.C: New test.
+
+2007-10-29  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ssa-copyprop-1.c: Scan optimized dump.
+
+2007-10-29  Razya Ladelsky  <razya@il.ibm.com>
+
+	Automatic parallelization reduction tests.
+
+	* testsuite/gcc.dg/tree-ssa/reduc-1.c: New test.
+	* testsuite/gcc.dg/tree-ssa/reduc-1char.c: New test.
+	* testsuite/gcc.dg/tree-ssa/reduc-1short.c: New test.
+	* testsuite/gcc.dg/tree-ssa/reduc-2.c: New test.
+	* testsuite/gcc.dg/tree-ssa/reduc-2char.c: New test.
+	* testsuite/gcc.dg/tree-ssa/reduc-2short.c: New test.
+	* testsuite/gcc.dg/tree-ssa/reduc-3.c: New test.
+	* testsuite/gcc.dg/tree-ssa/reduc-6.c: New test.
+	* testsuite/gcc.dg/tree-ssa/reduc-7.c: New test.
+	* testsuite/gcc.dg/tree-ssa/reduc-8.c: New test.
+	* testsuite/gcc.dg/tree-ssa/reduc-9.c: New test.
+
+2007-10-29  Razya Ladelsky  <razya@il.ibm.com>
+	    Zdenek Dvorak  <ook@ucw.cz>
+
+	OMP_ATOMIC Changes, testsuite changes.
+
+	* testsuite/gcc.dg/gomp/atomic-3.c: Search for string on ompexp dump
+	instead of gimple dump.
+	* testsuite/gcc.dg/gomp/atomic-9.c: Same.
+	* testsuite/gcc.dg/gomp/atomic-10.c: Same.
+	* testsuite/g++.dg/gomp/atomic-3.C: Same.
+	* testsuite/g++.dg/gomp/atomic-9.C: Same.
+	* testsuite/g++.dg/gomp/atomic-10.C: Same.
+
+2007-10-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31217
+	PR fortran/33811
+	* gfortran.dg/forall_12.f90: New test.
+
+	PR fortran/33686
+	* gfortran.dg/forall_13.f90: New test.
+
+2007-10-28  Paolo Carlini  <pcarlini@suse.de>
+	    Mark Mitchell  <mark@codesourcery.com>
+
+	PR c++/30659
+	* g++.dg/template/crash71.C: New.
+
 2007-10-28  Tobias Schlüter  <tobi@gcc.gnu.org>
 
 	PR fortran/32147
@@ -94,7 +343,7 @@
 	* g++.dg/template/error32.C: New.
 
 2007-10-25  Martin Michlmayr <tbm@cyrius.com>
-            Ira Rosen  <irar@il.ibm.com>
+	    Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/33833
 	* gcc.dg/vect/pr33833.c: New testcase.
@@ -104,7 +353,7 @@
 	* gcc.dg/tree-ssa/20040204-1.c: Un-xfail for mips*-*-*.
 
 2007-10-25  Martin Michlmayr <tbm@cyrius.com>
-            Ira Rosen  <irar@il.ibm.com>
+	    Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/33866
 	* gcc.dg/vect/pr33866.c: New testcase.
@@ -210,7 +459,7 @@
 	and o64 if generating MIPS16 hard-float code.
 
 2007-10-21  Ira Rosen  <irar@il.ibm.com>
-            Revital Eres  <eres@il.ibm.com>
+	    Revital Eres  <eres@il.ibm.com>
 
 	* gcc.dg/vect/vect-ifcvt-5.c: Require vect_int.
 	* gcc.dg/vect/vect-16.c: Fix comment.

@@ -119,7 +119,6 @@ bits_headers = \
 	${bits_srcdir}/stl_iterator_base_types.h \
 	${bits_srcdir}/stl_list.h \
 	${bits_srcdir}/stl_map.h \
-	${bits_srcdir}/stl_auto_ptr.h \
 	${bits_srcdir}/stl_move.h \
 	${bits_srcdir}/stl_multimap.h \
 	${bits_srcdir}/stl_multiset.h \
@@ -145,12 +144,14 @@ bits_headers = \
 backward_srcdir = ${glibcxx_srcdir}/include/backward
 backward_builddir = ./backward
 backward_headers = \
-	${backward_srcdir}/strstream \
+	${backward_srcdir}/auto_ptr.h \
+	${backward_srcdir}/backward_warning.h \
+	${backward_srcdir}/binders.h \
 	${backward_srcdir}/hash_map \
 	${backward_srcdir}/hash_set \
 	${backward_srcdir}/hash_fun.h \
 	${backward_srcdir}/hashtable.h \
-	${backward_srcdir}/backward_warning.h
+	${backward_srcdir}/strstream 
 
 pb_srcdir = ${glibcxx_srcdir}/include/ext/pb_ds
 pb_builddir = ./ext/pb_ds
@@ -501,8 +502,12 @@ ext_headers = \
 	${ext_srcdir}/vstring.h \
 	${ext_srcdir}/vstring.tcc \
 	${ext_srcdir}/vstring_fwd.h \
-	${ext_srcdir}/vstring_util.h	
+	${ext_srcdir}/vstring_util.h \
+	${ext_compat_headers}
 
+ext_compat_headers = \
+	${backward_srcdir}/hash_set \
+	${backward_srcdir}/hash_map
 
 tr1_srcdir = ${glibcxx_srcdir}/include/tr1
 tr1_builddir = ./tr1
@@ -826,7 +831,7 @@ pch_output_dirs = \
 	${pch1_output_builddir} ${pch2_output_builddir} ${pch3_output_builddir}
 pch_output_anchors = \
 	${pch1_output_anchor} ${pch2_output_anchor} ${pch3_output_anchor}
-PCHFLAGS=-Winvalid-pch -Wno-deprecated -x c++-header $(CXXFLAGS)
+PCHFLAGS=-Winvalid-pch -x c++-header $(CXXFLAGS)
 if GLIBCXX_BUILD_PCH
 pch_build = ${pch_output}
 else

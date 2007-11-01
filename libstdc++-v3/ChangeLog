@@ -1,3 +1,74 @@
+2007-10-30  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1_impl/random (uniform_int<>::
+	_M_call(_UniformRandomNumberGenerator&, result_type, result_type,
+	true_type)): Only declare.
+	* include/tr1_impl/random.tcc (uniform_int<>::
+	_M_call(_UniformRandomNumberGenerator&, result_type, result_type,
+	true_type)): Re-do, unbiased for the currently supported ranges;
+	add comment.
+
+2007-10-30  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* docs/html/ext/pb_ds/multimap_text_insert_timing_test_small.html:
+	Correct filename.	
+	* docs/html/ext/pb_ds/multimap_text_find_timing_test_large.html: Same.
+	* docs/html/ext/pb_ds/
+	multimap_text_insert_mem_usage_test_small.html: Same.
+	* docs/html/ext/pb_ds/multimap_text_insert_timing_test_large.html: Same.
+	* docs/html/ext/pb_ds/
+	multimap_text_insert_mem_usage_test_large.html: Same.
+	* docs/html/ext/pb_ds/multimap_text_find_timing_test_small.html: Same.
+
+2007-10-30  Benjamin Kosnik  <bkoz@redhat.com>
+	
+	* include/Makefile.am (PCHFLAGS): Remove -Wno-deprecated.
+	* include/Makefile.in: Regenerate.
+
+	* include/std/memory: Remove extraneous include.	
+
+2007-10-29  Benjamin Kosnik  <bkoz@redhat.com>
+ 
+	* include/bits/c++config (_GLIBCXX_DEPRECATED,
+	_GLIBCXX_USE_DEPRECATED): New. Adjust comments.
+	* include/bits/stl_auto_ptr.h: Move...
+	* includse/backward/auto_ptr.h: ...here.
+	* include/bits/stl_function.h (binder1st, binder2nd, bind1st,
+	bind2nd): Move...
+	* include/backward/binders.h: ...here. Deprecate in C++0x.
+
+	* include/tr1_impl/boost_shared_ptr.h: Guard auto_ptr usage.
+	* include/std/memory: Same.
+	* include/std/streambuf: Consistent use of _GLIBCXX_USE_DEPRECATED.
+
+	* include/backward/strstream: Fix guard macros.
+	* include/backward/backward_warning.h: Adjust for all new items.
+
+	* config/abi/pre/gnu.ver: Export basic_streambuf::stossc.
+	
+	* include/Makefile.am (backward_headers): Adjust.
+	* include/Makefile.in: Regenerate.
+	* configure: Regenerate.
+
+2007-10-29  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/Makefile.am (ext_compat_headers): New.
+	* include/Makefile.in: Regenerate.
+	* configure: Regenerate.
+
+2007-10-28  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algobase.h (_GLIBCXX_MOVE3,
+	_GLIBCXX_MOVE_BACKWARD3): Add.
+	* include/bits/stl_iterator.h (_GLIBCXX_MAKE_MOVE_ITERATOR): Add.
+	* include/bits/vector.tcc (vector<>::reserve): Use the latter.
+	(vector<>::erase): Use _GLIBCXX_MOVE3.
+	* include/bits/deque.tcc (deque<>::erase): Use _GLIBCXX_MOVE3
+	and _GLIBCXX_MOVE_BACKWARD3.
+	* testsuite/23_containers/vector/modifiers/erase/moveable.cc: New.
+	* testsuite/23_containers/vector/capacity/reserve/moveable.cc: New.
+	* testsuite/23_containers/deque/modifiers/erase/moveable.cc: New.
+
 2007-10-28  Paolo Carlini  <pcarlini@suse.de>
 
 	* include/bits/stl_uninitialized.h (uninitialized_copy): Use

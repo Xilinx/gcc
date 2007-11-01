@@ -1,3 +1,46 @@
+2007-10-31 Christian Bruel  <christian.bruel@st.com>
+           Mark Mitchell  <mark@codesourcery.com>
+
+	PR c++/19531
+	* cp/typeck.c (check_return_expr): Don't set named_return_value_okay_p
+	if retval is volatile. 
+	
+2007-10-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/33616
+	* decl2.c (build_offset_ref_call_from_tree): Call
+	build_non_dependent_expr on object prior to building ADDR_EXPR from it
+	if FN is DOTSTAR_EXPR.
+
+2007-10-30  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/31993
+	PR c++/32252
+	* pt.c (find_parameter_packs_r): Fix typo in comment.
+	(convert_template_argument): Look at the pattern of a pack
+	expansion to determine what kind of entity we're converting.
+	(coerce_template_parameter_pack): When we have coerced a non-type
+	template parameter pack, substitute into the type of that pack.
+	(tsubst_pack_expansion): When our substitution of a parameter pack
+	is a "trivial" substitution of itself, just substitute into the
+	pack expansion rather than actually expanding.
+
+2007-10-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/33841
+	* class.c (check_bitfield_decl): Don't set field's type to error_mark_node
+	for non-integral type bitfields.  Return true if bitfield is correct, false
+	error has been diagnosed.
+	(check_field_decls): If check_bitfield_decl returned false, call also
+	check_field_decl.
+
+2007-10-28  Paolo Carlini  <pcarlini@suse.de>
+	    Mark Mitchell  <mark@codesourcery.com>
+
+	PR c++/30659
+	* pt.c (do_decl_instantiation): If the VAR_DECL is not a
+	class member error out and return.
+
 2007-10-27  Jakub Jelinek  <jakub@redhat.com>
 
 	* error.c (reinit_cxx_pp): Initialize cxx_pp->enclosing_scope

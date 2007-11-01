@@ -6065,7 +6065,12 @@ extract_muldiv_1 (tree t, tree c, enum tree_code code, tree wide_type,
 		 then we cannot pass through this conversion.  */
 	      || (code != MULT_EXPR
 		  && (TYPE_UNSIGNED (ctype)
-		      != TYPE_UNSIGNED (TREE_TYPE (op0))))))
+		      != TYPE_UNSIGNED (TREE_TYPE (op0))))
+	      /* ... or has undefined overflow while the converted to
+		 type has not, we cannot do the operation in the inner type
+		 as that would introduce undefined overflow.  */
+	      || (TYPE_OVERFLOW_UNDEFINED (TREE_TYPE (op0))
+		  && !TYPE_OVERFLOW_UNDEFINED (type))))
 	break;
 
       /* Pass the constant down and see if we can make a simplification.  If
@@ -9509,12 +9514,15 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
       if (TREE_CODE (arg0) == COMPOUND_EXPR)
 	return build2 (COMPOUND_EXPR, type, TREE_OPERAND (arg0, 0),
 		       fold_build2 (code, type,
-				    TREE_OPERAND (arg0, 1), op1));
+				    fold_convert (TREE_TYPE (op0),
+						  TREE_OPERAND (arg0, 1)),
+				    op1));
       if (TREE_CODE (arg1) == COMPOUND_EXPR
 	  && reorder_operands_p (arg0, TREE_OPERAND (arg1, 0)))
 	return build2 (COMPOUND_EXPR, type, TREE_OPERAND (arg1, 0),
-		       fold_build2 (code, type,
-				    op0, TREE_OPERAND (arg1, 1)));
+		       fold_build2 (code, type, op0,
+				    fold_convert (TREE_TYPE (op1),
+						  TREE_OPERAND (arg1, 1))));
 
       if (TREE_CODE (arg0) == COND_EXPR || COMPARISON_CLASS_P (arg0))
 	{
@@ -10268,9 +10276,7 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
 
 	  strict_overflow_p = false;
 	  if (TREE_CODE (arg1) == INTEGER_CST
-	      && 0 != (tem = extract_muldiv (op0,
-					     fold_convert (type, arg1),
-					     code, NULL_TREE,
+	      && 0 != (tem = extract_muldiv (op0, arg1, code, NULL_TREE,
 					     &strict_overflow_p)))
 	    {
 	      if (strict_overflow_p)
