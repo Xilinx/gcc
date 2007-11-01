@@ -177,9 +177,6 @@ print_rtx (const_rtx in_rtx)
 
       if (! flag_simple)
 	{
-	  if (RTX_FLAG (in_rtx, ea))
-	    fputs ("/e", outfile);
-
 	  if (RTX_FLAG (in_rtx, in_struct))
 	    fputs ("/s", outfile);
 

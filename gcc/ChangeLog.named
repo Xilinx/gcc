@@ -1,3 +1,7 @@
+2007-11-01  Ben Elliston  <bje@au.ibm.com>
+
+	* print-rtl.c (print_rtx): Remove __ea flag handling.
+
 2007-10-30  Ben Elliston  <bje@au.ibm.com>
 
 	* fold-const.c (fit_double_type): Fix typo.
