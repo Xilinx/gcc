@@ -1,3 +1,81 @@
+2007-11-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/tr1_impl/boost_shared_ptr.h: Avoid unnecessary memory
+	barriers in _S_atomic case.
+
+2007-11-05  Chris Jefferson  <chris@bubblescope.net>
+	    Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_vector.h (vector<>::push_back<>(_Args...),
+	emplace<>(iterator, _Args...), insert(iterator, _Tp&&),
+	_M_insert_aux<>(iterator, _Args&&...)): Add.
+	* include/bits/vector.tcc (insert(iterator, value_type&&),
+	emplace<>(iterator, _Args...), _M_insert_aux<>(iterator, _Args&&...)):
+	Define.
+	(_M_fill_insert(iterator, size_type, const value_type&),
+	_M_range_insert(iterator, _ForwardIterator, _ForwardIterator,
+	std::forward_iterator_tag)): Use __uninitialized_move_a,
+	_GLIBCXX_MOVE_BACKWARD3 when possible.
+	* include/bits/stl_uninitialized.h (__uninitialized_move_a): Add.
+	* include/debug/vector (vector<>::push_back<>(_Args...),
+	emplace<>(iterator, _Args...), insert(iterator, _Tp&&)): Add.
+	* testsuite/23_containers/vector/modifiers/moveable.cc: Enable.
+	* testsuite/23_containers/vector/resize/moveable.cc: Likewise.
+	* testsuite/23_containers/vector/cons/moveable.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line numbers.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2007-11-03  Paolo Carlini  <pcarlini@suse.de>
+	    Kai-Uwe Bux  <bux@kubux.net>
+
+	* include/tr1_impl/random (variate_generator<>::min, max,
+	operator()()): Return non-trivial values when _Engine_result_type
+	is a floating point type and result_type is an integer type.
+
+2007-11-02  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algo.h (minmax, minmax_element): Add.
+	* include/bits/algorithmfwd.h: Update.
+	* testsuite/25_algorithms/minmax/requirements/
+	explicit_instantiation/2.cc: New.
+	* testsuite/25_algorithms/minmax/requirements/
+	explicit_instantiation/pod.cc: Likewise.
+	* testsuite/25_algorithms/minmax/1.cc: Likewise.
+	* testsuite/25_algorithms/minmax_element/check_type.cc: Likewise.
+	* testsuite/25_algorithms/minmax_element/requirements/
+	explicit_instantiation/2.cc: Likewise.
+	* testsuite/25_algorithms/minmax_element/requirements/
+	explicit_instantiation/pod.cc: Likewise.
+	* testsuite/25_algorithms/minmax_element/1.cc: Likewise.
+	* testsuite/25_algorithms/headers/algorithm/synopsis.cc: Update.
+
+2007-11-02  Johannes Singler  <singler@ira.uka.de>
+
+        * include/parallel/workstealing.h: Replaced pragma by function
+          call lock.
+        * include/parallel/search.h: Same
+        * include/parallel/partition.h: Same
+        * include/parallel/find.h: Same
+
+2007-11-01  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/25352
+	* testsuite/26_numerics/headers/cmath/c99_classification_macros_c.cc:
+	Remove xfail from dg-do and add dg-skip-if.
+
+2007-10-31  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_queue.h (queue<>::push(value_type&&)): Replace
+	with "emplace" version per DR 756.
+	(priority_queue<>::push(value_type&&)): Likewise.
+	* include/bits/stl_stack.h (stack<>::push(value_type&&)): Likewise.
+
 2007-10-30  Paolo Carlini  <pcarlini@suse.de>
 
 	* include/tr1_impl/random (uniform_int<>::

@@ -508,7 +508,7 @@ finish_cond (tree *cond_p, tree expr)
       if (TREE_CODE (cond) == DECL_EXPR)
 	expr = cond;
 
-      check_for_bare_parameter_packs (expr);
+      check_for_bare_parameter_packs (&expr);
     }
   *cond_p = expr;
 }
@@ -618,7 +618,7 @@ finish_expr_stmt (tree expr)
       else if (!type_dependent_expression_p (expr))
 	convert_to_void (build_non_dependent_expr (expr), "statement");
 
-      check_for_bare_parameter_packs (expr);
+      check_for_bare_parameter_packs (&expr);
 
       /* Simplification of inner statement expressions, compound exprs,
 	 etc can result in us already having an EXPR_STMT.  */
@@ -875,7 +875,7 @@ finish_for_expr (tree expr, tree for_stmt)
   else if (!type_dependent_expression_p (expr))
     convert_to_void (build_non_dependent_expr (expr), "3rd expression in for");
   expr = maybe_cleanup_point_expr_void (expr);
-  check_for_bare_parameter_packs (expr);
+  check_for_bare_parameter_packs (&expr);
   FOR_EXPR (for_stmt) = expr;
 }
 
@@ -971,12 +971,12 @@ finish_switch_cond (tree cond, tree switch_stmt)
 	    cond = index;
 	}
     }
+  check_for_bare_parameter_packs (&cond);
   finish_cond (&SWITCH_STMT_COND (switch_stmt), cond);
   SWITCH_STMT_TYPE (switch_stmt) = orig_type;
   add_stmt (switch_stmt);
   push_switch (switch_stmt);
   SWITCH_STMT_BODY (switch_stmt) = push_stmt_list ();
-  check_for_bare_parameter_packs (cond);
 }
 
 /* Finish the body of a switch-statement, which may be given by
@@ -1389,7 +1389,7 @@ finish_mem_initializers (tree mem_inits)
              bound as part of the TREE_PURPOSE.  See
              make_pack_expansion for more information.  */
           if (TREE_CODE (TREE_PURPOSE (mem)) != TYPE_PACK_EXPANSION)
-            check_for_bare_parameter_packs (TREE_VALUE (mem));
+            check_for_bare_parameter_packs (&TREE_VALUE (mem));
         }
 
       add_stmt (build_min_nt (CTOR_INITIALIZER, mem_inits));
@@ -2306,9 +2306,8 @@ finish_member_declaration (tree decl)
   DECL_CONTEXT (decl) = current_class_type;
 
   /* Check for bare parameter packs in the member variable declaration.  */
-  if (TREE_CODE (decl) == FIELD_DECL
-      && !check_for_bare_parameter_packs (TREE_TYPE (decl)))
-    TREE_TYPE (decl) = error_mark_node;
+  if (TREE_CODE (decl) == FIELD_DECL)
+    check_for_bare_parameter_packs (&TREE_TYPE (decl));
 
   /* [dcl.link]
 
@@ -3909,28 +3908,38 @@ finish_omp_for (location_t locus, tree decl, tree init, tree cond,
 void
 finish_omp_atomic (enum tree_code code, tree lhs, tree rhs)
 {
+  tree orig_lhs;
+  tree orig_rhs;
+  bool dependent_p;
   tree stmt;
 
-  if (processing_template_decl
-      && (type_dependent_expression_p (lhs) 
-	  || type_dependent_expression_p (rhs)))
-    stmt = build2 (OMP_ATOMIC, void_type_node, integer_zero_node,
-		   build2 (code, void_type_node, lhs, rhs));
-  else
+  orig_lhs = lhs;
+  orig_rhs = rhs;
+  dependent_p = false;
+  stmt = NULL_TREE;
+
+  /* Even in a template, we can detect invalid uses of the atomic
+     pragma if neither LHS nor RHS is type-dependent.  */
+  if (processing_template_decl)
     {
-      /* Even in a template, we can detect invalid uses of the atomic
-         pragma if neither LHS nor RHS is type-dependent.  */
-      if (processing_template_decl)
+      dependent_p = (type_dependent_expression_p (lhs)
+		     || type_dependent_expression_p (rhs));
+      if (!dependent_p)
 	{
 	  lhs = build_non_dependent_expr (lhs);
 	  rhs = build_non_dependent_expr (rhs);
 	}
-
-      stmt = c_finish_omp_atomic (code, lhs, rhs);
     }
-    
-  if (stmt != error_mark_node)
-    add_stmt (stmt);
+  if (!dependent_p)
+    {
+      stmt = c_finish_omp_atomic (code, lhs, rhs);
+      if (stmt == error_mark_node)
+	return;
+    }
+  if (processing_template_decl)
+    stmt = build2 (OMP_ATOMIC, void_type_node, integer_zero_node,
+		   build2 (code, void_type_node, orig_lhs, orig_rhs));
+  add_stmt (stmt);
 }
 
 void

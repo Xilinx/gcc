@@ -649,6 +649,14 @@ cp_build_reference_type (tree to_type, bool rval)
 
 }
 
+/* Used by the C++ front end to build qualified array types.  However,
+   the C version of this function does not properly maintain canonical
+   types (which are not used in C).  */
+tree
+c_build_qualified_type (tree type, int type_quals)
+{
+  return cp_build_qualified_type (type, type_quals);
+}
 
 
 /* Make a variant of TYPE, qualified with the TYPE_QUALS.  Handles
@@ -846,6 +854,9 @@ cp_build_qualified_type_real (tree type,
 tree
 canonical_type_variant (tree t)
 {
+  if (t == error_mark_node)
+    return error_mark_node;
+
   return cp_build_qualified_type (TYPE_MAIN_VARIANT (t), cp_type_quals (t));
 }
 

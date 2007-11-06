@@ -620,7 +620,7 @@ merge_types (tree t1, tree t2)
 	if (code1 == POINTER_TYPE)
 	  t1 = build_pointer_type (target);
 	else
-	  t1 = build_reference_type (target);
+	  t1 = cp_build_reference_type (target, TYPE_REF_IS_RVALUE (t1));
 	t1 = build_type_attribute_variant (t1, attributes);
 	t1 = cp_build_qualified_type (t1, quals);
 
@@ -3357,12 +3357,12 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
       else if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
 	  result_type = type0;
-	  error ("ISO C++ forbids comparison between pointer and integer");
+	  pedwarn ("ISO C++ forbids comparison between pointer and integer");
 	}
       else if (code0 == INTEGER_TYPE && code1 == POINTER_TYPE)
 	{
 	  result_type = type1;
-	  error ("ISO C++ forbids comparison between pointer and integer");
+	  pedwarn ("ISO C++ forbids comparison between pointer and integer");
 	}
       else if (TYPE_PTRMEMFUNC_P (type0) && null_ptr_cst_p (op1))
 	{
@@ -6613,7 +6613,7 @@ check_return_expr (tree retval, bool *no_warning)
   if (processing_template_decl)
     {
       current_function_returns_value = 1;
-      check_for_bare_parameter_packs (retval);
+      check_for_bare_parameter_packs (&retval);
       return retval;
     }
 

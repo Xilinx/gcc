@@ -4085,7 +4085,15 @@ cp_parser_nested_name_specifier_opt (cp_parser *parser,
 	  && !COMPLETE_TYPE_P (new_scope)
 	  /* Do not try to complete dependent types.  */
 	  && !dependent_type_p (new_scope))
-	new_scope = complete_type (new_scope);
+	{
+	  new_scope = complete_type (new_scope);
+	  /* If it is a typedef to current class, use the current
+	     class instead, as the typedef won't have any names inside
+	     it yet.  */
+	  if (!COMPLETE_TYPE_P (new_scope)
+	      && currently_open_class (new_scope))
+	    new_scope = TYPE_MAIN_VARIANT (new_scope);
+	}
       /* Make sure we look in the right scope the next time through
 	 the loop.  */
       parser->scope = new_scope;
@@ -4850,8 +4858,10 @@ cp_parser_postfix_dot_deref_expression (cp_parser *parser,
   pseudo_destructor_p = false;
 
   /* If the SCOPE is a scalar type, then, if this is a valid program,
-     we must be looking at a pseudo-destructor-name.  */
-  if (scope && SCALAR_TYPE_P (scope))
+     we must be looking at a pseudo-destructor-name.  If POSTFIX_EXPRESSION
+     is type dependent, it can be pseudo-destructor-name or something else.
+     Try to parse it as pseudo-destructor-name first.  */
+  if ((scope && SCALAR_TYPE_P (scope)) || dependent_p)
     {
       tree s;
       tree type;
@@ -4860,7 +4870,12 @@ cp_parser_postfix_dot_deref_expression (cp_parser *parser,
       /* Parse the pseudo-destructor-name.  */
       s = NULL_TREE;
       cp_parser_pseudo_destructor_name (parser, &s, &type);
-      if (cp_parser_parse_definitely (parser))
+      if (dependent_p
+	  && (cp_parser_error_occurred (parser)
+	      || TREE_CODE (type) != TYPE_DECL
+	      || !SCALAR_TYPE_P (TREE_TYPE (type))))
+	cp_parser_abort_tentative_parse (parser);
+      else if (cp_parser_parse_definitely (parser))
 	{
 	  pseudo_destructor_p = true;
 	  postfix_expression
@@ -5314,13 +5329,18 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p)
 	       && token->type == CPP_AND_AND)
 	{
 	  tree identifier;
+	  tree expression;
 
 	  /* Consume the '&&' token.  */
 	  cp_lexer_consume_token (parser->lexer);
 	  /* Look for the identifier.  */
 	  identifier = cp_parser_identifier (parser);
 	  /* Create an expression representing the address.  */
-	  return finish_label_address_expr (identifier);
+	  expression = finish_label_address_expr (identifier);
+	  if (cp_parser_non_integral_constant_expression (parser,
+						"the address of a label"))
+	    expression = error_mark_node;
+	  return expression;
 	}
     }
   if (unary_operator != ERROR_MARK)
@@ -15228,7 +15248,7 @@ cp_parser_base_clause (cp_parser* parser)
             /* Make this a pack expansion type. */
             TREE_VALUE (base) = make_pack_expansion (TREE_VALUE (base));
           else
-            check_for_bare_parameter_packs (TREE_VALUE (base));
+            check_for_bare_parameter_packs (&TREE_VALUE (base));
 
 	  TREE_CHAIN (base) = bases;
 	  bases = base;

@@ -1704,6 +1704,7 @@ constrain_visibility (tree decl, int visibility)
       if (!DECL_EXTERN_C_P (decl))
 	{
 	  TREE_PUBLIC (decl) = 0;
+	  DECL_ONE_ONLY (decl) = 0;
 	  DECL_INTERFACE_KNOWN (decl) = 1;
 	  if (DECL_LANG_SPECIFIC (decl))
 	    DECL_NOT_REALLY_EXTERN (decl) = 1;
@@ -3026,8 +3027,7 @@ generate_ctor_and_dtor_functions_for_priority (splay_tree_node n, void * data)
    Here we must deal with member pointers.  */
 
 tree
-cxx_callgraph_analyze_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
-			    tree from ATTRIBUTE_UNUSED)
+cxx_callgraph_analyze_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED)
 {
   tree t = *tp;
 

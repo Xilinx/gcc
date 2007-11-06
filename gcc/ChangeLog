@@ -1,3 +1,322 @@
+2007-11-06  Rask Ingemann Lambertsen  <rask@sygehus.dk>
+
+	PR target/32787
+	* config/i386/driver-i386.c: Test for __GNUC__ instead of
+	GCC_VERSION which is always defined.
+
+2007-11-06  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR target/30961
+	* reload1.c (find_reloads): Also check in_reg when handling a
+	simple move with an input reload and a destination of a hard
+	register.
+
+2007-11-06  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/m68k/m68k.c (sched-int.h, insn-codes.h): New includes.
+	(TARGET_SCHED_ADJUST_COST, TARGET_SCHED_VARIABLE_ISSUE,
+	TARGET_SCHED_INIT_GLOBAL, TARGET_SCHED_FINISH_GLOBAL,
+	TARGET_SCHED_INIT, TARGET_SCHED_DFA_PRE_ADVANCE_CYCLE,
+	TARGET_SCHED_DFA_POST_ADVANCE_CYCLE): Redefine.
+	(m68k_sched_attr_type2): New function.
+	(sched_adjust_cost_state): New static variable.
+	(m68k_sched_adjust_cost): New static function implementing
+	scheduler hook.
+	(sched_ib_size, sched_ib_filled, sched_ib_insn, sched_mem_unit_code):
+	New static variables.
+	(m68k_sched_variable_issue): New static function implementing
+	scheduler hook.
+	(sched_dump_class_def, sched_dump_class_func_t): New typedefs.
+	(sched_dump_split_class): New static function.
+	(sched_dump_dfa_guess_unit_code, sched_dump_dfa_state): New static
+	variables.
+	(sched_dump_dfa_class, m68k_sched_dump): New static function.
+	(m68k_sched_md_init_global, m68k_sched_md_finish_global,
+	m68k_sched_md_init, m68k_sched_dfa_pre_advance_cycle,
+	m68k_sched_dfa_post_advance_cycle): New static functions implementing
+	scheduler hooks.
+
+	* config/m68k/m68k.h (m68k_sched_attr_type2): Declare.
+	(CPU_UNITS_QUERY): Define.
+
+	* config/m68k/cf.md: New file.
+	* config/m68k/m68.md (cf.md): New include.
+
+2007-11-06  Tom Tromey  <tromey@redhat.com>
+
+	PR c++/32256, PR c++/32368:
+	* function.c (saved_in_system_header): New global.
+	(push_cfun): Save in_system_header.
+	(pop_cfun): Restore in_system_header.
+	(push_struct_function): Save in_system_header.
+
+2007-11-06  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/33977
+	PR c++/33886
+	* c-common.c (c_build_qualified_type): Moved to c-typeck.c.
+	(complete_array_type): Set canonical type appropriately.
+	* c-typeck.c (c_build_qualified_type): Moved from c-common.c. The
+	C and C++ front ends now have different versions of this function,
+	because the C++ version needs to maintain canonical types here.
+
+2007-11-04  Razya Ladelsky  <razya@il.ibm.com>
+	
+	* tree-parloops.c (reduction_info): Remove reduction_init field.
+	(initialize_reductions): Remove creation of the reduction_init variable.
+	(struct data_arg): Remove.
+	(add_field_for_reduction, create_stores_for_reduction): New functions.
+	(add_field_for_name): Remove reduction handling.
+	(separate_decls_in_loop): Call add_field_for_reduction, 
+	create_stores_for_reduction.
+
+2007-11-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/33458
+	* tree-inline.c (copy_phis_for_bb): If PHI arg substitution creates
+	!is_gimple_val PHI argument, gimplify it and insert it on edge.
+
+	PR tree-optimization/33993
+	* tree-vect-transform.c (vect_get_constant_vectors): Use build_vector
+	rather than build_constructor_from_list if all list values are
+	constants.
+	(get_initial_def_for_induction): Use build_vector instead of
+	build_constructor_from_list.
+
+2007-11-05  Mark Mitchell  <mark@codesourcery.com>
+
+	PR target/33579
+	* tree.h (DECL_INIT_PRIORITY): Do not require
+	DECL_HAS_INIT_PRIORITY_P.
+	(DECL_FINI_PRIORITY): Likewise.
+	* tree.c (decl_init_priority_lookup): Remove assert.
+	(decl_fini_priority_insert): Likewise.
+	* cgraphunit.c (static_ctors): Make it a VEC.
+	(static_dtors): Likewise.
+	(record_cdtor_fn): Adjust accordingly.
+	(build_cdtor): Generate multiple functions for each initialization
+	priority.
+	(compare_ctor): New function.
+	(compare_dtor): Likewise.
+	(cgraph_build_cdtor_fns): Sort the functions by priority before
+	calling build_cdtor.
+	(cgraph_build_static_cdtor): Put the priority in the function's
+	name.
+
+2007-11-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR driver/32632
+	* common.opt: Add shared and pie.
+
+2007-11-05  Bob Wilson  <bob.wilson@acm.org>
+
+	* config/xtensa/xtensa.c (xtensa_expand_nonlocal_goto): Do not
+	replace references to virtual_stack_vars_rtx in goto_handler.
+
+2007-11-05  Paul Brook  <paul@codesourcery.com>
+
+	* config.gcc (arm*-*-*): Set c_target_objs and cxx_target_objs.
+	* config/arm/arm.c (arm_lang_output_object_attributes_hook): New.
+	(arm_file_start): Don't set Tag_ABI_PCS_wchar_t.  Call
+	arm_lang_output_object_attributes_hook.
+	* config/arm/arm.h (arm_lang_output_object_attributes_hook): Declare.
+	(REGISTER_TARGET_PRAGMAS): Call arm_lang_object_attributes_init.
+	* config/arm/arm-protos.h (arm_lang_object_attributes_init): Add
+	prototype.
+	* config/arm/t-arm.c (arm.o): New rule.
+	* config/arm/arm-c.c: New file.
+
+2007-11-05  Nick Clifton  <nickc@redhat.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/32540
+	PR tree-optimization/33922
+	* doc/invoke.texi: Document PARAM_MAX_PARTIAL_ANTIC_LENGTH.
+	* tree-ssa-pre.c: Include params.h.
+	(compute_partial_antic_aux): Use PARAM_MAX_PARTIAL_ANTIC_LENGTH
+	to limit the maximum length of the PA set for a given block.
+	* Makefile.in: Add a dependency upon params.h for tree-ssa-pre.c
+	* params.def (PARAM_MAX_PARTIAL_ANTIC_LENGTH): New parameter.
+
+2007-11-05  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* libgcc2.c (__fixunstfDI, __fixunsxfDI, __fixunsdfDI,
+	__fixunssfDI): Make return type unsigned.
+	* libgcc2.h (__fixunstfDI, __fixunsxfDI, __fixunsdfDI,
+	__fixunssfDI): Make return type unsigned.
+
+2007-11-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/33856
+	* tree-data-ref.c (get_references_in_stmt): Don't add
+	REFERENCE_CLASS_P trees to references vector if get_base_address
+	returns NULL on them.
+
+2007-11-05  Alexandre Oliva  <aoliva@redhat.com>
+
+	* cfg.c (dump_cfg_bb_info): Update bb_bitnames to match enum.
+
+2007-11-04  Andrew Pinski  <pinskia@gmail.com>
+
+	PR middle-end/32931
+	* fold-const.c (fold_binary <case EQ_EXPR>): Convert the inner type
+	for TRUTH_NOT_EXPR to type.
+
+2007-11-04  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/contrib.texi (Contributors): Add Manuel Lopez-Ibanez.
+
+2007-11-04  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/10220
+	* dwarf2out.c (add_calling_convention_attribute): Change
+	second argument. Set calling convention to DW_CC_program for
+	Fortran main program.
+	(gen_subprogram_die): Adjust to new prototype for
+	add_calling_convention_attribute.
+
+2007-11-03  Dorit Nuzman  <dorit@il.ibm.com>
+
+	PR tree-optimization/33987
+	* tree-vect-transform.c (get_initial_def_for_reduction): Fix assert.
+	Fix indentation.
+	(vectorizable_reduction): Add type check.
+
+2007-11-03  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c/29062
+	* c-parser.c (c_parser_statement_after_labels): Error if a
+	declaration is parsed after a label.
+	
+2007-11-03  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	PR debug/33921
+	* reorg.c (emit_delay_sequence): Do not clear the locator on
+	the jump instruction.
+
+2007-11-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/33670
+	* haifa-sched.c (ok_for_early_queue_removal): Don't walk out of the
+	current sched region.
+
+2007-11-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/ia64/ia64.c (struct reg_write_state): Change into
+	unsigned short bitfields rather than unsigned int, decrease
+	first_pred to just 10 bits.
+	(rws_insn): Change into a bitmap or if not ENABLE_CHECKING
+	into two char array.
+	(rws_insn_set, rws_insn_test): New functions.
+	(in_safe_group_barrier): New variable.
+	(rws_update): Remove first argument, always set rws_sum array.
+	(rws_access_regno): Use rws_insn_set macro.  Only call rws_update
+	or update rws_sum if !in_safe_group_barrier, adjust rws_update
+	args.
+	(rtx_needs_barrier): Use rws_insn_test macro.
+	(safe_group_barrier_needed): Don't save/restore rws_sum array,
+	instead set/clear in_safe_group_barrier flag.
+
+2007-11-02  Bob Wilson  <bob.wilson@acm.org>
+
+	* config/xtensa/xtensa.c (xtensa_expand_prologue): Put a
+	REG_FRAME_RELATED_EXPR note on the last insn that sets up the stack
+	pointer or frame pointer.
+	* config/xtensa/xtensa.h (DWARF_UNWIND_INFO): Delete.
+	(MUST_USE_SJLJ_EXCEPTIONS): Define.
+	(DWARF2_UNWIND_INFO): Define.
+	(INCOMING_RETURN_ADDR_RTX): Define.
+	(DWARF_FRAME_RETURN_COLUMN): Define.
+
+2007-11-02  Tom Tromey  <tromey@redhat.com>
+
+	* varpool.c (dump_varpool): Use 'next', not 'next_needed' when
+	traversing pool.
+
+2007-11-02  Diego Novillo  <dnovillo@google.com>
+
+	* langhooks.h (struct lang_hooks_for_callgraph): Remove third
+	argument from function pointer ANALYZE_EXPR.  Update all
+	users.
+	* cgraph.c (debug_cgraph_node): New.
+	(debug_cgraph): New.
+
+2007-11-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/33648
+	* cfgrtl.c (cfg_layout_split_edge): Initialize BB_PARTITION of
+	the newly created basic block.
+
+2007-11-01  Richard Guenther  <rguenther@suse.de>
+
+	* ggc-page.c (extra_order_size_tab): Add bitmap_head size.
+
+2007-11-01  Steven Bosscher  <stevenb.gcc@gmail.com>
+
+	PR rtl-optimization/33828
+	* gcse.c (compute_code_hoist_vbeinout): Fix order of computation
+	of VBEIN and VBEOUT.
+
+2007-11-01  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* optabs.c (prepare_cmp_insn): Merge a couple of conditional blocks.
+	* sched-rgn.c (compute_trg_info): Zero 'el' local variable.
+	* tree-if-conv.c (process_phi_nodes): Zero 'cond' local variable.
+
+2007-11-01  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* gcc.c (getenv_spec_function): Escape the environment variable's
+	value.
+
+2007-11-01  Janis Johnson  <janis187@us.ibm.com>
+
+	* doc/invoke.texi (Optimize Options): Under -fcse-follow-jumps,
+	show that CSE means common subexpression elimination.  Change wording
+	for -fsee and define LCM.  Remove capitalization of optimizations
+	for -ftree-reassoc, -ftree-pre, and -ftree-fre.
+
+2007-11-01  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/25352
+	* doc/sourcebuild.texi (Test Directives): Document that xfail
+	has no effect for dg-do except when dg-do-what is "run".
+
+2007-11-01  Tom Tromey  <tromey@redhat.com>
+
+	* c-decl.c (grokdeclarator): Set decl source locations.
+	* c-parser.c (c_parser_enum_specifier): Set location.
+	(c_parser_struct_or_union_specifier): Likewise.
+
+2007-11-01  Tom Tromey  <tromey@redhat.com>
+
+	* print-tree.c (print_node): Print column number.
+
+2007-11-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/33537
+	* dwarf2out.c (gen_formal_parameter_die, gen_variable_die,
+	gen_decl_die): Use TREE_TYPE (TREE_TYPE (decl)) as type
+	rather than TREE_TYPE (decl) if DECL_BY_REFERENCE (decl).
+
+	PR rtl-optimization/33673
+	* gcse.c (cprop_jump): If a conditional jump has been optimized
+	into unconditional jump, make the remaining normal edge fallthru
+	and delete the jump insn.
+
+2007-11-01  Ben Elliston  <bje@au.ibm.com>
+
+	* emit-rtl.c (set_reg_attrs_from_mem): Clarify function comment.
+	(set_mem_attrs_from_reg): Likewise.
+
+2007-11-01  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/33961
+	* tree-ssa-phiopt.c (struct name_to_bb.store): New member.
+	(name_to_bb_hash, name_to_bb_eq): Consider and check it.
+	(add_or_mark_expr): New argument 'store', using it to search
+	the hash table.
+	(nt_init_block): Adjust calls to add_or_mark_expr.
+
 2007-10-31  Jakub Jelinek  <jakub@redhat.com>
 
 	PR target/31507
@@ -6286,6 +6605,7 @@
 
 2007-09-02  Joseph Myers  <joseph@codesourcery.com>
 
+	PR c/29237
 	PR middle-end/33272
 	* c-decl.c (grokdeclarator): Apply qualifiers to type of parameter
 	decayed from array.

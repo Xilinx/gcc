@@ -2875,6 +2875,24 @@ cprop_jump (basic_block bb, rtx setcc, rtx jump, rtx from, rtx src)
     }
   purge_dead_edges (bb);
 
+  /* If a conditional jump has been changed into unconditional jump, remove
+     the jump and make the edge fallthru - this is always called in
+     cfglayout mode.  */
+  if (new != pc_rtx && simplejump_p (jump))
+    {
+      edge e;
+      edge_iterator ei;
+
+      for (ei = ei_start (bb->succs); (e = ei_safe_edge (ei)); ei_next (&ei))
+	if (e->dest != EXIT_BLOCK_PTR
+	    && BB_HEAD (e->dest) == JUMP_LABEL (jump))
+	  {
+	    e->flags |= EDGE_FALLTHRU;
+	    break;
+	  }
+      delete_insn (jump);
+    }
+
   return 1;
 }
 
@@ -4754,10 +4772,14 @@ compute_code_hoist_vbeinout (void)
 	 the convergence.  */
       FOR_EACH_BB_REVERSE (bb)
 	{
-	  changed |= sbitmap_a_or_b_and_c_cg (hoist_vbein[bb->index], antloc[bb->index],
-					      hoist_vbeout[bb->index], transp[bb->index]);
 	  if (bb->next_bb != EXIT_BLOCK_PTR)
-	    sbitmap_intersection_of_succs (hoist_vbeout[bb->index], hoist_vbein, bb->index);
+	    sbitmap_intersection_of_succs (hoist_vbeout[bb->index],
+					   hoist_vbein, bb->index);
+
+	  changed |= sbitmap_a_or_b_and_c_cg (hoist_vbein[bb->index],
+					      antloc[bb->index],
+					      hoist_vbeout[bb->index],
+					      transp[bb->index]);
 	}
 
       passes++;

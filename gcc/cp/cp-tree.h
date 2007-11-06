@@ -53,7 +53,6 @@ struct diagnostic_info;
       TYPENAME_IS_ENUM_P (in TYPENAME_TYPE)
       REFERENCE_REF_P (in INDIRECT_EXPR)
       QUALIFIED_NAME_IS_TEMPLATE (in SCOPE_REF)
-      OMP_ATOMIC_DEPENDENT_P (in OMP_ATOMIC)
       OMP_FOR_GIMPLIFYING_P (in OMP_FOR)
       BASELINK_QUALIFIED_P (in BASELINK)
       TARGET_EXPR_IMPLICIT_P (in TARGET_EXPR)
@@ -4303,7 +4302,7 @@ extern tree cp_build_parm_decl			(tree, tree);
 extern tree get_guard				(tree);
 extern tree get_guard_cond			(tree);
 extern tree set_guard				(tree);
-extern tree cxx_callgraph_analyze_expr		(tree *, int *, tree);
+extern tree cxx_callgraph_analyze_expr		(tree *, int *);
 extern void mark_needed				(tree);
 extern bool decl_needed_p			(tree);
 extern void note_vague_linkage_fn		(tree);
@@ -4436,7 +4435,7 @@ extern int comp_template_parms			(const_tree, const_tree);
 extern bool uses_parameter_packs                (tree);
 extern bool template_parameter_pack_p           (const_tree);
 extern tree make_pack_expansion                 (tree);
-extern bool check_for_bare_parameter_packs      (tree);
+extern bool check_for_bare_parameter_packs      (tree*);
 extern tree get_template_info			(tree);
 extern int template_class_depth			(tree);
 extern int is_specialization_of			(tree, tree);

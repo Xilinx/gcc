@@ -1,3 +1,243 @@
+2007-11-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/30961
+	* gcc.target/i386/pr30961-1.c: New.
+
+2007-11-06  Tom Tromey  <tromey@redhat.com>
+
+	PR c++/32368:
+	* g++.dg/warn/pragma-system_header3.h: New.
+	* g++.dg/warn/pragma-system_header3.C: New.
+
+	PR c++/32256:
+	* g++.dg/warn/pragma-system_header4.C: New.
+	* g++.dg/warn/pragma-system_header4.h: New.
+
+2007-11-06  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/33977
+	PR c++/33886
+	* g++.dg/other/canon-array.C: New.
+	
+2007-11-06  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* testsuite/g++.dg/parser/crash36.C: Tweak expected errors.
+	* testsuite/g++.dg/cpp0x/pr31439.C: New.
+	* testsuite/g++.dg/cpp0x/pr32114.C: New.
+	* testsuite/g++.dg/cpp0x/pr32115.C: New.
+	* testsuite/g++.dg/cpp0x/pr32125.C: New.
+	* testsuite/g++.dg/cpp0x/pr32126.C: New.
+	* testsuite/g++.dg/cpp0x/pr32127.C: New.
+	* testsuite/g++.dg/cpp0x/pr32128.C: New.
+	* testsuite/g++.dg/cpp0x/pr32253.C: New.
+	* testsuite/g++.dg/cpp0x/pr32566.C: New.
+	* testsuite/g++.dg/cpp0x/pr31445.C: Tweak expected errors.
+	* testsuite/g++.dg/cpp0x/pr31438.C: Ditto.
+	* testsuite/g++.dg/cpp0x/variadic81.C: Ditto.
+	* testsuite/g++.dg/cpp0x/pr31432.C: Ditto.
+	* testsuite/g++.dg/cpp0x/pr31442.C: Ditto.
+
+2007-11-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/33168
+	* g++.dg/other/datasec1.C: New test.
+
+	PR tree-optimization/33458
+	* g++.dg/opt/inline12.C: New test.
+
+	PR tree-optimization/33993
+	* gcc.c-torture/compile/20071105-1.c: New test.
+
+2007-11-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/33648
+	* gcc.dg/pr33648.c: Require effective targer freorder.
+
+2007-11-05  Revital Eres  <eres@il.ibm.com>
+
+	* lib/target-supports.exp (check_750cl_hw_available): Fix typo.
+
+2007-11-05  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/33996
+	PR c++/33235
+	PR c++/33930
+	* g++.dg/cpp0x/pr33996.C: New
+	* g++.dg/cpp0x/rv-trivial-bug.C: New
+	* g++.dg/cpp0x/pr33930.C: New
+
+2007-11-05  Nick Clifton  <nickc@redhat.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/32540
+	PR tree-optimization/33922
+	* gcc.dg/tree-ssa/pr32540-1.c: New.
+	* gcc.dg/tree-ssa/pr32540-2.c: New.
+	* gcc.dg/tree-ssa/pr33922.c: New.
+
+2007-11-05  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/33939
+	* g++.dg/cpp0x/variadic-rref.C: New.
+	
+2007-11-05  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* g++dg/warn/pointer-integer-comparison.C: New.
+
+2007-11-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/33856
+	* gcc.c-torture/compile/20071027-1.c: New test.
+
+	PR c++/33836
+	* g++.dg/ext/label10.C: New test.
+
+	PR c++/33969
+	* g++.dg/other/ptrmem9.C: New test.
+
+2007-11-04  Andrew Pinski  <pinskia@gmail.com>
+
+	PR middle-end/32931
+	* gfortran.fortran-torture/compile/forall-1.f90: New testcase.
+
+2007-11-04  David Edelsohn  <edelsohn@gnu.org>
+
+	* g++.dg/cpp/_Pragma1.C: Disable on AIX.
+	* g++.dg/ext/visibility/namespace2.C: Add argument to
+	dg-require-visibility.
+	* g++.dg/ext/java-1.C: Disable on AIX.
+
+2007-11-03  Dorit Nuzman  <doirit@il.ibm.com>
+
+	* gfortran.dg/vect/no-vfa-pr32377.f90: Remove xfail.		
+
+2007-11-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33881
+	* gfortran.dg/assumed_charlen_arg_1.f90: New test.
+
+2007-11-03  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c/29062
+	* gcc.dg/20031223-1.c: Adjust error output.
+	* gcc.dg/parse-decl-after-label.c: New.
+	
+2007-11-03  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/24685
+	* gfortran.dg/default_format_2.f90: XFAIL powerpc*-*-linux*
+	* gfortran.dg/default_format_denormal_2.f90: XFAIL powerpc*-*-linux*
+	* gfortran.dg/large_real_kind_form_io_2.f90: XFAIL powerpc*-*-linux*
+
+2007-11-03  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	PR rtl-optimization/28940
+	* gcc.target/i386/addr-sel-1.c: New test.
+
+2007-11-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/33670
+	* gcc.dg/pr33670.c: New test.
+
+2007-11-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/33516
+	* g++.dg/lookup/typedef1.C: New test.
+
+2007-11-02  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/32076
+	* lib/scandump.exp (dump-suffix): New.
+	(scan-dump, scan-dump-times, scan-dump-dem, scan-dump-dem-not):
+	Include dump suffix in pass/fail messages, put regexp in quotes.
+
+2007-11-02  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/33495
+	* g++.dg/other/error19.C: New.
+
+2007-11-02  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	PR rtl-optimization/28062
+	* gcc.c-torture/compile/20071102-1.c: New test.
+
+2007-11-01  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* g++.dg/cpp0x/pr33955.C: New.
+
+2007-11-01  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/30805:
+	* gcc.dg/cpp/pr30805.c: Use -std=gnu89.
+
+2007-11-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/33648
+	* gcc.dg/pr33648.c: New test.
+
+2007-11-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/32384
+	* g++.dg/template/pseudodtor1.C: New test.
+	* g++.dg/template/pseudodtor2.C: New test.
+
+	PR c++/32260
+	* g++.dg/rtti/typeid7.C: New test.
+
+2007-11-01  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/30805:
+	* gcc.dg/cpp/pr30805.c: New file.
+
+2007-11-01  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/25352
+	* gcc.c-torture/compile/20000804-1.c: Remove xfail from dg-do and
+	add dg-skip-if.
+	* gcc.c-torture/compile/20001205-1.c: Ditto.
+	* gcc.c-torture/compile/20001226-1.c: Ditto.
+	* gcc.c-torture/compile/20020312-1.c: Ditto.
+	* gcc.c-torture/compile/20020604-1.c: Ditto.
+	* gcc.c-torture/compile/920501-12.c: Ditto.
+	* gcc.c-torture/compile/920501-4.c: Ditto.
+	* gcc.c-torture/compile/920520-1.c: Ditto.
+	* gcc.c-torture/compile/980506-1.c: Ditto.
+	* gcc.c-torture/compile/990617-1.c: Ditto.
+	* gcc.dg/compare6.c: Ditto.
+	* g++.old-deja/g++.brendan/crash43.C: Ditto.
+	* g++.old-deja/g++.brendan/synth1.C: Ditto.
+	* g++.old-deja/g++.oliva/dwarf2.C: Ditto.
+	* g++.old-deja/g++.oliva/dwarf3.C: Ditto.
+	* g++.old-deja/g++.pt/static6.C: Ditto.
+	* g++.old-deja/g++.pt/crash16.C: Ditto.
+	* g++.old-deja/g++.mike/p10416.C: Ditto.
+	* g++.old-deja/g++.mike/ns15.C: Ditto.
+	* g++.old-deja/g++.mike/eh46.C: Ditto.
+
+2007-11-01  Tom Tromey  <tromey@redhat.com>
+
+	* gcc.dg/redecl-1.c: Update.
+	* gcc.dg/pr20368-3.c: Update.
+	* gcc.dg/inline-14.c: Update.
+	* gcc.dg/builtins-30.c: Update.
+	* gcc.dg/dremf-type-compat-4.c: Update.
+	* gcc.dg/pr20368-2.c: Update.
+
+2007-11-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/33673
+	* gcc.dg/pr33673.c: New test.
+
+2007-11-01  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/33961
+	* gcc.dg/pr33961.c: New test.
+
+2007-10-31  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/33494
+	* g++.dg/template/error35.C: New.
+
 2007-10-31  Jakub Jelinek  <jakub@redhat.com>
 
 	PR target/31507
@@ -2898,6 +3138,7 @@
 
 2007-09-02  Joseph Myers  <joseph@codesourcery.com>
 
+	PR C/29237
 	PR middle-end/33272
 	* gcc.dg/c99-arraydecl-3.c: New test.
 

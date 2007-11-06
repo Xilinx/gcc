@@ -1712,6 +1712,8 @@ c_parser_enum_specifier (c_parser *parser)
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_ENUM));
   c_parser_consume_token (parser);
   attrs = c_parser_attributes (parser);
+  /* Set the location in case we create a decl now.  */
+  c_parser_set_source_position_from_token (c_parser_peek_token (parser));
   if (c_parser_next_token_is (parser, CPP_NAME))
     {
       ident = c_parser_peek_token (parser)->value;
@@ -1733,6 +1735,7 @@ c_parser_enum_specifier (c_parser *parser)
 	  tree enum_value;
 	  tree enum_decl;
 	  bool seen_comma;
+	  c_token *token;
 	  if (c_parser_next_token_is_not (parser, CPP_NAME))
 	    {
 	      c_parser_error (parser, "expected identifier");
@@ -1740,7 +1743,10 @@ c_parser_enum_specifier (c_parser *parser)
 	      values = error_mark_node;
 	      break;
 	    }
-	  enum_id = c_parser_peek_token (parser)->value;
+	  token = c_parser_peek_token (parser);
+	  enum_id = token->value;
+	  /* Set the location in case we create a decl now.  */
+	  c_parser_set_source_position_from_token (token);
 	  c_parser_consume_token (parser);
 	  if (c_parser_next_token_is (parser, CPP_EQ))
 	    {
@@ -1853,6 +1859,8 @@ c_parser_struct_or_union_specifier (c_parser *parser)
     }
   c_parser_consume_token (parser);
   attrs = c_parser_attributes (parser);
+  /* Set the location in case we create a decl now.  */
+  c_parser_set_source_position_from_token (c_parser_peek_token (parser));
   if (c_parser_next_token_is (parser, CPP_NAME))
     {
       ident = c_parser_peek_token (parser)->value;
@@ -3809,6 +3817,14 @@ c_parser_statement_after_labels (c_parser *parser)
       break;
     default:
     expr_stmt:
+      if (c_parser_next_token_starts_declspecs (parser)) 
+	{
+	  error ("a label can only be part of a statement and a declaration is not a statement");
+	  c_parser_declaration_or_fndef (parser, /*fndef_ok*/ false, 
+					 /*nested*/ true, /*empty_ok*/ false,
+					 /*start_attr_ok*/ true);
+	  return;
+	}
       stmt = c_finish_expr_stmt (c_parser_expression_conv (parser).value);
     expect_semicolon:
       c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");

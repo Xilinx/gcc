@@ -11360,7 +11360,8 @@ add_name_and_src_coords_attributes (dw_die_ref die, tree decl)
 	  && TREE_PUBLIC (decl)
 	  && DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl)
 	  && !DECL_ABSTRACT (decl)
-	  && !(TREE_CODE (decl) == VAR_DECL && DECL_REGISTER (decl)))
+	  && !(TREE_CODE (decl) == VAR_DECL && DECL_REGISTER (decl))
+	  && !is_fortran ())
 	add_AT_string (die, DW_AT_MIPS_linkage_name,
 		       IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
     }
@@ -11517,11 +11518,20 @@ add_type_attribute (dw_die_ref object_die, tree type, int decl_const,
 /* Given an object die, add the calling convention attribute for the
    function call type.  */
 static void
-add_calling_convention_attribute (dw_die_ref subr_die, tree type)
+add_calling_convention_attribute (dw_die_ref subr_die, tree decl)
 {
   enum dwarf_calling_convention value = DW_CC_normal;
 
-  value = targetm.dwarf_calling_convention (type);
+  value = targetm.dwarf_calling_convention (TREE_TYPE (decl));
+
+  /* DWARF doesn't provide a way to identify a program's source-level
+     entry point.  DW_AT_calling_convention attributes are only meant
+     to describe functions' calling conventions.  However, lacking a
+     better way to signal the Fortran main program, we use this for the
+     time being, following existing custom.  */
+  if (is_fortran ()
+      && !strcmp (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)), "MAIN__"))
+    value = DW_CC_program;
 
   /* Only add the attribute if the backend requests it, and
      is not DW_CC_normal.  */
@@ -11836,8 +11846,11 @@ gen_formal_parameter_die (tree node, dw_die_ref context_die)
 	add_abstract_origin_attribute (parm_die, origin);
       else
 	{
+	  tree type = TREE_TYPE (node);
 	  add_name_and_src_coords_attributes (parm_die, node);
-	  add_type_attribute (parm_die, TREE_TYPE (node),
+	  if (DECL_BY_REFERENCE (node))
+	    type = TREE_TYPE (type);
+	  add_type_attribute (parm_die, type,
 			      TREE_READONLY (node),
 			      TREE_THIS_VOLATILE (node),
 			      context_die);
@@ -12371,7 +12384,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 #endif
     }
   /* Add the calling convention attribute if requested.  */
-  add_calling_convention_attribute (subr_die, TREE_TYPE (decl));
+  add_calling_convention_attribute (subr_die, decl);
 
 }
 
@@ -12441,8 +12454,14 @@ gen_variable_die (tree decl, dw_die_ref context_die)
     }
   else
     {
+      tree type = TREE_TYPE (decl);
+      if ((TREE_CODE (decl) == PARM_DECL
+	   || TREE_CODE (decl) == RESULT_DECL)
+	  && DECL_BY_REFERENCE (decl))
+	type = TREE_TYPE (type);
+
       add_name_and_src_coords_attributes (var_die, decl);
-      add_type_attribute (var_die, TREE_TYPE (decl), TREE_READONLY (decl),
+      add_type_attribute (var_die, type, TREE_READONLY (decl),
 			  TREE_THIS_VOLATILE (decl), context_die);
 
       if (TREE_PUBLIC (decl))
@@ -13698,7 +13717,10 @@ gen_decl_die (tree decl, dw_die_ref context_die)
 
       /* Output any DIEs that are needed to specify the type of this data
 	 object.  */
-      gen_type_die (TREE_TYPE (decl), context_die);
+      if (TREE_CODE (decl) == RESULT_DECL && DECL_BY_REFERENCE (decl))
+	gen_type_die (TREE_TYPE (TREE_TYPE (decl)), context_die);
+      else
+	gen_type_die (TREE_TYPE (decl), context_die);
 
       /* And its containing type.  */
       origin = decl_class_context (decl);
@@ -13732,7 +13754,10 @@ gen_decl_die (tree decl, dw_die_ref context_die)
       break;
 
     case PARM_DECL:
-      gen_type_die (TREE_TYPE (decl), context_die);
+      if (DECL_BY_REFERENCE (decl))
+	gen_type_die (TREE_TYPE (TREE_TYPE (decl)), context_die);
+      else
+	gen_type_die (TREE_TYPE (decl), context_die);
       gen_formal_parameter_die (decl, context_die);
       break;
 
