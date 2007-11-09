@@ -4945,6 +4945,10 @@ grokdeclarator (const struct c_declarator *declarator,
 
 	type = c_build_qualified_type (type, type_quals);
 
+	/* FIXME: Pointer variables in __ea may not be defined.  */
+	if (POINTER_TYPE_P (type) && TYPE_EA (type) && !extern_ref)
+	  error ("%<__ea%> variable %qs must be extern", name);
+
 	/* C99 6.2.2p7: It is invalid (compile-time undefined
 	   behavior) to create an 'extern' declaration for a
 	   variable if there is a global declaration that is
