@@ -1,3 +1,9 @@
+2007-11-09  Ben Elliston  <bje@au.ibm.com>
+
+	* c-decl.c (grokdeclarator): Within a structure or union
+	specifier, the type of a member shall not be qualified by an
+	address space qualifier.
+ 
 2007-11-01  Ben Elliston  <bje@au.ibm.com>
 
 	* print-rtl.c (print_rtx): Remove __ea flag handling.

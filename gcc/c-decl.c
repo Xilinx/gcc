@@ -4180,7 +4180,7 @@ grokdeclarator (const struct c_declarator *declarator,
 	}
       else if (decl_context == PARM && declarator->kind == cdk_id)
 	error ("%<__ea%> specified for parameter %qs", name);
-      else if (decl_context == FIELD && declarator->kind == cdk_id)
+      else if (decl_context == FIELD)
 	error ("%<__ea%> specified for structure field %qs", name);
     }
   else if (decl_context != NORMAL && (storage_class != csc_none || threadp))
