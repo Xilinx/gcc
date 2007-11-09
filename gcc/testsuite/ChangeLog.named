@@ -1,3 +1,7 @@
+2007-11-09  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/ea/errors.c: Add int * __ea case.
+
 2007-11-02  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc.target/spu/ea/compile.c: Remove struct with __ea pointer.
