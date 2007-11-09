@@ -1,3 +1,8 @@
+2007-11-02  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/ea/compile.c: Remove struct with __ea pointer.
+	* gcc.target/spu/ea/errors.c: Move here; annotate with dg-error.
+
 2007-10-29  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc.target/spu/ea/cast1.c: Avoid <stdio.h>.

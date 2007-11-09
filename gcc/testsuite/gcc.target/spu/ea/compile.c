@@ -15,11 +15,6 @@ __ea int *i4p;
 typedef __ea int ea_int_t;
 typedef __ea int *ea_int_star_t;
 
-/* Structure definitions.  */
-struct mystruct {
-  __ea int *p;
-} st;
-
 void
 f1 ()
 {

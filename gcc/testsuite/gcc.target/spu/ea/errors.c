@@ -19,6 +19,7 @@ void func2 (__ea int x)	    /* { dg-error "'__ea' specified for parameter 'x'" }
 
 struct st {
   __ea int x;		    /* { dg-error "'__ea' specified for structure field 'x'" } */
+  __ea int *p;		    /* { dg-error "'__ea' specified for structure field 'p'" } */
 } s;
 
 __ea int func3 (int x) {    /* { dg-error "'__ea' specified for function 'func3'" } */
