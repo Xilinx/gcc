@@ -1,3 +1,260 @@
+2007-11-10  Steven Bosscher  <stevenb.gcc@gmail.com>
+
+	* gcse.c (CUID_INSN): Remove.
+	(cuid_insn): Ditto.
+	(alloc_gcse_mem): Don't allocate cuid_insn.
+	(free_gcse_mem): Don't free cuid_insn.
+
+2007-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/34020
+	* gimplify.c (goa_lhs_expr_p): Inside INDIRECT_REF handle unshared
+	nops.
+
+	PR middle-end/34018
+	* tree-inline.h (copy_body_data): Add regimplify field.
+	* tree-inline.c (copy_body_r): Set id->regimplify to true
+	if an TREE_INVARIANT ADDR_EXPR is no longer invariant after
+	substitutions.
+	(copy_bb): Clear id->regimplify before walk_tree, if it is
+	set afterwards, regimplify the whole statement.
+
+	PR tree-optimization/33680
+	* tree-data-ref.c (split_constant_offset) <case ADDR_EXPR>: Punt
+	if the added cast involves variable length types.
+
+2007-11-09  Alexander Monakov  <amonakov@ispras.ru>
+	    Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* sched-deps.c (sched_analyze_insn): Use MOVE_BARRIER
+	instead of TRUE_BARRIER for jumps.  Add register dependencies
+	even when reg_pending_barrier is set.
+
+2007-11-09  Alexander Monakov  <amonakov@ispras.ru>
+
+	* haifa-sched.c (haifa_classify_insn): Rename to ...
+	(haifa_classify_rtx): ...  this.  Improve handling of COND_EXECs,
+	handle PARALLELs by recursing.  Use it ...  
+	(haifa_classify_insn): ...  here.  Reimplement.
+
+2007-11-09  Richard Guenther  <rguenther@suse.de>
+
+	* bitmap.h (bitmap_single_bit_set_p): Declare.
+	* bitmap.c (bitmap_single_bit_set_p): New function.
+	* tree-ssa-alias.c (add_may_alias_for_new_tag): Use it.
+	(maybe_create_global_var): Use bitmap_empty_p.
+
+2007-11-09  Paolo Bonzini  <bonzini@gnu.org>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/34012
+	* fwprop.c (try_fwprop_subst): Do not replace if the new
+	SET_SRC has a higher cost than the old one.
+
+2007-11-09  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	PR rtl-optimization/33732
+	* reload.c (push_reload): Check that the REG_DEAD note was referring
+	to a hardreg or to a pseudo that has been assigned exactly one hardreg
+	before considering it in order to select the reload register.
+	(combine_reloads): Likewise.
+	(find_dummy_reload): Likewise.
+
+2007-11-09  Richard Guenther  <rguenther@suse.de>
+
+	* tree-flow.h (struct ptr_info_def): Make escape_mask a
+	ENUM_BITFIELD.
+	(struct ptr_info_def): Likewise.
+	(enum escape_type): Also use bit zero.
+
+2007-11-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/33604
+	* tree-ssa-forwprop.c (tree_ssa_forward_propagate_single_use_vars):
+	Disregard changes in CV qualifiers of pointed to types for
+	forward propagating ADDR_EXPRs.
+	* tree-ssa-ccp.c (fold_stmt_r): Preserve volatileness of the original
+	expression.
+
+2007-11-09  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* dse.c (find_shift_sequence): Always choose an integer mode for
+	new_mode.
+	(replace_read): Require both the read and store mode to be
+	integer ones.  Remove a then-redundant FLOAT_P check.
+
+2007-11-08  Richard Guenther  <rguenther@suse.de>
+
+	* tree-dfa.c (remove_referenced_var): If removing a
+	variable which has subvars, also remove those from
+	the referenced vars.  Do not create a variable annotation.
+
+2007-11-08  Bob Wilson  <bob.wilson@acm.org>
+
+	* config/xtensa/xtensa.c (xtensa_expand_prologue): Remove first
+	argument for gen_entry calls.
+	* config/xtensa/xtensa.md: Add new "entry" value to "type" attribute.
+	(entry): Use the new attribute value.  Remove unused first operand.
+
+2007-11-08  Tom Tromey  <tromey@redhat.com>
+
+	* c-parser.c (c_parser_translation_unit): Use location in error.
+	(c_parser_external_declaration): Likewise.
+	(c_parser_declaration_or_fndef): Likewise.
+	(c_parser_enum_specifier): Likewise.
+	(c_parser_struct_or_union_specifier): Likewise.
+	(c_parser_struct_declaration): Likewise.
+	(c_parser_typeof_specifier): Likewise.
+	(c_parser_parms_list_declarator): Likewise.
+	(c_parser_asm_string_literal): Likewise.
+	(c_parser_braced_init): Likewise.
+	(c_parser_initelt): Likewise.
+	(c_parser_compound_statement_nostart): Likewise.
+	(c_parser_statement_after_labels): Likewise.
+	(c_parser_do_statement): Likewise.
+	(c_parser_asm_statement): Likewise.
+	(c_parser_conditional_expression): Likewise.
+	(c_parser_unary_expression): Likewise.
+	(c_parser_sizeof_expression): Likewise.
+	(c_parser_postfix_expression): Likewise.
+	(c_parser_postfix_expression_after_paren_type): Likewise.
+	(c_parser_objc_class_instance_variables): Likewise.
+	(c_parser_objc_method_definition): Likewise.
+	(c_parser_objc_methodprotolist): Likewise.
+	(c_parser_pragma): Likewise.
+	(c_parser_omp_clause_num_threads): Likewise.
+	(c_parser_omp_clause_schedule): Likewise.
+	(c_parser_omp_all_clauses): Likewise.
+	(c_parser_omp_sections_scope): Likewise.
+	(c_parser_label): Use location of label, not colon.
+
+2007-11-08  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	PR target/33774
+	* config/i386/cygming.h (BIGGEST_FIELD_ALIGNMENT): Define only if
+	IN_TARGET_LIBS.
+
+2007-11-07  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	PR middle-end/33826
+	* ipa-pure-const (static_execute): Added code to keep recursive
+	functions from being marked as pure or const.
+	* ipa-utils (searchc): Fixed comment.
+		
+2007-11-08  Tom Tromey  <tromey@redhat.com>
+
+	* common.opt (fshow-column): Default to 0.
+	* configure: Rebuilt.
+	* configure.ac (--enable-mapped-location): Default to 'yes'.
+
+2007-11-07  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	 * common.opt: Add pointer to doc/options.texi.
+	 * doc/invoke.texi (-fdse, -fdce, -fauto-inc-dec, -fipa-pure-const,
+	 -fipa-reference): Add or correct doc.  Sorted options list for -Os
+	 -O, -O2.
+	
+2007-11-07  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	PR target/16350
+	* config.gcc: For arm*b-* define TARGET_BIG_ENDIAN_DEFAULT.
+	* config/arm/linux-elf.h (TARGET_ENDIAN_DEFAULT): Define based on
+	TARGET_BIG_ENDIAN_DEFAULT.  Use for MULTILIB_DEFAULTS.
+	(TARGET_DEFAULT): Set according to TARGET_ENDIAN_DEFAULT.
+	(LINUX_TARGET_LINK_SPEC): Pass -mlittle-endian on to the assembler.
+	* config/arm/linux-eabi.h (TARGET_LINKER_EMULATION): Set according
+	to TARGET_BIG_ENDIAN_DEFAULT.
+	(SUBTARGET_EXTRA_LINK_SPEC): Likewise.
+	* config/arm/bpabi.h (TARGET_DEFAULT_MASK): Set according
+	to TARGET_BIG_ENDIAN_DEFAULT.
+
+2007-11-07  Diego Novillo  <dnovillo@google.com>
+
+	* tree.h (struct tree_struct_field_tag): Move field
+	in_nested_struct ...
+	(struct tree_memory_tag): ... here.
+
+2007-11-07  Diego Novillo  <dnovillo@google.com>
+
+	PR 33870
+	* tree.h (struct tree_struct_field_tag): Add field in_nested_struct.
+	(SFT_IN_NESTED_STRUCT): Define.
+	* tree-dfa.c (dump_subvars_for): Show offset of each
+	sub-var.
+	* tree-flow.h (struct fieldoff): Add field in_nested_struct.
+	* tree-ssa-structalias.c (struct variable_info): Likewise.
+	(push_fields_onto_fieldstack): If OFFSET is positive,
+	set in_nested_struct.
+	(create_variable_info_for): Copy setting of
+	in_nested_struct from the field offset object.
+	(set_uids_in_ptset): Set SFT_IN_NESTED_STRUCT from the
+	variable info object.
+	* tree-ssa-operands.c (add_vars_for_offset): If VAR
+	belongs to a nested structure, adjust OFFSET by
+	SFT_OFFSET(VAR).
+
+2007-11-07  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	PR rtl-optimization/33737
+	* cfgcleanup.c (try_crossjump_to_edge): Add count and frequency of
+	target block after computing the probabilities of outgoing edges.
+	Cap the frequency to BB_FREQ_MAX.
+	* tree-ssa-threadupdate.c (redirect_edges): Also adjust count and
+	frequency of the basic block if it has been reused.
+
+2007-11-07  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	PR rtl-optimization/33822
+	* rtl.h (REG_OFFSET): Fix comment.
+	* var-tracking.c (INT_MEM_OFFSET): New macro.
+	(var_mem_set): Use it.
+	(var_mem_delete_and_set): Likewise.
+	(var_mem_delete): Likewise.
+	(same_variable_part_p): Likewise.
+	(vt_get_decl_and_offset): Likewise.
+	(offset_valid_for_tracked_p): New predicate.
+	(count_uses): Do not track locations with invalid offsets.
+	(add_uses): Likewise.
+	(add_stores): Likewise.
+
+2007-11-07  Tom Tromey  <tromey@redhat.com>
+
+	* Makefile.in (tree-ssa-structalias.o): Depend on $(FUNCTION_H)
+	(BASIC_BLOCK_H): Add vec.h, $(FUNCTION_H).
+
+2007-11-07  Dmitry Zhurikhin  <zhur@ispras.ru>
+	    Andrey Belevantsev  <abel@ispras.ru>
+
+	* modulo-sched.c (sms_order_nodes, permute_partial_schedule,
+	generate_prolog_epilog, duplicate_insns_of_cycles): Fix prototypes.
+	(calculate_order_params, sms_order_nodes): New parameter pmax_asap.
+	Save calculated max_asap in it. 	
+	(sms_schedule): Calculate maxii using max_asap.
+
+2007-11-07  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* doc/invoke.texi: Replace rs6000 dfp switches -mdfp/-mno-dfp
+	with -mhard-dfp/-mno-hard-dfp.
+
+2007-11-07  Maxim Kuvyrkov  <maxim@codesourcery.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/33670
+	* haifa-sched.c (check_sched_flags): Remove.
+	(sched_init): Don't call it.
+
+2007-11-06  Diego Novillo  <dnovillo@google.com>
+
+	* tree-flow.h (struct fieldoff): Reformat comment.
+	Document fields.
+	* tree-ssa-operands.c: Tidy top-level comments.
+	(add_vop): Likewise.
+	(add_vars_for_offset): Tidy parameter formatting..
+	(get_addr_dereference_operands): Likewise.
+	(get_indirect_ref_operands): Likewise.
+	(get_expr_operands) <OMP_ATOMIC_LOAD>: Reformat.
+	<OMP_ATOMIC_STORE>: Likewise.
+
 2007-11-06  Rask Ingemann Lambertsen  <rask@sygehus.dk>
 
 	PR target/32787
@@ -3049,12 +3306,12 @@
 	* config/m68k/m68k.md (cmp<mode>, cmp<mode>_68881, cmp<mode>_cf):
 	Cleanup predicates to relieve reload.
 	(conditional_trap): Reject conditional trap with fp condition.
-	* gcc/config/m68k/predicates.md (fp_src_operand): New, reject
+	* config/m68k/predicates.md (fp_src_operand): New, reject
 	certain constants early.
 
 2007-09-24  Roman Zippel <zippel@linux-m68k.org>
 
-	* gcc/final.c (final_scan_insn): Remove accidentally duplicated code.
+	* final.c (final_scan_insn): Remove accidentally duplicated code.
 
 2007-09-24  Andrew Pinski  <andrew_pinski@playstation.sony.com>
 
@@ -3275,16 +3532,16 @@
 
 2007-09-19  Michael Meissner  <michael.meissner@amd.com>
 
-	* gcc/config/i386/i386.c: Delete trailing whitespace.
-	* gcc/config/i386/i386.h: Ditto.
-	* gcc/config/i386/bmmintrin.h: Ditto.
-	* gcc/config/i386/sync.md: Ditto.
-	* gcc/config/i386/ppro.md: Ditto.
-	* gcc/config/i386/mmx.md: Ditto.
-	* gcc/config/i386/constraints.md: Ditto.
-	* gcc/config/i386/sse.md: Ditto.
-	* gcc/config/i386/athlon.md: Ditto.
-	* gcc/config/i386/i386.md: Ditto.
+	* config/i386/i386.c: Delete trailing whitespace.
+	* config/i386/i386.h: Ditto.
+	* config/i386/bmmintrin.h: Ditto.
+	* config/i386/sync.md: Ditto.
+	* config/i386/ppro.md: Ditto.
+	* config/i386/mmx.md: Ditto.
+	* config/i386/constraints.md: Ditto.
+	* config/i386/sse.md: Ditto.
+	* config/i386/athlon.md: Ditto.
+	* config/i386/i386.md: Ditto.
 
 2007-09-21  Richard Guenther  <rguenther@suse.de>
 
@@ -4903,13 +5160,13 @@
 2007-09-10  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/33369
-	* gcc/config/i386/sse.md (ashr<mode>3): Change op2 mode to SImode.
+	* config/i386/sse.md (ashr<mode>3): Change op2 mode to SImode.
 	Use 'N' operand constraint for op2.
 	(lshr<mode>3): Ditto.
 	(ashl<mode>3): Ditto.
 	(vec_shl_<mode>): Use const_0_to_255_mul_8_operand predicate for op2.
 	(vec_shr_<mode>): Ditto.
-	* gcc/config/i386/i386.c (ix86_expand_builtin) [IX86_BUILTIN_PSLL?128,
+	* config/i386/i386.c (ix86_expand_builtin) [IX86_BUILTIN_PSLL?128,
 	IX86_BUILTIN_PSRA*?128, IX86_BUILTIN_PSRL?128]: Convert op1 to SImode.
 
 2007-09-10  Andreas Krebbel  <krebbel1@de.ibm.com>
@@ -5982,8 +6239,8 @@
 
 2007-09-05  Uros Bizjak  <ubizjak@gmail.com>
 
-	* gcc/config/i386/cpuid.h: New file.
-	* gcc/config/i386/driver-i386.c: Include cpuid.h.
+	* config/i386/cpuid.h: New file.
+	* config/i386/driver-i386.c: Include cpuid.h.
 	(describe_cache): Shrink size and line strings to 100 bytes.
 	(detect_caches_amd): Return "" for unsupported max_ext_level.
 	Use __cpuid function.
@@ -6003,12 +6260,12 @@
 	[PROCESSOR_K8]: Add k8-sse3 architecture.
 	[PROCESSOR_NOCONA]: Remove.
 	[PROCESSOR_GENERIC64]: Ditto.
-	* gcc/config/i386/x-i386 (driver-i386.o): Depend on cpuid.h.
-	* gcc/config/i386/crtfastmath.c: Include cpuid.h.  Use __get_cpuid
+	* config/i386/x-i386 (driver-i386.o): Depend on cpuid.h.
+	* config/i386/crtfastmath.c: Include cpuid.h.  Use __get_cpuid
 	to check for SSE and FXSAVE support.
-	* gcc/config/i386/t-crtfm (crtfastmath.o): Depend on cpuid.h.
+	* config/i386/t-crtfm (crtfastmath.o): Depend on cpuid.h.
 	Add -minline-all-stringops.
-	* gcc/config.gcc (i[34567]86-*-*): Add cpuid.h to extra_headers.
+	* config.gcc (i[34567]86-*-*): Add cpuid.h to extra_headers.
 	(x86_64-*-*): Ditto.
 
 2007-09-05  Jie Zhang  <jie.zhang@analog.com>
@@ -6953,8 +7210,8 @@
 
 2007-08-29  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
-	* gcc/builtin-types.def (BT_FN_PTR_PTR_SIZE): New type.
-	* gcc/builtins.def (BUILT_IN_REALLOC): New builtin.
+	* builtin-types.def (BT_FN_PTR_PTR_SIZE): New type.
+	* builtins.def (BUILT_IN_REALLOC): New builtin.
 
 2007-08-29  Douglas Gregor  <doug.gregor@gmail.com>
 
@@ -7023,11 +7280,11 @@
 2007-08-28  Nathan Sidwell  <nathan@codesourcery.com>
 	    Kazu Hirata  <kazu@codesourcery.com>
 
-	* gcc/config/m68k/linux.h
+	* config/m68k/linux.h
 	(M68K_HONOR_TARGET_STRICT_ALIGNMENT): Redefine as 0.
 	* config/m68k/m68k.c (TARGET_RETURN_IN_MEMORY): New.
 	(m68k_return_in_memory): New.
-	* gcc/config/m68k/m68k.h (M68K_HONOR_TARGET_STRICT_ALIGNMENT):
+	* config/m68k/m68k.h (M68K_HONOR_TARGET_STRICT_ALIGNMENT):
 	New.
 
 2007-08-28  Uros Bizjak  <ubizjak@gmail.com>
@@ -8799,7 +9056,7 @@
 	* params.def (PARAM_VECT_MAX_VERSION_FOR_ALIGNMENT_CHECKS):
 	Rename.
 	(PARAM_VECT_MAX_VERSION_FOR_ALIAS_CHECKS): Define.
-	* gcc/doc/invoke.texi
+	* doc/invoke.texi
 	(vect-max-version-for-alignment-checks): Document.
 	(vect-max-version-for-alias-checks): Document.
 	(vect-max-version-checks): Remove.

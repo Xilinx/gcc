@@ -1,3 +1,42 @@
+2007-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/32241
+	* pt.c (tsubst_copy_and_build) <case COMPONENT_REF>: If object_type
+	is not scalar type, let finish_class_member_access_expr handle
+	diagnostics.  Pass BIT_NOT_EXPR argument to
+	finish_pseudo_destructor_expr.  Handle SCOPE_REF properly.
+
+2007-11-09  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/33510
+	* decl.c (cp_complete_array_type): If any of the initializer
+	elements are pack expansions, don't compute the array size yet.
+
+2007-11-08  Andrew Pinski  <pinskia@gmail.com>
+
+	PR c++/30297:
+	* tree.c (decl_linkage): Fields have no linkage.
+
+2007-11-08  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* class.c (build_ctor_vtbl_group): Lay out the new type and decl.
+
+2007-11-07  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/33045
+	PR c++/33837
+	PR c++/33838
+	* semantics.c (finish_decltype_type): See through INDIRECT_REFs.
+	Be careful with ERROR_MARK_NODEs.
+	* parser.c (cp_parser_check_access_in_redeclaration): Handle NULL
+	argument.
+
+2007-11-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/33501
+	* call.c (build_over_call): Don't check TREE_ADDRESSABLE
+	on incomplete type.
+
 2007-11-06  Douglas Gregor  <doug.gregor@gmail.com>
 
 	PR c++/33977

@@ -1,3 +1,31 @@
+2007-11-10  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-common.c: Remove prototype for gfc_get_common.
+
+2007-11-10  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33592
+	* trans.c (gfc_call_realloc): Fix the logic and rename variables.
+
+2007-11-08  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33739
+	* scanner.c (start_source_file, end_source_file,
+	exit_remaining_files): New functions.
+	(gfc_advance_line): Use the new functions.
+
+2007-11-08  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/34028
+	* trans-intrinsic.c (gfc_conv_intrinsic_ishft): Use correct type.
+
+2007-11-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/33917
+	* interface.c (check_sym_interfaces): Disallow PROCEDURE-declared
+	procedures for MODULE PROCEDURE.
+	* decl.c (match_procedure_in_interface): Do not mark as procedure.
+
 2007-11-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR fortran/33881

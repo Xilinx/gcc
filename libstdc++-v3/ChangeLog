@@ -1,3 +1,149 @@
+2007-11-11  Howard Hinnant  <hhinnant@apple.com>
+
+	* include/bits/stl_pair.h (pair<>::pair<>(_U1&&, _Arg0&&,
+	_Args&&...)): Add.
+
+2007-11-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_list.h (list<>::_M_create_node<>(_Args&&...),
+	_M_insert<>(iterator, _Args&&...), push_front<>(_Args&&...),
+	push_back<>(_Args&&...)): Add.
+	(list<>::emplace<>(iterator, _Args&&...), insert(iterator,
+	value_type&&)): Declare.
+	(splice(iterator, list&&), splice(iterator, list&&, iterator),
+	splice(iterator, list&&, iterator, iterator), merge(list&&),
+	merge(list&&, _StrictWeakOrdering)): Add C++0x signatures.
+	* include/bits/list.tcc (list<>::emplace<>(iterator, _Args&&...),
+	insert(iterator, value_type&&)): Define.
+	* include/debug/list (list<>::emplace<>(iterator, _Args&&...),
+	insert(iterator, value_type&&)): Add.
+	(splice(iterator, list&&), splice(iterator, list&&, iterator),
+	splice(iterator, list&&, iterator, iterator), merge(list&&),
+	merge(list&&, _StrictWeakOrdering)): Add C++0x signatures, use
+	_GLIBCXX_MOVE.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2007-11-09  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_deque.h (deque<>::operator=(deque&&)): Implement
+	resolution of DR 675, call clear first.
+	* include/bits/stl_list.h (list<>::operator=(list&&)): Likewise.
+	* include/bits/stl_bvector.h (vector<bool>::operator=(vector&&)):
+	Likewise.
+	* include/bits/stl_vector.h (vector<>::operator=(vector&&)): Likewise.
+	* include/bits/stl_map.h (map<>::operator=(map&&)): Likewise.
+	* include/bits/stl_multimap.h (multimap<>::operator=(multimap&&)):
+	Likewise.
+	* include/bits/stl_multiset.h (multiset<>::operator=(multiset&&)):
+	Likewise.
+	* include/bits/stl_set.h (set<>::operator=(set&&)): Likewise.
+	* include/debug/map.h (map<>::operator=(map&&)): Likewise.
+	* include/debug/set.h (set<>::operator=(set&&)): Likewise.
+	* include/debug/multimap.h (multimap<>::operator=(multimap&&)):
+	Likewise.
+	* include/debug/multiset.h (multiset<>::operator=(multiset&&)):
+	Likewise.
+	* include/debug/deque (deque<>::operator=(deque&&)): Likewise.
+	* include/debug/list (list<>::operator=(list&&)): Likewise. 
+	* include/debug/vector (vector<>::operator=(vector&&)): Likewise.
+	* testsuite/23_containers/multimap/moveable.cc: Adjust.
+	* testsuite/23_containers/multiset/moveable.cc: Likewise.
+	* testsuite/23_containers/set/moveable.cc: Likewise.
+	* testsuite/23_containers/map/moveable.cc: Likewise.
+	* testsuite/20_util/pair/moveable.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line numbers.
+	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2007-11-09  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/34032
+	* acinclude.m4 ([GLIBCXX_ENABLE_C99], [GLIBCXX_CHECK_C99_TR1]):
+	Use -std=c++98 instead of the default -std=gnu++98.
+	* configure: Regenerate.
+
+2007-11-08  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/io/basic_file_stdio.cc (fopen_mode): Add modes missing
+	per DR 596.
+	* testsuite/27_io/basic_filebuf/open/char/4.cc: Extend.
+	* include/std/fstream: Update comment preceding open.
+	* docs/html/ext/howto.html: Update.
+
+2007-11-08  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/std/type_traits (__decay_selector<_Up, false, false>):
+	Change according to DR 705.
+	* include/bits/stl_pair.h (make_pair(_T1&&, _T2&&)): Change
+	according to DR 706.
+	* include/tr1_impl/tuple: Tweak.
+
+2007-11-08  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/debug/vector (push_back, emplace): Fix signature typo.
+
+2007-11-08  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.h (ctype<char>::taple, classic_table):
+	Implement trivial resolution of DR 695 [Ready].
+	* testsuite/22_locale/ctype/dr695.cc: New.
+	* docs/html/ext/howto.html: Update.
+
+2007-11-08  Paolo Carlini  <pcarlini@suse.de>
+
+	* docs/html/ext/lwg-active.html: Update to Revision R52.
+	* docs/html/ext/lwg-closed.html: Likewise.
+	* docs/html/ext/lwg-defects.html: Likewise.
+	* docs/html/ext/howto.html: Adjust.
+
+2007-11-07  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1_impl/complex (fabs): In C++0x mode adjust
+	return type per DR 595 [Ready].
+
+2007-11-07  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_iterator.h (move_iterator<>::pointer): Adjust
+	typedef per DR 680 [Ready].
+
+2007-11-06  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/vector.tcc (vector<>::_M_insert_aux<>(iterator,
+	_Args&&...)): In C++0x mode do not use temporary copies.
+	(insert(iterator, const value_type&)): Copy to a temporary
+	when not reallocating.
+
+	* include/bits/vector.tcc (insert(iterator, value_type&&)):
+	Minor tweaks in C++0x mode.
+
 2007-11-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* include/tr1_impl/boost_shared_ptr.h: Avoid unnecessary memory
