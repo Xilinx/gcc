@@ -1,3 +1,38 @@
+2007-11-12  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34070
+	* gcc.c-torture/execute/pr34070-1.c: New testcase.
+	* gcc.c-torture/execute/pr34070-2.c: Likewise.
+
+2007-11-12  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34027
+	* gcc.dg/pr34027-1.c: New testcase.
+	* gcc.dg/pr34027-2.c: Likewise.
+
+2007-11-12  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/33953
+	* gcc.dg/vect/pr33953.c: New testcase.
+
+2007-11-11  Tom Tromey  <tromey@redhat.com>
+
+	PR c++/17577:
+	* g++.dg/ext/pr17577.h: New file.
+	* g++.dg/ext/pr17577.C: New file.
+
+2007-11-12  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/8570
+	* g++.old-deja/g++.ns/template13.C: Update expected output.
+	* g++.old-deja/g++.pt/friend23.C: Likewise.
+	* g++.dg/warn/pr8570.C: New.
+
+2007-11-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34068
+	* g++.dg/template/pseudodtor4.C: New test.
+
 2007-11-10  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/34018

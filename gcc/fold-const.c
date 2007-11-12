@@ -9658,6 +9658,21 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
 		  return omit_one_operand (type, t1, arg0);
 		}
 	    }
+
+	  /* X + (X / CST) * -CST is X % CST.  */
+	  if (TREE_CODE (arg1) == MULT_EXPR
+	      && TREE_CODE (TREE_OPERAND (arg1, 0)) == TRUNC_DIV_EXPR
+	      && operand_equal_p (arg0,
+				  TREE_OPERAND (TREE_OPERAND (arg1, 0), 0), 0))
+	    {
+	      tree cst0 = TREE_OPERAND (TREE_OPERAND (arg1, 0), 1);
+	      tree cst1 = TREE_OPERAND (arg1, 1);
+	      tree sum = fold_binary (PLUS_EXPR, TREE_TYPE (cst1), cst1, cst0);
+	      if (sum && integer_zerop (sum))
+		return fold_convert (type,
+				     fold_build2 (TRUNC_MOD_EXPR,
+						  TREE_TYPE (arg0), arg0, cst0));
+	    }
 	}
 
       /* Handle (A1 * C1) + (A2 * C2) with A1, A2 or C1, C2 being the
@@ -10065,6 +10080,19 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
       if (INTEGRAL_TYPE_P (type)
 	  && integer_all_onesp (arg0))
 	return fold_build1 (BIT_NOT_EXPR, type, op1);
+
+
+      /* X - (X / CST) * CST is X % CST.  */
+      if (INTEGRAL_TYPE_P (type)
+	  && TREE_CODE (arg1) == MULT_EXPR
+	  && TREE_CODE (TREE_OPERAND (arg1, 0)) == TRUNC_DIV_EXPR
+	  && operand_equal_p (arg0,
+			      TREE_OPERAND (TREE_OPERAND (arg1, 0), 0), 0)
+	  && operand_equal_p (TREE_OPERAND (TREE_OPERAND (arg1, 0), 1),
+			      TREE_OPERAND (arg1, 1), 0))
+	return fold_convert (type,
+			     fold_build2 (TRUNC_MOD_EXPR, TREE_TYPE (arg0),
+					  arg0, TREE_OPERAND (arg1, 1)));
 
       if (! FLOAT_TYPE_P (type))
 	{
@@ -11207,7 +11235,7 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
       strict_overflow_p = false;
       if (TREE_CODE (arg1) == LSHIFT_EXPR
 	  && (TYPE_UNSIGNED (type)
-	      || tree_expr_nonnegative_warnv_p (arg0, &strict_overflow_p)))
+	      || tree_expr_nonnegative_warnv_p (op0, &strict_overflow_p)))
 	{
 	  tree sval = TREE_OPERAND (arg1, 0);
 	  if (integer_pow2p (sval) && tree_int_cst_sgn (sval) > 0)
@@ -11226,6 +11254,14 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
 				  fold_convert (type, arg0), sh_cnt);
 	    }
 	}
+
+      /* For unsigned integral types, FLOOR_DIV_EXPR is the same as
+	 TRUNC_DIV_EXPR.  Rewrite into the latter in this case.  */
+      if (INTEGRAL_TYPE_P (type)
+	  && TYPE_UNSIGNED (type)
+	  && code == FLOOR_DIV_EXPR)
+	return fold_build2 (TRUNC_DIV_EXPR, type, op0, op1);
+
       /* Fall thru */
 
     case ROUND_DIV_EXPR:
@@ -11325,7 +11361,7 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
       strict_overflow_p = false;
       if ((code == TRUNC_MOD_EXPR || code == FLOOR_MOD_EXPR)
 	  && (TYPE_UNSIGNED (type)
-	      || tree_expr_nonnegative_warnv_p (arg0, &strict_overflow_p)))
+	      || tree_expr_nonnegative_warnv_p (op0, &strict_overflow_p)))
 	{
 	  tree c = arg1;
 	  /* Also optimize A % (C << N)  where C is a power of 2,
