@@ -3895,9 +3895,18 @@ gfc_match_suffix (gfc_symbol *sym, gfc_symbol **result)
     }
 
   if (is_bind_c == MATCH_YES)
-    if (gfc_add_is_bind_c (&(sym->attr), sym->name, &gfc_current_locus, 1)
-        == FAILURE)
-      return MATCH_ERROR;
+    {
+      if (gfc_current_state () == COMP_CONTAINS
+	  && sym->ns->proc_name->attr.flavor != FL_MODULE)
+	{
+          gfc_error ("BIND(C) attribute at %L may not be specified for an "
+		     "internal procedure", &gfc_current_locus);
+	  return MATCH_ERROR;
+	}
+      if (gfc_add_is_bind_c (&(sym->attr), sym->name, &gfc_current_locus, 1)
+	  == FAILURE)
+     	return MATCH_ERROR;
+    }
   
   return found_match;
 }
@@ -3946,6 +3955,12 @@ match_procedure_decl (void)
   /* Various interface checks.  */
   if (proc_if)
     {
+      /* Resolve interface if possible. That way, attr.procedure is only set
+	 if it is declared by a later procedure-declaration-stmt, which is
+	 invalid per C1212.  */
+      while (proc_if->interface)
+	proc_if = proc_if->interface;
+
       if (proc_if->generic)
 	{
 	  gfc_error ("Interface '%s' at %C may not be generic", proc_if->name);
@@ -3968,19 +3983,9 @@ match_procedure_decl (void)
 		    "in PROCEDURE statement at %C", proc_if->name);
 	  return MATCH_ERROR;
 	}
-      /* TODO: Allow intrinsics with gfc_intrinsic_actual_ok
-	 (proc_if->name, 0) after PR33162 is fixed.  */
-      if (proc_if->attr.intrinsic)
-	{
-	  gfc_error ("Fortran 2003: Support for intrinsic procedure '%s' "
-		     "in PROCEDURE statement at %C not yet implemented "
-		     "in gfortran", proc_if->name);
-	  return MATCH_ERROR;
-	}
     }
 
 got_ts:
-
   if (gfc_match (" )") != MATCH_YES)
     {
       gfc_current_locus = entry_loc;
@@ -3995,7 +4000,6 @@ got_ts:
   /* Get procedure symbols.  */
   for(num=1;;num++)
     {
-
       m = gfc_match_symbol (&sym, 0);
       if (m == MATCH_NO)
 	goto syntax;
@@ -4040,7 +4044,10 @@ got_ts:
 
       /* Set interface.  */
       if (proc_if != NULL)
-	sym->interface = proc_if;
+	{
+	  sym->interface = proc_if;
+	  sym->attr.untyped = 1;
+	}
       else if (current_ts.type != BT_UNKNOWN)
 	{
 	  sym->interface = gfc_new_symbol ("", gfc_current_ns);
@@ -4555,6 +4562,13 @@ gfc_match_subroutine (void)
 
   if (is_bind_c == MATCH_YES)
     {
+      if (gfc_current_state () == COMP_CONTAINS
+	  && sym->ns->proc_name->attr.flavor != FL_MODULE)
+	{
+          gfc_error ("BIND(C) attribute at %L may not be specified for an "
+		     "internal procedure", &gfc_current_locus);
+	  return MATCH_ERROR;
+	}
       if (peek_char != '(')
         {
           gfc_error ("Missing required parentheses before BIND(C) at %C");
@@ -5839,6 +5853,7 @@ gfc_match_modproc (void)
   gfc_symbol *sym;
   match m;
   gfc_namespace *module_ns;
+  gfc_interface *old_interface_head, *interface;
 
   if (gfc_state_stack->state != COMP_INTERFACE
       || gfc_state_stack->previous == NULL
@@ -5858,14 +5873,29 @@ gfc_match_modproc (void)
   if (module_ns == NULL)
     return MATCH_ERROR;
 
+  /* Store the current state of the interface. We will need it if we
+     end up with a syntax error and need to recover.  */
+  old_interface_head = gfc_current_interface_head ();
+
   for (;;)
     {
+      bool last = false;
+
       m = gfc_match_name (name);
       if (m == MATCH_NO)
 	goto syntax;
       if (m != MATCH_YES)
 	return MATCH_ERROR;
 
+      /* Check for syntax error before starting to add symbols to the
+	 current namespace.  */
+      if (gfc_match_eos () == MATCH_YES)
+	last = true;
+      if (!last && gfc_match_char (',') != MATCH_YES)
+	goto syntax;
+
+      /* Now we're sure the syntax is valid, we process this item
+	 further.  */
       if (gfc_get_symbol (name, module_ns, &sym))
 	return MATCH_ERROR;
 
@@ -5879,15 +5909,26 @@ gfc_match_modproc (void)
 
       sym->attr.mod_proc = 1;
 
-      if (gfc_match_eos () == MATCH_YES)
+      if (last)
 	break;
-      if (gfc_match_char (',') != MATCH_YES)
-	goto syntax;
     }
 
   return MATCH_YES;
 
 syntax:
+  /* Restore the previous state of the interface.  */
+  interface = gfc_current_interface_head ();
+  gfc_set_current_interface_head (old_interface_head);
+
+  /* Free the new interfaces.  */
+  while (interface != old_interface_head)
+  {
+    gfc_interface *i = interface->next;
+    gfc_free (interface);
+    interface = i;
+  }
+
+  /* And issue a syntax error.  */
   gfc_syntax_error (ST_MODULE_PROC);
   return MATCH_ERROR;
 }

@@ -253,15 +253,6 @@ struct variable_info
      variable.  This is used for C++ placement new.  */
   unsigned int no_tbaa_pruning : 1;
 
-  /* True if this variable is inside a structure nested in the
-     structure for the base variable.  For instance, in 
-     struct X { int a; struct Y { int b; int c; } }, the variables for
-     fields 'b' and 'c' are inside a nested structure.  We are not
-     interested in tracking how many levels of nesting, just whether
-     there is nesting at all.  This is later used to adjust offsets
-     for pointers pointing into sub-structures.  */
-  unsigned int in_nested_struct : 1;
-
   /* Points-to set for this variable.  */
   bitmap solution;
 
@@ -4050,14 +4041,19 @@ sort_fieldstack (VEC(fieldoff_s,heap) *fieldstack)
 	 fieldoff_compare);
 }
 
-/* Given a TYPE, and a vector of field offsets FIELDSTACK, push all the fields
-   of TYPE onto fieldstack, recording their offsets along the way.
-   OFFSET is used to keep track of the offset in this entire structure, rather
-   than just the immediately containing structure.  Returns the number
-   of fields pushed.
+/* Given a TYPE, and a vector of field offsets FIELDSTACK, push all
+   the fields of TYPE onto fieldstack, recording their offsets along
+   the way.
+
+   OFFSET is used to keep track of the offset in this entire
+   structure, rather than just the immediately containing structure.
+   Returns the number of fields pushed.
+
    HAS_UNION is set to true if we find a union type as a field of
-   TYPE.  ADDRESSABLE_TYPE is the type of the outermost object that could have
-   its address taken.  */
+   TYPE.
+
+   ADDRESSABLE_TYPE is the type of the outermost object that could
+   have its address taken.  */
 
 int
 push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
@@ -4066,6 +4062,7 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 {
   tree field;
   int count = 0;
+  int first_element = VEC_length (fieldoff_s, *fieldstack);
 
   if (TREE_CODE (type) == COMPLEX_TYPE)
     {
@@ -4076,6 +4073,7 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
       real_part->offset = offset;
       real_part->decl = NULL_TREE;
       real_part->alias_set = -1;
+      real_part->base_for_components = false;
 
       img_part = VEC_safe_push (fieldoff_s, heap, *fieldstack, NULL);
       img_part->type = TREE_TYPE (type);
@@ -4083,11 +4081,12 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
       img_part->offset = offset + TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (type)));
       img_part->decl = NULL_TREE;
       img_part->alias_set = -1;
+      img_part->base_for_components = false;
 
-      return 2;
+      count = 2;
     }
 
-  if (TREE_CODE (type) == ARRAY_TYPE)
+  else if (TREE_CODE (type) == ARRAY_TYPE)
     {
       tree sz = TYPE_SIZE (type);
       tree elsz = TYPE_SIZE (TREE_TYPE (type));
@@ -4119,8 +4118,10 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 	  if (!AGGREGATE_TYPE_P (TREE_TYPE (type))) /* var_can_have_subvars */
 	    push = true;
 	  else if (!(pushed = push_fields_onto_fieldstack
-		     (TREE_TYPE (type), fieldstack,
-		      offset + i * TREE_INT_CST_LOW (elsz), has_union,
+		     (TREE_TYPE (type),
+		      fieldstack,
+		      offset + i * TREE_INT_CST_LOW (elsz),
+		      has_union,
 		      (TYPE_NONALIASED_COMPONENT (type)
 		       ? addressable_type
 		       : TREE_TYPE (type)))))
@@ -4142,71 +4143,69 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 		pair->alias_set = get_alias_set (addressable_type);
 	      else
 		pair->alias_set = -1;
-
-	      /* If the base offset is positive, this field belongs to
-		 a structure nested inside the base structure.  */
-	      if (offset > 0)
-		pair->in_nested_struct = true;
-
+	      pair->base_for_components = false;
 	      count++;
 	    }
 	  else
 	    count += pushed;
 	}
-
-      return count;
     }
 
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
-    if (TREE_CODE (field) == FIELD_DECL)
-      {
-	bool push = false;
-	int pushed = 0;
-
-	if (has_union
-	    && (TREE_CODE (TREE_TYPE (field)) == QUAL_UNION_TYPE
-		|| TREE_CODE (TREE_TYPE (field)) == UNION_TYPE))
-	  *has_union = true;
-
-	if (!var_can_have_subvars (field))
-	  push = true;
-	else if (!(pushed = push_fields_onto_fieldstack
-		   (TREE_TYPE (field), fieldstack,
-		    offset + bitpos_of_field (field), has_union,
-		    (DECL_NONADDRESSABLE_P (field)
-		     ? addressable_type
-		     : TREE_TYPE (field))))
-		 && DECL_SIZE (field)
-		 && !integer_zerop (DECL_SIZE (field)))
-	  /* Empty structures may have actual size, like in C++. So
-	     see if we didn't push any subfields and the size is
-	     nonzero, push the field onto the stack */
-	  push = true;
-
-	if (push)
+  else
+    {
+      for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+	if (TREE_CODE (field) == FIELD_DECL)
 	  {
-	    fieldoff_s *pair;
+	    bool push = false;
+	    int pushed = 0;
 
-	    pair = VEC_safe_push (fieldoff_s, heap, *fieldstack, NULL);
-	    pair->type = TREE_TYPE (field);
-	    pair->size = DECL_SIZE (field);
-	    pair->decl = field;
-	    pair->offset = offset + bitpos_of_field (field);
-	    if (DECL_NONADDRESSABLE_P (field))
-	      pair->alias_set = get_alias_set (addressable_type);
+	    if (has_union
+	        && (TREE_CODE (TREE_TYPE (field)) == QUAL_UNION_TYPE
+		    || TREE_CODE (TREE_TYPE (field)) == UNION_TYPE))
+	      *has_union = true;
+
+	    if (!var_can_have_subvars (field))
+	      push = true;
+	    else if (!(pushed = push_fields_onto_fieldstack
+		       (TREE_TYPE (field),
+		        fieldstack,
+		        offset + bitpos_of_field (field),
+		        has_union,
+		        (DECL_NONADDRESSABLE_P (field)
+		         ? addressable_type
+		         : TREE_TYPE (field))))
+		     && DECL_SIZE (field)
+		     && !integer_zerop (DECL_SIZE (field)))
+	      /* Empty structures may have actual size, like in C++. So
+	         see if we didn't push any subfields and the size is
+	         nonzero, push the field onto the stack */
+	      push = true;
+
+	    if (push)
+	      {
+	        fieldoff_s *pair;
+
+	        pair = VEC_safe_push (fieldoff_s, heap, *fieldstack, NULL);
+	        pair->type = TREE_TYPE (field);
+	        pair->size = DECL_SIZE (field);
+	        pair->decl = field;
+	        pair->offset = offset + bitpos_of_field (field);
+	        if (DECL_NONADDRESSABLE_P (field))
+	          pair->alias_set = get_alias_set (addressable_type);
+	        else
+	          pair->alias_set = -1;
+	        pair->base_for_components = false;
+	        count++;
+	      }
 	    else
-	      pair->alias_set = -1;
+	      count += pushed;
+          }
+    }
 
-	    /* If the base offset is positive, this field belongs to
-	       a structure nested inside the base structure.  */
-	    if (offset > 0)
-	      pair->in_nested_struct = true;
-
-	    count++;
-	  }
-	else
-	  count += pushed;
-      }
+  /* Make sure the first pushed field is marked as eligible for
+     being a base for component references.  */
+  if (count > 0)
+    VEC_index (fieldoff_s, *fieldstack, first_element)->base_for_components = true;
 
   return count;
 }
@@ -4512,7 +4511,6 @@ create_variable_info_for (tree decl, const char *name)
 	  newvi->offset = fo->offset;
 	  newvi->size = TREE_INT_CST_LOW (fo->size);
 	  newvi->fullsize = vi->fullsize;
-	  newvi->in_nested_struct = fo->in_nested_struct;
 	  insert_into_field_list (vi, newvi);
 	  VEC_safe_push (varinfo_t, heap, varmap, newvi);
 	  if (is_global && (!flag_whole_program || !in_ipa_mode))
@@ -4724,7 +4722,10 @@ set_uids_in_ptset (tree ptr, bitmap into, bitmap from, bool is_derefed,
 {
   unsigned int i;
   bitmap_iterator bi;
-  alias_set_type ptr_alias_set = get_alias_set (TREE_TYPE (ptr));
+  alias_set_type ptr_alias_set;
+
+  gcc_assert (POINTER_TYPE_P (TREE_TYPE (ptr)));
+  ptr_alias_set = get_alias_set (TREE_TYPE (TREE_TYPE (ptr)));
 
   EXECUTE_IF_SET_IN_BITMAP (from, 0, i, bi)
     {
@@ -4751,21 +4752,42 @@ set_uids_in_ptset (tree ptr, bitmap into, bitmap from, bool is_derefed,
 	       || TREE_CODE (vi->decl) == PARM_DECL
 	       || TREE_CODE (vi->decl) == RESULT_DECL)
 	{
+	  subvar_t sv;
 	  if (var_can_have_subvars (vi->decl)
-	      && get_subvars_for_var (vi->decl))
+	      && (sv = get_subvars_for_var (vi->decl)))
 	    {
 	      /* If VI->DECL is an aggregate for which we created
-		 SFTs, add the SFT corresponding to VI->OFFSET.  */
-	      tree sft = get_subvar_at (vi->decl, vi->offset);
+		 SFTs, add the SFT corresponding to VI->OFFSET.
+		 If we didn't do field-sensitive PTA we need to to
+		 add all overlapping SFTs.  */
+	      unsigned int j;
+	      tree sft = get_first_overlapping_subvar (sv, vi->offset,
+						       vi->size, &j);
 	      gcc_assert (sft);
-	      if (sft)
+	      for (; VEC_iterate (tree, sv, j, sft); ++j)
 		{
+		  if (SFT_OFFSET (sft) > vi->offset
+		      && vi->size <= SFT_OFFSET (sft) - vi->offset)
+		    break;
+
 		  var_alias_set = get_alias_set (sft);
 		  if (no_tbaa_pruning
 		      || (!is_derefed && !vi->directly_dereferenced)
 		      || alias_sets_conflict_p (ptr_alias_set, var_alias_set))
-		    bitmap_set_bit (into, DECL_UID (sft));
-		  SFT_IN_NESTED_STRUCT (sft) = vi->in_nested_struct;
+		    {
+		      bitmap_set_bit (into, DECL_UID (sft));
+		      
+		      /* Pointed-to SFTs are needed by the operand scanner
+			 to adjust offsets when adding operands to memory
+			 expressions that dereference PTR.  This means
+			 that memory partitioning may not partition
+			 this SFT because the operand scanner will not
+			 be able to find the other SFTs next to this
+			 one.  But we only need to do this if the pointed
+			 to type is aggregate.  */
+		      if (SFT_BASE_FOR_COMPONENTS_P (sft))
+			SFT_UNPARTITIONABLE_P (sft) = true;
+		    }
 		}
 	    }
 	  else
@@ -4989,7 +5011,7 @@ find_what_p_points_to (tree p)
 	      pi->pt_global_mem = 1;
 	    }
 
-	  set_uids_in_ptset (vi->decl, finished_solution, vi->solution,
+	  set_uids_in_ptset (p, finished_solution, vi->solution,
 			     vi->directly_dereferenced,
 			     vi->no_tbaa_pruning);
 	  result = shared_bitmap_lookup (finished_solution);
@@ -5542,17 +5564,17 @@ ipa_pta_execute (void)
     {
       if (node->analyzed && cgraph_is_master_clone (node))
 	{
-	  struct function *cfun = DECL_STRUCT_FUNCTION (node->decl);
+	  struct function *func = DECL_STRUCT_FUNCTION (node->decl);
 	  basic_block bb;
 	  tree old_func_decl = current_function_decl;
 	  if (dump_file)
 	    fprintf (dump_file,
 		     "Generating constraints for %s\n",
 		     cgraph_node_name (node));
-	  push_cfun (cfun);
+	  push_cfun (func);
 	  current_function_decl = node->decl;
 
-	  FOR_EACH_BB_FN (bb, cfun)
+	  FOR_EACH_BB_FN (bb, func)
 	    {
 	      block_stmt_iterator bsi;
 	      tree phi;

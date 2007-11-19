@@ -1,3 +1,225 @@
+2007-11-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/30988
+	* g++.dg/warn/noreturn-4.C: New test.
+	* g++.dg/warn/noreturn-5.C: New test.
+	* g++.dg/warn/noreturn-6.C: New test.
+	* g++.dg/warn/noreturn-7.C: New test.
+
+2007-11-18  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/32770
+	* gfortran.fortran-torture/execute/equiv_5.f:  Set kind on
+	integers so tests works with -fdefault-integer-8.
+	* gfortran.fortran-torture/execute/elemental.f90:  Use default
+	integers so test passes with -fdefault-integer-8.
+	* gfortran.fortran-torture/execute/der_io.f90:  Increase
+	buffer length so test passes with -fdefault-integer-8.
+	* gfortran.dg/bounds_check_8.f90:  Likewise.
+	* gfortran.dg/arrayio_derived_1.f90:  LIkewise.
+	* gfortran.dg/equiv_7.f90:  Set kind so test passes
+	with -fdefault-integer-8.
+	* gfortran.dg/g77/20030326-1.f:  Set kind explicitly to
+	provoke overflow.
+
+2007-11-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/33317
+	* gfortran.dg/optional_dim_2.f90: New test.
+	
+	PR fortran/34139
+	* gfortran.dg/subref_array_pointer_2.f90: Update test condition.
+	
+2007-11-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/34132
+	* gcc.c-torture/compile/20071118-1.c: New test.
+
+2007-11-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31608
+	* gfortran.dg/char_cast_2.f90: New test based on achar_4.f90.
+
+2007-11-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34137
+	* gfortran.dg/entry_14.f90: New.
+	* gfortran.dg/entry_15.f90: New.
+
+2007-11-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34127
+	* gcc.c-torture/compile/pr34127.c: New testcase.
+
+2007-11-18  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/powerpc/altivec-23.c: Do not use a typedef name as a
+	type specifier, as they are not permitted according to the AltiVec
+	Programming Interface Manual.
+
+2007-11-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34133
+	* gfortran.dg/bind_c_usage_9.f03: New.
+	* gfortran.dg/interface_abstract_1.f90: Fix testcase.
+
+2007-11-17  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/25252
+	* interface.c (gfc_current_interface_head,
+	gfc_set_current_interface_head): New functions.
+	* decl.c (gfc_match_modproc): Move check for syntax error earlier.
+	On syntax error, restore previous state of the interface.
+	* gfortran.h (gfc_current_interface_head,
+	gfc_set_current_interface_head): New prototypes.
+
+2007-11-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34130
+	* gcc.c-torture/execute/pr34130.c: New testcase.
+
+2007-11-17  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/34108
+	* gfortran.dg/fmt_label_1.f90: New test.
+
+2007-11-16  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33957
+	* gfortran.dg/initialization_15.f90 : New test.
+
+2007-11-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34030
+	* gcc.c-torture/compile/pr34030.c: New testcase.
+
+2007-11-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34008
+	* gfortran.dg/interface_assignment_3.f90.
+
+2007-11-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/33870
+	* gcc.dg/torture/pr33870.c: New testcase.
+
+2007-11-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/33986
+	* gfortran.dg/allocatable_function_3.f90.
+
+2007-11-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34113
+	* gcc.c-torture/compile/pr34113.c: New testcase.
+
+2007-11-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34099
+	* g++.dg/torture/pr3499.C: New testcase.
+	* gcc.c-torture/execute/pr34099.c: Likewise.
+
+2007-11-16  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/release_unc_maxalign.adb: New test.
+
+2007-11-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34100
+	* g++.dg/template/crash73.C: New test.
+
+2007-11-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/23848
+	* gcc.dg/tree-ssa/pr23848-1.c: New test.
+	* gcc.dg/tree-ssa/pr23848-2.c: New test.
+	* gcc.dg/tree-ssa/pr23848-3.c: New test.
+	* gcc.dg/tree-ssa/pr23848-4.c: New test.
+
+2007-11-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/33917
+	* gfortran.dg/proc_decl_11.f90: New.
+
+2007-11-15  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/compare-dp.c: New test.
+
+2007-11-14  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* gcc.dg/pr33923.c: New test.
+
+2007-11-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/34088
+	* gcc.dg/pr34088.c: New test.
+
+2007-11-14  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* gcc.c-torture/compile/20071114-1.c: New test.
+
+2007-11-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/31608
+	*gfortran.dg/char_cast_1.f90: Modify regex in scan-tree-dump-times
+	to match known variations in symbol format. Document in comments.
+
+2007-11-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/33985
+	*gfortran.dg/streamio_12.f90: New test to avoid future regression.
+
+2007-11-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	*gfortran.dg/list_read_7.f90: Fix test so that test file is deleted when
+	done.
+
+2007-11-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/33162
+	*gfortran.dg/proc_decl_1.f90: Update.
+	*gfortran.dg/proc_decl_7.f90: New test.
+	*gfortran.dg/proc_decl_8.f90: New test.
+	*gfortran.dg/proc_decl_9.f90: New test.
+	*gfortran.dg/proc_decl_10.f90: New test.
+
+2007-11-13  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34080
+	* gfortran.dg/transfer_assumed_size_1.f90: New test.
+
+2007-11-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34054
+	PR c++/34056
+	PR c++/34057
+	PR c++/34058
+	PR c++/34060
+	* g++.dg/parse/crash36.C: Add another dg-error.
+	* g++.dg/cpp0x/pr34054.C: New test.
+	* g++.dg/cpp0x/pr34056.C: New test.
+	* g++.dg/cpp0x/pr34057.C: New test.
+	* g++.dg/cpp0x/pr34058.C: New test.
+	* g++.dg/cpp0x/pr34060.C: New test.
+
+	PR tree-optimization/34063
+	* g++.dg/tree-ssa/pr34063.C: New test.
+
+2007-11-13  Diego Novillo  <dnovillo@google.com>
+
+	PR tree-optimization/33870
+	* gcc.c-torture/execute/pr33870-1.c: New test.
+	* gcc.dg/tree-ssa/alias-16.c: New test.
+
+2007-11-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/29225
+	* g++.dg/template/crash72.C: New test.
+
+2007-11-12  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* g++.dg/opt/cfg5.C: New test.
+
 2007-11-12  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/34070

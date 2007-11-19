@@ -2665,7 +2665,8 @@ try_replace_reg (rtx from, rtx to, rtx insn)
      with our replacement.  */
   if (note != 0 && REG_NOTE_KIND (note) == REG_EQUAL)
     set_unique_reg_note (insn, REG_EQUAL,
-			 simplify_replace_rtx (XEXP (note, 0), from, to));
+			 simplify_replace_rtx (XEXP (note, 0), from,
+			 copy_rtx (to)));
   if (!success && set && reg_mentioned_p (from, SET_SRC (set)))
     {
       /* If above failed and this is a single set, try to simplify the source of
@@ -6737,13 +6738,15 @@ rest_of_handle_gcse (void)
 
   /* If gcse or cse altered any jumps, rerun jump optimizations to clean
      things up.  */
-  if (tem || tem2)
+  if (tem || tem2 == 2)
     {
       timevar_push (TV_JUMP);
       rebuild_jump_labels (get_insns ());
       cleanup_cfg (0);
       timevar_pop (TV_JUMP);
     }
+  else if (tem2 == 1)
+    cleanup_cfg (0);
 
   flag_cse_skip_blocks = save_csb;
   flag_cse_follow_jumps = save_cfj;

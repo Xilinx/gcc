@@ -284,8 +284,10 @@ resolve_contained_fntype (gfc_symbol *sym, gfc_namespace *ns)
 {
   try t;
 
-  /* If this namespace is not a function, ignore it.  */
-  if (! sym || !(sym->attr.function || sym->attr.flavor == FL_VARIABLE))
+  /* If this namespace is not a function or an entry master function,
+     ignore it.  */
+  if (! sym || !(sym->attr.function || sym->attr.flavor == FL_VARIABLE)
+      || sym->attr.entry_master)
     return;
 
   /* Try to find out of what the return type is.  */
@@ -1074,6 +1076,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 	  if (sym->ts.type == BT_UNKNOWN && sym->attr.intrinsic)
 	    {
 	      gfc_intrinsic_sym *isym;
+
 	      isym = gfc_find_function (sym->name);
 	      if (isym == NULL || !isym->specific)
 		{
@@ -1083,6 +1086,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 		  return FAILURE;
 		}
 	      sym->ts = isym->ts;
+	      sym->attr.intrinsic = 1;
 	      sym->attr.function = 1;
 	    }
 	  goto argument_list;
@@ -1486,6 +1490,22 @@ static match
 resolve_specific_f0 (gfc_symbol *sym, gfc_expr *expr)
 {
   match m;
+
+  /* See if we have an intrinsic interface.  */
+
+  if (sym->interface != NULL && sym->interface->attr.intrinsic)
+    {
+      gfc_intrinsic_sym *isym;
+      isym = gfc_find_function (sym->interface->name);
+
+      /* Existance of isym should be checked already.  */
+      gcc_assert (isym);
+
+      sym->ts = isym->ts;
+      sym->attr.function = 1;
+      sym->attr.proc = PROC_EXTERNAL;
+      goto found;
+    }
 
   if (sym->attr.external || sym->attr.if_source == IFSRC_IFBODY)
     {
@@ -2513,6 +2533,22 @@ resolve_specific_s0 (gfc_code *c, gfc_symbol *sym)
 {
   match m;
 
+  /* See if we have an intrinsic interface.  */
+  if (sym->interface != NULL && !sym->interface->attr.abstract
+      && !sym->interface->attr.subroutine)
+    {
+      gfc_intrinsic_sym *isym;
+
+      isym = gfc_find_function (sym->interface->name);
+
+      /* Existance of isym should be checked already.  */
+      gcc_assert (isym);
+
+      sym->ts = isym->ts;
+      sym->attr.function = 1;
+      goto found;
+    }
+
   if(sym->attr.is_iso_c)
     {
       m = gfc_iso_c_sub_interface (c,sym);
@@ -3409,11 +3445,13 @@ gfc_resolve_dim_arg (gfc_expr *dim)
       return FAILURE;
 
     }
+
   if (dim->ts.type != BT_INTEGER)
     {
       gfc_error ("Argument dim at %L must be of INTEGER type", &dim->where);
       return FAILURE;
     }
+
   if (dim->ts.kind != gfc_index_integer_kind)
     {
       gfc_typespec ts;
@@ -7581,8 +7619,10 @@ resolve_symbol (gfc_symbol *sym)
   if (sym->attr.procedure && sym->interface
       && sym->attr.if_source != IFSRC_DECL)
     {
-      while (sym->interface->interface)
-	sym->interface = sym->interface->interface;
+      if (sym->interface->attr.procedure)
+	gfc_error ("Interface '%s', used by procedure '%s' at %L, is declared "
+		   "in a later PROCEDURE statement", sym->interface->name,
+		   sym->name,&sym->declared_at);
 
       /* Get the attributes from the interface (now resolved).  */
       if (sym->interface->attr.if_source || sym->interface->attr.intrinsic)

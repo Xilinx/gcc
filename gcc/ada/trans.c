@@ -2311,6 +2311,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
   gnu_subprog_call = build_call_list (TREE_TYPE (gnu_subprog_type),
 				      gnu_subprog_addr,
 				      nreverse (gnu_actual_list));
+  set_expr_location_from_node (gnu_subprog_call, gnat_node);
 
   /* If we return by passing a target, the result is the target after the
      call.  We must not emit the call directly here because this might be
@@ -2336,6 +2337,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 
       tree gnu_target_address
 	= build_unary_op (ADDR_EXPR, NULL_TREE, gnu_target);
+      set_expr_location_from_node (gnu_target_address, gnat_node);
 
       gnu_result
 	= build2 (COMPOUND_EXPR, TREE_TYPE (gnu_target_address),
@@ -2491,10 +2493,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	  }
 	}
   else
-    {
-      set_expr_location_from_node (gnu_subprog_call, gnat_node);
-      append_to_statement_list (gnu_subprog_call, &gnu_before_list);
-    }
+    append_to_statement_list (gnu_subprog_call, &gnu_before_list);
 
   append_to_statement_list (gnu_after_list, &gnu_before_list);
   return gnu_before_list;
@@ -4566,7 +4565,9 @@ gnat_to_gnu (Node_Id gnat_node)
 	  tree gnu_obj_type;
 	  tree gnu_actual_obj_type = 0;
 	  tree gnu_obj_size;
-	  int align;
+	  unsigned int align;
+	  unsigned int default_allocator_alignment
+	    = get_target_default_allocator_alignment () * BITS_PER_UNIT;
 
 	  /* If this is a thin pointer, we must dereference it to create
 	     a fat pointer, then go back below to a thin pointer.  The
@@ -4622,6 +4623,35 @@ gnat_to_gnu (Node_Id gnat_node)
 					 gnu_ptr, gnu_byte_offset);
 	    }
 
+ 	  /* If the object was allocated from the default storage pool, the
+ 	     alignement was greater than what the allocator provides, and this
+ 	     is not a fat or thin pointer, what we have in gnu_ptr here is an
+ 	     address dynamically adjusted to match the alignment requirement
+ 	     (see build_allocator).  What we need to pass to free is the
+ 	     initial allocator's return value, which has been stored just in
+ 	     front of the block we have.  */
+ 
+ 	  if (No (Procedure_To_Call (gnat_node)) && align > default_allocator_alignment
+ 	      && ! TYPE_FAT_OR_THIN_POINTER_P (gnu_ptr_type))
+ 	    {
+ 	      /* We set GNU_PTR
+ 		 as * (void **)((void *)GNU_PTR - (void *)sizeof(void *))
+ 		 in two steps: */
+ 	      
+ 	      /* GNU_PTR (void *) = (void *)GNU_PTR - (void *)sizeof (void *))  */
+ 	      gnu_ptr
+ 		= build_binary_op (MINUS_EXPR, ptr_void_type_node,
+ 				   convert (ptr_void_type_node, gnu_ptr),
+ 				   convert (ptr_void_type_node,
+ 					    TYPE_SIZE_UNIT (ptr_void_type_node)));
+ 	      
+ 	      /* GNU_PTR (void *) = *(void **)GNU_PTR  */
+ 	      gnu_ptr
+ 		= build_unary_op (INDIRECT_REF, NULL_TREE,
+ 				  convert (build_pointer_type (ptr_void_type_node),
+ 					   gnu_ptr));
+ 	    }
+ 
 	  gnu_result = build_call_alloc_dealloc (gnu_ptr, gnu_obj_size, align,
 						 Procedure_To_Call (gnat_node),
 						 Storage_Pool (gnat_node),

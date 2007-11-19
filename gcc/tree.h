@@ -2570,10 +2570,14 @@ struct tree_memory_tag GTY(())
   bitmap GTY ((skip)) aliases;
 
   /* True if this tag has global scope.  */
-  unsigned int is_global:1;
+  unsigned int is_global : 1;
 
-  /* True if this SFT is for a field in a nested structure.  */
-  unsigned int in_nested_struct : 1;
+  /* True if this tag is the first field of an aggregate type that
+     can be used to find adjacent SFTs belonging to the same aggregate.  */
+  unsigned int base_for_components : 1;
+
+  /* True if this tag should not be grouped into a memory partition.  */
+  unsigned int unpartitionable : 1;
 };
 
 #define MTAG_GLOBAL(NODE) (TREE_MEMORY_TAG_CHECK (NODE)->mtag.is_global)
@@ -2595,15 +2599,16 @@ struct tree_struct_field_tag GTY(())
   /* Alias set for a DECL_NONADDRESSABLE_P field.  Otherwise -1.  */
   alias_set_type alias_set;
 };
-
 #define SFT_PARENT_VAR(NODE) (STRUCT_FIELD_TAG_CHECK (NODE)->sft.parent_var)
 #define SFT_OFFSET(NODE) (STRUCT_FIELD_TAG_CHECK (NODE)->sft.offset)
 #define SFT_SIZE(NODE) (STRUCT_FIELD_TAG_CHECK (NODE)->sft.size)
 #define SFT_NONADDRESSABLE_P(NODE) \
   (STRUCT_FIELD_TAG_CHECK (NODE)->sft.alias_set != -1)
 #define SFT_ALIAS_SET(NODE) (STRUCT_FIELD_TAG_CHECK (NODE)->sft.alias_set)
-#define SFT_IN_NESTED_STRUCT(NODE) \
-  (STRUCT_FIELD_TAG_CHECK (NODE)->sft.common.in_nested_struct)
+#define SFT_UNPARTITIONABLE_P(NODE) \
+  (STRUCT_FIELD_TAG_CHECK (NODE)->sft.common.unpartitionable)
+#define SFT_BASE_FOR_COMPONENTS_P(NODE) \
+  (STRUCT_FIELD_TAG_CHECK (NODE)->sft.common.base_for_components)
 
 /* Memory Partition Tags (MPTs) group memory symbols under one
    common name for the purposes of placing memory PHI nodes.  */

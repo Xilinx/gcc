@@ -828,6 +828,13 @@ count_mem_refs (long *num_vuses_p, long *num_vdefs_p,
 static inline long
 mem_sym_score (mem_sym_stats_t mp)
 {
+  /* Unpartitionable SFTs are automatically thrown to the bottom of
+     the list.  They are not stored in partitions, but they are used
+     for computing overall statistics.  */
+  if (TREE_CODE (mp->var) == STRUCT_FIELD_TAG
+      && SFT_UNPARTITIONABLE_P (mp->var))
+    return LONG_MAX;
+
   return mp->frequency_writes * 64 + mp->frequency_reads * 32
          + mp->num_direct_writes * 16 + mp->num_direct_reads * 8
 	 + mp->num_indirect_writes * 4 + mp->num_indirect_reads * 2
@@ -1392,8 +1399,8 @@ update_reference_counts (struct mem_ref_stats_d *mem_ref_stats)
 
 static void
 build_mp_info (struct mem_ref_stats_d *mem_ref_stats,
-                 VEC(mem_sym_stats_t,heap) **mp_info_p,
-		 VEC(tree,heap) **tags_p)
+               VEC(mem_sym_stats_t,heap) **mp_info_p,
+	       VEC(tree,heap) **tags_p)
 {
   tree var;
   referenced_var_iterator rvi;
@@ -1590,6 +1597,15 @@ compute_memory_partitions (void)
       /* If we are below the threshold, stop.  */
       if (!need_to_partition_p (mem_ref_stats))
 	break;
+
+      /* SFTs that are marked unpartitionable should not be added to
+	 partitions.  These SFTs are special because they mark the
+	 first SFT into a structure where a pointer is pointing to.
+	 This is needed by the operand scanner to find adjacent
+	 fields.  See add_vars_for_offset for details.  */
+      if (TREE_CODE (mp_p->var) == STRUCT_FIELD_TAG
+	  && SFT_UNPARTITIONABLE_P (mp_p->var))
+	continue;
 
       mpt = find_partition_for (mp_p);
       estimate_vop_reduction (mem_ref_stats, mp_p, mpt);
@@ -3774,7 +3790,8 @@ get_or_create_used_part_for (size_t uid)
 
 static tree
 create_sft (tree var, tree field, unsigned HOST_WIDE_INT offset,
-	    unsigned HOST_WIDE_INT size, alias_set_type alias_set)
+	    unsigned HOST_WIDE_INT size, alias_set_type alias_set,
+	    bool base_for_components)
 {
   tree subvar = create_tag_raw (STRUCT_FIELD_TAG, field, "SFT");
 
@@ -3794,6 +3811,9 @@ create_sft (tree var, tree field, unsigned HOST_WIDE_INT offset,
   SFT_OFFSET (subvar) = offset;
   SFT_SIZE (subvar) = size;
   SFT_ALIAS_SET (subvar) = alias_set;
+  SFT_BASE_FOR_COMPONENTS_P (subvar) = base_for_components;
+  SFT_UNPARTITIONABLE_P (subvar) = false;
+
   return subvar;
 }
 
@@ -3815,7 +3835,10 @@ create_overlap_variables_for (tree var)
 
   push_fields_onto_fieldstack (TREE_TYPE (var), &fieldstack, 0, NULL,
 			       TREE_TYPE (var));
-  if (VEC_length (fieldoff_s, fieldstack) != 0)
+  /* Make sure to not create SFTs for structs we won't generate variable
+     infos for.  See tree-ssa-structalias.c:create_variable_info_for ().  */
+  if (VEC_length (fieldoff_s, fieldstack) != 0
+      && VEC_length (fieldoff_s, fieldstack) <= MAX_FIELDS_FOR_FIELD_SENSITIVE)
     {
       subvar_t *subvars;
       fieldoff_s *fo;
@@ -3907,7 +3930,7 @@ create_overlap_variables_for (tree var)
 		  && currfotype == lastfotype))
 	    continue;
 	  subvar = create_sft (var, fo->type, fo->offset,
-			       fosize, fo->alias_set);
+			       fosize, fo->alias_set, fo->base_for_components);
 	  VEC_quick_push (tree, *subvars, subvar);
 
 	  if (dump_file)

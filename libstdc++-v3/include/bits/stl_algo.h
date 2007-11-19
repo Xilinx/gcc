@@ -63,9 +63,9 @@
 #define _STL_ALGO_H 1
 
 #include <cstdlib>             // for rand
+#include <bits/algorithmfwd.h>
 #include <bits/stl_heap.h>
 #include <bits/stl_tempbuf.h>  // for _Temporary_buffer
-#include <bits/algorithmfwd.h>
 #include <debug/debug.h>
 
 // See concept_check.h for the __glibcxx_*_requires macros.
@@ -2028,7 +2028,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	{
 	  if (__depth_limit == 0)
 	    {
-	      _GLIBCXX_STD_P:partial_sort(__first, __last, __last);
+	      _GLIBCXX_STD_P::partial_sort(__first, __last, __last);
 	      return;
 	    }
 	  --__depth_limit;

@@ -4734,15 +4734,10 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
       gfc_add_block_to_block (&block, &rse.pre);
       gfc_add_block_to_block (&block, &lse.pre);
 
-      if (TREE_CODE (rse.expr) != INDIRECT_REF)
-	{
-	  lse.string_length = rse.string_length;
-	  tmp = gfc_trans_scalar_assign (&lse, &rse, expr->ts, true,
-				  expr->expr_type == EXPR_VARIABLE);
-	  gfc_add_expr_to_block (&block, tmp);
-	}
-      else
-	gfc_add_modify_expr (&block, lse.expr, rse.expr);
+      lse.string_length = rse.string_length;
+      tmp = gfc_trans_scalar_assign (&lse, &rse, expr->ts, true,
+				     expr->expr_type == EXPR_VARIABLE);
+      gfc_add_expr_to_block (&block, tmp);
 
       /* Finish the copying loops.  */
       gfc_trans_scalarizing_loops (&loop, &block);
@@ -5003,7 +4998,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77)
         }
       if (sym->attr.allocatable)
         {
-	  if (sym->attr.dummy)
+	  if (sym->attr.dummy || sym->attr.result)
 	    {
 	      gfc_conv_expr_descriptor (se, expr, ss);
 	      se->expr = gfc_conv_array_data (se->expr);

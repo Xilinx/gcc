@@ -152,11 +152,21 @@ gfc_conv_missing_dummy (gfc_se * se, gfc_expr * arg, gfc_typespec ts)
   tree tmp;
 
   present = gfc_conv_expr_present (arg->symtree->n.sym);
-  tmp = build3 (COND_EXPR, TREE_TYPE (se->expr), present, se->expr,
-		fold_convert (TREE_TYPE (se->expr), integer_zero_node));
+
+  /* Make sure the type is at least default integer kind to match certain
+     runtime library functions. (ie cshift and eoshift).  */
+  if (ts.type == BT_INTEGER && arg->symtree->n.sym->attr.untyped)
+    {
+      tmp = gfc_get_int_type (gfc_default_integer_kind);
+      tmp = fold_convert (tmp, se->expr);
+    }
+  else
+    tmp = build3 (COND_EXPR, TREE_TYPE (se->expr), present, se->expr,
+		  fold_convert (TREE_TYPE (se->expr), integer_zero_node));
 
   tmp = gfc_evaluate_now (tmp, &se->pre);
   se->expr = tmp;
+
   if (ts.type == BT_CHARACTER)
     {
       tmp = build_int_cst (gfc_charlen_type_node, 0);
@@ -3400,7 +3410,7 @@ gfc_conv_expr_val (gfc_se * se, gfc_expr * expr)
     }
 }
 
-/* Helper to translate and expression and convert it to a particular type.  */
+/* Helper to translate an expression and convert it to a particular type.  */
 void
 gfc_conv_expr_type (gfc_se * se, gfc_expr * expr, tree type)
 {
@@ -3597,8 +3607,15 @@ gfc_conv_string_parameter (gfc_se * se)
   type = TREE_TYPE (se->expr);
   if (TYPE_STRING_FLAG (type))
     {
-      gcc_assert (TREE_CODE (se->expr) != INDIRECT_REF);
-      se->expr = gfc_build_addr_expr (pchar_type_node, se->expr);
+      if (TREE_CODE (se->expr) != INDIRECT_REF)
+        se->expr = gfc_build_addr_expr (pchar_type_node, se->expr);
+      else
+	{
+	  type = gfc_get_character_type_len (gfc_default_character_kind,
+					     se->string_length);
+	  type = build_pointer_type (type);
+	  se->expr = gfc_build_addr_expr (type, se->expr);
+	}
     }
 
   gcc_assert (POINTER_TYPE_P (TREE_TYPE (se->expr)));

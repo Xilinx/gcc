@@ -1,3 +1,127 @@
+2007-11-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/33317
+	* trans-expr.c (gfc_conv_missing_dummy): Set the type of the dummy
+	argument to default integer if flagged to do so. Fix typo in comment.
+	* resolve.c (gfc_resolve_dim_arg): Whitespace cleanup.
+	* iresolve.c (gfc_resolve_cshift): Do not convert type, mark attribute
+	for converting the DIM type appropriately in trans-expr.c.
+	(gfc_resolve_eoshift): Likewise.
+	* check.c (dim_check): Remove pre-existing dead code.
+	(gfc_check_cshift): Enable dim_check to allow DIM as an optional.
+	(gfc_check_eoshift): Likewise.
+	* trans_intrinsic.c (gfc_conv_intrinsic_function_args): Fix whitespace.
+
+2007-11-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/31608
+	* trans-array.c (gfc_conv_expr_descriptor): Remove exception
+	for indirect references in the call to gfc_trans_scalar_assign.
+	* trans-expr.c (gfc_conv_string_parameter): Instead of asserting
+	that the expression is not an indirect reference, cast it to a
+	pointer type of the length given by se->string_length.
+
+2007-11-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34137
+	* primary.c (match_variable): Reject non-result entry symbols.
+	* resolve.c (resolve_contained_fntype): Do not check entry master
+	functions.
+
+2007-11-17  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-types.c (gfc_init_types): Use wider buffer.
+
+2007-11-17  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-types.c (gfc_init_types): Use Fortran-90-style type
+	names, with kinds.
+
+2007-11-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34133
+	* decl.c (gfc_match_suffix,gfc_match_subroutine): Disallow
+	bind(c) attribute for internal procedures.
+
+2007-11-17  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/25252
+	* interface.c (gfc_current_interface_head,
+	gfc_set_current_interface_head): New functions.
+	* decl.c (gfc_match_modproc): Move check for syntax error earlier.
+	On syntax error, restore previous state of the interface.
+	* gfortran.h (gfc_current_interface_head,
+	gfc_set_current_interface_head): New prototypes.
+
+2007-11-17  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/30285
+	* module.c (struct written_common, written_commons): New structure.
+	(compare_written_commons, free_written_common, write_common_0):
+	New functions.
+	(write_common): Call recursive function write_common_0.
+
+2007-11-17  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/34108
+	* io.c (check_format_string): Only check character expressions.
+	(match_dt_format): Return MATCH_ERROR if that is what
+	gfc_match_st_label said.
+
+2007-11-16  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33957
+	* expr.c (check_inquiry): Don't call gfc_error now.
+
+2007-11-16  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33739
+	PR fortran/34084
+	* scanner.c (start_source_file, end_source_file,
+	exit_remaining_files, gfc_advance_line): Revert rev. 130016.
+
+2007-11-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34008
+	* trans-stmt.c (gfc_conv_elemental_dependencies): Add check for
+	INTENT_INOUT as well as INTENT_OUT.
+	(gfc_trans_call): Remove redundant gcc_asserts in dependency
+	check.
+
+2007-11-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/33986
+	* trans-array.c (gfc_conv_array_parameter ): Allow allocatable
+	function results.
+
+2007-11-15  Tobias Burnus  <burnus@net-b.de>
+ 
+	PR fortran/33917
+	* decl.c (match_procedure_decl): Pre-resolve interface.
+	* resolve.c (resolve_symbol): Reject interfaces later
+	declared in procedure statements.
+
+2007-11-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/33162
+	* decl.c (match_procedure_decl): Remove TODO and allow intrinsics in
+	PROCEDURE declarations.  Set attr.untyped to allow the interface to be
+	resolved later where the symbol type will be set.
+	* interface.c (compare_intr_interfaces): Remove static from pointer
+	declarations.  Add type and kind checks for dummy function arguments.
+	(compare_actual_formal_intr): New function to compare an actual
+	argument with an intrinsic function. (gfc_procedures_use): Add check for
+	interface that points to an intrinsic function, use the new function.
+	* resolve.c (resolve_specific_f0): Resolve the intrinsic interface.
+	(resolve_specific_s0): Ditto.
+
+2007-11-13  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34080
+	* iresolve.c (gfc_resolve_transfer): Do not try to convert
+	to a constant MOLD expression, if it is an assumed size
+	dummy.
+
 2007-11-10  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	* trans-common.c: Remove prototype for gfc_get_common.
