@@ -113,6 +113,7 @@ static tree validate_size (Uint, tree, Entity_Id, enum tree_code, bool, bool);
 static void set_rm_size (Uint, tree, Entity_Id);
 static tree make_type_from_size (tree, tree, bool);
 static unsigned int validate_alignment (Uint, Entity_Id, unsigned int);
+static unsigned int ceil_alignment (unsigned HOST_WIDE_INT);
 static void check_ok_for_atomic (tree, Entity_Id, bool);
 static int  compatible_signatures_p (tree ftype1, tree ftype2);
 
@@ -645,9 +646,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	/* If this is an atomic object with no specified size and alignment,
 	   but where the size of the type is a constant, set the alignment to
-	   the lowest power of two greater than the size, or to the
-	   biggest meaningful alignment, whichever is smaller.  */
-
+	   the smallest not less than the size, or to the biggest meaningful
+	   alignment, whichever is smaller.  */
 	if (Is_Atomic (gnat_entity) && !gnu_size && align == 0
 	    && TREE_CODE (TYPE_SIZE (gnu_type)) == INTEGER_CST)
 	  {
@@ -656,10 +656,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 					  BIGGEST_ALIGNMENT))
 	      align = BIGGEST_ALIGNMENT;
 	    else
-	      align = ((unsigned int) 1
-		       << (floor_log2 (tree_low_cst
-				       (TYPE_SIZE (gnu_type), 1) - 1)
-			   + 1));
+	      align = ceil_alignment (tree_low_cst (TYPE_SIZE (gnu_type), 1));
 	  }
 
 	/* If the object is set to have atomic components, find the component
@@ -734,7 +731,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	     || (Is_Exported (gnat_entity)
 		 /* Exclude exported constants created by the compiler,
 		    which should boil down to static dispatch tables and
-		    make it possible to put them in read-only memory.  */
+		    make it possible to put them in read-only memory.  */
 		 && (Comes_From_Source (gnat_entity) || !const_flag))
 	     || Is_Imported (gnat_entity)
 	     || Present (Address_Clause (gnat_entity)))
@@ -2408,12 +2405,15 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	tree gnu_field;
 	tree gnu_field_list = NULL_TREE;
 	tree gnu_get_parent;
+	/* Set PACKED in keeping with gnat_to_gnu_field.  */
 	int packed
 	  = Is_Packed (gnat_entity)
 	    ? 1
 	    : Component_Alignment (gnat_entity) == Calign_Storage_Unit
 	      ? -1
-	      : Known_Alignment (gnat_entity)
+	      : (Known_Alignment (gnat_entity)
+		 || (Strict_Alignment (gnat_entity)
+		     && Known_Static_Esize (gnat_entity)))
 		? -2
 		: 0;
 	bool has_rep = Has_Specified_Layout (gnat_entity);
@@ -2468,8 +2468,17 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    = validate_alignment (Alignment (gnat_entity), gnat_entity, 0);
 	else if (Is_Atomic (gnat_entity))
 	  TYPE_ALIGN (gnu_type)
-	    = (esize >= BITS_PER_WORD ? BITS_PER_WORD
-	       : 1 << (floor_log2 (esize - 1) + 1));
+	    = esize >= BITS_PER_WORD ? BITS_PER_WORD : ceil_alignment (esize);
+	/* If a type needs strict alignment, the minimum size will be the
+	   type size instead of the RM size (see validate_size).  Cap the
+	   alignment, lest it causes this type size to become too large.  */
+	else if (Strict_Alignment (gnat_entity)
+		 && Known_Static_Esize (gnat_entity))
+	  {
+	    unsigned int raw_size = UI_To_Int (Esize (gnat_entity));
+	    TYPE_ALIGN (gnu_type)
+	      = MIN (BIGGEST_ALIGNMENT, raw_size & -raw_size);
+	  }
 	else
 	  TYPE_ALIGN (gnu_type) = 0;
 
@@ -5189,13 +5198,17 @@ static tree
 make_packable_type (tree type)
 {
   tree new_type = make_node (TREE_CODE (type));
+  tree name = TYPE_NAME (type);
   tree field_list = NULL_TREE;
   tree old_field;
+
+  if (name && TREE_CODE (name) == TYPE_DECL)
+    name = DECL_NAME (name);
 
   /* Copy the name and flags from the old type to that of the new and set
      the alignment to try for an integral type.  For QUAL_UNION_TYPE,
      also copy the size.  */
-  TYPE_NAME (new_type) = TYPE_NAME (type);
+  TYPE_NAME (new_type) = name;
   TYPE_JUSTIFIED_MODULAR_P (new_type)
     = TYPE_JUSTIFIED_MODULAR_P (type);
   TYPE_CONTAINS_TEMPLATE_P (new_type) = TYPE_CONTAINS_TEMPLATE_P (type);
@@ -5208,9 +5221,7 @@ make_packable_type (tree type)
       TYPE_SIZE_UNIT (new_type) = TYPE_SIZE_UNIT (type);
     }
 
-  TYPE_ALIGN (new_type)
-    = ((HOST_WIDE_INT) 1
-       << (floor_log2 (tree_low_cst (TYPE_SIZE (type), 1) - 1) + 1));
+  TYPE_ALIGN (new_type) = ceil_alignment (tree_low_cst (TYPE_SIZE (type), 1));
   TYPE_USER_ALIGN (new_type) = 1;
 
   /* Now copy the fields, keeping the position and size.  */
@@ -5387,15 +5398,17 @@ maybe_pad_type (tree type, tree size, unsigned int align,
   /* Unless debugging information isn't being written for the input type,
      write a record that shows what we are a subtype of and also make a
      variable that indicates our size, if variable. */
-  if (TYPE_NAME (record) && AGGREGATE_TYPE_P (type)
+  if (TYPE_NAME (record)
+      && AGGREGATE_TYPE_P (type)
       && (TREE_CODE (TYPE_NAME (type)) != TYPE_DECL
 	  || !DECL_IGNORED_P (TYPE_NAME (type))))
     {
       tree marker = make_node (RECORD_TYPE);
-      tree name = (TREE_CODE (TYPE_NAME (record)) == TYPE_DECL
-		   ? DECL_NAME (TYPE_NAME (record))
-		   : TYPE_NAME (record));
+      tree name = TYPE_NAME (record);
       tree orig_name = TYPE_NAME (type);
+
+      if (TREE_CODE (name) == TYPE_DECL)
+	name = DECL_NAME (name);
 
       if (TREE_CODE (orig_name) == TYPE_DECL)
 	orig_name = DECL_NAME (orig_name);
@@ -5715,38 +5728,32 @@ gnat_to_gnu_field (Entity_Id gnat_field, tree gnu_record_type, int packed,
 	 consistent with the alignment.  */
       if (needs_strict_alignment)
 	{
-	  tree gnu_rounded_size = round_up (rm_size (gnu_field_type),
-					    TYPE_ALIGN (gnu_field_type));
-
 	  TYPE_ALIGN (gnu_record_type)
 	    = MAX (TYPE_ALIGN (gnu_record_type), TYPE_ALIGN (gnu_field_type));
 
-	  /* If Atomic, the size must match exactly that of the field.  */
-	  if ((Is_Atomic (gnat_field) || Is_Atomic (Etype (gnat_field)))
+	  if (gnu_size
 	      && !operand_equal_p (gnu_size, TYPE_SIZE (gnu_field_type), 0))
 	    {
-	      post_error_ne_tree
-		("atomic field& must be natural size of type{ (^)}",
-		 Last_Bit (Component_Clause (gnat_field)), gnat_field,
-		 TYPE_SIZE (gnu_field_type));
+	      if (Is_Atomic (gnat_field) || Is_Atomic (Etype (gnat_field)))
+		post_error_ne_tree
+		  ("atomic field& must be natural size of type{ (^)}",
+		   Last_Bit (Component_Clause (gnat_field)), gnat_field,
+		   TYPE_SIZE (gnu_field_type));
+
+	      else if (Is_Aliased (gnat_field))
+		post_error_ne_tree
+		  ("size of aliased field& must be ^ bits",
+		   Last_Bit (Component_Clause (gnat_field)), gnat_field,
+		   TYPE_SIZE (gnu_field_type));
+
+	      else if (Strict_Alignment (Etype (gnat_field)))
+		post_error_ne_tree
+		  ("size of & with aliased or tagged components not ^ bits",
+		   Last_Bit (Component_Clause (gnat_field)), gnat_field,
+		   TYPE_SIZE (gnu_field_type));
 
 	      gnu_size = NULL_TREE;
 	    }
-
-	  /* If Aliased, the size must match exactly the rounded size.  We
-	     used to be more accommodating here and accept greater sizes, but
-	     fully supporting this case on big-endian platforms would require
-	     switching to a more involved layout for the field.  */
-	  else if (Is_Aliased (gnat_field)
-		   && gnu_size
-		   && ! operand_equal_p (gnu_size, gnu_rounded_size, 0))
-	    {
-	      post_error_ne_tree
-		("size of aliased field& must be ^ bits",
-		 Last_Bit (Component_Clause (gnat_field)), gnat_field,
-		 gnu_rounded_size);
-	      gnu_size = NULL_TREE;
-  	    }
 
 	  if (!integer_zerop (size_binop
 			      (TRUNC_MOD_EXPR, gnu_pos,
@@ -5769,6 +5776,7 @@ gnat_to_gnu_field (Entity_Id gnat_field, tree gnu_record_type, int packed,
   ("position of & with aliased or tagged components not multiple of ^ bits",
 		   First_Bit (Component_Clause (gnat_field)), gnat_field,
 		   TYPE_ALIGN (gnu_field_type));
+
 	      else
 		gcc_unreachable ();
 
@@ -6485,9 +6493,15 @@ validate_size (Uint uint_size, tree gnu_type, Entity_Id gnat_object,
 	       enum tree_code kind, bool component_p, bool zero_ok)
 {
   Node_Id gnat_error_node;
-  tree type_size
-    = kind == VAR_DECL ? TYPE_SIZE (gnu_type) : rm_size (gnu_type);
-  tree size;
+  tree type_size, size;
+
+  if (kind == VAR_DECL
+      /* If a type needs strict alignment, a component of this type in
+	 a packed record cannot be packed and thus uses the type size.  */
+      || (kind == TYPE_DECL && Strict_Alignment (gnat_object)))
+    type_size = TYPE_SIZE (gnu_type);
+  else
+    type_size = rm_size (gnu_type);
 
   /* Find the node to use for errors.  */
   if ((Ekind (gnat_object) == E_Component
@@ -6782,6 +6796,14 @@ validate_alignment (Uint alignment, Entity_Id gnat_entity, unsigned int align)
     align = MAX (align, new_align == 0 ? 1 : new_align * BITS_PER_UNIT);
 
   return align;
+}
+
+/* Return the smallest alignment not less than SIZE.  */
+
+static unsigned int
+ceil_alignment (unsigned HOST_WIDE_INT size)
+{
+  return (unsigned int) 1 << (floor_log2 (size - 1) + 1);
 }
 
 /* Verify that OBJECT, a type or decl, is something we can implement

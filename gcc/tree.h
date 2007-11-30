@@ -2069,13 +2069,14 @@ struct tree_block GTY(())
   unsigned abstract_flag : 1;
   unsigned block_num : 30;
 
+  location_t locus;
+
   tree vars;
   tree subblocks;
   tree supercontext;
   tree abstract_origin;
   tree fragment_origin;
   tree fragment_chain;
-  location_t locus;
 };
 
 /* Define fields and accessors for nodes representing data types.  */
@@ -4289,7 +4290,6 @@ typedef struct record_layout_info_s
   int packed_maybe_necessary;
 } *record_layout_info;
 
-extern void set_lang_adjust_rli (void (*) (record_layout_info));
 extern record_layout_info start_record_layout (tree);
 extern tree bit_from_pos (tree, tree);
 extern tree byte_from_pos (tree, tree);
@@ -4951,7 +4951,7 @@ extern void expand_main_function (void);
 extern void init_dummy_function_start (void);
 extern void expand_dummy_function_end (void);
 extern unsigned int init_function_for_compilation (void);
-extern void allocate_struct_function (tree);
+extern void allocate_struct_function (tree, bool);
 extern void push_struct_function (tree fndecl);
 extern void init_function_start (tree);
 extern bool use_register_for_decl (const_tree);

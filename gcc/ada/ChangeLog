@@ -1,3 +1,100 @@
+2007-11-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (make_packable_type): Retrieve the real name of the type.
+	(maybe_pad_type): Simplify similar code.
+
+2007-11-28  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/15803
+	* par-ch3.adb (P_Variant_Part): Signal an error when anything other
+	than an identifier is used after "case" in a variant_part.
+
+	PR ada/17318
+	* par-ch4.adb (Is_Parameterless_Attribute): New map.
+	(P_Name, Scan_Apostrophe block): Parse left parenthesis following
+	attribute name or not depending on the new map.
+
+	* sem-attr.adb (Analyze_Attribute): Parameterless attributes
+	returning a string or a type will not be called with improper
+	arguments.
+
+	* sem-attr.ads (Attribute_Class_Array): Move to snames.ads.
+
+	* snames.ads (Attribute_Class_Array): Moved from sem-attr.ads.
+
+	PR ada/32792
+	* sem_attr.adb (Analyze_Attribute, Attribute_Integer_Value clause):
+	Signal an error when attribute argument is a fixed-point value of
+	an unknown type.
+
+	PR ada/22559
+	* sem_ch3.adb (Build_Derived_Numeric_Type): Do not set RM_Size on
+	a derived ordinary fixed point type.
+
+	* sem_ch13.adb (Analyze_Attribute_Definition_Clause): Recompute
+	RM_Size when a Small clause is found.
+
+2007-11-26  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+        PR 34081/C++
+        * trans.c (Subprogram_Body_to_gnu, Compilation_Unit_to_gnu):
+        Pass 'false' for the new allocate_struct_function parameter.
+        * utils.c (build_function_stub): Likewise.
+
+2007-11-25  Richard Guenther  <rguenther@suse.de>
+
+	utils.c (gnat_pushlevel): Use BLOCK_CHAIN.
+	(gnat_poplevel): Likewise.
+
+2007-11-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (gnat_to_gnu_entity) <E_Record_Type>: If the type has
+	strict alignment, no alignment clause and a known static size, cap
+	the type alignment to the greatest power of 2 factor of the size.
+	(gnat_to_gnu_field): If the field has a component clause, is aliased
+	or of a type with strict alignment, require that its size be equal to
+	that of the type.
+	(validate_size): Use the type size as the minimum size for a type with
+	strict alignment.
+
+2007-11-23  Samuel Tardieu  <sam@rfc1149.net>
+
+	* s-inmaop-posix.adb, s-intman-vxworks.adb, s-taprop-hpux-dce.adb,
+	s-taprop-irix.adb, s-taprop-linux.adb, s-taprop-lynxos.adb,
+	s-taprop-posix.adb, s-taprop-tru64.adb, s-taprop-vxworks.adb:
+	Use 'Access instead of 'Unchecked_Access in second and third
+	arguments of pthread_sigmask.
+
+2007-11-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (ceil_alignment): New function.
+	(gnat_to_gnu_entity): Use it to set the alignment on atomic types.
+	(make_packable_type): Likewise.
+
+2007-11-22  Olivier Hainque  <hainque@adacore.com>
+
+	* trans.c (gnat_to_gnu) <case N_Free_Statement>: Reformat lines
+	to fit in 80 columns.
+
+2007-11-21  Aurelien Jarno <aurelien@aurel32.net>
+
+	* s-osinte-kfreebsd-gnu.ads (To_Target_Priority): New function.
+	* Makefile.in: Add EH_MECHANISM=-gcc to kfreebsd-gnu. Remove SYMLIB.
+
+2007-11-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/34098
+	* misc.c (gnat_adjust_rli): Delete.
+	(gnat_init): Do not initialize the translation code here.
+	Do not call set_lang_adjust_rli.
+	* trans.c (init_code_table): Make static.
+	(gnat_init_stmt_group): Delete.
+	(gigi): Initialize the translation code entirely here.
+	Emit debug info for the common types here instead of...
+	* utils.c (gnat_init_decl_processing): ...here.
+	* gigi.h (init_code_table): Delete.
+	(gnat_init_stmt_group): Likewise.
+
 2007-11-16  Olivier Hainque  <hainque@adacore.com>
 
 	* utils2.c (build_call_alloc_dealloc) <if gnu_obj>: Move the code
@@ -14,7 +111,7 @@
 
 2007-11-14  Samuel Tardieu  <sam@rfc1149.net>
 
-	* adaint.c init.c initialize.c link.c: Remove system-specific
+	* adaint.c, init.c, initialize.c, link.c: Remove system-specific
 	sections of non-supported Interix target.
 
 	* s-osinte-interix.ads: Removed.

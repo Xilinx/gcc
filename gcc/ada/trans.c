@@ -181,6 +181,7 @@ static enum tree_code gnu_codes[Number_Node_Kinds];
 /* Current node being treated, in case abort called.  */
 Node_Id error_gnat_node;
 
+static void init_code_table (void);
 static void Compilation_Unit_to_gnu (Node_Id);
 static void record_code_position (Node_Id);
 static void insert_code_for (Node_Id);
@@ -269,6 +270,8 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
     }
 #endif
 
+  /* Initialize ourselves.  */
+  init_code_table ();
   init_gnat_to_gnu ();
   gnat_compute_largest_alignment ();
   init_dummy_type ();
@@ -280,6 +283,20 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
       TYPE_SIZE (void_type_node) = bitsize_zero_node;
       TYPE_SIZE_UNIT (void_type_node) = size_zero_node;
     }
+
+  /* Enable GNAT stack checking method if needed */
+  if (!Stack_Check_Probes_On_Target)
+    set_stack_check_libfunc (gen_rtx_SYMBOL_REF (Pmode, "_gnat_stack_check"));
+
+  /* Give names and make TYPE_DECLs for common types.  */
+  create_type_decl (get_identifier (SIZE_TYPE), sizetype,
+		    NULL, false, true, Empty);
+  create_type_decl (get_identifier ("integer"), integer_type_node,
+		    NULL, false, true, Empty);
+  create_type_decl (get_identifier ("unsigned char"), char_type_node,
+		    NULL, false, true, Empty);
+  create_type_decl (get_identifier ("long integer"), long_integer_type_node,
+		    NULL, false, true, Empty);
 
   /* Save the type we made for integer as the type for Standard.Integer.
      Then make the rest of the standard types.  Note that some of these
@@ -313,6 +330,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
     gnat_init_gcc_eh ();
 
   gcc_assert (Nkind (gnat_root) == N_Compilation_Unit);
+  start_stmt_group ();
   Compilation_Unit_to_gnu (gnat_root);
 
   /* Now see if we have any elaboration procedures to deal with. */
@@ -359,20 +377,6 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
 
   /* We cannot track the location of errors past this point.  */
   error_gnat_node = Empty;
-}
-
-/* Perform initializations for this module.  */
-
-void
-gnat_init_stmt_group (void)
-{
-  /* Initialize ourselves.  */
-  init_code_table ();
-  start_stmt_group ();
-
-  /* Enable GNAT stack checking method if needed */
-  if (!Stack_Check_Probes_On_Target)
-    set_stack_check_libfunc (gen_rtx_SYMBOL_REF (Pmode, "_gnat_stack_check"));
 }
 
 /* Returns a positive value if GNAT_NODE requires an lvalue for an
@@ -1772,7 +1776,7 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
   Sloc_to_locus (Sloc (gnat_node), &DECL_SOURCE_LOCATION (gnu_subprog_decl));
 
   /* Initialize the information structure for the function.  */
-  allocate_struct_function (gnu_subprog_decl);
+  allocate_struct_function (gnu_subprog_decl, false);
   DECL_STRUCT_FUNCTION (gnu_subprog_decl)->language
     = GGC_CNEW (struct language_function);
 
@@ -2910,7 +2914,7 @@ Compilation_Unit_to_gnu (Node_Id gnat_node)
   push_stack (&gnu_elab_proc_stack, NULL_TREE, gnu_elab_proc_decl);
 
   DECL_ELABORATION_PROC_P (gnu_elab_proc_decl) = 1;
-  allocate_struct_function (gnu_elab_proc_decl);
+  allocate_struct_function (gnu_elab_proc_decl, false);
   Sloc_to_locus (Sloc (gnat_unit_entity), &cfun->function_end_locus);
   set_cfun (NULL);
 
@@ -4631,25 +4635,29 @@ gnat_to_gnu (Node_Id gnat_node)
  	     initial allocator's return value, which has been stored just in
  	     front of the block we have.  */
  
- 	  if (No (Procedure_To_Call (gnat_node)) && align > default_allocator_alignment
+ 	  if (No (Procedure_To_Call (gnat_node))
+	      && align > default_allocator_alignment
  	      && ! TYPE_FAT_OR_THIN_POINTER_P (gnu_ptr_type))
  	    {
  	      /* We set GNU_PTR
  		 as * (void **)((void *)GNU_PTR - (void *)sizeof(void *))
- 		 in two steps: */
+ 		 in two steps:  */
  	      
- 	      /* GNU_PTR (void *) = (void *)GNU_PTR - (void *)sizeof (void *))  */
+ 	      /* GNU_PTR (void *)
+		 = (void *)GNU_PTR - (void *)sizeof (void *))  */
  	      gnu_ptr
- 		= build_binary_op (MINUS_EXPR, ptr_void_type_node,
- 				   convert (ptr_void_type_node, gnu_ptr),
- 				   convert (ptr_void_type_node,
- 					    TYPE_SIZE_UNIT (ptr_void_type_node)));
+ 		= build_binary_op
+		    (MINUS_EXPR, ptr_void_type_node,
+		     convert (ptr_void_type_node, gnu_ptr),
+		     convert (ptr_void_type_node,
+			      TYPE_SIZE_UNIT (ptr_void_type_node)));
  	      
  	      /* GNU_PTR (void *) = *(void **)GNU_PTR  */
  	      gnu_ptr
- 		= build_unary_op (INDIRECT_REF, NULL_TREE,
- 				  convert (build_pointer_type (ptr_void_type_node),
- 					   gnu_ptr));
+ 		= build_unary_op
+		    (INDIRECT_REF, NULL_TREE,
+		     convert (build_pointer_type (ptr_void_type_node),
+			      gnu_ptr));
  	    }
  
 	  gnu_result = build_call_alloc_dealloc (gnu_ptr, gnu_obj_size, align,
@@ -6763,7 +6771,7 @@ post_error_ne_tree_2 (const char *msg,
 /* Initialize the table that maps GNAT codes to GCC codes for simple
    binary and unary operations.  */
 
-void
+static void
 init_code_table (void)
 {
   gnu_codes[N_And_Then] = TRUTH_ANDIF_EXPR;

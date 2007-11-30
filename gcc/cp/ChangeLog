@@ -1,9 +1,90 @@
+2007-11-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34270
+	* tree.c (lvalue_p_1) <case COND_EXPR>: Handle x ?: y
+	in templates.
+	* typeck.c (is_bitfield_expr_with_lowered_type) <case COND_EXPR>:
+	Likewise.
+
+	PR c++/34267
+	PR c++/34268
+	* parser.c (cp_parser_decltype): Don't call finish_id_expression
+	on ~type.
+	* semantics.c (finish_decltype_type): Issue error on types, TYPE_DECLs
+	and ~type early.
+
+2007-11-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/34181
+	* method.c (use_thunk): Don't inline the call in the thunk.
+
+	PR c++/34213
+	* tree.c (decl_linkage): Static data members and static member
+	functions in anonymous ns classes are lk_external.
+
+2007-11-26  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	PR c++/34081
+	* decl.c (start_preparsed_function): Pass 
+	processing_template_decl for the new allocate_struct_function
+	parameter.
+
+2007-11-25  Richard Guenther  <rguenther@suse.de>
+
+	* decl.c (poplevel): Use BLOCK_CHAIN.
+
+2007-11-24  Ollie Wild  <aaw@google.com>
+
+	* typeck.c (delta_from_ptrmemfunc): New function.
+	(get_member_function_from_ptrfunc): Call delta_from_ptrmemfunc.
+	(build_binary_op): Call delta_from_ptrmemfunc.
+
+2007-11-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/30293
+	PR c++/30294
+	* decl.c (cp_finish_decl): Disallow variable or field
+	definitions if extern "Java" aggregates.
+	(grokparms): Disallow parameters with extern "Java"
+	aggregates.
+	(check_function_type): Disallow function return values
+	with extern "Java" aggregates.
+	* init.c (build_new_1): Disallow placement new with
+	extern "Java" aggregates.
+
+2007-11-23  Mark Mitchell  <mark@codesourcery.com>
+	    Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+	
+	PR c++/5310
+	* call.c (convert_like_real): Build a zero constant when __null is
+	converted to an integer type.
+	
+2007-11-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34094
+	* decl2.c (cp_write_global_declarations): Issue error about static
+	data members in anonymous namespace which are declared and used,
+	but not defined.
+
+2007-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34089
+	* parser.c (cp_parser_class_head): Reject function template ids.
+
+	PR c++/28879
+	* tree.c (build_cplus_array_type_1): Don't pass any VLA types
+	when processing_template_decl to build_array_type.
+
+	PR c++/33962
+	* pt.c (more_specialized_fn): Don't segfault if one or
+	both argument list end with ellipsis.
+
 2007-11-18  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/30988
-	semantics.c (finish_call_expr): Set current_function_returns_abnormally
-	if fn is noreturn FUNCTION_DECL or OVERLOAD with all noreturn
-	functions.
+	* semantics.c (finish_call_expr): Set
+	current_function_returns_abnormally if fn is noreturn FUNCTION_DECL
+	or OVERLOAD with all noreturn functions.
 
 2007-11-16  Jakub Jelinek  <jakub@redhat.com>
 

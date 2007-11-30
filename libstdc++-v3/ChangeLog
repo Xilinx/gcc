@@ -1,3 +1,267 @@
+2007-11-29  Andris Pavenis <andris.pavenis@iki.fi>
+
+    	* src/Makefile.am: Use separate vpath lines for each path.
+
+2007-11-28  Johannes Singler  <singler@ira.uka.de>
+
+        * include/parallel/multiway_merge.h: Destruct only elements that 
+        were have been constructed before. Code beautifying and formatting.
+        * include/parallel/losertree.h: (Copy) construct all loser tree 
+        item keys, so they can be deconstructed all at once.
+        * include/parallel/quicksort.h: Fix memory leak.
+        * include/parallel/random_shuffle.h: Use copy constructor instead 
+        of assignment. Code beautifying and formatting.
+        * include/parallel/unique_copy.h: Use assignment instead of copy 
+        constructor.
+        * include/parallel/multiway_mergesort.h: Use copy constructor 
+        instead of assignment. Code beautifying and formatting.
+        * include/parallel/random_shuffle.h: Use copy constructor instead 
+        of assignment. Code beautifying.
+
+2007-11-27  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	01_assoc_laguerre/check_nan.cc: Add -mieee for sh.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	02_assoc_legendre/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	03_beta/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	04_comp_ellint_1/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	06_comp_ellint_3/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	07_conf_hyperg/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	08_cyl_bessel_i/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	09_cyl_bessel_j/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	10_cyl_bessel_k/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	11_cyl_neumann/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	12_ellint_1/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	13_ellint_2/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	14_ellint_3/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	15_expint/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	16_hermite/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	18_laguerre/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	19_legendre/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	20_riemann_zeta/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	21_sph_bessel/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	22_sph_legendre/check_nan.cc: Likewise.
+	* testsuite/tr1/5_numerical_facilities/special_functions/
+	23_sph_neumann/check_nan.cc: Likewise.
+
+2007-11-26  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/locale_facets.tcc (num_put<>::_M_insert_int): When
+	ios_base::showpos and the type is signed and the value is zero,
+	prepend +.
+	* testsuite/22_locale/num_put/put/char/12.cc: New.
+	* testsuite/22_locale/num_put/put/wchar_t/12.cc: Likewise.
+
+2007-11-26  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/25913
+	* include/c_std/cmath (std::fpclassify, isfinite, isinf, isnan,
+	isnormal, signbit, isgreater, isgreaterequal, isless, islessequal,
+	islessgreater, isunordered): Guard with __enable_if and forward
+	with __promote.
+	* include/c_global/cmath: Likewise.
+	* testsuite/26_numerics/headers/cmath/25913.cc: New.
+
+	* include/c_std/cmath (__gnu_cxx::__capture_isfinite,
+	__capture_isinf, __capture_isnan, __capture_isnormal,
+	__capture_signbit, __capture_isgreater, __capture_isgreaterequal,
+	__capture_isless, __capture_islessequal, __capture_islessgreater,
+	__capture_isunordered): Remove.
+	(std::isfinite, isinf, isnan, isnormal, signbit, isgreater,
+	isgreaterequal, isless, islessequal, islessgreater, isunordered):
+	Forward to the corresponding builtin.
+	* include/c_global/cmath: Likewise.
+
+	* include/c_global/cmath (std::atan2, pow): Guard with __enable_if.
+
+2007-11-25  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1_impl/unordered_map
+	(__unordered_map<>::__unordered_map(__unordered_map&&),
+	__unordered_multimap<>::__unordered_multimap(__unordered_multimap&&),
+	unordered_map<>::unordered_map(unordered_map&&),
+	unordered_multimap<>::unordered_multimap(unordered_multimap&&),
+	unordered_map<>::operator=(unordered_map&&),
+	unordered_multimap<>::operator=(unordered_multimap&&),
+	swap(unordered_map<>&&, unordered_map<>&),
+	swap(unordered_map<>&, unordered_map<>&&),
+	swap(unordered_multimap<>&&, unordered_multimap<>&),
+	swap(unordered_multimap<>&, unordered_multimap<>&&)): Add in C++0x.
+	(swap(unordered_multimap<>&, unordered_multimap<>&),
+	swap(unordered_multimap<>&, unordered_multimap<>&)): Add.
+	* include/tr1_impl/unordered_set
+	(__unordered_set<>::__unordered_set(__unordered_set&&),
+	__unordered_multiset<>::__unordered_multiset(__unordered_multiset&&),
+	unordered_set<>::unordered_set(unordered_setp&&),
+	unordered_multiset<>::unordered_multiset(unordered_multiset&&),
+	unordered_set<>::operator=(unordered_set&&),
+	unordered_multiset<>::operator=(unordered_multiset&&),
+	swap(unordered_set<>&&, unordered_set<>&),
+	swap(unordered_set<>&, unordered_set<>&&),
+	swap(unordered_multiset<>&&, unordered_multiset<>&),
+	swap(unordered_multiset<>&, unordered_multiset<>&&)): Likewise.
+	(swap(unordered_set<>&, unordered_set<>&),
+	swap(unordered_multiset<>&, unordered_multiset<>&)): Add.
+	* include/tr1_impl/hashtable (_Hashtable<>::_Hashtable(_Hashtable&&),
+	swap(_Hashtable&&)): Add in C++0x.
+	* testsuite/23_containers/unordered_map/moveable.cc: New.
+	* testsuite/23_containers/unordered_set/moveable.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/moveable.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/moveable.cc: Likewise.
+
+2007-11-25  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1_impl/array (array<>::_M_check): Remove, not necessary
+	anymore.
+	(array<>::at): Adjust.
+
+	* docs/html/17_intro/c++0x_status.html: Fix array::data entry.
+
+2007-11-25  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_algobase.h (__lexicographical_compare<>::__lc):
+	Move out of line.
+
+	* include/bits/stl_algobase.h (swap_ranges): Remove redundant
+	simulated concept checks.
+
+2007-11-23  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/std/bitset (bitset<>::all): Add, per DR 693 [Ready].
+	(_Base_bitset<>::_M_are_all_aux()): Add.
+	* include/debug/bitset (bitset<>::all): Add.
+	* testsuite/23_containers/bitset/all/1.cc: New.
+	* docs/html/ext/howto.html: Add an entry for DR 693.
+	
+	* include/std/bitset (bitset<0>::set, reset, flip, test): Remove,
+	not necessary anymore.
+
+2007-11-23  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_list.h (insert(iterator, value_type&&)): Just
+	forward to emplace.
+	* include/bits/stl_vector.h (insert(iterator, value_type&&)): Likewise.
+	* include/bits/stl_deque.h (insert(iterator, value_type&&)): Likewise.
+	* include/debug/list (insert(iterator, value_type&&)): Likewise.
+	* include/debug/vector (insert(iterator, value_type&&)): Likewise.
+	* include/debug/deque (insert(iterator, value_type&&)): Likewise.
+	* include/bits/list.tcc (insert(iterator, value_type&&)): Remove.
+	* include/bits/vector.tcc (insert(iterator, value_type&&)): Likewise.
+	* include/bits/deque.tcc (insert(iterator, value_type&&)): Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2007-11-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_tree.h (_Rb_tree<>::_Rb_tree_impl<, true>): Remove,
+	identical in mainline to the primary template.
+
+2007-11-22  Paolo Carlini  <pcarlini@suse.de>
+
+	* config/abi/pre/gnu.ver: Adjust new exports for 128-bit long double.
+
+2007-11-22  Johannes Singler  <singler@ira.uka.de>
+
+	PR libstdc++/33893
+        * include/parallel/multiway_merge.h: made omp_dynamic-safe
+        * include/parallel/workstealing.h: made omp_dynamic-safe
+        * include/parallel/base.h: infrastructure, cleanup
+        * include/parallel/par_loop.h: made omp_dynamic-safe
+        * include/parallel/features.h: activate loser tree variant
+        * include/parallel/quicksort.h: made omp_dynamic-safe
+        * include/parallel/compiletime_settings.h: settings overridable
+        * include/parallel/equally_split.h: made omp_dynamic-safe
+        * include/parallel/omp_loop_static.h: made omp_dynamic-safe
+        * include/parallel/random_shuffle.h: made omp_dynamic-safe
+        * include/parallel/balanced_quicksort.h: made omp_dynamic-safe
+        * include/parallel/set_operations.h: made omp_dynamic-safe
+        * include/parallel/unique_copy.h: made omp_dynamic-safe
+        * include/parallel/multiway_mergesort.h: made omp_dynamic-safe
+        * include/parallel/search.h: made omp_dynamic-safe
+        * include/parallel/partition.h: made omp_dynamic-safe
+        * include/parallel/partial_sum.h: made omp_dynamic-safe
+        * include/parallel/find.h: made omp_dynamic-safe
+        * include/parallel/omp_loop.h: made omp_dynamic-safe
+        * include/parallel/losertree.h: avoid default constructor
+
+2007-11-21  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* docs/html/17_intro/C++STYLE: Fix typos.
+
+2007-11-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* docs/html/documentation.html: Validate. Add links to index,
+	correct broken links.
+	* docs/html/17_intro/C++STYLE: Add bits.
+	* docs/html/17_intro/configury.html: Correct, update.
+	* docs/html/17_intro/api.html: Correct HTML.
+
+	* include/bits/stl_algobase.h: Adjust comment.
+	
+2007-11-20  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* testsuite/ext/throw_allocator/variadic_construct.cc: Add
+	dg-require-time.
+
+2007-11-20  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/functional_hash.h: Do not include ext/numeric_traits.h.
+	* include/tr1/functional_hash.h: Likewise.
+	* include/std/functional: Include ext/type_traits.h.
+	* include/tr1/functional: Likewise.
+
+2007-11-20  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1_impl/functional_hash.h
+	(hash<long double>::operator()(long double)): Only declare.
+	* src/hash.cc: Define here.
+	* config/abi/pre/gnu.ver: Adjust exports.
+	* include/tr1/functional: Do not include <cmath>.
+	* include/std/functional: Likewise.
+
+	* include/std/functional: Include <new>.
+
 2007-11-18  Paolo Carlini  <pcarlini@suse.de>
 
 	* include/tr1/type_traits (_DEFINE_SPEC_BODY): Remove.

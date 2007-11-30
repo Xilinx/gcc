@@ -1531,7 +1531,6 @@ add_virtual_operand (tree var, stmt_ann_t s_ann, int flags,
 		 unspecified [0, -1], we cannot prune it.  Otherwise try doing
 		 so using access_can_touch_variable.  */
 	      if (full_ref
-		  && !(offset == 0 && size == -1)
 		  && !access_can_touch_variable (full_ref, al, offset, size))
 		continue;
 
@@ -1644,16 +1643,18 @@ get_addr_dereference_operands (tree stmt, tree *addr, int flags, tree full_ref,
 	  /* If we are emitting debugging dumps, display a warning if
 	     PTR is an SSA_NAME with no flow-sensitive alias
 	     information.  That means that we may need to compute
-	     aliasing again.  */
+	     aliasing again or that a propagation pass forgot to
+	     update the alias information on the pointers.  */
 	  if (dump_file
 	      && TREE_CODE (ptr) == SSA_NAME
-	      && pi == NULL)
+	      && (pi == NULL
+		  || pi->name_mem_tag == NULL_TREE))
 	    {
 	      fprintf (dump_file,
 		  "NOTE: no flow-sensitive alias info for ");
 	      print_generic_expr (dump_file, ptr, dump_flags);
 	      fprintf (dump_file, " in ");
-	      print_generic_stmt (dump_file, stmt, dump_flags);
+	      print_generic_stmt (dump_file, stmt, 0);
 	    }
 
 	  if (TREE_CODE (ptr) == SSA_NAME)

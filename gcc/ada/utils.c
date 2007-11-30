@@ -298,8 +298,8 @@ gnat_pushlevel ()
   if (free_block_chain)
     {
       newlevel->block = free_block_chain;
-      free_block_chain = TREE_CHAIN (free_block_chain);
-      TREE_CHAIN (newlevel->block) = NULL_TREE;
+      free_block_chain = BLOCK_CHAIN (free_block_chain);
+      BLOCK_CHAIN (newlevel->block) = NULL_TREE;
     }
   else
     newlevel->block = make_node (BLOCK);
@@ -365,12 +365,12 @@ gnat_poplevel ()
       BLOCK_SUBBLOCKS (level->chain->block)
 	= chainon (BLOCK_SUBBLOCKS (block),
 		   BLOCK_SUBBLOCKS (level->chain->block));
-      TREE_CHAIN (block) = free_block_chain;
+      BLOCK_CHAIN (block) = free_block_chain;
       free_block_chain = block;
     }
   else
     {
-      TREE_CHAIN (block) = BLOCK_SUBBLOCKS (level->chain->block);
+      BLOCK_CHAIN (block) = BLOCK_SUBBLOCKS (level->chain->block);
       BLOCK_SUBBLOCKS (level->chain->block) = block;
       TREE_USED (block) = 1;
       set_block_for_group (block);
@@ -494,16 +494,6 @@ gnat_init_decl_processing (void)
   size_type_node = gnat_type_for_size (GET_MODE_BITSIZE (Pmode), 0);
   set_sizetype (size_type_node);
   build_common_tree_nodes_2 (0);
-
-  /* Give names and make TYPE_DECLs for common types.  */
-  create_type_decl (get_identifier (SIZE_TYPE), sizetype,
-		    NULL, false, true, Empty);
-  create_type_decl (get_identifier ("integer"), integer_type_node,
-		    NULL, false, true, Empty);
-  create_type_decl (get_identifier ("unsigned char"), char_type_node,
-		    NULL, false, true, Empty);
-  create_type_decl (get_identifier ("long integer"), long_integer_type_node,
-		    NULL, false, true, Empty);
 
   ptr_void_type_node = build_pointer_type (void_type_node);
 
@@ -2993,7 +2983,7 @@ build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
 
   gnat_poplevel ();
 
-  allocate_struct_function (gnu_stub_decl);
+  allocate_struct_function (gnu_stub_decl, false);
   end_subprog_body (gnu_body);
 }
 

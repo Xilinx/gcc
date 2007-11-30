@@ -29,9 +29,9 @@
 // Public License.
 
 /** @file parallel/losertree.h
- *  @brief Many generic loser tree variants.
- *  This file is a GNU parallel extension to the Standard C++ Library.
- */
+*  @brief Many generic loser tree variants.
+*  This file is a GNU parallel extension to the Standard C++ Library.
+*/
 
 // Written by Johannes Singler.
 
@@ -49,13 +49,13 @@ namespace __gnu_parallel
 
 #if _GLIBCXX_LOSER_TREE_EXPLICIT
 
-  /** @brief Guarded loser tree, copying the whole element into the
-   * tree structure.
-   *
-   *  Guarding is done explicitly through two flags per element, inf
-   *  and sup This is a quite slow variant.
-   */
-  template<typename T, typename Comparator = std::less<T> >
+/** @brief Guarded loser tree, copying the whole element into the
+* tree structure.
+*
+*  Guarding is done explicitly through two flags per element, inf
+*  and sup This is a quite slow variant.
+*/
+template<typename T, typename Comparator = std::less<T> >
   class LoserTreeExplicit
   {
   private:
@@ -76,25 +76,24 @@ namespace __gnu_parallel
     Comparator comp;
 
   public:
-    inline LoserTreeExplicit(unsigned int _size, Comparator _comp = std::less<T>()) : comp(_comp)
+    inline
+    LoserTreeExplicit(unsigned int _size, Comparator _comp = std::less<T>())
+      : comp(_comp)
     {
       size = _size;
       offset = size;
       losers = new Loser[size];
       for (unsigned int l = 0; l < size; l++)
-	{
-	  //losers[l].key = ... 	stays unset
-	  losers[l].inf = true;
-	  losers[l].sup = false;
-	  //losers[l].source = -1;	//sentinel
-	}
+        {
+          //losers[l].key = ... 	stays unset
+          losers[l].inf = true;
+          losers[l].sup = false;
+          //losers[l].source = -1;	//sentinel
+        }
     }
 
     inline ~LoserTreeExplicit()
     { delete[] losers; }
-
-    inline void
-    print() { }
 
     inline int
     get_min_source()
@@ -105,16 +104,17 @@ namespace __gnu_parallel
     {
       bool inf = false;
       for (unsigned int pos = (offset + source) / 2; pos > 0; pos /= 2)
-	{
-	  if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup && comp(losers[pos].key, key)) || losers[pos].inf || sup)
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].key, key);
-	      std::swap(losers[pos].inf, inf);
-	      std::swap(losers[pos].sup, sup);
-	      std::swap(losers[pos].source, source);
-	    }
-	}
+        {
+          if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup
+               && comp(losers[pos].key, key)) || losers[pos].inf || sup)
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].key, key);
+              std::swap(losers[pos].inf, inf);
+              std::swap(losers[pos].sup, sup);
+              std::swap(losers[pos].source, source);
+            }
+        }
 
       losers[0].key = key;
       losers[0].inf = inf;
@@ -131,19 +131,19 @@ namespace __gnu_parallel
       bool inf = false;
       int source = losers[0].source;
       for (unsigned int pos = (offset + source) / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted.
-	  if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup 
-	       && comp(losers[pos].key, key))
-	      || losers[pos].inf || sup)
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].key, key);
-	      std::swap(losers[pos].inf, inf);
-	      std::swap(losers[pos].sup, sup);
-	      std::swap(losers[pos].source, source);
-	    }
-	}
+        {
+          // The smaller one gets promoted.
+          if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup
+              && comp(losers[pos].key, key))
+              || losers[pos].inf || sup)
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].key, key);
+              std::swap(losers[pos].inf, inf);
+              std::swap(losers[pos].sup, sup);
+              std::swap(losers[pos].source, source);
+            }
+        }
 
       losers[0].key = key;
       losers[0].inf = inf;
@@ -156,19 +156,19 @@ namespace __gnu_parallel
     {
       bool inf = false;
       for (unsigned int pos = (offset + source) / 2; pos > 0; pos /= 2)
-	{
-	  if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup &&
-	       ((comp(losers[pos].key, key)) ||
-		(!comp(key, losers[pos].key) && losers[pos].source < source)))
-	      || losers[pos].inf || sup)
-	    {
-	      // Take next key.
-	      std::swap(losers[pos].key, key);
-	      std::swap(losers[pos].inf, inf);
-	      std::swap(losers[pos].sup, sup);
-	      std::swap(losers[pos].source, source);
-	    }
-	}
+        {
+          if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup &&
+              ((comp(losers[pos].key, key)) ||
+                (!comp(key, losers[pos].key) && losers[pos].source < source)))
+              || losers[pos].inf || sup)
+            {
+              // Take next key.
+              std::swap(losers[pos].key, key);
+              std::swap(losers[pos].inf, inf);
+              std::swap(losers[pos].sup, sup);
+              std::swap(losers[pos].source, source);
+            }
+        }
 
       losers[0].key = key;
       losers[0].inf = inf;
@@ -185,18 +185,18 @@ namespace __gnu_parallel
       bool inf = false;
       int source = losers[0].source;
       for (unsigned int pos = (offset + source) / 2; pos > 0; pos /= 2)
-	{
-	  if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup
-	       && ((comp(losers[pos].key, key)) ||
-		(!comp(key, losers[pos].key) && losers[pos].source < source)))
-	      || losers[pos].inf || sup)
-	    {
-	      std::swap(losers[pos].key, key);
-	      std::swap(losers[pos].inf, inf);
-	      std::swap(losers[pos].sup, sup);
-	      std::swap(losers[pos].source, source);
-	    }
-	}
+        {
+          if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup
+              && ((comp(losers[pos].key, key)) ||
+                (!comp(key, losers[pos].key) && losers[pos].source < source)))
+              || losers[pos].inf || sup)
+            {
+              std::swap(losers[pos].key, key);
+              std::swap(losers[pos].inf, inf);
+              std::swap(losers[pos].sup, sup);
+              std::swap(losers[pos].source, source);
+            }
+        }
 
       losers[0].key = key;
       losers[0].inf = inf;
@@ -209,14 +209,14 @@ namespace __gnu_parallel
 
 #if _GLIBCXX_LOSER_TREE
 
-  /** @brief Guarded loser tree, either copying the whole element into
-   * the tree structure, or looking up the element via the index.
-   *
-   *  Guarding is done explicitly through one flag sup per element,
-   *  inf is not needed due to a better initialization routine.  This
-   *  is a well-performing variant.
-   */
-  template<typename T, typename Comparator = std::less<T> >
+/** @brief Guarded loser tree, either copying the whole element into
+* the tree structure, or looking up the element via the index.
+*
+*  Guarding is done explicitly through one flag sup per element,
+*  inf is not needed due to a better initialization routine.  This
+*  is a well-performing variant.
+*/
+template<typename T, typename Comparator = std::less<T> >
   class LoserTree
   {
   private:
@@ -230,6 +230,7 @@ namespace __gnu_parallel
     unsigned int ik, k, offset;
     Loser* losers;
     Comparator comp;
+    bool first_insert;
 
   public:
     inline LoserTree(unsigned int _k, Comparator _comp = std::less<T>())
@@ -240,21 +241,16 @@ namespace __gnu_parallel
       // Next greater power of 2.
       k = 1 << (log2(ik - 1) + 1);
       offset = k;
-      losers = new Loser[k * 2];
-      for (unsigned int i = ik - 1; i < k; i++)
-	losers[i + k].sup = true;
+      // Avoid default-constructing losers[].key
+      losers = static_cast<Loser*>(::operator new(2 * k * sizeof(Loser)));
+      for (unsigned int i = ik - 1; i < k; ++i)
+        losers[i + k].sup = true;
+
+      first_insert = true;
     }
 
     inline ~LoserTree()
     { delete[] losers; }
-
-    void
-    print()
-    {
-      for (unsigned int i = 0; i < (k * 2); i++)
-	printf("%d    %d from %d,  %d\n", i, losers[i].key, 
-	       losers[i].source, losers[i].sup);
-    }
 
     inline int
     get_min_source()
@@ -265,35 +261,46 @@ namespace __gnu_parallel
     {
       unsigned int pos = k + source;
 
+      if(first_insert)
+        {
+          // Construct all keys, so we can easily deconstruct them.
+          for (unsigned int i = 0; i < (2 * k); ++i)
+            new(&(losers[i].key)) T(key);
+          first_insert = false;
+        }
+      else
+        new(&(losers[pos].key)) T(key);
+
       losers[pos].sup = sup;
       losers[pos].source = source;
-      losers[pos].key = key;
     }
 
     unsigned int
     init_winner (unsigned int root)
     {
       if (root >= k)
-	{
-	  return root;
-	}
+        {
+          return root;
+        }
       else
-	{
-	  unsigned int left = init_winner (2 * root);
-	  unsigned int right = init_winner (2 * root + 1);
-	  if (losers[right].sup ||
-	      (!losers[left].sup && !comp(losers[right].key, losers[left].key)))
-	    {
-	      // Left one is less or equal.
-	      losers[root] = losers[right];
-	      return left;
-	    }
-	  else
-	    {	// Right one is less.
-	      losers[root] = losers[left];
-	      return right;
-	    }
-	}
+        {
+          unsigned int left = init_winner (2 * root);
+          unsigned int right = init_winner (2 * root + 1);
+          if (losers[right].sup ||
+              (!losers[left].sup
+                && !comp(losers[right].key, losers[left].key)))
+            {
+              // Left one is less or equal.
+              losers[root] = losers[right];
+              return left;
+            }
+          else
+            {
+              // Right one is less.
+              losers[root] = losers[left];
+              return right;
+            }
+        }
     }
 
     inline void
@@ -306,16 +313,16 @@ namespace __gnu_parallel
     {
       int source = losers[0].source;
       for (unsigned int pos = (k + source) / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted.
-	  if (sup || (!losers[pos].sup && comp(losers[pos].key, key)))
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].sup, sup);
-	      std::swap(losers[pos].source, source);
-	      std::swap(losers[pos].key, key);
-	    }
-	}
+        {
+          // The smaller one gets promoted.
+          if (sup || (!losers[pos].sup && comp(losers[pos].key, key)))
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].sup, sup);
+              std::swap(losers[pos].source, source);
+              std::swap(losers[pos].key, key);
+            }
+        }
 
       losers[0].sup = sup;
       losers[0].source = source;
@@ -330,27 +337,28 @@ namespace __gnu_parallel
     init_winner_stable (unsigned int root)
     {
       if (root >= k)
-	{
-	  return root;
-	}
+        {
+          return root;
+        }
       else
-	{
-	  unsigned int left = init_winner (2 * root);
-	  unsigned int right = init_winner (2 * root + 1);
-	  if (	losers[right].sup ||
-		(!losers[left].sup && !comp(losers[right].key, losers[left].key)))
-	    {
-	      // Left one is less or equal.
-	      losers[root] = losers[right];
-	      return left;
-	    }
-	  else
-	    {
-	      // Right one is less.
-	      losers[root] = losers[left];
-	      return right;
-	    }
-	}
+        {
+          unsigned int left = init_winner (2 * root);
+          unsigned int right = init_winner (2 * root + 1);
+          if (losers[right].sup
+              || (!losers[left].sup
+                && !comp(losers[right].key, losers[left].key)))
+            {
+              // Left one is less or equal.
+              losers[root] = losers[right];
+              return left;
+            }
+          else
+            {
+              // Right one is less.
+              losers[root] = losers[left];
+              return right;
+            }
+        }
     }
 
     inline void
@@ -363,19 +371,20 @@ namespace __gnu_parallel
     {
       int source = losers[0].source;
       for (unsigned int pos = (k + source) / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted, ties are broken by source.
-	  if (	(sup && (!losers[pos].sup || losers[pos].source < source)) ||
-		(!sup && !losers[pos].sup &&
-		 ((comp(losers[pos].key, key)) ||
-		  (!comp(key, losers[pos].key) && losers[pos].source < source))))
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].sup, sup);
-	      std::swap(losers[pos].source, source);
-	      std::swap(losers[pos].key, key);
-	    }
-	}
+        {
+          // The smaller one gets promoted, ties are broken by source.
+          if (	(sup && (!losers[pos].sup || losers[pos].source < source))
+                || (!sup && !losers[pos].sup
+                  && ((comp(losers[pos].key, key))
+                    || (!comp(key, losers[pos].key)
+                      && losers[pos].source < source))))
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].sup, sup);
+              std::swap(losers[pos].source, source);
+              std::swap(losers[pos].key, key);
+            }
+        }
 
       losers[0].sup = sup;
       losers[0].source = source;
@@ -387,14 +396,14 @@ namespace __gnu_parallel
 
 #if _GLIBCXX_LOSER_TREE_REFERENCE
 
-  /** @brief Guarded loser tree, either copying the whole element into
-   * the tree structure, or looking up the element via the index.
-   *
-   *  Guarding is done explicitly through one flag sup per element,
-   *  inf is not needed due to a better initialization routine.  This
-   *  is a well-performing variant.
-   */
-  template<typename T, typename Comparator = std::less<T> >
+/** @brief Guarded loser tree, either copying the whole element into
+* the tree structure, or looking up the element via the index.
+*
+*  Guarding is done explicitly through one flag sup per element,
+*  inf is not needed due to a better initialization routine.  This
+*  is a well-performing variant.
+*/
+template<typename T, typename Comparator = std::less<T> >
   class LoserTreeReference
   {
 #undef COPY
@@ -423,7 +432,9 @@ namespace __gnu_parallel
     Comparator comp;
 
   public:
-    inline LoserTreeReference(unsigned int _k, Comparator _comp = std::less<T>()) : comp(_comp)
+    inline
+    LoserTreeReference(unsigned int _k, Comparator _comp = std::less<T>())
+      : comp(_comp)
     {
       ik = _k;
 
@@ -435,7 +446,7 @@ namespace __gnu_parallel
       keys = new T[ik];
 #endif
       for (unsigned int i = ik - 1; i < k; i++)
-	losers[i + k].sup = true;
+        losers[i + k].sup = true;
     }
 
     inline ~LoserTreeReference()
@@ -444,13 +455,6 @@ namespace __gnu_parallel
 #ifndef COPY
       delete[] keys;
 #endif
-    }
-
-    void
-    print()
-    {
-      for (unsigned int i = 0; i < (k * 2); i++)
-	printf("%d    %d from %d,  %d\n", i, KEY(i), losers[i].source, losers[i].sup);
     }
 
     inline int
@@ -471,27 +475,27 @@ namespace __gnu_parallel
     init_winner(unsigned int root)
     {
       if (root >= k)
-	{
-	  return root;
-	}
+        {
+          return root;
+        }
       else
-	{
-	  unsigned int left = init_winner (2 * root);
-	  unsigned int right = init_winner (2 * root + 1);
-	  if (	losers[right].sup ||
-		(!losers[left].sup && !comp(KEY(right), KEY(left))))
-	    {
-	      // Left one is less or equal.
-	      losers[root] = losers[right];
-	      return left;
-	    }
-	  else
-	    {
-	      // Right one is less.
-	      losers[root] = losers[left];
-	      return right;
-	    }
-	}
+        {
+          unsigned int left = init_winner (2 * root);
+          unsigned int right = init_winner (2 * root + 1);
+          if (	losers[right].sup ||
+                (!losers[left].sup && !comp(KEY(right), KEY(left))))
+            {
+              // Left one is less or equal.
+              losers[root] = losers[right];
+              return left;
+            }
+          else
+            {
+              // Right one is less.
+              losers[root] = losers[left];
+              return right;
+            }
+        }
     }
 
     inline void
@@ -505,18 +509,18 @@ namespace __gnu_parallel
     {
       int source = losers[0].source;
       for (unsigned int pos = (k + source) / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted.
-	  if (sup || (!losers[pos].sup && comp(KEY(pos), KEY_SOURCE(source))))
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].sup, sup);
-	      std::swap(losers[pos].source, source);
+        {
+          // The smaller one gets promoted.
+          if (sup || (!losers[pos].sup && comp(KEY(pos), KEY_SOURCE(source))))
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].sup, sup);
+              std::swap(losers[pos].source, source);
 #ifdef COPY
-	      std::swap(KEY(pos), KEY_SOURCE(source));
+              std::swap(KEY(pos), KEY_SOURCE(source));
 #endif
-	    }
-	}
+            }
+        }
 
       losers[0].sup = sup;
       losers[0].source = source;
@@ -533,27 +537,27 @@ namespace __gnu_parallel
     init_winner_stable(unsigned int root)
     {
       if (root >= k)
-	{
-	  return root;
-	}
+        {
+          return root;
+        }
       else
-	{
-	  unsigned int left = init_winner (2 * root);
-	  unsigned int right = init_winner (2 * root + 1);
-	  if (losers[right].sup
-	      || (!losers[left].sup && !comp(KEY(right), KEY(left))))
-	    {
-	      // Left one is less or equal.
-	      losers[root] = losers[right];
-	      return left;
-	    }
-	  else
-	    {
-	      // Right one is less.
-	      losers[root] = losers[left];
-	      return right;
-	    }
-	}
+        {
+          unsigned int left = init_winner (2 * root);
+          unsigned int right = init_winner (2 * root + 1);
+          if (losers[right].sup
+              || (!losers[left].sup && !comp(KEY(right), KEY(left))))
+            {
+              // Left one is less or equal.
+              losers[root] = losers[right];
+              return left;
+            }
+          else
+            {
+              // Right one is less.
+              losers[root] = losers[left];
+              return right;
+            }
+        }
     }
 
     inline void
@@ -565,21 +569,22 @@ namespace __gnu_parallel
     {
       int source = losers[0].source;
       for (unsigned int pos = (k + source) / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted, ties are broken by source.
-	  if (	(sup && (!losers[pos].sup || losers[pos].source < source)) ||
-		(!sup && !losers[pos].sup &&
-		 ((comp(KEY(pos), KEY_SOURCE(source))) ||
-		  (!comp(KEY_SOURCE(source), KEY(pos)) && losers[pos].source < source))))
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].sup, sup);
-	      std::swap(losers[pos].source, source);
+        {
+          // The smaller one gets promoted, ties are broken by source.
+          if (	(sup && (!losers[pos].sup || losers[pos].source < source)) ||
+                (!sup && !losers[pos].sup &&
+                ((comp(KEY(pos), KEY_SOURCE(source))) ||
+                  (!comp(KEY_SOURCE(source), KEY(pos))
+                    && losers[pos].source < source))))
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].sup, sup);
+              std::swap(losers[pos].source, source);
 #ifdef COPY
-	      std::swap(KEY(pos), KEY_SOURCE(source));
+              std::swap(KEY(pos), KEY_SOURCE(source));
 #endif
-	    }
-	}
+            }
+        }
 
       losers[0].sup = sup;
       losers[0].source = source;
@@ -595,13 +600,13 @@ namespace __gnu_parallel
 
 #if _GLIBCXX_LOSER_TREE_POINTER
 
-  /** @brief Guarded loser tree, either copying the whole element into
-      the tree structure, or looking up the element via the index.
-   *  Guarding is done explicitly through one flag sup per element,
-   *  inf is not needed due to a better initialization routine.
-   *  This is a well-performing variant.
-   */
-  template<typename T, typename Comparator = std::less<T> >
+/** @brief Guarded loser tree, either copying the whole element into
+    the tree structure, or looking up the element via the index.
+*  Guarding is done explicitly through one flag sup per element,
+*  inf is not needed due to a better initialization routine.
+*  This is a well-performing variant.
+*/
+template<typename T, typename Comparator = std::less<T> >
   class LoserTreePointer
   {
   private:
@@ -617,7 +622,9 @@ namespace __gnu_parallel
     Comparator comp;
 
   public:
-    inline LoserTreePointer(unsigned int _k, Comparator _comp = std::less<T>()) : comp(_comp)
+    inline
+    LoserTreePointer(unsigned int _k, Comparator _comp = std::less<T>())
+      : comp(_comp)
     {
       ik = _k;
 
@@ -626,18 +633,11 @@ namespace __gnu_parallel
       offset = k;
       losers = new Loser[k * 2];
       for (unsigned int i = ik - 1; i < k; i++)
-	losers[i + k].sup = true;
+        losers[i + k].sup = true;
     }
 
     inline ~LoserTreePointer()
     { delete[] losers; }
-
-    void
-    print()
-    {
-      for (unsigned int i = 0; i < (k * 2); i++)
-	printf("%d    %d from %d,  %d\n", i, losers[i].keyp, losers[i].source, losers[i].sup);
-    }
 
     inline int
     get_min_source()
@@ -657,49 +657,50 @@ namespace __gnu_parallel
     init_winner(unsigned int root)
     {
       if (root >= k)
-	{
-	  return root;
-	}
+        {
+          return root;
+        }
       else
-	{
-	  unsigned int left = init_winner (2 * root);
-	  unsigned int right = init_winner (2 * root + 1);
-	  if (	losers[right].sup ||
-		(!losers[left].sup && !comp(*losers[right].keyp, *losers[left].keyp)))
-	    {
-	      // Left one is less or equal.
-	      losers[root] = losers[right];
-	      return left;
-	    }
-	  else
-	    {
-	      // Right one is less.
-	      losers[root] = losers[left];
-	      return right;
-	    }
-	}
+        {
+          unsigned int left = init_winner (2 * root);
+          unsigned int right = init_winner (2 * root + 1);
+          if (losers[right].sup
+                || (!losers[left].sup
+                  && !comp(*losers[right].keyp, *losers[left].keyp)))
+            {
+              // Left one is less or equal.
+              losers[root] = losers[right];
+              return left;
+            }
+          else
+            {
+              // Right one is less.
+              losers[root] = losers[left];
+              return right;
+            }
+        }
     }
 
     inline void
     init()
     { losers[0] = losers[init_winner(1)]; }
 
-    inline void 
+    inline void
     delete_min_insert(const T& key, bool sup)
     {
       const T* keyp = &key;
       int source = losers[0].source;
       for (unsigned int pos = (k + source) / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted.
-	  if (sup || (!losers[pos].sup && comp(*losers[pos].keyp, *keyp)))
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].sup, sup);
-	      std::swap(losers[pos].source, source);
-	      std::swap(losers[pos].keyp, keyp);
-	    }
-	}
+        {
+          // The smaller one gets promoted.
+          if (sup || (!losers[pos].sup && comp(*losers[pos].keyp, *keyp)))
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].sup, sup);
+              std::swap(losers[pos].source, source);
+              std::swap(losers[pos].keyp, keyp);
+            }
+        }
 
       losers[0].sup = sup;
       losers[0].source = source;
@@ -714,28 +715,28 @@ namespace __gnu_parallel
     init_winner_stable(unsigned int root)
     {
       if (root >= k)
-	{
-	  return root;
-	}
+        {
+          return root;
+        }
       else
-	{
-	  unsigned int left = init_winner (2 * root);
-	  unsigned int right = init_winner (2 * root + 1);
-	  if (losers[right].sup
-	      || (!losers[left].sup && !comp(*losers[right].keyp, 
-					     *losers[left].keyp)))
-	    {
-	      // Left one is less or equal.
-	      losers[root] = losers[right];
-	      return left;
-	    }
-	  else
-	    {
-	      // Right one is less.
-	      losers[root] = losers[left];
-	      return right;
-	    }
-	}
+        {
+          unsigned int left = init_winner (2 * root);
+          unsigned int right = init_winner (2 * root + 1);
+          if (losers[right].sup
+              || (!losers[left].sup && !comp(*losers[right].keyp,
+                                            *losers[left].keyp)))
+            {
+              // Left one is less or equal.
+              losers[root] = losers[right];
+              return left;
+            }
+          else
+            {
+              // Right one is less.
+              losers[root] = losers[left];
+              return right;
+            }
+        }
     }
 
     inline void
@@ -748,20 +749,20 @@ namespace __gnu_parallel
       const T* keyp = &key;
       int source = losers[0].source;
       for (unsigned int pos = (k + source) / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted, ties are broken by source.
-	  if (	(sup && (!losers[pos].sup || losers[pos].source < source)) ||
-		(!sup && !losers[pos].sup &&
-		 ((comp(*losers[pos].keyp, *keyp)) ||
-		  (!comp(*keyp, *losers[pos].keyp) 
-		   && losers[pos].source < source))))
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].sup, sup);
-	      std::swap(losers[pos].source, source);
-	      std::swap(losers[pos].keyp, keyp);
-	    }
-	}
+        {
+          // The smaller one gets promoted, ties are broken by source.
+          if (	(sup && (!losers[pos].sup || losers[pos].source < source)) ||
+                (!sup && !losers[pos].sup &&
+                ((comp(*losers[pos].keyp, *keyp)) ||
+                  (!comp(*keyp, *losers[pos].keyp)
+                  && losers[pos].source < source))))
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].sup, sup);
+              std::swap(losers[pos].source, source);
+              std::swap(losers[pos].keyp, keyp);
+            }
+        }
 
       losers[0].sup = sup;
       losers[0].source = source;
@@ -773,13 +774,13 @@ namespace __gnu_parallel
 
 #if _GLIBCXX_LOSER_TREE_UNGUARDED
 
-  /** @brief Unguarded loser tree, copying the whole element into the
-   * tree structure.
-   *
-   *  No guarding is done, therefore not a single input sequence must
-   *  run empty.  This is a very fast variant.
-   */
-  template<typename T, typename Comparator = std::less<T> >
+/** @brief Unguarded loser tree, copying the whole element into the
+* tree structure.
+*
+*  No guarding is done, therefore not a single input sequence must
+*  run empty.  This is a very fast variant.
+*/
+template<typename T, typename Comparator = std::less<T> >
   class LoserTreeUnguarded
   {
   private:
@@ -798,18 +799,20 @@ namespace __gnu_parallel
     map(unsigned int root, unsigned int begin, unsigned int end)
     {
       if (begin + 1 == end)
-	mapping[begin] = root;
+        mapping[begin] = root;
       else
-	{
-	  // Next greater or equal power of 2.
-	  unsigned int left = 1 << (log2(end - begin - 1));
-	  map(root * 2, begin, begin + left);
-	  map(root * 2 + 1, begin + left, end);
-	}
+        {
+          // Next greater or equal power of 2.
+          unsigned int left = 1 << (log2(end - begin - 1));
+          map(root * 2, begin, begin + left);
+          map(root * 2 + 1, begin + left, end);
+        }
     }
 
   public:
-    inline LoserTreeUnguarded(unsigned int _k, Comparator _comp = std::less<T>()) : comp(_comp)
+    inline
+    LoserTreeUnguarded(unsigned int _k, Comparator _comp = std::less<T>())
+      : comp(_comp)
     {
       ik = _k;
       // Next greater or equal power of 2.
@@ -824,13 +827,6 @@ namespace __gnu_parallel
     {
       delete[] losers;
       delete[] mapping;
-    }
-
-    void
-    print()
-    {
-      for (unsigned int i = 0; i < k + ik; i++)
-	printf("%d    %d from %d\n", i, losers[i].key, losers[i].source);
     }
 
     inline int
@@ -849,26 +845,27 @@ namespace __gnu_parallel
     init_winner(unsigned int root, unsigned int begin, unsigned int end)
     {
       if (begin + 1 == end)
-	return mapping[begin];
+        return mapping[begin];
       else
-	{
-	  // Next greater or equal power of 2.
-	  unsigned int division = 1 << (log2(end - begin - 1));
-	  unsigned int left = init_winner(2 * root, begin, begin + division);
-	  unsigned int right = init_winner(2 * root + 1, begin + division, end);
-	  if (!comp(losers[right].key, losers[left].key))
-	    {
-	      // Left one is less or equal.
-	      losers[root] = losers[right];
-	      return left;
-	    }
-	  else
-	    {
-	      // Right one is less.
-	      losers[root] = losers[left];
-	      return right;
-	    }
-	}
+        {
+          // Next greater or equal power of 2.
+          unsigned int division = 1 << (log2(end - begin - 1));
+          unsigned int left = init_winner(2 * root, begin, begin + division);
+          unsigned int right =
+                          init_winner(2 * root + 1, begin + division, end);
+          if (!comp(losers[right].key, losers[left].key))
+            {
+              // Left one is less or equal.
+              losers[root] = losers[right];
+              return left;
+            }
+          else
+            {
+              // Right one is less.
+              losers[root] = losers[left];
+              return right;
+            }
+        }
     }
 
     inline void
@@ -883,15 +880,15 @@ namespace __gnu_parallel
       T& keyr = losers[0].key;
       int& source = losers[0].source;
       for (int pos = mapping[source] / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted.
-	  if (comp(losers[pos].key, keyr))
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].source, source);
-	      std::swap(losers[pos].key, keyr);
-	    }
-	}
+        {
+          // The smaller one gets promoted.
+          if (comp(losers[pos].key, keyr))
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].source, source);
+              std::swap(losers[pos].key, keyr);
+            }
+        }
     }
 
     inline void
@@ -909,16 +906,17 @@ namespace __gnu_parallel
       T& keyr = losers[0].key;
       int& source = losers[0].source;
       for (int pos = mapping[source] / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted, ties are broken by source.
-	  if (comp(losers[pos].key, keyr)
-	      || (!comp(keyr, losers[pos].key) && losers[pos].source < source))
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].source, source);
-	      std::swap(losers[pos].key, keyr);
-	    }
-	}
+        {
+          // The smaller one gets promoted, ties are broken by source.
+          if (comp(losers[pos].key, keyr)
+              || (!comp(keyr, losers[pos].key)
+                && losers[pos].source < source))
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].source, source);
+              std::swap(losers[pos].key, keyr);
+            }
+        }
     }
   };
 
@@ -926,13 +924,13 @@ namespace __gnu_parallel
 
 #if _GLIBCXX_LOSER_TREE_POINTER_UNGUARDED
 
-  /** @brief Unguarded loser tree, keeping only pointers to the
-   * elements in the tree structure.
-   *
-   *  No guarding is done, therefore not a single input sequence must
-   *  run empty.  This is a very fast variant.
-   */
-  template<typename T, typename Comparator = std::less<T> >
+/** @brief Unguarded loser tree, keeping only pointers to the
+* elements in the tree structure.
+*
+*  No guarding is done, therefore not a single input sequence must
+*  run empty.  This is a very fast variant.
+*/
+template<typename T, typename Comparator = std::less<T> >
   class LoserTreePointerUnguarded
   {
   private:
@@ -950,18 +948,21 @@ namespace __gnu_parallel
     void map(unsigned int root, unsigned int begin, unsigned int end)
     {
       if (begin + 1 == end)
-	mapping[begin] = root;
+        mapping[begin] = root;
       else
-	{
-	  // Next greater or equal power of 2.
-	  unsigned int left = 1 << (log2(end - begin - 1));
-	  map(root * 2, begin, begin + left);
-	  map(root * 2 + 1, begin + left, end);
-	}
+        {
+          // Next greater or equal power of 2.
+          unsigned int left = 1 << (log2(end - begin - 1));
+          map(root * 2, begin, begin + left);
+          map(root * 2 + 1, begin + left, end);
+        }
     }
 
   public:
-    inline LoserTreePointerUnguarded(unsigned int _k, Comparator _comp = std::less<T>()) : comp(_comp)
+    inline
+    LoserTreePointerUnguarded(unsigned int _k,
+                              Comparator _comp = std::less<T>())
+      : comp(_comp)
     {
       ik = _k;
 
@@ -977,13 +978,6 @@ namespace __gnu_parallel
     {
       delete[] losers;
       delete[] mapping;
-    }
-
-    void
-    print()
-    {
-      for (unsigned int i = 0; i < k + ik; i++)
-	printf("%d    %d from %d\n", i, *losers[i].keyp, losers[i].source);
     }
 
     inline int
@@ -1002,26 +996,27 @@ namespace __gnu_parallel
     init_winner(unsigned int root, unsigned int begin, unsigned int end)
     {
       if (begin + 1 == end)
-	return mapping[begin];
+        return mapping[begin];
       else
-	{
-	  // Next greater or equal power of 2.
-	  unsigned int division = 1 << (log2(end - begin - 1));
-	  unsigned int left = init_winner(2 * root, begin, begin + division);
-	  unsigned int right = init_winner(2 * root + 1, begin + division, end);
-	  if (!comp(*losers[right].keyp, *losers[left].keyp))
-	    {
-	      // Left one is less or equal.
-	      losers[root] = losers[right];
-	      return left;
-	    }
-	  else
-	    {
-	      // Right one is less.
-	      losers[root] = losers[left];
-	      return right;
-	    }
-	}
+        {
+          // Next greater or equal power of 2.
+          unsigned int division = 1 << (log2(end - begin - 1));
+          unsigned int left = init_winner(2 * root, begin, begin + division);
+          unsigned int right
+                          = init_winner(2 * root + 1, begin + division, end);
+          if (!comp(*losers[right].keyp, *losers[left].keyp))
+            {
+              // Left one is less or equal.
+              losers[root] = losers[right];
+              return left;
+            }
+          else
+            {
+              // Right one is less.
+              losers[root] = losers[left];
+              return right;
+            }
+        }
     }
 
     inline void
@@ -1036,15 +1031,15 @@ namespace __gnu_parallel
       const T* keyp = &key;
       int& source = losers[0].source;
       for (int pos = mapping[source] / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted.
-	  if (comp(*losers[pos].keyp, *keyp))
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].source, source);
-	      std::swap(losers[pos].keyp, keyp);
-	    }
-	}
+        {
+          // The smaller one gets promoted.
+          if (comp(*losers[pos].keyp, *keyp))
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].source, source);
+              std::swap(losers[pos].keyp, keyp);
+            }
+        }
 
       losers[0].keyp = keyp;
     }
@@ -1063,23 +1058,23 @@ namespace __gnu_parallel
       int& source = losers[0].source;
       const T* keyp = &key;
       for (int pos = mapping[source] / 2; pos > 0; pos /= 2)
-	{
-	  // The smaller one gets promoted, ties are broken by source.
-	  if (comp(*losers[pos].keyp, *keyp)
-	      || (!comp(*keyp, *losers[pos].keyp) 
-		  && losers[pos].source < source))
-	    {
-	      // The other one is smaller.
-	      std::swap(losers[pos].source, source);
-	      std::swap(losers[pos].keyp, keyp);
-	    }
-	}
+        {
+          // The smaller one gets promoted, ties are broken by source.
+          if (comp(*losers[pos].keyp, *keyp)
+              || (!comp(*keyp, *losers[pos].keyp)
+                  && losers[pos].source < source))
+            {
+              // The other one is smaller.
+              std::swap(losers[pos].source, source);
+              std::swap(losers[pos].keyp, keyp);
+            }
+        }
       losers[0].keyp = keyp;
     }
   };
 #endif
 
-  template<typename _ValueTp, class Comparator>
+template<typename _ValueTp, class Comparator>
   struct loser_tree_traits
   {
 #if _GLIBCXX_LOSER_TREE
@@ -1093,7 +1088,7 @@ namespace __gnu_parallel
 #endif
   };
 
-  template<typename _ValueTp, class Comparator>
+template<typename _ValueTp, class Comparator>
   struct loser_tree_unguarded_traits
   {
 #if _GLIBCXX_LOSER_TREE_UNGUARDED

@@ -1,3 +1,210 @@
+2007-11-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34248
+	* trans-decl.c (generate_dependency_declarations): Check
+	for NULL pointers before accessing the string length.
+
+2007-11-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34262
+	* intrinsic.c (gfc_get_intrinsic_sub_symbol): Add comment.
+	(gfc_intrinsic_sub_interface): Copy elemental state if needed.
+	* iresolve.c (gfc_resolve_mvbits): Mark procedure as elemental.
+
+2007-11-28  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans-expr.c (gfc_trans_string_copy): Convert both dest and
+	src to void *.
+
+	PR fortran/34247
+	* trans-openmp.c (gfc_omp_privatize_by_reference): For REFERENCE_TYPE
+	pass by reference only PARM_DECLs or non-artificial decls.
+
+2007-11-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/32928
+	* decl.c (match_data_constant): Use gfc_match_init_expr to match the
+	array spec and set the initializer expression.
+
+2007-11-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34227
+	* match.c (gfc_match_common): Add additional check for BLOCK DATA.
+
+2007-11-27  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/29389
+	*resolve.c (resolve_ordinary_assign): Use find_sym_in_expr to
+	test if a temporary should be written for a vector subscript
+	on the lhs.
+
+	PR fortran/33850
+	* restore.c (pure_stmt_function): Add prototype and new
+	function. Calls impure_stmt_fcn.
+	(pure_function): Call it.
+	(impure_stmt_fcn): New function.
+
+	* expr.c (gfc_traverse_expr): Call *func for all expression
+	types, not just variables. Add traversal of character lengths,
+	iterators and component character lengths and arrayspecs.
+	(expr_set_symbols_referenced): Return false if not a variable.
+	* trans-stmt.c (forall_replace, forall_restore): Ditto.
+	* resolve.c (forall_index): Ditto.
+	(sym_in_expr): New function.
+	(find_sym_in_expr): Rewrite to traverse expression calling
+	sym_in_expr.
+	*trans-decl.c (expr_decls): New function.
+	(generate_expr_decls): Rewrite to traverse expression calling
+	expr_decls.
+	*match.c (check_stmt_fcn): New function.
+	(recursive_stmt_fcn): Rewrite to traverse expression calling
+	check_stmt_fcn.
+
+2007-11-27  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/33541
+	*interface.c (compare_actual_formal): Exclude assumed size
+	arrays from the possibility of scalar to array mapping.
+	* decl.c (get_proc_name): Fix whitespace problem.
+
+	PR fortran/34231
+	* gfortran.h : Add 'use_rename' bit to symbol_attribute.
+	* module.c : Add 'renamed' field to pointer_info.u.rsym.
+	(load_generic_interfaces): Add 'renamed' that is set after the
+	number_use_names is called.  This is used to set the attribute
+	use_rename, which, in its turn identifies those symbols that
+	have not been renamed.
+	(load_needed): If pointer_info.u.rsym->renamed is set, then
+	set the use_rename attribute of the symbol.
+	(read_module): Correct an erroneous use of use_flag. Use the
+	renamed flag and the use_rename attribute to determine which
+	symbols are not renamed.
+
+2007-11-26  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/34203
+	* options.c:  Change default behavior of backslash processing.
+	* invoke.texi: Update documentation.
+
+2007-11-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/33152
+	* decl.c (add_init_expr_to_sym): Remove error message.
+	* resolve.c (check_data_variable): Add new check for a data variable
+	that has an array spec, but no ref and issue an error.
+	* match.c (gfc_match_common): Remove error message.
+
+2007-11-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34079
+	* trans-types.c (gfc_return_by_reference,
+	gfc_get_function_type): Do not return result of
+	character-returning bind(C) functions as argument.
+	* trans-expr.c (gfc_conv_function_call): Ditto.
+
+2007-11-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34175
+	* gfortran.texi: Document default forms assumed for various file
+	extensions.
+
+2007-11-25  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/33499
+	* decl.c (get_proc_name): If ENTRY statement occurs before type
+	specification, set the symbol untyped and ensure that it is in
+	the procedure namespace.
+
+2007-11-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/33541
+	* module.c (find_symtree_for_symbol): Move to new location.
+	(find_symbol): New function.
+	(load_generic_interfaces): Rework completely so that symtrees
+	have the local name and symbols have the use name.  Renamed
+	generic interfaces exclude the use of the interface without an
+	ONLY clause (11.3.2).
+	(read_module): Implement 11.3.2 in the same way as for generic
+	interfaces.
+
+2007-11-23 Christopher D. Rickett <crickett@lanl.gov>
+
+	* trans-common.c (build_common_decl): Fix the alignment for
+	BIND(C) common blocks.
+
+2007-11-23  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34209
+	* iresolve.c (gfc_resolve_nearest): If sign variable kind does not match
+	kind of input variable, convert it to match.
+
+	PR fortran/33317
+	* trans.h: Modify prototype for gfc_conv_missing_dummy.
+	* trans-expr.c (gfc_conv_missing_dummy): Modify to pass an integer kind
+	parameter in.  Set the type of the dummy to the kind given.
+	(gfc_conv_function_call): Pass representation.length to
+	gfc_conv_missing_dummy.
+	* iresolve.c (gfc_resolve_cshift): Determine the correct kind to use and
+	if appropriate set representation.length to this kind value.
+	(gfc_resolve_eoshift): Likewise.
+	* check.c (gfc_check_cshift): Enable dim_check to allow DIM as an
+	optional argument. (gfc_check_eoshift): Likewise.
+	* trans_intrinsic.c (gfc_conv_intrinsic_function_args): Update call to
+	gfc_conv_missing_dummy.
+
+2007-11-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34187
+	* module.c (load_needed): Ensure binding_label is not lost.
+
+	* decl.c (set_binding_label,gfc_match_bind_c): Replace
+	strncpy by strcpy.
+
+2007-11-23  Tobias Burnus  <burnus@net-b.de>
+	    Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/34192
+	* simplify.c (gfc_simplify_nearest): Fix NEAREST for
+	subnormal numbers.
+
+2007-11-23  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-expr.c (gfc_trans_string_copy): Use "void *" when building a
+	memset.
+		
+2007-11-22  Tobias Burnus  <burnus@net-b.de>
+
+	* primary.c (gfc_match_structure_constructor): Allow
+	constructor for types without components.
+
+2007-11-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34079
+	* trans-expr.c (gfc_conv_function_call): Do not append
+	string length arguments when calling bind(c) procedures.
+	* trans-decl.c (create_function_arglist): Do not append
+	string length arguments when declaring bind(c) procedures.
+
+2007-11-21  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/34083
+	* resolve.c (resolve_structure_cons): Also check for zero rank.
+
+2007-11-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/33317
+	* trans-expr.c (gfc_conv_missing_dummy): Revert.
+	* iresolve.c (gfc_resolve_cshift): Revert.
+	(gfc_resolve_eoshift): Likewise.
+	* check.c (gfc_check_cshift): Revert.
+	(gfc_check_eoshift): Likewise.
+
+2007-11-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34079
+	* decl.c (gfc_match_entry): Support BIND(C).
+	(gfc_match_subroutine): Fix comment typo.
+
 2007-11-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/33317

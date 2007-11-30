@@ -370,6 +370,30 @@ match_data_constant (gfc_expr **result)
   else if (sym->attr.flavor == FL_DERIVED)
     return gfc_match_structure_constructor (sym, result);
 
+  /* Check to see if the value is an initialization array expression.  */
+  if (sym->value->expr_type == EXPR_ARRAY)
+    {
+      gfc_current_locus = old_loc;
+
+      m = gfc_match_init_expr (result);
+      if (m == MATCH_ERROR)
+	return m;
+
+      if (m == MATCH_YES)
+	{
+	  if (gfc_simplify_expr (*result, 0) == FAILURE)
+	    m = MATCH_ERROR;
+
+	  if ((*result)->expr_type == EXPR_CONSTANT)
+	    return m;
+          else
+	    {
+	      gfc_error ("Invalid initializer %s in Data statement at %C", name);
+	      return MATCH_ERROR;
+	    }
+	}
+    }
+
   *result = gfc_copy_expr (sym->value);
   return MATCH_YES;
 }
@@ -715,9 +739,7 @@ get_proc_name (const char *name, gfc_symbol **result, bool module_fcn_entry)
 
       if (*result == NULL)
 	rc = gfc_get_symbol (name, NULL, result);
-      else if (gfc_get_symbol (name, NULL, &sym) == 0
-		 && sym
-		 && sym->ts.type != BT_UNKNOWN
+      else if (!gfc_get_symbol (name, NULL, &sym) && sym
 		 && (*result)->ts.type == BT_UNKNOWN
 		 && sym->attr.flavor == FL_UNKNOWN)
 	/* Pick up the typespec for the entry, if declared in the function
@@ -726,13 +748,24 @@ get_proc_name (const char *name, gfc_symbol **result, bool module_fcn_entry)
 	   is set to point to the module symbol and a unique symtree
 	   to the local version.  This latter ensures a correct clearing
 	   of the symbols.  */
-	  {
-	    (*result)->ts = sym->ts;
-	    gfc_find_sym_tree (name, gfc_current_ns, 0, &st);
-	    st->n.sym = *result;
-	    st = gfc_get_unique_symtree (gfc_current_ns);
-	    st->n.sym = sym;
-	  }
+	{
+	  /* If the ENTRY proceeds its specification, we need to ensure
+	     that this does not raise a "has no IMPLICIT type" error.  */
+	  if (sym->ts.type == BT_UNKNOWN)
+	    sym->attr.untyped = 1;
+
+	  (*result)->ts = sym->ts;
+
+	  /* Put the symbol in the procedure namespace so that, should
+	     the ENTRY preceed its specification, the specification
+	     can be applied.  */
+	  (*result)->ns = gfc_current_ns;
+
+	  gfc_find_sym_tree (name, gfc_current_ns, 0, &st);
+	  st->n.sym = *result;
+	  st = gfc_get_unique_symtree (gfc_current_ns);
+	  st->n.sym = sym;
+	}
     }
   else
     rc = gfc_get_symbol (name, gfc_current_ns->parent, result);
@@ -1163,15 +1196,6 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
       && *initp != NULL)
     {
       gfc_error ("Initializer not allowed for PARAMETER '%s' at %C",
-		 sym->name);
-      return FAILURE;
-    }
-
-  if (attr.in_common
-      && !attr.data
-      && *initp != NULL)
-    {
-      gfc_error ("Initializer not allowed for COMMON variable '%s' at %C",
 		 sym->name);
       return FAILURE;
     }
@@ -3126,15 +3150,14 @@ set_binding_label (char *dest_label, const char *sym_name, int num_idents)
   if (curr_binding_label[0] != '\0')
     {
       /* Binding label given; store in temp holder til have sym.  */
-      strncpy (dest_label, curr_binding_label,
-               strlen (curr_binding_label) + 1);
+      strcpy (dest_label, curr_binding_label);
     }
   else
     {
       /* No binding label given, and the NAME= specifier did not exist,
          which means there was no NAME="".  */
       if (sym_name != NULL && has_name_equals == 0)
-        strncpy (dest_label, sym_name, strlen (sym_name) + 1);
+        strcpy (dest_label, sym_name);
     }
    
   return SUCCESS;
@@ -4315,6 +4338,8 @@ gfc_match_entry (void)
   gfc_entry_list *el;
   locus old_loc;
   bool module_procedure;
+  char peek_char;
+  match is_bind_c;
 
   m = gfc_match_name (name);
   if (m != MATCH_YES)
@@ -4398,6 +4423,26 @@ gfc_match_entry (void)
 
   proc = gfc_current_block ();
 
+  /* Make sure that it isn't already declared as BIND(C).  If it is, it
+     must have been marked BIND(C) with a BIND(C) attribute and that is
+     not allowed for procedures.  */
+  if (entry->attr.is_bind_c == 1)
+    {
+      entry->attr.is_bind_c = 0;
+      if (entry->old_symbol != NULL)
+        gfc_error_now ("BIND(C) attribute at %L can only be used for "
+                       "variables or common blocks",
+                       &(entry->old_symbol->declared_at));
+      else
+        gfc_error_now ("BIND(C) attribute at %L can only be used for "
+                       "variables or common blocks", &gfc_current_locus);
+    }
+  
+  /* Check what next non-whitespace character is so we can tell if there
+     is the required parens if we have a BIND(C).  */
+  gfc_gobble_whitespace ();
+  peek_char = gfc_peek_char ();
+
   if (state == COMP_SUBROUTINE)
     {
       /* An entry in a subroutine.  */
@@ -4407,6 +4452,21 @@ gfc_match_entry (void)
       m = gfc_match_formal_arglist (entry, 0, 1);
       if (m != MATCH_YES)
 	return MATCH_ERROR;
+
+      is_bind_c = gfc_match_bind_c (entry);
+      if (is_bind_c == MATCH_ERROR)
+	return MATCH_ERROR;
+      if (is_bind_c == MATCH_YES)
+	{
+	  if (peek_char != '(')
+	    {
+	      gfc_error ("Missing required parentheses before BIND(C) at %C");
+	      return MATCH_ERROR;
+	    }
+	    if (gfc_add_is_bind_c (&(entry->attr), entry->name, &(entry->declared_at), 1)
+		== FAILURE)
+	      return MATCH_ERROR;
+	}
 
       if (gfc_add_entry (&entry->attr, entry->name, NULL) == FAILURE
 	  || gfc_add_subroutine (&entry->attr, entry->name, NULL) == FAILURE)
@@ -4452,19 +4512,28 @@ gfc_match_entry (void)
 	}
       else
 	{
-	  m = match_result (proc, &result);
+	  m = gfc_match_suffix (entry, &result);
 	  if (m == MATCH_NO)
 	    gfc_syntax_error (ST_ENTRY);
 	  if (m != MATCH_YES)
 	    return MATCH_ERROR;
 
-	  if (gfc_add_result (&result->attr, result->name, NULL) == FAILURE
-	      || gfc_add_entry (&entry->attr, result->name, NULL) == FAILURE
-	      || gfc_add_function (&entry->attr, result->name, NULL)
-		 == FAILURE)
-	    return MATCH_ERROR;
-
-	  entry->result = result;
+          if (result)
+	    {
+	      if (gfc_add_result (&result->attr, result->name, NULL) == FAILURE
+		  || gfc_add_entry (&entry->attr, result->name, NULL) == FAILURE
+		  || gfc_add_function (&entry->attr, result->name, NULL)
+		  == FAILURE)
+	        return MATCH_ERROR;
+	      entry->result = result;
+	    }
+	  else
+	    {
+	      if (gfc_add_entry (&entry->attr, entry->name, NULL) == FAILURE
+		  || gfc_add_function (&entry->attr, entry->name, NULL) == FAILURE)
+		return MATCH_ERROR;
+	      entry->result = entry;
+	    }
 	}
     }
 
@@ -4523,7 +4592,7 @@ gfc_match_subroutine (void)
   gfc_new_block = sym;
 
   /* Check what next non-whitespace character is so we can tell if there
-     where the required parens if we have a BIND(C).  */
+     is the required parens if we have a BIND(C).  */
   gfc_gobble_whitespace ();
   peek_char = gfc_peek_char ();
   
@@ -4690,12 +4759,10 @@ gfc_match_bind_c (gfc_symbol *sym)
     {
       if (sym != NULL)
       {
-	strncpy (sym->binding_label, binding_label,
-		 strlen (binding_label)+1);
+	strcpy (sym->binding_label, binding_label);
       }
       else
-	strncpy (curr_binding_label, binding_label,
-		 strlen (binding_label) + 1);
+	strcpy (curr_binding_label, binding_label);
     }
   else
     {

@@ -43,13 +43,13 @@
 #include <bits/c++config.h>
 #include <bits/stl_function.h>
 
-#include <cmath>
 #include <typeinfo>
 #include <new>
 #include <tr1/tuple>
 #include <tr1/type_traits>
 #include <bits/stringfwd.h>
 #include <tr1/functional_hash.h>
+#include <ext/type_traits.h>
 
 #if defined(_GLIBCXX_INCLUDE_AS_TR1)
 #  include <tr1_impl/functional>

@@ -273,23 +273,7 @@ remap_decl (tree decl, copy_body_data *id)
 static tree
 remap_type_1 (tree type, copy_body_data *id)
 {
-  tree *node;
   tree new, t;
-
-  if (type == NULL)
-    return type;
-
-  /* See if we have remapped this type.  */
-  node = (tree *) pointer_map_contains (id->decl_map, type);
-  if (node)
-    return *node;
-
-  /* The type only needs remapping if it's variably modified.  */
-  if (! variably_modified_type_p (type, id->src_fn))
-    {
-      insert_decl_map (id, type, type);
-      return type;
-    }
 
   /* We do need a copy.  build and register it now.  If this is a pointer or
      reference type, remap the designated type and make a new pointer or
@@ -1524,6 +1508,14 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
       return;
     }
 
+  /* If the value of argument is never used, don't care about initializing
+     it.  */
+  if (gimple_in_ssa_p (cfun) && !def && is_gimple_reg (p))
+    {
+      gcc_assert (!value || !TREE_SIDE_EFFECTS (value));
+      return;
+    }
+
   /* Initialize this VAR_DECL from the equivalent argument.  Convert
      the argument to the proper type in case it was promoted.  */
   if (value)
@@ -2490,7 +2482,7 @@ add_lexical_block (tree current_block, tree new_block)
   /* Walk to the last sub-block.  */
   for (blk_p = &BLOCK_SUBBLOCKS (current_block);
        *blk_p;
-       blk_p = &TREE_CHAIN (*blk_p))
+       blk_p = &BLOCK_CHAIN (*blk_p))
     ;
   *blk_p = new_block;
   BLOCK_SUPERCONTEXT (new_block) = current_block;
@@ -2667,6 +2659,8 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
   id->src_node = cg_edge->callee;
   id->src_cfun = DECL_STRUCT_FUNCTION (fn);
   id->call_expr = t;
+
+  gcc_assert (!id->src_cfun->after_inlining);
 
   initialize_inlined_parameters (id, t, fn, bb);
 
@@ -3593,6 +3587,7 @@ build_duplicate_type (tree type)
   id.dst_fn = current_function_decl;
   id.src_cfun = cfun;
   id.decl_map = pointer_map_create ();
+  id.copy_decl = copy_decl_no_change;
 
   type = remap_type_1 (type, &id);
 

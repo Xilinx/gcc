@@ -1,3 +1,23 @@
+2007-11-26  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	PR 34081/C++
+	* decl.c (finish_method): Pass 'false' for the new
+	allocate_struct_function parameter.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* expr.c (build_jni_stub): Use the computed jni func type for
+	variable meth.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* class.c (JAVA_TREEHASHHASH_H): Use TYPE_UID.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* expr.c (type_assertion_hash): Hash type uids rather than
+	tree pointers.
+
 2007-11-17  David Daney  <ddaney@avtrex.com>
 	    Andrew Haley  <aph@redhat.com>
 
