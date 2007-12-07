@@ -2689,6 +2689,11 @@ override_options (void)
     set_param_value ("l1-cache-size", ix86_cost->l1_cache_size);
   if (!PARAM_SET_P (PARAM_L2_CACHE_SIZE))
     set_param_value ("l2-cache-size", ix86_cost->l2_cache_size);
+
+  /* If using typedef char *va_list, signal that __builtin_va_start (&ap, 0)
+     can be optimized to ap = __builtin_next_arg (0).  */
+  if (!TARGET_64BIT || TARGET_64BIT_MS_ABI)
+    targetm.expand_builtin_va_start = NULL;
 }
 
 /* Return true if this goes in large data/bss.  */
@@ -3198,9 +3203,9 @@ ix86_function_regparm (const_tree type, const_tree decl)
 	  struct function *f;
 
 	  /* Make sure no regparm register is taken by a
-	     global register variable.  */
+	     fixed register or global register variable.  */
 	  for (local_regparm = 0; local_regparm < 3; local_regparm++)
-	    if (global_regs[local_regparm])
+	    if (global_regs[local_regparm] || fixed_regs[local_regparm])
 	      break;
 
 	  /* We can't use regparm(3) for nested functions as these use
@@ -3222,11 +3227,12 @@ ix86_function_regparm (const_tree type, const_tree decl)
 					TYPE_ATTRIBUTES (TREE_TYPE (decl)))))
 	    local_regparm = 2;
 
-	  /* Each global register variable increases register preassure,
-	     so the more global reg vars there are, the smaller regparm
-	     optimization use, unless requested by the user explicitly.  */
+	  /* Each global register variable or fixed register usage
+	     increases register pressure, so less registers should be
+	     used for argument passing.  This functionality can be
+	     overriden by explicit regparm value.  */
 	  for (regno = 0; regno < 6; regno++)
-	    if (global_regs[regno])
+	    if (global_regs[regno] || fixed_regs[regno])
 	      globals++;
 	  local_regparm
 	    = globals < local_regparm ? local_regparm - globals : 0;
@@ -5040,7 +5046,7 @@ ix86_setup_incoming_varargs (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 
 /* Implement va_start.  */
 
-void
+static void
 ix86_va_start (tree valist, rtx nextarg)
 {
   HOST_WIDE_INT words, n_gpr, n_fpr;
@@ -25251,6 +25257,9 @@ x86_builtin_vectorization_cost (bool runtime_test)
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST ix86_build_builtin_va_list
+
+#undef TARGET_EXPAND_BUILTIN_VA_START
+#define TARGET_EXPAND_BUILTIN_VA_START ix86_va_start
 
 #undef TARGET_MD_ASM_CLOBBERS
 #define TARGET_MD_ASM_CLOBBERS ix86_md_asm_clobbers

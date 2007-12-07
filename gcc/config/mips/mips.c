@@ -4735,9 +4735,9 @@ mips_build_builtin_va_list (void)
     return ptr_type_node;
 }
 
-/* Implement EXPAND_BUILTIN_VA_START.  */
+/* Implement TARGET_EXPAND_BUILTIN_VA_START.  */
 
-void
+static void
 mips_va_start (tree valist, rtx nextarg)
 {
   if (EABI_FLOAT_VARARGS_P)
@@ -5611,12 +5611,12 @@ mips_function_ok_for_sibcall (tree decl, tree exp ATTRIBUTE_UNUSED)
       && const_call_insn_operand (XEXP (DECL_RTL (decl), 0), VOIDmode))
     return false;
 
-  /* When -minterlink-mips16 is in effect, assume that external
-     functions could be MIPS16 ones unless an attribute explicitly
-     tells us otherwise.  */
+  /* When -minterlink-mips16 is in effect, assume that non-locally-binding
+     functions could be MIPS16 ones unless an attribute explicitly tells
+     us otherwise.  */
   if (TARGET_INTERLINK_MIPS16
       && decl
-      && DECL_EXTERNAL (decl)
+      && (DECL_EXTERNAL (decl) || !targetm.binds_local_p (decl))
       && !mips_nomips16_decl_p (decl)
       && const_call_insn_operand (XEXP (DECL_RTL (decl), 0), VOIDmode))
     return false;
@@ -12445,6 +12445,8 @@ mips_order_regs_for_local_alloc (void)
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST mips_build_builtin_va_list
+#undef TARGET_EXPAND_BUILTIN_VA_START
+#define TARGET_EXPAND_BUILTIN_VA_START mips_va_start
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR mips_gimplify_va_arg_expr
 

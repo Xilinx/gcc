@@ -1,3 +1,253 @@
+2007-12-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gfortran.dg/ltrans-7.f90: New.
+
+2007-12-06  Martin Michlmayr <tbm@cyrius.com>
+	    Dorit Nuzman  <dorit@il.ibm.com>
+
+	PR tree-optimization/34005
+	* gcc.dg/vect/pr34005.c: New test.
+
+2007-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34336
+	* g++.dg/template/new8.C: New test.
+
+2007-12-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34333
+	* gfortran.dg/boz_7.f90: New.
+	* gfortran.dg/int_1.f90: Disable -pedantic option.
+	* gfortran.dg/boz_1.f90: Ditto.
+	* gfortran.dg/boz_3.f90: Ditto.
+	* gfortran.dg/pr16433.f: Accomodate for new BOZ warning.
+	* gfortran.dg/ibits.f90: Ditto.
+	* gfortran.dg/unf_io_convert_1.f90: Ditto.
+	* gfortran.dg/unf_io_convert_2.f90: Ditto.
+
+2007-12-06  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34335
+	* gfortran.dg/used_types_19.f90: New test.
+
+2007-12-06  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gfortran.dg/nan_2.f90: Add -mieee for sh.
+	* gfortran.dg/nearest_2.f90: Likewise.
+	* gfortran.dg/nearest_3.f90: Likewise.
+
+2007-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/34337
+	* gcc.c-torture/execute/20071205-1.c: New test.
+
+2007-12-05  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gfortran.dg/module_nan.f90: Add -mieee for sh.
+	* gfortran.dg/real_const_3.f90: Likewise.
+
+2007-12-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34138
+	* gcc.c-torture/compile/pr34138.c: New testcase.
+
+2007-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/33739
+	* gfortran.dg/debug_2.f: New test.
+
+2007-12-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/elab1.ads: New test.
+
+2007-12-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/34312
+	* gcc.target/i386/pr34312.c: New test.
+
+2007-12-05  Tobias Burnus  <bU    gcc/stmt.c
+
+	PR fortran/34333
+	* gfortran.dg/nan_2.f90: New.
+
+2007-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34271
+	* g++.dg/cpp0x/decltype9.C: New test.
+	* g++.dg/cpp0x/decltype10.C: New test.
+
+2007-12-05  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/21489
+	* gnat.dg/rm_6_4_1_13.adb: New test.
+
+2007-12-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/34134
+	* gcc.c-torture/compile/20071117-1.c: New test.
+
+2007-12-04  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/34101
+	* g++.dg/cpp0x/variadic-ttp.C: New.
+
+2007-12-04  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+	
+	* gcc.dg/parse-decl-after-if.c: New.
+	* gcc.dg/20031223-1.c: Adjust.
+	
+2007-12-04  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/33509
+	* g++.dg/cpp0x/variadic-throw.C: New.
+
+2007-12-04  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/33091
+	* g++.dg/cpp0x/variadic-unify.C: New.
+
+2007-12-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34334
+	PR middle-end/34222
+	* gcc.c-torture/compile/pr34334.c: New testcase.
+	* g++.dg/torture/pr34222.C: New testcase.
+
+2007-12-04  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.c-torture/execute/20071202-1.c: New test.
+	* gcc.dg/tree-ssa/pr34146-2.c: New test.
+
+2007-12-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34318
+	* gfortran.dg/module_nan.f90: New.
+
+2007-12-04  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* lib/target-supports.exp (get_compiler_messages): Replace with...
+	(check_compile): ...this new procedure.  Handle TYPE == executable.
+	Use comments in the source to determine the correct extension.
+	Return a pair containing the compiler output and the output filename.
+	Don't delete the file here.
+	(check_no_compiler_messages_nocache): New procedure.
+	(check_no_compiler_messages): Use it.
+	(check_no_messages_and_pattern_nocache): New procedure.
+	(check_no_messages_and_pattern): Use it.
+	(check_runtime_nocache, check_runtime): New procedures.
+	(check_effective_target_tls): Use check_no_compiler_messages.
+	(check_effective_target_tls_native): Use check_no_messages_and_pattern.
+	(check_effective_target_tls_runtime): Use check_runtime.
+	(check_effective_target_fstack_protector): Likewise.
+	(check_iconv_available): Use check_runtime_nocache.
+	(check_effective_target_fortran_large_real): Use
+	check_no_compiler_messages.
+	(check_effective_target_fortran_large_int): Likewise.
+	(check_effective_target_static_libgfortran): Likewise.
+	(check_750cl_hw_available): Use check_cached_effective_target
+	and check_runtime_nocache.
+	(check_vmx_hw_available): Likewise.
+	(check_effective_target_broken_cplxf_arg): Likewise.
+	(check_alpha_max_hw_available): Use check_runtime.
+	(check_function_available): Use check_no_compiler_messages.
+	(check_cxa_atexit_available): Use check_cached_effective_target
+	and check_runtime_nocache.
+	(check_effective_target_dfp_nocache): Use
+	check_no_compiler_messages_nocache.
+	(check_effective_target_dfprt_nocache): Use check_runtime_nocache.
+	(check_effective_target_dfp): Use check_cached_effective_target.
+	(check_effective_target_dfprt): Likewise.
+	(check_effective_target_arm_neon_hw): Use check_runtime.
+	(check_effective_target_ultrasparc_hw): Likewise.
+	(check_effective_target_c99_runtime): Use
+	check_no_compiler_messages_nocache.
+
+2007-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/29749
+	* gcc.dg/fold-rotate-1.c: New test.
+
+	PR tree-optimization/33453
+	* gcc.c-torture/compile/20071203-1.c: New test.
+
+2007-12-03  Robert Dewar <dewar@adacore.com>
+	    Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/34287
+	* gnat.dg/check_elaboration_code.adb: New test.
+	* gnat.dg/bug_elaboration_code.ads, bug_elaboration_code.adb:
+	New support files.
+
+2007-12-02  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/34061
+	* g++.dg/cpp0x/pr34061.C: New.
+
+2007-12-02  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/34273
+	* g++.dg/other/error21.C: New.
+
+2007-12-02  Revital Eres  <eres@il.ibm.com>
+
+	* gcc.dg/sms-4.c: New testcase.
+
+2007-12-02  Vladimir Yanovsky  <yanov@il.ibm.com>
+	    Revital Eres  <eres@il.ibm.com>
+
+	* gcc.dg/sms-3.c: New testcase.
+
+2007-12-01  Ollie Wild  <aaw@google.com>
+
+	PR c++/8171
+	* g++.dg/conversion/ptrmem9.C: New test.
+
+2007-11-30  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/34291
+	* gfortran.dg/namelist_41.f90: New test.
+
+2007-11-30  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/32868:
+	* gcc.dg/cpp/pr32868.c: New file.
+
+2007-11-30  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34248
+	* gfortran.dg/result_in_spec_3.f90: Add dg-option -std=gnu.
+
+2007-11-30  Martin Michlmayr <tbm@cyrius.com>
+
+	PR rtl-optimization/34171
+	* gcc.dg/pr34171.c: New testcase.
+
+2007-11-30  Zdenek Dvorak  <ook@ucw.cz>
+
+	* gcc.dg/tree-ssa/pr34244.c: Fixed.
+
+2007-11-30  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34133
+	* gfortran.dg/bind_c_usage_9.f03: Fixes; add -std=f2003.
+	* gfortran.dg/bind_c_usage_11.f03: New.
+	* gfortran.dg/bind_c_usage_12.f03: New.
+
+2007-11-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34275
+	* g++.dg/other/error20.C: New test.
+
+2007-11-29  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/34230
+	* gfortran.dg/real_const_3.f90: Fix up for new range-check handling.
+
+2007-11-29  Zdenek Dvorak  <ook@ucw.cz>
+
+	PR tree-optimization/34244
+	* gcc.dg/tree-ssa/pr34244.c: New test.
+
 2007-11-29  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/33434
@@ -34,7 +284,7 @@
 	
 2007-11-28  Samuel Tardieu  <sam@rfc1149.net>
 
-	PR ada/15803
+	PR ada/15804
 	* gnat.dg/specs/variant_part.ads: New test.
 
 	PR ada/17318
@@ -1120,7 +1370,7 @@
 	* gcc.dg/vect/vect-78.c: Likewise.
 
 	* gcc.dg/vect/no-section-anchors-vect-31.c: New test, like the original
-	testcase (without no-section-anchors prefix) but with global arrays.   
+	testcase (without no-section-anchors prefix) but with global arrays.
 	* gcc.dg/vect/no-section-anchors-vect-34.c: Likewise.
 	* gcc.dg/vect/no-section-anchors-vect-36.c: Likewsie.
 	* gcc.dg/vect/no-section-anchors-vect-64.c: Likewise.

@@ -1,3 +1,63 @@
+2007-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34336
+	* tree.c (stabilize_call, stabilize_init): Do nothing if
+	processing_template_decl.
+
+2007-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34271
+	* semantics.c (finish_decltype_type): For SCOPE_REF issue an
+	error instead of assertion failure.
+	* parser.c (cp_parser_decltype): If closing paren is not found,
+	return error_mark_node.
+
+2007-12-04  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/34101
+       * name-lookup.c (arg_assoc_template_arg): Recurse on argument
+       packs.
+       (arg_assoc_type): We don't need to handle TYPE_ARGUMENT_PACK here,
+       since arg_assoc_template_arg will deal with them (better).
+
+2007-12-04  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/33509
+       * pt.c (tsubst_exception_specification): Handle substitutions into
+       member templates, where tsubst_pack_expansion returns a
+       TYPE_PACK_EXPANSION.
+
+2007-12-04  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/33091
+       * pt.c (unify_pack_expansion): If we didn't deduce any actual
+       bindings for the template parameter pack, don't try to keep the
+       empty deduced arguments.
+       (unify): If a parameter is a template-id whose template argument
+       list contains a pack expansion that is not at the end, then we
+       cannot unify against that template-id.
+
+2007-12-02  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/34061
+        * pt.c (current_template_args): Use error_operand_p.
+
+2007-12-02  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/34273
+        * error.c (dump_decl): Handle TREE_BINFO.
+
+2007-12-01  Ollie Wild  <aaw@google.com>
+
+	PR c++/8171
+	* typeck.c (build_binary_op): Add conversion of pointers to function
+	members appearing as operands to the equality operators.
+
+2007-11-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34275
+	* error.c (dump_expr): Handle OBJ_TYPE_REF.
+
 2007-11-29  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/34270

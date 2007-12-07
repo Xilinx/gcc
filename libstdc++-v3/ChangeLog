@@ -1,6 +1,73 @@
+2007-12-05  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1_impl/hashtable_policy.h (_Prime_rehash_policy::
+	_S_n_primes): Add.
+	(_Prime_rehash_policy::_M_next_bkt, _M_bkt_for_elements,
+	_M_need_rehash): Adjust.
+
+2007-12-03  Paolo Carlini  <pcarlini@suse.de>
+
+	* src/hashtable.cc (__prime_list): Use __SIZEOF_LONG__.
+
+2007-12-03  Paolo Carlini  <pcarlini@suse.de>
+
+	* src/hashtable.cc: New.
+	* src/hashtable_c++0x.cc: Likewise.
+	* src/Makefile.am: Add.
+	* src/Makefile.in: Regenerate.
+	* include/tr1_impl/hashtable_policy.h (struct _Primes): Remove.
+	(_Prime_rehash_policy::_M_next_bkt, _M_bkt_for_elements,
+	_M_need_rehash): Adjust.
+	* config/abi/pre/gnu.ver: Update exports.
+
+	* src/hash.cc: Minor tweak.
+
+2007-12-03  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/debug/unordered_map (operator==(const unordered_map&,
+	const unordered_map&), operator!=(const unordered_map&,
+	const unordered_map&), operator==(const unordered_multimap&,
+	const unordered_multimap&), operator!=(const unordered_multimap&,
+	const unordered_multimap&)): Remove.
+	(unordered_map<>::unordered_map(unordered_map&&),
+	operator=(unordered_map&&), clear, _M_invalidate_all,
+	unordered_multimap<>::unordered_multimap(unordered_multimap&&),
+	operator=(unordered_map&&), clear, _M_invalidate_all,	
+	swap(unordered_map<>&&, unordered_map<>&), swap(unordered_map<>&,
+	unordered_map<>&&), swap(unordered_multimap<>&&,
+	unordered_multimap<>&), swap(unordered_multimap<>&,
+	unordered_multimap<>&&)): Add.
+	* include/debug/unordered_set (operator==(const unordered_set&,
+	const unordered_set&), operator!=(const unordered_set&,
+	const unordered_set&), operator==(const unordered_multiset&,
+	const unordered_multiset&), operator!=(const unordered_multiset&,
+	const unordered_multiset&)): Remove.
+	(unordered_set<>::unordered_set(unordered_set&&),
+	operator=(unordered_set&&), clear, _M_invalidate_all,
+	unordered_multiset<>::unordered_multiset(unordered_multiset&&),
+	operator=(unordered_set&&), clear, _M_invalidate_all,	
+	swap(unordered_set<>&&, unordered_set<>&), swap(unordered_set<>&,
+	unordered_set<>&&), swap(unordered_multiset<>&&,
+	unordered_multiset<>&), swap(unordered_multiset<>&,
+	unordered_multiset<>&&)): Add.
+	* include/debug/safe_association.h (_Safe_association<>::
+	_Safe_association(_Safe_association&&)): Add.
+	(_Safe_association<>::clear, _M_invalidate_all): Remove.
+
+2007-12-01  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/tr1_impl/hashtable_policy.h (struct _LessThan): Remove.
+	(_Prime_rehash_policy::_M_bkt_for_elements, _Prime_rehash_policy::
+	_M_need_rehash): Adjust.
+
+2007-12-01  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/bits/stl_tempbuf.h (__get_temporary_buffer): Fold
+	in get_temporary_buffer.
+
 2007-11-29  Andris Pavenis <andris.pavenis@iki.fi>
 
-    	* src/Makefile.am: Use separate vpath lines for each path.
+	* src/Makefile.am: Use separate vpath lines for each path.
 
 2007-11-28  Johannes Singler  <singler@ira.uka.de>
 

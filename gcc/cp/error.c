@@ -956,6 +956,7 @@ dump_decl (tree t, int flags)
 
     case UNBOUND_CLASS_TEMPLATE:
     case TYPE_PACK_EXPANSION:
+    case TREE_BINFO:
       dump_type (t, flags);
       break;
 
@@ -2054,6 +2055,10 @@ dump_expr (tree t, int flags)
     case VEC_DELETE_EXPR:
     case MODOP_EXPR:
       pp_expression (cxx_pp, t);
+      break;
+
+    case OBJ_TYPE_REF:
+      dump_expr (resolve_virtual_fun_from_obj_type_ref (t), flags);
       break;
 
       /*  This list is incomplete, but should suffice for now.

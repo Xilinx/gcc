@@ -383,11 +383,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 #define PAD_VARARGS_DOWN 0
 
 #define FUNCTION_ARG_REGNO_P(N) ((N) >= (FIRST_ARG_REGNUM) && (N) <= (LAST_ARG_REGNUM))
-
-/* Undocumented */
-#define EXPAND_BUILTIN_VA_START(valist, nextarg) \
-  spu_va_start (valist, nextarg)
-
 
 /* Scalar Return */
 
@@ -517,10 +512,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 #define ASM_OUTPUT_LABELREF(FILE, NAME) \
   asm_fprintf (FILE, "%U%s", default_strip_name_encoding (NAME))
-
-#define ASM_FORMAT_PRIVATE_NAME(OUTPUT, NAME, LABELNO)	\
-( (OUTPUT) = (char *) alloca (strlen ((NAME)) + 10),	\
-  sprintf ((OUTPUT), "%s.%d", (NAME), (LABELNO)))
 
 #define ASM_OUTPUT_SYMBOL_REF(FILE, X) \
   do								\

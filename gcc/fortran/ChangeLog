@@ -1,3 +1,86 @@
+2007-12-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34333
+	* primary.c (match_boz_constant): Add gfc_notify_std diagnostics.
+
+2007-12-06  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34335
+	* module.c (find_symbol): Do not return symtrees with unique
+	names, which shows that they are private.
+
+2007-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/33739
+	* gfortran.h (gfc_file): Remove included_by field, add sibling and
+	down.
+	(gfc_start_source_files, gfc_end_source_files): New prototypes.
+	* parse.c (gfc_parse_file): Call gfc_start_source_files and
+	gfc_end_source_files instead of calling the debugging hooks directly.
+	* error.c (show_locus): Use up field instead of included_by.
+	* scanner.c (change_file, gfc_start_source_files,
+	gfc_end_source_files): New functions.
+	(gfc_advance_line): Call change_file instead of calling debug hooks
+	directly.
+	(get_file): Set up rather than included_by.  Initialize down and
+	sibling.
+	(preprocessor_line, load_file): Don't set up field here.
+
+2007-12-05  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34333
+	* arith.h (gfc_compare_expr): Add operator argument, needed
+	for compare_real.
+	* arith.c (gfc_arith_init_1): Use mpfr_min instead of mpfr_cmp/set
+	to account for NaN.
+	(compare_real): New function, as mpfr_cmp but takes NaN into account.
+	(gfc_compare_expr): Use compare_real.
+	(compare_complex): Take NaN into account.
+	(gfc_arith_eq,gfc_arith_ne,gfc_arith_gt,gfc_arith_ge,gfc_arith_lt,
+	gfc_arith_le): Pass operator to gfc_compare_expr.
+	* resolve.c (compare_cases,resolve_select): Pass operator
+	to gfc_compare_expr.
+	* simplify.c (simplify_min_max): Take NaN into account.
+
+2007-12-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34318
+	* module.c (mio_gmp_real): Properly write NaN and Infinity.
+
+2007-12-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34186
+	* symbol.c (generate_isocbinding_symbol): Fix setting string length.
+
+2007-11-30  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34133
+	* match.h: Add bool allow_binding_name to gfc_match_bind_c.
+	* decl.c (match_attr_spec,gfc_match_bind_c_stmt,gfc_match_entry):
+	Adjust accordingly.
+	(gfc_match_bind_c): Add allow_binding_name argument, reject
+	binding name for dummy arguments.
+	(gfc_match_suffix,gfc_match_subroutine): Make use of
+	allow_binding_name.
+
+2007-11-30  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34186
+	* symbol.c (generate_isocbinding_symbol): Set string length.
+	* dump-parse-tree.c (gfc_show_attr): Show BIND(C) attribute.
+	* misc.c (gfc_basic_typename): Handle BT_VOID.
+
+2007-11-29  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/34230
+	* fortran/arith.c (gfc_check_real_range): Set intermediate values
+	to +-Inf and 0 when -fno-range-check is in effect.
+	* fortran/invoke.texi: Improve -fno-range-check description.
+
+	PR fortran/34203
+	* fortran/invoke.texi: Document the C escaped characters activated
+	by -fbackslash.
+
 2007-11-29  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/34248

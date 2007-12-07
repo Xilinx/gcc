@@ -1,3 +1,46 @@
+2007-12-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (make_packable_type): Revert last change.
+	(gnat_to_gnu_field): Avoid setting size and position multiple times.
+	* utils.c (finish_record_type): Retrieve the real name of the type.
+
+2007-12-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* trans.c (lvalue_required_p): Take base node directly instead
+	of its parent.  Rename second parameter to 'gnu_type'.
+	<N_Indexed_Component>: Return 0 if the node isn't the prefix.
+	<N_Slice>: Likewise.
+	(Identifier_to_gnu): Rename parent_requires_lvalue to require_lvalue.
+	Adjust calls to lvalue_required_p.
+
+2007-12-05  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/21489
+	* exp_ch9.adb (Build_Simple_Entry_Call): Initialize OUT access type
+	parameters of an entry call.
+
+2007-12-03  Robert Dewar <dewar@adacore.com>
+            Samuel Tardieu  <sam@rfc1149.net>
+
+    	PR ada/34287
+    	* sem_util.adb (Safe_To_Capture_Value): Do not capture values
+    	of variables declared in a library-level package.
+    
+2007-12-02  Samuel Tardieu  <sam@rfc1149.net>
+
+	* clean.adb (Clean_Library_Directory): Use Empty_String'Access intead
+	of Empty_String'Unchecked_Access.
+
+	* Makefile.in: Add support for sh4-linux.
+
+	* system-linux-sh4.ads: New file.
+
+2007-12-01  Kostik Belousov  <kostikbel@ukr.net>
+
+	PR ada/33722
+	* env.c (__gnat_setenv): FreeBSD 7 has a POSIX conformant putenv()
+	and its argument must not be free()ed.
+
 2007-11-29  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* decl.c (make_packable_type): Retrieve the real name of the type.
@@ -5,7 +48,7 @@
 
 2007-11-28  Samuel Tardieu  <sam@rfc1149.net>
 
-	PR ada/15803
+	PR ada/15804
 	* par-ch3.adb (P_Variant_Part): Signal an error when anything other
 	than an identifier is used after "case" in a variant_part.
 
@@ -43,7 +86,7 @@
 
 2007-11-25  Richard Guenther  <rguenther@suse.de>
 
-	utils.c (gnat_pushlevel): Use BLOCK_CHAIN.
+	* utils.c (gnat_pushlevel): Use BLOCK_CHAIN.
 	(gnat_poplevel): Likewise.
 
 2007-11-25  Eric Botcazou  <ebotcazou@adacore.com>

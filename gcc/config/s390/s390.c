@@ -7162,6 +7162,18 @@ s390_load_got (void)
   return insns;
 }
 
+/* This ties together stack memory (MEM with an alias set of frame_alias_set)
+   and the change to the stack pointer.  */
+
+static void
+s390_emit_stack_tie (void)
+{
+  rtx mem = gen_frame_mem (BLKmode,
+			   gen_rtx_REG (Pmode, STACK_POINTER_REGNUM));
+
+  emit_insn (gen_stack_tie (mem));
+}
+
 /* Expand the prologue into a bunch of separate insns.  */
 
 void
@@ -7390,6 +7402,11 @@ s390_emit_prologue (void)
 
   if (cfun_save_high_fprs_p && next_fpr)
     {
+      /* If the stack might be accessed through a different register
+	 we have to make sure that the stack pointer decrement is not
+	 moved below the use of the stack slots.  */
+      s390_emit_stack_tie ();
+
       insn = emit_insn (gen_add2_insn (temp_reg, 
 				       GEN_INT (cfun_frame_layout.f8_offset)));
 
@@ -7961,7 +7978,7 @@ s390_build_builtin_va_list (void)
        holds the offset of the first anonymous stack argument
        (relative to the virtual arg pointer).  */
 
-void
+static void
 s390_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
 {
   HOST_WIDE_INT n_gpr, n_fpr;
@@ -9314,6 +9331,8 @@ s390_reorg (void)
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST s390_build_builtin_va_list
+#undef TARGET_EXPAND_BUILTIN_VA_START
+#define TARGET_EXPAND_BUILTIN_VA_START s390_va_start
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR s390_gimplify_va_arg
 
