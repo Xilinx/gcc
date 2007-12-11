@@ -1,3 +1,158 @@
+2007-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/34371
+	* tree-vectorizer.h (struct _loop_vec_info): Add num_iters_unchanged
+	field.
+	(LOOP_VINFO_NITERS_UNCHANGED): Define to num_iters_unchanged field.
+	* tree-vectorizer.c (set_prologue_iterations,
+	slpeel_tree_peel_loop_to_edge): Call unshare_expr on
+	LOOP_VINFO_NITERS_UNCHANGED before using it.
+
+2007-12-10  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	PR target/34403
+	* config/i386/i386.c (ix86_expand_movmem): Punt if the count is large.
+	(ix86_expand_setmem): Likewise.
+
+2007-12-10  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	PR rtl-optimization/34302
+	* auto-inc-dec.c (attempt_change): Change place where move is
+	inserted.
+
+2007-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (gen_array_type_die, gen_descr_array_type_die): For
+	Fortran multi-dimensional arrays use DW_AT_ordering
+	DW_ORD_col_major.
+
+2007-12-10  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/32086
+	* config/i386/i386.c (override_options): Enable -fvect-cost-model.
+
+2007-12-10 Uros Bizjak <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_function_regparm): Do not check global_regs
+	array, registers that are members of global_regs are also members of
+	fixed_regs array.  Use REGPARM_MAX to check that no regparm hard
+	register is taken by a fixed register variable.  Check up to and
+	including DI_REG when adjusting regparm value due to fixed regs usage.
+	(rep_prefix_usable): Check fixed_regs array, not global_regs array for
+	available hard registers.
+	(ix86_expand_strlen): Ditto.
+	* config/i386/i386.md (strmov): Ditto.
+	(cmpstrnsi): Ditto.
+
+2007-12-10  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* genopinit.c: Include tm_p.h in generated file.
+
+	* config/arm/neon.md (vec_set<mode>_internal): Use INTVAL
+	to extract the integer from operands[2].
+	(vec_setv2di_internal): Likewise.
+
+	* config/arm/arm.c (arm_size_return_regs): Make return type
+	unsigned.
+	(arm_init_neon_builtins): Move code after declarations.
+
+2007-12-10  Hans-Peter Nilsson  <hp@axis.com>
+
+	* reload.c (find_reloads_address_1): To properly mark as an
+	autoincdec, pass X for non-NULL OUT in call to push_reload for
+	autoincdec which can't be trivially used as an address.
+
+2007-12-10  Pranav Bhandarkar  <pranav.bhandarkar@celunite.com>
+	    Hans-Peter Nilsson  <hp@axis.com>
+
+	* caller-save.c (insert_one_insn): If inserting before a call_insn
+	then the registers containing the arguments of the call are
+	live_throughout in the new insn.
+
+2007-12-09  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/32889
+	PR target/34091
+	* pa.md: Consolidate HImode and QImode move patterns into one pattern
+	each, eliminating floating-point alternatives.
+	* pa-protos.h (pa_cannot_change_mode_class, pa_modes_tieable_p):
+	Declare functions.
+	* pa-64.h (SECONDARY_MEMORY_NEEDED): Define here.
+	* pa.c (pa_secondary_reload): Use an intermediate general register
+	for copies to/from floating-point register classes.  Simplify code
+	SHIFT_REGS class.  Provide additional comments.
+	(pa_cannot_change_mode_class, pa_modes_tieable_p): New functions.
+	* pa.h (MODES_TIEABLE_P): Use pa_modes_tieable_p.
+	(SECONDARY_MEMORY_NEEDED): Delete define.
+	(INT14_OK_STRICT): Define.
+	(MODE_OK_FOR_SCALED_INDEXING_P): Allow SFmode and DFmode when using
+	soft float.
+	(MODE_OK_FOR_UNSCALED_INDEXING_P): Likewise.
+	(GO_IF_LEGITIMATE_ADDRESS): Use INT14_OK_STRICT in REG+D case for
+	SFmode and DFmode.
+	(LEGITIMIZE_RELOAD_ADDRESS): Use INT14_OK_STRICT in mask selection.
+	Align DImode offsets when generating 64-bit code.
+	* pa32-regs.h (VALID_FP_MODE_P): Remove QImode and HImode.
+	(CANNOT_CHANGE_MODE_CLASS): Define.
+	* pa64-regs.h (VALID_FP_MODE_P): Remove QImode and HImode.
+	(CANNOT_CHANGE_MODE_CLASS): Define using pa_cannot_change_mode_class.
+
+2007-12-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/22244
+	* langhooks-def.h (LANG_HOOKS_GET_ARRAY_DESCR_INFO): Define.
+	(LANG_HOOKS_FOR_TYPES_INITIALIZER): Add it.
+	* langhooks.h (struct array_descr_info): Forward declaration.
+	(struct lang_hooks_for_types): Add get_array_descr_info field.
+	* dwarf2.h (DW_AT_bit_stride, DW_AT_byte_stride): New.
+	(DW_AT_stride_size, DW_AT_stride): Keep around for Dwarf2
+	compatibility.
+	* dwarf2out.h (struct array_descr_info): New type.
+	* dwarf2out.c (dwarf_attr_name): Rename DW_AT_stride to
+	DW_AT_byte_stride and DW_AT_stride_size to DW_AT_bit_size.
+	(descr_info_loc, add_descr_info_field, gen_descr_array_type_die):
+	New functions.
+	(gen_type_die_with_usage): Call lang_hooks.types.get_array_descr_info
+	and gen_descr_array_type_die.
+
+2007-12-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34391
+	* tree-vect-transform.c (vect_setup_realignment): Mark new
+	symbols for renaming.
+
+2007-12-07  Bob Wilson  <bob.wilson@acm.org>
+	
+	* config/xtensa/xtensa.h (ASM_PREFERRED_EH_DATA_FORMAT): Define.
+	(ASM_OUTPUT_DWARF_PCREL): Define.
+	
+2007-12-07  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34382
+	* opts.c (common_handle_option): Handle OPT_fforce_addr.
+
+2007-12-07  Aldy Hernandez  <aldyh@redhat.com>
+
+	* m32c.h (LEGITIMIZE_ADDRESS): Use WIN instead of win.
+	(LEGITIMIZE_RELOAD_ADDRESS): Same.
+
+2007-12-07  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/29157
+	* doc/install.texi: Explain how to check for a clean environment when
+	building GNAT.
+
+2007-12-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-profile.c (gcov_type_tmp_var): New global variable.
+	(tree_gen_edge_profiler): Use a single shared variable decl per
+	function for edge counter incrementing.
+	(tree_profiling): Re-set the shared variable.
+
+2007-12-06  Bob Wilson  <bob.wilson@acm.org>
+
+	* config/xtensa/xtensa.c (xtensa_va_start): Add prototype.
+
 2007-12-06  Tom Tromey  <tromey@redhat.com>
 
 	PR c/29172:
@@ -51,8 +206,7 @@
 	(execute_fold_all_builtins): Call it for BUILT_IN_VA_START,
 	BUILT_IN_VA_COPY and BUILT_IN_VA_END.
 
-	* target.h (struct ggc_target): Add expand_builtin_va_start
-	hook.
+	* target.h (struct ggc_target): Add expand_builtin_va_start hook.
 	* target-def.h (TARGET_EXPAND_BUILTIN_VA_START): Define.
 	(TARGET_INITIALIZER): Add it.
 	* builtins.c (expand_builtin_va_start): Use
@@ -129,7 +283,7 @@
 	* mips/mips.c (mips_va_start): Made static.
 	(TARGET_EXPAND_BUILTIN_VA_START): Define.
 
-2007-12-05  Uros Bizjak  <ubizjak@gmail.com>
+2007-12-06  Uros Bizjak  <ubizjak@gmail.com>
 
 	* tree-ssa-loop.c (gate_tree_parallelize_loops): Return true when
 	"flag_tree_parallelize_loops > 1".

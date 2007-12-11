@@ -1,3 +1,138 @@
+2007-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/34371
+	* gcc.c-torture/compile/20071207-1.c: New test.
+
+2007-12-10  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/34059
+	* g++.dg/parse/crash40.C: New test.
+
+2007-12-10  Eric Botcazou  <ebotcazou@libertysurf.fr>
+
+	* g++.dg/opt/memcpy1.C: New test.
+
+2007-12-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34425
+	* gfortran.dg/argument_checking_10.f90: New.
+
+2007-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/34302
+	* gcc.c-torture/execute/20071210-1.c: New test.
+
+2007-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34395
+	* g++.dg/cpp0x/error1.C: New test.
+
+	PR c++/34394
+	* g++.dg/other/error22.C: New test.
+
+2007-12-10  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/32086
+	* gcc.dg/vect/vect.exp (DEFAULT_VECTCFLAGS): Disable cost model.
+	* g++.dg/vect/vect.exp (DEFAULT_VECTCFLAGS): Disable cost model.
+	* gfortran.dg/vect/vect.exp (DEFAULT_VECTCFLAGS): Disable cost model.
+
+2007-12-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34178
+	PR c++/34340
+	* g++.dg/template/repo6.C: New test.
+	* g++.dg/template/repo7.C: New test.
+	* g++.dg/template/repo8.C: New test.
+
+2007-12-09  H.J. Lu  <hjl@lucon.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34404
+	* gfortran.dg/read_2.f90: New.
+
+2007-12-09  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* lib/target-supports.exp (check_effective_target_tls_native):
+	Fix typo.
+
+2007-12-09  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/34366
+	* gnat.dg/enclosing_record_reference.ads,
+	gnat.dg/enclosing_record_reference.adb: New test.
+
+2007-12-09  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/32129
+	* gfortran.dg/derived_comp_array_ref_6.f90: New test.
+	* gfortran.dg/derived_comp_array_ref_7.f90: New test.
+
+	PR fortran/31487
+	* gfortran.dg/char_component_initializer_1.f90: New test.
+
+2007-12-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34342
+	PR fortran/34345
+	PR fortran/18026
+	PR fortran/29471
+
+	* gfortran.dg/boz_8.f90: New.
+	* gfortran.dg/boz_9.f90: New.
+	* gfortran.dg/boz_10.f90: New.
+	* gfortran.dg/boz_7.f90: Update dg-warning.
+	* gfortran.dg/pr16433.f: Add dg-error.
+	* gfortan.dg/ibits.f90: Update dg-warning.
+	* gfortran.dg/unf_io_convert_1.f90: Update/delete dg-warning.
+	* gfortran.dg/unf_io_convert_2.f90: Ditto.
+
+2007-12-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/34359
+	* gfortran.dg/include_1.f90: New test.
+	* gfortran.dg/include_1.inc: New.
+	* gfortran.dg/include_2.f90: New test.
+
+2007-12-08  Paul de Weerd  <weerd@weirdnet.nl>
+
+	* gcc.c-torture/compile/20011130-2.c: Fix typo.
+
+2007-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34319
+	* gfortran.dg/nan_3.f90: New.
+
+2007-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* g++.old-deja/g++.mike/empty.C: Remove 2 xfails.
+
+2007-12-07  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/tamdt*.ad?: Support for ...
+	* gnat.dg/test_tamdt.adb: New test.
+
+2007-12-07  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/unc_memops.ads: Comment out the alloc/free/realloc
+	exports and document how these can be exercised.
+
+2007-12-07  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/15805
+	* gnat.dg/specs/access_constants.ads: New test.
+
+	* gnat.dg/specs/access_constant_decl.ads: New test.
+
+	PR ada/21346
+	* gnat.dg/compose.adb: New test.
+
+2007-12-07  Olivier Hainque  <hainque@adacore.com>
+
+	PR ada/34173
+	* gnat.dg/unc_memops.ad[sb]: Support for ...
+	* gnat.dg/unc_memfree.adb: New test.
+	
 2007-12-06  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* gfortran.dg/ltrans-7.f90: New.

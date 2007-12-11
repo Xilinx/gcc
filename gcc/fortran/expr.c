@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gfortran.h"
 #include "arith.h"
 #include "match.h"
+#include "target-memory.h" /* for gfc_convert_boz */
 
 /* Get a new expr node.  */
 
@@ -962,6 +963,8 @@ simplify_intrinsic_op (gfc_expr *p, int type)
 static try
 simplify_constructor (gfc_constructor *c, int type)
 {
+  gfc_expr *p;
+
   for (; c; c = c->next)
     {
       if (c->iterator
@@ -970,8 +973,21 @@ simplify_constructor (gfc_constructor *c, int type)
 	      || gfc_simplify_expr (c->iterator->step, type) == FAILURE))
 	return FAILURE;
 
-      if (c->expr && gfc_simplify_expr (c->expr, type) == FAILURE)
-	return FAILURE;
+      if (c->expr)
+	{
+	  /* Try and simplify a copy.  Replace the original if successful
+	     but keep going through the constructor at all costs.  Not
+	     doing so can make a dog's dinner of complicated things.  */
+	  p = gfc_copy_expr (c->expr);
+
+	  if (gfc_simplify_expr (p, type) == FAILURE)
+	    {
+	      gfc_free_expr (p);
+	      continue;
+	    }
+
+	  gfc_replace_expr (c->expr, p);
+	}
     }
 
   return SUCCESS;
@@ -2722,6 +2738,29 @@ gfc_check_assign (gfc_expr *lvalue, gfc_expr *rvalue, int conform)
   if (lvalue->rank != 0 && rvalue->rank != 0
       && gfc_check_conformance ("array assignment", lvalue, rvalue) != SUCCESS)
     return FAILURE;
+
+  if (rvalue->is_boz && lvalue->ts.type != BT_INTEGER
+      && lvalue->symtree->n.sym->attr.data
+      && gfc_notify_std (GFC_STD_GNU, "Extension: BOZ literal at %L used to "
+                         "initialize non-integer variable '%s'",
+			 &rvalue->where, lvalue->symtree->n.sym->name)
+	 == FAILURE)
+    return FAILURE;
+  else if (rvalue->is_boz && !lvalue->symtree->n.sym->attr.data
+      && gfc_notify_std (GFC_STD_GNU, "Extension: BOZ literal at %L outside "
+			 "a DATA statement and outside INT/REAL/DBLE/CMPLX",
+			 &rvalue->where) == FAILURE)
+    return FAILURE;
+
+  /* Handle the case of a BOZ literal on the RHS.  */
+  if (rvalue->is_boz && lvalue->ts.type != BT_INTEGER)
+    {
+      if (gfc_option.warn_surprising)
+        gfc_warning ("BOZ literal at %L is bitwise transferred "
+                     "non-integer symbol '%s'", &rvalue->where,
+                     lvalue->symtree->n.sym->name);
+      gfc_convert_boz (rvalue, &lvalue->ts);
+    }
 
   if (gfc_compare_types (&lvalue->ts, &rvalue->ts))
     return SUCCESS;

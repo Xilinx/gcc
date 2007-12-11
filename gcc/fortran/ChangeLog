@@ -1,3 +1,90 @@
+2007-12-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34425
+	* interface.c (get_expr_storage_size): Use signed integer when
+	obtaining the bounds.
+
+2007-12-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/22244
+	* trans.h (struct array_descr_info): Forward declaration.
+	(gfc_get_array_descr_info): New prototype.
+	(enum gfc_array_kind): New type.
+	(struct lang_type): Add akind field.
+	(GFC_TYPE_ARRAY_AKIND): Define.
+	* trans-types.c: Include dwarf2out.h.
+	(gfc_build_array_type): Add akind argument.  Adjust
+	gfc_get_array_type_bounds call.
+	(gfc_get_nodesc_array_type): Include proper debug info even for
+	assumed-size arrays.
+	(gfc_get_array_type_bounds): Add akind argument, set
+	GFC_TYPE_ARRAY_AKIND to it.
+	(gfc_sym_type, gfc_get_derived_type): Adjust gfc_build_array_type
+	callers.
+	(gfc_get_array_descr_info): New function.
+	* trans-array.c (gfc_trans_create_temp_array,
+	gfc_conv_expr_descriptor): Adjust gfc_get_array_type_bounds
+	callers.
+	* trans-stmt.c (gfc_trans_pointer_assign_need_temp): Likewise.
+	* trans-types.h (gfc_get_array_type_bounds): Adjust prototype.
+	* Make-lang.in (fortran/trans-types.o): Depend on dwarf2out.h.
+	* f95-lang.c (LANG_HOOKS_GET_ARRAY_DESCR_INFO): Define.
+
+2007-12-09  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/32129
+	* dump-parse-tree.c (gfc_show_expr_n): New function for
+	debugging.
+	* gfortran.h : Add prototype for gfc_show_expr_n.
+	* expr.c (simplify_constructor): Copy the constructor
+	expression and try to simplify that.  If success, replace the
+	original.  Otherwise discard the copy, keep going through
+	the structure and return success.
+
+	PR fortran/31487
+	* decl.c (build_struct): Pad out default initializers with
+	spaces to the component character length.
+
+2007-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34342
+	PR fortran/34345
+	PR fortran/18026
+	PR fortran/29471
+	* gfortran.texi (BOZ literal constants): Improve documentation
+	and adapt for BOZ changes.
+	* Make-lang.ini (resolve.o): Add target-memory.h dependency.
+	* gfortran.h (gfc_expr): Add is_boz flag.
+	* expr.c: Include target-memory.h.
+	(gfc_check_assign): Support transferring BOZ for real/cmlx.
+	* resolve.c: Include target-memory.h
+	(resolve_ordinary_assign): Support transferring BOZ for real/cmlx.
+	* target-memory.c (gfc_convert_boz): New function.
+	* target-memory.c (gfc_convert_boz): Add prototype.
+	* primary.c (match_boz_constant): Set is_boz, enable F95 error
+	also without -pedantic, and allow for Fortran 2003 BOZ.
+	(match_real_constant): Fix comment.
+	* simplify.c (simplify_cmplx,gfc_simplify_dble,gfc_simplify_float,
+	gfc_simplify_real): Support Fortran 2003 BOZ.
+
+2007-12-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/34359
+	* gfortran.h (gfc_file): Remove sibling and down fields.
+	* scanner.c (file_changes, file_changes_cur, file_changes_count,
+	file_changes_allocated): New variables.
+	(add_file_change, report_file_change): New functions.
+	(change_file): Remove.
+	(gfc_start_source_files, gfc_end_source_files): Call
+	report_file_change instead of change_file.
+	(gfc_advance_line): Call report_file_change instead of change_file,
+	call it even if lb->file == lb->next->file.
+	(get_file): Revert last changes.
+	(preprocessor_line): Call add_file_change when entering or leaving
+	a file.
+	(load_file): Likewise.  Set file_change[...].lb for all newly added
+	file changes.
+
 2007-12-06  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/34333
