@@ -743,13 +743,17 @@ find_params_in_bb (struct dom_walk_data *dw_data, basic_block bb)
   VEC_free (data_reference_p, heap, drs);
 }
 
-/* Initialize Cloog's parameter names from the names used in GIMPLE.  */
+/* Initialize Cloog's parameter names from the names used in GIMPLE.
+   Initialize Cloog's iterator names, using 'graphite_iterator_%d'
+   from 0 to scop_nb_loops (scop).  */
 
 static void
 initialize_cloog_names (scop_p scop)
 {
   unsigned i, nb_params = VEC_length (tree, SCOP_PARAMS (scop));
   char **params = XNEWVEC (char *, nb_params);
+  unsigned nb_iterators = scop_nb_loops(scop);
+  char **iterators = XNEWVEC (char *, nb_iterators);
   tree p;
 
   for (i = 0; VEC_iterate (tree, SCOP_PARAMS (scop), i, p); i++)
@@ -770,6 +774,15 @@ initialize_cloog_names (scop_p scop)
 
   SCOP_PROG (scop)->names->nb_parameters = nb_params;
   SCOP_PROG (scop)->names->parameters = params;
+
+  for (i = 0; i < nb_iterators; i++)
+  {
+    iterators[i] = XNEWVEC (char, 18 + 12);
+    sprintf (iterators[i], "graphite_iterator_%d", i);
+  }
+
+  SCOP_PROG (scop)->names->nb_iterators = nb_iterators;
+  SCOP_PROG (scop)->names->iterators = iterators;
 }
 
 /* Record the parameters used in the SCOP.  A variable is a parameter

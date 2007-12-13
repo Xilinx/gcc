@@ -1,5 +1,9 @@
 2007-12-13  Tobias Grosser  <grosser@fmi.uni-passau.de>
 
+	* graphite.c (initialize_cloog_names): Initialize cloog iterator names.
+
+2007-12-13  Tobias Grosser  <grosser@fmi.uni-passau.de>
+
 	* graphite.c (build_scop_context): Fix typo, for the matrix
 	format: insert '0 >= 0' instead of '-1 >= 0'.
 
