@@ -826,11 +826,14 @@ build_scop_context (scop_p scop)
   unsigned nb_params = nb_params_in_scop (scop);
   CloogMatrix *matrix = cloog_matrix_alloc (1, nb_params + 2);
 
+  /* Insert '0 >= 0' in the context matrix, as it is not allowed to be
+     empty. */
+ 
   value_init (matrix->p[0][0]);
   value_set_si (matrix->p[0][0], 1);
 
   value_init (matrix->p[0][nb_params + 1]);
-  value_set_si (matrix->p[0][nb_params + 1], -1);
+  value_set_si (matrix->p[0][nb_params + 1], 0);
 
   SCOP_PROG (scop)->context = cloog_domain_matrix2domain (matrix);
 }
