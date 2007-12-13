@@ -259,6 +259,8 @@ strongarm*-*-*)
 arm*-*-*)
 	cpu_type=arm
 	extra_headers="mmintrin.h arm_neon.h"
+	c_target_objs="arm-c.o"
+	cxx_target_objs="arm-c.o"
 	;;
 bfin*-*)
 	cpu_type=bfin
@@ -702,6 +704,11 @@ arm*-*-netbsd*)
 	;;
 arm*-*-linux*)			# ARM GNU/Linux with ELF
 	tm_file="dbxelf.h elfos.h linux.h arm/elf.h arm/linux-gas.h arm/linux-elf.h"
+	case $target in
+	arm*b-*)
+		tm_defines="${tm_defines} TARGET_BIG_ENDIAN_DEFAULT=1"
+		;;
+	esac
 	tmake_file="${tmake_file} t-linux arm/t-arm"
 	case ${target} in
 	arm*-*-linux-*eabi)

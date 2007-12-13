@@ -1,3 +1,33 @@
+2007-12-04  Jakub Jelinek  <jakub@redhat.com>
+
+	* omp.h.in (__GOMP_NOTHROW): Define.  Use it on omp_* prototypes.
+
+2007-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/libgomp.c/private-1.c: New test.
+
+2007-11-29  Andris Pavenis <andris.pavenis@iki.fi>
+	    Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.am: Use space as vpath separator.  Use 'vpath %'
+	instead of 'VPATH ='.
+	* Makefile.in: Regenerate.
+
+2007-11-23  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac: Adjust makeinfo version check.
+	* configure: Regenerate.
+
+2007-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/34020
+	* testsuite/libgomp.fortran/pr34020.f90: New test.
+
+2007-11-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/33894
+	* testsuite/libgomp.c++/atomic-1.C: New test.
+
 2007-10-25  Jakub Jelinek  <jakub@redhat.com>
 
 	PR libgomp/33275

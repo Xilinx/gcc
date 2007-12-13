@@ -6,9 +6,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
-   <meta name="KEYWORDS" content="libstdc++, libstdc++-v3, GCC, g++, libg++, STL" />
+   <meta name="KEYWORDS" content="libstdc++, libstdc++, GCC, g++, libg++, STL" />
    <meta name="DESCRIPTION" content="FAQ for the GNU libstdc++ effort." />
-   <title>libstdc++-v3 FAQ</title>
+   <title>libstdc++ FAQ</title>
 <link rel="StyleSheet" href="../lib3styles.css" />
 <link rel="Start" rev="Help" href="../documentation.html" type="text/html"
  title="GNU C++ Standard Library" />
@@ -28,7 +28,7 @@
 </em></p>
 
 <p><em>
-   To the <a href="http://gcc.gnu.org/libstdc++/">libstdc++-v3 homepage</a>.
+   To the <a href="http://gcc.gnu.org/libstdc++/">libstdc++ homepage</a>.
 </em></p>
 
 <!-- ####################################################### -->
@@ -38,21 +38,21 @@
    <li><a href="#1_0">General Information</a>
    <!-- I suspect these will mostly be links to/into existing documents. -->
    <ol>
-      <li><a href="#1_1">What is libstdc++-v3?</a> </li>
+      <li><a href="#1_1">What is libstdc++?</a> </li>
       <li><a href="#1_2">Why should I use libstdc++?</a> </li>
       <li><a href="#1_3">Who's in charge of it?</a> </li>
-      <li><a href="#1_4">How do I get libstdc++?</a> </li>
+      <li><a href="#1_4">[removed]</a> </li>
       <li><a href="#1_5">When is libstdc++ going to be finished?</a> </li>
       <li><a href="#1_6">How do I contribute to the effort?</a> </li>
       <li><a href="#1_7">What happened to libg++?  I need that!</a> </li>
       <li><a href="#1_8">What if I have more questions?</a> </li>
-      <li><a href="#1_9">What are the license terms for libstdc++-v3?</a> </li>
+      <li><a href="#1_9">What are the license terms for libstdc++?</a> </li>
    </ol>
    </li>
 
    <li><a href="#2_0">Installation</a>
       <ol>
-         <li><a href="#2_1">How do I install libstdc++-v3?</a> </li>
+         <li><a href="#2_1">How do I install libstdc++?</a> </li>
          <li><a href="#2_2">[removed]</a> </li>
          <li><a href="#2_3">What is this SVN thing that you keep
                             mentioning?</a> </li>
@@ -66,7 +66,7 @@
 
    <li><a href="#3_0">Platform-Specific Issues</a>
       <ol>
-         <li><a href="#3_1">Can libstdc++-v3 be used with &lt;my
+         <li><a href="#3_1">Can libstdc++ be used with &lt;my
                             favorite compiler&gt;?</a> </li>
          <li><a href="#3_2">[removed]</a> </li>
          <li><a href="#3_3">[removed]</a> </li>
@@ -85,7 +85,7 @@
    <li><a href="#4_0">Known Bugs and Non-Bugs</a>
       <ol>
          <li><a href="#4_1">What works already?</a> </li>
-         <li><a href="#4_2">Bugs in gcc/g++ (not libstdc++-v3)</a> </li>
+         <li><a href="#4_2">Bugs in gcc/g++ (not libstdc++)</a> </li>
          <li><a href="#4_3">Bugs in the C++ language/lib specification</a> </li>
          <li><a href="#4_4">Things in libstdc++ that only look like bugs</a><ul>
            <li><a href="#4_4_iostreamclear">reopening a stream fails</a> </li>
@@ -100,6 +100,7 @@
            <li><a href="#4_4_dlsym">program crashes when using library code
                                in a dynamically-loaded library</a> </li>
            <li><a href="#4_4_leak">"memory leaks" in containers</a> </li>
+           <li><a href="#4_4_list_size">list::size() is O(n)!</a> </li>
          </ul>
          </li>
          <li><a href="#4_5">Aw, that's easy to fix!</a> </li>
@@ -110,11 +111,11 @@
       <ol>
          <li><a href="#5_1">string::iterator is not char*;
                             vector&lt;T&gt;::iterator is not T*</a> </li>
-         <li><a href="#5_2">What's next after libstdc++-v3?</a> </li>
+         <li><a href="#5_2">What's next after libstdc++?</a> </li>
          <li><a href="#5_3">What about the STL from SGI?</a> </li>
          <li><a href="#5_4">Extensions and Backward Compatibility</a> </li>
          <li><a href="#5_5">Does libstdc++ support TR1?</a> </li>
-         <li><a href="#5_6">Is libstdc++-v3 thread-safe?</a> </li>
+         <li><a href="#5_6">Is libstdc++ thread-safe?</a> </li>
          <li><a href="#5_7">How do I get a copy of the ISO C++ Standard?</a> </li>
          <li><a href="#5_8">What's an ABI and why is it so messy?</a> </li>
          <li><a href="#5_9">How do I make std::vector&lt;T&gt;::capacity() 
@@ -130,23 +131,15 @@
 
 <h1><a name="1_0">1.0 General Information</a></h1>
 <!-- I suspect these will mostly be links to/into existing documents. -->
-   <h2><a name="1_1">1.1 What is libstdc++-v3?</a></h2>
+   <h2><a name="1_1">1.1 What is libstdc++?</a></h2>
       <p>The GNU Standard C++ Library v3 is an
          ongoing project to implement the ISO 14882 Standard C++ library
          as described in chapters 17 through 27 and annex D.
          For those who want to see exactly how
          far the project has come, or just want the latest
          bleeding-edge code, the up-to-date source is available over
-         anonymous SVN, and can even be browsed over the Web (see
-         <a href="#1_4">1.4</a> below).
-      </p>
-      <p>The older libstdc++-v2 project is no longer maintained; the code
-         has been completely replaced and rewritten.
-         <a href="#4_4_interface">If you are using V2</a>, then you need to
-         report bugs to your system vendor, not to the V3 list.
-      </p>
-      <p>A more formal description of the V3 goals can be found in the
-         official <a href="../17_intro/DESIGN">design document</a>.
+         anonymous SVN, and can even be browsed over the 
+         <a href="http://gcc.gnu.org/svn.html">web</a>.
       </p>
 
 <hr />
@@ -164,7 +157,7 @@
          is overseen by the
          <a href="http://gcc.gnu.org/">GCC team</a>.  All of
          the rapid development and near-legendary
-         <a href="http://gcc.gnu.org/gcc-3.3/buildstat.html">portability</a>
+         <a href="http://gcc.gnu.org/buildstat.html">portability</a>
          that are the hallmarks of an open-source project are being
          applied to libstdc++.
       </p>
@@ -192,16 +185,9 @@
 
 <hr />
    <h2><a name="1_4">1.4 How do I get libstdc++?</a></h2>
-      <p>The <a href="http://gcc.gnu.org/libstdc++/">homepage</a>
-         has instructions for retrieving the latest SVN sources, and for
-         browsing the SVN sources over the web.
-      </p>
+
       <p>Stable versions of libstdc++-v3 are included with releases of
          <a href="http://gcc.gnu.org/releases.html">the GCC compilers</a>.
-      </p>
-      <p>The subset commonly known as the Standard Template Library
-         (chapters 23 through 25, mostly) is adapted from the final release
-         of the SGI STL, with extensive changes.
       </p>
 
 <hr />
@@ -266,7 +252,7 @@ which is no longer available, thanks deja...-->
 
 <hr />
    <h2><a name="1_8">1.8 What if I have more questions?</a></h2>
-      <p>If you have read the README and RELEASE-NOTES files, and your
+      <p>If you have read the README file, and your
          question remains unanswered, then just ask the mailing list.
          At present, you do not need to be subscribed to the list to
          send a message to it.  More information is available on the
@@ -281,41 +267,42 @@ which is no longer available, thanks deja...-->
       </p>
 
 <hr />
-   <h2><a name="1_9">1.9 What are the license terms for libstdc++-v3?</a></h2>
+   <h2><a name="1_9">1.9 What are the license terms for libstdc++?</a></h2>
       <p>See <a href="../17_intro/license.html">our license description</a>
          for these and related questions.
       </p>
 
 <hr />
 <h1><a name="2_0">2.0 Installation</a></h1>
-   <h2><a name="2_1">2.1 How do I install libstdc++-v3?</a></h2>
+   <h2><a name="2_1">2.1 How do I install libstdc++?</a></h2>
       <p>Complete instructions are not given here (this is a FAQ, not
          an installation document), but the tools required are few:
       </p>
          <ul>
-            <li> A 3.x release of GCC.  Note that building GCC is much
-                 easier and more automated than building the GCC 2.[78]
-                 series was.  If you are using GCC 2.95, you can still
-                 build earlier snapshots of libstdc++.
+            <li> A 3.x or later release of GCC.  Either install a suitable
+                 package for your system, or compile GCC from the sources.
+                 Note that building GCC
+                 is much easier and more automated than building the GCC
+                 2.[78] series was.  If you are using GCC 2.95, you can
+                 still build earlier snapshots of libstdc++ but you
+                 should consult the documentation that comes with the
+                 sources, the instructions are no longer included here.
             </li>
-            <li> GNU Make is required for GCC 3.4 and later.
+            <li> GNU Make is required to build GCC 3.4 and later.
             </li>
             <li> The GNU Autotools are needed if you are messing with
                  the configury or makefiles.
             </li>
          </ul>
-      <p>The file <a href="../documentation.html">documentation.html</a>
-         provides a good overview of the steps necessary to build, install,
+      <p>The file <a href="../documentation.html#2">documentation.html</a>
+         links to documentation of the steps necessary to build, install,
          and use the library.  Instructions for configuring the library
-         with new flags such as --enable-threads are there also, as well as
-         patches and instructions for working with GCC 2.95.
+         with flags such as --enable-threads are there also.
       </p>
-      <p>The top-level install.html and
-         <a href="../17_intro/RELEASE-NOTES">RELEASE-NOTES</a> files contain
+      <p>The top-level install.html file contains
          the exact build and installation instructions.  You may wish to
          browse those files over ViewVC ahead of time to get a feel for
-         what's required.  RELEASE-NOTES is located in the
-         &quot;.../docs/17_intro/&quot; directory of the distribution.
+         what's required. 
       </p>
 
 <hr />
@@ -343,7 +330,7 @@ which is no longer available, thanks deja...-->
 
 <hr />
    <h2><a name="2_4">2.4 How do I know if it works?</a></h2>
-      <p>libstdc++-v3 comes with its own testsuite.  You do not need
+      <p>libstdc++ comes with its own testsuite.  You do not need
          to actually install the library (&quot;<code>make
          install</code>&quot;) to run the testsuite, but you do need
          DejaGNU, as described
@@ -367,7 +354,7 @@ which is no longer available, thanks deja...-->
          into your executable, not the entire library.  Unfortunately, even
          if you only need a single function or variable from an object file,
          the entire object file is extracted.  (There's nothing unique to C++
-         or libstdc++-v3 about this; it's just common behavior, given here
+         or libstdc++ about this; it's just common behavior, given here
          for background reasons.)
       </p>
       <p>Some of the object files which make up libstdc++.a are rather large.
@@ -376,7 +363,7 @@ which is no longer available, thanks deja...-->
          of your executable.  Historically the best way around this was to
          only place a very few functions (often only a single one) in each
          source/object file; then extracting a single function is the same
-         as extracting a single .o file.  For libstdc++-v3 this is only
+         as extracting a single .o file.  For libstdc++ this is only
          possible to a certain extent; the object files in question contain
          template classes and template functions, pre-instantiated, and
          splitting those up causes severe maintenance headaches.
@@ -449,7 +436,7 @@ which is no longer available, thanks deja...-->
 
 <hr />
 <h1><a name="3_0">3.0 Platform-Specific Issues</a></h1>
-   <h2><a name="3_1">3.1 Can libstdc++-v3 be used with &lt;my
+   <h2><a name="3_1">3.1 Can libstdc++ be used with &lt;my
                          favorite compiler&gt;?</a></h2>
       <p>Probably not.  Yet.</p>
       <p>Because GCC advances so rapidly, development and testing of
@@ -594,8 +581,7 @@ which is no longer available, thanks deja...-->
 <h1><a name="4_0">4.0 Known Bugs and Non-Bugs</a></h1>
    <em>Note that this section can get rapidly outdated -- such is the
        nature of an open-source project.  For the latest information, join
-       the mailing list or look through recent archives.   The RELEASE-
-       NOTES and BUGS files are generally kept up-to-date.</em>
+       the mailing list or look through GCC bugzilla.</em>
 
    <p>For 3.0.1, the most common &quot;bug&quot; is an apparently missing
       &quot;<code>../</code>&quot; in include/Makefile, resulting in files
@@ -631,13 +617,12 @@ which is no longer available, thanks deja...-->
          corner cases.  Also, localization is incomplete.  For whether it works
          well, or as you expect it to work, see 5.2.
       </p>
-      <p>Long answer:  See the docs/html/17_intro/CHECKLIST file, which is
-         badly outdated...  Also see the RELEASE-NOTES file, which is kept
-         more up to date.
+      <p>Long answer: See the implementation status pages for C++98,
+         TR1, and C++0x.
       </p>
 
 <hr />
-   <h2><a name="4_2">4.2 Bugs in gcc/g++ (not libstdc++-v3)</a></h2>
+   <h2><a name="4_2">4.2 Bugs in gcc/g++ (not libstdc++)</a></h2>
       <p>This is by no means meant to be complete nor exhaustive, but
          mentions some problems that users may encounter when building
          or using libstdc++.  If you are experiencing one of these
@@ -646,8 +631,7 @@ which is no longer available, thanks deja...-->
       </p>
       <p>Before reporting a bug, examine the
          <a href="http://gcc.gnu.org/bugs.html">bugs database</a> with the
-         category set to &quot;libstdc++&quot;.  The BUGS file in the source
-         tree also tracks known serious problems.
+         category set to &quot;libstdc++&quot;. 
       </p>
       <ul>
          <li>Debugging is problematic, due to bugs in line-number generation
@@ -746,7 +730,7 @@ which is no longer available, thanks deja...-->
          libstdc++-v2 library, which is nonstandard and unmaintained.  Do not
          report problems with -v2 to the -v3 mailing list.
       </p>
-      <p>For GCC versions 3.0 and 3.1 the libstdc++-v3 header files are
+      <p>For GCC versions 3.0 and 3.1 the libstdc++ header files are
          installed in <code>${prefix}/include/g++-v3</code> (see the 'v'?).
          Starting with version 3.2 the headers are installed in
          <code>${prefix}/include/c++/${version}</code> as this prevents
@@ -768,7 +752,7 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
       <p>Note that 2.95.x shipped with the
          <a href="#4_4_interface">old v2 library</a> which is no longer
          maintained.  Also note that gcc 2.95.3 fixes this problem, but
-         requires a separate patch for libstdc++-v3.
+         requires a separate patch for libstdc++.
       </p>
       <p><a name="4_4_checks"><strong>concept checks</strong></a>
          If you see compilation errors containing messages about
@@ -814,6 +798,10 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
          first.
       </p>
 
+      <p><a name="4_4_list_size"><strong>list::size() is O(n)!</strong></a>
+         See the <a href='../23_containers/howto.html#6'>Containers</a>
+         chapter.
+      </p>
 <hr />
    <h2><a name="4_5">4.5 Aw, that's easy to fix!</a></h2>
       <p>If you have found a bug in the library and you think you have
@@ -855,8 +843,8 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
       </p>
 
 <hr />
-   <h2><a name="5_2">5.2 What's next after libstdc++-v3?</a></h2>
-      <p>Hopefully, not much.  The goal of libstdc++-v3 is to produce
+   <h2><a name="5_2">5.2 What's next after libstdc++?</a></h2>
+      <p>Hopefully, not much.  The goal of libstdc++ is to produce
          a fully-compliant, fully-portable Standard Library.  After that,
          we're mostly done:  there won't <em>be</em> any more compliance
          work to do.  However:
@@ -871,10 +859,12 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
          resolution specifies.  Those additions are listed in
          <a href="../ext/howto.html#5">the extensions page</a>.
       </p></li>
-      <li><p>Performance tuning.  Lots of performance tuning.  This too is
-         already underway for post-3.0 releases, starting with memory
-         expansion in container classes and buffer usage in synchronized
-         stream objects.
+      <li><p>Performance tuning.  Lots of performance tuning was done for the
+         3.x releases, including memory expansion in container classes and
+         buffer usage in synchronized stream objects.
+         Later performance-related work includes "move semantics"
+         for containers and (optional) non-reference-counted strings (which
+         can give performance benefits for multithreaded programs.)
       </p></li>
       <li><p>An ABI for libstdc++ is being developed, so that
          multiple binary-incompatible copies of the library can be replaced
@@ -883,7 +873,7 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
       <li><p>The current libstdc++ contains extensions to the Library which
          must be explicitly requested by client code (for example, the
          hash tables from SGI).  Other extensions may be added to
-         libstdc++-v3 if they seem to be &quot;standard&quot; enough.
+         libstdc++ if they seem to be &quot;standard&quot; enough.
          (For example, the &quot;long long&quot; type from C99.)
          Bugfixes and rewrites (to improve or fix thread safety, for
          instance) will of course be a continuing task.
@@ -953,7 +943,7 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
         namespace extension { using ::hash_map; }; // inherit globals
       #else
         #include &lt;backward/hash_map&gt;
-        #if __GNUC_MINOR__ == 0
+        #if __GNUC__ == 3 &amp;&amp; __GNUC_MINOR__ == 0
           namespace extension = std;               // GCC 3.0
         #else
           namespace extension = ::__gnu_cxx;       // GCC 3.1 and later
@@ -1061,15 +1051,27 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
       </p>
 
 <hr />
-   <h2><a name="5_6">5.6 Is libstdc++-v3 thread-safe?</a></h2>
-      <p>libstdc++-v3 strives to be thread-safe when all of the following
+   <h2><a name="5_6">5.6 Is libstdc++ thread-safe?</a></h2>
+      <p>The library strives to be thread-safe when all of the following
          conditions are met:
       </p>
       <ul>
        <li>The system's libc is itself thread-safe,</li>
-       <li><code>gcc -v</code> reports a thread model other than 'single',</li>
-       <li>[pre-3.3 only] a non-generic implementation of atomicity.h
-           exists for the architecture in question.</li>
+       <li>The compiler in use reports a thread model other than 'single'. This can be tested via output from <code>gcc -v</code>. Multi-thread capable versions of gcc output something like this:
+<pre>
+%gcc -v
+Using built-in specs.
+...
+Thread model: posix
+gcc version 4.1.2 20070925 (Red Hat 4.1.2-33)
+</pre>
+
+<p>Look for "Thread model" lines that aren't equal to "single."</p>
+ </li>
+       <li>Requisite command-line flags are used for atomic operations and threading. Examples of this include <code>-pthread</code> and <code>-march=native</code>, although specifics vary depending on the host environment. See <a href="http://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html">Machine Dependent Options</a>.</li>
+       <li>An implementation of atomicity.h functions
+           exists for the architecture in question. See the internals documentation for more <a href="../ext/concurrence.html">details</a>.</li>
+
       </ul>
       <p>The user-code must guard against concurrent method calls which may
          access any particular library object's state.  Typically, the
@@ -1129,6 +1131,9 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
       </p>
       <p>Who is your country's member body?  Visit the
          <a href="http://www.iso.ch/">ISO homepage</a> and find out!
+      </p>
+      <p>The 2003 version of the standard (the 1998 version plus TC1) is
+         available in print, ISBN 0-470-84674-7.
       </p>
 
 <hr />

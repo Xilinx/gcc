@@ -844,7 +844,6 @@ decode_options (unsigned int argc, const char **argv)
       flag_reorder_blocks = 1;
       flag_reorder_functions = 1;
       flag_tree_store_ccp = 1;
-      flag_tree_store_copy_prop = 1;
       flag_tree_vrp = 1;
 
       if (!optimize_size)
@@ -1786,6 +1785,8 @@ common_handle_option (size_t scode, const char *arg, int value,
     case OPT_floop_optimize:
     case OPT_frerun_loop_opt:
     case OPT_fstrength_reduce:
+    case OPT_ftree_store_copy_prop:
+    case OPT_fforce_addr:
       /* These are no-ops, preserved for backward compatibility.  */
       break;
 
@@ -1877,12 +1878,9 @@ set_Wstrict_aliasing (int onoff)
 void
 set_fast_math_flags (int set)
 {
-  flag_trapping_math = !set;
   flag_unsafe_math_optimizations = set;
-  flag_associative_math = set;
-  flag_reciprocal_math = set;
+  set_unsafe_math_optimizations_flags (set);
   flag_finite_math_only = set;
-  flag_signed_zeros = !set;
   flag_errno_math = !set;
   if (set)
     {
@@ -1897,8 +1895,10 @@ set_fast_math_flags (int set)
 void
 set_unsafe_math_optimizations_flags (int set)
 {
-  flag_reciprocal_math = set;
+  flag_trapping_math = !set;
+  flag_signed_zeros = !set;
   flag_associative_math = set;
+  flag_reciprocal_math = set;
 }
 
 /* Return true iff flags are set as if -ffast-math.  */

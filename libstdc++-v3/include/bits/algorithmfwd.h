@@ -45,6 +45,8 @@
   inplace_merge
   is_heap (C++0x)
   is_heap_until (C++0x)
+  is_sorted (C++0x)
+  is_sorted_until (C++0x)
   iter_swap
   lexicographical_compare
   lower_bound
@@ -54,6 +56,8 @@
   merge
   min
   min_element
+  minmax (C++0x)
+  minmax_element (C++0x)
   mismatch
   next_permutation
   nth_element
@@ -219,14 +223,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     void 
     iter_swap(_FIter1, _FIter2);
 
-  // Specializations for char and unsigned char.
-  inline bool
-  lexicographical_compare(const unsigned char*, const unsigned char*, 
-			  const unsigned char*, const unsigned char*);
-
-  inline bool
-  lexicographical_compare(const char*, const char*, const char*, const char*);
-
   template<typename _FIter, typename _Tp>
     _FIter 
     lower_bound(_FIter, _FIter, const _Tp&);
@@ -263,6 +259,25 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     min(const _Tp&, const _Tp&, _Compare);
 
   // min_element
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp>
+    pair<const _Tp&, const _Tp&> 
+    minmax(const _Tp&, const _Tp&);
+
+  template<typename _Tp, typename _Compare>
+    pair<const _Tp&, const _Tp&>
+    minmax(const _Tp&, const _Tp&, _Compare);
+
+  template<typename _FIter>
+    pair<_FIter, _FIter>
+    minmax_element(_FIter, _FIter);
+
+  template<typename _FIter, typename _Compare>
+    pair<_FIter, _FIter>
+    minmax_element(_FIter, _FIter, _Compare);
+#endif
+
   // mismatch
 
   template<typename _BIter>

@@ -540,6 +540,15 @@ gfc_show_expr (gfc_expr *p)
     }
 }
 
+/* Show an expression for diagnostic purposes. */
+void
+gfc_show_expr_n (const char * msg, gfc_expr *e)
+{
+  if (msg)
+    gfc_status (msg);
+  gfc_show_expr (e);
+  gfc_status_char ('\n');
+}
 
 /* Show symbol attributes.  The flavor and intent are followed by
    whatever single bit attributes are present.  */
@@ -582,6 +591,8 @@ gfc_show_attr (symbol_attribute *attr)
     gfc_status (" RESULT");
   if (attr->entry)
     gfc_status (" ENTRY");
+  if (attr->is_bind_c)
+    gfc_status (" BIND(C)");
 
   if (attr->data)
     gfc_status (" DATA");

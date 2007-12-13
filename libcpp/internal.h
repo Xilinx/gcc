@@ -360,8 +360,7 @@ struct cpp_reader
   /* File and directory hash table.  */
   struct htab *file_hash;
   struct htab *dir_hash;
-  struct file_hash_entry *file_hash_entries;
-  unsigned int file_hash_entries_allocated, file_hash_entries_used;
+  struct file_hash_entry_pool *file_hash_entries;
 
   /* Negative path lookup hash table.  */
   struct htab *nonexistent_file_hash;
@@ -576,7 +575,7 @@ extern int _cpp_handle_directive (cpp_reader *, int);
 extern void _cpp_define_builtin (cpp_reader *, const char *);
 extern char ** _cpp_save_pragma_names (cpp_reader *);
 extern void _cpp_restore_pragma_names (cpp_reader *, char **);
-extern void _cpp_do__Pragma (cpp_reader *);
+extern int _cpp_do__Pragma (cpp_reader *);
 extern void _cpp_init_directives (cpp_reader *);
 extern void _cpp_init_internal_pragmas (cpp_reader *);
 extern void _cpp_do_file_change (cpp_reader *, enum lc_reason, const char *,

@@ -160,7 +160,9 @@ lvalue_p_1 (const_tree ref,
       break;
 
     case COND_EXPR:
-      op1_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 1),
+      op1_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 1)
+				    ? TREE_OPERAND (ref, 1)
+				    : TREE_OPERAND (ref, 0),
 				    treat_class_rvalues_as_lvalues);
       op2_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 2),
 				    treat_class_rvalues_as_lvalues);
@@ -529,9 +531,9 @@ build_cplus_array_type_1 (tree elt_type, tree index_type)
   if (elt_type == error_mark_node || index_type == error_mark_node)
     return error_mark_node;
 
-  if (dependent_type_p (elt_type)
-      || (index_type
-	  && value_dependent_expression_p (TYPE_MAX_VALUE (index_type))))
+  if (processing_template_decl
+      && (dependent_type_p (elt_type)
+	  || (index_type && !TREE_CONSTANT (TYPE_MAX_VALUE (index_type)))))
     {
       void **e;
       cplus_array_info cai;
@@ -570,7 +572,7 @@ build_cplus_array_type_1 (tree elt_type, tree index_type)
 	    TYPE_CANONICAL (t)
 		= build_cplus_array_type 
 		   (TYPE_CANONICAL (elt_type),
-		    index_type? TYPE_CANONICAL (index_type) : index_type);
+		    index_type ? TYPE_CANONICAL (index_type) : index_type);
 	  else
 	    TYPE_CANONICAL (t) = t;
 	}
@@ -649,6 +651,14 @@ cp_build_reference_type (tree to_type, bool rval)
 
 }
 
+/* Used by the C++ front end to build qualified array types.  However,
+   the C version of this function does not properly maintain canonical
+   types (which are not used in C).  */
+tree
+c_build_qualified_type (tree type, int type_quals)
+{
+  return cp_build_qualified_type (type, type_quals);
+}
 
 
 /* Make a variant of TYPE, qualified with the TYPE_QUALS.  Handles
@@ -846,6 +856,9 @@ cp_build_qualified_type_real (tree type,
 tree
 canonical_type_variant (tree t)
 {
+  if (t == error_mark_node)
+    return error_mark_node;
+
   return cp_build_qualified_type (TYPE_MAIN_VARIANT (t), cp_type_quals (t));
 }
 
@@ -2482,6 +2495,10 @@ decl_linkage (tree decl)
   if (!DECL_NAME (decl))
     return lk_none;
 
+  /* Fields have no linkage.  */
+  if (TREE_CODE (decl) == FIELD_DECL)
+    return lk_none;
+
   /* Things that are TREE_PUBLIC have external linkage.  */
   if (TREE_PUBLIC (decl))
     return lk_external;
@@ -2511,10 +2528,18 @@ decl_linkage (tree decl)
   /* Members of the anonymous namespace also have TREE_PUBLIC unset, but
      are considered to have external linkage for language purposes.  DECLs
      really meant to have internal linkage have DECL_THIS_STATIC set.  */
-  if (TREE_CODE (decl) == TYPE_DECL
-      || ((TREE_CODE (decl) == VAR_DECL || TREE_CODE (decl) == FUNCTION_DECL)
-	  && !DECL_THIS_STATIC (decl)))
+  if (TREE_CODE (decl) == TYPE_DECL)
     return lk_external;
+  if (TREE_CODE (decl) == VAR_DECL || TREE_CODE (decl) == FUNCTION_DECL)
+    {
+      if (!DECL_THIS_STATIC (decl))
+	return lk_external;
+
+      /* Static data members and static member functions from classes
+	 in anonymous namespace also don't have TREE_PUBLIC set.  */
+      if (DECL_CLASS_CONTEXT (decl))
+	return lk_external;
+    }
 
   /* Everything else has internal linkage.  */
   return lk_internal;
@@ -2577,8 +2602,11 @@ stabilize_call (tree call, tree *initp)
   int i;
   int nargs = call_expr_nargs (call);
 
-  if (call == error_mark_node)
-    return;
+  if (call == error_mark_node || processing_template_decl)
+    {
+      *initp = NULL_TREE;
+      return;
+    }
 
   gcc_assert (TREE_CODE (call) == CALL_EXPR);
 
@@ -2637,7 +2665,7 @@ stabilize_init (tree init, tree *initp)
 
   *initp = NULL_TREE;
 
-  if (t == error_mark_node)
+  if (t == error_mark_node || processing_template_decl)
     return true;
 
   if (TREE_CODE (t) == INIT_EXPR

@@ -608,7 +608,8 @@ gfc_trans_create_temp_array (stmtblock_t * pre, stmtblock_t * post,
 
   /* Initialize the descriptor.  */
   type =
-    gfc_get_array_type_bounds (eltype, info->dimen, loop->from, loop->to, 1);
+    gfc_get_array_type_bounds (eltype, info->dimen, loop->from, loop->to, 1,
+			       GFC_ARRAY_UNKNOWN);
   desc = gfc_create_var (type, "atmp");
   GFC_DECL_PACKED_ARRAY (desc) = 1;
 
@@ -3376,6 +3377,13 @@ gfc_conv_loop_setup (gfc_loopinfo * loop)
   if (loop->temp_ss != NULL)
     {
       gcc_assert (loop->temp_ss->type == GFC_SS_TEMP);
+
+      /* Make absolutely sure that this is a complete type.  */
+      if (loop->temp_ss->string_length)
+	loop->temp_ss->data.temp.type
+		= gfc_get_character_type_len (gfc_default_character_kind,
+					      loop->temp_ss->string_length);
+
       tmp = loop->temp_ss->data.temp.type;
       len = loop->temp_ss->string_length;
       n = loop->temp_ss->data.temp.dimen;
@@ -4727,15 +4735,10 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
       gfc_add_block_to_block (&block, &rse.pre);
       gfc_add_block_to_block (&block, &lse.pre);
 
-      if (TREE_CODE (rse.expr) != INDIRECT_REF)
-	{
-	  lse.string_length = rse.string_length;
-	  tmp = gfc_trans_scalar_assign (&lse, &rse, expr->ts, true,
-				  expr->expr_type == EXPR_VARIABLE);
-	  gfc_add_expr_to_block (&block, tmp);
-	}
-      else
-	gfc_add_modify_expr (&block, lse.expr, rse.expr);
+      lse.string_length = rse.string_length;
+      tmp = gfc_trans_scalar_assign (&lse, &rse, expr->ts, true,
+				     expr->expr_type == EXPR_VARIABLE);
+      gfc_add_expr_to_block (&block, tmp);
 
       /* Finish the copying loops.  */
       gfc_trans_scalarizing_loops (&loop, &block);
@@ -4781,7 +4784,8 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
 	  /* Otherwise make a new one.  */
 	  parmtype = gfc_get_element_type (TREE_TYPE (desc));
 	  parmtype = gfc_get_array_type_bounds (parmtype, loop.dimen,
-						loop.from, loop.to, 0);
+						loop.from, loop.to, 0,
+						GFC_ARRAY_UNKNOWN);
 	  parm = gfc_create_var (parmtype, "parm");
 	}
 
@@ -4965,8 +4969,8 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77)
   if (expr->expr_type == EXPR_ARRAY && expr->ts.type == BT_CHARACTER)
     {
       get_array_ctor_strlen (&se->pre, expr->value.constructor, &tmp);
-      expr->ts.cl->backend_decl = gfc_evaluate_now (tmp, &se->pre);
-      se->string_length = expr->ts.cl->backend_decl;
+      expr->ts.cl->backend_decl = tmp;
+      se->string_length = gfc_evaluate_now (tmp, &se->pre);
     }
 
   /* Is this the result of the enclosing procedure?  */
@@ -4996,7 +5000,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77)
         }
       if (sym->attr.allocatable)
         {
-	  if (sym->attr.dummy)
+	  if (sym->attr.dummy || sym->attr.result)
 	    {
 	      gfc_conv_expr_descriptor (se, expr, ss);
 	      se->expr = gfc_conv_array_data (se->expr);

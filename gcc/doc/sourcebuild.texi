@@ -447,8 +447,6 @@ versions, the information is on the GCC web site.)
 @item README.Portability
 Information about portability issues when writing code in GCC@.  FIXME:
 why isn't this part of this manual or of the GCC Coding Conventions?
-@item SERVICE
-A pointer to the GNU Service Directory.
 @end table
 
 FIXME: document such files in subdirectories, at least @file{config},
@@ -963,10 +961,11 @@ If the directive includes the optional @samp{@{ target @var{selector} @}}
 then the test is skipped unless the target system is included in the
 list of target triplets or matches the effective-target keyword.
 
-If the directive includes the optional @samp{@{ xfail @var{selector} @}}
-and the selector is met then the test is expected to fail.  For
-@code{dg-do run}, execution is expected to fail but compilation
-is expected to pass.
+If @samp{do-what-keyword} is @code{run} and the directive includes
+the optional @samp{@{ xfail @var{selector} @}} and the selector is met
+then the test is expected to fail.  The @code{xfail} clause is ignored
+for other values of @samp{do-what-keyword}; those tests can use
+directive @code{dg-xfail-if}.
 
 @item @{ dg-options @var{options} [@{ target @var{selector} @}] @}
 This DejaGnu directive provides a list of compiler options, to be used
@@ -1006,14 +1005,16 @@ Expect the test to fail if the conditions (which are the same as for
 @item @{ dg-require-@var{support} args @}
 Skip the test if the target does not provide the required support;
 see @file{gcc-dg.exp} in the GCC testsuite for the actual directives.
-These directives must appear after any @code{dg-do} directive in the test.
+These directives must appear after any @code{dg-do} directive in the test
+and before any @code{dg-additional-sources} directive.
 They require at least one argument, which can be an empty string if the
 specific procedure does not examine the argument.
 
 @item @{ dg-require-effective-target @var{keyword} @}
 Skip the test if the test target, including current multilib flags,
 is not covered by the effective-target keyword.
-This directive must appear after any @code{dg-do} directive in the test.
+This directive must appear after any @code{dg-do} directive in the test
+and before any @code{dg-additional-sources} directive.
 
 @item  @{ dg-shouldfail @var{comment} @{ @var{selector} @} @{ @var{include-opts} @} @{ @var{exclude-opts} @} @}
 Expect the test executable to return a nonzero exit status if the

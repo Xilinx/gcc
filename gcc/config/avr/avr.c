@@ -191,6 +191,7 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "attiny861",    ARCH_AVR25, "__AVR_ATtiny861__" },
   { "attiny43u",    ARCH_AVR25, "__AVR_ATtiny43U__" },
   { "attiny48",     ARCH_AVR25, "__AVR_ATtiny48__" },
+  { "attiny88",     ARCH_AVR25, "__AVR_ATtiny88__" },
   { "at86rf401",    ARCH_AVR25, "__AVR_AT86RF401__" },
     /* Classic, > 8K.  */
   { "avr3",         ARCH_AVR3, NULL },
@@ -238,6 +239,7 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "atmega329p",   ARCH_AVR5, "__AVR_ATmega329P__" },
   { "atmega3290",   ARCH_AVR5, "__AVR_ATmega3290__" },
   { "atmega3290p",  ARCH_AVR5, "__AVR_ATmega3290P__" },
+  { "atmega32hvb",  ARCH_AVR5, "__AVR_ATmega32HVB__" },
   { "atmega406",    ARCH_AVR5, "__AVR_ATmega406__" },
   { "atmega64",     ARCH_AVR5, "__AVR_ATmega64__" },
   { "atmega640",    ARCH_AVR5, "__AVR_ATmega640__" },
@@ -250,6 +252,7 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "atmega128",    ARCH_AVR5, "__AVR_ATmega128__" },
   { "atmega1280",   ARCH_AVR5, "__AVR_ATmega1280__" },
   { "atmega1281",   ARCH_AVR5, "__AVR_ATmega1281__" },
+  { "atmega1284p",  ARCH_AVR5, "__AVR_ATmega1284P__" },
   { "atmega16hva",  ARCH_AVR5, "__AVR_ATmega16HVA__" },
   { "at90can32",    ARCH_AVR5, "__AVR_AT90CAN32__" },
   { "at90can64",    ARCH_AVR5, "__AVR_AT90CAN64__" },

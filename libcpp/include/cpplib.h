@@ -853,6 +853,7 @@ extern unsigned char *cpp_quote_string (unsigned char *, const unsigned char *,
 
 /* In cppfiles.c */
 extern bool cpp_included (cpp_reader *, const char *);
+extern bool cpp_included_before (cpp_reader *, const char *, source_location);
 extern void cpp_make_system_header (cpp_reader *, int, int);
 extern bool cpp_push_include (cpp_reader *, const char *);
 extern void cpp_change_file (cpp_reader *, enum lc_reason, const char *);
@@ -861,6 +862,7 @@ extern cpp_dir *cpp_get_dir (struct _cpp_file *);
 extern cpp_buffer *cpp_get_buffer (cpp_reader *);
 extern struct _cpp_file *cpp_get_file (cpp_buffer *);
 extern cpp_buffer *cpp_get_prev (cpp_buffer *);
+extern void cpp_clear_file_cache (cpp_reader *);
 
 /* In cpppch.c */
 struct save_macro_data;

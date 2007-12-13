@@ -881,7 +881,9 @@ dump_cfg_bb_info (FILE *file, basic_block bb)
   bool first = true;
   static const char * const bb_bitnames[] =
     {
-      "dirty", "new", "reachable", "visited", "irreducible_loop", "superblock"
+      "new", "reachable", "irreducible_loop", "superblock",
+      "nosched", "hot", "cold", "dup", "xlabel", "rtl",
+      "fwdr", "nothrd"
     };
   const unsigned n_bitnames = sizeof (bb_bitnames) / sizeof (char *);
   edge e;
@@ -988,9 +990,15 @@ update_bb_profile_for_threading (basic_block bb, int edge_frequency,
 
       FOR_EACH_EDGE (c, ei, bb->succs)
 	{
-	  c->probability = RDIV (c->probability * scale, 65536);
-	  if (c->probability > REG_BR_PROB_BASE)
+	  /* Protect from overflow due to additional scaling.  */
+	  if (c->probability > prob)
 	    c->probability = REG_BR_PROB_BASE;
+	  else
+	    {
+	      c->probability = RDIV (c->probability * scale, 65536);
+	      if (c->probability > REG_BR_PROB_BASE)
+		c->probability = REG_BR_PROB_BASE;
+	    }
 	}
     }
 

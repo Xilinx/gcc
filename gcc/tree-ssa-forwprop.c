@@ -685,6 +685,7 @@ forward_propagate_addr_expr (tree name, tree rhs)
   FOR_EACH_IMM_USE_STMT (use_stmt, iter, name)
     {
       bool result;
+      tree use_rhs;
 
       /* If the use is not in a simple assignment statement, then
 	 there is nothing we can do.  */
@@ -712,11 +713,13 @@ forward_propagate_addr_expr (tree name, tree rhs)
       pop_stmt_changes (&use_stmt);
 
       /* Remove intermediate now unused copy and conversion chains.  */
+      use_rhs = GIMPLE_STMT_OPERAND (use_stmt, 1);
       if (result
 	  && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 0)) == SSA_NAME
-	  && (TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == SSA_NAME
-	      || TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == NOP_EXPR
-	      || TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == CONVERT_EXPR))
+	  && (TREE_CODE (use_rhs) == SSA_NAME
+	      || ((TREE_CODE (use_rhs) == NOP_EXPR
+	           || TREE_CODE (use_rhs) == CONVERT_EXPR)
+		  && TREE_CODE (TREE_OPERAND (use_rhs, 0)) == SSA_NAME)))
 	{
 	  block_stmt_iterator bsi = bsi_for_stmt (use_stmt);
 	  release_defs (use_stmt);
@@ -952,7 +955,18 @@ tree_ssa_forward_propagate_single_use_vars (void)
 		  continue;
 		}
 
-	      if (TREE_CODE (rhs) == ADDR_EXPR)
+	      if (TREE_CODE (rhs) == ADDR_EXPR
+		  /* We can also disregard changes in const qualifiers for
+		     the dereferenced value.  */
+		  || ((TREE_CODE (rhs) == NOP_EXPR
+		       || TREE_CODE (rhs) == CONVERT_EXPR)
+		      && TREE_CODE (TREE_OPERAND (rhs, 0)) == ADDR_EXPR
+		      && POINTER_TYPE_P (TREE_TYPE (rhs))
+		      /* But do not propagate changes in volatileness.  */
+		      && (TYPE_VOLATILE (TREE_TYPE (TREE_TYPE (rhs)))
+			  == TYPE_VOLATILE (TREE_TYPE (TREE_TYPE (TREE_OPERAND (rhs, 0)))))
+		      && types_compatible_p (TREE_TYPE (TREE_TYPE (TREE_OPERAND (rhs, 0))),
+					     TREE_TYPE (TREE_TYPE (rhs)))))
 		{
 		  if (forward_propagate_addr_expr (lhs, rhs))
 		    {

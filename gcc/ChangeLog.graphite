@@ -1,3 +1,7 @@
+2007-12-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (129697:130800).
+
 2007-10-30  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (build_graphite_bb): SCoP's basic blocks are post

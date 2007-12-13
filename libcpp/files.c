@@ -142,11 +142,27 @@ struct file_hash_entry
 {
   struct file_hash_entry *next;
   cpp_dir *start_dir;
+  source_location location;
   union
   {
     _cpp_file *file;
     cpp_dir *dir;
   } u;
+};
+
+/* Number of entries to put in a file_hash_entry pool.  */
+#define FILE_HASH_POOL_SIZE 127
+
+/* A file hash entry pool.  We allocate file_hash_entry object from
+   one of these.  */
+struct file_hash_entry_pool
+{
+  /* Number of entries used from this pool.  */
+  unsigned int file_hash_entries_used;
+  /* Next pool in the chain; used when freeing.  */
+  struct file_hash_entry_pool *next;
+  /* The memory pool.  */
+  struct file_hash_entry pool[FILE_HASH_POOL_SIZE];
 };
 
 static bool open_file (_cpp_file *file);
@@ -521,6 +537,7 @@ _cpp_find_file (cpp_reader *pfile, const char *fname, cpp_dir *start_dir, bool f
   entry = new_file_hash_entry (pfile);
   entry->next = *hash_slot;
   entry->start_dir = start_dir;
+  entry->location = pfile->line_table->highest_location;
   entry->u.file = file;
   *hash_slot = entry;
 
@@ -533,6 +550,7 @@ _cpp_find_file (cpp_reader *pfile, const char *fname, cpp_dir *start_dir, bool f
       entry = new_file_hash_entry (pfile);
       entry->next = *hash_slot;
       entry->start_dir = pfile->bracket_include;
+      entry->location = pfile->line_table->highest_location;
       entry->u.file = file;
       *hash_slot = entry;
     }
@@ -543,6 +561,7 @@ _cpp_find_file (cpp_reader *pfile, const char *fname, cpp_dir *start_dir, bool f
       entry = new_file_hash_entry (pfile);
       entry->next = *hash_slot;
       entry->start_dir = pfile->quote_include;
+      entry->location = pfile->line_table->highest_location;
       entry->u.file = file;
       *hash_slot = entry;
     }
@@ -833,7 +852,8 @@ search_path_head (cpp_reader *pfile, const char *fname, int angle_brackets,
   /* For #include_next, skip in the search path past the dir in which
      the current file was found, but if it was found via an absolute
      path use the normal search logic.  */
-  if (type == IT_INCLUDE_NEXT && file->dir)
+  if (type == IT_INCLUDE_NEXT && file->dir
+      && file->dir != &pfile->no_search_path)
     dir = file->dir->next;
   else if (angle_brackets)
     dir = pfile->bracket_include;
@@ -959,6 +979,19 @@ destroy_cpp_file (_cpp_file *file)
   free (file);
 }
 
+/* Release all the files allocated by this reader.  */
+static void
+destroy_all_cpp_files (cpp_reader *pfile)
+{
+  _cpp_file *iter = pfile->all_files;
+  while (iter)
+    {
+      _cpp_file *next = iter->next_file;
+      destroy_cpp_file (iter);
+      iter = next;
+    }
+}
+
 /* A hash of directory names.  The directory names are the path names
    of files which contain a #include "", the included file name is
    appended to this directories.
@@ -993,6 +1026,7 @@ make_cpp_dir (cpp_reader *pfile, const char *dir_name, int sysp)
   entry = new_file_hash_entry (pfile);
   entry->next = *hash_slot;
   entry->start_dir = NULL;
+  entry->location = pfile->line_table->highest_location;
   entry->u.dir = dir;
   *hash_slot = entry;
 
@@ -1003,20 +1037,35 @@ make_cpp_dir (cpp_reader *pfile, const char *dir_name, int sysp)
 static void
 allocate_file_hash_entries (cpp_reader *pfile)
 {
-  pfile->file_hash_entries_used = 0;
-  pfile->file_hash_entries_allocated = 127;
-  pfile->file_hash_entries = XNEWVEC (struct file_hash_entry,
-                                      pfile->file_hash_entries_allocated);
+  struct file_hash_entry_pool *pool = XNEW (struct file_hash_entry_pool);
+  pool->file_hash_entries_used = 0;
+  pool->next = pfile->file_hash_entries;
+  pfile->file_hash_entries = pool;
 }
 
 /* Return a new file hash entry.  */
 static struct file_hash_entry *
 new_file_hash_entry (cpp_reader *pfile)
 {
-  if (pfile->file_hash_entries_used == pfile->file_hash_entries_allocated)
+  unsigned int idx;
+  if (pfile->file_hash_entries->file_hash_entries_used == FILE_HASH_POOL_SIZE)
     allocate_file_hash_entries (pfile);
 
-  return &pfile->file_hash_entries[pfile->file_hash_entries_used++];
+  idx = pfile->file_hash_entries->file_hash_entries_used++;
+  return &pfile->file_hash_entries->pool[idx];
+}
+
+/* Free the file hash entry pools.  */
+static void
+free_file_hash_entries (cpp_reader *pfile)
+{
+  struct file_hash_entry_pool *iter = pfile->file_hash_entries;
+  while (iter)
+    {
+      struct file_hash_entry_pool *next = iter->next;
+      free (iter);
+      iter = next;
+    }
 }
 
 /* Returns TRUE if a file FNAME has ever been successfully opened.
@@ -1031,6 +1080,25 @@ cpp_included (cpp_reader *pfile, const char *fname)
      htab_find_with_hash (pfile->file_hash, fname, htab_hash_string (fname));
 
   while (entry && (entry->start_dir == NULL || entry->u.file->err_no))
+    entry = entry->next;
+
+  return entry != NULL;
+}
+
+/* Returns TRUE if a file FNAME has ever been successfully opened
+   before LOCATION.  This routine is not intended to correctly handle
+   filenames aliased by links or redundant . or .. traversals etc.  */
+bool
+cpp_included_before (cpp_reader *pfile, const char *fname,
+		     source_location location)
+{
+  struct file_hash_entry *entry;
+
+  entry = (struct file_hash_entry *)
+     htab_find_with_hash (pfile->file_hash, fname, htab_hash_string (fname));
+
+  while (entry && (entry->start_dir == NULL || entry->u.file->err_no
+		   || entry->location > location))
     entry = entry->next;
 
   return entry != NULL;
@@ -1100,6 +1168,19 @@ _cpp_cleanup_files (cpp_reader *pfile)
   htab_delete (pfile->dir_hash);
   htab_delete (pfile->nonexistent_file_hash);
   obstack_free (&pfile->nonexistent_file_ob, 0);
+  free_file_hash_entries (pfile);
+  destroy_all_cpp_files (pfile);
+}
+
+/* Make the parser forget about files it has seen.  This can be useful
+   for resetting the parser to start another run.  */
+void
+cpp_clear_file_cache (cpp_reader *pfile)
+{
+  _cpp_cleanup_files (pfile);
+  pfile->file_hash_entries = NULL;
+  pfile->all_files = NULL;
+  _cpp_init_files (pfile);
 }
 
 /* Enter a file name in the hash for the sake of cpp_included.  */

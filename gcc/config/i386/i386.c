@@ -1963,7 +1963,31 @@ override_options (void)
       {&amdfam10_cost, 32, 24, 32, 7, 32}
     };
 
-  static const char * const cpu_names[] = TARGET_CPU_DEFAULT_NAMES;
+  static const char *const cpu_names[TARGET_CPU_DEFAULT_max] =
+    {
+      "generic",
+      "i386",
+      "i486",
+      "pentium",
+      "pentium-mmx",
+      "pentiumpro",
+      "pentium2",
+      "pentium3",
+      "pentium4",
+      "pentium-m",
+      "prescott",
+      "nocona",
+      "core2",
+      "geode",
+      "k6",
+      "k6-2",
+      "k6-3",
+      "athlon",
+      "athlon-4",
+      "k8",
+      "amdfam10"
+    };
+
   enum pta_flags
     {
       PTA_SSE = 1 << 0,
@@ -2138,7 +2162,7 @@ override_options (void)
 	ix86_tune_string = ix86_arch_string;
       if (!ix86_tune_string)
 	{
-	  ix86_tune_string = cpu_names [TARGET_CPU_DEFAULT];
+	  ix86_tune_string = cpu_names[TARGET_CPU_DEFAULT];
 	  ix86_tune_defaulted = 1;
 	}
 
@@ -2665,6 +2689,11 @@ override_options (void)
     set_param_value ("l1-cache-size", ix86_cost->l1_cache_size);
   if (!PARAM_SET_P (PARAM_L2_CACHE_SIZE))
     set_param_value ("l2-cache-size", ix86_cost->l2_cache_size);
+
+  /* If using typedef char *va_list, signal that __builtin_va_start (&ap, 0)
+     can be optimized to ap = __builtin_next_arg (0).  */
+  if (!TARGET_64BIT || TARGET_64BIT_MS_ABI)
+    targetm.expand_builtin_va_start = NULL;
 }
 
 /* Return true if this goes in large data/bss.  */
@@ -2904,6 +2933,7 @@ optimization_options (int level, int size ATTRIBUTE_UNUSED)
     flag_omit_frame_pointer = 2;
   flag_pcc_struct_return = 2;
   flag_asynchronous_unwind_tables = 2;
+  flag_vect_cost_model = 1;
 #ifdef SUBTARGET_OPTIMIZATION_OPTIONS
   SUBTARGET_OPTIMIZATION_OPTIONS;
 #endif
@@ -3174,9 +3204,9 @@ ix86_function_regparm (const_tree type, const_tree decl)
 	  struct function *f;
 
 	  /* Make sure no regparm register is taken by a
-	     global register variable.  */
-	  for (local_regparm = 0; local_regparm < 3; local_regparm++)
-	    if (global_regs[local_regparm])
+	     fixed register variable.  */
+	  for (local_regparm = 0; local_regparm < REGPARM_MAX; local_regparm++)
+	    if (fixed_regs[local_regparm])
 	      break;
 
 	  /* We can't use regparm(3) for nested functions as these use
@@ -3198,12 +3228,14 @@ ix86_function_regparm (const_tree type, const_tree decl)
 					TYPE_ATTRIBUTES (TREE_TYPE (decl)))))
 	    local_regparm = 2;
 
-	  /* Each global register variable increases register preassure,
-	     so the more global reg vars there are, the smaller regparm
-	     optimization use, unless requested by the user explicitly.  */
-	  for (regno = 0; regno < 6; regno++)
-	    if (global_regs[regno])
+	  /* Each fixed register usage increases register pressure,
+	     so less registers should be used for argument passing.
+	     This functionality can be overriden by an explicit
+	     regparm value.  */
+	  for (regno = 0; regno <= DI_REG; regno++)
+	    if (fixed_regs[regno])
 	      globals++;
+
 	  local_regparm
 	    = globals < local_regparm ? local_regparm - globals : 0;
 
@@ -4229,10 +4261,13 @@ function_arg_32 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 	  int regno = cum->regno;
 
 	  /* Fastcall allocates the first two DWORD (SImode) or
-	     smaller arguments to ECX and EDX.  */
+            smaller arguments to ECX and EDX if it isn't an
+            aggregate type .  */
 	  if (cum->fastcall)
 	    {
-	      if (mode == BLKmode || mode == DImode)
+	      if (mode == BLKmode
+		  || mode == DImode
+		  || (type && AGGREGATE_TYPE_P (type)))
 	        break;
 
 	      /* ECX not EAX is the first allocated register.  */
@@ -5013,7 +5048,7 @@ ix86_setup_incoming_varargs (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 
 /* Implement va_start.  */
 
-void
+static void
 ix86_va_start (tree valist, rtx nextarg)
 {
   HOST_WIDE_INT words, n_gpr, n_fpr;
@@ -6757,7 +6792,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 
   /* Special case: on K6, [%esi] makes the instruction vector decoded.
      Avoid this by transforming to [%esi+0].  */
-  if (ix86_tune == PROCESSOR_K6 && !optimize_size
+  if (TARGET_K6 && !optimize_size
       && base_reg && !index_reg && !disp
       && REG_P (base_reg)
       && REGNO_REG_CLASS (REGNO (base_reg)) == SIREG)
@@ -15075,8 +15110,9 @@ decide_alg (HOST_WIDE_INT count, HOST_WIDE_INT expected_size, bool memset,
      additionally, memset wants eax and memcpy wants esi.  Don't
      consider such algorithms if the user has appropriated those
      registers for their own purposes.	*/
-  bool rep_prefix_usable = !(global_regs[CX_REG] || global_regs[DI_REG]
-                             || (memset ? global_regs[AX_REG] : global_regs[SI_REG]));
+  bool rep_prefix_usable = !(fixed_regs[CX_REG] || fixed_regs[DI_REG]
+                             || (memset
+				 ? fixed_regs[AX_REG] : fixed_regs[SI_REG]));
 
 #define ALG_USABLE_P(alg) (rep_prefix_usable			\
 			   || (alg != rep_prefix_1_byte		\
@@ -15246,7 +15282,7 @@ smallest_pow2_greater_than (int val)
 }
 
 /* Expand string move (memcpy) operation.  Use i386 string operations when
-   profitable.  expand_clrmem contains similar code. The code depends upon
+   profitable.  expand_setmem contains similar code.  The code depends upon
    architecture, block size and alignment, but always has the same
    overall structure:
 
@@ -15297,6 +15333,10 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
   if (CONST_INT_P (expected_size_exp) && count == 0)
     expected_size = INTVAL (expected_size_exp);
 
+  /* Make sure we don't need to care about overflow later on.  */
+  if (count > ((unsigned HOST_WIDE_INT) 1 << 30))
+    return 0;
+
   /* Step 0: Decide on preferred algorithm, desired alignment and
      size of chunks to be copied by main loop.  */
 
@@ -15342,12 +15382,7 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
 
   /* Alignment code needs count to be in register.  */
   if (CONST_INT_P (count_exp) && desired_align > align)
-    {
-      enum machine_mode mode = SImode;
-      if (TARGET_64BIT && (count & ~0xffffffff))
-	mode = DImode;
-      count_exp = force_reg (mode, count_exp);
-    }
+    count_exp = force_reg (counter_mode (count_exp), count_exp);
   gcc_assert (desired_align >= 1 && align >= 1);
 
   /* Ensure that alignment prologue won't copy past end of block.  */
@@ -15358,29 +15393,48 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
 	 Make sure it is power of 2.  */
       epilogue_size_needed = smallest_pow2_greater_than (epilogue_size_needed);
 
-      label = gen_label_rtx ();
-      emit_cmp_and_jump_insns (count_exp,
-			       GEN_INT (epilogue_size_needed),
-			       LTU, 0, counter_mode (count_exp), 1, label);
-      if (GET_CODE (count_exp) == CONST_INT)
-	;
-      else if (expected_size == -1 || expected_size < epilogue_size_needed)
-	predict_jump (REG_BR_PROB_BASE * 60 / 100);
+      if (CONST_INT_P (count_exp))
+	{
+	  if (UINTVAL (count_exp) < (unsigned HOST_WIDE_INT)epilogue_size_needed)
+	    goto epilogue;
+	}
       else
-	predict_jump (REG_BR_PROB_BASE * 20 / 100);
+	{
+	  label = gen_label_rtx ();
+	  emit_cmp_and_jump_insns (count_exp,
+				   GEN_INT (epilogue_size_needed),
+				   LTU, 0, counter_mode (count_exp), 1, label);
+	  if (expected_size == -1 || expected_size < epilogue_size_needed)
+	    predict_jump (REG_BR_PROB_BASE * 60 / 100);
+	  else
+	    predict_jump (REG_BR_PROB_BASE * 20 / 100);
+	}
     }
+
   /* Emit code to decide on runtime whether library call or inline should be
      used.  */
   if (dynamic_check != -1)
     {
-      rtx hot_label = gen_label_rtx ();
-      jump_around_label = gen_label_rtx ();
-      emit_cmp_and_jump_insns (count_exp, GEN_INT (dynamic_check - 1),
-			       LEU, 0, GET_MODE (count_exp), 1, hot_label);
-      predict_jump (REG_BR_PROB_BASE * 90 / 100);
-      emit_block_move_via_libcall (dst, src, count_exp, false);
-      emit_jump (jump_around_label);
-      emit_label (hot_label);
+      if (CONST_INT_P (count_exp))
+	{
+	  if (UINTVAL (count_exp) >= (unsigned HOST_WIDE_INT)dynamic_check)
+	    {
+	      emit_block_move_via_libcall (dst, src, count_exp, false);
+	      count_exp = const0_rtx;
+	      goto epilogue;
+	    }
+	}
+      else
+	{
+	  rtx hot_label = gen_label_rtx ();
+	  jump_around_label = gen_label_rtx ();
+	  emit_cmp_and_jump_insns (count_exp, GEN_INT (dynamic_check - 1),
+				   LEU, 0, GET_MODE (count_exp), 1, hot_label);
+	  predict_jump (REG_BR_PROB_BASE * 90 / 100);
+	  emit_block_move_via_libcall (dst, src, count_exp, false);
+	  emit_jump (jump_around_label);
+	  emit_label (hot_label);
+	}
     }
 
   /* Step 2: Alignment prologue.  */
@@ -15453,7 +15507,7 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
     }
 
   /* Step 4: Epilogue to copy the remaining bytes.  */
-
+ epilogue:
   if (label)
     {
       /* When the main loop is done, COUNT_EXP might hold original count,
@@ -15606,6 +15660,10 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
     count = expected_size = INTVAL (count_exp);
   if (CONST_INT_P (expected_size_exp) && count == 0)
     expected_size = INTVAL (expected_size_exp);
+
+  /* Make sure we don't need to care about overflow later on.  */
+  if (count > ((unsigned HOST_WIDE_INT) 1 << 30))
+    return 0;
 
   /* Step 0: Decide on preferred algorithm, desired alignment and
      size of chunks to be copied by main loop.  */
@@ -16037,7 +16095,7 @@ ix86_expand_strlen (rtx out, rtx src, rtx eoschar, rtx align)
       rtx unspec;
 
       /* Can't use this if the user has appropriated eax, ecx, or edi.  */
-      if (global_regs[AX_REG] || global_regs[CX_REG] || global_regs[DI_REG])
+      if (fixed_regs[AX_REG] || fixed_regs[CX_REG] || fixed_regs[DI_REG])
         return false;
 
       scratch2 = gen_reg_rtx (Pmode);
@@ -16637,15 +16695,18 @@ ix86_adjust_cost (rtx insn, rtx link, rtx dep_insn, int cost)
 static int
 ia32_multipass_dfa_lookahead (void)
 {
-  if (ix86_tune == PROCESSOR_PENTIUM)
-    return 2;
+  switch (ix86_tune)
+    {
+    case PROCESSOR_PENTIUM:
+      return 2;
 
-  if (ix86_tune == PROCESSOR_PENTIUMPRO
-      || ix86_tune == PROCESSOR_K6)
-    return 1;
+    case PROCESSOR_PENTIUMPRO:
+    case PROCESSOR_K6:
+      return 1;
 
-  else
-    return 0;
+    default:
+      return 0;
+    }
 }
 
 
@@ -24856,7 +24917,8 @@ ix86_expand_round (rtx operand0, rtx operand1)
    NUM is the number of operands.
    USES_OC0 is true if the instruction uses OC0 and provides 4 variants.
    NUM_MEMORY is the maximum number of memory operands to accept.  */
-bool ix86_sse5_valid_op_p (rtx operands[], rtx insn, int num, bool uses_oc0, int num_memory)
+bool
+ix86_sse5_valid_op_p (rtx operands[], rtx insn, int num, bool uses_oc0, int num_memory)
 {
   int mem_mask;
   int mem_count;
@@ -25206,6 +25268,9 @@ x86_builtin_vectorization_cost (bool runtime_test)
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST ix86_build_builtin_va_list
+
+#undef TARGET_EXPAND_BUILTIN_VA_START
+#define TARGET_EXPAND_BUILTIN_VA_START ix86_va_start
 
 #undef TARGET_MD_ASM_CLOBBERS
 #define TARGET_MD_ASM_CLOBBERS ix86_md_asm_clobbers

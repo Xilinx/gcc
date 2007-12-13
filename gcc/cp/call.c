@@ -3918,7 +3918,10 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	  if (overloaded_p)
 	    *overloaded_p = true;
 
-	  result = build_over_call (cand, LOOKUP_NORMAL);
+	  if (resolve_args (arglist) == error_mark_node)
+	    result = error_mark_node;
+	  else
+	    result = build_over_call (cand, LOOKUP_NORMAL);
 	}
       else
 	{
@@ -4417,7 +4420,14 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	 about to bind it to a reference, in which case we need to
 	 leave it as an lvalue.  */
       if (inner >= 0)
-	expr = decl_constant_value (expr);
+        {   
+          expr = decl_constant_value (expr);
+          if (expr == null_node && INTEGRAL_TYPE_P (totype))
+            /* If __null has been converted to an integer type, we do not
+               want to warn about uses of EXPR as an integer, rather than
+               as a pointer.  */
+            expr = build_int_cst (totype, 0);
+        }
       return expr;
     case ck_ambig:
       /* Call build_user_type_conversion again for the error.  */
@@ -4993,7 +5003,8 @@ build_over_call (struct z_candidate *cand, int flags)
 
       /* Don't make a copy here if build_call is going to.  */
       if (conv->kind == ck_rvalue
-	  && !TREE_ADDRESSABLE (complete_type (type)))
+	  && COMPLETE_TYPE_P (complete_type (type))
+	  && !TREE_ADDRESSABLE (type))
 	conv = conv->u.next;
 
       val = convert_like_with_context
@@ -5076,7 +5087,8 @@ build_over_call (struct z_candidate *cand, int flags)
 	    return build_target_expr_with_type (arg, DECL_CONTEXT (fn));
 	}
       else if (TREE_CODE (arg) == TARGET_EXPR
-	       || TYPE_HAS_TRIVIAL_INIT_REF (DECL_CONTEXT (fn)))
+	       || (TYPE_HAS_TRIVIAL_INIT_REF (DECL_CONTEXT (fn))
+		   && !move_fn_p (fn)))
 	{
 	  tree to = stabilize_reference
 	    (build_indirect_ref (TREE_VALUE (args), 0));
@@ -6118,7 +6130,11 @@ compare_ics (conversion *ics1, conversion *ics2)
   if (ics1->kind == ck_qual
       && ics2->kind == ck_qual
       && same_type_p (from_type1, from_type2))
-    return comp_cv_qual_signature (to_type1, to_type2);
+    {
+      int result = comp_cv_qual_signature (to_type1, to_type2);
+      if (result != 0)
+	return result;
+    }
 
   /* [over.ics.rank]
 

@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "trans-const.h"
 #include "real.h"
 #include "flags.h"
+#include "dwarf2out.h"
 
 
 #if (GFC_MAX_DIMENSIONS < 10)
@@ -672,7 +673,7 @@ c_size_t_size (void)
 void
 gfc_init_types (void)
 {
-  char name_buf[16];
+  char name_buf[18];
   int index;
   tree type;
   unsigned n;
@@ -687,7 +688,7 @@ gfc_init_types (void)
     {
       type = gfc_build_int_type (&gfc_integer_kinds[index]);
       gfc_integer_types[index] = type;
-      snprintf (name_buf, sizeof(name_buf), "int%d",
+      snprintf (name_buf, sizeof(name_buf), "integer(kind=%d)",
 		gfc_integer_kinds[index].kind);
       PUSH_TYPE (name_buf, type);
     }
@@ -696,7 +697,7 @@ gfc_init_types (void)
     {
       type = gfc_build_logical_type (&gfc_logical_kinds[index]);
       gfc_logical_types[index] = type;
-      snprintf (name_buf, sizeof(name_buf), "logical%d",
+      snprintf (name_buf, sizeof(name_buf), "logical(kind=%d)",
 		gfc_logical_kinds[index].kind);
       PUSH_TYPE (name_buf, type);
     }
@@ -705,20 +706,20 @@ gfc_init_types (void)
     {
       type = gfc_build_real_type (&gfc_real_kinds[index]);
       gfc_real_types[index] = type;
-      snprintf (name_buf, sizeof(name_buf), "real%d",
+      snprintf (name_buf, sizeof(name_buf), "real(kind=%d)",
 		gfc_real_kinds[index].kind);
       PUSH_TYPE (name_buf, type);
 
       type = gfc_build_complex_type (type);
       gfc_complex_types[index] = type;
-      snprintf (name_buf, sizeof(name_buf), "complex%d",
+      snprintf (name_buf, sizeof(name_buf), "complex(kind=%d)",
 		gfc_real_kinds[index].kind);
       PUSH_TYPE (name_buf, type);
     }
 
   gfc_character1_type_node = build_type_variant (unsigned_char_type_node, 
 						 0, 0);
-  PUSH_TYPE ("char", gfc_character1_type_node);
+  PUSH_TYPE ("character(kind=1)", gfc_character1_type_node);
 
   PUSH_TYPE ("byte", unsigned_char_type_node);
   PUSH_TYPE ("void", void_type_node);
@@ -1047,7 +1048,8 @@ gfc_is_nodesc_array (gfc_symbol * sym)
 /* Create an array descriptor type.  */
 
 static tree
-gfc_build_array_type (tree type, gfc_array_spec * as)
+gfc_build_array_type (tree type, gfc_array_spec * as,
+		      enum gfc_array_kind akind)
 {
   tree lbound[GFC_MAX_DIMENSIONS];
   tree ubound[GFC_MAX_DIMENSIONS];
@@ -1063,7 +1065,9 @@ gfc_build_array_type (tree type, gfc_array_spec * as)
       ubound[n] = gfc_conv_array_bound (as->upper[n]);
     }
 
-  return gfc_get_array_type_bounds (type, as->rank, lbound, ubound, 0);
+  if (as->type == AS_ASSUMED_SHAPE)
+    akind = GFC_ARRAY_ASSUMED_SHAPE;
+  return gfc_get_array_type_bounds (type, as->rank, lbound, ubound, 0, akind);
 }
 
 /* Returns the struct descriptor_dimension type.  */
@@ -1246,7 +1250,7 @@ gfc_get_nodesc_array_type (tree etype, gfc_array_spec * as, gfc_packed packed)
       if (expr->expr_type == EXPR_CONSTANT)
         {
           tmp = gfc_conv_mpz_to_tree (expr->value.integer,
-                                  gfc_index_integer_kind);
+				      gfc_index_integer_kind);
         }
       else
         {
@@ -1338,7 +1342,7 @@ gfc_get_nodesc_array_type (tree etype, gfc_array_spec * as, gfc_packed packed)
   /* In debug info represent packed arrays as multi-dimensional
      if they have rank > 1 and with proper bounds, instead of flat
      arrays.  */
-  if (known_stride && write_symbols != NO_DEBUG)
+  if (known_offset && write_symbols != NO_DEBUG)
     {
       tree gtype = etype, rtype, type_decl;
 
@@ -1428,7 +1432,8 @@ gfc_get_array_descriptor_base (int dimen)
 
 tree
 gfc_get_array_type_bounds (tree etype, int dimen, tree * lbound,
-			   tree * ubound, int packed)
+			   tree * ubound, int packed,
+			   enum gfc_array_kind akind)
 {
   char name[8 + GFC_RANK_DIGITS + GFC_MAX_SYMBOL_LEN];
   tree fat_type, base_type, arraytype, lower, upper, stride, tmp;
@@ -1455,6 +1460,7 @@ gfc_get_array_type_bounds (tree etype, int dimen, tree * lbound,
 
   GFC_TYPE_ARRAY_RANK (fat_type) = dimen;
   GFC_TYPE_ARRAY_DTYPE (fat_type) = NULL_TREE;
+  GFC_TYPE_ARRAY_AKIND (fat_type) = akind;
 
   /* Build an array descriptor record type.  */
   if (packed != 0)
@@ -1573,9 +1579,14 @@ gfc_sym_type (gfc_symbol * sym)
 	    }
         }
       else
-      {
-	type = gfc_build_array_type (type, sym->as);
-    }
+	{
+	  enum gfc_array_kind akind = GFC_ARRAY_UNKNOWN;
+	  if (sym->attr.pointer)
+	    akind = GFC_ARRAY_POINTER;
+	  else if (sym->attr.allocatable)
+	    akind = GFC_ARRAY_ALLOCATABLE;
+	  type = gfc_build_array_type (type, sym->as, akind);
+	}
     }
   else
     {
@@ -1801,9 +1812,14 @@ gfc_get_derived_type (gfc_symbol * derived)
 	{
 	  if (c->pointer || c->allocatable)
 	    {
+	      enum gfc_array_kind akind;
+	      if (c->pointer)
+		akind = GFC_ARRAY_POINTER;
+	      else
+		akind = GFC_ARRAY_ALLOCATABLE;
 	      /* Pointers to arrays aren't actually pointer types.  The
 	         descriptors are separate, but the data is common.  */
-	      field_type = gfc_build_array_type (field_type, c->as);
+	      field_type = gfc_build_array_type (field_type, c->as, akind);
 	    }
 	  else
 	    field_type = gfc_get_nodesc_array_type (field_type, c->as,
@@ -1853,7 +1869,7 @@ gfc_return_by_reference (gfc_symbol * sym)
   if (sym->attr.dimension)
     return 1;
 
-  if (sym->ts.type == BT_CHARACTER)
+  if (sym->ts.type == BT_CHARACTER && !sym->attr.is_bind_c)
     return 1;
 
   /* Possibly return complex numbers by reference for g77 compatibility.
@@ -1924,8 +1940,10 @@ gfc_get_function_type (gfc_symbol * sym)
   int nstr;
   int alternate_return;
 
-  /* Make sure this symbol is a function or a subroutine.  */
-  gcc_assert (sym->attr.flavor == FL_PROCEDURE);
+  /* Make sure this symbol is a function, a subroutine or the main
+     program.  */
+  gcc_assert (sym->attr.flavor == FL_PROCEDURE
+	      || sym->attr.flavor == FL_PROGRAM);
 
   if (sym->backend_decl)
     return TREE_TYPE (sym->backend_decl);
@@ -1940,17 +1958,17 @@ gfc_get_function_type (gfc_symbol * sym)
       typelist = gfc_chainon_list (typelist, gfc_array_index_type);
     }
 
+  if (sym->result)
+    arg = sym->result;
+  else
+    arg = sym;
+
+  if (arg->ts.type == BT_CHARACTER)
+    gfc_conv_const_charlen (arg->ts.cl);
+
   /* Some functions we use an extra parameter for the return value.  */
   if (gfc_return_by_reference (sym))
     {
-      if (sym->result)
-	arg = sym->result;
-      else
-	arg = sym;
-
-      if (arg->ts.type == BT_CHARACTER)
-	gfc_conv_const_charlen (arg->ts.cl);
-
       type = gfc_sym_type (arg);
       if (arg->ts.type == BT_COMPLEX
 	  || arg->attr.dimension
@@ -2117,6 +2135,126 @@ gfc_type_for_mode (enum machine_mode mode, int unsignedp)
     }
 
   return NULL_TREE;
+}
+
+/* Return TRUE if TYPE is a type with a hidden descriptor, fill in INFO
+   in that case.  */
+
+bool
+gfc_get_array_descr_info (const_tree type, struct array_descr_info *info)
+{
+  int rank, dim;
+  bool indirect = false;
+  tree etype, ptype, field, t, base_decl;
+  tree data_off, offset_off, dim_off, dim_size, elem_size;
+  tree lower_suboff, upper_suboff, stride_suboff;
+
+  if (! GFC_DESCRIPTOR_TYPE_P (type))
+    {
+      if (! POINTER_TYPE_P (type))
+	return false;
+      type = TREE_TYPE (type);
+      if (! GFC_DESCRIPTOR_TYPE_P (type))
+	return false;
+      indirect = true;
+    }
+
+  rank = GFC_TYPE_ARRAY_RANK (type);
+  if (rank >= (int) (sizeof (info->dimen) / sizeof (info->dimen[0])))
+    return false;
+
+  etype = GFC_TYPE_ARRAY_DATAPTR_TYPE (type);
+  gcc_assert (POINTER_TYPE_P (etype));
+  etype = TREE_TYPE (etype);
+  gcc_assert (TREE_CODE (etype) == ARRAY_TYPE);
+  etype = TREE_TYPE (etype);
+  /* Can't handle variable sized elements yet.  */
+  if (int_size_in_bytes (etype) <= 0)
+    return false;
+  /* Nor non-constant lower bounds in assumed shape arrays.  */
+  if (GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_ASSUMED_SHAPE)
+    {
+      for (dim = 0; dim < rank; dim++)
+	if (GFC_TYPE_ARRAY_LBOUND (type, dim) == NULL_TREE
+	    || TREE_CODE (GFC_TYPE_ARRAY_LBOUND (type, dim)) != INTEGER_CST)
+	  return false;
+    }
+
+  memset (info, '\0', sizeof (*info));
+  info->ndimensions = rank;
+  info->element_type = etype;
+  ptype = build_pointer_type (gfc_array_index_type);
+  if (indirect)
+    {
+      info->base_decl = build_decl (VAR_DECL, NULL_TREE,
+				    build_pointer_type (ptype));
+      base_decl = build1 (INDIRECT_REF, ptype, info->base_decl);
+    }
+  else
+    info->base_decl = base_decl = build_decl (VAR_DECL, NULL_TREE, ptype);
+
+  elem_size = fold_convert (gfc_array_index_type, TYPE_SIZE_UNIT (etype));
+  field = TYPE_FIELDS (TYPE_MAIN_VARIANT (type));
+  data_off = byte_position (field);
+  field = TREE_CHAIN (field);
+  offset_off = byte_position (field);
+  field = TREE_CHAIN (field);
+  field = TREE_CHAIN (field);
+  dim_off = byte_position (field);
+  dim_size = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (field)));
+  field = TYPE_FIELDS (TREE_TYPE (TREE_TYPE (field)));
+  stride_suboff = byte_position (field);
+  field = TREE_CHAIN (field);
+  lower_suboff = byte_position (field);
+  field = TREE_CHAIN (field);
+  upper_suboff = byte_position (field);
+
+  t = base_decl;
+  if (!integer_zerop (data_off))
+    t = build2 (POINTER_PLUS_EXPR, ptype, t, data_off);
+  t = build1 (NOP_EXPR, build_pointer_type (ptr_type_node), t);
+  info->data_location = build1 (INDIRECT_REF, ptr_type_node, t);
+  if (GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_ALLOCATABLE)
+    info->allocated = build2 (NE_EXPR, boolean_type_node,
+			      info->data_location, null_pointer_node);
+  else if (GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_POINTER)
+    info->associated = build2 (NE_EXPR, boolean_type_node,
+			       info->data_location, null_pointer_node);
+
+  for (dim = 0; dim < rank; dim++)
+    {
+      t = build2 (POINTER_PLUS_EXPR, ptype, base_decl,
+		  size_binop (PLUS_EXPR, dim_off, lower_suboff));
+      t = build1 (INDIRECT_REF, gfc_array_index_type, t);
+      info->dimen[dim].lower_bound = t;
+      t = build2 (POINTER_PLUS_EXPR, ptype, base_decl,
+		  size_binop (PLUS_EXPR, dim_off, upper_suboff));
+      t = build1 (INDIRECT_REF, gfc_array_index_type, t);
+      info->dimen[dim].upper_bound = t;
+      if (GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_ASSUMED_SHAPE)
+	{
+	  /* Assumed shape arrays have known lower bounds.  */
+	  info->dimen[dim].upper_bound
+	    = build2 (MINUS_EXPR, gfc_array_index_type,
+		      info->dimen[dim].upper_bound,
+		      info->dimen[dim].lower_bound);
+	  info->dimen[dim].lower_bound
+	    = fold_convert (gfc_array_index_type,
+			    GFC_TYPE_ARRAY_LBOUND (type, dim));
+	  info->dimen[dim].upper_bound
+	    = build2 (PLUS_EXPR, gfc_array_index_type,
+		      info->dimen[dim].lower_bound,
+		      info->dimen[dim].upper_bound);
+	}
+      t = build2 (POINTER_PLUS_EXPR, ptype, base_decl,
+		  size_binop (PLUS_EXPR, dim_off, stride_suboff));
+      t = build1 (INDIRECT_REF, gfc_array_index_type, t);
+      t = build2 (MULT_EXPR, gfc_array_index_type, t, elem_size);
+      info->dimen[dim].stride = t;
+      dim_off = size_binop (PLUS_EXPR, dim_off, dim_size);
+    }
+
+  return true;
 }
 
 #include "gt-fortran-trans-types.h"

@@ -276,15 +276,20 @@ void
 dump_subvars_for (FILE *file, tree var)
 {
   subvar_t sv = get_subvars_for_var (var);
+  tree subvar;
+  unsigned int i;
 
   if (!sv)
     return;
 
   fprintf (file, "{ ");
 
-  for (; sv; sv = sv->next)
+  for (i = 0; VEC_iterate (tree, sv, i, subvar); ++i)
     {
-      print_generic_expr (file, sv->var, dump_flags);
+      print_generic_expr (file, subvar, dump_flags);
+      fprintf (file, "@" HOST_WIDE_INT_PRINT_UNSIGNED, SFT_OFFSET (subvar));
+      if (SFT_BASE_FOR_COMPONENTS_P (subvar))
+        fprintf (file, "[B]");
       fprintf (file, " ");
     }
 
@@ -414,6 +419,16 @@ dump_variable (FILE *file, tree var)
 	{
 	  fprintf (file, ", partition symbols: ");
 	  dump_decl_set (file, MPT_SYMBOLS (var));
+	}
+
+      if (TREE_CODE (var) == STRUCT_FIELD_TAG)
+	{
+	  fprintf (file, ", offset: " HOST_WIDE_INT_PRINT_UNSIGNED,
+		   SFT_OFFSET (var));
+	  fprintf (file, ", base for components: %s",
+		   SFT_BASE_FOR_COMPONENTS_P (var) ? "NO" : "YES");
+	  fprintf (file, ", partitionable: %s",
+		   SFT_UNPARTITIONABLE_P (var) ? "NO" : "YES");
 	}
     }
 
@@ -749,10 +764,22 @@ remove_referenced_var (tree var)
   struct tree_decl_minimal in;
   void **loc;
   unsigned int uid = DECL_UID (var);
+  subvar_t sv;
+
+  /* If we remove a var, we should also remove its subvars, as we kill
+     their parent var and its annotation.  */
+  if (var_can_have_subvars (var)
+      && (sv = get_subvars_for_var (var)))
+    {
+      unsigned int i;
+      tree subvar;
+      for (i = 0; VEC_iterate (tree, sv, i, subvar); ++i)
+        remove_referenced_var (subvar);
+    }
 
   clear_call_clobbered (var);
-  v_ann = get_var_ann (var);
-  ggc_free (v_ann);
+  if ((v_ann = var_ann (var)))
+    ggc_free (v_ann);
   var->base.ann = NULL;
   gcc_assert (DECL_P (var));
   in.uid = uid;

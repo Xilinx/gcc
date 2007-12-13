@@ -782,10 +782,6 @@ typedef struct xtensa_args
 		       0, VOIDmode, 1, addr, Pmode);			\
   } while (0)
 
-/* Implement `va_start' for varargs and stdarg.  */
-#define EXPAND_BUILTIN_VA_START(valist, nextarg) \
-  xtensa_va_start (valist, nextarg)
-
 /* If defined, a C expression that produces the machine-specific code
    to setup the stack so that arbitrary frames can be accessed.
 
@@ -1062,8 +1058,28 @@ typedef struct xtensa_args
 /* How to start an assembler comment.  */
 #define ASM_COMMENT_START "#"
 
-/* Exception handling TODO!! */
-#define DWARF_UNWIND_INFO 0
+/* Exception handling.  Xtensa uses much of the standard DWARF2 unwinding
+   machinery, but the variable size register window save areas are too
+   complicated to efficiently describe with CFI entries.  The CFA must
+   still be specified in DWARF so that DW_AT_frame_base is set correctly
+   for debugging.  */
+#define INCOMING_RETURN_ADDR_RTX gen_rtx_REG (Pmode, 0)
+#define DWARF_FRAME_RETURN_COLUMN DWARF_FRAME_REGNUM (0)
+#define DWARF_FRAME_REGISTERS 16
+#define EH_RETURN_DATA_REGNO(N) ((N) < 2 ? (N) + 2 : INVALID_REGNUM)
+#define ASM_PREFERRED_EH_DATA_FORMAT(CODE, GLOBAL)			\
+  (flag_pic								\
+   ? (((GLOBAL) ? DW_EH_PE_indirect : 0)				\
+      | DW_EH_PE_pcrel | DW_EH_PE_sdata4)				\
+   : DW_EH_PE_absptr)
+
+/* Emit a PC-relative relocation.  */
+#define ASM_OUTPUT_DWARF_PCREL(FILE, SIZE, LABEL)			\
+  do {									\
+    fputs (integer_asm_op (SIZE, FALSE), FILE);				\
+    assemble_name (FILE, LABEL);					\
+    fputs ("@pcrel", FILE);						\
+  } while (0)
 
 /* Xtensa constant pool breaks the devices in crtstuff.c to control
    section in where code resides.  We have to write it as asm code.  Use

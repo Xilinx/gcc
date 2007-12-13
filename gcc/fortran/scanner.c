@@ -76,6 +76,15 @@ static char *gfc_src_preprocessor_lines[2];
 
 extern int pedantic;
 
+static struct gfc_file_change
+{
+  const char *filename;
+  gfc_linebuf *lb;
+  int line;
+} *file_changes;
+size_t file_changes_cur, file_changes_count;
+size_t file_changes_allocated;
+
 /* Main scanner initialization.  */
 
 void
@@ -299,6 +308,61 @@ gfc_at_eol (void)
   return (*gfc_current_locus.nextc == '\0');
 }
 
+static void
+add_file_change (const char *filename, int line)
+{
+  if (file_changes_count == file_changes_allocated)
+    {
+      if (file_changes_allocated)
+	file_changes_allocated *= 2;
+      else
+	file_changes_allocated = 16;
+      file_changes
+	= xrealloc (file_changes,
+		    file_changes_allocated * sizeof (*file_changes));
+    }
+  file_changes[file_changes_count].filename = filename;
+  file_changes[file_changes_count].lb = NULL;
+  file_changes[file_changes_count++].line = line;
+}
+
+static void
+report_file_change (gfc_linebuf *lb)
+{
+  size_t c = file_changes_cur;
+  while (c < file_changes_count
+	 && file_changes[c].lb == lb)
+    {
+      if (file_changes[c].filename)
+	(*debug_hooks->start_source_file) (file_changes[c].line,
+					   file_changes[c].filename);
+      else
+	(*debug_hooks->end_source_file) (file_changes[c].line);
+      ++c;
+    }
+  file_changes_cur = c;
+}
+
+void
+gfc_start_source_files (void)
+{
+  /* If the debugger wants the name of the main source file,
+     we give it.  */
+  if (debug_hooks->start_end_main_source_file)
+    (*debug_hooks->start_source_file) (0, gfc_source_file);
+
+  file_changes_cur = 0;
+  report_file_change (gfc_current_locus.lb);
+}
+
+void
+gfc_end_source_files (void)
+{
+  report_file_change (NULL);
+
+  if (debug_hooks->start_end_main_source_file)
+    (*debug_hooks->end_source_file) (0);
+}
 
 /* Advance the current line pointer to the next line.  */
 
@@ -315,26 +379,10 @@ gfc_advance_line (void)
     } 
 
   if (gfc_current_locus.lb->next
-      && gfc_current_locus.lb->next->file != gfc_current_locus.lb->file)
+      && !gfc_current_locus.lb->next->dbg_emitted)
     {
-      if (gfc_current_locus.lb->next->file
-	  && !gfc_current_locus.lb->next->dbg_emitted
-	  && gfc_current_locus.lb->file->up == gfc_current_locus.lb->next->file)
-	{
-	  /* We exit from an included file. */
-	  (*debug_hooks->end_source_file)
-		(gfc_linebuf_linenum (gfc_current_locus.lb->next));
-	  gfc_current_locus.lb->next->dbg_emitted = true;
-	}
-      else if (gfc_current_locus.lb->next->file != gfc_current_locus.lb->file
-	       && !gfc_current_locus.lb->next->dbg_emitted)
-	{
-	  /* We enter into a new file.  */
-	  (*debug_hooks->start_source_file)
-		(gfc_linebuf_linenum (gfc_current_locus.lb),
-		 gfc_current_locus.lb->next->file->filename);
-	  gfc_current_locus.lb->next->dbg_emitted = true;
-	}
+      report_file_change (gfc_current_locus.lb->next);
+      gfc_current_locus.lb->next->dbg_emitted = true;
     }
 
   gfc_current_locus.lb = gfc_current_locus.lb->next;
@@ -1219,7 +1267,7 @@ get_file (const char *name, enum lc_reason reason ATTRIBUTE_UNUSED)
   f->next = file_head;
   file_head = f;
 
-  f->included_by = current_file;
+  f->up = current_file;
   if (current_file != NULL)
     f->inclusion_line = current_file->line;
 
@@ -1331,7 +1379,7 @@ preprocessor_line (char *c)
   if (flag[1]) /* Starting new file.  */
     {
       f = get_file (filename, LC_RENAME);
-      f->up = current_file;
+      add_file_change (f->filename, f->inclusion_line);
       current_file = f;
     }
 
@@ -1348,6 +1396,7 @@ preprocessor_line (char *c)
 	  return;
 	}
 
+      add_file_change (NULL, line);
       current_file = current_file->up;
 #ifdef USE_MAPPED_LOCATION
       linemap_add (line_table, LC_RENAME, false, current_file->filename,
@@ -1499,7 +1548,8 @@ load_file (const char *filename, bool initial)
   /* Load the file.  */
 
   f = get_file (filename, initial ? LC_RENAME : LC_ENTER);
-  f->up = current_file;
+  if (!initial)
+    add_file_change (f->filename, f->inclusion_line);
   current_file = f;
   current_file->line = 1;
   line = NULL;
@@ -1597,6 +1647,9 @@ load_file (const char *filename, bool initial)
 	line_tail->next = b;
 
       line_tail = b;
+
+      while (file_changes_cur < file_changes_count)
+	file_changes[file_changes_cur++].lb = b;
     }
 
   /* Release the line buffer allocated in load_line.  */
@@ -1604,6 +1657,8 @@ load_file (const char *filename, bool initial)
 
   fclose (input);
 
+  if (!initial)
+    add_file_change (NULL, current_file->inclusion_line + 1);
   current_file = current_file->up;
 #ifdef USE_MAPPED_LOCATION
   linemap_add (line_table, LC_LEAVE, 0, NULL, 0);

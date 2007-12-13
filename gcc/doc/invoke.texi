@@ -316,59 +316,53 @@ Objective-C and Objective-C++ Dialects}.
 
 @item Optimization Options
 @xref{Optimize Options,,Options that Control Optimization}.
-@gccoptlist{-falign-functions[=@var{n}]  -falign-jumps[=@var{n}] @gol
--falign-labels[=@var{n}]  -falign-loops[=@var{n}]  @gol
--fassociative-math  -freciprocal-math @gol
--fmudflap -fmudflapth -fmudflapir @gol
--fbranch-probabilities -fprofile-values -fvpt  @gol
--fbranch-target-load-optimize @gol
--fbranch-target-load-optimize2 -fbtr-bb-exclusive @gol
--fcaller-saves  -fcprop-registers  -fcse-follow-jumps @gol
--fcse-skip-blocks  -fcx-limited-range  -fdata-sections @gol
--fdelayed-branch  -fdelete-null-pointer-checks -fearly-inlining @gol
--fexpensive-optimizations  -ffast-math  -ffloat-store @gol
--fforce-addr  -fforward-propagate  -ffunction-sections @gol
--fgcse  -fgcse-lm  -fgcse-sm  -fgcse-las  -fgcse-after-reload @gol
--fcrossjumping  -fif-conversion  -fif-conversion2 @gol
--finline-functions  -finline-functions-called-once @gol
--finline-small-functions -finline-limit=@var{n}  -fkeep-inline-functions @gol
--fkeep-static-consts  -fmerge-constants  -fmerge-all-constants @gol
--fmodulo-sched -fmodulo-sched-allow-regmoves -fno-branch-count-reg @gol
--fno-default-inline  -fno-defer-pop -fmove-loop-invariants @gol
--fno-function-cse  -fno-guess-branch-probability @gol
--fno-inline  -fno-math-errno  -fno-peephole  -fno-peephole2 @gol
--funsafe-math-optimizations  -funsafe-loop-optimizations @gol
--ffinite-math-only  -fno-signed-zeros @gol
--fno-toplevel-reorder -fno-trapping-math  -fno-zero-initialized-in-bss @gol
--fomit-frame-pointer  -foptimize-register-move @gol
--foptimize-sibling-calls  -fpredictive-commoning -fprefetch-loop-arrays @gol
--fprofile-generate -fprofile-use @gol
--fregmove  -frename-registers @gol
--freorder-blocks  -freorder-blocks-and-partition -freorder-functions @gol
--frerun-cse-after-loop @gol
--frounding-math -frtl-abstract-sequences @gol
--fschedule-insns  -fschedule-insns2 @gol
--fno-sched-interblock  -fno-sched-spec  -fsched-spec-load @gol
--fsched-spec-load-dangerous  @gol
--fsched-stalled-insns[=@var{n}] -fsched-stalled-insns-dep[=@var{n}] @gol
--fsched2-use-superblocks @gol
--fsched2-use-traces -fsee -freschedule-modulo-scheduled-loops @gol
--fsection-anchors  -fsignaling-nans  -fsingle-precision-constant @gol
--fsplit-wide-types -fstack-protector  -fstack-protector-all @gol
--fstrict-aliasing  -fstrict-overflow  -ftracer  -fthread-jumps @gol
--funroll-all-loops  -funroll-loops  -fpeel-loops @gol
--fsplit-ivs-in-unroller -funswitch-loops @gol
--fvariable-expansion-in-unroller -ftree-reassoc @gol
--ftree-pre  -ftree-ccp  -ftree-dce -ftree-loop-optimize @gol
--ftree-loop-linear -fgraphite -ftree-loop-im -ftree-loop-ivcanon -fivopts @gol
--ftree-loop-distribution @gol
--fcheck-data-deps -ftree-parallelize-loops=@var{n} @gol
+@gccoptlist{
+-falign-functions[=@var{n}] -falign-jumps[=@var{n}] @gol
+-falign-labels[=@var{n}] -falign-loops[=@var{n}] -fassociative-math @gol
+-fauto-inc-dec -fbranch-probabilities -fbranch-target-load-optimize @gol
+-fbranch-target-load-optimize2 -fbtr-bb-exclusive -fcaller-saves @gol
+-fcheck-data-deps -fcprop-registers -fcrossjumping -fcse-follow-jumps @gol
+-fcse-skip-blocks -fcx-limited-range -fdata-sections -fdce -fdce @gol
+-fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse @gol
+-fearly-inlining -fexpensive-optimizations -ffast-math @gol
+-ffinite-math-only -ffloat-store -fforward-propagate @gol
+-ffunction-sections -fgcse -fgcse-after-reload -fgcse-las -fgcse-lm @gol
+-fgcse-sm -fgraphite -fif-conversion -fif-conversion2 -finline-functions @gol
+-finline-functions-called-once -finline-limit=@var{n} @gol
+-finline-small-functions -fipa-cp -fipa-marix-reorg -fipa-pta @gol 
+-fipa-pure-const -fipa-reference @gol
+-fipa-type-escape -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
+-fmerge-all-constants -fmerge-constants -fmodulo-sched @gol
+-fmodulo-sched-allow-regmoves -fmove-loop-invariants -fmudflap @gol
+-fmudflapir -fmudflapth -fno-branch-count-reg -fno-default-inline @gol
+-fno-defer-pop -fno-function-cse -fno-guess-branch-probability @gol
+-fno-inline -fno-math-errno -fno-peephole -fno-peephole2 @gol
+-fno-sched-interblock -fno-sched-spec -fno-signed-zeros @gol
+-fno-toplevel-reorder -fno-trapping-math -fno-zero-initialized-in-bss @gol
+-fomit-frame-pointer -foptimize-register-move -foptimize-sibling-calls @gol
+-fpeel-loops -fpredictive-commoning -fprefetch-loop-arrays @gol
+-fprofile-generate -fprofile-use -fprofile-values -freciprocal-math @gol
+-fregmove -frename-registers -freorder-blocks @gol
+-freorder-blocks-and-partition -freorder-functions @gol
+-frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
+-frounding-math -frtl-abstract-sequences -fsched2-use-superblocks @gol
+-fsched2-use-traces -fsched-spec-load -fsched-spec-load-dangerous @gol
+-fsched-stalled-insns-dep[=@var{n}] -fsched-stalled-insns[=@var{n}] @gol
+-fschedule-insns -fschedule-insns2 -fsection-anchors -fsee @gol
+-fsignaling-nans -fsingle-precision-constant -fsplit-ivs-in-unroller @gol
+-fsplit-wide-types -fstack-protector -fstack-protector-all @gol
+-fstrict-aliasing -fstrict-overflow -fthread-jumps -ftracer -ftree-ccp @gol
 -ftree-check=@var{pattern} -ftree-checks=@var{file} -ftree-checks-verbose @gol
--ftree-dominator-opts -ftree-dse -ftree-copyrename -ftree-sink @gol
--ftree-ch -ftree-sra -ftree-ter -ftree-fre -ftree-vectorize @gol
--ftree-vect-loop-version -fvect-cost-model -ftree-salias -fipa-pta -fweb @gol
--ftree-copy-prop -ftree-store-ccp -ftree-store-copy-prop -ftree-vrp @gol
--funit-at-a-time -fwhole-program @gol
+-ftree-ch -ftree-copy-prop -ftree-copyrename -ftree-dce @gol
+-ftree-dominator-opts -ftree-dse -ftree-fre -ftree-loop-im @gol
+-ftree-loop-ivcanon -ftree-loop-linear -ftree-loop-optimize @gol
+-ftree-parallelize-loops=@var{n} -ftree-pre -ftree-reassoc -ftree-salias @gol
+-ftree-sink -ftree-sra -ftree-store-ccp -ftree-ter @gol
+-ftree-vect-loop-version -ftree-vectorize -ftree-vrp -funit-at-a-time @gol
+-funroll-all-loops -funroll-loops -funsafe-loop-optimizations @gol
+-funsafe-math-optimizations -funswitch-loops @gol
+-fvariable-expansion-in-unroller -fvect-cost-model -fvpt -fweb @gol
+-fwhole-program @gol
 --param @var{name}=@var{value}
 -O  -O0  -O1  -O2  -O3  -Os}
 
@@ -694,7 +688,7 @@ See RS/6000 and PowerPC Options.
 -mpowerpc-gpopt  -mno-powerpc-gpopt @gol
 -mpowerpc-gfxopt  -mno-powerpc-gfxopt @gol
 -mmfcrf  -mno-mfcrf  -mpopcntb  -mno-popcntb  -mfprnd  -mno-fprnd @gol
--mcmpb -mno-cmpb -mmfpgpr -mno-mfpgpr -mdfp -mno-dfp @gol
+-mcmpb -mno-cmpb -mmfpgpr -mno-mfpgpr -mhard-dfp -mno-hard-dfp @gol
 -mnew-mnemonics  -mold-mnemonics @gol
 -mfull-toc   -mminimal-toc  -mno-fp-in-toc  -mno-sum-in-toc @gol
 -m64  -m32  -mxl-compat  -mno-xl-compat  -mpe @gol
@@ -5218,25 +5212,31 @@ time, without performing any optimizations that take a great deal of
 compilation time.
 
 @option{-O} turns on the following optimization flags:
-@gccoptlist{-fdefer-pop @gol
--fdelayed-branch @gol
--fguess-branch-probability @gol
+@gccoptlist{
+-fauto-inc-dec @gol
 -fcprop-registers @gol
--fif-conversion @gol
+-fdce @gol
+-fdefer-pop @gol
+-fdelayed-branch @gol
+-fdse @gol
+-fguess-branch-probability @gol
 -fif-conversion2 @gol
+-fif-conversion @gol
+-finline-small-functions @gol
+-fipa-pure-const @gol
+-fipa-reference @gol
+-fmerge-constants
 -fsplit-wide-types @gol
 -ftree-ccp @gol
+-ftree-ch @gol
+-ftree-copyrename @gol
 -ftree-dce @gol
 -ftree-dominator-opts @gol
 -ftree-dse @gol
--ftree-ter @gol
--ftree-sra @gol
--ftree-copyrename @gol
 -ftree-fre @gol
--ftree-ch @gol
--funit-at-a-time @gol
--finline-small-functions @gol
--fmerge-constants}
+-ftree-sra @gol
+-ftree-ter @gol
+-funit-at-a-time}
 
 @option{-O} also turns on @option{-fomit-frame-pointer} on machines
 where doing so does not interfere with debugging.
@@ -5252,24 +5252,24 @@ and the performance of the generated code.
 @option{-O2} turns on all optimization flags specified by @option{-O}.  It
 also turns on the following optimization flags:
 @gccoptlist{-fthread-jumps @gol
--fcrossjumping @gol
--foptimize-sibling-calls @gol
--fcse-follow-jumps  -fcse-skip-blocks @gol
--fgcse  -fgcse-lm  @gol
--fexpensive-optimizations @gol
--frerun-cse-after-loop  @gol
--fcaller-saves @gol
--fpeephole2 @gol
--fschedule-insns  -fschedule-insns2 @gol
--fsched-interblock  -fsched-spec @gol
--fregmove @gol
--fstrict-aliasing -fstrict-overflow @gol
--fdelete-null-pointer-checks @gol
--freorder-blocks  -freorder-functions @gol
 -falign-functions  -falign-jumps @gol
 -falign-loops  -falign-labels @gol
--ftree-vrp @gol
--ftree-pre}
+-fcaller-saves @gol
+-fcrossjumping @gol
+-fcse-follow-jumps  -fcse-skip-blocks @gol
+-fdelete-null-pointer-checks @gol
+-fexpensive-optimizations @gol
+-fgcse  -fgcse-lm  @gol
+-foptimize-sibling-calls @gol
+-fpeephole2 @gol
+-fregmove @gol
+-freorder-blocks  -freorder-functions @gol
+-frerun-cse-after-loop  @gol
+-fsched-interblock  -fsched-spec @gol
+-fschedule-insns  -fschedule-insns2 @gol
+-fstrict-aliasing -fstrict-overflow @gol
+-ftree-pre @gol
+-ftree-vrp}
 
 Please note the warning under @option{-fgcse} about
 invoking @option{-O2} on programs that use computed gotos.
@@ -5330,11 +5330,6 @@ the compiler normally lets arguments accumulate on the stack for several
 function calls and pops them all at once.
 
 Disabled at levels @option{-O}, @option{-O2}, @option{-O3}, @option{-Os}.
-
-@item -fforce-addr
-@opindex fforce-addr
-Force memory address constants to be copied into registers before
-doing arithmetic on them.
 
 @item -fforward-propagate
 @opindex fforward-propagate
@@ -5588,7 +5583,7 @@ Enabled at levels @option{-O}, @option{-O2}, @option{-O3},
 
 @item -fcse-follow-jumps
 @opindex fcse-follow-jumps
-In common subexpression elimination, scan through jump instructions
+In common subexpression elimination (CSE), scan through jump instructions
 when the target of the jump is not reached by any other path.  For
 example, when CSE encounters an @code{if} statement with an
 @code{else} clause, CSE will follow the jump when the condition
@@ -5673,6 +5668,23 @@ Perform cross-jumping transformation.  This transformation unifies equivalent co
 resulting code may or may not perform better than without cross-jumping.
 
 Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+
+@item -fauto-inc-dec
+@opindex fauto-inc-dec
+Combine increments or decrements of addresses with memory accesses.
+This pass is always skipped on architectures that do not have
+instructions to support this.  Enabled by default at @option{-O} and
+higher on architectures that support this.
+
+@item -fdce
+@opindex fdce
+Perform dead code elimination (DCE) on RTL.
+Enabled by default at @option{-O} and higher.
+
+@item -fdse
+@opindex fdse
+Perform dead store elimination (DSE) on RTL.
+Enabled by default at @option{-O} and higher.
 
 @item -fif-conversion
 @opindex fif-conversion
@@ -5780,10 +5792,11 @@ sense when scheduling before register allocation, i.e.@: with
 @opindex fsched-stalled-insns
 Define how many insns (if any) can be moved prematurely from the queue
 of stalled insns into the ready list, during the second scheduling pass.
-@option{-fno-fsched-stalled-insns} and @option{-fsched-stalled-insns=0}
-are equivalent and mean that no insns will be moved prematurely.
-If @var{n} is unspecified then there is no limit on how many queued
-insns can be moved prematurely.
+@option{-fno-sched-stalled-insns} means that no insns will be moved
+prematurely, @option{-fsched-stalled-insns=0} means there is no limit
+on how many queued insns can be moved prematurely.
+@option{-fsched-stalled-insns} without a value is equivalent to
+@option{-fsched-stalled-insns=1}.
 
 @item -fsched-stalled-insns-dep
 @itemx -fsched-stalled-insns-dep=@var{n}
@@ -5791,7 +5804,7 @@ insns can be moved prematurely.
 Define how many insn groups (cycles) will be examined for a dependency
 on a stalled insn that is candidate for premature removal from the queue
 of stalled insns.  This has an effect only during the second scheduling pass,
-and only if @option{-fsched-stalled-insns} is used and its value is not zero.
+and only if @option{-fsched-stalled-insns} is used.
 @option{-fno-sched-stalled-insns-dep} is equivalent to
 @option{-fsched-stalled-insns-dep=0}.
 @option{-fsched-stalled-insns-dep} without a value is equivalent to
@@ -5823,8 +5836,8 @@ sense when scheduling after register allocation, i.e.@: with
 
 @item -fsee
 @opindex fsee
-Eliminates redundant extension instructions and move the non redundant
-ones to optimal placement using LCM.
+Eliminate redundant sign extension instructions and move the non-redundant
+ones to optimal placement using lazy code motion (LCM).
 
 @item -freschedule-modulo-scheduled-loops
 @opindex freschedule-modulo-scheduled-loops
@@ -5846,17 +5859,17 @@ Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -ftree-reassoc
 @opindex ftree-reassoc
-Perform Reassociation on trees  This flag is enabled by default
+Perform reassociation on trees.  This flag is enabled by default
 at @option{-O} and higher.
 
 @item -ftree-pre
 @opindex ftree-pre
-Perform Partial Redundancy Elimination (PRE) on trees.  This flag is
+Perform partial redundancy elimination (PRE) on trees.  This flag is
 enabled by default at @option{-O2} and @option{-O3}.
 
 @item -ftree-fre
 @opindex ftree-fre
-Perform Full Redundancy Elimination (FRE) on trees.  The difference
+Perform full redundancy elimination (FRE) on trees.  The difference
 between FRE and PRE is that FRE only considers expressions
 that are computed on all paths leading to the redundant computation.
 This analysis is faster than PRE, though it exposes fewer redundancies.
@@ -5868,21 +5881,48 @@ Perform copy propagation on trees.  This pass eliminates unnecessary
 copy operations.  This flag is enabled by default at @option{-O} and
 higher.
 
-@item -ftree-store-copy-prop
-@opindex ftree-store-copy-prop
-Perform copy propagation of memory loads and stores.  This pass
-eliminates unnecessary copy operations in memory references
-(structures, global variables, arrays, etc).  This flag is enabled by
-default at @option{-O2} and higher.
-
 @item -ftree-salias
 @opindex ftree-salias
 Perform structural alias analysis on trees.  This flag
 is enabled by default at @option{-O} and higher.
 
+@item -fipa-pure-const
+@opindex fipa-pure-const
+Discover which functions are pure or constant.
+Enabled by default at @option{-O} and higher.
+
+@item -fipa-reference
+@opindex fipa-reference
+Discover which static variables do not escape cannot escape the
+compilation unit.
+Enabled by default at @option{-O} and higher.
+
 @item -fipa-pta
 @opindex fipa-pta
 Perform interprocedural pointer analysis.
+
+@item -fipa-cp
+@opindex fipa-cp
+Perform interprocedural constant propagation.
+This optimization analyzes the program to determine when values passed
+to functions are constants and then optimizes accordingly.  
+This optimization can substantially increase performance
+if the application has constants passed to functions, but
+because this optimization can create multiple copies of functions,
+it may significantly increase code size.
+
+@item -fipa-matrix-reorg
+@opindex fipa-matrix-reorg
+Perform matrix flattening and transposing.
+Matrix flattening tries to replace a m-dimensional matrix 
+with its equivalent n-dimensional matrix, where n < m.
+This reduces the level of indirection needed for accessing the elements
+of the matrix. The second optimization is matrix transposing that
+attemps to change the order of the matrix's dimensions in order to 
+improve cache locality.
+Both optimizations need fwhole-program flag. 
+Transposing is enabled only if profiling information is avaliable.
+
 
 @item -ftree-sink
 @opindex ftree-sink
@@ -6405,10 +6445,9 @@ them to store all pertinent intermediate computations into variables.
 
 @item -ffast-math
 @opindex ffast-math
-Sets @option{-fno-math-errno}, @option{-funsafe-math-optimizations}, @*
-@option{-fno-trapping-math}, @option{-ffinite-math-only},
-@option{-fno-rounding-math}, @option{-fno-signaling-nans},
-@option{-fno-signed-zeros} and @option{fcx-limited-range}.
+Sets @option{-fno-math-errno}, @option{-funsafe-math-optimizations},
+@option{-ffinite-math-only}, @option{-fno-rounding-math},
+@option{-fno-signaling-nans} and @option{-fcx-limited-range}.
 
 This option causes the preprocessor macro @code{__FAST_MATH__} to be defined.
 
@@ -6451,7 +6490,8 @@ it can result in incorrect output for programs which depend on
 an exact implementation of IEEE or ISO rules/specifications for
 math functions. It may, however, yield faster code for programs
 that do not require the guarantees of these specifications.
-Enables @option{-freciprocal-math} and @option{-fassociative-math}.
+Enables @option{-fno-signed-zeros}, @option{-fno-trapping-math},
+@option{-fassociative-math} and @option{-freciprocal-math}.
 
 The default is @option{-fno-unsafe-math-optimizations}.
 
@@ -6465,8 +6505,9 @@ well as ignore NaNs and inhibit or create underflow or overflow (and
 thus cannot be used on a code which relies on rounding behavior like
 @code{(x + 2**52) - 2**52)}.  May also reorder floating-point comparisons
 and thus may not be used when ordered comparisons are required.
-This flag doesn't make much sense without @option{-fno-signed-zeros}
-or @option{-fno-trapping-math} or with @option{-frounding-math}.
+This option requires that both @option{-fno-signed-zeros} and
+@option{-fno-trapping-math} be in effect.  Moreover, it doesn't make
+much sense with @option{-frounding-math}.
 
 The default is @option{-fno-associative-math}.
 
@@ -6508,9 +6549,9 @@ The default is @option{-fsigned-zeros}.
 @opindex fno-trapping-math
 Compile code assuming that floating-point operations cannot generate
 user-visible traps.  These traps include division by zero, overflow,
-underflow, inexact result and invalid operation.  This option implies
-@option{-fno-signaling-nans}.  Setting this option may allow faster
-code if one relies on ``non-stop'' IEEE arithmetic, for example.
+underflow, inexact result and invalid operation.  This option requires
+that @option{-fno-signaling-nans} be in effect.  Setting this option may
+allow faster code if one relies on ``non-stop'' IEEE arithmetic, for example.
 
 This option should never be turned on by any @option{-O} option since
 it can result in incorrect output for programs which depend on
@@ -7305,6 +7346,16 @@ default, this should always be 1, which uses a more efficient internal
 mechanism for comparing types in C++ and Objective-C++.  However, if
 bugs in the canonical type system are causing compilation failures,
 set this value to 0 to disable canonical types.
+
+@item max-partial-antic-length
+Maximum length of the partial antic set computed during the tree
+partial redundancy elimination optimization (@option{-ftree-pre}) when
+optimizing at @option{-O3} and above.  For some sorts of source code
+the enhanced partial redundancy elimination optimization can run away,
+consuming all of the memory available on the host machine.  This
+parameter sets a limit on the length of the sets that are computed,
+which prevents the runaway behaviour.  Setting a value of 0 for
+this paramter will allow an unlimited set length.
 
 @end table
 @end table
@@ -8834,6 +8885,8 @@ provided by libgloss to be linked in if @option{-msim} is not given.
 Specifies that the program will be run on the simulator.  This causes
 the simulator BSP provided by libgloss to be linked in.  This option
 has effect only for @samp{bfin-elf} toolchain.
+Certain other options, such as @option{-mid-shared-library} and
+@option{-mfdpic}, imply @option{-msim}.
 
 @item -momit-leaf-frame-pointer
 @opindex momit-leaf-frame-pointer
@@ -8883,6 +8936,7 @@ uClinux kernel.
 Generate code that supports shared libraries via the library ID method.
 This allows for execute in place and shared libraries in an environment
 without virtual memory management.  This option implies @option{-fPIC}.
+With a @samp{bfin-elf} target, this option implies @option{-msim}.
 
 @item -mno-id-shared-library
 @opindex mno-id-shared-library
@@ -9808,6 +9862,7 @@ implies @option{-fPIE}.  With @option{-fpic} or @option{-fpie}, it
 assumes GOT entries and small data are within a 12-bit range from the
 GOT base address; with @option{-fPIC} or @option{-fPIE}, GOT offsets
 are computed with 32 bits.
+With a @samp{bfin-elf} target, this option implies @option{-msim}.
 
 @item -minline-plt
 @opindex minline-plt
@@ -12781,8 +12836,8 @@ These @samp{-m} options are defined for the IBM RS/6000 and PowerPC:
 @itemx -mno-cmpb
 @itemx -mmfpgpr
 @itemx -mno-mfpgpr
-@itemx -mdfp
-@itemx -mno-dfp
+@itemx -mhard-dfp
+@itemx -mno-hard-dfp
 @opindex mpower
 @opindex mno-power
 @opindex mpower2
@@ -12805,8 +12860,8 @@ These @samp{-m} options are defined for the IBM RS/6000 and PowerPC:
 @opindex mno-cmpb
 @opindex mmfpgpr
 @opindex mno-mfpgpr
-@opindex mdfp
-@opindex mno-dfp
+@opindex mhard-dfp
+@opindex mno-hard-dfp
 GCC supports two related instruction set architectures for the
 RS/6000 and PowerPC@.  The @dfn{POWER} instruction set are those
 instructions supported by the @samp{rios} chip set used in the original
@@ -12858,7 +12913,7 @@ The @option{-mmfpgpr} option allows GCC to generate the FP move to/from
 general purpose register instructions implemented on the POWER6X
 processor and other processors that support the extended PowerPC V2.05
 architecture.
-The @option{-mdfp} option allows GCC to generate the decimal floating
+The @option{-mhard-dfp} option allows GCC to generate the decimal floating
 point instructions implemented on some POWER processors.
 
 The @option{-mpowerpc64} option allows GCC to generate the additional

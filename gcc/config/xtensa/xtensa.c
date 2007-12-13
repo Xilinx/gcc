@@ -146,6 +146,7 @@ static tree xtensa_gimplify_va_arg_expr (tree, tree, tree *, tree *);
 static void xtensa_init_builtins (void);
 static tree xtensa_fold_builtin (tree, tree, bool);
 static rtx xtensa_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
+static void xtensa_va_start (tree, rtx);
 
 static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
   REG_ALLOC_ORDER;
@@ -178,6 +179,9 @@ static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST xtensa_build_builtin_va_list
+
+#undef TARGET_EXPAND_BUILTIN_VA_START
+#define TARGET_EXPAND_BUILTIN_VA_START xtensa_va_start
 
 #undef TARGET_PROMOTE_FUNCTION_ARGS
 #define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_true
@@ -1183,9 +1187,6 @@ xtensa_expand_nonlocal_goto (rtx *operands)
 
   if (GET_CODE (containing_fp) != REG)
     containing_fp = force_reg (Pmode, containing_fp);
-
-  goto_handler = copy_rtx (goto_handler);
-  validate_replace_rtx (virtual_stack_vars_rtx, containing_fp, goto_handler);
 
   emit_library_call (gen_rtx_SYMBOL_REF (Pmode, "__xtensa_nonlocal_goto"),
 		     0, VOIDmode, 2,
@@ -2305,27 +2306,28 @@ xtensa_expand_prologue (void)
 {
   HOST_WIDE_INT total_size;
   rtx size_rtx;
+  rtx insn, note_rtx;
 
   total_size = compute_frame_size (get_frame_size ());
   size_rtx = GEN_INT (total_size);
 
   if (total_size < (1 << (12+3)))
-    emit_insn (gen_entry (size_rtx, size_rtx));
+    insn = emit_insn (gen_entry (size_rtx));
   else
     {
       /* Use a8 as a temporary since a0-a7 may be live.  */
       rtx tmp_reg = gen_rtx_REG (Pmode, A8_REG);
-      emit_insn (gen_entry (size_rtx, GEN_INT (MIN_FRAME_SIZE)));
+      emit_insn (gen_entry (GEN_INT (MIN_FRAME_SIZE)));
       emit_move_insn (tmp_reg, GEN_INT (total_size - MIN_FRAME_SIZE));
       emit_insn (gen_subsi3 (tmp_reg, stack_pointer_rtx, tmp_reg));
-      emit_move_insn (stack_pointer_rtx, tmp_reg);
+      insn = emit_insn (gen_movsi (stack_pointer_rtx, tmp_reg));
     }
 
   if (frame_pointer_needed)
     {
       if (cfun->machine->set_frame_ptr_insn)
 	{
-	  rtx first, insn;
+	  rtx first;
 
 	  push_topmost_sequence ();
 	  first = get_insns ();
@@ -2347,8 +2349,20 @@ xtensa_expand_prologue (void)
 	    }
 	}
       else
-	emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);
+	insn = emit_insn (gen_movsi (hard_frame_pointer_rtx,
+				     stack_pointer_rtx));
     }
+
+  /* Create a note to describe the CFA.  Because this is only used to set
+     DW_AT_frame_base for debug info, don't bother tracking changes through
+     each instruction in the prologue.  It just takes up space.  */
+  note_rtx = gen_rtx_SET (VOIDmode, (frame_pointer_needed
+				     ? hard_frame_pointer_rtx
+				     : stack_pointer_rtx),
+			  plus_constant (stack_pointer_rtx, -total_size));
+  RTX_FRAME_RELATED_P (insn) = 1;
+  REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
+					note_rtx, REG_NOTES (insn));
 }
 
 
@@ -2468,7 +2482,7 @@ xtensa_builtin_saveregs (void)
 /* Implement `va_start' for varargs and stdarg.  We look at the
    current function to fill in an initial va_list.  */
 
-void
+static void
 xtensa_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
 {
   tree f_stk, stk;

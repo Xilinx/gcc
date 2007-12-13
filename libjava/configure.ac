@@ -788,6 +788,9 @@ case "${host}" in
     # on Darwin -single_module speeds up loading of the dynamic libraries.
     extra_ldflags_libjava=-Wl,-single_module
     ;;
+*-*-darwin[[9]]*)
+    extra_gij_ldflags=-Wl,-allow_stack_execute
+    ;;
 arm*linux*eabi)
     # Some of the ARM unwinder code is actually in libstdc++.  We
     # could in principle replicate it in libgcj, but it's better to
@@ -798,6 +801,7 @@ arm*linux*eabi)
     ;;
 esac
 AC_SUBST(extra_ldflags_libjava)
+AC_SUBST(extra_gij_ldflags)
 AC_SUBST(extra_ldflags)
 AC_SUBST(LIBSTDCXXSPEC)
 
@@ -1546,7 +1550,7 @@ case "${host}" in
  m68*-*-linux*)
     SIGNAL_HANDLER=include/dwarf2-signal.h
     ;;
- powerpc*-*-darwin*)
+ powerpc*-*-darwin* | i?86-*-darwin9* | x86_64-*-darwin9*)
     SIGNAL_HANDLER=include/darwin-signal.h
     ;;
  *)
@@ -1622,33 +1626,11 @@ include/Makefile
 testsuite/Makefile
 ])
 
+if test ${multilib} = yes; then
+  multilib_arg="--enable-multilib"
+else
+  multilib_arg=
+fi
+
 AC_CONFIG_FILES([scripts/jar], [chmod +x scripts/jar])
-
-AC_CONFIG_COMMANDS([default],
-[# Only add multilib support code if we just rebuilt top-level Makefile.
-case " $CONFIG_FILES " in
- *" Makefile "*)
-   LD="${ORIGINAL_LD_FOR_MULTILIBS}"
-   ac_file=Makefile . ${multi_basedir}/./libjava/../config-ml.in
-   ;;
-esac
-for ac_multi_file in $CONFIG_FILES; do
-  case $ac_multi_file in
-  */Makefile)
-    grep "^MULTI[[^ ]]* =" Makefile >> "$ac_multi_file" ;;
-  esac
-done
-],
-srcdir=${srcdir}
-host=${host}
-target=${target}
-with_multisubdir=${with_multisubdir}
-ac_configure_args="${multilib_arg} ${ac_configure_args}"
-CONFIG_SHELL=${CONFIG_SHELL-/bin/sh}
-multi_basedir=${multi_basedir}
-CC="${CC}"
-CXX="${CXX}"
-ORIGINAL_LD_FOR_MULTILIBS="${ORIGINAL_LD_FOR_MULTILIBS}"
-)
-
 AC_OUTPUT

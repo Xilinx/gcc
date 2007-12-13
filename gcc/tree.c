@@ -3666,15 +3666,26 @@ build_type_attribute_qual_variant (tree ttype, tree attribute, int quals)
       tree ntype;
       enum tree_code code = TREE_CODE (ttype);
 
-      ntype = copy_node (ttype);
+      /* Building a distinct copy of a tagged type is inappropriate; it
+	 causes breakage in code that expects there to be a one-to-one
+	 relationship between a struct and its fields.
+	 build_duplicate_type is another solution (as used in
+	 handle_transparent_union_attribute), but that doesn't play well
+	 with the stronger C++ type identity model.  */
+      if (TREE_CODE (ttype) == RECORD_TYPE
+	  || TREE_CODE (ttype) == UNION_TYPE
+	  || TREE_CODE (ttype) == QUAL_UNION_TYPE
+	  || TREE_CODE (ttype) == ENUMERAL_TYPE)
+	{
+	  warning (OPT_Wattributes,
+		   "ignoring attributes applied to %qT after definition",
+		   TYPE_MAIN_VARIANT (ttype));
+	  return build_qualified_type (ttype, quals);
+	}
 
-      TYPE_POINTER_TO (ntype) = 0;
-      TYPE_REFERENCE_TO (ntype) = 0;
+      ntype = build_distinct_type_copy (ttype);
+
       TYPE_ATTRIBUTES (ntype) = attribute;
-
-      /* Create a new main variant of TYPE.  */
-      TYPE_MAIN_VARIANT (ntype) = ntype;
-      TYPE_NEXT_VARIANT (ntype) = 0;
       set_type_quals (ntype, TYPE_UNQUALIFIED);
 
       hashcode = iterative_hash_object (code, hashcode);
@@ -4306,9 +4317,6 @@ decl_init_priority_lookup (tree decl)
   struct tree_map_base in;
 
   gcc_assert (VAR_OR_FUNCTION_DECL_P (decl));
-  gcc_assert (TREE_CODE (decl) == VAR_DECL
-	      ? DECL_HAS_INIT_PRIORITY_P (decl)
-	      : DECL_STATIC_CONSTRUCTOR (decl));
   in.from = decl;
   h = htab_find (init_priority_for_decl, &in);
   return h ? h->init : DEFAULT_INIT_PRIORITY;
@@ -4323,7 +4331,6 @@ decl_fini_priority_lookup (tree decl)
   struct tree_map_base in;
 
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
-  gcc_assert (DECL_STATIC_DESTRUCTOR (decl));
   in.from = decl;
   h = htab_find (init_priority_for_decl, &in);
   return h ? h->fini : DEFAULT_INIT_PRIORITY;
@@ -4670,7 +4677,7 @@ type_hash_add (hashval_t hashcode, tree type)
   h->hash = hashcode;
   h->type = type;
   loc = htab_find_slot_with_hash (type_hash_table, h, hashcode, INSERT);
-  *(struct type_hash **) loc = h;
+  *loc = (void*)h;
 }
 
 /* Given TYPE, and HASHCODE its hash code, return the canonical

@@ -108,12 +108,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-memory.h"
 
 
-/* TODO: This is defined in match.h, and probably shouldn't be here also,
-   but we need it for now at least and don't want to include the whole
-   match.h.  */
-gfc_common_head *gfc_get_common (const char *, int);
-
-
 /* Holds a single variable in an equivalence set.  */
 typedef struct segment_info
 {
@@ -413,7 +407,20 @@ build_common_decl (gfc_common_head *com, tree union_type, bool is_init)
       SET_DECL_ASSEMBLER_NAME (decl, gfc_sym_mangled_common_id (com));
       TREE_PUBLIC (decl) = 1;
       TREE_STATIC (decl) = 1;
-      DECL_ALIGN (decl) = BIGGEST_ALIGNMENT;
+      if (!com->is_bind_c)
+	DECL_ALIGN (decl) = BIGGEST_ALIGNMENT;
+      else
+        {
+	  /* Do not set the alignment for bind(c) common blocks to
+	     BIGGEST_ALIGNMENT because that won't match what C does.  Also,
+	     for common blocks with one element, the alignment must be
+	     that of the field within the common block in order to match
+	     what C will do.  */
+	  tree field = NULL_TREE;
+	  field = TYPE_FIELDS (TREE_TYPE (decl));
+	  if (TREE_CHAIN (field) == NULL_TREE)
+	    DECL_ALIGN (decl) = TYPE_ALIGN (TREE_TYPE (field));
+	}
       DECL_USER_ALIGN (decl) = 0;
       GFC_DECL_COMMON_OR_EQUIV (decl) = 1;
 

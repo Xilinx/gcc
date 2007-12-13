@@ -195,6 +195,8 @@ extern const enum tree_code_class tree_code_type[];
      || TREE_CODE (NODE) == OMP_ORDERED			\
      || TREE_CODE (NODE) == OMP_CRITICAL		\
      || TREE_CODE (NODE) == OMP_RETURN			\
+     || TREE_CODE (NODE) == OMP_ATOMIC_LOAD                            \
+     || TREE_CODE (NODE) == OMP_ATOMIC_STORE                           \
      || TREE_CODE (NODE) == OMP_CONTINUE)
 
 /* Number of argument-words in each kind of tree-node.  */
@@ -2058,13 +2060,14 @@ struct tree_block GTY(())
   unsigned abstract_flag : 1;
   unsigned block_num : 30;
 
+  location_t locus;
+
   tree vars;
   tree subblocks;
   tree supercontext;
   tree abstract_origin;
   tree fragment_origin;
   tree fragment_chain;
-  location_t locus;
 };
 
 /* Define fields and accessors for nodes representing data types.  */
@@ -2552,7 +2555,15 @@ struct tree_memory_tag GTY(())
 
   bitmap GTY ((skip)) aliases;
 
-  unsigned int is_global:1;
+  /* True if this tag has global scope.  */
+  unsigned int is_global : 1;
+
+  /* True if this tag is the first field of an aggregate type that
+     can be used to find adjacent SFTs belonging to the same aggregate.  */
+  unsigned int base_for_components : 1;
+
+  /* True if this tag should not be grouped into a memory partition.  */
+  unsigned int unpartitionable : 1;
 };
 
 #define MTAG_GLOBAL(NODE) (TREE_MEMORY_TAG_CHECK (NODE)->mtag.is_global)
@@ -2580,6 +2591,10 @@ struct tree_struct_field_tag GTY(())
 #define SFT_NONADDRESSABLE_P(NODE) \
   (STRUCT_FIELD_TAG_CHECK (NODE)->sft.alias_set != -1)
 #define SFT_ALIAS_SET(NODE) (STRUCT_FIELD_TAG_CHECK (NODE)->sft.alias_set)
+#define SFT_UNPARTITIONABLE_P(NODE) \
+  (STRUCT_FIELD_TAG_CHECK (NODE)->sft.common.unpartitionable)
+#define SFT_BASE_FOR_COMPONENTS_P(NODE) \
+  (STRUCT_FIELD_TAG_CHECK (NODE)->sft.common.base_for_components)
 
 /* Memory Partition Tags (MPTs) group memory symbols under one
    common name for the purposes of placing memory PHI nodes.  */
@@ -3142,16 +3157,15 @@ extern void decl_fini_priority_insert (tree, priority_type);
 #define DECL_HAS_INIT_PRIORITY_P(NODE) \
   (VAR_DECL_CHECK (NODE)->decl_with_vis.init_priority_p)
 
-/* For a VAR_DECL or FUNCTION_DECL with DECL_HAS_INIT_PRIORITY_P set,
-   the initialization priority of NODE.  */
+/* For a VAR_DECL or FUNCTION_DECL the initialization priority of
+   NODE.  */ 
 #define DECL_INIT_PRIORITY(NODE) \
   (decl_init_priority_lookup (NODE))
 /* Set the initialization priority for NODE to VAL.  */
 #define SET_DECL_INIT_PRIORITY(NODE, VAL) \
   (decl_init_priority_insert (NODE, VAL))
 
-/* For a FUNCTION_DECL with DECL_HAS_INIT_PRIORITY_P set, the
-   finalization priority of NODE.  */
+/* For a FUNCTION_DECL the finalization priority of NODE.  */
 #define DECL_FINI_PRIORITY(NODE) \
   (decl_fini_priority_lookup (NODE))
 /* Set the finalization priority for NODE to VAL.  */
@@ -4261,7 +4275,6 @@ typedef struct record_layout_info_s
   int packed_maybe_necessary;
 } *record_layout_info;
 
-extern void set_lang_adjust_rli (void (*) (record_layout_info));
 extern record_layout_info start_record_layout (tree);
 extern tree bit_from_pos (tree, tree);
 extern tree byte_from_pos (tree, tree);
@@ -4923,7 +4936,7 @@ extern void expand_main_function (void);
 extern void init_dummy_function_start (void);
 extern void expand_dummy_function_end (void);
 extern unsigned int init_function_for_compilation (void);
-extern void allocate_struct_function (tree);
+extern void allocate_struct_function (tree, bool);
 extern void push_struct_function (tree fndecl);
 extern void init_function_start (tree);
 extern bool use_register_for_decl (const_tree);

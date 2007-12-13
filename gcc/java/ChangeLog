@@ -1,3 +1,46 @@
+2007-11-26  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	PR 34081/C++
+	* decl.c (finish_method): Pass 'false' for the new
+	allocate_struct_function parameter.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* expr.c (build_jni_stub): Use the computed jni func type for
+	variable meth.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* class.c (JAVA_TREEHASHHASH_H): Use TYPE_UID.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* expr.c (type_assertion_hash): Hash type uids rather than
+	tree pointers.
+
+2007-11-17  David Daney  <ddaney@avtrex.com>
+	    Andrew Haley  <aph@redhat.com>
+
+	* constants.c (build_constants_constructor):  Use POINTER_SIZE
+	insead of BITS_PER_WORD in big-endian work around.
+
+2007-11-07  Tom Tromey  <tromey@redhat.com>
+
+	PR java/34019:
+	* gcj.texi (Input Options): Add missing noun.
+
+2007-11-02  Tom Tromey  <tromey@redhat.com>
+
+	PR java/33765:
+	* jcf-parse.c (java_parse_file): Ignore ZIPEMPTYMAGIC files.
+	* zipfile.h (ZIPEMPTYMAGIC): New define.
+
+2007-11-01  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (java/jcf-dump.o): Depend on zipfile.h.
+	(java/jcf-parse.o): Depend on jcf-reader.c, zipfile.h, and jcf.h.
+	(java/jcf-io.o): Depend on zipfile.h.
+
 2007-10-17  Richard Guenther  <rguenther@suse.de>
 
 	* Make-lang.in (java/builtins.o): Add $(OPTABS_H) and $(EXPR_H)
@@ -34,7 +77,7 @@
 
 2007-09-07  Roman Zippel  <zippel@linux-m68k.org>
 
-	boehm.c (mark_reference_fields): Move misaligned pointer check
+	* boehm.c (mark_reference_fields): Move misaligned pointer check
 	after JREFERENCE_TYPE_P test
 
 2007-09-06  Roman Zippel  <zippel@linux-m68k.org>

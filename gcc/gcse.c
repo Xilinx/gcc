@@ -380,12 +380,6 @@ static int max_uid;
 /* Number of cuids.  */
 static int max_cuid;
 
-/* Mapping of cuids to insns.  */
-static rtx *cuid_insn;
-
-/* Get insn from cuid.  */
-#define CUID_INSN(CUID) (cuid_insn[CUID])
-
 /* Maximum register number in function prior to doing gcse + 1.
    Registers created during this pass have regno >= max_gcse_regno.
    This is named with "gcse" to not collide with global of same name.  */
@@ -942,15 +936,7 @@ alloc_gcse_mem (void)
 	  uid_cuid[INSN_UID (insn)] = i;
       }
 
-  /* Create a table mapping cuids to insns.  */
-
   max_cuid = i;
-  cuid_insn = gcalloc (max_cuid + 1, sizeof (rtx));
-  i = 0;
-  FOR_EACH_BB (bb)
-    FOR_BB_INSNS (bb, insn)
-      if (INSN_P (insn))
-	CUID_INSN (i++) = insn;
 
   /* Allocate vars to track sets of regs.  */
   reg_set_bitmap = BITMAP_ALLOC (NULL);
@@ -971,7 +957,6 @@ static void
 free_gcse_mem (void)
 {
   free (uid_cuid);
-  free (cuid_insn);
 
   BITMAP_FREE (reg_set_bitmap);
 
@@ -2680,7 +2665,8 @@ try_replace_reg (rtx from, rtx to, rtx insn)
      with our replacement.  */
   if (note != 0 && REG_NOTE_KIND (note) == REG_EQUAL)
     set_unique_reg_note (insn, REG_EQUAL,
-			 simplify_replace_rtx (XEXP (note, 0), from, to));
+			 simplify_replace_rtx (XEXP (note, 0), from,
+			 copy_rtx (to)));
   if (!success && set && reg_mentioned_p (from, SET_SRC (set)))
     {
       /* If above failed and this is a single set, try to simplify the source of
@@ -2874,6 +2860,24 @@ cprop_jump (basic_block bb, rtx setcc, rtx jump, rtx from, rtx src)
       fprintf (dump_file, "\n");
     }
   purge_dead_edges (bb);
+
+  /* If a conditional jump has been changed into unconditional jump, remove
+     the jump and make the edge fallthru - this is always called in
+     cfglayout mode.  */
+  if (new != pc_rtx && simplejump_p (jump))
+    {
+      edge e;
+      edge_iterator ei;
+
+      for (ei = ei_start (bb->succs); (e = ei_safe_edge (ei)); ei_next (&ei))
+	if (e->dest != EXIT_BLOCK_PTR
+	    && BB_HEAD (e->dest) == JUMP_LABEL (jump))
+	  {
+	    e->flags |= EDGE_FALLTHRU;
+	    break;
+	  }
+      delete_insn (jump);
+    }
 
   return 1;
 }
@@ -4610,18 +4614,16 @@ add_label_notes (rtx x, rtx insn)
 	 We no longer ignore such label references (see LABEL_REF handling in
 	 mark_jump_label for additional information).  */
 
-	if (reg_mentioned_p (XEXP (x, 0), insn))
-	  {
-	    /* There's no reason for current users to emit jump-insns
-	       with such a LABEL_REF, so we don't have to handle
-	       REG_LABEL_TARGET notes.  */
-	    gcc_assert (!JUMP_P (insn));
-	    REG_NOTES (insn)
-	      = gen_rtx_INSN_LIST (REG_LABEL_OPERAND, XEXP (x, 0),
-				   REG_NOTES (insn));
-	    if (LABEL_P (XEXP (x, 0)))
-	      LABEL_NUSES (XEXP (x, 0))++;
-	  }
+      /* There's no reason for current users to emit jump-insns with
+	 such a LABEL_REF, so we don't have to handle REG_LABEL_TARGET
+	 notes.  */
+      gcc_assert (!JUMP_P (insn));
+      REG_NOTES (insn)
+	= gen_rtx_INSN_LIST (REG_LABEL_OPERAND, XEXP (x, 0),
+			     REG_NOTES (insn));
+      if (LABEL_P (XEXP (x, 0)))
+	LABEL_NUSES (XEXP (x, 0))++;
+
       return;
     }
 
@@ -4754,10 +4756,14 @@ compute_code_hoist_vbeinout (void)
 	 the convergence.  */
       FOR_EACH_BB_REVERSE (bb)
 	{
-	  changed |= sbitmap_a_or_b_and_c_cg (hoist_vbein[bb->index], antloc[bb->index],
-					      hoist_vbeout[bb->index], transp[bb->index]);
 	  if (bb->next_bb != EXIT_BLOCK_PTR)
-	    sbitmap_intersection_of_succs (hoist_vbeout[bb->index], hoist_vbein, bb->index);
+	    sbitmap_intersection_of_succs (hoist_vbeout[bb->index],
+					   hoist_vbein, bb->index);
+
+	  changed |= sbitmap_a_or_b_and_c_cg (hoist_vbein[bb->index],
+					      antloc[bb->index],
+					      hoist_vbeout[bb->index],
+					      transp[bb->index]);
 	}
 
       passes++;
@@ -6730,13 +6736,15 @@ rest_of_handle_gcse (void)
 
   /* If gcse or cse altered any jumps, rerun jump optimizations to clean
      things up.  */
-  if (tem || tem2)
+  if (tem || tem2 == 2)
     {
       timevar_push (TV_JUMP);
       rebuild_jump_labels (get_insns ());
       cleanup_cfg (0);
       timevar_pop (TV_JUMP);
     }
+  else if (tem2 == 1)
+    cleanup_cfg (0);
 
   flag_cse_skip_blocks = save_csb;
   flag_cse_follow_jumps = save_cfj;

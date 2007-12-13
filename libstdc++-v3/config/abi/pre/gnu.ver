@@ -48,7 +48,7 @@ GLIBCXX_3.4 {
       std::basic_ostr[a-d]*;
       std::basic_ostr[f-z]*;
       std::basic_[p-r]*;
-      std::basic_streambuf*;
+#     std::basic_streambuf
 #     std::basic_string
 #     std::basic_stringbuf
       std::basic_stringstream*;
@@ -232,6 +232,13 @@ GLIBCXX_3.4 {
     _ZNKSbIwSt11char_traitsIwESaIwEE8_M_limit*;
     _ZNKSbIwSt11char_traitsIwESaIwEE9_M_ibeginEv;
     _ZStplIwSt11char_traitsIwESaIwEESbIT_T0_T1_E*;
+
+    # std::basic_streambuf
+    _ZNSt15basic_streambufI[cw]St11char_traitsI[cw]EE[CD]*;
+    _ZNKSt15basic_streambufI[cw]St11char_traitsI[cw]EE[0-9]*;
+    _ZNSt15basic_streambufI[cw]St11char_traitsI[cw]EE[0-9][a-z][^t]*;
+    _ZNSt15basic_streambufI[cw]St11char_traitsI[cw]EE[0-9][0-9][a-z][^t]*;
+    _ZNSt15basic_streambufI[cw]St11char_traitsI[cw]EEaSERKS2_;
 
     # std::basic_stringbuf
     _ZNSt15basic_stringbufI[cw]St11char_traitsI[cw]ESaI[cw]EE[CD]*;
@@ -763,12 +770,14 @@ GLIBCXX_3.4.10 {
     _ZNKSt3tr14hashIRKSsEclES2_;
     _ZNKSt3tr14hashISbIwSt11char_traitsIwESaIwEEEclES4_;
     _ZNKSt3tr14hashISsEclESs;
+    _ZNKSt3tr14hashI[eg]EclE[eg];
 
     _ZNKSt4hashIRKSbIwSt11char_traitsIwESaIwEEEclES5_;
     _ZNKSt4hashIRKSsEclES1_;
     _ZNKSt4hashISbIwSt11char_traitsIwESaIwEEEclES3_;
     _ZNKSt4hashISsEclESs;
     _ZNKSt4hashISt10error_codeEclES0_;
+    _ZNKSt4hashI[eg]EclE[eg];
 
     # for parallel mode
     _ZNSt9__cxx199815_List_node_base4hook*;
@@ -776,6 +785,13 @@ GLIBCXX_3.4.10 {
     _ZNSt9__cxx199815_List_node_base6unhookEv;
     _ZNSt9__cxx199815_List_node_base7reverseEv;
     _ZNSt9__cxx199815_List_node_base8transfer*;
+
+    _ZNSt15basic_streambufI[cw]St11char_traitsI[cw]EE6stosscEv;
+
+    _ZSt17__verify_grouping*;
+    
+    _ZNSt8__detail12__prime_listE;
+    _ZNSt3tr18__detail12__prime_listE;
 
 } GLIBCXX_3.4.9;
 

@@ -531,21 +531,90 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 	  builtin_define_std ("i386");				\
 	}							\
 								\
-      /* Built-ins based on -mtune= (or -march= if no		\
-	 -mtune= given).  */					\
-      if (TARGET_386)						\
-	builtin_define ("__tune_i386__");			\
-      else if (TARGET_486)					\
-	builtin_define ("__tune_i486__");			\
-      else if (TARGET_PENTIUM)					\
+      /* Built-ins based on -march=.  */			\
+      switch (ix86_arch)					\
 	{							\
+	case PROCESSOR_I386:					\
+	  break;						\
+	case PROCESSOR_I486:					\
+	  builtin_define ("__i486");				\
+	  builtin_define ("__i486__");				\
+	  break;						\
+	case PROCESSOR_PENTIUM:					\
+	  builtin_define ("__i586");				\
+	  builtin_define ("__i586__");				\
+	  builtin_define ("__pentium");				\
+	  builtin_define ("__pentium__");			\
+	  if (last_arch_char == 'x')				\
+	    builtin_define ("__pentium_mmx__");			\
+	  break;						\
+	case PROCESSOR_PENTIUMPRO:				\
+	  builtin_define ("__i686");				\
+	  builtin_define ("__i686__");				\
+	  builtin_define ("__pentiumpro");			\
+	  builtin_define ("__pentiumpro__");			\
+	  break;						\
+	case PROCESSOR_GEODE:					\
+	  builtin_define ("__geode");				\
+	  builtin_define ("__geode__");				\
+	  break;						\
+	case PROCESSOR_K6:					\
+	  builtin_define ("__k6");				\
+	  builtin_define ("__k6__");				\
+	  if (last_arch_char == '2')				\
+	    builtin_define ("__k6_2__");			\
+	  else if (last_arch_char == '3')			\
+	    builtin_define ("__k6_3__");			\
+	  break;						\
+	case PROCESSOR_ATHLON:					\
+	  builtin_define ("__athlon");				\
+	  builtin_define ("__athlon__");			\
+	  /* Only plain "athlon" lacks SSE.  */			\
+	  if (last_arch_char != 'n')				\
+	    builtin_define ("__athlon_sse__");			\
+	  break;						\
+	case PROCESSOR_K8:					\
+	  builtin_define ("__k8");				\
+	  builtin_define ("__k8__");				\
+	  break;						\
+	case PROCESSOR_AMDFAM10:				\
+	  builtin_define ("__amdfam10");			\
+	  builtin_define ("__amdfam10__");			\
+	  break;						\
+	case PROCESSOR_PENTIUM4:				\
+	  builtin_define ("__pentium4");			\
+	  builtin_define ("__pentium4__");			\
+	  break;						\
+	case PROCESSOR_NOCONA:					\
+	  builtin_define ("__nocona");				\
+	  builtin_define ("__nocona__");			\
+	  break;						\
+	case PROCESSOR_CORE2:					\
+	  builtin_define ("__core2");				\
+	  builtin_define ("__core2__");				\
+	  break;						\
+	case PROCESSOR_GENERIC32:				\
+	case PROCESSOR_GENERIC64:				\
+	case PROCESSOR_max:					\
+	  gcc_unreachable ();					\
+	}							\
+								\
+      /* Built-ins based on -mtune=.  */			\
+      switch (ix86_tune)					\
+	{							\
+	case PROCESSOR_I386:					\
+	  builtin_define ("__tune_i386__");			\
+	  break;						\
+	case PROCESSOR_I486:					\
+	  builtin_define ("__tune_i486__");			\
+	  break;						\
+	case PROCESSOR_PENTIUM:					\
 	  builtin_define ("__tune_i586__");			\
 	  builtin_define ("__tune_pentium__");			\
 	  if (last_tune_char == 'x')				\
 	    builtin_define ("__tune_pentium_mmx__");		\
-	}							\
-      else if (TARGET_PENTIUMPRO)				\
-	{							\
+	  break;						\
+	case PROCESSOR_PENTIUMPRO:				\
 	  builtin_define ("__tune_i686__");			\
 	  builtin_define ("__tune_pentiumpro__");		\
 	  switch (last_tune_char)				\
@@ -557,36 +626,44 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 	      builtin_define ("__tune_pentium2__");		\
 	      break;						\
 	    }							\
-	}							\
-      else if (TARGET_GEODE)					\
-	{							\
+	  break;						\
+	case PROCESSOR_GEODE:					\
 	  builtin_define ("__tune_geode__");			\
-	}							\
-      else if (TARGET_K6)					\
-	{							\
+	  break;						\
+	case PROCESSOR_K6:					\
 	  builtin_define ("__tune_k6__");			\
 	  if (last_tune_char == '2')				\
 	    builtin_define ("__tune_k6_2__");			\
 	  else if (last_tune_char == '3')			\
 	    builtin_define ("__tune_k6_3__");			\
-	}							\
-      else if (TARGET_ATHLON)					\
-	{							\
+	  break;						\
+	case PROCESSOR_ATHLON:					\
 	  builtin_define ("__tune_athlon__");			\
 	  /* Only plain "athlon" lacks SSE.  */			\
 	  if (last_tune_char != 'n')				\
 	    builtin_define ("__tune_athlon_sse__");		\
+	  break;						\
+	case PROCESSOR_K8:					\
+	  builtin_define ("__tune_k8__");			\
+	  break;						\
+	case PROCESSOR_AMDFAM10:				\
+	  builtin_define ("__tune_amdfam10__");			\
+	  break;						\
+	case PROCESSOR_PENTIUM4:				\
+	  builtin_define ("__tune_pentium4__");			\
+	  break;						\
+        case PROCESSOR_NOCONA:					\
+	  builtin_define ("__tune_nocona__");			\
+	  break;						\
+	case PROCESSOR_CORE2:					\
+	  builtin_define ("__tune_core2__");			\
+	  break;						\
+	case PROCESSOR_GENERIC32:				\
+	case PROCESSOR_GENERIC64:				\
+	  break;						\
+	case PROCESSOR_max:					\
+	  gcc_unreachable ();					\
 	}							\
-      else if (TARGET_K8)					\
-	builtin_define ("__tune_k8__");				\
-      else if (TARGET_AMDFAM10)					\
-	builtin_define ("__tune_amdfam10__");			\
-      else if (TARGET_PENTIUM4)					\
-	builtin_define ("__tune_pentium4__");			\
-      else if (TARGET_NOCONA)					\
-	builtin_define ("__tune_nocona__");			\
-      else if (TARGET_CORE2)					\
-	builtin_define ("__tune_core2__");			\
 								\
       if (TARGET_MMX)						\
 	builtin_define ("__MMX__");				\
@@ -614,108 +691,37 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 	builtin_define ("__SSE_MATH__");			\
       if (TARGET_SSE_MATH && TARGET_SSE2)			\
 	builtin_define ("__SSE2_MATH__");			\
-								\
-      /* Built-ins based on -march=.  */			\
-      if (ix86_arch == PROCESSOR_I486)				\
-	{							\
-	  builtin_define ("__i486");				\
-	  builtin_define ("__i486__");				\
-	}							\
-      else if (ix86_arch == PROCESSOR_PENTIUM)			\
-	{							\
-	  builtin_define ("__i586");				\
-	  builtin_define ("__i586__");				\
-	  builtin_define ("__pentium");				\
-	  builtin_define ("__pentium__");			\
-	  if (last_arch_char == 'x')				\
-	    builtin_define ("__pentium_mmx__");			\
-	}							\
-      else if (ix86_arch == PROCESSOR_PENTIUMPRO)		\
-	{							\
-	  builtin_define ("__i686");				\
-	  builtin_define ("__i686__");				\
-	  builtin_define ("__pentiumpro");			\
-	  builtin_define ("__pentiumpro__");			\
-	}							\
-      else if (ix86_arch == PROCESSOR_GEODE)			\
-	{							\
-	  builtin_define ("__geode");				\
-	  builtin_define ("__geode__");				\
-	}							\
-      else if (ix86_arch == PROCESSOR_K6)			\
-	{							\
-								\
-	  builtin_define ("__k6");				\
-	  builtin_define ("__k6__");				\
-	  if (last_arch_char == '2')				\
-	    builtin_define ("__k6_2__");			\
-	  else if (last_arch_char == '3')			\
-	    builtin_define ("__k6_3__");			\
-	}							\
-      else if (ix86_arch == PROCESSOR_ATHLON)			\
-	{							\
-	  builtin_define ("__athlon");				\
-	  builtin_define ("__athlon__");			\
-	  /* Only plain "athlon" lacks SSE.  */			\
-	  if (last_arch_char != 'n')				\
-	    builtin_define ("__athlon_sse__");			\
-	}							\
-      else if (ix86_arch == PROCESSOR_K8)			\
-	{							\
-	  builtin_define ("__k8");				\
-	  builtin_define ("__k8__");				\
-	}							\
-      else if (ix86_arch == PROCESSOR_AMDFAM10)			\
-	{							\
-	  builtin_define ("__amdfam10");			\
-	  builtin_define ("__amdfam10__");			\
-	}							\
-      else if (ix86_arch == PROCESSOR_PENTIUM4)			\
-	{							\
-	  builtin_define ("__pentium4");			\
-	  builtin_define ("__pentium4__");			\
-	}							\
-      else if (ix86_arch == PROCESSOR_NOCONA)			\
-	{							\
-	  builtin_define ("__nocona");				\
-	  builtin_define ("__nocona__");			\
-	}							\
-      else if (ix86_arch == PROCESSOR_CORE2)			\
-	{							\
-	  builtin_define ("__core2");				\
-	  builtin_define ("__core2__");				\
-	}							\
     }								\
   while (0)
 
-#define TARGET_CPU_DEFAULT_i386 0
-#define TARGET_CPU_DEFAULT_i486 1
-#define TARGET_CPU_DEFAULT_pentium 2
-#define TARGET_CPU_DEFAULT_pentium_mmx 3
-#define TARGET_CPU_DEFAULT_pentiumpro 4
-#define TARGET_CPU_DEFAULT_pentium2 5
-#define TARGET_CPU_DEFAULT_pentium3 6
-#define TARGET_CPU_DEFAULT_pentium4 7
-#define TARGET_CPU_DEFAULT_geode 8
-#define TARGET_CPU_DEFAULT_k6 9
-#define TARGET_CPU_DEFAULT_k6_2 10
-#define TARGET_CPU_DEFAULT_k6_3 11
-#define TARGET_CPU_DEFAULT_athlon 12
-#define TARGET_CPU_DEFAULT_athlon_sse 13
-#define TARGET_CPU_DEFAULT_k8 14
-#define TARGET_CPU_DEFAULT_pentium_m 15
-#define TARGET_CPU_DEFAULT_prescott 16
-#define TARGET_CPU_DEFAULT_nocona 17
-#define TARGET_CPU_DEFAULT_core2 18
-#define TARGET_CPU_DEFAULT_generic 19
-#define TARGET_CPU_DEFAULT_amdfam10 20
+enum target_cpu_default
+{
+  TARGET_CPU_DEFAULT_generic = 0,
 
-#define TARGET_CPU_DEFAULT_NAMES {"i386", "i486", "pentium", "pentium-mmx",\
-				  "pentiumpro", "pentium2", "pentium3", \
-                                  "pentium4", "geode", "k6", "k6-2", "k6-3", \
-				  "athlon", "athlon-4", "k8", \
-				  "pentium-m", "prescott", "nocona", \
-				  "core2", "generic", "amdfam10"}
+  TARGET_CPU_DEFAULT_i386,
+  TARGET_CPU_DEFAULT_i486,
+  TARGET_CPU_DEFAULT_pentium,
+  TARGET_CPU_DEFAULT_pentium_mmx,
+  TARGET_CPU_DEFAULT_pentiumpro,
+  TARGET_CPU_DEFAULT_pentium2,
+  TARGET_CPU_DEFAULT_pentium3,
+  TARGET_CPU_DEFAULT_pentium4,
+  TARGET_CPU_DEFAULT_pentium_m,
+  TARGET_CPU_DEFAULT_prescott,
+  TARGET_CPU_DEFAULT_nocona,
+  TARGET_CPU_DEFAULT_core2,
+
+  TARGET_CPU_DEFAULT_geode,
+  TARGET_CPU_DEFAULT_k6,
+  TARGET_CPU_DEFAULT_k6_2,
+  TARGET_CPU_DEFAULT_k6_3,
+  TARGET_CPU_DEFAULT_athlon,
+  TARGET_CPU_DEFAULT_athlon_sse,
+  TARGET_CPU_DEFAULT_k8,
+  TARGET_CPU_DEFAULT_amdfam10,
+
+  TARGET_CPU_DEFAULT_max
+};
 
 #ifndef CC1_SPEC
 #define CC1_SPEC "%(cc1_cpu) "
@@ -1704,10 +1710,6 @@ typedef struct ix86_args {
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
   function_arg (&(CUM), (MODE), (TYPE), (NAMED))
 
-/* Implement `va_start' for varargs and stdarg.  */
-#define EXPAND_BUILTIN_VA_START(VALIST, NEXTARG) \
-  ix86_va_start (VALIST, NEXTARG)
-
 #define TARGET_ASM_FILE_END ix86_file_end
 #define NEED_INDICATE_EXEC_STACK 0
 
@@ -2271,7 +2273,7 @@ do {						\
 
 enum processor_type
 {
-  PROCESSOR_I386,			/* 80386 */
+  PROCESSOR_I386 = 0,			/* 80386 */
   PROCESSOR_I486,			/* 80486DX, 80486SX, 80486DX[24] */
   PROCESSOR_PENTIUM,
   PROCESSOR_PENTIUMPRO,

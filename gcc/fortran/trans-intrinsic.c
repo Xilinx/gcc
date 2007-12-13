@@ -210,11 +210,11 @@ gfc_conv_intrinsic_function_args (gfc_se *se, gfc_expr *expr,
 
       /* If an optional argument is itself an optional dummy argument,
 	 check its presence and substitute a null if absent.  */
-      if (e->expr_type ==EXPR_VARIABLE
+      if (e->expr_type == EXPR_VARIABLE
 	    && e->symtree->n.sym->attr.optional
 	    && formal
 	    && formal->optional)
-	gfc_conv_missing_dummy (&argse, e, formal->ts);
+	gfc_conv_missing_dummy (&argse, e, formal->ts, 0);
 
       gfc_add_block_to_block (&se->pre, &argse.pre);
       gfc_add_block_to_block (&se->post, &argse.post);
@@ -2533,7 +2533,7 @@ gfc_conv_intrinsic_ishft (gfc_se * se, gfc_expr * expr)
   /* The Fortran standard allows shift widths <= BIT_SIZE(I), whereas
      gcc requires a shift width < BIT_SIZE(I), so we have to catch this
      special case.  */
-  num_bits = build_int_cst (TREE_TYPE (args[0]), TYPE_PRECISION (type));
+  num_bits = build_int_cst (TREE_TYPE (args[1]), TYPE_PRECISION (type));
   cond = fold_build2 (GE_EXPR, boolean_type_node, width, num_bits);
 
   se->expr = fold_build3 (COND_EXPR, type, cond,
@@ -2757,6 +2757,7 @@ gfc_conv_intrinsic_isnan (gfc_se * se, gfc_expr * expr)
 
   gfc_conv_intrinsic_function_args (se, expr, &arg, 1);
   se->expr = build_call_expr (built_in_decls[BUILT_IN_ISNAN], 1, arg);
+  STRIP_TYPE_NOPS (se->expr);
   se->expr = fold_convert (gfc_typenode_for_spec (&expr->ts), se->expr);
 }
 

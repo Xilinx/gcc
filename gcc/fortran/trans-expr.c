@@ -146,17 +146,26 @@ gfc_conv_expr_present (gfc_symbol * sym)
 /* Converts a missing, dummy argument into a null or zero.  */
 
 void
-gfc_conv_missing_dummy (gfc_se * se, gfc_expr * arg, gfc_typespec ts)
+gfc_conv_missing_dummy (gfc_se * se, gfc_expr * arg, gfc_typespec ts, int kind)
 {
   tree present;
   tree tmp;
 
   present = gfc_conv_expr_present (arg->symtree->n.sym);
-  tmp = build3 (COND_EXPR, TREE_TYPE (se->expr), present, se->expr,
-		fold_convert (TREE_TYPE (se->expr), integer_zero_node));
 
+  tmp = build3 (COND_EXPR, TREE_TYPE (se->expr), present, se->expr,
+		  fold_convert (TREE_TYPE (se->expr), integer_zero_node));
   tmp = gfc_evaluate_now (tmp, &se->pre);
+
+  if (kind > 0)
+    {
+      tmp = gfc_get_int_type (kind);
+      tmp = fold_convert (tmp, se->expr);
+      tmp = gfc_evaluate_now (tmp, &se->pre); 
+    }
+
   se->expr = tmp;
+
   if (ts.type == BT_CHARACTER)
     {
       tmp = build_int_cst (gfc_charlen_type_node, 0);
@@ -2322,7 +2331,8 @@ gfc_conv_function_call (gfc_se * se, gfc_symbol * sym,
 	     check its presence and substitute a null if absent.  */
 	  if (e->expr_type == EXPR_VARIABLE
 	      && e->symtree->n.sym->attr.optional)
-	    gfc_conv_missing_dummy (&parmse, e, fsym ? fsym->ts : e->ts);
+	    gfc_conv_missing_dummy (&parmse, e, fsym ? fsym->ts : e->ts,
+				    e->representation.length);
 	}
 
       if (fsym && e)
@@ -2390,8 +2400,8 @@ gfc_conv_function_call (gfc_se * se, gfc_symbol * sym,
         }
 
       /* Character strings are passed as two parameters, a length and a
-         pointer.  */
-      if (parmse.string_length != NULL_TREE)
+         pointer - except for Bind(c) which only passes the pointer.  */
+      if (parmse.string_length != NULL_TREE && !sym->attr.is_bind_c)
         stringargs = gfc_chainon_list (stringargs, parmse.string_length);
 
       arglist = gfc_chainon_list (arglist, parmse.expr);
@@ -2576,6 +2586,15 @@ gfc_conv_function_call (gfc_se * se, gfc_symbol * sym,
       && !sym->attr.always_explicit)
     se->expr = fold_convert (gfc_get_real_type (sym->ts.kind), se->expr);
 
+  /* Bind(C) character variables may have only length 1.  */
+  if (sym->ts.type == BT_CHARACTER && sym->attr.is_bind_c)
+    {
+      gcc_assert (sym->ts.cl->length
+		  && sym->ts.cl->length->expr_type == EXPR_CONSTANT
+		  && mpz_cmp_si (sym->ts.cl->length->value.integer, 1) == 0);
+      se->string_length = build_int_cst (gfc_charlen_type_node, 1);
+    }
+
   /* A pure function may still have side-effects - it may modify its
      parameters.  */
   TREE_SIDE_EFFECTS (se->expr) = 1;
@@ -2689,7 +2708,10 @@ gfc_trans_string_copy (stmtblock_t * block, tree dlength, tree dest,
 
      We're now doing it here for better optimization, but the logic
      is the same.  */
-  
+
+  dest = fold_convert (pvoid_type_node, dest);
+  src = fold_convert (pvoid_type_node, src);
+
   /* Truncate string if source is too long.  */
   cond2 = fold_build2 (GE_EXPR, boolean_type_node, slen, dlen);
   tmp2 = build_call_expr (built_in_decls[BUILT_IN_MEMMOVE],
@@ -2699,7 +2721,7 @@ gfc_trans_string_copy (stmtblock_t * block, tree dlength, tree dest,
   tmp3 = build_call_expr (built_in_decls[BUILT_IN_MEMMOVE],
 			  3, dest, src, slen);
 
-  tmp4 = fold_build2 (POINTER_PLUS_EXPR, pchar_type_node, dest,
+  tmp4 = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (dest), dest,
 		      fold_convert (sizetype, slen));
   tmp4 = build_call_expr (built_in_decls[BUILT_IN_MEMSET], 3,
 			  tmp4, 
@@ -3400,7 +3422,7 @@ gfc_conv_expr_val (gfc_se * se, gfc_expr * expr)
     }
 }
 
-/* Helper to translate and expression and convert it to a particular type.  */
+/* Helper to translate an expression and convert it to a particular type.  */
 void
 gfc_conv_expr_type (gfc_se * se, gfc_expr * expr, tree type)
 {
@@ -3597,8 +3619,15 @@ gfc_conv_string_parameter (gfc_se * se)
   type = TREE_TYPE (se->expr);
   if (TYPE_STRING_FLAG (type))
     {
-      gcc_assert (TREE_CODE (se->expr) != INDIRECT_REF);
-      se->expr = gfc_build_addr_expr (pchar_type_node, se->expr);
+      if (TREE_CODE (se->expr) != INDIRECT_REF)
+        se->expr = gfc_build_addr_expr (pchar_type_node, se->expr);
+      else
+	{
+	  type = gfc_get_character_type_len (gfc_default_character_kind,
+					     se->string_length);
+	  type = build_pointer_type (type);
+	  se->expr = gfc_build_addr_expr (type, se->expr);
+	}
     }
 
   gcc_assert (POINTER_TYPE_P (TREE_TYPE (se->expr)));

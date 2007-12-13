@@ -208,6 +208,47 @@ gimplify_compound_literal_expr (tree *expr_p, tree *pre_p)
   return GS_OK;
 }
 
+/* Optimize embedded COMPOUND_LITERAL_EXPRs within a CONSTRUCTOR,
+   return a new CONSTRUCTOR if something changed.  */
+
+static tree
+optimize_compound_literals_in_ctor (tree orig_ctor)
+{
+  tree ctor = orig_ctor;
+  VEC(constructor_elt,gc) *elts = CONSTRUCTOR_ELTS (ctor);
+  unsigned int idx, num = VEC_length (constructor_elt, elts);
+
+  for (idx = 0; idx < num; idx++)
+    {
+      tree value = VEC_index (constructor_elt, elts, idx)->value;
+      tree newval = value;
+      if (TREE_CODE (value) == CONSTRUCTOR)
+	newval = optimize_compound_literals_in_ctor (value);
+      else if (TREE_CODE (value) == COMPOUND_LITERAL_EXPR)
+	{
+	  tree decl_s = COMPOUND_LITERAL_EXPR_DECL_STMT (value);
+	  tree decl = DECL_EXPR_DECL (decl_s);
+	  tree init = DECL_INITIAL (decl);
+
+	  if (!TREE_ADDRESSABLE (value)
+	      && !TREE_ADDRESSABLE (decl)
+	      && init)
+	    newval = init;
+	}
+      if (newval == value)
+	continue;
+
+      if (ctor == orig_ctor)
+	{
+	  ctor = copy_node (orig_ctor);
+	  CONSTRUCTOR_ELTS (ctor) = VEC_copy (constructor_elt, gc, elts);
+	  elts = CONSTRUCTOR_ELTS (ctor);
+	}
+      VEC_index (constructor_elt, elts, idx)->value = newval;
+    }
+  return ctor;
+}
+
 /* Do C-specific gimplification.  Args are as for gimplify_expr.  */
 
 int
@@ -232,6 +273,41 @@ c_gimplify_expr (tree *expr_p, tree *pre_p, tree *post_p ATTRIBUTE_UNUSED)
 
     case COMPOUND_LITERAL_EXPR:
       return gimplify_compound_literal_expr (expr_p, pre_p);
+
+    case INIT_EXPR:
+    case MODIFY_EXPR:
+      if (TREE_CODE (TREE_OPERAND (*expr_p, 1)) == COMPOUND_LITERAL_EXPR)
+	{
+	  tree complit = TREE_OPERAND (*expr_p, 1);
+	  tree decl_s = COMPOUND_LITERAL_EXPR_DECL_STMT (complit);
+	  tree decl = DECL_EXPR_DECL (decl_s);
+	  tree init = DECL_INITIAL (decl);
+
+	  /* struct T x = (struct T) { 0, 1, 2 } can be optimized
+	     into struct T x = { 0, 1, 2 } if the address of the
+	     compound literal has never been taken.  */
+	  if (!TREE_ADDRESSABLE (complit)
+	      && !TREE_ADDRESSABLE (decl)
+	      && init)
+	    {
+	      *expr_p = copy_node (*expr_p);
+	      TREE_OPERAND (*expr_p, 1) = init;
+	      return GS_OK;
+	    }
+	}
+      else if (TREE_CODE (TREE_OPERAND (*expr_p, 1)) == CONSTRUCTOR)
+	{
+	  tree ctor
+	    = optimize_compound_literals_in_ctor (TREE_OPERAND (*expr_p, 1));
+
+	  if (ctor != TREE_OPERAND (*expr_p, 1))
+	    {
+	      *expr_p = copy_node (*expr_p);
+	      TREE_OPERAND (*expr_p, 1) = ctor;
+	      return GS_OK;
+	    }
+	}
+      return GS_UNHANDLED;
 
     default:
       return GS_UNHANDLED;

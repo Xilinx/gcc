@@ -117,6 +117,7 @@ static int spu_naked_function_p (tree func);
 static unsigned char spu_pass_by_reference (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 					    const_tree type, unsigned char named);
 static tree spu_build_builtin_va_list (void);
+static void spu_va_start (tree, rtx);
 static tree spu_gimplify_va_arg_expr (tree valist, tree type, tree * pre_p,
 				      tree * post_p);
 static int regno_aligned_for_load (int regno);
@@ -246,6 +247,9 @@ const struct attribute_spec spu_attribute_table[];
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST spu_build_builtin_va_list
+
+#undef TARGET_EXPAND_BUILTIN_VA_START
+#define TARGET_EXPAND_BUILTIN_VA_START spu_va_start
 
 #undef TARGET_SETUP_INCOMING_VARARGS
 #define TARGET_SETUP_INCOMING_VARARGS spu_setup_incoming_varargs
@@ -765,7 +769,7 @@ spu_emit_branch_or_set (int is_set, enum rtx_code code, rtx operands[])
     {
     case GE:
       scode = SPU_GT;
-      if (HONOR_NANS (op_mode) && spu_arch == PROCESSOR_CELLEDP)
+      if (HONOR_NANS (op_mode))
 	{
 	  reverse_compare = 0;
 	  reverse_test = 0;
@@ -780,7 +784,7 @@ spu_emit_branch_or_set (int is_set, enum rtx_code code, rtx operands[])
       break;
     case LE:
       scode = SPU_GT;
-      if (HONOR_NANS (op_mode) && spu_arch == PROCESSOR_CELLEDP)
+      if (HONOR_NANS (op_mode))
 	{
 	  reverse_compare = 1;
 	  reverse_test = 0;
@@ -883,23 +887,9 @@ spu_emit_branch_or_set (int is_set, enum rtx_code code, rtx operands[])
       abort ();
     }
 
-  if (GET_MODE (spu_compare_op1) == DFmode)
-    {
-      rtx reg = gen_reg_rtx (DFmode);
-      if ((!flag_unsafe_math_optimizations && spu_arch == PROCESSOR_CELL)
-	  || (scode != SPU_GT && scode != SPU_EQ))
-	abort ();
-      if (spu_arch == PROCESSOR_CELL)
-      {
-        if (reverse_compare)
-	  emit_insn (gen_subdf3 (reg, spu_compare_op1, spu_compare_op0));
-        else
-	  emit_insn (gen_subdf3 (reg, spu_compare_op0, spu_compare_op1));
-        reverse_compare = 0;
-        spu_compare_op0 = reg;
-        spu_compare_op1 = CONST0_RTX (DFmode);
-      }
-    }
+  if (GET_MODE (spu_compare_op1) == DFmode
+      && (scode != SPU_GT && scode != SPU_EQ))
+    abort ();
 
   if (is_set == 0 && spu_compare_op1 == const0_rtx
       && (GET_MODE (spu_compare_op0) == SImode
@@ -2489,29 +2479,6 @@ spu_float_const (const char *string, enum machine_mode mode)
   return CONST_DOUBLE_FROM_REAL_VALUE (value, mode);
 }
 
-/* Given a (CONST (PLUS (SYMBOL_REF) (CONST_INT))) return TRUE when the
-   CONST_INT fits constraint 'K', i.e., is small. */
-int
-legitimate_const (rtx x, int aligned)
-{
-  /* We can never know if the resulting address fits in 18 bits and can be
-     loaded with ila.  Instead we should use the HI and LO relocations to
-     load a 32-bit address.  */
-  rtx sym, cst;
-
-  gcc_assert (GET_CODE (x) == CONST);
-
-  if (GET_CODE (XEXP (x, 0)) != PLUS)
-    return 0;
-  sym = XEXP (XEXP (x, 0), 0);
-  cst = XEXP (XEXP (x, 0), 1);
-  if (GET_CODE (sym) != SYMBOL_REF || GET_CODE (cst) != CONST_INT)
-    return 0;
-  if (aligned && ((INTVAL (cst) & 15) != 0 || !ALIGNED_SYMBOL_REF_P (sym)))
-    return 0;
-  return satisfies_constraint_K (cst);
-}
-
 int
 spu_constant_address_p (rtx x)
 {
@@ -2632,8 +2599,20 @@ classify_immediate (rtx op, enum machine_mode mode)
       return TARGET_LARGE_MEM ? IC_IL2s : IC_IL1s;
 
     case CONST:
-      return TARGET_LARGE_MEM
-	|| !legitimate_const (op, 0) ? IC_IL2s : IC_IL1s;
+      /* We can never know if the resulting address fits in 18 bits and can be
+	 loaded with ila.  For now, assume the address will not overflow if
+	 the displacement is "small" (fits 'K' constraint).  */
+      if (!TARGET_LARGE_MEM && GET_CODE (XEXP (op, 0)) == PLUS)
+	{
+	  rtx sym = XEXP (XEXP (op, 0), 0);
+	  rtx cst = XEXP (XEXP (op, 0), 1);
+
+	  if (GET_CODE (sym) == SYMBOL_REF
+	      && GET_CODE (cst) == CONST_INT
+	      && satisfies_constraint_K (cst))
+	    return IC_IL1s;
+	}
+      return IC_IL2s;
 
     case HIGH:
       return IC_IL1s;
@@ -2884,7 +2863,17 @@ spu_legitimate_address (enum machine_mode mode ATTRIBUTE_UNUSED,
       return !TARGET_LARGE_MEM;
 
     case CONST:
-      return !TARGET_LARGE_MEM && legitimate_const (x, 0);
+      if (!TARGET_LARGE_MEM && GET_CODE (XEXP (x, 0)) == PLUS)
+	{
+	  rtx sym = XEXP (XEXP (x, 0), 0);
+	  rtx cst = XEXP (XEXP (x, 0), 1);
+
+	  /* Accept any symbol_ref + constant, assuming it does not
+	     wrap around the local store addressability limit.  */
+	  if (GET_CODE (sym) == SYMBOL_REF && GET_CODE (cst) == CONST_INT)
+	    return 1;
+	}
+      return 0;
 
     case CONST_INT:
       return INTVAL (x) >= 0 && INTVAL (x) <= 0x3ffff;
@@ -3229,7 +3218,7 @@ spu_build_builtin_va_list (void)
        holds the offset of the first anonymous stack argument
        (relative to the virtual arg pointer).  */
 
-void
+static void
 spu_va_start (tree valist, rtx nextarg)
 {
   tree f_args, f_skip;

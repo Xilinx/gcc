@@ -66,6 +66,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "vecprim.h"
 
+/* So we can assign to cfun in this file.  */
+#undef cfun
+
 #ifndef LOCAL_ALIGNMENT
 #define LOCAL_ALIGNMENT(TYPE, ALIGNMENT) ALIGNMENT
 #endif
@@ -244,7 +247,7 @@ push_function_context_to (tree context ATTRIBUTE_UNUSED)
   struct function *p;
 
   if (cfun == 0)
-    allocate_struct_function (NULL);
+    allocate_struct_function (NULL, false);
   p = cfun;
 
   p->outer = outer_function_chain;
@@ -1632,7 +1635,7 @@ instantiate_decls_1 (tree let)
     }
 
   /* Process all subblocks.  */
-  for (t = BLOCK_SUBBLOCKS (let); t; t = TREE_CHAIN (t))
+  for (t = BLOCK_SUBBLOCKS (let); t; t = BLOCK_CHAIN (t))
     instantiate_decls_1 (t);
 }
 
@@ -3539,7 +3542,7 @@ setjmp_vars_warning (bitmap setjmp_crosses, tree block)
                  " %<longjmp%> or %<vfork%>", decl);
     }
 
-  for (sub = BLOCK_SUBBLOCKS (block); sub; sub = TREE_CHAIN (sub))
+  for (sub = BLOCK_SUBBLOCKS (block); sub; sub = BLOCK_CHAIN (sub))
     setjmp_vars_warning (setjmp_crosses, sub);
 }
 
@@ -3834,12 +3837,22 @@ DEF_VEC_ALLOC_P(function_p,heap);
 
 static VEC(function_p,heap) *cfun_stack;
 
+/* We save the value of in_system_header here when pushing the first
+   function on the cfun stack, and we restore it from here when
+   popping the last function.  */
+
+static bool saved_in_system_header;
+
 /* Push the current cfun onto the stack, and set cfun to new_cfun.  */
 
 void
 push_cfun (struct function *new_cfun)
 {
+  if (cfun == NULL)
+    saved_in_system_header = in_system_header;
   VEC_safe_push (function_p, heap, cfun_stack, cfun);
+  if (new_cfun)
+    in_system_header = DECL_IN_SYSTEM_HEADER (new_cfun->decl);
   set_cfun (new_cfun);
 }
 
@@ -3848,7 +3861,10 @@ push_cfun (struct function *new_cfun)
 void
 pop_cfun (void)
 {
-  set_cfun (VEC_pop (function_p, cfun_stack));
+  struct function *new_cfun = VEC_pop (function_p, cfun_stack);
+  in_system_header = ((new_cfun == NULL) ? saved_in_system_header
+		      : DECL_IN_SYSTEM_HEADER (new_cfun->decl));
+  set_cfun (new_cfun);
 }
 
 /* Return value of funcdef and increase it.  */
@@ -3865,10 +3881,14 @@ get_next_funcdef_no (void)
    directly into cfun and invoke the back end hook explicitly at the
    very end, rather than initializing a temporary and calling set_cfun
    on it.
-*/
+
+   ABSTRACT_P is true if this is a function that will never be seen by
+   the middle-end.  Such functions are front-end concepts (like C++
+   function templates) that do not correspond directly to functions
+   placed in object files.  */
 
 void
-allocate_struct_function (tree fndecl)
+allocate_struct_function (tree fndecl, bool abstract_p)
 {
   tree result;
   tree fntype = fndecl ? TREE_TYPE (fndecl) : NULL_TREE;
@@ -3894,7 +3914,7 @@ allocate_struct_function (tree fndecl)
       cfun->decl = fndecl;
 
       result = DECL_RESULT (fndecl);
-      if (aggregate_value_p (result, fndecl))
+      if (!abstract_p && aggregate_value_p (result, fndecl))
 	{
 #ifdef PCC_STATIC_STRUCT_RETURN
 	  current_function_returns_pcc_struct = 1;
@@ -3922,8 +3942,12 @@ allocate_struct_function (tree fndecl)
 void
 push_struct_function (tree fndecl)
 {
+  if (cfun == NULL)
+    saved_in_system_header = in_system_header;
   VEC_safe_push (function_p, heap, cfun_stack, cfun);
-  allocate_struct_function (fndecl);
+  if (fndecl)
+    in_system_header = DECL_IN_SYSTEM_HEADER (fndecl);
+  allocate_struct_function (fndecl, false);
 }
 
 /* Reset cfun, and other non-struct-function variables to defaults as
@@ -3978,7 +4002,7 @@ init_function_start (tree subr)
   if (subr && DECL_STRUCT_FUNCTION (subr))
     set_cfun (DECL_STRUCT_FUNCTION (subr));
   else
-    allocate_struct_function (subr);
+    allocate_struct_function (subr, false);
   prepare_function_start ();
 
   /* Warn if this value is an aggregate type,

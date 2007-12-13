@@ -28,7 +28,6 @@
 
 #ifdef TREE_CODE
 extern void init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, int, int, int);
-extern void rs6000_va_start (tree, rtx);
 #endif /* TREE_CODE */
 
 extern bool easy_altivec_constant (rtx, enum machine_mode);
@@ -65,6 +64,12 @@ extern int mems_ok_for_quad_peep (rtx, rtx);
 extern bool gpr_or_gpr_p (rtx, rtx);
 extern enum reg_class rs6000_secondary_reload_class (enum reg_class,
 						     enum machine_mode, rtx);
+
+extern int paired_emit_vector_cond_expr (rtx, rtx, rtx,
+                                         rtx, rtx, rtx);
+extern void paired_expand_vector_move (rtx operands[]);
+
+
 extern int ccr_bit (rtx, int);
 extern int extract_MB (rtx);
 extern int extract_ME (rtx);

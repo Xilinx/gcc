@@ -559,7 +559,7 @@ void
 gfc_resolve_cshift (gfc_expr *f, gfc_expr *array, gfc_expr *shift,
 		    gfc_expr *dim)
 {
-  int n;
+  int n, m;
 
   if (array->ts.type == BT_CHARACTER && array->ref)
     gfc_resolve_substring_charlen (array);
@@ -573,23 +573,37 @@ gfc_resolve_cshift (gfc_expr *f, gfc_expr *array, gfc_expr *shift,
   else
     n = 0;
 
-  /* Convert shift to at least gfc_default_integer_kind, so we don't need
-     kind=1 and kind=2 versions of the library functions.  */
-  if (shift->ts.kind < gfc_default_integer_kind)
+  /* If dim kind is greater than default integer we need to use the larger.  */
+  m = gfc_default_integer_kind;
+  if (dim != NULL)
+    m = m < dim->ts.kind ? dim->ts.kind : m;
+  
+  /* Convert shift to at least m, so we don't need
+      kind=1 and kind=2 versions of the library functions.  */
+  if (shift->ts.kind < m)
     {
       gfc_typespec ts;
       ts.type = BT_INTEGER;
-      ts.kind = gfc_default_integer_kind;
+      ts.kind = m;
       gfc_convert_type_warn (shift, &ts, 2, 0);
     }
-
+ 
   if (dim != NULL)
     {
-      gfc_resolve_dim_arg (dim);
-      /* Convert dim to shift's kind, so we don't need so many variations.  */
-      if (dim->ts.kind != shift->ts.kind)
-	gfc_convert_type_warn (dim, &shift->ts, 2, 0);
+      if (dim->expr_type != EXPR_CONSTANT)
+	{
+	  /* Mark this for later setting the type in gfc_conv_missing_dummy.  */
+	  dim->representation.length = shift->ts.kind;
+	}
+      else
+	{
+	  gfc_resolve_dim_arg (dim);
+	  /* Convert dim to shift's kind to reduce variations.  */
+	  if (dim->ts.kind != shift->ts.kind)
+	    gfc_convert_type_warn (dim, &shift->ts, 2, 0);
+        }
     }
+
   f->value.function.name
     = gfc_get_string (PREFIX ("cshift%d_%d%s"), n, shift->ts.kind,
 		      array->ts.type == BT_CHARACTER ? "_char" : "");
@@ -682,7 +696,7 @@ void
 gfc_resolve_eoshift (gfc_expr *f, gfc_expr *array, gfc_expr *shift,
 		     gfc_expr *boundary, gfc_expr *dim)
 {
-  int n;
+  int n, m;
 
   if (array->ts.type == BT_CHARACTER && array->ref)
     gfc_resolve_substring_charlen (array);
@@ -697,22 +711,35 @@ gfc_resolve_eoshift (gfc_expr *f, gfc_expr *array, gfc_expr *shift,
   if (boundary && boundary->rank > 0)
     n = n | 2;
 
-  /* Convert shift to at least gfc_default_integer_kind, so we don't need
-     kind=1 and kind=2 versions of the library functions.  */
-  if (shift->ts.kind < gfc_default_integer_kind)
+  /* If dim kind is greater than default integer we need to use the larger.  */
+  m = gfc_default_integer_kind;
+  if (dim != NULL)
+    m = m < dim->ts.kind ? dim->ts.kind : m;
+  
+  /* Convert shift to at least m, so we don't need
+      kind=1 and kind=2 versions of the library functions.  */
+  if (shift->ts.kind < m)
     {
       gfc_typespec ts;
       ts.type = BT_INTEGER;
-      ts.kind = gfc_default_integer_kind;
+      ts.kind = m;
       gfc_convert_type_warn (shift, &ts, 2, 0);
     }
-
+ 
   if (dim != NULL)
     {
-      gfc_resolve_dim_arg (dim);
-      /* Convert dim to shift's kind, so we don't need so many variations.  */
-      if (dim->ts.kind != shift->ts.kind)
-	gfc_convert_type_warn (dim, &shift->ts, 2, 0);
+      if (dim->expr_type != EXPR_CONSTANT)
+	{
+	  /* Mark this for later setting the type in gfc_conv_missing_dummy.  */
+	  dim->representation.length = shift->ts.kind;
+	}
+      else
+	{
+	  gfc_resolve_dim_arg (dim);
+	  /* Convert dim to shift's kind to reduce variations.  */
+	  if (dim->ts.kind != shift->ts.kind)
+	    gfc_convert_type_warn (dim, &shift->ts, 2, 0);
+        }
     }
 
   f->value.function.name
@@ -1579,8 +1606,11 @@ gfc_resolve_modulo (gfc_expr *f, gfc_expr *a, gfc_expr *p)
 }
 
 void
-gfc_resolve_nearest (gfc_expr *f, gfc_expr *a, gfc_expr *p ATTRIBUTE_UNUSED)
+gfc_resolve_nearest (gfc_expr *f, gfc_expr *a, gfc_expr *p)
 {
+  if (p->ts.kind != a->ts.kind)
+    gfc_convert_type (p, &a->ts, 2);
+
   f->ts = a->ts;
   f->value.function.name
     = gfc_get_string ("__nearest_%c%d", gfc_type_letter (a->ts.type),
@@ -2283,7 +2313,8 @@ gfc_resolve_transfer (gfc_expr *f, gfc_expr *source ATTRIBUTE_UNUSED,
   /* TODO: Make this do something meaningful.  */
   static char transfer0[] = "__transfer0", transfer1[] = "__transfer1";
 
-  if (mold->ts.type == BT_CHARACTER && !mold->ts.cl->length)
+  if (mold->ts.type == BT_CHARACTER && !mold->ts.cl->length
+	&& !(mold->expr_type == EXPR_VARIABLE && mold->symtree->n.sym->attr.dummy))
     mold->ts.cl->length = gfc_int_expr (mold->value.character.length);
 
   f->ts = mold->ts;
@@ -2550,6 +2581,8 @@ gfc_resolve_mvbits (gfc_code *c)
   name = gfc_get_string (PREFIX ("mvbits_i%d"),
 			 c->ext.actual->expr->ts.kind);
   c->resolved_sym = gfc_get_intrinsic_sub_symbol (name);
+  /* Mark as elemental subroutine as this does not happen automatically.  */
+  c->resolved_sym->attr.elemental = 1;
 }
 
 

@@ -4085,7 +4085,15 @@ cp_parser_nested_name_specifier_opt (cp_parser *parser,
 	  && !COMPLETE_TYPE_P (new_scope)
 	  /* Do not try to complete dependent types.  */
 	  && !dependent_type_p (new_scope))
-	new_scope = complete_type (new_scope);
+	{
+	  new_scope = complete_type (new_scope);
+	  /* If it is a typedef to current class, use the current
+	     class instead, as the typedef won't have any names inside
+	     it yet.  */
+	  if (!COMPLETE_TYPE_P (new_scope)
+	      && currently_open_class (new_scope))
+	    new_scope = TYPE_MAIN_VARIANT (new_scope);
+	}
       /* Make sure we look in the right scope the next time through
 	 the loop.  */
       parser->scope = new_scope;
@@ -4850,8 +4858,10 @@ cp_parser_postfix_dot_deref_expression (cp_parser *parser,
   pseudo_destructor_p = false;
 
   /* If the SCOPE is a scalar type, then, if this is a valid program,
-     we must be looking at a pseudo-destructor-name.  */
-  if (scope && SCALAR_TYPE_P (scope))
+     we must be looking at a pseudo-destructor-name.  If POSTFIX_EXPRESSION
+     is type dependent, it can be pseudo-destructor-name or something else.
+     Try to parse it as pseudo-destructor-name first.  */
+  if ((scope && SCALAR_TYPE_P (scope)) || dependent_p)
     {
       tree s;
       tree type;
@@ -4860,7 +4870,12 @@ cp_parser_postfix_dot_deref_expression (cp_parser *parser,
       /* Parse the pseudo-destructor-name.  */
       s = NULL_TREE;
       cp_parser_pseudo_destructor_name (parser, &s, &type);
-      if (cp_parser_parse_definitely (parser))
+      if (dependent_p
+	  && (cp_parser_error_occurred (parser)
+	      || TREE_CODE (type) != TYPE_DECL
+	      || !SCALAR_TYPE_P (TREE_TYPE (type))))
+	cp_parser_abort_tentative_parse (parser);
+      else if (cp_parser_parse_definitely (parser))
 	{
 	  pseudo_destructor_p = true;
 	  postfix_expression
@@ -5314,13 +5329,18 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p)
 	       && token->type == CPP_AND_AND)
 	{
 	  tree identifier;
+	  tree expression;
 
 	  /* Consume the '&&' token.  */
 	  cp_lexer_consume_token (parser->lexer);
 	  /* Look for the identifier.  */
 	  identifier = cp_parser_identifier (parser);
 	  /* Create an expression representing the address.  */
-	  return finish_label_address_expr (identifier);
+	  expression = finish_label_address_expr (identifier);
+	  if (cp_parser_non_integral_constant_expression (parser,
+						"the address of a label"))
+	    expression = error_mark_node;
+	  return expression;
 	}
     }
   if (unary_operator != ERROR_MARK)
@@ -8492,10 +8512,12 @@ cp_parser_decltype (cp_parser *parser)
 				      /*check_dependency=*/true,
 				      /*ambiguous_decls=*/NULL);
 
-      if (expr 
+      if (expr
           && expr != error_mark_node
           && TREE_CODE (expr) != TEMPLATE_ID_EXPR
           && TREE_CODE (expr) != TYPE_DECL
+	  && (TREE_CODE (expr) != BIT_NOT_EXPR
+	      || !TYPE_P (TREE_OPERAND (expr, 0)))
           && cp_lexer_peek_token (parser->lexer)->type == CPP_CLOSE_PAREN)
         {
           /* Complete lookup of the id-expression.  */
@@ -8580,8 +8602,11 @@ cp_parser_decltype (cp_parser *parser)
   
   /* Parse to the closing `)'.  */
   if (!cp_parser_require (parser, CPP_CLOSE_PAREN, "`)'"))
-    cp_parser_skip_to_closing_parenthesis (parser, true, false,
-					   /*consume_paren=*/true);
+    {
+      cp_parser_skip_to_closing_parenthesis (parser, true, false,
+					     /*consume_paren=*/true);
+      return error_mark_node;
+    }
 
   return finish_decltype_type (expr, id_expression_or_member_access_p);
 }
@@ -14516,8 +14541,18 @@ cp_parser_class_head (cp_parser* parser,
   /* Look up the type.  */
   if (template_id_p)
     {
-      type = TREE_TYPE (id);
-      type = maybe_process_partial_specialization (type);
+      if (TREE_CODE (id) == TEMPLATE_ID_EXPR
+	  && (DECL_FUNCTION_TEMPLATE_P (TREE_OPERAND (id, 0))
+	      || TREE_CODE (TREE_OPERAND (id, 0)) == OVERLOAD))
+	{
+	  error ("function template %qD redeclared as a class template", id);
+	  type = error_mark_node;
+	}
+      else
+	{
+	  type = TREE_TYPE (id);
+	  type = maybe_process_partial_specialization (type);
+	}
       if (nested_name_specifier)
 	pushed_scope = push_scope (nested_name_specifier);
     }
@@ -15228,7 +15263,7 @@ cp_parser_base_clause (cp_parser* parser)
             /* Make this a pack expansion type. */
             TREE_VALUE (base) = make_pack_expansion (TREE_VALUE (base));
           else
-            check_for_bare_parameter_packs (TREE_VALUE (base));
+            check_for_bare_parameter_packs (&TREE_VALUE (base));
 
 	  TREE_CHAIN (base) = bases;
 	  bases = base;
@@ -17838,7 +17873,7 @@ cp_parser_check_class_key (enum tag_types class_key, tree type)
 static void
 cp_parser_check_access_in_redeclaration (tree decl)
 {
-  if (!CLASS_TYPE_P (TREE_TYPE (decl)))
+  if (!decl || !CLASS_TYPE_P (TREE_TYPE (decl)))
     return;
 
   if ((TREE_PRIVATE (decl)

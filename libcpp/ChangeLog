@@ -1,3 +1,64 @@
+2007-12-11  DJ Delorie  <dj@redhat.com>
+
+	* charset.c (convert_using_iconv): Close out any shift states,
+	returning to the initial state.
+
+2007-12-06  Tom Tromey  <tromey@redhat.com>
+
+	PR c/29172:
+	* internal.h (struct cpp_reader) <file_hash_entries>: Changed
+	type.
+	<file_hash_entries_allocated, file_hash_entries_used>: Removed.
+	* files.c (FILE_HASH_POOL_SIZE): New macro.
+	(struct file_hash_entry_pool): New.
+	(destroy_all_cpp_files): New function.
+	(allocate_file_hash_entries): Allocate a file_hash_entry_pool.
+	(new_file_hash_entry): Update.
+	(free_file_hash_entries): New function.
+	(_cpp_cleanup_files): Call free_file_hash_entries and
+	destroy_all_cpp_files.
+	(cpp_clear_file_cache): New function.
+	* include/cpplib.h (cpp_clear_file_cache): Declare.
+
+2007-12-03  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/34288:
+	* configure.ac, config.in: Rebuilt.
+	* configure.ac: Check for ssize_t.
+
+2007-11-30  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/32868:
+	* macro.c (_cpp_create_definition): Special case
+	__STDC_FORMAT_MACROS.
+
+2007-11-16  Michael Matz  <matz@suse.de>
+
+	* files.c (search_path_head): Fix check for absolute paths.
+
+2007-11-11  Tom Tromey  <tromey@redhat.com>
+
+	PR c++/17557:
+	* include/cpplib.h (cpp_included_before): Declare.
+	* files.c (struct file_hash_entry) <location>: New field.
+	(_cpp_find_file): Initialize new field.
+	(make_cpp_dir): Likewise.
+	(cpp_included_before): New function.
+
+2007-11-01  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/30805:
+	* macro.c (paste_tokens): Handle padding token.
+	(paste_tokens): Don't abort unless padding has PASTE_LEFT flag.
+
+2007-10-31  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/30786:
+	* macro.c (builtin_macro): Return result of _cpp_do__Pragma.
+	* directives.c (_cpp_do__Pragma): Return error status.
+	* internal.h (_cpp_do__Pragma): Update.
+	* directives.c (get__Pragma_string): Back up if EOF seen.
+
 2007-09-06  Tom Tromey  <tromey@redhat.com>
 
 	* internal.h (struct cpp_reader) <invocation_location>: New

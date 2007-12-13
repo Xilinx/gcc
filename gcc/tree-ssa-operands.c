@@ -70,9 +70,9 @@ along with GCC; see the file COPYING3.  If not see
    variable, and that same variable occurs in the same operands cache, then 
    the new cache vector will also get the same SSA_NAME.
 
-  i.e., if a stmt had a VUSE of 'a_5', and 'a' occurs in the new operand 
-  vector for VUSE, then the new vector will also be modified such that 
-  it contains 'a_5' rather than 'a'.  */
+   i.e., if a stmt had a VUSE of 'a_5', and 'a' occurs in the new
+   operand vector for VUSE, then the new vector will also be modified
+   such that it contains 'a_5' rather than 'a'.  */
 
 
 /* Structure storing statistics on how many call clobbers we have, and
@@ -615,9 +615,9 @@ add_use_op (tree stmt, tree *op, use_optype_p last)
 }
 
 
-/* Return a virtual op pointer with NUM elements which are all initialized to OP
-   and are linked into the immediate uses for STMT.  The new vop is appended
-   after PREV.  */
+/* Return a virtual op pointer with NUM elements which are all
+   initialized to OP and are linked into the immediate uses for STMT.
+   The new vop is appended after PREV.  */
 
 static inline voptype_p
 add_vop (tree stmt, tree op, int num, voptype_p prev)
@@ -1367,11 +1367,10 @@ access_can_touch_variable (tree ref, tree alias, HOST_WIDE_INT offset,
   return true;
 }
 
-/* Add the actual variables FULL_REF can access, given a member of
-   full_ref's points-to set VAR, where FULL_REF is an access of SIZE at
-   OFFSET from var. IS_CALL_SITE is true if this is a call, and IS_DEF
-   is true if this is supposed to be a vdef, and false if this should
-   be a VUSE.
+/* Add the actual variables accessed, given a member of a points-to set
+   that is the SFT VAR, where the access is of SIZE at OFFSET from VAR.
+   IS_CALL_SITE is true if this is a call, and IS_DEF is true if this is
+   supposed to be a vdef, and false if this should be a VUSE.
 
    The real purpose of this function is to take a points-to set for a
    pointer to a structure, say
@@ -1389,86 +1388,39 @@ access_can_touch_variable (tree ref, tree alias, HOST_WIDE_INT offset,
    SFT's for a structure.  */
 
 static bool
-add_vars_for_offset (tree full_ref, tree var, HOST_WIDE_INT offset,
-		     HOST_WIDE_INT size, bool is_call_site, bool is_def)
+add_vars_for_offset (tree var, unsigned HOST_WIDE_INT offset,
+		     unsigned HOST_WIDE_INT size, bool is_def)
 {
-  /* Call-clobbered tags may have non-call-clobbered
-     symbols in their alias sets.  Ignore them if we are
-     adding VOPs for a call site.  */
-  if (is_call_site && !is_call_clobbered (var))
-    return false;
-
-  /* For offset 0, we already have the right variable.  If there is no
-     full_ref, this is not a place we care about (All component
-     related accesses that go through pointers will have full_ref not
-     NULL).
-     Any var for which we didn't create SFT's can't be
-     distinguished.  */
-  if (!full_ref || (offset == 0 && size != -1)
-      || (TREE_CODE (var) != STRUCT_FIELD_TAG
-	  && (!var_can_have_subvars (var) || !get_subvars_for_var (var))))
-    {
-      if (!access_can_touch_variable (full_ref, var, offset, size))
-	return false;
-
-      if (is_def)
-	append_vdef (var);
-      else
-	append_vuse (var);
-      return true;
-    }
-  else if (TREE_CODE (var) == STRUCT_FIELD_TAG)
-    {      
-      bool added = false;
-      subvar_t sv = get_subvars_for_var (SFT_PARENT_VAR (var));
-      for (; sv; sv = sv->next)
-	{
-	  /* Once we hit the end of the parts that could touch,
-	     stop looking.  */
-	  if (size != -1
-	      && SFT_OFFSET (var) + offset + size <= SFT_OFFSET (sv->var))
-	    break;
-	  if (overlap_subvar (SFT_OFFSET (var) + offset, size, sv->var, NULL))
-	    {
-	      added = true;
-	      if (is_def)
-		append_vdef (sv->var);
-	      else
-		append_vuse (sv->var);
-	    }
-	}
-      return added;
-    }
-  
-  return false;
-}
-
-/* Add all aliases from ALIASES as virtual operands for the access
-   FULL_REF at OFFSET and size SIZE.  IS_CALL_SITE is true if the
-   stmt of the reference is a call.  IS_DEF is true if we should add
-   VDEF virtual operands, otherwise we'll add VUSEs.  *NONE_ADDED
-   is set to false once the first virtual operand was added.  */
-
-static void
-add_vars_for_bitmap (bitmap aliases, tree full_ref,
-		     HOST_WIDE_INT offset, HOST_WIDE_INT size,
-		     bool is_call_site, bool is_def, bool *none_added)
-{
-  bitmap_iterator bi;
+  bool added = false;
+  tree subvar;
+  subvar_t sv;
   unsigned int i;
 
-  EXECUTE_IF_SET_IN_BITMAP (aliases, 0, i, bi)
-    {
-      tree al = referenced_var (i);
+  /* Adjust offset by the pointed-to location.  */
+  offset += SFT_OFFSET (var);
 
-      if (TREE_CODE (al) == MEMORY_PARTITION_TAG)
-	add_vars_for_bitmap (MPT_SYMBOLS (al), full_ref,
-			     offset, size, is_call_site, is_def, none_added);
+  /* Add all subvars of var that overlap with the access.
+     Binary search for the first relevant SFT.  */
+  sv = get_subvars_for_var (SFT_PARENT_VAR (var));
+  if (!get_first_overlapping_subvar (sv, offset, size, &i))
+    return false;
+
+  for (; VEC_iterate (tree, sv, i, subvar); ++i)
+    {
+      if (SFT_OFFSET (subvar) > offset
+	  && size <= SFT_OFFSET (subvar) - offset)
+	break;
+
+      if (is_def)
+	append_vdef (subvar);
       else
-	*none_added &= !add_vars_for_offset (full_ref, al, offset, size,
-					     is_call_site, is_def);
+	append_vuse (subvar);
+      added = true;
     }
+
+  return added;
 }
+
 
 /* Add VAR to the virtual operands array.  FLAGS is as in
    get_expr_operands.  FULL_REF is a tree that contains the entire
@@ -1532,14 +1484,63 @@ add_virtual_operand (tree var, stmt_ann_t s_ann, int flags,
     }
   else
     {
+      bitmap_iterator bi;
+      unsigned int i;
       bool none_added = true;
       
       /* The variable is aliased.  Add its aliases to the virtual
 	 operands.  */
       gcc_assert (!bitmap_empty_p (aliases));
 
-      add_vars_for_bitmap (aliases, full_ref, offset, size,
-			   is_call_site, flags & opf_def, &none_added);
+      EXECUTE_IF_SET_IN_BITMAP (aliases, 0, i, bi)
+	{
+	  tree al = referenced_var (i);
+
+	  /* For SFTs we have to consider all subvariables of the parent var
+	     if it is a potential points-to location.  */
+	  if (TREE_CODE (al) == STRUCT_FIELD_TAG
+	      && TREE_CODE (var) == NAME_MEMORY_TAG)
+	    {
+	      if (SFT_BASE_FOR_COMPONENTS_P (al))
+		{
+		  /* If AL is the first SFT of a component, it can be used
+		     to find other SFTs at [offset, size] adjacent to it.  */
+		  none_added &= !add_vars_for_offset (al, offset, size,
+						      flags & opf_def);
+		}
+	      else if ((unsigned HOST_WIDE_INT)offset < SFT_SIZE (al))
+		{
+		  /* Otherwise, we only need to consider it if
+		     [offset, size] overlaps with AL.  */
+		  if (flags & opf_def)
+		    append_vdef (al);
+		  else
+		    append_vuse (al);
+		  none_added = false;
+		}
+	    }
+	  else
+	    {
+	      /* Call-clobbered tags may have non-call-clobbered
+		 symbols in their alias sets.  Ignore them if we are
+		 adding VOPs for a call site.  */
+	      if (is_call_site && !is_call_clobbered (al))
+		 continue;
+
+	      /* If we do not know the full reference tree or if the access is
+		 unspecified [0, -1], we cannot prune it.  Otherwise try doing
+		 so using access_can_touch_variable.  */
+	      if (full_ref
+		  && !access_can_touch_variable (full_ref, al, offset, size))
+		continue;
+
+	      if (flags & opf_def)
+		append_vdef (al);
+	      else
+		append_vuse (al);
+	      none_added = false;
+	    }
+	}
 
       if (flags & opf_def)
 	{
@@ -1606,38 +1607,19 @@ add_stmt_operand (tree *var_p, stmt_ann_t s_ann, int flags)
     add_virtual_operand (var, s_ann, flags, NULL_TREE, 0, -1, false);
 }
 
-
-/* A subroutine of get_expr_operands to handle INDIRECT_REF,
-   ALIGN_INDIRECT_REF and MISALIGNED_INDIRECT_REF.  
-
-   STMT is the statement being processed, EXPR is the INDIRECT_REF
-      that got us here.
-   
-   FLAGS is as in get_expr_operands.
-
-   FULL_REF contains the full pointer dereference expression, if we
-      have it, or NULL otherwise.
-
-   OFFSET and SIZE are the location of the access inside the
-      dereferenced pointer, if known.
-
-   RECURSE_ON_BASE should be set to true if we want to continue
-      calling get_expr_operands on the base pointer, and false if
-      something else will do it for us.  */
+/* Subroutine of get_indirect_ref_operands.  ADDR is the address
+   that is dereferenced, the meaning of the rest of the arguments
+   is the same as in get_indirect_ref_operands.  */
 
 static void
-get_indirect_ref_operands (tree stmt, tree expr, int flags,
-			   tree full_ref,
-			   HOST_WIDE_INT offset, HOST_WIDE_INT size,
-			   bool recurse_on_base)
+get_addr_dereference_operands (tree stmt, tree *addr, int flags, tree full_ref,
+			       HOST_WIDE_INT offset, HOST_WIDE_INT size,
+			       bool recurse_on_base)
 {
-  tree *pptr = &TREE_OPERAND (expr, 0);
-  tree ptr = *pptr;
+  tree ptr = *addr;
   stmt_ann_t s_ann = stmt_ann (stmt);
 
   s_ann->references_memory = true;
-  if (TREE_THIS_VOLATILE (expr))
-    s_ann->has_volatile_ops = true; 
 
   if (SSA_VAR_P (ptr))
     {
@@ -1661,25 +1643,40 @@ get_indirect_ref_operands (tree stmt, tree expr, int flags,
 	  /* If we are emitting debugging dumps, display a warning if
 	     PTR is an SSA_NAME with no flow-sensitive alias
 	     information.  That means that we may need to compute
-	     aliasing again.  */
+	     aliasing again or that a propagation pass forgot to
+	     update the alias information on the pointers.  */
 	  if (dump_file
 	      && TREE_CODE (ptr) == SSA_NAME
-	      && pi == NULL)
+	      && (pi == NULL
+		  || pi->name_mem_tag == NULL_TREE))
 	    {
 	      fprintf (dump_file,
 		  "NOTE: no flow-sensitive alias info for ");
 	      print_generic_expr (dump_file, ptr, dump_flags);
 	      fprintf (dump_file, " in ");
-	      print_generic_stmt (dump_file, stmt, dump_flags);
+	      print_generic_stmt (dump_file, stmt, 0);
 	    }
 
 	  if (TREE_CODE (ptr) == SSA_NAME)
 	    ptr = SSA_NAME_VAR (ptr);
 	  v_ann = var_ann (ptr);
 
+	  /* If we don't know what this pointer points to then we have
+	     to make sure to not prune virtual operands based on offset
+	     and size.  */
 	  if (v_ann->symbol_mem_tag)
-	    add_virtual_operand (v_ann->symbol_mem_tag, s_ann, flags,
-				 full_ref, offset, size, false);
+	    {
+	      add_virtual_operand (v_ann->symbol_mem_tag, s_ann, flags,
+				   full_ref, 0, -1, false);
+	      /* Make sure we add the SMT itself.  */
+	      if (!(flags & opf_no_vops))
+		{
+		  if (flags & opf_def)
+		    append_vdef (v_ann->symbol_mem_tag);
+		  else
+		    append_vuse (v_ann->symbol_mem_tag);
+		}
+	    }
 
 	  /* Aliasing information is missing; mark statement as
 	     volatile so we won't optimize it out too actively.  */
@@ -1704,7 +1701,41 @@ get_indirect_ref_operands (tree stmt, tree expr, int flags,
 
   /* If requested, add a USE operand for the base pointer.  */
   if (recurse_on_base)
-    get_expr_operands (stmt, pptr, opf_use);
+    get_expr_operands (stmt, addr, opf_use);
+}
+
+
+/* A subroutine of get_expr_operands to handle INDIRECT_REF,
+   ALIGN_INDIRECT_REF and MISALIGNED_INDIRECT_REF.  
+
+   STMT is the statement being processed, EXPR is the INDIRECT_REF
+      that got us here.
+   
+   FLAGS is as in get_expr_operands.
+
+   FULL_REF contains the full pointer dereference expression, if we
+      have it, or NULL otherwise.
+
+   OFFSET and SIZE are the location of the access inside the
+      dereferenced pointer, if known.
+
+   RECURSE_ON_BASE should be set to true if we want to continue
+      calling get_expr_operands on the base pointer, and false if
+      something else will do it for us.  */
+
+static void
+get_indirect_ref_operands (tree stmt, tree expr, int flags, tree full_ref,
+			   HOST_WIDE_INT offset, HOST_WIDE_INT size,
+			   bool recurse_on_base)
+{
+  tree *pptr = &TREE_OPERAND (expr, 0);
+  stmt_ann_t s_ann = stmt_ann (stmt);
+
+  if (TREE_THIS_VOLATILE (expr))
+    s_ann->has_volatile_ops = true; 
+
+  get_addr_dereference_operands (stmt, pptr, flags, full_ref, offset, size,
+				 recurse_on_base);
 }
 
 
@@ -2092,9 +2123,10 @@ get_expr_operands (tree stmt, tree *expr_p, int flags)
 	if (var_can_have_subvars (expr)
 	    && (svars = get_subvars_for_var (expr)))
 	  {
-	    subvar_t sv;
-	    for (sv = svars; sv; sv = sv->next)
-	      add_stmt_operand (&sv->var, s_ann, flags);
+	    unsigned int i;
+	    tree subvar;
+	    for (i = 0; VEC_iterate (tree, svars, i, subvar); ++i)
+	      add_stmt_operand (&subvar, s_ann, flags);
 	  }
 	else
 	  add_stmt_operand (expr_p, s_ann, flags);
@@ -2137,18 +2169,19 @@ get_expr_operands (tree stmt, tree *expr_p, int flags)
 	ref = get_ref_base_and_extent (expr, &offset, &size, &maxsize);
 	if (SSA_VAR_P (ref) && get_subvars_for_var (ref))
 	  {
-	    subvar_t sv;
 	    subvar_t svars = get_subvars_for_var (ref);
+	    unsigned int i;
+	    tree subvar;
 
-	    for (sv = svars; sv; sv = sv->next)
+	    for (i = 0; VEC_iterate (tree, svars, i, subvar); ++i)
 	      {
 		bool exact;		
 
-		if (overlap_subvar (offset, maxsize, sv->var, &exact))
+		if (overlap_subvar (offset, maxsize, subvar, &exact))
 		  {
 	            int subvar_flags = flags;
 		    none = false;
-		    add_stmt_operand (&sv->var, s_ann, subvar_flags);
+		    add_stmt_operand (&subvar, s_ann, subvar_flags);
 		  }
 	      }
 
@@ -2268,7 +2301,8 @@ get_expr_operands (tree stmt, tree *expr_p, int flags)
 	get_expr_operands (stmt, &GIMPLE_STMT_OPERAND (init, 0), opf_def);
 	get_expr_operands (stmt, &GIMPLE_STMT_OPERAND (init, 1), opf_use);
 	get_expr_operands (stmt, &TREE_OPERAND (cond, 1), opf_use);
-	get_expr_operands (stmt, &TREE_OPERAND (GIMPLE_STMT_OPERAND (incr, 1), 1),
+	get_expr_operands (stmt,
+	                   &TREE_OPERAND (GIMPLE_STMT_OPERAND (incr, 1), 1),
 			   opf_use);
 
 	c = find_omp_clause (clauses, OMP_CLAUSE_SCHEDULE);
@@ -2308,6 +2342,25 @@ get_expr_operands (tree stmt, tree *expr_p, int flags)
     case OMP_SECTIONS:
       {
 	get_expr_operands (stmt, &OMP_SECTIONS_CONTROL (expr), opf_def);
+	return;
+      }
+
+    case OMP_ATOMIC_LOAD:
+      {
+	tree *addr = &TREE_OPERAND (expr, 1);
+	get_expr_operands (stmt, &TREE_OPERAND (expr, 0), opf_def);
+
+	if (TREE_CODE (*addr) == ADDR_EXPR)
+	  get_expr_operands (stmt, &TREE_OPERAND (*addr, 0), opf_def);
+	else
+	  get_addr_dereference_operands (stmt, addr, opf_def,
+					 NULL_TREE, 0, -1, true);
+	return;
+      }
+
+    case OMP_ATOMIC_STORE:
+      {
+	get_expr_operands (stmt, &TREE_OPERAND (expr, 0), opf_use);
 	return;
       }
 
@@ -2430,11 +2483,13 @@ build_ssa_operands (tree stmt)
 
   if (ann->addresses_taken && bitmap_empty_p (ann->addresses_taken))
     ann->addresses_taken = NULL;
+
   /* For added safety, assume that statements with volatile operands
      also reference memory.  */
   if (ann->has_volatile_ops)
     ann->references_memory = true;
 }
+
 
 /* Releases the operands of STMT back to their freelists, and clears
    the stmt operand lists.  */
@@ -2486,6 +2541,7 @@ free_stmt_operands (tree stmt)
       VDEF_OPS (stmt) = NULL;
     }
 }
+
 
 /* Free any operands vectors in OPS.  */
 
@@ -2611,13 +2667,17 @@ create_ssa_artificial_load_stmt (tree new_stmt, tree old_stmt)
     if (TREE_CODE (op) != SSA_NAME)
       var_ann (op)->in_vuse_list = false;
    
-  for (i = 0; VEC_iterate (tree, build_vuses, i, op); i++)
+  for (i = 0; VEC_iterate (tree, build_vdefs, i, op); i++)
     if (TREE_CODE (op) != SSA_NAME)
       var_ann (op)->in_vdef_list = false;
 
   /* Remove any virtual operands that were found.  */
   VEC_truncate (tree, build_vdefs, 0);
   VEC_truncate (tree, build_vuses, 0);
+
+  /* Clear the loads and stores bitmaps.  */
+  bitmap_clear (build_loads);
+  bitmap_clear (build_stores);
 
   /* For each VDEF on the original statement, we want to create a
      VUSE of the VDEF result operand on the new statement.  */
@@ -2710,11 +2770,12 @@ add_to_addressable_set (tree ref, bitmap *addresses_taken)
       if (var_can_have_subvars (var)
 	  && (svars = get_subvars_for_var (var)))
 	{
-	  subvar_t sv;
-	  for (sv = svars; sv; sv = sv->next)
+	  unsigned int i;
+	  tree subvar;
+	  for (i = 0; VEC_iterate (tree, svars, i, subvar); ++i)
 	    {
-	      bitmap_set_bit (*addresses_taken, DECL_UID (sv->var));
-	      TREE_ADDRESSABLE (sv->var) = 1;
+	      bitmap_set_bit (*addresses_taken, DECL_UID (subvar));
+	      TREE_ADDRESSABLE (subvar) = 1;
 	    }
 	}
       else

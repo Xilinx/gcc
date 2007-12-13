@@ -1280,6 +1280,9 @@ conversion_warning (tree type, tree expr)
       else if (TREE_CODE (TREE_TYPE (expr)) == INTEGER_TYPE
                && TREE_CODE (type) == INTEGER_TYPE)
         {
+	  /* Don't warn about unsigned char y = 0xff, x = (int) y;  */
+	  expr = get_unwidened (expr, 0);
+
           /* Warn for integer types converted to smaller integer types.  */
           if (formal_prec < TYPE_PRECISION (TREE_TYPE (expr))) 
 	    give_warning = true;
@@ -3086,70 +3089,6 @@ static void def_builtin_1  (enum built_in_function fncode,
 			    bool both_p, bool fallback_p, bool nonansi_p,
 			    tree fnattrs, bool implicit_p);
 
-/* Make a variant type in the proper way for C/C++, propagating qualifiers
-   down to the element type of an array.  */
-
-tree
-c_build_qualified_type (tree type, int type_quals)
-{
-  if (type == error_mark_node)
-    return type;
-
-  if (TREE_CODE (type) == ARRAY_TYPE)
-    {
-      tree t;
-      tree element_type = c_build_qualified_type (TREE_TYPE (type),
-						  type_quals);
-
-      /* See if we already have an identically qualified type.  */
-      for (t = TYPE_MAIN_VARIANT (type); t; t = TYPE_NEXT_VARIANT (t))
-	{
-	  if (TYPE_QUALS (strip_array_types (t)) == type_quals
-	      && TYPE_NAME (t) == TYPE_NAME (type)
-	      && TYPE_CONTEXT (t) == TYPE_CONTEXT (type)
-	      && attribute_list_equal (TYPE_ATTRIBUTES (t),
-				       TYPE_ATTRIBUTES (type)))
-	    break;
-	}
-      if (!t)
-	{
-          tree domain = TYPE_DOMAIN (type);
-
-	  t = build_variant_type_copy (type);
-	  TREE_TYPE (t) = element_type;
-
-          if (TYPE_STRUCTURAL_EQUALITY_P (element_type)
-              || (domain && TYPE_STRUCTURAL_EQUALITY_P (domain)))
-            SET_TYPE_STRUCTURAL_EQUALITY (t);
-          else if (TYPE_CANONICAL (element_type) != element_type
-                   || (domain && TYPE_CANONICAL (domain) != domain))
-            {
-              tree unqualified_canon 
-                = build_array_type (TYPE_CANONICAL (element_type),
-                                    domain? TYPE_CANONICAL (domain) 
-                                          : NULL_TREE);
-              TYPE_CANONICAL (t) 
-                = c_build_qualified_type (unqualified_canon, type_quals);
-            }
-          else
-            TYPE_CANONICAL (t) = t;
-	}
-      return t;
-    }
-
-  /* A restrict-qualified pointer type must be a pointer to object or
-     incomplete type.  Note that the use of POINTER_TYPE_P also allows
-     REFERENCE_TYPEs, which is appropriate for C++.  */
-  if ((type_quals & TYPE_QUAL_RESTRICT)
-      && (!POINTER_TYPE_P (type)
-	  || !C_TYPE_OBJECT_OR_INCOMPLETE_P (TREE_TYPE (type))))
-    {
-      error ("invalid use of %<restrict%>");
-      type_quals &= ~TYPE_QUAL_RESTRICT;
-    }
-
-  return build_qualified_type (type, type_quals);
-}
 
 /* Apply the TYPE_QUALS to the new DECL.  */
 
@@ -5071,21 +5010,13 @@ handle_transparent_union_attribute (tree *node, tree name,
 				    tree ARG_UNUSED (args), int flags,
 				    bool *no_add_attrs)
 {
-  tree type = NULL;
+  tree type;
 
   *no_add_attrs = true;
 
-  if (DECL_P (*node))
-    {
-      if (TREE_CODE (*node) != TYPE_DECL)
-	goto ignored;
-      node = &TREE_TYPE (*node);
-      type = *node;
-    }
-  else if (TYPE_P (*node))
-    type = *node;
-  else
-    goto ignored;
+  if (TREE_CODE (*node) == TYPE_DECL)
+    node = &TREE_TYPE (*node);
+  type = *node;
 
   if (TREE_CODE (type) == UNION_TYPE)
     {
@@ -7043,6 +6974,19 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
   hashcode = iterative_hash_object (TYPE_HASH (TYPE_DOMAIN (main_type)), 
 				    hashcode);
   main_type = type_hash_canon (hashcode, main_type);
+
+  /* Fix the canonical type.  */
+  if (TYPE_STRUCTURAL_EQUALITY_P (TREE_TYPE (main_type))
+      || TYPE_STRUCTURAL_EQUALITY_P (TYPE_DOMAIN (main_type)))
+    SET_TYPE_STRUCTURAL_EQUALITY (main_type);
+  else if (TYPE_CANONICAL (TREE_TYPE (main_type)) != TREE_TYPE (main_type)
+	   || (TYPE_CANONICAL (TYPE_DOMAIN (main_type))
+	       != TYPE_DOMAIN (main_type)))
+    TYPE_CANONICAL (main_type) 
+      = build_array_type (TYPE_CANONICAL (TREE_TYPE (main_type)),
+			  TYPE_CANONICAL (TYPE_DOMAIN (main_type)));
+  else
+    TYPE_CANONICAL (main_type) = main_type;
 
   if (quals == 0)
     type = main_type;

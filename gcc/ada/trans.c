@@ -181,6 +181,7 @@ static enum tree_code gnu_codes[Number_Node_Kinds];
 /* Current node being treated, in case abort called.  */
 Node_Id error_gnat_node;
 
+static void init_code_table (void);
 static void Compilation_Unit_to_gnu (Node_Id);
 static void record_code_position (Node_Id);
 static void insert_code_for (Node_Id);
@@ -269,6 +270,8 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
     }
 #endif
 
+  /* Initialize ourselves.  */
+  init_code_table ();
   init_gnat_to_gnu ();
   gnat_compute_largest_alignment ();
   init_dummy_type ();
@@ -280,6 +283,20 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
       TYPE_SIZE (void_type_node) = bitsize_zero_node;
       TYPE_SIZE_UNIT (void_type_node) = size_zero_node;
     }
+
+  /* Enable GNAT stack checking method if needed */
+  if (!Stack_Check_Probes_On_Target)
+    set_stack_check_libfunc (gen_rtx_SYMBOL_REF (Pmode, "_gnat_stack_check"));
+
+  /* Give names and make TYPE_DECLs for common types.  */
+  create_type_decl (get_identifier (SIZE_TYPE), sizetype,
+		    NULL, false, true, Empty);
+  create_type_decl (get_identifier ("integer"), integer_type_node,
+		    NULL, false, true, Empty);
+  create_type_decl (get_identifier ("unsigned char"), char_type_node,
+		    NULL, false, true, Empty);
+  create_type_decl (get_identifier ("long integer"), long_integer_type_node,
+		    NULL, false, true, Empty);
 
   /* Save the type we made for integer as the type for Standard.Integer.
      Then make the rest of the standard types.  Note that some of these
@@ -313,6 +330,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
     gnat_init_gcc_eh ();
 
   gcc_assert (Nkind (gnat_root) == N_Compilation_Unit);
+  start_stmt_group ();
   Compilation_Unit_to_gnu (gnat_root);
 
   /* Now see if we have any elaboration procedures to deal with. */
@@ -361,36 +379,29 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
   error_gnat_node = Empty;
 }
 
-/* Perform initializations for this module.  */
+/* Return a positive value if an lvalue is required for GNAT_NODE.
+   GNU_TYPE is the type that will be used for GNAT_NODE in the
+   translated GNU tree.  ALIASED indicates whether the underlying
+   object represented by GNAT_NODE is aliased in the Ada sense.
 
-void
-gnat_init_stmt_group (void)
-{
-  /* Initialize ourselves.  */
-  init_code_table ();
-  start_stmt_group ();
-
-  /* Enable GNAT stack checking method if needed */
-  if (!Stack_Check_Probes_On_Target)
-    set_stack_check_libfunc (gen_rtx_SYMBOL_REF (Pmode, "_gnat_stack_check"));
-}
-
-/* Returns a positive value if GNAT_NODE requires an lvalue for an
-   operand of OPERAND_TYPE, whose aliasing is specified by ALIASED,
-   zero otherwise.  This is int instead of bool to facilitate usage
-   in non purely binary logic contexts.  */
+   The function climbs up the GNAT tree starting from the node and
+   returns 1 upon encountering a node that effectively requires an
+   lvalue downstream.  It returns int instead of bool to facilitate
+   usage in non purely binary logic contexts.  */
 
 static int
-lvalue_required_p (Node_Id gnat_node, tree operand_type, int aliased)
+lvalue_required_p (Node_Id gnat_node, tree gnu_type, int aliased)
 {
-  switch (Nkind (gnat_node))
+  Node_Id gnat_parent = Parent (gnat_node), gnat_temp;
+
+  switch (Nkind (gnat_parent))
     {
     case N_Reference:
       return 1;
 
     case N_Attribute_Reference:
       {
-	unsigned char id = Get_Attribute_Id (Attribute_Name (gnat_node));
+	unsigned char id = Get_Attribute_Id (Attribute_Name (gnat_parent));
 	return id == Attr_Address
 	       || id == Attr_Access
 	       || id == Attr_Unchecked_Access
@@ -400,32 +411,36 @@ lvalue_required_p (Node_Id gnat_node, tree operand_type, int aliased)
     case N_Parameter_Association:
     case N_Function_Call:
     case N_Procedure_Call_Statement:
-      return must_pass_by_ref (operand_type)
-	     || default_pass_by_ref (operand_type);
+      return (must_pass_by_ref (gnu_type) || default_pass_by_ref (gnu_type));
 
     case N_Indexed_Component:
-      {
-	Node_Id gnat_temp;
-	/* ??? Consider that referencing an indexed component with a
-	   non-constant index forces the whole aggregate to memory.
-	   Note that N_Integer_Literal is conservative, any static
-	   expression in the RM sense could probably be accepted.  */
-	for (gnat_temp = First (Expressions (gnat_node));
-	     Present (gnat_temp);
-	     gnat_temp = Next (gnat_temp))
-	  if (Nkind (gnat_temp) != N_Integer_Literal)
-	    return 1;
-      }
+      /* Only the array expression can require an lvalue.  */
+      if (Prefix (gnat_parent) != gnat_node)
+	return 0;
+
+      /* ??? Consider that referencing an indexed component with a
+	 non-constant index forces the whole aggregate to memory.
+	 Note that N_Integer_Literal is conservative, any static
+	 expression in the RM sense could probably be accepted.  */
+      for (gnat_temp = First (Expressions (gnat_parent));
+	   Present (gnat_temp);
+	   gnat_temp = Next (gnat_temp))
+	if (Nkind (gnat_temp) != N_Integer_Literal)
+	  return 1;
 
       /* ... fall through ... */
 
     case N_Slice:
-      aliased |= Has_Aliased_Components (Etype (Prefix (gnat_node)));
-      return lvalue_required_p (Parent (gnat_node), operand_type, aliased);
+      /* Only the array expression can require an lvalue.  */
+      if (Prefix (gnat_parent) != gnat_node)
+	return 0;
+
+      aliased |= Has_Aliased_Components (Etype (gnat_node));
+      return lvalue_required_p (gnat_parent, gnu_type, aliased);
 
     case N_Selected_Component:
-      aliased |= Is_Aliased (Entity (Selector_Name (gnat_node)));
-      return lvalue_required_p (Parent (gnat_node), operand_type, aliased);
+      aliased |= Is_Aliased (Entity (Selector_Name (gnat_parent)));
+      return lvalue_required_p (gnat_parent, gnu_type, aliased);
 
     case N_Object_Renaming_Declaration:
       /* We need to make a real renaming only if the constant object is
@@ -435,8 +450,8 @@ lvalue_required_p (Node_Id gnat_node, tree operand_type, int aliased)
 	 attached to the CONST_DECL.  */
       return (aliased != 0
 	      /* This should match the constant case of the renaming code.  */
-	      || Is_Composite_Type (Etype (Name (gnat_node)))
-	      || Nkind (Name (gnat_node)) == N_Identifier);
+	      || Is_Composite_Type (Etype (Name (gnat_parent)))
+	      || Nkind (Name (gnat_parent)) == N_Identifier);
 
     default:
       return 0;
@@ -446,20 +461,19 @@ lvalue_required_p (Node_Id gnat_node, tree operand_type, int aliased)
 }
 
 /* Subroutine of gnat_to_gnu to translate gnat_node, an N_Identifier,
-   to a GCC tree, which is returned.  GNU_RESULT_TYPE_P is a pointer to
-   where we should place the result type.  */
+   to a GCC tree, which is returned.  GNU_RESULT_TYPE_P is a pointer
+   to where we should place the result type.  */
 
 static tree
 Identifier_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p)
 {
-  tree gnu_result_type;
-  tree gnu_result;
   Node_Id gnat_temp, gnat_temp_type;
+  tree gnu_result, gnu_result_type;
 
-  /* Whether the parent of gnat_node requires an lvalue.  Needed in
-     specific circumstances only, so evaluated lazily.  < 0 means unknown,
-     > 0 means known true, 0 means known false.  */
-  int parent_requires_lvalue = -1;
+  /* Whether we should require an lvalue for GNAT_NODE.  Needed in
+     specific circumstances only, so evaluated lazily.  < 0 means
+     unknown, > 0 means known true, 0 means known false.  */
+  int require_lvalue = -1;
 
   /* If GNAT_NODE is a constant, whether we should use the initialization
      value instead of the constant entity, typically for scalars with an
@@ -535,9 +549,9 @@ Identifier_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p)
   gnu_result_type = get_unpadded_type (gnat_temp_type);
 
   /* If this is a non-imported scalar constant with an address clause,
-     retrieve the value instead of a pointer to be dereferenced unless the
-     parent requires an lvalue.  This is generally more efficient and
-     actually required if this is a static expression because it might be used
+     retrieve the value instead of a pointer to be dereferenced unless
+     an lvalue is required.  This is generally more efficient and actually
+     required if this is a static expression because it might be used
      in a context where a dereference is inappropriate, such as a case
      statement alternative or a record discriminant.  There is no possible
      volatile-ness shortciruit here since Volatile constants must be imported
@@ -546,10 +560,9 @@ Identifier_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p)
       && !Is_Imported (gnat_temp)
       && Present (Address_Clause (gnat_temp)))
     {
-      parent_requires_lvalue
-	= lvalue_required_p (Parent (gnat_node), gnu_result_type,
-			     Is_Aliased (gnat_temp));
-      use_constant_initializer = !parent_requires_lvalue;
+      require_lvalue = lvalue_required_p (gnat_node, gnu_result_type,
+					  Is_Aliased (gnat_temp));
+      use_constant_initializer = !require_lvalue;
     }
 
   if (use_constant_initializer)
@@ -642,21 +655,21 @@ Identifier_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p)
      of places and the need of elaboration code if this Id is used as
      an initializer itself.  */
   if (TREE_CONSTANT (gnu_result)
-      && DECL_P (gnu_result) && DECL_INITIAL (gnu_result))
+      && DECL_P (gnu_result)
+      && DECL_INITIAL (gnu_result))
     {
       tree object
 	= (TREE_CODE (gnu_result) == CONST_DECL
 	   ? DECL_CONST_CORRESPONDING_VAR (gnu_result) : gnu_result);
 
-      /* If there is a corresponding variable, we only want to return the CST
-	 value if the parent doesn't require an lvalue.  Evaluate this now if
-	 we have not already done so.  */
-      if (object && parent_requires_lvalue < 0)
-	parent_requires_lvalue
-	  = lvalue_required_p (Parent (gnat_node), gnu_result_type,
-			       Is_Aliased (gnat_temp));
+      /* If there is a corresponding variable, we only want to return
+	 the CST value if an lvalue is not required.  Evaluate this
+	 now if we have not already done so.  */
+      if (object && require_lvalue < 0)
+	require_lvalue = lvalue_required_p (gnat_node, gnu_result_type,
+					    Is_Aliased (gnat_temp));
 
-      if (!object || !parent_requires_lvalue)
+      if (!object || !require_lvalue)
 	gnu_result = unshare_expr (DECL_INITIAL (gnu_result));
     }
 
@@ -1772,7 +1785,7 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
   Sloc_to_locus (Sloc (gnat_node), &DECL_SOURCE_LOCATION (gnu_subprog_decl));
 
   /* Initialize the information structure for the function.  */
-  allocate_struct_function (gnu_subprog_decl);
+  allocate_struct_function (gnu_subprog_decl, false);
   DECL_STRUCT_FUNCTION (gnu_subprog_decl)->language
     = GGC_CNEW (struct language_function);
 
@@ -2311,6 +2324,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
   gnu_subprog_call = build_call_list (TREE_TYPE (gnu_subprog_type),
 				      gnu_subprog_addr,
 				      nreverse (gnu_actual_list));
+  set_expr_location_from_node (gnu_subprog_call, gnat_node);
 
   /* If we return by passing a target, the result is the target after the
      call.  We must not emit the call directly here because this might be
@@ -2336,6 +2350,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 
       tree gnu_target_address
 	= build_unary_op (ADDR_EXPR, NULL_TREE, gnu_target);
+      set_expr_location_from_node (gnu_target_address, gnat_node);
 
       gnu_result
 	= build2 (COMPOUND_EXPR, TREE_TYPE (gnu_target_address),
@@ -2491,10 +2506,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	  }
 	}
   else
-    {
-      set_expr_location_from_node (gnu_subprog_call, gnat_node);
-      append_to_statement_list (gnu_subprog_call, &gnu_before_list);
-    }
+    append_to_statement_list (gnu_subprog_call, &gnu_before_list);
 
   append_to_statement_list (gnu_after_list, &gnu_before_list);
   return gnu_before_list;
@@ -2911,7 +2923,7 @@ Compilation_Unit_to_gnu (Node_Id gnat_node)
   push_stack (&gnu_elab_proc_stack, NULL_TREE, gnu_elab_proc_decl);
 
   DECL_ELABORATION_PROC_P (gnu_elab_proc_decl) = 1;
-  allocate_struct_function (gnu_elab_proc_decl);
+  allocate_struct_function (gnu_elab_proc_decl, false);
   Sloc_to_locus (Sloc (gnat_unit_entity), &cfun->function_end_locus);
   set_cfun (NULL);
 
@@ -4566,7 +4578,9 @@ gnat_to_gnu (Node_Id gnat_node)
 	  tree gnu_obj_type;
 	  tree gnu_actual_obj_type = 0;
 	  tree gnu_obj_size;
-	  int align;
+	  unsigned int align;
+	  unsigned int default_allocator_alignment
+	    = get_target_default_allocator_alignment () * BITS_PER_UNIT;
 
 	  /* If this is a thin pointer, we must dereference it to create
 	     a fat pointer, then go back below to a thin pointer.  The
@@ -4622,6 +4636,39 @@ gnat_to_gnu (Node_Id gnat_node)
 					 gnu_ptr, gnu_byte_offset);
 	    }
 
+ 	  /* If the object was allocated from the default storage pool, the
+ 	     alignement was greater than what the allocator provides, and this
+ 	     is not a fat or thin pointer, what we have in gnu_ptr here is an
+ 	     address dynamically adjusted to match the alignment requirement
+ 	     (see build_allocator).  What we need to pass to free is the
+ 	     initial allocator's return value, which has been stored just in
+ 	     front of the block we have.  */
+ 
+ 	  if (No (Procedure_To_Call (gnat_node))
+	      && align > default_allocator_alignment
+ 	      && ! TYPE_FAT_OR_THIN_POINTER_P (gnu_ptr_type))
+ 	    {
+ 	      /* We set GNU_PTR
+ 		 as * (void **)((void *)GNU_PTR - (void *)sizeof(void *))
+ 		 in two steps:  */
+ 	      
+ 	      /* GNU_PTR (void *)
+		 = (void *)GNU_PTR - (void *)sizeof (void *))  */
+ 	      gnu_ptr
+ 		= build_binary_op
+		    (MINUS_EXPR, ptr_void_type_node,
+		     convert (ptr_void_type_node, gnu_ptr),
+		     convert (ptr_void_type_node,
+			      TYPE_SIZE_UNIT (ptr_void_type_node)));
+ 	      
+ 	      /* GNU_PTR (void *) = *(void **)GNU_PTR  */
+ 	      gnu_ptr
+ 		= build_unary_op
+		    (INDIRECT_REF, NULL_TREE,
+		     convert (build_pointer_type (ptr_void_type_node),
+			      gnu_ptr));
+ 	    }
+ 
 	  gnu_result = build_call_alloc_dealloc (gnu_ptr, gnu_obj_size, align,
 						 Procedure_To_Call (gnat_node),
 						 Storage_Pool (gnat_node),
@@ -6733,7 +6780,7 @@ post_error_ne_tree_2 (const char *msg,
 /* Initialize the table that maps GNAT codes to GCC codes for simple
    binary and unary operations.  */
 
-void
+static void
 init_code_table (void)
 {
   gnu_codes[N_And_Then] = TRUTH_ANDIF_EXPR;

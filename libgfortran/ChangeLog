@@ -1,3 +1,76 @@
+2007-12-10  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/34411
+	* io/read.c (convert_real, read_l, read_decimal, read_radix, read_f):
+	Call next_record after bad read or overflow error.
+
+2007-12-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34404
+	* io/list_read.c (parse_real): Remove superfluous "goto bad;".
+
+2007-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34319
+	* io/list_read.c (parse_real, read_real): Support NaN/Infinity.
+
+2007-12-02  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+	    Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/33985
+	* io/transfer.c (read_block, read_block_direct, write_block, write_buf):
+	Don't seek if file position is already there for STREAM I/O.
+	(finalize_transfer): For STREAM I/O don't flush unless the file position
+	has moved past the start position before the transfer.
+
+2007-12-01  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* intrinsic/stat.c (stat_i4_sub_0, stat_i8_sub_0): Mark parameter
+	with unused attribute.
+	* intrinsics/system_clock.c (system_clock_4, system_clock_8):
+	Remove unused variable.
+	* intrinsics/umask.c: Include unistd.h.
+
+2007-11-30  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/34291
+	* io/list_read.c (read_character): When reading an unquoted string,
+	return if special characters that could signify the end of the namelist
+	read are encountered.
+
+2007-11-29  Steven G. Kargl  <kargls@comcast.net>
+
+	PR libfortran/33583
+	* libgfortran/gfortran.map: Add tgammaf, tgamma, lgamma, and lgammaf.
+	* gfortran.dg/gamma_5.f90: Remove xfail.
+
+2007-11-16  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/33583
+	PR libfortran/33698
+	* intrinsics/c99_functions.c (tgamma, tgammaf, lgamma, lgammaf):
+	New fallback functions.
+	* c99_protos.h (tgamma, tgammaf, lgamma, lgammaf): New prototypes.
+	* configure.ac: Add checks for tgamma, tgammaf, tgammal, lgamma,
+	lgammaf and lgammal.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
+2007-11-08  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* mk-kinds-h.sh: Change sed syntax.
+
+2007-11-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/33985
+	* io/transfer.c (finalize_transfer): Revert previous patch.
+	
+2007-11-03  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/33985
+	* io/transfer.c (finalize_transfer): Do not flush for
+	unformatted STREAM I/O.
+
 2007-10-27  Tobias Burnus  <burnus@net-b.de>
 
 	* mk-kinds-h.sh: Change LANG=C to LC_ALL=C.

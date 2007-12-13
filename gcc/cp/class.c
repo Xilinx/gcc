@@ -139,7 +139,7 @@ static tree build_vtbl_ref_1 (tree, tree);
 static tree build_vtbl_initializer (tree, tree, tree, tree, int *);
 static int count_fields (tree);
 static int add_fields_to_record_type (tree, struct sorted_fields_type*, int);
-static void check_bitfield_decl (tree);
+static bool check_bitfield_decl (tree);
 static void check_field_decl (tree, tree, int *, int *, int *);
 static void check_field_decls (tree, tree *, int *, int *);
 static tree *build_base_field (record_layout_info, tree, splay_tree, tree *);
@@ -2655,9 +2655,9 @@ add_fields_to_record_type (tree fields, struct sorted_fields_type *field_vec, in
 
 /* FIELD is a bit-field.  We are finishing the processing for its
    enclosing type.  Issue any appropriate messages and set appropriate
-   flags.  */
+   flags.  Returns false if an error has been diagnosed.  */
 
-static void
+static bool
 check_bitfield_decl (tree field)
 {
   tree type = TREE_TYPE (field);
@@ -2675,7 +2675,6 @@ check_bitfield_decl (tree field)
   if (!INTEGRAL_TYPE_P (type))
     {
       error ("bit-field %q+#D with non-integral type", field);
-      TREE_TYPE (field) = error_mark_node;
       w = error_mark_node;
     }
   else
@@ -2720,12 +2719,14 @@ check_bitfield_decl (tree field)
     {
       DECL_SIZE (field) = convert (bitsizetype, w);
       DECL_BIT_FIELD (field) = 1;
+      return true;
     }
   else
     {
       /* Non-bit-fields are aligned for their type.  */
       DECL_BIT_FIELD (field) = 0;
       CLEAR_DECL_C_BIT_FIELD (field);
+      return false;
     }
 }
 
@@ -3037,9 +3038,7 @@ check_field_decls (tree t, tree *access_decls,
 
       /* We set DECL_C_BIT_FIELD in grokbitfield.
 	 If the type and width are valid, we'll also set DECL_BIT_FIELD.  */
-      if (DECL_C_BIT_FIELD (x))
-	check_bitfield_decl (x);
-      else
+      if (! DECL_C_BIT_FIELD (x) || ! check_bitfield_decl (x))
 	check_field_decl (x, t,
 			  cant_have_const_ctor_p,
 			  no_const_asn_ref_p,
@@ -3614,21 +3613,24 @@ build_base_field (record_layout_info rli, tree binfo,
       DECL_ARTIFICIAL (decl) = 1;
       DECL_IGNORED_P (decl) = 1;
       DECL_FIELD_CONTEXT (decl) = t;
-      DECL_SIZE (decl) = CLASSTYPE_SIZE (basetype);
-      DECL_SIZE_UNIT (decl) = CLASSTYPE_SIZE_UNIT (basetype);
-      DECL_ALIGN (decl) = CLASSTYPE_ALIGN (basetype);
-      DECL_USER_ALIGN (decl) = CLASSTYPE_USER_ALIGN (basetype);
-      DECL_MODE (decl) = TYPE_MODE (basetype);
-      DECL_FIELD_IS_BASE (decl) = 1;
+      if (CLASSTYPE_AS_BASE (basetype))
+	{
+	  DECL_SIZE (decl) = CLASSTYPE_SIZE (basetype);
+	  DECL_SIZE_UNIT (decl) = CLASSTYPE_SIZE_UNIT (basetype);
+	  DECL_ALIGN (decl) = CLASSTYPE_ALIGN (basetype);
+	  DECL_USER_ALIGN (decl) = CLASSTYPE_USER_ALIGN (basetype);
+	  DECL_MODE (decl) = TYPE_MODE (basetype);
+	  DECL_FIELD_IS_BASE (decl) = 1;
 
-      /* Try to place the field.  It may take more than one try if we
-	 have a hard time placing the field without putting two
-	 objects of the same type at the same address.  */
-      layout_nonempty_base_or_field (rli, decl, binfo, offsets);
-      /* Add the new FIELD_DECL to the list of fields for T.  */
-      TREE_CHAIN (decl) = *next_field;
-      *next_field = decl;
-      next_field = &TREE_CHAIN (decl);
+	  /* Try to place the field.  It may take more than one try if we
+	     have a hard time placing the field without putting two
+	     objects of the same type at the same address.  */
+	  layout_nonempty_base_or_field (rli, decl, binfo, offsets);
+	  /* Add the new FIELD_DECL to the list of fields for T.  */
+	  TREE_CHAIN (decl) = *next_field;
+	  *next_field = decl;
+	  next_field = &TREE_CHAIN (decl);
+	}
     }
   else
     {
@@ -4424,7 +4426,9 @@ end_of_base (tree binfo)
 {
   tree size;
 
-  if (is_empty_class (BINFO_TYPE (binfo)))
+  if (!CLASSTYPE_AS_BASE (BINFO_TYPE (binfo)))
+    size = TYPE_SIZE_UNIT (char_type_node);
+  else if (is_empty_class (BINFO_TYPE (binfo)))
     /* An empty class has zero CLASSTYPE_SIZE_UNIT, but we need to
        allocate some space for it. It cannot have virtual bases, so
        TYPE_SIZE_UNIT is fine.  */
@@ -7002,7 +7006,10 @@ build_ctor_vtbl_group (tree binfo, tree t)
   /* Figure out the type of the construction vtable.  */
   type = build_index_type (size_int (list_length (inits) - 1));
   type = build_cplus_array_type (vtable_entry_type, type);
+  layout_type (type);
   TREE_TYPE (vtbl) = type;
+  DECL_SIZE (vtbl) = DECL_SIZE_UNIT (vtbl) = NULL_TREE;
+  layout_decl (vtbl, 0);
 
   /* Initialize the construction vtable.  */
   CLASSTYPE_VTABLES (t) = chainon (CLASSTYPE_VTABLES (t), vtbl);

@@ -587,7 +587,7 @@ poplevel (int keep, int reverse, int functionbody)
 
   /* In each subblock, record that this is its superior.  */
   if (keep >= 0)
-    for (link = subblocks; link; link = TREE_CHAIN (link))
+    for (link = subblocks; link; link = BLOCK_CHAIN (link))
       BLOCK_SUPERCONTEXT (link) = block;
 
   /* We still support the old for-scope rules, whereby the variables
@@ -4331,7 +4331,7 @@ maybe_deduce_size_from_array_init (tree decl, tree init)
 	  HOST_WIDE_INT i;
 	  for (i = 0; 
 	       VEC_iterate (constructor_elt, v, i, ce);
-	       ++i)
+	       ++i) 
 	    if (!check_array_designated_initializer (ce))
 	      failure = 1;
 	}
@@ -5455,8 +5455,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	 require a guard variable, and since the mangled name of the
 	 guard variable will depend on the mangled name of this
 	 variable.  */
-      if (!processing_template_decl
-	  && DECL_FUNCTION_SCOPE_P (decl)
+      if (DECL_FUNCTION_SCOPE_P (decl)
 	  && TREE_STATIC (decl)
 	  && !DECL_ARTIFICIAL (decl))
 	push_local_name (decl);
@@ -5469,6 +5468,20 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	     is *not* defined.  */
 	  && (!DECL_EXTERNAL (decl) || init))
 	{
+	  if (TYPE_FOR_JAVA (type) && IS_AGGR_TYPE (type))
+	    {
+	      tree jclass
+		= IDENTIFIER_GLOBAL_VALUE (get_identifier ("jclass"));
+	      /* Allow libjava/prims.cc define primitive classes.  */
+	      if (init != NULL_TREE
+		  || jclass == NULL_TREE
+		  || TREE_CODE (jclass) != TYPE_DECL
+		  || !POINTER_TYPE_P (TREE_TYPE (jclass))
+		  || !same_type_ignoring_top_level_qualifiers_p
+					(type, TREE_TYPE (TREE_TYPE (jclass))))
+		error ("Java object %qD not allocated with %<new%>", decl);
+	      init = NULL_TREE;
+	    }
 	  if (init)
 	    {
 	      DECL_NONTRIVIALLY_INITIALIZED_P (decl) = 1;
@@ -5539,6 +5552,9 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
       else if (TREE_CODE (type) == ARRAY_TYPE)
 	layout_type (type);
     }
+  else if (TREE_CODE (decl) == FIELD_DECL
+	   && TYPE_FOR_JAVA (type) && IS_AGGR_TYPE (type))
+    error ("non-static data member %qD has Java class type", decl);
 
   /* Add this declaration to the statement-tree.  This needs to happen
      after the call to check_initializer so that the DECL_EXPR for a
@@ -5560,6 +5576,21 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 
       /* This needs to happen after the linkage is set. */
       determine_visibility (decl);
+
+      if (var_definition_p && TREE_STATIC (decl))
+	{
+	  /* If a TREE_READONLY variable needs initialization
+	     at runtime, it is no longer readonly and we need to
+	     avoid MEM_READONLY_P being set on RTL created for it.  */
+	  if (init)
+	    {
+	      if (TREE_READONLY (decl))
+		TREE_READONLY (decl) = 0;
+	      was_readonly = 0;
+	    }
+	  else if (was_readonly)
+	    TREE_READONLY (decl) = 1;
+	}
 
       make_rtl_for_nonlocal_decl (decl, init, asmspec);
 
@@ -5583,40 +5614,21 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  if (init)
 	    DECL_INITIAL (decl) = init;
 	}
-      else
-	{
-	  /* A variable definition.  */
-	  if (DECL_FUNCTION_SCOPE_P (decl))
-	    {
-	      /* Initialize the local variable.  */
-	      if (processing_template_decl)
-		DECL_INITIAL (decl) = init;
-	      else if (!TREE_STATIC (decl))
-		initialize_local_var (decl, init);
-	    }
+      /* A variable definition.  */
+      else if (DECL_FUNCTION_SCOPE_P (decl) && !TREE_STATIC (decl))
+	/* Initialize the local variable.  */
+	initialize_local_var (decl, init);
 
-	  /* If a variable is defined, and then a subsequent
-	     definition with external linkage is encountered, we will
-	     get here twice for the same variable.  We want to avoid
-	     calling expand_static_init more than once.  For variables
-	     that are not static data members, we can call
-	     expand_static_init only when we actually process the
-	     initializer.  It is not legal to redeclare a static data
-	     member, so this issue does not arise in that case.  */
-	  if (var_definition_p && TREE_STATIC (decl))
-	    {
-	      /* If a TREE_READONLY variable needs initialization
-		 at runtime, it is no longer readonly and we need to
-		 avoid MEM_READONLY_P being set on RTL created for it.  */
-	      if (init)
-		{
-		  if (TREE_READONLY (decl))
-		    TREE_READONLY (decl) = 0;
-		  was_readonly = 0;
-		}
-	      expand_static_init (decl, init);
-	    }
-	}
+      /* If a variable is defined, and then a subsequent
+	 definition with external linkage is encountered, we will
+	 get here twice for the same variable.  We want to avoid
+	 calling expand_static_init more than once.  For variables
+	 that are not static data members, we can call
+	 expand_static_init only when we actually process the
+	 initializer.  It is not legal to redeclare a static data
+	 member, so this issue does not arise in that case.  */
+      else if (var_definition_p && TREE_STATIC (decl))
+	expand_static_init (decl, init);
     }
 
   /* If a CLEANUP_STMT was created to destroy a temporary bound to a
@@ -6115,6 +6127,9 @@ cp_complete_array_type (tree *ptype, tree initial_value, bool do_default)
 
   if (initial_value)
     {
+      unsigned HOST_WIDE_INT i;
+      tree value;
+
       /* An array of character type can be initialized from a
 	 brace-enclosed string constant.
 
@@ -6130,6 +6145,18 @@ cp_complete_array_type (tree *ptype, tree initial_value, bool do_default)
 	  if (TREE_CODE (value) == STRING_CST
 	      && VEC_length (constructor_elt, v) == 1)
 	    initial_value = value;
+	}
+
+      /* If any of the elements are parameter packs, we can't actually
+	 complete this type now because the array size is dependent.  */
+      if (TREE_CODE (initial_value) == CONSTRUCTOR)
+	{
+	  FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (initial_value), 
+				      i, value)
+	    {
+	      if (PACK_EXPANSION_P (value))
+		return 0;
+	    }
 	}
     }
 
@@ -8153,7 +8180,8 @@ grokdeclarator (const cp_declarator *declarator,
 	  type_quals = TYPE_UNQUALIFIED;
 
 	  if (declarator->kind == cdk_ptrmem
-	      && (TREE_CODE (type) == FUNCTION_TYPE || memfn_quals))
+	      && (TREE_CODE (type) == FUNCTION_TYPE
+		  || (memfn_quals && TREE_CODE (type) == METHOD_TYPE)))
 	    {
 	      memfn_quals |= cp_type_quals (type);
 	      type = build_memfn_type (type,
@@ -9315,6 +9343,16 @@ grokparms (cp_parameter_declarator *first_parm, tree *parms)
 	     void type terminates the parameter list.  */
 	  type = error_mark_node;
 	  TREE_TYPE (decl) = error_mark_node;
+	}
+
+      if (type != error_mark_node
+	  && TYPE_FOR_JAVA (type)
+	  && IS_AGGR_TYPE (type))
+	{
+	  error ("parameter %qD has Java class type", decl);
+	  type = error_mark_node;
+	  TREE_TYPE (decl) = error_mark_node;
+	  init = NULL_TREE;
 	}
 
       if (type != error_mark_node)
@@ -10903,11 +10941,15 @@ check_function_type (tree decl, tree current_function_parms)
 
   if (dependent_type_p (return_type))
     return;
-  if (!COMPLETE_OR_VOID_TYPE_P (return_type))
+  if (!COMPLETE_OR_VOID_TYPE_P (return_type)
+      || (TYPE_FOR_JAVA (return_type) && IS_AGGR_TYPE (return_type)))
     {
       tree args = TYPE_ARG_TYPES (fntype);
 
-      error ("return type %q#T is incomplete", return_type);
+      if (!COMPLETE_OR_VOID_TYPE_P (return_type))
+	error ("return type %q#T is incomplete", return_type);
+      else
+	error ("return type has Java class type %q#T", return_type);
 
       /* Make it return void instead.  */
       if (TREE_CODE (fntype) == METHOD_TYPE)
@@ -11169,7 +11211,7 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
      CFUN set up, and our per-function variables initialized.
      FIXME factor out the non-RTL stuff.  */
   bl = current_binding_level;
-  allocate_struct_function (decl1);
+  allocate_struct_function (decl1, processing_template_decl);
   current_binding_level = bl;
 
   /* Even though we're inside a function body, we still don't want to

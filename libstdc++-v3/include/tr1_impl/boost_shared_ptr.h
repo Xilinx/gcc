@@ -94,12 +94,22 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
   // Empty helper class except when the template argument is _S_mutex.
   template<_Lock_policy _Lp>
     class _Mutex_base
-    { };
+    {
+    protected:
+      // The atomic policy uses fully-fenced builtins, single doesn't care.
+      enum { _S_need_barriers = 0 };
+    };
 
   template<>
     class _Mutex_base<_S_mutex>
     : public __gnu_cxx::__mutex
-    { };
+    {
+    protected:
+      // This policy is used when atomic builtins are not available.
+      // The replacement atomic operations might not have the necessary
+      // memory barriers.
+      enum { _S_need_barriers = 1 };
+    };
 
   template<_Lock_policy _Lp = __default_lock_policy>
     class _Sp_counted_base
@@ -136,14 +146,19 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
       void
       _M_release() // nothrow
       {
-	if (__gnu_cxx::__exchange_and_add_dispatch(&_M_use_count,
-						   -1) == 1)
+	if (__gnu_cxx::__exchange_and_add_dispatch(&_M_use_count, -1) == 1)
 	  {
 	    _M_dispose();
-#ifdef __GTHREADS
-	    _GLIBCXX_READ_MEM_BARRIER;
-	    _GLIBCXX_WRITE_MEM_BARRIER;
-#endif
+	    // There must be a memory barrier between dispose() and destroy()
+	    // to ensure that the effects of dispose() are observed in the
+	    // thread that runs destroy().
+	    // See http://gcc.gnu.org/ml/libstdc++/2005-11/msg00136.html
+	    if (_Mutex_base<_Lp>::_S_need_barriers)
+	      {
+	        _GLIBCXX_READ_MEM_BARRIER;
+	        _GLIBCXX_WRITE_MEM_BARRIER;
+	      }
+
 	    if (__gnu_cxx::__exchange_and_add_dispatch(&_M_weak_count,
 						       -1) == 1)
 	      _M_destroy();
@@ -159,18 +174,25 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
       {
 	if (__gnu_cxx::__exchange_and_add_dispatch(&_M_weak_count, -1) == 1)
 	  {
-#ifdef __GTHREADS
-	    _GLIBCXX_READ_MEM_BARRIER;
-	    _GLIBCXX_WRITE_MEM_BARRIER;
-#endif
+	    if (_Mutex_base<_Lp>::_S_need_barriers)
+	      {
+	        // See _M_release(),
+	        // destroy() must observe results of dispose()
+	        _GLIBCXX_READ_MEM_BARRIER;
+	        _GLIBCXX_WRITE_MEM_BARRIER;
+	      }
 	    _M_destroy();
 	  }
       }
   
       long
       _M_get_use_count() const // nothrow
-      { return _M_use_count; }  // XXX is this MT safe? 
-      
+      {
+        // No memory barrier is used here so there is no synchronization
+        // with other threads.
+        return const_cast<const volatile _Atomic_word&>(_M_use_count);
+      }
+
     private:  
       _Sp_counted_base(_Sp_counted_base const&);
       _Sp_counted_base& operator=(_Sp_counted_base const&);
@@ -277,6 +299,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	    }
 	}
 
+#if !defined(__GXX_EXPERIMENTAL_CXX0X__) || _GLIBCXX_DEPRECATED
       // Special case for auto_ptr<_Tp> to provide the strong guarantee.
       template<typename _Tp>
         explicit
@@ -284,7 +307,8 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	: _M_pi(new _Sp_counted_base_impl<_Tp*,
 		_Sp_deleter<_Tp>, _Lp >(__r.get(), _Sp_deleter<_Tp>()))
         { __r.release(); }
-  
+#endif
+
       // Throw bad_weak_ptr when __r._M_get_use_count() == 0.
       explicit
       __shared_count(const __weak_count<_Lp>& __r);
@@ -523,7 +547,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	}
 
       //
-      // Requirements: _Deleter' copy constructor and destructor must not throw
+      // Requirements: _Deleter's copy constructor and destructor must not throw
       //
       // __shared_ptr will release __p by calling __d(__p)
       //
@@ -550,7 +574,6 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
        *          with @a __r.
        *  @param  __r  A %__shared_ptr.
        *  @post   get() == __r.get() && use_count() == __r.use_count()
-       *  @throw  std::bad_alloc, in which case 
        */
       template<typename _Tp1>
         __shared_ptr(const __shared_ptr<_Tp1, _Lp>& __r)
@@ -578,6 +601,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
       /**
        * @post use_count() == 1 and __r.get() == 0
        */
+#if !defined(__GXX_EXPERIMENTAL_CXX0X__) || _GLIBCXX_DEPRECATED
       template<typename _Tp1>
         explicit
         __shared_ptr(std::auto_ptr<_Tp1>& __r)
@@ -589,6 +613,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	  _M_refcount = __shared_count<_Lp>(__r);
 	  __enable_shared_from_this_helper(_M_refcount, __tmp, __tmp);
 	}
+#endif
 
       template<typename _Tp1>
         __shared_ptr(const __shared_ptr<_Tp1, _Lp>& __r, __static_cast_tag)
@@ -620,6 +645,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	  return *this;
 	}
 
+#if !defined(__GXX_EXPERIMENTAL_CXX0X__) || _GLIBCXX_DEPRECATED
       template<typename _Tp1>
         __shared_ptr&
         operator=(std::auto_ptr<_Tp1>& __r)
@@ -627,6 +653,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	  __shared_ptr(__r).swap(*this);
 	  return *this;
 	}
+#endif
 
       void
       reset() // never throws
@@ -993,10 +1020,12 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
         shared_ptr(const weak_ptr<_Tp1>& __r)
 	: __shared_ptr<_Tp>(__r) { }
 
+#if !defined(__GXX_EXPERIMENTAL_CXX0X__) || _GLIBCXX_DEPRECATED
       template<typename _Tp1>
         explicit
         shared_ptr(std::auto_ptr<_Tp1>& __r)
 	: __shared_ptr<_Tp>(__r) { }
+#endif
 
       template<typename _Tp1>
         shared_ptr(const shared_ptr<_Tp1>& __r, __static_cast_tag)
@@ -1018,6 +1047,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	  return *this;
 	}
 
+#if !defined(__GXX_EXPERIMENTAL_CXX0X__) || _GLIBCXX_DEPRECATED
       template<typename _Tp1>
         shared_ptr&
         operator=(std::auto_ptr<_Tp1>& __r)
@@ -1025,6 +1055,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	  this->__shared_ptr<_Tp>::operator=(__r);
 	  return *this;
 	}
+#endif
     };
 
   template<typename _Tp, typename _Tp1>

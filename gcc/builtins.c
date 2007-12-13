@@ -909,6 +909,20 @@ expand_builtin_nonlocal_goto (tree exp)
 	 not clear if really needed.  */
       emit_insn (gen_rtx_USE (VOIDmode, hard_frame_pointer_rtx));
       emit_insn (gen_rtx_USE (VOIDmode, stack_pointer_rtx));
+
+      /* If the architecture is using a GP register, we must
+	 conservatively assume that the target function makes use of it.
+	 The prologue of functions with nonlocal gotos must therefore
+	 initialize the GP register to the appropriate value, and we
+	 must then make sure that this value is live at the point
+	 of the jump.  (Note that this doesn't necessarily apply
+	 to targets with a nonlocal_goto pattern; they are free
+	 to implement it in their own way.  Note also that this is
+	 a no-op if the GP register is a global invariant.)  */
+      if ((unsigned) PIC_OFFSET_TABLE_REGNUM != INVALID_REGNUM
+	  && fixed_regs[PIC_OFFSET_TABLE_REGNUM])
+	emit_insn (gen_rtx_USE (VOIDmode, pic_offset_table_rtx));
+
       emit_indirect_jump (r_label);
     }
 
@@ -2938,7 +2952,9 @@ expand_builtin_pow (tree exp, rtx target, rtx subtarget)
 	      || n == 1))
 	{
 	  tree call_expr = build_call_expr (fn, 1, narg0);
-	  op = expand_builtin (call_expr, NULL_RTX, subtarget, mode, 0);
+	  /* Use expand_expr in case the newly built call expression
+	     was folded to a non-call.  */
+	  op = expand_expr (call_expr, subtarget, mode, EXPAND_NORMAL);
 	  if (n != 1)
 	    {
 	      op2 = expand_expr (narg0, subtarget, VOIDmode, EXPAND_NORMAL);
@@ -4700,11 +4716,10 @@ expand_builtin_va_start (tree exp)
   nextarg = expand_builtin_next_arg ();
   valist = stabilize_va_list (CALL_EXPR_ARG (exp, 0), 1);
 
-#ifdef EXPAND_BUILTIN_VA_START
-  EXPAND_BUILTIN_VA_START (valist, nextarg);
-#else
-  std_expand_builtin_va_start (valist, nextarg);
-#endif
+  if (targetm.expand_builtin_va_start)
+    targetm.expand_builtin_va_start (valist, nextarg);
+  else
+    std_expand_builtin_va_start (valist, nextarg);
 
   return const0_rtx;
 }
@@ -10061,6 +10076,15 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
     case BUILT_IN_ISNAND128:
       return fold_builtin_classify (fndecl, arg0, BUILT_IN_ISNAN);
 
+    case BUILT_IN_ISNORMAL:
+      if (!validate_arg (arg0, REAL_TYPE))
+	{
+	  error ("non-floating-point argument to function %qs",
+		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
+	  return error_mark_node;
+	}
+      break;
+
     case BUILT_IN_PRINTF:
     case BUILT_IN_PRINTF_UNLOCKED:
     case BUILT_IN_VPRINTF:
@@ -10406,7 +10430,55 @@ fold_builtin_4 (tree fndecl, tree arg0, tree arg1, tree arg2, tree arg3,
 static tree
 fold_builtin_n (tree fndecl, tree *args, int nargs, bool ignore)
 {
+  enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
   tree ret = NULL_TREE;
+
+  /* Verify the number of arguments for type-generic and thus variadic
+     builtins.  */
+  switch (fcode)
+    {
+    case BUILT_IN_ISFINITE:
+    case BUILT_IN_ISINF:
+    case BUILT_IN_ISNAN:
+    case BUILT_IN_ISNORMAL:
+      if (nargs < 1)
+	{
+	  error ("too few arguments to function %qs",
+		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
+	  return error_mark_node;
+	}
+      else if (nargs > 1)
+	{
+	  error ("too many arguments to function %qs",
+		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
+	  return error_mark_node;
+	}
+      break;
+
+    case BUILT_IN_ISGREATER:
+    case BUILT_IN_ISGREATEREQUAL:
+    case BUILT_IN_ISLESS:
+    case BUILT_IN_ISLESSEQUAL:
+    case BUILT_IN_ISLESSGREATER:
+    case BUILT_IN_ISUNORDERED:
+      if (nargs < 2)
+	{
+	  error ("too few arguments to function %qs",
+		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
+	  return error_mark_node;
+	}
+      else if (nargs > 2)
+	{
+	  error ("too many arguments to function %qs",
+		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
+	  return error_mark_node;
+	}
+      break;
+
+    default:
+      break;
+    }
+
   switch (nargs)
     {
     case 0:

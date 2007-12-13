@@ -41,7 +41,6 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "toplev.h"
 #include "tree-match.h"
 
-
 /* Raise a warning upon detecting a satisfied condate.  The concept of
    condate (control & data property to be checked) is described in
    tree-match.h.  */
@@ -59,11 +58,18 @@ tree_check_warning (condate cond, tree stmt, int check_option)
 
   if (flag_tree_checks_verbose)
     {
-      fprintf (stderr, "%s:%d: instance = ", input_location.file, input_location.line);
+#ifdef USE_MAPPED_LOCATION
+      const char *file = LOCATION_FILE (input_location);
+      int line = LOCATION_LINE (input_location);
+#else
+      const char *file = input_location.file;
+      int line = input_location.line;
+#endif
+      fprintf (stderr, "%s:%d: instance = ", file, line);
       /*   print_local_holes (); */
       print_global_holes ();
       fprintf (stderr, ",\n");
-      fprintf (stderr, "%s:%d: reached: ", input_location.file, input_location.line); 
+      fprintf (stderr, "%s:%d: reached: ", file, line);
       print_generic_expr (stderr, stmt, 0);
       fprintf (stderr, ".\n");
     }

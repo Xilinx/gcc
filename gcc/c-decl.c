@@ -375,7 +375,7 @@ static GTY((deletable)) struct c_binding *binding_freelist;
   struct c_scope *s_ = (scope);				\
   tree d_ = (decl);					\
   if (s_->list##_last)					\
-    TREE_CHAIN (s_->list##_last) = d_;			\
+    BLOCK_CHAIN (s_->list##_last) = d_;			\
   else							\
     s_->list = d_;					\
   s_->list##_last = d_;					\
@@ -386,7 +386,7 @@ static GTY((deletable)) struct c_binding *binding_freelist;
   struct c_scope *t_ = (tscope);				\
   struct c_scope *f_ = (fscope);				\
   if (t_->to##_last)						\
-    TREE_CHAIN (t_->to##_last) = f_->from;			\
+    BLOCK_CHAIN (t_->to##_last) = f_->from;			\
   else								\
     t_->to = f_->from;						\
   t_->to##_last = f_->from##_last;				\
@@ -693,7 +693,7 @@ pop_scope (void)
       TREE_USED (block) = 1;
 
       /* In each subblock, record that this is its superior.  */
-      for (p = scope->blocks; p; p = TREE_CHAIN (p))
+      for (p = scope->blocks; p; p = BLOCK_CHAIN (p))
 	BLOCK_SUPERCONTEXT (p) = block;
 
       BLOCK_VARS (block) = 0;
@@ -3081,20 +3081,13 @@ build_array_declarator (tree expr, struct c_declspecs *quals, bool static_p,
 
 /* Set the contained declarator of an array declarator.  DECL is the
    declarator, as constructed by build_array_declarator; INNER is what
-   appears on the left of the [].  ABSTRACT_P is true if it is an
-   abstract declarator, false otherwise; this is used to reject static
-   and type qualifiers in abstract declarators, where they are not in
-   the C99 grammar (subject to possible change in DR#289).  */
+   appears on the left of the [].  */
 
 struct c_declarator *
 set_array_declarator_inner (struct c_declarator *decl,
-			    struct c_declarator *inner, bool abstract_p)
+			    struct c_declarator *inner)
 {
   decl->declarator = inner;
-  if (abstract_p && (decl->u.array.quals != TYPE_UNQUALIFIED
-		     || decl->u.array.attrs != NULL_TREE
-		     || decl->u.array.static_p))
-    error ("static or type qualifiers in abstract declarator");
   return decl;
 }
 
@@ -4645,6 +4638,7 @@ grokdeclarator (const struct c_declarator *declarator,
       if (type_quals)
 	type = c_build_qualified_type (type, type_quals);
       decl = build_decl (TYPE_DECL, declarator->u.id, type);
+      DECL_SOURCE_LOCATION (decl) = declarator->id_loc;
       if (declspecs->explicit_signed_p)
 	C_TYPEDEF_EXPLICITLY_SIGNED (decl) = 1;
       if (declspecs->inline_p)
@@ -4740,6 +4734,7 @@ grokdeclarator (const struct c_declarator *declarator,
 	type_as_written = type;
 
 	decl = build_decl (PARM_DECL, declarator->u.id, type);
+	DECL_SOURCE_LOCATION (decl) = declarator->id_loc;
 	if (size_varies)
 	  C_DECL_VARIABLE_SIZE (decl) = 1;
 
@@ -4779,6 +4774,7 @@ grokdeclarator (const struct c_declarator *declarator,
 	  }
 	type = c_build_qualified_type (type, type_quals);
 	decl = build_decl (FIELD_DECL, declarator->u.id, type);
+	DECL_SOURCE_LOCATION (decl) = declarator->id_loc;
 	DECL_NONADDRESSABLE_P (decl) = bitfield;
 	if (bitfield && !declarator->u.id)
 	  TREE_NO_WARNING (decl) = 1;
@@ -4815,6 +4811,7 @@ grokdeclarator (const struct c_declarator *declarator,
 	  }
 
 	decl = build_decl (FUNCTION_DECL, declarator->u.id, type);
+	DECL_SOURCE_LOCATION (decl) = declarator->id_loc;
 	decl = build_decl_attribute_variant (decl, decl_attr);
 
 	if (pedantic && type_quals && !DECL_IN_SYSTEM_HEADER (decl))
@@ -6628,7 +6625,7 @@ store_parm_decls (void)
   gen_aux_info_record (fndecl, 1, 0, proto);
 
   /* Initialize the RTL code for the function.  */
-  allocate_struct_function (fndecl);
+  allocate_struct_function (fndecl, false);
 
   /* Begin the statement tree for this function.  */
   DECL_SAVED_TREE (fndecl) = push_stmt_list ();

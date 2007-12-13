@@ -507,7 +507,8 @@ set_lattice_value (tree var, prop_value_t new_val)
 
    If STMT has no operands, then return CONSTANT.
 
-   Else if any operands of STMT are undefined, then return UNDEFINED.
+   Else if undefinedness of operands of STMT cause its value to be
+   undefined, then return UNDEFINED.
 
    Else if any operands of STMT are constants, then return CONSTANT.
 
@@ -516,7 +517,7 @@ set_lattice_value (tree var, prop_value_t new_val)
 static ccp_lattice_t
 likely_value (tree stmt)
 {
-  bool has_constant_operand;
+  bool has_constant_operand, has_undefined_operand, all_undefined_operands;
   stmt_ann_t ann;
   tree use;
   ssa_op_iter iter;
@@ -552,16 +553,52 @@ likely_value (tree stmt)
     return CONSTANT;
 
   has_constant_operand = false;
+  has_undefined_operand = false;
+  all_undefined_operands = true;
   FOR_EACH_SSA_TREE_OPERAND (use, stmt, iter, SSA_OP_USE | SSA_OP_VUSE)
     {
       prop_value_t *val = get_value (use);
 
       if (val->lattice_val == UNDEFINED)
-	return UNDEFINED;
+	has_undefined_operand = true;
+      else
+	all_undefined_operands = false;
 
       if (val->lattice_val == CONSTANT)
 	has_constant_operand = true;
     }
+
+  /* If the operation combines operands like COMPLEX_EXPR make sure to
+     not mark the result UNDEFINED if only one part of the result is
+     undefined.  */
+  if (has_undefined_operand
+      && all_undefined_operands)
+    return UNDEFINED;
+  else if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+	   && has_undefined_operand)
+    {
+      switch (TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)))
+	{
+	/* Unary operators are handled with all_undefined_operands.  */
+	case PLUS_EXPR:
+	case MINUS_EXPR:
+	case POINTER_PLUS_EXPR:
+	  /* Not MIN_EXPR, MAX_EXPR.  One VARYING operand may be selected.
+	     Not bitwise operators, one VARYING operand may specify the
+	     result completely.  Not logical operators for the same reason.
+	     Not COMPLEX_EXPR as one VARYING operand makes the result partly
+	     not UNDEFINED.  Not *DIV_EXPR, comparisons and shifts because
+	     the undefined operand may be promoted.  */
+	  return UNDEFINED;
+
+	default:
+	  ;
+	}
+    }
+  /* If there was an UNDEFINED operand but the result may be not UNDEFINED
+     fall back to VARYING even if there were CONSTANT operands.  */
+  if (has_undefined_operand)
+    return VARYING;
 
   if (has_constant_operand
       /* We do not consider virtual operands here -- load from read-only
@@ -2034,6 +2071,7 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
   bool *inside_addr_expr_p = fold_stmt_r_data->inside_addr_expr_p;
   bool *changed_p = fold_stmt_r_data->changed_p;
   tree expr = *expr_p, t;
+  bool volatile_p = TREE_THIS_VOLATILE (expr);
 
   /* ??? It'd be nice if walk_tree had a pre-order option.  */
   switch (TREE_CODE (expr))
@@ -2159,6 +2197,8 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
 
   if (t)
     {
+      /* Preserve volatileness of the original expression.  */
+      TREE_THIS_VOLATILE (t) = volatile_p;
       *expr_p = t;
       *changed_p = true;
     }
@@ -2598,6 +2638,148 @@ fold_stmt_inplace (tree stmt)
   return changed;
 }
 
+/* Try to optimize out __builtin_stack_restore.  Optimize it out
+   if there is another __builtin_stack_restore in the same basic
+   block and no calls or ASM_EXPRs are in between, or if this block's
+   only outgoing edge is to EXIT_BLOCK and there are no calls or
+   ASM_EXPRs after this __builtin_stack_restore.  */
+
+static tree
+optimize_stack_restore (basic_block bb, tree call, block_stmt_iterator i)
+{
+  tree stack_save, stmt, callee;
+
+  if (TREE_CODE (call) != CALL_EXPR
+      || call_expr_nargs (call) != 1
+      || TREE_CODE (CALL_EXPR_ARG (call, 0)) != SSA_NAME
+      || !POINTER_TYPE_P (TREE_TYPE (CALL_EXPR_ARG (call, 0))))
+    return NULL_TREE;
+
+  for (bsi_next (&i); !bsi_end_p (i); bsi_next (&i))
+    {
+      tree call;
+
+      stmt = bsi_stmt (i);
+      if (TREE_CODE (stmt) == ASM_EXPR)
+	return NULL_TREE;
+      call = get_call_expr_in (stmt);
+      if (call == NULL)
+	continue;
+
+      callee = get_callee_fndecl (call);
+      if (!callee || DECL_BUILT_IN_CLASS (callee) != BUILT_IN_NORMAL)
+	return NULL_TREE;
+
+      if (DECL_FUNCTION_CODE (callee) == BUILT_IN_STACK_RESTORE)
+	break;
+    }
+
+  if (bsi_end_p (i)
+      && (! single_succ_p (bb)
+	  || single_succ_edge (bb)->dest != EXIT_BLOCK_PTR))
+    return NULL_TREE;
+
+  stack_save = SSA_NAME_DEF_STMT (CALL_EXPR_ARG (call, 0));
+  if (TREE_CODE (stack_save) != GIMPLE_MODIFY_STMT
+      || GIMPLE_STMT_OPERAND (stack_save, 0) != CALL_EXPR_ARG (call, 0)
+      || TREE_CODE (GIMPLE_STMT_OPERAND (stack_save, 1)) != CALL_EXPR
+      || tree_could_throw_p (stack_save)
+      || !has_single_use (CALL_EXPR_ARG (call, 0)))
+    return NULL_TREE;
+
+  callee = get_callee_fndecl (GIMPLE_STMT_OPERAND (stack_save, 1));
+  if (!callee
+      || DECL_BUILT_IN_CLASS (callee) != BUILT_IN_NORMAL
+      || DECL_FUNCTION_CODE (callee) != BUILT_IN_STACK_SAVE
+      || call_expr_nargs (GIMPLE_STMT_OPERAND (stack_save, 1)) != 0)
+    return NULL_TREE;
+
+  stmt = stack_save;
+  push_stmt_changes (&stmt);
+  if (!set_rhs (&stmt,
+		build_int_cst (TREE_TYPE (CALL_EXPR_ARG (call, 0)), 0)))
+    {
+      discard_stmt_changes (&stmt);
+      return NULL_TREE;
+    }
+  gcc_assert (stmt == stack_save);
+  pop_stmt_changes (&stmt);
+
+  return integer_zero_node;
+}
+
+/* If va_list type is a simple pointer and nothing special is needed,
+   optimize __builtin_va_start (&ap, 0) into ap = __builtin_next_arg (0),
+   __builtin_va_end (&ap) out as NOP and __builtin_va_copy into a simple
+   pointer assignment.  */
+
+static tree
+optimize_stdarg_builtin (tree call)
+{
+  tree callee, lhs, rhs;
+  bool va_list_simple_ptr;
+
+  if (TREE_CODE (call) != CALL_EXPR)
+    return NULL_TREE;
+
+  va_list_simple_ptr = POINTER_TYPE_P (va_list_type_node)
+		       && (TREE_TYPE (va_list_type_node) == void_type_node
+			   || TREE_TYPE (va_list_type_node) == char_type_node);
+
+  callee = get_callee_fndecl (call);
+  switch (DECL_FUNCTION_CODE (callee))
+    {
+    case BUILT_IN_VA_START:
+      if (!va_list_simple_ptr
+	  || targetm.expand_builtin_va_start != NULL
+	  || built_in_decls[BUILT_IN_NEXT_ARG] == NULL)
+	return NULL_TREE;
+
+      if (call_expr_nargs (call) != 2)
+	return NULL_TREE;
+
+      lhs = CALL_EXPR_ARG (call, 0);
+      if (!POINTER_TYPE_P (TREE_TYPE (lhs))
+	  || TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (lhs)))
+	     != TYPE_MAIN_VARIANT (va_list_type_node))
+	return NULL_TREE;
+
+      lhs = build_fold_indirect_ref (lhs);
+      rhs = build_call_expr (built_in_decls[BUILT_IN_NEXT_ARG],
+			     1, integer_zero_node);
+      rhs = fold_convert (TREE_TYPE (lhs), rhs);
+      return build2 (MODIFY_EXPR, TREE_TYPE (lhs), lhs, rhs);
+
+    case BUILT_IN_VA_COPY:
+      if (!va_list_simple_ptr)
+	return NULL_TREE;
+
+      if (call_expr_nargs (call) != 2)
+	return NULL_TREE;
+
+      lhs = CALL_EXPR_ARG (call, 0);
+      if (!POINTER_TYPE_P (TREE_TYPE (lhs))
+	  || TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (lhs)))
+	     != TYPE_MAIN_VARIANT (va_list_type_node))
+	return NULL_TREE;
+
+      lhs = build_fold_indirect_ref (lhs);
+      rhs = CALL_EXPR_ARG (call, 1);
+      if (TYPE_MAIN_VARIANT (TREE_TYPE (rhs))
+	  != TYPE_MAIN_VARIANT (va_list_type_node))
+	return NULL_TREE;
+
+      rhs = fold_convert (TREE_TYPE (lhs), rhs);
+      return build2 (MODIFY_EXPR, TREE_TYPE (lhs), lhs, rhs);
+
+    case BUILT_IN_VA_END:
+      return integer_zero_node;
+
+    default:
+      gcc_unreachable ();
+    }
+}
+
 /* Convert EXPR into a GIMPLE value suitable for substitution on the
    RHS of an assignment.  Insert the necessary statements before
    iterator *SI_P. 
@@ -2681,6 +2863,22 @@ execute_fold_all_builtins (void)
 		   certain that the value simply isn't constant.  */
 		result = integer_zero_node;
 		break;
+
+	      case BUILT_IN_STACK_RESTORE:
+		result = optimize_stack_restore (bb, *stmtp, i);
+		if (result)
+		  break;
+		bsi_next (&i);
+		continue;
+
+	      case BUILT_IN_VA_START:
+	      case BUILT_IN_VA_END:
+	      case BUILT_IN_VA_COPY:
+		/* These shouldn't be folded before pass_stdarg.  */
+		result = optimize_stdarg_builtin (*stmtp);
+		if (result)
+		  break;
+		/* FALLTHRU */
 
 	      default:
 		bsi_next (&i);

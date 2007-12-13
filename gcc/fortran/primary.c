@@ -349,9 +349,9 @@ match_boz_constant (gfc_expr **result)
   if (delim != '\'' && delim != '\"')
     goto backup;
 
-  if (x_hex && pedantic
+  if (x_hex
       && (gfc_notify_std (GFC_STD_GNU, "Extension: Hexadecimal "
-			  "constant at %C uses non-standard syntax.")
+			  "constant at %C uses non-standard syntax")
 	  == FAILURE))
       return MATCH_ERROR;
 
@@ -388,8 +388,11 @@ match_boz_constant (gfc_expr **result)
 	default:
 	  goto backup;
 	}
-	gfc_notify_std (GFC_STD_GNU, "Extension: BOZ constant "
-			"at %C uses non-standard postfix syntax.");
+
+      if (gfc_notify_std (GFC_STD_GNU, "Extension: BOZ constant "
+			  "at %C uses non-standard postfix syntax")
+	  == FAILURE)
+	return MATCH_ERROR;
     }
 
   gfc_current_locus = old_loc;
@@ -412,12 +415,21 @@ match_boz_constant (gfc_expr **result)
   kind = gfc_max_integer_kind;
   e = gfc_convert_integer (buffer, kind, radix, &gfc_current_locus);
 
+  /* Mark as boz variable.  */
+  e->is_boz = 1;
+
   if (gfc_range_check (e) != ARITH_OK)
     {
       gfc_error ("Integer too big for integer kind %i at %C", kind);
       gfc_free_expr (e);
       return MATCH_ERROR;
     }
+
+  if (!gfc_in_match_data ()
+      && (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: BOZ used outside a DATA "
+			  "statement at %C")
+	  == FAILURE))
+      return MATCH_ERROR;
 
   *result = e;
   return MATCH_YES;
@@ -429,7 +441,7 @@ backup:
 
 
 /* Match a real constant of some sort.  Allow a signed constant if signflag
-   is nonzero.  Allow integer constants if allow_int is true.  */
+   is nonzero.  */
 
 static match
 match_real_constant (gfc_expr **result, int signflag)
@@ -1979,7 +1991,7 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result)
   if (gfc_match_char (')') != MATCH_YES)
     goto syntax;
 
-  if (comp->next != NULL)
+  if (comp && comp->next != NULL)
     {
       gfc_error ("Too few components in structure constructor at %C");
       goto cleanup;
@@ -2525,8 +2537,7 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
 
     case FL_PROCEDURE:
       /* Check for a nonrecursive function result */
-      if (sym->attr.function && (sym->result == sym || sym->attr.entry)
-	  && !sym->attr.external)
+      if (sym->attr.function && sym->result == sym && !sym->attr.external)
 	{
 	  /* If a function result is a derived type, then the derived
 	     type may still have to be resolved.  */

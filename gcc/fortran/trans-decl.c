@@ -324,8 +324,12 @@ gfc_sym_mangled_function_id (gfc_symbol * sym)
       || (sym->module != NULL && (sym->attr.external
 	    || sym->attr.if_source == IFSRC_IFBODY)))
     {
-      if (strcmp (sym->name, "MAIN__") == 0
-	  || sym->attr.proc == PROC_INTRINSIC)
+      /* Main program is mangled into MAIN__.  */
+      if (sym->attr.is_main_program)
+	return get_identifier ("MAIN__");
+
+      /* Intrinsic procedures are never mangled.  */
+      if (sym->attr.proc == PROC_INTRINSIC)
 	return get_identifier (sym->name);
 
       if (gfc_option.flag_underscoring)
@@ -1321,7 +1325,7 @@ build_function_decl (gfc_symbol * sym)
       TREE_SIDE_EFFECTS (fndecl) = 0;
     }
 
-  /* For -fwhole-program to work well, MAIN__ needs to have the
+  /* For -fwhole-program to work well, the main program needs to have the
      "externally_visible" attribute.  */
   if (attr.is_main_program)
     DECL_ATTRIBUTES (fndecl)
@@ -1531,8 +1535,10 @@ create_function_arglist (gfc_symbol * sym)
       typelist = TREE_CHAIN (typelist);
     }
 
-  /* Add the hidden string length parameters.  */
-  arglist = chainon (arglist, hidden_arglist);
+  /* Add the hidden string length parameters, unless the procedure
+     is bind(C).  */
+  if (!sym->attr.is_bind_c)
+    arglist = chainon (arglist, hidden_arglist);
 
   gcc_assert (hidden_typelist == NULL_TREE
               || TREE_VALUE (hidden_typelist) == void_type_node);
@@ -2047,7 +2053,7 @@ gfc_build_intrinsic_function_decls (void)
                                      gfc_charlen_type_node, pchar_type_node,
                                      gfc_logical4_type_node);
 
-  gfor_fndecl_string_trim = 
+  gfor_fndecl_string_trim =
     gfc_build_library_function_decl (get_identifier (PREFIX("string_trim")),
                                      void_type_node,
                                      4,
@@ -2108,7 +2114,7 @@ gfc_build_intrinsic_function_decls (void)
                                      pvoid_type_node);
 
   gfor_fndecl_sr_kind =
-    gfc_build_library_function_decl (get_identifier 
+    gfc_build_library_function_decl (get_identifier
 					(PREFIX("selected_real_kind")),
                                      gfc_int4_type_node,
                                      2, pvoid_type_node,
@@ -2887,80 +2893,26 @@ gfc_generate_contained_functions (gfc_namespace * parent)
 static void
 generate_local_decl (gfc_symbol *);
 
+/* Traverse expr, marking all EXPR_VARIABLE symbols referenced.  */
+
+static bool
+expr_decls (gfc_expr *e, gfc_symbol *sym,
+	    int *f ATTRIBUTE_UNUSED)
+{
+  if (e->expr_type != EXPR_VARIABLE
+	    || sym == e->symtree->n.sym
+	    || e->symtree->n.sym->mark
+	    || e->symtree->n.sym->ns != sym->ns)
+	return false;
+
+  generate_local_decl (e->symtree->n.sym);
+  return false;
+}
+
 static void
 generate_expr_decls (gfc_symbol *sym, gfc_expr *e)
 {
-  gfc_actual_arglist *arg;
-  gfc_ref *ref;
-  int i;
-
-  if (e == NULL)
-    return;
-
-  switch (e->expr_type)
-    {
-    case EXPR_FUNCTION:
-      for (arg = e->value.function.actual; arg; arg = arg->next)
-	generate_expr_decls (sym, arg->expr);
-      break;
-
-    /* If the variable is not the same as the dependent, 'sym', and
-       it is not marked as being declared and it is in the same
-       namespace as 'sym', add it to the local declarations.  */
-    case EXPR_VARIABLE:
-      if (sym == e->symtree->n.sym
-	    || e->symtree->n.sym->mark
-	    || e->symtree->n.sym->ns != sym->ns)
-	return;
-
-      generate_local_decl (e->symtree->n.sym);
-      break;
-
-    case EXPR_OP:
-      generate_expr_decls (sym, e->value.op.op1);
-      generate_expr_decls (sym, e->value.op.op2);
-      break;
-
-    default:
-      break;
-    }
-
-  if (e->ref)
-    {
-      for (ref = e->ref; ref; ref = ref->next)
-	{
-	  switch (ref->type)
-	    {
-	    case REF_ARRAY:
-	      for (i = 0; i < ref->u.ar.dimen; i++)
-		{
-		  generate_expr_decls (sym, ref->u.ar.start[i]);
-		  generate_expr_decls (sym, ref->u.ar.end[i]);
-		  generate_expr_decls (sym, ref->u.ar.stride[i]);
-		}
-	      break;
-
-	    case REF_SUBSTRING:
-	      generate_expr_decls (sym, ref->u.ss.start);
-	      generate_expr_decls (sym, ref->u.ss.end);
-	      break;
-
-	    case REF_COMPONENT:
-	      if (ref->u.c.component->ts.type == BT_CHARACTER
-		    && ref->u.c.component->ts.cl->length->expr_type
-						!= EXPR_CONSTANT)
-		generate_expr_decls (sym, ref->u.c.component->ts.cl->length);
-
-	      if (ref->u.c.component->as)
-	        for (i = 0; i < ref->u.c.component->as->rank; i++)
-		  {
-		    generate_expr_decls (sym, ref->u.c.component->as->lower[i]);
-		    generate_expr_decls (sym, ref->u.c.component->as->upper[i]);
-		  }
-	      break;
-	    }
-	}
-    }
+  gfc_traverse_expr (e, sym, expr_decls, 0);
 }
 
 
@@ -2972,7 +2924,9 @@ generate_dependency_declarations (gfc_symbol *sym)
   int i;
 
   if (sym->ts.type == BT_CHARACTER
-	&& sym->ts.cl->length->expr_type != EXPR_CONSTANT)
+      && sym->ts.cl
+      && sym->ts.cl->length
+      && sym->ts.cl->length->expr_type != EXPR_CONSTANT)
     generate_expr_decls (sym, sym->ts.cl->length);
 
   if (sym->as && sym->as->rank)
@@ -3095,7 +3049,7 @@ gfc_trans_entry_master_switch (gfc_entry_list * el)
       val = build_int_cst (gfc_array_index_type, el->id);
       tmp = build3_v (CASE_LABEL_EXPR, val, NULL_TREE, label);
       gfc_add_expr_to_block (&block, tmp);
-      
+
       /* And jump to the actual entry point.  */
       label = gfc_build_label_decl (NULL_TREE);
       tmp = build1_v (GOTO_EXPR, label);
@@ -3177,7 +3131,7 @@ gfc_generate_function_code (gfc_namespace * ns)
   gfc_generate_contained_functions (ns);
 
   generate_local_vars (ns);
-  
+
   /* Keep the parent fake result declaration in module functions
      or external procedures.  */
   if ((ns->parent && ns->parent->proc_name->attr.flavor == FL_MODULE)

@@ -298,8 +298,8 @@ gnat_pushlevel ()
   if (free_block_chain)
     {
       newlevel->block = free_block_chain;
-      free_block_chain = TREE_CHAIN (free_block_chain);
-      TREE_CHAIN (newlevel->block) = NULL_TREE;
+      free_block_chain = BLOCK_CHAIN (free_block_chain);
+      BLOCK_CHAIN (newlevel->block) = NULL_TREE;
     }
   else
     newlevel->block = make_node (BLOCK);
@@ -365,12 +365,12 @@ gnat_poplevel ()
       BLOCK_SUBBLOCKS (level->chain->block)
 	= chainon (BLOCK_SUBBLOCKS (block),
 		   BLOCK_SUBBLOCKS (level->chain->block));
-      TREE_CHAIN (block) = free_block_chain;
+      BLOCK_CHAIN (block) = free_block_chain;
       free_block_chain = block;
     }
   else
     {
-      TREE_CHAIN (block) = BLOCK_SUBBLOCKS (level->chain->block);
+      BLOCK_CHAIN (block) = BLOCK_SUBBLOCKS (level->chain->block);
       BLOCK_SUBBLOCKS (level->chain->block) = block;
       TREE_USED (block) = 1;
       set_block_for_group (block);
@@ -494,16 +494,6 @@ gnat_init_decl_processing (void)
   size_type_node = gnat_type_for_size (GET_MODE_BITSIZE (Pmode), 0);
   set_sizetype (size_type_node);
   build_common_tree_nodes_2 (0);
-
-  /* Give names and make TYPE_DECLs for common types.  */
-  create_type_decl (get_identifier (SIZE_TYPE), sizetype,
-		    NULL, false, true, Empty);
-  create_type_decl (get_identifier ("integer"), integer_type_node,
-		    NULL, false, true, Empty);
-  create_type_decl (get_identifier ("unsigned char"), char_type_node,
-		    NULL, false, true, Empty);
-  create_type_decl (get_identifier ("long integer"), long_integer_type_node,
-		    NULL, false, true, Empty);
 
   ptr_void_type_node = build_pointer_type (void_type_node);
 
@@ -757,6 +747,7 @@ finish_record_type (tree record_type, tree fieldlist, int rep_level,
 		    bool do_not_finalize)
 {
   enum tree_code code = TREE_CODE (record_type);
+  tree name = TYPE_NAME (record_type);
   tree ada_size = bitsize_zero_node;
   tree size = bitsize_zero_node;
   bool var_size = false;
@@ -764,9 +755,11 @@ finish_record_type (tree record_type, tree fieldlist, int rep_level,
   bool had_size_unit = TYPE_SIZE_UNIT (record_type) != 0;
   tree field;
 
+  if (name && TREE_CODE (name) == TYPE_DECL)
+    name = DECL_NAME (name);
+
   TYPE_FIELDS (record_type) = fieldlist;
-  TYPE_STUB_DECL (record_type)
-    = build_decl (TYPE_DECL, TYPE_NAME (record_type), record_type);
+  TYPE_STUB_DECL (record_type) = build_decl (TYPE_DECL, name, record_type);
 
   /* We don't need both the typedef name and the record name output in
      the debugging information, since they are the same.  */
@@ -1588,11 +1581,24 @@ create_field_decl (tree field_name, tree field_type, tree record_type,
     }
 
   DECL_PACKED (field_decl) = pos ? DECL_BIT_FIELD (field_decl) : packed;
-  DECL_ALIGN (field_decl)
-    = MAX (DECL_ALIGN (field_decl),
-	   DECL_BIT_FIELD (field_decl) ? 1
-	   : packed && TYPE_MODE (field_type) != BLKmode ? BITS_PER_UNIT
-	   : TYPE_ALIGN (field_type));
+
+  /* Bump the alignment if need be, either for bitfield/packing purposes or
+     to satisfy the type requirements if no such consideration applies.  When
+     we get the alignment from the type, indicate if this is from an explicit
+     user request, which prevents stor-layout from lowering it later on.  */
+  {
+    int bit_align
+      = (DECL_BIT_FIELD (field_decl) ? 1
+	 : packed && TYPE_MODE (field_type) != BLKmode ? BITS_PER_UNIT : 0);
+
+    if (bit_align > DECL_ALIGN (field_decl))
+      DECL_ALIGN (field_decl) = bit_align;
+    else if (!bit_align && TYPE_ALIGN (field_type) > DECL_ALIGN (field_decl))
+      {
+	DECL_ALIGN (field_decl) = TYPE_ALIGN (field_type);
+	DECL_USER_ALIGN (field_decl) = TYPE_USER_ALIGN (field_type);
+      }
+  }
 
   if (pos)
     {
@@ -2993,7 +2999,7 @@ build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
 
   gnat_poplevel ();
 
-  allocate_struct_function (gnu_stub_decl);
+  allocate_struct_function (gnu_stub_decl, false);
   end_subprog_body (gnu_body);
 }
 

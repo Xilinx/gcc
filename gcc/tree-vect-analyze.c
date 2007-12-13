@@ -42,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 
 /* Main analysis functions.  */
-static loop_vec_info vect_analyze_loop_form (struct loop *);
 static bool vect_analyze_data_refs (loop_vec_info);
 static bool vect_mark_stmts_to_be_vectorized (loop_vec_info);
 static void vect_analyze_scalar_cycles (loop_vec_info);
@@ -603,6 +602,7 @@ vect_analyze_operations (loop_vec_info loop_vinfo)
 
   min_profitable_iters = vect_estimate_min_profitable_iters (loop_vinfo);
   LOOP_VINFO_COST_MODEL_MIN_ITERS (loop_vinfo) = min_profitable_iters;
+
   if (min_profitable_iters < 0)
     {
       if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
@@ -3998,7 +3998,7 @@ vect_analyze_loop_1 (struct loop *loop)
    - the loop exit condition is simple enough, and the number of iterations
      can be analyzed (a countable loop).  */
 
-static loop_vec_info
+loop_vec_info
 vect_analyze_loop_form (struct loop *loop)
 {
   loop_vec_info loop_vinfo;
@@ -4217,6 +4217,7 @@ vect_analyze_loop_form (struct loop *loop)
 
   loop_vinfo = new_loop_vec_info (loop);
   LOOP_VINFO_NITERS (loop_vinfo) = number_of_iterations;
+  LOOP_VINFO_NITERS_UNCHANGED (loop_vinfo) = number_of_iterations;
 
   STMT_VINFO_TYPE (vinfo_for_stmt (loop_cond)) = loop_exit_ctrl_vec_info_type;
 

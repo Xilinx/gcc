@@ -789,6 +789,7 @@ mmcu=*:-mmcu=%*}"
   mmcu=atmega645*|\
   mmcu=atmega649*|\
   mmcu=atmega128|\
+  mmcu=atmega1284p|\
   mmcu=atmega162|\
   mmcu=atmega164*|\
   mmcu=atmega165*|\
@@ -796,7 +797,9 @@ mmcu=*:-mmcu=%*}"
   mmcu=atmega169*|\
   mmcu=atmega8hva|\
   mmcu=atmega16hva|\
+  mmcu=atmega32hvb|\
   mmcu=attiny48|\
+  mmcu=attiny88|\
   mmcu=at90can*|\
   mmcu=at90pwm*|\
   mmcu=at90usb*: -Tdata 0x800100}\
@@ -849,6 +852,7 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=attiny861:crttn861.o%s} \
 %{mmcu=attiny43u:crttn43u.o%s} \
 %{mmcu=attiny48:crttn48.o%s} \
+%{mmcu=attiny88:crttn88.o%s} \
 %{mmcu=atmega103|mmcu=avr3:crtm103.o%s} \
 %{mmcu=at43usb320:crt43320.o%s} \
 %{mmcu=at43usb355:crt43355.o%s} \
@@ -888,6 +892,7 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=atmega329p:crtm329p.o%s} \
 %{mmcu=atmega3290:crtm3290.o%s} \
 %{mmcu=atmega3290p:crtm3290p.o%s} \
+%{mmcu=atmega32hvb:crtm32hvb.o%s} \
 %{mmcu=atmega406:crtm406.o%s} \
 %{mmcu=atmega64:crtm64.o%s} \
 %{mmcu=atmega640:crtm640.o%s} \
@@ -900,6 +905,7 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=atmega128:crtm128.o%s} \
 %{mmcu=atmega1280:crtm1280.o%s} \
 %{mmcu=atmega1281:crtm1281.o%s} \
+%{mmcu=atmega1284p:crtm1284p.o%s} \
 %{mmcu=atmega8hva:crtm8hva.o%s} \
 %{mmcu=atmega16hva:crtm16hva.o%s} \
 %{mmcu=at90can32:crtcan32.o%s} \

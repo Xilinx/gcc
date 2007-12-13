@@ -277,11 +277,9 @@ do {							\
 #define ASM_COMMENT_START " #"
 
 #ifndef DWARF2_UNWIND_INFO
-/* 64-bit target uses DWARF2 unwind by default. If 32-bit target
-   configured with --disable-sjlj-exceptions, use DWARF2, else default
-   to SJLJ.  */
-#if TARGET_64BIT_DEFAULT \
-    || (defined (CONFIG_SJLJ_EXCEPTIONS) && !CONFIG_SJLJ_EXCEPTIONS)
+/* If configured with --disable-sjlj-exceptions, use DWARF2, else
+   default to SJLJ.  */
+#if  (defined (CONFIG_SJLJ_EXCEPTIONS) && !CONFIG_SJLJ_EXCEPTIONS)
 #define DWARF2_UNWIND_INFO 1
 #else
 #define DWARF2_UNWIND_INFO 0
@@ -332,9 +330,13 @@ do {							\
 #undef MAX_OFILE_ALIGNMENT
 #define MAX_OFILE_ALIGNMENT (8192 * 8)
 
-/* Native complier aligns internal doubles in structures on dword boundaries.  */
+/* BIGGEST_FIELD_ALIGNMENT macro is used directly by libobjc, There, we
+   align internal doubles in structures on dword boundaries. Otherwise,
+   support vector modes using ADJUST_FIELD_ALIGN, defined in i386.h.  */
+#ifdef IN_TARGET_LIBS
 #undef	BIGGEST_FIELD_ALIGNMENT
 #define BIGGEST_FIELD_ALIGNMENT 64
+#endif
 
 /* A bit-field declared as `int' forces `int' alignment for the struct.  */
 #undef PCC_BITFIELD_TYPE_MATTERS

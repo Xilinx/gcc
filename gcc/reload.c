@@ -1518,11 +1518,11 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	    && REG_P (XEXP (note, 0))
 	    && (regno = REGNO (XEXP (note, 0))) < FIRST_PSEUDO_REGISTER
 	    && reg_mentioned_p (XEXP (note, 0), in)
-	    /* Check that we don't use a hardreg for an uninitialized
-	       pseudo.  See also find_dummy_reload().  */
+	    /* Check that a former pseudo is valid; see find_dummy_reload.  */
 	    && (ORIGINAL_REGNO (XEXP (note, 0)) < FIRST_PSEUDO_REGISTER
-		|| ! bitmap_bit_p (DF_LIVE_OUT (ENTRY_BLOCK_PTR),
-				   ORIGINAL_REGNO (XEXP (note, 0))))
+		|| (!bitmap_bit_p (DF_LIVE_OUT (ENTRY_BLOCK_PTR),
+				   ORIGINAL_REGNO (XEXP (note, 0)))
+		    && hard_regno_nregs[regno][GET_MODE (XEXP (note, 0))] == 1))
 	    && ! refers_to_regno_for_reload_p (regno,
 					       end_hard_regno (rel_mode,
 							       regno),
@@ -1678,7 +1678,7 @@ remove_address_replacements (rtx in_rtx)
 static void
 combine_reloads (void)
 {
-  int i;
+  int i, regno;
   int output_reload = -1;
   int secondary_out = -1;
   rtx note;
@@ -1825,34 +1825,32 @@ combine_reloads (void)
   for (note = REG_NOTES (this_insn); note; note = XEXP (note, 1))
     if (REG_NOTE_KIND (note) == REG_DEAD
 	&& REG_P (XEXP (note, 0))
-	&& ! reg_overlap_mentioned_for_reload_p (XEXP (note, 0),
-						 rld[output_reload].out)
-	&& REGNO (XEXP (note, 0)) < FIRST_PSEUDO_REGISTER
-	&& HARD_REGNO_MODE_OK (REGNO (XEXP (note, 0)), rld[output_reload].outmode)
+	&& !reg_overlap_mentioned_for_reload_p (XEXP (note, 0),
+						rld[output_reload].out)
+	&& (regno = REGNO (XEXP (note, 0))) < FIRST_PSEUDO_REGISTER
+	&& HARD_REGNO_MODE_OK (regno, rld[output_reload].outmode)
 	&& TEST_HARD_REG_BIT (reg_class_contents[(int) rld[output_reload].class],
-			      REGNO (XEXP (note, 0)))
-	&& (hard_regno_nregs[REGNO (XEXP (note, 0))][rld[output_reload].outmode]
-	    <= hard_regno_nregs[REGNO (XEXP (note, 0))][GET_MODE (XEXP (note, 0))])
+			      regno)
+	&& (hard_regno_nregs[regno][rld[output_reload].outmode]
+	    <= hard_regno_nregs[regno][GET_MODE (XEXP (note, 0))])
 	/* Ensure that a secondary or tertiary reload for this output
 	   won't want this register.  */
 	&& ((secondary_out = rld[output_reload].secondary_out_reload) == -1
-	    || (! (TEST_HARD_REG_BIT
-		   (reg_class_contents[(int) rld[secondary_out].class],
-		    REGNO (XEXP (note, 0))))
+	    || (!(TEST_HARD_REG_BIT
+		  (reg_class_contents[(int) rld[secondary_out].class], regno))
 		&& ((secondary_out = rld[secondary_out].secondary_out_reload) == -1
-		    ||  ! (TEST_HARD_REG_BIT
-			   (reg_class_contents[(int) rld[secondary_out].class],
-			    REGNO (XEXP (note, 0)))))))
-	&& ! fixed_regs[REGNO (XEXP (note, 0))]
-	/* Check that we don't use a hardreg for an uninitialized
-	   pseudo.  See also find_dummy_reload().  */
+		    || !(TEST_HARD_REG_BIT
+			 (reg_class_contents[(int) rld[secondary_out].class],
+			  regno)))))
+	&& !fixed_regs[regno]
+	/* Check that a former pseudo is valid; see find_dummy_reload.  */
 	&& (ORIGINAL_REGNO (XEXP (note, 0)) < FIRST_PSEUDO_REGISTER
-	    || ! bitmap_bit_p (DF_LR_OUT (ENTRY_BLOCK_PTR),
-			       ORIGINAL_REGNO (XEXP (note, 0)))))
+	    || (!bitmap_bit_p (DF_LR_OUT (ENTRY_BLOCK_PTR),
+			       ORIGINAL_REGNO (XEXP (note, 0)))
+		&& hard_regno_nregs[regno][GET_MODE (XEXP (note, 0))] == 1)))
       {
 	rld[output_reload].reg_rtx
-	  = gen_rtx_REG (rld[output_reload].outmode,
-			 REGNO (XEXP (note, 0)));
+	  = gen_rtx_REG (rld[output_reload].outmode, regno);
 	return;
       }
 }
@@ -1992,16 +1990,24 @@ find_dummy_reload (rtx real_in, rtx real_out, rtx *inloc, rtx *outloc,
 				has a real mode.  */
 			     (GET_MODE (out) != VOIDmode
 			      ? GET_MODE (out) : outmode))
-        /* But only do all this if we can be sure, that this input
-           operand doesn't correspond with an uninitialized pseudoreg.
-           global can assign some hardreg to it, which is the same as
-	   a different pseudo also currently live (as it can ignore the
-	   conflict).  So we never must introduce writes to such hardregs,
-	   as they would clobber the other live pseudo using the same.
-	   See also PR20973.  */
       && (ORIGINAL_REGNO (in) < FIRST_PSEUDO_REGISTER
-          || ! bitmap_bit_p (DF_LIVE_OUT (ENTRY_BLOCK_PTR),
-			     ORIGINAL_REGNO (in))))
+	  /* However only do this if we can be sure that this input
+	     operand doesn't correspond with an uninitialized pseudo.
+	     global can assign some hardreg to it that is the same as
+	     the one assigned to a different, also live pseudo (as it
+	     can ignore the conflict).  We must never introduce writes
+	     to such hardregs, as they would clobber the other live
+	     pseudo.  See PR 20973.  */
+          || (!bitmap_bit_p (DF_LIVE_OUT (ENTRY_BLOCK_PTR),
+			     ORIGINAL_REGNO (in))
+	      /* Similarly, only do this if we can be sure that the death
+		 note is still valid.  global can assign some hardreg to
+		 the pseudo referenced in the note and simultaneously a
+		 subword of this hardreg to a different, also live pseudo,
+		 because only another subword of the hardreg is actually
+		 used in the insn.  This cannot happen if the pseudo has
+		 been assigned exactly one hardreg.  See PR 33732.  */
+	      && hard_regno_nregs[REGNO (in)][GET_MODE (in)] == 1)))
     {
       unsigned int regno = REGNO (in) + in_offset;
       unsigned int nwords = hard_regno_nregs[regno][inmode];
@@ -4462,7 +4468,8 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
     if (rld[i].when_needed == RELOAD_FOR_INPUT
 	&& GET_CODE (PATTERN (insn)) == SET
 	&& REG_P (SET_DEST (PATTERN (insn)))
-	&& SET_SRC (PATTERN (insn)) == rld[i].in
+	&& (SET_SRC (PATTERN (insn)) == rld[i].in
+	    || SET_SRC (PATTERN (insn)) == rld[i].in_reg)
 	&& !elimination_target_reg_p (SET_DEST (PATTERN (insn))))
       {
 	rtx dest = SET_DEST (PATTERN (insn));
@@ -5669,8 +5676,10 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 		}
 	    }
 
-	  /* If we have a hard register that is ok as an index,
-	     don't make a reload.  If an autoincrement of a nice register
+	  /* If we have a hard register that is ok in this incdec context,
+	     don't make a reload.  If the register isn't nice enough for
+	     autoincdec, we can reload it.  But, if an autoincrement of a
+	     register that we here verified as playing nice, still outside
 	     isn't "valid", it must be that no autoincrement is "valid".
 	     If that is true and something made an autoincrement anyway,
 	     this must be a special context where one is allowed.
@@ -5683,7 +5692,7 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 	  if (reg_renumber[regno] >= 0)
 	    regno = reg_renumber[regno];
 	  if (regno >= FIRST_PSEUDO_REGISTER
-	      || !REG_OK_FOR_CONTEXT (context, regno, mode, outer_code,
+	      || !REG_OK_FOR_CONTEXT (context, regno, mode, code,
 				      index_code))
 	    {
 	      int reloadnum;
@@ -5727,7 +5736,7 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 	      else
 		{
 		  reloadnum
-		    = push_reload (x, NULL_RTX, loc, (rtx*) 0,
+		    = push_reload (x, x, loc, (rtx*) 0,
 				   context_reg_class,
 				   GET_MODE (x), GET_MODE (x), 0, 0,
 				   opnum, type);

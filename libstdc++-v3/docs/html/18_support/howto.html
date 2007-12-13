@@ -10,7 +10,7 @@
    <meta name="KEYWORDS" content="HOWTO, libstdc++, GCC, g++, libg++, STL" />
    <meta name="DESCRIPTION" content="HOWTO for the libstdc++ chapter 18." />
    <meta name="GENERATOR" content="vi and eight fingers" />
-   <title>libstdc++-v3 HOWTO:  Chapter 18: Library Support</title>
+   <title>libstdc++ HOWTO:  Chapter 18: Library Support</title>
 <link rel="StyleSheet" href="../lib3styles.css" type="text/css" />
 <link rel="Start" href="../documentation.html" type="text/html"
   title="GNU C++ Standard Library" />
@@ -108,8 +108,8 @@
       print this stuff, it prompted him to run this code through current
       compilers to see what the state of the art is with respect to member
       template functions.  He posted
-      <a href="http://groups.google.com/groups?oi=djq&selm=an_644660779">an
-      article to Usenet</a> after discovering that the code above is not
+      <a href="http://groups.google.com/groups?oi=djq&amp;selm=an_644660779">
+      an article to Usenet</a> after discovering that the code above is not
       valid!  Even though it has no data members, it still needs a
       user-defined constructor (which means that the class needs a type name
       after all).  The ctor can have an empty body; it just needs to be
@@ -248,7 +248,7 @@
 
    struct argument_error : public std::runtime_error
    {  
-     argument_error(const std::string& s): std::runtime_error(s) { }
+     argument_error(const std::string&amp; s): std::runtime_error(s) { }
    };
 
    int main(int argc)
@@ -281,9 +281,6 @@
    </p>
    <pre>
        std::set_terminate(std::abort);</pre>
-   <p>Return <a href="#top">to top of page</a> or
-      <a href="../faq/index.html">to the FAQ</a>.
-   </p>
 
 <p>
    This function will attempt to write to stderr.  If your application
@@ -291,6 +288,11 @@
     <code>__verbose_terminate_handler</code> will behave in an
     unspecified manner.
 </p>
+
+   <p>Return <a href="#top">to top of page</a> or
+      <a href="../faq/index.html">to the FAQ</a>.
+   </p>
+
 
 <hr />
 <h2><a name="5">Dynamic memory management</a></h2>

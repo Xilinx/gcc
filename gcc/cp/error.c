@@ -611,6 +611,7 @@ dump_type_prefix (tree t, int flags)
     case VECTOR_TYPE:
     case TYPEOF_TYPE:
     case DECLTYPE_TYPE:
+    case TYPE_PACK_EXPANSION:
       dump_type (t, flags);
       pp_base (cxx_pp)->padding = pp_before;
       break;
@@ -708,6 +709,7 @@ dump_type_suffix (tree t, int flags)
     case VECTOR_TYPE:
     case TYPEOF_TYPE:
     case DECLTYPE_TYPE:
+    case TYPE_PACK_EXPANSION:
       break;
 
     default:
@@ -956,6 +958,7 @@ dump_decl (tree t, int flags)
 
     case UNBOUND_CLASS_TEMPLATE:
     case TYPE_PACK_EXPANSION:
+    case TREE_BINFO:
       dump_type (t, flags);
       break;
 
@@ -1437,6 +1440,12 @@ dump_expr (tree t, int flags)
   if (t == 0)
     return;
 
+  if (STATEMENT_CLASS_P (t))
+    {
+      pp_cxx_identifier (cxx_pp, "<statement>");
+      return;
+    }
+
   switch (TREE_CODE (t))
     {
     case VAR_DECL:
@@ -1873,10 +1882,6 @@ dump_expr (tree t, int flags)
       dump_decl (TEMPLATE_PARM_DECL (t), flags & ~TFF_DECL_SPECIFIERS);
       break;
 
-    case SCOPE_REF:
-      pp_expression (cxx_pp, t);
-      break;
-
     case CAST_EXPR:
       if (TREE_OPERAND (t, 0) == NULL_TREE
 	  || TREE_CHAIN (TREE_OPERAND (t, 0)))
@@ -2004,11 +2009,6 @@ dump_expr (tree t, int flags)
       dump_expr (TREE_OPERAND (t, 0), flags);
       break;
 
-    case EXPR_PACK_EXPANSION:
-      dump_expr (PACK_EXPANSION_PATTERN (t), flags);
-      pp_cxx_identifier (cxx_pp, "...");
-      break;
-
     case ARGUMENT_PACK_SELECT:
       dump_template_argument (ARGUMENT_PACK_SELECT_FROM_PACK (t), flags);
       break;
@@ -2040,10 +2040,6 @@ dump_expr (tree t, int flags)
       pp_cxx_trait_expression (cxx_pp, t);
       break;
 
-    case TYPEID_EXPR:
-      pp_cxx_typeid_expression (cxx_pp, t);
-      break;
-
     case VA_ARG_EXPR:
       pp_cxx_va_arg_expression (cxx_pp, t);
       break;
@@ -2052,14 +2048,20 @@ dump_expr (tree t, int flags)
       pp_cxx_offsetof_expression (cxx_pp, t);
       break;
 
+    case SCOPE_REF:
+    case EXPR_PACK_EXPANSION:
+    case TYPEID_EXPR:
     case MEMBER_REF:
     case DOTSTAR_EXPR:
-      pp_multiplicative_expression (cxx_pp, t);
-      break;
-
     case DELETE_EXPR:
     case VEC_DELETE_EXPR:
-      pp_cxx_delete_expression (cxx_pp, t);
+    case MODOP_EXPR:
+    case ABS_EXPR:
+      pp_expression (cxx_pp, t);
+      break;
+
+    case OBJ_TYPE_REF:
+      dump_expr (resolve_virtual_fun_from_obj_type_ref (t), flags);
       break;
 
       /*  This list is incomplete, but should suffice for now.

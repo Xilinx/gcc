@@ -61,6 +61,7 @@ is_gimple_formal_tmp_rhs (tree t)
     case TRUTH_AND_EXPR:
     case TRUTH_OR_EXPR:
     case TRUTH_XOR_EXPR:
+    case COND_EXPR:
     case ADDR_EXPR:
     case CALL_EXPR:
     case CONSTRUCTOR:
@@ -240,6 +241,8 @@ is_gimple_stmt (tree t)
     case OMP_CRITICAL:
     case OMP_RETURN:
     case OMP_CONTINUE:
+    case OMP_ATOMIC_LOAD:
+    case OMP_ATOMIC_STORE:
       /* These are always void.  */
       return true;
 

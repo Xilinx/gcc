@@ -300,8 +300,7 @@ builtin_macro (cpp_reader *pfile, cpp_hashnode *node)
       if (pfile->state.in_directive)
 	return 0;
 
-      _cpp_do__Pragma (pfile);
-      return 1;
+      return _cpp_do__Pragma (pfile);
     }
 
   buf = _cpp_builtin_macro_text (pfile, node);
@@ -452,7 +451,9 @@ paste_tokens (cpp_reader *pfile, const cpp_token **plhs, const cpp_token *rhs)
      false doesn't work, since we want to clear the PASTE_LEFT flag.  */
   if ((*plhs)->type == CPP_DIV && rhs->type != CPP_EQ)
     *end++ = ' ';
-  end = cpp_spell_token (pfile, rhs, end, false);
+  /* In one obscure case we might see padding here.  */
+  if (rhs->type != CPP_PADDING)
+    end = cpp_spell_token (pfile, rhs, end, false);
   *end = '\n';
 
   cpp_push_buffer (pfile, buf, end - buf, /* from_stage3 */ true);
@@ -515,8 +516,10 @@ paste_all_tokens (cpp_reader *pfile, const cpp_token *lhs)
 	rhs = *FIRST (context).ptoken++;
 
       if (rhs->type == CPP_PADDING)
-	abort ();
-
+	{
+	  if (rhs->flags & PASTE_LEFT)
+	    abort ();
+	}
       if (!paste_tokens (pfile, &lhs, rhs))
 	break;
     }
@@ -1692,7 +1695,8 @@ _cpp_create_definition (cpp_reader *pfile, cpp_hashnode *node)
   /* Enter definition in hash table.  */
   node->type = NT_MACRO;
   node->value.macro = macro;
-  if (! ustrncmp (NODE_NAME (node), DSC ("__STDC_")))
+  if (! ustrncmp (NODE_NAME (node), DSC ("__STDC_"))
+      && ustrcmp (NODE_NAME (node), (const uchar *) "__STDC_FORMAT_MACROS"))
     node->flags |= NODE_WARN;
 
   return ok;
