@@ -1,3 +1,12 @@
+2007-12-12  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+	* graphite.c (scan_tree_for_params): Correct the number of columns
+	for polylib format.
+	(nb_flat_iterator): New.
+	(setup_cloog_loop): Initialize to 1 the first column for inequalities.
+	(build_scop_iteration_domain): Correct the number of columns for 
+	polylib format.
+
 2007-12-12  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (129697:130800).

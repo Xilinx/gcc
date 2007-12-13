@@ -885,13 +885,13 @@ scan_tree_for_params (scop_p scop, tree expr, CloogMatrix *cstr, int row,
       break;
 
     case SSA_NAME:
-      col = scop_nb_loops (scop) + param_index (expr, scop);
+      col = scop_nb_loops (scop) + param_index (expr, scop) + 1;
       value_init (cstr->p[row][col]);
       value_assign (cstr->p[row][col], k);
       break;
 
     case INTEGER_CST:
-      col = scop_nb_loops (scop) + scop_nb_params (scop);
+      col = scop_nb_loops (scop) + scop_nb_params (scop) + 1;
       value_init (cstr->p[row][col]);
       value_set_si (cstr->p[row][col], int_cst_value (expr));
       break;
@@ -927,6 +927,8 @@ first_loop_in_scop (scop_p scop)
   return NULL;
 }
 
+static unsigned int nb_flat_iterator;
+
 /* Converts LOOP in SCOP to cloog's format.  NB_ITERATORS is the
    number of loops surrounding LOOP in SCOP.  OUTER_CSTR gives the
    constraints matrix for the surrounding loops.  */
@@ -935,7 +937,7 @@ static CloogLoop *
 setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 		  int nb_iterators)
 {
-  unsigned i, j, row;
+  unsigned i, j, row, col;
   unsigned nb_rows = outer_cstr->NbRows + 1;
   unsigned nb_cols = outer_cstr->NbColumns;
   CloogMatrix *cstr;
@@ -958,23 +960,32 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 
   /* 0 <= loop_i */
   row = outer_cstr->NbRows;
-  value_init (cstr->p[row][row]);
-  value_set_si (cstr->p[row][row], 1);
+  col = ++nb_flat_iterator;
+
+  value_init (cstr->p[row][0]);
+  value_set_si (cstr->p[row][0], 1);
+  value_init (cstr->p[row][col]);
+  value_set_si (cstr->p[row][col], 1);
 
   /* loop_i <= nb_iters */
   row++;
-
+  value_init (cstr->p[row][0]);
+  value_set_si (cstr->p[row][0], 1);
+  
   if (TREE_CODE (nb_iters) == INTEGER_CST)
     {
-      value_init (cstr->p[row][row]);
-      value_set_si (cstr->p[row][row], -1);
+      value_init (cstr->p[row][col]);
+      value_set_si (cstr->p[row][col], -1);
 
-      value_init (cstr->p[row][scop_dim_domain (scop) - 1]);
-      value_set_si (cstr->p[row][scop_dim_domain (scop) - 1],
+      value_init (cstr->p[row][scop_dim_domain (scop)]);
+      value_set_si (cstr->p[row][scop_dim_domain (scop)],
 		    int_cst_value (nb_iters));
     }
   else if (!chrec_contains_undetermined (nb_iters))
     {
+      value_init (cstr->p[row][col]);
+      value_set_si (cstr->p[row][col], -1);
+
       /* Otherwise nb_iters contains parameters: scan the nb_iters
 	 expression and build its matrix representation.  */
       Value one;
@@ -1017,7 +1028,8 @@ build_scop_iteration_domain (scop_p scop)
   if (loop == NULL)
     return false;
 
-  outer_cstr = cloog_matrix_alloc (0, scop_dim_domain (scop));
+  outer_cstr = cloog_matrix_alloc (0, scop_dim_domain (scop) + 1);
+  nb_flat_iterator = 0;
   SCOP_PROG (scop)->loop = setup_cloog_loop (scop, loop, outer_cstr, 0);
   return true;
 }
