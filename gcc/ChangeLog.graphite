@@ -1,5 +1,9 @@
 2007-12-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Fix merge problems.
+
+2007-12-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (setup_cloog_loop): Fix typo.
 
 2007-12-12  Sebastian Pop  <sebastian.pop@amd.com>
