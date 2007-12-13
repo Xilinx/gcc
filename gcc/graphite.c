@@ -1182,14 +1182,27 @@ static struct clast_stmt *
 find_transform (scop_p scop)
 {
   CloogOptions *options = cloog_options_malloc ();
-  CloogProgram *prog = cloog_program_generate (SCOP_PROG (scop), options);
-  
-  struct clast_stmt *stmt = cloog_clast_create (prog, options);
+  CloogProgram *prog;
+  struct clast_stmt *stmt;
 
+  /* Print the program we insert into cloog. */
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
+      fprintf (dump_file, "Cloog Input [\n");
+      cloog_program_print (dump_file, SCOP_PROG(scop));
+      fprintf (dump_file, "]\n");
+    }
+  
+  prog = cloog_program_generate (SCOP_PROG (scop), options);
+  stmt = cloog_clast_create (prog, options);
+
+  /* Print the program we get from cloog. */
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      fprintf (dump_file, "Cloog Output[\n");
       pprint (dump_file, stmt, 0, options);
       cloog_program_dump_cloog (dump_file, prog);
+      fprintf (dump_file, "]\n");
     }
 
   return stmt;
