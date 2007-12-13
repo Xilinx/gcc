@@ -1,3 +1,73 @@
+2007-12-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* doc/invoke.texi (-ftree-loop-distribution): Documented.
+	* tree-loop-distribution.c: Reimplemented.
+	* tree-pass.h (pass_loop_distribution): New.
+	* tree-scalar-evolution.c (number_of_iterations_for_all_loops): Use
+	print_loops.
+	* graphds.h (struct graph): New field indexes.
+	* timevar.def (TV_TREE_LOOP_DISTRIBUTION): New.
+
+	* tree-vect-analyze.c: Remove declaration of static functions when not
+	needed.
+	* tree-vectorizer.c: Same.
+	(rename_variables_in_loop): Now extern.
+	(slpeel_tree_duplicate_loop_to_edge_cfg): Renamed
+	tree_duplicate_loop_to_edge_cfg.  Reset PENDING_STMT for edges after
+	calling redirect_edge_and_branch_force.
+
+	* tree-vectorizer.h (tree_duplicate_loop_on_edge): Declared.
+
+	* tree-data-ref.c: Don't include tree-chrec.h.
+	(debug_data_dependence_relations): New.
+	(dump_data_dependence_relation): Call dump_data_reference on data refs
+	in the relation.
+	(same_access_functions): Moved...
+	(find_vertex_for_stmt): Renamed rdg_vertex_for_stmt.
+	(dump_rdg_vertex, debug_rdg_vertex, dump_rdg_component,
+	debug_rdg_component, dump_rdg, debug_rdg, dot_rdg_1, dot_rdg,
+	struct rdg_vertex_info, ): New.
+	(create_rdg_edge_for_ddr): Compute the dependence level before looking
+	at DDR_REVERSED_P.
+	(create_rdg_vertices): Initialize the htab of graph->indexes.
+	Initialize RDG_MEM_WRITE_STMT and RDG_MEM_READS_STMT.
+	(stmts_from_loop): Don't save LABEL_EXPR.
+	(hash_stmt_vertex_info, eq_stmt_vertex_info, hash_stmt_vertex_del): New.
+	(build_rdg): Initialize rdg->indexes.
+	(free_rdg, stores_from_loop, ref_base_address,
+	rdg_defs_used_in_other_loops_p, have_similar_memory_accesses,
+	have_similar_memory_accesses_1, ref_base_address_1,
+	remove_similar_memory_refs): New.
+
+	* tree-data-ref.h: Include tree-chrec.h.
+	(debug_data_dependence_relations): Declared.
+	(same_access_functions): ...here.  Now static inline.
+	(ddr_is_anti_dependent, ddrs_have_anti_deps, ddr_dependence_level): New.
+	(struct rdg_vertex): New fields has_mem_write, has_mem_reads.
+	(RDGV_HAS_MEM_WRITE, RDGV_HAS_MEM_READS, RDG_STMT, RDG_MEM_WRITE_STMT,
+	RDG_MEM_READS_STMT): New.
+	(dump_rdg_vertex, debug_rdg_vertex, dump_rdg_component,
+	debug_rdg_component, dump_rdg, debug_rdg, dot_rdg,
+	rdg_vertex_for_stmt): Declared.
+	(struct rdg_edge): New field level.
+	(RDGE_LEVEL, free_rdg): New.
+	(stores_from_loop, remove_similar_memory_refs,
+	rdg_defs_used_in_other_loops_p, have_similar_memory_accesses): Declared.
+	(rdg_has_similar_memory_accesses): New.
+
+	* lambda.h (dependence_level): New.
+	* common.opt (ftree-loop-distribution): New.
+	* tree-flow.h (debug_loop_ir): Renamed debug_loops.
+	(print_loop_ir): Renamed print_loops.
+	(debug_loop, debug_loop_num, print_loops_bb, mark_virtual_ops_in_bb,
+	tree_duplicate_loop_to_edge_cfg, rename_variables_in_loop): Declared.
+	* Makefile.in (TREE_DATA_REF_H): Depends on tree-chrec.h.
+	(tree-loop-distribution.o): Added.
+	* tree-cfg.c (mark_virtual_ops_in_region): Use mark_virtual_ops_in_bb.
+	(mark_virtual_ops_in_bb): New.
+	(print_loops_bb, debug_loop_num, debug_loop): New.
+	* passes.c: Scheduled pass_loop_distribution.
+
 2007-12-12  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
 	* graphite.c (scan_tree_for_params): Correct the number of columns

@@ -18,7 +18,7 @@ int loop1 (int k)
       }
   /* Dependences:
      S1->S2 (flow, level 2)
-     S3->S1 (anti, level 2)
+     S1->S3 (anti, level 2)
      S2->S3 (flow, level 0)
      S3->S4 (flow, level 0)
   */
@@ -26,5 +26,8 @@ int loop1 (int k)
   return a[100-1][100-1] + b[100-1][100-1] + c[100-1][100-1] + d[100-1][100-1];
 }
 
-/* { dg-final { scan-tree-dump-times "distributed" 1 "ldist" { xfail *-*-* } } } */
+/* FIXME: This is XFAILed because of a data dependence analysis
+   problem: the dependence test fails with a "don't know" relation.  */
+
+/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 1 "ldist" { xfail *-*-* } } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

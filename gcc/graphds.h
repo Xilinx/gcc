@@ -47,6 +47,7 @@ struct graph
   int n_vertices;	/* Number of vertices.  */
   struct vertex *vertices;
 			/* The vertices.  */
+  htab_t indexes;	/* Fast lookup for indexes.  */
 };
 
 struct graph *new_graph (int);

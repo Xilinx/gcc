@@ -30,5 +30,5 @@ void foo (int * __restrict__ ia,
   */
 }
 
-/* { dg-final { scan-tree-dump-times "distributed" 1 "ldist" { xfail *-*-* } } } */
+/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 1 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

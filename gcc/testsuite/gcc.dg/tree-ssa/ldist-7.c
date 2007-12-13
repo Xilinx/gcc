@@ -15,14 +15,18 @@ int loop1 (int k)
   }
   /* Dependences:
      S1->S2 (anti, level 1)
+     S1->S4 (flow, level 1, scalar)
      S2->S3 (flow, level 1)
      S3->S4 (flow, level 1)
      S4->S5 (flow, level 1)
      S5->S3 (anti, level 1)
+
+     There is a single partition: {S1, S2, S3, S4, S5}, because of the
+     scalar dependence z between the two partitions {S1, S2} and {S3, S4, S5}.
   */
 
   return a[1000-2] + b[1000-1] + c[1000-2] + d[1000-2];
 }
 
-/* { dg-final { scan-tree-dump-times "distributed" 1 "ldist" { xfail *-*-* } } } */
+/* { dg-final { scan-tree-dump-times "distributed" 0 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

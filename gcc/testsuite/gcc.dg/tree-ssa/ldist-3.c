@@ -18,12 +18,14 @@ int loop1 (int k)
   /*
     Dependences:
     S1 -> S2 (flow, level 1)
+    S1 -> S3 (anti, level 1)
     S2 -> S3 (flow, level 0)
-    S3 -> S1 (anti, level 1)
     S3 -> S4 (flow, level 1)
+
+    There are three partitions: {S1, S3}, {S2} and {S4}.
   */
   return a[10000-2] + b[10000-1] + c[10000-2] + d[10000-2];
 }
 
-/* { dg-final { scan-tree-dump-times "distributed" 1 "ldist" { xfail *-*-* } } } */
+/* { dg-final { scan-tree-dump-times "distributed: split to 3 loops" 1 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

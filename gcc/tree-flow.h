@@ -742,9 +742,11 @@ extern void dump_tree_cfg (FILE *, int);
 extern void debug_tree_cfg (int);
 extern void dump_cfg_stats (FILE *);
 extern void debug_cfg_stats (void);
-extern void debug_loop_ir (int);
-extern void print_loop_ir (FILE *, int);
-extern void print_loop_ir_bb (FILE *, basic_block, int, int);
+extern void debug_loops (int);
+extern void debug_loop (struct loop *, int);
+extern void debug_loop_num (unsigned, int);
+extern void print_loops (FILE *, int);
+extern void print_loops_bb (FILE *, basic_block, int, int);
 extern void cleanup_dead_labels (void);
 extern void group_case_labels (void);
 extern tree first_stmt (basic_block);
@@ -789,6 +791,7 @@ extern void end_recording_case_labels (void);
 extern basic_block move_sese_region_to_fn (struct function *, basic_block,
 				           basic_block);
 void remove_edge_and_dominated_blocks (edge);
+void mark_virtual_ops_in_bb (basic_block);
 
 /* In tree-cfgcleanup.c  */
 extern bitmap cfgcleanup_altered_bbs;
@@ -1018,6 +1021,8 @@ bool tree_duplicate_loop_to_header_edge (struct loop *, edge,
 					 unsigned int, sbitmap,
 					 edge, VEC (edge, heap) **,
 					 int);
+struct loop *tree_duplicate_loop_to_edge_cfg (struct loop *, edge);
+void rename_variables_in_loop (struct loop *);
 struct loop *tree_ssa_loop_version (struct loop *, tree,
 				    basic_block *);
 tree expand_simple_operations (tree);
@@ -1104,9 +1109,6 @@ bool sra_type_can_be_decomposed_p (tree);
 
 /* In tree-loop-linear.c  */
 extern void linear_transform_loops (void);
-
-/* In tree-loop-distribution.c  */
-extern void distribute_loop (struct loop *);
 
 /* In graphite.c  */
 extern void graphite_transform_loops (void);

@@ -60,7 +60,7 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
   print_lambda_vector (file, GBB_STATIC_SCHEDULE (gb), scop_nb_loops (GBB_SCOP (gb)) + 1);
   fprintf (file, "       )\n");
 
-  print_loop_ir_bb (file, GBB_BB (gb), indent+2, verbosity);
+  print_loops_bb (file, GBB_BB (gb), indent+2, verbosity);
 
   if (0)
     dump_data_references (file, GBB_DATA_REFS (gb));

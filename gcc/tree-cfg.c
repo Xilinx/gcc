@@ -5652,22 +5652,30 @@ move_stmt_r (tree *tp, int *walk_subtrees, void *data)
 /* Marks virtual operands of all statements in basic blocks BBS for
    renaming.  */
 
-static void
-mark_virtual_ops_in_region (VEC (basic_block,heap) *bbs)
+void
+mark_virtual_ops_in_bb (basic_block bb)
 {
   tree phi;
   block_stmt_iterator bsi;
+
+  for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
+    mark_virtual_ops_for_renaming (phi);
+
+  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+    mark_virtual_ops_for_renaming (bsi_stmt (bsi));
+}
+
+/* Marks virtual operands of all statements in basic blocks BBS for
+   renaming.  */
+
+static void
+mark_virtual_ops_in_region (VEC (basic_block,heap) *bbs)
+{
   basic_block bb;
   unsigned i;
 
   for (i = 0; VEC_iterate (basic_block, bbs, i, bb); i++)
-    {
-      for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
-	mark_virtual_ops_for_renaming (phi);
-
-      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	mark_virtual_ops_for_renaming (bsi_stmt (bsi));
-    }
+    mark_virtual_ops_in_bb (bb);
 }
 
 /* Move basic block BB from function CFUN to function DEST_FN.  The
@@ -6187,7 +6195,6 @@ debug_function (tree fn, int flags)
   dump_function_to_file (fn, stderr, flags);
 }
 
-
 /* Print on FILE the indexes for the predecessors of basic_block BB.  */
 
 static void
@@ -6216,7 +6223,7 @@ print_succ_bbs (FILE *file, basic_block bb)
 /* Print to FILE the basic block BB following the VERBOSITY level.  */
 
 void 
-print_loop_ir_bb (FILE *file, basic_block bb, int indent, int verbosity)
+print_loops_bb (FILE *file, basic_block bb, int indent, int verbosity)
 {
   char *s_indent = (char *) alloca ((size_t) indent + 1);
   memset ((void *) s_indent, ' ', (size_t) indent);
@@ -6241,7 +6248,8 @@ print_loop_ir_bb (FILE *file, basic_block bb, int indent, int verbosity)
     }
 }
 
-
+static void print_loop_and_siblings (FILE *, struct loop *, int, int);
+ 
 /* Pretty print LOOP on FILE, indented INDENT spaces.  Following
    VERBOSITY level this outputs the contents of the loop, or just its
    structure.  */
@@ -6284,38 +6292,64 @@ print_loop (FILE *file, struct loop *loop, int indent, int verbosity)
       fprintf (file, "%s{\n", s_indent);
       FOR_EACH_BB (bb)
 	if (bb->loop_father == loop)
-	  print_loop_ir_bb (file, bb, indent, verbosity);
+	  print_loops_bb (file, bb, indent, verbosity);
 
-      print_loop (file, loop->inner, indent + 2, verbosity);
+      print_loop_and_siblings (file, loop->inner, indent + 2, verbosity);
       fprintf (file, "%s}\n", s_indent);
     }
-
-  print_loop (file, loop->next, indent, verbosity);
 }
 
+/* Print the LOOP and its sibling loops on FILE, indented INDENT
+   spaces.  Following VERBOSITY level this outputs the contents of the
+   loop, or just its structure.  */
+
+static void
+print_loop_and_siblings (FILE *file, struct loop *loop, int indent, int verbosity)
+{
+  if (loop == NULL)
+    return;
+
+  print_loop (file, loop, indent, verbosity);
+  print_loop_and_siblings (file, loop->next, indent, verbosity);
+}
 
 /* Follow a CFG edge from the entry point of the program, and on entry
    of a loop, pretty print the loop structure on FILE.  */
 
 void
-print_loop_ir (FILE *file, int verbosity)
+print_loops (FILE *file, int verbosity)
 {
   basic_block bb;
 
   bb = BASIC_BLOCK (NUM_FIXED_BLOCKS);
   if (bb && bb->loop_father)
-    print_loop (file, bb->loop_father, 0, verbosity);
+    print_loop_and_siblings (file, bb->loop_father, 0, verbosity);
 }
 
-
-/* Debugging loops structure at tree level.  */
+/* Debugging loops structure at tree level, at some VERBOSITY level.  */
 
 void
-debug_loop_ir (int verbosity)
+debug_loops (int verbosity)
 {
-  print_loop_ir (stderr, verbosity);
+  print_loops (stderr, verbosity);
 }
 
+/* Print on stderr the code of LOOP, at some VERBOSITY level.  */
+
+void
+debug_loop (struct loop *loop, int verbosity)
+{
+  print_loop (stderr, loop, 0, verbosity);
+}
+
+/* Print on stderr the code of loop number NUM, at some VERBOSITY
+   level.  */
+
+void
+debug_loop_num (unsigned num, int verbosity)
+{
+  debug_loop (get_loop (num), verbosity);
+}
 
 /* Return true if BB ends with a call, possibly followed by some
    instructions that must stay with the call.  Return false,

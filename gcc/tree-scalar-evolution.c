@@ -2401,7 +2401,7 @@ number_of_iterations_for_all_loops (VEC(tree,heap) **exit_conditions)
       fprintf (dump_file, "-----------------------------------------\n");
       fprintf (dump_file, ")\n\n");
       
-      print_loop_ir (dump_file, 3);
+      print_loops (dump_file, 3);
     }
 }
 

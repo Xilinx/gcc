@@ -20,5 +20,5 @@ int loop1 (int k)
   return a[1000-2] + b[1000-1];
 }
 
-/* { dg-final { scan-tree-dump-times "distributed" 1 "ldist" { xfail *-*-* } } } */
+/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 1 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

@@ -635,6 +635,7 @@ extern bitmap vect_memsyms_to_rename;
    to force the alignment of data references in the loop.  */
 extern struct loop *slpeel_tree_peel_loop_to_edge 
   (struct loop *, edge, tree, tree, bool, unsigned int, bool);
+struct loop *tree_duplicate_loop_on_edge (struct loop *, edge);
 extern void set_prologue_iterations (basic_block, tree,
 				     struct loop *, unsigned int);
 extern void slpeel_make_loop_iterate_ntimes (struct loop *, tree);
