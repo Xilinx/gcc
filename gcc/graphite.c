@@ -983,12 +983,12 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
     }
   else if (!chrec_contains_undetermined (nb_iters))
     {
-      value_init (cstr->p[row][col]);
-      value_set_si (cstr->p[row][col], -1);
-
       /* Otherwise nb_iters contains parameters: scan the nb_iters
 	 expression and build its matrix representation.  */
       Value one;
+
+      value_init (cstr->p[row][col]);
+      value_set_si (cstr->p[row][col], -1);
 
       nb_iters = instantiate_parameters (SCOP_ENTRY (scop)->loop_father,
 					 nb_iters);
