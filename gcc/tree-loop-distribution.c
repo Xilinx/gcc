@@ -148,6 +148,19 @@ copy_loop_before (struct loop *loop)
   return res;
 }
 
+/* Creates an empty basic block after LOOP.  */
+
+static void
+create_bb_after_loop (struct loop *loop)
+{
+  edge exit = single_exit (loop);
+
+  if (!exit)
+    return;
+
+  split_edge (exit);
+}
+
 /* Generate code for PARTITION from the code in LOOP.  The loop is
    copied when COPY_P is true.  All the statements not flagged in the
    PARTITION bitmap are removed from the loop or from its copy.  The
@@ -166,6 +179,7 @@ generate_loops_for_partition (struct loop *loop, bitmap partition, bool copy_p)
     {
       loop = copy_loop_before (loop);
       create_preheader (loop, CP_SIMPLE_PREHEADERS);
+      create_bb_after_loop (loop);
     }
 
   if (loop == NULL)

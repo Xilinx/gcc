@@ -168,13 +168,13 @@ dot_scop_1 (FILE *file, scop_p scop)
 void
 dot_scop (scop_p scop)
 {
-  FILE *stream = fopen ("/tmp/foo.dot", "w");
+  FILE *stream = fopen ("/tmp/scop.dot", "w");
   gcc_assert (stream != NULL);
 
   dot_scop_1 (stream, scop);
   fclose (stream);
 
-  system ("dotty /tmp/foo.dot");
+  system ("dotty /tmp/scop.dot");
 }
 
 

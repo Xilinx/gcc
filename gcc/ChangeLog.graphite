@@ -1,3 +1,13 @@
+2007-12-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-loop-distribution.c: Fix apsi.f ICE.
+	(create_bb_after_loop): New.
+	(generate_loops_for_partition): Use it.
+	* testsuite/gfortran.dg/ldist-1.f90: New.
+
+	* tree-data-ref.c (dot_rdg): Use /tmp/rdg.dot for dotty format.
+	* graphite.c (dot_scop): Use /tmp/scop.dot for dotty format.
+
 2007-12-13  Tobias Grosser  <grosser@fmi.uni-passau.de>
 
 	* graphite.c (find_transform): Dump cloog program sent to cloog.

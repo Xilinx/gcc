@@ -4486,13 +4486,13 @@ dot_rdg_1 (FILE *file, struct graph *rdg)
 void
 dot_rdg (struct graph *rdg)
 {
-  FILE *file = fopen ("/tmp/foo.dot", "w");
+  FILE *file = fopen ("/tmp/rdg.dot", "w");
   gcc_assert (file != NULL);
 
   dot_rdg_1 (file, rdg);
   fclose (file);
 
-  system ("dotty /tmp/foo.dot");
+  system ("dotty /tmp/rdg.dot");
 }
 
 
