@@ -1,5 +1,5 @@
 ;; GCC machine description for SSE instructions
-;; Copyright (C) 2005, 2006, 2007
+;; Copyright (C) 2005, 2006, 2007, 2008
 ;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
@@ -378,13 +378,13 @@
 
 (define_expand "negv4sf2"
   [(set (match_operand:V4SF 0 "register_operand" "")
-	(neg:V4SF (match_operand:V4SF 1 "nonimmediate_operand" "")))]
+	(neg:V4SF (match_operand:V4SF 1 "register_operand" "")))]
   "TARGET_SSE"
   "ix86_expand_fp_absneg_operator (NEG, V4SFmode, operands); DONE;")
 
 (define_expand "absv4sf2"
   [(set (match_operand:V4SF 0 "register_operand" "")
-	(abs:V4SF (match_operand:V4SF 1 "nonimmediate_operand" "")))]
+	(abs:V4SF (match_operand:V4SF 1 "register_operand" "")))]
   "TARGET_SSE"
   "ix86_expand_fp_absneg_operator (ABS, V4SFmode, operands); DONE;")
 
@@ -490,7 +490,7 @@
     }
 })
 
-(define_insn "*divv4sf3"
+(define_insn "sse_divv4sf3"
   [(set (match_operand:V4SF 0 "register_operand" "=x")
 	(div:V4SF (match_operand:V4SF 1 "register_operand" "0")
 		  (match_operand:V4SF 2 "nonimmediate_operand" "xm")))]
@@ -532,7 +532,17 @@
   [(set_attr "type" "sse")
    (set_attr "mode" "SF")])
 
-(define_insn "*sse_rsqrtv4sf2"
+(define_expand "rsqrtv4sf2"
+  [(set (match_operand:V4SF 0 "register_operand" "")
+	(unspec:V4SF
+	  [(match_operand:V4SF 1 "nonimmediate_operand" "")] UNSPEC_RSQRT))]
+  "TARGET_SSE_MATH"
+{
+  ix86_emit_swsqrtsf (operands[0], operands[1], V4SFmode, 1);
+  DONE;
+})
+
+(define_insn "sse_rsqrtv4sf2"
   [(set (match_operand:V4SF 0 "register_operand" "=x")
 	(unspec:V4SF
 	  [(match_operand:V4SF 1 "nonimmediate_operand" "xm")] UNSPEC_RSQRT))]
@@ -540,21 +550,6 @@
   "rsqrtps\t{%1, %0|%0, %1}"
   [(set_attr "type" "sse")
    (set_attr "mode" "V4SF")])
-
-(define_expand "sse_rsqrtv4sf2"
-  [(set (match_operand:V4SF 0 "register_operand" "")
-	(unspec:V4SF
-	  [(match_operand:V4SF 1 "nonimmediate_operand" "")] UNSPEC_RSQRT))]
-  "TARGET_SSE"
-{
-  if (TARGET_SSE_MATH && TARGET_RECIP && !optimize_size
-      && flag_finite_math_only && !flag_trapping_math
-      && flag_unsafe_math_optimizations)
-    {
-      ix86_emit_swsqrtsf (operands[0], operands[1], V4SFmode, 1);
-      DONE;
-    }
-})
 
 (define_insn "sse_vmrsqrtv4sf2"
   [(set (match_operand:V4SF 0 "register_operand" "=x")
@@ -568,16 +563,8 @@
   [(set_attr "type" "sse")
    (set_attr "mode" "SF")])
 
-(define_insn "*sqrtv4sf2"
-  [(set (match_operand:V4SF 0 "register_operand" "=x")
-	(sqrt:V4SF (match_operand:V4SF 1 "nonimmediate_operand" "xm")))]
-  "TARGET_SSE"
-  "sqrtps\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sse")
-   (set_attr "mode" "V4SF")])
-
 (define_expand "sqrtv4sf2"
-  [(set (match_operand:V4SF 0 "register_operand" "=")
+  [(set (match_operand:V4SF 0 "register_operand" "")
 	(sqrt:V4SF (match_operand:V4SF 1 "nonimmediate_operand" "")))]
   "TARGET_SSE"
 {
@@ -589,6 +576,14 @@
       DONE;
     }
 })
+
+(define_insn "sse_sqrtv4sf2"
+  [(set (match_operand:V4SF 0 "register_operand" "=x")
+	(sqrt:V4SF (match_operand:V4SF 1 "nonimmediate_operand" "xm")))]
+  "TARGET_SSE"
+  "sqrtps\t{%1, %0|%0, %1}"
+  [(set_attr "type" "sse")
+   (set_attr "mode" "V4SF")])
 
 (define_insn "sse_vmsqrtv4sf2"
   [(set (match_operand:V4SF 0 "register_operand" "=x")
@@ -2148,13 +2143,13 @@
 
 (define_expand "negv2df2"
   [(set (match_operand:V2DF 0 "register_operand" "")
-	(neg:V2DF (match_operand:V2DF 1 "nonimmediate_operand" "")))]
+	(neg:V2DF (match_operand:V2DF 1 "register_operand" "")))]
   "TARGET_SSE2"
   "ix86_expand_fp_absneg_operator (NEG, V2DFmode, operands); DONE;")
 
 (define_expand "absv2df2"
   [(set (match_operand:V2DF 0 "register_operand" "")
-	(abs:V2DF (match_operand:V2DF 1 "nonimmediate_operand" "")))]
+	(abs:V2DF (match_operand:V2DF 1 "register_operand" "")))]
   "TARGET_SSE2"
   "ix86_expand_fp_absneg_operator (ABS, V2DFmode, operands); DONE;")
 
@@ -7309,9 +7304,9 @@
 (define_insn_and_split "sse4_2_pcmpestr"
   [(set (match_operand:SI 0 "register_operand" "=c,c")
 	(unspec:SI
-	  [(match_operand:V16QI 2 "register_operand" "x,x")
+	  [(match_operand:V16QI 2 "reg_not_xmm0_operand" "x,x")
 	   (match_operand:SI 3 "register_operand" "a,a")
-	   (match_operand:V16QI 4 "nonimmediate_operand" "x,m")
+	   (match_operand:V16QI 4 "nonimm_not_xmm0_operand" "x,m")
 	   (match_operand:SI 5 "register_operand" "d,d")
 	   (match_operand:SI 6 "const_0_to_255_operand" "n,n")]
 	  UNSPEC_PCMPESTR))
@@ -7350,7 +7345,8 @@
 				     operands[3], operands[4],
 				     operands[5], operands[6]));
   if (flags && !(ecx || xmm0))
-    emit_insn (gen_sse4_2_pcmpestr_cconly (operands[2], operands[3],
+    emit_insn (gen_sse4_2_pcmpestr_cconly (NULL, NULL,
+					   operands[2], operands[3],
 					   operands[4], operands[5],
 					   operands[6]));
   DONE;
@@ -7414,20 +7410,20 @@
 (define_insn "sse4_2_pcmpestr_cconly"
   [(set (reg:CC FLAGS_REG)
 	(unspec:CC
-	  [(match_operand:V16QI 0 "register_operand" "x,x,x,x")
-	   (match_operand:SI 1 "register_operand" "a,a,a,a")
-	   (match_operand:V16QI 2 "nonimmediate_operand" "x,m,x,m")
-	   (match_operand:SI 3 "register_operand" "d,d,d,d")
-	   (match_operand:SI 4 "const_0_to_255_operand" "n,n,n,n")]
+	  [(match_operand:V16QI 2 "register_operand" "x,x,x,x")
+	   (match_operand:SI 3 "register_operand" "a,a,a,a")
+	   (match_operand:V16QI 4 "nonimmediate_operand" "x,m,x,m")
+	   (match_operand:SI 5 "register_operand" "d,d,d,d")
+	   (match_operand:SI 6 "const_0_to_255_operand" "n,n,n,n")]
 	  UNSPEC_PCMPESTR))
-   (clobber (match_scratch:V16QI 5 "=Yz,Yz,X,X"))
-   (clobber (match_scratch:SI    6 "= X, X,c,c"))]
+   (clobber (match_scratch:V16QI 0 "=Yz,Yz,X,X"))
+   (clobber (match_scratch:SI    1 "= X, X,c,c"))]
   "TARGET_SSE4_2"
   "@
-   pcmpestrm\t{%4, %2, %0|%0, %2, %4}
-   pcmpestrm\t{%4, %2, %0|%0, %2, %4}
-   pcmpestri\t{%4, %2, %0|%0, %2, %4}
-   pcmpestri\t{%4, %2, %0|%0, %2, %4}"
+   pcmpestrm\t{%6, %4, %2|%2, %4, %6}
+   pcmpestrm\t{%6, %4, %2|%2, %4, %6}
+   pcmpestri\t{%6, %4, %2|%2, %4, %6}
+   pcmpestri\t{%6, %4, %2|%2, %4, %6}"
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
@@ -7437,8 +7433,8 @@
 (define_insn_and_split "sse4_2_pcmpistr"
   [(set (match_operand:SI 0 "register_operand" "=c,c")
 	(unspec:SI
-	  [(match_operand:V16QI 2 "register_operand" "x,x")
-	   (match_operand:V16QI 3 "nonimmediate_operand" "x,m")
+	  [(match_operand:V16QI 2 "reg_not_xmm0_operand" "x,x")
+	   (match_operand:V16QI 3 "nonimm_not_xmm0_operand" "x,m")
 	   (match_operand:SI 4 "const_0_to_255_operand" "n,n")]
 	  UNSPEC_PCMPISTR))
    (set (match_operand:V16QI 1 "register_operand" "=Yz,Yz")
@@ -7470,7 +7466,8 @@
     emit_insn (gen_sse4_2_pcmpistrm (operands[1], operands[2],
 				     operands[3], operands[4]));
   if (flags && !(ecx || xmm0))
-    emit_insn (gen_sse4_2_pcmpistr_cconly (operands[2], operands[3],
+    emit_insn (gen_sse4_2_pcmpistr_cconly (NULL, NULL,
+					   operands[2], operands[3],
 					   operands[4]));
   DONE;
 }
@@ -7525,18 +7522,18 @@
 (define_insn "sse4_2_pcmpistr_cconly"
   [(set (reg:CC FLAGS_REG)
 	(unspec:CC
-	  [(match_operand:V16QI 0 "register_operand" "x,x,x,x")
-	   (match_operand:V16QI 1 "nonimmediate_operand" "x,m,x,m")
-	   (match_operand:SI 2 "const_0_to_255_operand" "n,n,n,n")]
+	  [(match_operand:V16QI 2 "register_operand" "x,x,x,x")
+	   (match_operand:V16QI 3 "nonimmediate_operand" "x,m,x,m")
+	   (match_operand:SI 4 "const_0_to_255_operand" "n,n,n,n")]
 	  UNSPEC_PCMPISTR))
-   (clobber (match_scratch:V16QI 3 "=Yz,Yz,X,X"))
-   (clobber (match_scratch:SI    4 "= X, X,c,c"))]
+   (clobber (match_scratch:V16QI 0 "=Yz,Yz,X,X"))
+   (clobber (match_scratch:SI    1 "= X, X,c,c"))]
   "TARGET_SSE4_2"
   "@
-   pcmpistrm\t{%2, %1, %0|%0, %1, %2}
-   pcmpistrm\t{%2, %1, %0|%0, %1, %2}
-   pcmpistri\t{%2, %1, %0|%0, %1, %2}
-   pcmpistri\t{%2, %1, %0|%0, %1, %2}"
+   pcmpistrm\t{%4, %3, %2|%2, %3, %4}
+   pcmpistrm\t{%4, %3, %2|%2, %3, %4}
+   pcmpistri\t{%4, %3, %2|%2, %3, %4}
+   pcmpistri\t{%4, %3, %2|%2, %3, %4}"
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "prefix_extra" "1")
@@ -8350,9 +8347,9 @@
 ;; SSE5 permute instructions
 (define_insn "sse5_pperm"
   [(set (match_operand:V16QI 0 "register_operand" "=x,x,x,x")
-	(unspec:V16QI [(match_operand:V16QI 1 "nonimmediate_operand" "0,0,xm,xm")
-		       (match_operand:V16QI 2 "nonimmediate_operand" "x,xm,0,x")
-		       (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,x,0")]
+	(unspec:V16QI [(match_operand:V16QI 1 "nonimmediate_operand" "0,0,x,xm")
+		       (match_operand:V16QI 2 "nonimmediate_operand" "x,xm,xm,x")
+		       (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,0,0")]
 		     UNSPEC_SSE5_PERMUTE))]
   "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1)"
   "pperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
@@ -8453,10 +8450,10 @@
   [(set (match_operand:V4SI 0 "register_operand" "=x,x,x,x")
 	(vec_concat:V4SI
 	 (truncate:V2SI
-	  (match_operand:V2DI 1 "nonimmediate_operand" "0,0,xm,xm"))
+	  (match_operand:V2DI 1 "nonimmediate_operand" "0,0,x,xm"))
 	 (truncate:V2SI
-	  (match_operand:V2DI 2 "nonimmediate_operand" "x,xm,0,x"))))
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,x,0"))]
+	  (match_operand:V2DI 2 "nonimmediate_operand" "x,xm,xm,x"))))
+   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,0,0"))]
   "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1)"
   "pperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sse4arg")
@@ -8466,10 +8463,10 @@
   [(set (match_operand:V8HI 0 "register_operand" "=x,x,x,x")
 	(vec_concat:V8HI
 	 (truncate:V4HI
-	  (match_operand:V4SI 1 "nonimmediate_operand" "0,0,xm,xm"))
+	  (match_operand:V4SI 1 "nonimmediate_operand" "0,0,x,xm"))
 	 (truncate:V4HI
-	  (match_operand:V4SI 2 "nonimmediate_operand" "x,xm,0,x"))))
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,x,0"))]
+	  (match_operand:V4SI 2 "nonimmediate_operand" "x,xm,xm,x"))))
+   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,0,0"))]
   "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1)"
   "pperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sse4arg")
@@ -8479,10 +8476,10 @@
   [(set (match_operand:V16QI 0 "register_operand" "=x,x,x,x")
 	(vec_concat:V16QI
 	 (truncate:V8QI
-	  (match_operand:V8HI 1 "nonimmediate_operand" "0,0,xm,xm"))
+	  (match_operand:V8HI 1 "nonimmediate_operand" "0,0,x,xm"))
 	 (truncate:V8QI
-	  (match_operand:V8HI 2 "nonimmediate_operand" "x,xm,0,x"))))
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,x,0"))]
+	  (match_operand:V8HI 2 "nonimmediate_operand" "x,xm,xm,x"))))
+   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,0,0"))]
   "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1)"
   "pperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sse4arg")
@@ -8492,9 +8489,9 @@
 (define_insn "sse5_perm<mode>"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x,x,x")
 	(unspec:SSEMODEF2P
-	 [(match_operand:SSEMODEF2P 1 "nonimmediate_operand" "0,0,xm,xm")
-	  (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm,0,x")
-	  (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,x,0")]
+	 [(match_operand:SSEMODEF2P 1 "nonimmediate_operand" "0,0,x,xm")
+	  (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm,xm,x")
+	  (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,0,0")]
 	 UNSPEC_SSE5_PERMUTE))]
   "TARGET_SSE5 && ix86_sse5_valid_op_p (operands, insn, 4, true, 1)"
   "perm<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"

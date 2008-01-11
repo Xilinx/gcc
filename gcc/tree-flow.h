@@ -741,9 +741,13 @@ extern basic_block debug_tree_bb_n (int);
 extern void dump_tree_cfg (FILE *, int);
 extern void debug_tree_cfg (int);
 extern void dump_cfg_stats (FILE *);
+extern void dot_cfg (void);
 extern void debug_cfg_stats (void);
-extern void debug_loop_ir (void);
-extern void print_loop_ir (FILE *);
+extern void debug_loops (int);
+extern void debug_loop (struct loop *, int);
+extern void debug_loop_num (unsigned, int);
+extern void print_loops (FILE *, int);
+extern void print_loops_bb (FILE *, basic_block, int, int);
 extern void cleanup_dead_labels (void);
 extern void group_case_labels (void);
 extern tree first_stmt (basic_block);
@@ -884,6 +888,7 @@ extern void verify_ssa (bool);
 extern void delete_tree_ssa (void);
 extern void walk_use_def_chains (tree, walk_use_def_chains_fn, void *, bool);
 extern bool stmt_references_memory_p (tree);
+extern bool ssa_undefined_value_p (tree);
 
 /* In tree-into-ssa.c  */
 void update_ssa (unsigned);

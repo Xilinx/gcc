@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -76,14 +76,13 @@ template<typename T, typename Comparator = std::less<T> >
     Comparator comp;
 
   public:
-    inline
     LoserTreeExplicit(unsigned int _size, Comparator _comp = std::less<T>())
-      : comp(_comp)
+    : comp(_comp)
     {
       size = _size;
       offset = size;
       losers = new Loser[size];
-      for (unsigned int l = 0; l < size; l++)
+      for (unsigned int l = 0; l < size; ++l)
         {
           //losers[l].key = ... 	stays unset
           losers[l].inf = true;
@@ -92,14 +91,14 @@ template<typename T, typename Comparator = std::less<T> >
         }
     }
 
-    inline ~LoserTreeExplicit()
+    ~LoserTreeExplicit()
     { delete[] losers; }
 
-    inline int
+    int
     get_min_source()
     { return losers[0].source; }
 
-    inline void
+    void
     insert_start(T key, int source, bool sup)
     {
       bool inf = false;
@@ -122,10 +121,10 @@ template<typename T, typename Comparator = std::less<T> >
       losers[0].source = source;
     }
 
-    inline void
+    void
     init() { }
 
-    inline void
+    void
     delete_min_insert(T key, bool sup)
     {
       bool inf = false;
@@ -151,15 +150,16 @@ template<typename T, typename Comparator = std::less<T> >
       losers[0].source = source;
     }
 
-    inline void
+    void
     insert_start_stable(T key, int source, bool sup)
     {
       bool inf = false;
       for (unsigned int pos = (offset + source) / 2; pos > 0; pos /= 2)
         {
-          if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup &&
-              ((comp(losers[pos].key, key)) ||
-                (!comp(key, losers[pos].key) && losers[pos].source < source)))
+          if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup
+	       && ((comp(losers[pos].key, key))
+		   || (!comp(key, losers[pos].key)
+		       && losers[pos].source < source)))
               || losers[pos].inf || sup)
             {
               // Take next key.
@@ -176,10 +176,10 @@ template<typename T, typename Comparator = std::less<T> >
       losers[0].source = source;
     }
 
-    inline void
+    void
     init_stable() { }
 
-    inline void
+    void
     delete_min_insert_stable(T key, bool sup)
     {
       bool inf = false;
@@ -187,8 +187,9 @@ template<typename T, typename Comparator = std::less<T> >
       for (unsigned int pos = (offset + source) / 2; pos > 0; pos /= 2)
         {
           if ((!inf && !losers[pos].inf && !sup && !losers[pos].sup
-              && ((comp(losers[pos].key, key)) ||
-                (!comp(key, losers[pos].key) && losers[pos].source < source)))
+              && ((comp(losers[pos].key, key))
+		  || (!comp(key, losers[pos].key)
+		      && losers[pos].source < source)))
               || losers[pos].inf || sup)
             {
               std::swap(losers[pos].key, key);
@@ -233,7 +234,7 @@ template<typename T, typename Comparator = std::less<T> >
     bool first_insert;
 
   public:
-    inline LoserTree(unsigned int _k, Comparator _comp = std::less<T>())
+    LoserTree(unsigned int _k, Comparator _comp = std::less<T>())
     : comp(_comp)
     {
       ik = _k;
@@ -249,14 +250,14 @@ template<typename T, typename Comparator = std::less<T> >
       first_insert = true;
     }
 
-    inline ~LoserTree()
-    { delete[] losers; }
+    ~LoserTree()
+    { ::operator delete(losers); }
 
-    inline int
+    int
     get_min_source()
     { return losers[0].source; }
 
-    inline void
+    void
     insert_start(const T& key, int source, bool sup)
     {
       unsigned int pos = k + source;
@@ -265,11 +266,11 @@ template<typename T, typename Comparator = std::less<T> >
         {
           // Construct all keys, so we can easily deconstruct them.
           for (unsigned int i = 0; i < (2 * k); ++i)
-            new(&(losers[i].key)) T(key);
+            ::new(&(losers[i].key)) T(key);
           first_insert = false;
         }
       else
-        new(&(losers[pos].key)) T(key);
+        ::new(&(losers[pos].key)) T(key);
 
       losers[pos].sup = sup;
       losers[pos].source = source;
@@ -286,9 +287,9 @@ template<typename T, typename Comparator = std::less<T> >
         {
           unsigned int left = init_winner (2 * root);
           unsigned int right = init_winner (2 * root + 1);
-          if (losers[right].sup ||
-              (!losers[left].sup
-                && !comp(losers[right].key, losers[left].key)))
+          if (losers[right].sup
+	      || (!losers[left].sup
+		  && !comp(losers[right].key, losers[left].key)))
             {
               // Left one is less or equal.
               losers[root] = losers[right];
@@ -303,12 +304,12 @@ template<typename T, typename Comparator = std::less<T> >
         }
     }
 
-    inline void
+    void
     init()
     { losers[0] = losers[init_winner(1)]; }
 
     // Do not pass const reference since key will be used as local variable.
-    inline void
+    void
     delete_min_insert(T key, bool sup)
     {
       int source = losers[0].source;
@@ -329,7 +330,7 @@ template<typename T, typename Comparator = std::less<T> >
       losers[0].key = key;
     }
 
-    inline void
+    void
     insert_start_stable(const T& key, int source, bool sup)
     { return insert_start(key, source, sup); }
 
@@ -346,7 +347,7 @@ template<typename T, typename Comparator = std::less<T> >
           unsigned int right = init_winner (2 * root + 1);
           if (losers[right].sup
               || (!losers[left].sup
-                && !comp(losers[right].key, losers[left].key)))
+		  && !comp(losers[right].key, losers[left].key)))
             {
               // Left one is less or equal.
               losers[root] = losers[right];
@@ -361,12 +362,12 @@ template<typename T, typename Comparator = std::less<T> >
         }
     }
 
-    inline void
+    void
     init_stable()
     { losers[0] = losers[init_winner_stable(1)]; }
 
     // Do not pass const reference since key will be used as local variable.
-    inline void
+    void
     delete_min_insert_stable(T key, bool sup)
     {
       int source = losers[0].source;
@@ -432,9 +433,8 @@ template<typename T, typename Comparator = std::less<T> >
     Comparator comp;
 
   public:
-    inline
     LoserTreeReference(unsigned int _k, Comparator _comp = std::less<T>())
-      : comp(_comp)
+    : comp(_comp)
     {
       ik = _k;
 
@@ -445,11 +445,11 @@ template<typename T, typename Comparator = std::less<T> >
 #ifndef COPY
       keys = new T[ik];
 #endif
-      for (unsigned int i = ik - 1; i < k; i++)
+      for (unsigned int i = ik - 1; i < k; ++i)
         losers[i + k].sup = true;
     }
 
-    inline ~LoserTreeReference()
+    ~LoserTreeReference()
     {
       delete[] losers;
 #ifndef COPY
@@ -457,11 +457,11 @@ template<typename T, typename Comparator = std::less<T> >
 #endif
     }
 
-    inline int
+    int
     get_min_source()
     { return losers[0].source; }
 
-    inline void
+    void
     insert_start(T key, int source, bool sup)
     {
       unsigned int pos = k + source;
@@ -498,13 +498,13 @@ template<typename T, typename Comparator = std::less<T> >
         }
     }
 
-    inline void
+    void
     init()
     {
       losers[0] = losers[init_winner(1)];
     }
 
-    inline void
+    void
     delete_min_insert(T key, bool sup)
     {
       int source = losers[0].source;
@@ -529,7 +529,7 @@ template<typename T, typename Comparator = std::less<T> >
 #endif
     }
 
-    inline void
+    void
     insert_start_stable(T key, int source, bool sup)
     { return insert_start(key, source, sup); }
 
@@ -560,22 +560,22 @@ template<typename T, typename Comparator = std::less<T> >
         }
     }
 
-    inline void
+    void
     init_stable()
     { losers[0] = losers[init_winner_stable(1)]; }
 
-    inline void
+    void
     delete_min_insert_stable(T key, bool sup)
     {
       int source = losers[0].source;
       for (unsigned int pos = (k + source) / 2; pos > 0; pos /= 2)
         {
           // The smaller one gets promoted, ties are broken by source.
-          if (	(sup && (!losers[pos].sup || losers[pos].source < source)) ||
-                (!sup && !losers[pos].sup &&
-                ((comp(KEY(pos), KEY_SOURCE(source))) ||
-                  (!comp(KEY_SOURCE(source), KEY(pos))
-                    && losers[pos].source < source))))
+          if ((sup && (!losers[pos].sup || losers[pos].source < source))
+	      || (!sup && !losers[pos].sup
+		  && ((comp(KEY(pos), KEY_SOURCE(source)))
+		      || (!comp(KEY_SOURCE(source), KEY(pos))
+			  && losers[pos].source < source))))
             {
               // The other one is smaller.
               std::swap(losers[pos].sup, sup);
@@ -622,7 +622,6 @@ template<typename T, typename Comparator = std::less<T> >
     Comparator comp;
 
   public:
-    inline
     LoserTreePointer(unsigned int _k, Comparator _comp = std::less<T>())
       : comp(_comp)
     {
@@ -632,18 +631,18 @@ template<typename T, typename Comparator = std::less<T> >
       k = 1 << (log2(ik - 1) + 1);
       offset = k;
       losers = new Loser[k * 2];
-      for (unsigned int i = ik - 1; i < k; i++)
+      for (unsigned int i = ik - 1; i < k; ++i)
         losers[i + k].sup = true;
     }
 
-    inline ~LoserTreePointer()
+    ~LoserTreePointer()
     { delete[] losers; }
 
-    inline int
+    int
     get_min_source()
     { return losers[0].source; }
 
-    inline void
+    void
     insert_start(const T& key, int source, bool sup)
     {
       unsigned int pos = k + source;
@@ -657,9 +656,7 @@ template<typename T, typename Comparator = std::less<T> >
     init_winner(unsigned int root)
     {
       if (root >= k)
-        {
-          return root;
-        }
+	return root;
       else
         {
           unsigned int left = init_winner (2 * root);
@@ -681,11 +678,11 @@ template<typename T, typename Comparator = std::less<T> >
         }
     }
 
-    inline void
+    void
     init()
     { losers[0] = losers[init_winner(1)]; }
 
-    inline void
+    void
     delete_min_insert(const T& key, bool sup)
     {
       const T* keyp = &key;
@@ -707,7 +704,7 @@ template<typename T, typename Comparator = std::less<T> >
       losers[0].keyp = keyp;
     }
 
-    inline void
+    void
     insert_start_stable(const T& key, int source, bool sup)
     { return insert_start(key, source, sup); }
 
@@ -739,11 +736,11 @@ template<typename T, typename Comparator = std::less<T> >
         }
     }
 
-    inline void
+    void
     init_stable()
     { losers[0] = losers[init_winner_stable(1)]; }
 
-    inline void
+    void
     delete_min_insert_stable(const T& key, bool sup)
     {
       const T* keyp = &key;
@@ -751,11 +748,11 @@ template<typename T, typename Comparator = std::less<T> >
       for (unsigned int pos = (k + source) / 2; pos > 0; pos /= 2)
         {
           // The smaller one gets promoted, ties are broken by source.
-          if (	(sup && (!losers[pos].sup || losers[pos].source < source)) ||
-                (!sup && !losers[pos].sup &&
-                ((comp(*losers[pos].keyp, *keyp)) ||
-                  (!comp(*keyp, *losers[pos].keyp)
-                  && losers[pos].source < source))))
+          if (	(sup && (!losers[pos].sup || losers[pos].source < source))
+		|| (!sup && !losers[pos].sup &&
+		    ((comp(*losers[pos].keyp, *keyp))
+		     || (!comp(*keyp, *losers[pos].keyp)
+			 && losers[pos].source < source))))
             {
               // The other one is smaller.
               std::swap(losers[pos].sup, sup);
@@ -810,9 +807,8 @@ template<typename T, typename Comparator = std::less<T> >
     }
 
   public:
-    inline
     LoserTreeUnguarded(unsigned int _k, Comparator _comp = std::less<T>())
-      : comp(_comp)
+    : comp(_comp)
     {
       ik = _k;
       // Next greater or equal power of 2.
@@ -823,17 +819,17 @@ template<typename T, typename Comparator = std::less<T> >
       map(1, 0, ik);
     }
 
-    inline ~LoserTreeUnguarded()
+    ~LoserTreeUnguarded()
     {
       delete[] losers;
       delete[] mapping;
     }
 
-    inline int
+    int
     get_min_source()
     { return losers[0].source; }
 
-    inline void
+    void
     insert_start(const T& key, int source, bool)
     {
       unsigned int pos = mapping[source];
@@ -868,12 +864,12 @@ template<typename T, typename Comparator = std::less<T> >
         }
     }
 
-    inline void
+    void
     init()
     { losers[0] = losers[init_winner(1, 0, ik)]; }
 
     // Do not pass const reference since key will be used as local variable.
-    inline void
+    void
     delete_min_insert(const T& key, bool)
     {
       losers[0].key = key;
@@ -891,15 +887,15 @@ template<typename T, typename Comparator = std::less<T> >
         }
     }
 
-    inline void
+    void
     insert_start_stable(const T& key, int source, bool)
     { return insert_start(key, source, false); }
 
-    inline void
+    void
     init_stable()
     { init(); }
 
-    inline void
+    void
     delete_min_insert_stable(const T& key, bool)
     {
       losers[0].key = key;
@@ -959,10 +955,9 @@ template<typename T, typename Comparator = std::less<T> >
     }
 
   public:
-    inline
     LoserTreePointerUnguarded(unsigned int _k,
                               Comparator _comp = std::less<T>())
-      : comp(_comp)
+    : comp(_comp)
     {
       ik = _k;
 
@@ -974,17 +969,17 @@ template<typename T, typename Comparator = std::less<T> >
       map(1, 0, ik);
     }
 
-    inline ~LoserTreePointerUnguarded()
+    ~LoserTreePointerUnguarded()
     {
       delete[] losers;
       delete[] mapping;
     }
 
-    inline int
+    int
     get_min_source()
     { return losers[0].source; }
 
-    inline void
+    void
     insert_start(const T& key, int source, bool)
     {
       unsigned int pos = mapping[source];
@@ -1002,8 +997,8 @@ template<typename T, typename Comparator = std::less<T> >
           // Next greater or equal power of 2.
           unsigned int division = 1 << (log2(end - begin - 1));
           unsigned int left = init_winner(2 * root, begin, begin + division);
-          unsigned int right
-                          = init_winner(2 * root + 1, begin + division, end);
+          unsigned int right = init_winner(2 * root + 1,
+					   begin + division, end);
           if (!comp(*losers[right].keyp, *losers[left].keyp))
             {
               // Left one is less or equal.
@@ -1019,13 +1014,11 @@ template<typename T, typename Comparator = std::less<T> >
         }
     }
 
-    inline void
+    void
     init()
-    {
-      losers[0] = losers[init_winner(1, 0, ik)];
-    }
+    { losers[0] = losers[init_winner(1, 0, ik)]; }
 
-    inline void
+    void
     delete_min_insert(const T& key, bool)
     {
       const T* keyp = &key;
@@ -1044,15 +1037,15 @@ template<typename T, typename Comparator = std::less<T> >
       losers[0].keyp = keyp;
     }
 
-    inline void
+    void
     insert_start_stable(const T& key, int source, bool)
     { return insert_start(key, source, false); }
 
-    inline void
+    void
     init_stable()
     { init(); }
 
-    inline void
+    void
     delete_min_insert_stable(const T& key, bool)
     {
       int& source = losers[0].source;

@@ -6677,8 +6677,10 @@ mips_in_small_data_p (const_tree decl)
 	return false;
     }
 
+  /* We have traditionally not treated zero-sized objects as small data,
+     so this is now effectively part of the ABI.  */
   size = int_size_in_bytes (TREE_TYPE (decl));
-  return size <= mips_small_data_threshold;
+  return size > 0 && size <= mips_small_data_threshold;
 }
 
 /* Implement TARGET_USE_ANCHORS_FOR_SYMBOL_P.  We don't want to use
@@ -8281,8 +8283,9 @@ static GTY(()) rtx mips_gnu_local_gp;
 static void
 mips_emit_loadgp (void)
 {
-  rtx addr, offset, incoming_address, base, index;
+  rtx addr, offset, incoming_address, base, index, pic_reg;
 
+  pic_reg = pic_offset_table_rtx;
   switch (mips_current_loadgp_style ())
     {
     case LOADGP_ABSOLUTE:
@@ -8291,14 +8294,18 @@ mips_emit_loadgp (void)
 	  mips_gnu_local_gp = gen_rtx_SYMBOL_REF (Pmode, "__gnu_local_gp");
 	  SYMBOL_REF_FLAGS (mips_gnu_local_gp) |= SYMBOL_FLAG_LOCAL;
 	}
-      emit_insn (gen_loadgp_absolute (mips_gnu_local_gp));
+      emit_insn (Pmode == SImode
+		 ? gen_loadgp_absolute_si (pic_reg, mips_gnu_local_gp)
+		 : gen_loadgp_absolute_di (pic_reg, mips_gnu_local_gp));
       break;
 
     case LOADGP_NEWABI:
       addr = XEXP (DECL_RTL (current_function_decl), 0);
       offset = mips_unspec_address (addr, SYMBOL_GOTOFF_LOADGP);
       incoming_address = gen_rtx_REG (Pmode, PIC_FUNCTION_ADDR_REGNUM);
-      emit_insn (gen_loadgp_newabi (offset, incoming_address));
+      emit_insn (Pmode == SImode
+		 ? gen_loadgp_newabi_si (pic_reg, offset, incoming_address)
+		 : gen_loadgp_newabi_di (pic_reg, offset, incoming_address));
       if (!TARGET_EXPLICIT_RELOCS)
 	emit_insn (gen_loadgp_blockage ());
       break;
@@ -8306,7 +8313,9 @@ mips_emit_loadgp (void)
     case LOADGP_RTP:
       base = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (VXWORKS_GOTT_BASE));
       index = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (VXWORKS_GOTT_INDEX));
-      emit_insn (gen_loadgp_rtp (base, index));
+      emit_insn (Pmode == SImode
+		 ? gen_loadgp_rtp_si (pic_reg, base, index)
+		 : gen_loadgp_rtp_di (pic_reg, base, index));
       if (!TARGET_EXPLICIT_RELOCS)
 	emit_insn (gen_loadgp_blockage ());
       break;

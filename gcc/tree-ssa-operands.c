@@ -210,7 +210,7 @@ get_name_decl (const_tree t)
 
 /* Comparison function for qsort used in operand_build_sort_virtual.  */
 
-static int
+int
 operand_build_cmp (const void *p, const void *q)
 {
   const_tree const e1 = *((const_tree const *)p);
@@ -477,11 +477,10 @@ ssa_operand_alloc (unsigned size)
         gimple_ssa_operands (cfun)->ssa_operand_mem_size
 	  = OP_SIZE_3 * sizeof (struct voptype_d);
 
-      /* Fail if there is not enough space.  If there are this many operands
-	 required, first make sure there isn't a different problem causing this
-	 many operands.  If the decision is that this is OK, then we can 
-	 specially allocate a buffer just for this request.  */
-      gcc_assert (size <= gimple_ssa_operands (cfun)->ssa_operand_mem_size);
+      /* We can reliably trigger the case that we need arbitrary many
+	 operands (see PR34093), so allocate a buffer just for this request.  */
+      if (size > gimple_ssa_operands (cfun)->ssa_operand_mem_size)
+	gimple_ssa_operands (cfun)->ssa_operand_mem_size = size;
 
       ptr = (struct ssa_operand_memory_d *) 
 	      ggc_alloc (sizeof (struct ssa_operand_memory_d) 
@@ -2647,17 +2646,23 @@ copy_virtual_operands (tree dest, tree src)
    create an artificial stmt which looks like a load from the store, this can
    be used to eliminate redundant loads.  OLD_OPS are the operands from the 
    store stmt, and NEW_STMT is the new load which represents a load of the
-   values stored.  */
+   values stored.  If DELINK_IMM_USES_P is specified, the immediate
+   uses of this stmt will be de-linked.  */
 
 void
-create_ssa_artificial_load_stmt (tree new_stmt, tree old_stmt)
+create_ssa_artificial_load_stmt (tree new_stmt, tree old_stmt,
+				 bool delink_imm_uses_p)
 {
   tree op;
   ssa_op_iter iter;
   use_operand_p use_p;
   unsigned i;
+  stmt_ann_t ann;
 
-  get_stmt_ann (new_stmt);
+  /* Create the stmt annotation but make sure to not mark the stmt
+     as modified as we will build operands ourselves.  */
+  ann = get_stmt_ann (new_stmt);
+  ann->modified = 0;
 
   /* Process NEW_STMT looking for operands.  */
   start_ssa_stmt_operands ();
@@ -2687,8 +2692,9 @@ create_ssa_artificial_load_stmt (tree new_stmt, tree old_stmt)
   finalize_ssa_stmt_operands (new_stmt);
 
   /* All uses in this fake stmt must not be in the immediate use lists.  */
-  FOR_EACH_SSA_USE_OPERAND (use_p, new_stmt, iter, SSA_OP_ALL_USES)
-    delink_imm_use (use_p);
+  if (delink_imm_uses_p)
+    FOR_EACH_SSA_USE_OPERAND (use_p, new_stmt, iter, SSA_OP_ALL_USES)
+      delink_imm_use (use_p);
 }
 
 

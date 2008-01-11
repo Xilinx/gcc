@@ -407,7 +407,19 @@ gfc_compare_derived_types (gfc_symbol *derived1, gfc_symbol *derived2)
       if (dt1->dimension && gfc_compare_array_spec (dt1->as, dt2->as) == 0)
 	return 0;
 
-      if (gfc_compare_types (&dt1->ts, &dt2->ts) == 0)
+      /* Make sure that link lists do not put this function into an 
+	 endless recursive loop!  */
+      if (!(dt1->ts.type == BT_DERIVED && derived1 == dt1->ts.derived)
+	    && !(dt1->ts.type == BT_DERIVED && derived1 == dt1->ts.derived)
+	    && gfc_compare_types (&dt1->ts, &dt2->ts) == 0)
+	return 0;
+
+      else if ((dt1->ts.type == BT_DERIVED && derived1 == dt1->ts.derived)
+		&& !(dt1->ts.type == BT_DERIVED && derived1 == dt1->ts.derived))
+	return 0;
+
+      else if (!(dt1->ts.type == BT_DERIVED && derived1 == dt1->ts.derived)
+		&& (dt1->ts.type == BT_DERIVED && derived1 == dt1->ts.derived))
 	return 0;
 
       dt1 = dt1->next;
@@ -1896,13 +1908,16 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 	}
 
       /* Check intent = OUT/INOUT for definable actual argument.  */
-      if (a->expr->expr_type != EXPR_VARIABLE
+      if ((a->expr->expr_type != EXPR_VARIABLE
+	   || (a->expr->symtree->n.sym->attr.flavor != FL_VARIABLE
+	       && a->expr->symtree->n.sym->attr.flavor != FL_PROCEDURE))
 	  && (f->sym->attr.intent == INTENT_OUT
 	      || f->sym->attr.intent == INTENT_INOUT))
 	{
 	  if (where)
-	    gfc_error ("Actual argument at %L must be definable to "
-		       "match dummy INTENT = OUT/INOUT", &a->expr->where);
+	    gfc_error ("Actual argument at %L must be definable as "
+		       "the dummy argument '%s' is INTENT = OUT/INOUT",
+		       &a->expr->where, f->sym->name);
 	  return 0;
 	}
 

@@ -1101,8 +1101,8 @@ are also allowed as argument of @code{REAL}, @code{DBLE}, @code{INT}
 and @code{CMPLX}; the result is the same as if the integer BOZ
 literal had been converted by @code{TRANSFER} to, respectively,
 @code{real}, @code{double precision}, @code{integer} or @code{complex}.
-The GNU Fortran intrinsic procedure @code{FLOAT}, @code{DFLOAT},
-@code{COMPLEX} and @code{DCMPLX} are treated alike.
+As GNU Fortran extension the intrinsic procedures @code{FLOAT},
+@code{DFLOAT}, @code{COMPLEX} and @code{DCMPLX} are treated alike.
 
 As an extension, GNU Fortran allows hexadecimal BOZ literal constants to
 be specified using the @code{X} prefix, in addition to the standard
@@ -1115,8 +1115,9 @@ DATA statements and the four intrinsic functions allowed by Fortran 2003.
 In DATA statements, in direct assignments, where the right-hand side
 only contains a BOZ literal constant, and for old-style initializers of
 the form @code{integer i /o'0173'/}, the constant is transferred
-as if @code{TRANSFER} had been used. In all other cases, the BOZ literal
-constant is converted to an @code{INTEGER} value with
+as if @code{TRANSFER} had been used; for @code{COMPLEX} numbers, only
+the real part is initialized unless @code{CMPLX} is used. In all other
+cases, the BOZ literal constant is converted to an @code{INTEGER} value with
 the largest decimal representation.  This value is then converted
 numerically to the type and kind of the variable in question.
 (For instance @code{real :: r = b'0000001' + 1} initializes @code{r}
@@ -1164,12 +1165,17 @@ zero, and @code{.TRUE.} is interpreted as one.  When converting from
 @code{.FALSE.} and any nonzero value is interpreted as @code{.TRUE.}.
 
 @smallexample
-       INTEGER :: i = 1
-       IF (i) PRINT *, 'True'
+        LOGICAL :: l
+        l = 1
+@end smallexample
+@smallexample
+        INTEGER :: i
+        i = .TRUE.
 @end smallexample
 
-However, there is no implicit conversion of @code{LOGICAL} and
-@code{INTEGER} values performed during I/O operations.
+However, there is no implicit conversion of @code{INTEGER} values in
+@code{if}-statements, nor of @code{LOGICAL} or @code{INTEGER} values
+in I/O operations.
 
 @node Hollerith constants support
 @section Hollerith constants support

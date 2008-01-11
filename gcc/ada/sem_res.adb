@@ -131,6 +131,23 @@ package body Sem_Res is
    --  of the task, it must be replaced with a reference to the discriminant
    --  of the task being called.
 
+   procedure Resolve_Op_Concat_Arg
+     (N       : Node_Id;
+      Arg     : Node_Id;
+      Typ     : Entity_Id;
+      Is_Comp : Boolean);
+   --  Internal procedure for Resolve_Op_Concat to resolve one operand of
+   --  concatenation operator.  The operand is either of the array type or of
+   --  the component type. If the operand is an aggregate, and the component
+   --  type is composite, this is ambiguous if component type has aggregates.
+
+   procedure Resolve_Op_Concat_First (N : Node_Id; Typ : Entity_Id);
+   --  Does the first part of the work of Resolve_Op_Concat
+
+   procedure Resolve_Op_Concat_Rest (N : Node_Id; Typ : Entity_Id);
+   --  Does the "rest" of the work of Resolve_Op_Concat, after the left operand
+   --  has been resolved. See Resolve_Op_Concat for details.
+
    procedure Resolve_Allocator                 (N : Node_Id; Typ : Entity_Id);
    procedure Resolve_Arithmetic_Op             (N : Node_Id; Typ : Entity_Id);
    procedure Resolve_Call                      (N : Node_Id; Typ : Entity_Id);
@@ -2846,6 +2863,30 @@ package body Sem_Res is
 
          --  Case where actual is present
 
+         --  If the actual is an entity,  generate a reference to it now. We
+         --  do this before the actual is resolved, because a formal of some
+         --  protected subprogram, or a task discriminant, will be rewritten
+         --  during expansion, and the reference to the source entity may
+         --  be lost.
+
+         if Present (A)
+           and then Is_Entity_Name (A)
+           and then Comes_From_Source (N)
+         then
+            Orig_A := Entity (A);
+
+            if Present (Orig_A) then
+               if Is_Formal (Orig_A)
+                 and then Ekind (F) /= E_In_Parameter
+               then
+                  Generate_Reference (Orig_A, A, 'm');
+
+               elsif not Is_Overloaded (A) then
+                  Generate_Reference (Orig_A, A);
+               end if;
+            end if;
+         end if;
+
          if Present (A)
            and then (Nkind (Parent (A)) /= N_Parameter_Association
                        or else
@@ -3043,41 +3084,36 @@ package body Sem_Res is
                end if;
             end if;
 
-            --  For IN parameter, this is where we generate a reference after
-            --  resolution is complete.
-
-            if Ekind (F) = E_In_Parameter then
-               Orig_A := Original_Node (A);
-
-               if Is_Entity_Name (Orig_A)
-                 and then Present (Entity (Orig_A))
-               then
-                  Generate_Reference (Entity (Orig_A), Orig_A);
-               end if;
-
             --  Case of OUT or IN OUT parameter
 
-            else
-               --  Validate the form of the actual. Note that the call to
-               --  Is_OK_Variable_For_Out_Formal generates the required
-               --  reference in this case.
-
-               if not Is_OK_Variable_For_Out_Formal (A) then
-                  Error_Msg_NE ("actual for& must be a variable", A, F);
-               end if;
+            if Ekind (F) /= E_In_Parameter then
 
                --  For an Out parameter, check for useless assignment. Note
                --  that we can't set Last_Assignment this early, because we
                --  may kill current values in Resolve_Call, and that call
                --  would clobber the Last_Assignment field.
 
+               --  Note: call Warn_On_Useless_Assignment before doing the
+               --  check below for Is_OK_Variable_For_Out_Formal so that the
+               --  setting of Referenced_As_LHS/Referenced_As_Out_Formal
+               --  properly reflects the last assignment, not this one!
+
                if Ekind (F) = E_Out_Parameter then
-                  if Warn_On_Out_Parameter_Unread
+                  if Warn_On_Modified_As_Out_Parameter (F)
                     and then Is_Entity_Name (A)
                     and then Present (Entity (A))
+                    and then Comes_From_Source (N)
                   then
-                     Warn_On_Useless_Assignment (Entity (A), Sloc (A));
+                     Warn_On_Useless_Assignment (Entity (A), A);
                   end if;
+               end if;
+
+               --  Validate the form of the actual. Note that the call to
+               --  Is_OK_Variable_For_Out_Formal generates the required
+               --  reference in this case.
+
+               if not Is_OK_Variable_For_Out_Formal (A) then
+                  Error_Msg_NE ("actual for& must be a variable", A, F);
                end if;
 
                --  What's the following about???
@@ -4718,7 +4754,7 @@ package body Sem_Res is
       --  for it, precisely because we will not do it within the init proc
       --  itself.
 
-      --  If the subprogram is marked Inlined_Always, then even if it returns
+      --  If the subprogram is marked Inline_Always, then even if it returns
       --  an unconstrained type the call does not require use of the secondary
       --  stack.
 
@@ -4809,12 +4845,12 @@ package body Sem_Res is
          Kill_Current_Values;
       end if;
 
-      --  If we are warning about unread out parameters, this is the place to
-      --  set Last_Assignment for out parameters. We have to do this after the
-      --  above call to Kill_Current_Values (since that call clears the
-      --  Last_Assignment field of all local variables).
+      --  If we are warning about unread OUT parameters, this is the place to
+      --  set Last_Assignment for OUT and IN OUT parameters. We have to do this
+      --  after the above call to Kill_Current_Values (since that call clears
+      --  the Last_Assignment field of all local variables).
 
-      if Warn_On_Out_Parameter_Unread
+      if (Warn_On_Modified_Unread or Warn_On_All_Unread_Out_Parameters)
         and then Comes_From_Source (N)
         and then In_Extended_Main_Source_Unit (N)
       then
@@ -4826,9 +4862,12 @@ package body Sem_Res is
             F := First_Formal (Nam);
             A := First_Actual (N);
             while Present (F) and then Present (A) loop
-               if Ekind (F) = E_Out_Parameter
+               if (Ekind (F) = E_Out_Parameter
+                     or else Ekind (F) = E_In_Out_Parameter)
+                 and then Warn_On_Modified_As_Out_Parameter (F)
                  and then Is_Entity_Name (A)
                  and then Present (Entity (A))
+                 and then Comes_From_Source (N)
                  and then Safe_To_Capture_Value (N, Entity (A))
                then
                   Set_Last_Assignment (Entity (A), A);
@@ -6332,116 +6371,167 @@ package body Sem_Res is
    -----------------------
 
    procedure Resolve_Op_Concat (N : Node_Id; Typ : Entity_Id) is
+
+      --  We wish to avoid deep recursion, because concatenations are often
+      --  deeply nested, as in A&B&...&Z. Therefore, we walk down the left
+      --  operands nonrecursively until we find something that is not a simple
+      --  concatenation (A in this case). We resolve that, and then walk back
+      --  up the tree following Parent pointers, calling Resolve_Op_Concat_Rest
+      --  to do the rest of the work at each level. The Parent pointers allow
+      --  us to avoid recursion, and thus avoid running out of memory. See also
+      --  Sem_Ch4.Analyze_Concatenation, where a similar hack is used.
+
+      NN  : Node_Id := N;
+      Op1 : Node_Id;
+
+   begin
+      --  The following code is equivalent to:
+
+      --    Resolve_Op_Concat_First (NN, Typ);
+      --    Resolve_Op_Concat_Arg (N, ...);
+      --    Resolve_Op_Concat_Rest (N, Typ);
+
+      --  where the Resolve_Op_Concat_Arg call recurses back here if the left
+      --  operand is a concatenation.
+
+      --  Walk down left operands
+
+      loop
+         Resolve_Op_Concat_First (NN, Typ);
+         Op1 := Left_Opnd (NN);
+         exit when not (Nkind (Op1) = N_Op_Concat
+                         and then not Is_Array_Type (Component_Type (Typ))
+                         and then Entity (Op1) = Entity (NN));
+         NN := Op1;
+      end loop;
+
+      --  Now (given the above example) NN is A&B and Op1 is A
+
+      --  First resolve Op1 ...
+
+      Resolve_Op_Concat_Arg (NN, Op1, Typ, Is_Component_Left_Opnd  (NN));
+
+      --  ... then walk NN back up until we reach N (where we started), calling
+      --  Resolve_Op_Concat_Rest along the way.
+
+      loop
+         Resolve_Op_Concat_Rest (NN, Typ);
+         exit when NN = N;
+         NN := Parent (NN);
+      end loop;
+   end Resolve_Op_Concat;
+
+   ---------------------------
+   -- Resolve_Op_Concat_Arg --
+   ---------------------------
+
+   procedure Resolve_Op_Concat_Arg
+     (N       : Node_Id;
+      Arg     : Node_Id;
+      Typ     : Entity_Id;
+      Is_Comp : Boolean)
+   is
       Btyp : constant Entity_Id := Base_Type (Typ);
-      Op1  : constant Node_Id := Left_Opnd (N);
-      Op2  : constant Node_Id := Right_Opnd (N);
 
-      procedure Resolve_Concatenation_Arg (Arg : Node_Id; Is_Comp : Boolean);
-      --  Internal procedure to resolve one operand of concatenation operator.
-      --  The operand is either of the array type or of the component type.
-      --  If the operand is an aggregate, and the component type is composite,
-      --  this is ambiguous if component type has aggregates.
-
-      -------------------------------
-      -- Resolve_Concatenation_Arg --
-      -------------------------------
-
-      procedure Resolve_Concatenation_Arg (Arg : Node_Id; Is_Comp : Boolean) is
-      begin
-         if In_Instance then
-            if Is_Comp
-              or else (not Is_Overloaded (Arg)
-               and then Etype (Arg) /= Any_Composite
-               and then Covers (Component_Type (Typ), Etype (Arg)))
-            then
-               Resolve (Arg, Component_Type (Typ));
-            else
-               Resolve (Arg, Btyp);
-            end if;
-
-         elsif Has_Compatible_Type (Arg, Component_Type (Typ)) then
-
-            if Nkind (Arg) = N_Aggregate
-              and then Is_Composite_Type (Component_Type (Typ))
-            then
-               if Is_Private_Type (Component_Type (Typ)) then
-                  Resolve (Arg, Btyp);
-
-               else
-                  Error_Msg_N ("ambiguous aggregate must be qualified", Arg);
-                  Set_Etype (Arg, Any_Type);
-               end if;
-
-            else
-               if Is_Overloaded (Arg)
-                 and then Has_Compatible_Type (Arg, Typ)
-                 and then Etype (Arg) /= Any_Type
-               then
-
-                  declare
-                     I    : Interp_Index;
-                     It   : Interp;
-                     Func : Entity_Id;
-
-                  begin
-                     Get_First_Interp (Arg, I, It);
-                     Func := It.Nam;
-                     Get_Next_Interp (I, It);
-
-                     --  Special-case the error message when the overloading
-                     --  is caused by a function that yields and array and
-                     --  can be called without parameters.
-
-                     if It.Nam = Func then
-                        Error_Msg_Sloc := Sloc (Func);
-                        Error_Msg_N ("ambiguous call to function#", Arg);
-                        Error_Msg_NE
-                          ("\\interpretation as call yields&", Arg, Typ);
-                        Error_Msg_NE
-                          ("\\interpretation as indexing of call yields&",
-                            Arg, Component_Type (Typ));
-
-                     else
-                        Error_Msg_N
-                          ("ambiguous operand for concatenation!", Arg);
-                        Get_First_Interp (Arg, I, It);
-                        while Present (It.Nam) loop
-                           Error_Msg_Sloc := Sloc (It.Nam);
-
-                           if Base_Type (It.Typ) = Base_Type (Typ)
-                             or else Base_Type (It.Typ) =
-                               Base_Type (Component_Type (Typ))
-                           then
-                              Error_Msg_N ("\\possible interpretation#", Arg);
-                           end if;
-
-                           Get_Next_Interp (I, It);
-                        end loop;
-                     end if;
-                  end;
-               end if;
-
-               Resolve (Arg, Component_Type (Typ));
-
-               if Nkind (Arg) = N_String_Literal then
-                  Set_Etype (Arg, Component_Type (Typ));
-               end if;
-
-               if Arg = Left_Opnd (N) then
-                  Set_Is_Component_Left_Opnd (N);
-               else
-                  Set_Is_Component_Right_Opnd (N);
-               end if;
-            end if;
-
+   begin
+      if In_Instance then
+         if Is_Comp
+           or else (not Is_Overloaded (Arg)
+                     and then Etype (Arg) /= Any_Composite
+                     and then Covers (Component_Type (Typ), Etype (Arg)))
+         then
+            Resolve (Arg, Component_Type (Typ));
          else
             Resolve (Arg, Btyp);
          end if;
 
-         Check_Unset_Reference (Arg);
-      end Resolve_Concatenation_Arg;
+      elsif Has_Compatible_Type (Arg, Component_Type (Typ)) then
+         if Nkind (Arg) = N_Aggregate
+           and then Is_Composite_Type (Component_Type (Typ))
+         then
+            if Is_Private_Type (Component_Type (Typ)) then
+               Resolve (Arg, Btyp);
+            else
+               Error_Msg_N ("ambiguous aggregate must be qualified", Arg);
+               Set_Etype (Arg, Any_Type);
+            end if;
 
-   --  Start of processing for Resolve_Op_Concat
+         else
+            if Is_Overloaded (Arg)
+              and then Has_Compatible_Type (Arg, Typ)
+              and then Etype (Arg) /= Any_Type
+            then
+               declare
+                  I    : Interp_Index;
+                  It   : Interp;
+                  Func : Entity_Id;
+
+               begin
+                  Get_First_Interp (Arg, I, It);
+                  Func := It.Nam;
+                  Get_Next_Interp (I, It);
+
+                  --  Special-case the error message when the overloading is
+                  --  caused by a function that yields an array and can be
+                  --  called without parameters.
+
+                  if It.Nam = Func then
+                     Error_Msg_Sloc := Sloc (Func);
+                     Error_Msg_N ("ambiguous call to function#", Arg);
+                     Error_Msg_NE
+                       ("\\interpretation as call yields&", Arg, Typ);
+                     Error_Msg_NE
+                       ("\\interpretation as indexing of call yields&",
+                         Arg, Component_Type (Typ));
+
+                  else
+                     Error_Msg_N
+                       ("ambiguous operand for concatenation!", Arg);
+                     Get_First_Interp (Arg, I, It);
+                     while Present (It.Nam) loop
+                        Error_Msg_Sloc := Sloc (It.Nam);
+
+                        if Base_Type (It.Typ) = Base_Type (Typ)
+                          or else Base_Type (It.Typ) =
+                            Base_Type (Component_Type (Typ))
+                        then
+                           Error_Msg_N ("\\possible interpretation#", Arg);
+                        end if;
+
+                        Get_Next_Interp (I, It);
+                     end loop;
+                  end if;
+               end;
+            end if;
+
+            Resolve (Arg, Component_Type (Typ));
+
+            if Nkind (Arg) = N_String_Literal then
+               Set_Etype (Arg, Component_Type (Typ));
+            end if;
+
+            if Arg = Left_Opnd (N) then
+               Set_Is_Component_Left_Opnd (N);
+            else
+               Set_Is_Component_Right_Opnd (N);
+            end if;
+         end if;
+
+      else
+         Resolve (Arg, Btyp);
+      end if;
+
+      Check_Unset_Reference (Arg);
+   end Resolve_Op_Concat_Arg;
+
+   -----------------------------
+   -- Resolve_Op_Concat_First --
+   -----------------------------
+
+   procedure Resolve_Op_Concat_First (N : Node_Id; Typ : Entity_Id) is
+      Btyp : constant Entity_Id := Base_Type (Typ);
+      Op1  : constant Node_Id := Left_Opnd (N);
+      Op2  : constant Node_Id := Right_Opnd (N);
 
    begin
       --  The parser folds an enormous sequence of concatenations of string
@@ -6466,30 +6556,18 @@ package body Sem_Res is
          Error_Msg_N ("concatenation not available for limited array", N);
          Explain_Limited_Type (Btyp, N);
       end if;
+   end Resolve_Op_Concat_First;
 
-      --  If the operands are themselves concatenations, resolve them as such
-      --  directly. This removes several layers of recursion and allows GNAT to
-      --  handle larger multiple concatenations.
+   ----------------------------
+   -- Resolve_Op_Concat_Rest --
+   ----------------------------
 
-      if Nkind (Op1) = N_Op_Concat
-        and then not Is_Array_Type (Component_Type (Typ))
-        and then Entity (Op1) = Entity (N)
-      then
-         Resolve_Op_Concat (Op1, Typ);
-      else
-         Resolve_Concatenation_Arg
-           (Op1,  Is_Component_Left_Opnd  (N));
-      end if;
+   procedure Resolve_Op_Concat_Rest (N : Node_Id; Typ : Entity_Id) is
+      Op1  : constant Node_Id := Left_Opnd (N);
+      Op2  : constant Node_Id := Right_Opnd (N);
 
-      if Nkind (Op2) = N_Op_Concat
-        and then not Is_Array_Type (Component_Type (Typ))
-        and then Entity (Op2) = Entity (N)
-      then
-         Resolve_Op_Concat (Op2, Typ);
-      else
-         Resolve_Concatenation_Arg
-           (Op2, Is_Component_Right_Opnd  (N));
-      end if;
+   begin
+      Resolve_Op_Concat_Arg (N, Op2, Typ, Is_Component_Right_Opnd  (N));
 
       Generate_Operator_Reference (N, Typ);
 
@@ -6498,7 +6576,7 @@ package body Sem_Res is
       end if;
 
       --  If this is not a static concatenation, but the result is a
-      --  string type (and not an array of strings) insure that static
+      --  string type (and not an array of strings) ensure that static
       --  string operands have their subtypes properly constructed.
 
       if Nkind (N) /= N_String_Literal
@@ -6507,7 +6585,7 @@ package body Sem_Res is
          Set_String_Literal_Subtype (Op1, Typ);
          Set_String_Literal_Subtype (Op2, Typ);
       end if;
-   end Resolve_Op_Concat;
+   end Resolve_Op_Concat_Rest;
 
    ----------------------
    -- Resolve_Op_Expon --
@@ -6930,6 +7008,14 @@ package body Sem_Res is
             end if;
 
             if Is_Record_Type (T) then
+
+               --  The visible components of a class-wide type are those of
+               --  the root type.
+
+               if Is_Class_Wide_Type (T) then
+                  T := Etype (T);
+               end if;
+
                Comp := First_Entity (T);
                while Present (Comp) loop
                   if Chars (Comp) = Chars (S)
@@ -7089,6 +7175,58 @@ package body Sem_Res is
    begin
       Resolve (L, B_Typ);
       Resolve (R, B_Typ);
+
+      --  Check for issuing warning for always False assert, this happens
+      --  when assertions are turned off, in which case the pragma Assert
+      --  was transformed into:
+
+      --     if False and then <condition> then ...
+
+      --  and we detect this pattern
+
+      if Warn_On_Assertion_Failure
+        and then Is_Entity_Name (R)
+        and then Entity (R) = Standard_False
+        and then Nkind (Parent (N)) = N_If_Statement
+        and then Nkind (N) = N_And_Then
+        and then Is_Entity_Name (L)
+        and then Entity (L) = Standard_False
+      then
+         declare
+            Orig : constant Node_Id := Original_Node (Parent (N));
+         begin
+            if Nkind (Orig) = N_Pragma
+              and then Chars (Orig) = Name_Assert
+            then
+               --  Don't want to warn if original condition is explicit False
+
+               declare
+                  Expr : constant Node_Id :=
+                           Original_Node
+                             (Expression
+                               (First (Pragma_Argument_Associations (Orig))));
+               begin
+                  if Is_Entity_Name (Expr)
+                    and then Entity (Expr) = Standard_False
+                  then
+                     null;
+                  else
+                     --  Issue warning. Note that we don't want to make this
+                     --  an unconditional warning, because if the assert is
+                     --  within deleted code we do not want the warning. But
+                     --  we do not want the deletion of the IF/AND-THEN to
+                     --  take this message with it. We achieve this by making
+                     --  sure that the expanded code points to the Sloc of
+                     --  the expression, not the original pragma.
+
+                     Error_Msg_N ("?assertion would fail at run-time", Orig);
+                  end if;
+               end;
+            end if;
+         end;
+      end if;
+
+      --  Continue with processing of short circuit
 
       Check_Unset_Reference (L);
       Check_Unset_Reference (R);
@@ -8232,7 +8370,12 @@ package body Sem_Res is
             Set_Parent (Drange, N);
             Analyze_And_Resolve (Drange, Index_Type);
 
-            Set_Etype        (Index_Subtype, Index_Type);
+            --  In the context, the Index_Type may already have a constraint,
+            --  so use common base type on string subtype. The base type may
+            --  be used when generating attributes of the string, for example
+            --  in the context of a slice assignment.
+
+            Set_Etype        (Index_Subtype, Base_Type (Index_Type));
             Set_Size_Info    (Index_Subtype, Index_Type);
             Set_RM_Size      (Index_Subtype, RM_Size (Index_Type));
 

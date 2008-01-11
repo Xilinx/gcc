@@ -583,14 +583,19 @@
   [DF (SF "!TARGET_FIX_SB1 || flag_unsafe_math_optimizations")
    (V2SF "TARGET_SB1 && (!TARGET_FIX_SB1 || flag_unsafe_math_optimizations)")])
 
-; This attribute gives the condition for which sqrt instructions exist.
+;; This attribute gives the conditions under which SQRT.fmt instructions
+;; can be used.
 (define_mode_attr sqrt_condition
   [(SF "!ISA_MIPS1") (DF "!ISA_MIPS1") (V2SF "TARGET_SB1")])
 
-; This attribute gives the condition for which recip and rsqrt instructions
-; exist.
+;; This attribute gives the conditions under which RECIP.fmt and RSQRT.fmt
+;; instructions can be used.  The MIPS32 and MIPS64 ISAs say that RECIP.D
+;; and RSQRT.D are unpredictable when doubles are stored in pairs of FPRs,
+;; so for safety's sake, we apply this restriction to all targets.
 (define_mode_attr recip_condition
-  [(SF "ISA_HAS_FP4") (DF "ISA_HAS_FP4") (V2SF "TARGET_SB1")])
+  [(SF "ISA_HAS_FP4")
+   (DF "ISA_HAS_FP4 && TARGET_FLOAT64")
+   (V2SF "TARGET_SB1")])
 
 ;; This code iterator allows all branch instructions to be generated from
 ;; a single define_expand template.
@@ -4269,32 +4274,34 @@
 ;; Insn to initialize $gp for n32/n64 abicalls.  Operand 0 is the offset
 ;; of _gp from the start of this function.  Operand 1 is the incoming
 ;; function address.
-(define_insn_and_split "loadgp_newabi"
-  [(unspec_volatile [(match_operand 0 "" "")
-		     (match_operand 1 "register_operand" "")] UNSPEC_LOADGP)]
+(define_insn_and_split "loadgp_newabi_<mode>"
+  [(set (match_operand:P 0 "register_operand" "=d")
+	(unspec_volatile:P [(match_operand:P 1)
+			    (match_operand:P 2 "register_operand" "d")]
+			   UNSPEC_LOADGP))]
   "mips_current_loadgp_style () == LOADGP_NEWABI"
   "#"
   ""
-  [(set (match_dup 2) (match_dup 3))
-   (set (match_dup 2) (match_dup 4))
-   (set (match_dup 2) (match_dup 5))]
+  [(set (match_dup 0) (match_dup 3))
+   (set (match_dup 0) (match_dup 4))
+   (set (match_dup 0) (match_dup 5))]
 {
-  operands[2] = pic_offset_table_rtx;
-  operands[3] = gen_rtx_HIGH (Pmode, operands[0]);
-  operands[4] = gen_rtx_PLUS (Pmode, operands[2], operands[1]);
-  operands[5] = gen_rtx_LO_SUM (Pmode, operands[2], operands[0]);
+  operands[3] = gen_rtx_HIGH (Pmode, operands[1]);
+  operands[4] = gen_rtx_PLUS (Pmode, operands[0], operands[2]);
+  operands[5] = gen_rtx_LO_SUM (Pmode, operands[0], operands[1]);
 }
   [(set_attr "length" "12")])
 
 ;; Likewise, for -mno-shared code.  Operand 0 is the __gnu_local_gp symbol.
-(define_insn_and_split "loadgp_absolute"
-  [(unspec_volatile [(match_operand 0 "" "")] UNSPEC_LOADGP)]
+(define_insn_and_split "loadgp_absolute_<mode>"
+  [(set (match_operand:P 0 "register_operand" "=d")
+	(unspec_volatile:P [(match_operand:P 1)] UNSPEC_LOADGP))]
   "mips_current_loadgp_style () == LOADGP_ABSOLUTE"
   "#"
   ""
   [(const_int 0)]
 {
-  mips_emit_move (pic_offset_table_rtx, operands[0]);
+  mips_emit_move (operands[0], operands[1]);
   DONE;
 }
   [(set_attr "length" "8")])
@@ -4313,27 +4320,24 @@
 
 ;; Initialize $gp for RTP PIC.  Operand 0 is the __GOTT_BASE__ symbol
 ;; and operand 1 is the __GOTT_INDEX__ symbol.
-(define_insn "loadgp_rtp"
-  [(unspec_volatile [(match_operand 0 "symbol_ref_operand")
-		     (match_operand 1 "symbol_ref_operand")] UNSPEC_LOADGP)]
+(define_insn_and_split "loadgp_rtp_<mode>"
+  [(set (match_operand:P 0 "register_operand" "=d")
+	(unspec_volatile:P [(match_operand:P 1 "symbol_ref_operand")
+			    (match_operand:P 2 "symbol_ref_operand")]
+			   UNSPEC_LOADGP))]
   "mips_current_loadgp_style () == LOADGP_RTP"
   "#"
-  [(set_attr "length" "12")])
-
-(define_split
-  [(unspec_volatile [(match_operand:P 0 "symbol_ref_operand")
-		     (match_operand:P 1 "symbol_ref_operand")] UNSPEC_LOADGP)]
-  "mips_current_loadgp_style () == LOADGP_RTP"
-  [(set (match_dup 2) (high:P (match_dup 3)))
-   (set (match_dup 2) (unspec:P [(match_dup 2)
+  ""
+  [(set (match_dup 0) (high:P (match_dup 3)))
+   (set (match_dup 0) (unspec:P [(match_dup 0)
 				 (match_dup 3)] UNSPEC_LOAD_GOT))
-   (set (match_dup 2) (unspec:P [(match_dup 2)
+   (set (match_dup 0) (unspec:P [(match_dup 0)
 				 (match_dup 4)] UNSPEC_LOAD_GOT))]
 {
-  operands[2] = pic_offset_table_rtx;
-  operands[3] = mips_unspec_address (operands[0], SYMBOL_ABSOLUTE);
-  operands[4] = mips_unspec_address (operands[1], SYMBOL_HALF);
-})
+  operands[3] = mips_unspec_address (operands[1], SYMBOL_ABSOLUTE);
+  operands[4] = mips_unspec_address (operands[2], SYMBOL_HALF);
+}
+  [(set_attr "length" "12")])
 
 ;; Emit a .cprestore directive, which normally expands to a single store
 ;; instruction.  Note that we continue to use .cprestore for explicit reloc
@@ -4398,15 +4402,11 @@
    (clobber (reg:SI 31))]
   "ISA_HAS_SYNCI"
 {
-  return ".set\tpush\n"
-         "\t.set\tnoreorder\n"
-         "\t.set\tnomacro\n"
-         "\tbal\t1f\n"
+  return "%(%<bal\t1f\n"
          "\tnop\n"
          "1:\taddiu\t$31,$31,12\n"
          "\tjr.hb\t$31\n"
-         "\tnop\n"
-         "\t.set\tpop";
+         "\tnop%>%)";
 }
   [(set_attr "length" "20")])
 

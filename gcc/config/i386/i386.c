@@ -1,6 +1,7 @@
 /* Subroutines used for code generation on IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -700,7 +701,7 @@ struct processor_costs k8_cost = {
      to limit number of prefetches at all, as their execution also takes some
      time).  */
   100,					/* number of parallel prefetches */
-  5,					/* Branch cost */
+  3,					/* Branch cost */
   COSTS_N_INSNS (4),			/* cost of FADD and FSUB insns.  */
   COSTS_N_INSNS (4),			/* cost of FMUL instruction.  */
   COSTS_N_INSNS (19),			/* cost of FDIV instruction.  */
@@ -724,8 +725,8 @@ struct processor_costs k8_cost = {
   2,                                    /* vec_align_load_cost.  */
   3,                                    /* vec_unalign_load_cost.  */
   3,                                    /* vec_store_cost.  */
-  6,                                    /* cond_taken_branch_cost.  */
-  1,                                    /* cond_not_taken_branch_cost.  */
+  3,                                    /* cond_taken_branch_cost.  */
+  2,                                    /* cond_not_taken_branch_cost.  */
 };
 
 struct processor_costs amdfam10_cost = {
@@ -786,7 +787,7 @@ struct processor_costs amdfam10_cost = {
      to limit number of prefetches at all, as their execution also takes some
      time).  */
   100,					/* number of parallel prefetches */
-  5,					/* Branch cost */
+  2,					/* Branch cost */
   COSTS_N_INSNS (4),			/* cost of FADD and FSUB insns.  */
   COSTS_N_INSNS (4),			/* cost of FMUL instruction.  */
   COSTS_N_INSNS (19),			/* cost of FDIV instruction.  */
@@ -811,7 +812,7 @@ struct processor_costs amdfam10_cost = {
   2,                                    /* vec_align_load_cost.  */
   2,                                    /* vec_unalign_load_cost.  */
   2,                                    /* vec_store_cost.  */
-  6,                                    /* cond_taken_branch_cost.  */
+  2,                                    /* cond_taken_branch_cost.  */
   1,                                    /* cond_not_taken_branch_cost.  */
 };
 
@@ -6318,8 +6319,12 @@ ix86_expand_prologue (void)
     allocate += frame.nregs * UNITS_PER_WORD;
 
   /* When using red zone we may start register saving before allocating
-     the stack frame saving one cycle of the prologue.  */
-  if (TARGET_RED_ZONE && frame.save_regs_using_mov)
+     the stack frame saving one cycle of the prologue. However I will
+     avoid doing this if I am going to have to probe the stack since
+     at least on x86_64 the stack probe can turn into a call that clobbers
+     a red zone location */
+  if (TARGET_RED_ZONE && frame.save_regs_using_mov
+      && (! TARGET_STACK_PROBE || allocate < CHECK_STACK_LIMIT))
     ix86_emit_save_regs_using_mov (frame_pointer_needed ? hard_frame_pointer_rtx
 				   : stack_pointer_rtx,
 				   -frame.nregs * UNITS_PER_WORD);
@@ -6375,7 +6380,9 @@ ix86_expand_prologue (void)
 	}
     }
 
-  if (frame.save_regs_using_mov && !TARGET_RED_ZONE)
+  if (frame.save_regs_using_mov
+      && !(TARGET_RED_ZONE
+         && (! TARGET_STACK_PROBE || allocate < CHECK_STACK_LIMIT)))
     {
       if (!frame_pointer_needed || !frame.to_allocate)
         ix86_emit_save_regs_using_mov (stack_pointer_rtx, frame.to_allocate);
@@ -11013,7 +11020,6 @@ ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
 				rtx operands[])
 {
   rtx mask, set, use, clob, dst, src;
-  bool matching_memory;
   bool use_sse = false;
   bool vector_mode = VECTOR_MODE_P (mode);
   enum machine_mode elt_mode = mode;
@@ -11038,19 +11044,6 @@ ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
   dst = operands[0];
   src = operands[1];
 
-  /* If the destination is memory, and we don't have matching source
-     operands or we're using the x87, do things in registers.  */
-  matching_memory = false;
-  if (MEM_P (dst))
-    {
-      if (use_sse && rtx_equal_p (dst, src))
-	matching_memory = true;
-      else
-	dst = gen_reg_rtx (mode);
-    }
-  if (MEM_P (src) && !matching_memory)
-    src = force_reg (mode, src);
-
   if (vector_mode)
     {
       set = gen_rtx_fmt_ee (code == NEG ? XOR : AND, mode, src, mask);
@@ -11071,9 +11064,6 @@ ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
       else
 	emit_insn (set);
     }
-
-  if (dst != operands[0])
-    emit_move_insn (operands[0], dst);
 }
 
 /* Expand a copysign operation.  Special case operand 0 being a constant.  */
@@ -12093,16 +12083,28 @@ ix86_expand_branch (enum rtx_code code, rtx label)
 
 	/* Otherwise, if we are doing less-than or greater-or-equal-than,
 	   op1 is a constant and the low word is zero, then we can just
-	   examine the high word.  */
+	   examine the high word.  Similarly for low word -1 and
+	   less-or-equal-than or greater-than.  */
 
-	if (CONST_INT_P (hi[1]) && lo[1] == const0_rtx)
+	if (CONST_INT_P (hi[1]))
 	  switch (code)
 	    {
 	    case LT: case LTU: case GE: case GEU:
-	      ix86_compare_op0 = hi[0];
-	      ix86_compare_op1 = hi[1];
-	      ix86_expand_branch (code, label);
-	      return;
+	      if (lo[1] == const0_rtx)
+		{
+		  ix86_compare_op0 = hi[0];
+		  ix86_compare_op1 = hi[1];
+		  ix86_expand_branch (code, label);
+		  return;
+		}
+	    case LE: case LEU: case GT: case GTU:
+	      if (lo[1] == constm1_rtx)
+		{
+		  ix86_compare_op0 = hi[0];
+		  ix86_compare_op1 = hi[1];
+		  ix86_expand_branch (code, label);
+		  return;
+		}
 	    default:
 	      break;
 	    }
@@ -17081,9 +17083,11 @@ enum ix86_builtins
   IX86_BUILTIN_RCPPS,
   IX86_BUILTIN_RCPSS,
   IX86_BUILTIN_RSQRTPS,
+  IX86_BUILTIN_RSQRTPS_NR,
   IX86_BUILTIN_RSQRTSS,
   IX86_BUILTIN_RSQRTF,
   IX86_BUILTIN_SQRTPS,
+  IX86_BUILTIN_SQRTPS_NR,
   IX86_BUILTIN_SQRTSS,
 
   IX86_BUILTIN_UNPCKHPS,
@@ -17837,7 +17841,7 @@ static const struct builtin_description bdesc_2arg[] =
   { OPTION_MASK_ISA_SSE, CODE_FOR_addv4sf3, "__builtin_ia32_addps", IX86_BUILTIN_ADDPS, UNKNOWN, 0 },
   { OPTION_MASK_ISA_SSE, CODE_FOR_subv4sf3, "__builtin_ia32_subps", IX86_BUILTIN_SUBPS, UNKNOWN, 0 },
   { OPTION_MASK_ISA_SSE, CODE_FOR_mulv4sf3, "__builtin_ia32_mulps", IX86_BUILTIN_MULPS, UNKNOWN, 0 },
-  { OPTION_MASK_ISA_SSE, CODE_FOR_divv4sf3, "__builtin_ia32_divps", IX86_BUILTIN_DIVPS, UNKNOWN, 0 },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_sse_divv4sf3, "__builtin_ia32_divps", IX86_BUILTIN_DIVPS, UNKNOWN, 0 },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_vmaddv4sf3,  "__builtin_ia32_addss", IX86_BUILTIN_ADDSS, UNKNOWN, 0 },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_vmsubv4sf3,  "__builtin_ia32_subss", IX86_BUILTIN_SUBSS, UNKNOWN, 0 },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_vmmulv4sf3,  "__builtin_ia32_mulss", IX86_BUILTIN_MULSS, UNKNOWN, 0 },
@@ -18146,8 +18150,10 @@ static const struct builtin_description bdesc_1arg[] =
   { OPTION_MASK_ISA_SSE | OPTION_MASK_ISA_3DNOW_A, CODE_FOR_mmx_pmovmskb, 0, IX86_BUILTIN_PMOVMSKB, UNKNOWN, 0 },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movmskps, 0, IX86_BUILTIN_MOVMSKPS, UNKNOWN, 0 },
 
-  { OPTION_MASK_ISA_SSE, CODE_FOR_sqrtv4sf2, 0, IX86_BUILTIN_SQRTPS, UNKNOWN, 0 },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_sse_sqrtv4sf2, 0, IX86_BUILTIN_SQRTPS, UNKNOWN, 0 },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_sqrtv4sf2, 0, IX86_BUILTIN_SQRTPS_NR, UNKNOWN, 0 },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_rsqrtv4sf2, 0, IX86_BUILTIN_RSQRTPS, UNKNOWN, 0 },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_rsqrtv4sf2, 0, IX86_BUILTIN_RSQRTPS_NR, UNKNOWN, 0 },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_rcpv4sf2, 0, IX86_BUILTIN_RCPPS, UNKNOWN, 0 },
 
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_cvtps2pi, 0, IX86_BUILTIN_CVTPS2PI, UNKNOWN, 0 },
@@ -19267,12 +19273,14 @@ ix86_init_mmx_sse_builtins (void)
   def_builtin_const (OPTION_MASK_ISA_SSE, "__builtin_ia32_rcpps", v4sf_ftype_v4sf, IX86_BUILTIN_RCPPS);
   def_builtin_const (OPTION_MASK_ISA_SSE, "__builtin_ia32_rcpss", v4sf_ftype_v4sf, IX86_BUILTIN_RCPSS);
   def_builtin_const (OPTION_MASK_ISA_SSE, "__builtin_ia32_rsqrtps", v4sf_ftype_v4sf, IX86_BUILTIN_RSQRTPS);
+  def_builtin_const (OPTION_MASK_ISA_SSE, "__builtin_ia32_rsqrtps_nr", v4sf_ftype_v4sf, IX86_BUILTIN_RSQRTPS_NR);
   def_builtin_const (OPTION_MASK_ISA_SSE, "__builtin_ia32_rsqrtss", v4sf_ftype_v4sf, IX86_BUILTIN_RSQRTSS);
   ftype = build_function_type_list (float_type_node,
 				    float_type_node,
 				    NULL_TREE);
   def_builtin_const (OPTION_MASK_ISA_SSE, "__builtin_ia32_rsqrtf", ftype, IX86_BUILTIN_RSQRTF);
   def_builtin_const (OPTION_MASK_ISA_SSE, "__builtin_ia32_sqrtps", v4sf_ftype_v4sf, IX86_BUILTIN_SQRTPS);
+  def_builtin_const (OPTION_MASK_ISA_SSE, "__builtin_ia32_sqrtps_nr", v4sf_ftype_v4sf, IX86_BUILTIN_SQRTPS_NR);
   def_builtin_const (OPTION_MASK_ISA_SSE, "__builtin_ia32_sqrtss", v4sf_ftype_v4sf, IX86_BUILTIN_SQRTSS);
 
   def_builtin_const (OPTION_MASK_ISA_SSE, "__builtin_ia32_shufps", v4sf_ftype_v4sf_v4sf_int, IX86_BUILTIN_SHUFPS);
@@ -21289,7 +21297,7 @@ ix86_builtin_vectorized_function (unsigned int fn, tree type_out,
     case BUILT_IN_SQRTF:
       if (out_mode == SFmode && out_n == 4
 	  && in_mode == SFmode && in_n == 4)
-	return ix86_builtins[IX86_BUILTIN_SQRTPS];
+	return ix86_builtins[IX86_BUILTIN_SQRTPS_NR];
       break;
 
     case BUILT_IN_LRINT:
@@ -21451,8 +21459,8 @@ ix86_builtin_reciprocal (unsigned int fn, bool md_fn,
     switch (fn)
       {
 	/* Vectorized version of sqrt to rsqrt conversion.  */
-      case IX86_BUILTIN_SQRTPS:
-	return ix86_builtins[IX86_BUILTIN_RSQRTPS];
+      case IX86_BUILTIN_SQRTPS_NR:
+	return ix86_builtins[IX86_BUILTIN_RSQRTPS_NR];
 
       default:
 	return NULL_TREE;
@@ -22236,7 +22244,7 @@ ix86_rtx_costs (rtx x, int code, int outer_code_i, int *total)
 	    nbits = 7;
 
 	  /* Compute costs correctly for widening multiplication.  */
-	  if ((GET_CODE (op0) == SIGN_EXTEND || GET_CODE (op1) == ZERO_EXTEND)
+	  if ((GET_CODE (op0) == SIGN_EXTEND || GET_CODE (op0) == ZERO_EXTEND)
 	      && GET_MODE_SIZE (GET_MODE (XEXP (op0, 0))) * 2
 	         == GET_MODE_SIZE (mode))
 	    {
@@ -24162,7 +24170,7 @@ void ix86_emit_swdivsf (rtx res, rtx a, rtx b, enum machine_mode mode)
 
   /* a / b = a * rcp(b) * (2.0 - b * rcp(b)) */
 
-  /* x0 = 1./b estimate */
+  /* x0 = rcp(b) estimate */
   emit_insn (gen_rtx_SET (VOIDmode, x0,
 			  gen_rtx_UNSPEC (mode, gen_rtvec (1, b),
 					  UNSPEC_RCP)));
@@ -24186,7 +24194,8 @@ void ix86_emit_swdivsf (rtx res, rtx a, rtx b, enum machine_mode mode)
 void ix86_emit_swsqrtsf (rtx res, rtx a, enum machine_mode mode,
 			 bool recip)
 {
-  rtx x0, e0, e1, e2, e3, three, half, zero, mask;
+  rtx x0, e0, e1, e2, e3, mthree, mhalf;
+  REAL_VALUE_TYPE r;
 
   x0 = gen_reg_rtx (mode);
   e0 = gen_reg_rtx (mode);
@@ -24194,42 +24203,41 @@ void ix86_emit_swsqrtsf (rtx res, rtx a, enum machine_mode mode,
   e2 = gen_reg_rtx (mode);
   e3 = gen_reg_rtx (mode);
 
-  three = CONST_DOUBLE_FROM_REAL_VALUE (dconst3, SFmode);
-  half = CONST_DOUBLE_FROM_REAL_VALUE (dconsthalf, SFmode);
+  real_arithmetic (&r, NEGATE_EXPR, &dconst3, NULL);
+  mthree = CONST_DOUBLE_FROM_REAL_VALUE (r, SFmode);
 
-  mask = gen_reg_rtx (mode);
+  real_arithmetic (&r, NEGATE_EXPR, &dconsthalf, NULL);
+  mhalf = CONST_DOUBLE_FROM_REAL_VALUE (r, SFmode);
 
   if (VECTOR_MODE_P (mode))
     {
-      three = ix86_build_const_vector (SFmode, true, three);
-      half = ix86_build_const_vector (SFmode, true, half);
+      mthree = ix86_build_const_vector (SFmode, true, mthree);
+      mhalf = ix86_build_const_vector (SFmode, true, mhalf);
     }
 
-  three = force_reg (mode, three);
-  half = force_reg (mode, half);
+  /* sqrt(a)  = -0.5 * a * rsqrtss(a) * (a * rsqrtss(a) * rsqrtss(a) - 3.0)
+     rsqrt(a) = -0.5     * rsqrtss(a) * (a * rsqrtss(a) * rsqrtss(a) - 3.0) */
 
-  zero = force_reg (mode, CONST0_RTX(mode));
-
-  /* sqrt(a) = 0.5 * a * rsqrtss(a) * (3.0 - a * rsqrtss(a) * rsqrtss(a))
-     1.0 / sqrt(a) = 0.5 * rsqrtss(a) * (3.0 - a * rsqrtss(a) * rsqrtss(a)) */
-
-  /* Compare a to zero.  */
-  emit_insn (gen_rtx_SET (VOIDmode, mask,
-			  gen_rtx_NE (mode, a, zero)));
-
-  /* x0 = 1./sqrt(a) estimate */
+  /* x0 = rsqrt(a) estimate */
   emit_insn (gen_rtx_SET (VOIDmode, x0,
 			  gen_rtx_UNSPEC (mode, gen_rtvec (1, a),
 					  UNSPEC_RSQRT)));
-  /* Filter out infinity.  */
-  if (VECTOR_MODE_P (mode))
-    emit_insn (gen_rtx_SET (VOIDmode, gen_lowpart (V4SFmode, x0),
-			    gen_rtx_AND (mode,
-					 gen_lowpart (V4SFmode, x0),
-					 gen_lowpart (V4SFmode, mask))));
-  else
-    emit_insn (gen_rtx_SET (VOIDmode, x0,
-			    gen_rtx_AND (mode, x0, mask)));
+
+  /* If (a == 0.0) Filter out infinity to prevent NaN for sqrt(0.0).  */
+  if (!recip)
+    {
+      rtx zero, mask;
+
+      zero = gen_reg_rtx (mode);
+      mask = gen_reg_rtx (mode);
+
+      zero = force_reg (mode, CONST0_RTX(mode));
+      emit_insn (gen_rtx_SET (VOIDmode, mask,
+			      gen_rtx_NE (mode, zero, a)));
+
+      emit_insn (gen_rtx_SET (VOIDmode, x0,
+			      gen_rtx_AND (mode, x0, mask)));
+    }
 
   /* e0 = x0 * a */
   emit_insn (gen_rtx_SET (VOIDmode, e0,
@@ -24237,17 +24245,21 @@ void ix86_emit_swsqrtsf (rtx res, rtx a, enum machine_mode mode,
   /* e1 = e0 * x0 */
   emit_insn (gen_rtx_SET (VOIDmode, e1,
 			  gen_rtx_MULT (mode, e0, x0)));
-  /* e2 = 3. - e1 */
+
+  /* e2 = e1 - 3. */
+  mthree = force_reg (mode, mthree);
   emit_insn (gen_rtx_SET (VOIDmode, e2,
-			  gen_rtx_MINUS (mode, three, e1)));
+			  gen_rtx_PLUS (mode, e1, mthree)));
+
+  mhalf = force_reg (mode, mhalf);
   if (recip)
-    /* e3 = .5 * x0 */
+    /* e3 = -.5 * x0 */
     emit_insn (gen_rtx_SET (VOIDmode, e3,
-			    gen_rtx_MULT (mode, half, x0)));
+			    gen_rtx_MULT (mode, x0, mhalf)));
   else
-    /* e3 = .5 * e0 */
+    /* e3 = -.5 * e0 */
     emit_insn (gen_rtx_SET (VOIDmode, e3,
-			    gen_rtx_MULT (mode, half, e0)));
+			    gen_rtx_MULT (mode, e0, mhalf)));
   /* ret = e2 * e3 */
   emit_insn (gen_rtx_SET (VOIDmode, res,
 			  gen_rtx_MULT (mode, e2, e3)));

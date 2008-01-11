@@ -1,5 +1,5 @@
 /* Tree inlining.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Alexandre Oliva <aoliva@redhat.com>
 
@@ -186,15 +186,42 @@ remap_ssa_name (tree name, copy_body_data *id)
     {
       new = make_ssa_name (new, NULL);
       insert_decl_map (id, name, new);
-      if (IS_EMPTY_STMT (SSA_NAME_DEF_STMT (name)))
-	{
-	  SSA_NAME_DEF_STMT (new) = build_empty_stmt ();
-	  if (gimple_default_def (id->src_cfun, SSA_NAME_VAR (name)) == name)
-	    set_default_def (SSA_NAME_VAR (new), new);
-	}
       SSA_NAME_OCCURS_IN_ABNORMAL_PHI (new)
 	= SSA_NAME_OCCURS_IN_ABNORMAL_PHI (name);
       TREE_TYPE (new) = TREE_TYPE (SSA_NAME_VAR (new));
+      if (IS_EMPTY_STMT (SSA_NAME_DEF_STMT (name)))
+	{
+	  /* By inlining function having uninitialized variable, we might
+	     extend the lifetime (variable might get reused).  This cause
+	     ICE in the case we end up extending lifetime of SSA name across
+	     abnormal edge, but also increase register presure.
+
+	     We simply initialize all uninitialized vars by 0 except for case
+	     we are inlining to very first BB.  We can avoid this for all
+	     BBs that are not withing strongly connected regions of the CFG,
+	     but this is bit expensive to test.
+	   */
+	  if (id->entry_bb && is_gimple_reg (SSA_NAME_VAR (name))
+	      && TREE_CODE (SSA_NAME_VAR (name)) != PARM_DECL
+	      && (id->entry_bb != EDGE_SUCC (ENTRY_BLOCK_PTR, 0)->dest
+		  || EDGE_COUNT (id->entry_bb->preds) != 1))
+	    {
+	      block_stmt_iterator bsi = bsi_last (id->entry_bb);
+	      tree init_stmt
+		  = build_gimple_modify_stmt (new,
+				  	      fold_convert (TREE_TYPE (new),
+					       		    integer_zero_node));
+	      bsi_insert_after (&bsi, init_stmt, BSI_NEW_STMT);
+	      SSA_NAME_DEF_STMT (new) = init_stmt;
+	      SSA_NAME_IS_DEFAULT_DEF (new) = 0;
+	    }
+	  else
+	    {
+	      SSA_NAME_DEF_STMT (new) = build_empty_stmt ();
+	      if (gimple_default_def (id->src_cfun, SSA_NAME_VAR (name)) == name)
+	        set_default_def (SSA_NAME_VAR (new), new);
+	    }
+	}
     }
   else
     insert_decl_map (id, name, new);
@@ -259,7 +286,8 @@ remap_decl (tree decl, copy_body_data *id)
 	      tree map = remap_ssa_name (def, id);
 	      /* Watch out RESULT_DECLs whose SSA names map directly
 		 to them.  */
-	      if (TREE_CODE (map) == SSA_NAME)
+	      if (TREE_CODE (map) == SSA_NAME
+		  && IS_EMPTY_STMT (SSA_NAME_DEF_STMT (map)))
 	        set_default_def (t, map);
 	    }
 	  add_referenced_var (t);
@@ -1691,6 +1719,7 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
 	{
 	  var = return_slot;
 	  gcc_assert (TREE_CODE (var) != SSA_NAME);
+	  TREE_ADDRESSABLE (var) |= TREE_ADDRESSABLE (result);
 	}
       if ((TREE_CODE (TREE_TYPE (result)) == COMPLEX_TYPE
            || TREE_CODE (TREE_TYPE (result)) == VECTOR_TYPE)
@@ -1951,6 +1980,27 @@ inline_forbidden_p_1 (tree *nodep, int *walk_subtrees ATTRIBUTE_UNUSED,
   return NULL_TREE;
 }
 
+static tree
+inline_forbidden_p_2 (tree *nodep, int *walk_subtrees,
+		      void *fnp)
+{
+  tree node = *nodep;
+  tree fn = (tree) fnp;
+
+  if (TREE_CODE (node) == LABEL_DECL && DECL_CONTEXT (node) == fn)
+    {
+      inline_forbidden_reason
+	= G_("function %q+F can never be inlined "
+	     "because it saves address of local label in a static variable");
+      return node;
+    }
+
+  if (TYPE_P (node))
+    *walk_subtrees = 0;
+
+  return NULL_TREE;
+}
+
 /* Return subexpression representing possible alloca call, if any.  */
 static tree
 inline_forbidden_p (tree fndecl)
@@ -1959,15 +2009,30 @@ inline_forbidden_p (tree fndecl)
   block_stmt_iterator bsi;
   basic_block bb;
   tree ret = NULL_TREE;
+  struct function *fun = DECL_STRUCT_FUNCTION (fndecl);
+  tree step;
 
-  FOR_EACH_BB_FN (bb, DECL_STRUCT_FUNCTION (fndecl))
+  FOR_EACH_BB_FN (bb, fun)
     for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
       {
 	ret = walk_tree_without_duplicates (bsi_stmt_ptr (bsi),
-				    inline_forbidden_p_1, fndecl);
+					    inline_forbidden_p_1, fndecl);
 	if (ret)
 	  goto egress;
       }
+
+  for (step = fun->unexpanded_var_list; step; step = TREE_CHAIN (step))
+    {
+      tree decl = TREE_VALUE (step);
+      if (TREE_CODE (decl) == VAR_DECL
+	  && TREE_STATIC (decl)
+	  && !DECL_EXTERNAL (decl)
+	  && DECL_INITIAL (decl))
+	ret = walk_tree_without_duplicates (&DECL_INITIAL (decl),
+					    inline_forbidden_p_2, fndecl);
+	if (ret)
+	  goto egress;
+    }
 
 egress:
   input_location = saved_loc;
@@ -2322,9 +2387,12 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
       break;
 
     case SWITCH_EXPR:
-      /* TODO: Cost of a switch should be derived from the number of
-	 branches.  */
-      d->count += d->weights->switch_cost;
+      /* Take into account cost of the switch + guess 2 conditional jumps for
+         each case label.  
+
+	 TODO: once the switch expansion logic is sufficiently separated, we can
+	 do better job on estimating cost of the switch.  */
+      d->count += TREE_VEC_LENGTH (SWITCH_LABELS (x)) * 2;
       break;
 
     /* Few special cases of expensive operations.  This is useful
@@ -2453,13 +2521,11 @@ init_inline_once (void)
   eni_inlining_weights.call_cost = PARAM_VALUE (PARAM_INLINE_CALL_COST);
   eni_inlining_weights.target_builtin_call_cost = 1;
   eni_inlining_weights.div_mod_cost = 10;
-  eni_inlining_weights.switch_cost = 1;
   eni_inlining_weights.omp_cost = 40;
 
   eni_size_weights.call_cost = 1;
   eni_size_weights.target_builtin_call_cost = 1;
   eni_size_weights.div_mod_cost = 1;
-  eni_size_weights.switch_cost = 10;
   eni_size_weights.omp_cost = 40;
 
   /* Estimating time for call is difficult, since we have no idea what the
@@ -2469,7 +2535,6 @@ init_inline_once (void)
   eni_time_weights.call_cost = 10;
   eni_time_weights.target_builtin_call_cost = 10;
   eni_time_weights.div_mod_cost = 10;
-  eni_time_weights.switch_cost = 4;
   eni_time_weights.omp_cost = 40;
 }
 
@@ -2662,6 +2727,7 @@ expand_call_inline (basic_block bb, tree stmt, tree *tp, void *data)
 
   gcc_assert (!id->src_cfun->after_inlining);
 
+  id->entry_bb = bb;
   initialize_inlined_parameters (id, t, fn, bb);
 
   if (DECL_INITIAL (fn))

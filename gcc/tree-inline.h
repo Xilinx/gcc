@@ -97,6 +97,9 @@ typedef struct copy_body_data
 
   /* Statements that might be possibly folded.  */
   struct pointer_set_t *statements_to_fold;
+
+  /* Entry basic block to currently copied body.  */
+  struct basic_block_def *entry_bb;
 } copy_body_data;
 
 /* Weights of constructions for estimate_num_insns.  */
@@ -111,9 +114,6 @@ typedef struct eni_weights_d
 
   /* Cost of "expensive" div and mod operations.  */
   unsigned div_mod_cost;
-
-  /* Cost of switch statement.  */
-  unsigned switch_cost;
 
   /* Cost for omp construct.  */
   unsigned omp_cost;

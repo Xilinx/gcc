@@ -1028,7 +1028,7 @@ begin
             end;
 
          else
-               raise Constraint_Error;
+            raise Constraint_Error;
          end if;
 
       exception
@@ -1089,9 +1089,12 @@ begin
            Pragma_Extend_System                 |
            Pragma_External                      |
            Pragma_External_Name_Casing          |
+           Pragma_Favor_Top_Level               |
+           Pragma_Fast_Math                     |
            Pragma_Finalize_Storage_Only         |
            Pragma_Float_Representation          |
            Pragma_Ident                         |
+           Pragma_Implemented_By_Entry          |
            Pragma_Implicit_Packing              |
            Pragma_Import                        |
            Pragma_Import_Exception              |
@@ -1178,6 +1181,7 @@ begin
            Pragma_Unimplemented_Unit            |
            Pragma_Universal_Aliasing            |
            Pragma_Universal_Data                |
+           Pragma_Unmodified                    |
            Pragma_Unreferenced                  |
            Pragma_Unreferenced_Objects          |
            Pragma_Unreserve_All_Interrupts      |

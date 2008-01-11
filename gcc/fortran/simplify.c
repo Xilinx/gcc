@@ -781,7 +781,8 @@ simplify_cmplx (const char *name, gfc_expr *x, gfc_expr *y, int kind)
       gfc_typespec ts;
       ts.kind = result->ts.kind;
       ts.type = BT_REAL;
-      gfc_convert_boz (x, &ts);
+      if (!gfc_convert_boz (x, &ts))
+	return &gfc_bad_expr;
       mpfr_set (result->value.complex.r, x->value.real, GFC_RND_MODE);
     }
 
@@ -790,7 +791,8 @@ simplify_cmplx (const char *name, gfc_expr *x, gfc_expr *y, int kind)
       gfc_typespec ts;
       ts.kind = result->ts.kind;
       ts.type = BT_REAL;
-      gfc_convert_boz (y, &ts);
+      if (!gfc_convert_boz (y, &ts))
+	return &gfc_bad_expr;
       mpfr_set (result->value.complex.i, y->value.real, GFC_RND_MODE);
     }
 
@@ -961,7 +963,8 @@ gfc_simplify_dble (gfc_expr *e)
       ts.type = BT_REAL;
       ts.kind = gfc_default_double_kind;
       result = gfc_copy_expr (e);
-      gfc_convert_boz (result, &ts);
+      if (!gfc_convert_boz (result, &ts))
+	return &gfc_bad_expr;
     }
 
   return range_check (result, "DBLE");
@@ -1150,7 +1153,8 @@ gfc_simplify_float (gfc_expr *a)
       ts.kind = gfc_default_real_kind;
 
       result = gfc_copy_expr (a);
-      gfc_convert_boz (result, &ts);
+      if (!gfc_convert_boz (result, &ts))
+	return &gfc_bad_expr;
     }
   else
     result = gfc_int2real (a, gfc_default_real_kind);
@@ -3019,7 +3023,8 @@ gfc_simplify_real (gfc_expr *e, gfc_expr *k)
       ts.type = BT_REAL;
       ts.kind = kind;
       result = gfc_copy_expr (e);
-      gfc_convert_boz (result, &ts);
+      if (!gfc_convert_boz (result, &ts))
+	return &gfc_bad_expr;
     }
   return range_check (result, "REAL");
 }
@@ -3123,7 +3128,9 @@ gfc_simplify_repeat (gfc_expr *e, gfc_expr *n)
   if (e->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (len || mpz_sgn (e->ts.cl->length->value.integer) != 0)
+  if (len || 
+      (e->ts.cl->length && 
+       mpz_sgn (e->ts.cl->length->value.integer)) != 0)
     {
       const char *res = gfc_extract_int (n, &ncop);
       gcc_assert (res == NULL);
@@ -4088,6 +4095,7 @@ gfc_simplify_transfer (gfc_expr *source, gfc_expr *mold, gfc_expr *size)
   unsigned char *buffer;
 
   if (!gfc_is_constant_expr (source)
+	|| (gfc_init_expr && !gfc_is_constant_expr (mold))
 	|| !gfc_is_constant_expr (size))
     return NULL;
 

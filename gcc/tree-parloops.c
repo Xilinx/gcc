@@ -106,25 +106,22 @@ parloop
 ....
 
 
-  # A new variable is created for each reduction:
-  "reduction_initial" is the initial value given by the user.
-  It is kept and will be used after the parallel computing is done.  #
+  # Storing the the initial value given by the user.  #
 
-  reduction_initial.24_46 = 1;
-  
-  # Storing the neutral value of the
-  particular reduction's operation, e.g. 0 for PLUS_EXPR, 
-  1 for MULT_EXPR, etc. into the reduction field.
-  This is done in create_stores_for_reduction.  #
+  .paral_data_store.32.sum.27 = 1;
  
-  .paral_data_store.32.sum.27 = 0;
-  
   #pragma omp parallel num_threads(4) 
 
   #pragma omp for schedule(static)
-  # sum.27_29 = PHI <sum.27_11, 0> # The neutral element replaces
- 			           the user's inital value.  #
+
+  # The neutral element corresponding to the particular
+  reduction's operation, e.g. 0 for PLUS_EXPR,
+  1 for MULT_EXPR, etc. replaces the user's initial value.  #
+
+  # sum.27_29 = PHI <sum.27_11, 0>
+
   sum.27_11 = D.1827_8 + sum.27_29;
+
   OMP_CONTINUE
 
   # Adding this reduction phi is done at create_phi_for_local_result() #
@@ -143,12 +140,12 @@ parloop
   
  # collecting the result after the join of the threads is done at
   create_loads_for_reductions().
-  a new variable "reduction_final" is created.  It calculates the final
-  value from the initial value and the value computed by the threads #
+  The value computed by the threads is loaded from the
+  shared struct.  #
+
  
   .paral_data_load.33_52 = &.paral_data_store.32;
-  reduction_final.34_53 = .paral_data_load.33_52->sum.27;
-  sum_37 = reduction_initial.24_46 + reduction_final.34_53;
+  sum_37 =  .paral_data_load.33_52->sum.27;
   sum_43 = D.1795_41 + sum_37;
 
   exit bb:
@@ -174,8 +171,7 @@ struct reduction_info
   enum tree_code reduction_code;	/* code for the reduction operation.  */
   tree keep_res;		/* The PHI_RESULT of this phi is the resulting value 
 				   of the reduction variable when existing the loop. */
-  tree initial_value;		/* An ssa name representing a new variable holding
-				   the initial value of the reduction var before entering the loop.   */
+  tree initial_value;		/* The initial value of the reduction var before entering the loop.  */
   tree field;			/*  the name of the field in the parloop data structure intended for reduction.  */
   tree init;			/* reduction initialization value.  */
   tree new_phi;			/* (helper field) Newly created phi node whose result 
@@ -435,29 +431,37 @@ loop_parallel_p (struct loop *loop, htab_t reduction_list, struct tree_niter_des
   return ret;
 }
 
-/* Assigns the address of VAR in TYPE to an ssa name, and returns this name.
+/* Assigns the address of OBJ in TYPE to an ssa name, and returns this name.
    The assignment statement is placed before LOOP.  DECL_ADDRESS maps decls
-   to their addresses that can be reused.  */
+   to their addresses that can be reused.  The address of OBJ is known to
+   be invariant in the whole function.  */
 
 static tree
-take_address_of (tree var, tree type, struct loop *loop, htab_t decl_address)
+take_address_of (tree obj, tree type, struct loop *loop, htab_t decl_address)
 {
-  int uid = DECL_UID (var);
+  int uid;
   void **dslot;
   struct int_tree_map ielt, *nielt;
-  tree name, bvar, stmt;
+  tree *var_p, name, bvar, stmt, addr;
   edge entry = loop_preheader_edge (loop);
+
+  /* Since the address of OBJ is invariant, the trees may be shared.
+     Avoid rewriting unrelated parts of the code.  */
+  obj = unshare_expr (obj);
+  for (var_p = &obj;
+       handled_component_p (*var_p);
+       var_p = &TREE_OPERAND (*var_p, 0))
+    continue;
+  uid = DECL_UID (*var_p);
 
   ielt.uid = uid;
   dslot = htab_find_slot_with_hash (decl_address, &ielt, uid, INSERT);
   if (!*dslot)
     {
-      bvar = create_tmp_var (type, get_name (var));
+      addr = build_addr (*var_p, current_function_decl);
+      bvar = create_tmp_var (TREE_TYPE (addr), get_name (*var_p));
       add_referenced_var (bvar);
-      stmt = build_gimple_modify_stmt (bvar,
-				       fold_convert (type,
-						     build_addr (var,
-								 current_function_decl)));
+      stmt = build_gimple_modify_stmt (bvar, addr);
       name = make_ssa_name (bvar, stmt);
       GIMPLE_STMT_OPERAND (stmt, 0) = name;
       bsi_insert_on_edge_immediate (entry, stmt);
@@ -466,19 +470,26 @@ take_address_of (tree var, tree type, struct loop *loop, htab_t decl_address)
       nielt->uid = uid;
       nielt->to = name;
       *dslot = nielt;
+    }
+  else
+    name = ((struct int_tree_map *) *dslot)->to;
 
-      return name;
+  if (var_p != &obj)
+    {
+      *var_p = build1 (INDIRECT_REF, TREE_TYPE (*var_p), name);
+      name = force_gimple_operand (build_addr (obj, current_function_decl),
+				   &stmt, true, NULL_TREE);
+      if (stmt)
+	bsi_insert_on_edge_immediate (entry, stmt);
     }
 
-  name = ((struct int_tree_map *) *dslot)->to;
-  if (TREE_TYPE (name) == type)
-    return name;
-
-  bvar = SSA_NAME_VAR (name);
-  stmt = build_gimple_modify_stmt (bvar, fold_convert (type, name));
-  name = make_ssa_name (bvar, stmt);
-  GIMPLE_STMT_OPERAND (stmt, 0) = name;
-  bsi_insert_on_edge_immediate (entry, stmt);
+  if (TREE_TYPE (name) != type)
+    {
+      name = force_gimple_operand (fold_convert (type, name), &stmt, true,
+				   NULL_TREE);
+      if (stmt)
+	bsi_insert_on_edge_immediate (entry, stmt);
+    }
 
   return name;
 }
@@ -490,9 +501,7 @@ take_address_of (tree var, tree type, struct loop *loop, htab_t decl_address)
 static int
 initialize_reductions (void **slot, void *data)
 {
-  tree stmt;
   tree init, c;
-  tree name1;
   tree bvar, type, arg;
   edge e;
 
@@ -529,19 +538,10 @@ initialize_reductions (void **slot, void *data)
   e = loop_preheader_edge (loop);
   arg = PHI_ARG_DEF_FROM_EDGE (reduc->reduc_phi, e);
   /* Create new variable to hold the initial value.  */
-  type = TREE_TYPE (bvar);
-  bvar = create_tmp_var (type, "reduction_initial");
-  add_referenced_var (bvar);
 
-  stmt = build_gimple_modify_stmt (bvar, arg);
-  name1 = make_ssa_name (bvar, stmt);
-  GIMPLE_STMT_OPERAND (stmt, 0) = name1;
-  SSA_NAME_DEF_STMT (name1) = stmt;
-
-  bsi_insert_on_edge_immediate (e, stmt);
   SET_USE (PHI_ARG_DEF_PTR_FROM_EDGE
 	   (reduc->reduc_phi, loop_preheader_edge (loop)), init);
-  reduc->initial_value = name1;
+  reduc->initial_value = arg;
   return 1;
 }
 
@@ -558,10 +558,10 @@ struct elv_data
    walk_tree.  */
 
 static tree
-eliminate_local_variables_1 (tree * tp, int *walk_subtrees, void *data)
+eliminate_local_variables_1 (tree *tp, int *walk_subtrees, void *data)
 {
   struct elv_data *dta = data;
-  tree t = *tp, var, addr, addr_type, type;
+  tree t = *tp, var, addr, addr_type, type, obj;
 
   if (DECL_P (t))
     {
@@ -581,16 +581,28 @@ eliminate_local_variables_1 (tree * tp, int *walk_subtrees, void *data)
 
   if (TREE_CODE (t) == ADDR_EXPR)
     {
-      var = TREE_OPERAND (t, 0);
-      if (!DECL_P (var))
+      /* ADDR_EXPR may appear in two contexts:
+	 -- as a gimple operand, when the address taken is a function invariant
+	 -- as gimple rhs, when the resulting address in not a function
+	    invariant
+	 We do not need to do anything special in the latter case (the base of
+	 the memory reference whose address is taken may be replaced in the
+	 DECL_P case).  The former case is more complicated, as we need to
+	 ensure that the new address is still a gimple operand.  Thus, it
+	 is not sufficient to replace just the base of the memory reference --
+	 we need to move the whole computation of the address out of the
+	 loop.  */
+      if (!is_gimple_val (t))
 	return NULL_TREE;
 
       *walk_subtrees = 0;
-      if (!SSA_VAR_P (var) || DECL_EXTERNAL (var))
+      obj = TREE_OPERAND (t, 0);
+      var = get_base_address (obj);
+      if (!var || !SSA_VAR_P (var) || DECL_EXTERNAL (var))
 	return NULL_TREE;
 
       addr_type = TREE_TYPE (t);
-      addr = take_address_of (var, addr_type, dta->loop, dta->decl_address);
+      addr = take_address_of (obj, addr_type, dta->loop, dta->decl_address);
       *tp = addr;
 
       dta->changed = true;
@@ -928,11 +940,8 @@ create_call_for_reduction (struct loop *loop, htab_t reduction_list,
   htab_traverse (reduction_list, create_call_for_reduction_1, ld_st_data);
 }
 
-/* Callback for htab_traverse.  Create a new variable that loads the 
-   final reduction value at the  
-   join point of all threads, adds the initial value the reduction 
-   variable had before the parallel computation started, and 
-   inserts it in the right place.  */
+/* Callback for htab_traverse.  Loads the final reduction value at the
+   join point of all threads, and inserts it in the right place.  */
 
 static int
 create_loads_for_reductions (void **slot, void *data)
@@ -944,28 +953,15 @@ create_loads_for_reductions (void **slot, void *data)
   tree type = TREE_TYPE (GIMPLE_STMT_OPERAND (red->reduc_stmt, 0));
   tree struct_type = TREE_TYPE (TREE_TYPE (clsn_data->load));
   tree load_struct;
-  tree bvar, name;
+  tree name;
   tree x;
 
   bsi = bsi_after_labels (clsn_data->load_bb);
   load_struct = fold_build1 (INDIRECT_REF, struct_type, clsn_data->load);
   load_struct = build3 (COMPONENT_REF, type, load_struct, red->field,
 			NULL_TREE);
-  bvar = create_tmp_var (type, "reduction_final");
-  add_referenced_var (bvar);
 
-  /* Apply operation between the new variable which is the result
-     of computation all threads, and the initial value which is kept
-     at reduction->inital_value.  */
-
-  stmt = build_gimple_modify_stmt (bvar, load_struct);
-  name = make_ssa_name (bvar, stmt);
-  GIMPLE_STMT_OPERAND (stmt, 0) = name;
-  SSA_NAME_DEF_STMT (name) = stmt;
-  bsi_insert_after (&bsi, stmt, BSI_NEW_STMT);
-  x =
-    fold_build2 (red->reduction_code, TREE_TYPE (load_struct),
-		 name, red->initial_value);
+  x = load_struct;
   name = PHI_RESULT (red->keep_res);
   stmt = build_gimple_modify_stmt (name, x);
   GIMPLE_STMT_OPERAND (stmt, 0) = name;
@@ -1022,7 +1018,7 @@ create_stores_for_reduction (void **slot, void *data)
     build_gimple_modify_stmt (build3
                               (COMPONENT_REF, type, clsn_data->store,
                                red->field, NULL_TREE),
-                               red->init );
+                               red->initial_value);
   mark_virtual_ops_for_renaming (stmt);
   bsi_insert_after (&bsi, stmt, BSI_NEW_STMT);
 
@@ -1169,8 +1165,8 @@ separate_decls_in_loop (struct loop *loop, htab_t reduction_list,
       htab_traverse (name_copies, create_loads_and_stores_for_name,
 		     ld_st_data);
 
-      /* Load the calculation from memory into a new 
-         reduction variable (after the join of the threads).  */
+      /* Load the calculation from memory (after the join of the threads).  */
+
       if (htab_elements (reduction_list) > 0)
 	{
 	  htab_traverse (reduction_list, create_stores_for_reduction,

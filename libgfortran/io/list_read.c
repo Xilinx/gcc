@@ -171,11 +171,14 @@ next_char (st_parameter_dt *dtp)
       /* Check for "end-of-record" condition.  */
       if (dtp->u.p.current_unit->bytes_left == 0)
 	{
+	  int finished;
+
 	  c = '\n';
-	  record = next_array_record (dtp, dtp->u.p.current_unit->ls);
+	  record = next_array_record (dtp, dtp->u.p.current_unit->ls,
+				      &finished);
 
 	  /* Check for "end-of-file" condition.  */      
-	  if (record == 0)
+	  if (finished)
 	    {
 	      dtp->u.p.at_eof = 1;
 	      goto done;
@@ -233,10 +236,15 @@ next_char (st_parameter_dt *dtp)
 	}
       if (length == 0)
 	{
-	  if (dtp->u.p.current_unit->endfile == AT_ENDFILE)
+	  if (dtp->u.p.advance_status == ADVANCE_NO)
+	    {
+	      if (dtp->u.p.current_unit->endfile == AT_ENDFILE)
+		longjmp (*dtp->u.p.eof_jump, 1);
+	      dtp->u.p.current_unit->endfile = AT_ENDFILE;
+	      c = '\n';
+	    }
+	  else
 	    longjmp (*dtp->u.p.eof_jump, 1);
-	  dtp->u.p.current_unit->endfile = AT_ENDFILE;
-	  c = '\n';
 	}
       else
 	c = *p;
@@ -275,6 +283,20 @@ eat_spaces (st_parameter_dt *dtp)
 }
 
 
+/* This function reads characters through to the end of the current line and
+   just ignores them.  */
+
+static void
+eat_line (st_parameter_dt *dtp)
+{
+  char c;
+  if (!is_internal_unit (dtp))
+    do
+      c = next_char (dtp);
+    while (c != '\n');
+}
+
+
 /* Skip over a separator.  Technically, we don't always eat the whole
    separator.  This is because if we've processed the last input item,
    then a separator is unnecessary.  Plus the fact that operating
@@ -307,15 +329,38 @@ eat_separator (st_parameter_dt *dtp)
       break;
 
     case '\r':
+      dtp->u.p.at_eol = 1;
       n = next_char(dtp);
       if (n == '\n')
-	dtp->u.p.at_eol = 1;
+	{
+	  if (dtp->u.p.namelist_mode)
+	    {
+	      do
+		c = next_char (dtp);
+	      while (c == '\n' || c == '\r' || c == ' ');
+	      unget_char (dtp, c);
+	    }
+	}
       else
 	unget_char (dtp, n);
       break;
 
     case '\n':
       dtp->u.p.at_eol = 1;
+      if (dtp->u.p.namelist_mode)
+	{
+	  do
+	    {
+	      c = next_char (dtp);
+	      if (c == '!')
+		{
+		  eat_line (dtp);
+		  c = next_char (dtp);
+		}
+	    }
+	  while (c == '\n' || c == '\r' || c == ' ');
+	  unget_char (dtp, c);
+	}
       break;
 
     case '!':
@@ -388,20 +433,6 @@ finish_separator (st_parameter_dt *dtp)
       unget_char (dtp, c);
       break;
     }
-}
-
-
-/* This function reads characters through to the end of the current line and
-   just ignores them.  */
-
-static void
-eat_line (st_parameter_dt *dtp)
-{
-  char c;
-  if (!is_internal_unit (dtp))
-    do
-      c = next_char (dtp);
-    while (c != '\n');
 }
 
 
@@ -1141,12 +1172,7 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
 
  exp2:
   if (!isdigit (c))
-    {
-      if (c == 'i' || c == 'I' || c == 'n' || c == 'N')
-	goto inf_nan;
-      else
-	goto bad;
-    }
+    goto bad;
 
   push_char (dtp, c);
 
@@ -1315,6 +1341,7 @@ read_real (st_parameter_dt *dtp, int length)
 {
   char c, message[100];
   int seen_dp;
+  int is_inf;
 
   seen_dp = 0;
 
@@ -1522,34 +1549,104 @@ read_real (st_parameter_dt *dtp, int length)
   return;
 
  inf_nan:
+  l_push_char (dtp, c);
+  is_inf = 0;
+
   /* Match INF and Infinity.  */
-  if ((c == 'i' || c == 'I')
-      && ((c = next_char (dtp)) == 'n' || c == 'N')
-      && ((c = next_char (dtp)) == 'f' || c == 'F'))
+  if (c == 'i' || c == 'I')
     {
-	c = next_char (dtp);
-	if (is_separator (c)
-	    || ((c == 'i' || c == 'I')
-		&& ((c = next_char (dtp)) == 'n' || c == 'N')
-		&& ((c = next_char (dtp)) == 'i' || c == 'I')
-		&& ((c = next_char (dtp)) == 't' || c == 'T')
-		&& ((c = next_char (dtp)) == 'y' || c == 'Y')
-		&& (c = next_char (dtp)) && is_separator (c)))
-	  {
-	     push_char (dtp, 'i');
-	     push_char (dtp, 'n');
-	     push_char (dtp, 'f');
-	     goto done;
-	  }
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+      if (c != 'n' && c != 'N')
+	goto unwind;
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+      if (c != 'f' && c != 'F')
+	goto unwind;
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+      if (!is_separator (c))
+	{
+	  if (c != 'i' && c != 'I')
+	    goto unwind;
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	  if (c != 'n' && c != 'N')
+	    goto unwind;
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	  if (c != 'i' && c != 'I')
+	    goto unwind;
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	  if (c != 't' && c != 'T')
+	    goto unwind;
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	  if (c != 'y' && c != 'Y')
+	    goto unwind;
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	}
+	is_inf = 1;
     } /* Match NaN.  */
-  else if (((c = next_char (dtp)) == 'a' || c == 'A')
-	   && ((c = next_char (dtp)) == 'n' || c == 'N')
-	   && (c = next_char (dtp)) && is_separator (c))
+  else
+    {
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+      if (c != 'a' && c != 'A')
+	goto unwind;
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+      if (c != 'n' && c != 'N')
+	goto unwind;
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+    }
+
+  if (!is_separator (c))
+    goto unwind;
+
+  if (dtp->u.p.namelist_mode)
+    {	
+      if (c == ' ' || c =='\n' || c == '\r')
+	{
+	  do
+	    c = next_char (dtp);
+	  while (c == ' ' || c =='\n' || c == '\r');
+
+	  l_push_char (dtp, c);
+
+	  if (c == '=')
+	    goto unwind;
+	}
+    }
+
+  if (is_inf)
+    {
+      push_char (dtp, 'i');
+      push_char (dtp, 'n');
+      push_char (dtp, 'f');
+    }
+  else
     {
       push_char (dtp, 'n');
       push_char (dtp, 'a');
       push_char (dtp, 'n');
-      goto done;
+    }
+
+  dtp->u.p.item_count = 0;
+  dtp->u.p.line_buffer_enabled = 0;
+  free_line (dtp);
+  goto done;
+
+ unwind:
+  if (dtp->u.p.namelist_mode)
+    {
+      dtp->u.p.nml_read_error = 1;
+      dtp->u.p.line_buffer_enabled = 1;
+      dtp->u.p.item_count = 0;
+      return;
     }
 
  bad_real:
@@ -2525,7 +2622,8 @@ get_name:
 
   do
     {
-      push_char (dtp, tolower(c));
+      if (!is_separator (c))
+	push_char (dtp, tolower(c));
       c = next_char (dtp);
     } while (!( c=='=' || c==' ' || c=='\t' || c =='(' || c =='%' ));
 

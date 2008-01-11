@@ -491,18 +491,6 @@ package Atree is
    --  entity ID values of the two entities are interchanged. Neither of the
    --  two entities may be list members.
 
-   procedure Delete_Node (Node : Node_Id);
-   --  The node, which must not be a list member, is deleted from the tree and
-   --  its type is set to N_Unused_At_End. It is an error (not necessarily
-   --  detected) to reference this node after it has been deleted. The
-   --  implementation of the body of Atree is free to reuse the node to
-   --  satisfy future node allocation requests, but is not required to do so.
-
-   procedure Delete_Tree (Node : Node_Id);
-   --  The entire syntactic subtree referenced by Node (i.e. the given node
-   --  and all its syntactic descendents) are deleted as described above for
-   --  Delete_Node.
-
    function Extend_Node (Node : Node_Id) return Entity_Id;
    --  This function returns a copy of its input node with an extension
    --  added. The fields of the extension are set to Empty. Due to the way
@@ -515,18 +503,22 @@ package Atree is
    --  function is used only by Sinfo.CN to change nodes into their
    --  corresponding entities.
 
-   type Traverse_Result is (OK, OK_Orig, Skip, Abandon);
+   type Traverse_Result is (Abandon, OK, OK_Orig, Skip);
    --  This is the type of the result returned by the Process function passed
-   --  to Traverse_Func and Traverse_Proc and also the type of the result of
-   --  Traverse_Func itself. See descriptions below for details.
+   --  to Traverse_Func and Traverse_Proc. See below for details.
+
+   subtype Traverse_Final_Result is Traverse_Result range Abandon .. OK;
+   --  This is the type of the final result returned Traverse_Func, based on
+   --  the results of Process calls. See below for details.
 
    generic
      with function Process (N : Node_Id) return Traverse_Result is <>;
-   function Traverse_Func (Node : Node_Id) return Traverse_Result;
+   function Traverse_Func (Node : Node_Id) return Traverse_Final_Result;
    --  This is a generic function that, given the parent node for a subtree,
    --  traverses all syntactic nodes of this tree, calling the given function
-   --  Process on each one. The traversal is controlled as follows by the
-   --  result returned by Process:
+   --  Process on each one, in pre order (i.e. top-down). The order of
+   --  traversing subtrees is arbitrary. The traversal is controlled as follows
+   --  by the result returned by Process:
 
    --    OK       The traversal continues normally with the syntactic
    --             children of the node just processed.
@@ -549,7 +541,7 @@ package Atree is
      with function Process (N : Node_Id) return Traverse_Result is <>;
    procedure Traverse_Proc (Node : Node_Id);
    pragma Inline (Traverse_Proc);
-   --  This is similar to Traverse_Func except that no result is returned,
+   --  This is the same as Traverse_Func except that no result is returned,
    --  i.e. Traverse_Func is called and the result is simply discarded.
 
    ---------------------------
@@ -592,6 +584,68 @@ package Atree is
    pragma Inline (Present);
    --  Tests given Id for inequality with the Empty node. This allows notations
    --  like "if Present (Statement)" as opposed to "if Statement /= Empty".
+
+   --  Node_Kind tests, like the functions in Sinfo, but the first argument is
+   --  a Node_Id, and the tested field is Nkind (N).
+
+   function Nkind_In
+     (N  : Node_Id;
+      V1 : Node_Kind;
+      V2 : Node_Kind) return Boolean;
+
+   function Nkind_In
+     (N  : Node_Id;
+      V1 : Node_Kind;
+      V2 : Node_Kind;
+      V3 : Node_Kind) return Boolean;
+
+   function Nkind_In
+     (N  : Node_Id;
+      V1 : Node_Kind;
+      V2 : Node_Kind;
+      V3 : Node_Kind;
+      V4 : Node_Kind) return Boolean;
+
+   function Nkind_In
+     (N  : Node_Id;
+      V1 : Node_Kind;
+      V2 : Node_Kind;
+      V3 : Node_Kind;
+      V4 : Node_Kind;
+      V5 : Node_Kind) return Boolean;
+
+   function Nkind_In
+     (N  : Node_Id;
+      V1 : Node_Kind;
+      V2 : Node_Kind;
+      V3 : Node_Kind;
+      V4 : Node_Kind;
+      V5 : Node_Kind;
+      V6 : Node_Kind) return Boolean;
+
+   function Nkind_In
+     (N  : Node_Id;
+      V1 : Node_Kind;
+      V2 : Node_Kind;
+      V3 : Node_Kind;
+      V4 : Node_Kind;
+      V5 : Node_Kind;
+      V6 : Node_Kind;
+      V7 : Node_Kind) return Boolean;
+
+   function Nkind_In
+     (N  : Node_Id;
+      V1 : Node_Kind;
+      V2 : Node_Kind;
+      V3 : Node_Kind;
+      V4 : Node_Kind;
+      V5 : Node_Kind;
+      V6 : Node_Kind;
+      V7 : Node_Kind;
+      V8 : Node_Kind) return Boolean;
+
+   pragma Inline (Nkind_In);
+   --  Inline all above functions
 
    -----------------------------
    -- Entity Access Functions --
@@ -644,11 +698,14 @@ package Atree is
    --  The following procedures apply only to Entity_Id values, i.e.
    --  to extended nodes.
 
+   procedure Basic_Set_Convention (E : Entity_Id; Val : Convention_Id);
+   pragma Inline (Basic_Set_Convention);
+   --  Clients should use Sem_Util.Set_Convention rather than calling this
+   --  routine directly, as Set_Convention also deals with the special
+   --  processing required for access types.
+
    procedure Set_Ekind (E : Entity_Id; Val : Entity_Kind);
    pragma Inline (Set_Ekind);
-
-   procedure Set_Convention (E : Entity_Id; Val : Convention_Id);
-   pragma Inline (Set_Convention);
 
    ---------------------------
    -- Tree Rewrite Routines --
@@ -759,11 +816,10 @@ package Atree is
    -- Generic Field Access Routines --
    -----------------------------------
 
-   --  This subpackage provides the functions for accessing and procedures
-   --  for setting fields that are normally referenced by their logical
-   --  synonyms defined in packages Sinfo and Einfo. As previously
-   --  described the implementations of these packages use the package
-   --  Atree.Unchecked_Access.
+   --  This subpackage provides the functions for accessing and procedures for
+   --  setting fields that are normally referenced by their logical synonyms
+   --  defined in packages Sinfo and Einfo. The implementations of these
+   --  packages use the package Atree.Unchecked_Access.
 
    package Unchecked_Access is
 
@@ -1753,6 +1809,57 @@ package Atree is
       function Flag230 (N : Node_Id) return Boolean;
       pragma Inline (Flag230);
 
+      function Flag231 (N : Node_Id) return Boolean;
+      pragma Inline (Flag231);
+
+      function Flag232 (N : Node_Id) return Boolean;
+      pragma Inline (Flag232);
+
+      function Flag233 (N : Node_Id) return Boolean;
+      pragma Inline (Flag233);
+
+      function Flag234 (N : Node_Id) return Boolean;
+      pragma Inline (Flag234);
+
+      function Flag235 (N : Node_Id) return Boolean;
+      pragma Inline (Flag235);
+
+      function Flag236 (N : Node_Id) return Boolean;
+      pragma Inline (Flag236);
+
+      function Flag237 (N : Node_Id) return Boolean;
+      pragma Inline (Flag237);
+
+      function Flag238 (N : Node_Id) return Boolean;
+      pragma Inline (Flag238);
+
+      function Flag239 (N : Node_Id) return Boolean;
+      pragma Inline (Flag239);
+
+      function Flag240 (N : Node_Id) return Boolean;
+      pragma Inline (Flag240);
+
+      function Flag241 (N : Node_Id) return Boolean;
+      pragma Inline (Flag241);
+
+      function Flag242 (N : Node_Id) return Boolean;
+      pragma Inline (Flag242);
+
+      function Flag243 (N : Node_Id) return Boolean;
+      pragma Inline (Flag243);
+
+      function Flag244 (N : Node_Id) return Boolean;
+      pragma Inline (Flag244);
+
+      function Flag245 (N : Node_Id) return Boolean;
+      pragma Inline (Flag245);
+
+      function Flag246 (N : Node_Id) return Boolean;
+      pragma Inline (Flag246);
+
+      function Flag247 (N : Node_Id) return Boolean;
+      pragma Inline (Flag247);
+
       --  Procedures to set value of indicated field
 
       procedure Set_Nkind (N : Node_Id; Val : Node_Kind);
@@ -2727,6 +2834,57 @@ package Atree is
       procedure Set_Flag230 (N : Node_Id; Val : Boolean);
       pragma Inline (Set_Flag230);
 
+      procedure Set_Flag231 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag231);
+
+      procedure Set_Flag232 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag232);
+
+      procedure Set_Flag233 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag233);
+
+      procedure Set_Flag234 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag234);
+
+      procedure Set_Flag235 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag235);
+
+      procedure Set_Flag236 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag236);
+
+      procedure Set_Flag237 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag237);
+
+      procedure Set_Flag238 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag238);
+
+      procedure Set_Flag239 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag239);
+
+      procedure Set_Flag240 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag240);
+
+      procedure Set_Flag241 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag241);
+
+      procedure Set_Flag242 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag242);
+
+      procedure Set_Flag243 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag243);
+
+      procedure Set_Flag244 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag244);
+
+      procedure Set_Flag245 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag245);
+
+      procedure Set_Flag246 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag246);
+
+      procedure Set_Flag247 (N : Node_Id; Val : Boolean);
+      pragma Inline (Set_Flag247);
+
       --  The following versions of Set_Noden also set the parent
       --  pointer of the referenced node if it is non_Empty
 
@@ -2943,7 +3101,7 @@ package Atree is
 
             --    Field6-10      Holds Field24-Field28
             --    Field11        Holds Flag184-Flag215
-            --    Field12        Holds Flag216-Flag230
+            --    Field12        Holds Flag216-Flag247
 
          end case;
       end record;

@@ -39,6 +39,7 @@ package body Targparm is
 
    type Targparm_Tags is
      (AAM,  --   AAMP
+      ACR,  --   Always_Compatible_Rep
       BDC,  --   Backend_Divide_Checks
       BOC,  --   Backend_Overflow_Checks
       CLA,  --   Command_Line_Args
@@ -58,6 +59,7 @@ package body Targparm is
       SCA,  --   Support_Composite_Assign
       SCC,  --   Support_Composite_Compare
       SCD,  --   Stack_Check_Default
+      SCL,  --   Stack_Check_Limits
       SCP,  --   Stack_Check_Probes
       SLS,  --   Support_Long_Shifts
       SNZ,  --   Signed_Zeros
@@ -73,6 +75,7 @@ package body Targparm is
    --  The following list of string constants gives the parameter names
 
    AAM_Str : aliased constant Source_Buffer := "AAMP";
+   ACR_Str : aliased constant Source_Buffer := "Always_Compatible_Rep";
    BDC_Str : aliased constant Source_Buffer := "Backend_Divide_Checks";
    BOC_Str : aliased constant Source_Buffer := "Backend_Overflow_Checks";
    CLA_Str : aliased constant Source_Buffer := "Command_Line_Args";
@@ -92,6 +95,7 @@ package body Targparm is
    SCA_Str : aliased constant Source_Buffer := "Support_Composite_Assign";
    SCC_Str : aliased constant Source_Buffer := "Support_Composite_Compare";
    SCD_Str : aliased constant Source_Buffer := "Stack_Check_Default";
+   SCL_Str : aliased constant Source_Buffer := "Stack_Check_Limits";
    SCP_Str : aliased constant Source_Buffer := "Stack_Check_Probes";
    SLS_Str : aliased constant Source_Buffer := "Support_Long_Shifts";
    SNZ_Str : aliased constant Source_Buffer := "Signed_Zeros";
@@ -107,6 +111,7 @@ package body Targparm is
    type Buffer_Ptr is access constant Source_Buffer;
    Targparm_Str : constant array (Targparm_Tags) of Buffer_Ptr :=
      (AAM_Str'Access,
+      ACR_Str'Access,
       BDC_Str'Access,
       BOC_Str'Access,
       CLA_Str'Access,
@@ -126,6 +131,7 @@ package body Targparm is
       SCA_Str'Access,
       SCC_Str'Access,
       SCD_Str'Access,
+      SCL_Str'Access,
       SCP_Str'Access,
       SLS_Str'Access,
       SNZ_Str'Access,
@@ -168,7 +174,7 @@ package body Targparm is
          raise Unrecoverable_Error;
       end if;
 
-      Targparm.Get_Target_Parameters
+      Get_Target_Parameters
         (System_Text  => Text,
          Source_First => 0,
          Source_Last  => Hi);
@@ -544,6 +550,7 @@ package body Targparm is
 
                   case K is
                      when AAM => AAMP_On_Target                      := Result;
+                     when ACR => Always_Compatible_Rep_On_Target     := Result;
                      when BDC => Backend_Divide_Checks_On_Target     := Result;
                      when BOC => Backend_Overflow_Checks_On_Target   := Result;
                      when CLA => Command_Line_Args_On_Target         := Result;
@@ -571,6 +578,7 @@ package body Targparm is
                      when SCA => Support_Composite_Assign_On_Target  := Result;
                      when SCC => Support_Composite_Compare_On_Target := Result;
                      when SCD => Stack_Check_Default_On_Target       := Result;
+                     when SCL => Stack_Check_Limits_On_Target        := Result;
                      when SCP => Stack_Check_Probes_On_Target        := Result;
                      when SLS => Support_Long_Shifts_On_Target       := Result;
                      when SSL => Suppress_Standard_Library_On_Target := Result;
@@ -586,7 +594,7 @@ package body Targparm is
                   --  Here we are seeing a parameter we do not understand. We
                   --  simply ignore this (will happen when an old compiler is
                   --  used to compile a newer version of GNAT which does not
-                  --  support the
+                  --  support the parameter).
                end if;
             end loop Config_Param_Loop;
          end if;

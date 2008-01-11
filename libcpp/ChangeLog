@@ -1,3 +1,23 @@
+2008-01-07  Fred Fish  <fnf@specifix.com>
+
+	PR preprocessor/30363:
+	* traditional.c (replace_args_and_push): Add local variable
+	cxtquote, calculate the replacement text size assuming a 
+	worst case of every input character quoted with backslash,
+	and properly handle output quoting of quote characters in
+	actual arguments used in function-like macros.
+
+2008-01-03  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/34602.
+	* directives.c (do_line): Don't try to spell EOF token.
+	(do_linemarker): Add comment.
+
+2007-12-11  DJ Delorie  <dj@redhat.com>
+
+	* charset.c (convert_using_iconv): Close out any shift states,
+	returning to the initial state.
+
 2007-12-06  Tom Tromey  <tromey@redhat.com>
 
 	PR c/29172:

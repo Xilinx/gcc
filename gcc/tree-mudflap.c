@@ -301,6 +301,10 @@ mf_make_builtin (enum tree_code category, const char *name, tree type)
   TREE_PUBLIC (decl) = 1;
   DECL_EXTERNAL (decl) = 1;
   lang_hooks.decls.pushdecl (decl);
+  /* The decl was declared by the compiler.  */
+  DECL_ARTIFICIAL (decl) = 1;
+  /* And we don't want debug info for it.  */
+  DECL_IGNORED_P (decl) = 1;
   return decl;
 }
 
@@ -1041,8 +1045,11 @@ mx_register_decls (tree decl, tree *stmt_list)
 
           /* Add the __mf_register call at the current appending point.  */
           if (tsi_end_p (initially_stmts))
-	    warning (0, "mudflap cannot track %qs in stub function",
-		     IDENTIFIER_POINTER (DECL_NAME (decl)));
+	    {
+	      if (!DECL_ARTIFICIAL (decl))
+		warning (0, "mudflap cannot track %qs in stub function",
+			 IDENTIFIER_POINTER (DECL_NAME (decl)));
+	    }
 	  else
 	    {
 	      tsi_link_before (&initially_stmts, register_fncall,

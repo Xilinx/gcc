@@ -935,6 +935,18 @@ affine_function_zero_p (affine_fn fn)
 	  && affine_function_constant_p (fn));
 }
 
+/* Returns a signed integer type with the largest precision from TA
+   and TB.  */
+
+static tree
+signed_type_for_types (tree ta, tree tb)
+{
+  if (TYPE_PRECISION (ta) > TYPE_PRECISION (tb))
+    return signed_type_for (ta);
+  else
+    return signed_type_for (tb);
+}
+
 /* Applies operation OP on affine functions FNA and FNB, and returns the
    result.  */
 
@@ -958,18 +970,23 @@ affine_fn_op (enum tree_code op, affine_fn fna, affine_fn fnb)
 
   ret = VEC_alloc (tree, heap, m);
   for (i = 0; i < n; i++)
-    VEC_quick_push (tree, ret,
-		    fold_build2 (op, integer_type_node,
-				 VEC_index (tree, fna, i), 
-				 VEC_index (tree, fnb, i)));
+    {
+      tree type = signed_type_for_types (TREE_TYPE (VEC_index (tree, fna, i)),
+					 TREE_TYPE (VEC_index (tree, fnb, i)));
+
+      VEC_quick_push (tree, ret,
+		      fold_build2 (op, type,
+				   VEC_index (tree, fna, i), 
+				   VEC_index (tree, fnb, i)));
+    }
 
   for (; VEC_iterate (tree, fna, i, coef); i++)
     VEC_quick_push (tree, ret,
-		    fold_build2 (op, integer_type_node,
+		    fold_build2 (op, signed_type_for (TREE_TYPE (coef)),
 				 coef, integer_zero_node));
   for (; VEC_iterate (tree, fnb, i, coef); i++)
     VEC_quick_push (tree, ret,
-		    fold_build2 (op, integer_type_node,
+		    fold_build2 (op, signed_type_for (TREE_TYPE (coef)),
 				 integer_zero_node, coef));
 
   return ret;
@@ -1484,15 +1501,16 @@ analyze_ziv_subscript (tree chrec_a,
 		       conflict_function **overlaps_b, 
 		       tree *last_conflicts)
 {
-  tree difference;
+  tree type, difference;
   dependence_stats.num_ziv++;
   
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "(analyze_ziv_subscript \n");
-  
-  chrec_a = chrec_convert (integer_type_node, chrec_a, NULL_TREE);
-  chrec_b = chrec_convert (integer_type_node, chrec_b, NULL_TREE);
-  difference = chrec_fold_minus (integer_type_node, chrec_a, chrec_b);
+
+  type = signed_type_for_types (TREE_TYPE (chrec_a), TREE_TYPE (chrec_b));
+  chrec_a = chrec_convert (type, chrec_a, NULL_TREE);
+  chrec_b = chrec_convert (type, chrec_b, NULL_TREE);
+  difference = chrec_fold_minus (type, chrec_a, chrec_b);
   
   switch (TREE_CODE (difference))
     {
@@ -1618,12 +1636,12 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 				  tree *last_conflicts)
 {
   bool value0, value1, value2;
-  tree difference, tmp;
+  tree type, difference, tmp;
 
-  chrec_a = chrec_convert (integer_type_node, chrec_a, NULL_TREE);
-  chrec_b = chrec_convert (integer_type_node, chrec_b, NULL_TREE);
-  difference = chrec_fold_minus 
-    (integer_type_node, initial_condition (chrec_b), chrec_a);
+  type = signed_type_for_types (TREE_TYPE (chrec_a), TREE_TYPE (chrec_b));
+  chrec_a = chrec_convert (type, chrec_a, NULL_TREE);
+  chrec_b = chrec_convert (type, chrec_b, NULL_TREE);
+  difference = chrec_fold_minus (type, initial_condition (chrec_b), chrec_a);
   
   if (!chrec_is_positive (initial_condition (difference), &value0))
     {
@@ -1666,10 +1684,8 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 		      struct loop *loop = get_chrec_loop (chrec_b);
 
 		      *overlaps_a = conflict_fn (1, affine_fn_cst (integer_zero_node));
-		      tmp = fold_build2 (EXACT_DIV_EXPR, integer_type_node,
-					 fold_build1 (ABS_EXPR,
-						      integer_type_node,
-						      difference),
+		      tmp = fold_build2 (EXACT_DIV_EXPR, type,
+					 fold_build1 (ABS_EXPR, type, difference),
 					 CHREC_RIGHT (chrec_b));
 		      *overlaps_b = conflict_fn (1, affine_fn_cst (tmp));
 		      *last_conflicts = integer_one_node;
@@ -1748,8 +1764,7 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 		      struct loop *loop = get_chrec_loop (chrec_b);
 
 		      *overlaps_a = conflict_fn (1, affine_fn_cst (integer_zero_node));
-		      tmp = fold_build2 (EXACT_DIV_EXPR,
-					 integer_type_node, difference, 
+		      tmp = fold_build2 (EXACT_DIV_EXPR, type, difference,
 					 CHREC_RIGHT (chrec_b));
 		      *overlaps_b = conflict_fn (1, affine_fn_cst (tmp));
 		      *last_conflicts = integer_one_node;
@@ -1805,15 +1820,24 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 /* Helper recursive function for initializing the matrix A.  Returns
    the initial value of CHREC.  */
 
-static int
+static HOST_WIDE_INT
 initialize_matrix_A (lambda_matrix A, tree chrec, unsigned index, int mult)
 {
+  tree type;
+
   gcc_assert (chrec);
 
+  type = TREE_TYPE (chrec);
   if (TREE_CODE (chrec) != POLYNOMIAL_CHREC)
-    return int_cst_value (chrec);
+    return tree_low_cst (chrec, TYPE_UNSIGNED (type)
+				&& !(TREE_CODE (type) == INTEGER_TYPE
+				     && TYPE_IS_SIZETYPE (type)));
 
-  A[index][0] = mult * int_cst_value (CHREC_RIGHT (chrec));
+  type = TREE_TYPE (CHREC_RIGHT (chrec));
+  A[index][0] = mult * tree_low_cst (CHREC_RIGHT (chrec),
+				     TYPE_UNSIGNED (type)
+				     && !(TREE_CODE (type) == INTEGER_TYPE
+					  && TYPE_IS_SIZETYPE (type)));
   return initialize_matrix_A (A, CHREC_LEFT (chrec), index + 1, mult);
 }
 
@@ -2445,14 +2469,16 @@ analyze_miv_subscript (tree chrec_a,
      variables.  In the MIV case we have to solve a Diophantine
      equation with 2*n variables (if the subscript uses n IVs).
   */
-  tree difference;
+  tree type, difference;
+
   dependence_stats.num_miv++;
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "(analyze_miv_subscript \n");
 
-  chrec_a = chrec_convert (integer_type_node, chrec_a, NULL_TREE);
-  chrec_b = chrec_convert (integer_type_node, chrec_b, NULL_TREE);
-  difference = chrec_fold_minus (integer_type_node, chrec_a, chrec_b);
+  type = signed_type_for_types (TREE_TYPE (chrec_a), TREE_TYPE (chrec_b));
+  chrec_a = chrec_convert (type, chrec_a, NULL_TREE);
+  chrec_b = chrec_convert (type, chrec_b, NULL_TREE);
+  difference = chrec_fold_minus (type, chrec_a, chrec_b);
   
   if (eq_evolutions_p (chrec_a, chrec_b))
     {
@@ -2801,9 +2827,9 @@ constant_access_functions (const struct data_dependence_relation *ddr)
   return true;
 }
 
-
 /* Helper function for the case where DDR_A and DDR_B are the same
-   multivariate access function.  */
+   multivariate access function with a constant step.  For an example
+   see pr34635-1.c.  */
 
 static void
 add_multivariate_self_dist (struct data_dependence_relation *ddr, tree c_2)
@@ -2873,7 +2899,17 @@ add_other_self_distances (struct data_dependence_relation *ddr)
 		  return;
 		}
 
-	      add_multivariate_self_dist (ddr, DR_ACCESS_FN (DDR_A (ddr), 0));
+	      access_fun = DR_ACCESS_FN (DDR_A (ddr), 0);
+
+	      if (TREE_CODE (CHREC_LEFT (access_fun)) == POLYNOMIAL_CHREC)
+		add_multivariate_self_dist (ddr, access_fun);
+	      else
+		/* The evolution step is not constant: it varies in
+		   the outer loop, so this cannot be represented by a
+		   distance vector.  For example in pr34635.c the
+		   evolution is {0, +, {0, +, 4}_1}_2.  */
+		DDR_AFFINE_P (ddr) = false;
+
 	      return;
 	    }
 
@@ -3400,9 +3436,11 @@ omega_setup_subscript (tree access_fun_a, tree access_fun_b,
 		       omega_pb pb, bool *maybe_dependent)
 {
   int eq;
-  tree fun_a = chrec_convert (integer_type_node, access_fun_a, NULL_TREE);
-  tree fun_b = chrec_convert (integer_type_node, access_fun_b, NULL_TREE);
-  tree difference = chrec_fold_minus (integer_type_node, fun_a, fun_b);
+  tree type = signed_type_for_types (TREE_TYPE (access_fun_a),
+				     TREE_TYPE (access_fun_b));
+  tree fun_a = chrec_convert (type, access_fun_a, NULL_TREE);
+  tree fun_b = chrec_convert (type, access_fun_b, NULL_TREE);
+  tree difference = chrec_fold_minus (type, fun_a, fun_b);
 
   /* When the fun_a - fun_b is not constant, the dependence is not
      captured by the classic distance vector representation.  */
@@ -3417,8 +3455,7 @@ omega_setup_subscript (tree access_fun_a, tree access_fun_b,
       return true;
     }
 
-  fun_b = chrec_fold_multiply (integer_type_node, fun_b, 
-			       integer_minus_one_node);
+  fun_b = chrec_fold_multiply (type, fun_b, integer_minus_one_node);
 
   eq = omega_add_zero_eq (pb, omega_black);
   if (!init_omega_eq_with_af (pb, eq, DDR_NB_LOOPS (ddr), fun_a, ddr)

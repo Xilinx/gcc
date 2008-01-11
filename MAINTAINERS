@@ -200,9 +200,9 @@ tree-ssa		Andrew MacLeod		amacleod@redhat.com
 PRE			Daniel Berlin		dberlin@dberlin.org
 code sinking		Daniel Berlin		dberlin@dberlin.org
 mudflap			Frank Ch. Eigler	fche@redhat.com
-tree browser/unparser	Sebastian Pop		pop@cri.ensmp.fr
+tree browser/unparser	Sebastian Pop		sebastian.pop@amd.com
 scev, data dependence   Daniel Berlin		dberlin@dberlin.org
-scev, data dependence	Sebastian Pop		pop@cri.ensmp.fr
+scev, data dependence	Sebastian Pop		sebastian.pop@amd.com
 linear loop transforms	Daniel Berlin		dberlin@dberlin.org
 profile feedback	Jan Hubicka		jh@suse.cz
 type-safe vectors	Nathan Sidwell		nathan@codesourcery.com
@@ -259,6 +259,7 @@ from other maintainers or reviewers.
 			Write After Approval	(last name alphabetical order)
 
 Mark G. Adams                                   mark.g.adams@sympatico.ca
+Raksit Ashok                                    raksit@google.com
 Matt Austern                                    austern@google.com
 David Ayers                                     d.ayers@inode.at
 Giovanni Bajo					giovannibajo@gcc.gnu.org
@@ -303,7 +304,7 @@ Marc Espie					espie@cvs.openbsd.org
 Rafael Ávila de Espíndola			rafael.espindola@gmail.com
 Ansgar Esztermann				ansgar@thphy.uni-duesseldorf.de
 Doug Evans					dje@google.com
-Bernhard Fischer				rep.nop@aon.at
+Bernhard Fischer				rep.dot.nop@gmail.com
 Thomas Fitzsimmons				fitzsim@redhat.com
 Brian Ford					ford@vss.fsi.com
 Daniel Franke					franke.daniel@gmail.com

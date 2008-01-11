@@ -3381,7 +3381,7 @@ df_bb_refs_record (int bb_index, bool scan_insns)
   df_refs_add_to_chains (&collection_rec, bb, NULL);
 
   /* Now that the block has been processed, set the block as dirty so
-     lr and ur will get it processed.  */
+     LR and LIVE will get it processed.  */
   df_set_bb_dirty (bb);
 }
 
@@ -3530,11 +3530,11 @@ df_get_entry_block_def_set (bitmap entry_block_defs)
       bitmap_set_bit (entry_block_defs, STATIC_CHAIN_REGNUM);
 #endif
 #endif
-      
-      r = targetm.calls.struct_value_rtx (current_function_decl, true);
-      if (r && REG_P (r))
-	bitmap_set_bit (entry_block_defs, REGNO (r));
     }
+
+  r = targetm.calls.struct_value_rtx (current_function_decl, true);
+  if (r && REG_P (r))
+    bitmap_set_bit (entry_block_defs, REGNO (r));
 
   if ((!reload_completed) || frame_pointer_needed)
     {

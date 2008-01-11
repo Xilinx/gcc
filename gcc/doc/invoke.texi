@@ -329,7 +329,7 @@ Objective-C and Objective-C++ Dialects}.
 -fgcse-sm -fif-conversion -fif-conversion2 -finline-functions @gol
 -finline-functions-called-once -finline-limit=@var{n} @gol
 -finline-small-functions -fipa-cp -fipa-marix-reorg -fipa-pta @gol 
--fipa-pure-const -fipa-reference @gol
+-fipa-pure-const -fipa-reference -fipa-struct-reorg @gol
 -fipa-type-escape -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
 -fmerge-all-constants -fmerge-constants -fmodulo-sched @gol
 -fmodulo-sched-allow-regmoves -fmove-loop-invariants -fmudflap @gol
@@ -3230,7 +3230,7 @@ Only warns when the converted pointer is dereferenced.
 Does not warn about incomplete types.
 
 @item -Wstrict-overflow
-@item -Wstrict-overflow=@var{n}
+@itemx -Wstrict-overflow=@var{n}
 @opindex Wstrict-overflow
 This option is only active when @option{-fstrict-overflow} is active.
 It warns about cases where the compiler optimizes based on the
@@ -5707,6 +5707,20 @@ Discover which static variables do not escape cannot escape the
 compilation unit.
 Enabled by default at @option{-O} and higher.
 
+@item -fipa-struct-reorg
+@opindex fipa-struct-reorg
+Perform structure reorganization optimization, that change C-like structures 
+layout in order to better utilize spatial locality.  This transformation is 
+affective for programs containing arrays of structures.  Available in two 
+compilation modes: profile-based (enabled with @option{-fprofile-generate})
+or static (which uses built-in heuristics).  Require @option{-fipa-type-escape}
+to provide the safety of this transformation.  It works only in whole program
+mode, so it requires @option{-fwhole-program} and @option{-combine} to be
+enabled.  Structures considered @samp{cold} by this transformation are not
+affected (see @option{--param struct-reorg-cold-struct-ratio=@var{value}}).
+
+With this flag, the program debug info reflects a new structure layout.
+
 @item -fipa-pta
 @opindex fipa-pta
 Perform interprocedural pointer analysis.
@@ -6161,6 +6175,7 @@ but this scheme may not be supported by future releases of GCC@.
 Enabled at levels @option{-O}, @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fno-toplevel-reorder
+@opindex fno-toplevel-reorder
 Do not reorder top-level functions, variables, and @code{asm}
 statements.  Output them in the same order that they appear in the
 input file.  When this option is used, unreferenced static variables
@@ -6642,6 +6657,15 @@ the complete structure size.  We say that if the ratio of the number
 of bytes in instantiated fields to the number of bytes in the complete
 structure exceeds this parameter, then block copies are not used.  The
 default is 75.
+
+@item struct-reorg-cold-struct-ratio
+The threshold ratio (as a percentage) between a structure frequency
+and the frequency of the hottest structure in the program.  This parameter
+is used by struct-reorg optimization enabled by @option{-fipa-struct-reorg}.
+We say that if the ratio of a structure frequency, calculated by profiling, 
+to the hottest structure frequency in the program is less than this 
+parameter, then structure reorganization is not applied to this structure.
+The default is 10.
 
 @item max-crossjump-edges
 The maximum number of incoming edges to consider for crossjumping.
@@ -7158,6 +7182,12 @@ consuming all of the memory available on the host machine.  This
 parameter sets a limit on the length of the sets that are computed,
 which prevents the runaway behaviour.  Setting a value of 0 for
 this paramter will allow an unlimited set length.
+
+@item sccvn-max-scc-size
+Maximum size of a strongly connected component (SCC) during SCCVN
+processing.  If this limit is hit, SCCVN processing for the whole
+function will not be done and optimizations depending on it will
+be disabled.  The default maximum SCC size is 10000.
 
 @end table
 @end table
@@ -10617,9 +10647,14 @@ or @code{remainder} built-in functions: see @ref{Other Builtins} for details.
 @item -mrecip
 @opindex mrecip
 This option will enable GCC to use RCPSS and RSQRTSS instructions (and their
-vectorized variants RCPPS and RSQRTPS) instead of DIVSS and SQRTSS (and their
-vectorized variants).  These instructions will be generated only when
-@option{-funsafe-math-optimizations} is enabled.
+vectorized variants RCPPS and RSQRTPS) with an additional Newton-Rhapson step
+to increase precision instead of DIVSS and SQRTSS (and their vectorized
+variants) for single precision floating point arguments.  These instructions
+are generated only when @option{-funsafe-math-optimizations} is enabled
+together with @option{-finite-math-only} and @option{-fno-trapping-math}.
+Note that while the throughput of the sequence is higher than the throughput
+of the non-reciprocal instruction, the precision of the sequence can be
+decreased by up to 2 ulp (i.e. the inverse of 1.0 equals 0.99999994).
 
 @item -mveclibabi=@var{type}
 @opindex mveclibabi

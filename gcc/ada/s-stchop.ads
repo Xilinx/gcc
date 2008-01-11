@@ -51,6 +51,12 @@ package System.Stack_Checking.Operations is
    --  Set the stack cache for the current task. Note that this is only for
    --  optimization purposes, nothing can be assumed about the contents of the
    --  cache at any time, see Set_Stack_Info.
+   --
+   --  The stack cache should contain the bounds of the current task.  But
+   --  because the RTS is not aware of task switches, the stack cache may be
+   --  incorrect.  So when the stack pointer is not within the bounds of the
+   --  stack cache, Stack_Check first update the cache (which is a costly
+   --  operation hence the need of a cache).
 
    procedure Invalidate_Stack_Cache (Any_Stack : Stack_Access);
    --  Invalidate cache entries for the task T that owns Any_Stack. This causes

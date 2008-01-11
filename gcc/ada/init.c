@@ -1713,19 +1713,24 @@ __gnat_map_signal (int sig)
       msg = "SIGBUS: possible stack overflow";
       break;
 #else
+#ifdef __RTP__
+    /* In RTP mode a SIGSEGV is most likely due to a stack overflow,
+       since stack checking uses the probing mechanism.  */
     case SIGILL:
       exception = &constraint_error;
       msg = "SIGILL";
       break;
-/* In RTP mode a SIGSEGV is most likely due to a stack overflow. This is not
-   the case in kernel mode where stack overflow detection uses a comparison
-   method instead of memory probes. */
-#ifdef __RTP__
     case SIGSEGV:
       exception = &storage_error;
       msg = "SIGSEGV: possible stack overflow";
       break;
 #else
+    /* In kernel mode a SIGILL is most likely due to a stack overflow,
+       since stack checking uses the stack limit mechanism.  */
+    case SIGILL:
+      exception = &storage_error;
+      msg = "SIGILL: possible stack overflow";
+      break;
     case SIGSEGV:
       exception = &program_error;
       msg = "SIGSEGV";
@@ -1826,11 +1831,82 @@ __gnat_init_float (void)
 #endif
 }
 
+/* This subprogram is called by System.Task_Primitives.Operations.Enter_Task
+   (if not null) when a new task is created.  It is initialized by
+   System.Stack_Checking.Operations.Initialize_Stack_Limit.
+   The use of a hook avoids to drag stack checking subprograms if stack
+   checking is not used.  */
+void (*__gnat_set_stack_limit_hook)(void) = (void (*)(void))0;
+
+
 /******************/
 /* NetBSD Section */
 /******************/
 
 #elif defined(__NetBSD__)
+
+#include <signal.h>
+#include <unistd.h>
+
+static void
+__gnat_error_handler (int sig)
+{
+  struct Exception_Data *exception;
+  const char *msg;
+
+  switch(sig)
+  {
+    case SIGFPE:
+      exception = &constraint_error;
+      msg = "SIGFPE";
+      break;
+    case SIGILL:
+      exception = &constraint_error;
+      msg = "SIGILL";
+      break;
+    case SIGSEGV:
+      exception = &storage_error;
+      msg = "stack overflow or erroneous memory access";
+      break;
+    case SIGBUS:
+      exception = &constraint_error;
+      msg = "SIGBUS";
+      break;
+    default:
+      exception = &program_error;
+      msg = "unhandled signal";
+    }
+
+    Raise_From_Signal_Handler(exception, msg);
+}
+
+void
+__gnat_install_handler(void)
+{
+  struct sigaction act;
+
+  act.sa_handler = __gnat_error_handler;
+  act.sa_flags = SA_NODEFER | SA_RESTART;
+  sigemptyset (&act.sa_mask);
+
+  /* Do not install handlers if interrupt state is "System" */
+  if (__gnat_get_interrupt_state (SIGFPE) != 's')
+    sigaction (SIGFPE,  &act, NULL);
+  if (__gnat_get_interrupt_state (SIGILL) != 's')
+    sigaction (SIGILL,  &act, NULL);
+  if (__gnat_get_interrupt_state (SIGSEGV) != 's')
+    sigaction (SIGSEGV, &act, NULL);
+  if (__gnat_get_interrupt_state (SIGBUS) != 's')
+    sigaction (SIGBUS,  &act, NULL);
+
+  __gnat_handler_installed = 1;
+}
+
+/*******************/
+/* OpenBSD Section */
+/*******************/
+
+#elif defined(__OpenBSD__)
 
 #include <signal.h>
 #include <unistd.h>
@@ -1914,7 +1990,8 @@ __gnat_install_handler (void)
    WIN32 and could be used under OS/2 */
 
 #if defined (_WIN32) || defined (__INTERIX) || defined (__EMX__) \
-  || defined (__Lynx__) || defined(__NetBSD__) || defined(__FreeBSD__)
+  || defined (__Lynx__) || defined(__NetBSD__) || defined(__FreeBSD__) \
+  || defined (__OpenBSD__)
 
 #define HAVE_GNAT_INIT_FLOAT
 

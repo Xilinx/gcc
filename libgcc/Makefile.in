@@ -32,6 +32,7 @@ prefix = @prefix@
 
 exec_prefix = @exec_prefix@
 libdir = @libdir@
+shlib_slibdir = @slibdir@
 
 SHELL = @SHELL@
 
@@ -99,7 +100,7 @@ all: all-multi
 	# them back to the GCC directory.  Too many things (other
 	# in-tree libraries, and DejaGNU) know about the layout
 	# of the build tree, for now.
-	$(MAKE) install DESTDIR=$(gcc_objdir) \
+	$(MAKE) install-leaf DESTDIR=$(gcc_objdir) \
 	  slibdir= libsubdir= MULTIOSDIR=$(MULTIDIR)
 
 .PHONY: all-multi
@@ -739,7 +740,8 @@ libgcc_s$(SHLIB_EXT): $(libgcc-s-objects) $(extra-parts)
 		@shlib_objs@,$(objects),$(subst \
 		@shlib_base_name@,libgcc_s,$(subst \
 		@shlib_map_file@,$(mapfile),$(subst \
-		@shlib_slibdir_qual@,$(MULTIOSSUBDIR),$(SHLIB_LINK)))))))
+		@shlib_slibdir_qual@,$(MULTIOSSUBDIR),$(subst \
+		@shlib_slibdir@,$(shlib_slibdir),$(SHLIB_LINK))))))))
 
 libunwind$(SHLIB_EXT): $(libunwind-s-objects) $(extra-parts)
 	# @multilib_flags@ is still needed because this may use
@@ -882,7 +884,7 @@ install-shared:
 		@shlib_base_name@,libgcc_s,$(subst \
 		@shlib_slibdir_qual@,$(MULTIOSSUBDIR),$(SHLIB_INSTALL))))
 
-install: $(install-shared) $(install-libunwind)
+install-leaf: $(install-shared) $(install-libunwind)
 	$(mkinstalldirs) $(DESTDIR)$(inst_libdir)
 
 	$(INSTALL_DATA) libgcc.a $(DESTDIR)$(inst_libdir)/
@@ -898,6 +900,7 @@ install: $(install-shared) $(install-libunwind)
 	  $(INSTALL_DATA) $$file $(DESTDIR)$(inst_libdir)/;	\
 	done
 
+install: install-leaf
 	@$(MULTIDO) $(FLAGS_TO_PASS) multi-do DO=install
 
 .PHONY: install install-shared install-libunwind

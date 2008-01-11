@@ -1235,15 +1235,12 @@ package body Errout is
       Sfile    : constant Source_File_Index := Get_Source_File_Index (L);
       Earliest : Node_Id;
       Eloc     : Source_Ptr;
-      Discard  : Traverse_Result;
-
-      pragma Warnings (Off, Discard);
 
       function Test_Earlier (N : Node_Id) return Traverse_Result;
       --  Function applied to every node in the construct
 
-      function Search_Tree_First is new Traverse_Func (Test_Earlier);
-      --  Create traversal function
+      procedure Search_Tree_First is new Traverse_Proc (Test_Earlier);
+      --  Create traversal procedure
 
       ------------------
       -- Test_Earlier --
@@ -1273,7 +1270,7 @@ package body Errout is
    begin
       Earliest := Original_Node (C);
       Eloc := Sloc (Earliest);
-      Discard := Search_Tree_First (Original_Node (C));
+      Search_Tree_First (Original_Node (C));
       return Earliest;
    end First_Node;
 
@@ -1783,6 +1780,9 @@ package body Errout is
       Line_Number_Output : Boolean := False;
       --  Set True once line number is output
 
+      Empty_Line : Boolean := True;
+      --  Set False if line includes at least one character
+
    begin
       if Sfile /= Current_Error_Source_File then
          Write_Str ("==============Error messages for ");
@@ -1870,6 +1870,7 @@ package body Errout is
             end if;
          end if;
 
+         Empty_Line := False;
          S := S + 1;
       end loop;
 
@@ -1877,7 +1878,11 @@ package body Errout is
       --  training spaces preserved (so we output the line exactly as input).
 
       if Line_Number_Output then
-         Write_Eol_Keep_Blanks;
+         if Empty_Line then
+            Write_Eol;
+         else
+            Write_Eol_Keep_Blanks;
+         end if;
       end if;
    end Output_Source_Line;
 
@@ -1974,7 +1979,7 @@ package body Errout is
             --  to the tree is harmless.
 
             declare
-               Status : Traverse_Result;
+               Status : Traverse_Final_Result;
 
             begin
                if Is_List_Member (N) then
@@ -1998,7 +2003,7 @@ package body Errout is
    begin
       if Warnings_Detected /= 0 then
          declare
-            Discard : Traverse_Result;
+            Discard : Traverse_Final_Result;
             pragma Warnings (Off, Discard);
 
          begin

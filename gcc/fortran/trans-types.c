@@ -717,8 +717,8 @@ gfc_init_types (void)
       PUSH_TYPE (name_buf, type);
     }
 
-  gfc_character1_type_node = build_type_variant (unsigned_char_type_node, 
-						 0, 0);
+  gfc_character1_type_node = build_qualified_type (unsigned_char_type_node, 
+						   TYPE_UNQUALIFIED);
   PUSH_TYPE ("character(kind=1)", gfc_character1_type_node);
 
   PUSH_TYPE ("byte", unsigned_char_type_node);
@@ -1436,7 +1436,7 @@ gfc_get_array_type_bounds (tree etype, int dimen, tree * lbound,
 			   enum gfc_array_kind akind)
 {
   char name[8 + GFC_RANK_DIGITS + GFC_MAX_SYMBOL_LEN];
-  tree fat_type, base_type, arraytype, lower, upper, stride, tmp;
+  tree fat_type, base_type, arraytype, lower, upper, stride, tmp, rtype;
   const char *typename;
   int n;
 
@@ -1511,10 +1511,15 @@ gfc_get_array_type_bounds (tree etype, int dimen, tree * lbound,
   /* TODO: known offsets for descriptors.  */
   GFC_TYPE_ARRAY_OFFSET (fat_type) = NULL_TREE;
 
-  /* We define data as an unknown size array. Much better than doing
-     pointer arithmetic.  */
-  arraytype =
-    build_array_type (etype, gfc_array_range_type);
+  /* We define data as an array with the correct size if possible.
+     Much better than doing pointer arithmetic.  */
+  if (stride)
+    rtype = build_range_type (gfc_array_index_type, gfc_index_zero_node,
+			      int_const_binop (MINUS_EXPR, stride,
+					       integer_one_node, 0));
+  else
+    rtype = gfc_array_range_type;
+  arraytype = build_array_type (etype, rtype);
   arraytype = build_pointer_type (arraytype);
   GFC_TYPE_ARRAY_DATAPTR_TYPE (fat_type) = arraytype;
 
@@ -1555,7 +1560,11 @@ gfc_sym_type (gfc_symbol * sym)
   if (sym->backend_decl && !sym->attr.function)
     return TREE_TYPE (sym->backend_decl);
 
-  type = gfc_typenode_for_spec (&sym->ts);
+  if (sym->ts.type == BT_CHARACTER && sym->attr.is_bind_c
+      && (sym->attr.function || sym->attr.result))
+    type = gfc_character1_type_node;
+  else
+    type = gfc_typenode_for_spec (&sym->ts);
 
   if (sym->attr.dummy && !sym->attr.function && !sym->attr.value)
     byref = 1;

@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -58,12 +58,11 @@ namespace __gnu_parallel
  *  @param selector Functionality (e. g. std::find_if (), std::equal(),...)
  *  @return Place of finding in both sequences.
  */
-template<
-    typename RandomAccessIterator1,
-    typename RandomAccessIterator2,
-    typename Pred,
-    typename Selector>
-  std::pair<RandomAccessIterator1, RandomAccessIterator2>
+template<typename RandomAccessIterator1,
+	 typename RandomAccessIterator2,
+	 typename Pred,
+	 typename Selector>
+  inline std::pair<RandomAccessIterator1, RandomAccessIterator2>
   find_template(RandomAccessIterator1 begin1, RandomAccessIterator1 end1,
                 RandomAccessIterator2 begin2, Pred pred, Selector selector)
   {
@@ -71,13 +70,13 @@ template<
       {
       case Settings::GROWING_BLOCKS:
         return find_template(begin1, end1, begin2, pred, selector,
-                            growing_blocks_tag());
+			     growing_blocks_tag());
       case Settings::CONSTANT_SIZE_BLOCKS:
         return find_template(begin1, end1, begin2, pred, selector,
-                            constant_size_blocks_tag());
+			     constant_size_blocks_tag());
       case Settings::EQUAL_SPLIT:
         return find_template(begin1, end1, begin2, pred, selector,
-                            equal_split_tag());
+			     equal_split_tag());
       default:
         _GLIBCXX_PARALLEL_ASSERT(false);
         return std::make_pair(begin1, begin2);
@@ -96,11 +95,10 @@ template<
  *  @param selector Functionality (e. g. std::find_if (), std::equal(),...)
  *  @return Place of finding in both sequences.
  */
-template<
-    typename RandomAccessIterator1,
-    typename RandomAccessIterator2,
-    typename Pred,
-    typename Selector>
+template<typename RandomAccessIterator1,
+	 typename RandomAccessIterator2,
+	 typename Pred,
+	 typename Selector>
   std::pair<RandomAccessIterator1, RandomAccessIterator2>
   find_template(RandomAccessIterator1 begin1,
                 RandomAccessIterator1 end1,
@@ -160,8 +158,9 @@ template<
     omp_destroy_lock(&result_lock);
     delete[] borders;
 
-    return std::pair<RandomAccessIterator1, RandomAccessIterator2>(
-        begin1 + result, begin2 + result);
+    return
+      std::pair<RandomAccessIterator1, RandomAccessIterator2>(begin1 + result,
+							      begin2 + result);
   }
 
 #endif
@@ -190,11 +189,10 @@ template<
  *     for CSB, the blocks are allocated in a predetermined manner,
  *     namely spacial round-robin.
  */
-template<
-    typename RandomAccessIterator1,
-    typename RandomAccessIterator2,
-    typename Pred,
-    typename Selector>
+template<typename RandomAccessIterator1,
+	 typename RandomAccessIterator2,
+	 typename Pred,
+	 typename Selector>
   std::pair<RandomAccessIterator1, RandomAccessIterator2>
   find_template(RandomAccessIterator1 begin1, RandomAccessIterator1 end1,
                 RandomAccessIterator2 begin2, Pred pred, Selector selector,
@@ -208,8 +206,8 @@ template<
 
     difference_type length = end1 - begin1;
 
-    difference_type sequential_search_size = std::min<difference_type>(
-        length, Settings::find_sequential_search_size);
+    difference_type sequential_search_size =
+      std::min<difference_type>(length, Settings::find_sequential_search_size);
 
     // Try it sequentially first.
     std::pair<RandomAccessIterator1, RandomAccessIterator2> find_seq_result =
@@ -270,23 +268,25 @@ template<
                   omp_unset_lock(&result_lock);
               }
 
-            block_size = std::min<difference_type>(
-                block_size * Settings::find_increasing_factor,
-                Settings::find_maximum_block_size);
+            block_size =
+	      std::min<difference_type>(block_size
+					* Settings::find_increasing_factor,
+					Settings::find_maximum_block_size);
 
             // Get new block, update pointer to next block.
             start =
-                fetch_and_add<difference_type>(&next_block_start, block_size);
-            stop = (length < (start + block_size)) ?
-                        length : (start + block_size);
+	      fetch_and_add<difference_type>(&next_block_start, block_size);
+            stop = ((length < (start + block_size))
+		    ? length : (start + block_size));
           }
       } //parallel
 
     omp_destroy_lock(&result_lock);
 
     // Return iterator on found element.
-    return std::pair<RandomAccessIterator1, RandomAccessIterator2>(
-        begin1 + result, begin2 + result);
+    return
+      std::pair<RandomAccessIterator1, RandomAccessIterator2>(begin1 + result,
+							      begin2 + result);
   }
 
 #endif
@@ -311,11 +311,10 @@ template<
  *  blocks are allocated in a predetermined manner, namely spacial
  *  round-robin.
  */
-template<
-    typename RandomAccessIterator1,
-    typename RandomAccessIterator2,
-    typename Pred,
-    typename Selector>
+template<typename RandomAccessIterator1,
+	 typename RandomAccessIterator2,
+	 typename Pred,
+	 typename Selector>
   std::pair<RandomAccessIterator1, RandomAccessIterator2>
   find_template(RandomAccessIterator1 begin1, RandomAccessIterator1 end1,
                 RandomAccessIterator2 begin2, Pred pred, Selector selector,
@@ -395,8 +394,9 @@ template<
     omp_destroy_lock(&result_lock);
 
     // Return iterator on found element.
-    return std::pair<RandomAccessIterator1, RandomAccessIterator2>(
-        begin1 + result, begin2 + result);
+    return
+      std::pair<RandomAccessIterator1, RandomAccessIterator2>(begin1 + result,
+							      begin2 + result);
   }
 #endif
 } // end namespace

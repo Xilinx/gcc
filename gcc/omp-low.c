@@ -3,7 +3,7 @@
    marshalling to implement data sharing and copying clauses.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
-   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -529,6 +529,7 @@ copy_var_decl (tree var, tree name, tree type)
   DECL_ARTIFICIAL (copy) = DECL_ARTIFICIAL (var);
   DECL_IGNORED_P (copy) = DECL_IGNORED_P (var);
   DECL_CONTEXT (copy) = DECL_CONTEXT (var);
+  DECL_SOURCE_LOCATION (copy) = DECL_SOURCE_LOCATION (var);
   TREE_USED (copy) = 1;
   DECL_SEEN_IN_BIND_EXPR_P (copy) = 1;
 
@@ -2646,6 +2647,24 @@ expand_omp_parallel (struct omp_region *region)
       if (optimize)
 	optimize_omp_library_calls ();
       rebuild_cgraph_edges ();
+
+      /* Some EH regions might become dead, see PR34608.  If
+	 pass_cleanup_cfg isn't the first pass to happen with the
+	 new child, these dead EH edges might cause problems.
+	 Clean them up now.  */
+      if (flag_exceptions)
+	{
+	  basic_block bb;
+	  tree save_current = current_function_decl;
+	  bool changed = false;
+
+	  current_function_decl = child_fn;
+	  FOR_EACH_BB (bb)
+	    changed |= tree_purge_dead_eh_edges (bb);
+	  if (changed)
+	    cleanup_tree_cfg ();
+	  current_function_decl = save_current;
+	}
       pop_cfun ();
     }
   
@@ -3952,6 +3971,11 @@ expand_omp (struct omp_region *region)
 {
   while (region)
     {
+      /* First, determine whether this is a combined parallel+workshare
+       	 region.  */
+      if (region->type == OMP_PARALLEL)
+	determine_parallel_type (region);
+
       if (region->inner)
 	expand_omp (region->inner);
 
@@ -4028,11 +4052,6 @@ build_omp_regions_1 (basic_block bb, struct omp_region *parent,
 	  region = parent;
 	  region->exit = bb;
 	  parent = parent->outer;
-
-	  /* If REGION is a parallel region, determine whether it is
-	     a combined parallel+workshare region.  */
-	  if (region->type == OMP_PARALLEL)
-	    determine_parallel_type (region);
 	}
       else if (code == OMP_ATOMIC_STORE)
 	{
