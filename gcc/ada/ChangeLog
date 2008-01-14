@@ -1,3 +1,34 @@
+2008-01-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* trans.c (call_to_gnu):Invoke the addressable_p predicate only
+	when necessary.  Merge some conditional statements.  Update comments.
+	Rename unchecked_convert_p local variable to suppress_type_conversion.
+	Do not suppress conversions in the In case.
+	(addressable_p) <VIEW_CONVERT_EXPR>: Do not take alignment issues
+	into account on non strict-alignment platforms.
+
+2008-01-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* utils.c (aggregate_type_contains_array_p): New predicate.
+	(create_field_decl): In a packed record, force byte alignment
+	for fields without specified position that contain an array.
+
+2008-01-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* utils.c (unchecked_convert): Fold the VIEW_CONVERT_EXPR expression.
+
+2008-01-10  John David Anglin  <dave.anglin.@nrc-cnrc.gc.ca>
+
+	PR ada/34466
+	* s-osinte-linux-hppa.ads (SC_NPROCESSORS_ONLN): New constant for
+	sysconf call.
+	(bit_field): New packed boolean type used by cpu_set_t.
+	(cpu_set_t): New type corresponding to the C type with
+	the same name. Note that on the Ada side we use a bit
+	field array for the affinity mask. There is not need
+	for the C macro for setting individual bit.
+	(pthread_setaffinity_np): New imported routine.
+
 2008-01-03  Tero Koskinen <tero.koskinen@iki.fi>
 
 	PR ada/34647

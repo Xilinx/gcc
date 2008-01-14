@@ -1,3 +1,111 @@
+2008-01-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34665
+	* gfortran.dg/argument_checking_11.f90: New.
+	* gfortran.dg/argument_checking_12.f90: New.
+	* gfortran.dg/used_dummy_types_4.f90: Update dg-error.
+	* gfortran.dg/c_assoc_2.f03: Update dg-error.
+	* gfortran.dg/argument_checking_3.f90: Ditto.
+	* gfortran.dg/pointer_intent_2.f90: Ditto.
+	* gfortran.dg/import2.f90: Ditto.
+	* gfortran.dg/assumed_shape_ranks_1.f90: Ditto.
+	* gfortran.dg/implicit_actual.f90: Ditto.
+	* gfortran.dg/used_dummy_types_3.f90: Ditto.
+	* gfortran.dg/derived_comp_array_ref_6.f90: Ditto.
+
+2008-01-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34763
+	* gfortran.dg/interface_proc_end.f90: New.
+
+2008-01-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34759
+	* gfortran.dg/assumed_size_refs_4.f90: New.
+
+2008-01-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_convert1.adb.
+
+2008-01-13  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/struct-ret-3.c: Adjust testcase to make stack
+	readable and writable again before exiting.
+
+2008-01-13  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34601
+	* gcc.dg/noncompile/incomplete-4.c: New testcase.
+
+2008-01-13  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/32135
+	* gcc.dg/pr32135.c: new.
+
+2008-01-12  Doug Kwan  <dougkwan@google.com>
+
+	* gcc.dg/qual-return-1.c: Add -Wignored-qualifiers.
+	* g++.dg/warn/Wreturn-type-4.C: Replace -Wreturn-type by
+	-Wignored-qualifiers.
+
+2008-01-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/slice3.adb: New test.
+	* gnat.dg/slice4.adb: Likewise.
+
+2008-01-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/bit_packed_array.ad[sb]: New test.
+
+2008-01-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34432
+	* gfortran.dg/parens_7.f90: New test.
+
+2008-01-11  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/tree-ssa/loadpre5.c: Use static.
+	* gcc.dg/tree-ssa/loadpre8.c: Likewise.
+
+	* gcc.dg/pr33826.c: Require nonpic.
+
+2008-01-11  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34722
+	* gfortran.dg/inquire_12.f90: New test.
+
+2008-01-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34670
+	* all_bounds_1.f90: New test case.
+	* maxloc_bounds_1.f90: New test case.
+	* maxloc_bounds_2.f90: New test case.
+	* maxloc_bounds_3.f90: New test case.
+	* maxloc_bounds_4.f90: New test case.
+	* maxloc_bounds_5.f90: New test case.
+	* maxloc_bounds_6.f90: New test case.
+	* maxloc_bounds_7.f90: New test case.
+	* maxloc_bounds_8.f90: New test case.
+
+2008-01-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/struct-ret-3.c: New test.
+
+2008-01-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34537
+	* gfortran.dg/transfer_simplify_8.f90: New test.
+
+2008-01-11  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* g++.dg/torture/pr34641.C: Add dg-require-visibility.  Define
+	size_t using predefined macro.
+
+2008-01-10  Raksit Ashok  <raksit@google.com>
+
+	PR rtl-optimization/27971
+	* gcc.target/i386/pr27971.c: New testcase.
+
 2008-01-10  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/34396

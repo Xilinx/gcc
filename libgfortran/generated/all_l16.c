@@ -115,7 +115,26 @@ all_l16 (gfc_array_l16 * const restrict retarray,
   else
     {
       if (rank != GFC_DESCRIPTOR_RANK (retarray))
-	runtime_error ("rank of return array incorrect");
+	runtime_error ("rank of return array incorrect in"
+		       " ALL intrinsic: is %ld, should be %ld",
+		       (long int) (GFC_DESCRIPTOR_RANK (retarray)),
+		       (long int) rank);
+
+      if (compile_options.bounds_check)
+	{
+	  for (n=0; n < rank; n++)
+	    {
+	      index_type ret_extent;
+
+	      ret_extent = retarray->dim[n].ubound + 1
+		- retarray->dim[n].lbound;
+	      if (extent[n] != ret_extent)
+		runtime_error ("Incorrect extent in return value of"
+			       " ALL intrinsic in dimension %ld:"
+			       " is %ld, should be %ld", (long int) n + 1,
+			       (long int) ret_extent, (long int) extent[n]);
+	    }
+	}
     }
 
   for (n = 0; n < rank; n++)
