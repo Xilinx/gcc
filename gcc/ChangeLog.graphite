@@ -1,3 +1,9 @@
+2008-01-20  Tobias Grosser  <grosser@fmi.uni-passau.de>
+
+        * graphite.c (dot_all_scops, dot_all_scops_1): New.
+	(find_transform): Call dot_all_1.
+	* graphite.h (dot_all_scops): Declared.
+
 2007-12-14  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* tree-loop-distribution.c: Fix apsi.f ICE.

@@ -93,6 +93,7 @@ extern void debug_scop (scop_p, int);
 extern void debug_scops (int);
 extern void print_graphite_bb (FILE *, graphite_bb_p, int, int);
 extern void dot_scop (scop_p);
+extern void dot_all_scops (void);
 
 /* Return the number of parameters used in SCOP.  */
 

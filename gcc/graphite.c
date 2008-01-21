@@ -48,6 +48,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 
 VEC (scop_p, heap) *current_scops;
 
+static bool basic_block_simple_for_scop_p (basic_block);
 
 /* Print the schedules from SCHED.  */
 
@@ -175,6 +176,101 @@ dot_scop (scop_p scop)
   fclose (stream);
 
   system ("dotty /tmp/scop.dot");
+}
+
+/* Pretty print all SCoPs in DOT format and mark them with different colors.
+   If there are not enough colors (8 at the moment), paint later SCoPs gray.
+   Special nodes:
+   - filled node: entry of a SCoP,
+   - node shaped like a box: end of a SCoP,
+   - node with diagonals: critical BB.  */
+
+static void
+dot_all_scops_1 (FILE *file)
+{
+  basic_block bb;
+  edge e;
+  edge_iterator ei;
+  scop_p scop;
+  const char* color;
+  int i;
+
+  fprintf (file, "digraph all {\n");
+
+  FOR_ALL_BB (bb)
+    {
+      /* Select color for scop. */
+      for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
+	if (bb_in_scop_p (bb, scop) || scop->exit == bb || scop->entry == bb)
+	  {
+	    switch (i)
+	      {
+	      case 0: /* red */
+		color = "#e41a1c";
+		break;
+	      case 1: /* blue */
+		color = "#377eb8";
+		break;
+	      case 2: /* green */
+		color = "#4daf4a";
+		break;
+	      case 3: /* purple */
+		color = "#984ea3";
+		break;
+	      case 4: /* orange */
+		color = "#ff7f00";
+		break;
+	      case 5: /* yellow */
+		color = "#ffff33";
+		break;
+	      case 6: /* brown */
+		color = "#e41a1c";
+		break;
+	      case 7: /* rose */
+		color = "#f781bf";
+		break;
+	      default: /* gray */
+		color = "#e41a1c";
+	      }
+
+	    if (bb == scop->entry)
+  	      fprintf (file, "%d [style=\"bold,filled\",fillcolor=\"%s\"];\n",
+		       bb->index, color);
+	    else
+  	      fprintf (file, "%d [style=\"bold\",color=\"%s\"];\n", bb->index,
+		       color);
+	  }
+
+      /* Mark blocks not allowed in SCoP.  */
+      if (!basic_block_simple_for_scop_p (bb))
+	fprintf (file, "%d [style=\"bold,diagonals,filled\"];\n", bb->index);
+
+      /* Print edges.  */
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	fprintf (file, "%d -> %d;\n", bb->index, e->dest->index);
+    }
+
+  /* Change the shape of the exit nodes.  Don't change the shape of entry
+     nodes, as one node may be exit and entry at once and can not have two
+     different shapes.  */
+  for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
+    fprintf (file, "%d [shape=box];\n", scop->exit->index);
+
+  fputs ("}\n\n", file);
+}
+
+/* Display all SCoPs using dotty.  */
+
+void
+dot_all_scops (void)
+{
+  FILE *stream = fopen ("/tmp/allscops.dot", "w");
+  gcc_assert (stream != NULL);
+
+  dot_all_scops_1(stream);
+  fclose (stream);
+
+  system ("dotty /tmp/allscops.dot");
 }
 
 
@@ -1252,6 +1348,7 @@ graphite_transform_loops (void)
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
+      dot_all_scops_1 (dump_file);
       print_scops (dump_file, 2);
       fprintf (dump_file, "\nnumber of SCoPs: %d\n",
 	       VEC_length (scop_p, current_scops));
