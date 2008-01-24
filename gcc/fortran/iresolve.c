@@ -549,9 +549,11 @@ gfc_resolve_count (gfc_expr *f, gfc_expr *mask, gfc_expr *dim, gfc_expr *kind)
       f->shape = gfc_copy_shape_excluding (mask->shape, mask->rank, dim);
     }
 
+  resolve_mask_arg (mask);
+
   f->value.function.name
-    = gfc_get_string (PREFIX ("count_%d_%c%d"), f->ts.kind,
-		      gfc_type_letter (mask->ts.type), mask->ts.kind);
+    = gfc_get_string (PREFIX ("count_%d_%c"), f->ts.kind,
+		      gfc_type_letter (mask->ts.type));
 }
 
 

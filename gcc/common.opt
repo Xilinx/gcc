@@ -1,6 +1,7 @@
 ; Options for the language- and target-independent parts of the compiler.
 
-; Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+; Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -154,7 +155,7 @@ Common Warning
 Warn about code which might break strict aliasing rules
 
 Wstrict-aliasing=
-Common Joined UInteger Warning
+Common Joined UInteger Var(warn_strict_aliasing) Init(-1) Warning
 Warn about code which might break strict aliasing rules
 
 Wstrict-overflow
@@ -162,7 +163,7 @@ Common Warning
 Warn about optimizations that assume that signed overflow is undefined
 
 Wstrict-overflow=
-Common Joined UInteger Warning
+Common Joined UInteger Var(warn_strict_overflow) Init(-1) Warning
 Warn about optimizations that assume that signed overflow is undefined
 
 Wswitch
@@ -663,6 +664,10 @@ Attempt to merge identical constants and constant variables
 fmerge-constants
 Common Report Var(flag_merge_constants,1) VarExists Optimization
 Attempt to merge identical constants across compilation units
+
+fmerge-debug-strings
+Common Report Var(flag_merge_debug_strings) Init(1)
+Attempt to merge identical debug strings across compilation units
 
 fmessage-length=
 Common RejectNegative Joined UInteger

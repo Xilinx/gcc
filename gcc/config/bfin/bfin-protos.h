@@ -1,5 +1,5 @@
 /* Prototypes for Blackfin functions used in the md file & elsewhere.
-   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
 
    This file is part of GNU CC.
 
@@ -26,7 +26,10 @@
 typedef enum bfin_cpu_type
 {
   BFIN_CPU_BF522,
+  BFIN_CPU_BF523,
+  BFIN_CPU_BF524,
   BFIN_CPU_BF525,
+  BFIN_CPU_BF526,
   BFIN_CPU_BF527,
   BFIN_CPU_BF531,
   BFIN_CPU_BF532,
@@ -38,6 +41,7 @@ typedef enum bfin_cpu_type
   BFIN_CPU_BF539,
   BFIN_CPU_BF542,
   BFIN_CPU_BF544,
+  BFIN_CPU_BF547,
   BFIN_CPU_BF548,
   BFIN_CPU_BF549,
   BFIN_CPU_BF561
@@ -60,6 +64,11 @@ extern unsigned int bfin_workarounds;
 #define WA_SPECULATIVE_SYNCS 0x00000002
 #define ENABLE_WA_SPECULATIVE_SYNCS \
   (bfin_workarounds & WA_SPECULATIVE_SYNCS)
+
+/* For the anomaly 05-00-0371 */
+#define WA_RETS 0x00000004
+#define ENABLE_WA_RETS \
+  (bfin_workarounds & WA_RETS)
 
 
 #define Mmode enum machine_mode

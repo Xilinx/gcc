@@ -1,3 +1,521 @@
+2008-01-23  Hans-Peter Nilsson  <hp@axis.com>
+
+	* config/cris/cris.h (CC1PLUS_SPEC, OPTIMIZATION_OPTIONS): Drop
+	stale and straggling -fforce-addr comments above.
+
+	* config/cris/cris.h (CRIS_SUBTARGET_VERSION, TARGET_VERSION): Don't
+	define.
+	* config/cris/linux.h (CRIS_SUBTARGET_VERSION): Don't define.
+	* config/cris/aout.h (CRIS_SUBTARGET_VERSION): Don't define.
+
+2008-01-23  Michael Matz  <matz@suse.de>
+
+	PR debug/34895
+	* dwarf2out.c (force_type_die): Use modified_type_die instead of
+	gen_type_die.
+
+2008-01-23  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* ipa-struct-reorg.c (create_new_malloc): Use pointer type as
+	malloc result type.
+
+2008-01-23 Anatoly Sokolov <aesok@post.ru>
+
+	* config/avr/avr.c (avr_current_arch): New variable.
+	(avr_arch_types): Add 'avr31' and 'avr51' entries.
+	(avr_arch): Add 'ARCH_AVR31' and 'ARCH_AVR51'.
+	(avr_mcu_types): Add 'avr31' and 'avr51' architectures.
+	(avr_override_options): Init 'avr_current_arch'. 
+	(base_arch_s): Move from here...
+	* config/avr/avr.h (base_arch_s): ... here. Add new members 
+	'have_elpm', 'have_elpmx', 'have_eijmp_eicall', 'reserved'. Rename 
+	'mega' to 'have_jmp_call'.
+	(TARGET_CPU_CPP_BUILTINS): Define "__AVR_HAVE_JMP_CALL__", 
+	"__AVR_HAVE_RAMPZ__", 	"__AVR_HAVE_ELPM__" and  "__AVR_HAVE_ELPMX__"
+	macros.
+	(LINK_SPEC, CRT_BINUTILS_SPECS, ASM_SPEC): Add 'avr31' and 'avr51' 
+	architectures.
+	* config/avr/t-avr (MULTILIB_OPTIONS, MULTILIB_DIRNAMES, 
+	MULTILIB_MATCHES): (Ditto.).
+
+2008-01-23  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/31529
+	* cgraphunit.c (cgraph_reset_node): Always mark the node
+	not reachable if it is not queued already.
+
+2008-01-23  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin-protos.h (WA_RETS, ENABLE_WA_RETS): New macros.
+	* config/bfin/bfin.c (bfin_cpus): Add WA_RETS everywhere.
+	(cputype_selected): New static variable.
+	(bfin_handle_option): Set it if -mcpu is used.
+	(override_option): Select default set of workarounds if no cpu type
+	selected on the command line.
+	(workaround_rts_anomaly): Only run if ENABLE_WA_RETS.
+
+	From  Michael Frysinger  <michael.frysinger@analog.com>
+	* config/bfin/bfin-protos.h (enum bfin_cpu_type): Add
+	BFIN_CPU_BF547, BFIN_CPU_BF523, BFIN_CPU_BF524, and BFIN_CPU_BF526.
+
+	* config/bfin/elf.h (LIB_SPEC): Use proper linker script
+	for bf547, bf523, bf524, and bf526.
+	* config/bfin/bfin.c (bfin_cpus[]): Add bf547,  bf523, bf524, and
+	bf526.
+	* config/bfin/bfin.h (TARGET_CPU_CPP_BUILTINS): Define
+	__ADSPBF523__ for bf523, __ADSPBF524__ for bf524,
+	__ADSPBF526__ for bf526, __ADSPBF52x__ for all three, as well as
+	__ADSPBF547__ and __ADSPBF54x__ for bf547.
+	* doc/invoke.texi (Blackfin Options): Document that
+	-mcpu now accept bf547, bf523, bf524, and bf526.
+
+2008-01-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/34628
+	* combine.c (try_combine): Stop and undo after the first combination
+	if an autoincrement side-effect on the first insn has effectively
+	been lost.
+
+2008-01-22  David Edelsohn  <edelsohn@gnu.org>
+
+	PR target/34529
+	* config/rs6000/rs6000.c (rs6000_legitimate_offset_address_p):
+	Offset addresses are not valid for Altivec or paired float modes.
+
+2008-01-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34607
+	* c-parser.c (c_parser_omp_for_loop): Don't call c_finish_omp_for
+	if DECL_INITIAL (decl) is error_mark_node.
+
+	PR c++/34914
+	* c-common.c (handle_vector_size_attribute): Only allow
+	integral, scalar float and fixed point types.  Handle OFFSET_TYPE
+	the same way as pointer, array etc. types.
+	* tree.c (reconstruct_complex_type): Handle OFFSET_TYPE.
+
+	PR c++/34917
+	* tree.c (build_type_attribute_qual_variant): Call
+	build_qualified_type if attributes are equal, but quals are not.
+
+2008-01-22  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 32102
+	* doc/invoke.texi (-Wall): -Wall enables -Wstrict-overflow=1.
+	* flags.h (warn_strict_aliasing): Remove.
+	(warn_strict_overflow): Remove.
+	* opts.c (warn_strict_aliasing): Remove.
+	(warn_strict_overflow): Remove.
+	* c-opts.c (c_common_handle_option): -Wall only sets
+	-Wstrict-aliasing or -Wstrict-overflow if they are uninitialized.
+	(c_common_post_options): Give default values to -Wstrict-aliasing
+	and -Wstrict-overflow if they are uninitialized.
+	* common.opt (Wstrict-aliasing): Specify Var and Init.
+	(Wstrict-overflow): Likewise.
+
+2008-01-22  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	PR rtl-optimization/26854
+	PR rtl-optimization/34400
+	PR rtl-optimization/34884
+	* ddg.c (create_ddg_dep_from_intra_loop_link): Use
+	DF_RD->gen.
+	* df.h (df_changeable_flags.DF_RD_NO_TRIM): Deleted
+	(df_rd_bb_info.expanded_lr_out): Deleted
+	* loop_invariant.c (find_defs): Deleted DF_RD_NO_TRIM flag.
+	* loop_iv.c (iv_analysis_loop_init): Ditto.  * df-problems.c
+	(df_rd_free_bb_info, df_rd_alloc, df_rd_confluence_n,
+	df_rd_bb_local_compute, df_rd_transfer_function, df_rd_free):
+	Removed code to allocate, initialize or free expanded_lr_out.
+	(df_rd_bb_local_compute_process_def): Restructured to make more
+	understandable.
+	(df_rd_confluence_n): Removed code to no apply invalidate_by_call
+	sets if the sets are being trimmed.
+
+2008-01-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/32287
+	* configure.ac (ld_vers): Support GNU linker version xx.xx.*
+	(as_vers): Likewise.
+	* configure: Regenerated.
+
+2008-01-22  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR middle-end/33092
+	* tree-pass.h (pass_build_alias): New pass.
+	* tree-ssa-alias.c (gate_build_alias): New.
+	(pass_build_alias): New.
+	* passes.c (init_optimization_passes): Add pass_build_alias after
+	pass_create_structure_vars.
+
+2008-01-22  Wolfgang Gellerich  <gellerich@de.ibm.com>
+
+	* config/s390/s390.h (S390_TDC_POSITIVE_NORMALIZED_NUMBER):
+	Renamed to S390_TDC_POSITIVE_NORMALIZED_BFP_NUMBER.
+	(S390_TDC_NEGATIVE_NORMALIZED_NUMBER): Renamed to
+	S390_TDC_NEGATIVE_NORMALIZED_BFP_NUMBER.
+	(S390_TDC_POSITIVE_DENORMALIZED_NUMBER): Renamed to
+	S390_TDC_POSITIVE_DENORMALIZED_BFP_NUMBER.
+	(S390_TDC_NEGATIVE_DENORMALIZED_NUMBER): Renamed to
+	S390_TDC_NEGATIVE_DENORMALIZED_BFP_NUMBER.
+	(S390_TDC_POSITIVE_NORMALIZED_BFP_NUMBER): New constant.
+	(S390_TDC_NEGATIVE_NORMALIZED_BFP_NUMBER): New constant.
+	(S390_TDC_POSITIVE_DENORMALIZED_BFP_NUMBER): New constant.
+	(S390_TDC_NEGATIVE_DENORMALIZED_BFP_NUMBER): New constant.
+	* config/s390/s390.md (FP_ALL): New mode iterator.
+	(_d): New mode attribute.
+	("*signbit<mode>2>"): Changed mode of first operand.
+	("isinf<mode>2"): Changed mode of first operand.
+	("*TDC_insn"): Adaptation for DFP modes.
+
+2008-01-22  Ben Elliston  <bje@au.ibm.com>
+
+	* tree.c (check_qualified_type): Improve function description.
+
+2008-01-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34196
+	* tree.h (TRY_CATCH_IS_CLEANUP): New macro.
+	* tree-eh.c (honor_protect_cleanup_actions): Strip TRY_CATCH_EXPR
+	if it is set.
+
+2008-01-21  DJ Delorie  <dj@redhat.com>
+
+	* doc/tm.texi (HARD_REGNO_NREGS): Note that this macro must not
+	return zero.
+
+2008-01-21  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34856
+	* tree-cfg.c (verify_expr): Allow all invariant expressions
+	instead of just constant class ones as reference argument.
+	* tree-ssa-loop-im.c (for_each_index): Handle CONSTRUCTOR
+	like any other constant.
+	* tree-ssa-sccvn.c (copy_reference_ops_from_ref): Likewise.
+
+2008-01-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* regmove.c (fixup_match_1): Update call crossed frequencies.
+
+2008-01-21  Richard Guenther  <rguenther@suse.de>
+
+	PR c/34885
+	* tree-inline.c (setup_one_parameter): Deal with mismatched
+	types using a VIEW_CONVERT_EXPR.
+
+2008-01-21  Alon Dayan  <alond@il.ibm.com>
+	    Olga Golovanevsky  <olga@il.ibm.com>
+	
+	PR tree-optimization/34701
+	* ipa-struct-reorg.c (gen_size): Fix the malloc parameter calculation
+	when the structure size is not a power of 2.
+
+2008-01-20  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* doc/install.texi: Add doc for --enable-checking=df.
+	
+2008-01-20  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR rtl-optimization/34808
+	* emit-rtl.c (try_split): Handle REG_RETVAL notes.
+
+2008-01-20  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* global.c (find_reg): Only compute EH_RETURN_DATA_REGNO once per
+	input.
+
+2008-01-19  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	PR rtl-optimization/26854
+	PR rtl-optimization/34400
+	* ddg.c (create_ddg_dep_from_intra_loop_link): Do not use
+	DF_RD->gen.
+	* df.h (df_changeable_flags.DF_RD_NO_TRIM): New.
+	(df_rd_bb_info.expanded_lr_out): New.
+	* loop_invariant.c (find_defs): Added DF_RD_NO_TRIM flag.
+	* loop_iv.c (iv_analysis_loop_init): Ditto.
+	* df-problems.c (df_rd_free_bb_info, df_rd_alloc, df_rd_confluence_n,
+	df_rd_bb_local_compute, df_rd_transfer_function, df_rd_free):
+	Added code to allocate, initialize or free expanded_lr_out.
+	(df_rd_bb_local_compute_process_def): Restructured to make
+	more understandable.
+	(df_rd_confluence_n): Add code to do nothing with fake edges and
+	code to no apply invalidate_by_call sets if the sets are being trimmed.
+	(df_lr_local_finalize): Renamed to df_lr_finalize.
+	(df_live_local_finalize): Renamed to df_live_finalize.
+
+2008-01-20  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR target/34831
+	* config/mips/mips.md (div<mode>3): Use <recip_condition> when
+	deciding whether to use reciprocal instructions.
+
+2008-01-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* dwarf2out.c (dwarf2out_switch_text_section): Do not call
+	dwarf2out_note_section_used if cold_text_section is NULL.
+
+2008-01-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR gcov-profile/34610
+	* tree-cfg.c (make_edges): Mark both outgoing edges from
+	OMP_CONTINUE and from OMP_FOR as EDGE_ABNORMAL.
+	* omp-low.c (expand_omp_for): Clear EDGE_ABNORMAL bits
+	from OMP_FOR and OMP_CONTINUE outgoing edges.
+
+	* tree-profile.c (tree_profiling): Return early if
+	cfun->after_tree_profile != 0.  Set cfun->after_tree_profile
+	at the end.
+	* omp-low.c (expand_omp_parallel): Copy after_tree_profile
+	from cfun to child_cfun.
+	* function.h (struct function): Add after_tree_profile bit.
+
+2008-01-19 Anatoly Sokolov <aesok@post.ru>
+
+	* config/avr/avr.S (_exit): Disable interrupt.
+
+2008-01-18  Kenneth Zadeck  <zadeck@naturalbridge.com>
+	    Steven Bosscher  <stevenb.gcc@gmail.com>
+
+	PR rtl-optimization/26854
+	PR rtl-optimization/34400
+	* df-problems.c (df_live_scratch): New scratch bitmap.
+	(df_live_alloc): Allocate df_live_scratch when doing df_live.
+	(df_live_reset): Clear the proper bitmaps.
+	(df_live_bb_local_compute): Only process the artificial defs once
+	since the order is not important.
+	(df_live_init): Init the df_live sets only with the variables
+	found live by df_lr.
+	(df_live_transfer_function): Use the df_lr sets to prune the
+	df_live sets as they are being computed.  
+	(df_live_free): Free df_live_scratch.
+
+2008-01-18  Ian Lance Taylor  <iant@google.com>
+
+	* common.opt: Add fmerge-debug-strings.
+	* dwarf2out.c (DEBUG_STR_SECTION_FLAGS): Test
+	flag_merge_debug_strings rather than flag_merge_constants.
+	* doc/invoke.texi (Option Summary): Mention
+	-fmerge-debug-strings.
+	(Debugging Options): Document -fmerge-debug-strings.
+
+2008-01-18  Ian Lance Taylor  <iant@google.com>
+
+	PR c++/33407
+	* tree.h (DECL_IS_OPERATOR_NEW): Define.
+	(struct tree_function_decl): Add new field operator_new_flag.
+	* tree-inline.c (expand_call_inline): When inlining a call to
+	operator new, force the return value to go into a variable, and
+	set DECL_NO_TBAA_P on that variable.
+	* c-decl.c (merge_decls): Merge DECL_IS_OPERATOR_NEW flag.
+
+2008-01-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR debug/34484
+	* dwarf2out.c (dwarf2out_switch_text_section): Do not guard with
+	DWARF2_DEBUGGING_INFO.
+	(dwarf2out_note_section_used): Ditto.  Add prototype.
+	(have_multiple_function_sections, text_section_used,
+	cold_text_section_used, *cold_text_sections): Move declarations
+	before their uses.
+
+2007-01-17  Bob Wilson  <bob.wilson@acm.org>
+
+	* config/xtensa/unwind-dw2-xtensa.h (_Unwind_FrameState): Remove pc
+	field and add signal_ra.
+	* config/xtensa/unwind-dw2-xtensa.c (uw_frame_state_for): Remove
+	assignments to frame state pc.  Move end of stack check after
+	MD_FALLBACK_FRAME_STATE_FOR.
+	(uw_update_context_1): Use frame state signal_regs if set, instead
+	of checking signal_frame flag.
+	(uw_update_context): Use frame state signal_ra if set.
+	* config/xtensa/linux.h (MD_UNWIND_SUPPORT): Define.
+	* config/xtensa/linux-unwind.h: New file.
+
+2007-01-18  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* modulo-sched.c (get_sched_window): Fix comment typo.
+
+2008-01-17  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR tree-optimization/34648
+	* tree-ssa-sccvn.c (visit_use): Expressions which can throw are varying.
+
+2008-01-17  Anatoly Sokolov <aesok@post.ru>
+
+	* config/avr/avr.h (LINK_SPEC): Support -mrelax and -mpmem-wrap-around.
+	* config/avr/avr.opt (mrelax, mpmem-wrap-around): Add.
+
+2008-01-17  Seongbae Park  <seongbae.park@gmail.com>
+
+	PR rtl-optimization/34400
+	* df-core.c (df_worklist_dataflow_overeager,
+	df_worklist_dataflow_doublequeue): New functions.
+	(df_worklist_dataflow): Two different worklist solvers.
+	* params.def (PARAM_DF_DOUBLE_QUEUE_THRESHOLD_FACTOR):
+	New param.
+
+2008-01-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR testsuite/34821
+	* doc/invoke.texi: Document the dependence on pthread for fopenmp
+	and ftree-parallelize-loops.
+
+2008-01-17  Mircea Namolaru  <namolaru@il.ibm.com>
+
+	PR rtl-optimization/34826
+	* loop-doloop (doloop_modify): Update the REG_BR_PROB note.
+
+2008-01-17  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* global.c (find_reg): Mark the eh regs as used if necessary.
+	* ra-conflict.c (global_conflicts): Set no_eh_reg flag.
+	* ra.h (struct allocno): no_eh_reg field added.  Changed
+	no_stack_reg type to bitfield.
+
+2008-01-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.c (substitute_in_expr): Add missing 'break'.
+
+2008-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34825
+	* tree-ssa-math-opts.c (is_division_by): Do not recognize
+	x / x as division to handle.
+
+2008-01-16  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa64-hpux.h (LIB_SPEC): Add "-lpthread" in shared links if "-mt" or
+	"-pthread" is specified.
+	* pa-hpux11.h (LIB_SPEC): Likewise.
+
+2007-01-16  Janis Johnson  <janis187@us.ibm.com>
+	    Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR rtl-optimization/33796
+	* sparseset.c (sparseset_alloc): Use xcalloc rather than xmalloc.
+
+2008-01-16  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR libgfortran/34699
+	* pa-hpux.h (LINK_SPEC): Only search /lib/pa1.1 and /usr/lib/pa1.1 on
+	static links.
+	* pa-hpux10.h (LINK_SPEC): Likewise.
+	* pa-hpux11.h (LINK_SPEC): Don't search /lib/pa1.1 and /usr/lib/pa1.1.
+
+2008-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/32628
+	* fold-const.c (fold_convert_const_int_from_int): Do not
+	set overflow if that occured only because of a sign extension
+	change when converting from/to a sizetype with the same
+	precision and signedness.
+
+2008-01-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR debug/34249
+	* dwarf2out.c (output_call_frame_info): Move output of FDE initial
+	location address to the correct place.  Update copyright year.
+
+2008-01-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* lambda-code.c (lambda_transform_legal_p): Handle the case of
+	no dependences in the dependence_relations vector.
+
+2008-01-16  Jan Hubicka  <jh@suse.cz>
+
+	PR rtl-optimization/31396
+	* regstat.c (regstat_bb_compute_ri): Compute FREQ_CALLS_CROSSED.
+	* cfg.c (dump_reg_info): Print it.
+	* regs.h (struct reg_info_t): add freq_calls_crossed.
+	(REG_FREQ_CALLS_CROSSED): New macro.
+	* global.c (global_alloc): Compute freq_calls_crossed for allocno.
+	(find_reg): Update call of CALLER_SAVE_PROFITABLE.
+	* regmove.c (optimize_reg_copy_1, optimize_reg_copy_2, fixup_match_2,
+	regmove_optimize): Update call crossed frequencies.
+	* local-alloc.c (struct qty): Add freq_calls_crossed.
+	(alloc_qty): Copute freq_calls_crossed.
+	(update_equiv_regs, combine_regs): Update REG_FREQ_CALLS_CROSSED.
+	(find_free_reg): Update call of CALLER_SAVE_PROFITABLE.
+	* ra.h (struct allocno): Add freq_calls_crossed.
+
+2008-01-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.c (LINK_COMMAND_SPEC): Add includes and link options for
+	libgomp when compiling with ftree-parallelize-loops.
+	(GOMP_SELF_SPECS): Add -pthread for ftree-parallelize-loops.
+
+2008-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34769
+	* tree-data-ref.c (initialize_matrix_A): Revert fix for PR34458.
+	* tree.c (int_cst_value): Instead make this function more
+	permissive in what it accepts as valid input.  Document this
+	function always sign-extends the value.
+
+2008-01-16  Jakub Jelinek  <jakub@redhat.com>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR c/34668
+	* gimplify.c (fold_indirect_ref_rhs): Rename to ...
+	(gimple_fold_indirect_ref_rhs): ... this.
+	(gimple_fold_indirect_ref): New function with foldings
+	that preserve lvalueness.
+	(gimplify_modify_expr_rhs): Call gimple_fold_indirect_ref_rhs.
+	* tree-flow.h (gimple_fold_indirect_ref): Declare.
+	* tree-inline.c (copy_body_r): Use gimple_fold_indirect_ref
+	to fold an INDIRECT_REF, fall back to the old use of
+	fold_indirect_ref_1.
+
+2008-01-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-data-ref.c (subscript_dependence_tester_1): Call 
+	free_conflict_function.
+	(compute_self_dependence): Same.
+
+2008-01-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR debug/34249
+	* debug.h (dwarf2out_switch_text_section): Move declaration from ...
+	* dwarf2out.c (dwarf2out_switch_text_section): ... here.  Make
+	function global.
+	* final.c (final_scan_insn) [NOTE_INSN_SWITCH_TEXT_SECTIONS]:
+	Depending on dwarf2out_do_frame, call dwarf2out_switch_text_section
+	for DWARF2_UNWIND_INFO targets.
+
+2008-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR c/34768
+	* c-typeck.c (common_pointer_type): Do not merge inconsistent
+	type qualifiers for function types.
+
+2008-01-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* tree-parloops.c (gen_parallel_loop): Fix ommision of declaration for
+	loop_iterator li from previous commit.
+
+2008-01-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-parloops.c (gen_parallel_loop): Free loop bound estimations.
+
+2008-01-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-parloops.c (loop_has_blocks_with_irreducible_flag): New.
+	(parallelize_loops): Don't parallelize irreducible components.
+
+2008-01-14  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/24924
+	* c-opts (c_common_post_options): Do not enable CPP
+	flag_pedantic_errors by default.
+	
+2008-01-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/31944
+	* cse.c (remove_pseudo_from_table): New function.
+	(merge_equiv_classes): Use above function to remove pseudo-registers.
+	(invalidate): Likewise.
+
 2008-01-13  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/34601

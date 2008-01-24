@@ -1,6 +1,7 @@
 /* Front-end tree definitions for GNU compiler.
    Copyright (C) 1989, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -446,6 +447,8 @@ struct gimple_stmt GTY(())
            IDENTIFIER_NODE
        CLEANUP_EH_ONLY in
            TARGET_EXPR, WITH_CLEANUP_EXPR
+       TRY_CATCH_IS_CLEANUP in
+           TRY_CATCH_EXPR
        ASM_INPUT_P in
            ASM_EXPR
        EH_FILTER_MUST_NOT_THROW in EH_FILTER_EXPR
@@ -1174,10 +1177,15 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    should be cleaned up some day.  */
 #define TREE_STATIC(NODE) ((NODE)->base.static_flag)
 
-/* In a TARGET_EXPR, WITH_CLEANUP_EXPR, means that the pertinent cleanup
+/* In a TARGET_EXPR or WITH_CLEANUP_EXPR, means that the pertinent cleanup
    should only be executed if an exception is thrown, not on normal exit
    of its scope.  */
 #define CLEANUP_EH_ONLY(NODE) ((NODE)->base.static_flag)
+
+/* In a TRY_CATCH_EXPR, means that the handler should be considered a
+   separate cleanup in honor_protect_cleanup_actions.  */
+#define TRY_CATCH_IS_CLEANUP(NODE) \
+  (TRY_CATCH_EXPR_CHECK (NODE)->base.static_flag)
 
 /* Used as a temporary field on a CASE_LABEL_EXPR to indicate that the
    CASE_HIGH operand has been processed.  */
@@ -3256,6 +3264,12 @@ struct tree_decl_non_common GTY(())
    not an alias.  */
 #define DECL_IS_MALLOC(NODE) (FUNCTION_DECL_CHECK (NODE)->function_decl.malloc_flag)
 
+/* Nonzero in a FUNCTION_DECL means this function should be treated as
+   C++ operator new, meaning that it returns a pointer for which we
+   should not use type based aliasing.  */
+#define DECL_IS_OPERATOR_NEW(NODE) \
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.operator_new_flag)
+
 /* Nonzero in a FUNCTION_DECL means this function may return more
    than once.  */
 #define DECL_IS_RETURNS_TWICE(NODE) \
@@ -3360,16 +3374,17 @@ struct tree_function_decl GTY(())
   unsigned novops_flag : 1;
   unsigned returns_twice_flag : 1;
   unsigned malloc_flag : 1;
+  unsigned operator_new_flag : 1;
   unsigned pure_flag : 1;
   unsigned declared_inline_flag : 1;
   unsigned regdecl_flag : 1;
-  unsigned inline_flag : 1;
 
+  unsigned inline_flag : 1;
   unsigned no_instrument_function_entry_exit : 1;
   unsigned no_limit_stack : 1;
   unsigned disregard_inline_limits : 1;
 
-  /* 5 bits left */
+  /* 4 bits left */
 };
 
 /* For a TYPE_DECL, holds the "original" type.  (TREE_TYPE has the copy.) */

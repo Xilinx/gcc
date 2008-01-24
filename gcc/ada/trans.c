@@ -4672,10 +4672,9 @@ gnat_to_gnu (Node_Id gnat_node)
 		 = (void *)GNU_PTR - (void *)sizeof (void *))  */
  	      gnu_ptr
  		= build_binary_op
-		    (MINUS_EXPR, ptr_void_type_node,
+		    (POINTER_PLUS_EXPR, ptr_void_type_node,
 		     convert (ptr_void_type_node, gnu_ptr),
-		     convert (ptr_void_type_node,
-			      TYPE_SIZE_UNIT (ptr_void_type_node)));
+		     size_int (-POINTER_SIZE/BITS_PER_UNIT));
 
  	      /* GNU_PTR (void *) = *(void **)GNU_PTR  */
  	      gnu_ptr
@@ -6071,6 +6070,7 @@ addressable_p (tree gnu_expr)
     case INDIRECT_REF:
     case CONSTRUCTOR:
     case STRING_CST:
+    case INTEGER_CST:
     case NULL_EXPR:
     case SAVE_EXPR:
     case CALL_EXPR:
@@ -6501,6 +6501,28 @@ maybe_stabilize_reference (tree ref, bool force, bool *success)
 	 because large objects will be returned via invisible reference in
 	 most ABIs so the temporary will directly be filled by the callee.  */
       result = gnat_stabilize_reference_1 (ref, force);
+      break;
+
+    case CONSTRUCTOR:
+      /* Constructors with 1 element are used extensively to formally
+	 convert objects to special wrapping types.  */
+      if (TREE_CODE (type) == RECORD_TYPE
+	  && VEC_length (constructor_elt, CONSTRUCTOR_ELTS (ref)) == 1)
+	{
+	  tree index
+	    = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (ref), 0)->index;
+	  tree value
+	    = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (ref), 0)->value;
+	  result
+	    = build_constructor_single (type, index,
+					gnat_stabilize_reference_1 (value,
+								    force));
+	}
+      else
+	{
+	  *success = false;
+	  return ref;
+	}
       break;
 
     case ERROR_MARK:

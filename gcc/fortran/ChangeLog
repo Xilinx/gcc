@@ -1,3 +1,169 @@
+2008-01-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34875
+	* trans-io.c (gfc_trans_transfer): If the array reference in a
+	read has a vector subscript, use gfc_conv_subref_array_arg to
+	copy back the temporary.
+
+2008-01-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34848
+	* interface.c (compare_actual_formal): Fix adding type
+	to missing_arg_type for absent optional arguments.
+
+2008-01-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34907
+	* parse.c (parse_spec): Change = into ==.
+
+2008-01-22  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/34915
+	* expr.c (check_elemental): Fix check for valid data types.
+
+2008-01-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34899
+	* scanner.c (load_line): Support <tab><digit> continuation lines.
+	* invoke.texi (-Wtabs): Document this.
+
+2008-01-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34896
+	* module.c (read_module): Set use_rename attribute.
+
+2007-01-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34901
+	* interface.c (compare_parameter): Improved error message
+	for arguments of same type and mismatched kinds.
+
+2008-01-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34861
+	* resolve.c (resolve_entries): Do not do an array bounds check
+	if the result symbols are the same.
+
+	PR fortran/34854
+	* module.c (read_module) : Hide the symtree of the previous
+	version of the symbol if this symbol is renamed.
+
+2008-01-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34784
+	* array.c (gfc_check_constructor_type): Clear the expression ts
+	so that the checking starts from the deepest level of array
+	constructor.
+	* primary.c (match_varspec): If an unknown type is changed to
+	default character and the attempt to match a substring fails,
+	change it back to unknown.
+
+	PR fortran/34785
+	* trans-array.c (gfc_add_loop_ss_code) : If ss->string_length is
+	NULL for an array constructor, use the cl.length expression to
+	build it.
+	(gfc_conv_array_parameter): Change call to gfc_evaluate_now to
+	a tree assignment.
+
+2008-01-19  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/34817
+	PR fortran/34838
+	* iresolve.c (gfc_resolve_all):  Remove conversion of mask
+	argument to kind=1 by removing call to resolve_mask_arg().
+	(gfc_resolve_any):  Likewise.
+
+2008-01-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34760
+	* primary.c (match_variable): Handle FL_UNKNOWN without
+	uneducated guessing.
+	(match_variable): Improve error message.
+
+2008-01-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/32616
+	* interface.c (get_expr_storage_size): Return storage size
+	for array element designators.
+	(compare_actual_formal): Reject unequal string sizes for
+	assumed-shape dummy arguments. And fix error message for
+	array-sections with vector subscripts.
+
+2008-01-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34556
+	* simplify.c (is_constant_array_expr): New static function that returns
+	true if the given expression is an array and is constant.
+	(gfc_simplify_reshape): Use new function.
+
+2008-01-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR fortran/33375
+	* symbol.c (free_common_tree): Renamed to ...
+	(gfc_free_common_tree): This.  Remove static.
+	(gfc_free_namespace): Updated.
+
+	* gfortran.h (gfc_free_common_tree): New.
+
+	* match.c (gfc_match_common): Call gfc_free_common_tree () with
+	gfc_current_ns->common_root and set gfc_current_ns->common_root
+	to NULL on syntax error.
+
+2008-01-18  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR fortran/34686
+	* trans-expr.c (gfc_conv_function_call): Use proper
+	type for returned character pointers.
+
+2008-01-17  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34429
+	PR fortran/34431
+	PR fortran/34471
+	* decl.c : Remove gfc_function_kind_locus and
+	gfc_function_type_locus. Add gfc_matching_function.
+	(match_char_length): If matching a function and the length
+	does not match, return MATCH_YES and try again later.
+	(gfc_match_kind_spec): The same.
+	(match_char_kind): The same.
+	(gfc_match_type_spec): The same for numeric and derived types.
+	(match_prefix): Rename as gfc_match_prefix.
+	(gfc_match_function_decl): Except for function valued character
+	lengths, defer applying kind, type and charlen info until the
+	end of specification block.
+	gfortran.h (gfc_statement): Add ST_GET_FCN_CHARACTERISTICS.
+	parse.c (decode_specification_statement): New function.
+	(decode_statement): Call it when a function has kind = -1. Set
+	and reset gfc_matching function, as function statement is being
+	matched.
+	(match_deferred_characteristics): Simplify with a single call
+	to gfc_match_prefix. Do appropriate error handling. In any
+	case, make sure that kind = -1 is reset or corrected.
+	(parse_spec): Call above on seeing ST_GET_FCN_CHARACTERISTICS.
+	Throw an error if kind = -1 after last specification statement.
+	parse.h : Prototype for gfc_match_prefix.
+
+2008-01-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34796
+	* interface.c (compare_parameter): Allow AS_DEFERRED array
+	elements and reject attr.pointer array elemenents.
+	(get_expr_storage_size): Return storage size of elements of
+	assumed-shape and pointer arrays.
+
+2008-01-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* f95-lang.c (gfc_init_builtin_functions): Initialize GOMP builtins
+	for flag_tree_parallelize_loops.
+
+2008-01-15  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34671
+	* iresolve.c (gfc_resolve_all):  Call resolve_mask_arg.
+	(gfc_resolve_any):  Likewise.
+	(gfc_resolve_count):  Likewise.  Don't append kind of
+	argument to function name.
+
 2008-01-13  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/34665

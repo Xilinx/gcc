@@ -431,6 +431,26 @@ loop_parallel_p (struct loop *loop, htab_t reduction_list, struct tree_niter_des
   return ret;
 }
 
+/* Return true when LOOP contains basic blocks marked with the
+   BB_IRREDUCIBLE_LOOP flag.  */
+
+static inline bool
+loop_has_blocks_with_irreducible_flag (struct loop *loop)
+{
+  unsigned i;
+  basic_block *bbs = get_loop_body_in_dom_order (loop);
+  bool res = true;
+
+  for (i = 0; i < loop->num_nodes; i++)
+    if (bbs[i]->flags & BB_IRREDUCIBLE_LOOP)
+      goto end;
+
+  res = false;
+ end:
+  free (bbs);
+  return res;
+}
+
 /* Assigns the address of OBJ in TYPE to an ssa name, and returns this name.
    The assignment statement is placed before LOOP.  DECL_ADDRESS maps decls
    to their addresses that can be reused.  The address of OBJ is known to
@@ -1578,6 +1598,7 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
 		   unsigned n_threads, struct tree_niter_desc *niter)
 {
   struct loop *nloop;
+  loop_iterator li;
   tree many_iterations_cond, type, nit;
   tree stmts, arg_struct, new_arg_struct;
   basic_block parallel_head;
@@ -1703,6 +1724,11 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
      expander to do it).  */
   cancel_loop_tree (loop);
 
+  /* Free loop bound estimations that could contain references to
+     removed statements.  */
+  FOR_EACH_LOOP (li, loop, 0)
+    free_numbers_of_iterations_estimates_loop (loop);
+
   /* Expand the parallel constructs.  We do it directly here instead of running
      a separate expand_omp pass, since it is more efficient, and less likely to
      cause troubles with further analyses not being able to deal with the
@@ -1741,6 +1767,7 @@ parallelize_loops (void)
 	  || expected_loop_iterations (loop) <= n_threads
 	  /* And of course, the loop must be parallelizable.  */
 	  || !can_duplicate_loop_p (loop)
+	  || loop_has_blocks_with_irreducible_flag (loop)
 	  || !loop_parallel_p (loop, reduction_list, &niter_desc))
 	continue;
 

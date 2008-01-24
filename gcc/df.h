@@ -402,22 +402,23 @@ enum df_changeable_flags
 {
   /* Scanning flags.  */
   /* Flag to control the running of dce as a side effect of building LR.  */
-  DF_LR_RUN_DCE           =  1, /* Run DCE.  */
-  DF_NO_HARD_REGS         =  2, /* Skip hard registers in RD and CHAIN Building.  */
-  DF_EQ_NOTES             =  4, /* Build chains with uses present in EQUIV/EQUAL notes. */
-  DF_NO_REGS_EVER_LIVE    =  8, /* Do not compute the regs_ever_live.  */
+  DF_LR_RUN_DCE           = 1 << 0, /* Run DCE.  */
+  DF_NO_HARD_REGS         = 1 << 1, /* Skip hard registers in RD and CHAIN Building.  */
+
+  DF_EQ_NOTES             = 1 << 2, /* Build chains with uses present in EQUIV/EQUAL notes. */
+  DF_NO_REGS_EVER_LIVE    = 1 << 3, /* Do not compute the regs_ever_live.  */
 
   /* Cause df_insn_rescan df_notes_rescan and df_insn_delete, to
   return immediately.  This is used by passes that know how to update
   the scanning them selves.  */
-  DF_NO_INSN_RESCAN       = 16,
+  DF_NO_INSN_RESCAN       = 1 << 4,
 
   /* Cause df_insn_rescan df_notes_rescan and df_insn_delete, to
   return after marking the insn for later processing.  This allows all
   rescans to be batched.  */
-  DF_DEFER_INSN_RESCAN    = 32,
+  DF_DEFER_INSN_RESCAN    = 1 << 5,
 
-  DF_VERIFY_SCHEDULED     = 64
+  DF_VERIFY_SCHEDULED     = 1 << 6
 };
 
 /* Two of these structures are inline in df, one for the uses and one
@@ -705,11 +706,10 @@ struct df_scan_bb_info
 
 
 /* Reaching definitions.  All bitmaps are indexed by the id field of
-   the ref except sparse_kill (see above).  */
+   the ref except sparse_kill which is indexed by regno.  */
 struct df_rd_bb_info 
 {
-  /* Local sets to describe the basic blocks.  See the note in the RU
-     datastructures for kill and sparse_kill.  */
+  /* Local sets to describe the basic blocks.   */
   bitmap kill;  
   bitmap sparse_kill;
   bitmap gen;   /* The set of defs generated in this block.  */

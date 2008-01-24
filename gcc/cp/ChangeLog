@@ -1,3 +1,186 @@
+2008-01-22  Jakub Jelinek  <jakub@redhat.com>, Alexandre Oliva  <aoliva@redhat.com>
+
+	PR c++/33984
+	* call.c (reference_binding): For bitfields use the declared bitfield
+	type.
+	(add_builtin_candidates): Likewise.
+	* class.c (layout_class_type): For bitfields copy over the
+	original type quals.
+
+2008-01-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28560
+	* decl.c (groktypename): Also ignore attributes on dependent 
+	possibly-class types.
+
+	PR c++/34912
+	* friend.c (do_friend): Check for prior declaration of a friend 
+	function of a local class.
+	* name-lookup.c (lookup_name_innermost_nonclass_level): 
+	No longer static.
+	* name-lookup.h: Declare it.
+
+2008-01-22  Tom Tromey  <tromey@redhat.com>
+
+	PR c++/34829:
+	* init.c (build_new_1): Only disallow Java aggregates.
+
+2008-01-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34607
+	* semantics.c (finish_omp_for): Don't call c_finish_omp_for
+	if decl or init is error_mark_node.
+
+	PR c++/34918
+	* error.c (dump_expr): Handle VECTOR_CST.
+
+2008-01-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/33959
+	* pt.c (tsubst_aggr_type): Make sure our context is complete.
+
+	PR c++/34573
+	* pt.c (retrieve_local_specialization): Robustify.
+	(tsubst_pack_expansion, tsubst_decl): Remove redundant checks.
+
+	PR c++/34846
+	* pt.c (tsubst): Only call retrieve_local_specialization if the
+	original typedef was in a function template.
+
+	PR c++/34196
+	* decl.c (wrap_cleanups_r): Set TRY_CATCH_IS_CLEANUP.
+
+2008-01-21  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/34850
+	* error.c (cp_print_error_function): Deal with recursive
+	BLOCK trees.
+
+2008-01-20  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/34891
+        * error.c (dump_expr): Deal with VIEW_CONVERT_EXPR.
+
+2008-01-20  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/34776
+	PR c++/34486
+        * name-lookup.c (do_class_using_decl): Do not call constructor_name_p
+	on non-IS_AGGR_TYPE scope.
+	(constructor_name_p): Assert IS_AGGR_TYPE.
+
+2008-01-18  Ian Lance Taylor  <iant@google.com>
+
+	PR c++/33407
+	* decl.c (duplicate_decls): Copy DECL_IS_OPERATOR_NEW flag.
+	(grok_op_properties): For NEW_EXPR and VEC_NEW_EXPR set
+	DECL_IS_OPERATOR_NEW flag.
+
+2008-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/33819
+	* typeck.c (is_bitfield_expr_with_lowered_type): Recurse
+	for conversions to type variants.
+
+2008-01-15  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* parser.c (cp_parser_template_parameter): Fix C90 issue with mixing
+	declaration and code.  Update copyright year.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/34399
+	* friend.c (do_friend): Don't query TYPE_BEING_DEFINED unless we
+	know we have a class type.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/34751
+	* pt.c (coerce_template_parameter_pack): When substituting into
+	the type of a non-type template parameter pack. use the
+	deduced/substituted arguments.
+	* parser.c (declarator_can_be_parameter_pack): A pointer-to-member
+	can be a parameter pack with the ellipsis following it.  When we
+	have an erroneous declaration, allow it to be a parameter pack.
+	(cp_parser_template_parameter): Complain about default
+	arguments on non-type template parameter packs, and parse them
+	using the new cp_parser_default_argument.
+	(cp_parser_parameter_declaration): Complain about parameter packs
+	with default arguments. Move parsing of default arguments into a
+	new function, cp_parser_default_argument.
+	(cp_parser_default_argument): New; extracted from
+	cp_parser_parameter_declaration.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/34051
+	PR c++/34055
+	PR c++/34102
+	PR c++/34103
+	* typeck.c (check_return_expr): If there are bare parameter packs
+	in the return value, set it to error_mark_node.
+	* tree.c (cp_walk_subtrees): Walk USING_DECL nodes.
+	* pt.c (find_parameter_packs_r): Look at the type of
+	IDENTIFIER_NODEs (e.g., for user-defined conversions).
+	(check_for_bare_parameter_packs): Flip the result: now returns
+	TRUE when there were bare parameter packs, FALSE otherwise.
+	(push_template_decl_real): Deal with flipped result of
+	check_for_bare_parameter_packs.
+	* semantics.c (finish_cond): If there are bare parameter packs in
+	the conditional, set it to error_mark_node.
+	(finish_expr_stmt): If there are bare parameter packs in the
+	expression, set it to error_mark_node.
+	(finish_for_expr): Ditto.
+	(finish_switch_cond): If there are bare parameter packs in
+	the conditional, set it to error_mark_node.
+	(finish_mem_initializers): If there are bare parameter packs in
+	the member initializer, set it to error_mark_node.
+	(finish_member_declaration): Check the attributes of the
+	declaration for bare parameter packs, and remove the attributes if
+	any have bare parameter packs.
+	* parser.c (cp_parser_using_declaration): Check the using
+	declaration for bare parameter packs.
+	(cp_parser_base_clause): If there are bare parameter packs in a
+	base specifier, don't add it to the chain.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/34314
+       * error.c (dump_simple_decl): Display ellipsis for template
+       non-type parameter packs.
+       (dump_decl): Display ellipsis for template type parameter packs.
+       (dump_template_decl): Display ellipsis for template template
+       parameter packs.
+       * pt.c (redeclare_class_template): When redeclaring a class
+       template, check for collisions between template parameters and
+       template parameter packs.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/33964
+       * pt.c (process_partial_specialization): Don't mark template
+       parameters that occur in non-deduced contexts.
+       (struct pair_fn_data): Add include_nondeduced_p.
+       (for_each_template_parm_r): Only visit non-deduced contexts if
+       include_nondeduced_p is set.
+       (for_each_template_parm): Added parameter include_nondeduced_p,
+       which states whether template parameters found in non-deduced
+       contexts should be visited.
+       (uses_template_parms): Visit all template parameters, even those
+       in non-deduced contexts.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/34052
+       * pt.c (check_default_tmpl_args): Check for parameter packs that
+       aren't at the end of a primary template.
+       (push_template_decl_real): Remove check for parameter packs that
+       aren't at the end of a primary template; that now happens in
+       check_default_tmpl_args.
+       * semantics.c (finish_template_template_parm): Use
+       check_default_tmpl_args to check for errors in the template
+       parameter list.
+	
 2008-01-12  Doug Kwan  <dougkwan@google.com>
 
 	* decl.c: (grokdeclarator): Use OPT_Wignored_qualifiers

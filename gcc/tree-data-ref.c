@@ -1823,21 +1823,12 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 static HOST_WIDE_INT
 initialize_matrix_A (lambda_matrix A, tree chrec, unsigned index, int mult)
 {
-  tree type;
-
   gcc_assert (chrec);
 
-  type = TREE_TYPE (chrec);
   if (TREE_CODE (chrec) != POLYNOMIAL_CHREC)
-    return tree_low_cst (chrec, TYPE_UNSIGNED (type)
-				&& !(TREE_CODE (type) == INTEGER_TYPE
-				     && TYPE_IS_SIZETYPE (type)));
+    return int_cst_value (chrec);
 
-  type = TREE_TYPE (CHREC_RIGHT (chrec));
-  A[index][0] = mult * tree_low_cst (CHREC_RIGHT (chrec),
-				     TYPE_UNSIGNED (type)
-				     && !(TREE_CODE (type) == INTEGER_TYPE
-					  && TYPE_IS_SIZETYPE (type)));
+  A[index][0] = mult * int_cst_value (CHREC_RIGHT (chrec));
   return initialize_matrix_A (A, CHREC_LEFT (chrec), index + 1, mult);
 }
 
@@ -3205,6 +3196,11 @@ subscript_dependence_tester_1 (struct data_dependence_relation *ddr,
 
       else
  	{
+	  if (SUB_CONFLICTS_IN_A (subscript))
+	    free_conflict_function (SUB_CONFLICTS_IN_A (subscript));
+	  if (SUB_CONFLICTS_IN_B (subscript))
+	    free_conflict_function (SUB_CONFLICTS_IN_B (subscript));
+
  	  SUB_CONFLICTS_IN_A (subscript) = overlaps_a;
  	  SUB_CONFLICTS_IN_B (subscript) = overlaps_b;
 	  SUB_LAST_CONFLICT (subscript) = last_conflicts;
@@ -3896,11 +3892,16 @@ compute_self_dependence (struct data_dependence_relation *ddr)
   for (i = 0; VEC_iterate (subscript_p, DDR_SUBSCRIPTS (ddr), i, subscript);
        i++)
     {
+      if (SUB_CONFLICTS_IN_A (subscript))
+	free_conflict_function (SUB_CONFLICTS_IN_A (subscript));
+      if (SUB_CONFLICTS_IN_B (subscript))
+	free_conflict_function (SUB_CONFLICTS_IN_B (subscript));
+
       /* The accessed index overlaps for each iteration.  */
       SUB_CONFLICTS_IN_A (subscript)
-	      = conflict_fn (1, affine_fn_cst (integer_zero_node));
+	= conflict_fn (1, affine_fn_cst (integer_zero_node));
       SUB_CONFLICTS_IN_B (subscript)
-	      = conflict_fn (1, affine_fn_cst (integer_zero_node));
+	= conflict_fn (1, affine_fn_cst (integer_zero_node));
       SUB_LAST_CONFLICT (subscript) = chrec_dont_know;
     }
 

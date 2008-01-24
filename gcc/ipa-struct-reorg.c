@@ -623,7 +623,12 @@ gen_size (tree num, tree type, tree *res)
     add_referenced_var (*res);
 
   if (exact_log2 (struct_size_int) == -1)
-    new_stmt = build_gimple_modify_stmt (num, struct_size);
+    {
+      tree size = build_int_cst (TREE_TYPE (num), struct_size_int);
+      new_stmt = build_gimple_modify_stmt (*res, build2 (MULT_EXPR,
+							 TREE_TYPE (num),
+							 num, size));
+    }
   else
     {
       tree C = build_int_cst (TREE_TYPE (num), exact_log2 (struct_size_int));
@@ -1730,7 +1735,7 @@ create_new_malloc (tree malloc_stmt, tree new_type, tree *new_stmts, tree num)
   append_to_statement_list (new_stmt, new_stmts);
 
   /* Generate new call for malloc.  */
-  malloc_res = create_tmp_var (integer_type_node, NULL);
+  malloc_res = create_tmp_var (ptr_type_node, NULL);
 
   if (malloc_res)
     add_referenced_var (malloc_res);

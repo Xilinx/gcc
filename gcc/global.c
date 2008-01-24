@@ -404,6 +404,7 @@ global_alloc (void)
       allocno[i].reg = regno;
       allocno[i].size = PSEUDO_REGNO_SIZE (regno);
       allocno[i].calls_crossed += REG_N_CALLS_CROSSED (regno);
+      allocno[i].freq_calls_crossed += REG_FREQ_CALLS_CROSSED (regno);
       allocno[i].throwing_calls_crossed
 	+= REG_N_THROWING_CALLS_CROSSED (regno);
       allocno[i].n_refs += REG_N_REFS (regno);
@@ -1010,6 +1011,21 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
     IOR_HARD_REG_SET (used1, losers);
 
   IOR_COMPL_HARD_REG_SET (used1, reg_class_contents[(int) class]);
+
+#ifdef EH_RETURN_DATA_REGNO
+  if (allocno[num].no_eh_reg)
+    {
+      unsigned int j;
+      for (j = 0; ; ++j)
+	{
+	  unsigned int regno = EH_RETURN_DATA_REGNO (j);
+	  if (regno == INVALID_REGNUM)
+	    break;
+	  SET_HARD_REG_BIT (used1, regno);
+	}
+    }
+#endif
+
   COPY_HARD_REG_SET (used2, used1);
 
   IOR_HARD_REG_SET (used1, allocno[num].hard_reg_conflicts);
@@ -1164,8 +1180,9 @@ find_reg (int num, HARD_REG_SET losers, int alt_regs_p, int accept_call_clobbere
       if (! accept_call_clobbered
 	  && allocno[num].calls_crossed != 0
 	  && allocno[num].throwing_calls_crossed == 0
-	  && CALLER_SAVE_PROFITABLE (allocno[num].n_refs,
-				     allocno[num].calls_crossed))
+	  && CALLER_SAVE_PROFITABLE (optimize_size ? allocno[num].n_refs : allocno[num].freq,
+				     optimize_size ? allocno[num].calls_crossed
+				     : allocno[num].freq_calls_crossed))
 	{
 	  HARD_REG_SET new_losers;
 	  if (! losers)

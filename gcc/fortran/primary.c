@@ -1676,6 +1676,7 @@ match_varspec (gfc_expr *primary, int equiv_flag)
   gfc_component *component;
   gfc_symbol *sym = primary->symtree->n.sym;
   match m;
+  bool unknown;
 
   tail = NULL;
 
@@ -1753,12 +1754,14 @@ match_varspec (gfc_expr *primary, int equiv_flag)
     }
 
 check_substring:
+  unknown = false;
   if (primary->ts.type == BT_UNKNOWN)
     {
       if (gfc_get_default_type (sym, sym->ns)->type == BT_CHARACTER)
        {
 	 gfc_set_default_type (sym, 0, sym->ns);
 	 primary->ts = sym->ts;
+	 unknown = true;
        }
     }
 
@@ -1781,6 +1784,8 @@ check_substring:
 	  break;
 
 	case MATCH_NO:
+	  if (unknown)
+	    gfc_clear_ts (&primary->ts);
 	  break;
 
 	case MATCH_ERROR:
@@ -2521,12 +2526,22 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
       break;
 
     case FL_UNKNOWN:
-      if (sym->attr.access == ACCESS_PUBLIC
-	  || sym->attr.access == ACCESS_PRIVATE)
-	break;
-      if (gfc_add_flavor (&sym->attr, FL_VARIABLE,
-			  sym->name, NULL) == FAILURE)
-	return MATCH_ERROR;
+      {
+	sym_flavor flavor = FL_UNKNOWN;
+
+	gfc_gobble_whitespace ();
+
+	if (sym->attr.external || sym->attr.procedure
+	    || sym->attr.function || sym->attr.subroutine)
+	  flavor = FL_PROCEDURE;
+	else if (gfc_peek_char () != '(' || sym->ts.type != BT_UNKNOWN
+		 || sym->attr.pointer || sym->as != NULL)
+	  flavor = FL_VARIABLE;
+
+	if (flavor != FL_UNKNOWN
+	    && gfc_add_flavor (&sym->attr, flavor, sym->name, NULL) == FAILURE)
+	  return MATCH_ERROR;
+      }
       break;
 
     case FL_PARAMETER:
@@ -2553,7 +2568,7 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
       /* Fall through to error */
 
     default:
-      gfc_error ("Expected VARIABLE at %C");
+      gfc_error ("'%s' at %C is not a variable", sym->name);
       return MATCH_ERROR;
     }
 

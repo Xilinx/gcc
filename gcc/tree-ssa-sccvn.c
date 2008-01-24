@@ -552,6 +552,7 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 	case COMPLEX_CST:
 	case VECTOR_CST:
 	case REAL_CST:
+	case CONSTRUCTOR:
 	case VALUE_HANDLE:
 	case VAR_DECL:
 	case PARM_DECL:
@@ -1609,7 +1610,8 @@ visit_use (tree use)
 	  changed = visit_phi (stmt);
 	}
       else if (TREE_CODE (stmt) != GIMPLE_MODIFY_STMT
-	       || (ann && ann->has_volatile_ops))
+	       || (ann && ann->has_volatile_ops)
+	       || tree_could_throw_p (stmt))
 	{
 	  changed = defs_to_varying (stmt);
 	}

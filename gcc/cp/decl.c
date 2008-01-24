@@ -1,6 +1,7 @@
 /* Process declarations and variables for C++ compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007  Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
@@ -1804,6 +1805,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	  TREE_READONLY (newdecl) |= TREE_READONLY (olddecl);
 	  TREE_NOTHROW (newdecl) |= TREE_NOTHROW (olddecl);
 	  DECL_IS_MALLOC (newdecl) |= DECL_IS_MALLOC (olddecl);
+	  DECL_IS_OPERATOR_NEW (newdecl) |= DECL_IS_OPERATOR_NEW (olddecl);
 	  DECL_IS_PURE (newdecl) |= DECL_IS_PURE (olddecl);
 	  /* Keep the old RTL.  */
 	  COPY_DECL_RTL (olddecl, newdecl);
@@ -3906,8 +3908,12 @@ groktypename (cp_decl_specifier_seq *type_specifiers,
   if (attrs)
     {
       if (CLASS_TYPE_P (type))
-	warning (OPT_Wattributes, "ignoring attributes applied to class type "
-		 "outside of definition");
+	warning (OPT_Wattributes, "ignoring attributes applied to class type %qT "
+		 "outside of definition", type);
+      else if (IS_AGGR_TYPE (type))
+	/* A template type parameter or other dependent type.  */
+	warning (OPT_Wattributes, "ignoring attributes applied to dependent "
+		 "type %qT without an associated declaration", type);
       else
 	cplus_decl_attributes (&type, attrs, 0);
     }
@@ -5163,7 +5169,10 @@ wrap_cleanups_r (tree *stmt_p, int *walk_subtrees, void *data)
       tree tcleanup = TARGET_EXPR_CLEANUP (*stmt_p);
 
       tcleanup = build2 (TRY_CATCH_EXPR, void_type_node, tcleanup, guard);
-
+      /* Tell honor_protect_cleanup_actions to handle this as a separate
+	 cleanup.  */
+      TRY_CATCH_IS_CLEANUP (tcleanup) = 1;
+ 
       TARGET_EXPR_CLEANUP (*stmt_p) = tcleanup;
     }
 
@@ -5173,7 +5182,18 @@ wrap_cleanups_r (tree *stmt_p, int *walk_subtrees, void *data)
 /* We're initializing a local variable which has a cleanup GUARD.  If there
    are any temporaries used in the initializer INIT of this variable, we
    need to wrap their cleanups with TRY_CATCH_EXPR (, GUARD) so that the
-   variable will be cleaned up properly if one of them throws.  */
+   variable will be cleaned up properly if one of them throws.
+
+   Unfortunately, there's no way to express this properly in terms of
+   nesting, as the regions for the temporaries overlap the region for the
+   variable itself; if there are two temporaries, the variable needs to be
+   the first thing destroyed if either of them throws.  However, we only
+   want to run the variable's cleanup if it actually got constructed.  So
+   we need to guard the temporary cleanups with the variable's cleanup if
+   they are run on the normal path, but not if they are run on the
+   exceptional path.  We implement this by telling
+   honor_protect_cleanup_actions to strip the variable cleanup from the
+   exceptional path.  */
 
 static void
 wrap_temporary_cleanups (tree init, tree guard)
@@ -9761,7 +9781,10 @@ grok_op_properties (tree decl, bool complain)
     }
 
   if (operator_code == NEW_EXPR || operator_code == VEC_NEW_EXPR)
-    TREE_TYPE (decl) = coerce_new_type (TREE_TYPE (decl));
+    {
+      TREE_TYPE (decl) = coerce_new_type (TREE_TYPE (decl));
+      DECL_IS_OPERATOR_NEW (decl) = 1;
+    }
   else if (operator_code == DELETE_EXPR || operator_code == VEC_DELETE_EXPR)
     TREE_TYPE (decl) = coerce_delete_type (TREE_TYPE (decl));
   else

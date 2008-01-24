@@ -7555,6 +7555,8 @@ c_parser_omp_for_loop (c_parser *parser)
       decl = check_for_loop_decls ();
       if (decl == NULL)
 	goto error_init;
+      if (DECL_INITIAL (decl) == error_mark_node)
+	decl = error_mark_node;
       init = decl;
     }
   else if (c_parser_next_token_is (parser, CPP_NAME)
@@ -7605,7 +7607,7 @@ c_parser_omp_for_loop (c_parser *parser)
   c_break_label = save_break;
   c_cont_label = save_cont;
 
-  /* Only bother calling c_finish_omp_for if we havn't already generated
+  /* Only bother calling c_finish_omp_for if we haven't already generated
      an error from the initialization parsing.  */
   if (decl != NULL && decl != error_mark_node && init != error_mark_node)
     return c_finish_omp_for (loc, decl, init, cond, incr, body, NULL);

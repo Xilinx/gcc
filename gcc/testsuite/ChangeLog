@@ -1,3 +1,446 @@
+2008-01-23  Michael Matz  <matz@suse.de>
+
+	PR debug/34895
+	* g++.dg/debug/pr34895.cc: New testcase.
+
+2008-01-23  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/31529
+	* gcc.dg/pr31529-1.c: New testcase.
+	* gcc.dg/pr31529-2.c: Likewise.
+
+2008-01-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34829
+	* g++.dg/ext/pr34829.C (operator new): Use size_t instead of
+	unsigned int for the first argument.
+
+2008-01-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/33984
+	* g++.dg/conversion/bitfield7.C: New test.
+	* g++.dg/cpp0x/decltype4.C: Fixed xfail.
+
+2008-01-23  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	From Michael Frysinger  <michael.frysinger@analog.com>
+	* gcc.target/bfin/mcpu-bf547.c: New test.
+	* gcc.target/bfin/mcpu-bf523.c: New test.
+	* gcc.target/bfin/mcpu-bf524.c: New test.
+	* gcc.target/bfin/mcpu-bf526.c: New test.
+
+2008-01-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/20080122-1.c: New test.
+
+2008-01-22  Tom Tromey  <tromey@redhat.com>
+
+	PR c++/34859
+	* gcc.dg/cpp/pr34859.c: New file.
+
+2008-01-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34875
+	* gfortran.dg/vector_subscript_3.f90: New test.
+
+2008-01-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34848
+	* gfortran.dg/missing_optional_dummy_4.f90
+
+2008-01-22  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/vect/vect-ifcvt-9.c: Use inline.
+
+2008-01-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_union1.adb: New test.
+
+2008-01-22  Tom Tromey  <tromey@redhat.com>
+
+	PR c++/34829
+	* g++.dg/ext/pr34829.C: New file.
+
+2008-01-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34607
+	* gcc.dg/gomp/pr34607.c: New test.
+	* g++.dg/gomp/pr34607.C: New test.
+
+	PR c++/34914
+	* g++.dg/ext/vector10.C: New test.
+
+	PR c++/34918
+	* g++.dg/other/error23.C: New test.
+
+	PR c++/34917
+	* g++.dg/ext/vector12.C: New test.
+
+2008-01-22  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 32102
+	* gcc.dg/Wstrict-overflow-21.c: New.
+	* g++.dg/warn/Wstrict-aliasing-8.C: New.
+
+2008-01-22  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR middle-end/33092
+	* gcc.dg/pr33092.c: New.
+
+2008-01-22  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.target/s390/20020926-1.c: Add -m31 option.
+
+2008-01-22  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/34915
+	* gfortran.dg/initialization_18.f90: New test.
+
+2008-01-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34899
+	* gfortran.dg/tab_continuation.f: New.
+
+2008-01-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34896
+	* gfortran.dg/use_rename_2.f90: New test.
+
+2008-01-21  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34856
+	* gcc.c-torture/compile/pr34856.c: New testcase.
+
+2008-01-21  Richard Guenther  <rguenther@suse.de>
+
+	PR c/34885
+	* gcc.c-torture/compile/pr34885.c: New testcase.
+
+2008-01-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/alignment1.ads: New test.
+
+2008-01-21  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/34850
+	* g++.dg/torture/pr34850.C: New testcase.
+
+2008-01-21  Alon Dayan  <alond@il.ibm.com>
+	    Olga Golovanevsky  <olga@il.ibm.com>
+
+	PR tree-optimization/34701
+	* gcc.dg/struct/wo_prof_array_field.c: New test.
+	
+2008-01-20  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/34891
+        * g++.dg/ext/vector9.C: New.
+
+2008-01-20  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/34776
+	PR c++/34486
+        * g++.dg/template/crash75.C: New.
+        * g++.dg/template/crash76.C: Likewise.	
+
+2008-01-20  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR rtl-optimization/34808
+	* gcc.c-torture/compile/pr34808.c: New test.
+
+2008-01-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34784
+	* gfortran.dg/mapping_2.f90: Correct ubound expression for h4.
+
+	PR fortran/34861
+	* gfortran.dg/entry_array_specs_3.f90: New test.
+
+	PR fortran/34854
+	* gfortran.dg/use_rename_1.f90: New test.
+
+2008-01-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34784
+	* gfortran.dg/array_constructor_20.f90: New test.
+	* gfortran.dg/mapping_2.f90: Correct ubound expression for h4.
+
+	PR fortran/34785
+	* gfortran.dg/array_constructor_21.f90: New test.
+
+2008-01-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/34795
+	* gfortran.dg/inquire_13.f90: New test.
+	
+	PR libfortran/34659
+	* gfortran.dg/continuation_9.f90: New test.
+
+2008-01-20  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR target/34831
+	* gcc.target/mips/pr34831.c: New test.
+
+2008-01-19  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/34817
+	PR fortran/34838
+	* gfortran.dg/any_all_1.f90:  New test.
+	* gfortran.dg/any_all_2.f90:  New test.
+
+2008-01-19  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* g++.dg/eh/ia64-2.C: Place "dg-do run" statement before
+	"dg-require-weak" statement.
+	* g++.dg/eh/weak1.C: Likewise.
+
+2008-01-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR gcov-profile/34610
+	* gcc.dg/gomp/pr34610.c: New test.
+
+2008-01-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34760
+	* gfortran.dg/implicit_11.f90: New.
+	* gfortran.dg/allocate_stat.f90: Update dg-error pattern.
+	* gfortran.dg/entry_15.f90: Ditto.
+	* gfortran.dg/func_assign.f90: Ditto.
+	* gfortran.dg/gomp/reduction3.f90: Ditto.
+	* gfortran.dg/proc_assign_1.f90: Ditto.
+
+	* gfortran.dg/interface_proc_end.f90: Use dg-error instead
+	of dg-excess-errors.
+
+2008-01-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/32616
+	* gfortran.dg/argument_checking_15.f90: New.
+	* gfortran.dg/argument_checking_5.f90: Change TODO into
+	dg-warning.
+
+2008-01-18  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/enum_4.f90: Replace dg-excess-errors by dg-error.
+	* gfortran.dg/enum_5.f90: Ditto.
+	* gfortran.dg/enum_6.f90: Ditto.
+	* gfortran.dg/bom_error.f90: Ditto.
+	* gfortran.dg/func_decl_4.f90: Ditto.
+
+2008-01-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/34782
+	* gfortran.dg/fmt_t_6.f: New test.
+
+2008-01-18  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/large_real_kind_form_io_1.f90: Enlarge string for internal I/O.
+
+2008-01-18  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* gcc/testsuite/g++.dg/lookup/two-stage2.C: fix comment.
+
+2008-01-18  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/debug/dwarf2/var1.c: Add -fno-merge-debug-strings.
+
+2008-01-18  Ian Lance Taylor  <iant@google.com>
+
+	PR c++/33407
+	* g++.dg/init/new26.C: New test.
+
+2008-01-18  Richard Guenther   <rguenther@suse.de>
+
+	PR middle-end/34801
+	* gcc.dg/Warray-bounds.c: XFAIL two tests, remove one
+	redundant one.
+
+2008-01-18  Hans-Peter Nilsson  <hp@axis.com>
+
+	* g++.dg/tree-ssa/pr34355.C: Correct order of dg-do and
+	dg-require-effective-target.
+
+2007-01-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR target/34556
+	* gfortran.dg/reshape_2.f90: New test.
+
+2007-01-18  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* gcc.dg/20040223-1.c: Fix comment typo.
+
+2008-01-17  Janis Johnson  <janis187@us.ibm.com>
+
+	PR target/34814
+	* gcc.target/powerpc/ppc32-abi-dfp-1.c: Enable checks that will fail
+	until 34814 is fixed.
+
+2008-01-17  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR tree-optimization/34648
+	* gcc.c-torture/compile/pr34648.c: New testcase.
+
+2008-01-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR testsuite/34821
+	* gcc.dg/autopar/autopar.exp: New.
+	* g++.dg/tree-ssa/pr34355.C: Require pthread.
+	* lib/target-supports.exp (check_effective_target_pthread): New.
+
+	* gcc.dg/tree-ssa/parallelization-1.c: Moved to gcc.dg/autopar.
+	* gcc.dg/tree-ssa/reduc-1short.c: Same.
+	* gcc.dg/tree-ssa/reduc-1.c: Same.
+	* gcc.dg/tree-ssa/reduc-2short.c: Same.
+	* gcc.dg/tree-ssa/reduc-2.c: Same
+	* gcc.dg/tree-ssa/reduc-3.c: Same.
+	* gcc.dg/tree-ssa/reduc-1char.c: Same.
+	* gcc.dg/tree-ssa/reduc-6.c: Same.
+	* gcc.dg/tree-ssa/reduc-7.c: Same.
+	* gcc.dg/tree-ssa/reduc-2char.c: Same.
+	* gcc.dg/tree-ssa/reduc-8.c: Same.
+	* gcc.dg/tree-ssa/reduc-9.c: Same.
+
+2008-01-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr5.adb: New test.
+
+2008-01-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/compile/20080114-1.c: Use empty asm statements.
+
+2008-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34825
+	* gcc.dg/pr34825.c: New testcase.
+
+2008-01-17  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/20080117-1.c: New testcase.
+
+2008-01-17  Revital Eres  <eres@il.ibm.com>
+
+	PR30957
+	* gcc.dg/pr30957-1.c: Always xfail and add noinline attribute.
+
+2008-01-17  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34429
+	* gfortran.dg/function_charlen_1.f90: New test.
+
+	PR fortran/34431
+	* gfortran.dg/function_types_1.f90: New test.
+	* gfortran.dg/function_types_2.f90: New test.
+
+	PR fortran/34471
+	* gfortran.dg/function_kinds_4.f90: New test.
+	* gfortran.dg/function_kinds_5.f90: New test.
+
+	* gfortran.dg/defined_operators_1.f90: Errors now at function
+	declarations.
+	* gfortran.dg/private_type_4.f90: The same.
+	* gfortran.dg/interface_15.f90: The same.
+	* gfortran.dg/elemental_args_check_2.f90: The same.
+	* gfortran.dg/auto_internal_assumed.f90: The same.
+
+2008-01-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/sizetype.adb: New test.
+
+2008-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/32628
+	* gcc.dg/overflow-warn-7.c: New testcase.
+
+2008-01-16  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/tree-ssa/loop-19.c: Require nonpic.
+
+2008-01-16  Jakub Jelinek  <jakub@redhat.com>
+	Richard Guenther  <rguenther@suse.de>
+
+	PR c/34668
+	* gcc.dg/pr34668-1.c: New test.
+	* gcc.dg/pr34668-2.c: Likewise.
+
+2008-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/33819
+	* g++.dg/torture/pr33819.C: New testcase.
+
+2008-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR c/34768
+	* gcc.c-torture/execute/pr34768-1.c: New testcase.
+	* gcc.c-torture/execute/pr34768-2.c: Likewise.
+
+2008-01-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34796
+	* gfortran.dg/argument_checking_13.f90: New.
+	* gfortran.dg/argument_checking_14.f90: New.
+
+2008-01-15  Thomas Koenig  <tkoenig@gcc.gnu.org>
+	
+	PR libfortran/34671
+	* gfortran.dg/anyallcount_1.f90:  New test.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/34399
+	* g++.dg/cpp0x/vt-34399.C: New.
+	* g++.dg/template/friend50.C: New.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/34751
+	* g++.dg/cpp0x/vt-34751.C: New.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/34051
+	PR c++/34055
+	PR c++/34102
+	PR c++/34103
+	* g++.dg/cpp0x/vt-34051-2.C: New.
+	* g++.dg/cpp0x/vt-34102.C: New.
+	* g++.dg/cpp0x/vt-34051.C: New.
+	* g++.dg/cpp0x/vt-34055.C: New.
+	* g++.dg/cpp0x/vt-34103.C: New.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/34314
+       * g++.dg/cpp0x/vt-34314.C: New.
+       * g++.dg/cpp0x/variadic79.C: Fix the error message to reflect
+       reality (the error message was wrong previously).
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/33964
+       * g++.dg/cpp0x/vt-33964.C: New.
+       * g++.dg/template/partial5.C: New.
+
+2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/34052
+       * g++.dg/cpp0x/vt-34052.C: New.
+       * g++.dg/template/ttp26.C: New.
+	
+2008-01-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/rep_clause2.ad[sb]: New test.
+	* gnat.dg/rep_problem2.adb: Rename to rep_clause1.adb.
+
+2008-01-14  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/24924
+	* g++.dg/cpp/pedantic-errors.C: Delete.
+	* g++.dg/cpp/permissive.C: Delete.
+	
+2008-01-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/compile/20080114-1.c: New test.
+
 2008-01-13  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/34665
