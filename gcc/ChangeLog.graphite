@@ -1,3 +1,9 @@
+2008-01-24  Sebastian Pop  <sebastian.pop@amd.com>
+            Tobias Grosser  <grosser@fmi.uni-passau.de>
+
+	* graphite.c (setup_cloog_loop): Chain all cloog loops with the
+	next pointer, don't use the inner pointer.
+
 2008-01-20  Tobias Grosser  <grosser@fmi.uni-passau.de>
 
         * graphite.c (dot_all_scops, dot_all_scops_1): New.

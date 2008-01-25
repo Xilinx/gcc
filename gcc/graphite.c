@@ -1112,11 +1112,22 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 
   res->domain = cloog_domain_matrix2domain (cstr);
 
+  /* Now set up the other loop constructs.  CLooG is expecting to see
+     a list of loops chained with the res->next pointer.  Don't use
+     res->inner for representing inner loops: this information is
+     contained in the scattering matrix.  */
   if (loop->inner && loop_in_scop_p (loop->inner, scop))
-    res->inner = setup_cloog_loop (scop, loop->inner, cstr, nb_iterators + 1);
+    res->next = setup_cloog_loop (scop, loop->inner, cstr, nb_iterators + 1);
 
   if (loop->next && loop_in_scop_p (loop->next, scop))
-    res->next = setup_cloog_loop (scop, loop->next, outer_cstr, nb_iterators);
+    {
+      CloogLoop *l = res;
+
+      /* Append at the end of the res->next list.  */
+      while (l->next)
+	l = l->next;
+      l->next = setup_cloog_loop (scop, loop->next, outer_cstr, nb_iterators);
+    }
 
   {
     static int number = 0;
