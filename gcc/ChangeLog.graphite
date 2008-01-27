@@ -1,3 +1,14 @@
+2008-01-27  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-loop-distribution.c (generate_memset_zero,
+	generate_builtin, generate_code_for_partition, rdg_flag_all_uses): New.
+	(rdg_flag_uses): Gather in the same partition the statements defining
+	the VUSES of the current statement.
+	(rdg_flag_similar_stores): Renamed rdg_flag_similar_memory_accesses.
+	Gather in the same partition not only the stores to the same memory
+	access, but also the reads.
+	(ldist_generate_loops): Renamed ldist_gen.
+
 2008-01-24  Sebastian Pop  <sebastian.pop@amd.com>
             Tobias Grosser  <grosser@fmi.uni-passau.de>
 
