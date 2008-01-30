@@ -1,5 +1,10 @@
 2008-01-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (schedule_to_scattering, nb_loops_around_gb): New.
+	(print_graphite_bb): Print scattering.
+
+2008-01-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (initialize_cloog_names): Initialize names of
 	scattering variables.
 
