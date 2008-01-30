@@ -1292,6 +1292,11 @@ find_transform (scop_p scop)
   CloogProgram *prog;
   struct clast_stmt *stmt;
 
+  /* Change cloog output language to C.  If we do use FORTRAN instead, cloog
+     will stop e.g. with "ERROR: unbounded loops not allowed in FORTRAN.", if
+     we pass an incomplete program to cloog.  */
+  options->language = LANGUAGE_C;
+
   /* Print the program we insert into cloog. */
   if (dump_file && (dump_flags & TDF_DETAILS))
     {

@@ -1,3 +1,7 @@
+2008-01-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (find_transform): Change cloog output language to C.
+
 2008-01-27  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* tree-loop-distribution.c (generate_memset_zero,
