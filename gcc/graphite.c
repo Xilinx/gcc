@@ -195,6 +195,10 @@ dot_all_scops_1 (FILE *file)
   const char* color;
   int i;
 
+  /* Disable debugging while printing graph.  */
+  int tmp_dump_flags = dump_flags;
+  dump_flags = 0;
+
   fprintf (file, "digraph all {\n");
 
   FOR_ALL_BB (bb)
@@ -257,6 +261,8 @@ dot_all_scops_1 (FILE *file)
     fprintf (file, "%d [shape=box];\n", scop->exit->index);
 
   fputs ("}\n\n", file);
+
+  dump_flags = tmp_dump_flags;
 }
 
 /* Display all SCoPs using dotty.  */

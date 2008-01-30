@@ -1,3 +1,8 @@
+2009-01-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (dot_all_scops_1): Disable debug output while
+	printing graph.
+
 2008-01-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (find_transform): Change cloog output language to C.
