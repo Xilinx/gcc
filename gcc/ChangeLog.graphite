@@ -1,3 +1,8 @@
+2008-01-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (initialize_cloog_names): Initialize names of
+	scattering variables.
+
 2009-01-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (dot_all_scops_1): Disable debug output while

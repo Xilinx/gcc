@@ -855,7 +855,9 @@ initialize_cloog_names (scop_p scop)
   unsigned i, nb_params = VEC_length (tree, SCOP_PARAMS (scop));
   char **params = XNEWVEC (char *, nb_params);
   unsigned nb_iterators = scop_nb_loops(scop);
+  unsigned nb_scattering= scop_nb_loops(scop) * 2 + 1;
   char **iterators = XNEWVEC (char *, nb_iterators);
+  char **scattering = XNEWVEC (char *, nb_scattering);
   tree p;
 
   for (i = 0; VEC_iterate (tree, SCOP_PARAMS (scop), i, p); i++)
@@ -885,6 +887,16 @@ initialize_cloog_names (scop_p scop)
 
   SCOP_PROG (scop)->names->nb_iterators = nb_iterators;
   SCOP_PROG (scop)->names->iterators = iterators;
+
+  for (i = 0; i < nb_scattering; i++)
+
+  {
+    scattering[i] = XNEWVEC (char, 2 + 12);
+    sprintf (scattering[i], "s_%d", i);
+  }
+
+  SCOP_PROG (scop)->names->nb_scattering = nb_scattering;
+  SCOP_PROG (scop)->names->scattering = scattering;
 }
 
 /* Record the parameters used in the SCOP.  A variable is a parameter
