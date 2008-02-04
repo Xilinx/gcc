@@ -7056,7 +7056,16 @@ else
 
   case $target in
     mips*-*-*)
-      enable_fixed_point=yes
+      case $host in
+        mips*-sgi-irix*)
+	  { echo "$as_me:$LINENO: WARNING: fixed-point support is not available for IRIX" >&5
+echo "$as_me: WARNING: fixed-point support is not available for IRIX" >&2;}
+	  enable_fixed_point=no
+	  ;;
+	*)
+	  enable_fixed_point=yes
+	  ;;
+      esac
       ;;
     *)
       { echo "$as_me:$LINENO: WARNING: fixed-point is not supported for this target" >&5
@@ -16662,8 +16671,14 @@ else
 	     && $EGREP '^[ 	]*#[ 	]*define[ 	]+__GLIBC_MINOR__[ 	]+([1-9][0-9]|[4-9])' \
 	     $glibc_header_dir/features.h > /dev/null; then
 	  gcc_cv_libc_provides_ssp=yes
+	elif $EGREP '^[ 	]*#[ 	]*define[ 	]+__UCLIBC__[ 	]+1' \
+	     $glibc_header_dir/features.h > /dev/null && \
+	     test -f $glibc_header_dir/bits/uClibc_config.h && \
+	     $EGREP '^[ 	]*#[ 	]*define[ 	]+__UCLIBC_HAS_SSP__[ 	]+1' \
+	     $glibc_header_dir/bits/uClibc_config.h > /dev/null; then
+	  gcc_cv_libc_provides_ssp=yes
 	fi
-        fi
+      fi
 	;;
        *-*-darwin*)
 	 echo "$as_me:$LINENO: checking for __stack_chk_fail" >&5

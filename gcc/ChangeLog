@@ -1,3 +1,588 @@
+2008-02-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/33631
+	* expr.c (count_type_elements): Give for unions instead of
+	guessing.
+
+2008-02-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35043
+	* gimplify.c (gimplify_init_ctor_eval): Convert array indices
+	to TYPE_DOMAINs base type instead of using bitsizetype here.
+
+2008-02-03  Jason Merrill  <jason@redhat.com>
+
+	* print-tree.c (print_node) [CONSTRUCTOR]: Print elements.
+
+2008-02-04  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR other/29972
+	* doc/invoke.texi (C++ Dialect Options, Optimize Options)
+	(HPPA Options, i386 and x86-64 Options, IA-64 Options)
+	(RS/6000 and PowerPC Options): Fix typos and markup.
+	* doc/passes.texi (Tree-SSA passes): Likewise.
+
+2008-02-02  Michael Matz  <matz@suse.de>
+
+	PR target/35045
+	* postreload-gcse.c (record_last_reg_set_info_regno): Renamed
+	from record_last_reg_set_info.
+	(record_last_reg_set_info): Take an RTX argument, iterate over all
+	constituent hardregs.
+	(record_last_set_info, record_opr_changes): Change calls to
+	new signature or to record_last_reg_set_info_regno.
+
+2008-02-02  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/extend.texi (X86 Built-in Functions): Fix grammar.
+
+2008-02-01  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR rtl-optimization/34773
+	* reg-notes.def (EQUAL): Mention significance of combination of
+	REG_EQUAL and REG_RETVAL.
+	* fwprop.c (try_fwprop_subst): Don't add REG_EQUAL to an
+	insn that has a REG_RETVAL.
+
+2008-02-01  Roger Sayle  <roger@eyesopen.com>
+
+	PR bootstrap/33781
+	* configure.ac (--enable-fixed-point): Disable unless explicitly
+	requested on IRIX.
+	* configure: Regenerate.
+
+2008-02-01  Richard Guenther  <rguenther@suse.de>
+
+	PR other/35042
+	* invoke.texi (-finline-limit): Remove no longer true parts
+	of the documentation.  Note that there is no default value.
+
+2008-02-01  Andrew Pinski  <pinskia@gmail.com>
+	    Mark Mitchell  <mark@codesourcery.com>
+	    Ben Elliston  <bje@au.ibm.com>
+
+	PR c/29326
+	* doc/extend.texi (Other Builtins): Document.
+
+2008-01-31  Tom Browder <tom.browder@gmail.com>
+
+	* doc/c-tree.texi (Types): Fix grammar.
+	(Expression trees): Ditto.
+	* doc/passes.texi (Tree-SSA passes): Ditto.
+	
+	* doc/configterms.texi (Configure Terms): Fix typo.
+	* doc/cpp.texi (Common Predefined Macros): Ditto.
+	* doc/md.texi (Machine Constraints): Ditto.
+	
+	* doc/makefile.texi (Makefile): Add comma.
+
+2008-01-31  Tom Browder  <tom.browder@gmail.com>
+	    Gerald Pfeifer  <gerald@pfeifer.com>
+	
+	* doc/sourcebuild.texi (Front End): Remove references to CVS
+	and CVSROOT/modules.
+	(Texinfo Manuals): Replace reference to CVS by one to SVN.
+	(Back End): Remove reference to CVS.
+
+2008-01-31  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR target/34900
+	* config/mips/mips.c (gen_load_const_gp): New function, taking a
+	comment from...
+	(mips16_gp_pseudo_reg): ...here.
+	* config/mips/mips.md (load_const_gp): Replace with...
+	(load_const_gp_<mode>): ...this :P-based insn.
+
+2008-01-31  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* doc/invoke.texi (-ansi): Mention explicitly corresponding -std=
+	options. Minor fixes.
+	(-std): Move reference to standards closer to where language
+	standards are first mentioned.
+	
+2008-01-31  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR rtl-optimization/34995
+	* reload.c (alternative_allows_const_pool_ref): Take an rtx
+	parameter and return a bool.  If the rtx parameter is nonnull,
+	check that it satisfies an EXTRA_MEMORY_CONSTRAINT.
+	(find_reloads): Update call accordingly.  Pass the new operand
+	if it needed no address reloads, otherwise pass null.
+
+2008-01-30  Richard Henderson  <rth@redhat.com>
+
+	PR c/34993
+	* tree.c (build_type_attribute_qual_variant): Skip TYPE_DOMAIN
+	for unbounded arrays.
+
+2008-01-30  Silvius Rus  <rus@google.com>
+
+	* config/i386/xmmintrin.h (_mm_prefetch): Add const to first arg.
+
+2008-01-30  Jan Hubicka  <jh@suse.cz>
+
+	PR target/34982
+	* i386.c (init_cumulative_args): Use real function declaration when
+	calling locally.
+
+2008-01-30  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR rtl-optimization/34998
+	* global.c (build_insn_chain): Treat non-subreg_lowpart
+	SUBREGs of pseudos as clobbering all the words covered by the
+	SUBREG, not just all the bytes.
+	* ra-conflict.c (clear_reg_in_live): Likewise.  Take the
+	original df_ref rather than an extract parameter.
+	(global_conflicts): Update call accordingly.
+
+2008-01-30  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* config/s390/fixdfdi.h (__fixunstfdi, __fixtfdi): Rearrange
+	the overflow check to make it easier to read.
+	(__fixtfdi): Change the type of the ll member in union
+	long_double to UDItype_x.
+
+2008-01-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/34969
+	* cgraph.h (cgraph_update_edges_for_call_stmt): New prototype.
+	* cgraph.c (cgraph_update_edges_for_call_stmt): New function.
+	* tree-inline.c (fold_marked_statements): Call
+	cgraph_update_edges_for_call_stmt if folding a call statement.
+	* cgraphunit.c (verify_cgraph_node): Set cfun to this_cfun for
+	debug_generic_stmt calls, reset it back afterwards.
+
+	PR c/35017
+	* c-decl.c (start_decl): Don't pedwarn about TREE_READONLY
+	static decls.
+	* c-typeck.c (build_external_ref): Don't pedwarn about
+	static vars in current function's scope.
+
+2008-01-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (i[34567]86-*-nto-qnx*): Remove deprecation.
+
+2008-01-29  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	PR c/35002
+	* ipa-struct-reorg.c: Fix spelling.
+	* params.def: Ditto.
+
+2008-01-29  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35006
+	* tree-inline.h (struct copy_body_data): Add remapping_type_depth
+	field.
+	* tree-inline.c (remap_type): Increment remapping_type_depth
+	around remapping types.
+	(copy_body_r): Only add referenced variables if they are referenced
+	from code, not types.
+
+2008-01-29  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/34055
+	PR c++/34103
+	PR c++/34219
+	PR c++/34606
+	PR c++/34753
+	PR c++/34754
+	PR c++/34755
+	PR c++/34919
+	PR c++/34961
+	* c-pretty-print.c (pp_c_type_qualifier_list): Don't try to print
+	qualifiers for an ERROR_MARK_NODE or a NULL_TREE.
+
+2008-01-28  Andy Hutchinson   <hutchinsonandy@netscape.net>
+
+	PR target/34412
+	* config/avr/avr.c (expand_prologue): Use correct QI mode frame 
+	pointer for tiny stack.
+
+2008-01-28  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* doc/tree-ssa.texi: Add cindex PHI nodes and improve wording.
+
+2008-01-28  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* config/vx-common.h: Fix typo in comment.
+
+2008-01-28  Ian Lance Taylor  <iant@google.com>
+
+	PR c++/34862
+	PR c++/33407
+	* tree-ssa-copyrename.c (copy_rename_partition_coalesce): Don't
+	coalesce pointers if they have different DECL_NO_TBAA_P values.
+	* tree-ssa-copy.c (may_propagate_copy): Don't propagate copies
+	between variables with different DECL_NO_TBAA_P values.
+
+2008-01-28  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR 31535
+	* config/rs6000/rs6000.c (small_data_operand): Vectors and floats
+	are not legitimate small data references on SPE targets.
+
+2008-01-28  David Daney  <ddaney@avtrex.com>
+
+	* doc/install.texi (mips-*-*): Recommend binutils 2.18.
+
+2008-01-28  David Daney  <ddaney@avtrex.com>
+
+	* doc/install.texi (--disable-libgcj-bc):  Reword documentation.
+
+2008-01-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (strongarm*-*, ep9312*-*, xscale*-*, parisc*-*,
+	m680[012]0-*, *-*-beos*, *-*-kaos*, *-*-linux*aout*,
+	*-*-linux*libc1*, *-*-solaris2.[0-6], *-*-solaris2.[0-6].*,
+	*-*-sysv*, *-*-windiss*, alpha*-*-unicosmk*, cris-*-aout,
+	hppa1.1-*-pro*, hppa1.1-*-osf*, hppa1.1-*-bsd*,
+	i[34567]86-sequent-ptx4*, i[34567]86-*-nto-qnx*,
+	i[34567]86-*-sco3.2v5*, i[34567]86-*-uwin*, powerpc-*-chorusos*,
+	vax-*-bsd*, vax-*-ultrix*): Mark obsolete.
+
+2008-01-27  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* basic-block.h (condjump_equiv_p): Fix comment.
+
+2008-01-27  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* tree-pretty-print.c (print_generic_decl, print_generic_stmt,
+	print_generic_stmt_indented): Fix comment.
+
+2008-01-27  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* configure.ac (__stack_chk_fail): Add detecion for availability
+	of SSP in uClibc by checking if __UCLIBC_HAS_SSP__ is defined.
+	* configure: Regenerate.
+
+2008-01-26  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR middle-end/34688
+	* final.c (output_addr_const): Handle TRUNCATE.
+
+2008-01-26  Zdenek Dvorak  <ook@ucw.cz>
+
+	PR target/34711
+	* tree-ssa-loop-ivopts.c (comp_cost): New type.
+	(zero_cost, infinite_cost): New constants.
+	(struct cost_pair): Change type of cost to comp_cost.
+	(struct iv_ca): Change type of cand_use_cost and cost to comp_cost.
+	(new_cost, add_costs, sub_costs, compare_costs, infinite_cost_p):
+	New functions.
+	(set_use_iv_cost, force_expr_to_var_cost, force_var_cost,
+	split_address_cost, ptr_difference_cost, difference_cost,
+	get_computation_cost_at, get_computation_cost,
+	determine_use_iv_cost_generic, determine_use_iv_cost_address,
+	determine_use_iv_cost_condition, determine_use_iv_costs,
+	cheaper_cost_pair, iv_ca_recount_cost, iv_ca_set_no_cp,
+	iv_ca_set_cp, iv_ca_cost, iv_ca_new, iv_ca_dump, iv_ca_extend,
+	iv_ca_narrow, iv_ca_prune, try_improve_iv_set, find_optimal_iv_set):
+	Change type of cost to comp_cost.
+	(determine_iv_cost): Increase cost of non-original ivs, instead
+	of decreasing the cost of original ones.
+	(get_address_cost): Indicate the complexity of the addressing mode 
+	in comp_cost.
+	(try_add_cand_for): Prefer using ivs not specific to some object.
+	* tree-flow.h (force_expr_to_var_cost): Declaration removed.
+
+2008-01-26  Peter Bergner  <bergner@vnet.ibm.com>
+	    Janis Johnson  <janis187@us.ibm.com>
+
+	PR target/34814
+	* doc/tm.texi (TARGET_EXPAND_TO_RTL_HOOK): Document.
+	(TARGET_INSTANTIATE_DECLS): Likewise.
+	* target.h (expand_to_rtl_hook): New target hook.
+	(instantiate_decls): Likewise.
+	* function.c (instantiate_decl): Make non-static.  Rename to...
+	(instantiate_decl_rtl): ... this.
+	(instantiate_expr): Use instantiate_decl_rtl.
+	(instantiate_decls_1): Likewise.
+	(instantiate_decls): Likewise.
+	(instantiate_virtual_regs: Call new instantiate_decls taget hook.
+	* function.h (instantiate_decl_rtl): Add prototype.
+	* cfgexpand.c (target.h): New include.
+	(tree_expand_cfg): Call new expand_to_rtl_hook target hook.
+	* target-def.h (TARGET_EXPAND_TO_RTL_HOOK): New define.
+	(TARGET_INSTANTIATE_DECLS): Likewise.
+	(TARGET_INITIALIZER): New target hooks added.
+	* config/rs6000/rs6000-protos.h (rs6000_secondary_memory_needed_rtx):
+	New prototype.
+	* config/rs6000/rs6000.c (tree-flow.h): New include.
+	(machine_function): Add sdmode_stack_slot field.
+	(rs6000_alloc_sdmode_stack_slot): New function.
+	(rs6000_instantiate_decls): Likewise.
+	(rs6000_secondary_memory_needed_rtx): Likewise.
+	(rs6000_check_sdmode): Likewise.
+	(TARGET_EXPAND_TO_RTL_HOOK): Target macro defined.
+	(TARGET_INSTANTIATE_DECLS): Likewise.
+	(rs6000_hard_regno_mode_ok): Allow SDmode.
+	(num_insns_constant): Likewise.  Handle _Decimal32 constants.
+	(rs6000_emit_move): Handle SDmode.
+	(function_arg_advance): Likewise.
+	(function_arg): Likewise.
+	(rs6000_gimplify_va_arg): Likewise.  Add special handling of
+	SDmode var args for 32-bit compiles.
+	(rs6000_secondary_reload_class): Handle SDmode.
+	(rs6000_output_function_epilogue): Likewise.
+	(rs6000_function_value): Simplify if statement.
+	(rs6000_libcall_value): Likewise.
+	* config/rs6000/rs6000.h (SLOW_UNALIGNED_ACCESS): Handle SDmode.
+	(SECONDARY_MEMORY_NEEDED_RTX): Add define.
+	* config/rs6000/dfp.md (movsd): New define_expand and splitter.
+	(movsd_hardfloat): New define_insn.
+	(movsd_softfloat): Likewise.
+	(movsd_store): Likewise.
+	(movsd_load): Likewise.
+	(extendsddd2): Likewise.
+	(extendsdtd2): Likewise.
+	(truncddsd2): Likewise.
+	(movdd_hardfloat64): Fixup comment.
+	(UNSPEC_MOVSD_LOAD): New constant.
+	(UNSPEC_MOVSD_STORE): Likewise.
+
+2008-01-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34965
+	* c-pretty-print.c (pp_c_exclusive_or_expression): Handle
+	TRUTH_XOR_EXPR.
+	(pp_c_logical_and_expression): Handle TRUTH_AND_EXPR.
+	(pp_c_logical_or_expression): Handle TRUTH_OR_EXPR.
+	(pp_c_expression): Handle TRUTH_AND_EXPR, TRUTH_OR_EXPR
+	and TRUTH_XOR_EXPR.
+
+2008-01-26  David Edelsohn  <edelsohn@gnu.org>
+
+	PR target/34794
+	* config.gcc: Separate AIX 5.3 from AIX 6.1.
+	* config/rs6000/rs6000-c.c (rs6000_cpu_cpp_builtins): Define
+	__LONGDOUBLE128 too.
+	* config/rs6000/aix61.h: New file.
+
+2008-01-26  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR rtl-optimization/34959
+	* optabs.c (expand_unop): In libcall notes, give ffs, clz, ctz,
+	popcount and parity rtxes the same mode as their operand.
+	Truncate or extend the result to the return value's mode
+	if necessary.
+
+2008-01-26  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR target/34981
+	* config/mips/mips-protos.h (mips_expand_call): Return an rtx.
+	* config/mips/mips.h (FIRST_PSEUDO_REGISTER): Rename FAKE_CALL_REGNO
+	to GOT_VERSION_REGNUM.
+	(CALL_REALLY_USED_REGISTERS): Set the GOT_VERSION_REGNUM entry to 0.
+	(EPILOGUE_USES): Include GOT_VERSION_REGNUM if TARGET_USE_GOT.
+	* config/mips/mips.c (mips_emit_call_insn): New function.
+	(mips_call_tls_get_addr): Call mips_expand_call directly.
+	(mips16_copy_fpr_return_value): Use mips_emit_call_insn rather than
+	emit_call_insn.
+	(mips16_build_call_stub): Likewise.  Return the call insn or null.
+	(mips_expand_call): Update the call to mips16_build_call_stub
+	accordingly and a remove redundant condition.  Assert that MIPS16
+	stubs do not use lazy binding.  Use mips_emit_call_insn and return
+	the call insn.
+	(mips_extra_live_on_entry): Include GOT_VERSION_REGNUM if
+	TARGET_USE_GOT.
+	(mips_hard_regno_mode_ok_p): Allow SImode for GOT_VERSION_REGNUM.
+	(mips_avoid_hazard): Remove hazard_set handling.
+	* config/mips/mips.md (UNSPEC_EH_RECEIVER): Rename to...
+	(UNSPEC_RESTORE_GP): ...this.
+	(UNSPEC_SET_GOT_VERSION, UNSPEC_UPDATE_GOT_VERSION): New constants.
+	(FAKE_CALL_REGNO): Rename to...
+	(GOT_VERSION_REGNUM): ...this.
+	(type): Add "ghost" value.  Add an associated insn reservation.
+	(hazard_set): Remove.
+	(exception_receiver): Rename to...
+	(restore_gp): ...this and update the unspec identifier accordingly.
+	(exception_receiver, nonlocal_got_receiver): New expanders.
+	(load_call<mode>): Use GOT_VERSION_REGNUM.  Don't set
+	FAKE_CALL_REGNO.  Remove hazard_set attribute.
+	(set_got_version, update_got_version): New patterns.
+
+2008-01-26  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	PR target/34970
+	* config/i386/cygming.h (ASM_OUTPUT_LABELREF): Define.
+
+2008-01-25  Joseph Myers  <joseph@codesourcery.com>
+
+	PR other/31955
+	* doc/install.texi2html: Generate gcc-vers.texi.
+
+2008-01-25  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/m32c.h (ASM_PREFERRED_EH_DATA_FORMAT): Define.
+
+2008-01-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/c4x: Remove directory.
+	* config.gcc (crx-*, mt-*): Mark obsolete.
+	(c4x-*, tic4x-*, c4x-*-rtems*, tic4x-*-rtems*, c4x-*, tic4x-*,
+	h8300-*-rtemscoff*, ns32k-*-netbsdelf*, ns32k-*-netbsd*,
+	sh-*-rtemscoff*): Remove cases.
+	* defaults.h (C4X_FLOAT_FORMAT): Remove.
+	* real.c (encode_c4x_single, decode_c4x_single,
+	encode_c4x_extended, decode_c4x_extended, c4x_single_format,
+	c4x_extended_format): Remove.
+	* real.h (c4x_single_format, c4x_extended_format): Remove.
+	* doc/extend.texi (interrupt, naked): Remove mention of attributes
+	on C4x.
+	(Pragmas): Remove comment about c4x pragmas.
+	* doc/install.texi (c4x): Remove target-specific instructions.
+	* doc/invoke.texi (TMS320C3x/C4x Options): Remove.
+	* doc/md.texi (Machine Constraints): Remove C4x documentation.
+	* doc/tm.texi (MEMBER_TYPE_FORCES_BLK, c_register_pragma): Do not
+	refer to C4x source files as examples.
+	(C4X_FLOAT_FORMAT): Remove documentation.
+
+2008-01-25  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin.c (override_options): Reorder tests so that
+	flag_pic gets enabled for -msep-data.
+
+2008-01-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/32244
+	* expr.c (expand_expr_real_1): Reduce result of LSHIFT_EXPR
+	to its bitfield precision if required.
+
+2008-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/33880
+	* tree-nested.c (walk_omp_for): New function.
+	(convert_nonlocal_reference, convert_local_reference): Call
+	walk_omp_for on OMP_FOR.
+	(convert_call_expr): Call walk_body on OMP_FOR's
+	OMP_FOR_PRE_INIT_BODY.
+
+2008-01-25  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34966
+	* tree-ssa-math-opts.c (execute_cse_sincos_1): For all but
+	default defs and PHI_NODEs we have to insert after the
+	defining statement.
+
+2008-01-24  Nick Clifton  <nickc@redhat.com>
+
+	* config/stormy16/stormy16-lib2.c (MIN_UNITS_PER_WORD):
+	Provide a default definition.
+	(LIBGCC2_UNITS_PER_WORD): Likewise.
+
+	* config/stormy16/stormy16.c: Include df.h for the prototype
+	for df_regs_ever_live_p.
+	(xstormy16_expand_builtin_va_start): Convert the stack offset
+	into a component_ref and then use POINTER_PLUS_EXPR to add it
+	to the incoming_virtual_args_rtx.
+	(xstormy16_gimplify_va_arg_expr): Rename to
+	xstormy16_gimplify_va_arg_expr.
+	Use POINTER_PLUS_EXPR when performing pointer arithmetic.
+	(TARGET_GIMPLIFY_VA_ARG_EXPR): Use renamed
+	xstormy16_gimplify_va_arg_expr.
+	Fix up some formatting issues.
+
+	* config/stormy16/stormy16.c: (xstormy16_carry_plus_operand):
+	Move to predicates.md.
+	(xs_hi_general_operand): Likewise.
+	(xs_hi_nonmemory_operand): Likewise.
+	* config/stormy16/predicates.md:
+	(xstormy16_carry_plus_operand): New predicate.
+	(xs_hi_general_operand): New predicate.
+	(xs_hi_nonmemory_operand): New predicate.
+	* config/stormy16/stormy16-protos.h:
+	(xstormy16_carry_plus_operand): Delete prototype.
+	(xs_hi_general_operand): Likewise.
+	(xs_hi_nonmemory_operand): Likewise.
+
+	* config/storm16/stormy16.md (addhi3): Remove earlyclobber
+	modifiers as they are no longer needed and they can trigger
+	reload spill failures.
+
+	* config/storm16/stormy16.md (ineqbranchsi): Replace match_dup
+	with a match_operand in order to help reload.
+
+	* config/storm16/stormy16.md (movhi_internal): Replace 'r'
+	constraint with 'e' for the 8th alternative as this version of
+	the mov.w instruction only accepts the lower 8 registers.
+
+2008-01-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/34856
+	* simplifx-rtx.c (simplify_const_binary_operation) [VEC_CONCAT]:
+	Consider only CONST_INT, CONST_DOUBLE and CONST_FIXED as constant
+	vector elements.
+
+2008-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/33333
+	* gimplify.c (gimplify_omp_for): Gimplify OMP_FOR_PRE_BODY.
+
+2008-01-25  Golovanevsky Olga  <olga@il.ibm.com>
+
+	* ipa-struct-reorg.c (remove_str_allocs_in_func, remove_str_allocs):
+	New functions.
+	(remove_structure): Update allocations list before removing structure.
+	
+2008-01-25  Golovanevsky Olga  <olga@il.ibm.com>
+
+	* ipa-struct-reorg.c (is_safe_cond_expr, 
+	create_new_stmts_for_cond_expr): Use integer_zerop function,
+	that recognize not only zero-pointer, but zero-integer too.
+
+2008-01-25  Ben Elliston  <bje@au.ibm.com>
+
+	PR other/22232
+	* fixproto: Escape "." in sed expression that strips leading "./".
+
+2008-01-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR driver/34904
+	* gcc.c (SWITCH_OK): Removed.
+	(SWITCH_LIVE): Changed to bit.
+	(SWITCH_FALSE): Likewise.
+	(SWITCH_IGNORE): Likewise.
+	(switchstr): Change live_cond to unsigned int.
+	(process_command): Replace SWITCH_OK with 0.
+	(do_self_spec): Likewise.
+	(set_collect_gcc_options): Check the SWITCH_IGNORE bit.
+	(give_switch): Likewise.
+	(used_arg): Likewise.
+	(do_spec_1): Set the SWITCH_IGNORE bit.
+	(check_live_switch): Check both SWITCH_LIVE and SWITCH_FALSE
+	bits.  Set the SWITCH_LIVE bit.
+
+2008-01-24  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* config/s390/s390.h (MOVE_RATIO): Define new target macro.
+
+2008-01-24  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR tree-optimization/34472
+	* ipa-struct-reorg.c (safe_cond_expr_check): Change the DATA
+	parameter to a "bool *" and set *DATA to false if there is
+	an unsafe access.  Do not delete the structure here.
+	(check_cond_exprs): Delete it here instead.
+	(check_cond_exprs, exclude_cold_structs): Do not increase
+	I when removing a structure.
+
+2008-01-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/34856
+	* config/i386/i386.c (ix86_expand_vector_init): Consider only
+	CONST_INT, CONST_DOUBLE and CONST_FIXED as constant vector elements.
+
+2008-01-24  Jakub Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/34934
+	* tree-stdarg.c (reachable_at_most_once): Use VEC vector instead of
+	a fixed vector for stack.
+
+2008-01-24  Ben Elliston  <bje@au.ibm.com>
+
+	PR c++/25701
+	* doc/gcc.texi (Software development): Add a direntry for g++.
+	
 2008-01-23  Hans-Peter Nilsson  <hp@axis.com>
 
 	* config/cris/cris.h (CC1PLUS_SPEC, OPTIMIZATION_OPTIONS): Drop
@@ -319,7 +904,7 @@
 	cold_text_section_used, *cold_text_sections): Move declarations
 	before their uses.
 
-2007-01-17  Bob Wilson  <bob.wilson@acm.org>
+2008-01-17  Bob Wilson  <bob.wilson@acm.org>
 
 	* config/xtensa/unwind-dw2-xtensa.h (_Unwind_FrameState): Remove pc
 	field and add signal_ra.
@@ -332,7 +917,7 @@
 	* config/xtensa/linux.h (MD_UNWIND_SUPPORT): Define.
 	* config/xtensa/linux-unwind.h: New file.
 
-2007-01-18  Bernhard Fischer  <aldot@gcc.gnu.org>
+2008-01-18  Bernhard Fischer  <aldot@gcc.gnu.org>
 
 	* modulo-sched.c (get_sched_window): Fix comment typo.
 
@@ -389,7 +974,7 @@
 	"-pthread" is specified.
 	* pa-hpux11.h (LIB_SPEC): Likewise.
 
-2007-01-16  Janis Johnson  <janis187@us.ibm.com>
+2008-01-16  Janis Johnson  <janis187@us.ibm.com>
 	    Peter Bergner  <bergner@vnet.ibm.com>
 
 	PR rtl-optimization/33796

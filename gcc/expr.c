@@ -4975,14 +4975,7 @@ count_type_elements (const_tree type, bool allow_flexarr)
 
     case UNION_TYPE:
     case QUAL_UNION_TYPE:
-      {
-	/* Ho hum.  How in the world do we guess here?  Clearly it isn't
-	   right to count the fields.  Guess based on the number of words.  */
-        HOST_WIDE_INT n = int_size_in_bytes (type);
-	if (n < 0)
-	  return -1;
-	return n / UNITS_PER_WORD;
-      }
+      return -1;
 
     case COMPLEX_TYPE:
       return 2;
@@ -8945,8 +8938,11 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	target = 0;
       op0 = expand_expr (TREE_OPERAND (exp, 0), subtarget,
 			 VOIDmode, EXPAND_NORMAL);
-      return expand_shift (code, mode, op0, TREE_OPERAND (exp, 1), target,
+      temp = expand_shift (code, mode, op0, TREE_OPERAND (exp, 1), target,
 			   unsignedp);
+      if (code == LSHIFT_EXPR)
+	temp = REDUCE_BIT_FIELD (temp);
+      return temp;
 
       /* Could determine the answer when only additive constants differ.  Also,
 	 the addition of one can be handled by changing the condition.  */

@@ -91,7 +91,7 @@ struct diagnostic_info;
 
    Usage of TYPE_LANG_FLAG_?:
    0: TYPE_DEPENDENT_P
-   1: TYPE_HAS_CONSTRUCTOR.
+   1: TYPE_HAS_USER_CONSTRUCTOR.
    2: Unused
    3: TYPE_FOR_JAVA.
    4: TYPE_HAS_NONTRIVIAL_DESTRUCTOR
@@ -1655,11 +1655,11 @@ struct lang_decl GTY(())
       {
 	/* In an overloaded operator, this is the value of
 	   DECL_OVERLOADED_OPERATOR_P.  */
-	ENUM_BITFIELD (tree_code) operator_code : 8;
+	ENUM_BITFIELD (tree_code) operator_code : 16;
 
 	unsigned u3sel : 1;
 	unsigned pending_inline_p : 1;
-	unsigned spare : 22;
+	unsigned spare : 14;
 
 	/* For a non-thunk function decl, this is a tree list of
 	   friendly classes. For a thunk function decl, it is the
@@ -2709,7 +2709,7 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 
 /* Nonzero for a class type means that the class type has a
    user-declared constructor.  */
-#define TYPE_HAS_CONSTRUCTOR(NODE) (TYPE_LANG_FLAG_1 (NODE))
+#define TYPE_HAS_USER_CONSTRUCTOR(NODE) (TYPE_LANG_FLAG_1 (NODE))
 
 /* When appearing in an INDIRECT_REF, it means that the tree structure
    underneath is actually a call to a constructor.  This is needed
@@ -4346,6 +4346,7 @@ extern tree build_aggr_init			(tree, tree, int);
 extern int is_aggr_type				(tree, int);
 extern tree get_type_value			(tree);
 extern tree build_zero_init			(tree, tree, bool);
+extern tree build_value_init			(tree);
 extern tree build_offset_ref			(tree, tree, bool);
 extern tree build_new				(tree, tree, tree, tree, int);
 extern tree build_vec_init			(tree, tree, tree, bool, int);
@@ -4435,7 +4436,7 @@ extern int comp_template_parms			(const_tree, const_tree);
 extern bool uses_parameter_packs                (tree);
 extern bool template_parameter_pack_p           (const_tree);
 extern tree make_pack_expansion                 (tree);
-extern bool check_for_bare_parameter_packs      (tree*);
+extern bool check_for_bare_parameter_packs      (tree);
 extern tree get_template_info			(tree);
 extern int template_class_depth			(tree);
 extern int is_specialization_of			(tree, tree);

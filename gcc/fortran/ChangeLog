@@ -1,3 +1,98 @@
+2008-02-03  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/32760
+	* resolve.c (resolve_allocate_deallocate): New function.
+	(resolve_code): Call it for allocate and deallocate.
+	* match.c (gfc_match_allocate, gfc_match_deallocate) : Remove
+	the checking of the STAT tag and put in above new function.
+	* primary,c (match_variable): Do not fix flavor of host
+	associated symbols yet if the type is not known.
+
+2008-01-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34910
+	* expr.c (gfc_check_assign): It is an error to assign
+	to a sibling procedure.
+
+2008-01-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34975
+	* symbol.c (gfc_delete_symtree, gfc_undo_symbols): Rename
+	delete_symtree to gfc_delete_symtree.
+	* gfortran.h : Add prototype for gfc_delete_symtree.
+	* module.c (load_generic_interfaces): Transfer symbol to a
+	unique symtree and delete old symtree, instead of renaming.
+	(read_module): The rsym and the found symbol are the same, so
+	the found symtree can be deleted.
+
+	PR fortran/34429
+	* decl.c (match_char_spec): Remove the constraint on deferred
+	matching of functions and free the length expression.
+	delete_symtree to gfc_delete_symtree.
+	(gfc_match_type_spec): Whitespace.
+	(gfc_match_function_decl): Defer characteristic association for
+	all types except BT_UNKNOWN.
+	* parse.c (decode_specification_statement): Only derived type
+	function matching is delayed to the end of specification.
+
+2008-01-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR libfortran/34980
+	* simplify.c (gfc_simplify_shape): Simplify rank zero arrays.
+
+2008-01-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34990
+	* array.c (gfc_check_constructor_type): Revert clearing the expression.
+
+2008-01-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34848
+	* trans-expr.c (gfc_conv_function_call): Don't call
+	gfc_add_interface_mapping if the expression is NULL.
+
+2008-01-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/31610
+	* trans-array.c (gfc_trans_create_temp_array): Remove call to
+	gcc_assert (integer_zerop (loop->from[n])).
+
+2008-01-25  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/34661
+	* resolve.c (resolve_where): Added check if user-defined assignment 
+	operator is an elemental subroutine.
+	(gfc_resolve_where_code_in_forall): Likewise.
+
+2008-01-24  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/33375
+	PR fortran/34858
+	* gfortran.h: Revert changes from 2008-01-17.
+	* match.c: Likewise.
+	* symbol.c: Likewise.
+	(gfc_undo_symbols): Undo namespace changes related to common blocks.
+
+2008-01-24  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/34202
+	* data.c (formalize_structure_cons): Skip formalization on
+	empty structures.
+
+2008-01-24  Daniel Franke  <franke.daniel@gmail.com>
+
+	* gfortran.texi (OpenMP): Extended existing documentation.
+	(contributors): Added major contributors of 2008 that were
+	not listed yet.
+	(proposed extensions): Removed implemented items.
+
+2008-01-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34872
+	* parse.c (next_statement) : If ST_GET_FCN_CHARACTERISTICS  is
+	seen, check for a statement label and, if present, delete it
+	and set the locus to the start of the statement.
+
 2008-01-22  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/34875

@@ -1,3 +1,33 @@
+2008-02-02  Hans-Peter Nilsson  <hp@axis.com>
+
+	* configure.ac: Enable fortran for cris-*-elf and crisv32-*-elf.
+	* configure: Regenerate.
+
+2008-01-31  Marc Gauthier  <marc@tensilica.com>
+
+	* configure.ac (xtensa*-*-*): Recognize processor variants.
+	* configure: Regenerate.
+
+2008-01-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+        PR bootstrap/34922
+        * configure.ac (PARSE_ARGS): Push suitable setting of
+        ac_subdirs_all, for `./configure --help=recursive'.
+        Handle `+' in generic toplevel directory disabling.
+        * configure: Regenerate.
+
+2008-01-28  Nick Clifton  <nickc@redhat.com>
+
+	* MAINTAINERS (xstormy16): Take over maintainership.
+
+2008-01-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS (c4x port): Remove.
+
+2008-01-24  David Edelsohn  <edelsohn@gnu.org>
+
+	* libtool.m4: Backport AIX 6 support from ToT Libtool.
+
 2008-01-23  Ben Elliston  <bje@au.ibm.com>
 
 	* config.sub, config.guess: Update from upstream sources.

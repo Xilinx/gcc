@@ -1,3 +1,37 @@
+2008-02-02  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/35001
+	* m4/shape.m4:  Return 0 for extents <= 0.
+	* generated/shape_i4.c:  Regenerated.
+	* generated/shape_i8.c:  Regenerated.
+	* generated/shape_i16.c:  Regenerated.
+
+2008-01-27  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34980
+	* m4/shape.m4:  If return array is empty, return early.
+	* generated/shape_i4.c:  Regenerated.
+	* generated/shape_i8.c:  Regenerated.
+	* generated/shape_i16.c:  Regenerated.
+
+2008-01-26  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfofortran/34887
+	* io/transfer.c (next_record_w): Always move to the farthest
+	position when completing the record (also when we are
+	processing a slash edit descriptor).
+
+2008-01-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/34876
+	* io/transfer.c (write_buf): Handle case of zero sized array.
+	(transfer_array): Set data pointer to NULL and size to zero.  Then
+	make a data transfer and return.
+	
+2008-01-24  David Edelsohn  <edelsohn@gnu.org>
+
+	* configure: Regenerate.
+
 2008-01-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libfortran/34795

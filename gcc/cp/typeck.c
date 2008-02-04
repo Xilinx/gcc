@@ -962,8 +962,6 @@ structural_comptypes (tree t1, tree t2, int strict)
   if (TREE_CODE (t1) != ARRAY_TYPE
       && TYPE_QUALS (t1) != TYPE_QUALS (t2))
     return false;
-  if (TYPE_FOR_JAVA (t1) != TYPE_FOR_JAVA (t2))
-    return false;
 
   /* Allow for two different type nodes which have essentially the same
      definition.  Note that we already checked for equality of the type
@@ -973,9 +971,36 @@ structural_comptypes (tree t1, tree t2, int strict)
       && TYPE_MAIN_VARIANT (t1) == TYPE_MAIN_VARIANT (t2))
     return true;
 
+  if (TYPE_FOR_JAVA (t1) != TYPE_FOR_JAVA (t2))
+    return false;
+
   /* Compare the types.  Break out if they could be the same.  */
   switch (TREE_CODE (t1))
     {
+    case VOID_TYPE:
+    case BOOLEAN_TYPE:
+      /* All void and bool types are the same.  */
+      break;
+
+    case INTEGER_TYPE:
+    case FIXED_POINT_TYPE:
+    case REAL_TYPE:
+      /* With these nodes, we can't determine type equivalence by
+	 looking at what is stored in the nodes themselves, because
+	 two nodes might have different TYPE_MAIN_VARIANTs but still
+	 represent the same type.  For example, wchar_t and int could
+	 have the same properties (TYPE_PRECISION, TYPE_MIN_VALUE,
+	 TYPE_MAX_VALUE, etc.), but have different TYPE_MAIN_VARIANTs
+	 and are distinct types. On the other hand, int and the
+	 following typedef
+
+           typedef int INT __attribute((may_alias));
+
+	 have identical properties, different TYPE_MAIN_VARIANTs, but
+	 represent the same type.  The canonical type system keeps
+	 track of equivalence in this case, so we fall back on it.  */
+      return TYPE_CANONICAL (t1) == TYPE_CANONICAL (t2);
+
     case TEMPLATE_TEMPLATE_PARM:
     case BOUND_TEMPLATE_TEMPLATE_PARM:
       if (TEMPLATE_TYPE_IDX (t1) != TEMPLATE_TYPE_IDX (t2)
@@ -3064,10 +3089,6 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
      Also implies COMMON.  */
   int short_compare = 0;
 
-  /* Nonzero if this is a right-shift operation, which can be computed on the
-     original short and then promoted if the operand is a promoted short.  */
-  int short_shift = 0;
-
   /* Nonzero means set RESULT_TYPE to the common type of the args.  */
   int common = 0;
 
@@ -3269,8 +3290,6 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 		warning (0, "right shift count is negative");
 	      else
 		{
-		  if (! integer_zerop (op1))
-		    short_shift = 1;
 		  if (compare_tree_int (op1, TYPE_PRECISION (type0)) >= 0)
 		    warning (0, "right shift count >= width of type");
 		}
@@ -3683,45 +3702,6 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 		       (unsigned0, TREE_TYPE (arg0)),
 		       int_fits_type_p (arg1, type)))
 	    result_type = type;
-	}
-
-      /* Shifts can be shortened if shifting right.  */
-
-      if (short_shift)
-	{
-	  int unsigned_arg;
-	  tree arg0 = get_narrower (op0, &unsigned_arg);
-
-	  final_type = result_type;
-
-	  if (arg0 == op0 && final_type == TREE_TYPE (op0))
-	    unsigned_arg = TYPE_UNSIGNED (TREE_TYPE (op0));
-
-	  if (TYPE_PRECISION (TREE_TYPE (arg0)) < TYPE_PRECISION (result_type)
-	      /* We can shorten only if the shift count is less than the
-		 number of bits in the smaller type size.  */
-	      && compare_tree_int (op1, TYPE_PRECISION (TREE_TYPE (arg0))) < 0
-	      /* If arg is sign-extended and then unsigned-shifted,
-		 we can simulate this with a signed shift in arg's type
-		 only if the extended result is at least twice as wide
-		 as the arg.  Otherwise, the shift could use up all the
-		 ones made by sign-extension and bring in zeros.
-		 We can't optimize that case at all, but in most machines
-		 it never happens because available widths are 2**N.  */
-	      && (!TYPE_UNSIGNED (final_type)
-		  || unsigned_arg
-		  || (((unsigned) 2 * TYPE_PRECISION (TREE_TYPE (arg0)))
-		      <= TYPE_PRECISION (result_type))))
-	    {
-	      /* Do an unsigned shift if the operand was zero-extended.  */
-	      result_type
-		= c_common_signed_or_unsigned_type (unsigned_arg,
-						    TREE_TYPE (arg0));
-	      /* Convert value-to-be-shifted to that type.  */
-	      if (TREE_TYPE (op0) != result_type)
-		op0 = cp_convert (result_type, op0);
-	      converted = 1;
-	    }
 	}
 
       /* Comparison operations are shortened too but differently.
@@ -6649,7 +6629,7 @@ check_return_expr (tree retval, bool *no_warning)
   if (processing_template_decl)
     {
       current_function_returns_value = 1;
-      if (check_for_bare_parameter_packs (&retval))
+      if (check_for_bare_parameter_packs (retval))
         retval = error_mark_node;
       return retval;
     }

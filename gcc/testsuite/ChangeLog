@@ -1,3 +1,333 @@
+2008-02-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/33631
+	* gcc.c-torture/execute/pr33631.c: New testcase.
+
+2008-02-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35043
+	* gcc.c-torture/compile/pr35043.c: New testcase.
+
+2008-02-03  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* g++.dg/tree-ssa/ivopts-1.C: Remove xfail for hppa*-*-*.
+
+2008-02-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/pr31628.c: Require effective target fpic.
+	* gcc.target/i386/strinline.c: Ditto.
+	* gcc.dg/sibcall-6.c: Skip if !nonpic for 32bit x86 targets.
+	* gcc.dg/pr35045.c: Ditto.
+	* gcc.dg/20050503-1.c: Ditto.
+
+2008-02-03  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/32760
+	* gfortran.dg/host_assoc_variable_1.f90: New test.
+	* gfortran.dg/allocate_stat.f90: Change last three error messages.
+
+2008-02-02  Michael Matz  <matz@suse.de>
+
+	PR target/35045
+	* gcc.dg/pr35045.c: New test.
+
+2008-02-02  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/35001
+	* gfortran.dg/shape_4.f90:  New test.
+
+2008-02-02  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc.target/cris/torture/pr34773.c: Use __asm__, not asm.
+
+2008-02-01  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR rtl-optimization/34773
+	* gcc.target/cris/torture/pr34773.c: New test.
+
+2008-02-01  Nick Clifton  <nickc@redhat.com>
+
+	* lib/target-supports.exp (check_profiling_available): Do not
+	expect profiling to work on the xstormy16 target.
+
+2008-02-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/35047
+	* gcc.c-torture/execute/20050316-2.x: New file.
+	* gcc.target/i386/pr17390.c: Update scan pattern.
+	* gcc.dg/builtin-apply4.c: Add -mno-mmx for 32bit x86 targets.
+	* g++.dg/tree-ssa/ivopts-1.C: Remove XPASS for x86 targets.
+
+2008-01-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34910
+	* gfortran.dg/proc_assign_2.f90: New test.
+
+2008-01-31  Douglas Gregor  <doug.gregor@gmail.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34935
+	PR c++/34936
+	* g++.dg/ext/alias-canon.C: New.
+	* g++.dg/ext/alias-mangle.C: New.
+
+2008-01-30  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.c-torture/execute/pr34982.c: Add forgotten return 0.
+
+2008-01-30  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* g++.dg/other/first-global.C: Add -fpie for all pic targets.
+	* g++.dg/parse/attr-externally-visible-1.C: Likewise.
+
+2008-01-30  Jan Hubicka  <jh@suse.cz>
+
+	PR target/34982
+	* gcc.c-torture/execute/pr34982.c: New testcase.
+
+2008-01-30  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.target/s390/tf_to_di-1.c: New testcase.
+
+2008-01-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34975
+	* gfortran.dg/use_only_3.f90: New test.
+	* gfortran.dg/use_only_3.inc: Modules for new test.
+
+	PR fortran/34429
+	* gfortran.dg/function_charlen_2.f90: New test.
+
+2008-01-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/34969
+	* gcc.dg/pr34969.c: New test.
+
+	PR c/35017
+	* gcc.dg/inline-25.c: New test.
+	* gcc.dg/inline-26.c: New test.
+	* gcc.dg/inline-27.c: New test.
+
+2008-01-29  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35006
+	* gcc.c-torture/compile/pr35006.c: New testcase.
+
+2008-01-29  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR c++/34055
+	PR c++/34103
+	PR c++/34219
+	PR c++/34606
+	PR c++/34753
+	PR c++/34754
+	PR c++/34755
+	PR c++/34919
+	PR c++/34961
+	* g++.dg/cpp0x/vt-34219-2.C: New.
+	* g++.dg/cpp0x/pr32126.C: Tweak expected error messages.
+	* g++.dg/cpp0x/vt-34961.C: New.
+	* g++.dg/cpp0x/vt-34055.C: Tweak error messages; add new test
+	cases from the re-opened PR.
+	* g++.dg/cpp0x/vt-34753.C: New.
+	* g++.dg/cpp0x/vt-34919.C: New.
+	* g++.dg/cpp0x/vt-34754.C: New.
+	* g++.dg/cpp0x/vt-34606.C: New.
+	* g++.dg/cpp0x/vt-34219.C: New.
+	* g++.dg/cpp0x/pr32125.C: Tweak expected error messages.
+	* g++.dg/cpp0x/vt-34755.C: New.
+	* g++.dg/cpp0x/pr31438.C: Ditto.
+	* g++.dg/cpp0x/variadic81.C: Ditto.
+
+2008-01-29  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* g++.dg/torture/pr34641.C: Put the dg-do first.
+
+2008-01-29  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* gcc.target/mips/lazy-binding-1.c: Skip for mips16.
+
+2008-01-28  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* g++.old-deja/g++.pt/incomplete1.C: Fix typo in comment.
+
+2008-01-28  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR 31535
+	* gcc.target/powerpc/spe-small-data-1.c: New test.
+	* gcc.target/powerpc/spe-small-data-2.c: New test.
+
+2008-01-28  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34980
+	* gfortran.dg/shape_3.f90:  New test.
+
+2008-01-28  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.target/s390/20020926-1.c: Remove -m31.
+
+2008-01-28  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.target/s390/20020926-1.c: Disable for s390x.
+
+2008-01-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34994
+	* gfortran.dg/missing_optional_dummy_5.f90: Fix matching regular
+	expression.
+
+2008-01-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34990
+	* gfortran.dg/array_constructor_22.f90: New test.
+
+2008-01-26  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR middle-end/34688
+	* gcc.c-torture/compile/pr34688: New test.
+
+2008-01-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34848
+	* gfortran.dg/missing_optional_dummy_5.f90: New.
+
+2008-01-26  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/tree-ssa/20070302-1.c (baz): Mark with attribute
+	noinline.  XFAIL test.
+
+2008-01-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/31610
+	* gfortran.dg/array_3.f90: New test.
+
+2008-01-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.c-torture/compile/pr34966.c (atan): Only use asm
+	on i?86/x86_64.
+
+	PR c++/34965
+	* gcc.dg/pr34965.c: New test.
+	* g++.dg/other/error24.C: New test.
+
+2008-01-26  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfofortran/34887
+	* gfortran.dg/x_slash_2.f:  New test.
+
+2008-01-26  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/34235
+	* g++.dg/torture/pr34235.C: New testcase.
+
+2008-01-26  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* g++.dg/tree-ssa/ivopts-1.C: XFAIL for MIPS too.
+
+2008-01-26  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR target/34981
+	* gcc.target/mips/lazy-binding-1.c: New test.
+	* gcc.target/mips/mips.exp (setup_mips_tests): Set
+	mips_forced_no_abicalls and mips_forced_no_shared.
+	(dg-mips-options): Avoid using -mabicalls with an implicit -mabi=eabi.
+	Avoid using small data with -mabicalls.  Don't make -G0 force
+	-mn-abicalls.  Skip -mabicalls and -mshared tests if the multilib
+	forces the opposite option.
+
+2008-01-26  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	PR target/34970
+	* gcc.target/i386/fastcall-1.c: Scan for correct label.
+	Use -std=gnu89 switch.
+
+2008-01-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/34876
+	* gfortran.dg/direct_io_9.f: New test.
+
+2008-01-25  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/34661
+	* gfortran.dg/where_operator_assign_4.f90: New test.
+
+2008-01-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/builtin-inf-1.c, gcc.dg/compare6.c, gcc.dg/sibcall-3.c,
+	gcc.dg/sibcall-4.c, gcc.dg/torture/builtin-attr-1.c: Don't handle
+	c4x-*-* targets.
+
+2008-01-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/32244
+	* gcc.c-torture/execute/pr32244-1.c: New testcase.
+
+2008-01-25  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34966
+	* gcc.c-torture/compile/pr34966.c: New testcase.
+
+2008-01-25  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/33887
+	* g++.dg/torture/pr33887-1.C: New testcase.
+	* g++.dg/torture/pr33887-2.C: Likewise.
+	* g++.dg/torture/pr33887-3.C: Likewise.
+	* gcc.c-torture/execute/20071211-1.c: Likewise.
+
+2008-01-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/34856
+	* gcc.dg/pr34856.c: Use pointer mode for "pin".
+
+2008-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/33333
+	* g++.dg/gomp/pr33333.C: New test.
+
+	PR preprocessor/34692
+	* gcc.dg/cpp/pr34692.c: New test.
+	* gcc.dg/gomp/pr34692.c: New test.
+
+2008-01-25  Olga Golovanevsky  <olga@il.ibm.com>
+
+	* gcc.dg/struct/wo_prof_malloc_size_var.c: UnXFAIL.
+
+2008-01-24  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/34202
+	* gfortran.dg/empty_type.f90: New test.
+
+2008-01-24  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/34603
+	* g++.dg/template/crash77.C: New.
+
+2008-01-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/34856
+	* gcc.dg/pr34856.c: New test.
+
+2008-01-24  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/namelist_39.f90: Delete temporary files.
+	* gfortran.dg/namelist_44.f90: Ditto.
+
+2008-01-24  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34953
+	* g++.dg/torture/pr34953.C: New testcase.
+
+2008-01-24  Jakub Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/34934
+	* gcc.c-torture/compile/20080124-1.c: New test.
+
+2008-01-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34872
+	* gfortran.dg/function_charlen_3.f: New test.
+
 2008-01-23  Michael Matz  <matz@suse.de>
 
 	PR debug/34895
@@ -133,15 +463,15 @@
 	
 2008-01-20  Paolo Carlini  <pcarlini@suse.de>
 
-        PR c++/34891
-        * g++.dg/ext/vector9.C: New.
+	PR c++/34891
+	* g++.dg/ext/vector9.C: New.
 
 2008-01-20  Paolo Carlini  <pcarlini@suse.de>
 
-        PR c++/34776
+	PR c++/34776
 	PR c++/34486
-        * g++.dg/template/crash75.C: New.
-        * g++.dg/template/crash76.C: Likewise.	
+	* g++.dg/template/crash75.C: New.
+	* g++.dg/template/crash76.C: Likewise.	
 
 2008-01-20  Kaz Kojima  <kkojima@gcc.gnu.org>
 
@@ -249,7 +579,7 @@
 	PR c++/33407
 	* g++.dg/init/new26.C: New test.
 
-2008-01-18  Richard Guenther   <rguenther@suse.de>
+2008-01-18  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/34801
 	* gcc.dg/Warray-bounds.c: XFAIL two tests, remove one
@@ -409,22 +739,22 @@
 
 2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
 
-       PR c++/34314
-       * g++.dg/cpp0x/vt-34314.C: New.
-       * g++.dg/cpp0x/variadic79.C: Fix the error message to reflect
-       reality (the error message was wrong previously).
+	PR c++/34314
+	* g++.dg/cpp0x/vt-34314.C: New.
+	* g++.dg/cpp0x/variadic79.C: Fix the error message to reflect
+	reality (the error message was wrong previously).
 
 2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
 
-       PR c++/33964
-       * g++.dg/cpp0x/vt-33964.C: New.
-       * g++.dg/template/partial5.C: New.
+	PR c++/33964
+	* g++.dg/cpp0x/vt-33964.C: New.
+	* g++.dg/template/partial5.C: New.
 
 2008-01-15  Douglas Gregor  <doug.gregor@gmail.com>
 
-       PR c++/34052
-       * g++.dg/cpp0x/vt-34052.C: New.
-       * g++.dg/template/ttp26.C: New.
+	PR c++/34052
+	* g++.dg/cpp0x/vt-34052.C: New.
+	* g++.dg/template/ttp26.C: New.
 	
 2008-01-14  Eric Botcazou  <ebotcazou@adacore.com>
 
@@ -806,7 +1136,7 @@
 
 2008-01-01  Douglas Gregor  <doug.gregor@gmail.com>
 
-       * g++.dg/cpp0x/long_long.C: New.
+	* g++.dg/cpp0x/long_long.C: New.
 
 2008-01-01  Andrew Pinski  <andrew_pinski@playstation.sony.com>
 
@@ -2395,7 +2725,7 @@
 2007-11-05  Jakub Jelinek  <jakub@redhat.com>
 
 	PR rtl-optimization/33648
-	* gcc.dg/pr33648.c: Require effective targer freorder.
+	* gcc.dg/pr33648.c: Require effective target freorder.
 
 2007-11-05  Revital Eres  <eres@il.ibm.com>
 
