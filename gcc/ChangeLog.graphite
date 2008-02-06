@@ -1,3 +1,15 @@
+2008-02-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (scan_tree_for_params): Rewrite for the new layout of
+	loop domain matrix.  Pass in the number of loops contained in the
+	constraint matrix.
+	(nb_loops_around_gb): Moved before setup_cloog_loop that uses it.
+	(setup_cloog_loop): Rewrite for the new layout of loop domain matrix:
+	loops that are not surrounding the current loop are not represented
+	in the domain constraint matrix.
+	(build_scop_iteration_domain): Initial domain constraint matrix
+	contains only the eq/ineq, cst, and scop parameters columns.
+
 2008-01-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (schedule_to_scattering, nb_loops_around_gb): New.
