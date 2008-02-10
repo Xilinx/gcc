@@ -1,3 +1,8 @@
+2008-02-10  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+        * graphite.c (build_graphite_bb): Fix initialization
+        of the graphite basic block.
+
 2008-02-05  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (scan_tree_for_params): Rewrite for the new layout of

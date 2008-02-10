@@ -652,6 +652,7 @@ build_graphite_bb (struct dom_walk_data *dw_data, basic_block bb)
   gb = XNEW (struct graphite_bb);
   GBB_BB (gb) = bb;
   GBB_SCOP (gb) = scop;
+  GBB_DATA_REFS (gb) = NULL; 
 
   /* Store the GRAPHITE representation of the current BB.  */
   VEC_safe_push (graphite_bb_p, heap, scop->bbs, gb);
