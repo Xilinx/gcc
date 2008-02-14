@@ -370,6 +370,11 @@ bool find_loop_nest (struct loop *, VEC (loop_p, heap) **);
 void compute_all_dependences (VEC (data_reference_p, heap) *,
 			      VEC (ddr_p, heap) **, VEC (loop_p, heap) *, bool);
 
+extern void create_rdg_vertices (struct graph *, VEC (tree, heap) *);
+extern bool dr_may_alias_p (const struct data_reference *,
+			    const struct data_reference *);
+
+
 /* Return true when the DDR contains two data references that have the
    same access functions.  */
 

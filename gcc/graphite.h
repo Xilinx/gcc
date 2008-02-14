@@ -34,6 +34,7 @@ struct graphite_bb
   scop_p scop;
 
   lambda_vector static_schedule;
+  lambda_vector compressed_alpha_matrix;
   VEC (data_reference_p, heap) *data_refs;
 };
 
@@ -41,6 +42,7 @@ struct graphite_bb
 #define GBB_SCOP(GBB) GBB->scop
 #define GBB_STATIC_SCHEDULE(GBB) GBB->static_schedule
 #define GBB_DATA_REFS(GBB) GBB->data_refs
+#define GBB_ALPHA(GBB) GBB->compressed_alpha_matrix
 
 /* Return the loop that contains the basic block GBB.  */
 
@@ -76,6 +78,8 @@ struct scop
   /* Loops contained in the scop.  */
   VEC (loop_p, heap) *loop_nest;
 
+  htab_t loop2cloog_loop;
+
   /* Cloog representation of this scop.  */
   CloogProgram *program;
 };
@@ -88,6 +92,7 @@ struct scop
 #define SCOP_LOOP_NEST(S) S->loop_nest
 #define SCOP_PARAMS(S) S->params
 #define SCOP_PROG(S) S->program
+#define SCOP_LOOP2CLOOG_LOOP(S) S->loop2cloog_loop
 
 extern void debug_scop (scop_p, int);
 extern void debug_scops (int);
@@ -142,4 +147,30 @@ scop_loop_index (scop_p scop, struct loop *loop)
   gcc_unreachable ();
   return -1;
 }
+
+/* Associate a POLYHEDRON dependence description to two data
+   references A and B.  */
+struct data_dependence_polyhedron
+{
+  struct data_reference *a;
+  struct data_reference *b;
+  bool reversed_p;
+  bool loop_carried; /*TODO:konrad get rid of this, make level signed */
+  signed level;
+  CloogDomain *polyhedron;  
+};
+
+#define RDGE_DDP(E)   ((struct data_dependence_polyhedron*) ((E)->data))
+
+typedef struct data_dependence_polyhedron *ddp_p;
+
+DEF_VEC_P(ddp_p);
+DEF_VEC_ALLOC_P(ddp_p,heap);
+
+struct loop_to_cloog_loop_str
+{
+  unsigned int loop_num;
+  unsigned int loop_position; /* the column that represents this loop */
+  CloogLoop *cloog_loop;
+};
 

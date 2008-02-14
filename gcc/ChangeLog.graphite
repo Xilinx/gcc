@@ -1,3 +1,20 @@
+2008-02-14  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+        * tree-data-ref.c (dr_may_alias_p, create_rdg_vertices): Extern.
+	* tree-data-ref.h (dr_may_alias_p, create_rdg_vertices): Declared.
+        * graphite.c (new_loop_to_cloog_loop_str, hash_loop_to_cloog_loop,
+	eq_loop_to_cloog_loop, del_loop_to_cloog_loop): New.
+	(new_scop, setup_cloog_loop): Initialize SCOP_LOOP2CLOOG_LOOP.
+	(initialize_dependence_polyhedron, find_vertex_for_stmt,
+	initialize_data_dependence_polyhedron, is_empty_polyhedron,
+	statement_precedes_p, build_rdg_all_levels, build_scop_alpha,
+	dump_dependence_graph): New.
+	* graphite.h (struct graphite_bb): New field compressed_alpha_matrix.
+	(GBB_ALPHA): New.
+	(struct scop): New field loop2cloog_loop.
+	(SCOP_LOOP2CLOOG_LOOP, struct data_dependence_polyhedron,
+	RDGE_DDP, ddp_p, struct loop_to_cloog_loop_str): New.
+
 2008-02-10  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
         * graphite.c (build_graphite_bb): Fix initialization

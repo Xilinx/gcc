@@ -1207,7 +1207,7 @@ disjoint_objects_p (tree a, tree b)
 /* Returns false if we can prove that data references A and B do not alias,
    true otherwise.  */
 
-static bool
+bool
 dr_may_alias_p (const struct data_reference *a, const struct data_reference *b)
 {
   const_tree addr_a = DR_BASE_ADDRESS (a);
@@ -4611,7 +4611,7 @@ create_rdg_edges (struct graph *rdg, VEC (ddr_p, heap) *ddrs)
 
 /* Build the vertices of the reduced dependence graph RDG.  */
 
-static void
+void
 create_rdg_vertices (struct graph *rdg, VEC (tree, heap) *stmts)
 {
   int i, j;

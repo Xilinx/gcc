@@ -51,6 +51,50 @@ VEC (scop_p, heap) *current_scops;
 static bool basic_block_simple_for_scop_p (basic_block);
 static CloogMatrix *schedule_to_scattering (graphite_bb_p);
 
+/* Returns a new loop_to_cloog_loop_str structure.  */
+
+static inline struct loop_to_cloog_loop_str *
+new_loop_to_cloog_loop_str (unsigned int loop_num,
+                            unsigned int loop_position,
+                            CloogLoop *cloog_loop)
+{
+  struct loop_to_cloog_loop_str *result;
+  result = xcalloc (1, sizeof (struct loop_to_cloog_loop_str));
+  result->loop_num = loop_num;
+  result->cloog_loop = cloog_loop;
+  result->loop_position = loop_position;
+
+  return result;
+}
+
+/* Hash function for SCOP_LOOP2CLOOG_LOOP hash table.  */
+
+static hashval_t
+hash_loop_to_cloog_loop (const void *elt)
+{
+  return ((const struct loop_to_cloog_loop_str *) elt)->loop_num;
+}
+
+/* Equality function for SCOP_LOOP2CLOOG_LOOP hash table.  */
+
+static int
+eq_loop_to_cloog_loop (const void *el1, const void *el2)
+{
+  const struct loop_to_cloog_loop_str *elt1, *elt2;
+
+  elt1 = (const struct loop_to_cloog_loop_str *) el1;
+  elt2 = (const struct loop_to_cloog_loop_str *) el2;
+  return elt1->loop_num == elt2->loop_num;
+}
+
+/* Free function for SCOP_LOOP2CLOOG_LOOP.  */
+
+static void
+del_loop_to_cloog_loop (void *e)
+{
+  free (e);
+}
+
 /* Print the schedules from SCHED.  */
 
 void
@@ -514,7 +558,9 @@ new_scop (basic_block bb)
   SCOP_PARAMS (scop) = VEC_alloc (tree, heap, 3);
   SCOP_PROG (scop) = cloog_program_malloc ();
   SCOP_PROG (scop)->names = cloog_names_malloc ();
-
+  SCOP_LOOP2CLOOG_LOOP (scop) = htab_create (10, hash_loop_to_cloog_loop,
+					     eq_loop_to_cloog_loop,
+					     del_loop_to_cloog_loop);
   return scop;
 }
 
@@ -1085,6 +1131,8 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
   unsigned i, j, row;
   CloogStatement *statement;
   CloogMatrix *cstr;
+  struct loop_to_cloog_loop_str tmp;
+  PTR *slot;
   CloogLoop *res = cloog_loop_malloc ();
 
   unsigned nb_rows = outer_cstr->NbRows + 1;
@@ -1173,6 +1221,11 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
     }
 
   res->domain = cloog_domain_matrix2domain (cstr);
+
+  tmp.loop_num = loop->num;
+  slot = htab_find_slot (SCOP_LOOP2CLOOG_LOOP (scop), &tmp, INSERT);
+  if (!*slot)
+    *slot = new_loop_to_cloog_loop_str (loop->num, loop_col - 1, res);
 
   /* Now set up the other loop constructs.  CLooG is expecting to see
      a list of loops chained with the res->next pointer.  Don't use
@@ -1459,6 +1512,400 @@ static void
 gloog (scop_p scop ATTRIBUTE_UNUSED, struct clast_stmt *stmt)
 {
   cloog_clast_free (stmt);
+}
+
+/* Returns a matrix representing the data dependence between memory
+   accesses A and B in the context of SCOP.  */
+
+static CloogMatrix *
+initialize_dependence_polyhedron (scop_p scop, 
+                                  struct data_reference *a, 
+                                  struct data_reference *b)
+{
+  unsigned nb_cols, nb_rows, nb_loops, nb_params;
+  struct loop_to_cloog_loop_str tmp, *slot1, *slot2; 
+  unsigned row, col;
+  CloogMatrix *domain1, *domain2;
+  CloogMatrix *dep_constraints;
+  lambda_vector access_row_vector;
+  struct loop *containing_loop;
+  containing_loop = loop_containing_stmt (DR_STMT (a));
+  tmp.loop_num = containing_loop->num;
+  slot1 = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp); 
+          
+  containing_loop = loop_containing_stmt (DR_STMT (b));
+  tmp.loop_num = containing_loop->num;
+  slot2 = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp); 
+  /* TODO: insert checking for possible null values of slot1 and
+     slot2.  */
+
+  domain1 = cloog_domain_domain2matrix (slot1->cloog_loop->domain);
+  domain2 = cloog_domain_domain2matrix (slot2->cloog_loop->domain);
+
+  /* Adding 2 columns: one for the eq/neq column, one for constant
+     term.  */
+  nb_cols = scop_nb_loops (scop) * 2 + scop_nb_params (scop) + 2;
+  nb_rows = domain1->NbRows + domain2->NbRows + DR_NUM_DIMENSIONS (a);
+  nb_loops = scop_nb_loops (scop);
+  nb_params = scop_nb_params (scop);
+  dep_constraints = cloog_matrix_alloc (nb_rows, nb_cols);
+
+  /* Initialize dependence polyhedron.  TODO: do we need it?  */
+  for (row = 0; row < dep_constraints->NbRows ; row++)
+    for (col = 0; col < dep_constraints->NbColumns; col++)
+      value_init (dep_constraints->p[row][col]);
+
+  /* Copy the iterator part of Ds (domain of S statement), with eq/neq
+     column.  */
+  for (row = 0; row < domain1->NbRows; row++)
+    for (col = 0; col <= nb_loops; col++)
+      value_assign (dep_constraints->p[row][col], domain1->p[row][col]);
+
+  /* Copy the parametric and constant part of Ds.  */
+  for (row = 0; row < domain1->NbRows; row++)
+    {
+      value_assign (dep_constraints->p[row][nb_cols-1],
+		    domain1->p[row][domain1->NbColumns - 1]);
+      for (col = 1; col <= nb_params; col++)
+	value_assign (dep_constraints->p[row][col + 2 * scop_nb_loops (scop)],
+		      domain1->p[row][col + scop_nb_loops (scop)]);
+    }
+
+  /* Copy the iterator part of Dt (domain of T statement), without eq/neq column.  */
+  for (row = 0; row < domain2->NbRows; row++)
+    for (col = 1; col <= nb_loops; col++)
+      value_assign (dep_constraints->p[row + domain1->NbRows][col + scop_nb_loops (scop)],
+		    domain2->p[row][col]);
+  
+  /* Copy the eq/neq column of Dt to dependence polyhedron.  */
+  for (row = 0; row < domain2->NbRows; row++)
+    value_assign (dep_constraints->p[row + domain1->NbRows][0], domain1->p[row][0]);
+
+  for (row = 0; row < domain2->NbRows; row++)
+    {
+      value_assign (dep_constraints->p[row + domain1->NbRows][nb_cols-1],
+		    domain1->p[row][domain2->NbColumns - 1]);
+      for (col = 1; col <= nb_params; col++)
+        value_assign (dep_constraints->p[row + domain1->NbRows][col + 2 * scop_nb_loops (scop)],
+                      domain2->p[row][col + scop_nb_loops (scop)]);
+    }
+
+  /* Copy Ds access matrix.  */
+  for (row = 0; VEC_iterate (lambda_vector, DR_ACCESS_MATRIX (a), row, access_row_vector); row++)
+    {
+      for (col = 0; col < nb_loops; col++)
+	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][col + 1],
+		      access_row_vector[col]);              
+
+      value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1], 
+                    access_row_vector[scop_dim_domain (scop) - 1]);
+      /* TODO: do not forget about parametric part.  */
+    }
+
+  /* Copy -Dt access matrix.  */
+  for (row = 0; VEC_iterate (lambda_vector, DR_ACCESS_MATRIX (b), row, access_row_vector); row++)
+    {
+      for (col = 0; col < nb_loops; col++)
+	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][scop_nb_loops (scop) + col + 1], 
+		      -access_row_vector[col]);              
+
+      value_sub_int (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
+                     dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
+                     access_row_vector[scop_dim_domain (scop) - 1]);
+    }
+         
+  return dep_constraints;
+}
+
+/* Returns the index of STMT in RDG.  
+   TODO: remove this function, replace with rdg_vertex_for_stmt.  */
+
+static int
+find_vertex_for_stmt (const struct graph *rdg, const_tree stmt)
+{
+  int i;
+
+  for (i = 0; i < rdg->n_vertices; i++)
+    if (RDGV_STMT (&(rdg->vertices[i])) == stmt)
+      return i;
+
+  gcc_unreachable ();
+  return 0;
+}
+
+/* Returns a new dependence polyhedron for data references A and B.  */
+
+static struct data_dependence_polyhedron *
+initialize_data_dependence_polyhedron (bool loop_carried,
+                                       CloogDomain *domain,
+                                       unsigned level,
+                                       struct data_reference *a,
+                                       struct data_reference *b)
+{
+  struct data_dependence_polyhedron *res;
+
+  res = XNEW (struct data_dependence_polyhedron);
+  res -> a = a;
+  res -> b = b;
+  res -> loop_carried = loop_carried;
+  res -> level = level;
+
+  if (loop_carried)
+    res -> polyhedron = domain; 
+  else
+    res -> polyhedron = NULL;
+
+  return res;
+}
+
+/* Returns true when the last row of DOMAIN polyhedron is zero.  */
+
+static bool 
+is_empty_polyhedron (CloogDomain *domain)
+{
+  Polyhedron *polyhedron;
+  unsigned i, last_column, last_row;
+  polyhedron = domain->polyhedron;
+  last_column = polyhedron->Dimension + 2;
+  last_row = polyhedron->NbConstraints - 1;
+
+  for  (i = 1; i < last_column - 1; i++)
+    if (!value_zero_p (polyhedron->Constraint[last_row][i]))
+      return false;
+
+  return !value_zero_p (polyhedron->Constraint[last_row][last_column - 1]);
+}
+
+/* Returns true if statement A, contained in basic block GB_A,
+   precedes statement B, contained in basic block GB_B.  The decision
+   is based on static schedule of basic block's and relative position
+   of statements.  */
+
+static bool 
+statement_precedes_p (scop_p scop,
+                      graphite_bb_p gb_a,
+                      tree a,
+                      graphite_bb_p gb_b,
+                      tree b,
+                      unsigned p)
+{
+  block_stmt_iterator bsi;
+  bool statm_a_found, statm_b_found;
+  struct loop_to_cloog_loop_str tmp, *slot; 
+
+  if (GBB_STATIC_SCHEDULE (gb_a)[p - 1] < GBB_STATIC_SCHEDULE (gb_b)[p - 1])
+    return true;
+
+  else if (GBB_STATIC_SCHEDULE (gb_a)[p - 1] == GBB_STATIC_SCHEDULE (gb_b)[p - 1])
+    {
+      statm_a_found = false;
+      statm_b_found = false;
+      /* TODO: You can use stmt_ann->uid for a slight speedup.  */
+      /* If static schedules are the same -> gb1 = gb2.  */
+      /* GBB_BB (gb_a)->loop_father; */
+      tmp.loop_num = GBB_BB (gb_a)->loop_father->num;
+      slot = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp);
+
+      if (slot->loop_position == p - 1)
+	for (bsi = bsi_start (GBB_BB (gb_a)); !bsi_end_p (bsi); bsi_next (&bsi))
+	  {
+	    if (bsi_stmt (bsi) == a)
+	      statm_a_found = true;
+        
+	    if (statm_a_found && bsi_stmt (bsi) == b)
+	      return true;
+	  }
+    }
+
+  return false;
+}
+
+/* Returns the polyhedral data dependence graph for SCOP.  */
+
+static struct graph *
+build_rdg_all_levels (scop_p scop)
+{
+  unsigned i, j, row, nb_loops;
+  unsigned i1, j1;
+  int va, vb;
+  signed p;
+  graphite_bb_p gb1, gb2;
+  struct graph * rdg = NULL;
+  struct data_reference *a, *b;
+  CloogMatrix *dep_constraints, *temp_matrix;
+  CloogDomain *simplified;
+  block_stmt_iterator bsi;
+  struct graph_edge *e;
+  
+ /* VEC (data_reference_p, heap) *datarefs;*/
+ /* All the statements that are involved in dependences are stored in
+    this vector.  */
+  VEC (tree, heap) *stmts = VEC_alloc (tree, heap, 10);
+  VEC (ddp_p, heap) *ddps = VEC_alloc (ddp_p, heap, 10); 
+  ddp_p ddp;    
+  /* datarefs = VEC_alloc (data_reference_p, heap, 2);*/
+  nb_loops = scop_nb_loops (scop); 
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb1); i++)
+    {
+      for (bsi = bsi_start (GBB_BB (gb1)); !bsi_end_p (bsi); bsi_next (&bsi))
+	VEC_safe_push (tree, heap, stmts, bsi_stmt (bsi));
+
+      for (i1 = 0; VEC_iterate (data_reference_p, GBB_DATA_REFS (gb1), i1, a); i1++)
+	for (j = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), j, gb2); j++)
+	  for (j1 = 0; VEC_iterate (data_reference_p, GBB_DATA_REFS (gb2), j1, b); j1++)
+	    if ((!DR_IS_READ (a) || !DR_IS_READ (b)) && dr_may_alias_p (a,b)
+		&& operand_equal_p (DR_BASE_OBJECT (a), DR_BASE_OBJECT (b), 0))
+	      /* TODO: the previous check might be too restrictive.  */
+	      for (i = 1; i <= 2 * nb_loops + 1; i++)
+		{
+		  /* S - gb1 */
+		  /* T - gb2 */
+		  /* S -> T, T - S >=1 */
+		  /* p is alternating sequence 0,1,-1,2,-2,... */
+		  p = (i / 2) * (1 - (i % 2)*2);
+		  if (p == 0)
+		    {
+		      dep_constraints = initialize_dependence_polyhedron (scop, a, b);
+		      temp_matrix = AddANullRow (dep_constraints);
+		    }
+		  else if (p > 0)
+		    {
+		      /* assert B0, B1, ..., Bp-1 satisfy the equality */
+                
+		      temp_matrix = AddANullRow (temp_matrix);
+                
+		      row = temp_matrix->NbRows - 1; 
+                
+		      value_set_si (temp_matrix->p[row][0], 1);
+		      value_set_si (temp_matrix->p[row][p], -GBB_ALPHA (gb1)[p - 1]);
+		      value_set_si (temp_matrix->p[row][p + scop_nb_loops (scop)], GBB_ALPHA (gb2)[p - 1]);
+		      value_set_si (temp_matrix->p[row][temp_matrix->NbColumns - 1], -1);
+
+		      simplified = cloog_domain_matrix2domain (temp_matrix);
+		      temp_matrix = RemoveRow (temp_matrix, temp_matrix->NbRows - 1);
+
+		      if (!is_empty_polyhedron (simplified))
+			{
+			  ddp = initialize_data_dependence_polyhedron (true, simplified, p, a, b);
+			  VEC_safe_push (ddp_p, heap, ddps, ddp);
+			  break;
+			}
+		    }
+		  else if (p < 0)
+		    {
+                
+		      /* TODO: do not forget about memory leaks,
+			 temp_matrix is a new matrix!  */
+		      temp_matrix = AddANullRow (temp_matrix);
+                
+		      row = temp_matrix->NbRows - 1; 
+		      value_set_si (temp_matrix->p[row][-p], -GBB_ALPHA (gb1)[-p - 1]);
+		      value_set_si (temp_matrix->p[row][-p + scop_nb_loops (scop)], GBB_ALPHA (gb2)[-p - 1]);
+
+		      simplified = cloog_domain_matrix2domain (temp_matrix);
+                
+		      if (statement_precedes_p (scop, gb1, DR_STMT (a), gb2, DR_STMT (b), -p))
+			{
+			  ddp = initialize_data_dependence_polyhedron (false, simplified, -p, a, b);
+			  VEC_safe_push (ddp_p, heap, ddps, ddp);
+			  break;
+			}
+		    }
+		}    
+    }
+
+  rdg = new_graph (VEC_length (tree, stmts));
+  create_rdg_vertices (rdg, stmts);
+
+  for (i = 0; VEC_iterate (ddp_p, ddps, i, ddp); i++)
+    {
+      /* TODO: replace find_vertex_for_stmt with rdg_vertex_for_stmt.  */
+      va = find_vertex_for_stmt (rdg, DR_STMT (ddp->a));
+      vb = find_vertex_for_stmt (rdg, DR_STMT (ddp->b));
+      e = add_edge (rdg, va, vb);
+      e->data = ddp;
+    }
+
+  VEC_free (tree, heap, stmts);
+  return rdg;  
+}
+
+/* For each basic block in SCOP, build its dynamic schedule.  */
+
+static void
+build_scop_alpha (scop_p scop)
+{
+  unsigned i, j;
+  graphite_bb_p gb;
+  unsigned nb = scop_nb_loops (scop);
+  struct loop *ploop, *loop;
+  struct loop_to_cloog_loop_str tmp, *slot; 
+
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+    {
+      GBB_ALPHA (gb) = lambda_vector_new (nb);
+      loop = GBB_BB (gb)->loop_father;
+
+      for (j = 0; VEC_iterate (loop_p, loop->superloops, j, ploop); j++)
+	if (loop_in_scop_p (ploop, scop))
+	  {
+	    tmp.loop_num = ploop->num;
+	    slot = (struct loop_to_cloog_loop_str *) 
+	      htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp);
+	    GBB_ALPHA (gb) [slot->loop_position] = 1;
+	  }
+
+      if (loop_in_scop_p (loop, scop))
+	{
+	  tmp.loop_num = loop->num;
+	  slot = (struct loop_to_cloog_loop_str *)
+	    htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp);
+	  GBB_ALPHA (gb) [slot->loop_position] = 1;
+	}
+    }
+}
+
+/* Dumps the dependence graph G to file F.  */
+
+static void
+dump_dependence_graph (FILE *f, struct graph *g)
+{
+  int i;
+  struct graph_edge *e;
+
+  for (i = 0; i < g->n_vertices; i++)
+    {
+      if (!g->vertices[i].pred
+	  && !g->vertices[i].succ)
+	continue;
+
+      fprintf (f, "vertex: %d (%d)\nStatement: ", i, g->vertices[i].component);
+      print_generic_expr (f, RDGV_STMT (&(g->vertices[i])), 0);
+      fprintf (f, "\n-----------------\n");
+      
+      for (e = g->vertices[i].pred; e; e = e->pred_next)
+        {
+          fprintf (f, "edge %d -> %d\n", e->src, i);
+          struct data_dependence_polyhedron *ddp = RDGE_DDP (e);
+          if (ddp->polyhedron != NULL)
+            {
+              cloog_domain_print (f, ddp->polyhedron); 
+            }
+          fprintf (f, "-----------------\n");
+        }
+
+      for (e = g->vertices[i].succ; e; e = e->succ_next)
+        {
+          fprintf (f, "edge %d -> %d\n", i, e->dest);
+          struct data_dependence_polyhedron *ddp = RDGE_DDP (e);
+          if (ddp->polyhedron != NULL)
+            {
+              cloog_domain_print (f, ddp->polyhedron); 
+            }
+          fprintf (f, "-----------------\n");
+        }
+      fprintf (f, "\n");
+    }
 }
 
 /* Perform a set of linear transforms on LOOPS.  */
