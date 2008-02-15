@@ -1830,41 +1830,6 @@ build_rdg_all_levels (scop_p scop)
   return rdg;  
 }
 
-/* For each basic block in SCOP, build its dynamic schedule.  */
-
-static void
-build_scop_alpha (scop_p scop)
-{
-  unsigned i, j;
-  graphite_bb_p gb;
-  unsigned nb = scop_nb_loops (scop);
-  struct loop *ploop, *loop;
-  struct loop_to_cloog_loop_str tmp, *slot; 
-
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    {
-      GBB_ALPHA (gb) = lambda_vector_new (nb);
-      loop = GBB_BB (gb)->loop_father;
-
-      for (j = 0; VEC_iterate (loop_p, loop->superloops, j, ploop); j++)
-	if (loop_in_scop_p (ploop, scop))
-	  {
-	    tmp.loop_num = ploop->num;
-	    slot = (struct loop_to_cloog_loop_str *) 
-	      htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp);
-	    GBB_ALPHA (gb) [slot->loop_position] = 1;
-	  }
-
-      if (loop_in_scop_p (loop, scop))
-	{
-	  tmp.loop_num = loop->num;
-	  slot = (struct loop_to_cloog_loop_str *)
-	    htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp);
-	  GBB_ALPHA (gb) [slot->loop_position] = 1;
-	}
-    }
-}
-
 /* Dumps the dependence graph G to file F.  */
 
 static void
@@ -1915,6 +1880,7 @@ graphite_transform_loops (void)
 {
   unsigned i;
   scop_p scop;
+  struct graph * rdg = NULL;
 
   current_scops = VEC_alloc (scop_p, heap, 3);
 
@@ -1938,6 +1904,10 @@ graphite_transform_loops (void)
 	continue;
 
       build_scop_data_accesses (scop);
+
+      if (0)
+	build_rdg_all_levels (scop);
+
       gloog (scop, find_transform (scop));
     }
 
@@ -1947,6 +1917,8 @@ graphite_transform_loops (void)
       print_scops (dump_file, 2);
       fprintf (dump_file, "\nnumber of SCoPs: %d\n",
 	       VEC_length (scop_p, current_scops));
+      if (0)
+	dump_dependence_graph (dump_file, rdg);
     }
 
   free_scops (current_scops);

@@ -1,3 +1,9 @@
+2008-02-15  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+        * graphite.c (build_scop_alpha): Removed.
+	(graphite_transform_loops): Add a dummy call to build_all_rdg_levels
+        and dump_dependence_graph to avoid compiler warnings.
+
 2008-02-14  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
         * tree-data-ref.c (dr_may_alias_p, create_rdg_vertices): Extern.
