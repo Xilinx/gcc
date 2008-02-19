@@ -454,15 +454,6 @@ basilys_garbcoll (size_t wanted, bool needfull)
   if (basilys_prohibit_garbcoll)
     fatal_error ("basilys garbage collection prohibited");
   basilys_nb_garbcoll++;
-#if ENABLE_CHECKING
-#warning debug message garbcoll start
-  if (debughack_file)
-    {
-      fprintf (debughack_file, "%s:%d start garbcoll #%ld",
-	       basename (__FILE__), __LINE__, basilys_nb_garbcoll);
-      fflush (debughack_file);
-    }
-#endif
   basilys_check_call_frames (BASILYS_ANYWHERE, "before garbage collection");
   gcc_assert ((char *) basilys_startalz < (char *) basilys_endalz);
   gcc_assert ((char *) basilys_curalz >= (char *) basilys_startalz
@@ -603,16 +594,6 @@ basilys_garbcoll (size_t wanted, bool needfull)
   ggc_free (bscanvec);
   bscanvec = NULL;
   basilys_check_call_frames (BASILYS_NOYOUNG, "after garbage collection");
-#if ENABLE_CHECKING
-#warning debug message garbcoll end
-  if (debughack_file)
-    {
-      fprintf (debughack_file, "%s:%d end %s garbcoll #%ld",
-	       basename (__FILE__), __LINE__,
-	       needfull ? "full" : "minor", basilys_nb_garbcoll);
-      fflush (debughack_file);
-    }
-#endif
 }
 
 
@@ -3722,11 +3703,13 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *srcfile)
   lt_ptr dlsy = 0;
   typedef basilys_ptr_t startroutine_t (basilys_ptr_t);
   startroutine_t *starout = 0;
+  int srcpathlen = 0;
   BASILYS_ENTERFRAME (3, NULL);
 #define modulv curfram__.varptr[0]
 #define mdatav curfram__.varptr[1]
   mdatav = modata_p;
   srcpath = xstrdup (srcfile);
+  srcpathlen = strlen(srcpath);
   shobjpath = 0;
   debugeprintf ("basilysgc_compile srcfile=%s", srcfile);
   if (access (srcpath, R_OK))
@@ -3749,10 +3732,33 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *srcfile)
      MacOSX, etc...
 
   **/
-  shobjpath = make_temp_file (".so");
-  debugeprintf ("basilysgc_compile srcpath=%s shobjpath=%s",
-		srcpath, shobjpath);
-  compile_to_dyl (srcpath, shobjpath);
+
+  /* as a special case, if the srcpath is actually a loadable dynamic
+     library *.so *.la *.dylib we just load it, avoiding to compile
+     the C file; this should at least make many runs faster; but
+     really we should also search the *.so library somewhere to avoid
+     compiling it */
+  /*** @@@ this really should be configured at build time and depends
+       of the system running GCC */
+  if (/* srcpath ends with .so on Linux */
+      (srcpathlen > 3 && !strcmp(srcpath+srcpathlen-3, ".so"))
+      || (/* srcpath ends with .la for every libtool */
+	  srcpathlen > 3 && !strcmp(srcpath+srcpathlen-3, ".la"))
+      || (/* srcpath ends with .dylib on MacOSX */
+	  srcpathlen > 6 &&  !strcmp(srcpath+srcpathlen-6, ".dylib"))
+      )
+    {
+      /* special case we directly load a dynamic library */
+      shobjpath = srcpath;
+    }
+  else 
+    {
+      /* general case we compile the C source into a dynamic library */
+      shobjpath = make_temp_file (".so");
+      debugeprintf ("basilysgc_compile srcpath=%s shobjpath=%s",
+		    srcpath, shobjpath);
+      compile_to_dyl (srcpath, shobjpath);
+    };
   /** end of code to be improved by some GlobalGcc partner; everything
       below is ok @@@ */
   dlh = lt_dlopenext (shobjpath);
@@ -3772,6 +3778,7 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *srcfile)
      (void *) dlsy);
   modulv = (*starout) (mdatav);
   debugeprintvalue ("modulv after calling start_module_basilys", modulv);
+  /* we never free shobjpath and we never release the shared library! */
   BASILYS_EXITFRAME ();
   return modulv;
 #undef mdatav
@@ -4934,25 +4941,6 @@ basilys_initialize (void)
   const char *randomseed = 0;
   if (inited)
     return;
-#if ENABLE_CHECKING
-#warning basile debogue temporaire
-  {
-    char nom_debogue[200];
-    snprintf (nom_debogue, sizeof (nom_debogue),
-	      "%s/tmp/debughack_basilys", getenv ("HOME"));
-    debughack_file = fopen (nom_debogue, "w");
-    if (debughack_file)
-      {
-	time_t maintenant = 0;
-	time (&maintenant);
-	fprintf (debughack_file,
-		 "# fichier %s pid %d du %s\n compilé %s @ %s",
-		 nom_debogue, (int) getpid (), ctime (&maintenant),
-		 __DATE__, __TIME__);
-	fflush (debughack_file);
-      }
-  }
-#endif
   seed = 0;
   randomseed = get_random_seed (false);
   gcc_assert (randomseed != (char *) 0);
@@ -4990,16 +4978,6 @@ basilys_initialize (void)
   debugeprintf
     ("basilys_initialize before initial_command command_string=%s",
      basilys_command_string);
-#if ENABLE_CHECKING
-#warning basile debogue temporaire ici
-  if (debughack_file)
-    {
-      fprintf (debughack_file,
-	       "%s:%d apres initial_command command_string=%s\n",
-	       basename (__FILE__), __LINE__, basilys_command_string);
-      fflush (debughack_file);
-    }
-#endif
   if (basilys_magic_discr
       ((BASILYSG (INITIAL_COMMAND_DISPATCHER))) == OBMAG_OBJECT
       && BASILYSGOB (INITIAL_COMMAND_DISPATCHER)->obj_len >=
@@ -5027,16 +5005,6 @@ basilys_initialize (void)
     }
   debugeprintf ("basilys_initialize ended with %ld GarbColl, %ld fullGc",
 		basilys_nb_garbcoll, basilys_nb_full_garbcoll);
-#if ENABLE_CHECKING
-#warning basile debogue temporaire final
-  if (debughack_file)
-    {
-      fprintf (debughack_file, "%s:%d fini compilé %s @ %s\n",
-	       basename (__FILE__), __LINE__, __DATE__, __TIME__);
-      fclose (debughack_file);
-      debughack_file = NULL;
-    }
-#endif
 }
 
 
