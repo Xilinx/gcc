@@ -308,6 +308,212 @@ AC_CHECK_SIZEOF(long)
 AC_CHECK_TYPES([long long], [AC_CHECK_SIZEOF(long long)])
 AC_CHECK_TYPES([__int64], [AC_CHECK_SIZEOF(__int64)])
 
+################################################
+##### Basilys specific stuff
+
+################
+# Check for PPL (Parma Polyhedral Library)
+ppllibs=
+pplinc=
+have_ppl=yes
+
+AC_ARG_WITH(ppl, [  --with-ppl=PATH        Specify prefix directory for installed Parma Polyedra Library (PPL)
+                          Equivalent to --with-ppl-include=PATH/include
+                          plus --with-ppl-lib=PATH/lib])
+AC_ARG_WITH(ppl_include, [  --with-ppl-include=PATH Specify directory for installed PPL include files])
+AC_ARG_WITH(ppl_lib, [  --with-ppl-lib=PATH     Specify the directory for the installed PPL library])
+
+
+if test "x$with_ppl" != x; then
+  ppllibs="-L$with_ppl/lib -lppl_c -lppl  $ppllibs"
+  pplinc="-I$with_ppl/include"
+fi
+
+if test "x$ppl_include" != x; then
+  pplinc="-I$ppl_include $pplinc"
+fi
+
+if test "x$ppl_lib" != x; then
+   ppllibs="-L$ppl_lib -lppl_c -lppl  $ppllibs"
+fi
+
+## check for Parma Polyedra Lib
+saved_CFLAGS="$CFLAGS"
+saved_LIBS="$LIBS"
+CFLAGS="$CFLAGS $pplinc $gmpinc $ppllibs $gmplibs"
+AC_MSG_CHECKING([for correct version of ppl_c.h])
+AC_TRY_LINK([#include <ppl_c.h>],[
+ppl_version_major(); ], [AC_MSG_RESULT([yes]); have_ppl=yes], [AC_MSG_RESULT([no]); have_ppl=no])
+
+# one some systems, PPL requires an additional C++ wrapping library for GMP 
+# namely -lgmpxx ahead of -lgmp
+if test x"$have_ppl" != xyes; then
+  saved_LIBS="$LIBS"
+  ppllibs="-lgmpxx $ppllibs"
+  #maybe we should do:: gmplibs=`echo "$gmplibs" | sed -e 's/-lgmp/-lgmpxx -lgmp/'`
+  CFLAGS="$CFLAGS $pplinc $gmpinc $ppllibs $gmplibs"
+  AC_MSG_CHECKING([for libgmpxx needed by ppl])
+  AC_TRY_LINK([#include <ppl_c.h>],[
+  ppl_version_major(); ], [AC_MSG_RESULT([yes]); have_ppl=yes], [AC_MSG_RESULT([no]); have_ppl=no])
+fi
+if test x"$have_ppl" = xyes; then
+  AC_DEFINE(HAVE_PARMAPOLY, 1, [Define if Parma Polyhedra Library is in use.])
+fi
+LIBS="$saved_LIBS"
+CFLAGS="$saved_CFLAGS"
+
+if test -d ${srcdir}/gcc && test x$have_ppl != xyes; then
+  AC_MSG_WARN([Some passes of GCC require PPL 0.9+.
+Try the --with-ppl option to specify the installed PPL location,
+or specify separately --with-ppl-include=DIRINCL  --with-ppl-lib=DIRLIB.
+Copies of this library source code can be found at its respective
+hosting site as well as at ftp://gcc.gnu.org/pub/gcc/infrastructure/.
+See also http://gcc.gnu.org/install/prerequisites.html for additional info.])
+fi
+
+# Flags needed for PPL
+AC_SUBST(ppllibs)
+AC_SUBST(pplinc)
+ 
+
+
+################
+# Check for LTDL (Libtool dynamic loader)
+ltdllibs="-lltdl"
+ltdlinc=
+have_ltdl=yes
+
+AC_ARG_WITH(ltdl, [  --with-ltdl=PATH        Specify prefix directory for installed LibTool Dynamic Loader library
+                          Equivalent to --with-ltdl-include=PATH/include
+                          plus --with-ltdl-lib=PATH/lib])
+
+AC_ARG_WITH(ltdl_include, [  --with-ltdl-include=PATH Specify directory for installed LTDL include files])
+AC_ARG_WITH(ltdl_lib, [  --with-ltdl-lib=PATH     Specify the directory for the installed LTDL library])
+
+
+if test "x$with_ltdl" != x; then
+  ltdllibs="-L$with_ltdl/lib -lltdl"
+  ltdlinc="-I$with_ltdl/include"
+fi
+
+if test "x$ltdl_include" != x; then
+  ltdlinc="-I$ltdl_include $ltdlinc"
+fi
+
+if test "x$ltdl_lib" != x; then
+   ltdllibs="-L$ltdl_lib -lltdl  $ltdllibs"
+fi
+
+ltdl_ldflags=""
+
+saved_CFLAGS="$CFLAGS"
+saved_LIBS="$LIBS"
+saved_LDFLAGS="$LD_FLAGS"
+CFLAGS="$CFLAGS $ltdlinc"
+LIBS="$LIBS $ltdllibs"
+LDFLAGS="$LDFLAGS -rdynamic"
+AC_MSG_CHECKING([for  LibTool Dynamic Loader])
+AC_TRY_LINK([#include <ltdl.h>],[
+  lt_dlhandle h;
+  lt_dlinit ();
+  h = lt_dlopen ((const char *)0);
+], [AC_MSG_RESULT([yes]); have_ltdl=yes], [AC_MSG_RESULT([no]); have_ltdl=no])
+
+if test "x$have_ltdl" != xyes; then
+  AC_MSG_WARN([Some passes of GCC require LibTool Dynamic Loader.
+Try the --with-ltdl option to specify the installed LTDL location.
+Copies of this library source code can be found at its respective
+hosting site as well as at ftp://gcc.gnu.org/pub/gcc/infrastructure/.
+See also http://gcc.gnu.org/install/prerequisites.html for additional info.])
+else
+   AC_DEFINE(HAVE_LIBTOOLDYNL, 1,
+	     [Define if Libtool dynamic linker is in use.])
+   ltdl_ldflags="-rdynamic"
+fi
+
+CFLAGS="$saved_CFLAGS"
+LIBS="$saved_LIBS"
+LDFLAGS="$saved_LDFLAGS"
+
+# Flags needed for LTDL
+AC_SUBST(ltdllibs)
+AC_SUBST(ltdlinc)
+AC_SUBST(ltdl_ldflags)
+
+
+# for debugging only
+echo '%!%' after LTDL LIBS= $LIBS  CFLAGS= $CFLAGS
+
+# ------------------------
+# Compiler probing support
+# ------------------------
+enabled_compiler_probe=no
+
+AC_ARG_ENABLE(compiler-probe,
+[  --enable-compiler-probe        Enable instrumenting probe of compiler
+                                  only useful for compiler hackers or
+				  users expecting huge compilation times;
+				  this could slow down the compiler
+				  [hence is disabled by default].
+],
+enabled_compiler_probe=$enableval,
+enabled_compiler_probe=no)
+
+if test "$enabled_compiler_probe" = "yes" ; then
+   AC_MSG_CHECKING([for features required for compiler probe])
+## we check specifically for the Posix/SuS (Single Unix Spec) select,
+## for the SIGPOLL SuS signal handled by SuS sigaction
+## and for fcntl F_SETOWN available in Linux, *BSD, Solaris
+AC_TRY_COMPILE([
+/* testing features for compiler probe */
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/select.h>
+#include <signal.h>
+#include <string.h>
+
+volatile sig_atomic_t my_flag;
+static void my_signal_handler(int sig) 
+{if (sig == SIGPOLL) my_flag=1;}
+],
+[
+  fd_set rfs;
+  int fd = 1;
+  struct timeval tv;
+  struct sigaction sa;
+  FD_ZERO (&rfs);
+  FD_SET (0, &rfs);
+  tv.tv_sec = 0;
+  tv.tv_usec = 500000;
+  /* Posix/Single Unix Spec select */
+  if (select (1, &rfs, (fd_set *) 0, (fd_set *) 0, &tv))
+    return 0;
+  /* Posix/SuS signal */
+  memset (&sa, 0, sizeof (sa));
+  sa.sa_handler = my_signal_handler;
+  if (sigaction (SIGPOLL, &sa, (struct sigaction *) 0))
+    return 0;
+  /* Linux, Solaris, and most BSD have F_SETOWN */
+  if (fcntl (fd, F_SETOWN, (long) getpid ()))
+    return 0;
+  return 0;
+],
+[AC_MSG_RESULT([yes]);
+ enabled_compiler_probe=yes;
+ AC_DEFINE(ENABLE_COMPILER_PROBE, 1, [Define if compiler probe is enabled.])
+ COMPILER_PROBE=compiler-probe.o
+], 
+[AC_MSG_RESULT([no]); 
+ AC_MSG_WARN([Your system lacks the required features for compiler probing.
+                Hence compiler probe is disabled.]);
+ enabled_compiler_probe=no]
+);
+fi
+
+AC_SUBST(COMPILER_PROBE)
+###################### end of basilys specific stuff
+
+
 # ---------------------
 # Warnings and checking
 # ---------------------

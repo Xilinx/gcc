@@ -349,6 +349,15 @@ extern int errno;
 #define WCOREFLG 0200
 #endif
 
+
+/* the compiler probe */
+#if defined(ENABLE_COMPILER_PROBE) && ENABLE_COMPILER_PROBE
+/* <unistd.h> and <fcntl.h> and <string.h> have already been included
+   and the following includes have been checked by autoconf */
+#include <sys/select.h>
+#include <signal.h>
+#endif
+
 /* The HAVE_DECL_* macros are three-state, undefined, 0 or 1.  If they
    are defined to 0 then we must provide the relevant declaration
    here.  These checks will be in the undefined state while configure

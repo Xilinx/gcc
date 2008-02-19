@@ -32,6 +32,15 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include <signal.h>
 
+/* Basilys needs the Parma Polyhedral Library & the Libtool dynamic loader */
+#if HAVE_PARMAPOLY 
+#include <ppl_c.h>
+#endif 
+
+#if HAVE_LIBTOOLDYNL
+#include <ltdl.h>
+#endif 
+
 #ifdef HAVE_SYS_RESOURCE_H
 # include <sys/resource.h>
 #endif
@@ -81,6 +90,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "alloc-pool.h"
 #include "tree-mudflap.h"
+#include "compiler-probe.h"
 #include "tree-pass.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
@@ -98,6 +108,11 @@ along with GCC; see the file COPYING3.  If not see
 #ifdef XCOFF_DEBUGGING_INFO
 #include "xcoffout.h"		/* Needed for external data
 				   declarations for e.g. AIX 4.x.  */
+#endif
+
+/* we don't include basilys.h but declare its initializer here */
+#if HAVE_LIBTOOLDYNL && HAVE_PARMAPOLY
+extern void basilys_initialize(void); /* in basilys.c */
 #endif
 
 static void general_init (const char *);
@@ -1669,6 +1684,19 @@ general_init (const char *argv0)
   line_table->reallocator = realloc_for_line_map;
   init_ttree ();
 
+  /* Basilys needs PARMAPOLY & LIBTOOLDYNL */
+#if HAVE_PARMAPOLY
+  /* Initialize the Parma Polyhedra Library. */
+  if (ppl_initialize () <0) 
+    fatal_error ("failed to initialize Parma Polyedra Library");
+#endif
+
+#if HAVE_LIBTOOLDYNL
+  /* Initialize the Libtool Dynamic Loader */
+  if (lt_dlinit() > 0)
+    fatal_error ("failed to initialize Libtool Dynamic Loader");
+#endif
+
   /* Initialize register usage now so switches may override.  */
   init_reg_sets ();
 
@@ -2242,6 +2270,12 @@ do_compile (void)
       if (!no_backend)
 	backend_init ();
 
+#if ENABLE_COMPILER_PROBE
+      /* just to be sure the probe loads the input file */
+      (void) comprobe_file_rank(main_input_filename);
+#endif
+
+
       /* Language-dependent initialization.  Returns true on success.  */
       if (lang_dependent_init (main_input_filename))
 	compile_file ();
@@ -2274,9 +2308,26 @@ toplev_main (unsigned int argc, const char **argv)
 
   init_local_tick ();
 
+#if ENABLE_COMPILER_PROBE
+  /* Initialize the compiler probe (may install a SIGIO handler and
+     uses the random seed) */
+  comprobe_initialize();
+#endif
+
+#if HAVE_LIBTOOLDYNL && HAVE_PARMAPOLY
+  /* initialize basilys if needed */
+  if (flag_basilys)
+    basilys_initialize();
+#endif
+
   /* Exit early if we can (e.g. -help).  */
   if (!exit_after_options)
     do_compile ();
+
+#if ENABLE_COMPILER_PROBE
+  /* Finish the compiler probe (may wait) */
+  comprobe_finish();
+#endif
 
   if (errorcount || sorrycount)
     return (FATAL_EXIT_CODE);

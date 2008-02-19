@@ -41,6 +41,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "opts.h"
 
+#include "compiler-probe.h"
+/* we just need to kill the compiler probe on internal|fatal errors */
 
 /* Prototypes.  */
 static char *build_message_string (const char *, ...) ATTRIBUTE_PRINTF_1;
@@ -588,6 +590,8 @@ fatal_error (const char *gmsgid, ...)
   report_diagnostic (&diagnostic);
   va_end (ap);
 
+  comprobe_forced_kill();
+
   gcc_unreachable ();
 }
 
@@ -606,6 +610,8 @@ internal_error (const char *gmsgid, ...)
   report_diagnostic (&diagnostic);
   va_end (ap);
 
+  comprobe_forced_kill();
+  
   gcc_unreachable ();
 }
 

@@ -708,6 +708,22 @@ DEFPARAM (PARAM_USE_CANONICAL_TYPES,
 	  "Whether to use canonical types",
 	  1, 0, 1)
 
+/**** stuff for Basilys runtime */
+
+/* the Basilys minor zone size for its own copying garbage collector */
+DEFPARAM (PARAM_BASILYS_MINOR_ZONE,
+	 "basilys-minor-zone",
+	 "size in kilowords (one word = one pointer) of the minor zone for the specialized copying basilys collector",
+	 256, 128, 32768)
+
+/* paramater tuning the frequency of full garbage collection in Basilys */
+DEFPARAM (PARAM_BASILYS_FULL_FREQ,
+	 "basilys-full-freq",
+	 "tuning the frequency of full garbage collection in the specialized basilys collector",
+	 16, 8, 128)
+/**** end of Basilys stuff */
+
+
 DEFPARAM (PARAM_MAX_PARTIAL_ANTIC_LENGTH,
 	  "max-partial-antic-length",
 	  "Maximum length of partial antic set when performing tree pre optimization",

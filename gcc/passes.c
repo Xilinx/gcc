@@ -102,6 +102,9 @@ along with GCC; see the file COPYING3.  If not see
 				   declarations for e.g. AIX 4.x.  */
 #endif
 
+
+#include "compiler-probe.h"
+
 /* This is used for debugging.  It allows the current pass to printed
    from anywhere in compilation.  */
 struct tree_opt_pass *current_pass;
@@ -546,7 +549,8 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_pure_const); 
   NEXT_PASS (pass_ipa_type_escape);
   NEXT_PASS (pass_ipa_pta);
-  NEXT_PASS (pass_ipa_struct_reorg);  
+  NEXT_PASS (pass_ipa_struct_reorg); 
+  NEXT_PASS (pass_basilys); 
   *p = NULL;
 
   /* These passes are run after IPA passes on every function that is being
@@ -677,6 +681,11 @@ init_optimization_passes (void)
       NEXT_PASS (pass_mark_used_blocks);
       NEXT_PASS (pass_cleanup_cfg_post_optimizing);
     }
+
+#if ENABLE_COMPILER_PROBE
+  NEXT_PASS(pass_compiler_probe);
+#endif
+
   NEXT_PASS (pass_warn_function_noreturn);
   NEXT_PASS (pass_free_datastructures);
   NEXT_PASS (pass_mudflap_2);
@@ -1065,6 +1074,10 @@ execute_one_pass (struct tree_opt_pass *pass)
 {
   bool initializing_dump;
   unsigned int todo_after = 0;
+#if ENABLE_COMPILER_PROBE
+  static char cprobuf[80];
+  memset(cprobuf, 0, sizeof(cprobuf));
+#endif
 
   current_pass = pass;
   /* See if we're supposed to run this pass.  */
@@ -1088,6 +1101,13 @@ execute_one_pass (struct tree_opt_pass *pass)
   do_per_function (verify_curr_properties,
 		   (void *)(size_t)pass->properties_required);
 #endif
+
+  if (pass->name && comprobe_replf) {
+    static char buf[80];
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf)-1, "pass %s", pass->name);
+    comprobe_show_message(buf);
+  }
 
   /* If a dump file name is present, open it if enabled.  */
   if (pass->static_pass_number != -1)
@@ -1119,7 +1139,15 @@ execute_one_pass (struct tree_opt_pass *pass)
   /* Do it!  */
   if (pass->execute)
     {
+      comprobe_check((snprintf(cprobuf, sizeof(cprobuf)-1, 
+			       "pass %s before execute", 
+			       pass->name?pass->name:"_"),
+		      cprobuf));
       todo_after = pass->execute ();
+      comprobe_check((snprintf(cprobuf, sizeof(cprobuf)-1, 
+			       "pass %s executed", 
+			       pass->name?pass->name:"_"),
+		      cprobuf));
       do_per_function (clear_last_verified, NULL);
     }
 

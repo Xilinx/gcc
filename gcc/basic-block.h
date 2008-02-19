@@ -335,6 +335,20 @@ enum bb_flags
   BB_NONTHREADABLE_BLOCK = 1 << 11
 };
 
+
+/* Basile adds a flag to accept RTL basic blocks in some special code
+   (like the compiler probe); declared in compiler-probe.h if enabled;
+   used to disable some asserts of BB_RTL flags in some
+   tree-flow-inline.h functons */
+#if ENABLE_COMPILER_PROBE
+extern int comprobe_bb_ok_rtl;
+#else
+#define comprobe_bb_ok_rtl 0
+#endif /*ENABLE_COMPILER_PROBE*/
+
+
+
+
 /* Dummy flag for convenience in the hot/cold partitioning code.  */
 #define BB_UNPARTITIONED	0
 

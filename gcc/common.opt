@@ -319,6 +319,37 @@ fauto-inc-dec
 Common Report Var(flag_auto_inc_dec) Init(1)
 Generate auto-inc/dec instructions
 
+;;;;;; basilys stuff
+; global GCC analysis by Basile (source file gcc/basilys.c)
+fbasilys
+Common Report Var(flag_basilys)  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
+Perform whole program static analysis by Basile; require -fwhole-program
+
+; debug flag for above analysis
+fbasilys-debug
+Common Report Var(flag_basilys_debug)  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
+Gives lots of debugging stuff for -fbasilys analysis
+
+; initial C file for above analysis
+fbasilys-init=
+Common Report Var(basilys_init_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
+Initial file for -fbasilys analysis (dynamic C mode)
+
+; command for basilys
+fbasilys-command=
+Common Report Var(basilys_command_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
+Initial command for basilys analysis 
+
+; argument string for basilys
+fbasilys-arg=
+Common Report Var(basilys_argument_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
+Initial argument for basilys analysis 
+
+
+
+
+;;;;;;;;;; end of basilys stuff
+
 ; -fcheck-bounds causes gcc to generate array bounds checks.
 ; For C, C++ and ObjC: defaults off.
 ; For Java: defaults to on.
@@ -369,6 +400,14 @@ Compare the results of several data dependence analyzers.
 fcommon
 Common Report Var(flag_no_common,0) Optimization
 Do not put uninitialized globals in the common section
+
+fcompiler-probe=
+Common Report Var(compiler_probe_string) RejectNegative Joined Condition(ENABLE_COMPILER_PROBE)
+Probe the compiler (using the comprobe protocol) with the given companion probing program
+
+fcompiler-probe-debug
+Common Report Var(flag_compiler_probe_debug)  RejectNegative  Condition(ENABLE_COMPILER_PROBE)
+Gives on stderr lot of debugging output for the compiler probe if enabled
 
 fcprop-registers
 Common Report Var(flag_cprop_registers) Optimization

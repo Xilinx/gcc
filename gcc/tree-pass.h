@@ -343,6 +343,10 @@ extern struct tree_opt_pass pass_early_local_passes;
 extern struct tree_opt_pass pass_ipa_increase_alignment;
 extern struct tree_opt_pass pass_ipa_function_and_variable_visibility;
 
+/* Basilys  passes */
+extern struct tree_opt_pass pass_basilys;
+
+
 extern struct tree_opt_pass pass_all_optimizations;
 extern struct tree_opt_pass pass_cleanup_cfg_post_optimizing;
 extern struct tree_opt_pass pass_free_cfg_annotations;

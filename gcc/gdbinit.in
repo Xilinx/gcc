@@ -129,6 +129,17 @@ document pbm
 Dump the bitmap that is in $ as a comma-separated list of numbers.
 end
 
+## for basilys
+set breakpoint pending	on
+define pby
+set basilys_dbgeprint ($)
+end
+
+document pby
+Print the basilys_ptr_t that is $.
+Works only when an inferior is executing.
+end
+
 # Put breakpoints at exit and fancy_abort in case abort is mapped
 # to either fprintf/exit or fancy_abort.
 b fancy_abort

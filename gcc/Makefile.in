@@ -194,6 +194,9 @@ build/gengtype-lex.o-warn = -Wno-error
 # SYSCALLS.c misses prototypes
 SYSCALLS.c.X-warn = -Wno-strict-prototypes -Wno-error
 
+## basilys.c contain tricky stuff 
+basilys.o-warn = -Wno-error
+
 # All warnings have to be shut off in stage1 if the compiler used then
 # isn't gcc; configure determines that.  WARN_CFLAGS will be either
 # $(GCC_WARN_CFLAGS), or nothing.
@@ -277,6 +280,17 @@ ZLIBINC = @zlibinc@
 # How to find GMP
 GMPLIBS = @GMPLIBS@
 GMPINC = @GMPINC@
+
+### for Basilys
+# How to find PPL (Parma Polyhedra Library)
+PPLLIBS = @ppllibs@
+PPLINC = @pplinc@
+
+# How to file LTDL (LibTool DynLoader)
+LTDLLIBS = @ltdllibs@
+LTDLINC = @ltdlinc@
+LTDL_LDFLAGS= @ltdl_ldflags@
+#### end of Basilys stuff
 
 CPPLIB = ../libcpp/libcpp.a
 CPPINC = -I$(srcdir)/../libcpp/include
@@ -658,7 +672,7 @@ COMPILERS = cc1$(exeext) @all_compilers@
 
 # List of things which should already be built whenever we try to use xgcc
 # to compile anything (without linking).
-GCC_PASSES=xgcc$(exeext) cc1$(exeext) specs $(EXTRA_PASSES)
+GCC_PASSES=xgcc$(exeext) cc1$(exeext) specs compile-basilys-defs $(EXTRA_PASSES)
 
 # Directory to link to, when using the target `maketest'.
 DIR = ../gcc
@@ -873,7 +887,8 @@ BUILD_LIBDEPS= $(BUILD_LIBIBERTY)
 
 # How to link with both our special library facilities
 # and the system's installed libraries.
-LIBS = @LIBS@ $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) $(LIBDECNUMBER)
+LIBS = @LIBS@ $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) $(LIBDECNUMBER) \
+     $(PPLLIBS) $(GMPLIBS)  $(LTDLLIBS) $(GMPLIBS)
 
 # Any system libraries needed just for GNAT.
 SYSLIBS = @GNAT_LIBEXC@
@@ -898,6 +913,7 @@ BUILD_ERRORS = build/errors.o
 # libintl.h will be found in ../intl if we are using the included libintl.
 INCLUDES = -I. -I$(@D) -I$(srcdir) -I$(srcdir)/$(@D) \
 	   -I$(srcdir)/../include @INCINTL@ \
+	   $(PPLINC) $(LTDLINC) \
 	   $(CPPINC) $(GMPINC) $(DECNUMINC)
 
 .c.o:
@@ -1003,6 +1019,7 @@ OBJS-common = \
 	alias.o \
 	alloc-pool.o \
 	auto-inc-dec.o \
+	basilys.o \
 	bb-reorder.o \
 	bitmap.o \
 	bt-load.o \
@@ -1250,7 +1267,8 @@ OBJS = $(OBJS-common) $(OBJS-md) $(OBJS-archive)
 
 OBJS-onestep = libbackend.o $(OBJS-archive)
 
-BACKEND = main.o @TREEBROWSER@ libbackend.a $(CPPLIB) $(LIBDECNUMBER)
+COMPILER_PROBE_OBJ =  @COMPILER_PROBE@
+BACKEND = main.o @TREEBROWSER@ $(COMPILER_PROBE_OBJ) libbackend.a $(CPPLIB) $(LIBDECNUMBER)
 
 MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
  insn-output.c insn-recog.c insn-emit.c insn-extract.c insn-peep.c \
@@ -1262,6 +1280,7 @@ MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
  $(EXTRA_PARTS) $(EXTRA_PROGRAMS) gcc-cross$(exeext) \
  protoize$(exeext) unprotoize$(exeext) \
  $(SPECS) collect2$(exeext) \
+ compile-basilys-defs \
  gcov-iov$(build_exeext) gcov$(exeext) gcov-dump$(exeext) \
  *.[0-9][0-9].* *.[si] *-checksum.c libbackend.a libgcc.mk
 
@@ -1553,7 +1572,7 @@ gcc-cross$(exeext): xgcc$(exeext)
 dummy-checksum.o : dummy-checksum.c
 
 cc1-dummy$(exeext): $(C_OBJS) dummy-checksum.o $(BACKEND) $(LIBDEPS)
-	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(C_OBJS) dummy-checksum.o \
+	$(CC) $(ALL_CFLAGS) $(LDFLAGS) $(LTDL_LDFLAGS) -o $@ $(C_OBJS) dummy-checksum.o \
 	  $(BACKEND) $(LIBS) $(GMPLIBS)
 
 cc1-checksum.c : cc1-dummy$(exeext) build/genchecksum$(build_exeext)
@@ -1562,7 +1581,7 @@ cc1-checksum.c : cc1-dummy$(exeext) build/genchecksum$(build_exeext)
 cc1-checksum.o : cc1-checksum.c
 
 cc1$(exeext): $(C_OBJS) cc1-checksum.o $(BACKEND) $(LIBDEPS)
-	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(C_OBJS) cc1-checksum.o \
+	$(CC) $(ALL_CFLAGS) $(LDFLAGS) $(LTDL_LDFLAGS) -o $@ $(C_OBJS) cc1-checksum.o \
 	  $(BACKEND) $(LIBS) $(GMPLIBS)
 
 #
@@ -2321,6 +2340,12 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
    $(EXPR_H) $(TM_H) $(RTL_H) $(TM_P_H) $(FUNCTION_H) output.h toplev.h \
    $(MACHMODE_H) $(TARGET_DEF_H) $(TARGET_H) $(GGC_H) gt-targhooks.h \
    $(OPTABS_H)
+
+#### added for Basilys
+basilys.o:  basilys.c  \
+   $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
+   tree-pass.h basilys.h gt-basilys.h
+### end of Basilys stuff
 
 toplev.o : toplev.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
    version.h $(RTL_H) $(FUNCTION_H) $(FLAGS_H) xcoffout.h input.h \
@@ -3099,6 +3124,7 @@ GTFILES = $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/dojump.c \
   $(srcdir)/emit-rtl.c $(srcdir)/except.c $(srcdir)/explow.c $(srcdir)/expr.c \
   $(srcdir)/function.c $(srcdir)/except.h \
+  $(srcdir)/basilys.h \
   $(srcdir)/gcse.c $(srcdir)/integrate.c $(srcdir)/lists.c $(srcdir)/optabs.c \
   $(srcdir)/profile.c $(srcdir)/regclass.c \
   $(srcdir)/reg-stack.c $(srcdir)/cfglayout.c $(srcdir)/cfglayout.h \
@@ -3116,6 +3142,8 @@ GTFILES = $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/tree-ssa-structalias.c $(srcdir)/tree-parloops.c \
   $(srcdir)/omp-low.c $(srcdir)/varpool.c \
   $(srcdir)/targhooks.c $(out_file) $(srcdir)/passes.c $(srcdir)/cgraphunit.c \
+  $(patsubst %.o, $(srcdir)/%.c, $(COMPILER_PROBE_OBJ) ) \
+  $(srcdir)/basilys.c \
   @all_gtfiles@
 
 GTFILES_H = $(subst /,-, $(patsubst $(srcdir)/%,gt-%, $(patsubst %.c,%.h, \
@@ -4464,3 +4492,11 @@ po/gcc.pot: force
 	$(MAKE) srcextra
 	AWK=$(AWK) $(SHELL) $(srcdir)/po/exgettext \
 		$(XGETTEXT) gcc $(srcdir)
+
+
+## definition for basilys internal compilation
+compile-basilys-defs:	
+	echo '#generated compile-basilys-defs' > $@
+	echo 'ALL_CFLAGS="' $(ALL_CFLAGS) '"' >> $@
+	echo 'ALL_CPPFLAGS="' -I$(PWD) $(ALL_CPPFLAGS) '"' >> $@
+### end of basilys stuff
