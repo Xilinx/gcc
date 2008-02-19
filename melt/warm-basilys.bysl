@@ -1,6 +1,5 @@
 ; -*- Lisp -*-
 ;; file warm-basilys.bysl
-;;;;; $Id: warm-basilys.bysl 293 2008-02-19 14:30:55Z basile $
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    Copyright 2008 Free Software Foundation, Inc.
 ;;    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
@@ -8870,4 +8869,4 @@
     ))
 
 (install_initial_command  (stringconst2val discr_string "compileseq") compileseq_command)
-;; eof $Id: warm-basilys.bysl 293 2008-02-19 14:30:55Z basile $
+;;; eof warm-basilys.bysl
