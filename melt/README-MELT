@@ -1,0 +1,95 @@
+## file melt/README.melt in melt-branch of GCC
+
+Please read the wiki page on http://gcc.gnu.org/wiki/MiddleEndLispTranslator
+and my GCC summit 2007 paper 
+Multi-stage construction of a global static analyser by Basile Starynkevitch, pages 143 - 152
+
+This directory contains melt files. MELT is a dialect of Lisp compiled
+into C code which should be compilable (by some strange basilys-gcc
+script invoking any GCC [or perhaps even another compiler?] with the
+appropriate -fPIC and -I options
+
+The MELT source files are called .bysl (sorry for the messy suffix)
+
+This basilys-gcc (which really should be named melt-gcc) should be something similar to
+########################## CUT HERE FILE basilys-gcc to be installed in your $PATH
+#! /bin/bash
+if [ ! -e $1 ]; then
+    echo $0: no input file $1 1>&2
+    exit 1
+fi
+cc="ccache gcc"
+if [ ! -z "$3" ]; then
+    cc=$3
+fi
+srcin=$1
+echo BasilysGcc $srcin 1>&2
+##***## CHANGE BELOW LINE APPROPRIATELY ACCORDING TO YOUR GCC BUILD DIRECTORY
+. /usr/src/Lang/basile-ggcc/_Obj/gcc/compile-basilys-defs
+# indent $srcin
+outn=$2
+if [ -z "$outn" ]; then
+    outn=$(basename $srcin .c).so
+fi
+rm $outn
+objn=$(basename $srcin .c).pic.o
+barn=$(basename $srcin .c)
+datf=$(tempfile -s .c -p bdat)
+md5src=$(md5sum $srcin)
+date "+const char basilys_compiled_timestamp[]=\"$barn %c\";" > $datf
+echo "const char basilys_md5[]=\"$md5src\";" >> $datf
+## ccache works only with a -c option
+$cc -time  -fPIC  -g3  $ALL_CFLAGS $ALL_CPPFLAGS $srcin -c -o $objn
+gcc -shared -fPIC $objn $datf -o $outn
+head -9 $datf
+rm -f $datf
+echo "Basilysgcc -shared -fPIC -fno-inline -g3 -Wextra -Wall $ALL_CFLAGS $ALL_CPPFLAGS $srcin -o $outn" 
+ls -l $outn* $objn*
+############################## END OF basilys-gcc
+
+However, you have to change the sourcing of /usr/src/Lang/basile-ggcc/_Obj/gcc/compile-basilys-defs
+into the sourcing of $YOURBUILDGCCDIR/gcc/compile-basilys-defs
+
+You might also compile *.bysl file with the contrib/cold-basilys.lisp
+using CLISP with a script coldbasilys similar to
+
+############################## CUT HERE file coldbasilys to be installed in your $PATH
+#! /usr/bin/clisp -C
+;; !#
+
+;; -*- lisp -*-
+
+(proclaim '(optimize (debug 0) (safety 1) (speed 3)))
+
+(let 
+( (argv 
+   EXT:*ARGS*
+   ))	
+     (format *error-output* "coldbasilys start ~s ~%" argv))
+
+
+(load "cold-basilys.lisp")
+
+(time (mapc (function handle-source-file) EXT:*ARGS*))
+
+#################################### end of coldbasilys
+
+I am sorry for all this temporary mess. As soon as warm-basilys.bysl
+is debugged, it should bootstrap itself in the following sense:
+
+  a *generated* warm-basilys.c exists somewhere; it is quite big (>300KLOC)
+
+  this generated file should be compiled (successfully) by the above
+  basilys-gcc script into a warm-basilys.so (to be put in a place to be defined)
+
+  this warm-basilys.so is dynamically loaded by cc1 thru 
+
+ gcc/cc1  -fbasilys -fbasilys-init=warm-basilys.so \
+          -fbasilys-command=compileseq -fbasilys-arg=warm-basilys.bysl \
+	  -frandom-seed=AbCdEfGhIj
+
+for debugging I usually add the  -fbasilys-debug -fdump-ipa-basilys flags which should not be needed
+
+You should also be able to generate this wam-basilys.c file with coldbasilys warm-basilys.bysl
+
+#### comments and questions to <basile@starynkevitch.net> 
