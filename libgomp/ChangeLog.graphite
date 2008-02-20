@@ -1,0 +1,11 @@
+2008-02-05  Antoniu Pop  <antoniu.pop@gmail.com>
+            Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Makefile.in: Regenerated.
+	* stream.c: New.
+	* libgomp.h (gomp_stream): New.
+	(gomp_stream_create, gomp_stream_used_space, gomp_stream_free_space,
+	gomp_stream_wait_used_space, gomp_stream_wait_free_space,
+	gomp_stream_push, gomp_stream_pop, gomp_stream_eos_p,
+	gomp_stream_set_eos, gomp_stream_destroy): Declared.
+	* Makefile.am (libgomp_la_SOURCES): Add dependence on stream.c.

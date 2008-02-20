@@ -218,6 +218,29 @@ struct gomp_thread
   gomp_sem_t release;
 };
 
+/* This structure represents a stream between tasks.  */
+
+typedef struct gomp_stream
+{
+  /* End of stream: true when producer has finished inserting elements.  */
+  bool eos_p;
+
+  /* First element of the stream.  */
+  unsigned first;
+
+  /* First empty element of the stream.  */
+  unsigned last;
+
+  /* Size in bytes of an element in the stream.  */
+  size_t size;
+
+  /* Size in bytes of the circular buffer.  */
+  unsigned count;
+
+  /* Circular buffer.  */
+  char *buffer;
+} *gomp_stream;
+
 /* ... and here is that TLS data.  */
 
 #ifdef HAVE_TLS
@@ -303,6 +326,19 @@ extern unsigned gomp_resolve_num_threads (unsigned);
 
 extern void gomp_init_num_threads (void);
 extern unsigned gomp_dynamic_max_threads (void);
+
+/* stream.c */
+
+gomp_stream gomp_stream_create (size_t, unsigned);
+unsigned gomp_stream_used_space (gomp_stream);
+unsigned gomp_stream_free_space (gomp_stream);
+void gomp_stream_wait_used_space (gomp_stream, unsigned);
+void gomp_stream_wait_free_space (gomp_stream, unsigned);
+void gomp_stream_push (gomp_stream, void *);
+void gomp_stream_pop (gomp_stream, void *);
+bool gomp_stream_eos_p (gomp_stream);
+void gomp_stream_set_eos (gomp_stream);
+void gomp_stream_destroy (gomp_stream);
 
 /* team.c */
 

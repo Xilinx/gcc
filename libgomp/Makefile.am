@@ -31,7 +31,8 @@ libgomp_la_LDFLAGS = $(libgomp_version_info) $(libgomp_version_script)
 
 libgomp_la_SOURCES = alloc.c barrier.c critical.c env.c error.c iter.c \
 	loop.c ordered.c parallel.c sections.c single.c team.c work.c \
-	lock.c mutex.c proc.c sem.c bar.c time.c fortran.c affinity.c
+	lock.c mutex.c proc.c sem.c bar.c time.c fortran.c affinity.c \
+	stream.c
 
 nodist_noinst_HEADERS = libgomp_f.h
 nodist_libsubinclude_HEADERS = omp.h
