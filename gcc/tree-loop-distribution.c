@@ -392,7 +392,17 @@ generate_builtin (struct loop *loop, bitmap partition, bool copy_p)
   /* If this is the last partition for which we generate code, we have
      to destroy the loop.  */
   if (res && !copy_p)
-    cancel_loop_tree (loop);
+    {
+      unsigned nbbs = loop->num_nodes;
+      basic_block src = loop_preheader_edge (loop)->src;
+      basic_block dest = single_exit (loop)->dest;
+      make_edge (src, dest, EDGE_FALLTHRU);
+      set_immediate_dominator (CDI_DOMINATORS, dest, src);
+      cancel_loop_tree (loop);
+
+      for (i = 0; i < nbbs; i++)
+	delete_basic_block (bbs[i]);
+    }
 
  end:
   free (bbs);
@@ -576,7 +586,8 @@ rdg_flag_uses (struct graph *rdg, int u, bitmap partition, bitmap loops,
 	      tree def_stmt = SSA_NAME_DEF_STMT (use);
 	      int v = rdg_vertex_for_stmt (rdg, def_stmt);
 
-	      if (v >= 0)
+	      if (v >= 0
+		  && !already_processed_vertex_p (processed, v))
 		rdg_flag_vertex_and_dependent (rdg, v, partition, loops,
 					       processed, part_has_writes);
 	    }
@@ -631,7 +642,7 @@ rdg_flag_vertex (struct graph *rdg, int v, bitmap partition, bitmap loops,
 }
 
 /* Flag in the bitmap PARTITION the vertex V and all its predecessors.
-   Alse flag their loop number in LOOPS.  */
+   Also flag their loop number in LOOPS.  */
 
 static void
 rdg_flag_vertex_and_dependent (struct graph *rdg, int v, bitmap partition,
@@ -724,7 +735,7 @@ DEF_VEC_P (rdgc);
 DEF_VEC_ALLOC_P (rdgc, heap);
 
 /* Flag all the nodes of RDG containing memory accesses that could
-   potentially belong arrays already accessed in the current
+   potentially belong to arrays already accessed in the current
    PARTITION.  */
 
 static void

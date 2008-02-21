@@ -1,3 +1,10 @@
+2008-02-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-loop-distribution.c (generate_builtin): After cancelling the
+	loop tree, also delete basic blocks.
+	(rdg_flag_uses): Stop recursion when a vertex has already been
+	processed.
+
 2008-02-15  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
         * graphite.c (build_scop_alpha): Removed.
