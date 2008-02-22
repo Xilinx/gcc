@@ -498,6 +498,7 @@ typedef struct rdg_edge
 #define RDGE_LEVEL(E)       ((struct rdg_edge *) ((E)->data))->level
 
 struct graph *build_rdg (struct loop *);
+struct graph *build_empty_rdg (int);
 void free_rdg (struct graph *);
 
 /* Return the index of the variable VAR in the LOOP_NEST array.  */

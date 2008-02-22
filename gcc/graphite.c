@@ -574,6 +574,7 @@ free_scop (scop_p scop)
   VEC_free (loop_p, heap, SCOP_LOOP_NEST (scop));
   VEC_free (tree, heap, SCOP_PARAMS (scop));
   cloog_program_free (SCOP_PROG (scop));
+  htab_delete (SCOP_LOOP2CLOOG_LOOP (scop)); 
   free (scop);
 }
 
@@ -1617,22 +1618,6 @@ initialize_dependence_polyhedron (scop_p scop,
   return dep_constraints;
 }
 
-/* Returns the index of STMT in RDG.  
-   TODO: remove this function, replace with rdg_vertex_for_stmt.  */
-
-static int
-find_vertex_for_stmt (const struct graph *rdg, const_tree stmt)
-{
-  int i;
-
-  for (i = 0; i < rdg->n_vertices; i++)
-    if (RDGV_STMT (&(rdg->vertices[i])) == stmt)
-      return i;
-
-  gcc_unreachable ();
-  return 0;
-}
-
 /* Returns a new dependence polyhedron for data references A and B.  */
 
 static struct data_dependence_polyhedron *
@@ -1814,14 +1799,13 @@ build_rdg_all_levels (scop_p scop)
 		}    
     }
 
-  rdg = new_graph (VEC_length (tree, stmts));
+  rdg = build_empty_rdg (VEC_length (tree, stmts));
   create_rdg_vertices (rdg, stmts);
 
   for (i = 0; VEC_iterate (ddp_p, ddps, i, ddp); i++)
     {
-      /* TODO: replace find_vertex_for_stmt with rdg_vertex_for_stmt.  */
-      va = find_vertex_for_stmt (rdg, DR_STMT (ddp->a));
-      vb = find_vertex_for_stmt (rdg, DR_STMT (ddp->b));
+      va = rdg_vertex_for_stmt (rdg, DR_STMT (ddp->a)); 
+      vb = rdg_vertex_for_stmt (rdg, DR_STMT (ddp->b));
       e = add_edge (rdg, va, vb);
       e->data = ddp;
     }

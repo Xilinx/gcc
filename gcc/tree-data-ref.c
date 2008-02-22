@@ -3984,7 +3984,7 @@ get_references_in_stmt (tree stmt, VEC (data_ref_loc, heap) **references)
 
 /* Stores the data references in STMT to DATAREFS.  If there is an unanalyzable
    reference, returns false, otherwise returns true.  NEST is the outermost
-   loop of the loop nest in that the references should be analyzed.  */
+   loop of the loop nest in which the references should be analyzed.  */
 
 bool
 find_data_references_in_stmt (struct loop *nest, tree stmt,
@@ -4727,6 +4727,19 @@ hash_stmt_vertex_del (void *e)
   free (e);
 }
 
+/* Build an empty Reduced Dependence Graph (RDG).  */
+
+struct graph *
+build_empty_rdg (int n_stmts)
+{
+  int nb_data_refs = 10;
+  struct graph *rdg = new_graph (n_stmts);
+
+  rdg->indexes = htab_create (nb_data_refs, hash_stmt_vertex_info,
+			      eq_stmt_vertex_info, hash_stmt_vertex_del);
+  return rdg;
+}
+
 /* Build the Reduced Dependence Graph (RDG) with one vertex per
    statement of the loop nest, and one edge per data dependence or
    scalar dependence.  */
@@ -4751,10 +4764,7 @@ build_rdg (struct loop *loop)
     goto end_rdg;
 
   stmts_from_loop (loop, &stmts);
-  rdg = new_graph (VEC_length (tree, stmts));
-
-  rdg->indexes = htab_create (nb_data_refs, hash_stmt_vertex_info,
-			      eq_stmt_vertex_info, hash_stmt_vertex_del);
+  rdg = build_empty_rdg (VEC_length (tree, stmts));
   create_rdg_vertices (rdg, stmts);
   create_rdg_edges (rdg, dependence_relations);
 
