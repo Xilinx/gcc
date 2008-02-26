@@ -1,3 +1,55 @@
+2008-02-25  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/29549
+        * Makefile.am: Add -fcx-fortran-rules to AM_CFLAGS for all of
+        libgfortran.
+        * Makefile.in: Regenerated.
+
+2008-02-25  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* m4/ifunction_logical.m4: Add casts to get rid of warnings.
+	* generated/all_l1.c: Regenerate.
+	* generated/all_l2.c: Regenerate.
+	* generated/all_l4.c: Regenerate.
+	* generated/all_l8.c: Regenerate.
+	* generated/all_l16.c: Regenerate.
+	* generated/any_l1.c: Regenerate.
+	* generated/any_l2.c: Regenerate.
+	* generated/any_l4.c: Regenerate.
+	* generated/any_l8.c: Regenerate.
+	* generated/any_l16.c: Regenerate.
+	* generated/count_1_l.c: Regenerate.
+	* generated/count_2_l.c: Regenerate.
+	* generated/count_4_l.c: Regenerate.
+	* generated/count_8_l.c: Regenerate.
+	* generated/count_16_l.c: Regenerate.
+
+2008-02-24  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/32841
+	* acinclude.m4: Don't use HAVE_MATH_H.
+	* configure: Regenerate.
+
+2008-02-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/35132
+	* io/transfer.c (next_record_w): Truncate after the last record for
+	STREAM I/O.
+
+	PR libfortran/34954
+	* io/transfer.c (data_transfer_init): Initialize dtp->rec if writing.
+
+	PR libfortran/34974
+	* io/transfer.c (formatted_transfer_scalar): Flush the buffer if skips
+	is less than zero. (next_record_w): Use sseek to position the file to
+	the max position reached.
+
+2008-02-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/35036
+	* write_float.def (output_float):  Add error checks for zero digits
+	after decimal point in E and D format specifiers.
+	
 2008-02-10  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libfortran/35063

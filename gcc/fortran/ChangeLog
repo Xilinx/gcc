@@ -1,3 +1,212 @@
+2008-02-25  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/34729
+	* trans-const.c (gfc_build_string_const): Don't call gettext.
+	(gfc_build_localized_string_const): New function.
+	* trans-const.h (gfc_build_localized_string_const): New prototype.
+	* trans.c (gfc_trans_runtime_check): Use
+	gfc_build_localized_string_const instead of gfc_build_string_const.
+	(gfc_call_malloc): Likewise.
+	(gfc_allocate_with_status): Likewise.
+	(gfc_allocate_array_with_status): Likewise.
+	(gfc_deallocate_with_status): Likewise.
+	(gfc_call_realloc): Likewise.
+	* trans-io.c (gfc_trans_io_runtime_check): Likewise.
+
+2008-02-24  Tobias Schlüter  <tobi@gcc.gnu.org>
+
+	* arith.c: Update copyright years.
+	* arith.h: Likewise.
+	* array.c: Likewise.
+	* bbt.c: Likewise.
+	* check.c: Likewise.
+	* data.c: Likewise.
+	* data.h: Likewise.
+	* decl.c: Likewise.
+	* dependency.c: Likewise.
+	* dependency.h: Likewise.
+	* dump-parse-tree.c: Likewise.
+	* error.c: Likewise.
+	* expr.c: Likewise.
+	* gfc-internals.texi: Likewise.
+	* gfortran.h: Likewise.
+	* gfortran.texi: Likewise.
+	* gfortranspec.c: Likewise.
+	* interface.c: Likewise.
+	* intrinsic.c: Likewise.
+	* intrinsic.h: Likewise.
+	* intrinsic.texi: Likewise.
+	* invoke.texi: Likewise.
+	* io.c: Likewise.
+	* iresolve.c: Likewise.
+	* iso-c-binding.def: Likewise.
+	* iso-fortran-env.def: Likewise.
+	* lang-specs.h: Likewise.
+	* lang.opt: Likewise.
+	* libgfortran.h: Likewise.
+	* match.c: Likewise.
+	* match.h: Likewise.
+	* matchexp.c: Likewise.
+	* misc.c: Likewise.
+	* module.c: Likewise.
+	* openmp.c: Likewise.
+	* options.c: Likewise.
+	* parse.c: Likewise.
+	* parse.h: Likewise.
+	* primary.c: Likewise.
+	* resolve.c: Likewise.
+	* scanner.c: Likewise.
+	* simplify.c: Likewise.
+	* st.c: Likewise.
+	* symbol.c: Likewise.
+	* target-memory.c: Likewise.
+	* target-memory.h: Likewise.
+	* trans-array.h: Likewise.
+	* trans-const.h: Likewise.
+	* trans-stmt.h: Likewise.
+	* trans-types.c: Likewise.
+	* trans-types.h: Likewise.
+	* types.def: Likewise.
+
+2008-02-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35223
+	* simplify.c (gfc_simplify_ibclr), (gfc_simplify_ibits),
+	(gfc_simplify_ibset): Remove call to range_check.
+	(simplify_cmplx), (gfc_simplify_dble), (gfc_simplify_float)
+	(gfc_simplify_real): Add call gfc_clear_ts to initialize the
+	temporary gfc_typspec variable.
+
+2008-02-24  Tobias Schlüter  <tobi@gcc.gnu.org>
+
+	* trans-array.c (gfc_conv_descriptor_data_get,
+	gfc_conv_descriptor_data_set_internal,
+	gfc_conv_descriptor_data_addr, gfc_conv_descriptor_offset,
+	gfc_conv_descriptor_dtype, gfc_conv_descriptor_dimension,
+	gfc_conv_descriptor_stride, gfc_conv_descriptor_lbound,
+	gfc_conv_descriptor_ubound, gfc_trans_create_temp_array,
+	gfc_conv_array_transpose, gfc_grow_array,
+	gfc_trans_array_constructor_subarray,
+	gfc_trans_array_constructor_value, gfc_trans_scalarized_loop_end,
+	gfc_array_init_size, gfc_array_allocate, gfc_array_deallocate,
+	gfc_conv_array_initializer, gfc_trans_array_bounds,
+	gfc_trans_auto_array_allocation, gfc_trans_dummy_array_bias,
+	gfc_get_dataptr_offset, gfc_conv_array_parameter,
+	gfc_trans_dealloc_allocated, get_full_array_size,
+	gfc_duplicate_allocatable, structure_alloc_comps): Use fold_buildN
+	instead of buildN.
+	* trans-expr.c (gfc_conv_expr_present, gfc_conv_missing_dummy,
+	gfc_conv_component_ref, gfc_conv_cst_int_power,
+	gfc_conv_function_call, gfc_trans_structur_assign): Likewise.
+	* trans-common.c (create_common): Likewise.
+	* trans-openmp.c (gfc_trans_omp_atomic, gfc_trans_omp_do):
+	Likewise.
+	* trans-const.c (gfc_conv_constant_to_tree): Likewise.
+	* trans-stmt.c (gfc_trans_goto, gfc_trans_return, gfc_trans_do,
+	gfc_trans_integer_select, gfc_trans_character_select,
+	gfc_trans_forall_loop, compute_overall_iter_number,
+	gfc_trans_forall_1, gfc_evaluate_where_mask, gfc_trans_allocate,
+	gfc_trans_deallocate): Likewise.
+	* trans.c (gfc_build_addr_expr, gfc_trans_runtime_check,
+	gfc_allocate_with_status, gfc_allocate_array_with_status,
+	gfc_deallocate_with_status): Likewise.
+	* f95-lang.c (gfc_truthvalue_conversion): Likewise.
+	* trans-io.c (set_parameter_const, set_parameter_value,
+	set_parameter_ref, set_string, set_internal_unit, io_result,
+	set_error_locus, nml_get_addr_expr, transfer_expr): Likewise.
+	* trans-decl.c (gfc_build_qualified_array, build_entry_thunks,
+	gfc_get_fake_result_decl, gfc_trans_auto_character_variable,
+	gfc_generate_function_code): Likewise.
+	* convert.c (convert): Likewise.
+	* trans-intrinsic.c (gfc_conv_intrinsic_conversion,
+	build_fixbound_expr, build_fix_expr, gfc_conv_intrinsic_aint,
+	gfc_conv_intrinsic_int, gfc_conv_intrinsic_imagpart,
+	gfc_conv_intrinsic_conjg, gfc_conv_intrinsic_abs,
+	gfc_conv_intrinsic_cmplx, gfc_conv_intrinsic_mod,
+	gfc_conv_intrinsic_dim, gfc_conv_intrinsic_dprod,
+	gfc_conv_intrinsic_ctime, gfc_conv_intrinsic_fdate,
+	gfc_conv_intrinsic_ttynam, gfc_conv_intrinsic_minmax,
+	gfc_conv_intrinsic_minmax_char, gfc_conv_intrinsic_count,
+	gfc_conv_intrinsic_arith, gfc_conv_intrinsic_dot_product,
+	gfc_conv_intrinsic_minmaxloc, gfc_conv_intrinsic_minmaxval,
+	gfc_conv_intrinsic_btest, gfc_conv_intrinsic_not,
+	gfc_conv_intrinsic_ibits, gfc_conv_intrinsic_ishft,
+	gfc_conv_intrinsic_ichar, gfc_conv_intrinsic_size,
+	gfc_conv_intrinsic_array_transfer, gfc_conv_intrinsic_transfer,
+	gfc_conv_allocated, gfc_conv_associated, gfc_conv_intrinsic_trim,
+	gfc_conv_intrinsic_repeat): Likewise.
+
+2008-02-23  Francois-Xavier Coudert  <coudert@clipper.ens.fr>
+
+	PR target/25477
+	* trans-expr.c (gfc_conv_power_op): Use BUILT_IN_CPOW{F,,L}.
+	* f95-lang.c (gfc_init_builtin_functions): Define BUILT_IN_CPOW{F,,L}.
+	* trans.h (gfor_fndecl_math_cpow, gfor_fndecl_math_cpowf,
+	gfor_fndecl_math_cpowl10, gfor_fndecl_math_cpowl16): Remove.
+	* trans-decl.c: Likewise.
+
+2008-02-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35059
+	* expr.c (find_array_element): Modify traversing the constructor to
+	avoid trying to access NULL memory pointed to by next for the
+	last element. (find_array_section): Exit while loop if cons->next is
+	NULL.
+
+2008-02-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/34907
+	* iresolve.c (resolve_mask_arg): Add gfc_clear_ts to initialize
+	structure.
+	(gfc_resolve_aint): Likewise.
+	(gfc_resolve_anint): Likewise.
+	(gfc_resolve_besn): Likewise.
+	(gfc_resolve_cshift): Likewise.
+	(gfc_resolve_ctime): Likewise.
+	(gfc_resolve_eoshift): Likewise.
+	(gfc_resolve_index_func): Likewise.
+	(gfc_resolve_isatty): Likewise.
+	(gfc_resolve_malloc): Likewise.
+	(gfc_resolve_rrspacing): Likewise.
+	(gfc_resolve_scale): Likewise.
+	(gfc_resolve_set_exponent): Likewise.
+	(gfc_resolve_spacing): Likewise.
+	(gfc_resolve_spacing): Likewise.
+	(gfc_resolve_fgetc): Likewise.
+	(gfc_resolve_fputc): Likewise.
+	(gfc_resolve_ftell): Likewise.
+	(gfc_resolve_ttynam): Likewise.
+	(gfc_resolve_alarm_sub): Likewise.
+	(gfc_resolve_mvbits): Likewise.
+	(gfc_resolve_getarg): Likewise.
+	(gfc_resolve_signal_sub): Likewise.
+	(gfc_resolve_exit): Likewise.
+	(gfc_resolve_flush): Likewise.
+	(gfc_resolve_free): Likewise.
+	(gfc_resolve_ctime_sub): Likewise.
+	(gfc_resolve_fgetc_sub): Likewise.
+	(gfc_resolve_fputc_sub): Likewise.
+	(gfc_resolve_fseek_sub): Likewise.
+	(gfc_resolve_ftell_sub): Likewise.
+	(gfc_resolve_ttynam_sub): Likewise.
+
+2008-02-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gfc-internals.texi: Fix typos and markup nits.
+	* gfortran.texi: Likewise.
+	* intrinsic.texi: Likewise.
+
+2008-02-21  Richard Guenther  <rguenther@suse.de>
+
+	* trans-expr.c (gfc_conv_expr_op): Expand INTRINSIC_PARENTHESES
+	as unary PAREN_EXPR for real and complex typed expressions.
+	(gfc_conv_unary_op): Fold the built tree.
+
+2008-02-20  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34997
+	* match.c (gfc_match_name): Improve error message for '$'.
+
 2008-02-19  Daniel Franke  <franke.daniel@gmail.com>
 
 	PR fortran/35030

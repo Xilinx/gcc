@@ -410,6 +410,11 @@ proc check_profiling_available { test_what } {
 	return 0
     }
 
+    # MinGW does not support -p.
+    if { [istarget *-*-mingw*] && [lindex $test_what 1] == "-p" } {
+	return 0
+    }
+
     # At present, there is no profiling support on NetWare.
     if { [istarget *-*-netware*] } {
 	return 0
@@ -1667,7 +1672,8 @@ proc check_effective_target_vect_unpack { } {
         set et_vect_unpack_saved 0
         if { ([istarget powerpc*-*-*] && ![istarget powerpc-*paired*])
              || [istarget i?86-*-*]
-             || [istarget x86_64-*-*] } {
+             || [istarget x86_64-*-*] 
+             || [istarget spu-*-*] } {
             set et_vect_unpack_saved 1
         }
     }
@@ -1876,6 +1882,7 @@ proc check_effective_target_vect_short_mult { } {
     } else {
 	set et_vect_short_mult_saved 0
 	if { [istarget ia64-*-*]
+	     || [istarget spu-*-*]
 	     || [istarget i?86-*-*]
 	     || [istarget x86_64-*-*] } {
 	   set et_vect_short_mult_saved 1
@@ -2209,6 +2216,14 @@ proc check_effective_target_wchar { } {
     }
     return [check_no_compiler_messages wchar assembly {
 	#include <wchar.h>
+    }]
+}
+
+# Return 1 if the target has <pthread.h>.
+
+proc check_effective_target_pthread_h { } {
+    return [check_no_compiler_messages pthread_h assembly {
+	#include <pthread.h>
     }]
 }
 

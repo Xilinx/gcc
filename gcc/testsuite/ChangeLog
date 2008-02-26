@@ -1,3 +1,258 @@
+2008-02-26  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/35323
+        * g++.dg/lookup/crash7.C: New.
+
+2008-02-26  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.c-torture/execute/nest-align-1.c: Use the largest alignment.
+
+2008-02-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.target/i386/pr25993.c: Skip on *-*-mingw*.
+
+2008-02-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/debug/dwarf2/aranges-fnsec-1.c: Add -w to dg-options.
+
+2008-02-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/builtins-config.h: Disable C99 runtime testing for
+	Windows.
+
+2008-02-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* lib/target-supports.exp (check_profiling_available): Report -p
+	unavailable on *-*-mingw*.
+
+2008-02-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_pthread_h): New.
+	* gcc.dg/pthread-init-1.c, gcc.dg/pthread-init-2.c: Use
+	dg-require-effective-target pthread_h.
+
+2008-02-26  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* gcc.dg/Wswitch-enum-error.c: New.
+	* gcc.dg/Wswitch-error.c: New.
+	* gcc.dg/20011021-1.c: Use two directives to match two different
+	messages.
+	
+2008-02-26  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+	
+	PR 28322
+	* gcc.dg/pr28322.c: New.
+	* gcc.dg/pr28322-2.c: New.
+	* lib/prune.exp: Ignore "At top level" even if there is no ':'
+	preceding it.
+
+2008-02-25  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/35333
+        * g++.dg/other/error26.C: New.
+
+2008-02-25  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/35338
+        * g++.dg/other/error25.C: New.
+
+2008-02-25  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	PR target/35258
+	* gcc.dg/pr35258.c: New testcase.
+
+2008-02-25  Jan Beulich  <jbeulich@novell.com>
+
+	* gcc.dg/20020426-2.c: Remove bogus workaround.
+	* g++.old-deja/g++.other/store-expr1.C: Likewise.
+	* gcc.target/i386/movq-2.c: Also permit use of movzbl.
+
+2008-02-25  Francois-Xavier Coudert  <coudert@clipper.ens.fr>
+
+	* gfortran.dg/large_real_kind_3.F90: Xfail on ppc-darwin.
+
+2008-02-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/19984
+	* gcc.dg/pr19984.c: New test.
+	* gcc.dg/dfp/compare-special.h: Use _nan instead of nan as the
+	name of the variable.
+
+2008-02-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/vect/vect-99.c: Include stdlib.h and tree-vect.h.
+	(main): Call check_vect and foo.  Check array values after
+	the call to foo.
+	* gcc.dg/vect/vect-117.c: Call check_vect.
+	* gcc.dg/vect/no-vfa-pr29145.c: Ditto.
+
+2008-02-25  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.dg/tree-ssa/ssa-pre-10.c: Use -fno-finite-math-only on
+	sh* targets.
+
+2008-02-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/35349
+	* gcc.c-torture/execute/20050604-1.x: New file.
+
+2008-02-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/pr22076.c: Update number of mov insns
+	for PIC targets.
+	* gcc.target/i386/pr34256.c: Ditto.
+
+2008-02-24  Diego Novillo  <dnovillo@google.com>
+
+	http://gcc.gnu.org/ml/gcc-patches/2008-02/msg01094.html
+
+	PR 33738
+	* g++.dg/warn/pr33738.C: New.
+
+2008-02-24  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* gcc.c-torture/execute/nest-align-1.x: New file.
+
+2008-02-24  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	PR c++/34749
+	* g++.dg.ext/dllimport13.C: New test.
+
+2008-02-23  Francois-Xavier Coudert  <coudert@clipper.ens.fr>
+
+	PR libfortran/24685
+	* gfortran.dg/large_real_kind_form_io_2.f90: XFAIL on
+	powerpc*-apple-darwin*.
+
+2008-02-23  Francois-Xavier Coudert  <coudert@clipper.ens.fr>
+
+	* gfortran.dg/large_real_kind_2.F90: Split testing of ERF and
+	ERFC into gfortran.dg/large_real_kind_3.F90.
+	* gfortran.dg/large_real_kind_3.F90: New test.
+
+2008-02-23  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR rtl-opt/33512
+	* gcc.dg/and-1.c: New test.
+
+2008-02-23  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* gcc.c-torture/execute/20080222-1.c: New test.
+
+2008-02-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/22076
+	PR target/34256
+	* gcc.target/i386/pr22076.c: New test.
+	* gcc.target/i386/pr34256.c: New test.
+	* gcc.target/i386/vecinit-5.c: New test.
+	* gcc.target/i386/vecinit-6.c: New test.
+	* gcc.target/i386/vecinit-[1-4].c: Check that no MMX register is used.
+
+	* g++.dg/compat/struct-layout-1.h: Do not include <mmintrin.h> and
+	<xmmintrin.h>, define __m64 and __m128 directly.
+	* g++.dg/compat/struct-layout-1_generate.c: Add -mno-mmx for x86.
+
+2008-02-22  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C++/34715
+	* g++.dg/ext/always_inline-1.C: New test.
+	* g++.dg/ext/always_inline-2.C: New test.
+	* g++.dg/ext/always_inline-3.C: New test.
+	* g++.dg/ext/always_inline-4.C: New test.
+
+2008-02-22  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc.target/cris/asm-b-1.c: New test.
+
+2008-02-22  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/35282
+	* g++.dg/template/nontype17.C: Add.
+
+2008-02-22  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/35282
+	Revert:
+	2008-02-14  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/28743
+	* g++.dg/template/nontype17.C: New.
+        * g++.dg/template/nontype16.C: Add error.
+
+2008-02-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR c/19999
+	* gcc.dg/Wfloat-equal-1.c: New.
+	* g++.dg/warn/Wfloat-equal-1.C: New.
+
+2008-02-21  Michael Matz  <matz@suse.de>
+
+	PR target/35264
+	* gcc.dg/pr35264.c: New testcase.
+
+2008-02-21  Richard Guenther  <rguenther@suse.de>
+
+	* gfortran.dg/reassoc_1.f90: New testcase.
+	* gfortran.dg/reassoc_2.f90: Likewise.
+	* gfortran.dg/reassoc_3.f90: Likewise.
+
+2008-02-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/34974
+	* gfortran.dg/fmt_t_7.f: New test.
+
+	PR libfortran/35132
+	* gfortran.dg/streamio_15.f90: New test.
+	
+2008-02-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/35036
+	* gfortran.dg/fmt_zero_digits.f90: Revise test.
+
+2008-02-20  Seongbae Park <seongbae.park@gmail.com>
+
+	* gcc.dg/Wframe-larger-than.c: New option test.
+
+2008-02-20  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34997
+	* gfortran.dg/dollar_sym_1.f90: New.
+	* gfortran.dg/dollar_sym_2.f90: New.
+
+2008-02-20  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35265
+	* gcc.dg/builtins-66.c: New testcase.
+
+2008-02-20  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/fold-reassoc-1.c: New testcase.
+	* gcc.dg/tree-ssa/recip-3.c: Adjust to not compute d/d.
+
+2008-02-20  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/reassoc-13.c: New testcase.
+
+2008-02-20  Ira Rosen  <irar@il.ibm.com>
+
+	* lib/target-supports.exp (check_effective_target_vect_unpack):
+	Return true for SPU.
+	(check_effective_target_vect_short_mult): Likewise.
+	* gcc.dg/vect/vect-reduc-dot-s16b.c: Expect vectorization of
+	the loop on targets that support vect_unpack.
+
+2008-02-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/compat/struct-layout-1_generate.c (DG_OPTIONS): New define.
+	(switchfiles): Use DG_OPTIONS. Explicitly name arguments in fprintf
+	templates to reduce number of passed arguments.
+
+2008-02-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34950
+	* g++.dg/template/explicit-args1.C: New.
+
 2008-02-19  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/34989

@@ -58,6 +58,11 @@ bool extra_warnings;
 bool warn_larger_than;
 HOST_WIDE_INT larger_than_size;
 
+/* True to warn about any function whose frame size is larger
+ * than N bytes. */
+bool warn_frame_larger_than;
+HOST_WIDE_INT frame_larger_than_size;
+
 /* Hack for cooperation between set_Wunused and set_Wextra.  */
 static bool maybe_warn_unused_parameter;
 
@@ -360,6 +365,12 @@ DEF_VEC_ALLOC_P(char_p,heap);
 static VEC(char_p,heap) *flag_instrument_functions_exclude_functions;
 static VEC(char_p,heap) *flag_instrument_functions_exclude_files;
 
+typedef const char *const_char_p; /* For DEF_VEC_P.  */
+DEF_VEC_P(const_char_p);
+DEF_VEC_ALLOC_P(const_char_p,heap);
+
+static VEC(const_char_p,heap) *ignored_options;
+
 /* Input file names.  */
 const char **in_fnames;
 unsigned num_in_fnames;
@@ -438,6 +449,33 @@ complain_wrong_lang (const char *text, const struct cl_option *option,
   free (bad_lang);
 }
 
+/* Buffer the unknown option described by the string OPT.  Currently,
+   we only complain about unknown -Wno-* options if they may have
+   prevented a diagnostic. Otherwise, we just ignore them.  */
+
+static void postpone_unknown_option_error(const char *opt)
+{
+  VEC_safe_push (const_char_p, heap, ignored_options, opt);
+}
+
+/* Produce an error for each option previously buffered.  */
+
+void print_ignored_options (void)
+{
+  location_t saved_loc = input_location;
+
+  input_location = 0;
+
+  while (!VEC_empty (const_char_p, ignored_options))
+    {
+      const char *opt;
+      opt = VEC_pop (const_char_p, ignored_options);
+      error ("unrecognized command line option \"%s\"", opt);
+    }
+
+  input_location = saved_loc;
+}
+
 /* Handle the switch beginning at ARGV for the language indicated by
    LANG_MASK.  Returns the number of switches consumed.  */
 static unsigned int
@@ -467,6 +505,14 @@ handle_option (const char **argv, unsigned int lang_mask)
       opt = dup;
       value = 0;
       opt_index = find_opt (opt + 1, lang_mask | CL_COMMON | CL_TARGET);
+      if (opt_index == cl_options_count)
+	{
+	  /* We don't generate errors for unknown -Wno-* options
+             unless we issue diagnostics.  */
+	  postpone_unknown_option_error (argv[0]);
+	  result = 1;
+	  goto done;
+	}
     }
 
   if (opt_index == cl_options_count)
@@ -1496,6 +1542,11 @@ common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wlarger_than_:
       larger_than_size = value;
       warn_larger_than = value != -1;
+      break;
+
+    case OPT_Wframe_larger_than_:
+      frame_larger_than_size = value;
+      warn_frame_larger_than = value != -1;
       break;
 
     case OPT_Wstrict_aliasing:

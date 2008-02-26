@@ -1,3 +1,84 @@
+2008-02-26  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/35323
+        * name-lookup.c (arg_assoc_type): Handle FIXED_POINT_TYPE.
+
+2008-02-26  Manuel Lopez-Ibanez <manu@gcc.gnu.org>
+	
+	* typeck.c (build_class_member_access_expr): Add appropriate
+	OPT_W* parameter to warning.
+	(build_reinterpret_cast_1): Likewise.
+	* name-lookup.c (push_overloaded_decl): Likewise.
+	
+2008-02-25  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/35333
+        * error.c (dump_expr): Handle CONJ_EXPR.
+
+2008-02-25  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/35338
+        * error.c (dump_type): Handle FIXED_POINT_TYPE.
+	(dump_expr): Handle FIXED_CST.
+
+2008-02-24  Jason Merrill  <jason@redhat.com>
+
+	* parser.c (cp_parser_declaration): Handle "inline namespace".
+	(cp_parser_namespace_definition): Likewise.
+
+	PR c++/33486
+	* name-lookup.c (arg_assoc_namespace): Look down into inline 
+	namespaces, too.
+
+2008-02-23  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* typeck.c (check_for_casting_away_constness): Use 1 single
+	argument, the type of cast, to decide what diagnostics generate.
+	(build_static_cast_1): Remove unused code. Update call to
+	check_for_casting_away_constness.
+	(build_reinterpret_cast_1): Update call to
+	check_for_casting_away_constness.
+	(build_const_cast_1): Likewise.
+	
+2008-02-24  Paolo Carlini  <pcarlini@suse.de>
+
+	* error.c (dump_expr): Don't deal directly with NEW_EXPR (and
+	VEC_NEW_EXPR), forward to pp_expression.
+	* cxx-pretty-print.c (pp_cxx_new_expression): Fix FIXME.
+
+2008-02-24  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	PR c++/34749
+	* friend.c (do_friend): Call cplus_decl_attributes earlier.
+
+2008-02-22  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C++/34715
+	* decl.c (duplicate_decls): Merge DECL_DISREGARD_INLINE_LIMITS for
+	template decls' function decl.
+
+2008-02-22  Paolo Carlini  <pcarlini@suse.de>
+
+	PR c++/35282
+	Revert:
+	2008-02-14  Paolo Carlini  <pcarlini@suse.de>
+
+        PR c++/28743
+        * pt.c (determine_specialization): In case of function templates,
+	when the type of DECL does not match FN there is no match.
+
+2008-02-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR c/19999
+	* typeck.c (build_binary_op): Warn about floating point
+	comparisons if FLOAT_TYPE_P, not only for REAL_TYPE.
+
+2008-02-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34950
+	* pt.c (resolve_overloaded_unification): Set processing_template_decl
+	while we look for possible bindings.
+
 2008-02-19  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/35028

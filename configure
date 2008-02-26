@@ -657,6 +657,8 @@ gmpinc
 stage1_languages
 SYSROOT_CFLAGS_FOR_TARGET
 DEBUG_PREFIX_CFLAGS_FOR_TARGET
+CFLAGS_FOR_TARGET
+CXXFLAGS_FOR_TARGET
 RPATH_ENVVAR
 tooldir
 build_tooldir
@@ -5627,6 +5629,38 @@ else
   DEBUG_PREFIX_CFLAGS_FOR_TARGET=
 fi
 
+
+
+# During gcc bootstrap, if we use some random cc for stage1 then CFLAGS
+# might be empty or "-g".  We don't require a C++ compiler, so CXXFLAGS
+# might also be empty (or "-g", if a non-GCC C++ compiler is in the path).
+# We want to ensure that TARGET libraries (which we know are built with
+# gcc) are built with "-O2 -g", so include those options when setting
+# CFLAGS_FOR_TARGET and CXXFLAGS_FOR_TARGET.
+if test "x$CFLAGS_FOR_TARGET" = x; then
+  CFLAGS_FOR_TARGET=$CFLAGS
+  case " $CFLAGS " in
+    *" -O2 "*) ;;
+    *) CFLAGS_FOR_TARGET="-O2 $CFLAGS" ;;
+  esac
+  case " $CFLAGS " in
+    *" -g "* | *" -g3 "*) ;;
+    *) CFLAGS_FOR_TARGET="-g $CFLAGS" ;;
+  esac
+fi
+
+
+if test "x$CXXFLAGS_FOR_TARGET" = x; then
+  CXXFLAGS_FOR_TARGET=$CXXFLAGS
+  case " $CXXFLAGS " in
+    *" -O2 "*) ;;
+    *) CXXFLAGS_FOR_TARGET="-O2 $CXXFLAGS" ;;
+  esac
+  case " $CXXFLAGS " in
+    *" -g "* | *" -g3 "*) ;;
+    *) CXXFLAGS_FOR_TARGET="-g $CXXFLAGS" ;;
+  esac
+fi
 
 
 # Handle --with-headers=XXX.  If the value is not "yes", the contents of
@@ -13533,8 +13567,8 @@ gmpinc!$gmpinc$ac_delim
 stage1_languages!$stage1_languages$ac_delim
 SYSROOT_CFLAGS_FOR_TARGET!$SYSROOT_CFLAGS_FOR_TARGET$ac_delim
 DEBUG_PREFIX_CFLAGS_FOR_TARGET!$DEBUG_PREFIX_CFLAGS_FOR_TARGET$ac_delim
-RPATH_ENVVAR!$RPATH_ENVVAR$ac_delim
-tooldir!$tooldir$ac_delim
+CFLAGS_FOR_TARGET!$CFLAGS_FOR_TARGET$ac_delim
+CXXFLAGS_FOR_TARGET!$CXXFLAGS_FOR_TARGET$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 82; then
@@ -13596,6 +13630,8 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+RPATH_ENVVAR!$RPATH_ENVVAR$ac_delim
+tooldir!$tooldir$ac_delim
 build_tooldir!$build_tooldir$ac_delim
 CONFIGURE_GDB_TK!$CONFIGURE_GDB_TK$ac_delim
 GDB_TK!$GDB_TK$ac_delim
@@ -13672,7 +13708,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 74; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 76; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

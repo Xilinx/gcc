@@ -34,7 +34,7 @@
 @end direntry
 
 @copying
-Copyright @copyright{} 1995-2007, 2008 Free Software Foundation
+Copyright @copyright{} 1995-2007, 2008 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.2
@@ -597,10 +597,11 @@ and @code{classes}.
 @code{Option flags}
 
 @item
-@file{File Names}, @samp{button names}, and @samp{field names}.
+@file{File names}, @samp{button names}, and @samp{field names}.
 
 @item
-@code{Variables}.
+@code{Variables}, @env{environment variables}, and @var{metasyntactic
+variables}.
 
 @item
 @emph{Emphasis}.
@@ -962,7 +963,7 @@ Note that, as with the @code{if} statement to which it is equivalent, the
 type of the expression is either @code{Standard.Boolean}, or any type derived
 from this standard type.
 
-If assertions are disabled (switch @code{-gnata} not used), then there
+If assertions are disabled (switch @option{-gnata} not used), then there
 is no run-time effect (and in particular, any side effects from the
 expression will not occur at run time).  (The expression is still
 analyzed at compile time, and may cause types to be frozen if they are
@@ -1066,8 +1067,8 @@ and as the prefix of a @code{Check_Name'Enabled} attribute reference. For
 any of these three cases, the check name must be visible. A check
 name is visible if it is in the configuration pragmas applying to
 the current unit, or if it appears at the start of any unit that
-is part of the dependency set of the current unit (e.g. units that
-are mentioned in @code{with} clauses.
+is part of the dependency set of the current unit (e.g., units that
+are mentioned in @code{with} clauses).
 
 @node Pragma Comment
 @unnumberedsec Pragma Comment
@@ -1140,7 +1141,7 @@ expression. The pragma is effective only if the value of this expression
 is known at compile time, and has the value True. The set of expressions
 whose values are known at compile time includes all static boolean
 expressions, and also other values which the compiler can determine
-at compile time (e.g. the size of a record type set by an explicit
+at compile time (e.g., the size of a record type set by an explicit
 size representation clause, or the value of a variable which was
 initialized to a constant and is known not to have been modified).
 If these conditions are met, an error message is generated using
@@ -1468,7 +1469,7 @@ semantics of the pragma is exactly equivalent to the procedure call statement
 corresponding to the argument with a terminating semicolon. Pragmas are
 permitted in sequences of declarations, so you can use pragma @code{Debug} to
 intersperse calls to debug procedures in the middle of declarations. Debug
-pragmas can be enabled either by use of the command line switch @code{-gnata}
+pragmas can be enabled either by use of the command line switch @option{-gnata}
 or by use of the configuration pragma @code{Debug_Policy}.
 
 @node Pragma Debug_Policy
@@ -1484,7 +1485,7 @@ pragma Debug_Policy (CHECK | IGNORE);
 @noindent
 If the argument is @code{CHECK}, then pragma @code{DEBUG} is enabled.
 If the argument is @code{IGNORE}, then pragma @code{DEBUG} is ignored.
-This pragma overrides the effect of the @code{-gnata} switch on the
+This pragma overrides the effect of the @option{-gnata} switch on the
 command line.
 
 @node Pragma Detect_Blocking
@@ -1519,7 +1520,7 @@ elaboration model used by the compilation affected by the
 pragma.  If the parameter is @code{Dynamic},
 then the dynamic elaboration
 model described in the Ada Reference Manual is used, as though
-the @code{-gnatE} switch had been specified on the command
+the @option{-gnatE} switch had been specified on the command
 line.  If the parameter is @code{Static}, then the default GNAT static
 model is used.  This configuration pragma overrides the setting
 of the command line.  For full details on the elaboration models
@@ -2575,7 +2576,7 @@ See the GNAT users guide for details.
 Note that pragma @code{Initialize_Scalars} is particularly useful in
 conjunction with the enhanced validity checking that is now provided
 in GNAT, which checks for invalid values under more conditions.
-Using this feature (see description of the @code{-gnatV} flag in the
+Using this feature (see description of the @option{-gnatV} flag in the
 users guide) in conjunction with pragma @code{Initialize_Scalars}
 provides a powerful new tool to assist in the detection of problems
 caused by uninitialized variables.
@@ -2599,7 +2600,7 @@ pragma Inline_Always (NAME [, NAME]);
 
 @noindent
 Similar to pragma @code{Inline} except that inlining is not subject to
-the use of option @code{-gnatn} and the inlining happens regardless of
+the use of option @option{-gnatn} and the inlining happens regardless of
 whether this option is used.
 
 @node Pragma Inline_Generic
@@ -2916,7 +2917,7 @@ and causes @var{LOCAL_NAME} to be emitted as an alias for the symbol
 is reserved for @var{LOCAL_NAME} by the assembler and it will be resolved
 to the same address as @var{static_string_EXPRESSION} by the linker.
 
-The actual linker name for the target must be used (e.g. the fully
+The actual linker name for the target must be used (e.g.@: the fully
 encoded name with qualification in Ada, or the mangled name in C++),
 or it must be declared using the C convention with @code{pragma Import}
 or @code{pragma Export}.
@@ -3021,7 +3022,7 @@ at the symbolic level with the compiler.
 Some file formats do not support arbitrary sections so not all target
 machines support this pragma. The use of this pragma may cause a program
 execution to be erroneous if it is used to place an entity into an
-inappropriate section (e.g. a modified variable into the @code{.text}
+inappropriate section (e.g.@: a modified variable into the @code{.text}
 section). See also @code{pragma Persistent_BSS}.
 
 @smallexample @c ada
@@ -3324,7 +3325,7 @@ indication of obsolescence applies only when compiling in Ada 2005
 mode. This is primarily intended for dealing with the situations
 in the predefined library where subprograms or packages
 have become defined as obsolescent in Ada 2005
-(e.g. in Ada.Characters.Handling), but may be used anywhere.
+(e.g.@: in Ada.Characters.Handling), but may be used anywhere.
 
 The following examples show typical uses of this pragma:
 
@@ -3458,7 +3459,7 @@ targets that do not normally support the capability.  The version of
 @code{Poll} in this file makes a call to the appropriate runtime routine
 to test for an abort condition.
 
-Note that polling can also be enabled by use of the @code{-gnatP} switch.  See
+Note that polling can also be enabled by use of the @option{-gnatP} switch.  See
 the @cite{GNAT User's Guide} for details.
 
 @node Pragma Profile (Ravenscar)
@@ -3838,7 +3839,7 @@ the pragma line (for use in error messages and debugging
 information).  @var{string_literal} is a static string constant that
 specifies the file name to be used in error messages and debugging
 information.  This is most notably used for the output of @code{gnatchop}
-with the @code{-r} switch, to make sure that the original unchopped
+with the @option{-r} switch, to make sure that the original unchopped
 source file is the one referred to.
 
 The second argument must be a string literal, it cannot be a static
@@ -3942,7 +3943,7 @@ the @file{gnat.adc} file).
 The form with a string literal specifies which style options are to be
 activated.  These are additive, so they apply in addition to any previously
 set style check options.  The codes for the options are the same as those
-used in the @code{-gnaty} switch to @code{gcc} or @code{gnatmake}.
+used in the @option{-gnaty} switch to @command{gcc} or @command{gnatmake}.
 For example the following two methods can be used to enable
 layout checking:
 
@@ -4478,7 +4479,7 @@ The form with a string literal specifies which validity options are to be
 activated.  The validity checks are first set to include only the default
 reference manual settings, and then a string of letters in the string
 specifies the exact set of options required.  The form of this string
-is exactly as described for the @code{-gnatVx} compiler switch (see the
+is exactly as described for the @option{-gnatVx} compiler switch (see the
 GNAT users guide for details).  For example the following two methods
 can be used to enable validity checking for mode @code{in} and
 @code{in out} subprogram parameters:
@@ -4650,7 +4651,7 @@ pragmas must appear in sequence:
 
 @smallexample @c ada
 pragma Warnings (Off, Pattern);
-.. code where given warning is to be suppressed
+@dots{} code where given warning is to be suppressed
 pragma Warnings (On, Pattern);
 @end smallexample
 
@@ -4729,7 +4730,8 @@ to appear within the same file.
 The argument can be an identifier or a character literal. In the identifier
 case, it is one of @code{HEX}, @code{UPPER}, @code{SHIFT_JIS},
 @code{EUC}, @code{UTF8}, or @code{BRACKETS}. In the character literal
-case it is correspondingly one of the characters h,u,s,e,8,b.
+case it is correspondingly one of the characters @samp{h}, @samp{u},
+@samp{s}, @samp{e}, @samp{8}, or @samp{b}.
 
 Note that when the pragma is used within a file, it affects only the
 encoding within that file, and does not affect withed units, specs,
@@ -7364,7 +7366,7 @@ overlapping storage units.
 @end cartouche
 @noindent
 A compilation is represented by a sequence of files presented to the
-compiler in a single invocation of the @code{gcc} command.
+compiler in a single invocation of the @command{gcc} command.
 
 @sp 1
 @cartouche
@@ -7405,7 +7407,7 @@ mentioned in the context clause of one of the needed Ada units.
 
 If the partition contains no main program, or if the main program is in
 a language other than Ada, then GNAT
-provides the binder options @code{-z} and @code{-n} respectively, and in
+provides the binder options @option{-z} and @option{-n} respectively, and in
 this case a list of units can be explicitly supplied to the binder for
 inclusion in the partition (all units needed by these units will also
 be included automatically).  For full details on the use of these
@@ -8468,7 +8470,7 @@ suffix
 is the hexadecimal representation of the virtual address of the corresponding
 task control block. If the variable is an array of tasks, the image of each
 task will have the form of an indexed component indicating the position of a
-given task in the array, eg.  Group(5)_XXXXXXX. If the task is a
+given task in the array, e.g.@: Group(5)_XXXXXXX. If the task is a
 component of a record, the image of the task will have the form of a selected
 component. These rules are fully recursive, so that the image of a task that
 is a subcomponent of a composite object corresponds to the expression that
@@ -8522,7 +8524,7 @@ There are no implementation-defined aspects of @code{Task_Attributes}.
 @noindent
 The metrics information for GNAT depends on the performance of the
 underlying operating system.  The sources of the run-time for tasking
-implementation, together with the output from @code{-gnatG} can be
+implementation, together with the output from @option{-gnatG} can be
 used to determine the exact sequence of operating systems calls made
 to implement various tasking constructs.  Together with appropriate
 information on the performance of the underlying operating system,
@@ -9443,7 +9445,7 @@ Then @code{Default_Stack_Size} can be defined in a global package, and
 modified as required. Any tasks requiring stack sizes different from the
 default can have an appropriate alternative reference in the pragma.
 
-You can also use the @code{-d} binder switch to modify the default stack
+You can also use the @option{-d} binder switch to modify the default stack
 size.
 
 For access types, the @code{Storage_Size} clause specifies the maximum
@@ -10458,7 +10460,7 @@ including the important case of single bits or boolean values, then
 there are no limitations on placement of such components, and they
 may start and end at arbitrary bit boundaries.
 
-If the component size is not a power of 2 (e.g. 3 or 5), then
+If the component size is not a power of 2 (e.g.@: 3 or 5), then
 an array of this type longer than 64 bits must always be placed on
 on a storage unit (byte) boundary and occupy an integral number
 of storage units (bytes). Any component clause that does not
@@ -10866,7 +10868,7 @@ code. size clause specifying 64-bits must be used to obtain a 64-bit pointer.
 @node Determining the Representations chosen by GNAT
 @section Determining the Representations chosen by GNAT
 @cindex Representation, determination of
-@cindex @code{-gnatR} switch
+@cindex @option{-gnatR} switch
 
 @noindent
 Although the descriptions in this section are intended to be complete, it is
@@ -10884,7 +10886,7 @@ fields placed? The section on pragma @code{Pack} in this chapter can be
 used to answer the second question, but it is often easier to just see
 what the compiler does.
 
-For this purpose, GNAT provides the option @code{-gnatR}.  If you compile
+For this purpose, GNAT provides the option @option{-gnatR}.  If you compile
 with this option, then the compiler will output information on the actual
 representations chosen, in a format similar to source representation
 clauses.  For example, if we compile the package:
@@ -10934,7 +10936,7 @@ end q;
 @end smallexample
 
 @noindent
-using the switch @code{-gnatR} we obtain the following output:
+using the switch @option{-gnatR} we obtain the following output:
 
 @smallexample
 Representation information for unit q
@@ -11073,7 +11075,7 @@ system-independent manner.
 @item Ada.Decimal (F.2)
 This package provides constants describing the range of decimal numbers
 implemented, and also a decimal divide routine (analogous to the COBOL
-verb DIVIDE .. GIVING .. REMAINDER ..)
+verb DIVIDE @dots{} GIVING @dots{} REMAINDER @dots{})
 
 @item Ada.Direct_IO (A.8.4)
 This package provides input-output using a model of a set of records of
@@ -11615,7 +11617,7 @@ library routines that support streams. This facilitates shared use of these
 streams by mixed language programs. Note though that system level buffering is
 explicitly enabled at elaboration of the standard I/O packages and that can
 have an impact on mixed language programs, in particular those using I/O before
-calling the Ada elaboration routine (e.g. adainit). It is recommended to call
+calling the Ada elaboration routine (e.g.@: adainit). It is recommended to call
 the Ada elaboration routine before performing any I/O or when impractical,
 flush the common I/O streams and in particular Standard_Output before
 elaborating the Ada code.
@@ -12586,7 +12588,7 @@ package Interfaces.C_Streams is
   -- If text_translation_required is true, then the following
   -- functions may be used to dynamically switch a file from
   -- binary to text mode or vice versa.  These functions have
-  -- no effect if text_translation_required is false (i.e.  in
+  -- no effect if text_translation_required is false (i.e.@: in
   -- normal UNIX mode).  Use fileno to get a stream handle.
   procedure set_binary_mode (handle : int);
   procedure set_text_mode (handle : int);
@@ -14675,7 +14677,7 @@ GNAT fully implements the pragma @code{Shared_Passive} for
 @cindex pragma @code{Shared_Passive}
 the purpose of designating shared passive packages.
 This allows the use of passive partitions in the
-context described in the Ada Reference Manual; i.e. for communication
+context described in the Ada Reference Manual; i.e., for communication
 between separate partitions of a distributed application using the
 features in Annex E.
 @cindex Annex E
@@ -14692,7 +14694,7 @@ partitions, using protected objects for synchronization where
 needed. The only requirement is that the two programs have a
 common shared file system. It is even possible for programs
 running on different machines with different architectures
-(e.g. different endianness) to communicate via the data in
+(e.g.@: different endianness) to communicate via the data in
 a passive partition.
 
 @item Persistence between program runs
@@ -16004,7 +16006,7 @@ on which the program should execute.
 @item Communication_Protocol
 This is a simple string attribute. Its value is the name of the protocol
 to use to communicate with the target in a cross-compilation environment,
-e.g. @code{"wtx"} or @code{"vxworks"}.
+e.g.@: @code{"wtx"} or @code{"vxworks"}.
 
 @item Compiler_Command
 This is an associative array attribute, whose domain is a language name. Its
@@ -16028,7 +16030,7 @@ predefined path; e.g., @code{"gnatls"}, @code{"powerpc-wrs-vxworks-gnatls"}.
 
 @item VCS_Kind
 This is a simple attribute. Its value is a string used to specify the
-Version Control System (VCS) to be used for this project, e.g CVS, RCS
+Version Control System (VCS) to be used for this project, e.g.@: CVS, RCS
 ClearCase or Perforce.
 
 @item VCS_File_Check

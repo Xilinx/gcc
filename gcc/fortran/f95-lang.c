@@ -1,5 +1,5 @@
 /* gfortran backend interface
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Paul Brook.
 
@@ -220,16 +220,17 @@ gfc_truthvalue_conversion (tree expr)
 	  return expr;
 	}
       else if (TREE_CODE (expr) == NOP_EXPR)
-        return build1 (NOP_EXPR, boolean_type_node, TREE_OPERAND (expr, 0));
+        return fold_build1 (NOP_EXPR,
+			    boolean_type_node, TREE_OPERAND (expr, 0));
       else
-        return build1 (NOP_EXPR, boolean_type_node, expr);
+        return fold_build1 (NOP_EXPR, boolean_type_node, expr);
 
     case INTEGER_TYPE:
       if (TREE_CODE (expr) == INTEGER_CST)
 	return integer_zerop (expr) ? boolean_false_node : boolean_true_node;
       else
-        return build2 (NE_EXPR, boolean_type_node, expr,
-		       build_int_cst (TREE_TYPE (expr), 0));
+        return fold_build2 (NE_EXPR, boolean_type_node, expr,
+			    build_int_cst (TREE_TYPE (expr), 0));
 
     default:
       internal_error ("Unexpected type in truthvalue_conversion");
@@ -942,6 +943,12 @@ gfc_init_builtin_functions (void)
 		      BUILT_IN_POW, "pow", true);
   gfc_define_builtin ("__builtin_powf", mfunc_float[1], 
 		      BUILT_IN_POWF, "powf", true);
+  gfc_define_builtin ("__builtin_cpowl", mfunc_clongdouble[1], 
+		      BUILT_IN_CPOWL, "cpowl", true);
+  gfc_define_builtin ("__builtin_cpow", mfunc_cdouble[1], 
+		      BUILT_IN_CPOW, "cpow", true);
+  gfc_define_builtin ("__builtin_cpowf", mfunc_cfloat[1], 
+		      BUILT_IN_CPOWF, "cpowf", true);
   gfc_define_builtin ("__builtin_powil", mfunc_longdouble[2], 
 		      BUILT_IN_POWIL, "powil", true);
   gfc_define_builtin ("__builtin_powi", mfunc_double[2], 

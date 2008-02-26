@@ -788,6 +788,7 @@ build_install_headers_dir
 build_xm_file_list
 build_xm_include_list
 build_xm_defines
+build_file_translate
 check_languages
 cpp_install_dir
 xmake_file
@@ -18074,6 +18075,7 @@ fi
 
 
 
+
 # Echo link setup.
 if test x${build} = x${host} ; then
   if test x${host} = x${target} ; then
@@ -18959,6 +18961,7 @@ build_install_headers_dir!$build_install_headers_dir$ac_delim
 build_xm_file_list!$build_xm_file_list$ac_delim
 build_xm_include_list!$build_xm_include_list$ac_delim
 build_xm_defines!$build_xm_defines$ac_delim
+build_file_translate!$build_file_translate$ac_delim
 check_languages!$check_languages$ac_delim
 cpp_install_dir!$cpp_install_dir$ac_delim
 xmake_file!$xmake_file$ac_delim
@@ -18974,7 +18977,6 @@ gcc_config_arguments!$gcc_config_arguments$ac_delim
 gcc_gxx_include_dir!$gcc_gxx_include_dir$ac_delim
 host_exeext!$host_exeext$ac_delim
 host_xm_file_list!$host_xm_file_list$ac_delim
-host_xm_include_list!$host_xm_include_list$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -19016,6 +19018,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+host_xm_include_list!$host_xm_include_list$ac_delim
 host_xm_defines!$host_xm_defines$ac_delim
 out_host_hook_obj!$out_host_hook_obj$ac_delim
 install!$install$ac_delim
@@ -19045,7 +19048,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 27; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 28; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
