@@ -329,16 +329,13 @@ extern unsigned gomp_dynamic_max_threads (void);
 
 /* stream.c */
 
-gomp_stream gomp_stream_create (size_t, unsigned);
-unsigned gomp_stream_used_space (gomp_stream);
-unsigned gomp_stream_free_space (gomp_stream);
-void gomp_stream_wait_used_space (gomp_stream, unsigned);
-void gomp_stream_wait_free_space (gomp_stream, unsigned);
-void gomp_stream_push (gomp_stream, void *);
-void gomp_stream_pop (gomp_stream, void *);
-bool gomp_stream_eos_p (gomp_stream);
-void gomp_stream_set_eos (gomp_stream);
-void gomp_stream_destroy (gomp_stream);
+extern gomp_stream gomp_stream_create (size_t, unsigned);
+extern void gomp_stream_push (gomp_stream, char *);
+extern char *gomp_stream_head (gomp_stream);
+extern void gomp_stream_pop (gomp_stream);
+extern bool gomp_stream_eos_p (gomp_stream);
+extern void gomp_stream_set_eos (gomp_stream);
+extern void gomp_stream_destroy (gomp_stream);
 
 /* team.c */
 

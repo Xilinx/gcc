@@ -996,6 +996,10 @@ fstrict-overflow
 Common Report Var(flag_strict_overflow)
 Treat signed overflow as undefined
 
+fstreamize-loops
+Common Report Var(flag_streamize_loops)
+Enable loop streamization
+
 fsyntax-only
 Common Report Var(flag_syntax_only)
 Check for syntax errors, then stop

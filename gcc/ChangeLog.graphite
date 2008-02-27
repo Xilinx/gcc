@@ -1,3 +1,13 @@
+2008-02-27  Antoniu Pop  <antoniu.pop@gmail.com>
+            Sebastian Pop  <sebastian.pop@amd.com>
+
+	* builtin-types.def (BT_FN_PTR_SIZE_UINT, BT_FN_BOOL_PTR): New.
+	* common.opt (fstreamize-loops): New.
+	* omp-builtins.def (BUILT_IN_GOMP_STREAM_CREATE,
+	BUILT_IN_GOMP_STREAM_PUSH, BUILT_IN_GOMP_STREAM_HEAD,
+	BUILT_IN_GOMP_STREAM_POP, BUILT_IN_GOMP_STREAM_EOS_P,
+	BUILT_IN_GOMP_STREAM_SET_EOS, BUILT_IN_GOMP_STREAM_DESTROY): New.
+
 2008-02-22  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
         * tree-data-ref.c (build_empty_rdg): New.

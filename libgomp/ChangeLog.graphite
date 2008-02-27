@@ -1,4 +1,22 @@
-2008-02-05  Antoniu Pop  <antoniu.pop@gmail.com>
+2008-02-27  Antoniu Pop  <antoniu.pop@gmail.com>
+            Sebastian Pop  <sebastian.pop@amd.com>
+
+	* libgomp_g.h (GOMP_stream_create, GOMP_stream_push,
+	GOMP_stream_head, GOMP_stream_pop, GOMP_stream_eos_p,
+	GOMP_stream_set_eos, GOMP_stream_destroy): Declared.
+	* stream.c (gomp_stream_used_space, gomp_stream_free_space,
+	gomp_stream_wait_used_space, gomp_stream_wait_free_space): Make 
+	static inline.
+	(gomp_stream_push, gomp_stream_pop): Changed elements types to char *.
+	(gomp_stream_pop): Do not return the element, do not copy the memory.
+	(gomp_stream_head, GOMP_stream_create, GOMP_stream_push,
+	GOMP_stream_head, GOMP_stream_pop, GOMP_stream_eos_p,
+	GOMP_stream_set_eos, GOMP_stream_destroy): New.
+	* libgomp.h (gomp_stream_used_space, gomp_stream_free_space,
+	gomp_stream_wait_used_space, gomp_stream_wait_free_space): Removed.
+
+
+2008-02-22  Antoniu Pop  <antoniu.pop@gmail.com>
             Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Makefile.in: Regenerated.
