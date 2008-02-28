@@ -285,7 +285,7 @@ ZLIBINC = @zlibinc@
 GMPLIBS = @GMPLIBS@
 GMPINC = @GMPINC@
 
-### for Basilys
+### for MELT/ Basilys 
 # How to find PPL (Parma Polyhedra Library)
 PPLLIBS = @ppllibs@
 PPLINC = @pplinc@
@@ -4497,10 +4497,56 @@ po/gcc.pot: force
 	AWK=$(AWK) $(SHELL) $(srcdir)/po/exgettext \
 		$(XGETTEXT) gcc $(srcdir)
 
-
-## definition for basilys internal compilation
+################################################################ 
+## definition for basilys/MELT internal compilation
+## see thread http://gcc.gnu.org/ml/gcc/2008-02/msg00632.html
+## in particular http://gcc.gnu.org/ml/gcc/2008-02/msg00673.html
 compile-basilys-defs:	
 	echo '#generated compile-basilys-defs' > $@
 	echo 'ALL_CFLAGS="' $(ALL_CFLAGS) '"' >> $@
 	echo 'ALL_CPPFLAGS="' -I$(PWD) $(ALL_CPPFLAGS) '"' >> $@
+
+
+
+## this is the installation directory
+melt_private_include_dir=$(libexecsubdir)/melt-private-include/
+
+## this is the local build directory
+melt_build_include_dir= melt-private-build-include
+
+# we want to generate all the direct (non system) dependencies of run-basilys.h
+# the following should work if $(CC) is some recent version of GCC (probably >= 4.x)
+
+# we first generate the make-dependencies using -MMD
+# this should write into run-basilys.d some stuff like
+## run-basilys-deps: srcdir.../gcc/run-basilys.h  config.h auto-host.h ....
+# with the srcdir... replaced by the source directory
+# however, there are also config/ files in the dependency list
+# config/ files should be handled specially since they are the only #include-d files
+# which are not flat, ie in a subdirectory, like srcdir.../gcc/config/i386/x86-64.h
+# there is also a dependency on tm.h (in objdir) which contains stuff like #include "config/i386/x86-64.h"
+run-basilys.d: run-basilys.h \
+   $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
+   tree-pass.h basilys.h gt-basilys.h
+	$(CC) -MT run-basilys-deps -MMD  $(ALL_CFLAGS) $(ALL_CPPFLAGS) $<
+
+.PHONY: run-basilys-deps
+## the include below defines the dependencies of run-basilys-deps
+## included file run-basilys.d is generated above
+-include run-basilys.d
+
+
+## copy all the file in the dependency of run-basilys-deps into $(melt_private_include_dir)
+## but handle the $(srcdir)/config/ files specially by copying them within a config/ directory
+run-basilys-deps:
+	$(mkinstalldirs) $(melt_build_include_dir); \
+	for f in $^ ; do \
+	  cf=`echo $$f | sed -q ":^$(srcdir)/config/:$(melt_build_include_dir)/config:"`; \
+	  if [ -n "$$cf" ] ;  then  \
+	    cp -p $$f $$cf ; \
+	  else  \
+	    cp -p $$f $(melt_build_include_dir)/ ; \
+		fi; \
+	done
+
 ### end of basilys stuff
