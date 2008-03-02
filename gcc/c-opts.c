@@ -1,5 +1,5 @@
 /* C/ObjC/C++ command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -407,6 +407,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       if (warn_strict_overflow == -1)
 	warn_strict_overflow = value;
       warn_array_bounds = value;
+      warn_volatile_register_var = value;
 
       /* Only warn about unknown pragmas that are not in system
 	 headers.  */
@@ -1106,18 +1107,6 @@ c_common_post_options (const char **pfilename)
   /* Adjust various flags for C++ based on command-line settings.  */
   if (c_dialect_cxx ())
     {
-      if (!flag_permissive)
-	{
-	  flag_pedantic_errors = 1;
-	  /* FIXME: For consistency pedantic_errors should have the
-	     same value in the front-end and in CPP. However, this
-	     will break existing applications. The right fix is
-	     disentagle flag_permissive from flag_pedantic_errors,
-	     create a new diagnostic function permerror that is
-	     controlled by flag_permissive and convert most C++
-	     pedwarns to this new function.
-	  cpp_opts->pedantic_errors = 1;  */
-	}
       if (!flag_no_inline)
 	{
 	  flag_inline_trees = 1;
@@ -1238,15 +1227,15 @@ c_common_init (void)
   if (version_flag)
     c_common_print_pch_checksum (stderr);
 
+  /* Has to wait until now so that cpplib has its hash table.  */
+  init_pragma ();
+
   if (flag_preprocess_only)
     {
       finish_options ();
       preprocess_file (parse_in);
       return false;
     }
-
-  /* Has to wait until now so that cpplib has its hash table.  */
-  init_pragma ();
 
   return true;
 }

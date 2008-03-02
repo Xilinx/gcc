@@ -2436,14 +2436,12 @@ cp_print_error_function (diagnostic_context *context,
 		  pp_base_newline (context->printer);
 		  if (s.file != NULL)
 		    {
-#ifdef USE_MAPPED_LOCATION
 		      if (flag_show_column && s.column != 0)
 			pp_printf (context->printer,
 				   "    inlined from %qs at %s:%d:%d",
 				   cxx_printable_name (fndecl, 2),
 				   s.file, s.line, s.column);
 		      else
-#endif
 			pp_printf (context->printer,
 				   "    inlined from %qs at %s:%d",
 				   cxx_printable_name (fndecl, 2),
@@ -2653,7 +2651,7 @@ cp_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
       dlevel = DK_WARNING;
       break;
     case CPP_DL_PEDWARN:
-      dlevel = pedantic_error_kind ();
+      dlevel = pedantic_warning_kind ();
       break;
     case CPP_DL_ERROR:
       dlevel = DK_ERROR;

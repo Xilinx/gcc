@@ -102,10 +102,6 @@ gfc_powdecl_list gfor_fndecl_math_powi[4][3];
 tree gfor_fndecl_math_ishftc4;
 tree gfor_fndecl_math_ishftc8;
 tree gfor_fndecl_math_ishftc16;
-tree gfor_fndecl_math_exponent4;
-tree gfor_fndecl_math_exponent8;
-tree gfor_fndecl_math_exponent10;
-tree gfor_fndecl_math_exponent16;
 
 
 /* String functions.  */
@@ -224,12 +220,7 @@ gfc_get_return_label (void)
 void
 gfc_set_decl_location (tree decl, locus * loc)
 {
-#ifdef USE_MAPPED_LOCATION
   DECL_SOURCE_LOCATION (decl) = loc->lb->location;
-#else
-  DECL_SOURCE_LINE (decl) = loc->lb->linenum;
-  DECL_SOURCE_FILE (decl) = loc->lb->file->filename;
-#endif
 }
 
 
@@ -2015,10 +2006,6 @@ gfc_build_intrinsic_function_decls (void)
   tree gfc_int8_type_node = gfc_get_int_type (8);
   tree gfc_int16_type_node = gfc_get_int_type (16);
   tree gfc_logical4_type_node = gfc_get_logical_type (4);
-  tree gfc_real4_type_node = gfc_get_real_type (4);
-  tree gfc_real8_type_node = gfc_get_real_type (8);
-  tree gfc_real10_type_node = gfc_get_real_type (10);
-  tree gfc_real16_type_node = gfc_get_real_type (16);
 
   /* String functions.  */
   gfor_fndecl_compare_string =
@@ -2203,25 +2190,6 @@ gfc_build_intrinsic_function_decls (void)
 				       gfc_int16_type_node,
 				       gfc_int4_type_node,
 				       gfc_int4_type_node);
-
-  gfor_fndecl_math_exponent4 =
-    gfc_build_library_function_decl (get_identifier (PREFIX("exponent_r4")),
-				     gfc_int4_type_node,
-				     1, gfc_real4_type_node);
-  gfor_fndecl_math_exponent8 =
-    gfc_build_library_function_decl (get_identifier (PREFIX("exponent_r8")),
-				     gfc_int4_type_node,
-				     1, gfc_real8_type_node);
-  if (gfc_real10_type_node)
-    gfor_fndecl_math_exponent10 =
-      gfc_build_library_function_decl (get_identifier (PREFIX("exponent_r10")),
-				       gfc_int4_type_node, 1,
-				       gfc_real10_type_node);
-  if (gfc_real16_type_node)
-    gfor_fndecl_math_exponent16 =
-      gfc_build_library_function_decl (get_identifier (PREFIX("exponent_r16")),
-				       gfc_int4_type_node, 1,
-				       gfc_real16_type_node);
 
   /* BLAS functions.  */
   {
@@ -2639,8 +2607,10 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 		if (el->sym != el->sym->result)
 		  break;
 	    }
-	  if (el == NULL)
-	    warning (0, "Function does not return a value");
+	  /* TODO: move to the appropriate place in resolve.c.  */
+	  if (warn_return_type && el == NULL)
+	    gfc_warning ("Return value of function '%s' at %L not set",
+			 proc_sym->name, &proc_sym->declared_at);
 	}
       else if (proc_sym->as)
 	{
@@ -2984,7 +2954,7 @@ generate_local_decl (gfc_symbol * sym)
       /* Warn for unused variables, but not if they're inside a common
 	 block or are use-associated.  */
       else if (warn_unused_variable
-	       && !(sym->attr.in_common || sym->attr.use_assoc))
+	       && !(sym->attr.in_common || sym->attr.use_assoc || sym->mark))
 	gfc_warning ("Unused variable '%s' declared at %L", sym->name,
 		     &sym->declared_at);
       /* For variable length CHARACTER parameters, the PARM_DECL already
@@ -3013,6 +2983,25 @@ generate_local_decl (gfc_symbol * sym)
            && !sym->attr.use_assoc)
 	gfc_warning ("Unused parameter '%s' declared at %L", sym->name,
 		     &sym->declared_at);
+    }
+  else if (sym->attr.flavor == FL_PROCEDURE)
+    {
+      /* TODO: move to the appropriate place in resolve.c.  */
+      if (warn_return_type
+	  && sym->attr.function
+	  && sym->result
+	  && sym != sym->result
+	  && !sym->result->attr.referenced
+	  && !sym->attr.use_assoc
+	  && sym->attr.if_source != IFSRC_IFBODY)
+	{
+	  gfc_warning ("Return value '%s' of function '%s' declared at "
+		       "%L not set", sym->result->name, sym->name,
+		        &sym->result->declared_at);
+
+	  /* Prevents "Unused variable" warning for RESULT variables.  */
+	  sym->mark = sym->result->mark = 1;
+	}
     }
 
   if (sym->attr.dummy == 1)
@@ -3307,10 +3296,17 @@ gfc_generate_function_code (gfc_namespace * ns)
 	  gfc_add_expr_to_block (&block, tmp2);
 	}
 
-     gfc_add_expr_to_block (&block, tmp);
+      gfc_add_expr_to_block (&block, tmp);
 
-     if (result == NULL_TREE)
-	warning (0, "Function return value not set");
+      if (result == NULL_TREE)
+	{
+	  /* TODO: move to the appropriate place in resolve.c.  */
+	  if (warn_return_type && !sym->attr.referenced && sym == sym->result)
+	    gfc_warning ("Return value of function '%s' at %L not set",
+			 sym->name, &sym->declared_at);
+
+	  TREE_NO_WARNING(sym->backend_decl) = 1;
+	}
       else
 	{
 	  /* Set the return value to the dummy result variable.  The

@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -149,10 +149,6 @@ static const char **save_argv;
 
 const char *main_input_filename;
 
-#ifndef USE_MAPPED_LOCATION
-location_t unknown_location = { NULL, 0 };
-#endif
-
 /* Used to enable -fvar-tracking, -fweb and -frename-registers according
    to optimize and default_debug_hooks in process_options ().  */
 #define AUTODETECT_VALUE 2
@@ -162,23 +158,6 @@ location_t unknown_location = { NULL, 0 };
 location_t input_location;
 
 struct line_maps *line_table;
-
-/* Stack of currently pending input files.  */
-
-struct file_stack *input_file_stack;
-
-/* Incremented on each change to input_file_stack.  */
-int input_file_stack_tick;
-
-/* Record of input_file_stack at each tick.  */
-typedef struct file_stack *fs_p;
-DEF_VEC_P(fs_p);
-DEF_VEC_ALLOC_P(fs_p,heap);
-static VEC(fs_p,heap) *input_file_stack_history;
-
-/* Whether input_file_stack has been restored to a previous state (in
-   which case there should be no more pushing).  */
-static bool input_file_stack_restored;
 
 /* Name to use as base of names for dump output files.  */
 
@@ -316,6 +295,10 @@ enum tls_model flag_tls_default = TLS_MODEL_GLOBAL_DYNAMIC;
    Usually these are warnings about failure to conform to some standard.  */
 
 int flag_pedantic_errors = 0;
+
+/* Nonzero means make permerror produce warnings instead of errors.  */
+
+int flag_permissive = 0;
 
 /* -dA causes debug commentary information to be produced in
    the generated assembly code (to make it more readable).  This option
@@ -970,72 +953,6 @@ warn_deprecated_use (tree node)
 	    warning (OPT_Wdeprecated_declarations, "type is deprecated");
 	}
     }
-}
-
-/* Save the current INPUT_LOCATION on the top entry in the
-   INPUT_FILE_STACK.  Push a new entry for FILE and LINE, and set the
-   INPUT_LOCATION accordingly.  */
-
-void
-#ifdef USE_MAPPED_LOCATION
-push_srcloc (location_t fline)
-#else
-push_srcloc (const char *file, int line)
-#endif
-{
-  struct file_stack *fs;
-
-  gcc_assert (!input_file_stack_restored);
-  if (input_file_stack_tick == (int) ((1U << INPUT_FILE_STACK_BITS) - 1))
-    sorry ("GCC supports only %d input file changes", input_file_stack_tick);
-
-  fs = XNEW (struct file_stack);
-  fs->location = input_location;
-  fs->next = input_file_stack;
-#ifdef USE_MAPPED_LOCATION
-  input_location = fline;
-#else
-  input_filename = file;
-  input_line = line;
-#endif
-  input_file_stack = fs;
-  input_file_stack_tick++;
-  VEC_safe_push (fs_p, heap, input_file_stack_history, input_file_stack);
-}
-
-/* Pop the top entry off the stack of presently open source files.
-   Restore the INPUT_LOCATION from the new topmost entry on the
-   stack.  */
-
-void
-pop_srcloc (void)
-{
-  struct file_stack *fs;
-
-  gcc_assert (!input_file_stack_restored);
-  if (input_file_stack_tick == (int) ((1U << INPUT_FILE_STACK_BITS) - 1))
-    sorry ("GCC supports only %d input file changes", input_file_stack_tick);
-
-  fs = input_file_stack;
-  input_location = fs->location;
-  input_file_stack = fs->next;
-  input_file_stack_tick++;
-  VEC_safe_push (fs_p, heap, input_file_stack_history, input_file_stack);
-}
-
-/* Restore the input file stack to its state as of TICK, for the sake
-   of diagnostics after processing the whole input.  Once this has
-   been called, push_srcloc and pop_srcloc may no longer be
-   called.  */
-void
-restore_input_file_stack (int tick)
-{
-  if (tick == 0)
-    input_file_stack = NULL;
-  else
-    input_file_stack = VEC_index (fs_p, input_file_stack_history, tick - 1);
-  input_file_stack_tick = tick;
-  input_file_stack_restored = true;
 }
 
 /* Compile an entire translation unit.  Write a file of assembly
@@ -1760,9 +1677,6 @@ process_options (void)
      sets the original filename if appropriate (e.g. foo.i -> foo.c)
      so we can correctly initialize debug output.  */
   no_backend = lang_hooks.post_options (&main_input_filename);
-#ifndef USE_MAPPED_LOCATION
-  input_filename = main_input_filename;
-#endif
 
 #ifdef OVERRIDE_OPTIONS
   /* Some machines may reject certain combinations of options.  */
@@ -2153,12 +2067,7 @@ lang_dependent_init (const char *name)
     dump_base_name = name && name[0] ? name : "gccdump";
 
   /* Other front-end initialization.  */
-#ifdef USE_MAPPED_LOCATION
   input_location = BUILTINS_LOCATION;
-#else
-  input_filename = "<built-in>";
-  input_line = 0;
-#endif
   if (lang_hooks.init () == 0)
     return 0;
   input_location = save_loc;

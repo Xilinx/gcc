@@ -1,3 +1,88 @@
+2008-02-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35059
+	* expr.c (find_array_element): Modify traversing the constructor to
+	avoid trying to access NULL memory pointed to by next for the
+	last element. (find_array_section): Exit while loop if cons->next is
+	NULL.
+	* trans-expr.c (gfc_conv_scalar_char_value): Initialize gfc_typespec.
+	(gfc_conv_function_call): Same.
+	* decl.c (gfc_match_implicit): Same.
+	* trans-intrinsic.c (gfc_conv_intrinsic_sr_kind): Same.
+
+2008-02-28  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/31463
+	PR fortran/33950
+	PR fortran/34296
+	* lang.opt: Added -Wreturn-type.
+	* options.c (gfc_handle_option): Recognize -Wreturn-type.
+	* trans-decl.c (gfc_trans_deferred_vars): Emit warnings for funtions
+	where the result value is not set.
+	(gfc_generate_function_code): Likewise.
+	(generate_local_decl): Emit warnings for funtions whose RESULT
+	variable is not set.
+
+2008-02-28  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/34868
+	* trans-expr.c (gfc_conv_variable): Don't build indirect
+	references when explicit interface is mandated.
+	* resolve.c (resolve_formal_arglist): Set attr.always_explicit
+	on the result symbol as well as the procedure symbol.
+
+2008-02-27  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33387
+	* trans.h: Remove prototypes for gfor_fndecl_math_exponent4,
+	gfor_fndecl_math_exponent8, gfor_fndecl_math_exponent10 and
+	gfor_fndecl_math_exponent16.
+	* f95-lang.c (build_builtin_fntypes): Add new function types.
+	(gfc_init_builtin_functions): Add new builtins for nextafter,
+	frexp, ldexp, fabs, scalbn and inf.
+	* iresolve.c (gfc_resolve_rrspacing): Don't add hidden arguments.
+	(gfc_resolve_scale): Don't convert type of second argument.
+	(gfc_resolve_set_exponent): Likewise.
+	(gfc_resolve_size): Don't add hidden arguments.
+	* trans-decl.c: Remove gfor_fndecl_math_exponent4,
+	gfor_fndecl_math_exponent8, gfor_fndecl_math_exponent10 and
+	gfor_fndecl_math_exponent16.
+	* trans-intrinsic.c (gfc_intrinsic_map): Remove intrinsics
+	for scalbn, fraction, nearest, rrspacing, set_exponent and
+	spacing.
+	(gfc_conv_intrinsic_exponent): Directly call frexp.
+	(gfc_conv_intrinsic_fraction, gfc_conv_intrinsic_nearest,
+	gfc_conv_intrinsic_spacing, gfc_conv_intrinsic_rrspacing,
+	gfc_conv_intrinsic_scale, gfc_conv_intrinsic_set_exponent): New
+	functions.
+	(gfc_conv_intrinsic_function): Use the new functions above.
+
+2008-02-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/35033
+	* interface.c (check_operator_interface): Show better line for error
+	messages; fix constrains for user-defined assignment operators.
+	(gfc_extend_assign): Fix constrains for user-defined assignment
+	operators.
+
+2008-02-26  Tom Tromey  <tromey@redhat.com>
+
+	* trans-io.c (set_error_locus): Remove old location code.
+	* trans-decl.c (gfc_set_decl_location): Remove old location code.
+	* f95-lang.c (gfc_init): Remove test of USE_MAPPED_LOCATION.
+	* scanner.c (gfc_gobble_whitespace): Remove old location code.
+	(get_file): Likewise.
+	(preprocessor_line): Likewise.
+	(load_file): Likewise.
+	(gfc_new_file): Likewise.
+	* trans.c (gfc_trans_runtime_check): Remove old location code.
+	(gfc_get_backend_locus): Likewise.
+	(gfc_set_backend_locus): Likewise.
+	* data.c (gfc_assign_data_value): Remove old location code.
+	* error.c (show_locus): Remove old location code.
+	* gfortran.h (gfc_linebuf): Remove old location code.
+	(gfc_linebuf_linenum): Remove old-location variant.
+
 2008-02-25  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR fortran/34729

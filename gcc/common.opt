@@ -127,7 +127,10 @@ Warn when an inlined function cannot be inlined
 
 Wlarger-than-
 Common RejectNegative Joined UInteger Warning
--Wlarger-than-<number>	Warn if an object is larger than <number> bytes
+
+Wlarger-than=
+Common RejectNegative Joined UInteger Warning
+-Wlarger-than=<number>	Warn if an object is larger than <number> bytes
 
 Wlogical-op
 Common Warning Var(warn_logical_op)
@@ -228,10 +231,6 @@ Warn when an expression value is unused
 Wunused-variable
 Common Var(warn_unused_variable) Warning
 Warn when a variable is unused
-
-Wvolatile-register-var
-Common Var(warn_register_var) Warning
-Warn when a register variable is declared volatile
 
 Wcoverage-mismatch
 Common RejectNegative Var(warn_coverage_mismatch) Warning
@@ -1137,6 +1136,10 @@ Enable dead store elimination
 ftree-fre
 Common Report Var(flag_tree_fre) Optimization
 Enable Full Redundancy Elimination (FRE) on trees
+
+ftree-loop-distribution
+Common Report Var(flag_tree_loop_distribution)
+Enable loop distribution on trees
 
 ftree-loop-im
 Common Report Var(flag_tree_loop_im) Init(1) Optimization

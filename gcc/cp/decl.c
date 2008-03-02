@@ -357,12 +357,7 @@ pop_label (tree label, tree old_value)
 	  location_t location;
 
 	  error ("label %q+D used but not defined", label);
-#ifdef USE_MAPPED_LOCATION
 	  location = input_location; /* FIXME want (input_filename, (line)0) */
-#else
-	  location.file = input_filename;
-	  location.line = 0;
-#endif
 	  /* Avoid crashing later.  */
 	  define_label (location, DECL_NAME (label));
 	}
@@ -3961,6 +3956,7 @@ start_decl (const cp_declarator *declarator,
   tree type;
   tree context;
   bool was_public;
+  int flags;
 
   *pushed_scope_p = NULL_TREE;
 
@@ -4022,8 +4018,17 @@ start_decl (const cp_declarator *declarator,
 	TREE_STATIC (decl) = 1;
     }
 
+  /* If this is a typedef that names the class for linkage purposes
+     (7.1.3p8), apply any attributes directly to the type.  */
+  if (TREE_CODE (decl) == TYPE_DECL
+      && TAGGED_TYPE_P (TREE_TYPE (decl))
+      && decl == TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (decl))))
+    flags = ATTR_FLAG_TYPE_IN_PLACE;
+  else
+    flags = 0;
+
   /* Set attributes here so if duplicate decl, will have proper attributes.  */
-  cplus_decl_attributes (&decl, attributes, 0);
+  cplus_decl_attributes (&decl, attributes, flags);
 
   /* Dllimported symbols cannot be defined.  Static data members (which
      can be initialized in-class and dllimported) go through grokfield,
@@ -7023,12 +7028,7 @@ compute_array_index_type (tree name, tree size)
     {
       /* Check to see if the array bound overflowed.  Make that an
 	 error, no matter how generous we're being.  */
-      int old_flag_pedantic_errors = flag_pedantic_errors;
-      int old_pedantic = pedantic;
-      pedantic = flag_pedantic_errors = 1;
-      constant_expression_warning (size);
-      pedantic = old_pedantic;
-      flag_pedantic_errors = old_flag_pedantic_errors;
+      constant_expression_error (size);
 
       /* An array must have a positive number of elements.  */
       if (INT_CST_LT (size, integer_zero_node))
@@ -8560,8 +8560,6 @@ grokdeclarator (const cp_declarator *declarator,
 	  && TYPE_NAME (type)
 	  && TREE_CODE (TYPE_NAME (type)) == TYPE_DECL
 	  && TYPE_ANONYMOUS_P (type)
-	  /* Don't do this if there are attributes.  */
-	  && (!attrlist || !*attrlist)
 	  && cp_type_quals (type) == TYPE_UNQUALIFIED)
 	{
 	  tree oldname = TYPE_NAME (type);
@@ -11806,14 +11804,10 @@ finish_function (int flags)
 	  /* Hack.  We don't want the middle-end to warn that this
 	     return is unreachable, so put the statement on the
 	     special line 0.  */
-#ifdef USE_MAPPED_LOCATION
 	  {
 	    location_t linezero = linemap_line_start (line_table, 0, 1);
 	    SET_EXPR_LOCATION (stmt, linezero);
 	  }
-#else
-	  annotate_with_file_line (stmt, input_filename, 0);
-#endif
 	}
 
       if (use_eh_spec_block (current_function_decl))

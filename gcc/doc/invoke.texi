@@ -241,7 +241,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wimplicit  -Wimplicit-function-declaration  -Wimplicit-int @gol
 -Wimport  -Wno-import  -Winit-self  -Winline @gol
 -Wno-int-to-pointer-cast -Wno-invalid-offsetof @gol
--Winvalid-pch -Wlarger-than-@var{len}  -Wunsafe-loop-optimizations @gol
+-Winvalid-pch -Wlarger-than=@var{len}  -Wunsafe-loop-optimizations @gol
 -Wlogical-op -Wlong-long @gol
 -Wmain  -Wmissing-braces  -Wmissing-field-initializers @gol
 -Wmissing-format-attribute  -Wmissing-include-dirs @gol
@@ -354,6 +354,7 @@ Objective-C and Objective-C++ Dialects}.
 -fstrict-aliasing -fstrict-overflow -fthread-jumps -ftracer -ftree-ccp @gol
 -ftree-ch -ftree-copy-prop -ftree-copyrename -ftree-dce @gol
 -ftree-dominator-opts -ftree-dse -ftree-fre -ftree-loop-im @gol
+-ftree-loop-distribution @gol
 -ftree-loop-ivcanon -ftree-loop-linear -ftree-loop-optimize @gol
 -ftree-parallelize-loops=@var{n} -ftree-pre -ftree-reassoc -ftree-salias @gol
 -ftree-sink -ftree-sra -ftree-store-ccp -ftree-ter @gol
@@ -2683,6 +2684,7 @@ Options} and @ref{Objective-C and Objective-C++ Dialect Options}.
 -Wunused-label     @gol
 -Wunused-value     @gol
 -Wunused-variable  @gol
+-Wvolatile-register-var @gol
 }
 
 Note that some warning flags are not implied by @option{-Wall}.  Some of
@@ -3516,7 +3518,8 @@ Do not warn whenever an @samp{#else} or an @samp{#endif} are followed by text.
 Warn whenever a local variable shadows another local variable, parameter or
 global variable or whenever a built-in function is shadowed.
 
-@item -Wlarger-than-@var{len}
+@item -Wlarger-than=@var{len}
+@opindex Wlarger-than=@var{len}
 @opindex Wlarger-than-@var{len}
 Warn whenever an object of larger than @var{len} bytes is defined.
 
@@ -4016,7 +4019,8 @@ the variable length array.
 @opindex Wno-volatile-register-var
 Warn if a register variable is declared volatile.  The volatile
 modifier does not inhibit all optimizations that may eliminate reads
-and/or writes to register variables.
+and/or writes to register variables.  This warning is enabled by
+@option{-Wall}.
 
 @item -Wdisabled-optimization
 @opindex Wdisabled-optimization
@@ -5924,6 +5928,11 @@ performance and allow further loop optimizations to take place.
 @opindex fcheck-data-deps
 Compare the results of several data dependence analyzers.  This option
 is used for debugging the data dependence analyzers.
+
+@item -ftree-loop-distribution
+Perform loop distribution.  This flag can improve cache performance on
+big loop bodies and allow further loop optimizations, like
+parallelization or vectorization, to take place.
 
 @item -ftree-loop-im
 @opindex ftree-loop-im
@@ -12922,11 +12931,12 @@ Supported values for @var{cpu_type} are @samp{401}, @samp{403},
 @samp{601}, @samp{602}, @samp{603}, @samp{603e}, @samp{604},
 @samp{604e}, @samp{620}, @samp{630}, @samp{740}, @samp{7400},
 @samp{7450}, @samp{750}, @samp{801}, @samp{821}, @samp{823},
-@samp{860}, @samp{970}, @samp{8540}, @samp{ec603e}, @samp{G3},
-@samp{G4}, @samp{G5}, @samp{power}, @samp{power2}, @samp{power3},
-@samp{power4}, @samp{power5}, @samp{power5+}, @samp{power6},
-@samp{power6x}, @samp{common}, @samp{powerpc}, @samp{powerpc64},
-@samp{rios}, @samp{rios1}, @samp{rios2}, @samp{rsc}, and @samp{rs64}.
+@samp{860}, @samp{970}, @samp{8540}, @samp{e300c2}, @samp{e300c3},
+@samp{ec603e}, @samp{G3}, @samp{G4}, @samp{G5}, @samp{power},
+@samp{power2}, @samp{power3}, @samp{power4}, @samp{power5},
+@samp{power5+}, @samp{power6}, @samp{power6x}, @samp{common},
+@samp{powerpc}, @samp{powerpc64}, @samp{rios}, @samp{rios1},
+@samp{rios2}, @samp{rsc}, and @samp{rs64}.
 
 @option{-mcpu=common} selects a completely generic processor.  Code
 generated under this option will run on any POWER or PowerPC processor.

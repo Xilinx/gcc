@@ -1,3 +1,99 @@
+2008-03-02  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 24924
+	* class.c (finish_struct_anon): Use permerror instead of pedwarn.
+	(check_field_decls): Likewise.
+	(note_name_declared_in_class): Likewise.
+	* call.c (build_new_op): Likewise.
+	(convert_like_real): Likewise.
+	(build_over_call): Likewise.
+	* lex.c (unqualified_fn_lookup_error): Likewise.
+	* parser.c (cp_parser_template_id): Likewise.
+	* cvt.c (warn_ref_binding): Likewise.
+	(convert_to_reference): Likewise.
+	(ocp_convert): Likewise.
+	(convert_to_void): Use error instead of pedwarn.
+	* error.c (cp_cpp_error): Use pedantic_warning_kind.
+	* decl.c (compute_array_index_type): Use constant_expression_error.
+	
+2008-03-01  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* parser.c (cp_lexer_next_token_is_decl_specifier_keyword): Note
+	that auto is either a storage class or a simple type specifier,
+	depending on the dialect.
+	(cp_parser_decl_specifier_seq): Complain about `auto' as a storage
+	specifier in C++98 mode, error in C++0x mode (since we don't
+	support auto as a type specifier, yet).
+	(cp_parser_storage_class_specifier_opt): Don't treat `auto' as a
+	storage specifier in C++0x mode.
+	(cp_parser_simple_type_specifier): Parse `auto' as a
+	simple-type-specifier, but error because we don't support it yet.
+
+2008-02-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* parser.c (cp_parser_nonclass_name): New.
+	(cp_parser_pseudo_destructor_name): Use it instead of
+	cp_parser_type_name.
+	(cp_parser_type_name): Move code to cp_parser_nonclass_name.
+
+2008-02-29  Tom Tromey  <tromey@redhat.com>
+
+	* parser.c (struct cp_token) <input_file_stack_index>: Remove.
+	(cp_lexer_get_preprocessor_token): Update.
+	(cp_lexer_set_source_position_from_token): Don't call
+	restore_input_file_stack.
+	* lex.c (cxx_init): Don't use push_srcloc or pop_srcloc.
+
+2008-02-28  Richard Guenther  <rguenther@suse.de>
+
+	Revert:
+	2008-02-26  Richard Guenther  <rguenther@suse.de>
+
+	* decl.c (duplicate_decls): Remove decl from global mapping
+	before ggc_freeing it.
+
+2008-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35368
+	* rtti.c: Include c-pragma.h.
+	(push_abi_namespace, pop_abi_namespace): New functions.
+	(build_dynamic_cast_1, tinfo_base_init, get_pseudo_ti_index,
+	create_tinfo_types, emit_support_tinfos): Use them.
+	* Make-lang.in (cp/rtti.o): Depend on $(C_PRAGMA_H).
+
+2008-02-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35315
+	* decl.c (grokdeclarator): Allow a typedef of an unnamed struct
+	to name the struct for linkage purposes even if it has attributes.
+	(start_decl): In that case, set ATTR_FLAG_TYPE_IN_PLACE.
+
+2008-02-26  Tom Tromey  <tromey@redhat.com>
+
+	* parser.c (eof_token): Remove old location code.
+	(check_empty_body): Remove test of USE_MAPPED_LOCATION.
+	* decl2.c (generate_ctor_or_dtor_function): Remove old location
+	code.
+	(cp_write_global_declarations): Likewise.
+	* lex.c (cxx_init): Remove old location code.
+	(handle_pragma_implementation): Remove test of
+	USE_MAPPED_LOCATION.
+	* pt.c (tsubst): Remove old location code.
+	* error.c (cp_print_error_function): Remove test of
+	USE_MAPPED_LOCATION.
+	* decl.c (pop_label): Remove old location code.
+	(finish_function): Likewise.
+
+2008-02-26  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 26264
+	* call.c (magic_varargs_p):  Remove BUILT_IN_STDARG_START.
+	
+2008-02-26  Richard Guenther  <rguenther@suse.de>
+
+	* decl.c (duplicate_decls): Remove decl from global mapping
+	before ggc_freeing it.
+
 2008-02-26  Paolo Carlini  <pcarlini@suse.de>
 
         PR c++/35323
@@ -155,7 +251,7 @@
 2008-02-12  Jason Merrill  <jason@redhat.com>
 
 	PR c++/34824
-	* call.c (convert_like_real): Pass LOOKUP_ONLYCONVERTING to build_temp
+	* call.c (convert_like_real): Pass LOOKUP_NO_CONVERSION to build_temp
 	if we're doing conversions to call a user-defined conversion function.
 
 2008-02-12  Steven Bosscher  <steven@gcc.gnu.org>
