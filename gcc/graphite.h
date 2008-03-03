@@ -76,6 +76,7 @@ struct scop
   VEC (tree, heap) *params;
 
   /* Loops contained in the scop.  */
+  bitmap loops;
   VEC (loop_p, heap) *loop_nest;
 
   htab_t loop2cloog_loop;
@@ -89,6 +90,7 @@ struct scop
 #define SCOP_ENTRY(S) S->entry
 #define SCOP_EXIT(S) S->exit
 #define SCOP_STATIC_SCHEDULE(S) S->static_schedule
+#define SCOP_LOOPS(S) S->loops
 #define SCOP_LOOP_NEST(S) S->loop_nest
 #define SCOP_PARAMS(S) S->params
 #define SCOP_PROG(S) S->program
@@ -139,6 +141,8 @@ scop_loop_index (scop_p scop, struct loop *loop)
 {
   unsigned i;
   struct loop *l;
+
+  gcc_assert (bitmap_bit_p (SCOP_LOOPS (scop), loop->num));
 
   for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, l); i++)
     if (l == loop)

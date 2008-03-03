@@ -1,3 +1,43 @@
+2008-03-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-scalar-evolution.c (instantiate_parameters_1): An SSA_NAME
+	defined in a loop at depth 0 is invariant.
+	* tree-chrec.c (evolution_function_is_invariant_rec_p): Ditto.
+	* tree-ssa-loop-ivopts.c (expr_invariant_in_loop_p): Should never
+	be called at loop depth 0.
+
+	* graphite.c (basic_block_simple_for_scop_p): Take the scop as
+	a parameter.
+	(dot_all_scops_1): Update use of basic_block_simple_for_scop_p.
+	(down_open_scop): Removed.
+	(loop_in_scop_p): Redefined.
+	(scop_affine_expr): New argument: scop.
+	(stmt_simple_for_scop_p): New argument: scop.  RETURN_EXPR is not
+	a harmful statement ending a scop.
+	(basic_block_simple_for_scop_p): New argument: scop.
+	(get_loop_start): Removed.
+	(new_scop): Initialize SCOP_LOOPS.
+	(free_scop): Free SCOP_LOOPS.
+	(succs_at_same_depth, preds_at_same_depth): New.
+	(end_scop): Test the validity of a scop.
+	(add_dominators_to_open_scops): New.
+	(test_for_scop_bound): Call add_dominators_to_open_scops.
+	Add cases for opening and closing multiple scops.
+	(build_scops, build_scop_bbs): Iterate over basic blocks in depth first.
+	(build_graphite_bb): Pass scop directly.
+	(dfs_bb_in_scop_p): New.
+	(scop_record_loop): Use SCOP_LOOPS for not recording the same loop
+	several times.
+	(nb_loops_around_gb): Use loop_in_scop_p.
+	(schedule_to_scattering): Disabled for the moment the code computing
+	the "textual order for outer loop".
+
+	* graphite.h (struct scop): New field loops.
+	(SCOP_LOOPS): New.
+	(scop_loop_index): Test that the given loop belongs to SCOP_LOOPS.
+
+	* testsuite/gcc.dg/graphite/scop-{1,...,7}.c: Updated.
+
 2008-02-27  Antoniu Pop  <antoniu.pop@gmail.com>
             Sebastian Pop  <sebastian.pop@amd.com>
 
