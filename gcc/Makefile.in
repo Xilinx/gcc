@@ -1517,8 +1517,9 @@ all.internal: start.encap rest.encap doc
 all.cross: native gcc-cross$(exeext) cpp$(exeext) specs \
 	libgcc-support lang.all.cross doc @GENINSRC@ srcextra
 # This is what must be made before installing GCC and converting libraries.
+## Basile Starynkevitch added the melt.encap target for basilys
 start.encap: native xgcc$(exeext) cpp$(exeext) specs \
-	libgcc-support lang.start.encap @GENINSRC@ srcextra
+	libgcc-support lang.start.encap @GENINSRC@ srcextra melt.encap
 # These can't be made until after GCC can run.
 rest.encap: $(STMP_FIXPROTO) lang.rest.encap
 # This is what is made with the host's compiler
@@ -2350,7 +2351,7 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
    $(MACHMODE_H) $(TARGET_DEF_H) $(TARGET_H) $(GGC_H) gt-targhooks.h \
    $(OPTABS_H)
 
-#### added for Basilys
+#### added for Basilys a.k.a. MELT http://gcc.gnu.org/wiki/MiddleEndLispTranslator 
 basilys.o:  basilys.c  \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
    tree-pass.h basilys.h gt-basilys.h
@@ -4502,17 +4503,13 @@ po/gcc.pot: force
 ## definition for basilys/MELT internal compilation
 ## see thread http://gcc.gnu.org/ml/gcc/2008-02/msg00632.html
 ## in particular http://gcc.gnu.org/ml/gcc/2008-02/msg00673.html
-compile-basilys-defs:	
-	echo '#generated compile-basilys-defs' > $@
-	echo 'ALL_CFLAGS="' $(ALL_CFLAGS) '"' >> $@
-	echo 'ALL_CPPFLAGS="' -I$(PWD) $(ALL_CPPFLAGS) '"' >> $@
-
 
 
 ## this is the installation directory
 melt_private_include_dir=$(libexecsubdir)/melt-private-include/
 
-## this is the local build directory
+## this is the local build directory (which should be copied during
+## installation into the installation directory above)
 melt_build_include_dir= melt-private-build-include
 
 # we want to generate all the direct (non system) dependencies of run-basilys.h
@@ -4529,9 +4526,10 @@ melt_build_include_dir= melt-private-build-include
 run-basilys.d: run-basilys.h \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
    tree-pass.h basilys.h gt-basilys.h
+## perhaps this should really use depcomp
 	$(CC) -MT run-basilys-deps -MMD  $(ALL_CFLAGS) $(ALL_CPPFLAGS) $<
 
-.PHONY: run-basilys-deps
+.PHONY: melt.encap run-basilys-deps
 ## the include below defines the dependencies of run-basilys-deps
 ## included file run-basilys.d is generated above
 -include run-basilys.d
@@ -4549,5 +4547,11 @@ run-basilys-deps:
 	    cp -p $$f $(melt_build_include_dir)/ ; \
 		fi; \
 	done
+
+## a phony target triggered by "start.encap" (triggered by the "all" target)
+## we have to invoke make recursively, because run-basilys.d is a -include-d dependency file
+melt.encap: run-basilys.d
+	echo '***' IN MELT ENCAP TARGET '***'
+	$(MAKE) run-basilys-deps
 
 ### end of basilys stuff
