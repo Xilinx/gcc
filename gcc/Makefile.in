@@ -313,6 +313,10 @@ TARGET_GETGROUPS_T = @TARGET_GETGROUPS_T@
 # install-headers-tar, install-headers-cpio or install-headers-cp.
 INSTALL_HEADERS_DIR = @build_install_headers_dir@
 
+## similar target to use when installing melt include directory. Either
+# install-melt-headers-tar, install-melt-headers-cpio or install-melt-headers-cp.
+INSTALL_MELT_HEADERS_DIR = $(patsubst install-headers-%, install-melt-headers-%, $(INSTALL_HEADERS_DIR))
+
 # Header files that are made available under the same name
 # to programs compiled with GCC.
 USER_H = $(srcdir)/ginclude/float.h \
@@ -655,7 +659,7 @@ SFP_MACHINE =
 LIBCONVERT =
 
 # Control whether header files are installed.
-INSTALL_HEADERS=install-headers install-mkheaders
+INSTALL_HEADERS=install-headers install-mkheaders install-melt-headers
 
 # Control whether Info documentation is built and installed.
 BUILD_INFO = @BUILD_INFO@
@@ -1518,8 +1522,9 @@ all.cross: native gcc-cross$(exeext) cpp$(exeext) specs \
 	libgcc-support lang.all.cross doc @GENINSRC@ srcextra
 # This is what must be made before installing GCC and converting libraries.
 ## Basile Starynkevitch added the melt.encap target for basilys
+.PHONY: melt.encap
 start.encap: native xgcc$(exeext) cpp$(exeext) specs \
-	libgcc-support lang.start.encap @GENINSRC@ srcextra melt.encap
+	libgcc-support  melt.encap lang.start.encap @GENINSRC@ srcextra 
 # These can't be made until after GCC can run.
 rest.encap: $(STMP_FIXPROTO) lang.rest.encap
 # This is what is made with the host's compiler
@@ -4529,7 +4534,7 @@ run-basilys.d: run-basilys.h \
 ## perhaps this should really use depcomp
 	$(CC) -MT run-basilys-deps -MMD  $(ALL_CFLAGS) $(ALL_CPPFLAGS) $<
 
-.PHONY: melt.encap run-basilys-deps
+.PHONY: run-basilys-deps
 ## the include below defines the dependencies of run-basilys-deps
 ## included file run-basilys.d is generated above
 -include run-basilys.d
@@ -4538,20 +4543,63 @@ run-basilys.d: run-basilys.h \
 ## copy all the file in the dependency of run-basilys-deps into $(melt_private_include_dir)
 ## but handle the $(srcdir)/config/ files specially by copying them within a config/ directory
 run-basilys-deps:
+	echo '***' IN run-basilys-deps TARGET '***'
 	$(mkinstalldirs) $(melt_build_include_dir); \
 	for f in $^ ; do \
-	  cf=`echo $$f | sed -q ":^$(srcdir)/config/:$(melt_build_include_dir)/config:"`; \
-	  if [ -n "$$cf" ] ;  then  \
+	  cf=`echo $$f | sed  "s:$(srcdir)/config/:$(melt_build_include_dir)/config/:"`; \
+	  echo run-basilys-deps f= $$f cf= $$cf; \
+	  if [ "x$$f" != "x$$cf" ] ;  then  \
+	    $(mkinstalldirs) `dirname $$cf` ; \
 	    cp -p $$f $$cf ; \
 	  else  \
 	    cp -p $$f $(melt_build_include_dir)/ ; \
 		fi; \
 	done
 
+
+
 ## a phony target triggered by "start.encap" (triggered by the "all" target)
 ## we have to invoke make recursively, because run-basilys.d is a -include-d dependency file
 melt.encap: run-basilys.d
-	echo '***' IN MELT ENCAP TARGET '***'
+	echo '***' IN melt.encap TARGET '***'
 	$(MAKE) run-basilys-deps
 
-### end of basilys stuff
+
+.PHONY: install-melt-headers
+
+install-melt-headers: melt.encap $(NSTALL_MELT_HEADERS_DIR)
+
+
+## one of the intall-melt-headers-{tar,cpio,cp} targets below is
+## triggered by install-melt-headers target above
+
+# Install the melt include directory using tar.
+install-melt-headers-tar:  install-melt-include-dir
+# We use `pwd`/include instead of just include to problems with CDPATH
+# Unless a full pathname is provided, some shells would print the new CWD,
+# found in CDPATH, corrupting the output.  We could just redirect the
+# output of `cd', but some shells lose on redirection within `()'s
+	(cd `${PWD_COMMAND}`/$(melt_build_include_dir) ; \
+	 tar -cf - .; exit 0) | (cd $(DESTDIR)$(libsubdir)/include; tar xpf - )
+# /bin/sh on some systems returns the status of the first tar,
+# and that can lose with GNU tar which always writes a full block.
+# So use `exit 0' to ignore its exit status.
+
+# Install the include directory using cpio.
+install-melt-headers-cpio:  install-melt-include-dir
+# See discussion about the use of `pwd` above
+	cd `${PWD_COMMAND}`/$(melt_build_include_dir) ; \
+	find . -print | cpio -pdum $(DESTDIR)$(melt_private_include_dir)
+
+# Install the include directory using cp.
+install-melt-headers-cp: install-melt-include-dir
+	cp -p -r $(melt_build_include_dir) $(DESTDIR)$(melt_private_include_dir)
+
+# Create or recreate the gcc melt private include file directory.
+install-melt-include-dir: installdirs
+	$(mkinstalldirs) $(DESTDIR)$(melt_private_include_dir)
+	-rm -rf $(DESTDIR)$(melt_private_include_dir)
+	mkdir $(DESTDIR)$(melt_private_include_dir)
+	-chmod a+rx $(DESTDIR)$(melt_private_include_dir)
+
+### end of basilys / MELT stuff
