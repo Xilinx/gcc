@@ -1,3 +1,19 @@
+2008-03-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (new_loop_to_cloog_loop_str, setup_cloog_loop): Fix
+	malloc problems.
+	(loop_domain_dim): Check for unregistered toplev SCOP loop.
+	* graphite.h (loop_to_cloog_loop): New.
+
+2008-03-04  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+	* graphite.c (loop_domain_dim, ref_nb_loops,
+	loop_iteration_vector_dim): New.
+	(build_access_matrix_with_af, build_access_matrix,
+	initialize_dependence_polyhedron): Fixed for new matrix layout.
+        No longer assume that all iteration domains are of the same
+        dimensionality.
+
 2008-03-02  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* tree-scalar-evolution.c (instantiate_parameters_1): An SSA_NAME

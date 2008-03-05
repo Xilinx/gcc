@@ -59,7 +59,8 @@ new_loop_to_cloog_loop_str (unsigned int loop_num,
                             CloogLoop *cloog_loop)
 {
   struct loop_to_cloog_loop_str *result;
-  result = xcalloc (1, sizeof (struct loop_to_cloog_loop_str));
+
+  result = XNEWVEC (struct loop_to_cloog_loop_str, 1);
   result->loop_num = loop_num;
   result->cloog_loop = cloog_loop;
   result->loop_position = loop_position;
@@ -1235,7 +1236,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
   unsigned i, j, row;
   CloogStatement *statement;
   CloogMatrix *cstr;
-  struct loop_to_cloog_loop_str tmp;
+  loop_to_cloog_loop tmp = XNEWVEC (struct loop_to_cloog_loop_str, 1);
   PTR *slot;
   CloogLoop *res = cloog_loop_malloc ();
 
@@ -1326,8 +1327,8 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 
   res->domain = cloog_domain_matrix2domain (cstr);
 
-  tmp.loop_num = loop->num;
-  slot = htab_find_slot (SCOP_LOOP2CLOOG_LOOP (scop), &tmp, INSERT);
+  tmp->loop_num = loop->num;
+  slot = htab_find_slot (SCOP_LOOP2CLOOG_LOOP (scop), tmp, INSERT);
   if (!*slot)
     *slot = new_loop_to_cloog_loop_str (loop->num, loop_col - 1, res);
 
@@ -1448,69 +1449,85 @@ build_scop_iteration_domain (scop_p scop)
   return true;
 }
 
+/* Returns the dimension of the iteration domain of LOOP_NUM with
+   respect to SCOP.  */
+
+static int
+loop_domain_dim (unsigned int loop_num, scop_p scop)
+{
+  struct loop_to_cloog_loop_str tmp, *slot; 
+
+  tmp.loop_num = loop_num;
+  slot = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP (scop), &tmp);
+
+  /* The loop containing the entry of the scop is not always part of
+     the scop, and it is not registered in SCOP_LOOP2CLOOG_LOOP.  */
+  if (!slot)
+    return nb_params_in_scop (scop) + 2;
+
+  return slot->cloog_loop->domain->polyhedron->Dimension + 2;
+}
+
+/* Returns the number of loops around data reference REF.  */
+
+static int
+ref_nb_loops (data_reference_p ref)
+{
+  return loop_domain_dim (loop_containing_stmt (DR_STMT (ref))->num, DR_SCOP (ref));
+}
+
+/* Returns the dimension of an iteration vector in LOOP_NUM with
+   respect to SCOP.  */
+
+static int
+loop_iteration_vector_dim (unsigned int loop_num, scop_p scop)
+{
+  return loop_domain_dim (loop_num, scop) - 2 - nb_params_in_scop (scop);
+}
+
 /* Initializes an equation CY of the access matrix using the
    information for a subscript from ACCESS_FUN, relatively to the loop
-   indexes from LOOP_NEST and parameter indexes from PARAMS.  Returns
-   true when the operation succeeded.  */
+   indexes from LOOP_NEST and parameter indexes from PARAMS.  NDIM is
+   the dimension of the array access, i.e. the number of
+   subscripts.  Returns true when the operation succeeds.  */
 
 static bool
 build_access_matrix_with_af (tree access_fun, lambda_vector cy,
-			     scop_p scop)
+			     scop_p scop, unsigned ndim)
 {
-  VEC (loop_p, heap) *loop_nest = SCOP_LOOP_NEST (scop);
-  VEC (tree, heap) *params = SCOP_PARAMS (scop);
-
   switch (TREE_CODE (access_fun))
     {
     case POLYNOMIAL_CHREC:
       {
 	tree left = CHREC_LEFT (access_fun);
 	tree right = CHREC_RIGHT (access_fun);
-	int var = CHREC_VARIABLE (access_fun);
-	unsigned var_idx;
-	struct loop *loopi;
+	unsigned var;
 
 	if (TREE_CODE (right) != INTEGER_CST)
 	  return false;
-
-	/* Find the index of the current variable VAR_IDX in the
-	   LOOP_NEST array.  */
-	for (var_idx = 0; VEC_iterate (loop_p, loop_nest, var_idx, loopi);
-	     var_idx++)
-	  if (loopi->num == var)
-	    break;
-
-	gcc_assert (loopi && loopi->num == var);
-
-	cy[var_idx] = int_cst_value (right);
+        
+	var = loop_iteration_vector_dim (CHREC_VARIABLE (access_fun), scop);
+	cy[var] = int_cst_value (right);
 
 	switch (TREE_CODE (left))
 	  {
 	  case POLYNOMIAL_CHREC:
-	    return build_access_matrix_with_af (left, cy, scop);
+	    return build_access_matrix_with_af (left, cy, scop, ndim);
 
 	  case INTEGER_CST:
-	    {
-	      /* Constant part.  */
-	      unsigned nb_loops = VEC_length (loop_p, loop_nest);
-	      unsigned nb_params = VEC_length (tree, params);
-
-	      cy[nb_loops + nb_params] = int_cst_value (left);
-	      return true;
-	    }
+	    /* Constant part.  */
+	    cy[ndim - 1] = int_cst_value (left);
+	    return true;
 
 	  default:
+	    /* TODO: also consider that access_fn can have parameters.  */
 	    return false;
 	  }
       }
     case INTEGER_CST:
-      {
-	/* Constant part.  */
-	unsigned nb_loops = VEC_length (loop_p, loop_nest);
-	unsigned nb_params = VEC_length (tree, params);
-	cy[nb_loops + nb_params] = int_cst_value (access_fun);
-	return true;
-      }
+      /* Constant part.  */
+      cy[ndim - 1] = int_cst_value (access_fun);
+      return true;
 
     default:
       return false;
@@ -1531,11 +1548,11 @@ build_access_matrix (data_reference_p ref, graphite_bb_p gb)
 
   for (i = 0; i < ndim; i++)
     {
-      lambda_vector v = lambda_vector_new (gbb_dim_domain (gb));
+      lambda_vector v = lambda_vector_new (ref_nb_loops (ref));
       scop_p scop = GBB_SCOP (gb);
       tree af = DR_ACCESS_FN (ref, i);
 
-      if (!build_access_matrix_with_af (af, v, scop))
+      if (!build_access_matrix_with_af (af, v, scop, ref_nb_loops (ref)))
 	return false;
 
       VEC_safe_push (lambda_vector, heap, DR_ACCESS_MATRIX (ref), v);
@@ -1628,7 +1645,7 @@ initialize_dependence_polyhedron (scop_p scop,
                                   struct data_reference *a, 
                                   struct data_reference *b)
 {
-  unsigned nb_cols, nb_rows, nb_loops, nb_params;
+  unsigned nb_cols, nb_rows, nb_loops, nb_params, nb_iter1, nb_iter2;
   struct loop_to_cloog_loop_str tmp, *slot1, *slot2; 
   unsigned row, col;
   CloogMatrix *domain1, *domain2;
@@ -1648,12 +1665,13 @@ initialize_dependence_polyhedron (scop_p scop,
   domain1 = cloog_domain_domain2matrix (slot1->cloog_loop->domain);
   domain2 = cloog_domain_domain2matrix (slot2->cloog_loop->domain);
 
-  /* Adding 2 columns: one for the eq/neq column, one for constant
-     term.  */
-  nb_cols = scop_nb_loops (scop) * 2 + scop_nb_params (scop) + 2;
-  nb_rows = domain1->NbRows + domain2->NbRows + DR_NUM_DIMENSIONS (a);
-  nb_loops = scop_nb_loops (scop);
   nb_params = scop_nb_params (scop);
+  nb_iter1 = domain1->NbColumns - 2 - nb_params;
+  nb_iter2 = domain2->NbColumns - 2 - nb_params;
+  nb_loops = scop_nb_loops (scop);
+
+  nb_cols = nb_iter1 + nb_iter2 + scop_nb_params (scop) + 2;
+  nb_rows = domain1->NbRows + domain2->NbRows + DR_NUM_DIMENSIONS (a);
   dep_constraints = cloog_matrix_alloc (nb_rows, nb_cols);
 
   /* Initialize dependence polyhedron.  TODO: do we need it?  */
@@ -1664,7 +1682,7 @@ initialize_dependence_polyhedron (scop_p scop,
   /* Copy the iterator part of Ds (domain of S statement), with eq/neq
      column.  */
   for (row = 0; row < domain1->NbRows; row++)
-    for (col = 0; col <= nb_loops; col++)
+    for (col = 0; col <= nb_iter1; col++)
       value_assign (dep_constraints->p[row][col], domain1->p[row][col]);
 
   /* Copy the parametric and constant part of Ds.  */
@@ -1673,51 +1691,52 @@ initialize_dependence_polyhedron (scop_p scop,
       value_assign (dep_constraints->p[row][nb_cols-1],
 		    domain1->p[row][domain1->NbColumns - 1]);
       for (col = 1; col <= nb_params; col++)
-	value_assign (dep_constraints->p[row][col + 2 * scop_nb_loops (scop)],
-		      domain1->p[row][col + scop_nb_loops (scop)]);
+	value_assign (dep_constraints->p[row][col + nb_iter1 + nb_iter2],
+		      domain1->p[row][col + nb_iter1]);
     }
 
   /* Copy the iterator part of Dt (domain of T statement), without eq/neq column.  */
   for (row = 0; row < domain2->NbRows; row++)
-    for (col = 1; col <= nb_loops; col++)
-      value_assign (dep_constraints->p[row + domain1->NbRows][col + scop_nb_loops (scop)],
+    for (col = 1; col <= nb_iter2; col++)
+      value_assign (dep_constraints->p[row + domain1->NbRows][col + nb_iter2],
 		    domain2->p[row][col]);
   
   /* Copy the eq/neq column of Dt to dependence polyhedron.  */
   for (row = 0; row < domain2->NbRows; row++)
-    value_assign (dep_constraints->p[row + domain1->NbRows][0], domain1->p[row][0]);
+    value_assign (dep_constraints->p[row + domain1->NbRows][0], domain2->p[row][0]);
 
+  /* Copy the parametric and constant part of Dt.  */
   for (row = 0; row < domain2->NbRows; row++)
     {
       value_assign (dep_constraints->p[row + domain1->NbRows][nb_cols-1],
 		    domain1->p[row][domain2->NbColumns - 1]);
       for (col = 1; col <= nb_params; col++)
-        value_assign (dep_constraints->p[row + domain1->NbRows][col + 2 * scop_nb_loops (scop)],
-                      domain2->p[row][col + scop_nb_loops (scop)]);
+        value_assign (dep_constraints->p[row + domain1->NbRows][col + nb_iter1 + nb_iter2],
+                      domain2->p[row][col + nb_iter2]);
     }
 
   /* Copy Ds access matrix.  */
   for (row = 0; VEC_iterate (lambda_vector, DR_ACCESS_MATRIX (a), row, access_row_vector); row++)
     {
-      for (col = 0; col < nb_loops; col++)
-	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][col + 1],
+      for (col = 1; col <= nb_iter1; col++)
+	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][col],
 		      access_row_vector[col]);              
 
       value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1], 
-                    access_row_vector[scop_dim_domain (scop) - 1]);
+                    access_row_vector[ref_nb_loops (a) - 1]);
       /* TODO: do not forget about parametric part.  */
     }
 
   /* Copy -Dt access matrix.  */
   for (row = 0; VEC_iterate (lambda_vector, DR_ACCESS_MATRIX (b), row, access_row_vector); row++)
     {
-      for (col = 0; col < nb_loops; col++)
-	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][scop_nb_loops (scop) + col + 1], 
+      for (col = 1; col <= nb_iter2; col++)
+	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_iter1 + col], 
 		      -access_row_vector[col]);              
 
       value_sub_int (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
                      dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
-                     access_row_vector[scop_dim_domain (scop) - 1]);
+                     access_row_vector[ref_nb_loops (b) - 1]);
     }
          
   return dep_constraints;

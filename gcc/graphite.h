@@ -171,10 +171,10 @@ typedef struct data_dependence_polyhedron *ddp_p;
 DEF_VEC_P(ddp_p);
 DEF_VEC_ALLOC_P(ddp_p,heap);
 
-struct loop_to_cloog_loop_str
+typedef struct loop_to_cloog_loop_str
 {
   unsigned int loop_num;
   unsigned int loop_position; /* the column that represents this loop */
   CloogLoop *cloog_loop;
-};
+} *loop_to_cloog_loop;
 
