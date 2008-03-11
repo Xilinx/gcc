@@ -1,13 +1,576 @@
 2008-03-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	merged with trunk r133107
+
+2008-03-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: removed compile-basilys-defs completely. Corrected
 	typ in comment for run-basilys-deps.
+
+2008-03-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/35526
+	* expr.c (store_expr): Call emit_block_move if the mode
+	of "temp" RTX is BLKmode.
+
+2008-03-11  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/31358
+	* tree-ssa-loop-manip.c (create_iv): Call force_gimple_operand for
+	the step with a NULL_TREE.
+	* tree-ssa-loop-ivopts.c (find_bivs): Convert the step
+	to sizetype if type is a pointer type.
+	(add_candidate_1): Don't convert the base and step to
+	the generic type if the orginal type is a pointer type.
+	(add_iv_value_candidates): Use sizetype for the step
+	if type is a pointer type.
+	(cand_value_at): Likewise.
+	* tree-ssa-address.c (add_to_parts): Use POINTER_PLUS_EXPR
+	for pointer types.
+	* tree-affine.c (tree_to_aff_combination <POINTER_PLUS_EXPR>):
+	Don't convert the tem affine to the type.
+	(add_elt_to_tree): Use sizetype for the step if a pointer.
+	Use POINTER_PLUS_EXPR for pointers.
+	(aff_combination_to_tree): Use sizetype for the step if a
+	pointer.
+
+2008-03-10  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* config/i386/sse.md (ssse3_pmaddubswv8hi3, ssse3_pmaddubswv4hi3):
+	Remove commutativity hint.
+
+2008-03-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/35438
+	PR c/35439
+	* c-parser.c (c_parser_omp_threadprivate): Don't add vars with
+	errorneous type.  Check that v is a VAR_DECL.
+
+	PR middle-end/35099
+	* tree-cfg.c (new_label_mapper): Update cfun->last_label_uid.
+
+2008-03-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR tree-optimization/35494
+	* tree-ssa-ccp.c (get_symbol_constant_value): Check if value
+	may be overriden at link and run time.
+
+2008-03-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34677
+	* tree-ssa-pre.c (modify_expr_node_pool): Remove.
+	(poolify_tree): Likewise.
+	(modify_expr_template): Likewise.
+	(poolify_modify_stmt): Likewise.
+	(insert_fake_stores): Handle all component-ref style stores
+	in addition to INDIRECT_REF.  Also handle complex types.
+	Do not poolify the inserted load.
+	(realify_fake_stores): Do not rebuild the tree but only
+	make it a SSA_NAME copy.
+	(init_pre): Remove initialzation of modify_expr_template.
+	Do not allocate modify_expr_node_pool.
+	(fini_pre): Do not free modify_expr_node_pool.
+
+2008-03-10  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.md (UNSPEC_STACK_ALIGN, UNSPEC_PIC_OFFSET): Renumber
+	to avoid conflicts.
+
+2008-03-10  Paul Brook  <paul@codesourcery.com>
+	    Mark Shinwell  <shinwell@codesourcery.com>
+
+	* config/arm/cortex-r4.md: New.
+	* config/arm/thumb2.md (divsi3, udivsi3): Annotate with
+	insn attributes.
+	* config/arm/arm.md: Include cortex-r4.md.
+	(insn): Add smmls, sdiv and udiv values.
+	(generic_sched): Don't use generic scheduling for Cortex-R4.
+	(arm_issue_rate): New function.
+	(TARGET_SCHED_ISSUE_RATE): Define.
+
+2008-03-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* doc/invoke.texi (-ftree-loop-distribution): Add an example.
+
+2008-03-10  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-pre.c (get_sccvn_value): Simplify.
+	(compute_avail): Do not add stmt uses to AVAIL_OUT.
+
+2008-03-10  Paolo Bonzini  <bonzini@gnu.org>
+
+	* langhooks-def.h (LANG_HOOKS_REDUCE_BIT_FIELD_OPERATIONS):
+	Set default to true.
+
+2008-03-09  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* c.opt (Wsynth): Deprecate.
+	* doc/invoke.texi (Option Summary, Warning Options): Document
+	-Wno-format-contains-nul.
+
+2008-03-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/35496
+	* config/i386/i386.c (ix86_constant_alignment): Compute alignment using
+	ALIGN_MODE_128 for VECTOR_CST and INTEGER_CST in addition to REAL_CST.
+
+2008-03-09  Ira Rosen  <irar@il.ibm.com>
+
+	* config/rs6000/rs6000.c (builtin_description): Rename vector
+	left shift operations.
+	* config/rs6000/altivec.md (UNSPEC_VSL): Remove.
+	(altivec_vsl<VI_char>): Rename to ...
+	(ashl<mode>3): ... new name.
+	(mulv4sf3, mulv4si3, negv4sf2): Replace gen_altivec_vslw with
+	gen_ashlv4si3.
+	(absv4sf2): Convert to use ashift:V4SI instead of UNSPEC_VSL.
+
+2008-03-08  Richard Guenther  <rguenther@suse.de>
+
+	* coverage.h (tree_coverage_counter_addr): Declare.
+	* coverage.c (tree_coverage_counter_addr): New function.
+	* tree-profile.c (tree_gen_edge_profiler): Unshare counter
+	before using again.
+	(tree_gen_pow2_profiler): Use tree_coverage_counter_addr.
+	(tree_gen_one_value_profiler): Likewise.
+	(tree_gen_ic_profiler): Likewise.
+	(tree_gen_average_profiler): Likewise.
+	(tree_gen_ior_profiler): Likewise.
+
+2008-03-08  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.h (vn_binary_op_lookup): Remove.
+	(vn_binary_op_insert): Likewise.
+	(vn_unary_op_lookup): Likewise.
+	(vn_unary_op_insert): Likewise.
+	(vn_nary_op_lookup): Declare.
+	(vn_nary_op_insert): Likewise.
+	* tree-ssa-sccvn.c (struct vn_tables_s): Merge unary
+	and binary hashes, use a single obstack for unary_op_pool
+	and binary_op_pool.
+	(struct vn_binary_op_s, struct vn_unary_op_s): Replace with
+	a single struct vn_nary_op_s.  Store tree code length and
+	a variable number of operands.
+	(struct vn_reference_op_struct): Remove unused op2.
+	(vn_reference_op_eq): Do not compare op2.
+	(vn_reference_op_compute_hash): Do not compute hash of op2.
+	(vn_unary_op_hash, vn_binary_op_hash): Replace with vn_nary_op_hash.
+	(vn_unary_op_compute_hash, vn_binary_op_compute_hash): Replace
+	with vn_nary_op_compute_hash.
+	(vn_unary_op_eq, vn_binary_op_eq): Replace with vn_nary_op_eq.
+	(vn_unary_op_lookup, vn_binary_op_lookup): Replace with
+	vn_nary_op_lookup.
+	(vn_unary_op_insert, vn_binary_op_insert): Replace with
+	vn_nary_op_insert.
+	(visit_unary_op): Call nary functions.
+	(visit_binary_op): Likewise.
+	(process_scc): Adjust for struct vn_tables_s changes.
+	(allocate_vn_table): Likewise.
+	(free_vn_table): Likewise.
+	* tree-vn.c (vn_add): Call nary functions.
+	(vn_lookup): Likewise.
+
+2008-03-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/35498
+	* config/rs6000/rs6000.c (rs6000_expand_compare_and_swapqhi): Shift
+	wdst back after sync_compare_and_swapqhi_internal.
+
+2008-03-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/22152
+	* config/i386/i386-modes.def (V1DI): New vector mode.
+	* config/i386/i386.h (VALID_MMX_REG_MODE): Add V1DImode.
+	* config/i386/mmx.md (MMXMODEI8): New mode iterator.
+	(MMXMODE248): Ditto.
+	(MMXMODE): Add V1DI mode.
+	(mmxvecsize): Change DI mode to V1DI mode.
+	("mov<mode>): Use MMXMODEI8 mode iterator.
+	("*mov<mode>_internal_rex64"): Ditto.
+	("*mov<mode>_internal"): Ditto.
+	("mmx_add<mode>3"): Ditto.  Handle V1DImode for TARGET_SSE2.
+	("mmx_sub<mode>3"): Ditto.
+	("mmx_adddi3"): Remove insn pattern.
+	("mmx_subdi3"): Ditto.
+	("mmx_ashr<mode>3"): Use SImode and "yN" constraint for operand 2.
+	("mmx_lshr<mode>3"): Ditto. Use MMXMODE248 mode iterator.
+	("mmx_ashl<mode>3"): Ditto.
+	("mmx_lshrdi3"): Remove insn pattern.
+	("mmx_ashldi3"): Ditto.
+	* config/i386/i386.c (classify_argument): Handle V1DImode.
+	(function_arg_advance_32): Ditto.
+	(function_arg_32): Ditto.
+	(struct builtin_description) [IX86_BUILTIN_PADDQ]: Use
+	mmx_addv1di3 insn pattern.
+	[IX86_BUILTIN_PSUBQ]: Use mmx_subv1di3 insn pattern.
+	[IX86_BUILTIN_PSLL?, IX86_BUILTIN_PSRL?, IX86_BUILTIN_PSRA?,
+	IX86_BUILTIN_PSLL?I, IX86_BUILTIN_PSRL?I, IX86_BUILTIN_PSRA?I,
+	IX86_BUILTIN_PSLL?I128, IX86_BUILTIN_PSRL?I128, IX86_BUILTIN_PSRA?I128]:
+	Remove definitions of built-in functions.
+	(V1DI_type_node): New node.
+	(v1di_ftype_v1di_int): Ditto.
+	(v1di_ftype_v1di_v1di): Ditto.
+	(v2si_ftype_v2si_si): Ditto.
+	(v4hi_ftype_v4hi_di): Remove node.
+	(v2si_ftype_v2si_di): Ditto.
+	(ix86_init_mmx_sse_builtins): Handle V1DImode.
+	(__builtin_ia32_psll?, __builtin_ia32_psrl?, __builtin_ia32_psra?):
+	Redefine builtins using def_builtin_const with *_ftype_*_int node.
+	(__builtin_ia32_psll?i, __builtin_ia32_psrl?i, __builtin_ia32_psra?i):
+	Add new builtins using def_builtin_const.
+	(ix86_expand_builtin) [IX86_BUILTIN_PSLL?, IX86_BUILTIN_PSRL?,
+	IX86_BUILTIN_PSRA?, IX86_BUILTIN_PSLL?I, IX86_BUILTIN_PSRL?I,
+	IX86_BUILTIN_PSRA?I]: Handle builtin definitions.
+	* config/i386/mmintrin.h (__v1di): New typedef.
+	(_mm_add_si64): Cast arguments to __v1di type.
+	(_mm_sub_si64): Ditto.
+	(_mm_sll_pi16): Cast __count to __v4hi type.
+	(_mm_sll_pi32): Cast __count to __v2si type.
+	(_mm_sll_si64): Cast arguments to __v1di type.
+	(_mm_srl_pi16): Cast __count to __v4hi type.
+	(_mm_srl_pi32): Cast __count to __v2si type.
+	(_mm_srl_si64): Cast arguments to __v1di type.
+	(_mm_sra_pi16): Cast __count to __v4hi type.
+	(_mm_sra_pi32): Cast __count to __v2si type.
+	(_mm_slli_pi16): Use __builtin_ia32_psllwi.
+	(_mm_slli_pi32): Use __builtin_ia32_pslldi.
+	(_mm_slli_si64): Use __builtin_ia32_psllqi. Cast __m to __v1di type.
+	(_mm_srli_pi16): Use __builtin_ia32_psrlwi.
+	(_mm_srli_pi32): Use __builtin_ia32_psrldi.
+	(_mm_srli_si64): Use __builtin_ia32_psrlqi. Cast __m to __v1di type.
+	(_mm_srai_pi16): Use __builtin_ia32_psrawi.
+	(_mm_srai_pi32): Use __builtin_ia32_psradi.
+	* config/i386/i386.md (UNSPEC_NOP): Remove unspec definition.
+	* doc/extend.texi (X86 Built-in Functions) [__builtin_ia32_psll?,
+	__builtin_ia32_psrl?, __builtin_ia32_psra?, __builtin_ia32_psll?i,
+	__builtin_ia32_psrl?i, __builtin_ia32_psra?i]: Add new builtins.
+
+2008-03-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/include/texinfo.tex: Update to version 2008-03-07.10.
+
+2008-03-07  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR target/35373
+	* config/rs6000/rs6000.c (rs6000_legitimize_address): Don't generate
+	reg+const addressing for Altivec modes.  Don't generate reg+reg
+	addressing for TFmode or TDmode quantities.
+
+2008-03-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	* c-common.c (vector_types_convertible_p): Call langhook
+	instead of comptypes.
+
+2008-03-06  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR tree-opt/35402
+	* tree-ssa-ccp.c (get_symbol_constant_value): Handle
+	integral and scalar float variables which have a
+	NULL DECL_INITIAL.
+
+2008-03-06  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* dwarf2out.c (dwarf2out_frame_debug_expr): Consult the
+	dwarf_register_span hook when emitting unwind information for
+	register-to-memory saves.
+	* config/rs6000/rs6000.c (spe_synthesize_frame): Delete.
+	(rs6000_frame_related): Remove call to spe_synthesize_frame.
+
+2008-03-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* gimplify.c (goa_lhs_expr_p): Allow different ADDR_EXPR nodes
+	for the same VAR_DECL.
+
+2008-03-06  Tom Tromey  <tromey@redhat.com>
+
+	* treelang: Delete.
+	* doc/standards.texi (Standards): Don't mention treelang.
+	* doc/invoke.texi (Overall Options): Don't mention treelang.
+	* doc/install.texi (Prerequisites): Don't mention bison or
+	treelang.
+	(Configuration): Don't mention treelang.
+	(Building): Likewise.
+	* doc/frontends.texi (G++ and GCC): Don't mention treelang.
+
+2008-03-06  Paolo Bonzini  <bonzini@gnu.org>
+
+	* simplify-rtx.c (simplify_subreg): Remove useless shifts from
+	word-extractions out of a multi-word object.
+
+2008-03-06  Richard Guenther  <rguenther@suse.de>
+
+	* tree.def (BIT_FIELD_REF): Constrain result type and its precision.
+	* tree-cfg.c (verify_expr): Verify BIT_FIELD_REF constraints on
+	result type and precision.
+	* expr.c (get_inner_reference): Set unsignedp based on the result
+	type of BIT_FIELD_REF.
+	* tree.h (BIT_FIELD_REF_UNSIGNED): Remove.
+	* tree-sra.c (instantiate_element): Do not set BIT_FIELD_REF_UNSIGNED.
+	(try_instantiate_multiple_fields): Likewise.  Use the correct type
+	for BIT_FIELD_REF.
+	(sra_build_assignment): Likewise.
+	(sra_build_elt_assignment): Likewise.
+	(sra_explode_bitfield_assignment): Likewise.
+	* print-tree.c (print_node): Do not check BIT_FIELD_REF_UNSIGNED.
+	* tree-vect-transform.c (vect_create_epilog_for_reduction): Do not
+	set BIT_FIELD_REF_UNSIGNED.
+	(vectorizable_load): Likewise.
+
+2008-03-06  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* cse.c (cse_extended_basic_block): Invalidate artificial defs
+	at bb start.
+
+2008-03-06  Richard Guenther  <rguenther@suse.de>
+
+	* alias.c (struct alias_set_entry): Move has_zero_child field
+	to pack with alias_set.
 
 2008-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added targets for installation of melt includes.
 
+2008-03-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386-modes.def: Use 4 byte alignment on DI for
+	32bit host.
+
+2008-03-05  Ian Lance Taylor  <iant@google.com>
+
+	* alias.h (alias_set_type): Change from HOST_WIDE_INT to int.
+
+2008-03-05  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* fwprop.c (update_df): Support width and offset parameters of
+	df_ref_create.
+	* ra-conflict.c (mark_reg_store, clear_reg_in_live,
+	global_conflicts): Change DF_REF_EXTRACT to either
+	DF_REF_ZERO_EXTRACT or DF_REF_SIGN_EXTRACT.  Change
+	DF_REF_STRICT_LOWER_PART to DF_REF_STRICT_LOW_PART.
+	* df-scan.c (df_ref_record, df_defs_record,
+	df_ref_create_structure, df_def_record_1, df_uses_record,
+	df_get_conditional_uses, df_get_call_refs, df_insn_refs_collect,
+	df_bb_refs_collect, df_entry_block_defs_collect,
+	df_exit_block_uses_collect): Support new width and offset fields.
+	(ref_extract_pool): New storage pool.
+	(df_free_ref): New function.
+	(df_reg_chain_unlink, df_free_collection_rec,
+	df_sort_and_compress_refs): Call df_free_ref.
+	(df_ref_equal_p, df_ref_compare): Compare offset and width fields
+	of df_ref_extract.
+	(df_ref_create_structure): Allocate df_ref_extract if offset and
+	width fields are used.
+	(df_def_record_1): Get offset and width from ZERO_EXTRACT.
+	(df_uses_record): Get offset and width from ZERO_EXTRACT 
+	and SIGN_EXTRACT.
+	* global.c (build_insn_chain): Change DF_REF_EXTRACT to either
+	DF_REF_ZERO_EXTRACT or DF_REF_SIGN_EXTRACT.  Change
+	DF_REF_STRICT_LOWER_PART to DF_REF_STRICT_LOW_PART.
+	* df.h (df_ref_flags): Change DF_REF_EXTRACT to either
+	DF_REF_ZERO_EXTRACT or DF_REF_SIGN_EXTRACT.  Change
+	DF_REF_STRICT_LOWER_PART to DF_REF_STRICT_LOW_PART.
+	(df_ref_extract): New structure.
+	(DF_REF_WIDTH, DF_REF_OFFSET): New macros.
+	(df_ref_create): Add width and offset parameters.
+	
+2008-03-05  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (get_constraint_for_component_ref):
+	Use ranges_overlap_p.
+	(offset_overlaps_with_access): Rename
+	to ranges_overlap_p and move ...
+	* tree-flow-inline.h (ranges_overlap_p): ... here.
+
+	* tree.h (get_inner_reference, handled_component_p): Update
+	comments.
+
+	* tree.h (record_component_aliases, get_alias_set,
+	alias_sets_conflict_p, alias_sets_must_conflict_p,
+	objects_must_conflict_p): Move declarations ...
+	* alias.h (record_component_aliases, get_alias_set,
+	alias_sets_conflict_p, alias_sets_must_conflict_p,
+	objects_must_conflict_p): ... here.
+	Include coretypes.h.
+	* Makefile.in (ALIAS_H): Add coretypes.h dependency.
+
+2008-03-05  Aldy Hernandez  <aldyh@redhat.com>
+
+	* cfg.c: Include tree-flow.h.
+	(remove_edge_raw): Call redirect_edge_var_map_clear.
+	(redirect_edge_succ_nodup): Call redirect_edge_var_map_dup.
+	* tree-flow-inline.h (redirect_edge_var_map_def): New.
+	(redirect_edge_var_map_result): New.
+	* tree-cfgcleanup.c (remove_forwarder_block_with_phi): Replace
+	PENDING_STMT use with redirect_edge_var_map_*.
+	* tree-ssa.c (edge_var_maps): New definition.
+	(redirect_edge_var_map_add): New.
+	(redirect_edge_var_map_clear): New.
+	(redirect_edge_var_map_dup): New.
+	(redirect_edge_var_map_vector): New.
+	(redirect_edge_var_map_destroy): New.
+	(ssa_redirect_edge): Replace PENDING_STMT use with
+	redirect_edge_var_map_*.
+	(flush_pending_stmts): Same.
+	(delete_tree_ssa): Destroy edge var map.
+	* tree-flow.h (struct _edge_var_map): New.
+	Define edge_var_map vector type.
+	Declare redirect_edge_var_map_* prototypes.
+	* Makefile.in (cfg.o): Depend on TREE_FLOW_H.
+	* tree-cfg.c (reinstall_phi_args): Replace
+	PENDING_STMT use with redirect_edge_var_map_*.
+
+2008-03-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/35472
+	* tree-ssa-dse.c (dse_optimize_stmt): Do not delete a store
+	whose single use_stmt has a overlapping set of loaded and
+	stored symbols as that use_stmt might be a noop assignment then.
+
+2008-03-05  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* gthr-rtems.h: Implement __gthread_mutex_destroy.
+
+2008-03-05  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/35336
+	* tree.def (BIT_FIELD_REF): Document that operands 1 and 2
+	should be constants.
+	* tree-cfg.c (verify_expr): Verify it.
+	* fold-const.c (fold_truthop): Remove code generating
+	BIT_FIELD_REFs of structure bases.
+	(fold_binary): Likewise.
+	(fold_ternary): Position and size of BIT_FIELD_REFs are
+	always host integers.
+	(make_bit_field_ref): Remove.
+	(optimize_bit_field_compare): Remove.
+	(all_ones_mask_p): Remove.
+
+2008-03-05  Gabor Loki  <loki@gcc.gnu.org>
+
+	PR gcc/33009
+	* rtl-factoring.c (clear_regs_live_in_seq): Fix backward steps.
+	(split_block_and_df_analyze): New. Split basic block and rebuild
+	dataflow.
+	(block_label_after): Use SPLIT_BLOCK_AND_DF_ANALYZE instead of
+	SPLIT_BLOCK.
+	(split_pattern_seq): Likewise.
+	(erase_matching_seqs): Likewise.
+	(split_pattern_seq): Skip return insn in case of REG_NORETURN note.
+
+2008-03-04  Geoff Keating  <geoffk@apple.com>
+
+	* fold-const.c (tree_single_nonnegative_warnv_p): Fix mixed
+	declaration and code.
+	(tree_invalid_nonnegative_warnv_p): Likewise.
+
+2008-03-05  Serge Belyshev  <belyshev@depni.sinp.msu.ru>
+
+	* doc/install.texi (Testing): Correct quoting for the RUNTESTFLAGS
+	examples.  Truncate option-names then causing overfull hbox.
+
+2008-03-04  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/35222
+	* configure.ac (CONFIG_SJLJ_EXCEPTIONS): Force SJLJ exceptions
+	on hpux10.
+	* configure: Rebuilt.
+
+2008-03-04  Rafael Espindola  <espindola@google.com>
+
+	* fold-const.c (tree_simple_nonnegative_warnv_p): New.
+	(tree_unary_nonnegative_warnv_p): New.
+	(tree_binary_nonnegative_warnv_p): New.
+	(tree_single_nonnegative_warnv_p): New.
+	(tree_invalid_nonnegative_warnv_p): New.
+	(tree_expr_nonnegative_warnv_p): Redefine in term of the new functions.
+
+2008-03-04  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 28322
+	* opts.c (handle_option): Postpone 'unknown option' errors only for
+	warning options.
+
+2008-03-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/35453
+	* config/i386/smmintrin.h (SIDD_XXX): Renamed to ...
+	(_SIDD_XXX): This.
+
+2008-03-04  Rafael Espindola  <espindola@google.com>
+
+	* fold-const.c (tree_unary_nonzero_warnv_p): New.
+	(tree_binary_nonzero_warnv_p): New.
+	(tree_single_nonzero_warnv_p): New.
+	(tree_expr_nonzero_warnv_p): Redefine using the new functions.
+
+2008-03-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/35456
+	* fold-const.c (fold_cond_expr_with_comparison): Prevent
+	transformations for modes that have signed zeros.
+	* ifcvt.c (noce_try_abs): Ditto.
+
+2008-03-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/i386.c (override_options): Force
+	-maccumulate-outgoing-args on if TARGET_STACK_PROBE.
+
+2008-03-04  Jan Hubicka  <jh@suse.cz>
+
+	PR c++/35262
+	* ipa-inline.c (cgraph_decide_inlining_of_small_function): Fix typo
+	in last commit.
+
+2008-03-04  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* config/i386/i386.md (allocate_stack_worker_32): Use  __chkstk
+        label to probe the stack.
+
+2008-03-04  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* gthr-win32.h [__GTHREAD_HIDE_WIN32API]
+	(__gthr_win32_mutex_destroy): Declare.
+	[__GTHREAD_HIDE_WIN32API] (__gthread_mutex_destroy): Use
+	__gthr_win32_mutex_destroy.
+	* config/i386/gthr-win32.c  (__gthr_win32_mutex_destroy): Define.
+
+2008-03-03  Jan Hubicka  <jh@suse.cz>
+
+	PR c++/35262
+	* ipa-inline.c (cgraph_decide_inlining_of_small_function): Be more
+	aggressive on inlining cold calls.
+
+2008-03-03  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.c (visit_reference_op_store): Do not insert
+	struct copies into the expression table.
+	(simplify_unary_expression): Handle VIEW_CONVERT_EXPR.
+	(try_to_simplify): Likewise.
+	* fold-const.c (fold_unary): Fold VIEW_CONVERT_EXPR of
+	integral and pointer arguments which do not change the
+	precision to NOP_EXPRs.
+	* tree-ssa-loop-ivopts.c (may_be_nonaddressable_p): Adjust
+	VIEW_CONVERT_EXPR case.
+	
 2008-03-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	merged with trunk 132817
 
+2008-03-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-scalar-evolution.c (instantiate_parameters_1): An SSA_NAME
+	defined in a loop at depth 0 is invariant.
+	* tree-chrec.c (evolution_function_is_invariant_rec_p): Ditto.
+	* tree-ssa-loop-ivopts.c (expr_invariant_in_loop_p): Should never
+	be called at loop depth 0.
+
+2008-03-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR driver/35420
+	* gcc.c (process_command): Update copyright notice dates.
+	* gcov.c (print_version): Likewise.
+	* gcov-dump.c (print_version): Likewise.
+	* mips-tfile.c (main): Likewise.
+	* mips-tdump.c (main): Likewise.
+
+>>>>>>> .merge-right.r133107
 2008-03-02  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	PR 24924
@@ -35,7 +598,7 @@
 	__absvsi2, __absvDI2): Use unsigned arithmetic.
 
 2008-03-02  Andi Kleen  <ak@suse.de>
-	Richard Guenther  <rguenther@suse.de>
+	    Richard Guenther  <rguenther@suse.de>
 
 	* struct-equiv.c: Remove file.
 	* cfg_cleanup.c (condjump_equiv_p): Remove.
@@ -202,7 +765,8 @@
 	struct rdg_vertex_info, rdg_vertex_for_stmt): New.
 	(create_rdg_edge_for_ddr, create_rdg_vertices): Cleaned up.
 	(stmts_from_loop): Skip LABEL_EXPR.
-	(hash_stmt_vertex_info, eq_stmt_vertex_info, hash_stmt_vertex_del): New.
+	(hash_stmt_vertex_info, eq_stmt_vertex_info, hash_stmt_vertex_del):
+	New.
 	(build_rdg): Initialize rdg->indices htab.
 	(free_rdg, stores_from_loop, ref_base_address,
 	rdg_defs_used_in_other_loops_p, have_similar_memory_accesses,
@@ -211,7 +775,8 @@
 	* tree-data-ref.h: Depend on tree-chrec.h.
 	(debug_data_dependence_relations, free_data_ref): Declared.
 	(same_access_functions): ... here.
-	(ddr_is_anti_dependent, ddrs_have_anti_deps, ddr_dependence_level): New.
+	(ddr_is_anti_dependent, ddrs_have_anti_deps, ddr_dependence_level):
+	New.
 	(struct rdg_vertex): Add has_mem_write and has_mem_reads.
 	(RDGV_HAS_MEM_WRITE, RDGV_HAS_MEM_READS, RDG_STMT,
 	RDG_MEM_WRITE_STMT, RDG_MEM_READS_STMT): New.
@@ -221,7 +786,8 @@
 	(struct rdg_edge): Add level.
 	(RDGE_LEVEL): New.
 	(free_rdg, stores_from_loop, remove_similar_memory_refs,
-	rdg_defs_used_in_other_loops_p, have_similar_memory_accesses): Declared.
+	rdg_defs_used_in_other_loops_p, have_similar_memory_accesses):
+	Declared.
 	(rdg_has_similar_memory_accesses): New.
 	* tree-vect-analyze.c: Remove unused static decls.
 	* lambda.h (dependence_level): New.
@@ -1312,8 +1878,7 @@
 	(OPTION_MASK_ISA_SSE5_UNSET): Likewise.
 	(OPTION_MASK_ISA_SSE4): Removed.
 	(ix86_handle_option): Turn on bits in ix86_isa_flags and
-	ix86_isa_flags_explicit with OPTION_MASK_ISA_XXX_SET for
-	-mXXX.
+	ix86_isa_flags_explicit with OPTION_MASK_ISA_XXX_SET for -mXXX.
 	(override_options): Don't turn on implied SSE/MMX bits in
 	ix86_isa_flags.
 

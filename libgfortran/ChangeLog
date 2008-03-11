@@ -1,3 +1,31 @@
+2008-03-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/32812
+	* intrinsics/random.c (scramble_seed, unscramble_seed): New
+	functions.
+	(random_seed_i4): Scramble the seed the user gives us before
+	storing it, and unscramble it when we return it back later.
+
+2008-03-05  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR libfortran/35293
+	* io/unix.c (fd_truncate): Fold s->special_file case into
+	success case of ftruncate/chsize call instead of the failure case.
+	Make failure case actually return failure.  Properly update stream
+	pointers on failure.  Call runtime_error for targets without
+	neither ftruncate nor chsize where such a call would be needed.
+
+2008-03-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33197
+	* intrinsics/erfc_scaled_inc.c: New file.
+	* intrinsics/erfc_scaled.c: New file.
+	* gfortran.map (GFORTRAN_1.0): Add _gfortran_erfc_scaled_r*.
+	* Makefile.am: Add intrinsics/erfc_scaled.c.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
 2008-03-01  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR libfortran/35355
@@ -13,9 +41,9 @@
 2008-02-25  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	PR fortran/29549
-        * Makefile.am: Add -fcx-fortran-rules to AM_CFLAGS for all of
-        libgfortran.
-        * Makefile.in: Regenerated.
+	* Makefile.am: Add -fcx-fortran-rules to AM_CFLAGS for all of
+	libgfortran.
+	* Makefile.in: Regenerated.
 
 2008-02-25  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 

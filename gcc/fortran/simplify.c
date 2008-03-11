@@ -1061,6 +1061,38 @@ gfc_simplify_dprod (gfc_expr *x, gfc_expr *y)
 
 
 gfc_expr *
+gfc_simplify_erf (gfc_expr *x)
+{
+  gfc_expr *result;
+
+  if (x->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+
+  mpfr_erf (result->value.real, x->value.real, GFC_RND_MODE);
+
+  return range_check (result, "ERF");
+}
+
+
+gfc_expr *
+gfc_simplify_erfc (gfc_expr *x)
+{
+  gfc_expr *result;
+
+  if (x->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+
+  mpfr_erfc (result->value.real, x->value.real, GFC_RND_MODE);
+
+  return range_check (result, "ERFC");
+}
+
+
+gfc_expr *
 gfc_simplify_epsilon (gfc_expr *e)
 {
   gfc_expr *result;
@@ -1279,6 +1311,21 @@ gfc_simplify_huge (gfc_expr *e)
 
   return result;
 }
+
+
+gfc_expr *
+gfc_simplify_hypot (gfc_expr *x, gfc_expr *y)
+{
+  gfc_expr *result;
+
+  if (x->expr_type != EXPR_CONSTANT || y->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+  mpfr_hypot (result->value.real, x->value.real, y->value.real, GFC_RND_MODE);
+  return range_check (result, "HYPOT");
+}
+
 
 /* We use the processor's collating sequence, because all
    systems that gfortran currently works on are ASCII.  */

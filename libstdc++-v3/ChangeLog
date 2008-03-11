@@ -1,3 +1,25 @@
+2008-03-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/abi/pre/gnu.ver: Move <system_error> related
+	symbols to GLIBCXX_3.4.11 symbol version.
+	* testsuite/util/testsuite_abi.cc (check_version): Allow
+	GLIBCXX_3.4.11.
+
+2008-03-06  Chris Jefferson  <chris@bubblescope.net>
+	    Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/35480
+	* include/tr1/tuple (operator==, operator<): Fix.
+	* include/std/tuple (operator==, operator<): Likewise.
+	* testsuite/tr1/6_containers/tuple/comparison_operators/35480.cc: New.
+	* testsuite/20_util/tuple/comparison_operators/35480.cc: Likewise.
+
+2008-03-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* crossconfig.m4 (*-mingw32*): Define HAVE_STRTOF and
+	HAVE_STRTOLD.
+	* configure: Regenerate.
+
 2008-03-02  Hans-Peter Nilsson  <hp@axis.com>
 
 	* testsuite/20_util/shared_ptr/assign/shared_ptr_neg.cc,

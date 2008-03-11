@@ -1,6 +1,6 @@
 /* Output routines for GCC for ARM.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
    and Martin Simmons (@harleqn.co.uk).
    More major hacks by Richard Earnshaw (rearnsha@arm.com).
@@ -188,6 +188,7 @@ static void arm_target_help (void);
 static unsigned HOST_WIDE_INT arm_shift_truncation_mask (enum machine_mode);
 static bool arm_cannot_copy_insn_p (rtx);
 static bool arm_tls_symbol_p (rtx x);
+static int arm_issue_rate (void);
 static void arm_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 
 
@@ -358,6 +359,9 @@ static void arm_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM arm_cannot_force_const_mem
 
+#undef TARGET_SCHED_ISSUE_RATE
+#define TARGET_SCHED_ISSUE_RATE arm_issue_rate
+
 #undef TARGET_MANGLE_TYPE
 #define TARGET_MANGLE_TYPE arm_mangle_type
 
@@ -460,6 +464,7 @@ static int thumb_call_reg_needed;
 #define FL_FOR_ARCH6Z	FL_FOR_ARCH6
 #define FL_FOR_ARCH6ZK	FL_FOR_ARCH6K
 #define FL_FOR_ARCH6T2	(FL_FOR_ARCH6 | FL_THUMB2)
+#define FL_FOR_ARCH6M	(FL_FOR_ARCH6 & ~FL_NOTM)
 #define FL_FOR_ARCH7	(FL_FOR_ARCH6T2 &~ FL_NOTM)
 #define FL_FOR_ARCH7A	(FL_FOR_ARCH7 | FL_NOTM)
 #define FL_FOR_ARCH7R	(FL_FOR_ARCH7A | FL_DIV)
@@ -632,6 +637,7 @@ static const struct processors all_architectures[] =
   {"armv6z",  arm1176jzs, "6Z",  FL_CO_PROC |             FL_FOR_ARCH6Z, NULL},
   {"armv6zk", arm1176jzs, "6ZK", FL_CO_PROC |             FL_FOR_ARCH6ZK, NULL},
   {"armv6t2", arm1156t2s, "6T2", FL_CO_PROC |             FL_FOR_ARCH6T2, NULL},
+  {"armv6-m", cortexm1,	  "6M",				  FL_FOR_ARCH6M, NULL},
   {"armv7",   cortexa8,	  "7",	 FL_CO_PROC |		  FL_FOR_ARCH7, NULL},
   {"armv7-a", cortexa8,	  "7A",	 FL_CO_PROC |		  FL_FOR_ARCH7A, NULL},
   {"armv7-r", cortexr4,	  "7R",	 FL_CO_PROC |		  FL_FOR_ARCH7R, NULL},
@@ -17639,12 +17645,23 @@ arm_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
                     ? 1 : 0);
   if (mi_delta < 0)
     mi_delta = - mi_delta;
-  /* When generating 16-bit thumb code, thunks are entered in arm mode.  */
+
   if (TARGET_THUMB1)
     {
       int labelno = thunk_label++;
       ASM_GENERATE_INTERNAL_LABEL (label, "LTHUMBFUNC", labelno);
-      fputs ("\tldr\tr12, ", file);
+      /* Thunks are entered in arm mode when avaiable.  */
+      if (TARGET_THUMB1_ONLY)
+	{
+	  /* push r3 so we can use it as a temporary.  */
+	  /* TODO: Omit this save if r3 is not used.  */
+	  fputs ("\tpush {r3}\n", file);
+	  fputs ("\tldr\tr3, ", file);
+	}
+      else
+	{
+	  fputs ("\tldr\tr12, ", file);
+	}
       assemble_name (file, label);
       fputc ('\n', file);
       if (flag_pic)
@@ -17658,29 +17675,63 @@ arm_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
 
 	     Note that we have "+ 1" because some versions of GNU ld
 	     don't set the low bit of the result for R_ARM_REL32
-	     relocations against thumb function symbols.  */
+	     relocations against thumb function symbols.
+	     On ARMv6M this is +4, not +8.  */
 	  ASM_GENERATE_INTERNAL_LABEL (labelpc, "LTHUNKPC", labelno);
 	  assemble_name (file, labelpc);
 	  fputs (":\n", file);
-	  fputs ("\tadd\tr12, pc, r12\n", file);
+	  if (TARGET_THUMB1_ONLY)
+	    {
+	      /* This is 2 insns after the start of the thunk, so we know it
+	         is 4-byte aligned.  */
+	      fputs ("\tadd\tr3, pc, r3\n", file);
+	      fputs ("\tmov r12, r3\n", file);
+	    }
+	  else
+	    fputs ("\tadd\tr12, pc, r12\n", file);
+	}
+      else if (TARGET_THUMB1_ONLY)
+	fputs ("\tmov r12, r3\n", file);
+    }
+  if (TARGET_THUMB1_ONLY)
+    {
+      if (mi_delta > 255)
+	{
+	  fputs ("\tldr\tr3, ", file);
+	  assemble_name (file, label);
+	  fputs ("+4\n", file);
+	  asm_fprintf (file, "\t%s\t%r, %r, r3\n",
+		       mi_op, this_regno, this_regno);
+	}
+      else if (mi_delta != 0)
+	{
+	  asm_fprintf (file, "\t%s\t%r, %r, #%d\n",
+		       mi_op, this_regno, this_regno,
+		       mi_delta);
 	}
     }
-  /* TODO: Use movw/movt for large constants when available.  */
-  while (mi_delta != 0)
+  else
     {
-      if ((mi_delta & (3 << shift)) == 0)
-        shift += 2;
-      else
-        {
-          asm_fprintf (file, "\t%s\t%r, %r, #%d\n",
-                       mi_op, this_regno, this_regno,
-                       mi_delta & (0xff << shift));
-          mi_delta &= ~(0xff << shift);
-          shift += 8;
-        }
+      /* TODO: Use movw/movt for large constants when available.  */
+      while (mi_delta != 0)
+	{
+	  if ((mi_delta & (3 << shift)) == 0)
+	    shift += 2;
+	  else
+	    {
+	      asm_fprintf (file, "\t%s\t%r, %r, #%d\n",
+			   mi_op, this_regno, this_regno,
+			   mi_delta & (0xff << shift));
+	      mi_delta &= ~(0xff << shift);
+	      shift += 8;
+	    }
+	}
     }
   if (TARGET_THUMB1)
     {
+      if (TARGET_THUMB1_ONLY)
+	fputs ("\tpop\t{r3}\n", file);
+
       fprintf (file, "\tbx\tr12\n");
       ASM_OUTPUT_ALIGN (file, 2);
       assemble_name (file, label);
@@ -17699,6 +17750,9 @@ arm_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
       else
 	/* Output ".word .LTHUNKn".  */
 	assemble_integer (XEXP (DECL_RTL (function), 0), 4, BITS_PER_WORD, 1);
+
+      if (TARGET_THUMB1_ONLY && mi_delta > 255)
+	assemble_integer (GEN_INT(mi_delta), 4, BITS_PER_WORD, 1);
     }
   else
     {
@@ -18657,6 +18711,22 @@ thumb2_output_casesi (rtx *operands)
 	}
     default:
       gcc_unreachable ();
+    }
+}
+
+/* Most ARM cores are single issue, but some newer ones can dual issue.
+   The scheduler descriptions rely on this being correct.  */
+static int
+arm_issue_rate (void)
+{
+  switch (arm_tune)
+    {
+    case cortexr4:
+    case cortexa8:
+      return 2;
+
+    default:
+      return 1;
     }
 }
 

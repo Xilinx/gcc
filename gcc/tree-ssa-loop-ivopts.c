@@ -914,7 +914,12 @@ find_bivs (struct ivopts_data *data)
       type = TREE_TYPE (PHI_RESULT (phi));
       base = fold_convert (type, base);
       if (step)
-	step = fold_convert (type, step);
+	{
+	  if (POINTER_TYPE_P (type))
+	    step = fold_convert (sizetype, step);
+	  else
+	    step = fold_convert (type, step);
+	}
 
       set_iv (data, PHI_RESULT (phi), base, step);
       found = true;
@@ -1254,13 +1259,16 @@ find_interesting_uses_cond (struct ivopts_data *data, tree stmt, tree *cond_p)
 }
 
 /* Returns true if expression EXPR is obviously invariant in LOOP,
-   i.e. if all its operands are defined outside of the LOOP.  */
+   i.e. if all its operands are defined outside of the LOOP.  LOOP
+   should not be the function body.  */
 
 bool
 expr_invariant_in_loop_p (struct loop *loop, tree expr)
 {
   basic_block def_bb;
   unsigned i, len;
+
+  gcc_assert (loop_depth (loop) > 0);
 
   if (is_gimple_min_invariant (expr))
     return true;
@@ -1522,8 +1530,8 @@ may_be_nonaddressable_p (tree expr)
 	 and make them look addressable.  After some processing the
 	 non-addressability may be uncovered again, causing ADDR_EXPRs
 	 of inappropriate objects to be built.  */
-      if (AGGREGATE_TYPE_P (TREE_TYPE (expr))
-	  && !AGGREGATE_TYPE_P (TREE_TYPE (TREE_OPERAND (expr, 0))))
+      if (is_gimple_reg (TREE_OPERAND (expr, 0))
+	  || is_gimple_min_invariant (TREE_OPERAND (expr, 0)))
 	return true;
 
       /* ... fall through ... */
@@ -2037,7 +2045,9 @@ add_candidate_1 (struct ivopts_data *data,
     {
       orig_type = TREE_TYPE (base);
       type = generic_type_for (orig_type);
-      if (type != orig_type)
+      /* Don't convert the base to the generic type for pointers as the generic
+	 type is an integer type with the same size as the pointer type.  */
+      if (type != orig_type && !POINTER_TYPE_P (orig_type))
 	{
 	  base = fold_convert (type, base);
 	  step = fold_convert (type, step);
@@ -2234,13 +2244,17 @@ add_iv_value_candidates (struct ivopts_data *data,
 {
   unsigned HOST_WIDE_INT offset;
   tree base;
+  tree basetype;
 
   add_candidate (data, iv->base, iv->step, false, use);
 
   /* The same, but with initial value zero.  Make such variable important,
      since it is generic enough so that possibly many uses may be based
      on it.  */
-  add_candidate (data, build_int_cst (TREE_TYPE (iv->base), 0),
+  basetype = TREE_TYPE (iv->base);
+  if (POINTER_TYPE_P (basetype))
+    basetype = sizetype;
+  add_candidate (data, build_int_cst (basetype, 0),
 		 iv->step, true, use);
 
   /* Third, try removing the constant offset.  */
@@ -3668,10 +3682,13 @@ cand_value_at (struct loop *loop, struct iv_cand *cand, tree at, tree niter,
   aff_tree step, delta, nit;
   struct iv *iv = cand->iv;
   tree type = TREE_TYPE (iv->base);
+  tree steptype = type;
+  if (POINTER_TYPE_P (type))
+    steptype = sizetype;
 
-  tree_to_aff_combination (iv->step, type, &step);
+  tree_to_aff_combination (iv->step, steptype, &step);
   tree_to_aff_combination (niter, TREE_TYPE (niter), &nit);
-  aff_combination_convert (&nit, type);
+  aff_combination_convert (&nit, steptype);
   aff_combination_mult (&nit, &step, &delta);
   if (stmt_after_increment (loop, cand, at))
     aff_combination_add (&delta, &step);

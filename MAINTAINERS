@@ -30,7 +30,7 @@ Jason Merrill					jason@redhat.com
 David S. Miller					davem@redhat.com
 Mark Mitchell					mark@codesourcery.com
 Bernd Schmidt					bernd.schmidt@analog.com
-Jim Wilson					wilson@specifixinc.com
+Jim Wilson					wilson@tuliptree.org
 
 
 			CPU Port Maintainers	(CPU alphabetical order)
@@ -54,7 +54,7 @@ hppa port		Dave Anglin		dave.anglin@nrc.ca
 i386 port		Richard Henderson	rth@redhat.com
 i386 port		Jan Hubicka		jh@suse.cz
 i386 port		Uros Bizjak		ubizjak@gmail.com
-ia64 port		Jim Wilson		wilson@specifixinc.com
+ia64 port		Jim Wilson		wilson@tuliptree.org
 iq2000 port		Nick Clifton		nickc@redhat.com
 m32c port		DJ Delorie		dj@redhat.com
 m32r port		Nick Clifton		nickc@redhat.com
@@ -98,6 +98,7 @@ xtensa port		Bob Wilson		bob.wilson@acm.org
 darwin port		Dale Johannesen		dalej@apple.com
 darwin port		Mike Stump		mrs@apple.com
 darwin port		Eric Christopher	echristo@apple.com
+darwin port		Stan Shebs		stanshebs@earthlink.net
 DJGPP			DJ Delorie		dj@delorie.com
 freebsd			Loren J. Rittle		ljrittle@acm.org
 hpux			Dave Anglin		dave.anglin@nrc.ca
@@ -128,8 +129,7 @@ java			Per Bothner		per@bothner.com
 java			Andrew Haley		aph@redhat.com
 java			Tom Tromey		tromey@redhat.com
 objective-c/c++		Mike Stump		mrs@apple.com
-treelang                Tim Josling             tej@melbpc.org.au
-treelang                James A. Morrison	phython@gcc.gnu.org
+objective-c/c++		Stan Shebs		stanshebs@earthlink.net
 
 			Various Maintainers
 
@@ -150,7 +150,7 @@ libobjc			Nicola Pero		n.pero@mi.flashnet.it
 libobjc			Andrew Pinski		pinskia@gmail.com
 loop discovery		Michael Hayes		m.hayes@elec.canterbury.ac.nz
 soft-fp			Joseph Myers		jsm@polyomino.org.uk
-scheduler (+ haifa)	Jim Wilson		wilson@specifixinc.com
+scheduler (+ haifa)	Jim Wilson		wilson@tuliptree.org
 scheduler (+ haifa)	Michael Meissner	gnu@the-meissners.org
 scheduler (+ haifa)	Jeff Law		law@redhat.com
 scheduler (+ haifa)	Vladimir Makarov	vmakarov@redhat.com
@@ -158,7 +158,7 @@ modulo-scheduler	Ayal Zaks		zaks@il.ibm.com
 reorg			Jeff Law		law@redhat.com
 caller-save.c		Jeff Law		law@redhat.com
 callgraph		Jan Hubicka		jh@suse.cz
-debugging code		Jim Wilson		wilson@specifixinc.com
+debugging code		Jim Wilson		wilson@tuliptree.org
 dwarf debugging code	Jason Merrill		jason@redhat.com
 c++ runtime libs	Paolo Carlini		pcarlini@suse.de
 c++ runtime libs        Gabriel Dos Reis        gdr@integrable-solutions.net
@@ -336,6 +336,7 @@ Andreas Jaeger					aj@suse.de
 Harsha Jagasia					harsha.jagasia@amd.com
 Fariborz Jahanian				fjahanian@apple.com
 Phillip Jordan					phillip.m.jordan@gmail.com
+Tim Josling					tej@melbpc.org.au
 Klaus Kaempf					kkaempf@progis.de
 Victor Kaplansky				victork@il.ibm.com
 Brendan Kehoe					brendan@zen.org
@@ -383,6 +384,7 @@ Lee Millward					lee.millward@gmail.com
 Alan Modra					amodra@bigpond.net.au
 Alexander Monakov				amonakov@ispras.ru
 Catherine Moore					clm@redhat.com
+James A. Morrison				phython@gcc.gnu.org
 Dirk Mueller					dmueller@suse.de
 Adam Nemet					anemet@caviumnetworks.com
 Thomas Neumann					tneumann@users.sourceforge.net
@@ -401,7 +403,7 @@ Vladimir Prus					vladimir@codesourcery.com
 Jerry Quinn					jlquinn@optonline.net
 Dwarakanath Rajagopal				dwarak.rajagopal@amd.com
 Rolf Rasmussen					rolfwr@gcc.gnu.org
-Volker Reichelt					reichelt@igpm.rwth-aachen.de
+Volker Reichelt					v.reichelt@netcologne.de
 Tom Rix						trix@redhat.com
 Craig Rodrigues					rodrigc@gcc.gnu.org
 Erven Rohou                                     erven.rohou@st.com

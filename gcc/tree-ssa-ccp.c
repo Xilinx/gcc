@@ -300,12 +300,21 @@ get_symbol_constant_value (tree sym)
 {
   if (TREE_STATIC (sym)
       && TREE_READONLY (sym)
-      && !MTAG_P (sym))
+      && !MTAG_P (sym)
+      /* Check if a read-only definition may be overridden at
+	 link and run time.  */
+      && targetm.binds_local_p (sym))
     {
       tree val = DECL_INITIAL (sym);
       if (val
 	  && ccp_decl_initial_min_invariant (val))
 	return val;
+      /* Variables declared 'const' without an initializer
+	 have zero as the intializer.  */
+      if (!val
+          && (INTEGRAL_TYPE_P (TREE_TYPE (sym))
+	       || SCALAR_FLOAT_TYPE_P (TREE_TYPE (sym))))
+        return fold_convert (TREE_TYPE (sym), integer_zero_node);
     }
 
   return NULL_TREE;

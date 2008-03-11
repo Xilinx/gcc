@@ -1,3 +1,24 @@
+2008-03-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/libgomp.c/atomic-3.c: New test.
+
+2008-03-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/33197
+	* testsuite/libgomp.fortran/fortran.exp: Add .f08 and
+	.F08 file suffixes.
+
+2008-03-03  Peter O'Gorman  <pogma@thewrittenword.com>
+
+	PR libgomp/33131
+	* configure.ac: Add ACX_HEADER_STRING.
+	* env.c: Include strings.h.
+	* aclocal.m4: Regenerate.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
 2008-02-15  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/35196

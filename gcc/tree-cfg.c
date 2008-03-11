@@ -3031,24 +3031,28 @@ bsi_insert_on_edge_immediate (edge e, tree stmt)
 static void
 reinstall_phi_args (edge new_edge, edge old_edge)
 {
-  tree var, phi;
+  tree phi;
+  edge_var_map_vector v;
+  edge_var_map *vm;
+  int i;
 
-  if (!PENDING_STMT (old_edge))
+  v = redirect_edge_var_map_vector (old_edge);
+  if (!v)
     return;
 
-  for (var = PENDING_STMT (old_edge), phi = phi_nodes (new_edge->dest);
-       var && phi;
-       var = TREE_CHAIN (var), phi = PHI_CHAIN (phi))
+  for (i = 0, phi = phi_nodes (new_edge->dest);
+       VEC_iterate (edge_var_map, v, i, vm) && phi;
+       i++, phi = PHI_CHAIN (phi))
     {
-      tree result = TREE_PURPOSE (var);
-      tree arg = TREE_VALUE (var);
+      tree result = redirect_edge_var_map_result (vm);
+      tree arg = redirect_edge_var_map_def (vm);
 
       gcc_assert (result == PHI_RESULT (phi));
 
       add_phi_arg (phi, arg, new_edge);
     }
 
-  PENDING_STMT (old_edge) = NULL;
+  redirect_edge_var_map_clear (old_edge);
 }
 
 /* Returns the basic block after which the new basic block created
@@ -3267,8 +3271,28 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	    }
 	  else if (TREE_CODE (t) == BIT_FIELD_REF)
 	    {
-	      CHECK_OP (1, "invalid operand to BIT_FIELD_REF");
-	      CHECK_OP (2, "invalid operand to BIT_FIELD_REF");
+	      if (!host_integerp (TREE_OPERAND (t, 1), 1)
+		  || !host_integerp (TREE_OPERAND (t, 2), 1))
+		{
+		  error ("invalid position or size operand to BIT_FIELD_REF");
+		  return t;
+		}
+	      else if (INTEGRAL_TYPE_P (TREE_TYPE (t))
+		       && (TYPE_PRECISION (TREE_TYPE (t))
+			   != TREE_INT_CST_LOW (TREE_OPERAND (t, 1))))
+		{
+		  error ("integral result type precision does not match "
+			 "field size of BIT_FIELD_REF");
+		  return t;
+		}
+	      if (!INTEGRAL_TYPE_P (TREE_TYPE (t))
+		  && (GET_MODE_PRECISION (TYPE_MODE (TREE_TYPE (t)))
+		      != TREE_INT_CST_LOW (TREE_OPERAND (t, 1))))
+		{
+		  error ("mode precision of non-integral result does not "
+			 "match field size of BIT_FIELD_REF");
+		  return t;
+		}
 	    }
 
 	  t = TREE_OPERAND (t, 0);
@@ -5871,6 +5895,8 @@ new_label_mapper (tree decl, void *data)
   m->base.from = decl;
   m->to = create_artificial_label ();
   LABEL_DECL_UID (m->to) = LABEL_DECL_UID (decl);
+  if (LABEL_DECL_UID (m->to) >= cfun->last_label_uid)
+    cfun->last_label_uid = LABEL_DECL_UID (m->to) + 1;
 
   slot = htab_find_slot_with_hash (hash, m, m->hash, INSERT);
   gcc_assert (*slot == NULL);

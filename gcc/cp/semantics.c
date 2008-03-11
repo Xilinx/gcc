@@ -3400,13 +3400,16 @@ finish_omp_clauses (tree clauses)
 	    {
 	      if (processing_template_decl)
 		break;
-	      error ("%qE is not a variable in clause %<firstprivate%>", t);
+	      if (DECL_P (t))
+		error ("%qD is not a variable in clause %<firstprivate%>", t);
+	      else
+		error ("%qE is not a variable in clause %<firstprivate%>", t);
 	      remove = true;
 	    }
 	  else if (bitmap_bit_p (&generic_head, DECL_UID (t))
 		   || bitmap_bit_p (&firstprivate_head, DECL_UID (t)))
 	    {
-	      error ("%qE appears more than once in data clauses", t);
+	      error ("%qD appears more than once in data clauses", t);
 	      remove = true;
 	    }
 	  else
@@ -3419,13 +3422,16 @@ finish_omp_clauses (tree clauses)
 	    {
 	      if (processing_template_decl)
 		break;
-	      error ("%qE is not a variable in clause %<lastprivate%>", t);
+	      if (DECL_P (t))
+		error ("%qD is not a variable in clause %<lastprivate%>", t);
+	      else
+		error ("%qE is not a variable in clause %<lastprivate%>", t);
 	      remove = true;
 	    }
 	  else if (bitmap_bit_p (&generic_head, DECL_UID (t))
 		   || bitmap_bit_p (&lastprivate_head, DECL_UID (t)))
 	    {
-	      error ("%qE appears more than once in data clauses", t);
+	      error ("%qD appears more than once in data clauses", t);
 	      remove = true;
 	    }
 	  else
@@ -3661,7 +3667,7 @@ finish_omp_clauses (tree clauses)
 					     complete_ctor_identifier,
 					     t, inner_type, LOOKUP_NORMAL);
 
-	      if (targetm.cxx.cdtor_returns_this ())
+	      if (targetm.cxx.cdtor_returns_this () || errorcount)
 		/* Because constructors and destructors return this,
 		   the call will have been cast to "void".  Remove the
 		   cast here.  We would like to use STRIP_NOPS, but it
@@ -3683,7 +3689,7 @@ finish_omp_clauses (tree clauses)
 	      t = build_special_member_call (t, complete_dtor_identifier,
 					     NULL, inner_type, LOOKUP_NORMAL);
 
-	      if (targetm.cxx.cdtor_returns_this ())
+	      if (targetm.cxx.cdtor_returns_this () || errorcount)
 		/* Because constructors and destructors return this,
 		   the call will have been cast to "void".  Remove the
 		   cast here.  We would like to use STRIP_NOPS, but it
