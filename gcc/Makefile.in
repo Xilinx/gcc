@@ -680,7 +680,7 @@ COMPILERS = cc1$(exeext) @all_compilers@
 
 # List of things which should already be built whenever we try to use xgcc
 # to compile anything (without linking).
-GCC_PASSES=xgcc$(exeext) cc1$(exeext) specs compile-basilys-defs $(EXTRA_PASSES)
+GCC_PASSES=xgcc$(exeext) cc1$(exeext) specs $(EXTRA_PASSES)
 
 # Directory to link to, when using the target `maketest'.
 DIR = ../gcc
@@ -1288,7 +1288,7 @@ MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
  $(EXTRA_PARTS) $(EXTRA_PROGRAMS) gcc-cross$(exeext) \
  protoize$(exeext) unprotoize$(exeext) \
  $(SPECS) collect2$(exeext) \
- compile-basilys-defs \
+ run-basilys.d  \
  gcov-iov$(build_exeext) gcov$(exeext) gcov-dump$(exeext) \
  *.[0-9][0-9].* *.[si] *-checksum.c libbackend.a libgcc.mk
 
@@ -4540,7 +4540,7 @@ run-basilys.d: run-basilys.h \
 -include run-basilys.d
 
 
-## copy all the file in the dependency of run-basilys-deps into $(melt_private_include_dir)
+## copy all the file in the dependency of run-basilys-deps into $(melt_build_include_dir)
 ## but handle the $(srcdir)/config/ files specially by copying them within a config/ directory
 run-basilys-deps:
 	echo '***' IN run-basilys-deps TARGET '***'

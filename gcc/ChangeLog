@@ -1,3 +1,7 @@
+2008-03-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: removed compile-basilys-defs completely. Corrected
+	typ in comment for run-basilys-deps.
+
 2008-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added targets for installation of melt includes.
 
