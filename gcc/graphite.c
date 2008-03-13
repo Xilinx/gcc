@@ -231,9 +231,9 @@ dot_scop (scop_p scop)
 /* Pretty print all SCoPs in DOT format and mark them with different colors.
    If there are not enough colors (8 at the moment), paint later SCoPs gray.
    Special nodes:
-   - filled node: entry of a SCoP,
-   - node shaped like a box: end of a SCoP,
-   - node with diagonals: critical BB.  */
+   - "*" after the node number: entry of a SCoP,
+   - "#" after the node number: end of a SCoP,
+   - black background: critical BB.  */
 
 static void
 dot_all_scops_1 (FILE *file)
@@ -253,6 +253,7 @@ dot_all_scops_1 (FILE *file)
 
   FOR_ALL_BB (bb)
     {
+      int part_of_scop = false;
 
       /* Use HTML for every bb label.  So we are able to print bbs
          which are part of two different SCoPs, with two different
@@ -305,7 +306,15 @@ dot_all_scops_1 (FILE *file)
 	      fprintf (file, " %d# </TD></TR> ", bb->index);
 	    else
 	      fprintf (file, " %d </TD></TR> ", bb->index);
+
+	    part_of_scop  = true;
 	  }
+
+      if (!part_of_scop)
+        {
+          fprintf (file, "  <TR><TD WIDTH=\"50\" BGCOLOR=\"#ffffff\">");
+          fprintf (file, " %d </TD></TR>\n", bb->index);
+        }
 
       fprintf (file, "</TABLE>>, shape=box, style=\"setlinewidth(0)\"]\n");
     }

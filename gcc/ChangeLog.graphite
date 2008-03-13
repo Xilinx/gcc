@@ -1,3 +1,8 @@
+2008-03-08  Tobias Grosser  <grosser@fmi.uni-passau.de>
+
+	* graphite.c (dot_all_scops_1): Fix formatting for difficult bbs and
+	update comment.
+
 2008-03-07  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (dot_all_scops): Update formatting.  
