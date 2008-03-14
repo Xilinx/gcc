@@ -1,3 +1,9 @@
+2008-03-15  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc/c-parser.c: Diagnose address space qualified compound
+	literals in function bodies.
+	* gcc/testsuite/gcc.dg/ea/errors.c: Add a test case.
+
 2007-11-09  Ben Elliston  <bje@au.ibm.com>
 
 	* c-decl.c (grokdeclarator): Pointer variables may not be defined

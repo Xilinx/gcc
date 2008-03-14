@@ -5597,6 +5597,12 @@ c_parser_postfix_expression_after_paren_type (c_parser *parser,
   finish_init ();
   maybe_warn_string_init (type, init);
 
+  if (TYPE_EA (type) && current_function_decl)
+    {
+      error ("compound literal qualified by address-space qualifier");
+      type = error_mark_node;
+    }
+
   if (pedantic && !flag_isoc99)
     pedwarn ("%HISO C90 forbids compound literals", &start_loc);
   expr.value = build_compound_literal (type, init.value);
