@@ -116,5 +116,7 @@ extern void GOMP_stream_pop (void *);
 extern bool GOMP_stream_eos_p (void *);
 extern void GOMP_stream_set_eos (void *);
 extern void GOMP_stream_destroy (void *);
+extern void GOMP_stream_align_push (void *, void *, int);
+extern void GOMP_stream_align_pop (void *, int);
 
 #endif /* LIBGOMP_G_H */

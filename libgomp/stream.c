@@ -138,6 +138,33 @@ gomp_stream_destroy (gomp_stream s)
   free (s);
 }
 
+/* Align the producer and consumer accesses by pushing in the stream
+   COUNT successive elements starting at address START.  */
+
+void
+gomp_stream_align_push (gomp_stream s, char *start, int count)
+{
+  int i;
+
+  for (i = 0; i < count; ++i)
+    {
+      gomp_stream_push (s, start);
+      start += s->size;
+    }
+}
+
+/* Align the producer and consumer accesses by removing from the
+   stream COUNT elements.  */
+
+void
+gomp_stream_align_pop (gomp_stream s, int count)
+{
+  int i;
+
+  for (i = 0; i < count; ++i)
+    gomp_stream_pop (s);
+}
+
 void *
 GOMP_stream_create (size_t size, unsigned count)
 {
@@ -178,4 +205,16 @@ void
 GOMP_stream_destroy (void *s)
 {
   gomp_stream_destroy ((gomp_stream) s);
+}
+
+void
+GOMP_stream_align_push (void *s, void *start, int offset)
+{
+  gomp_stream_align_push ((gomp_stream) s, (char *) start, offset);
+}
+
+void
+GOMP_stream_align_pop (void *s, int offset)
+{
+  gomp_stream_align_pop ((gomp_stream) s, offset);
 }

@@ -376,9 +376,6 @@ dump_data_dependence_relation (FILE *outf,
   drb = DDR_B (ddr);
   fprintf (outf, "(Data Dep: \n");
 
-  dump_data_reference (outf, dra);
-  dump_data_reference (outf, drb);
-
   if (DDR_ARE_DEPENDENT (ddr) == chrec_dont_know)
     fprintf (outf, "    (don't know)\n");
   
@@ -4554,6 +4551,7 @@ create_rdg_edge_for_ddr (struct graph *rdg, ddr_p ddr)
   e->data = XNEW (struct rdg_edge);
 
   RDGE_LEVEL (e) = level;
+  RDGE_RELATION (e) = ddr;
 
   /* Determines the type of the data dependence.  */
   if (DR_IS_READ (dra) && DR_IS_READ (drb))
@@ -4586,6 +4584,7 @@ create_rdg_edges_for_scalar (struct graph *rdg, tree def, int idef)
       e = add_edge (rdg, idef, use);
       e->data = XNEW (struct rdg_edge);
       RDGE_TYPE (e) = flow_dd;
+      RDGE_RELATION (e) = NULL;
     }
 }
 
@@ -4761,18 +4760,20 @@ build_rdg (struct loop *loop)
                                      &dependence_relations);
 
   if (!known_dependences_p (dependence_relations))
-    goto end_rdg;
+    {
+      free_dependence_relations (dependence_relations);
+      free_data_refs (datarefs);
+      VEC_free (tree, heap, stmts);
+
+      return rdg;
+    }
 
   stmts_from_loop (loop, &stmts);
   rdg = build_empty_rdg (VEC_length (tree, stmts));
   create_rdg_vertices (rdg, stmts);
   create_rdg_edges (rdg, dependence_relations);
 
- end_rdg:
-  free_dependence_relations (dependence_relations);
-  free_data_refs (datarefs);
   VEC_free (tree, heap, stmts);
-
   return rdg;
 }
 
@@ -4785,6 +4786,11 @@ free_rdg (struct graph *rdg)
 
   for (i = 0; i < rdg->n_vertices; i++)
     free (rdg->vertices[i].data);
+
+  /* FIXME: 
+     free_dependence_relations (dependence_relations);
+     free_data_refs (datarefs);
+  */
 
   htab_delete (rdg->indexes);
   free_graph (rdg);

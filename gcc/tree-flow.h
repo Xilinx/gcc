@@ -770,6 +770,8 @@ extern bool tree_duplicate_sese_region (edge, edge, basic_block *, unsigned,
 					basic_block *);
 extern bool tree_duplicate_sese_tail (edge, edge, basic_block *, unsigned,
 				      basic_block *);
+extern void gather_blocks_in_sese_region (basic_block, basic_block,
+					  VEC(basic_block,heap) **);
 extern void add_phi_args_after_copy_bb (basic_block);
 extern void add_phi_args_after_copy (basic_block *, unsigned, edge);
 extern bool tree_purge_dead_abnormal_call_edges (basic_block);
@@ -990,6 +992,8 @@ unsigned int remove_empty_loops (void);
 void tree_ssa_iv_optimize (void);
 unsigned tree_predictive_commoning (void);
 bool parallelize_loops (void);
+tree create_loop_fn (void);
+basic_block create_omp_parallel_region (edge, edge, tree, unsigned);
 
 bool number_of_iterations_exit (struct loop *, edge,
 				struct tree_niter_desc *niter, bool);
@@ -1118,6 +1122,7 @@ extern void tree_check_data_deps (void);
 
 /* In tree-ssa-loop-ivopts.c  */
 bool expr_invariant_in_loop_p (struct loop *, tree);
+bool expr_invariant_in_region_p (edge, edge, tree);
 bool multiplier_allowed_in_address_p (HOST_WIDE_INT, enum machine_mode);
 unsigned multiply_by_cost (HOST_WIDE_INT, enum machine_mode);
 

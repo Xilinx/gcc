@@ -489,13 +489,18 @@ typedef struct rdg_edge
   /* Type of the dependence.  */
   enum rdg_dep_type type;
 
-  /* Levels of the dependence: the depth of the loops that
-    carry the dependence.  */
+  /* Levels of the dependence: the depth of the loops that carry the
+     dependence.  */
   unsigned level;
+
+  /* Dependence relation between data dependences, NULL when one of
+     the vertices is a scalar.  */
+  ddr_p relation;
 } *rdg_edge_p;
 
 #define RDGE_TYPE(E)        ((struct rdg_edge *) ((E)->data))->type
 #define RDGE_LEVEL(E)       ((struct rdg_edge *) ((E)->data))->level
+#define RDGE_RELATION(E)    ((struct rdg_edge *) ((E)->data))->relation
 
 struct graph *build_rdg (struct loop *);
 struct graph *build_empty_rdg (int);
@@ -537,5 +542,32 @@ bool lambda_transform_legal_p (lambda_trans_matrix, int, VEC (ddr_p, heap) *);
 
 /* In tree-data-refs.c  */
 void split_constant_offset (tree , tree *, tree *);
+
+/* Strongly connected components of the reduced data dependence graph.  */
+
+typedef struct rdg_component
+{
+  int num;
+  VEC (int, heap) *vertices;
+} *rdgc;
+
+DEF_VEC_P (rdgc);
+DEF_VEC_ALLOC_P (rdgc, heap);
+
+DEF_VEC_P (bitmap);
+DEF_VEC_ALLOC_P (bitmap, heap);
+
+/* In tree-loop-distribution.c  */
+void create_bb_after_loop (struct loop *);
+struct loop *copy_loop_before (struct loop *);
+void mark_nodes_having_upstream_mem_writes (struct graph *, bitmap);
+void rdg_build_components (struct graph *, VEC (int, heap) *,
+			   VEC (rdgc, heap) **);
+void rdg_build_partitions (struct graph *, VEC (rdgc, heap) *,
+			   VEC (int, heap) **, VEC (bitmap, heap) **,
+			   bitmap, bitmap, bitmap);
+void dump_rdg_partitions (FILE *, VEC (bitmap, heap) *);
+void free_rdg_components (VEC (rdgc, heap) *);
+
 
 #endif  /* GCC_TREE_DATA_REF_H  */

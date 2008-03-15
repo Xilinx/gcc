@@ -436,17 +436,16 @@ loop_parallel_p (struct loop *loop, htab_t reduction_list, struct tree_niter_des
 }
 
 /* Assigns the address of VAR in TYPE to an ssa name, and returns this name.
-   The assignment statement is placed before LOOP.  DECL_ADDRESS maps decls
+   The assignment statement is placed on edge ENTRY.  DECL_ADDRESS maps decls
    to their addresses that can be reused.  */
 
 static tree
-take_address_of (tree var, tree type, struct loop *loop, htab_t decl_address)
+take_address_of (tree var, tree type, edge entry, htab_t decl_address)
 {
   int uid = DECL_UID (var);
   void **dslot;
   struct int_tree_map ielt, *nielt;
   tree name, bvar, stmt;
-  edge entry = loop_preheader_edge (loop);
 
   ielt.uid = uid;
   dslot = htab_find_slot_with_hash (decl_address, &ielt, uid, INSERT);
@@ -547,15 +546,16 @@ initialize_reductions (void **slot, void *data)
 
 struct elv_data
 {
-  struct loop *loop;
+  edge entry;
   htab_t decl_address;
   bool changed;
 };
 
-/* Eliminates references to local variables in *TP out of LOOP.  DECL_ADDRESS
-   contains addresses of the references that had their address taken already.
-   If the expression is changed, CHANGED is set to true.  Callback for
-   walk_tree.  */
+/* Eliminates references to local variables in *TP out of the single
+   entry single exit region starting at DTA->ENTRY.
+   DECL_ADDRESS contains addresses of the references that had their
+   address taken already.  If the expression is changed, CHANGED is
+   set to true.  Callback for walk_tree.  */
 
 static tree
 eliminate_local_variables_1 (tree * tp, int *walk_subtrees, void *data)
@@ -572,7 +572,7 @@ eliminate_local_variables_1 (tree * tp, int *walk_subtrees, void *data)
 
       type = TREE_TYPE (t);
       addr_type = build_pointer_type (type);
-      addr = take_address_of (t, addr_type, dta->loop, dta->decl_address);
+      addr = take_address_of (t, addr_type, dta->entry, dta->decl_address);
       *tp = build1 (INDIRECT_REF, TREE_TYPE (*tp), addr);
 
       dta->changed = true;
@@ -590,7 +590,7 @@ eliminate_local_variables_1 (tree * tp, int *walk_subtrees, void *data)
 	return NULL_TREE;
 
       addr_type = TREE_TYPE (t);
-      addr = take_address_of (var, addr_type, dta->loop, dta->decl_address);
+      addr = take_address_of (var, addr_type, dta->entry, dta->decl_address);
       *tp = addr;
 
       dta->changed = true;
@@ -603,17 +603,18 @@ eliminate_local_variables_1 (tree * tp, int *walk_subtrees, void *data)
   return NULL_TREE;
 }
 
-/* Moves the references to local variables in STMT from LOOP.  DECL_ADDRESS
-   contains addresses for the references for that we have already taken
-   them.  */
+/* Moves the references to local variables in STMT out of the single
+   entry single exit region starting at ENTRY.  DECL_ADDRESS contains
+   addresses of the references that had their address taken
+   already.  */
 
 static void
-eliminate_local_variables_stmt (struct loop *loop, tree stmt,
+eliminate_local_variables_stmt (edge entry, tree stmt,
 				htab_t decl_address)
 {
   struct elv_data dta;
 
-  dta.loop = loop;
+  dta.entry = entry;
   dta.decl_address = decl_address;
   dta.changed = false;
 
@@ -623,31 +624,38 @@ eliminate_local_variables_stmt (struct loop *loop, tree stmt,
     update_stmt (stmt);
 }
 
-/* Eliminates the references to local variables from LOOP.  
+/* Eliminates the references to local variables from the single entry
+   single exit region between the ENTRY and EXIT edges.
+  
    This includes:
    1) Taking address of a local variable -- these are moved out of the 
-   loop (and temporary variable is created to hold the address if 
+   region (and temporary variable is created to hold the address if 
    necessary).
+
    2) Dereferencing a local variable -- these are replaced with indirect
    references.  */
 
 static void
-eliminate_local_variables (struct loop *loop)
+eliminate_local_variables (edge entry, edge exit)
 {
-  basic_block bb, *body = get_loop_body (loop);
+  basic_block bb;
+  VEC (basic_block, heap) *body = VEC_alloc (basic_block, heap, 3);
   unsigned i;
   block_stmt_iterator bsi;
   htab_t decl_address = htab_create (10, int_tree_map_hash, int_tree_map_eq,
 				     free);
+  basic_block entry_bb = entry->src;
+  basic_block exit_bb = exit->dest;
 
-  /* Find and rename the ssa names defined outside of loop.  */
-  for (i = 0; i < loop->num_nodes; i++)
-    {
-      bb = body[i];
+  gcc_assert (dominated_by_p (CDI_DOMINATORS, exit_bb, entry_bb)
+	      && dominated_by_p (CDI_POST_DOMINATORS, entry_bb, exit_bb));
 
-      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	eliminate_local_variables_stmt (loop, bsi_stmt (bsi), decl_address);
-    }
+  gather_blocks_in_sese_region (entry_bb, exit_bb, &body);
+
+  for (i = 0; VEC_iterate (basic_block, body, i, bb); i++)
+    for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+      eliminate_local_variables_stmt (entry, bsi_stmt (bsi),
+				      decl_address);
 
   htab_delete (decl_address);
 }
@@ -660,9 +668,9 @@ eliminate_local_variables (struct loop *loop)
    duplicated, storing the copies in DECL_COPIES.  */
 
 static tree
-separate_decls_in_loop_name (tree name,
-			     htab_t name_copies, htab_t decl_copies,
-			     bool copy_name_p)
+separate_decls_in_region_name (tree name,
+			       htab_t name_copies, htab_t decl_copies,
+			       bool copy_name_p)
 {
   tree copy, var, var_copy;
   unsigned idx, uid, nuid;
@@ -727,15 +735,16 @@ separate_decls_in_loop_name (tree name,
   return copy;
 }
 
-/* Finds the ssa names used in STMT that are defined outside of LOOP and
-   replaces such ssa names with their duplicates.  The duplicates are stored to
-   NAME_COPIES.  Base decls of all ssa names used in STMT
-   (including those defined in LOOP) are replaced with the new temporary
-   variables; the replacement decls are stored in DECL_COPIES.  */
+/* Finds the ssa names used in STMT that are defined outside the
+   region between ENTRY and EXIT and replaces such ssa names with
+   their duplicates.  The duplicates are stored to NAME_COPIES.  Base
+   decls of all ssa names used in STMT (including those defined in
+   LOOP) are replaced with the new temporary variables; the
+   replacement decls are stored in DECL_COPIES.  */
 
 static void
-separate_decls_in_loop_stmt (struct loop *loop, tree stmt,
-			     htab_t name_copies, htab_t decl_copies)
+separate_decls_in_region_stmt (edge entry, edge exit, tree stmt,
+			       htab_t name_copies, htab_t decl_copies)
 {
   use_operand_p use;
   def_operand_p def;
@@ -749,8 +758,8 @@ separate_decls_in_loop_stmt (struct loop *loop, tree stmt,
   {
     name = DEF_FROM_PTR (def);
     gcc_assert (TREE_CODE (name) == SSA_NAME);
-    copy = separate_decls_in_loop_name (name, name_copies, decl_copies,
-					false);
+    copy = separate_decls_in_region_name (name, name_copies, decl_copies,
+					  false);
     gcc_assert (copy == name);
   }
 
@@ -760,9 +769,9 @@ separate_decls_in_loop_stmt (struct loop *loop, tree stmt,
     if (TREE_CODE (name) != SSA_NAME)
       continue;
 
-    copy_name_p = expr_invariant_in_loop_p (loop, name);
-    copy = separate_decls_in_loop_name (name, name_copies, decl_copies,
-					copy_name_p);
+    copy_name_p = expr_invariant_in_region_p (entry, exit, name);
+    copy = separate_decls_in_region_name (name, name_copies, decl_copies,
+					  copy_name_p);
     SET_USE (use, copy);
   }
 }
@@ -1099,36 +1108,43 @@ create_loads_and_stores_for_name (void **slot, void *data)
    in LOOP.  */
 
 static void
-separate_decls_in_loop (struct loop *loop, htab_t reduction_list, 
-			tree * arg_struct, tree * new_arg_struct, 
-			struct clsn_data *ld_st_data)
+separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
+			  tree * arg_struct, tree * new_arg_struct, 
+			  struct clsn_data *ld_st_data)
 
 {
-  basic_block bb1 = split_edge (loop_preheader_edge (loop));
+  basic_block bb1 = split_edge (entry);
   basic_block bb0 = single_pred (bb1);
   htab_t name_copies = htab_create (10, name_to_copy_elt_hash,
 				    name_to_copy_elt_eq, free);
   htab_t decl_copies = htab_create (10, int_tree_map_hash, int_tree_map_eq,
 				    free);
-  basic_block bb, *body = get_loop_body (loop);
   unsigned i;
   tree phi, type, type_name, nvar;
   block_stmt_iterator bsi;
   struct clsn_data clsn_data;
+  VEC (basic_block, heap) *body = VEC_alloc (basic_block, heap, 3);
+  basic_block bb;
+  basic_block entry_bb = entry->src;
+  basic_block exit_bb = exit->dest;
 
-  /* Find and rename the ssa names defined outside of loop.  */
-  for (i = 0; i < loop->num_nodes; i++)
+  gcc_assert (dominated_by_p (CDI_DOMINATORS, exit_bb, entry_bb)
+	      && dominated_by_p (CDI_POST_DOMINATORS, entry_bb, exit_bb));
+
+  gather_blocks_in_sese_region (entry_bb, exit_bb, &body);
+
+  for (i = 0; VEC_iterate (basic_block, body, i, bb); i++)
     {
-      bb = body[i];
-
       for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
-	separate_decls_in_loop_stmt (loop, phi, name_copies, decl_copies);
+	separate_decls_in_region_stmt (entry, exit, phi, name_copies,
+				       decl_copies);
 
       for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	separate_decls_in_loop_stmt (loop, bsi_stmt (bsi), name_copies,
-				     decl_copies);
+	separate_decls_in_region_stmt (entry, exit, bsi_stmt (bsi),
+				       name_copies, decl_copies);
     }
-  free (body);
+
+  VEC_free (basic_block, heap, body);
 
   if (htab_elements (name_copies) == 0)
     {
@@ -1137,7 +1153,7 @@ separate_decls_in_loop (struct loop *loop, htab_t reduction_list,
       *arg_struct = NULL;
       *new_arg_struct = NULL;
     }
-  else
+  else if (reduction_list)
     {
       /* Create the type for the structure to store the ssa names to.  */
       type = lang_hooks.types.make_type (RECORD_TYPE);
@@ -1176,10 +1192,36 @@ separate_decls_in_loop (struct loop *loop, htab_t reduction_list,
 	  htab_traverse (reduction_list, create_stores_for_reduction,
                         ld_st_data); 
 	  clsn_data.load = make_ssa_name (nvar, NULL_TREE);
-	  clsn_data.load_bb = single_dom_exit (loop)->dest;
+	  clsn_data.load_bb = exit->dest;
 	  clsn_data.store = ld_st_data->store;
 	  create_final_loads_for_reduction (reduction_list, &clsn_data);
 	}
+    }
+  else
+    {
+      /* Create the type for the structure to store the ssa names to.  */
+      type = lang_hooks.types.make_type (RECORD_TYPE);
+      type_name = build_decl (TYPE_DECL, create_tmp_var_name (".paral_data"),
+			      type);
+      TYPE_NAME (type) = type_name;
+
+      htab_traverse (name_copies, add_field_for_name, type);
+      layout_type (type);
+ 
+      /* Create the loads and stores.  */
+      *arg_struct = create_tmp_var (type, ".paral_data_store");
+      add_referenced_var (*arg_struct);
+      nvar = create_tmp_var (build_pointer_type (type), ".paral_data_load");
+      add_referenced_var (nvar);
+      *new_arg_struct = make_ssa_name (nvar, NULL_TREE);
+
+      ld_st_data->store = *arg_struct;
+      ld_st_data->load = *new_arg_struct;
+      ld_st_data->store_bb = bb0;
+      ld_st_data->load_bb = bb1;
+
+      htab_traverse (name_copies, create_loads_and_stores_for_name,
+		     ld_st_data);
     }
 
   htab_delete (decl_copies);
@@ -1206,7 +1248,7 @@ parallelized_function_p (tree fn)
 /* Creates and returns an empty function that will receive the body of
    a parallelized loop.  */
 
-static tree
+tree
 create_loop_fn (void)
 {
   char buf[100];
@@ -1582,6 +1624,7 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
   tree many_iterations_cond, type, nit;
   tree stmts, arg_struct, new_arg_struct;
   basic_block parallel_head;
+  edge entry, exit;
   struct clsn_data clsn_data;
   unsigned prob;
 
@@ -1686,11 +1729,15 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
     htab_traverse (reduction_list, initialize_reductions, loop);
 
   /* Eliminate the references to local variables from the loop.  */
-  eliminate_local_variables (loop);
+  gcc_assert (single_exit (loop));
+  entry = loop_preheader_edge (loop);
+  exit = single_dom_exit (loop);
+  eliminate_local_variables (entry, exit);
 
   /* In the old loop, move all variables non-local to the loop to a structure
      and back, and create separate decls for the variables used in loop.  */
-  separate_decls_in_loop (loop, reduction_list, &arg_struct, &new_arg_struct, &clsn_data);
+  separate_decls_in_region (entry, exit, reduction_list, &arg_struct, 
+			    &new_arg_struct, &clsn_data);
 
   /* Create the parallel constructs.  */
   parallel_head = create_parallel_loop (loop, create_loop_fn (), arg_struct,
@@ -1710,6 +1757,59 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
      OMP trees.  */
 
   omp_expand_local (parallel_head);
+}
+
+/* Generates an OpenMP parallel region between ENTRY and EXIT.  Returns the head
+   of the parallel region.  */
+
+basic_block
+create_omp_parallel_region (edge entry, edge exit, tree loop_fn,
+			    unsigned n_threads)
+{
+  struct clsn_data clsn_data;
+  tree data, new_data;
+  block_stmt_iterator bsi;
+  basic_block bb, paral_bb;
+  tree t, param;
+
+  eliminate_local_variables (entry, exit);
+  separate_decls_in_region (entry, exit, NULL, &data, &new_data, &clsn_data);
+
+  /* Prepare the OMP_PARALLEL statement.  */
+  bb = entry->dest;
+  paral_bb = single_pred (bb);
+  bsi = bsi_last (paral_bb);
+
+  t = build_omp_clause (OMP_CLAUSE_NUM_THREADS);
+  OMP_CLAUSE_NUM_THREADS_EXPR (t)
+    = build_int_cst (integer_type_node, n_threads);
+  t = build4 (OMP_PARALLEL, void_type_node, NULL_TREE, t, loop_fn, data);
+
+  bsi_insert_after (&bsi, t, BSI_NEW_STMT);
+
+  /* Initialize NEW_DATA.  */
+  if (data)
+    {
+      bsi = bsi_after_labels (bb);
+
+      param = make_ssa_name (DECL_ARGUMENTS (loop_fn), NULL_TREE);
+      t = build_gimple_modify_stmt (param, build_fold_addr_expr (data));
+      bsi_insert_before (&bsi, t, BSI_SAME_STMT);
+      SSA_NAME_DEF_STMT (param) = t;
+
+      t = build_gimple_modify_stmt (new_data,
+				    fold_convert (TREE_TYPE (new_data),
+						  param));
+      bsi_insert_before (&bsi, t, BSI_SAME_STMT);
+      SSA_NAME_DEF_STMT (new_data) = t;
+    }
+
+  /* Emit OMP_RETURN for OMP_PARALLEL.  */
+  bb = split_edge (exit);
+  bsi = bsi_last (bb);
+  bsi_insert_after (&bsi, make_node (OMP_RETURN), BSI_NEW_STMT);
+
+  return paral_bb;
 }
 
 /* Detect parallel loops and generate parallel code using libgomp

@@ -1,3 +1,14 @@
+2008-03-15  Antoniu Pop  <antoniu.pop@gmail.com>
+            Sebastian Pop  <sebastian.pop@amd.com>
+
+	* libgomp/libgomp_g.h (GOMP_stream_align_push,
+	GOMP_stream_align_pop): Declared.
+	* libgomp/stream.c (gomp_stream_align_push,
+	gomp_stream_align_pop, GOMP_stream_align_push,
+	GOMP_stream_align_pop): New.
+	* libgomp/libgomp.h (gomp_stream_align_push,
+	gomp_stream_align_pop): Declared.
+
 2008-02-27  Antoniu Pop  <antoniu.pop@gmail.com>
             Sebastian Pop  <sebastian.pop@amd.com>
 

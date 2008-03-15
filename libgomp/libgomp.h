@@ -336,6 +336,8 @@ extern void gomp_stream_pop (gomp_stream);
 extern bool gomp_stream_eos_p (gomp_stream);
 extern void gomp_stream_set_eos (gomp_stream);
 extern void gomp_stream_destroy (gomp_stream);
+extern void gomp_stream_align_push (gomp_stream, char *, int);
+extern void gomp_stream_align_pop (gomp_stream, int);
 
 /* team.c */
 

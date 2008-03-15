@@ -1,3 +1,74 @@
+2008-03-15  Antoniu Pop  <antoniu.pop@gmail.com>
+            Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-loop-distribution.c (remaining_stmts,
+	upstream_mem_writes): Removed static variables.
+	(copy_loop_before, create_bb_after_loop,
+	mark_nodes_having_upstream_mem_writes, free_rdg_components,
+	rdg_build_components, rdg_build_partitions, dump_rdg_partitions): Extern.
+	(generate_loops_for_partition, generate_code_for_partition): Do not
+	return a bool.
+	(already_processed_vertex_p, predecessor_has_mem_write,
+	mark_nodes_having_upstream_mem_writes, has_upstream_mem_writes,
+	rdg_flag_all_uses, rdg_flag_uses, rdg_flag_vertex_and_dependent,
+	rdg_flag_loop_exits, rdg_flag_similar_memory_accesses,
+	build_rdg_partition_for_component, rdg_build_partitions, ldist_gen): 
+	Pass remaining_stmts and upstream_mem_writes as parameters.
+	(rdg_component): Moved...
+	(build_rdg_partition_for_component): Do not aggregate components when
+	flag_streamize_loops is set.
+	(gen_sequential_loops): New.
+	(ldist_gen): Call gen_sequential_loops.
+	
+	* tree-pass.h (pass_loop_streamization): Declared.
+
+	* omp-low.c (expand_omp_sections): Call add_bb_to_loop on created 
+	basic blocks when loops structures exist.
+
+	* builtin-types.def (BT_FN_VOID_PTR_PTR_INT): New.
+
+	* tree-ssa-loop-ivopts.c (expr_invariant_in_region_p): New.
+
+	* tree-parloops.c (take_address_of, eliminate_local_variables_1,
+	eliminate_local_variables_stmt, eliminate_local_variables,
+	separate_decls_in_loop_name, separate_decls_in_loop_stmt,
+	separate_decls_in_loop, gen_parallel_loop): Make them work on a region
+	of code delimited by two edges in the CFG.
+	(separate_decls_in_loop_name): Renamed separate_decls_in_region_name.
+	(separate_decls_in_loop_stmt): Renamed separate_decls_in_region_stmt.
+	(separate_decls_in_loop): Renamed separate_decls_in_region.  Isolate 
+	the case of parallelisation of reductions.
+	(create_loop_fn): Extern.
+	(create_omp_parallel_region): New.
+
+	* tree-data-ref.c (dump_data_dependence_relation): Don't call 
+	dump_data_reference for printing dra and drb.
+	(create_rdg_edge_for_ddr, create_rdg_edges_for_scalar): Initialise 
+	RDGE_RELATION.
+	(build_rdg): Don't call free_dependence_relations for the moment, as
+	we attach dependence relations on each edge of the RDG.  To be fixed later.
+
+	* tree-data-ref.h (rdg_component): ...here.
+	(struct rdg_edge): New field ddr_p relation.
+	(RDGE_RELATION): New.
+	(create_bb_after_loop, copy_loop_before,
+	mark_nodes_having_upstream_mem_writes, rdg_build_components,
+	rdg_build_partitions, dump_rdg_partitions, free_rdg_components): Declared.
+
+	* omp-builtins.def (BUILT_IN_GOMP_STREAM_ALIGN_PUSH,
+	BUILT_IN_GOMP_STREAM_ALIGN_POP): New.
+
+	* tree-loop-streamization.c: New.
+
+	* tree-flow.h (gather_blocks_in_sese_region, create_loop_fn,
+	create_omp_parallel_region, expr_invariant_in_region_p): Declared.
+
+	* Makefile.in (tree-loop-streamization.o): Added to OBJS-common.
+
+	* tree-cfg.c (gather_blocks_in_sese_region): Extern.
+
+	* passes.c: Schedule pass_loop_streamization.
+
 2008-03-08  Tobias Grosser  <grosser@fmi.uni-passau.de>
 
 	* graphite.c (dot_all_scops_1): Fix formatting for difficult bbs and

@@ -3395,6 +3395,9 @@ expand_omp_sections (struct omp_region *region)
       l2 = tree_block_label (default_bb);
     }
 
+  if (current_loops)
+    add_bb_to_loop (default_bb, l0_bb->loop_father);
+
   /* We will build a switch() with enough cases for all the
      OMP_SECTION regions, a '0' case to handle the end of more work
      and a default case to abort if something goes wrong.  */

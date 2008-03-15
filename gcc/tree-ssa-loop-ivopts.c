@@ -1240,6 +1240,42 @@ find_interesting_uses_cond (struct ivopts_data *data, tree stmt, tree *cond_p)
   record_use (data, cond_p, civ, stmt, USE_COMPARE);
 }
 
+/* Returns true if expression EXPR is not defined between ENTRY and
+   EXIT, i.e. if all its operands are defined outside of the region.  */
+
+bool
+expr_invariant_in_region_p (edge entry, edge exit, tree expr)
+{
+  basic_block entry_bb = entry->dest;
+  basic_block exit_bb = exit->src;
+  basic_block def_bb;
+  unsigned i, len;
+
+  if (is_gimple_min_invariant (expr))
+    return true;
+
+  if (TREE_CODE (expr) == SSA_NAME)
+    {
+      def_bb = bb_for_stmt (SSA_NAME_DEF_STMT (expr));
+      if (def_bb
+	  && dominated_by_p (CDI_DOMINATORS, def_bb, entry_bb)
+	  && dominated_by_p (CDI_POST_DOMINATORS, def_bb, exit_bb))
+	return false;
+
+      return true;
+    }
+
+  if (!EXPR_P (expr) && !GIMPLE_STMT_P (expr))
+    return false;
+
+  len = TREE_OPERAND_LENGTH (expr);
+  for (i = 0; i < len; i++)
+    if (!expr_invariant_in_region_p (entry, exit, TREE_OPERAND (expr, i)))
+      return false;
+
+  return true;
+}
+
 /* Returns true if expression EXPR is obviously invariant in LOOP,
    i.e. if all its operands are defined outside of the LOOP.  LOOP
    should not be the function body.  */
