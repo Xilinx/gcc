@@ -2356,10 +2356,18 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
    $(MACHMODE_H) $(TARGET_DEF_H) $(TARGET_H) $(GGC_H) gt-targhooks.h \
    $(OPTABS_H)
 
-#### added for Basilys a.k.a. MELT http://gcc.gnu.org/wiki/MiddleEndLispTranslator 
+#### added for Basilys a.k.a. MELT http://gcc.gnu.org/wiki/MiddleEndLispTranslator
+## we pass the MELT_PRIVATE_INCLUDE_DIR 
 basilys.o:  basilys.c  \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
    tree-pass.h basilys.h gt-basilys.h
+	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
+	  -DMELT_PRIVATE_INCLUDE_DIR=\"$(melt_private_include_dir)\" \
+	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
+	  -DMELT_GENERATED_DIR=\"$(melt_generated_dir)\" \
+	  -DMELT_DYNLIB_DIR=\"$(melt_dynlib_dir)\" \
+	  -DMELT_COMPILE_SCRIPT=\"$(melt_compile_script)\" \
+	  -c $(srcdir)/basilys.c $(OUTPUT_OPTION)
 ### end of Basilys stuff
 
 toplev.o : toplev.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
@@ -4510,11 +4518,25 @@ po/gcc.pot: force
 ## in particular http://gcc.gnu.org/ml/gcc/2008-02/msg00673.html
 
 
-## this is the installation directory
+## this is the installation include directory for the header files of
+## gcc/ needed for basilys/MELT generated C code
 melt_private_include_dir=$(libexecsubdir)/melt-private-include/
 
+
+## this is the installation directory of melt sources (*.bysl files, MELT dialect)
+melt_source_dir=$(libexecsubdir)/melt-source/
+
+## this is the installation directory of melt generated code (*.c files, generated C code)
+melt_generated_dir=$(libexecsubdir)/melt-generated/
+
+## this is the installation directory of melt dynamic libraries (ie *.so or *.dylib or *.la)
+melt_dynlib_dir=$(libexecsubdir)/melt-dynlib/
+
+## this is the installed path of the script compiling MELT generated C file
+melt_compile_script=$(libexecsubdir)/melt-cc-script
+
 ## this is the local build directory (which should be copied during
-## installation into the installation directory above)
+## installation into the installation directory above) for include-d *.h
 melt_build_include_dir= melt-private-build-include
 
 # we want to generate all the direct (non system) dependencies of run-basilys.h
@@ -4580,7 +4602,7 @@ install-melt-headers-tar:  install-melt-include-dir
 # found in CDPATH, corrupting the output.  We could just redirect the
 # output of `cd', but some shells lose on redirection within `()'s
 	(cd `${PWD_COMMAND}`/$(melt_build_include_dir) ; \
-	 tar -cf - .; exit 0) | (cd $(DESTDIR)$(libsubdir)/include; tar xpf - )
+	 tar -cf - .; exit 0) | (cd $(DESTDIR)$(melt_private_include_dir); tar xpf - )
 # /bin/sh on some systems returns the status of the first tar,
 # and that can lose with GNU tar which always writes a full block.
 # So use `exit 0' to ignore its exit status.

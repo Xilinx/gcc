@@ -44,6 +44,8 @@ along with GCC; see the file COPYING3.   If not see
 #include "real.h"
 #include "prefix.h"
 
+#include "cppdefault.h"
+
 #include "compiler-probe.h"
 
 
@@ -65,7 +67,33 @@ along with GCC; see the file COPYING3.   If not see
 #define MINOR_SIZE_KILOWORD PARAM_VALUE(PARAM_BASILYS_MINOR_ZONE)
 #define FULL_FREQ PARAM_VALUE(PARAM_BASILYS_FULL_FREQ)
 
+#ifndef MELT_PRIVATE_INCLUDE_DIR
+#error MELT_PRIVATE_INCLUDE_DIR is not defined thru compile flags
+#endif
+
+#ifndef MELT_SOURCE_DIR
+#error MELT_SOURCE_DIR is not defined thru compile flags
+#endif
+
+#ifndef MELT_GENERATED_DIR
+#error MELT_GENERATED_DIR is not defined thru compile flags
+#endif
+
+#ifndef MELT_DYNLIB_DIR
+#error MELT_DYNLIB_DIR is not defined thru compile flags
+#endif
+
+#ifndef MELT_COMPILE_SCRIPT
+#error MELT_COMPILE_SCRIPT  is not defined thru compile flags
+#endif
+
 /* *INDENT-OFF* */
+static const char melt_private_include_dir[] = MELT_PRIVATE_INCLUDE_DIR;
+static const char melt_source_dir[] = MELT_SOURCE_DIR;
+static const char melt_generated_dir[] = MELT_GENERATED_DIR;
+static const char melt_dynlib_dir[] = MELT_DYNLIB_DIR;
+static const char melt_compile_script[] = MELT_COMPILE_SCRIPT;
+
 basilys_ptr_t basilys_globarr[BGLOB__LASTGLOB];
 void* basilys_startalz=NULL;
 void* basilys_endalz;
@@ -3622,9 +3650,13 @@ end:
 }
 
 
-/* the srcfile is a generated .c file, the dlfile has no suffix,
-   because the suffix is expected to be added by the basilys-gcc
-   script */
+
+
+
+
+/* the srcfile is a generated .c file or otherwise a dynamic library,
+   the dlfile has no suffix, because the suffix is expected to be
+   added by the basilys-gcc script */
 static void
 compile_to_dyl (const char *srcfile, const char *dlfile)
 {
@@ -3632,17 +3664,15 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
   int err = 0;
   int cstatus = 0;
   const char *errmsg = 0;
-  /* possible improvement for GlobalGcc partners : avoid recompiling
+  /* possible improvement  : avoid recompiling
      when not necessary; using timestamps a la make is not enough,
      since the C source files are generated.  
 
-The basilys-gcc script takes two arguments: the C source file path to
+The melt-cc-script takes two arguments: the C source file path to
 compile as a basilys plugin, and the naked dynamic library file to be
-generated. A standard path for this script should be defined, and the
-default should neither be getenv-ed not be built-in (as the
-"basilys-gcc" string below) but somehow parametrized.
+generated. Standard path are in Makefile.in $(melt_compile_script)
 
-The basilys-gcc script should be generated in the building process.
+The melt-cc-script should be generated in the building process.
 In addition of compiling the C source file, it should put into the
 generated dynamic library the following two constant strings;
   const char basilys_compiled_timestamp[];
@@ -3655,35 +3685,40 @@ command: md5sum $Csourcefile; where $Csourcefile is replaced by the
 source file path)
 
    */
-  const char *basilysgcccmd = getenv ("BASILYS_GCC");
+  const char *ourmeltcompilescript = NULL;
   struct pex_time ptime;
   char *argv[4];
   memset (&ptime, 0, sizeof (ptime));
-  if (!basilysgcccmd)
-    basilysgcccmd = "basilys-gcc";
+  /* compute the ourmeltcompilscript */
+  ourmeltcompilescript = getenv ("MELT_GCC_COMPILE_SCRIPT");
+  if (!ourmeltcompilescript)
+    ourmeltcompilescript = basilys_compile_script_string;
+  if (!ourmeltcompilescript)
+    ourmeltcompilescript = melt_compile_script;
+  debugeprintf ("compile_to_dyl melt ourmeltcompilescript=%s", ourmeltcompilescript);
   debugeprintf ("compile_to_dyl srcfile %s dlfile %s", srcfile, dlfile);
   fflush (stdout);
   fflush (stderr);
-  pex = pex_init (PEX_RECORD_TIMES, basilysgcccmd, NULL);
-  argv[0] = (char *) basilysgcccmd;
+  pex = pex_init (PEX_RECORD_TIMES, ourmeltcompilescript, NULL);
+  argv[0] = (char *) ourmeltcompilescript;
   argv[1] = (char *) srcfile;
   argv[2] = (char *) dlfile;
   argv[3] = (char *) 0;
   errmsg =
-    pex_run (pex, PEX_LAST | PEX_SEARCH, basilysgcccmd, argv,
+    pex_run (pex, PEX_LAST | PEX_SEARCH, ourmeltcompilescript, argv,
 	     NULL, NULL, &err);
   if (errmsg)
     fatal_error
       ("failed to basilys compile to dyl: %s %s %s : %s",
-       basilysgcccmd, srcfile, dlfile, errmsg);
+       ourmeltcompilescript, srcfile, dlfile, errmsg);
   if (!pex_get_status (pex, 1, &cstatus))
     fatal_error
       ("failed to get status of basilys dynamic compilation to dyl:  %s %s %s - %m",
-       basilysgcccmd, srcfile, dlfile);
+       ourmeltcompilescript, srcfile, dlfile);
   if (!pex_get_times (pex, 1, &ptime))
     fatal_error
       ("failed to get time of basilys dynamic compilation to dyl:  %s %s %s - %m",
-       basilysgcccmd, srcfile, dlfile);
+       ourmeltcompilescript, srcfile, dlfile);
   pex_free (pex);
   debugeprintf ("compile_to_dyl done srcfile %s dlfile %s", srcfile, dlfile);
 }
@@ -3701,6 +3736,8 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *srcfile)
   char *srcpath = 0, *shobjpath = 0;
   lt_dlhandle dlh = 0;
   lt_ptr dlsy = 0;
+  int srcfilelen = 0;
+  int isasrc = 0;
   typedef basilys_ptr_t startroutine_t (basilys_ptr_t);
   startroutine_t *starout = 0;
   int srcpathlen = 0;
@@ -3708,10 +3745,15 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *srcfile)
 #define modulv curfram__.varptr[0]
 #define mdatav curfram__.varptr[1]
   mdatav = modata_p;
+  srcfilelen = strlen(srcfile);
+  /* is the source file a *.c file - otherwise it is supposed to be a
+     dynamically loadable stuff ie *.so shared object or *.la libtool
+     or *.sl or *.dylib etc..  */
+  isasrc = srcfilelen>2 && srcfile[srcfilelen-2] == '.' && srcfile[srcfilelen-1] == 'c';
   srcpath = xstrdup (srcfile);
   srcpathlen = strlen(srcpath);
   shobjpath = 0;
-  debugeprintf ("basilysgc_compile srcfile=%s", srcfile);
+  debugeprintf ("basilysgc_compile srcfile=%s - %s", srcfile, isasrc?"C source":"dynloadable");
   if (access (srcpath, R_OK))
     fatal_error ("no source file %s to basilys compile : %m", srcpath);
   /* @@@ this is too simplistic; the tldl library is able to deal with
@@ -4969,6 +5011,13 @@ basilys_initialize (void)
     basilys_newspeclist = NULL;
     basilys_oldspeclist = NULL;
   }
+  debugeprintf ("basilys_initialize cpp_PREFIX=%s", cpp_PREFIX);
+  debugeprintf ("basilys_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
+  debugeprintf ("basilys_initialize gcc_exec_prefix=%s", gcc_exec_prefix);
+  debugeprintf ("basilys_initialize melt_private_include_dir=%s", melt_private_include_dir);
+  debugeprintf ("basilys_initialize melt_source_dir=%s", melt_source_dir);
+  debugeprintf ("basilys_initialize melt_generated_dir=%s", melt_generated_dir);
+  debugeprintf ("basilys_initialize melt_dynlib_dir=%s", melt_dynlib_dir);
   if (!basilys_init_string)
     fatal_error ("no initial basilys file specified thru -fbasilys-init");
   debugeprintf
@@ -5400,10 +5449,6 @@ basilys_debug_out (struct debugprint_basilys_st *dp,
     }
 }
 
-
-/*************************************************************************
- * GATE & PASS should be moved in another file 
- *************************************************************************/
 
 
 /* just dump the cgraph node to understand what is it about */

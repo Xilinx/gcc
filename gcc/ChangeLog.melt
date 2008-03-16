@@ -1,0 +1,9 @@
+
+2008-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	new changelog for the Melt Branch
+	* Makefile.in: added melt_source_dir melt_generated_dir melt_dynlib_dir melt_compile_script
+	& corrected typos. (basilys.o) transmit them as C constants.
+	* common.opt: added -fbasilys-compile-script= option.
+	* basilys.c (compile_to_dyl): uses melt_compile_script.
+	added melt_source_dir melt_generated_dir melt_dynlib_dir melt_compile_script as constants.
+	Better comments. still incomplete.
