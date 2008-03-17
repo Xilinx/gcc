@@ -1595,6 +1595,11 @@ static inline unsigned basilys_nonzerohash (void)
 
 /* initialize all - don't do anything when called more than once */
 void basilys_initialize (void);
+/* finalize all */
+void basilys_finalize (void);
+
+/* returns malloc-ed path inside a temporary directory, with a given basename  */
+char* basilys_tempdir_path(const char* basnam);
 
 /* compile (as a dynamically loadable module) some (usually generated)
    C code and dynamically load it; the C code should contain a

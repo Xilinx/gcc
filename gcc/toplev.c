@@ -110,9 +110,10 @@ along with GCC; see the file COPYING3.  If not see
 				   declarations for e.g. AIX 4.x.  */
 #endif
 
-/* we don't include basilys.h but declare its initializer here */
+/* we don't include basilys.h but declare its initializer & finalizer here */
 #if HAVE_LIBTOOLDYNL && HAVE_PARMAPOLY
 extern void basilys_initialize(void); /* in basilys.c */
+extern void basilys_finalize(void); /* in basilys.c */
 #endif
 
 static void general_init (const char *);
@@ -2236,6 +2237,13 @@ toplev_main (unsigned int argc, const char **argv)
 #if ENABLE_COMPILER_PROBE
   /* Finish the compiler probe (may wait) */
   comprobe_finish();
+#endif
+
+
+#if HAVE_LIBTOOLDYNL && HAVE_PARMAPOLY
+  /* finalize basilys if needed */
+  if (flag_basilys)
+    basilys_finalize();
 #endif
 
   if (warningcount || errorcount) 

@@ -1,4 +1,17 @@
 
+2008-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilys_finalize, basilys_tempdir_path): added
+	declarations.
+	* basilys.c : added inclusion of md5.h & filenames.h.
+	(basilys_tempdir_path, load_checked_dylib) new functions.
+	(basilysgc_compile_dyn) scan various directories for
+	generated C source file and dynamically loaded stuff.
+	* toplevel.c (toplev_main): added declaration and call to
+	basilys_finalize.
+	* common.opt: added -fbasilys-arg= -fbasilys-command=
+	-fbasilys-compile-script= -fbasilys-dynlibdir= -fbasilys-tempdir=
+	options
+
 2008-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	new changelog for the Melt Branch
 	* Makefile.in: added melt_source_dir melt_generated_dir melt_dynlib_dir melt_compile_script
