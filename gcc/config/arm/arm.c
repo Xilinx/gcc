@@ -74,7 +74,6 @@ static int thumb1_base_register_rtx_p (rtx, enum machine_mode, int);
 inline static int thumb1_index_register_rtx_p (rtx, int);
 static int thumb_far_jump_used_p (void);
 static bool thumb_force_lr_save (void);
-static unsigned long thumb1_compute_save_reg_mask (void);
 static int const_ok_for_op (HOST_WIDE_INT, enum rtx_code);
 static rtx emit_sfm (int, int);
 static unsigned arm_size_return_regs (void);
@@ -1662,10 +1661,11 @@ use_return_insn (int iscond, rtx sibling)
       || current_function_calls_alloca
       /* Or if there is a stack adjustment.  However, if the stack pointer
 	 is saved on the stack, we can use a pre-incrementing stack load.  */
-      || !(stack_adjust == 0 || (frame_pointer_needed && stack_adjust == 4)))
+      || !(stack_adjust == 0 || (TARGET_APCS_FRAME && frame_pointer_needed
+				 && stack_adjust == 4)))
     return 0;
 
-  saved_int_regs = arm_compute_save_reg_mask ();
+  saved_int_regs = offsets->saved_regs_mask;
 
   /* Unfortunately, the insn
 
@@ -4904,6 +4904,12 @@ arm_rtx_costs_1 (rtx x, enum rtx_code code, enum rtx_code outer)
       /* Fall through */
 
     case PLUS:
+      if (arm_arch6 && mode == SImode
+	  && (GET_CODE (XEXP (x, 0)) == ZERO_EXTEND
+	      || GET_CODE (XEXP (x, 0)) == SIGN_EXTEND))
+	return 1 + (GET_CODE (XEXP (XEXP (x, 0), 0)) == MEM ? 10 : 0)
+		 + (GET_CODE (XEXP (x, 1)) == MEM ? 10 : 0);
+
       if (GET_CODE (XEXP (x, 0)) == MULT)
 	{
 	  extra_cost = rtx_cost (XEXP (x, 0), code);
@@ -5002,12 +5008,17 @@ arm_rtx_costs_1 (rtx x, enum rtx_code code, enum rtx_code outer)
       return 4 + (mode == DImode ? 4 : 0);
 
     case SIGN_EXTEND:
-      /* ??? value extensions are cheaper on armv6. */
+      if (arm_arch_thumb2 && mode == SImode)
+	return 1 + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0);
+
       if (GET_MODE (XEXP (x, 0)) == QImode)
 	return (4 + (mode == DImode ? 4 : 0)
 		+ (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
       /* Fall through */
     case ZERO_EXTEND:
+      if (arm_arch6 && mode == SImode)
+	return 1 + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0);
+
       switch (GET_MODE (XEXP (x, 0)))
 	{
 	case QImode:
@@ -5070,13 +5081,14 @@ arm_size_rtx_costs (rtx x, int code, int outer_code, int *total)
 {
   enum machine_mode mode = GET_MODE (x);
 
-  if (TARGET_THUMB)
+  if (TARGET_THUMB1)
     {
       /* XXX TBD.  For now, use the standard costs.  */
       *total = thumb1_rtx_costs (x, code, outer_code);
       return true;
     }
 
+  /* FIXME: This makes no attempt to prefer narrow Thumb-2 instructions.  */
   switch (code)
     {
     case MEM:
@@ -9868,7 +9880,10 @@ output_move_double (rtx *operands)
       switch (GET_CODE (XEXP (operands[1], 0)))
 	{
 	case REG:
-	  output_asm_insn ("ldm%(ia%)\t%m1, %M0", operands);
+	  if (TARGET_LDRD)
+	    output_asm_insn ("ldr%(d%)\t%0, [%m1]", operands);
+	  else
+	    output_asm_insn ("ldm%(ia%)\t%m1, %M0", operands);
 	  break;
 
 	case PRE_INC:
@@ -9884,7 +9899,10 @@ output_move_double (rtx *operands)
 	  break;
 
 	case POST_INC:
-	  output_asm_insn ("ldm%(ia%)\t%m1!, %M0", operands);
+	  if (TARGET_LDRD)
+	    output_asm_insn ("ldr%(d%)\t%0, [%m1], #8", operands);
+	  else
+	    output_asm_insn ("ldm%(ia%)\t%m1!, %M0", operands);
 	  break;
 
 	case POST_DEC:
@@ -9943,8 +9961,14 @@ output_move_double (rtx *operands)
 
 	case LABEL_REF:
 	case CONST:
+	  /* We might be able to use ldrd %0, %1 here.  However the range is
+	     different to ldr/adr, and it is broken on some ARMv7-M
+	     implementations.  */
 	  output_asm_insn ("adr%?\t%0, %1", operands);
-	  output_asm_insn ("ldm%(ia%)\t%0, %M0", operands);
+	  if (TARGET_LDRD)
+	    output_asm_insn ("ldr%(d%)\t%0, [%0]", operands);
+	  else
+	    output_asm_insn ("ldm%(ia%)\t%0, %M0", operands);
 	  break;
 
 	  /* ??? This needs checking for thumb2.  */
@@ -9958,7 +9982,7 @@ output_move_double (rtx *operands)
 
 	      if (GET_CODE (XEXP (operands[1], 0)) == PLUS)
 		{
-		  if (GET_CODE (otherops[2]) == CONST_INT)
+		  if (GET_CODE (otherops[2]) == CONST_INT && !TARGET_LDRD)
 		    {
 		      switch ((int) INTVAL (otherops[2]))
 			{
@@ -10017,6 +10041,9 @@ output_move_double (rtx *operands)
 	      else
 		output_asm_insn ("sub%?\t%0, %1, %2", otherops);
 
+	      if (TARGET_LDRD)
+		return "ldr%(d%)\t%0, [%0]";
+
 	      return "ldm%(ia%)\t%0, %M0";
 	    }
 	  else
@@ -10045,7 +10072,10 @@ output_move_double (rtx *operands)
       switch (GET_CODE (XEXP (operands[0], 0)))
         {
 	case REG:
-	  output_asm_insn ("stm%(ia%)\t%m0, %M1", operands);
+	  if (TARGET_LDRD)
+	    output_asm_insn ("str%(d%)\t%1, [%m0]", operands);
+	  else
+	    output_asm_insn ("stm%(ia%)\t%m0, %M1", operands);
 	  break;
 
         case PRE_INC:
@@ -10061,7 +10091,10 @@ output_move_double (rtx *operands)
 	  break;
 
         case POST_INC:
-	  output_asm_insn ("stm%(ia%)\t%m0!, %M1", operands);
+	  if (TARGET_LDRD)
+	    output_asm_insn ("str%(d%)\t%1, [%m0], #8", operands);
+	  else
+	    output_asm_insn ("stm%(ia%)\t%m0!, %M1", operands);
 	  break;
 
         case POST_DEC:
@@ -10105,7 +10138,7 @@ output_move_double (rtx *operands)
 
 	case PLUS:
 	  otherops[2] = XEXP (XEXP (operands[0], 0), 1);
-	  if (GET_CODE (otherops[2]) == CONST_INT)
+	  if (GET_CODE (otherops[2]) == CONST_INT && !TARGET_LDRD)
 	    {
 	      switch ((int) INTVAL (XEXP (XEXP (operands[0], 0), 1)))
 		{
@@ -10706,25 +10739,14 @@ arm_compute_save_reg0_reg12_mask (void)
     }
   else
     {
-      /* In arm mode we handle r11 (FP) as a special case.  */
-      unsigned last_reg = TARGET_ARM ? 10 : 11;
-      
       /* In the normal case we only need to save those registers
 	 which are call saved and which are used by this function.  */
-      for (reg = 0; reg <= last_reg; reg++)
+      for (reg = 0; reg <= 11; reg++)
 	if (df_regs_ever_live_p (reg) && ! call_used_regs[reg])
 	  save_reg_mask |= (1 << reg);
 
       /* Handle the frame pointer as a special case.  */
-      if (! TARGET_APCS_FRAME
-	  && ! frame_pointer_needed
-	  && df_regs_ever_live_p (HARD_FRAME_POINTER_REGNUM)
-	  && ! call_used_regs[HARD_FRAME_POINTER_REGNUM])
-	save_reg_mask |= 1 << HARD_FRAME_POINTER_REGNUM;
-      else if (! TARGET_APCS_FRAME
-	       && ! frame_pointer_needed
-	       && df_regs_ever_live_p (HARD_FRAME_POINTER_REGNUM)
-	       && ! call_used_regs[HARD_FRAME_POINTER_REGNUM])
+      if (frame_pointer_needed)
 	save_reg_mask |= 1 << HARD_FRAME_POINTER_REGNUM;
 
       /* If we aren't loading the PIC register,
@@ -10760,7 +10782,8 @@ arm_compute_save_reg0_reg12_mask (void)
 
 
 /* Compute a bit mask of which registers need to be
-   saved on the stack for the current function.  */
+   saved on the stack for the current function.
+   This is used by arm_get_frame_offsets, which may add extra registers.  */
 
 static unsigned long
 arm_compute_save_reg_mask (void)
@@ -10775,7 +10798,7 @@ arm_compute_save_reg_mask (void)
 
   /* If we are creating a stack frame, then we must save the frame pointer,
      IP (which will hold the old stack pointer), LR and the PC.  */
-  if (frame_pointer_needed && TARGET_ARM)
+  if (TARGET_APCS_FRAME && frame_pointer_needed && TARGET_ARM)
     save_reg_mask |=
       (1 << ARM_HARD_FRAME_POINTER_REGNUM)
       | (1 << IP_REGNUM)
@@ -10888,7 +10911,7 @@ thumb1_compute_save_reg_mask (void)
       reg = thumb_find_work_register (1 << LAST_LO_REGNUM);
       /* Make sure the register returned by thumb_find_work_register is
 	 not part of the return value.  */
-      if (reg * UNITS_PER_WORD <= arm_size_return_regs ())
+      if (reg * UNITS_PER_WORD <= (unsigned) arm_size_return_regs ())
 	reg = LAST_LO_REGNUM;
 
       if (! call_used_regs[reg])
@@ -10985,7 +11008,8 @@ output_return_instruction (rtx operand, int really_return, int reverse)
 
   return_used_this_function = 1;
 
-  live_regs_mask = arm_compute_save_reg_mask ();
+  offsets = arm_get_frame_offsets ();
+  live_regs_mask = offsets->saved_regs_mask;
 
   if (live_regs_mask)
     {
@@ -11047,7 +11071,6 @@ output_return_instruction (rtx operand, int really_return, int reverse)
 	    {
 	      unsigned HOST_WIDE_INT stack_adjust;
 
-	      offsets = arm_get_frame_offsets ();
 	      stack_adjust = offsets->outgoing_args - offsets->saved_regs;
 	      gcc_assert (stack_adjust == 0 || stack_adjust == 4);
 
@@ -11295,7 +11318,7 @@ arm_output_epilogue (rtx sibling)
   gcc_assert (!current_function_calls_eh_return || really_return);
 
   offsets = arm_get_frame_offsets ();
-  saved_regs_mask = arm_compute_save_reg_mask ();
+  saved_regs_mask = offsets->saved_regs_mask;
 
   if (TARGET_IWMMXT)
     lrm_count = bit_count (saved_regs_mask);
@@ -11306,7 +11329,7 @@ arm_output_epilogue (rtx sibling)
     if (saved_regs_mask & (1 << reg))
       floats_offset += 4;
 
-  if (frame_pointer_needed && TARGET_ARM)
+  if (TARGET_APCS_FRAME && frame_pointer_needed && TARGET_ARM)
     {
       /* This variable is for the Virtual Frame Pointer, not VFP regs.  */
       int vfp_offset = offsets->frame;
@@ -11452,32 +11475,87 @@ arm_output_epilogue (rtx sibling)
     }
   else
     {
+      /* This branch is executed for ARM mode (non-apcs frames) and
+	 Thumb-2 mode. Frame layout is essentially the same for those
+	 cases, except that in ARM mode frame pointer points to the
+	 first saved register, while in Thumb-2 mode the frame pointer points
+	 to the last saved register.
+
+	 It is possible to make frame pointer point to last saved
+	 register in both cases, and remove some conditionals below.
+	 That means that fp setup in prologue would be just "mov fp, sp"
+	 and sp restore in epilogue would be just "mov sp, fp", whereas
+	 now we have to use add/sub in those cases. However, the value
+	 of that would be marginal, as both mov and add/sub are 32-bit
+	 in ARM mode, and it would require extra conditionals
+	 in arm_expand_prologue to distingish ARM-apcs-frame case
+	 (where frame pointer is required to point at first register)
+	 and ARM-non-apcs-frame. Therefore, such change is postponed
+	 until real need arise.  */
       HOST_WIDE_INT amount;
       int rfe;
       /* Restore stack pointer if necessary.  */
-      if (frame_pointer_needed)
+      if (TARGET_ARM && frame_pointer_needed)
 	{
-	  /* For Thumb-2 restore sp from the frame pointer.
-	     Operand restrictions mean we have to increment FP, then copy
-	     to SP.  */
-	  amount = offsets->locals_base - offsets->saved_regs;
-	  operands[0] = hard_frame_pointer_rtx;
+	  operands[0] = stack_pointer_rtx;
+	  operands[1] = hard_frame_pointer_rtx;
+	  
+	  operands[2] = GEN_INT (offsets->frame - offsets->saved_regs);
+	  output_add_immediate (operands);
 	}
       else
 	{
-	  operands[0] = stack_pointer_rtx;
-	  amount = offsets->outgoing_args - offsets->saved_regs;
+	  if (frame_pointer_needed)
+	    {
+	      /* For Thumb-2 restore sp from the frame pointer.
+		 Operand restrictions mean we have to incrememnt FP, then copy
+		 to SP.  */
+	      amount = offsets->locals_base - offsets->saved_regs;
+	      operands[0] = hard_frame_pointer_rtx;
+	    }
+	  else
+	    {
+	      unsigned long count;
+	      operands[0] = stack_pointer_rtx;
+	      amount = offsets->outgoing_args - offsets->saved_regs;
+	      /* pop call clobbered registers if it avoids a
+	         separate stack adjustment.  */
+	      count = offsets->saved_regs - offsets->saved_args;
+	      if (optimize_size
+		  && count != 0
+		  && !current_function_calls_eh_return
+		  && bit_count(saved_regs_mask) * 4 == count
+		  && !IS_INTERRUPT (func_type)
+		  && !cfun->tail_call_emit)
+		{
+		  unsigned long mask;
+		  mask = (1 << (arm_size_return_regs() / 4)) - 1;
+		  mask ^= 0xf;
+		  mask &= ~saved_regs_mask;
+		  reg = 0;
+		  while (bit_count (mask) * 4 > amount)
+		    {
+		      while ((mask & (1 << reg)) == 0)
+			reg++;
+		      mask &= ~(1 << reg);
+		    }
+		  if (bit_count (mask) * 4 == amount) {
+		      amount = 0;
+		      saved_regs_mask |= mask;
+		  }
+		}
+	    }
+	  
+	  if (amount)
+	    {
+	      operands[1] = operands[0];
+	      operands[2] = GEN_INT (amount);
+	      output_add_immediate (operands);
+	    }
+	  if (frame_pointer_needed)
+	    asm_fprintf (f, "\tmov\t%r, %r\n",
+			 SP_REGNUM, HARD_FRAME_POINTER_REGNUM);
 	}
-
-      if (amount)
-	{
-	  operands[1] = operands[0];
-	  operands[2] = GEN_INT (amount);
-	  output_add_immediate (operands);
-	}
-      if (frame_pointer_needed)
-	asm_fprintf (f, "\tmov\t%r, %r\n",
-		     SP_REGNUM, HARD_FRAME_POINTER_REGNUM);
 
       if (arm_fpu_arch == FPUTYPE_FPA_EMU2)
 	{
@@ -11936,7 +12014,8 @@ thumb_force_lr_save (void)
 
 
 /* Calculate stack offsets.  These are used to calculate register elimination
-   offsets and in prologue/epilogue code.  */
+   offsets and in prologue/epilogue code.  Also calculates which registers
+   should be saved.  */
 
 static arm_stack_offsets *
 arm_get_frame_offsets (void)
@@ -11945,7 +12024,9 @@ arm_get_frame_offsets (void)
   unsigned long func_type;
   int leaf;
   int saved;
+  int core_saved;
   HOST_WIDE_INT frame_size;
+  int i;
 
   offsets = &cfun->machine->stack_offsets;
 
@@ -11978,7 +12059,9 @@ arm_get_frame_offsets (void)
     {
       unsigned int regno;
 
-      saved = bit_count (arm_compute_save_reg_mask ()) * 4;
+      offsets->saved_regs_mask = arm_compute_save_reg_mask ();
+      core_saved = bit_count (offsets->saved_regs_mask) * 4;
+      saved = core_saved;
 
       /* We know that SP will be doubleword aligned on entry, and we must
 	 preserve that condition at any subroutine call.  We also require the
@@ -12009,7 +12092,9 @@ arm_get_frame_offsets (void)
     }
   else /* TARGET_THUMB1 */
     {
-      saved = bit_count (thumb1_compute_save_reg_mask ()) * 4;
+      offsets->saved_regs_mask = thumb1_compute_save_reg_mask ();
+      core_saved = bit_count (offsets->saved_regs_mask) * 4;
+      saved = core_saved;
       if (TARGET_BACKTRACE)
 	saved += 16;
     }
@@ -12029,7 +12114,39 @@ arm_get_frame_offsets (void)
   /* Ensure SFP has the correct alignment.  */
   if (ARM_DOUBLEWORD_ALIGN
       && (offsets->soft_frame & 7))
-    offsets->soft_frame += 4;
+    {
+      offsets->soft_frame += 4;
+      /* Try to align stack by pushing an extra reg.  Don't bother doing this
+         when there is a stack frame as the alignment will be rolled into
+	 the normal stack adjustment.  */
+      if (frame_size + current_function_outgoing_args_size == 0)
+	{
+	  int reg = -1;
+
+	  for (i = 4; i <= (TARGET_THUMB1 ? LAST_LO_REGNUM : 11); i++)
+	    {
+	      if ((offsets->saved_regs_mask & (1 << i)) == 0)
+		{
+		  reg = i;
+		  break;
+		}
+	    }
+
+	  if (reg == -1 && arm_size_return_regs () <= 12
+	      && !cfun->tail_call_emit)
+	    {
+	      /* Push/pop an argument register (r3) if all callee saved
+	         registers are already being pushed.  */
+	      reg = 3;
+	    }
+
+	  if (reg != -1)
+	    {
+	      offsets->saved_regs += 4;
+	      offsets->saved_regs_mask |= (1 << reg);
+	    }
+	}
+    }
 
   offsets->locals_base = offsets->soft_frame + frame_size;
   offsets->outgoing_args = (offsets->locals_base
@@ -12285,7 +12402,8 @@ arm_expand_prologue (void)
   args_to_push = current_function_pretend_args_size;
 
   /* Compute which register we will have to save onto the stack.  */
-  live_regs_mask = arm_compute_save_reg_mask ();
+  offsets = arm_get_frame_offsets ();
+  live_regs_mask = offsets->saved_regs_mask;
 
   ip_rtx = gen_rtx_REG (SImode, IP_REGNUM);
 
@@ -12320,7 +12438,10 @@ arm_expand_prologue (void)
       emit_insn (gen_movsi (stack_pointer_rtx, r1));
     }
 
-  if (frame_pointer_needed && TARGET_ARM)
+  /* For APCS frames, if IP register is clobbered
+     when creating frame, save that register in a special
+     way.  */
+  if (TARGET_APCS_FRAME && frame_pointer_needed && TARGET_ARM)
     {
       if (IS_INTERRUPT (func_type))
 	{
@@ -12419,13 +12540,13 @@ arm_expand_prologue (void)
     }
 
   /* If this is an interrupt service routine, and the link register
-     is going to be pushed, and we are not creating a stack frame,
-     (which would involve an extra push of IP and a pop in the epilogue)
+     is going to be pushed, and we're not generating extra
+     push of IP (needed when frame is needed and frame layout if apcs),
      subtracting four from LR now will mean that the function return
      can be done with a single instruction.  */
   if ((func_type == ARM_FT_ISR || func_type == ARM_FT_FIQ)
       && (live_regs_mask & (1 << LR_REGNUM)) != 0
-      && ! frame_pointer_needed
+      && !(frame_pointer_needed && TARGET_APCS_FRAME)
       && TARGET_ARM)
     {
       rtx lr = gen_rtx_REG (SImode, LR_REGNUM);
@@ -12435,8 +12556,28 @@ arm_expand_prologue (void)
 
   if (live_regs_mask)
     {
-      insn = emit_multi_reg_push (live_regs_mask);
       saved_regs += bit_count (live_regs_mask) * 4;
+      if (optimize_size && !frame_pointer_needed
+	  && saved_regs == offsets->saved_regs - offsets->saved_args)
+	{
+	  /* If no coprocessor registers are being pushed and we don't have
+	     to worry about a frame pointer then push extra registers to
+	     create the stack frame.  This is done is a way that does not
+	     alter the frame layout, so is independent of the epilogue.  */
+	  int n;
+	  int frame;
+	  n = 0;
+	  while (n < 8 && (live_regs_mask & (1 << n)) == 0)
+	    n++;
+	  frame = offsets->outgoing_args - (offsets->saved_args + saved_regs);
+	  if (frame && n * 4 >= frame)
+	    {
+	      n = frame / 4;
+	      live_regs_mask |= (1 << n) - 1;
+	      saved_regs += frame;
+	    }
+	}
+      insn = emit_multi_reg_push (live_regs_mask);
       RTX_FRAME_RELATED_P (insn) = 1;
     }
 
@@ -12446,6 +12587,7 @@ arm_expand_prologue (void)
   if (frame_pointer_needed && TARGET_ARM)
     {
       /* Create the new frame pointer.  */
+      if (TARGET_APCS_FRAME)
 	{
 	  insn = GEN_INT (-(4 + args_to_push + fp_offset));
 	  insn = emit_insn (gen_addsi3 (hard_frame_pointer_rtx, ip_rtx, insn));
@@ -12467,9 +12609,15 @@ arm_expand_prologue (void)
 	      emit_insn (gen_prologue_use (ip_rtx));
 	    }
 	}
+      else
+	{
+	  insn = GEN_INT (saved_regs - 4);
+	  insn = emit_insn (gen_addsi3 (hard_frame_pointer_rtx,
+					stack_pointer_rtx, insn));
+	  RTX_FRAME_RELATED_P (insn) = 1;
+	}
     }
 
-  offsets = arm_get_frame_offsets ();
   if (offsets->outgoing_args != offsets->saved_args + saved_regs)
     {
       /* This add can produce multiple insns for a large constant, so we
@@ -16465,6 +16613,7 @@ is_called_in_ARM_mode (tree func)
 const char *
 thumb_unexpanded_epilogue (void)
 {
+  arm_stack_offsets *offsets;
   int regno;
   unsigned long live_regs_mask = 0;
   int high_regs_pushed = 0;
@@ -16477,7 +16626,8 @@ thumb_unexpanded_epilogue (void)
   if (IS_NAKED (arm_current_func_type ()))
     return "";
 
-  live_regs_mask = thumb1_compute_save_reg_mask ();
+  offsets = arm_get_frame_offsets ();
+  live_regs_mask = offsets->saved_regs_mask;
   high_regs_pushed = bit_count (live_regs_mask & 0x0f00);
 
   /* If we can deduce the registers used from the function's return value.
@@ -16739,7 +16889,8 @@ thumb1_expand_prologue (void)
       return;
     }
 
-  live_regs_mask = thumb1_compute_save_reg_mask ();
+  offsets = arm_get_frame_offsets ();
+  live_regs_mask = offsets->saved_regs_mask;
   /* Load the pic register before setting the frame pointer,
      so we can use r7 as a temporary work register.  */
   if (flag_pic && arm_pic_register != INVALID_REGNUM)
@@ -16749,7 +16900,6 @@ thumb1_expand_prologue (void)
     emit_move_insn (gen_rtx_REG (Pmode, ARM_HARD_FRAME_POINTER_REGNUM),
 		    stack_pointer_rtx);
 
-  offsets = arm_get_frame_offsets ();
   amount = offsets->outgoing_args - offsets->saved_regs;
   if (amount)
     {
@@ -16911,6 +17061,7 @@ thumb1_expand_epilogue (void)
 static void
 thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 {
+  arm_stack_offsets *offsets;
   unsigned long live_regs_mask = 0;
   unsigned long l_mask;
   unsigned high_regs_pushed = 0;
@@ -16995,7 +17146,8 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
     }
 
   /* Get the registers we are going to push.  */
-  live_regs_mask = thumb1_compute_save_reg_mask ();
+  offsets = arm_get_frame_offsets ();
+  live_regs_mask = offsets->saved_regs_mask;
   /* Extract a mask of the ones we can give to the Thumb's push instruction.  */
   l_mask = live_regs_mask & 0x40ff;
   /* Then count how many other high registers will need to be pushed.  */
@@ -18123,7 +18275,8 @@ arm_set_return_address (rtx source, rtx scratch)
   rtx addr;
   unsigned long saved_regs;
 
-  saved_regs = arm_compute_save_reg_mask ();
+  offsets = arm_get_frame_offsets ();
+  saved_regs = offsets->saved_regs_mask;
 
   if ((saved_regs & (1 << LR_REGNUM)) == 0)
     emit_move_insn (gen_rtx_REG (Pmode, LR_REGNUM), source);
@@ -18134,7 +18287,6 @@ arm_set_return_address (rtx source, rtx scratch)
       else
 	{
 	  /* LR will be the first saved register.  */
-	  offsets = arm_get_frame_offsets ();
 	  delta = offsets->outgoing_args - (offsets->frame + 4);
 
 
@@ -18167,11 +18319,10 @@ thumb_set_return_address (rtx source, rtx scratch)
 
   emit_insn (gen_rtx_USE (VOIDmode, source));
 
-  mask = thumb1_compute_save_reg_mask ();
+  offsets = arm_get_frame_offsets ();
+  mask = offsets->saved_regs_mask;
   if (mask & (1 << LR_REGNUM))
     {
-      offsets = arm_get_frame_offsets ();
-
       limit = 1024;
       /* Find the saved regs.  */
       if (frame_pointer_needed)
@@ -18482,6 +18633,11 @@ arm_unwind_emit (FILE * asm_out_file, rtx insn)
   if (!ARM_EABI_UNWIND_TABLES)
     return;
 
+  if (!(flag_unwind_tables || cfun->uses_eh_lsda)
+      && (TREE_NOTHROW (current_function_decl)
+	  || cfun->all_throwers_are_sibcalls))
+    return;
+
   if (GET_CODE (insn) == NOTE || !RTX_FRAME_RELATED_P (insn))
     return;
 
@@ -18562,7 +18718,17 @@ arm_output_fn_unwind (FILE * f, bool prologue)
   if (prologue)
     fputs ("\t.fnstart\n", f);
   else
-    fputs ("\t.fnend\n", f);
+    {
+      /* If this function will never be unwound, then mark it as such.
+         The came condition is used in arm_unwind_emit to suppress
+	 the frame annotations.  */
+      if (!(flag_unwind_tables || cfun->uses_eh_lsda)
+	  && (TREE_NOTHROW (current_function_decl)
+	      || cfun->all_throwers_are_sibcalls))
+	fputs("\t.cantunwind\n", f);
+
+      fputs ("\t.fnend\n", f);
+    }
 }
 
 static bool

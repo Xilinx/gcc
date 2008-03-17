@@ -7,3 +7,33 @@
 	* basilys.c (compile_to_dyl): uses melt_compile_script.
 	added melt_source_dir melt_generated_dir melt_dynlib_dir melt_compile_script as constants.
 	Better comments. still incomplete.
+
+2008-03-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	merged with trunk r133107
+
+2008-03-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: removed compile-basilys-defs completely. Corrected
+	typ in comment for run-basilys-deps.
+
+2008-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: added targets for installation of melt includes.
+
+2008-03-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	merged with trunk 132817
+
+2008-02-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: adding melt-private-include/ thing
+	* melt/ : subdirectory moved here (was in ..)
+
+2008-02-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r132671
+        Merged revisions 132452-132671 via svnmerge from 
+        svn+ssh://bstarynk@gcc.gnu.org/svn/gcc/trunk
+	* toplev.c (toplev_main): comprobe_finish() called before the print_ignored_options()
+
+2008-02-19   Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk.
+	removed debug hack in basilys.c; added code to be able to init with a *.so in basilys.c.
+	added our (forgotten) Makefile.in and most of 
+	my (Basile Starynkevitch's) files
+	Created MELT branch. This gcc/ChangeLog.melt added afterwards.

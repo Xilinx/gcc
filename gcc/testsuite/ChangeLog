@@ -1,3 +1,169 @@
+2008-03-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35470
+	* gfortran.dg/subref_array_pointer_3.f90 : New test.
+
+2008-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35607
+	* gcc.c-torture/compile/pr35607.c: New testcase.
+	* gcc.dg/tree-ssa/loop-19.c: Use -O2 to avoid vectorization.
+
+2008-03-16  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/35582
+	* gfortran.dg/write_invalid_format.f90: New test.
+
+2008-03-15  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ssa-ccp-16.c: New testcase.
+
+2008-03-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR testsuite/35184
+	* gfortran.dg/elemental_subroutine_6.f90: New test.
+
+2008-03-15  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/pr23911.c: Adjust testcase.
+	* gcc.dg/tree-ssa/pr14841.c: Likewise.
+	* gcc.dg/tree-ssa/20030922-2.c: Likewise.
+
+2008-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35593
+	* g++.dg/warn/Warray-bounds-3.C: New testcase.
+
+2008-03-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR testsuite/35478
+	* gfortran.dg/generic_16.f90: New test.
+
+2008-03-15  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR middle-end/35595
+	* gcc.c-torture/compile/pr35595.c: New test.
+
+2008-03-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR testsuite/33296
+	* gfortran.dg/nearest_4.f90: New test.
+
+2008-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/13761
+	* gcc.dg/tree-ssa/ssa-lim-3.c: New testcase.
+
+2008-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34172
+	* gcc.dg/tree-ssa/ssa-fre-11.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-fre-12.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-13.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-14.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-15.c: Likewise.
+	* gcc.dg/tree-ssa/20031106-4.c: Remove XFAIL.
+
+2008-03-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR libcpp/35322:
+	* gcc.dg/cpp/pr35322.c: Add dg-error line.
+
+2008-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34043
+	PR tree-optimization/33989
+	* gcc.dg/tree-ssa/ssa-fre-7.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-fre-8.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-9.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-10.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-pre-17.c: Likewise.
+
+2008-03-14  H.J. Lu  <hongjiu.lu@intel.com>
+	    Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/35538 
+	* gcc.dg/tree-ssa/ssa-store-ccp-3.c: Support PIC targets.
+	Skip *-*-darwin*.
+	* gcc.dg/tree-ssa/ssa-store-ccp-4.c: Skip *-*-darwin*.
+
+2008-03-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+	    Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/35406
+	* gcc.dg/tree-ssa/ldist-4.c: Update expected scan match
+	count from 0 to 1 for lp64 targets.
+	* gfortran.dg/ldist-1.f90: Update test to check
+	for 5 loops distributed instead of 4 for lp64 targets.
+
+2008-03-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35475
+	* gfortran.dg/derived_sub.f90: New test.
+
+2008-03-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/35558
+	* g++.dg/tls/static-1.C: Move dg-additional-sources after
+	dg-require-effective-target.
+	* g++.dg/tls/static-1a.cc: Likewise.
+
+2008-03-13  Tom Tromey  <tromey@redhat.com>
+
+	PR libcpp/35322:
+	* gcc.dg/cpp/pr35322.c: New file.
+
+2008-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/vect/vect-align-2.c: Remove dg-do run directive.
+	(main): Call check_vect.
+
+2008-03-13  Alon Dayan  <alond@il.ibm.com>
+	    Olga Golovanevsky  <olga@il.ibm.com>
+	
+	PR tree-optimization/35041
+	* gcc.dg/struct/wo_prof_double_malloc.c: New test.
+
+2008-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/34000
+	PR target/35553
+	* g++.dg/other/i386-3.C: New test.
+	* gcc.target/i386/sse-13.c: Redefine extern instead of static.
+	* gcc.target/i386/sse-14.c: Ditto.
+	* gcc.target/i386/mmx-1.c: Ditto.
+	* gcc.target/i386/mmx-2.c: Ditto.
+	* gcc.target/i386/3dnow-1.c: Ditto.
+	* gcc.target/i386/3dnow-2.c: Ditto.
+	* gcc.target/i386/3dnowA-1.c: Ditto.
+	* gcc.target/i386/3dnowA-2.c: Ditto.
+
+2008-03-13  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR tree-opt/35422
+	* gcc.target/i386/pr35422.c: Escape brackets.
+
+2008-03-12  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR tree-opt/35422
+	* gcc.dg/vect/slp-7.c: Change target keywords required for vectorizing
+	third loop.
+	* gcc.target/i386/pr35422.c: New.
+
+2008-03-11  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR tree-opt/35403
+	* gcc.dg/tree-ssa/ipa-reference-1.c: New testcase.
+
+2008-03-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/35540
+	* gcc.target/i386/pr35540.c: New test.
+
+2008-03-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/inherit/override-attribs.C: Require ilp32 x86 target.
+
 2008-03-11  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR middle-end/35526

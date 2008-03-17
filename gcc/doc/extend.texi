@@ -3380,7 +3380,8 @@ designs, @code{__alignof__ (double)} is 4 or even 2.
 
 Some machines never actually require alignment; they allow reference to any
 data type even at an odd address.  For these machines, @code{__alignof__}
-reports the @emph{recommended} alignment of a type.
+reports the smallest alignment that GCC will give the data type, usually as
+mandated by the target ABI.
 
 If the operand of @code{__alignof__} is an lvalue rather than a type,
 its value is the required alignment for its type, taking into account
@@ -7406,7 +7407,7 @@ The following machine modes are available for use with MMX built-in functions
 (@pxref{Vector Extensions}): @code{V2SI} for a vector of two 32-bit integers,
 @code{V4HI} for a vector of four 16-bit integers, and @code{V8QI} for a
 vector of eight 8-bit integers.  Some of the built-in functions operate on
-MMX registers as a whole 64-bit entity, these use @code{DI} as their mode.
+MMX registers as a whole 64-bit entity, these use @code{V1DI} as their mode.
 
 If 3Dnow extensions are enabled, @code{V2SF} is used as a mode for a vector
 of two 32-bit floating point values.
@@ -7477,22 +7478,22 @@ v8qi __builtin_ia32_packsswb (v4hi, v4hi)
 v4hi __builtin_ia32_packssdw (v2si, v2si)
 v8qi __builtin_ia32_packuswb (v4hi, v4hi)
 
-v8hi __builtin_ia32_psllw (v4hi, v4hi)
-v4si __builtin_ia32_pslld (v2si, v2si)
-v2di __builtin_ia32_psllq (v1di, v1di)
-v8hi __builtin_ia32_psrlw (v8hi, v2si)
-v4si __builtin_ia32_psrld (v4si, v2si)
-v2di __builtin_ia32_psrlq (v1di, v1di)
-v8hi __builtin_ia32_psraw (v4hi, v4hi)
-v4si __builtin_ia32_psrad (v2si, v2si)
-v8hi __builtin_ia32_psllwi (v4hi, int)
-v4si __builtin_ia32_pslldi (v2si, int)
-v2di __builtin_ia32_psllqi (v1di, int)
-v8hi __builtin_ia32_psrlwi (v4hi, int)
-v4si __builtin_ia32_psrldi (v2si, int)
-v2di __builtin_ia32_psrlqi (v1di, int)
-v8hi __builtin_ia32_psrawi (v4hi, int)
-v4si __builtin_ia32_psradi (v2si, int)
+v4hi __builtin_ia32_psllw (v4hi, v4hi)
+v2si __builtin_ia32_pslld (v2si, v2si)
+v1di __builtin_ia32_psllq (v1di, v1di)
+v4hi __builtin_ia32_psrlw (v4hi, v4hi)
+v2si __builtin_ia32_psrld (v2si, v2si)
+v1di __builtin_ia32_psrlq (v1di, v1di)
+v4hi __builtin_ia32_psraw (v4hi, v4hi)
+v2si __builtin_ia32_psrad (v2si, v2si)
+v4hi __builtin_ia32_psllwi (v4hi, int)
+v2si __builtin_ia32_pslldi (v2si, int)
+v1di __builtin_ia32_psllqi (v1di, int)
+v4hi __builtin_ia32_psrlwi (v4hi, int)
+v2si __builtin_ia32_psrldi (v2si, int)
+v1di __builtin_ia32_psrlqi (v1di, int)
+v4hi __builtin_ia32_psrawi (v4hi, int)
+v2si __builtin_ia32_psradi (v2si, int)
 
 @end smallexample
 
@@ -7505,7 +7506,7 @@ instruction that is part of the name.
 v4hi __builtin_ia32_pmulhuw (v4hi, v4hi)
 v8qi __builtin_ia32_pavgb (v8qi, v8qi)
 v4hi __builtin_ia32_pavgw (v4hi, v4hi)
-v4hi __builtin_ia32_psadbw (v8qi, v8qi)
+v1di __builtin_ia32_psadbw (v8qi, v8qi)
 v8qi __builtin_ia32_pmaxub (v8qi, v8qi)
 v4hi __builtin_ia32_pmaxsw (v4hi, v4hi)
 v8qi __builtin_ia32_pminub (v8qi, v8qi)
@@ -7753,16 +7754,16 @@ void __builtin_ia32_lfence (void)
 void __builtin_ia32_mfence (void)
 v16qi __builtin_ia32_loaddqu (const char *)
 void __builtin_ia32_storedqu (char *, v16qi)
-unsigned long long __builtin_ia32_pmuludq (v2si, v2si)
+v1di __builtin_ia32_pmuludq (v2si, v2si)
 v2di __builtin_ia32_pmuludq128 (v4si, v4si)
-v8hi __builtin_ia32_psllw128 (v8hi, v2di)
-v4si __builtin_ia32_pslld128 (v4si, v2di)
-v2di __builtin_ia32_psllq128 (v4si, v2di)
-v8hi __builtin_ia32_psrlw128 (v8hi, v2di)
-v4si __builtin_ia32_psrld128 (v4si, v2di)
+v8hi __builtin_ia32_psllw128 (v8hi, v8hi)
+v4si __builtin_ia32_pslld128 (v4si, v4si)
+v2di __builtin_ia32_psllq128 (v2di, v2di)
+v8hi __builtin_ia32_psrlw128 (v8hi, v8hi)
+v4si __builtin_ia32_psrld128 (v4si, v4si)
 v2di __builtin_ia32_psrlq128 (v2di, v2di)
-v8hi __builtin_ia32_psraw128 (v8hi, v2di)
-v4si __builtin_ia32_psrad128 (v4si, v2di)
+v8hi __builtin_ia32_psraw128 (v8hi, v8hi)
+v4si __builtin_ia32_psrad128 (v4si, v4si)
 v2di __builtin_ia32_pslldqi128 (v2di, int)
 v8hi __builtin_ia32_psllwi128 (v8hi, int)
 v4si __builtin_ia32_pslldi128 (v4si, int)
@@ -10868,6 +10869,7 @@ for further explanation.
 * Weak Pragmas::
 * Diagnostic Pragmas::
 * Visibility Pragmas::
+* Push/Pop Macro Pragmas::
 @end menu
 
 @node ARM Pragmas
@@ -11064,11 +11066,11 @@ way of knowing that that happened.)
 @node Structure-Packing Pragmas
 @subsection Structure-Packing Pragmas
 
-For compatibility with Win32, GCC supports a set of @code{#pragma}
-directives which change the maximum alignment of members of structures
-(other than zero-width bitfields), unions, and classes subsequently
-defined.  The @var{n} value below always is required to be a small power
-of two and specifies the new alignment in bytes.
+For compatibility with Microsoft Windows compilers, GCC supports a
+set of @code{#pragma} directives which change the maximum alignment of
+members of structures (other than zero-width bitfields), unions, and
+classes subsequently defined. The @var{n} value below always is required
+to be a small power of two and specifies the new alignment in bytes.
 
 @enumerate
 @item @code{#pragma pack(@var{n})} simply sets the new alignment.
@@ -11182,6 +11184,41 @@ affected; if you want to override the visibility for a particular
 member or instantiation, you must use an attribute.
 
 @end table
+
+
+@node Push/Pop Macro Pragmas
+@subsection Push/Pop Macro Pragmas
+
+For compatibility with Microsoft Windows compilers, GCC supports
+@samp{#pragma push_macro(@var{"macro_name"})}
+and @samp{#pragma pop_macro(@var{"macro_name"})}.
+
+@table @code
+@item #pragma push_macro(@var{"macro_name"})
+@cindex pragma, push_macro
+This pragma saves the value of the macro named as @var{macro_name} to
+the top of the stack for this macro.
+
+@item #pragma pop_macro(@var{"macro_name"})
+@cindex pragma, pop_macro
+This pragma sets the value of the macro named as @var{macro_name} to
+the value on top of the stack for this macro. If the stack for
+@var{macro_name} is empty, the value of the macro remains unchanged.
+@end table
+
+For example:
+
+@smallexample
+#define X  1
+#pragma push_macro("X")
+#undef X
+#define X -1
+#pragma pop_macro("X")
+int x [X]; 
+@end smallexample
+
+In this example, the definition of X as 1 is saved by @code{#pragma
+push_macro} and restored by @code{#pragma pop_macro}.
 
 @node Unnamed Fields
 @section Unnamed struct/union fields within structs/unions

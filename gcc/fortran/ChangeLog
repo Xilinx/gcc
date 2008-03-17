@@ -1,3 +1,27 @@
+2008-03-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35470
+	* resolve.c (check_assumed_size_reference):  Only visit the
+	first reference and look directly at the highest dimension.
+
+2008-03-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35184
+	* trans-array.c (gfc_conv_array_index_offset): Remove unnecessary
+	assert.
+
+2008-03-15  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/35584
+	* resolve.c (resolve_branch): Less strict and pessimistic warning
+	message.
+
+2008-03-11  Paolo Bonzini  <bonzini@gnu.org>
+
+	* f95-lang.c (LANG_HOOKS_CLEAR_BINDING_STACK): Delete.
+	(gfc_be_parse_file): Call clear_binding_stack from here.
+	(gfc_clear_binding_stack): Rename to clear_binding_stack.
+		
 2008-03-09  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/35474

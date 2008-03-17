@@ -1,9 +1,405 @@
-2008-03-11  Basile Starynkevitch  <basile@starynkevitch.net>
-	merged with trunk r133107
+<<<<<<< .mine
+<<<<<<< .mine
+<<<<<<< .mine
+2008-03-02  Basile Starynkevitch <basile@starynkevitch.net>
+	merged with trunk 132817
 
-2008-03-11  Basile Starynkevitch  <basile@starynkevitch.net>
-	* Makefile.in: removed compile-basilys-defs completely. Corrected
-	typ in comment for run-basilys-deps.
+=======
+=======
+=======
+2008-03-16  James E. Wilson  <wilson@tuliptree.org>
+
+	PR debug/31510
+	* dbxout.c (dbxout_expand_expr, case VAR_DECL): Return NULL for
+	emulated thread local variables.
+
+2008-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35607
+	* tree-ssa-loop-niter.c (expand_simple_operations): Do not
+	expand TREE_INVARIANT operations that are not gimple invariant.
+
+2008-03-16  Hans-Peter Nilsson  <hp@axis.com>
+
+	* doc/extend.texi (Alignment): Say that the ABI controls
+	the __alignof__ for non-strict-alignment targets rather
+	than being a recommendation.
+
+2008-03-15  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.c (arm_unwind_emit): Suppress unused unwinding
+	annotations.
+	(arm_output_fn_unwind): Mark functions that can not be unwound.
+
+2008-03-15  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.c (arm_rtx_costs_1): Add costs for ARMv6 value
+	extension instructions.
+
+2008-03-15  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-ccp.c (ccp_fold): Also read from constant values
+	and fold constant aggregate refs.
+	(fold_const_aggregate_ref): Handle string constants
+	and constructors in ARRAY_REFs.  Handle INDIRECT_REF.
+	(evaluate_stmt): Simplify now that ccp_fold folds constant
+	aggregate refs.
+
+2008-03-15  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.md (insv): Use gen_insv_t2 and gen_insv_zero.
+	(extzv): Use gen_extzv_t2.
+	(insv_t2, insv_zero, extv, extzv_t2): New patterns.
+
+2008-03-15  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-ccp.c (get_symbol_constant_value): Export.
+	(fold_const_aggregate_ref): Likewise.
+	(get_value): Return NULL if we don't have any values.
+	(ccp_finalize): Set const_val to NULL after freeing it.
+	* tree-flow.h (get_symbol_constant_value): Declare.
+	(fold_const_aggregate_ref): Likewise.
+	* tree-ssa-sccvn.c (try_to_simplify): Use them.
+
+2008-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35593
+	* tree-ssa-ccp.c (maybe_fold_offset_to_array_ref): Make sure
+	to not produce negative array indices if not allowed.  Add
+	parameter to indicate that.
+	(maybe_fold_offset_to_component_ref): Allow negative array
+	indices only for the first member of a structure.
+	(maybe_fold_offset_to_reference): Allow negative array indices.
+	(maybe_fold_stmt_addition): Likewise.
+
+2008-03-15  Bjoern Haase  <bjoern.m.haase@web.de>
+            Anatoly Sokolov <aesok@post.ru>
+
+	* gcc/gcc/config/avr/avr.c (avr_arch_types): Add avr6 entry.
+	(avr_arch): Add ARCH_AVR6.
+	(avr_mcu_types): Add 'atmega2560' and 'atmega2561' entry.
+ 	(initial_elimination_offset): Initialize and use 'avr_pc_size' 
+	instead of fixed value 2.
+	(print_operand_address): Use gs() asm specifier instead of pm().
+	(avr_assemble_integer): (Ditto.).
+	(avr_output_addr_vec_elt): (Ditto.).
+	(print_operand): Handle "!" code.
+	* gcc/gcc/config/avr/avr.h (TARGET_CPU_CPP_BUILTINS): Add 
+	__AVR_3_BYTE_PC__, __AVR_2_BYTE_PC__ and __AVR_HAVE_JMP_CALL__.
+	(AVR_HAVE_EIJMP_EICALL): Define.
+	(AVR_3_BYTE_PC): Redefine.
+	(AVR_2_BYTE_PC): (Ditto.).
+	(PRINT_OPERAND_PUNCT_VALID_P): Add '!' code.
+	(LINK_SPEC): Add atmega2560 and atmega2561.
+	(CRT_BINUTILS_SPEC): Add atmega2560 (crtm2560.o) and atmega2561 
+	(crtm2561.o).
+	* gcc/gcc/config/avr/avr.md (call_insn): Use eicall instead of icall 
+	for 3 byte PC devices.
+	(call_value_insn): (Ditto.).
+	(*tablejump_enh): Use eijmp instead of ijmp for 3 byte PC devices.
+	(indirect_jump): Use only for for 2 byte PC devices.
+	(*tablejump): (Ditto.).
+	(*indirect_jump_avr6): Add insn.
+	(*tablejump_rjmp): Don't use for 3 byte PC devices.
+	* gcc/gcc/config/avr/libgcc.S (__prologue_saves__): Use eijmp 
+	instead of ijmp for 3 byte PC devices.
+	(__tablejump2__): (Ditto.).
+	* gcc/gcc/config/avr/t-avr (MULITLIB_OPTIONS): Add avr6 architecture.
+	(MULITLIB_DIRNAMES): (Ditto.). 
+	(MULTILIB_MATCHES): Add atmega2560 and atmega2561 to list.
+
+2008-03-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/mmx.md ("sse2_umulv1siv2di3"): Rename from
+	"sse2_umulsidi3".  Use V1DI mode for operand 0.
+	("mmx_psadbw"): Use V1DI mode for operand 0.
+	* config/i386/i386-modes.def (V1SI): New vector mode.
+	* config/i386/i386.c (struct builtin_description)
+	[IX86_BUILTIN_PMULUDQ]: Use CODE_FOR_sse2_umulv1siv1di3.
+	(v1di_ftype_v8qi_v8qi): Rename from di_ftype_v8qi_v8qi.
+	(v1di_ftype_v2si_v2si): Rename from di_ftype_v2si_v2si.
+	(ix86_init_mmx_sse_builtins) [__builtin_ia32_psadbw]: Use
+	v1di_ftype_v8qi_v8qi type.
+	[__builtin_ia32_pmuludq]: Use v1di_ftype_v2si_v2si type.
+
+	* doc/extend.texi (X86 Built-in Functions) [__builtin_ia32_psadbw,
+	__builtin_ia32_pmuludq]: Fix the mode of return value.
+
+2008-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35595
+	* tree-ssa-pre.c (bitmap_find_leader): Handle expression
+	being a PHI_NODE.
+
+2008-03-14  Bob Wilson  <bob.wilson@acm.org>
+	
+	* doc/invoke.texi (Option Summary, Xtensa Options): Document
+	-mserialize-volatile and -mno-serialize-volatile Xtensa options.
+	* config/xtensa/xtensa.c (print_operand): Do not emit MEMW instructions
+	unless TARGET_SERIALIZE_VOLATILE is enabled.
+	* config/xtensa/xtensa.md (*lsiu, *ssiu): Likewise.
+	* config/xtensa/xtensa.h (TARGET_DEFAULT): Add MASK_SERIALIZE_VOLATILE.
+	* config/xtensa/xtensa.opt (mserialize_volatile): New option.
+
+2008-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34172
+	* tree-flow.h (refs_may_alias_p): Declare.
+	(get_single_def_stmt): Likewise.
+	(get_single_def_stmt_from_phi): Likewise.
+	(get_single_def_stmt_with_phi): Likewise.
+	* tree-dfa.c (refs_may_alias_p): New function.
+	(get_single_def_stmt): Likewise.
+	(get_single_def_stmt_from_phi): Likewise.
+	(get_single_def_stmt_with_phi): Likewise.
+	* tree-ssa-sccvn.c (get_def_ref_stmt_vuses): New function.
+	(vn_reference_lookup_1): New helper function.
+	(vn_reference_lookup): Walk the virtual use-def chain to
+	continue searching for a match if the def does not alias the
+	reference we are looking for.
+
+2008-03-14  David Edelsohn  <edelsohn@gnu.org>
+
+	* doc/install.texi (Binaries): Remove UCLA archive.  Add HVCC
+	archive and Perzl.  Update The Written Word listing.
+
+2008-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34043
+	PR tree-optimization/33989
+	* tree-ssa-pre.c (execute_pre): Allow SCCVN to do insertion
+	when doing FRE.
+	(bitmap_find_leader): Use extra argument to verify dominance
+	relationship inside a basic-block.
+	(can_PRE_operation): Add VIEW_CONVERT_EXPR.
+	(find_leader_in_sets): Adjust.
+	(create_component_ref_by_pieces): Take extra argument for
+	dominance check, handle lookup failures.
+	(find_or_generate_expression): Likewise.
+	(create_expression_by_pieces): Likewise.
+	(insert_into_preds_of_block): Adjust.
+	(create_value_expr_from): If asked for, verify all operands
+	are in the blocks AVAIL_OUT set.
+	(make_values_for_stmt): Check for SSA_NAMEs that are life
+	over an abnormal edge.
+	(compute_avail): Remove such check.
+	(do_SCCVN_insertion): New function.
+	(eliminate): If we do not find a leader suitable for replacement
+	insert a replacement expression from SCCVN if available.
+	* tree-ssa-sccvn.h (run_scc_vn): Update prototype.
+	(struct vn_ssa_aux): Add needs_insertion flag.
+	* tree-ssa-sccvn.c (may_insert): New global flag.
+	(copy_reference_ops_from_ref): Value-number union member access
+	based on its size, not type and member if insertion is allowed.
+	(visit_reference_op_load): For a weak match from union type
+	punning lookup a view-converted value and insert a SSA_NAME
+	for that value if that is not found.
+	(visit_use): Make dumps shorter.  Do not disallow value numbering
+	SSA_NAMEs that are life over an abnormal edge to constants.
+	(free_scc_vn): Release inserted SSA_NAMEs.
+	(run_scc_vn): New flag to specify whether insertion is allowed.
+	Process SSA_NAMEs in forward order.
+	* tree-ssa-loop-im.c (for_each_index): Handle invariant
+	ADDR_EXPRs inside VIEW_CONVERT_EXPR.
+	* fold-const.c (fold_unary): Fold VIEW_CONVERT_EXPRs from/to
+	pointer type to/from integral types that do not change the
+	precision to regular conversions.
+
+>>>>>>> .r133288
+2008-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* doc/extend.texi (X86 Built-in Functions) [__builtin_ia32_psll?,
+	__builtin_ia32_psrl?, __builtin_ia32_psra?, __builtin_ia32_psll?i,
+	__builtin_ia32_psrl?i, __builtin_ia32_psra?i, __builtin_ia32_psll?128,
+	__builtin_ia32_psrl?128, __builtin_ia32_psra?128]: Fix the mode of
+	input arguments and the mode of return value.  Built-in functions
+	that operate on whole 64-bit MMX register now use V1DI mode.
+
+2008-03-13  Alon Dayan  <alond@il.ibm.com>
+	    Olga Golovanevsky  <olga@il.ibm.com>
+
+	PR tree-optimization/35041
+	* ipa-struct-reorg.c (find_pos_in_stmt_1): Add another option
+	to locate the right position in a statement.
+
+2008-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/34000
+	PR target/35553
+	* config/i386/xmmintrin.h:  Change all static inline functions to
+	extern inline and add __gnu_inline__ attribute.
+	* config/i386/bmintrin.h: Ditto.
+	* config/i386/smmintrin.h: Ditto.
+	* config/i386/tmmintrin.h: Ditto.
+	* config/i386/mmintrin-common.h: Ditto.
+	* config/i386/ammintrin.h: Ditto.
+	* config/i386/emmintrin.h: Ditto.
+	* config/i386/pmmintrin.h: Ditto.
+	* config/i386/mmintrin.h: Ditto.
+	* config/i386/mm3dnow.h: Ditto.
+
+2008-03-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/35185
+	* omp-low.c (lower_regimplify, init_tmp_var, save_tmp_var): Removed.
+	(lower_omp_2): New function.
+	(lower_omp_1, lower_omp): Rewritten.
+
+2008-03-13  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	PR 35054
+	* doc/extend.texi (Structure-Packing Pragmas): Replace "Win32"
+	with the phrase "Microsoft Windows compilers".
+	(Push/Pop Macro Pragmas): New subsection. Document
+	#pragma push_macro and pragma pop_macro.
+
+2008-03-12  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.c (output_move_double): Prefer LDRD to LDM.
+
+2008-03-12  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/thumb2.md: Extend peephole to cover 3-arg subs.
+	(thumb2_alusi3_short): Exclude PLUS and MINUS.
+	(thumb2_addsi_shortim): Rename ...
+	(thumb2_addsi_short): ... to this.  Allow register operands.
+	(thumb2_subsi_short): New pattern.
+	(thumb2_one_cmplsi2_short,
+	thumb2_negsi2_short): New patterns and peepholes.
+
+2008-03-12  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.c (arm_size_rtx_costs): Use ARM costs for Thumb-2.
+
+2008-03-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (int_cond): New code iterator.
+	(fp_cond): Ditto.
+	("s<code>"): Macroize expander from seq, sne, sgt, sgtu, slt, sltu,
+	sge, sgeu, sle and sleu expanders usign int_cond code iterator.
+	("s<code>"): Macroize expander from sunordered, sordered, suneq, sunge,
+	sungt, sunle, sunlt and sltgt expanders usign fp_cond code iterator.
+	("b<code>"): Macroize expander from beq, bne, bgt, bgtu, blt, bltu,
+	bge, bgeu, ble and bleu expanders usign int_cond code iterator.
+	("b<code>"): Macroize expander from bunordered, bordered, buneq, bunge,
+	bungt, bunle, bunlt and bltgt expanders usign fp_cond code iterator.
+
+2008-03-12  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.c (use_return_insn): Use offsets->saved_regs_mask
+	instead of {arm,thumb}_compute_save_reg_mask.
+	(output_return_instruction): Ditto.
+	(thumb_unexpanded_epilogue): Ditto.
+	(thumb1_expand_prologue): Ditto.
+	(thumb1_output_function_prologue): Ditto.
+	(arm_set_return_address): Ditto.
+	(thumb_set_return_address): Ditto.
+	(arm_get_frame_offsets): Set offsets->saved_regs_mask.  Push extra
+	regs to achieve stack alignment.
+	(thumb1_compute_save_reg_mask): Fix compiler warning.
+	(arm_output_epilogue): Use offsets->saved_regs_mask.
+	Adjust stack pointer by poping call clobered registers.
+	(arm_expand_prologue): Use offsets->saved_regs_mask.
+	Adjust stack pointer by pushing extra registers.
+	* config/arm.h (arm_stack_offsets): Add saved_regs_mask.
+
+2008-03-12  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR tree-opt/35422
+	* fold-const.c (fold_unary) <NOP_EXPR>: Distribute a narrowing
+	conversion to the operands of a multiplication.
+
+2008-03-12  Richard Guenther  <rguenther@suse.de>
+
+	* Makefile.in (OBJS-common): Add tree-ssa-phiprop.o
+	(tree-ssa-phiprop.o): Copy dependencies from tree-ssa-forwprop.o.
+	* timevar.def (TV_TREE_PHIPROP): Add.
+	* tree-ssa-phiprop.c: Split from tree-ssa-forwprop.c, added
+	pass description.  Use TV_TREE_PHIPROP.
+	* tree-ssa-forwprop.c: Remove phiprop code.
+
+2008-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/35549
+	* omp-low.c (maybe_lookup_decl): Constify first argument.
+	(use_pointer_for_field): Change last argument from bool to
+	omp_context *.  Disallow shared copy-in/out in nested
+	parallel if decl is shared in outer parallel too.
+	(build_outer_var_ref, scan_sharing_clauses,
+	lower_rec_input_clauses, lower_copyprivate_clauses,
+	lower_send_clauses, lower_send_shared_vars): Adjust callers.
+
+2008-03-12  Victor Kaplansky  <victork@il.ibm.com>
+	    Ira Rosen  <irar@il.ibm.com>
+
+	* tree-vectorizer.c (free_stmt_vec_info): New function.
+	(destroy_loop_vec_info): Move code to free_stmt_vec_info().
+	Call free_stmt_vec_info(). Free LOOP_VINFO_STRIDED_STORES..
+	* tree-vectorizer.h (free_stmt_vec_info): Declare.
+	* tree-vect-transform.c (vectorizable_conversion): Free
+	vec_oprnds0 if it was allocated.
+	(vect_permute_store_chain): Remove unused VECs.
+	(vectorizable_store): Free VECs that are allocated in the..
+	function.
+	(vect_transform_strided_load, vectorizable_load): Likewise.
+	(vect_remove_stores): Simplify the code.
+	(vect_transform_loop): Move code to vect_remove_stores().
+	Call vect_remove_stores() and free_stmt_vec_info().
+
+2008-03-11  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa.h (TARGET_LONG_PIC_SDIFF_CALL): Conditionalize define on
+	TARGET_HPUX.  Revise comment.
+	(TARGET_LONG_PIC_PCREL_CALL): Revise comment.
+	* pa.c (output_call): Update for revised TARGET_LONG_PIC_SDIFF_CALL.
+	Use sr4 variant of `be' instruction when not generating PIC code.
+	(attr_length_call): Adjust for above change.
+
+2008-03-11  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* ipa-reference.c (static_execute): Remove module_statics_const and
+	associated setting code.
+
+>>>>>>> .r133208
+2008-03-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/35540
+	* config/i386/i386.md (paritysi2, paritydi2): Use register_operand
+	constraint for operand 1.
+	(paritysi2_cmp): Use register_operand constraint for operand 2.
+	Use earlyclobber modifier for operand 1.  Remove support for
+	memory operands.
+	(paritydi2_cmp): Use register_operand constraint for operand 3.
+	Use earlyclobber modifier for operand 1.  Remove support for
+	memory operands.
+
+2008-03-11  Paul Brook  <paul@codesourcery.com>
+	    Vladimir Prus  <vladimir@codesourcery.com>
+
+	* config/arm/arm.c (use_return_insn): Check TARGET_APCS_FRAME.
+	(arm_compute_save_reg0_reg12_mask): Always
+	check if register 11 must be saved.  Always safe hard frame pointer
+	when frame_pointer_needeed.
+	(arm_compute_save_reg_mask): Save IP and PC
+	only with apcs frames.
+	(arm_output_epilogue): Adjust Thumb2 codepath to
+	be also invoked and work for ARM non-apcs frames.
+	(arm_expand_prologue): Don't bother saving IP
+	for non-apcs frame, since it's not clobbered by
+	prologue code.  Implement non-apcs frame
+	layout.
+
+2008-03-11  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR rtl-optimization/35281
+	* expr.c (convert_move): Use a new pseudo for the intermediate
+	from_mode->word_mode result.
+
+2008-03-11  Paolo Bonzini  <bonzini@gnu.org>
+
+	* langhooks-def.h (LANG_HOOKS_CLEAR_BINDING_STACK): Delete.
+	* langhooks.h (struct lang_hooks): Delete clear_binding_stack member.
+	* toplev.c (compile_file): Don't call it.
 
 2008-03-11  Uros Bizjak  <ubizjak@gmail.com>
 
@@ -325,9 +721,6 @@
 	* alias.c (struct alias_set_entry): Move has_zero_child field
 	to pack with alias_set.
 
-2008-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
-	* Makefile.in: added targets for installation of melt includes.
-
 2008-03-05  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386-modes.def: Use 4 byte alignment on DI for
@@ -549,9 +942,6 @@
 	precision to NOP_EXPRs.
 	* tree-ssa-loop-ivopts.c (may_be_nonaddressable_p): Adjust
 	VIEW_CONVERT_EXPR case.
-	
-2008-03-02  Basile Starynkevitch  <basile@starynkevitch.net>
-	merged with trunk 132817
 
 2008-03-02  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -570,7 +960,7 @@
 	* mips-tfile.c (main): Likewise.
 	* mips-tdump.c (main): Likewise.
 
->>>>>>> .merge-right.r133107
+>>>>>>> .r133107
 2008-03-02  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	PR 24924
@@ -942,16 +1332,6 @@
 	* config/darwin.h (DARWIN_REGISTER_TARGET_PRAGMAS): Don't call
 	cpp_register_pragma if flag_preprocess_only.
 
-2008-02-26  Basile Starynkevitch  <basile@starynkevitch.net>
-	* Makefile.in: adding melt-private-include/ thing
-	* melt/ : subdirectory moved here (was in ..)
-
-2008-02-26  Basile Starynkevitch  <basile@starynkevitch.net>
-	MELT branch merged with trunk r132671
-        Merged revisions 132452-132671 via svnmerge from 
-        svn+ssh://bstarynk@gcc.gnu.org/svn/gcc/trunk
-	* toplev.c (toplev_main): comprobe_finish() called before the print_ignored_options()
-
 2008-02-26  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	PR c/28800
@@ -1187,7 +1567,6 @@
 	* stor-layout.c (layout_decl): Use -Wlarger-than= for warning.
 	* tree-optimize.c (tree_rest_of_compilation): Likewise.
 	
->>>>>>> .merge-right.r132817
 2008-02-26  Manuel Lopez-Ibanez <manu@gcc.gnu.org>
 
 	* c-common.c (match_case_to_enum_1): Add appropriate
@@ -3843,7 +4222,7 @@
 2008-01-02  Arthur Norman <acn1@cam.ac.uk>
 
 	PR target/34013
-	* gcc/config/i386/i386.c (ix86_expand_prologue): Save red-zone
+	* config/i386/i386.c (ix86_expand_prologue): Save red-zone
 	while stack probing.
 
 2008-01-01  Douglas Gregor  <doug.gregor@gmail.com>

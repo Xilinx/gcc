@@ -1,3 +1,37 @@
+2008-03-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (install-data-local): Rewrite to be more efficient,
+	using awk, and `install' with multiple files at once.  Do not gather
+	more than 50 files in one go to avoid hitting command line limits.
+	(install_data_local_split): New variable.
+	* aclocal.m4: Regenerate.
+	* configure: Likewise.
+	* Makefile.in: Likewise.
+	* gcj/Makefile.in: Likewise.
+	* include/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+
+	* Makefile.am (write_entries_to_file_split): New variable.
+	(write_entries_to_file): Write out that many entries at once,
+	for speed.
+	* Makefile.in: Regenerate.
+
+2008-03-13  Tom Tromey  <tromey@redhat.com>
+
+	* java/lang/natClassLoader.cc (_Jv_RegisterInitiatingLoader):
+	Check loading constraints.
+	(_Jv_CheckOrCreateLoadingConstraint): New function.
+	* java/lang/ClassLoader.java (loadingConstraints): New field.
+	* link.cc (_Jv_Linker::find_field): Use
+	_Jv_CheckOrCreateLoadingConstraint.
+	(_Jv_Linker::check_loading_constraints): New function.
+	(_Jv_Linker::resolve_method_entry): Use
+	check_loading_constraints.
+	(_Jv_Linker::append_partial_itable): Likewise.
+	(_Jv_Linker::layout_vtable_methods): Likewise.
+	* include/jvm.h (_Jv_Linker::check_loading_constraints): Declare.
+	(_Jv_CheckOrCreateLoadingConstraint): Declare.
+
 2008-03-10  Jim Meyering  <meyering@redhat.com>
 
 	Don't leak upon failed realloc.

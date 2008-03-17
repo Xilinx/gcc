@@ -1,10 +1,50 @@
-2008-03-11   Basile Starynkevitch  <basile@starynkevitch.net>
-	MELT branch merged with trunk r133107
+2008-03-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
-2008-02-26  Basile Starynkevitch  <basile@starynkevitch.net>
-	MELT branch merged with trunk r132671
-        Merged revisions 132452-132671 via svnmerge from 
-        svn+ssh://bstarynk@gcc.gnu.org/svn/gcc/trunk
+	* configure.ac: m4_include config/proginstall.m4.
+	* configure: Regenerate.
+
+	Backport from upstream Libtool:
+	
+	2007-10-12  Eric Blake  <ebb9@byu.net>
+	
+	Deal with Autoconf 2.62's semantic change in m4_append.
+	* ltsugar.m4 (lt_append): Replace broken versions of
+	m4_append.
+	(lt_if_append_uniq): Don't require separator to be overquoted,
+	and avoid broken m4_append.
+	(lt_dict_add): Fix typo.
+	* libtool.m4 (_LT_DECL): Don't overquote separator.
+
+2008-03-13  David Edelsohn  <edelsohn@gnu.org>
+
+	* config.rpath: Add AIX 6 support.
+
+2008-03-13  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.def (stageprofile).  Remove -fprofile-generate
+	from stage_libcflags.
+	* Makefile.in: Regenerate.
+
+2008-03-13  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2008-03-06  Tom Tromey  <tromey@redhat.com>
+
+	* MAINTAINERS: Update for treelang deletion.
+
+2008-03-03  James E. Wilson  <wilson@tuliptree.org>
+
+	* MAINTAINERS: Update my email address.
+
+2008-03-03  Stan Shebs  <stanshebs@earthlink.net>
+
+	* MAINTAINERS (darwin port): Add myself as a maintainer.
+	(objective-c/c++): Add myself as a maintainer.
+
+2008-03-03  Volker Reichelt  <v.reichelt@netcologne.de>
+
+	* MAINTAINERS (Write After Approval): Update my email address.
 
 2008-02-25  Tomas Bily  <tbily@suse.cz>
 

@@ -221,6 +221,9 @@ tree VN_TOP;
 static unsigned int next_dfs_num;
 static VEC (tree, heap) *sccstack;
 
+static bool may_insert;
+
+
 DEF_VEC_P(vn_ssa_aux_t);
 DEF_VEC_ALLOC_P(vn_ssa_aux_t, heap);
 
@@ -525,8 +528,21 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 	  temp.op1 = TREE_OPERAND (ref, 2);
 	  break;
 	case COMPONENT_REF:
-	  /* Record field as operand.  */
-	  temp.op0 = TREE_OPERAND (ref, 1);
+	  /* If this is a reference to a union member, record the union
+	     member size as operand.  Do so only if we are doing
+	     expression insertion (during FRE), as PRE currently gets
+	     confused with this.  */
+	  if (may_insert
+	      && TREE_CODE (DECL_CONTEXT (TREE_OPERAND (ref, 1))) == UNION_TYPE
+	      && integer_zerop (DECL_FIELD_OFFSET (TREE_OPERAND (ref, 1)))
+	      && integer_zerop (DECL_FIELD_BIT_OFFSET (TREE_OPERAND (ref, 1))))
+	    {
+	      temp.type = NULL_TREE;
+	      temp.op0 = TYPE_SIZE (TREE_TYPE (TREE_OPERAND (ref, 1)));
+	    }
+	  else
+	    /* Record field as operand.  */
+	    temp.op0 = TREE_OPERAND (ref, 1);
 	  break;
 	case ARRAY_RANGE_REF:
 	case ARRAY_REF:
@@ -646,6 +662,74 @@ valueize_vuses (VEC (tree, gc) *orig)
   return orig;
 }
 
+/* Return the single reference statement defining all virtual uses
+   in VUSES or NULL_TREE, if there are multiple defining statements.
+   Take into account only definitions that alias REF if following
+   back-edges.  */
+
+static tree
+get_def_ref_stmt_vuses (tree ref, VEC (tree, gc) *vuses)
+{
+  tree def_stmt, vuse;
+  unsigned int i;
+
+  gcc_assert (VEC_length (tree, vuses) >= 1);
+
+  def_stmt = SSA_NAME_DEF_STMT (VEC_index (tree, vuses, 0));
+  if (TREE_CODE (def_stmt) == PHI_NODE)
+    {
+      /* We can only handle lookups over PHI nodes for a single
+	 virtual operand.  */
+      if (VEC_length (tree, vuses) == 1)
+	{
+	  def_stmt = get_single_def_stmt_from_phi (ref, def_stmt);
+	  goto cont;
+	}
+      else
+	return NULL_TREE;
+    }
+
+  /* Verify each VUSE reaches the same defining stmt.  */
+  for (i = 1; VEC_iterate (tree, vuses, i, vuse); ++i)
+    {
+      tree tmp = SSA_NAME_DEF_STMT (vuse);
+      if (tmp != def_stmt)
+	return NULL_TREE;
+    }
+
+  /* Now see if the definition aliases ref, and loop until it does.  */
+cont:
+  while (def_stmt
+	 && TREE_CODE (def_stmt) == GIMPLE_MODIFY_STMT
+	 && !get_call_expr_in (def_stmt)
+	 && !refs_may_alias_p (ref, GIMPLE_STMT_OPERAND (def_stmt, 0)))
+    def_stmt = get_single_def_stmt_with_phi (ref, def_stmt);
+
+  return def_stmt;
+}
+
+/* Lookup a SCCVN reference operation VR in the current hash table.
+   Returns the resulting value number if it exists in the hash table,
+   NULL_TREE otherwise.  */
+
+static tree
+vn_reference_lookup_1 (vn_reference_t vr)
+{
+  void **slot;
+  hashval_t hash;
+
+  hash = vr->hashcode;
+  slot = htab_find_slot_with_hash (current_info->references, vr,
+				   hash, NO_INSERT);
+  if (!slot && current_info == optimistic_info)
+    slot = htab_find_slot_with_hash (valid_info->references, vr,
+				     hash, NO_INSERT);
+  if (slot)
+    return ((vn_reference_t)*slot)->result;
+
+  return NULL_TREE;
+}
+
 /* Lookup OP in the current hash table, and return the resulting
    value number if it exists in the hash table.  Return NULL_TREE if
    it does not exist in the hash table. */
@@ -653,21 +737,35 @@ valueize_vuses (VEC (tree, gc) *orig)
 tree
 vn_reference_lookup (tree op, VEC (tree, gc) *vuses)
 {
-  void **slot;
   struct vn_reference_s vr1;
+  tree result, def_stmt;
 
   vr1.vuses = valueize_vuses (vuses);
   vr1.operands = valueize_refs (shared_reference_ops_from_ref (op));
   vr1.hashcode = vn_reference_compute_hash (&vr1);
-  slot = htab_find_slot_with_hash (current_info->references, &vr1, vr1.hashcode,
-				   NO_INSERT);
-  if (!slot && current_info == optimistic_info)
-    slot = htab_find_slot_with_hash (valid_info->references, &vr1, vr1.hashcode,
-				     NO_INSERT);
-  if (!slot)
-    return NULL_TREE;
+  result = vn_reference_lookup_1 (&vr1);
 
-  return ((vn_reference_t)*slot)->result;
+  /* If there is a single defining statement for all virtual uses, we can
+     use that, following virtual use-def chains.  */
+  if (!result
+      && vr1.vuses
+      && VEC_length (tree, vr1.vuses) >= 1
+      && !get_call_expr_in (op)
+      && (def_stmt = get_def_ref_stmt_vuses (op, vr1.vuses))
+      && TREE_CODE (def_stmt) == GIMPLE_MODIFY_STMT
+      /* If there is a call involved, op must be assumed to
+	 be clobbered.  */
+      && !get_call_expr_in (def_stmt))
+    {
+      /* We are now at an aliasing definition for the vuses we want to
+	 look up.  Re-do the lookup with the vdefs for this stmt.  */
+      vdefs_to_vec (def_stmt, &vuses);
+      vr1.vuses = valueize_vuses (vuses);
+      vr1.hashcode = vn_reference_compute_hash (&vr1);
+      result = vn_reference_lookup_1 (&vr1);
+    }
+
+  return result;
 }
 
 /* Insert OP into the current hash table with a value number of
@@ -1017,6 +1115,9 @@ defs_to_varying (tree stmt)
   return changed;
 }
 
+static tree
+try_to_simplify (tree stmt, tree rhs);
+
 /* Visit a copy between LHS and RHS, return true if the value number
    changed.  */
 
@@ -1088,6 +1189,64 @@ visit_reference_op_load (tree lhs, tree op, tree stmt)
 {
   bool changed = false;
   tree result = vn_reference_lookup (op, shared_vuses_from_stmt (stmt));
+
+  /* We handle type-punning through unions by value-numbering based
+     on offset and size of the access.  Be prepared to handle a
+     type-mismatch here via creating a VIEW_CONVERT_EXPR.  */
+  if (result
+      && !useless_type_conversion_p (TREE_TYPE (result), TREE_TYPE (op)))
+    {
+      /* We will be setting the value number of lhs to the value number
+	 of VIEW_CONVERT_EXPR <TREE_TYPE (result)> (result).
+	 So first simplify and lookup this expression to see if it
+	 is already available.  */
+      tree val = fold_build1 (VIEW_CONVERT_EXPR, TREE_TYPE (op), result);
+      if (stmt
+	  && !is_gimple_min_invariant (val)
+	  && TREE_CODE (val) != SSA_NAME)
+        {
+	  tree tem = try_to_simplify (stmt, val);
+	  if (tem)
+	    val = tem;
+	}
+      result = val;
+      if (!is_gimple_min_invariant (val)
+	  && TREE_CODE (val) != SSA_NAME)
+	result = vn_nary_op_lookup (val);
+      /* If the expression is not yet available, value-number lhs to
+	 a new SSA_NAME we create.  */
+      if (!result && may_insert)
+        {
+	  result = make_ssa_name (SSA_NAME_VAR (lhs), NULL_TREE);
+	  /* Initialize value-number information properly.  */
+	  VN_INFO_GET (result)->valnum = result;
+	  VN_INFO (result)->expr = val;
+	  VN_INFO (result)->needs_insertion = true;
+	  /* As all "inserted" statements are singleton SCCs, insert
+	     to the valid table.  This is strictly needed to
+	     avoid re-generating new value SSA_NAMEs for the same
+	     expression during SCC iteration over and over (the
+	     optimistic table gets cleared after each iteration).
+	     We do not need to insert into the optimistic table, as
+	     lookups there will fall back to the valid table.  */
+	  if (current_info == optimistic_info)
+	    {
+	      current_info = valid_info;
+	      vn_nary_op_insert (val, result);
+	      current_info = optimistic_info;
+	    }
+	  else
+	    vn_nary_op_insert (val, result);
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    {
+	      fprintf (dump_file, "Inserting name ");
+	      print_generic_expr (dump_file, result, 0);
+	      fprintf (dump_file, " for expression ");
+	      print_generic_expr (dump_file, val, 0);
+	      fprintf (dump_file, "\n");
+	    }
+	}
+    }
 
   if (result)
     {
@@ -1438,48 +1597,46 @@ simplify_unary_expression (tree rhs)
 static tree
 try_to_simplify (tree stmt, tree rhs)
 {
+  tree tem;
+
   /* For stores we can end up simplifying a SSA_NAME rhs.  Just return
      in this case, there is no point in doing extra work.  */
   if (TREE_CODE (rhs) == SSA_NAME)
     return rhs;
-  else
+
+  switch (TREE_CODE_CLASS (TREE_CODE (rhs)))
     {
-      switch (TREE_CODE_CLASS (TREE_CODE (rhs)))
-	{
-	  /* For references, see if we find a result for the lookup,
-	     and use it if we do.  */
-	case tcc_declaration:
-	  /* Pull out any truly constant values.  */
-	  if (TREE_READONLY (rhs)
-	      && TREE_STATIC (rhs)
-	      && DECL_INITIAL (rhs)
-	      && valid_gimple_expression_p (DECL_INITIAL (rhs)))
-	    return DECL_INITIAL (rhs);
+    case tcc_declaration:
+      tem = get_symbol_constant_value (rhs);
+      if (tem)
+	return tem;
+      break;
 
-	    /* Fallthrough. */
-	case tcc_reference:
-	  /* Do not do full-blown reference lookup here.
-	     ???  But like for tcc_declaration, we should simplify
-		  from constant initializers.  */
+    case tcc_reference:
+      /* Do not do full-blown reference lookup here, but simplify
+	 reads from constant aggregates.  */
+      tem = fold_const_aggregate_ref (rhs);
+      if (tem)
+	return tem;
 
-	  /* Fallthrough for some codes that can operate on registers.  */
-	  if (!(TREE_CODE (rhs) == REALPART_EXPR
-	        || TREE_CODE (rhs) == IMAGPART_EXPR
-		|| TREE_CODE (rhs) == VIEW_CONVERT_EXPR))
-	    break;
-	  /* We could do a little more with unary ops, if they expand
-	     into binary ops, but it's debatable whether it is worth it. */
-	case tcc_unary:
-	  return simplify_unary_expression (rhs);
-	  break;
-	case tcc_comparison:
-	case tcc_binary:
-	  return simplify_binary_expression (stmt, rhs);
-	  break;
-	default:
-	  break;
-	}
+      /* Fallthrough for some codes that can operate on registers.  */
+      if (!(TREE_CODE (rhs) == REALPART_EXPR
+	    || TREE_CODE (rhs) == IMAGPART_EXPR
+	    || TREE_CODE (rhs) == VIEW_CONVERT_EXPR))
+	break;
+      /* We could do a little more with unary ops, if they expand
+	 into binary ops, but it's debatable whether it is worth it. */
+    case tcc_unary:
+      return simplify_unary_expression (rhs);
+      break;
+    case tcc_comparison:
+    case tcc_binary:
+      return simplify_binary_expression (stmt, rhs);
+      break;
+    default:
+      break;
     }
+
   return rhs;
 }
 
@@ -1496,7 +1653,8 @@ visit_use (tree use)
   VN_INFO (use)->use_processed = true;
 
   gcc_assert (!SSA_NAME_IN_FREE_LIST (use));
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_DETAILS)
+      && !IS_EMPTY_STMT (stmt))
     {
       fprintf (dump_file, "Value numbering ");
       print_generic_expr (dump_file, use, 0);
@@ -1554,10 +1712,9 @@ visit_use (tree use)
 		  print_generic_expr (dump_file, simplified, 0);
 		  if (TREE_CODE (lhs) == SSA_NAME)
 		    fprintf (dump_file, " has constants %d\n",
-			     VN_INFO (lhs)->has_constants);
+			     expr_has_constants (simplified));
 		  else
 		    fprintf (dump_file, "\n");
-
 		}
 	    }
 	  /* Setting value numbers to constants will occasionally
@@ -1607,6 +1764,9 @@ visit_use (tree use)
 	    }
 
 	  if (TREE_CODE (lhs) == SSA_NAME
+	      /* We can substitute SSA_NAMEs that are live over
+		 abnormal edges with their constant value.  */
+	      && !is_gimple_min_invariant (rhs)
 	      && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (lhs))
 	    changed = defs_to_varying (stmt);
 	  else if (REFERENCE_CLASS_P (lhs) || DECL_P (lhs))
@@ -1985,6 +2145,9 @@ free_scc_vn (void)
 	  && SSA_NAME_VALUE (name)
 	  && TREE_CODE (SSA_NAME_VALUE (name)) == VALUE_HANDLE)
 	SSA_NAME_VALUE (name) = NULL;
+      if (name
+	  && VN_INFO (name)->needs_insertion)
+	release_ssa_name (name);
     }
   obstack_free (&vn_ssa_aux_obstack, NULL);
   VEC_free (vn_ssa_aux_t, heap, vn_ssa_aux_table);
@@ -2005,10 +2168,12 @@ free_scc_vn (void)
    due to ressource constraints.  */
 
 bool
-run_scc_vn (void)
+run_scc_vn (bool may_insert_arg)
 {
   size_t i;
   tree param;
+
+  may_insert = may_insert_arg;
 
   init_scc_vn ();
   current_info = valid_info;
@@ -2024,7 +2189,7 @@ run_scc_vn (void)
 	}
     }
 
-  for (i = num_ssa_names - 1; i > 0; i--)
+  for (i = 1; i < num_ssa_names; ++i)
     {
       tree name = ssa_name (i);
       if (name
@@ -2033,6 +2198,7 @@ run_scc_vn (void)
 	if (!DFS (name))
 	  {
 	    free_scc_vn ();
+	    may_insert = false;
 	    return false;
 	  }
     }
@@ -2058,5 +2224,6 @@ run_scc_vn (void)
 	}
     }
 
+  may_insert = false;
   return true;
 }
