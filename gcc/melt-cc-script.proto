@@ -30,10 +30,24 @@ melt_headerdir=":MELT_HEADERDIR:"
 
 csource=$1
 nakedynstuff=$2
+datf=`tempfile  -p bdat`
+if { -z "$datf" ]; then
+    datf=/tmp/bdat$$
+fi
+# generate the temporary timestamp & md5s file
+md5src=`md5sum $csource`     
+
+trap "rm -f $datf.*" EXIT
+
+date "+const char basilys_compiled_timestamp[]=\"$csource %c\";" > $datf.c
+echo "const char basilys_md5[]=\"$md5src\";" >> $datf.c
 case `uname` in
 Linux|SunOS|Solaris) 
-	$melt_cc -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource -o $makedynstuff.so;;
+	$melt_cc -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $makedynstuff.so;;
 *) 
 	libtool --mode=compile -prefer-pic $melt_cc $csource  -I "$melt_headerdir" -o $makedynstuff.lo;
-	libtool --mode=link -module $melt_cc  $makedynstuff.lo -o  $makedynstuff.la;;
+	libtool --mode=compile -prefer-pic $melt_cc $datf.c -o $datf.lo
+	libtool --mode=link -module $melt_cc  $makedynstuff.lo $datf.lo -o  $makedynstuff.la
+	rm -f $datf.*
+	;;
 esac

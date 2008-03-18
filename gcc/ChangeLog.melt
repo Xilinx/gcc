@@ -1,4 +1,7 @@
 2008-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-cc-script.prot: added generation of date & md5sum.
+
+2008-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-cc-script.prot: new file.
 	* Makefile.in: added install-melt-cc-script and built-melt-cc-script targets
 
