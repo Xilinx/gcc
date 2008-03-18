@@ -1,0 +1,39 @@
+#! /bin/sh
+#:! line starting with #:! are removed from this melt-cc-script.proto 
+#:! -*- bash -*-
+#    Copyright (C) 2008 Free Software Foundation, Inc.
+#    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+# 
+# This file :MELT_SCRIPT: is part of GCC.
+# 
+# GCC is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3, or (at your option)
+# any later version.
+# 
+# GCC is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.   If not see
+# <http://www.gnu.org/licenses/>. 
+
+#:! :MELT_CC: & :MELT_CFLAGS: &:MELT_HEADERDIR:  are substituted in the first 30 lines
+melt_cc=":MELT_CC:"
+melt_cflags=":MELT_CFLAGS:"
+melt_headerdir=":MELT_HEADERDIR:"
+
+## script invoked by cc1 with two arguments : the generated C source to compile
+## and the naked (without suffix) dynamically-loadable stuff to generate
+
+csource=$1
+nakedynstuff=$2
+case `uname` in
+Linux|SunOS|Solaris) 
+	$melt_cc -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource -o $makedynstuff.so;;
+*) 
+	libtool --mode=compile -prefer-pic $melt_cc $csource  -I "$melt_headerdir" -o $makedynstuff.lo;
+	libtool --mode=link -module $melt_cc  $makedynstuff.lo -o  $makedynstuff.la;;
+esac

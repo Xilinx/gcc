@@ -877,6 +877,7 @@ INTERNAL_CFLAGS = -DIN_GCC @CROSS@
 ALL_CFLAGS = $(X_CFLAGS) $(T_CFLAGS) \
   $(CFLAGS) $(INTERNAL_CFLAGS) $(COVERAGE_FLAGS) $(WARN_CFLAGS) $(XCFLAGS) @DEFS@
 
+
 # Likewise.  Put INCLUDES at the beginning: this way, if some autoconf macro
 # puts -I options in CPPFLAGS, our include files in the srcdir will always
 # win against random include files in /usr/include.
@@ -3931,6 +3932,7 @@ distclean: clean lang.distclean
 	-rm -f cxxmain.c
 	-rm -f gccbug .gdbinit configargs.h
 	-rm -f gcov.pod
+	-rm -f built-melt-cc-script
 # Delete po/*.gmo only if we are not building in the source directory.
 	-if [ ! -f po/exgettext ]; then rm -f po/*.gmo; fi
 	-rmdir ada cp f java objc intl po testsuite 2>/dev/null
@@ -4544,6 +4546,12 @@ melt_compile_script=$(libexecsubdir)/melt-cc-script
 ## installation into the installation directory above) for include-d *.h
 melt_build_include_dir= melt-private-build-include
 
+
+## the C flags (without any gcc -I...stuff) to be included in
+## compilation of MELT generated C code thru the melt-cc-script
+## do not put  $(INTERNAL_CFLAGS) $(COVERAGE_FLAGS) $(WARN_CFLAGS) there!
+MELT_CFLAGS= $(X_CFLAGS) $(T_CFLAGS) $(CFLAGS) $(XCFLAGS)
+
 # we want to generate all the direct (non system) dependencies of run-basilys.h
 # the following should work if $(CC) is some recent version of GCC (probably >= 4.x)
 
@@ -4570,11 +4578,10 @@ run-basilys.d: run-basilys.h \
 ## copy all the file in the dependency of run-basilys-deps into $(melt_build_include_dir)
 ## but handle the $(srcdir)/config/ files specially by copying them within a config/ directory
 run-basilys-deps:
-	echo '***' IN run-basilys-deps TARGET '***'
+#	echo '***' IN run-basilys-deps TARGET '***'
 	$(mkinstalldirs) $(melt_build_include_dir); \
 	for f in $^ ; do \
 	  cf=`echo $$f | sed  "s:$(srcdir)/config/:$(melt_build_include_dir)/config/:"`; \
-	  echo run-basilys-deps f= $$f cf= $$cf; \
 	  if [ "x$$f" != "x$$cf" ] ;  then  \
 	    $(mkinstalldirs) `dirname $$cf` ; \
 	    cp -p $$f $$cf ; \
@@ -4587,14 +4594,14 @@ run-basilys-deps:
 
 ## a phony target triggered by "start.encap" (triggered by the "all" target)
 ## we have to invoke make recursively, because run-basilys.d is a -include-d dependency file
-melt.encap: run-basilys.d
+melt.encap: run-basilys.d 
 	echo '***' IN melt.encap TARGET '***'
-	$(MAKE) run-basilys-deps
+	$(MAKE) run-basilys-deps built-melt-cc-script
 
 
 .PHONY: install-melt-headers
 
-install-melt-headers: melt.encap $(NSTALL_MELT_HEADERS_DIR)
+install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
 
 
 ## one of the intall-melt-headers-{tar,cpio,cp} targets below is
@@ -4622,6 +4629,20 @@ install-melt-headers-cpio:  install-melt-include-dir
 install-melt-headers-cp: install-melt-include-dir
 	cp -p -r $(melt_build_include_dir) $(DESTDIR)$(melt_private_include_dir)
 
+.PHONY: install-melt-cc-script
+
+## this file is actually built
+built-melt-cc-script: melt-cc-script.proto
+## the #:! lines should be removed, and in first twenty lines :MELT_GCC:
+## :MELT_CFLAGS: :MELT_HEADERDIR: :MELT_SCRIPT: should be substituted
+	sed -e s/^.:!.*// -e '1,30s/:MELT_CC:/$(CC)/' \
+	    -e '1,30s/:MELT_CFLAGS:/$(MELT_CFLAGS)/' \
+	    -e '1,30s/:MELT_SCRIPT:/built-melt-cc-script/' \
+	    -e '1,30s/:MELT_HEADERDIR:/$(melt_build_include_dir)/' \
+	< $^ > tmp-built-melt-cc-script
+	$(SHELL) $(srcdir)/../move-if-change  tmp-built-melt-cc-script built-melt-cc-script
+	chmod u+x built-melt-cc-script
+
 # Create or recreate the gcc melt private include file directory.
 install-melt-include-dir: installdirs
 	$(mkinstalldirs) $(DESTDIR)$(melt_private_include_dir)
@@ -4629,4 +4650,15 @@ install-melt-include-dir: installdirs
 	mkdir $(DESTDIR)$(melt_private_include_dir)
 	-chmod a+rx $(DESTDIR)$(melt_private_include_dir)
 
+install-melt-cc-script: melt-cc-script.proto
+## the #:! lines should be removed, and in first twenty lines :MELT_GCC:
+## :MELT_CFLAGS: :MELT_HEADERDIR: :MELT_SCRIPT: should be substituted
+	sed -e s/^.:!.*// -e '1,30s/:MELT_CC:/$(CC)/' \
+	    -e '1,30s/:MELT_CFLAGS:/$(MELT_CFLAGS)/' \
+	    -e '1,30s/:MELT_SCRIPT:/$(melt_compile_script)/' \
+	    -e '1,30s/:MELT_HEADERDIR:/$(melt_private_include_dir)/' \
+	< $^ > tmp-installed-melt-cc-script
+	chmod a+x tmp-installed-melt-cc-script
+	$(INSTALL_SCRIPT) tmp-installed-melt-cc-script $(DESTDIR)$(melt_compile_script)
+	-rm -f tmp-installed-melt-cc-script
 ### end of basilys / MELT stuff

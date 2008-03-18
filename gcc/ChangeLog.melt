@@ -1,3 +1,6 @@
+2008-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-cc-script.prot: new file.
+	* Makefile.in: added install-melt-cc-script and built-melt-cc-script targets
 
 2008-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilys_finalize, basilys_tempdir_path): added
