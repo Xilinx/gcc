@@ -1667,7 +1667,7 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
       if (DECL_ALIGN (olddecl) > DECL_ALIGN (newdecl))
 	{
 	  DECL_ALIGN (newdecl) = DECL_ALIGN (olddecl);
-	  DECL_USER_ALIGN (newdecl) |= DECL_ALIGN (olddecl);
+	  DECL_USER_ALIGN (newdecl) |= DECL_USER_ALIGN (olddecl);
 	}
     }
 
@@ -2760,12 +2760,7 @@ c_init_decl_processing (void)
   /* Declarations from c_common_nodes_and_builtins must not be associated
      with this input file, lest we get differences between using and not
      using preprocessed headers.  */
-#ifdef USE_MAPPED_LOCATION
   input_location = BUILTINS_LOCATION;
-#else
-  input_location.file = "<built-in>";
-  input_location.line = 0;
-#endif
 
   build_common_tree_nodes (flag_signed_char, false);
 
@@ -3981,7 +3976,6 @@ grokdeclarator (const struct c_declarator *declarator,
   int ea_p;
   int type_quals = TYPE_UNQUALIFIED;
   const char *name, *orig_name;
-  tree typedef_type = 0;
   bool funcdef_flag = false;
   bool funcdef_syntax = false;
   int size_varies = 0;
@@ -4055,7 +4049,6 @@ grokdeclarator (const struct c_declarator *declarator,
       type = integer_type_node;
     }
 
-  typedef_type = type;
   size_varies = C_TYPE_VARIABLE_SIZE (type);
 
   /* Diagnose defaulting to "int".  */
@@ -4754,7 +4747,6 @@ grokdeclarator (const struct c_declarator *declarator,
 
     if (decl_context == PARM)
       {
-	tree type_as_written;
 	tree promoted_type;
 
 	/* A parameter declared as an array of T is really a pointer to T.
@@ -4789,8 +4781,6 @@ grokdeclarator (const struct c_declarator *declarator,
 	  }
 	else if (type_quals)
 	  type = c_build_qualified_type (type, type_quals);
-
-	type_as_written = type;
 
 	decl = build_decl (PARM_DECL, declarator->u.id, type);
 	DECL_SOURCE_LOCATION (decl) = declarator->id_loc;
@@ -6783,7 +6773,6 @@ finish_function (void)
 	  if (flag_isoc99)
 	    {
 	      tree stmt = c_finish_return (integer_zero_node);
-#ifdef USE_MAPPED_LOCATION
 	      /* Hack.  We don't want the middle-end to warn that this return
 		 is unreachable, so we mark its location as special.  Using
 		 UNKNOWN_LOCATION has the problem that it gets clobbered in
@@ -6791,12 +6780,6 @@ finish_function (void)
 		 ensure ! should_carry_locus_p (stmt), but that needs a flag.
 	      */
 	      SET_EXPR_LOCATION (stmt, BUILTINS_LOCATION);
-#else
-	      /* Hack.  We don't want the middle-end to warn that this
-		 return is unreachable, so put the statement on the
-		 special line 0.  */
-	      annotate_with_file_line (stmt, input_filename, 0);
-#endif
 	    }
 	}
     }

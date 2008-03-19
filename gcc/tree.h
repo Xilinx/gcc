@@ -417,7 +417,7 @@ struct tree_common GTY(())
 struct gimple_stmt GTY(())
 {
   struct tree_base base;
-  source_locus locus;
+  location_t locus;
   tree block;
   /* FIXME tuples: Eventually this should be of type ``struct gimple_expr''.  */
   tree GTY ((length ("TREE_CODE_LENGTH (TREE_CODE (&%h))"))) operands[1];
@@ -436,6 +436,7 @@ struct gimple_stmt GTY(())
 	   expression.
        CALL_EXPR_TAILCALL in CALL_EXPR
        CASE_LOW_SEEN in CASE_LABEL_EXPR
+       RETURN_EXPR_OUTCOME in RETURN_EXPR
 
    static_flag:
 
@@ -542,8 +543,6 @@ struct gimple_stmt GTY(())
            all types
        DECL_UNSIGNED in
            all decls
-       BIT_FIELD_REF_UNSIGNED in
-           BIT_FIELD_REF
 
    asm_written_flag:
 
@@ -1169,6 +1168,11 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define CASE_LOW_SEEN(NODE) \
   (CASE_LABEL_EXPR_CHECK (NODE)->base.addressable_flag)
 
+#define PREDICT_EXPR_OUTCOME(NODE) \
+  (PREDICT_EXPR_CHECK(NODE)->base.addressable_flag)
+#define PREDICT_EXPR_PREDICTOR(NODE) \
+  ((enum br_predictor)tree_low_cst (TREE_OPERAND (PREDICT_EXPR_CHECK (NODE), 0), 0))
+
 /* In a VAR_DECL, nonzero means allocate static storage.
    In a FUNCTION_DECL, nonzero if function has been defined.
    In a CONSTRUCTOR, nonzero means allocate static storage.
@@ -1309,10 +1313,6 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 /* In a decl (most significantly a FIELD_DECL), means an unsigned field.  */
 #define DECL_UNSIGNED(NODE) \
   (DECL_COMMON_CHECK (NODE)->base.unsigned_flag)
-
-/* In a BIT_FIELD_REF, means the bitfield is to be interpreted as unsigned.  */
-#define BIT_FIELD_REF_UNSIGNED(NODE) \
-  (BIT_FIELD_REF_CHECK (NODE)->base.unsigned_flag)
 
 /* In integral and pointer types, means an unsigned type.  */
 #define TYPE_UNSIGNED(NODE) (TYPE_CHECK (NODE)->base.unsigned_flag)
@@ -1850,7 +1850,7 @@ enum omp_clause_default_kind
 struct tree_exp GTY(())
 {
   struct tree_common common;
-  source_locus locus;
+  location_t locus;
   tree block;
   tree GTY ((special ("tree_exp"),
 	     desc ("TREE_CODE ((tree) &%0)")))
@@ -2530,12 +2530,8 @@ struct function;
 #define DECL_SOURCE_LOCATION(NODE) (DECL_MINIMAL_CHECK (NODE)->decl_minimal.locus)
 #define DECL_SOURCE_FILE(NODE) LOCATION_FILE (DECL_SOURCE_LOCATION (NODE))
 #define DECL_SOURCE_LINE(NODE) LOCATION_LINE (DECL_SOURCE_LOCATION (NODE))
-#ifdef USE_MAPPED_LOCATION
 #define DECL_IS_BUILTIN(DECL) \
   (DECL_SOURCE_LOCATION (DECL) <= BUILTINS_LOCATION)
-#else
-#define DECL_IS_BUILTIN(DECL) (DECL_SOURCE_LINE(DECL) == 0)
-#endif
 
 /*  For FIELD_DECLs, this is the RECORD_TYPE, UNION_TYPE, or
     QUAL_UNION_TYPE node that the field is a member of.  For VAR_DECL,
@@ -4014,10 +4010,6 @@ extern tree build_decl_stat (enum tree_code, tree, tree MEM_STAT_DECL);
 extern tree build_fn_decl (const char *, tree);
 #define build_decl(c,t,q) build_decl_stat (c,t,q MEM_STAT_INFO)
 extern tree build_block (tree, tree, tree, tree);
-#ifndef USE_MAPPED_LOCATION
-extern void annotate_with_file_line (tree, const char *, int);
-extern void annotate_with_locus (tree, location_t);
-#endif
 extern tree build_empty_stmt (void);
 extern tree build_omp_clause (enum omp_clause_code);
 
@@ -4587,9 +4579,13 @@ extern tree get_unwidened (tree, tree);
 
 extern tree get_narrower (tree, int *);
 
-/* Given an expression EXP that may be a COMPONENT_REF or an ARRAY_REF,
-   look for nested component-refs or array-refs at constant positions
-   and find the ultimate containing object, which is returned.  */
+/* Return true if T is an expression that get_inner_reference handles.  */
+
+extern int handled_component_p (const_tree);
+
+/* Given an expression EXP that is a handled_component_p,
+   look for the ultimate containing object, which is returned and specify
+   the access position and size.  */
 
 extern tree get_inner_reference (tree, HOST_WIDE_INT *, HOST_WIDE_INT *,
 				 tree *, enum machine_mode *, int *, int *,
@@ -4600,10 +4596,6 @@ extern tree get_inner_reference (tree, HOST_WIDE_INT *, HOST_WIDE_INT *,
    as PACKED.  */
 
 extern bool contains_packed_reference (const_tree exp);
-
-/* Return 1 if T is an expression that get_inner_reference handles.  */
-
-extern int handled_component_p (const_tree);
 
 /* Return a tree of sizetype representing the size, in bytes, of the element
    of EXP, an ARRAY_REF.  */
@@ -4866,6 +4858,8 @@ extern enum tree_code invert_tree_comparison (enum tree_code, bool);
 extern bool tree_expr_nonzero_p (tree);
 extern bool tree_expr_nonzero_warnv_p (tree, bool *);
 
+extern bool fold_real_zero_addition_p (const_tree, const_tree, int);
+
 /* In builtins.c */
 extern tree fold_call_expr (tree, bool);
 extern tree fold_builtin_fputs (tree, tree, bool, bool, tree);
@@ -4896,17 +4890,12 @@ extern int get_pointer_alignment (tree, unsigned int);
 /* In convert.c */
 extern tree strip_float_extensions (tree);
 
-/* In alias.c */
-extern void record_component_aliases (tree);
-extern alias_set_type get_alias_set (tree);
-extern int alias_sets_conflict_p (alias_set_type, alias_set_type);
-extern int alias_sets_must_conflict_p (alias_set_type, alias_set_type);
-extern int objects_must_conflict_p (tree, tree);
-
 /* In tree.c */
 extern int really_constant_p (const_tree);
 extern int int_fits_type_p (const_tree, const_tree);
+#ifndef GENERATOR_FILE
 extern void get_type_static_bounds (const_tree, mpz_t, mpz_t);
+#endif
 extern bool variably_modified_type_p (tree, tree);
 extern int tree_log2 (const_tree);
 extern int tree_floor_log2 (const_tree);
@@ -4946,13 +4935,8 @@ extern location_t expr_location (const_tree);
 extern void set_expr_location (tree, location_t);
 extern bool expr_has_location (const_tree);
 
-#ifdef USE_MAPPED_LOCATION
-extern source_locus *expr_locus (const_tree);
+extern location_t *expr_locus (const_tree);
 extern void set_expr_locus (tree, source_location *);
-#else
-extern source_locus expr_locus (const_tree);
-extern void set_expr_locus (tree, source_locus loc);
-#endif
 extern const char *expr_filename (const_tree);
 extern int expr_lineno (const_tree);
 

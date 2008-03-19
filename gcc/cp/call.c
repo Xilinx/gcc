@@ -1145,7 +1145,8 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
      const and rvalue references to rvalues of compatible class type. */
   if (compatible_p
       && (lvalue_p
-	  || ((CP_TYPE_CONST_NON_VOLATILE_P(to) || TYPE_REF_IS_RVALUE (rto))
+	  || (!(flags & LOOKUP_NO_TEMP_BIND)
+	      && (CP_TYPE_CONST_NON_VOLATILE_P(to) || TYPE_REF_IS_RVALUE (rto))
 	      && CLASS_TYPE_P (from))))
     {
       /* [dcl.init.ref]
@@ -3857,10 +3858,10 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	  /* Look for an `operator++ (int)'.  If they didn't have
 	     one, then we fall back to the old way of doing things.  */
 	  if (flags & LOOKUP_COMPLAIN)
-	    pedwarn ("no %<%D(int)%> declared for postfix %qs, "
-		     "trying prefix operator instead",
-		     fnname,
-		     operator_name_info[code].name);
+	    permerror ("no %<%D(int)%> declared for postfix %qs, "
+		       "trying prefix operator instead",
+		       fnname,
+		       operator_name_info[code].name);
 	  if (code == POSTINCREMENT_EXPR)
 	    code = PREINCREMENT_EXPR;
 	  else
@@ -4319,6 +4320,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 {
   tree totype = convs->type;
   diagnostic_fn_t diagnostic_fn;
+  int flags;
 
   if (convs->bad_p
       && convs->kind != ck_user
@@ -4342,9 +4344,9 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  else if (t->kind == ck_identity)
 	    break;
 	}
-      pedwarn ("invalid conversion from %qT to %qT", TREE_TYPE (expr), totype);
+      permerror ("invalid conversion from %qT to %qT", TREE_TYPE (expr), totype);
       if (fn)
-	pedwarn ("  initializing argument %P of %qD", argnum, fn);
+	permerror ("  initializing argument %P of %qD", argnum, fn);
       return cp_convert (totype, expr);
     }
 
@@ -4357,6 +4359,12 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
       {
 	struct z_candidate *cand = convs->cand;
 	tree convfn = cand->fn;
+	unsigned i;
+
+	/* Set user_conv_p on the argument conversions, so rvalue/base
+	   handling knows not to allow any more UDCs.  */
+	for (i = 0; i < cand->num_convs; ++i)
+	  cand->convs[i]->user_conv_p = true;
 
 	expr = build_over_call (cand, LOOKUP_NORMAL);
 
@@ -4454,8 +4462,12 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
       /* Copy-initialization where the cv-unqualified version of the source
 	 type is the same class as, or a derived class of, the class of the
 	 destination [is treated as direct-initialization].  [dcl.init] */
-      expr = build_temp (expr, totype, LOOKUP_NORMAL|LOOKUP_ONLYCONVERTING,
-			 &diagnostic_fn);
+      flags = LOOKUP_NORMAL|LOOKUP_ONLYCONVERTING;
+      if (convs->user_conv_p)
+	/* This conversion is being done in the context of a user-defined
+	   conversion, so don't allow any more.  */
+	flags |= LOOKUP_NO_CONVERSION;
+      expr = build_temp (expr, totype, flags, &diagnostic_fn);
       if (diagnostic_fn && fn)
 	diagnostic_fn ("  initializing argument %P of %qD", argnum, fn);
       return build_cplus_new (totype, expr);
@@ -4507,6 +4519,8 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 		       expr, ref_type);
 		return error_mark_node;
 	      }
+	    if (lvalue & clk_bitfield)
+	      expr = convert_bitfield_to_declared_type (expr);
 	    expr = build_target_expr_with_type (expr, type);
 	  }
 
@@ -4813,7 +4827,6 @@ magic_varargs_p (tree fn)
       case BUILT_IN_CLASSIFY_TYPE:
       case BUILT_IN_CONSTANT_P:
       case BUILT_IN_NEXT_ARG:
-      case BUILT_IN_STDARG_START:
       case BUILT_IN_VA_START:
 	return true;
 
@@ -4943,7 +4956,7 @@ build_over_call (struct z_candidate *cand, int flags)
       tree base_binfo;
 
       if (convs[i]->bad_p)
-	pedwarn ("passing %qT as %<this%> argument of %q#D discards qualifiers",
+	permerror ("passing %qT as %<this%> argument of %q#D discards qualifiers",
 		 TREE_TYPE (argtype), fn);
 
       /* [class.mfct.nonstatic]: If a nonstatic member function of a class

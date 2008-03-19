@@ -357,12 +357,7 @@ pop_label (tree label, tree old_value)
 	  location_t location;
 
 	  error ("label %q+D used but not defined", label);
-#ifdef USE_MAPPED_LOCATION
 	  location = input_location; /* FIXME want (input_filename, (line)0) */
-#else
-	  location.file = input_filename;
-	  location.line = 0;
-#endif
 	  /* Avoid crashing later.  */
 	  define_label (location, DECL_NAME (label));
 	}
@@ -1675,6 +1670,9 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 		= DECL_INTERFACE_KNOWN (new_result);
 	      DECL_DECLARED_INLINE_P (old_result)
 		= DECL_DECLARED_INLINE_P (new_result);
+	      DECL_DISREGARD_INLINE_LIMITS (old_result)
+	        |= DECL_DISREGARD_INLINE_LIMITS (new_result);
+
 	    }
 	  else
 	    {
@@ -1682,6 +1680,8 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 		|= DECL_INLINE (new_result);
 	      DECL_DECLARED_INLINE_P (old_result)
 		|= DECL_DECLARED_INLINE_P (new_result);
+	      DECL_DISREGARD_INLINE_LIMITS (old_result)
+	        |= DECL_DISREGARD_INLINE_LIMITS (new_result);
 	      check_redeclaration_exception_specification (newdecl, olddecl);
 	    }
 	}
@@ -3159,19 +3159,10 @@ record_builtin_java_type (const char* name, int size)
   tree type, decl;
   if (size > 0)
     type = make_signed_type (size);
-  else if (size == -1)
-    { /* "__java_boolean".  */
-      if ((TYPE_MODE (boolean_type_node)
-	   == smallest_mode_for_size (1, MODE_INT)))
-        type = build_variant_type_copy (boolean_type_node);
-      else
-	/* ppc-darwin has SImode bool, make jboolean a 1-bit
-	   integer type without boolean semantics there.  */
-	type = make_unsigned_type (1);
-    }
   else if (size > -32)
-    { /* "__java_char".  */
+    { /* "__java_char" or ""__java_boolean".  */
       type = make_unsigned_type (-size);
+      /*if (size == -1)	TREE_SET_CODE (type, BOOLEAN_TYPE);*/
     }
   else
     { /* "__java_float" or ""__java_double".  */
@@ -3914,7 +3905,7 @@ groktypename (cp_decl_specifier_seq *type_specifiers,
   attrs = type_specifiers->attributes;
   type_specifiers->attributes = NULL_TREE;
   type = grokdeclarator (declarator, type_specifiers, TYPENAME, 0, &attrs);
-  if (attrs)
+  if (attrs && type != error_mark_node)
     {
       if (CLASS_TYPE_P (type))
 	warning (OPT_Wattributes, "ignoring attributes applied to class type %qT "
@@ -3956,6 +3947,7 @@ start_decl (const cp_declarator *declarator,
   tree type;
   tree context;
   bool was_public;
+  int flags;
 
   *pushed_scope_p = NULL_TREE;
 
@@ -4017,8 +4009,17 @@ start_decl (const cp_declarator *declarator,
 	TREE_STATIC (decl) = 1;
     }
 
+  /* If this is a typedef that names the class for linkage purposes
+     (7.1.3p8), apply any attributes directly to the type.  */
+  if (TREE_CODE (decl) == TYPE_DECL
+      && TAGGED_TYPE_P (TREE_TYPE (decl))
+      && decl == TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (decl))))
+    flags = ATTR_FLAG_TYPE_IN_PLACE;
+  else
+    flags = 0;
+
   /* Set attributes here so if duplicate decl, will have proper attributes.  */
-  cplus_decl_attributes (&decl, attributes, 0);
+  cplus_decl_attributes (&decl, attributes, flags);
 
   /* Dllimported symbols cannot be defined.  Static data members (which
      can be initialized in-class and dllimported) go through grokfield,
@@ -7018,12 +7019,7 @@ compute_array_index_type (tree name, tree size)
     {
       /* Check to see if the array bound overflowed.  Make that an
 	 error, no matter how generous we're being.  */
-      int old_flag_pedantic_errors = flag_pedantic_errors;
-      int old_pedantic = pedantic;
-      pedantic = flag_pedantic_errors = 1;
-      constant_expression_warning (size);
-      pedantic = old_pedantic;
-      flag_pedantic_errors = old_flag_pedantic_errors;
+      constant_expression_error (size);
 
       /* An array must have a positive number of elements.  */
       if (INT_CST_LT (size, integer_zero_node))
@@ -8555,8 +8551,6 @@ grokdeclarator (const cp_declarator *declarator,
 	  && TYPE_NAME (type)
 	  && TREE_CODE (TYPE_NAME (type)) == TYPE_DECL
 	  && TYPE_ANONYMOUS_P (type)
-	  /* Don't do this if there are attributes.  */
-	  && (!attrlist || !*attrlist)
 	  && cp_type_quals (type) == TYPE_UNQUALIFIED)
 	{
 	  tree oldname = TYPE_NAME (type);
@@ -11801,14 +11795,10 @@ finish_function (int flags)
 	  /* Hack.  We don't want the middle-end to warn that this
 	     return is unreachable, so put the statement on the
 	     special line 0.  */
-#ifdef USE_MAPPED_LOCATION
 	  {
 	    location_t linezero = linemap_line_start (line_table, 0, 1);
 	    SET_EXPR_LOCATION (stmt, linezero);
 	  }
-#else
-	  annotate_with_file_line (stmt, input_filename, 0);
-#endif
 	}
 
       if (use_eh_spec_block (current_function_decl))

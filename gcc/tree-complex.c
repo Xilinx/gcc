@@ -161,15 +161,14 @@ is_complex_reg (tree lhs)
 static void
 init_parameter_lattice_values (void)
 {
-  tree parm;
+  tree parm, ssa_name;
 
   for (parm = DECL_ARGUMENTS (cfun->decl); parm ; parm = TREE_CHAIN (parm))
-    if (is_complex_reg (parm) && var_ann (parm) != NULL)
-      {
-	tree ssa_name = gimple_default_def (cfun, parm);
-	VEC_replace (complex_lattice_t, complex_lattice_values,
-		     SSA_NAME_VERSION (ssa_name), VARYING);
-      }
+    if (is_complex_reg (parm)
+	&& var_ann (parm) != NULL
+	&& (ssa_name = gimple_default_def (cfun, parm)) != NULL_TREE)
+      VEC_replace (complex_lattice_t, complex_lattice_values,
+		   SSA_NAME_VERSION (ssa_name), VARYING);
 }
 
 /* Initialize DONT_SIMULATE_AGAIN for each stmt and phi.  Return false if
@@ -763,7 +762,8 @@ expand_complex_move (block_stmt_iterator *bsi, tree stmt, tree type,
 	  i = build1 (IMAGPART_EXPR, inner_type, lhs);
 	  update_complex_components_on_edge (e, lhs, r, i);
 	}
-      else if (TREE_CODE (rhs) == CALL_EXPR || TREE_SIDE_EFFECTS (rhs))
+      else if (TREE_CODE (rhs) == CALL_EXPR || TREE_SIDE_EFFECTS (rhs)
+	       || TREE_CODE (rhs) == PAREN_EXPR)
 	{
 	  r = build1 (REALPART_EXPR, inner_type, lhs);
 	  i = build1 (IMAGPART_EXPR, inner_type, lhs);

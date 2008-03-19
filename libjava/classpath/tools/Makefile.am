@@ -197,6 +197,14 @@ if JAVA_MAINTAINER_MODE
 	  cp $(top_srcdir)/resource/$$p classes/$$p; \
 	done
 endif
+## Copy over rmic template files.
+	@list=`cd $(srcdir) && find gnu/classpath/tools -name \*.jav -print`; \
+	for p in $$list; do \
+	  dirname=classes/`dirname $$p`; \
+	  if ! test -d "$$dirname"; then mkdir -p "$$dirname"; fi; \
+	  echo "  cp $(srcdir)/$$p classes/$$p"; \
+	  cp $(srcdir)/$$p classes/$$p; \
+	done
 	cp -pR $(srcdir)/asm .
 	cp -pR $(srcdir)/classes .
 ## END GCJ LOCAL

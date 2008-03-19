@@ -1,3 +1,31 @@
+2008-03-07  Peter O'Gorman  <pogma@thewrittenword.com>
+
+	PR c++/20366
+	* inclhack.def (AAB_aix_stdio): Hack stdio.h for -D_LARGE_FILES.
+	* fixincl.x: Regenerate.
+	* tests/base/stdio.h: Add test.
+
+2008-02-25  Ben Elliston  <bje@au.ibm.com>
+
+	PR other/32948
+	* fixincl.c (fix_applies): Remove unused variable `name_len'.
+
+2008-02-19  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* inclhack.def (solaris_math_10): New.
+	* tests/base/iso/math_c99.h: Update.
+
+	* fixincl.x: Regenerate.
+
+2008-02-04  Ismail Dönmez  <ismail@pardus.org.tr>
+
+	* inclhack.def: (bsd_stdio_attrs_conflict, freebsd_gcc3_breakage,
+	freebsd_gcc4_breakage, hppa_hpux_fp_macros, hpux11_abs,
+	netbsd_c99_inline_1, netbsd_c99_inline_2, netbsd_extra_semicolon):  Add
+	quotes around mach entries.
+	* fixincl.x: Regenerate with latest autogen (5.9.4), updating license
+	to GPLv3.
+
 2008-02-04  Hans-Peter Nilsson  <hp@axis.com>
 
 	PR other/31405

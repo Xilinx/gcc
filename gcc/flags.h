@@ -137,6 +137,12 @@ extern void set_Wstrict_aliasing (int onoff);
 extern bool warn_larger_than;
 extern HOST_WIDE_INT larger_than_size;
 
+/* Nonzero means warn about any function whose frame size is larger
+   than N bytes. */
+
+extern bool warn_frame_larger_than;
+extern HOST_WIDE_INT frame_larger_than_size;
+
 /* Temporarily suppress certain warnings.
    This is set while reading code from a system header file.  */
 
@@ -190,6 +196,10 @@ extern int flag_dump_unnumbered;
    Usually these are warnings about failure to conform to some standard.  */
 
 extern int flag_pedantic_errors;
+
+/* Nonzero means make permerror produce warnings instead of errors.  */
+
+extern int flag_permissive;
 
 /* Nonzero if we are compiling code for a shared library, zero for
    executable.  */

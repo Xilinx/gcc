@@ -35,8 +35,6 @@ enum tree_dump_index
   TDI_original,			/* dump each function before optimizing it */
   TDI_generic,			/* dump each function after genericizing it */
   TDI_nested,			/* dump each function after unnesting it */
-  TDI_inlined,			/* dump each function after inlining
-				   within it.  */
   TDI_vcg,			/* create a VCG graph file for each
 				   function's flowgraph.  */
   TDI_tree_all,                 /* enable all the GENERIC/GIMPLE dumps.  */
@@ -267,6 +265,7 @@ extern struct tree_opt_pass pass_scev_cprop;
 extern struct tree_opt_pass pass_empty_loop;
 extern struct tree_opt_pass pass_record_bounds;
 extern struct tree_opt_pass pass_if_conversion;
+extern struct tree_opt_pass pass_loop_distribution;
 extern struct tree_opt_pass pass_vectorize;
 extern struct tree_opt_pass pass_complete_unroll;
 extern struct tree_opt_pass pass_parallelize_loops;

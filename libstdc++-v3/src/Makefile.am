@@ -121,7 +121,7 @@ basic_file.cc: ${glibcxx_srcdir}/$(BASIC_FILE_CC)
 	$(LN_S) ${glibcxx_srcdir}/$(BASIC_FILE_CC) ./$@ || true
 
 if ENABLE_PARALLEL
-parallel_sources = parallel_list.cc 
+parallel_sources = parallel_list.cc parallel_settings.cc
 else
 parallel_sources =
 endif
@@ -141,6 +141,7 @@ sources = \
 	compatibility.cc \
 	complex_io.cc \
 	ctype.cc \
+	date_time.cc \
 	debug.cc \
 	functexcept.cc \
 	hash.cc \
@@ -214,11 +215,17 @@ concept-inst.lo: concept-inst.cc
 concept-inst.o: concept-inst.cc
 	$(CXXCOMPILE) -D_GLIBCXX_CONCEPT_CHECKS -fimplicit-templates -c $<
 
-# Use special rules for parallel_list.cc compile.
+# Use special rules for parallel mode compilation.
+PARALLEL_FLAGS = -fopenmp -D_GLIBCXX_PARALLEL -I$(glibcxx_builddir)/../libgomp
 parallel_list.lo: parallel_list.cc
-	$(LTCXXCOMPILE) -I$(glibcxx_builddir)/../libgomp -c $<
+	$(LTCXXCOMPILE) $(PARALLEL_FLAGS) -c $<
 parallel_list.o: parallel_list.cc
-	$(CXXCOMPILE) -I$(glibcxx_builddir)/../libgomp -c $<
+	$(CXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+
+parallel_settings.lo: parallel_settings.cc
+	$(LTCXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+parallel_settings.o: parallel_settings.cc
+	$(CXXCOMPILE) $(PARALLEL_FLAGS) -c $<
 
 # Use special rules for the C++0x sources so that the proper flags are passed.
 system_error.lo: system_error.cc
@@ -234,6 +241,11 @@ hash_c++0x.o: hash_c++0x.cc
 hashtable_c++0x.lo: hashtable_c++0x.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 hashtable_c++0x.o: hashtable_c++0x.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+date_time.lo: date_time.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+date_time.o: date_time.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 if GLIBCXX_LDBL_COMPAT

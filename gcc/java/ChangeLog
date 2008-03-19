@@ -1,3 +1,42 @@
+2008-03-12  Paolo Bonzini  <bonzini@gnu.org>
+
+	* mangle.c (java_mangle_decl): Remove dead check.
+
+2008-03-11  Paolo Bonzini  <bonzini@gnu.org>
+
+        * jcf-parse.c (java_parse_file): Assert binding levels are
+        left in order.
+        * lang.c (LANG_HOOKS_CLEAR_BINDING_STACK, java_clear_binding_stack):
+        Delete.
+
+2008-03-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* jcf-dump.c (version): Update copyright notice dates.
+
+2008-02-29  Tom Tromey  <tromey@redhat.com>
+
+	* expr.c (expand_byte_code): Set DECL_FUNCTION_LAST_LINE on
+	method.
+	* java-tree.h (struct lang_decl_func): Remove obsolete comment.
+
+2008-02-26  Tom Tromey  <tromey@redhat.com>
+
+	* lang.c (java_post_options): Remove conditional.
+	* expr.c (expand_byte_code): Remove old location code.
+	* jcf-parse.c (set_source_filename): Remove old location code.
+	(give_name_to_class): Likewise.
+	(jcf_parse): Likewise.
+	(duplicate_class_warning): Likewise.
+	(parse_class_file): Likewise.
+	(java_parse_file): Likewise.
+	* decl.c (finish_method): Remove old location code.
+	* class.c (push_class): Remove old location code.
+
+2008-02-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/35107
+	* Make-lang.in (jc1): Add $(GMPLIBS).
+
 2008-01-23  David Daney  <ddaney@avtrex.com>
 
 	* class.c (hide)  Rename to...

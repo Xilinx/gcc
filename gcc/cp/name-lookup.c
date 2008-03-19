@@ -1,5 +1,5 @@
 /* Definitions for C++ name lookup routines.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@integrable-solutions.net>
 
@@ -1919,7 +1919,7 @@ push_overloaded_decl (tree decl, int flags, bool is_friend)
 	  if (IS_AGGR_TYPE (t) && warn_shadow
 	      && (! DECL_IN_SYSTEM_HEADER (decl)
 		  || ! DECL_IN_SYSTEM_HEADER (old)))
-	    warning (0, "%q#D hides constructor for %q#T", decl, t);
+	    warning (OPT_Wshadow, "%q#D hides constructor for %q#T", decl, t);
 	  old = NULL_TREE;
 	}
       else if (is_overloaded_fn (old))
@@ -4419,6 +4419,13 @@ arg_assoc_namespace (struct arg_lookup *k, tree scope)
     if (arg_assoc_namespace (k, TREE_PURPOSE (value)))
       return true;
 
+  /* Also look down into inline namespaces.  */
+  for (value = DECL_NAMESPACE_USING (scope); value;
+       value = TREE_CHAIN (value))
+    if (is_associated_namespace (scope, TREE_PURPOSE (value)))
+      if (arg_assoc_namespace (k, TREE_PURPOSE (value)))
+	return true;
+
   value = namespace_binding (k->name, scope);
   if (!value)
     return false;
@@ -4594,6 +4601,7 @@ arg_assoc_type (struct arg_lookup *k, tree type)
     case COMPLEX_TYPE:
     case VECTOR_TYPE:
     case BOOLEAN_TYPE:
+    case FIXED_POINT_TYPE:
       return false;
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (type))

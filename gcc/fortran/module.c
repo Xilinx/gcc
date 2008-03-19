@@ -1,6 +1,6 @@
 /* Handle modules, which amounts to loading and saving symbols and
    their attendant structures.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -2310,6 +2310,12 @@ mio_symtree_ref (gfc_symtree **stp)
 	  p->u.rsym.symtree->n.sym = p->u.rsym.sym;
 	  p->u.rsym.symtree->n.sym->refs++;
 	  p->u.rsym.referenced = 1;
+
+	  /* If the symbol is PRIVATE and in COMMON, load_commons will
+	     generate a fixup symbol, which must be associated.  */
+	  if (p->fixup)
+	    resolve_fixups (p->fixup, p->u.rsym.sym);
+	  p->fixup = NULL;
 	}
       
       if (p->type == P_UNKNOWN)

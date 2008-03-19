@@ -256,6 +256,7 @@ static bool sh_callee_copies (CUMULATIVE_ARGS *, enum machine_mode,
 			      const_tree, bool);
 static int sh_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 			         tree, bool);
+static bool sh_scalar_mode_supported_p (enum machine_mode);
 static int sh_dwarf_calling_convention (const_tree);
 
 
@@ -431,6 +432,8 @@ static int sh_dwarf_calling_convention (const_tree);
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR sh_gimplify_va_arg_expr
 
+#undef TARGET_SCALAR_MODE_SUPPORTED_P
+#define TARGET_SCALAR_MODE_SUPPORTED_P sh_scalar_mode_supported_p
 #undef TARGET_VECTOR_MODE_SUPPORTED_P
 #define TARGET_VECTOR_MODE_SUPPORTED_P sh_vector_mode_supported_p
 
@@ -3838,6 +3841,7 @@ find_barrier (int num_mova, rtx mova, rtx from)
   rtx barrier_before_mova = 0, found_barrier = 0, good_barrier = 0;
   int si_limit;
   int hi_limit;
+  rtx orig = from;
 
   /* For HImode: range is 510, add 4 because pc counts from address of
      second instruction after this one, subtract 2 for the jump instruction
@@ -3897,6 +3901,7 @@ find_barrier (int num_mova, rtx mova, rtx from)
 
       if (GET_CODE (from) == BARRIER)
 	{
+	  rtx next;
 
 	  found_barrier = from;
 
@@ -3905,6 +3910,14 @@ find_barrier (int num_mova, rtx mova, rtx from)
 	     this kind of barrier.  */
 	  if (barrier_align (from) > 2)
 	    good_barrier = from;
+
+	  /* If we are at the end of a hot/cold block, dump the constants
+	     here.  */
+	  next = NEXT_INSN (from);
+	  if (next
+	      && NOTE_P (next)
+	      && NOTE_KIND (next) == NOTE_INSN_SWITCH_TEXT_SECTIONS)
+	    break;
 	}
 
       if (broken_move (from))
@@ -4061,7 +4074,8 @@ find_barrier (int num_mova, rtx mova, rtx from)
       /* If we exceeded the range, then we must back up over the last
 	 instruction we looked at.  Otherwise, we just need to undo the
 	 NEXT_INSN at the end of the loop.  */
-      if (count_hi > hi_limit || count_si > si_limit)
+      if (PREV_INSN (from) != orig
+	  && (count_hi > hi_limit || count_si > si_limit))
 	from = PREV_INSN (PREV_INSN (from));
       else
 	from = PREV_INSN (from);
@@ -9190,6 +9204,17 @@ sh_md_finish_global (FILE *dump ATTRIBUTE_UNUSED,
     }
 }
 
+/* The scalar modes supported differs from the default version in TImode
+   for 32-bit SHMEDIA.  */
+static bool
+sh_scalar_mode_supported_p (enum machine_mode mode)
+{
+  if (TARGET_SHMEDIA32 && mode == TImode)
+    return false;
+
+  return default_scalar_mode_supported_p (mode);
+}
+
 /* Cache the can_issue_more so that we can return it from reorder2. Also,
    keep count of register pressures on SImode and SFmode. */
 static int
@@ -10864,8 +10889,10 @@ sh_secondary_reload (bool in_p, rtx x, enum reg_class class,
         return GENERAL_REGS;
       if (class == FPUL_REGS && immediate_operand (x, mode))
 	{
-	  if (satisfies_constraint_I08 (x))
+	  if (satisfies_constraint_I08 (x) || fp_zero_operand (x))
 	    return GENERAL_REGS;
+	  else if (mode == SFmode)
+	    return FP_REGS;
 	  sri->icode = CODE_FOR_reload_insi__i_fpul;
 	  return NO_REGS;
 	}

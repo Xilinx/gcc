@@ -204,6 +204,16 @@ insert_unit (int n)
 }
 
 
+/* destroy_unit_mutex()-- Destroy the mutex and free memory of unit.  */
+
+static void
+destroy_unit_mutex (gfc_unit * u)
+{
+  __gthread_mutex_destroy (&u->lock);
+  free_mem (u);
+}
+
+
 static gfc_unit *
 delete_root (gfc_unit * t)
 {
@@ -341,7 +351,7 @@ found:
 	  __gthread_mutex_lock (&unit_lock);
 	  __gthread_mutex_unlock (&p->lock);
 	  if (predec_waiting_locked (p) == 0)
-	    free_mem (p);
+	    destroy_unit_mutex (p);
 	  goto retry;
 	}
 
@@ -455,14 +465,18 @@ free_internal_unit (st_parameter_dt *dtp)
   if (!is_internal_unit (dtp))
     return;
 
-  if (dtp->u.p.current_unit->ls != NULL)
-      free_mem (dtp->u.p.current_unit->ls);
-  
-  sclose (dtp->u.p.current_unit->s);
-
   if (dtp->u.p.current_unit != NULL)
-    free_mem (dtp->u.p.current_unit);
+    {
+      if (dtp->u.p.current_unit->ls != NULL)
+	free_mem (dtp->u.p.current_unit->ls);
+  
+      if (dtp->u.p.current_unit->s)
+	free_mem (dtp->u.p.current_unit->s);
+  
+      destroy_unit_mutex (dtp->u.p.current_unit);
+    }
 }
+      
 
 
 /* get_unit()-- Returns the unit structure associated with the integer
@@ -612,7 +626,7 @@ close_unit_1 (gfc_unit *u, int locked)
      avoid freeing the memory, the last such thread will free it
      instead.  */
   if (u->waiting == 0)
-    free_mem (u);
+    destroy_unit_mutex (u);
 
   if (!locked)
     __gthread_mutex_unlock (&unit_lock);

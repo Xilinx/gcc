@@ -1,6 +1,7 @@
 // 1999-01-17 bkoz test functionality of basic_filebuf for char_type == char
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -19,8 +20,7 @@
 // Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 // USA.
 
-// 27.8.1.1 - Template class basic_filebuf 
-// NB: This file is for testing basic_filebuf with NO OTHER INCLUDES.
+// 27.6.1.5 - Template class basic_iostream 
 
 #include <iostream>
 #include <testsuite_hooks.h>

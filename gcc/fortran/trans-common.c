@@ -1,5 +1,5 @@
 /* Common block and equivalence list handling
-   Copyright (C) 2000, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Canqun Yang <canqun@nudt.edu.cn>
 
@@ -316,6 +316,15 @@ build_field (segment_info *h, tree union_type, record_layout_info rli)
       gfc_set_decl_location (addr, &h->sym->declared_at);
       GFC_DECL_STRING_LEN (field) = pushdecl_top_level (len);
       GFC_DECL_ASSIGN_ADDR (field) = pushdecl_top_level (addr);
+    }
+
+  /* If this field is volatile, mark it.  */
+  if (h->sym->attr.volatile_)
+    {
+      tree new;
+      TREE_THIS_VOLATILE (field) = 1;
+      new = build_qualified_type (TREE_TYPE (field), TYPE_QUAL_VOLATILE);
+      TREE_TYPE (field) = new;
     }
 
   h->field = field;
@@ -684,8 +693,8 @@ create_common (gfc_common_head *com, segment_info *head, bool saw_equiv)
 	gfc_add_decl_to_function (var_decl);
 
       SET_DECL_VALUE_EXPR (var_decl,
-			   build3 (COMPONENT_REF, TREE_TYPE (s->field),
-				   decl, s->field, NULL_TREE));
+			   fold_build3 (COMPONENT_REF, TREE_TYPE (s->field),
+					decl, s->field, NULL_TREE));
       DECL_HAS_VALUE_EXPR_P (var_decl) = 1;
       GFC_DECL_COMMON_OR_EQUIV (var_decl) = 1;
 

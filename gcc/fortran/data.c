@@ -1,5 +1,5 @@
 /* Supporting functions for resolving DATA statement.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Lifang Zeng <zlf605@hotmail.com>
 
@@ -311,6 +311,29 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
 	  else
 	    mpz_set (offset, index);
 
+	  /* Check the bounds.  */
+	  if (mpz_cmp_si (offset, 0) < 0)
+	    {
+	      gfc_error ("Data element below array lower bound at %L",
+			 &lvalue->where);
+	      return FAILURE;
+	    }
+	  else
+	    {
+	      mpz_t size;
+	      if (spec_size (ref->u.ar.as, &size) == SUCCESS)
+		{
+		  if (mpz_cmp (offset, size) >= 0)
+		  {
+		    mpz_clear (size);
+		    gfc_error ("Data element above array upper bound at %L",
+			       &lvalue->where);
+		    return FAILURE;
+		  }
+		  mpz_clear (size);
+		}
+	    }
+
 	  /* Splay tree containing offset and gfc_constructor.  */
 	  spt = expr->con_by_offset;
 
@@ -401,14 +424,9 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
 	  /* Order in which the expressions arrive here depends on whether
 	     they are from data statements or F95 style declarations.
 	     Therefore, check which is the most recent.  */
-#ifdef USE_MAPPED_LOCATION
 	  expr = (LOCATION_LINE (init->where.lb->location)
 		  > LOCATION_LINE (rvalue->where.lb->location))
 	       ? init : rvalue;
-#else
-	  expr = (init->where.lb->linenum > rvalue->where.lb->linenum)
-	       ? init : rvalue;
-#endif
 	  gfc_notify_std (GFC_STD_GNU, "Extension: re-initialization "
 			  "of '%s' at %L", symbol->name, &expr->where);
 	}

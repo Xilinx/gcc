@@ -1899,7 +1899,6 @@ inline_forbidden_p_1 (tree *nodep, int *walk_subtrees ATTRIBUTE_UNUSED,
 	    /* We cannot inline functions that take a variable number of
 	       arguments.  */
 	  case BUILT_IN_VA_START:
-	  case BUILT_IN_STDARG_START:
 	  case BUILT_IN_NEXT_ARG:
 	  case BUILT_IN_VA_END:
 	    inline_forbidden_reason
@@ -2222,6 +2221,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case COMPOUND_EXPR:
     case BIND_EXPR:
     case WITH_CLEANUP_EXPR:
+    case PAREN_EXPR:
     case NOP_EXPR:
     case CONVERT_EXPR:
     case VIEW_CONVERT_EXPR:
@@ -2265,6 +2265,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case COMPLEX_CST:
     case VECTOR_CST:
     case STRING_CST:
+    case PREDICT_EXPR:
       *walk_subtrees = 0;
       return NULL;
 
@@ -2434,6 +2435,11 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case CALL_EXPR:
       {
 	tree decl = get_callee_fndecl (x);
+	tree addr = CALL_EXPR_FN (x);
+	tree funtype = TREE_TYPE (addr);
+
+	gcc_assert (POINTER_TYPE_P (funtype));
+	funtype = TREE_TYPE (funtype);
 
 	if (decl && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_MD)
 	  cost = d->weights->target_builtin_call_cost;
@@ -2456,20 +2462,33 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
 	      break;
 	    }
 
+	if (decl)
+	  funtype = TREE_TYPE (decl);
+
 	/* Our cost must be kept in sync with cgraph_estimate_size_after_inlining
-	   that does use function declaration to figure out the arguments.  */
-	if (!decl)
+	   that does use function declaration to figure out the arguments. 
+
+	   When we deal with function with no body nor prototype, base estimates on
+	   actual parameters of the call expression.  Otherwise use either the actual
+	   arguments types or function declaration for more precise answer.  */
+	if (decl && DECL_ARGUMENTS (decl))
+	  {
+	    tree arg;
+	    for (arg = DECL_ARGUMENTS (decl); arg; arg = TREE_CHAIN (arg))
+	      d->count += estimate_move_cost (TREE_TYPE (arg));
+	  }
+	else if (funtype && prototype_p (funtype))
+	  {
+	    tree t;
+	    for (t = TYPE_ARG_TYPES (funtype); t; t = TREE_CHAIN (t))
+	      d->count += estimate_move_cost (TREE_VALUE (t));
+	  }
+	else
 	  {
 	    tree a;
 	    call_expr_arg_iterator iter;
 	    FOR_EACH_CALL_EXPR_ARG (a, iter, x)
 	      d->count += estimate_move_cost (TREE_TYPE (a));
-	  }
-	else
-	  {
-	    tree arg;
-	    for (arg = DECL_ARGUMENTS (decl); arg; arg = TREE_CHAIN (arg))
-	      d->count += estimate_move_cost (TREE_TYPE (arg));
 	  }
 
 	d->count += cost;
@@ -3704,6 +3723,8 @@ build_duplicate_type (tree type)
   type = remap_type_1 (type, &id);
 
   pointer_map_destroy (id.decl_map);
+
+  TYPE_CANONICAL (type) = type;
 
   return type;
 }

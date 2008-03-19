@@ -294,9 +294,6 @@ struct lang_hooks
      parsers to dump debugging information during parsing.  */
   void (*parse_file) (int);
 
-  /* Called immediately after parsing to clear the binding stack.  */
-  void (*clear_binding_stack) (void);
-
   /* Called to obtain the alias set to be used for an expression or type.
      Returns -1 if the language does nothing special for it.  */
   alias_set_type (*get_alias_set) (tree);
@@ -331,10 +328,6 @@ struct lang_hooks
      Otherwise, set it to the ERROR_MARK_NODE to ensure that the
      assembler does not talk about it.  */
   void (*set_decl_assembler_name) (tree);
-
-  /* Nonzero if operations on types narrower than their mode should
-     have their results reduced to the precision of the type.  */
-  bool reduce_bit_field_operations;
 
   /* Nonzero if this front end does not generate a dummy BLOCK between
      the outermost scope of the function and the FUNCTION_DECL.  See

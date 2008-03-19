@@ -1,5 +1,5 @@
 /* Routines for manipulation of expression nodes.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -1051,18 +1051,19 @@ find_array_element (gfc_constructor *cons, gfc_array_ref *ar,
       mpz_mul (span, span, tmp);
     }
 
-  if (cons)
-    {
-      for (nelemen = mpz_get_ui (offset); nelemen > 0; nelemen--)
-	{
-	  if (cons->iterator)
-	    {
-	      cons = NULL;
-	      goto depart;
-	    }
-	  cons = cons->next;
-	}
-    }
+    for (nelemen = mpz_get_ui (offset); nelemen > 0; nelemen--)
+      {
+        if (cons)
+	  {
+	    if (cons->iterator)
+	      {
+	        cons = NULL;
+	      
+	        goto depart;
+	      }
+	    cons = cons->next;
+	  }
+      }
 
 depart:
   mpz_clear (delta);
@@ -1341,7 +1342,7 @@ find_array_section (gfc_expr *expr, gfc_ref *ref)
 	  cons = base;
 	}
 
-      while (mpz_cmp (ptr, index) > 0)
+      while (cons && cons->next && mpz_cmp (ptr, index) > 0)
 	{
 	  mpz_add_ui (index, index, one);
 	  cons = cons->next;
@@ -2825,8 +2826,8 @@ gfc_check_assign (gfc_expr *lvalue, gfc_expr *rvalue, int conform)
       if (lvalue->ts.type == BT_LOGICAL && rvalue->ts.type == BT_LOGICAL)
 	return SUCCESS;
 
-      gfc_error ("Incompatible types in assignment at %L, %s to %s",
-		 &rvalue->where, gfc_typename (&rvalue->ts),
+      gfc_error ("Incompatible types in assignment at %L; attempted assignment "
+		 "of %s to %s", &rvalue->where, gfc_typename (&rvalue->ts),
 		 gfc_typename (&lvalue->ts));
 
       return FAILURE;
@@ -2909,8 +2910,9 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 
   if (!gfc_compare_types (&lvalue->ts, &rvalue->ts))
     {
-      gfc_error ("Different types in pointer assignment at %L",
-		 &lvalue->where);
+      gfc_error ("Different types in pointer assignment at %L; attempted "
+		 "assignment of %s to %s", &lvalue->where, 
+		 gfc_typename (&rvalue->ts), gfc_typename (&lvalue->ts));
       return FAILURE;
     }
 

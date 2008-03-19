@@ -1,6 +1,6 @@
 /* Language-dependent node constructors for parse phase of GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "target.h"
 #include "convert.h"
+#include "tree-flow.h"
 
 static tree bot_manip (tree *, int *, void *);
 static tree bot_replace (tree *, int *, void *);
@@ -259,6 +260,13 @@ build_target_expr (tree decl, tree value)
 {
   tree t;
 
+#ifdef ENABLE_CHECKING
+  gcc_assert (VOID_TYPE_P (TREE_TYPE (value))
+	      || TREE_TYPE (decl) == TREE_TYPE (value)
+	      || useless_type_conversion_p (TREE_TYPE (decl),
+					    TREE_TYPE (value)));
+#endif
+
   t = build4 (TARGET_EXPR, TREE_TYPE (decl), decl, value,
 	      cxx_maybe_build_cleanup (decl), NULL_TREE);
   /* We always set TREE_SIDE_EFFECTS so that expand_expr does not
@@ -407,10 +415,12 @@ build_target_expr_with_type (tree init, tree type)
   if (TREE_CODE (init) == TARGET_EXPR)
     return init;
   else if (CLASS_TYPE_P (type) && !TYPE_HAS_TRIVIAL_INIT_REF (type)
+	   && !VOID_TYPE_P (TREE_TYPE (init))
 	   && TREE_CODE (init) != COND_EXPR
 	   && TREE_CODE (init) != CONSTRUCTOR
 	   && TREE_CODE (init) != VA_ARG_EXPR)
-    /* We need to build up a copy constructor call.  COND_EXPR is a special
+    /* We need to build up a copy constructor call.  A void initializer
+       means we're being called from bot_manip.  COND_EXPR is a special
        case because we already have copies on the arms and we don't want
        another one here.  A CONSTRUCTOR is aggregate initialization, which
        is handled separately.  A VA_ARG_EXPR is magic creation of an
@@ -716,47 +726,33 @@ cp_build_qualified_type_real (tree type,
 	  break;
 
       if (!t)
-	{
-	  tree index_type = TYPE_DOMAIN (type);
-	  void **e;
-	  cplus_array_info cai;
-	  hashval_t hash;
+      {
+	t = build_cplus_array_type_1 (element_type, TYPE_DOMAIN (type));
 
-	  if (cplus_array_htab == NULL)
-	    cplus_array_htab = htab_create_ggc (61, &cplus_array_hash,
-						&cplus_array_compare, 
-						NULL);
+	if (TYPE_MAIN_VARIANT (t) != TYPE_MAIN_VARIANT (type))
+	  {
+	    /* Set the main variant of the newly-created ARRAY_TYPE
+	       (with cv-qualified element type) to the main variant of
+	       the unqualified ARRAY_TYPE we started with.  */
+	    tree last_variant = t;
+	    tree m = TYPE_MAIN_VARIANT (type);
 
-	  hash = (htab_hash_pointer (element_type)
-		  ^ htab_hash_pointer (index_type));
-	  cai.type = element_type;
-	  cai.domain = index_type;
-	  
-	  e = htab_find_slot_with_hash (cplus_array_htab, &cai, hash, INSERT);
-	  if (*e)
-	    /* We have found the type: we're done. */
-	    return (tree) *e;
+	    /* Find the last variant on the new ARRAY_TYPEs list of
+	       variants, setting the main variant of each of the other
+	       types to the main variant of our unqualified
+	       ARRAY_TYPE.  */
+	    while (TYPE_NEXT_VARIANT (last_variant))
+	      {
+		TYPE_MAIN_VARIANT (last_variant) = m;
+		last_variant = TYPE_NEXT_VARIANT (last_variant);
+	      }
 
-	  /* Build a new array type and add it into the table.  */
-	  t = build_variant_type_copy (type);
-	  TREE_TYPE (t) = element_type;
-	  *e = t;
-
-	  /* Set the canonical type for this new node.  */
-	  if (TYPE_STRUCTURAL_EQUALITY_P (element_type)
-	      || (index_type && TYPE_STRUCTURAL_EQUALITY_P (index_type)))
-	    SET_TYPE_STRUCTURAL_EQUALITY (t);
-	  else if (TYPE_CANONICAL (element_type) != element_type
-		   || (index_type 
-		       && TYPE_CANONICAL (index_type) != index_type)
-		   || TYPE_CANONICAL (type) != type)
-	    TYPE_CANONICAL (t)
-	      = build_cplus_array_type
-	         (TYPE_CANONICAL (element_type),
-		  index_type? TYPE_CANONICAL (index_type) : index_type);
-	  else
-	    TYPE_CANONICAL (t) = t;
-	}
+	    /* Splice in the newly-created variants.  */
+	    TYPE_NEXT_VARIANT (last_variant) = TYPE_NEXT_VARIANT (m);
+	    TYPE_NEXT_VARIANT (m) = t;
+	    TYPE_MAIN_VARIANT (last_variant) = m;
+	  }
+      }
 
       /* Even if we already had this variant, we update
 	 TYPE_NEEDS_CONSTRUCTING and TYPE_HAS_NONTRIVIAL_DESTRUCTOR in case
@@ -1460,16 +1456,16 @@ bot_manip (tree* tp, int* walk_subtrees, void* data)
       tree u;
 
       if (TREE_CODE (TREE_OPERAND (t, 1)) == AGGR_INIT_EXPR)
-	u = build_cplus_new
-	  (TREE_TYPE (t), break_out_target_exprs (TREE_OPERAND (t, 1)));
+	u = build_cplus_new (TREE_TYPE (t), TREE_OPERAND (t, 1));
       else
-	u = build_target_expr_with_type
-	  (break_out_target_exprs (TREE_OPERAND (t, 1)), TREE_TYPE (t));
+	u = build_target_expr_with_type (TREE_OPERAND (t, 1), TREE_TYPE (t));
 
       /* Map the old variable to the new one.  */
       splay_tree_insert (target_remap,
 			 (splay_tree_key) TREE_OPERAND (t, 0),
 			 (splay_tree_value) TREE_OPERAND (u, 0));
+
+      TREE_OPERAND (u, 1) = break_out_target_exprs (TREE_OPERAND (u, 1));
 
       /* Replace the old expression with the new version.  */
       *tp = u;

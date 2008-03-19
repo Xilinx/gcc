@@ -1,5 +1,5 @@
 /* Parse and display command line options.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -42,8 +42,8 @@ static void
 set_default_std_flags (void)
 {
   gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F95_DEL
-    | GFC_STD_F2003 | GFC_STD_F95 | GFC_STD_F77 | GFC_STD_GNU
-    | GFC_STD_LEGACY;
+    | GFC_STD_F2003 | GFC_STD_F2008 | GFC_STD_F95 | GFC_STD_F77
+    | GFC_STD_GNU | GFC_STD_LEGACY;
   gfc_option.warn_std = GFC_STD_F95_DEL | GFC_STD_LEGACY;
 }
 
@@ -153,6 +153,9 @@ form_from_filename (const char *filename)
     ,
     {
     ".f03", FORM_FREE}
+    ,
+    {
+    ".f08", FORM_FREE}
     ,
     {
     ".f", FORM_FIXED}
@@ -492,6 +495,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_option.warn_line_truncation = value;
       break;
 
+    case OPT_Wreturn_type:
+      warn_return_type = value;
+      break;
+
     case OPT_Wsurprising:
       gfc_option.warn_surprising = value;
       break;
@@ -740,6 +747,17 @@ gfc_handle_option (size_t scode, const char *arg, int value)
     case OPT_std_f2003:
       gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F77 
 	| GFC_STD_F2003 | GFC_STD_F95;
+      gfc_option.warn_std = GFC_STD_F95_OBS;
+      gfc_option.max_continue_fixed = 255;
+      gfc_option.max_continue_free = 255;
+      gfc_option.max_identifier_length = 63;
+      gfc_option.warn_ampersand = 1;
+      gfc_option.warn_tabs = 0;
+      break;
+
+    case OPT_std_f2008:
+      gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F77 
+	| GFC_STD_F2003 | GFC_STD_F95 | GFC_STD_F2008;
       gfc_option.warn_std = GFC_STD_F95_OBS;
       gfc_option.max_continue_fixed = 255;
       gfc_option.max_continue_free = 255;

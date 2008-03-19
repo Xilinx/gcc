@@ -962,6 +962,8 @@ structural_comptypes (tree t1, tree t2, int strict)
   if (TREE_CODE (t1) != ARRAY_TYPE
       && TYPE_QUALS (t1) != TYPE_QUALS (t2))
     return false;
+  if (TYPE_FOR_JAVA (t1) != TYPE_FOR_JAVA (t2))
+    return false;
 
   /* Allow for two different type nodes which have essentially the same
      definition.  Note that we already checked for equality of the type
@@ -970,9 +972,6 @@ structural_comptypes (tree t1, tree t2, int strict)
   if (TREE_CODE (t1) != ARRAY_TYPE
       && TYPE_MAIN_VARIANT (t1) == TYPE_MAIN_VARIANT (t2))
     return true;
-
-  if (TYPE_FOR_JAVA (t1) != TYPE_FOR_JAVA (t2))
-    return false;
 
   /* Compare the types.  Break out if they could be the same.  */
   switch (TREE_CODE (t1))
@@ -1923,9 +1922,11 @@ build_class_member_access_expr (tree object, tree member,
 	  && !DECL_FIELD_IS_BASE (member)
 	  && !skip_evaluation)
 	{
-	  warning (0, "invalid access to non-static data member %qD of NULL object",
-		   member);
-	  warning (0, "(perhaps the %<offsetof%> macro was used incorrectly)");
+	  warning (OPT_Winvalid_offsetof, 
+                   "invalid access to non-static data member %qD "
+                   " of NULL object", member);
+	  warning (OPT_Winvalid_offsetof, 
+                   "(perhaps the %<offsetof%> macro was used incorrectly)");
 	}
 
       /* If MEMBER is from an anonymous aggregate, we have converted
@@ -3348,7 +3349,7 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 
     case EQ_EXPR:
     case NE_EXPR:
-      if (code0 == REAL_TYPE || code1 == REAL_TYPE)
+      if (FLOAT_TYPE_P (type0) || FLOAT_TYPE_P (type1))
 	warning (OPT_Wfloat_equal,
 		 "comparing floating point with == or != is unsafe");
       if ((TREE_CODE (orig_op0) == STRING_CST && !integer_zerop (op1))
@@ -4831,18 +4832,38 @@ build_compound_expr (tree lhs, tree rhs)
 }
 
 /* Issue a diagnostic message if casting from SRC_TYPE to DEST_TYPE
-   casts away constness.  DIAG_FN gives the function to call if we
-   need to issue a diagnostic; if it is NULL, no diagnostic will be
-   issued.  DESCRIPTION explains what operation is taking place.  */
+   casts away constness.  CAST gives the type of cast.  */
 
 static void
 check_for_casting_away_constness (tree src_type, tree dest_type,
-				  void (*diag_fn)(const char *, ...) ATTRIBUTE_GCC_CXXDIAG(1,2),
-				  const char *description)
+				  enum tree_code cast)
 {
-  if (diag_fn && casts_away_constness (src_type, dest_type))
-    diag_fn ("%s from type %qT to type %qT casts away constness",
-	     description, src_type, dest_type);
+  /* C-style casts are allowed to cast away constness.  With
+     WARN_CAST_QUAL, we still want to issue a warning.  */
+  if (cast == CAST_EXPR && !warn_cast_qual)
+      return;
+  
+  if (casts_away_constness (src_type, dest_type))
+    switch (cast)
+      {
+      case CAST_EXPR:
+	warning (OPT_Wcast_qual, 
+                 "cast from type %qT to type %qT casts away constness",
+		 src_type, dest_type);
+	return;
+	
+      case STATIC_CAST_EXPR:
+	error ("static_cast from type %qT to type %qT casts away constness",
+	       src_type, dest_type);
+	return;
+	
+      case REINTERPRET_CAST_EXPR:
+	error ("reinterpret_cast from type %qT to type %qT casts away constness",
+	       src_type, dest_type);
+	return;
+      default:
+	gcc_unreachable();
+      }
 }
 
 /* Convert EXPR (an expression with pointer-to-member type) to TYPE
@@ -4928,8 +4949,6 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
   tree intype;
   tree result;
   tree orig;
-  void (*diag_fn)(const char*, ...) ATTRIBUTE_GCC_CXXDIAG(1,2);
-  const char *desc;
 
   /* Assume the cast is valid.  */
   *valid_p = true;
@@ -4938,21 +4957,6 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
 
   /* Save casted types in the function's used types hash table.  */
   used_types_insert (type);
-
-  /* Determine what to do when casting away constness.  */
-  if (c_cast_p)
-    {
-      /* C-style casts are allowed to cast away constness.  With
-	 WARN_CAST_QUAL, we still want to issue a warning.  */
-      diag_fn = warn_cast_qual ? warning0 : NULL;
-      desc = "cast";
-    }
-  else
-    {
-      /* A static_cast may not cast away constness.  */
-      diag_fn = error;
-      desc = "static_cast";
-    }
 
   /* [expr.static.cast]
 
@@ -5078,7 +5082,7 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
       tree base;
 
       if (!c_cast_p)
-	check_for_casting_away_constness (intype, type, diag_fn, desc);
+	check_for_casting_away_constness (intype, type, STATIC_CAST_EXPR);
       base = lookup_base (TREE_TYPE (type), TREE_TYPE (intype),
 			  c_cast_p ? ba_unique : ba_check,
 			  NULL);
@@ -5113,8 +5117,7 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
       if (can_convert (t1, t2) || can_convert (t2, t1))
 	{
 	  if (!c_cast_p)
-	    check_for_casting_away_constness (intype, type, diag_fn,
-					      desc);
+	    check_for_casting_away_constness (intype, type, STATIC_CAST_EXPR);
 	  return convert_ptrmem (type, expr, /*allow_inverse_p=*/1,
 				 c_cast_p);
 	}
@@ -5131,7 +5134,7 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
       && TYPE_PTROB_P (type))
     {
       if (!c_cast_p)
-	check_for_casting_away_constness (intype, type, diag_fn, desc);
+	check_for_casting_away_constness (intype, type, STATIC_CAST_EXPR);
       return build_nop (type, expr);
     }
 
@@ -5316,8 +5319,7 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
       tree sexpr = expr;
 
       if (!c_cast_p)
-	check_for_casting_away_constness (intype, type, error,
-					  "reinterpret_cast");
+	check_for_casting_away_constness (intype, type, REINTERPRET_CAST_EXPR);
       /* Warn about possible alignment problems.  */
       if (STRICT_ALIGNMENT && warn_cast_align
 	  && !VOID_TYPE_P (type)
@@ -5325,9 +5327,8 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
 	  && COMPLETE_TYPE_P (TREE_TYPE (type))
 	  && COMPLETE_TYPE_P (TREE_TYPE (intype))
 	  && TYPE_ALIGN (TREE_TYPE (type)) > TYPE_ALIGN (TREE_TYPE (intype)))
-	warning (0, "cast from %qT to %qT increases required alignment of "
-		 "target type",
-		 intype, type);
+	warning (OPT_Wcast_align, "cast from %qT to %qT "
+                 "increases required alignment of target type", intype, type);
 
       /* We need to strip nops here, because the front end likes to
 	 create (int *)&a for array-to-pointer decay, instead of &a[0].  */
@@ -5472,10 +5473,7 @@ build_const_cast_1 (tree dst_type, tree expr, bool complain,
 	  *valid_p = true;
 	  /* This cast is actually a C-style cast.  Issue a warning if
 	     the user is making a potentially unsafe cast.  */
-	  if (warn_cast_qual)
-	    check_for_casting_away_constness (src_type, dst_type,
-					      warning0,
-					      "cast");
+	  check_for_casting_away_constness (src_type, dst_type, CAST_EXPR);
 	}
       if (reference_type)
 	{

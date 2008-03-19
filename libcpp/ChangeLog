@@ -1,3 +1,37 @@
+2008-03-13  Tom Tromey  <tromey@redhat.com>
+
+	PR libcpp/35322:
+	* directives.c (destringize_and_run): Set pfile->directive.
+
+2008-03-06  Markus Milleder  <markus.milleder@generali.at>
+
+	PR preprocessor/35458
+	* mkdeps.c (munge): Quote '#' with a '\'.
+
+2008-02-27  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR preprocessor/35379
+	* mkdeps.c (deps_write): Ensure the first target always appears
+	in the first column, without leading backslash newline.  Avoid
+	some more extra whitespace.
+
+2008-02-25  Thiemo Seufer <ths@mips.com>
+
+	* Makefile.in ($(srcdir)/config.in): Depend on configure.ac.
+
+2008-02-19  Tom Tromey  <tromey@redhat.com>
+
+	* traditional.c (lex_identifier): Use CPP_HASHNODE.
+	* lex.c (lex_identifier): Use CPP_HASHNODE.
+	* include/line-map.h (LINEMAP_POSITION_FOR_COLUMN): Wrap in
+	do-while.
+	* identifiers.c (alloc_node): Change return type.
+	(_cpp_init_hashtable): Don't cast 'alloc_node'.
+	(proxy_assertion_broken): New declaration.
+	(cpp_forall_identifiers): Move comment.
+	* line-map.c (linemap_add): Comment fix.
+	(linemap_line_start): Indentation fix.
+
 2008-01-25  Jakub Jelinek  <jakub@redhat.com>
 
 	PR preprocessor/34692

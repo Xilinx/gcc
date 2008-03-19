@@ -183,6 +183,10 @@ insert_field_into_struct (tree type, tree field)
 
   TREE_CHAIN (field) = *p;
   *p = field;
+
+  /* Set correct alignment for frame struct type.  */
+  if (TYPE_ALIGN (type) < DECL_ALIGN (field))
+    TYPE_ALIGN (type) = DECL_ALIGN (field);
 }
 
 /* Build or return the RECORD_TYPE that describes the frame state that is
@@ -1739,7 +1743,8 @@ convert_call_expr (tree *tp, int *walk_subtrees, void *data)
 	      break;
 	  if (c == NULL)
 	    {
-	      c = build_omp_clause (OMP_CLAUSE_FIRSTPRIVATE);
+	      c = build_omp_clause (i ? OMP_CLAUSE_FIRSTPRIVATE
+				      : OMP_CLAUSE_SHARED);
 	      OMP_CLAUSE_DECL (c) = decl;
 	      OMP_CLAUSE_CHAIN (c) = OMP_PARALLEL_CLAUSES (t);
 	      OMP_PARALLEL_CLAUSES (t) = c;

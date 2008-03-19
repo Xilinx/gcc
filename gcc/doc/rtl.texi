@@ -1,5 +1,5 @@
 @c Copyright (C) 1988, 1989, 1992, 1994, 1997, 1998, 1999, 2000, 2001, 2002,
-@c 2003, 2004, 2005, 2006, 2007
+@c 2003, 2004, 2005, 2006, 2007, 2008
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -1904,7 +1904,7 @@ declarations and during RTL generation.  It should not appear in the
 ordinary insn chain.
 
 @findex concatn
-@item (concatn@var{m} [@var{rtx} ...])
+@item (concatn@var{m} [@var{rtx} @dots{}])
 This RTX represents the concatenation of all the @var{rtx} to make a
 single value.  Like @code{concat}, this should only appear in
 declarations, and not in the insn chain.
@@ -2218,7 +2218,7 @@ valid.
 Represents the number of leading 0-bits in @var{x}, represented as an
 integer of mode @var{m}, starting at the most significant bit position.
 If @var{x} is zero, the value is determined by
-@code{CLZ_DEFINED_VALUE_AT_ZERO}.  Note that this is one of
+@code{CLZ_DEFINED_VALUE_AT_ZERO} (@pxref{Misc}).  Note that this is one of
 the few expressions that is not invariant under widening.  The mode of
 @var{x} will usually be an integer mode.
 
@@ -2227,7 +2227,7 @@ the few expressions that is not invariant under widening.  The mode of
 Represents the number of trailing 0-bits in @var{x}, represented as an
 integer of mode @var{m}, starting at the least significant bit position.
 If @var{x} is zero, the value is determined by
-@code{CTZ_DEFINED_VALUE_AT_ZERO}.  Except for this case,
+@code{CTZ_DEFINED_VALUE_AT_ZERO} (@pxref{Misc}).  Except for this case,
 @code{ctz(x)} is equivalent to @code{ffs(@var{x}) - 1}.  The mode of
 @var{x} will usually be an integer mode.
 

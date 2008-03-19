@@ -3218,11 +3218,11 @@ This target hook allows the backend to emit frame-related insns that
 contain UNSPECs or UNSPEC_VOLATILEs.  The DWARF 2 call frame debugging
 info engine will invoke it on insns of the form
 @smallexample
-(set (reg) (unspec [...] UNSPEC_INDEX))
+(set (reg) (unspec [@dots{}] UNSPEC_INDEX))
 @end smallexample
 and
 @smallexample
-(set (reg) (unspec_volatile [...] UNSPECV_INDEX)).
+(set (reg) (unspec_volatile [@dots{}] UNSPECV_INDEX)).
 @end smallexample
 to let the backend emit the call frame instructions.  @var{label} is
 the CFI label attached to the insn, @var{pattern} is the pattern of
@@ -5483,7 +5483,7 @@ widening multiplication of the even elements of two input vectors of type @var{x
 If this hook is defined, the autovectorizer will use it along with the
 @code{TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD} target hook when vectorizing
 widening multiplication in cases that the order of the results does not have to be
-preserved (e.g. used only by a reduction computation). Otherwise, the
+preserved (e.g.@: used only by a reduction computation). Otherwise, the
 @code{widen_mult_hi/lo} idioms will be used.
 @end deftypefn
 
@@ -5494,7 +5494,7 @@ widening multiplication of the odd elements of two input vectors of type @var{x}
 If this hook is defined, the autovectorizer will use it along with the
 @code{TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN} target hook when vectorizing
 widening multiplication in cases that the order of the results does not have to be
-preserved (e.g. used only by a reduction computation). Otherwise, the
+preserved (e.g.@: used only by a reduction computation). Otherwise, the
 @code{widen_mult_hi/lo} idioms will be used.
 @end deftypefn
 
@@ -6214,14 +6214,14 @@ used to initialize data used by the previous hook.
 @deftypefn {Target Hook} void TARGET_SCHED_DFA_PRE_CYCLE_ADVANCE (void)
 The hook to notify target that the current simulated cycle is about to finish.
 The hook is analogous to @samp{TARGET_SCHED_DFA_PRE_CYCLE_INSN} but used
-to change the state in more complicated situations - e.g. when advancing
+to change the state in more complicated situations - e.g., when advancing
 state on a single insn is not enough.
 @end deftypefn
 
 @deftypefn {Target Hook} void TARGET_SCHED_DFA_POST_CYCLE_ADVANCE (void)
 The hook to notify target that new simulated cycle has just started.
 The hook is analogous to @samp{TARGET_SCHED_DFA_POST_CYCLE_INSN} but used
-to change the state in more complicated situations - e.g. when advancing
+to change the state in more complicated situations - e.g., when advancing
 state on a single insn is not enough.
 @end deftypefn
 
@@ -6350,7 +6350,7 @@ enabled/used.  @var{flags} initially may have either the SCHED_RGN or SCHED_EBB
 bit set.  This denotes the scheduler pass for which the data should be
 provided.  The target backend should modify @var{flags} by modifying
 the bits corresponding to the following features: USE_DEPS_LIST, USE_GLAT,
-DETACH_LIFE_INFO, and DO_SPECULATION.  For the DO_SPECULATION feature
+DETACH_LIFE_INFO, and DO_SPECULATION@.  For the DO_SPECULATION feature
 an additional structure @var{spec_info} should be filled by the target.
 The structure describes speculation types that can be used in the scheduler.
 @end deftypefn
@@ -7151,7 +7151,7 @@ defining this macro.  If unable, use the expression
 before and after that, output the additional assembler syntax for defining
 the name, and a newline.
 
-There are two ways of handling global BSS.  One is to define either
+There are two ways of handling global BSS@.  One is to define either
 this macro or its aligned counterpart, @code{ASM_OUTPUT_ALIGNED_BSS}.
 The other is to have @code{TARGET_ASM_SELECT_SECTION} return a
 switchable BSS section (@pxref{TARGET_HAVE_SWITCHABLE_BSS_SECTIONS}).
@@ -10142,7 +10142,7 @@ may in turn cause a branch offset to overflow.
 @deftypefn {Target Hook} bool TARGET_COMMUTATIVE_P (rtx @var{x}, @var{outer_code})
 This target hook returns @code{true} if @var{x} is considered to be commutative.
 Usually, this is just COMMUTATIVE_P (@var{x}), but the HP PA doesn't consider
-PLUS to be commutative inside a MEM.  @var{outer_code} is the rtx code
+PLUS to be commutative inside a MEM@.  @var{outer_code} is the rtx code
 of the enclosing rtl, if known, otherwise it is UNKNOWN.
 @end deftypefn
 

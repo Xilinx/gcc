@@ -1141,6 +1141,13 @@ $(TOOLS_ZIP): $(TOOLS_JAVA_FILES)
 @JAVA_MAINTAINER_MODE_TRUE@	  echo "  cp $(top_srcdir)/resource/$$p classes/$$p"; \
 @JAVA_MAINTAINER_MODE_TRUE@	  cp $(top_srcdir)/resource/$$p classes/$$p; \
 @JAVA_MAINTAINER_MODE_TRUE@	done
+	@list=`cd $(srcdir) && find gnu/classpath/tools -name \*.jav -print`; \
+	for p in $$list; do \
+	  dirname=classes/`dirname $$p`; \
+	  if ! test -d "$$dirname"; then mkdir -p "$$dirname"; fi; \
+	  echo "  cp $(srcdir)/$$p classes/$$p"; \
+	  cp $(srcdir)/$$p classes/$$p; \
+	done
 	cp -pR $(srcdir)/asm .
 	cp -pR $(srcdir)/classes .
 	(cd classes; \

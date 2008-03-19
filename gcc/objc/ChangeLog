@@ -1,3 +1,12 @@
+2008-02-26  Tom Tromey  <tromey@redhat.com>
+
+	* objc-act.c (objc_init): Remove old location code.
+
+2008-02-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/35107
+	* Make-lang.in (cc1obj-dummy, cc1obj): Add $(GMPLIBS).
+
 2007-07-30  Nick Clifton  <nickc@redhat.com>
 
 	* Make-lang.in: Change copyright header to refer to version 3 of

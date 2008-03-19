@@ -523,15 +523,6 @@ fi
 AC_SUBST(valgrind_path_defines)
 AC_SUBST(valgrind_command)
 
-AC_ARG_ENABLE(mapped-location,
-[  --enable-mapped-location   location_t is fileline integer cookie],,
-enable_mapped_location=yes)
-
-if test "$enable_mapped_location" = yes ; then
-  AC_DEFINE(USE_MAPPED_LOCATION, 1,
-[Define if location_t is fileline integer cookie.])
-fi
-
 # Enable code coverage collection
 AC_ARG_ENABLE(coverage,
 [  --enable-coverage[=LEVEL]
@@ -1172,9 +1163,29 @@ AC_SUBST(objext)
 AC_ARG_ENABLE(sjlj-exceptions,
 [  --enable-sjlj-exceptions
                           arrange to use setjmp/longjmp exception handling],
-[sjlj=`if test $enableval = yes; then echo 1; else echo 0; fi`
-AC_DEFINE_UNQUOTED(CONFIG_SJLJ_EXCEPTIONS, $sjlj,
-  [Define 0/1 to force the choice for exception handling model.])])
+[case $target in
+  *-*-hpux10*)
+    if test $enableval != yes; then
+      AC_MSG_WARN([dwarf2 exceptions not supported, sjlj exceptions forced])
+      enableval=yes
+    fi
+    ;;
+esac
+force_sjlj_exceptions=yes],
+[case $target in
+  *-*-hpux10*)
+    force_sjlj_exceptions=yes
+    enableval=yes
+    ;;
+  *)
+    force_sjlj_exceptions=no
+    ;;
+esac])
+if test $force_sjlj_exceptions = yes; then
+  sjlj=`if test $enableval = yes; then echo 1; else echo 0; fi`
+  AC_DEFINE_UNQUOTED(CONFIG_SJLJ_EXCEPTIONS, $sjlj,
+    [Define 0/1 to force the choice for exception handling model.])
+fi
 
 # For platforms with the unwind ABI which includes an unwind library,
 # libunwind, we can choose to use the system libunwind.
@@ -3727,6 +3738,7 @@ AC_SUBST(build_install_headers_dir)
 AC_SUBST(build_xm_file_list)
 AC_SUBST(build_xm_include_list)
 AC_SUBST(build_xm_defines)
+AC_SUBST(build_file_translate)
 AC_SUBST(check_languages)
 AC_SUBST(cpp_install_dir)
 AC_SUBST(xmake_file)

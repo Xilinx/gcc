@@ -38,14 +38,63 @@
 #ifndef _GLIBCXX_PARALLEL_BASE_H
 #define _GLIBCXX_PARALLEL_BASE_H 1
 
-#include <parallel/features.h>
+#include <cstdio>
 #include <functional>
+#include <omp.h>
+#include <parallel/features.h>
 #include <parallel/basic_iterator.h>
 #include <parallel/parallel.h>
-#include <cstdio>
+
+
+// Parallel mode namespaces.
+namespace std 
+{ 
+  namespace __parallel { } 
+}
+
+/**
+ * @namespace __gnu_parallel
+ * @brief GNU parallel classes for public use.
+ */
+namespace __gnu_parallel
+{
+  // Import all the parallel versions of components in namespace std.
+  using namespace std::__parallel;
+}
+
+/**
+ * @namespace __gnu_sequential
+ * @brief GNU sequential classes for public use.
+ */
+namespace __gnu_sequential 
+{ 
+  // Import whatever is the serial version.
+#ifdef _GLIBCXX_PARALLEL
+  using namespace std::__norm;
+#else
+  using namespace std;
+#endif   
+}
+
 
 namespace __gnu_parallel
 {
+  // NB: Including this file cannot produce (unresolved) symbols from
+  // the OpenMP runtime unless the parallel mode is actually invoked
+  // and active, which imples that the OpenMP runtime is actually
+  // going to be linked in.
+  inline int
+  get_max_threads() 
+  { 
+    int __i = omp_get_max_threads();
+    return __i > 1 ? __i : 1; 
+  }
+
+  
+  inline bool 
+  is_parallel(const _Parallelism __p) { return __p != sequential; }
+
+
   // XXX remove std::duplicates from here if possible,
   // XXX but keep minimal dependencies.
 
@@ -144,11 +193,8 @@ template<typename _Predicate, typename argument_type>
 
 /** @brief Similar to std::binder1st,
   *  but giving the argument types explicitly. */
-template<
-    typename _Operation,
-    typename first_argument_type,
-    typename second_argument_type,
-    typename result_type>
+template<typename _Operation, typename first_argument_type,
+	 typename second_argument_type, typename result_type>
   class binder1st
   : public std::unary_function<second_argument_type, result_type>
   {
@@ -176,11 +222,8 @@ template<
   *  @brief Similar to std::binder2nd, but giving the argument types
   *  explicitly.
   */
-template<
-    typename _Operation,
-    typename first_argument_type,
-    typename second_argument_type,
-    typename result_type>
+template<typename _Operation, typename first_argument_type,
+	 typename second_argument_type, typename result_type>
   class binder2nd
   : public std::unary_function<first_argument_type, result_type>
   {
@@ -437,8 +480,8 @@ __replacement_assert(const char* __file, int __line,
 #define _GLIBCXX_PARALLEL_ASSERT(_Condition)                            \
 do 								        \
   {									\
-    if (!(_Condition))						\
-      __gnu_parallel::__replacement_assert(__FILE__, __LINE__,	\
+    if (!(_Condition))						   	\
+      __gnu_parallel::__replacement_assert(__FILE__, __LINE__,		\
                                   __PRETTY_FUNCTION__, #_Condition);	\
   } while (false)
 

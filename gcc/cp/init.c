@@ -829,12 +829,13 @@ emit_mem_initializers (tree mem_inits)
       tree subobject = TREE_PURPOSE (mem_inits);
       tree arguments = TREE_VALUE (mem_inits);
 
-      /* If these initializations are taking place in a copy
-	 constructor, the base class should probably be explicitly
-	 initialized.  */
+      /* If these initializations are taking place in a copy constructor,
+	 the base class should probably be explicitly initialized if there
+	 is a user-defined constructor in the base class (other than the
+	 default constructor, which will be called anyway).  */
       if (extra_warnings && !arguments
 	  && DECL_COPY_CONSTRUCTOR_P (current_function_decl)
-	  && TYPE_NEEDS_CONSTRUCTING (BINFO_TYPE (subobject)))
+	  && type_has_user_nondefault_constructor (BINFO_TYPE (subobject)))
 	warning (OPT_Wextra, "%Jbase class %q#T should be explicitly initialized in the "
 		 "copy constructor",
 		 current_function_decl, BINFO_TYPE (subobject));
@@ -1800,7 +1801,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
      beginning of the storage allocated for an array-new expression in
      order to store the number of elements.  */
   tree cookie_size = NULL_TREE;
-  tree placement_expr;
+  tree placement_expr = NULL_TREE;
   /* True if the function we are calling is a placement allocation
      function.  */
   bool placement_allocation_fn_p;
@@ -1891,19 +1892,6 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
     }
 
   alloc_fn = NULL_TREE;
-
-  /* If PLACEMENT is a simple pointer type, then copy it into
-     PLACEMENT_EXPR.  */
-  if (processing_template_decl
-      || placement == NULL_TREE
-      || TREE_CHAIN (placement) != NULL_TREE
-      || TREE_CODE (TREE_TYPE (TREE_VALUE (placement))) != POINTER_TYPE)
-    placement_expr = NULL_TREE;
-  else
-    {
-      placement_expr = get_target_expr (TREE_VALUE (placement));
-      placement = tree_cons (NULL_TREE, placement_expr, NULL_TREE);
-    }
 
   /* Allocate the object.  */
   if (! placement && TYPE_FOR_JAVA (elt_type))
@@ -1998,6 +1986,28 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
     return error_mark_node;
 
   gcc_assert (alloc_fn != NULL_TREE);
+
+  /* If PLACEMENT is a simple pointer type and is not passed by reference,
+     then copy it into PLACEMENT_EXPR.  */
+  if (!processing_template_decl
+      && placement != NULL_TREE
+      && TREE_CHAIN (placement) == NULL_TREE
+      && TREE_CODE (TREE_TYPE (TREE_VALUE (placement))) == POINTER_TYPE
+      && TREE_CODE (alloc_call) == CALL_EXPR
+      && call_expr_nargs (alloc_call) == 2
+      && TREE_CODE (TREE_TYPE (CALL_EXPR_ARG (alloc_call, 0))) == INTEGER_TYPE
+      && TREE_CODE (TREE_TYPE (CALL_EXPR_ARG (alloc_call, 1))) == POINTER_TYPE)
+    {
+      tree placement_arg = CALL_EXPR_ARG (alloc_call, 1);
+
+      if (INTEGRAL_TYPE_P (TREE_TYPE (TREE_TYPE (placement_arg)))
+	  || VOID_TYPE_P (TREE_TYPE (TREE_TYPE (placement_arg))))
+	{
+	  placement_expr = get_target_expr (TREE_VALUE (placement));
+	  CALL_EXPR_ARG (alloc_call, 1)
+	    = convert (TREE_TYPE (placement_arg), placement_expr);
+	}
+    }
 
   /* In the simple case, we can stop now.  */
   pointer_type = build_pointer_type (type);

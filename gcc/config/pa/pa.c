@@ -668,6 +668,8 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
   /* Labels need special handling.  */
   if (pic_label_operand (orig, mode))
     {
+      rtx insn;
+
       /* We do not want to go through the movXX expanders here since that
 	 would create recursion.
 
@@ -678,7 +680,24 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 	 So instead we just emit the raw set, which avoids the movXX
 	 expanders completely.  */
       mark_reg_pointer (reg, BITS_PER_UNIT);
-      emit_insn (gen_rtx_SET (VOIDmode, reg, orig));
+      insn = emit_insn (gen_rtx_SET (VOIDmode, reg, orig));
+
+      /* Put a REG_EQUAL note on this insn, so that it can be optimized.  */
+      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUAL, orig, REG_NOTES (insn));
+
+      /* During and after reload, we need to generate a REG_LABEL_OPERAND note
+	 and update LABEL_NUSES because this is not done automatically.  */
+      if (reload_in_progress || reload_completed)
+	{
+	  /* Extract LABEL_REF.  */
+	  if (GET_CODE (orig) == CONST)
+	    orig = XEXP (XEXP (orig, 0), 0);
+	  /* Extract CODE_LABEL.  */
+	  orig = XEXP (orig, 0);
+	  REG_NOTES (insn) = gen_rtx_INSN_LIST (REG_LABEL_OPERAND, orig,
+						REG_NOTES (insn));
+	  LABEL_NUSES (orig)++;
+	}
       current_function_uses_pic_offset_table = 1;
       return reg;
     }
@@ -7398,14 +7417,13 @@ attr_length_call (rtx insn, int sibcall)
     length += 12;
 
   /* long pc-relative branch sequence.  */
-  else if ((TARGET_SOM && TARGET_LONG_PIC_SDIFF_CALL)
-	   || (TARGET_64BIT && !TARGET_GAS)
+  else if (TARGET_LONG_PIC_SDIFF_CALL
 	   || (TARGET_GAS && !TARGET_SOM
 	       && (TARGET_LONG_PIC_PCREL_CALL || local_call)))
     {
       length += 20;
 
-      if (!TARGET_PA_20 && !TARGET_NO_SPACE_REGS)
+      if (!TARGET_PA_20 && !TARGET_NO_SPACE_REGS && flag_pic)
 	length += 8;
     }
 
@@ -7425,7 +7443,7 @@ attr_length_call (rtx insn, int sibcall)
 	  if (!sibcall)
 	    length += 8;
 
-	  if (!TARGET_NO_SPACE_REGS)
+	  if (!TARGET_NO_SPACE_REGS && flag_pic)
 	    length += 8;
 	}
     }
@@ -7509,7 +7527,7 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 	     of increasing length and complexity.  In most cases,
              they don't allow an instruction in the delay slot.  */
 	  if (!((TARGET_LONG_ABS_CALL || local_call) && !flag_pic)
-	      && !(TARGET_SOM && TARGET_LONG_PIC_SDIFF_CALL)
+	      && !TARGET_LONG_PIC_SDIFF_CALL
 	      && !(TARGET_GAS && !TARGET_SOM
 		   && (TARGET_LONG_PIC_PCREL_CALL || local_call))
 	      && !TARGET_64BIT)
@@ -7555,13 +7573,12 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 	    }
 	  else
 	    {
-	      if ((TARGET_SOM && TARGET_LONG_PIC_SDIFF_CALL)
-		  || (TARGET_64BIT && !TARGET_GAS))
+	      if (TARGET_LONG_PIC_SDIFF_CALL)
 		{
 		  /* The HP assembler and linker can handle relocations
-		     for the difference of two symbols.  GAS and the HP
-		     linker can't do this when one of the symbols is
-		     external.  */
+		     for the difference of two symbols.  The HP assembler
+		     recognizes the sequence as a pc-relative call and
+		     the linker provides stubs when needed.  */
 		  xoperands[1] = gen_label_rtx ();
 		  output_asm_insn ("{bl|b,l} .+8,%%r1", xoperands);
 		  output_asm_insn ("addil L'%0-%l1,%%r1", xoperands);
@@ -7646,20 +7663,20 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 		}
 	      else
 		{
-		  if (!TARGET_NO_SPACE_REGS)
+		  if (!TARGET_NO_SPACE_REGS && flag_pic)
 		    output_asm_insn ("ldsid (%%r1),%%r31\n\tmtsp %%r31,%%sr0",
 				     xoperands);
 
 		  if (sibcall)
 		    {
-		      if (TARGET_NO_SPACE_REGS)
+		      if (TARGET_NO_SPACE_REGS || !flag_pic)
 			output_asm_insn ("be 0(%%sr4,%%r1)", xoperands);
 		      else
 			output_asm_insn ("be 0(%%sr0,%%r1)", xoperands);
 		    }
 		  else
 		    {
-		      if (TARGET_NO_SPACE_REGS)
+		      if (TARGET_NO_SPACE_REGS || !flag_pic)
 			output_asm_insn ("ble 0(%%sr4,%%r1)", xoperands);
 		      else
 			output_asm_insn ("ble 0(%%sr0,%%r1)", xoperands);

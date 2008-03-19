@@ -388,13 +388,13 @@ layout_decl (tree decl, unsigned int known_align)
 	    {
 	      enum machine_mode xmode
 		= mode_for_size_tree (DECL_SIZE (decl), MODE_INT, 1);
+	      unsigned int xalign = GET_MODE_ALIGNMENT (xmode);
 
 	      if (xmode != BLKmode
-		  && (known_align == 0
-		      || known_align >= GET_MODE_ALIGNMENT (xmode)))
+		  && !(xalign > BITS_PER_UNIT && DECL_PACKED (decl))
+		  && (known_align == 0 || known_align >= xalign))
 		{
-		  DECL_ALIGN (decl) = MAX (GET_MODE_ALIGNMENT (xmode),
-					   DECL_ALIGN (decl));
+		  DECL_ALIGN (decl) = MAX (xalign, DECL_ALIGN (decl));
 		  DECL_MODE (decl) = xmode;
 		  DECL_BIT_FIELD (decl) = 0;
 		}
@@ -464,9 +464,9 @@ layout_decl (tree decl, unsigned int known_align)
 	  int size_as_int = TREE_INT_CST_LOW (size);
 
 	  if (compare_tree_int (size, size_as_int) == 0)
-	    warning (OPT_Wlarger_than_, "size of %q+D is %d bytes", decl, size_as_int);
+	    warning (OPT_Wlarger_than_eq, "size of %q+D is %d bytes", decl, size_as_int);
 	  else
-	    warning (OPT_Wlarger_than_, "size of %q+D is larger than %wd bytes",
+	    warning (OPT_Wlarger_than_eq, "size of %q+D is larger than %wd bytes",
                      decl, larger_than_size);
 	}
     }

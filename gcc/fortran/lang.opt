@@ -1,5 +1,6 @@
 ; Options for the Fortran 95 front end.
-; Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+; Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -25,11 +26,11 @@ Language
 Fortran
 
 I
-Fortran Joined
+Fortran Joined Separate
 -I<directory>	Add a directory for INCLUDE and MODULE searching
 
 J
-Fortran Joined
+Fortran Joined Separate
 -J<directory>	Put MODULE files in 'directory'
 
 Wall
@@ -63,6 +64,10 @@ Warn about truncated source lines
 Wnonstd-intrinsics
 Fortran Warning
 Warn about usage of non-standard intrinsics
+
+Wreturn-type
+Fortran Warning
+; Documented in C
 
 Wsurprising
 Fortran Warning
@@ -291,6 +296,10 @@ Statically link the GNU Fortran helper library (libgfortran)
 std=f2003
 Fortran
 Conform to the ISO Fortran 2003 standard
+
+std=f2008
+Fortran
+Conform to the ISO Fortran 2008 standard
 
 std=f95
 Fortran

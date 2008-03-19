@@ -1,6 +1,6 @@
 // Specific definitions for generic platforms  -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -33,7 +33,7 @@
  */
 
 #ifndef _GLIBCXX_ERROR_CONSTANTS
-#  define _GLIBCXX_ERROR_CONSTANTS 1
+#define _GLIBCXX_ERROR_CONSTANTS 1
 
 #include <bits/c++config.h>
 #include <cerrno>
@@ -72,7 +72,11 @@ namespace posix_error
       filename_too_long = 			ENAMETOOLONG,
       function_not_supported = 			ENOSYS,
       host_unreachable = 			EHOSTUNREACH,
+
+#ifdef _GLIBCXX_HAVE_EIDRM
       identifier_removed = 			EIDRM,
+#endif
+
       illegal_byte_sequence = 			EILSEQ,
       inappropriate_io_control_operation = 	ENOTTY,
       interrupted = 				EINTR,
@@ -90,6 +94,7 @@ namespace posix_error
 #ifdef _GLIBCXX_HAVE_ENOLINK
       no_link = 				ENOLINK,
 #endif
+
       no_lock_available = 			ENOLCK,
 
 #ifdef _GLIBCXX_HAVE_ENODATA
@@ -117,7 +122,10 @@ namespace posix_error
 
       not_connected = 				ENOTCONN,
       not_enough_memory = 			ENOMEM,
+
+#ifdef _GLIBCXX_HAVE_ENOTSUP
       not_supported = 				ENOTSUP,
+#endif
 
 #ifdef _GLIBCXX_HAVE_ECANCELED
       operation_canceled = 			ECANCELED,
@@ -127,18 +135,23 @@ namespace posix_error
       operation_not_permitted = 		EPERM,
       operation_not_supported = 		EOPNOTSUPP,
       operation_would_block = 			EWOULDBLOCK,
+
 #ifdef _GLIBCXX_HAVE_EOWNERDEAD
       owner_dead = 				EOWNERDEAD,
 #endif
+
       permission_denied = 			EACCES,
+
 #ifdef _GLIBCXX_HAVE_EPROTO
       protocol_error = 				EPROTO,
 #endif
+
       protocol_not_supported = 			EPROTONOSUPPORT,
       read_only_file_system = 			EROFS,
       resource_deadlock_would_occur = 		EDEADLK,
       resource_unavailable_try_again = 		EAGAIN,
       result_out_of_range = 			ERANGE,
+
 #ifdef _GLIBCXX_HAVE_ENOTRECOVERABLE
       state_not_recoverable = 			ENOTRECOVERABLE,
 #endif
@@ -147,7 +160,10 @@ namespace posix_error
       stream_timeout = 				ETIME,
 #endif
 
+#ifdef _GLIBCXX_HAVE_ETXTBSY
       text_file_busy = 				ETXTBSY,
+#endif
+
       timed_out = 				ETIMEDOUT,
       too_many_files_open_in_system = 		ENFILE,
       too_many_files_open = 			EMFILE,

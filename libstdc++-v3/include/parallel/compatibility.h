@@ -333,11 +333,9 @@ namespace __gnu_parallel
   compare_and_swap(volatile T* ptr, T comparand, T replacement)
   {
     if (sizeof(T) == sizeof(int32))
-      return compare_and_swap_32((volatile int32*) ptr,
-				 (int32)comparand, (int32)replacement);
+      return compare_and_swap_32((volatile int32*) ptr, (int32)comparand, (int32)replacement);
     else if (sizeof(T) == sizeof(int64))
-      return compare_and_swap_64((volatile int64*) ptr,
-				 (int64)comparand, (int64)replacement);
+      return compare_and_swap_64((volatile int64*) ptr, (int64)comparand, (int64)replacement);
     else
       _GLIBCXX_PARALLEL_ASSERT(false);
   }

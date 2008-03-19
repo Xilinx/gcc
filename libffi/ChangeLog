@@ -1,3 +1,17 @@
+2008-03-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* aclocal.m4: Regenerate.
+	* configure: Likewise.
+	* Makefile.in: Likewise.
+	* include/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+
+2008-02-12  Bjoern Koenig  <bkoenig@alpha-tierchen.de>
+	    Andreas Tobler  <a.tobler@schweiz.org>
+
+	* configure.ac: Add amd64-*-freebsd* target.
+	* configure: Regenerate.
+
 2008-01-30  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR libffi/34612

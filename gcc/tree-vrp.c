@@ -3753,7 +3753,11 @@ register_edge_assert_for (tree name, edge e, block_stmt_iterator si, tree cond)
 
       if (TREE_CODE (def_stmt) == GIMPLE_MODIFY_STMT
 	  && (TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) == TRUTH_OR_EXPR
-	      || TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) == BIT_IOR_EXPR))
+	      /* For BIT_IOR_EXPR only if NAME == 0 both operands have
+		 necessarily zero value.  */
+	      || (comp_code == EQ_EXPR
+		  && (TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1))
+		        == BIT_IOR_EXPR))))
 	{
 	  tree op0 = TREE_OPERAND (GIMPLE_STMT_OPERAND (def_stmt, 1), 0);
 	  tree op1 = TREE_OPERAND (GIMPLE_STMT_OPERAND (def_stmt, 1), 1);
@@ -5070,6 +5074,48 @@ vrp_evaluate_conditional (tree cond, tree stmt)
 	  else
 	    locus = EXPR_LOCATION (stmt);
 	  warning (OPT_Wstrict_overflow, "%H%s", &locus, warnmsg);
+	}
+    }
+
+  if (warn_type_limits
+      && ret
+      && TREE_CODE_CLASS (TREE_CODE (cond)) == tcc_comparison)
+    {
+      /* If the comparison is being folded and the operand on the LHS
+	 is being compared against a constant value that is outside of
+	 the natural range of OP0's type, then the predicate will
+	 always fold regardless of the value of OP0.  If -Wtype-limits
+	 was specified, emit a warning.  */
+      const char *warnmsg = NULL;
+      tree op0 = TREE_OPERAND (cond, 0);
+      tree op1 = TREE_OPERAND (cond, 1);
+      tree type = TREE_TYPE (op0);
+      value_range_t *vr0 = get_value_range (op0);
+
+      if (vr0->type != VR_VARYING
+	  && INTEGRAL_TYPE_P (type)
+	  && vrp_val_is_min (vr0->min)
+	  && vrp_val_is_max (vr0->max)
+	  && is_gimple_min_invariant (op1))
+	{
+	  if (integer_zerop (ret))
+	    warnmsg = G_("comparison always false due to limited range of "
+		         "data type");
+	  else
+	    warnmsg = G_("comparison always true due to limited range of "
+			 "data type");
+	}
+
+      if (warnmsg)
+	{
+	  location_t locus;
+
+	  if (!EXPR_HAS_LOCATION (stmt))
+	    locus = input_location;
+	  else
+	    locus = EXPR_LOCATION (stmt);
+
+	  warning (OPT_Wtype_limits, "%H%s", &locus, warnmsg);
 	}
     }
 

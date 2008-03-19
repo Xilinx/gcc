@@ -1,5 +1,397 @@
+2008-03-18  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* configure.ac (libtool_VERSION): To 6:11:0.
+	* configure: Regenerate.
+	* aclocal.m4: Regenerate.
+
+2008-03-16  Paolo Carlini  <pcarlini@suse.de>
+
+	* testsuite/17_intro/headers/c++200x/all_multiple_inclusion.cc:
+	Update.
+	* testsuite/17_intro/headers/c++200x/all.cc: Likewise.
+	* include/precompiled/stdc++.h: Likewise.
+
+2008-03-16  Pedro Lamarão  <pedro.lamarao@gmail.com>
+
+	* include/std/date_time: New file.
+	* src/date_time.cc: New file.
+ 	* config/abi/pre/gnu.ver: Added <date_time> symbols in version
+ 	GLIBCXX_3.4.11 and changed two patterns in version GLIBCXX_3.4
+	that matched new symbols.
+	* include/Makefile.am: Add date_time in std headers.
+	* src/Makefile.am: Add date_time.cc to source files.
+	* include/Makefile.in: Regenerate.
+	* src/Makefile.in: Likewise.
+
+2008-03-16  Pedro Lamarão  <pedro.lamarao@gmail.com>
+
+      * testsuite/31_date_time/headers/date_time/types_std.cc: New.
+      * testsuite/31_date_time/headers/date_time/std_c++0x_neg.cc: Likewise.
+      * testsuite/31_date_time/headers/date_time/functions_std.cc: Likewise.
+      * testsuite/31_date_time/headers/date_time/synopsis.cc: Likewise.
+      * testsuite/31_date_time/nanoseconds/requirements/traits.cc: Likewise.
+      * testsuite/31_date_time/nanoseconds/requirements/duration.cc: Likewise.
+      * testsuite/31_date_time/system_time/requirements: Likewise.
+      * testsuite/31_date_time/system_time/requirements/traits.cc: Likewise. 	
+
+2008-03-16  Paolo Carlini  <pcarlini@suse.de>
+
+	* config.h.in: Regenerate.
+
+2008-03-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* aclocal.m4: Regenerate.
+	* configure: Likewise.
+	* Makefile.in: Likewise.
+	* doc/Makefile.in: Likewise.
+	* include/Makefile.in: Likewise.
+	* libmath/Makefile.in: Likewise.
+	* libsupc++/Makefile.in: Likewise.
+	* po/Makefile.in: Likewise.
+	* src/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+
+2008-03-13  Dennis Czeremin  <dennis.czeremin@smiths-heimann.com>
+
+	PR libstdc++/35566
+	* include/bits/stl_multimap.h (multimap<>::multimap(_InputIterator,
+	_InputIterator)): Forward to _M_insert_equal, not _M_insert_unique.
+
+2008-03-13  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/35541
+	* include/debug/functions.h (__check_sorted_set_aux): Fix signature.
+	* testsuite/25_algorithms/set_difference/35541.cc: New.
+
+2008-03-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/abi/pre/gnu.ver: Move <system_error> related
+	symbols to GLIBCXX_3.4.11 symbol version.
+	* testsuite/util/testsuite_abi.cc (check_version): Allow
+	GLIBCXX_3.4.11.
+
+2008-03-06  Chris Jefferson  <chris@bubblescope.net>
+	    Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/35480
+	* include/tr1/tuple (operator==, operator<): Fix.
+	* include/std/tuple (operator==, operator<): Likewise.
+	* testsuite/tr1/6_containers/tuple/comparison_operators/35480.cc: New.
+	* testsuite/20_util/tuple/comparison_operators/35480.cc: Likewise.
+
+2008-03-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* crossconfig.m4 (*-mingw32*): Define HAVE_STRTOF and
+	HAVE_STRTOLD.
+	* configure: Regenerate.
+
+2008-03-02  Hans-Peter Nilsson  <hp@axis.com>
+
+	* testsuite/20_util/shared_ptr/assign/shared_ptr_neg.cc,
+	testsuite/tr1/2_general_utilities/shared_ptr/assign/shared_ptr_neg.cc:
+	Mark changed error message prelude, adding "in file included from",
+	using dg-excess-errors.
+
+2008-03-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/abi/post/x86_64-linux-gnu/32/baseline_symbols.txt: Update.
+	* config/abi/post/x86_64-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/powerpc-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/i386-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/powerpc64-linux-gnu/32/baseline_symbols.txt:
+	Likewise.
+	* config/abi/post/powerpc64-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/i486-linux-gnu/baseline_symbols.txt: Likewise.
+
+2008-02-29  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/abi/pre/gnu.ver: Remove
+	_ZNKSt3tr14hashIgEclEg@@GLIBCXX_3.4.10 and
+	_ZNKSt4hashIgEclEg@@GLIBCXX_3.4.10 export.
+	* config/os/gnu-linux/ldbl-extra.ver: Export
+	_ZNKSt3tr14hashIgEclEg@@GLIBCXX_LDBL_3.4.10
+	and _ZNKSt4hashIgEclEg@@GLIBCXX_LDBL_3.4.10.
+	* src/hash.cc: Only define long double hash specialization if
+	_GLIBCXX_LONG_DOUBLE_COMPAT_IMPL is defined.
+	* src/compatibility-ldbl.cc: Include "hash.cc".
+	(_GLIBCXX_LONG_DOUBLE_COMPAT_IMPL): Define.
+	(_ZNKSt4hashIeEclEe): New alias.
+	* testsuite/util/testsuite_abi.cc (check_version): Support
+	GLIBCXX_LDBL_3.4.10. 
+
+2008-02-25  Jan Beulich  <jbeulich@novell.com>
+
+	* acinclude.m4: Also check for EIDRM and ETXTBSY.
+	* configure: Re-generate.
+	* config/os/generic/error_constants.h (namespace posix_error):
+	Also wrap uses of EIDRM and ETXTBSY in conditionals.
+	* testsuite/19_diagnostics/headers/system_error/types_std_c++0x.cc:
+	Likewise.
+
+2008-02-20  Jason Merrill  <jason@redhat.com>
+
+	* include/bits/c++config: Use 'inline namespace' instead of 
+	strong using.
+
+2008-02-18  Pedro Lamarao <pedro.lamarao@mndfck.org>
+
+	* include/std/tuple: Fixes for moveable, non-copyable types.
+	* testsuite/20_util/tuple/moveable2.cc: New.
+
+2008-02-18  Paolo Carlini  <pcarlini@suse.de>
+
+	* include/std/tuple (operator+(tuple<>&&, tuple<>&&): Remove.
+
+2008-02-17  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/tr1/poly_laguerre.tcc: Doxygen fixes.
+	* include/tr1/exp_integral.tcc: Same.
+	* include/tr1/gamma.tcc: Same.
+	* include/tr1/hypergeometric.tcc: Same.
+	
+2008-02-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/34797
+	* include/parallel/settings.h (_Settings): Reconstruct Settings class
+	here, uglify, remove anonymous namespace and static
+	members. Convert to datum.	
+	* include/parallel/types.h: Move Settings:: enumerations here, uglify.
+	* src/parallel_settings.cc: New, definition for _Settings member
+	functions.	
+	* include/parallel/multiway_merge.h: Same.
+	* include/parallel/for_each.h: Same.
+	* include/parallel/workstealing.h: Same.
+	* include/parallel/base.h: Same.
+	* include/parallel/numeric
+	* include/parallel/features.h: Same.
+	* include/parallel/quicksort.h: Same.
+	* include/parallel/equally_split.h: Same.
+	* include/parallel/algorithmfwd.h: Same.
+	* include/parallel/omp_loop_static.h: Same.
+	* include/parallel/random_shuffle.h: Same.
+	* include/parallel/balanced_quicksort.h: Same.
+	* include/parallel/tags.h: Same.
+	* include/parallel/multiway_mergesort.h: Same.
+	* include/parallel/numericfwd.h: Same.
+	* include/parallel/partition.h: Same.
+	* include/parallel/partial_sum.h: Same.
+	* include/parallel/find.h: Same.
+	* include/parallel/algo.h: Same.
+	* include/parallel/omp_loop.h: Same.
+	* include/parallel/sort.h: Same.
+
+	* src/Makefile.am (parallel_sources): Add parallel_settings.cc.
+	* src/Makefile.in: Regenerate.
+	
+	* config/abi/pre/gnu.ver: Export _Settings::get and _Settings::set.
+
+2008-02-17  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/35221
+	* include/parallel/types.h: Reinstate integer types typedefs.
+	* include/parallel/multiseq_selection.h: Adjust.
+	* include/parallel/compatibility.h: Likewise.
+	* include/parallel/random_shuffle.h: Likewise.
+	* include/parallel/random_number.h: Likewise.
+	* include/parallel/base.h: Likewise.
+
+2008-02-17  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/35209
+	* config/abi/pre/gnu.ver: Export stdio_sync_filebuf symbols.
+	* testsuite/ext/stdio_sync_filebuf/char/35209.cc: New.
+	* testsuite/ext/stdio_sync_filebuf/wchar_t/35209.cc: Likewise.
+	
+2008-02-16  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/parallel/random_number.h: Use TR1's mersenne_twister.
+	(random_number::genrand_bits()): Remove.
+	(random_number::set_seed): Remove.
+	
+2008-02-15  Benjamin Kosnik  <bkoz@redhat.com>
+	
+	* include/parallel/types.h: Remove enum parallelism.
+	
+2008-02-15  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/parallel/types.h: Move enum parallelism here.  Use
+	tr1/cstdint's int16_t, uint16_t, int32_t, uint32_t, int64_t,
+	uint64_t. 
+	* include/parallel/multiseq_selection.h: Adjust for cstdint.
+	* include/parallel/compatibility.h: Same.
+	* include/parallel/tags.h: Just compile-time tags.
+	* include/parallel/base.h: Put namespace bits here.
+
+	* src/Makefile.am (PARALLEL_FLAGS): Use it.
+	* src/Makefile.in: Regenerate.
+
+	* testsuite/25_algorithms/nth_element/1.cc: Add test variable.
+
+2008-02-15  Hans-Peter Nilsson  <hp@axis.com>
+
+	* testsuite/config/default.exp: Load gcc dejapatches.exp.
+
+2008-02-14  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* testsuite/27_io/fpos/14320-1.cc: Check for "long long" and
+	remove XFAIL.
+
+2008-02-14  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* config/os/generic/error_constants.h (posix_errno): Guard
+	not_supported use of ENOTSUP.
+	* acinclude.m4 (GLIBCXX_CHECK_SYSTEM_ERROR): Add check for ENOTSUP
+	for OpenBSD.
+	* aclocal.m4: Regenerate.
+	* configure: Rengerate.
+	* config.h.in: Same.
+
+2008-02-13  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/mainpage.html: Correct links.
+
+2008-02-11  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/html/*: Populate with regenerated files.
+
+2008-02-11  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/html/*: Remove all but contents of ext/pb_ds.
+	* doc/html/index.html: New.
+	* doc/html/README: New.
+
+2008-02-11  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/mainpage.html: Add in corrected links.
+	* README: Edit, move most into...
+	* doc/xml/manual/appendix_contributing.xml (Directory Layout): ...here.
+	(Documentation Style): Revise.
+	* doc/xml/spine.xml: Edit file names.
+	* doc/Makefile.am: Edit xml_sources.
+	* doc/Makefile.in: Regenerate.
+
+2008-02-11  Paolo Carlini  <pcarlini@suse.de>
+
+	* configure: Regenerate with documented autoconf and automake
+	versions (i.e., 2.59 and 1.9.6).
+	* Makefile.in: Likewise.
+	* src/Makefile.in: Likewise.
+	* doc/Makefile.in: Likewise.
+	* po/Makefile.in: Likewise.
+	* libmath/Makefile.in: Likewise.
+	* include/Makefile.in: Likewise.
+	* libsupc++/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+	* aclocal.m4: Likewise.
+
+2008-02-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	Convert documentation to DocBook.
+	* doc/Makefile.am (doc-doxygen-html): Changed to doc-html-doxygen.
+	(doc-doxygen-man): Changed to doc-man-doxygen.
+	(doc-performance): Changed to doc-html-performance.
+	(doc-xml-doxygen): New.
+	(doc-xml-single): New.
+	(doc-xml-validate): New.
+	(doc-html): New.
+	(doc-html-single): New.
+	(doc-fo): New.
+	(doc-pdf): New.
+	(doc-pdf-fop-xml): New.
+	(doc-pdf-fop-fo): New.
+	(doc-pdf-xmlto): New.
+	(doc-pdf-xmlroff): New.
+	(doc-pdf-prince): New.
+	* doc/xml: New directory.
+	* doc/xml/authors.xml: New.
+	* doc/xml/images: New directory.
+	* doc/xml/images/confdeps.png: Add.
+	* doc/xml/images/confdeps.dot: Add.
+	* doc/xml/faq.xml: New.
+	* doc/xml/api.xml: New.
+	* doc/xml/gnu: New directory.
+	* doc/xml/gnu/gpl-3.0.xml: New.
+	* doc/xml/gnu/fdl-1.2.xml: New.
+	* doc/xml/gnu/gpl-2.0.xml: New.
+	* doc/xml/manual: New directory.
+	* doc/xml/manual/mt_allocator.xml: New.
+	* doc/xml/manual/allocator.xml: New.
+	* doc/xml/manual/ctype.xml: New.
+	* doc/xml/manual/numerics.xml: New.
+	* doc/xml/manual/codecvt.xml: New.
+	* doc/xml/manual/concurrency.xml: New.
+	* doc/xml/manual/backwards_compatibility.xml: New.
+	* doc/xml/manual/intro.xml: New.
+	* doc/xml/manual/shared_ptr.xml: New.
+	* doc/xml/manual/abi.xml: New.
+	* doc/xml/manual/status_cxxtr1.xml: New.
+	* doc/xml/manual/auto_ptr.xml: New.
+	* doc/xml/manual/build.xml: New.
+	* doc/xml/manual/internals.xml: New.
+	* doc/xml/manual/parallel_mode.xml: New.
+	* doc/xml/manual/status_cxx1998.xml: New.
+	* doc/xml/manual/containers.xml: New.
+	* doc/xml/manual/io.xml: New.
+	* doc/xml/manual/appendix_porting.xml: New.
+	* doc/xml/manual/utilities.xml: New.
+	* doc/xml/manual/bitmap_allocator.xml: New.
+	* doc/xml/manual/support.xml: New.
+	* doc/xml/manual/configure.xml: New.
+	* doc/xml/manual/build_hacking.xml: New.
+	* doc/xml/manual/evolution.xml: New.
+	* doc/xml/manual/using.xml: New.
+	* doc/xml/manual/debug.xml: New.
+	* doc/xml/manual/localization.xml: New.
+	* doc/xml/manual/strings.xml: New.
+	* doc/xml/manual/debug_mode.xml: New.
+	* doc/xml/manual/locale.xml: New.
+	* doc/xml/manual/extensions.xml: New.
+	* doc/xml/manual/appendix_contributing.xml: New.
+	* doc/xml/manual/messages.xml: New.
+	* doc/xml/manual/diagnostics.xml: New.
+	* doc/xml/manual/appendix_free.xml: New.
+	* doc/xml/manual/algorithms.xml: New.
+	* doc/xml/manual/iterators.xml: New.
+	* doc/xml/manual/spine.xml: New.
+	* doc/xml/manual/test.xml: New.
+	* doc/xml/manual/status_cxx200x.xml: New.
+	* doc/xml/spine.xml: New.
+
+	* doc/xml/book.txml: New. Template file.
+	* doc/xml/chapter.txml: Same.
+	* doc/xml/class.txml: Same.
+
+	* doc/doxygen/guide.html: Removed, integrated into other docs.
+	* doc/doxygen/user.cfg.in: Clean up XML generation.
+	* doc/doxygen/run_doxygen: Move to..
+	* scripts/run_doxygen: ...here.
+
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+	* src/Makefile.in: Regenerate.
+	* doc/Makefile.in: Regenerate.
+	* po/Makefile.in: Regenerate.
+	* libmath/Makefile.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* libsupc++/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+	* aclocal.m4: Regenerate.
+
+2008-02-10  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/16251
+	* include/std/istream (basic_istream<>::basic_istream()): Call
+	this->init().
+	(basic_iostream<>::basic_iostream(basic_streambuf<>*)): Don't
+	do it here, per 27.6.1.5.1/1.
+	* include/std/ostream (basic_ostream<>::basic_ostream()): Call
+	this->init().
+	* testsuite/27_io/basic_iostream/cons/16251.C: New.
+
+	* testsuite/27_io/basic_iostream/cons/2020.cc: Minor tweaks.
+
 2008-01-31  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
-    
+
 	* include/backward/auto_ptr.h: Fix comment typos.
 	* include/bits/algorithmfwd.h: Likewise.
 	* include/bits/basic_ios.h: Likewise.
@@ -146,7 +538,7 @@
 	* doc/doxygen/run_doxygen: Same, more namespace fixups for man
 	generation.
 	* doc/doxygen/user.cfg.in: Update for doxygen 1.5.4.
-	
+
 	* include/tr1_impl/random: Remove maint from doxygen markup.
 	* include/tr1_impl/functional: Same.
 	* include/std/tuple: Same.
@@ -180,7 +572,7 @@
 	* include/backward/auto_ptr.h: Same.
 
 	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
-	Fixups for line number changes.	
+	Fixups for line number changes.
 	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc: Same.
 	* testsuite/23_containers/vector/requirements/dr438/
 	constructor_1_neg.cc: Same.
@@ -212,7 +604,7 @@
 	* testsuite/Makefile.in: Regenerate.
 
 	* scripts/make_graphs.py: Correct paths for new layout.
-	
+
 2008-01-17  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* acinclude.m4 (AC_LC_MESSAGES): Remove serial.

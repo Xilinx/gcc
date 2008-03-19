@@ -1,5 +1,5 @@
 /* gfortran header file
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -347,6 +347,7 @@ enum gfc_isym_id
   GFC_ISYM_EPSILON,
   GFC_ISYM_ERF,
   GFC_ISYM_ERFC,
+  GFC_ISYM_ERFC_SCALED,
   GFC_ISYM_ETIME,
   GFC_ISYM_EXIT,
   GFC_ISYM_EXP,
@@ -379,6 +380,7 @@ enum gfc_isym_id
   GFC_ISYM_GMTIME,
   GFC_ISYM_HOSTNM,
   GFC_ISYM_HUGE,
+  GFC_ISYM_HYPOT,
   GFC_ISYM_IACHAR,
   GFC_ISYM_IAND,
   GFC_ISYM_IARGC,
@@ -713,11 +715,7 @@ typedef struct gfc_file
 
 typedef struct gfc_linebuf
 {
-#ifdef USE_MAPPED_LOCATION
   source_location location;
-#else
-  int linenum;
-#endif
   struct gfc_file *file;
   struct gfc_linebuf *next;
 
@@ -729,11 +727,7 @@ typedef struct gfc_linebuf
 
 #define gfc_linebuf_header_size (offsetof (gfc_linebuf, line))
 
-#ifdef USE_MAPPED_LOCATION
 #define gfc_linebuf_linenum(LBUF) (LOCATION_LINE ((LBUF)->location))
-#else
-#define gfc_linebuf_linenum(LBUF) ((LBUF)->linenum)
-#endif
 
 typedef struct
 {

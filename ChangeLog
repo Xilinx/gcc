@@ -1,3 +1,93 @@
+2008-03-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: m4_include config/proginstall.m4.
+	* configure: Regenerate.
+
+	Backport from upstream Libtool:
+	
+	2007-10-12  Eric Blake  <ebb9@byu.net>
+	
+	Deal with Autoconf 2.62's semantic change in m4_append.
+	* ltsugar.m4 (lt_append): Replace broken versions of
+	m4_append.
+	(lt_if_append_uniq): Don't require separator to be overquoted,
+	and avoid broken m4_append.
+	(lt_dict_add): Fix typo.
+	* libtool.m4 (_LT_DECL): Don't overquote separator.
+
+2008-03-13  David Edelsohn  <edelsohn@gnu.org>
+
+	* config.rpath: Add AIX 6 support.
+
+2008-03-13  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.def (stageprofile).  Remove -fprofile-generate
+	from stage_libcflags.
+	* Makefile.in: Regenerate.
+
+2008-03-13  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2008-03-06  Tom Tromey  <tromey@redhat.com>
+
+	* MAINTAINERS: Update for treelang deletion.
+
+2008-03-03  James E. Wilson  <wilson@tuliptree.org>
+
+	* MAINTAINERS: Update my email address.
+
+2008-03-03  Stan Shebs  <stanshebs@earthlink.net>
+
+	* MAINTAINERS (darwin port): Add myself as a maintainer.
+	(objective-c/c++): Add myself as a maintainer.
+
+2008-03-03  Volker Reichelt  <v.reichelt@netcologne.de>
+
+	* MAINTAINERS (Write After Approval): Update my email address.
+
+2008-02-25  Tomas Bily  <tbily@suse.cz>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2008-02-23  Jakub Jelinek  <jakub@redhat.com>
+
+	* MAINTAINERS (OpenMP): Add myself.
+
+2008-02-20  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/32009
+	PR bootstrap/32161
+
+	* configure.ac (CFLAGS_FOR_TARGET, CXXFLAGS_FOR_TARGET): Compute here.
+	* configure: Regenerate.
+
+	* Makefile.def: Define stage_libcflags for all bootstrap stages.
+	* Makefile.tpl (BOOT_LIBCFLAGS, STAGE2_LIBCFLAGS, STAGE3_LIBCFLAGS,
+	STAGE4_LIBCFLAGS): New.
+	(CFLAGS_FOR_TARGET, CXXFLAGS_FOR_TARGET): Subst from autoconf, without
+	$(SYSROOT_CFLAGS_FOR_TARGET) and $(DEBUG_PREFIX_CFLAGS_FOR_TARGET).
+	(BASE_TARGET_EXPORTS): Append them here to C{,XX}FLAGS.
+	(EXTRA_TARGET_FLAGS): Append them here to {LIB,}C{,XX}FLAGS.
+	(configure-stage[+id+]-[+prefix+][+module+]): Pass stage_libcflags
+	for target modules.  Don't export LIBCFLAGS.
+	(all-stage[+id+]-[+prefix+][+module+]): Pass stage_libcflags; pass
+	$(BASE_FLAGS_TO_PASS) where [+args+] was passed, and [+args+] after
+	the overridden CFLAGS_FOR_TARGET and CXXFLAGS_FOR_TARGET.
+	(invocations of `all'): Replace $(TARGET_FLAGS_TO_PASS) with
+	$(EXTRA_TARGET_FLAGS), $(FLAGS_TO_PASS) with $(EXTRA_HOST_FLAGS).
+	* Makefile.in: Regenerate.
+
+2008-02-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR libgcj/33085
+	* libtool.m4 (_LT_COMPILER_PIC) [ mingw, cygwin ] <GCJ>:
+	Do not use -DDLL_EXPORT.  Backport from upstream.
+
+2008-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
 2008-02-02  Hans-Peter Nilsson  <hp@axis.com>
 
 	* configure.ac: Enable fortran for cris-*-elf and crisv32-*-elf.
@@ -10,11 +100,11 @@
 
 2008-01-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
-        PR bootstrap/34922
-        * configure.ac (PARSE_ARGS): Push suitable setting of
-        ac_subdirs_all, for `./configure --help=recursive'.
-        Handle `+' in generic toplevel directory disabling.
-        * configure: Regenerate.
+	PR bootstrap/34922
+	* configure.ac (PARSE_ARGS): Push suitable setting of
+	ac_subdirs_all, for `./configure --help=recursive'.
+	Handle `+' in generic toplevel directory disabling.
+	* configure: Regenerate.
 
 2008-01-28  Nick Clifton  <nickc@redhat.com>
 
@@ -274,13 +364,13 @@
 
 	* config.sub, config.guess: Update from upstream sources.
 
-2007-08-22  Bud Davis   <jmdavis@link.com>
+2007-08-22  Bud Davis  <jmdavis@link.com>
 
 	* MAINTAINERS (Write After Approval): Added myself.
 	* MAINTAINERS (Reviewers): Removed myself.
 
 2007-08-18  Paul Brook  <paul@codesourcery.com>
-            Joseph Myers  <joseph@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
 
 	* Makefile.tpl (DEBUG_PREFIX_CFLAGS_FOR_TARGET): New.
 	(CFLAGS_FOR_TARGET, CXXFLAGS_FOR_TARGET): Include it.
@@ -669,9 +759,9 @@
 	* configure: Rebuilt.
 
 2007-02-17  Mark Mitchell  <mark@codesourcery.com>
-            Nathan Sidwell  <nathan@codesourcery.com>
-            Vladimir Prus  <vladimir@codesourcery.com
-            Joseph Myers  <joseph@codesourcery.com>
+	    Nathan Sidwell  <nathan@codesourcery.com>
+	    Vladimir Prus  <vladimir@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
 
 	* configure.ac (TOPLEVEL_CONFIGURE_ARGUMENTS): Fix quoting.
 	* configure: Regenerate.

@@ -1,5 +1,5 @@
 /* Forward propagation of expressions for single use variables.
-   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -218,14 +218,28 @@ get_prop_source_stmt (tree name, bool single_use_only, bool *single_use_p)
     /* If name is not a simple copy destination, we found it.  */
     if (TREE_CODE (GIMPLE_STMT_OPERAND (def_stmt, 1)) != SSA_NAME)
       {
+	tree rhs;
+
 	if (!single_use_only && single_use_p)
 	  *single_use_p = single_use;
 
-	return def_stmt;
+	/* We can look through pointer conversions in the search
+	   for a useful stmt for the comparison folding.  */
+	rhs = GIMPLE_STMT_OPERAND (def_stmt, 1);
+	if ((TREE_CODE (rhs) == NOP_EXPR
+	     || TREE_CODE (rhs) == CONVERT_EXPR)
+	    && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME
+	    && POINTER_TYPE_P (TREE_TYPE (rhs))
+	    && POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (rhs, 0))))
+	  name = TREE_OPERAND (rhs, 0);
+	else
+	  return def_stmt;
       }
-
-    /* Continue searching the def of the copy source name.  */
-    name = GIMPLE_STMT_OPERAND (def_stmt, 1);
+    else
+      {
+	/* Continue searching the def of the copy source name.  */
+	name = GIMPLE_STMT_OPERAND (def_stmt, 1);
+      }
   } while (1);
 }
 
@@ -244,6 +258,10 @@ can_propagate_from (tree def_stmt)
   /* If the rhs is a load we cannot propagate from it.  */
   if (REFERENCE_CLASS_P (rhs))
     return false;
+
+  /* Constants can be always propagated.  */
+  if (is_gimple_min_invariant (rhs))
+    return true;
 
   /* We cannot propagate ssa names that occur in abnormal phi nodes.  */
   switch (TREE_CODE_LENGTH (TREE_CODE (rhs)))
@@ -546,67 +564,98 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt,
 			       bool single_use_p)
 {
   tree lhs, rhs, array_ref;
+  tree *rhsp, *lhsp;
 
-  /* Strip away any outer COMPONENT_REF/ARRAY_REF nodes from the LHS. 
-     ADDR_EXPR will not appear on the LHS.  */
+  gcc_assert (TREE_CODE (def_rhs) == ADDR_EXPR);
+
   lhs = GIMPLE_STMT_OPERAND (use_stmt, 0);
-  while (handled_component_p (lhs))
-    lhs = TREE_OPERAND (lhs, 0);
-
   rhs = GIMPLE_STMT_OPERAND (use_stmt, 1);
-
-  /* Now see if the LHS node is an INDIRECT_REF using NAME.  If so, 
-     propagate the ADDR_EXPR into the use of NAME and fold the result.  */
-  if (TREE_CODE (lhs) == INDIRECT_REF && TREE_OPERAND (lhs, 0) == name)
-    {
-      /* This should always succeed in creating gimple, so there is
-	 no need to save enough state to undo this propagation.  */
-      TREE_OPERAND (lhs, 0) = unshare_expr (def_rhs);
-      fold_stmt_inplace (use_stmt);
-      tidy_after_forward_propagate_addr (use_stmt);
-
-      /* Continue propagating into the RHS.  */
-    }
 
   /* Trivial cases.  The use statement could be a trivial copy or a
      useless conversion.  Recurse to the uses of the lhs as copyprop does
-     not copy through differen variant pointers and FRE does not catch
+     not copy through different variant pointers and FRE does not catch
      all useless conversions.  Treat the case of a single-use name and
      a conversion to def_rhs type separate, though.  */
-  else if (TREE_CODE (lhs) == SSA_NAME
-	   && (TREE_CODE (rhs) == NOP_EXPR
-	       || TREE_CODE (rhs) == CONVERT_EXPR)
-	   && TREE_TYPE (rhs) == TREE_TYPE (def_rhs)
-	   && single_use_p)
+  if (TREE_CODE (lhs) == SSA_NAME
+      && (rhs == name
+	  || TREE_CODE (rhs) == NOP_EXPR
+	  || TREE_CODE (rhs) == CONVERT_EXPR)
+      && useless_type_conversion_p (TREE_TYPE (rhs), TREE_TYPE (def_rhs)))
     {
+      /* Only recurse if we don't deal with a single use.  */
+      if (!single_use_p)
+	return forward_propagate_addr_expr (lhs, def_rhs);
+
       GIMPLE_STMT_OPERAND (use_stmt, 1) = unshare_expr (def_rhs);
       return true;
     }
-  else if ((TREE_CODE (lhs) == SSA_NAME
-      	    && rhs == name)
-	   || ((TREE_CODE (rhs) == NOP_EXPR
-		|| TREE_CODE (rhs) == CONVERT_EXPR)
-	       && useless_type_conversion_p (TREE_TYPE (rhs),
-					    TREE_TYPE (def_rhs))))
-    return forward_propagate_addr_expr (lhs, def_rhs);
+
+  /* Now strip away any outer COMPONENT_REF/ARRAY_REF nodes from the LHS. 
+     ADDR_EXPR will not appear on the LHS.  */
+  lhsp = &GIMPLE_STMT_OPERAND (use_stmt, 0);
+  while (handled_component_p (*lhsp))
+    lhsp = &TREE_OPERAND (*lhsp, 0);
+  lhs = *lhsp;
+
+  /* Now see if the LHS node is an INDIRECT_REF using NAME.  If so, 
+     propagate the ADDR_EXPR into the use of NAME and fold the result.  */
+  if (TREE_CODE (lhs) == INDIRECT_REF
+      && TREE_OPERAND (lhs, 0) == name
+      /* This will not allow stripping const qualification from
+	 pointers which we want to allow specifically here to clean up
+	 the IL for initialization of constant objects.   */
+      && (useless_type_conversion_p (TREE_TYPE (TREE_OPERAND (lhs, 0)),
+				     TREE_TYPE (def_rhs))
+	  /* So explicitly check for this here.  */
+	  || (TYPE_QUALS (TREE_TYPE (TREE_TYPE (TREE_OPERAND (lhs, 0))))
+	      ^ TYPE_QUALS (TREE_TYPE (TREE_TYPE (def_rhs)))) == TYPE_QUAL_CONST)
+      /* ???  This looks redundant, but is required for bogus types
+	 that can sometimes occur.  */
+      && useless_type_conversion_p (TREE_TYPE (lhs),
+				    TREE_TYPE (TREE_OPERAND (def_rhs, 0))))
+    {
+      *lhsp = unshare_expr (TREE_OPERAND (def_rhs, 0));
+      fold_stmt_inplace (use_stmt);
+      tidy_after_forward_propagate_addr (use_stmt);
+
+      /* Continue propagating into the RHS if this was not the only use.  */
+      if (single_use_p)
+	return true;
+    }
 
   /* Strip away any outer COMPONENT_REF, ARRAY_REF or ADDR_EXPR
      nodes from the RHS.  */
-  while (handled_component_p (rhs)
-	 || TREE_CODE (rhs) == ADDR_EXPR)
-    rhs = TREE_OPERAND (rhs, 0);
+  rhsp = &GIMPLE_STMT_OPERAND (use_stmt, 1);
+  while (handled_component_p (*rhsp)
+	 || TREE_CODE (*rhsp) == ADDR_EXPR)
+    rhsp = &TREE_OPERAND (*rhsp, 0);
+  rhs = *rhsp;
 
   /* Now see if the RHS node is an INDIRECT_REF using NAME.  If so, 
      propagate the ADDR_EXPR into the use of NAME and fold the result.  */
-  if (TREE_CODE (rhs) == INDIRECT_REF && TREE_OPERAND (rhs, 0) == name)
+  if (TREE_CODE (rhs) == INDIRECT_REF
+      && TREE_OPERAND (rhs, 0) == name
+      /* ???  This doesn't allow stripping const qualification to
+	 streamline the IL for reads from non-constant objects.  */
+      && (useless_type_conversion_p (TREE_TYPE (TREE_OPERAND (rhs, 0)),
+				     TREE_TYPE (def_rhs))
+	  /* So explicitly check for this here.  */
+	  || (TYPE_QUALS (TREE_TYPE (TREE_TYPE (TREE_OPERAND (rhs, 0))))
+	      ^ TYPE_QUALS (TREE_TYPE (TREE_TYPE (def_rhs)))) == TYPE_QUAL_CONST)
+      && useless_type_conversion_p (TREE_TYPE (rhs),
+				    TREE_TYPE (TREE_OPERAND (def_rhs, 0))))
     {
-      /* This should always succeed in creating gimple, so there is
-         no need to save enough state to undo this propagation.  */
-      TREE_OPERAND (rhs, 0) = unshare_expr (def_rhs);
+      *rhsp = unshare_expr (TREE_OPERAND (def_rhs, 0));
       fold_stmt_inplace (use_stmt);
       tidy_after_forward_propagate_addr (use_stmt);
       return true;
     }
+
+  /* If the use of the ADDR_EXPR is not a POINTER_PLUS_EXPR, there
+     is nothing to do. */
+  if (TREE_CODE (rhs) != POINTER_PLUS_EXPR
+      || TREE_OPERAND (rhs, 0) != name)
+    return false;
 
   /* The remaining cases are all for turning pointer arithmetic into
      array indexing.  They only apply when we have the address of
@@ -618,15 +667,9 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt,
       || !integer_zerop (TREE_OPERAND (array_ref, 1)))
     return false;
 
-  /* If the use of the ADDR_EXPR is not a POINTER_PLUS_EXPR, there
-     is nothing to do. */
-  if (TREE_CODE (rhs) != POINTER_PLUS_EXPR)
-    return false;
-
   /* Try to optimize &x[0] p+ C where C is a multiple of the size
      of the elements in X into &x[C/element size].  */
-  if (TREE_OPERAND (rhs, 0) == name
-      && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST)
+  if (TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST)
     {
       tree orig = unshare_expr (rhs);
       TREE_OPERAND (rhs, 0) = unshare_expr (def_rhs);
@@ -651,8 +694,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs, tree use_stmt,
      converting a multiplication of an index by the size of the
      array elements, then the result is converted into the proper
      type for the arithmetic.  */
-  if (TREE_OPERAND (rhs, 0) == name
-      && TREE_CODE (TREE_OPERAND (rhs, 1)) == SSA_NAME
+  if (TREE_CODE (TREE_OPERAND (rhs, 1)) == SSA_NAME
       /* Avoid problems with IVopts creating PLUS_EXPRs with a
 	 different type than their operands.  */
       && useless_type_conversion_p (TREE_TYPE (rhs), TREE_TYPE (name)))
@@ -956,19 +998,16 @@ tree_ssa_forward_propagate_single_use_vars (void)
 		}
 
 	      if (TREE_CODE (rhs) == ADDR_EXPR
-		  /* We can also disregard changes in const qualifiers for
-		     the dereferenced value.  */
+		  /* Handle pointer conversions on invariant addresses
+		     as well, as this is valid gimple.  */
 		  || ((TREE_CODE (rhs) == NOP_EXPR
 		       || TREE_CODE (rhs) == CONVERT_EXPR)
 		      && TREE_CODE (TREE_OPERAND (rhs, 0)) == ADDR_EXPR
-		      && POINTER_TYPE_P (TREE_TYPE (rhs))
-		      /* But do not propagate changes in volatileness.  */
-		      && (TYPE_VOLATILE (TREE_TYPE (TREE_TYPE (rhs)))
-			  == TYPE_VOLATILE (TREE_TYPE (TREE_TYPE (TREE_OPERAND (rhs, 0)))))
-		      && types_compatible_p (TREE_TYPE (TREE_TYPE (TREE_OPERAND (rhs, 0))),
-					     TREE_TYPE (TREE_TYPE (rhs)))))
+		      && POINTER_TYPE_P (TREE_TYPE (rhs))))
 		{
-		  if (forward_propagate_addr_expr (lhs, rhs))
+		  STRIP_NOPS (rhs);
+		  if (!stmt_references_abnormal_ssa_name (stmt)
+		      && forward_propagate_addr_expr (lhs, rhs))
 		    {
 		      release_defs (stmt);
 		      todoflags |= TODO_remove_unused_locals;
@@ -1061,301 +1100,3 @@ struct tree_opt_pass pass_forwprop = {
   0				/* letter */
 };
 
-
-/* Structure to keep track of the value of a dereferenced PHI result
-   and the set of virtual operands used for that dereference.  */
-
-struct phiprop_d
-{
-  tree value;
-  tree vop_stmt;
-};
-
-/* Verify if the value recorded for NAME in PHIVN is still valid at
-   the start of basic block BB.  */
-
-static bool
-phivn_valid_p (struct phiprop_d *phivn, tree name, basic_block bb)
-{
-  tree vop_stmt = phivn[SSA_NAME_VERSION (name)].vop_stmt;
-  ssa_op_iter ui;
-  tree vuse;
-
-  /* The def stmts of all virtual uses need to be post-dominated
-     by bb.  */
-  FOR_EACH_SSA_TREE_OPERAND (vuse, vop_stmt, ui, SSA_OP_VUSE)
-    {
-      tree use_stmt;
-      imm_use_iterator ui2;
-      bool ok = true;
-
-      FOR_EACH_IMM_USE_STMT (use_stmt, ui2, vuse)
-	{
-	  /* If BB does not dominate a VDEF, the value is invalid.  */
-	  if (((TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
-	        && !ZERO_SSA_OPERANDS (use_stmt, SSA_OP_VDEF))
-	       || TREE_CODE (use_stmt) == PHI_NODE)
-	      && !dominated_by_p (CDI_DOMINATORS, bb_for_stmt (use_stmt), bb))
-	    {
-	      ok = false;
-	      BREAK_FROM_IMM_USE_STMT (ui2);
-	    }
-	}
-      if (!ok)
-	return false;
-    }
-
-  return true;
-}
-
-/* Insert a new phi node for the dereference of PHI at basic_block
-   BB with the virtual operands from USE_STMT.  */
-
-static tree
-phiprop_insert_phi (basic_block bb, tree phi, tree use_stmt,
-		    struct phiprop_d *phivn, size_t n)
-{
-  tree res, new_phi;
-  edge_iterator ei;
-  edge e;
-
-  /* Build a new PHI node to replace the definition of
-     the indirect reference lhs.  */
-  res = GIMPLE_STMT_OPERAND (use_stmt, 0);
-  SSA_NAME_DEF_STMT (res) = new_phi = create_phi_node (res, bb);
-
-  /* Add PHI arguments for each edge inserting loads of the
-     addressable operands.  */
-  FOR_EACH_EDGE (e, ei, bb->preds)
-    {
-      tree old_arg, new_var, tmp;
-
-      old_arg = PHI_ARG_DEF_FROM_EDGE (phi, e);
-      while (TREE_CODE (old_arg) == SSA_NAME
-	     && (SSA_NAME_VERSION (old_arg) >= n
-	         || phivn[SSA_NAME_VERSION (old_arg)].value == NULL_TREE))
-	{
-	  tree def_stmt = SSA_NAME_DEF_STMT (old_arg);
-	  old_arg = GIMPLE_STMT_OPERAND (def_stmt, 1);
-	}
-
-      if (TREE_CODE (old_arg) == SSA_NAME)
-	/* Reuse a formerly created dereference.  */
-	new_var = phivn[SSA_NAME_VERSION (old_arg)].value;
-      else
-	{
-	  old_arg = TREE_OPERAND (old_arg, 0);
-	  new_var = create_tmp_var (TREE_TYPE (old_arg), NULL);
-	  tmp = build2 (GIMPLE_MODIFY_STMT, void_type_node,
-			NULL_TREE, unshare_expr (old_arg));
-	  if (TREE_CODE (TREE_TYPE (old_arg)) == COMPLEX_TYPE
-	      || TREE_CODE (TREE_TYPE (old_arg)) == VECTOR_TYPE)
-	    DECL_GIMPLE_REG_P (new_var) = 1;
-	  add_referenced_var (new_var);
-	  new_var = make_ssa_name (new_var, tmp);
-	  GIMPLE_STMT_OPERAND (tmp, 0) = new_var;
-
-	  bsi_insert_on_edge (e, tmp);
-
-	  update_stmt (tmp);
-	  mark_symbols_for_renaming (tmp);
-	}
-
-      add_phi_arg (new_phi, new_var, e);
-    }
-
-  update_stmt (new_phi);
-
-  return res;
-}
-
-/* Propagate between the phi node arguments of PHI in BB and phi result
-   users.  For now this matches
-        # p_2 = PHI <&x, &y>
-      <Lx>:;
-	p_3 = p_2;
-	z_2 = *p_3;
-   and converts it to
-	# z_2 = PHI <x, y>
-      <Lx>:;
-   Returns true if a transformation was done and edge insertions
-   need to be committed.  Global data PHIVN and N is used to track
-   past transformation results.  We need to be especially careful here
-   with aliasing issues as we are moving memory reads.  */
-
-static bool
-propagate_with_phi (basic_block bb, tree phi, struct phiprop_d *phivn, size_t n)
-{
-  tree ptr = PHI_RESULT (phi);
-  tree use_stmt, res = NULL_TREE;
-  block_stmt_iterator bsi;
-  imm_use_iterator ui;
-  use_operand_p arg_p, use;
-  ssa_op_iter i;
-  bool phi_inserted;
-
-  if (MTAG_P (SSA_NAME_VAR (ptr))
-      || !POINTER_TYPE_P (TREE_TYPE (ptr))
-      || !is_gimple_reg_type (TREE_TYPE (TREE_TYPE (ptr))))
-    return false;
-
-  /* Check if we can "cheaply" dereference all phi arguments.  */
-  FOR_EACH_PHI_ARG (arg_p, phi, i, SSA_OP_USE)
-    {
-      tree arg = USE_FROM_PTR (arg_p);
-      /* Walk the ssa chain until we reach a ssa name we already
-	 created a value for or we reach a definition of the form
-	 ssa_name_n = &var;  */
-      while (TREE_CODE (arg) == SSA_NAME
-	     && !SSA_NAME_IS_DEFAULT_DEF (arg)
-	     && (SSA_NAME_VERSION (arg) >= n
-	         || phivn[SSA_NAME_VERSION (arg)].value == NULL_TREE))
-	{
-	  tree def_stmt = SSA_NAME_DEF_STMT (arg);
-	  if (TREE_CODE (def_stmt) != GIMPLE_MODIFY_STMT)
-	    return false;
-	  arg = GIMPLE_STMT_OPERAND (def_stmt, 1);
-	}
-      if ((TREE_CODE (arg) != ADDR_EXPR
-	   /* Avoid to have to decay *&a to a[0] later.  */
-	   || !is_gimple_reg_type (TREE_TYPE (TREE_OPERAND (arg, 0))))
-	  && !(TREE_CODE (arg) == SSA_NAME
-	       && phivn[SSA_NAME_VERSION (arg)].value != NULL_TREE
-	       && phivn_valid_p (phivn, arg, bb)))
-	return false;
-    }
-
-  /* Find a dereferencing use.  First follow (single use) ssa
-     copy chains for ptr.  */
-  while (single_imm_use (ptr, &use, &use_stmt)
-	 && TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
-	 && GIMPLE_STMT_OPERAND (use_stmt, 1) == ptr
-	 && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 0)) == SSA_NAME)
-    ptr = GIMPLE_STMT_OPERAND (use_stmt, 0);
-
-  /* Replace the first dereference of *ptr if there is one and if we
-     can move the loads to the place of the ptr phi node.  */
-  phi_inserted = false;
-  FOR_EACH_IMM_USE_STMT (use_stmt, ui, ptr)
-    {
-      ssa_op_iter ui2;
-      tree vuse;
-
-      /* Check whether this is a load of *ptr.  */
-      if (!(TREE_CODE (use_stmt) == GIMPLE_MODIFY_STMT
-	    && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 0)) == SSA_NAME 
-	    && TREE_CODE (GIMPLE_STMT_OPERAND (use_stmt, 1)) == INDIRECT_REF
-	    && TREE_OPERAND (GIMPLE_STMT_OPERAND (use_stmt, 1), 0) == ptr
-	    /* We cannot replace a load that may throw or is volatile.  */
-	    && !tree_can_throw_internal (use_stmt)))
-	continue;
-
-      /* Check if we can move the loads.  The def stmts of all virtual uses
-	 need to be post-dominated by bb.  */
-      FOR_EACH_SSA_TREE_OPERAND (vuse, use_stmt, ui2, SSA_OP_VUSE)
-	{
-	  tree def_stmt = SSA_NAME_DEF_STMT (vuse);
-	  if (!SSA_NAME_IS_DEFAULT_DEF (vuse)
-	      && (bb_for_stmt (def_stmt) == bb
-		  || !dominated_by_p (CDI_DOMINATORS,
-				      bb, bb_for_stmt (def_stmt))))
-	    goto next;
-	}
-
-      /* Found a proper dereference.  Insert a phi node if this
-	 is the first load transformation.  */
-      if (!phi_inserted)
-	{
-	  res = phiprop_insert_phi (bb, phi, use_stmt, phivn, n);
-
-	  /* Remember the value we created for *ptr.  */
-	  phivn[SSA_NAME_VERSION (ptr)].value = res;
-	  phivn[SSA_NAME_VERSION (ptr)].vop_stmt = use_stmt;
-
-	  /* Remove old stmt.  The phi is taken care of by DCE, if we
-	     want to delete it here we also have to delete all intermediate
-	     copies.  */
-	  bsi = bsi_for_stmt (use_stmt);
-	  bsi_remove (&bsi, 0);
-
-	  phi_inserted = true;
-	}
-      else
-	{
-	  /* Further replacements are easy, just make a copy out of the
-	     load.  */
-	  GIMPLE_STMT_OPERAND (use_stmt, 1) = res;
-	  update_stmt (use_stmt);
-	}
-
-next:;
-      /* Continue searching for a proper dereference.  */
-    }
-
-  return phi_inserted;
-}
-
-/* Helper walking the dominator tree starting from BB and processing
-   phi nodes with global data PHIVN and N.  */
-
-static bool
-tree_ssa_phiprop_1 (basic_block bb, struct phiprop_d *phivn, size_t n)
-{
-  bool did_something = false; 
-  basic_block son;
-  tree phi;
-
-  for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
-    did_something |= propagate_with_phi (bb, phi, phivn, n);
-
-  for (son = first_dom_son (CDI_DOMINATORS, bb);
-       son;
-       son = next_dom_son (CDI_DOMINATORS, son))
-    did_something |= tree_ssa_phiprop_1 (son, phivn, n);
-
-  return did_something;
-}
-
-/* Main entry for phiprop pass.  */
-
-static unsigned int
-tree_ssa_phiprop (void)
-{
-  struct phiprop_d *phivn;
-
-  calculate_dominance_info (CDI_DOMINATORS);
-
-  phivn = XCNEWVEC (struct phiprop_d, num_ssa_names);
-
-  if (tree_ssa_phiprop_1 (ENTRY_BLOCK_PTR, phivn, num_ssa_names))
-    bsi_commit_edge_inserts ();
-
-  free (phivn);
-
-  return 0;
-}
-
-static bool
-gate_phiprop (void)
-{
-  return 1;
-}
-
-struct tree_opt_pass pass_phiprop = {
-  "phiprop",			/* name */
-  gate_phiprop,			/* gate */
-  tree_ssa_phiprop,		/* execute */
-  NULL,				/* sub */
-  NULL,				/* next */
-  0,				/* static_pass_number */
-  TV_TREE_FORWPROP,		/* tv_id */
-  PROP_cfg | PROP_ssa,		/* properties_required */
-  0,				/* properties_provided */
-  0,				/* properties_destroyed */
-  0,				/* todo_flags_start */
-  TODO_dump_func
-  | TODO_ggc_collect
-  | TODO_update_ssa
-  | TODO_verify_ssa,		/* todo_flags_finish */
-  0				/* letter */
-};

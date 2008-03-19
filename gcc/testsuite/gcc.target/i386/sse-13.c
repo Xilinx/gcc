@@ -1,12 +1,12 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -march=k8 -m3dnow -msse4 -msse5" } */
+/* { dg-options "-O2 -Werror-implicit-function-declaration -march=k8 -m3dnow -msse4 -msse5" } */
 
 /* Test that the intrinsics compile with optimization.  All of them are
    defined as inline functions in {,x,e,p,t,s,a,b}mmintrin.h and mm3dnow.h
-   that reference the proper builtin functions.  Defining away "static" and
+   that reference the proper builtin functions.  Defining away "extern" and
    "__inline" results in all of them being compiled as proper functions.  */
 
-#define static
+#define extern
 #define __inline
 
 /* Following intrinsics require immediate arguments. */

@@ -1,5 +1,5 @@
 /* Simplify intrinsic functions at compile-time.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -779,6 +779,7 @@ simplify_cmplx (const char *name, gfc_expr *x, gfc_expr *y, int kind)
   if (x->is_boz)
     {
       gfc_typespec ts;
+      gfc_clear_ts (&ts);
       ts.kind = result->ts.kind;
       ts.type = BT_REAL;
       if (!gfc_convert_boz (x, &ts))
@@ -789,6 +790,7 @@ simplify_cmplx (const char *name, gfc_expr *x, gfc_expr *y, int kind)
   if (y && y->is_boz)
     {
       gfc_typespec ts;
+      gfc_clear_ts (&ts);
       ts.kind = result->ts.kind;
       ts.type = BT_REAL;
       if (!gfc_convert_boz (y, &ts))
@@ -960,6 +962,7 @@ gfc_simplify_dble (gfc_expr *e)
   if (e->ts.type == BT_INTEGER && e->is_boz)
     {
       gfc_typespec ts;
+      gfc_clear_ts (&ts);
       ts.type = BT_REAL;
       ts.kind = gfc_default_double_kind;
       result = gfc_copy_expr (e);
@@ -1058,6 +1061,38 @@ gfc_simplify_dprod (gfc_expr *x, gfc_expr *y)
 
 
 gfc_expr *
+gfc_simplify_erf (gfc_expr *x)
+{
+  gfc_expr *result;
+
+  if (x->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+
+  mpfr_erf (result->value.real, x->value.real, GFC_RND_MODE);
+
+  return range_check (result, "ERF");
+}
+
+
+gfc_expr *
+gfc_simplify_erfc (gfc_expr *x)
+{
+  gfc_expr *result;
+
+  if (x->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+
+  mpfr_erfc (result->value.real, x->value.real, GFC_RND_MODE);
+
+  return range_check (result, "ERFC");
+}
+
+
+gfc_expr *
 gfc_simplify_epsilon (gfc_expr *e)
 {
   gfc_expr *result;
@@ -1148,6 +1183,7 @@ gfc_simplify_float (gfc_expr *a)
   if (a->is_boz)
     {
       gfc_typespec ts;
+      gfc_clear_ts (&ts);
 
       ts.type = BT_REAL;
       ts.kind = gfc_default_real_kind;
@@ -1276,6 +1312,21 @@ gfc_simplify_huge (gfc_expr *e)
   return result;
 }
 
+
+gfc_expr *
+gfc_simplify_hypot (gfc_expr *x, gfc_expr *y)
+{
+  gfc_expr *result;
+
+  if (x->expr_type != EXPR_CONSTANT || y->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+  mpfr_hypot (result->value.real, x->value.real, y->value.real, GFC_RND_MODE);
+  return range_check (result, "HYPOT");
+}
+
+
 /* We use the processor's collating sequence, because all
    systems that gfortran currently works on are ASCII.  */
 
@@ -1359,7 +1410,7 @@ gfc_simplify_ibclr (gfc_expr *x, gfc_expr *y)
   convert_mpz_to_signed (result->value.integer,
 			 gfc_integer_kinds[k].bit_size);
 
-  return range_check (result, "IBCLR");
+  return result;
 }
 
 
@@ -1400,6 +1451,8 @@ gfc_simplify_ibits (gfc_expr *x, gfc_expr *y, gfc_expr *z)
     }
 
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+  convert_mpz_to_unsigned (result->value.integer,
+			   gfc_integer_kinds[k].bit_size);
 
   bits = gfc_getmem (bitsize * sizeof (int));
 
@@ -1421,7 +1474,10 @@ gfc_simplify_ibits (gfc_expr *x, gfc_expr *y, gfc_expr *z)
 
   gfc_free (bits);
 
-  return range_check (result, "IBITS");
+  convert_mpz_to_signed (result->value.integer,
+			 gfc_integer_kinds[k].bit_size);
+
+  return result;
 }
 
 
@@ -1459,7 +1515,7 @@ gfc_simplify_ibset (gfc_expr *x, gfc_expr *y)
   convert_mpz_to_signed (result->value.integer,
 			 gfc_integer_kinds[k].bit_size);
 
-  return range_check (result, "IBSET");
+  return result;
 }
 
 
@@ -3020,6 +3076,7 @@ gfc_simplify_real (gfc_expr *e, gfc_expr *k)
   if (e->ts.type == BT_INTEGER && e->is_boz)
     {
       gfc_typespec ts;
+      gfc_clear_ts (&ts);
       ts.type = BT_REAL;
       ts.kind = kind;
       result = gfc_copy_expr (e);

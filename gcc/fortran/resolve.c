@@ -1,5 +1,5 @@
 /* Perform type resolution on the various stuctures.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -106,7 +106,10 @@ resolve_formal_arglist (gfc_symbol *proc)
   if (gfc_elemental (proc)
       || sym->attr.pointer || sym->attr.allocatable
       || (sym->as && sym->as->rank > 0))
-    proc->attr.always_explicit = 1;
+    {
+      proc->attr.always_explicit = 1;
+      sym->attr.always_explicit = 1;
+    }
 
   formal_arg_flag = 1;
 
@@ -187,7 +190,11 @@ resolve_formal_arglist (gfc_symbol *proc)
       if ((sym->as && sym->as->rank > 0 && sym->as->type == AS_ASSUMED_SHAPE)
 	  || sym->attr.pointer || sym->attr.allocatable || sym->attr.target
 	  || sym->attr.optional)
-	proc->attr.always_explicit = 1;
+	{
+	  proc->attr.always_explicit = 1;
+	  if (proc->result)
+	    proc->result->attr.always_explicit = 1;
+	}
 
       /* If the flavor is unknown at this point, it has to be a variable.
 	 A procedure specification would have already set the type.  */
@@ -947,20 +954,12 @@ static int need_full_assumed_size = 0;
 static bool
 check_assumed_size_reference (gfc_symbol *sym, gfc_expr *e)
 {
-  gfc_ref *ref;
-  int dim;
-  int last = 1;
-
   if (need_full_assumed_size || !(sym->as && sym->as->type == AS_ASSUMED_SIZE))
       return false;
 
-  for (ref = e->ref; ref; ref = ref->next)
-    if (ref->type == REF_ARRAY)
-      for (dim = 0; dim < ref->u.ar.as->rank; dim++)
-	last = (ref->u.ar.end[dim] == NULL)
-	       && (ref->u.ar.type == DIMEN_ELEMENT);
-
-  if (last)
+  if ((e->ref->u.ar.end[e->ref->u.ar.as->rank - 1] == NULL)
+	  && (e->ref->u.ar.as->type == AS_ASSUMED_SIZE)
+	       && (e->ref->u.ar.type == DIMEN_ELEMENT))
     {
       gfc_error ("The upper bound in the last dimension must "
 		 "appear in the reference to the assumed size "
@@ -5589,7 +5588,7 @@ resolve_branch (gfc_st_label *label, gfc_code *code)
 
   if (code->here == label)
     {
-      gfc_warning ("Branch at %L causes an infinite loop", &code->loc);
+      gfc_warning ("Branch at %L may result in an infinite loop", &code->loc);
       return;
     }
 
@@ -5732,7 +5731,7 @@ resolve_where (gfc_code *code, gfc_expr *mask)
 	    case EXEC_ASSIGN_CALL:
 	      resolve_call (cnext);
 	      if (!cnext->resolved_sym->attr.elemental)
-		gfc_error("Non-ELEMETAL user-defined assignment in WHERE at %L",
+		gfc_error("Non-ELEMENTAL user-defined assignment in WHERE at %L",
 			  &cnext->ext.actual->expr->where);
 	      break;
 
@@ -5817,7 +5816,7 @@ gfc_resolve_where_code_in_forall (gfc_code *code, int nvar,
 	    case EXEC_ASSIGN_CALL:
 	      resolve_call (cnext);
 	      if (!cnext->resolved_sym->attr.elemental)
-		gfc_error("Non-ELEMETAL user-defined assignment in WHERE at %L",
+		gfc_error("Non-ELEMENTAL user-defined assignment in WHERE at %L",
 			  &cnext->ext.actual->expr->where);
 	      break;
 

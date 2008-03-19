@@ -1,6 +1,6 @@
 ## Linker script for GNU versioning (GNU ld 2.13.91+ only.)
 ##
-## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
 ## Free Software Foundation, Inc.
 ##
 ## This file is part of the GNU ISO C++ Library.  This library is free
@@ -60,7 +60,9 @@ GLIBCXX_3.4 {
 #     std::c[i-z]*;
       std::c[i-s]*;
       std::c[u-z]*;
-      std::[d-g]*;
+#     std::[d-g]*;
+      std::[d-e]*;
+      std::gslice*;
       std::h[^a]*;
       std::i[a-n]*;
       std::ios_base::[A-Ha-z]*;
@@ -95,7 +97,8 @@ GLIBCXX_3.4 {
       std::locale::_[T-Za-z]*;
 #     std::[A-Zm-r]*;
       std::[A-Zm]*;
-      std::n[^u]*;
+#     std::n[^u]*;
+      std::n[^au]*;
       std::nu[^m]*;
       std::num[^e]*;
       std::[p-r]*;
@@ -753,6 +756,42 @@ GLIBCXX_3.4.10 {
 
     _ZNK11__gnu_debug16_Error_formatter17_M_get_max_lengthEv;
 
+    _ZNKSt3tr14hashIRKSbIwSt11char_traitsIwESaIwEEEclES6_;
+    _ZNKSt3tr14hashIRKSsEclES2_;
+    _ZNKSt3tr14hashISbIwSt11char_traitsIwESaIwEEEclES4_;
+    _ZNKSt3tr14hashISsEclESs;
+    _ZNKSt3tr14hashIeEclEe;
+
+    _ZNKSt4hashIRKSbIwSt11char_traitsIwESaIwEEEclES5_;
+    _ZNKSt4hashIRKSsEclES1_;
+    _ZNKSt4hashISbIwSt11char_traitsIwESaIwEEEclES3_;
+    _ZNKSt4hashISsEclESs;
+    _ZNKSt4hashIeEclEe;
+
+    _ZSt17__verify_grouping*;
+    
+    _ZNSt8__detail12__prime_listE;
+    _ZNSt3tr18__detail12__prime_listE;
+
+    # for parallel mode
+    _ZN14__gnu_parallel9_Settings3getEv;
+    _ZN14__gnu_parallel9_Settings3setERS0_;
+
+    _ZNSt9__cxx199815_List_node_base4hook*;
+    _ZNSt9__cxx199815_List_node_base4swap*;
+    _ZNSt9__cxx199815_List_node_base6unhookEv;
+    _ZNSt9__cxx199815_List_node_base7reverseEv;
+    _ZNSt9__cxx199815_List_node_base8transfer*;
+
+    _ZNSt15basic_streambufI[cw]St11char_traitsI[cw]EE6stosscEv;
+
+
+    _ZN9__gnu_cxx18stdio_sync_filebufI[cw]St11char_traitsI[cw]EE4syncEv;
+    _ZN9__gnu_cxx18stdio_sync_filebufI[cw]St11char_traitsI[cw]EE[5-9CD]*;
+
+} GLIBCXX_3.4.9;
+
+GLIBCXX_3.4.11 {
     # system_error
     _ZSt15system_category;
 
@@ -766,34 +805,20 @@ GLIBCXX_3.4.10 {
     _ZNSt12system_errorD*Ev;
     _ZNSt12system_errorC*;
 
-    _ZNKSt3tr14hashIRKSbIwSt11char_traitsIwESaIwEEEclES6_;
-    _ZNKSt3tr14hashIRKSsEclES2_;
-    _ZNKSt3tr14hashISbIwSt11char_traitsIwESaIwEEEclES4_;
-    _ZNKSt3tr14hashISsEclESs;
-    _ZNKSt3tr14hashI[eg]EclE[eg];
-
-    _ZNKSt4hashIRKSbIwSt11char_traitsIwESaIwEEEclES5_;
-    _ZNKSt4hashIRKSsEclES1_;
-    _ZNKSt4hashISbIwSt11char_traitsIwESaIwEEEclES3_;
-    _ZNKSt4hashISsEclESs;
     _ZNKSt4hashISt10error_codeEclES0_;
-    _ZNKSt4hashI[eg]EclE[eg];
 
-    # for parallel mode
-    _ZNSt9__cxx199815_List_node_base4hook*;
-    _ZNSt9__cxx199815_List_node_base4swap*;
-    _ZNSt9__cxx199815_List_node_base6unhookEv;
-    _ZNSt9__cxx199815_List_node_base7reverseEv;
-    _ZNSt9__cxx199815_List_node_base8transfer*;
+    # date_time
+    _ZSt15get_system_timev;
+ 
+    _ZNSt11nanoseconds16seconds_per_tickE;
+    _ZNSt11nanoseconds16ticks_per_secondE;
+    _ZNSt11nanoseconds12is_subsecondE;
 
-    _ZNSt15basic_streambufI[cw]St11char_traitsI[cw]EE6stosscEv;
+    _ZNSt11system_time16seconds_per_tickE;
+    _ZNSt11system_time16ticks_per_secondE;
+    _ZNSt11system_time12is_subsecondE;
 
-    _ZSt17__verify_grouping*;
-    
-    _ZNSt8__detail12__prime_listE;
-    _ZNSt3tr18__detail12__prime_listE;
-
-} GLIBCXX_3.4.9;
+} GLIBCXX_3.4.10;
 
 # Symbols in the support library (libsupc++) have their own tag.
 CXXABI_1.3 {

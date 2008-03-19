@@ -110,13 +110,27 @@ Wfatal-errors
 Common Var(flag_fatal_errors)
 Exit on the first error occurred
 
+Wframe-larger-than=
+Common RejectNegative Joined UInteger
+-Wframe-larger-than=@var{len} Warn whenever a function's stack frame requires
+more than @var{len} bytes.  The computation done to determine
+the stack frame size is approximate and not conservative.
+The actual requirements may be somewhat greater than @var{len}
+even if you do not get a warning.  In addition, any space allocated
+via @code{alloca}, variable-length arrays, or related constructs
+is not included by the compiler when determining
+whether or not to issue a warning.
+
 Winline
 Common Var(warn_inline) Warning
 Warn when an inlined function cannot be inlined
 
 Wlarger-than-
 Common RejectNegative Joined UInteger Warning
--Wlarger-than-<number>	Warn if an object is larger than <number> bytes
+
+Wlarger-than=
+Common RejectNegative Joined UInteger Warning
+-Wlarger-than=<number>	Warn if an object is larger than <number> bytes
 
 Wlogical-op
 Common Warning Var(warn_logical_op)
@@ -182,6 +196,10 @@ Wsystem-headers
 Common Var(warn_system_headers) Warning
 Do not suppress warnings from system headers
 
+Wtype-limits
+Common Var(warn_type_limits) Init(-1) Warning
+Warn if a comparison is always true or always false due to the limited range of the data type
+
 Wuninitialized
 Common Var(warn_uninitialized) Warning
 Warn about uninitialized automatic variables
@@ -213,10 +231,6 @@ Warn when an expression value is unused
 Wunused-variable
 Common Var(warn_unused_variable) Warning
 Warn when a variable is unused
-
-Wvolatile-register-var
-Common Var(warn_register_var) Warning
-Warn when a register variable is declared volatile
 
 Wcoverage-mismatch
 Common RejectNegative Var(warn_coverage_mismatch) Warning
@@ -389,6 +403,10 @@ When running CSE, follow conditional jumps
 fcx-limited-range
 Common Report Var(flag_cx_limited_range) Optimization
 Omit range reduction step when performing complex division
+
+fcx-fortran-rules
+Common Report Var(flag_cx_fortran_rules) Optimization
+Complex multiplication and division follow Fortran rules
 
 fdata-sections
 Common Report Var(flag_data_sections) Optimization
@@ -1079,6 +1097,10 @@ Enable dead store elimination
 ftree-fre
 Common Report Var(flag_tree_fre) Optimization
 Enable Full Redundancy Elimination (FRE) on trees
+
+ftree-loop-distribution
+Common Report Var(flag_tree_loop_distribution)
+Enable loop distribution on trees
 
 ftree-loop-im
 Common Report Var(flag_tree_loop_im) Init(1) Optimization

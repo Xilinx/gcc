@@ -1,3 +1,18 @@
+2008-03-12  Seongbae Park <seongbae.park@gmail.com>
+
+	* cplus-dem.c (malloc, realloc): Use void * instead of char *
+	as return type.
+
+2008-03-11  Nick Clifton  <nickc@redhat.com>
+
+	* md5.c (md5_process_bytes): Do not assume that memcpy will
+	provide a return value.
+
+2008-02-19  Ben Elliston  <bje@au.ibm.com>
+
+	PR other/12618
+	* testsuite/Makefile.in (mostlyclean): Remove any core file.
+
 2008-01-26  David Daney  <ddaney@avtrex.com>
 
 	* cp-demangle.c (d_dump): Handle DEMANGLE_COMPONENT_JAVA_RESOURCE,

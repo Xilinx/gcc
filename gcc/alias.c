@@ -133,6 +133,10 @@ struct alias_set_entry GTY(())
   /* The alias set number, as stored in MEM_ALIAS_SET.  */
   alias_set_type alias_set;
 
+  /* Nonzero if would have a child of zero: this effectively makes this
+     alias set the same as alias set zero.  */
+  int has_zero_child;
+
   /* The children of the alias set.  These are not just the immediate
      children, but, in fact, all descendants.  So, if we have:
 
@@ -141,10 +145,6 @@ struct alias_set_entry GTY(())
      continuing our example above, the children here will be all of
      `int', `double', `float', and `struct S'.  */
   splay_tree GTY((param1_is (int), param2_is (int))) children;
-
-  /* Nonzero if would have a child of zero: this effectively makes this
-     alias set the same as alias set zero.  */
-  int has_zero_child;
 };
 typedef struct alias_set_entry *alias_set_entry;
 
@@ -164,7 +164,6 @@ static int aliases_everything_p (const_rtx);
 static bool nonoverlapping_component_refs_p (const_tree, const_tree);
 static tree decl_for_component_ref (tree);
 static rtx adjust_offset_for_component_ref (tree, rtx);
-static int nonoverlapping_memrefs_p (const_rtx, const_rtx);
 static int write_dependence_p (const_rtx, const_rtx, int);
 
 static void memory_modified_1 (rtx, const_rtx, void *);
@@ -1976,7 +1975,7 @@ adjust_offset_for_component_ref (tree x, rtx offset)
 /* Return nonzero if we can determine the exprs corresponding to memrefs
    X and Y and they do not overlap.  */
 
-static int
+int
 nonoverlapping_memrefs_p (const_rtx x, const_rtx y)
 {
   tree exprx = MEM_EXPR (x), expry = MEM_EXPR (y);

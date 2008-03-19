@@ -28,6 +28,9 @@ AM_CPPFLAGS = -iquote$(srcdir)/io -I$(srcdir)/$(MULTISRCTOP)../gcc \
 	      -I$(srcdir)/$(MULTISRCTOP)../gcc/config \
 	      -I$(MULTIBUILDTOP)../../$(host_subdir)/gcc -D_GNU_SOURCE
 
+# Fortran rules for complex multiplication and division
+AM_CFLAGS += -fcx-fortran-rules
+
 gfor_io_src= \
 io/close.c \
 io/file_pos.c \
@@ -64,6 +67,7 @@ intrinsics/dtime.c \
 intrinsics/env.c \
 intrinsics/eoshift0.c \
 intrinsics/eoshift2.c \
+intrinsics/erfc_scaled.c \
 intrinsics/etime.c \
 intrinsics/exit.c \
 intrinsics/fnum.c \

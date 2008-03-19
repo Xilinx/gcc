@@ -1,5 +1,5 @@
 /* Tree-dumping functionality for intermediate representation.
-   Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Written by Mark Mitchell <mark@codesourcery.com>
 
@@ -551,7 +551,7 @@ dequeue_and_dump (dump_info_p di)
 	dump_string_field (di, "link", "extern");
       else
 	dump_string_field (di, "link", "static");
-      if (DECL_LANG_SPECIFIC (t) && !dump_flag (di, TDF_SLIM, t))
+      if (DECL_SAVED_TREE (t) && !dump_flag (di, TDF_SLIM, t))
 	dump_child ("body", DECL_SAVED_TREE (t));
       break;
 
@@ -790,9 +790,8 @@ static struct dump_file_info dump_files[TDI_end] =
   {".original", "tree-original", NULL, TDF_TREE, 0, 3, 0},
   {".gimple", "tree-gimple", NULL, TDF_TREE, 0, 4, 0},
   {".nested", "tree-nested", NULL, TDF_TREE, 0, 5, 0},
-  {".inlined", "tree-inlined", NULL, TDF_TREE, 0, 6, 0},
-  {".vcg", "tree-vcg", NULL, TDF_TREE, 0, 7, 0},
-#define FIRST_AUTO_NUMBERED_DUMP 8
+  {".vcg", "tree-vcg", NULL, TDF_TREE, 0, 6, 0},
+#define FIRST_AUTO_NUMBERED_DUMP 7
 
   {NULL, "tree-all", NULL, TDF_TREE, 0, 0, 0},
   {NULL, "rtl-all", NULL, TDF_RTL, 0, 0, 0},

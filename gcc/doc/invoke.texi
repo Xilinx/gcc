@@ -235,12 +235,13 @@ Objective-C and Objective-C++ Dialects}.
 -Wempty-body  -Wno-endif-labels @gol
 -Werror  -Werror=* @gol
 -Wfatal-errors  -Wfloat-equal  -Wformat  -Wformat=2 @gol
--Wno-format-extra-args -Wformat-nonliteral @gol
--Wformat-security  -Wformat-y2k -Wignored-qualifiers @gol
+-Wno-format-contains-nul -Wno-format-extra-args -Wformat-nonliteral @gol
+-Wformat-security  -Wformat-y2k @gol
+-Wframe-larger-than=@var{len} -Wignored-qualifiers @gol
 -Wimplicit  -Wimplicit-function-declaration  -Wimplicit-int @gol
 -Wimport  -Wno-import  -Winit-self  -Winline @gol
 -Wno-int-to-pointer-cast -Wno-invalid-offsetof @gol
--Winvalid-pch -Wlarger-than-@var{len}  -Wunsafe-loop-optimizations @gol
+-Winvalid-pch -Wlarger-than=@var{len}  -Wunsafe-loop-optimizations @gol
 -Wlogical-op -Wlong-long @gol
 -Wmain  -Wmissing-braces  -Wmissing-field-initializers @gol
 -Wmissing-format-attribute  -Wmissing-include-dirs @gol
@@ -261,7 +262,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wvariadic-macros -Wvla @gol
 -Wvolatile-register-var  -Wwrite-strings}
 
-@item C-only Warning Options
+@item C and Objective-C-only Warning Options
 @gccoptlist{-Wbad-function-cast  -Wmissing-declarations @gol
 -Wmissing-parameter-type  -Wmissing-prototypes  -Wnested-externs @gol
 -Wold-style-declaration  -Wold-style-definition @gol
@@ -274,11 +275,10 @@ Objective-C and Objective-C++ Dialects}.
 -fdbg-cnt-list -fdbg-cnt=@var{counter-value-list} @gol
 -fdump-noaddr -fdump-unnumbered  -fdump-translation-unit@r{[}-@var{n}@r{]} @gol
 -fdump-class-hierarchy@r{[}-@var{n}@r{]} @gol
--fdump-ipa-all -fdump-ipa-cgraph @gol
+-fdump-ipa-all -fdump-ipa-cgraph -fdump-ipa-inline @gol
 -fdump-tree-all @gol
 -fdump-tree-original@r{[}-@var{n}@r{]}  @gol
 -fdump-tree-optimized@r{[}-@var{n}@r{]} @gol
--fdump-tree-inlined@r{[}-@var{n}@r{]} @gol
 -fdump-tree-cfg -fdump-tree-vcg -fdump-tree-alias @gol
 -fdump-tree-ch @gol
 -fdump-tree-ssa@r{[}-@var{n}@r{]} -fdump-tree-pre@r{[}-@var{n}@r{]} @gol
@@ -321,7 +321,8 @@ Objective-C and Objective-C++ Dialects}.
 -fauto-inc-dec -fbranch-probabilities -fbranch-target-load-optimize @gol
 -fbranch-target-load-optimize2 -fbtr-bb-exclusive -fcaller-saves @gol
 -fcheck-data-deps -fcprop-registers -fcrossjumping -fcse-follow-jumps @gol
--fcse-skip-blocks -fcx-limited-range -fdata-sections -fdce -fdce @gol
+-fcse-skip-blocks -fcx-fortran-rules -fcx-limited-range @gol
+-fdata-sections -fdce -fdce @gol
 -fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse @gol
 -fearly-inlining -fexpensive-optimizations -ffast-math @gol
 -ffinite-math-only -ffloat-store -fforward-propagate @gol
@@ -353,6 +354,7 @@ Objective-C and Objective-C++ Dialects}.
 -fstrict-aliasing -fstrict-overflow -fthread-jumps -ftracer -ftree-ccp @gol
 -ftree-ch -ftree-copy-prop -ftree-copyrename -ftree-dce @gol
 -ftree-dominator-opts -ftree-dse -ftree-fre -ftree-loop-im @gol
+-ftree-loop-distribution @gol
 -ftree-loop-ivcanon -ftree-loop-linear -ftree-loop-optimize @gol
 -ftree-parallelize-loops=@var{n} -ftree-pre -ftree-reassoc -ftree-salias @gol
 -ftree-sink -ftree-sra -ftree-store-ccp -ftree-ter @gol
@@ -798,6 +800,7 @@ See i386 and x86-64 Options.
 @emph{Xtensa Options}
 @gccoptlist{-mconst16 -mno-const16 @gol
 -mfused-madd  -mno-fused-madd @gol
+-mserialize-volatile  -mno-serialize-volatile @gol
 -mtext-section-literals  -mno-text-section-literals @gol
 -mtarget-align  -mno-target-align @gol
 -mlongcalls  -mno-longcalls}
@@ -999,7 +1002,6 @@ assembler  assembler-with-cpp
 ada
 f95  f95-cpp-input
 java
-treelang
 @end smallexample
 
 @item -x none
@@ -1182,7 +1184,7 @@ switches supported by the compiler the following can be used:
 
 The sense of a qualifier can be inverted by prefixing it with the
 @var{^} character, so for example to display all binary warning
-options (i.e. ones that are either on or off and that do not take an
+options (i.e., ones that are either on or off and that do not take an
 argument), which have a description the following can be used:
 
 @smallexample
@@ -1336,12 +1338,31 @@ Determine the language standard. @xref{Standards,,Language Standards
 Supported by GCC}, for details of these standard versions.  This option
 is currently only supported when compiling C or C++. 
 
+The compiler can accept several base standards, such as @samp{c89} or
+@samp{c++98}, and GNU dialects of those standards, such as
+@samp{gnu89} or @samp{gnu++98}.  By specifing a base standard, the
+compiler will accept all programs following that standard and those
+using GNU extensions that do not contradict it.  For example,
+@samp{-std=c89} turns off certain features of GCC that are
+incompatible with ISO C90, such as the @code{asm} and @code{typeof}
+keywords, but not other GNU extensions that do not have a meaning in
+ISO C90, such as omitting the middle term of a @code{?:}
+expression. On the other hand, by specifing a GNU dialect of a
+standard, all features the compiler support are enabled, even when
+those features change the meaning of the base standard and some
+strict-conforming programs may be rejected.  The particular standard
+is used by @option{-pedantic} to identify which features are GNU
+extensions given that version of the standard. For example
+@samp{-std=gnu89 -pedantic} would warn about C++ style @samp{//}
+comments, while @samp{-std=gnu99 -pedantic} would not.
+
 A value for this option must be provided; possible values are
 
 @table @samp
 @item c89
 @itemx iso9899:1990
-ISO C90 (same as @option{-ansi}).
+Support all ISO C90 programs (certain GNU extensions that conflict
+with ISO C90 are disabled). Same as @option{-ansi} for C code.
 
 @item iso9899:199409
 ISO C90 as modified in amendment 1.
@@ -1355,19 +1376,21 @@ ISO C99.  Note that this standard is not yet fully supported; see
 names @samp{c9x} and @samp{iso9899:199x} are deprecated.
 
 @item gnu89
-Default, ISO C90 plus GNU extensions (including some C99 features).
+GNU dialect of ISO C90 (including some C99 features). This
+is the default for C code.
 
 @item gnu99
 @itemx gnu9x
-ISO C99 plus GNU extensions.  When ISO C99 is fully implemented in GCC,
+GNU dialect of ISO C99.  When ISO C99 is fully implemented in GCC,
 this will become the default.  The name @samp{gnu9x} is deprecated.
 
 @item c++98
-The 1998 ISO C++ standard plus amendments.
+The 1998 ISO C++ standard plus amendments. Same as @option{-ansi} for
+C++ code.
 
 @item gnu++98
-The same as @option{-std=c++98} plus GNU extensions.  This is the
-default for C++ code.
+GNU dialect of @option{-std=c++98}.  This is the default for
+C++ code.
 
 @item c++0x
 The working draft of the upcoming ISO C++0x standard. This option
@@ -1377,20 +1400,9 @@ enabled by this flag may be removed from future versions of GCC if it is
 not part of the C++0x standard.
 
 @item gnu++0x
-The same as @option{-std=c++0x} plus GNU extensions. As with
-@option{-std=c++0x}, this option enables experimental features that may
-be removed in future versions of GCC.
+GNU dialect of @option{-std=c++0x}. This option enables
+experimental features that may be removed in future versions of GCC.
 @end table
-
-Even when this option is not specified, you can still use some of the
-features of newer standards in so far as they do not conflict with
-previous C standards.  For example, you may use @code{__restrict__} even
-when @option{-std=c99} is not specified.
-
-The @option{-std} options specifying some version of ISO C have the same
-effects as @option{-ansi}, except that features that were not in ISO C90
-but are in the specified version (for example, @samp{//} comments and
-the @code{inline} keyword in ISO C99) are not disabled.
 
 @item -fgnu89-inline
 @opindex fgnu89-inline
@@ -1906,8 +1918,9 @@ Do not assume @samp{inline} for functions defined inside a class scope.
 functions will have linkage like inline functions; they just won't be
 inlined by default.
 
-@item -Wabi @r{(C++ only)}
+@item -Wabi @r{(C++ and Objective-C++ only)}
 @opindex Wabi
+@opindex Wno-abi
 Warn when G++ generates code that is probably not compatible with the
 vendor-neutral C++ ABI@.  Although an effort has been made to warn about
 all such cases, there are probably some cases that are not warned about,
@@ -2005,21 +2018,24 @@ Instantiations of these templates may be mangled incorrectly.
 
 @end itemize
 
-@item -Wctor-dtor-privacy @r{(C++ only)}
+@item -Wctor-dtor-privacy @r{(C++ and Objective-C++ only)}
 @opindex Wctor-dtor-privacy
+@opindex Wno-ctor-dtor-privacy
 Warn when a class seems unusable because all the constructors or
 destructors in that class are private, and it has neither friends nor
 public static member functions.
 
-@item -Wnon-virtual-dtor @r{(C++ only)}
+@item -Wnon-virtual-dtor @r{(C++ and Objective-C++ only)}
 @opindex Wnon-virtual-dtor
+@opindex Wno-non-virtual-dtor
 Warn when a class has virtual functions and accessible non-virtual
 destructor, in which case it would be possible but unsafe to delete
 an instance of a derived class through a pointer to the base class.
 This warning is also enabled if -Weffc++ is specified.
 
-@item -Wreorder @r{(C++ only)}
+@item -Wreorder @r{(C++ and Objective-C++ only)}
 @opindex Wreorder
+@opindex Wno-reorder
 @cindex reordering, warning
 @cindex warning for reordering of member initializers
 Warn when the order of member initializers given in the code does not
@@ -2041,8 +2057,9 @@ a warning to that effect.  This warning is enabled by @option{-Wall}.
 The following @option{-W@dots{}} options are not affected by @option{-Wall}.
 
 @table @gcctabopt
-@item -Weffc++ @r{(C++ only)}
+@item -Weffc++ @r{(C++ and Objective-C++ only)}
 @opindex Weffc++
+@opindex Wno-effc++
 Warn about violations of the following style guidelines from Scott Meyers'
 @cite{Effective C++} book:
 
@@ -2082,20 +2099,23 @@ When selecting this option, be aware that the standard library
 headers do not obey all of these guidelines; use @samp{grep -v}
 to filter out those warnings.
 
-@item -Wno-deprecated @r{(C++ only)}
+@item -Wno-deprecated @r{(C++ and Objective-C++ only)}
 @opindex Wno-deprecated
+@opindex Wdeprecated
 Do not warn about usage of deprecated features.  @xref{Deprecated Features}.
 
-@item -Wstrict-null-sentinel @r{(C++ only)}
+@item -Wstrict-null-sentinel @r{(C++ and Objective-C++ only)}
 @opindex Wstrict-null-sentinel
+@opindex Wno-strict-null-sentinel
 Warn also about the use of an uncasted @code{NULL} as sentinel.  When
 compiling only with GCC this is a valid sentinel, as @code{NULL} is defined
 to @code{__null}.  Although it is a null pointer constant not a null pointer,
 it is guaranteed to of the same size as a pointer.  But this use is
 not portable across different compilers.
 
-@item -Wno-non-template-friend @r{(C++ only)}
+@item -Wno-non-template-friend @r{(C++ and Objective-C++ only)}
 @opindex Wno-non-template-friend
+@opindex Wnon-template-friend
 Disable warnings when non-templatized friend functions are declared
 within a template.  Since the advent of explicit template specification
 support in G++, if the name of the friend is an unqualified-id (i.e.,
@@ -2110,15 +2130,17 @@ This new compiler behavior can be turned off with
 @option{-Wno-non-template-friend} which keeps the conformant compiler code
 but disables the helpful warning.
 
-@item -Wold-style-cast @r{(C++ only)}
+@item -Wold-style-cast @r{(C++ and Objective-C++ only)}
 @opindex Wold-style-cast
+@opindex Wno-old-style-cast
 Warn if an old-style (C-style) cast to a non-void type is used within
 a C++ program.  The new-style casts (@samp{dynamic_cast},
 @samp{static_cast}, @samp{reinterpret_cast}, and @samp{const_cast}) are
 less vulnerable to unintended effects and much easier to search for.
 
-@item -Woverloaded-virtual @r{(C++ only)}
+@item -Woverloaded-virtual @r{(C++ and Objective-C++ only)}
 @opindex Woverloaded-virtual
+@opindex Wno-overloaded-virtual
 @cindex overloaded virtual fn, warning
 @cindex warning for overloaded virtual fn
 Warn when a function declaration hides virtual functions from a
@@ -2144,13 +2166,15 @@ b->f();
 
 will fail to compile.
 
-@item -Wno-pmf-conversions @r{(C++ only)}
+@item -Wno-pmf-conversions @r{(C++ and Objective-C++ only)}
 @opindex Wno-pmf-conversions
+@opindex Wpmf-conversions
 Disable the diagnostic for converting a bound pointer to member function
 to a plain pointer.
 
-@item -Wsign-promo @r{(C++ only)}
+@item -Wsign-promo @r{(C++ and Objective-C++ only)}
 @opindex Wsign-promo
+@opindex Wno-sign-promo
 Warn when overload resolution chooses a promotion from unsigned or
 enumerated type to a signed type, over a conversion to an unsigned type of
 the same size.  Previous versions of G++ would try to preserve
@@ -2388,13 +2412,15 @@ for individual class implementations to be modified during program execution.
 Dump interface declarations for all classes seen in the source file to a
 file named @file{@var{sourcename}.decl}.
 
-@item -Wassign-intercept
+@item -Wassign-intercept @r{(Objective-C and Objective-C++ only)}
 @opindex Wassign-intercept
+@opindex Wno-assign-intercept
 Warn whenever an Objective-C assignment is being intercepted by the
 garbage collector.
 
-@item -Wno-protocol
+@item -Wno-protocol @r{(Objective-C and Objective-C++ only)}
 @opindex Wno-protocol
+@opindex Wprotocol
 If a class is declared to implement a protocol, a warning is issued for
 every method in the protocol that is not implemented by the class.  The
 default behavior is to issue a warning for every method not explicitly
@@ -2403,8 +2429,9 @@ from the superclass.  If you use the @option{-Wno-protocol} option, then
 methods inherited from the superclass are considered to be implemented,
 and no warning is issued for them.
 
-@item -Wselector
+@item -Wselector @r{(Objective-C and Objective-C++ only)}
 @opindex Wselector
+@opindex Wno-selector
 Warn if multiple methods of different types for the same selector are
 found during compilation.  The check is performed on the list of methods
 in the final stage of compilation.  Additionally, a check is performed
@@ -2416,8 +2443,9 @@ stage of compilation is not reached, for example because an error is
 found during compilation, or because the @option{-fsyntax-only} option is
 being used.
 
-@item -Wstrict-selector-match
+@item -Wstrict-selector-match @r{(Objective-C and Objective-C++ only)}
 @opindex Wstrict-selector-match
+@opindex Wno-strict-selector-match
 Warn if multiple methods with differing argument and/or return types are
 found for a given selector when attempting to send a message using this
 selector to a receiver of type @code{id} or @code{Class}.  When this flag
@@ -2425,8 +2453,9 @@ is off (which is the default behavior), the compiler will omit such warnings
 if any differences found are confined to types which share the same size
 and alignment.
 
-@item -Wundeclared-selector
+@item -Wundeclared-selector @r{(Objective-C and Objective-C++ only)}
 @opindex Wundeclared-selector
+@opindex Wno-undeclared-selector
 Warn if a @code{@@selector(@dots{})} expression referring to an
 undeclared selector is found.  A selector is considered undeclared if no
 method with that name has been declared before the
@@ -2532,10 +2561,12 @@ Inhibit all warning messages.
 
 @item -Werror
 @opindex Werror
+@opindex Wno-error
 Make all warnings into errors.
 
 @item -Werror=
 @opindex Werror=
+@opindex Wno-error=
 Make the specified warning into an error.  The specifier for a warning
 is appended, for example @option{-Werror=switch} turns the warnings
 controlled by @option{-Wswitch} into errors.  This switch takes a
@@ -2552,6 +2583,7 @@ imply anything.
 
 @item -Wfatal-errors
 @opindex Wfatal-errors
+@opindex Wno-fatal-errors
 This option causes the compiler to abort compilation on the first error
 occurred rather than trying to keep going and printing further error
 messages.
@@ -2616,6 +2648,7 @@ warnings.
 
 @item -Wall
 @opindex Wall
+@opindex Wno-all
 This enables all the warnings about constructions that some users
 consider questionable, and that are easy to avoid (or modify to
 prevent the warning), even in conjunction with macros.  This also
@@ -2651,6 +2684,7 @@ Options} and @ref{Objective-C and Objective-C++ Dialect Options}.
 -Wunused-label     @gol
 -Wunused-value     @gol
 -Wunused-variable  @gol
+-Wvolatile-register-var @gol
 }
 
 Note that some warning flags are not implied by @option{-Wall}.  Some of
@@ -2664,6 +2698,7 @@ them must be enabled individually.
 @item -Wextra
 @opindex W
 @opindex Wextra
+@opindex Wno-extra
 This enables some extra warning flags that are not enabled by
 @option{-Wall}. (This option used to be called @option{-W}.  The older
 name is still supported, but the newer name is more descriptive.)
@@ -2716,10 +2751,12 @@ constructor.
 
 @item -Wno-import
 @opindex Wno-import
+@opindex Wimport
 Inhibit warning messages about the use of @samp{#import}.
 
 @item -Wchar-subscripts
 @opindex Wchar-subscripts
+@opindex Wno-char-subscripts
 Warn if an array subscript has type @code{char}.  This is a common cause
 of error, as programmers often forget that this type is signed on some
 machines.
@@ -2727,12 +2764,14 @@ This warning is enabled by @option{-Wall}.
 
 @item -Wcomment
 @opindex Wcomment
+@opindex Wno-comment
 Warn whenever a comment-start sequence @samp{/*} appears in a @samp{/*}
 comment, or whenever a Backslash-Newline appears in a @samp{//} comment.
 This warning is enabled by @option{-Wall}.
 
 @item -Wformat
 @opindex Wformat
+@opindex Wno-format
 @opindex ffreestanding
 @opindex fno-builtin
 Check calls to @code{printf} and @code{scanf}, etc., to make sure that
@@ -2769,11 +2808,19 @@ aspects of format checking, the options @option{-Wformat-y2k},
 
 @item -Wformat-y2k
 @opindex Wformat-y2k
+@opindex Wno-format-y2k
 If @option{-Wformat} is specified, also warn about @code{strftime}
 formats which may yield only a two-digit year.
 
+@item -Wno-format-contains-nul
+@opindex Wno-format-contains-nul
+@opindex Wformat-contains-nul
+If @option{-Wformat} is specified, do not warn about format strings that
+contain NUL bytes.
+
 @item -Wno-format-extra-args
 @opindex Wno-format-extra-args
+@opindex Wformat-extra-args
 If @option{-Wformat} is specified, do not warn about excess arguments to a
 @code{printf} or @code{scanf} format function.  The C standard specifies
 that such arguments are ignored.
@@ -2786,19 +2833,22 @@ in the case of @code{scanf} formats, this option will suppress the
 warning if the unused arguments are all pointers, since the Single
 Unix Specification says that such unused arguments are allowed.
 
-@item -Wno-format-zero-length
+@item -Wno-format-zero-length @r{(C and Objective-C only)}
 @opindex Wno-format-zero-length
+@opindex Wformat-zero-length
 If @option{-Wformat} is specified, do not warn about zero-length formats.
 The C standard specifies that zero-length formats are allowed.
 
 @item -Wformat-nonliteral
 @opindex Wformat-nonliteral
+@opindex Wno-format-nonliteral
 If @option{-Wformat} is specified, also warn if the format string is not a
 string literal and so cannot be checked, unless the format function
 takes its format arguments as a @code{va_list}.
 
 @item -Wformat-security
 @opindex Wformat-security
+@opindex Wno-format-security
 If @option{-Wformat} is specified, also warn about uses of format
 functions that represent possible security problems.  At present, this
 warns about calls to @code{printf} and @code{scanf} functions where the
@@ -2811,12 +2861,14 @@ included in @option{-Wformat-nonliteral}.)
 
 @item -Wformat=2
 @opindex Wformat=2
+@opindex Wno-format=2
 Enable @option{-Wformat} plus format checks not included in
 @option{-Wformat}.  Currently equivalent to @samp{-Wformat
 -Wformat-nonliteral -Wformat-security -Wformat-y2k}.
 
-@item -Wnonnull
+@item -Wnonnull @r{(C and Objective-C only)}
 @opindex Wnonnull
+@opindex Wno-nonnull
 Warn about passing a null pointer for arguments marked as
 requiring a non-null value by the @code{nonnull} function attribute.
 
@@ -2825,6 +2877,7 @@ can be disabled with the @option{-Wno-nonnull} option.
 
 @item -Winit-self @r{(C, C++, Objective-C and Objective-C++ only)}
 @opindex Winit-self
+@opindex Wno-init-self
 Warn about uninitialized variables which are initialized with themselves.
 Note this option can only be used with the @option{-Wuninitialized} option,
 which in turn only works with @option{-O1} and above.
@@ -2841,12 +2894,13 @@ int f()
 @end group
 @end smallexample
 
-@item -Wimplicit-int
+@item -Wimplicit-int @r{(C and Objective-C only)}
 @opindex Wimplicit-int
+@opindex Wno-implicit-int
 Warn when a declaration does not specify a type.
 This warning is enabled by @option{-Wall}.
 
-@item -Wimplicit-function-declaration
+@item -Wimplicit-function-declaration @r{(C and Objective-C only)}
 @opindex Wimplicit-function-declaration
 @opindex Wno-implicit-function-declaration
 Give a warning whenever a function is used before being declared. In
@@ -2857,10 +2911,11 @@ enabled by default and it is made into an error by
 
 @item -Wimplicit
 @opindex Wimplicit
+@opindex Wno-implicit
 Same as @option{-Wimplicit-int} and @option{-Wimplicit-function-declaration}.
 This warning is enabled by @option{-Wall}.
 
-@item -Wignored-qualifiers
+@item -Wignored-qualifiers @r{(C and C++ only)}
 @opindex Wignored-qualifiers
 @opindex Wno-ignored-qualifiers
 Warn if the return type of a function has a type qualifier
@@ -2875,6 +2930,7 @@ This warning is also enabled by @option{-Wextra}.
 
 @item -Wmain
 @opindex Wmain
+@opindex Wno-main
 Warn if the type of @samp{main} is suspicious.  @samp{main} should be a
 function with external linkage, returning int, taking either zero
 arguments, two, or three arguments of appropriate types.
@@ -2882,6 +2938,7 @@ This warning is enabled by @option{-Wall}.
 
 @item -Wmissing-braces
 @opindex Wmissing-braces
+@opindex Wno-missing-braces
 Warn if an aggregate or union initializer is not fully bracketed.  In
 the following example, the initializer for @samp{a} is not fully
 bracketed, but that for @samp{b} is fully bracketed.
@@ -2895,10 +2952,12 @@ This warning is enabled by @option{-Wall}.
 
 @item -Wmissing-include-dirs @r{(C, C++, Objective-C and Objective-C++ only)}
 @opindex Wmissing-include-dirs
+@opindex Wno-missing-include-dirs
 Warn if a user-supplied include directory does not exist.
 
 @item -Wparentheses
 @opindex Wparentheses
+@opindex Wno-parentheses
 Warn if parentheses are omitted in certain contexts, such
 as when there is an assignment in a context where a truth value
 is expected, or when operators are nested whose precedence people
@@ -2952,6 +3011,7 @@ This warning is enabled by @option{-Wall}.
 
 @item -Wsequence-point
 @opindex Wsequence-point
+@opindex Wno-sequence-point
 Warn about code that may have undefined semantics because of violations
 of sequence point rules in the C and C++ standards.
 
@@ -3013,6 +3073,7 @@ This warning is enabled by @option{-Wall}.
 
 @item -Wswitch
 @opindex Wswitch
+@opindex Wno-switch
 Warn whenever a @code{switch} statement has an index of enumerated type
 and lacks a @code{case} for one or more of the named codes of that
 enumeration.  (The presence of a @code{default} label prevents this
@@ -3021,12 +3082,14 @@ provoke warnings when this option is used.
 This warning is enabled by @option{-Wall}.
 
 @item -Wswitch-default
-@opindex Wswitch-switch
+@opindex Wswitch-default
+@opindex Wno-switch-default
 Warn whenever a @code{switch} statement does not have a @code{default}
 case.
 
 @item -Wswitch-enum
 @opindex Wswitch-enum
+@opindex Wno-switch-enum
 Warn whenever a @code{switch} statement has an index of enumerated type
 and lacks a @code{case} for one or more of the named codes of that
 enumeration.  @code{case} labels outside the enumeration range also
@@ -3034,18 +3097,21 @@ provoke warnings when this option is used.
 
 @item -Wtrigraphs
 @opindex Wtrigraphs
+@opindex Wno-trigraphs
 Warn if any trigraphs are encountered that might change the meaning of
 the program (trigraphs within comments are not warned about).
 This warning is enabled by @option{-Wall}.
 
 @item -Wunused-function
 @opindex Wunused-function
+@opindex Wno-unused-function
 Warn whenever a static function is declared but not defined or a
 non-inline static function is unused.
 This warning is enabled by @option{-Wall}.
 
 @item -Wunused-label
 @opindex Wunused-label
+@opindex Wno-unused-label
 Warn whenever a label is declared but not used.
 This warning is enabled by @option{-Wall}.
 
@@ -3054,6 +3120,7 @@ To suppress this warning use the @samp{unused} attribute
 
 @item -Wunused-parameter
 @opindex Wunused-parameter
+@opindex Wno-unused-parameter
 Warn whenever a function parameter is unused aside from its declaration.
 
 To suppress this warning use the @samp{unused} attribute
@@ -3061,6 +3128,7 @@ To suppress this warning use the @samp{unused} attribute
 
 @item -Wunused-variable
 @opindex Wunused-variable
+@opindex Wno-unused-variable
 Warn whenever a local variable or non-constant static variable is unused
 aside from its declaration.
 This warning is enabled by @option{-Wall}.
@@ -3070,6 +3138,7 @@ To suppress this warning use the @samp{unused} attribute
 
 @item -Wunused-value
 @opindex Wunused-value
+@opindex Wno-unused-value
 Warn whenever a statement computes a result that is explicitly not
 used. To suppress this warning cast the unused expression to
 @samp{void}. This includes an expression-statement or the left-hand
@@ -3081,6 +3150,7 @@ This warning is enabled by @option{-Wall}.
 
 @item -Wunused
 @opindex Wunused
+@opindex Wno-unused
 All the above @option{-Wunused} options combined.
 
 In order to get a warning about an unused function parameter, you must
@@ -3089,6 +3159,7 @@ either specify @samp{-Wextra -Wunused} (note that @samp{-Wall} implies
 
 @item -Wuninitialized
 @opindex Wuninitialized
+@opindex Wno-uninitialized
 Warn if an automatic variable is used without first being initialized or
 if a variable may be clobbered by a @code{setjmp} call.
 
@@ -3173,6 +3244,7 @@ optimizing compilations (@option{-O1} and above).
 
 @item -Wunknown-pragmas
 @opindex Wunknown-pragmas
+@opindex Wno-unknown-pragmas
 @cindex warning for unknown pragmas
 @cindex unknown pragmas, warning
 @cindex pragmas, warning of unknown
@@ -3190,6 +3262,7 @@ invalid syntax, or conflicts between pragmas.  See also
 
 @item -Wstrict-aliasing
 @opindex Wstrict-aliasing
+@opindex Wno-strict-aliasing
 This option is only active when @option{-fstrict-aliasing} is active.
 It warns about code which might break the strict aliasing rules that the
 compiler is using for optimization.  The warning does not catch all
@@ -3199,6 +3272,7 @@ It is equivalent to @option{-Wstrict-aliasing=3}
 
 @item -Wstrict-aliasing=n
 @opindex Wstrict-aliasing=n
+@opindex Wno-strict-aliasing=n
 This option is only active when @option{-fstrict-aliasing} is active.
 It warns about code which might break the strict aliasing rules that the
 compiler is using for optimization.
@@ -3233,6 +3307,7 @@ Does not warn about incomplete types.
 @item -Wstrict-overflow
 @itemx -Wstrict-overflow=@var{n}
 @opindex Wstrict-overflow
+@opindex Wno-strict-overflow
 This option is only active when @option{-fstrict-overflow} is active.
 It warns about cases where the compiler optimizes based on the
 assumption that signed overflow does not occur.  Note that it does not
@@ -3299,6 +3374,7 @@ obtaining infinities and NaNs.
 
 @item -Wsystem-headers
 @opindex Wsystem-headers
+@opindex Wno-system-headers
 @cindex warnings from system headers
 @cindex system headers, warnings from
 Print warning messages for constructs found in system header files.
@@ -3312,6 +3388,7 @@ headers---for that, @option{-Wunknown-pragmas} must also be used.
 
 @item -Wfloat-equal
 @opindex Wfloat-equal
+@opindex Wno-float-equal
 Warn if floating point values are used in equality comparisons.
 
 The idea behind this is that sometimes it is convenient (for the
@@ -3325,8 +3402,9 @@ would check to see whether the two values have ranges that overlap; and
 this is done with the relational operators, so equality comparisons are
 probably mistaken.
 
-@item -Wtraditional @r{(C only)}
+@item -Wtraditional @r{(C and Objective-C only)}
 @opindex Wtraditional
+@opindex Wno-traditional
 Warn about certain constructs that behave differently in traditional and
 ISO C@.  Also warn about ISO C constructs that have no traditional C
 equivalent, and/or problematic constructs which should be avoided.
@@ -3413,16 +3491,18 @@ because that feature is already a GCC extension and thus not relevant to
 traditional C compatibility.
 @end itemize
 
-@item -Wtraditional-conversion @r{(C only)}
+@item -Wtraditional-conversion @r{(C and Objective-C only)}
 @opindex Wtraditional-conversion
+@opindex Wno-traditional-conversion
 Warn if a prototype causes a type conversion that is different from what
 would happen to the same argument in the absence of a prototype.  This
 includes conversions of fixed point to floating and vice versa, and
 conversions changing the width or signedness of a fixed point argument
 except when the same as the default promotion.
 
-@item -Wdeclaration-after-statement @r{(C only)}
+@item -Wdeclaration-after-statement @r{(C and Objective-C only)}
 @opindex Wdeclaration-after-statement
+@opindex Wno-declaration-after-statement
 Warn when a declaration is found after a statement in a block.  This
 construct, known from C++, was introduced with ISO C99 and is by default
 allowed in GCC@.  It is not supported by ISO C90 and was not supported by
@@ -3430,6 +3510,7 @@ GCC versions before GCC 3.0.  @xref{Mixed Declarations}.
 
 @item -Wundef
 @opindex Wundef
+@opindex Wno-undef
 Warn if an undefined identifier is evaluated in an @samp{#if} directive.
 
 @item -Wno-endif-labels
@@ -3439,15 +3520,22 @@ Do not warn whenever an @samp{#else} or an @samp{#endif} are followed by text.
 
 @item -Wshadow
 @opindex Wshadow
+@opindex Wno-shadow
 Warn whenever a local variable shadows another local variable, parameter or
 global variable or whenever a built-in function is shadowed.
 
-@item -Wlarger-than-@var{len}
-@opindex Wlarger-than
+@item -Wlarger-than=@var{len}
+@opindex Wlarger-than=@var{len}
+@opindex Wlarger-than-@var{len}
 Warn whenever an object of larger than @var{len} bytes is defined.
+
+@item -Wframe-larger-than=@var{len}
+@opindex Wframe-larger-than
+Warn whenever the size of a function frame is larger than @var{len} bytes.
 
 @item -Wunsafe-loop-optimizations
 @opindex Wunsafe-loop-optimizations
+@opindex Wno-unsafe-loop-optimizations
 Warn if the loop cannot be optimized because the compiler could not
 assume anything on the bounds of the loop indices.  With
 @option{-funsafe-loop-optimizations} warn if the compiler made
@@ -3455,6 +3543,7 @@ such assumptions.
 
 @item -Wpointer-arith
 @opindex Wpointer-arith
+@opindex Wno-pointer-arith
 Warn about anything that depends on the ``size of'' a function type or
 of @code{void}.  GNU C assigns these types a size of 1, for
 convenience in calculations with @code{void *} pointers and pointers
@@ -3470,12 +3559,13 @@ example, warn if an unsigned variable is compared against zero with
 @samp{<} or @samp{>=}.  This warning is also enabled by
 @option{-Wextra}.
 
-@item -Wbad-function-cast @r{(C only)}
+@item -Wbad-function-cast @r{(C and Objective-C only)}
 @opindex Wbad-function-cast
+@opindex Wno-bad-function-cast
 Warn whenever a function call is cast to a non-matching type.
 For example, warn if @code{int malloc()} is cast to @code{anything *}.
 
-@item -Wc++-compat
+@item -Wc++-compat @r{(C and Objective-C only)}
 Warn about ISO C constructs that are outside of the common subset of
 ISO C and ISO C++, e.g.@: request for implicit conversion from
 @code{void *} to a pointer to non-@code{void} type.
@@ -3487,12 +3577,14 @@ in ISO C++ 200x.  This warning is enabled by @option{-Wall}.
 
 @item -Wcast-qual
 @opindex Wcast-qual
+@opindex Wno-cast-qual
 Warn whenever a pointer is cast so as to remove a type qualifier from
 the target type.  For example, warn if a @code{const char *} is cast
 to an ordinary @code{char *}.
 
 @item -Wcast-align
 @opindex Wcast-align
+@opindex Wno-cast-align
 Warn whenever a pointer is cast such that the required alignment of the
 target is increased.  For example, warn if a @code{char *} is cast to
 an @code{int *} on machines where integers can only be accessed at
@@ -3500,6 +3592,7 @@ two- or four-byte boundaries.
 
 @item -Wwrite-strings
 @opindex Wwrite-strings
+@opindex Wno-write-strings
 When compiling C, give string constants the type @code{const
 char[@var{length}]} so that
 copying the address of one into a non-@code{const} @code{char *}
@@ -3514,6 +3607,7 @@ this is why we did not make @option{-Wall} request these warnings.
 
 @item -Wclobbered
 @opindex Wclobbered
+@opindex Wno-clobbered
 Warn for variables that might be changed by @samp{longjmp} or
 @samp{vfork}.  This warning is also enabled by @option{-Wextra}.
 
@@ -3540,6 +3634,7 @@ integers are disabled by default in C++ unless
 
 @item -Wempty-body
 @opindex Wempty-body
+@opindex Wno-empty-body
 Warn if an empty body occurs in an @samp{if}, @samp{else} or @samp{do
 while} statement.  Additionally, in C++, warn when an empty body occurs
 in a @samp{while} or @samp{for} statement with no whitespacing before
@@ -3547,6 +3642,7 @@ the semicolon.  This warning is also enabled by @option{-Wextra}.
 
 @item -Wsign-compare
 @opindex Wsign-compare
+@opindex Wno-sign-compare
 @cindex warning for comparison of signed and unsigned values
 @cindex comparison of signed and unsigned values, warning
 @cindex signed and unsigned values, comparison warning
@@ -3587,6 +3683,7 @@ bit-wise operator is likely to be expected.
 
 @item -Waggregate-return
 @opindex Waggregate-return
+@opindex Wno-aggregate-return
 Warn if any functions that return structures or unions are defined or
 called.  (In languages where you can return an array, this also elicits
 a warning.)
@@ -3599,27 +3696,31 @@ unrecognized attributes, function attributes applied to variables,
 etc.  This will not stop errors for incorrect use of supported
 attributes.
 
-@item -Wstrict-prototypes @r{(C only)}
+@item -Wstrict-prototypes @r{(C and Objective-C only)}
 @opindex Wstrict-prototypes
+@opindex Wno-strict-prototypes
 Warn if a function is declared or defined without specifying the
 argument types.  (An old-style function definition is permitted without
 a warning if preceded by a declaration which specifies the argument
 types.)
 
-@item -Wold-style-declaration @r{(C only)}
+@item -Wold-style-declaration @r{(C and Objective-C only)}
 @opindex Wold-style-declaration
+@opindex Wno-old-style-declaration
 Warn for obsolescent usages, according to the C Standard, in a
 declaration. For example, warn if storage-class specifiers like
 @code{static} are not the first things in a declaration.  This warning
 is also enabled by @option{-Wextra}.
 
-@item -Wold-style-definition @r{(C only)}
+@item -Wold-style-definition @r{(C and Objective-C only)}
 @opindex Wold-style-definition
+@opindex Wno-old-style-definition
 Warn if an old-style function definition is used.  A warning is given
 even if there is a previous prototype.
 
-@item -Wmissing-parameter-type @r{(C only)}
+@item -Wmissing-parameter-type @r{(C and Objective-C only)}
 @opindex Wmissing-parameter-type
+@opindex Wno-missing-parameter-type
 A function parameter is declared without a type specifier in K&R-style
 functions:
 
@@ -3629,15 +3730,17 @@ void foo(bar) @{ @}
 
 This warning is also enabled by @option{-Wextra}.
 
-@item -Wmissing-prototypes @r{(C only)}
+@item -Wmissing-prototypes @r{(C and Objective-C only)}
 @opindex Wmissing-prototypes
+@opindex Wno-missing-prototypes
 Warn if a global function is defined without a previous prototype
 declaration.  This warning is issued even if the definition itself
 provides a prototype.  The aim is to detect global functions that fail
 to be declared in header files.
 
-@item -Wmissing-declarations @r{(C and C++ only)}
+@item -Wmissing-declarations
 @opindex Wmissing-declarations
+@opindex Wno-missing-declarations
 Warn if a global function is defined without a previous declaration.
 Do so even if the definition itself provides a prototype.
 Use this option to detect global functions that are not declared in
@@ -3646,8 +3749,10 @@ or for inline functions, or for functions in anonymous namespaces.
 
 @item -Wmissing-field-initializers
 @opindex Wmissing-field-initializers
+@opindex Wno-missing-field-initializers
 @opindex W
 @opindex Wextra
+@opindex Wno-extra
 Warn if a structure's initializer has some fields missing.  For
 example, the following code would cause such a warning, because
 @code{x.h} is implicitly zero:
@@ -3670,6 +3775,7 @@ warnings without this one, use @samp{-Wextra -Wno-missing-field-initializers}.
 
 @item -Wmissing-noreturn
 @opindex Wmissing-noreturn
+@opindex Wno-missing-noreturn
 Warn about functions which might be candidates for attribute @code{noreturn}.
 Note these are only possible candidates, not absolute ones.  Care should
 be taken to manually verify functions actually do not ever return before
@@ -3679,7 +3785,9 @@ hosted C environments.
 
 @item -Wmissing-format-attribute
 @opindex Wmissing-format-attribute
+@opindex Wno-missing-format-attribute
 @opindex Wformat
+@opindex Wno-format
 Warn about function pointers which might be candidates for @code{format}
 attributes.  Note these are only possible candidates, not absolute ones.
 GCC will guess that function pointers with @code{format} attributes that
@@ -3706,7 +3814,7 @@ Usually they indicate a typo in the user's code, as they have
 implementation-defined values, and should not be used in portable code.
 
 @item -Wnormalized=<none|id|nfc|nfkc>
-@opindex Wnormalized
+@opindex Wnormalized=
 @cindex NFC
 @cindex NFKC
 @cindex character set, input normalization
@@ -3727,7 +3835,7 @@ recommended form for most uses.
 Unfortunately, there are some characters which ISO C and ISO C++ allow
 in identifiers that when turned into NFC aren't allowable as
 identifiers.  That is, there's no way to use these symbols in portable
-ISO C or C++ and have all your identifiers in NFC.
+ISO C or C++ and have all your identifiers in NFC@.
 @option{-Wnormalized=id} suppresses the warning for these characters.
 It is hoped that future versions of the standards involved will correct
 this, which is why this option is not the default.
@@ -3752,6 +3860,7 @@ unable to be fixed to display these characters distinctly.
 
 @item -Wno-deprecated-declarations
 @opindex Wno-deprecated-declarations
+@opindex Wdeprecated-declarations
 Do not warn about uses of functions (@pxref{Function Attributes}),
 variables (@pxref{Variable Attributes}), and types (@pxref{Type
 Attributes}) marked as deprecated by using the @code{deprecated}
@@ -3759,12 +3868,15 @@ attribute.
 
 @item -Wno-overflow
 @opindex Wno-overflow
+@opindex Woverflow
 Do not warn about compile-time overflow in constant expressions.
 
-@item -Woverride-init
+@item -Woverride-init @r{(C and Objective-C only)}
 @opindex Woverride-init
+@opindex Wno-override-init
 @opindex W
 @opindex Wextra
+@opindex Wno-extra
 Warn if an initialized field without side effects is overridden when
 using designated initializers (@pxref{Designated Inits, , Designated
 Initializers}).
@@ -3775,6 +3887,7 @@ This warning is included in @option{-Wextra}.  To get other
 
 @item -Wpacked
 @opindex Wpacked
+@opindex Wno-packed
 Warn if a structure is given the packed attribute, but the packed
 attribute has no effect on the layout or size of the structure.
 Such structures may be mis-aligned for little benefit.  For
@@ -3797,6 +3910,7 @@ struct bar @{
 
 @item -Wpadded
 @opindex Wpadded
+@opindex Wno-padded
 Warn if padding is included in a structure, either to align an element
 of the structure or to align the whole structure.  Sometimes when this
 happens it is possible to rearrange the fields of the structure to
@@ -3804,15 +3918,18 @@ reduce the padding and so make the structure smaller.
 
 @item -Wredundant-decls
 @opindex Wredundant-decls
+@opindex Wno-redundant-decls
 Warn if anything is declared more than once in the same scope, even in
 cases where multiple declaration is valid and changes nothing.
 
-@item -Wnested-externs @r{(C only)}
+@item -Wnested-externs @r{(C and Objective-C only)}
 @opindex Wnested-externs
+@opindex Wno-nested-externs
 Warn if an @code{extern} declaration is encountered within a function.
 
 @item -Wunreachable-code
 @opindex Wunreachable-code
+@opindex Wno-unreachable-code
 Warn if the compiler detects that code will never be executed.
 
 This option is intended to warn when the compiler detects that at
@@ -3835,6 +3952,7 @@ code is to provide behavior which is selectable at compile-time.
 
 @item -Winline
 @opindex Winline
+@opindex Wno-inline
 Warn if a function can not be inlined and it was declared as inline.
 Even with this option, the compiler will not warn about failures to
 inline functions declared in system headers.
@@ -3846,8 +3964,9 @@ that has already been done in the current function.  Therefore,
 seemingly insignificant changes in the source program can cause the
 warnings produced by @option{-Winline} to appear or disappear.
 
-@item -Wno-invalid-offsetof @r{(C++ only)}
+@item -Wno-invalid-offsetof @r{(C++ and Objective-C++ only)}
 @opindex Wno-invalid-offsetof
+@opindex Winvalid-offsetof
 Suppress warnings from applying the @samp{offsetof} macro to a non-POD
 type.  According to the 1998 ISO C++ standard, applying @samp{offsetof}
 to a non-POD type is undefined.  In existing C++ implementations,
@@ -3861,18 +3980,21 @@ warning about it.
 The restrictions on @samp{offsetof} may be relaxed in a future version
 of the C++ standard.
 
-@item -Wno-int-to-pointer-cast @r{(C only)}
+@item -Wno-int-to-pointer-cast @r{(C and Objective-C only)}
 @opindex Wno-int-to-pointer-cast
+@opindex Wint-to-pointer-cast
 Suppress warnings from casts to pointer type of an integer of a
 different size.
 
-@item -Wno-pointer-to-int-cast @r{(C only)}
+@item -Wno-pointer-to-int-cast @r{(C and Objective-C only)}
 @opindex Wno-pointer-to-int-cast
+@opindex Wpointer-to-int-cast
 Suppress warnings from casts from a pointer to an integer type of a
 different size.
 
 @item -Winvalid-pch
 @opindex Winvalid-pch
+@opindex Wno-invalid-pch
 Warn if a precompiled header (@pxref{Precompiled Headers}) is found in
 the search path but can't be used.
 
@@ -3903,10 +4025,12 @@ the variable length array.
 @opindex Wno-volatile-register-var
 Warn if a register variable is declared volatile.  The volatile
 modifier does not inhibit all optimizations that may eliminate reads
-and/or writes to register variables.
+and/or writes to register variables.  This warning is enabled by
+@option{-Wall}.
 
 @item -Wdisabled-optimization
 @opindex Wdisabled-optimization
+@opindex Wno-disabled-optimization
 Warn if a requested optimization pass is disabled.  This warning does
 not generally indicate that there is anything wrong with your code; it
 merely indicates that GCC's optimizers were unable to handle the code
@@ -3914,7 +4038,7 @@ effectively.  Often, the problem is that your code is too big or too
 complex; GCC will refuse to optimize programs when the optimization
 itself is likely to take inordinate amounts of time.
 
-@item -Wpointer-sign
+@item -Wpointer-sign @r{(C and Objective-C only)}
 @opindex Wpointer-sign
 @opindex Wno-pointer-sign
 Warn for pointer argument passing or assignment with different signedness.
@@ -3924,11 +4048,13 @@ This option is only supported for C and Objective-C@.  It is implied by
 
 @item -Wstack-protector
 @opindex Wstack-protector
+@opindex Wno-stack-protector
 This option is only active when @option{-fstack-protector} is active.  It
 warns about functions that will not be protected against stack smashing.
 
 @item -Woverlength-strings
 @opindex Woverlength-strings
+@opindex Wno-overlength-strings
 Warn about string constants which are longer than the ``minimum
 maximum'' length specified in the C standard.  Modern compilers
 generally allow string constants which are much longer than the
@@ -4615,12 +4741,15 @@ specific suffix to the source file name.  The following dumps are possible:
 
 @table @samp
 @item all
-Enables all inter-procedural analysis dumps; currently the only produced
-dump is the @samp{cgraph} dump.
+Enables all inter-procedural analysis dumps.
 
 @item cgraph
 Dumps information about call-graph optimization, unused function removal,
 and inlining decisions.
+
+@item inline
+Dump after function inlining.
+
 @end table
 
 @item -fdump-tree-@var{switch}
@@ -4673,9 +4802,6 @@ Dump before any tree based optimization, to @file{@var{file}.original}.
 @item optimized
 Dump after all tree based optimization, to @file{@var{file}.optimized}.
 
-@item inlined
-Dump after function inlining, to @file{@var{file}.inlined}.
-
 @item gimple
 @opindex fdump-tree-gimple
 Dump each function before and after the gimplification pass to a file.  The
@@ -4721,7 +4847,7 @@ Dump each function after CCP@.  The file name is made by appending
 
 @item storeccp
 @opindex fdump-tree-storeccp
-Dump each function after STORE-CCP.  The file name is made by appending
+Dump each function after STORE-CCP@.  The file name is made by appending
 @file{.storeccp} to the source file name.
 
 @item pre
@@ -4820,16 +4946,16 @@ For @var{n}=0 no diagnostic information is reported.
 If @var{n}=1 the vectorizer reports each loop that got vectorized,
 and the total number of loops that got vectorized.
 If @var{n}=2 the vectorizer also reports non-vectorized loops that passed
-the first analysis phase (vect_analyze_loop_form) - i.e. countable,
+the first analysis phase (vect_analyze_loop_form) - i.e.@: countable,
 inner-most, single-bb, single-entry/exit loops.  This is the same verbosity
 level that @option{-fdump-tree-vect-stats} uses.
 Higher verbosity levels mean either more information dumped for each
 reported loop, or same amount of information reported for more loops:
 If @var{n}=3, alignment related information is added to the reports.
-If @var{n}=4, data-references related information (e.g. memory dependences,
+If @var{n}=4, data-references related information (e.g.@: memory dependences,
 memory access-patterns) is added to the reports.
 If @var{n}=5, the vectorizer reports also non-vectorized inner-most loops
-that did not pass the first analysis phase (i.e. may not be countable, or
+that did not pass the first analysis phase (i.e., may not be countable, or
 may have complicated control-flow).
 If @var{n}=6, the vectorizer reports also non-vectorized nested loops.
 For @var{n}=7, all the information the vectorizer generates during its
@@ -4902,7 +5028,7 @@ position in code.  Better debugging information is then generated
 (if the debugging information format supports this information).
 
 It is enabled by default when compiling with optimization (@option{-Os},
-@option{-O}, @option{-O2}, ...), debugging information (@option{-g}) and
+@option{-O}, @option{-O2}, @dots{}), debugging information (@option{-g}) and
 the debug info format supports it.
 
 @item -print-file-name=@var{library}
@@ -5153,7 +5279,7 @@ Disabled at levels @option{-O}, @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fforward-propagate
 @opindex fforward-propagate
-Perform a forward propagation pass on RTL.  The pass tries to combine two
+Perform a forward propagation pass on RTL@.  The pass tries to combine two
 instructions and checks if the result can be simplified.  If loop unrolling
 is active, two passes are performed and the second is scheduled after
 loop unrolling.
@@ -5489,12 +5615,12 @@ higher on architectures that support this.
 
 @item -fdce
 @opindex fdce
-Perform dead code elimination (DCE) on RTL.
+Perform dead code elimination (DCE) on RTL@.
 Enabled by default at @option{-O} and higher.
 
 @item -fdse
 @opindex fdse
-Perform dead store elimination (DSE) on RTL.
+Perform dead store elimination (DSE) on RTL@.
 Enabled by default at @option{-O} and higher.
 
 @item -fif-conversion
@@ -5809,6 +5935,26 @@ performance and allow further loop optimizations to take place.
 Compare the results of several data dependence analyzers.  This option
 is used for debugging the data dependence analyzers.
 
+@item -ftree-loop-distribution
+Perform loop distribution.  This flag can improve cache performance on
+big loop bodies and allow further loop optimizations, like
+parallelization or vectorization, to take place.  For example, the loop
+@smallexample
+DO I = 1, N
+  A(I) = B(I) + C
+  D(I) = E(I) * F
+ENDDO
+@end smallexample
+is transformed to
+@smallexample
+DO I = 1, N
+   A(I) = B(I) + C
+ENDDO
+DO I = 1, N
+   D(I) = E(I) * F
+ENDDO
+@end smallexample
+
 @item -ftree-loop-im
 @opindex ftree-loop-im
 Perform loop invariant motion on trees.  This pass moves only invariants that
@@ -5836,7 +5982,7 @@ Parallelize loops, i.e., split their iteration space to run in n threads.
 This is only possible for loops whose iterations are independent
 and can be arbitrarily reordered.  The optimization is only
 profitable on multiprocessor machines, for loops that are CPU-intensive,
-rather than constrained e.g. by memory bandwidth.  This option
+rather than constrained e.g.@: by memory bandwidth.  This option
 implies @option{-pthread}, and thus is only supported on targets
 that have support for @option{-pthread}.
 
@@ -6431,12 +6577,24 @@ implicitly converting it to double precision constant.
 @item -fcx-limited-range
 @opindex fcx-limited-range
 When enabled, this option states that a range reduction step is not
-needed when performing complex division.  The default is
-@option{-fno-cx-limited-range}, but is enabled by @option{-ffast-math}.
+needed when performing complex division.  Also, there is no checking
+whether the result of a complex multiplication or division is @code{NaN
++ I*NaN}, with an attempt to rescue the situation in that case.  The
+default is @option{-fno-cx-limited-range}, but is enabled by
+@option{-ffast-math}.
 
 This option controls the default setting of the ISO C99
 @code{CX_LIMITED_RANGE} pragma.  Nevertheless, the option applies to
 all languages.
+
+@item -fcx-fortran-rules
+@opindex fcx-fortran-rules
+Complex multiplication and division follow Fortran rules.  Range
+reduction is done as part of complex division, but there is no checking
+whether the result of a complex multiplication or division is @code{NaN
++ I*NaN}, with an attempt to rescue the situation in that case.
+
+The default is @option{-fno-cx-fortran-rules}.
 
 @end table
 
@@ -8432,7 +8590,7 @@ assembly code.  Permissible names are: @samp{arm2}, @samp{arm250},
 @samp{arm10e}, @samp{arm1020e}, @samp{arm1022e},
 @samp{arm1136j-s}, @samp{arm1136jf-s}, @samp{mpcore}, @samp{mpcorenovfp},
 @samp{arm1156t2-s}, @samp{arm1176jz-s}, @samp{arm1176jzf-s},
-@samp{cortex-a8}, @samp{cortex-r4}, @samp{cortex-m3},
+@samp{cortex-a8}, @samp{cortex-r4}, @samp{cortex-m3}, @samp{cortex-m1},
 @samp{xscale}, @samp{iwmmxt}, @samp{ep9312}.
 
 @itemx -mtune=@var{name}
@@ -8454,8 +8612,9 @@ assembly code.  This option can be used in conjunction with or instead
 of the @option{-mcpu=} option.  Permissible names are: @samp{armv2},
 @samp{armv2a}, @samp{armv3}, @samp{armv3m}, @samp{armv4}, @samp{armv4t},
 @samp{armv5}, @samp{armv5t}, @samp{armv5te}, @samp{armv6}, @samp{armv6j},
-@samp{armv6t2}, @samp{armv6z}, @samp{armv6zk}, @samp{armv7}, @samp{armv7-a},
-@samp{armv7-r}, @samp{armv7-m}, @samp{iwmmxt}, @samp{ep9312}.
+@samp{armv6t2}, @samp{armv6z}, @samp{armv6zk}, @samp{armv6-m},
+@samp{armv7}, @samp{armv7-a}, @samp{armv7-r}, @samp{armv7-m},
+@samp{iwmmxt}, @samp{ep9312}.
 
 @item -mfpu=@var{name}
 @itemx -mfpe=@var{number}
@@ -11075,7 +11234,7 @@ the M32C/80 series.
 @opindex msim
 Specifies that the program will be run on the simulator.  This causes
 an alternate runtime library to be linked in which supports, for
-example, file I/O.  You must not use this option when generating
+example, file I/O@.  You must not use this option when generating
 programs that will run on real hardware; you must provide your own
 runtime library for whatever I/O functions are needed.
 
@@ -11373,7 +11532,7 @@ CPU32 or CPU32+ core, including the 68330, 68331, 68332, 68333, 68334,
 
 @item -m5200
 @opindex m5200
-Generate output for a 520X ColdFire CPU.  This is the default
+Generate output for a 520X ColdFire CPU@.  This is the default
 when the compiler is configured for 520X-based systems.
 It is equivalent to @option{-mcpu=5206}, and is now deprecated
 in favor of that option.
@@ -11383,7 +11542,7 @@ the MCF5202, MCF5203, MCF5204 and MCF5206.
 
 @item -m5206e
 @opindex m5206e
-Generate output for a 5206e ColdFire CPU.  The option is now
+Generate output for a 5206e ColdFire CPU@.  The option is now
 deprecated in favor of the equivalent @option{-mcpu=5206e}.
 
 @item -m528x
@@ -11394,12 +11553,12 @@ The option is now deprecated in favor of the equivalent
 
 @item -m5307
 @opindex m5307
-Generate output for a ColdFire 5307 CPU.  The option is now deprecated
+Generate output for a ColdFire 5307 CPU@.  The option is now deprecated
 in favor of the equivalent @option{-mcpu=5307}.
 
 @item -m5407
 @opindex m5407
-Generate output for a ColdFire 5407 CPU.  The option is now deprecated
+Generate output for a ColdFire 5407 CPU@.  The option is now deprecated
 in favor of the equivalent @option{-mcpu=5407}.
 
 @item -mcfv4e
@@ -11432,7 +11591,7 @@ The option is equivalent to @option{-march=68020} @option{-mtune=68020-60}.
 @opindex mhard-float
 @opindex m68881
 Generate floating-point instructions.  This is the default for 68020
-and above, and for ColdFire devices that have an FPU.  It defines the
+and above, and for ColdFire devices that have an FPU@.  It defines the
 macro @samp{__HAVE_68881__} on M680x0 targets and @samp{__mcffpu__}
 on ColdFire targets.
 
@@ -11981,7 +12140,7 @@ configurations; see the installation documentation for details.
 @itemx -mno-dsp
 @opindex mdsp
 @opindex mno-dsp
-Use (do not use) revision 1 of the MIPS DSP ASE.
+Use (do not use) revision 1 of the MIPS DSP ASE@.
 @xref{MIPS DSP Built-in Functions}.  This option defines the
 preprocessor macro @samp{__mips_dsp}.  It also defines
 @samp{__mips_dsp_rev} to 1.
@@ -11990,7 +12149,7 @@ preprocessor macro @samp{__mips_dsp}.  It also defines
 @itemx -mno-dspr2
 @opindex mdspr2
 @opindex mno-dspr2
-Use (do not use) revision 2 of the MIPS DSP ASE.
+Use (do not use) revision 2 of the MIPS DSP ASE@.
 @xref{MIPS DSP Built-in Functions}.  This option defines the
 preprocessor macros @samp{__mips_dsp} and @samp{__mips_dspr2}.
 It also defines @samp{__mips_dsp_rev} to 2.
@@ -12068,7 +12227,7 @@ The default @option{-G} option depends on the configuration.
 @opindex mlocal-sdata
 @opindex mno-local-sdata
 Extend (do not extend) the @option{-G} behavior to local data too,
-such as to static variables in C.  @option{-mlocal-sdata} is the
+such as to static variables in C@.  @option{-mlocal-sdata} is the
 default for all configurations.
 
 If the linker complains that an application is using too much small data,
@@ -12794,11 +12953,12 @@ Supported values for @var{cpu_type} are @samp{401}, @samp{403},
 @samp{601}, @samp{602}, @samp{603}, @samp{603e}, @samp{604},
 @samp{604e}, @samp{620}, @samp{630}, @samp{740}, @samp{7400},
 @samp{7450}, @samp{750}, @samp{801}, @samp{821}, @samp{823},
-@samp{860}, @samp{970}, @samp{8540}, @samp{ec603e}, @samp{G3},
-@samp{G4}, @samp{G5}, @samp{power}, @samp{power2}, @samp{power3},
-@samp{power4}, @samp{power5}, @samp{power5+}, @samp{power6},
-@samp{power6x}, @samp{common}, @samp{powerpc}, @samp{powerpc64},
-@samp{rios}, @samp{rios1}, @samp{rios2}, @samp{rsc}, and @samp{rs64}.
+@samp{860}, @samp{970}, @samp{8540}, @samp{e300c2}, @samp{e300c3},
+@samp{ec603e}, @samp{G3}, @samp{G4}, @samp{G5}, @samp{power},
+@samp{power2}, @samp{power3}, @samp{power4}, @samp{power5},
+@samp{power5+}, @samp{power6}, @samp{power6x}, @samp{common},
+@samp{powerpc}, @samp{powerpc64}, @samp{rios}, @samp{rios1},
+@samp{rios2}, @samp{rsc}, and @samp{rs64}.
 
 @option{-mcpu=common} selects a completely generic processor.  Code
 generated under this option will run on any POWER or PowerPC processor.
@@ -12989,7 +13149,7 @@ implies @option{-mno-powerpc64}.  GCC defaults to @option{-maix32}.
 @opindex mxl-compat
 @opindex mno-xl-compat
 Produce code that conforms more closely to IBM XL compiler semantics
-when using AIX-compatible ABI.  Pass floating-point arguments to
+when using AIX-compatible ABI@.  Pass floating-point arguments to
 prototyped functions beyond the register save area (RSA) on the stack
 in addition to argument FPRs.  Do not assume that most significant
 double in 128-bit long double value is properly rounded when comparing
@@ -14534,6 +14694,15 @@ precision than specified by the IEEE standard.  Disabling fused multiply
 add/subtract instructions also ensures that the program output is not
 sensitive to the compiler's ability to combine multiply and add/subtract
 operations.
+
+@item -mserialize-volatile
+@itemx -mno-serialize-volatile
+@opindex mserialize-volatile
+@opindex mno-serialize-volatile
+When this option is enabled, GCC inserts @code{MEMW} instructions before
+@code{volatile} memory references to guarantee sequential consistency.
+The default is @option{-mserialize-volatile}.  Use
+@option{-mno-serialize-volatile} to omit the @code{MEMW} instructions.
 
 @item -mtext-section-literals
 @itemx -mno-text-section-literals

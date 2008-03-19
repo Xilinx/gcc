@@ -443,11 +443,6 @@ int flag_use_cxa_atexit = DEFAULT_USE_CXA_ATEXIT;
 
 int flag_use_cxa_get_exception_ptr = 2;
 
-/* Nonzero means make the default pedwarns warnings instead of errors.
-   The value of this flag is ignored if -pedantic is specified.  */
-
-int flag_permissive;
-
 /* Nonzero means to implement standard semantics for exception
    specifications, calling unexpected if an exception is thrown that
    doesn't match the specification.  Zero means to treat them as
@@ -840,11 +835,7 @@ fname_decl (unsigned int rid, tree id)
 	 it from appearing in the RTL.  */
       tree stmts;
       location_t saved_location = input_location;
-#ifdef USE_MAPPED_LOCATION
       input_location = UNKNOWN_LOCATION;
-#else
-      input_line = 0;
-#endif
 
       stmts = push_stmt_list ();
       decl = (*make_fname_decl) (id, fname_vars[ix].pretty);
@@ -931,14 +922,25 @@ fix_string_type (tree value)
 void
 constant_expression_warning (tree value)
 {
+  if (warn_overflow && pedantic 
+      && (TREE_CODE (value) == INTEGER_CST || TREE_CODE (value) == REAL_CST
+	  || TREE_CODE (value) == FIXED_CST
+	  || TREE_CODE (value) == VECTOR_CST
+	  || TREE_CODE (value) == COMPLEX_CST)
+      && TREE_OVERFLOW (value))
+    pedwarn ("overflow in constant expression");
+}
+
+/* The same as above but print an unconditional error.  */
+void
+constant_expression_error (tree value)
+{
   if ((TREE_CODE (value) == INTEGER_CST || TREE_CODE (value) == REAL_CST
        || TREE_CODE (value) == FIXED_CST
        || TREE_CODE (value) == VECTOR_CST
        || TREE_CODE (value) == COMPLEX_CST)
-      && TREE_OVERFLOW (value)
-      && warn_overflow
-      && pedantic)
-    pedwarn ("overflow in constant expression");
+      && TREE_OVERFLOW (value))
+    error ("overflow in constant expression");
 }
 
 /* Print a warning if an expression had overflow in folding and its
@@ -1194,7 +1196,7 @@ vector_types_convertible_p (const_tree t1, const_tree t2, bool emit_lax_note)
     return convertible_lax;
 
   if (TYPE_VECTOR_SUBPARTS (t1) == TYPE_VECTOR_SUBPARTS (t2)
-      && comptypes (TREE_TYPE (t1), TREE_TYPE (t2)))
+      && lang_hooks.types_compatible_p (TREE_TYPE (t1), TREE_TYPE (t2)))
     return true;
 
   if (emit_lax_note && !emitted_lax_note)
@@ -1528,7 +1530,8 @@ warn_for_collisions_1 (tree written, tree writer, struct tlist *list,
 	  && DECL_NAME (list->expr))
 	{
 	  warned_ids = new_tlist (warned_ids, written, NULL_TREE);
-	  warning (0, "operation on %qE may be undefined", list->expr);
+	  warning (OPT_Wsequence_point, "operation on %qE may be undefined",
+		   list->expr);
 	}
       list = list->next;
     }
@@ -4328,10 +4331,12 @@ match_case_to_enum_1 (tree key, tree type, tree label)
 	      TREE_INT_CST_HIGH (key), TREE_INT_CST_LOW (key));
 
   if (TYPE_NAME (type) == 0)
-    warning (0, "%Jcase value %qs not in enumerated type",
+    warning (warn_switch ? OPT_Wswitch : OPT_Wswitch_enum,
+	     "%Jcase value %qs not in enumerated type",
 	     CASE_LABEL (label), buf);
   else
-    warning (0, "%Jcase value %qs not in enumerated type %qT",
+    warning (warn_switch ? OPT_Wswitch : OPT_Wswitch_enum,
+	     "%Jcase value %qs not in enumerated type %qT",
 	     CASE_LABEL (label), buf, type);
 }
 
@@ -4383,6 +4388,7 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
   splay_tree_node default_node;
   splay_tree_node node;
   tree chain;
+  int saved_warn_switch;
 
   if (!warn_switch && !warn_switch_enum && !warn_switch_default)
     return;
@@ -4452,7 +4458,13 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
       if (cond && tree_int_cst_compare (cond, value))
 	continue;
 
-      warning (0, "%Henumeration value %qE not handled in switch",
+      /* If there is a default_node, the only relevant option is
+	 Wswitch-enum. Otherwise, if both are enabled then we prefer
+	 to warn using -Wswitch because -Wswitch is enabled by -Wall
+	 while -Wswitch-enum is explicit.  */
+      warning ((default_node || !warn_switch) 
+	       ? OPT_Wswitch_enum : OPT_Wswitch,
+	       "%Henumeration value %qE not handled in switch",
 	       &switch_location, TREE_PURPOSE (chain));
     }
 
@@ -4464,7 +4476,17 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
      we should have marked both the lower bound and upper bound of
      every disjoint case label, with CASE_LOW_SEEN and CASE_HIGH_SEEN
      above.  This scan also resets those fields.  */
+
+  /* If there is a default_node, the only relevant option is
+     Wswitch-enum. Otherwise, if both are enabled then we prefer
+     to warn using -Wswitch because -Wswitch is enabled by -Wall
+     while -Wswitch-enum is explicit.  */
+  saved_warn_switch = warn_switch;
+  if (default_node)
+    warn_switch = 0;
   splay_tree_foreach (cases, match_case_to_enum, type);
+  warn_switch = saved_warn_switch;
+
 }
 
 /* Finish an expression taking the address of LABEL (an

@@ -1,5 +1,5 @@
 /* Declaration statement matcher
-   Copyright (C) 2002, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -2506,6 +2506,8 @@ gfc_match_implicit (void)
   int c;
   match m;
 
+  gfc_clear_ts (&ts);
+
   /* We don't allow empty implicit statements.  */
   if (gfc_match_eos () == MATCH_YES)
     {
@@ -3997,9 +3999,9 @@ gfc_match_suffix (gfc_symbol *sym, gfc_symbol **result)
       /* Fortran 2008 draft allows BIND(C) for internal procedures.  */
       if (gfc_current_state () == COMP_CONTAINS
 	  && sym->ns->proc_name->attr.flavor != FL_MODULE
-	  && gfc_notify_std (GFC_STD_GNU, "Extension: BIND(C) attribute at %L "
-			     "may not be specified for an internal procedure",
-			     &gfc_current_locus)
+	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: BIND(C) attribute "
+			     "at %L may not be specified for an internal "
+			     "procedure", &gfc_current_locus)
 	     == FAILURE)
 	return MATCH_ERROR;
 
@@ -4731,9 +4733,9 @@ gfc_match_subroutine (void)
       /* The following is allowed in the Fortran 2008 draft.  */
       if (gfc_current_state () == COMP_CONTAINS
 	  && sym->ns->proc_name->attr.flavor != FL_MODULE
-	  && gfc_notify_std (GFC_STD_GNU, "Extension: BIND(C) attribute at "
-			     "%L may not be specified for an internal procedure",
-			     &gfc_current_locus)
+	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: BIND(C) attribute "
+			     "at %L may not be specified for an internal "
+			     "procedure", &gfc_current_locus)
 	     == FAILURE)
 	return MATCH_ERROR;
 

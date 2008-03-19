@@ -295,7 +295,7 @@ ccp_decl_initial_min_invariant (tree t)
 /* If SYM is a constant variable with known value, return the value.
    NULL_TREE is returned otherwise.  */
 
-static tree
+tree
 get_symbol_constant_value (tree sym)
 {
   if (TREE_STATIC (sym)
@@ -306,6 +306,14 @@ get_symbol_constant_value (tree sym)
       if (val
 	  && ccp_decl_initial_min_invariant (val))
 	return val;
+      /* Variables declared 'const' without an initializer
+	 have zero as the intializer if they may not be
+	 overridden at link or run time.  */
+      if (!val
+	  && targetm.binds_local_p (sym)
+          && (INTEGRAL_TYPE_P (TREE_TYPE (sym))
+	       || SCALAR_FLOAT_TYPE_P (TREE_TYPE (sym))))
+        return fold_convert (TREE_TYPE (sym), integer_zero_node);
     }
 
   return NULL_TREE;
@@ -397,8 +405,12 @@ get_default_value (tree var)
 static inline prop_value_t *
 get_value (tree var)
 {
-  prop_value_t *val = &const_val[SSA_NAME_VERSION (var)];
+  prop_value_t *val;
 
+  if (const_val == NULL)
+    return NULL;
+
+  val = &const_val[SSA_NAME_VERSION (var)];
   if (val->lattice_val == UNINITIALIZED)
     *val = get_default_value (var);
 
@@ -713,6 +725,7 @@ ccp_finalize (void)
   bool something_changed = substitute_and_fold (const_val, false);
 
   free (const_val);
+  const_val = NULL;
   return something_changed;;
 }
 
@@ -971,6 +984,12 @@ ccp_fold (tree stmt)
       return fold_binary (code, TREE_TYPE (rhs), op0, op1);
     }
 
+  else if (kind == tcc_declaration)
+    return get_symbol_constant_value (rhs);
+
+  else if (kind == tcc_reference)
+    return fold_const_aggregate_ref (rhs);
+
   /* We may be able to fold away calls to builtin functions if their
      arguments are constants.  */
   else if (code == CALL_EXPR
@@ -1017,7 +1036,7 @@ ccp_fold (tree stmt)
    ARRAY_REF or COMPONENT_REF into constant aggregates.  Return
    NULL_TREE otherwise.  */
 
-static tree
+tree
 fold_const_aggregate_ref (tree t)
 {
   prop_value_t *value;
@@ -1047,6 +1066,11 @@ fold_const_aggregate_ref (tree t)
 	case ARRAY_REF:
 	case COMPONENT_REF:
 	  ctor = fold_const_aggregate_ref (base);
+	  break;
+
+	case STRING_CST:
+	case CONSTRUCTOR:
+	  ctor = base;
 	  break;
 
 	default:
@@ -1149,7 +1173,18 @@ fold_const_aggregate_ref (tree t)
 	  return fold_build1 (TREE_CODE (t), TREE_TYPE (t), c);
 	break;
       }
-    
+
+    case INDIRECT_REF:
+      {
+	tree base = TREE_OPERAND (t, 0);
+	if (TREE_CODE (base) == SSA_NAME
+	    && (value = get_value (base))
+	    && value->lattice_val == CONSTANT
+	    && TREE_CODE (value->value) == ADDR_EXPR)
+	  return fold_const_aggregate_ref (TREE_OPERAND (value->value, 0));
+	break;
+      }
+
     default:
       break;
     }
@@ -1177,15 +1212,8 @@ evaluate_stmt (tree stmt)
     simplified = ccp_fold (stmt);
   /* If the statement is likely to have a VARYING result, then do not
      bother folding the statement.  */
-  if (likelyvalue == VARYING)
+  else if (likelyvalue == VARYING)
     simplified = get_rhs (stmt);
-  /* If the statement is an ARRAY_REF or COMPONENT_REF into constant
-     aggregates, extract the referenced constant.  Otherwise the
-     statement is likely to have an UNDEFINED value, and there will be
-     nothing to do.  Note that fold_const_aggregate_ref returns
-     NULL_TREE if the first case does not match.  */
-  else if (!simplified)
-    simplified = fold_const_aggregate_ref (get_rhs (stmt));
 
   is_constant = simplified && is_gimple_min_invariant (simplified);
 
@@ -1252,7 +1280,7 @@ visit_assignment (tree stmt, tree *output_p)
     }
   else
     /* Evaluate the statement.  */
-      val = evaluate_stmt (stmt);
+    val = evaluate_stmt (stmt);
 
   /* If the original LHS was a VIEW_CONVERT_EXPR, modify the constant
      value to be a VIEW_CONVERT_EXPR of the old constant value.
@@ -1584,7 +1612,8 @@ widen_bitfield (tree val, tree field, tree var)
    is the desired result type.  */
 
 static tree
-maybe_fold_offset_to_array_ref (tree base, tree offset, tree orig_type)
+maybe_fold_offset_to_array_ref (tree base, tree offset, tree orig_type,
+				bool allow_negative_idx)
 {
   tree min_idx, idx, idx_type, elt_offset = integer_zero_node;
   tree array_type, elt_type, elt_size;
@@ -1684,11 +1713,15 @@ maybe_fold_offset_to_array_ref (tree base, tree offset, tree orig_type)
   idx = fold_convert (idx_type, idx);
 
   /* We don't want to construct access past array bounds. For example
-     char *(c[4]);
-
-     c[3][2]; should not be simplified into (*c)[14] or tree-vrp will give false
-     warning.  */
-  if (domain_type && TYPE_MAX_VALUE (domain_type) 
+       char *(c[4]);
+       c[3][2];
+     should not be simplified into (*c)[14] or tree-vrp will
+     give false warnings.  The same is true for
+       struct A { long x; char d[0]; } *a;
+       (char *)a - 4;
+     which should be not folded to &a->d[-8].  */
+  if (domain_type
+      && TYPE_MAX_VALUE (domain_type) 
       && TREE_CODE (TYPE_MAX_VALUE (domain_type)) == INTEGER_CST)
     {
       tree up_bound = TYPE_MAX_VALUE (domain_type);
@@ -1700,6 +1733,17 @@ maybe_fold_offset_to_array_ref (tree base, tree offset, tree orig_type)
 	  && compare_tree_int (up_bound, 1) > 0)
 	return NULL_TREE;
     }
+  if (domain_type
+      && TYPE_MIN_VALUE (domain_type))
+    {
+      if (!allow_negative_idx
+	  && TREE_CODE (TYPE_MIN_VALUE (domain_type)) == INTEGER_CST
+	  && tree_int_cst_lt (idx, TYPE_MIN_VALUE (domain_type)))
+	return NULL_TREE;
+    }
+  else if (!allow_negative_idx
+	   && compare_tree_int (idx, 0) < 0)
+    return NULL_TREE;
 
   return build4 (ARRAY_REF, elt_type, base, idx, NULL_TREE, NULL_TREE);
 }
@@ -1796,7 +1840,8 @@ maybe_fold_offset_to_component_ref (tree record_type, tree base, tree offset,
       new_base = build3 (COMPONENT_REF, field_type, new_base, f, NULL_TREE);
 
       /* Recurse to possibly find the match.  */
-      ret = maybe_fold_offset_to_array_ref (new_base, t, orig_type);
+      ret = maybe_fold_offset_to_array_ref (new_base, t, orig_type,
+					    f == TYPE_FIELDS (record_type));
       if (ret)
 	return ret;
       ret = maybe_fold_offset_to_component_ref (field_type, new_base, t,
@@ -1818,7 +1863,8 @@ maybe_fold_offset_to_component_ref (tree record_type, tree base, tree offset,
     base = build1 (INDIRECT_REF, record_type, base);
   base = build3 (COMPONENT_REF, field_type, base, f, NULL_TREE);
 
-  t = maybe_fold_offset_to_array_ref (base, offset, orig_type);
+  t = maybe_fold_offset_to_array_ref (base, offset, orig_type,
+				      f == TYPE_FIELDS (record_type));
   if (t)
     return t;
   return maybe_fold_offset_to_component_ref (field_type, base, offset,
@@ -1884,7 +1930,7 @@ maybe_fold_offset_to_reference (tree base, tree offset, tree orig_type)
     {
       if (base_is_ptr)
 	base = build1 (INDIRECT_REF, type, base);
-      ret = maybe_fold_offset_to_array_ref (base, offset, orig_type);
+      ret = maybe_fold_offset_to_array_ref (base, offset, orig_type, true);
     }
   return ret;
 }
@@ -2059,9 +2105,15 @@ maybe_fold_stmt_addition (tree expr)
     }
 
   ptd_type = TREE_TYPE (ptr_type);
+  /* If we want a pointer to void, reconstruct the reference from the
+     array element type.  A pointer to that can be trivially converted
+     to void *.  This happens as we fold (void *)(ptr p+ off).  */
+  if (VOID_TYPE_P (ptd_type)
+      && TREE_CODE (TREE_TYPE (op0)) == ARRAY_TYPE)
+    ptd_type = TREE_TYPE (TREE_TYPE (op0));
 
   /* At which point we can try some of the same things as for indirects.  */
-  t = maybe_fold_offset_to_array_ref (op0, op1, ptd_type);
+  t = maybe_fold_offset_to_array_ref (op0, op1, ptd_type, true);
   if (!t)
     t = maybe_fold_offset_to_component_ref (TREE_TYPE (op0), op0, op1,
 					    ptd_type, false);
@@ -2246,6 +2298,17 @@ get_maxval_strlen (tree arg, tree *length, bitmap visited, int type)
       if (TREE_CODE (arg) == COND_EXPR)
         return get_maxval_strlen (COND_EXPR_THEN (arg), length, visited, type)
                && get_maxval_strlen (COND_EXPR_ELSE (arg), length, visited, type);
+      /* We can end up with &(*iftmp_1)[0] here as well, so handle it.  */
+      else if (TREE_CODE (arg) == ADDR_EXPR
+	       && TREE_CODE (TREE_OPERAND (arg, 0)) == ARRAY_REF
+	       && integer_zerop (TREE_OPERAND (TREE_OPERAND (arg, 0), 1)))
+	{
+	  tree aop0 = TREE_OPERAND (TREE_OPERAND (arg, 0), 0);
+	  if (TREE_CODE (aop0) == INDIRECT_REF
+	      && TREE_CODE (TREE_OPERAND (aop0, 0)) == SSA_NAME)
+	    return get_maxval_strlen (TREE_OPERAND (aop0, 0),
+				      length, visited, type);
+	}
 
       if (type == 2)
 	{

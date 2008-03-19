@@ -1,5 +1,5 @@
 /* Handle errors.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Niels Kristian Bech Jensen
 
@@ -182,11 +182,7 @@ show_locus (locus *loc, int c1, int c2)
   error_string (f->filename);
   error_char (':');
     
-#ifdef USE_MAPPED_LOCATION
   error_integer (LOCATION_LINE (lb->location));
-#else
-  error_integer (lb->linenum);
-#endif
 
   if ((c1 > 0) || (c2 > 0))
     error_char ('.');

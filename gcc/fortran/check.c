@@ -1,5 +1,5 @@
 /* Check functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -1105,6 +1105,18 @@ try
 gfc_check_huge (gfc_expr *x)
 {
   if (int_or_real_check (x, 0) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
+gfc_check_hypot (gfc_expr *x, gfc_expr *y)
+{
+  if (type_check (x, 0, BT_REAL) == FAILURE)
+    return FAILURE;
+  if (same_type_check (x, 0, y, 1) == FAILURE)
     return FAILURE;
 
   return SUCCESS;

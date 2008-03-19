@@ -44,18 +44,32 @@ proc check_compile {basename type contents args} {
 	"*// C++*" { set src ${basename}[pid].cc }
 	default { set src ${basename}[pid].c }
     }
-    switch $type {
+    set compile_type $type
+    switch -glob $type {
 	assembly { set output ${basename}[pid].s }
 	object { set output ${basename}[pid].o }
 	executable { set output ${basename}[pid].exe }
+	"rtl-*" {
+	    set output ${basename}[pid].s
+	    lappend options "additional_flags=-fdump-$type"
+	    set compile_type assembly
+	}
     }
     set f [open $src "w"]
     puts $f $contents
     close $f
-    set lines [${tool}_target_compile $src $output $type "$options"]
+    set lines [${tool}_target_compile $src $output $compile_type "$options"]
     file delete $src
 
-    return [list $lines $output]
+    set scan_output $output
+    # Don't try folding this into the switch above; calling "glob" before the
+    # file is created won't work.
+    if [regexp "rtl-(.*)" $type dummy rtl_type] {
+	set scan_output "[glob $src.\[0-9\]\[0-9\]\[0-9\]r.$rtl_type]"
+	file delete $output
+    }
+
+    return [list $lines $scan_output]
 }
 
 proc current_target_name { } {
@@ -396,6 +410,11 @@ proc check_profiling_available { test_what } {
 	return 0
     }
 
+    # MinGW does not support -p.
+    if { [istarget *-*-mingw*] && [lindex $test_what 1] == "-p" } {
+	return 0
+    }
+
     # At present, there is no profiling support on NetWare.
     if { [istarget *-*-netware*] } {
 	return 0
@@ -600,12 +619,17 @@ proc check_effective_target_mpaired_single { } {
 # Return true if the target has access to FPU instructions.
 
 proc check_effective_target_hard_float { } {
-    return [check_no_compiler_messages hard_float assembly {
-	#if ((defined __mips \
-	      && (defined __mips_soft_float || defined __mips16)) \
-	     || (defined __xtensa__ && defined __XTENSA_SOFT_FLOAT__))
-	#error FOO
-	#endif
+    if { [istarget mips*-*-*] } {
+	return [check_no_compiler_messages hard_float assembly {
+		#if (defined __mips_soft_float || defined __mips16)
+		#error FOO
+		#endif
+	}]
+    }
+
+    # The generic test equates hard_float with "no call for adding doubles".
+    return [check_no_messages_and_pattern hard_float "!\\(call" rtl-expand {
+	double a (double b, double c) { return b + c; }
     }]
 }
 
@@ -1683,7 +1707,8 @@ proc check_effective_target_vect_unpack { } {
         set et_vect_unpack_saved 0
         if { ([istarget powerpc*-*-*] && ![istarget powerpc-*paired*])
              || [istarget i?86-*-*]
-             || [istarget x86_64-*-*] } {
+             || [istarget x86_64-*-*] 
+             || [istarget spu-*-*] } {
             set et_vect_unpack_saved 1
         }
     }
@@ -1892,6 +1917,7 @@ proc check_effective_target_vect_short_mult { } {
     } else {
 	set et_vect_short_mult_saved 0
 	if { [istarget ia64-*-*]
+	     || [istarget spu-*-*]
 	     || [istarget i?86-*-*]
 	     || [istarget x86_64-*-*] } {
 	   set et_vect_short_mult_saved 1
@@ -2226,6 +2252,53 @@ proc check_effective_target_wchar { } {
     return [check_no_compiler_messages wchar assembly {
 	#include <wchar.h>
     }]
+}
+
+# Return 1 if the target has <pthread.h>.
+
+proc check_effective_target_pthread_h { } {
+    return [check_no_compiler_messages pthread_h assembly {
+	#include <pthread.h>
+    }]
+}
+
+# Return 1 if the target can truncate a file from a file-descriptor,
+# as used by libgfortran/io/unix.c:fd_truncate; i.e. ftruncate or
+# chsize.  We test for a trivially functional truncation; no stubs.
+# As libgfortran uses _FILE_OFFSET_BITS 64, we do too; it'll cause a
+# different function to be used.
+
+proc check_effective_target_fd_truncate { } {
+    set prog {
+	#define _FILE_OFFSET_BITS 64
+	#include <unistd.h>
+	#include <stdio.h>
+	#include <stdlib.h>
+	int main ()
+	{
+	  FILE *f = fopen ("tst.tmp", "wb");
+	  int fd;
+	  const char t[] = "test writing more than ten characters";
+	  char s[11];
+	  fd =  fileno (f);
+	  write (fd, t, sizeof (t) - 1);
+	  lseek (fd, 0, 0);
+	  if (ftruncate (fd, 10) != 0)
+	    exit (1);
+	  close (fd);
+	  f = fopen ("tst.tmp", "rb");
+	  if (fread (s, 1, sizeof (s), f) != 10 || strncmp (s, t, 10) != 0)
+	    exit (1);
+	  exit (0);
+	}
+    }
+
+    if { [check_runtime ftruncate $prog] } {
+      return 1;
+    }
+
+    regsub "ftruncate" $prog "chsize" prog
+    return [check_runtime chsize $prog]
 }
 
 # Add to FLAGS all the target-specific flags needed to access the c99 runtime.

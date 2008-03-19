@@ -16,7 +16,7 @@ Copyright (C) 1998,1999,2000,2001,2002,2003,2004,2005,2007 Free Software Foundat
 @ifnotplaintext
 @dircategory GNU Libraries
 @direntry
-* Classpath Hacking: (hacking).   GNU Classpath Hacker's Guide
+* Classpath Hacking: (cp-hacking).  GNU Classpath Hacker's Guide
 @end direntry
 @end ifnotplaintext
 @end ifinfo
@@ -303,7 +303,7 @@ Classpath stories page}.
 
 As with OS platform support, this priority list could change if a
 volunteer comes forward to port, maintain, and test releases for a
-particular JVM.  Since gcj is part of the GNU Compiler Collective it
+particular JVM@.  Since gcj is part of the GNU Compiler Collective it
 is one of the most important targets.  But since it doesn't currently
 work out of the box with GNU Classpath it is currently not the easiest
 target.  When hacking on GNU Classpath the easiest is to use
@@ -484,7 +484,7 @@ specify @option{--enable-qt-peer} and need the following library:
 @table @b
 @item Qt
 @uref{http://www.trolltech.com/products/qt,Qt} version 4.0.1 or higher.
-The Qt library is a cros-platform graphics toolkit.
+The Qt library is a cross-platform graphics toolkit.
 
 @end table
 
@@ -558,7 +558,7 @@ library headers:
 @table @b
 @item GConf
 @uref{http://www.gnome.org/projects/gconf/,GConf} version 2.11.2
-(or higher). GConf is used for storing dektop and application
+(or higher). GConf is used for storing desktop and application
 configuration settings in GNOME.
 
 @end table
@@ -853,7 +853,7 @@ for ``^method_def'' is mostly gone already. Since it is customary for
 almost everybody who writes java source code to put modifiers, return
 value and method name on the same line, we do too.
 
-@c fixme Another rational for always indenting the method definition is that itmakes it a bit easier to distinguish methods in inner and anonymousclasses from code in their enclosing context. NEED EXAMPLE.
+@c fixme Another rational for always indenting the method definition is that it makes it a bit easier to distinguish methods in inner and anonymous classes from code in their enclosing context. NEED EXAMPLE.
 
 @item
 Implements and extends on separate lines, throws too.  Indent extends,
@@ -952,7 +952,7 @@ use @code{+Predundant-modifiers} on the command line.
 
 @item
 Modifiers should be listed in the standard order recommended by the
-JLS.  Jikes will warn for this when given @code{+Pmodifier-order}.
+JLS@.  Jikes will warn for this when given @code{+Pmodifier-order}.
 
 @item
 Because the output of different compilers differs, we have
@@ -1002,7 +1002,7 @@ words which have been added in later versions.  Notable examples are
 @code{assert} (added in 1.4) and @code{enum} (added in 1.5).  Jikes will warn
 of the use of the word @code{enum}, but, as it doesn't yet support the 1.5
 version of the language, it will still allow this usage through.  A
-compiler which supports 1.5 (e.g. the Eclipse compiler, ecj) will simply
+compiler which supports 1.5 (e.g.@: the Eclipse compiler, ecj) will simply
 fail to compile the offending source code.
 
 @c fixme Describe Anonymous classes (example).
@@ -1073,7 +1073,7 @@ You can find instructions on getting a CVS checkout for classpath at
 
 You don't have to get CVS commit write access to contribute, but it is
 sometimes more convenient to be able to add your changes directly to
-the project CVS. Please contact the GNU Classpath savannah admins to
+the project CVS@. Please contact the GNU Classpath savannah admins to
 arrange CVS access if you would like to have it.
 
 Make sure to be subscribed to the commit-classpath mailinglist while
@@ -1252,7 +1252,7 @@ Just as with the normal code style guide, don't make lines longer then
 
 @item
 Just as with comments in the code. The ChangeLog entry should be a
-full sentence, starting with a captital and ending with a period.
+full sentence, starting with a capital and ending with a period.
 
 @item
 Be precise in what changed, not the effect of the change (which should
@@ -1742,7 +1742,7 @@ Unicode characters and vice versa.
 
 In Classpath, @code{InputStreamReader} and @code{OutputStreamWriter}
 rely on an internal class called @code{gnu.java.io.EncodingManager} to load
-translaters that perform the actual conversion.  There are two types of
+translators that perform the actual conversion.  There are two types of
 converters, encoders and decoders.  Encoders are subclasses of
 @code{gnu.java.io.encoder.Encoder}.  This type of converter takes a Java
 (Unicode) character stream or buffer and converts it to bytes using
@@ -1974,7 +1974,7 @@ that this functional area is supported.
 @item weekdays - A @code{String} array of weekday names.
 @item shortWeekdays - A @code{String} array of abbreviated weekday names.
 @item ampms - A @code{String} array containing AM/PM names.
-@item eras - A @code{String} array containing era (ie, BC/AD) names.
+@item eras - A @code{String} array containing era (i.e., BC/AD) names.
 @item zoneStrings - An array of information about valid timezones for this 
 locale.
 @item localPatternChars - A @code{String} defining date/time pattern symbols.

@@ -628,20 +628,10 @@ make_cond_expr_edges (basic_block bb)
   else_bb = label_to_block (else_label);
 
   e = make_edge (bb, then_bb, EDGE_TRUE_VALUE);
-#ifdef USE_MAPPED_LOCATION
   e->goto_locus = EXPR_LOCATION (COND_EXPR_THEN (entry));
-#else
-  e->goto_locus = EXPR_LOCUS (COND_EXPR_THEN (entry));
-#endif
   e = make_edge (bb, else_bb, EDGE_FALSE_VALUE);
   if (e)
-    {
-#ifdef USE_MAPPED_LOCATION
-      e->goto_locus = EXPR_LOCATION (COND_EXPR_ELSE (entry));
-#else
-      e->goto_locus = EXPR_LOCUS (COND_EXPR_ELSE (entry));
-#endif
-    }
+    e->goto_locus = EXPR_LOCATION (COND_EXPR_ELSE (entry));
 
   /* We do not need the gotos anymore.  */
   COND_EXPR_THEN (entry) = NULL_TREE;
@@ -835,11 +825,7 @@ make_goto_expr_edges (basic_block bb)
     {
       tree dest = GOTO_DESTINATION (goto_t);
       edge e = make_edge (bb, label_to_block (dest), EDGE_FALLTHRU);
-#ifdef USE_MAPPED_LOCATION
       e->goto_locus = EXPR_LOCATION (goto_t);
-#else
-      e->goto_locus = EXPR_LOCUS (goto_t);
-#endif
       bsi_remove (&last, true);
       return;
     }
@@ -1993,11 +1979,7 @@ static void
 remove_bb (basic_block bb)
 {
   block_stmt_iterator i;
-#ifdef USE_MAPPED_LOCATION
   source_location loc = UNKNOWN_LOCATION;
-#else
-  source_locus loc = 0;
-#endif
 
   if (dump_file)
     {
@@ -2065,15 +2047,8 @@ remove_bb (basic_block bb)
 	     program that are indeed unreachable.  */
 	  if (TREE_CODE (stmt) != GOTO_EXPR && EXPR_HAS_LOCATION (stmt) && !loc)
 	    {
-#ifdef USE_MAPPED_LOCATION
 	      if (EXPR_HAS_LOCATION (stmt))
 		loc = EXPR_LOCATION (stmt);
-#else
-	      source_locus t;
-	      t = EXPR_LOCUS (stmt);
-	      if (t && LOCATION_LINE (*t) > 0)
-		loc = t;
-#endif
 	    }
 	}
     }
@@ -2082,13 +2057,8 @@ remove_bb (basic_block bb)
      block is unreachable.  We walk statements backwards in the
      loop above, so the last statement we process is the first statement
      in the block.  */
-#ifdef USE_MAPPED_LOCATION
   if (loc > BUILTINS_LOCATION && LOCATION_LINE (loc) > 0)
     warning (OPT_Wunreachable_code, "%Hwill never be executed", &loc);
-#else
-  if (loc)
-    warning (OPT_Wunreachable_code, "%Hwill never be executed", loc);
-#endif
 
   remove_phi_nodes_and_edges_for_unreachable_block (bb);
   bb->il.tree = NULL;
@@ -3061,24 +3031,28 @@ bsi_insert_on_edge_immediate (edge e, tree stmt)
 static void
 reinstall_phi_args (edge new_edge, edge old_edge)
 {
-  tree var, phi;
+  tree phi;
+  edge_var_map_vector v;
+  edge_var_map *vm;
+  int i;
 
-  if (!PENDING_STMT (old_edge))
+  v = redirect_edge_var_map_vector (old_edge);
+  if (!v)
     return;
 
-  for (var = PENDING_STMT (old_edge), phi = phi_nodes (new_edge->dest);
-       var && phi;
-       var = TREE_CHAIN (var), phi = PHI_CHAIN (phi))
+  for (i = 0, phi = phi_nodes (new_edge->dest);
+       VEC_iterate (edge_var_map, v, i, vm) && phi;
+       i++, phi = PHI_CHAIN (phi))
     {
-      tree result = TREE_PURPOSE (var);
-      tree arg = TREE_VALUE (var);
+      tree result = redirect_edge_var_map_result (vm);
+      tree arg = redirect_edge_var_map_def (vm);
 
       gcc_assert (result == PHI_RESULT (phi));
 
       add_phi_arg (phi, arg, new_edge);
     }
 
-  PENDING_STMT (old_edge) = NULL;
+  redirect_edge_var_map_clear (old_edge);
 }
 
 /* Returns the basic block after which the new basic block created
@@ -3297,8 +3271,28 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	    }
 	  else if (TREE_CODE (t) == BIT_FIELD_REF)
 	    {
-	      CHECK_OP (1, "invalid operand to BIT_FIELD_REF");
-	      CHECK_OP (2, "invalid operand to BIT_FIELD_REF");
+	      if (!host_integerp (TREE_OPERAND (t, 1), 1)
+		  || !host_integerp (TREE_OPERAND (t, 2), 1))
+		{
+		  error ("invalid position or size operand to BIT_FIELD_REF");
+		  return t;
+		}
+	      else if (INTEGRAL_TYPE_P (TREE_TYPE (t))
+		       && (TYPE_PRECISION (TREE_TYPE (t))
+			   != TREE_INT_CST_LOW (TREE_OPERAND (t, 1))))
+		{
+		  error ("integral result type precision does not match "
+			 "field size of BIT_FIELD_REF");
+		  return t;
+		}
+	      if (!INTEGRAL_TYPE_P (TREE_TYPE (t))
+		  && (GET_MODE_PRECISION (TYPE_MODE (TREE_TYPE (t)))
+		      != TREE_INT_CST_LOW (TREE_OPERAND (t, 1))))
+		{
+		  error ("mode precision of non-integral result does not "
+			 "match field size of BIT_FIELD_REF");
+		  return t;
+		}
 	    }
 
 	  t = TREE_OPERAND (t, 0);
@@ -4065,6 +4059,7 @@ verify_gimple_stmt (tree stmt)
     case NOP_EXPR:
     case CHANGE_DYNAMIC_TYPE_EXPR:
     case ASM_EXPR:
+    case PREDICT_EXPR:
       return false;
 
     default:
@@ -5676,22 +5671,30 @@ move_stmt_r (tree *tp, int *walk_subtrees, void *data)
 /* Marks virtual operands of all statements in basic blocks BBS for
    renaming.  */
 
-static void
-mark_virtual_ops_in_region (VEC (basic_block,heap) *bbs)
+void
+mark_virtual_ops_in_bb (basic_block bb)
 {
   tree phi;
   block_stmt_iterator bsi;
+
+  for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
+    mark_virtual_ops_for_renaming (phi);
+
+  for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+    mark_virtual_ops_for_renaming (bsi_stmt (bsi));
+}
+
+/* Marks virtual operands of all statements in basic blocks BBS for
+   renaming.  */
+
+static void
+mark_virtual_ops_in_region (VEC (basic_block,heap) *bbs)
+{
   basic_block bb;
   unsigned i;
 
   for (i = 0; VEC_iterate (basic_block, bbs, i, bb); i++)
-    {
-      for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
-	mark_virtual_ops_for_renaming (phi);
-
-      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	mark_virtual_ops_for_renaming (bsi_stmt (bsi));
-    }
+    mark_virtual_ops_in_bb (bb);
 }
 
 /* Move basic block BB from function CFUN to function DEST_FN.  The
@@ -5893,6 +5896,8 @@ new_label_mapper (tree decl, void *data)
   m->base.from = decl;
   m->to = create_artificial_label ();
   LABEL_DECL_UID (m->to) = LABEL_DECL_UID (decl);
+  if (LABEL_DECL_UID (m->to) >= cfun->last_label_uid)
+    cfun->last_label_uid = LABEL_DECL_UID (m->to) + 1;
 
   slot = htab_find_slot_with_hash (hash, m, m->hash, INSERT);
   gcc_assert (*slot == NULL);
@@ -6990,11 +6995,7 @@ gimplify_build1 (block_stmt_iterator *bsi, enum tree_code code, tree type,
 static unsigned int
 execute_warn_function_return (void)
 {
-#ifdef USE_MAPPED_LOCATION
   source_location location;
-#else
-  location_t *locus;
-#endif
   tree last;
   edge e;
   edge_iterator ei;
@@ -7003,31 +7004,17 @@ execute_warn_function_return (void)
   if (TREE_THIS_VOLATILE (cfun->decl)
       && EDGE_COUNT (EXIT_BLOCK_PTR->preds) > 0)
     {
-#ifdef USE_MAPPED_LOCATION
       location = UNKNOWN_LOCATION;
-#else
-      locus = NULL;
-#endif
       FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
 	{
 	  last = last_stmt (e->src);
 	  if (TREE_CODE (last) == RETURN_EXPR
-#ifdef USE_MAPPED_LOCATION
 	      && (location = EXPR_LOCATION (last)) != UNKNOWN_LOCATION)
-#else
-	      && (locus = EXPR_LOCUS (last)) != NULL)
-#endif
 	    break;
 	}
-#ifdef USE_MAPPED_LOCATION
       if (location == UNKNOWN_LOCATION)
 	location = cfun->function_end_locus;
       warning (0, "%H%<noreturn%> function does return", &location);
-#else
-      if (!locus)
-	locus = &cfun->function_end_locus;
-      warning (0, "%H%<noreturn%> function does return", locus);
-#endif
     }
 
   /* If we see "return;" in some basic block, then we do reach the end
@@ -7044,17 +7031,10 @@ execute_warn_function_return (void)
 	      && TREE_OPERAND (last, 0) == NULL
 	      && !TREE_NO_WARNING (last))
 	    {
-#ifdef USE_MAPPED_LOCATION
 	      location = EXPR_LOCATION (last);
 	      if (location == UNKNOWN_LOCATION)
 		  location = cfun->function_end_locus;
 	      warning (OPT_Wreturn_type, "%Hcontrol reaches end of non-void function", &location);
-#else
-	      locus = EXPR_LOCUS (last);
-	      if (!locus)
-		locus = &cfun->function_end_locus;
-	      warning (OPT_Wreturn_type, "%Hcontrol reaches end of non-void function", locus);
-#endif
 	      TREE_NO_WARNING (cfun->decl) = 1;
 	      break;
 	    }
