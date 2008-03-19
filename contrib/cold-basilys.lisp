@@ -1317,67 +1317,6 @@
 
 ;;- ;; normalization of a symbol occurrence means seeking if the symbol is
 ;;- ;; closed or not and returning a prog_closedvar when appropriate
-;;- (defun normalize_symbol (symb env)
-;;-   (or (symbolp symb)
-;;-       (error "normalize_symbol bad symb ~s ~%... in env ~s~%" symb env))
-;;-   (let ( (resnorm nil) 
-;;- 	 (sbind (cold_find_binding symb env))
-;;- 	 )
-;;-     (labels 
-;;-      (
-;;-       ( knownsymb
-;;- 	(sym closvars)
-;;- 	(or (symbolp sym) (error "bad symbol ~S in knownsymb" sym))
-;;- 	(some (lambda (cv) (eq (prog_closedvar-clv_var cv) sym)) closvars)
-;;- 	)
-;;-       ( envtest 
-;;- 	(env) 
-;;- 	(or (symbolp symb) (error "bad symbol ~S in envtest" symb))
-;;- 	(let ( (forf (cold_compenv-for env)) ) 
-;;- 	  (cond 
-;;- 	   ( (null forf) 
-;;- 	     (warn "normalize_symbol symb ~S null forf ~%" symb)
-;;- 	     )
-;;- 	   ( (prog_defun-p forf) 
-;;- 	     (or (symbolp symb) (error "bad symbol ~S inside envtest defun forf ~S" symb forf))
-;;- 	     (or resnorm 
-;;- 		 (setq resnorm (make-prog_closedvar :clv_var symb 
-;;- 						    :clv_fun forf 
-;;- 						    :clv_bind sbind)))
-;;- 	     (let ( (oldclosvars (prog_defun-fun_closvars forf)) )
-;;- 	       (or (knownsymb symb oldclosvars)
-;;- 		   (setf (prog_defun-fun_closvars forf) (cons resnorm oldclosvars)))
-;;- 	       )
-;;- 	     )
-;;- 	   ( (prog_lambda-p forf)
-;;- 	     (or (symbolp symb) (error "bad symbol ~S inside envtest lambda forf ~S" symb forf))
-;;- 	     (let ( (oldclosvars (prog_lambda-lambda_closvars forf)) )
-;;- 	       (or resnorm 
-;;- 		   (setq resnorm (make-prog_closedvar :clv_var symb 
-;;- 						      :clv_fun forf
-;;- 						      :clv_bind sbind)))
-;;- 	       (or (knownsymb symb oldclosvars)
-;;- 		   (setf (prog_lambda-lambda_closvars forf) (cons resnorm oldclosvars)))
-;;- 	       )
-;;- 	     )
-;;- 	   ( t
-;;- 	      (error "normalize_symbol ~S strange forf ~S ~%" symb forf)
-;;- 	   )))
-;;- 	t				;as a test, envtest return
-;;- 					;true to continue scan of
-;;- 					;environment lists
-;;- 	)
-;;-       )
-;;-      (or (symbolp symb)
-;;- 	 (error "normalize_symbol bad symb before tested ~s ~%... in env ~s~%" symb env))
-;;-      (if (or (cold_class_binding-p sbind)
-;;- 	     (cold_instance_binding-p sbind))
-;;- 	 symb
-;;-        (progn
-;;- 	 (cold_tested_find_binding symb env (function envtest))
-;;- 	 (or resnorm symb)	    ;return value for normalize_symbol
-;;- 	 )))))
-
 (defun normalize_symbol (symb env)
   (or (symbolp symb)
       (error "normalize_symbol bad symb ~s ~%... in env ~s~%" symb env))
@@ -5287,13 +5226,17 @@ nil)
 #+CLISP
 (setf (posix:rlimit :cpu) (values 1000 1200))
 
-(defun handle-source-file (filename)
+
+;; first argument is mandatory MELT/basilys source, second argument
+;; may be the generated C file
+(defun handle-source-file (filename &optional outnamearg)
   (with-open-file
    (istr filename)
    (format *error-output* "reading file ~s ~%" filename)
    (let ( (*readtable* (copy-readtable)) 
 	  (readrevseq nil)
-	  (outpathname (make-pathname :name (pathname-name filename) :type "c"))
+	  (outpathname (if (stringp outnamearg) outnamearg 
+			 (make-pathname :name (pathname-name filename) :type "c")))
 	  )
      (loop 
       (let ((rditem (read istr nil)))
@@ -5396,23 +5339,11 @@ nil)
 	  (output_ccode initrout outstr)
 ;	  (finish-output outstr)
 	  )
-	(finish-output outstr)
 	(format outstr "~%~%/*** end of generated file ~a ***/~%~%" outpathname)
+	(finish-output outstr)
 	)
-       (format *error-output* ";end of generation of ~S in ~g cpusecs- before basilys-gcc compilation~%" 
+       (format *error-output* ";end of generation of ~S in ~g cpusecs~%" 
 	       outpathname (cpusec))
-       (finish-output *error-output*)
-       #+CLISP
-       (progn 
-	 (ext:run-program "indent" :arguments (list outpathname))
-	 (ext:run-program "basilys-gcc" :arguments (list outpathname))
-	 )
-       #+SBCL
-       (progn
-	 (sb-ext:run-program "/usr/bin/indent" (list outpathname))
-	 (sb-ext:run-program "/home/basile/scripts/basilys-gcc" (list outpathname))
-	 )
-       (format *error-output* ";end of basilys-gcc compilation of ~S in ~g cpusec~%" outpathname (cpusec))
        (finish-output *error-output*)
        ))))
 
