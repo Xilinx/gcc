@@ -1,5 +1,14 @@
 
 2008-03-20   Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: added @DEFS@ to MELT_CFLAGS. Better run-basilys.d
+	target (still specific to some systems like linux; depcomp should
+	be used...). Added ugly temporary kludge to build
+	coldbuilt-warm-basilys.c & coldbuilt-warm-basilys.so on Linux thru
+	clisp & contrib/coldbasilys.lisp. built-melt-cc-script better built.
+	* melt-cc-script.proto: corrected typos.
+	* run-basilys.h: working at last.
+
+2008-03-20   Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r133366.
 	* basilys.c: pass_basilys is now a gimple_opt_pass.
 	* tree-pass.h: pass_basilys is now a gimple_opt_pass.

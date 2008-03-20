@@ -23,23 +23,31 @@ the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
 
-/* usual GCC middle-end includes, copied from ipa-cp.c */
+/* usual GCC middle-end includes, copied from basilys.c */
 
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "real.h"
+#include "obstack.h"
+#include "tm.h"
 #include "tree.h"
-#include "target.h"
-#include "cgraph.h"
-#include "ipa-prop.h"
-#include "tree-flow.h"
+#include "filenames.h"
 #include "tree-pass.h"
-#include "flags.h"
-#include "timevar.h"
-#include "diagnostic.h"
 #include "tree-dump.h"
-#include "tree-inline.h"
+#include "basic-block.h"
+#include "timevar.h"
+#include "errors.h"
+#include "ggc.h"
+#include "cgraph.h"
+#include "diagnostic.h"
+#include "flags.h"
+#include "toplev.h"
+#include "options.h"
+#include "params.h"
+#include "real.h"
+#include "prefix.h"
+#include "md5.h"
+#include "cppdefault.h"
 
 
 /* basilys or MELT specific includes */

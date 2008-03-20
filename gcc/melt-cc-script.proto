@@ -21,6 +21,8 @@
 # <http://www.gnu.org/licenses/>. 
 
 #:! :MELT_CC: & :MELT_CFLAGS: &:MELT_HEADERDIR:  are substituted in the first 30 lines
+set -x
+
 melt_cc=":MELT_CC:"
 melt_cflags=":MELT_CFLAGS:"
 melt_headerdir=":MELT_HEADERDIR:"
@@ -29,9 +31,9 @@ melt_headerdir=":MELT_HEADERDIR:"
 ## and the naked (without suffix) dynamically-loadable stuff to generate
 
 csource=$1
-nakedynstuff=$2
+nakedynstuff=`basename $2`
 datf=`tempfile  -p bdat`
-if { -z "$datf" ]; then
+if [ -z "$datf" ]; then
     datf=/tmp/bdat$$
 fi
 # generate the temporary timestamp & md5s file
@@ -43,11 +45,11 @@ date "+const char basilys_compiled_timestamp[]=\"$csource %c\";" > $datf.c
 echo "const char basilys_md5[]=\"$md5src\";" >> $datf.c
 case `uname` in
 Linux|SunOS|Solaris) 
-	$melt_cc -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $makedynstuff.so;;
+	$melt_cc -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff.so;;
 *) 
-	libtool --mode=compile -prefer-pic $melt_cc $csource  -I "$melt_headerdir" -o $makedynstuff.lo;
+	libtool --mode=compile -prefer-pic $melt_cc $csource  -I "$melt_headerdir" -o $nakedynstuff.lo;
 	libtool --mode=compile -prefer-pic $melt_cc $datf.c -o $datf.lo
-	libtool --mode=link -module $melt_cc  $makedynstuff.lo $datf.lo -o  $makedynstuff.la
+	libtool --mode=link -module $melt_cc  $makedynstuff.lo $datf.lo -o  $nakedynstuff.la
 	rm -f $datf.*
 	;;
 esac

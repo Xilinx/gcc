@@ -1,0 +1,4 @@
+
+2008-03-20   Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: removed invocation if indent & basilys-gcc programs.
+	(output_ccode) added newline emission after outputting preprocessor directives.
