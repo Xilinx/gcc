@@ -1,3 +1,156 @@
+2008-03-20  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.dg/format/ms_array-1.c: New.
+	* gcc.dg/format/ms_c90-scanf-3.c: New.
+	* gcc.dg/format/ms_c99-strftime-1.c: New.
+	* gcc.dg/format/ms_no-y2k-1.c: New.
+	* gcc.dg/format/ms_attr-1.c: New.
+	* gcc.dg/format/ms_c90-scanf-4.c: New.
+	* gcc.dg/format/ms_c99-strftime-2.c: New.
+	* gcc.dg/format/ms_nonlit-1.c: New.
+	* gcc.dg/format/ms_c90-scanf-5.c: New.
+	* gcc.dg/format/ms_cast-1.c: New.
+	* gcc.dg/format/ms_nonlit-2.c: New.
+	* gcc.dg/format/ms_attr-2.c: New.
+	* gcc.dg/format/ms_c90-strftime-1.c: New.
+	* gcc.dg/format/ms_miss-1.c: New.
+	* gcc.dg/format/ms_nonlit-3.c: New.
+	* gcc.dg/format/ms_attr-3.c: New.
+	* gcc.dg/format/ms_c90-strftime-2.c: New.
+	* gcc.dg/format/ms_miss-2.c: New.
+	* gcc.dg/format/ms_nul-1.c: New.
+	* gcc.dg/format/ms_attr-4.c: New.
+	* gcc.dg/format/ms_c94-printf-1.c: New.
+	* gcc.dg/format/ms_miss-3.c: New.
+	* gcc.dg/format/ms_nul-2.c: New.
+	* gcc.dg/format/ms_attr-7.c: New.
+	* gcc.dg/format/ms_c94-scanf-1.c: New.
+	* gcc.dg/format/ms_miss-4.c: New.
+	* gcc.dg/format/ms_null-1.c: New.
+	* gcc.dg/format/ms_bitfld-1.c: New.
+	* gcc.dg/format/ms_c99-printf-1.c: New.
+	* gcc.dg/format/ms_miss-5.c: New.
+	* gcc.dg/format/ms_plus-1.c: New.
+	* gcc.dg/format/ms_branch-1.c: New.
+	* gcc.dg/format/ms_c99-printf-2.c: New.
+	* gcc.dg/format/ms_miss-6.c: New.
+	* gcc.dg/format/ms_sec-1.c: New.
+	* gcc.dg/format/ms_c90-printf-1.c: New.
+	* gcc.dg/format/ms_c99-printf-3.c: New.
+	* gcc.dg/format/ms_multattr-1.c: New.
+	* gcc.dg/format/ms_unnamed-1.c: New.
+	* gcc.dg/format/ms_c90-printf-2.c: New.
+	* gcc.dg/format/ms_c99-scanf-1.c: New.
+	* gcc.dg/format/ms_multattr-2.c: New.
+	* gcc.dg/format/ms_va-1.c: New.
+	* gcc.dg/format/ms_c90-printf-3.c: New.
+	* gcc.dg/format/ms_c99-scanf-2.c: New.
+	* gcc.dg/format/ms_multattr-3.c: New.
+	* gcc.dg/format/ms_c90-scanf-1.c: New.
+	* gcc.dg/format/ms_c99-scanf-3.c: New.
+	* gcc.dg/format/ms_no-exargs-1.c: New.
+	* gcc.dg/format/ms_zero-length-1.c: New.
+	* gcc.dg/format/ms_c90-scanf-2.c: New.
+	* gcc.dg/format/ms_c99-scanf-4.c: New.
+	* gcc.dg/format/ms_no-exargs-2.c: New.
+	* gcc.dg/format/null-1.c: Add gnu style usage for mingw.
+	* gcc.dg/format/miss-1.c: Likewise.
+	* gcc.dg/format/miss-3.c: Likewise.
+	* gcc.dg/format/multattr-2.c: Likewise.
+	* gcc.dg/format/miss-5.c: Likewise.
+	* gcc.dg/format/attr-2.c: Likewise.
+	* gcc.dg/format/attr-4.c: Likewise.
+	* gcc.dg/format/c90-scanf-4.c: Likewise.
+	* gcc.dg/format/c99-printf-3.c: Likewise.
+	* gcc.dg/format/multattr-1.c: Likewise.
+	* gcc.dg/format/miss-4.c: Likewise.
+	* gcc.dg/format/miss-6.c: Likewise.
+	* gcc.dg/format/c90-printf-3.c: Likewise.
+	* gcc.dg/format/attr-1.c: Likewise.
+	* gcc.dg/format/attr-3.c: Likewise.
+	* gcc.dg/format/attr-7.c: Likewise.
+	* gcc.dg/format/format.h: Treat mingw and gnu style.
+	* gcc.dg/format/sys_format.c: New.
+
+2008-03-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/35627
+	* gfortran.dg/namelist_46.f90: New test.
+
+2008-03-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/14552
+	* gcc.target/i386/pr14552.c: New test.
+
+2008-03-19  Michael Matz  <matz@suse.de>
+
+	PR middle-end/35616
+	* gcc.dg/pr35616.c: New test.
+
+2008-03-19  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/35152
+	* gfortran.dg/argument_checking_16.f90: New test.
+
+2008-03-19  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/32972
+	* gfortran.dg/internal_pack_1.f90:  New test case.
+	* gfortran.dg/internal_pack_2.f90:  New test case.
+	* gfortran.dg/internal_pack_3.f90:  New test case.
+
+2008-03-19  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/20050811-2.c: Update dumping flags.
+	* gcc.dg/sms-2.c: Update dumping flags.
+	* gcc.dg/var-expand1.c: Update dumping flags.
+	* gcc.dg/var-expand3.c: Update dumping flags.
+	* gcc.dg/pr30957-1.c: Update dumping flags.
+	* gcc.dg/20050811-1.c: Update dumping flags.
+	* gcc.dg/cpp/cmdlne-dI-M.C: Do not xfail.
+	* gcc.dg/cpp/cmdlne-dM-M.C: Do not xfail.
+
+2008-03-19  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35609
+	* gcc.dg/testsuite/uninit-15.c: New testcase.
+	* gcc.dg/testsuite/uninit-16.c: Likewise.
+
+2008-03-18  Mikulas Patocka  <mikulas@artax.karlin.mff.cuni.cz>
+
+	PR target/35504
+	* g++.dg/other/pr35504.C: New test.
+
+2008-03-18  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/forwprop-4.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-fre-16.c: Likewise.
+
+2008-03-18  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/loop-19.c: Revert previous change.
+
+2008-03-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/35617
+	* gfortran.dg/namelist_45.f90: New test.
+
+2008-03-17  James E. Wilson  <wilson@tuliptree.org>
+
+	PR testsuite/35512
+	* gcc.target/ia64/visibility-1.c (foo): Change return type to void.
+	Write variables instead of reading them.
+
+2008-03-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35548
+	* g++.dg/init/ref16.C: New testcase.
+
+2008-03-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/19637
+	* g++.dg/tree-ssa/pr19637.C: New testcase.
+
 2008-03-16  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/35470

@@ -1,3 +1,13 @@
+
+2008-03-20   Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r133366.
+	* basilys.c: pass_basilys is now a gimple_opt_pass.
+	* tree-pass.h: pass_basilys is now a gimple_opt_pass.
+	pass_compiler_probe now declared here.
+	* passes.c: using new struct-s  for passes.
+	* compiler-probe.h: moved pass_compiler_probe from here to tree-pass.h
+	* compiler-probe.c: pass_compiler_probe is a gimple_opt_pass.
+
 2008-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-cc-script.prot: added generation of date & md5sum.
 

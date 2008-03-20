@@ -193,7 +193,7 @@ try_auto_increment (rtx insn, rtx inc_insn, rtx inc_insn_set, rtx reg,
 		  /* If there is a REG_DEAD note on this insn, we must
 		     change this not to REG_UNUSED meaning that the register
 		     is set, but the value is dead.  Failure to do so will
-		     result in a sched1 dieing -- when it recomputes lifetime
+		     result in sched1 dying -- when it recomputes lifetime
 		     information, the number of REG_DEAD notes will have
 		     changed.  */
 		  rtx note = find_reg_note (insn, REG_DEAD, reg);
@@ -2135,8 +2135,10 @@ rest_of_handle_regmove (void)
   return 0;
 }
 
-struct tree_opt_pass pass_regmove =
+struct rtl_opt_pass pass_regmove =
 {
+ {
+  RTL_PASS,
   "regmove",                            /* name */
   gate_handle_regmove,                  /* gate */
   rest_of_handle_regmove,               /* execute */
@@ -2150,7 +2152,7 @@ struct tree_opt_pass pass_regmove =
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
   TODO_dump_func |
-  TODO_ggc_collect,                     /* todo_flags_finish */
-  'N'                                   /* letter */
+  TODO_ggc_collect                      /* todo_flags_finish */
+ }
 };
 

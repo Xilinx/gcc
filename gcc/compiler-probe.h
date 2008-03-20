@@ -103,7 +103,6 @@ void comprobe_finish (void);
 void comprobe_show_message (const char *msg);
 
 
-extern struct tree_opt_pass pass_compiler_probe;
 
 /***
  * return a unique positive file rank for a file path; or 0 for NULL name

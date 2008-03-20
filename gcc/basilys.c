@@ -5838,20 +5838,23 @@ execute_basilys (void)
   return 0;
 }
 
-struct tree_opt_pass pass_basilys = {
-  "basilys",			/* name */
-  gate_basilys,			/* gate */
-  execute_basilys,		/* execute */
-  NULL,				/* sub */
-  NULL,				/* next */
-  0,				/* static_pass_number */
-  TV_BASILE_ANALYSIS,		/* tv_id */
-  PROP_cfg | PROP_ssa,		/* properties_required */
-  0,				/* properties_provided */
-  0,				/* properties_destroyed */
-  0,				/* todo_flags_start */
-  0,				/* todo_flags_finish */
-  0				/* letter */
+struct gimple_opt_pass pass_basilys = 
+{
+  {
+    GIMPLE_PASS,			/* type */
+    "basilys",			/* name */
+    gate_basilys,			/* gate */
+    execute_basilys,		/* execute */
+    NULL,				/* sub */
+    NULL,				/* next */
+    0,				/* static_pass_number */
+    TV_BASILE_ANALYSIS,		/* tv_id */
+    PROP_cfg | PROP_ssa,		/* properties_required */
+    0,				/* properties_provided */
+    0,				/* properties_destroyed */
+    0,				/* todo_flags_start */
+    0,				/* todo_flags_finish */
+  }
 };
 
 #include "gt-basilys.h"

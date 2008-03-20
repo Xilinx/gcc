@@ -2058,20 +2058,23 @@ execute_comprobe (void)
   return 0;			/* no additional todos */
 }
 
-struct tree_opt_pass pass_compiler_probe = {
-  "comprobe",			/* name */
-  gate_comprobe,		/* gate */
-  execute_comprobe,		/* execute */
-  NULL,				/* sub */
-  NULL,				/* next */
-  0,				/* static_pass_number */
-  0,				/* tv_id */
-  0 /*PROP_cfg | PROP_ssa */ ,	/* properties_required */
-  0,				/* properties_provided */
-  0,				/* properties_destroyed */
-  0,				/* todo_flags_start */
-  0,				/* todo_flags_finish */
-  0				/* letter */
+struct gimple_opt_pass pass_compiler_probe = 
+{
+  {
+    GIMPLE_PASS,			/* type */
+    "comprobe",			/* name */
+    gate_comprobe,		/* gate */
+    execute_comprobe,		/* execute */
+    NULL,				/* sub */
+    NULL,				/* next */
+    0,				/* static_pass_number */
+    0,				/* tv_id */
+    0 /*PROP_cfg | PROP_ssa */ ,	/* properties_required */
+    0,				/* properties_provided */
+    0,				/* properties_destroyed */
+    0,				/* todo_flags_start */
+    0,				/* todo_flags_finish */
+  }
 };
 
 #include "gt-compiler-probe.h"

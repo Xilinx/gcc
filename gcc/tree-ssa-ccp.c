@@ -1495,8 +1495,10 @@ gate_ccp (void)
 }
 
 
-struct tree_opt_pass pass_ccp = 
+struct gimple_opt_pass pass_ccp = 
 {
+ {
+  GIMPLE_PASS,
   "ccp",				/* name */
   gate_ccp,				/* gate */
   do_ssa_ccp,				/* execute */
@@ -1509,8 +1511,8 @@ struct tree_opt_pass pass_ccp =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func | TODO_verify_ssa
-  | TODO_verify_stmts | TODO_ggc_collect,/* todo_flags_finish */
-  0					/* letter */
+  | TODO_verify_stmts | TODO_ggc_collect/* todo_flags_finish */
+ }
 };
 
 
@@ -1531,8 +1533,10 @@ gate_store_ccp (void)
 }
 
 
-struct tree_opt_pass pass_store_ccp = 
+struct gimple_opt_pass pass_store_ccp = 
 {
+ {
+  GIMPLE_PASS,
   "store_ccp",				/* name */
   gate_store_ccp,			/* gate */
   do_ssa_store_ccp,			/* execute */
@@ -1545,8 +1549,8 @@ struct tree_opt_pass pass_store_ccp =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func | TODO_verify_ssa
-  | TODO_verify_stmts | TODO_ggc_collect,/* todo_flags_finish */
-  0					/* letter */
+  | TODO_verify_stmts | TODO_ggc_collect/* todo_flags_finish */
+ }
 };
 
 /* Given a constant value VAL for bitfield FIELD, and a destination
@@ -2105,6 +2109,12 @@ maybe_fold_stmt_addition (tree expr)
     }
 
   ptd_type = TREE_TYPE (ptr_type);
+  /* If we want a pointer to void, reconstruct the reference from the
+     array element type.  A pointer to that can be trivially converted
+     to void *.  This happens as we fold (void *)(ptr p+ off).  */
+  if (VOID_TYPE_P (ptd_type)
+      && TREE_CODE (TREE_TYPE (op0)) == ARRAY_TYPE)
+    ptd_type = TREE_TYPE (TREE_TYPE (op0));
 
   /* At which point we can try some of the same things as for indirects.  */
   t = maybe_fold_offset_to_array_ref (op0, op1, ptd_type, true);
@@ -2292,6 +2302,17 @@ get_maxval_strlen (tree arg, tree *length, bitmap visited, int type)
       if (TREE_CODE (arg) == COND_EXPR)
         return get_maxval_strlen (COND_EXPR_THEN (arg), length, visited, type)
                && get_maxval_strlen (COND_EXPR_ELSE (arg), length, visited, type);
+      /* We can end up with &(*iftmp_1)[0] here as well, so handle it.  */
+      else if (TREE_CODE (arg) == ADDR_EXPR
+	       && TREE_CODE (TREE_OPERAND (arg, 0)) == ARRAY_REF
+	       && integer_zerop (TREE_OPERAND (TREE_OPERAND (arg, 0), 1)))
+	{
+	  tree aop0 = TREE_OPERAND (TREE_OPERAND (arg, 0), 0);
+	  if (TREE_CODE (aop0) == INDIRECT_REF
+	      && TREE_CODE (TREE_OPERAND (aop0, 0)) == SSA_NAME)
+	    return get_maxval_strlen (TREE_OPERAND (aop0, 0),
+				      length, visited, type);
+	}
 
       if (type == 2)
 	{
@@ -3009,8 +3030,10 @@ execute_fold_all_builtins (void)
 }
 
 
-struct tree_opt_pass pass_fold_builtins = 
+struct gimple_opt_pass pass_fold_builtins = 
 {
+ {
+  GIMPLE_PASS,
   "fab",				/* name */
   NULL,					/* gate */
   execute_fold_all_builtins,		/* execute */
@@ -3024,6 +3047,6 @@ struct tree_opt_pass pass_fold_builtins =
   0,					/* todo_flags_start */
   TODO_dump_func
     | TODO_verify_ssa
-    | TODO_update_ssa,			/* todo_flags_finish */
-  0					/* letter */
+    | TODO_update_ssa			/* todo_flags_finish */
+ }
 };

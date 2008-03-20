@@ -3912,6 +3912,8 @@ clean: mostlyclean lang.clean
 	else if [ "x$(MULTILIB_OPTIONS)" != x ] ; then \
 	  rm -rf `echo $(MULTILIB_OPTIONS) | sed -e 's/\// /g'`; \
 	fi ; fi
+# Also delete the run-basilys.h.gch generated file by run-basilys.d target
+	rm -f run-basilys.h.gch
 
 # Delete all files that users would normally create
 # while building and installing GCC.
@@ -4566,8 +4568,9 @@ MELT_CFLAGS= $(X_CFLAGS) $(T_CFLAGS) $(CFLAGS) $(XCFLAGS)
 run-basilys.d: run-basilys.h \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
    tree-pass.h basilys.h gt-basilys.h
-## perhaps this should really use depcomp
-	$(CC) -MT run-basilys-deps -MMD  $(ALL_CFLAGS) $(ALL_CPPFLAGS) $<
+## perhaps this should really use depcomp, because this works only if
+## CC is some gcc 4.x since it use the precompiled headers feature
+	$(CC) -MT run-basilys-deps -MMD  $(ALL_CFLAGS) $(ALL_CPPFLAGS) $< -o run-basilys.h.gch
 
 .PHONY: run-basilys-deps
 ## the include below defines the dependencies of run-basilys-deps
