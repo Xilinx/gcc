@@ -364,20 +364,25 @@ fbasilys-dynlibdir=
 Common Report Var(basilys_dynlibdir_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
 Dynlib plugin directory for basilys
 
+; generated source directory for basilys
+fbasilys-gensrcdir=
+Common Report Var(basilys_gensrcdir_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
+Generated source directory for basilys
+
 ; initial C file for above analysis
 fbasilys-init=
 Common Report Var(basilys_init_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
 Initial file for -fbasilys analysis (dynamic C mode)
 
+; second argument string for basilys
+fbasilys-secondarg=
+Common Report Var(basilys_secondargument_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
+Second argument for basilys analysis 
+
 ; temporary directory for basilys
 fbasilys-tempdir=
 Common Report Var(basilys_tempdir_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
 Temporary directory for basilys (is not cleaned if specified)
-
-; generated source directory for basilys
-fbasilys-gensrcdir=
-Common Report Var(basilys_gensrcdir_string) RejectNegative Joined  Condition(HAVE_PARMAPOLY && HAVE_LIBTOOLDYNL)
-Generated source directory for basilys
 
 
 ;;;;;;;;;; end of basilys/MELT stuff

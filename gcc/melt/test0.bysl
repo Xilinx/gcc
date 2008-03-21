@@ -1,0 +1,27 @@
+;; -*- lisp -*-
+(defprimitive gti (:long a b) :long 
+  "((" a ")>(" b "))")
+(defprimitive boxint (:long i) :value 
+  "basilysgc_new_int( BASILYSGOB(DISCR_INTEGER), (" i "))"
+)
+(defprimitive puts (:cstring s) :void "puts(" s ")")
+
+(defun foo (x :long n) 
+  (if
+      (gti n 0) 
+      x 
+    (boxint n)))
+
+(defun bar (y)
+  (if y
+      (foo y 12)
+    (boxint 1234)))
+
+(defun testforever (z)
+  (forever loop
+	   (exit loop (bar z))))
+ 
+
+foo
+
+(puts "end test0")

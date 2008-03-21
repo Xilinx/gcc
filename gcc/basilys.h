@@ -1636,8 +1636,8 @@ basilys_ptr_t basilysgc_intern_symbol (basilys_ptr_t symb);
    is new, return it otherwise return the older homonymous symnol */
 basilys_ptr_t basilysgc_intern_keyword (basilys_ptr_t symb);
 
-/* read a list of sexpressions from a file */
-basilys_ptr_t basilysgc_read_file (const char *filnam);
+/* read a list of sexpressions from a file; if the second argument is non-empty and non-null, it is used for locations; otherwise the basename of the filnam is used */
+basilys_ptr_t basilysgc_read_file (const char *filnam, const char* locnam);
 
 /* Use basilys_assert(MESSAGE,EXPR) to test invariants.  The MESSAGE
    should be a constant string displayed when asserted EXPR is

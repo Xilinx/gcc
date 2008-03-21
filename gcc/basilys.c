@@ -5037,44 +5037,32 @@ end:
 
 
 basilys_ptr_t
-basilysgc_read_file (const char *filnam)
+basilysgc_read_file (const char *filnam, const char*locnam)
 {
   struct reading_st rds;
   FILE *fil = 0;
-  char *filpath = 0, *filnamdup = 0;
-  int filnamlen = 0;
-  char tinybuf[140];
   struct reading_st *rd = 0;
   BASILYS_ENTERFRAME (4, NULL);
 #define genv      curfram__.varptr[0]
 #define valv      curfram__.varptr[1]
-#define filnamv   curfram__.varptr[2]
+#define locnamv   curfram__.varptr[2]
 #define seqv      curfram__.varptr[3]
   memset (&rds, 0, sizeof (rds));
-  memset (tinybuf, 0, sizeof (tinybuf));
   if (!filnam)
     goto end;
-  debugeprintf ("basilysgc_read_file filnam %s", filnam);
-  filnamlen = strlen (filnam);
-  if (filnamlen < (int) sizeof (tinybuf) - 1)
-    filnamdup = strcpy (tinybuf, filnam);
-  else
-    filnamdup = strcpy (xcalloc (filnamlen + 1, 1), filnam);
-  fil = fopen (filnamdup, "rt");
+  if (!locnam || !locnam[0])
+    locnam = basename(filnam);
+  debugeprintf ("basilysgc_read_file filnam %s locnam %s", filnam, locnam);
+  fil = fopen (filnam, "rt");
   if (!fil)
-    {
-      filpath = update_path (filnamdup, "GCC");
-      fil = fopen (filpath, "rt");
-    }
-  if (!fil)
-    fatal_error ("cannot open basilys file %s - %m", filnamdup);
+    fatal_error ("cannot open basilys file %s - %m", filnam);
   /*  debugeprintf ("starting loading file %s", filnamdup); */
   rds.rfil = fil;
-  rds.rpath = filnamdup;
+  rds.rpath = filnam;
   rds.rlineno = 0;
   rd = &rds;
-  filnamv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), filnamdup);
-  rds.rpfilnam = (basilys_ptr_t *) & filnamv;
+  locnamv = basilysgc_new_stringdup (BASILYSGOB (DISCR_STRING), locnam);
+  rds.rpfilnam = (basilys_ptr_t *) & locnamv;
   rds.rpgenv = (basilys_ptr_t *) & genv;
   seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
   while (!rdeof ())
@@ -5091,14 +5079,10 @@ basilysgc_read_file (const char *filnam)
   rd = 0;
 end:
   BASILYS_EXITFRAME ();
-  if (filpath)
-    free (filpath);
-  if (filnamdup && filnamdup != tinybuf)
-    free (filnamdup);
   return seqv;
 #undef vecshv
 #undef genv
-#undef filnamv
+#undef locnamv
 #undef seqv
 }
 
@@ -5110,6 +5094,7 @@ do_initial_command (void)
 #define dictv     curfram__.varptr[0]
 #define closv     curfram__.varptr[1]
 #define cstrv     curfram__.varptr[2]
+#define csecstrv  curfram__.varptr[3]
   debugeprintf ("do_initial_command command_string %s",
 		basilys_command_string);
   if (basilys_magic_discr
@@ -5129,13 +5114,22 @@ do_initial_command (void)
     goto end;
   debugeprintf ("do_initial_command argument_string %s",
 		basilys_argument_string);
+  debugeprintf ("do_initial_command secondargument_string %s",
+		basilys_secondargument_string);
   {
-    union basilysparam_un pararg[1];
+    union basilysparam_un pararg[2];
     memset (pararg, 0, sizeof (pararg));
     cstrv =
       basilysgc_new_string (BASILYSGOB (DISCR_STRING),
 			    basilys_argument_string);
     pararg[0].bp_aptr = (basilys_ptr_t *) & cstrv;
+    if (basilys_secondargument_string && basilys_secondargument_string[0])
+      {
+	csecstrv = 
+	  basilysgc_new_string (BASILYSGOB (DISCR_STRING),
+				basilys_secondargument_string);
+	pararg[1].bp_aptr = (basilys_ptr_t *) & csecstrv;
+      }
     debugeprintf ("do_initial_command before apply closv %p", closv);
     (void) basilysgc_apply (closv,
 			    BASILYSG
@@ -5143,12 +5137,13 @@ do_initial_command (void)
 			    BPARSTR_PTR, pararg, "", NULL);
     debugeprintf ("do_initial_command after apply closv %p", closv);
   }
-end:;
+ end:;
   debugeprintf ("do_initial_command end %s", basilys_argument_string);
   BASILYS_EXITFRAME ();
 #undef dictv
 #undef closv
 #undef cstrv
+#undef csecstrv
 }
 
 
@@ -5772,6 +5767,7 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
   fflush (cfil);
   fprintf (cfil, "\n/**** end of %s ****/\n", basilys_string_str (unitnam));
   fclose (cfil);
+  debugeprintf("output_cfile done dotcnam %s", dotcnam);
   free (dotcnam);
   free (dotcpercentnam);
 }

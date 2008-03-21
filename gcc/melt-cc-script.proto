@@ -21,18 +21,33 @@
 # <http://www.gnu.org/licenses/>. 
 
 #:! :MELT_CC: & :MELT_CFLAGS: &:MELT_HEADERDIR:  are substituted in the first 30 lines
-set -x
 
 melt_cc=":MELT_CC:"
 melt_cflags=":MELT_CFLAGS:"
 melt_headerdir=":MELT_HEADERDIR:"
 
+set -x
 ## script invoked by cc1 with two arguments : the generated C source to compile
 ## and the naked (without suffix) dynamically-loadable stuff to generate
 
 csource=$1
-nakedynstuff=`basename $2`
+dynstuff=$2
+
+case $dynstuff in
+    *.so) nakedynstuff=`basename $dynstuff .so`;;
+    *.sl) nakedynstuff=`basename $dynstuff .sl`;;
+    *.la) nakedynstuff=`basename $dynstuff .la`;;
+    *.lo) nakedynstuff=`basename $dynstuff .lo`;;
+    *.shlib) nakedynstuff=`basename $dynstuff .shlib`;;
+    *.dylib) nakedynstuff=`basename $dynstuff .dylib`;;
+    *) nakedynstuff=`echo $dynstuff | sed 's/\.[a-z]*$//'`;;
+esac
+
 datf=`tempfile  -p bdat`
+
+pwd
+echo melt_cc= $melt_cc melt_cflags= $melt_cflags melt_headerdir= $melt_headerdir  csource= $csource nakedynstuff= $nakedynstuff datf= $datf
+
 if [ -z "$datf" ]; then
     datf=/tmp/bdat$$
 fi

@@ -1,5 +1,24 @@
 
-2008-03-20   Basile Starynkevitch  <basile@starynkevitch.net>
+2008-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: (basilysgc_read_file) added second argument locnam.
+	(do_initial_command) uses basilys_secondargument_string.  !!!!! A
+	BUG REMAINS AND CRASHES our cc1 for test0 !!!!!!!
+	* basilys.h: (basilysgc_read_file) added second argument locnam.
+	* melt/test0.bysl: added file.
+	* melt/test1.bysl: added file.
+	* melt/warm-basilys.bysl: replaced some call to or .. with if (not
+	..) to avoid some warnings from cold-basilys.lisp
+	nctx_symbcachemap filled even in create_normcontext to handle MELT
+	variables at toplevel. compileseq_command takes an optional second
+	string.
+	* common.opt: added fbasilys-secondarg for
+	basilys_secondargument_string.
+	* melt-cc-script.proto: corrected dynstuff computation. added echo
+	messages and set -x.
+	* Makefile.in: added coldtest-warm-basilys HORRIBLE KLUDGE 
+	which still crashes because of a basilys.c? bug
+
+2008-03-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added @DEFS@ to MELT_CFLAGS. Better run-basilys.d
 	target (still specific to some systems like linux; depcomp should
 	be used...). Added ugly temporary kludge to build
@@ -8,7 +27,7 @@
 	* melt-cc-script.proto: corrected typos.
 	* run-basilys.h: working at last.
 
-2008-03-20   Basile Starynkevitch  <basile@starynkevitch.net>
+2008-03-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r133366.
 	* basilys.c: pass_basilys is now a gimple_opt_pass.
 	* tree-pass.h: pass_basilys is now a gimple_opt_pass.

@@ -586,7 +586,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; READ FILE primitive
 (defprimitive read_file (filnam) :value
-  "(basilysgc_read_file (basilys_string_str((" filnam "))))")
+  "(basilysgc_read_file (basilys_string_str((" filnam ")), (char*)0))")
 
 ;; to signal an error in a basilys source with some additional string value
 (defprimitive error_strv (loc :cstring msg :value strv) :void
@@ -974,8 +974,8 @@
 
 ;; add to a destination list a source list
 (defun list_append2list (dlist slist)
-  (or (is_list slist) (return dlist))
-  (or (is_list dlist) (setq dlist (make_list discr_list)))
+  (if (not (is_list slist)) (return dlist))
+  (if (not (is_list dlist)) (setq dlist (make_list discr_list)))
   (list_iterate slist 
 		(lambda (e) (list_append dlist e) slist))
   dlist)
@@ -984,7 +984,7 @@
 (defun pairlist_iterate (pair f)
       (if (is_closure f)
 	  (forever pairloop
-		   (or (is_pair pair) (exit pairloop))
+		   (if (not (is_pair pair)) (exit pairloop))
 		     (let ( (curelem (pair_head pair)) )
 		       (if (null (f curelem)) (exit pairloop curelem)))
 		       (setq pair (pair_tail pair)))))
@@ -1032,7 +1032,7 @@
   (let ( (:long ln 0) )
     (let ( (curpair pair) )
       (forever loopln
-	       (or (is_pair curpair) (exit loopln))
+	       (if (not (is_pair curpair)) (exit loopln))
 	       (setq ln (+i ln 1))
 	       (setq curpair (pair_tail curpair))))
     (let ( (tup (make_multiple disc ln))
@@ -1040,7 +1040,7 @@
 	   (curpair pair)
 	   )
       (forever loopfi
-	       (or (is_pair curpair) (exit loopfi))
+	       (if (not (is_pair curpair)) (exit loopfi))
 	       (let ( (c (pair_head curpair))
 		      (tc (if (is_closure f) (f c) c)) )
 		 (multiple_put_nth tup ix tc)
@@ -2125,7 +2125,7 @@
 	     (curpair (list_first (unsafe_get_field :sexp_contents sexp)))
 	     )
 	(forever nthloop
-		 (or (is_pair curpair) (exit nthloop))
+		 (if (not (is_pair curpair)) (exit nthloop))
 		 (if (==i ix n) (exit nthloop (pair_head curpair)))
 		 (setq ix (+i ix 1))
 		 (setq curpair (pair_tail curpair))
@@ -2390,7 +2390,7 @@
 		 (etuple (make_multiple discr_multiple nbcomp))
 		 (:long ix 0) )
 	    (forever comploop
-		     (or (is_pair curpair) (exit comploop))
+		     (if (not (is_pair curpair)) (exit comploop))
 		     (let ( (curcomp  (macroexpand_1 (pair_head curpair) env mexpander)) )
 		       ;; change string to verbatimstring to ease primitive expansion
 		       ;; and check that each component is e string or a symbol
@@ -2787,7 +2787,7 @@
 	(setq curpair (pair_tail curpair))
 	(forever insloop
 		 (debug_msg "mexpand_definstance insloop curpair" curpair (the_callcount))
-		 (or (is_pair curpair) (exit insloop))
+		 (if (not (is_pair curpair)) (exit insloop))
 		 (let ( (curfkw (pair_head curpair)) )
 		   (debug_msg "mexpand_definstance insloop curfkw" curfkw (the_callcount))
 		   (or (is_a curfkw class_keyword)
@@ -2865,7 +2865,7 @@
       (setq curpair (pair_tail curpair))
       (forever insloop
 	       (debug_msg "mexpand_make_instance insloop curpair" curpair (the_callcount))
-	       (or (is_pair curpair) (exit insloop))
+	       (if (not (is_pair curpair)) (exit insloop))
 	       (let ( (curfkw (pair_head curpair)) )
 		 (or (is_a curfkw class_keyword)
 		     (error_plain loc "expecting keyword in make_instance"))
@@ -2907,7 +2907,7 @@
     (let ( (fldlist (make_list discr_list))
 	   )
       (forever insloop
-	       (or (is_pair curpair) (exit insloop))
+	       (if (not (is_pair curpair)) (exit insloop))
 	       (let ( (curfkw (pair_head curpair)) )
 		 (or (is_a curfkw class_keyword)
 		     (error_plain loc "expecting heyword in unsafe_put_fields"))
@@ -2998,10 +2998,10 @@
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
 	 (curif (pair_head curpair)) )
-    (or (is_pair curpair) 
+    (if (not (is_pair curpair))
 	(error_plain loc "missing condition in IF"))
     (setq curpair (pair_tail curpair))
-    (or (is_pair curpair) 
+    (if (not (is_pair curpair))
 	(error_plain loc "missing then in IF"))
     (setq xcond (macroexpand_1 curif env mexpander))
     (let ( (curthen (pair_head curpair)) )
@@ -3745,8 +3745,8 @@
 		   :nctx_predefmap predefmap
 		   :nctx_valmap valmap
 		   :nctx_valbindmap (make_mapobject discr_mapobjects 20)
-; cold-basilys.lisp don't know how to put a null field, so we comment it out
-;;		   :nctx_symbcachemap ()
+		   ;; we need a symbcachemap for the toplevel expressions
+		   :nctx_symbcachemap (make_mapobject discr_mapobjects 30)
 		   )))
 
 ;;; the normal_exp selector 
@@ -3915,6 +3915,13 @@
 	 (return)))
    (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	  (syca (mapobject_get sycmap recv)) )
+     (if (not (is_mapobject sycmap)) 
+	 (progn 
+	   (debug_msg "normexp_symbol badsycmap ncx" ncx (the_callcount))
+	   (debug_msg "normexp_symbol badsycmap sycmap.discrim" (discrim sycmap) (the_callcount))
+	   (debug_msg "normexp_symbol badsycmap sycmap" sycmap (the_callcount))
+	   )
+       )
      (assert_msg "check sycmap" (is_mapobject sycmap))
      (cond 
       ;; check if in the cache
@@ -8555,7 +8562,7 @@
 (defun compilobj_datastring (nds gcx)
   (assert_msg "check nds" (is_a nds class_nrep_datastring))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj_datastring gcx" gcx (the_callcount))
+  ; (debug_msg "compilobj_datastring gcx" gcx (the_callcount))
   (debug_msg "compilobj_datastring nds" nds (the_callcount))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
@@ -8857,11 +8864,11 @@
 (install_initial_command  (stringconst2val discr_string "normexpseq") normexpseq_command)
 
 ;;;;;
-(defun compileseq_command (dispatcher arg)
+(defun compileseq_command (dispatcher arg secarg)
   (message_dbg "starting compileseq_command")
   (debug_msg "start compileseq_command" arg (the_callcount))
   (let ( (rlist (read_file arg)) 
-	 (basnam (make_string_nakedbasename discr_string arg))
+	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	 ) 
     (debug_msg "after read compileseq_command rlist" rlist (the_callcount))
     (debug_msg "after read compileseq_command initial_environment" initial_environment (the_callcount))

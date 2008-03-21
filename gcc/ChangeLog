@@ -1,16 +1,7 @@
-<<<<<<< .mine
-<<<<<<< .mine
-<<<<<<< .mine
-<<<<<<< .mine
-<<<<<<< .mine
+
 2008-03-02  Basile Starynkevitch <basile@starynkevitch.net>
 	merged with trunk 132817
 
-=======
-=======
-=======
-=======
-=======
 2008-03-20	Kai Tietz  <kai.tietz@onevision.com>
 
 	* c-format.c (replace_format_name_to_system_name): New.
