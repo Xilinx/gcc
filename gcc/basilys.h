@@ -986,6 +986,54 @@ basilysgc_allocate (size_t basesz, size_t gap)
   return ptr;
 }
 
+/* we need sometimes to reserve some wanted size in the allocation
+   zone without actaully using it now; this is needed for the few
+   basilys data structures, e.g. basilysstrbuf_st, which have some
+   content (e.g. the buffer zone itself bufzn) which should be kept
+   young if the datastructure is young, and should become old (ie. GGC
+   allocated) when it becomes old */
+static inline void
+basilysgc_reserve(size_t wanted) 
+{
+  if (wanted < 100*sizeof(void*) + sizeof(struct basilysforward_st))
+    wanted = 100*sizeof(void*) + sizeof(struct basilysforward_st);
+  if ((wanted  % BASILYS_ALIGN) != 0)
+    wanted += (BASILYS_ALIGN - (wanted % BASILYS_ALIGN));
+  if (BASILYS_UNLIKELY (basilys_curalz + wanted + 2 * BASILYS_ALIGN
+			>= (char *) basilys_storalz))
+    basilys_garbcoll (wanted, BASILYS_MINOR_OR_FULL);
+}
+
+/*  allocates a previously reserved zone of BASESZ with extra GAP;
+    this should never trigger the GC, because space was reserved
+    earlier */
+static inline void *
+basilys_allocatereserved (size_t basesz, size_t gap)
+{
+  size_t wanted;
+  void *ptr;
+  if (basesz < sizeof (struct basilysforward_st))
+    basesz = sizeof (struct basilysforward_st);
+  if ((basesz % BASILYS_ALIGN) != 0)
+    basesz += (BASILYS_ALIGN - (basesz % BASILYS_ALIGN));
+  if ((gap % BASILYS_ALIGN) != 0)
+    gap += (BASILYS_ALIGN - (gap % BASILYS_ALIGN));
+  wanted = basesz + gap;
+  gcc_assert (wanted >= sizeof (struct basilysforward_st));
+  if (BASILYS_UNLIKELY (basilys_curalz + wanted + 2 * BASILYS_ALIGN
+			>= (char *) basilys_storalz))
+    fatal_error("allocatereserved out of space for %ld wanted bytes", 
+		(long) wanted);
+  ptr = basilys_curalz;
+#if ENABLE_CHECKING
+  if (ptr == tracedptr1)
+    debugeprintf("allocated tracedptr1 %p", ptr);
+  else if (ptr == tracedptr2)
+    debugeprintf("allocated tracedptr2 %p", ptr);
+#endif
+  basilys_curalz += wanted;
+  return ptr;
+}
 
 /* we maintain a small cache hasharray of touched values - the touched
    cache size should be a small prime */
@@ -1890,11 +1938,19 @@ basilys_is_instance_of (basilys_ptr_t inst_p, basilys_ptr_t class_p)
  * CALL FRAMES 
  ***/
 
+struct framloc_basilys_st {
+  const char* frlo_file;
+  int frlo_line;
+};
+
 /* call frames for our copying garbage collector cannot be GTY-ed
    because they are inside the C call stack */
 struct callframe_basilys_st
 {
   unsigned nbvar;
+#if ENABLE_CHECKING
+  struct framloc_basilys_st* floc;
+#endif
   struct basilysclosure_st *clos;
   struct excepth_basilys_st *exh;	/* for our exceptions - not implemented yet */
   struct callframe_basilys_st *prev;
@@ -1914,6 +1970,27 @@ extern basilys_ptr_t basilys_jmpval;
 #endif
 
 /* declare the current callframe */
+#if ENABLE_CHECKING
+#define BASILYS_DECLFRAME(NBVAR) struct {	\
+  unsigned nbvar;				\
+  const struct framloc_basilys_st* floc;        \
+  struct basilysclosure_st* clos;		\
+  struct excepth_basilys_st* exh;               \
+  struct callframe_basilys_st* prev;		\
+  void*  /* a basilys_ptr_t */ varptr[NBVAR];	\
+} curfram__
+/* initialize the current callframe and link it at top */
+#define BASILYS_INITFRAME(NBVAR,CLOS) do {	\
+  static const struct framloc_basilys_st here=  \
+          { __FILE__, __LINE__ };               \
+  memset(&curfram__, 0, sizeof(curfram__));	\
+  curfram__.nbvar = (NBVAR);			\
+  curfram__.floc = &here;			\
+  curfram__.prev = basilys_topframe;		\
+  curfram__.clos = (CLOS);			\
+  basilys_topframe = ((void*)&curfram__);	\
+} while(0)
+#else
 #define BASILYS_DECLFRAME(NBVAR) struct {	\
   unsigned nbvar;				\
   struct basilysclosure_st* clos;		\
@@ -1921,7 +1998,6 @@ extern basilys_ptr_t basilys_jmpval;
   struct callframe_basilys_st* prev;		\
   void*  /* a basilys_ptr_t */ varptr[NBVAR];	\
 } curfram__
-
 /* initialize the current callframe and link it at top */
 #define BASILYS_INITFRAME(NBVAR,CLOS) do {	\
   memset(&curfram__, 0, sizeof(curfram__));	\
@@ -1930,6 +2006,8 @@ extern basilys_ptr_t basilys_jmpval;
   curfram__.clos = (CLOS);			\
   basilys_topframe = ((void*)&curfram__);	\
 } while(0)
+#endif
+
 
 /* declare and initialize the current callframe */
 #define BASILYS_ENTERFRAME(NBVAR,CLOS) \

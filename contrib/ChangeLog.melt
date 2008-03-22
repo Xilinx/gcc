@@ -1,4 +1,7 @@
 
+2008-03-22   Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: added empty framloc support when ENABLE_CHECKING in basilys frame.
+	
 2008-03-20   Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: removed invocation if indent & basilys-gcc programs.
 	(output_ccode) added newline emission after outputting preprocessor directives.

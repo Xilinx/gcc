@@ -1,4 +1,22 @@
 
+2008-03-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: (basilysgc_add_strbuf_raw) when growing young strbuf,
+	call basilysgc_reserve and basilys_allocatereserved to avoid
+	growing a buffer which has just been promoted to old by the zone
+	reallocation. (basilysgc_add_strbuf_raw) use a basilys frame.
+	(basilysgc_put_mapobjects, basilysgc_remove_mapobjects)
+	(basilysgc_put_mapstrings, basilysgc_remove_mapstrings)
+	(basilysgc_raw_put_mappointers, basilysgc_raw_remove_mappointers)
+	call basilysgc_reserve and basilys_allocatereserved likewise.
+
+	* basilys.h: (basilysgc_reserve, basilys_allocatereserved) new functions.
+	added frameloc when ENABLE_CHECKING in basilys frames.
+
+	* melt/warm-basilys.bysl: added (empty) support for framloe when
+	ENABLE_CHECKING in generated basilys frames.
+
+	* Makefile.in: remove T_CFLAGS from MELT_CFLAGS.
+
 2008-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: (basilysgc_read_file) added second argument locnam.
 	(do_initial_command) uses basilys_secondargument_string.  !!!!! A

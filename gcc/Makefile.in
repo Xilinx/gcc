@@ -4550,9 +4550,10 @@ melt_build_include_dir= melt-private-build-include
 
 
 ## the C flags (without any gcc -I...stuff) to be included in
-## compilation of MELT generated C code thru the melt-cc-script
-## do not put  $(INTERNAL_CFLAGS) $(COVERAGE_FLAGS) $(WARN_CFLAGS) there!
-MELT_CFLAGS= $(X_CFLAGS) $(T_CFLAGS) $(CFLAGS) $(XCFLAGS) $(INTERNAL_CFLAGS) @DEFS@ 
+## compilation of MELT generated C code thru the melt-cc-script do not
+## put $(INTERNAL_CFLAGS) $(COVERAGE_FLAGS) $(WARN_CFLAGS) $(T_CFLAGS)
+## there!
+MELT_CFLAGS= $(X_CFLAGS) $(CFLAGS) $(XCFLAGS) $(INTERNAL_CFLAGS) @DEFS@ 
 
 # we want to generate all the direct (non system) dependencies of run-basilys.h
 # the following should work if $(CC) is some recent version of GCC (probably >= 4.x)

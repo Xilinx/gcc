@@ -1580,10 +1580,25 @@ basilysgc_add_strbuf_raw (struct basilysstrbuf_st *strbuf_p, const char *str)
       if (newblen > BASILYS_MAXLEN)
 	fatal_error ("strbuf overflow to %d bytes", newblen);
       /* the newly grown buffer is allocated in young memory if the
-         previous was young, or in old memory if it was already old */
+         previous was young, or in old memory if it was already old;
+         but we have to deal with the rare case when the allocation
+         triggers a GC which migrate the strbuf from young to old */
       if (basilys_is_young (buf_strbufv->bufzn))
 	{
-	  newb = basilysgc_allocate (newblen + 1, 0);
+	  /* bug to avoid: the strbuf was young, the allocation of
+	     newb triggers a GC, and then the strbuf becomes old. we
+	     cannot put newb inside it (this violate the GC invariant
+	     of no unfollowed -on store list- old to young
+	     pointers). So we reserve the required length to make sure
+	     that the following newb allocation does not trigger a
+	     GC */
+	  basilysgc_reserve (newblen + 10 * sizeof (void *));
+	  /* does the above reservation triggered a GC which moved buf_strbufv to old? */
+	  if (!basilys_is_young (buf_strbufv->bufzn))
+	    goto strbuf_in_old_memory;
+	  gcc_assert (basilys_is_young (buf_strbufv));
+	  newb = basilys_allocatereserved (newblen + 1, 0);
+	  gcc_assert (basilys_is_young (buf_strbufv));
 	  memcpy (newb, buf_strbufv->bufzn + buf_strbufv->bufstart, siz);
 	  strcpy (newb + siz, str);
 	  memset (buf_strbufv->bufzn, 0, oldblen);
@@ -1591,6 +1606,10 @@ basilysgc_add_strbuf_raw (struct basilysstrbuf_st *strbuf_p, const char *str)
 	}
       else
 	{
+	  /* we may come here if the strbuf was young but became old
+	     by the basilysgc_reserve call above */
+	strbuf_in_old_memory:
+	  gcc_assert (!basilys_is_young (buf_strbufv));
 	  newb = ggc_alloc_cleared (newblen + 1);
 	  memcpy (newb, buf_strbufv->bufzn + buf_strbufv->bufstart, siz);
 	  strcpy (newb + siz, str);
@@ -1870,31 +1889,40 @@ basilysgc_strbuf_add_indent (struct basilysstrbuf_st
 			     *strbuf_p, int depth, int linethresh)
 {
   int llln = 0;			/* last line length */
-  if (!strbuf_p || basilys_magic_discr ((void *) strbuf_p) != OBMAG_STRBUF)
-    return;
+  BASILYS_ENTERFRAME (2, NULL);
+  /* we need a frame, because we have more than one call to
+     basilysgc_add_strbuf_raw */
+#define strbv   curfram__.varptr[0]
+#define strbufv ((struct basilysstrbuf_st*)(strbv))
+  if (!strbufv || basilys_magic_discr ((void *) strbufv) != OBMAG_STRBUF)
+    goto end;
   if (linethresh > 0 && linethresh < 40)
     linethresh = 40;
   /* compute the last line length llln */
   {
     char *bs = 0, *be = 0, *nl = 0;
-    bs = strbuf_p->bufzn + strbuf_p->bufstart;
-    be = strbuf_p->bufzn + strbuf_p->bufend;
+    bs = strbufv->bufzn + strbufv->bufstart;
+    be = strbufv->bufzn + strbufv->bufend;
     for (nl = be - 1; nl > bs && *nl && *nl != '\n'; nl--);
     llln = be - nl;
     gcc_assert (llln >= 0);
   }
   if (linethresh > 0 && llln < linethresh)
-    basilysgc_add_strbuf_raw (strbuf_p, " ");
+    basilysgc_add_strbuf_raw (strbufv, " ");
   else
     {
       int nbsp = depth;
       static const char spaces32[] = "                                ";
-      basilysgc_add_strbuf_raw (strbuf_p, "\n");
+      basilysgc_add_strbuf_raw (strbufv, "\n");
       if (nbsp < 0)
 	nbsp = 0;
       if (nbsp > 0 && nbsp % 32 != 0)
-	basilysgc_add_strbuf_raw (strbuf_p, spaces32 + (32 - nbsp % 32));
+	basilysgc_add_strbuf_raw (strbufv, spaces32 + (32 - nbsp % 32));
     }
+end:
+  BASILYS_EXITFRAME ();
+#undef strbufv
+#undef strbv
 }
 
 
@@ -2563,14 +2591,21 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
     goto end;
   if (!map_mapobjectv->entab)
     {
+      size_t lensiz = 0;
       len = basilys_primtab[1];	/* i.e. 3 */
+      lensiz = len * sizeof (struct entryobjectsbasilys_st);
       if (basilys_is_young (mapobjectv))
-	map_mapobjectv->entab =
-	  basilysgc_allocate (len *
-			      sizeof (struct entryobjectsbasilys_st), 0);
+	{
+	  basilysgc_reserve (lensiz + 20);
+	  if (!basilys_is_young (mapobjectv))
+	    goto alloc_old_smallmapobj;
+	  map_mapobjectv->entab = basilys_allocatereserved (lensiz, 0);
+	}
       else
-	map_mapobjectv->entab =
-	  ggc_alloc_cleared (len * sizeof (struct entryobjectsbasilys_st));
+	{
+	alloc_old_smallmapobj:
+	  map_mapobjectv->entab = ggc_alloc_cleared (lensiz);
+	}
       map_mapobjectv->lenix = 1;
       basilysgc_touch (map_mapobjectv);
     }
@@ -2581,15 +2616,22 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
     {
       int ix, newcnt = 0;
       int newlen = basilys_primtab[map_mapobjectv->lenix + 1];
+      size_t newlensiz = 0;
       struct entryobjectsbasilys_st *newtab = NULL;
       struct entryobjectsbasilys_st *oldtab = NULL;
+      newlensiz = newlen * sizeof (struct entryobjectsbasilys_st);
       if (basilys_is_young (map_mapobjectv->entab))
-	newtab =
-	  basilysgc_allocate (newlen *
-			      sizeof (struct entryobjectsbasilys_st), 0);
+	{
+	  basilysgc_reserve (newlensiz + 100);
+	  if (!basilys_is_young (map_mapobjectv))
+	    goto alloc_old_mapobj;
+	  newtab = basilys_allocatereserved (newlensiz, 0);
+	}
       else
-	newtab =
-	  ggc_alloc_cleared (newlen * sizeof (struct entryobjectsbasilys_st));
+	{
+	alloc_old_mapobj:
+	  newtab = ggc_alloc_cleared (newlensiz);
+	};
       oldtab = map_mapobjectv->entab;
       for (ix = 0; ix < len; ix++)
 	{
@@ -2673,19 +2715,28 @@ basilysgc_remove_mapobjects (basilysmapobjects_ptr_t
   cnt = map_mapobjectv->count;
   if (len >= 7 && cnt < len / 2 - 2)
     {
-      int newcnt = 0, newlen = 0, newlenix;
+      int newcnt = 0, newlen = 0, newlenix = 0;
+      size_t newlensiz = 0;
       struct entryobjectsbasilys_st *oldtab = NULL, *newtab = NULL;
       for (newlenix = map_mapobjectv->lenix;
 	   (newlen = basilys_primtab[newlenix]) > 2 * cnt + 3; newlenix--);
       if (newlen >= len)
 	goto end;
+      newlensiz = newlen * sizeof (struct entryobjectsbasilys_st);
       if (basilys_is_young (map_mapobjectv->entab))
-	newtab =
-	  basilysgc_allocate (newlen *
-			      sizeof (struct entryobjectsbasilys_st), 0);
+	{
+	  /* reserve a zone; if a GC occurred, the mapobject & entab
+	     could become old */
+	  basilysgc_reserve (newlensiz + 10 * sizeof (void *));
+	  if (!basilys_is_young (map_mapobjectv))
+	    goto alloc_old_entries;
+	  newtab = basilys_allocatereserved (newlensiz, 0);
+	}
       else
-	newtab =
-	  ggc_alloc_cleared (newlen * sizeof (struct entryobjectsbasilys_st));
+	{
+	alloc_old_entries:
+	  newtab = ggc_alloc_cleared (newlensiz);
+	}
       oldtab = map_mapobjectv->entab;
       for (ix = 0; ix < len; ix++)
 	{
@@ -2839,14 +2890,21 @@ basilysgc_put_mapstrings (struct basilysmapstrings_st
     attrdup = strcpy (xcalloc (atlen + 1, 1), attr);
   if (!map_mapstringv->entab)
     {
+      size_t lensiz = 0;
       len = basilys_primtab[1];	/* i.e. 3 */
+      lensiz = len * sizeof (struct entrystringsbasilys_st);
       if (basilys_is_young (mapstringv))
-	map_mapstringv->entab =
-	  basilysgc_allocate (len *
-			      sizeof (struct entrystringsbasilys_st), 0);
+	{
+	  basilysgc_reserve (lensiz + 16 * sizeof (void *));
+	  if (!basilys_is_young (mapstringv))
+	    goto alloc_old_small_mapstring;
+	  map_mapstringv->entab = basilys_allocatereserved (lensiz, 0);
+	}
       else
-	map_mapstringv->entab =
-	  ggc_alloc_cleared (len * sizeof (struct entrystringsbasilys_st));
+	{
+	alloc_old_small_mapstring:
+	  map_mapstringv->entab = ggc_alloc_cleared (lensiz);
+	}
       map_mapstringv->lenix = 1;
       basilysgc_touch (map_mapstringv);
     }
@@ -2859,13 +2917,19 @@ basilysgc_put_mapstrings (struct basilysmapstrings_st
       int newlen = basilys_primtab[map_mapstringv->lenix + 1];
       struct entrystringsbasilys_st *oldtab = NULL;
       struct entrystringsbasilys_st *newtab = NULL;
+      size_t newlensiz = newlen * sizeof (struct entrystringsbasilys_st);
       if (basilys_is_young (mapstringv))
-	newtab =
-	  basilysgc_allocate (newlen *
-			      sizeof (struct entrystringsbasilys_st), 0);
+	{
+	  basilysgc_reserve (newlensiz + 10 * sizeof (void *));
+	  if (!basilys_is_young (mapstringv))
+	    goto alloc_old_mapstring;
+	  newtab = basilys_allocatereserved (newlensiz, 0);
+	}
       else
-	newtab =
-	  ggc_alloc_cleared (newlen * sizeof (struct entrystringsbasilys_st));
+	{
+	alloc_old_mapstring:
+	  newtab = ggc_alloc_cleared (newlensiz);
+	};
       oldtab = map_mapstringv->entab;
       for (ix = 0; ix < len; ix++)
 	{
@@ -2981,19 +3045,26 @@ basilysgc_remove_mapstrings (struct basilysmapstrings_st *
   cnt = map_mapstringv->count;
   if (len > 7 && 2 * cnt + 2 < len)
     {
-      int newcnt = 0, newlen = 0, newlenix;
+      int newcnt = 0, newlen = 0, newlenix = 0;
+      size_t newlensiz = 0;
       struct entrystringsbasilys_st *oldtab = NULL, *newtab = NULL;
       for (newlenix = map_mapstringv->lenix;
 	   (newlen = basilys_primtab[newlenix]) > 2 * cnt + 3; newlenix--);
       if (newlen >= len)
 	goto end;
+      newlensiz = newlen * sizeof (struct entrystringsbasilys_st);
       if (basilys_is_young (mapstringv))
-	newtab =
-	  basilysgc_allocate (newlen *
-			      sizeof (struct entrystringsbasilys_st), 0);
+	{
+	  basilysgc_reserve (newlensiz + 10 * sizeof (void *));
+	  if (!basilys_is_young (mapstringv))
+	    goto alloc_old_mapstring_newtab;
+	  newtab = basilys_allocatereserved (newlensiz, 0);
+	}
       else
-	newtab =
-	  ggc_alloc_cleared (newlen * sizeof (struct entrystringsbasilys_st));
+	{
+	alloc_old_mapstring_newtab:
+	  newtab = ggc_alloc_cleared (newlensiz);
+	}
       oldtab = map_mapstringv->entab;
       for (ix = 0; ix < len; ix++)
 	{
@@ -3024,6 +3095,10 @@ end:
 #undef object_discrv
 #undef map_mapstringv
 }
+
+
+
+
 
 
 
@@ -3144,6 +3219,7 @@ basilysgc_raw_put_mappointers (void *mappointer_p,
 			       const void *attr, basilys_ptr_t valu_p)
 {
   long ix = 0, len = 0, cnt = 0;
+  size_t lensiz = 0;
   BASILYS_ENTERFRAME (2, NULL);
 #define mappointerv curfram__.varptr[0]
 #define valuv curfram__.varptr[1]
@@ -3154,13 +3230,20 @@ basilysgc_raw_put_mappointers (void *mappointer_p,
   if (!map_mappointerv->entab)
     {
       len = basilys_primtab[1];	/* i.e. 3 */
+      lensiz = len * sizeof (struct entrypointerbasilys_st);
       if (basilys_is_young (mappointerv))
-	map_mappointerv->entab =
-	  basilysgc_allocate (len *
-			      sizeof (struct entrypointerbasilys_st), 0);
+	{
+	  basilysgc_reserve (lensiz + 10 * sizeof (void *));
+	  if (!basilys_is_young (mappointerv))
+	    goto alloc_old_mappointer_small_entab;
+	  map_mappointerv->entab = basilys_allocatereserved (lensiz, 0);
+	}
       else
-	map_mappointerv->entab =
-	  ggc_alloc_cleared (len * sizeof (struct entrypointerbasilys_st));
+	{
+	alloc_old_mappointer_small_entab:
+	  map_mappointerv->entab =
+	    ggc_alloc_cleared (len * sizeof (struct entrypointerbasilys_st));
+	}
       map_mappointerv->lenix = 1;
       basilysgc_touch (map_mappointerv);
     }
@@ -3173,13 +3256,21 @@ basilysgc_raw_put_mappointers (void *mappointer_p,
       int newlen = basilys_primtab[map_mappointerv->lenix + 1];
       struct entrypointerbasilys_st *oldtab = NULL;
       struct entrypointerbasilys_st *newtab = NULL;
+      size_t newlensiz = newlen * sizeof (struct entrypointerbasilys_st);
       if (basilys_is_young (mappointerv))
-	newtab =
-	  basilysgc_allocate (newlen *
-			      sizeof (struct entrypointerbasilys_st), 0);
+	{
+	  basilysgc_reserve (newlensiz + 10 * sizeof (void *));
+	  if (!basilys_is_young (mappointerv))
+	    goto alloc_old_mappointer_entab;
+	  newtab = basilys_allocatereserved (newlensiz, 0);
+	}
       else
-	newtab =
-	  ggc_alloc_cleared (newlen * sizeof (struct entrypointerbasilys_st));
+	{
+	alloc_old_mappointer_entab:
+	  newtab =
+	    ggc_alloc_cleared (newlen *
+			       sizeof (struct entrypointerbasilys_st));
+	}
       oldtab = map_mappointerv->entab;
       for (ix = 0; ix < len; ix++)
 	{
@@ -3266,19 +3357,28 @@ basilysgc_raw_remove_mappointers (void *mappointer_p, const void *attr)
   cnt = map_mappointerv->count;
   if (len > 7 && 2 * cnt + 2 < len)
     {
-      int newcnt = 0, newlen = 0, newlenix;
+      int newcnt = 0, newlen = 0, newlenix = 0;
       struct entrypointerbasilys_st *oldtab = NULL, *newtab = NULL;
+      size_t newlensiz = 0;
       for (newlenix = map_mappointerv->lenix;
 	   (newlen = basilys_primtab[newlenix]) > 2 * cnt + 3; newlenix--);
       if (newlen >= len)
 	goto end;
+      newlensiz = newlen * sizeof (struct entrypointerbasilys_st);
       if (basilys_is_young (mappointerv))
-	newtab =
-	  basilysgc_allocate (newlen *
-			      sizeof (struct entrypointerbasilys_st), 0);
+	{
+	  basilysgc_reserve (newlensiz + 10 * sizeof (void *));
+	  if (!basilys_is_young (mappointerv))
+	    goto allocate_old_newtab_mappointer;
+	  newtab = basilys_allocatereserved (newlensiz, 0);
+	}
       else
-	newtab =
-	  ggc_alloc_cleared (newlen * sizeof (struct entrypointerbasilys_st));
+	{
+	allocate_old_newtab_mappointer:
+	  newtab =
+	    ggc_alloc_cleared (newlen *
+			       sizeof (struct entrypointerbasilys_st));
+	};
       oldtab = map_mappointerv->entab;
       for (ix = 0; ix < len; ix++)
 	{
@@ -3485,16 +3585,6 @@ end:
 }
 
 
-#if 0 && NOT_NEEDED
-static const char *
-copynamestring (const char *string)
-{
-  size_t len = strlen (string) + 1;
-  char *s = (char *) obstack_alloc (&bname_obstack, len);
-  strcpy (s, string);
-  return s;
-}
-#endif
 
 
 #if ENABLE_CHECKING
@@ -3816,7 +3906,7 @@ bad:
    C code should contain a function named start_module_basilys; that
    function is called with the given modata and returns the module */
 basilys_ptr_t
-basilysgc_compile_dyn (basilys_ptr_t modata_p,  const char *modfile)
+basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
 {
   char *srcpath = NULL;
   FILE *srcfi = NULL;
@@ -3989,7 +4079,7 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p,  const char *modfile)
   /* catch all situation, failed to find the dynamic stuff */
   fatal_error ("failed to find dynamic stuff for basilys generated %s (%s)",
 	       modfile, lt_dlerror ());
- dylibfound:
+dylibfound:
   dlsy = lt_dlsym (dlh, "start_module_basilys");
   if (!dlsy)
     fatal_error
@@ -5037,7 +5127,7 @@ end:
 
 
 basilys_ptr_t
-basilysgc_read_file (const char *filnam, const char*locnam)
+basilysgc_read_file (const char *filnam, const char *locnam)
 {
   struct reading_st rds;
   FILE *fil = 0;
@@ -5051,7 +5141,7 @@ basilysgc_read_file (const char *filnam, const char*locnam)
   if (!filnam)
     goto end;
   if (!locnam || !locnam[0])
-    locnam = basename(filnam);
+    locnam = basename (filnam);
   debugeprintf ("basilysgc_read_file filnam %s locnam %s", filnam, locnam);
   fil = fopen (filnam, "rt");
   if (!fil)
@@ -5125,7 +5215,7 @@ do_initial_command (void)
     pararg[0].bp_aptr = (basilys_ptr_t *) & cstrv;
     if (basilys_secondargument_string && basilys_secondargument_string[0])
       {
-	csecstrv = 
+	csecstrv =
 	  basilysgc_new_string (BASILYSGOB (DISCR_STRING),
 				basilys_secondargument_string);
 	pararg[1].bp_aptr = (basilys_ptr_t *) & csecstrv;
@@ -5137,7 +5227,7 @@ do_initial_command (void)
 			    BPARSTR_PTR, pararg, "", NULL);
     debugeprintf ("do_initial_command after apply closv %p", closv);
   }
- end:;
+end:;
   debugeprintf ("do_initial_command end %s", basilys_argument_string);
   BASILYS_EXITFRAME ();
 #undef dictv
@@ -5187,6 +5277,8 @@ basilys_initialize (void)
     basilys_storalz = ((void **) basilys_endalz) - 2;
     basilys_newspeclist = NULL;
     basilys_oldspeclist = NULL;
+    debugeprintf ("basilys_initialize alloczon %p - %p (%ld Kw)",
+		  basilys_startalz, basilys_endalz, (long) wantedwords >> 10);
   }
   debugeprintf ("basilys_initialize cpp_PREFIX=%s", cpp_PREFIX);
   debugeprintf ("basilys_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
@@ -5767,7 +5859,7 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
   fflush (cfil);
   fprintf (cfil, "\n/**** end of %s ****/\n", basilys_string_str (unitnam));
   fclose (cfil);
-  debugeprintf("output_cfile done dotcnam %s", dotcnam);
+  debugeprintf ("output_cfile done dotcnam %s", dotcnam);
   free (dotcnam);
   free (dotcpercentnam);
 }
@@ -5834,24 +5926,26 @@ execute_basilys (void)
   return 0;
 }
 
-struct gimple_opt_pass pass_basilys = 
-{
+struct gimple_opt_pass pass_basilys = {
   {
-    GIMPLE_PASS,			/* type */
-    "basilys",			/* name */
-    gate_basilys,			/* gate */
-    execute_basilys,		/* execute */
-    NULL,				/* sub */
-    NULL,				/* next */
-    0,				/* static_pass_number */
-    TV_BASILE_ANALYSIS,		/* tv_id */
-    PROP_cfg | PROP_ssa,		/* properties_required */
-    0,				/* properties_provided */
-    0,				/* properties_destroyed */
-    0,				/* todo_flags_start */
-    0,				/* todo_flags_finish */
-  }
+   GIMPLE_PASS,			/* type */
+   "basilys",			/* name */
+   gate_basilys,		/* gate */
+   execute_basilys,		/* execute */
+   NULL,			/* sub */
+   NULL,			/* next */
+   0,				/* static_pass_number */
+   TV_BASILE_ANALYSIS,		/* tv_id */
+   PROP_cfg | PROP_ssa,		/* properties_required */
+   0,				/* properties_provided */
+   0,				/* properties_destroyed */
+   0,				/* todo_flags_start */
+   0,				/* todo_flags_finish */
+   }
 };
+
+
+
 
 #include "gt-basilys.h"
 /* eof basilys.c */
