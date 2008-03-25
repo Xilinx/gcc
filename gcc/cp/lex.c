@@ -518,7 +518,7 @@ handle_pragma_interface (cpp_reader* dfile ATTRIBUTE_UNUSED )
   else if (fname == 0)
     filename = lbasename (input_filename);
   else
-    filename = ggc_strdup (TREE_STRING_POINTER (fname));
+    filename = TREE_STRING_POINTER (fname);
 
   finfo = get_fileinfo (input_filename);
 
@@ -566,7 +566,7 @@ handle_pragma_implementation (cpp_reader* dfile ATTRIBUTE_UNUSED )
     }
   else
     {
-      filename = ggc_strdup (TREE_STRING_POINTER (fname));
+      filename = TREE_STRING_POINTER (fname);
       if (cpp_included_before (parse_in, filename, input_location))
 	warning (0, "#pragma implementation for %qs appears after "
 		 "file is included", filename);
@@ -580,7 +580,7 @@ handle_pragma_implementation (cpp_reader* dfile ATTRIBUTE_UNUSED )
   if (ifiles == 0)
     {
       ifiles = XNEW (struct impl_files);
-      ifiles->filename = filename;
+      ifiles->filename = xstrdup (filename);
       ifiles->next = impl_file_chain;
       impl_file_chain = ifiles;
     }
@@ -801,7 +801,7 @@ cxx_make_type (enum tree_code code)
   tree t = make_node (code);
 
   /* Create lang_type structure.  */
-  if (IS_AGGR_TYPE_CODE (code)
+  if (RECORD_OR_UNION_CODE_P (code)
       || code == BOUND_TEMPLATE_TEMPLATE_PARM)
     {
       struct lang_type *pi = GGC_CNEW (struct lang_type);
@@ -816,7 +816,7 @@ cxx_make_type (enum tree_code code)
     }
 
   /* Set up some flags that give proper default behavior.  */
-  if (IS_AGGR_TYPE_CODE (code))
+  if (RECORD_OR_UNION_CODE_P (code))
     {
       struct c_fileinfo *finfo = get_fileinfo (input_filename);
       SET_CLASSTYPE_INTERFACE_UNKNOWN_X (t, finfo->interface_unknown);
@@ -827,13 +827,10 @@ cxx_make_type (enum tree_code code)
 }
 
 tree
-make_aggr_type (enum tree_code code)
+make_class_type (enum tree_code code)
 {
   tree t = cxx_make_type (code);
-
-  if (IS_AGGR_TYPE_CODE (code))
-    SET_IS_AGGR_TYPE (t, 1);
-
+  SET_CLASS_TYPE_P (t, 1);
   return t;
 }
 

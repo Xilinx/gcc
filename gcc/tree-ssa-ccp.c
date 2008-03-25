@@ -267,31 +267,6 @@ debug_lattice_value (prop_value_t val)
 }
 
 
-/* The regular is_gimple_min_invariant does a shallow test of the object.
-   It assumes that full gimplification has happened, or will happen on the
-   object.  For a value coming from DECL_INITIAL, this is not true, so we
-   have to be more strict ourselves.  */
-
-static bool
-ccp_decl_initial_min_invariant (tree t)
-{
-  if (!is_gimple_min_invariant (t))
-    return false;
-  if (TREE_CODE (t) == ADDR_EXPR)
-    {
-      /* Inline and unroll is_gimple_addressable.  */
-      while (1)
-	{
-	  t = TREE_OPERAND (t, 0);
-	  if (is_gimple_id (t))
-	    return true;
-	  if (!handled_component_p (t))
-	    return false;
-	}
-    }
-  return true;
-}
-
 /* If SYM is a constant variable with known value, return the value.
    NULL_TREE is returned otherwise.  */
 
@@ -304,7 +279,7 @@ get_symbol_constant_value (tree sym)
     {
       tree val = DECL_INITIAL (sym);
       if (val
-	  && ccp_decl_initial_min_invariant (val))
+	  && is_gimple_min_invariant (val))
 	return val;
       /* Variables declared 'const' without an initializer
 	 have zero as the intializer if they may not be
@@ -947,8 +922,15 @@ ccp_fold (tree stmt)
 	    op0 = get_value (op0)->value;
 	}
 
+      /* Conversions are useless for CCP purposes if they are
+	 value-preserving.  Thus the restrictions that
+	 useless_type_conversion_p places for pointer type conversions do
+	 not apply here.  Substitution later will only substitute to
+	 allowed places.  */
       if ((code == NOP_EXPR || code == CONVERT_EXPR)
-	  && useless_type_conversion_p (TREE_TYPE (rhs), TREE_TYPE (op0)))
+	  && ((POINTER_TYPE_P (TREE_TYPE (rhs))
+	       && POINTER_TYPE_P (TREE_TYPE (op0)))
+	      || useless_type_conversion_p (TREE_TYPE (rhs), TREE_TYPE (op0))))
 	return op0;
       return fold_unary (code, TREE_TYPE (rhs), op0);
     }
@@ -1983,7 +1965,7 @@ maybe_fold_stmt_indirect (tree expr, tree base, tree offset)
 
       /* Fold away CONST_DECL to its value, if the type is scalar.  */
       if (TREE_CODE (base) == CONST_DECL
-	  && ccp_decl_initial_min_invariant (DECL_INITIAL (base)))
+	  && is_gimple_min_invariant (DECL_INITIAL (base)))
 	return DECL_INITIAL (base);
 
       /* Try folding *(&B+O) to B.X.  */
@@ -2160,6 +2142,11 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
 
       t = maybe_fold_stmt_indirect (expr, TREE_OPERAND (expr, 0),
 				    integer_zero_node);
+      if (!t
+	  && TREE_CODE (TREE_OPERAND (expr, 0)) == ADDR_EXPR)
+	/* If we had a good reason for propagating the address here,
+	   make sure we end up with valid gimple.  See PR34989.  */
+	t = TREE_OPERAND (TREE_OPERAND (expr, 0), 0);
       break;
 
     case NOP_EXPR:

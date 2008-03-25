@@ -1,3 +1,114 @@
+2008-03-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse-17.c: Include sse2-check.h.
+	(main): Change to void and rename to sse2_test.
+	* gcc.dg/vect/costmodel/i386/i386-costmodel-vect.exp: Set
+	dg-do-what-default to "compile" if SSE2 hardware is not available.
+	* gcc.dg/vect/costmodel/i386/x86_64-costmodel-vect.exp: Ditto.
+	* gcc.dg/vect/costmodel/x86_64/costmodel-vect-reduc-1char.c: Remove
+	xfail vect_no_int_max from "vectorization not profitable" check.
+
+2008-03-24  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/26222
+	* gcc.dg/torture/pr26222.c: New testcase.
+
+2008-03-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34813
+	* gfortran.dg/null_3.f90 : New test
+
+	PR fortran/33295
+	* gfortran.dg/module_function_type_1.f90 : New test
+
+2007-03-23  Thomas Koenig  <tkoenig@gcc.gnu.org
+
+	PR libfortran/32972
+	* gfortran.dg/intrinsic_unpack_1.f90:  New test case.
+	* gfortran.dg/intrinsic_unpack_2.f90:  New test case.
+	* gfortran.dg/intrinsic_unpack_3.f90:  New test case.
+
+2008-03-22  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* gcc.target/mips/dse-1.c: Add checks for zeros.
+
+2008-03-21  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR target/27946
+	* gcc.target/powerpc/ppc64-double-1.c: New testcase.
+
+2008-03-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/32972
+	* internal_pack_1.f90:  New test case.
+	* internal_pack_2.f90:  New test case.
+	* internal_pack_3.f90:  New test case.
+
+2008-03-21  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/empty_vector_length.adb: New testcase.
+
+2008-03-20  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ssa-ccp-17.c: New testcase.
+
+2008-03-20 Victor Kaplansky  <victork@gcc.gnu.org>
+	   Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/34168
+	* lib/target-supports.exp (check_sse2_hw_available): New procedure.
+	* gcc.dg/vect/vect.exp: Set dg-do-what-default to "compile"
+	if SSE2 hardware is not available.
+	* g++.dg/vect/vect.exp: Update target-dependent overrides to match
+	gcc.dg/vect/vect.exp.
+	* gfortran.dg/vect/vect.exp: Ditto.
+	(check_effective_target_lp64_or_vect_no_align): Remove procedure.
+
+2008-03-20  Andreas Schwab  <schwab@suse.de>
+
+	* gcc.dg/cpp/cmdlne-dD-M.c: Fix test for makefile rule and remove
+	xfail.
+
+2008-03-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/gomp/pr34692.c: Cleanup gimple dump file.
+	* gcc.dg/tree-ssa/ssa-lim-3.c: Remove -fdump-tree-optimized
+	from dg-options.
+
+2008-03-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/35621
+	* gcc.target/i386/ssse3-pabsb.c: Add -fno-strict-aliasing.
+	* gcc.target/i386/ssse3-pabsd.c: Likewise.
+	* gcc.target/i386/ssse3-pabsw.c: Likewise.
+	* gcc.target/i386/ssse3-palignr.c: Likewise.
+	* gcc.target/i386/ssse3-phaddd.c: Likewise.
+	* gcc.target/i386/ssse3-phaddsw.c: Likewise.
+	* gcc.target/i386/ssse3-phaddw.c: Likewise.
+	* gcc.target/i386/ssse3-phsubd.c: Likewise.
+	* gcc.target/i386/ssse3-phsubsw.c: Likewise.
+	* gcc.target/i386/ssse3-phsubw.c: Likewise.
+	* gcc.target/i386/ssse3-pmaddubsw.c: Likewise.
+	* gcc.target/i386/ssse3-pmulhrsw.c: Likewise.
+	* gcc.target/i386/ssse3-pshufb.c: Likewise.
+	* gcc.target/i386/ssse3-psignb.c: Likewise.
+	* gcc.target/i386/ssse3-psignd.c: Likewise.
+	* gcc.target/i386/ssse3-psignw.c: Likewise.
+
+2008-03-20  Andreas Schwab  <schwab@suse.de>
+
+	PR testsuite/35647
+	* gcc.dg/cpp/cmdlne-dI-M.c: Match optional continuation.
+	* gcc.dg/cpp/cmdlne-dM-M.c: Likewise.
+	* gcc.dg/cpp/cmdlne-dN-M.c: Match correct file name and optional
+	continuation and remove xfail.
+
+2008-03-20  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/32972
+	* gfortran.dg/internal_pack_3.f90:  Add missing parameter
+	in subroutine.
+
 2008-03-20  Kai Tietz  <kai.tietz@onevision.com>
 
 	* gcc.dg/format/ms_array-1.c: New.

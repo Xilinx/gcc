@@ -1,3 +1,86 @@
+2008-03-25  Arnaud Charlet  <charlet@adacore.com>
+
+	* exp_ch6.adb, exp_disp.adb: Update copyright notice.
+	Fix wrong formatting (lines too long)
+
+2008-03-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* 9drpc.adb, a-caldel-vms.adb, a-caldel.adb,
+	a-calend-vms.adb, a-calend.adb, a-calend.ads,
+	a-calfor.adb, a-chahan.ads, a-chtgke.adb,
+	a-cihama.ads, a-ciorse.adb, a-clrefi.ads,
+	a-cohama.ads, a-comlin.ads, a-coorse.adb,
+	a-crbtgk.adb, a-direct.adb, a-except-2005.adb,
+	a-except-2005.ads, a-except.adb, a-except.ads,
+	a-exexda.adb, a-exexpr-gcc.adb, a-exexpr.adb,
+	a-exextr.adb, a-filico.ads, a-finali.ads,
+	a-intnam-aix.ads, a-intnam-solaris.ads, a-ngcefu.adb,
+	a-ngelfu.adb, a-numaux-darwin.adb, a-numeri.ads,
+	a-sequio.ads, a-strbou.ads, a-strfix.adb,
+	checks.adb, exp_ch3.adb, exp_ch4.adb,
+	exp_ch4.ads, exp_ch5.adb, exp_ch6.adb,
+	exp_ch6.ads, exp_ch7.adb, exp_ch7.ads,
+	exp_ch9.adb, exp_ch9.ads, exp_dbug.adb,
+	exp_dbug.ads, exp_disp.adb, exp_dist.adb,
+	exp_dist.ads, exp_fixd.adb, exp_fixd.ads: Fix comment typos.
+
+2008-03-24  Robert Dewar  <dewar@adacore.com>
+
+	* s-tpopsp-posix.adb, s-tpopsp-solaris.adb, s-tpopsp-posix-foreign.adb,
+	s-tpopsp-lynxos.adb, s-tpopde-vms.ads, s-tpopde-vms.adb,
+	s-tpopsp-vxworks.adb, s-casi16.adb, s-caun16.adb, s-inmaop.ads,
+	s-tadeca.adb, s-tadeca.ads, s-tadert.adb, s-tadert.ads, s-tpinop.adb,
+	s-tpinop.ads, s-tporft.adb, a-rbtgso.adb, a-crbtgo.ads, a-crbtgo.adb,
+	a-crbtgk.ads, a-crbtgk.adb, a-ciorse.adb, a-cihama.ads, a-cihama.adb,
+	a-cidlli.ads, a-cidlli.adb, a-chtgop.ads, a-chtgop.adb, a-cgcaso.ads,
+	a-cgcaso.adb, a-cgaaso.adb, a-ciormu.adb, a-cihase.adb, a-swuwha.ads,
+	a-rbtgso.ads, a-cgaaso.ads, a-cgaaso.ads, a-ciorma.adb, a-chtgke.ads,
+	a-chtgke.adb, a-llfzti.ads, a-ztenau.adb, a-ztenau.ads, a-stzhas.ads,
+	a-szbzha.ads, a-szbzha.adb, a-crdlli.ads, a-crdlli.ads, a-crdlli.adb,
+	i-forbla-darwin.adb, i-forbla.ads, s-regexp.adb, a-nllrar.ads,
+	a-nlrear.ads, a-nucoar.ads, a-nurear.ads, i-forlap.ads, s-gearop.adb,
+	s-gearop.ads, s-gecobl.adb, s-gecobl.ads, s-gecola.adb, s-gecola.ads,
+	s-gerebl.adb, s-gerela.ads, a-swuwha.adb, i-forbla-unimplemented.ads,
+	double spaced if it fits on one line and otherwise single spaced.
+
+2008-03-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR documentation/15479
+	* Make-lang.in (doc/gnat_ugn.texi) Renamed from ...
+	(doc/gnat_ugn_unw.texi): ... this, and adjusted.
+	(doc/gnat_ugn.info): Renamed from ...
+	(doc/gnat_ugn_unw.info): ... this.
+	(doc/gnat_ugn.dvi): Renamed from ...
+	(doc/gnat_ugn_unw.dvi): ... this.
+	(doc/gnat_ugn.pdf): Renamed from ...
+	(doc/gnat_ugn_unw.pdf): ... this.
+	(ADA_INFOFILES, ADA_PDFFILES, ada.install-info, ada.dvi):
+	Adjusted.
+	* gnat_ugn.texi (FILE): Hard-code gnat_ugn; set filename
+	unconditionally to gnat_ugn.info.  Fix cross references to the
+	GNAT Reference Manual.  Convert links to the GCC, GDB, Emacs,
+	and GNU make manuals to be proper texinfo links.
+	* gnat_rm.texi: Fix cross references to the GNAT User's Guide.
+
+2008-03-21  Olivier Hainque  <hainque@adacore.com>
+
+	* trans.c (Attribute_to_gnu) <'length>: Compute as (hb < lb)
+	? 0 : hb - lb + 1 instead of max (hb - lb + 1, 0).
+
+2008-03-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* trans.c (addressable_p): Add notes on addressability issues.
+
+2008-03-21  Olivier Hainque  <hainque@adacore.com>
+            Ed Schonberg  <schonberg@adacore.com>
+
+	* trans.c (addressable_p): Accept COND_EXPR when both arms
+	are addressable.
+	(gnat_gimplify_expr): Let the gimplifier handle &COND_EXPR.
+	(call_to_gnu): Do not use name reference in the error message
+	for a misaligned by_reference_parameter. The actual may be a
+	general expression.
+
 2008-03-18  Paolo Bonzini  <bonzini@gnu.org>
 
         * misc.c (LANG_HOOKS_REDUCE_BIT_FIELD_OPERATIONS): Delete.
@@ -4580,6 +4663,7 @@
 	valid value.
 
 2007-08-14  Thomas Quinot  <quinot@adacore.com>
+	    Pablo Oliveira  <oliveira@adacore.com>
 
 	* exp_dist.adb (PolyORB_Support.Build_TypeCode_Function): When creating
 	typecode parameters for a union (in a variant record), remove
@@ -8576,6 +8660,7 @@
 	formals.
 
 2007-04-06  Thomas Quinot  <quinot@adacore.com>
+	    Pablo Oliveira  <oliveira@adacore.com>
 
 	* exp_dist.ads, exp_dist.adb (Build_To_Any_Call, Build_From_Any_Call):
 	Do an Unchecked_Conversion to handle the passage from the Underlying
@@ -8716,6 +8801,7 @@
 	(Set_Valid): Move to local package Validity
 
 2007-04-06  Arnaud Charlet  <charlet@adacore.com>
+	    Pablo Oliveira  <oliveira@adacore.com>
 
 	* g-expect.adb (Get_Command_Output): When expanding the output buffer
 	we must ensure that there is enough place for the new data we are going
