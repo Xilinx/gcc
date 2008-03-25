@@ -1820,6 +1820,12 @@
 	   flbind_fdata			;the compiled field data
 ))
 
+;; instance binding
+(defclass class_instance_binding
+  :super class_fixed_binding
+  :fields ( ibind_iclass		;the instance's class
+	    ibind_data			;the compiled data
+	    ))
 ;; let binding
 (defclass class_let_binding
   :super class_any_binding
@@ -1939,6 +1945,15 @@
   :super class_src
   :fields (sapp_fun			;the function to apply
 	   sapp_args			;the arguments tuple
+	   ))
+
+;;; source message sending 
+(defclass class_src_msend
+  :super class_src
+  :fields ( 
+	    msend_selbind		;the selector binding
+	    msend_recv			;the reciever
+	    msend_args 			;the tuple of arguments
 	   ))
 
 ;;; source primitive call
@@ -2097,6 +2112,14 @@
 ))
 
 
+;; multicall
+(defclass class_src_multicall
+  :super class_src
+  :fields (smulc_resbind		;tuple of argument bindings for multiple results
+	   smulc_call			;called stuff
+	   smulc_body			;tuple for body
+))
+
 ;;; forever & exit share a common label
 (defclass class_src_labelled
   :super class_src
@@ -2193,6 +2216,27 @@
 		   :sapp_args xargtup)))
      
 
+;;; expand an s-expression known to be a message send
+(defun expand_msend  (opbind sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check opbind" (is_a opbind class_selector_binding))
+  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc (unsafe_get_field :loca_location sexpr))
+	 (spair (pair_tail (list_first scont)))
+	 (seldata (unsafe_get_field :sbind_selectordata opbind))
+	 )
+    (if (not (is_pair spair)) (error_plain sloc "missing reciever expression in message send"))
+    (let ( (xrecv (pair_head spair))
+	   (argtup (expand_pairlist_as_tuple (pair_tail spair) env mexpander)) )
+      (make_instance class_src_msend
+		     :src_loc sloc
+		     :msend_selbind opbind
+		     :msend_recv xrecv
+		     :msend_args argtup
+		     ))))
+
 ;;; expand a keywordfun s-expression
 ;;; not implemented yet, but might later be useful for stuff like
 ;;;;; (:fieldname obj) to get a field
@@ -2219,7 +2263,7 @@
 			    (assert_msg "check mexp" (is_closure mexp))
 			    (mexp sexpr env mexpander)) )
 			( (is_a opbind class_selector_binding)
-			  (assert_msg "@@@ macroexpand_1 selector binding NOT IMPLEMENTED" 0)
+			  (expand_msend opbind sexpr env mexpander)
 			  )
 			( (is_a opbind class_primitive_binding)
 			  (expand_primitive opbind sexpr env mexpander)
@@ -3273,6 +3317,40 @@
 (install_initial_macro 'lambda mexpand_lambda)
       
 
+;;;;;;;; for MULTICALL
+(defun mexpand_multicall (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (newenv (fresh_env env))
+	 )
+    ;; parse the formal results
+    (let ( (restup (lambda_arg_bindings (pair_head curpair))) )
+      (debug_msg "restup after lambda_arg_bindings in mexpand_multicall" restup (the_callcount))
+      (setq curpair (pair_tail curpair))
+      (let ( (curcallexp (pair_head curpair)) )
+	(if (not (is_a curcallexp class_sexpr))
+	    (error_plain loc "missing called expression in multicall"))
+	(setq curpair (pair_tail curpair))
+	(let ( (curcall (macroexpand_1 curcallexp env mexpander)) )
+	  (multiple_iterate restup 
+			    (lambda (lb)
+			      (put_env newenv lb)
+			      restup
+			      ))
+	  (let ( (bodytup (pairlist_to_multiple curpair discr_multiple 
+						(lambda (e) (macroexpand_1 e newenv mexpander)))) )
+	    (make_instance class_src_multicall
+			   :src_loc loc
+			   :smulc_resbind restup
+			   :smulc_call curcall
+			   :smulc_body bodytup
+			   )
+	    ))))))
+(install_initial_macro 'multicall mexpand_multicall)
+
 ;;;;;;;; for QUOTE (only of symbols or keywords)
 (defun mexpand_quote (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -3514,11 +3592,28 @@
 	   nmins_fields			;the tuple of field assignments
 ))
 
+;; normalized lambda
 (defclass class_nrep_lambda 
   :super class_nrep
   :fields (nlambda_proc			;the procedure
 	   nlambda_constrout		;the constant routine
 	   nlambda_closedv		;the tuple of closed normal values
+))
+
+;; normalized multiapply
+(defclass class_nrep_multiapply
+  :super class_nrep
+  :fields (nmulapp_bindings 		;a tuple of formal bindings
+	   nmulapp_apply		;normalized application
+	   nmulapp_body			;body tuple
+))
+
+;; normalized multisend
+(defclass class_nrep_multisend
+  :super class_nrep
+  :fields (nmulsend_bindings		;tuple of formal bindings
+	   nmulsend_send		;normalized message sending
+	   nmulsend_body		;body tuple)
 ))
 
 ;;; procedures
@@ -4084,6 +4179,11 @@
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv seldat)
 	  seldat))
+      ;; previous instance binding at toplevel
+      ( (is_a bind class_instance_binding)
+	(debug_msg "normexp_symbol instance binding bind" bind (the_callcount))
+	(assert_msg "normexp_symbol @@ UNIMPLEMENTED instance_binding" ())
+	)
       ;; all other cases are constants
       (:else 
        (debug_msg "normexp_symbol const? bind" bind)
@@ -5121,6 +5221,35 @@
 (install_method class_src_lambda normal_exp normexp_lambda)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun normexp_multicall (recv env ncx psloc)
+  (assert_msg "check multicall recv" (is_a recv class_src_multicall))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg "normexp_multicall recv" recv (the_callcount))
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (sresbind (unsafe_get_field :smulc_resbind recv))
+	 (scall (unsafe_get_field :smulc_call recv))
+	 (sbody (unsafe_get_field :smulc_body recv))
+	 )
+    (multicall
+     (ncall ncallbindings)
+     (normal_exp scall env ncx sloc)
+     (debug_msg "normexp_multicall ncall" ncall (the_callcount))
+     (debug_msg "normexp_multicall ncallbindings" ncallbindings (the_callcount))
+     (cond
+      ( (is_a scall class_src_apply)
+	(assert_msg "unimplemented normexp_multicall apply" ())
+	)
+      ( (is_a scall class_src_msend)
+	(assert_msg "unimplemented normexp_multicall msend" ())
+	)
+      ( :else
+	(error_plain "multi-called expression neither apply nor send" sloc))
+      ))))
+       
+(install_method class_src_multicall normal_exp normexp_multicall)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;; create the normal predef (or fail with a msg) 
@@ -5566,6 +5695,11 @@
 	 (sinstfields (unsafe_get_field :sinst_fields recv))
 	 (nbindlist (make_list discr_list))
 	 (nbindbox (make_box discr_box nbindlist))
+	 (bindins (make_instance class_instance_binding 
+				 :binder sname
+				 :ibind_iclass sinstclass
+				 ;; :ibind_data is set below
+				 ))
 	 (namdata (normal_symbol_data sname ncx sloc))
 	 ;; data representing the class
 	 (icladata (if (is_a sinstclasym class_symbol) 
@@ -5594,6 +5728,8 @@
 				  )) 
 	  )
       (add_nctx_data ncx insdata)
+      (put_env env bindins)
+      (unsafe_put_fields bindins :ibind_data insdata)
       ;; scan the fields initialization
       (multiple_iterate
        sinstfields
@@ -8343,11 +8479,66 @@
 		       :opclov_cval (compile_obj clov gcx)))       
        nclovtup
        ))
+    ;; we don't need to add any objtouch because the nlam was normalized!
     (list_append olis locv) ;;; last instruction is just the value, which can be set to some dest
     (debug_msg "compilobj_nrep_lambda result oblock" oblock (the_callcount))
     oblock
     ))
 (install_method class_nrep_lambda compile_obj compilobj_nrep_lambda)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_makeinst (nmki gcx)
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check nmki" (is_a nmki class_nrep_make_instance))
+  (debug_msg "compilobj_nrep_makeinst nmki" nmki)
+  ;; (debug_msg "compilobj_nrep_makeinst gcx" gcx)
+  (let ( (nloc (unsafe_get_field :nrep_loc nmki))
+	 (ncla (unsafe_get_field :nmins_class nmki))
+	 (ncladat (unsafe_get_field :nmins_cladata nmki))
+	 (nfields (unsafe_get_field :nmins_fields nmki)) 
+	 )
+    (assert_msg "check ncla" (is_a ncla class_class))
+    (let ( (:long nbfld (multiple_length (unsafe_get_field :class_fields ncla)))
+	   (destlist (make_list discr_list))
+	   (locv (get_free_objlocptr gcx 'inst))
+	   (olis (make_list discr_list))
+	   (oblock (make_instance class_objblock
+				  :obi_loc nloc
+				  :oblo_bodyl olis))
+	   (orallobj (make_instance class_objrawallocobj
+				    :obi_loc nloc
+				    :obrallobj_class ncladat
+				    :obrallobj_len (make_integerbox discr_integer nbfld)
+				    :obrallobj_dest destlist))
+	   )
+      (list_append destlist locv)
+      (list_append olis orallobj)
+      ;; handle each field assign
+      (multiple_iterate 
+       nfields
+       (lambda (cfla :long ix)
+	 (assert_msg "compilobj_nrep_makeinst check cfla" (is_a cfla class_nrep_fieldassign))
+	 (let ( (cfloc (unsafe_get_field :nrep_loc cfla))
+		(cfield (unsafe_get_field :nfla_field cfla))
+		(cval (unsafe_get_field :nfla_val cfla)) )
+	   (assert_msg "compilobj_nrep_makeinst check cfield" (is_a cfield class_field))
+	   (list_append 
+	    olis
+	    (make_instance class_objputslot 
+			   :obi_loc (if cfloc cfloc nloc)
+			   :oslot_odata locv
+			   :oslot_offset (make_integerbox discr_integer (get_int cfield))
+			   :oslot_value (compile_obj cval gcx)
+			   ))
+	   cfla
+	   )))
+    ;; we don't need to add any objtouch because the nmki was normalized!
+      (list_append olis locv) ;;; last instruction is just the value, which can be set to some dest
+      (debug_msg "compilobj_nrep_makeinst result oblock" oblock (the_callcount))
+      oblock
+      ))
+  )
+(install_method class_nrep_make_instance compile_obj compilobj_nrep_makeinst)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a procedure should not be called
