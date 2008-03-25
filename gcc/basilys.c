@@ -1894,6 +1894,7 @@ basilysgc_strbuf_add_indent (struct basilysstrbuf_st
      basilysgc_add_strbuf_raw */
 #define strbv   curfram__.varptr[0]
 #define strbufv ((struct basilysstrbuf_st*)(strbv))
+  strbv = strbuf_p;
   if (!strbufv || basilys_magic_discr ((void *) strbufv) != OBMAG_STRBUF)
     goto end;
   if (linethresh > 0 && linethresh < 40)

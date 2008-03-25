@@ -1,3 +1,10 @@
+2008-03-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: (basilysgc_add_strbuf_raw) assigned the argument into
+	framevar.
+	* melt/warm-basilys.bysl: (dbgout_list_method) better typed if.
+	(normexp_symbol) handling correctly constant (function, class,
+	primitive, field...) symbol at toplevel.
+	* melt/test0.bysl: added test of toplevel function & primitive bindings.
 
 2008-03-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: (basilysgc_add_strbuf_raw) when growing young strbuf,

@@ -1401,9 +1401,9 @@
 			 (dbg_out (pair_head curpair) dbgi (+i depth 1))
 			 (setq curpair (pair_tail curpair))
 			 (checkcallstack_msg "near endloop dbgout_list_method")
-			 (if curpair
-			     (setq ix (+i ix 1))
+			 (if (not curpair)
 			   (exit listloop))
+			 (setq ix (+i ix 1))
 			 (if (>i (-i (strbuf_usedlength sbuf) curulen) 100)
 			     (add2sbuf_indentnl sbuf (+i 1 depth))))
 		       ))
@@ -3913,6 +3913,9 @@
 	 (error_strv psloc "unbound symbol to normalize"
 		     (unsafe_get_field :named_name recv))
 	 (return)))
+   (if (null psloc)
+       (shortbacktrace_dbg "normex_symbol null psloc" 10)
+       )
    (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	  (syca (mapobject_get sycmap recv)) )
      (if (not (is_mapobject sycmap)) 
@@ -4040,6 +4043,47 @@
 	  (mapobject_put sycmap recv syocc)
 	  syocc
 	  ))
+      ;; previous function binding at toplevel
+      ( (is_a bind class_function_binding)
+	(let ( (fubdat (unsafe_get_field :fubind_fundata bind)) )
+	  (debug_msg "normexp_symbol fubdat" fubdat (the_callcount))
+	  (assert_msg "normexp_symbol check fubdat" (is_a fubdat class_nrep_dataclosure))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv fubdat)
+	  fubdat
+	  ))
+      ;; previous primitive binding at toplevel
+      ( (is_a bind class_primitive_binding)
+	(let ( (pribidat (unsafe_get_field :pbind_primdata bind)) )
+	  (debug_msg "normexp_symbol pribidat" pribidat (the_callcount))
+	  (assert_msg "normexp_symbol check pribdat" (is_a pribidat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv pribidat)
+	  pribidat))
+      ;; previous class binding at toplevel
+      ( (is_a bind class_class_binding)
+	(let ( (cldat (unsafe_get_field :cbind_cladata bind)) )
+	  (debug_msg "normexp_symbol cldat" cldat (the_callcount))
+	  (assert_msg "normexp_symbol check cldat" (is_a cldat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv cldat)
+	  cldat))
+      ;; previous field binding at toplevel
+      ( (is_a bind class_field_binding)
+	(let ( (fdat (unsafe_get_field :flbind_fdata bind)) )
+	  (debug_msg "normexp_symbol fdat" fdat (the_callcount))
+	  (assert_msg "normexp_symbol check fdat" (is_a fdat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv fdat)
+	  fdat))
+      ;; previous selector binding at toplevel
+      ( (is_a bind class_selector_binding)
+	(let ( (seldat (unsafe_get_field :sbind_selectordata bind)) )
+	  (debug_msg "normexp_symbol seldat" seldat (the_callcount))
+	  (assert_msg "normexp_symbol check seldat" (is_a seldat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv seldat)
+	  seldat))
       ;; all other cases are constants
       (:else 
        (debug_msg "normexp_symbol const? bind" bind)
@@ -4049,6 +4093,7 @@
 			      :nocc_ctyp ctype_value
 			      :nocc_symb recv
 			      :nocc_bind bind) ) )
+	 (debug_msg "normexp_symbol kocc" kocc (the_callcount))
 	 ;; cache the result & return it
 	 (mapobject_put sycmap recv kocc)
 	 ;; put the const occurrence if needed in the const list of each proc
@@ -4965,6 +5010,7 @@
 		)))) )
        (unsafe_put_fields ndataclos :ndclo_closv clovtup)
        )
+     (unsafe_put_fields sfubind :fubind_fundata ndataclos)
      (debug_msg "normexp_defun return nproc" nproc (the_callcount))
      (return nproc ())
      )
@@ -6377,6 +6423,7 @@
     (add2sbuf_strconst implbuf "  long _spare_; } curfram__ = {")
     (add2sbuf_longdec implbuf nbval)
     (add2sbuf_strconst implbuf ", ")
+    (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#if ENABLE_CHECKING")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " (struct framloc_basilys_st *)0, ")
@@ -7723,6 +7770,8 @@
 	(nloc (unsafe_get_field :nrep_loc nclo))
 	)
     (debug_msg "compilobj closedocc orout" orout (the_callcount))
+    (debug_msg "compilobj closedocc nclo" nclo (the_callcount))
+    (debug_msg "compilobj closedocc lastcproc" lastcproc (the_callcount))
     (assert_msg "check lastcproc" (is_a lastcproc class_nrep_routproc))
     (let ( (cloblis (unsafe_get_field :nrpro_closedb lastcproc)) 
 	   (:long clorank -1)
@@ -7770,6 +7819,8 @@
 	(nloc (unsafe_get_field :nrep_loc ncnst))
 	)
     (debug_msg "compilobj constocc orout" orout (the_callcount))
+    (debug_msg "compilobj constocc nloc" nloc (the_callcount))
+    (debug_msg "compilobj constocc lastcproc" lastcproc (the_callcount))
     (assert_msg "check lastcproc" (is_a lastcproc class_nrep_routproc))
     (let ( (cnstlis (unsafe_get_field :nrpro_const lastcproc)) 
 	   (:long cnstrank -1)

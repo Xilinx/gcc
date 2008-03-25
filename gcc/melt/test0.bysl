@@ -22,6 +22,10 @@
 	   (exit loop (bar z))))
  
 
-foo
+(if foo 
+    (puts "has foo"))
+
+(if boxint 
+    (puts "has boxint"))
 
 (puts "end test0")
