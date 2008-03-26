@@ -1837,7 +1837,8 @@
 ;; normalized let binding
 (defclass class_normlet_binding
   :super class_let_binding
-  :fields  ())				;no additional field, but letbind_expr is "normal"
+  :fields  ())				;no additional field, but
+					;letbind_expr is "normal"
 
 ;; label binding
 (defclass class_label_binding
@@ -3505,6 +3506,22 @@
   :fields (napp_fun			;simple function to apply
 	   napp_args			;tuple of simple arguments
 ))
+
+;; normalized multiapply
+(defclass class_nrep_multiapply
+  :super class_nrep_apply
+  :fields (nmulapp_bindings 		;a tuple of formal result bindings
+	   nmulapp_body			;body tuple
+))
+
+;;; normal message sending
+(defclass class_nrep_msend
+  :super class_nrep
+  :fields (nsend_selbind		;the selector binding
+	   nsend_recv			;the reciever
+	   nsend_args			;the tuple of simple arguments
+))
+
 ;; normal chunk is a normalized expansion of primitive
 (defclass class_nrep_chunk
   :super class_nrep
@@ -3600,13 +3617,7 @@
 	   nlambda_closedv		;the tuple of closed normal values
 ))
 
-;; normalized multiapply
-(defclass class_nrep_multiapply
-  :super class_nrep
-  :fields (nmulapp_bindings 		;a tuple of formal bindings
-	   nmulapp_apply		;normalized application
-	   nmulapp_body			;body tuple
-))
+
 
 ;; normalized multisend
 (defclass class_nrep_multisend
@@ -5230,22 +5241,70 @@
 	 (sresbind (unsafe_get_field :smulc_resbind recv))
 	 (scall (unsafe_get_field :smulc_call recv))
 	 (sbody (unsafe_get_field :smulc_body recv))
+	 (newenv (fresh_env env))
 	 )
     (multicall
      (ncall ncallbindings)
      (normal_exp scall env ncx sloc)
      (debug_msg "normexp_multicall ncall" ncall (the_callcount))
      (debug_msg "normexp_multicall ncallbindings" ncallbindings (the_callcount))
-     (cond
-      ( (is_a scall class_src_apply)
-	(assert_msg "unimplemented normexp_multicall apply" ())
-	)
-      ( (is_a scall class_src_msend)
-	(assert_msg "unimplemented normexp_multicall msend" ())
-	)
-      ( :else
-	(error_plain "multi-called expression neither apply nor send" sloc))
-      ))))
+;;; since ncall is normalized, it is a class_nrep_locsymocc and
+;;; the last binding in ncallbindings is a class_normlet_binding
+;;; whose binder is the nocc_symb of the ncall
+     (assert_msg "normexp_multicall check ncall" (is_a ncall class_nrep_locsymocc))
+     (let ( (ncallsym (unsafe_get_field :nocc_symb ncall)) 
+	    (nboxcall (make_box discr_box ())) ;box to contain the real normalized call
+	    (nrealcall ())		       ;the real call
+	    (nincallbindings (make_list discr_list)) ;list of internal bindings to the call
+	    )
+       (list_iterate		;loop exited when cbnd is for ncallsym
+	ncallbindings
+	(lambda (cbnd)
+	  (assert_msg "normexp_multicall check cbnd" (is_a cbnd class_normlet_binding))
+	  (if (== ncallsym (unsafe_get_field :binder cbnd))
+	      (let ( (nrealcall (unsafe_get_field :letbind_expr cbnd)) )
+		(box_put nboxcall nrealcall)
+		())
+	    (progn (list_append nincallbindings cbnd) cbnd))))
+       (setq nrealcall (box_content nboxcall))
+       (multiple_iterate 
+	sresbind
+	(lambda (bnd :long ix)
+	  (put_env newenv bnd)
+	  newenv))
+       (multicall
+	(nbody nbodybindings)
+	(normalize_tuple sbody newenv ncx sloc)
+	(debug_msg "normexp_multicall nbody" nbody (the_callcount))
+	(debug_msg "normexp_multicall nbodybindings" nbodybindings (the_callcount))
+	(let ( (wnbodylet (wrap_normal_letseq nbody nbodybindings sloc)) )
+	  (cond
+	   ( (is_a scall class_src_apply)
+	     (assert_msg "normexp_multicall check nrealcall apply" (is_a nrealcall class_nrep_apply))
+	     (let ( (nres (make_instance class_nrep_multiapply
+					 :nrep_loc sloc
+					 :napp_fun (unsafe_get_field :napp_fun nrealcall)
+					 :napp_args (unsafe_get_field :napp_args nrealcall)
+					 :nmulapp_bindings sresbind
+					 :nmulapp_body wnbodylet)) )
+	       (debug_msg "normexp_multicall multiapply nres" nres (the_callcount))
+	       (return nres nincallbindings)
+	       )
+	     )
+	   ( (is_a scall class_src_msend)
+	     (assert_msg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
+	     (let ( (nres (make_instance class_nrep_multisend
+					 :nrep_loc sloc
+					 :nmulsend_bindings sresbind
+					 :nmulsend_send nrealcall
+					 :nmulsend_body wnbodylet)) )
+	       (debug_msg "normexp_multicall multisend nres" nres (the_callcount))
+	       (return nres nincallbindings)
+	       )
+	     )
+	   ( :else
+	     (error_plain "multi-called expression neither apply nor send" sloc))
+	   )))))))
        
 (install_method class_src_multicall normal_exp normexp_multicall)
 
@@ -5788,7 +5847,7 @@
   (assert_msg "@@compile_obj should be implemented in nrep-s subclasses" ())
   )
 (install_method class_nrep compile_obj compilobj_catchall_nrep)
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; selector to put a destination into an objcode
 ;;; reciever: the objcode
 ;;; argument: the destination value
@@ -6364,6 +6423,12 @@
   :fields (obapp_dest			;destination list
 	   obapp_clos			;closure to be applied
 	   obapp_args			;argument tuple
+))
+
+;;; multiapply instruction
+(defclass class_objmultiapply
+  :super class_objapply
+  :fields (obmultapp_xres		;extraresult tuple
 ))
 
 ;; raw object allocation instruction
@@ -7129,6 +7194,8 @@
   (debug_msg "outpucod_objcond end ocond" ocond (the_callcount))
   )
 (install_method class_objcond output_c_code outpucod_objcond)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;; output an application
 (defun outpucod_objapply (oapp declbuf implbuf :long depth)
@@ -7226,6 +7293,145 @@
   )
 (install_method class_objapply output_c_code outpucod_objapply)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; output a multiapplication
+
+(defun outpucod_objmultiapply (oapp declbuf implbuf :long depth)
+  (assert_msg "check oapp" (is_a oapp class_objmultiapply))
+  (debug_msg "outpucod_objmultiapply oapp" oapp (the_callcount))
+  (let (
+	(aloc (unsafe_get_field :obi_loc oapp))
+	(adest (unsafe_get_field :obapp_dest oapp))
+	(oclos (unsafe_get_field :obapp_clos oapp))
+	(oargs (unsafe_get_field :obapp_args oapp))
+	(oxres (unsafe_get_field :obmultapp_xres oapp))
+	(:long nbarg (multiple_length oargs))
+	(:long nbxres (multiple_length oxres))
+	(paramdesclist (make_list discr_list))
+	(resdesclist (make_list discr_list))
+	(boxdepthp1 (make_integerbox discr_integer (+i 1 depth)))
+	)
+    (output_location aloc implbuf depth)
+    (add2sbuf_strconst implbuf "/*multiapply*/{")
+    (add2sbuf_indentnl implbuf (+i 1 depth))
+    (if (>i nbarg 1)
+	(progn
+	  (add2sbuf_strconst implbuf "union basilysparam_un argtab[")
+	  (add2sbuf_longdec implbuf (-i nbarg 1))
+	  (add2sbuf_strconst implbuf "];")
+	  (add2sbuf_indentnl implbuf (+i 1 depth))
+	  ))
+    (if (>i nbxres 0)
+	(progn
+	  (add2sbuf_indentnl implbuf (+i 1 depth))
+	  (add2sbuf_strconst implbuf "union basilysparam_un restab[")
+	  (add2sbuf_longdec implbuf nbxres)
+	  (add2sbuf_strconst implbuf "];")
+	  (add2sbuf_indentnl implbuf (+i 1 depth))
+	  ))
+    (if (>i nbxres 0)
+	(progn
+	  (add2sbuf_strconst implbuf "memset(&restab, 0, sizeof(restab));")
+	  (add2sbuf_indentnl implbuf (+i 1 depth))
+	  ;; fill the resdesclist and output initialization of restab
+	  (multiple_iterate 
+	   oxres
+	   (lambda (cures :long curank)
+	     (debug_msg "outputcod_objmultiapply cures" cures)
+	     (assert_msg "outputcod_objmultiapply @@@ NOT IMPLEMENTED cures @@@" ())
+	     (let ( (curctyp (get_ctype cures (the_null))) )
+	       (assert_msg "outputcod_objmultiapply check curctyp res" 
+			   (is_a curctyp class_ctype))
+	       (if (== curctyp ctype_value)
+		   (progn
+		     )
+		 (progn
+		   ))
+	       (add2sbuf_indentnl implbuf (get_int boxdepthp1))
+	       (list_append resdesclist (unsafe_get_field :ctype_parstring curctyp)))
+	     oxres
+	     ))
+	  ))
+    (if (>i nbarg 1)
+	(progn
+	  (add2sbuf_strconst implbuf "memset(&argtab, 0, sizeof(argtab));")
+	  (add2sbuf_indentnl implbuf (+i 1 depth))
+	  ;; output the initialization of argtab and fill the paramdesclist
+	  (multiple_iterate 
+	   oargs
+	   (lambda (curarg :long curank)
+	     (debug_msg "outputcod_objmultiapply curarg" curarg)
+	     (debug_msg "outputcod_objmultiapply curarg discr" (discrim curarg))
+	     (cbreak_msg "outputcod_objmultiapply curarg")
+	     (if (>i curank 0)
+		 (let ( (curctyp (get_ctype curarg (the_null))) )
+		   (debug_msg "outputcod_objmultiapply curctyp" curctyp)
+		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
+		   (output_location aloc implbuf (get_int boxdepthp1))
+		   (add2sbuf_strconst implbuf "argtab[")
+		   (add2sbuf_longdec implbuf  (-i curank 1))
+		   (add2sbuf_strconst implbuf "].")
+		   (list_append paramdesclist (unsafe_get_field :ctype_parstring curctyp))
+		   (if (== curctyp ctype_value)
+		       (progn
+			 (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
+			 (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+			 )
+		     (progn
+		       (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
+		       (add2sbuf_strconst implbuf " = ")
+		       (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		       ))
+		   (add2sbuf_strconst implbuf ";")
+		   ))
+	     oargs
+	     ))
+	  (add2sbuf_indentnl implbuf (get_int boxdepthp1))
+	  ))
+;;; output the destination(s)
+    (list_iterate 
+     adest
+     (lambda (curdest) 
+       (output_c_code curdest declbuf implbuf (get_int boxdepthp1))
+       (add2sbuf_strconst implbuf " = ")
+       adest
+       )
+     )
+    ;; output the apply and the closure
+    (add2sbuf_strconst implbuf " basilysgc_apply ((void*)(")
+    (output_c_code oclos declbuf implbuf (+i 1 depth))
+    (add2sbuf_strconst implbuf "), (")
+    ;; output the first argument
+    (let ( (firstarg (multiple_nth oargs 0)) )
+      (output_c_code firstarg declbuf implbuf (+i 1 depth))
+      )
+    (add2sbuf_strconst implbuf "), (")
+    ;; output the argdescr string
+    (list_iterate 
+     paramdesclist
+     (lambda (pard)
+       (add2sbuf_string implbuf pard)
+       (add2sbuf_strconst implbuf " ")
+       paramdesclist))
+    (add2sbuf_strconst implbuf "\"\"), ")
+    ;; output the argtab (or null if none)
+    (if (>i nbarg 1)
+	(add2sbuf_strconst implbuf "argtab,")
+      (add2sbuf_strconst implbuf "(union basilysparam_un*)0,"))
+    ;; no extra results
+    (add2sbuf_strconst implbuf " \"\", (union basilysparam_un*)0")
+    (add2sbuf_strconst implbuf ");")
+    (add2sbuf_indentnl implbuf (+i 1 depth))
+    (add2sbuf_strconst implbuf "}")
+    (add2sbuf_indentnl implbuf depth)
+    )
+  )
+(install_method class_objmultiapply output_c_code outpucod_objmultiapply)
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output a clear
 (defun outpucod_objclear (oclear declbuf implbuf :long depth)
   (assert_msg "check oclear" (is_a oclear class_objclear))
@@ -8089,6 +8295,7 @@
 )
 (install_method class_nrep_forever compile_obj compilobj_nrep_forever)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile an exit
 (defun compilobj_nrep_exit (nexi gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
@@ -8192,6 +8399,97 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compile a setq
+(defun compilobj_nrep_setq (nsq gcx)
+  (assert_msg "check nsq" (is_a nsq class_nrep_setq))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debug_msg "compilobj_nrep_setq nsq" nsq (the_callcount))
+  (let ( (loc (unsafe_get_field :nrep_loc nsq))
+	 (var (unsafe_get_field :nstq_var nsq))
+	 (exp (unsafe_get_field :nstq_exp nsq))
+	 (cexp (compile_obj exp gcx))
+	 (cvar (compile_obj var gcx))
+	 (cres (put_objdest cexp cvar))
+	 )
+    (and (is_a cres class_objinstr)
+	 (null (unsafe_get_field :obi_loc cres))
+	 (unsafe_put_fields cres :obi_loc loc))
+    (debug_msg "compilobj_nrep_setq cres" cres (the_callcount))
+    cres
+    ))
+(install_method class_nrep_setq compile_obj compilobj_nrep_setq)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compile a multacc [data multiple accessor]
+(defun compilobj_nrep_multacc (nma gcx)
+  (assert_msg "check nma" (is_a nma class_nrep_multacc))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debug_msg "compilobj_nrep_multacc nma" nma (the_callcount))
+  (let ( (loc (unsafe_get_field :nrep_loc nma))
+	 (mul (unsafe_get_field :naccm_mul nma))
+	 (ix (unsafe_get_field :naccm_ix nma))
+	 (cmul (compile_obj mul gcx))
+	 )
+    (debug_msg "compilobj_nrep_multacc cmul" cmul (the_callcount))
+    (assert_msg "compilobj_nrep_multacc @@ A IMPLEMENTER @@" ())
+    ))
+(install_method class_nrep_multacc compile_obj compilobj_nrep_multacc)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compile a fieldacc [data field accessor]
+(defun compilobj_nrep_fieldacc (nfa gcx)
+  (assert_msg "check nfa" (is_a nfa class_nrep_fieldacc))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debug_msg "compilobj_nrep_fieldacc nfa" nfa (the_callcount))
+  (let ( (loc (unsafe_get_field :nrep_loc nfa))
+	 (obj (unsafe_get_field :naccf_obj nfa))
+	 (fld (unsafe_get_field :naccf_fld nfa))
+	 (:long fldoff (get_int fld))
+	 (boxfldoff (make_integerbox discr_integer fldoff))
+	 (cobj (compile_obj obj gcx))
+	 ;; we factor the case when the field access cannot be done at compile time
+	 (makecompute 
+	  (lambda (boxfldoff)
+	    (let ( 
+		  (fldoff (get_int boxfldoff)) 
+		  (tcont 
+		    (make_tuple5 discr_multiple  
+				 (make_string discr_verbatimstring "/*fieldacc*/(basilys_field_object((")
+				 cobj
+				 (make_string discr_verbatimstring "),")
+				 boxfldoff
+				 (make_string discr_verbatimstring "))")
+				 )) 
+		   (res 
+		    (make_instance class_objexpv
+				   :obv_type ctype_value
+				   :obx_cont tcont))
+		   )
+	      (debug_msg "compilobj_nrep_fieldacc makecompute res" res)
+	      res
+	      )))
+	 )
+    (assert_msg "compilobj_nrep_fieldacc check fld" (is_a fld class_field))
+    (debug_msg "compilobj_nrep_fieldacc cobj" cobj (the_callcount))
+    (debug_msg "compilobj_nrep_fieldacc fld" fld (the_callcount))
+    (if (is_a cobj class_objinitobject)
+	(let ( (cdata (unsafe_get_field :oie_data cobj)) 
+	       )
+	  (if (is_a cdata class_nrep_datainstance)
+	      (let ( (slotup (unsafe_get_field :ninst_slots cdata)) 
+		     (ourslot (multiple_nth slotup fldoff)) 
+		     )
+		(if (is_a ourslot class_nrep_data)
+		    (let ( (cslot (compile_obj ourslot gcx)) )
+		      (debug_msg "compilobj_nrep_fieldacc returning cslot" cslot (the_callcount))
+		      (return cslot))
+		  (return (makecompute boxfldoff))))
+	    (return (makecompute boxfldoff)))
+	  )
+      (return (makecompute boxfldoff))
+      )))
+(install_method class_nrep_fieldacc compile_obj compilobj_nrep_fieldacc)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compile a simple application
 (defun compilobj_nrep_apply (napp gcx)
   (assert_msg "check napp" (is_a napp class_nrep_apply))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
@@ -8217,6 +8515,58 @@
       )))
 (install_method class_nrep_apply compile_obj compilobj_nrep_apply)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_multiapply (nmapp gcx)
+  (assert_msg "check napp" (is_a nmapp class_nrep_multiapply))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debug_msg "compilobj_nrep_multiapply nmapp" nmapp (the_callcount))
+  (let ( (loc (unsafe_get_field :nrep_loc nmapp))
+	 (rbinds (unsafe_get_field :nmulapp_bindings nmapp))
+	 (fun (unsafe_get_field :napp_fun nmapp))
+	 (args (unsafe_get_field :napp_args nmapp))
+	 (body (unsafe_get_field :nmulapp_body nmapp))
+	 (:long nbres (multiple_length rbinds))
+	 (reslocs 
+	  (multiple_map
+	   rbinds
+	   (lambda (bind :long ix)
+	     (assert_msg "compilobj_nrep_multiapply check bind" 
+			 (is_a bind class_formal_binding))
+	     (let ( (bder (unsafe_get_field :binder bind))
+		    (cty (unsafe_get_field :fbind_type bind)) 
+		    (obva (get_free_objloctyped gcx bder cty))
+		    )
+	       (assert_msg "compilobj_nrep_multiapply check cty" 
+			   (is_a cty class_ctype))
+	       obva
+	       ))))
+	 (oxres (make_multiple discr_multiple (if (>i nbres 1) (-i nbres 1) 0)))
+	 (firstres (multiple_nth reslocs 0))
+	 (ofun (compile_obj fun gcx))
+	 (reslist (make_list discr_list))
+	 (oargs (multiple_map args
+			      (lambda (comp :long ix)
+				(compile_obj comp gcx))))
+	 (obody (multiple_map body
+			      (lambda (comp :long ix)
+				(compile_obj comp gcx))))
+	 (omapp (make_instance class_objmultiapply
+			       :obi_loc loc
+			       :obapp_dest reslist
+			       :obapp_clos (compile_obj fun gcx)
+			       :obapp_args oargs
+			       :obmultapp_xres oxres))
+	 )
+    (if firstres (list_append reslist firstres))
+    (multiple_iterate 
+     reslocs
+     (lambda (rloc :long ix)
+       (if (>i ix 0) (multiple_put_nth oxres (-i ix 1) rloc))
+       rloc))
+    (debug_msg "compilobj_nrep_multiapply omapp" omapp (the_callcount))
+    omapp
+    ))
+(install_method class_nrep_multiapply compile_obj compilobj_nrep_multiapply)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objvalue (recv desto)
   (assert_msg "check recv" (is_a recv class_objvalue))

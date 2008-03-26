@@ -1,3 +1,6 @@
+2008-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: adding compilation of multiapply and of (compile-time) field access...
+
 2008-03-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: Start adding message sending & multicall.
 
