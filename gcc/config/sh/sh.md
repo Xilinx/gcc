@@ -3170,6 +3170,14 @@ label:
 	andi	%1, %2, %0"
   [(set_attr "type" "arith_media")])
 
+(define_insn "*andsi3_bclr"
+  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
+	(and:SI (match_operand:SI 1 "arith_reg_operand" "%0")
+		(match_operand:SI 2 "const_int_operand" "Psz")))]
+  "TARGET_SH2A && satisfies_constraint_Psz (operands[2])"
+  "bclr\\t%W2,%0"
+  [(set_attr "type" "arith")])
+
 ;; If the constant is 255, then emit an extu.b instruction instead of an
 ;; and, since that will give better code.
 
@@ -3252,6 +3260,14 @@ label:
 	ori	%1, %2, %0"
   [(set_attr "type" "arith_media")])
 
+(define_insn "*iorsi3_bset"
+  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
+	(ior:SI (match_operand:SI 1 "arith_reg_operand" "%0")
+	(match_operand:SI 2 "const_int_operand" "Pso")))]
+  "TARGET_SH2A && satisfies_constraint_Pso (operands[2])"
+  "bset\\t%V2,%0"
+  [(set_attr "type" "arith")])
+
 (define_insn "iordi3"
   [(set (match_operand:DI 0 "arith_reg_dest" "=r,r")
 	(ior:DI (match_operand:DI 1 "arith_reg_operand" "%r,r")
@@ -3325,6 +3341,15 @@ label:
 	xor	%1, %2, %0
 	xori	%1, %2, %0"
   [(set_attr "type" "arith_media")])
+
+;; Store the complements of the T bit in a register.
+(define_insn "xorsi3_movrt"
+  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
+	(xor:SI (reg:SI T_REG)
+		(const_int 1)))]
+  "TARGET_SH2A"
+  "movrt\\t%0"
+  [(set_attr "type" "arith")])
 
 (define_insn "xordi3"
   [(set (match_operand:DI 0 "arith_reg_dest" "=r,r")
@@ -4937,9 +4962,9 @@ label:
 ;; TARGET_FMOVD is in effect, and mode switching is done before reload.
 (define_insn "movsi_ie"
   [(set (match_operand:SI 0 "general_movdst_operand"
-	    "=r,r,r,r,t,r,r,r,r,m,<,<,x,l,x,l,y,<,r,y,r,*f,y,*f,y")
+	    "=r,r,r,r,r,t,r,r,r,r,m,<,<,x,l,x,l,y,<,r,y,r,*f,y,*f,y")
 	(match_operand:SI 1 "general_movsrc_operand"
-	 "Q,r,I08,I20,r,mr,x,l,t,r,x,l,r,r,>,>,>,y,i,r,y,y,*f,*f,y"))]
+	 "Q,r,I08,I20,I28,r,mr,x,l,t,r,x,l,r,r,>,>,>,y,i,r,y,y,*f,*f,y"))]
   "(TARGET_SH2E || TARGET_SH2A)
    && (register_operand (operands[0], SImode)
        || register_operand (operands[1], SImode))"
@@ -4948,6 +4973,7 @@ label:
 	mov	%1,%0
 	mov	%1,%0
 	movi20	%1,%0
+	movi20s	%1,%0
 	cmp/pl	%1
 	mov.l	%1,%0
 	sts	%1,%0
@@ -4969,12 +4995,13 @@ label:
 	flds	%1,fpul
 	fmov	%1,%0
 	! move optimized away"
-  [(set_attr "type" "pcload_si,move,movi8,move,*,load_si,mac_gp,prget,arith,store,mac_mem,pstore,gp_mac,prset,mem_mac,pload,load,fstore,pcload_si,gp_fpul,fpul_gp,fmove,fmove,fmove,nil")
-   (set_attr "late_fp_use" "*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,yes,*,*,yes,*,*,*,*")
+  [(set_attr "type" "pcload_si,move,movi8,move,move,*,load_si,mac_gp,prget,arith,store,mac_mem,pstore,gp_mac,prset,mem_mac,pload,load,fstore,pcload_si,gp_fpul,fpul_gp,fmove,fmove,fmove,nil")
+   (set_attr "late_fp_use" "*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,yes,*,*,yes,*,*,*,*")
    (set_attr_alternative "length"
      [(const_int 2)
       (const_int 2)
       (const_int 2)
+      (const_int 4)
       (const_int 4)
       (const_int 2)
       (if_then_else
@@ -7443,12 +7470,44 @@ label:
    (use (reg:PSI FPSCR_REG))
    (clobber (reg:SI PR_REG))]
   "TARGET_SH1"
-  "jsr	@%0%#"
+  "*
+   {
+     if (TARGET_SH2A && (dbr_sequence_length () == 0))
+	return \"jsr/n\\t@%0\";
+     else
+	return \"jsr\\t@%0%#\";
+   }"
+
   [(set_attr "type" "call")
    (set (attr "fp_mode")
 	(if_then_else (eq_attr "fpu_single" "yes")
 		      (const_string "single") (const_string "double")))
    (set_attr "needs_delay_slot" "yes")
+   (set_attr "fp_set" "unknown")])
+
+;; This is TBR relative jump instruction for SH2A architecture.
+;; Its use is enabled assigning an attribute "function_vector"
+;; and the vector number to a function during its declaration.
+
+(define_insn "calli_tbr_rel"
+  [(call (mem (match_operand:SI 0 "symbol_ref_operand" ""))
+	 (match_operand 1 "" ""))
+   (use (reg:PSI FPSCR_REG))
+   (clobber (reg:SI PR_REG))]
+  "TARGET_SH2A && sh2a_is_function_vector_call (operands[0])"
+  "*
+{
+  unsigned HOST_WIDE_INT vect_num;
+  vect_num = sh2a_get_function_vector_number (operands[0]);
+  operands[2] = GEN_INT (vect_num * 4);
+
+  return \"jsr/n\\t@@(%O2,tbr)\";
+}"
+  [(set_attr "type" "call")
+   (set (attr "fp_mode")
+	(if_then_else (eq_attr "fpu_single" "yes")
+		      (const_string "single") (const_string "double")))
+   (set_attr "needs_delay_slot" "no")
    (set_attr "fp_set" "unknown")])
 
 ;; This is a pc-rel call, using bsrf, for use with PIC.
@@ -7546,12 +7605,44 @@ label:
    (use (reg:PSI FPSCR_REG))
    (clobber (reg:SI PR_REG))]
   "TARGET_SH1"
-  "jsr	@%1%#"
+  "*
+   {
+     if (TARGET_SH2A && (dbr_sequence_length () == 0))
+	return \"jsr/n\\t@%1\";
+     else
+	return \"jsr\\t@%1%#\";
+   }"
   [(set_attr "type" "call")
    (set (attr "fp_mode")
 	(if_then_else (eq_attr "fpu_single" "yes")
 		      (const_string "single") (const_string "double")))
    (set_attr "needs_delay_slot" "yes")
+   (set_attr "fp_set" "unknown")])
+
+;; This is TBR relative jump instruction for SH2A architecture.
+;; Its use is enabled assigning an attribute "function_vector"
+;; and the vector number to a function during its declaration.
+
+(define_insn "call_valuei_tbr_rel"
+  [(set (match_operand 0 "" "=rf")
+	(call (mem:SI (match_operand:SI 1 "symbol_ref_operand" ""))
+	      (match_operand 2 "" "")))
+   (use (reg:PSI FPSCR_REG))
+   (clobber (reg:SI PR_REG))]
+  "TARGET_SH2A && sh2a_is_function_vector_call (operands[1])"
+  "*
+{
+  unsigned HOST_WIDE_INT vect_num;
+  vect_num = sh2a_get_function_vector_number (operands[1]);
+  operands[3] = GEN_INT (vect_num * 4);
+
+  return \"jsr/n\\t@@(%O3,tbr)\";
+}"
+  [(set_attr "type" "call")
+   (set (attr "fp_mode")
+	(if_then_else (eq_attr "fpu_single" "yes")
+		      (const_string "single") (const_string "double")))
+   (set_attr "needs_delay_slot" "no")
    (set_attr "fp_set" "unknown")])
 
 (define_insn "call_valuei_pcrel"
@@ -7714,6 +7805,17 @@ label:
 
       emit_insn (gen_symGOTPLT2reg (reg, XEXP (operands[0], 0)));
       XEXP (operands[0], 0) = reg;
+    }
+  if (!flag_pic && TARGET_SH2A
+      && GET_CODE (operands[0]) == MEM
+      && GET_CODE (XEXP (operands[0], 0)) == SYMBOL_REF)
+    {
+      if (sh2a_is_function_vector_call (XEXP (operands[0], 0)))
+	{
+	  emit_call_insn (gen_calli_tbr_rel (XEXP (operands[0], 0),
+					     operands[1]));
+	  DONE;
+	}
     }
   if (flag_pic && TARGET_SH2
       && GET_CODE (operands[0]) == MEM
@@ -7897,6 +7999,17 @@ label:
 
       emit_insn (gen_symGOTPLT2reg (reg, XEXP (operands[1], 0)));
       XEXP (operands[1], 0) = reg;
+    }
+  if (!flag_pic && TARGET_SH2A
+      && GET_CODE (operands[1]) == MEM
+      && GET_CODE (XEXP (operands[1], 0)) == SYMBOL_REF)
+    {
+      if (sh2a_is_function_vector_call (XEXP (operands[1], 0)))
+	{
+	  emit_call_insn (gen_call_valuei_tbr_rel (operands[0],
+				 XEXP (operands[1], 0), operands[2]));
+	  DONE;
+	}
     }
   if (flag_pic && TARGET_SH2
       && GET_CODE (operands[1]) == MEM
@@ -9262,7 +9375,14 @@ mov.l\\t1f,r0\\n\\
    && reload_completed
    && lookup_attribute (\"trap_exit\",
 			DECL_ATTRIBUTES (current_function_decl)) == NULL_TREE"
-  "%@	%#"
+  "*
+  {
+    if (TARGET_SH2A && (dbr_sequence_length () == 0)
+			&& !current_function_interrupt)
+       return \"rts/n\";
+    else
+       return \"%@	%#\";
+  }"
   [(set_attr "type" "return")
    (set_attr "needs_delay_slot" "yes")])
 
@@ -9449,6 +9569,16 @@ mov.l\\t1f,r0\\n\\
   "TARGET_SH1"
   "movt	%0"
   [(set_attr "type" "arith")])
+
+;; complements the T bit and stores the result in a register
+(define_insn "movrt"
+  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
+        (if_then_else (eq:SI (reg:SI T_REG) (const_int 0))
+        (const_int 1)
+        (const_int 0)))]
+  "TARGET_SH2A"
+  "movrt\\t%0"
+   [(set_attr "type" "arith")])
 
 (define_expand "seq"
   [(set (match_operand:SI 0 "arith_reg_dest" "")
@@ -13621,7 +13751,8 @@ mov.l\\t1f,r0\\n\\
   [(prefetch (match_operand 0 "address_operand" "p")
              (match_operand:SI 1 "const_int_operand" "n")
              (match_operand:SI 2 "const_int_operand" "n"))]
-  "(TARGET_HARD_SH4 || TARGET_SH5) && (TARGET_SHMEDIA || !TARGET_VXWORKS_RTP)"
+  "TARGET_SH2A || ((TARGET_HARD_SH4 || TARGET_SH5)
+   && (TARGET_SHMEDIA || !TARGET_VXWORKS_RTP))"
   "
 {
   if (GET_MODE (operands[0]) != Pmode
@@ -13631,6 +13762,14 @@ mov.l\\t1f,r0\\n\\
   if (! TARGET_SHMEDIA)
     operands[0] = force_reg (Pmode, operands[0]);
 }")
+
+(define_insn "prefetch_m2a"
+  [(prefetch (match_operand:SI 0 "register_operand" "r")
+	     (match_operand:SI 1 "const_int_operand" "n")
+	     (match_operand:SI 2 "const_int_operand" "n"))]
+  "TARGET_SH2A"
+  "pref\\t@%0"
+  [(set_attr "type" "other")])
 
 (define_insn "alloco_i"
   [(set (mem:BLK (match_operand:QI 0 "cache_address_operand" "p"))

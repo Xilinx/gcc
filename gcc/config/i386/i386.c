@@ -4599,8 +4599,8 @@ ix86_function_arg_boundary (enum machine_mode mode, tree type)
 	    align = PARM_BOUNDARY;
 	}
     }
-  if (align > 128)
-    align = 128;
+  if (align > BIGGEST_ALIGNMENT)
+    align = BIGGEST_ALIGNMENT;
   return align;
 }
 
@@ -4997,8 +4997,8 @@ setup_incoming_varargs_64 (CUMULATIVE_ARGS *cum)
 
      We also may end up assuming that only 64bit values are stored in SSE
      register let some floating point program work.  */
-  if (ix86_preferred_stack_boundary >= 128)
-    cfun->stack_alignment_needed = 128;
+  if (ix86_preferred_stack_boundary >= BIGGEST_ALIGNMENT)
+    cfun->stack_alignment_needed = BIGGEST_ALIGNMENT;
 
   save_area = frame_pointer_rtx;
   set = get_varargs_alias_set ();
@@ -24311,7 +24311,7 @@ void ix86_emit_swsqrtsf (rtx res, rtx a, enum machine_mode mode,
   e2 = gen_reg_rtx (mode);
   e3 = gen_reg_rtx (mode);
 
-  real_arithmetic (&r, NEGATE_EXPR, &dconst3, NULL);
+  real_from_integer (&r, VOIDmode, -3, -1, 0);
   mthree = CONST_DOUBLE_FROM_REAL_VALUE (r, SFmode);
 
   real_arithmetic (&r, NEGATE_EXPR, &dconsthalf, NULL);

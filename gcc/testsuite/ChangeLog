@@ -1,3 +1,104 @@
+2008-03-26  Richard Guenther  <rguenther@suse.de>
+
+	Revert
+	2008-03-26  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/fold-addr-1.c: New testcase.
+
+2008-03-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse-13.c: Include <mm_malloc.h>
+	before redefinitions of extern and __inline.
+	* gcc.target/i386/sse-13.c: Ditto.
+
+2008-03-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35332
+	* g++.dg/other/error27.C: New test.
+
+2008-03-26  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/fold-addr-1.c: New testcase.
+
+2008-03-26  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/20030731-2.c: Scan dce1 dump.
+	* gcc.dg/tree-ssa/20030917-1.c: Scan optimized dump.
+	* gcc.dg/tree-ssa/20030917-3.c: Scan ccp1 dump.
+	* gcc.dg/tree-ssa/20040721-1.c: Test linking, do not disable DOM.
+	* gcc.dg/tree-ssa/pr21574.c: Scan the fre dump.
+	* gcc.dg/tree-ssa/ssa-ccp-1.c: Scan ccp1 dump.
+	* gcc.dg/tree-ssa/ssa-ccp-3.c: Scan ccp2 dump.
+
+2008-03-26  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* g++.dg/cpp0x/variadic84.C: Update to reflect the change in
+	variadic template template parameter binding semantics.
+	* g++.dg/cpp0x/variadic85.C: Ditto.
+	* g++.dg/cpp0x/variadic88.C: New.
+	* g++.dg/cpp0x/variadic89.C: New.
+	* g++.dg/cpp0x/variadic90.C: New.
+	* g++.dg/cpp0x/variadic-ex14.C: Update to reflect the change in
+	variadic template template parameter binding semantics.
+	* g++.dg/cpp0x/variadic-lambda.C: New.
+
+2008-03-25  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR target/31558
+	* g++.dg/ext/altivec-15.C: New testcase.
+
+2008-03-25  Andrew Pinski  <pinskia@gmail.com>
+
+	PR objc/29197
+	* objc.dg/method-20.m: New testcase.
+	
+2008-03-25  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR rtl-optimization/35232
+	* gcc.target/mips/pr35232.c: New test.
+
+2008-03-25  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* g++.dg/template/sfinae4.C: New.
+	* g++.dg/template/sfinae5.C: New.
+	* g++.dg/template/sfinae6.C: New.
+	* g++.dg/template/sfinae6_neg.C: New.
+	* g++.dg/template/sfinae7.C: New.
+	* g++.dg/template/sfinae8.C: New.
+	* g++.dg/template/sfinae9.C: New.
+	* g++.dg/template/sfinae10.C: New.
+	* g++.dg/template/sfinae11.C: New.
+	* g++.dg/template/sfinae12.C: New.
+	* g++.dg/template/sfinae13.C: New.
+	* g++.dg/template/sfinae14C: New.
+
+2008-03-25  Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* gcc.target/sh/sh2a-bclr.c: New test.
+	* gcc.target/sh/sh2a-bset.c: New test.
+
+2008-03-25  Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* gcc.target/sh/sh2a-movrt.c: New test.
+
+2008-03-25  Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* gcc.target/sh/sh2a-prefetch.c: New test.
+
+2008-03-25  Jayant Sonar  <Jayant.sonar@kpitcummins.com>
+	    Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* gcc.target/sh/sh2a-movi20s.c: New test.
+
+2008-03-25  Anil Paranjape  <anil.paranjape@kpitcummins.com>
+	    Jayant Sonar  <Jayant.sonar@kpitcummins.com>
+	    Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* gcc.target/sh/sh2a-resbank.c: New test.
+	* gcc.target/sh/sh2a-tbr-jump.c: New test.
+	* gcc.target/sh/sh2a-jsrn.c: New test.
+	* gcc.target/sh/sh2a-rtsn.c: New test.
+
 2008-03-25  Uros Bizjak  <ubizjak@gmail.com>
 
 	* gcc.target/i386/sse-17.c: Include sse2-check.h.
@@ -52,8 +153,8 @@
 
 	* gcc.dg/tree-ssa/ssa-ccp-17.c: New testcase.
 
-2008-03-20 Victor Kaplansky  <victork@gcc.gnu.org>
-	   Uros Bizjak  <ubizjak@gmail.com>
+2008-03-20  Victor Kaplansky  <victork@gcc.gnu.org>
+	    Uros Bizjak  <ubizjak@gmail.com>
 
 	PR testsuite/34168
 	* lib/target-supports.exp (check_sse2_hw_available): New procedure.

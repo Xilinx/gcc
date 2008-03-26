@@ -1,3 +1,292 @@
+2008-03-26  Tom Tromey  <tromey@redhat.com>
+
+	* Makefile.in (build/gensupport.o, build/print-rtl.o,
+	build/read-rtl.o, build/rtl.o, build/gencondmd.o, build/genattr.o,
+	build/genattrtab.o, build/genautomata.o, build/gencheck.o,
+	build/gencodes.o, build/genconditions.o, build/genconfig.o,
+	build/genconstants.o, build/genemit.o, build/genextract.o,
+	build/genflags.o, build/genmddeps.o, build/genopinit.o,
+	build/genoutput.o, build/genpeep.o, build/genrecog.o): Depend on
+	options.h.
+
+2008-03-26  Richard Guenther  <rguenther@suse.de>
+
+	Revert
+	2008-03-26  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (target.h): Include.
+	(fold_comparison): Fold comparison of addresses of two decls
+	that bind locally.  Consolidate address folding code.
+
+2008-03-26  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* builtins.c (expand_builtin_pow, fold_builtin_cabs,
+	fold_builtin_sqrt, fold_builtin_cbrt, fold_builtin_logarithm,
+	fold_builtin_hypot, fold_builtin_pow): Remove uses of dconst3,
+	dconstsqrt2, dconstthird, dconste and/or dconst10.
+	* config/i386/i386.c (ix86_emit_swsqrtsf): Likewise.
+	* emit-rtl.c (dconst3, dconst10, dconstm2, dconstthird,
+	dconstsqrt2, dconste): Delete.
+	(init_emit_once): Likewise.  Simplify initializing dconstm1.
+	Constify variable.
+	* real.c (get_real_const): New.
+	* real.h (dconst3, dconst10, dconstm2, dconstthird,
+	dconstsqrt2, dconste): Delete.
+	(real_value_const, get_real_const): New.
+
+2008-03-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/cygming.h (BIGGEST_ALIGNMENT): Removed.
+
+	* config/i386/i386.c (ix86_function_arg_boundary): Check
+	BIGGEST_ALIGNMENT instead of 128.
+	(setup_incoming_varargs_64): Likewise.
+
+2008-03-26  Tom Tromey  <tromey@redhat.com>
+
+	* Makefile.in (DEPFILES): Add missing '/'.
+
+2008-03-26  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (target.h): Include.
+	(fold_comparison): Fold comparison of addresses of two decls
+	that bind locally.  Consolidate address folding code.
+
+2008-03-26  Nick Clifton  <nickc@redhat.com>
+
+	PR target/31232
+	* config/stormy16/stormy16.c (xstormy16_legitimate_address_p): Do
+	not allow INT+INT as a legitimate addressing mode.
+
+2008-03-26  Richard Guenther  <rguenther@suse.de>
+
+	* tree-flow.h (widen_bitfield): Remove declaration.
+	* tree-ssa-ccp.c (visit_assignment): Remove unneeded code.
+	(widen_bitfield): Remove function.
+	* tree-ssa-dom.c (record_equivalences_from_stmt): Remove unneeded
+	code.
+
+2008-03-25  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR target/31558
+	* config/rs6000/rs6000-c.c (rs6000_builtin_type_compatible): Handle
+	error_mark_node's.
+
+2008-03-25  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR rtl-optimization/35232
+	* reload1.c (reg_reloaded_call_part_clobbered): Clarify comment.
+	(forget_old_reloads_1, forget_marked_reloads): Don't clear
+	reg_reloaded_call_part_clobbered here.
+	(reload_regs_reach_end_p): New function.
+	(reload_reg_rtx_for_input): New variable.
+	(reload_reg_rtx_for_output): Likewise.
+	(emit_input_reload_insns): Use reloadreg rather than rl->reg_rtx
+	when reassigning a pseudo register.  Load reloadreg from 
+	reload_reg_rtx_for_input, moving the mode and register
+	calculation to...
+	(do_input_reload): ...here.  Use the mode-adjusted reg_rtx
+	instead of the original when deciding whether an input reload
+	would be a no-op or whether an output reload can be deleted.
+	(emit_output_reload_insns): Use the mode-adjusted reg_rtx
+	when setting up new_spill_reg_store.  Load it from
+	reload_reg_rtx_for_output, moving the mode and register
+	calculation to...
+	(do_output_reload): ...here.  Use the mode-adjusted reg_rtx
+	instead of the original when deciding whether an output reload
+	would be a no-op.  Do the same when modifying insn notes.
+	Use rtx_equal_p instead of == to compare the registers.
+	(inherit_piecemeal_p): Take a mode and two register numbers
+	as argument.
+	(emit_reload_insns): Clear new_spill_reg_store for every hard
+	register in the reload register.  Remove spill registers
+	from reg_reloaded_valid before considering whether to record
+	inheritance information for them.  Use reload_reg_rtx_for_output
+	instead of reg_rtx when recording output reloads.  Use
+	reload_reg_rtx_for_input instead of reg_rtx when recording
+	input reloads.  Set or clear reg_reloaded_call_part_clobbered
+	at the same time as setting reg_reloaded_valid.
+	(delete_output_reload): Add a new_reload_reg parameter and use it
+	instead of rld[j].reg_rtx.
+	(emit_input_reload_insns, do_input_reload, do_output_reload): Adjust
+	calls accordingly.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Makefile.in (build/gensupport.o): Depend on insn-modes.h.
+	(build/genattr.o): Likewise.
+	(build/genattrtab.o): Likewise.
+	(build/gencodes.o): Likewise.
+	(build/genconfig.o): Likewise.
+	(build/genconstants.o): Likewise.
+	(build/genemit.o): Likewise.
+	(build/genextract.o): Likewise.
+	(build/genflags.o): Likewise.
+
+2008-03-25  Bob Wilson  <bob.wilson@acm.org>
+	
+	* config/xtensa/xtensa.c (xtensa_va_start): Use build_int_cst
+	instead of size_int for integer types.
+	(xtensa_gimplify_va_arg_expr): Likewise.  Convert index to sizetype
+	to match type of MINUS_EXPR.
+	
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* configure: Rebuilt.
+	* configure.ac (BUILD_DEPMODE): Extract CCDEPMODE from temporary
+	Makefile.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* config/x-solaris (host-solaris.o): Update.
+	* config/x-linux (host-linux.o): Update.
+	* config/x-hpux (host-hpux.o): Update.
+	* config/x-darwin (host-darwin.o): Update.
+	* config/v850/t-v850e (v850-c.o): Update.
+	* config/v850/t-v850 (v850-c.o): Update.
+	* config/t-vxworks (vxworks.o): Update.
+	* config/t-sol2 (sol2-c.o, sol2.o): Update.
+	* config/t-darwin (darwin.o, darwin-c.o, darwin-driver.o): Update.
+	* config/spu/t-spu-elf (spu-c.o): Update.
+	(spu.o): Remove.
+	* config/sh/t-symbian (sh-c.o): Update.
+	(symbian.o): Update.
+	* config/sh/t-sh (sh-c.o): Update.
+	* config/score/t-score-elf (score7.o, score3.o): Update.
+	* config/rs6000/x-rs6000 (driver-rs6000.o): Update.
+	* config/rs6000/x-darwin64 (host-ppc64-darwin.o): Update.
+	* config/rs6000/x-darwin (host-ppc-darwin.o): Update.
+	* config/rs6000/t-rs6000 (rs6000-c.o): Update.
+	(rs6000.o): Remove.
+	* config/m68k/t-uclinux (generated_files): Add sysroot-suffix.h.
+	* config/m32c/t-m32c (m32c-pragma.o): Update.
+	* config/ia64/t-ia64 (ia64-c.o): Update.
+	* config/i386/x-mingw32 (host-mingw32.o): Update.
+	* config/i386/x-i386 (driver-i386.o): Update.
+	* config/i386/x-darwin (host-i386-darwin.o): Update.
+	* config/i386/x-cygwin (host-cygwin.o): Update.
+	* config/i386/t-nwld (nwld.o): Update.
+	* config/i386/t-netware (netware.o): Update.
+	* config/i386/t-interix (winnt.o): Update.
+	* config/i386/t-cygwin (cygwin1.o, cygwin2.o): Update.
+	* config/i386/t-cygming (winnt.o, winnt-cxx.o, winnt-stubs.o,
+	msformat-c.o): Update.
+	* config/bfin/t-bfin-linux (generated_files): Add
+	linux-sysroot-suffix.h.
+	* config/arm/t-wince-pe (pe.o): Update.
+	* config/arm/t-strongarm-pe (pe.o): Update.
+	* config/arm/t-pe (pe.o): Update.
+	* config/arm/t-arm (arm-c.o): Update.
+	* doc/install.texi (Prerequisites): Require make 3.80.
+	* Makefile.in: Remove .o targets.
+	(CCDEPMODE, DEPDIR, depcomp, BUILD_DEPMODE): New variables.
+	(OBSTACK_H, FIBHEAP_H, PARTITION_H, MD5_H, BCONFIG_H): Remove.
+	(simple_generated_h, simple_generated_c): Move earlier.
+	(generated_files): New variable.
+	(TARGET_H, MACHMODE_H, HOOKS_H, HOSTHOOKS_DEF_H, LANGHOOKS_DEF_H,
+	TARGET_DEF_H, RTL_BASE_H, RTL_H, PARAMS_H, BUILTINS_DEF, TREE_H,
+	BASIC_BLOCK_H, GCOV_IO_H, COVERAGE_H, DEMANGLE_H, RECOG_H,
+	ALIAS_H, EMIT_RTL_H, FLAGS_H, FUNCTION_H, EXPR_H, OPTABS_H,
+	REGS_H, RA_H, RESOURCE_H, SCHED_INT_H, INTEGRATE_H, CFGLAYOUT_H,
+	CFGLOOP_H, IPA_UTILS_H, IPA_REFERENCE_H, IPA_TYPE_ESCAPE_H,
+	CGRAPH_H, DF_H, RESOURCE_H, DDG_H, GCC_H, GGC_H, TIMEVAR_H,
+	INSN_ATTR_H, C_COMMON_H, C_PRAGMA_H, C_TREE_H, SYSTEM_H,
+	PREDICT_H, DECNUM_H, MKDEPS_H, SYMTAB_H, TREE_DUMP_H,
+	TREE_GIMPLE_H, TREE_FLOW_H, TREE_SSA_LIVE_H, PRETTY_PRINT_H,
+	DIAGNOSTIC_H, C_PRETTY_PRINT_H, SCEV_H, LAMBDA_H, TREE_DATA_REF_H,
+	VARRAY_H, TREE_INLINE_H, REAL_H, DBGCNT_H, EBIMAP_H): Remove.
+	(.c.o): Remove.
+	(COMPILE.base, COMPILE): New variables.
+	(%.o): New pattern rule.
+	(ALL_HOST_OBJS): New variable.
+	(xgcc$(exeext), cpp$(exeext)): Remove extra version.o.
+	(dummy-checksum.o, cc1-checksum.o): Remove.
+	(DRIVER_SHLIB): New variable.
+	(DRIVER_DEFINES): Use it.
+	(gencondmd.c): Move out of build/.
+	(s-conditions): Update.
+	(BUILDCOMPILE.base, BUILDCOMPILE): New variables.
+	(ALL_BUILD_OBJS): Likewise.
+	(build/%.o): Use BUILDCOMPILE.
+	(build/ggc-none.o, build/ggc-none.o, build/min-insn-modes.o,
+	build/print-rtl.o, build/read-rtl.o, build/rtl.o, build/vec.o,
+	build/gencondmd.o, build/genattrtab.o, build/genautomata.o,
+	build/gencheck.o, build/gencodes.o, build/genconditions.o,
+	build/genconfig.o, build/genconstants.o, build/genemit.o,
+	build/genextract.o, build/genflags.o, build/genmddeps.o,
+	build/genopinit.o, build/genoutput.o, build/genpeep.o,
+	build/genpreds.o, build/genrecog.o, build/gcov-iov.o,
+	build/gen-protos.o, build/scan.o, build/fix-header.o,
+	build/scan-decls.o): Simplify.
+	(collect2.o, c-opts.o, gcc.o, gccspec.o, gcc-options.o,
+	cppdefault.o, protoize.o, unprotoize.o, intl.o, version.o,
+	prefix.o, toplev.o): Reduce to variable setting.
+	(libbackend.o): Use COMPILE.  Remove most dependencies.  Move later.
+	($(out_object_file), gcc-options.o): New targets.
+	($(ALL_HOST_OBJS)): New target.  Include dependency files.
+	* configure: Rebuilt.
+	* configure.ac: Call ZW_CREATE_DEPDIR, ZW_PROG_COMPILER_DEPENDENCIES.
+	* doc/sourcebuild.texi (Front End Directory): Document new variable.
+
+2008-03-25  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* c-common.c (c_sizeof_or_alignof_type): If we're not allowed to
+	complain when we hit an error, return ERROR_MARK_NODE.
+
+2008-03-25  Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* config/sh/constraints.md (Pso, Psz): New constraints.
+	* config/sh/sh.c (print_operand): Add %V and %W operand codes.
+	* config/sh/sh.md (*andsi3_bclr, *iorsi3_bset): New insns.
+
+2008-03-25  Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* config/sh/sh.c (sh_expand_t_scc): Emit movrt for SH2A if possible.
+	* config/sh/sh.md (xorsi3_movrt, movrt): New insns.
+
+2008-03-25  Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* config/sh/sh.md (prefetch): Add condition for SH2A target.
+	(prefetch_sh2a): New.	
+
+2008-03-25  Jayant Sonar  <Jayant.sonar@kpitcummins.com>
+	    Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* config/sh/constraints.md (I28): New constraint.
+	* config/sh/sh.c (broken_move): Add support for movi20s.
+	* config/sh/sh.md (movsi_ie): Add the alternative for movi20s.
+
+2008-03-25  Anil Paranjape  <anil.paranjape@kpitcummins.com>
+	    Jayant Sonar  <Jayant.sonar@kpitcummins.com>
+	    Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* config/sh/sh.c (SH_ATTRIBUTES): Define.
+	(SYMBOL_FLAG_FUNCVEC_FUNCTION): Define.
+	(print_operand): Handle resbank in %@ operand code.
+	(sh_encode_section_info): New.
+	(push_regs): Add conditions for resbank.
+	(sh_expand_epilogue): Likewise.
+	(sh_insert_attributes): Likewise.
+	(sh_attribute_table): Likewise.
+	(sh_handle_resbank_handler_attribute): New.
+	(sh2a_handle_function_vector_handler_attribute): New.
+	(sh2a_is_function_vector_call): New.
+	(sh2a_get_function_vector_number): New.
+	(sh2a_function_vector_p): New.
+	(sh_cfun_resbank_handler_p): New.
+	* config/sh/sh.md (calli): Emit jsr/n if possible.
+	(calli_tbr_rel): New.
+	(calli_pcrel): Emit jsr/n if possible.
+	(return_i): Emit rts/n if possible.
+	(call_valuei_tbr_rel): New.
+	(call_valuei_pcrel): Add condition for SH2A target.
+	(call_value): Likewise.
+	* config/sh/sh-protos.h (sh_cfun_resbank_handler_p): Declare.
+	(sh2a_get_function_vector_number): Likewise.
+	(sh2a_is_function_vector_call): Likewise.
+	* doc/extend.texi: Document TBR relative addressing of SH2A.
+	(resbank): Add description for SH2A.
+
 2008-03-24  Richard Guenther  <rguenther@suse.de>
 
 	PR c/22371
@@ -335,8 +624,8 @@
 2008-03-19  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/35609
-	* tree-ssa.c (always_executed): New global flag.
-	(warn_uninitialized_var): If !always_executed warn with "maybe"
+	* tree-ssa.c (walk_data): New structure.
+	(warn_uninitialized_var): If not always_executed warn with "maybe"
 	instead of "is".
 	(execute_early_warn_uninitialized): Compute post-dominators.
 	Initialize always_executed before processing each basic block.

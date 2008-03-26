@@ -5035,7 +5035,7 @@ prepend_attributes (Entity_Id gnat_entity, struct attrib ** attr_list)
 						  (First (gnat_assoc)))))));
 	  }
 
-	switch (Get_Pragma_Id (Chars (gnat_temp)))
+	switch (Get_Pragma_Id (Pragma_Identifier (Chars (gnat_temp))))
 	  {
 	  case Pragma_Machine_Attribute:
 	    etype = ATTR_MACHINE_ATTRIBUTE;
@@ -5528,18 +5528,6 @@ maybe_pad_type (tree type, tree size, unsigned int align,
 
   if (align == 0 && !size)
     return type;
-
-  /* If no size is specified and we have an integral type, and changing
-     the alignment won't change its size, return a copy of the type
-     with the specified alignment.  */
-  if (!size
-      && INTEGRAL_TYPE_P (type)
-      && value_factor_p (orig_size, align))
-    {
-      type = copy_type (type);
-      TYPE_ALIGN (type) = align;
-      return type;
-    }
 
   /* We used to modify the record in place in some cases, but that could
      generate incorrect debugging information.  So make a new record
@@ -7080,10 +7068,11 @@ check_ok_for_atomic (tree object, Entity_Id gnat_entity, bool comp_p)
        gnat_node = Next_Rep_Item (gnat_node))
     {
       if (!comp_p && Nkind (gnat_node) == N_Pragma
-	  && Get_Pragma_Id (Chars (gnat_node)) == Pragma_Atomic)
+	  && (Get_Pragma_Id (Chars (Pragma_Identifier (gnat_node)))
+              == Pragma_Atomic))
 	gnat_error_point = First (Pragma_Argument_Associations (gnat_node));
       else if (comp_p && Nkind (gnat_node) == N_Pragma
-	       && (Get_Pragma_Id (Chars (gnat_node))
+	       && (Get_Pragma_Id (Chars (Pragma_Identifier (gnat_node)))
 		   == Pragma_Atomic_Components))
 	gnat_error_point = First (Pragma_Argument_Associations (gnat_node));
     }
