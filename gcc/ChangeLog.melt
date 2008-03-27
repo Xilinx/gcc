@@ -1,4 +1,30 @@
 2008-03-27   Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: (unsafe_index_mapobject, unsafe_index_mapstring)
+	(unsafe_index_mappointer) returns a free index for tables which
+	have mostly deleted entries. (basilysgc_send) Added naughty dirty
+	trick to avoid eating a callframe on every send. (basilys_apply)
+	new name of basilysgc_apply since it has no frame and do not
+	perform any allocation. (basilysgc_new_mult6, basilysgc_new_mult7)
+	new functions.
+
+	* basilys.h: (basilys_curframdepth) new
+	function. (basilysgc_new_mult6, basilysgc_new_mult7) new
+	functions.
+
+	* melt/warm-basilys.bysl: (the_framedepth) new primitive.
+	(debug_msg) displays the call depth. Added output of semicolon
+	before goto-s. (compilobj_nrep_multacc, compilobj_nrep_fieldacc)
+	working. (compil_data_and_slots_fill) Handles correctly the
+	ndata_locbind field. Uses basilys_apply in generated code.
+
+	* melt-cc-script.proto: added output of generated timestamp file for
+	debugging.
+
+	* melt/test0.bysl: more tests.
+
+	* melt/test1.bysl: more tests.
+
+2008-03-27   Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: the newer [from trunk] Makefile.in did not work. Added use of LTDL_LDFLAGS, PPLLIBS, ...
 
 2008-03-26   Basile Starynkevitch  <basile@starynkevitch.net>

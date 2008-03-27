@@ -199,6 +199,8 @@
 
 ;;; the call counter
 (defprimitive the_callcount () :long "callcount")
+;;; the current frame depth
+(defprimitive the_framedepth () :long "(basilys_curframdepth())")
 
 ;; primitive to get or create a symbol from a string value
 (defprimitive get_symbolstr (strv) :value
@@ -1724,7 +1726,8 @@
 				  :dbgi_maxdepth boxedmaxdepth))
 	     )
 ;	(message_dbg "Debug_Msg+")
-	(outnum_dbg "!*#" dbgcounter ":")
+	(outnum_dbg "!*#" dbgcounter "/")
+	(outnum_dbg "" (-i (the_framedepth) 1) ":")
 	(outstr_dbg msgstr)
 	(if (>i count 0) (outnum_dbg " !" count ": "))
 	(dbg_out val dbgi 0)
@@ -5819,6 +5822,7 @@
 	(if (>i (multiple_length nbindtup) 0) 
 	    (unsafe_put_fields insdata :ndata_locbind nbindtup))
 	;; return the data
+	(debug_msg "normexp_definstance return insdata" insdata (the_callcount))
 	insdata
 	))))
 (install_method class_src_definstance normal_exp normexp_definstance)
@@ -6106,6 +6110,9 @@
 (defclass class_objinitmultiple
   :super class_objinitelem
   :fields (
+	   ;; we may need to tuple of compiled values for accessing
+	   ;; the nth at compilation time in compilobj_nrep_multacc
+	   oim_tupval			;tuple of compiled values
 ))
 (defun outdeclinit_objinitmultiple (recv sbuf)
   (add2sbuf_strconst sbuf " struct BASILYS_MULTIPLE_STRUCT(")
@@ -6732,6 +6739,7 @@
        (output_c_code curget declbuf implbuf 1)
        ogargs
        ))
+    (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " goto lab_endgetargs;")
     (add2sbuf_indentnl implbuf 0)
@@ -6745,10 +6753,13 @@
     (list_iterate 
      obody
      (lambda (curbody)
-       (output_c_code curbody declbuf implbuf 0)
-       (add2sbuf_indentnl implbuf 0)
+       (if (is_a curbody class_objinstr) 
+	   (progn
+	     (output_c_code curbody declbuf implbuf 0)
+	     (add2sbuf_indentnl implbuf 0)))
        obody))
     ;; end of implementation
+    (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " goto labend_rout;")
     (add2sbuf_indentnl implbuf 0)
@@ -6843,10 +6854,14 @@
        ibody
        (lambda (curbody)
 	 (debug_msg "outpucod_initialroutine curbody" curbody (the_callcount))
-	 (output_c_code curbody declbuf implbuf 1)
+	 (if (is_a curbody class_objinstr) 
+	     (progn
+	       (output_c_code curbody declbuf implbuf 1)
+	       (add2sbuf_indentnl implbuf 1)))
 	 ibody)
       ))
     ;; end of implementation
+    (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " goto labend_rout;")
     (add2sbuf_indentnl implbuf 0)
@@ -7083,6 +7098,7 @@
 	       (add2sbuf_strconst implbuf ";")
 	       (add2sbuf_indentnl implbuf depthp1))
 	     bodyl))))
+    (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf (+i depth 1))
     (add2sbuf_strconst implbuf " goto labloop_")
     (add2sbuf_clonsym implbuf lab)
@@ -7127,6 +7143,7 @@
 	(add2sbuf_strconst implbuf ";")
 	(add2sbuf_indentnl implbuf (+i depth 1))
 	))
+    (add2sbuf_strconst implbuf ";")
     (add2sbuf_strconst implbuf " goto labexit_")
     (add2sbuf_clonsym implbuf olab)	
     (add2sbuf_strconst implbuf ";}")
@@ -7156,7 +7173,9 @@
 	   (output_c_code expcur declbuf implbuf (get_int boxdepthp1))
 	   cexp))
       (output_c_code cexp declbuf implbuf (+i depth 1))
-      )))
+      )
+    (add2sbuf_strconst implbuf ";")
+))
 (install_method class_objcompute output_c_code outpucod_objcompute)
 
 
@@ -7263,7 +7282,7 @@
        )
      )
     ;; output the apply and the closure
-    (add2sbuf_strconst implbuf " basilysgc_apply ((void*)(")
+    (add2sbuf_strconst implbuf " basilys_apply ((void*)(")
     (output_c_code oclos declbuf implbuf (+i 1 depth))
     (add2sbuf_strconst implbuf "), (")
     ;; output the first argument
@@ -7398,7 +7417,7 @@
        )
      )
     ;; output the apply and the closure
-    (add2sbuf_strconst implbuf " basilysgc_apply ((void*)(")
+    (add2sbuf_strconst implbuf " basilys_apply ((void*)(")
     (output_c_code oclos declbuf implbuf (+i 1 depth))
     (add2sbuf_strconst implbuf "), (")
     ;; output the first argument
@@ -7673,6 +7692,8 @@
 (defun outpucod_finalreturn (fret declbuf implbuf :long depth)
   (assert_msg "check fret" (is_a fret class_objfinalreturn))
   (output_location (unsafe_get_field :obi_loc fret))
+  (add2sbuf_strconst implbuf ";")
+  (add2sbuf_indentnl implbuf depth)
   (add2sbuf_strconst implbuf "/*finalret*/ goto labend_rout ")
 )
 (install_method class_objfinalreturn output_c_code outpucod_finalreturn)
@@ -8091,7 +8112,11 @@
 	  (shortbacktrace_dbg "compilobj locsymocc  null sbnd" 16)
 	  ))
     (if (null ovar) 
-	(assert_msg "compilocsy null ovar with ctype_void" (== oty ctype_void))
+	(progn
+	  (debug_msg "compilobj locsymocc null ovar sbnd" sbnd (the_callcount))
+	  (debug_msg "compilobj locsymocc null ovar locmap" locmap (the_callcount))
+	  (assert_msg "compilocsy null ovar with ctype_void" (== oty ctype_void))
+	  )
       (assert_msg "compilocsy check ovar"  (is_a ovar class_objlocv)))
     ovar
 ))
@@ -8429,10 +8454,47 @@
 	 (mul (unsafe_get_field :naccm_mul nma))
 	 (ix (unsafe_get_field :naccm_ix nma))
 	 (cmul (compile_obj mul gcx))
+	 ;; we factor the case when the tuple access cannot be done at
+	 ;; compile time
+	 (makecompute 
+	  (lambda ()
+	    (let (
+		  (tcont 
+		   (make_tuple5 
+		    discr_multiple
+		    (make_string discr_verbatimstring "/*multacc*/(basilys_multiple_nth((")
+		    cmul
+		    (make_string discr_verbatimstring "), (")
+		    ix
+		    (make_string discr_verbatimstring ")))")
+		    ))
+		  (res 
+		   (make_instance class_objexpv
+				  :obv_type ctype_value
+				  :obx_cont tcont))
+		  )
+	      (debug_msg "compilobj_nrep_multacc makecompute res" res)
+	      res
+	      ))
+	  )
 	 )
     (debug_msg "compilobj_nrep_multacc cmul" cmul (the_callcount))
-    (assert_msg "compilobj_nrep_multacc @@ A IMPLEMENTER @@" ())
-    ))
+    (debug_msg "compilobj_nrep_multacc again nma" nma (the_callcount))
+    (if (and
+	 (is_a cmul class_objinitmultiple)
+	 (is_integerbox ix))
+	(let ( (comptup (unsafe_get_field :oim_tupval cmul)) )
+	  (if (is_multiple comptup)
+	      (let (
+		    (curval (multiple_nth comptup (get_int ix))) 
+		    )
+		(debug_msg "compilobj_nrep_multacc returning curval" curval (the_callcount))
+		(return curval)
+		)
+	    (makecompute)
+	    ))
+      (makecompute)
+      )))
 (install_method class_nrep_multacc compile_obj compilobj_nrep_multacc)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a fieldacc [data field accessor]
@@ -8446,11 +8508,11 @@
 	 (:long fldoff (get_int fld))
 	 (boxfldoff (make_integerbox discr_integer fldoff))
 	 (cobj (compile_obj obj gcx))
-	 ;; we factor the case when the field access cannot be done at compile time
+	 ;; we factor the case when the field access cannot be done at
+	 ;; compile time
 	 (makecompute 
-	  (lambda (boxfldoff)
+	  (lambda ()
 	    (let ( 
-		  (fldoff (get_int boxfldoff)) 
 		  (tcont 
 		    (make_tuple5 discr_multiple  
 				 (make_string discr_verbatimstring "/*fieldacc*/(basilys_field_object((")
@@ -8482,10 +8544,10 @@
 		    (let ( (cslot (compile_obj ourslot gcx)) )
 		      (debug_msg "compilobj_nrep_fieldacc returning cslot" cslot (the_callcount))
 		      (return cslot))
-		  (return (makecompute boxfldoff))))
-	    (return (makecompute boxfldoff)))
+		  (return (makecompute))))
+	    (return (makecompute)))
 	  )
-      (return (makecompute boxfldoff))
+      (return (makecompute))
       )))
 (install_method class_nrep_fieldacc compile_obj compilobj_nrep_fieldacc)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8925,31 +8987,56 @@
   (assert_msg "compil_data_and_slots_fill check odiscr" (is_a odiscr class_objvalue))
   (assert_msg "compil_data_and_slots_fill check irout" (is_a irout class_initialroutineobj))
   (assert_msg "compil_data_and_slots_fill check gcx" (is_a gcx class_genercontext))
-;;  (debug_msg "compil_data_and_slots_fill ndat" ndat (the_callcount))
-;;  (debug_msg "compil_data_and_slots_fill obj" obj (the_callcount))
-;;  (debug_msg "compil_data_and_slots_fill odiscr" odiscr (the_callcount))
-;;  (debug_msg "compil_data_and_slots_fill irout un" irout (the_callcount))
+  (debug_msg "compil_data_and_slots_fill ndat" ndat (the_callcount))
+ ;; (debug_msg "compil_data_and_slots_fill obj" obj (the_callcount))
+ ;; (debug_msg "compil_data_and_slots_fill odiscr" odiscr (the_callcount))
+ ;; (debug_msg "compil_data_and_slots_fill irout un" irout (the_callcount))
   (let (
 	(ibodylis (unsafe_get_field :obrout_body irout))
 	(ifilllis (unsafe_get_field :oirout_fill irout))
 	(locvar (get_free_objlocptr gcx '_valdata_))
 	(comm (unsafe_get_field :named_name '_valuedata_))
 	(nloc (unsafe_get_field :nrep_loc ndat))
+	(dlocbind (unsafe_get_field :ndata_locbind ndat))
+	(locmap (unsafe_get_field :gncx_locmap gcx))
+	;; a tuple to store the objvar for localbinds to be able to clear them later
+	(tupvar (make_multiple discr_multiple (multiple_length locmap)))
 	)
     (assert_msg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
     (assert_msg "compil_data_and_slots_fill check fresh obj" (null (unsafe_get_field :oie_locvar obj)))
     (unsafe_put_fields obj :oie_locvar locvar)
     (assert_msg "check ifilllis" (is_list ifilllis))
     (assert_msg "check ibodylis" (is_list ibodylis))
+    ; (debug_msg "compil_data_and_slots_fill dlocbind" dlocbind (the_callcount))
+    (multiple_iterate
+     dlocbind
+     (lambda (lbind :long bindrk)
+       ; (debug_msg "compil_data_and_slots_fill lbind" lbind)
+       (assert_msg "compil_data_and_slots_fill check lbind" (is_a lbind class_normlet_binding))
+       (let ( (bder (unsafe_get_field :binder lbind))
+	      (cty (unsafe_get_field :letbind_type lbind))
+	      (nexp (unsafe_get_field :letbind_expr lbind))
+	      (obva (get_free_objloctyped gcx bder cty))
+	      (obnx (compile_obj nexp gcx)) 
+	      )
+	 (if obva (mapobject_put locmap lbind obva))
+	 (let ( (obmy (if obva (put_objdest obnx obva) obnx)) )
+	   ;; add the modified obmy in the ibodylis
+	   (list_append ibodylis obmy)
+	   )
+	 (if obva (multiple_put_nth tupvar bindrk obva))
+	 )
+       ))
     ;; for every non nil slot, append its initialization to the body of irout
     (multiple_iterate
      (unsafe_get_field :ninst_slots ndat)
      (lambda (sloval :long slork)
-       ;;  (debug_msg "compil_data_and_slots_fill sloval" sloval (the_callcount))
+       ; (debug_msg "compil_data_and_slots_fill sloval" sloval (the_callcount))
        (if sloval
+           ;;; add to list inifill the filling in dai of slot#slork by slobj
 	   (let ( (slobj (compile_obj sloval gcx)) 
 		  )
-	     ;; (debug_msg "compil_data_and_slots_fill slobj" slobj (the_callcount))
+	     ; (debug_msg "compil_data_and_slots_fill slobj" slobj (the_callcount))
 	     (let ( (oput 
 		     (make_instance class_objputslot
 				    :obi_loc  nloc
@@ -8960,19 +9047,37 @@
 	       (list_append ibodylis oput)
 	       )
 	     )
-;;; add to list inifill the filling in dai of slot#slork by slobj
 	 )
        )
      ndat				;return in iteration 
      )
+    ;; touch the object
     (list_append ibodylis 
 		 (make_instance class_objtouch
 				:obi_loc  nloc
 				:obi_loc (unsafe_get_field :nrep_loc ndat)
 				:otouch_comment comm
 				:otouch_val obj))
+    ;; for every non nil local obvar, clear it
+    (multiple_iterate
+     tupvar
+     (lambda (obva :long ix)
+       (if obva
+	   (progn
+	     (list_append ibodylis
+			  (make_instance class_objclear 
+					 :obi_loc nloc
+					 :oclr_vloc obva))
+	     ))
+       tupvar				;continue the iteration
+       )
+     )
+    ;; dispose every local binding
+    (multiple_iterate
+     dlocbind
+     (lambda (bnd :long ix) (dispose_bnd_obj bnd gcx) dlocbind))
     )
-;;  (debug_msg "compil_data_and_slots_fill final irout" irout (the_callcount))
+  (debug_msg "compil_data_and_slots_fill final irout" irout (the_callcount))
   (return)				;force a nil return
   )
 
@@ -9110,6 +9215,9 @@
 	  (debug_msg "compilobj_datatuple found chobj" chobj)
 	  (return chobj)))
     (let ( (ncompi (unsafe_get_field :ntup_comp nti))
+	   (ocompi (multiple_map 
+		    ncompi
+		    (lambda (c :long ix) (if c (compile_obj c gcx)))))
 	   (disx (unsafe_get_field :ndata_discrx nti))
 	   (drank (unsafe_get_field :ndata_rank nti))
 	   (odiscr (compile_obj disx gcx)) 
@@ -9130,6 +9238,7 @@
 				  :oie_discr odiscr
 				  :oie_locvar locvar
 				  :oie_cname (strbuf2string discr_string nambuf)
+				  :oim_tupval ocompi
 				  ))
 	     )
 	(mapobject_put compicache nti otup)
@@ -9138,7 +9247,7 @@
 	 ncompi
 	 (lambda (scomp :long srk)
 	   (if scomp 
-	       (let ( (ocomp (compile_obj scomp gcx)) )
+	       (let ( (ocomp (multiple_nth ocompi srk)) )
 		 (list_append inibody
 			      (make_instance class_objputuple
 					     :oputu_tupled otup

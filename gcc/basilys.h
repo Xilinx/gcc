@@ -151,7 +151,9 @@ typedef basilys_ptr_t basilysroutfun_t (basilysclosure_ptr_t closp_,
 					const char xresdescr_[],
 					union basilysparam_un *xrestab_);
 
-basilys_ptr_t basilysgc_apply (basilysclosure_ptr_t clos_p,
+/* the application routine does not call the GC; of course, the
+   applied closure can call the GC! */
+basilys_ptr_t basilys_apply (basilysclosure_ptr_t clos_p,
 			       basilys_ptr_t firstarg,
 			       const char xargdescr_[],
 			       union basilysparam_un *xargtab_,
@@ -1319,6 +1321,18 @@ basilys_ptr_t basilysgc_new_mult5 (basilysobject_ptr_t discr_p,
 				   basilys_ptr_t v0_p, basilys_ptr_t v1_p,
 				   basilys_ptr_t v2_p, basilys_ptr_t v3_p,
 				   basilys_ptr_t v4_p);
+/* allocate a multiple of arity 6 */
+basilys_ptr_t basilysgc_new_mult6 (basilysobject_ptr_t discr_p,
+				   basilys_ptr_t v0_p, basilys_ptr_t v1_p,
+				   basilys_ptr_t v2_p, basilys_ptr_t v3_p,
+				   basilys_ptr_t v4_p, basilys_ptr_t v5_p);
+/* allocate a multiple of arity 7 */
+basilys_ptr_t basilysgc_new_mult7 (basilysobject_ptr_t discr_p,
+				   basilys_ptr_t v0_p, basilys_ptr_t v1_p,
+				   basilys_ptr_t v2_p, basilys_ptr_t v3_p,
+				   basilys_ptr_t v4_p, basilys_ptr_t v5_p,
+				   basilys_ptr_t v6_p);
+
 
 /* allocate a new (empty) list */
 basilys_ptr_t basilysgc_new_list (basilysobject_ptr_t discr_p);
@@ -1962,6 +1976,13 @@ struct callframe_basilys_st
 
 /* the topmost call frame */
 extern struct callframe_basilys_st *basilys_topframe;
+
+static inline int basilys_curframdepth(void) {
+  int cnt = 0;
+  struct callframe_basilys_st* fr = basilys_topframe;
+  for (;fr;fr=fr->prev) cnt++;
+  return cnt;
+}
 
 #if 0
 /* the jmpbuf for our catch & throw */

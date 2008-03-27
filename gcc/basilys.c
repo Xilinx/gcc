@@ -1336,6 +1336,10 @@ unsafe_index_mapobject (struct entryobjectsbasilys_st *tab,
 	  return frix;
 	}
     }
+  if (frix >= 0)
+    return frix;		/* found some place in a table with
+				   deleted entries but no empty
+				   entries */
   return -1;			/* entirely full, should not happen */
 }
 
@@ -2236,6 +2240,7 @@ end:
 #undef object_discrv
 }
 
+
 basilys_ptr_t
 basilysgc_new_mult5 (basilysobject_ptr_t discr_p,
 		     basilys_ptr_t v0_p, basilys_ptr_t v1_p,
@@ -2283,6 +2288,122 @@ end:
 #undef v2
 #undef v3
 #undef v4
+#undef mult_newmul
+#undef object_discrv
+}
+
+
+basilys_ptr_t
+basilysgc_new_mult6 (basilysobject_ptr_t discr_p,
+		     basilys_ptr_t v0_p, basilys_ptr_t v1_p,
+		     basilys_ptr_t v2_p, basilys_ptr_t v3_p,
+		     basilys_ptr_t v4_p, basilys_ptr_t v5_p)
+{
+  BASILYS_ENTERFRAME (8, NULL);
+#define newmul curfram__.varptr[0]
+#define discrv  curfram__.varptr[1]
+#define v0   curfram__.varptr[2]
+#define v1   curfram__.varptr[3]
+#define v2   curfram__.varptr[4]
+#define v3   curfram__.varptr[5]
+#define v4   curfram__.varptr[6]
+#define v5   curfram__.varptr[7]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+#define mult_newmul ((struct basilysmultiple_st*)(newmul))
+  discrv = (void *) discr_p;
+  v0 = v0_p;
+  v1 = v1_p;
+  v2 = v2_p;
+  v3 = v3_p;
+  v4 = v4_p;
+  v5 = v5_p;
+  newmul = NULL;
+  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_MULTIPLE)
+    goto end;
+  newmul =
+    basilysgc_allocate (sizeof (struct basilysmultiple_st),
+			sizeof (void *) * 6);
+  mult_newmul->discr = object_discrv;
+  mult_newmul->nbval = 6;
+  mult_newmul->tabval[0] = v0;
+  mult_newmul->tabval[1] = v1;
+  mult_newmul->tabval[2] = v2;
+  mult_newmul->tabval[3] = v3;
+  mult_newmul->tabval[4] = v4;
+  mult_newmul->tabval[5] = v5;
+end:
+  BASILYS_EXITFRAME ();
+  return newmul;
+#undef newmul
+#undef discrv
+#undef v0
+#undef v1
+#undef v2
+#undef v3
+#undef v4
+#undef v5
+#undef mult_newmul
+#undef object_discrv
+}
+
+basilys_ptr_t
+basilysgc_new_mult7 (basilysobject_ptr_t discr_p,
+		     basilys_ptr_t v0_p, basilys_ptr_t v1_p,
+		     basilys_ptr_t v2_p, basilys_ptr_t v3_p,
+		     basilys_ptr_t v4_p, basilys_ptr_t v5_p,
+		     basilys_ptr_t v6_p)
+{
+  BASILYS_ENTERFRAME (9, NULL);
+#define newmul curfram__.varptr[0]
+#define discrv  curfram__.varptr[1]
+#define v0   curfram__.varptr[2]
+#define v1   curfram__.varptr[3]
+#define v2   curfram__.varptr[4]
+#define v3   curfram__.varptr[5]
+#define v4   curfram__.varptr[6]
+#define v5   curfram__.varptr[7]
+#define v6   curfram__.varptr[8]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+#define mult_newmul ((struct basilysmultiple_st*)(newmul))
+  discrv = (void *) discr_p;
+  v0 = v0_p;
+  v1 = v1_p;
+  v2 = v2_p;
+  v3 = v3_p;
+  v4 = v4_p;
+  v5 = v5_p;
+  v6 = v6_p;
+  newmul = NULL;
+  if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_MULTIPLE)
+    goto end;
+  newmul =
+    basilysgc_allocate (sizeof (struct basilysmultiple_st),
+			sizeof (void *) * 7);
+  mult_newmul->discr = object_discrv;
+  mult_newmul->nbval = 7;
+  mult_newmul->tabval[0] = v0;
+  mult_newmul->tabval[1] = v1;
+  mult_newmul->tabval[2] = v2;
+  mult_newmul->tabval[3] = v3;
+  mult_newmul->tabval[4] = v4;
+  mult_newmul->tabval[5] = v5;
+  mult_newmul->tabval[6] = v6;
+end:
+  BASILYS_EXITFRAME ();
+  return newmul;
+#undef newmul
+#undef discrv
+#undef v0
+#undef v1
+#undef v2
+#undef v3
+#undef v4
+#undef v5
+#undef v6
 #undef mult_newmul
 #undef object_discrv
 }
@@ -2571,6 +2692,10 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
 			  basilys_ptr_t valu_p)
 {
   long ix = 0, len = 0, cnt = 0;
+#if ENABLE_CHECKING
+  static long callcount;
+  long curcount = ++callcount;
+#endif
   BASILYS_ENTERFRAME (4, NULL);
 #define discrv curfram__.varptr[0]
 #define mapobjectv curfram__.varptr[1]
@@ -2592,6 +2717,7 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
     goto end;
   if (!map_mapobjectv->entab)
     {
+      /* fresh map without any entab; allocate it minimally */
       size_t lensiz = 0;
       len = basilys_primtab[1];	/* i.e. 3 */
       lensiz = len * sizeof (struct entryobjectsbasilys_st);
@@ -2615,6 +2741,7 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
 	(5 * (cnt = map_mapobjectv->count)) / 4 + 1
 	|| (len <= 5 && cnt + 1 >= len))
     {
+      /* entab is nearly full so need to be resized */
       int ix, newcnt = 0;
       int newlen = basilys_primtab[map_mapobjectv->lenix + 1];
       size_t newlensiz = 0;
@@ -2656,6 +2783,13 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
     }
   ix =
     unsafe_index_mapobject (map_mapobjectv->entab, object_attrobjectv, len);
+#if ENABLE_CHECKING
+  if (ix < 0)
+    debugeprintf
+      ("put_mapobjects failed curcount %ld len %ld map %p count %d lenix %d",
+       curcount, len, mapobjectv, map_mapobjectv->count,
+       map_mapobjectv->lenix);
+#endif
   gcc_assert (ix >= 0);
   if (map_mapobjectv->entab[ix].e_at != attrobjectv)
     {
@@ -2817,6 +2951,8 @@ unsafe_index_mapstring (struct entrystringsbasilys_st *tab,
       else if (!strcmp (curat, attr))
 	return ix;
     }
+  if (frix >= 0)		/* found a place in a table with deleted entries */
+    return frix;
   return -1;			/* entirely full, should not happen */
 }
 
@@ -3153,6 +3289,8 @@ unsafe_index_mappointer (struct entrypointerbasilys_st *tab,
       else if (curat == attr)
 	return ix;
     }
+  if (frix >= 0)		/* found some place in a table with deleted entries */
+    return frix;
   return -1;			/* entirely full, should not happen */
 }
 
@@ -3595,11 +3733,11 @@ static int appldepth_basilys;
 #endif
 /*************** closure application ********************/
 basilys_ptr_t
-basilysgc_apply (basilysclosure_ptr_t clos_p,
-		 basilys_ptr_t arg1_p,
-		 const char *xargdescr_,
-		 union basilysparam_un *xargtab_,
-		 const char *xresdescr_, union basilysparam_un *xrestab_)
+basilys_apply (basilysclosure_ptr_t clos_p,
+	       basilys_ptr_t arg1_p,
+	       const char *xargdescr_,
+	       union basilysparam_un *xargtab_,
+	       const char *xresdescr_, union basilysparam_un *xrestab_)
 {
   basilys_ptr_t res = NULL;
   union
@@ -3623,9 +3761,6 @@ basilysgc_apply (basilysclosure_ptr_t clos_p,
   memcpy (&ufun.funad, clos_p->rout->routaddr,
 	  sizeof (clos_p->rout->routaddr));
   gcc_assert (ufun.pfun);
-  /* only make sense on AMD64/Linux */
-  gcc_assert (((unsigned long) ufun.pfun) > 4096UL
-	      && ((unsigned long) ufun.pfun) < 0xffffffffff600000UL);
   res =
     (*ufun.pfun) (clos_p, arg1_p, xargdescr_, xargtab_, xresdescr_, xrestab_);
 #if ENABLE_CHECKING
@@ -3644,6 +3779,19 @@ basilysgc_send (basilys_ptr_t recv_p,
 		union basilysparam_un * xargtab_,
 		const char *xresdescr_, union basilysparam_un * xrestab_)
 {
+  /* NAUGHTY TRICK here: message sending is very common, and we want
+     to avoid having the current frame (the frame declared by the
+     B*ENTERFRAME macro call below) to be active when the application
+     for the sending is performed. This should make our call frames'
+     linked list shorter. To do so, we put the closure to apply and
+     the reciever in the two variables below. Yes this is dirty, but
+     it works! 
+
+     We should be very careful when modifying this routine */
+  /* never assign to these if a GC could happen */
+  basilysclosure_ptr_t closure_dirtyptr = NULL;
+  basilys_ptr_t recv_dirtyptr = NULL;
+
 #ifdef ENABLE_CHECKING
   static long sendcount;
   long sendnum = ++sendcount;
@@ -3702,8 +3850,8 @@ basilysgc_send (basilys_ptr_t recv_p,
 	    {
 	      union basilysparam_un pararg[1];
 	      pararg[0].bp_aptr = (basilys_ptr_t *) & selv;
-	      resv = basilysgc_apply (closv, recv, BPARSTR_PTR, pararg,
-				      "", NULL);
+	      resv = basilys_apply (closv, recv, BPARSTR_PTR, pararg,
+				    "", NULL);
 	      closv = resv;
 	    }
 	}
@@ -3712,9 +3860,14 @@ basilysgc_send (basilys_ptr_t recv_p,
 #if 0 && ENABLE_CHECKING
 	  debugeprintf ("send #%ld applying closv %p", sendnum, closv);
 #endif
+	  /* NAUGHTY TRICK: assign to dirty (see comments near start of function) */
+	  closure_dirtyptr = closv;
+	  recv_dirtyptr = recv;
+	  /*** OLD CODE: 
 	  resv =
-	    basilysgc_apply (closv, recv, xargdescr_, xargtab_,
+	    basilys_apply (closv, recv, xargdescr_, xargtab_,
 			     xresdescr_, xrestab_);
+	  ***/
 	  goto end;
 	}
       discrv = obj_discrv->obj_vartab[FDISCR_SUPER];
@@ -3727,6 +3880,10 @@ end:
 		basilys_string_str (obj_selv->obj_vartab[FNAMED_NAME]));
 #endif
   BASILYS_EXITFRAME ();
+  /* NAUGHTY TRICK  (see comments near start of function) */
+  if (closure_dirtyptr)
+    return basilys_apply (closure_dirtyptr, recv_dirtyptr, xargdescr_,
+			  xargtab_, xresdescr_, xrestab_);
   return resv;
 #undef recv
 #undef selv
@@ -3750,7 +3907,6 @@ char *
 basilys_tempdir_path (const char *basnam)
 {
   int loopcnt = 0;
-  char *res = 0;
   char *cdir = 0;
   extern char *choose_tmpdir (void);	/* from libiberty/choose-temp.c */
   gcc_assert (basnam && (ISALNUM (basnam[0]) || basnam[0] == '_'));
@@ -4459,8 +4615,8 @@ basilysgc_named_symbol (const char *nam, int create)
 	  nstrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), namdup);
 	  pararg[0].bp_aptr = (basilys_ptr_t *) & nstrv;
 	  symbv =
-	    basilysgc_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
-			     pararg, "", NULL);
+	    basilys_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
+			   pararg, "", NULL);
 	  goto end;
 	}
     }
@@ -4508,8 +4664,8 @@ basilysgc_intern_symbol (basilys_ptr_t symb_p)
       memset (&pararg, 0, sizeof (pararg));
       pararg[0].bp_aptr = (basilys_ptr_t *) & symbv;
       resv =
-	basilysgc_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
-			 pararg, "", NULL);
+	basilys_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
+		       pararg, "", NULL);
       goto end;
     }
 fail:
@@ -4559,8 +4715,8 @@ basilysgc_intern_keyword (basilys_ptr_t keyw_p)
       memset (&pararg, 0, sizeof (pararg));
       pararg[0].bp_aptr = (basilys_ptr_t *) & keywv;
       resv =
-	basilysgc_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
-			 pararg, "", NULL);
+	basilys_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
+		       pararg, "", NULL);
       goto end;
     }
 fail:
@@ -4628,8 +4784,8 @@ basilysgc_named_keyword (const char *nam, int create)
 	  nstrv = basilysgc_new_string (BASILYSGOB (DISCR_STRING), namdup);
 	  pararg[0].bp_aptr = (basilys_ptr_t *) & nstrv;
 	  keywv =
-	    basilysgc_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
-			     pararg, "", NULL);
+	    basilys_apply (closv, BASILYSG (TOKENIZER), BPARSTR_PTR,
+			   pararg, "", NULL);
 	  goto end;
 	}
     }
@@ -5222,10 +5378,10 @@ do_initial_command (void)
 	pararg[1].bp_aptr = (basilys_ptr_t *) & csecstrv;
       }
     debugeprintf ("do_initial_command before apply closv %p", closv);
-    (void) basilysgc_apply (closv,
-			    BASILYSG
-			    (INITIAL_COMMAND_DISPATCHER),
-			    BPARSTR_PTR, pararg, "", NULL);
+    (void) basilys_apply (closv,
+			  BASILYSG
+			  (INITIAL_COMMAND_DISPATCHER),
+			  BPARSTR_PTR, pararg, "", NULL);
     debugeprintf ("do_initial_command after apply closv %p", closv);
   }
 end:;

@@ -56,8 +56,11 @@ md5src=`md5sum $csource`
 
 trap "rm -f $datf.*" EXIT
 
-date "+const char basilys_compiled_timestamp[]=\"$csource %c\";" > $datf.c
+date "+const char basilys_compiled_timestamp[]=\"%c $csource\";" > $datf.c
 echo "const char basilys_md5[]=\"$md5src\";" >> $datf.c
+
+head $datf.c
+
 case `uname` in
 Linux|SunOS|Solaris) 
 	$melt_cc -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff.so;;
