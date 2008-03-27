@@ -771,6 +771,10 @@ GGC
 zlibdir
 zlibinc
 MAINT
+am__leading_dot
+DEPDIR
+CCDEPMODE
+BUILD_DEPMODE
 gcc_tooldir
 dollar
 slibdir
@@ -1439,7 +1443,6 @@ Optional Features:
 			  Categories are: yes,no,all,none,release.
 			  Flags are: assert,df,fold,gc,gcac,misc,
 			  rtlflag,rtl,runtime,tree,valgrind,types.
-  --enable-mapped-location   location_t is fileline integer cookie
   --enable-coverage=LEVEL
 			  enable compiler's code coverage collection.
 			  Use to measure compiler performance and locate
@@ -8009,22 +8012,6 @@ fi
 
 
 
-# Check whether --enable-mapped-location was given.
-if test "${enable_mapped_location+set}" = set; then
-  enableval=$enable_mapped_location;
-else
-  enable_mapped_location=yes
-fi
-
-
-if test "$enable_mapped_location" = yes ; then
-
-cat >>confdefs.h <<\_ACEOF
-#define USE_MAPPED_LOCATION 1
-_ACEOF
-
-fi
-
 # Enable code coverage collection
 # Check whether --enable-coverage was given.
 if test "${enable_coverage+set}" = set; then
@@ -13229,14 +13216,36 @@ objext='.o'
 # With Setjmp/Longjmp based exception handling.
 # Check whether --enable-sjlj-exceptions was given.
 if test "${enable_sjlj_exceptions+set}" = set; then
-  enableval=$enable_sjlj_exceptions; sjlj=`if test $enableval = yes; then echo 1; else echo 0; fi`
+  enableval=$enable_sjlj_exceptions; case $target in
+  *-*-hpux10*)
+    if test $enableval != yes; then
+      { echo "$as_me:$LINENO: WARNING: dwarf2 exceptions not supported, sjlj exceptions forced" >&5
+echo "$as_me: WARNING: dwarf2 exceptions not supported, sjlj exceptions forced" >&2;}
+      enableval=yes
+    fi
+    ;;
+esac
+force_sjlj_exceptions=yes
+else
+  case $target in
+  *-*-hpux10*)
+    force_sjlj_exceptions=yes
+    enableval=yes
+    ;;
+  *)
+    force_sjlj_exceptions=no
+    ;;
+esac
+fi
+
+if test $force_sjlj_exceptions = yes; then
+  sjlj=`if test $enableval = yes; then echo 1; else echo 0; fi`
 
 cat >>confdefs.h <<_ACEOF
 #define CONFIG_SJLJ_EXCEPTIONS $sjlj
 _ACEOF
 
 fi
-
 
 # For platforms with the unwind ABI which includes an unwind library,
 # libunwind, we can choose to use the system libunwind.
@@ -13751,6 +13760,9 @@ else
 		--enable-languages=${enable_languages-all} \
 		--target=$target_alias --host=$build_alias --build=$build_alias
 	CFLAGS="${saved_CFLAGS}"
+
+	# Extract this setting from the temporary Makefile.
+	BUILD_DEPMODE=`grep '^CCDEPMODE = ' Makefile | sed -e 's,.* = ,,'`
 
 	# We just finished tests for the build machine, so rename
 	# the file auto-build.h in the gcc directory.
@@ -17939,6 +17951,133 @@ do
 done
 
 # --------
+# Dependency checking.
+# --------
+
+rm -rf .tst 2>/dev/null
+mkdir .tst 2>/dev/null
+if test -d .tst; then
+  am__leading_dot=.
+else
+  am__leading_dot=_
+fi
+rmdir .tst 2>/dev/null
+
+DEPDIR="${am__leading_dot}deps"
+
+ac_config_commands="$ac_config_commands depdir"
+
+
+ac_config_commands="$ac_config_commands gccdepdir"
+
+
+depcc="$CC"   am_compiler_list=
+
+am_depcomp=$ac_aux_dir/depcomp
+{ echo "$as_me:$LINENO: checking dependency style of $depcc" >&5
+echo $ECHO_N "checking dependency style of $depcc... $ECHO_C" >&6; }
+if test "${am_cv_CC_dependencies_compiler_type+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -f "$am_depcomp"; then
+  # We make a subdir and do the tests there.  Otherwise we can end up
+  # making bogus files that we don't know about and never remove.  For
+  # instance it was reported that on HP-UX the gcc test will end up
+  # making a dummy file named `D' -- because `-MD' means `put the output
+  # in D'.
+  mkdir conftest.dir
+  # Copy depcomp to subdir because otherwise we won't find it if we're
+  # using a relative directory.
+  cp "$am_depcomp" conftest.dir
+  cd conftest.dir
+  # We will build objects and dependencies in a subdirectory because
+  # it helps to detect inapplicable dependency modes.  For instance
+  # both Tru64's cc and ICC support -MD to output dependencies as a
+  # side effect of compilation, but ICC will put the dependencies in
+  # the current directory while Tru64 will put them in the object
+  # directory.
+  mkdir sub
+
+  am_cv_CC_dependencies_compiler_type=none
+  if test "$am_compiler_list" = ""; then
+     am_compiler_list=`sed -n 's/^\([a-zA-Z0-9]*\))$/\1/p' < ./depcomp`
+  fi
+  for depmode in $am_compiler_list; do
+    if test $depmode = none; then break; fi
+
+    echo "$as_me:$LINENO: trying $depmode" >&5
+    # Setup a source with many dependencies, because some compilers
+    # like to wrap large dependency lists on column 80 (with \), and
+    # we should not choose a depcomp mode which is confused by this.
+    #
+    # We need to recreate these files for each test, as the compiler may
+    # overwrite some of them when testing with obscure command lines.
+    # This happens at least with the AIX C compiler.
+    : > sub/conftest.c
+    for i in 1 2 3 4 5 6; do
+      echo '#include "conftst'$i'.h"' >> sub/conftest.c
+      # Using `: > sub/conftst$i.h' creates only sub/conftst1.h with
+      # Solaris 8's {/usr,}/bin/sh.
+      touch sub/conftst$i.h
+    done
+    echo "include sub/conftest.Po" > confmf
+
+    # We check with `-c' and `-o' for the sake of the "dashmstdout"
+    # mode.  It turns out that the SunPro C++ compiler does not properly
+    # handle `-M -o', and we need to detect this.
+    depcmd="depmode=$depmode \
+       source=sub/conftest.c object=sub/conftest.${OBJEXT-o} \
+       depfile=sub/conftest.Po tmpdepfile=sub/conftest.TPo \
+       $SHELL ./depcomp $depcc -c -o sub/conftest.${OBJEXT-o} sub/conftest.c"
+    echo "| $depcmd" | sed -e 's/  */ /g' >&5
+    if env $depcmd > conftest.err 2>&1 &&
+       grep sub/conftst6.h sub/conftest.Po >>conftest.err 2>&1 &&
+       grep sub/conftest.${OBJEXT-o} sub/conftest.Po >>conftest.err 2>&1 &&
+       ${MAKE-make} -s -f confmf >>conftest.err 2>&1; then
+      # icc doesn't choke on unknown options, it will just issue warnings
+      # or remarks (even with -Werror).  So we grep stderr for any message
+      # that says an option was ignored or not supported.
+      # When given -MP, icc 7.0 and 7.1 complain thusly:
+      #   icc: Command line warning: ignoring option '-M'; no argument required
+      # The diagnosis changed in icc 8.0:
+      #   icc: Command line remark: option '-MP' not supported
+      if (grep 'ignoring option' conftest.err ||
+          grep 'not supported' conftest.err) >/dev/null 2>&1; then :; else
+        am_cv_CC_dependencies_compiler_type=$depmode
+	echo "$as_me:$LINENO: success" >&5
+        break
+      fi
+    fi
+    echo "$as_me:$LINENO: failure, diagnostics are:" >&5
+    sed -e 's/^/| /' < conftest.err >&5
+  done
+
+  cd ..
+  rm -rf conftest.dir
+else
+  am_cv_CC_dependencies_compiler_type=none
+fi
+
+fi
+{ echo "$as_me:$LINENO: result: $am_cv_CC_dependencies_compiler_type" >&5
+echo "${ECHO_T}$am_cv_CC_dependencies_compiler_type" >&6; }
+if test x${am_cv_CC_dependencies_compiler_type-none} = xnone
+then { { echo "$as_me:$LINENO: error: no usable dependency style found" >&5
+echo "$as_me: error: no usable dependency style found" >&2;}
+   { (exit 1); exit 1; }; }
+else CCDEPMODE=depmode=$am_cv_CC_dependencies_compiler_type
+
+fi
+
+# Note that if build!=host then we extracted the value from the
+# temporary Makefile we created above, when we ran configure.
+if test "${build}" = "${host}" ; then
+  BUILD_DEPMODE='$(CCDEPMODE)'
+fi
+
+
+
+# --------
 # UNSORTED
 # --------
 
@@ -18658,6 +18797,8 @@ cat >>$CONFIG_STATUS <<_ACEOF
 #
 # INIT-COMMANDS
 #
+ac_aux_dir=$ac_aux_dir DEPDIR=$DEPDIR
+subdirs="$subdirs" ac_aux_dir=$ac_aux_dir DEPDIR=$DEPDIR
 subdirs='$subdirs'
 
 _ACEOF
@@ -18672,6 +18813,8 @@ do
     "as") CONFIG_FILES="$CONFIG_FILES as:exec-tool.in" ;;
     "collect-ld") CONFIG_FILES="$CONFIG_FILES collect-ld:exec-tool.in" ;;
     "nm") CONFIG_FILES="$CONFIG_FILES nm:exec-tool.in" ;;
+    "depdir") CONFIG_COMMANDS="$CONFIG_COMMANDS depdir" ;;
+    "gccdepdir") CONFIG_COMMANDS="$CONFIG_COMMANDS gccdepdir" ;;
     "$all_outputs") CONFIG_FILES="$CONFIG_FILES $all_outputs" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
 
@@ -18944,6 +19087,10 @@ GGC!$GGC$ac_delim
 zlibdir!$zlibdir$ac_delim
 zlibinc!$zlibinc$ac_delim
 MAINT!$MAINT$ac_delim
+am__leading_dot!$am__leading_dot$ac_delim
+DEPDIR!$DEPDIR$ac_delim
+CCDEPMODE!$CCDEPMODE$ac_delim
+BUILD_DEPMODE!$BUILD_DEPMODE$ac_delim
 gcc_tooldir!$gcc_tooldir$ac_delim
 dollar!$dollar$ac_delim
 slibdir!$slibdir$ac_delim
@@ -18973,10 +19120,6 @@ extra_parts!$extra_parts$ac_delim
 extra_passes!$extra_passes$ac_delim
 extra_programs!$extra_programs$ac_delim
 float_h_file!$float_h_file$ac_delim
-gcc_config_arguments!$gcc_config_arguments$ac_delim
-gcc_gxx_include_dir!$gcc_gxx_include_dir$ac_delim
-host_exeext!$host_exeext$ac_delim
-host_xm_file_list!$host_xm_file_list$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -19018,6 +19161,10 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+gcc_config_arguments!$gcc_config_arguments$ac_delim
+gcc_gxx_include_dir!$gcc_gxx_include_dir$ac_delim
+host_exeext!$host_exeext$ac_delim
+host_xm_file_list!$host_xm_file_list$ac_delim
 host_xm_include_list!$host_xm_include_list$ac_delim
 host_xm_defines!$host_xm_defines$ac_delim
 out_host_hook_obj!$out_host_hook_obj$ac_delim
@@ -19048,7 +19195,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 28; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 32; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -19449,6 +19596,13 @@ echo "$as_me: executing $ac_file commands" >&6;}
     "as":F) chmod +x as ;;
     "collect-ld":F) chmod +x collect-ld ;;
     "nm":F) chmod +x nm ;;
+    "depdir":C) $SHELL $ac_aux_dir/mkinstalldirs $DEPDIR ;;
+    "gccdepdir":C)
+  ${CONFIG_SHELL-/bin/sh} $ac_aux_dir/mkinstalldirs build/$DEPDIR
+  for lang in $subdirs
+  do
+      ${CONFIG_SHELL-/bin/sh} $ac_aux_dir/mkinstalldirs $lang/$DEPDIR
+  done ;;
     "default":C)
 case ${CONFIG_HEADERS} in
   *auto-host.h:config.in*)

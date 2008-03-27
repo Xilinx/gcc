@@ -2098,6 +2098,7 @@ rm -f conftest.sed
 # SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
 # OS/2's system install, which has a completely different semantic
 # ./install, which can be erroneously created by make from ./install.sh.
+# Reject install programs that cannot install multiple files.
 { echo "$as_me:$LINENO: checking for a BSD-compatible install" >&5
 echo $ECHO_N "checking for a BSD-compatible install... $ECHO_C" >&6; }
 if test -z "$INSTALL"; then
@@ -2131,8 +2132,18 @@ case $as_dir/ in
 	    # program-specific install script used by HP pwplus--don't use.
 	    :
 	  else
-	    ac_cv_path_install="$as_dir/$ac_prog$ac_exec_ext -c"
-	    break 3
+	    rm -rf conftest.one conftest.two conftest.dir
+	    echo one > conftest.one
+	    echo two > conftest.two
+	    mkdir conftest.dir
+	    if "$as_dir/$ac_prog$ac_exec_ext" -c conftest.one conftest.two "`pwd`/conftest.dir" &&
+	      test -s conftest.one && test -s conftest.two &&
+	      test -s conftest.dir/conftest.one &&
+	      test -s conftest.dir/conftest.two
+	    then
+	      ac_cv_path_install="$as_dir/$ac_prog$ac_exec_ext -c"
+	      break 3
+	    fi
 	  fi
 	fi
       done
@@ -2142,6 +2153,7 @@ esac
 done
 IFS=$as_save_IFS
 
+rm -rf conftest.one conftest.two conftest.dir
 
 fi
   if test "${ac_cv_path_install+set}" = set; then
@@ -2474,13 +2486,13 @@ esac
 
 # Handle --enable-gold.
 
-# Check whether --enable-gold or --disable-gold was given.
+# Check whether --enable-gold was given.
 if test "${enable_gold+set}" = set; then
-  enableval="$enable_gold"
-  ENABLE_GOLD=$enableval
+  enableval=$enable_gold; ENABLE_GOLD=$enableval
 else
   ENABLE_GOLD=no
-fi;
+fi
+
 if test "${ENABLE_GOLD}" = "yes"; then
   # Check for ELF target.
   is_elf=no

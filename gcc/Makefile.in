@@ -291,6 +291,17 @@ ZLIBINC = @zlibinc@
 GMPLIBS = @GMPLIBS@
 GMPINC = @GMPINC@
 
+### for MELT/ Basilys 
+# How to find PPL (Parma Polyhedra Library)
+PPLLIBS = @ppllibs@
+PPLINC = @pplinc@
+
+# How to file LTDL (LibTool DynLoader)
+LTDLLIBS = @ltdllibs@
+LTDLINC = @ltdlinc@
+LTDL_LDFLAGS= @ltdl_ldflags@
+#### end of Basilys stuff
+
 CPPLIB = ../libcpp/libcpp.a
 CPPINC = -I$(srcdir)/../libcpp/include
 
@@ -823,7 +834,8 @@ BUILD_LIBDEPS= $(BUILD_LIBIBERTY)
 
 # How to link with both our special library facilities
 # and the system's installed libraries.
-LIBS = @LIBS@ $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) $(LIBDECNUMBER)
+LIBS = @LIBS@ $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) $(LIBDECNUMBER) \
+   $(PPLLIBS) $(GMPLIBS)  $(LTDLLIBS) $(GMPLIBS)
 
 # Any system libraries needed just for GNAT.
 SYSLIBS = @GNAT_LIBEXC@
@@ -848,6 +860,7 @@ BUILD_ERRORS = build/errors.o
 # libintl.h will be found in ../intl if we are using the included libintl.
 INCLUDES = -I. -I$(@D) -I$(srcdir) -I$(srcdir)/$(@D) \
 	   -I$(srcdir)/../include @INCINTL@ \
+	   $(PPLINC) $(LTDLINC) \
 	   $(CPPINC) $(GMPINC) $(DECNUMINC)
 
 COMPILE.base = $(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) -o $@
@@ -1523,14 +1536,14 @@ gcc-cross$(exeext): xgcc$(exeext)
 	cp xgcc$(exeext) gcc-cross$(exeext)
 
 cc1-dummy$(exeext): $(C_OBJS) dummy-checksum.o $(BACKEND) $(LIBDEPS)
-	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(C_OBJS) dummy-checksum.o \
+	$(CC) $(ALL_CFLAGS) $(LDFLAGS) $(LTDL_LDFLAGS) -o $@ $(C_OBJS) dummy-checksum.o \
 	  $(BACKEND) $(LIBS) $(GMPLIBS)
 
 cc1-checksum.c : cc1-dummy$(exeext) build/genchecksum$(build_exeext)
 	build/genchecksum$(build_exeext) cc1-dummy$(exeext) > $@
 
 cc1$(exeext): $(C_OBJS) cc1-checksum.o $(BACKEND) $(LIBDEPS)
-	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(C_OBJS) cc1-checksum.o \
+	$(CC) $(ALL_CFLAGS) $(LDFLAGS) $(LTDL_LDFLAGS) -o $@ $(C_OBJS) cc1-checksum.o \
 	  $(BACKEND) $(LIBS) $(GMPLIBS)
 
 #
@@ -1921,7 +1934,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/tree-ssa-structalias.c $(srcdir)/tree-parloops.c \
   $(srcdir)/omp-low.c $(srcdir)/varpool.c \
   $(srcdir)/targhooks.c $(out_file) $(srcdir)/passes.c $(srcdir)/cgraphunit.c \
-  $(patsubst %.o, $(srcdir)/%.c, $(COMPILER_PROBE_OBJ) ) \
+  $(patsubst %.o, $(srcdir)/%.c, @COMPILER_PROBE@) \
   $(srcdir)/basilys.c \
   @all_gtfiles@
 
