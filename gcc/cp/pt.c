@@ -6791,9 +6791,29 @@ apply_late_template_attributes (tree *decl_p, tree attributes, int attr_flags,
 	    {
 	      *p = TREE_CHAIN (t);
 	      TREE_CHAIN (t) = NULL_TREE;
-	      TREE_VALUE (t)
-		= tsubst_expr (TREE_VALUE (t), args, complain, in_decl,
-			       /*integral_constant_expression_p=*/false);
+	      /* If the first attribute argument is an identifier, don't
+		 pass it through tsubst.  Attributes like mode, format,
+		 cleanup and several target specific attributes expect it
+		 unmodified.  */
+	      if (TREE_VALUE (t)
+		  && TREE_CODE (TREE_VALUE (t)) == TREE_LIST
+		  && TREE_VALUE (TREE_VALUE (t))
+		  && (TREE_CODE (TREE_VALUE (TREE_VALUE (t)))
+		      == IDENTIFIER_NODE))
+		{
+		  tree chain
+		    = tsubst_expr (TREE_CHAIN (TREE_VALUE (t)), args, complain,
+				   in_decl,
+				   /*integral_constant_expression_p=*/false);
+		  if (chain != TREE_CHAIN (TREE_VALUE (t)))
+		    TREE_VALUE (t)
+		      = tree_cons (NULL_TREE, TREE_VALUE (TREE_VALUE (t)),
+				   chain);
+		}
+	      else
+		TREE_VALUE (t)
+		  = tsubst_expr (TREE_VALUE (t), args, complain, in_decl,
+				 /*integral_constant_expression_p=*/false);
 	      *q = t;
 	      q = &TREE_CHAIN (t);
 	    }
@@ -9896,9 +9916,30 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
           /* We only want to compute the number of arguments.  */
           tree expanded = tsubst_pack_expansion (TREE_OPERAND (t, 0), args,
                                                 complain, in_decl);
+	  int len;
+
+	  if (TREE_CODE (expanded) == TREE_VEC)
+	    len = TREE_VEC_LENGTH (expanded);
+
 	  if (expanded == error_mark_node)
 	    return error_mark_node;
-          return build_int_cst (size_type_node, TREE_VEC_LENGTH (expanded));
+	  else if (PACK_EXPANSION_P (expanded)
+		   || (TREE_CODE (expanded) == TREE_VEC
+		       && len > 0
+		       && PACK_EXPANSION_P (TREE_VEC_ELT (expanded, len-1))))
+	    {
+	      if (TREE_CODE (expanded) == TREE_VEC)
+		expanded = TREE_VEC_ELT (expanded, len - 1);
+
+	      if (TYPE_P (expanded))
+		return cxx_sizeof_or_alignof_type (expanded, SIZEOF_EXPR, 
+						   complain & tf_error);
+	      else
+		return cxx_sizeof_or_alignof_expr (expanded, SIZEOF_EXPR,
+                                                   complain & tf_error);
+	    }
+	  else
+	    return build_int_cst (size_type_node, len);
         }
       /* Fall through */
 
@@ -10898,14 +10939,7 @@ tsubst_copy_and_build (tree t,
 
     case SIZEOF_EXPR:
       if (PACK_EXPANSION_P (TREE_OPERAND (t, 0)))
-        {
-          /* We only want to compute the number of arguments.  */
-          tree expanded = tsubst_pack_expansion (TREE_OPERAND (t, 0), args,
-                                                complain, in_decl);
-	  if (expanded == error_mark_node)
-	    return error_mark_node;
-          return build_int_cst (size_type_node, TREE_VEC_LENGTH (expanded));
-        }
+	return tsubst_copy (t, args, complain, in_decl);
       /* Fall through */
       
     case ALIGNOF_EXPR:
@@ -12900,7 +12934,7 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
 	    tree parmvec = TYPE_TI_ARGS (parm);
 	    tree argvec = INNERMOST_TEMPLATE_ARGS (TYPE_TI_ARGS (arg));
 	    tree parm_parms 
-	      = DECL_INNERMOST_TEMPLATE_PARMS 
+              = DECL_INNERMOST_TEMPLATE_PARMS
 	          (TEMPLATE_TEMPLATE_PARM_TEMPLATE_DECL (parm));
 	    int i, len;
             int parm_variadic_p = 0;

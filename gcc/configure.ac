@@ -297,6 +297,7 @@ AC_SUBST(CFLAGS)
 # Check C compiler features
 # -------------------------
 
+AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CPP
 AC_C_INLINE
 
@@ -1102,20 +1103,6 @@ fi
 # Checks for C headers
 # --------------------
 
-AC_MSG_CHECKING(for GNU C library)
-AC_CACHE_VAL(gcc_cv_glibc,
-[AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
-  [[#include <features.h>]], [[
-#if ! (defined __GLIBC__ || defined __GNU_LIBRARY__)
-#error Not a GNU C library system
-#endif]])],
-  [gcc_cv_glibc=yes],
-  [gcc_cv_glibc=no])])
-AC_MSG_RESULT($gcc_cv_glibc)
-if test $gcc_cv_glibc = yes; then
-  AC_DEFINE(_GNU_SOURCE, 1, [Always define this when using the GNU C Library])
-fi
-
 # Need to reject headers which give warnings, so that the -Werror bootstrap
 # works later. *sigh*  This needs to come before all header checks.
 AC_PROG_CPP_WERROR
@@ -1682,9 +1669,6 @@ else
 		--target=$target_alias --host=$build_alias --build=$build_alias
 	CFLAGS="${saved_CFLAGS}"
 
-	# Extract this setting from the temporary Makefile.
-	BUILD_DEPMODE=`grep '^CCDEPMODE = ' Makefile | sed -e 's,.* = ,,'`
-
 	# We just finished tests for the build machine, so rename
 	# the file auto-build.h in the gcc directory.
 	mv auto-host.h ../auto-build.h
@@ -1957,7 +1941,7 @@ fi
 # then define inhibit_libc in LIBGCC2_CFLAGS.
 # This prevents libgcc2 from containing any code which requires libc
 # support.
-inhibit_libc=false
+: ${inhibit_libc=false}
 if { { test x$host != x$target && test "x$with_sysroot" = x ; } ||
        test x$with_newlib = xyes ; } &&
      { test "x$with_headers" = x || test "x$with_headers" = xno ; } ; then
@@ -3868,27 +3852,6 @@ do
 	done
 	echo "lang.$t: $x" >> Make-hooks
 done
-
-# --------
-# Dependency checking.
-# --------
-
-ZW_CREATE_DEPDIR
-AC_CONFIG_COMMANDS([gccdepdir],[
-  ${CONFIG_SHELL-/bin/sh} $ac_aux_dir/mkinstalldirs build/$DEPDIR
-  for lang in $subdirs
-  do
-      ${CONFIG_SHELL-/bin/sh} $ac_aux_dir/mkinstalldirs $lang/$DEPDIR
-  done], [subdirs="$subdirs" ac_aux_dir=$ac_aux_dir DEPDIR=$DEPDIR])
-
-ZW_PROG_COMPILER_DEPENDENCIES([CC])
-# Note that if build!=host then we extracted the value from the
-# temporary Makefile we created above, when we ran configure.
-if test "${build}" = "${host}" ; then
-  BUILD_DEPMODE='$(CCDEPMODE)'
-fi
-AC_SUBST(BUILD_DEPMODE)
-
 
 # --------
 # UNSORTED

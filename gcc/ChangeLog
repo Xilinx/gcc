@@ -1,3 +1,146 @@
+2008-03-27  Tom Tromey  <tromey@redhat.com>
+
+	* doc/sourcebuild.texi, doc/install.texi, configure, aclocal.m4,
+	configure.ac, Makefile.in, config/t-darwin, config/m32c/t-m32c,
+	config/spu/t-spu-elf, config/i386/t-interix,
+	config/i386/t-cygming, config/i386/x-i386, config/i386/t-cygwin,
+	config/i386/x-darwin, config/i386/x-mingw32,
+	config/i386/t-netware, config/i386/x-cygwin, config/i386/t-nwld,
+	config/sh/t-sh, config/sh/t-symbian, config/x-linux,
+	config/t-sol2, config/x-hpux, config/x-darwin, config/ia64/t-ia64,
+	config/x-solaris, config/t-vxworks, config/m68k/t-uclinux,
+	config/rs6000/x-rs6000, config/rs6000/x-darwin64,
+	config/rs6000/x-darwin, config/rs6000/t-rs6000,
+	config/score/t-score-elf, config/arm/t-strongarm-pe,
+	config/arm/t-pe, config/arm/t-arm, config/arm/t-wince-pe,
+	config/v850/t-v850, config/v850/t-v850e, config/bfin/t-bfin-linux:
+	Revert automatic dependency patch.
+
+2008-03-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/35657
+	* config/i386/i386.c (ix86_function_arg_boundary): Align
+	decimal floating point to its natural boundary.
+
+2008-03-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35716
+	* fold-const.c (fold_comparison): Restrict distinct decl
+	comparison folding to VAR_DECLs and PARM_DECLs.  Do not
+	solely rely on operand_equal_p.
+
+2008-03-27  Richard Guenther  <rguenther@suse.de>
+
+	PR c/32511
+	* c-common.c (handle_weak_attribute): Reject combination of
+	weak and inline.
+
+2008-03-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/32810
+	* tree-ssa-ccp.c (get_symbol_constant_value): Strip useless
+	conversions from DECL_INITIAL.
+	(fold_const_aggregate_ref): Likewise from constructor elements.
+
+2008-03-27  Zdenek Dvorak  <ook@ucw.cz>
+
+	* tree-affine.h (aff_combination_expand): Declare.
+	(get_inner_reference_aff): Likewise.
+	* tree-affine.c	(aff_combination_expand): Split out from
+	tree_to_aff_combination_expand.
+	(get_inner_reference_aff): New function.
+	* tree-parloops.c (loop_parallel_p): Free vectorizer info.
+        * tree-ssa-loop-im.c: Include tree-affine.h and pointer-set.h.
+        (struct lim_aux_data): sm_done field removed.
+        (mem_ref_loc_p, mem_ref_locs_p): New types.
+        (struct mem_ref): Added id, stored, accesses_in_loop,
+        indep_loop, dep_loop, indep_ref, dep_ref fields.
+        Removed is_stored, locs and next fields.
+        (memory_accesses): New variable.
+        (movement_possibility): Do not allow moving statements
+        that store to memory.
+        (outermost_indep_loop, simple_mem_ref_in_stmt, mem_ref_in_stmt):
+        New functions.
+        (determine_max_movement): For statements with memory references,
+        find the outermost loop in that the reference is independent.
+        (move_computations_stmt): Mark the virtual operands for
+        renaming.
+        (memref_free, mem_ref_alloc, mem_ref_locs_alloc, mark_ref_stored,
+        gather_mem_refs_stmt, gather_mem_refs_in_loops, vtoe_hash, vtoe_eq,
+        vtoe_free, record_vop_access, get_vop_accesses, get_vop_stores,
+        add_vop_ref_mapping, create_vop_ref_mapping_loop,
+        create_vop_ref_mapping, analyze_memory_references,
+        cannot_overlap_p, mem_refs_may_alias_p, rewrite_mem_ref_loc,
+        get_all_locs_in_loop, ref_always_accessed_p,
+        refs_independent_p, record_indep_loop, ref_indep_loop_p_1,
+        ref_indep_loop_p, can_sm_ref_p, find_refs_for_sm,
+        store_motion_loop, store_motion): New functions.
+        (struct vop_to_refs_elt): New type.
+        (record_mem_ref_loc, free_mem_ref_locs, rewrite_mem_refs,
+        memref_hash, memref_eq, hoist_memory_references): Rewritten.
+        (schedule_sm): Replaced by...
+        (execute_sm): ... this.
+        (determine_lsm_ref, hoist_memory_references,
+        loop_suitable_for_sm, gather_mem_refs_stmt, gather_mem_refs,
+        find_more_ref_vops, free_mem_ref, free_mem_refs,
+        determine_lsm_loop, determine_lsm): Removed.
+        (tree_ssa_lim_finalize): Free data structures used by store
+        motion.
+        (tree_ssa_lim): Call analyze_memory_references.  Use
+        store_motion instead of determine_lsm.
+
+2008-03-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	* config.cc (m68hc11, m6811, m68hc12, m6812): Add usegas.h,
+	rename tmake_file to m68hc11/t-m68hc11.
+	(mcore): Set inhibit_libc to true.
+	* config.host (alpha*-dec-*vms*): Set extra_programs.
+	(interix3*): Don't use host_xmake_file.
+	* configure.ac: Let config.gcc override inhibit_libc.
+	* configure: Regenerate.
+
+	* config/alpha/x-vms (EXTRA_PROGRAMS): Remove.
+	* config/t-openbsd-thread: Remove commented out lines.
+	
+	* config/x-interix: Remove.
+
+	* config/m68hc11/t-m68hc11-gas: Rename to...
+	* config/m68hc11/t-m68hc11: ... this.  Remove T_CPPFLAGS.
+
+	* config/mcore/t-mcore: Remove T_CFLAGS.
+	* config/mcore/t-mcore-pe: Likewise.
+
+2008-03-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Replace custom __GNU_SOURCE test with
+	AC_USE_SYSTEM_EXTENSIONS.  Move it earlier.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+
+2008-03-27  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (target.h): Include.
+	(fold_comparison): Fold comparison of addresses of decls
+	that bind locally or of constants.  Consolidate address folding code.
+	* tree-vrp.c (operand_less_p): Deal with non-INTEGER_CST
+	results from fold_binary_to_constant.
+	(compare_values_warnv): Likewise.
+
+2008-03-27  Andrew Pinski  <pinskia@gmail.com>
+
+	PR middle-end/35429
+	* fold-const.c (fold_truthop): Check for integeral types when folding
+	a == 0 && b == 0 and a != 0 || b != 0 .
+
+2008-03-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.c (get_unwidened): Remove code fiddling with COMPONENT_REF.
+
+2008-03-26  Andreas Schwab  <schwab@suse.de>
+
+	* doc/invoke.texi: Fix use of @item vs. @itemx.
+
 2008-03-26  Tom Tromey  <tromey@redhat.com>
 
 	* Makefile.in (build/gensupport.o, build/print-rtl.o,
