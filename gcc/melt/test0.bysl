@@ -32,6 +32,11 @@
   (forever loop
 	   (exit loop (bar z))))
  
+(defun testmulticall (f g x)
+  (multicall 
+   (r1 r2) 
+   (g x)
+   (f r1 r2)))
 
 (if foo 
     (puts "has foo"))

@@ -1,5 +1,13 @@
 
 2008-03-28   Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: all *_iterate functions duplicated into
+	a *_every function (iterating fully) and a
+	_iterate_test (iterating while...).
+	(normexp_msend) new stub function [incomplete].
+	(check_ctype_nargs) new function used in normexp_apply...
+	* melt-cc-script.proto: remove all temporary files.
+
+2008-03-28   Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl:
 	(lambda_arg_bindings) check valid argument type.
 	(getctype_objvalue) returns the correct :obv_type field.
