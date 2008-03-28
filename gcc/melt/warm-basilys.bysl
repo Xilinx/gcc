@@ -2359,6 +2359,10 @@
 			  (make_instance class_formal_binding 
 					 :binder curarg
 					 :fbind_type argtype)) )
+		    (if (or (not (is_a argtype class_ctype))
+			    (not (is_string (unsafe_get_field :ctype_parstring argtype))))
+			(error_strv argloc "invalid argument type in formal arglist"
+				  (unsafe_get_field :named_name curarg)))
 		    (put_int curbind argrk)
 		    (mapobject_put argmap curarg curbind)
 		    (list_append bndlist curbind)
@@ -5895,7 +5899,7 @@
 
 (defun getctype_objvalue (recv env)
   (assert_msg "check recv objvalue" (is_a recv class_objvalue))
-  obv_type)
+  (unsafe_get_field :obv_type recv))
 (install_method class_objvalue get_ctype getctype_objvalue)
 
 ;; object local variable
@@ -6908,7 +6912,7 @@
 	    (argf (unsafe_get_field :ctype_argfield ctybind)) 
 	    )
 	(if (not (is_string parc)) 
-	    (error_strv () "impossible argument ctype" 
+	    (error_strv oloc "impossible argument ctype" 
 			(unsafe_get_field :named_name ctybind)))
 	(add2sbuf_strconst implbuf "if (xargdescr_[")
 	(add2sbuf_longdec implbuf (-i rkbind 1))
@@ -7245,8 +7249,8 @@
 	   oargs
 	   (lambda (curarg :long curank)
 	     (debug_msg "outputcod_objapply curarg" curarg)
-	     (debug_msg "outputcod_objapply curarg discr" (discrim curarg))
-	     (cbreak_msg "outputcod_objapply curarg")
+	    ; (debug_msg "outputcod_objapply curarg discr" (discrim curarg))
+	    ; (cbreak_msg "outputcod_objapply curarg")
 	     (if (>i curank 0)
 		 (let ( (curctyp (get_ctype curarg (the_null))) )
 		   (debug_msg "outputcod_objapply curctyp" curctyp)
@@ -7476,6 +7480,7 @@
 	 (destlist (unsafe_get_field :obrallobj_dest oralob)) 
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
+    (assert_msg "outpucod_objrawallocobj check iclass" (is_a iclass class_objvalue))
     (output_location iloc implbuf depth)
     (add2sbuf_strconst implbuf "/*rawallocobj*/")
     (list_iterate 
@@ -8914,12 +8919,13 @@
 	   (destlist (make_list discr_list))
 	   (locv (get_free_objlocptr gcx 'inst))
 	   (olis (make_list discr_list))
+	   (ocladat (compile_obj ncladat gcx))
 	   (oblock (make_instance class_objblock
 				  :obi_loc nloc
 				  :oblo_bodyl olis))
 	   (orallobj (make_instance class_objrawallocobj
 				    :obi_loc nloc
-				    :obrallobj_class ncladat
+				    :obrallobj_class ocladat
 				    :obrallobj_len (make_integerbox discr_integer nbfld)
 				    :obrallobj_dest destlist))
 	   )

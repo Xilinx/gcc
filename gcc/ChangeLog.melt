@@ -1,3 +1,10 @@
+
+2008-03-28   Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl:
+	(lambda_arg_bindings) check valid argument type.
+	(getctype_objvalue) returns the correct :obv_type field.
+	(compilobj_nrep_makeinst) compiles the class data.
+
 2008-03-27   Basile Starynkevitch  <basile@starynkevitch.net>
 	merged with trunk r133654
 	* Makefile.in: reverted auto dependencies (as did the trunk)
