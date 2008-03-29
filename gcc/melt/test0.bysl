@@ -5,6 +5,19 @@
  :fields (root_f1 ; root_f2
 		  ))
 
+(defclass my_class_named
+  :super my_class_root
+  :fields (my_name)
+)
+
+(defclass my_class_selector
+  :super my_class_named
+  :predef CLASS_SELECTOR
+  :fields (
+))
+
+(defselector the_sel my_class_selector
+)
 
 (defprimitive boxint (:long i) :value 
   "basilysgc_new_int( BASILYSGOB(DISCR_INTEGER), (" i "))"
@@ -37,6 +50,10 @@
    (r1 r2) 
    (g x)
    (f r1 r2)))
+
+
+(defun testsendsel (x) 
+  (the_sel x 1))
 
 (if foo 
     (puts "has foo"))

@@ -1,3 +1,7 @@
+2008-03-29   Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: all defselector-s without explicit :named_name.
+	implemented defselector macro & normalization.
+	argument pointer passing ok for null argument.
 
 2008-03-28   Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: all *_iterate functions duplicated into

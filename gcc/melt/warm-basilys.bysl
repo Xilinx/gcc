@@ -1177,14 +1177,16 @@
 ;;; reciever: any object or value
 ;;; arguments: the debuginfo (instance of class_debuginfo), the depth (long)
 (defselector dbg_output class_selector
-  :named_name  (stringconst2val discr_namestring "DBG_OUTPUT"))
+;  :named_name  (stringconst2val discr_namestring "DBG_OUTPUT")
+)
 
 
 ;;; selector to output again for debugging
 ;;; reciever: any object (already output)
 ;;; arguments: the debuginfo (instance of class_debuginfo), the depth (long)
 (defselector dbg_outputagain class_selector
-  :named_name  (stringconst2val discr_namestring "DBG_OUTPUTAGAIN"))
+;  :named_name  (stringconst2val discr_namestring "DBG_OUTPUTAGAIN")
+)
 
 
 ;; somehow needed to be a separate function because of a bug in cold
@@ -2109,6 +2111,11 @@
 	   sinst_fields			;the sequence of field assignment
 ))
 
+;; define a selector 
+(defclass class_src_defselector
+  :super class_src_definstance
+)
+
 ;; a field assignment
 (defclass class_src_fieldassign
   :super class_src
@@ -2945,6 +2952,93 @@
 			 :sinst_fields fastup
 			 ))))))
 (install_initial_macro 'definstance mexpand_definstance)
+
+
+
+;; the definstance expanser
+(defun mexpand_defselector (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg "mexp.definstance sexpr" sexpr (the_callcount))
+  (let ( (predef ())
+	 (objnum ())
+	 (fields ())
+	 (fieldnams ())
+	 (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 (claname ())
+	 (cla ())
+	 (clabind ())
+	 )
+    (or (is_a symb class_symbol)
+	(error_plain loc "missing symbol for definstance"))
+    (debug_msg "mexpand_defselector sexpr" sexpr (the_callcount))
+    (setq curpair (pair_tail curpair))
+    (let ( (nam (pair_head curpair)) )
+      (or (is_a nam class_symbol)
+	  (error_plain loc "missing class name for definstance"))
+      (let ( (bnd (find_env env nam)) 
+	     (fldlist (make_list discr_list))
+	     )
+	(cond 
+	 ( (is_a bnd class_class_binding)
+	   (setq clabind bnd)
+	   (setq cla (unsafe_get_field :cbind_class bnd)) )
+	 ( (and (is_a bnd class_value_binding)
+		(is_a (unsafe_get_field :vbind_value bnd) class_class))
+	   (setq clabind bnd)
+	   (setq cla (unsafe_get_field :vbind_value bnd)))
+	 (:else
+	  (error_strv loc "invalid class name for definstance"
+		      (unsafe_get_field :named_name nam))
+	  (return)
+	  ))
+	(setq claname nam)
+	(assert_msg "check cla" (is_a cla class_class))
+	(setq curpair (pair_tail curpair))
+	(forever insloop
+		 (debug_msg "mexpand_defselector insloop curpair" curpair (the_callcount))
+		 (if (not (is_pair curpair)) (exit insloop))
+		 (let ( (curfkw (pair_head curpair)) )
+		   (debug_msg "mexpand_defselector insloop curfkw" curfkw (the_callcount))
+		   (or (is_a curfkw class_keyword)
+		       (error_plain loc "expecting keyword in definstance"))
+		   (setq curpair (pair_tail curpair))
+		   (let ( (curexp (pair_head curpair)) )
+		     (cond  ( (== curfkw ':obj_num)
+			      (if curexp (error_plain loc "duplicate :obj_num in definstance"))
+			      (setq objnum 
+				    (if (is_a curexp class_sexpr)
+					(macroexpand_1 curexp env mexpander)
+				      curexp))
+			      )
+			    ( (== curfkw ':predef)
+			      (if curexp (error_plain loc "duplicate :predef in definstance"))
+			      (setq predef 
+				    (if (is_a curexp class_sexpr)
+					(macroexpand_1 curexp env mexpander)
+				      curexp))
+			      )
+			    (:else 
+			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
+			       (if flda 
+				   (list_append fldlist flda)
+				 )))))
+		   (setq curpair (pair_tail curpair))
+		   ))
+	(let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
+	  (make_instance class_src_defselector
+			 :src_loc loc
+			 :sdef_name symb
+			 :sobj_predef predef
+			 :sinst_class cla
+			 :sinst_clabind clabind
+			 :sinst_objnum objnum
+			 :sinst_fields fastup
+			 ))))))
+(install_initial_macro 'defselector mexpand_defselector)
 
 
 
@@ -3931,7 +4025,8 @@
 ;;;   psloc = (parent) source location
 ;;;;; expected results: normalized + binding list 
 (defselector normal_exp class_selector
-  :named_name (stringconst2val discr_namestring "NORMAL_EXP"))
+;  :named_name (stringconst2val discr_namestring "NORMAL_EXP")
+)
 
 ;; many stuff are already normalized 
 (defun normexp_identical (recv env ncx psloc)
@@ -3960,7 +4055,7 @@
 ;;;; sometimes this selector is used with a null environment, for
 ;;;; instance in the code generation phase
 (defselector get_ctype class_selector
-  :named_name (stringconst2val discr_namestring "GET_CTYPE")
+;  :named_name (stringconst2val discr_namestring "GET_CTYPE")
 )
 ;;; most stuff are really ctype_value
 (defun gectyp_anyrecv (recv env) ctype_value)
@@ -4384,7 +4479,7 @@
      (let ( (ctyp (get_ctype cnarg env)) )
        (assert_msg "check_ctype_nargs ctyp" (is_a ctyp class_ctype))
        (if (not (is_string (unsafe_get_field :ctype_parstring ctyp)))
-	   (error_plain sloc "argument has invalid type")
+	   (error_strv sloc "argument has invalid type" (unsafe_get_field :named_name ctyp))
      ))
 )))
 
@@ -5894,6 +5989,91 @@
 (install_method class_src_definstance normal_exp normexp_definstance)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; normalize a DEFSELECTOR
+(defun normexp_defselector (recv env ncx psloc)
+  (assert_msg "check defselector recv" (is_a recv class_src_defselector))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg "normexp defselector recv" recv (the_callcount))
+  (let ( 
+	(sloc (unsafe_get_field :src_loc recv))
+	(sname (unsafe_get_field :sdef_name recv))
+	(spredef (unsafe_get_field :sobj_predef recv))
+	(sdocstr (unsafe_get_field :sobj_docstr recv))
+	(sinstclass (unsafe_get_field :sinst_class recv))
+	(sinstclabnd (unsafe_get_field :sinst_clabind recv))
+	(sinstclasym (if (is_a sinstclabnd class_any_binding) (unsafe_get_field :binder sinstclabnd)))
+	(sinstobjnum (unsafe_get_field :sinst_objnum recv))
+	(sinstfields (unsafe_get_field :sinst_fields recv))
+	(nbindlist (make_list discr_list))
+	(nbindbox (make_box discr_box nbindlist))
+	(bindsel (make_instance class_selector_binding 
+				:binder sname
+				:sbind_selectordef recv
+				))
+	(namdata (normal_symbol_data sname ncx sloc))
+	;; data representing the class
+	(icladata (if (is_a sinstclasym class_symbol) 
+		      (normal_exp sinstclasym env ncx sloc)))
+	)
+    (put_env env bindsel)
+    (if (not (is_a icladata class_nrep))
+	(progn
+	  (error_strv sloc "invalid class in defselector" (unsafe_get_field :named_name sname))
+	  (return)))
+    (if spredef
+	(or (is_integerbox spredef) (is_a spredef class_symbol)
+	    (progn (error_strv sloc "bad predef in defselector"  (unsafe_get_field :named_name sname))
+		   (return))))
+    (assert_msg "check sinstclass" (is_a sinstclass class_class))
+    (assert_msg "check sinstclasym" (is_a sinstclasym class_symbol))
+    (let (
+	  (slotup (make_multiple discr_multiple
+				 (multiple_length (unsafe_get_field :class_fields sinstclass))))
+	  (insdata (make_instance class_nrep_datainstance
+				  :nrep_loc sloc
+				  :ndata_name sname
+				  :ndata_discrx icladata
+				  :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+				  :ninst_predef spredef
+				  :ninst_slots slotup
+				  )) 
+	  )
+      (add_nctx_data ncx insdata)
+      (unsafe_put_fields bindsel :ibind_data insdata)
+      ;; scan the fields initialization
+      (multiple_every
+       sinstfields
+       (lambda (flda :long ix)
+	 (assert_msg "check flda" (is_a flda class_src_fieldassign))
+	 (let ( (curfld (unsafe_get_field :sfla_field flda))
+		(curexp (unsafe_get_field :sfla_expr flda))
+		(:long curoff (obj_num curfld))
+		)
+	   (assert_msg "check curfld" (is_a curfld class_field))
+	   (assert_msg "good curfld"
+		       (== (multiple_nth (unsafe_get_field :class_fields sinstclass) curoff) 
+			   curfld))  
+	   (multicall
+	    (ncur nbindcur)
+	    (normal_exp curexp env ncx sloc)
+	    (multiple_put_nth slotup curoff ncur)
+	    (if (is_list nbindcur)
+		(let ( (nbindlist (box_content nbindbox)))
+		  (setq nbindlist (list_append2list nbindlist nbindcur))
+		  (box_put nbindbox nbindlist)))))))
+;;; put the binding into the data
+      (let ( (nbindlist (box_content nbindbox)) 
+	     (nbindtup (list_to_multiple nbindlist discr_multiple))
+	     )
+	(if (>i (multiple_length nbindtup) 0) 
+	    (unsafe_put_fields insdata :ndata_locbind nbindtup))
+	;; return the data
+	(debug_msg "normexp_defselector return insdata" insdata (the_callcount))
+	insdata
+	))))
+(install_method class_src_defselector normal_exp normexp_defselector)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5907,7 +6087,8 @@
 ;;; result = the obj instruction or value
 
 (defselector compile_obj class_selector
-  :named_name  (stringconst2val discr_namestring "COMPILE_OBJ"))
+;  :named_name  (stringconst2val discr_namestring "COMPILE_OBJ")
+)
 ;; a catchall method for nrep-s (normal representations) each should
 ;; be separately compiled with its own method so this should never be
 ;; called
@@ -5923,7 +6104,8 @@
 ;;; argument: the destination value
 ;;; result: the (modified) recieving objcode or its replacement
 (defselector put_objdest class_selector
-  :named_name (stringconst2val discr_namestring "PUT_OBJDEST"))
+;  :named_name (stringconst2val discr_namestring "PUT_OBJDEST")
+)
 
 ;;; classes for code generation
 
@@ -6007,7 +6189,7 @@
 ;;; reciever some objinielem
 ;;; argument strbuf
 (defselector output_c_declinit class_selector
-  :named_name (stringconst2val discr_namestring "OUTPUT_C_DECLINIT")
+;  :named_name (stringconst2val discr_namestring "OUTPUT_C_DECLINIT")
 )
 (defun outdeclinit_root (recv sbuf)
   (debug_msg "outdeclinit_root recv" recv (the_callcount))
@@ -6025,7 +6207,8 @@
 ;;; result is not used
 
 (defselector output_c_code class_selector
-  :named_name  (stringconst2val discr_namestring "OUTPUT_C_CODE"))
+;  :named_name  (stringconst2val discr_namestring "OUTPUT_C_CODE")
+)
 
 
 (defun outpucod_objinielem (obielem  declbuf implbuf :long depth)
@@ -6047,7 +6230,8 @@
 ;;; reciever some objinitelem
 ;;; argument a stringbuffer
 (defselector output_c_initfill class_selector
-  :named_name (stringconst2val discr_namestring "OUTPUT_C_INITFILL"))
+;  :named_name (stringconst2val discr_namestring "OUTPUT_C_INITFILL")
+)
 (defun outcinitfill_root (recv declbuf implbuf :long depth)
   (debug_msg "outcinitfill_root recv" recv (the_callcount))
   (assert_msg "outcinitfill_root unimplemented catchall" ())
@@ -6970,9 +7154,11 @@
 	(if (== ctybind ctype_value)
 	    (progn
 	      (output_c_code oloc declbuf implbuf depth)
-	      (add2sbuf_strconst implbuf " = *(xargtab_[")
+	      (add2sbuf_strconst implbuf " = (xargtab_[")
 	      (add2sbuf_longdec implbuf (-i rkbind 1))
-	      (add2sbuf_strconst implbuf "].bp_aptr);")	
+	      (add2sbuf_strconst implbuf "].bp_aptr) ? (*(xargtab_[")
+	      (add2sbuf_longdec implbuf (-i rkbind 1))
+	      (add2sbuf_strconst implbuf "].bp_aptr)) : NULL;")	
 	      )
 	  (progn
 	    (output_c_code oloc declbuf implbuf depth)

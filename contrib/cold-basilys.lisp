@@ -2824,8 +2824,8 @@ nil)
 	(format str "basilys_checked_assign(/*ptrarg~d*/" rk)
 	(output_ccode dest str)
 	(format str
-		" = *(xargtab_[~d].bp_aptr));~% else goto lab_endargs;~%"
-		(- rk 1))
+		" = (xargtab_[~d].bp_aptr)?(*(xargtab_[~d].bp_aptr)):NULL);~% else goto lab_endargs;~%"
+		(- rk 1) (- rk 1))
 	)
       )
 ;    (finish-output str)
@@ -3427,10 +3427,16 @@ nil)
 		       (push "BPARSTR_LONG" revargtypeseq)
 		       (format str ";~%")
 		       )
-		((:value nil)  (format str " argtab[~d].bp_aptr = (basilys_ptr_t*) &(" ark)
-		 (output_ccode arg str)
-		 (push "BPARSTR_PTR" revargtypeseq)
-		 (format str ");~%"))
+		((:value nil) 
+		 (if arg 
+		     (progn
+		     (format str " argtab[~d].bp_aptr = (basilys_ptr_t*) &(" ark)
+		     (output_ccode arg str)
+		     (push "BPARSTR_PTR" revargtypeseq)
+		     (format str ");~%"))
+		   (progn
+		     (format str " argtab[~d].bp_aptr = /*nilarg*/NULL;~%")
+		     )))
 		(otherwise (error "output_ccode obj_callcannot handle arg ~s in ~s" arg obj)))
 	  )
     (loop for resrk from 0 for xres in oxtrares do
@@ -4677,7 +4683,14 @@ nil)
       (assert (cold_selector_binding-p insbind))
       (assert (cold_class_binding-p clabind))
       (assert (cold_class_binding-classdata clabind))
-      (let ( (ob
+      (let* ( 
+	     (onamestr (add_cdata (make-obj_datastring
+				   :comname iname
+				   :discr 'DISCR_STRING 
+				   :string (string iname))
+				  "defselect namstr"
+				  ))
+	     (ob
 	      (make-obj_datainstance 
 	       :comname (prog_def-def_name cod)
 	       :discr (cold_class_binding-classdata clabind)
@@ -4704,6 +4717,8 @@ nil)
 			(or pobs cobs)
 			)))
 	      islots)
+	;; put into the 2nd = rank1 (for :named_name field) position the onamestr
+	(setf (aref slovec 1) onamestr)
 	(setf (obj_datainstance-slots ob)
 	      (concatenate 'list slovec)) ;; convert slovec to a list
 	ob
