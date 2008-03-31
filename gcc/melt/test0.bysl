@@ -19,12 +19,22 @@
 (defselector the_sel my_class_selector
 )
 
+
 (defprimitive boxint (:long i) :value 
   "basilysgc_new_int( BASILYSGOB(DISCR_INTEGER), (" i "))"
 )
-(definstance ii my_class_root 
-  :root_f1 (boxint 1001))
 
+(defun testsendsel (f x) 
+  (the_sel (f x) 
+	   (boxint 789)
+	   x
+	   246))
+
+(definstance ii my_class_root 
+  :root_f1 (boxint 1001002))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#| ; SKIPPING
 (defprimitive gti (:long a b) :long 
   "((" a ")>(" b "))")
 
@@ -38,8 +48,8 @@
 
 (defun bar (y)
   (if y
-      (foo y 12)
-    (boxint 1234)))
+      (foo y 123)
+    (boxint 456)))
 
 (defun testforever (z)
   (forever loop
@@ -52,8 +62,6 @@
    (f r1 r2)))
 
 
-(defun testsendsel (x) 
-  (the_sel x 1))
 
 (if foo 
     (puts "has foo"))
@@ -62,6 +70,4 @@
     (puts "has boxint"))
 
 (puts "end test0")
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#| ; SKIPPING
 ; SKIPPED |#

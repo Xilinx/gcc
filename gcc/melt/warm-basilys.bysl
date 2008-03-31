@@ -2299,6 +2299,7 @@
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check opbind" (is_a opbind class_selector_binding))
+  (debug_msg "expand_msend sexpr" sexpr (the_callcount))
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (spair (pair_tail (list_first scont)))
@@ -2306,13 +2307,19 @@
 	 )
     (if (not (is_pair spair)) (error_plain sloc "missing reciever expression in message send"))
     (let ( (xrecv (pair_head spair))
-	   (argtup (expand_pairlist_as_tuple (pair_tail spair) env mexpander)) )
-      (make_instance class_src_msend
+	   (argtup (expand_pairlist_as_tuple (pair_tail spair) env mexpander)) 
+	   (res (make_instance class_src_msend
 		     :src_loc sloc
 		     :msend_selbind opbind
-		     :msend_recv xrecv
+		     :msend_recv (if (is_a xrecv class_sexpr)
+				     (macroexpand_1 xrecv env mexpander)
+				   xrecv)
 		     :msend_args argtup
-		     ))))
+		     ))
+	   )
+      (debug_msg "expand_msend res" res (the_callcount))
+      res
+      )))
 
 ;;; expand a keywordfun s-expression
 ;;; not implemented yet, but might later be useful for stuff like
@@ -2941,16 +2948,26 @@
 				 )))))
 		   (setq curpair (pair_tail curpair))
 		   ))
-	(let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
-	  (make_instance class_src_definstance
-			 :src_loc loc
-			 :sdef_name symb
-			 :sobj_predef predef
-			 :sinst_class cla
-			 :sinst_clabind clabind
-			 :sinst_objnum objnum
-			 :sinst_fields fastup
-			 ))))))
+	(let ( (fastup (list_to_multiple fldlist discr_multiple)) 
+	       (sinst 
+		(make_instance class_src_definstance
+			       :src_loc loc
+			       :sdef_name symb
+			       :sobj_predef predef
+			       :sinst_class cla
+			       :sinst_clabind clabind
+			       :sinst_objnum objnum
+			       :sinst_fields fastup
+			       ))
+	       (ibind 
+		(make_instance class_instance_binding
+			       :binder symb
+			       :ibind_iclass cla
+			       ))
+	       )
+	  (put_env env ibind)
+	  sinst
+	  )))))
 (install_initial_macro 'definstance mexpand_definstance)
 
 
@@ -3028,16 +3045,24 @@
 				 )))))
 		   (setq curpair (pair_tail curpair))
 		   ))
-	(let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
-	  (make_instance class_src_defselector
-			 :src_loc loc
-			 :sdef_name symb
-			 :sobj_predef predef
-			 :sinst_class cla
-			 :sinst_clabind clabind
-			 :sinst_objnum objnum
-			 :sinst_fields fastup
-			 ))))))
+	(let ( ( fastup (list_to_multiple fldlist discr_multiple)) 
+	       (res (make_instance class_src_defselector
+				   :src_loc loc
+				   :sdef_name symb
+				   :sobj_predef predef
+				   :sinst_class cla
+				   :sinst_clabind clabind
+				   :sinst_objnum objnum
+				   :sinst_fields fastup
+				   ))
+	       (selbind (make_instance class_selector_binding
+				       :binder symb
+				       :sbind_selectordef res
+				       ))
+	       )
+	  (put_env env selbind)
+	  res
+	  )))))
 (install_initial_macro 'defselector mexpand_defselector)
 
 
@@ -4529,19 +4554,46 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a message send
-(defun normexp_msend (recv env ncx psloc)
-  (assert_msg "check env" (is_a recv class_src_msend))
+(defun normexp_msend (msnd env ncx psloc)
+  (assert_msg "check env" (is_a msnd class_src_msend))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_msend recv" recv (the_callcount))
-  (let ( (msbind (unsafe_get_field :msend_selbind recv))
-	 (msrecv (unsafe_get_field :msend_recv recv))
-	 (msargs (unsafe_get_field :msend_args recv))
-	 (sloc (unsafe_get_field :src_loc recv))
+  (debug_msg "normexp_msend msnd" msnd (the_callcount))
+  (let ( (msbind (unsafe_get_field :msend_selbind msnd))
+	 (msrecv (unsafe_get_field :msend_recv msnd))
+	 (msargs (unsafe_get_field :msend_args msnd))
+	 (selnam (unsafe_get_field :binder msbind))
+	 (sloc (unsafe_get_field :src_loc msnd))
 	 )
-    (assert_msg "normexp_msend @@ NOT IMPLEMENTED @@" ())
-    ;; should call check_ctype_nargs
-))
+    (multicall
+     (nrecv nbindrecv)
+     (normal_exp msrecv env ncx sloc)
+     (assert_msg "check nbindrecv" (is_list_or_null nbindrecv))
+     (debug_msg "normexp_msend nrecv" nrecv (the_callcount))
+     (debug_msg "normexp_msend nbindrecv" nbindrecv (the_callcount))
+     ;; check that reciever is a value
+     (let ( (ctypr (get_ctype nrecv env)) )
+       (assert_msg "normexp_msend check ctypr " (is_a ctypr class_ctype))
+       (if (!= ctypr ctype_value)
+	   (error_strv sloc "non value reciever for message send of selector"
+		       (unsafe_get_field :named_name selnam)))
+       )
+     (multicall
+      (nargs nbindargs)
+      (normalize_tuple msargs env ncx sloc)
+      (assert_msg "check nbindargs" (is_list_or_null nbindargs))
+      (setq nbindrecv (list_append2list nbindrecv nbindargs))
+      (debug_msg "normexp_msend again msnd" msnd (the_callcount))
+      (check_ctype_nargs nargs env sloc)
+      (let ( (nsend (make_instance class_nrep_msend
+				   :nrep_loc sloc
+				   :nsend_selbind msbind
+				   :nsend_recv nrecv
+				   :nsend_args nargs)) )
+	(debug_msg "normexp_msend nsend" nsend (the_callcount))
+	(debug_msg "normexp_msend final nbindrecv" nbindrecv (the_callcount))
+	(return nsend nbindrecv)
+	)))))
 (install_method class_src_msend normal_exp normexp_msend)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5920,16 +5972,14 @@
 	 (sinstfields (unsafe_get_field :sinst_fields recv))
 	 (nbindlist (make_list discr_list))
 	 (nbindbox (make_box discr_box nbindlist))
-	 (bindins (make_instance class_instance_binding 
-				 :binder sname
-				 :ibind_iclass sinstclass
-				 ;; :ibind_data is set below
-				 ))
+	 (bindins (find_env env sname))
 	 (namdata (normal_symbol_data sname ncx sloc))
 	 ;; data representing the class
 	 (icladata (if (is_a sinstclasym class_symbol) 
 		       (normal_exp sinstclasym env ncx sloc)))
 	 )
+    (debug_msg "normexp definstance bindins" bindins (the_callcount))
+    (assert_msg "check bindins" (is_a  bindins class_instance_binding))
     (if (not (is_a icladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in definstance" (unsafe_get_field :named_name sname))
@@ -6008,16 +6058,13 @@
 	(sinstfields (unsafe_get_field :sinst_fields recv))
 	(nbindlist (make_list discr_list))
 	(nbindbox (make_box discr_box nbindlist))
-	(bindsel (make_instance class_selector_binding 
-				:binder sname
-				:sbind_selectordef recv
-				))
+	(bindsel (find_env env sname))
 	(namdata (normal_symbol_data sname ncx sloc))
 	;; data representing the class
 	(icladata (if (is_a sinstclasym class_symbol) 
 		      (normal_exp sinstclasym env ncx sloc)))
 	)
-    (put_env env bindsel)
+    (assert_msg "check bindsel" (is_a bindsel class_selector_binding))
     (if (not (is_a icladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in defselector" (unsafe_get_field :named_name sname))
@@ -6686,6 +6733,21 @@
 (defclass class_objmultiapply
   :super class_objapply
   :fields (obmultapp_xres		;extraresult tuple
+))
+
+;;; message send instruction
+(defclass class_objmsend
+  :super class_objinstr
+  :fields (obmsnd_dest			;destination list
+	   obmsnd_sel			;selector object (compiled)
+	   obmsnd_recv			;message reciever (compiled)
+	   obmsnd_args 			;argument tuple (compiled)
+))
+
+;;; multisend instruction
+(defclass class_objmultimsend
+  :super class_objmsend
+  :fields (obmultsnd_xres		;extraresult tuple
 ))
 
 ;; raw object allocation instruction
@@ -7663,8 +7725,14 @@
   )
 (install_method class_objmultiapply output_c_code outpucod_objmultiapply)
 
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; output a message send
+(defun outpucod_objmsend (omsend declbuf implbuf :long depth)
+  (assert_msg "check omsend" (is_a omsend class_objmsend))
+  (debug_msg "outpucod_objmsend omsend" omsend (the_callcount))
+  (assert_msg "outpucod_objmsend @@NOT IMPLEMENTED@@" ())
+)
+(install_method class_objmsend output_c_code outpucod_objmsend)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output a clear
@@ -8747,6 +8815,8 @@
       (return (makecompute))
       )))
 (install_method class_nrep_fieldacc compile_obj compilobj_nrep_fieldacc)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a simple application
 (defun compilobj_nrep_apply (napp gcx)
@@ -8825,6 +8895,48 @@
     omapp
     ))
 (install_method class_nrep_multiapply compile_obj compilobj_nrep_multiapply)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compile a simple message send
+(defun compilobj_nrep_msend (nsnd gcx)
+  (assert_msg "check nsnd" (is_a nsnd class_nrep_msend))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (let ( (loc (unsafe_get_field :nrep_loc nsnd))
+	 (selbind (unsafe_get_field :nsend_selbind nsnd))
+	 (nrecv (unsafe_get_field :nsend_recv nsnd))
+	 (nargs (unsafe_get_field :nsend_args nsnd))
+	 )
+    (debug_msg "compilobj_nrep_msend nsnd" nsnd (the_callcount))
+    (let ( (seldata 
+	    (cond 
+	     ( (is_a selbind class_selector_binding)
+	       (unsafe_get_field :sbind_selectordata selbind))
+	     (:else
+	      ;; maybe we are reaching this point when the selector is a data binding
+	      (assert_msg "compilobj_nrep_msend not selector binding @@UNIMPLEMENTED@@" ())
+	     )))
+	   (osel (compile_obj seldata gcx))
+	   (orecv (compile_obj nrecv gcx))
+	   (oargs (multiple_map nargs
+				(lambda (comp :long ix)
+				  (compile_obj comp gcx))))
+	   (osend
+	    (make_instance 
+	     class_objmsend
+	     :obi_loc loc
+	     :obmsnd_dest (make_list discr_list)
+	     :obmsnd_sel osel
+	     :obmsnd_recv orecv
+	     :obmsnd_args oargs
+	     ))
+	   )
+      (debug_msg "compilobj_nrep_msend osend" osend (the_callcount))
+      osend
+      )))
+(install_method class_nrep_msend compile_obj compilobj_nrep_msend)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objvalue (recv desto)
   (assert_msg "check recv" (is_a recv class_objvalue))
@@ -8984,6 +9096,19 @@
     recv
 ))
 (install_method class_objapply put_objdest putobjdest_objapply)
+
+;;;;;;;;;;;;;;;;
+(defun putobjdest_objmsend (recv desto)
+  (debug_msg "putobjdest objapply recv" recv (the_callcount))
+;  (debug_msg "putobjdest objapply desto" desto (the_callcount))
+  (assert_msg "check recv" (is_a recv class_objmsend))
+  (assert_msg "check desto" (is_a desto class_objlocv))
+  (let ( (adest (unsafe_get_field :obmsnd_dest recv)) )
+    (assert_msg "check adest" (is_list adest))
+    (list_prepend adest desto)
+    recv
+))
+(install_method class_objmsend put_objdest putobjdest_objmsend)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;
