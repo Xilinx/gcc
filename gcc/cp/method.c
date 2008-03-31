@@ -1,7 +1,7 @@
 /* Handle the hair of processing (but not expanding) inline functions.
    Also manage function and variable name overloading.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -507,7 +507,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
 		t = build3 (COND_EXPR, TREE_TYPE (t), cond, t,
 			    cp_convert (TREE_TYPE (t), integer_zero_node));
 	    }
-	  if (IS_AGGR_TYPE (TREE_TYPE (t)))
+	  if (MAYBE_CLASS_TYPE_P (TREE_TYPE (t)))
 	    t = build_cplus_new (TREE_TYPE (t), t);
 	  finish_return_stmt (t);
 	}
@@ -674,7 +674,8 @@ do_build_assign_ref (tree fndecl)
 					build_tree_list (NULL_TREE,
 							 converted_parm),
 					base_binfo,
-					LOOKUP_NORMAL | LOOKUP_NONVIRTUAL));
+					LOOKUP_NORMAL | LOOKUP_NONVIRTUAL,
+                                        tf_warning_or_error));
 	}
 
       /* Assign to each of the non-static data members.  */
@@ -729,7 +730,8 @@ do_build_assign_ref (tree fndecl)
 	  init = build3 (COMPONENT_REF, expr_type, init, field, NULL_TREE);
 
 	  if (DECL_NAME (field))
-	    init = build_modify_expr (comp, NOP_EXPR, init);
+	    init = cp_build_modify_expr (comp, NOP_EXPR, init, 
+					 tf_warning_or_error);
 	  else
 	    init = build2 (MODIFY_EXPR, TREE_TYPE (comp), comp, init);
 	  finish_expr_stmt (init);

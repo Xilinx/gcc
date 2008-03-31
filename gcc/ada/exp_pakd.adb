@@ -33,6 +33,7 @@ with Layout;   use Layout;
 with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
+with Opt;      use Opt;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Ch3;  use Sem_Ch3;
@@ -534,7 +535,7 @@ package body Exp_Pakd is
    --  directly using Insert_Action.
 
    ------------------------------
-   -- Compute_Linear_Subcsript --
+   -- Compute_Linear_Subscript --
    ------------------------------
 
    procedure Compute_Linear_Subscript
@@ -1359,7 +1360,19 @@ package body Exp_Pakd is
 
       Rhs := Convert_To (Ctyp, Rhs);
       Set_Parent (Rhs, N);
-      Analyze_And_Resolve (Rhs, Ctyp);
+
+      --  If we are building the initialization procedure for a packed array,
+      --  and Initialize_Scalars is enabled, each component assignment is an
+      --  out-of-range value by design.  Compile this value without checks,
+      --  because a call to the array init_proc must not raise an exception.
+
+      if Within_Init_Proc
+        and then Initialize_Scalars
+      then
+         Analyze_And_Resolve (Rhs, Ctyp, Suppress => All_Checks);
+      else
+         Analyze_And_Resolve (Rhs, Ctyp);
+      end if;
 
       --  Case of component size 1,2,4 or any component size for the modular
       --  case. These are the cases for which we can inline the code.
@@ -1997,7 +2010,7 @@ package body Exp_Pakd is
              Left_Opnd  => Make_Shift_Right (Obj, Shift),
              Right_Opnd => Lit);
 
-         --  We neded to analyze this before we do the unchecked convert
+         --  We needed to analyze this before we do the unchecked convert
          --  below, but we need it temporarily attached to the tree for
          --  this analysis (hence the temporary Set_Parent call).
 

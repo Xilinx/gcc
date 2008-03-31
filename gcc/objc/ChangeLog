@@ -1,3 +1,34 @@
+2008-03-27  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in: Revert automatic dependency patch.
+
+2008-03-27  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR obj-c++/35704
+	* objc-act.c (objc_build_component_ref): Fix call to
+	finish_class_member_access_expr.
+	(objc_generate_cxx_ctor_or_dtor): Fix call to
+	build_special_member_call.
+
+2008-03-25  Andrew Pinski  <pinskia@gmail.com>
+
+	PR objc/29197
+	* objc-act.c (encode_type): Handle when type is error_mark_node.
+	(objc_push_parm): Handle when the type of parm is error_mark_node.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (objc_OBJS): New variable.
+	(cc1obj-checksum.o, objc/objc-lang.o, objc/objc-act.o): Remove.
+
+2008-03-21  Andreas Tobler  <a.tobler@schweiz.org>
+
+	PR bootstrap/35660
+	* objc-act.c (objc_generate_cxx_ctor_or_dtor): Rename IS_AGGR_TYPE to
+	MAYBE_CLASS_TYPE_P.
+	(objc_generate_cxx_cdtors): Likewise.
+	(add_instance_variable): Likewise.
+
 2008-02-26  Tom Tromey  <tromey@redhat.com>
 
 	* objc-act.c (objc_init): Remove old location code.

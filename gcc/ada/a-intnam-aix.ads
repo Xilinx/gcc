@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---          Copyright (C) 1991-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1991-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -51,13 +51,12 @@
 --  supported by the local system.
 
 with System.OS_Interface;
---  used for names of interrupts
 
 package Ada.Interrupts.Names is
 
    --  Beware that the mapping of names to signals may be many-to-one. There
-   --  may be aliases. Also, for all signal names that are not supported on the
-   --  current system the value of the corresponding constant will be zero.
+   --  may be aliases. Also, for all signal names that are not supported on
+   --  the current system the value of the corresponding constant will be zero.
 
    SIGHUP : constant Interrupt_ID :=
      System.OS_Interface.SIGHUP;      --  hangup
@@ -189,7 +188,7 @@ package Ada.Interrupts.Names is
      System.OS_Interface.SIGGRANT;    -- monitor mode granted
 
    SIGRETRACT : constant Interrupt_ID :=
-     System.OS_Interface.SIGRETRACT;  -- monitor mode should be relinguished
+     System.OS_Interface.SIGRETRACT;  -- monitor mode should be relinquished
 
    SIGSOUND : constant Interrupt_ID :=
      System.OS_Interface.SIGSOUND;    -- sound control has completed

@@ -1,7 +1,7 @@
 /* Report error messages, build initializers, and perform
    some front-end optimizations for C++ compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -583,7 +583,7 @@ store_init_value (tree decl, tree init)
   if (TREE_CODE (type) == ERROR_MARK)
     return NULL_TREE;
 
-  if (IS_AGGR_TYPE (type))
+  if (MAYBE_CLASS_TYPE_P (type))
     {
       gcc_assert (TYPE_HAS_TRIVIAL_INIT_REF (type)
 		  || TREE_CODE (init) == CONSTRUCTOR);
@@ -707,7 +707,8 @@ digest_init (tree type, tree init)
       tree *exp;
 
       init = convert_for_initialization (0, type, init, LOOKUP_NORMAL,
-					 "initialization", NULL_TREE, 0);
+					 "initialization", NULL_TREE, 0,
+                                         tf_warning_or_error);
       exp = &init;
 
       /* Skip any conversions since we'll be outputting the underlying
@@ -751,7 +752,8 @@ digest_init (tree type, tree init)
 
       return convert_for_initialization (NULL_TREE, type, init,
 					 LOOKUP_NORMAL | LOOKUP_ONLYCONVERTING,
-					 "initialization", NULL_TREE, 0);
+					 "initialization", NULL_TREE, 0,
+                                         tf_warning_or_error);
     }
 }
 
@@ -848,8 +850,9 @@ process_init_constructor_array (tree type, tree init)
 	      we can't rely on the back end to do it for us, so build up
 	      TARGET_EXPRs.  If the type in question is a class, just build
 	      one up; if it's an array, recurse.  */
-	    if (IS_AGGR_TYPE (TREE_TYPE (type)))
-		next = build_functional_cast (TREE_TYPE (type), NULL_TREE);
+	    if (MAYBE_CLASS_TYPE_P (TREE_TYPE (type)))
+              next = build_functional_cast (TREE_TYPE (type), NULL_TREE,
+                                            tf_warning_or_error);
 	    else
 		next = build_constructor (NULL_TREE, NULL);
 	    next = digest_init (TREE_TYPE (type), next);
@@ -935,8 +938,9 @@ process_init_constructor_record (tree type, tree init)
 	     default-initialization, we can't rely on the back end to do it
 	     for us, so build up TARGET_EXPRs.  If the type in question is
 	     a class, just build one up; if it's an array, recurse.  */
-	  if (IS_AGGR_TYPE (TREE_TYPE (field)))
-	    next = build_functional_cast (TREE_TYPE (field), NULL_TREE);
+	  if (MAYBE_CLASS_TYPE_P (TREE_TYPE (field)))
+	    next = build_functional_cast (TREE_TYPE (field), NULL_TREE,
+                                          tf_warning_or_error);
 	  else
 	    next = build_constructor (NULL_TREE, NULL);
 
@@ -1161,11 +1165,12 @@ build_x_arrow (tree expr)
       expr = build_non_dependent_expr (expr);
     }
 
-  if (IS_AGGR_TYPE (type))
+  if (MAYBE_CLASS_TYPE_P (type))
     {
       while ((expr = build_new_op (COMPONENT_REF, LOOKUP_NORMAL, expr,
 				   NULL_TREE, NULL_TREE,
-				   /*overloaded_p=*/NULL)))
+				   /*overloaded_p=*/NULL, 
+				   tf_warning_or_error)))
 	{
 	  if (expr == error_mark_node)
 	    return error_mark_node;
@@ -1205,7 +1210,7 @@ build_x_arrow (tree expr)
 	  return expr;
 	}
 
-      return build_indirect_ref (last_rval, NULL);
+      return cp_build_indirect_ref (last_rval, NULL, tf_warning_or_error);
     }
 
   if (types_memoized)
@@ -1240,7 +1245,7 @@ build_m_component_ref (tree datum, tree component)
     }
 
   objtype = TYPE_MAIN_VARIANT (TREE_TYPE (datum));
-  if (! IS_AGGR_TYPE (objtype))
+  if (! MAYBE_CLASS_TYPE_P (objtype))
     {
       error ("cannot apply member pointer %qE to %qE, which is of "
 	     "non-class type %qT",
@@ -1297,7 +1302,7 @@ build_m_component_ref (tree datum, tree component)
       datum = build2 (POINTER_PLUS_EXPR, ptype,
 		      fold_convert (ptype, datum),
 		      build_nop (sizetype, component));
-      return build_indirect_ref (datum, 0);
+      return cp_build_indirect_ref (datum, 0, tf_warning_or_error);
     }
   else
     return build2 (OFFSET_REF, type, datum, component);
@@ -1306,7 +1311,7 @@ build_m_component_ref (tree datum, tree component)
 /* Return a tree node for the expression TYPENAME '(' PARMS ')'.  */
 
 tree
-build_functional_cast (tree exp, tree parms)
+build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 {
   /* This is either a call to a constructor,
      or a C cast in C++'s `functional' notation.  */
@@ -1330,14 +1335,14 @@ build_functional_cast (tree exp, tree parms)
       return t;
     }
 
-  if (! IS_AGGR_TYPE (type))
+  if (! MAYBE_CLASS_TYPE_P (type))
     {
       if (parms == NULL_TREE)
 	return cp_convert (type, integer_zero_node);
 
       /* This must build a C cast.  */
       parms = build_x_compound_expr_from_list (parms, "functional cast");
-      return build_c_cast (type, parms);
+      return cp_build_c_cast (type, parms, complain);
     }
 
   /* Prepare to evaluate as a call to a constructor.  If this expression
@@ -1358,7 +1363,7 @@ build_functional_cast (tree exp, tree parms)
      conversion is equivalent (in definedness, and if defined in
      meaning) to the corresponding cast expression.  */
   if (parms && TREE_CHAIN (parms) == NULL_TREE)
-    return build_c_cast (type, TREE_VALUE (parms));
+    return cp_build_c_cast (type, TREE_VALUE (parms), complain);
 
   /* [expr.type.conv]
 
@@ -1378,7 +1383,7 @@ build_functional_cast (tree exp, tree parms)
 
   /* Call the constructor.  */
   exp = build_special_member_call (NULL_TREE, complete_ctor_identifier, parms,
-				   type, LOOKUP_NORMAL);
+				   type, LOOKUP_NORMAL, complain);
 
   if (exp == error_mark_node)
     return error_mark_node;

@@ -53,6 +53,9 @@
 ;; Mapping of vector modes back to the scalar modes
 (define_mode_attr ssescalarmode [(V4SF "SF") (V2DF "DF")])
 
+;; Mapping of immediate bits for blend instructions
+(define_mode_attr blendbits [(V4SF "15") (V2DF "3")])
+
 ;; Patterns whose name begins with "sse{,2,3}_" are invoked by intrinsics.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -972,7 +975,7 @@
 	  (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%0")
 	  (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "xm")))]
   "SSE_VEC_FLOAT_MODE_P (<MODE>mode)
-   && ix86_binary_operator_ok (AND, V4SFmode, operands)"
+   && ix86_binary_operator_ok (AND, <MODE>mode, operands)"
   "andp<ssemodesuffixf2c>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog")
    (set_attr "mode" "<MODE>")])
@@ -6283,7 +6286,7 @@
 	(vec_merge:SSEMODEF2P
 	  (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "xm")
 	  (match_operand:SSEMODEF2P 1 "register_operand" "0")
-	  (match_operand:SI 3 "const_0_to_3_operand" "n")))]
+	  (match_operand:SI 3 "const_0_to_<blendbits>_operand" "n")))]
   "TARGET_SSE4_1"
   "blendp<ssemodesuffixf2c>\t{%3, %2, %0|%0, %2, %3}"
   [(set_attr "type" "ssemov")

@@ -1,3 +1,77 @@
+2008-03-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35740
+	* resolve.c (resolve_function, resolve_call): If the procedure
+	is elemental do not look for noncopying intrinsics.
+
+2008-03-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35698
+	* trans-array.c (gfc_array_init_size): Set 'size' zero if
+	negative in one dimension.
+
+	PR fortran/35702
+	* trans-expr.c (gfc_trans_string_copy): Only assign a char
+	directly if the lhs and rhs types are the same.
+
+2008-03-28  Daniel Franke  <franke.daniel@gmail.com>
+	    Paul Richard Thomas <paul.richard.thomas@gmail.com>
+
+	PR fortran/34714
+	* primary.c (match_variable): Improved matching of function 
+	result variables.
+	* resolve.c (resolve_allocate_deallocate): Removed checks if
+	the actual argument for STAT is a variable.
+
+2008-03-28  Tobias Burnus  <burnus@net-b.de>
+
+	* symbol.c (gfc_get_default_type): Fix error message; option
+	-fallow_leading_underscore should be -fallow-leading-underscore
+
+2008-03-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35724
+	* iresolve.c (gfc_resolve_cshift): Check for NULL symtree in test for
+	optional argument attribute.
+
+2008-03-27  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in: Revert automatic dependency patch.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in: Remove .o targets.
+	(fortran_OBJS): New variable.
+	(fortran/gfortranspec.o): Move to fortran/.  Reduce to variable
+	setting.
+	(GFORTRAN_D_OBJS): Update.
+	(GFORTRAN_TRANS_DEPS): Remove.
+
+2008-03-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34813
+	* resolve.c (resolve_structure_cons): It is an error to assign
+	NULL to anything other than a pointer or allocatable component.
+
+	PR fortran/33295
+	* resolve.c (resolve_symbol): If the symbol is a derived type,
+	resolve the derived type.  If the symbol is a derived type
+	function, ensure that the derived type is visible in the same
+	namespace as the function.
+
+2008-03-23  Tobias Schlüter  <tobi@gcc.gnu.org>
+
+	* trans.h: Use fold_build in build1_v, build2_v and build3_v
+	macros.
+	* trans-openmp.c (gfc_trans_omp_critical, gfc_trans_omp_single):
+	Don't use build2_v macro.
+
+2008-03-19  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/35152
+	* interface.c (gfc_procedure_use): Check for keyworded arguments in
+	procedures without explicit interfaces.
+
 2008-03-16  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/35470

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -2559,7 +2559,7 @@ package body Exp_Ch6 is
       --  Similarly, expand calls to RCI subprograms on which pragma
       --  All_Calls_Remote applies. The rewriting will be reanalyzed
       --  later. Do this only when the call comes from source since we do
-      --  not want such a rewritting to occur in expanded code.
+      --  not want such a rewriting to occur in expanded code.
 
       elsif Is_All_Remote_Call (N) then
          Expand_All_Calls_Remote_Subprogram_Call (N);
@@ -3344,7 +3344,7 @@ package body Exp_Ch6 is
                --  Because of the presence of private types, the views of the
                --  expression and the context may be different, so place an
                --  unchecked conversion to the context type to avoid spurious
-               --  errors, eg. when the expression is a numeric literal and
+               --  errors, e.g. when the expression is a numeric literal and
                --  the context is private. If the expression is an aggregate,
                --  use a qualified expression, because an aggregate is not a
                --  legal argument of a conversion.
@@ -3388,7 +3388,7 @@ package body Exp_Ch6 is
          --  not be posting warnings on the inlined body so it is unneeded.
 
          elsif Nkind (N) = N_Pragma
-           and then Chars (N) = Name_Unreferenced
+           and then Pragma_Name (N) = Name_Unreferenced
          then
             Rewrite (N, Make_Null_Statement (Sloc (N)));
             return OK;
@@ -4756,14 +4756,14 @@ package body Exp_Ch6 is
             return;
          end if;
 
-         --  Skip the first access-to-dispatch-table pointer since it leads
-         --  to the primary dispatch table. We are only concerned with the
-         --  secondary dispatch table pointers. Note that the access-to-
-         --  dispatch-table pointer corresponds to the first implemented
-         --  interface retrieved below.
+         --  Skip the first two access-to-dispatch-table pointers since they
+         --  leads to the primary dispatch table (predefined DT and user
+         --  defined DT). We are only concerned with the secondary dispatch
+         --  table pointers. Note that the access-to- dispatch-table pointer
+         --  corresponds to the first implemented interface retrieved below.
 
          Iface_DT_Ptr :=
-           Next_Elmt (First_Elmt (Access_Disp_Table (Tagged_Typ)));
+           Next_Elmt (Next_Elmt (First_Elmt (Access_Disp_Table (Tagged_Typ))));
 
          while Present (Iface_DT_Ptr)
             and then Ekind (Node (Iface_DT_Ptr)) = E_Constant
@@ -4776,22 +4776,40 @@ package body Exp_Ch6 is
                  Thunk_Code,
 
                  Build_Set_Predefined_Prim_Op_Address (Loc,
-                   Tag_Node => New_Reference_To (Node (Iface_DT_Ptr), Loc),
+                   Tag_Node =>
+                     New_Reference_To (Node (Next_Elmt (Iface_DT_Ptr)), Loc),
                    Position => DT_Position (Prim),
                    Address_Node =>
-                     Make_Attribute_Reference (Loc,
-                       Prefix         => New_Reference_To (Thunk_Id, Loc),
-                       Attribute_Name => Name_Address)),
+                     Unchecked_Convert_To (RTE (RE_Address),
+                       Make_Attribute_Reference (Loc,
+                         Prefix         => New_Reference_To (Thunk_Id, Loc),
+                         Attribute_Name => Name_Unrestricted_Access))),
 
                  Build_Set_Predefined_Prim_Op_Address (Loc,
-                   Tag_Node => New_Reference_To
-                                 (Node (Next_Elmt (Iface_DT_Ptr)), Loc),
+                   Tag_Node =>
+                     New_Reference_To
+                      (Node (Next_Elmt (Next_Elmt (Next_Elmt (Iface_DT_Ptr)))),
+                       Loc),
                    Position => DT_Position (Prim),
                    Address_Node =>
-                     Make_Attribute_Reference (Loc,
-                       Prefix         => New_Reference_To (Prim, Loc),
-                       Attribute_Name => Name_Address))));
+                     Unchecked_Convert_To (RTE (RE_Address),
+                       Make_Attribute_Reference (Loc,
+                         Prefix         => New_Reference_To (Prim, Loc),
+                         Attribute_Name => Name_Unrestricted_Access)))));
             end if;
+
+            --  Skip the tag of the predefined primitives dispatch table
+
+            Next_Elmt (Iface_DT_Ptr);
+            pragma Assert (Has_Thunks (Node (Iface_DT_Ptr)));
+
+            --  Skip the tag of the no-thunks dispatch table
+
+            Next_Elmt (Iface_DT_Ptr);
+            pragma Assert (not Has_Thunks (Node (Iface_DT_Ptr)));
+
+            --  Skip the tag of the predefined primitives no-thunks dispatch
+            --  table
 
             Next_Elmt (Iface_DT_Ptr);
             pragma Assert (not Has_Thunks (Node (Iface_DT_Ptr)));
@@ -4823,7 +4841,7 @@ package body Exp_Ch6 is
             Typ : constant Entity_Id := Scope (DTC_Entity (Subp));
 
          begin
-            --  Handle private overriden primitives
+            --  Handle private overridden primitives
 
             if not Is_CPP_Class (Typ) then
                Check_Overriding_Operation (Subp);
@@ -5553,11 +5571,11 @@ package body Exp_Ch6 is
 
       --  If the object entity has a class-wide Etype, then we need to change
       --  it to the result subtype of the function call, because otherwise the
-      --  object will be class-wide without an explicit intialization and won't
-      --  be allocated properly by the back end. It seems unclean to make such
-      --  a revision to the type at this point, and we should try to improve
-      --  this treatment when build-in-place functions with class-wide results
-      --  are implemented. ???
+      --  object will be class-wide without an explicit initialization and
+      --  won't be allocated properly by the back end. It seems unclean to make
+      --  such a revision to the type at this point, and we should try to
+      --  improve this treatment when build-in-place functions with class-wide
+      --  results are implemented. ???
 
       if Is_Class_Wide_Type (Etype (Defining_Identifier (Object_Decl))) then
          Set_Etype (Defining_Identifier (Object_Decl), Result_Subt);

@@ -464,7 +464,7 @@ package body Exp_Dbug is
 
       Set_Debug_Renaming_Link (Obj, Entity (Ren));
 
-      Set_Needs_Debug_Info (Obj);
+      Set_Debug_Info_Needed (Obj);
 
       --  Mark the object as internal so that it won't be initialized when
       --  pragma Initialize_Scalars or Normalize_Scalars is in use.
@@ -1242,7 +1242,7 @@ package body Exp_Dbug is
                Add_Str_To_Name_Buffer ("__");
             end if;
 
-            --  Otherwise get name and note if it is a NPBE
+            --  Otherwise get name and note if it is a BNPE
 
             Get_Name_String_And_Append (Chars (E));
 

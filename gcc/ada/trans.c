@@ -687,10 +687,11 @@ Pragma_to_gnu (Node_Id gnat_node)
 
   /* Check for (and ignore) unrecognized pragma and do nothing if we are just
      annotating types.  */
-  if (type_annotate_only || !Is_Pragma_Name (Chars (gnat_node)))
+  if (type_annotate_only
+      || !Is_Pragma_Name (Chars (Pragma_Identifier (gnat_node))))
     return gnu_result;
 
-  switch (Get_Pragma_Id (Chars (gnat_node)))
+  switch (Get_Pragma_Id (Pragma_Identifier (Chars (gnat_node))))
     {
     case Pragma_Inspection_Point:
       /* Do nothing at top level: all such variables are already viewable.  */
@@ -1181,33 +1182,42 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 
 	else /* attribute == Attr_Range_Length || attribute == Attr_Length  */
 	  {
-	    tree gnu_compute_type;
-
 	    if (pa && pa->length)
 	      {
 		gnu_result = pa->length;
 		break;
 	      }
+	    else
+	      {
+		tree gnu_compute_type
+		  = signed_or_unsigned_type_for
+		      (0, get_base_type (gnu_result_type));
 
-	    gnu_compute_type
-	      = signed_or_unsigned_type_for (0,
-					     get_base_type (gnu_result_type));
+		tree index_type
+		  = TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type));
+		tree lb
+		  = convert (gnu_compute_type, TYPE_MIN_VALUE (index_type));
+		tree hb
+		  = convert (gnu_compute_type, TYPE_MAX_VALUE (index_type));
+		
+		/* We used to compute the length as max (hb - lb + 1, 0),
+		   which could overflow for some cases of empty arrays, e.g.
+		   when lb == index_type'first.
 
-	    gnu_result
-	      = build_binary_op
-		(MAX_EXPR, gnu_compute_type,
-		 build_binary_op
-		 (PLUS_EXPR, gnu_compute_type,
-		  build_binary_op
-		  (MINUS_EXPR, gnu_compute_type,
-		   convert (gnu_compute_type,
-			    TYPE_MAX_VALUE
-			    (TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type)))),
-		   convert (gnu_compute_type,
-			    TYPE_MIN_VALUE
-			    (TYPE_INDEX_TYPE (TYPE_DOMAIN (gnu_type))))),
-		  convert (gnu_compute_type, integer_one_node)),
-		 convert (gnu_compute_type, integer_zero_node));
+		   We now compute it as (hb < lb) ? 0 : hb - lb + 1, which
+		   could overflow as well, but only for extremely large arrays
+		   which we expect never to encounter in practice.  */
+
+		gnu_result
+		  = build3
+		    (COND_EXPR, gnu_compute_type,
+		     build_binary_op (LT_EXPR, gnu_compute_type, hb, lb),
+		     convert (gnu_compute_type, integer_zero_node),
+		     build_binary_op
+		     (PLUS_EXPR, gnu_compute_type,
+		      build_binary_op (MINUS_EXPR, gnu_compute_type, hb, lb),
+		      convert (gnu_compute_type, integer_one_node)));
+	      }
 	  }
 
 	/* If this has a PLACEHOLDER_EXPR, qualify it by the object we are
@@ -2117,7 +2127,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	  /* If the type is by_reference, a copy is not allowed.  */
 	  if (Is_By_Reference_Type (Etype (gnat_formal)))
 	    post_error
-	      ("misaligned & cannot be passed by reference", gnat_actual);
+	      ("misaligned actual cannot be passed by reference", gnat_actual);
 
 	  /* For users of Starlet we issue a warning because the
 	     interface apparently assumes that by-ref parameters
@@ -5286,6 +5296,13 @@ gnat_gimplify_expr (tree *expr_p, tree *pre_p, tree *post_p ATTRIBUTE_UNUSED)
 	  TREE_READONLY (op) = 0;
 	}
 
+      /* We let the gimplifier process &COND_EXPR and expect it to yield the
+	 address of the selected operand when it is addressable.  Besides, we
+	 also expect addressable_p to only let COND_EXPRs where both arms are
+	 addressable reach here.  */
+      else if (TREE_CODE (op) == COND_EXPR)
+	;
+
       /* Otherwise, if we are taking the address of something that is neither
 	 reference, declaration, or constant, make a variable for the operand
 	 here and then take its address.  If we don't do it this way, we may
@@ -6082,8 +6099,61 @@ larger_record_type_p (tree record_type, tree type)
 /* Return true if GNU_EXPR can be directly addressed.  This is the case
    unless it is an expression involving computation or if it involves a
    reference to a bitfield or to an object not sufficiently aligned for
-   its type.  If GNU_TYPE is non null, return true only if GNU_EXPR can
-   be directly addressed as an object of this type.  */
+   its type.  If GNU_TYPE is non-null, return true only if GNU_EXPR can
+   be directly addressed as an object of this type.
+
+   *** Notes on addressability issues in the Ada compiler ***
+
+   This predicate is necessary in order to bridge the gap between Gigi
+   and the middle-end about addressability of GENERIC trees.  A tree
+   is said to be addressable if it can be directly addressed, i.e. if
+   its address can be taken, is a multiple of the type's alignment on
+   strict-alignment architectures and returns the first storage unit
+   assigned to the object represented by the tree.
+
+   In the C family of languages, everything is in practice addressable
+   at the language level, except for bit-fields.  This means that these
+   compilers will take the address of any tree that doesn't represent
+   a bit-field reference and expect the result to be the first storage
+   unit assigned to the object.  Even in cases where this will result
+   in unaligned accesses at run time, nothing is supposed to be done
+   and the program is considered as erroneous instead (see PR c/18287).
+
+   The implicit assumptions made in the middle-end are in keeping with
+   the C viewpoint described above:
+     - the address of a bit-field reference is supposed to be never
+       taken; the compiler (generally) will stop on such a construct,
+     - any other tree is addressable if it is formally addressable,
+       i.e. if it is formally allowed to be the operand of ADDR_EXPR.
+
+   In Ada, the viewpoint is the opposite one: nothing is addressable
+   at the language level unless explicitly declared so.  This means
+   that the compiler will both make sure that the trees representing
+   references to addressable ("aliased" in Ada parlance) objects are
+   addressable and make no real attempts at ensuring that the trees
+   representing references to non-addressable objects are addressable.
+
+   In the first case, Ada is effectively equivalent to C and handing
+   down the direct result of applying ADDR_EXPR to these trees to the
+   middle-end works flawlessly.  In the second case, Ada cannot afford
+   to consider the program as erroneous if the address of trees that
+   are not addressable is requested for technical reasons, unlike C;
+   as a consequence, the Ada compiler must arrange for either making
+   sure that this address is not requested in the middle-end or for
+   compensating by inserting temporaries if it is requested in Gigi.
+
+   The first goal can be achieved because the middle-end should not
+   request the address of non-addressable trees on its own; the only
+   exception is for the invocation of low-level block operations like
+   memcpy, for which the addressability requirements are lower since
+   the type's alignment can be disregarded.  In practice, this means
+   that Gigi must make sure that such operations cannot be applied to
+   non-BLKmode bit-fields.
+
+   The second goal is achieved by means of the addressable_p predicate
+   and by inserting SAVE_EXPRs around trees deemed non-addressable.
+   They will be turned during gimplification into proper temporaries
+   whose address will be used in lieu of that of the original tree.  */
 
 static bool
 addressable_p (tree gnu_expr, tree gnu_type)
@@ -6116,6 +6186,12 @@ addressable_p (tree gnu_expr, tree gnu_type)
     case SAVE_EXPR:
     case CALL_EXPR:
       return true;
+
+    case COND_EXPR:
+      /* We accept &COND_EXPR as soon as both operands are addressable and
+	 expect the outcome to be the address of the selected operand.  */
+      return (addressable_p (TREE_OPERAND (gnu_expr, 1), NULL_TREE)
+	      && addressable_p (TREE_OPERAND (gnu_expr, 2), NULL_TREE));
 
     case COMPONENT_REF:
       return (!DECL_BIT_FIELD (TREE_OPERAND (gnu_expr, 1))

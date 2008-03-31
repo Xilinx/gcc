@@ -753,7 +753,7 @@ arm*-*-linux*)			# ARM GNU/Linux with ELF
 	tmake_file="${tmake_file} arm/t-arm-softfp soft-fp/t-softfp"
 	;;
 arm*-*-uclinux*)		# ARM ucLinux
-	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/linux-gas.h arm/uclinux-elf.h arm/uclinux-elf.h"
+	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/linux-gas.h arm/uclinux-elf.h"
 	tmake_file="arm/t-arm arm/t-arm-elf"
 	case ${target} in
 	arm*-*-uclinux-*eabi)
@@ -1372,8 +1372,8 @@ i[34567]86-*-pe | i[34567]86-*-cygwin*)
 	target_gtfiles="\$(srcdir)/config/i386/winnt.c"
 	extra_options="${extra_options} i386/cygming.opt"
 	extra_objs="winnt.o winnt-stubs.o"
-	c_target_objs=cygwin2.o
-	cxx_target_objs="cygwin2.o winnt-cxx.o"
+	c_target_objs="cygwin2.o msformat-c.o"
+	cxx_target_objs="cygwin2.o winnt-cxx.o msformat-c.o"
 	extra_gcc_objs=cygwin1.o
 	if test x$enable_threads = xyes; then
 		thread_file='posix'
@@ -1386,7 +1386,8 @@ i[34567]86-*-mingw32* | x86_64-*-mingw32*)
 	target_gtfiles="\$(srcdir)/config/i386/winnt.c"
 	extra_options="${extra_options} i386/cygming.opt"
 	extra_objs="winnt.o winnt-stubs.o"
-	cxx_target_objs=winnt-cxx.o
+	c_target_objs="msformat-c.o"
+	cxx_target_objs="winnt-cxx.o msformat-c.o"
 	default_use_cxa_atexit=yes
 	case ${enable_threads} in
 	  "" | yes | win32)
@@ -1515,19 +1516,19 @@ m32rle-*-linux*)
 	;;
 # m68hc11 and m68hc12 share the same machine description.
 m68hc11-*-*|m6811-*-*)
-	tm_file="dbxelf.h elfos.h m68hc11/m68hc11.h"
+	tm_file="dbxelf.h elfos.h usegas.h m68hc11/m68hc11.h"
 	tm_p_file="m68hc11/m68hc11-protos.h"
 	md_file="m68hc11/m68hc11.md"
 	out_file="m68hc11/m68hc11.c"
-	tmake_file="m68hc11/t-m68hc11-gas"
+	tmake_file="m68hc11/t-m68hc11"
 	use_fixproto=yes
         ;;
 m68hc12-*-*|m6812-*-*)
-	tm_file="m68hc11/m68hc12.h dbxelf.h elfos.h m68hc11/m68hc11.h"
+	tm_file="m68hc11/m68hc12.h dbxelf.h elfos.h usegas.h m68hc11/m68hc11.h"
 	tm_p_file="m68hc11/m68hc11-protos.h"
 	md_file="m68hc11/m68hc11.md"
 	out_file="m68hc11/m68hc11.c"
-	tmake_file="m68hc11/t-m68hc11-gas"
+	tmake_file="m68hc11/t-m68hc11"
 	extra_options="${extra_options} m68hc11/m68hc11.opt"
 	use_fixproto=yes
         ;;
@@ -1640,11 +1641,13 @@ mcore-*-elf)
 	tm_file="dbxelf.h elfos.h svr4.h ${tm_file} mcore/mcore-elf.h"
 	tmake_file=mcore/t-mcore
 	use_fixproto=yes
+	inhibit_libc=true
 	;;
 mcore-*-pe*)
 	tm_file="svr3.h dbxcoff.h ${tm_file} mcore/mcore-pe.h"
 	tmake_file=mcore/t-mcore-pe
 	use_fixproto=yes
+	inhibit_libc=true
 	;;
 mips-sgi-irix[56]*)
 	tm_file="elfos.h ${tm_file} mips/iris.h"

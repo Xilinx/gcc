@@ -62,29 +62,80 @@ internal_unpack (gfc_array_char * d, const void * s)
     {
     case GFC_DTYPE_INTEGER:
     case GFC_DTYPE_LOGICAL:
+      switch (size)
+	{
+	case sizeof (GFC_INTEGER_1):
+	  internal_unpack_1 ((gfc_array_i1 *) d, (const GFC_INTEGER_1 *) s);
+	  return;
+
+	case sizeof (GFC_INTEGER_2):
+	  internal_unpack_2 ((gfc_array_i2 *) d, (const GFC_INTEGER_2 *) s);
+	  return;
+
+	case sizeof (GFC_INTEGER_4):
+	  internal_unpack_4 ((gfc_array_i4 *) d, (const GFC_INTEGER_4 *) s);
+	  return;
+
+	case sizeof (GFC_INTEGER_8):
+	  internal_unpack_8 ((gfc_array_i8 *) d, (const GFC_INTEGER_8 *) s);
+	  return;
+
+#if defined (HAVE_GFC_INTEGER_16)
+	case sizeof (GFC_INTEGER_16):
+	  internal_unpack_16 ((gfc_array_i16 *) d, (const GFC_INTEGER_16 *) s);
+	  return;
+#endif
+	}
+      break;
+
     case GFC_DTYPE_REAL:
       switch (size)
 	{
-	case 4:
-	  internal_unpack_4 ((gfc_array_i4 *)d, (const GFC_INTEGER_4 *)s);
+	case sizeof (GFC_REAL_4):
+	  internal_unpack_r4 ((gfc_array_r4 *) d, (const GFC_REAL_4 *) s);
 	  return;
 
-	case 8:
-	  internal_unpack_8 ((gfc_array_i8 *)d, (const GFC_INTEGER_8 *)s);
+	case sizeof (GFC_REAL_8):
+	  internal_unpack_r8 ((gfc_array_r8 *) d, (const GFC_REAL_8 *) s);
 	  return;
+
+#if defined(HAVE_GFC_REAL_10)
+	case sizeof (GFC_REAL_10):
+	  internal_unpack_r10 ((gfc_array_r10 *) d, (const GFC_REAL_10 *) s);
+	  return;
+#endif
+
+#if defined(HAVE_GFC_REAL_16)
+	case sizeof (GFC_REAL_16):
+	  internal_unpack_r16 ((gfc_array_r16 *) d, (const GFC_REAL_16 *) s);
+	  return;
+#endif
+
 	}
-      break;
 
     case GFC_DTYPE_COMPLEX:
       switch (size) 
 	{
-	case 8:
+	case sizeof (GFC_COMPLEX_4):
 	  internal_unpack_c4 ((gfc_array_c4 *)d, (const GFC_COMPLEX_4 *)s);
 	  return;
 
-	case 16:
+	case sizeof (GFC_COMPLEX_8):
 	  internal_unpack_c8 ((gfc_array_c8 *)d, (const GFC_COMPLEX_8 *)s);
 	  return;
+
+#if defined(HAVE_GFC_COMPLEX_10)
+	case sizeof (GFC_COMPLEX_10):
+	  internal_unpack_c10 ((gfc_array_c10 *) d, (const GFC_COMPLEX_10 *) s);
+	  return;
+#endif
+
+#if defined(HAVE_GFC_COMPLEX_16)
+	case sizeof (GFC_COMPLEX_16):
+	  internal_unpack_c16 ((gfc_array_c16 *) d, (const GFC_COMPLEX_16 *) s);
+	  return;
+#endif
+
 	}
     default:
       break;

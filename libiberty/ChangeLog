@@ -1,3 +1,22 @@
+2008-03-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac (frags): Don't set, use frag instead.
+	(PICFLAG): Set here and substitute.
+	* Makefile.in (PICFLAG): Substitute from autoconf.
+	* configure: Regenerate.
+
+2008-03-24  Ian Lance Taylor  <iant@google.com>
+
+	* sha1.c: New file, from gnulib.
+	* Makefile.in: Rebuild dependencies.
+	(CFILES): Add sha1.c.
+	(REQUIRED_OFILES): Add sha1.o.
+
+2008-03-24  Doug Evans  <dje@google.com>
+
+	* make-relative-prefix.c (make_relative_prefix_1): Handle NULL
+	return from strdup.
+
 2008-03-12  Seongbae Park <seongbae.park@gmail.com>
 
 	* cplus-dem.c (malloc, realloc): Use void * instead of char *

@@ -794,8 +794,10 @@ compute_alignments (void)
   return 0;
 }
 
-struct tree_opt_pass pass_compute_alignments =
+struct rtl_opt_pass pass_compute_alignments =
 {
+ {
+  RTL_PASS,
   "alignments",                         /* name */
   NULL,                                 /* gate */
   compute_alignments,                   /* execute */
@@ -808,8 +810,8 @@ struct tree_opt_pass pass_compute_alignments =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_dump_func | TODO_verify_rtl_sharing
-  | TODO_ggc_collect,                   /* todo_flags_finish */
-  0                                     /* letter */
+  | TODO_ggc_collect                    /* todo_flags_finish */
+ }
 };
 
 
@@ -1976,30 +1978,6 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	}
 #ifdef HAVE_cc0
       CC_STATUS_INIT;
-      /* If this label is reached from only one place, set the condition
-	 codes from the instruction just before the branch.  */
-
-      /* Disabled because some insns set cc_status in the C output code
-	 and NOTICE_UPDATE_CC alone can set incorrect status.  */
-      if (0 /* optimize && LABEL_NUSES (insn) == 1*/)
-	{
-	  rtx jump = LABEL_REFS (insn);
-	  rtx barrier = prev_nonnote_insn (insn);
-	  rtx prev;
-	  /* If the LABEL_REFS field of this label has been set to point
-	     at a branch, the predecessor of the branch is a regular
-	     insn, and that branch is the only way to reach this label,
-	     set the condition codes based on the branch and its
-	     predecessor.  */
-	  if (barrier && BARRIER_P (barrier)
-	      && jump && JUMP_P (jump)
-	      && (prev = prev_nonnote_insn (jump))
-	      && NONJUMP_INSN_P (prev))
-	    {
-	      NOTICE_UPDATE_CC (PATTERN (prev), prev);
-	      NOTICE_UPDATE_CC (PATTERN (jump), jump);
-	    }
-	}
 #endif
 
       if (LABEL_NAME (insn))
@@ -2219,7 +2197,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 
 	    /* Get out the operand values.  */
 	    string = decode_asm_operands (body, ops, NULL, NULL, NULL, &loc);
-	    /* Inhibit dieing on what would otherwise be compiler bugs.  */
+	    /* Inhibit dying on what would otherwise be compiler bugs.  */
 	    insn_noperands = noperands;
 	    this_is_asm_operands = insn;
 	    expanded = expand_location (loc);
@@ -4169,8 +4147,10 @@ rest_of_handle_final (void)
   return 0;
 }
 
-struct tree_opt_pass pass_final =
+struct rtl_opt_pass pass_final =
 {
+ {
+  RTL_PASS,
   NULL,                                 /* name */
   NULL,                                 /* gate */
   rest_of_handle_final,                 /* execute */
@@ -4182,8 +4162,8 @@ struct tree_opt_pass pass_final =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_ggc_collect,                     /* todo_flags_finish */
-  0                                     /* letter */
+  TODO_ggc_collect                      /* todo_flags_finish */
+ }
 };
 
 
@@ -4195,8 +4175,10 @@ rest_of_handle_shorten_branches (void)
   return 0;
 }
 
-struct tree_opt_pass pass_shorten_branches =
+struct rtl_opt_pass pass_shorten_branches =
 {
+ {
+  RTL_PASS,
   "shorten",                            /* name */
   NULL,                                 /* gate */
   rest_of_handle_shorten_branches,      /* execute */
@@ -4208,8 +4190,8 @@ struct tree_opt_pass pass_shorten_branches =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func,                       /* todo_flags_finish */
-  0                                     /* letter */
+  TODO_dump_func                        /* todo_flags_finish */
+ }
 };
 
 
@@ -4277,8 +4259,10 @@ rest_of_clean_state (void)
   return 0;
 }
 
-struct tree_opt_pass pass_clean_state =
+struct rtl_opt_pass pass_clean_state =
 {
+ {
+  RTL_PASS,
   NULL,                                 /* name */
   NULL,                                 /* gate */
   rest_of_clean_state,                  /* execute */
@@ -4290,7 +4274,7 @@ struct tree_opt_pass pass_clean_state =
   0,                                    /* properties_provided */
   PROP_rtl,                             /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  0,                                    /* todo_flags_finish */
-  0                                     /* letter */
+  0                                     /* todo_flags_finish */
+ }
 };
 

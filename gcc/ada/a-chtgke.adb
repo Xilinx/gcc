@@ -2,8 +2,7 @@
 --                                                                          --
 --                         GNAT LIBRARY COMPONENTS                          --
 --                                                                          --
---                      A D A . C O N T A I N E R S .                       --
---             H A S H _ T A B L E S . G E N E R I C _ K E Y S              --
+--                 ADA.CONTAINERS.HASH_TABLES.GENERIC_KEYS                  --
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
@@ -247,7 +246,7 @@ package body Ada.Containers.Hash_Tables.Generic_Keys is
       end loop;
 
       --  We have determined that Key is not already in the hash table, so
-      --  the change is tenatively allowed. We now perform the standard
+      --  the change is tentatively allowed. We now perform the standard
       --  checks to determine whether the hash table is locked (because you
       --  cannot change an element while it's in use by Query_Element or
       --  Update_Element), or if the container is busy (because moving a

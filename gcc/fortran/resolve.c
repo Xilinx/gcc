@@ -834,6 +834,16 @@ resolve_structure_cons (gfc_expr *expr)
 	    t = gfc_convert_type (cons->expr, &comp->ts, 1);
 	}
 
+      if (cons->expr->expr_type == EXPR_NULL
+	    && !(comp->pointer || comp->allocatable))
+	{
+	  t = FAILURE;
+	  gfc_error ("The NULL in the derived type constructor at %L is "
+		     "being applied to component '%s', which is neither "
+		     "a POINTER nor ALLOCATABLE", &cons->expr->where,
+		     comp->name);
+	}
+
       if (!comp->pointer || cons->expr->expr_type == EXPR_NULL)
 	continue;
 
@@ -2364,7 +2374,12 @@ resolve_function (gfc_expr *expr)
       gfc_expr_set_symbols_referenced (expr->ts.cl->length);
     }
 
-  if (t == SUCCESS)
+  if (t == SUCCESS
+	&& !((expr->value.function.esym
+		&& expr->value.function.esym->attr.elemental)
+			||
+	     (expr->value.function.isym
+		&& expr->value.function.isym->elemental)))
     find_noncopying_intrinsics (expr->value.function.esym,
 				expr->value.function.actual);
 
@@ -2835,7 +2850,7 @@ resolve_call (gfc_code *c)
   if (resolve_elemental_actual (NULL, c) == FAILURE)
     return FAILURE;
 
-  if (t == SUCCESS)
+  if (t == SUCCESS && !(c->resolved_sym && c->resolved_sym->attr.elemental))
     find_noncopying_intrinsics (c->resolved_sym, c->ext.actual);
   return t;
 }
@@ -4868,7 +4883,6 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 {
   gfc_symbol *s = NULL;
   gfc_alloc *a;
-  bool is_variable;
 
   if (code->expr)
     s = code->expr->symtree->n.sym;
@@ -4882,45 +4896,6 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
       if (gfc_pure (NULL) && gfc_impure_variable (s))
 	gfc_error ("Illegal STAT variable in %s statement at %C "
 		   "for a PURE procedure", fcn);
-
-      is_variable = false;
-      if (s->attr.flavor == FL_VARIABLE)
-	is_variable = true;
-      else if (s->attr.function && s->result == s
-		 && (gfc_current_ns->proc_name == s
-			||
-		    (gfc_current_ns->parent
-		       && gfc_current_ns->parent->proc_name == s)))
-	is_variable = true;
-      else if (gfc_current_ns->entries && s->result == s)
-	{
-	  gfc_entry_list *el;
-	  for (el = gfc_current_ns->entries; el; el = el->next)
-	    if (el->sym == s)
-	      {
-		is_variable = true;
-	      }
-	}
-      else if (gfc_current_ns->parent && gfc_current_ns->parent->entries
-	         && s->result == s)
-	{
-	  gfc_entry_list *el;
-	  for (el = gfc_current_ns->parent->entries; el; el = el->next)
-	    if (el->sym == s)
-	      {
-		is_variable = true;
-	      }
-	}
-
-      if (s->attr.flavor == FL_UNKNOWN
-	    && gfc_add_flavor (&s->attr, FL_VARIABLE,
-			       s->name, NULL) == SUCCESS)
-	is_variable = true;
-
-      if (!is_variable)
-	gfc_error ("STAT tag in %s statement at %L must be "
-		   "a variable", fcn, &code->expr->where);
-
     }
 
   if (s && code->expr->ts.type != BT_INTEGER)
@@ -7971,6 +7946,29 @@ resolve_symbol (gfc_symbol *sym)
 		  &sym->declared_at, sym->ts.derived->name);
       sym->ts.type = BT_UNKNOWN;
       return;
+    }
+
+  /* Make sure that the derived type has been resolved and that the
+     derived type is visible in the symbol's namespace, if it is a
+     module function and is not PRIVATE.  */
+  if (sym->ts.type == BT_DERIVED
+	&& sym->ts.derived->attr.use_assoc
+	&& sym->ns->proc_name->attr.flavor == FL_MODULE)
+    {
+      gfc_symbol *ds;
+
+      if (resolve_fl_derived (sym->ts.derived) == FAILURE)
+	return;
+
+      gfc_find_symbol (sym->ts.derived->name, sym->ns, 1, &ds);
+      if (!ds && sym->attr.function
+	    && gfc_check_access (sym->attr.access, sym->ns->default_access))
+	{
+	  symtree = gfc_new_symtree (&sym->ns->sym_root,
+				     sym->ts.derived->name);
+	  symtree->n.sym = sym->ts.derived;
+	  sym->ts.derived->refs++;
+	}
     }
 
   /* Unless the derived-type declaration is use associated, Fortran 95

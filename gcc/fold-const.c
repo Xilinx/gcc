@@ -58,6 +58,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "rtl.h"
 #include "expr.h"
 #include "tm_p.h"
+#include "target.h"
 #include "toplev.h"
 #include "intl.h"
 #include "ggc.h"
@@ -5362,7 +5363,8 @@ fold_truthop (enum tree_code code, tree truth_type, tree lhs, tree rhs)
       if (code == TRUTH_OR_EXPR
 	  && lcode == NE_EXPR && integer_zerop (lr_arg)
 	  && rcode == NE_EXPR && integer_zerop (rr_arg)
-	  && TREE_TYPE (ll_arg) == TREE_TYPE (rl_arg))
+	  && TREE_TYPE (ll_arg) == TREE_TYPE (rl_arg)
+	  && INTEGRAL_TYPE_P (TREE_TYPE (ll_arg)))
 	return build2 (NE_EXPR, truth_type,
 		       build2 (BIT_IOR_EXPR, TREE_TYPE (ll_arg),
 			       ll_arg, rl_arg),
@@ -5372,7 +5374,8 @@ fold_truthop (enum tree_code code, tree truth_type, tree lhs, tree rhs)
       if (code == TRUTH_AND_EXPR
 	  && lcode == EQ_EXPR && integer_zerop (lr_arg)
 	  && rcode == EQ_EXPR && integer_zerop (rr_arg)
-	  && TREE_TYPE (ll_arg) == TREE_TYPE (rl_arg))
+	  && TREE_TYPE (ll_arg) == TREE_TYPE (rl_arg)
+	  && INTEGRAL_TYPE_P (TREE_TYPE (ll_arg)))
 	return build2 (EQ_EXPR, truth_type,
 		       build2 (BIT_IOR_EXPR, TREE_TYPE (ll_arg),
 			       ll_arg, rl_arg),
@@ -6807,6 +6810,11 @@ fold_sign_changed_comparison (enum tree_code code, tree type,
 #endif
 
   if (TYPE_PRECISION (inner_type) != TYPE_PRECISION (outer_type))
+    return NULL_TREE;
+
+  /* If the conversion is from an integral subtype to its basetype
+     leave it alone.  */
+  if (TREE_TYPE (inner_type) == outer_type)
     return NULL_TREE;
 
   if (TREE_CODE (arg1) != INTEGER_CST
@@ -8486,11 +8494,12 @@ fold_comparison (enum tree_code code, tree type, tree op0, tree op1)
       HOST_WIDE_INT bitsize, bitpos0 = 0, bitpos1 = 0;
       enum machine_mode mode;
       int volatilep, unsignedp;
-      bool indirect_base0 = false;
+      bool indirect_base0 = false, indirect_base1 = false;
 
       /* Get base and offset for the access.  Strip ADDR_EXPR for
 	 get_inner_reference, but put it back by stripping INDIRECT_REF
-	 off the base object if possible.  */
+	 off the base object if possible.  indirect_baseN will be true
+	 if baseN is not an address but refers to the object itself.  */
       base0 = arg0;
       if (TREE_CODE (arg0) == ADDR_EXPR)
 	{
@@ -8514,24 +8523,19 @@ fold_comparison (enum tree_code code, tree type, tree op0, tree op1)
 	  base1 = get_inner_reference (TREE_OPERAND (arg1, 0),
 				       &bitsize, &bitpos1, &offset1, &mode,
 				       &unsignedp, &volatilep, false);
-	  /* We have to make sure to have an indirect/non-indirect base1
-	     just the same as we did for base0.  */
-	  if (TREE_CODE (base1) == INDIRECT_REF
-	      && !indirect_base0)
+	  if (TREE_CODE (base1) == INDIRECT_REF)
 	    base1 = TREE_OPERAND (base1, 0);
-	  else if (!indirect_base0)
-	    base1 = NULL_TREE;
+	  else
+	    indirect_base1 = true;
 	}
       else if (TREE_CODE (arg1) == POINTER_PLUS_EXPR)
 	{
 	  base1 = TREE_OPERAND (arg1, 0);
 	  offset1 = TREE_OPERAND (arg1, 1);
 	}
-      else if (indirect_base0)
-	base1 = NULL_TREE;
 
       /* If we have equivalent bases we might be able to simplify.  */
-      if (base0 && base1
+      if (indirect_base0 == indirect_base1
 	  && operand_equal_p (base0, base1, 0))
 	{
 	  /* We can fold this expression to a constant if the non-constant
@@ -8585,6 +8589,48 @@ fold_comparison (enum tree_code code, tree type, tree op0, tree op1)
 
 	      return fold_build2 (code, type, offset0, offset1);
 	    }
+	}
+      /* For non-equal bases we can simplify if they are addresses
+	 of local binding decls or constants.  */
+      else if (indirect_base0 && indirect_base1
+	       /* We know that !operand_equal_p (base0, base1, 0)
+		  because the if condition was false.  But make
+		  sure two decls are not the same.  */
+	       && base0 != base1
+	       && TREE_CODE (arg0) == ADDR_EXPR
+	       && TREE_CODE (arg1) == ADDR_EXPR
+	       && (((TREE_CODE (base0) == VAR_DECL
+		     || TREE_CODE (base0) == PARM_DECL)
+		    && (targetm.binds_local_p (base0)
+			|| CONSTANT_CLASS_P (base1)))
+		   || CONSTANT_CLASS_P (base0))
+	       && (((TREE_CODE (base1) == VAR_DECL
+		     || TREE_CODE (base1) == PARM_DECL)
+		    && (targetm.binds_local_p (base1)
+			|| CONSTANT_CLASS_P (base0)))
+		   || CONSTANT_CLASS_P (base1)))
+	{
+	  if (code == EQ_EXPR)
+	    return omit_two_operands (type, boolean_false_node, arg0, arg1);
+	  else if (code == NE_EXPR)
+	    return omit_two_operands (type, boolean_true_node, arg0, arg1);
+	}
+      /* For equal offsets we can simplify to a comparison of the
+	 base addresses.  */
+      else if (bitpos0 == bitpos1
+	       && (indirect_base0
+		   ? base0 != TREE_OPERAND (arg0, 0) : base0 != arg0)
+	       && (indirect_base1
+		   ? base1 != TREE_OPERAND (arg1, 0) : base1 != arg1)
+	       && ((offset0 == offset1)
+		   || (offset0 && offset1
+		       && operand_equal_p (offset0, offset1, 0))))
+	{
+	  if (indirect_base0)
+	    base0 = fold_addr_expr (base0);
+	  if (indirect_base1)
+	    base1 = fold_addr_expr (base1);
+	  return fold_build2 (code, type, base0, base1);
 	}
     }
 
@@ -8929,27 +8975,6 @@ fold_comparison (enum tree_code code, tree type, tree op0, tree op1)
 		return save_expr (build2 (code, type, cval1, cval2));
 	      return fold_build2 (code, type, cval1, cval2);
 	    }
-	}
-    }
-
-  /* Fold a comparison of the address of COMPONENT_REFs with the same
-     type and component to a comparison of the address of the base
-     object.  In short, &x->a OP &y->a to x OP y and
-     &x->a OP &y.a to x OP &y  */
-  if (TREE_CODE (arg0) == ADDR_EXPR
-      && TREE_CODE (TREE_OPERAND (arg0, 0)) == COMPONENT_REF
-      && TREE_CODE (arg1) == ADDR_EXPR
-      && TREE_CODE (TREE_OPERAND (arg1, 0)) == COMPONENT_REF)
-    {
-      tree cref0 = TREE_OPERAND (arg0, 0);
-      tree cref1 = TREE_OPERAND (arg1, 0);
-      if (TREE_OPERAND (cref0, 1) == TREE_OPERAND (cref1, 1))
-	{
-	  tree op0 = TREE_OPERAND (cref0, 0);
-	  tree op1 = TREE_OPERAND (cref1, 0);
-	  return fold_build2 (code, type,
-			      fold_addr_expr (op0),
-			      fold_addr_expr (op1));
 	}
     }
 
@@ -10405,8 +10430,10 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
 	{
 	  return fold_build1 (BIT_NOT_EXPR, type,
 			      build2 (BIT_AND_EXPR, type,
-				      TREE_OPERAND (arg0, 0),
-				      TREE_OPERAND (arg1, 0)));
+				      fold_convert (type,
+						    TREE_OPERAND (arg0, 0)),
+				      fold_convert (type,
+						    TREE_OPERAND (arg1, 0))));
 	}
 
       /* See if this can be simplified into a rotate first.  If that
@@ -13728,7 +13755,7 @@ tree_simple_nonnegative_warnv_p (enum tree_code code, tree type)
    set *STRICT_OVERFLOW_P to true; otherwise, don't change
    *STRICT_OVERFLOW_P.  */
 
-static bool
+bool
 tree_unary_nonnegative_warnv_p (enum tree_code code, tree type, tree op0,
 				bool *strict_overflow_p)
 {
@@ -13798,7 +13825,7 @@ tree_unary_nonnegative_warnv_p (enum tree_code code, tree type, tree op0,
    set *STRICT_OVERFLOW_P to true; otherwise, don't change
    *STRICT_OVERFLOW_P.  */
 
-static bool
+bool
 tree_binary_nonnegative_warnv_p (enum tree_code code, tree type, tree op0,
 				      tree op1, bool *strict_overflow_p)
 {
@@ -13899,7 +13926,7 @@ tree_binary_nonnegative_warnv_p (enum tree_code code, tree type, tree op0,
    set *STRICT_OVERFLOW_P to true; otherwise, don't change
    *STRICT_OVERFLOW_P.  */
 
-static bool
+bool
 tree_single_nonnegative_warnv_p (tree t, bool *strict_overflow_p)
 {
   if (TYPE_UNSIGNED (TREE_TYPE (t)))
@@ -13939,7 +13966,7 @@ tree_single_nonnegative_warnv_p (tree t, bool *strict_overflow_p)
    set *STRICT_OVERFLOW_P to true; otherwise, don't change
    *STRICT_OVERFLOW_P.  */
 
-static bool
+bool
 tree_invalid_nonnegative_warnv_p (tree t, bool *strict_overflow_p)
 {
   enum tree_code code = TREE_CODE (t);
@@ -14228,7 +14255,7 @@ tree_expr_nonnegative_p (tree t)
    is undefined, set *STRICT_OVERFLOW_P to true; otherwise, don't
    change *STRICT_OVERFLOW_P.  */
 
-static bool
+bool
 tree_unary_nonzero_warnv_p (enum tree_code code, tree type, tree op0,
 				 bool *strict_overflow_p)
 {
@@ -14268,7 +14295,7 @@ tree_unary_nonzero_warnv_p (enum tree_code code, tree type, tree op0,
    is undefined, set *STRICT_OVERFLOW_P to true; otherwise, don't
    change *STRICT_OVERFLOW_P.  */
 
-static bool
+bool
 tree_binary_nonzero_warnv_p (enum tree_code code,
 			     tree type,
 			     tree op0,
@@ -14376,7 +14403,7 @@ tree_binary_nonzero_warnv_p (enum tree_code code,
    is undefined, set *STRICT_OVERFLOW_P to true; otherwise, don't
    change *STRICT_OVERFLOW_P.  */
 
-static bool
+bool
 tree_single_nonzero_warnv_p (tree t, bool *strict_overflow_p)
 {
   bool sub_strict_overflow_p;

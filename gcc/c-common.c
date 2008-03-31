@@ -3347,6 +3347,8 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
 	{
 	  if (complain && (pedantic || warn_pointer_arith))
 	    pedwarn ("invalid application of %<sizeof%> to a function type");
+          else if (!complain)
+            return error_mark_node;
 	  value = size_one_node;
 	}
       else
@@ -3357,6 +3359,8 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
       if (type_code == VOID_TYPE
 	  && complain && (pedantic || warn_pointer_arith))
 	pedwarn ("invalid application of %qs to a void type", op_name);
+      else if (!complain)
+        return error_mark_node;
       value = size_one_node;
     }
   else if (!COMPLETE_TYPE_P (type))
@@ -5514,11 +5518,16 @@ handle_weak_attribute (tree *node, tree name,
 		       bool * ARG_UNUSED (no_add_attrs))
 {
   if (TREE_CODE (*node) == FUNCTION_DECL
-      || TREE_CODE (*node) == VAR_DECL)
+      && DECL_DECLARED_INLINE_P (*node))
+    {
+      error ("inline function %q+D cannot be declared weak", *node);
+      *no_add_attrs = true;
+    }
+  else if (TREE_CODE (*node) == FUNCTION_DECL
+	   || TREE_CODE (*node) == VAR_DECL)
     declare_weak (*node);
   else
     warning (OPT_Wattributes, "%qE attribute ignored", name);
-    	
 
   return NULL_TREE;
 }

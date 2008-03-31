@@ -2965,6 +2965,7 @@ rs6000_expand_vector_init (rtx target, rtx vals)
 
   if (n_var == 0)
     {
+      rtx const_vec = gen_rtx_CONST_VECTOR (mode, XVEC (vals, 0));
       if (mode != V4SFmode && all_const_zero)
 	{
 	  /* Zero register.  */
@@ -2972,10 +2973,10 @@ rs6000_expand_vector_init (rtx target, rtx vals)
 				  gen_rtx_XOR (mode, target, target)));
 	  return;
 	}
-      else if (mode != V4SFmode && easy_vector_constant (vals, mode))
+      else if (mode != V4SFmode && easy_vector_constant (const_vec, mode))
 	{
 	  /* Splat immediate.  */
-	  emit_insn (gen_rtx_SET (VOIDmode, target, vals));
+	  emit_insn (gen_rtx_SET (VOIDmode, target, const_vec));
 	  return;
 	}
       else if (all_same)
@@ -2983,7 +2984,7 @@ rs6000_expand_vector_init (rtx target, rtx vals)
       else
 	{
 	  /* Load from constant pool.  */
-	  emit_move_insn (target, gen_rtx_CONST_VECTOR (mode, XVEC (vals, 0)));
+	  emit_move_insn (target, const_vec);
 	  return;
 	}
     }
@@ -14449,7 +14450,6 @@ rs6000_stack_info (void)
 #endif
       || (info_ptr->first_fp_reg_save != 64
 	  && !FP_SAVE_INLINE (info_ptr->first_fp_reg_save))
-      || info_ptr->first_altivec_reg_save <= LAST_ALTIVEC_REGNO
       || (DEFAULT_ABI == ABI_V4 && current_function_calls_alloca)
       || info_ptr->calls_p
       || rs6000_ra_ever_killed ())

@@ -35,6 +35,8 @@
 ;;  M: 1
 ;;  N: 0
 ;;  P27: 1 | 2 | 8 | 16
+;;  Pso: 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128
+;;  Psz: ~1 | ~2 | ~4 | ~8 | ~16 | ~32 | ~64 | ~128
 ;; Q: pc relative load operand
 ;; Rxx: reserved for exotic register classes.
 ;; Sxx: extra memory (storage) constraints
@@ -112,6 +114,12 @@
        (match_test "ival >= -524288 && ival <= 524287")
        (match_test "TARGET_SH2A")))
 
+(define_constraint "I28"
+  "A signed 28-bit constant, as used in SH2A movi20s."
+  (and (match_code "const_int")
+       (match_test "ival >=  -134217728 && ival <= 134217727")
+       (match_test "(ival & 255) == 0")
+       (match_test "TARGET_SH2A")))
 (define_constraint "J16"
   "0xffffffff00000000 or 0x00000000ffffffff."
   (and (match_code "const_int")
@@ -197,6 +205,30 @@
    purpose register.  This is like 's' except we don't allow
    PIC_DIRECT_ADDR_P."
   (match_test "IS_NON_EXPLICIT_CONSTANT_P (op)"))
+
+(define_constraint "Pso"
+  "Integer constant with a single bit set in its lower 8-bit."
+  (and (match_code "const_int")
+       (ior (match_test "ival == 1")
+	    (match_test "ival == 2")
+	    (match_test "ival == 4")
+	    (match_test "ival == 8")
+	    (match_test "ival == 16")
+	    (match_test "ival == 32")
+	    (match_test "ival == 64")
+	    (match_test "ival == 128"))))
+
+(define_constraint "Psz"
+  "Integer constant with a single zero bit in the lower 8-bit."
+  (and (match_code "const_int")
+       (ior (match_test "~ival == 1")
+	    (match_test "~ival == 2")
+	    (match_test "~ival == 4")
+	    (match_test "~ival == 8")
+	    (match_test "~ival == 16")
+	    (match_test "~ival == 32")
+	    (match_test "~ival == 64")
+	    (match_test "~ival == 128"))))
 
 (define_memory_constraint "Sr0"
   "@internal"

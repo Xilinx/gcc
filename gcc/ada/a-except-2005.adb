@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,15 +31,13 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This version is used for all Ada 2005 builds. It differs from a-except.ads
---  only with respect to the addition of Wide_[Wide]Exception_Name functions.
+--  This version of Ada.Exceptions fully supports both Ada 95 and Ada 2005.
+--  It is used in all situations except for the build of the compiler and
+--  other basic tools. For these latter builds, we use an Ada 95-only version.
 
 --  The reason for this splitting off of a separate version is that bootstrap
 --  compilers often will be used that do not support Ada 2005 features, and
 --  Ada.Exceptions is part of the compiler sources.
-
---  The base version of this unit Ada.Exceptions omits the Wide version of
---  Exception_Name and is used to build the compiler and other basic tools.
 
 pragma Style_Checks (All_Checks);
 --  No subprogram ordering check, due to logical grouping
@@ -398,7 +396,7 @@ package body Ada.Exceptions is
    --  is deferred before the reraise operation.
 
    --  Save_Occurrence variations: As the management of the private data
-   --  attached to occurrences is delicate, wether or not pointers to such
+   --  attached to occurrences is delicate, whether or not pointers to such
    --  data has to be copied in various situations is better made explicit.
    --  The following procedures provide an internal interface to help making
    --  this explicit.

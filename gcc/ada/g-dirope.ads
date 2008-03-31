@@ -43,6 +43,7 @@
 --  directory names (OpenVMS native directory format is not supported).
 --  Read individual entries for more specific notes on OpenVMS support.
 
+with System;
 with Ada.Strings.Maps;
 
 package GNAT.Directory_Operations is
@@ -222,7 +223,7 @@ package GNAT.Directory_Operations is
    --  Dir will be set to Null_Dir.
 
    procedure Close (Dir : in out Dir_Type);
-   --  Closes the directory stream refered to by Dir. After calling Close
+   --  Closes the directory stream referred to by Dir. After calling Close
    --  Is_Open will return False. Dir will be set to Null_Dir.
    --  Raises Directory_Error if Dir has not be opened (Dir = Null_Dir).
 
@@ -254,7 +255,15 @@ package GNAT.Directory_Operations is
 
 private
 
-   type Dir_Type_Value;
+   type Dir_Type_Value is new System.Address;
+   --  Low-level address directory structure as returned by opendir in C
+   --
+   --  Note that we used to define this type in the body of this package,
+   --  but this was causing troubles in the context of .NET code generation
+   --  (because Taft amendment types are not fully implemented and cause
+   --  undefined references to the class), so we moved the type declaration
+   --  to the spec's private part, which is no problem in any case here.
+
    type Dir_Type is access Dir_Type_Value;
 
    Null_Dir : constant Dir_Type := null;

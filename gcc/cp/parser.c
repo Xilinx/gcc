@@ -4333,19 +4333,20 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	  {
 	  case RID_DYNCAST:
 	    postfix_expression
-	      = build_dynamic_cast (type, expression);
+	      = build_dynamic_cast (type, expression, tf_warning_or_error);
 	    break;
 	  case RID_STATCAST:
 	    postfix_expression
-	      = build_static_cast (type, expression);
+	      = build_static_cast (type, expression, tf_warning_or_error);
 	    break;
 	  case RID_REINTCAST:
 	    postfix_expression
-	      = build_reinterpret_cast (type, expression);
+	      = build_reinterpret_cast (type, expression, 
+                                        tf_warning_or_error);
 	    break;
 	  case RID_CONSTCAST:
 	    postfix_expression
-	      = build_const_cast (type, expression);
+	      = build_const_cast (type, expression, tf_warning_or_error);
 	    break;
 	  default:
 	    gcc_unreachable ();
@@ -4644,12 +4645,14 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 		       (instance, fn, args, NULL_TREE,
 			(idk == CP_ID_KIND_QUALIFIED
 			 ? LOOKUP_NONVIRTUAL : LOOKUP_NORMAL),
-			/*fn_p=*/NULL));
+			/*fn_p=*/NULL,
+			tf_warning_or_error));
 		else
 		  postfix_expression
 		    = finish_call_expr (postfix_expression, args,
 					/*disallow_virtual=*/false,
-					/*koenig_p=*/false);
+					/*koenig_p=*/false,
+					tf_warning_or_error);
 	      }
 	    else if (TREE_CODE (postfix_expression) == OFFSET_REF
 		     || TREE_CODE (postfix_expression) == MEMBER_REF
@@ -4662,13 +4665,15 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	      postfix_expression
 		= finish_call_expr (postfix_expression, args,
 				    /*disallow_virtual=*/true,
-				    koenig_p);
+				    koenig_p,
+				    tf_warning_or_error);
 	    else
 	      /* All other function calls.  */
 	      postfix_expression
 		= finish_call_expr (postfix_expression, args,
 				    /*disallow_virtual=*/false,
-				    koenig_p);
+				    koenig_p,
+				    tf_warning_or_error);
 
 	    /* The POSTFIX_EXPRESSION is certainly no longer an id.  */
 	    idk = CP_ID_KIND_NONE;
@@ -4937,7 +4942,8 @@ cp_parser_postfix_dot_deref_expression (cp_parser *parser,
 	      (name, BINFO_TYPE (BASELINK_ACCESS_BINFO (name)), scope);
 	  postfix_expression
 	    = finish_class_member_access_expr (postfix_expression, name,
-					       template_p);
+					       template_p, 
+					       tf_warning_or_error);
 	}
     }
 
@@ -5250,7 +5256,7 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p)
 	    if (TYPE_P (operand))
 	      return cxx_sizeof_or_alignof_type (operand, op, true);
 	    else
-	      return cxx_sizeof_or_alignof_expr (operand, op);
+	      return cxx_sizeof_or_alignof_expr (operand, op, true);
 	  }
 
 	case RID_NEW:
@@ -5287,7 +5293,8 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p)
 	    /* Create the complete representation.  */
 	    return build_x_unary_op ((keyword == RID_REALPART
 				      ? REALPART_EXPR : IMAGPART_EXPR),
-				     expression);
+				     expression,
+                                     tf_warning_or_error);
 	  }
 	  break;
 
@@ -5362,14 +5369,16 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p)
 	{
 	case INDIRECT_REF:
 	  non_constant_p = "`*'";
-	  expression = build_x_indirect_ref (cast_expression, "unary *");
+	  expression = build_x_indirect_ref (cast_expression, "unary *",
+                                             tf_warning_or_error);
 	  break;
 
 	case ADDR_EXPR:
 	  non_constant_p = "`&'";
 	  /* Fall through.  */
 	case BIT_NOT_EXPR:
-	  expression = build_x_unary_op (unary_operator, cast_expression);
+	  expression = build_x_unary_op (unary_operator, cast_expression,
+                                         tf_warning_or_error);
 	  break;
 
 	case PREINCREMENT_EXPR:
@@ -5500,7 +5509,8 @@ cp_parser_new_expression (cp_parser* parser)
     return error_mark_node;
 
   /* Create a representation of the new-expression.  */
-  return build_new (placement, type, nelts, initializer, global_scope_p);
+  return build_new (placement, type, nelts, initializer, global_scope_p,
+                    tf_warning_or_error);
 }
 
 /* Parse a new-placement.
@@ -6059,7 +6069,7 @@ cp_parser_binary_expression (cp_parser* parser, bool cast_p)
 
       overloaded_p = false;
       lhs = build_x_binary_op (tree_type, lhs, lhs_type, rhs, rhs_type,
-			       &overloaded_p);
+			       &overloaded_p, tf_warning_or_error);
       lhs_type = tree_type;
 
       /* If the binary operator required the use of an overloaded operator,
@@ -6115,7 +6125,8 @@ cp_parser_question_colon_clause (cp_parser* parser, tree logical_or_expr)
   /* Build the conditional-expression.  */
   return build_x_conditional_expr (logical_or_expr,
 				   expr,
-				   assignment_expr);
+				   assignment_expr,
+                                   tf_warning_or_error);
 }
 
 /* Parse an assignment-expression.
@@ -6170,7 +6181,8 @@ cp_parser_assignment_expression (cp_parser* parser, bool cast_p)
 	      /* Build the assignment expression.  */
 	      expr = build_x_modify_expr (expr,
 					  assignment_operator,
-					  rhs);
+					  rhs,
+					  tf_warning_or_error);
 	    }
 	}
     }
@@ -6290,7 +6302,8 @@ cp_parser_expression (cp_parser* parser, bool cast_p)
 	expression = assignment_expression;
       else
 	expression = build_x_compound_expr (expression,
-					    assignment_expression);
+					    assignment_expression,
+                                            tf_warning_or_error);
       /* If the next token is not a comma, then we are done with the
 	 expression.  */
       if (cp_lexer_next_token_is_not (parser->lexer, CPP_COMMA))
@@ -6410,7 +6423,8 @@ cp_parser_builtin_offsetof (cp_parser *parser)
   cp_parser_require (parser, CPP_COMMA, "`,'");
 
   /* Build the (type *)null that begins the traditional offsetof macro.  */
-  expr = build_static_cast (build_pointer_type (type), null_pointer_node);
+  expr = build_static_cast (build_pointer_type (type), null_pointer_node,
+                            tf_warning_or_error);
 
   /* Parse the offsetof-member-designator.  We begin as if we saw "expr->".  */
   expr = cp_parser_postfix_dot_deref_expression (parser, CPP_DEREF, expr,
@@ -8089,7 +8103,7 @@ cp_parser_decl_specifier_seq (cp_parser* parser,
 	case RID_FRIEND:
 	  if (!at_class_scope_p ())
 	    {
-	      error ("%<friend%> used outside of class");
+	      error ("%H%<friend%> used outside of class", &token->location);
 	      cp_lexer_purge_token (parser->lexer);
 	    }
 	  else
@@ -9421,29 +9435,41 @@ cp_parser_template_parameter (cp_parser* parser, bool *is_non_type,
       maybe_warn_variadic_templates ();
       
       *is_parameter_pack = true;
+    }
+  /* We might end up with a pack expansion as the type of the non-type
+     template parameter, in which case this is a non-type template
+     parameter pack.  */
+  else if (parameter_declarator
+	   && parameter_declarator->decl_specifiers.type
+	   && PACK_EXPANSION_P (parameter_declarator->decl_specifiers.type))
+    {
+      *is_parameter_pack = true;
+      parameter_declarator->decl_specifiers.type = 
+	PACK_EXPANSION_PATTERN (parameter_declarator->decl_specifiers.type);
+    }
 
+  if (*is_parameter_pack && cp_lexer_next_token_is (parser->lexer, CPP_EQ))
+    {
       /* Parameter packs cannot have default arguments.  However, a
 	 user may try to do so, so we'll parse them and give an
 	 appropriate diagnostic here.  */
-      if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
-	{
-	  /* Consume the `='.  */
-	  cp_lexer_consume_token (parser->lexer);
 
-	  /* Find the name of the parameter pack.  */     
-	  id_declarator = parameter_declarator->declarator;
-	  while (id_declarator && id_declarator->kind != cdk_id)
-	    id_declarator = id_declarator->declarator;
-	  
-	  if (id_declarator && id_declarator->kind == cdk_id)
-	    error ("template parameter pack %qD cannot have a default argument",
-		   id_declarator->u.id.unqualified_name);
-	  else
-	    error ("template parameter pack cannot have a default argument");
-
-          /* Parse the default argument, but throw away the result.  */
-          cp_parser_default_argument (parser, /*template_parm_p=*/true);
-	}
+      /* Consume the `='.  */
+      cp_lexer_consume_token (parser->lexer);
+      
+      /* Find the name of the parameter pack.  */     
+      id_declarator = parameter_declarator->declarator;
+      while (id_declarator && id_declarator->kind != cdk_id)
+	id_declarator = id_declarator->declarator;
+      
+      if (id_declarator && id_declarator->kind == cdk_id)
+	error ("template parameter pack %qD cannot have a default argument",
+	       id_declarator->u.id.unqualified_name);
+      else
+	error ("template parameter pack cannot have a default argument");
+      
+      /* Parse the default argument, but throw away the result.  */
+      cp_parser_default_argument (parser, /*template_parm_p=*/true);
     }
 
   parm = grokdeclarator (parameter_declarator->declarator,
@@ -10320,7 +10346,8 @@ cp_parser_template_argument (cp_parser* parser)
 	  if (cp_parser_parse_definitely (parser))
 	    {
 	      if (address_p)
-		argument = build_x_unary_op (ADDR_EXPR, argument);
+		argument = build_x_unary_op (ADDR_EXPR, argument,
+                                             tf_warning_or_error);
 	      return argument;
 	    }
 	}
@@ -14224,7 +14251,7 @@ cp_parser_class_name (cp_parser *parser,
     }
   else if (TREE_CODE (decl) != TYPE_DECL
 	   || TREE_TYPE (decl) == error_mark_node
-	   || !IS_AGGR_TYPE (TREE_TYPE (decl)))
+	   || !MAYBE_CLASS_TYPE_P (TREE_TYPE (decl)))
     decl = error_mark_node;
 
   if (decl == error_mark_node)
@@ -17181,7 +17208,8 @@ cp_parser_functional_cast (cp_parser* parser, tree type)
                                                /*allow_expansion_p=*/true,
 					       /*non_constant_p=*/NULL);
 
-  cast = build_functional_cast (type, expression_list);
+  cast = build_functional_cast (type, expression_list,
+                                tf_warning_or_error);
   /* [expr.const]/1: In an integral constant expression "only type
      conversions to integral or enumeration type can be used".  */
   if (TREE_CODE (type) == TYPE_DECL)

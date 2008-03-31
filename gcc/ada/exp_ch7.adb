@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -123,7 +123,7 @@ package body Exp_Ch7 is
    --------------------------------------------------
 
    function Find_Node_To_Be_Wrapped (N : Node_Id) return Node_Id;
-   --  N is a node wich may generate a transient scope. Loop over the
+   --  N is a node which may generate a transient scope. Loop over the
    --  parent pointers of N until it find the appropriate node to
    --  wrap. It it returns Empty, it means that no transient scope is
    --  needed in this context.
@@ -138,7 +138,7 @@ package body Exp_Ch7 is
       Is_Protected_Subprogram    : Boolean;
       Is_Task_Allocation_Block   : Boolean;
       Is_Asynchronous_Call_Block : Boolean) return Node_Id;
-   --  Expand a the clean-up procedure for controlled and/or transient
+   --  Expand the clean-up procedure for controlled and/or transient
    --  block, and/or task master or task body, or blocks used to
    --  implement task allocation or asynchronous entry calls, or
    --  procedures used to implement protected procedures. Clean is the
@@ -245,7 +245,7 @@ package body Exp_Ch7 is
    -- Finalization Management --
    -----------------------------
 
-   --  This part describe how Initialization/Adjusment/Finalization procedures
+   --  This part describe how Initialization/Adjustment/Finalization procedures
    --  are generated and called. Two cases must be considered, types that are
    --  Controlled (Is_Controlled flag set) and composite types that contain
    --  controlled components (Has_Controlled_Component flag set). In the first
@@ -262,7 +262,7 @@ package body Exp_Ch7 is
    --  controlled components changes during execution. This controller
    --  component is itself controlled and is attached to the upper-level
    --  finalization chain. Its adjust primitive is in charge of calling adjust
-   --  on the components and adusting the finalization pointer to match their
+   --  on the components and adjusting the finalization pointer to match their
    --  new location (see a-finali.adb).
 
    --  It is not possible to use a similar technique for arrays that have
@@ -1030,7 +1030,7 @@ package body Exp_Ch7 is
    -------------------------------
 
    --  This procedure is called each time a transient block has to be inserted
-   --  that is to say for each call to a function with unconstrained ot tagged
+   --  that is to say for each call to a function with unconstrained or tagged
    --  result. It creates a new scope on the stack scope in order to enclose
    --  all transient variables generated
 
@@ -2301,14 +2301,16 @@ package body Exp_Ch7 is
          if Nkind (Specification (N)) = N_Procedure_Specification
            and then Has_Entries (Pid)
          then
-            if Abort_Allowed
-              or else Restriction_Active (No_Entry_Queue) = False
-              or else Number_Entries (Pid) > 1
-            then
-               Name := New_Reference_To (RTE (RE_Service_Entries), Loc);
-            else
-               Name := New_Reference_To (RTE (RE_Service_Entry), Loc);
-            end if;
+            case Corresponding_Runtime_Package (Pid) is
+               when System_Tasking_Protected_Objects_Entries =>
+                  Name := New_Reference_To (RTE (RE_Service_Entries), Loc);
+
+               when System_Tasking_Protected_Objects_Single_Entry =>
+                  Name := New_Reference_To (RTE (RE_Service_Entry), Loc);
+
+               when others =>
+                  raise Program_Error;
+            end case;
 
             Append_To (Stmt,
               Make_Procedure_Call_Statement (Loc,
@@ -2329,31 +2331,19 @@ package body Exp_Ch7 is
             --  object is the record used to implement the protected object.
             --  It is a parameter to the protected subprogram.
 
-            --  If the protected object is controlled (i.e it has entries or
-            --  needs finalization for interrupt handling), call
-            --  Unlock_Entries, except if the protected object follows the
-            --  ravenscar profile, in which case call Unlock_Entry, otherwise
-            --  call the simplified version, Unlock.
-
-            if Has_Entries (Pid)
-              or else Has_Interrupt_Handler (Pid)
-              or else (Has_Attach_Handler (Pid)
-                         and then not Restricted_Profile)
-              or else (Ada_Version >= Ada_05
-                         and then Present (Interface_List (Parent (Pid))))
-            then
-               if Abort_Allowed
-                 or else Restriction_Active (No_Entry_Queue) = False
-                 or else Number_Entries (Pid) > 1
-               then
+            case Corresponding_Runtime_Package (Pid) is
+               when System_Tasking_Protected_Objects_Entries =>
                   Name := New_Reference_To (RTE (RE_Unlock_Entries), Loc);
-               else
-                  Name := New_Reference_To (RTE (RE_Unlock_Entry), Loc);
-               end if;
 
-            else
-               Name := New_Reference_To (RTE (RE_Unlock), Loc);
-            end if;
+               when System_Tasking_Protected_Objects_Single_Entry =>
+                  Name := New_Reference_To (RTE (RE_Unlock_Entry), Loc);
+
+               when System_Tasking_Protected_Objects =>
+                  Name := New_Reference_To (RTE (RE_Unlock), Loc);
+
+               when others =>
+                  raise Program_Error;
+            end case;
 
             Append_To (Stmt,
               Make_Procedure_Call_Statement (Loc,

@@ -267,31 +267,6 @@ debug_lattice_value (prop_value_t val)
 }
 
 
-/* The regular is_gimple_min_invariant does a shallow test of the object.
-   It assumes that full gimplification has happened, or will happen on the
-   object.  For a value coming from DECL_INITIAL, this is not true, so we
-   have to be more strict ourselves.  */
-
-static bool
-ccp_decl_initial_min_invariant (tree t)
-{
-  if (!is_gimple_min_invariant (t))
-    return false;
-  if (TREE_CODE (t) == ADDR_EXPR)
-    {
-      /* Inline and unroll is_gimple_addressable.  */
-      while (1)
-	{
-	  t = TREE_OPERAND (t, 0);
-	  if (is_gimple_id (t))
-	    return true;
-	  if (!handled_component_p (t))
-	    return false;
-	}
-    }
-  return true;
-}
-
 /* If SYM is a constant variable with known value, return the value.
    NULL_TREE is returned otherwise.  */
 
@@ -303,9 +278,12 @@ get_symbol_constant_value (tree sym)
       && !MTAG_P (sym))
     {
       tree val = DECL_INITIAL (sym);
-      if (val
-	  && ccp_decl_initial_min_invariant (val))
-	return val;
+      if (val)
+	{
+	  STRIP_USELESS_TYPE_CONVERSION (val);
+	  if (is_gimple_min_invariant (val))
+	    return val;
+	}
       /* Variables declared 'const' without an initializer
 	 have zero as the intializer if they may not be
 	 overridden at link or run time.  */
@@ -947,8 +925,15 @@ ccp_fold (tree stmt)
 	    op0 = get_value (op0)->value;
 	}
 
+      /* Conversions are useless for CCP purposes if they are
+	 value-preserving.  Thus the restrictions that
+	 useless_type_conversion_p places for pointer type conversions do
+	 not apply here.  Substitution later will only substitute to
+	 allowed places.  */
       if ((code == NOP_EXPR || code == CONVERT_EXPR)
-	  && useless_type_conversion_p (TREE_TYPE (rhs), TREE_TYPE (op0)))
+	  && ((POINTER_TYPE_P (TREE_TYPE (rhs))
+	       && POINTER_TYPE_P (TREE_TYPE (op0)))
+	      || useless_type_conversion_p (TREE_TYPE (rhs), TREE_TYPE (op0))))
 	return op0;
       return fold_unary (code, TREE_TYPE (rhs), op0);
     }
@@ -1122,7 +1107,10 @@ fold_const_aggregate_ref (tree t)
       /* Whoo-hoo!  I'll fold ya baby.  Yeah!  */
       FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (ctor), cnt, cfield, cval)
 	if (tree_int_cst_equal (cfield, idx))
-	  return cval;
+	  {
+	    STRIP_USELESS_TYPE_CONVERSION (cval);
+	    return cval;
+	  }
       break;
 
     case COMPONENT_REF:
@@ -1162,7 +1150,10 @@ fold_const_aggregate_ref (tree t)
 	if (cfield == field
 	    /* FIXME: Handle bit-fields.  */
 	    && ! DECL_BIT_FIELD (cfield))
-	  return cval;
+	  {
+	    STRIP_USELESS_TYPE_CONVERSION (cval);
+	    return cval;
+	  }
       break;
 
     case REALPART_EXPR:
@@ -1281,50 +1272,6 @@ visit_assignment (tree stmt, tree *output_p)
   else
     /* Evaluate the statement.  */
     val = evaluate_stmt (stmt);
-
-  /* If the original LHS was a VIEW_CONVERT_EXPR, modify the constant
-     value to be a VIEW_CONVERT_EXPR of the old constant value.
-
-     ??? Also, if this was a definition of a bitfield, we need to widen
-     the constant value into the type of the destination variable.  This
-     should not be necessary if GCC represented bitfields properly.  */
-  {
-    tree orig_lhs = GIMPLE_STMT_OPERAND (stmt, 0);
-
-    if (TREE_CODE (orig_lhs) == VIEW_CONVERT_EXPR
-	&& val.lattice_val == CONSTANT)
-      {
-	tree w = fold_unary (VIEW_CONVERT_EXPR,
-			     TREE_TYPE (TREE_OPERAND (orig_lhs, 0)),
-			     val.value);
-
-	orig_lhs = TREE_OPERAND (orig_lhs, 0);
-	if (w && is_gimple_min_invariant (w))
-	  val.value = w;
-	else
-	  {
-	    val.lattice_val = VARYING;
-	    val.value = NULL;
-	  }
-      }
-
-    if (val.lattice_val == CONSTANT
-	&& TREE_CODE (orig_lhs) == COMPONENT_REF
-	&& DECL_BIT_FIELD (TREE_OPERAND (orig_lhs, 1)))
-      {
-	tree w = widen_bitfield (val.value, TREE_OPERAND (orig_lhs, 1),
-				 orig_lhs);
-
-	if (w && is_gimple_min_invariant (w))
-	  val.value = w;
-	else
-	  {
-	    val.lattice_val = VARYING;
-	    val.value = NULL_TREE;
-	    val.mem_ref = NULL_TREE;
-	  }
-      }
-  }
 
   retval = SSA_PROP_NOT_INTERESTING;
 
@@ -1495,8 +1442,10 @@ gate_ccp (void)
 }
 
 
-struct tree_opt_pass pass_ccp = 
+struct gimple_opt_pass pass_ccp = 
 {
+ {
+  GIMPLE_PASS,
   "ccp",				/* name */
   gate_ccp,				/* gate */
   do_ssa_ccp,				/* execute */
@@ -1509,8 +1458,8 @@ struct tree_opt_pass pass_ccp =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func | TODO_verify_ssa
-  | TODO_verify_stmts | TODO_ggc_collect,/* todo_flags_finish */
-  0					/* letter */
+  | TODO_verify_stmts | TODO_ggc_collect/* todo_flags_finish */
+ }
 };
 
 
@@ -1531,8 +1480,10 @@ gate_store_ccp (void)
 }
 
 
-struct tree_opt_pass pass_store_ccp = 
+struct gimple_opt_pass pass_store_ccp = 
 {
+ {
+  GIMPLE_PASS,
   "store_ccp",				/* name */
   gate_store_ccp,			/* gate */
   do_ssa_store_ccp,			/* execute */
@@ -1545,67 +1496,9 @@ struct tree_opt_pass pass_store_ccp =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_dump_func | TODO_verify_ssa
-  | TODO_verify_stmts | TODO_ggc_collect,/* todo_flags_finish */
-  0					/* letter */
+  | TODO_verify_stmts | TODO_ggc_collect/* todo_flags_finish */
+ }
 };
-
-/* Given a constant value VAL for bitfield FIELD, and a destination
-   variable VAR, return VAL appropriately widened to fit into VAR.  If
-   FIELD is wider than HOST_WIDE_INT, NULL is returned.  */
-
-tree
-widen_bitfield (tree val, tree field, tree var)
-{
-  unsigned HOST_WIDE_INT var_size, field_size;
-  tree wide_val;
-  unsigned HOST_WIDE_INT mask;
-  unsigned int i;
-
-  /* We can only do this if the size of the type and field and VAL are
-     all constants representable in HOST_WIDE_INT.  */
-  if (!host_integerp (TYPE_SIZE (TREE_TYPE (var)), 1)
-      || !host_integerp (DECL_SIZE (field), 1)
-      || !host_integerp (val, 0))
-    return NULL_TREE;
-
-  var_size = tree_low_cst (TYPE_SIZE (TREE_TYPE (var)), 1);
-  field_size = tree_low_cst (DECL_SIZE (field), 1);
-
-  /* Give up if either the bitfield or the variable are too wide.  */
-  if (field_size > HOST_BITS_PER_WIDE_INT || var_size > HOST_BITS_PER_WIDE_INT)
-    return NULL_TREE;
-
-  gcc_assert (var_size >= field_size);
-
-  /* If the sign bit of the value is not set or the field's type is unsigned,
-     just mask off the high order bits of the value.  */
-  if (DECL_UNSIGNED (field)
-      || !(tree_low_cst (val, 0) & (((HOST_WIDE_INT)1) << (field_size - 1))))
-    {
-      /* Zero extension.  Build a mask with the lower 'field_size' bits
-	 set and a BIT_AND_EXPR node to clear the high order bits of
-	 the value.  */
-      for (i = 0, mask = 0; i < field_size; i++)
-	mask |= ((HOST_WIDE_INT) 1) << i;
-
-      wide_val = fold_build2 (BIT_AND_EXPR, TREE_TYPE (var), val, 
-			      build_int_cst (TREE_TYPE (var), mask));
-    }
-  else
-    {
-      /* Sign extension.  Create a mask with the upper 'field_size'
-	 bits set and a BIT_IOR_EXPR to set the high order bits of the
-	 value.  */
-      for (i = 0, mask = 0; i < (var_size - field_size); i++)
-	mask |= ((HOST_WIDE_INT) 1) << (var_size - i - 1);
-
-      wide_val = fold_build2 (BIT_IOR_EXPR, TREE_TYPE (var), val,
-			      build_int_cst (TREE_TYPE (var), mask));
-    }
-
-  return wide_val;
-}
-
 
 /* A subroutine of fold_stmt_r.  Attempts to fold *(A+O) to A[X].
    BASE is an array type.  OFFSET is a byte displacement.  ORIG_TYPE
@@ -1979,7 +1872,7 @@ maybe_fold_stmt_indirect (tree expr, tree base, tree offset)
 
       /* Fold away CONST_DECL to its value, if the type is scalar.  */
       if (TREE_CODE (base) == CONST_DECL
-	  && ccp_decl_initial_min_invariant (DECL_INITIAL (base)))
+	  && is_gimple_min_invariant (DECL_INITIAL (base)))
 	return DECL_INITIAL (base);
 
       /* Try folding *(&B+O) to B.X.  */
@@ -2156,6 +2049,11 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
 
       t = maybe_fold_stmt_indirect (expr, TREE_OPERAND (expr, 0),
 				    integer_zero_node);
+      if (!t
+	  && TREE_CODE (TREE_OPERAND (expr, 0)) == ADDR_EXPR)
+	/* If we had a good reason for propagating the address here,
+	   make sure we end up with valid gimple.  See PR34989.  */
+	t = TREE_OPERAND (TREE_OPERAND (expr, 0), 0);
       break;
 
     case NOP_EXPR:
@@ -3026,8 +2924,10 @@ execute_fold_all_builtins (void)
 }
 
 
-struct tree_opt_pass pass_fold_builtins = 
+struct gimple_opt_pass pass_fold_builtins = 
 {
+ {
+  GIMPLE_PASS,
   "fab",				/* name */
   NULL,					/* gate */
   execute_fold_all_builtins,		/* execute */
@@ -3041,6 +2941,6 @@ struct tree_opt_pass pass_fold_builtins =
   0,					/* todo_flags_start */
   TODO_dump_func
     | TODO_verify_ssa
-    | TODO_update_ssa,			/* todo_flags_finish */
-  0					/* letter */
+    | TODO_update_ssa			/* todo_flags_finish */
+ }
 };

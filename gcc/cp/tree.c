@@ -1238,7 +1238,7 @@ bind_template_template_parm (tree t, tree newargs)
   tree decl = TYPE_NAME (t);
   tree t2;
 
-  t2 = make_aggr_type (BOUND_TEMPLATE_TEMPLATE_PARM);
+  t2 = cxx_make_type (BOUND_TEMPLATE_TEMPLATE_PARM);
   decl = build_decl (TYPE_DECL, DECL_NAME (decl), NULL_TREE);
 
   /* These nodes have to be created to reflect new TYPE_DECL and template
@@ -1958,7 +1958,7 @@ error_type (tree arg)
     ;
   else if (real_lvalue_p (arg))
     type = build_reference_type (lvalue_type (arg));
-  else if (IS_AGGR_TYPE (type))
+  else if (MAYBE_CLASS_TYPE_P (type))
     type = lvalue_type (arg);
 
   return type;
@@ -1992,7 +1992,7 @@ tree
 build_dummy_object (tree type)
 {
   tree decl = build1 (NOP_EXPR, build_pointer_type (type), void_zero_node);
-  return build_indirect_ref (decl, NULL);
+  return cp_build_indirect_ref (decl, NULL, tf_warning_or_error);
 }
 
 /* We've gotten a reference to a member of TYPE.  Return *this if appropriate,
@@ -2569,10 +2569,10 @@ stabilize_expr (tree exp, tree* initp)
     }
   else
     {
-      exp = build_unary_op (ADDR_EXPR, exp, 1);
+      exp = cp_build_unary_op (ADDR_EXPR, exp, 1, tf_warning_or_error);
       init_expr = get_target_expr (exp);
       exp = TARGET_EXPR_SLOT (init_expr);
-      exp = build_indirect_ref (exp, 0);
+      exp = cp_build_indirect_ref (exp, 0, tf_warning_or_error);
     }
   *initp = init_expr;
 

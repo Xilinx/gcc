@@ -77,7 +77,7 @@ package GNAT.Sockets.Constants is
    EINVAL             : constant :=       10022; --  Invalid argument
    EIO                : constant :=       10101; --  Input output error
    EISCONN            : constant :=       10056; --  Socket already connected
-   ELOOP              : constant :=       10062; --  Too many symbolic lynks
+   ELOOP              : constant :=       10062; --  Too many symbolic links
    EMFILE             : constant :=       10024; --  Too many open files
    EMSGSIZE           : constant :=       10040; --  Message too long
    ENAMETOOLONG       : constant :=       10063; --  Name too long
@@ -149,6 +149,7 @@ package GNAT.Sockets.Constants is
 
    TCP_NODELAY        : constant :=           1; --  Do not coalesce packets
    SO_REUSEADDR       : constant :=           4; --  Bind reuse local address
+   SO_REUSEPORT       : constant :=          -1; --  Bind reuse port number
    SO_KEEPALIVE       : constant :=           8; --  Enable keep-alive msgs
    SO_LINGER          : constant :=         128; --  Defer close to flush data
    SO_BROADCAST       : constant :=          32; --  Can send broadcast msgs
@@ -162,6 +163,7 @@ package GNAT.Sockets.Constants is
    IP_MULTICAST_LOOP  : constant :=          11; --  Set/get mcast loopback
    IP_ADD_MEMBERSHIP  : constant :=          12; --  Join a multicast group
    IP_DROP_MEMBERSHIP : constant :=          13; --  Leave a multicast group
+   IP_PKTINFO         : constant :=          19; --  Get datagram info
 
    -------------------
    -- System limits --
@@ -184,13 +186,6 @@ package GNAT.Sockets.Constants is
 
    Need_Netdb_Buffer  : constant :=           0; --  Need buffer for Netdb ops
 
-   ----------------------
-   -- Additional flags --
-   ----------------------
-
-   Thread_Blocking_IO : constant Boolean := True;
-   --  Set False for contexts where socket i/o are process blocking
-
    ------------------------------
    -- MinGW-specific constants --
    ------------------------------
@@ -200,7 +195,14 @@ package GNAT.Sockets.Constants is
 
    WSASYSNOTREADY     : constant :=       10091; --  System not ready
    WSAVERNOTSUPPORTED : constant :=       10092; --  Version not supported
-   WSANOTINITIALISED  : constant :=       10093; --  Winsock not intialized
+   WSANOTINITIALISED  : constant :=       10093; --  Winsock not initialized
    WSAEDISCON         : constant :=       10101; --  Disconnected
+
+   ----------------------
+   -- Additional flags --
+   ----------------------
+
+   Thread_Blocking_IO : constant Boolean := True;
+   --  Set False for contexts where socket i/o are process blocking
 
 end GNAT.Sockets.Constants;

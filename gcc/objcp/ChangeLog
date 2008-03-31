@@ -1,3 +1,18 @@
+2008-03-27  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in: Revert automatic dependency patch.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (obj-c++_OBJS): Rename from objcp_OBJS.
+	(objcp/objcp-act.o): Restore target.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (objcp_OBJS): New variable.
+	(cc1objplus-checksum.o, objcp/objcp-lang.o, objcp/objcp-decl.o,
+	objcp/objcp-act.o): Remove.
+
 2008-03-07  Paolo Bonzini  <bonzini@gnu.org>
 
 	Revert:

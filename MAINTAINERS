@@ -242,7 +242,7 @@ Fortran			Tobias Burnus		burnus@net-b.de
 Fortran			François-Xavier Coudert	fxcoudert@gcc.gnu.org
 Fortran			Jerry DeLisle		jvdelisle@gcc.gnu.org
 Fortran			Erik Edelmann		erik.edelmann@iki.fi
-Fortran			Thomas Koenig		Thomas.Koenig@online.de
+Fortran			Thomas Koenig		tkoenig@gcc.gnu.org
 Fortran			Toon Moene		toon@moene.indiv.nluug.nl
 Fortran			Brooks Moses		brooks.moses@codesourcery.com
 Fortran			Tobias Schlüter		tobias.schlueter@physik.uni-muenchen.de
@@ -422,6 +422,7 @@ Jan Sjodin					jan.sjodin@amd.com
 Michael Sokolov					msokolov@ivan.Harhan.ORG
 Richard Stallman				rms@gnu.org
 Basile Starynkevitch				basile@starynkevitch.net
+Jakub Staszak					kuba@et.pl
 Graham Stott					graham.stott@btinternet.com
 Mike Stump					mrs@apple.com
 Jeff Sturm					jsturm@gcc.gnu.org

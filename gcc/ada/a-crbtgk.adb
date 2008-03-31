@@ -2,12 +2,11 @@
 --                                                                          --
 --                         GNAT LIBRARY COMPONENTS                          --
 --                                                                          --
---        A D A . C O N T A I N E R S . R E D _ B L A C K _ T R E E S .     --
---                          G E N E R I C _ K E Y S                         --
+--                ADA.CONTAINERS.RED_BLACK_TREES.GENERIC_KEYS               --
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -185,7 +184,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Keys is
       --  is not a search and the only comparisons that occur are with
       --  the hint and its neighbor.
 
-      --  If Position is null, this is intepreted to mean that Key is
+      --  If Position is null, this is interpreted to mean that Key is
       --  large relative to the nodes in the tree. If the tree is empty,
       --  or Key is greater than the last node in the tree, then we're
       --  done; otherwise the hint was "wrong" and we must search.
@@ -507,7 +506,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Keys is
       --  equivalent node. That wouldn't break any container invariants,
       --  but our rule above says that new nodes always get inserted
       --  after equivalent nodes. So here we test whether Key is both
-      --  less than the hint and and equal to or greater than the hint's
+      --  less than the hint and equal to or greater than the hint's
       --  previous neighbor, and if so insert it before the hint.
 
       if Is_Less_Key_Node (Key, Hint) then
