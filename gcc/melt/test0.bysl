@@ -30,6 +30,14 @@
 	   x
 	   246))
 
+(defun testmultisend (g y)
+  (multicall (u v)
+	     (the_sel 
+	      (g y y) 
+	      the_sel 1357)
+	     (g u v)
+	     ))
+
 (definstance ii my_class_root 
   :root_f1 (boxint 1001002))
 

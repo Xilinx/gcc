@@ -3694,7 +3694,7 @@
 	   napp_args			;tuple of simple arguments
 ))
 
-;; normalized multiapply
+;; normalized multiresult apply
 (defclass class_nrep_multiapply
   :super class_nrep_apply
   :fields (nmulapp_bindings 		;a tuple of formal result bindings
@@ -3707,6 +3707,15 @@
   :fields (nsend_sel		   ;the normalized selector occurrence
 	   nsend_recv		   ;the reciever
 	   nsend_args		   ;the tuple of simple arguments
+))
+
+
+
+;; normalized multiresult message send
+(defclass class_nrep_multimsend
+  :super class_nrep_msend
+  :fields (nmulsend_bindings		;tuple of formal bindings
+	   nmulsend_body		;body tuple)
 ))
 
 ;; normal chunk is a normalized expansion of primitive
@@ -3804,15 +3813,6 @@
 	   nlambda_closedv		;the tuple of closed normal values
 ))
 
-
-
-;; normalized multisend
-(defclass class_nrep_multisend
-  :super class_nrep
-  :fields (nmulsend_bindings		;tuple of formal bindings
-	   nmulsend_send		;normalized message sending
-	   nmulsend_body		;body tuple)
-))
 
 ;;; procedures
 (defclass class_nrep_anyproc
@@ -4591,14 +4591,31 @@
       (setq nbindrecv (list_append2list nbindrecv nbindargs))
       (debug_msg "normexp_msend again msnd" msnd (the_callcount))
       (check_ctype_nargs nargs env sloc)
-      (let ( (nsend (make_instance class_nrep_msend
-				   :nrep_loc sloc
-				   :nsend_sel nsel
-				   :nsend_recv nrecv
-				   :nsend_args nargs)) )
+      (let (
+	    (csym (clone_symbol selnam)) 
+	    (clocc  (make_instance  class_nrep_locsymocc
+				    :nrep_loc sloc
+				    :nocc_ctyp ctype_value
+				    :nocc_symb csym)) 
+	    (nsend (make_instance class_nrep_msend
+				  :nrep_loc sloc
+				  :nsend_sel nsel
+				  :nsend_recv nrecv
+				  :nsend_args nargs)) 
+	     (cbind (make_instance class_normlet_binding
+				   :letbind_loc sloc
+				   :binder csym
+				   :letbind_type ctype_value 
+				   :letbind_expr nsend))
+	    )
+	(unsafe_put_fields clocc :nocc_bind cbind)
 	(debug_msg "normexp_msend nsend" nsend (the_callcount))
+	(or (is_list nbindrecv) 
+	    (setq nbindrecv (make_list discr_list)))
+	(list_append nbindrecv cbind)
 	(debug_msg "normexp_msend final nbindrecv" nbindrecv (the_callcount))
-	(return nsend nbindrecv)
+	(debug_msg "normexp_msend clocc" clocc (the_callcount))
+	(return clocc nbindrecv)
 	)))))
 (install_method class_src_msend normal_exp normexp_msend)
 
@@ -5494,6 +5511,7 @@
 		())
 	    (progn (list_append nincallbindings cbnd) cbnd))))
        (setq nrealcall (box_content nboxcall))
+       (debug_msg "normexp_multicall got nrealcall" nrealcall (the_callcount))
        (multiple_every
 	sresbind
 	(lambda (bnd :long ix)
@@ -5518,11 +5536,14 @@
 	       )
 	     )
 	   ( (is_a scall class_src_msend)
+	     (debug_msg "normexp_multicall multicall nrealcall" nrealcall (the_callcount))
 	     (assert_msg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
-	     (let ( (nres (make_instance class_nrep_multisend
+	     (let ( (nres (make_instance class_nrep_multimsend
 					 :nrep_loc sloc
+					 :nsend_sel (unsafe_get_field :nsend_sel nrealcall)
+					 :nsend_recv (unsafe_get_field :nsend_recv nrealcall)
+					 :nsend_args (unsafe_get_field :nsend_args nrealcall)
 					 :nmulsend_bindings sresbind
-					 :nmulsend_send nrealcall
 					 :nmulsend_body wnbodylet)) )
 	       (debug_msg "normexp_multicall multisend nres" nres (the_callcount))
 	       (return nres nincallbindings)
@@ -8957,6 +8978,12 @@
 			   (is_a cty class_ctype))
 	       obva
 	       ))))
+	 (obodl (make_list discr_list))
+	 (oepil (make_list discr_list))
+	 (oblock (make_instance class_objblock
+				:obi_loc loc
+				:oblo_bodyl obodl
+				:oblo_epil oepil))
 	 (oxres (make_multiple discr_multiple (if (>i nbres 1) (-i nbres 1) 0)))
 	 (firstres (multiple_nth reslocs 0))
 	 (ofun (compile_obj fun gcx))
@@ -8975,12 +9002,27 @@
 			       :obmultapp_xres oxres))
 	 )
     (if firstres (list_append reslist firstres))
+    ;; add every compiled argument to the resulting block (if it is an instruction)
+    (multiple_every 
+     oargs
+     (lambda (ocurarg :long ix)
+       (if (is_a ocurarg class_objinstr)
+	   (list_append obodl ocurarg))))
+    ;; add the multiapply to the block
+    (list_append obodl omapp)
+    ;; add the clearing of each result
     (multiple_every 
      reslocs
      (lambda (rloc :long ix)
-       (if (>i ix 0) (multiple_put_nth oxres (-i ix 1) rloc))))
-    (debug_msg "compilobj_nrep_multiapply omapp" omapp (the_callcount))
-    omapp
+       (if (>i ix 0) 
+	   (let ( (oclear (make_instance class_objclear 
+					 :obi_loc loc
+					 :oclr_vloc rloc)) )
+	     (list_append oepil oclear)
+	     (multiple_put_nth oxres (-i ix 1) rloc)
+	     ))))
+    (debug_msg "compilobj_nrep_multiapply final oblock" oblock (the_callcount))
+    oblock
     ))
 (install_method class_nrep_multiapply compile_obj compilobj_nrep_multiapply)
 
@@ -9016,7 +9058,82 @@
       )))
 (install_method class_nrep_msend compile_obj compilobj_nrep_msend)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compile a multiresult message send
+(defun compilobj_nrep_multimsend (nmsnd gcx)
+  (assert_msg "check nmsnd" (is_a nmsnd class_nrep_multimsend))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debug_msg "compilobj_nrep_multimsend nmsnd" nmsnd (the_callcount))
+  (let ( (loc (unsafe_get_field :nrep_loc nmsnd)) 
+	 (rbinds (unsafe_get_field :nmulsend_bindings nmsnd))
+	 (nbody (unsafe_get_field :nmulsend_body nmsnd))
+	 (nsel (unsafe_get_field :nsend_sel nmsnd))
+	 (nrecv (unsafe_get_field :nsend_recv nmsnd))
+	 (nargs (unsafe_get_field :nsend_args nmsnd))
+	 (:long nbres (multiple_length rbinds))
+	 (reslocs 
+	  (multiple_map
+	   rbinds
+	   (lambda (bind :long ix)
+	     (assert_msg "compilobj_nrep_multimsend check bind" 
+			 (is_a bind class_formal_binding))
+	     (let ( (bder (unsafe_get_field :binder bind))
+		    (cty (unsafe_get_field :fbind_type bind)) 
+		    (obva (get_free_objloctyped gcx bder cty))
+		    )
+	       (assert_msg "compilobj_nrep_multimsend check cty" 
+			   (is_a cty class_ctype))
+	       obva
+	       ))))
+	 (oxres (make_multiple discr_multiple (if (>i nbres 1) (-i nbres 1) 0)))
+	 (firstres (multiple_nth reslocs 0))
+	 (osel (compile_obj nsel gcx))
+	 (reslist (make_list discr_list))
+	 (orecv (compile_obj nrecv gcx))
+	 (oargs (multiple_map nargs
+			      (lambda (comp :long ix)
+				(compile_obj comp gcx))))
+	 (obody (multiple_map nbody
+			      (lambda (comp :long ix)
+				(compile_obj comp gcx))))
+	 (obodl (make_list discr_list))
+	 (oepil (make_list discr_list))
+	 (oblock (make_instance class_objblock
+				:obi_loc loc
+				:oblo_bodyl obodl
+				:oblo_epil oepil))
+	 (omsend (make_instance class_objmultimsend
+				:obi_loc loc
+				:obmsnd_dest reslist
+				:obmsnd_sel osel
+				:obmsnd_recv orecv
+				:obmsnd_args oargs
+				:obmultsnd_xres oxres))
+	 )
+    (if firstres (list_append reslist firstres))
+    ;; add every compiled argument to the resulting block (if it is an instruction)
+    (multiple_every 
+     oargs
+     (lambda (ocurarg :long ix)
+       (if (is_a ocurarg class_objinstr)
+	   (list_append obodl ocurarg))))
+    ;; add the multisend to the block
+    (list_append obody omsend)
+    ;; add the clearing of each result
+    (multiple_every 
+     reslocs
+     (lambda (rloc :long ix)
+       (if (>i ix 0)
+	   (let ( (oclear (make_instance class_objclear 
+					 :obi_loc loc
+					 :oclr_vloc rloc)) )
+	     (list_append oepil oclear)
+	     (multiple_put_nth oxres (-i ix 1) rloc)))))
+    (debug_msg "compilobj_nrep_multimsend final oblock" oblock (the_callcount))
+    oblock
+    ))
 
+(install_method class_nrep_multimsend compile_obj compilobj_nrep_multimsend)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objvalue (recv desto)
   (assert_msg "check recv" (is_a recv class_objvalue))
