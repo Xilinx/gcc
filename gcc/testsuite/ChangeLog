@@ -1,3 +1,57 @@
+2008-03-31  Seongbae Park <seongbae.park@gmail.com>
+
+	* g++.db/bprob/bprob.exp: Do not check gcno files.
+	Use -fprofile-use for profile use.
+	* gcc.misc-tests/bprob.exp: Ditto.
+	* g++.dg/tree-pro/tree-prof.exp: Do not check gcno files.
+	* gcc.dg/matrix/matrix.exp: Ditto.
+	* gcc.dg/struct/struct-reorg.exp: Ditto.
+	* gcc.dg/tree-prof/tree-prof.exp: Ditto.
+	* gcc.dg/profile-dir-1.c: New test.
+	* gcc.dg/profile-dir-2.c: New test.
+	* gcc.dg/profile-dir-3.c: New test.
+
+2008-03-31  Volker Reichelt  <v.reichelt@netcologne.de>
+
+	PR c/35750
+	* gcc.dg/old-style-param-1.c: New test.
+
+2008-03-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/object_overflow.adb: New test.
+
+2008-03-31  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/30186
+	* gcc.dg/tree-ssa/vector-1.c: New testcase.
+	* gcc.c-torture/execute/vector-1.c: New testcase.
+	* gcc.c-torture/execute/vector-2.c: New testcase.
+
+2008-03-31  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/assign_from_packed_pixels.ads: Support for ...
+	* gnat.dg/assign_from_packed.adb: New testcase.
+
+2008-03-31  Zdenek Dvorak  <ook@ucw.cz>
+
+	PR rtl-optimization/35729
+	* gcc.dg/pr35729.c: New test.
+
+2008-03-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/32000
+	* gcc.target/i386/pr32000-1.c: New.
+
+2008-03-31  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/too_many_tasks.adb: Removed, causes resource issues
+	on some environments.
+
+2008-03-31  Andrew Pinski  <pinskia@gmail.com>
+
+	PR tree-opt/35431
+	* gcc.c-torture/compile/pr35431.c: New testcase.
+
 2008-03-30  Kaz Kojima  <kkojima@gcc.gnu.org>
 
 	* g++.dg/other/error27.C: Use -fno-finite-math-only on sh*
