@@ -1,3 +1,6 @@
+2008-04-02   Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: multiresult apply & send outpucod not tested.
+
 2008-04-01   Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: multiresult apply & send support nearly
 	completed but untested.
