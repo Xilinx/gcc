@@ -106,11 +106,8 @@
 (let ((kk (mkint_t2 5))) (if (tup1_pr2 kk my_class_root) (mkint_t2 0)))
 
 
-(defun hello_t2 (f) (f "hello"))
 
 (defun n1234_t2 (f) (f 1234))
-
-(defun xhello_t2 (f x) (f x x "hellox"))
 
 (defun xn12345_t2 (f x) (f x x 12345))
 

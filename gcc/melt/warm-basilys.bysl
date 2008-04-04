@@ -2668,8 +2668,9 @@
 			   ))
 		       ( (== curkw ':fields)
 			 (if fieldnams (error_plain loc "duplicate fields in defclass"))
-			 (if (not (is_a curval class_sexpr))
-			     (error_plain loc "bad fields in defclass"))
+			 (and curval
+			      (not (is_a curval class_sexpr))
+			      (error_plain loc "bad fields in defclass"))
 			 (let ( (namlist (unsafe_get_field :sexp_contents curval))
 				(namloc (unsafe_get_field :loca_location curval))
 				(:long nbnam  (list_length namlist))
@@ -2828,9 +2829,9 @@
 
 ;;;;;;;;;;;;;;;; the definstance expander
 
-;; internal to parse a field assignment in a given class
+;; internal to parse a field assignment in a given class (or without class, for put_field)
 (defun parse_field_assignment (cla loc fldkw expr env mexpander)
-  (assert_msg "check cla" (is_a cla class_class))
+  (debug_msg "parse_field_assignment cla" cla (the_callcount))
   (assert_msg "check fldkw" (is_a fldkw class_keyword))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
@@ -2928,14 +2929,14 @@
 		   (setq curpair (pair_tail curpair))
 		   (let ( (curexp (pair_head curpair)) )
 		     (cond  ( (== curfkw ':obj_num)
-			      (if curexp (error_plain loc "duplicate :obj_num in definstance"))
+			      (if objnum (error_plain loc "duplicate :obj_num in definstance"))
 			      (setq objnum 
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
 			      )
 			    ( (== curfkw ':predef)
-			      (if curexp (error_plain loc "duplicate :predef in definstance"))
+			      (if predef (error_plain loc "duplicate :predef in definstance"))
 			      (setq predef 
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
@@ -4167,7 +4168,6 @@
    bindlist 
    (lambda (cbind) 
      (assert_msg "check cbind wrapnormlet1" (is_a cbind class_normlet_binding))))
-  (or nexp (shortbacktrace_dbg "wrap_normal_let1 null nexp" 15))
   (if 
       (and (is_list bindlist)
 	   (is_pair (list_first bindlist)))
@@ -10036,7 +10036,6 @@
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg "compilobj_dataroutine+ gcx" gcx (the_callcount))
   (debug_msg "compilobj_dataroutine+ ndrou" ndrou (the_callcount))
-  (shortbacktrace_dbg "compilobj_dataroutine+" 12)
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
 	 (chobj (mapobject_get compicache ndrou))

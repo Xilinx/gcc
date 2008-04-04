@@ -1343,7 +1343,7 @@ void basilysgc_prepend_list (basilys_ptr_t list_p, basilys_ptr_t val_p);
 /* pop from head of list (and remove) */
 basilys_ptr_t basilysgc_popfirst_list (basilys_ptr_t list_p);
 
-/* return the length of a list or -1 iff non list */
+/* return the length of a list, 0 for nil, or -1 iff non list */
 int basilys_list_length (basilys_ptr_t list_p);
 
 /* allocate e new empty mapobjects */

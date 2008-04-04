@@ -2609,6 +2609,8 @@ basilys_list_length (basilys_ptr_t list_p)
 {
   struct basilyspair_st *pair = NULL;
   int ln = 0;
+  if (!list_p) 
+    return 0;
   if (basilys_magic_discr (list_p) != OBMAG_LIST)
     return -1;
   for (pair = ((struct basilyslist_st *) list_p)->first;

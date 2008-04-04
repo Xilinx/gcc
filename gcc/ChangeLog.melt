@@ -1,3 +1,14 @@
+2008-04-04   Basile Starynkevitch  <basile@starynkevitch.net>
+	[tried warm bootstrap which is still buggy]
+
+	* melt/warm-basilys.bysl: various tiny bugfixes.
+	(scan_defclass) handles correctly :obj_num or :predef.
+	(parse_field_assignment) cla can be null.
+	(wrap_normal_let1, compilobj_dataroutine) removed debugging backtraces.
+
+	* basilys.h: basilys_list_length (nil) is 0.
+	* basilys.c: (basilys_list_length) likewise.
+
 2008-04-02   Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: multiresult apply & send outpucod not tested.
 
