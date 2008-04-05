@@ -168,6 +168,9 @@ const char *dump_base_name;
 
 const char *aux_base_name;
 
+/* Prefix for profile data files */
+const char *profile_data_prefix;
+
 /* A mask of target_flags that includes bit X if X was set or cleared
    on the command line.  */
 
@@ -1080,14 +1083,16 @@ decode_d_option (const char *arg)
       case 'I':
       case 'M':
       case 'N':
+      case 'U':
 	break;
       case 'H':
 	setup_core_dumping();
 	break;
-
       case 'a':
+	enable_rtl_dump_file ();
+	break;
+
       default:
-	if (!enable_rtl_dump_file (c))
 	  warning (0, "unrecognized gcc debugging option: %c", c);
 	break;
       }

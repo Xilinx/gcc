@@ -1,3 +1,30 @@
+2008-04-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* include/cpplib.h (struct cpp_callbacks): Add used_define,
+	used_undef and before_define.
+	(NODE_USED): Define.
+	* directives.c (do_define, do_undef, undefine_macros, do_ifdef,
+	do_ifndef, cpp_pop_definition): Handle new flag and use new
+	callbacks.
+	* expr.c (parse_defined): Handle new flag and use new callbacks.
+	* macro.c (enter_macro_context, _cpp_free_definition): Handle new
+	flag and use new callbacks.
+
+2008-04-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR pch/13675
+	* files.c (struct _cpp_file): Remove pch field.
+	(pch_open_file): Don't set file->pch, just file->pchname.
+	(should_stack_file): After pfile->cb.read_pch call
+	free pchname and clear pchname, don't close file->fd.
+	Test file->pchname instead of file->pch.  Don't close fd after cb.
+	(_cpp_stack_include): Test file->pchname instead of file->pch.
+
+2008-03-28  Tom Tromey  <tromey@redhat.com>
+
+	* Makefile.in (POSTCOMPILE): New variable.
+	(.c.o): Use it.
+
 2008-03-13  Tom Tromey  <tromey@redhat.com>
 
 	PR libcpp/35322:

@@ -1060,18 +1060,23 @@ group_case_labels (void)
 	  tree labels = SWITCH_LABELS (stmt);
 	  int old_size = TREE_VEC_LENGTH (labels);
 	  int i, j, new_size = old_size;
-	  tree default_case = TREE_VEC_ELT (labels, old_size - 1);
-	  tree default_label;
+	  tree default_case = NULL_TREE;
+	  tree default_label = NULL_TREE;
 
 	  /* The default label is always the last case in a switch
-	     statement after gimplification.  */
-	  default_label = CASE_LABEL (default_case);
+	     statement after gimplification if it was not optimized
+	     away.  */
+	  if (!CASE_LOW (TREE_VEC_ELT (labels, old_size - 1))
+	      && !CASE_HIGH (TREE_VEC_ELT (labels, old_size - 1)))
+	    {
+	      default_case = TREE_VEC_ELT (labels, old_size - 1);
+	      default_label = CASE_LABEL (default_case);
+	      old_size--;
+	    }
 
-	  /* Look for possible opportunities to merge cases.
-	     Ignore the last element of the label vector because it
-	     must be the default case.  */
+	  /* Look for possible opportunities to merge cases.  */
           i = 0;
-	  while (i < old_size - 1)
+	  while (i < old_size)
 	    {
 	      tree base_case, base_label, base_high;
 	      base_case = TREE_VEC_ELT (labels, i);
@@ -1095,7 +1100,7 @@ group_case_labels (void)
 	      /* Try to merge case labels.  Break out when we reach the end
 		 of the label vector or when we cannot merge the next case
 		 label with the current one.  */
-	      while (i < old_size - 1)
+	      while (i < old_size)
 		{
 		  tree merge_case = TREE_VEC_ELT (labels, i);
 	          tree merge_label = CASE_LABEL (merge_case);
@@ -1910,6 +1915,33 @@ remove_useless_stmts_1 (tree *tp, struct rus_data *data)
     case ASM_EXPR:
       fold_stmt (tp);
       data->last_goto = NULL;
+      break;
+
+    case OMP_PARALLEL:
+      /* Make sure the outermost BIND_EXPR in OMP_BODY isn't removed
+	 as useless.  */
+      remove_useless_stmts_1 (&BIND_EXPR_BODY (OMP_BODY (*tp)), data);
+      data->last_goto = NULL;
+      break;
+
+    case OMP_SECTIONS:
+    case OMP_SINGLE:
+    case OMP_SECTION:
+    case OMP_MASTER :
+    case OMP_ORDERED:
+    case OMP_CRITICAL:
+      remove_useless_stmts_1 (&OMP_BODY (*tp), data);
+      data->last_goto = NULL;
+      break;
+
+    case OMP_FOR:
+      remove_useless_stmts_1 (&OMP_FOR_BODY (*tp), data);
+      data->last_goto = NULL;
+      if (OMP_FOR_PRE_BODY (*tp))
+	{
+	  remove_useless_stmts_1 (&OMP_FOR_PRE_BODY (*tp), data);
+	  data->last_goto = NULL;
+	}
       break;
 
     default:
@@ -3113,7 +3145,6 @@ static tree
 verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 {
   tree t = *tp, x;
-  bool in_phi = (data != NULL);
 
   if (TYPE_P (t))
     *walk_subtrees = 0;
@@ -3163,23 +3194,6 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	bool new_invariant;
 	bool new_constant;
 	bool new_side_effects;
-
-        /* ??? tree-ssa-alias.c may have overlooked dead PHI nodes, missing
-	   dead PHIs that take the address of something.  But if the PHI
-	   result is dead, the fact that it takes the address of anything
-	   is irrelevant.  Because we can not tell from here if a PHI result
-	   is dead, we just skip this check for PHIs altogether.  This means
-	   we may be missing "valid" checks, but what can you do?
-	   This was PR19217.  */
-        if (in_phi)
-	  {
-	    if (!is_gimple_min_invariant (t))
-	      {
-		error ("non-invariant address expression in PHI argument");
-		return t;
-	      }
-	    break;
-	  }
 
 	old_invariant = TREE_INVARIANT (t);
 	old_constant = TREE_CONSTANT (t);
@@ -4338,18 +4352,11 @@ verify_stmts (void)
 		 are not considered gimple values.  */
 	      else if (TREE_CODE (t) != SSA_NAME
 		       && TREE_CODE (t) != FUNCTION_DECL
-		       && !is_gimple_val (t))
+		       && !is_gimple_min_invariant (t))
 		{
 		  error ("PHI def is not a GIMPLE value");
 		  debug_generic_stmt (phi);
 		  debug_generic_stmt (t);
-		  err |= true;
-		}
-
-	      addr = walk_tree (&t, verify_expr, (void *) 1, NULL);
-	      if (addr)
-		{
-		  debug_generic_stmt (addr);
 		  err |= true;
 		}
 
@@ -4629,13 +4636,16 @@ tree_verify_flow_info (void)
 
 	    /* Verify that the case labels are sorted.  */
 	    prev = TREE_VEC_ELT (vec, 0);
-	    for (i = 1; i < n - 1; ++i)
+	    for (i = 1; i < n; ++i)
 	      {
 		tree c = TREE_VEC_ELT (vec, i);
 		if (! CASE_LOW (c))
 		  {
-		    error ("found default case not at end of case vector");
-		    err = 1;
+		    if (i != n - 1)
+		      {
+			error ("found default case not at end of case vector");
+			err = 1;
+		      }
 		    continue;
 		  }
 		if (! tree_int_cst_lt (CASE_LOW (prev), CASE_LOW (c)))
@@ -4649,11 +4659,9 @@ tree_verify_flow_info (void)
 		  }
 		prev = c;
 	      }
-	    if (CASE_LOW (TREE_VEC_ELT (vec, n - 1)))
-	      {
-		error ("no default case found at end of case vector");
-		err = 1;
-	      }
+	    /* VRP will remove the default case if it can prove it will
+	       never be executed.  So do not verify there always exists
+	       a default case here.  */
 
 	    FOR_EACH_EDGE (e, ei, bb->succs)
 	      {
@@ -6412,7 +6420,8 @@ tree_block_ends_with_condjump_p (const_basic_block bb)
 static bool
 need_fake_edge_p (tree t)
 {
-  tree call;
+  tree call, fndecl = NULL_TREE;
+  int call_flags;
 
   /* NORETURN and LONGJMP calls already have an edge to exit.
      CONST and PURE calls do not need one.
@@ -6422,8 +6431,19 @@ need_fake_edge_p (tree t)
      the counter incrementation code from -fprofile-arcs
      leads to different results from -fbranch-probabilities.  */
   call = get_call_expr_in (t);
-  if (call
-      && !(call_expr_flags (call) & ECF_NORETURN))
+  if (call)
+    {
+      fndecl = get_callee_fndecl (call);
+      call_flags = call_expr_flags (call);
+    }
+
+  if (call && fndecl && DECL_BUILT_IN (fndecl)
+      && (call_flags & ECF_NOTHROW)
+      && !(call_flags & ECF_NORETURN)
+      && !(call_flags & ECF_RETURNS_TWICE))
+   return false;
+
+  if (call && !(call_flags & ECF_NORETURN))
     return true;
 
   if (TREE_CODE (t) == ASM_EXPR
@@ -7104,7 +7124,7 @@ execute_warn_function_noreturn (void)
   if (warn_missing_noreturn
       && !TREE_THIS_VOLATILE (cfun->decl)
       && EDGE_COUNT (EXIT_BLOCK_PTR->preds) == 0
-      && !lang_hooks.function.missing_noreturn_ok_p (cfun->decl))
+      && !lang_hooks.missing_noreturn_ok_p (cfun->decl))
     warning (OPT_Wmissing_noreturn, "%Jfunction might be possible candidate "
 	     "for attribute %<noreturn%>",
 	     cfun->decl);

@@ -79,9 +79,8 @@ abs_docdir = @abs_srcdir@/doc
 # Top build directory for this package, relative to here.
 top_builddir = .
 
-# objdir is set by configure.
-# It's normally the absolute path to the current directory.
-objdir = @objdir@
+# The absolute path to the current directory.
+objdir := $(shell pwd)
 
 host_subdir=@host_subdir@
 build_subdir=@build_subdir@
@@ -122,9 +121,6 @@ vpath %.texi $(gcc_docdir)/include
 
 # For ada/Make-lang.in; overridden in, for example, config/pa/x-ada.
 X_ADA_CFLAGS =
-T_ADA_CFLAGS =
-X_ADAFLAGS =
-T_ADAFLAGS =
 
 # --------
 # UNSORTED
@@ -142,9 +138,7 @@ LANGUAGES = c gcov$(exeext) gcov-dump$(exeext) $(CONFIG_LANGUAGES)
 
 # Various ways of specifying flags for compilations:
 # CFLAGS is for the user to override to, e.g., do a cross build with -O2.
-# XCFLAGS is used for most compilations but not when using the GCC just built.
 # TCFLAGS is used for compilations with the GCC just built.
-XCFLAGS =
 TCFLAGS =
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
@@ -205,11 +199,7 @@ WARN_CFLAGS = @warn_cflags@
 CPPFLAGS = @CPPFLAGS@
 
 # These exists to be overridden by the x-* and t-* files, respectively.
-X_CFLAGS =
 T_CFLAGS =
-
-X_CPPFLAGS =
-T_CPPFLAGS =
 
 AWK = @AWK@
 CC = @CC@
@@ -336,9 +326,9 @@ UNWIND_H = $(srcdir)/unwind-generic.h
 GCC_FOR_TARGET = $(STAGE_CC_WRAPPER) ./xgcc -B./ -B$(build_tooldir)/bin/ -isystem $(build_tooldir)/include -isystem $(build_tooldir)/sys-include -L$(objdir)/../ld
 
 # This is used instead of ALL_CFLAGS when compiling with GCC_FOR_TARGET.
-# It omits XCFLAGS, and specifies -B./.
+# It specifies -B./.
 # It also specifies -isystem ./include to find, e.g., stddef.h.
-GCC_CFLAGS=$(CFLAGS_FOR_TARGET) $(INTERNAL_CFLAGS) $(X_CFLAGS) $(T_CFLAGS) $(LOOSE_WARN) -Wold-style-definition $($@-warn) -isystem ./include $(TCFLAGS)
+GCC_CFLAGS=$(CFLAGS_FOR_TARGET) $(INTERNAL_CFLAGS) $(T_CFLAGS) $(LOOSE_WARN) -Wold-style-definition $($@-warn) -isystem ./include $(TCFLAGS)
 
 # ---------------------------------------------------
 # Programs which produce files for the target machine
@@ -874,14 +864,13 @@ INTERNAL_CFLAGS = -DIN_GCC @CROSS@
 
 # This is the variable actually used when we compile. If you change this,
 # you probably want to update BUILD_CFLAGS in configure.ac
-ALL_CFLAGS = $(X_CFLAGS) $(T_CFLAGS) \
-  $(CFLAGS) $(INTERNAL_CFLAGS) $(COVERAGE_FLAGS) $(WARN_CFLAGS) $(XCFLAGS) @DEFS@
-
+ALL_CFLAGS = $(T_CFLAGS) \
+  $(CFLAGS) $(INTERNAL_CFLAGS) $(COVERAGE_FLAGS) $(WARN_CFLAGS) @DEFS@
 
 # Likewise.  Put INCLUDES at the beginning: this way, if some autoconf macro
 # puts -I options in CPPFLAGS, our include files in the srcdir will always
 # win against random include files in /usr/include.
-ALL_CPPFLAGS = $(INCLUDES) $(CPPFLAGS) $(X_CPPFLAGS) $(T_CPPFLAGS)
+ALL_CPPFLAGS = $(INCLUDES) $(CPPFLAGS)
 
 # Build and host support libraries.
 LIBIBERTY = ../libiberty/libiberty.a
@@ -959,6 +948,7 @@ export libsubdir
 export slibdir
 
 FLAGS_TO_PASS = \
+	"ADA_CFLAGS=$(ADA_CFLAGS)" \
 	"BISON=$(BISON)" \
 	"BISONFLAGS=$(BISONFLAGS)" \
 	"CFLAGS=$(CFLAGS) $(WARN_CFLAGS)" \
@@ -1277,8 +1267,19 @@ OBJS = $(OBJS-common) $(OBJS-md) $(OBJS-archive)
 
 OBJS-onestep = libbackend.o $(OBJS-archive)
 
+# This lists all host object files, whether they are included in this
+# compilation or not.
+ALL_HOST_OBJS = $(GCC_OBJS) $(C_OBJS) $(OBJS) libbackend.o \
+  @TREEBROWSER@ main.o gccspec.o version.o intl.o prefix.o cppspec.o \
+  $(foreach v,$(CONFIG_LANGUAGES),$($(v)_OBJS)) \
+  $(COLLECT2_OBJS) $(EXTRA_GCC_OBJS) \
+  mips-tfile.o mips-tdump.o \
+  $(PROTO_OBJS) $(GCOV_OBJS) $(GCOV_DUMP_OBJS)
+
+
 COMPILER_PROBE_OBJ =  @COMPILER_PROBE@
-BACKEND = main.o @TREEBROWSER@ $(COMPILER_PROBE_OBJ) libbackend.a $(CPPLIB) $(LIBDECNUMBER)
+
+BACKEND = main.o @TREEBROWSER@  $(COMPILER_PROBE_OBJ) libbackend.a $(CPPLIB) $(LIBDECNUMBER)
 
 MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
  insn-output.c insn-recog.c insn-emit.c insn-extract.c insn-peep.c \
@@ -2595,8 +2596,8 @@ dce.o : dce.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(TREE_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) $(DF_H) cselib.h \
    $(DBGCNT_H) dce.h timevar.h tree-pass.h $(DBGCNT_H)
 dse.o : dse.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
-   $(TREE_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) insn-config.h $(RECOG_H) \
-   $(EXPR_H) $(DF_H) cselib.h $(DBGCNT_H) timevar.h tree-pass.h \
+   $(TREE_H) $(TM_P_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) insn-config.h \
+   $(RECOG_H) $(EXPR_H) $(DF_H) cselib.h $(DBGCNT_H) timevar.h tree-pass.h \
    alloc-pool.h $(ALIAS_H) dse.h $(OPTABS_H)
 fwprop.o : fwprop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    toplev.h insn-config.h $(RECOG_H) $(FLAGS_H) $(OBSTACK_H) $(BASIC_BLOCK_H) \
@@ -3047,6 +3048,16 @@ $(simple_generated_c:insn-%.c=s-%): s-%: build/gen%$(build_exeext) \
 	  insn-conditions.md > tmp-$*.c
 	$(SHELL) $(srcdir)/../move-if-change tmp-$*.c insn-$*.c
 	$(STAMP) s-$*
+
+generated_files = config.h tm.h $(TM_P_H) $(TM_H) multilib.h \
+       $(simple_generated_h) $(simple_generated_c) specs.h \
+       tree-check.h genrtl.h insn-modes.h tm-preds.h tm-constrs.h \
+       $(ALL_GTFILES_H) gtype-desc.c gtype-desc.h gcov-iov.h
+
+# In order for parallel make to really start compiling the expensive
+# objects from $(OBJS-common) as early as possible, build all their
+# prerequisites strictly before all objects.
+$(ALL_HOST_OBJS) : | $(generated_files)
 
 # genconstants needs to run before insn-conditions.md is available
 # (because the constants may be used in the conditions).
@@ -3681,7 +3692,7 @@ TEXI_CPP_FILES = cpp.texi fdl.texi cppenv.texi cppopts.texi		\
 TEXI_GCC_FILES = gcc.texi gcc-common.texi gcc-vers.texi frontends.texi	\
 	 standards.texi invoke.texi extend.texi md.texi objc.texi	\
 	 gcov.texi trouble.texi bugreport.texi service.texi		\
-	 contribute.texi compat.texi funding.texi gnu.texi gpl.texi	\
+	 contribute.texi compat.texi funding.texi gnu.texi gpl_v3.texi	\
 	 fdl.texi contrib.texi cppenv.texi cppopts.texi			\
 	 implement-c.texi arm-neon-intrinsics.texi
 
@@ -3690,7 +3701,7 @@ TEXI_GCCINT_FILES = gccint.texi gcc-common.texi gcc-vers.texi		\
 	 portability.texi interface.texi passes.texi c-tree.texi	\
 	 rtl.texi md.texi tm.texi hostconfig.texi fragments.texi	\
 	 configfiles.texi collect2.texi headerdirs.texi funding.texi	\
-	 gnu.texi gpl.texi fdl.texi contrib.texi languages.texi		\
+	 gnu.texi gpl_v3.texi fdl.texi contrib.texi languages.texi	\
 	 sourcebuild.texi gty.texi libgcc.texi cfg.texi tree-ssa.texi	\
 	 loop.texi
 
@@ -3839,6 +3850,9 @@ gfdl.pod: fdl.texi
 	$(STAMP) $@
 	-$(TEXI2POD) $< > $@
 fsf-funding.pod: funding.texi
+	$(STAMP) $@
+	-$(TEXI2POD) $< > $@
+gpl.pod: gpl_v3.texi
 	$(STAMP) $@
 	-$(TEXI2POD) $< > $@
 

@@ -1,3 +1,327 @@
+2008-04-04  Naveen.H.S  <naveen.hs@kpitcummins.com>
+
+	* gcc.target/sh/sh2a-band.c: New test.
+	* gcc.target/sh/sh2a-bclrmem.c: New test.
+	* gcc.target/sh/sh2a-bld.c: New test.
+	* gcc.target/sh/sh2a-bor.c: New test.
+	* gcc.target/sh/sh2a-bsetmem.c: New test.
+	* gcc.target/sh/sh2a-bxor.c: New test.
+
+2008-04-04  Janis Johnson  <janis187@us.ibm.com>
+
+	* g++.dg/other/anon5.C: Don't depend on line number for error message.
+
+	* gcc.dg/torture/builtin-modf-1.c: Use special options for
+	powerpc*-*-linux*.
+
+	* gcc.dg/var-expand3.c: Skip for powerpc-linux if not on AltiVec HW.
+
+	* gcc.dg/pr34856.c: Use -maltivec on powerpc linux.
+
+	PR target/35620
+	* gcc.dg/dfp/pr35620.c: New test.
+	* gcc.dg/dfp/func-pointer.c: New test.
+	* gcc.dg/dfp/func-deref.c: New test.
+
+2008-04-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/35364
+	* g++.dg/gomp/pr35364.C: New test.
+
+2008-04-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* g++.dg/other/i386-2.C: Include <wmmintrin.h>.
+	* g++.dg/other/i386-3.C: Likewise.
+	* gcc.target/i386/sse-13.c: Likewise.
+	* gcc.target/i386/sse-14.c: Likewise.
+
+	* gcc.target/i386/aes-check.h: New.
+	* gcc.target/i386/aesdec.c: Likewise.
+	* gcc.target/i386/aesdeclast.c: Likewise.
+	* gcc.target/i386/aesenc.c: Likewise.
+	* gcc.target/i386/aesenclast.c: Likewise.
+	* gcc.target/i386/aesimc.c: Likewise.
+	* gcc.target/i386/aeskeygenassist.c: Likewise.
+	* gcc.target/i386/pclmulqdq.c: Likewise.
+	* gcc.target/i386/pclmul-check.h: Likewise.
+
+	* gcc.target/i386/i386.exp (check_effective_target_aes): New.
+	(check_effective_target_pclmul): Likewise.
+
+2008-04-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/35440
+	* gcc.dg/pr35440.c: New test.
+
+2008-04-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35823
+	* gnat.dg/pr35823.adb: New testcase.
+
+2008-04-03  Janis Johnson  <janis187@us.ibm.com>
+
+	PR c/35712
+	* gcc.dg/dfp/constants-zero.c: New test.
+
+2008-04-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/35738
+	* gcc.dg/gomp/pr35738.c: New test.
+
+	PR middle-end/35818
+	* gcc.dg/gomp/pr35818.c: New test.
+
+	PR fortran/35786
+	* gfortran.dg/gomp/pr35786-1.f90: New test.
+	* gfortran.dg/gomp/pr35786-2.f90: New test.
+
+2008-04-03  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/scc-1.c: New test.
+
+2008-04-03  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/vrp43.c: New testcase.
+	* gcc.dg/tree-ssa/vrp44.c: Likewise.
+	* gcc.dg/tree-ssa/vrp45.c: Likewise.
+
+2008-04-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35741
+	* g++.dg/other/offsetof5.C: New test.
+
+2008-04-03  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR rtl-optimization/35281
+	* gcc.target/i386/pr35281.c: New test.
+
+2008-04-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/35800
+	* gcc.c-torture/execute/pr35800.c: New test.
+
+2008-04-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/cpp/cmdlne-dU-1.c, gcc.dg/cpp/cmdlne-dU-2.c,
+	gcc.dg/cpp/cmdlne-dU-3.c, gcc.dg/cpp/cmdlne-dU-4.c,
+	gcc.dg/cpp/cmdlne-dU-5.c, gcc.dg/cpp/cmdlne-dU-6.c,
+	gcc.dg/cpp/cmdlne-dU-7.c, gcc.dg/cpp/cmdlne-dU-8.c,
+	gcc.dg/cpp/cmdlne-dU-9.c, gcc.dg/cpp/cmdlne-dU-10.c,
+	gcc.dg/cpp/cmdlne-dU-11.c, gcc.dg/cpp/cmdlne-dU-12.c,
+	gcc.dg/cpp/cmdlne-dU-13.c, gcc.dg/cpp/cmdlne-dU-14.c,
+	gcc.dg/cpp/cmdlne-dU-15.c, gcc.dg/cpp/cmdlne-dU-16.c,
+	gcc.dg/cpp/cmdlne-dU-17.c, gcc.dg/cpp/cmdlne-dU-18.c,
+	gcc.dg/cpp/cmdlne-dU-19.c, gcc.dg/cpp/cmdlne-dU-20.c,
+	gcc.dg/cpp/cmdlne-dU-21.c, gcc.dg/cpp/cmdlne-dU-22.c: New tests.
+
+2008-04-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/14495
+	PR tree-optimization/34793
+	* gcc.dg/tree-ssa/vrp41.c: New testcase.
+	* gcc.dg/tree-ssa/vrp42.c: Likewise.
+
+2008-04-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/14495
+	* gcc.dg/tree-ssa/vrp40.c: New testcase.
+
+2008-04-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/discr_record_constant.ads: New test.
+
+2008-04-02  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/vrp38.c: New testcase.
+	* gcc.dg/tree-ssa/vrp39.c: Likewise.
+
+2008-04-01  George Helffrich  <george@gcc.gnu.org>
+
+	PRs fortran/PR35154, fortran/PR23057
+	* gcc.dg/debug/pr35154.c:  New test to check that non-Fortran
+	use of common is unchanged.
+
+	* lib/gfortran-dg.exp:  New harness to compile Fortran progs
+	with all combinations of debug options available on target.
+        * gfortran.dg/debug/debug.exp:  Ditto.
+        * gfortran.dg/debug/trivial.f:  Ditto.
+        * gfortran.dg/debug/pr35154-stabs.f:  New test case for
+        .stabs functionality.
+        * gfortran.dg/debug/pr35154-dwarf2.f:  New test case for
+        DWARF functionality.
+
+2008-04-01  Volker Reichelt  <v.reichelt@netcologne.de>
+
+	PR c/35436
+	* gcc.dg/format/gcc_gfc-2.c: New test.
+
+2008-03-31  Seongbae Park <seongbae.park@gmail.com>
+
+	* g++.dg/bprob/bprob.exp: Do not check gcno files.
+	Use -fprofile-use for profile use.
+	* gcc.misc-tests/bprob.exp: Ditto.
+	* g++.dg/tree-pro/tree-prof.exp: Do not check gcno files.
+	* gcc.dg/matrix/matrix.exp: Ditto.
+	* gcc.dg/struct/struct-reorg.exp: Ditto.
+	* gcc.dg/tree-prof/tree-prof.exp: Ditto.
+	* gcc.dg/profile-dir-1.c: New test.
+	* gcc.dg/profile-dir-2.c: New test.
+	* gcc.dg/profile-dir-3.c: New test.
+
+2008-03-31  Volker Reichelt  <v.reichelt@netcologne.de>
+
+	PR c/35750
+	* gcc.dg/old-style-param-1.c: New test.
+
+2008-03-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/object_overflow.adb: New test.
+
+2008-03-31  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/30186
+	* gcc.dg/tree-ssa/vector-1.c: New testcase.
+	* gcc.c-torture/execute/vector-1.c: New testcase.
+	* gcc.c-torture/execute/vector-2.c: New testcase.
+
+2008-03-31  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/assign_from_packed_pixels.ads: Support for ...
+	* gnat.dg/assign_from_packed.adb: New testcase.
+
+2008-03-31  Zdenek Dvorak  <ook@ucw.cz>
+
+	PR rtl-optimization/35729
+	* gcc.dg/pr35729.c: New test.
+
+2008-03-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/32000
+	* gcc.target/i386/pr32000-1.c: New.
+
+2008-03-31  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/too_many_tasks.adb: Removed, causes resource issues
+	on some environments.
+
+2008-03-31  Andrew Pinski  <pinskia@gmail.com>
+
+	PR tree-opt/35431
+	* gcc.c-torture/compile/pr35431.c: New testcase.
+
+2008-03-30  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* g++.dg/other/error27.C: Use -fno-finite-math-only on sh*
+	targets.
+
+2008-03-30  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR c++/35245
+	* g++.dg/other/anon5.C: Skip on hppa*-*-hpux*.
+
+2008-03-30  Volker Reichelt  <v.reichelt@netcologne.de>
+
+	PR c++/35578
+	* g++.dg/parse/friend8.C: New test.
+
+	PR c/35748
+	* gcc.dg/union-cast-4.c: New test.
+
+2008-03-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/35757
+	* gcc.target/i386/sse4_1-blendps-2.c: New.
+	* gcc.target/i386/sse4_1-pblendw-2.c: Likewise.
+
+2008-03-30  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* gfortran.dg/internal_pack_1.f90:  Added complex to test case.
+	* gfortran.dg/internal_pack_2.f90:  Likewise.
+	* gfortran.dg/intrinsic_spread_1.f90:  Likewise.
+	* gfortran.dg/intrinsic_spread_2.f90:  Likewise.
+	* gfortran.dg/intrinsic_pack_1.f90:  Likewise.
+	* gfortran.dg/intrinsic_pack_2.f90:  Likewise.
+	* gfortran.dg/intrinsic_unpack_1.f90:  Likewise.
+	* gfortran.dg/intrinsic_unpack_2.f90:  Likewise.
+
+2008-03-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/bit_packed_array2.adb: New test.
+
+2008-03-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35740
+	* gfortran.dg/transpose_conjg_1.f90: New test.
+
+2008-03-29  Laurent GUERBY  <laurent@guerby.net>
+
+	* gnat.dg/socket2.adb: Remove since identical to socket1.adb.
+	
+2008-03-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35698
+	* gfortran.dg/allocate_zerosize_3.f: New test.
+
+	PR fortran/35702
+	* gfortran.dg/character_assign_1.f90: New test.
+
+2008-03-28  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/32972
+	PR libfortran/32512
+	* gfortran.dg/intrinsic_spread_1.f90:  New file.
+	* gfortran.dg/intrinsic_spread_2.f90:  New file.
+	* gfortran.dg/intrinsic_spread_3.f90:  New file.
+
+2008-03-28  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/34714
+	* gfortran.dg/alloc_alloc_expr_3.f90: New test.
+	* gfortran.dg/allocate_stat.f90: Adjusted error-match text.
+	* gfortran.dg/func_assign.f90: Likewise.
+	* gfortran.dg/implicit_11.f90: Likewise.
+	* gfortran.dg/proc_assign_1.f90: Likewise.
+	* gfortran.dg/proc_assign_2.f90: Likewise.
+	* gfortran.dg/procedure_lvalue.f90: Likewise.
+
+2008-03-28  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35699
+	* gfortran.dg/direct_io_10.f: New test.
+
+2008-03-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/vectorize6.c: New test.
+
+2008-03-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/35721
+	* gfortran.dg/associated_target_2.f90: New.
+
+2008-03-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/19580
+	* gcc.dg/tree-ssa/loop-34.c: New testcase.
+
+2008-03-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/30317
+	PR tree-optimization/30911
+	PR tree-optimization/34793
+	* gcc.dg/tree-ssa/vrp35.c: New testcase.
+	* gcc.dg/tree-ssa/vrp36.c: Likewise.
+	* gcc.dg/tree-ssa/vrp37.c: Likewise.
+
+2008-03-28  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR target/31334
+	* gcc.target/powerpc/altivec-25.c: New testcase.
+
+2008-03-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35724
+	* gfortran.dg/cshift_shift_real_2.f90: New test.
+
 2008-03-26  Uros Bizjak  <ubizjak@gmail.com>
 
 	* gcc.c-torture/execute/multi-ix.c: Limit CHUNK size between 1 and 500.

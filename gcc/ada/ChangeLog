@@ -1,3 +1,104 @@
+2008-04-03  Paolo Bonzini  <bonzini@gnu.org>
+
+        * gigi.h (insert_block): Kill.
+        * utils.c (insert_block): Kill.
+
+2008-04-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (gnat_to_gnu_entity) <object>: For a constant object whose
+	type has self-referential size, get the size from the initializing
+	expression directly if it is also a constant whose nominal type
+	has self-referential size.
+
+2008-04-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR ada/33688
+	* g-soccon-darwin.ads: Define new constant IP_PKTINFO.
+
+	PR ada/33857
+	* env.c: Always include crt_externs.h if __APPLE__ is defined.
+	(__gnat_setenv): Use setenv instead of putenv if __APPLE__ is defined.
+
+2008-04-01  Andreas Jaeger  <aj@suse.de>
+
+	* g-soccon-linux-ppc.ads: Add new constants SO_REUSEPORT and
+	IP_PKTINFO.
+
+2008-03-31  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* g-table.adb, g-tasloc.adb, g-traceb.ads,
+	g-trasym.adb, g-utf_32.adb, gen-soccon.c, gigi.h, gmem.c,
+	gnatbind.adb, gnatchop.adb, gnatcmd.adb,
+	gnatcmd.ads, gnatdll.adb, gnatfind.adb,
+	gnatlink.adb, gnatmem.adb, gprep.adb,
+	i-cstrea-vms.adb, i-cstrin.adb, i-pacdec.ads,
+	i-vxwork.ads, impunit.adb, init.c, initialize.c, inline.adb,
+	layout.adb, lib-writ.adb, lib-writ.ads, lib-xref.adb,
+	lib-xref.ads, lib.adb, link.c, live.ads,
+	make.adb, makegpr.adb, makeutl.adb, math_lib.adb,
+	mdll-utl.adb, mdll.ads, memroot.adb, memroot.ads,
+	misc.c, mlib-prj.adb, mlib-tgt-hpux.adb,
+	mlib-tgt-linux.adb, mlib-tgt-tru64.adb, mlib-tgt.ads,
+	namet.adb, namet.h, nlists.adb, nlists.ads,
+	nlists.h, opt.ads, osint-b.ads, osint-c.adb,
+	osint-c.ads, osint.adb, osint.ads, output.ads,
+	par-ch10.adb, par-ch12.adb, par-ch2.adb, par-ch3.adb,
+	par-ch4.adb, par-ch5.adb, par-ch6.adb, par-ch9.adb,
+	par-endh.adb, par-labl.adb, par-prag.adb,
+	par-sync.adb, par-tchk.adb, par-util.adb,
+	par.adb, prep.adb, prep.ads, prepcomp.adb, prj-attr.ads,
+	prj-dect.adb, prj-env.adb, prj-ext.adb, prj-nmsc.adb,
+	prj-nmsc.ads, prj-pp.adb, prj-proc.adb,
+	prj-strt.ads, prj-tree.ads, prj.adb, prj.ads: Fix comment typos.
+
+2008-03-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (gnat_to_gnu_entity) <object>: Do not force a non-null
+	size if it has overflowed.
+
+2008-03-31  Olivier Hainque  <hainque@adacore.com>
+            Eric Botcazou  <ebotcazou@adacore.com>
+
+	* utils2.c (find_common_type): Document assumption on t1/t2 vs
+	lhs/rhs. Force use of lhs type if smaller, whatever the modes.
+
+2008-03-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* a-textio.ads, a-witeio.ads, a-ztexio.ads, ali.ads,
+	einfo.ads, erroutc.adb, erroutc.ads, exp_attr.adb,
+	exp_imgv.adb, exp_intr.adb, exp_pakd.adb,
+	exp_pakd.ads, exp_prag.adb, exp_smem.adb,
+	exp_tss.ads, exp_util.adb, exp_util.ads,
+	exp_vfpt.adb, freeze.adb, freeze.ads,
+	frontend.adb, g-alleve.adb, g-altcon.adb,
+	g-altive.ads, g-alveop.ads, g-alvevi.ads,
+	g-arrspl.adb, g-busorg.ads, g-calend.adb,
+	g-calend.ads, g-casuti.ads, g-cgideb.adb,
+	g-comlin.adb, g-comlin.ads, g-curexc.ads,
+	g-debpoo.adb, g-debpoo.ads, g-decstr.adb,
+	g-dirope.adb, g-dirope.ads, g-dynhta.ads,
+	g-dyntab.adb, g-encstr.ads, g-excact.ads,
+	g-except.ads, g-expect.ads, g-heasor.adb,
+	g-hesora.adb, g-hesorg.adb, g-htable.ads,
+	g-locfil.ads, g-md5.adb, g-md5.ads,
+	g-memdum.ads, g-moreex.ads, g-os_lib.adb,
+	g-pehage.adb, g-pehage.ads, g-regexp.adb,
+	g-regexp.ads, g-regpat.adb, g-regpat.ads,
+	g-soccon-aix.ads, g-soccon-darwin.ads,
+	g-soccon-freebsd.ads, g-soccon-hpux-ia64.ads,
+	g-soccon-hpux.ads, g-soccon-irix.ads,
+	g-soccon-linux-64.ads, g-soccon-linux-ppc.ads,
+	g-soccon-linux-x86.ads, g-soccon-lynxos.ads,
+	g-soccon-mingw.ads, g-soccon-solaris-64.ads,
+	g-soccon-solaris.ads, g-soccon-tru64.ads,
+	g-soccon-vms.ads, g-soccon-vxworks.ads,
+	g-soccon.ads, g-socket.adb, g-socket.ads,
+	g-socthi-mingw.adb, g-socthi-vms.adb,
+	g-socthi-vxworks.adb, g-soliop-mingw.ads,
+	g-soliop-solaris.ads, g-soliop.ads, g-spipat.adb,
+	g-spipat.ads, g-string.adb, g-stsifd-sockets.adb: Fix comment
+	typos.
+
 2008-03-27  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* decl.c (gnat_to_gnu_entity) <E_Procedure>: Also set the public flag

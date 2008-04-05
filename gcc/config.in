@@ -735,6 +735,12 @@
 #endif
 
 
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_DLFCN_H
+#endif
+
+
 /* Define to 1 if you have the <fcntl.h> header file. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_FCNTL_H
@@ -1330,6 +1336,13 @@
 /* Define as const if the declaration of iconv() needs const. */
 #ifndef USED_FOR_TARGET
 #undef ICONV_CONST
+#endif
+
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#ifndef USED_FOR_TARGET
+#undef LT_OBJDIR
 #endif
 
 

@@ -1,3 +1,64 @@
+2008-04-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/35786
+	* openmp.c (resolve_omp_clauses): Diagnose if a clause symbol
+	isn't a variable.
+
+2008-04-03  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (fortran_OBJS): New variable.
+
+2008-04-03  Paolo Bonzini  <bonzini@gnu.org>
+
+        * f95-lang.c (insert_block): Kill.
+
+2008-04-01  George Helffrich <george@gcc.gnu.org>
+
+	* trans-common.c (create_common):  Add decl to function
+	chain to preserve identifier scope in debug output.
+
+2008-04-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* gfortran.texi: Include gpl_v3.texi instead of gpl.texi
+	* Make-lang.in (GFORTRAN_TEXI): Include gpl_v3.texi instead of
+	gpl.texi.
+
+2008-03-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35740
+	* resolve.c (resolve_function, resolve_call): If the procedure
+	is elemental do not look for noncopying intrinsics.
+
+2008-03-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35698
+	* trans-array.c (gfc_array_init_size): Set 'size' zero if
+	negative in one dimension.
+
+	PR fortran/35702
+	* trans-expr.c (gfc_trans_string_copy): Only assign a char
+	directly if the lhs and rhs types are the same.
+
+2008-03-28  Daniel Franke  <franke.daniel@gmail.com>
+	    Paul Richard Thomas <paul.richard.thomas@gmail.com>
+
+	PR fortran/34714
+	* primary.c (match_variable): Improved matching of function 
+	result variables.
+	* resolve.c (resolve_allocate_deallocate): Removed checks if
+	the actual argument for STAT is a variable.
+
+2008-03-28  Tobias Burnus  <burnus@net-b.de>
+
+	* symbol.c (gfc_get_default_type): Fix error message; option
+	-fallow_leading_underscore should be -fallow-leading-underscore
+
+2008-03-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35724
+	* iresolve.c (gfc_resolve_cshift): Check for NULL symtree in test for
+	optional argument attribute.
+
 2008-03-27  Tom Tromey  <tromey@redhat.com>
 
 	* Make-lang.in: Revert automatic dependency patch.

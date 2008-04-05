@@ -1,3 +1,43 @@
+2008-04-04  Paolo Bonzini  <bonzini@gnu.org>
+
+	* decl.c (cxx_push_function_context): Delete.
+	(cxx_pop_function_context): Delete.
+	(start_preparsed_function): Merge cxx_push_function_context (!f->decl
+	code only).
+	* cp-objcp-common.h (LANG_HOOKS_FUNCTION_INIT,
+	LANG_HOOKS_FUNCTION_FINAL): Delete.
+	(LANG_HOOKS_FUNCTION_MISSING_NORETURN_OK_P): Rename to
+	LANG_HOOKS_MISSING_NORETURN_OK_P.
+	* cp-tree.h (cxx_push_function_context, cxx_pop_function_context):
+	Delete prototype.
+	* semantics.c (current_stmt_tree): Fix comment.
+
+2008-04-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35741
+	* semantics.c (finish_offsetof): Undo effect of convert_from_reference
+	before calling fold_offsetof.
+
+2008-04-03  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (c++_OBJS): New variable.
+
+2008-04-03  Paolo Bonzini  <bonzini@gnu.org>
+    
+	* optimize.c (clone_body): New, from tree-inline.c.
+
+2008-04-03  Paolo Bonzini  <bonzini@gnu.org>
+
+        * method.c (synthesize_method): Use {push,pop}_function_context.
+        * name-lookup.c (push_to_top_level): Likewise.
+        * parser.c (cp_parser_late_parsing_for_member): Likewise.
+
+2008-03-30  Volker Reichelt  <v.reichelt@netcologne.de>
+
+	PR c++/35578
+	* parser.c (cp_parser_decl_specifier_seq): Add location to error
+	message.
+
 2008-03-27  Tom Tromey  <tromey@redhat.com>
 
 	* Make-lang.in: Revert automatic dependency patch.

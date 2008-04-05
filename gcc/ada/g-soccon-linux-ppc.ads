@@ -77,7 +77,7 @@ package GNAT.Sockets.Constants is
    EINVAL             : constant :=           22; --  Invalid argument
    EIO                : constant :=            5; --  Input output error
    EISCONN            : constant :=          106; --  Socket already connected
-   ELOOP              : constant :=           40; --  Too many symbolic lynks
+   ELOOP              : constant :=           40; --  Too many symbolic links
    EMFILE             : constant :=           24; --  Too many open files
    EMSGSIZE           : constant :=           90; --  Message too long
    ENAMETOOLONG       : constant :=           36; --  Name too long
@@ -149,6 +149,7 @@ package GNAT.Sockets.Constants is
 
    TCP_NODELAY        : constant :=            1; --  Do not coalesce packets
    SO_REUSEADDR       : constant :=            2; --  Bind reuse local address
+   SO_REUSEPORT       : constant :=           -1; --  Bind reuse port number
    SO_KEEPALIVE       : constant :=            9; --  Enable keep-alive msgs
    SO_LINGER          : constant :=           13; --  Defer close to flush data
    SO_BROADCAST       : constant :=            6; --  Can send broadcast msgs
@@ -162,6 +163,7 @@ package GNAT.Sockets.Constants is
    IP_MULTICAST_LOOP  : constant :=           34; --  Set/get mcast loopback
    IP_ADD_MEMBERSHIP  : constant :=           35; --  Join a multicast group
    IP_DROP_MEMBERSHIP : constant :=           36; --  Leave a multicast group
+   IP_PKTINFO         : constant :=            8; --  Get datagram info
 
    -------------------
    -- System limits --

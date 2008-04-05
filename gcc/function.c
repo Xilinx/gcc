@@ -193,8 +193,6 @@ struct temp_slot GTY(())
 
 /* Forward declarations.  */
 
-static rtx assign_stack_local_1 (enum machine_mode, HOST_WIDE_INT, int,
-				 struct function *);
 static struct temp_slot *find_temp_slot_from_address (rtx);
 static void pad_to_arg_alignment (struct args_size *, int, struct args_size *);
 static void pad_below (struct args_size *, enum machine_mode, tree);
@@ -236,58 +234,34 @@ find_function_data (tree decl)
 }
 
 /* Save the current context for compilation of a nested function.
-   This is called from language-specific code.  The caller should use
-   the enter_nested langhook to save any language-specific state,
-   since this function knows only about language-independent
-   variables.  */
-
-void
-push_function_context_to (tree context ATTRIBUTE_UNUSED)
-{
-  struct function *p;
-
-  if (cfun == 0)
-    allocate_struct_function (NULL, false);
-  p = cfun;
-
-  p->outer = outer_function_chain;
-  outer_function_chain = p;
-
-  lang_hooks.function.enter_nested (p);
-
-  set_cfun (NULL);
-}
+   This is called from language-specific code.  */
 
 void
 push_function_context (void)
 {
-  push_function_context_to (current_function_decl);
+  if (cfun == 0)
+    allocate_struct_function (NULL, false);
+
+  cfun->outer = outer_function_chain;
+  outer_function_chain = cfun;
+  set_cfun (NULL);
 }
 
 /* Restore the last saved context, at the end of a nested function.
    This function is called from language-specific code.  */
 
 void
-pop_function_context_from (tree context ATTRIBUTE_UNUSED)
+pop_function_context (void)
 {
   struct function *p = outer_function_chain;
 
   set_cfun (p);
   outer_function_chain = p->outer;
-
   current_function_decl = p->decl;
-
-  lang_hooks.function.leave_nested (p);
 
   /* Reset variables that have known state during rtx generation.  */
   virtuals_instantiated = 0;
   generating_concat_p = 1;
-}
-
-void
-pop_function_context (void)
-{
-  pop_function_context_from (current_function_decl);
 }
 
 /* Clear out all parts of the state in F that can safely be discarded
@@ -297,12 +271,7 @@ pop_function_context (void)
 void
 free_after_parsing (struct function *f)
 {
-  /* f->expr->forced_labels is used by code generation.  */
-  /* f->emit->regno_reg_rtx is used by code generation.  */
-  /* f->varasm is used by code generation.  */
-  /* f->eh->eh_return_stub_label is used by code generation.  */
-
-  lang_hooks.function.final (f);
+  f->language = 0;
 }
 
 /* Clear out all parts of the state in F that can safely be discarded
@@ -315,45 +284,20 @@ free_after_compilation (struct function *f)
   VEC_free (int, heap, prologue);
   VEC_free (int, heap, epilogue);
   VEC_free (int, heap, sibcall_epilogue);
+  if (rtl.emit.regno_pointer_align)
+    free (rtl.emit.regno_pointer_align);
 
+  memset (&rtl, 0, sizeof (rtl));
   f->eh = NULL;
-  f->expr = NULL;
-  f->emit = NULL;
-  f->varasm = NULL;
   f->machine = NULL;
   f->cfg = NULL;
 
-  f->x_avail_temp_slots = NULL;
-  f->x_used_temp_slots = NULL;
   f->arg_offset_rtx = NULL;
   f->return_rtx = NULL;
   f->internal_arg_pointer = NULL;
-  f->x_nonlocal_goto_handler_labels = NULL;
-  f->x_return_label = NULL;
-  f->x_naked_return_label = NULL;
-  f->x_stack_slot_list = NULL;
-  f->x_stack_check_probe_note = NULL;
-  f->x_arg_pointer_save_area = NULL;
-  f->x_parm_birth_insn = NULL;
   f->epilogue_delay_list = NULL;
 }
 
-/* Allocate fixed slots in the stack frame of the current function.  */
-
-/* Return size needed for stack frame based on slots so far allocated in
-   function F.
-   This size counts from zero.  It is not rounded to PREFERRED_STACK_BOUNDARY;
-   the caller may have to do that.  */
-
-static HOST_WIDE_INT
-get_func_frame_size (struct function *f)
-{
-  if (FRAME_GROWS_DOWNWARD)
-    return -f->x_frame_offset;
-  else
-    return f->x_frame_offset;
-}
-
 /* Return size needed for stack frame based on slots so far allocated.
    This size counts from zero.  It is not rounded to PREFERRED_STACK_BOUNDARY;
    the caller may have to do that.  */
@@ -361,7 +305,10 @@ get_func_frame_size (struct function *f)
 HOST_WIDE_INT
 get_frame_size (void)
 {
-  return get_func_frame_size (cfun);
+  if (FRAME_GROWS_DOWNWARD)
+    return -frame_offset;
+  else
+    return frame_offset;
 }
 
 /* Issue an error message and return TRUE if frame OFFSET overflows in
@@ -393,13 +340,10 @@ frame_offset_overflow (HOST_WIDE_INT offset, tree func)
    -2 means use BITS_PER_UNIT,
    positive specifies alignment boundary in bits.
 
-   We do not round to stack_boundary here.
+   We do not round to stack_boundary here.  */
 
-   FUNCTION specifies the function to allocate in.  */
-
-static rtx
-assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size, int align,
-		      struct function *function)
+rtx
+assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
 {
   rtx x, addr;
   int bigend_correction = 0;
@@ -434,14 +378,14 @@ assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size, int align,
     alignment = align / BITS_PER_UNIT;
 
   if (FRAME_GROWS_DOWNWARD)
-    function->x_frame_offset -= size;
+    frame_offset -= size;
 
   /* Ignore alignment we can't do with expected alignment of the boundary.  */
   if (alignment * BITS_PER_UNIT > PREFERRED_STACK_BOUNDARY)
     alignment = PREFERRED_STACK_BOUNDARY / BITS_PER_UNIT;
 
-  if (function->stack_alignment_needed < alignment * BITS_PER_UNIT)
-    function->stack_alignment_needed = alignment * BITS_PER_UNIT;
+  if (cfun->stack_alignment_needed < alignment * BITS_PER_UNIT)
+    cfun->stack_alignment_needed = alignment * BITS_PER_UNIT;
 
   /* Calculate how many bytes the start of local variables is off from
      stack alignment.  */
@@ -461,13 +405,13 @@ assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size, int align,
 	  like.  So we instead assume that ALIGNMENT is a power of two and
 	  use logical operations which are unambiguous.  */
       if (FRAME_GROWS_DOWNWARD)
-	function->x_frame_offset
-	  = (FLOOR_ROUND (function->x_frame_offset - frame_phase,
+	frame_offset
+	  = (FLOOR_ROUND (frame_offset - frame_phase,
 			  (unsigned HOST_WIDE_INT) alignment)
 	     + frame_phase);
       else
-	function->x_frame_offset
-	  = (CEIL_ROUND (function->x_frame_offset - frame_phase,
+	frame_offset
+	  = (CEIL_ROUND (frame_offset - frame_phase,
 			 (unsigned HOST_WIDE_INT) alignment)
 	     + frame_phase);
     }
@@ -479,7 +423,7 @@ assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size, int align,
 
   /* If we have already instantiated virtual registers, return the actual
      address relative to the frame pointer.  */
-  if (function == cfun && virtuals_instantiated)
+  if (virtuals_instantiated)
     addr = plus_constant (frame_pointer_rtx,
 			  trunc_int_for_mode
 			  (frame_offset + bigend_correction
@@ -487,33 +431,23 @@ assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size, int align,
   else
     addr = plus_constant (virtual_stack_vars_rtx,
 			  trunc_int_for_mode
-			  (function->x_frame_offset + bigend_correction,
+			  (frame_offset + bigend_correction,
 			   Pmode));
 
   if (!FRAME_GROWS_DOWNWARD)
-    function->x_frame_offset += size;
+    frame_offset += size;
 
   x = gen_rtx_MEM (mode, addr);
   MEM_NOTRAP_P (x) = 1;
 
-  function->x_stack_slot_list
-    = gen_rtx_EXPR_LIST (VOIDmode, x, function->x_stack_slot_list);
+  stack_slot_list
+    = gen_rtx_EXPR_LIST (VOIDmode, x, stack_slot_list);
 
-  if (frame_offset_overflow (function->x_frame_offset, function->decl))
-    function->x_frame_offset = 0;
+  if (frame_offset_overflow (frame_offset, current_function_decl))
+    frame_offset = 0;
 
   return x;
 }
-
-/* Wrapper around assign_stack_local_1;  assign a local stack slot for the
-   current function.  */
-
-rtx
-assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
-{
-  return assign_stack_local_1 (mode, size, align, cfun);
-}
-
 
 /* Removes temporary slot TEMP from LIST.  */
 
@@ -3922,7 +3856,6 @@ allocate_struct_function (tree fndecl, bool abstract_p)
 
   init_eh_for_function ();
 
-  lang_hooks.function.init (cfun);
   if (init_machine_status)
     cfun->machine = (*init_machine_status) ();
 
@@ -3974,8 +3907,9 @@ push_struct_function (tree fndecl)
 static void
 prepare_function_start (void)
 {
+  gcc_assert (!rtl.emit.x_last_insn);
   init_emit ();
-  init_varasm_status (cfun);
+  init_varasm_status ();
   init_expr ();
 
   cse_not_expected = ! optimize;
@@ -4295,7 +4229,9 @@ expand_function_start (tree subr)
 
       /* ??? We need to do this save early.  Unfortunately here is
 	 before the frame variable gets declared.  Help out...  */
-      expand_var (TREE_OPERAND (cfun->nonlocal_goto_save_area, 0));
+      tree var = TREE_OPERAND (cfun->nonlocal_goto_save_area, 0);
+      if (!DECL_RTL_SET_P (var))
+	expand_decl (var);
 
       t_save = build4 (ARRAY_REF, ptr_type_node,
 		       cfun->nonlocal_goto_save_area,
@@ -4440,7 +4376,7 @@ expand_function_end (void)
   /* If arg_pointer_save_area was referenced only from a nested
      function, we will not have initialized it yet.  Do that now.  */
   if (arg_pointer_save_area && ! cfun->arg_pointer_save_area_init)
-    get_arg_pointer_save_area (cfun);
+    get_arg_pointer_save_area ();
 
   /* If we are doing stack checking and this function makes calls,
      do a stack probe at the start of the function to ensure we have enough
@@ -4673,17 +4609,17 @@ expand_function_end (void)
 }
 
 rtx
-get_arg_pointer_save_area (struct function *f)
+get_arg_pointer_save_area (void)
 {
-  rtx ret = f->x_arg_pointer_save_area;
+  rtx ret = arg_pointer_save_area;
 
   if (! ret)
     {
-      ret = assign_stack_local_1 (Pmode, GET_MODE_SIZE (Pmode), 0, f);
-      f->x_arg_pointer_save_area = ret;
+      ret = assign_stack_local (Pmode, GET_MODE_SIZE (Pmode), 0);
+      arg_pointer_save_area = ret;
     }
 
-  if (f == cfun && ! f->arg_pointer_save_area_init)
+  if (! cfun->arg_pointer_save_area_init)
     {
       rtx seq;
 

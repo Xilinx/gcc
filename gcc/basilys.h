@@ -1014,6 +1014,9 @@ basilys_allocatereserved (size_t basesz, size_t gap)
 {
   size_t wanted;
   void *ptr;
+  /* @@@ we need fatal_error, declared in toplev.h; but we want to
+     avoid including it in the generated gtype-desc.c file;  */
+  extern void fatal_error (const char *, ...)  ATTRIBUTE_GCC_DIAG(1,2);
   if (basesz < sizeof (struct basilysforward_st))
     basesz = sizeof (struct basilysforward_st);
   if ((basesz % BASILYS_ALIGN) != 0)

@@ -1042,12 +1042,10 @@ case "${host}" in
     host_makefile_frag="config/mh-djgpp"
     ;;
   *-cygwin*)
+    ACX_CHECK_CYGWIN_CAT_WORKS
     host_makefile_frag="config/mh-cygwin"
     ;;
-  *-mingw32*)
-    host_makefile_frag="config/mh-mingw"
-    ;;
-  *-mingw64*)
+  *-mingw*)
     host_makefile_frag="config/mh-mingw"
     ;;
   *-interix*)

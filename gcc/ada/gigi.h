@@ -442,11 +442,6 @@ extern void set_block_jmpbuf_decl (tree decl);
 /* Get the setjmp_decl, if any, for the current binding level.  */
 extern tree get_block_jmpbuf_decl (void);
 
-/* Insert BLOCK at the end of the list of subblocks of the
-   current binding level.  This is used when a BIND_EXPR is expanded,
-   to handle the BLOCK node inside the BIND_EXPR.  */
-extern void insert_block (tree block);
-
 /* Records a ..._DECL node DECL as belonging to the current lexical scope
    and uses GNAT_NODE for location information.  */
 extern void gnat_pushdecl (tree decl, Node_Id gnat_node);
@@ -787,7 +782,7 @@ extern tree build_component_ref (tree record_variable, tree component,
 
 /* Build a GCC tree to call an allocation or deallocation function.
    If GNU_OBJ is nonzero, it is an object to deallocate.  Otherwise,
-   genrate an allocator.
+   generate an allocator.
 
    GNU_SIZE is the size of the object and ALIGN is the alignment.
    GNAT_PROC, if present is a procedure to call and GNAT_POOL is the

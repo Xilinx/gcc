@@ -77,7 +77,7 @@ package GNAT.Sockets.Constants is
    EINVAL             : constant :=          22; --  Invalid argument
    EIO                : constant :=           5; --  Input output error
    EISCONN            : constant :=          56; --  Socket already connected
-   ELOOP              : constant :=          62; --  Too many symbolic lynks
+   ELOOP              : constant :=          62; --  Too many symbolic links
    EMFILE             : constant :=          24; --  Too many open files
    EMSGSIZE           : constant :=          40; --  Message too long
    ENAMETOOLONG       : constant :=          63; --  Name too long
@@ -163,6 +163,7 @@ package GNAT.Sockets.Constants is
    IP_MULTICAST_LOOP  : constant :=          11; --  Set/get mcast loopback
    IP_ADD_MEMBERSHIP  : constant :=          12; --  Join a multicast group
    IP_DROP_MEMBERSHIP : constant :=          13; --  Leave a multicast group
+   IP_PKTINFO         : constant :=          -1; --  Get datagram info
 
    -------------------
    -- System limits --
