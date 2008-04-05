@@ -665,7 +665,7 @@ c_cpp_builtins (cpp_reader *pfile)
     cpp_define (pfile, "__NEXT_RUNTIME__");
 
   /* Show the availability of some target pragmas.  */
-  if (flag_mudflap || targetm.handle_pragma_redefine_extname)
+  if (flag_mudflap || flag_bounds || targetm.handle_pragma_redefine_extname)
     cpp_define (pfile, "__PRAGMA_REDEFINE_EXTNAME");
 
   if (targetm.handle_pragma_extern_prefix)

@@ -417,11 +417,15 @@ all:
 
 # This is the list of directories that may be needed in RPATH_ENVVAR
 # so that prorgams built for the target machine work.
-TARGET_LIB_PATH = $(TARGET_LIB_PATH_libstdc++-v3)$(TARGET_LIB_PATH_libmudflap)$(TARGET_LIB_PATH_libssp)$(TARGET_LIB_PATH_libgomp)$(HOST_LIB_PATH_gcc)
+TARGET_LIB_PATH = $(TARGET_LIB_PATH_libstdc++-v3)$(TARGET_LIB_PATH_libbounds)$(TARGET_LIB_PATH_libmudflap)$(TARGET_LIB_PATH_libssp)$(TARGET_LIB_PATH_libgomp)$(HOST_LIB_PATH_gcc)
 
 @if target-libstdc++-v3
 TARGET_LIB_PATH_libstdc++-v3 = $$r/$(TARGET_SUBDIR)/libstdc++-v3/.libs:
 @endif target-libstdc++-v3
+
+@if target-libbounds
+TARGET_LIB_PATH_libbounds = $$r/$(TARGET_SUBDIR)/libbounds/.libs:
+@endif target-libbounds
 
 @if target-libmudflap
 TARGET_LIB_PATH_libmudflap = $$r/$(TARGET_SUBDIR)/libmudflap/.libs:
@@ -725,6 +729,7 @@ configure-host:  \
 .PHONY: configure-target
 configure-target:  \
     maybe-configure-target-libstdc++-v3 \
+    maybe-configure-target-libbounds \
     maybe-configure-target-libmudflap \
     maybe-configure-target-libssp \
     maybe-configure-target-newlib \
@@ -882,6 +887,7 @@ all-host: maybe-all-gnattools
 .PHONY: all-target
 
 all-target: maybe-all-target-libstdc++-v3
+all-target: maybe-all-target-libbounds
 all-target: maybe-all-target-libmudflap
 all-target: maybe-all-target-libssp
 all-target: maybe-all-target-newlib
@@ -997,6 +1003,7 @@ info-host: maybe-info-gnattools
 .PHONY: info-target
 
 info-target: maybe-info-target-libstdc++-v3
+info-target: maybe-info-target-libbounds
 info-target: maybe-info-target-libmudflap
 info-target: maybe-info-target-libssp
 info-target: maybe-info-target-newlib
@@ -1105,6 +1112,7 @@ dvi-host: maybe-dvi-gnattools
 .PHONY: dvi-target
 
 dvi-target: maybe-dvi-target-libstdc++-v3
+dvi-target: maybe-dvi-target-libbounds
 dvi-target: maybe-dvi-target-libmudflap
 dvi-target: maybe-dvi-target-libssp
 dvi-target: maybe-dvi-target-newlib
@@ -1213,6 +1221,7 @@ pdf-host: maybe-pdf-gnattools
 .PHONY: pdf-target
 
 pdf-target: maybe-pdf-target-libstdc++-v3
+pdf-target: maybe-pdf-target-libbounds
 pdf-target: maybe-pdf-target-libmudflap
 pdf-target: maybe-pdf-target-libssp
 pdf-target: maybe-pdf-target-newlib
@@ -1321,6 +1330,7 @@ html-host: maybe-html-gnattools
 .PHONY: html-target
 
 html-target: maybe-html-target-libstdc++-v3
+html-target: maybe-html-target-libbounds
 html-target: maybe-html-target-libmudflap
 html-target: maybe-html-target-libssp
 html-target: maybe-html-target-newlib
@@ -1429,6 +1439,7 @@ TAGS-host: maybe-TAGS-gnattools
 .PHONY: TAGS-target
 
 TAGS-target: maybe-TAGS-target-libstdc++-v3
+TAGS-target: maybe-TAGS-target-libbounds
 TAGS-target: maybe-TAGS-target-libmudflap
 TAGS-target: maybe-TAGS-target-libssp
 TAGS-target: maybe-TAGS-target-newlib
@@ -1537,6 +1548,7 @@ install-info-host: maybe-install-info-gnattools
 .PHONY: install-info-target
 
 install-info-target: maybe-install-info-target-libstdc++-v3
+install-info-target: maybe-install-info-target-libbounds
 install-info-target: maybe-install-info-target-libmudflap
 install-info-target: maybe-install-info-target-libssp
 install-info-target: maybe-install-info-target-newlib
@@ -1645,6 +1657,7 @@ install-pdf-host: maybe-install-pdf-gnattools
 .PHONY: install-pdf-target
 
 install-pdf-target: maybe-install-pdf-target-libstdc++-v3
+install-pdf-target: maybe-install-pdf-target-libbounds
 install-pdf-target: maybe-install-pdf-target-libmudflap
 install-pdf-target: maybe-install-pdf-target-libssp
 install-pdf-target: maybe-install-pdf-target-newlib
@@ -1753,6 +1766,7 @@ install-html-host: maybe-install-html-gnattools
 .PHONY: install-html-target
 
 install-html-target: maybe-install-html-target-libstdc++-v3
+install-html-target: maybe-install-html-target-libbounds
 install-html-target: maybe-install-html-target-libmudflap
 install-html-target: maybe-install-html-target-libssp
 install-html-target: maybe-install-html-target-newlib
@@ -1861,6 +1875,7 @@ installcheck-host: maybe-installcheck-gnattools
 .PHONY: installcheck-target
 
 installcheck-target: maybe-installcheck-target-libstdc++-v3
+installcheck-target: maybe-installcheck-target-libbounds
 installcheck-target: maybe-installcheck-target-libmudflap
 installcheck-target: maybe-installcheck-target-libssp
 installcheck-target: maybe-installcheck-target-newlib
@@ -1969,6 +1984,7 @@ mostlyclean-host: maybe-mostlyclean-gnattools
 .PHONY: mostlyclean-target
 
 mostlyclean-target: maybe-mostlyclean-target-libstdc++-v3
+mostlyclean-target: maybe-mostlyclean-target-libbounds
 mostlyclean-target: maybe-mostlyclean-target-libmudflap
 mostlyclean-target: maybe-mostlyclean-target-libssp
 mostlyclean-target: maybe-mostlyclean-target-newlib
@@ -2077,6 +2093,7 @@ clean-host: maybe-clean-gnattools
 .PHONY: clean-target
 
 clean-target: maybe-clean-target-libstdc++-v3
+clean-target: maybe-clean-target-libbounds
 clean-target: maybe-clean-target-libmudflap
 clean-target: maybe-clean-target-libssp
 clean-target: maybe-clean-target-newlib
@@ -2185,6 +2202,7 @@ distclean-host: maybe-distclean-gnattools
 .PHONY: distclean-target
 
 distclean-target: maybe-distclean-target-libstdc++-v3
+distclean-target: maybe-distclean-target-libbounds
 distclean-target: maybe-distclean-target-libmudflap
 distclean-target: maybe-distclean-target-libssp
 distclean-target: maybe-distclean-target-newlib
@@ -2293,6 +2311,7 @@ maintainer-clean-host: maybe-maintainer-clean-gnattools
 .PHONY: maintainer-clean-target
 
 maintainer-clean-target: maybe-maintainer-clean-target-libstdc++-v3
+maintainer-clean-target: maybe-maintainer-clean-target-libbounds
 maintainer-clean-target: maybe-maintainer-clean-target-libmudflap
 maintainer-clean-target: maybe-maintainer-clean-target-libssp
 maintainer-clean-target: maybe-maintainer-clean-target-newlib
@@ -2455,6 +2474,7 @@ check-host:  \
 .PHONY: check-target
 check-target:  \
     maybe-check-target-libstdc++-v3 \
+    maybe-check-target-libbounds \
     maybe-check-target-libmudflap \
     maybe-check-target-libssp \
     maybe-check-target-newlib \
@@ -2664,6 +2684,7 @@ install-host:  \
 .PHONY: install-target
 install-target:  \
     maybe-install-target-libstdc++-v3 \
+    maybe-install-target-libbounds \
     maybe-install-target-libmudflap \
     maybe-install-target-libssp \
     maybe-install-target-newlib \
@@ -41671,6 +41692,447 @@ maintainer-clean-target-libstdc++-v3:
 
 
 
+.PHONY: configure-target-libbounds maybe-configure-target-libbounds
+maybe-configure-target-libbounds:
+@if gcc-bootstrap
+configure-target-libbounds: stage_current
+@endif gcc-bootstrap
+@if target-libbounds
+maybe-configure-target-libbounds: configure-target-libbounds
+configure-target-libbounds: 
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	echo "Checking multilib configuration for libbounds..."; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libbounds ; \
+	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libbounds/multilib.tmp 2> /dev/null ; \
+	if test -r $(TARGET_SUBDIR)/libbounds/multilib.out; then \
+	  if cmp -s $(TARGET_SUBDIR)/libbounds/multilib.tmp $(TARGET_SUBDIR)/libbounds/multilib.out; then \
+	    rm -f $(TARGET_SUBDIR)/libbounds/multilib.tmp; \
+	  else \
+	    rm -f $(TARGET_SUBDIR)/libbounds/Makefile; \
+	    mv $(TARGET_SUBDIR)/libbounds/multilib.tmp $(TARGET_SUBDIR)/libbounds/multilib.out; \
+	  fi; \
+	else \
+	  mv $(TARGET_SUBDIR)/libbounds/multilib.tmp $(TARGET_SUBDIR)/libbounds/multilib.out; \
+	fi; \
+	test ! -f $(TARGET_SUBDIR)/libbounds/Makefile || exit 0; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libbounds ; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo Configuring in $(TARGET_SUBDIR)/libbounds; \
+	cd "$(TARGET_SUBDIR)/libbounds" || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(TARGET_SUBDIR)/libbounds/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libbounds"; \
+	libsrcdir="$$s/libbounds"; \
+	rm -f no-such-file || : ; \
+	CONFIG_SITE=no-such-file $(SHELL) $${libsrcdir}/configure \
+	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
+	  --target=${target_alias} $${srcdiroption}  \
+	  || exit 1
+@endif target-libbounds
+
+
+
+
+
+.PHONY: all-target-libbounds maybe-all-target-libbounds
+maybe-all-target-libbounds:
+@if gcc-bootstrap
+all-target-libbounds: stage_current
+@endif gcc-bootstrap
+@if target-libbounds
+TARGET-target-libbounds=all
+maybe-all-target-libbounds: all-target-libbounds
+all-target-libbounds: configure-target-libbounds
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(TARGET_FLAGS_TO_PASS)  $(TARGET-target-libbounds))
+@endif target-libbounds
+
+
+
+
+
+.PHONY: check-target-libbounds maybe-check-target-libbounds
+maybe-check-target-libbounds:
+@if target-libbounds
+maybe-check-target-libbounds: check-target-libbounds
+
+check-target-libbounds:
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(TARGET_FLAGS_TO_PASS)   check)
+
+@endif target-libbounds
+
+.PHONY: install-target-libbounds maybe-install-target-libbounds
+maybe-install-target-libbounds:
+@if target-libbounds
+maybe-install-target-libbounds: install-target-libbounds
+
+install-target-libbounds: installdirs
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(TARGET_FLAGS_TO_PASS)  install)
+
+@endif target-libbounds
+
+# Other targets (info, dvi, pdf, etc.)
+
+.PHONY: maybe-info-target-libbounds info-target-libbounds
+maybe-info-target-libbounds:
+@if target-libbounds
+maybe-info-target-libbounds: info-target-libbounds
+
+info-target-libbounds: \
+    configure-target-libbounds 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing info in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           info) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-dvi-target-libbounds dvi-target-libbounds
+maybe-dvi-target-libbounds:
+@if target-libbounds
+maybe-dvi-target-libbounds: dvi-target-libbounds
+
+dvi-target-libbounds: \
+    configure-target-libbounds 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing dvi in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           dvi) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-pdf-target-libbounds pdf-target-libbounds
+maybe-pdf-target-libbounds:
+@if target-libbounds
+maybe-pdf-target-libbounds: pdf-target-libbounds
+
+pdf-target-libbounds: \
+    configure-target-libbounds 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing pdf in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           pdf) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-html-target-libbounds html-target-libbounds
+maybe-html-target-libbounds:
+@if target-libbounds
+maybe-html-target-libbounds: html-target-libbounds
+
+html-target-libbounds: \
+    configure-target-libbounds 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing html in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           html) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-TAGS-target-libbounds TAGS-target-libbounds
+maybe-TAGS-target-libbounds:
+@if target-libbounds
+maybe-TAGS-target-libbounds: TAGS-target-libbounds
+
+TAGS-target-libbounds: \
+    configure-target-libbounds 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing TAGS in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           TAGS) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-install-info-target-libbounds install-info-target-libbounds
+maybe-install-info-target-libbounds:
+@if target-libbounds
+maybe-install-info-target-libbounds: install-info-target-libbounds
+
+install-info-target-libbounds: \
+    configure-target-libbounds \
+    info-target-libbounds 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing install-info in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           install-info) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-install-pdf-target-libbounds install-pdf-target-libbounds
+maybe-install-pdf-target-libbounds:
+@if target-libbounds
+maybe-install-pdf-target-libbounds: install-pdf-target-libbounds
+
+install-pdf-target-libbounds: \
+    configure-target-libbounds \
+    pdf-target-libbounds 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing install-pdf in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           install-pdf) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-install-html-target-libbounds install-html-target-libbounds
+maybe-install-html-target-libbounds:
+@if target-libbounds
+maybe-install-html-target-libbounds: install-html-target-libbounds
+
+install-html-target-libbounds: \
+    configure-target-libbounds \
+    html-target-libbounds 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing install-html in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           install-html) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-installcheck-target-libbounds installcheck-target-libbounds
+maybe-installcheck-target-libbounds:
+@if target-libbounds
+maybe-installcheck-target-libbounds: installcheck-target-libbounds
+
+installcheck-target-libbounds: \
+    configure-target-libbounds 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing installcheck in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           installcheck) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-mostlyclean-target-libbounds mostlyclean-target-libbounds
+maybe-mostlyclean-target-libbounds:
+@if target-libbounds
+maybe-mostlyclean-target-libbounds: mostlyclean-target-libbounds
+
+mostlyclean-target-libbounds: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing mostlyclean in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           mostlyclean) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-clean-target-libbounds clean-target-libbounds
+maybe-clean-target-libbounds:
+@if target-libbounds
+maybe-clean-target-libbounds: clean-target-libbounds
+
+clean-target-libbounds: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing clean in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           clean) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-distclean-target-libbounds distclean-target-libbounds
+maybe-distclean-target-libbounds:
+@if target-libbounds
+maybe-distclean-target-libbounds: distclean-target-libbounds
+
+distclean-target-libbounds: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing distclean in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           distclean) \
+	  || exit 1
+
+@endif target-libbounds
+
+.PHONY: maybe-maintainer-clean-target-libbounds maintainer-clean-target-libbounds
+maybe-maintainer-clean-target-libbounds:
+@if target-libbounds
+maybe-maintainer-clean-target-libbounds: maintainer-clean-target-libbounds
+
+maintainer-clean-target-libbounds: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libbounds/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing maintainer-clean in $(TARGET_SUBDIR)/libbounds" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libbounds && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           maintainer-clean) \
+	  || exit 1
+
+@endif target-libbounds
+
+
+
+
+
 .PHONY: configure-target-libmudflap maybe-configure-target-libmudflap
 maybe-configure-target-libmudflap:
 @if gcc-bootstrap
@@ -53299,6 +53761,7 @@ restrap:
 # Generic dependencies for target modules on host stuff, especially gcc
 @if gcc-bootstrap
 configure-target-libstdc++-v3: stage_last
+configure-target-libbounds: stage_last
 configure-target-libmudflap: stage_last
 configure-target-libssp: stage_last
 configure-target-newlib: stage_last
@@ -53330,6 +53793,7 @@ configure-target-libgomp: stage_last
 
 @if gcc-no-bootstrap
 configure-target-libstdc++-v3: maybe-all-gcc
+configure-target-libbounds: maybe-all-gcc
 configure-target-libmudflap: maybe-all-gcc
 configure-target-libssp: maybe-all-gcc
 configure-target-newlib: maybe-all-gcc
@@ -54072,6 +54536,7 @@ all-target-winsup: maybe-all-target-libtermcap
 
 @if gcc-no-bootstrap
 configure-target-libstdc++-v3: maybe-all-target-libgcc
+configure-target-libbounds: maybe-all-target-libgcc
 configure-target-libmudflap: maybe-all-target-libgcc
 configure-target-libssp: maybe-all-target-libgcc
 configure-target-newlib: maybe-all-target-libgcc
@@ -54095,6 +54560,8 @@ configure-target-libgomp: maybe-all-target-libgcc
 
 
 configure-target-libstdc++-v3: maybe-all-target-newlib maybe-all-target-libgloss
+
+configure-target-libbounds: maybe-all-target-newlib maybe-all-target-libgloss
 
 configure-target-libmudflap: maybe-all-target-newlib maybe-all-target-libgloss
 

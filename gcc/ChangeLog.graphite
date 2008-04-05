@@ -1,3 +1,21 @@
+2008-04-05  Alexander Lamaison  <awl03@doc.ic.ac.uk>
+            Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-bounds.c: New.
+	* tree-bounds.h: New.
+	* tree-pass.h: Declare pass_bounds_early and pass_bounds_late.
+	* passes.c: Schedule pass_bounds_early, pass_bounds_late.
+	* builtins.c (expand_builtin_alloca): Add flag_bounds as for flag_mudflap.
+	* gcc.c: Same.
+	* toplev.c: Same.
+	* c-cppbuiltin.c: Same.
+	* c-pragma.c: Same.
+	* common.opt: Same.
+	* varasm.c: Same.
+	* tree-outof-ssa.c: Same.
+	* c-common.c: Same.
+	* Makefile.in: Same.
+
 2008-03-15  Antoniu Pop  <antoniu.pop@gmail.com>
             Sebastian Pop  <sebastian.pop@amd.com>
 

@@ -179,6 +179,7 @@ target_libraries="target-libgcc \
 		target-newlib \
 		target-libgomp \
 		target-libstdc++-v3 \
+		target-libbounds \
 		target-libmudflap \
 		target-libssp \
 		target-libgfortran \
@@ -364,6 +365,21 @@ no)
   ;;
 esac
 
+# Disable libbounds on some systems.
+if test x$enable_libbounds = x ; then
+    case "${target}" in
+    *-*-linux* | *-*-gnu* | *-*-k*bsd*-gnu | bfin*-*-uclinux*)
+        # Enable libbounds by default in GNU and friends.
+	;;
+    *-*-freebsd*)
+        # Enable libbounds by default in FreeBSD.
+	;;
+    *)
+        # Disable it by default everywhere else.
+	noconfigdirs="$noconfigdirs target-libbounds"
+	;;
+    esac
+fi
 
 # Disable libmudflap on some systems.
 if test x$enable_libmudflap = x ; then

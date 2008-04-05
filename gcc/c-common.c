@@ -43,6 +43,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "tree-iterator.h"
 #include "hashtab.h"
+#include "tree-bounds.h"
 #include "tree-mudflap.h"
 #include "opts.h"
 #include "real.h"
@@ -3897,6 +3898,9 @@ c_common_nodes_and_builtins (void)
 
   if (!flag_preprocess_only)
     c_define_builtins (va_list_ref_type_node, va_list_arg_type_node);
+
+  if (flag_bounds)
+	bounds_init ();
 
   main_identifier_node = get_identifier ("main");
 

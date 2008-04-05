@@ -684,6 +684,10 @@ fmove-loop-invariants
 Common Report Var(flag_move_loop_invariants) Init(1) Optimization
 Move loop invariant computations out of loops
 
+fbounds-checking
+Common RejectNegative Report Var(flag_bounds)
+Enable bounds checking of memory operations
+
 fmudflap
 Common RejectNegative Report Var(flag_mudflap)
 Add mudflap bounds-checking instrumentation for single-threaded program

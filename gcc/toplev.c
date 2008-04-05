@@ -1081,6 +1081,10 @@ compile_file (void)
   output_shared_constant_pool ();
   output_object_blocks ();
 
+  /* Likewise for bounds-checking static object registrations.  */
+  if (flag_bounds)
+    bounds_finish_file ();
+
   /* Write out any pending weak symbol declarations.  */
   weak_finish ();
 

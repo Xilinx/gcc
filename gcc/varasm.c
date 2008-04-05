@@ -49,6 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "target.h"
 #include "tree-mudflap.h"
+#include "tree-bounds.h"
 #include "cgraph.h"
 #include "cfglayout.h"
 #include "basic-block.h"
@@ -1299,6 +1300,10 @@ make_decl_rtl (tree decl)
       if (flag_mudflap && TREE_CODE (decl) == VAR_DECL)
 	mudflap_enqueue_decl (decl);
 
+      /* Make this function static known to the bounds-checking runtime.  */
+      if (flag_bounds && TREE_CODE (decl) == VAR_DECL)
+        bounds_enqueue_decl (decl);
+
       return;
     }
 
@@ -1412,6 +1417,10 @@ make_decl_rtl (tree decl)
   /* Make this function static known to the mudflap runtime.  */
   if (flag_mudflap && TREE_CODE (decl) == VAR_DECL)
     mudflap_enqueue_decl (decl);
+
+  /* Make this function static known to the bounds-checking runtime.  */
+  if (flag_bounds && TREE_CODE (decl) == VAR_DECL)
+    bounds_enqueue_decl (decl);
 }
 
 /* Output a string of literal assembler code
@@ -3119,6 +3128,8 @@ build_constant_desc (tree exp)
   /* Propagate marked-ness to copied constant.  */
   if (flag_mudflap && mf_marked_p (exp))
     mf_mark (desc->value);
+  if (flag_bounds && bounds_marked_seen_p (exp))
+    bounds_mark_seen (desc->value);
 
   /* Create a string containing the label name, in LABEL.  */
   labelno = const_labelno++;
@@ -3279,6 +3290,8 @@ output_constant_def_contents (rtx symbol)
     }
   if (flag_mudflap)
     mudflap_enqueue_constant (exp);
+  if (flag_bounds)
+    bounds_enqueue_constant (exp);
 }
 
 /* Look up EXP in the table of constant descriptors.  Return the rtl
@@ -5759,7 +5772,7 @@ categorize_decl_for_section (const_tree decl, int reloc)
     return SECCAT_TEXT;
   else if (TREE_CODE (decl) == STRING_CST)
     {
-      if (flag_mudflap) /* or !flag_merge_constants */
+      if (flag_mudflap || flag_bounds) /* or !flag_merge_constants */
         return SECCAT_RODATA;
       else
 	return SECCAT_RODATA_MERGE_STR;

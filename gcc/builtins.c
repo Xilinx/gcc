@@ -5056,8 +5056,8 @@ expand_builtin_alloca (tree exp, rtx target)
 
   /* In -fmudflap-instrumented code, alloca() and __builtin_alloca()
      should always expand to function calls.  These can be intercepted
-     in libmudflap.  */
-  if (flag_mudflap)
+     in libmudflap.  Similarly for libbounds.  */
+  if (flag_mudflap || flag_bounds)
     return NULL_RTX;
 
   if (!validate_arglist (exp, INTEGER_TYPE, VOID_TYPE))

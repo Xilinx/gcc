@@ -1,0 +1,2 @@
+global boundsconfig_libs
+set boundsconfig_libs "@LIBS@"

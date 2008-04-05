@@ -1296,7 +1296,7 @@ rewrite_out_of_ssa (void)
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_tree_cfg (dump_file, dump_flags & ~TDF_DETAILS);
 
-  remove_ssa_form (flag_tree_ter && !flag_mudflap);
+  remove_ssa_form (flag_tree_ter && !flag_mudflap && !flag_bounds);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_tree_cfg (dump_file, dump_flags & ~TDF_DETAILS);

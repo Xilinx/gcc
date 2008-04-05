@@ -252,6 +252,8 @@ struct dump_file_info
 
 extern void tree_lowering_passes (tree decl);
 
+extern struct tree_opt_pass pass_bounds_early;
+extern struct tree_opt_pass pass_bounds_late;
 extern struct tree_opt_pass pass_mudflap_1;
 extern struct tree_opt_pass pass_mudflap_2;
 extern struct tree_opt_pass pass_remove_useless_stmts;

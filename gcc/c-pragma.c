@@ -561,7 +561,7 @@ handle_pragma_redefine_extname (cpp_reader * ARG_UNUSED (dummy))
   if (t != CPP_EOF)
     warning (OPT_Wpragmas, "junk at end of %<#pragma redefine_extname%>");
 
-  if (!flag_mudflap && !targetm.handle_pragma_redefine_extname)
+  if (!flag_mudflap && !flag_bounds && !targetm.handle_pragma_redefine_extname)
     {
       if (warn_unknown_pragmas > in_system_header)
 	warning (OPT_Wunknown_pragmas,

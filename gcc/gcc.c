@@ -608,6 +608,19 @@ proper position among the other output files.  */
 #define LIB_SPEC "%{!shared:%{g*:-lg} %{!p:%{!pg:-lc}}%{p:-lc_p}%{pg:-lc_p}}"
 #endif
 
+/* bounds-checking specs */
+#ifndef BOUNDSWRAP_SPEC
+/* XXX: valid only for GNU ld */
+/* XXX: should exactly match hooks provided by libbounds.a */
+#define BOUNDSWRAP_SPEC " %{static: %{fbounds-checking: \
+ --wrap=malloc --wrap=free --wrap=calloc --wrap=realloc\
+ --wrap=mmap --wrap=munmap --wrap=alloca\
+}} %{fbounds-checking: --wrap=main}"
+#endif
+#ifndef BOUNDSLIB_SPEC
+#define BOUNDSLIB_SPEC "%{fbounds-checking: -export-dynamic}"
+#endif
+
 /* mudflap specs */
 #ifndef MFWRAP_SPEC
 /* XXX: valid only for GNU ld */
@@ -720,8 +733,8 @@ proper position among the other output files.  */
 %{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
     %(linker) %l " LINK_PIE_SPEC "%X %{o*} %{A} %{d} %{e*} %{m} %{N} %{n} %{r}\
     %{s} %{t} %{u*} %{x} %{z} %{Z} %{!A:%{!nostdlib:%{!nostartfiles:%S}}}\
-    %{static:} %{L*} %(mfwrap) %(link_libgcc) %o\
-    %{fopenmp:%:include(libgomp.spec)%(link_gomp)} %(mflib)\
+    %{static:} %{L*} %(mfwrap) %(boundswrap) %(link_libgcc) %o\
+    %{fopenmp:%:include(libgomp.spec)%(link_gomp)} %(mflib) %(boundslib)\
     %{fprofile-arcs|fprofile-generate|coverage:-lgcov}\
     %{!nostdlib:%{!nodefaultlibs:%(link_ssp) %(link_gcc_c_sequence)}}\
     %{!A:%{!nostdlib:%{!nostartfiles:%E}}} %{T*} }}}}}}"
@@ -758,6 +771,8 @@ static const char *asm_spec = ASM_SPEC;
 static const char *asm_final_spec = ASM_FINAL_SPEC;
 static const char *link_spec = LINK_SPEC;
 static const char *lib_spec = LIB_SPEC;
+static const char *boundswrap_spec = BOUNDSWRAP_SPEC;
+static const char *boundslib_spec = BOUNDSLIB_SPEC;
 static const char *mfwrap_spec = MFWRAP_SPEC;
 static const char *mflib_spec = MFLIB_SPEC;
 static const char *link_gomp_spec = "";
@@ -797,6 +812,7 @@ static const char *cpp_unique_options =
  %{!E:%{!M:%{!MM:%{!MT:%{!MQ:%{MD|MMD:%{o*:-MQ %*}}}}}}}\
  %{remap} %{g3|ggdb3|gstabs3|gcoff3|gxcoff3|gvms3:-dD}\
  %{H} %C %{D*&U*&A*} %{i*} %Z %i\
+ %{fbounds-checking:-D__BOUNDS_CHECKING_ON -include bounds-runtime.h}\
  %{fmudflap:-D_MUDFLAP -include mf-runtime.h}\
  %{fmudflapth:-D_MUDFLAP -D_MUDFLAPTH -include mf-runtime.h}\
  %{E|M|MM:%W{o*}}";
@@ -827,6 +843,7 @@ static const char *cc1_options =
  %{--help=*:--help=%(VALUE)}\
  %{!fsyntax-only:%{S:%W{o*}%{!o*:-o %b.s}}}\
  %{fsyntax-only:-o %j} %{-param*}\
+ %{fbounds-checking:-fno-builtin -fno-merge-constants}\
  %{fmudflap|fmudflapth:-fno-builtin -fno-merge-constants}\
  %{coverage:-fprofile-arcs -ftest-coverage}";
 
@@ -1584,6 +1601,8 @@ static struct spec_list static_specs[] =
   INIT_STATIC_SPEC ("lib",			&lib_spec),
   INIT_STATIC_SPEC ("mfwrap",			&mfwrap_spec),
   INIT_STATIC_SPEC ("mflib",			&mflib_spec),
+  INIT_STATIC_SPEC ("boundswrap",		&boundswrap_spec),
+  INIT_STATIC_SPEC ("boundslib",		&boundslib_spec),
   INIT_STATIC_SPEC ("link_gomp",		&link_gomp_spec),
   INIT_STATIC_SPEC ("libgcc",			&libgcc_spec),
   INIT_STATIC_SPEC ("startfile",		&startfile_spec),
