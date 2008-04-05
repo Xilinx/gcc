@@ -1,0 +1,5 @@
+2008-04-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* types.def (BT_FN_BOOL_PTR, BT_FN_PTR_SIZE_UINT, BT_FN_VOID_PTR_PTR,
+	BT_FN_VOID_PTR_INT, BT_FN_VOID_PTR_PTR_INT): New.
+
