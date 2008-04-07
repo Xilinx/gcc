@@ -334,6 +334,9 @@ generate_channel (struct graph *rdg, int x, htab_t channels)
   bsi = bsi_start (ENTRY_BLOCK_PTR->next_bb);
   bsi_insert_after (&bsi, modify, BSI_NEW_STMT);
   update_stmt (modify);
+
+  if (0)
+    fprintf (stdout, "generated channel\n");
 }
 
 /* Create code for the producer side of the stream, and place it at

@@ -52,6 +52,15 @@ gbb_loop (struct graphite_bb *gbb)
   return GBB_BB (gbb)->loop_father;
 }
 
+typedef struct name_tree
+{
+  tree t;
+  char *name;
+} *name_tree;
+
+DEF_VEC_P(name_tree);
+DEF_VEC_ALLOC_P (name_tree, heap);
+
 /* A SCoP is a Static Control Part of the program, simple enough to be
    represented in polyhedral form.  */
 struct scop
@@ -73,7 +82,10 @@ struct scop
   lambda_vector static_schedule;
 
   /* Parameters used within the SCOP.  */
-  VEC (tree, heap) *params;
+  VEC (name_tree, heap) *params;
+
+  /* New induction variables generated for this SCOP.  */
+  VEC (name_tree, heap) *new_ivs;
 
   /* Loops contained in the scop.  */
   bitmap loops;
@@ -93,6 +105,7 @@ struct scop
 #define SCOP_LOOPS(S) S->loops
 #define SCOP_LOOP_NEST(S) S->loop_nest
 #define SCOP_PARAMS(S) S->params
+#define SCOP_NEWIVS(S) S->new_ivs
 #define SCOP_PROG(S) S->program
 #define SCOP_LOOP2CLOOG_LOOP(S) S->loop2cloog_loop
 
@@ -107,7 +120,7 @@ extern void dot_all_scops (void);
 static inline int
 scop_nb_params (scop_p scop)
 {
-  return VEC_length (tree, SCOP_PARAMS (scop));
+  return VEC_length (name_tree, SCOP_PARAMS (scop));
 }
 
 /* Return the number of loops contained in SCOP.  */

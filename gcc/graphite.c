@@ -346,7 +346,7 @@ dot_all_scops (void)
   FILE *stream = fopen ("/tmp/allscops.dot", "w");
   gcc_assert (stream != NULL);
 
-  dot_all_scops_1(stream);
+  dot_all_scops_1 (stream);
   fclose (stream);
 
   system ("dotty /tmp/allscops.dot");
@@ -559,7 +559,7 @@ new_scop (basic_block entry)
   SCOP_BBS_B (scop) = BITMAP_ALLOC (NULL);
   SCOP_LOOPS (scop) = BITMAP_ALLOC (NULL);
   SCOP_LOOP_NEST (scop) = VEC_alloc (loop_p, heap, 3);
-  SCOP_PARAMS (scop) = VEC_alloc (tree, heap, 3);
+  SCOP_PARAMS (scop) = VEC_alloc (name_tree, heap, 3);
   SCOP_PROG (scop) = cloog_program_malloc ();
   SCOP_PROG (scop)->names = cloog_names_malloc ();
   SCOP_LOOP2CLOOG_LOOP (scop) = htab_create (10, hash_loop_to_cloog_loop,
@@ -573,11 +573,18 @@ new_scop (basic_block entry)
 static void
 free_scop (scop_p scop)
 {
+  int i;
+  name_tree p;
+
   VEC_free (graphite_bb_p, heap, SCOP_BBS (scop));
   BITMAP_FREE (SCOP_BBS_B (scop));
   BITMAP_FREE (SCOP_LOOPS (scop));
   VEC_free (loop_p, heap, SCOP_LOOP_NEST (scop));
-  VEC_free (tree, heap, SCOP_PARAMS (scop));
+
+  for (i = 0; VEC_iterate (name_tree, SCOP_PARAMS (scop), i, p); i++)
+    free (p);
+
+  VEC_free (name_tree, heap, SCOP_PARAMS (scop));
   cloog_program_free (SCOP_PROG (scop));
   htab_delete (SCOP_LOOP2CLOOG_LOOP (scop)); 
   free (scop);
@@ -926,16 +933,19 @@ static int
 param_index (tree var, scop_p scop)
 {
   int i;
-  tree p;
+  name_tree p;
+  name_tree nvar = XNEW (struct name_tree);
 
   gcc_assert (TREE_CODE (var) == SSA_NAME);
 
-  for (i = 0; VEC_iterate (tree, SCOP_PARAMS (scop), i, p); i++)
-    if (p == var)
+  for (i = 0; VEC_iterate (name_tree, SCOP_PARAMS (scop), i, p); i++)
+    if (p->t == var)
       return i;
 
-  VEC_safe_push (tree, heap, SCOP_PARAMS (scop), var);
-  return VEC_length (tree, SCOP_PARAMS (scop)) - 1;
+  nvar->t = var;
+  nvar->name = NULL;
+  VEC_safe_push (name_tree, heap, SCOP_PARAMS (scop), nvar);
+  return VEC_length (name_tree, SCOP_PARAMS (scop)) - 1;
 }
 
 struct irp_data
@@ -1028,48 +1038,49 @@ find_params_in_bb (struct dom_walk_data *dw_data, basic_block bb)
 static void
 initialize_cloog_names (scop_p scop)
 {
-  unsigned i, nb_params = VEC_length (tree, SCOP_PARAMS (scop));
+  unsigned i, nb_params = VEC_length (name_tree, SCOP_PARAMS (scop));
   char **params = XNEWVEC (char *, nb_params);
   unsigned nb_iterators = scop_nb_loops(scop);
   unsigned nb_scattering= scop_nb_loops(scop) * 2 + 1;
   char **iterators = XNEWVEC (char *, nb_iterators);
   char **scattering = XNEWVEC (char *, nb_scattering);
-  tree p;
+  name_tree p;
 
-  for (i = 0; VEC_iterate (tree, SCOP_PARAMS (scop), i, p); i++)
+  for (i = 0; VEC_iterate (name_tree, SCOP_PARAMS (scop), i, p); i++)
     {
-      const char *name = get_name (SSA_NAME_VAR (p));
+      const char *name = get_name (SSA_NAME_VAR (p->t));
 
       if (name)
 	{
 	  params[i] = XNEWVEC (char, strlen (name) + 12);
-	  sprintf (params[i], "%s_%d", name, SSA_NAME_VERSION (p));
+	  sprintf (params[i], "%s_%d", name, SSA_NAME_VERSION (p->t));
 	}
       else
 	{
 	  params[i] = XNEWVEC (char, 12);
-	  sprintf (params[i], "T_%d", SSA_NAME_VERSION (p));
+	  sprintf (params[i], "T_%d", SSA_NAME_VERSION (p->t));
 	}
+
+      p->name = params[i];
     }
 
   SCOP_PROG (scop)->names->nb_parameters = nb_params;
   SCOP_PROG (scop)->names->parameters = params;
 
   for (i = 0; i < nb_iterators; i++)
-  {
-    iterators[i] = XNEWVEC (char, 18 + 12);
-    sprintf (iterators[i], "graphite_iterator_%d", i);
-  }
+    {
+      iterators[i] = XNEWVEC (char, 18 + 12);
+      sprintf (iterators[i], "graphite_iterator_%d", i);
+    }
 
   SCOP_PROG (scop)->names->nb_iterators = nb_iterators;
   SCOP_PROG (scop)->names->iterators = iterators;
 
   for (i = 0; i < nb_scattering; i++)
-
-  {
-    scattering[i] = XNEWVEC (char, 2 + 12);
-    sprintf (scattering[i], "s_%d", i);
-  }
+    {
+      scattering[i] = XNEWVEC (char, 2 + 12);
+      sprintf (scattering[i], "s_%d", i);
+    }
 
   SCOP_PROG (scop)->names->nb_scattering = nb_scattering;
   SCOP_PROG (scop)->names->scattering = scattering;
@@ -1117,7 +1128,7 @@ find_scop_parameters (scop_p scop)
 static inline unsigned
 nb_params_in_scop (scop_p scop)
 {
-  return VEC_length (tree, SCOP_PARAMS (scop));
+  return VEC_length (name_tree, SCOP_PARAMS (scop));
 }
 
 /* Build the context constraints for SCOP: constraints and relations
@@ -1612,6 +1623,293 @@ build_scop_data_accesses (scop_p scop)
     }
 }
 
+static struct loop *
+create_empty_loop (edge header_edge)
+{
+  int prob;
+  edge true_edge, false_edge;
+  basic_block loop_header, loop_latch, succ_bb, pred_bb, switch_bb;
+
+  switch_bb = create_empty_bb (EXIT_BLOCK_PTR->prev_bb);
+
+  pred_bb = header_edge->src;
+  loop_header = split_edge (header_edge);
+  loop_latch = split_edge (single_succ_edge (loop_header));
+  succ_bb = single_succ (loop_latch);
+
+  make_edge (loop_header, succ_bb, 0);
+
+  set_immediate_dominator (CDI_DOMINATORS, loop_header, pred_bb);
+  set_immediate_dominator (CDI_DOMINATORS, loop_latch, loop_header);
+  set_immediate_dominator (CDI_DOMINATORS, succ_bb, loop_latch);
+
+  false_edge = make_edge (switch_bb, loop_header, 0);
+  true_edge = make_edge (switch_bb, succ_bb, EDGE_FALLTHRU);
+
+  prob = EDGE_FREQUENCY (header_edge);
+  return loopify (single_succ_edge (loop_latch), header_edge, switch_bb, 
+		  true_edge, false_edge, 1, prob, REG_BR_PROB_BASE - prob);
+}
+
+
+static tree
+gmp_cst_to_tree (Value v)
+{
+  return build_int_cst (integer_type_node, value_get_si (v));
+}
+
+static tree
+clast_name_to_gcc (const char *name, VEC (name_tree, heap) *new_ivs,
+		   VEC (name_tree, heap) *params)
+{
+  unsigned i;
+  name_tree t;
+
+  for (i = 0; VEC_iterate (name_tree, new_ivs, i, t); i++)
+    if (!strcmp (name, t->name))
+      return t->t;
+
+  for (i = 0; VEC_iterate (name_tree, params, i, t); i++)
+    if (!strcmp (name, t->name))
+      return t->t;
+
+  gcc_unreachable ();
+  return NULL_TREE;
+}
+
+static tree
+clast_to_gcc_expression (struct clast_expr *e, tree type,
+			 VEC (name_tree, heap) *new_ivs,
+			 VEC (name_tree, heap) *params)
+{
+  gcc_assert (e);
+
+  switch (e->type)
+    {
+    case expr_term:
+      {
+	struct clast_term *t = (struct clast_term *) e;
+
+	if (t->var)
+	  {
+	    if (value_one_p (t->val))
+	      return clast_name_to_gcc (t->var, new_ivs, params);
+
+	    else if (value_mone_p (t->val))
+	      return fold_build1 (NEGATE_EXPR, integer_type_node,
+				  clast_name_to_gcc (t->var, new_ivs, params));
+	    else
+	      return fold_build2 (MULT_EXPR, integer_type_node,
+				  gmp_cst_to_tree (t->val),
+				  clast_name_to_gcc (t->var, new_ivs, params));
+	  }
+	else
+	  return gmp_cst_to_tree (t->val);
+      }
+
+    case expr_red:
+      gcc_unreachable ();
+      break;
+
+    case expr_bin:
+      {
+	struct clast_binary *b = (struct clast_binary *) e;
+
+	switch (b->type)
+	  {
+	  case clast_bin_fdiv:
+	    return fold_build2 (FLOOR_DIV_EXPR, type,
+				clast_to_gcc_expression ((struct clast_expr *) b->LHS, type, new_ivs, params),
+				clast_to_gcc_expression ((struct clast_expr *) b->RHS, type, new_ivs, params));
+
+	  case clast_bin_cdiv:
+	    return fold_build2 (CEIL_DIV_EXPR, type,
+				clast_to_gcc_expression ((struct clast_expr *) b->LHS, type, new_ivs, params),
+				clast_to_gcc_expression ((struct clast_expr *) b->RHS, type, new_ivs, params));
+
+	  case clast_bin_div:
+	    return fold_build2 (EXACT_DIV_EXPR, type,
+				clast_to_gcc_expression ((struct clast_expr *) b->LHS, type, new_ivs, params),
+				clast_to_gcc_expression ((struct clast_expr *) b->RHS, type, new_ivs, params));
+
+	  case clast_bin_mod:
+	    return fold_build2 (TRUNC_MOD_EXPR, type,
+				clast_to_gcc_expression ((struct clast_expr *) b->LHS, type, new_ivs, params),
+				clast_to_gcc_expression ((struct clast_expr *) b->RHS, type, new_ivs, params));
+	  default:
+	    gcc_unreachable ();
+	  }
+      }
+
+    default:
+      gcc_unreachable ();
+    }
+
+  return NULL_TREE;
+}
+
+static void
+graphite_create_iv (struct loop *loop, struct clast_expr *lb,
+		    tree stride, scop_p scop)
+{
+  tree ivvar = create_tmp_var (integer_type_node, "grivtmp");
+  tree type = integer_type_node;
+  tree stmts;
+  tree nlb = clast_to_gcc_expression (lb, type, SCOP_NEWIVS (scop),
+				      SCOP_PARAMS (scop));
+  bool insert_after;
+  block_stmt_iterator bsi;
+
+  add_referenced_var (ivvar);
+
+  nlb = force_gimple_operand (nlb, &stmts, true, ivvar);
+  if (stmts)
+    {
+      bsi_insert_on_edge (loop_preheader_edge (loop), stmts);
+      bsi_commit_edge_inserts ();
+    }
+
+  standard_iv_increment_position (loop, &bsi, &insert_after);
+  create_iv (nlb, stride, ivvar, loop, &bsi, insert_after, &ivvar, NULL);
+}
+
+
+static void
+graphite_loop_to_gcc_loop (edge header_edge, scop_p scop,
+			   struct clast_for *stmt,
+			   VEC (tree,heap) **remove_ivs ATTRIBUTE_UNUSED)
+{
+  struct loop *loop = create_empty_loop (header_edge);
+
+  graphite_create_iv (loop, stmt->LB, gmp_cst_to_tree (stmt->stride), scop);
+
+#if 0
+  create_exit_cond (loop, stmt->UB);
+
+  /* Build the new upper bound and insert its statements in the
+     basic block of the exit condition */
+  newupperbound = lle_to_gcc_expression (LL_UPPER_BOUND (newloop),
+					 LL_LINEAR_OFFSET (newloop),
+					 type,
+					 new_ivs,
+					 invariants, MIN_EXPR, &stmts);
+  exit = single_exit (temp);
+  exitcond = get_loop_exit_condition (temp);
+  bb = bb_for_stmt (exitcond);
+  bsi = bsi_after_labels (bb);
+  if (stmts)
+    bsi_insert_before (&bsi, stmts, BSI_NEW_STMT);
+
+#endif
+
+  /*
+    rename_ivs ();
+    remove_old_ivs ();
+  */
+
+#if 0
+  
+  /* Rewrite uses of the old ivs so that they are now specified in terms of
+     the new ivs.  */
+
+  for (i = 0; VEC_iterate (tree, old_ivs, i, oldiv); i++)
+    {
+      imm_use_iterator imm_iter;
+      use_operand_p use_p;
+      tree oldiv_def;
+      tree oldiv_stmt = SSA_NAME_DEF_STMT (oldiv);
+      tree stmt;
+
+      if (TREE_CODE (oldiv_stmt) == PHI_NODE)
+        oldiv_def = PHI_RESULT (oldiv_stmt);
+      else
+	oldiv_def = SINGLE_SSA_TREE_OPERAND (oldiv_stmt, SSA_OP_DEF);
+      gcc_assert (oldiv_def != NULL_TREE);
+
+      FOR_EACH_IMM_USE_STMT (stmt, imm_iter, oldiv_def)
+        {
+	  tree newiv, stmts;
+	  lambda_body_vector lbv, newlbv;
+
+	  gcc_assert (TREE_CODE (stmt) != PHI_NODE);
+
+	  /* Compute the new expression for the induction
+	     variable.  */
+	  depth = VEC_length (tree, new_ivs);
+          lbv = lambda_body_vector_new (depth, lambda_obstack);
+	  LBV_COEFFICIENTS (lbv)[i] = 1;
+	  
+          newlbv = lambda_body_vector_compute_new (transform, lbv,
+                                                   lambda_obstack);
+
+	  newiv = lbv_to_gcc_expression (newlbv, TREE_TYPE (oldiv),
+					 new_ivs, &stmts);
+	  if (stmts)
+	    {
+	      bsi = bsi_for_stmt (stmt);
+	      bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
+	    }
+
+	  FOR_EACH_IMM_USE_ON_STMT (use_p, imm_iter)
+	    propagate_value (use_p, newiv);
+	  update_stmt (stmt);
+	}
+
+      /* Remove the now unused induction variable.  */
+      VEC_safe_push (tree, heap, *remove_ivs, oldiv_stmt);
+    }
+
+  VEC_free (tree, heap, new_ivs);
+#endif
+}
+
+static void
+graphite_cond_to_gcc_cond (block_stmt_iterator *bsi ATTRIBUTE_UNUSED, scop_p scop ATTRIBUTE_UNUSED, struct clast_stmt *stmt ATTRIBUTE_UNUSED, 
+			   VEC (tree,heap) **remove_ivs ATTRIBUTE_UNUSED)
+{
+#if 0
+  create_cond_bb ();
+  create_then_bb ();
+#endif
+}
+
+static void
+graphite_stmt_to_gcc_stmt (block_stmt_iterator *bsi, scop_p scop, struct clast_stmt *stmt, 
+			   VEC (tree,heap) **remove_ivs)
+{
+  if (stmt->type == stmt_root)
+    return;
+
+  switch (stmt->type) 
+    {
+    case stmt_ass:
+      gcc_unreachable ();
+      break;
+
+    case stmt_user:
+      graphite_stmt_to_gcc_stmt (bsi, scop, stmt, remove_ivs);
+      break;
+
+    case stmt_for:
+      graphite_loop_to_gcc_loop (single_succ_edge (bsi->bb), scop,
+				 (struct clast_for *) stmt, remove_ivs);
+      break;
+
+    case stmt_guard:
+      graphite_cond_to_gcc_cond (bsi, scop, stmt, remove_ivs);
+      break;
+
+    case stmt_block:
+      for ( ; stmt; stmt = stmt->next)
+	graphite_stmt_to_gcc_stmt (bsi, scop, stmt, remove_ivs);
+
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+}
+
 /* Find the right transform for the SCOP, and return a Cloog AST
    representing the new form of the program.  */
 
@@ -1654,9 +1952,26 @@ find_transform (scop_p scop)
    the given SCOP.  */
 
 static void
-gloog (scop_p scop ATTRIBUTE_UNUSED, struct clast_stmt *stmt)
+gloog (scop_p scop, struct clast_stmt *stmt)
 {
+  VEC (tree,heap) *remove_ivs = VEC_alloc (tree, heap, 3);
+  tree oldiv_stmt;
+  unsigned i;
+  block_stmt_iterator bsi;
+
+  if (0)
+    {
+      bsi = bsi_start (split_edge (single_succ_edge (SCOP_ENTRY (scop))));
+
+      for ( ; stmt; stmt = stmt->next)
+	graphite_stmt_to_gcc_stmt (&bsi, scop, stmt, &remove_ivs);
+
+      for (i = 0; VEC_iterate (tree, remove_ivs, i, oldiv_stmt); i++)
+	remove_iv (oldiv_stmt);
+    }
+
   cloog_clast_free (stmt);
+  VEC_free (tree, heap, remove_ivs);
 }
 
 /* Returns a matrix representing the data dependence between memory

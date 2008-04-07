@@ -1,3 +1,19 @@
+2008-04-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (free_scop, param_index, initialize_cloog_names,
+	nb_params_in_scop): Use name_tree map instead of just a tree
+	for keeping track of the variable name associated to that tree.
+	(create_empty_loop, gmp_cst_to_tree, clast_name_to_gcc,
+	clast_to_gcc_expression, graphite_create_iv,
+	graphite_loop_to_gcc_loop, graphite_cond_to_gcc_cond,
+	graphite_stmt_to_gcc_stmt): New.
+	(gloog): Call these.
+	* graphite.h (struct name_tree): New.
+	(struct scop): Use name_tree instead of tree for params.
+	Store a vector of name_tree for new_ivs.
+	(SCOP_NEWIVS): New.
+	(scop_nb_params): Use name_tree instead of tree.
+
 2008-04-05  Alexander Lamaison  <awl03@doc.ic.ac.uk>
             Sebastian Pop  <sebastian.pop@amd.com>
 

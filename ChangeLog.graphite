@@ -1,3 +1,7 @@
+2008-04-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* polylib/source/arith/arithmetique.h (value_get_si): New.
+
 2008-04-05  Alexander Lamaison  <awl03@doc.ic.ac.uk>
             Sebastian Pop  <sebastian.pop@amd.com>
 
