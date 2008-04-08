@@ -5552,7 +5552,7 @@ optimize_minmax_comparison (enum tree_code code, tree type, tree op0, tree op1)
 {
   tree arg0 = op0;
   enum tree_code op_code;
-  tree comp_const = op1;
+  tree comp_const;
   tree minmax_const;
   int consts_equal, consts_lt;
   tree inner;
@@ -5561,6 +5561,7 @@ optimize_minmax_comparison (enum tree_code code, tree type, tree op0, tree op1)
 
   op_code = TREE_CODE (arg0);
   minmax_const = TREE_OPERAND (arg0, 1);
+  comp_const = fold_convert (TREE_TYPE (arg0), op1);
   consts_equal = tree_int_cst_equal (minmax_const, comp_const);
   consts_lt = tree_int_cst_lt (minmax_const, comp_const);
   inner = TREE_OPERAND (arg0, 0);
@@ -9095,7 +9096,7 @@ get_pointer_modulus_and_residue (tree expr, unsigned HOST_WIDE_INT *residue)
 	    }
 	}
 
-      if (DECL_P (expr))
+      if (DECL_P (expr) && TREE_CODE (expr) != FUNCTION_DECL)
 	return DECL_ALIGN_UNIT (expr);
     }
   else if (code == POINTER_PLUS_EXPR)
@@ -13090,6 +13091,45 @@ fold (tree expr)
 
   switch (code)
     {
+    case ARRAY_REF:
+      {
+	tree op0 = TREE_OPERAND (t, 0);
+	tree op1 = TREE_OPERAND (t, 1);
+
+	if (TREE_CODE (op1) == INTEGER_CST
+	    && TREE_CODE (op0) == CONSTRUCTOR
+	    && ! type_contains_placeholder_p (TREE_TYPE (op0)))
+	  {
+	    VEC(constructor_elt,gc) *elts = CONSTRUCTOR_ELTS (op0);
+	    unsigned HOST_WIDE_INT end = VEC_length (constructor_elt, elts);
+	    unsigned HOST_WIDE_INT begin = 0;
+
+	    /* Find a matching index by means of a binary search.  */
+	    while (begin != end)
+	      {
+		unsigned HOST_WIDE_INT middle = (begin + end) / 2;
+		tree index = VEC_index (constructor_elt, elts, middle)->index;
+
+		if (TREE_CODE (index) == INTEGER_CST
+		    && tree_int_cst_lt (index, op1))
+		  begin = middle + 1;
+		else if (TREE_CODE (index) == INTEGER_CST
+			 && tree_int_cst_lt (op1, index))
+		  end = middle;
+		else if (TREE_CODE (index) == RANGE_EXPR
+			 && tree_int_cst_lt (TREE_OPERAND (index, 1), op1))
+		  begin = middle + 1;
+		else if (TREE_CODE (index) == RANGE_EXPR
+			 && tree_int_cst_lt (op1, TREE_OPERAND (index, 0)))
+		  end = middle;
+		else
+		  return VEC_index (constructor_elt, elts, middle)->value;
+	      }
+	  }
+
+	return t;
+      }
+
     case CONST_DECL:
       return fold (DECL_INITIAL (t));
 

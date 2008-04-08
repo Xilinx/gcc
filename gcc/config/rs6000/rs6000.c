@@ -6832,7 +6832,8 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
       else if (reg == fpr && TYPE_MODE (type) == TDmode)
 	{
 	  regalign = 1;
-	  t = build2 (BIT_IOR_EXPR, TREE_TYPE (reg), reg, size_int (1));
+	  t = build2 (BIT_IOR_EXPR, TREE_TYPE (reg), reg,
+		      build_int_cst (TREE_TYPE (reg), 1));
 	  u = build2 (MODIFY_EXPR, void_type_node, reg, t);
 	}
 
@@ -6870,7 +6871,8 @@ rs6000_gimplify_va_arg (tree valist, tree type, tree *pre_p, tree *post_p)
 	{
 	  /* Ensure that we don't find any more args in regs.
 	     Alignment has taken care of for special cases.  */
-	  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (reg), reg, size_int (8));
+	  t = build_gimple_modify_stmt (reg,
+					build_int_cst (TREE_TYPE (reg), 8));
 	  gimplify_and_add (t, pre_p);
 	}
     }
@@ -11224,6 +11226,9 @@ rs6000_check_sdmode (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
       return NULL_TREE;
     }
 
+  gcc_assert (TREE_CODE (*tp) != ALIGN_INDIRECT_REF);
+  gcc_assert (TREE_CODE (*tp) != MISALIGNED_INDIRECT_REF);
+
   switch (TREE_CODE (*tp))
     {
     case VAR_DECL:
@@ -11231,6 +11236,8 @@ rs6000_check_sdmode (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
     case FIELD_DECL:
     case RESULT_DECL:
     case REAL_CST:
+    case INDIRECT_REF:
+    case VIEW_CONVERT_EXPR:
       if (TYPE_MODE (TREE_TYPE (*tp)) == SDmode)
 	return *tp;
       break;
@@ -17124,6 +17131,7 @@ rs6000_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   final_start_function (insn, file, 1);
   final (insn, file, 1);
   final_end_function ();
+  free_after_compilation (cfun);
 
   reload_completed = 0;
   epilogue_completed = 0;

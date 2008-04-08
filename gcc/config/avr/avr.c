@@ -105,9 +105,6 @@ const struct base_arch_s *avr_current_arch;
 
 section *progmem_section;
 
-/* More than 8K of program memory: use "call" and "jmp".  */
-int avr_mega_p = 0;
-
 /* Core have 'MUL*' instructions.  */
 int avr_have_mul_p = 0;
 
@@ -360,13 +357,13 @@ avr_override_options (void)
   base = &avr_arch_types[t->arch];
   avr_asm_only_p = base->asm_only;
   avr_have_mul_p = base->have_mul;
-  avr_mega_p = base->have_jmp_call;
   avr_have_movw_lpmx_p = base->have_movw_lpmx;
   avr_base_arch_macro = base->macro;
   avr_extra_arch_macro = t->macro;
 
   if (optimize && !TARGET_NO_TABLEJUMP)
-    avr_case_values_threshold = (!AVR_MEGA || TARGET_CALL_PROLOGUES) ? 8 : 17;
+    avr_case_values_threshold = 
+      (!AVR_HAVE_JMP_CALL || TARGET_CALL_PROLOGUES) ? 8 : 17;
 
   tmp_reg_rtx  = gen_rtx_REG (QImode, TMP_REGNO);
   zero_reg_rtx = gen_rtx_REG (QImode, ZERO_REGNO);
@@ -1148,7 +1145,7 @@ print_operand (FILE *file, rtx x, int code)
 
   if (code == '~')
     {
-      if (!AVR_MEGA)
+      if (!AVR_HAVE_JMP_CALL)
 	fputc ('r', file);
     }
   else if (code == '!')
@@ -1323,7 +1320,7 @@ avr_jump_mode (rtx x, rtx insn)
     return 1;
   else if (-2046 <= jump_distance && jump_distance <= 2045)
     return 2;
-  else if (AVR_MEGA)
+  else if (AVR_HAVE_JMP_CALL)
     return 3;
   
   return 2;
@@ -1846,7 +1843,7 @@ out_movqi_r_mr (rtx insn, rtx op[], int *l)
 	  *l = 1;
 	  return AS2 (in,%0,__SREG__);
 	}
-      if (avr_io_address_p (x, 1))
+      if (optimize > 0 && io_address_operand (x, QImode))
 	{
 	  *l = 1;
 	  return AS2 (in,%0,%1-0x20);
@@ -2034,7 +2031,7 @@ out_movhi_r_mr (rtx insn, rtx op[], int *l)
     }
   else if (CONSTANT_ADDRESS_P (base))
     {
-      if (avr_io_address_p (base, 2))
+      if (optimize > 0 && io_address_operand (base, HImode))
 	{
 	  *l = 2;
 	  return (AS2 (in,%A0,%A1-0x20) CR_TAB
@@ -2534,7 +2531,7 @@ out_movqi_mr_r (rtx insn, rtx op[], int *l)
 	  *l = 1;
 	  return AS2 (out,__SREG__,%1);
 	}
-      if (avr_io_address_p (x, 1))
+      if (optimize > 0 && io_address_operand (x, QImode))
 	{
 	  *l = 1;
 	  return AS2 (out,%0-0x20,%1);
@@ -2613,7 +2610,7 @@ out_movhi_mr_r (rtx insn, rtx op[], int *l)
     l = &tmp;
   if (CONSTANT_ADDRESS_P (base))
     {
-      if (avr_io_address_p (base, 2))
+      if (optimize > 0 && io_address_operand (base, HImode))
 	{
 	  *l = 2;
 	  return (AS2 (out,%B0-0x20,%B1) CR_TAB
@@ -4773,7 +4770,7 @@ avr_output_progmem_section_asm_op (const void *arg ATTRIBUTE_UNUSED)
 {
   fprintf (asm_out_file,
 	   "\t.section .progmem.gcc_sw_table, \"%s\", @progbits\n",
-	   AVR_MEGA ? "a" : "ax");
+	   AVR_HAVE_JMP_CALL ? "a" : "ax");
   /* Should already be aligned, this is just to be safe if it isn't.  */
   fprintf (asm_out_file, "\t.p2align 1\n");
 }
@@ -4783,7 +4780,7 @@ avr_output_progmem_section_asm_op (const void *arg ATTRIBUTE_UNUSED)
 static void
 avr_asm_init_sections (void)
 {
-  progmem_section = get_unnamed_section (AVR_MEGA ? 0 : SECTION_CODE,
+  progmem_section = get_unnamed_section (AVR_HAVE_JMP_CALL ? 0 : SECTION_CODE,
 					 avr_output_progmem_section_asm_op,
 					 NULL);
   readonly_data_section = data_section;
@@ -5068,7 +5065,7 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	  if (AVR_HAVE_MUL)
 	    *total = COSTS_N_INSNS (optimize_size ? 3 : 4);
 	  else if (optimize_size)
-	    *total = COSTS_N_INSNS (AVR_MEGA ? 2 : 1);
+	    *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 2 : 1);
 	  else
 	    return false;
 	  break;
@@ -5077,7 +5074,7 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
 	  if (AVR_HAVE_MUL)
 	    *total = COSTS_N_INSNS (optimize_size ? 7 : 10);
 	  else if (optimize_size)
-	    *total = COSTS_N_INSNS (AVR_MEGA ? 2 : 1);
+	    *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 2 : 1);
 	  else
 	    return false;
 	  break;
@@ -5094,7 +5091,7 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
     case UDIV:
     case UMOD:
       if (optimize_size)
-	*total = COSTS_N_INSNS (AVR_MEGA ? 2 : 1);
+	*total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 2 : 1);
       else
 	return false;
       *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code);
@@ -5465,7 +5462,7 @@ avr_address_cost (rtx x)
     return 18;
   if (CONSTANT_ADDRESS_P (x))
     {
-      if (avr_io_address_p (x, 1))
+      if (optimize > 0 && io_address_operand (x, QImode))
 	return 2;
       return 4;
     }
@@ -5709,17 +5706,6 @@ avr_hard_regno_mode_ok (int regno, enum machine_mode mode)
 
   /* All modes larger than QImode should start in an even register.  */
   return !(regno & 1);
-}
-
-/* Returns 1 if X is a valid address for an I/O register of size SIZE
-   (1 or 2).  Used for lds/sts -> in/out optimization.  Add 0x20 to SIZE
-   to check for the lower half of I/O space (for cbi/sbi/sbic/sbis).  */
-
-int
-avr_io_address_p (rtx x, int size)
-{
-  return (optimize > 0 && GET_CODE (x) == CONST_INT
-	  && INTVAL (x) >= 0x20 && INTVAL (x) <= 0x60 - size);
 }
 
 const char *

@@ -555,6 +555,7 @@ Objective-C and Objective-C++ Dialects}.
 -mno-wide-multiply  -mrtd  -malign-double @gol
 -mpreferred-stack-boundary=@var{num} -mcx16 -msahf -mrecip @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 @gol
+-maes -mpclmul @gol
 -msse4a -m3dnow -mpopcnt -mabm -msse5 @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
@@ -745,7 +746,7 @@ See RS/6000 and PowerPC Options.
 -m5-compact  -m5-compact-nofpu @gol
 -mb  -ml  -mdalign  -mrelax @gol
 -mbigtable  -mfmovd  -mhitachi -mrenesas -mno-renesas -mnomacsave @gol
--mieee  -misize  -minline-ic_invalidate -mpadstruct  -mspace @gol
+-mieee  -mbitops  -misize  -minline-ic_invalidate -mpadstruct  -mspace @gol
 -mprefergot  -musermode -multcost=@var{number} -mdiv=@var{strategy} @gol
 -mdivsi3_libfunc=@var{name}  @gol
 -madjust-unroll -mindexed-addressing -mgettrcost=@var{number} -mpt-fixed @gol
@@ -931,21 +932,27 @@ C++ header file to be turned into a precompiled header.
 
 @item @var{file}.f
 @itemx @var{file}.for
-@itemx @var{file}.FOR
+@itemx @var{file}.ftn
 Fixed form Fortran source code which should not be preprocessed.
 
 @item @var{file}.F
+@itemx @var{file}.FOR
 @itemx @var{file}.fpp
 @itemx @var{file}.FPP
+@itemx @var{file}.FTN
 Fixed form Fortran source code which must be preprocessed (with the traditional
 preprocessor).
 
 @item @var{file}.f90
 @itemx @var{file}.f95
+@itemx @var{file}.f03
+@itemx @var{file}.f08
 Free form Fortran source code which should not be preprocessed.
 
 @item @var{file}.F90
 @itemx @var{file}.F95
+@itemx @var{file}.F03
+@itemx @var{file}.F08
 Free form Fortran source code which must be preprocessed (with the
 traditional preprocessor).
 
@@ -10720,6 +10727,10 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-sse4.2
 @itemx -msse4
 @itemx -mno-sse4
+@itemx -maes
+@itemx -mno-aes
+@itemx -mpclmul
+@itemx -mno-pclmul
 @itemx -msse4a
 @itemx -mno-sse4a
 @itemx -msse5
@@ -10737,8 +10748,8 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4A, SSE5, ABM or 3DNow!@: extended
-instruction sets.
+SSE, SSE2, SSE3, SSSE3, SSE4.1, AES, PCLMUL, SSE4A, SSE5, ABM or
+3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
 disabled by these switches.
@@ -13904,6 +13915,10 @@ linker option @option{-relax}.
 @opindex mbigtable
 Use 32-bit offsets in @code{switch} tables.  The default is to use
 16-bit offsets.
+
+@item -mbitops
+@opindex mbitops
+Enable the use of bit manipulation instructions on SH2A.
 
 @item -mfmovd
 @opindex mfmovd

@@ -1067,14 +1067,16 @@ decode_d_option (const char *arg)
       case 'I':
       case 'M':
       case 'N':
+      case 'U':
 	break;
       case 'H':
 	setup_core_dumping();
 	break;
-
       case 'a':
+	enable_rtl_dump_file ();
+	break;
+
       default:
-	if (!enable_rtl_dump_file (c))
 	  warning (0, "unrecognized gcc debugging option: %c", c);
 	break;
       }

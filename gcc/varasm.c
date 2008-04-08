@@ -70,7 +70,7 @@ struct addr_const;
 struct constant_descriptor_rtx;
 struct rtx_constant_pool;
 
-#define n_deferred_constants (rtl.varasm.deferred_constants)
+#define n_deferred_constants (crtl->varasm.deferred_constants)
 
 /* Number for making the label on the next
    constant that is stored in memory.  */
@@ -3460,8 +3460,8 @@ create_constant_pool (void)
 void
 init_varasm_status (void)
 {
-  rtl.varasm.pool = create_constant_pool ();
-  rtl.varasm.deferred_constants = 0;
+  crtl->varasm.pool = create_constant_pool ();
+  crtl->varasm.deferred_constants = 0;
 }
 
 /* Given a MINUS expression, simplify it if both sides
@@ -3498,7 +3498,7 @@ force_const_mem (enum machine_mode mode, rtx x)
   /* Decide which pool to use.  */
   pool = (targetm.use_blocks_for_constant_p (mode, x)
 	  ? shared_constant_pool
-	  : rtl.varasm.pool);
+	  : crtl->varasm.pool);
 
   /* Lookup the value in the hashtable.  */
   tmp.constant = x;
@@ -3610,7 +3610,7 @@ get_pool_mode (const_rtx addr)
 int
 get_pool_size (void)
 {
-  return rtl.varasm.pool->offset;
+  return crtl->varasm.pool->offset;
 }
 
 /* Worker function for output_constant_pool_1.  Emit assembly for X
@@ -3689,17 +3689,17 @@ output_constant_pool_1 (struct constant_descriptor_rtx *desc,
      functioning even with INSN_DELETED_P and friends.  */
 
   tmp = x;
-  switch (GET_CODE (x))
+  switch (GET_CODE (tmp))
     {
     case CONST:
-      if (GET_CODE (XEXP (x, 0)) != PLUS
-	  || GET_CODE (XEXP (XEXP (x, 0), 0)) != LABEL_REF)
+      if (GET_CODE (XEXP (tmp, 0)) != PLUS
+	  || GET_CODE (XEXP (XEXP (tmp, 0), 0)) != LABEL_REF)
 	break;
-      tmp = XEXP (XEXP (x, 0), 0);
+      tmp = XEXP (XEXP (tmp, 0), 0);
       /* FALLTHRU  */
 
     case LABEL_REF:
-      tmp = XEXP (x, 0);
+      tmp = XEXP (tmp, 0);
       gcc_assert (!INSN_DELETED_P (tmp));
       gcc_assert (!NOTE_P (tmp)
 		  || NOTE_KIND (tmp) != NOTE_INSN_DELETED);
@@ -3852,7 +3852,7 @@ static void
 output_constant_pool (const char *fnname ATTRIBUTE_UNUSED,
 		      tree fndecl ATTRIBUTE_UNUSED)
 {
-  struct rtx_constant_pool *pool = rtl.varasm.pool;
+  struct rtx_constant_pool *pool = crtl->varasm.pool;
 
   /* It is possible for gcc to call force_const_mem and then to later
      discard the instructions which refer to the constant.  In such a

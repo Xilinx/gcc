@@ -340,6 +340,7 @@ The section ``Funding Free Software''.
 @item gcc-common.texi
 Common definitions for manuals.
 @item gpl.texi
+@itemx gpl_v3.texi
 The GNU General Public License.
 @item texinfo.tex
 A copy of @file{texinfo.tex} known to work with the GCC manuals.
@@ -641,6 +642,9 @@ targets.  For GCC, @code{maintainer-clean} should delete
 all generated files in the source directory that are not checked into
 CVS, but should not delete anything checked into CVS@.
 @end table
+
+@file{Make-lang.in} must also define a variable @code{@var{lang}_OBJS}
+to a list of host object files that are used by that language.
 
 @item lang.opt
 This file registers the set of switches that the front end accepts on

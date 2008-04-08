@@ -119,7 +119,8 @@ static tree make_type_from_size (tree, tree, bool);
 static unsigned int validate_alignment (Uint, Entity_Id, unsigned int);
 static unsigned int ceil_alignment (unsigned HOST_WIDE_INT);
 static void check_ok_for_atomic (tree, Entity_Id, bool);
-static int  compatible_signatures_p (tree ftype1, tree ftype2);
+static int compatible_signatures_p (tree ftype1, tree ftype2);
+static void rest_of_type_decl_compilation_no_defer (tree);
 
 /* Given GNAT_ENTITY, an entity in the incoming GNAT tree, return a
    GCC type corresponding to that entity.  GNAT_ENTITY is assumed to
@@ -607,15 +608,34 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   initializing expression, in which case we can get the size from
 	   that.  Note that the resulting size may still be a variable, so
 	   this may end up with an indirect allocation.  */
-
 	if (No (Renamed_Object (gnat_entity))
 	    && CONTAINS_PLACEHOLDER_P (TYPE_SIZE (gnu_type)))
 	  {
 	    if (gnu_expr && kind == E_Constant)
-	      gnu_size
-		= SUBSTITUTE_PLACEHOLDER_IN_EXPR
-		  (TYPE_SIZE (TREE_TYPE (gnu_expr)), gnu_expr);
-
+	      {
+		tree size = TYPE_SIZE (TREE_TYPE (gnu_expr));
+		if (CONTAINS_PLACEHOLDER_P (size))
+		  {
+		    /* If the initializing expression is itself a constant,
+		       despite having a nominal type with self-referential
+		       size, we can get the size directly from it.  */
+		    if (TREE_CODE (gnu_expr) == COMPONENT_REF
+			&& TREE_CODE (TREE_TYPE (TREE_OPERAND (gnu_expr, 0)))
+			   == RECORD_TYPE
+			&& TYPE_IS_PADDING_P
+			   (TREE_TYPE (TREE_OPERAND (gnu_expr, 0)))
+			&& TREE_CODE (TREE_OPERAND (gnu_expr, 0)) == VAR_DECL
+			&& (TREE_READONLY (TREE_OPERAND (gnu_expr, 0))
+			    || DECL_READONLY_ONCE_ELAB
+			       (TREE_OPERAND (gnu_expr, 0))))
+		      gnu_size = DECL_SIZE (TREE_OPERAND (gnu_expr, 0));
+		    else
+		      gnu_size
+			= SUBSTITUTE_PLACEHOLDER_IN_EXPR (size, gnu_expr);
+		  }
+		else
+		  gnu_size = size;
+	      }
 	    /* We may have no GNU_EXPR because No_Initialization is
 	       set even though there's an Expression.  */
 	    else if (kind == E_Constant
@@ -3843,17 +3863,13 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	gnu_type
 	  = create_subprog_type (gnu_return_type, gnu_param_list,
 				 gnu_return_list, returns_unconstrained,
-				 returns_by_ref,
-				 Function_Returns_With_DSP (gnat_entity),
-				 returns_by_target_ptr);
+				 returns_by_ref, returns_by_target_ptr);
 
 	if (has_stub)
 	  gnu_stub_type
 	    = create_subprog_type (gnu_return_type, gnu_stub_param_list,
 				   gnu_return_list, returns_unconstrained,
-				   returns_by_ref,
-				   Function_Returns_With_DSP (gnat_entity),
-				   returns_by_target_ptr);
+				   returns_by_ref, returns_by_target_ptr);
 
 	/* A subprogram (something that doesn't return anything) shouldn't
 	   be considered Pure since there would be no reason for such a
@@ -4398,12 +4414,10 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
       if (TREE_CODE (gnu_scalar_type) == ENUMERAL_TYPE)
 	{
-	  TYPE_STUB_DECL (gnu_scalar_type) = gnu_decl;
-
 	  /* Since this has both a typedef and a tag, avoid outputting
 	     the name twice.  */
 	  DECL_ARTIFICIAL (gnu_decl) = 1;
-	  rest_of_type_compilation (gnu_scalar_type, global_bindings_p ());
+	  rest_of_type_decl_compilation (gnu_decl);
 	}
     }
 
@@ -4443,12 +4457,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	 now proceed with the finalization of the deferred types.  */
       if (defer_finalize_level == 0 && defer_finalize_list)
 	{
-	  int toplev = global_bindings_p ();
 	  unsigned int i;
 	  tree t;
 
 	  for (i = 0; VEC_iterate (tree, defer_finalize_list, i, t); i++)
-	    rest_of_decl_compilation (t, toplev, 0);
+	    rest_of_type_decl_compilation_no_defer (t);
 
 	  VEC_free (tree, heap, defer_finalize_list);
 	}
@@ -4495,17 +4508,46 @@ gnat_to_gnu_field_decl (Entity_Id gnat_entity)
   return gnu_field;
 }
 
-/* Wrap up compilation of T, a TYPE_DECL, possibly deferring it.  */
+/* Wrap up compilation of DECL, a TYPE_DECL, possibly deferring it.
+   Every TYPE_DECL generated for a type definition must be passed
+   to this function once everything else has been done for it.  */
 
 void
-rest_of_type_decl_compilation (tree t)
+rest_of_type_decl_compilation (tree decl)
 {
   /* We need to defer finalizing the type if incomplete types
      are being deferred or if they are being processed.  */
   if (defer_incomplete_level || defer_finalize_level)
-    VEC_safe_push (tree, heap, defer_finalize_list, t);
+    VEC_safe_push (tree, heap, defer_finalize_list, decl);
   else
-    rest_of_decl_compilation (t, global_bindings_p (), 0);
+    rest_of_type_decl_compilation_no_defer (decl);
+}
+
+/* Same as above but without deferring the compilation.  This
+   function should not be invoked directly on a TYPE_DECL.  */
+
+static void
+rest_of_type_decl_compilation_no_defer (tree decl)
+{
+  const int toplev = global_bindings_p ();
+  tree t = TREE_TYPE (decl);
+
+  rest_of_decl_compilation (decl, toplev, 0);
+
+  /* Now process all the variants.  This is needed for STABS.  */
+  for (t = TYPE_MAIN_VARIANT (t); t; t = TYPE_NEXT_VARIANT (t))
+    {
+      if (t == TREE_TYPE (decl))
+	continue;
+
+      if (!TYPE_STUB_DECL (t))
+	{
+	  TYPE_STUB_DECL (t) = build_decl (TYPE_DECL, DECL_NAME (decl), t);
+	  DECL_ARTIFICIAL (TYPE_STUB_DECL (t)) = 1;
+	}
+
+      rest_of_type_compilation (t, toplev);
+    }
 }
 
 /* Finalize any From_With_Type incomplete types.  We do this after processing
@@ -6057,18 +6099,17 @@ is_variable_size (tree type)
 {
   tree field;
 
-  /* We need not be concerned about this at all if we don't have
-     strict alignment.  */
-  if (!STRICT_ALIGNMENT)
-    return false;
-  else if (!TREE_CONSTANT (TYPE_SIZE (type)))
+  if (!TREE_CONSTANT (TYPE_SIZE (type)))
     return true;
-  else if (TREE_CODE (type) == RECORD_TYPE && TYPE_IS_PADDING_P (type)
-	   && !TREE_CONSTANT (DECL_SIZE (TYPE_FIELDS (type))))
+
+  if (TREE_CODE (type) == RECORD_TYPE
+      && TYPE_IS_PADDING_P (type)
+      && !TREE_CONSTANT (DECL_SIZE (TYPE_FIELDS (type))))
     return true;
-  else if (TREE_CODE (type) != RECORD_TYPE
-	   && TREE_CODE (type) != UNION_TYPE
-	   && TREE_CODE (type) != QUAL_UNION_TYPE)
+
+  if (TREE_CODE (type) != RECORD_TYPE
+      && TREE_CODE (type) != UNION_TYPE
+      && TREE_CODE (type) != QUAL_UNION_TYPE)
     return false;
 
   for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
