@@ -15,10 +15,12 @@ int loop1 (int k)
     S1->S2 (flow, level 1)
     S1->S1 (anti, level 1)
     S1->S1 (flow, level 1)
+
+    One partition, because of the cost of cache misses.
   */
 
   return a[1000-2] + b[1000-1];
 }
 
-/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 1 "ldist" } } */
+/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 0 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

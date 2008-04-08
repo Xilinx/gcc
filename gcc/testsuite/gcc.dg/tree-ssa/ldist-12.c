@@ -11,12 +11,12 @@ int foo (int * __restrict__ ia,
 
   for (i=0; i < 52; i++)
     {
-      oya[i] = (ia[i] * oxa[i] + ib[i] * oxb[i]) >> 10;
-      oyb[i] = (-ia[i] * oxb[i] + ib[i] * oxa[i]) >> 10;
+      oya[i] = (ia[i] * oxa[i]) >> 10;
+      oyb[i] = (ib[i] * oxb[i]) >> 10;
     }
 
   return oya[22] + oyb[21];
 }
 
-/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 0 "ldist" } } */
+/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 1 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

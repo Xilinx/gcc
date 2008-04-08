@@ -23,9 +23,12 @@ int loop1 (int k)
     S3 -> S4 (flow, level 1)
 
     There are three partitions: {S1, S3}, {S2} and {S4}.
+
+    The cost model should fuse together all the partitions, as they
+    are reusing the same data, ending on a single partition.
   */
   return a[10000-2] + b[10000-1] + c[10000-2] + d[10000-2];
 }
 
-/* { dg-final { scan-tree-dump-times "distributed: split to 3 loops" 1 "ldist" } } */
+/* { dg-final { scan-tree-dump-times "distributed: split to 3 loops" 0 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

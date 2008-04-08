@@ -26,10 +26,13 @@ int loop1 (int k)
     - S3 (i) has to be executed before S1 (i+1), as a[i+1] has to execute before the update to a[i],
 
     {S4} is the consumer partition: it consumes the values from array "c" produced in S3.
+
+    The cost model should fuse all the tasks together as the cost of
+    fetching data from caches is too high.
   */
 
   return a[1000-2] + b[1000-1] + c[1000-2] + d[1000-2];
 }
 
-/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 1 "ldist" } } */
+/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 0 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

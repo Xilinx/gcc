@@ -13,10 +13,12 @@ int loop1 (int k)
     }
   /* Dependences:
      S1->S2 (flow, level 1)
+
+     One partition as A is used in both S1 and S2.
   */
 
   return a[1000-2] + b[1000-1] + c[1000-2];
 }
 
-/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 1 "ldist" } } */
+/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 0 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

@@ -16,23 +16,18 @@ void foo (int * __restrict__ ia,
     {
       mya[i] = ia[i] * oxa[i] + ib[i] * oxb[i];
       myb[i] = -ia[i] * oxb[i] + ib[i] * oxa[i];
-      oya[i] = mya[i] >> 10;
+      oya[i] = 0;
       oyb[i] = myb[i] >> 10;
     }
 
-  /* This loop was distributed, but it is not anymore due to the cost
-     model changes: the result of a distribution would look like this:
-
-     |  for (i=0; i < 52; i++)
-     |    oya[i] = ia[i] * oxa[i] + ib[i] * oxb[i] >> 10;
-     |
+  /* This loop should be distributed, and the result should look like
+     this:
+     |  memset (oya, 0, 208);
      |  for (i=0; i < 52; i++)
      |    oyb[i] = -ia[i] * oxb[i] + ib[i] * oxa[i] >> 10;
-
-     and in this the array IA is read in both tasks.  For maximizing
-     the cache reuse, ldist does not distributes this loop anymore.
   */
 }
 
-/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 0 "ldist" } } */
+/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 1 "ldist" } } */
+/* { dg-final { scan-tree-dump-times "generated memset zero" 1 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */

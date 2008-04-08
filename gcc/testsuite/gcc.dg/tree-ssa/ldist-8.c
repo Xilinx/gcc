@@ -22,10 +22,13 @@ int loop1 (int k)
      S4->S3 (flow, level 1)
 
      Two partitions: {S1, S2, S4} produce information that is consumed in {S3}.
+
+     So that means that the current cost model will also fuse these
+     two partitions into a single one for avoiding cache misses.
   */
 
   return a[1000-2] + b[1000-1] + c[1000-2] + d[1000-2];
 }
 
-/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 1 "ldist" } } */
+/* { dg-final { scan-tree-dump-times "distributed: split to 2 loops" 0 "ldist" } } */
 /* { dg-final { cleanup-tree-dump "ldist" } } */
