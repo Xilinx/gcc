@@ -881,6 +881,40 @@ build_scop_loop_nests (scop_p scop)
     scop_record_loop (scop, gbb_loop (gb));
 }
 
+/* Build dynamic schedules for all the BBs. */
+
+static void
+build_scop_dynamic_schedules (scop_p scop)
+{
+  unsigned i, dim, loop_num, row, col;
+  graphite_bb_p gb;
+
+
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+    {
+      loop_num = GBB_BB (gb) -> loop_father -> num; 
+      if (loop_num != 0)
+        {
+          dim = loop_iteration_vector_dim (loop_num, scop);
+          GBB_DYNAMIC_SCHEDULE (gb) = cloog_matrix_alloc(dim, dim);
+          for (row = 0; row < GBB_DYNAMIC_SCHEDULE (gb)->NbRows; row++)
+            for (col = 0; col < GBB_DYNAMIC_SCHEDULE (gb)->NbColumns; col++)
+              if (row == col)
+                {
+                  value_init (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col]);
+                  value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 1);
+                }
+              else  
+                {
+                  value_init (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col]);
+                  value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 0);
+                }
+        }
+      else
+        GBB_DYNAMIC_SCHEDULE (gb) = NULL;
+    }
+}
+
 /* Build for BB the static schedule.  */
 
 static void
@@ -894,7 +928,7 @@ build_scop_canonical_schedules (scop_p scop)
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
-      SCOP_STATIC_SCHEDULE (scop)[scop_loop_index (scop, gbb_loop (gb))] += 1;
+      SCOP_STATIC_SCHEDULE (scop)[loop_depth (gbb_loop (gb))] += 1;
       GBB_STATIC_SCHEDULE (gb) = lambda_vector_new (nb);
       lambda_vector_copy (SCOP_STATIC_SCHEDULE (scop), 
 			  GBB_STATIC_SCHEDULE (gb), nb);
@@ -1107,6 +1141,11 @@ find_scop_parameters (scop_p scop)
 
 	  irp.loop = loop;
 	  irp.scop = scop;
+          nb_iters = analyze_scalar_evolution (loop, nb_iters);
+          nb_iters = instantiate_parameters (
+            outermost_loop_in_scop (scop, loop->header),
+            nb_iters);
+          
 	  for_each_scev_op (&nb_iters, idx_record_param, &irp);
 	}
     }
@@ -1163,6 +1202,42 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, int n, Value k)
 
   switch (TREE_CODE (e))
     {
+    case POLYNOMIAL_CHREC:
+      {
+	tree left = CHREC_LEFT (e);
+	tree right = CHREC_RIGHT (e);
+	int var = CHREC_VARIABLE (e);
+	unsigned var_idx;
+
+	if (TREE_CODE (right) != INTEGER_CST)
+	  return;
+
+        var_idx = loop_iteration_vector_dim (var, s);
+        value_init (c->p[r][var_idx]);
+        value_set_si (c->p[r][var_idx], int_cst_value (right));
+
+	switch (TREE_CODE (left))
+	  {
+	  case POLYNOMIAL_CHREC:
+	    scan_tree_for_params (s, left, c, r, n, k);
+            return;
+	  case INTEGER_CST:
+	    {
+	      /* Constant part.  */
+              cst_col = c->NbColumns - 1;
+              value_init (c->p[r][cst_col]);
+              value_set_si (c->p[r][cst_col], int_cst_value (left));
+	      return;
+	    }
+
+	  default:
+            {
+              scan_tree_for_params (s, left, c, r, n, k);
+              return;
+            }
+	  }
+      }
+      break;
     case MULT_EXPR:
       if (chrec_contains_symbols (TREE_OPERAND (e, 0)))
 	{
@@ -1269,7 +1344,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
   unsigned i, j, row;
   CloogStatement *statement;
   CloogMatrix *cstr;
-  loop_to_cloog_loop tmp = XNEWVEC (struct loop_to_cloog_loop_str, 1);
+  struct loop_to_cloog_loop_str tmp;
   PTR *slot;
   CloogLoop *res = cloog_loop_malloc ();
 
@@ -1349,9 +1424,10 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
       value_set_si (cstr->p[row][0], 1);
       value_init (cstr->p[row][loop_col]);
       value_set_si (cstr->p[row][loop_col], -1);
-
-      nb_iters = instantiate_parameters (SCOP_ENTRY (scop)->loop_father,
-					 nb_iters);
+      nb_iters = analyze_scalar_evolution (loop, nb_iters);
+      nb_iters = 
+        instantiate_parameters (outermost_loop_in_scop (scop, loop->header),
+                                nb_iters);
       value_init (one);
       value_set_si (one, 1);
       scan_tree_for_params (scop, nb_iters, cstr, row, loop_col, one);
@@ -1360,8 +1436,8 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 
   res->domain = cloog_domain_matrix2domain (cstr);
 
-  tmp->loop_num = loop->num;
-  slot = htab_find_slot (SCOP_LOOP2CLOOG_LOOP (scop), tmp, INSERT);
+  tmp.loop_num = loop->num;
+  slot = htab_find_slot (SCOP_LOOP2CLOOG_LOOP (scop), &tmp, INSERT);
   if (!*slot)
     *slot = new_loop_to_cloog_loop_str (loop->num, loop_col - 1, res);
 
@@ -1482,42 +1558,6 @@ build_scop_iteration_domain (scop_p scop)
   return true;
 }
 
-/* Returns the dimension of the iteration domain of LOOP_NUM with
-   respect to SCOP.  */
-
-static int
-loop_domain_dim (unsigned int loop_num, scop_p scop)
-{
-  struct loop_to_cloog_loop_str tmp, *slot; 
-
-  tmp.loop_num = loop_num;
-  slot = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP (scop), &tmp);
-
-  /* The loop containing the entry of the scop is not always part of
-     the scop, and it is not registered in SCOP_LOOP2CLOOG_LOOP.  */
-  if (!slot)
-    return nb_params_in_scop (scop) + 2;
-
-  return slot->cloog_loop->domain->polyhedron->Dimension + 2;
-}
-
-/* Returns the number of loops around data reference REF.  */
-
-static int
-ref_nb_loops (data_reference_p ref)
-{
-  return loop_domain_dim (loop_containing_stmt (DR_STMT (ref))->num, DR_SCOP (ref));
-}
-
-/* Returns the dimension of an iteration vector in LOOP_NUM with
-   respect to SCOP.  */
-
-static int
-loop_iteration_vector_dim (unsigned int loop_num, scop_p scop)
-{
-  return loop_domain_dim (loop_num, scop) - 2 - nb_params_in_scop (scop);
-}
-
 /* Initializes an equation CY of the access matrix using the
    information for a subscript from ACCESS_FUN, relatively to the loop
    indexes from LOOP_NEST and parameter indexes from PARAMS.  NDIM is
@@ -1631,6 +1671,7 @@ create_empty_loop (edge header_edge)
   basic_block loop_header, loop_latch, succ_bb, pred_bb, switch_bb;
 
   switch_bb = create_empty_bb (EXIT_BLOCK_PTR->prev_bb);
+  
 
   pred_bb = header_edge->src;
   loop_header = split_edge (header_edge);
@@ -1638,15 +1679,14 @@ create_empty_loop (edge header_edge)
   succ_bb = single_succ (loop_latch);
 
   make_edge (loop_header, succ_bb, 0);
-
-  set_immediate_dominator (CDI_DOMINATORS, loop_header, pred_bb);
+  set_immediate_dominator (CDI_DOMINATORS, loop_header, switch_bb);
   set_immediate_dominator (CDI_DOMINATORS, loop_latch, loop_header);
-  set_immediate_dominator (CDI_DOMINATORS, succ_bb, loop_latch);
 
   false_edge = make_edge (switch_bb, loop_header, 0);
   true_edge = make_edge (switch_bb, succ_bb, EDGE_FALLTHRU);
 
-  prob = EDGE_FREQUENCY (header_edge);
+/*  prob = EDGE_FREQUENCY (header_edge);*/
+  prob = REG_BR_PROB_BASE / 2;
   return loopify (single_succ_edge (loop_latch), header_edge, switch_bb, 
 		  true_edge, false_edge, 1, prob, REG_BR_PROB_BASE - prob);
 }
@@ -1693,7 +1733,7 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
 	if (t->var)
 	  {
 	    if (value_one_p (t->val))
-	      return clast_name_to_gcc (t->var, new_ivs, params);
+ 	      return clast_name_to_gcc (t->var, new_ivs, params);
 
 	    else if (value_mone_p (t->val))
 	      return fold_build1 (NEGATE_EXPR, integer_type_node,
@@ -1708,9 +1748,21 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
       }
 
     case expr_red:
-      gcc_unreachable ();
-      break;
-
+      {
+        struct clast_reduction *r = (struct clast_reduction *) e;
+        switch (r->type)
+          {
+            case clast_red_min:
+            case clast_red_max:
+              if (r->n == 1)
+                {
+                  return clast_to_gcc_expression (r->elts[0], type, new_ivs, params);
+                }
+            default:
+              gcc_unreachable ();
+          }
+        break;
+      }
     case expr_bin:
       {
 	struct clast_binary *b = (struct clast_binary *) e;
@@ -1956,8 +2008,18 @@ gloog (scop_p scop, struct clast_stmt *stmt)
 {
   VEC (tree,heap) *remove_ivs = VEC_alloc (tree, heap, 3);
   tree oldiv_stmt;
+  struct loop *loop; 
   unsigned i;
   block_stmt_iterator bsi;
+  basic_block *bbs;
+  unsigned nbbs;
+  loop = first_loop_in_scop (scop);
+  bbs = get_loop_body_in_dom_order (loop);
+  nbbs = loop->num_nodes;
+
+  cancel_loop_tree (loop); 
+  for (i = 0; i < nbbs; i++)
+    delete_basic_block (bbs[i]);
 
   if (0)
     {
@@ -1968,6 +2030,7 @@ gloog (scop_p scop, struct clast_stmt *stmt)
 
       for (i = 0; VEC_iterate (tree, remove_ivs, i, oldiv_stmt); i++)
 	remove_iv (oldiv_stmt);
+        
     }
 
   cloog_clast_free (stmt);
@@ -1982,13 +2045,15 @@ initialize_dependence_polyhedron (scop_p scop,
                                   struct data_reference *a, 
                                   struct data_reference *b)
 {
-  unsigned nb_cols, nb_rows, nb_loops, nb_params, nb_iter1, nb_iter2;
+  unsigned nb_cols, nb_rows, nb_params, nb_iter1, nb_iter2;
   struct loop_to_cloog_loop_str tmp, *slot1, *slot2; 
   unsigned row, col;
   CloogMatrix *domain1, *domain2;
   CloogMatrix *dep_constraints;
   lambda_vector access_row_vector;
   struct loop *containing_loop;
+  Value value;
+
   containing_loop = loop_containing_stmt (DR_STMT (a));
   tmp.loop_num = containing_loop->num;
   slot1 = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP(scop), &tmp); 
@@ -2002,13 +2067,16 @@ initialize_dependence_polyhedron (scop_p scop,
   domain1 = cloog_domain_domain2matrix (slot1->cloog_loop->domain);
   domain2 = cloog_domain_domain2matrix (slot2->cloog_loop->domain);
 
+  /* Adding 2 columns: one for the eq/neq column, one for constant
+     term.  */
+  
   nb_params = scop_nb_params (scop);
   nb_iter1 = domain1->NbColumns - 2 - nb_params;
   nb_iter2 = domain2->NbColumns - 2 - nb_params;
-  nb_loops = scop_nb_loops (scop);
 
   nb_cols = nb_iter1 + nb_iter2 + scop_nb_params (scop) + 2;
-  nb_rows = domain1->NbRows + domain2->NbRows + DR_NUM_DIMENSIONS (a);
+  nb_rows = domain1->NbRows + domain2->NbRows + DR_NUM_DIMENSIONS (a) 
+            + 2 * MIN (nb_iter1, nb_iter2);
   dep_constraints = cloog_matrix_alloc (nb_rows, nb_cols);
 
   /* Initialize dependence polyhedron.  TODO: do we need it?  */
@@ -2063,19 +2131,19 @@ initialize_dependence_polyhedron (scop_p scop,
                     access_row_vector[ref_nb_loops (a) - 1]);
       /* TODO: do not forget about parametric part.  */
     }
-
+  value_init (value);
   /* Copy -Dt access matrix.  */
   for (row = 0; VEC_iterate (lambda_vector, DR_ACCESS_MATRIX (b), row, access_row_vector); row++)
     {
       for (col = 1; col <= nb_iter2; col++)
 	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_iter1 + col], 
 		      -access_row_vector[col]);              
-
-      value_sub_int (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
+      value_set_si (value, access_row_vector[ref_nb_loops (b) - 1]);
+      value_subtract (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
                      dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
-                     access_row_vector[ref_nb_loops (b) - 1]);
+                     value);
     }
-         
+  value_clear (value);
   return dep_constraints;
 }
 
@@ -2166,20 +2234,103 @@ statement_precedes_p (scop_p scop,
   return false;
 }
 
+static struct data_dependence_polyhedron *
+test_dependence (scop_p scop, graphite_bb_p gb1, graphite_bb_p gb2,
+                 struct data_reference *a, struct data_reference *b)
+{
+  unsigned i, j, row, iter_vector_dim;
+  unsigned loop_a, loop_b;
+  signed p;
+  CloogMatrix *dep_constraints = NULL, *temp_matrix = NULL;
+  CloogDomain *simplified;
+  
+  loop_a = loop_containing_stmt (DR_STMT (a)) -> num;
+  loop_b = loop_containing_stmt (DR_STMT (b)) -> num;
+  
+  iter_vector_dim = MIN (loop_iteration_vector_dim (loop_a, scop),
+                         loop_iteration_vector_dim (loop_b, scop));
+  
+  for (i = 1; i <= 2 * iter_vector_dim + 1; i++)
+  {
+    /* S - gb1 */
+    /* T - gb2 */
+    /* S -> T, T - S >=1 */
+    /* p is alternating sequence 0,1,-1,2,-2,... */
+    p = (i / 2) * (1 - (i % 2)*2);
+    if (p == 0)
+      dep_constraints = initialize_dependence_polyhedron (scop, a, b);
+    else if (p > 0)
+      {
+        /* assert B0, B1, ..., Bp-1 satisfy the equality */
+        
+        for (j = 0; j < iter_vector_dim; j++)
+        {
+          temp_matrix = AddANullRow (dep_constraints);
+        
+          row = j + dep_constraints->NbRows - iter_vector_dim;           
+          value_set_si (temp_matrix->p[row][0], 1); /* >= */
+          value_oppose (temp_matrix->p[row][p], 
+                        GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
+          value_assign (temp_matrix->p[row][loop_iteration_vector_dim (loop_a, scop) + p], 
+                        GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
+          value_set_si (temp_matrix->p[row][temp_matrix->NbColumns - 1], -1);
+
+          simplified = cloog_domain_matrix2domain (temp_matrix);
+          if (is_empty_polyhedron (simplified))
+          {
+            value_assign (dep_constraints->p[j + dep_constraints->NbRows - 2*iter_vector_dim][p], 
+                          GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
+          
+            value_oppose (dep_constraints->p[j + dep_constraints->NbRows - 2*iter_vector_dim]
+                                            [loop_iteration_vector_dim (loop_a, scop) + p], 
+                          GBB_DYNAMIC_SCHEDULE (gb2)->p[j][p - 1]);
+          }
+          else
+            return initialize_data_dependence_polyhedron (true, simplified, p, a, b);           
+          cloog_matrix_free (temp_matrix);
+        }
+      }
+    else if (p < 0)
+      {
+  
+        /* TODO: do not forget about memory leaks,
+           temp_matrix is a new matrix!  */
+
+        /*
+        for (row = 0; row < iter_vector_dim; row++)
+        {
+          value_assign (dep_constraints->p[row + dep_constraints->NbRows - 2*iter_vector_dim ][-p], 
+                        GBB_DYNAMIC_SCHEDULE (gb1)->p[row][-p -1]);
+          
+          value_oppose (dep_constraints->p[row + dep_constraints->NbRows - 2*iter_vector_dim ]
+                                          [loop_iteration_vector_dim (loop_a, scop) - p], 
+                        GBB_DYNAMIC_SCHEDULE (gb2)->p[row][-p -1]);
+        }
+        */
+        /* simplified = cloog_domain_matrix2domain (temp_matrix); */
+  
+        if (statement_precedes_p (scop, gb1, DR_STMT (a), gb2, DR_STMT (b), -p))
+          {
+            return initialize_data_dependence_polyhedron (false, simplified, -p, a, b);
+            /* VEC_safe_push (ddp_p, heap, ddps, ddp); */
+            break;
+          }
+      }
+  }    
+  cloog_matrix_free (dep_constraints);
+  return NULL;
+}
+
 /* Returns the polyhedral data dependence graph for SCOP.  */
 
 static struct graph *
 build_rdg_all_levels (scop_p scop)
 {
-  unsigned i, j, row, nb_loops;
-  unsigned i1, j1;
+  unsigned i, j, i1, j1;
   int va, vb;
-  signed p;
   graphite_bb_p gb1, gb2;
   struct graph * rdg = NULL;
   struct data_reference *a, *b;
-  CloogMatrix *dep_constraints, *temp_matrix;
-  CloogDomain *simplified;
   block_stmt_iterator bsi;
   struct graph_edge *e;
   
@@ -2187,10 +2338,9 @@ build_rdg_all_levels (scop_p scop)
  /* All the statements that are involved in dependences are stored in
     this vector.  */
   VEC (tree, heap) *stmts = VEC_alloc (tree, heap, 10);
-  VEC (ddp_p, heap) *ddps = VEC_alloc (ddp_p, heap, 10); 
-  ddp_p ddp;    
+  VEC (ddp_p, heap) *dependences = VEC_alloc (ddp_p, heap, 10); 
+  ddp_p dependence_polyhedron;    
   /* datarefs = VEC_alloc (data_reference_p, heap, 2);*/
-  nb_loops = scop_nb_loops (scop); 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb1); i++)
     {
       for (bsi = bsi_start (GBB_BB (gb1)); !bsi_end_p (bsi); bsi_next (&bsi))
@@ -2201,74 +2351,24 @@ build_rdg_all_levels (scop_p scop)
 	  for (j1 = 0; VEC_iterate (data_reference_p, GBB_DATA_REFS (gb2), j1, b); j1++)
 	    if ((!DR_IS_READ (a) || !DR_IS_READ (b)) && dr_may_alias_p (a,b)
 		&& operand_equal_p (DR_BASE_OBJECT (a), DR_BASE_OBJECT (b), 0))
-	      /* TODO: the previous check might be too restrictive.  */
-	      for (i = 1; i <= 2 * nb_loops + 1; i++)
-		{
-		  /* S - gb1 */
-		  /* T - gb2 */
-		  /* S -> T, T - S >=1 */
-		  /* p is alternating sequence 0,1,-1,2,-2,... */
-		  p = (i / 2) * (1 - (i % 2)*2);
-		  if (p == 0)
-		    {
-		      dep_constraints = initialize_dependence_polyhedron (scop, a, b);
-		      temp_matrix = AddANullRow (dep_constraints);
-		    }
-		  else if (p > 0)
-		    {
-		      /* assert B0, B1, ..., Bp-1 satisfy the equality */
-                
-		      temp_matrix = AddANullRow (temp_matrix);
-                
-		      row = temp_matrix->NbRows - 1; 
-                
-		      value_set_si (temp_matrix->p[row][0], 1);
-		      value_set_si (temp_matrix->p[row][p], -GBB_ALPHA (gb1)[p - 1]);
-		      value_set_si (temp_matrix->p[row][p + scop_nb_loops (scop)], GBB_ALPHA (gb2)[p - 1]);
-		      value_set_si (temp_matrix->p[row][temp_matrix->NbColumns - 1], -1);
-
-		      simplified = cloog_domain_matrix2domain (temp_matrix);
-		      temp_matrix = RemoveRow (temp_matrix, temp_matrix->NbRows - 1);
-
-		      if (!is_empty_polyhedron (simplified))
-			{
-			  ddp = initialize_data_dependence_polyhedron (true, simplified, p, a, b);
-			  VEC_safe_push (ddp_p, heap, ddps, ddp);
-			  break;
-			}
-		    }
-		  else if (p < 0)
-		    {
-                
-		      /* TODO: do not forget about memory leaks,
-			 temp_matrix is a new matrix!  */
-		      temp_matrix = AddANullRow (temp_matrix);
-                
-		      row = temp_matrix->NbRows - 1; 
-		      value_set_si (temp_matrix->p[row][-p], -GBB_ALPHA (gb1)[-p - 1]);
-		      value_set_si (temp_matrix->p[row][-p + scop_nb_loops (scop)], GBB_ALPHA (gb2)[-p - 1]);
-
-		      simplified = cloog_domain_matrix2domain (temp_matrix);
-                
-		      if (statement_precedes_p (scop, gb1, DR_STMT (a), gb2, DR_STMT (b), -p))
-			{
-			  ddp = initialize_data_dependence_polyhedron (false, simplified, -p, a, b);
-			  VEC_safe_push (ddp_p, heap, ddps, ddp);
-			  break;
-			}
-		    }
-		}    
+              {
+                dependence_polyhedron = test_dependence (scop, gb1, gb2, a, b);
+                if (dependence_polyhedron != NULL)
+                  VEC_safe_push (ddp_p, heap, dependences, dependence_polyhedron);
+              }
+                /* TODO: the previous check might be too restrictive.  */ 
     }
+    
 
   rdg = build_empty_rdg (VEC_length (tree, stmts));
   create_rdg_vertices (rdg, stmts);
 
-  for (i = 0; VEC_iterate (ddp_p, ddps, i, ddp); i++)
+  for (i = 0; VEC_iterate (ddp_p, dependences, i, dependence_polyhedron); i++)
     {
-      va = rdg_vertex_for_stmt (rdg, DR_STMT (ddp->a)); 
-      vb = rdg_vertex_for_stmt (rdg, DR_STMT (ddp->b));
+      va = rdg_vertex_for_stmt (rdg, DR_STMT (dependence_polyhedron->a)); 
+      vb = rdg_vertex_for_stmt (rdg, DR_STMT (dependence_polyhedron->b));
       e = add_edge (rdg, va, vb);
-      e->data = ddp;
+      e->data = dependence_polyhedron;
     }
 
   VEC_free (tree, heap, stmts);
@@ -2295,24 +2395,24 @@ dump_dependence_graph (FILE *f, struct graph *g)
       
       for (e = g->vertices[i].pred; e; e = e->pred_next)
         {
-          fprintf (f, "edge %d -> %d\n", e->src, i);
           struct data_dependence_polyhedron *ddp = RDGE_DDP (e);
           if (ddp->polyhedron != NULL)
             {
+              fprintf (f, "edge %d -> %d\n", e->src, i);
               cloog_domain_print (f, ddp->polyhedron); 
+              fprintf (f, "-----------------\n");
             }
-          fprintf (f, "-----------------\n");
         }
 
       for (e = g->vertices[i].succ; e; e = e->succ_next)
         {
-          fprintf (f, "edge %d -> %d\n", i, e->dest);
           struct data_dependence_polyhedron *ddp = RDGE_DDP (e);
           if (ddp->polyhedron != NULL)
             {
+              fprintf (f, "edge %d -> %d\n", i, e->dest);
               cloog_domain_print (f, ddp->polyhedron); 
+              fprintf (f, "-----------------\n");
             }
-          fprintf (f, "-----------------\n");
         }
       fprintf (f, "\n");
     }
@@ -2349,6 +2449,7 @@ graphite_transform_loops (void)
 	continue;
 
       build_scop_data_accesses (scop);
+      build_scop_dynamic_schedules (scop);
 
       if (0)
 	build_rdg_all_levels (scop);

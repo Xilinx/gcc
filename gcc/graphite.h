@@ -35,6 +35,7 @@ struct graphite_bb
 
   lambda_vector static_schedule;
   lambda_vector compressed_alpha_matrix;
+  CloogMatrix *dynamic_schedule;
   VEC (data_reference_p, heap) *data_refs;
 };
 
@@ -43,6 +44,14 @@ struct graphite_bb
 #define GBB_STATIC_SCHEDULE(GBB) GBB->static_schedule
 #define GBB_DATA_REFS(GBB) GBB->data_refs
 #define GBB_ALPHA(GBB) GBB->compressed_alpha_matrix
+#define GBB_DYNAMIC_SCHEDULE(GBB) GBB->dynamic_schedule
+
+struct loop_to_cloog_loop_str
+{
+  unsigned int loop_num;
+  unsigned int loop_position; /* the column that represents this loop */
+  CloogLoop *cloog_loop;
+};
 
 /* Return the loop that contains the basic block GBB.  */
 
@@ -147,6 +156,37 @@ gbb_dim_domain (graphite_bb_p gb)
   return scop_dim_domain (GBB_SCOP (gb));
 }
 
+/* Returns the dimensionality of a loop iteration domain for 
+   a given loop (identified by LOOP_NUM) with a respect to a given SCoP (SCOP) */
+
+static inline int
+loop_domain_dim (unsigned int loop_num, scop_p scop)
+{
+  struct loop_to_cloog_loop_str tmp, *slot; 
+  
+  tmp.loop_num = loop_num;
+  slot = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP(scop) , &tmp); 
+  return slot->cloog_loop->domain->polyhedron->Dimension + 2;
+}
+
+/* Returns the dimensionality of a enclosing loop iteration domain with respect to
+   enclosing ScoP for a given  data reference (REF) */
+
+static inline int
+ref_nb_loops (data_reference_p ref)
+{
+  return loop_domain_dim (loop_containing_stmt (DR_STMT (ref))->num, DR_SCOP (ref));
+}
+
+/* Returns the dimensionality of a loop iteration vector in a  loop iteration domain for 
+   a given loop (identified by LOOP_NUM) with a respect to a given SCoP (SCOP) */
+
+static inline int
+loop_iteration_vector_dim (unsigned int loop_num, scop_p scop)
+{
+  return loop_domain_dim (loop_num, scop) - 2 - scop_nb_params (scop);
+}
+
 /* Returns the index of LOOP in the domain matrix for the SCOP.  */
 
 static inline int
@@ -183,11 +223,4 @@ typedef struct data_dependence_polyhedron *ddp_p;
 
 DEF_VEC_P(ddp_p);
 DEF_VEC_ALLOC_P(ddp_p,heap);
-
-typedef struct loop_to_cloog_loop_str
-{
-  unsigned int loop_num;
-  unsigned int loop_position; /* the column that represents this loop */
-  CloogLoop *cloog_loop;
-} *loop_to_cloog_loop;
 
