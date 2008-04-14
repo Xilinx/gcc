@@ -823,7 +823,9 @@
   :named_name  (stringconst2val discr_namestring "CTYPE_CSTRING")
   :ctype_keyword ':cstring
   :ctype_cname  (stringconst2val discr_namestring "char*")
-  ;; constant strings are not passed as argument, this might change in the future
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_CSTRING")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_CSTRING")
+  :ctype_argfield (stringconst2val discr_namestring "bp_cstring")
   )
 (install_ctype ctype_cstring)
 
@@ -4373,7 +4375,11 @@
       ;; previous instance binding at toplevel
       ( (is_a bind class_instance_binding)
 	(debug_msg "normexp_symbol instance binding bind" bind (the_callcount))
-	(assert_msg "normexp_symbol @@ UNIMPLEMENTED instance_binding" ())
+	(let ( (insdat (unsafe_get_field :ibind_data bind)) )
+	  (assert_msg "normexp_symbol check insdat" (is_a insdat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv insdat)
+	  insdat)
 	)
       ;; all other cases are constants
       (:else 
@@ -5207,6 +5213,7 @@
     (cond 
 ;;; last expression is already a return - do nothing
      ( (is_a lastcomp class_nrep_return)
+       (return tup)
        )
 ;;; last expression is a symbol occurrence (closed or local) - return it if it is a value 
      ( (is_a lastcomp class_nrep_symocc)
@@ -5225,6 +5232,7 @@
 		       :nret_main lastcomp)))
 ;;; no last expression - don't bother to return
      ( (null lastcomp)
+       (return tup)
        )
 ;;; last expression is a normalized let, recurse on the body within a new env
      ( (is_a lastcomp class_nrep_let)
