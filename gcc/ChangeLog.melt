@@ -1,3 +1,7 @@
+2008-04-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	corrected below bug;
+	* tree-pass.h: pass_basilys is a simple IPA pass.
+	* basilys.c: likewise.
 
 2008-04-14   Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r134275

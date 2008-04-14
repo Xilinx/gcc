@@ -6099,9 +6099,9 @@ execute_basilys (void)
   return 0;
 }
 
-struct gimple_opt_pass pass_basilys = {
+struct simple_ipa_opt_pass pass_basilys = {
   {
-   GIMPLE_PASS,			/* type */
+   SIMPLE_IPA_PASS,		/* type */
    "basilys",			/* name */
    gate_basilys,		/* gate */
    execute_basilys,		/* execute */
