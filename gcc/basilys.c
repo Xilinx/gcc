@@ -627,6 +627,20 @@ basilys_garbcoll (size_t wanted, bool needfull)
 }
 
 
+/* the inline function basilys_allocatereserved is the only one
+   calling this basilys_reserved_allocation_failure function, which
+   should never be called. If it is indeed called, you've been bitten
+   by a severe bug. In principle basilys_allocatereserved should have
+   been called with a suitable previous call to basilysgc_reserve such
+   that all the reserved allocations fits into the reserved size */
+void basilys_reserved_allocation_failure(long siz) {
+  /* this function should never really be called */
+  fatal_error("memory corruption in basilys reserved allocation: "
+	      "requiring %ld bytes but only %ld available in young zone", 
+	      siz, (long) ((char *) basilys_storalz - (char *) basilys_curalz));
+}
+
+/* cheney like forwarding */
 static basilys_ptr_t
 forwarded_copy (basilys_ptr_t p)
 {

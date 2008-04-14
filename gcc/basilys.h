@@ -122,6 +122,12 @@ union basilysparam_un
   basic_block *bp_bbptr;	/* for results */
 #define BPAR_BB           'b'
 #define BPARSTR_BB        "b"
+
+  /* readonly constant strings - not in GP nor in heap */
+  const char *bp_cstring;			/* letter S */
+  const char **bp_cstringptr;		/* for results */
+#define BPAR_CSTRING         'S'
+#define BPARSTR_CSTRING      "S"
 };
 
 /*** the closures contain routines which are called by applying
@@ -1006,6 +1012,13 @@ basilysgc_reserve(size_t wanted)
     basilys_garbcoll (wanted, BASILYS_MINOR_OR_FULL);
 }
 
+/* we need a function to detect failure in reserved allocation; this
+   basilys_reserved_allocation_failure function should never be
+   called; we do not want to use fatal_error which requires toplev.h
+   inclusion; never call this function outside of
+   basilys_allocatereserved */
+void basilys_reserved_allocation_failure(long siz);
+
 /*  allocates a previously reserved zone of BASESZ with extra GAP;
     this should never trigger the GC, because space was reserved
     earlier */
@@ -1014,9 +1027,6 @@ basilys_allocatereserved (size_t basesz, size_t gap)
 {
   size_t wanted;
   void *ptr;
-  /* @@@ we need fatal_error, declared in toplev.h; but we want to
-     avoid including it in the generated gtype-desc.c file;  */
-  extern void fatal_error (const char *, ...)  ATTRIBUTE_GCC_DIAG(1,2);
   if (basesz < sizeof (struct basilysforward_st))
     basesz = sizeof (struct basilysforward_st);
   if ((basesz % BASILYS_ALIGN) != 0)
@@ -1027,8 +1037,8 @@ basilys_allocatereserved (size_t basesz, size_t gap)
   gcc_assert (wanted >= sizeof (struct basilysforward_st));
   if (BASILYS_UNLIKELY (basilys_curalz + wanted + 2 * BASILYS_ALIGN
 			>= (char *) basilys_storalz))
-    fatal_error("allocatereserved out of space for %ld wanted bytes", 
-		(long) wanted);
+    /* this should never happen */
+    basilys_reserved_allocation_failure((long) wanted);
   ptr = basilys_curalz;
 #if ENABLE_CHECKING
   if (ptr == tracedptr1)

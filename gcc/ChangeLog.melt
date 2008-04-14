@@ -1,4 +1,11 @@
 
+2008-04-14   Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: (basilys_allocatereserved) removed the call
+	fatal_error and wrapped it into
+	basilys_reserved_allocation_failure.
+	* basilys.c: (basilys_reserved_allocation_failure) new function
+	which should never be called.
+
 2008-04-05   Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r133937
 
