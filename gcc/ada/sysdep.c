@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *         Copyright (C) 1992-2007, Free Software Foundation, Inc.          *
+ *         Copyright (C) 1992-2008, Free Software Foundation, Inc.          *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -342,7 +342,8 @@ __gnat_ttyname (int filedes)
   || (defined (__osf__) && ! defined (__alpha_vxworks)) || defined (WINNT) \
   || defined (__MACHTEN__) || defined (__hpux__) || defined (_AIX) \
   || (defined (__svr4__) && defined (i386)) || defined (__Lynx__) \
-  || defined (__CYGWIN__) || defined (__FreeBSD__) || defined (__OpenBSD__)
+  || defined (__CYGWIN__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
+  || defined (__GLIBC__)
 
 #ifdef __MINGW32__
 #if OLD_MINGW
@@ -399,7 +400,8 @@ getc_immediate_common (FILE *stream,
     || (defined (__osf__) && ! defined (__alpha_vxworks)) \
     || defined (__CYGWIN32__) || defined (__MACHTEN__) || defined (__hpux__) \
     || defined (_AIX) || (defined (__svr4__) && defined (i386)) \
-    || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__)
+    || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
+    || defined (__GLIBC__)
   char c;
   int nread;
   int good_one = 0;
@@ -418,7 +420,8 @@ getc_immediate_common (FILE *stream,
 #if defined(linux) || defined (sun) || defined (sgi) || defined (__EMX__) \
     || defined (__osf__) || defined (__MACHTEN__) || defined (__hpux__) \
     || defined (_AIX) || (defined (__svr4__) && defined (i386)) \
-    || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__)
+    || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
+    || defined (__GLIBC__)
       eof_ch = termios_rec.c_cc[VEOF];
 
       /* If waiting (i.e. Get_Immediate (Char)), set MIN = 1 and wait for
@@ -708,7 +711,7 @@ get_gmtoff (void)
 
 long __gnat_invalid_tzoff = 259273;
 
-/* Definition of __gnat_locatime_r used by a-calend.adb */
+/* Definition of __gnat_localtime_r used by a-calend.adb */
 
 #if defined (__EMX__) || defined (__MINGW32__)
 
@@ -845,7 +848,7 @@ __gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
 /* Darwin, Free BSD, Linux, Tru64, where there exists a component tm_gmtoff
    in struct tm */
 #elif defined (__APPLE__) || defined (__FreeBSD__) || defined (linux) ||\
-     (defined (__alpha__) && defined (__osf__))
+     (defined (__alpha__) && defined (__osf__)) || defined (__GLIBC__)
   *off = tp->tm_gmtoff;
 
 /* All other platforms: Treat all time values in GMT */

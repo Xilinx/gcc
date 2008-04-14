@@ -1,5 +1,6 @@
 /* Common declarations for all of libgfortran.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>, and
    Andy Vaught <andy@xena.eas.asu.edu>
 
@@ -67,6 +68,38 @@ typedef off_t gfc_offset;
 
 #ifndef __GNUC__
 #define __attribute__(x)
+#endif
+
+
+/* We use intptr_t and uintptr_t, which may not be always defined in
+   system headers.  */
+
+#ifndef HAVE_INTPTR_T
+#if __SIZEOF_POINTER__ == __SIZEOF_LONG__
+#define intptr_t long
+#elif __SIZEOF_POINTER__ == __SIZEOF_LONG_LONG__
+#define intptr_t long long
+#elif __SIZEOF_POINTER__ == __SIZEOF_INT__
+#define intptr_t int
+#elif __SIZEOF_POINTER__ == __SIZEOF_SHORT__
+#define intptr_t short
+#else
+#error "Pointer type with unexpected size"
+#endif
+#endif
+
+#ifndef HAVE_UINTPTR_T
+#if __SIZEOF_POINTER__ == __SIZEOF_LONG__
+#define uintptr_t unsigned long
+#elif __SIZEOF_POINTER__ == __SIZEOF_LONG_LONG__
+#define uintptr_t unsigned long long
+#elif __SIZEOF_POINTER__ == __SIZEOF_INT__
+#define uintptr_t unsigned int
+#elif __SIZEOF_POINTER__ == __SIZEOF_SHORT__
+#define uintptr_t unsigned short
+#else
+#error "Pointer type with unexpected size"
+#endif
 #endif
 
 
@@ -368,6 +401,32 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_16) gfc_array_l16;
    | (sizeof(GFC_COMPLEX_16) << GFC_DTYPE_SIZE_SHIFT))
 #endif
 
+#define GFC_DTYPE_DERIVED_1 ((GFC_DTYPE_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
+   | (sizeof(GFC_INTEGER_1) << GFC_DTYPE_SIZE_SHIFT))
+#define GFC_DTYPE_DERIVED_2 ((GFC_DTYPE_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
+   | (sizeof(GFC_INTEGER_2) << GFC_DTYPE_SIZE_SHIFT))
+#define GFC_DTYPE_DERIVED_4 ((GFC_DTYPE_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
+   | (sizeof(GFC_INTEGER_4) << GFC_DTYPE_SIZE_SHIFT))
+#define GFC_DTYPE_DERIVED_8 ((GFC_DTYPE_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
+   | (sizeof(GFC_INTEGER_8) << GFC_DTYPE_SIZE_SHIFT))
+#ifdef HAVE_GFC_INTEGER_16
+#define GFC_DTYPE_DERIVED_16 ((GFC_DTYPE_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
+   | (sizeof(GFC_INTEGER_16) << GFC_DTYPE_SIZE_SHIFT))
+#endif
+
+/* Macros to determine the alignment of pointers.  */
+
+#define GFC_UNALIGNED_2(x) (((uintptr_t)(x)) & \
+			    (__alignof__(GFC_INTEGER_2) - 1))
+#define GFC_UNALIGNED_4(x) (((uintptr_t)(x)) & \
+			    (__alignof__(GFC_INTEGER_4) - 1))
+#define GFC_UNALIGNED_8(x) (((uintptr_t)(x)) & \
+			    (__alignof__(GFC_INTEGER_8) - 1))
+#ifdef HAVE_GFC_INTEGER_16
+#define GFC_UNALIGNED_16(x) (((uintptr_t)(x)) & \
+			     (__alignof__(GFC_INTEGER_16) - 1))
+#endif
+
 /* Runtime library include.  */
 #define stringize(x) expand_macro(x)
 #define expand_macro(x) # x
@@ -507,6 +566,11 @@ st_parameter_common;
 #define IOPARM_OPEN_HAS_DELIM           (1 << 15)
 #define IOPARM_OPEN_HAS_PAD             (1 << 16)
 #define IOPARM_OPEN_HAS_CONVERT         (1 << 17)
+#define IOPARM_OPEN_HAS_DECIMAL		(1 << 18)
+#define IOPARM_OPEN_HAS_ENCODING	(1 << 19)
+#define IOPARM_OPEN_HAS_ROUND		(1 << 20)
+#define IOPARM_OPEN_HAS_SIGN		(1 << 21)
+#define IOPARM_OPEN_HAS_ASYNCHRONOUS	(1 << 22)
 
 /* library start function and end macro.  These can be expanded if needed
    in the future.  cmp is st_parameter_common *cmp  */

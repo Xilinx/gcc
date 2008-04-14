@@ -345,7 +345,8 @@ fixed_address_object_p (tree obj)
 {
   return (TREE_CODE (obj) == VAR_DECL
 	  && (TREE_STATIC (obj)
-	      || DECL_EXTERNAL (obj)));
+	      || DECL_EXTERNAL (obj))
+	  && ! DECL_DLLIMPORT_P (obj));
 }
 
 /* If ADDR contains an address of object that is a link time constant,
@@ -639,9 +640,9 @@ create_mem_ref (block_stmt_iterator *bsi, tree type, aff_tree *addr)
 	{
 	  atype = TREE_TYPE (parts.base);
 	  parts.base = force_gimple_operand_bsi (bsi,
-			fold_build2 (PLUS_EXPR, atype,
+			fold_build2 (POINTER_PLUS_EXPR, atype,
 				     parts.base,
-			    	     fold_convert (atype, parts.index)),
+			    	     parts.index),
 			true, NULL_TREE, true, BSI_SAME_STMT);
 	}
       else

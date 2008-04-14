@@ -131,10 +131,12 @@ package body System.Task_Primitives.Operations is
    -----------------------
 
    function To_Task_Id is
-     new Ada.Unchecked_Conversion (System.Address, Task_Id);
+     new Ada.Unchecked_Conversion
+       (System.Task_Primitives.Task_Address, Task_Id);
 
    function To_Address is
-     new Ada.Unchecked_Conversion (Task_Id, System.Address);
+     new Ada.Unchecked_Conversion
+       (Task_Id, System.Task_Primitives.Task_Address);
 
    function Get_Exc_Stack_Addr return Address;
    --  Replace System.Soft_Links.Get_Exc_Stack_Addr_NT
@@ -190,7 +192,7 @@ package body System.Task_Primitives.Operations is
    --  Note: mutexes and cond_variables needed per-task basis are initialized
    --  in Initialize_TCB and the Storage_Error is handled. Other mutexes (such
    --  as RTS_Lock, Memory_Lock...) used in RTS is initialized before any
-   --  status change of RTS. Therefore rasing Storage_Error in the following
+   --  status change of RTS. Therefore raising Storage_Error in the following
    --  routines should be able to be handled safely.
 
    procedure Initialize_Lock
@@ -519,7 +521,7 @@ package body System.Task_Primitives.Operations is
       if Time /= 0.0 or else Mode /= Relative then
          Sleep_Time := To_OS_Time (Time, Mode);
 
-         if Mode = Relative or else OS_Clock < Sleep_Time then
+         if Mode = Relative or else OS_Clock <= Sleep_Time then
             Self_ID.Common.State := Delay_Sleep;
             Self_ID.Common.LL.AST_Pending := True;
 

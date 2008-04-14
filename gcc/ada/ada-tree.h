@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -69,8 +69,9 @@ struct lang_type GTY(()) {tree t; };
 #define TYPE_FAT_POINTER_P(NODE)  \
   (TREE_CODE (NODE) == RECORD_TYPE && TYPE_IS_FAT_POINTER_P (NODE))
 
-/* For integral types and array types, nonzero if this is a packed array type.
-   Such types should not be extended to a larger size.  */
+/* For integral types and array types, nonzero if this is a packed array type
+   used for bit-packed types.  Such types should not be extended to a larger
+   size or validated against a specified size.  */
 #define TYPE_PACKED_ARRAY_TYPE_P(NODE) TYPE_LANG_FLAG_0 (NODE)
 
 #define TYPE_IS_PACKED_ARRAY_TYPE_P(NODE) \

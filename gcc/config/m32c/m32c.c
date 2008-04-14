@@ -1281,11 +1281,11 @@ m32c_pushm_popm (Push_Pop_Type ppt)
   int n_dwarfs = 0;
   int nosave_mask = 0;
 
-  if (cfun->return_rtx
-      && GET_CODE (cfun->return_rtx) == PARALLEL
+  if (crtl->return_rtx
+      && GET_CODE (crtl->return_rtx) == PARALLEL
       && !(cfun->calls_eh_return || cfun->machine->is_interrupt))
     {
-      rtx exp = XVECEXP (cfun->return_rtx, 0, 0);
+      rtx exp = XVECEXP (crtl->return_rtx, 0, 0);
       rtx rv = XEXP (exp, 0);
       int rv_bytes = GET_MODE_SIZE (GET_MODE (rv));
 
@@ -3889,20 +3889,20 @@ m32c_leaf_function_p (void)
   struct sequence_stack *seq;
   int rv;
 
-  saved_first = rtl.emit.x_first_insn;
-  saved_last = rtl.emit.x_last_insn;
-  for (seq = rtl.emit.sequence_stack; seq && seq->next; seq = seq->next)
+  saved_first = crtl->emit.x_first_insn;
+  saved_last = crtl->emit.x_last_insn;
+  for (seq = crtl->emit.sequence_stack; seq && seq->next; seq = seq->next)
     ;
   if (seq)
     {
-      rtl.emit.x_first_insn = seq->first;
-      rtl.emit.x_last_insn = seq->last;
+      crtl->emit.x_first_insn = seq->first;
+      crtl->emit.x_last_insn = seq->last;
     }
 
   rv = leaf_function_p ();
 
-  rtl.emit.x_first_insn = saved_first;
-  rtl.emit.x_last_insn = saved_last;
+  crtl->emit.x_first_insn = saved_first;
+  crtl->emit.x_last_insn = saved_last;
   return rv;
 }
 
@@ -3918,7 +3918,7 @@ m32c_function_needs_enter (void)
   rtx fb = gen_rtx_REG (Pmode, FB_REGNO);
 
   insn = get_insns ();
-  for (seq = rtl.emit.sequence_stack;
+  for (seq = crtl->emit.sequence_stack;
        seq;
        insn = seq->first, seq = seq->next);
 

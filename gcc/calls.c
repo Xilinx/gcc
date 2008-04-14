@@ -297,7 +297,7 @@ emit_call_1 (rtx funexp, tree fntree, tree fndecl ATTRIBUTE_UNUSED,
      even if the call has no arguments to pop.  */
 #if defined (HAVE_call) && defined (HAVE_call_value)
   if (HAVE_call && HAVE_call_value && HAVE_call_pop && HAVE_call_value_pop
-      && n_popped > 0 && ! (ecf_flags & ECF_SP_DEPRESSED))
+      && n_popped > 0)
 #else
   if (HAVE_call_pop && HAVE_call_value_pop)
 #endif
@@ -432,7 +432,7 @@ emit_call_1 (rtx funexp, tree fntree, tree fndecl ATTRIBUTE_UNUSED,
 
       if (rounded_stack_size != 0)
 	{
-	  if (ecf_flags & (ECF_SP_DEPRESSED | ECF_NORETURN))
+	  if (ecf_flags & ECF_NORETURN)
 	    /* Just pretend we did the pop.  */
 	    stack_pointer_delta -= rounded_stack_size;
 	  else if (flag_defer_pop && inhibit_defer_pop == 0
@@ -601,14 +601,6 @@ flags_from_decl_or_type (const_tree exp)
 
   if (TREE_THIS_VOLATILE (exp))
     flags |= ECF_NORETURN;
-
-  /* Mark if the function returns with the stack pointer depressed.   We
-     cannot consider it pure or constant in that case.  */
-  if (TREE_CODE (type) == FUNCTION_TYPE && TYPE_RETURNS_STACK_DEPRESSED (type))
-    {
-      flags |= ECF_SP_DEPRESSED;
-      flags &= ~(ECF_PURE | ECF_CONST);
-    }
 
   return flags;
 }
@@ -1521,16 +1513,16 @@ mem_overlaps_already_clobbered_arg_p (rtx addr, unsigned HOST_WIDE_INT size)
 {
   HOST_WIDE_INT i;
 
-  if (addr == current_function_internal_arg_pointer)
+  if (addr == crtl->args.internal_arg_pointer)
     i = 0;
   else if (GET_CODE (addr) == PLUS
-	   && XEXP (addr, 0) == current_function_internal_arg_pointer
+	   && XEXP (addr, 0) == crtl->args.internal_arg_pointer
 	   && GET_CODE (XEXP (addr, 1)) == CONST_INT)
     i = INTVAL (XEXP (addr, 1));
   /* Return true for arg pointer based indexed addressing.  */
   else if (GET_CODE (addr) == PLUS
-	   && (XEXP (addr, 0) == current_function_internal_arg_pointer
-	       || XEXP (addr, 1) == current_function_internal_arg_pointer))
+	   && (XEXP (addr, 0) == crtl->args.internal_arg_pointer
+	       || XEXP (addr, 1) == crtl->args.internal_arg_pointer))
     return true;
   else
     return false;
@@ -2289,16 +2281,16 @@ expand_call (tree exp, rtx target, int ignore)
       || (fndecl && decl_function_context (fndecl) == current_function_decl)
       /* If this function requires more stack slots than the current
 	 function, we cannot change it into a sibling call.
-	 current_function_pretend_args_size is not part of the
+	 crtl->args.pretend_args_size is not part of the
 	 stack allocated by our caller.  */
-      || args_size.constant > (current_function_args_size
-			       - current_function_pretend_args_size)
+      || args_size.constant > (crtl->args.size
+			       - crtl->args.pretend_args_size)
       /* If the callee pops its own arguments, then it must pop exactly
 	 the same number of arguments as the current function.  */
       || (RETURN_POPS_ARGS (fndecl, funtype, args_size.constant)
 	  != RETURN_POPS_ARGS (current_function_decl,
 			       TREE_TYPE (current_function_decl),
-			       current_function_args_size))
+			       crtl->args.size))
       || !lang_hooks.decls.ok_for_sibcall (fndecl))
     try_tail_call = 0;
 
@@ -2354,13 +2346,12 @@ expand_call (tree exp, rtx target, int ignore)
       /* Don't let pending stack adjusts add up to too much.
 	 Also, do all pending adjustments now if there is any chance
 	 this might be a call to alloca or if we are expanding a sibling
-	 call sequence or if we are calling a function that is to return
-	 with stack pointer depressed.
+	 call sequence.
 	 Also do the adjustments before a throwing call, otherwise
 	 exception handling can fail; PR 19225. */
       if (pending_stack_adjust >= 32
 	  || (pending_stack_adjust > 0
-	      && (flags & (ECF_MAY_BE_ALLOCA | ECF_SP_DEPRESSED)))
+	      && (flags & ECF_MAY_BE_ALLOCA))
 	  || (pending_stack_adjust > 0
 	      && flag_exceptions && !(flags & ECF_NOTHROW))
 	  || pass == 0)
@@ -2404,9 +2395,9 @@ expand_call (tree exp, rtx target, int ignore)
 	  argblock = virtual_incoming_args_rtx;
 	  argblock
 #ifdef STACK_GROWS_DOWNWARD
-	    = plus_constant (argblock, current_function_pretend_args_size);
+	    = plus_constant (argblock, crtl->args.pretend_args_size);
 #else
-	    = plus_constant (argblock, -current_function_pretend_args_size);
+	    = plus_constant (argblock, -crtl->args.pretend_args_size);
 #endif
 	  stored_args_map = sbitmap_alloc (args_size.constant);
 	  sbitmap_zero (stored_args_map);
@@ -2443,8 +2434,8 @@ expand_call (tree exp, rtx target, int ignore)
 	     the prologue (if ACCUMULATE_OUTGOING_ARGS, or stack overflow
 	     checking).  */
 
-	  if (needed > current_function_outgoing_args_size)
-	    current_function_outgoing_args_size = needed;
+	  if (needed > crtl->outgoing_args_size)
+	    crtl->outgoing_args_size = needed;
 
 	  if (must_preallocate)
 	    {
@@ -3071,7 +3062,7 @@ expand_call (tree exp, rtx target, int ignore)
       /* If size of args is variable or this was a constructor call for a stack
 	 argument, restore saved stack-pointer value.  */
 
-      if (old_stack_level && ! (flags & ECF_SP_DEPRESSED))
+      if (old_stack_level)
 	{
 	  emit_stack_restore (SAVE_BLOCK, old_stack_level, NULL_RTX);
 	  stack_pointer_delta = old_stack_pointer_delta;
@@ -3176,16 +3167,6 @@ expand_call (tree exp, rtx target, int ignore)
     emit_insn (normal_call_insns);
 
   currently_expanding_call--;
-
-  /* If this function returns with the stack pointer depressed, ensure
-     this block saves and restores the stack pointer, show it was
-     changed, and adjust for any outgoing arg space.  */
-  if (flags & ECF_SP_DEPRESSED)
-    {
-      clear_pending_stack_adjust ();
-      emit_insn (gen_rtx_CLOBBER (VOIDmode, stack_pointer_rtx));
-      emit_move_insn (virtual_stack_dynamic_rtx, stack_pointer_rtx);
-    }
 
   if (stack_usage_map_buf)
     free (stack_usage_map_buf);
@@ -3570,8 +3551,8 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
   if (!OUTGOING_REG_PARM_STACK_SPACE)
     args_size.constant -= reg_parm_stack_space;
 
-  if (args_size.constant > current_function_outgoing_args_size)
-    current_function_outgoing_args_size = args_size.constant;
+  if (args_size.constant > crtl->outgoing_args_size)
+    crtl->outgoing_args_size = args_size.constant;
 
   if (ACCUMULATE_OUTGOING_ARGS)
     {
@@ -4344,13 +4325,13 @@ store_one_arg (struct arg_data *arg, rtx argblock, int flags,
 	  rtx x = arg->value;
 	  int i = 0;
 
-	  if (XEXP (x, 0) == current_function_internal_arg_pointer
+	  if (XEXP (x, 0) == crtl->args.internal_arg_pointer
 	      || (GET_CODE (XEXP (x, 0)) == PLUS
 		  && XEXP (XEXP (x, 0), 0) ==
-		     current_function_internal_arg_pointer
+		     crtl->args.internal_arg_pointer
 		  && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT))
 	    {
-	      if (XEXP (x, 0) != current_function_internal_arg_pointer)
+	      if (XEXP (x, 0) != crtl->args.internal_arg_pointer)
 		i = INTVAL (XEXP (XEXP (x, 0), 1));
 
 	      /* expand_call should ensure this.  */

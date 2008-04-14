@@ -953,7 +953,7 @@ extern int sparc_mode_class[];
 /* Given the stack bias, the stack pointer isn't actually aligned.  */
 #define INIT_EXPANDERS							 \
   do {									 \
-    if (rtl.emit.regno_pointer_align && SPARC_STACK_BIAS)	 \
+    if (crtl->emit.regno_pointer_align && SPARC_STACK_BIAS)	 \
       {									 \
 	REGNO_POINTER_ALIGN (STACK_POINTER_REGNUM) = BITS_PER_UNIT;	 \
 	REGNO_POINTER_ALIGN (HARD_FRAME_POINTER_REGNUM) = BITS_PER_UNIT; \
@@ -1678,7 +1678,7 @@ do {									\
 
 #define EXIT_IGNORE_STACK	\
  (get_frame_size () != 0	\
-  || current_function_calls_alloca || current_function_outgoing_args_size)
+  || current_function_calls_alloca || crtl->outgoing_args_size)
 
 /* Define registers used by the epilogue and return instruction.  */
 #define EPILOGUE_USES(REGNO) ((REGNO) == 31 \

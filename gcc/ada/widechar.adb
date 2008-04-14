@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -121,12 +121,12 @@ package body Widechar is
 
       function WC_In is new Char_Sequence_To_UTF_32 (In_Char);
 
-   --  Start of processingf for Scan_Wide
+   --  Start of processing for Scan_Wide
 
    begin
       Chr := In_Char;
 
-      --  Scan out the wide character. if the first character is a bracket,
+      --  Scan out the wide character. If the first character is a bracket,
       --  we allow brackets encoding regardless of the standard encoding
       --  method being used, but otherwise we use this standard method.
 

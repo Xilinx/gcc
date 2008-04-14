@@ -373,9 +373,17 @@ enum standard_datatypes
   /* Type declaration node  <==> typedef void *T() */
   ADT_ptr_void_ftype,
 
-  /* A function declaration node for a run-time function for allocating memory.
-     Ada allocators cause calls to this function to be generated.   */
+  /* Type declaration node  <==> typedef virtual void *T() */
+  ADT_fdesc_type,
+
+  /* Null pointer for above type */
+  ADT_null_fdesc,
+
+  /* Function declaration nodes for run-time functions for allocating memory.
+     Ada allocators cause calls to these functions to be generated.  Malloc32
+     is used only on 64bit systems needing to allocate 32bit memory. */
   ADT_malloc_decl,
+  ADT_malloc32_decl,
 
   /* Likewise for freeing memory.  */
   ADT_free_decl,
@@ -406,7 +414,10 @@ extern GTY(()) tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
 #define ptr_void_type_node gnat_std_decls[(int) ADT_ptr_void_type]
 #define void_ftype gnat_std_decls[(int) ADT_void_ftype]
 #define ptr_void_ftype gnat_std_decls[(int) ADT_ptr_void_ftype]
+#define fdesc_type_node gnat_std_decls[(int) ADT_fdesc_type]
+#define null_fdesc_node gnat_std_decls[(int) ADT_null_fdesc]
 #define malloc_decl gnat_std_decls[(int) ADT_malloc_decl]
+#define malloc32_decl gnat_std_decls[(int) ADT_malloc32_decl]
 #define free_decl gnat_std_decls[(int) ADT_free_decl]
 #define jmpbuf_type gnat_std_decls[(int) ADT_jmpbuf_type]
 #define jmpbuf_ptr_type gnat_std_decls[(int) ADT_jmpbuf_ptr_type]
@@ -468,6 +479,10 @@ extern tree gnat_unsigned_type (tree type_node);
 /* Return the signed version of a TYPE_NODE, a scalar type.  */
 extern tree gnat_signed_type (tree type_node);
 
+/* Return 1 if the types T1 and T2 are compatible, i.e. if they can be
+   transparently converted to each other.  */
+extern int gnat_types_compatible_p (tree t1, tree t2);
+
 /* Create an expression whose value is that of EXPR,
    converted to type TYPE.  The TREE_TYPE of the value
    is always TYPE.  This function implements all reasonable
@@ -522,13 +537,11 @@ extern void rest_of_record_type_compilation (tree record_type);
    copy-in/copy-out list to be stored into TYPE_CI_CO_LIST.
    RETURNS_UNCONSTRAINED is true if the function returns an unconstrained
    object.  RETURNS_BY_REF is true if the function returns by reference.
-   RETURNS_WITH_DSP is true if the function is to return with a
-   depressed stack pointer.  RETURNS_BY_TARGET_PTR is true if the function
-   is to be passed (as its first parameter) the address of the place to copy
-   its result.  */
+   RETURNS_BY_TARGET_PTR is true if the function is to be passed (as its
+   first parameter) the address of the place to copy its result.  */
 extern tree create_subprog_type (tree return_type, tree param_decl_list,
                                  tree cico_list, bool returns_unconstrained,
-                                 bool returns_by_ref, bool returns_with_dsp,
+                                 bool returns_by_ref,
                                  bool returns_by_target_ptr);
 
 /* Return a copy of TYPE, but safe to modify in any way.  */

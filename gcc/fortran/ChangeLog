@@ -1,3 +1,111 @@
+2008-04-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/35882
+	* options.c (gfc_init_options): Set the default maximum continuation
+	lines to 255 for both free and fixed form source for warnings.
+	(gfc_handle_option): Set -std=f95 fixed form max continuations to 19 and
+	the -std=f95 free form max continuations to 39 for warnings.
+	* scanner.c (gfc_next_char_literal): Adjust the current_line number only
+	if it is less than the current locus.
+
+2008-04-07  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/25829 28655
+	* io.c (io_tag): Add new tags for decimal, encoding, asynchronous,
+	round, sign, and id. (match_open_element): Match new tags.
+	(gfc_resolve_open): Resolve new tags. (gfc_match_open): Enable encoding
+	for DEFAULT only. Update error messages. (match_dt_element): Fix match
+	tag for asynchronous. Update error messages. (gfc_free_inquire): Free
+	new expressions. (match_inquire_element): Match new tags.
+	(gfc_match_inquire): Add constraint for ID and PENDING.
+	(gfc_resolve_inquire): Resolve new tags.
+	* trans-io.c (gfc_trans_inquire): Clean up whitespace and fix setting of
+	mask for ID parameter.
+	* ioparm.def: Fix order of parameters for pending, round, and sign.
+	NOTE: These must line up with the definitions in libgfortran/io/io.h. or
+	things don't work.
+
+2008-04-06  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35780
+	* expr.c (scalarize_intrinsic_call): Identify which argument is
+	an array and use that as the template.
+	(check_init_expr): Remove tests that first argument is an array
+	in the call to scalarize_intrinsic_call.
+
+2008-04-06  Tobias Schlüter  <tobi@gcc.gnu.org>
+
+	PR fortran/35832
+	* io.c (io_tag): Add field 'value'.  Split 'spec' field in
+	existing io_tags.
+	(match_etag, match_vtag, match_ltag): Split parsing in two steps
+	to give better error messages.
+
+2008-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	* io.c (check_io_constraints): Add constrains. ID= requires
+	asynchronous= and asynchronous= must be init expression.
+
+2008-04-06  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* f95-lang.c: Set LANG_HOOKS_NAME to "GNU Fortran".
+
+2008-04-06  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* dump-parse-tree.c: Use fprintf, fputs and fputc instead of
+	gfc_status and gfc_status_char. Remove gfc_ prefix of the gfc_show_*
+	functions and make them static. Add new gfc_dump_parse_tree
+	function.
+	* gfortran.h (gfc_option_t): Rename verbose into dump_parse_tree.
+	(gfc_status, gfc_status_char): Delete prototypes.
+	* error.c (gfc_status, gfc_status_char): Remove functions.
+	* scanner.c (gfc_new_file): Use printf instead of gfc_status.
+	* options.c (gfc_init_options): Rename verbose into dump_parse_tree.
+	(gfc_handle_module_path_options): Use gfc_fatal_error instead of
+	gfc_status and exit.
+	(gfc_handle_option): Rename verbose into dump_parse_tree.
+	* parse.c (gfc_parse_file): Use gfc_dump_parse_tree.
+
+2008-04-05  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+	    Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/25829 28655
+	* dump-parse-tree.c (gfc_show_code_node): Show new I/O parameters.
+	* gfortran.h (gfc_statement): Add ST_WAIT enumerator.
+	(gfc_open): Add pointers for decimal, encoding, round, sign,
+	asynchronous. (gfc_inquire): Add pointers for asynchronous, decimal,
+	encoding, pending, round, sign, size, id.
+	(gfc_wait): New typedef struct. (gfc_dt): Add pointers for id, pos,
+	asynchronous, blank, decimal, delim, pad, round, sign.
+	(gfc_exec_op): Add EXEC_WAIT enumerator. (gfc_code): Add pointer for
+	wait. (gfc_free_wait), (gfc_resolve_wait): New function prototypes.
+	* trans-stmt.h (gfc_trans_wait): New function prototype.
+	* trans.c (gfc_trans_code): Add case for EXEC_WAIT.
+	* io.c (io_tag): Add new tags for DECIMAL, ENCODING, ROUND, SIGN,
+	ASYCHRONOUS, ID. (match_open_element): Add matchers for new tags.
+	(gfc_free_open): Free new pointers. (gfc_resolve_open): Resolve new
+	tags. (gfc_resolve_open): Remove comment around check for allowed
+	values and ASYNCHRONOUS, update it.  Likewise for DECIMAL, ENCODING,
+	ROUND, and SIGN. (match_dt_element): Add matching for new tags.
+	(gfc_free_wait): New function. (gfc_resolve_wait): New function.
+	(match_wait_element): New function. (gfc_match_wait): New function.
+	* resolve.c (gfc_resolve_blocks): Add case for EXEC_WAIT.
+	(resolve_code): Add case for EXEC_WAIT. 
+	* st.c (gfc_free_statement): Add case for EXEC_WAIT.
+	* trans-io.c (ioparam_type): Add IOPARM_ptype_wait. (gfc_st_parameter):
+	Add "wait" entry. (iocall): Add IOCALL_WAIT enumerator.
+	(gfc_build_io_library_fndecls): Add function declaration for st_wait.
+	(gfc_trans_open): Add mask bits for new I/O tags.
+	(gfc_trans_inquire): Add mask bits for new I/O tags.
+	(gfc_trans_wait): New translation function.
+	(build_dt): Add mask bits for new I/O tags.
+	* match.c (gfc_match_if) Add matcher for "wait".
+	* match.h (gfc_match_wait): Prototype for new function.
+	* ioparm.def: Add new I/O parameter definitions.
+	* parse.c (decode_statement): Add match for "wait" statement.
+	(next_statement): Add case for ST_WAIT. (gfc_ascii_statement): Same.
+
 2008-04-03  Jakub Jelinek  <jakub@redhat.com>
 
 	PR fortran/35786
@@ -10,7 +118,7 @@
 
 2008-04-03  Paolo Bonzini  <bonzini@gnu.org>
 
-        * f95-lang.c (insert_block): Kill.
+	* f95-lang.c (insert_block): Kill.
 
 2008-04-01  George Helffrich <george@gcc.gnu.org>
 

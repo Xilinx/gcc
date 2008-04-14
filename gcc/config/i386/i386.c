@@ -54,6 +54,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 
 static int x86_builtin_vectorization_cost (bool);
+static rtx legitimize_dllimport_symbol (rtx, bool);
 
 #ifndef CHECK_STACK_LIMIT
 #define CHECK_STACK_LIMIT (-1)
@@ -3250,12 +3251,33 @@ ix86_function_regparm (const_tree type, const_tree decl)
   tree attr;
   int regparm = ix86_regparm;
 
+  static bool error_issued;
+
   if (TARGET_64BIT)
     return regparm;
 
   attr = lookup_attribute ("regparm", TYPE_ATTRIBUTES (type));
   if (attr)
-    return TREE_INT_CST_LOW (TREE_VALUE (TREE_VALUE (attr)));
+    {
+      regparm
+	= TREE_INT_CST_LOW (TREE_VALUE (TREE_VALUE (attr)));
+
+      if (decl && TREE_CODE (decl) == FUNCTION_DECL)
+	{
+	  /* We can't use regparm(3) for nested functions because
+	     these pass static chain pointer in %ecx register.  */
+	  if (!error_issued && regparm == 3
+	      && decl_function_context (decl)
+	      && !DECL_NO_STATIC_CHAIN (decl))
+	    {
+	      error ("nested functions are limited to 2 register parameters");
+	      error_issued = true;
+	      return 0;
+	    }
+	}
+
+      return regparm;
+    }
 
   if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (type)))
     return 2;
@@ -5182,9 +5204,9 @@ ix86_va_start (tree valist, rtx nextarg)
   sav = build3 (COMPONENT_REF, TREE_TYPE (f_sav), valist, f_sav, NULL_TREE);
 
   /* Count number of gp and fp argument registers used.  */
-  words = current_function_args_info.words;
-  n_gpr = current_function_args_info.regno;
-  n_fpr = current_function_args_info.sse_regno;
+  words = crtl->args.info.words;
+  n_gpr = crtl->args.info.regno;
+  n_fpr = crtl->args.info.sse_regno;
 
   if (cfun->va_list_gpr_size)
     {
@@ -5728,8 +5750,8 @@ ix86_can_use_return_insn_p (void)
 
   /* Don't allow more than 32 pop, since that's all we can do
      with one instruction.  */
-  if (current_function_pops_args
-      && current_function_args_size >= 32768)
+  if (crtl->args.pops_args
+      && crtl->args.size >= 32768)
     return 0;
 
   ix86_compute_frame_layout (&frame);
@@ -6160,14 +6182,14 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
   /* Add outgoing arguments area.  Can be skipped if we eliminated
      all the function calls as dead code.
      Skipping is however impossible when function calls alloca.  Alloca
-     expander assumes that last current_function_outgoing_args_size
+     expander assumes that last crtl->outgoing_args_size
      of stack frame are unused.  */
   if (ACCUMULATE_OUTGOING_ARGS
       && (!current_function_is_leaf || current_function_calls_alloca
 	  || ix86_current_function_calls_tls_descriptor))
     {
-      offset += current_function_outgoing_args_size;
-      frame->outgoing_arguments_size = current_function_outgoing_args_size;
+      offset += crtl->outgoing_args_size;
+      frame->outgoing_arguments_size = crtl->outgoing_args_size;
     }
   else
     frame->outgoing_arguments_size = 0;
@@ -6728,15 +6750,15 @@ ix86_expand_epilogue (int style)
   if (style == 0)
     return;
 
-  if (current_function_pops_args && current_function_args_size)
+  if (crtl->args.pops_args && crtl->args.size)
     {
-      rtx popc = GEN_INT (current_function_pops_args);
+      rtx popc = GEN_INT (crtl->args.pops_args);
 
       /* i386 can only pop 64K bytes.  If asked to pop more, pop
 	 return address, do explicit add, and jump indirectly to the
 	 caller.  */
 
-      if (current_function_pops_args >= 65536)
+      if (crtl->args.pops_args >= 65536)
 	{
 	  rtx ecx = gen_rtx_REG (SImode, CX_REG);
 
@@ -7639,10 +7661,18 @@ legitimize_pic_address (rtx orig, rtx reg)
 	      see gotoff_operand.  */
 	   || (TARGET_VXWORKS_RTP && GET_CODE (addr) == LABEL_REF))
     {
-      /* Given that we've already handled dllimport variables separately
-	 in legitimize_address, and all other variables should satisfy
-	 legitimate_pic_address_disp_p, we should never arrive here.  */
-      gcc_assert (!TARGET_64BIT_MS_ABI);
+      if (TARGET_DLLIMPORT_DECL_ATTRIBUTES)
+        {
+          if (GET_CODE (addr) == SYMBOL_REF && SYMBOL_REF_DLLIMPORT_P (addr))
+            return legitimize_dllimport_symbol (addr, true);
+          if (GET_CODE (addr) == CONST && GET_CODE (XEXP (addr, 0)) == PLUS
+              && GET_CODE (XEXP (XEXP (addr, 0), 0)) == SYMBOL_REF
+              && SYMBOL_REF_DLLIMPORT_P (XEXP (XEXP (addr, 0), 0)))
+            {
+              rtx t = legitimize_dllimport_symbol (XEXP (XEXP (addr, 0), 0), true);
+              return gen_rtx_PLUS (Pmode, t, XEXP (XEXP (addr, 0), 1));
+            }
+        }
 
       if (TARGET_64BIT && ix86_cmodel != CM_LARGE_PIC)
 	{

@@ -207,9 +207,6 @@ static int contains (const_rtx, VEC(int,heap) **);
 #ifdef HAVE_return
 static void emit_return_into_block (basic_block);
 #endif
-#if defined(HAVE_epilogue) && defined(INCOMING_RETURN_ADDR_RTX)
-static rtx keep_stack_depressed (rtx);
-#endif
 static void prepare_function_start (void);
 static void do_clobber_return_reg (rtx, void *);
 static void do_use_return_reg (rtx, void *);
@@ -284,18 +281,16 @@ free_after_compilation (struct function *f)
   VEC_free (int, heap, prologue);
   VEC_free (int, heap, epilogue);
   VEC_free (int, heap, sibcall_epilogue);
-  if (rtl.emit.regno_pointer_align)
-    free (rtl.emit.regno_pointer_align);
+  if (crtl->emit.regno_pointer_align)
+    free (crtl->emit.regno_pointer_align);
 
-  memset (&rtl, 0, sizeof (rtl));
+  memset (crtl, 0, sizeof (struct rtl_data));
   f->eh = NULL;
   f->machine = NULL;
   f->cfg = NULL;
 
-  f->arg_offset_rtx = NULL;
-  f->return_rtx = NULL;
-  f->internal_arg_pointer = NULL;
   f->epilogue_delay_list = NULL;
+  regno_reg_rtx = NULL;
 }
 
 /* Return size needed for stack frame based on slots so far allocated.
@@ -1146,18 +1141,18 @@ static int cfa_offset;
    parameters.  However, if OUTGOING_REG_PARM_STACK space is not defined,
    stack space for register parameters is not pushed by the caller, but
    rather part of the fixed stack areas and hence not included in
-   `current_function_outgoing_args_size'.  Nevertheless, we must allow
+   `crtl->outgoing_args_size'.  Nevertheless, we must allow
    for it when allocating stack dynamic objects.  */
 
 #if defined(REG_PARM_STACK_SPACE)
 #define STACK_DYNAMIC_OFFSET(FNDECL)	\
 ((ACCUMULATE_OUTGOING_ARGS						      \
-  ? (current_function_outgoing_args_size				      \
+  ? (crtl->outgoing_args_size				      \
      + (OUTGOING_REG_PARM_STACK_SPACE ? 0 : REG_PARM_STACK_SPACE (FNDECL)))   \
   : 0) + (STACK_POINTER_OFFSET))
 #else
 #define STACK_DYNAMIC_OFFSET(FNDECL)	\
-((ACCUMULATE_OUTGOING_ARGS ? current_function_outgoing_args_size : 0)	      \
+((ACCUMULATE_OUTGOING_ARGS ? crtl->outgoing_args_size : 0)	      \
  + (STACK_POINTER_OFFSET))
 #endif
 #endif
@@ -2266,7 +2261,7 @@ assign_parm_find_stack_rtl (tree parm, struct assign_parm_data_one *data)
   else
     offset_rtx = ARGS_SIZE_RTX (data->locate.offset);
 
-  stack_parm = current_function_internal_arg_pointer;
+  stack_parm = crtl->args.internal_arg_pointer;
   if (offset_rtx != const0_rtx)
     stack_parm = gen_rtx_PLUS (Pmode, stack_parm, offset_rtx);
   stack_parm = gen_rtx_MEM (data->promoted_mode, stack_parm);
@@ -2952,7 +2947,7 @@ assign_parms (tree fndecl)
   struct assign_parm_data_all all;
   tree fnargs, parm;
 
-  current_function_internal_arg_pointer
+  crtl->args.internal_arg_pointer
     = targetm.calls.internal_arg_pointer ();
 
   assign_parms_initialize_all (&all);
@@ -3032,48 +3027,48 @@ assign_parms (tree fndecl)
     }
 
   /* We have aligned all the args, so add space for the pretend args.  */
-  current_function_pretend_args_size = all.pretend_args_size;
+  crtl->args.pretend_args_size = all.pretend_args_size;
   all.stack_args_size.constant += all.extra_pretend_bytes;
-  current_function_args_size = all.stack_args_size.constant;
+  crtl->args.size = all.stack_args_size.constant;
 
   /* Adjust function incoming argument size for alignment and
      minimum length.  */
 
 #ifdef REG_PARM_STACK_SPACE
-  current_function_args_size = MAX (current_function_args_size,
+  crtl->args.size = MAX (crtl->args.size,
 				    REG_PARM_STACK_SPACE (fndecl));
 #endif
 
-  current_function_args_size = CEIL_ROUND (current_function_args_size,
+  crtl->args.size = CEIL_ROUND (crtl->args.size,
 					   PARM_BOUNDARY / BITS_PER_UNIT);
 
 #ifdef ARGS_GROW_DOWNWARD
-  current_function_arg_offset_rtx
+  crtl->args.arg_offset_rtx
     = (all.stack_args_size.var == 0 ? GEN_INT (-all.stack_args_size.constant)
        : expand_expr (size_diffop (all.stack_args_size.var,
 				   size_int (-all.stack_args_size.constant)),
 		      NULL_RTX, VOIDmode, 0));
 #else
-  current_function_arg_offset_rtx = ARGS_SIZE_RTX (all.stack_args_size);
+  crtl->args.arg_offset_rtx = ARGS_SIZE_RTX (all.stack_args_size);
 #endif
 
   /* See how many bytes, if any, of its args a function should try to pop
      on return.  */
 
-  current_function_pops_args = RETURN_POPS_ARGS (fndecl, TREE_TYPE (fndecl),
-						 current_function_args_size);
+  crtl->args.pops_args = RETURN_POPS_ARGS (fndecl, TREE_TYPE (fndecl),
+						 crtl->args.size);
 
   /* For stdarg.h function, save info about
      regs and stack space used by the named args.  */
 
-  current_function_args_info = all.args_so_far;
+  crtl->args.info = all.args_so_far;
 
   /* Set the rtx used for the function return value.  Put this in its
      own variable so any optimizers that need this information don't have
      to include tree.h.  Do this here so it gets done when an inlined
      function gets output.  */
 
-  current_function_return_rtx
+  crtl->return_rtx
     = (DECL_RTL_SET_P (DECL_RESULT (fndecl))
        ? DECL_RTL (DECL_RESULT (fndecl)) : NULL_RTX);
 
@@ -3094,10 +3089,10 @@ assign_parms (tree fndecl)
 	  real_decl_rtl = targetm.calls.function_value (TREE_TYPE (decl_result),
 							fndecl, true);
 	  REG_FUNCTION_VALUE_P (real_decl_rtl) = 1;
-	  /* The delay slot scheduler assumes that current_function_return_rtx
+	  /* The delay slot scheduler assumes that crtl->return_rtx
 	     holds the hard register containing the return value, not a
 	     temporary pseudo.  */
-	  current_function_return_rtx = real_decl_rtl;
+	  crtl->return_rtx = real_decl_rtl;
 	}
     }
 }
@@ -3907,7 +3902,7 @@ push_struct_function (tree fndecl)
 static void
 prepare_function_start (void)
 {
-  gcc_assert (!rtl.emit.x_last_insn);
+  gcc_assert (!crtl->emit.x_last_insn);
   init_emit ();
   init_varasm_status ();
   init_expr ();
@@ -4294,7 +4289,7 @@ expand_dummy_function_end (void)
 void
 diddle_return_value (void (*doit) (rtx, void *), void *arg)
 {
-  rtx outgoing = current_function_return_rtx;
+  rtx outgoing = crtl->return_rtx;
 
   if (! outgoing)
     return;
@@ -4455,7 +4450,7 @@ expand_function_end (void)
 	  ? REGNO (decl_rtl) >= FIRST_PSEUDO_REGISTER
 	  : DECL_REGISTER (decl_result))
 	{
-	  rtx real_decl_rtl = current_function_return_rtx;
+	  rtx real_decl_rtl = crtl->return_rtx;
 
 	  /* This should be set in assign_parms.  */
 	  gcc_assert (REG_FUNCTION_VALUE_P (real_decl_rtl));
@@ -4463,7 +4458,7 @@ expand_function_end (void)
 	  /* If this is a BLKmode structure being returned in registers,
 	     then use the mode computed in expand_return.  Note that if
 	     decl_rtl is memory, then its mode may have been changed,
-	     but that current_function_return_rtx has not.  */
+	     but that crtl->return_rtx has not.  */
 	  if (GET_MODE (real_decl_rtl) == BLKmode)
 	    PUT_MODE (real_decl_rtl, GET_MODE (decl_rtl));
 
@@ -4560,7 +4555,7 @@ expand_function_end (void)
 
       /* Show return register used to hold result (in this case the address
 	 of the result.  */
-      current_function_return_rtx = outgoing;
+      crtl->return_rtx = outgoing;
     }
 
   /* Emit the actual code to clobber return register.  */
@@ -4719,383 +4714,6 @@ emit_return_into_block (basic_block bb)
   emit_jump_insn_after (gen_return (), BB_END (bb));
 }
 #endif /* HAVE_return */
-
-#if defined(HAVE_epilogue) && defined(INCOMING_RETURN_ADDR_RTX)
-
-/* These functions convert the epilogue into a variant that does not
-   modify the stack pointer.  This is used in cases where a function
-   returns an object whose size is not known until it is computed.
-   The called function leaves the object on the stack, leaves the
-   stack depressed, and returns a pointer to the object.
-
-   What we need to do is track all modifications and references to the
-   stack pointer, deleting the modifications and changing the
-   references to point to the location the stack pointer would have
-   pointed to had the modifications taken place.
-
-   These functions need to be portable so we need to make as few
-   assumptions about the epilogue as we can.  However, the epilogue
-   basically contains three things: instructions to reset the stack
-   pointer, instructions to reload registers, possibly including the
-   frame pointer, and an instruction to return to the caller.
-
-   We must be sure of what a relevant epilogue insn is doing.  We also
-   make no attempt to validate the insns we make since if they are
-   invalid, we probably can't do anything valid.  The intent is that
-   these routines get "smarter" as more and more machines start to use
-   them and they try operating on different epilogues.
-
-   We use the following structure to track what the part of the
-   epilogue that we've already processed has done.  We keep two copies
-   of the SP equivalence, one for use during the insn we are
-   processing and one for use in the next insn.  The difference is
-   because one part of a PARALLEL may adjust SP and the other may use
-   it.  */
-
-struct epi_info
-{
-  rtx sp_equiv_reg;		/* REG that SP is set from, perhaps SP.  */
-  HOST_WIDE_INT sp_offset;	/* Offset from SP_EQUIV_REG of present SP.  */
-  rtx new_sp_equiv_reg;		/* REG to be used at end of insn.  */
-  HOST_WIDE_INT new_sp_offset;	/* Offset to be used at end of insn.  */
-  rtx equiv_reg_src;		/* If nonzero, the value that SP_EQUIV_REG
-				   should be set to once we no longer need
-				   its value.  */
-  rtx const_equiv[FIRST_PSEUDO_REGISTER]; /* Any known constant equivalences
-					     for registers.  */
-};
-
-static void handle_epilogue_set (rtx, struct epi_info *);
-static void update_epilogue_consts (rtx, const_rtx, void *);
-static void emit_equiv_load (struct epi_info *);
-
-/* Modify INSN, a list of one or more insns that is part of the epilogue, to
-   no modifications to the stack pointer.  Return the new list of insns.  */
-
-static rtx
-keep_stack_depressed (rtx insns)
-{
-  int j;
-  struct epi_info info;
-  rtx insn, next;
-
-  /* If the epilogue is just a single instruction, it must be OK as is.  */
-  if (NEXT_INSN (insns) == NULL_RTX)
-    return insns;
-
-  /* Otherwise, start a sequence, initialize the information we have, and
-     process all the insns we were given.  */
-  start_sequence ();
-
-  info.sp_equiv_reg = stack_pointer_rtx;
-  info.sp_offset = 0;
-  info.equiv_reg_src = 0;
-
-  for (j = 0; j < FIRST_PSEUDO_REGISTER; j++)
-    info.const_equiv[j] = 0;
-
-  insn = insns;
-  next = NULL_RTX;
-  while (insn != NULL_RTX)
-    {
-      next = NEXT_INSN (insn);
-
-      if (!INSN_P (insn))
-	{
-	  add_insn (insn);
-	  insn = next;
-	  continue;
-	}
-
-      /* If this insn references the register that SP is equivalent to and
-	 we have a pending load to that register, we must force out the load
-	 first and then indicate we no longer know what SP's equivalent is.  */
-      if (info.equiv_reg_src != 0
-	  && reg_referenced_p (info.sp_equiv_reg, PATTERN (insn)))
-	{
-	  emit_equiv_load (&info);
-	  info.sp_equiv_reg = 0;
-	}
-
-      info.new_sp_equiv_reg = info.sp_equiv_reg;
-      info.new_sp_offset = info.sp_offset;
-
-      /* If this is a (RETURN) and the return address is on the stack,
-	 update the address and change to an indirect jump.  */
-      if (GET_CODE (PATTERN (insn)) == RETURN
-	  || (GET_CODE (PATTERN (insn)) == PARALLEL
-	      && GET_CODE (XVECEXP (PATTERN (insn), 0, 0)) == RETURN))
-	{
-	  rtx retaddr = INCOMING_RETURN_ADDR_RTX;
-	  rtx base = 0;
-	  HOST_WIDE_INT offset = 0;
-	  rtx jump_insn, jump_set;
-
-	  /* If the return address is in a register, we can emit the insn
-	     unchanged.  Otherwise, it must be a MEM and we see what the
-	     base register and offset are.  In any case, we have to emit any
-	     pending load to the equivalent reg of SP, if any.  */
-	  if (REG_P (retaddr))
-	    {
-	      emit_equiv_load (&info);
-	      add_insn (insn);
-	      insn = next;
-	      continue;
-	    }
-	  else
-	    {
-	      rtx ret_ptr;
-	      gcc_assert (MEM_P (retaddr));
-
-	      ret_ptr = XEXP (retaddr, 0);
-	      
-	      if (REG_P (ret_ptr))
-		{
-		  base = gen_rtx_REG (Pmode, REGNO (ret_ptr));
-		  offset = 0;
-		}
-	      else
-		{
-		  gcc_assert (GET_CODE (ret_ptr) == PLUS
-			      && REG_P (XEXP (ret_ptr, 0))
-			      && GET_CODE (XEXP (ret_ptr, 1)) == CONST_INT);
-		  base = gen_rtx_REG (Pmode, REGNO (XEXP (ret_ptr, 0)));
-		  offset = INTVAL (XEXP (ret_ptr, 1));
-		}
-	    }
-
-	  /* If the base of the location containing the return pointer
-	     is SP, we must update it with the replacement address.  Otherwise,
-	     just build the necessary MEM.  */
-	  retaddr = plus_constant (base, offset);
-	  if (base == stack_pointer_rtx)
-	    retaddr = simplify_replace_rtx (retaddr, stack_pointer_rtx,
-					    plus_constant (info.sp_equiv_reg,
-							   info.sp_offset));
-
-	  retaddr = gen_rtx_MEM (Pmode, retaddr);
-	  MEM_NOTRAP_P (retaddr) = 1;
-
-	  /* If there is a pending load to the equivalent register for SP
-	     and we reference that register, we must load our address into
-	     a scratch register and then do that load.  */
-	  if (info.equiv_reg_src
-	      && reg_overlap_mentioned_p (info.equiv_reg_src, retaddr))
-	    {
-	      unsigned int regno;
-	      rtx reg;
-
-	      for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
-		if (HARD_REGNO_MODE_OK (regno, Pmode)
-		    && !fixed_regs[regno]
-		    && TEST_HARD_REG_BIT (regs_invalidated_by_call, regno)
-		    && !REGNO_REG_SET_P
-		    (DF_LR_IN (EXIT_BLOCK_PTR), regno)
-		    && !refers_to_regno_p (regno,
-					   end_hard_regno (Pmode, regno),
-					   info.equiv_reg_src, NULL)
-		    && info.const_equiv[regno] == 0)
-		  break;
-
-	      gcc_assert (regno < FIRST_PSEUDO_REGISTER);
-
-	      reg = gen_rtx_REG (Pmode, regno);
-	      emit_move_insn (reg, retaddr);
-	      retaddr = reg;
-	    }
-
-	  emit_equiv_load (&info);
-	  jump_insn = emit_jump_insn (gen_indirect_jump (retaddr));
-
-	  /* Show the SET in the above insn is a RETURN.  */
-	  jump_set = single_set (jump_insn);
-	  gcc_assert (jump_set);
-	  SET_IS_RETURN_P (jump_set) = 1;
-	}
-
-      /* If SP is not mentioned in the pattern and its equivalent register, if
-	 any, is not modified, just emit it.  Otherwise, if neither is set,
-	 replace the reference to SP and emit the insn.  If none of those are
-	 true, handle each SET individually.  */
-      else if (!reg_mentioned_p (stack_pointer_rtx, PATTERN (insn))
-	       && (info.sp_equiv_reg == stack_pointer_rtx
-		   || !reg_set_p (info.sp_equiv_reg, insn)))
-	add_insn (insn);
-      else if (! reg_set_p (stack_pointer_rtx, insn)
-	       && (info.sp_equiv_reg == stack_pointer_rtx
-		   || !reg_set_p (info.sp_equiv_reg, insn)))
-	{
-	  int changed;
-
-	  changed = validate_replace_rtx (stack_pointer_rtx,
-					  plus_constant (info.sp_equiv_reg,
-							 info.sp_offset),
-					  insn);
-	  gcc_assert (changed);
-
-	  add_insn (insn);
-	}
-      else if (GET_CODE (PATTERN (insn)) == SET)
-	handle_epilogue_set (PATTERN (insn), &info);
-      else if (GET_CODE (PATTERN (insn)) == PARALLEL)
-	{
-	  for (j = 0; j < XVECLEN (PATTERN (insn), 0); j++)
-	    if (GET_CODE (XVECEXP (PATTERN (insn), 0, j)) == SET)
-	      handle_epilogue_set (XVECEXP (PATTERN (insn), 0, j), &info);
-	}
-      else
-	add_insn (insn);
-
-      info.sp_equiv_reg = info.new_sp_equiv_reg;
-      info.sp_offset = info.new_sp_offset;
-
-      /* Now update any constants this insn sets.  */
-      note_stores (PATTERN (insn), update_epilogue_consts, &info);
-      insn = next;
-    }
-
-  insns = get_insns ();
-  end_sequence ();
-  return insns;
-}
-
-/* SET is a SET from an insn in the epilogue.  P is a pointer to the epi_info
-   structure that contains information about what we've seen so far.  We
-   process this SET by either updating that data or by emitting one or
-   more insns.  */
-
-static void
-handle_epilogue_set (rtx set, struct epi_info *p)
-{
-  /* First handle the case where we are setting SP.  Record what it is being
-     set from, which we must be able to determine  */
-  if (reg_set_p (stack_pointer_rtx, set))
-    {
-      gcc_assert (SET_DEST (set) == stack_pointer_rtx);
-
-      if (GET_CODE (SET_SRC (set)) == PLUS)
-	{
-	  p->new_sp_equiv_reg = XEXP (SET_SRC (set), 0);
-	  if (GET_CODE (XEXP (SET_SRC (set), 1)) == CONST_INT)
-	    p->new_sp_offset = INTVAL (XEXP (SET_SRC (set), 1));
-	  else
-	    {
-	      gcc_assert (REG_P (XEXP (SET_SRC (set), 1))
-			  && (REGNO (XEXP (SET_SRC (set), 1))
-			      < FIRST_PSEUDO_REGISTER)
-			  && p->const_equiv[REGNO (XEXP (SET_SRC (set), 1))]);
-	      p->new_sp_offset
-		= INTVAL (p->const_equiv[REGNO (XEXP (SET_SRC (set), 1))]);
-	    }
-	}
-      else
-	p->new_sp_equiv_reg = SET_SRC (set), p->new_sp_offset = 0;
-
-      /* If we are adjusting SP, we adjust from the old data.  */
-      if (p->new_sp_equiv_reg == stack_pointer_rtx)
-	{
-	  p->new_sp_equiv_reg = p->sp_equiv_reg;
-	  p->new_sp_offset += p->sp_offset;
-	}
-
-      gcc_assert (p->new_sp_equiv_reg && REG_P (p->new_sp_equiv_reg));
-
-      return;
-    }
-
-  /* Next handle the case where we are setting SP's equivalent
-     register.  We must not already have a value to set it to.  We
-     could update, but there seems little point in handling that case.
-     Note that we have to allow for the case where we are setting the
-     register set in the previous part of a PARALLEL inside a single
-     insn.  But use the old offset for any updates within this insn.
-     We must allow for the case where the register is being set in a
-     different (usually wider) mode than Pmode).  */
-  else if (p->new_sp_equiv_reg != 0 && reg_set_p (p->new_sp_equiv_reg, set))
-    {
-      gcc_assert (!p->equiv_reg_src
-		  && REG_P (p->new_sp_equiv_reg)
-		  && REG_P (SET_DEST (set))
-		  && (GET_MODE_BITSIZE (GET_MODE (SET_DEST (set)))
-		      <= BITS_PER_WORD)
-		  && REGNO (p->new_sp_equiv_reg) == REGNO (SET_DEST (set)));
-      p->equiv_reg_src
-	= simplify_replace_rtx (SET_SRC (set), stack_pointer_rtx,
-				plus_constant (p->sp_equiv_reg,
-					       p->sp_offset));
-    }
-
-  /* Otherwise, replace any references to SP in the insn to its new value
-     and emit the insn.  */
-  else
-    {
-      SET_SRC (set) = simplify_replace_rtx (SET_SRC (set), stack_pointer_rtx,
-					    plus_constant (p->sp_equiv_reg,
-							   p->sp_offset));
-      SET_DEST (set) = simplify_replace_rtx (SET_DEST (set), stack_pointer_rtx,
-					     plus_constant (p->sp_equiv_reg,
-							    p->sp_offset));
-      emit_insn (set);
-    }
-}
-
-/* Update the tracking information for registers set to constants.  */
-
-static void
-update_epilogue_consts (rtx dest, const_rtx x, void *data)
-{
-  struct epi_info *p = (struct epi_info *) data;
-  rtx new;
-
-  if (!REG_P (dest) || REGNO (dest) >= FIRST_PSEUDO_REGISTER)
-    return;
-
-  /* If we are either clobbering a register or doing a partial set,
-     show we don't know the value.  */
-  else if (GET_CODE (x) == CLOBBER || ! rtx_equal_p (dest, SET_DEST (x)))
-    p->const_equiv[REGNO (dest)] = 0;
-
-  /* If we are setting it to a constant, record that constant.  */
-  else if (GET_CODE (SET_SRC (x)) == CONST_INT)
-    p->const_equiv[REGNO (dest)] = SET_SRC (x);
-
-  /* If this is a binary operation between a register we have been tracking
-     and a constant, see if we can compute a new constant value.  */
-  else if (ARITHMETIC_P (SET_SRC (x))
-	   && REG_P (XEXP (SET_SRC (x), 0))
-	   && REGNO (XEXP (SET_SRC (x), 0)) < FIRST_PSEUDO_REGISTER
-	   && p->const_equiv[REGNO (XEXP (SET_SRC (x), 0))] != 0
-	   && GET_CODE (XEXP (SET_SRC (x), 1)) == CONST_INT
-	   && 0 != (new = simplify_binary_operation
-		    (GET_CODE (SET_SRC (x)), GET_MODE (dest),
-		     p->const_equiv[REGNO (XEXP (SET_SRC (x), 0))],
-		     XEXP (SET_SRC (x), 1)))
-	   && GET_CODE (new) == CONST_INT)
-    p->const_equiv[REGNO (dest)] = new;
-
-  /* Otherwise, we can't do anything with this value.  */
-  else
-    p->const_equiv[REGNO (dest)] = 0;
-}
-
-/* Emit an insn to do the load shown in p->equiv_reg_src, if needed.  */
-
-static void
-emit_equiv_load (struct epi_info *p)
-{
-  if (p->equiv_reg_src != 0)
-    {
-      rtx dest = p->sp_equiv_reg;
-
-      if (GET_MODE (p->equiv_reg_src) != GET_MODE (dest))
-	dest = gen_rtx_REG (GET_MODE (p->equiv_reg_src),
-			    REGNO (p->sp_equiv_reg));
-
-      emit_move_insn (dest, p->equiv_reg_src);
-      p->equiv_reg_src = 0;
-    }
-}
-#endif
 
 /* Generate the prologue and epilogue RTL if the machine supports it.  Thread
    this into place with notes indicating where the prologue ends and where
@@ -5274,17 +4892,7 @@ thread_prologue_and_epilogue_insns (void)
     {
       start_sequence ();
       epilogue_end = emit_note (NOTE_INSN_EPILOGUE_BEG);
-
       seq = gen_epilogue ();
-
-#ifdef INCOMING_RETURN_ADDR_RTX
-      /* If this function returns with the stack depressed and we can support
-	 it, massage the epilogue to actually do that.  */
-      if (TREE_CODE (TREE_TYPE (current_function_decl)) == FUNCTION_TYPE
-	  && TYPE_RETURNS_STACK_DEPRESSED (TREE_TYPE (current_function_decl)))
-	seq = keep_stack_depressed (seq);
-#endif
-
       emit_jump_insn (seq);
 
       /* Retain a map of the epilogue insns.  */

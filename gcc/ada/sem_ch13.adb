@@ -29,7 +29,6 @@ with Einfo;    use Einfo;
 with Errout;   use Errout;
 with Exp_Tss;  use Exp_Tss;
 with Exp_Util; use Exp_Util;
-with Layout;   use Layout;
 with Lib;      use Lib;
 with Lib.Xref; use Lib.Xref;
 with Namet;    use Namet;
@@ -68,13 +67,13 @@ package body Sem_Ch13 is
 
    procedure Alignment_Check_For_Esize_Change (Typ : Entity_Id);
    --  This routine is called after setting the Esize of type entity Typ.
-   --  The purpose is to deal with the situation where an aligment has been
+   --  The purpose is to deal with the situation where an alignment has been
    --  inherited from a derived type that is no longer appropriate for the
    --  new Esize value. In this case, we reset the Alignment to unknown.
 
    procedure Check_Component_Overlap (C1_Ent, C2_Ent : Entity_Id);
    --  Given two entities for record components or discriminants, checks
-   --  if they hav overlapping component clauses and issues errors if so.
+   --  if they have overlapping component clauses and issues errors if so.
 
    function Get_Alignment_Value (Expr : Node_Id) return Uint;
    --  Given the expression for an alignment value, returns the corresponding
@@ -119,7 +118,7 @@ package body Sem_Ch13 is
    --  call to Validate_Unchecked_Conversions does the actual error
    --  checking and posting of warnings. The reason for this delayed
    --  processing is to take advantage of back-annotations of size and
-   --  alignment values peformed by the back end.
+   --  alignment values performed by the back end.
 
    type UC_Entry is record
       Enode  : Node_Id;   -- node used for posting warnings
@@ -295,7 +294,7 @@ package body Sem_Ch13 is
 
       declare
          Comps : array (0 .. Num_CC) of Entity_Id;
-         --  Array to collect component and discrimninant entities. The data
+         --  Array to collect component and discriminant entities. The data
          --  starts at index 1, the 0'th entry is for the sort routine.
 
          function CP_Lt (Op1, Op2 : Natural) return Boolean;
@@ -485,7 +484,11 @@ package body Sem_Ch13 is
    --  definition clause that is the preferred approach in Ada 95.
 
    procedure Analyze_At_Clause (N : Node_Id) is
+      CS : constant Boolean := Comes_From_Source (N);
+
    begin
+      --  This is an obsolescent feature
+
       Check_Restriction (No_Obsolescent_Features, N);
 
       if Warn_On_Obsolescent_Feature then
@@ -495,11 +498,21 @@ package body Sem_Ch13 is
            ("\use address attribute definition clause instead?", N);
       end if;
 
+      --  Rewrite as address clause
+
       Rewrite (N,
         Make_Attribute_Definition_Clause (Sloc (N),
           Name  => Identifier (N),
           Chars => Name_Address,
           Expression => Expression (N)));
+
+      --  We preserve Comes_From_Source, since logically the clause still
+      --  comes from the source program even though it is changed in form.
+
+      Set_Comes_From_Source (N, CS);
+
+      --  Analyze rewritten clause
+
       Analyze_Attribute_Definition_Clause (N);
    end Analyze_At_Clause;
 
@@ -528,6 +541,10 @@ package body Sem_Ch13 is
       procedure Analyze_Stream_TSS_Definition (TSS_Nam : TSS_Name_Type);
       --  Common processing for 'Read, 'Write, 'Input and 'Output attribute
       --  definition clauses.
+
+      -----------------------------------
+      -- Analyze_Stream_TSS_Definition --
+      -----------------------------------
 
       procedure Analyze_Stream_TSS_Definition (TSS_Nam : TSS_Name_Type) is
          Subp : Entity_Id := Empty;
@@ -588,7 +605,6 @@ package body Sem_Ch13 is
 
             return Base_Type (Typ) = Base_Type (Ent)
               and then No (Next_Formal (F));
-
          end Has_Good_Profile;
 
       --  Start of processing for Analyze_Stream_TSS_Definition
@@ -739,6 +755,22 @@ package body Sem_Ch13 is
          --  Address attribute definition clause
 
          when Attribute_Address => Address : begin
+
+            --  A little error check, catch for X'Address use X'Address;
+
+            if Nkind (Nam) = N_Identifier
+              and then Nkind (Expr) = N_Attribute_Reference
+              and then Attribute_Name (Expr) = Name_Address
+              and then Nkind (Prefix (Expr)) = N_Identifier
+              and then Chars (Nam) = Chars (Prefix (Expr))
+            then
+               Error_Msg_NE
+                 ("address for & is self-referencing", Prefix (Expr), Ent);
+               return;
+            end if;
+
+            --  Not that special case, carry on with analysis of expression
+
             Analyze_And_Resolve (Expr, RTE (RE_Address));
 
             if Present (Address_Clause (U_Ent)) then
@@ -875,7 +907,7 @@ package body Sem_Ch13 is
                   --  We mark a possible modification of a variable with an
                   --  address clause, since it is likely aliasing is occurring.
 
-                  Note_Possible_Modification (Nam);
+                  Note_Possible_Modification (Nam, Sure => False);
 
                   --  Here we are checking for explicit overlap of one variable
                   --  by another, and if we find this then mark the overlapped
@@ -920,22 +952,25 @@ package body Sem_Ch13 is
 
                --  If the address clause is of the form:
 
-               --    for X'Address use Y'Address
+               --    for Y'Address use X'Address
 
                --  or
 
-               --    Const : constant Address := Y'Address;
+               --    Const : constant Address := X'Address;
                --    ...
-               --    for X'Address use Const;
+               --    for Y'Address use Const;
 
                --  then we make an entry in the table for checking the size and
                --  alignment of the overlaying variable. We defer this check
                --  till after code generation to take full advantage of the
                --  annotation done by the back end. This entry is only made if
                --  we have not already posted a warning about size/alignment
-               --  (some warnings of this type are posted in Checks).
+               --  (some warnings of this type are posted in Checks), and if
+               --  the address clause comes from source.
 
-               if Address_Clause_Overlay_Warnings then
+               if Address_Clause_Overlay_Warnings
+                 and then Comes_From_Source (N)
+               then
                   declare
                      Ent_X : Entity_Id := Empty;
                      Ent_Y : Entity_Id := Empty;
@@ -945,7 +980,18 @@ package body Sem_Ch13 is
 
                      if Present (Ent_Y) and then Is_Entity_Name (Name (N)) then
                         Ent_X := Entity (Name (N));
-                           Address_Clause_Checks.Append ((N, Ent_X, Ent_Y));
+                        Address_Clause_Checks.Append ((N, Ent_X, Ent_Y));
+
+                        --  If variable overlays a constant view, and we are
+                        --  warning on overlays, then mark the variable as
+                        --  overlaying a constant (we will give warnings later
+                        --  if this variable is assigned).
+
+                        if Is_Constant_Object (Ent_Y)
+                          and then Ekind (Ent_X) = E_Variable
+                        then
+                           Set_Overlays_Constant (Ent_X);
+                        end if;
                      end if;
                   end;
                end if;
@@ -1391,10 +1437,6 @@ package body Sem_Ch13 is
                Set_Has_Small_Clause (U_Ent);
                Set_Has_Small_Clause (Implicit_Base);
                Set_Has_Non_Standard_Rep (Implicit_Base);
-
-               --  Recompute RM_Size, but shouldn't this be done in Freeze???
-
-               Set_Discrete_RM_Size (U_Ent);
             end if;
          end Small;
 
@@ -1439,6 +1481,11 @@ package body Sem_Ch13 is
             Analyze_And_Resolve
               (Expr, Class_Wide_Type (RTE (RE_Root_Storage_Pool)));
 
+            if not Denotes_Variable (Expr) then
+               Error_Msg_N ("storage pool must be a variable", Expr);
+               return;
+            end if;
+
             if Nkind (Expr) = N_Type_Conversion then
                T := Etype (Expression (Expr));
             else
@@ -1448,7 +1495,7 @@ package body Sem_Ch13 is
             --  The Stack_Bounded_Pool is used internally for implementing
             --  access types with a Storage_Size. Since it only work
             --  properly when used on one specific type, we need to check
-            --  that it is not highjacked improperly:
+            --  that it is not hijacked improperly:
             --    type T is access Integer;
             --    for T'Storage_Size use n;
             --    type Q is access Float;
@@ -1857,10 +1904,7 @@ package body Sem_Ch13 is
 
       --  Don't allow rep clause for standard [wide_[wide_]]character
 
-      elsif Root_Type (Enumtype) = Standard_Character
-        or else Root_Type (Enumtype) = Standard_Wide_Character
-        or else Root_Type (Enumtype) = Standard_Wide_Wide_Character
-      then
+      elsif Is_Standard_Character_Type (Enumtype) then
          Error_Msg_N ("enumeration rep clause not allowed for this type", N);
          return;
 
@@ -2310,6 +2354,14 @@ package body Sem_Ch13 is
                   Error_Msg_N
                     ("first bit cannot be negative", First_Bit (CC));
 
+               --  The Last_Bit specified in a component clause must not be
+               --  less than the First_Bit minus one (RM-13.5.1(10)).
+
+               elsif Lbit < Fbit - 1 then
+                  Error_Msg_N
+                    ("last bit cannot be less than first bit minus one",
+                     Last_Bit (CC));
+
                --  Values look OK, so find the corresponding record component
                --  Even though the syntax allows an attribute reference for
                --  implementation-defined components, GNAT does not allow the
@@ -2347,7 +2399,7 @@ package body Sem_Ch13 is
 
                   elsif Present (Component_Clause (Comp)) then
 
-                     --  Diagose duplicate rep clause, or check consistency
+                     --  Diagnose duplicate rep clause, or check consistency
                      --  if this is an inherited component. In a double fault,
                      --  there may be a duplicate inconsistent clause for an
                      --  inherited component.
@@ -2683,7 +2735,7 @@ package body Sem_Ch13 is
 
       --  For records longer than System.Storage_Unit, and for those where not
       --  all components have component clauses, the back end determines the
-      --  length (it may for example be appopriate to round up the size
+      --  length (it may for example be appropriate to round up the size
       --  to some convenient boundary, based on alignment considerations, etc).
 
       if Unknown_RM_Size (Rectype) and then Hbit + 1 <= 32 then
@@ -3527,7 +3579,7 @@ package body Sem_Ch13 is
 
       --  Signed case. Note that we consider types like range 1 .. -1 to be
       --  signed for the purpose of computing the size, since the bounds have
-      --  to be accomodated in the base type.
+      --  to be accommodated in the base type.
 
       if Lo < 0 or else Hi < 0 then
          S := 1;
@@ -3728,7 +3780,7 @@ package body Sem_Ch13 is
            ("representation item must be after full type declaration", N);
          return True;
 
-      --  If the type has incompleted components, a representation clause is
+      --  If the type has incomplete components, a representation clause is
       --  illegal but stream attributes and Convention pragmas are correct.
 
       elsif Has_Private_Component (T) then
@@ -4011,7 +4063,7 @@ package body Sem_Ch13 is
 
       --  For enumeration types, we must check each literal to see if the
       --  representation is the same. Note that we do not permit enumeration
-      --  reprsentation clauses for Character and Wide_Character, so these
+      --  representation clauses for Character and Wide_Character, so these
       --  cases were already dealt with.
 
       elsif Is_Enumeration_Type (T1) then

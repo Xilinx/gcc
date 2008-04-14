@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 2003-2007, Free Software Foundation, Inc.         *
+ *          Copyright (C) 2003-2008, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -206,7 +206,7 @@ __gnat_safe_gethostbyname (const char *name,
   struct hostent *rh;
   int ri;
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__GLIBC__)
   (void) gethostbyname_r (name, ret, buf, buflen, &rh, h_errnop);
 #else
   rh = gethostbyname_r (name, ret, buf, buflen, h_errnop);
@@ -223,7 +223,7 @@ __gnat_safe_gethostbyaddr (const char *addr, int len, int type,
   struct hostent *rh;
   int ri;
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__GLIBC__)
   (void) gethostbyaddr_r (addr, len, type, ret, buf, buflen, &rh, h_errnop);
 #else
   rh = gethostbyaddr_r (addr, len, type, ret, buf, buflen, h_errnop);
@@ -239,7 +239,7 @@ __gnat_safe_getservbyname (const char *name, const char *proto,
   struct servent *rh;
   int ri;
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__GLIBC__)
   (void) getservbyname_r (name, proto, ret, buf, buflen, &rh);
 #else
   rh = getservbyname_r (name, proto, ret, buf, buflen);
@@ -255,7 +255,7 @@ __gnat_safe_getservbyport (int port, const char *proto,
   struct servent *rh;
   int ri;
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__GLIBC__)
   (void) getservbyport_r (port, proto, ret, buf, buflen, &rh);
 #else
   rh = getservbyport_r (port, proto, ret, buf, buflen);
@@ -340,7 +340,12 @@ __gnat_new_socket_set (fd_set *set)
 {
   fd_set *new;
 
+#ifdef VMS
+extern void *__gnat_malloc32 (__SIZE_TYPE__);
+  new = (fd_set *) __gnat_malloc32 (sizeof (fd_set));
+#else
   new = (fd_set *) __gnat_malloc (sizeof (fd_set));
+#endif
 
   if (set)
     memcpy (new, set, sizeof (fd_set));

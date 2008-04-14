@@ -3854,6 +3854,8 @@ verify_gimple_expr (tree expr)
 
     case TRUTH_ANDIF_EXPR:
     case TRUTH_ORIF_EXPR:
+      gcc_unreachable ();
+
     case TRUTH_AND_EXPR:
     case TRUTH_OR_EXPR:
     case TRUTH_XOR_EXPR:
@@ -4181,6 +4183,11 @@ verify_stmt (tree stmt, bool last_in_block)
   if (addr)
     {
       debug_generic_stmt (addr);
+      if (addr != stmt)
+	{
+	  inform ("in statement");
+	  debug_generic_stmt (stmt);
+	}
       return true;
     }
 
@@ -6130,6 +6137,8 @@ dump_function_to_file (tree fn, FILE *file, int flags)
   arg = DECL_ARGUMENTS (fn);
   while (arg)
     {
+      print_generic_expr (file, TREE_TYPE (arg), dump_flags);
+      fprintf (file, " ");
       print_generic_expr (file, arg, dump_flags);
       if (TREE_CHAIN (arg))
 	fprintf (file, ", ");

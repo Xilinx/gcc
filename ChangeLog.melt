@@ -1,4 +1,10 @@
 
+2008-04-14   Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r134275
+
+	stilly buggy for libgcc muldi3: internal compiler error: in
+	execute_ipa_pass_list, at passes.c:1235
+
 2008-04-05   Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r133937
 
