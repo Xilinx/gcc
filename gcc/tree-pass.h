@@ -367,7 +367,9 @@ extern struct simple_ipa_opt_pass pass_ipa_increase_alignment;
 extern struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility;
 
 /* Basilys  passes */
+#if ENABLE_BASILYSMELT
 extern struct simple_ipa_opt_pass pass_basilys;
+#endif
 
 extern struct gimple_opt_pass pass_all_optimizations;
 extern struct gimple_opt_pass pass_cleanup_cfg_post_optimizing;

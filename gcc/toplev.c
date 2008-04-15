@@ -111,7 +111,7 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 /* we don't include basilys.h but declare its initializer & finalizer here */
-#if HAVE_LIBTOOLDYNL && HAVE_PARMAPOLY
+#if ENABLE_BASILYSMELT
 extern void basilys_initialize(void); /* in basilys.c */
 extern void basilys_finalize(void); /* in basilys.c */
 #endif
@@ -2224,7 +2224,7 @@ toplev_main (unsigned int argc, const char **argv)
   comprobe_initialize();
 #endif
 
-#if HAVE_LIBTOOLDYNL && HAVE_PARMAPOLY
+#if ENABLE_BASILYSMELT
   /* initialize basilys if needed */
   if (flag_basilys)
     basilys_initialize();
@@ -2240,7 +2240,7 @@ toplev_main (unsigned int argc, const char **argv)
 #endif
 
 
-#if HAVE_LIBTOOLDYNL && HAVE_PARMAPOLY
+#if ENABLE_BASILYSMELT
   /* finalize basilys if needed */
   if (flag_basilys)
     basilys_finalize();

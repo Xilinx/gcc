@@ -1,4 +1,10 @@
 2008-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gengtype.c: (open_base_files) handles basilys.c only when ENABLE_BASILYSMELT
+	* tree-pass.h: declare basilys_pass only when ENABLE_BASILYSMELT
+	* toplev.c: (toplev_main) do basilys* init & final only when ENABLE_BASILYSMELT
+	* passes.c: (init_optimization_passes) do basilys_pass only when ENABLE_BASILYSMELT
+
+2008-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* configure.ac: added --enable-basilysmelt flag
 	* basilys.h: check ENABLE_BASILYSMELT
 	* Makefile.in: added conditionals on BASILSMELT_OBJ and COMPILER_PROBE_OBJ

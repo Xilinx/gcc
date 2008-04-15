@@ -552,7 +552,9 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_type_escape);
   NEXT_PASS (pass_ipa_pta);
   NEXT_PASS (pass_ipa_struct_reorg); 
+#if ENABLE_BASILYSMELT
   NEXT_PASS (pass_basilys); 
+#endif
   *p = NULL;
 
   /* These passes are run after IPA passes on every function that is being
