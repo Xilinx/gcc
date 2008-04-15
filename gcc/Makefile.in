@@ -1018,7 +1018,7 @@ OBJS-common = \
 	alias.o \
 	alloc-pool.o \
 	auto-inc-dec.o \
-	basilys.o \
+	$(BASILYSMELT_OBJ) \
 	bb-reorder.o \
 	bitmap.o \
 	bt-load.o \
@@ -1276,10 +1276,17 @@ ALL_HOST_OBJS = $(GCC_OBJS) $(C_OBJS) $(OBJS) libbackend.o \
   mips-tfile.o mips-tdump.o \
   $(PROTO_OBJS) $(GCOV_OBJS) $(GCOV_DUMP_OBJS)
 
-
-COMPILER_PROBE_OBJ =  @COMPILER_PROBE@
+## gcc/configure.ac may set COMPILER_PROBE_OBJECT to compiler-probe.o or may leave it empty
+COMPILER_PROBE_OBJ =  @COMPILER_PROBE_OBJECT@
+COMPILER_PROBE_C= $(patsubst %.o, $(srcdir)/%.c, $(COMPILER_PROBE_OBJ))
+COMPILER_PROBE_H=  $(patsubst %.o, $(srcdir)/%.h, $(COMPILER_PROBE_OBJ))
 
 BACKEND = main.o @TREEBROWSER@  $(COMPILER_PROBE_OBJ) libbackend.a $(CPPLIB) $(LIBDECNUMBER)
+
+## gcc/configure.ac may set BASILYSMELT_OBJECT to basilys.o or leave it empty
+BASILYSMELT_OBJ := @BASILYSMELT_OBJECT@
+BASILYS_H= $(patsubst %.o, $(srcdir)/%.h, $(BASILYSMELT_OBJ))
+BASILYS_C= $(patsubst %.o, $(srcdir)/%.c, $(BASILYSMELT_OBJ))
 
 MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
  insn-output.c insn-recog.c insn-emit.c insn-extract.c insn-peep.c \
@@ -2365,16 +2372,26 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
 
 #### added for Basilys a.k.a. MELT http://gcc.gnu.org/wiki/MiddleEndLispTranslator
 ## we pass the MELT_PRIVATE_INCLUDE_DIR 
-basilys.o:  basilys.c  \
+ifdef BASILYSMELT_OBJ
+$(BASILYSMELT_OBJ):  $(BASILYS_C)  \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
-   tree-pass.h basilys.h gt-basilys.h
+   tree-pass.h $(BASILYS_H) gt-basilys.h
 	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
 	  -DMELT_PRIVATE_INCLUDE_DIR=\"$(melt_private_include_dir)\" \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
 	  -DMELT_GENERATED_DIR=\"$(melt_generated_dir)\" \
 	  -DMELT_DYNLIB_DIR=\"$(melt_dynlib_dir)\" \
 	  -DMELT_COMPILE_SCRIPT=\"$(melt_compile_script)\" \
-	  -c $(srcdir)/basilys.c $(OUTPUT_OPTION)
+	  -c $(BASILYS_C) $(OUTPUT_OPTION)
+endif
+
+ifdef COMPILER_PROBE_OBJ
+$(COMPILER_PROBE_OBJ): $(COMPILER_PROBE_C) $(COMPILER_PROBE_H) \
+   $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(REGS_H) $(TIMEVAR_H) \
+   intl.h $(DIAGNOSTIC_H) $(HASHTAB_H) $(TREE_H) tree-pass.h $(TREE_FLOW_H) \
+   $(TREE_DUMP_H) $(TREE_INLINE_H) tree-iterator.h $(DIAGNOSTIC_H) toplev.h \
+   $(GGC_H) vec.h $(CGRAPH_H) $(FLAGS_H) $(BASIC_BLOCK_H) $(RTL_H) version.h
+endif
 ### end of Basilys stuff
 
 toplev.o : toplev.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
@@ -3160,7 +3177,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/dojump.c \
   $(srcdir)/emit-rtl.c $(srcdir)/except.c $(srcdir)/explow.c $(srcdir)/expr.c \
   $(srcdir)/function.c $(srcdir)/except.h \
-  $(srcdir)/basilys.h \
+  $(BASILYS_H) \
   $(srcdir)/gcse.c $(srcdir)/integrate.c $(srcdir)/lists.c $(srcdir)/optabs.c \
   $(srcdir)/profile.c $(srcdir)/regclass.c \
   $(srcdir)/reg-stack.c $(srcdir)/cfglayout.c $(srcdir)/cfglayout.h \
@@ -3178,8 +3195,8 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/tree-ssa-structalias.c $(srcdir)/tree-parloops.c \
   $(srcdir)/omp-low.c $(srcdir)/varpool.c \
   $(srcdir)/targhooks.c $(out_file) $(srcdir)/passes.c $(srcdir)/cgraphunit.c \
-  $(patsubst %.o, $(srcdir)/%.c, $(COMPILER_PROBE_OBJ) ) \
-  $(srcdir)/basilys.c \
+  $(COMPILER_PROBE_C) \
+  $(BASILYS_C) \
   @all_gtfiles@
 
 GTFILES_H = $(subst /,-, $(patsubst $(srcdir)/%,gt-%, $(patsubst %.c,%.h, \
@@ -4596,7 +4613,7 @@ run-basilys.d: run-basilys.h \
 ## copy all the file in the dependency of run-basilys-deps into $(melt_build_include_dir)
 ## but handle the $(srcdir)/config/ files specially by copying them within a config/ directory
 run-basilys-deps:
-#	echo '***' IN run-basilys-deps TARGET '***'
+ifdef BASILYSMELT_OBJ
 	$(mkinstalldirs) $(melt_build_include_dir); \
 	for f in $^ ; do \
 	  cf=`echo $$f | sed  "s:$(srcdir)/config/:$(melt_build_include_dir)/config/:"`; \
@@ -4607,13 +4624,12 @@ run-basilys-deps:
 	    cp -p $$f $(melt_build_include_dir)/ ; \
 		fi; \
 	done
-
-
+endif
 
 ## a phony target triggered by "start.encap" (triggered by the "all" target)
 ## we have to invoke make recursively, because run-basilys.d is a -include-d dependency file
+ifdef BASILYSMELT_OBJ
 melt.encap: run-basilys.d 
-	echo '***' IN melt.encap TARGET '***'
 	$(MAKE) run-basilys-deps built-melt-cc-script 
 ## !!! TEMPORARY KLUDGE !!!
 # this is a ugly temporary hack, working probably only on Linux machines (hosts) with CLISP
@@ -4632,7 +4648,7 @@ melt.encap: run-basilys.d
 
 coldbuilt-warm-basilys.so: built-melt-cc-script coldbuilt-warm-basilys.c 
 	sh $^ $@
-coldbuilt-warm-basilys.c: $(srcdir)/../contrib/cold-basilys.lisp $(srcdir) melt/warm-basilys.bysl
+coldbuilt-warm-basilys.c: $(srcdir)/../contrib/cold-basilys.lisp $(srcdir)/melt/warm-basilys.bysl
 	clisp -C -x  "(load \"$(srcdir)/../contrib/cold-basilys.lisp\")" \
 	         -x "(handle-source-file \"$(srcdir)/melt/warm-basilys.bysl\" \"tmp-$@\")"
 	$(SHELL) $(srcdir)/../move-if-change tmp-$@ $@
@@ -4648,7 +4664,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	   -fbasilys-init=coldbuilt-warm-basilys.so \
 	 -fbasilys-dynlibdir=. \
 	 -fbasilys-compile-script=built-melt-cc-script \
-  	 -fbasilys-gensrcdir=. \
+	 -fbasilys-gensrcdir=. \
 	 -fbasilys-tempdir=. \
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/test0.bysl -frandom-seed=AbCdEfGhIj
 	-@echo done test0
@@ -4722,4 +4738,8 @@ install-melt-cc-script: melt-cc-script.proto
 	chmod a+x tmp-installed-melt-cc-script
 	$(INSTALL_SCRIPT) tmp-installed-melt-cc-script $(DESTDIR)$(melt_compile_script)
 	-rm -f tmp-installed-melt-cc-script
+
+else
+melt-encap:
+endif #BASILYSMELT_OBJ
 ### end of basilys / MELT stuff

@@ -21,6 +21,10 @@ along with GCC; see the file COPYING3.   If not see
 #ifndef BASILYS_INCLUDED_
 #define BASILYS_INCLUDED_
 
+#if !ENABLE_BASILYSMELT
+#error basilys.h should enly be used when basilemelt is enabled at configuretion time
+#endif
+
 /* use -fdump-ipa-basilys */
 
 #define dbgprintf_raw(Fmt,...) do{if (dump_file) \

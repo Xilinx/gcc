@@ -310,8 +310,8 @@ AC_CHECK_TYPES([long long], [AC_CHECK_SIZEOF(long long)])
 AC_CHECK_TYPES([__int64], [AC_CHECK_SIZEOF(__int64)])
 
 ################################################
-##### Basilys specific stuff
-
+##### Basilys/MELT specific stuff
+##### (Middle End Lisp Translator)
 ################
 # Check for PPL (Parma Polyhedral Library)
 ppllibs=
@@ -502,7 +502,7 @@ static void my_signal_handler(int sig)
 [AC_MSG_RESULT([yes]);
  enabled_compiler_probe=yes;
  AC_DEFINE(ENABLE_COMPILER_PROBE, 1, [Define if compiler probe is enabled.])
- COMPILER_PROBE=compiler-probe.o
+ COMPILER_PROBE_OBJECT=compiler-probe.o
 ], 
 [AC_MSG_RESULT([no]); 
  AC_MSG_WARN([Your system lacks the required features for compiler probing.
@@ -511,9 +511,47 @@ static void my_signal_handler(int sig)
 );
 fi
 
-AC_SUBST(COMPILER_PROBE)
-###################### end of basilys specific stuff
+AC_SUBST(COMPILER_PROBE_OBJECT)
 
+# ------------------------
+# Basilys/MELT support (middle-end lisp translator)
+# ------------------------
+enabled_basilysmelt=no
+BASILYSMELT_OBJECT=
+
+AC_ARG_ENABLE(basilysmelt,
+[  --enable-basilysmelt		Enable Basilys/MELT passes;
+   				This enable complex (sciptable) passes using the Middle End Lisp Translator feature 
+				(which dynamically translates the MELT lisp dialect into C plug-in like code);
+				This requires PPL (Parma Polyhedra Library) and LTDL (LibTool Dynamic Loader) support.
+				The compiler-probe feature is also recommended.
+],
+enabled_basilysmelt=$enableval,
+enabled_basilysmelt=no)
+
+if test "$enabled_basilysmelt" = "yes" ; then
+   AC_MSG_CHECKING([for features required for basilysmelt])
+   if test "$have_ppl" != "yes" ; then
+     AC_MSG_WARN([Your system lacks the Parma Polyhedra Library (PPL) required for basilys/MELT.
+Hence Basilys/MELT is disabled.]);
+     enabled_basilysmelt=no;
+   fi
+   if test "$have_ltdl" != "yes" ; then
+     AC_MSG_WARN([Your system lacks the LibTool Dynamic Loader library (LTDL) required for basilys/MELT.
+Hence Basilys/MELT is disabled.]);
+     enabled_basilysmelt=no;
+   fi
+fi
+
+if test "$enabled_basilysmelt" = "yes" ; then
+   AC_DEFINE(ENABLE_BASILYSMELT, 1,
+	     [Define if Basilys/MELT (Middle End Lisp Translator) is in use.])
+
+   BASILYSMELT_OBJECT=basilys.o
+fi
+AC_SUBST(BASILYSMELT_OBJECT)
+###################### end of basilys/MELT specific stuff
+################################################################
 
 # ---------------------
 # Warnings and checking

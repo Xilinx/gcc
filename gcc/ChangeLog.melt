@@ -1,3 +1,9 @@
+2008-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* configure.ac: added --enable-basilysmelt flag
+	* basilys.h: check ENABLE_BASILYSMELT
+	* Makefile.in: added conditionals on BASILSMELT_OBJ and COMPILER_PROBE_OBJ
+	* configure, config.in: regenerated
+
 2008-04-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	corrected below bug;
 	* tree-pass.h: pass_basilys is a simple IPA pass.
