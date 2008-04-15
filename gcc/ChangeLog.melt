@@ -1,4 +1,11 @@
 2008-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: added $(BASILYSDEBUG) for -fdebug-basilys 
+	and added compilation of warm-basilys by itself (still buggy)
+
+	* melt/warm-basilys.bysl: debug_msg changed to debugmsg which has
+	a cstring second argument.
+
+2008-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gengtype.c: (open_base_files) handles basilys.c only when ENABLE_BASILYSMELT
 	* tree-pass.h: declare basilys_pass only when ENABLE_BASILYSMELT
 	* toplev.c: (toplev_main) do basilys* init & final only when ENABLE_BASILYSMELT

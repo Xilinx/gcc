@@ -2851,6 +2851,26 @@ nil)
   )
 
 
+(defstruct (obj_getcstringarg_instr (:include obj_instr))
+  dest
+  rk
+)
+
+(defmethod output_ccode ((obj obj_getcstringarg_instr) str)
+  (format_c_comment str "*obj_getcstringarg_instr ~S*~%" obj)
+  (let ( (dest (obj_getcstringarg_instr-dest obj))
+	 (rk  (obj_getcstringarg_instr-rk obj)) )
+    (if (= rk 0) 
+	(error "long arg cannot be first ~S" obj))
+    (format str "if (xargdescr_[~d] == BPAR_CSTRING)~% " (- rk 1))
+    (output_ccode dest str)
+    (format str " = xargtab_[~d].bp_cstring;~% else goto lab_endargs;~%"
+	    (- rk 1))
+;    (finish-output str)
+    )
+  )
+
+
 ;;; actually an obj_compute may have several destination (for example
 ;;; for a setq whose value is used)
     
@@ -2973,6 +2993,8 @@ nil)
 
 (defstruct (obj_longvar (:include obj_var)))
 
+(defstruct (obj_cstringvar (:include obj_var)))
+
 (defmethod  print-object ((ov obj_ptrvar) st)
   (if (cold_any_binding-p (obj_ptrvar-vbind ov))
       (format st "ObjPtrVar@~d/~S?~S" 
@@ -2989,6 +3011,17 @@ nil)
 	      (obj_longvar-voffset ov) 
 	      (cold_any_binding-bname (obj_longvar-vbind ov))
 	      (obj_longvar-vwhy ov)
+	      )
+      (call-next-method ov st)
+      ))
+
+
+(defmethod  print-object ((ov obj_cstringvar) st)
+  (if (cold_any_binding-p (obj_cstringvar-vbind ov))
+      (format st "ObjCstringVar@~d/~S?~S" 
+	      (obj_cstringvar-voffset ov) 
+	      (cold_any_binding-bname (obj_cstringvar-vbind ov))
+	      (obj_cstringvar-vwhy ov)
 	      )
       (call-next-method ov st)
       ))
@@ -3020,6 +3053,25 @@ nil)
 
 (defmethod query_ctype ((obj obj_ptrvar))
 ':value)
+
+
+
+(defmethod output_ccode ((obj obj_cstringvar) str)
+  (let ((b (obj_var-vbind obj))
+	(o (obj_var-voffset obj)))
+    (if b (format str "/*~S ? ~S*/" (cold_any_binding-bname b)
+		  (obj_var-vwhy obj)
+		  )
+      (format str "/*??~S*/" (obj_var-vwhy obj)))
+    (format str "curfram__.varcstring[~d]" o)
+    )
+)
+
+(defmethod query_ctype ((obj obj_cstringvar))
+':cstring)
+
+(defmethod query_ctype ((obj string))
+':cstring)
 
 
 
@@ -3319,11 +3371,18 @@ nil)
 	(format str " memset(argtab, 0, sizeof(argtab));~%"))
     (loop for ark from 0 for arg in oargs do
 	  (case (query_ctype arg)
-		(:long (format str " argtab[~d].bp_long = " ark)
-		       (output_ccode arg str)
-		       (push "BPARSTR_LONG" revargtypeseq)
-		       (format str ";~%")
-		       )
+		(:long 
+		 (format str " argtab[~d].bp_long = " ark)
+		 (output_ccode arg str)
+		 (push "BPARSTR_LONG" revargtypeseq)
+		 (format str ";~%")
+		 )
+		(:cstring 
+		 (format str " argtab[~d].bp_cstring = " ark)
+		 (output_ccode arg str)
+		 (push "BPARSTR_CSTRING" revargtypeseq)
+		 (format str ";~%")
+		 )
 		((:value nil) 
 		 (if arg 
 		     (progn
@@ -3332,7 +3391,7 @@ nil)
 		       (push "BPARSTR_PTR" revargtypeseq)
 		       (format str ");~%"))
 		   (format str " argtab[~d].bp_aptr /*nil arg*/ = NULL;~%")))
-		(otherwise (error "output_ccode obj_callcannot handle arg ~s in ~s" arg obj)))
+		(otherwise (error "output_ccode obj_call cannot handle arg ~s in ~s" arg obj)))
 	  )
     (loop for resrk from 0 for xres in xresults do
 	  (case (query_ctype xres)
@@ -3378,7 +3437,7 @@ nil)
 	(format str "));~%")
       (format str ");~%"))
     (format str "~%} /*endcall*/ ~%")
-;    (finish-output str)
+					;    (finish-output str)
     )
   )
 
@@ -3402,6 +3461,7 @@ nil)
   obs_args					;arguments
   )
 
+
 (defmethod output_ccode ((obj obj_send) str)
   (let ( (odest (obj_send-obs_dest obj))
 	 (osel (obj_send-obs_sel obj))
@@ -3422,18 +3482,25 @@ nil)
 	(format str " memset(argtab, 0, sizeof(argtab));~%"))
     (loop for ark from 0 for arg in oargs do
 	  (case (query_ctype arg)
-		(:long (format str " argtab[~d].bp_long = " ark)
-		       (output_ccode arg str)
-		       (push "BPARSTR_LONG" revargtypeseq)
-		       (format str ";~%")
-		       )
+		(:long
+		 (format str " argtab[~d].bp_long = " ark)
+		 (output_ccode arg str)
+		 (push "BPARSTR_LONG" revargtypeseq)
+		 (format str ";~%")
+		 )
+		(:cstring 
+		 (format str " argtab[~d].bp_cstring = " ark)
+		 (output_ccode arg str)
+		 (push "BPARSTR_CSTRING" revargtypeseq)
+		 (format str ";~%")
+		 )
 		((:value nil) 
 		 (if arg 
 		     (progn
-		     (format str " argtab[~d].bp_aptr = (basilys_ptr_t*) &(" ark)
-		     (output_ccode arg str)
-		     (push "BPARSTR_PTR" revargtypeseq)
-		     (format str ");~%"))
+		       (format str " argtab[~d].bp_aptr = (basilys_ptr_t*) &(" ark)
+		       (output_ccode arg str)
+		       (push "BPARSTR_PTR" revargtypeseq)
+		       (format str ");~%"))
 		   (progn
 		     (format str " argtab[~d].bp_aptr = /*nilarg*/NULL;~%")
 		     )))
@@ -3472,7 +3539,7 @@ nil)
     (if oxtrares (format str "restab") (format str "/*no res*/ (union basilysparam_un*)0"))
     (format str ");~%")
     (format str "~%} /*endsend*/ ~%")
-;    (finish-output str)
+					;    (finish-output str)
     ))
 
 
@@ -3632,9 +3699,11 @@ nil)
   nbptr					;total number of pointer variables
   nbnum					;total number of long variables
   nbdouble				;total number of double variables
+  nbcstring				;total number of cstring variables
   freevptrs				;list of free varptr to be reused
   freevnums				;list of free varlong to be reused
   freevdbls				;list of free vardbl to be reused
+  freevcstrings				;list of free varcstring to be reused
   dataclos				;the associated dataclosure
   datarout				;the associated dataroutine
   data2ptrhash				;hash associating data to pointers
@@ -3694,6 +3763,7 @@ nil)
 	 (nbptr (obj_routine-nbptr obj))
 	 (nbnum (obj_routine-nbnum obj))
 	 (nbdouble (obj_routine-nbdouble obj))
+	 (nbcstring (obj_routine-nbcstring obj))
 	 (oldcurout (compilation-currout this_compilation))
 	 )
     (setf (compilation-currout this_compilation) obj)
@@ -3723,6 +3793,7 @@ nil)
     (format str "    void* varptr[~d];" (+ nbptr 1))
     (format str "    long varnum[~d];" (+ nbnum 1))
     (format str "    double vardbl[~d];" (+ nbdouble 1))
+    (format str "    const char* varcstring[~d];" (+ nbcstring 1))
     (format str "    long _spare_;")
     (format str "  } curfram__ = { /*nbvar*/~d,~%" nbptr)
     (format str "   (struct basilysclosure_st*)0,~%")
@@ -3856,6 +3927,50 @@ nil)
 	 )
     (assert (obj_routine-p orout))
     (push ovar (obj_routine-freevnums orout))
+    (setf (obj_var-vfree ovar) t)
+    nil
+))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; make a cstring variable inside a routine, using the free list if possible
+;; orout is the object routine inside which it is used
+;; bind is the binding
+;; why is some explanation string
+(defun newobjcstringvar (orout bind why)
+  (assert (obj_routine-p orout))
+  (assert (cold_any_binding-p bind))
+  (if why (assert (stringp why)))
+  (if (consp (obj_routine-freevcstrings orout))
+      (let ( (fvar (pop (obj_routine-freevnums orout))) )
+	(assert (obj_cstringvar-p fvar))
+	(assert (obj_var-vfree fvar))
+	(assert (eq (obj_var-vrout fvar) orout))
+	;; don't reuse fvar for ease of debugging but make a new var of same offset
+	(let ( (rvar (copy-obj_cstringvar fvar)) )
+	  (setf (obj_var-vbind rvar) bind)
+	  (setf (obj_var-vwhy rvar) why)
+	  (setf (obj_var-vfree fvar) rvar)
+	  (setf (obj_var-vfree rvar) nil)
+	  rvar
+	))
+    (let ( (nvar (make-obj_cstringvar :vbind bind 
+				  :voffset (incf (obj_routine-nbnum orout))
+				  :vwhy why
+				  :vrout orout)) )
+      nvar
+      )))
+
+;; free a cstring variable to enable its reuse
+(defun freeobjcstringvar (ovar)
+  (assert (obj_cstringvar-p ovar))
+  (assert (cold_any_binding-p (obj_var-vbind ovar)))
+  (let ( (orout (obj_var-vrout ovar)) 
+	 (oname (cold_any_binding-bname (obj_var-vbind ovar)))
+	 )
+    (assert (obj_routine-p orout))
+    (push ovar (obj_routine-freevcstrings orout))
     (setf (obj_var-vfree ovar) t)
     nil
 ))
@@ -4321,6 +4436,7 @@ nil)
 		 :nbptr 1 		;reserve slot for result ptr
 		 :nbnum 0 
 		 :nbdouble 0 
+		 :nbcstring 0
 		 :obody nil
 		 :syname  (prog_def-def_name cod)
 		 :rank (length  (compilation-functions this_compilation))
@@ -4394,10 +4510,19 @@ nil)
 		  (push (make-obj_getlongarg_instr 
 			 :dest ovar :rk (cold_formal_binding-rank b)) oarginsrev)
 		  ) )
-       ( doit (b)			;handle both
+       ( do_cstring (b) 			;add a constant cstring arg
+		(let ( (ovar (newobjcstringvar orout b  
+					    "defun do_cstring"
+					 )) )
+		  (bindvar (cold_formal_binding-bname b) ovar ':cstring)
+		  (push (make-obj_getcstringarg_instr 
+			 :dest ovar :rk (cold_formal_binding-rank b)) oarginsrev)
+		  ) )
+       ( doit (b)			;handle by dispatching
 	      (case (cold_formal_binding-type b)
 		    (:value (doptr b))
 		    (:long (dolong b))
+		    (:cstring (do_cstring b))
 		    (otherwise (error "compile_obj progdefun unexpected binding ~s" b)))
 	      )
        (comp1 (i)			;compile 1 instruction
@@ -5058,20 +5183,22 @@ nil)
 
 
 (defun compile_argobj (cod env)
-  (if (stringp cod) 
-      (let*  ( (obstrdata 
-		(add_cdata (make-obj_datastring
-			    :comname cod
-			    :discr 'DISCR_STRING
-			    :string cod)
-			   "argobj strdata")
-		) 
-	       (constri (newobjconst obstrdata "argobj constri")) 
-	       )
-	;;; (warn "compile_argobj cod ~S obstrdata ~S constr ~S env ~S~%" cod obstrdata constri env)
-	constri) 
-    (compile_obj cod env)
-  ))
+;;@@@@ STRING ARGUMENTS ARE HANDLED HERE
+;;- (if (stringp cod) 
+;;-     (let*  ( (obstrdata 
+;;-		(add_cdata (make-obj_datastring
+;;-			    :comname cod
+;;-			    :discr 'DISCR_STRING
+;;-			    :string cod)
+;;-			   "argobj strdata")
+;;-		) 
+;;-	       (constri (newobjconst obstrdata "argobj constri")) 
+;;-	       )
+;;-	;;; (warn "compile_argobj cod ~S obstrdata ~S constr ~S env ~S~%" cod obstrdata constri env)
+;;-	constri) 
+   (compile_obj cod env)
+  )
+;;- )
 
 
 (defmethod compile_obj ((cod prog_apply) env)

@@ -1,3 +1,6 @@
+2008-04-15   Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: strings argument passed verbatim as cstrings
+
 2008-03-29   Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: defselector does not need any explicit :named_name
 

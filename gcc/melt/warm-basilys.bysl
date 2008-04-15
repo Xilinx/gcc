@@ -259,7 +259,7 @@
 (defprimitive need_dbglim (:long depth limit) :long
   "(dump_file && (" depth ")>=0 && (" depth ") < (" limit "))")
 
-(defprimitive outstrcont_dbg (:cstring s) :void
+(defprimitive outcstring_dbg (:cstring s) :void
   "basilys_puts(dump_file,(" s "))")
 (defprimitive outnum_dbg (:cstring pref :long l :cstring suf) :void
   "basilys_putnum(dump_file,(" pref "), (" l "), (" suf "))")
@@ -756,7 +756,7 @@
 
 (defun install_ctype (ctyp)
   (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
-  (debug_msg "install_ctype" ctyp (the_callcount))
+  (debugmsg ctyp "install_ctype"  (the_callcount))
   (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) )
     (assert_msg "check ckw" (is_a ckw class_keyword))
     (unsafe_put_fields ckw :symb_data ctyp)
@@ -887,7 +887,7 @@
 		 ( (is_string symb) 
 		   symb)
 		 (:else 
-		  (debug_msg "clone_symbol bad symb" symb (the_callcount))
+		  (debugmsg symb "clone_symbol bad symb" (the_callcount))
 		  (assert_msg "invalid symb in clone_symbol" ())
 		  (return))))
 	 (boxi (mapstring_getstr mapstr synam)) )
@@ -1053,8 +1053,6 @@
 		   
 ;;; map on a list (list_map lis f) where lis is (e1 ... en) is ((f e1) .... (f en))
 (defun list_map (lis f)
-;  (debug_msg "list_map lis" lis)
-;  (debug_msg "list_map f" f)
   (and (is_list lis)
        (is_closure f)
        (let ( (reslis (make_list discr_list)) 
@@ -1064,7 +1062,6 @@
 		  (let ( (curelem (pair_head curpair)) )
 		    (list_append reslis (f curelem)))
 		  (setq curpair (pair_tail curpair)))
-;	 (debug_msg "list_map reslis" reslis)
 	 reslis
 	 )))
 		    
@@ -1784,7 +1781,7 @@
 (defprimitive the_dbgcounter () :long "basilys_dbgcounter")
 (defprimitive increment_dbgcounter () :void "(void) ++basilys_dbgcounter")
 
-(defun debug_msg (msgstr val :long count)
+(defun debugmsg (val :cstring msgstr :long count)
   (if (need_dbg 0) 
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
@@ -1795,15 +1792,13 @@
 				  :dbgi_occmap occmap
 				  :dbgi_maxdepth boxedmaxdepth))
 	     )
-;	(message_dbg "Debug_Msg+")
 	(outnum_dbg "!*#" dbgcounter "/")
 	(outnum_dbg "" (-i (the_framedepth) 1) ":")
-	(outstr_dbg msgstr)
+	(outcstring_dbg msgstr)
 	(if (>i count 0) (outnum_dbg " !" count ": "))
 	(dbg_out val dbgi 0)
 	(outstrbuf_dbg sbuf)
 	(outnewline_dbg)
-;	(message_dbg "Debug_Msg-")
 	)))
 
 ;;;; the class for environments
@@ -1971,7 +1966,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (if (not (is_a binding class_any_binding))
       (progn
-	(debug_msg "put_env invalid binding" binding (the_callcount))
+	(debugmsg binding "put_env invalid binding" (the_callcount))
 	(shortbacktrace_dbg "put_env invalid binding" 15)))
   (assert_msg "check binding" (is_a binding class_any_binding))
   (let ( (bindmap (unsafe_get_field :env_bind env)) 
@@ -1979,8 +1974,8 @@
 	 )
     (if (not (is_object binder))
 	(progn
-	  (debug_msg "put_env bad binder in binding" binding (the_callcount))
-	  (debug_msg "put_env bad binder" binder (the_callcount))
+	  (debugmsg binding "put_env bad binder in binding" (the_callcount))
+	  (debugmsg binder "put_env bad binder" (the_callcount))
 	  (shortbacktrace_dbg "put_env  bad binder in binding" 5)))
     (assert_msg "check bindmap" (is_mapobject bindmap))
     (assert_msg "check binder" (is_object binder))
@@ -2301,7 +2296,7 @@
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check opbind" (is_a opbind class_selector_binding))
-  (debug_msg "expand_msend sexpr" sexpr (the_callcount))
+  (debugmsg sexpr "expand_msend sexpr" (the_callcount))
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (spair (pair_tail (list_first scont)))
@@ -2319,7 +2314,7 @@
 		     :msend_args argtup
 		     ))
 	   )
-      (debug_msg "expand_msend res" res (the_callcount))
+      (debugmsg res "expand_msend res" (the_callcount))
       res
       )))
 
@@ -2389,15 +2384,15 @@
 
 (defun macroexpand_toplevel_list (slist env)
   ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
-  (debug_msg "macroexpand_toplevel_list env" env (the_callcount)) 
-  (debug_msg "macroexpand_toplevel_list slist" slist (the_callcount)) 
+  (debugmsg  env "macroexpand_toplevel_list env"(the_callcount)) 
+  (debugmsg slist "macroexpand_toplevel_list slist" (the_callcount)) 
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check slist" (is_list slist))
   (let ( (xlist (list_map slist 
 			  (lambda (sexp) 
-			    (debug_msg "macroexpand_toplevel_list sexp" sexp (the_callcount))
+			    (debugmsg sexp "macroexpand_toplevel_list sexp" (the_callcount))
 			    (macroexpand_1 sexp env macroexpand_1)))) )
-    (debug_msg "macroexpand_toplevel_list res xlist" xlist (the_callcount))
+    (debugmsg xlist "macroexpand_toplevel_list res xlist" (the_callcount))
     xlist
     ))
 
@@ -2405,7 +2400,6 @@
 ;;; the formalsexp is the sexpr of formals 
 ;;; the [optional] checkargs should be set to non-null to check arguments type
 (defun lambda_arg_bindings (formalsexp checkargs)
-  ;;  (debug_msg "lambda_arg_bindings formalsexp" formalsexp (the_callcount))
   ;; special case for null arglist
   (if (null formalsexp)
       (progn
@@ -2455,7 +2449,7 @@
 		    )
 		  )
 		(:else 
-		 (debug_msg "unexpected argument in formal arglist" curarg (the_callcount))
+		 (debugmsg curarg "unexpected argument in formal arglist" (the_callcount))
 		 (let ( (discrarg  (discrim curarg) ))
 		   (error_strv argloc "unexepected argument in formal arglist" 
 			       (unsafe_get_field :named_name discrarg))
@@ -2497,7 +2491,6 @@
 (defun mexpand_defprimitive (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-;  (debug_msg "mexp.defprim sexpr" sexpr (the_callcount))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
@@ -2509,7 +2502,6 @@
     ;; parse the formal arguments
     (let ( (btup (lambda_arg_bindings (pair_head curpair) (the_null))) )
       (setq curpair (pair_tail curpair))
-;      (debug_msg "btup after lambda_arg_bindings in mexpand_defprimitive" btup (the_callcount))
       ;; parse the type keyword
       (let ( (typkw  (pair_head curpair)) )
 	(or (is_a typkw class_keyword)
@@ -2570,7 +2562,7 @@
 (defun mexpand_defun (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug_msg "mexp.defun sexpr" sexpr (the_callcount))
+  (debugmsg sexpr "mexp.defun sexpr" (the_callcount))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
@@ -2585,7 +2577,6 @@
 	(is_a (pair_head curpair) class_sexpr)
 	(error_plain loc "missing or invalid arglist for defun"))
     (let ( (btup (lambda_arg_bindings (pair_head curpair) sexpr)) )
-;      (debug_msg "defun btup" btup (the_callcount))
       (or (is_multiple btup)
 	  (error_plain loc "missing formal arguments for defun"))
       (multiple_every btup (lambda (fb) (put_env newenv fb)))
@@ -2629,20 +2620,15 @@
 	 )
     (or (is_a symb class_symbol)
 	(error_plain loc "missing symbol for defclass"))
-    (debug_msg "scandefclass start cont" cont (the_callcount))
-    (debug_msg "scandefclass start curpair" curpair (the_callcount))
     (setq curpair (pair_tail curpair))
     (forever scanloop
-	     (debug_msg "scandefclass scanloop curpair" curpair (the_callcount))
 	     (if (not (is_pair curpair)) (exit scanloop))
 	     (let ( (curkw (pair_head curpair)) )
-	       (debug_msg "scandefclass scanloop curkw" curkw (the_callcount))
 	       (if (not (is_a curkw class_keyword)) 
 		   (error_plain loc "expecting keyword in defclass"))
 	       (setq curpair (pair_tail curpair))
 	       (let ( (curval (pair_head curpair)) )
 		 (setq curpair (pair_tail curpair))
-		 (debug_msg "scandefclass scanloop curval" curval (the_callcount))
 		 (cond ( (== curkw ':super)
 			 (if supernam (error_plain loc "duplicate super in defclass"))
 			 (if (not (is_a curval class_symbol))
@@ -2710,15 +2696,6 @@
 				    (unsafe_get_field :named_name curkw))
 			)
 		       ))))
-    (debug_msg "scandefclass symb" symb (the_callcount))
-    (debug_msg "scandefclass loc" loc (the_callcount))
-    (debug_msg "scandefclass supernam" supernam (the_callcount))
-    (debug_msg "scandefclass superbind" superbind (the_callcount))
-    (debug_msg "scandefclass superclass" superclass (the_callcount))
-    (debug_msg "scandefclass predef" predef (the_callcount))
-    (debug_msg "scandefclass fieldnams" fieldnams (the_callcount))
-    (debug_msg "scandefclass fieldsloc" fieldsloc (the_callcount))
-    (debug_msg "scandefclass docstr" docstr (the_callcount))
     (return symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
     ))
 
@@ -2726,19 +2703,10 @@
 (defun mexpand_defclass (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug_msg "mexp.defclass sexpr" sexpr (the_callcount))
+  (debugmsg  sexpr "mexp.defclass sexpr"(the_callcount))
   (multicall 
    (symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
    (scan_defclass sexpr env mexpander)
-  (debug_msg "mexp.defclass symb" symb (the_callcount))
-  (debug_msg "mexp.defclass loc" loc (the_callcount))
-  (debug_msg "mexp.defclass supernam" supernam (the_callcount))
-  (debug_msg "mexp.defclass superbind" superbind (the_callcount))
-  (debug_msg "mexp.defclass superclass" superclass (the_callcount))
-  (debug_msg "mexp.defclass predef" predef (the_callcount))
-  (debug_msg "mexp.defclass fieldnams" fieldnams (the_callcount))
-  (debug_msg "mexp.defclass fieldsloc" fieldsloc (the_callcount))
-  (debug_msg "mexp.defclass docstr" docstr (the_callcount))
    (let ( 
 	 (ancestors (if (is_object superclass)
 			(let ( (superancestors (unsafe_get_field :class_ancestors superclass))
@@ -2775,13 +2743,12 @@
 				 :cbind_class newclass))
 	 )
      (put_env env clabind)
-     (debug_msg "expdefclas superfields" superfields (the_callcount))
+     (debugmsg superfields "expdefclas superfields" (the_callcount))
      (multiple_every 
       superfields 
       (lambda (sfld :long ix)
 	(messagenum_dbg "expdefclasupflds ix" ix)
 	(messageval_dbg "expdefclasupfldsval sfld" sfld)
-	(debug_msg "expdefclasupflds superfield" sfld (the_callcount))
 	(assert_msg "check superfield" (is_a sfld class_field))
 	(multiple_put_nth fieldtup ix sfld)
 	(mapstring_putstr fieldstrmap (unsafe_get_field :named_name sfld) sfld)
@@ -2790,7 +2757,6 @@
       fieldnams
       (lambda (fldnam :long ix)
 	(messagenum_dbg "expdefclafldnam ix" ix)
-	(debug_msg "expdefclafldnam fldnam" fldnam (the_callcount))
 	(assert_msg "check fldnam" (is_a fldnam class_symbol))
 	(let ( (fldstr (unsafe_get_field :named_name fldnam)) 
 	       )
@@ -2803,7 +2769,6 @@
 					)) )
 	    (put_int newfld fldoff)
 	    (messagenum_dbg "expdefclafldnam fldoff" fldoff)
-	    (debug_msg "expdefclafldnam newfld" newfld (the_callcount))
 	    (multiple_put_nth fieldtup fldoff newfld)
 	    (mapstring_putstr fieldstrmap fldstr newfld)
 	    (let ( (newfldbind (make_instance class_field_binding
@@ -2816,7 +2781,7 @@
 	    ))))
      (unsafe_put_fields newclass
 			:class_fields fieldtup)
-     (debug_msg "mexp.defclass newclass" newclass (the_callcount))
+     (debugmsg newclass "mexp.defclass newclass"  (the_callcount))
      (make_instance class_src_defclass
 		    :src_loc loc
 		    :sdef_name symb
@@ -2833,7 +2798,6 @@
 
 ;; internal to parse a field assignment in a given class (or without class, for put_field)
 (defun parse_field_assignment (cla loc fldkw expr env mexpander)
-  (debug_msg "parse_field_assignment cla" cla (the_callcount))
   (assert_msg "check fldkw" (is_a fldkw class_keyword))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
@@ -2882,7 +2846,7 @@
 (defun mexpand_definstance (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug_msg "mexp.definstance sexpr" sexpr (the_callcount))
+  (debugmsg sexpr "mexp.definstance sexpr" (the_callcount))
   (let ( (predef ())
 	 (objnum ())
 	 (fields ())
@@ -2897,7 +2861,6 @@
 	 )
     (or (is_a symb class_symbol)
 	(error_plain loc "missing symbol for definstance"))
-    (debug_msg "mexpand_definstance sexpr" sexpr (the_callcount))
     (setq curpair (pair_tail curpair))
     (let ( (nam (pair_head curpair)) )
       (or (is_a nam class_symbol)
@@ -2922,10 +2885,8 @@
 	(assert_msg "check cla" (is_a cla class_class))
 	(setq curpair (pair_tail curpair))
 	(forever insloop
-		 (debug_msg "mexpand_definstance insloop curpair" curpair (the_callcount))
 		 (if (not (is_pair curpair)) (exit insloop))
 		 (let ( (curfkw (pair_head curpair)) )
-		   (debug_msg "mexpand_definstance insloop curfkw" curfkw (the_callcount))
 		   (or (is_a curfkw class_keyword)
 		       (error_plain loc "expecting keyword in definstance"))
 		   (setq curpair (pair_tail curpair))
@@ -2979,7 +2940,7 @@
 (defun mexpand_defselector (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug_msg "mexp.definstance sexpr" sexpr (the_callcount))
+  (debugmsg sexpr "mexp.definstance sexpr" (the_callcount))
   (let ( (predef ())
 	 (objnum ())
 	 (fields ())
@@ -2994,7 +2955,6 @@
 	 )
     (or (is_a symb class_symbol)
 	(error_plain loc "missing symbol for definstance"))
-    (debug_msg "mexpand_defselector sexpr" sexpr (the_callcount))
     (setq curpair (pair_tail curpair))
     (let ( (nam (pair_head curpair)) )
       (or (is_a nam class_symbol)
@@ -3019,10 +2979,8 @@
 	(assert_msg "check cla" (is_a cla class_class))
 	(setq curpair (pair_tail curpair))
 	(forever insloop
-		 (debug_msg "mexpand_defselector insloop curpair" curpair (the_callcount))
 		 (if (not (is_pair curpair)) (exit insloop))
 		 (let ( (curfkw (pair_head curpair)) )
-		   (debug_msg "mexpand_defselector insloop curfkw" curfkw (the_callcount))
 		   (or (is_a curfkw class_keyword)
 		       (error_plain loc "expecting keyword in definstance"))
 		   (setq curpair (pair_tail curpair))
@@ -3083,7 +3041,7 @@
 	 (cla ())
 	 (clabind ())
 	 )
-    (debug_msg "mexpand_make_instance start sexpr" sexpr (the_callcount))
+    (debugmsg sexpr "mexpand_make_instance start sexpr" (the_callcount))
     (or (is_a claname class_symbol)
 	(error_plain loc "missing class symbol for make_instance"))
     (let ( (bnd (find_env env claname)) 
@@ -3105,7 +3063,6 @@
       (assert_msg "check cla" (is_a cla class_class))
       (setq curpair (pair_tail curpair))
       (forever insloop
-	       (debug_msg "mexpand_make_instance insloop curpair" curpair (the_callcount))
 	       (if (not (is_pair curpair)) (exit insloop))
 	       (let ( (curfkw (pair_head curpair)) )
 		 (or (is_a curfkw class_keyword)
@@ -3339,6 +3296,7 @@
 (defun mexpand_and (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (debugmsg sexpr "mexpand_and sexpr:"  (the_callcount))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -3350,9 +3308,6 @@
 		  )))
 	(:long nbcomp (multiple_length cxtup))
 	)
-    (debug_msg "mexpand_and sexpr:" sexpr (the_callcount))
-    (debug_msg "mexpand_and curpair:" curpair (the_callcount))
-    (debug_msg "mexpand_and cxtup:" cxtup (the_callcount))
     (if (<i nbcomp 1)
 	(error_plain loc "AND without sons")
       (let ( (res (multiple_nth cxtup (-i nbcomp 1)))
@@ -3361,16 +3316,15 @@
 		 (if (<i ix 0) (exit revloop))
 		 (let ( (curc (multiple_nth cxtup ix)) )
 		   (messagenum_dbg "mexpand_and ix" ix)
-		   (debug_msg "mexpand_and curc:" curc (the_callcount))
 		   (setq res 
 			 (make_instance class_src_if
 					:src_loc loc
 					:sif_test curc
 					:sif_then res))
 		   )
-		 (debug_msg "mexpand_and res:" res (the_callcount))
 		 (setq ix (-i ix 1))
-		 )
+		)
+	(debugmsg res "mexpand_and res:" (the_callcount))
 	res))))
 (install_initial_macro 'and mexpand_and)
       
@@ -3468,7 +3422,6 @@
     (multiple_every
      bindtup
      (lambda (slb)
-       (debug_msg "mexp.let. slb" slb (the_callcount))
        (assert_msg "mexp.let. check slb" (is_a slb class_src_letbinding))
        (let ( (lb (make_instance class_let_binding
 				:binder (unsafe_get_field :sletb_binder slb)
@@ -3497,7 +3450,6 @@
 	 )
     ;; parse the formal arguments
     (let ( (argtup (lambda_arg_bindings (pair_head curpair) sexpr)) )
-      (debug_msg "argtup after lambda_arg_bindings in mexpand_lambda" argtup (the_callcount))
       (setq curpair (pair_tail curpair))
       (multiple_every argtup 
 			     (lambda (lb) (put_env newenv lb)))
@@ -3521,7 +3473,6 @@
 	 )
     ;; parse the formal results
     (let ( (restup (lambda_arg_bindings (pair_head curpair) sexpr)) )
-      (debug_msg "restup after lambda_arg_bindings in mexpand_multicall" restup (the_callcount))
       (setq curpair (pair_tail curpair))
       (let ( (curcallexp (pair_head curpair)) )
 	(if (not (is_a curcallexp class_sexpr))
@@ -3555,13 +3506,11 @@
 	(error_plain loc "QUOTE should have only one symbol argument"))
     (if (not (is_a quoted class_symbol))
 	(error_plain loc "QUOTE should have a symbol argument - composite quotations unsupported"))
-    (debug_msg "mexpand_quote quoted" quoted)
     (if (is_a quoted class_keyword)
 	(return quoted))
     (let ( (squ (make_instance class_src_quote
 			       :src_loc loc
 			       :squoted quoted)) )
-      (debug_msg "mexpand_quote squ" squ)
       squ
       )))
 (install_initial_macro 'quote mexpand_quote)
@@ -3987,13 +3936,7 @@
 ;;; add some data to a normalization context and return it
 (defun add_nctx_data (nctx ndata)
   (assert_msg "check nctx" (is_a nctx class_normcontext))
-;  (debug_msg "add_nctx_data initial ndata" ndata (the_callcount))
-;  (shortbacktrace_dbg "add_nctx_data" 12)
-  (if (not (is_a ndata class_nrep_data))
-      (debug_msg "add_nctx_data bad ndata" ndata (the_callcount)))
   (assert_msg "check ndata" (is_a ndata class_nrep_data))
-  (if (unsafe_get_field :ndata_rank ndata)
-      (debug_msg "add_nctx_data unfresh ndata" ndata (the_callcount)))
   (assert_msg "fresh ndata" (null (unsafe_get_field :ndata_rank ndata)))
   (let ( (datlis (unsafe_get_field :nctx_datalist nctx)) )
     (assert_msg "check datlis" (is_list datlis))
@@ -4008,7 +3951,6 @@
 	  (unsafe_put_fields ndata :ndata_rank rkbox1)
 	  )))
     (list_append datlis ndata)
- ;   (debug_msg "add_nctx_data final ndata" ndata (the_callcount))
     ndata
     ))
 
@@ -4028,7 +3970,6 @@
 		   (mapobject_put predefmap curpredef (make_integerbox discr_integer ix)))
 	       )
 	     (setq ix (+i ix 1)))
-    (debug_msg "creatnormctx predefmapdbg" predefmap (the_callcount))
     (make_instance class_normcontext
 		   :nctx_initproc (make_instance class_nrep_initproc
 						 :ninit_topl (make_list discr_list)
@@ -4069,7 +4010,7 @@
 (defun normexp_src_catchall (recv env ncx psloc)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_src_catchall recv" recv (the_callcount))
+  (debugmsg recv "normexp_src_catchall recv"  (the_callcount))
   (let ( (myclass (discrim recv))
 	 (myclassname (unsafe_get_field :named_name myclass)) )
     (error_strv (unsafe_get_field :src_loc recv) 
@@ -4094,7 +4035,7 @@
 
 ;; integers are ctype_long
 (defun gectyp_integer (recv env) 
-  (debug_msg "gectyp_integer recv" recv)
+  (debugmsg recv "gectyp_integer recv")
   ctype_long)
 (install_method discr_integer get_ctype gectyp_integer)
 
@@ -4108,25 +4049,21 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (assert_msg "check tup" (is_multiple tup))
-  (debug_msg "normalize_tuple tup" tup (the_callcount))
+  (debugmsg tup "normalize_tuple tup"  (the_callcount))
   (let ( (bindlist (make_list discr_list)) 
 	 (res (multiple_map
 	       tup 
 	       (lambda (comp :long ix)
-		 (debug_msg "normalize_tuple comp" comp (the_callcount))
 		 (multicall 
 		  (norcomp nbinds)
 		  (normal_exp comp env ncx psloc)
 		  (assert_msg "check nbinds" (is_list_or_null nbinds))
-		  (debug_msg "normalize_tuple norcomp" norcomp (the_callcount))
-		  (debug_msg "normalize_tuple nbinds" nbinds (the_callcount))
 		  (if (is_list nbinds)
 		      (list_every 
 		       nbinds
 		       (lambda (bnd)
 			 (assert_msg "check bnd" (is_a bnd class_any_binding))
 			 (assert_msg "check bindlist" (is_list bindlist))
-			 (debug_msg "normalize_tuple bnd" bnd (the_callcount))
 			 (list_append bindlist bnd)
 			 ))		
 		    )
@@ -4135,16 +4072,14 @@
 	 )
     (if (not (is_pair (list_first bindlist)))
 	(setq bindlist ()))
-    (debug_msg "normalize_tuple res" res (the_callcount))
-    (debug_msg "normalize_tuple bindlist" bindlist (the_callcount))
+    (debugmsg res "normalize_tuple res" (the_callcount))
+    (debugmsg bindlist "normalize_tuple bindlist"  (the_callcount))
     (return res bindlist)
     ))
 
 
 ;; wrap a normal let around a tuple of normalized expressions and a bindinglist
 (defun wrap_normal_letseq (tupnexp bindlist loc)
-;  (debug_msg "wrap_normal_letseq tupnexp" tupnexp (the_callcount))
-;  (debug_msg "wrap_normal_letseq bindlist" bindlist (the_callcount))
   (assert_msg "check tupnexp" (is_multiple_or_null tupnexp))
   (assert_msg "check bindlist" (is_list_or_null bindlist))
   (list_every
@@ -4157,14 +4092,11 @@
 			 :nlet_bindings (list_to_multiple bindlist)
 			 :nlet_body tupnexp))
 	 )
- ;   (debug_msg "wrap_normal_letseq wnlet" wnlet (the_callcount))
     wnlet))
     
 
 ;; wrap a normal let around a single normalized expression & a bindinglist
 (defun wrap_normal_let1 (nexp bindlist loc)
- ; (debug_msg "wrap_normal_let1 nexp" nexp (the_callcount))
- ; (debug_msg "wrap_normal_let1 bindlist" bindlist (the_callcount))
   (assert_msg "check bindlist" (is_list_or_null bindlist))
   (list_every
    bindlist 
@@ -4179,7 +4111,6 @@
 			     :nlet_bindings (list_to_multiple bindlist)
 			     :nlet_body (make_tuple1 discr_multiple nexp)))
 	     )
-;	(debug_msg "wrap_normal_let1 wnlet" wnlet (the_callcount))
 	wnlet)
     nexp
 ))
@@ -4197,10 +4128,6 @@
   (multicall
    (bind procs)
    (find_enclosing_env env recv)
-   (debug_msg "normexp_symbol recv" recv)
-   (debug_msg "normexp_symbol psloc" psloc)
-   (debug_msg "normexp_symbol bind" bind)
-   (debug_msg "normexp_symbol procs" procs)
    (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
    (if (null bind)
        (progn
@@ -4212,13 +4139,6 @@
      )
    (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	  (syca (mapobject_get sycmap recv)) )
-     (if (not (is_mapobject sycmap)) 
-	 (progn 
-	   (debug_msg "normexp_symbol badsycmap ncx" ncx (the_callcount))
-	   (debug_msg "normexp_symbol badsycmap sycmap.discrim" (discrim sycmap) (the_callcount))
-	   (debug_msg "normexp_symbol badsycmap sycmap" sycmap (the_callcount))
-	   )
-       )
      (assert_msg "check sycmap" (is_mapobject sycmap))
      (cond 
       ;; check if in the cache
@@ -4226,7 +4146,7 @@
       ;; value binding, get/put it into the map
       ( (is_a bind class_value_binding)
 	(let ( (bvar (mapobject_get (unsafe_get_field :nctx_valbindmap ncx) bind)) )
-	  (debug_msg "normexp_symbol value bind" bind (the_callcount))
+	  (debugmsg bind "normexp_symbol value bind" (the_callcount))
 	  (or bvar 
 	      (let ( (newbvar 
 		      (make_instance class_nrep_startval
@@ -4265,7 +4185,7 @@
 				     :ncloc_procs procs)) )
 		;; cache the result
 		(mapobject_put sycmap recv fxocc)
-		(debug_msg "normexp_symbol fxocc" fxocc)
+		(debugmsg fxocc "normexp_symbol fxocc")
 		;; put the const occurrence if needed in the const list of each proc
 		(list_every
 		 procs
@@ -4295,7 +4215,6 @@
 	      (list_every 
 	       procs
 	       (lambda (pr)
-		 (debug_msg "normexp_symbol closed pr" pr)
 		 (assert_msg "check pr" (is_a pr class_nrep_anyproc))
 		 (let ( (clbox (make_box discr_box clocc))
 			(clobindl (unsafe_get_field :nrpro_closedb pr)) )
@@ -4334,7 +4253,6 @@
       ;; previous function binding at toplevel
       ( (is_a bind class_function_binding)
 	(let ( (fubdat (unsafe_get_field :fubind_fundata bind)) )
-	  (debug_msg "normexp_symbol fubdat" fubdat (the_callcount))
 	  (assert_msg "normexp_symbol check fubdat" (is_a fubdat class_nrep_dataclosure))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv fubdat)
@@ -4343,7 +4261,6 @@
       ;; previous primitive binding at toplevel
       ( (is_a bind class_primitive_binding)
 	(let ( (pribidat (unsafe_get_field :pbind_primdata bind)) )
-	  (debug_msg "normexp_symbol pribidat" pribidat (the_callcount))
 	  (assert_msg "normexp_symbol check pribdat" (is_a pribidat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv pribidat)
@@ -4351,7 +4268,6 @@
       ;; previous class binding at toplevel
       ( (is_a bind class_class_binding)
 	(let ( (cldat (unsafe_get_field :cbind_cladata bind)) )
-	  (debug_msg "normexp_symbol cldat" cldat (the_callcount))
 	  (assert_msg "normexp_symbol check cldat" (is_a cldat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv cldat)
@@ -4359,7 +4275,6 @@
       ;; previous field binding at toplevel
       ( (is_a bind class_field_binding)
 	(let ( (fdat (unsafe_get_field :flbind_fdata bind)) )
-	  (debug_msg "normexp_symbol fdat" fdat (the_callcount))
 	  (assert_msg "normexp_symbol check fdat" (is_a fdat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv fdat)
@@ -4367,14 +4282,12 @@
       ;; previous selector binding at toplevel
       ( (is_a bind class_selector_binding)
 	(let ( (seldat (unsafe_get_field :sbind_selectordata bind)) )
-	  (debug_msg "normexp_symbol seldat" seldat (the_callcount))
 	  (assert_msg "normexp_symbol check seldat" (is_a seldat class_nrep_datainstance))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv seldat)
 	  seldat))
       ;; previous instance binding at toplevel
       ( (is_a bind class_instance_binding)
-	(debug_msg "normexp_symbol instance binding bind" bind (the_callcount))
 	(let ( (insdat (unsafe_get_field :ibind_data bind)) )
 	  (assert_msg "normexp_symbol check insdat" (is_a insdat class_nrep_datainstance))
 	  ;; cache the result & return it
@@ -4383,21 +4296,21 @@
 	)
       ;; all other cases are constants
       (:else 
-       (debug_msg "normexp_symbol const? bind" bind)
+       (debugmsg bind "normexp_symbol const? bind")
        (let ( (kocc
 	       (make_instance class_nrep_constocc
 			      :nrep_loc psloc
 			      :nocc_ctyp ctype_value
 			      :nocc_symb recv
 			      :nocc_bind bind) ) )
-	 (debug_msg "normexp_symbol kocc" kocc (the_callcount))
+	 (debugmsg kocc "normexp_symbol kocc"  (the_callcount))
 	 ;; cache the result & return it
 	 (mapobject_put sycmap recv kocc)
 	 ;; put the const occurrence if needed in the const list of each proc
 	 (list_every
 	  procs
 	  (lambda (pr)
-	    (debug_msg "normexp_symbol const pr" pr)
+	    (debugmsg pr "normexp_symbol const pr")
 	    (assert_msg "check pr" (is_a pr class_nrep_anyproc))
 	    (let ( (clbox (make_box discr_box kocc))
 		   (constproc (unsafe_get_field :nrpro_const pr)) )
@@ -4565,8 +4478,8 @@
   (assert_msg "check env" (is_a msnd class_src_msend))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_msend ncx" ncx (the_callcount))
-  (debug_msg "normexp_msend msnd" msnd (the_callcount))
+  (debugmsg ncx "normexp_msend ncx" (the_callcount))
+  (debugmsg msnd "normexp_msend msnd" (the_callcount))
   (let ( (msbind (unsafe_get_field :msend_selbind msnd))
 	 (msrecv (unsafe_get_field :msend_recv msnd))
 	 (msargs (unsafe_get_field :msend_args msnd))
@@ -4575,14 +4488,12 @@
 	 (sloc (unsafe_get_field :src_loc msnd))
 	 (nsel (normexp_symbol selnam env ncx sloc))
 	 )
-    (debug_msg "normexp_msend curproc" curproc (the_callcount))
+    (debugmsg curproc "normexp_msend curproc" (the_callcount))
     ;;;; we should add the constant selector into the current routine's constant pool
     (multicall
      (nrecv nbindrecv)
      (normal_exp msrecv env ncx sloc)
      (assert_msg "check nbindrecv" (is_list_or_null nbindrecv))
-     (debug_msg "normexp_msend nrecv" nrecv (the_callcount))
-     (debug_msg "normexp_msend nbindrecv" nbindrecv (the_callcount))
      ;; check that reciever is a value
      (let ( (ctypr (get_ctype nrecv env)) )
        (assert_msg "normexp_msend check ctypr " (is_a ctypr class_ctype))
@@ -4595,7 +4506,6 @@
       (normalize_tuple msargs env ncx sloc)
       (assert_msg "check nbindargs" (is_list_or_null nbindargs))
       (setq nbindrecv (list_append2list nbindrecv nbindargs))
-      (debug_msg "normexp_msend again msnd" msnd (the_callcount))
       (check_ctype_nargs nargs env sloc)
       (let (
 	    (csym (clone_symbol selnam)) 
@@ -4615,12 +4525,11 @@
 				   :letbind_expr nsend))
 	    )
 	(unsafe_put_fields clocc :nocc_bind cbind)
-	(debug_msg "normexp_msend nsend" nsend (the_callcount))
 	(or (is_list nbindrecv) 
 	    (setq nbindrecv (make_list discr_list)))
 	(list_append nbindrecv cbind)
-	(debug_msg "normexp_msend final nbindrecv" nbindrecv (the_callcount))
-	(debug_msg "normexp_msend clocc" clocc (the_callcount))
+	(debugmsg nbindrecv "normexp_msend final nbindrecv" (the_callcount))
+	(debugmsg clocc "normexp_msend clocc" (the_callcount))
 	(return clocc nbindrecv)
 	)))))
 (install_method class_src_msend normal_exp normexp_msend)
@@ -4675,13 +4584,10 @@
 	 (sthen (unsafe_get_field :sif_then recv))
 	 (selse (unsafe_get_field :sif_else recv))
 	 )
-;    (debug_msg "normexp_if recv" recv (the_callcount))
     (multicall 
      (ntest nbindif) ;nbindif is also the whole result binding
      (normal_exp stest env ncx sloc)
      (assert_msg "check nbindif test" (is_list_or_null nbindif))
-;     (debug_msg "normexp_if ntest" ntest (the_callcount))
-;     (debug_msg "normexp_if nbindif" nbindif (the_callcount))
      ;; in practice we don't need to make a common super-
      ;; environment with nbindif since all relevant bindings there are
      ;; generated, with unique cloned symbols, and these bindings 
@@ -4690,21 +4596,16 @@
       (nthen nbindthen)
       (normal_exp sthen env ncx sloc)
       (assert_msg "check nbindthen" (is_list_or_null nbindthen))
-;      (debug_msg "normexp_if nthen" nthen (the_callcount))
-;      (debug_msg "normexp_if nbindthen" nbindthen (the_callcount))
       (let ( (newthenenv (fresh_env env)) )
 	(list_every 
 	 nbindthen
 	 (lambda (b) (put_env newthenenv b)))
 	;; the ctyp of the whole if is initialized to the ctype of the then part
 	(setq ctypif (get_ctype nthen newthenenv))
-;	(debug_msg "normexp_if ctypif from then" ctypif (the_callcount))
 	(multicall 
 	 (nelse nbindelse)
 	 (normal_exp selse env ncx sloc)
 	 (assert_msg "check nbindelse" (is_list_or_null nbindelse))
-;	 (debug_msg "normexp_if nelse" nelse (the_callcount))
-;	 (debug_msg "normexp_if nbindelse" nbindelse (the_callcount))
 	 ;; if we have both then & else branches,
 	 ;; ensure their compatibility of types
 	 (and nthen nelse
@@ -4717,16 +4618,15 @@
 				   ))
 		     (ctypelse (get_ctype nelse newelseenv))
 		     )	
-;		(debug_msg "normexp_if ctypelse" ctypelse (the_callcount))	
 		(and
 		 (!= ctypthen ctype_void)
 		 (!= ctypelse ctype_void)
 		 (!= ctypthen ctypelse)
 		 (progn
-		   (debug_msg "normexp_if incompatyp nthen" nthen)
-		   (debug_msg "normexp_if incompatyp nelse" nelse)
-		   (debug_msg "normexp_if incompatyp ctypthen" ctypthen)
-		   (debug_msg "normexp_if incompatyp ctypelse" ctypelse)
+		   (debugmsg nthen "normexp_if incompatyp nthen")
+		   (debugmsg nelse "normexp_if incompatyp nelse")
+		   (debugmsg ctypthen "normexp_if incompatyp ctypthen")
+		   (debugmsg ctypelse "normexp_if incompatyp ctypelse")
 		   (error_plain sloc 
 				"incompatible types in conditional branches")
 		   )
@@ -4755,8 +4655,6 @@
 	   (or (is_list nbindif) 
 	       (setq nbindif (make_list discr_list)))
 	   (list_append nbindif cbind)
-;	   (debug_msg "normexp_if resulting clocc" clocc (the_callcount))
-;	   (debug_msg "normexp_if resulting nbindif" nbindif (the_callcount))
 	   (return clocc nbindif)
 	   )))))))
 (install_method class_src_if normal_exp normexp_if)
@@ -4885,7 +4783,7 @@
   (assert_msg "check let recv" (is_a recv class_src_let))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_let recv" recv (the_callcount))
+  (debugmsg recv "normexp_let recv" (the_callcount))
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sbindings (unsafe_get_field :slet_bindings recv))
 	 (sbody (unsafe_get_field :slet_body recv)) 
@@ -4896,7 +4794,6 @@
      sbindings
      (lambda (sb :long sbix)
        (assert_msg "check sb" (is_a sb class_src_letbinding))
-       (debug_msg "normexp_let sb" sb (the_callcount))
        (let ( (sbloc (unsafe_get_field :src_loc sb))
 	      (sbtyp (unsafe_get_field :sletb_type sb))
 	      (sbinder (unsafe_get_field :sletb_binder sb))
@@ -4905,8 +4802,6 @@
 	 (multicall
 	  (nbdexpr nbindings)
 	  (normal_exp sbexpr newenv ncx sbloc)
-	  (debug_msg "normexp_let nbdexpr" nbdexpr (the_callcount))
-	  (debug_msg "normexp_let nbindings" nbindings (the_callcount))
 	  (let ( (lastnbinding (pair_head (list_last nbindings))) )
 	    ;; common case of a normalized apply or primitive, hence a
 	    ;; gensymed variable which is the last in the nbindings
@@ -4931,7 +4826,6 @@
 			 )
 		    (list_append bindlist newcbnd)
 		    (put_env newenv newcbnd)
-		    (debug_msg "normexp_let newcbnd" newcbnd (the_callcount))
 		    )
 		  )
 	      (progn
@@ -4943,22 +4837,16 @@
 				       :letbind_type sbtyp
 				       :letbind_expr nbdexpr
 				       :letbind_loc sbloc)) )
-		  (debug_msg "normexp_let newpbnd" newpbnd (the_callcount))
 		  (list_append bindlist newpbnd)
 		  (put_env newenv newpbnd)
 		  ))
 	      ))))
        ))
     ;;; end of loop on source bindings
-    (debug_msg "normexp_let after sb loop bindlist" bindlist (the_callcount))
-    (debug_msg "normexp_let befor normtupl sbody" sbody (the_callcount))
     (multicall
      (nbody nbodbindings)
      (normalize_tuple sbody newenv ncx sloc)
-     (debug_msg "normexp_let nbody" nbody (the_callcount))
-     (debug_msg "normexp_let nbodbindings" nbodbindings (the_callcount))
      (list_append2list bindlist  nbodbindings)
-     (debug_msg "normexp_let bindlist" bindlist (the_callcount))
      (assert_msg "normexp_let check bindlist" (is_list_or_null bindlist))
      (list_every
       bindlist
@@ -4970,7 +4858,6 @@
 			     :nrep_loc sloc
 			     :nlet_bindings (list_to_multiple bindlist discr_multiple)
 			     :nlet_body nbody)) )
-	(debug_msg "normexp_let returning nlet" nlet (the_callcount))
 	(return nlet ())
 	))
      )))
@@ -4989,7 +4876,7 @@
   (assert_msg "check unsafegetfield recv" (is_a recv class_src_unsafe_get_field))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp unsafeget recv" recv (the_callcount))
+  (debugmsg recv "normexp unsafeget" recv (the_callcount))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sobj   (unsafe_get_field :suget_obj recv))
 	 (sfld   (unsafe_get_field :suget_field recv)) ) 
@@ -5054,7 +4941,7 @@
   (assert_msg "check setq recv" (is_a recv class_src_setq))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp setq recv" recv (the_callcount))
+  (debugmsg recv "normexp setq recv" (the_callcount))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (svar   (unsafe_get_field :sstq_var recv))
 	 (sexp   (unsafe_get_field :sstq_expr recv)) ) 
@@ -5085,7 +4972,7 @@
   (assert_msg "check make_instance recv" (is_a recv class_src_make_instance))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_make_instance recv" recv (the_callcount))
+  (debugmsg recv "normexp_make_instance recv"  (the_callcount))
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sclass (unsafe_get_field :smins_class recv))
 	 (sclabind (unsafe_get_field :smins_clabind recv))
@@ -5095,7 +4982,6 @@
 		      (normal_exp sclasym env ncx sloc)))
 	 (bindlist (make_list discr_list))
 	 )
-    (debug_msg "normexp_make_instance cladata" cladata (the_callcount))
     (if (not (is_a cladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in make_instance" (unsafe_get_field :named_name sclass))
@@ -5126,7 +5012,7 @@
 			   :nmins_cladata cladata
 			   :nmins_fields nfields))
 	   )
-      (debug_msg "normexp_make_instance result nmkins" nmkins (the_callcount))
+      (debugmsg nmkins "normexp_make_instance result nmkins" (the_callcount))
       (return nmkins bindlist)
       )
     )
@@ -5142,7 +5028,7 @@
   (assert_msg "check forever recv" (is_a recv class_src_forever))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_forever recv" recv (the_callcount))
+  (debugmsg recv "normexp_forever recv"  (the_callcount))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (slbind (unsafe_get_field :slabel_bind recv))
 	 (sbody (unsafe_get_field :sfrv_body recv))
@@ -5166,7 +5052,7 @@
 				      :nforever_body resbody
 				      :nforever_result resy)) 
 	     )
-	 (debug_msg "normexp_forever return nforever" nforever)
+	 (debugmsg nforever "normexp_forever return nforever")
 	 (return nforever ())
 	 )
        ))))
@@ -5179,7 +5065,7 @@
   (assert_msg "check exit recv" (is_a recv class_src_exit))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_exit recv" recv (the_callcount))
+  (debugmsg recv "normexp_exit recv" (the_callcount))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (slbind (unsafe_get_field :slabel_bind recv))
 	 (sbody (unsafe_get_field :sexi_body recv))
@@ -5195,21 +5081,20 @@
 				  :nrep_loc sloc
 				  :nexit_bind slbind
 				  :nexit_val (multiple_nth nbody (-i (multiple_length nbody) 1)))) )
-       (debug_msg "normexp_exit nexit" nexit (the_callcount))
-       (debug_msg "normexp_exit nbodbindings" nbodbindings (the_callcount))
+       (debugmsg nexit "normexp_exit nexit" (the_callcount))
+       (debugmsg nbodbindings "normexp_exit nbodbindings" (the_callcount))
        (return nexit nbodbindings)
        ))))
 (install_method class_src_exit normal_exp normexp_exit)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; replace in a tupe of normalized stuff the last with a return 
 ;;;;;; for normalization of defun-s or lambda-s
 (defun replace_last_by_return (tup env sloc)
   (assert_msg "check tup" (is_multiple tup))
   (assert_msg "check env" (is_a env class_environment))
-;  (debug_msg "replacelastret tup" tup (the_callcount))
   (let ( (:long tuplen (multiple_length tup)) 
 	 (lastcomp (if (>i tuplen 0) (multiple_nth tup (-i tuplen 1)))) )
-;    (debug_msg "replacelastret lastcomp" lastcomp (the_callcount))
     (cond 
 ;;; last expression is already a return - do nothing
      ( (is_a lastcomp class_nrep_return)
@@ -5281,7 +5166,6 @@
 		tup  (-i tuplen 1)
 		rlet)
 	       )))))
-;    (debug_msg "replacelastret final tup" tup (the_callcount))
     tup ; returns the original tuple
 ;;; general case, do nothing 
     )
@@ -5293,7 +5177,7 @@
   (assert_msg "check defun recv" (is_a recv class_src_defun))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_defun recv" recv (the_callcount))
+  (debugmsg recv "normexp_defun recv" (the_callcount))
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (snam (unsafe_get_field :sdef_name recv))
 	 (sformals (unsafe_get_field :sformal_args recv))
@@ -5342,12 +5226,9 @@
     (unsafe_put_fields newenv :env_proc nproc)
     ;; add nproc into ncx
     (list_append (unsafe_get_field :nctx_proclist ncx) nproc)
-    (debug_msg "normexp_defun sbody" sbody (the_callcount))
     (multicall
      (nbody nbindings)
      (normalize_tuple sbody newenv ncx sloc)
-;     (debug_msg "normexp_defun nbody" nbody (the_callcount))
-;     (debug_msg "normexp_defun nbindings" nbindings (the_callcount))
      (multiple_every
       nbindings
       (lambda (nbi :long ix)
@@ -5355,8 +5236,6 @@
      (let ( (nrbody (replace_last_by_return nbody newenv sloc)) 
 	    (npbody (wrap_normal_letseq nrbody nbindings sloc))
 	    )
- ;      (debug_msg "normexp_defun nrbody" nrbody (the_callcount))
- ;      (debug_msg "normexp_defun npbody" npbody (the_callcount))
        (unsafe_put_fields nproc  :nproc_body npbody)
        )
      (unsafe_put_fields ncx :nctx_curproc oldproc :nctx_symbcachemap oldsymbcache)
@@ -5376,7 +5255,7 @@
        (unsafe_put_fields ndataclos :ndclo_closv clovtup)
        )
      (unsafe_put_fields sfubind :fubind_fundata ndataclos)
-     (debug_msg "normexp_defun return nproc" nproc (the_callcount))
+     (debugmsg nproc "normexp_defun return nproc" (the_callcount))
      (return nproc ())
      )
     ))
@@ -5390,7 +5269,7 @@
   (assert_msg "check lambda recv" (is_a recv class_src_lambda))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_lambda recv" recv (the_callcount))
+  (debugmsg recv "normexp_lambda recv" (the_callcount))
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sargs (unsafe_get_field :slam_argbind recv))
 	 (sbody (unsafe_get_field :slam_body recv))
@@ -5433,7 +5312,6 @@
     (multicall
      (nbody nbindings)
      (normalize_tuple sbody newenv ncx sloc)
-     (debug_msg "normexp_lambda closedblist became" closedblist (the_callcount))
      (multiple_every
       nbindings
       (lambda (nbi :long ix)
@@ -5447,7 +5325,6 @@
 			:nctx_symbcachemap savedcachemap
 			:nctx_curproc oldproc
 			)
-     (debug_msg "normexp_lambda nproc" nproc (the_callcount))
      (let ( 
 	   ;; we make an anonymous constant for the routine unless in toplevel
 	   (:long insideflag (is_a oldproc class_nrep_routproc))
@@ -5461,7 +5338,6 @@
 	    (list_to_multiple closedblist
 			      discr_multiple
 			      (lambda (bnd)
-				(debug_msg "normexp_lambda bnd" bnd)
 				(assert_msg "normexp_lambda check bnd" (is_a bnd class_any_binding))
 				(let ( (sy (unsafe_get_field :binder bnd)) 
 				       ;; since sy is a symbol, its normalized form does not add any binding
@@ -5478,7 +5354,7 @@
 	   )
        (if insideflag
 	   (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
-       (debug_msg "normexp_lambda nlambda" nlambda (the_callcount))
+       (debugmsg nlambda "normexp_lambda nlambda" (the_callcount))
        (return nlambda ())
        ))))
 (install_method class_src_lambda normal_exp normexp_lambda)
@@ -5488,7 +5364,7 @@
   (assert_msg "check multicall recv" (is_a recv class_src_multicall))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_multicall recv" recv (the_callcount))
+  (debugmsg recv "normexp_multicall recv" (the_callcount))
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sresbind (unsafe_get_field :smulc_resbind recv))
 	 (scall (unsafe_get_field :smulc_call recv))
@@ -5498,8 +5374,8 @@
     (multicall
      (ncall ncallbindings)
      (normal_exp scall env ncx sloc)
-     (debug_msg "normexp_multicall ncall" ncall (the_callcount))
-     (debug_msg "normexp_multicall ncallbindings" ncallbindings (the_callcount))
+     (debugmsg ncall "normexp_multicall ncall" (the_callcount))
+     (debugmsg ncallbindings "normexp_multicall ncallbindings" (the_callcount))
 ;;; since ncall is normalized, it is a class_nrep_locsymocc and
 ;;; the last binding in ncallbindings is a class_normlet_binding
 ;;; whose binder is the nocc_symb of the ncall
@@ -5519,7 +5395,7 @@
 		())
 	    (progn (list_append nincallbindings cbnd) cbnd))))
        (setq nrealcall (box_content nboxcall))
-       (debug_msg "normexp_multicall got nrealcall" nrealcall (the_callcount))
+       (debugmsg nrealcall "normexp_multicall got nrealcall" (the_callcount))
        (multiple_every
 	sresbind
 	(lambda (bnd :long ix)
@@ -5527,8 +5403,8 @@
        (multicall
 	(nbody nbodybindings)
 	(normalize_tuple sbody newenv ncx sloc)
-	(debug_msg "normexp_multicall nbody" nbody (the_callcount))
-	(debug_msg "normexp_multicall nbodybindings" nbodybindings (the_callcount))
+	(debugmsg nbody "normexp_multicall nbody" (the_callcount))
+	(debugmsg nbodybindings "normexp_multicall nbodybindings" (the_callcount))
 	(let ( (wnbodylet (wrap_normal_letseq nbody nbodybindings sloc)) )
 	  (cond
 	   ( (is_a scall class_src_apply)
@@ -5539,12 +5415,12 @@
 					 :napp_args (unsafe_get_field :napp_args nrealcall)
 					 :nmulapp_bindings sresbind
 					 :nmulapp_body wnbodylet)) )
-	       (debug_msg "normexp_multicall multiapply nres" nres (the_callcount))
+	       (debugmsg nres "normexp_multicall multiapply nres" (the_callcount))
 	       (return nres nincallbindings)
 	       )
 	     )
 	   ( (is_a scall class_src_msend)
-	     (debug_msg "normexp_multicall multicall nrealcall" nrealcall (the_callcount))
+	     (debugmsg nrealcall "normexp_multicall multicall nrealcall" (the_callcount))
 	     (assert_msg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
 	     (let ( (nres (make_instance class_nrep_multimsend
 					 :nrep_loc sloc
@@ -5553,7 +5429,7 @@
 					 :nsend_args (unsafe_get_field :nsend_args nrealcall)
 					 :nmulsend_bindings sresbind
 					 :nmulsend_body wnbodylet)) )
-	       (debug_msg "normexp_multicall multisend nres" nres (the_callcount))
+	       (debugmsg nres "normexp_multicall multisend nres" (the_callcount))
 	       (return nres nincallbindings)
 	       )
 	     )
@@ -5578,8 +5454,8 @@
 		       :nrpredef brk)
       (if (is_string msg) 
 	  (progn
-	    (debug_msg "normalpredef predefmap" predefmap (the_callcount))
-	    (debug_msg "normalpredef pred" pred (the_callcount))
+	    (debugmsg predefmap "normalpredef predefmap" (the_callcount))
+	    (debugmsg pred "normalpredef pred" (the_callcount))
 	    (error_strv sloc "not a predef:" msg))
 	))))
 
@@ -5656,11 +5532,11 @@
 ;; create the tuples of slots of a datainstance for a particular class
 (defun create_data_slots (cla)
   (assert_msg "check cla" (is_a cla class_class)) 
-  (debug_msg "create_data_slots cla" cla (the_callcount))
+  (debugmsg cla "create_data_slots cla" (the_callcount))
   (let ( (tupslo 
 	  (make_multiple discr_multiple  (multiple_length (unsafe_get_field :class_fields cla)))) 
 	 )
-    (debug_msg "create_data_slots tupslo" tupslo (the_callcount))
+    (debugmsg tupslo "create_data_slots tupslo" (the_callcount))
     tupslo
     ))
 
@@ -5679,8 +5555,8 @@
   (assert_msg "check quote recv" (is_a recv class_src_quote))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_quote ncx" ncx (the_callcount))
-  (debug_msg "normexp_quote recv" recv (the_callcount))
+  (debugmsg ncx "normexp_quote ncx" (the_callcount))
+  (debugmsg recv "normexp_quote recv" (the_callcount))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (quotedsy (unsafe_get_field :squoted recv)) )
     (assert_msg "check quotedsy" (== (discrim quotedsy) class_symbol))
@@ -5696,7 +5572,7 @@
 	   )
       (assert_msg "check curproc" (is_a curproc class_nrep_routproc))
       (list_append constlist sdata)
-      (debug_msg "normexp_quote nconst" nconst (the_callcount))
+      (debugmsg nconst "normexp_quote nconst" (the_callcount))
       nconst
       )))
 (install_method class_src_quote normal_exp normexp_quote)
@@ -5706,8 +5582,8 @@
   (assert_msg "check keyword recv" (is_a recv class_keyword))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp_keyword ncx" ncx (the_callcount))
-  (debug_msg "normexp_keyword recv" recv (the_callcount))
+  (debugmsg ncx "normexp_keyword ncx" (the_callcount))
+  (debugmsg recv "normexp_keyword recv" (the_callcount))
   (let ( (kdata (normal_keyword_data recv ncx psloc)) 
 	 (curproc (unsafe_get_field :nctx_curproc ncx))
 	 (constlist (unsafe_get_field :nrpro_const curproc))
@@ -5719,7 +5595,7 @@
 	 )
     (assert_msg "check curproc" (is_a curproc class_nrep_anyproc))
     (list_append constlist kdata)
-    (debug_msg "normexp_keyword nconst" nconst (the_callcount))
+    (debugmsg nconst "normexp_keyword nconst" (the_callcount))
     nconst
 ))
 (install_method class_keyword normal_exp normexp_keyword)
@@ -5796,7 +5672,7 @@
     (multiple_every
      sexp
      (lambda (expcomp :long ix)
-       (debug_msg "normexp_defprimitive expcomp" expcomp)
+       (debugmsg expcomp "normexp_defprimitive expcomp")
        (let ( (discrcomp (discrim expcomp)) 
 	      (compdata 
 	       (cond ( (== discrcomp discr_verbatimstring)
@@ -5995,7 +5871,7 @@
   (assert_msg "check definstance recv" (is_a recv class_src_definstance))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp definstance recv" recv (the_callcount))
+  (debugmsg recv "normexp definstance recv" (the_callcount))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (spredef (unsafe_get_field :sobj_predef recv))
@@ -6013,7 +5889,7 @@
 	 (icladata (if (is_a sinstclasym class_symbol) 
 		       (normal_exp sinstclasym env ncx sloc)))
 	 )
-    (debug_msg "normexp definstance bindins" bindins (the_callcount))
+    (debugmsg bindins "normexp definstance bindins" (the_callcount))
     (assert_msg "check bindins" (is_a  bindins class_instance_binding))
     (if (not (is_a icladata class_nrep))
 	(progn
@@ -6068,7 +5944,7 @@
 	(if (>i (multiple_length nbindtup) 0) 
 	    (unsafe_put_fields insdata :ndata_locbind nbindtup))
 	;; return the data
-	(debug_msg "normexp_definstance return insdata" insdata (the_callcount))
+	(debugmsg insdata "normexp_definstance return insdata" (the_callcount))
 	insdata
 	))))
 (install_method class_src_definstance normal_exp normexp_definstance)
@@ -6080,7 +5956,7 @@
   (assert_msg "check defselector recv" (is_a recv class_src_defselector))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debug_msg "normexp defselector recv" recv (the_callcount))
+  (debugmsg recv "normexp defselector recv" (the_callcount))
   (let ( 
 	(sloc (unsafe_get_field :src_loc recv))
 	(sname (unsafe_get_field :sdef_name recv))
@@ -6152,7 +6028,7 @@
 	(if (>i (multiple_length nbindtup) 0) 
 	    (unsafe_put_fields insdata :ndata_locbind nbindtup))
 	;; return the data
-	(debug_msg "normexp_defselector return insdata" insdata (the_callcount))
+	(debugmsg insdata "normexp_defselector return insdata" (the_callcount))
 	insdata
 	))))
 (install_method class_src_defselector normal_exp normexp_defselector)
@@ -6175,8 +6051,8 @@
 ;; be separately compiled with its own method so this should never be
 ;; called
 (defun compilobj_catchall_nrep (recv gcx)
-  (debug_msg "class_rep compile_obj gcx" gcx (the_callcount))
-  (debug_msg "class_rep compile_obj recv" recv (the_callcount))
+  (debugmsg gcx "class_rep compile_obj gcx" (the_callcount))
+  (debugmsg recv "class_rep compile_obj recv" (the_callcount))
   (assert_msg "@@compile_obj should be implemented in nrep-s subclasses" ())
   )
 (install_method class_nrep compile_obj compilobj_catchall_nrep)
@@ -6211,8 +6087,8 @@
   :fields (
 ))
 (defun putobjdest_catchall_objcode (recv desto)
-  (debug_msg "putobjdest_catchall_objcode recv@@  " recv (the_callcount))
-  (debug_msg "putobjdest_catchall_objcode desto@@  " desto (the_callcount))
+  (debugmsg recv "putobjdest_catchall_objcode recv@@  "  (the_callcount))
+  (debugmsg desto "putobjdest_catchall_objcode desto@@  "  (the_callcount))
   (shortbacktrace_dbg "putobjdest_catchall_objcode" 15)
   (assert_msg "@@ unexpected catchall putobjdest" ()))
 (install_method class_objcode put_objdest putobjdest_catchall_objcode)
@@ -6274,7 +6150,7 @@
 ;  :named_name (stringconst2val discr_namestring "OUTPUT_C_DECLINIT")
 )
 (defun outdeclinit_root (recv sbuf)
-  (debug_msg "outdeclinit_root recv" recv (the_callcount))
+  (debugmsg recv "outdeclinit_root recv" (the_callcount))
   (assert_msg "outdeclinit_root unimplemented catchall" ())
 )
 (install_method class_root output_c_declinit outdeclinit_root)
@@ -6295,7 +6171,7 @@
 
 (defun outpucod_objinielem (obielem  declbuf implbuf :long depth)
   (assert_msg "check obelem" (is_a obielem class_objinitelem))
-  ;;(debug_msg "outpucod_objinielem obielem" obielem (the_callcount))
+  ;;(debugmsg obielem "outpucod_objinielem obielem" (the_callcount))
   (let ( (olocvar (unsafe_get_field :oie_locvar obielem))
 	 (cnam (unsafe_get_field :oie_cname obielem)) )
     (assert_msg "check cnam" (is_string cnam))
@@ -6315,7 +6191,7 @@
 ;  :named_name (stringconst2val discr_namestring "OUTPUT_C_INITFILL")
 )
 (defun outcinitfill_root (recv declbuf implbuf :long depth)
-  (debug_msg "outcinitfill_root recv" recv (the_callcount))
+  (debugmsg recv "outcinitfill_root recv" (the_callcount))
   (assert_msg "outcinitfill_root unimplemented catchall" ())
 )
 (install_method class_root output_c_initfill outcinitfill_root)
@@ -6336,7 +6212,7 @@
        (add2sbuf_strconst implbuf ")")
        )
      ( :else
-       (debug_msg "bad obpredef" obpredef (the_callcount))
+       (debugmsg obpredef "bad obpredef" (the_callcount))
        (assert_msg "invalid obpredef" ())
        )
      )))
@@ -6359,7 +6235,7 @@
 
 (defun outcinitfill_objinitobject (recv sbuf)
   (assert_msg "outcinitfill_objinitobject check recv" (is_a recv class_objinitobject))
-  (debug_msg "outcinitfill_objinitobject recv" recv (the_callcount))
+  (debugmsg recv "outcinitfill_objinitobject recv" (the_callcount))
   (let ( (odata (unsafe_get_field :oie_data recv)) 
 	 (odiscr (unsafe_get_field :oie_discr recv))
 	 (oname (unsafe_get_field :oie_cname recv))
@@ -6404,7 +6280,7 @@
 	     (add2sbuf_indentnl sbuf 1)
 	     )
 	   ( :else
-	     (debug_msg "outcinitfill_objinitobject unexpected oiopredef" oiopredef (the_callcount))
+	     (debugmsg oiopredef "outcinitfill_objinitobject unexpected oiopredef" (the_callcount))
 	     (assert_msg "outcinitfill_objinitobject unexpected oiopredef" ())
 	     )))
       (add2sbuf_strconst sbuf " cdat->")
@@ -6458,7 +6334,7 @@
 
 (defun outcinitfill_objinitmultiple (recv sbuf)
   (assert_msg "outcinitfill_objinitmultiple check recv" (is_a recv class_objinitmultiple))
-  (debug_msg "outcinitfill_objinitmultiple recv" recv (the_callcount))
+  (debugmsg recv "outcinitfill_objinitmultiple recv" (the_callcount))
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
 	 )
@@ -6505,7 +6381,7 @@
 
 (defun outcinitfill_objinitclosure (recv sbuf)
   (assert_msg "outcinitfill_objinitclosure check recv" (is_a recv class_objinitclosure))
-  (debug_msg "outcinitfill_objinitclosure recv" recv (the_callcount))
+  (debugmsg recv "outcinitfill_objinitclosure recv" (the_callcount))
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
 	 )
@@ -6556,7 +6432,7 @@
 
 (defun outcinitfill_objinitroutine (recv sbuf)
   (assert_msg "outcinitfill_objinitroutine check recv" (is_a recv class_objinitroutine))
-  (debug_msg "outcinitfill_objinitroutine recv" recv (the_callcount))
+  (debugmsg recv "outcinitfill_objinitroutine recv" (the_callcount))
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (ipro (unsafe_get_field :oir_procroutine recv))
 	 (olocvar (unsafe_get_field :oie_locvar recv))
@@ -6588,8 +6464,8 @@
 	(let ( (dnam (unsafe_get_field :ndata_name ndatr))
 	       (dpro (unsafe_get_field :ndrou_proc ndatr))
 	       )
-	  (debug_msg "outcinitfill_objinitroutine ndatr" ndatr (the_callcount))
-	  (debug_msg "outcinitfill_objinitroutine dpro" dpro (the_callcount))
+	  (debugmsg ndatr "outcinitfill_objinitroutine ndatr" (the_callcount))
+	  (debugmsg dpro "outcinitfill_objinitroutine dpro" (the_callcount))
 	  (if (is_a dnam class_named)
 	      (add2sbuf_cencstring sbuf (unsafe_get_field :named_name dnam)))
 	  (if (is_a dpro class_nrep_routproc)
@@ -6613,7 +6489,7 @@
     (add2sbuf_indentnl sbuf 1)
     (if ipro
 	(progn
-	  (debug_msg "outcinitfill_objinitroutine ipro" ipro (the_callcount))
+	  (debugmsg ipro "outcinitfill_objinitroutine ipro" (the_callcount))
 	  (assert_msg "check ipro" (is_a ipro class_named))
 	  (add2sbuf_strconst sbuf "*(basilysroutfun_t **) (cdat->")
 	  (add2sbuf_string sbuf cnam)
@@ -6623,7 +6499,7 @@
 	  (add2sbuf_indentnl sbuf 1)
 	  )
       (progn
-	(debug_msg "outcinitfill_objinitroutine (noipro) recv" recv (the_callcount))
+	(debugmsg recv "outcinitfill_objinitroutine (noipro) recv"  (the_callcount))
 	(add2sbuf_strconst sbuf "#warning no procedure in objinitroutine ")
 	(add2sbuf_string sbuf cnam)
 	(add2sbuf_indentnl sbuf 1)
@@ -6649,7 +6525,7 @@
 
 (defun outcinitfill_objinitstring (recv sbuf)
   (assert_msg "outcinitfill_objinitstring check recv" (is_a recv class_objinitstring))
-  (debug_msg "outcinitfill_objinitstring recv" recv (the_callcount))
+  (debugmsg recv "outcinitfill_objinitstring recv" (the_callcount))
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
 	 )
@@ -6891,7 +6767,7 @@
 ;;; start routine of the module
 
 (defun outpucod_anydiscr (any declbuf implbuf :long depth)
-  (debug_msg "outpucod_anydiscr any" any (the_callcount))
+  (debugmsg any "outpucod_anydiscr any" (the_callcount))
   (assert_msg "@@ outpucod_anydiscr not able to output" ())
 )
 (install_method discr_anyrecv output_c_code outpucod_anydiscr)
@@ -6903,7 +6779,7 @@
 
 ;;; catchall for outputting any stuff
 (defun outpucod_root (anyr declbuf implbuf :long depth)
-  (debug_msg "outpucod_root anyr" anyr (the_callcount))
+  (debugmsg anyr "outpucod_root anyr" (the_callcount))
   (assert_msg "@@ outpucod_root not able to output" ())
 )
 (install_method class_root output_c_code outpucod_root)
@@ -6911,7 +6787,7 @@
 
 ;;; output the code for declaring and initializing the current frame 
 (defun output_curframe_init (rou implbuf)
-  (debug_msg "output_curframe_init rou" rou (the_callcount))
+  (debugmsg rou "output_curframe_init rou" (the_callcount))
   (let (
 	(obody (unsafe_get_field :obrout_body rou))
 	(onbval (unsafe_get_field :obrout_nbval rou))
@@ -6972,7 +6848,7 @@
 	)
     (if others 
 	(progn
-	  (debug_msg "output_curframe_init others" others (the_callcount))
+	  (debugmsg others "output_curframe_init others" (the_callcount))
 	  (assert_msg "output_curframe_init @@ handling of others not implemented" ())
 	  ))
     (add2sbuf_strconst implbuf "  long _spare_; } curfram__ = {")
@@ -7047,7 +6923,7 @@
 	 (ogargs (unsafe_get_field :oprout_getargs prou))
 	 (oretval (unsafe_get_field :obrout_retval prou))
 	 )
-    (debug_msg "outpucod_procroutine prou" prou (the_callcount))
+    (debugmsg prou "outpucod_procroutine prou" (the_callcount))
     ;; output the declaration
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_strconst declbuf "static basilys_ptr_t ")
@@ -7073,7 +6949,7 @@
     ;; output the argument getting
     (add2sbuf_strconst implbuf "/*getargs*/")
     (add2sbuf_indentnl implbuf 0)
-    (debug_msg "outpucod_procroutine output ogargs" ogargs (the_callcount))
+    (debugmsg ogargs "outpucod_procroutine output ogargs" (the_callcount))
     (assert_msg "check ogargs" (is_multiple ogargs))
     (multiple_every
      ogargs
@@ -7092,7 +6968,7 @@
     (add2sbuf_strconst implbuf "lab_endgetargs:;")
     (add2sbuf_indentnl implbuf 0)
     ;; output the body
-    (debug_msg "outpucod_procroutine output obody" obody (the_callcount))
+    (debugmsg obody "outpucod_procroutine output obody" (the_callcount))
     (assert_msg "check obody" (is_list obody))
     (add2sbuf_strconst implbuf "/*body*/")
     (add2sbuf_indentnl implbuf 0)
@@ -7135,21 +7011,21 @@
   (add2sbuf_indentnl implbuf 0)
   (add2sbuf_strconst implbuf "void* start_module_basilys(void* modatap_) {")
   (add2sbuf_indentnl implbuf 0)
-  (debug_msg "outpucod_initialroutine pini" pini (the_callcount))
+  (debugmsg pini "outpucod_initialroutine pini" (the_callcount))
   ;; generate the initial data structure
   (let ( 
 	(idatup (unsafe_get_field :oirout_data pini)) 
 	(irfill (unsafe_get_field :oirout_fill pini))
 	(oretval (unsafe_get_field :obrout_retval pini))
 	) 
-    (debug_msg "outpucod_initialroutine start idatup" idatup (the_callcount))
-    (debug_msg "outpucod_initialroutine start irfill" irfill (the_callcount))
+    (debugmsg idatup "outpucod_initialroutine start idatup" (the_callcount))
+    (debugmsg irfill "outpucod_initialroutine start irfill" (the_callcount))
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf "struct cdata_st {")
     (multiple_every
      idatup
      (lambda (curdat :long curk) 
-       (debug_msg "outpucod_initialroutine curdat" curdat (the_callcount))
+       (debugmsg curdat "outpucod_initialroutine curdat" (the_callcount))
        (add2sbuf_indentnl implbuf 1)
        (output_c_declinit curdat implbuf)))
     (add2sbuf_indentnl implbuf 0)
@@ -7168,11 +7044,11 @@
     (multiple_every
      idatup
      (lambda (curfil :long curk) 
-       (debug_msg "outpucod_initialroutine curfil" curfil (the_callcount))
+       (debugmsg curfil "outpucod_initialroutine curfil" (the_callcount))
        (add2sbuf_indentnl implbuf 1)
        (output_c_initfill curfil implbuf)))
 ;;; initialize the variables
-    (debug_msg "outpucod_initialroutine irfill" irfill)
+    (debugmsg irfill "outpucod_initialroutine irfill")
 ;;; clear the cdat for safety and renable GC
     (add2sbuf_strconst implbuf " cdat = NULL;")
     (add2sbuf_indentnl implbuf 0)
@@ -7183,11 +7059,11 @@
     (add2sbuf_indentnl implbuf 0)
     (let ( (ibody (unsafe_get_field :obrout_body pini)) 
 	   )
-      (debug_msg "outpucod_initialroutine ibody" ibody)
+      (debugmsg ibody "outpucod_initialroutine ibody")
       (list_every
        ibody
        (lambda (curbody)
-	 (debug_msg "outpucod_initialroutine curbody" curbody (the_callcount))
+	 (debugmsg curbody "outpucod_initialroutine curbody" (the_callcount))
 	 (if (is_a curbody class_objinstr) 
 	     (progn
 	       (output_c_code curbody declbuf implbuf 1)
@@ -7218,7 +7094,7 @@
 ;; output code for argument getter
 (defun outpucod_getarg (garg declbuf implbuf :long depth)
   (assert_msg "check garg" (is_a garg class_objgetarg))
-  (debug_msg "outpucod_getarg garg" garg (the_callcount))
+  (debugmsg garg "outpucod_getarg garg" (the_callcount))
   (let ( (oloc (unsafe_get_field :obarg_obloc garg))
 	 (obind (unsafe_get_field :obarg_bind garg))
 	 (:long rkbind (get_int obind))
@@ -7268,7 +7144,7 @@
 	  )
 	(add2sbuf_indentnl implbuf depth)
 	))
-    (debug_msg "outpucod_getarg done garg" garg (the_callcount))
+    (debugmsg garg "outpucod_getarg done garg" (the_callcount))
     ))
 (install_method class_objgetarg output_c_code outpucod_getarg)
 
@@ -7277,7 +7153,7 @@
 ;; output code for objlocv
 (defun outpucod_objlocv (locv declbuf implbuf :long depth)
   (assert_msg "check locv" (is_a locv class_objlocv))
-  ;; (debug_msg "outpucod_objlocv locv" locv (the_callcount))
+  ;; (debugmsg locv "outpucod_objlocv locv" (the_callcount))
   (let ( 
 	(ltyp (unsafe_get_field :obv_type locv))
 	(loff (unsafe_get_field :obl_off locv))
@@ -7324,7 +7200,7 @@
 ;; output code for object const [closed] occurrence
 (defun outpucod_objconstv (ocnstv  declbuf implbuf :long depth)
   (assert_msg "check ocnstv" (is_a ocnstv class_objconstv))
-  (debug_msg "outpucod_objconstv ocnstv" ocnstv (the_callcount))
+  (debugmsg ocnstv "outpucod_objconstv ocnstv" (the_callcount))
   (let ( (ooff (unsafe_get_field :obc_off ocnstv))
 	 (onam (unsafe_get_field :obc_name ocnstv)) )
     (assert_msg "check valueness of const occurrence" 
@@ -7354,7 +7230,7 @@
 ;; output code for objblock
 (defun outpucod_objblock (oblo declbuf implbuf :long depth)
   (assert_msg "check oblo" (is_a oblo class_objblock))
-  (debug_msg "outpucod_objblock oblo" oblo (the_callcount))
+  (debugmsg oblo "outpucod_objblock oblo" (the_callcount))
   (output_location (unsafe_get_field :obi_loc oblo) implbuf depth)
   (let ( (bodyl (unsafe_get_field :oblo_bodyl oblo))
 	 (epil (unsafe_get_field :oblo_epil oblo)) 
@@ -7389,7 +7265,7 @@
     (add2sbuf_strconst implbuf "}")
     (add2sbuf_indentnl implbuf depth)
     )
-  (debug_msg "outpucod_objblock done oblo" oblo (the_callcount))
+  (debugmsg oblo "outpucod_objblock done oblo" (the_callcount))
   )
 (install_method class_objblock output_c_code outpucod_objblock)
 
@@ -7408,7 +7284,7 @@
 ;;; output code for objloop
 (defun outpucod_objloop (oblo declbuf implbuf :long depth)
   (assert_msg "check oblo" (is_a oblo class_objloop))
-  (debug_msg "outpucod_objloop oblo" oblo (the_callcount))
+  (debugmsg oblo "outpucod_objloop oblo" (the_callcount))
   (output_location (unsafe_get_field :obi_loc oblo) implbuf depth)
   (let ( (bodyl (unsafe_get_field :oblo_bodyl oblo))
 	 (epil (unsafe_get_field :oblo_epil oblo)) 
@@ -7452,7 +7328,7 @@
     (add2sbuf_strconst implbuf "}")
     (add2sbuf_indentnl implbuf depth)
     )
-  (debug_msg "outpucod_objloop done oblo" oblo (the_callcount))
+  (debugmsg oblo "outpucod_objloop done oblo" (the_callcount))
   )
 (install_method class_objloop output_c_code outpucod_objloop)
 
@@ -7460,7 +7336,7 @@
 ;;; output code for objexit
 (defun outpucod_objexit (obxi declbuf implbuf :long depth)
   (assert_msg "check obxi" (is_a obxi class_objexit))
-  (debug_msg "outpucod_objexit obxi" obxi (the_callcount))
+  (debugmsg obxi "outpucod_objexit obxi" (the_callcount))
   (output_location (unsafe_get_field :obi_loc obxi) implbuf depth)
   (let ( (olab (unsafe_get_field :obexit_label obxi))
 	 (oprolog (unsafe_get_field :obexit_prolog obxi)) )
@@ -7510,7 +7386,7 @@
 ;; output a conditional
 (defun outpucod_objcond (ocond declbuf implbuf :long depth)
   (assert_msg "check ocond" (is_a ocond class_objcond))
-  (debug_msg "outpucod_objcond ocond" ocond (the_callcount))
+  (debugmsg ocond "outpucod_objcond ocond" (the_callcount))
   (let ( (cloc (unsafe_get_field :obi_loc ocond))
 	 (ctest (unsafe_get_field :obcond_test ocond))
 	 (cthen (unsafe_get_field :obcond_then ocond))
@@ -7538,7 +7414,7 @@
       )
     (add2sbuf_indentnl implbuf depth)
     ) 
-  (debug_msg "outpucod_objcond end ocond" ocond (the_callcount))
+  (debugmsg ocond "outpucod_objcond end ocond" (the_callcount))
   )
 (install_method class_objcond output_c_code outpucod_objcond)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -7549,7 +7425,7 @@
 ;; output an application
 (defun outpucod_objapply (oapp declbuf implbuf :long depth)
   (assert_msg "check oapp" (is_a oapp class_objapply))
-  (debug_msg "outpucod_objapply oapp" oapp (the_callcount))
+  (debugmsg oapp "outpucod_objapply oapp" (the_callcount))
   (let (
 	(aloc (unsafe_get_field :obi_loc oapp))
 	(adest (unsafe_get_field :obapp_dest oapp))
@@ -7574,12 +7450,11 @@
 	  (multiple_every
 	   oargs
 	   (lambda (curarg :long curank)
-	     (debug_msg "outputcod_objapply curarg" curarg)
-	    ; (debug_msg "outputcod_objapply curarg discr" (discrim curarg))
+	     (debugmsg curarg "outputcod_objapply curarg")
 	    ; (cbreak_msg "outputcod_objapply curarg")
 	     (if (>i curank 0)
 		 (let ( (curctyp (get_ctype curarg (the_null))) )
-		   (debug_msg "outputcod_objapply curctyp" curctyp)
+		   (debugmsg curctyp "outputcod_objapply curctyp")
 		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location aloc implbuf (get_int boxdepthp1))
 		   (add2sbuf_strconst implbuf "argtab[")
@@ -7641,7 +7516,7 @@
 ;; output a message send
 (defun outpucod_objmsend (omsend declbuf implbuf :long depth)
   (assert_msg "check omsend" (is_a omsend class_objmsend))
-  (debug_msg "outpucod_objmsend omsend" omsend (the_callcount))
+  (debugmsg omsend "outpucod_objmsend omsend" (the_callcount))
   (let ( (oloc (unsafe_get_field :obi_loc omsend))
 	 (odest (unsafe_get_field :obmsnd_dest omsend))
 	 (osel (unsafe_get_field :obmsnd_sel omsend))
@@ -7669,9 +7544,9 @@
 	  (multiple_every
 	   oargs
 	   (lambda (curarg :long curank)
-	     (debug_msg "outputcod_objapply curarg" curarg)
+	     (debugmsg curarg "outputcod_objapply curarg")
 		 (let ( (curctyp (get_ctype curarg (the_null))) )
-		   (debug_msg "outputcod_objmsend curctyp" curctyp)
+		   (debugmsg curctyp "outputcod_objmsend curctyp")
 		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location oloc implbuf (get_int boxdepthp1))
 		   (add2sbuf_strconst implbuf "argtab[")
@@ -7729,7 +7604,7 @@
 
 (defun outpucod_objmultiapply (oapp declbuf implbuf :long depth)
   (assert_msg "check oapp" (is_a oapp class_objmultiapply))
-  (debug_msg "outpucod_objmultiapply oapp" oapp (the_callcount))
+  (debugmsg oapp "outpucod_objmultiapply oapp" (the_callcount))
   (let (
 	(aloc (unsafe_get_field :obi_loc oapp))
 	(adest (unsafe_get_field :obapp_dest oapp))
@@ -7778,11 +7653,10 @@
 	  (multiple_every
 	   oargs
 	   (lambda (curarg :long curank)
-	     (debug_msg "outpucod_objmultiapply curarg" curarg)
-	     (debug_msg "outpucod_objmultiapply curarg discr" (discrim curarg))
+	     (debugmsg curarg "outpucod_objmultiapply curarg")
 	     (if (>i curank 0)
 		 (let ( (curctyp (get_ctype curarg (the_null))) )
-		   (debug_msg "outpucod_objmultiapply curctyp" curctyp)
+		   (debugmsg curctyp "outpucod_objmultiapply curctyp")
 		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location aloc implbuf (get_int boxdepthp1))
 		   (add2sbuf_strconst implbuf "argtab[")
@@ -7853,7 +7727,7 @@
 ;; output a multiresult message send
 (defun outpucod_objmultimsend (omsnd  declbuf implbuf :long depth)
   (assert_msg "check omsnd" (is_a omsnd class_objmultimsend))
-  (debug_msg "outpucod_objmultimsend omsnd" omsnd (the_callcount))
+  (debugmsg omsnd "outpucod_objmultimsend omsnd" (the_callcount))
   (let ( (oloc (unsafe_get_field :obi_loc omsnd))
 	 (odest (unsafe_get_field :obmsnd_dest omsnd))
 	 (osel (unsafe_get_field :obmsnd_sel omsnd))
@@ -7907,11 +7781,10 @@
 	  (multiple_every
 	   oargs
 	   (lambda (curarg :long curank)
-	     (debug_msg "outpucod_objmultimsend curarg" curarg)
-	     (debug_msg "outpucod_objmultimsend curarg discr" (discrim curarg))
+	     (debugmsg curarg "outpucod_objmultimsend curarg")
 	     (if (>i curank 0)
 		 (let ( (curctyp (get_ctype curarg (the_null))) )
-		   (debug_msg "outpucod_objmultimsend curctyp" curctyp)
+		   (debugmsg curctyp "outpucod_objmultimsend curctyp")
 		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location oloc implbuf (get_int boxdepthp1))
 		   (add2sbuf_strconst implbuf "argtab[")
@@ -7979,7 +7852,7 @@
 ;; output a clear
 (defun outpucod_objclear (oclear declbuf implbuf :long depth)
   (assert_msg "check oclear" (is_a oclear class_objclear))
-  (debug_msg "outpucod_objclear oclear" oclear (the_callcount))
+  (debugmsg oclear "outpucod_objclear oclear" (the_callcount))
   (let ( (cloc (unsafe_get_field :obi_loc oclear))
 	 (cvl (unsafe_get_field :oclr_vloc oclear))
 	 )
@@ -7994,7 +7867,7 @@
 ;; output a raw object allocation
 (defun outpucod_objrawallocobj (oralob declbuf implbuf :long depth)
   (assert_msg "check oralob" (is_a oralob class_objrawallocobj))
-  (debug_msg "outpucod_objrawallocobj oralob" oralob)
+  (debugmsg oralob "outpucod_objrawallocobj oralob")
   (let ( (iloc (unsafe_get_field :obi_loc oralob))
 	 (iclass (unsafe_get_field :obrallobj_class oralob))
 	 (ilen (unsafe_get_field :obrallobj_len oralob))
@@ -8022,7 +7895,7 @@
 ;; output a closure allocation
 (defun outpucod_objnewclosure (obnclo declbuf implbuf :long depth)
   (assert_msg "check oralob" (is_a obnclo class_objnewclosure))
-  (debug_msg "outpucod_objnewclosure obnclo" obnclo) 
+  (debugmsg obnclo "outpucod_objnewclosure obnclo") 
   (let ( (iloc (unsafe_get_field :obi_loc obnclo))
 	 (odiscr (unsafe_get_field :obnclo_discr obnclo))
 	 (orout (unsafe_get_field :obnclo_rout obnclo))
@@ -8074,7 +7947,7 @@
 ;;; output a put tuple (mostly used in initial data content filling)
 (defun outpucod_objputuple (optup declbuf implbuf :long depth)
   (assert_msg "check optyp" (is_a optup class_objputuple))
-  (debug_msg "outpucod_objputuple optup" optup (the_callcount))
+  (debugmsg optup "outpucod_objputuple optup" (the_callcount))
   (let ( (iloc (unsafe_get_field :obi_loc optup))
 	 (otup (unsafe_get_field :oputu_tupled optup))
 	 (ooff (unsafe_get_field :oputu_offset optup))
@@ -8096,7 +7969,7 @@
 ;;; output a put slot (mostly used in initial data content filling)
 (defun outpucod_objputslot (opslo declbuf implbuf :long depth)
   (assert_msg "check opslo" (is_a opslo class_objputslot))
-  (debug_msg "outpucod_objputslot opslo" opslo (the_callcount))
+  (debugmsg opslo "outpucod_objputslot opslo" (the_callcount))
   (let ( (iloc (unsafe_get_field :obi_loc opslo))
 	 (odata (unsafe_get_field :oslot_odata opslo))
 	 (ooff (unsafe_get_field :oslot_offset opslo))
@@ -8118,7 +7991,7 @@
 ;;; output the putting of the routine in a closure
 (defun outpucod_objputclosurout (opclor  declbuf implbuf :long depth)
   (assert_msg "check opclor" (is_a opclor class_objputclosurout))
-  (debug_msg "outpucod_objputclosurout opclor" opclor)
+  (debugmsg opclor "outpucod_objputclosurout opclor")
   (let ( (oloc (unsafe_get_field :obi_loc opclor))
 	 (oclos (unsafe_get_field :opclor_clos opclor))
 	 (orout (unsafe_get_field :opclor_rout opclor)) )
@@ -8136,7 +8009,7 @@
 ;;; output the putting of a closed value
 (defun outpucod_objputclosedv (opclov declbuf implbuf :long depth)
   (assert_msg "check opclor" (is_a opclov class_objputclosedv))
-  (debug_msg "outpucod_objputclosedv" opclov)
+  (debugmsg opclov "outpucod_objputclosedv")
   (let ( (oloc (unsafe_get_field :obi_loc opclov))
 	 (oclos (unsafe_get_field :opclov_clos opclov))
 	 (ooff (unsafe_get_field :opclov_off opclov))
@@ -8228,8 +8101,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compile a single procedure
 (defun compile2obj_procedure (pro compicache :long num)
-  (debug_msg "compilproc pro" pro (the_callcount))
-  (debug_msg "compilproc compicache" compicache (the_callcount))
+  (debugmsg pro "compilproc pro" (the_callcount))
+  (debugmsg compicache "compilproc compicache" (the_callcount))
   (assert_msg "check pro" (is_a pro class_nrep_routproc))
   (assert_msg "check compicache" (is_mapobject compicache))
   (let ( (namsbuf (make_strbuf discr_strbuf)) )
@@ -8272,7 +8145,7 @@
 	    nargb
 	    (lambda (bnd :long ix)
 	      (assert_msg "check bnd" (is_a bnd class_formal_binding))
-					;	      (debug_msg "compilproc bnd" bnd (the_callcount))
+					;	      (debugmsg bnd "compilproc bnd" (the_callcount))
 	      (let ( (bctyp (unsafe_get_field :fbind_type bnd)) 
 		     (bnam (unsafe_get_field :binder bnd))
 		     (oloc 
@@ -8297,26 +8170,26 @@
       ;; associate the procedure with its objroutine in the compiler cache
       (mapobject_put compicache pro obrout)
       (unsafe_put_fields obrout :oprout_getargs gtatup)
-      (debug_msg "compile2obj_procedure obrout" obrout (the_callcount))
-      (debug_msg "compile2obj_procedure nbody" nbody (the_callcount))
+      (debugmsg obrout "compile2obj_procedure obrout" (the_callcount))
+      (debugmsg nbody "compile2obj_procedure nbody" (the_callcount))
       (assert_msg "check nbody" (is_a nbody class_nrep))
       (if (is_a pro class_nrep_routproc)
 	  (let ( (pthuls (unsafe_get_field :nrpro_thunklist pro)) )
-	    (debug_msg "compile2obj_procedure pthuls" pthuls (the_callcount))
+	    (debugmsg pthuls "compile2obj_procedure pthuls" (the_callcount))
 	    (list_every 
 	     pthuls
 	     (lambda (pthu) 
-	       (debug_msg "compile2obj_procedure pthu" pthu)
+	       (debugmsg pthu "compile2obj_procedure pthu")
 	       (assert_msg "compile2obj_procedure check pthu" (is_closure pthu))
 	       (pthu gcx)
 	       )
 	    )))
       (let ( (obody (compile_obj nbody gcx)) 
 	     )
-	(debug_msg "compile2obj_procedure obody" obody (the_callcount))
+	(debugmsg obody "compile2obj_procedure obody" (the_callcount))
 	(list_append obodylist obody)
 	)
-      (debug_msg "compile2obj_procedure return obrout" obrout (the_callcount))
+      (debugmsg obrout "compile2obj_procedure return obrout" (the_callcount))
       obrout
       )))
 
@@ -8325,8 +8198,8 @@
   (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
   (assert_msg "check idata" (is_list idata))
   (assert_msg "check compicache" (is_mapobject compicache))
-  (debug_msg "compile2obj_initproc ipro" ipro (the_callcount))
-  (debug_msg "compile2obj_initproc compicache" compicache (the_callcount))
+  (debugmsg ipro "compile2obj_initproc ipro" (the_callcount))
+  (debugmsg compicache "compile2obj_initproc compicache" (the_callcount))
   (let ( (locmap (make_mapobject discr_mapobjects 50))
 	 (oinibody (make_list discr_list))
 	 (oinitrout
@@ -8354,10 +8227,10 @@
 	  (list_to_multiple
 	   idata discr_multiple
 	   (lambda (curdat)
-	     (debug_msg "compile2obj_initproc curdat" curdat (the_callcount))
+	     (debugmsg curdat "compile2obj_initproc curdat" (the_callcount))
 	     (assert_msg "check curdat" (is_a curdat class_nrep_data))
 	     (let ( (curobd (compile_obj curdat gcx)) )
-	       (debug_msg "compile2obj_initproc curobd" curobd (the_callcount))
+	       (debugmsg curobd "compile2obj_initproc curobd" (the_callcount))
 	       curobd))))
 	 (toplis (unsafe_get_field :ninit_topl ipro)) 
 	 )
@@ -8368,47 +8241,47 @@
      toplis
      (lambda (curtop)
        (let ( (otop (compile_obj curtop gcx)) )
-	 (debug_msg "compile2obj_initproc otop" otop (the_callcount))
+	 (debugmsg otop "compile2obj_initproc otop" (the_callcount))
 	 (list_append oinibody otop))))
-    (debug_msg "compile2obj_initproc final gcx" gcx (the_callcount))
-    (debug_msg "compile2obj_initproc final oinitrout" oinitrout (the_callcount))
+    (debugmsg gcx "compile2obj_initproc final gcx" (the_callcount))
+    (debugmsg oinitrout "compile2obj_initproc final oinitrout" (the_callcount))
 ;    (assert_msg "compile2obj_initproc @@@ A COMPLETER" ())
     oinitrout
     ))
 
 ;; compile a list of sexpressions as a module starting from a given environment
 (defun compile_list_sexpr (lsexp inienv modnamstr)
-  (debug_msg "\n\n*compile_list_sexpr lsexp" lsexp (the_callcount)) ;list of sexpr
-  (debug_msg "compile_list_sexpr inienv" inienv (the_callcount)) ;initial environment
-  (debug_msg "compile_list_sexpr modnamstr" modnamstr (the_callcount)) ;module name
+  (debugmsg lsexp "\n\n*compile_list_sexpr lsexp"  (the_callcount)) ;list of sexpr
+  (debugmsg inienv "compile_list_sexpr inienv" (the_callcount)) ;initial environment
+  (debugmsg modnamstr "compile_list_sexpr modnamstr" (the_callcount)) ;module name
   (assert_msg "check lsexp" (is_list lsexp))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check inienv" (is_a inienv class_environment))
   (let ( (ncx (create_normcontext)) )
-    (debug_msg "compile_list_sexpr initial ncx" ncx (the_callcount))
+    (debugmsg ncx "compile_list_sexpr initial ncx" (the_callcount))
     (assert_msg "check ncx" (is_a ncx class_normcontext))
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
 	   (iniproc (unsafe_get_field :nctx_initproc ncx))
 	   )
-      (debug_msg "after macroexpansion compile_list_sexpr seq" xlist (the_callcount))
-      (debug_msg "after macroexpansion compile_list_sexpr inienv" inienv (the_callcount))
+      (debugmsg xlist "after macroexpansion compile_list_sexpr seq" (the_callcount))
+      (debugmsg inienv "after macroexpansion compile_list_sexpr inienv" (the_callcount))
       (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
       (list_every
        xlist
        (lambda (sexp :long ix)
-	 (debug_msg "compile_list_sexpr sexp" sexp (the_callcount))
+	 (debugmsg sexp "compile_list_sexpr sexp" (the_callcount))
 	 (let (
 	       (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
 	       )
 	   (multicall 
 	    (nexp nbind)
 	    (normal_exp sexp inienv ncx psloc)	    
-	    (debug_msg "compile_list_sexpr nexp" nexp (the_callcount))    
-	    (debug_msg "compile_list_sexpr nbind" nbind (the_callcount))
+	    (debugmsg nexp "compile_list_sexpr nexp" (the_callcount))    
+	    (debugmsg nbind "compile_list_sexpr nbind" (the_callcount))
 	    (if (and (is_a nexp class_nrep)
 		     (not (is_a nexp class_nrep_anyproc)))
 		(let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
-		  (debug_msg "compile_list_sexpr wnexp" wnexp (the_callcount))
+		  (debugmsg wnexp "compile_list_sexpr wnexp" (the_callcount))
 		  (list_append (unsafe_get_field :ninit_topl iniproc) 
 			       wnexp)
 		  ))))))
@@ -8422,31 +8295,31 @@
 	 prolist
 	 (lambda (pro)
 	   (assert_msg "check pro" (is_a pro class_nrep_anyproc))
-	   (debug_msg "compile_list_sexpr pro" pro (the_callcount))
+	   (debugmsg pro "compile_list_sexpr pro" (the_callcount))
 	   (put_int countbox (+i (get_int countbox) 1))
 	   (let ( (objpro (compile2obj_procedure pro compicache (get_int countbox))) )
-	     (debug_msg "compile_list_sexpr objpro" objpro (the_callcount))
-	     (debug_msg "compile_list_sexpr done pro" pro (the_callcount))
+	     (debugmsg objpro "compile_list_sexpr objpro" (the_callcount))
+	     (debugmsg pro "compile_list_sexpr done pro" (the_callcount))
 	     (list_append objlist objpro)
-	     (debug_msg "compile_list_sexpr compicache" compicache (the_callcount)))))
-	(debug_msg "compilistsexpr ncx avant inipro" ncx (the_callcount))
+	     (debugmsg compicache "compile_list_sexpr compicache" (the_callcount)))))
+	(debugmsg ncx "compilistsexpr ncx avant inipro" (the_callcount))
 	(let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
 	       (inidata (unsafe_get_field :nctx_datalist ncx))
 	       )
 	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
-	  (debug_msg "compilistsexpr avant compilinitproc compicache" compicache (the_callcount))
+	  (debugmsg compicache "compilistsexpr avant compilinitproc compicache" (the_callcount))
 	  (let ( (iniobj (compile2obj_initproc inipro inidata compicache)) )
-	    (debug_msg "compile_list_sexpr iniobj" iniobj (the_callcount))
+	    (debugmsg iniobj "compile_list_sexpr iniobj" (the_callcount))
 	    (let ( (declbuf (make_strbuf discr_strbuf))
 		   (implbuf (make_strbuf discr_strbuf)) 
 		   )
 	      (list_every
 	       objlist
 	       (lambda (obel)
-		 (debug_msg "compile_list_sexpr obel" obel (the_callcount))
+		 (debugmsg obel "compile_list_sexpr obel" (the_callcount))
 		 (output_c_code obel declbuf implbuf 0)))
-	      (debug_msg "compile_list_sexpr final modnamstr" modnamstr (the_callcount)) 
-	      (debug_msg "compile_list_sexpr outputting iniobj" iniobj (the_callcount))
+	      (debugmsg modnamstr "compile_list_sexpr final modnamstr" (the_callcount)) 
+	      (debugmsg iniobj "compile_list_sexpr outputting iniobj" (the_callcount))
 	      (output_c_code iniobj declbuf implbuf 0)
 	      (output_cfile_decl_impl modnamstr declbuf implbuf)
 	      )))))))
@@ -8462,7 +8335,7 @@
 	 )
     (if (not (is_a orout class_routineobj))
 	(progn
-	  (debug_msg "get_free_objlocptr bad orout" orout (the_callcount))
+	  (debugmsg orout "get_free_objlocptr bad orout" (the_callcount))
 	  (shortbacktrace_dbg "get_free_objlocptr bad orout" 15)))
     (assert_msg "check orout" (is_a orout class_routineobj))
     (if (is_a pfree  class_objlocv)
@@ -8537,8 +8410,8 @@
 	( (== ctyp ctype_void)
 	  ())
 	(:else 
-	 (debug_msg "getfreeobjloctyped nam" nam (the_callcount))
-	 (debug_msg "getfreeobjloctyped ctyp" ctyp (the_callcount))
+	 (debugmsg nam "getfreeobjloctyped nam" (the_callcount))
+	 (debugmsg ctyp "getfreeobjloctyped ctyp" (the_callcount))
 	 (assert_msg "@@@ unimplemented get_free_objloctyped for other ctyp" ())
 )))
   
@@ -8556,7 +8429,7 @@
 	  (and (is_a bnd class_let_binding)
 	       (== (unsafe_get_field :letbind_type bnd) ctype_void)
 	       (return))
-	  (debug_msg "dispose_bnd_obj nulloldloc bnd" bnd (the_callcount))
+	  (debugmsg bnd "dispose_bnd_obj nulloldloc bnd" (the_callcount))
 	  ))
     (assert_msg "check oldloc" (is_a oldloc class_objlocv))
     (mapobject_remove locmap bnd)
@@ -8576,9 +8449,9 @@
 (defun compilobj_nrep_chunk (nchk gcx)
   (assert_msg "check nchk" (is_a nchk class_nrep_chunk))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj nrepchunk nchk" nchk (the_callcount))
-;  (debug_msg "compilobj nrepchunk gcx" gcx (the_callcount))
-;  (debug_msg "compilobj nrepchunk env" env (the_callcount))
+  (debugmsg nchk "compilobj nrepchunk nchk" (the_callcount))
+;  (debugmsg gcx "compilobj nrepchunk gcx" (the_callcount))
+;  (debugmsg env "compilobj nrepchunk env" (the_callcount))
   (let ( (loc (unsafe_get_field :nrep_loc nchk))
 	 (nexp (unsafe_get_field :nchunk_expansion nchk))
 	 (nprim (unsafe_get_field :nchunk_primitive nchk))
@@ -8588,7 +8461,7 @@
     (let (  (otup (multiple_map
 		   nexp
 		   (lambda (comp :long ix)
-		     (debug_msg "compobj nrepchunk comp" comp (the_callcount))
+		     (debugmsg comp "compobj nrepchunk comp" (the_callcount))
 		     (if (== (discrim comp) discr_verbatimstring)
 			 comp
 		       (compile_obj comp gcx)))
@@ -8598,7 +8471,7 @@
 				 :obx_cont otup
 				 ))      
 	    )
-      (debug_msg "compiobj nrepchunk oexp" oexp (the_callcount))
+      (debugmsg oexp "compiobj nrepchunk oexp" (the_callcount))
       oexp)
     ))
 (install_method class_nrep_chunk compile_obj compilobj_nrep_chunk)
@@ -8615,20 +8488,20 @@
 	 (sbnd (unsafe_get_field :nocc_bind lsyo))
 	 (ovar (mapobject_get locmap sbnd))
 	 )
-;    (debug_msg "compilobj locsymocc gcx" gcx (the_callcount))
-    (debug_msg "compilobj locsymocc lsyo" lsyo (the_callcount))
-;    (debug_msg "compilobj locsymocc sbnd" sbnd (the_callcount))
-    (debug_msg "compilobj locsymocc oty" oty (the_callcount))
-    (debug_msg "compilobj locsymocc ovar" ovar (the_callcount))
+;    (debugmsg gcx "compilobj locsymocc gcx" (the_callcount))
+    (debugmsg lsyo "compilobj locsymocc lsyo" (the_callcount))
+;    (debugmsg sbnd "compilobj locsymocc sbnd" (the_callcount))
+    (debugmsg oty "compilobj locsymocc oty" (the_callcount))
+    (debugmsg ovar "compilobj locsymocc ovar" (the_callcount))
     (if (null sbnd)
 	(progn
-	  (debug_msg "compilobj locsymocc null sbnd for sym" sym (the_callcount))
+	  (debugmsg sym "compilobj locsymocc null sbnd for sym" (the_callcount))
 	  (shortbacktrace_dbg "compilobj locsymocc  null sbnd" 16)
 	  ))
     (if (null ovar) 
 	(progn
-	  (debug_msg "compilobj locsymocc null ovar sbnd" sbnd (the_callcount))
-	  (debug_msg "compilobj locsymocc null ovar locmap" locmap (the_callcount))
+	  (debugmsg sbnd "compilobj locsymocc null ovar sbnd" (the_callcount))
+	  (debugmsg locmap "compilobj locsymocc null ovar locmap" (the_callcount))
 	  (assert_msg "compilocsy null ovar with ctype_void" (== oty ctype_void))
 	  )
       (assert_msg "compilocsy check ovar"  (is_a ovar class_objlocv)))
@@ -8640,8 +8513,8 @@
 (defun compilobj_nrep_closedocc (nclo gcx)
   (assert_msg "check nclo" (is_a nclo class_nrep_closedocc))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj closedocc nclo" nclo (the_callcount))
-  (debug_msg "compilobj closedocc gcx" gcx (the_callcount))
+  (debugmsg nclo "compilobj closedocc nclo" (the_callcount))
+  (debugmsg gcx "compilobj closedocc gcx" (the_callcount))
   (let ( 
 	(orout (unsafe_get_field :gncx_objrout gcx))
 	(osym (unsafe_get_field :nocc_symb nclo))
@@ -8650,9 +8523,9 @@
 	(lastcproc (pair_head (list_last cprocs)))
 	(nloc (unsafe_get_field :nrep_loc nclo))
 	)
-    (debug_msg "compilobj closedocc orout" orout (the_callcount))
-    (debug_msg "compilobj closedocc nclo" nclo (the_callcount))
-    (debug_msg "compilobj closedocc lastcproc" lastcproc (the_callcount))
+    (debugmsg orout "compilobj closedocc orout" (the_callcount))
+    (debugmsg nclo "compilobj closedocc nclo" (the_callcount))
+    (debugmsg lastcproc "compilobj closedocc lastcproc" (the_callcount))
     (assert_msg "check lastcproc" (is_a lastcproc class_nrep_routproc))
     (let ( (cloblis (unsafe_get_field :nrpro_closedb lastcproc)) 
 	   (:long clorank -1)
@@ -8680,7 +8553,7 @@
 							 clorank)
 			       :obc_proc lastcproc
 			       :obc_name (unsafe_get_field :named_name osym))) )
-	  (debug_msg "compilobj closedocc result ocloccv" ocloccv (the_callcount))
+	  (debugmsg ocloccv "compilobj closedocc result ocloccv" (the_callcount))
 	  ocloccv
 	  )))))
   
@@ -8690,8 +8563,8 @@
 (defun compilobj_nrep_constocc (ncnst gcx)
   (assert_msg "check ncnst" (is_a ncnst class_nrep_constocc))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj constocc ncnst" ncnst (the_callcount))
-  (debug_msg "compilobj constocc gcx" gcx (the_callcount))
+  (debugmsg ncnst "compilobj constocc ncnst" (the_callcount))
+  (debugmsg gcx "compilobj constocc gcx" (the_callcount))
   (let ( 
 	(orout (unsafe_get_field :gncx_objrout gcx))
 	(osym (unsafe_get_field :nocc_symb ncnst))
@@ -8699,9 +8572,9 @@
 	(lastcproc (pair_head (list_last cprocs)))
 	(nloc (unsafe_get_field :nrep_loc ncnst))
 	)
-    (debug_msg "compilobj constocc orout" orout (the_callcount))
-    (debug_msg "compilobj constocc nloc" nloc (the_callcount))
-    (debug_msg "compilobj constocc lastcproc" lastcproc (the_callcount))
+    (debugmsg orout "compilobj constocc orout" (the_callcount))
+    (debugmsg nloc "compilobj constocc nloc" (the_callcount))
+    (debugmsg lastcproc "compilobj constocc lastcproc" (the_callcount))
     (assert_msg "check lastcproc" (is_a lastcproc class_nrep_routproc))
     (let ( (cnstlis (unsafe_get_field :nrpro_const lastcproc)) 
 	   (:long cnstrank -1)
@@ -8729,7 +8602,7 @@
 							 cnstrank)
 			       :obc_proc lastcproc
 			       :obc_name (unsafe_get_field :named_name osym))) )
-	  (debug_msg "compilobj constocc result oconstv" oconstv (the_callcount))
+	  (debugmsg oconstv "compilobj constocc result oconstv" (the_callcount))
 	  oconstv
 	  )))))
   
@@ -8740,7 +8613,7 @@
 (defun compilobj_nrep_constant (nconst gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (assert_msg "check nconst" (is_a nconst class_nrep_constant))
-  (debug_msg "compilobj constant nconst" nconst (the_callcount))
+  (debugmsg nconst "compilobj constant nconst" (the_callcount))
   (let ( (nloc (unsafe_get_field :nrep_loc nconst))
 	 (sval (unsafe_get_field :nconst_sval nconst))
 	 (data (unsafe_get_field :nconst_data nconst))
@@ -8782,13 +8655,13 @@
 				 :obc_proc proc
 				 :obc_name (strbuf2string discr_string nambuf)
 			  )) )
-	    (debug_msg "compilobj constant constv" constv (the_callcount))
+	    (debugmsg constv "compilobj constant constv" (the_callcount))
 	    constv
 	    )
 	  )
       (progn				
 	;; not inside a proc, just return the data
-	(debug_msg "compilobj constant just data" data (the_callcount))
+	(debugmsg data "compilobj constant just data" (the_callcount))
 	(return data)
 	)
       )
@@ -8801,8 +8674,8 @@
 (defun compilobj_nrep_forever (nfor gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (assert_msg "check nfor" (is_a nfor class_nrep_forever))
-  (debug_msg "compilobj_nrep_forever nfor" nfor (the_callcount))
-  (debug_msg "compilobj_nrep_forever gcx" gcx (the_callcount))
+  (debugmsg nfor "compilobj_nrep_forever nfor" (the_callcount))
+  (debugmsg gcx "compilobj_nrep_forever gcx" (the_callcount))
   (let ( (nloc (unsafe_get_field :nrep_loc nfor))
 	 (nbind (unsafe_get_field :nforever_bind nfor))
 	 (nbody (unsafe_get_field :nforever_body nfor))
@@ -8826,7 +8699,7 @@
        nbody
        (lambda (ncomp :long ix)
 	 (list_append bodyl (compile_obj ncomp gcx))))
-      (debug_msg "compilobj loop result oloop" oloop (the_callcount))
+      (debugmsg oloop "compilobj loop result oloop" (the_callcount))
       oloop
       )
     )  
@@ -8838,8 +8711,8 @@
 (defun compilobj_nrep_exit (nexi gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (assert_msg "check nexi" (is_a nexi class_nrep_exit))
-  (debug_msg "compilobj_nrep_exit nexi" nexi (the_callcount))
-  (debug_msg "compilobj_nrep_exit gcx" gcx (the_callcount))
+  (debugmsg nexi "compilobj_nrep_exit nexi" (the_callcount))
+  (debugmsg gcx "compilobj_nrep_exit gcx" (the_callcount))
   (let ( (nloc (unsafe_get_field :nrep_loc nexi))
 	 (nbindx (unsafe_get_field :nexit_bind nexi))
 	 (nval (unsafe_get_field :nexit_val nexi)) )
@@ -8855,7 +8728,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_discrany (anyv gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-;  (debug_msg "compilobj_discrany anyv" anyv (the_callcount))
+;  (debugmsg anyv "compilobj_discrany anyv" (the_callcount))
   anyv
 )
 (install_method discr_anyrecv compile_obj compilobj_discrany)
@@ -8875,9 +8748,9 @@
 				:oblo_bodyl obodl
 				:oblo_epil oepil))
 	 )
-    ;;    (debug_msg "compilobj_nrep_let rlet" rlet (the_callcount))
-    ;;    (debug_msg "compilobj_nrep_let gcx" gcx (the_callcount))
-    ;;    (debug_msg "compilobj_nrep_let bnd" bnd (the_callcount))
+    ;;    (debugmsg rlet "compilobj_nrep_let rlet" (the_callcount))
+    ;;    (debugmsg gcx "compilobj_nrep_let gcx" (the_callcount))
+    ;;    (debugmsg bnd "compilobj_nrep_let bnd" (the_callcount))
     ;; for each normalexp in the bnd tuple
     ;; add the binding and the setting in the body and the clear in the epilogue
     (assert_msg "compilobj_nrep_let check bnd multiple" (is_multiple_or_null bnd))
@@ -8885,7 +8758,7 @@
     (multiple_every
      bnd
      (lambda (nlbnd :long ix)
-       ;;      (debug_msg "compilobj_nrep_let nlbnd" nlbnd (the_callcount))
+       ;;      (debugmsg nlbnd "compilobj_nrep_let nlbnd" (the_callcount))
        (assert_msg "check nlbnd in compilobj_nrep_let" (is_a nlbnd class_normlet_binding))
        (let ( (bder (unsafe_get_field :binder nlbnd))
 	      (cty (unsafe_get_field :letbind_type nlbnd))
@@ -8893,7 +8766,7 @@
 	      (obva (get_free_objloctyped gcx bder cty))
 	      (obnx (compile_obj nexp gcx))
 	      )
-	 ;;	 (debug_msg "compilobj_nrep_let obnx" obnx (the_callcount))
+	 ;;	 (debugmsg obnx "compilobj_nrep_let obnx" (the_callcount))
 	 ;; link nlbnd to obva in locmap
 	 (if obva (mapobject_put locmap nlbnd obva))
 	 ;; put destination obva in obnx
@@ -8913,10 +8786,10 @@
     (multiple_every
      bdy
      (lambda (bdycomp :long ix)
-       ;;       (debug_msg "compilobj_nrep_let bdycomp" bdycomp (the_callcount))
+       ;;       (debugmsg bdycomp "compilobj_nrep_let bdycomp" (the_callcount))
        (let ( (objcomp  (compile_obj bdycomp gcx)) 
 	      )
-	 ;;	 (debug_msg "compilobj_nrep_let objcomp" objcomp (the_callcount))
+	 ;;	 (debugmsg objcomp "compilobj_nrep_let objcomp" (the_callcount))
 	 (list_append obodl objcomp))))
     ;; dispose each binding
     (multiple_every
@@ -8934,7 +8807,7 @@
 (defun compilobj_nrep_setq (nsq gcx)
   (assert_msg "check nsq" (is_a nsq class_nrep_setq))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj_nrep_setq nsq" nsq (the_callcount))
+  (debugmsg nsq "compilobj_nrep_setq nsq" (the_callcount))
   (let ( (loc (unsafe_get_field :nrep_loc nsq))
 	 (var (unsafe_get_field :nstq_var nsq))
 	 (exp (unsafe_get_field :nstq_exp nsq))
@@ -8945,7 +8818,7 @@
     (and (is_a cres class_objinstr)
 	 (null (unsafe_get_field :obi_loc cres))
 	 (unsafe_put_fields cres :obi_loc loc))
-    (debug_msg "compilobj_nrep_setq cres" cres (the_callcount))
+    (debugmsg cres "compilobj_nrep_setq cres" (the_callcount))
     cres
     ))
 (install_method class_nrep_setq compile_obj compilobj_nrep_setq)
@@ -8955,7 +8828,7 @@
 (defun compilobj_nrep_multacc (nma gcx)
   (assert_msg "check nma" (is_a nma class_nrep_multacc))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj_nrep_multacc nma" nma (the_callcount))
+  (debugmsg nma "compilobj_nrep_multacc nma" (the_callcount))
   (let ( (loc (unsafe_get_field :nrep_loc nma))
 	 (mul (unsafe_get_field :naccm_mul nma))
 	 (ix (unsafe_get_field :naccm_ix nma))
@@ -8979,13 +8852,13 @@
 				  :obv_type ctype_value
 				  :obx_cont tcont))
 		  )
-	      (debug_msg "compilobj_nrep_multacc makecompute res" res)
+	      (debugmsg res "compilobj_nrep_multacc makecompute res")
 	      res
 	      ))
 	  )
 	 )
-    (debug_msg "compilobj_nrep_multacc cmul" cmul (the_callcount))
-    (debug_msg "compilobj_nrep_multacc again nma" nma (the_callcount))
+    (debugmsg cmul "compilobj_nrep_multacc cmul" (the_callcount))
+    (debugmsg nma "compilobj_nrep_multacc again nma" (the_callcount))
     (if (and
 	 (is_a cmul class_objinitmultiple)
 	 (is_integerbox ix))
@@ -8994,7 +8867,7 @@
 	      (let (
 		    (curval (multiple_nth comptup (get_int ix))) 
 		    )
-		(debug_msg "compilobj_nrep_multacc returning curval" curval (the_callcount))
+		(debugmsg curval "compilobj_nrep_multacc returning curval" (the_callcount))
 		(return curval)
 		)
 	    (makecompute)
@@ -9007,7 +8880,7 @@
 (defun compilobj_nrep_fieldacc (nfa gcx)
   (assert_msg "check nfa" (is_a nfa class_nrep_fieldacc))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj_nrep_fieldacc nfa" nfa (the_callcount))
+  (debugmsg nfa "compilobj_nrep_fieldacc nfa" (the_callcount))
   (let ( (loc (unsafe_get_field :nrep_loc nfa))
 	 (obj (unsafe_get_field :naccf_obj nfa))
 	 (fld (unsafe_get_field :naccf_fld nfa))
@@ -9032,13 +8905,13 @@
 				   :obv_type ctype_value
 				   :obx_cont tcont))
 		   )
-	      (debug_msg "compilobj_nrep_fieldacc makecompute res" res)
+	      (debugmsg res "compilobj_nrep_fieldacc makecompute res")
 	      res
 	      )))
 	 )
     (assert_msg "compilobj_nrep_fieldacc check fld" (is_a fld class_field))
-    (debug_msg "compilobj_nrep_fieldacc cobj" cobj (the_callcount))
-    (debug_msg "compilobj_nrep_fieldacc fld" fld (the_callcount))
+    (debugmsg cobj "compilobj_nrep_fieldacc cobj" (the_callcount))
+    (debugmsg fld "compilobj_nrep_fieldacc fld" (the_callcount))
     (if (is_a cobj class_objinitobject)
 	(let ( (cdata (unsafe_get_field :oie_data cobj)) 
 	       )
@@ -9048,7 +8921,7 @@
 		     )
 		(if (is_a ourslot class_nrep_data)
 		    (let ( (cslot (compile_obj ourslot gcx)) )
-		      (debug_msg "compilobj_nrep_fieldacc returning cslot" cslot (the_callcount))
+		      (debugmsg cslot "compilobj_nrep_fieldacc returning cslot" (the_callcount))
 		      (return cslot))
 		  (return (makecompute))))
 	    (return (makecompute)))
@@ -9067,7 +8940,7 @@
 	 (fun (unsafe_get_field :napp_fun napp))
 	 (args (unsafe_get_field :napp_args napp))
 	 )
-;    (debug_msg "compilobj_nrep_apply napp" napp (the_callcount))
+;    (debugmsg napp "compilobj_nrep_apply napp" (the_callcount))
     (let ( (oclos (compile_obj fun gcx)) 
 	   (oargs (multiple_map args
 				(lambda (comp :long ix)
@@ -9080,7 +8953,7 @@
 	     :obapp_clos oclos
 	     :obapp_args oargs))
 	   )
-;      (debug_msg "compilobj_nrep_apply oapp" oapp (the_callcount))
+;      (debugmsg oapp "compilobj_nrep_apply oapp" (the_callcount))
       oapp
       )))
 (install_method class_nrep_apply compile_obj compilobj_nrep_apply)
@@ -9089,7 +8962,7 @@
 (defun compilobj_nrep_multiapply (nmapp gcx)
   (assert_msg "check napp" (is_a nmapp class_nrep_multiapply))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj_nrep_multiapply nmapp" nmapp (the_callcount))
+  (debugmsg nmapp "compilobj_nrep_multiapply nmapp" (the_callcount))
   (let ( (loc (unsafe_get_field :nrep_loc nmapp))
 	 (rbinds (unsafe_get_field :nmulapp_bindings nmapp))
 	 (fun (unsafe_get_field :napp_fun nmapp))
@@ -9153,7 +9026,7 @@
 	     (list_append oepil oclear)
 	     (multiple_put_nth oxres (-i ix 1) rloc)
 	     ))))
-    (debug_msg "compilobj_nrep_multiapply final oblock" oblock (the_callcount))
+    (debugmsg oblock "compilobj_nrep_multiapply final oblock" (the_callcount))
     oblock
     ))
 (install_method class_nrep_multiapply compile_obj compilobj_nrep_multiapply)
@@ -9169,7 +9042,7 @@
 	 (nrecv (unsafe_get_field :nsend_recv nsnd))
 	 (nargs (unsafe_get_field :nsend_args nsnd))
 	 )
-    (debug_msg "compilobj_nrep_msend nsnd" nsnd (the_callcount))
+    (debugmsg nsnd "compilobj_nrep_msend nsnd" (the_callcount))
     (let ( (osel (compile_obj nsel gcx))
 	   (orecv (compile_obj nrecv gcx))
 	   (oargs (multiple_map nargs
@@ -9185,7 +9058,7 @@
 	     :obmsnd_args oargs
 	     ))
 	   )
-      (debug_msg "compilobj_nrep_msend osend" osend (the_callcount))
+      (debugmsg osend "compilobj_nrep_msend osend" (the_callcount))
       osend
       )))
 (install_method class_nrep_msend compile_obj compilobj_nrep_msend)
@@ -9195,7 +9068,7 @@
 (defun compilobj_nrep_multimsend (nmsnd gcx)
   (assert_msg "check nmsnd" (is_a nmsnd class_nrep_multimsend))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj_nrep_multimsend nmsnd" nmsnd (the_callcount))
+  (debugmsg nmsnd "compilobj_nrep_multimsend nmsnd" (the_callcount))
   (let ( (loc (unsafe_get_field :nrep_loc nmsnd)) 
 	 (rbinds (unsafe_get_field :nmulsend_bindings nmsnd))
 	 (nbody (unsafe_get_field :nmulsend_body nmsnd))
@@ -9261,7 +9134,7 @@
 					 :oclr_vloc rloc)) )
 	     (list_append oepil oclear)
 	     (multiple_put_nth oxres (-i ix 1) rloc)))))
-    (debug_msg "compilobj_nrep_multimsend final oblock" oblock (the_callcount))
+    (debugmsg oblock "compilobj_nrep_multimsend final oblock" (the_callcount))
     oblock
     ))
 
@@ -9281,7 +9154,7 @@
 			     )) )
     (list_append destlis desto)
     (list_append explis recv)
-;    (debug_msg "putobjdest objval obc" obc (the_callcount))
+;    (debugmsg obc "putobjdest objval obc" (the_callcount))
     obc
 ))
 
@@ -9291,8 +9164,8 @@
 (defun putobjdest_objblock (recv desto)
   (assert_msg "check recv" (is_a recv class_objblock))
   (assert_msg "check desto" (is_a desto class_objlocv))
-;  (debug_msg "putobjdest block recv" recv (the_callcount))
-;  (debug_msg "putobjdest block desto" desto (the_callcount))
+;  (debugmsg recv "putobjdest block recv" (the_callcount))
+;  (debugmsg desto "putobjdest block desto" (the_callcount))
   (let ( (obl (unsafe_get_field :oblo_bodyl recv))
 	 (oep (unsafe_get_field :oblo_epil recv))
 	 )
@@ -9308,7 +9181,7 @@
 	    )
 	)
       )
-;    (debug_msg "putobjdest block updated recv" recv (the_callcount))
+;    (debugmsg recv "putobjdest block updated recv" (the_callcount))
     recv
     ))
 
@@ -9330,7 +9203,7 @@
     (assert_msg "check resv" (is_a resv class_objlocv))
     (list_append epil obc)
     )
-  ;;    (debug_msg "putobjdest loop updated recv" recv (the_callcount))
+  ;;    (debugmsg recv "putobjdest loop updated recv" (the_callcount))
   recv
   )
 (install_method class_objloop  put_objdest  putobjdest_objloop)
@@ -9386,37 +9259,37 @@
 				:obcond_then othen
 				:obcond_else oelse))
 	   )
-;      (debug_msg "compilobj_nrep_if obif" obif (the_callcount))
+;      (debugmsg obif "compilobj_nrep_if obif" (the_callcount))
       obif
       )))
 (install_method class_nrep_if compile_obj compilobj_nrep_if)
 ;;;;;;;;;;;;;
 (defun putobjdest_objcond (recv desto)
-;  (debug_msg "putobjdest objcond recv" recv (the_callcount))
-;  (debug_msg "putobjdest objcond desto" desto (the_callcount))
+;  (debugmsg recv "putobjdest objcond recv" (the_callcount))
+;  (debugmsg desto "putobjdest objcond desto" (the_callcount))
   (assert_msg "check recv" (is_a recv class_objcond))
   (assert_msg "check desto" (is_a desto class_objlocv))
   (let ( (othen (unsafe_get_field :obcond_then recv))
 	 (oelse (unsafe_get_field :obcond_else recv)) 
 	 )
- ;   (debug_msg "putobjdest objcond othen" othen (the_callcount))
- ;   (debug_msg "putobjdest objcond oelse" oelse (the_callcount))
+ ;   (debugmsg othen "putobjdest objcond othen" (the_callcount))
+ ;   (debugmsg oelse "putobjdest objcond oelse" (the_callcount))
     (let ( (dthen (put_objdest othen desto))
 	   (delse (put_objdest oelse desto)) )
-;      (debug_msg "putobjdest objcond dthen" dthen (the_callcount))
-;      (debug_msg "putobjdest objcond delse" delse (the_callcount))
+;      (debugmsg dthen "putobjdest objcond dthen" (the_callcount))
+;      (debugmsg delse "putobjdest objcond delse" (the_callcount))
       (unsafe_put_fields recv
 			 :obcond_then dthen
 			 :obcond_else delse)
-;      (debug_msg "putobjdest objcond updated recv" recv (the_callcount))
+;      (debugmsg recv "putobjdest objcond updated recv" (the_callcount))
       recv
       )))
 
 (install_method class_objcond  put_objdest  putobjdest_objcond)
 ;;;;;;;;;;;;;;;;
 (defun putobjdest_objapply (recv desto)
-  (debug_msg "putobjdest objapply recv" recv (the_callcount))
-;  (debug_msg "putobjdest objapply desto" desto (the_callcount))
+  (debugmsg recv "putobjdest objapply recv" (the_callcount))
+;  (debugmsg desto "putobjdest objapply desto" (the_callcount))
   (assert_msg "check recv" (is_a recv class_objapply))
   (assert_msg "check desto" (is_a desto class_objlocv))
   (let ( (adest (unsafe_get_field :obapp_dest recv)) )
@@ -9428,8 +9301,8 @@
 
 ;;;;;;;;;;;;;;;;
 (defun putobjdest_objmsend (recv desto)
-  (debug_msg "putobjdest objapply recv" recv (the_callcount))
-;  (debug_msg "putobjdest objapply desto" desto (the_callcount))
+  (debugmsg recv "putobjdest objapply recv" (the_callcount))
+;  (debugmsg desto "putobjdest objapply desto" (the_callcount))
   (assert_msg "check recv" (is_a recv class_objmsend))
   (assert_msg "check desto" (is_a desto class_objlocv))
   (let ( (adest (unsafe_get_field :obmsnd_dest recv)) )
@@ -9444,8 +9317,8 @@
 (defun compilobj_nrep_return (nret gcx)
   (assert_msg "check nret" (is_a nret class_nrep_return))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-;  (debug_msg "compilobj_nrep_return gcx" gcx (the_callcount))
-;  (debug_msg "compilobj_nrep_return nret" nret (the_callcount))
+;  (debugmsg gcx "compilobj_nrep_return gcx" (the_callcount))
+;  (debugmsg nret "compilobj_nrep_return nret" (the_callcount))
   (let ( (rloc (unsafe_get_field :nrep_loc nret))
 	 (rmain (unsafe_get_field :nret_main nret))
 	 (rrest (unsafe_get_field :nret_rest nret)) ;; a tuple or nil
@@ -9464,19 +9337,19 @@
     (multiple_every
      rrest
      (lambda (rxtra :long ix)
-;       (debug_msg "compilobj_nrep_return rxtra" rxtra (the_callcount))
+;       (debugmsg rxtra "compilobj_nrep_return rxtra" (the_callcount))
        (let ( (oxres 
 	       (make_instance class_objputxtraresult
 			      :obi_loc rloc
 			      :obxres_rank (make_integerbox discr_integer ix)
 			      :obxres_obloc (compile_obj rxtra gcx))) )
 	 ;; maybe we need to compute the ctype of the extra result....
-;	 (debug_msg "compilobj_nrep_return oxres" oxres (the_callcount))
+;	 (debugmsg oxres "compilobj_nrep_return oxres" (the_callcount))
 	 (list_append olis oxres))))
     (list_append olis 
 		 (make_instance class_objfinalreturn
 				:obi_loc rloc))
-;    (debug_msg "compilobj_nrep_return final oblock" oblock (the_callcount))
+;    (debugmsg oblock "compilobj_nrep_return final oblock" (the_callcount))
     oblock
     )
   )
@@ -9491,7 +9364,7 @@
 (defun compilobj_nrep_lambda (nlam gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (assert_msg "check nlam" (is_a nlam class_nrep_lambda))
-  (debug_msg "compilobj_nrep_lambda nlam" nlam (the_callcount))
+  (debugmsg nlam "compilobj_nrep_lambda nlam" (the_callcount))
   (let ( (nloc (unsafe_get_field :nrep_loc nlam))
 	 (npro (let 
 		   ( (checkpro (unsafe_get_field :nlambda_proc nlam)) )
@@ -9517,9 +9390,9 @@
 		  :obnclo_discr discrclosure_objpredef
 		  :obnclo_rout 
 		  (progn 
-		    (debug_msg "compilobj_nrep_lambda should use nrpro_thunklist nrou" nrou (the_callcount))
+		    (debugmsg nrou "compilobj_nrep_lambda should use nrpro_thunklist nrou" (the_callcount))
 		    (let ( (crou (compile_obj nrou gcx)) )
-		      (debug_msg "compilobj_nrep_lambda crou" crou (the_callcount))
+		      (debugmsg crou "compilobj_nrep_lambda crou" (the_callcount))
 		      crou)
 		  )
 		  :obnclo_len (make_integerbox discr_integer nbclosed)
@@ -9527,7 +9400,7 @@
     (multiple_every
      nclovtup
      (lambda (clov :long ix)
-       (debug_msg "compilobj_nrep_lambda clov" clov)
+       (debugmsg clov "compilobj_nrep_lambda clov")
        (list_append 
 	olis
 	(make_instance class_objputclosedv
@@ -9537,7 +9410,7 @@
 		       :opclov_cval (compile_obj clov gcx)))))
     ;; we don't need to add any objtouch because the nlam was normalized!
     (list_append olis locv) ;;; last instruction is just the value, which can be set to some dest
-    (debug_msg "compilobj_nrep_lambda result oblock" oblock (the_callcount))
+    (debugmsg oblock "compilobj_nrep_lambda result oblock" (the_callcount))
     oblock
     ))
 (install_method class_nrep_lambda compile_obj compilobj_nrep_lambda)
@@ -9546,8 +9419,8 @@
 (defun compilobj_nrep_makeinst (nmki gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (assert_msg "check nmki" (is_a nmki class_nrep_make_instance))
-  (debug_msg "compilobj_nrep_makeinst nmki" nmki)
-  ;; (debug_msg "compilobj_nrep_makeinst gcx" gcx)
+  (debugmsg nmki "compilobj_nrep_makeinst nmki")
+  ;; (debugmsg gcx "compilobj_nrep_makeinst gcx")
   (let ( (nloc (unsafe_get_field :nrep_loc nmki))
 	 (ncla (unsafe_get_field :nmins_class nmki))
 	 (ncladat (unsafe_get_field :nmins_cladata nmki))
@@ -9588,7 +9461,7 @@
 			   :oslot_value (compile_obj cval gcx))))))
     ;; we don't need to add any objtouch because the nmki was normalized!
       (list_append olis locv) ;;; last instruction is just the value, which can be set to some dest
-      (debug_msg "compilobj_nrep_makeinst result oblock" oblock (the_callcount))
+      (debugmsg oblock "compilobj_nrep_makeinst result oblock" (the_callcount))
       oblock
       ))
   )
@@ -9599,8 +9472,8 @@
 (defun compilobj_routproc (npro gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (assert_msg "check npro" (is_a npro class_nrep_routproc))
-  (debug_msg "compilobj_routproc gcx" gcx (the_callcount))
-  (debug_msg "compilobj_routproc npro" npro (the_callcount))
+  (debugmsg gcx "compilobj_routproc gcx" (the_callcount))
+  (debugmsg npro "compilobj_routproc npro" (the_callcount))
   (assert_msg "UNEXPECTED CALL TO compilobj_routproc" ())
 )
 (install_method class_nrep_routproc compile_obj compilobj_routproc)
@@ -9608,11 +9481,11 @@
 ;;;;
 (defun compilobj_predef (npr gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-;  (debug_msg "compilobj_predef npr" npr (the_callcount))
+;  (debugmsg npr "compilobj_predef npr" (the_callcount))
   (let ( (opr (make_instance class_objpredef
 			     :obv_type ctype_value
 			     :obpredef (unsafe_get_field :nrpredef npr))) )
-;    (debug_msg "compilobj_predef opr" opr (the_callcount))
+;    (debugmsg opr "compilobj_predef opr" (the_callcount))
     opr)
 )
 
@@ -9629,10 +9502,10 @@
   (assert_msg "compil_data_and_slots_fill check odiscr" (is_a odiscr class_objvalue))
   (assert_msg "compil_data_and_slots_fill check irout" (is_a irout class_initialroutineobj))
   (assert_msg "compil_data_and_slots_fill check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compil_data_and_slots_fill ndat" ndat (the_callcount))
- ;; (debug_msg "compil_data_and_slots_fill obj" obj (the_callcount))
- ;; (debug_msg "compil_data_and_slots_fill odiscr" odiscr (the_callcount))
- ;; (debug_msg "compil_data_and_slots_fill irout un" irout (the_callcount))
+  (debugmsg ndat "compil_data_and_slots_fill ndat" (the_callcount))
+ ;; (debugmsg obj "compil_data_and_slots_fill obj" (the_callcount))
+ ;; (debugmsg odiscr "compil_data_and_slots_fill odiscr" (the_callcount))
+ ;; (debugmsg irout "compil_data_and_slots_fill irout un" (the_callcount))
   (let (
 	(ibodylis (unsafe_get_field :obrout_body irout))
 	(ifilllis (unsafe_get_field :oirout_fill irout))
@@ -9649,11 +9522,11 @@
     (unsafe_put_fields obj :oie_locvar locvar)
     (assert_msg "check ifilllis" (is_list ifilllis))
     (assert_msg "check ibodylis" (is_list ibodylis))
-    ; (debug_msg "compil_data_and_slots_fill dlocbind" dlocbind (the_callcount))
+    ; (debugmsg dlocbind "compil_data_and_slots_fill dlocbind" (the_callcount))
     (multiple_every
      dlocbind
      (lambda (lbind :long bindrk)
-       ; (debug_msg "compil_data_and_slots_fill lbind" lbind)
+       ; (debugmsg lbind "compil_data_and_slots_fill lbind")
        (assert_msg "compil_data_and_slots_fill check lbind" (is_a lbind class_normlet_binding))
        (let ( (bder (unsafe_get_field :binder lbind))
 	      (cty (unsafe_get_field :letbind_type lbind))
@@ -9672,12 +9545,12 @@
     (multiple_every
      (unsafe_get_field :ninst_slots ndat)
      (lambda (sloval :long slork)
-       ; (debug_msg "compil_data_and_slots_fill sloval" sloval (the_callcount))
+       ; (debugmsg sloval "compil_data_and_slots_fill sloval" (the_callcount))
        (if sloval
            ;;; add to list inifill the filling in dai of slot#slork by slobj
 	   (let ( (slobj (compile_obj sloval gcx)) 
 		  )
-	     ; (debug_msg "compil_data_and_slots_fill slobj" slobj (the_callcount))
+	     ; (debugmsg slobj "compil_data_and_slots_fill slobj" (the_callcount))
 	     (let ( (oput 
 		     (make_instance class_objputslot
 				    :obi_loc  nloc
@@ -9710,7 +9583,7 @@
      dlocbind
      (lambda (bnd :long ix) (dispose_bnd_obj bnd gcx)))
     )
-  (debug_msg "compil_data_and_slots_fill final irout" irout (the_callcount))
+  (debugmsg irout "compil_data_and_slots_fill final irout" (the_callcount))
   (return)				;force a nil return
   )
 
@@ -9720,7 +9593,7 @@
 (defun compilobj_datasymbol (syv gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (assert_msg "check syv" (is_a syv class_nrep_datasymbol))
-  (debug_msg "compilobj_datasymbol syv" syv (the_callcount))
+  (debugmsg syv "compilobj_datasymbol syv" (the_callcount))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (chobj (mapobject_get compicache syv))
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
@@ -9729,7 +9602,7 @@
     (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
-	  (debug_msg "compilobj_datasymbol found chobj" chobj)
+	  (debugmsg chobj "compilobj_datasymbol found chobj")
 	  (return chobj)))
     (let (
 	  (odiscr  (compile_obj (unsafe_get_field :ndata_discrx syv) gcx))
@@ -9741,7 +9614,7 @@
 			  )) 
 	  )
       (mapobject_put compicache syv obsym)
-      (debug_msg "compilobj_datasymbol inirout" inirout (the_callcount))
+      (debugmsg inirout "compilobj_datasymbol inirout" (the_callcount))
       ;; make a cname
       (let ( (nambuf (make_strbuf discr_strbuf))
 	     (:long syrk (get_int (unsafe_get_field :ndata_rank syv)))
@@ -9754,10 +9627,10 @@
 			   :oie_cname (strbuf2string discr_string nambuf)))
       ;; put the length as obj_num of obsym
       (put_int obsym (multiple_length (unsafe_get_field :ninst_slots syv)))
-      (debug_msg "compilobj_datasymbol gcx" gcx (the_callcount))
-      (debug_msg "compilobj_datasymbol obsym beforfill" obsym (the_callcount))
+      (debugmsg gcx "compilobj_datasymbol gcx" (the_callcount))
+      (debugmsg obsym "compilobj_datasymbol obsym beforfill" (the_callcount))
       (compil_data_and_slots_fill syv obsym odiscr inirout gcx)
-      (debug_msg "compilobj_datasymbol obsym final" obsym (the_callcount))
+      (debugmsg obsym "compilobj_datasymbol obsym final" (the_callcount))
       obsym
       )))
 (install_method class_nrep_datasymbol compile_obj compilobj_datasymbol)
@@ -9767,8 +9640,8 @@
 ;;;;;;;;;;;;;;;; compilobj of datainstance
 (defun compilobj_datainstance (dai gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj_datainstance gcx" gcx (the_callcount))
-  (debug_msg "compilobj_datainstance dai" dai (the_callcount))
+  (debugmsg gcx "compilobj_datainstance gcx" (the_callcount))
+  (debugmsg dai "compilobj_datainstance dai" (the_callcount))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (chobj (mapobject_get compicache dai))
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
@@ -9777,7 +9650,7 @@
     (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
-	  (debug_msg "compilobj_datainstance found chobj" chobj)
+	  (debugmsg chobj "compilobj_datainstance found chobj")
 	  (return chobj)))
     (let ( (loc (unsafe_get_field :nrep_loc dai))
 	   (nam (unsafe_get_field :ndata_name dai))
@@ -9792,11 +9665,11 @@
       ;; if the drank is invalid or nil, the data has never been added
       ;; with add_nctx_data (should not happen)
       (assert_msg "compilobj_datainstance check drank" (is_integerbox drank))
-      (debug_msg "compilobj_datainstance disx" disx (the_callcount))
-      (debug_msg "compilobj_datainstance avant gcx" gcx (the_callcount))
+      (debugmsg disx "compilobj_datainstance disx" (the_callcount))
+      (debugmsg gcx "compilobj_datainstance avant gcx" (the_callcount))
       (let ( (cdisx (compile_obj disx gcx)) 
 	     )
-	(debug_msg "compilobj_datainstance cdisx" cdisx (the_callcount))
+	(debugmsg cdisx "compilobj_datainstance cdisx" (the_callcount))
 	(let (
 	      ;; make a cname
 	      (oini (make_instance class_objinitobject
@@ -9814,13 +9687,13 @@
 		    (add2sbuf_cident nambuf (unsafe_get_field :named_name nam))))
 	  (let ( (cnam (strbuf2string discr_string nambuf)) )
 	    (unsafe_put_fields oini :oie_cname cnam)
-	    (debug_msg "compilobj_datainstance cnam" cnam (the_callcount))
+	    (debugmsg cnam "compilobj_datainstance cnam" (the_callcount))
 	    )
 	  (put_int oini (multiple_length dslots))
-	  (debug_msg "compilobj_datainstance apres gcx" gcx (the_callcount))
-	  (debug_msg "compilobj_datainstance oini" oini (the_callcount))
+	  (debugmsg gcx "compilobj_datainstance apres gcx" (the_callcount))
+	  (debugmsg oini "compilobj_datainstance oini" (the_callcount))
 	  (compil_data_and_slots_fill dai oini cdisx inirout gcx)
-	  (debug_msg "compilobj_datainstance final oini" oini (the_callcount))
+	  (debugmsg oini "compilobj_datainstance final oini" (the_callcount))
 	  oini
 	  )  
 	)
@@ -9835,8 +9708,8 @@
 (defun compilobj_datatuple (nti gcx)
   (assert_msg "check nti" (is_a nti class_nrep_datatuple))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj_datatuple gcx" gcx (the_callcount))
-  (debug_msg "compilobj_datatuple nti" nti (the_callcount))
+  (debugmsg gcx "compilobj_datatuple gcx" (the_callcount))
+  (debugmsg nti "compilobj_datatuple nti" (the_callcount))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (chobj (mapobject_get compicache nti))
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
@@ -9845,7 +9718,7 @@
     (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
-	  (debug_msg "compilobj_datatuple found chobj" chobj)
+	  (debugmsg chobj "compilobj_datatuple found chobj")
 	  (return chobj)))
     (let ( (ncompi (unsafe_get_field :ntup_comp nti))
 	   (ocompi (multiple_map 
@@ -9891,7 +9764,7 @@
 		     (make_instance class_objtouch
 				    :otouch_val otup
 				    :otouch_comment comm))
-	(debug_msg "compilobj datatuple otup" otup (the_callcount))
+	(debugmsg otup "compilobj datatuple otup" (the_callcount))
 	otup
 	)
       )
@@ -9906,8 +9779,8 @@
 (defun compilobj_datastring (nds gcx)
   (assert_msg "check nds" (is_a nds class_nrep_datastring))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  ; (debug_msg "compilobj_datastring gcx" gcx (the_callcount))
-  (debug_msg "compilobj_datastring nds" nds (the_callcount))
+  ; (debugmsg gcx "compilobj_datastring gcx" (the_callcount))
+  (debugmsg nds "compilobj_datastring nds" (the_callcount))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
 	 (chobj (mapobject_get compicache nds))
@@ -9916,7 +9789,7 @@
     (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
-	  (debug_msg "compilobj_datastring found chobj" chobj)
+	  (debugmsg chobj "compilobj_datastring found chobj")
 	  (return chobj)))
     (let (
 	  (nambuf (make_strbuf discr_strbuf))
@@ -9944,7 +9817,7 @@
 	    (add2sbuf_strconst nambuf "__")
 	    (add2sbuf_cident nambuf (unsafe_get_field :named_name nam))))
       (unsafe_put_fields ostr :oie_cname (strbuf2string discr_string nambuf))
-      (debug_msg "compilobj_datastring ostr" ostr (the_callcount))
+      (debugmsg ostr "compilobj_datastring ostr" (the_callcount))
       ostr
       )
     ))
@@ -9955,8 +9828,8 @@
 (defun compilobj_dataclosure (ncl gcx)
   (assert_msg "check ncl" (is_a ncl class_nrep_dataclosure))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj_dataclosure gcx" gcx (the_callcount))
-  (debug_msg "compilobj_dataclosure ncl" ncl (the_callcount))
+  (debugmsg gcx "compilobj_dataclosure gcx" (the_callcount))
+  (debugmsg ncl "compilobj_dataclosure ncl" (the_callcount))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
 	 (inibody (unsafe_get_field :obrout_body inirout))
@@ -9965,7 +9838,7 @@
     (assert_msg  "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
-	  (debug_msg "compilobj_dataclosure found chobj" chobj)
+	  (debugmsg chobj "compilobj_dataclosure found chobj")
 	  (return chobj)))
     (let ( 
 	  (nam (unsafe_get_field :ndata_name ncl))
@@ -9986,7 +9859,7 @@
       (if nam (progn
 		(add2sbuf_strconst nambuf "__")
 		(add2sbuf_cident nambuf (unsafe_get_field :named_name nam))))
-					;    (debug_msg "compilobj_dataclosure encore ncl" ncl (the_callcount))
+					;    (debugmsg ncl "compilobj_dataclosure encore ncl" (the_callcount))
       (let (
 	    (ndatarou (unsafe_get_field :nrpro_datarout npro))
 	    (oiclo
@@ -10012,7 +9885,7 @@
 	      )
 	  (assert_msg "check ocrout" (is_a ocrout class_procroutineobj))
 	  (list_append inibody ocputrout)
-	  (debug_msg "compilobj_dataclosure nclov" nclov (the_callcount))
+	  (debugmsg nclov "compilobj_dataclosure nclov" (the_callcount))
 	  (multiple_every
 	   nclov
 	   (lambda (clov :long ix)
@@ -10042,8 +9915,8 @@
 (defun compilobj_dataroutine (ndrou gcx)
   (assert_msg "check ndrou" (is_a ndrou class_nrep_dataroutine))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg "compilobj_dataroutine+ gcx" gcx (the_callcount))
-  (debug_msg "compilobj_dataroutine+ ndrou" ndrou (the_callcount))
+  (debugmsg gcx "compilobj_dataroutine+ gcx"  (the_callcount))
+  (debugmsg ndrou "compilobj_dataroutine+ ndrou" (the_callcount))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
 	 (chobj (mapobject_get compicache ndrou))
@@ -10052,7 +9925,7 @@
     (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
-	  (debug_msg "compilobj_dataroutine+ found chobj" chobj)
+	  (debugmsg chobj "compilobj_dataroutine+ found chobj")
 	  (return chobj)))
     (let ( (nam (unsafe_get_field :ndata_name ndrou))
 	   (disx (unsafe_get_field :ndata_discrx ndrou))
@@ -10074,7 +9947,7 @@
 	(if nam (progn
 		  (add2sbuf_strconst nambuf "__")
 		  (add2sbuf_cident nambuf (unsafe_get_field :named_name nam))))
-	(debug_msg "compilobj_dataroutine encore ndrou" ndrou (the_callcount))
+	(debugmsg ndrou "compilobj_dataroutine encore ndrou" (the_callcount))
 	(let (
 	      (oirout 
 	       (make_instance class_objinitroutine
@@ -10087,14 +9960,13 @@
 			      )) 
 	      )
 	  (mapobject_put compicache ndrou oirout)
-	  (debug_msg "compilobj_dataroutine+ npro" npro (the_callcount))
 	  (if (is_a npro class_nrep_routproc)
 	      (let ( (pconstl (unsafe_get_field :nrpro_const npro)) 
 		     (:long nbconst (list_length pconstl))
 		     (bxoff (make_integerbox discr_integer 0))
 		     (comm (unsafe_get_field :named_name '_iroutval_))
 		     )
-		(debug_msg "compilobj_dataroutine pconstl" pconstl (the_callcount))
+		(debugmsg pconstl "compilobj_dataroutine pconstl" (the_callcount))
 		(put_int oirout nbconst)
 		(list_every
 		 pconstl
@@ -10118,8 +9990,8 @@
 							)))
 		)
 	    )
-	  (debug_msg "compilobj_dataroutine here npro" npro (the_callcount))
-	  (debug_msg "compilobj_dataroutine here fresh oirout" oirout (the_callcount))
+	  (debugmsg npro "compilobj_dataroutine here npro" (the_callcount))
+	  (debugmsg oirout "compilobj_dataroutine here fresh oirout" (the_callcount))
 	  oirout)
 	))))
 (install_method class_nrep_dataroutine compile_obj compilobj_dataroutine)
@@ -10143,10 +10015,10 @@
 ;;;;
 (defun readseq_command (dispatcher arg)
   (message_dbg "starting readseq")
-  (debug_msg "start readseq_command" arg (the_callcount))
+  (debugmsg arg "start readseq_command" (the_callcount))
   (let ( (rlist (read_file arg)) )
     (message_dbg "ending readseq")
-    (debug_msg "done readseq_command" rlist (the_callcount))
+    (debugmsg rlist "done readseq_command" (the_callcount))
 ))
 
 (install_initial_command  (stringconst2val discr_string "readseq") readseq_command)
@@ -10155,18 +10027,18 @@
 
 (defun expandseq_command (dispatcher arg)
   (message_dbg "starting expandseq")
-  (debug_msg "start expandseq_command" arg (the_callcount))
-  (debug_msg "start expandseq_command initial_environment" initial_environment (the_callcount))
-  (debug_msg "start expandseq_command class_root" class_root (the_callcount))
-  (debug_msg "start expandseq_command class_class" class_class (the_callcount))
-  (debug_msg "start expandseq_command class_field" class_field (the_callcount))
+  (debugmsg arg "start expandseq_command" (the_callcount))
+  (debugmsg initial_environment "start expandseq_command initial_environment" (the_callcount))
+  (debugmsg class_root "start expandseq_command class_root" (the_callcount))
+  (debugmsg class_class "start expandseq_command class_class" (the_callcount))
+  (debugmsg class_field "start expandseq_command class_field" (the_callcount))
   (let ( (rlist (read_file arg)) 
 	 (inienv initial_environment) ) 
-    (debug_msg "after read expandseq_command rlist" rlist (the_callcount))
-    (debug_msg "after read expandseq_command inienv" inienv (the_callcount))
+    (debugmsg rlist "after read expandseq_command rlist" (the_callcount))
+    (debugmsg inienv "after read expandseq_command inienv" (the_callcount))
     (let ( (xlist (macroexpand_toplevel_list rlist inienv)) )
-      (debug_msg "after macroexpansion expandseq_command seq" xlist (the_callcount))
-      (debug_msg "after macroexpansion expandseq_command inienv" inienv (the_callcount))
+      (debugmsg xlist "after macroexpansion expandseq_command seq" (the_callcount))
+      (debugmsg inienv "after macroexpansion expandseq_command inienv" (the_callcount))
       )))
 
 (install_initial_command  (stringconst2val discr_string "expandseq") expandseq_command)
@@ -10174,26 +10046,26 @@
 
 (defun normexpseq_command (dispatcher arg)
   (message_dbg "starting normexpseq_command")
-  (debug_msg "start normexpseq_command" arg (the_callcount))
+  (debugmsg arg "start normexpseq_command" (the_callcount))
   (let ( (rlist (read_file arg)) ) 
-    (debug_msg "after read normexpseq_command rlist" rlist (the_callcount))
-    (debug_msg "after read normexpseq_command initial_environment" initial_environment (the_callcount))
+    (debugmsg rlist "after read normexpseq_command rlist" (the_callcount))
+    (debugmsg initial_environment "after read normexpseq_command initial_environment" (the_callcount))
     (let ( (xlist (macroexpand_toplevel_list rlist initial_environment)) )
-      (debug_msg "after macroexpand normexpseq_command xlist" xlist (the_callcount))
-      (debug_msg "after macroexpand normexpseq_command initial_environment" initial_environment (the_callcount))
+      (debugmsg xlist "after macroexpand normexpseq_command xlist" (the_callcount))
+      (debugmsg initial_environment "after macroexpand normexpseq_command initial_environment" (the_callcount))
       (let ( (ncx (create_normcontext)) )
- 	(debug_msg "before normalization normexpseq_command ncx" ncx (the_callcount))
+ 	(debugmsg ncx "before normalization normexpseq_command ncx" (the_callcount))
  	(list_every
  	 xlist
  	 (lambda (sexp :long ix)
- 	   (debug_msg "normexpseq_command sexp" sexp (the_callcount))
+ 	   (debugmsg sexp "normexpseq_command sexp" (the_callcount))
  	   (let (
 		 (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
 		 (nexp
  		   (normal_exp sexp initial_environment ncx psloc)) )
- 	     (debug_msg "normexpseq_command nexp" nexp (the_callcount))
+ 	     (debugmsg nexp "normexpseq_command nexp" (the_callcount))
  	     )))
- 	(debug_msg "after normalization normexpseq_command ncx" ncx (the_callcount))
+ 	(debugmsg ncx "after normalization normexpseq_command ncx" (the_callcount))
  	)))
   )
 
@@ -10202,12 +10074,12 @@
 ;;;;;
 (defun compileseq_command (dispatcher arg secarg)
   (message_dbg "starting compileseq_command")
-  (debug_msg "start compileseq_command" arg (the_callcount))
+  (debugmsg arg "start compileseq_command" (the_callcount))
   (let ( (rlist (read_file arg)) 
 	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	 ) 
-    (debug_msg "after read compileseq_command rlist" rlist (the_callcount))
-    (debug_msg "after read compileseq_command initial_environment" initial_environment (the_callcount))
+    (debugmsg rlist "after read compileseq_command rlist" (the_callcount))
+    (debugmsg initial_environment "after read compileseq_command initial_environment" (the_callcount))
     (compile_list_sexpr rlist initial_environment basnam)
     ))
 
