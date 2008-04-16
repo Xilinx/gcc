@@ -3970,21 +3970,23 @@
 		   (mapobject_put predefmap curpredef (make_integerbox discr_integer ix)))
 	       )
 	     (setq ix (+i ix 1)))
-    (make_instance class_normcontext
-		   :nctx_initproc (make_instance class_nrep_initproc
-						 :ninit_topl (make_list discr_list)
-						 :nrep_loc ()
-						 )
-		   :nctx_proclist (make_list discr_list)
-		   :nctx_datalist (make_list discr_list)
-		   :nctx_symbmap  (make_mapstring discr_mapstrings 50)
-		   :nctx_keywmap  (make_mapstring discr_mapstrings 40)
-		   :nctx_predefmap predefmap
-		   :nctx_valmap valmap
-		   :nctx_valbindmap (make_mapobject discr_mapobjects 20)
-		   ;; we need a symbcachemap for the toplevel expressions
-		   :nctx_symbcachemap (make_mapobject discr_mapobjects 30)
-		   )))
+    (let ( (inipro  (make_instance class_nrep_initproc
+				   :ninit_topl (make_list discr_list)
+				   :nrep_loc ()
+				   )) )
+      (make_instance class_normcontext
+		     :nctx_initproc inipro
+		     :nctx_proclist (make_list discr_list)
+		     :nctx_datalist (make_list discr_list)
+		     :nctx_symbmap  (make_mapstring discr_mapstrings 50)
+		     :nctx_keywmap  (make_mapstring discr_mapstrings 40)
+		     :nctx_predefmap predefmap
+		     :nctx_valmap valmap
+		     :nctx_valbindmap (make_mapobject discr_mapobjects 20)
+		     ;; we need a symbcachemap for the toplevel expressions
+		     :nctx_symbcachemap (make_mapobject discr_mapobjects 30)
+		     :nctx_curproc inipro
+		     ))))
 
 ;;; the normal_exp selector 
 ;;;;; expected arguments: 
@@ -4085,6 +4087,11 @@
   (list_every
    bindlist 
    (lambda (cbind) 
+     (if (not (is_a cbind class_normlet_binding))
+	 (progn
+	   (debugmsg tupnexp "wrap_normal_letseq tuplexp" (the_callcount))
+	   (debugmsg bindlist "wrap_normal_letseq bindlist" (the_callcount))
+	   (debugmsg cbind "wrap_normal_letseq cbind" (the_callcount))))
      (assert_msg "check cbind wrapnormletseq" (is_a cbind class_normlet_binding))))
   (let ( (wnlet
 	  (make_instance class_nrep_let
@@ -5593,6 +5600,7 @@
 				:nconst_data kdata
 				:nconst_proc curproc))
 	 )
+    (debugmsg curproc "normexp_keyword curproc" (the_callcount))
     (assert_msg "check curproc" (is_a curproc class_nrep_anyproc))
     (list_append constlist kdata)
     (debugmsg nconst "normexp_keyword nconst" (the_callcount))
@@ -5920,6 +5928,7 @@
       (multiple_every
        sinstfields
        (lambda (flda :long ix)
+	 (debugmsg flda "normexp definstance flda")
 	 (assert_msg "check flda" (is_a flda class_src_fieldassign))
 	 (let ( (curfld (unsafe_get_field :sfla_field flda))
 		(curexp (unsafe_get_field :sfla_expr flda))
@@ -5932,6 +5941,7 @@
 	   (multicall
 	    (ncur nbindcur)
 	    (normal_exp curexp env ncx sloc)
+	    (debugmsg ncur "normexp definstance field ncur")
 	    (multiple_put_nth slotup curoff ncur)
 	    (if (is_list nbindcur)
 		(let ( (nbindlist (box_content nbindbox)))

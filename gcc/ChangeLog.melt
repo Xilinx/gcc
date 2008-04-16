@@ -1,3 +1,8 @@
+2008-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: (create_normcontext) set both  :nctx_initproc 
+	and :nctx_curproc to the shared inipro to handle keywords [e.g. inside ctype* def_instance-s.]
+	this exposes a basilys runtime bug in forwarded_copy
+
 2008-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added $(BASILYSDEBUG) for -fdebug-basilys 
 	and added compilation of warm-basilys by itself (still buggy)
