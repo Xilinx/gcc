@@ -2197,19 +2197,21 @@ void basilys_dbgshortbacktrace(const char* msg, int maxdepth);
 #if ENABLE_CHECKING
 extern void* basilys_checkedp_ptr1;
 extern void* basilys_checkedp_ptr2;
-void basilys_caught_assign_at(void*ptr, const char*fil, int lin);
-#define basilys_checked_assign_at(Assign,Fil,Lin) ({			\
+void basilys_caught_assign_at(void*ptr, const char*fil, int lin, const char*msg);
+#define basilys_checked_assignmsg_at(Assign,Fil,Lin,Msg) ({		\
       void* p_##Lin = (Assign);						\
       if (p_##Lin && !basilys_discr(p_##Lin))				\
 	basilys_assert_failed("bad assign",Fil,Lin,__FUNCTION__);	\
       if ( (p_##Lin == basilys_checkedp_ptr1 && p_##Lin)		\
 	   ||  (p_##Lin == basilys_checkedp_ptr2 && p_##Lin))		\
-	basilys_caught_assign_at(p_##Lin,Fil,Lin); p_##Lin; })
-#define basilys_checked_assign(Assign) basilys_checked_assign_at((Assign),__FILE__,__LINE__)
+	basilys_caught_assign_at(p_##Lin,Fil,Lin,Msg); p_##Lin; })
+#define basilys_checked_assign(Assign) basilys_checked_assignmsg_at((Assign),__FILE__,__LINE__,__FUNCTION__)
+#define basilys_checked_assignmsg(Assign,Msg) basilys_checked_assignmsg_at((Assign),__FILE__,__LINE__,Msg)
 void basilys_cbreak_at(const char*msg, const char*fil, int lin);
 #define basilys_cbreak(Msg) basilys_cbreak_at((Msg),__FILE__,__LINE__)
 #else
 #define basilys_checked_assign(Assign) Assign
+#define basilys_checked_assignmsg(Assign,Msg) Assign
 #define basilys_cbreak(Msg) ((void)(Msg))
 #endif /*ENABLE_CHECKING*/
 

@@ -435,15 +435,15 @@ basilys_check_call_frames_at (int noyoungflag, const char *msg,
 }
 
 void
-basilys_caught_assign_at (void *ptr, const char *fil, int lin)
+basilys_caught_assign_at (void *ptr, const char *fil, int lin, const char*msg)
 {
   if (debughack_file)
     {
-      fprintf (debughack_file, "caught assign %p at %s:%d\n", ptr,
-	       basename (fil), lin);
+      fprintf (debughack_file, "caught assign %p at %s:%d /// %s\n", ptr,
+	       basename (fil), lin, msg);
       fflush (debughack_file);
     }
-  debugeprintf ("caught assign %p at %s:%d", ptr, basename (fil), lin);
+  debugeprintf ("caught assign %p at %s:%d /// %s", ptr, basename (fil), lin, msg);
 }
 
 static long nbcbreak;

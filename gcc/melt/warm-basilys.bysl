@@ -283,6 +283,9 @@
   "debugbacktrace((" msg "), (int)(" maxdepth "))")
 (defprimitive shortbacktrace_dbg (:cstring msg :long maxdepth) :void
   "basilys_dbgshortbacktrace((" msg "), (" maxdepth "))")
+(defprimitive checkval_dbg (val :cstring msg) :value
+  "basilys_checked_assignmsg((" val "),(" msg "))")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; STRBUF primitives
 ;; primitive to make a strbuf
@@ -4089,9 +4092,9 @@
    (lambda (cbind) 
      (if (not (is_a cbind class_normlet_binding))
 	 (progn
-	   (debugmsg tupnexp "wrap_normal_letseq tuplexp" (the_callcount))
-	   (debugmsg bindlist "wrap_normal_letseq bindlist" (the_callcount))
-	   (debugmsg cbind "wrap_normal_letseq cbind" (the_callcount))))
+	   (debugmsg tupnexp "wrap_normal_letseq tuplexp")
+	   (debugmsg bindlist "wrap_normal_letseq bindlist")
+	   (debugmsg cbind "wrap_normal_letseq cbind")))
      (assert_msg "check cbind wrapnormletseq" (is_a cbind class_normlet_binding))))
   (let ( (wnlet
 	  (make_instance class_nrep_let
@@ -4108,6 +4111,11 @@
   (list_every
    bindlist 
    (lambda (cbind) 
+     (if (not (is_a cbind class_normlet_binding))
+	 (progn
+	   (debugmsg nexp "wrap_normal_let1 nexp")
+	   (debugmsg bindlist "wrap_normal_let1 bindlist")
+	   (debugmsg cbind "wrap_normal_let1 cbind")))
      (assert_msg "check cbind wrapnormlet1" (is_a cbind class_normlet_binding))))
   (if 
       (and (is_list bindlist)
@@ -4736,6 +4744,7 @@
   (assert_msg "check progn recv" (is_a recv class_src_progn))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debugmsg recv "normexp_progn recv" (the_callcount))
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sbody (unsafe_get_field :sprogn_body recv))
 	 (:long lnbody (multiple_length sbody)) 

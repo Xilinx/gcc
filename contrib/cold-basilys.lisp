@@ -2706,11 +2706,11 @@ nil)
 	 (assert (eq (get_destination csl) cold_tempslot_var))
 	 (output_ccode csl str)
 	 (format str ";~%")
-	 (format str "((basilysobject_ptr_t)(")
+	 (format str "basilys_checked_assign(((basilysobject_ptr_t)(")
 	 (output_ccode ov str)
 	 (format str ")) ->obj_vartab[~d] = " crk)
 	 (output_ccode cold_tempslot_var str)
-	 (format str ";~%")
+	 (format str ");~%")
 	 ))
     (format str " basilysgc_touch(")
     (output_ccode ov str)
@@ -5089,13 +5089,13 @@ nil)
 	  (build_obj_compute
 	   nil
 	   (list
-	    "/*unsafe_put field*/ obdest->obj_vartab["
+	    "/*unsafe_put field*/ basilys_checked_assign(obdest->obj_vartab["
 	    (prog_field-field_offset curfld)
 	    "] "
 	    (format nil "/**.~a.**/" (prog_field-def_name curfld))
 	    " = (basilys_ptr_t)(" 
 	    (compile_obj curexp env)
-	    ")"
+	    "))"
 	    )
 	   :value
 	   )
@@ -5159,13 +5159,13 @@ nil)
 	    (build_obj_compute
 	     nil
 	     (list
-	      "/*make_inst field*/ obnew->obj_vartab["
+	      "/*make_inst field*/ basilys_checked_assign(obnew->obj_vartab["
 	      (prog_field-field_offset curfld)
 	      "] "
 	      (format nil "/**.~a.**/" (prog_field-def_name curfld))
 	      " = (basilys_ptr_t)(" 
 	      (compile_obj curexp env)
-	      ")"
+	      "))"
 	      )
 	     :value
 	     )

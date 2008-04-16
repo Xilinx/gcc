@@ -1,4 +1,12 @@
 2008-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: (basilys_caught_assign_at) added msg 4th argument
+
+	* basilys.h: ditto. added basilys_checked_assignmsg macro.
+
+	* melt/warm-basilys.bysl: added debugmg in wrap_normal_let1
+	to catch a bug still there [assert_msg  check cbind wrapnormlet1]
+
+2008-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: target install-melt-cc-script uses | in sed per
 	suggestion of Nicolas Vigier
 
