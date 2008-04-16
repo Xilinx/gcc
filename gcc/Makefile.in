@@ -4742,10 +4742,11 @@ install-melt-include-dir: installdirs
 install-melt-cc-script: melt-cc-script.proto
 ## the #:! lines should be removed, and in first twenty lines :MELT_GCC:
 ## :MELT_CFLAGS: :MELT_HEADERDIR: :MELT_SCRIPT: should be substituted
-	sed -e s/^.:!.*// -e '1,30s/:MELT_CC:/$(CC)/' \
-	    -e '1,30s/:MELT_CFLAGS:/$(MELT_CFLAGS)/' \
-	    -e '1,30s/:MELT_SCRIPT:/$(melt_compile_script)/' \
-	    -e '1,30s/:MELT_HEADERDIR:/$(melt_private_include_dir)/' \
+# Nicolas Vigier suggested the | char which is very uncommon in file paths
+	sed -e s/^.:!.*// -e '1,30s|:MELT_CC:|$(CC)|' \
+	    -e '1,30s|:MELT_CFLAGS:|$(MELT_CFLAGS)|' \
+	    -e '1,30s|:MELT_SCRIPT:|$(melt_compile_script)|' \
+	    -e '1,30s|:MELT_HEADERDIR:|$(melt_private_include_dir)|' \
 	< $^ > tmp-installed-melt-cc-script
 	chmod a+x tmp-installed-melt-cc-script
 	$(INSTALL_SCRIPT) tmp-installed-melt-cc-script $(DESTDIR)$(melt_compile_script)

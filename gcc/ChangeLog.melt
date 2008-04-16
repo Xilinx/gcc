@@ -1,4 +1,8 @@
 2008-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: target install-melt-cc-script uses | in sed per
+	suggestion of Nicolas Vigier
+
+2008-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: (create_normcontext) set both  :nctx_initproc 
 	and :nctx_curproc to the shared inipro to handle keywords [e.g. inside ctype* def_instance-s.]
 	this exposes a basilys runtime bug in forwarded_copy
