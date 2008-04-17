@@ -1345,13 +1345,30 @@ package body Exp_Ch5 is
             F := First_Discriminant (R_Typ);
             while Present (F) loop
 
-               if Is_Unchecked_Union (Base_Type (R_Typ)) then
-                  Insert_Action (N, Make_Field_Assign (F, True));
-               else
-                  Insert_Action (N, Make_Field_Assign (F));
-               end if;
+               --  If we are expanding the initialization of a derived record
+               --  that constrains or renames discriminants of the parent, we
+               --  must use the corresponding discriminant in the parent.
 
-               Next_Discriminant (F);
+               declare
+                  CF : Entity_Id;
+
+               begin
+                  if Inside_Init_Proc
+                    and then Present (Corresponding_Discriminant (F))
+                  then
+                     CF := Corresponding_Discriminant (F);
+                  else
+                     CF := F;
+                  end if;
+
+                  if Is_Unchecked_Union (Base_Type (R_Typ)) then
+                     Insert_Action (N, Make_Field_Assign (CF, True));
+                  else
+                     Insert_Action (N, Make_Field_Assign (CF));
+                  end if;
+
+                  Next_Discriminant (F);
+               end;
             end loop;
          end if;
 
@@ -3467,7 +3484,7 @@ package body Exp_Ch5 is
 
    procedure Expand_N_Simple_Return_Statement (N : Node_Id) is
    begin
-      --  Defend agains previous errors (ie. the return statement calls a
+      --  Defend against previous errors (i.e. the return statement calls a
       --  function that is not available in configurable runtime).
 
       if Present (Expression (N))

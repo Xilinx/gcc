@@ -1,3 +1,6 @@
+2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r134362
+
 2008-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: (basilys_caught_assign_at) added msg 4th argument
 

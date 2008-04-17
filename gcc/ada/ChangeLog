@@ -1,3 +1,70 @@
+2008-04-16  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/29015
+	* sem_ch12.adb (Instantiate_Type): Check whether the full view of
+	the type is known instead of the underlying type.
+
+2008-04-15  Ed Schonberg  <schonberg@adacore.com>
+
+	PR ada/22387
+	* exp_ch5.adb (Expand_Assign_Record): Within an initialization
+	procedure for a derived type retrieve the discriminant values from
+	the parent using the corresponding discriminant.
+
+2008-04-15  Samuel Tardieu  <sam@rfc1149.net>
+            Gary Dismukes  <dismukes@adacore.com>
+
+	PR ada/28733
+	* sem_ch8.adb (Analyze_Use_Package): Do not allow "use" of something
+	which is not an entity (and hence not a package).
+	(End_Use_Package): Ditto.
+
+2008-04-15  Ed Schonberg  <schonberg@adacore.com>
+
+	PR ada/16086
+	* sem_ch12.adb (Analyze_Formal_Subprogram): The default can be any
+	protected operation that matches the signature, not only an entry, a
+	regular subprogram or a literal.
+
+2008-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* ada-tree.h (DECL_BY_COMPONENT_PTR_P): Use DECL_LANG_FLAG_3.
+	* decl.c (gnat_to_gnu_entity) <object>: Call maybe_pad_type only
+	if a size or alignment is specified.  Do not take into account
+	alignment promotions for the computation of the object's size.
+	<type>: Call maybe_pad_type only if a size or alignment is specified.
+	(maybe_pad_type): Really reuse the RM_Size of the original type if
+	requested.
+	* trans.c (Attribute_to_gnu): Fix a couple of nits.
+	* utils2.c (build_binary_op) <MODIFY_EXPR>: Merge related conditional
+	statements.  Use the padded view of the type when copying between
+	padded objects of the same underlying type.
+
+2008-04-14  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* vms_data.ads: Fix typo in constant.
+	* gen-soccon.c: Fix typo in error string.
+	* gnat_rm.texi (Pragma Optimize_Alignment, Pragma Postcondition):
+	Fix typos.
+	* a-calcon.ads, a-calend-vms.adb, a-calend.adb, a-crdlli.ads,
+	bcheck.adb, checks.adb, einfo.ads, errout.adb, erroutc.adb,
+	erroutc.ads, exp_attr.adb, exp_ch11.adb, exp_ch2.adb,
+	exp_ch5.adb, exp_ch9.adb, exp_ch9.ads, exp_pakd.adb,
+	exp_util.adb, fmap.adb, g-soccon-linux-mips.ads,
+	g-soccon-rtems.ads, g-timsta.adb, g-timsta.ads, lib-writ.ads,
+	mlib-tgt-specific-linux.adb, mlib-tgt-specific-tru64.adb,
+	s-interr-vxworks.adb, s-interr.adb, s-osinte-lynxos.ads,
+	s-rident.ads, s-taprop-solaris.adb, s-tassta.adb, s-win32.ads,
+	sem_aggr.adb, sem_attr.ads, sem_ch10.adb, sem_ch13.ads,
+	sem_ch3.adb, sem_ch6.adb, sem_ch7.adb, sem_ch8.adb, sem_ch9.adb,
+	sem_prag.ads, sem_res.adb, sem_util.adb, sem_util.ads,
+	sinfo.ads: Fix typos in comments.
+
+2008-04-14  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.adb (Analyze_Pragma, Linker_Section case): Extend error
+	to every non-object and change error message.
+
 2008-04-14  Robert Dewar  <dewar@adacore.com>
 
 	* sem_util.ads, sem_util.adb (In_Subprogram): Remove.

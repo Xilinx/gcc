@@ -1012,7 +1012,6 @@ fold_deferring_overflow_warnings_p (void)
 static void
 fold_overflow_warning (const char* gmsgid, enum warn_strict_overflow_code wc)
 {
-  gcc_assert (!flag_wrapv && !flag_trapv);
   if (fold_deferring_overflow_warnings > 0)
     {
       if (fold_deferred_overflow_warning == NULL
@@ -8568,7 +8567,9 @@ fold_comparison (enum tree_code code, tree type, tree op0, tree op1)
 	     because pointer arithmetic is restricted to retain within an
 	     object and overflow on pointer differences is undefined as of
 	     6.5.6/8 and /9 with respect to the signed ptrdiff_t.  */
-	  else if (bitpos0 == bitpos1)
+	  else if (bitpos0 == bitpos1
+		   && ((code == EQ_EXPR || code == NE_EXPR)
+		       || POINTER_TYPE_OVERFLOW_UNDEFINED))
 	    {
 	      tree signed_size_type_node;
 	      signed_size_type_node = signed_type_for (size_type_node);
@@ -8586,6 +8587,12 @@ fold_comparison (enum tree_code code, tree type, tree op0, tree op1)
 		offset1 = build_int_cst (signed_size_type_node, 0);
 	      else
 		offset1 = fold_convert (signed_size_type_node, offset1);
+
+	      if (code != EQ_EXPR && code != NE_EXPR)
+		fold_overflow_warning (("assuming pointer wraparound does not "
+					"occur when comparing P +- C1 with "
+					"P +- C2"),
+				       WARN_STRICT_OVERFLOW_COMPARISON);
 
 	      return fold_build2 (code, type, offset0, offset1);
 	    }
@@ -9711,7 +9718,7 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
 
 	  /* With undefined overflow we can only associate constants
 	     with one variable.  */
-	  if ((POINTER_TYPE_P (type)
+	  if (((POINTER_TYPE_P (type) && POINTER_TYPE_OVERFLOW_UNDEFINED)
 	       || (INTEGRAL_TYPE_P (type) && !TYPE_OVERFLOW_WRAPS (type)))
 	      && var0 && var1)
 	    {
@@ -14096,12 +14103,9 @@ tree_call_nonnegative_warnv_p (enum tree_code code,  tree type, tree fndecl,
 	CASE_FLT_FN (BUILT_IN_POWI):
 	/* True if the 1st argument is nonnegative or the second
 	   argument is an even integer.  */
-	if (TREE_CODE (arg1) == INTEGER_CST)
-	  {
-	    tree arg1 = arg1;
-	    if ((TREE_INT_CST_LOW (arg1) & 1) == 0)
-	      return true;
-	  }
+	if (TREE_CODE (arg1) == INTEGER_CST
+	    && (TREE_INT_CST_LOW (arg1) & 1) == 0)
+	  return true;
 	return tree_expr_nonnegative_warnv_p (arg0,
 					      strict_overflow_p);
 

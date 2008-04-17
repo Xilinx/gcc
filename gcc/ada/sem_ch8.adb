@@ -2396,6 +2396,11 @@ package body Sem_Ch8 is
                   Use_One_Package (Pack, N);
                end if;
             end if;
+
+         --  Report error because name denotes something other than a package
+
+         else
+            Error_Msg_N ("& is not a package", Pack_Name);
          end if;
 
          Next (Pack_Name);
@@ -3066,9 +3071,14 @@ package body Sem_Ch8 is
    begin
       Pack_Name := First (Names (N));
       while Present (Pack_Name) loop
-         Pack := Entity (Pack_Name);
 
-         if Ekind (Pack) = E_Package then
+         --  Test that Pack_Name actually denotes a package before processing
+
+         if Is_Entity_Name (Pack_Name)
+           and then Ekind (Entity (Pack_Name)) = E_Package
+         then
+            Pack := Entity (Pack_Name);
+
             if In_Open_Scopes (Pack) then
                null;
 
@@ -4110,7 +4120,7 @@ package body Sem_Ch8 is
                --  If the renamed entity is a private protected component,
                --  reference the original component as well. This needs to be
                --  done because the private renamings are installed before any
-               --  analysis has occured. Reference to a private component will
+               --  analysis has occurred. Reference to a private component will
                --  resolve to the renaming and the original component will be
                --  left unreferenced, hence the following.
 

@@ -1,3 +1,161 @@
+2008-04-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/35739
+	* tree-nrv.c (tree_nrv): Don't optimize if result_type is GIMPLE
+	reg type.
+
+	PR tree-optimization/35899
+	* tree-inline.c (expand_call_inline): Use GIMPLE_STMT_OPERAND
+	rather than TREE_OPERAND.
+
+2008-04-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/35944
+	* config/i386/i386.md (fmodxf3): Copy operand 1 and operand 2 into
+	temporary registers.  Change operand predicate to general_operand.
+	(remainderxf3): Ditto.
+
+2008-04-16  Richard Guenther  <rguenther@suse.de>
+
+	* Makefile.in (tree-affine.o): Add $(FLAGS_H) dependency.
+	* tree-affine.c (aff_combination_expand): Look through some
+	conversions.
+
+2008-04-15  Doug Kwan  <dougkwan@google.com>
+
+	* dwarf2asm.c (dw2_assemble_integer): Cast to unsigned HOST_WIDE_INT
+	for hex printing.
+	* tree-pretty-print.c (dump_generic_node): Ditto.
+	* final.c (output_addr_const): Ditto.
+	* dwarf2out.c (output_cfi): Ditto.
+	* c-pretty-print.c (pp_c_integer_constant): Ditto.
+	* print-rtl.c (print_rtx): Ditto.
+	* print-tree.c (print_node_brief, print_node): Ditto.
+	* c-common.c (match_case_to_enum_1): Ditto.
+	* sched-vis.c (print_value): Ditto.
+	* config/i386/i386.c (print_operand): Cast to long unsigned int
+	for hex printing.
+
+2008-04-15  Danny Smith  <dannysmith@users.sourceforge.net>
+	* libgcc2.c [L_trampoline]: Remove  unnecessary prototype for
+	MS Windows VirtualProtect function.
+
+2008-04-15  Jan Hubicka  <jh@suse.cz>
+
+	* gengtype.c (write_root): Param_is argument is OK.
+	* expr.c (expand_expr_real_1): Update call of get_exception_*.
+	* function.h: Include varray.h
+	(rtl_eh): New stucture based on except.c one.
+	(call_site_record): New forward declaration and vector type.
+	* calls.c (emit_call_1): Do not call
+	note_current_region_may_contain_throw.
+	* except.c (eh_status): Remove cur_region, try_region since they are
+	unused.
+	Move filter, exc_ptr, ttype_data, ehspec_data, action_record_data and
+	exception_handler_label_map, ehr_stackadj, ehr_handler, ehr_label,
+	sjlj_fc, sjlj_exit_after to rth_eh in function.h. 
+	Remove call_site_data_used, call_site_data_size.
+	Turn call_site_record into vector in function.h.
+	(note_current_region_may_contain_throw): Remove.
+	(get_exception_pointer, get_exception_filter): Do not take struct
+	function argument; update.
+	(add_ehl_entry, find_exception_handler_labels, ehspec_filter_hash,
+	add_ttypes_entry, add_ehspec_entry, assign_filter_values,
+	build_post_landing_pads, dw2_build_landing_pads,
+	sjlj_assign_call_site_values, sjlj_mark_call_sites,
+	sjlj_emit_function_enter, sjlj_emit_function_enter, 
+	sjlj_emit_function_exit, sjlj_emit_dispatch_table,
+	sjlj_build_landing_pads, finish_eh_generation,
+	remove_exception_handler_label, remove_eh_handler,
+	maybe_remove_eh_handler, add_reachable_handler,
+	reachable_handlers, expand_builtin_eh_return, expand_eh_return,
+	add_action_record, collect_one_action_chain, add_call_site,
+	convert_to_eh_region_ranges, sjlj_size_of_call_site_table,
+	sjlj_output_call_site_table, output_function_exception_table,
+	* except.h (note_current_region_may_contain_throw): Remove
+	(get_exception_pointer, get_exception_filter): Do not take struct
+	function argument.
+	* Makefile.in (GTFILES): Put varargs before struct function.
+
+2008-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-structalias.c (get_constraint_for_component_ref): Do not
+	punt for STRING_CST.
+	(get_constraint_for): Deal with STRING_CST here instead.
+
+2008-04-15  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-propagate.c (substitute_and_fold): Substitute
+	statements in a basic-block with a backward walk.  Do not
+	substitute into dead statements but instead remove those.
+
+2008-04-15  Richard Guenther  <rguenther@suse.de>
+
+	* params.def (PARAM_MAX_FIELDS_FOR_FIELD_SENSITIVE): Set default
+	to zero, thus disable creation of SFTs.
+
+2008-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-predcom.c (suitable_reference_p): Return false if the
+	reference can throw.
+
+2008-04-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/35751
+	* c-decl.c (finish_decl): If extern or static var has variable
+	size, set TREE_TYPE (decl) to error_mark_node.
+
+2008-04-15  Rafael Espindola  <espindola@google.com>
+
+	* fold-const.c (tree_call_nonnegative_warnv_p): Remove local
+	variable arg1.
+
+2008-04-15  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.h (vn_reference_lookup): Adjust prototype.
+	* tree-ssa-sccvn.c (vn_reference_lookup): New parameter maywalk.
+	(visit_reference_op_load): Do walk vuse-vdef chains on
+	vn_reference_lookup.
+	(visit_reference_op_store): But do not here.
+	* tree-vn.c (vn_lookup): Do not walk vuse-vdef chains on
+	vn_reference_lookup.
+	(vn_lookup_with_vuses): But do so here.
+
+2008-04-14  Ian Lance Taylor  <iant@google.com>
+
+	* fold-const.c (fold_overflow_warning): Remove assertion.
+
+2008-04-15  Ben Elliston  <bje@au.ibm.com>
+
+	* config/alpha/alpha.c (alpha_initialize_trampoline): Remove temp,
+	temp1 local variables.
+
+2008-04-15  Zuxy Meng  <zuxy.meng@gmail.com>
+
+	PR target/35661
+	* config/i386/winnt.c (i386_pe_section_type_flags): Mark
+	".text.unlikely" section as executable.
+
+2008-04-14  James E. Wilson  <wilson@tuliptree.org>
+
+	* config/ia64/ia64.c (rtx_needs_barrier): Handle
+	UNSPEC_FR_SQRT_RECIP_APPROX_RES.
+	* config/ia64/ia64.c (UNSPEC_FR_SQRT_RECIP_APPROX_RES): Define.
+	(divsi3_internal, divdi3_internal_lat, divdi3_internal_thr,
+	divsf3_internal_lat, sqrt_approx, sqrtsf2_internal_thr,
+	divdf3_internal_lat, sqrtdf2_internal_thr, divxf3_internal_lat,
+	divxf3_internal_thr, sqrtxf2_internal_thr, recip_approx): Use it.
+
+2008-04-14  Ian Lance Taylor  <iant@google.com>
+
+	* flags.h (POINTER_TYPE_OVERFLOW_UNDEFINED): Define.
+	* fold-const.c (fold_comparison): If appropriate, test
+	POINTER_TYPE_OVERFLOW_UNDEFINED, and issue an overflow warning.
+	(fold_binary): Test POINTER_TYPE_OVERFLOW_UNDEFINED when
+	reassociating a pointer type.
+	* doc/invoke.texi (Optimize Options): Document that
+	-fstrict-overflow applies to pointer wraparound.
+
 2008-04-13  Jan Hubicka  <jh@suse.cz>
 
 	* m32.c (m32c_pushm_popm): Use crtl->retrun_rtx.
@@ -89,7 +247,7 @@
 
 2008-04-10  Rafael Espindola  <espindola@google.com>
 
-	* gcc/tree-vrp.c (extract_range_from_binary_expr): Don't handle
+	* tree-vrp.c (extract_range_from_binary_expr): Don't handle
 	TRUTH_ANDIF_EXPR or TRUTH_ORIF_EXPR.
 	(extract_range_from_expr): The same.
 
@@ -1006,9 +1164,9 @@
 2008-04-02  Kai Tietz  <kai.tietz@onevision.com>
 
 	* config.gcc: Add for x86_64-*-mingw* the t-crtfm to tbuild.
-	* gcc/config/i386/cygming.h (ASM_OUTPUT_DWARF_OFFSET): Add 8 byte
+	* config/i386/cygming.h (ASM_OUTPUT_DWARF_OFFSET): Add 8 byte
 	offsets for 64-bit mingw.
-	* gcc/config/i386/i386.c (ix86_pass_by_reference): Correct calling
+	* config/i386/i386.c (ix86_pass_by_reference): Correct calling
 	abi for x86_64-pc-mingw.
 
 2008-04-02  Richard Guenther  <rguenther@suse.de>
@@ -2398,7 +2556,7 @@
 2008-03-15  Bjoern Haase  <bjoern.m.haase@web.de>
 	    Anatoly Sokolov <aesok@post.ru>
 
-	* gcc/gcc/config/avr/avr.c (avr_arch_types): Add avr6 entry.
+	* config/avr/avr.c (avr_arch_types): Add avr6 entry.
 	(avr_arch): Add ARCH_AVR6.
 	(avr_mcu_types): Add 'atmega2560' and 'atmega2561' entry.
  	(initial_elimination_offset): Initialize and use 'avr_pc_size' 
@@ -2407,7 +2565,7 @@
 	(avr_assemble_integer): (Ditto.).
 	(avr_output_addr_vec_elt): (Ditto.).
 	(print_operand): Handle "!" code.
-	* gcc/gcc/config/avr/avr.h (TARGET_CPU_CPP_BUILTINS): Add 
+	* config/avr/avr.h (TARGET_CPU_CPP_BUILTINS): Add 
 	__AVR_3_BYTE_PC__, __AVR_2_BYTE_PC__ and __AVR_HAVE_JMP_CALL__.
 	(AVR_HAVE_EIJMP_EICALL): Define.
 	(AVR_3_BYTE_PC): Redefine.
@@ -2416,7 +2574,7 @@
 	(LINK_SPEC): Add atmega2560 and atmega2561.
 	(CRT_BINUTILS_SPEC): Add atmega2560 (crtm2560.o) and atmega2561 
 	(crtm2561.o).
-	* gcc/gcc/config/avr/avr.md (call_insn): Use eicall instead of icall 
+	* config/avr/avr.md (call_insn): Use eicall instead of icall 
 	for 3 byte PC devices.
 	(call_value_insn): (Ditto.).
 	(*tablejump_enh): Use eijmp instead of ijmp for 3 byte PC devices.
@@ -2424,10 +2582,10 @@
 	(*tablejump): (Ditto.).
 	(*indirect_jump_avr6): Add insn.
 	(*tablejump_rjmp): Don't use for 3 byte PC devices.
-	* gcc/gcc/config/avr/libgcc.S (__prologue_saves__): Use eijmp 
+	* config/avr/libgcc.S (__prologue_saves__): Use eijmp 
 	instead of ijmp for 3 byte PC devices.
 	(__tablejump2__): (Ditto.).
-	* gcc/gcc/config/avr/t-avr (MULITLIB_OPTIONS): Add avr6 architecture.
+	* config/avr/t-avr (MULITLIB_OPTIONS): Add avr6 architecture.
 	(MULITLIB_DIRNAMES): (Ditto.). 
 	(MULTILIB_MATCHES): Add atmega2560 and atmega2561 to list.
 
