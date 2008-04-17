@@ -389,6 +389,7 @@ struct tree_base GTY(())
   unsigned deprecated_flag : 1;
   unsigned invariant_flag : 1;
   unsigned saturating_flag : 1;
+  unsigned default_def_flag : 1;
 
   unsigned lang_flag_0 : 1;
   unsigned lang_flag_1 : 1;
@@ -399,7 +400,7 @@ struct tree_base GTY(())
   unsigned lang_flag_6 : 1;
   unsigned visited : 1;
 
-  unsigned spare : 23;
+  unsigned spare : 22;
 
   /* FIXME tuples: Eventually, we need to move this somewhere external to
      the trees.  */
@@ -1890,7 +1891,7 @@ struct tree_exp GTY(())
    Default definitions are always created by an empty statement and
    belong to no basic block.  */
 #define SSA_NAME_IS_DEFAULT_DEF(NODE)	\
-    SSA_NAME_CHECK (NODE)->base.volatile_flag
+    SSA_NAME_CHECK (NODE)->base.default_def_flag
 
 /* Attributes for SSA_NAMEs for pointer-type variables.  */
 #define SSA_NAME_PTR_INFO(N) \
@@ -4861,6 +4862,9 @@ extern bool tree_binary_nonnegative_warnv_p (enum tree_code, tree, tree, tree,
                                              bool *);
 extern bool tree_single_nonnegative_warnv_p (tree t, bool *strict_overflow_p);
 extern bool tree_invalid_nonnegative_warnv_p (tree t, bool *strict_overflow_p);
+extern bool tree_call_nonnegative_warnv_p (enum tree_code code, tree, tree,
+                                           tree, tree, bool *);
+
 extern bool tree_expr_nonzero_warnv_p (tree, bool *);
 
 extern bool fold_real_zero_addition_p (const_tree, const_tree, int);

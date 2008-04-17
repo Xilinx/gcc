@@ -150,7 +150,7 @@ package System.Interrupts is
    --  Comment needed ???
 
    procedure Ignore_Interrupt (Interrupt : Interrupt_ID);
-   --  Set the sigacion for the interrupt to SIG_IGN
+   --  Set the sigaction for the interrupt to SIG_IGN
 
    procedure Unignore_Interrupt (Interrupt : Interrupt_ID);
    --  Comment needed ???
@@ -162,7 +162,7 @@ package System.Interrupts is
    --  other low-level interface that changes the signal action or signal mask
    --  needs a careful thought.
 
-   --  One may acheive the effect of system calls first making RTS blocked (by
+   --  One may achieve the effect of system calls first making RTS blocked (by
    --  calling Block_Interrupt) for the signal under consideration. This will
    --  make all the tasks in RTS blocked for the Interrupt.
 
@@ -188,7 +188,7 @@ package System.Interrupts is
 
    --  (2) Attach_Handler pragmas are used, and possibly Interrupt_Handler
    --  pragma. We need to attach the handlers to the given interrupts when the
-   --  objet is elaborated. This should be done by constructing an array of
+   --  object is elaborated. This should be done by constructing an array of
    --  pairs (interrupt, handler) from the pragmas and calling Install_Handlers
    --  with it (types to be used are New_Handler_Item and New_Handler_Array).
    --  On finalization, we need to restore the handlers that were installed
@@ -267,5 +267,12 @@ package System.Interrupts is
       New_Handlers : New_Handler_Array);
    --  Store the old handlers in Object.Previous_Handlers and install
    --  the new static handlers.
+
+   procedure Install_Restricted_Handlers (Handlers : New_Handler_Array);
+   --  Install the static Handlers for the given interrupts and do not store
+   --  previously installed handlers. This procedure is used when the Ravenscar
+   --  restrictions are in place since in that case there are only
+   --  library-level protected handlers that will be installed at
+   --  initialization and never be replaced.
 
 end System.Interrupts;

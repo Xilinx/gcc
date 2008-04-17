@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for the HP Spectrum.
-   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
+   2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) of Cygnus Support
    and Tim Moore (moore@defmacro.cs.utah.edu) of the Center for
    Software Science at the University of Utah.
@@ -566,12 +566,12 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
    marker, although the runtime documentation only describes a 16
    byte marker.  For compatibility, we allocate 48 bytes.  */
 #define STACK_POINTER_OFFSET \
-  (TARGET_64BIT ? -(current_function_outgoing_args_size + 48): -32)
+  (TARGET_64BIT ? -(crtl->outgoing_args_size + 48): -32)
 
 #define STACK_DYNAMIC_OFFSET(FNDECL)	\
   (TARGET_64BIT				\
    ? (STACK_POINTER_OFFSET)		\
-   : ((STACK_POINTER_OFFSET) - current_function_outgoing_args_size))
+   : ((STACK_POINTER_OFFSET) - crtl->outgoing_args_size))
 
 /* Value is 1 if returning from a function call automatically
    pops the arguments described by the number-of-args field in the call.
@@ -791,7 +791,7 @@ extern int may_call_alloca;
 
 #define EXIT_IGNORE_STACK	\
  (get_frame_size () != 0	\
-  || current_function_calls_alloca || current_function_outgoing_args_size)
+  || current_function_calls_alloca || crtl->outgoing_args_size)
 
 /* Output assembler code for a block containing the constant parts
    of a trampoline, leaving space for the variable parts.\
@@ -921,8 +921,8 @@ extern int may_call_alloca;
       emit_insn (gen_andsi3 (end_addr, tmp,				\
 			     GEN_INT (-MIN_CACHELINE_SIZE)));		\
       emit_move_insn (line_length, GEN_INT (MIN_CACHELINE_SIZE));	\
-      emit_insn (gen_dcacheflush (start_addr, end_addr, line_length));	\
-      emit_insn (gen_icacheflush (start_addr, end_addr, line_length,	\
+      emit_insn (gen_dcacheflushsi (start_addr, end_addr, line_length));\
+      emit_insn (gen_icacheflushsi (start_addr, end_addr, line_length,	\
 				  gen_reg_rtx (Pmode),			\
 				  gen_reg_rtx (Pmode)));		\
     }									\
@@ -953,8 +953,8 @@ extern int may_call_alloca;
       emit_insn (gen_anddi3 (end_addr, tmp,				\
 			     GEN_INT (-MIN_CACHELINE_SIZE)));		\
       emit_move_insn (line_length, GEN_INT (MIN_CACHELINE_SIZE));	\
-      emit_insn (gen_dcacheflush (start_addr, end_addr, line_length));	\
-      emit_insn (gen_icacheflush (start_addr, end_addr, line_length,	\
+      emit_insn (gen_dcacheflushdi (start_addr, end_addr, line_length));\
+      emit_insn (gen_icacheflushdi (start_addr, end_addr, line_length,	\
 				  gen_reg_rtx (Pmode),			\
 				  gen_reg_rtx (Pmode)));		\
     }									\

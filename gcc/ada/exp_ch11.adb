@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -849,7 +849,7 @@ package body Exp_Ch11 is
 
       begin
          --  If we have no Entity, then we are probably in no run time mode
-         --  or some weird error has occured. In either case do do nothing!
+         --  or some weird error has occurred. In either case do do nothing!
 
          if Present (Ent) then
             declare
@@ -1463,6 +1463,7 @@ package body Exp_Ch11 is
             Id : Entity_Id := Entity (Name (N));
 
          begin
+            Name_Len := 0;
             Build_Location_String (Loc);
 
             --  If the exception is a renaming, use the exception that it

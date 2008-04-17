@@ -35,6 +35,7 @@ with Nlists;   use Nlists;
 with Opt;      use Opt;
 with Output;   use Output;
 with Rtsfind;  use Rtsfind;
+with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
 with Sinput.D; use Sinput.D;
@@ -229,7 +230,7 @@ package body Sprint is
    --  then output all source lines up to this matching line.
 
    procedure Write_Discr_Specs (N : Node_Id);
-   --  Ouput discriminant specification for node, which is any of the type
+   --  Output discriminant specification for node, which is any of the type
    --  declarations that can have discriminants.
 
    procedure Write_Ekind (E : Entity_Id);
@@ -268,7 +269,7 @@ package body Sprint is
 
    function Write_Indent_Identifiers_Sloc (Node : Node_Id) return Boolean;
    --  Like Write_Indent_Identifiers except that in Debug_Generated_Code
-   --  mode, the Sloc of the current debug node is set to point ot the
+   --  mode, the Sloc of the current debug node is set to point to the
    --  first output identifier.
 
    procedure Write_Indent_Str (S : String);
@@ -327,7 +328,7 @@ package body Sprint is
    --  initial Write_Indent (to get new line) if current line is too full.
 
    procedure Write_Str_With_Col_Check_Sloc (S : String);
-   --  Like Write_Str_WIth_Col_Check, but sets debug Sloc of current debug
+   --  Like Write_Str_With_Col_Check, but sets debug Sloc of current debug
    --  node to first non-blank character if a current debug node is active.
 
    procedure Write_Uint_With_Col_Check (U : Uint; Format : UI_Format);
@@ -1040,7 +1041,7 @@ package body Sprint is
             Indent_End;
 
             --  Note: let the printing of Abortable_Part handle outputting
-            --  the ABORT keyword, so that the Slco can be set correctly.
+            --  the ABORT keyword, so that the Sloc can be set correctly.
 
             Write_Indent_Str ("then ");
             Sprint_Node (Abortable_Part (Node));
@@ -1331,6 +1332,7 @@ package body Sprint is
             Sprint_Node (Subtype_Indication (Node));
 
             if Present (Interface_List (Node)) then
+               Write_Str_With_Col_Check (" and ");
                Sprint_And_List (Interface_List (Node));
                Write_Str_With_Col_Check (" with ");
             end if;
@@ -3664,10 +3666,12 @@ package body Sprint is
                Write_Char (' ');
             end loop;
 
-            --  If we have a constructed declaration, print it
+            --  If we have a constructed declaration for the itype, print it
 
-            if Present (P) and then Nkind (P) in N_Declaration then
-
+            if Present (P)
+              and then Nkind (P) in N_Declaration
+              and then Defining_Entity (P) = Typ
+            then
                --  We must set Itype_Printed true before the recursive call to
                --  print the node, otherwise we get an infinite recursion!
 

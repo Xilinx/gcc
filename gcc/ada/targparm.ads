@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1999-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1999-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -72,10 +72,10 @@
 
 --     3. Identification information. This is an optional string constant
 --        that gives the name of the run-time library configuration. This
---        line may be ommitted for a version of system.ads to be used with
+--        line may be omitted for a version of system.ads to be used with
 --        the full Ada 95 run time.
 
---     4. Other characterisitics of package System. At the current time the
+--     4. Other characteristics of package System. At the current time the
 --        only item in this category is whether type Address is private.
 
 with Rident; use Rident;
@@ -219,6 +219,7 @@ package Targparm is
    type Virtual_Machine_Kind is (No_VM, JVM_Target, CLI_Target);
    VM_Target : Virtual_Machine_Kind := No_VM;
    --  Kind of virtual machine targetted
+   --  Needs comments, don't depend on names ???
 
    -------------------------------
    -- Backend Arithmetic Checks --
@@ -257,7 +258,7 @@ package Targparm is
    --      The generation of the setjmp and longjmp calls is handled by
    --      the front end of the compiler (this includes gigi in the case
    --      of the standard GCC back end). It does not use any back end
-   --      suport (such as the GCC3 exception handling mechanism). When
+   --      support (such as the GCC3 exception handling mechanism). When
    --      this approach is used, the compiler generates special exception
    --      handlers for handling cleanups when an exception is raised.
 

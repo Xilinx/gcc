@@ -113,6 +113,7 @@ GLIBCXX_ENABLE_FULLY_DYNAMIC_STRING([no])
 
 # Checks for operating systems support that don't require linking.
 GLIBCXX_CHECK_SYSTEM_ERROR
+GLIBCXX_CHECK_STANDARD_LAYOUT
 
 # No surprises, no surprises...
 GLIBCXX_ENABLE_THREADS
@@ -298,6 +299,8 @@ else
 fi
 
 GCC_LINUX_FUTEX([AC_DEFINE(HAVE_LINUX_FUTEX, 1, [Define if futex syscall is available.])])
+
+GCC_HEADER_STDINT(include/gstdint.h)
 
 # This depends on GLIBCXX CHECK_LINKER_FEATURES, but without it assumes no.
 GLIBCXX_ENABLE_SYMVERS([yes])

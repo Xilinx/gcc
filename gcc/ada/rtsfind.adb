@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -100,9 +100,9 @@ package body Rtsfind is
    --  for the same entity can be satisfied immediately.
 
    --  NOTE: In order to avoid conflicts between record components and subprgs
-   --        that have the same name (ie. subprogram External_Tag and component
-   --        External_Tag of package Ada.Tags) this table is not used with
-   --        Record_Components.
+   --        that have the same name (i.e. subprogram External_Tag and
+   --        component External_Tag of package Ada.Tags) this table is not used
+   --        with Record_Components.
 
    RE_Table : array (RE_Id) of Entity_Id;
 
@@ -145,7 +145,7 @@ package body Rtsfind is
    --  value in RTU_Id.
 
    procedure Load_Fail (S : String; U_Id : RTU_Id; Id : RE_Id);
-   --  Internal procedure called if we can't sucessfully locate or process a
+   --  Internal procedure called if we can't successfully locate or process a
    --  run-time unit. The parameters give information about the error message
    --  to be given. S is a reason for failing to compile the file and U_Id is
    --  the unit id. RE_Id is the RE_Id originally passed to RTE. The message in
@@ -283,6 +283,9 @@ package body Rtsfind is
          if U_Id in Ada_Calendar_Child then
             Name_Buffer (13) := '.';
 
+         elsif U_Id in Ada_Dispatching_Child then
+            Name_Buffer (16) := '.';
+
          elsif U_Id in Ada_Finalization_Child then
             Name_Buffer (17) := '.';
 
@@ -310,6 +313,10 @@ package body Rtsfind is
 
       elsif U_Id in System_Child then
          Name_Buffer (7) := '.';
+
+         if U_Id in System_Strings_Child then
+            Name_Buffer (15) := '.';
+         end if;
 
          if U_Id in System_Tasking_Child then
             Name_Buffer (15) := '.';
@@ -1207,7 +1214,7 @@ package body Rtsfind is
       --  If we didn't find the entity we want, something is wrong. The
       --  appropriate action will be taken by Check_CRT when we exit.
 
-      --  Cenerate a with-clause if the current unit is part of the extended
+      --  Generate a with-clause if the current unit is part of the extended
       --  main code unit, and if we have not already added the with. The clause
       --  is added to the appropriate unit (the current one). We do not need to
       --  generate it for a call issued from RTE_Component_Available.

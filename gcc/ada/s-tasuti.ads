@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---         Copyright (C) 1992-2007, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2008, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,11 +35,12 @@
 --  These declarations are not part of the GNARLI
 
 with Ada.Unchecked_Conversion;
+with System.Task_Primitives;
 
 package System.Tasking.Utilities is
 
    function ATCB_To_Address is new
-     Ada.Unchecked_Conversion (Task_Id, System.Address);
+     Ada.Unchecked_Conversion (Task_Id, System.Task_Primitives.Task_Address);
 
    ---------------------------------
    -- Task_Stage Related routines --
@@ -94,7 +95,7 @@ package System.Tasking.Utilities is
 
    procedure Abort_Tasks (Tasks : Task_List);
    --  Abort_Tasks is called to initiate abort, however, the actual
-   --  aborti is done by aborted task by means of Abort_Handler
+   --  aborting is done by aborted task by means of Abort_Handler
 
    procedure Make_Passive (Self_ID : Task_Id; Task_Completed : Boolean);
    --  Update counts to indicate current task is either terminated or

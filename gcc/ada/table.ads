@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -89,7 +89,7 @@ package Table is
       --  chunks controlled by the allocation parameters).
 
       --  Note: We do not make the table components aliased, since this would
-      --  restict the use of table for discriminated types. If it is necessary
+      --  restrict the use of table for discriminated types. If it is necessary
       --  to take the access of a table element, use Unrestricted_Access.
 
       --  WARNING: On HPPA, the virtual addressing approach used in this unit
@@ -117,6 +117,7 @@ package Table is
       --  safety is not compromised by this approach.
 
       type Table_Ptr is access all Big_Table_Type;
+      for Table_Ptr'Storage_Size use 0;
       --  The table is actually represented as a pointer to allow reallocation
 
       Table : aliased Table_Ptr := null;

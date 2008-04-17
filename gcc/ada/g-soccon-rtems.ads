@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2000-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2000-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -77,7 +77,7 @@ package GNAT.Sockets.Constants is
    EINVAL             : constant :=          22; --  Invalid argument
    EIO                : constant :=           5; --  Input output error
    EISCONN            : constant :=         127; --  Socket already connected
-   ELOOP              : constant :=          92; --  Too many symbolic lynks
+   ELOOP              : constant :=          92; --  Too many symbolic links
    EMFILE             : constant :=          24; --  Too many open files
    EMSGSIZE           : constant :=         122; --  Message too long
    ENAMETOOLONG       : constant :=          91; --  Name too long
@@ -163,6 +163,7 @@ package GNAT.Sockets.Constants is
    IP_MULTICAST_LOOP  : constant :=          11; --  Set/get mcast loopback
    IP_ADD_MEMBERSHIP  : constant :=          12; --  Join a multicast group
    IP_DROP_MEMBERSHIP : constant :=          13; --  Leave a multicast group
+   IP_PKTINFO         : constant :=          -1; --  Get datagram info
 
    -------------------
    -- System limits --
