@@ -1,5 +1,17 @@
 ;; -*- lisp -*-
 
+
+(defprimitive boxint (:long i) :value 
+  "basilysgc_new_int( BASILYSGOB(DISCR_INTEGER), (" i "))"
+)
+
+(defprimitive is_integerbox (ib) :long
+  "(basilys_magic_discr((" ib ")) == OBMAG_INT)")
+
+(defun constfunbox0 () (boxint 0))
+
+(defun testconstbox1 () (if (is_integerbox (boxint 1)) (boxint 2)))
+
 (defclass my_class_root 
  :predef CLASS_ROOT
  :fields (root_f1 ; root_f2
@@ -20,10 +32,6 @@
 )
 
 
-(defprimitive boxint (:long i) :value 
-  "basilysgc_new_int( BASILYSGOB(DISCR_INTEGER), (" i "))"
-)
-
 (defun testsendsel (f x) 
   (the_sel (f x) 
 	   (boxint 789)
@@ -41,8 +49,6 @@
 (definstance ii my_class_root 
   :root_f1 (boxint 1001002))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#| ; SKIPPING
 (defprimitive gti (:long a b) :long 
   "((" a ")>(" b "))")
 
@@ -78,4 +84,7 @@
     (puts "has boxint"))
 
 (puts "end test0")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#| ; SKIPPING
 ; SKIPPED |#

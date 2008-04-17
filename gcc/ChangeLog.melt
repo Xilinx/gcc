@@ -1,4 +1,11 @@
 2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: (output_location) new string argument,
+	better #line output.  added class_nrep_nil & some methods for it.
+	added debugmsg for unbound symbol in primitive expansion which
+	still incorrectly happens. (normexp_quote) both initrout and
+	normalrout cases. still buggy on self compilation 
+
+2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r134362
 
 2008-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
