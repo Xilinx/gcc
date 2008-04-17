@@ -87,13 +87,19 @@ extern char __cache[];
 #define si_from_eavoid(_x) si_from_uint (eavoid_to_eanum(_x))
 #endif
 
-#define GET_ENTRY(_addr) ((struct __cache_tag_array *)                       \
-        si_to_ptr(si_a                                                       \
-                   (si_and(si_from_eavoid(ea), si_from_uint(SET_MASK)), \
+/* In GET_ENTRY, we cast away the high 32 bits,
+   as the tag is only in the low 32.  */
+
+#define GET_ENTRY(_addr) ((struct __cache_tag_array *)                  \
+        si_to_ptr(si_a                                                  \
+                   (si_and(si_from_uint((unsigned int) (addr) _addr),   \
+                           si_from_uint(SET_MASK)),                     \
                     si_from_uint((unsigned int) __cache_tag_array))));
 
 #define GET_CACHE_LINE(_addr, _way)  ((void *) (__cache +       \
   (_addr & SET_MASK) * WAYS) + (_way * LINE_SIZE));
+
+#define eavoid_to_eanum(_ea) ((addr) _ea)
 
 #define CHECK_DIRTY(_vec) (si_to_uint (si_orx ((qword) _vec)))
 #define SET_EMPTY(_entry, _way) (_entry->tag_lo[_way] = 1)
@@ -106,14 +112,6 @@ extern char __cache[];
 
 static void __cache_flush_stub (void) __attribute__ ((destructor));
 static int dma_tag = 32;
-
-static addr
-eavoid_to_eanum (__ea void *ea)
-{
-  addr y;
-__asm__ ("# %0 %1": "=r" (y):"0" (ea));
-  return y;
-}
 
 static void
 __cache_evict_entry (struct __cache_tag_array *entry, int way)
@@ -190,6 +188,7 @@ __cache_evict_entry (struct __cache_tag_array *entry, int way)
 
   /* In any case, marking the lo tag with 1 which denotes empty.  */
   SET_EMPTY (entry, way);
+  entry->dirty_bits[way] = (vector unsigned short) si_from_uint (0);
 }
 
 void
@@ -218,17 +217,14 @@ __cache_fill (int way, addr tag)
 
   line = GET_CACHE_LINE (tag, way);
 
-  /* This will use DMA to fill the line, if TEST_EVICTION is set,
-     then it will do nothing (in order to avoid bus errors for
-     DMAing random memory */
-#ifndef TEST_EVICTION
+  /* This will use DMA to fill the cache line.  */
+
   if (dma_tag == 32)
     dma_tag = mfc_tag_reserve ();
 
   mfc_get (line, tag, LINE_SIZE, dma_tag, 0, 0);
   mfc_write_tag_mask (1 << dma_tag);
   mfc_read_tag_status_all ();
-#endif
   return (void *) line;
 }
 
@@ -273,7 +269,8 @@ __cache_miss (__ea void *ea, struct __cache_tag_array *entry, int way)
     {
       SET_IS_LS (entry, way);
       entry->base[way] =
-	(void *) (eavoid_to_eanum (ea) - (addr) __ea_local_store);
+	(void *) ((unsigned int) (eavoid_to_eanum (ea) -
+				  (addr) __ea_local_store) & ~(0x7f));
     }
   else
     {
@@ -379,7 +376,7 @@ missreturn:
     si_to_ptr (si_a
 	       (si_orx
 		(si_and (si_lqd (si_from_ptr (entry), 32), equal)),
-		si_from_uint ((unsigned int) ea & TAG_MASK)));
+		si_from_uint (((unsigned int) (addr) ea) & TAG_MASK)));
 
 misshandler:
   equal = si_ceqi (etag_lo, 1);

@@ -1,3 +1,8 @@
+2008-04-17  Ben Elliston  <bje@au.ibm.com>
+
+	* config/spu/spu.c: Various bug fixes.
+	* testsuite/gcc.target/spu/cache.c: New test.
+
 2008-03-15  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc/c-parser.c: Diagnose address space qualified compound
