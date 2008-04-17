@@ -10,7 +10,12 @@
 
 (defun constfunbox0 () (boxint 0))
 
-(defun testconstbox1 () (if (is_integerbox (boxint 1)) (boxint 2)))
+(defun constnil () ())
+
+(defun testconstbox1 (xx) (if (is_integerbox xx) (boxint 2) ()))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#| ; SKIPPING
 
 (defclass my_class_root 
  :predef CLASS_ROOT
@@ -85,6 +90,4 @@
 
 (puts "end test0")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#| ; SKIPPING
 ; SKIPPED |#

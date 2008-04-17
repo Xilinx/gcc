@@ -25,6 +25,8 @@
 ;;    it should be able to compile itself (into a generated C file)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+
 ;; root class
 (defclass class_root 
  :predef CLASS_ROOT)
@@ -269,6 +271,14 @@
   "basilys_putstrbuf(dump_file,(" sbuf "))")
 (defprimitive outnewline_dbg () :void
   "basilys_newlineflush(dump_file)")
+(defprimitive outcstring_err (:cstring s) :void
+  "basilys_puts(stderr,(" s "))")
+(defprimitive outstrbuf_err (sbuf) :void
+  "basilys_putstrbuf(stderr,(" sbuf "))")
+(defprimitive outnewline_err () :void
+  "basilys_newlineflush(stderr)")
+(defprimitive outstr_err (str) :void
+  "basilys_putstr(stderr,(" str "))")
 
 (defprimitive output_cfile_decl_impl (uninam declbuf implbuf) :void
   "basilys_output_cfile_decl_impl((" uninam "), (" declbuf "), (" implbuf "))")
@@ -1781,25 +1791,45 @@
 (defprimitive the_dbgcounter () :long "basilys_dbgcounter")
 (defprimitive increment_dbgcounter () :void "(void) ++basilys_dbgcounter")
 
+(defun displaydebugmsg (val :cstring msgstr :long count)
+  ;; don't work yet, because internal test for debugging...
+  (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+	 (sbuf (make_strbuf discr_strbuf)) 
+	 (occmap (make_mapobject discr_mapobjects 50))
+	 (boxedmaxdepth (make_integerbox discr_integer 14))
+	 (dbgi (make_instance class_debuginfo
+			      :dbgi_sbuf sbuf
+			      :dbgi_occmap occmap
+			      :dbgi_maxdepth boxedmaxdepth))
+	 )
+    (outnum_dbg "!*#" dbgcounter "/")
+    (outnum_dbg "" (-i (the_framedepth) 1) ":")
+    (outcstring_dbg msgstr)
+    (if (>i count 0) (outnum_dbg " !" count ": "))
+    (dbg_out val dbgi 0)
+    (outstrbuf_err sbuf)
+    (outnewline_err)
+    ))
+
 (defun debugmsg (val :cstring msgstr :long count)
   (if (need_dbg 0) 
-      (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
-	     (sbuf (make_strbuf discr_strbuf)) 
-	     (occmap (make_mapobject discr_mapobjects 50))
-	     (boxedmaxdepth (make_integerbox discr_integer 14))
-	     (dbgi (make_instance class_debuginfo
-				  :dbgi_sbuf sbuf
-				  :dbgi_occmap occmap
-				  :dbgi_maxdepth boxedmaxdepth))
-	     )
-	(outnum_dbg "!*#" dbgcounter "/")
-	(outnum_dbg "" (-i (the_framedepth) 1) ":")
-	(outcstring_dbg msgstr)
-	(if (>i count 0) (outnum_dbg " !" count ": "))
-	(dbg_out val dbgi 0)
-	(outstrbuf_dbg sbuf)
-	(outnewline_dbg)
-	)))
+  (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+	 (sbuf (make_strbuf discr_strbuf)) 
+	 (occmap (make_mapobject discr_mapobjects 50))
+	 (boxedmaxdepth (make_integerbox discr_integer 14))
+	 (dbgi (make_instance class_debuginfo
+			      :dbgi_sbuf sbuf
+			      :dbgi_occmap occmap
+			      :dbgi_maxdepth boxedmaxdepth))
+	 )
+    (outnum_dbg "!*#" dbgcounter "/")
+    (outnum_dbg "" (-i (the_framedepth) 1) ":")
+    (outcstring_dbg msgstr)
+    (if (>i count 0) (outnum_dbg " !" count ": "))
+    (dbg_out val dbgi 0)
+    (outstrbuf_dbg sbuf)
+    (outnewline_dbg)
+    )))
 
 ;;;; the class for environments
 (defclass class_environment
@@ -4020,7 +4050,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (normnull (make_instance class_nrep_nil :nrep_loc psloc)) )
-    (debugmsg normnull "normexp_null" normnull)
+    (debugmsg normnull "normexp_null normnull")
     normnull
 ))
 (install_method discr_nullrecv normal_exp normexp_null)
@@ -4073,9 +4103,11 @@
 	 (res (multiple_map
 	       tup 
 	       (lambda (comp :long ix)
+		 (debugmsg comp "normalize_tuple comp")
 		 (multicall 
 		  (norcomp nbinds)
 		  (normal_exp comp env ncx psloc)
+		  (debugmsg norcomp "normalize_tuple norcomp")
 		  (assert_msg "check nbinds" (is_list_or_null nbinds))
 		  (if (is_list nbinds)
 		      (list_every 
@@ -4399,6 +4431,7 @@
 		   (actarg (multiple_nth nargs ix)) )
 	      (mapobject_put bmap forarg actarg)
 	      )))
+	 (debugmsg bmap "normexp_primitive bmap in sopexp")
 	 (multiple_every
 	  sopexp
 	  (lambda (excu :long jx)
@@ -4515,7 +4548,7 @@
   (assert_msg "check env" (is_a msnd class_src_msend))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debugmsg ncx "normexp_msend ncx" (the_callcount))
+  ; (debugmsg ncx "normexp_msend ncx" (the_callcount))
   (debugmsg msnd "normexp_msend msnd" (the_callcount))
   (let ( (msbind (unsafe_get_field :msend_selbind msnd))
 	 (msrecv (unsafe_get_field :msend_recv msnd))
@@ -6096,7 +6129,10 @@
 ;; called
 (defun compilobj_catchall_nrep (recv gcx)
   (debugmsg gcx "class_rep compile_obj gcx" (the_callcount))
-  (debugmsg recv "class_rep compile_obj recv" (the_callcount))
+  (displaydebugmsg recv "class_rep compile_obj recv" (the_callcount))
+  (outcstring_err "* compilobj unimplemented reciever class ")
+  (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
+  (outnewline_err)
   (assert_msg "@@compile_obj should be implemented in nrep-s subclasses" ())
   )
 (install_method class_nrep compile_obj compilobj_catchall_nrep)
@@ -8536,8 +8572,10 @@
   (assert_msg "check nilo" (is_a nilo class_nrep_nil))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debugmsg nilo "compilobj_nrep_nil nilo")
-  (make_stringconst discr_verbatimstring "NULL")
+  (make_stringconst discr_verbatimstring "(/*nil*/NULL)")
 )
+
+(install_method class_nrep_nil compile_obj compilobj_nrep_nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_locsymocc (lsyo gcx)

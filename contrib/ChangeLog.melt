@@ -1,3 +1,6 @@
+2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: correct output of empty framloc_basilys_st*
+
 2008-04-16   Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: field assignment thru basilys_checked_assign
 

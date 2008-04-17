@@ -435,7 +435,8 @@ basilys_check_call_frames_at (int noyoungflag, const char *msg,
 }
 
 void
-basilys_caught_assign_at (void *ptr, const char *fil, int lin, const char*msg)
+basilys_caught_assign_at (void *ptr, const char *fil, int lin,
+			  const char *msg)
 {
   if (debughack_file)
     {
@@ -443,7 +444,8 @@ basilys_caught_assign_at (void *ptr, const char *fil, int lin, const char*msg)
 	       basename (fil), lin, msg);
       fflush (debughack_file);
     }
-  debugeprintf ("caught assign %p at %s:%d /// %s", ptr, basename (fil), lin, msg);
+  debugeprintf ("caught assign %p at %s:%d /// %s", ptr, basename (fil), lin,
+		msg);
 }
 
 static long nbcbreak;
@@ -633,11 +635,14 @@ basilys_garbcoll (size_t wanted, bool needfull)
    by a severe bug. In principle basilys_allocatereserved should have
    been called with a suitable previous call to basilysgc_reserve such
    that all the reserved allocations fits into the reserved size */
-void basilys_reserved_allocation_failure(long siz) {
+void
+basilys_reserved_allocation_failure (long siz)
+{
   /* this function should never really be called */
-  fatal_error("memory corruption in basilys reserved allocation: "
-	      "requiring %ld bytes but only %ld available in young zone", 
-	      siz, (long) ((char *) basilys_storalz - (char *) basilys_curalz));
+  fatal_error ("memory corruption in basilys reserved allocation: "
+	       "requiring %ld bytes but only %ld available in young zone",
+	       siz,
+	       (long) ((char *) basilys_storalz - (char *) basilys_curalz));
 }
 
 /* cheney like forwarding */
@@ -2623,7 +2628,7 @@ basilys_list_length (basilys_ptr_t list_p)
 {
   struct basilyspair_st *pair = NULL;
   int ln = 0;
-  if (!list_p) 
+  if (!list_p)
     return 0;
   if (basilys_magic_discr (list_p) != OBMAG_LIST)
     return -1;
@@ -3828,8 +3833,7 @@ basilysgc_send (basilys_ptr_t recv_p,
 #define mul_ancv  ((struct basilysmultiple_st*)(ancv))
   recv = recv_p;
   selv = sel_p;
-  if (!recv)
-    goto end;
+  /* the reciever can be null, using DISCR_NULLRECV */
 #ifdef ENABLE_CHECKING
   (void) sendnum;		/* to use it */
 #endif
@@ -3843,8 +3847,16 @@ basilysgc_send (basilys_ptr_t recv_p,
 		(void *) obj_selv,
 		basilys_string_str (obj_selv->obj_vartab[FNAMED_NAME]));
 #endif
-  discrv =
-    recv ? ((basilys_ptr_t) recv)->u_discr : BASILYSGOB (DISCR_NULLRECV);
+  if (recv != NULL)
+    {
+      discrv = ((basilys_ptr_t) recv)->u_discr;
+      gcc_assert (discrv != NULL);
+    }
+  else
+    {
+      discrv = (BASILYSGOB (DISCR_NULLRECV));
+      gcc_assert (discrv != NULL);
+    };
   while (discrv)
     {
       gcc_assert (basilys_magic_discr (discrv) == OBMAG_OBJECT);

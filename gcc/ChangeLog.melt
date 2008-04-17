@@ -1,4 +1,14 @@
 2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: (displaydebugmsg) new function - not working yet.
+	added output to stderr. 
+	(compilobj_nrep_nil) installed as method.
+
+	* Makefile.in: using cc1-melt to make more readable the output of
+	the top command
+
+	* basilys.c: (basilysgc_send) correctly handled null reciever.
+
+2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: (output_location) new string argument,
 	better #line output.  added class_nrep_nil & some methods for it.
 	added debugmsg for unbound symbol in primitive expansion which
