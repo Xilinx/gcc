@@ -1,4 +1,13 @@
 2008-04-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: (bailys_apply) print a short backtrace when too deep recursion with ENABLE_CHECKING
+
+	* melt/warm-basilys.bysl: (pairlist_to_progn, mexpand_progn...)
+	correct progn expansion & compilobj... Added class_objdestinstr
+	superclass so removed many putobjdest* methods. warm-basilys does
+	not bootstrap itself yet [assertfailure compilocsy null ovar with
+	ctype_void]
+
+2008-04-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: implemented put fields generation &
 	output. Still missing progn generation.
 

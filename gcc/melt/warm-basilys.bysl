@@ -3551,14 +3551,19 @@
 ;; internal routine to make a progn from a pairlist at a location
 (defun pairlist_to_progn (pair loc env mexpander)
   (assert_msg "check env" (is_a env class_environment))
+  (debugmsg pair "pairlist_to_progn pair" (the_callcount))
+  (assert_msg "check_pair" (is_pair pair))
   (let ( (bodytup (pairlist_to_multiple 
 		   pair 
 		   discr_multiple
-		   (lambda (e) (macroexpand_1 e env mexpander)))) )
-    (make_instance class_src_progn
-		   :src_loc loc
-		   :sprogn_body bodytup
-		   )
+		   (lambda (e) (macroexpand_1 e env mexpander)))) 
+	 (sprogn
+	  (make_instance class_src_progn
+			 :src_loc loc
+			 :sprogn_body bodytup
+			 )) )
+    (debugmsg sprogn "pairlist_to_progn sprogn" (the_callcount))
+    (return sprogn)
 ))
 
 ;; internal routine to make a return from a pairlist at a location
@@ -3577,7 +3582,8 @@
 ;;;; the progn expanser
 (defun mexpand_progn (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (pairlist_to_progn (pair_head (unsafe_get_field :sexp_contents sexpr))
+  (pairlist_to_progn (pair_tail
+		      (list_first (unsafe_get_field :sexp_contents sexpr)))
 		     (unsafe_get_field :loca_location sexpr)
 		     env
 		     mexpander)
@@ -6171,12 +6177,17 @@
   :super class_root
   :fields (
 ))
+
 (defun putobjdest_catchall_objcode (recv desto)
   (debugmsg recv "putobjdest_catchall_objcode recv@@  "  (the_callcount))
   (debugmsg desto "putobjdest_catchall_objcode desto@@  "  (the_callcount))
-  (shortbacktrace_dbg "putobjdest_catchall_objcode" 15)
+  (outcstring_err "* putobjdest unimplemented reciever class ")
+  (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
+  (outnewline_err)
   (assert_msg "@@ unexpected catchall putobjdest" ()))
 (install_method class_objcode put_objdest putobjdest_catchall_objcode)
+
+
 
 ;;;; value like objects
 (defclass class_objvalue
@@ -6654,11 +6665,16 @@
   :fields (obi_loc			;src location
 ))
 
+;;;; instructions with a list of destinations (computes, calls, sends, etc...)
+(defclass class_objdestinstr
+  :super class_objinstr
+  :fields (obdi_destlist		;a list of destination lovations
+))
+
 ;;; compute instruction
 (defclass class_objcompute
-  :super class_objinstr
-  :fields (obcpt_dest			;destination list
-	   obcpt_expr			;expression list
+  :super class_objdestinstr
+  :fields (obcpt_expr			;expression list
 ))
 
 ;; get argument instruction
@@ -6719,9 +6735,8 @@
 
 ;;; apply instruction
 (defclass class_objapply
-  :super class_objinstr
-  :fields (obapp_dest			;destination list
-	   obapp_clos			;closure to be applied
+  :super class_objdestinstr
+  :fields (obapp_clos			;closure to be applied
 	   obapp_args			;argument tuple
 ))
 
@@ -6733,9 +6748,8 @@
 
 ;;; message send instruction
 (defclass class_objmsend
-  :super class_objinstr
-  :fields (obmsnd_dest			;destination list
-	   obmsnd_sel			;selector object (compiled)
+  :super class_objdestinstr
+  :fields (obmsnd_sel			;selector object (compiled)
 	   obmsnd_recv			;message reciever (compiled)
 	   obmsnd_args 			;argument tuple (compiled)
 ))
@@ -6748,20 +6762,19 @@
 
 ;; raw object allocation instruction
 (defclass class_objrawallocobj
-  :super class_objinstr
-  :fields (obrallobj_class		;the class data
+  :super class_objdestinstr
+  :fields (
+	   obrallobj_class		;the class data
 	   obrallobj_len		;the boxed integer length
-	   obrallobj_dest			;the list of destinations
 ))
 
 
 ;; new closure allocation
 (defclass class_objnewclosure
-  :super class_objinstr
+  :super class_objdestinstr
   :fields (obnclo_discr		     ;the discriminant
 	   obnclo_rout		     ;the routine
 	   obnclo_len		     ;the boxed integer length
-	   obnclo_dest		     ;the list of destinations
 ))
 
 ;; put a component inside a tuple
@@ -6784,9 +6797,8 @@
 
 ;; get a slot from an object
 (defclass class_objgetslot
-  :super class_objinstr
-  :fields (ogetsl_dest			;the destination list
-	   ogetsl_obj		   ;the object to get from
+  :super class_objdestinstr
+  :fields (ogetsl_obj		   ;the object to get from
 	   ogetsl_field		   ;the fieldname
 ))
 
@@ -6852,6 +6864,21 @@
 	   oirout_data			;the tuple of initial data
 	   oirout_fill			;the fill of the data (a list of instr)
 ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;; common put destination of objdestinstr....
+(defun putobjdest_objdestinstr (recv desto)
+  (assert_msg "putobjdest_objdestinstr check recv" (is_a recv class_objdestinstr))
+  (debugmsg recv "putobjdest_objdestinstr recv" (the_callcount))
+  (debugmsg desto "putobjdest_objdestinstr desto@@  "  (the_callcount))
+  (let ( (destl (unsafe_get_field :obdi_destlist recv)) )
+    (if (not (is_list destl))
+	(progn 
+	  (setq destl (make_list discr_list))
+	  (unsafe_put_fields recv :obdi_destlist destl)))
+    (list_append destl desto)
+    (return recv)
+))
+(install_method class_objdestinstr put_objdest putobjdest_objdestinstr)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; notes about code generation
@@ -7468,7 +7495,7 @@
 ;;; output code for objcompute
 (defun outpucod_objcompute (obcomp declbuf implbuf :long depth)
   (assert_msg "check obcomp" (is_a obcomp class_objcompute))
-  (let ( (cdest (unsafe_get_field :obcpt_dest obcomp)) ; destination list
+  (let ( (cdest (unsafe_get_field :obdi_destlist obcomp)) ; destination list
 	 (cloc (unsafe_get_field :obi_loc obcomp))
 	 (cexp (unsafe_get_field :obcpt_expr obcomp)) 
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
@@ -7536,7 +7563,7 @@
   (debugmsg oapp "outpucod_objapply oapp" (the_callcount))
   (let (
 	(aloc (unsafe_get_field :obi_loc oapp))
-	(adest (unsafe_get_field :obapp_dest oapp))
+	(adest (unsafe_get_field :obdi_destlist oapp))
 	(oclos (unsafe_get_field :obapp_clos oapp))
 	(oargs (unsafe_get_field :obapp_args oapp))
 	(:long nbarg (multiple_length oargs))
@@ -7626,7 +7653,7 @@
   (assert_msg "check omsend" (is_a omsend class_objmsend))
   (debugmsg omsend "outpucod_objmsend omsend" (the_callcount))
   (let ( (oloc (unsafe_get_field :obi_loc omsend))
-	 (odest (unsafe_get_field :obmsnd_dest omsend))
+	 (odest (unsafe_get_field :obdi_destlist omsend))
 	 (osel (unsafe_get_field :obmsnd_sel omsend))
 	 (orecv (unsafe_get_field :obmsnd_recv omsend))
 	 (oargs (unsafe_get_field :obmsnd_args omsend))
@@ -7715,7 +7742,7 @@
   (debugmsg oapp "outpucod_objmultiapply oapp" (the_callcount))
   (let (
 	(aloc (unsafe_get_field :obi_loc oapp))
-	(adest (unsafe_get_field :obapp_dest oapp))
+	(adest (unsafe_get_field :obdi_destlist oapp))
 	(oclos (unsafe_get_field :obapp_clos oapp))
 	(oargs (unsafe_get_field :obapp_args oapp))
 	(oxres (unsafe_get_field :obmultapp_xres oapp))
@@ -7837,7 +7864,7 @@
   (assert_msg "check omsnd" (is_a omsnd class_objmultimsend))
   (debugmsg omsnd "outpucod_objmultimsend omsnd" (the_callcount))
   (let ( (oloc (unsafe_get_field :obi_loc omsnd))
-	 (odest (unsafe_get_field :obmsnd_dest omsnd))
+	 (odest (unsafe_get_field :obdi_destlist omsnd))
 	 (osel (unsafe_get_field :obmsnd_sel omsnd))
 	 (orecv (unsafe_get_field :obmsnd_recv omsnd))
 	 (oargs (unsafe_get_field :obmsnd_args omsnd))
@@ -7979,7 +8006,7 @@
   (let ( (iloc (unsafe_get_field :obi_loc oralob))
 	 (iclass (unsafe_get_field :obrallobj_class oralob))
 	 (ilen (unsafe_get_field :obrallobj_len oralob))
-	 (destlist (unsafe_get_field :obrallobj_dest oralob)) 
+	 (destlist (unsafe_get_field :obdi_destlist oralob)) 
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
     (assert_msg "outpucod_objrawallocobj check iclass" (is_a iclass class_objvalue))
@@ -8008,7 +8035,7 @@
 	 (odiscr (unsafe_get_field :obnclo_discr obnclo))
 	 (orout (unsafe_get_field :obnclo_rout obnclo))
 	 (olen (unsafe_get_field :obnclo_len obnclo))
-	 (destlist (unsafe_get_field :obnclo_dest obnclo))
+	 (destlist (unsafe_get_field :obdi_destlist obnclo))
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
     (output_location iloc implbuf depth "newclosure")
@@ -8077,12 +8104,13 @@
 (defun outpucod_objgetslot (ogsl declbuf implbuf :long depth)
   (assert_msg "check ogsl" (is_a ogsl class_objgetslot))
   (let ( (oloc (unsafe_get_field :obi_loc ogsl))
-	 (destlist (unsafe_get_field :ogetsl_dest ogsl))
+	 (destlist (unsafe_get_field :obdi_destlist ogsl))
 	 (oobj (unsafe_get_field :ogetsl_obj ogsl))
 	 (ofield (unsafe_get_field :ogetsl_field ogsl))
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
     (assert_msg "check ofield" (is_a ofield class_field))
+    (debugmsg ogsl "outpucod_objgetslot ogsl" (the_callcount))
     (output_location oloc implbuf depth "getslot")
     (list_every
      destlist
@@ -8234,6 +8262,13 @@
 )
 (install_method class_objfinalreturn output_c_code outpucod_finalreturn)
 
+
+;; for some reason, final returns are sometimes putobjdest-ed - a NOP here
+(defun putobjdest_objfinalreturn (recv desto)
+  (assert_msg "check recv" (is_a recv class_objfinalreturn))
+  recv
+)
+(install_method class_objfinalreturn put_objdest putobjdest_objfinalreturn)
 
 
 
@@ -8642,7 +8677,7 @@
 ;    (debugmsg gcx "compilobj locsymocc gcx" (the_callcount))
     (debugmsg lsyo "compilobj locsymocc lsyo" (the_callcount))
 ;    (debugmsg sbnd "compilobj locsymocc sbnd" (the_callcount))
-    (debugmsg oty "compilobj locsymocc oty" (the_callcount))
+;    (debugmsg oty "compilobj locsymocc oty" (the_callcount))
     (debugmsg ovar "compilobj locsymocc ovar" (the_callcount))
     (if (null sbnd)
 	(progn
@@ -8974,6 +9009,35 @@
     ))
 (install_method class_nrep_setq compile_obj compilobj_nrep_setq)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compile a progn
+(defun compilobj_nrep_progn (npro gcx)
+  (assert_msg "check npro" (is_a npro class_nrep_progn))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg npro "compilobj_nrep_progn npro" (the_callcount))
+  (let ( (loc (unsafe_get_field :nrep_loc npro))
+	 (nseq (unsafe_get_field :nprogn_seq npro))
+	 (nlast (unsafe_get_field :nprogn_last npro))
+	 (bodyl (make_list discr_list))
+	 (oblock (make_instance class_objblock
+				:obi_loc loc
+				:oblo_bodyl bodyl
+				;; :oblo_epil is left null
+				))
+	 )
+    (multiple_every
+     nseq
+     (lambda (ncomp :long ix)
+       (let ( (ocomp (compile_obj ncomp gcx)) )
+	 (list_append bodyl ocomp)
+	 )))
+    (let ( (olast (compile_obj nlast gcx)) )
+      (list_append bodyl olast))
+    (debugmsg oblock "compilobj_nrep_progn oblock" (the_callcount))
+    (return oblock)
+    ))
+(install_method class_nrep_progn compile_obj compilobj_nrep_progn)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a multacc [data multiple accessor]
 (defun compilobj_nrep_multacc (nma gcx)
@@ -9093,23 +9157,13 @@
 	 (dlist (make_list discr_list))
 	 (ogetslot (make_instance class_objgetslot
 				  :obi_loc loc
-				  :ogetsl_dest dlist
+				  :obdi_destlist dlist
 				  :ogetsl_obj (compile_obj nobj gcx)
 				  :ogetsl_field nfield))
 	 )
     (return ogetslot)
 ))
 (install_method class_nrep_unsafe_get_field compile_obj compilobj_nrep_unsafe_get_field)
-  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; put a destination inside a getslot
-(defun putobjdest_objgetslot (recv desto)
-  (assert_msg "check recv" (is_a recv class_objgetslot))
-  (list_append (unsafe_get_field :ogetsl_dest recv) desto)
-  recv
-)
-(install_method class_objgetslot put_objdest putobjdest_objgetslot)
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -9173,7 +9227,7 @@
 	    (make_instance 
 	     class_objapply
 	     :obi_loc loc
-	     :obapp_dest (make_list discr_list)
+	     :obdi_destlist (make_list discr_list)
 	     :obapp_clos oclos
 	     :obapp_args oargs))
 	   )
@@ -9225,7 +9279,7 @@
 				(compile_obj comp gcx))))
 	 (omapp (make_instance class_objmultiapply
 			       :obi_loc loc
-			       :obapp_dest reslist
+			       :obdi_destlist reslist
 			       :obapp_clos (compile_obj fun gcx)
 			       :obapp_args oargs
 			       :obmultapp_xres oxres))
@@ -9276,7 +9330,7 @@
 	    (make_instance 
 	     class_objmsend
 	     :obi_loc loc
-	     :obmsnd_dest (make_list discr_list)
+	     :obdi_destlist (make_list discr_list)
 	     :obmsnd_sel osel
 	     :obmsnd_recv orecv
 	     :obmsnd_args oargs
@@ -9333,7 +9387,7 @@
 				:oblo_epil oepil))
 	 (omsend (make_instance class_objmultimsend
 				:obi_loc loc
-				:obmsnd_dest reslist
+				:obdi_destlist reslist
 				:obmsnd_sel osel
 				:obmsnd_recv orecv
 				:obmsnd_args oargs
@@ -9373,7 +9427,7 @@
 	 (explis (make_list discr_list))
 	 (obc (make_instance class_objcompute
 			     ;; dont fill :obi_loc
-			     :obcpt_dest destlis
+			     :obdi_destlist destlis
 			     :obcpt_expr explis
 			     )) )
     (list_append destlis desto)
@@ -9419,7 +9473,7 @@
 	 (resv (unsafe_get_field :obloop_resv recv))
 	 (obc (make_instance class_objcompute
 			     ;; dont fill :obi_loc
-			     :obcpt_dest desto
+			     :obdi_destlist desto
 			     :obcpt_expr resv
 			     ))
 	 )
@@ -9445,23 +9499,6 @@
 (install_method class_objexit put_objdest putobjdest_objexit)
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; put a destination inside a raw object allocation
-(defun putobjdest_objrawallocobj (recv desto)
-  (assert_msg "check recv" (is_a recv class_objrawallocobj))
-  (list_append (unsafe_get_field :obrallobj_dest recv) desto)
-  recv
-)
-(install_method class_objrawallocobj put_objdest putobjdest_objrawallocobj)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; put a destination inside a closure allocation
-(defun putobjdest_objnewclosure (recv desto)
-  (assert_msg "check recv" (is_a recv class_objnewclosure))
-  (list_append (unsafe_get_field :obnclo_dest recv) desto)
-  recv
-)
-(install_method class_objnewclosure put_objdest putobjdest_objnewclosure)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_if (rif gcx)
@@ -9516,25 +9553,12 @@
 ;  (debugmsg desto "putobjdest objapply desto" (the_callcount))
   (assert_msg "check recv" (is_a recv class_objapply))
   (assert_msg "check desto" (is_a desto class_objlocv))
-  (let ( (adest (unsafe_get_field :obapp_dest recv)) )
+  (let ( (adest (unsafe_get_field :obdi_destlist recv)) )
     (assert_msg "check adest" (is_list adest))
     (list_prepend adest desto)
     recv
 ))
 (install_method class_objapply put_objdest putobjdest_objapply)
-
-;;;;;;;;;;;;;;;;
-(defun putobjdest_objmsend (recv desto)
-  (debugmsg recv "putobjdest objapply recv" (the_callcount))
-;  (debugmsg desto "putobjdest objapply desto" (the_callcount))
-  (assert_msg "check recv" (is_a recv class_objmsend))
-  (assert_msg "check desto" (is_a desto class_objlocv))
-  (let ( (adest (unsafe_get_field :obmsnd_dest recv)) )
-    (assert_msg "check adest" (is_list adest))
-    (list_prepend adest desto)
-    recv
-))
-(install_method class_objmsend put_objdest putobjdest_objmsend)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;
@@ -9620,7 +9644,7 @@
 		      crou)
 		  )
 		  :obnclo_len (make_integerbox discr_integer nbclosed)
-		  :obnclo_dest destlist))
+		  :obdi_destlist destlist))
     (multiple_every
      nclovtup
      (lambda (clov :long ix)
@@ -9663,7 +9687,7 @@
 				    :obi_loc nloc
 				    :obrallobj_class ocladat
 				    :obrallobj_len (make_integerbox discr_integer nbfld)
-				    :obrallobj_dest destlist))
+				    :obdi_destlist destlist))
 	   )
       (list_append destlist locv)
       (list_append olis orallobj)

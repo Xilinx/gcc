@@ -3770,8 +3770,11 @@ basilys_apply (basilysclosure_ptr_t clos_p,
 #if ENABLE_CHECKING
   applcount_basilys++;
   appldepth_basilys++;
-  if (appldepth_basilys > MAXDEPTH_APPLY_BASILYS)
-    fatal_error ("too deep (%d) basilys application", appldepth_basilys);
+  if (appldepth_basilys > MAXDEPTH_APPLY_BASILYS) 
+    {
+      basilys_dbgshortbacktrace("too deep applications", 100);
+      fatal_error ("too deep (%d) basilys applications", appldepth_basilys);
+    }
 #endif
   memset (&ufun, 0, sizeof (ufun));
   if (basilys_magic_discr ((void *) clos_p) != OBMAG_CLOSURE)
