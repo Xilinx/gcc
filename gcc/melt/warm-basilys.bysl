@@ -2828,6 +2828,8 @@
 
 ;; internal to parse a field assignment in a given class (or without class, for put_field)
 (defun parse_field_assignment (cla loc fldkw expr env mexpander)
+  (if (not (is_a fldkw class_keyword))
+      (error_plain loc "expecting :fieldname"))
   (assert_msg "check fldkw" (is_a fldkw class_keyword))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
@@ -6772,7 +6774,17 @@
   :super class_objinstr
   :fields ( oslot_odata			;the object data to put
 	    oslot_offset		;numerical offset
+	    oslot_field			;the [optional] field (only for generated comment)
 	    oslot_value			;the new value
+))
+
+
+;; get a slot from an object
+(defclass class_objgetslot
+  :super class_objinstr
+  :fields (ogetsl_dest			;the destination list
+	   ogetsl_obj		   ;the object to get from
+	   ogetsl_field		   ;the fieldname
 ))
 
 ;; put the routine inside a closure
@@ -6858,11 +6870,15 @@
 (install_method discr_nullrecv output_c_code outpucod_null)
 
 ;;; catchall for outputting any stuff
-(defun outpucod_root (anyr declbuf implbuf :long depth)
-  (debugmsg anyr "outpucod_root anyr" (the_callcount))
-  (assert_msg "@@ outpucod_root not able to output" ())
+(defun outpucod_catchall_root (anyr declbuf implbuf :long depth)
+  (debugmsg anyr "outpucod_catchall_root anyr" (the_callcount))
+  (displaydebugmsg anyr "outpucod_catchall_root anyr" (the_callcount))
+  (outcstring_err "* output_c_code unimplemented reciever class ")
+  (let ( (discr (discrim anyr)) ) (outstr_err (unsafe_get_field :named_name discr)))
+  (outnewline_err)
+  (assert_msg "@@ outpucod_catchall_root not able to output" ())
 )
-(install_method class_root output_c_code outpucod_root)
+(install_method class_root output_c_code outpucod_catchall_root)
 
 ;;; common code to output a location
 (defun output_location (loc implbuf :long depth :cstring msg)
@@ -8055,6 +8071,32 @@
 (install_method class_objputuple output_c_code outpucod_objputuple)
 
 
+(defun outpucod_objgetslot (ogsl declbuf implbuf :long depth)
+  (assert_msg "check ogsl" (is_a ogsl class_objgetslot))
+  (let ( (oloc (unsafe_get_field :obi_loc ogsl))
+	 (destlist (unsafe_get_field :ogetsl_dest ogsl))
+	 (oobj (unsafe_get_field :ogetsl_obj ogsl))
+	 (ofield (unsafe_get_field :ogetsl_field ogsl))
+	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
+	 )
+    (assert_msg "check ofield" (is_a ofield class_field))
+    (output_location oloc implbuf depth "getslot")
+    (list_every
+     destlist
+     (lambda (dst) 
+       (output_c_code dst declbuf implbuf (get_int boxdepthp1))
+       (add2sbuf_strconst implbuf " = ")))
+    (add2sbuf_strconst implbuf "basilys_getfield_object((")
+    (output_c_code oobj declbuf implbuf depth)
+    (add2sbuf_strconst implbuf "), ")
+    (add2sbuf_longdec implbuf (get_int ofield))
+    (add2sbuf_strconst implbuf ", \"")
+    (add2sbuf_string implbuf (unsafe_get_field :named_name ofield))
+    (add2sbuf_strconst implbuf "\");")
+    (add2sbuf_indentnl implbuf depth)
+    ))
+(install_method class_objgetslot output_c_code outpucod_objgetslot)
+
 ;;; output a put slot (mostly used in initial data content filling)
 (defun outpucod_objputslot (opslo declbuf implbuf :long depth)
   (assert_msg "check opslo" (is_a opslo class_objputslot))
@@ -8062,6 +8104,7 @@
   (let ( (iloc (unsafe_get_field :obi_loc opslo))
 	 (odata (unsafe_get_field :oslot_odata opslo))
 	 (ooff (unsafe_get_field :oslot_offset opslo))
+	 (ofield (unsafe_get_field :oslot_field opslo))
 	 (oval (unsafe_get_field :oslot_value opslo))
 	 )
     (output_location iloc implbuf depth "putslot")
@@ -8069,6 +8112,11 @@
     (output_c_code odata declbuf implbuf depth)
     (add2sbuf_strconst implbuf "))->obj_vartab[")
     (output_c_code ooff declbuf implbuf depth)
+    (if (is_a ofield class_field)
+	(progn
+	  (add2sbuf_strconst implbuf "/*")
+	  (add2sbuf_string implbuf (unsafe_get_field :named_name ofield))
+	  (add2sbuf_strconst implbuf "*/")))
     (add2sbuf_strconst implbuf "] = ")
     (output_c_code oval declbuf implbuf depth)
     (add2sbuf_strconst implbuf ";")
@@ -9030,6 +9078,34 @@
       )))
 (install_method class_nrep_fieldacc compile_obj compilobj_nrep_fieldacc)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compile an unsafe get field access
+(defun compilobj_nrep_unsafe_get_field (nugf gcx)
+  (assert_msg "check nugf" (is_a nugf class_nrep_unsafe_get_field))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg nugf "compilobj_nrep_unsafe_get_field nugf" (the_callcount))
+  (let ( (loc (unsafe_get_field :nrep_loc nugf)) 
+	 (nobj (unsafe_get_field :nuget_obj nugf))
+	 (nfield (unsafe_get_field :nuget_field nugf))
+	 (dlist (make_list discr_list))
+	 (ogetslot (make_instance class_objgetslot
+				  :obi_loc loc
+				  :ogetsl_dest dlist
+				  :ogetsl_obj (compile_obj nobj gcx)
+				  :ogetsl_field nfield))
+	 )
+    (return ogetslot)
+))
+(install_method class_nrep_unsafe_get_field compile_obj compilobj_nrep_unsafe_get_field)
+  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; put a destination inside a getslot
+(defun putobjdest_objgetslot (recv desto)
+  (assert_msg "check recv" (is_a recv class_objgetslot))
+  (list_append (unsafe_get_field :ogetsl_dest recv) desto)
+  recv
+)
+(install_method class_objgetslot put_objdest putobjdest_objgetslot)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a simple application
@@ -9557,6 +9633,7 @@
 	    (make_instance class_objputslot 
 			   :obi_loc (if cfloc cfloc nloc)
 			   :oslot_odata locv
+			   :oslot_field cfield
 			   :oslot_offset (make_integerbox discr_integer (get_int cfield))
 			   :oslot_value (compile_obj cval gcx))))))
     ;; we don't need to add any objtouch because the nmki was normalized!

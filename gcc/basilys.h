@@ -1229,6 +1229,23 @@ basilys_field_object (basilys_ptr_t ob, unsigned off)
   return NULL;
 }
 
+#if ENABLE_CHECKING
+static inline basilys_ptr_t
+basilys_getfield_object (basilys_ptr_t ob, unsigned off, const char*msg)
+{
+  if (basilys_magic_discr (ob) == OBMAG_OBJECT)
+    {
+      basilysobject_ptr_t pob = (void *) ob;
+      if (off < pob->obj_len)
+	return pob->obj_vartab[off];
+    }
+  fatal_error("checked field access access failed %s", msg?msg:"...");
+  return NULL;
+}
+#else
+#define basilys_getfield_object(Obj,Off,Msg) (((basilysobject_ptr_t)(Obj))->obj_vartab[Off])
+#endif
+
 /* get (safely) the length of an object */
 static inline int
 basilys_object_length (basilys_ptr_t ob)

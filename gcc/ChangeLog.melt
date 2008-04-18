@@ -1,4 +1,12 @@
 2008-04-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: (basilys_getfield_object) new function (when ENABLE_CHECKING) or macro 
+
+	* melt/warm-basilys.bysl: (parse_field_assignment) displays an
+	error when non keyword fieldname. (class_objgetslot) new
+	class. (outpucod_root) better error output.
+	implemented get field generation & output. Still missing put field generation & output.
+
+2008-04-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: uses | for both install & build of melt gcc script
 
 2008-04-17  Basile Starynkevitch  <basile@starynkevitch.net>

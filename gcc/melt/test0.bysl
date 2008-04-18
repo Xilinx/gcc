@@ -14,8 +14,6 @@
 
 (defun testconstbox1 (xx) (if (is_integerbox xx) (boxint 2) ()))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#| ; SKIPPING
 
 (defclass my_class_root 
  :predef CLASS_ROOT
@@ -37,6 +35,11 @@
 )
 
 
+
+(defun testunsafegetname (o) (unsafe_get_field :my_name o))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#| ; SKIPPING
 (defun testsendsel (f x) 
   (the_sel (f x) 
 	   (boxint 789)
