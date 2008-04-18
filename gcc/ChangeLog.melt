@@ -1,4 +1,7 @@
-2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
+2008-04-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: uses | for both install & build of melt gcc script
+
+2008-04-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: (displaydebugmsg) new function - not working yet.
 	added output to stderr. 
 	(compilobj_nrep_nil) installed as method.
@@ -8,14 +11,14 @@
 
 	* basilys.c: (basilysgc_send) correctly handled null reciever.
 
-2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
+2008-04-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: (output_location) new string argument,
 	better #line output.  added class_nrep_nil & some methods for it.
 	added debugmsg for unbound symbol in primitive expansion which
 	still incorrectly happens. (normexp_quote) both initrout and
 	normalrout cases. still buggy on self compilation 
 
-2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
+2008-04-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r134362
 
 2008-04-16  Basile Starynkevitch  <basile@starynkevitch.net>

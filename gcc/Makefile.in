@@ -4726,10 +4726,10 @@ install-melt-headers-cp: install-melt-include-dir
 built-melt-cc-script: melt-cc-script.proto  run-basilys-deps
 ## the #:! lines should be removed, and in first twenty lines :MELT_GCC:
 ## :MELT_CFLAGS: :MELT_HEADERDIR: :MELT_SCRIPT: should be substituted
-	sed -e s/^.:!.*// -e '1,30s/:MELT_CC:/$(CC)/' \
-	    -e '1,30s/:MELT_CFLAGS:/$(MELT_CFLAGS)/' \
-	    -e '1,30s/:MELT_SCRIPT:/built-melt-cc-script/' \
-	    -e '1,30s/:MELT_HEADERDIR:/$(melt_build_include_dir)/' \
+	sed -e s/^.:!.*// -e '1,30s|:MELT_CC:|$(CC)|' \
+	    -e '1,30s|:MELT_CFLAGS:|$(MELT_CFLAGS)|' \
+	    -e '1,30s|:MELT_SCRIPT:|$(melt_compile_script)|' \
+	    -e '1,30s|:MELT_HEADERDIR:|$(melt_build_include_dir)|' \
 	< $< > tmp-built-melt-cc-script
 	$(SHELL) $(srcdir)/../move-if-change  tmp-built-melt-cc-script built-melt-cc-script
 	chmod u+x built-melt-cc-script
