@@ -36,7 +36,12 @@
 
 
 
-(defun testunsafegetname (o) (unsafe_get_field :my_name o))
+
+(defun testunsafegetputnameprogn (o n) 
+  (let ( (oldn (unsafe_get_field :my_name o)) )
+    (progn 
+      (unsafe_put_fields o :my_name n) 
+      oldn)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #| ; SKIPPING

@@ -1,4 +1,8 @@
 2008-04-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: implemented put fields generation &
+	output. Still missing progn generation.
+
+2008-04-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: (basilys_getfield_object) new function (when ENABLE_CHECKING) or macro 
 
 	* melt/warm-basilys.bysl: (parse_field_assignment) displays an

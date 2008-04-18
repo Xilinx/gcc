@@ -4971,10 +4971,11 @@
   (assert_msg "check unsafeputfields recv" (is_a recv class_src_unsafe_put_fields))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debugmsg recv "normexp_unsafe_put_fields recv" (the_callcount))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sobj   (unsafe_get_field :suput_obj recv))
 	 (sfields (unsafe_get_field :suput_fields recv))
-	 (nbfields (multiple_length sfields))
+	 (:long nbfields (multiple_length sfields))
 	 (nfields (make_multiple discr_multiple nbfields))
 	 (nbindlist (make_list discr_list))
 	 )
@@ -4999,13 +5000,15 @@
 				       :nfla_val nexp)) )
 	     (multiple_put_nth nfields ix nfla)
 	     )))))
-     (return 
-      (make_instance class_nrep_unsafe_put_fields
-		     :nrep_loc sloc
-		     :nuput_obj nobj
-		     :nuput_fields nfields)
-      nbindlist
-     ))))
+     (let ( (npuf (make_instance class_nrep_unsafe_put_fields
+				 :nrep_loc sloc
+				 :nuput_obj nobj
+				 :nuput_fields nfields)) )
+       (debugmsg npuf "normexp_unsafe_put_fields npuf" (the_callcount))
+       (return 
+	npuf
+	nbindlist
+	)))))
 (install_method class_src_unsafe_put_fields normal_exp normexp_unsafe_put_fields)
 (install_method class_nrep_unsafe_put_fields get_ctype (lambda (recv env) ctype_void))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -9107,6 +9110,51 @@
 )
 (install_method class_objgetslot put_objdest putobjdest_objgetslot)
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compile an unsafe put fields
+(defun compilobj_nrep_unsafe_put_fields (nupf gcx)
+  (assert_msg "check nupf" (is_a nupf class_nrep_unsafe_put_fields))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg nupf "compilobj_nrep_unsafe_put_fields nupf" (the_callcount))
+  (let ( (loc (unsafe_get_field :nrep_loc nupf)) 
+	 (nobj (unsafe_get_field :nuput_obj nupf))
+	 (nfldass (unsafe_get_field :nuput_fields nupf))
+	 (obodl (make_list discr_list))
+	 (oepil (make_list discr_list))
+	 (oblock (make_instance class_objblock
+				:obi_loc loc
+				:oblo_bodyl obodl
+				:oblo_epil oepil))
+	 (oobj (compile_obj nobj gcx))
+	 )
+    (multiple_every 
+     nfldass
+     (lambda (nfa :long ix)
+       (assert_msg "check nfa" (is_a nfa class_nrep_fieldassign))
+       (let ( (aloc (unsafe_get_field :nrep_loc nfa)) 
+	      (afield (unsafe_get_field :nfla_field nfa))
+	      (aval (unsafe_get_field :nfla_val nfa))
+	      (:long aoff (get_int afield))
+	      )
+	 (assert_msg "check afield" (is_a afield class_field))
+	 (let ( 
+	       (oval (compile_obj aval gcx)) 
+	       (opuf (make_instance class_objputslot
+				    :obi_loc (if aloc aloc loc)
+				    :oslot_odata oobj
+				    :oslot_field afield
+				    :oslot_offset (make_integerbox discr_integer aoff)
+				    :oslot_value oval)) )
+	   (list_append obodl opuf))
+	 )))
+    (list_append obodl (make_instance class_objtouch
+				      :obi_loc loc
+				      :otouch_val oobj))
+    (return oblock)
+    ))
+(install_method class_nrep_unsafe_put_fields compile_obj compilobj_nrep_unsafe_put_fields)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a simple application
 (defun compilobj_nrep_apply (napp gcx)
@@ -9740,8 +9788,7 @@
     ;; touch the object
     (list_append ibodylis 
 		 (make_instance class_objtouch
-				:obi_loc  nloc
-				:obi_loc (unsafe_get_field :nrep_loc ndat)
+				:obi_loc (if nloc nloc (unsafe_get_field :nrep_loc ndat))
 				:otouch_comment comm
 				:otouch_val obj))
     ;; for every non nil local obvar, clear it
