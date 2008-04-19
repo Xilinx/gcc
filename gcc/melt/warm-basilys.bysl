@@ -6861,7 +6861,11 @@
 	   obrout_body			;the body (a list)
 	   obrout_nbval			;the boxed number of value pointers
 	   obrout_nblong		;the boxed number of longs
-	   obrout_others		;the list of other (nonvalue, nonlongs) locals
+	   ;;; if double are needed, we might later add some obrout_nbdouble
+	   obrout_others		;the list of other (nonvalue,
+					;nonlongs) locals (usually C
+					;pointers like tree-s,
+					;cstrings, ...)
 	   obrout_retval		;the main return value
 ))
 
@@ -7005,12 +7009,32 @@
       (progn
 	(add2sbuf_strconst implbuf "/*no varnum*/")
 	(add2sbuf_indentnl implbuf 0))
-	)
+      )
     (if others 
 	(progn
 	  (debugmsg others "output_curframe_init others" (the_callcount))
-	  (assert_msg "output_curframe_init @@ handling of others not implemented" ())
-	  ))
+	  (add2sbuf_strconst implbuf "/*others*/")
+	  (add2sbuf_indentnl implbuf 0)
+	  (list_every 
+	   others
+	   (lambda (oloc)
+	     (assert_msg "check other oloc" (is_a oloc class_objlocv))
+	     (let ( (octyp (unsafe_get_field :obv_type oloc))
+		    (oname (unsafe_get_field :obl_cname oloc))
+		    )
+	       (assert_msg "check octyp" (is_a octyp class_ctype))
+	       (add2sbuf_string implbuf (unsafe_get_field :ctype_cname octyp))
+	       (add2sbuf_strconst implbuf " ")
+	       (add2sbuf_string implbuf oname)
+	       (add2sbuf_strconst implbuf ";")
+	       (add2sbuf_indentnl implbuf 0))
+	     ))
+	  )
+      (progn
+	(add2sbuf_strconst implbuf "/*no others*/")
+	(add2sbuf_indentnl implbuf 0))
+      )
+    ;; end of curframe
     (add2sbuf_strconst implbuf "  long _spare_; } curfram__ = {")
     (add2sbuf_longdec implbuf nbval)
     (add2sbuf_strconst implbuf ", ")
@@ -7052,7 +7076,10 @@
 		   )
 	  (add2sbuf_strconst implbuf "},") ;
 	  ))
-    (assert_msg "output_curframe_init @@ initialization of others not implemented" (null others))
+    (list_every 
+     others
+     (lambda (oloc)
+       (add2sbuf_strconst implbuf " (void*)0,")))
     (add2sbuf_strconst implbuf " 0L };")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " curfram__.prev = (void*) basilys_topframe;")
@@ -8316,6 +8343,7 @@
 				 :obrout_body obodylist
 				 :obrout_nbval (make_integerbox discr_integer 0)
 				 :obrout_nblong (make_integerbox discr_integer 0)
+				 :obrout_others (make_list discr_list)
 				 )) 
 	  (locmap (make_mapobject discr_mapobjects (+i 20 (*i 3 (multiple_length nargb)))))
 	  (gcx (make_instance class_genercontext
@@ -8399,6 +8427,7 @@
 			 :obrout_body oinibody
 			 :obrout_nbval (make_integerbox discr_integer 0)
 			 :obrout_nblong (make_integerbox discr_integer 0)
+			 :obrout_others (make_list discr_list)
 			 :oirout_fill (make_list discr_list)
 			 ))
 	 (gcx (make_instance class_genercontext
@@ -8573,7 +8602,7 @@
 	  (add2sbuf_strconst nambuf "__L")
 	  (add2sbuf_longdec nambuf (get_int (unsafe_get_field :obl_off pfree)))
 	  (unsafe_put_fields pfree :obl_cname (strbuf2string discr_string nambuf))
-	  pfree)
+	  (return pfree))
       (let ( (nblongbox (unsafe_get_field :obrout_nblong orout)) 
 	     (:long nblong (get_int nblongbox))  
 	     (nambuf (make_strbuf discr_strbuf))
@@ -8587,11 +8616,10 @@
 				    :obv_type ctype_long
 				    :obl_off (make_integerbox discr_integer nblong)
 				    :obl_cname (strbuf2string discr_string nambuf))) )
-	  nloc
+	  (return nloc)
 	  )))))
 
 ;;; function to get a free local otherstuff for some name and ctype
-;;; @@ NOT IMPLEMENTED YET for arbitrary ctypes
 (defun get_free_objloctyped (gcx nam ctyp)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   ;; (assert_msg "check ctyp" (is_a ctyp class_ctype))
@@ -8605,11 +8633,41 @@
 	(:else 
 	 (debugmsg nam "getfreeobjloctyped nam" (the_callcount))
 	 (debugmsg ctyp "getfreeobjloctyped ctyp" (the_callcount))
-	 (outcstring_err "* get_free_objloctyped unimplemented ctype ")
-	 (outstr_err (unsafe_get_field :named_name ctyp))
-	 (outnewline_err)
-	 (assert_msg "@@@ unimplemented get_free_objloctyped for other ctyp" ())
-)))
+	 (let ( (freemap (unsafe_get_field :gncx_freeothermaps gcx)) 
+		(orout (unsafe_get_field :gncx_objrout gcx))
+		)
+	   (assert_msg "check freemap" (is_mapobject freemap))
+	   (assert_msg "check orout" (is_a orout class_routineobj))
+	   (let ( (freeli (mapobject_get freemap ctyp)) )
+	     (if (null freeli) 
+		 (progn
+		   (setq freeli (make_list discr_list))
+		   (mapobject_put freemap ctyp freeli)))
+	     (let ( (pfree (list_popfirst freeli)) )
+	       (if (is_a pfree  class_objlocv)
+		   (let ( ;; we are reusing a previously freed variable
+			 (nambuf (make_strbuf discr_strbuf)) )
+		     (add2sbuf_strconst nambuf "bYloc_")
+		     (assert_msg "check pfreetyo" (== ctyp (unsafe_get_field :obv_type pfree)))
+		     (return pfree))
+		 (let ( ;; we need to create a new variable
+		       (nambuf (make_strbuf discr_strbuf)) 
+		       (others (unsafe_get_field :obrout_others orout))
+		       (:long nbothers (list_length others))
+		       )
+		   (assert_msg "check others" (is_list others))
+		   (add2sbuf_strconst nambuf "loc_")
+		   (add2sbuf_cident nambuf  (unsafe_get_field :named_name ctyp))
+		   (add2sbuf_strconst nambuf "__o")
+		   (add2sbuf_longdec nambuf nbothers)
+		   (let ( (nloc (make_instance class_objlocv
+					       :obv_type ctyp
+					       :obl_off (make_integerbox discr_integer nbothers)
+					       :obl_cname (strbuf2string discr_string nambuf))) )
+		     (list_append others nloc)
+		     (return nloc)
+		     )
+		   ))))))))
   
 
 
@@ -8641,10 +8699,17 @@
 	      (let  ( (freenl (unsafe_get_field :gncx_freelonglist gcx)) )
 		(list_append freenl oldloc)))
 	    (:else
-	     ;; we have a map from ctypes to free list, add it there!
-	     (assert_msg "@@@ unimplemented dispose_bnd_obj non-value non-long" ())))
-  (debugmsg bnd "dispose_bnd_obj end bnd" (the_callcount))
-)))
+	     (let ( (freemap (unsafe_get_field :gncx_freeothermaps gcx)) 
+		    (orout (unsafe_get_field :gncx_objrout gcx))
+		    )
+	       (assert_msg "check freemap" (is_mapobject freemap))
+	       (assert_msg "check orout" (is_a orout class_routineobj))
+	       (let ( (freeli (mapobject_get freemap oldcty)) )
+		 ;; since we are freeing, freeli should exist
+		 (assert_msg "check freeli" (is_list freeli))
+		 (list_append freeli oldloc))))))
+    (debugmsg bnd "dispose_bnd_obj end bnd" (the_callcount))
+    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_chunk (nchk gcx)
@@ -9467,6 +9532,12 @@
 (defun putobjdest_objvalue (recv desto)
   (assert_msg "check recv" (is_a recv class_objvalue))
   (assert_msg "check desto" (is_a desto class_objlocv))
+  (if (!= (unsafe_get_field :obv_type recv) 
+				  (unsafe_get_field :obv_type desto))
+      (progn
+	(debugmsg recv "putobjdest_objvalue recv" (the_callcount))
+	(debugmsg desto "putobjdest_objvalue desto" (the_callcount))
+	))
   (assert_msg "check typcomp" (== (unsafe_get_field :obv_type recv) 
 				  (unsafe_get_field :obv_type desto)))
   (let ( (destlis (make_list discr_list))

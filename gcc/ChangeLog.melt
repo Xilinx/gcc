@@ -1,4 +1,8 @@
 2008-04-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: Added handling of arbitrary other ctypes
+	such as cstring tree etc... But bootstrap still buggy in putobjdest_objvalue
+
+2008-04-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: (basilys_discr) return BASILYSGOB(DISCR_NULLRECV) for
 	null pointer.
 
