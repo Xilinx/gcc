@@ -721,19 +721,11 @@ GTY ((desc ("%0.u_discr->object_magic")))
 static inline int
 basilys_magic_discr (basilys_ptr_t p)
 {
-  if (!p || !p->u_discr)
+  if (!p ||  !p->u_discr)
     return 0;
   return p->u_discr->object_magic;
 }
 
-/* return the discriminant or class itself */
-static inline basilysobject_ptr_t
-basilys_discr (basilys_ptr_t p)
-{
-  if (!p)
-    return NULL;
-  return p->u_discr;
-}
 
 /* return the nth of a multiple (starting from 0) */
 static inline basilys_ptr_t
@@ -1950,6 +1942,15 @@ enum
 #define BASILYSG(Glob) basilys_globarr[BGLOB_##Glob]
 #define BASILYSGOB(Glob) ((basilysobject_ptr_t)(BASILYSG(Glob)))
 
+
+/* return the discriminant or class itself */
+static inline basilysobject_ptr_t
+basilys_discr (basilys_ptr_t p)
+{
+  if (!p)
+    return BASILYSGOB(DISCR_NULLRECV);
+  return p->u_discr;
+}
 
 bool basilys_is_subclass_of (basilysobject_ptr_t subclass_p,
 			     basilysobject_ptr_t superclass_p);

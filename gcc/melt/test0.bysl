@@ -1,5 +1,19 @@
 ;; -*- lisp -*-
 
+(defun testtwicesamelet (f u v)
+  (let ( (aa u) )
+    aa )
+  (let ( (aa v) )
+    aa 
+    f)
+)
+
+(defun testletforever (x y f g)
+  (let ( (uu x) )
+    (forever loop
+	     (if (f uu) 
+		 (setq uu (g uu))
+	       (exit loop y)))))
 
 (defprimitive boxint (:long i) :value 
   "basilysgc_new_int( BASILYSGOB(DISCR_INTEGER), (" i "))"
@@ -8,9 +22,6 @@
 (defprimitive is_integerbox (ib) :long
   "(basilys_magic_discr((" ib ")) == OBMAG_INT)")
 
-(defun constfunbox0 () (boxint 0))
-
-(defun constnil () ())
 
 (defun testconstbox1 (xx) (if (is_integerbox xx) (boxint 2) ()))
 
@@ -43,8 +54,6 @@
       (unsafe_put_fields o :my_name n) 
       oldn)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#| ; SKIPPING
 (defun testsendsel (f x) 
   (the_sel (f x) 
 	   (boxint 789)
@@ -90,6 +99,16 @@
 
 
 
+(defun testtwolets (f g x y)
+  (let ( (u 
+	  (f x)) )
+    (let ( (v 
+	    (f y)) )
+      (g u v))
+    (let ( (v 
+	    (f u)) )
+      (g v u))))
+
 (if foo 
     (puts "has foo"))
 
@@ -98,4 +117,6 @@
 
 (puts "end test0")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#| ; SKIPPING
 ; SKIPPED |#

@@ -1,3 +1,16 @@
+2008-04-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: (basilys_discr) return BASILYSGOB(DISCR_NULLRECV) for
+	null pointer.
+
+	* melt/warm-basilys.bysl: normalization of binding constructs like
+	let or multiapply or multisend should remove the locally bound
+	symbols from the symbol cachemap in the normalization
+	context. This fix the bug for several homonymous let inside same
+	function. dbgout_ routines are better for bindings. nil is
+	dbgoutput-ed a la Lisp. several dbgout_ routines do not bother
+	testing for need_dbg. arbitrary ctypes are still not handled
+	correctly.
+
 2008-04-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: (bailys_apply) print a short backtrace when too deep recursion with ENABLE_CHECKING
 

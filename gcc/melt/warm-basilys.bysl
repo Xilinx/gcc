@@ -1097,6 +1097,7 @@
 	   ))
 	tup
 	)))
+
 ;;; translate a pairlist to a tuple - with each element transformed by a function f (default the identity)
 (defun pairlist_to_multiple (pair disc f)
   (or disc (setq disc discr_multiple))
@@ -1238,7 +1239,7 @@
 		    (checkcallstack_msg "start dbg_out output")
 		    (dbg_output obj dbgi depth)
 		  )
-		(if (is_strbuf sbuf) (add2sbuf_strconst sbuf "?_?")
+		(if (is_strbuf sbuf) (add2sbuf_strconst sbuf "()")
 		  )))
 	  (if (is_strbuf sbuf)
 	      (add2sbuf_strconst sbuf "..")
@@ -1277,28 +1278,33 @@
 		 )
       )))
 
+;; null debug output
+(defun dbgout_null_method  (self dbgi :long depth)
+  (let (  (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	  )
+    (add2sbuf_strconst sbuf "()")))
+(install_method discr_nullrecv dbg_output dbgout_null_method)
+(install_method discr_nullrecv dbg_outputagain dbgout_null_method)
 
 ;; string debug output
 (defun dbgout_string_method (self dbgi :long depth)
-;  (message_dbg "DbgOut_String")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0) 
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
-	     )
-	(if (== dis DISCR_STRING)
-	    (progn
-	      (add2sbuf_strconst sbuf " \"")
-	      (add2sbuf_cencstring sbuf self)
-	      (add2sbuf_strconst sbuf "\"")
-	      )
-	  (progn
-	    (add2sbuf_strconst sbuf " |")
-	    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	    (add2sbuf_strconst sbuf "\"")
-	    (add2sbuf_cencstring sbuf self)
-	    (add2sbuf_strconst sbuf "\"")
-	    )))))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_STRING)
+	(progn
+	  (add2sbuf_strconst sbuf " \"")
+	  (add2sbuf_cencstring sbuf self)
+	  (add2sbuf_strconst sbuf "\"")
+	  )
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "\"")
+	(add2sbuf_cencstring sbuf self)
+	(add2sbuf_strconst sbuf "\"")
+	))))
 
 (install_method discr_string  dbg_output dbgout_string_method)
 (install_method discr_namestring  dbg_output dbgout_string_method)
@@ -1306,145 +1312,135 @@
 
 ;; integer debug output
 (defun dbgout_integer_method (self dbgi :long depth)
-;  (message_dbg "DbgOut_Integer")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0) 
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
-	     )
-	(if (== dis DISCR_INTEGER)
-	    (progn 
-	      (add2sbuf_strconst sbuf " #")
-	      (add2sbuf_longdec sbuf (get_int self)))
-	  (progn
-	    (add2sbuf_strconst sbuf " |")
-	    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	    (add2sbuf_strconst sbuf "#")
-	    (add2sbuf_longdec sbuf (get_int self)))
-	    ))))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_INTEGER)
+	(progn 
+	  (add2sbuf_strconst sbuf " #")
+	  (add2sbuf_longdec sbuf (get_int self)))
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "#")
+	(add2sbuf_longdec sbuf (get_int self)))
+      )))
 
 (install_method discr_integer dbg_output dbgout_integer_method)
 (install_method discr_charinteger dbg_output dbgout_integer_method)
 
 ;; mixint debug value
 (defun dbgout_mixint_method (self dbgi :long depth)
-;  (message_dbg "DbgOut_Mixint")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0) 
-      (let ( (dis (discrim self)) 
-	    (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
-	     )
-	(if (== dis DISCR_MIXEDINT)
-	    (progn 
-	      (add2sbuf_strconst sbuf " #[")
-	      (add2sbuf_longdec sbuf (get_int self)))
-	    (progn
-	      (add2sbuf_strconst sbuf " |")
-	      (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	      (add2sbuf_strconst sbuf "#[")
-	      (add2sbuf_longdec sbuf (get_int self)))
-	    )
-	(if  (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	     (progn
-	       (add2sbuf_strconst sbuf ",")
-	       (dbg_out (mixint_val self) dbgi (+i depth 1))
-	       )
-	       (add2sbuf_strconst sbuf ",..")
-	     )
-	(add2sbuf_strconst sbuf "]")
-	)))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_MIXEDINT)
+	(progn 
+	  (add2sbuf_strconst sbuf " #[")
+	  (add2sbuf_longdec sbuf (get_int self)))
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "#[")
+	(add2sbuf_longdec sbuf (get_int self)))
+      )
+    (if  (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(progn
+	  (add2sbuf_strconst sbuf ",")
+	  (dbg_out (mixint_val self) dbgi (+i depth 1))
+	  )
+      (add2sbuf_strconst sbuf ",..")
+      )
+    (add2sbuf_strconst sbuf "]")
+    ))
 (install_method discr_mixedint dbg_output dbgout_mixint_method)
 
 ;; multiple debug out
 (defun dbgout_multiple_method (self dbgi :long depth)
-;  (message_dbg "DbgOut_Multiple")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
-	     )
-	(if (== dis DISCR_MULTIPLE)
-	    (add2sbuf_strconst sbuf " *")
-	  (progn
-	    (add2sbuf_strconst sbuf " |")
-	    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	    (add2sbuf_strconst sbuf "*")))
-	(let ( (:long ln (multiple_length self)) )
-	  (add2sbuf_longdec sbuf ln)
-	  (add2sbuf_strconst sbuf "[")
-	  (if (need_dbg depth)
-	      (let ( (:long ix 0) )
-		(forever comploop
-			 (if (>=i ix ln) (exit comploop))
-			 (add2sbuf_indent sbuf depth)
-			 (let ( (:long curulen (strbuf_usedlength sbuf)) )
-			   (dbg_out  (multiple_nth self ix) dbgi (+i 1 depth))
-			   (and (>i (-i (strbuf_usedlength sbuf) curulen) 100)
-				(<i ix (-i ln 1))
-				(add2sbuf_indentnl sbuf (+i 1 depth))))
-			 (setq ix (+i ix 1))
-			 ))
-	    (add2sbuf_strconst sbuf "..")
-	    )
-	  (add2sbuf_strconst sbuf "]")
-	  ))))
+  (let ( (dis (discrim self)) 
+	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_MULTIPLE)
+	(add2sbuf_strconst sbuf " *")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "*")))
+    (let ( (:long ln (multiple_length self)) )
+      (add2sbuf_longdec sbuf ln)
+      (add2sbuf_strconst sbuf "[")
+      (if (need_dbg depth)
+	  (let ( (:long ix 0) )
+	    (forever comploop
+		     (if (>=i ix ln) (exit comploop))
+		     (add2sbuf_indent sbuf depth)
+		     (let ( (:long curulen (strbuf_usedlength sbuf)) )
+		       (dbg_out  (multiple_nth self ix) dbgi (+i 1 depth))
+		       (and (>i (-i (strbuf_usedlength sbuf) curulen) 100)
+			    (<i ix (-i ln 1))
+			    (add2sbuf_indentnl sbuf (+i 1 depth))))
+		     (setq ix (+i ix 1))
+		     ))
+	(add2sbuf_strconst sbuf "..")
+	)
+      (add2sbuf_strconst sbuf "]")
+      )))
 
 (install_method discr_multiple dbg_output dbgout_multiple_method)
 
 ;; routine debug out - don't print the routine components
 (defun dbgout_routine_method (self dbgi :long depth)
-;  (message_dbg "DbgOut_Routine")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
-	     )
-	(if (== dis DISCR_ROUTINE)
-	    (add2sbuf_strconst sbuf " *rou[%")
-	  (progn
-	    (add2sbuf_strconst sbuf " |")
-	    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	    (add2sbuf_strconst sbuf "[%")))
-	(add2sbuf_routinedescr sbuf self)
-	  (add2sbuf_strconst sbuf "%]")
-	)
-))
+  (let ( (dis (discrim self)) 
+	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_ROUTINE)
+	(add2sbuf_strconst sbuf " *rou[%")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "[%")))
+    (add2sbuf_routinedescr sbuf self)
+    (add2sbuf_strconst sbuf "%]")
+    )
+  )
 
 (install_method discr_routine dbg_output dbgout_routine_method)
 
 ;; closure debug out 
 (defun dbgout_closure_method (self dbgi :long depth)
-;  (message_dbg "DbgOut_Closure")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
-	(if (== dis DISCR_CLOSURE)
-	    (add2sbuf_strconst sbuf " *clo<")
-	  (progn
-	    (add2sbuf_strconst sbuf " |")
-	    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	    (add2sbuf_strconst sbuf "*clo<")))
-	(put_int (unsafe_get_field :dbgi_maxdepth dbgi) 0)
-	(dbg_out (closure_routine self) dbgi 0)
-	(put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
-	(if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	    (let ((:long ix 0))
-	      (add2sbuf_strconst sbuf "/")
-	      (add2sbuf_longdec sbuf (closure_size self))
-	      (forever outloop
-		       (if (>=i ix (closure_size self))
-			   (exit outloop))
-		       (add2sbuf_indent sbuf depth)
-		       (let ( (:long curulen (strbuf_usedlength sbuf)) )
-			 (dbg_out (closure_nth self ix) dbgi (+i depth 1))
-			 (if (>i (-i (strbuf_usedlength sbuf) curulen) 100)
-			     (add2sbuf_indentnl sbuf (+i 1 depth))))
-		       (setq ix (+i ix 1))
-		       )))
-	(add2sbuf_strconst sbuf ">")
-	)))
+  (let ( (dis (discrim self)) 
+	 (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
+    (if (== dis DISCR_CLOSURE)
+	(add2sbuf_strconst sbuf " *clo<")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "*clo<")))
+    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 0)
+    (dbg_out (closure_routine self) dbgi 0)
+    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(let ((:long ix 0))
+	  (add2sbuf_strconst sbuf "/")
+	  (add2sbuf_longdec sbuf (closure_size self))
+	  (forever outloop
+		   (if (>=i ix (closure_size self))
+		       (exit outloop))
+		   (add2sbuf_indent sbuf depth)
+		   (let ( (:long curulen (strbuf_usedlength sbuf)) )
+		     (dbg_out (closure_nth self ix) dbgi (+i depth 1))
+		     (if (>i (-i (strbuf_usedlength sbuf) curulen) 100)
+			 (add2sbuf_indentnl sbuf (+i 1 depth))))
+		   (setq ix (+i ix 1))
+		   )))
+    (add2sbuf_strconst sbuf ">")
+    ))
 
 (install_method discr_closure dbg_output dbgout_closure_method)      
 
@@ -1452,65 +1448,61 @@
 
 ;; list debug out 
 (defun dbgout_list_method (self dbgi :long depth)
-					;  (message_dbg "DbgOut_List")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
-	(if (== dis DISCR_LIST)
-	    (add2sbuf_strconst sbuf " *li(")
-	  (progn
-	    (add2sbuf_strconst sbuf " |")
-	    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	    (add2sbuf_strconst sbuf "(")))
-	(let (
-	      (curpair (list_first self))
-	      (:long ix 0) 
-	      )
-	  (checkcallstack_msg "before loop dbgout_list_method")
-	  (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	      (forever listloop
-		       (checkcallstack_msg "start loop dbgout_list_method")
-		       (if (>i ix 300)
-			   (progn
-			     (add2sbuf_strconst sbuf "...")
-			     (exit listloop)))
-		       (if (not (is_pair curpair)) (exit listloop))
-		       (add2sbuf_indent sbuf depth)
-		       (let ( (:long curulen (strbuf_usedlength sbuf)) )
-			 (dbg_out (pair_head curpair) dbgi (+i depth 1))
-			 (setq curpair (pair_tail curpair))
-			 (checkcallstack_msg "near endloop dbgout_list_method")
-			 (if (not curpair)
-			   (exit listloop))
-			 (setq ix (+i ix 1))
-			 (if (>i (-i (strbuf_usedlength sbuf) curulen) 100)
-			     (add2sbuf_indentnl sbuf (+i 1 depth))))
-		       ))
-	  (checkcallstack_msg "end dbgout_list_method")
-	  (add2sbuf_strconst sbuf ")")))
-    ))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
+    (if (== dis DISCR_LIST)
+	(add2sbuf_strconst sbuf " *li(")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "(")))
+    (let (
+	  (curpair (list_first self))
+	  (:long ix 0) 
+	  )
+      (checkcallstack_msg "before loop dbgout_list_method")
+      (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	  (forever listloop
+		   (checkcallstack_msg "start loop dbgout_list_method")
+		   (if (>i ix 300)
+		       (progn
+			 (add2sbuf_strconst sbuf "...")
+			 (exit listloop)))
+		   (if (not (is_pair curpair)) (exit listloop))
+		   (add2sbuf_indent sbuf depth)
+		   (let ( (:long curulen (strbuf_usedlength sbuf)) )
+		     (dbg_out (pair_head curpair) dbgi (+i depth 1))
+		     (setq curpair (pair_tail curpair))
+		     (checkcallstack_msg "near endloop dbgout_list_method")
+		     (if (not curpair)
+			 (exit listloop))
+		     (setq ix (+i ix 1))
+		     (if (>i (-i (strbuf_usedlength sbuf) curulen) 100)
+			 (add2sbuf_indentnl sbuf (+i 1 depth))))
+		   ))
+      (checkcallstack_msg "end dbgout_list_method")
+      (add2sbuf_strconst sbuf ")")))
+  )
 (install_method discr_list dbg_output dbgout_list_method)      
 
 ;; pair debug output
 (defun dbgout_pair_method (self dbgi :long depth)
-;  (message_dbg "DbgOut_Pair")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
-	(if (== dis DISCR_PAIR)
-	    (add2sbuf_strconst sbuf " *pa(.")
-	  (progn
-	    (add2sbuf_strconst sbuf " |")
-	    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	    (add2sbuf_strconst sbuf "(.")))
-       (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	   (progn
-	     (dbg_out (pair_head self) dbgi (+i depth 1))
-	     (add2sbuf_indent sbuf depth)
-	     (dbg_out (pair_tail self) dbgi (+i depth 1))))
-       (add2sbuf_strconst sbuf ".)"))))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )
+    (if (== dis DISCR_PAIR)
+	(add2sbuf_strconst sbuf " *pa(.")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "(.")))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(progn
+	  (dbg_out (pair_head self) dbgi (+i depth 1))
+	  (add2sbuf_indent sbuf depth)
+	  (dbg_out (pair_tail self) dbgi (+i depth 1))))
+    (add2sbuf_strconst sbuf ".)")))
 	
 (install_method discr_pair dbg_output dbgout_pair_method)      
 
@@ -1535,34 +1527,32 @@
 
 (defun dbgout_mapobject_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
-	     )
-	(if (== dis DISCR_MAPOBJECTS)
-	    (add2sbuf_strconst sbuf " {")
-	  (progn
-	    (add2sbuf_strconst sbuf " |")
-	    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	    (add2sbuf_strconst sbuf "{")))
-	(add2sbuf_strconst sbuf "/")
-	(add2sbuf_longdec sbuf (mapobject_count self))
-	(if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	    (let (
-		  (nextdepthbox (make_integerbox discr_integer (+i 1 depth)))
-		  )
-	      (mapobject_every
-	       self
-	       (lambda (at va)
-		 (dbgoutinternal_mapobj_entry at va dbgi nextdepthbox)
-		 ))))
-	(add2sbuf_strconst sbuf "}"))))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (if (== dis DISCR_MAPOBJECTS)
+	(add2sbuf_strconst sbuf " {")
+      (progn
+	(add2sbuf_strconst sbuf " |")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	(add2sbuf_strconst sbuf "{")))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longdec sbuf (mapobject_count self))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(let (
+	      (nextdepthbox (make_integerbox discr_integer (+i 1 depth)))
+	      )
+	  (mapobject_every
+	   self
+	   (lambda (at va)
+	     (dbgoutinternal_mapobj_entry at va dbgi nextdepthbox)
+	     ))))
+    (add2sbuf_strconst sbuf "}")))
 (install_method discr_mapobjects dbg_output dbgout_mapobject_method)
 
 ;; multiple debug out
 (defun dbgout_mapstring_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
       (let ( (dis (discrim self)) 
 	     (sbuf (unsafe_get_field :dbgi_sbuf dbgi))
 	     (:long ix 0)
@@ -1589,110 +1579,101 @@
 			 (dbg_out curat dbgi (+i depth 2))
 			 )))
 		 (setq ix (+i ix 1)))
-	(add2sbuf_strconst sbuf " )>"))))
+	(add2sbuf_strconst sbuf " )>")))
 (install_method discr_mapstrings dbg_output dbgout_mapstring_method)
+
 
 ;;;; generic object debug
 (defun dbgout_anyobject_method (self dbgi :long depth)
-;  (message_dbg "DbgOut_AnyObject")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
-	(add2sbuf_strconst sbuf " |")
-	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	(add2sbuf_strconst sbuf "/")
-	(add2sbuf_longhex sbuf (obj_hash self))
-	(let ( (:long onum (obj_num self)) )
-	  (if onum
-	      (progn
-		(add2sbuf_strconst sbuf "#")
-		(add2sbuf_longdec sbuf onum))))
-	(add2sbuf_strconst sbuf "{")
-	(if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	    (dbgout_fields self dbgi (+i depth 1) 0)
-	  )
-	(add2sbuf_strconst sbuf "}")
-	)))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
+    (add2sbuf_strconst sbuf "|")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (let ( (:long onum (obj_num self)) )
+      (if onum
+	  (progn
+	    (add2sbuf_strconst sbuf "#")
+	    (add2sbuf_longdec sbuf onum))))
+    (add2sbuf_strconst sbuf "{")
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(dbgout_fields self dbgi (+i depth 1) 0)
+      )
+    (add2sbuf_strconst sbuf "}")
+    ))
 (install_method class_root  dbg_output dbgout_anyobject_method)
 
 ;;;; generic value debug
 (defun dbgout_anyrecv_method (self dbgi :long depth)
-;  (message_dbg "DbgOut_AnyObject")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
-	(add2sbuf_strconst sbuf " ?.")
-	(if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
-	(add2sbuf_strconst sbuf ".? ")
-)))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
+    (add2sbuf_strconst sbuf " ?.")
+    (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
+    (add2sbuf_strconst sbuf ".? ")
+    ))
 (install_method discr_anyrecv dbg_output dbgout_anyrecv_method)
 
 ;;; generic object debug outputagain
 (defun dbgoutagain_anyobject_method (self dbgi :long depth)
-;  (message_dbg "DbgOutAgain_AnyObject")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )  
-	(add2sbuf_strconst sbuf " ^^|")
-	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	(add2sbuf_strconst sbuf "/")
-	(add2sbuf_longhex sbuf (obj_hash self))
-	)))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) )  
+    (add2sbuf_strconst sbuf " ^^|")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    ))
 (install_method class_root  dbg_outputagain dbgoutagain_anyobject_method)
 	
 ;;;; named object debug
 (defun dbgout_namedobject_method (self dbgi :long depth)
-;  (message_dbg "DbgOut_NamedObject")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
-	     (onam (unsafe_get_field :named_name self))
-	     (oprop (unsafe_get_field :prop_table self))
-	     ) 
-	(assert_msg "check sbuf" (is_strbuf sbuf))
-	(add2sbuf_strconst sbuf "`")
-	(add2sbuf_string sbuf onam)
-	(add2sbuf_strconst sbuf "|")
-	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	(add2sbuf_strconst sbuf "/")
-	(add2sbuf_longhex sbuf (obj_hash self))
-	(if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	    (let ( (:long onum (obj_num self)) )
-	      (if onum
-		  (progn
-		    (add2sbuf_strconst sbuf "#")
-		    (add2sbuf_longdec sbuf onum)))
-	      (add2sbuf_strconst sbuf "{")
-	      (if oprop
-		  (progn 
-		    (add2sbuf_strconst sbuf "prop=")
-		    (dbg_out oprop dbgi (+i depth 2))
-		    ))
-	      (dbgout_fields self dbgi (+i depth 1) 2)
-	      (add2sbuf_strconst sbuf "}")
-	      )))))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (onam (unsafe_get_field :named_name self))
+	 (oprop (unsafe_get_field :prop_table self))
+	 ) 
+    (assert_msg "check sbuf" (is_strbuf sbuf))
+    (add2sbuf_strconst sbuf "`")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf "|")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(let ( (:long onum (obj_num self)) )
+	  (if onum
+	      (progn
+		(add2sbuf_strconst sbuf "#")
+		(add2sbuf_longdec sbuf onum)))
+	  (add2sbuf_strconst sbuf "{")
+	  (if oprop
+	      (progn 
+		(add2sbuf_strconst sbuf "prop=")
+		(dbg_out oprop dbgi (+i depth 3))
+		))
+	  (dbgout_fields self dbgi (+i depth 3) 2)
+	  (add2sbuf_strconst sbuf "}")
+	  ))))
 (install_method class_named  dbg_output dbgout_namedobject_method)
 
 ;;;; named object debug outputagain
 (defun dbgoutagain_namedobject_method (self dbgi :long depth)
-;  (message_dbg "DbgOutAgain_NamedObject")
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
-	     (onam (unsafe_get_field :named_name self)) 
-	     )
-	(add2sbuf_strconst sbuf " ^^`")
-	(add2sbuf_string sbuf onam)
-	(add2sbuf_strconst sbuf "|")
-	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	(add2sbuf_strconst sbuf "/")
-	(add2sbuf_longhex sbuf (obj_hash self))
-	)))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (onam (unsafe_get_field :named_name self)) 
+	 )
+    (add2sbuf_strconst sbuf " ^^`")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf "|")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    ))
 (install_method class_named dbg_outputagain dbgoutagain_namedobject_method)
 
 ;;;; symbol output debug & again
@@ -1707,15 +1688,13 @@
 (defun dbgoutagain_symbol_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (assert_msg "check self" (is_a self class_symbol))
-    (let ( (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
-	   (onam (unsafe_get_field :named_name self))
-	   )	
-      (if (need_dbg 0)
-	  (progn
-	    (add2sbuf_strconst sbuf " $")
-	    (add2sbuf_string sbuf onam)
-	    (add2sbuf_strconst sbuf "/")
-	    (add2sbuf_longhex sbuf (obj_hash self))))))
+  (let ( (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (onam (unsafe_get_field :named_name self))
+	 )	
+    (add2sbuf_strconst sbuf " $")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))))
 (install_method class_symbol dbg_outputagain dbgoutagain_symbol_method)
 
 ;;;; keyword output debug & again
@@ -1730,15 +1709,13 @@
 (defun dbgoutagain_keyword_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (assert_msg "check self" (is_a self class_keyword))
-    (let ( (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
-	   (onam (unsafe_get_field :named_name self))
-	   )	
-      (if (need_dbg 0)
-	  (progn
-	    (add2sbuf_strconst sbuf " $:")
-	    (add2sbuf_string sbuf onam)
-	    (add2sbuf_strconst sbuf "/")
-	    (add2sbuf_longhex sbuf (obj_hash self))))))
+  (let ( (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (onam (unsafe_get_field :named_name self))
+	 )	
+    (add2sbuf_strconst sbuf " $:")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))))
 (install_method class_keyword dbg_outputagain dbgoutagain_keyword_method)
 
 ;;;; clonedsymbol output debug & again
@@ -1752,18 +1729,17 @@
 (install_method class_clonedsymbol dbg_output dbgout_clonedsymbol_method)
 
 (defun dbgoutagain_clonedsymbol_method (self dbgi :long depth)
-  (if (need_dbg 0)
-      (let ( (dis (discrim self)) 
-	     (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
-	     (ourank (unsafe_get_field :csym_urank self))
-	     (:long lrk (get_int ourank))
-	     (onam (unsafe_get_field :named_name self)) )
-	(add2sbuf_strconst sbuf " $$")
-	(add2sbuf_string sbuf onam)
-	(add2sbuf_strconst sbuf ":")
-	(add2sbuf_longdec sbuf lrk)
-	(add2sbuf_strconst sbuf "/")
-	(add2sbuf_longhex sbuf (obj_hash self)))))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (ourank (unsafe_get_field :csym_urank self))
+	 (:long lrk (get_int ourank))
+	 (onam (unsafe_get_field :named_name self)) )
+    (add2sbuf_strconst sbuf " $$")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf ":")
+    (add2sbuf_longdec sbuf lrk)
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))))
 (install_method class_clonedsymbol dbg_outputagain dbgoutagain_clonedsymbol_method)
 
 ;;;; ctype output debug & again
@@ -1777,14 +1753,13 @@
 (install_method class_ctype dbg_output dbgout_ctype_method)
 
 (defun dbgoutagain_ctype_method (self dbgi :long depth)
-  (if (need_dbg 0)
-	  (let ( (dis (discrim self)) 
-		 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
-		 (onam (unsafe_get_field :named_name self)) )
-	    (add2sbuf_strconst sbuf " $!")
-	    (add2sbuf_string sbuf onam)
-	    (add2sbuf_strconst sbuf "!/")
-	    (add2sbuf_longhex sbuf (obj_hash self)))))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 (onam (unsafe_get_field :named_name self)) )
+    (add2sbuf_strconst sbuf " $!")
+    (add2sbuf_string sbuf onam)
+    (add2sbuf_strconst sbuf "!/")
+    (add2sbuf_longhex sbuf (obj_hash self))))
 (install_method class_ctype dbg_outputagain dbgoutagain_ctype_method)
   
 ;;;;;;;;;;;;;;;;;;;;;;;; debug message function
@@ -1813,23 +1788,23 @@
 
 (defun debugmsg (val :cstring msgstr :long count)
   (if (need_dbg 0) 
-  (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
-	 (sbuf (make_strbuf discr_strbuf)) 
-	 (occmap (make_mapobject discr_mapobjects 50))
-	 (boxedmaxdepth (make_integerbox discr_integer 14))
-	 (dbgi (make_instance class_debuginfo
-			      :dbgi_sbuf sbuf
-			      :dbgi_occmap occmap
-			      :dbgi_maxdepth boxedmaxdepth))
-	 )
-    (outnum_dbg "!*#" dbgcounter "/")
-    (outnum_dbg "" (-i (the_framedepth) 1) ":")
-    (outcstring_dbg msgstr)
-    (if (>i count 0) (outnum_dbg " !" count ": "))
-    (dbg_out val dbgi 0)
-    (outstrbuf_dbg sbuf)
-    (outnewline_dbg)
-    )))
+      (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+	     (sbuf (make_strbuf discr_strbuf)) 
+	     (occmap (make_mapobject discr_mapobjects 50))
+	     (boxedmaxdepth (make_integerbox discr_integer 25))
+	     (dbgi (make_instance class_debuginfo
+				  :dbgi_sbuf sbuf
+				  :dbgi_occmap occmap
+				  :dbgi_maxdepth boxedmaxdepth))
+	     )
+	(outnum_dbg "!*#" dbgcounter "/")
+	(outnum_dbg "" (-i (the_framedepth) 1) ":")
+	(outcstring_dbg msgstr)
+	(if (>i count 0) (outnum_dbg " !" count ": "))
+	(dbg_out val dbgi 0)
+	(outstrbuf_dbg sbuf)
+	(outnewline_dbg)
+	)))
 
 ;;;; the class for environments
 (defclass class_environment
@@ -2030,6 +2005,30 @@
 		   ))
 	       (setq env (unsafe_get_field :env_prev env))
 	       ))))
+
+;;;; any binding debug output
+(defun dbgout_anybinding_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_any_binding))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) 
+	 (binder (unsafe_get_field :binder self))
+	 ) 
+    (add2sbuf_strconst sbuf "[%")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (add2sbuf_strconst sbuf ":")
+    (dbg_outputagain binder dbgi (+i depth 2))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(progn
+	  (add2sbuf_strconst sbuf "; ")
+	  (dbgout_fields self dbgi (+i depth 1) 1)
+	  ))
+    (add2sbuf_strconst sbuf "%]")
+    ))
+(install_method class_any_binding dbg_output dbgout_anybinding_method)
+(install_method class_any_binding dbg_outputagain dbgout_anybinding_method)
 
 ;;;;;;;;;;;;;;;;;;;; source program elements
 (defclass class_src 
@@ -4439,11 +4438,11 @@
 		   (actarg (multiple_nth nargs ix)) )
 	      (mapobject_put bmap forarg actarg)
 	      )))
-	 (debugmsg bmap "normexp_primitive bmap in sopexp")
+;	 (debugmsg bmap "normexp_primitive bmap in sopexp")
 	 (multiple_every
 	  sopexp
 	  (lambda (excu :long jx)
-	    (debugmsg excu "normexp_primitive excu in sopexp")
+;	    (debugmsg excu "normexp_primitive excu in sopexp")
 	    (let ( (exval
 		    (if (is_a excu class_symbol)
 			(let ( (bval (mapobject_get bmap excu)) )
@@ -4454,7 +4453,7 @@
 					    (unsafe_get_field  :named_name excu))))
 			  bval)
 		      excu)) )
-	    (debugmsg exval "normexp_primitive exval in sopexp")
+;	    (debugmsg exval "normexp_primitive exval in sopexp")
 	    (multiple_put_nth expargs jx exval))
 	    ))
 	 (let ( (csym (clone_symbol  (unsafe_get_field :sdef_name soper))) 
@@ -4747,6 +4746,7 @@
   (assert_msg "check or recv" (is_a recv class_src_or))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debugmsg recv "normexp_or recv" (the_callcount))
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (sdisj (unsafe_get_field :sor_disj recv))
 	 (:long nbdisj (multiple_length sdisj))
@@ -4797,6 +4797,7 @@
 			     )))))
 	     (setq ix (-i ix 1))
 	     )
+    (debugmsg nor "normexp_or result nor" (the_callcount))
     (return nor (make_list discr_list))
     ))
 (install_method class_src_or normal_exp normexp_or)
@@ -4921,7 +4922,7 @@
 		  ))
 	      ))))
        ))
-    ;;; end of loop on source bindings
+;;; end of loop on source bindings
     (multicall
      (nbody nbodbindings)
      (normalize_tuple sbody newenv ncx sloc)
@@ -4931,14 +4932,20 @@
       bindlist
       (lambda (cbnd) 
 	(assert_msg "normexp_let check cbnd" (is_a cbnd class_normlet_binding))))
-     (return 
-      (let ( (nlet
-	      (make_instance class_nrep_let
-			     :nrep_loc sloc
-			     :nlet_bindings (list_to_multiple bindlist discr_multiple)
-			     :nlet_body nbody)) )
-	(return nlet ())
-	))
+     ;;; remove every locallly bound symbol from the symbol cache map
+     (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )
+       (list_every bindlist 
+		   (lambda (bnd)
+		     (mapobject_remove sycmap (unsafe_get_field :binder bnd))
+		     )))
+     ;;;; make the result
+     (let ( (nlet
+	     (make_instance class_nrep_let
+			    :nrep_loc sloc
+			    :nlet_bindings (list_to_multiple bindlist discr_multiple)
+			    :nlet_body nbody)) )
+       (return nlet ())
+       )
      )))
 (install_method class_src_let normal_exp normexp_let)
 (install_method class_nrep_let get_ctype 
@@ -5467,7 +5474,7 @@
 	    (nrealcall ())		       ;the real call
 	    (nincallbindings (make_list discr_list)) ;list of internal bindings to the call
 	    )
-       (list_iterate_test		;loop exited when cbnd is for ncallsym
+       (list_iterate_test	;loop exited when cbnd is for ncallsym
 	ncallbindings
 	(lambda (cbnd)
 	  (assert_msg "normexp_multicall check cbnd" (is_a cbnd class_normlet_binding))
@@ -5488,6 +5495,13 @@
 	(debugmsg nbody "normexp_multicall nbody" (the_callcount))
 	(debugmsg nbodybindings "normexp_multicall nbodybindings" (the_callcount))
 	(let ( (wnbodylet (wrap_normal_letseq nbody nbodybindings sloc)) )
+;;; remove every locally bound symbol from the symbol cache map
+	  (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )
+	    (multiple_every sresbind
+			    (lambda (bnd)
+			      (mapobject_remove sycmap (unsafe_get_field :binder bnd))
+			      )))
+;;; handle differently apply & sends
 	  (cond
 	   ( (is_a scall class_src_apply)
 	     (assert_msg "normexp_multicall check nrealcall apply" (is_a nrealcall class_nrep_apply))
@@ -8427,7 +8441,7 @@
 
 ;; compile a list of sexpressions as a module starting from a given environment
 (defun compile_list_sexpr (lsexp inienv modnamstr)
-  (debugmsg lsexp "\n\n*compile_list_sexpr lsexp"  (the_callcount)) ;list of sexpr
+  (debugmsg lsexp "\n\n\n*compile_list_sexpr lsexp"  (the_callcount)) ;list of sexpr
   (debugmsg inienv "compile_list_sexpr inienv" (the_callcount)) ;initial environment
   (debugmsg modnamstr "compile_list_sexpr modnamstr" (the_callcount)) ;module name
   (assert_msg "check lsexp" (is_list lsexp))
@@ -8483,7 +8497,7 @@
 	       (inidata (unsafe_get_field :nctx_datalist ncx))
 	       )
 	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
-	  (debugmsg compicache "compilistsexpr avant compilinitproc compicache" (the_callcount))
+	  (debugmsg compicache "\n\n\n***compilistsexpr avant compilinitproc compicache" (the_callcount))
 	  (let ( (iniobj (compile2obj_initproc inipro inidata compicache)) )
 	    (debugmsg iniobj "compile_list_sexpr iniobj" (the_callcount))
 	    (let ( (declbuf (make_strbuf discr_strbuf))
@@ -8505,14 +8519,15 @@
 ;;; function to get a free local value pointer for some name
 (defun get_free_objlocptr (gcx nam)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg nam "get_free_objlocptr start nam" (the_callcount))
   (let ( (orout (unsafe_get_field :gncx_objrout gcx))
 	 (freeli (unsafe_get_field :gncx_freeptrlist gcx)) 
 	 (pfree (list_popfirst freeli))
 	 )
+    (debugmsg pfree "get_free_objlocptr start pfree" (the_callcount))
+    (debugmsg freeli "get_free_objlocptr popped freeli" (the_callcount))
     (if (not (is_a orout class_routineobj))
-	(progn
-	  (debugmsg orout "get_free_objlocptr bad orout" (the_callcount))
-	  (shortbacktrace_dbg "get_free_objlocptr bad orout" 15)))
+	(debugmsg orout "get_free_objlocptr bad orout" (the_callcount)))
     (assert_msg "check orout" (is_a orout class_routineobj))
     (if (is_a pfree  class_objlocv)
 	(let ( (nambuf (make_strbuf discr_strbuf)) )
@@ -8522,7 +8537,8 @@
 	  (add2sbuf_strconst nambuf "__V")
 	  (add2sbuf_longdec nambuf (get_int (unsafe_get_field :obl_off pfree)))
 	  (unsafe_put_fields pfree :obl_cname (strbuf2string discr_string nambuf))
-	  pfree)
+	  (debugmsg pfree "get_free_objlocptr returning reused pfree" (the_callcount))
+	  (return pfree))
       (let ( (nbvalbox (unsafe_get_field :obrout_nbval orout)) 
 	     (:long nbval (get_int nbvalbox))  
 	     (nambuf (make_strbuf discr_strbuf))
@@ -8537,7 +8553,8 @@
 				    :obl_off (make_integerbox discr_integer nbval)
 				    :obl_proc orout
 				    :obl_cname (strbuf2string discr_string nambuf))) )
-	  nloc
+	  (debugmsg nloc "get_free_objlocptr returning new nloc" (the_callcount))
+	  (return nloc)
 	  )))))
 
 ;;; function to get a free local long for some name
@@ -8588,6 +8605,9 @@
 	(:else 
 	 (debugmsg nam "getfreeobjloctyped nam" (the_callcount))
 	 (debugmsg ctyp "getfreeobjloctyped ctyp" (the_callcount))
+	 (outcstring_err "* get_free_objloctyped unimplemented ctype ")
+	 (outstr_err (unsafe_get_field :named_name ctyp))
+	 (outnewline_err)
 	 (assert_msg "@@@ unimplemented get_free_objloctyped for other ctyp" ())
 )))
   
@@ -8597,8 +8617,10 @@
 (defun dispose_bnd_obj (bnd gcx)
   (assert_msg "check bnd" (is_a bnd class_any_binding))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg bnd "dispose_bnd_obj start bnd" (the_callcount))
   (let ( (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (oldloc (mapobject_get locmap bnd)) )
+    (debugmsg locmap "dispose_bnd_obj start locmap" (the_callcount))
     (if (null oldloc)
 	(progn
 	  ;; special hack to dispose a void let binding - return immediately in that case
@@ -8608,7 +8630,9 @@
 	  (debugmsg bnd "dispose_bnd_obj nulloldloc bnd" (the_callcount))
 	  ))
     (assert_msg "check oldloc" (is_a oldloc class_objlocv))
+    (debugmsg oldloc "dispose_bnd_obj oldloc" (the_callcount))
     (mapobject_remove locmap bnd)
+    (debugmsg locmap "dispose_bnd_obj after remove locmap" (the_callcount))
     (let ( (oldcty (unsafe_get_field :obv_type oldloc)) )
       (cond ( (== oldcty ctype_value)
 	      (let  ( (freepl (unsafe_get_field :gncx_freeptrlist gcx)) )
@@ -8619,6 +8643,7 @@
 	    (:else
 	     ;; we have a map from ctypes to free list, add it there!
 	     (assert_msg "@@@ unimplemented dispose_bnd_obj non-value non-long" ())))
+  (debugmsg bnd "dispose_bnd_obj end bnd" (the_callcount))
 )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8675,10 +8700,10 @@
 	 (ovar (mapobject_get locmap sbnd))
 	 )
 ;    (debugmsg gcx "compilobj locsymocc gcx" (the_callcount))
-    (debugmsg lsyo "compilobj locsymocc lsyo" (the_callcount))
-;    (debugmsg sbnd "compilobj locsymocc sbnd" (the_callcount))
+    (debugmsg lsyo "compilobj locsymocc begin lsyo" (the_callcount))
+    (debugmsg sbnd "compilobj locsymocc sbnd" (the_callcount))
 ;    (debugmsg oty "compilobj locsymocc oty" (the_callcount))
-    (debugmsg ovar "compilobj locsymocc ovar" (the_callcount))
+;    (debugmsg ovar "compilobj locsymocc ovar" (the_callcount))
     (if (null sbnd)
 	(progn
 	  (debugmsg sym "compilobj locsymocc null sbnd for sym" (the_callcount))
@@ -8687,11 +8712,14 @@
     (if (null ovar) 
 	(progn
 	  (debugmsg sbnd "compilobj locsymocc null ovar sbnd" (the_callcount))
+	  (debugmsg gcx "compilobj locsymocc null ovar gcx" (the_callcount))
 	  (debugmsg locmap "compilobj locsymocc null ovar locmap" (the_callcount))
-	  (assert_msg "compilocsy null ovar with ctype_void" (== oty ctype_void))
+	  (debugmsg lsyo "compilobj locsymocc null ovar lsyo" (the_callcount))
+	  (assert_msg "compilobj locsymocc null ovar without ctype_void" (== oty ctype_void))
 	  )
-      (assert_msg "compilocsy check ovar"  (is_a ovar class_objlocv)))
-    ovar
+      (assert_msg "compilobj locsymocc check ovar"  (is_a ovar class_objlocv)))
+    (debugmsg ovar "compilobj locsymocc return ovar" (the_callcount))
+    (return ovar)
 ))
 (install_method class_nrep_locsymocc compile_obj compilobj_nrep_locsymocc)
 
@@ -8924,7 +8952,7 @@
   (assert_msg "check rlet" (is_a rlet class_nrep_let))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (let ( (loc (unsafe_get_field :nrep_loc rlet))
-	 (bnd (unsafe_get_field :nlet_bindings rlet))
+	 (bnds (unsafe_get_field :nlet_bindings rlet))
 	 (bdy (unsafe_get_field :nlet_body rlet))
 	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (obodl (make_list discr_list))
@@ -8934,55 +8962,73 @@
 				:oblo_bodyl obodl
 				:oblo_epil oepil))
 	 )
-    ;;    (debugmsg rlet "compilobj_nrep_let rlet" (the_callcount))
+    (debugmsg rlet "compilobj_nrep_let initial rlet" (the_callcount))
+    (debugmsg loc "compilobj_nrep_let initial loc" (the_callcount))
+    (debugmsg locmap "compilobj_nrep_let initial locmap" (the_callcount))
+    (debugmsg bdy "compilobj_nrep_let initial bdy" (the_callcount))
     ;;    (debugmsg gcx "compilobj_nrep_let gcx" (the_callcount))
-    ;;    (debugmsg bnd "compilobj_nrep_let bnd" (the_callcount))
-    ;; for each normalexp in the bnd tuple
+    ;;    (debugmsg bnds "compilobj_nrep_let bnds" (the_callcount))
+    ;; for each normalexp in the bnds tuple
     ;; add the binding and the setting in the body and the clear in the epilogue
-    (assert_msg "compilobj_nrep_let check bnd multiple" (is_multiple_or_null bnd))
-    ;; iterate on source bindings
+    (assert_msg "compilobj_nrep_let check bnds multiple" (is_multiple_or_null bnds))
+    (debugmsg loc "compilobj_nrep_let before iterate normbind loc" (the_callcount))
+    ;; iterate on normal bindings
     (multiple_every
-     bnd
+     bnds
      (lambda (nlbnd :long ix)
-       ;;      (debugmsg nlbnd "compilobj_nrep_let nlbnd" (the_callcount))
+       (debugmsg loc "compilobj_nrep_let current normbinding loc" (the_callcount))
+       (debugmsg nlbnd "compilobj_nrep_let current normbinding nlbnd" (the_callcount))
+       (debugmsg locmap "compilobj_nrep_let current normbinding locmap" (the_callcount))
        (assert_msg "check nlbnd in compilobj_nrep_let" (is_a nlbnd class_normlet_binding))
        (let ( (bder (unsafe_get_field :binder nlbnd))
 	      (cty (unsafe_get_field :letbind_type nlbnd))
 	      (nexp (unsafe_get_field :letbind_expr nlbnd))
 	      (obva (get_free_objloctyped gcx bder cty))
-	      (obnx (compile_obj nexp gcx))
 	      )
-	 ;;	 (debugmsg obnx "compilobj_nrep_let obnx" (the_callcount))
-	 ;; link nlbnd to obva in locmap
-	 (if obva (mapobject_put locmap nlbnd obva))
-	 ;; put destination obva in obnx
-	 (let ( (obmy (if obva (put_objdest obnx obva) obnx)) )
-	   ;; add the modified obmy in the bodypart of oblock
-	   (list_append obodl obmy)
-	   )
-	 ;; add clearing of obva to epilogue part of oblock
-	 (if obva 
-	     (let ( (obcl (make_instance class_objclear
-					 :obi_loc loc
-					 :oclr_vloc obva)) 
-		    )
-	       (list_append oepil obcl)
-	       )))))
+	 (debugmsg obva "compilobj_nrep_let current normbinding obva" (the_callcount))
+	 (debugmsg nexp "compilobj_nrep_let current normbinding nexp" (the_callcount))
+	 (let ( (obnx (compile_obj nexp gcx)) )
+	   (debugmsg obnx "compilobj_nrep_let current normbinding obnx" (the_callcount))
+	   ;; link nlbnd to obva in locmap
+	   (if obva (mapobject_put locmap nlbnd obva))
+	   ;; put destination obva in obnx
+	   (let ( (obmy (if obva (put_objdest obnx obva) obnx)) )
+	     ;; add the modified obmy in the bodypart of oblock
+	     (list_append obodl obmy)
+	     )
+	   ;; add clearing of obva to epilogue part of oblock
+	   (if obva 
+	       (let ( (obcl (make_instance class_objclear
+					   :obi_loc loc
+					   :oclr_vloc obva)) 
+		      )
+		 (list_append oepil obcl)
+		 ))))))
+    (debugmsg loc "compilobj_nrep_let after iterate normbind loc" (the_callcount))
+    (debugmsg locmap "compilobj_nrep_let updated locmap" (the_callcount))
     ;; compile each body component
     (multiple_every
      bdy
      (lambda (bdycomp :long ix)
-       ;;       (debugmsg bdycomp "compilobj_nrep_let bdycomp" (the_callcount))
+       (debugmsg loc "compilobj_nrep_let body loc" (the_callcount))
+       (debugmsg bdycomp "compilobj_nrep_let body bdycomp" (the_callcount))
        (let ( (objcomp  (compile_obj bdycomp gcx)) 
 	      )
-	 ;;	 (debugmsg objcomp "compilobj_nrep_let objcomp" (the_callcount))
+	 (debugmsg objcomp "compilobj_nrep_let body objcomp" (the_callcount))
 	 (list_append obodl objcomp))))
+    (debugmsg loc "compilobj_nrep_let after iterate body loc" (the_callcount))
     ;; dispose each binding
     (multiple_every
-     bnd
+     bnds
      (lambda (obnd :long ix)
+       (debugmsg loc "compilobj_nrep_let dispose loc" (the_callcount))
+       (debugmsg obnd "compilobj_nrep_let disposing obnd" (the_callcount))
        (dispose_bnd_obj obnd gcx)))
-    oblock				;return it
+    (debugmsg loc "compilobj_nrep_let quasifinal loc" (the_callcount))
+    (debugmsg locmap "compilobj_nrep_let final locmap" (the_callcount))
+    (debugmsg loc "compilobj_nrep_let final loc" (the_callcount))
+    (debugmsg oblock  "compilobj_nrep_let return oblock" (the_callcount))
+    (return oblock)			;return it
     ))
 
 (install_method class_nrep_let compile_obj compilobj_nrep_let)
@@ -9218,7 +9264,7 @@
 	 (fun (unsafe_get_field :napp_fun napp))
 	 (args (unsafe_get_field :napp_args napp))
 	 )
-;    (debugmsg napp "compilobj_nrep_apply napp" (the_callcount))
+    (debugmsg napp "compilobj_nrep_apply napp" (the_callcount))
     (let ( (oclos (compile_obj fun gcx)) 
 	   (oargs (multiple_map args
 				(lambda (comp :long ix)
@@ -9231,7 +9277,7 @@
 	     :obapp_clos oclos
 	     :obapp_args oargs))
 	   )
-;      (debugmsg oapp "compilobj_nrep_apply oapp" (the_callcount))
+      (debugmsg oapp "compilobj_nrep_apply return oapp" (the_callcount))
       oapp
       )))
 (install_method class_nrep_apply compile_obj compilobj_nrep_apply)
