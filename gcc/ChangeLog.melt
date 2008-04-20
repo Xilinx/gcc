@@ -1,3 +1,9 @@
+2008-04-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: (basilys_checked_assignmsg_at) better message.
+
+	* melt/warm-basilys.bysl: better handling of if/then/else typing.
+	got a runtime bug.
+
 2008-04-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: Added handling of arbitrary other ctypes
 	such as cstring tree etc... But bootstrap still buggy in putobjdest_objvalue

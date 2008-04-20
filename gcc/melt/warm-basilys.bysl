@@ -1791,7 +1791,7 @@
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_mapobjects 50))
-	     (boxedmaxdepth (make_integerbox discr_integer 25))
+	     (boxedmaxdepth (make_integerbox discr_integer 16)) ;;;; @@@ DEBUGDEPTH
 	     (dbgi (make_instance class_debuginfo
 				  :dbgi_sbuf sbuf
 				  :dbgi_occmap occmap
@@ -2457,7 +2457,9 @@
 			(error_strv argloc "invalid keyword in formal arglist"
 				    (unsafe_get_field :named_name curarg))    
 			)
-		      )))
+		      ))
+		  ()			;to make the compiler happy we explicitly gives nil
+		  )
 		( (is_a curarg class_symbol)
 		  (if (mapobject_get argmap curarg)
 		      (error_strv argloc "duplicate argument in formal arglist"
@@ -2476,13 +2478,16 @@
 		    (list_append bndlist curbind)
 		    (setq argrk (+i argrk 1))
 		    )
+		  ()
 		  )
 		(:else 
 		 (debugmsg curarg "unexpected argument in formal arglist" (the_callcount))
 		 (let ( (discrarg  (discrim curarg) ))
 		   (error_strv argloc "unexepected argument in formal arglist" 
 			       (unsafe_get_field :named_name discrarg))
-		   )))
+		   )
+		 ()
+		 ))
 	       (setq curpair (pair_tail curpair))))
 ;;; second loop to fill the bindings tuple
     (let ( (bndtup (make_multiple discr_multiple argrk)) 
@@ -4110,11 +4115,11 @@
 	 (res (multiple_map
 	       tup 
 	       (lambda (comp :long ix)
-		 (debugmsg comp "normalize_tuple comp")
+		; (debugmsg comp "normalize_tuple comp")
 		 (multicall 
 		  (norcomp nbinds)
 		  (normal_exp comp env ncx psloc)
-		  (debugmsg norcomp "normalize_tuple norcomp")
+		 ; (debugmsg norcomp "normalize_tuple norcomp")
 		  (assert_msg "check nbinds" (is_list_or_null nbinds))
 		  (if (is_list nbinds)
 		      (list_every 
@@ -4662,7 +4667,7 @@
 	 (selse (unsafe_get_field :sif_else recv))
 	 )
     (multicall 
-     (ntest nbindif) ;nbindif is also the whole result binding
+     (ntest nbindif)	     ;nbindif is also the whole result binding
      (normal_exp stest env ncx sloc)
      (assert_msg "check nbindif test" (is_list_or_null nbindif))
      ;; in practice we don't need to make a common super-
@@ -4685,7 +4690,7 @@
 	 (assert_msg "check nbindelse" (is_list_or_null nbindelse))
 	 ;; if we have both then & else branches,
 	 ;; ensure their compatibility of types
-	 (and nthen nelse
+	 (and nthen (not (is_a nelse class_nrep_nil)) nelse
 	      (let ( (ctypthen ctypif) ; only for clarity since ctypif initialized from then part
 		     (newelseenv (let ( (nenv (fresh_env env)) )
 				   (list_every 
@@ -8765,8 +8770,8 @@
 	 (ovar (mapobject_get locmap sbnd))
 	 )
 ;    (debugmsg gcx "compilobj locsymocc gcx" (the_callcount))
-    (debugmsg lsyo "compilobj locsymocc begin lsyo" (the_callcount))
-    (debugmsg sbnd "compilobj locsymocc sbnd" (the_callcount))
+;    (debugmsg lsyo "compilobj locsymocc begin lsyo" (the_callcount))
+;    (debugmsg sbnd "compilobj locsymocc sbnd" (the_callcount))
 ;    (debugmsg oty "compilobj locsymocc oty" (the_callcount))
 ;    (debugmsg ovar "compilobj locsymocc ovar" (the_callcount))
     (if (null sbnd)
@@ -8783,7 +8788,7 @@
 	  (assert_msg "compilobj locsymocc null ovar without ctype_void" (== oty ctype_void))
 	  )
       (assert_msg "compilobj locsymocc check ovar"  (is_a ovar class_objlocv)))
-    (debugmsg ovar "compilobj locsymocc return ovar" (the_callcount))
+;    (debugmsg ovar "compilobj locsymocc return ovar" (the_callcount))
     (return ovar)
 ))
 (install_method class_nrep_locsymocc compile_obj compilobj_nrep_locsymocc)
@@ -9533,7 +9538,7 @@
   (assert_msg "check recv" (is_a recv class_objvalue))
   (assert_msg "check desto" (is_a desto class_objlocv))
   (if (!= (unsafe_get_field :obv_type recv) 
-				  (unsafe_get_field :obv_type desto))
+	  (unsafe_get_field :obv_type desto))
       (progn
 	(debugmsg recv "putobjdest_objvalue recv" (the_callcount))
 	(debugmsg desto "putobjdest_objvalue desto" (the_callcount))
@@ -9886,8 +9891,8 @@
     (assert_msg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
     (assert_msg "compil_data_and_slots_fill check fresh obj" (null (unsafe_get_field :oie_locvar obj)))
     (unsafe_put_fields obj :oie_locvar locvar)
-    (assert_msg "check ifilllis" (is_list ifilllis))
-    (assert_msg "check ibodylis" (is_list ibodylis))
+    (assert_msg "compil_data_and_slots_fill check ifilllis" (is_list ifilllis))
+    (assert_msg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
     ; (debugmsg dlocbind "compil_data_and_slots_fill dlocbind" (the_callcount))
     (multiple_every
      dlocbind

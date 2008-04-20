@@ -2219,7 +2219,7 @@ void basilys_caught_assign_at(void*ptr, const char*fil, int lin, const char*msg)
 #define basilys_checked_assignmsg_at(Assign,Fil,Lin,Msg) ({		\
       void* p_##Lin = (Assign);						\
       if (p_##Lin && !basilys_discr(p_##Lin))				\
-	basilys_assert_failed("bad assign",Fil,Lin,__FUNCTION__);	\
+	basilys_assert_failed("bad checked assign (in runtime)",Fil,Lin,__FUNCTION__); \
       if ( (p_##Lin == basilys_checkedp_ptr1 && p_##Lin)		\
 	   ||  (p_##Lin == basilys_checkedp_ptr2 && p_##Lin))		\
 	basilys_caught_assign_at(p_##Lin,Fil,Lin,Msg); p_##Lin; })

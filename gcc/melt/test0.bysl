@@ -1,5 +1,16 @@
 ;; -*- lisp -*-
 
+(defun testandsetq (v w :long i j)
+  (if 
+      (and i j)
+      (setq v w)))
+
+(defun testor (v w :long i j)
+  (if 
+      (or i j) 
+      v
+    w))
+
 (defun testtwicesamelet (f u v)
   (let ( (aa u) )
     aa )
@@ -44,7 +55,6 @@
 
 (defselector the_sel my_class_selector
 )
-
 
 
 
