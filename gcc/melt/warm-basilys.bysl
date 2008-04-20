@@ -6998,23 +6998,32 @@
     (add2sbuf_indentnl implbuf 0)
     (if (>i nbval 0) 
 	(progn
+	  (add2sbuf_strconst implbuf "#define CURFRAM_NBVARPTR ")
+	  (add2sbuf_longdec implbuf nbval)
+	  (add2sbuf_indentnl implbuf 0)
 	  (add2sbuf_strconst implbuf "  void* varptr[")
 	  (add2sbuf_longdec implbuf nbval)
 	  (add2sbuf_strconst implbuf "];")
 	  (add2sbuf_indentnl implbuf 0))
       (progn
 	(add2sbuf_strconst implbuf "/*no varptr*/")
+	(add2sbuf_indentnl implbuf 0)
+	(add2sbuf_strconst implbuf "#define CURFRAM_NBVARPTR /*none*/0")
 	(add2sbuf_indentnl implbuf 0)))
     (if (>i nblong 0)
 	(progn
+	  (add2sbuf_strconst implbuf "#define CURFRAM_NBVARNUM ")
+	  (add2sbuf_longdec implbuf nblong)
+	  (add2sbuf_indentnl implbuf 0)
 	  (add2sbuf_strconst implbuf "  long varnum[")
 	  (add2sbuf_longdec implbuf nblong)
 	  (add2sbuf_strconst implbuf "];")
 	  (add2sbuf_indentnl implbuf 0))
       (progn
 	(add2sbuf_strconst implbuf "/*no varnum*/")
-	(add2sbuf_indentnl implbuf 0))
-      )
+	(add2sbuf_indentnl implbuf 0)
+	(add2sbuf_strconst implbuf "#define CURFRAM_NBVARNUM /*none*/0")
+	(add2sbuf_indentnl implbuf 0)))
     (if others 
 	(progn
 	  (debugmsg others "output_curframe_init others" (the_callcount))
@@ -7186,6 +7195,10 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#undef callcount")
     (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "#undef CURFRAM_NBVARNUM")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "#undef CURFRAM_NBVARPTR")
+    (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "} /*end ")
     (add2sbuf_string implbuf onam)
     (add2sbuf_strconst implbuf "*/")
@@ -7274,6 +7287,11 @@
     (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#undef callcount")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "#undef CURFRAM_NBVARNUM")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "#undef CURFRAM_NBVARPTR")
+    (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "} /* end start_module_basilys */")
     (add2sbuf_indentnl implbuf 0))
@@ -9271,10 +9289,11 @@
 	 (nobj (unsafe_get_field :nuget_obj nugf))
 	 (nfield (unsafe_get_field :nuget_field nugf))
 	 (dlist (make_list discr_list))
+	 (oobj (compile_obj nobj gcx))
 	 (ogetslot (make_instance class_objgetslot
 				  :obi_loc loc
 				  :obdi_destlist dlist
-				  :ogetsl_obj (compile_obj nobj gcx)
+				  :ogetsl_obj oobj
 				  :ogetsl_field nfield))
 	 )
     (return ogetslot)
@@ -9551,11 +9570,14 @@
 			     ;; dont fill :obi_loc
 			     :obdi_destlist destlis
 			     :obcpt_expr explis
-			     )) )
+			     )) 
+	 ;; we have a bug in the cold-basilys.lisp that we circumvent thru a useless variable
+	 (unused_recvtype (unsafe_get_field :obv_type recv))
+	 )
     (list_append destlis desto)
     (list_append explis recv)
 ;    (debugmsg obc "putobjdest objval obc" (the_callcount))
-    obc
+    (return obc)
 ))
 
 (install_method class_objvalue  put_objdest  putobjdest_objvalue)

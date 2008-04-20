@@ -1,3 +1,8 @@
+2008-04-20   Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: the generated code is still sometimes
+	buggy. We deliberately leave the bug and added COLD_EXTRAGAP in
+	the generated code (& frames) to circumvent it.
+
 2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: correct output of empty framloc_basilys_st*
 

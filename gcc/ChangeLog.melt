@@ -1,8 +1,13 @@
 2008-04-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: The runtime bug below is a bug in
+	cold-basilys.lisp generator. Still having an "output_c_code of
+	CLASS_NREP_DATAKEYWORD" bug in warm bootstrap.
+
+2008-04-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: (basilys_checked_assignmsg_at) better message.
 
 	* melt/warm-basilys.bysl: better handling of if/then/else typing.
-	got a runtime bug.
+	got a runtime bug on warm bootstrap.
 
 2008-04-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: Added handling of arbitrary other ctypes
