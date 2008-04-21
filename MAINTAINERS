@@ -111,7 +111,7 @@ sh-linux-gnu		Kaz Kojima		kkojima@gcc.gnu.org
 RTEMS Ports		Joel Sherrill		joel@oarcorp.com
 RTEMS Ports		Ralf Corsepius		ralf.corsepius@rtems.org
 VxWorks ports		Nathan Sidwell		nathan@codesourcery.com
-windows, cygwin, mingw	Christopher Faylor	cgf@gcc.gnu.org
+windows, cygwin, mingw	Christopher Faylor	me.gcc@gcc.gnu.org
 windows, cygwin, mingw	Danny Smith		dannysmith@users.sourceforge.net
 
 			Language Front Ends Maintainers
@@ -300,7 +300,7 @@ David Daney					ddaney@avtrex.com
 Bud Davis					jmdavis@link.com
 Benoit Dupont de Dinechin			benoit.dupont-de-dinechin@st.com
 Mohan Embar					gnustuff@thisiscool.com
-Revital Eres                                    eres@il.ibm.com 
+Revital Eres                                    eres@il.ibm.com
 Marc Espie					espie@cvs.openbsd.org
 Rafael Ávila de Espíndola			rafael.espindola@gmail.com
 Ansgar Esztermann				ansgar@thphy.uni-duesseldorf.de

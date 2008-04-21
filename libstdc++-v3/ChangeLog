@@ -1,3 +1,43 @@
+2008-04-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR libstdc++/35954
+	* include/Makefile.am (pch*_output): Do not touch pch*_output_anchor.
+	Call 'mkdir -p' unconditionally, but ignore its return value.
+	* include/Makefile.in: Regenerate.
+
+	* include/Makefile.am: Fix most stamp rules to regenerate
+	the links for all sources newer than the stamp file.
+	* include/Makefile.in: Regenerate.
+	* Makefile.in: Likewise.
+	* src/Makefile.in: Likewise.
+	* doc/Makefile.in: Likewise.
+	* po/Makefile.in: Likewise.
+	* libmath/Makefile.in: Likewise.
+	* libsupc++/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2008-04-16  Andreas Tobler  <a.tobler@schweiz.org>
+
+	PR libstdc++/35915
+	* configure.ac: Use GCC_HEADER_STDINT.
+	* src/atomic.cc: Include gstdint.h
+	* configure: Regenerate.
+	* Makefile.in: Likewise.
+	* doc/Makefile.in: Likewise.
+	* include/Makefile.in: Likewise.
+	* libmath/Makefile.in: Likewise.
+	* libsupc++/Makefile.in: Likewise.
+	* po/Makefile.in: Likewise.
+	* src/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+	* aclocal.m4: Likewise.
+
 2008-04-14  Benjamin Kosnik  <bkoz@redhat.com>
 
 	PR libstdc++/35816

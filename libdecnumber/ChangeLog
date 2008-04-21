@@ -1,3 +1,13 @@
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2008-04-18  Ben Elliston  <bje@au.ibm.com>
+
+	* Makefile.in (distclean): Add gstdint.h.
+
 2008-01-25  Janis Johnson  <janis187@us.ibm.com>
 
 	* decCommonSymbols.h: Commit.

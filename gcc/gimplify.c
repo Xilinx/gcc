@@ -175,7 +175,7 @@ push_gimplify_context (void)
 
 /* Tear down a context for the gimplifier.  If BODY is non-null, then
    put the temporaries into the outer BIND_EXPR.  Otherwise, put them
-   in the unexpanded_var_list.  */
+   in the local_decls.  */
 
 void
 pop_gimplify_context (tree body)
@@ -3636,7 +3636,7 @@ gimplify_modify_expr_rhs (tree *expr_p, tree *from_p, tree *to_p, tree *pre_p,
 	    tree result = *to_p;
 
 	    ret = gimplify_expr (&result, pre_p, post_p,
-				 is_gimple_min_lval, fb_lvalue);
+				 is_gimple_lvalue, fb_lvalue);
 	    if (ret != GS_ERROR)
 	      ret = GS_OK;
 
