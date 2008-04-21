@@ -1,3 +1,7 @@
+2008-04-21   Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: added gcc_assert of basilys_discr of actual arguments.
+	less verbious huge comments.
+
 2008-04-20   Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: the generated code is still sometimes
 	buggy. We deliberately leave the bug and added COLD_EXTRAGAP in

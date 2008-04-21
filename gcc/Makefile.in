@@ -4664,7 +4664,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	rm -f ./cc1-melt$(exeext)
 	ln -s ./cc1$(exeext) ./cc1-melt$(exeext)
 	-@echo coldtest-warm-basilys starting test0
-	./cc1-melt$(exeext) -fbasilys $(BASILYSDEBUG)  \
+	time ./cc1-melt$(exeext) -fbasilys $(BASILYSDEBUG)  \
 	   -fbasilys-init=coldbuilt-warm-basilys.so \
 	 -fbasilys-dynlibdir=. \
 	 -fbasilys-compile-script=built-melt-cc-script \
@@ -4675,7 +4675,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	./built-melt-cc-script test0.c test0.so
 ## warmcompile test1.bysl
 	-@echo coldtest-warm-basilys starting test1
-	./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
+	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
 	   -fbasilys-init=coldbuilt-warm-basilys.so \
 	 -fbasilys-dynlibdir=. \
 	 -fbasilys-compile-script=built-melt-cc-script \
@@ -4685,7 +4685,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	./built-melt-cc-script test1.c test1.so
 ## warmcompile warm-basilys itself
 	-@echo coldtest-warm-basilys starting warm-basilys
-	./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
+	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
 	   -fbasilys-init=coldbuilt-warm-basilys.so \
 	 -fbasilys-dynlibdir=. \
 	 -fbasilys-compile-script=built-melt-cc-script \

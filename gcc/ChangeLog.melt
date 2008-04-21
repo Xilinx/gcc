@@ -1,3 +1,15 @@
+2008-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	[first sucessful compilation of warm-basilys.bysl by a cold-compiled version of itself]
+
+	* params.def: increased PARAM_BASILYS_MINOR_ZONE
+
+	* basilys.c: (basilysgc_new_raw_object) uses sizeof(struct basilysobject_st) for readability
+
+	* Makefile.in: added time to ./cc1-melt runs
+
+	* melt/warm-basilys.bysl: various debugmsg commented.
+	(compilobj_nrep_constant) should compile the data for initrout.
+
 2008-04-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: The runtime bug below is a bug in
 	cold-basilys.lisp generator. Still having an "output_c_code of

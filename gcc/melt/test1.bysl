@@ -199,6 +199,10 @@
 (defun tj_t2 (u) (tup1_pr2 u my_class_root))
 
 
+(defun testquotedsym () 'somesymbol)
+
+(defun testquotedkeyword () ':akeyword)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #| ; SKIPPING
 ; SKIPPED |#

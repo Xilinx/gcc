@@ -714,7 +714,7 @@ DEFPARAM (PARAM_USE_CANONICAL_TYPES,
 DEFPARAM (PARAM_BASILYS_MINOR_ZONE,
 	 "basilys-minor-zone",
 	 "size in kilowords (one word = one pointer) of the minor zone for the specialized copying basilys collector",
-	 256, 128, 32768)
+	 512, 256, 32768)
 
 /* paramater tuning the frequency of full garbage collection in Basilys */
 DEFPARAM (PARAM_BASILYS_FULL_FREQ,

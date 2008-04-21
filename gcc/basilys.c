@@ -1367,25 +1367,25 @@ basilys_ptr_t
 basilysgc_new_int (basilysobject_ptr_t discr_p, long num)
 {
   BASILYS_ENTERFRAME (2, NULL);
-#define newint curfram__.varptr[0]
+#define newintv curfram__.varptr[0]
 #define discrv  curfram__.varptr[1]
 #define object_discrv ((basilysobject_ptr_t)(discrv))
-#define int_newint ((struct basilysint_st*)(newint))
-  newint = NULL;
+#define int_newintv ((struct basilysint_st*)(newintv))
+  newintv = NULL;
   discrv = (void *) discr_p;
   if (basilys_magic_discr (discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_INT)
     goto end;
-  newint = basilysgc_allocate (sizeof (struct basilysint_st), 0);
-  int_newint->discr = object_discrv;
-  int_newint->val = num;
+  newintv = basilysgc_allocate (sizeof (struct basilysint_st), 0);
+  int_newintv->discr = object_discrv;
+  int_newintv->val = num;
 end:
   BASILYS_EXITFRAME ();
-  return newint;
-#undef newint
+  return newintv;
+#undef newintv
 #undef discrv
-#undef int_newint
+#undef int_newintv
 #undef object_discrv
 }
 
@@ -1968,10 +1968,10 @@ basilysgc_new_raw_object (basilysobject_ptr_t klass_p, unsigned len)
   if (basilys_magic_discr (klassv) != OBMAG_OBJECT
       || obj_klassv->object_magic != OBMAG_OBJECT || len >= SHRT_MAX)
     goto end;
+  /* the sizeof below could be the offsetof obj__tabfields */
   newobjv =
-    basilysgc_allocate (offsetof
-			(struct basilysobject_st,
-			 obj__tabfields), len * sizeof (void *));
+    basilysgc_allocate (sizeof(struct basilysobject_st),
+			len * sizeof (void *));
   obj_newobjv->obj_class = klassv;
   do
     {

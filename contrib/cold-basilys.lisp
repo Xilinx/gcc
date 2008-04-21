@@ -2826,6 +2826,9 @@ nil)
 	(format str
 		" = (xargtab_[~d].bp_aptr)?(*(xargtab_[~d].bp_aptr)):NULL);~% else goto lab_endargs;~%"
 		(- rk 1) (- rk 1))
+	(format str " gcc_assert(basilys_discr(")
+	(output_ccode dest str)
+	(format str ")!=NULL);~%")
 	)
       )
 ;    (finish-output str)
@@ -3208,7 +3211,7 @@ nil)
 
 (defmethod output_ccode ((obj obj_mkclosure) str)
   (format str "{")
-  (format_c_comment str "**mkclosure ~S ~%**~%" obj)
+  ;(format_c_comment str "**mkclosure ~S ~%**~%" obj)
   (let ( ( cvals (obj_mkclosure-cvals obj))
 	 ( dest (obj_mkclosure-dest obj))
 	 ( cfun (obj_mkclosure-cfun obj))
