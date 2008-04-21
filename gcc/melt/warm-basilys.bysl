@@ -379,15 +379,15 @@
   "basilys_string_same((" s1 "), (" s2 "))")
 ;;; make a string
 (defprimitive make_string (dis str) :value
-  "(basilysgc_new_stringdup((" dis "), basilys_string_str((" str "))))")
+  "(basilysgc_new_stringdup((void*)(" dis "), basilys_string_str((" str "))))")
 (defprimitive make_stringconst (dis :cstring cstr) :value
-  "(basilysgc_new_stringdup((" dis "), (" cstr ")))")
+  "(basilysgc_new_stringdup((void*)(" dis "), (" cstr ")))")
 
 (defprimitive string_length (str) :long
   "basilys_string_length((" str "))")
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
-  "(basilysgc_new_stringdup((" dis "), basilys_strbuf_str((" sbuf "))))")
+  "(basilysgc_new_stringdup((void*)(" dis "), basilys_strbuf_str((" sbuf "))))")
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
  "(basilysgc_new_string_nakedbasename((" dis "), basilys_string_str((" str "))))")
@@ -490,7 +490,7 @@
 
 ;; primitive to make the nth stringattr of a mapobject
 (defprimitive mapstring_nth_attrstr (map sdicr :long n) :value
-  "(basilysgc_new_stringdup((" sdicr "), basilys_nthattrraw_mapstrings((" map "), (int)(" n "))))")
+  "(basilysgc_new_stringdup((void*)(" sdicr "), basilys_nthattrraw_mapstrings((" map "), (int)(" n "))))")
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapstring_nth_val (map :long n) :value
   "(basilys_nthval_mapstrings((" map "), (int)(" n ")))")
@@ -524,11 +524,11 @@
 ;;;;;; boxed INTEGERs primitives
 ;; test
 (defprimitive is_integerbox (ib) :long
-  "(basilys_magic_discr((" ib ")) == OBMAG_INT)")
+  "(basilys_magic_discr((void*)(" ib ")) == OBMAG_INT)")
 ;; to get the boxed integer use get_int
 ;; make
 (defprimitive make_integerbox (discr :long n) :value
-  "(basilysgc_new_int((" discr "), (" n ")))")
+  "(basilysgc_new_int((void*)(" discr "), (" n ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; BOX primitives (boxed values)
@@ -543,7 +543,7 @@
   "basilysgc_box_put((" box "), (" val "))")
 ;; make a box
 (defprimitive make_box (discr valb) :value
-  "basilysgc_new_box((" discr "), (" valb "))")
+  "basilysgc_new_box((void*)(" discr "), (void*)(" valb "))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; LIST primitives
 ;; test
@@ -1793,7 +1793,7 @@
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_mapobjects 50))
-	     (boxedmaxdepth (make_integerbox discr_integer 12)) ;;;; @@@ DEBUGDEPTH
+	     (boxedmaxdepth (make_integerbox discr_integer 18)) ;;;; @@@ DEBUGDEPTH
 	     (dbgi (make_instance class_debuginfo
 				  :dbgi_sbuf sbuf
 				  :dbgi_occmap occmap
@@ -5370,14 +5370,18 @@
 	 (sargs (unsafe_get_field :slam_argbind recv))
 	 (sbody (unsafe_get_field :slam_body recv))
 	 (savedcachemap (unsafe_get_field :nctx_symbcachemap ncx))
+	 (csym (clone_symbol 'lambda_))
+	 (clocc (make_instance class_nrep_locsymocc
+			       :nrep_loc sloc
+			       :nocc_ctyp ctype_value
+			       :nocc_symb csym)) 
 	 (newenv (fresh_env env))
 	 (oldproc (unsafe_get_field :nctx_curproc ncx))
-	 (snam (clone_symbol 'lambda))
 	 (closedblist (make_list discr_list))
 	 (nproc (make_instance class_nrep_routproc
 			       :nrep_loc sloc
 			       :nproc_body (the_null) ;filled later
-			       :nrpro_name snam
+			       :nrpro_name csym
 			       :nrpro_argb sargs
 			       :nrpro_closedb closedblist
 			       :nrpro_const (make_list discr_list)
@@ -5386,7 +5390,7 @@
 			       :nrpro_thunklist (make_list discr_list)
 			       ))
 	 (ndatarout (make_instance class_nrep_dataroutine
-				   :ndata_name snam
+				   :ndata_name csym
 				   :ndata_discrx (normal_predef discr_routine ncx sloc "discr_routine")
 				   :ndrou_proc nproc
 				   ))
@@ -5447,11 +5451,20 @@
 				   :nlambda_constrout (if insideflag krout ndatarout)
 				   :nlambda_closedv clovtup
 				   ))
+	   (cbind (make_instance class_normlet_binding
+				 :letbind_loc sloc
+				 :binder csym
+				 :letbind_type ctype_value
+				 :letbind_expr nlambda))
+	   (nbindlist (make_list discr_list))
 	   )
+       (unsafe_put_fields clocc :nocc_bind cbind)
+       (list_append nbindlist cbind)
        (if insideflag
 	   (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
-       (debugmsg nlambda "normexp_lambda nlambda" (the_callcount))
-       (return nlambda ())
+       (debugmsg clocc "normexp_lambda return clocc" (the_callcount))
+       (debugmsg nbindlist "normexp_lambda return nbindlist" (the_callcount))
+       (return clocc nbindlist)
        ))))
 (install_method class_src_lambda normal_exp normexp_lambda)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -6948,7 +6961,9 @@
 (defun output_location (loc implbuf :long depth :cstring msg)
   (if loc
       (progn
-	(add2sbuf_indentnl implbuf depth)
+	(add2sbuf_indentnl implbuf 0)
+	(add2sbuf_strconst implbuf "#ifndef MELTGCC_NOLINENUMBERING")
+	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_strconst implbuf "#line 0 ")
 	(add2sbuf_strconst implbuf " \"")
 	(if 
@@ -6962,6 +6977,8 @@
 		  (add2sbuf_strconst implbuf msg)
 		  ))
 	(add2sbuf_strconst implbuf "\"")
+	(add2sbuf_indentnl implbuf 0)
+	(add2sbuf_strconst implbuf "#endif /*MELTGCC_NOLINENUMBERING*/")
 	(add2sbuf_indentnl implbuf depth)
 	)))
 
@@ -7666,6 +7683,7 @@
 	   oargs
 	   (lambda (curarg :long curank)
 	     (debugmsg curarg "outputcod_objapply curarg")
+	     (assert_msg "outputcod_objapply check curarg not objinstr" (not (is_a curarg class_objinstr)))
 	    ; (cbreak_msg "outputcod_objapply curarg")
 	     (if (>i curank 0)
 		 (let ( (curctyp (get_ctype curarg (the_null))) )
@@ -8091,13 +8109,14 @@
 	 )
     (assert_msg "outpucod_objrawallocobj check iclass" (is_a iclass class_objvalue))
     (output_location iloc implbuf depth "rawallocobj")
-    (add2sbuf_strconst implbuf "/*rawallocobj*/")
+    (add2sbuf_strconst implbuf "/*rawallocobj*/ ")
     (list_every
      destlist
      (lambda (dst) 
        (output_c_code dst declbuf implbuf (get_int boxdepthp1))
-       (add2sbuf_strconst implbuf " = ")))
-    (add2sbuf_strconst implbuf "basilysgc_new_raw_object((")
+       (add2sbuf_strconst implbuf " =")))
+    (add2sbuf_indentnl implbuf (+i depth 1))
+    (add2sbuf_strconst implbuf "basilysgc_new_raw_object((void*)(")
     (output_c_code iclass declbuf implbuf (get_int boxdepthp1))
     (add2sbuf_strconst implbuf "), (")
     (output_c_code ilen  declbuf implbuf (get_int boxdepthp1))
@@ -8119,12 +8138,13 @@
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
     (output_location iloc implbuf depth "newclosure")
-    (add2sbuf_strconst implbuf "/*newclosure*/")
+    (add2sbuf_strconst implbuf " /*newclosure*/ ")
     (list_every
      destlist
      (lambda (dst) 
        (output_c_code dst declbuf implbuf (get_int boxdepthp1))
-       (add2sbuf_strconst implbuf " = ")))
+       (add2sbuf_strconst implbuf " =")))
+    (add2sbuf_indentnl implbuf (+i depth 1))
     (add2sbuf_strconst implbuf "basilysgc_new_closure((basilysobject_ptr_t)(")
     (output_c_code odiscr declbuf implbuf (get_int boxdepthp1))
     (add2sbuf_strconst implbuf "), (basilysroutine_ptr_t)(")
@@ -9082,19 +9102,19 @@
     (multiple_every
      bnds
      (lambda (nlbnd :long ix)
-       ;;(debugmsg loc "compilobj_nrep_let current normbinding loc" (the_callcount))
-       ;;(debugmsg nlbnd "compilobj_nrep_let current normbinding nlbnd" (the_callcount))
-       ;;(debugmsg locmap "compilobj_nrep_let current normbinding locmap" (the_callcount))
+       (debugmsg loc "compilobj_nrep_let current normbinding loc" (the_callcount))
+       (debugmsg nlbnd "compilobj_nrep_let current normbinding nlbnd" (the_callcount))
+       (debugmsg locmap "compilobj_nrep_let current normbinding locmap" (the_callcount))
        (assert_msg "check nlbnd in compilobj_nrep_let" (is_a nlbnd class_normlet_binding))
        (let ( (bder (unsafe_get_field :binder nlbnd))
 	      (cty (unsafe_get_field :letbind_type nlbnd))
 	      (nexp (unsafe_get_field :letbind_expr nlbnd))
 	      (obva (get_free_objloctyped gcx bder cty))
 	      )
-	 ;;(debugmsg obva "compilobj_nrep_let current normbinding obva" (the_callcount))
-	 ;;(debugmsg nexp "compilobj_nrep_let current normbinding nexp" (the_callcount))
+	 (debugmsg obva "compilobj_nrep_let current normbinding obva" (the_callcount))
+	 (debugmsg nexp "compilobj_nrep_let current normbinding nexp" (the_callcount))
 	 (let ( (obnx (compile_obj nexp gcx)) )
-	   ;;(debugmsg obnx "compilobj_nrep_let current normbinding obnx" (the_callcount))
+	   (debugmsg obnx "compilobj_nrep_let current normbinding obnx" (the_callcount))
 	   ;; link nlbnd to obva in locmap
 	   (if obva (mapobject_put locmap nlbnd obva))
 	   ;; put destination obva in obnx
@@ -9110,28 +9130,28 @@
 		      )
 		 (list_append oepil obcl)
 		 ))))))
-    ;;(debugmsg loc "compilobj_nrep_let after iterate normbind loc" (the_callcount))
-    ;;(debugmsg locmap "compilobj_nrep_let updated locmap" (the_callcount))
+    (debugmsg loc "compilobj_nrep_let after iterate normbind loc" (the_callcount))
+    (debugmsg locmap "compilobj_nrep_let updated locmap" (the_callcount))
     ;; compile each body component
     (multiple_every
      bdy
      (lambda (bdycomp :long ix)
-       ;;(debugmsg loc "compilobj_nrep_let body loc" (the_callcount))
-       ;;(debugmsg bdycomp "compilobj_nrep_let body bdycomp" (the_callcount))
+       (debugmsg loc "compilobj_nrep_let body loc" (the_callcount))
+       (debugmsg bdycomp "compilobj_nrep_let body bdycomp" (the_callcount))
        (let ( (objcomp  (compile_obj bdycomp gcx)) 
 	      )
-	 ;;(debugmsg objcomp "compilobj_nrep_let body objcomp" (the_callcount))
+	 (debugmsg objcomp "compilobj_nrep_let body objcomp" (the_callcount))
 	 (list_append obodl objcomp))))
-    ;;(debugmsg loc "compilobj_nrep_let after iterate body loc" (the_callcount))
+    (debugmsg loc "compilobj_nrep_let after iterate body loc" (the_callcount))
     ;; dispose each binding
     (multiple_every
      bnds
      (lambda (obnd :long ix)
-       ;;(debugmsg loc "compilobj_nrep_let dispose loc" (the_callcount))
-       ;;(debugmsg obnd "compilobj_nrep_let disposing obnd" (the_callcount))
+       (debugmsg loc "compilobj_nrep_let dispose loc" (the_callcount))
+       (debugmsg obnd "compilobj_nrep_let disposing obnd" (the_callcount))
        (dispose_bnd_obj obnd gcx)))
-    ;;(debugmsg loc "compilobj_nrep_let quasifinal loc" (the_callcount))
-    ;;(debugmsg locmap "compilobj_nrep_let final locmap" (the_callcount))
+    (debugmsg loc "compilobj_nrep_let quasifinal loc" (the_callcount))
+    (debugmsg locmap "compilobj_nrep_let final locmap" (the_callcount))
     (debugmsg loc "compilobj_nrep_let final loc" (the_callcount))
     (debugmsg oblock  "compilobj_nrep_let return oblock" (the_callcount))
     (return oblock)			;return it
@@ -9374,9 +9394,12 @@
 	 )
     (debugmsg napp "compilobj_nrep_apply napp" (the_callcount))
     (let ( (oclos (compile_obj fun gcx)) 
-	   (oargs (multiple_map args
-				(lambda (comp :long ix)
-				  (compile_obj comp gcx))))
+	   (oargs (multiple_map
+		   args
+		   (lambda (comp :long ix)
+		     (let ( (ocomp (compile_obj comp gcx)) )
+		       (assert_msg "compilobj_nrep_apply check ocomp not objinstr" (not (is_a ocomp class_objinstr)))
+		       ocomp))))
 	   (oapp 
 	    (make_instance 
 	     class_objapply

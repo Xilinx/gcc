@@ -63,6 +63,7 @@ head $datf.c
 
 case `uname` in
 Linux|SunOS|Solaris) 
+	$melt_cc -fsyntax-only -DMELTGCC_NOLINENUMBERING  $melt_cflags -I "$melt_headerdir" $csource
 	$melt_cc -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff.so;;
 *) 
 	libtool --mode=compile -prefer-pic $melt_cc $csource  -I "$melt_headerdir" -o $nakedynstuff.lo;

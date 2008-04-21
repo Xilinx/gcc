@@ -1,5 +1,18 @@
 ;; -*- lisp -*-
 
+
+(defun testlambdatwo (f g x y)
+  (f 
+   (lambda (u) 
+    (g x u))
+   y))
+
+
+
+(defun testlambda  (f_cl)
+  (lambda (y_arg) 
+    (f_cl y_arg)))
+
 (defun testandsetq (v w :long i j)
   (if 
       (and i j)
@@ -126,7 +139,6 @@
     (puts "has boxint"))
 
 (puts "end test0")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #| ; SKIPPING
 ; SKIPPED |#

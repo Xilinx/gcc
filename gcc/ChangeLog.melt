@@ -1,5 +1,15 @@
 2008-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
-	[first sucessful compilation of warm-basilys.bysl by a cold-compiled version of itself]
+	* Makefile.in: added warm-basilys1 & warm-basilys2 & cleaning
+
+	* melt/warm-basilys.bysl: normalization of lambda should introduce a binding.
+	still buggy : test1.bysl hits new assert compilobj_nrep_apply check ocomp not objinstr
+
+	* melt-cc-script.proto: added quick -fsyntax-only run without linenumbering
+
+2008-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	[first sucessful compilation of warm-basilys.bysl by a
+	cold-compiled version of itself; but the generated C code is
+	syntactically incorrect]
 
 	* params.def: increased PARAM_BASILYS_MINOR_ZONE
 
