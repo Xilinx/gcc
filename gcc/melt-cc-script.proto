@@ -63,8 +63,9 @@ head $datf.c
 
 case `uname` in
 Linux|SunOS|Solaris) 
-	$melt_cc -fsyntax-only -DMELTGCC_NOLINENUMBERING  $melt_cflags -I "$melt_headerdir" $csource
-	$melt_cc -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff.so;;
+# we have temporarily a build of foo-n.so from foo.c without linenumbering
+	$melt_cc -Wall -fPIC -shared $melt_cflags -DMELTGCC_NOLINENUMBERING  -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff-n.so
+	$melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff.so;;
 *) 
 	libtool --mode=compile -prefer-pic $melt_cc $csource  -I "$melt_headerdir" -o $nakedynstuff.lo;
 	libtool --mode=compile -prefer-pic $melt_cc $datf.c -o $datf.lo

@@ -1,4 +1,16 @@
 2008-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	[warm-basilys1 still fail by crashing to compile test1, but is syntactically correct C code]
+
+	* Makefile.in: added compilation of test1 by warm-basilys1.c itself produced by coldbuild-warm-basilys.c 
+	on warm-basilys.bysl
+
+	* melt-cc-script.proto: added [temporarily?] the build of foo-n.so from foo.c
+
+	* melt/warm-basilys.bysl: quoted string constants are with make_stringconst.
+	in normalization of progn unsafe_get_field setq generate a variable for the result.
+	various output_c_code routines avoid outputing non objinstr code hence less generation of useless code.
+
+2008-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added warm-basilys1 & warm-basilys2 & cleaning
 
 	* melt/warm-basilys.bysl: normalization of lambda should introduce a binding.

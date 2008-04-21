@@ -303,7 +303,7 @@
 ;;;;;; STRBUF primitives
 ;; primitive to make a strbuf
 (defprimitive make_strbuf (discr) :value
-  "basilysgc_new_strbuf((" discr "), (char*)0)")
+  "basilysgc_new_strbuf((basilysobject_ptr_t)(" discr "), (char*)0)")
 (defprimitive strbuf_usedlength (sbuf) :long
   "basilys_strbuf_usedlength((" sbuf "))")
 
@@ -390,7 +390,7 @@
   "(basilysgc_new_stringdup((void*)(" dis "), basilys_strbuf_str((" sbuf "))))")
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
- "(basilysgc_new_string_nakedbasename((" dis "), basilys_string_str((" str "))))")
+ "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((" str "))))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; OBJECT primitives
@@ -410,26 +410,26 @@
  "((" mul ") == NULL || (basilys_magic_discr((" mul  ")) == OBMAG_MULTIPLE))")
 ;;; make
 (defprimitive make_multiple (discr :long ln) :value
-  "(basilysgc_new_multiple((" discr "), (" ln ")))")
+  "(basilysgc_new_multiple((basilysobject_ptr_t)(" discr "), (" ln ")))")
 (defprimitive make_tuple1 (discr v1) :value
-  "(basilysgc_new_mult1((" discr "),(" v1 ")))")
+  "(basilysgc_new_mult1((basilysobject_ptr_t)(" discr "),(" v1 ")))")
 (defprimitive make_tuple2 (discr v1 v2) :value
-  "(basilysgc_new_mult2((" discr "),(" v1 "), (" v2 ")))")
+  "(basilysgc_new_mult2((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2 ")))")
 (defprimitive make_tuple3 (discr v1 v2 v3) :value
-  "(basilysgc_new_mult3((" discr "),(" v1 "), (" v2  "), (" v3 ")))")
+  "(basilysgc_new_mult3((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3 ")))")
 (defprimitive make_tuple4 (discr v1 v2 v3 v4) :value
-  "(basilysgc_new_mult4((" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4 ")))")
+  "(basilysgc_new_mult4((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4 ")))")
 (defprimitive make_tuple5 (discr v1 v2 v3 v4 v5) :value
-  "(basilysgc_new_mult5((" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4  "), (" v5 ")))")
+  "(basilysgc_new_mult5((basilysobject_ptr_t)(" discr "),(" v1 "), (" v2  "), (" v3  "), (" v4  "), (" v5 ")))")
 ;; primitive to get the nth  in a multiple
 (defprimitive multiple_nth (mul :long n) :value
-    "(basilys_multiple_nth((" mul "), (" n ")))")
+    "(basilys_multiple_nth((void*)(" mul "), (" n ")))")
 ;; primitive to get the length of a multiple
 (defprimitive multiple_length (v) :long
-  "(basilys_multiple_length((" v ")))")
+  "(basilys_multiple_length((void*)(" v ")))")
 ;; be careful to avoid circularities
 (defprimitive multiple_put_nth (mul :long n :value v) :void
-  " basilysgc_multiple_put_nth((" mul "), (" n "), (" v "))")
+  " basilysgc_multiple_put_nth((void*)(" mul "), (" n "), (void*)(" v "))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MAPOBJECTs primitives
@@ -438,19 +438,19 @@
  "(basilys_magic_discr((" map  ")) == OBMAG_MAPOBJECTS)")
 ;; primitive to get the allocated size of a mapobject
 (defprimitive mapobject_size (map) :long
-  "(basilys_size_mapobjects(" map "))")
+  "(basilys_size_mapobjects((void*)(" map ")))")
 ;; primitive to get the attribute count of a mapobject
 (defprimitive mapobject_count (map) :long
-  "(basilys_count_mapobjects(" map "))")
+  "(basilys_count_mapobjects((void*)(" map ")))")
 ;; primitive to get the nth attribute of a mapobject
 (defprimitive mapobject_nth_attr (map :long n) :value
-  "(basilys_nthattr_mapobjects((" map "), (int)(" n ")))")
+  "(basilys_nthattr_mapobjects((void*)(" map "), (int)(" n ")))")
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapobject_nth_val (map :long n) :value
-  "(basilys_nthval_mapobjects((" map "), (int)(" n ")))")
+  "(basilys_nthval_mapobjects((void*)(" map "), (int)(" n ")))")
 ;; primitive to get the value of an attribute in a mapobject
 (defprimitive mapobject_get (map attr) :value
-  "(basilys_get_mapobjects((" map "), (" attr ")))")
+  "(basilys_get_mapobjects((void*)(" map "), (" attr ")))")
 ;; primitive for making a new map of objects
 (defprimitive make_mapobject (discr :long len) :value
   " (basilysgc_new_mapobjects( (void*) (" discr "), (" len ")))")
@@ -473,17 +473,17 @@
   "(basilys_count_mapstrings(" map "))")
 ;; get an entry in a mapstring from a C string
 (defprimitive mapstring_rawget (map :cstring cstr) :value
-  "(basilys_get_mapstrings((" map "), (" cstr ")))")
+  "(basilys_get_mapstrings((void*)(" map "), (" cstr ")))")
 ;; primitive for making a new map of strings
 (defprimitive make_mapstring (discr :long len) :value
-  " (basilysgc_new_mapstrings( (void*) (" discr "), (" len ")))")
+  " (basilysgc_new_mapstrings( (basilysobject_ptr_t) (" discr "), (" len ")))")
 ;; primitive for putting into a map of strings
 (defprimitive mapstring_rawput (map :cstring key :value val) :void
  " basilysgc_put_mapstrings( (void*) (" map "), (" key "), (" val "))")
 (defprimitive mapstring_putstr (map keystr val) :void
   " basilysgc_put_mapstrings((void*) (" map "), basilys_string_str(" keystr "), (" val "))")
 (defprimitive mapstring_getstr (map keystr) :value
-  "(basilys_get_mapstrings((" map "), basilys_string_str(" keystr ")))")
+  "(basilys_get_mapstrings((void*)(" map "), basilys_string_str(" keystr ")))")
 ;; primivite for removing from a map of strings
 (defprimitive mapstring_rawremove (map :cstring key) :void
   " basilysgc_remove_mapstrings( (void*) (" map "), (" key "))")
@@ -571,7 +571,7 @@
   "(basilysgc_popfirst_list((" li ")))")
 ;; make list
 (defprimitive make_list (discr) :value
-"(basilysgc_new_list((" discr ")))")
+"(basilysgc_new_list((void*)(" discr ")))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; PAIR primitives
 ;; test
@@ -838,7 +838,7 @@
   :predef CTYPE_CSTRING
   :named_name  (stringconst2val discr_namestring "CTYPE_CSTRING")
   :ctype_keyword ':cstring
-  :ctype_cname  (stringconst2val discr_namestring "char*")
+  :ctype_cname  (stringconst2val discr_namestring "const char*")
   :ctype_parchar (stringconst2val discr_namestring "BPAR_CSTRING")
   :ctype_parstring (stringconst2val discr_namestring "BPARSTR_CSTRING")
   :ctype_argfield (stringconst2val discr_namestring "bp_cstring")
@@ -4836,7 +4836,7 @@
 	      (list_every 
 	       nbindcur
 	       (lambda (b) (put_env newenv b)))
-	      (let ( (csym (clone_symbol '_progn_))
+	      (let ( (csym (clone_symbol 'prognbody_))
 		     ;; no need of a lococc
 		     (ctypcur (get_ctype ncur newenv)) 
 		     (cbind (make_instance class_normlet_binding
@@ -4855,12 +4855,27 @@
      (nlast nbindlast)
      (normal_exp slast env ncx sloc)
      (assert_msg "check nbindlast" (is_list_or_null nbindlast))
-     (return (make_instance class_nrep_progn
-			    :nrep_loc sloc
-			    :nprogn_seq nseq
-			    :nprogn_last nlast)
-	     nbindlast)
-     )))
+     (if (null nbindlast) (setq nbindlast (make_list discr_list)))
+     (let (
+	   (csym (clone_symbol 'progn_))
+	   (lastctyp (get_ctype nlast env))
+	   (cbind (make_instance class_normlet_binding
+				 :binder csym
+				 :letbind_loc sloc
+				 :letbind_type lastctyp
+				 :letbind_expr (make_instance class_nrep_progn
+							      :nrep_loc sloc
+							      :nprogn_seq nseq
+							      :nprogn_last nlast)))
+	   (clocc (make_instance class_nrep_locsymocc
+				 :nrep_loc sloc
+				 :nocc_ctyp lastctyp
+				 :nocc_symb csym
+				 :nocc_bind cbind))
+	   )
+       (list_append nbindlast cbind)
+       (return clocc nbindlast)
+       ))))
 (install_method class_src_progn normal_exp normexp_progn)
 (install_method class_nrep_progn get_ctype 
 		(lambda (recv env) (get_ctype (unsafe_get_field :nprogn_last recv) env)))
@@ -4972,17 +4987,33 @@
   (debugmsg recv "normexp unsafeget" recv (the_callcount))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sobj   (unsafe_get_field :suget_obj recv))
-	 (sfld   (unsafe_get_field :suget_field recv)) ) 
+	 (sfld   (unsafe_get_field :suget_field recv)) 
+	 ) 
     (assert_msg "check sfld" (is_a sfld class_field))
     (multicall
      (nobj nbind)
      (normal_exp sobj env ncx sloc)
-     (return (make_instance class_nrep_unsafe_get_field
-			    :nrep_loc sloc
-			    :nuget_obj nobj
-			    :nuget_field sfld)
-	     nbind
-	     ))))
+     (if (null nbind) (setq nbind (make_list discr_list)))
+     (let ( (csym (clone_symbol (unsafe_get_field :named_name sfld)))
+	    (cbind (make_instance class_normlet_binding
+				  :binder csym
+				  :letbind_loc sloc
+				  :letbind_type ctype_value
+				  :letbind_expr 
+				  (make_instance class_nrep_unsafe_get_field
+						 :nrep_loc sloc
+						 :nuget_obj nobj
+						 :nuget_field sfld)))
+	    (clocc (make_instance  class_nrep_locsymocc
+				   :nrep_loc sloc
+				   :nocc_ctyp ctype_value
+				   :nocc_symb csym
+				   :nocc_bind cbind))
+	    )
+       (list_append nbind cbind)
+       (return 
+	clocc nbind
+	)))))
 (install_method class_src_unsafe_get_field normal_exp normexp_unsafe_get_field)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5042,19 +5073,35 @@
 	 (svar   (unsafe_get_field :sstq_var recv))
 	 (sexp   (unsafe_get_field :sstq_expr recv)) ) 
     (assert_msg "check svar" (is_a svar class_symbol))
-    (let ( (nvar (normexp_symbol svar env ncx sloc)) )
+    (let ( (nvar (normexp_symbol svar env ncx sloc)) 
+	   (varctyp (get_ctype nvar env))
+	   )
       (multicall
        (nexp nbind)
        (normal_exp sexp env ncx sloc)
-       (if (!= (get_ctype nvar env) (get_ctype nexp env))
+       (if (null nbind) (setq nbind (make_list discr_list)))
+       (if (!= varctyp (get_ctype nexp env))
 	   (error_strv sloc "incompatible type for SETQ"
 		       (unsafe_get_field :named_name svar)))
-       (return (make_instance class_nrep_setq
-			      :nrep_loc sloc
-			      :nstq_var nvar
-			      :nstq_exp nexp)
-	       nbind
-	       )))))
+       (let ( (csym (clone_symbol 'setq_)) 
+	      (cbind  (make_instance class_normlet_binding
+				     :binder csym
+				     :letbind_loc sloc
+				     :letbind_type varctyp
+				     :letbind_expr
+				     (make_instance class_nrep_setq
+						    :nrep_loc sloc
+						    :nstq_var nvar
+						    :nstq_exp nexp)))
+	      (clocc (make_instance class_nrep_locsymocc
+				    :nrep_loc sloc
+				    :nocc_ctyp varctyp
+				    :nocc_symb csym
+				    :nocc_bind cbind))
+	      )
+	 (list_append nbind cbind)
+	 (return clocc nbind)
+	 )))))
 (install_method class_src_setq normal_exp normexp_setq)
 (install_method class_nrep_setq get_ctype 
 		(lambda (recv env)
@@ -5107,9 +5154,21 @@
 			   :nmins_class sclass
 			   :nmins_cladata cladata
 			   :nmins_fields nfields))
+	   (csym (clone_symbol 'inst_))
+	   (cbind (make_instance class_normlet_binding
+				 :binder csym
+				 :letbind_loc sloc
+				 :letbind_type ctype_value
+				 :letbind_expr nmkins))
+	   (clocc (make_instance class_nrep_locsymocc
+				 :nrep_loc sloc
+				 :nocc_ctyp ctype_value
+				 :nocc_symb csym
+				 :nocc_bind cbind))
 	   )
-      (debugmsg nmkins "normexp_make_instance result nmkins" (the_callcount))
-      (return nmkins bindlist)
+      (list_append bindlist cbind)
+      (debugmsg clocc "normexp_make_instance result clocc" (the_callcount))
+      (return clocc bindlist)
       )
     )
   )
@@ -7517,24 +7576,27 @@
 (defun outpucod_objloop (oblo declbuf implbuf :long depth)
   (assert_msg "check oblo" (is_a oblo class_objloop))
   (debugmsg oblo "outpucod_objloop oblo" (the_callcount))
-  (output_location (unsafe_get_field :obi_loc oblo) implbuf depth "loop")
   (let ( (bodyl (unsafe_get_field :oblo_bodyl oblo))
 	 (epil (unsafe_get_field :oblo_epil oblo)) 
 	 (lab (unsafe_get_field :obloop_label oblo))
+	 (oloc (unsafe_get_field :obi_loc oblo))
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
     (assert_msg "check lab" (is_a lab class_clonedsymbol))
+    (output_location oloc implbuf depth "loop")
     (add2sbuf_strconst implbuf "/*loop*/{ labloop_")
     (add2sbuf_clonsym implbuf lab)
     (add2sbuf_strconst implbuf ":;")
     (if (is_list bodyl)
 	(progn
+	  (output_location oloc implbuf depth "loopbody")
 	  (add2sbuf_indentnl implbuf (+i depth 1))
 	  (list_every
 	   bodyl
 	   (lambda (curbody)
 	     (let ( (:long depthp1 (get_int boxdepthp1)) )
-	       (output_c_code curbody declbuf implbuf depthp1)
+	       (if (is_a curbody class_objinstr) 
+		   (output_c_code curbody declbuf implbuf depthp1))
 	       (add2sbuf_strconst implbuf ";")
 	       (add2sbuf_indentnl implbuf depthp1))))))
     (add2sbuf_strconst implbuf ";")
@@ -7548,13 +7610,15 @@
     (add2sbuf_strconst implbuf ":;")
     (if (is_list epil)
 	(progn
+	  (output_location oloc implbuf depth "loopepilog")
 	  (add2sbuf_strconst implbuf "/*loopepilog*/")
 	  (add2sbuf_indentnl implbuf (+i depth 1))
 	  (list_every
 	   epil
 	   (lambda (curepil)
 	     (let ( (:long depthp1 (get_int boxdepthp1)) )
-	       (output_c_code curepil declbuf implbuf depthp1)
+	       (if (is_a curepil class_objinstr) 
+		   (output_c_code curepil declbuf implbuf depthp1))
 	       (add2sbuf_strconst implbuf ";")
 	       (add2sbuf_indentnl implbuf depthp1))))))
     (add2sbuf_strconst implbuf "}")
@@ -7569,24 +7633,26 @@
 (defun outpucod_objexit (obxi declbuf implbuf :long depth)
   (assert_msg "check obxi" (is_a obxi class_objexit))
   (debugmsg obxi "outpucod_objexit obxi" (the_callcount))
-  (output_location (unsafe_get_field :obi_loc obxi) implbuf depth "exit")
   (let ( (olab (unsafe_get_field :obexit_label obxi))
+	 (loc (unsafe_get_field :obi_loc obxi))
 	 (oprolog (unsafe_get_field :obexit_prolog obxi)) )
     (assert_msg "check olab" (is_a olab class_clonedsymbol))
+    (output_location loc implbuf depth "exit")
     (add2sbuf_strconst implbuf "/*exit*/{")
     (add2sbuf_indentnl implbuf depth)
     (if (is_a oprolog class_objinstr)
 	(progn
-	(output_c_code oprolog declbuf implbuf (+i depth 1))
-	(add2sbuf_strconst implbuf ";")
-	(add2sbuf_indentnl implbuf (+i depth 1))
-	))
+	  (output_location loc implbuf depth "exitprolog")
+	  (output_c_code oprolog declbuf implbuf (+i depth 1))
+	  (add2sbuf_strconst implbuf ";")
+	  (add2sbuf_indentnl implbuf (+i depth 1))
+	  ))
     (add2sbuf_strconst implbuf ";")
     (add2sbuf_strconst implbuf " goto labexit_")
     (add2sbuf_clonsym implbuf olab)	
     (add2sbuf_strconst implbuf ";}")
     (add2sbuf_indentnl implbuf depth)    
-))
+    ))
 (install_method class_objexit output_c_code outpucod_objexit)
 
 ;;; output code for objcompute
@@ -7629,12 +7695,16 @@
     (output_c_code ctest declbuf implbuf (+i depth 1))
     (add2sbuf_strconst implbuf ") /*then*/ {")
     (add2sbuf_indentnl implbuf depth)
-    (output_c_code cthen declbuf implbuf (+i depth 1))
-    (add2sbuf_strconst implbuf ";")
-    (add2sbuf_indentnl implbuf depth)
-    (if celse 
+    (if (is_a cthen class_objinstr) 
 	(progn
-	  (add2sbuf_indentnl implbuf depth)
+	  (output_location cloc implbuf depth "cond.then")
+	  (output_c_code cthen declbuf implbuf (+i depth 1))
+	  (add2sbuf_strconst implbuf ";")
+	  ))
+    (add2sbuf_indentnl implbuf depth)
+    (if (is_a celse class_objinstr)
+	(progn
+	  (output_location cloc implbuf depth "cond.else")
 	  (add2sbuf_strconst implbuf "} else {")
 	  (add2sbuf_indentnl implbuf (+i depth 1))
 	  (output_c_code celse declbuf implbuf (+i depth 1))
@@ -8246,7 +8316,7 @@
     (output_c_code ooff declbuf implbuf depth)
     (if (is_a ofield class_field)
 	(progn
-	  (add2sbuf_strconst implbuf "/*")
+	  (add2sbuf_strconst implbuf " /*")
 	  (add2sbuf_string implbuf (unsafe_get_field :named_name ofield))
 	  (add2sbuf_strconst implbuf "*/")))
     (add2sbuf_strconst implbuf "] = ")
@@ -9228,11 +9298,11 @@
 		  (tcont 
 		   (make_tuple5 
 		    discr_multiple
-		    (make_string discr_verbatimstring "/*multacc*/(basilys_multiple_nth((")
+		    (make_stringconst discr_verbatimstring "/*multacc*/(basilys_multiple_nth((")
 		    cmul
-		    (make_string discr_verbatimstring "), (")
+		    (make_stringconst discr_verbatimstring "), (")
 		    ix
-		    (make_string discr_verbatimstring ")))")
+		    (make_stringconst discr_verbatimstring ")))")
 		    ))
 		  (res 
 		   (make_instance class_objexpv
@@ -9281,11 +9351,11 @@
 	    (let ( 
 		  (tcont 
 		    (make_tuple5 discr_multiple  
-				 (make_string discr_verbatimstring "/*fieldacc*/(basilys_field_object((")
+				 (make_stringconst discr_verbatimstring "/*fieldacc*/(basilys_field_object((")
 				 cobj
-				 (make_string discr_verbatimstring "),")
+				 (make_stringconst discr_verbatimstring "),")
 				 boxfldoff
-				 (make_string discr_verbatimstring "))")
+				 (make_stringconst discr_verbatimstring "))")
 				 )) 
 		   (res 
 		    (make_instance class_objexpv

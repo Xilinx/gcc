@@ -4696,6 +4696,16 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl -frandom-seed=AbCdEfGhIj
 	cp warm-basilys.c warm-basilys1.c
 	./built-melt-cc-script warm-basilys1.c warm-basilys1.so
+#warmcompile test1 using warm-basilys1
+	-@echo warmbasilys1 compiling test1
+	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
+	   -fbasilys-init=warm-basilys1.so \
+	 -fbasilys-dynlibdir=. \
+	 -fbasilys-compile-script=built-melt-cc-script \
+  	 -fbasilys-gensrcdir=. \
+	 -fbasilys-tempdir=. \
+	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/test1.bysl -frandom-seed=AbCdEfGhIj
+	./built-melt-cc-script test1.c test1.so
 ## warmcompile warm-basilys itself with itself
 	-@echo warmbasilys1 compiling warmbasilys
 	time ./cc1-melt$(exeext) -fbasilys $(BASILYSDEBUG)  \
