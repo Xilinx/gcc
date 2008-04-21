@@ -1,4 +1,7 @@
 2008-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: added compilation of test0 by warm-basilys1.c itself
+
+2008-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	[warm-basilys1 still fail by crashing to compile test1, but is syntactically correct C code]
 
 	* Makefile.in: added compilation of test1 by warm-basilys1.c itself produced by coldbuild-warm-basilys.c 
