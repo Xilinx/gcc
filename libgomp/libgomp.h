@@ -222,20 +222,31 @@ struct gomp_thread
 
 typedef struct gomp_stream
 {
+  /* Offset in bytes of the sliding reading window.  Read window is of
+     size LOCAL_BUFFER_SIZE bytes.  */
+  unsigned read_buffer_index;
+
+  /* Offset in bytes of the first used element in the stream.  */
+  unsigned read_index;
+
+  /* Offset in bytes of the sliding writing window.  Writing window is
+     of size LOCAL_BUFFER_SIZE bytes.  */
+  unsigned write_buffer_index;
+
+  /* Offset in bytes of the first empty element in the stream.  */
+  unsigned write_index;
+
+  /* Size in bytes of sub-buffers for unsynchronized reads and writes.  */
+  unsigned size_local_buffer;
+
   /* End of stream: true when producer has finished inserting elements.  */
   bool eos_p;
 
-  /* First element of the stream.  */
-  unsigned first;
-
-  /* First empty element of the stream.  */
-  unsigned last;
-
   /* Size in bytes of an element in the stream.  */
-  size_t size;
+  size_t size_elt;
 
-  /* Size in bytes of the circular buffer.  */
-  unsigned count;
+  /* Number of bytes in the circular buffer.  */
+  unsigned capacity;
 
   /* Circular buffer.  */
   char *buffer;

@@ -1,5 +1,12 @@
 2008-03-15  Antoniu Pop  <antoniu.pop@gmail.com>
             Sebastian Pop  <sebastian.pop@amd.com>
+            Jan Sjodin  <jan.sjodin@amd.com>
+
+	* stream.c, libgomp.h: Support for read/write sliding windows
+	in streams.
+
+2008-03-15  Antoniu Pop  <antoniu.pop@gmail.com>
+            Sebastian Pop  <sebastian.pop@amd.com>
 
 	* libgomp/libgomp_g.h (GOMP_stream_align_push,
 	GOMP_stream_align_pop): Declared.

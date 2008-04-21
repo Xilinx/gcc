@@ -33,77 +33,102 @@
 #include <string.h>
 #include <sched.h>
 
-/* Returns a new stream of COUNT elements of SIZE bytes.  */
+/* Set to L1 line cache size.  */
+#define SIZE_LOCAL_BUFFER 64
+
+/* Returns a new stream of COUNT * SIZE_LOCAL_BUFFER elements.  Each
+   element is of size SIZE bytes.  Returns NULL when the allocation
+   fails or when COUNT is less than 2.  */
 
 gomp_stream
 gomp_stream_create (size_t size, unsigned count)
 {
-  gomp_stream res = (gomp_stream) gomp_malloc (sizeof (struct gomp_stream));
+  gomp_stream s;
 
-  res->eos_p = false;
-  res->first = 0;
-  res->last = 0;
-  res->size = size;
-  res->count = count;
-  res->buffer = (char *) gomp_malloc (res->count * res->size);
+  /* There should be enough place for two sliding windows.  */
+  if (count < 2)
+    return NULL;
 
-  return res;
+  s = (gomp_stream) gomp_malloc (sizeof (struct gomp_stream));
+
+  if (!s)
+    return NULL;
+
+  s->eos_p = false;
+  s->read_buffer_index = 0;
+  s->write_buffer_index = 0;
+  s->write_index = 0;
+  s->read_index = 0;
+  s->size_elt = size;
+  s->size_local_buffer = SIZE_LOCAL_BUFFER;
+  s->capacity = count * s->size_local_buffer;
+  s->buffer = (char *) gomp_malloc (s->capacity);
+
+  if (!s->buffer)
+    {
+      free (s);
+      return NULL;
+    }
+
+  return s;
 }
-
-/* Returns the number of used elements in the stream S.  */
 
 static inline unsigned
-gomp_stream_used_space (gomp_stream s)
+next_window (gomp_stream s, unsigned index)
 {
-  return s->last - s->first;
+  unsigned next = index + s->size_local_buffer;
+  return ((next >= s->capacity) ? 0 : next);
 }
 
-/* Returns the number of unused element slots available in the buffer
-   of the stream S.  */
+static inline void 
+slide_read_window (gomp_stream s)
+{
+  unsigned next = next_window (s, s->read_buffer_index);
+
+  s->read_buffer_index = next;
+  s->read_index = next;
+}
+
+static inline void
+slide_write_window (gomp_stream s)
+{
+  unsigned next = next_window (s, s->write_buffer_index);
+
+  while (s->read_buffer_index == next)
+    sched_yield ();
+
+  s->write_buffer_index = next;
+  s->write_index = next;
+}
+
+/* Returns the number of read elements in the read sliding window of
+   stream S.  */
 
 static inline unsigned
-gomp_stream_free_space (gomp_stream s)
+read_bytes_in_read_window (gomp_stream s)
 {
-  return s->count - (s->last - s->first);
+  return s->read_index - s->read_buffer_index;
 }
 
-/* Wait until the number of elements in the stream S reaches COUNT.  */
+/* Returns the number of written elements in the write sliding window
+   of stream S.  */
 
-static inline void
-gomp_stream_wait_used_space (gomp_stream s, unsigned count)
+static inline unsigned
+written_bytes_in_write_window (gomp_stream s)
 {
-  while (gomp_stream_used_space (s) < count)
-    sched_yield ();
+  return s->write_index - s->write_buffer_index;
 }
-
-/* Wait until the available space in the stream S reaches COUNT.  */
-
-static inline void
-gomp_stream_wait_free_space (gomp_stream s, unsigned count)
-{
-  while (gomp_stream_free_space (s) < count)
-    sched_yield ();
-} 
 
 /* Push element ELT to stream S.  */
 
 void
 gomp_stream_push (gomp_stream s, char *elt)
 {
-  gomp_stream_wait_free_space (s, 1);
-  memcpy (&(s->buffer[s->last]), elt, s->size);
-  s->last = (s->last + 1) % s->count;
-} 
+  if (written_bytes_in_write_window (s) + s->size_elt > s->size_local_buffer)
+    slide_write_window (s);
 
-/* Returns in RES the first element of the stream S.  This will not
-   remove or copy the element, so a call to gomp_stream_release will
-   be required.  */
-
-char *
-gomp_stream_head (gomp_stream s)
-{
-  gomp_stream_wait_used_space (s, 1);
-  return &(s->buffer[s->first]);
+  memcpy (s->buffer + s->write_index, elt, s->size_elt);
+  s->write_index += s->size_elt;
 }
 
 /* Release from stream S the next element.  */
@@ -111,22 +136,49 @@ gomp_stream_head (gomp_stream s)
 void
 gomp_stream_pop (gomp_stream s)
 {
-  s->first = (s->first + 1) % s->count;
+  if (read_bytes_in_read_window (s) + 2 * s->size_elt > s->size_local_buffer)
+    slide_read_window (s);
+  else
+    s->read_index += s->size_elt;
 }
 
-/* Returns true when producer stopped to write to stream S.  */
+/* Wait until the producer has slided the write window in stream S.  */
+
+static inline void
+wait_used_space (gomp_stream s)
+{
+  while (s->read_buffer_index == s->write_buffer_index)
+    sched_yield ();
+}
+
+/* Returns the first element of the stream S.  Don't remove the
+   element: for that, a call to gomp_stream_pop is needed.  */
+
+char *
+gomp_stream_head (gomp_stream s)
+{
+  wait_used_space (s);
+  return s->buffer + s->read_index;
+}
+
+/* Returns true when there are no more elements to be read from the
+   stream S.  */
 
 bool
 gomp_stream_eos_p (gomp_stream s)
 {
-  return s->eos_p;
+  return (s->eos_p && (s->read_index == s->write_index));
 }
 
-/* Producer can set End Of Stream to stream S.  */
+/* Producer can set End Of Stream to stream S.  The producer has to
+   slide the write window if it wrote something.  */
 
 void
 gomp_stream_set_eos (gomp_stream s)
 {
+  if (written_bytes_in_write_window (s) > 0)
+    slide_write_window (s);
+
   s->eos_p = true;
 }
 
@@ -135,6 +187,10 @@ gomp_stream_set_eos (gomp_stream s)
 void
 gomp_stream_destroy (gomp_stream s)
 {
+  /* No need to synchronize here: the consumer that detects when eos
+     is set, and based on that it decides to destroy the stream.  */
+
+  free (s->buffer);
   free (s);
 }
 
@@ -149,7 +205,7 @@ gomp_stream_align_push (gomp_stream s, char *start, int count)
   for (i = 0; i < count; ++i)
     {
       gomp_stream_push (s, start);
-      start += s->size;
+      start += s->size_elt;
     }
 }
 
