@@ -1766,26 +1766,26 @@ basilysgc_add_strbuf_cident (struct basilysstrbuf_st
 {
   int slen = str ? strlen (str) : 0;
   char *dupstr = 0;
-  char *pc = 0;
+  char *ps = 0, *pd = 0;
   char tinybuf[80];
   if (!str || !str[0])
     return;
   if (slen < (int) sizeof (tinybuf) - 2)
     {
       memset (tinybuf, 0, sizeof (tinybuf));
-      if (str)
-	strcpy (tinybuf, str);
       dupstr = tinybuf;
     }
   else
-    {
-      dupstr = xcalloc (slen + 2, 1);
-      if (str)
-	strcpy (dupstr, str);
-    };
-  for (pc = dupstr; *pc; pc++)
-    if (!ISALNUM (*pc))
-      *pc = '_';
+    dupstr = xcalloc (slen + 2, 1);
+  if (str)
+    for (ps = str, pd = dupstr; *ps; ps++)
+      {
+	if (ISALNUM (*ps))
+	  *(pd++) = *ps;
+	else if (pd > dupstr && pd[-1] != '_')
+	  *(pd++) = '_';
+	pd[1] = (char) 0;
+      }
   basilysgc_add_strbuf_raw (strbuf_p, dupstr);
   if (dupstr && dupstr != tinybuf)
     free (dupstr);
@@ -1970,7 +1970,7 @@ basilysgc_new_raw_object (basilysobject_ptr_t klass_p, unsigned len)
     goto end;
   /* the sizeof below could be the offsetof obj__tabfields */
   newobjv =
-    basilysgc_allocate (sizeof(struct basilysobject_st),
+    basilysgc_allocate (sizeof (struct basilysobject_st),
 			len * sizeof (void *));
   obj_newobjv->obj_class = klassv;
   do
@@ -3770,9 +3770,9 @@ basilys_apply (basilysclosure_ptr_t clos_p,
 #if ENABLE_CHECKING
   applcount_basilys++;
   appldepth_basilys++;
-  if (appldepth_basilys > MAXDEPTH_APPLY_BASILYS) 
+  if (appldepth_basilys > MAXDEPTH_APPLY_BASILYS)
     {
-      basilys_dbgshortbacktrace("too deep applications", 100);
+      basilys_dbgshortbacktrace ("too deep applications", 100);
       fatal_error ("too deep (%d) basilys applications", appldepth_basilys);
     }
 #endif

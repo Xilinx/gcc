@@ -1,13 +1,23 @@
 ;; -*- lisp -*-
 
 
+
+(defclass my_class_root 
+ :predef CLASS_ROOT
+ :fields (root_f1 
+		  ))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#| ; SKIPPING
+
+(defun testifapp (f x y) 
+  (if x
+      (f x y)))
+
 (defun testlambdatwo (f g x y)
   (f 
    (lambda (u) 
     (g x u))
    y))
-
-
 
 (defun testlambda  (f_cl)
   (lambda (y_arg) 
@@ -50,10 +60,6 @@
 (defun testconstbox1 (xx) (if (is_integerbox xx) (boxint 2) ()))
 
 
-(defclass my_class_root 
- :predef CLASS_ROOT
- :fields (root_f1 ; root_f2
-		  ))
 
 (defclass my_class_named
   :super my_class_root
@@ -139,6 +145,4 @@
     (puts "has boxint"))
 
 (puts "end test0")
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#| ; SKIPPING
 ; SKIPPED |#

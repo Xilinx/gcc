@@ -26,7 +26,7 @@ melt_cc=":MELT_CC:"
 melt_cflags=":MELT_CFLAGS:"
 melt_headerdir=":MELT_HEADERDIR:"
 
-set -x
+#set -x
 ## script invoked by cc1 with two arguments : the generated C source to compile
 ## and the naked (without suffix) dynamically-loadable stuff to generate
 

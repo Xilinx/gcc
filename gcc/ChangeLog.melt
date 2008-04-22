@@ -1,3 +1,20 @@
+2008-04-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: (basilysgc_add_strbuf_cident) avoid adding several
+	consecutive '_' underscores.
+
+	* basilys.h: added comment about updating warm-basilys.bysl when
+	adding new predefs
+	
+	* Makefile.in: generates test0c.c etc...
+
+	* melt-cc-script.proto: removed -x flag.
+
+	* melt/warm-basilys.bysl: still buggy. Start adding some
+	global_DISCR* etc primitives to register predef by
+	names. Corrected wrong argument order to error_plain. More
+	locations in output of getarg. Should add more global_* stuff, or
+	generate it by some script (& also in basilys.h)
+	
 2008-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added compilation of test0 by warm-basilys1.c itself
 

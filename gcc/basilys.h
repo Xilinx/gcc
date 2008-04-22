@@ -1765,9 +1765,12 @@ basilys_ptr_t basilysgc_send (basilys_ptr_t recv,
 enum basilys_globalix_en
 {
   BGLOB__NONE,
-  /************************** wired predefined */
+  /************************* wired predefined */
+  /****@@@ MAYBE SHOULD GO IN A SEPARATE FILE??? ***/
   /***
-   * don't forget to fill these objects in basilys-init.bysl file
+   * don't forget to fill these objects in warm-basilys.bysl file
+   * and to define the appropriate global_* primitives near create_normcontext function
+   * e.g. (defprimitive global_DISCR_NULLRECV ....)
    ***/
   /* the pseudo discriminant using for sending to null pointers */
   BGLOB_DISCR_NULLRECV,
