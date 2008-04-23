@@ -49,7 +49,7 @@ struct graphite_bb
 struct loop_to_cloog_loop_str
 {
   unsigned int loop_num;
-  unsigned int loop_position; /* the column that represents this loop */
+  unsigned int loop_position; /* The column that represents this loop.  */
   CloogLoop *cloog_loop;
 };
 
@@ -124,14 +124,6 @@ extern void print_graphite_bb (FILE *, graphite_bb_p, int, int);
 extern void dot_scop (scop_p);
 extern void dot_all_scops (void);
 
-/* Return the number of parameters used in SCOP.  */
-
-static inline int
-scop_nb_params (scop_p scop)
-{
-  return VEC_length (name_tree, SCOP_PARAMS (scop));
-}
-
 /* Return the number of loops contained in SCOP.  */
 
 static inline int
@@ -140,12 +132,20 @@ scop_nb_loops (scop_p scop)
   return VEC_length (loop_p, SCOP_LOOP_NEST (scop));
 }
 
+/* Returns the number of parameters for SCOP.  */
+
+static inline unsigned
+nb_params_in_scop (scop_p scop)
+{
+  return VEC_length (name_tree, SCOP_PARAMS (scop));
+}
+
 /* Return the dimension of the domains for SCOP.  */
 
 static inline int
 scop_dim_domain (scop_p scop)
 {
-  return scop_nb_loops (scop) + scop_nb_params (scop) + 1;
+  return scop_nb_loops (scop) + nb_params_in_scop (scop) + 1;
 }
 
 /* Return the dimension of the domains for GB.  */
@@ -156,21 +156,28 @@ gbb_dim_domain (graphite_bb_p gb)
   return scop_dim_domain (GBB_SCOP (gb));
 }
 
-/* Returns the dimensionality of a loop iteration domain for 
-   a given loop (identified by LOOP_NUM) with a respect to a given SCoP (SCOP) */
+/* Returns the dimensionality of a loop iteration domain for a given
+   loop, identified by LOOP_NUM, with respect to SCOP.  */
 
 static inline int
 loop_domain_dim (unsigned int loop_num, scop_p scop)
 {
   struct loop_to_cloog_loop_str tmp, *slot; 
-  
+  htab_t tab = SCOP_LOOP2CLOOG_LOOP (scop);
+
   tmp.loop_num = loop_num;
-  slot = (struct loop_to_cloog_loop_str *) htab_find (SCOP_LOOP2CLOOG_LOOP(scop) , &tmp); 
+  slot = (struct loop_to_cloog_loop_str *) htab_find (tab, &tmp);
+
+  /* The loop containing the entry of the scop is not always part of
+     the SCoP, and it is not registered in SCOP_LOOP2CLOOG_LOOP.  */
+  if (!slot)
+    return nb_params_in_scop (scop) + 2;
+
   return slot->cloog_loop->domain->polyhedron->Dimension + 2;
 }
 
-/* Returns the dimensionality of a enclosing loop iteration domain with respect to
-   enclosing ScoP for a given  data reference (REF) */
+/* Returns the dimensionality of an enclosing loop iteration domain
+   with respect to enclosing SCoP for a given data reference REF.  */
 
 static inline int
 ref_nb_loops (data_reference_p ref)
@@ -178,13 +185,14 @@ ref_nb_loops (data_reference_p ref)
   return loop_domain_dim (loop_containing_stmt (DR_STMT (ref))->num, DR_SCOP (ref));
 }
 
-/* Returns the dimensionality of a loop iteration vector in a  loop iteration domain for 
-   a given loop (identified by LOOP_NUM) with a respect to a given SCoP (SCOP) */
+/* Returns the dimensionality of a loop iteration vector in a loop
+   iteration domain for a given loop (identified by LOOP_NUM) with
+   respect to SCOP.  */
 
 static inline int
 loop_iteration_vector_dim (unsigned int loop_num, scop_p scop)
 {
-  return loop_domain_dim (loop_num, scop) - 2 - scop_nb_params (scop);
+  return loop_domain_dim (loop_num, scop) - 2 - nb_params_in_scop (scop);
 }
 
 /* Returns the index of LOOP in the domain matrix for the SCOP.  */

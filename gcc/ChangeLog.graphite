@@ -1,3 +1,47 @@
+2008-04-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (nb_params_in_scop): Moved...
+	(graphite_bb_from_bb, loop_body_to_cloog_stmts): New.
+	(setup_cloog_loop): Call loop_body_to_cloog_stmts.
+	(clast_to_gcc_expression): Reduce column size to less than 80.
+	(graphite_create_iv): Return the new name of the IV.
+	(find_transform): Set options->esp and options->cpp.
+	(gloog): Comment out the invalidation of the old loop code.
+	(initialize_dependence_polyhedron): Replace scop_nb_params with
+	nb_params_in_scop.
+
+	* graphite.h (nb_params_in_scop): ... here.
+	(scop_nb_params): Removed.
+	(loop_domain_dim): Return something even when the loop was not
+	found in the hash table: avoid ICEing on all the graphite.exp
+	testcases.
+
+2008-04-14  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+	* tree-chrec.c (for_each_scev_op): SCEV can have 3 operands.
+
+	* graphite.c (build_scop_dynamic_schedules): Schedule is built
+	according to nesting level.
+	(find_scop_parameters): Call instantiate_parameters.
+	(scan_tree_for_params): Extend it to handle general affine bounds.
+	Inner loop bound can depend on outer loop induction variable.
+	(setup_cloog_loop): tmp variable is allocated on stack. Call
+	instantiate_parameters with respect to outermost_loop_in_scop.
+	(loop_domain_dim, ref_nb_loops, loop_iteration_vector_dim): moved to 
+	graphite.h.
+	(create_empty_loop): Function loopify should be given edge
+	probability, instead of edge frequency. Dominance relation from
+	switch_bb to loop_header.
+	(clast_to_gcc_expression): Added handling of clast_reduction node.
+	(gloog): New functionality for removing old loop.
+	(test_dependence): Factored out from build_rdg_all_levels.
+	(build_rdg_all_levels): Dependence testing factored out to
+	test_dependence function.
+
+	* graphite.h (struct graphite_bb): Extended with dynamic_schedule.
+	(loop_domain_dim, ref_nb_loops, loop_iteration_vector_dim): Moved
+	from graphite.c
+
 2008-04-07  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (free_scop, param_index, initialize_cloog_names,

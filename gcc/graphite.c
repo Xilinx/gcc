@@ -1162,14 +1162,6 @@ find_scop_parameters (scop_p scop)
   initialize_cloog_names (scop);
 }
 
-/* Returns the number of parameters for SCOP.  */
-
-static inline unsigned
-nb_params_in_scop (scop_p scop)
-{
-  return VEC_length (name_tree, SCOP_PARAMS (scop));
-}
-
 /* Build the context constraints for SCOP: constraints and relations
    on parameters.  */
 
@@ -1333,6 +1325,52 @@ nb_loops_around_gb (graphite_bb_p gb)
   return d;
 }
 
+/* Returns a graphite_bb from BB.  */
+
+static graphite_bb_p
+graphite_bb_from_bb (basic_block bb, scop_p scop)
+{
+  graphite_bb_p gb;
+  unsigned i;
+
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+    if (GBB_BB (gb) == bb)
+      return gb;
+
+  gcc_unreachable ();
+  return NULL;
+}
+
+/* Returns the body of LOOP as a CloogStatement chain.  */
+
+static CloogStatement *
+loop_body_to_cloog_stmts (struct loop *loop, scop_p scop)
+{
+  basic_block *bbs = get_loop_body (loop);
+  CloogStatement *prev = NULL;
+  CloogStatement *res = NULL;
+  static int number = 0;
+  unsigned i;
+
+  /* For each bb in the loop, create a CloogStatement.  */
+  for (i = 0; i < loop->num_nodes; i++)
+    if (bbs[i]->loop_father == loop)
+      {
+	CloogStatement *stmt = cloog_statement_alloc (number++);
+
+	if (prev)
+	  prev->next = stmt;
+	else
+	  res = stmt;
+
+	stmt->usr = graphite_bb_from_bb (bbs[i], scop);
+	prev = stmt;
+      }
+
+  free (bbs);
+  return res;
+}
+
 /* Converts LOOP in SCOP to cloog's format.  NB_OUTER_LOOPS is the
    number of loops surrounding LOOP in SCOP.  OUTER_CSTR gives the
    constraints matrix for the surrounding loops.  */
@@ -1342,7 +1380,7 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
 		  int nb_outer_loops)
 {
   unsigned i, j, row;
-  CloogStatement *statement;
+  CloogStatement *stmt;
   CloogMatrix *cstr;
   struct loop_to_cloog_loop_str tmp;
   PTR *slot;
@@ -1455,15 +1493,13 @@ setup_cloog_loop (scop_p scop, struct loop *loop, CloogMatrix *outer_cstr,
       /* Append at the end of the res->next list.  */
       while (l->next)
 	l = l->next;
+
       l->next = setup_cloog_loop (scop, loop->next, outer_cstr, nb_outer_loops);
     }
 
-  {
-    static int number = 0;
-    statement = cloog_statement_alloc (number++);
-  }
+  stmt = loop_body_to_cloog_stmts (loop, scop);
 
-  res->block = cloog_block_alloc (statement, NULL, 0, NULL, nb_outer_loops + 1);
+  res->block = cloog_block_alloc (stmt, NULL, 0, NULL, nb_outer_loops + 1);
   
   return res;
 }
@@ -1755,39 +1791,36 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
             case clast_red_min:
             case clast_red_max:
               if (r->n == 1)
-                {
-                  return clast_to_gcc_expression (r->elts[0], type, new_ivs, params);
-                }
+		return clast_to_gcc_expression (r->elts[0], type, new_ivs, params);
+
             default:
               gcc_unreachable ();
           }
         break;
       }
-    case expr_bin:
+
+    case expr_bin: 
       {
 	struct clast_binary *b = (struct clast_binary *) e;
+	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
+	struct clast_expr *rhs = (struct clast_expr *) b->RHS;
+	tree tl = clast_to_gcc_expression (lhs, type, new_ivs, params);
+	tree tr = clast_to_gcc_expression (rhs, type, new_ivs, params);
 
 	switch (b->type)
 	  {
 	  case clast_bin_fdiv:
-	    return fold_build2 (FLOOR_DIV_EXPR, type,
-				clast_to_gcc_expression ((struct clast_expr *) b->LHS, type, new_ivs, params),
-				clast_to_gcc_expression ((struct clast_expr *) b->RHS, type, new_ivs, params));
+	    return fold_build2 (FLOOR_DIV_EXPR, type, tl, tr);
 
 	  case clast_bin_cdiv:
-	    return fold_build2 (CEIL_DIV_EXPR, type,
-				clast_to_gcc_expression ((struct clast_expr *) b->LHS, type, new_ivs, params),
-				clast_to_gcc_expression ((struct clast_expr *) b->RHS, type, new_ivs, params));
+	    return fold_build2 (CEIL_DIV_EXPR, type, tl, tr);
 
 	  case clast_bin_div:
-	    return fold_build2 (EXACT_DIV_EXPR, type,
-				clast_to_gcc_expression ((struct clast_expr *) b->LHS, type, new_ivs, params),
-				clast_to_gcc_expression ((struct clast_expr *) b->RHS, type, new_ivs, params));
+	    return fold_build2 (EXACT_DIV_EXPR, type, tl, tr);
 
 	  case clast_bin_mod:
-	    return fold_build2 (TRUNC_MOD_EXPR, type,
-				clast_to_gcc_expression ((struct clast_expr *) b->LHS, type, new_ivs, params),
-				clast_to_gcc_expression ((struct clast_expr *) b->RHS, type, new_ivs, params));
+	    return fold_build2 (TRUNC_MOD_EXPR, type, tl, tr);
+
 	  default:
 	    gcc_unreachable ();
 	  }
@@ -1800,7 +1833,7 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
   return NULL_TREE;
 }
 
-static void
+static tree
 graphite_create_iv (struct loop *loop, struct clast_expr *lb,
 		    tree stride, scop_p scop)
 {
@@ -1823,6 +1856,8 @@ graphite_create_iv (struct loop *loop, struct clast_expr *lb,
 
   standard_iv_increment_position (loop, &bsi, &insert_after);
   create_iv (nlb, stride, ivvar, loop, &bsi, insert_after, &ivvar, NULL);
+
+  return ivvar;
 }
 
 
@@ -1977,6 +2012,16 @@ find_transform (scop_p scop)
      we pass an incomplete program to cloog.  */
   options->language = LANGUAGE_C;
 
+  /* Enable complex equality spreading: removes dummy statements
+     (assignments) in the generated code which repeats the
+     substitution equations for statements.  This is useless for
+     GLooG. */
+  options->esp = 1;
+
+  /* Enable C pretty-printing mode: normalizes the substitution
+     equations for statements */
+  options->cpp = 1;
+
   /* Print the program we insert into cloog. */
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -1985,6 +2030,9 @@ find_transform (scop_p scop)
       fprintf (dump_file, "]\n");
     }
 
+  /* FIXME: before cloog_program_generate call:
+     cloog_program_scatter (p, scattering);  
+     Without such a call, there is a risk of having Cloog abort.  */
   prog = cloog_program_generate (SCOP_PROG (scop), options);
   stmt = cloog_clast_create (prog, options);
 
@@ -2000,6 +2048,7 @@ find_transform (scop_p scop)
   return stmt;
 }
 
+
 /* GIMPLE Loop Generator: generates loops from STMT in GIMPLE form for
    the given SCOP.  */
 
@@ -2013,16 +2062,17 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   block_stmt_iterator bsi;
   basic_block *bbs;
   unsigned nbbs;
-  loop = first_loop_in_scop (scop);
-  bbs = get_loop_body_in_dom_order (loop);
-  nbbs = loop->num_nodes;
-
-  cancel_loop_tree (loop); 
-  for (i = 0; i < nbbs; i++)
-    delete_basic_block (bbs[i]);
 
   if (0)
     {
+      loop = first_loop_in_scop (scop);
+      bbs = get_loop_body_in_dom_order (loop);
+      nbbs = loop->num_nodes;
+
+      cancel_loop_tree (loop); 
+      for (i = 0; i < nbbs; i++)
+	delete_basic_block (bbs[i]);
+
       bsi = bsi_start (split_edge (single_succ_edge (SCOP_ENTRY (scop))));
 
       for ( ; stmt; stmt = stmt->next)
@@ -2070,11 +2120,11 @@ initialize_dependence_polyhedron (scop_p scop,
   /* Adding 2 columns: one for the eq/neq column, one for constant
      term.  */
   
-  nb_params = scop_nb_params (scop);
+  nb_params = nb_params_in_scop (scop);
   nb_iter1 = domain1->NbColumns - 2 - nb_params;
   nb_iter2 = domain2->NbColumns - 2 - nb_params;
 
-  nb_cols = nb_iter1 + nb_iter2 + scop_nb_params (scop) + 2;
+  nb_cols = nb_iter1 + nb_iter2 + nb_params_in_scop (scop) + 2;
   nb_rows = domain1->NbRows + domain2->NbRows + DR_NUM_DIMENSIONS (a) 
             + 2 * MIN (nb_iter1, nb_iter2);
   dep_constraints = cloog_matrix_alloc (nb_rows, nb_cols);
