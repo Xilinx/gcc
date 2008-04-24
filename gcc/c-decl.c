@@ -2907,7 +2907,7 @@ shadow_tag_warned (const struct c_declspecs *declspecs, int warned)
 		   && (declspecs->const_p
 		       || declspecs->volatile_p
 		       || declspecs->restrict_p
-		       || declspecs->ea_p))
+		       || declspecs->address_space))
 	    {
 	      if (warned != 1)
 		pedwarn ("empty declaration with type qualifier "
@@ -2977,7 +2977,7 @@ shadow_tag_warned (const struct c_declspecs *declspecs, int warned)
   if (!warned && !in_system_header && (declspecs->const_p
 				       || declspecs->volatile_p
 				       || declspecs->restrict_p
-				       || declspecs->ea_p))
+				       || declspecs->address_space))
     {
       warning (0, "useless type qualifier in empty declaration");
       warned = 2;
@@ -3001,7 +3001,7 @@ quals_from_declspecs (const struct c_declspecs *specs)
   int quals = ((specs->const_p ? TYPE_QUAL_CONST : 0)
 	       | (specs->volatile_p ? TYPE_QUAL_VOLATILE : 0)
 	       | (specs->restrict_p ? TYPE_QUAL_RESTRICT : 0)
-	       | (specs->ea_p ? TYPE_QUAL_EA : 0));
+	       | (specs->address_space ? TYPE_QUAL_EA : 0));
   gcc_assert (!specs->type
 	      && !specs->decl_attr
 	      && specs->typespec_word == cts_none
@@ -4080,7 +4080,7 @@ grokdeclarator (const struct c_declarator *declarator,
   constp = declspecs->const_p + TYPE_READONLY (element_type);
   restrictp = declspecs->restrict_p + TYPE_RESTRICT (element_type);
   volatilep = declspecs->volatile_p + TYPE_VOLATILE (element_type);
-  ea_p = declspecs->ea_p + TYPE_EA (element_type);
+  ea_p = (declspecs->address_space > 0) + TYPE_EA (element_type);
   if (pedantic && !flag_isoc99)
     {
       if (constp > 1)
@@ -4123,7 +4123,7 @@ grokdeclarator (const struct c_declarator *declarator,
 	  || storage_class == csc_typedef)
 	storage_class = csc_none;
     }
-  else if (declspecs->ea_p)
+  else if (declspecs->address_space)
     {
       if (!targetm.have_ea)
 	{
@@ -7179,7 +7179,7 @@ build_null_declspecs (void)
   ret->volatile_p = false;
   ret->restrict_p = false;
   ret->saturating_p = false;
-  ret->ea_p = false;
+  ret->address_space = 0;
   return ret;
 }
 
@@ -7211,8 +7211,8 @@ declspecs_add_qual (struct c_declspecs *specs, tree qual)
       specs->restrict_p = true;
       break;
     case RID_EA:
-      dupe = specs->ea_p;
-      specs->ea_p = true;
+      dupe = (specs->address_space > 0);
+      specs->address_space = 1; /* __ea */
       break;
     default:
       gcc_unreachable ();

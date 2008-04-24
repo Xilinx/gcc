@@ -1,3 +1,20 @@
+2008-04-24  Ben Elliston  <bje@au.ibm.com>
+
+	* target.h (ea_pointer_mode): Rename to addr_space_pointer_mode.
+	* c-tree.h (struct c_declspecs): Remove ea_p, add address_space.
+	* c-decl.c: Access declspecs->address_space, not ->ea_p.
+	* tree.c: Update callers to targetm.addr_space_pointer_mode.
+	* fold-const.c: Likewise.
+	* expr.c: Likewise.
+	* convert.c: Likewise.
+	* varasm.c: Likewise.
+	(default_ea_pointer_mode): Rename from this ..
+	(default_addr_space_pointer_mode): .. to this.
+	* target-def.h (TARGET_EA_POINTER_MOE): Rename from this ..
+	(TARGET_ADDR_SPACE_POINTER_MODE): .. to this.
+	* output.h (default_ea_pointer_mode): Rename from this ..
+	(default_addr_space_pointer_mode): .. to this.
+
 2008-04-17  Ben Elliston  <bje@au.ibm.com>
 
 	* config/spu/spu.c: Various bug fixes.

@@ -1414,7 +1414,7 @@ integer_pow2p (const_tree expr)
     return 0;
 
   if (EA_POINTER_TYPE_P (TREE_TYPE (expr)))
-    prec = GET_MODE_BITSIZE (targetm.ea_pointer_mode ());
+    prec = GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1));
   else if (POINTER_TYPE_P (TREE_TYPE (expr)))
     prec = POINTER_SIZE;
   else
@@ -1484,7 +1484,7 @@ tree_log2 (const_tree expr)
     return tree_log2 (TREE_REALPART (expr));
 
   if (EA_POINTER_TYPE_P (TREE_TYPE (expr)))
-    prec = GET_MODE_BITSIZE (targetm.ea_pointer_mode ());
+    prec = GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1));
   else if (POINTER_TYPE_P (TREE_TYPE (expr)))
     prec = POINTER_SIZE;
   else
@@ -1526,7 +1526,7 @@ tree_floor_log2 (const_tree expr)
     return tree_log2 (TREE_REALPART (expr));
 
   if (EA_POINTER_TYPE_P (TREE_TYPE (expr)))
-    prec = GET_MODE_BITSIZE (targetm.ea_pointer_mode ());
+    prec = GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1));
   else if (POINTER_TYPE_P (TREE_TYPE (expr)))
     prec = POINTER_SIZE;
   else
@@ -5461,7 +5461,7 @@ tree
 build_pointer_type (tree to_type)
 {
   if (TYPE_EA (to_type))
-    return build_pointer_type_for_mode (to_type, targetm.ea_pointer_mode (),
+    return build_pointer_type_for_mode (to_type, targetm.addr_space_pointer_mode (1),
 					false);
   else
     return build_pointer_type_for_mode (to_type, ptr_mode, false);

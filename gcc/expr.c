@@ -6859,7 +6859,7 @@ expand_expr_addr_expr (tree exp, rtx target, enum machine_mode tmode,
 
   addrmode = Pmode;
   if (EA_POINTER_TYPE_P (TREE_TYPE (exp)))
-    addrmode = targetm.ea_pointer_mode ();
+    addrmode = targetm.addr_space_pointer_mode (1);
 
   /* We can get called with some Weird Things if the user does silliness
      like "(short) &a".  In that case, convert_memory_address won't do

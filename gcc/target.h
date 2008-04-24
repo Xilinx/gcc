@@ -625,7 +625,7 @@ struct gcc_target
   bool (* valid_pointer_mode) (enum machine_mode mode);
 
   /* MODE to use for an __ea pointer.  */
-  enum machine_mode (* ea_pointer_mode) (void);
+  enum machine_mode (* addr_space_pointer_mode) (int addr_space);
 
   /* True if MODE is valid for the target.  By "valid", we mean able to
      be manipulated in non-trivial ways.  In particular, this means all

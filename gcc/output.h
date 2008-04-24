@@ -613,7 +613,7 @@ extern void default_internal_label (FILE *, const char *, unsigned long);
 extern void default_file_start (void);
 extern void file_end_indicate_exec_stack (void);
 extern bool default_valid_pointer_mode (enum machine_mode);
-extern enum machine_mode default_ea_pointer_mode (void);
+extern enum machine_mode default_addr_space_pointer_mode (int);
 
 extern void default_elf_asm_output_external (FILE *file, tree,
 					     const char *);

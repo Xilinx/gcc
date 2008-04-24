@@ -62,7 +62,7 @@ convert_to_pointer (tree type, tree expr)
     {
       int pointer_size =
 	TYPE_EA (TREE_TYPE (type))
-	? GET_MODE_BITSIZE (targetm.ea_pointer_mode ())
+	? GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1))
 	: POINTER_SIZE;
 
       if (TYPE_PRECISION (TREE_TYPE (expr)) != pointer_size)
@@ -465,7 +465,7 @@ convert_to_integer (tree type, tree expr)
  	   and from there widen/truncate to the required type.  */
  	pointer_size =
  	  TYPE_EA (TREE_TYPE (intype))
- 	  ? GET_MODE_BITSIZE (targetm.ea_pointer_mode ())
+ 	  ? GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1))
  	  : POINTER_SIZE;
 
  	expr = fold_build1 (CONVERT_EXPR,

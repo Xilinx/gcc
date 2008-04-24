@@ -1384,7 +1384,7 @@ make_decl_rtl (tree decl)
 
    addrmode = Pmode;
    if (TYPE_EA (TREE_TYPE (decl)))
-     addrmode = targetm.ea_pointer_mode ();
+     addrmode = targetm.addr_space_pointer_mode (1);
   if (use_object_blocks_p () && use_blocks_for_decl_p (decl))
     x = create_block_symbol (name, get_block_for_decl (decl), -1);
   else
@@ -6208,7 +6208,7 @@ default_valid_pointer_mode (enum machine_mode mode)
 }
 
 enum machine_mode
-default_ea_pointer_mode (void)
+default_addr_space_pointer_mode (int address_space)
 {
   return ptr_mode;
 }
