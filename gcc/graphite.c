@@ -1727,12 +1727,24 @@ create_empty_loop (edge header_edge)
 		  true_edge, false_edge, 1, prob, REG_BR_PROB_BASE - prob);
 }
 
+/* Converts a GMP constant value to a tree and returns it.  */
 
 static tree
 gmp_cst_to_tree (Value v)
 {
   return build_int_cst (integer_type_node, value_get_si (v));
 }
+
+/* Returns the tree variable from the name that it was given in Cloog
+   representation.  
+
+   FIXME: This is a hack, and Cloog should be fixed to not work with
+   variable names represented as "char *string", but with void
+   pointers that could be casted back to a tree.  The only problem in
+   doing that is that Cloog's pretty printer still assumes that
+   variable names are char *strings.  The solution would be to have a
+   function pointer for pretty-printing that can be redirected to be
+   print_generic_stmt in our case, or fprintf by default.  */
 
 static tree
 clast_name_to_gcc (const char *name, VEC (name_tree, heap) *new_ivs,
@@ -1752,6 +1764,8 @@ clast_name_to_gcc (const char *name, VEC (name_tree, heap) *new_ivs,
   gcc_unreachable ();
   return NULL_TREE;
 }
+
+/* Converts a Cloog AST back to a GCC expression tree.  */
 
 static tree
 clast_to_gcc_expression (struct clast_expr *e, tree type,
@@ -1833,19 +1847,21 @@ clast_to_gcc_expression (struct clast_expr *e, tree type,
   return NULL_TREE;
 }
 
-static tree
-graphite_create_iv (struct loop *loop, struct clast_expr *lb,
-		    tree stride, scop_p scop)
+/* Translates a Cloog For statement to a GCC loop.  */
+
+static void
+graphite_loop_to_gcc_loop (edge header_edge, scop_p scop,
+			   struct clast_for *stmt,
+			   VEC (tree,heap) **remove_ivs ATTRIBUTE_UNUSED)
 {
-  tree ivvar = create_tmp_var (integer_type_node, "grivtmp");
-  tree type = integer_type_node;
-  tree stmts;
-  tree nlb = clast_to_gcc_expression (lb, type, SCOP_NEWIVS (scop),
-				      SCOP_PARAMS (scop));
   bool insert_after;
   block_stmt_iterator bsi;
-
-  add_referenced_var (ivvar);
+  tree stmts;
+  tree ivvar = create_tmp_var (integer_type_node, "grivtmp");
+  struct loop *loop = create_empty_loop (header_edge);
+  tree nlb = clast_to_gcc_expression (stmt->LB, integer_type_node,
+				      SCOP_NEWIVS (scop),
+				      SCOP_PARAMS (scop));
 
   nlb = force_gimple_operand (nlb, &stmts, true, ivvar);
   if (stmts)
@@ -1854,21 +1870,10 @@ graphite_create_iv (struct loop *loop, struct clast_expr *lb,
       bsi_commit_edge_inserts ();
     }
 
+  add_referenced_var (ivvar);
   standard_iv_increment_position (loop, &bsi, &insert_after);
-  create_iv (nlb, stride, ivvar, loop, &bsi, insert_after, &ivvar, NULL);
-
-  return ivvar;
-}
-
-
-static void
-graphite_loop_to_gcc_loop (edge header_edge, scop_p scop,
-			   struct clast_for *stmt,
-			   VEC (tree,heap) **remove_ivs ATTRIBUTE_UNUSED)
-{
-  struct loop *loop = create_empty_loop (header_edge);
-
-  graphite_create_iv (loop, stmt->LB, gmp_cst_to_tree (stmt->stride), scop);
+  create_iv (nlb, gmp_cst_to_tree (stmt->stride), ivvar, loop, &bsi,
+	     insert_after, &ivvar, NULL);
 
 #if 0
   create_exit_cond (loop, stmt->UB);

@@ -1,5 +1,11 @@
 2008-04-23  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c: Add comments to functions that are missing a
+	description.
+	(graphite_create_iv): Removed.  Merged in graphite_loop_to_gcc_loop.
+
+2008-04-23  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (nb_params_in_scop): Moved...
 	(graphite_bb_from_bb, loop_body_to_cloog_stmts): New.
 	(setup_cloog_loop): Call loop_body_to_cloog_stmts.
