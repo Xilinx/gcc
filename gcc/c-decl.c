@@ -4080,7 +4080,7 @@ grokdeclarator (const struct c_declarator *declarator,
   constp = declspecs->const_p + TYPE_READONLY (element_type);
   restrictp = declspecs->restrict_p + TYPE_RESTRICT (element_type);
   volatilep = declspecs->volatile_p + TYPE_VOLATILE (element_type);
-  ea_p = (declspecs->address_space > 0) + TYPE_EA (element_type);
+  ea_p = (declspecs->address_space > 0) + (TYPE_ADDR_SPACE (element_type) > 0);
   if (pedantic && !flag_isoc99)
     {
       if (constp > 1)
@@ -4927,8 +4927,9 @@ grokdeclarator (const struct c_declarator *declarator,
 
 	type = c_build_qualified_type (type, type_quals);
 
-	/* FIXME: Pointer variables in __ea may not be defined.  */
-	if (POINTER_TYPE_P (type) && TYPE_EA (type) && !extern_ref)
+	/* FIXME: Pointer variables in other address spaces may not be
+	   defined.  */
+	if (POINTER_TYPE_P (type) && TYPE_ADDR_SPACE (type) && !extern_ref)
 	  error ("%<__ea%> variable %qs must be extern", name);
 
 	/* C99 6.2.2p7: It is invalid (compile-time undefined

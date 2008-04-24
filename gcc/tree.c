@@ -1413,7 +1413,7 @@ integer_pow2p (const_tree expr)
   if (TREE_CODE (expr) != INTEGER_CST)
     return 0;
 
-  if (EA_POINTER_TYPE_P (TREE_TYPE (expr)))
+  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (expr)))
     prec = GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1));
   else if (POINTER_TYPE_P (TREE_TYPE (expr)))
     prec = POINTER_SIZE;
@@ -1483,7 +1483,7 @@ tree_log2 (const_tree expr)
   if (TREE_CODE (expr) == COMPLEX_CST)
     return tree_log2 (TREE_REALPART (expr));
 
-  if (EA_POINTER_TYPE_P (TREE_TYPE (expr)))
+  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (expr)))
     prec = GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1));
   else if (POINTER_TYPE_P (TREE_TYPE (expr)))
     prec = POINTER_SIZE;
@@ -1525,7 +1525,7 @@ tree_floor_log2 (const_tree expr)
   if (TREE_CODE (expr) == COMPLEX_CST)
     return tree_log2 (TREE_REALPART (expr));
 
-  if (EA_POINTER_TYPE_P (TREE_TYPE (expr)))
+  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (expr)))
     prec = GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1));
   else if (POINTER_TYPE_P (TREE_TYPE (expr)))
     prec = POINTER_SIZE;
@@ -4158,7 +4158,7 @@ set_type_quals (tree type, int type_quals)
   TYPE_READONLY (type) = (type_quals & TYPE_QUAL_CONST) != 0;
   TYPE_VOLATILE (type) = (type_quals & TYPE_QUAL_VOLATILE) != 0;
   TYPE_RESTRICT (type) = (type_quals & TYPE_QUAL_RESTRICT) != 0;
-  TYPE_EA (type) = (type_quals & TYPE_QUAL_EA) != 0;
+  TYPE_ADDR_SPACE (type) = (type_quals & TYPE_QUAL_EA) != 0;
 }
 
 /* Returns true iff CAND is equivalent to BASE with TYPE_QUALS.  */
@@ -5460,7 +5460,7 @@ build_pointer_type_for_mode (tree to_type, enum machine_mode mode,
 tree
 build_pointer_type (tree to_type)
 {
-  if (TYPE_EA (to_type))
+  if (TYPE_ADDR_SPACE (to_type))
     return build_pointer_type_for_mode (to_type, targetm.addr_space_pointer_mode (1),
 					false);
   else

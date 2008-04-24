@@ -6858,7 +6858,7 @@ expand_expr_addr_expr (tree exp, rtx target, enum machine_mode tmode,
     tmode = TYPE_MODE (TREE_TYPE (exp));
 
   addrmode = Pmode;
-  if (EA_POINTER_TYPE_P (TREE_TYPE (exp)))
+  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (exp)))
     addrmode = targetm.addr_space_pointer_mode (1);
 
   /* We can get called with some Weird Things if the user does silliness
@@ -8078,16 +8078,16 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 
 #if defined (HAVE_from_ea) && defined (HAVE_to_ea)
       /* Handle casts of pointers to/from __ea qualified pointers.  */
-      if (EA_POINTER_TYPE_P (type)
-	  && NON_EA_POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0))))
+      if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type)
+	  && GENERIC_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0))))
 	{
 	  rtx reg = gen_reg_rtx (TYPE_MODE (type));
 	  op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, VOIDmode, modifier);
 	  emit_insn (gen_to_ea (reg, op0));
 	  return reg;
 	}
-      else if (NON_EA_POINTER_TYPE_P (type)
-	       && (EA_POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0)))))
+      else if (GENERIC_ADDR_SPACE_POINTER_TYPE_P (type)
+	       && (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0)))))
 	{
 	  rtx reg = gen_reg_rtx (Pmode);
 	  op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, VOIDmode, modifier);

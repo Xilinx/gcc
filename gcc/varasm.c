@@ -1383,7 +1383,7 @@ make_decl_rtl (tree decl)
     DECL_COMMON (decl) = 0;
 
    addrmode = Pmode;
-   if (TYPE_EA (TREE_TYPE (decl)))
+   if (TYPE_ADDR_SPACE (TREE_TYPE (decl)))
      addrmode = targetm.addr_space_pointer_mode (1);
   if (use_object_blocks_p () && use_blocks_for_decl_p (decl))
     x = create_block_symbol (name, get_block_for_decl (decl), -1);

@@ -1,5 +1,22 @@
 2008-04-24  Ben Elliston  <bje@au.ibm.com>
 
+	* c-tree.h (struct c_declspecs): Make the type of address_space
+	field an unsigned char.
+	* tree.h (struct tree_type): Remove single bit ea_flag field,
+	replace with integral address_space field.
+	(EA_POINTER_TYPE_P): Rename from this ..
+	(OTHER_ADDR_SPACE_POINTER_TYPE_P): .. to this.
+	(NON_EA_POINTER_TYPE_P): Rename from this ..
+	(GENERIC_ADDR_SPACE_POINTER_TYPE_P): .. to this.
+	(TYPE_EA): Rename from this ..
+	(TYPE_ADDR_SPACE): .. to this.
+	* convert.c, fold-const.c, tree-ssa-loop-ivopts.c,
+	c-objc-common.c, c-tree.h, dwarf2out.c, expr.c, c-decl.c,
+	c-typeck.c, emit-rtl.c, print-tree.c, varasm.c, tree-ssa.c,
+	c-parser.c, config/spu/spu.c, config/spu/spu.h: Update callers.
+
+2008-04-24  Ben Elliston  <bje@au.ibm.com>
+
 	* target.h (ea_pointer_mode): Rename to addr_space_pointer_mode.
 	* c-tree.h (struct c_declspecs): Remove ea_p, add address_space.
 	* c-decl.c: Access declspecs->address_space, not ->ea_p.

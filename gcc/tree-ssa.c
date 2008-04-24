@@ -1197,8 +1197,8 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
   if (POINTER_TYPE_P (inner_type)
       && POINTER_TYPE_P (outer_type)
       && TREE_CODE (TREE_TYPE (outer_type)) == VOID_TYPE
-      && NON_EA_POINTER_TYPE_P (inner_type)
-      && NON_EA_POINTER_TYPE_P (outer_type))
+      && GENERIC_ADDR_SPACE_POINTER_TYPE_P (inner_type)
+      && GENERIC_ADDR_SPACE_POINTER_TYPE_P (outer_type))
     return true;
 
   return useless_type_conversion_p_1 (outer_type, inner_type);

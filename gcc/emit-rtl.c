@@ -1521,7 +1521,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
   MEM_VOLATILE_P (ref) |= TYPE_VOLATILE (type);
   MEM_IN_STRUCT_P (ref)
     = AGGREGATE_TYPE_P (type) || TREE_CODE (type) == COMPLEX_TYPE;
-  MEM_EA_P (ref) = TYPE_EA (type);
+  MEM_EA_P (ref) = TYPE_ADDR_SPACE (type) != 0;
   MEM_POINTER (ref) = POINTER_TYPE_P (type);
 
   /* If we are making an object of this type, or if this is a DECL, we know

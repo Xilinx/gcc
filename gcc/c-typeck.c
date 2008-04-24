@@ -8174,7 +8174,7 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 
 	      /* If this operand is an __ea pointer, make the result
 		 of the comparison an __ea pointer also.  */
-	      if (EA_POINTER_TYPE_P (type0))
+	      if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type0))
 		result_type = build_pointer_type
 		  (build_qualified_type (void_type_node, TYPE_QUAL_EA));
 	    }
@@ -8187,7 +8187,7 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 
 	      /* If this operand is an __ea pointer, make the result
 		 of the comparison an __ea pointer also.  */
-	      if (EA_POINTER_TYPE_P (type1))
+	      if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type1))
 		result_type = build_pointer_type
 		  (build_qualified_type (void_type_node, TYPE_QUAL_EA));
 	    }

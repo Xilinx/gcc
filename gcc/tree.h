@@ -1110,13 +1110,13 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
   (TREE_CODE (TYPE) == POINTER_TYPE || TREE_CODE (TYPE) == REFERENCE_TYPE)
 
 /* Nonzero if TYPE is an __ea qualifier pointer or reference type.  */
-#define EA_POINTER_TYPE_P(TYPE) \
-  (POINTER_TYPE_P (TYPE) && TYPE_EA (TREE_TYPE (TYPE)))
+#define OTHER_ADDR_SPACE_POINTER_TYPE_P(TYPE) \
+  (POINTER_TYPE_P (TYPE) && TYPE_ADDR_SPACE (TREE_TYPE (TYPE)))
 
 /* Nonzero if TYPE is not a pointer or reference type, but not __ea
    qualified.  */
-#define NON_EA_POINTER_TYPE_P(TYPE) \
-  (POINTER_TYPE_P (TYPE) && !TYPE_EA (TREE_TYPE (TYPE)))
+#define GENERIC_ADDR_SPACE_POINTER_TYPE_P(TYPE) \
+  (POINTER_TYPE_P (TYPE) && !TYPE_ADDR_SPACE (TREE_TYPE (TYPE)))
 
 /* Nonzero if this type is a complete type.  */
 #define COMPLETE_TYPE_P(NODE) (TYPE_SIZE (NODE) != NULL_TREE)
@@ -2216,7 +2216,7 @@ struct tree_block GTY(())
 #define TYPE_RESTRICT(NODE) (TYPE_CHECK (NODE)->type.restrict_flag)
 
 /* If nonzero, this type is in the extended address space.  */
-#define TYPE_EA(NODE)	    (TYPE_CHECK (NODE)->type.ea_flag)
+#define TYPE_ADDR_SPACE(NODE) (TYPE_CHECK (NODE)->type.address_space)
 
 /* There is a TYPE_QUAL value for each type qualifier.  They can be
    combined by bitwise-or to form the complete set of qualifiers for a
@@ -2233,7 +2233,7 @@ struct tree_block GTY(())
   ((TYPE_READONLY (NODE) * TYPE_QUAL_CONST)			\
    | (TYPE_VOLATILE (NODE) * TYPE_QUAL_VOLATILE)		\
    | (TYPE_RESTRICT (NODE) * TYPE_QUAL_RESTRICT)		\
-   | (TYPE_EA (NODE) * TYPE_QUAL_EA))
+   | ((TYPE_ADDR_SPACE (NODE) > 0) * TYPE_QUAL_EA))
 
 /* These flags are available for each language front end to use internally.  */
 #define TYPE_LANG_FLAG_0(NODE) (TYPE_CHECK (NODE)->type.lang_flag_0)
@@ -2314,7 +2314,6 @@ struct tree_type GTY(())
   unsigned packed_flag : 1;
   unsigned restrict_flag : 1;
   unsigned contains_placeholder_bits : 2;
-  unsigned ea_flag : 1;
 
   unsigned lang_flag_0 : 1;
   unsigned lang_flag_1 : 1;
@@ -2326,6 +2325,8 @@ struct tree_type GTY(())
   unsigned user_align : 1;
 
   unsigned int align;
+  unsigned char address_space;
+
   tree pointer_to;
   tree reference_to;
   union tree_type_symtab {

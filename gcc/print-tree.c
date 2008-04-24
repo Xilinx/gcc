@@ -584,7 +584,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       if (TYPE_RESTRICT (node))
 	fputs (" restrict", file);
 
-      if (TYPE_EA (node))
+      /* FIXME: the target must map the address space to a string.  */
+      if (TYPE_ADDR_SPACE (node))
 	fputs (" __ea", file);
 
       if (TYPE_LANG_FLAG_0 (node))

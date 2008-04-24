@@ -2827,7 +2827,7 @@ ea_symbol_ref (rtx x)
   return (GET_CODE (x) == SYMBOL_REF
 	  && SYMBOL_REF_DECL (x)
 	  && TREE_CODE (SYMBOL_REF_DECL (x)) == VAR_DECL
-	  && TYPE_EA (TREE_TYPE (SYMBOL_REF_DECL (x))));
+	  && TYPE_ADDR_SPACE (TREE_TYPE (SYMBOL_REF_DECL (x))));
 }
 
 /* We accept:

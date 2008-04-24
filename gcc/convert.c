@@ -61,7 +61,7 @@ convert_to_pointer (tree type, tree expr)
     case BOOLEAN_TYPE:
     {
       int pointer_size =
-	TYPE_EA (TREE_TYPE (type))
+	TYPE_ADDR_SPACE (TREE_TYPE (type))
 	? GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1))
 	: POINTER_SIZE;
 
@@ -464,7 +464,7 @@ convert_to_integer (tree type, tree expr)
  	/* Convert to an unsigned integer of the correct width first,
  	   and from there widen/truncate to the required type.  */
  	pointer_size =
- 	  TYPE_EA (TREE_TYPE (intype))
+ 	  TYPE_ADDR_SPACE (TREE_TYPE (intype))
  	  ? GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1))
  	  : POINTER_SIZE;
 

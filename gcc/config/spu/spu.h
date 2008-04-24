@@ -519,7 +519,7 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
       assemble_name (FILE, XSTR (X, 0));			\
       if (SYMBOL_REF_DECL (X)					\
 	  && TREE_CODE (SYMBOL_REF_DECL (X)) == VAR_DECL	\
-	  && TYPE_EA (TREE_TYPE (SYMBOL_REF_DECL (X))))		\
+	  && TYPE_ADDR_SPACE (TREE_TYPE (SYMBOL_REF_DECL (X))))	\
 	fputs ("@ppu", FILE);					\
     } while (0)
 

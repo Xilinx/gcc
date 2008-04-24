@@ -1993,10 +1993,10 @@ strip_offset (tree expr, unsigned HOST_WIDE_INT *offset)
 static tree
 generic_type_for (tree type)
 {
-  if (NON_EA_POINTER_TYPE_P (type))
+  if (GENERIC_ADDR_SPACE_POINTER_TYPE_P (type))
     return unsigned_type_for (type);
 
-  if (EA_POINTER_TYPE_P (type))
+  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type))
     return build_pointer_type
       (build_qualified_type (void_type_node, TYPE_QUAL_EA));
 
