@@ -1,3 +1,502 @@
+2008-04-23  Paolo Bonzini  <bonzini@gnu.org>
+
+	* tree-cfg.c (verify_expr): Check with is_gimple_address.  Don't
+	check TREE_INVARIANT.
+	* tree-gimple.c (is_gimple_address): New.
+	(is_gimple_invariant_address): Simplify using decl_address_invariant_p.
+	* tree-gimple.h (is_gimple_address): New.
+	* tree.h (decl_address_invariant_p): New.
+	* tree.c (make_node_stat): Don't set TREE_INVARIANT.
+	(build_string): Likewise.
+	(decl_address_invariant_p): New, from is_gimple_invariant_address.
+	(tree_invariant_p_1): Likewise.
+	(save_expr): Use it.
+	(tree_invariant_p): New.
+	(skip_simple_arithmetic): Use it.
+	(stabilize_reference_1): Use it.
+	(recompute_tree_invariant_for_addr_expr): Don't update TREE_INVARIANT,
+	simplify.
+	(build1_stat): Drop code to compute TREE_INVARIANT.
+	(build2_stat): Drop code to compute TREE_INVARIANT.
+	(build3_stat): Drop code to compute TREE_INVARIANT.
+	(build4_stat): Drop code to compute TREE_INVARIANT.
+	(build5_stat): Drop code to compute TREE_INVARIANT.
+	(build7_stat): Drop code to compute TREE_INVARIANT.
+	(merge_dllimport_decl_attributes): Don't mention TREE_INVARIANT.
+	* tree.h (struct tree_base): Remove invariant_flag.
+	(TREE_INVARIANT): Remove.
+	* builtins.c (build_string_literal): Don't set TREE_INVARIANT.
+	(fold_builtin_expect): Check TREE_CONSTANT.
+	* tree-ssa-ccp.c (fold_stmt_r): Adjust comment.
+	* c-tree.h (c_expr_to_decl): Drop third parameter.
+	* c-typeck.c (build_external_ref): Don't set TREE_INVARIANT.
+	(build_c_cast): Don't set TREE_INVARIANT.
+	(pop_init_level): Don't set TREE_INVARIANT.
+	(c_objc_common_truthvalue_conversion): Don't set TREE_INVARIANT.
+	* gimplify.c (gimplify_init_ctor_preeval): Add assertion, test
+	TREE_CONSTANT.
+	(gimplify_init_constructor): Don't set TREE_INVARIANT.
+	(gimplify_addr_expr): Adjust comment.
+	* tree-mudflap.c (mf_build_string):
+	* print-tree.c (print_node): Don't print TREE_INVARIANT.
+	* tree-nested.c (convert_nonlocal_reference): Adjust comment.
+	* c-common.c (fix_string_type): Don't set TREE_INVARIANT.
+	* langhooks-def.h (lhd_expr_to_decl): Drop third parameter.
+	* langhooks.c (lhd_expr_to_decl): Drop third parameter.
+	* langhooks.h (struct lang_hooks): Drop third parameter from
+	expr_to_decl.
+
+2008-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/27799
+	PR tree-optimization/32921
+	PR tree-optimization/32624
+	* tree-ssa-structalias.c (merge_smts_into): Only merge the
+	SMTs aliases and the tag itself into the solution.
+	* tree-ssa-alias.c (compute_flow_sensitive_aliasing): Do not
+	merge the points-to solution back into the SMT aliases.
+	(may_alias_p): Use alias_set_subset_of instead of
+	aliases_conflict_p.  A pointer which points to
+	memory with alias set zero may access any variable.
+
+2008-04-23  Richard Guenther  <rguenther@suse.de>
+
+	* alias.c (alias_set_subset_of): Correctly handle asking
+	if zero is a subset of an alias set with zero child.
+	* tree-ssa-alias.c (have_common_aliases_p): Simplify logic.
+	(compute_flow_insensitive_aliasing): Correctly walk all
+	pointers.  Do not unnecessarily union sets.
+
+2008-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36021
+	* c-common.c (handle_alloc_size_attribute): Use type_num_arguments.
+
+2008-04-22  Tomas Bily  <tbily@suse.cz>
+
+        * tree-cfg.c (verify_expr): Check for NON_LVALUE_EXPR as unreachable
+        case.
+
+        * tree-vrp.c (extract_range_from_unary_expr): Removed unused
+        NON_LVALUE_EXPR.
+
+        * tree-ssa-threadedge.c (simplify_control_stmt_condition): Likewise.
+
+        * tree-ssa-structalias.c (get_constraint_for): Likewise.
+
+        * tree-inline.c (estimate_num_insns_1): Likewise.
+
+        * varasm.c (const_hash_1, compare_constant, copy_constant)
+        (compute_reloc_for_constant, output_addressed_constants): Likewise.
+
+        * emit-rtl.c (component_ref_for_mem_expr)
+        (set_mem_attributes_minus_bitpos): Likewise.
+
+        * expr.c (highest_pow2_factor, expand_expr_real_1, )
+        (is_aligning_offset): Likewise.
+
+        * dwarf2out.c (loc_descriptor_from_tree_1, add_bound_info): Likewise.
+
+        * tree-ssa-loop-ivopts.c (may_be_nonaddressable_p): Likewise.
+
+        * dojump.c (do_jump): Likewise.
+
+        * builtins.c (get_pointer_alignment, get_memory_rtx)
+        (integer_valued_real_p, fold_builtin_next_arg): Likewise.
+
+        * tree-scalar-evolution.c (instantiate_parameters_1): Likewise.
+
+2008-04-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/36017
+	* builtins.c (expand_errno_check): Clear CALL_EXPR_TAILCALL before
+	expanding the library call.
+
+2008-04-22  Ian Lance Taylor  <iant@google.com>
+
+	* fold-const.c (pointer_may_wrap_p): Call int_size_in_bytes rather
+	than size_in_bytes.
+
+2008-04-22  Pat Haugen  <pthaugen@us.ibm.com>
+
+	* config/rs6000/rs6000.c (rs6000_register_move_cost): Increase cost
+	of LR/CTR moves for Power6.
+
+2008-04-22  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	PR middle-end/36003
+	* passes.c (init_optimization_passes): Remove
+	pass_fast_rtl_byte_dce.
+	
+2008-04-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/29096
+	* config/i386/xmmintrin.h (_mm_cvtpi16_ps): Rearrange calls to
+	builtin functions to generate faster code.
+	(_mm_cvtpu16_ps): Ditto.
+	(_mm_cvtpi32x2_ps): Ditto.
+
+2008-04-22  Nick Clifton  <nickc@redhat.com>
+
+	* common.opt (ftree-loop-distribution): Add Optimization
+	attribute.
+
+	* config/frv/frv.c (frv_stack_info): Use crtl instead of cfun.
+	(frv_expand_builtin_va_start): Likewise.
+
+	* config/arm/arm.c (thumb_find_work_register): Fix location of
+	argument register count.
+
+2008-04-22  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	Support scheduling for ColdFire V1 and V3 microarchitecture.
+	Improve scheduling of multiplication instructions.
+
+	* config/m68k/m68k.md (cpu): Add cfv1 and cfv3.  Rename cf_v2 to cfv1.
+	(mac): New instruction attribute.
+	* config/m68k/m68k.c (override_options): Handle cfv1, cfv3 and mac.
+	(m68k_sched_mac): New variable.
+	(m68k_sched_attr_type2, m68k_sched_md_init_global): Update.
+	Handle cfv1 and cfv3.
+	(max_insn_size): New static variable.
+	(struct _sched_ib): New type.
+	(sched_ib): New static variable.
+	(sched_ib_size, sched_ib_filled, sched_ib_insn): Convert variables
+	to fields of 'struct _sched_ib sched_ib'.  Update all uses.
+	(m68k_sched_variable_issue): Add modeling of cfv3 instruction buffer.
+	Update.
+	(m68k_sched_md_init_global, m68k_sched_md_finish_global,
+	m68k_sched_md_init, m68k_sched_md_finish): Handle cfv1 and cfv3.  Init
+	new variables.  Update.
+	(m68k_sched_dfa_pre_advance_cycle, m68k_sched_dfa_post_advance_cycle):
+	Add modeling of cfv3 instruction buffer.  Update.
+	* config/m68k/m68k-protos.h (m68k_sched_mac): Declare.
+	* config/m68k/m68k.h (TUNE_CFV3): New macro.
+	* config/m68k/cf.md: Change substrings 'cf_v2' to 'cfv12' or 'cfv123'.
+	(cf_* reservations): Rename to cfv12 or cfv123 to indicate cores
+	a particular reservation applies to.
+	(type2): Reorganize attribute values.  Rename alu to alu_reg,
+	alu_l to alu, move_l to omove.  Join move to alu.  Split mul
+	to mul_l and mul_w.
+	(cf_ib_*): Simplify description of instruction buffer.
+	(cf_ib_w0, cf_ib_w4, cf_ib_w5, cf_ib_w6): Remove.
+	(cf_mem): Split into cf_mem1 and cf_mem2.
+	(cf_v2_move_??): Rename to cfv12_alu_??.
+	(cf_v2_move_l_??): Rename to cfv12_omove_??.
+	(cf_v2_mul_??): Remove reservations.
+	(cfv12_mul_l_??, cfv12_mul_w_??, cfv12_mac_w_??, cfv12_mac_l_??,
+	cfv12_emac_??, cfv12_emac_w_i0): New reservations.
+	(cfv12_rts, cfv12_call, cfv12_bcc, cfv12_bra, cfv12_jmp): Move to
+	appropriate place.
+	(cfv3_alu_10, cfv3_omove_10, cfv3_alu_i0, cfv3_omove_i0, cfv3_alu_01,
+	cfv3_alu_0i, cfv3_alu_11, cfv3_omove_11, cfv3_alu_i1, cfv3_omove_i1,
+	cfv3_alu_1i, cfv3_omove_1i, cfv3_pea_11, cfv3_pea_i1, cfv3_mul_w_10,
+	cfv3_mul_l_10, cfv3_mul_w_i0, cfv3_mac_w_10, cfv3_mac_l_10,
+	cfv3_mac_w_i0, cfv3_emac_10, cfv3_emac_w_i0, cfv3_rts, cfv3_call,
+	cfv3_bcc, cfv3_bra, cfv3_jmp): New reservations.
+	(cfv3_*_1, cfv3_*_2, cfv3_*_3): New instruction reservations that are
+	expansions of the above reservations for instructions of sizes
+	1, 2 and 3 words.
+
+2008-04-22  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* rtl-factoring.c (collect_patterns_seqs): Handle CC0 targets.
+
+2008-04-21  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* coverage.c: Include tree-pass.h.
+	(coverage_counter_alloc): Print da_file_name to the dump file.
+
+2008-04-21  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* sbitmap.c (sbitmap_range_empty_p): New function.
+	* sbitmap.h (sbitmap_range_empty_p): New function.
+	* bitmap.h: Now includes obstack.h.
+
+2008-04-21  Richard Sandiford  <rsandifo@nildram.co.uk>
+	    Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* dbgcnt.def (ra_byte_scan): Added.
+	* dbgcnt.c (dbg_cnt): Added code to print message to dump_file
+	when the last hit happens for a counter.  
+	* timevar.def (TV_DF_BYTE_LR): New variable.
+	* tree-pass.h (pass_fast_rtl_byte_dce): New pass.
+	* passes.c (pass_fast_rtl_byte_dce): New pass.
+	* fwprop.c (update_df): Added mode to call df_ref_create.
+	Renamed DF_REF_WIDTH and DF_REF_OFFSET to DF_REF_EXTRACT_WIDTH and
+	DF_REF_EXTRACT_OFFSET.
+	* df.h (DF_BYTE_LR, DF_BYTE_LR_BB_INFO, DF_BYTE_LR_IN, 
+	DF_BYTE_LR_OUT, df_byte_lr): New macro.
+	(df_mm): New enum.
+	(df_ref_extract): Added mode field.
+	(DF_REF_WIDTH, DF_REF_OFFSET) Renamed to DF_REF_EXTRACT_WIDTH and
+	DF_REF_EXTRACT_OFFSET.
+	(DF_REF_EXTRACT_MODE): New macro.
+	(df_byte_lr_bb_info): New structure.
+	(df_print_byte_regset, df_compute_accessed_bytes, 
+	df_byte_lr_add_problem, df_byte_lr_get_regno_start,
+	df_byte_lr_get_regno_len, df_byte_lr_simulate_defs,
+	df_byte_lr_simulate_uses,
+	df_byte_lr_simulate_artificial_refs_at_top,
+	df_byte_lr_simulate_artificial_refs_at_end,
+	df_compute_accessed_bytes): New function.
+	(df_ref_create): Add parameter.
+	(df_byte_lr_get_bb_info): New inline function.
+	* df-scan.c (df_ref_record, df_uses_record,
+	df_ref_create_structure): Added mode parameter.
+	(df_ref_create, df_notes_rescan, df_ref_record, df_def_record_1, 
+	df_defs_record, df_uses_record, df_get_conditional_uses,
+	df_get_call_refs, df_insn_refs_collect, df_bb_refs_collect, 
+	df_entry_block_defs_collect, df_exit_block_uses_collect):
+	Added mode parameter to calls to df_ref_record, df_uses_record,
+	df_ref_create_structure.
+       	(df_ref_equal_p, df_ref_compare): Added test for modes.
+	(df_ref_create_structure): Added code to set mode.  Renamed
+	DF_REF_WIDTH and DF_REF_OFFSET to DF_REF_EXTRACT_WIDTH and
+	DF_REF_EXTRACT_OFFSET.
+	* df-core.c (df_print_byte_regset): New function.
+	* df-byte-scan.c: New file.
+	* df-problems.c (df_rd_transfer_function): Removed unnecessary
+	calls to BITMAP_FREE.  
+	(df_byte_lr_problem_data, df_problem problem_BYTE_LR): New structure.
+	(df_byte_lr_get_regno_start, df_byte_lr_get_regno_len,
+	df_byte_lr_set_bb_info, df_byte_lr_free_bb_info, 
+	df_byte_lr_check_regs, df_byte_lr_expand_bitmap, 
+	df_byte_lr_alloc, df_byte_lr_reset, df_byte_lr_bb_local_compute,
+	df_byte_lr_local_compute, df_byte_lr_init,
+	df_byte_lr_confluence_0, df_byte_lr_confluence_n, 
+	df_byte_lr_transfer_function, df_byte_lr_free, 
+	df_byte_lr_top_dump, df_byte_lr_bottom_dump,
+	df_byte_lr_add_problem, df_byte_lr_simulate_defs, 
+	df_byte_lr_simulate_uses,
+	df_byte_lr_simulate_artificial_refs_at_top,
+	df_byte_lr_simulate_artificial_refs_at_end): New function.
+	* dce.c (byte_dce_process_block): New function.
+	(dce_process_block): au is now passed in rather than computed
+	locally.  Changed loops that look at artificial defs to not look
+	for conditional or partial ones, because there never are any.  
+	(fast_dce): Now is able to drive byte_dce_process_block or 
+	dce_process_block depending on the kind of dce being done.
+	(rest_of_handle_fast_dce): Add parameter to fast_dce.
+	(rest_of_handle_fast_byte_dce): New function.
+	(rtl_opt_pass pass_fast_rtl_byte_dce): New pass.
+	* Makefile.in (df-byte-scan.o, debugcnt.o): Added dependencies.
+
+2008-04-21  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/35019
+	* gcc.h: Added fortran options that take arguments to
+	DEFAULT_SWITCH_TAKES_ARG and DEFAULT_WORD_SWITCH_TAKES_ARG
+	macros.
+
+2008-04-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-sra.c (sra_walk_expr) <VIEW_CONVERT_EXPR>: Disable
+	scalarization if on the LHS and not a full access.
+
+2008-04-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (s-gtyp-input): Remove tmp-gi.list before writing it.
+
+2008-04-18  Rafael Espindola  <espindola@google.com>
+
+	* tree-vrp.c (find_case_label_index): Fix the binary search.
+	(find_case_label_range): New.
+	(vrp_visit_switch_stmt): Use find_case_label_range.
+	(simplify_switch_using_ranges): Use find_case_label_range.
+
+2008-04-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gimplify.c (gimplify_modify_expr_rhs) <COND_EXPR>: Gimplify the LHS
+	using the is_gimple_lvalue predicate instead of is_gimple_min_lval.
+
+2008-04-18  Tom Tromey  <tromey@redhat.com>
+
+	PR libcpp/15500:
+	* doc/cpp.texi (Implementation-defined behavior): Mention
+	-finput-charset.
+
+2008-04-18  Ian Lance Taylor  <iant@google.com>
+
+	* fold-const.c (pointer_may_wrap_p): New static function.
+	(fold_comparison): Add another test for pointer overflow.  Use
+	pointer_may_wrap_p to disable some false positives.
+
+2008-04-18  Kris Van Hees <kris.van.hees@oracle.com>
+	  
+	* c-common.c (CHAR16_TYPE, CHAR32_TYPE): New macros.
+	(fname_as_string): Match updated cpp_interpret_string prototype.
+	(fix_string_type): Support char16_t* and char32_t*.
+	(c_common_nodes_and_builtins): Add char16_t and char32_t (and
+	derivative) nodes.  Register as builtin if C++0x.
+	(c_parse_error): Support CPP_CHAR{16,32}.
+	* c-common.h (RID_CHAR16, RID_CHAR32): New elements. 
+	(enum c_tree_index) <CTI_CHAR16_TYPE, CTI_SIGNED_CHAR16_TYPE,
+	CTI_UNSIGNED_CHAR16_TYPE, CTI_CHAR32_TYPE, CTI_SIGNED_CHAR32_TYPE,
+	CTI_UNSIGNED_CHAR32_TYPE, CTI_CHAR16_ARRAY_TYPE,
+	CTI_CHAR32_ARRAY_TYPE>: New elements.
+	(char16_type_node, signed_char16_type_node, unsigned_char16_type_node,
+	char32_type_node, signed_char32_type_node, char16_array_type_node,
+	char32_array_type_node): New defines.
+	* c-lex.c (cb_ident): Match updated cpp_interpret_string prototype.
+	(c_lex_with_flags): Support CPP_CHAR{16,32} and CPP_STRING{16,32}.
+	(lex_string): Support CPP_STRING{16,32}, match updated
+	cpp_interpret_string and cpp_interpret_string_notranslate prototypes.
+	(lex_charconst): Support CPP_CHAR{16,32}.
+	* c-parser.c (c_parser_postfix_expression): Support CPP_CHAR{16,32}
+	and CPP_STRING{16,32}.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2008-04-18  Jan Hubicka  <jh@suse.cz>
+
+	* except.c (dw2_size_of_call_site_table,
+	sjlj_size_of_call_site_table): Use vector API for call_site_record.
+
+	* cgraphbuild.c (build_cgraph_edges): Update.
+	* tree-pass.h: Update comment.
+	* final.c (leaf_function_p): Update.
+	(leaf_renumber_regs): Update.
+	(rest_of_clean_state): Update.
+	* omp-low.c (expand_omp_parallel): Update.
+	* ipa-reference.c (analyze_function): Update.
+	* reorg.c (find_end_label): Update.
+	(optimize_skip): Update.
+	(fill_simple_delay_slots): Update.
+	(fill_simple_delay_slots): Update.
+	(make_return_insns): Update.
+	(dbr_schedule): Update.
+	* gimple-low.c (record_vars_into): Update.
+	* cfgbuild.c (make_edges): Update.
+	* function.c (assign_stack_local): Update.
+	(assign_parm_adjust_stack_rtl): Update.
+	(locate_and_pad_parm): Update.
+	(allocate_struct_function): Do not initialize stack_alignment_needed
+	and preferred_stack_boundary here.
+	(stack_protect_prologue): Update.
+	(stack_protect_epilogue): Update.
+	(expand_function_start): Initialize stack_alignment_needed,
+	preferred_stack_boundary and max_jumptable_ents.
+	(expand_function_end): Update.
+	(free_after_compilation): Do not NULLify epilogue_delay_list.
+	* function.h (struct rtl_data): Add stack_protect_guard,
+	stack_alignment_needed,
+	preferred_stack_boundary, epilogue_delay_list.
+	(struct function): Remove value_histograms, stack_alignment_needed,
+	preferred_stack_boundary, epilogue_delay_list, max_jumptable_ents,
+	last_label_uid,
+	unexpanded_var_list, stack_protect_guard.
+	(current_function_epilogue_delay_list): Remove.
+	* ipa-type-escape.c (analyze_function): Update.
+	* gimplify.c (pop_gimplify_context): Update comment.
+	* calls.c (expand_call): Update.
+	(emit_library_call_value_1): Update.
+	* except.c (set_nothrow_function_flags): Update.
+	* cfgexpand.c (get_decl_align_unit): Update.
+	(create_stack_guard): Update.
+	(estimated_stack_frame_size): Update.
+	(expand_used_vars): Update.
+	(tree_expand_cfg): Free histogram earliers, init expansion variables.
+	* explow.c (allocate_dynamic_stack_space): Update.
+	* tree-ssa-live.c (remove_unused_locals): Update.
+	* varasm.c (mark_constant_pool): Update.
+	* tree-inline.c (remap_decls): Update.
+	(initialize_cfun): Update.
+	(declare_return_variable): Update.
+	(inline_forbidden_p): Update.
+	(expand_call_inline): Update.
+	(declare_inline_vars): Update.
+	(tree_function_versioning): Update.
+	* tree-flow.h (value_histograms): New.
+	(VALUE_HISTOGRAMS): New macro.
+	* basic-block.h (control_flow_graph): Add max_jumptable_ents,
+	last_label_uid.
+	* tree-cfg.c (set_bb_for_stmt): Update.
+	(replace_by_duplicate_decl): Update.
+	(move_block_to_fn): Update.
+	(new_label_mapper): Update.
+	(dump_function_to_file): Update.
+	* ipa-struct-reorg.c (build_data_structure): Update.
+	* cfgrtl.c (print_rtl_with_bb): Update.
+	* reload1.c (reload): Update.
+	(reload): Update.
+	* config/i386/i386.c (setup_incoming_varargs_64,
+	ix86_compute_frame_layout): Update.
+	* config/arc/arc.c (arc_output_function_epilogue): Update.
+
+2008-04-18  Marius Strobl <marius@FreeBSD.org>
+
+	* gthr-posix.h (__gthread_active_p): Use the Solaris implementation
+	for FreeBSD as well.
+	* gthr-posix95.h: Likewise.
+
+2008-04-17  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	PR rtl-optimization/35838
+	* dse.c (find_shift_sequence): Use subreg_lowpart_offset to work
+	out the byte offset of the first subreg.
+
+2008-04-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (addti3 splitter): Pass arrays of 3 operands
+	to split_ti instead of three separate calls with single member arrays.
+	(subti3 splitter): Ditto.
+	(adddi3 splitter): Ditto with split_di.
+	(subdi3 splitter): Ditto.
+	(negti2 splitter): Pass arrays of 2 operands to split_ti instead of
+	two separate calls with single member arrays.  Swap match_dup
+	operands 1 and 2 to better fit into the array.
+	(negdi2 splitter): Ditto with split_di.
+	(movdfcc splitter):  Pass arrays of 2 operands to split_di instead of
+	two separate calls with single member arrays.  Swap match_dup operands
+	6 and 7 to better fit into the array.
+
+2008-04-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (sse_builtin_type): New.
+	(bdesc_sse_args): Likewise.
+	(bdesc_sse_3arg): Removed.
+	(bdesc_2arg): Remove IX86_BUILTIN_AESKEYGENASSIST128.
+	(bdesc_1arg): Remove IX86_BUILTIN_ROUNDPD and
+	IX86_BUILTIN_ROUNDPS.
+	(ix86_init_mmx_sse_builtins): Handle bdesc_sse_args.  Remove
+	bdesc_sse_3arg.  Remove IX86_BUILTIN_ROUNDPD and
+	IX86_BUILTIN_ROUNDPS.
+	(ix86_expand_sse_4_operands_builtin): Removed.
+	(ix86_expand_sse_operands_builtin): New.
+	(ix86_expand_unop_builtin): Remove CODE_FOR_sse4_1_roundpd
+	and CODE_FOR_sse4_1_roundps.
+	(ix86_expand_builtin): Remove IX86_BUILTIN_AESKEYGENASSIST128.
+	Handle bdesc_sse_args.  Remove bdesc_sse_3arg.
+
+2008-04-17  Alan Modra  <amodra@bigpond.net.au>
+
+	PR target/35907
+	* config/rs6000/rs6000.c (rs6000_emit_epilogue): Restore vr and vrsave
+	regs before frame pop when needed.  If use_backchain_to_restore_sp
+	then load backchain into a temp reg to restore vr and vrsave.  Add
+	code to restore vr after frame pop if possible.
+
+2008-04-17  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vn.c (expressions_equal_p): Do not check type
+	equality or compatibility before calling operand_equal_p.
+	* fold-const.c (operand_equal_p): Check equivalence of
+	integer constants before bailing out due to signedness or
+	precision differences.
+	* tree-ssa-sccvn.c (copy_reference_ops_from_ref): Ignore
+	spurious differences in type qualification.  Ignore types
+	for COMPONENT_REFs at all.
+
+2008-04-17  Christian Bruel  <christian.bruel@st.com>
+
+	* config/sh/sh.c (expand_cbranchdi4): Use original operands for
+	msw_skip comparison.
+	
 2008-04-16  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c/35739
@@ -1607,6 +2106,7 @@
 
 2008-03-28  Nick Clifton  <nickc@redhat.com>
 
+	PR target/31110
 	* config/mn10300/mn10300.c (mn10300_secondary_reload_class):
 	Return GENERAL_REGS for stack adjustment reloads.
 

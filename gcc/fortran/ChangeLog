@@ -1,3 +1,60 @@
+2008-04-23  Paolo Bonzini  <bonzini@gnu.org>
+
+	* trans-expr.c (gfc_conv_structure): Don't set TREE_INVARIANT.
+	* trans-array.c (gfc_build_null_descriptor): Don't set TREE_INVARIANT.
+	(gfc_trans_array_constructor_value): Don't set TREE_INVARIANT.
+	(gfc_build_constant_array_constructor): Don't set TREE_INVARIANT.
+	(gfc_conv_array_initializer): Don't set TREE_INVARIANT.
+	* trans-common.c (get_init_field): Don't set TREE_INVARIANT.
+	(create_common): Don't set TREE_INVARIANT.
+	* trans-stmt.c (gfc_trans_character_select): Don't set TREE_INVARIANT.
+	* trans-decl.c (gfc_generate_function_code): Don't set TREE_INVARIANT.
+
+2008-04-21  Steve Ellcey  <sje@cup.hp.com>
+
+	* f95-lang.c (gfc_init_decl_processing): use ptr_mode instead of Pmode.
+
+2008-04-21  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/35019
+	* gfortranspec.c (lookup_option): Properly handle separated arguments
+	in -J option, print missing argument message when necessary.
+
+2008-04-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35882
+	* scanner.c (skip_fixed_comments): Update continue_line when comment is
+	detected. (gfc_next_char_literal): Likewise.
+
+2008-04-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35944
+	PR fortran/35946
+	PR fortran/35947
+	* trans_array.c (gfc_trans_array_constructor): Temporarily
+	realign loop, if loop->from is not zero, before creating
+	the temporary array and provide an offset.
+
+	PR fortran/35959
+	* trans-decl.c (gfc_init_default_dt): Add gfc_ prefix to name
+	and allow for NULL body.  Change all references from
+	init_default_dt to gfc_init_default_dt.
+	* trans.h : Add prototype for gfc_init_default_dt.
+	* trans-array.c (gfc_trans_deferred_vars): After nullification
+	call gfc_init_default_dt for derived types with allocatable
+	components.
+
+2008-04-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35892
+	* trans-common.c (create_common): Revert patch causing regression.
+
+2008-04-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/35724
+	* iresolve.c (gfc_resolve_eoshift): Check for NULL symtree in test for
+	optional argument attribute.
+	
 2008-04-16  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/35932

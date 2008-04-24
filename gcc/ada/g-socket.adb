@@ -359,7 +359,7 @@ package body GNAT.Sockets is
 
    begin
       if Address.Family = Family_Inet6 then
-         raise Socket_Error;
+         raise Socket_Error with "IPv6 not supported";
       end if;
 
       Set_Length  (Sin'Unchecked_Access, Len);
@@ -582,7 +582,7 @@ package body GNAT.Sockets is
 
    begin
       if Server.Family = Family_Inet6 then
-         raise Socket_Error;
+         raise Socket_Error with "IPv6 not supported";
       end if;
 
       Set_Length (Sin'Unchecked_Access, Len);
@@ -763,11 +763,11 @@ package body GNAT.Sockets is
    -- Get_Address --
    -----------------
 
-   function Get_Address (Stream : Stream_Access) return Sock_Addr_Type is
+   function Get_Address
+     (Stream : not null Stream_Access) return Sock_Addr_Type
+   is
    begin
-      if Stream = null then
-         raise Socket_Error;
-      elsif Stream.all in Datagram_Socket_Stream_Type then
+      if Stream.all in Datagram_Socket_Stream_Type then
          return Datagram_Socket_Stream_Type (Stream.all).From;
       else
          return Get_Peer_Name (Stream_Socket_Stream_Type (Stream.all).Socket);
@@ -1981,7 +1981,7 @@ package body GNAT.Sockets is
                  S_B4 => C.unsigned_char (Addr.Sin_V4 (4)));
       end if;
 
-      raise Socket_Error;
+      raise Socket_Error with "IPv6 not supported";
    end To_In_Addr;
 
    ------------------

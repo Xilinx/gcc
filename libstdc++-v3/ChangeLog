@@ -1,3 +1,73 @@
+2008-04-23  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* config/os/hpux/os_defines.h: Use _GLIBCXX_BEGIN_NAMESPACE,
+	_GLIBCXX_BEGIN_EXTERN_C, etc.
+
+2008-04-23  Johannes Singler  <singler@ira.uka.de>
+
+        * include/parallel/quicksort.h: Reformat,
+        (parallel_sort_qs): Do not pass number of elements.
+        * include/parallel/balanced_quicksort.h: Reformat,
+        (parallel_sort_qsb): Do not pass number of elements.
+        * include/parallel/tags.h:
+        Introduce new tags for compile-time choice.
+        * include/parallel/merge.h:
+        (parallel_merge_advance):Beautified.
+        * include/parallel/algo.h: Reformatting (spaces for tabs)
+        New sort and stable_sort variants, corresponding to the tags.
+        * include/parallel/sort.h:
+        New sort and stable_sort variants, corresponding to the tags.
+        Changed determining the desired number of threads. 
+
+2008-04-23  Johannes Singler  <singler@ira.uka.de>
+
+        * include/parallel/multiway_merge.h
+        (multiway_merge_loser_tree):
+        Leave checks to callers, add precondition instead.
+        (multiway_merge_loser_tree_unguarded): Likewise.
+        (multiway_merge_loser_tree_sentinel): Likewise.
+        (sequential_multiway_merge): Added checks for total length 0.
+        (parallel_multiway_merge): Skip empty sequences.
+        (multiway_merge, all variants):
+        Remove temporary variable, return directly.
+        (stable_multiway_merge, all variants): Likewise.
+        (multiway_merge_sentinels, all variants):  Likewise.
+        (stable_multiway_merge_sentinels, all variants): Likewise.
+        * include/parallel/multiseq_selection.h
+        (multiseq_partition): More detailed assertions.
+
+2008-04-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* acinclude.m4 (GLIBCXX_CHECK_SETRLIMIT, GLIBCXX_ENABLE_C99)
+	(GLIBCXX_CHECK_C99_TR1, GLIBCXX_CHECK_RANDOM_TR1)
+	(GLIBCXX_ENABLE_VISIBILITY): Fix cache variable names.
+	(GLIBCXX_CHECK_SYSTEM_ERROR): Likewise.  Factorize.
+	* configure: Regenerate.
+
+2008-04-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR libstdc++/35954
+	* include/Makefile.am (pch*_output): Do not touch pch*_output_anchor.
+	Call 'mkdir -p' unconditionally, but ignore its return value.
+	* include/Makefile.in: Regenerate.
+
+	* include/Makefile.am: Fix most stamp rules to regenerate
+	the links for all sources newer than the stamp file.
+	* include/Makefile.in: Regenerate.
+	* Makefile.in: Likewise.
+	* src/Makefile.in: Likewise.
+	* doc/Makefile.in: Likewise.
+	* po/Makefile.in: Likewise.
+	* libmath/Makefile.in: Likewise.
+	* libsupc++/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
 2008-04-16  Andreas Tobler  <a.tobler@schweiz.org>
 
 	PR libstdc++/35915
@@ -24,11 +94,11 @@
 2008-04-14  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* include/bits/c++config: Guard _LDBL_ macros with __cplusplus.
-	
+
 2008-04-10  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* doc/html/*: Regenerate.
-	
+
 2008-04-10  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* doc/xml/manual/bitmap_allocator.xml: Improve wording a bit.
@@ -60,7 +130,7 @@
 
 	* doc/xml/manual/parallel_mode.xml: Remove map/set bulk
 	insertors. Correct omp_set_num_threads example.
-	
+
 2008-04-10  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* include/c_global/cstdatomic: C++ types only, format, doxygen markup.
@@ -70,7 +140,7 @@
 	* include/Makefile.am (cstdatomic, stdatomic.h): Add.
 	* src/Makefile.am (atomic.c): Add.
 	* acinclude.m4 (GLIBCXX_CHECK_STANDARD_LAYOUT): New.
-	* configure.ac: Call it.	
+	* configure.ac: Call it.
 	* include/Makefile.in: Regenerate.
 	* src/Makefile.in: Same.
 	* Makefile.in: Same.
@@ -82,21 +152,21 @@
 	* libsupc++/Makefile.in: Same.
 	* config.h.in: Same.
 	* configure: Same.
-	
+
 	* config/abi/pre/gnu.ver: Add atomics exports.
 
 	* include/ext/typelist.h (apply_generator): New.
 	* include/bits/c++config (_GLIBCXX_BEGIN_EXTERN_C): New.
 	(_GLIBCXX_END_EXTERN_C): New.
 	Deal with _GLIBCXX_BEGIN_NAMESPACE, _GLIBCXX_END_NAMESPACE when
-	compiling as C.	
+	compiling as C.
 	* testsuite/lib/libstdc++.exp (v3_target_compile_as_c): Add -L
 	flag for libstdc++.
 	* testsuite/util/testsuite_common_types.h (integral_types): New
 	typelist.
 	(atomics, atomics_tl): Same.
 	(assignable, default_constructible, copy_constructible,
-	explicit_value_constructible): New.	
+	explicit_value_constructible): New.
 	* testsuite/17_intro/headers/c++200x/all.cc: Test new headers.
 	* testsuite/29_atomics: New.
 	* testsuite/29_atomics/atomic_address: Same.
@@ -113,7 +183,7 @@
 	* testsuite/29_atomics/atomic_flag/cons/default.cc: Same.
 	* testsuite/29_atomics/atomic_flag/cons/aggregate.cc: Same.
 	* testsuite/29_atomics/atomic_flag/requirements: Same.
-	* testsuite/29_atomics/atomic_flag/requirements/standard_layout.cc: 
+	* testsuite/29_atomics/atomic_flag/requirements/standard_layout.cc:
 	Same.
 	* testsuite/29_atomics/atomic_flag/
 	atomic_global_fence_compatibility.cc: Same.
@@ -142,7 +212,7 @@
 	* testsuite/29_atomics/atomic/requirements/explicit_instantiation: Same.
 	* testsuite/29_atomics/atomic/requirements/explicit_instantiation/
 	1.cc: Same.
-	
+
 2008-04-10  Lawrence Crowl  <crowl@google.com>
 
 	* include/c_global/cstdatomic: New.
@@ -152,13 +222,13 @@
 2008-04-10  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* include/std/tuple: Consistency check for include guard, doxygen
-	file markup.	
+	file markup.
 	* include/std/date_time: Same.
 	* include/std/type_traits: Same.
 	* include/std/regex: Same.
 	* include/std/array: Same.
-	* include/std/system_error: Same, add error_code ctor.	
-
+	* include/std/system_error: Same, add error_code ctor.
+	
 2008-04-07  Johannes Singler  <singler@ira.uka.de>
 
 	* include/parallel/multiway_merge.h: Moved decisions to
@@ -280,7 +350,7 @@
 	* config/abi/compatibility.h: Adjust file name.
 
 	* testsuite/19_diagnostics/error_category/cons/copy_neg.cc: Adjust
-	line numbers.	
+	line numbers.
 	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Same.
 	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc: Same.
 
@@ -298,7 +368,7 @@
 	* testsuite/util/testsuite_abi.cc: Add support for not counting
 	GLIBCXX_LDBL_* compat symbols missing if no long double compat
 	symbols under test.
-	
+
 2008-03-20  Paolo Carlini  <pcarlini@suse.de>
 
 	PR libstdc++/35637

@@ -6599,7 +6599,7 @@ highest_pow2_factor (const_tree exp)
 	}
       break;
 
-    case NON_LVALUE_EXPR:  case NOP_EXPR:  case CONVERT_EXPR:
+    case NOP_EXPR:  case CONVERT_EXPR:
     case SAVE_EXPR:
       return highest_pow2_factor (TREE_OPERAND (exp, 0));
 
@@ -7126,9 +7126,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     }
 
   ignore = (target == const0_rtx
-	    || ((code == NON_LVALUE_EXPR || code == NOP_EXPR
-		 || code == CONVERT_EXPR || code == COND_EXPR
-		 || code == VIEW_CONVERT_EXPR)
+	    || ((code == NOP_EXPR || code == CONVERT_EXPR 
+		 || code == COND_EXPR || code == VIEW_CONVERT_EXPR)
 		&& TREE_CODE (type) == VOID_TYPE));
 
   /* An operation in what may be a bit-field type needs the
@@ -8023,7 +8022,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       return expand_call (exp, target, ignore);
 
     case PAREN_EXPR:
-    case NON_LVALUE_EXPR:
     case NOP_EXPR:
     case CONVERT_EXPR:
       if (TREE_OPERAND (exp, 0) == error_mark_node)
@@ -9436,8 +9434,7 @@ static int
 is_aligning_offset (const_tree offset, const_tree exp)
 {
   /* Strip off any conversions.  */
-  while (TREE_CODE (offset) == NON_LVALUE_EXPR
-	 || TREE_CODE (offset) == NOP_EXPR
+  while (TREE_CODE (offset) == NOP_EXPR
 	 || TREE_CODE (offset) == CONVERT_EXPR)
     offset = TREE_OPERAND (offset, 0);
 
@@ -9453,8 +9450,7 @@ is_aligning_offset (const_tree offset, const_tree exp)
   /* Look at the first operand of BIT_AND_EXPR and strip any conversion.
      It must be NEGATE_EXPR.  Then strip any more conversions.  */
   offset = TREE_OPERAND (offset, 0);
-  while (TREE_CODE (offset) == NON_LVALUE_EXPR
-	 || TREE_CODE (offset) == NOP_EXPR
+  while (TREE_CODE (offset) == NOP_EXPR
 	 || TREE_CODE (offset) == CONVERT_EXPR)
     offset = TREE_OPERAND (offset, 0);
 
@@ -9462,8 +9458,7 @@ is_aligning_offset (const_tree offset, const_tree exp)
     return 0;
 
   offset = TREE_OPERAND (offset, 0);
-  while (TREE_CODE (offset) == NON_LVALUE_EXPR
-	 || TREE_CODE (offset) == NOP_EXPR
+  while (TREE_CODE (offset) == NOP_EXPR
 	 || TREE_CODE (offset) == CONVERT_EXPR)
     offset = TREE_OPERAND (offset, 0);
 
@@ -9948,8 +9943,8 @@ do_tablejump (rtx index, enum machine_mode mode, rtx range, rtx table_label,
 {
   rtx temp, vector;
 
-  if (INTVAL (range) > cfun->max_jumptable_ents)
-    cfun->max_jumptable_ents = INTVAL (range);
+  if (INTVAL (range) > cfun->cfg->max_jumptable_ents)
+    cfun->cfg->max_jumptable_ents = INTVAL (range);
 
   /* Do an unsigned comparison (in the proper mode) between the index
      expression and the value which represents the length of the range.

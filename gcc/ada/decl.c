@@ -673,19 +673,21 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    && !Present (Address_Clause (gnat_entity)))
 	  gnu_size = bitsize_unit_node;
 
-	/* If this is an object with no specified size and alignment, and if
-	   either it is atomic or we are not optimizing alignment for space
-	   and it is a non-scalar variable, and the size of its type is a
-	   constant, set the alignment to the smallest not less than the
-	   size, or to the biggest meaningful one, whichever is smaller.  */
+	/* If this is an object with no specified size and alignment, and
+	   if either it is atomic or we are not optimizing alignment for
+	   space and it is composite and not an exception, an Out parameter
+	   or a reference to another object, and the size of its type is a
+	   constant, set the alignment to the smallest one which is not
+	   smaller than the size, with an appropriate cap.  */
 	if (!gnu_size && align == 0
 	    && (Is_Atomic (gnat_entity)
-		|| (Debug_Flag_Dot_A
-		    && !Optimize_Alignment_Space (gnat_entity)
-		    && kind == E_Variable
-		    && AGGREGATE_TYPE_P (gnu_type)
-		    && !const_flag && No (Renamed_Object (gnat_entity))
-		    && !imported_p && No (Address_Clause (gnat_entity))))
+		|| (!Optimize_Alignment_Space (gnat_entity)
+		    && kind != E_Exception
+		    && kind != E_Out_Parameter
+		    && Is_Composite_Type (Etype (gnat_entity))
+		    && !imported_p
+		    && No (Renamed_Object (gnat_entity))
+		    && No (Address_Clause (gnat_entity))))
 	    && TREE_CODE (TYPE_SIZE (gnu_type)) == INTEGER_CST)
 	  {
 	    /* No point in jumping through all the hoops needed in order
@@ -701,12 +703,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      align = ceil_alignment (tree_low_cst (TYPE_SIZE (gnu_type), 1));
 
 	    /* But make sure not to under-align the object.  */
-	    if (align < TYPE_ALIGN (gnu_type))
-	      align = TYPE_ALIGN (gnu_type);
+	    if (align <= TYPE_ALIGN (gnu_type))
+	      align = 0;
 
 	    /* And honor the minimum valid atomic alignment, if any.  */
 #ifdef MINIMUM_ATOMIC_ALIGNMENT
-	    if (align < MINIMUM_ATOMIC_ALIGNMENT)
+	    else if (align < MINIMUM_ATOMIC_ALIGNMENT)
 	      align = MINIMUM_ATOMIC_ALIGNMENT;
 #endif
 	  }
@@ -3726,11 +3728,13 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		     || Has_Foreign_Convention (gnat_entity)))
 	  gnu_return_type = TREE_TYPE (TYPE_FIELDS (gnu_return_type));
 
-	/* If the return type is unconstrained, that means it must have a
-	   maximum size.  We convert the function into a procedure and its
-	   caller will pass a pointer to an object of that maximum size as the
-	   first parameter when we call the function.  */
-	if (CONTAINS_PLACEHOLDER_P (TYPE_SIZE (gnu_return_type)))
+	/* If the return type has a non-constant size, we convert the function
+	   into a procedure and its caller will pass a pointer to an object as
+	   the first parameter when we call the function.  This can happen for
+	   an unconstrained type with a maximum size or a constrained type with
+	   a size not known at compile time.  */
+	if (TYPE_SIZE_UNIT (gnu_return_type)
+	    && !TREE_CONSTANT (TYPE_SIZE_UNIT (gnu_return_type)))
 	  {
 	    returns_by_target_ptr = true;
 	    gnu_param_list
@@ -5682,11 +5686,12 @@ maybe_pad_type (tree type, tree size, unsigned int align,
 
   /* Unless debugging information isn't being written for the input type,
      write a record that shows what we are a subtype of and also make a
-     variable that indicates our size, if variable. */
+     variable that indicates our size, if still variable. */
   if (TYPE_NAME (record)
       && AGGREGATE_TYPE_P (type)
-      && (TREE_CODE (TYPE_NAME (type)) != TYPE_DECL
-	  || !DECL_IGNORED_P (TYPE_NAME (type))))
+      && TREE_CODE (orig_size) != INTEGER_CST
+      && !(TREE_CODE (TYPE_NAME (type)) == TYPE_DECL
+	   && DECL_IGNORED_P (TYPE_NAME (type))))
     {
       tree marker = make_node (RECORD_TYPE);
       tree name = TYPE_NAME (record);

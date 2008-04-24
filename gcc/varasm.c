@@ -2819,7 +2819,6 @@ const_hash_1 (const tree exp)
 
     case NOP_EXPR:
     case CONVERT_EXPR:
-    case NON_LVALUE_EXPR:
       return const_hash_1 (TREE_OPERAND (exp, 0)) * 7 + 2;
 
     default:
@@ -2974,7 +2973,6 @@ compare_constant (const tree t1, const tree t2)
 
     case NOP_EXPR:
     case CONVERT_EXPR:
-    case NON_LVALUE_EXPR:
     case VIEW_CONVERT_EXPR:
       return compare_constant (TREE_OPERAND (t1, 0), TREE_OPERAND (t2, 0));
 
@@ -3022,7 +3020,6 @@ copy_constant (tree exp)
 
     case NOP_EXPR:
     case CONVERT_EXPR:
-    case NON_LVALUE_EXPR:
     case VIEW_CONVERT_EXPR:
       return build1 (TREE_CODE (exp), TREE_TYPE (exp),
 		     copy_constant (TREE_OPERAND (exp, 0)));
@@ -3813,7 +3810,7 @@ mark_constant_pool (void)
   for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
     mark_constants (insn);
 
-  for (link = current_function_epilogue_delay_list;
+  for (link = crtl->epilogue_delay_list;
        link;
        link = XEXP (link, 1))
     mark_constants (XEXP (link, 0));
@@ -3921,7 +3918,6 @@ compute_reloc_for_constant (tree exp)
 
     case NOP_EXPR:
     case CONVERT_EXPR:
-    case NON_LVALUE_EXPR:
     case VIEW_CONVERT_EXPR:
       reloc = compute_reloc_for_constant (TREE_OPERAND (exp, 0));
       break;
@@ -3977,7 +3973,6 @@ output_addressed_constants (tree exp)
 
     case NOP_EXPR:
     case CONVERT_EXPR:
-    case NON_LVALUE_EXPR:
     case VIEW_CONVERT_EXPR:
       output_addressed_constants (TREE_OPERAND (exp, 0));
       break;

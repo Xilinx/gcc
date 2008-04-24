@@ -7732,6 +7732,13 @@ grokdeclarator (const cp_declarator *declarator,
 	error ("%<long%> or %<short%> specified with char for %qs", name);
       else if (long_p && short_p)
 	error ("%<long%> and %<short%> specified together for %qs", name);
+      else if (type == char16_type_node || type == char32_type_node)
+	{
+	  if (signed_p || unsigned_p)
+	    error ("%<signed%> or %<unsigned%> invalid for %qs", name);
+	  else if (short_p || long_p)
+	    error ("%<short%> or %<long%> invalid for %qs", name);
+	}
       else
 	{
 	  ok = 1;
@@ -10960,7 +10967,6 @@ build_enumerator (tree name, tree value, tree enumtype)
 
   DECL_CONTEXT (decl) = FROB_CONTEXT (context);
   TREE_CONSTANT (decl) = 1;
-  TREE_INVARIANT (decl) = 1;
   TREE_READONLY (decl) = 1;
   DECL_INITIAL (decl) = value;
 

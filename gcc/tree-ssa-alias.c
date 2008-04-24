@@ -2354,7 +2354,6 @@ compute_flow_sensitive_aliasing (struct alias_info *ai)
   for (i = 0; VEC_iterate (tree, ai->processed_ptrs, i, ptr); i++)
     {
       struct ptr_info_def *pi = SSA_NAME_PTR_INFO (ptr);
-      tree tag = symbol_mem_tag (SSA_NAME_VAR (ptr));
 
       /* Set up aliasing information for PTR's name memory tag (if it has
 	 one).  Note that only pointers that have been dereferenced will
@@ -2362,18 +2361,7 @@ compute_flow_sensitive_aliasing (struct alias_info *ai)
       if (pi->name_mem_tag && pi->pt_vars)
 	{
 	  if (!bitmap_empty_p (pi->pt_vars))
-	    {
-	      union_alias_set_into (pi->name_mem_tag, pi->pt_vars);
-	      union_alias_set_into (tag, pi->pt_vars);
-	      bitmap_clear_bit (MTAG_ALIASES (tag), DECL_UID (tag));
-	    
-	      /* It may be the case that this the tag uid was the only
-		 bit we had set in the aliases list, and in this case,
-		 we don't want to keep an empty bitmap, as this
-		 asserts in tree-ssa-operands.c .  */
-	      if (bitmap_empty_p (MTAG_ALIASES (tag)))
-		BITMAP_FREE (MTAG_ALIASES (tag));
-	    }
+	    union_alias_set_into (pi->name_mem_tag, pi->pt_vars);
 	}
     }
   timevar_pop (TV_FLOW_SENSITIVE);
@@ -2390,9 +2378,7 @@ have_common_aliases_p (bitmap tag1aliases, bitmap tag2aliases)
   /* This is the old behavior of have_common_aliases_p, which is to
      return false if both sets are empty, or one set is and the other
      isn't.  */
-     if ((tag1aliases == NULL && tag2aliases != NULL)
-      || (tag2aliases == NULL && tag1aliases != NULL)
-      || (tag1aliases == NULL && tag2aliases == NULL))
+  if (tag1aliases == NULL || tag2aliases == NULL)
     return false;
 
   return bitmap_intersect_p (tag1aliases, tag2aliases);
@@ -2490,11 +2476,15 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
       if (PTR_IS_REF_ALL (p_map1->var))
 	continue;
 
-      for (j = i + 1; j < ai->num_pointers; j++)
+      for (j = 0; j < ai->num_pointers; j++)
 	{
 	  struct alias_map_d *p_map2 = ai->pointers[j];
 	  tree tag2 = symbol_mem_tag (p_map2->var);
 	  bitmap may_aliases2 = may_aliases (tag2);
+
+	  /* By convention tags don't alias themselves.  */
+	  if (tag1 == tag2)
+	    continue;
 
 	  if (PTR_IS_REF_ALL (p_map2->var))
 	    continue;
@@ -2508,18 +2498,8 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
 	  if (have_common_aliases_p (may_aliases1, may_aliases2))
 	    continue;
 
-	  if (may_aliases2 && !bitmap_empty_p (may_aliases2))
-	    {
-	      union_alias_set_into (tag1, may_aliases2);
-	    }
-	  else
-	    {
-	      /* Since TAG2 does not have any aliases of its own, add
-		 TAG2 itself to the alias set of TAG1.  */
-	      add_may_alias (tag1, tag2);
-	    }
+	  add_may_alias (tag1, tag2);
 	}
-
     }
   timevar_pop (TV_FLOW_INSENSITIVE);
 }
@@ -2868,8 +2848,19 @@ may_alias_p (tree ptr, alias_set_type mem_alias_set,
     {
       alias_stats.tbaa_queries++;
 
+      /* If the pointed to memory has alias set zero or the pointer
+	 is ref-all, the MEM can alias VAR.  */
+      if (mem_alias_set == 0
+	  || PTR_IS_REF_ALL (ptr))
+	{
+	  alias_stats.alias_mayalias++;
+	  alias_stats.tbaa_resolved++;
+	  return true;
+	}
+
       /* If the alias sets don't conflict then MEM cannot alias VAR.  */
-      if (!alias_sets_conflict_p (mem_alias_set, var_alias_set))
+      if (mem_alias_set != var_alias_set
+	  && !alias_set_subset_of (mem_alias_set, var_alias_set))
 	{
 	  alias_stats.alias_noalias++;
 	  alias_stats.tbaa_resolved++;

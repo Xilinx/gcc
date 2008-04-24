@@ -1,5 +1,5 @@
 /* Part of CPP library.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
 
 This program is free software; you can redistribute it and/or modify it
@@ -48,6 +48,7 @@ struct cset_converter
 {
   convert_f func;
   iconv_t cd;
+  int width;
 };
 
 #define BITS_PER_CPPCHAR_T (CHAR_BIT * sizeof (cppchar_t))
@@ -399,6 +400,14 @@ struct cpp_reader
   struct cset_converter narrow_cset_desc;
 
   /* Descriptor for converting from the source character set to the
+     UTF-16 execution character set.  */
+  struct cset_converter char16_cset_desc;
+
+  /* Descriptor for converting from the source character set to the
+     UTF-32 execution character set.  */
+  struct cset_converter char32_cset_desc;
+
+  /* Descriptor for converting from the source character set to the
      wide execution character set.  */
   struct cset_converter wide_cset_desc;
 
@@ -635,7 +644,7 @@ extern cppchar_t _cpp_valid_ucn (cpp_reader *, const unsigned char **,
 extern void _cpp_destroy_iconv (cpp_reader *);
 extern unsigned char *_cpp_convert_input (cpp_reader *, const char *,
 					  unsigned char *, size_t, size_t,
-					  off_t *);
+					  const unsigned char **, off_t *);
 extern const char *_cpp_default_encoding (void);
 extern cpp_hashnode * _cpp_interpret_identifier (cpp_reader *pfile,
 						 const unsigned char *id,
