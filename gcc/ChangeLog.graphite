@@ -1,3 +1,14 @@
+2008-04-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (basic_block_simple_for_scop_p): Renamed harmful_stmt_in_bb.
+	(save_scop, preds_at_same_depth, test_for_scop_bound): Removed.
+	(add_dominators_to_open_scops, build_scops_1): Reimplemented.
+	(all_preds_visited_p, all_succs_visited_p, start_new_scop_for_each_succ,
+	start_new_scop, stop_last_open_scop, scop_end_loop): New.
+	(build_scops): Do not use dfs_enumerate_from.
+
+	* testsuite/gcc.dg/graphite/scop-{1,2,4}.c: Updated.
+
 2008-04-23  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c: Add comments to functions that are missing a
