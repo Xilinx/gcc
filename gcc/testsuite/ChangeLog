@@ -1,3 +1,24 @@
+2008-04-28  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/34223
+	* gcc.dg/vect/vect-118.c: Rename to ...
+	* gcc.dg/vect/O3-vect-pr34223.c: ... this.
+
+2008-04-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36066
+	* gcc.dg/torture/pr36066.c: New testcase.
+
+2008-04-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/36064
+	* gcc.target/i386/pr36064.c: New test.
+
+2008-04-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/36056
+	* g++.dg/ext/vector14.C: Add -msse for 32bit x86 targets.
+
 2008-04-27  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/18754
