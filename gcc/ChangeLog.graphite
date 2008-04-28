@@ -1,3 +1,9 @@
+2008-04-28  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (dot_all_scops): Remove incorrect difficult bb coloring,
+	mark entry and exit, that are not part of the SCoP and update HTML
+	formatting.
+
 2008-04-25  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (basic_block_simple_for_scop_p): Renamed harmful_stmt_in_bb.

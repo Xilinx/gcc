@@ -232,8 +232,8 @@ dot_scop (scop_p scop)
    If there are not enough colors (8 at the moment), paint later SCoPs gray.
    Special nodes:
    - "*" after the node number: entry of a SCoP,
-   - "#" after the node number: end of a SCoP,
-   - black background: critical BB.  */
+   - "#" after the node number: exit of a SCoP,
+   - "()" entry or exit not part of SCoP.  */
 
 static void
 dot_all_scops_1 (FILE *file)
@@ -258,9 +258,9 @@ dot_all_scops_1 (FILE *file)
       /* Use HTML for every bb label.  So we are able to print bbs
          which are part of two different SCoPs, with two different
          background colors.  */
-      fprintf (file, "%d [label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" ",
+      fprintf (file, "%d [label=<\n  <TABLE BORDER=\"0\" CELLBORDER=\"1\" ",
                      bb->index);
-      fprintf (file, "CELLSPACING=\"0\"> ");
+      fprintf (file, "CELLSPACING=\"0\">\n");
 
       /* Select color for SCoP.  */
       for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
@@ -296,40 +296,41 @@ dot_all_scops_1 (FILE *file)
 		color = "#e41a1c";
 	      }
 
-	    fprintf (file, "  <TR><TD WIDTH=\"50\" BGCOLOR=\"%s\">", color);
+	    fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"%s\">", color);
+        
+      if (!bb_in_scop_p (bb, scop))
+	      fprintf (file, " ("); 
 
 	    if (bb == scop->entry && bb == scop->exit)
-	      fprintf (file, " %d*# </TD></TR> ", bb->index);
+	      fprintf (file, " %d*# ", bb->index);
 	    else if (bb == scop->entry)
-	      fprintf (file, " %d* </TD></TR> ", bb->index);
+	      fprintf (file, " %d* ", bb->index);
 	    else if (bb == scop->exit)
-	      fprintf (file, " %d# </TD></TR> ", bb->index);
+	      fprintf (file, " %d# ", bb->index);
 	    else
-	      fprintf (file, " %d </TD></TR> ", bb->index);
+	      fprintf (file, " %d ", bb->index);
+
+      if (!bb_in_scop_p (bb, scop))
+	      fprintf (file, ")");
+
+	    fprintf (file, "</TD></TR>\n");
 
 	    part_of_scop  = true;
 	  }
 
       if (!part_of_scop)
         {
-          fprintf (file, "  <TR><TD WIDTH=\"50\" BGCOLOR=\"#ffffff\">");
+          fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"#ffffff\">");
           fprintf (file, " %d </TD></TR>\n", bb->index);
         }
 
-      fprintf (file, "</TABLE>>, shape=box, style=\"setlinewidth(0)\"]\n");
+      fprintf (file, "  </TABLE>>, shape=box, style=\"setlinewidth(0)\"]\n");
     }
 
-  /* Print edges and mark blocks not allowed in SCoP.  */
   FOR_ALL_BB (bb)
     {
       FOR_EACH_EDGE (e, ei, bb->succs)
-	fprintf (file, "%d -> %d;\n", bb->index, e->dest->index);
-
-      for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
-	if (bb_in_scop_p (bb, scop) || scop->exit == bb || scop->entry == bb)
-	  if (harmful_stmt_in_bb (scop, bb))
-	    fprintf (file, "%d [color=\"#000000\", style=filled]\n",
-		     bb->index);
+	      fprintf (file, "%d -> %d;\n", bb->index, e->dest->index);
     }
 
   fputs ("}\n\n", file);
