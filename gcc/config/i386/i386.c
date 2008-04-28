@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-codes.h"
 #include "insn-attr.h"
 #include "flags.h"
+#include "c-common.h"
 #include "except.h"
 #include "function.h"
 #include "recog.h"
@@ -2853,6 +2854,9 @@ x86_64_elf_select_section (tree decl, int reloc,
 	  /* We don't split these for medium model.  Place them into
 	     default sections and hope for best.  */
 	  break;
+	case SECCAT_EMUTLS_VAR:
+	case SECCAT_EMUTLS_TMPL:
+	  gcc_unreachable ();
 	}
       if (sname)
 	{
@@ -2889,16 +2893,16 @@ x86_64_elf_unique_section (tree decl, int reloc)
 	case SECCAT_DATA_REL_LOCAL:
 	case SECCAT_DATA_REL_RO:
 	case SECCAT_DATA_REL_RO_LOCAL:
-          prefix = one_only ? ".gnu.linkonce.ld." : ".ldata.";
+          prefix = one_only ? ".ld" : ".ldata";
 	  break;
 	case SECCAT_BSS:
-          prefix = one_only ? ".gnu.linkonce.lb." : ".lbss.";
+          prefix = one_only ? ".lb" : ".lbss";
 	  break;
 	case SECCAT_RODATA:
 	case SECCAT_RODATA_MERGE_STR:
 	case SECCAT_RODATA_MERGE_STR_INIT:
 	case SECCAT_RODATA_MERGE_CONST:
-          prefix = one_only ? ".gnu.linkonce.lr." : ".lrodata.";
+          prefix = one_only ? ".lr" : ".lrodata";
 	  break;
 	case SECCAT_SRODATA:
 	case SECCAT_SDATA:
@@ -2910,23 +2914,28 @@ x86_64_elf_unique_section (tree decl, int reloc)
 	  /* We don't split these for medium model.  Place them into
 	     default sections and hope for best.  */
 	  break;
+	case SECCAT_EMUTLS_VAR:
+	  prefix = targetm.emutls.var_section;
+	  break;
+	case SECCAT_EMUTLS_TMPL:
+	  prefix = targetm.emutls.tmpl_section;
+	  break;
 	}
       if (prefix)
 	{
-	  const char *name;
-	  size_t nlen, plen;
+	  const char *name, *linkonce;
 	  char *string;
-	  plen = strlen (prefix);
 
 	  name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
 	  name = targetm.strip_name_encoding (name);
-	  nlen = strlen (name);
-
-	  string = (char *) alloca (nlen + plen + 1);
-	  memcpy (string, prefix, plen);
-	  memcpy (string + plen, name, nlen + 1);
-
-	  DECL_SECTION_NAME (decl) = build_string (nlen + plen, string);
+	  
+	  /* If we're using one_only, then there needs to be a .gnu.linkonce
+     	     prefix to the section name.  */
+	  linkonce = one_only ? ".gnu.linkonce" : "";
+  
+	  string = ACONCAT ((linkonce, prefix, ".", name, NULL));
+	  
+	  DECL_SECTION_NAME (decl) = build_string (strlen (string), string);
 	  return;
 	}
     }
@@ -3552,7 +3561,7 @@ init_cumulative_args (CUMULATIVE_ARGS *cum,  /* Argument info to initialize */
     {
       /* If there are variable arguments, then we won't pass anything
          in registers in 32-bit mode. */
-      if (cum->maybe_vaarg)
+      if (stdarg_p (fntype))
 	{
 	  cum->nregs = 0;
 	  cum->sse_nregs = 0;
@@ -5783,7 +5792,7 @@ ix86_frame_pointer_required (void)
 	  || ix86_current_function_calls_tls_descriptor))
     return 1;
 
-  if (current_function_profile)
+  if (crtl->profile)
     return 1;
 
   return 0;
@@ -5993,7 +6002,7 @@ gen_push (rtx arg)
 static unsigned int
 ix86_select_alt_pic_regnum (void)
 {
-  if (current_function_is_leaf && !current_function_profile
+  if (current_function_is_leaf && !crtl->profile
       && !ix86_current_function_calls_tls_descriptor)
     {
       int i;
@@ -6012,16 +6021,16 @@ ix86_save_reg (unsigned int regno, int maybe_eh_return)
   if (pic_offset_table_rtx
       && regno == REAL_PIC_OFFSET_TABLE_REGNUM
       && (df_regs_ever_live_p (REAL_PIC_OFFSET_TABLE_REGNUM)
-	  || current_function_profile
-	  || current_function_calls_eh_return
-	  || current_function_uses_const_pool))
+	  || crtl->profile
+	  || crtl->calls_eh_return
+	  || crtl->uses_const_pool))
     {
       if (ix86_select_alt_pic_regnum () != INVALID_REGNUM)
 	return 0;
       return 1;
     }
 
-  if (current_function_calls_eh_return && maybe_eh_return)
+  if (crtl->calls_eh_return && maybe_eh_return)
     {
       unsigned i;
       for (i = 0; ; i++)
@@ -6185,7 +6194,7 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
      expander assumes that last crtl->outgoing_args_size
      of stack frame are unused.  */
   if (ACCUMULATE_OUTGOING_ARGS
-      && (!current_function_is_leaf || current_function_calls_alloca
+      && (!current_function_is_leaf || cfun->calls_alloca
 	  || ix86_current_function_calls_tls_descriptor))
     {
       offset += crtl->outgoing_args_size;
@@ -6196,7 +6205,7 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
 
   /* Align stack boundary.  Only needed if we're calling another function
      or using alloca.  */
-  if (!current_function_is_leaf || current_function_calls_alloca
+  if (!current_function_is_leaf || cfun->calls_alloca
       || ix86_current_function_calls_tls_descriptor)
     frame->padding2 = ((offset + preferred_alignment - 1)
 		       & -preferred_alignment) - offset;
@@ -6246,7 +6255,7 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
 	   (long)frame->hard_frame_pointer_offset);
   fprintf (stderr, "stack_pointer_offset: %ld\n", (long)frame->stack_pointer_offset);
   fprintf (stderr, "current_function_is_leaf: %ld\n", (long)current_function_is_leaf);
-  fprintf (stderr, "current_function_calls_alloca: %ld\n", (long)current_function_calls_alloca);
+  fprintf (stderr, "cfun->calls_alloca: %ld\n", (long)cfun->calls_alloca);
   fprintf (stderr, "x86_current_function_calls_tls_descriptor: %ld\n", (long)ix86_current_function_calls_tls_descriptor);
 #endif
 }
@@ -6531,7 +6540,7 @@ ix86_expand_prologue (void)
   pic_reg_used = false;
   if (pic_offset_table_rtx
       && (df_regs_ever_live_p (REAL_PIC_OFFSET_TABLE_REGNUM)
-	  || current_function_profile))
+	  || crtl->profile))
     {
       unsigned int alt_pic_reg_used = ix86_select_alt_pic_regnum ();
 
@@ -6566,7 +6575,7 @@ ix86_expand_prologue (void)
 
   /* Prevent function calls from being scheduled before the call to mcount.
      In the pic_reg_used case, make sure that the got load isn't deleted.  */
-  if (current_function_profile)
+  if (crtl->profile)
     {
       if (pic_reg_used)
 	emit_insn (gen_prologue_use (pic_offset_table_rtx));
@@ -6621,7 +6630,7 @@ ix86_expand_epilogue (int style)
      eh_return: the eax and edx registers are marked as saved, but not
      restored along this path.  */
   offset = frame.nregs;
-  if (current_function_calls_eh_return && style != 2)
+  if (crtl->calls_eh_return && style != 2)
     offset -= 2;
   offset *= -UNITS_PER_WORD;
 
@@ -6643,7 +6652,7 @@ ix86_expand_epilogue (int style)
       || (frame_pointer_needed && TARGET_USE_LEAVE
 	  && cfun->machine->use_fast_prologue_epilogue
 	  && frame.nregs == 1)
-      || current_function_calls_eh_return)
+      || crtl->calls_eh_return)
     {
       /* Restore registers.  We can use ebp or esp to address the memory
 	 locations.  If both are available, default to ebp, since offsets

@@ -447,7 +447,12 @@ c_strlen (tree src, int only_value)
      runtime.  */
   if (offset < 0 || offset > max)
     {
-      warning (0, "offset outside bounds of constant string");
+     /* Suppress multiple warnings for propagated constant strings.  */
+      if (! TREE_NO_WARNING (src))
+        {
+          warning (0, "offset outside bounds of constant string");
+          TREE_NO_WARNING (src) = 1;
+        }
       return NULL_TREE;
     }
 
@@ -587,7 +592,7 @@ expand_builtin_return_addr (enum built_in_function fndecl_code, int count)
       tem = hard_frame_pointer_rtx;
 
       /* Tell reload not to eliminate the frame pointer.  */
-      current_function_accesses_prior_frames = 1;
+      crtl->accesses_prior_frames = 1;
     }
 #endif
 
@@ -690,10 +695,10 @@ expand_builtin_setjmp_setup (rtx buf_addr, rtx receiver_label)
 
   /* Tell optimize_save_area_alloca that extra work is going to
      need to go on during alloca.  */
-  current_function_calls_setjmp = 1;
+  cfun->calls_setjmp = 1;
 
   /* We have a nonlocal label.   */
-  current_function_has_nonlocal_label = 1;
+  cfun->has_nonlocal_label = 1;
 }
 
 /* Construct the trailing part of a __builtin_setjmp call.  This is
@@ -877,7 +882,7 @@ expand_builtin_nonlocal_goto (tree exp)
   r_sp = gen_rtx_MEM (STACK_SAVEAREA_MODE (SAVE_NONLOCAL),
 		      plus_constant (r_save_area, GET_MODE_SIZE (Pmode)));
 
-  current_function_has_nonlocal_goto = 1;
+  crtl->has_nonlocal_goto = 1;
 
 #ifdef HAVE_nonlocal_goto
   /* ??? We no longer need to pass the static chain value, afaik.  */
@@ -9645,11 +9650,7 @@ fold_builtin_classify (tree fndecl, tree arg, int builtin_index)
   REAL_VALUE_TYPE r;
 
   if (!validate_arg (arg, REAL_TYPE))
-    {
-      error ("non-floating-point argument to function %qs",
-	     IDENTIFIER_POINTER (DECL_NAME (fndecl)));
-      return error_mark_node;
-    }
+    return NULL_TREE;
 
   switch (builtin_index)
     {
@@ -9733,12 +9734,6 @@ fold_builtin_unordered_cmp (tree fndecl, tree arg0, tree arg1,
     cmp_type = type0;
   else if (code0 == INTEGER_TYPE && code1 == REAL_TYPE)
     cmp_type = type1;
-  else
-    {
-      error ("non-floating-point argument to function %qs",
-		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
-      return error_mark_node;
-    }
 
   arg0 = fold_convert (cmp_type, arg0);
   arg1 = fold_convert (cmp_type, arg1);
@@ -10087,15 +10082,6 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
     case BUILT_IN_ISNAND128:
       return fold_builtin_classify (fndecl, arg0, BUILT_IN_ISNAN);
 
-    case BUILT_IN_ISNORMAL:
-      if (!validate_arg (arg0, REAL_TYPE))
-	{
-	  error ("non-floating-point argument to function %qs",
-		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
-	  return error_mark_node;
-	}
-      break;
-
     case BUILT_IN_PRINTF:
     case BUILT_IN_PRINTF_UNLOCKED:
     case BUILT_IN_VPRINTF:
@@ -10441,54 +10427,7 @@ fold_builtin_4 (tree fndecl, tree arg0, tree arg1, tree arg2, tree arg3,
 static tree
 fold_builtin_n (tree fndecl, tree *args, int nargs, bool ignore)
 {
-  enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
   tree ret = NULL_TREE;
-
-  /* Verify the number of arguments for type-generic and thus variadic
-     builtins.  */
-  switch (fcode)
-    {
-    case BUILT_IN_ISFINITE:
-    case BUILT_IN_ISINF:
-    case BUILT_IN_ISNAN:
-    case BUILT_IN_ISNORMAL:
-      if (nargs < 1)
-	{
-	  error ("too few arguments to function %qs",
-		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
-	  return error_mark_node;
-	}
-      else if (nargs > 1)
-	{
-	  error ("too many arguments to function %qs",
-		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
-	  return error_mark_node;
-	}
-      break;
-
-    case BUILT_IN_ISGREATER:
-    case BUILT_IN_ISGREATEREQUAL:
-    case BUILT_IN_ISLESS:
-    case BUILT_IN_ISLESSEQUAL:
-    case BUILT_IN_ISLESSGREATER:
-    case BUILT_IN_ISUNORDERED:
-      if (nargs < 2)
-	{
-	  error ("too few arguments to function %qs",
-		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
-	  return error_mark_node;
-	}
-      else if (nargs > 2)
-	{
-	  error ("too many arguments to function %qs",
-		 IDENTIFIER_POINTER (DECL_NAME (fndecl)));
-	  return error_mark_node;
-	}
-      break;
-
-    default:
-      break;
-    }
 
   switch (nargs)
     {

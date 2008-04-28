@@ -1,3 +1,129 @@
+2008-04-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/18754
+	PR tree-optimization/34223
+	* gcc.dg/tree-ssa/loop-36.c: New testcase.
+	* gcc.dg/tree-ssa/loop-37.c: Likewise.
+	* gcc.dg/vect/vect-118.c: Likewise.
+	* gcc.dg/Wunreachable-8.c: XFAIL bogus warning.
+	* gcc.dg/vect/vect-66.c: Increase loop trip count.
+	* gcc.dg/vect/no-section-anchors-vect-66.c: Likewise.
+	* gcc.dg/vect/no-section-anchors-vect-69.c: Likewise.
+	* gcc.dg/vect/vect-76.c: Likewise.
+	* gcc.dg/vect/vect-outer-6.c: Likewise.
+	* gcc.dg/vect/vect-outer-1.c: Likewise.
+	* gcc.dg/vect/vect-outer-1a.c: Likewise.
+	* gcc.dg/vect/vect-11a.c: Likewise.
+	* gcc.dg/vect/vect-shift-1.c: Likewise.
+	* gcc.target/i386/vectorize1.c: Likewise.
+
+2008-04-27  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* gcc.dg/tls/section-2.c: New.
+	* gcc.dg/tls/emutls-1.c: New.
+	* lib/target-supports.exp (check_effective_target_tls_native):
+	Exclude vxworks.
+
+2008-04-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/36053
+	* gcc.dg/large-size-array-2.c: Fix x86_64-*-mingw* check.
+	* gcc.dg/large-size-array-4.c: Likewise.
+
+2008-04-26  George Helffrich  <george@gcc.gnu.org>
+
+	PRs fortran/PR35154, fortran/PR23057
+	* gfortran.dg/debug/pr35154-stabs.f:  New test case for
+	.stabs functionality.
+	* gfortran.dg/debug/pr35154-dwarf2.f:  New test case for
+	DWARF functionality.
+
+2008-04-26  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* gcc.target/mips/gcc-have-sync-compare-and-swap-1.c: Expect
+	__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1 and
+	__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2 to be defined.
+	* gcc.target/mips/gcc-have-sync-compare-and-swap-2.c: Likewise.
+
+2008-04-25  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran/array_constructor_23.f: Change REAL(10) into kind > 8.
+	* gfortran/array_constructor_24.f: New; REAL(8) version of the test.
+
+2008-04-25  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.dg/array-quals-1.c: Add xfail for x86_64-*-mingw*.
+	* gcc.dg/builtins-12.c: Add dg-options "-ansi".
+	* gcc.dg/builtins-13.c: Likewise.
+	* gcc.dg/pr25682.c: Likewise.
+	* gcc.dg/pr33694.c: Likewise.
+	* gcc.dg/c90-const-expr-2.c: Add check for _WIN64 define.
+	* gcc.dg/c99-const-expr-2.c: Likewise.
+	* gcc.dg/ia64-sync-1.c: Add typedef of size_t, for prototype.
+	* gcc.dg/ia64-sync-2.c: Likewise.
+	* gcc.dg/ia64-sync-3.c: Likewise
+	* gcc.dg/large-size-array.c: Add check for _WIN64 define.
+	* gcc.dg/large-size-array-3.c: Likewise.
+	* gcc.dg/large-size-array-2.c: Add x86_64-*-mingw* for ignore error
+	check.
+	* gcc.dg/large-size-array-4.c: Likewise.
+	* gcc.dg/max-1.c: Replace use of long by ssize_t.
+
+2008-04-24  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.dg/lower-subreg-1.c: Skip IA64 platform.
+
+2008-04-24  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.dg/vect/slp-15.c: Fix scan when vect_int_mult is false.
+
+2008-04-24  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/36035
+	* gcc.dg/vect/vect-vfa-slp.c: Remove bad check.
+
+2008-04-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/pr36017.c: Run on all targets, remove -lm from dg-options.
+
+	PR c++/35758
+	* g++.dg/ext/vector14.C: New test.
+
+2008-04-24  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/builtin-constant_p-1.c: New testcase.
+	* gcc.dg/builtin-errors.c: Adjust expected error.
+
+2008-04-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36008
+	* gcc.c-torture/execute/20080424-1.c: New test.
+
+2008-04-24  Ira Rosen  <irar@il.ibm.com>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36034
+	* gcc.c-torture/execute/pr36034-1.c: New testcase.
+	* gcc.c-torture/execute/pr36034-2.c: Likewise.
+
+2008-04-24  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/concat_length.adb: New test.
+
+2008-04-24  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/35982
+	* gcc.dg/vect/fast-math-pr35982.c: New.
+
+2008-04-24  Danny Smith  <dannysmith@users.net>
+
+	* gcc.dg/format/ms-warnI64-1.c: New file.
+
+2008-04-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/36015
+	* gcc.dg/pr36015.c: New test.
+
 2008-04-24  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR rtl-optimization/36006

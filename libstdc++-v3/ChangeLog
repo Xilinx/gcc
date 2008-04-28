@@ -1,3 +1,57 @@
+2008-04-25  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/35922
+	* include/std/unordered_map: Include debug/unordered_map if
+	_GLIBCXX_DEBUG.
+	* testsuite/23_containers/unordered_map/requirements/debug.cc: Move...
+	* testsuite/23_containers/unordered_map/requirements/
+	debug_container.cc: ...here.
+	* testsuite/23_containers/unordered_map/requirements/debug_mode.cc: New.
+	* testsuite/23_containers/unordered_set/requirements/debug.cc: Move...
+	* testsuite/23_containers/unordered_set/requirements/
+	debug_container.cc: ...here.
+	* testsuite/23_containers/unordered_set/requirements/debug_mode.cc: New.
+	
+2008-04-25  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/35887
+	* acinclude.m4: (GLIBCXX_ENABLE_PARALLEL): Check for thread support.
+	* configure.ac: Re-order compiler macros.
+	* configure: Regenerated.
+
+2008-04-24  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/35887
+	* configure.ac: Add default argument to GLIBCXX_ENABLE_PARALLEL.
+	Move atomic warnings to GLIBCXX_ENABLE_ATOMIC_BUILTINS.
+	* acinclude.m4 (GLIBCXX_ENABLE_PARALLEL): Check for --disable-libgomp.
+	(GLIBCXX_ENABLE_ATOMIC_BUILTINS): Add warning information.
+	* configure: Regenerate.
+	* include/Makefile.am (parallel_headers): Make conditional on
+	ENABLE_PARALLEL.
+	* include/Makefile.in: Regenerate.
+
+2008-04-24  Paolo Carlini  <pcarlini@suse.de>
+
+	PR libstdc++/35969
+	* include/debug/list (merge): Use _M_transfer_iter, consistently
+	with the splice members.
+	* testsuite/23_containers/list/operations/35969.cc: New.
+
+	* testsuite/23_containers/list/operators: Rename to
+	testsuite/23_containers/list/operations.
+
+2008-04-24  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): Check for set of
+	all used __sync builtins, in two sizes.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* src/atomic.cc: Use  _GLIBCXX_ATOMIC_BUILTINS_1.
+	* include/ext/atomicity.h: Use  _GLIBCXX_ATOMIC_BUILTINS_4.
+	* libsupc++/guard.cc: Use  _GLIBCXX_ATOMIC_BUILTINS_4.
+	* doc/xml/manual/concurrency.xm: Update docs.
+
 2008-04-23  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* config/os/hpux/os_defines.h: Use _GLIBCXX_BEGIN_NAMESPACE,
