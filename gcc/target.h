@@ -624,7 +624,7 @@ struct gcc_target
   /* True if MODE is valid for a pointer in __attribute__((mode("MODE"))).  */
   bool (* valid_pointer_mode) (enum machine_mode mode);
 
-  /* MODE to use for an __ea pointer.  */
+  /* MODE to use for a pointer into another address space.  */
   enum machine_mode (* addr_space_pointer_mode) (int addr_space);
 
   /* True if MODE is valid for the target.  By "valid", we mean able to
@@ -972,7 +972,8 @@ struct gcc_target
   /* True if thread-local storage is supported.  */
   bool have_tls;
 
-  /* True if the __ea qualifier is supported.  */
+  /* True if address space qualifiers are supported.  */
+  /* FIXME: This can be eliminated.  */
   bool have_ea;
 
   /* True if a small readonly data section is supported.  */

@@ -3,7 +3,10 @@
 	* expr.c (expand_expr_real_1): Make comments more generic.
 	* c-typeck.c (build_binary_op): Likewise.
 	* c-parser.c (c_parser_declspecs): Likewise.
-	
+	* tree.h (OTHER_ADDR_SPACE_POINTER_TYPE_P): Likewise.
+	(GENERIC_ADDR_SPACE_POINTER_TYPE_P): Likewise.
+	* target.h (addr_space_pointer_mode, have_ea): Likewise.
+
 2008-04-28  Ben Elliston  <bje@au.ibm.com>
 
 	* dwarf2out.c (modified_type_die): Encode address space number.

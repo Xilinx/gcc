@@ -1109,12 +1109,13 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define POINTER_TYPE_P(TYPE) \
   (TREE_CODE (TYPE) == POINTER_TYPE || TREE_CODE (TYPE) == REFERENCE_TYPE)
 
-/* Nonzero if TYPE is an __ea qualifier pointer or reference type.  */
+/* Nonzero if TYPE is pointer or reference type qualified as belonging
+   to an address space that is not the generic address space.  */
 #define OTHER_ADDR_SPACE_POINTER_TYPE_P(TYPE) \
   (POINTER_TYPE_P (TYPE) && TYPE_ADDR_SPACE (TREE_TYPE (TYPE)))
 
-/* Nonzero if TYPE is not a pointer or reference type, but not __ea
-   qualified.  */
+/* Nonzero if TYPE is a pointer or reference type, but does not belong
+   to an address space outside the generic address space.  */
 #define GENERIC_ADDR_SPACE_POINTER_TYPE_P(TYPE) \
   (POINTER_TYPE_P (TYPE) && !TYPE_ADDR_SPACE (TREE_TYPE (TYPE)))
 
