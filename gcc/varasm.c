@@ -6285,7 +6285,7 @@ default_valid_pointer_mode (enum machine_mode mode)
 }
 
 enum machine_mode
-default_addr_space_pointer_mode (int address_space)
+default_addr_space_pointer_mode (int addrspace)
 {
   return ptr_mode;
 }

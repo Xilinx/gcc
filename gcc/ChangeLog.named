@@ -1,5 +1,10 @@
 2008-04-28  Ben Elliston  <bje@au.ibm.com>
 
+	* c-pretty-print.c (pp_c_type_qualifier_list): Update comments.
+	* varasm.c (default_addr_space_pointer_mode): Rename argument.
+
+2008-04-28  Ben Elliston  <bje@au.ibm.com>
+
 	* expr.c (expand_expr_real_1): Make comments more generic.
 	* c-typeck.c (build_binary_op): Likewise.
 	* c-parser.c (c_parser_declspecs): Likewise.

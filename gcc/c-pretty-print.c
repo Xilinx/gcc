@@ -220,8 +220,11 @@ pp_c_space_for_pointer_operator (c_pretty_printer *pp, tree t)
        const
        restrict                              -- C99
        __restrict__                          -- GNU C
-       __ea				     -- GNU C
-       volatile    */
+       address-space-qualifier		     -- GNU C
+       volatile
+
+   address-space-qualifier:
+	identifier  */
 
 void
 pp_c_type_qualifier_list (c_pretty_printer *pp, tree t)
