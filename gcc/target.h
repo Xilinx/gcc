@@ -625,7 +625,10 @@ struct gcc_target
   bool (* valid_pointer_mode) (enum machine_mode mode);
 
   /* MODE to use for a pointer into another address space.  */
-  enum machine_mode (* addr_space_pointer_mode) (int addr_space);
+  enum machine_mode (* addr_space_pointer_mode) (int addrspace);
+
+  /* Function to map an address space to a descriptive string.  */
+  char * (* addr_space_name) (int addrspace);
 
   /* True if MODE is valid for the target.  By "valid", we mean able to
      be manipulated in non-trivial ways.  In particular, this means all

@@ -61,6 +61,17 @@ struct spu_builtin_range
   int low, high;
 };
 
+struct spu_address_space
+{
+  char *name;
+};
+
+static struct spu_address_space spu_address_spaces[] = {
+  {"generic"},
+  {"__ea"},
+  {NULL},
+};
+
 static struct spu_builtin_range spu_builtin_range[] = {
   {-0x40ll, 0x7fll},		/* SPU_BTI_7     */
   {-0x40ll, 0x3fll},		/* SPU_BTI_S7    */
@@ -189,8 +200,12 @@ tree spu_builtin_types[SPU_BTI_MAX];
 /*  TARGET overrides.  */
 
 static enum machine_mode spu_ea_pointer_mode (void);
-#undef TARGET_EA_POINTER_MODE
-#define TARGET_EA_POINTER_MODE spu_ea_pointer_mode
+#undef TARGET_ADDR_SPACE_POINTER_MODE
+#define TARGET_ADDR_SPACE_POINTER_MODE spu_ea_pointer_mode
+
+static char *spu_addr_space_name (int);
+#undef TARGET_ADDR_SPACE_NAME
+#define TARGET_ADDR_SPACE_NAME spu_addr_space_name
 
 static bool spu_valid_pointer_mode (enum machine_mode mode);
 #undef TARGET_VALID_POINTER_MODE
@@ -5871,4 +5886,12 @@ spu_libgcc_shift_count_mode (void)
 /* For SPU word mode is TI mode so it is better to use SImode
    for shift counts.  */
   return SImode;
+}
+
+char *
+spu_addr_space_name (int addrspace)
+{
+  /* FIXME: check maximum, too.  */
+  gcc_assert (addrspace > 0);
+  return (spu_address_spaces [addrspace].name);
 }

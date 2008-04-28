@@ -29,6 +29,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "langhooks.h"
 #include "tree-iterator.h"
+#include "target.h"
+#include "target-def.h"
 
 /* Define the hash table of nodes already seen.
    Such nodes are not repeated; brief cross-references are used.  */
@@ -584,9 +586,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       if (TYPE_RESTRICT (node))
 	fputs (" restrict", file);
 
-      /* FIXME: the target must map the address space to a string.  */
       if (TYPE_ADDR_SPACE (node))
-	fputs (" __ea", file);
+	fputs (TARGET_ADDR_SPACE_NAME (TYPE_ADDR_SPACE (node)), file);
 
       if (TYPE_LANG_FLAG_0 (node))
 	fputs (" type_0", file);

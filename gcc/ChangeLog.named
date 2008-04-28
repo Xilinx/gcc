@@ -1,5 +1,19 @@
 2008-04-28  Ben Elliston  <bje@au.ibm.com>
 
+	* targhooks.h (default_addr_space_name): New.
+	* targhooks.c (default_addr_space_name): New.
+	* target.h (addr_space_name): New target hook.
+	* print-tree.c 
+	* target-def.h (TARGET_ADDR_SPACE_NAME): New.
+	* config/spu/spu.c (struct spu_address_space): New.
+	(spu_address_spaces): New.
+	(TARGET_EA_POINTER_MODE): Rename from this ..
+	(TARGET_ADDR_SPACE_POINTER_MODE): .. to this.
+	(TARGET_ADDR_SPACE_NAME): New.
+	(spu_addr_space_name): New.
+
+2008-04-28  Ben Elliston  <bje@au.ibm.com>
+
 	* c-pretty-print.c (pp_c_type_qualifier_list): Update comments.
 	* varasm.c (default_addr_space_pointer_mode): Rename argument.
 

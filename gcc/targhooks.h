@@ -96,3 +96,4 @@ extern int default_reloc_rw_mask (void);
 extern tree default_mangle_decl_assembler_name (tree, tree);
 extern tree default_emutls_var_fields (tree, tree *);
 extern tree default_emutls_var_init (tree, tree, tree);
+extern char *default_addr_space_name (int);

@@ -438,6 +438,10 @@
 #define TARGET_ADDR_SPACE_POINTER_MODE default_addr_space_pointer_mode
 #endif
 
+#ifndef TARGET_ADDR_SPACE_NAME
+#define TARGET_ADDR_SPACE_NAME default_addr_space_name
+#endif
+
 #ifndef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P default_scalar_mode_supported_p
 #endif
@@ -810,6 +814,7 @@
   TARGET_MODE_REP_EXTENDED,			\
   TARGET_VALID_POINTER_MODE,                    \
   TARGET_ADDR_SPACE_POINTER_MODE,		\
+  TARGET_ADDR_SPACE_NAME,			\
   TARGET_SCALAR_MODE_SUPPORTED_P,		\
   TARGET_VECTOR_MODE_SUPPORTED_P,               \
   TARGET_VECTOR_OPAQUE_P,			\
