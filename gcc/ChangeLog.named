@@ -1,5 +1,11 @@
 2008-04-28  Ben Elliston  <bje@au.ibm.com>
 
+	* expr.c (expand_expr_real_1): Make comments more generic.
+	* c-typeck.c (build_binary_op): Likewise.
+	* c-parser.c (c_parser_declspecs): Likewise.
+	
+2008-04-28  Ben Elliston  <bje@au.ibm.com>
+
 	* dwarf2out.c (modified_type_die): Encode address space number.
 
 2008-04-24  Ben Elliston  <bje@au.ibm.com>

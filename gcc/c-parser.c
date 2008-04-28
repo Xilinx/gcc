@@ -1495,7 +1495,7 @@ c_parser_asm_definition (c_parser *parser)
      const
      restrict
      volatile
-     __ea
+     address-space-qualifier
 
    (restrict is new in C99.)
 
@@ -1503,6 +1503,9 @@ c_parser_asm_definition (c_parser *parser)
 
    declaration-specifiers:
      attributes declaration-specifiers[opt]
+
+   address-space-qualifier:
+     identifier
 
    storage-class-specifier:
      __thread

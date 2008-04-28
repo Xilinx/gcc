@@ -8077,7 +8077,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	}
 
 #if defined (HAVE_from_ea) && defined (HAVE_to_ea)
-      /* Handle casts of pointers to/from __ea qualified pointers.  */
+      /* Handle casts of pointers to/from address space qualified
+	 pointers.  */
       if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type)
 	  && GENERIC_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0))))
 	{
