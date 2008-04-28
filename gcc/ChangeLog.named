@@ -1,3 +1,7 @@
+2008-04-28  Ben Elliston  <bje@au.ibm.com>
+
+	* dwarf2out.c (modified_type_die): Encode address space number.
+
 2008-04-24  Ben Elliston  <bje@au.ibm.com>
 
 	* c-tree.h (struct c_declspecs): Make the type of address_space
