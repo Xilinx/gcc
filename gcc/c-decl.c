@@ -7213,7 +7213,7 @@ declspecs_add_qual (struct c_declspecs *specs, tree qual)
       break;
     case RID_EA:
       dupe = (specs->address_space > 0);
-      specs->address_space = 1; /* __ea */
+      specs->address_space = 1; /* FIXME: __ea */
       break;
     default:
       gcc_unreachable ();
