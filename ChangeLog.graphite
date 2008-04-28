@@ -1,3 +1,8 @@
+2008-04-28  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* cloog: Removed.
+	* polylib: Removed.
+
 2008-04-07  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* polylib/source/arith/arithmetique.h (value_get_si): New.
