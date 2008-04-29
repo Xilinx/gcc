@@ -4090,7 +4090,7 @@ grokdeclarator (const struct c_declarator *declarator,
       if (volatilep > 1)
 	pedwarn ("duplicate %<volatile%>");
       if (ea_p > 1)
-	pedwarn ("duplicate %<__ea%>");
+	pedwarn ("duplicate %qs", targetm.addr_space_name (TYPE_ADDR_SPACE (element_type)));
     }
   if (!flag_gen_aux_info && (TYPE_QUALS (element_type)))
     type = TYPE_MAIN_VARIANT (type);
@@ -4125,6 +4125,8 @@ grokdeclarator (const struct c_declarator *declarator,
     }
   else if (declspecs->address_space)
     {
+      char *addrspace_name;
+
       if (!targetm.have_ea)
 	{
 	  /* A mere warning is sure to result in improper semantics
@@ -4133,28 +4135,30 @@ grokdeclarator (const struct c_declarator *declarator,
 	  return 0;
 	}
 
+      addrspace_name = targetm.addr_space_name (declspecs->address_space);
       if (decl_context == NORMAL)
 	{
 	  if (declarator->kind == cdk_function)
-	    error ("%<__ea%> specified for function %qs", name);
+	    error ("%qs specified for function %qs", addrspace_name, name);
 	  else if (declarator->kind == cdk_id)
 	    {
+
 	      switch (storage_class)
 		{
 		case csc_auto:
-		  error ("%<__ea%> combined with %<auto%> qualifier for %qs", name);
+		  error ("%qs combined with %<auto%> qualifier for %qs", addrspace_name, name);
 		  break;
 		case csc_register:
-		  error ("%<__ea%> combined with %<register%> qualifier for %qs", name);
+		  error ("%qs combined with %<register%> qualifier for %qs", addrspace_name, name);
 		  break;
 		case csc_static:
-		  error ("%<__ea%> combined with %<static%> qualifier for %qs", name);
+		  error ("%qs combined with %<static%> qualifier for %qs", addrspace_name, name);
 		  break;
 		case csc_none:
 		  if (current_function_scope)
-		    error ("%<__ea%> specified for auto variable %qs", name);
+		    error ("%qs specified for auto variable %qs", addrspace_name, name);
 		  else
-		    error ("%<__ea%> variable %qs must be extern", name);
+		    error ("%qs variable %qs must be extern", addrspace_name, name);
 		  break;
 		case csc_extern:
 		  /* fall through */
@@ -4164,9 +4168,9 @@ grokdeclarator (const struct c_declarator *declarator,
 	    }
 	}
       else if (decl_context == PARM && declarator->kind == cdk_id)
-	error ("%<__ea%> specified for parameter %qs", name);
+	error ("%qs specified for parameter %qs", addrspace_name, name);
       else if (decl_context == FIELD)
-	error ("%<__ea%> specified for structure field %qs", name);
+	error ("%qs specified for structure field %qs", addrspace_name, name);
     }
   else if (decl_context != NORMAL && (storage_class != csc_none || threadp))
     {
@@ -4930,7 +4934,8 @@ grokdeclarator (const struct c_declarator *declarator,
 	/* FIXME: Pointer variables in other address spaces may not be
 	   defined.  */
 	if (POINTER_TYPE_P (type) && TYPE_ADDR_SPACE (type) && !extern_ref)
-	  error ("%<__ea%> variable %qs must be extern", name);
+	  error ("%qs variable %qs must be extern", 
+		 targetm.addr_space_name (TYPE_ADDR_SPACE (type)), name);
 
 	/* C99 6.2.2p7: It is invalid (compile-time undefined
 	   behavior) to create an 'extern' declaration for a
