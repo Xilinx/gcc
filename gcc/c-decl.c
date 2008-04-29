@@ -61,6 +61,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "langhooks-def.h"
 #include "pointer-set.h"
+#include "targhooks.h"
 
 /* In grokdeclarator, distinguish syntactic contexts of declarators.  */
 enum decl_context
@@ -4125,9 +4126,10 @@ grokdeclarator (const struct c_declarator *declarator,
     }
   else if (declspecs->address_space)
     {
-      char *addrspace_name;
+      const char *addrspace_name;
 
-      if (!targetm.have_ea)
+      /* Does the target have named address spaces?  */
+      if (targetm.addr_space_name == default_addr_space_name)
 	{
 	  /* A mere warning is sure to result in improper semantics
 	     at runtime.  Don't bother to allow this to compile.  */

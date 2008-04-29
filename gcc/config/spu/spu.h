@@ -16,9 +16,6 @@
 
 
 /* Run-time Target */
-#undef TARGET_HAVE_EA
-#define TARGET_HAVE_EA true
-
 #define TARGET_CPU_CPP_BUILTINS()	spu_cpu_cpp_builtins(pfile)
 
 #define TARGET_VERSION fprintf (stderr, " (spu %s)", __DATE__);

@@ -1,5 +1,25 @@
 2008-04-29  Ben Elliston  <bje@au.ibm.com>
 
+	* targhooks.c (default_addr_space_name): Constify return
+	type. Mark incoming argument as ATTRIBUTE_UNUSED.
+	* targhooks.h (default_addr_space_name): Update prototype.
+	* target.h (struct gcc_target): Constify addr_space_name return.
+	(struct gcc_target): Remove have_ea.
+	* c-decl.c: Include "targhooks.h".  Do not test targetm.have_ea,
+	test targetm.addr_space_name against default_addr_space_name
+	instead.
+	* varasm.c (default_addr_space_pointer_mode): Mark incoming
+	argument as ATTRIBUTE_UNUSED.
+	* target-def.h (TARGET_HAVE_EA): Remove.
+	(TARGET_INITIALIZER): Remove TARGET_HAVE_EA initialiser.
+	* config/spu/spu.h (TARGET_HAVE_EA): Remove.
+	* config/spu/spu.c (spu_address_space): Constify name field.
+	(spu_ea_pointer_mode): Take an integer argument (may be unused).
+	(spu_addr_space_name): Constify return type.
+	(spu_valid_pointer_mode): Hack up for now.
+
+2008-04-29  Ben Elliston  <bje@au.ibm.com>
+
 	* c-decl.c (grokdeclarator): Use targetm.addr_space_name hook to
 	translate address space numbers to identifiers.
 

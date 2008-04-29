@@ -63,7 +63,7 @@ struct spu_builtin_range
 
 struct spu_address_space
 {
-  char *name;
+  const char *name;
 };
 
 static struct spu_address_space spu_address_spaces[] = {
@@ -199,11 +199,11 @@ tree spu_builtin_types[SPU_BTI_MAX];
 
 /*  TARGET overrides.  */
 
-static enum machine_mode spu_ea_pointer_mode (void);
+static enum machine_mode spu_ea_pointer_mode (int);
 #undef TARGET_ADDR_SPACE_POINTER_MODE
 #define TARGET_ADDR_SPACE_POINTER_MODE spu_ea_pointer_mode
 
-static char *spu_addr_space_name (int);
+static const char *spu_addr_space_name (int);
 #undef TARGET_ADDR_SPACE_NAME
 #define TARGET_ADDR_SPACE_NAME spu_addr_space_name
 
@@ -5818,7 +5818,7 @@ spu_vector_alignment_reachable (const_tree type ATTRIBUTE_UNUSED, bool is_packed
 }
 
 static enum machine_mode
-spu_ea_pointer_mode (void)
+spu_ea_pointer_mode (int addrspace ATTRIBUTE_UNUSED)
 {
   return (spu_ea_model == 64 ? DImode : ptr_mode);
 }
@@ -5826,7 +5826,8 @@ spu_ea_pointer_mode (void)
 static bool
 spu_valid_pointer_mode (enum machine_mode mode)
 {
-  return (mode == ptr_mode || mode == Pmode || mode == spu_ea_pointer_mode ());
+  /* FIXME: __ea address space number. */
+  return (mode == ptr_mode || mode == Pmode || mode == spu_ea_pointer_mode (1));
 }
 
 /* Count the total number of instructions in each pipe and return the
@@ -5888,7 +5889,7 @@ spu_libgcc_shift_count_mode (void)
   return SImode;
 }
 
-char *
+const char *
 spu_addr_space_name (int addrspace)
 {
   /* FIXME: check maximum, too.  */

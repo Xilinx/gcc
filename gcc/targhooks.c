@@ -701,8 +701,8 @@ default_builtin_vector_alignment_reachable (const_tree type, bool is_packed)
   return true;
 }
 
-char *
-default_addr_space_name (int addrspace)
+const char *
+default_addr_space_name (int addrspace ATTRIBUTE_UNUSED)
 {
   gcc_unreachable ();
 }

@@ -628,7 +628,7 @@ struct gcc_target
   enum machine_mode (* addr_space_pointer_mode) (int addrspace);
 
   /* Function to map an address space to a descriptive string.  */
-  char * (* addr_space_name) (int addrspace);
+  const char * (* addr_space_name) (int addrspace);
 
   /* True if MODE is valid for the target.  By "valid", we mean able to
      be manipulated in non-trivial ways.  In particular, this means all
@@ -974,10 +974,6 @@ struct gcc_target
 
   /* True if thread-local storage is supported.  */
   bool have_tls;
-
-  /* True if address space qualifiers are supported.  */
-  /* FIXME: This can be eliminated.  */
-  bool have_ea;
 
   /* True if a small readonly data section is supported.  */
   bool have_srodata_section;
