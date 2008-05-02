@@ -5958,8 +5958,13 @@ extract_muldiv_1 (tree t, tree c, enum tree_code code, tree wide_type,
       /* If these are the same operation types, we can associate them
 	 assuming no overflow.  */
       if (tcode == code
-	  && 0 != (t1 = const_binop (MULT_EXPR, fold_convert (ctype, op1),
-				     fold_convert (ctype, c), 0))
+	  && 0 != (t1 = int_const_binop (MULT_EXPR, fold_convert (ctype, op1),
+					 fold_convert (ctype, c), 1))
+	  && 0 != (t1 = force_fit_type_double (ctype, TREE_INT_CST_LOW (t1),
+					       TREE_INT_CST_HIGH (t1),
+					       (TYPE_UNSIGNED (ctype)
+					        && tcode != MULT_EXPR) ? -1 : 1,
+					       TREE_OVERFLOW (t1)))
 	  && !TREE_OVERFLOW (t1))
 	return fold_build2 (tcode, ctype, fold_convert (ctype, op0), t1);
 
@@ -10153,6 +10158,17 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
 	      && integer_onep (TREE_OPERAND (arg0, 0)))
 	    return fold_build2 (LSHIFT_EXPR, type, op1,
 				TREE_OPERAND (arg0, 1));
+
+	  /* (A + A) * C -> A * 2 * C  */
+	  if (TREE_CODE (arg0) == PLUS_EXPR
+	      && TREE_CODE (arg1) == INTEGER_CST
+	      && operand_equal_p (TREE_OPERAND (arg0, 0),
+			          TREE_OPERAND (arg0, 1), 0))
+	    return fold_build2 (MULT_EXPR, type,
+				omit_one_operand (type, TREE_OPERAND (arg0, 0),
+						  TREE_OPERAND (arg0, 1)),
+				fold_build2 (MULT_EXPR, type,
+					     build_int_cst (type, 2) , arg1));
 
 	  strict_overflow_p = false;
 	  if (TREE_CODE (arg1) == INTEGER_CST

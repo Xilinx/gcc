@@ -1,3 +1,90 @@
+2008-05-01  Simon Baldwin <simonb@google.com>
+
+	* testsuite/gcc.dg/Warray-bounds.c: Updated for frontend warnings,
+	additional tests for arrays of size 0 and size 1.
+	* testsuite/g++.dg/warn/Warray-bounds.c: Ditto.
+	* testsuite/gcc.dg/Warray-bounds-noopt.c: New testcase.
+	* testsuite/g++.dg/warn/Warray-bounds-noopt.c: Ditto.
+
+2008-05-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36093
+	* gcc.c-torture/execute/pr36093.c: New testcase.
+
+2008-04-30  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/selected_char_kind_1.f90: New test.
+	* gfortran.dg/selected_char_kind_2.f90: New test.
+	* gfortran.dg/selected_char_kind_3.f90: New test.
+
+2008-04-28  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35997
+	* gfortran.dg/use_rename_3.f90
+
+2008-04-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/21636
+	* gcc.dg/tree-ssa/ssa-ccp-19.c: New testcase.
+
+2008-04-30  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/35993
+	* gfortran.dg/intrinsic_product_1.f90:  New test case.
+
+2008-04-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/14847
+	* gcc.dg/tree-ssa/ssa-ifcombine-6.c: New testcase.
+
+2008-04-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35986
+	* g++.dg/overload/template4.C: New test.
+
+2008-04-30  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gfortran.dg/chmod_1.f90: Disable for *-*-mingw*.
+	* gfortran.dg/chmod_2.f90: Likewise.
+	* gfortran.dg/chmod_3.f90: Likewise.
+	* gfortran.dg/open_errors.f90: Likewise.
+
+2008-04-30  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* gcc.dg/tls/section-2.c: Restrict to vxworks.
+
+2008-04-29  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/35792
+	* gnat.dg/specs/tag2.ads: New.
+
+2008-04-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36078
+	* gfortran.fortran-torture/compile/pr36078.f90: New testcase.
+
+2008-04-29  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/15255
+	* gcc.dg/fold-plusmult.c: New testcase.
+
+2008-04-29  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36077
+	* gcc.c-torture/execute/pr36077.c: New testcase.
+
+2008-04-29  Kai Tietz  <kai.tietz@onevision.com>
+
+	* testsuite/gcc.dg/sync-2.c: Set dg-options "-ansi".
+
+2008-04-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35650
+	* g++.dg/init/ref17.C: New test.
+
+	PR c++/35987
+	* g++.dg/other/error28.C: New test.
+
 2008-04-28  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/36073

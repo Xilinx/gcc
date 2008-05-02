@@ -2556,7 +2556,8 @@ build_array_ref (tree array, tree idx)
 
   if (TREE_CODE (TREE_TYPE (array)) == ARRAY_TYPE)
     {
-      tree rval, type;
+      bool has_warned_on_bounds_check = false;
+      tree rval, type, ref;
 
       warn_array_subscript_with_type_char (idx);
 
@@ -2572,6 +2573,10 @@ build_array_ref (tree array, tree idx)
 	 seem to be to convert IDX to ptrdiff_t; we're performing
 	 pointer arithmetic.)  */
       idx = perform_integral_promotions (idx);
+
+      /* Warn about any obvious array bounds errors for fixed size arrays that
+         are indexed by a constant.  */
+      has_warned_on_bounds_check = warn_array_subscript_range (array, idx);
 
       /* An array that is indexed by a non-constant
 	 cannot be stored in a register; we must be able to do
@@ -2623,7 +2628,12 @@ build_array_ref (tree array, tree idx)
 	|= (CP_TYPE_VOLATILE_P (type) | TREE_SIDE_EFFECTS (array));
       TREE_THIS_VOLATILE (rval)
 	|= (CP_TYPE_VOLATILE_P (type) | TREE_THIS_VOLATILE (array));
-      return require_complete_type (fold_if_not_in_template (rval));
+      ref = require_complete_type (fold_if_not_in_template (rval));
+
+      /* Suppress bounds warning in tree-vrp.c if already warned here.  */
+      if (has_warned_on_bounds_check)
+        TREE_NO_WARNING (ref) = 1;
+      return ref;
     }
 
   {
@@ -5945,10 +5955,11 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	lhs = build2 (TREE_CODE (lhs), TREE_TYPE (lhs),
 		      stabilize_reference (TREE_OPERAND (lhs, 0)),
 		      TREE_OPERAND (lhs, 1));
-      return build2 (COMPOUND_EXPR, lhstype,
-		     lhs,
-		     cp_build_modify_expr (TREE_OPERAND (lhs, 0),
-					   modifycode, rhs, complain));
+      newrhs = cp_build_modify_expr (TREE_OPERAND (lhs, 0),
+				     modifycode, rhs, complain);
+      if (newrhs == error_mark_node)
+	return error_mark_node;
+      return build2 (COMPOUND_EXPR, lhstype, lhs, newrhs);
 
       /* Handle (a, b) used as an "lvalue".  */
     case COMPOUND_EXPR:

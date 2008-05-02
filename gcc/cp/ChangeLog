@@ -1,3 +1,23 @@
+2008-05-01  Simon Baldwin <simonb@google.com>
+
+	* typeck.c (build_array_ref): Call warn_array_subscript_range.
+
+2008-04-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35986
+	* pt.c (more_specialized_fn): Stop the loop even if there are no
+	arguments before ellipsis.
+
+2008-04-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35650
+	* parser.c (cp_parser_lookup_name): Look through single function
+	OVERLOAD.
+
+	PR c++/35987
+	* typeck.c (cp_build_modify_expr) <case PREINCREMENT_EXPR>: Don't build
+	COMPOUND_EXPR if the second argument would be error_mark_node.
+
 2008-04-28  Jason Merrill  <jason@redhat.com>
 	    Liu Guanwei <liu_gw@163.com>
 

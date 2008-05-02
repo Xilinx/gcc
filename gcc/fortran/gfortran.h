@@ -465,6 +465,7 @@ enum gfc_isym_id
   GFC_ISYM_RESHAPE,
   GFC_ISYM_RRSPACING,
   GFC_ISYM_RSHIFT,
+  GFC_ISYM_SC_KIND,
   GFC_ISYM_SCALE,
   GFC_ISYM_SCAN,
   GFC_ISYM_SECNDS,
@@ -777,6 +778,7 @@ typedef struct
   int kind;
   struct gfc_symbol *derived;
   gfc_charlen *cl;	/* For character types only.  */
+  struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
   int is_c_interop;
   int is_iso_c;
   bt f90_type; 
@@ -979,7 +981,7 @@ typedef struct gfc_symbol
   gfc_typespec ts;
   symbol_attribute attr;
 
-  /* The interface member points to the formal argument list if the
+  /* The formal member points to the formal argument list if the
      symbol is a function or subroutine name.  If the symbol is a
      generic name, the generic member points to the list of
      interfaces.  */
@@ -994,8 +996,6 @@ typedef struct gfc_symbol
   gfc_array_spec *as;
   struct gfc_symbol *result;	/* function result symbol */
   gfc_component *components;	/* Derived type components */
-
-  struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
 
   /* Defined only for Cray pointees; points to their pointer.  */
   struct gfc_symbol *cp_pointer;
