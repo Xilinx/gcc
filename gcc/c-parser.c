@@ -1504,8 +1504,11 @@ c_parser_asm_definition (c_parser *parser)
    declaration-specifiers:
      attributes declaration-specifiers[opt]
 
-   address-space-qualifier:
-     identifier
+   type-qualifier:
+     address-space
+
+   address-space:
+     identifier recognized by the target
 
    storage-class-specifier:
      __thread

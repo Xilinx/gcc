@@ -1,3 +1,9 @@
+2008-05-02  Ben Elliston  <bje@au.ibm.com>
+
+	* c-parser.c (c_parser_declspecs): Adjust the top-of-function
+	comment so that the address-space production is classified as a
+	GNU extension.
+
 2008-04-29  Ben Elliston  <bje@au.ibm.com>
 
 	* targhooks.c (default_addr_space_name): Constify return
