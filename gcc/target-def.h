@@ -442,6 +442,10 @@
 #define TARGET_ADDR_SPACE_NAME default_addr_space_name
 #endif
 
+#ifndef TARGET_ADDR_SPACE_CONVERSION_RTL
+#define TARGET_ADDR_SPACE_CONVERSION_RTL default_addr_space_conversion_rtl
+#endif
+
 #ifndef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P default_scalar_mode_supported_p
 #endif
@@ -811,6 +815,7 @@
   TARGET_VALID_POINTER_MODE,                    \
   TARGET_ADDR_SPACE_POINTER_MODE,		\
   TARGET_ADDR_SPACE_NAME,			\
+  TARGET_ADDR_SPACE_CONVERSION_RTL,		\
   TARGET_SCALAR_MODE_SUPPORTED_P,		\
   TARGET_VECTOR_MODE_SUPPORTED_P,               \
   TARGET_VECTOR_OPAQUE_P,			\

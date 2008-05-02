@@ -630,6 +630,9 @@ struct gcc_target
   /* Function to map an address space to a descriptive string.  */
   const char * (* addr_space_name) (int addrspace);
 
+  /* Function to return a gen function for the pointer conversion.  */
+  rtx (* (* addr_space_conversion_rtl) (int, int)) (rtx, rtx);
+
   /* True if MODE is valid for the target.  By "valid", we mean able to
      be manipulated in non-trivial ways.  In particular, this means all
      the arithmetic is supported.  */

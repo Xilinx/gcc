@@ -707,4 +707,9 @@ default_addr_space_name (int addrspace ATTRIBUTE_UNUSED)
   gcc_unreachable ();
 }
 
+rtx (* default_addr_space_conversion_rtl (int from ATTRIBUTE_UNUSED, int to ATTRIBUTE_UNUSED)) (rtx, rtx)
+{
+  gcc_unreachable ();
+}
+
 #include "gt-targhooks.h"

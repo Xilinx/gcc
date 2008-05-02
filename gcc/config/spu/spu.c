@@ -207,6 +207,10 @@ static const char *spu_addr_space_name (int);
 #undef TARGET_ADDR_SPACE_NAME
 #define TARGET_ADDR_SPACE_NAME spu_addr_space_name
 
+static rtx (* spu_addr_space_conversion_rtl (int, int)) (rtx, rtx);
+#undef TARGET_ADDR_SPACE_CONVERSION_RTL
+#define TARGET_ADDR_SPACE_CONVERSION_RTL spu_addr_space_conversion_rtl
+
 static bool spu_valid_pointer_mode (enum machine_mode mode);
 #undef TARGET_VALID_POINTER_MODE
 #define TARGET_VALID_POINTER_MODE spu_valid_pointer_mode
@@ -5895,4 +5899,23 @@ spu_addr_space_name (int addrspace)
   /* FIXME: check maximum, too.  */
   gcc_assert (addrspace > 0);
   return (spu_address_spaces [addrspace].name);
+}
+
+static
+rtx (* spu_addr_space_conversion_rtl (int from, int to)) (rtx, rtx)
+{
+  gcc_assert (from != to);
+  gcc_assert (from == 0 || to == 0);
+
+  /* FIXME: Also assert that from_as and to_as are valid.  */
+  /* FIXME: Make this table driven!  */
+
+  if (from == 1 && to == 0)
+    /* From __ea to generic. */
+    return gen_from_ea;
+  else if (from == 0 && to == 1)
+    /* From generic to __ea.  */
+    return gen_to_ea;
+
+  return NULL_RTX;
 }

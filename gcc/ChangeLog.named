@@ -1,5 +1,17 @@
 2008-05-02  Ben Elliston  <bje@au.ibm.com>
 
+	* targhooks.h (default_addr_space_conversion_rtl): New.
+	* targhooks.c (default_addr_space_conversion_rtl): Likewise..
+	* target.h (addr_space_conversion_rtl): New target hook.
+	* target-def.h (TARGET_ADDR_SPACE_CONVERSION_RTL): New.
+	(TARGET_INITIALIZER): Add TARGET_ADDR_SPACE_CONVERSION_RTL.
+	* expr.c (expand_expr_real_1): Use addr_space_conversion_rtl
+	target hook to emit the insn.
+	* config/spu/spu.c (TARGET_ADDR_SPACE_CONVERSION_RTL): Define.
+	(spu_addr_space_conversion_rtl): New.
+
+2008-05-02  Ben Elliston  <bje@au.ibm.com>
+	
 	* c-parser.c (c_parser_declspecs): Adjust the top-of-function
 	comment so that the address-space production is classified as a
 	GNU extension.

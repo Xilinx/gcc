@@ -97,3 +97,4 @@ extern tree default_mangle_decl_assembler_name (tree, tree);
 extern tree default_emutls_var_fields (tree, tree *);
 extern tree default_emutls_var_init (tree, tree, tree);
 extern const char *default_addr_space_name (int);
+extern rtx (*default_addr_space_conversion_rtl (int, int)) (rtx, rtx);

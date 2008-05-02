@@ -7096,7 +7096,7 @@ static rtx
 expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		    enum expand_modifier modifier, rtx *alt_rtl)
 {
-  rtx op0, op1, op2, temp, decl_rtl;
+  rtx op0, op1, op2, temp, decl_rtl, reg;
   tree type;
   int unsignedp;
   enum machine_mode mode;
@@ -7106,6 +7106,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
   int ignore;
   tree context, subexp0, subexp1;
   bool reduce_bit_field;
+  rtx (*genfn) (rtx, rtx);
+
 #define REDUCE_BIT_FIELD(expr)	(reduce_bit_field			  \
 				 ? reduce_to_bit_field_precision ((expr), \
 								  target, \
@@ -8076,7 +8078,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  return target;
 	}
 
-#if defined (HAVE_from_ea) && defined (HAVE_to_ea)
       /* Handle casts of pointers to/from address space qualified
 	 pointers.  */
       if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type)
@@ -8084,7 +8085,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	{
 	  rtx reg = gen_reg_rtx (TYPE_MODE (type));
 	  op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, VOIDmode, modifier);
-	  emit_insn (gen_to_ea (reg, op0));
+	  genfn = targetm.addr_space_conversion_rtl (0, 1);
+	  emit_insn (genfn (reg, op0));
 	  return reg;
 	}
       else if (GENERIC_ADDR_SPACE_POINTER_TYPE_P (type)
@@ -8092,10 +8094,10 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	{
 	  rtx reg = gen_reg_rtx (Pmode);
 	  op0 = expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, VOIDmode, modifier);
-	  emit_insn (gen_from_ea (reg, op0));
+	  genfn = targetm.addr_space_conversion_rtl (1, 0);
+	  emit_insn (genfn (reg, op0));
 	  return reg;
 	}
-#endif
 
       if (mode == TYPE_MODE (TREE_TYPE (TREE_OPERAND (exp, 0))))
 	{
