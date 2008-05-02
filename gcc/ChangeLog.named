@@ -1,5 +1,9 @@
 2008-05-02  Ben Elliston  <bje@au.ibm.com>
 
+	* expr.c (expand_expr_real_1): Remove unused local variable `reg'.
+
+2008-05-02  Ben Elliston  <bje@au.ibm.com>
+
 	* tree.c (integer_pow2p): Use the address space number, not a
 	hard-coded 1 when getting the address space pointer mode.
 	(tree_log2): Likewise.

@@ -7096,7 +7096,7 @@ static rtx
 expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		    enum expand_modifier modifier, rtx *alt_rtl)
 {
-  rtx op0, op1, op2, temp, decl_rtl, reg;
+  rtx op0, op1, op2, temp, decl_rtl;
   tree type;
   int unsignedp;
   enum machine_mode mode;
