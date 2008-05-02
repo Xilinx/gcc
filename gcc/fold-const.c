@@ -204,7 +204,7 @@ fit_double_type (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
   int sign_extended_type;
 
   if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type))
-    prec = GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1));
+    prec = GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (TYPE_ADDR_SPACE (type)));
   else if (POINTER_TYPE_P (type)
 	   || TREE_CODE (type) == OFFSET_TYPE)
     prec = POINTER_SIZE;

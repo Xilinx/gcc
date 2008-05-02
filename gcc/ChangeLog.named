@@ -1,5 +1,23 @@
 2008-05-02  Ben Elliston  <bje@au.ibm.com>
 
+	* tree.c (integer_pow2p): Use the address space number, not a
+	hard-coded 1 when getting the address space pointer mode.
+	(tree_log2): Likewise.
+	(tree_floor_log2): Likewise.
+	(build_pointer_type): Likewise.
+	* fold-const.c (fit_double_type): Likewise.
+	* expr.c (expand_expr_addr_expr): Likewise.
+	* varasm.c (make_decl_rtl): Likewise.
+	(default_addr_space_pointer_mode): Assert generic address space.
+	* convert.c (convert_to_pointer): Likewise.
+	(convert_to_integer): Likewise.
+	* config/spu/spu.c (spu_ea_pointer_mode): Handle the generic
+	address space, returning ptr_mode.  Abort on invalid address
+	spaces.
+	(spu_addr_space_conversion_rtl): Return 0, not NULL_RTX.
+
+2008-05-02  Ben Elliston  <bje@au.ibm.com>
+
 	* targhooks.h (default_addr_space_conversion_rtl): New.
 	* targhooks.c (default_addr_space_conversion_rtl): Likewise..
 	* target.h (addr_space_conversion_rtl): New target hook.

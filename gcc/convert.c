@@ -62,7 +62,7 @@ convert_to_pointer (tree type, tree expr)
     {
       int pointer_size =
 	TYPE_ADDR_SPACE (TREE_TYPE (type))
-	? GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1))
+	? GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (TYPE_ADDR_SPACE (TREE_TYPE (type))))
 	: POINTER_SIZE;
 
       if (TYPE_PRECISION (TREE_TYPE (expr)) != pointer_size)
@@ -465,7 +465,7 @@ convert_to_integer (tree type, tree expr)
  	   and from there widen/truncate to the required type.  */
  	pointer_size =
  	  TYPE_ADDR_SPACE (TREE_TYPE (intype))
- 	  ? GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (1))
+	  ? GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (TYPE_ADDR_SPACE (TREE_TYPE (type))))
  	  : POINTER_SIZE;
 
  	expr = fold_build1 (CONVERT_EXPR,

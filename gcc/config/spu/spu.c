@@ -5822,9 +5822,17 @@ spu_vector_alignment_reachable (const_tree type ATTRIBUTE_UNUSED, bool is_packed
 }
 
 static enum machine_mode
-spu_ea_pointer_mode (int addrspace ATTRIBUTE_UNUSED)
+spu_ea_pointer_mode (int addrspace)
 {
-  return (spu_ea_model == 64 ? DImode : ptr_mode);
+  switch (addrspace)
+    {
+    case 0:
+      return ptr_mode;
+    case 1:
+      return (spu_ea_model == 64 ? DImode : ptr_mode);
+    default:
+      gcc_unreachable ();
+    }
 }
 
 static bool
@@ -5917,5 +5925,5 @@ rtx (* spu_addr_space_conversion_rtl (int from, int to)) (rtx, rtx)
     /* From generic to __ea.  */
     return gen_to_ea;
 
-  return NULL_RTX;
+  return 0;
 }

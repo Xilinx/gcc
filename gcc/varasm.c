@@ -1426,9 +1426,7 @@ make_decl_rtl (tree decl)
   if (TREE_CODE (decl) == VAR_DECL && DECL_WEAK (decl))
     DECL_COMMON (decl) = 0;
 
-   addrmode = Pmode;
-   if (TYPE_ADDR_SPACE (TREE_TYPE (decl)))
-     addrmode = targetm.addr_space_pointer_mode (1);
+  addrmode = targetm.addr_space_pointer_mode (TYPE_ADDR_SPACE (TREE_TYPE (decl)));
   if (use_object_blocks_p () && use_blocks_for_decl_p (decl))
     x = create_block_symbol (name, get_block_for_decl (decl), -1);
   else
@@ -6285,8 +6283,9 @@ default_valid_pointer_mode (enum machine_mode mode)
 }
 
 enum machine_mode
-default_addr_space_pointer_mode (int addrspace ATTRIBUTE_UNUSED)
+default_addr_space_pointer_mode (int addrspace)
 {
+  gcc_assert (addrspace == 0);
   return ptr_mode;
 }
 
