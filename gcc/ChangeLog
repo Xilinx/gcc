@@ -1,3 +1,125 @@
+2008-06-04  Jan Hubicka  <jh@suse.cz>
+
+	tree-optimization/36100
+	* tree-pass.h (pass_O0_always_inline): Declare.
+	* ipa-inline.c (inline_transform): Remove dead code.
+	(cgraph_gate_O0_always_inline, cgraph_O0_always_inline,
+	pass_O0_always_inline): New.
+	* passes.c (init_optimization_passes): Add pass_O0_always_inline.
+
+2008-05-04  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/i386.c (x86_output_mi_thunk): Use movq alternative
+	mnemonic in this_param move for TARGET_64BIT.
+
+2008-05-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*strmovsi_1): Simplify asm alternatives.
+	(*strmovsi_rex_1): Ditto.
+	(*strsetsi_1): Ditto.
+	(*strsetsi_rex_1): Ditto.
+
+	(add<mode>cc): Macroize expander from addqicc, addhicc, addsicc and
+	adddicc expanders using SWI mode iterator.
+
+2008-05-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/36121
+	* config/i386/i386.c (ix86_expand_special_args_builtin): Remove three
+	argument handling.
+
+2008-05-04  David S. Miller  <davem@davemloft.net>
+
+	* config.gcc (sparc*-*-*): Always set need_64bit_hwint to yes.
+	(sparc*-*-linux*): Use linux.h in tm_file.
+	(sparc-*-linux*): If 'enabled_targets' is 'all', build a bi-arch
+	compiler defaulting to 32-bit.
+	(sparc*-*-*): Remove explicit target settings of need_64bit_hwint,
+	no longer needed.
+	* config/sparc/linux.h: Remove definitions now obtained
+	properly from linux.h
+	* config/sparc/linux64.h: Likewise.
+	(ASM_CPU_DEFAULT_SPEC): Change this to ASM_CPU64_DEFAULT_SPEC, we
+	don't want this setting for 32-bit builds in a biarch compiler.
+	* doc/install.texi: Add sparc-linux to list of targets
+	supporting --enable-targets=all.
+
+2008-05-03  Andrew Pinski  <pinskia@gmail.com>
+
+	* Makefile.in (tree-ssa-phiprop.o): Fix dependencies.
+
+2008-05-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_builtin_type): Move V4SI_FTYPE_V4SF
+	after V4SI_FTYPE_V8HI.
+	(ix86_init_mmx_sse_builtins): Move case V4HI_FTYPE_V4HI after
+	case V4SI_FTYPE_V2DF.
+
+2008-05-03  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* doc/invoke.texi (max-flow-memory-locations): Removed.
+	* params.def (PARAM_MAX_FLOW_MEMORY_LOCATIONS): Removed.
+	
+2008-05-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/34973
+	* opts.c (set_Wstrict_aliasing): Handle the turn-off case.
+
+2008-05-02  David S. Miller  <davem@davemloft.net>
+
+	* config.gcc (need_64bit_hwint): Document libcpp dependency.
+
+2008-05-02  Simon Baldwin <simonb@google.com>
+
+	PR bootstrap/36108
+	* c-common.h (warn_array_subscript_range): Removed.
+	* c-common.c (warn_array_subscript_range): Ditto.
+	* tree-vrp.c (check_array_ref): Revert to ignoring arrays with size 2.
+	* c-typeck.c (build_array_ref): Remove warn_array_subscript_range.
+
+2008-05-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_special_builtin_type): New.
+	(bdesc_special_args): Likewise.
+	(ix86_expand_special_args_builtin): Likewise.
+	(ix86_init_mmx_sse_builtins): Updated.
+	(ix86_expand_builtin): Updated.
+	(ix86_expand_store_builtin): Removed.
+	(ix86_expand_unop_builtin): Likewise.
+
+	* config/i386/mm3dnow.h (__v2sf): Moved to ...
+	* config/i386/mmintrin.h (__v2sf): Here.
+
+	* config/i386/xmmintrin.h (_mm_loadh_pi): Replace __v2si with
+	const __v2sf.
+	(_mm_loadl_pi): Likewise.
+	(_mm_storeh_pi): Replace __v2si with __v2sf.
+	(_mm_storel_pi): Likewise.
+
+	* doc/extend.texi: Correct __builtin_ia32_loadhps,
+	__builtin_ia32_loadlps, __builtin_ia32_storehps,
+	__builtin_ia32_storelps, __builtin_ia32_loadhpd and
+	__builtin_ia32_loadlpd.
+
+2008-05-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_builtin_type): Add FLOAT_FTYPE_FLOAT,
+	V4SF_FTYPE_V4SF_VEC_MERGE and V2DF_FTYPE_V2DF_VEC_MERGE.
+	(bdesc_args): Updated.  Add scalar SSE builtins with vec_merge.
+	(ix86_init_mmx_sse_builtins): Updated.
+	(ix86_expand_args_builtin): Likewise.
+	(ix86_expand_builtin): Likewise.
+	(ix86_expand_unop1_builtin): Renamed to ...
+	(ix86_expand_unop_vec_merge_builtin): This.
+
+2008-05-01  Jan Hubicka  <jh@suse.cz>
+
+	PR bootstrap/36100
+	* ipa-inline.c (inline_generate_summary): Make static.
+	(inline_transform): Do not call inlining at -O0; make static.
+	* passes.c (execute_todo): Add sanity check.
+	(execute_one_ipa_transform_pass): Execute proper flags.
+
 2008-05-01  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* tree.h (TYPE_NONALIASED_COMPONENT): Expand comment.
@@ -145,31 +267,26 @@
 
 2008-04-30  Nathan Froyd  <froydnj@codesourcery.com>
 
-        * config/rs6000/crtresgpr.asm, config/rs6000/crtresxgpr.asm,
-        config/rs6000/crtsavgpr.asm, config/rs6000/crtresfpr.asm,
-        config/rs6000/crtresxfpr.asm, config/rs6000/crtsavfpr.asm: Break out
-        from...
-        * config/rs6000/crtsavres.asm: ...here.  Remove unneeded file.
-        * config/rs6000/e500crtres32gpr.asm,
-	config/rs6000/e500crtres64gpr.asm
-        config/rs6000/e500crtres64gprctr.asm,
-	config/rs6000/e500crtrest32gpr.asm
-        config/rs6000/e500crtrest64gpr.asm,
-	config/rs6000/e500crtresx32gpr.asm
-        config/rs6000/e500crtresx64gpr.asm,
-	config/rs6000/e500crtsav32gpr.asm
-        config/rs6000/e500crtsav64gpr.asm,
-	config/rs6000/e500crtsav64gprctr.asm
-        config/rs6000/e500crtsavg32gpr.asm,
-	config/rs6000/e500crtsavg64gpr.asm
-        config/rs6000/e500crtsavg64gprctr.asm: New files.
-        * config/rs6000/t-ppccomm: Add build rules for new files.
-        (LIB2FUNCS_STATIC_EXTRA): Add new files.
-        * config/rs6000/t-netbsd: Add build rules for new files.
-        (LIB2FUNCS_STATIC_EXTRA): New variable.
-        * config/rs6000/sysv4.h (ENDFILE_SPEC): Don't include crtsavres.o
-        (CRTSAVRES_DEFAULT_SPEC): Likewise.
-        * config/rs6000/netbsd.h (ENDFILE_SPEC): Likewise.
+	* config/rs6000/crtresgpr.asm, config/rs6000/crtresxgpr.asm,
+	config/rs6000/crtsavgpr.asm, config/rs6000/crtresfpr.asm,
+	config/rs6000/crtresxfpr.asm, config/rs6000/crtsavfpr.asm: Break out
+	from...
+	* config/rs6000/crtsavres.asm: ...here.  Remove unneeded file.
+	* config/rs6000/e500crtres32gpr.asm, config/rs6000/e500crtres64gpr.asm,
+	config/rs6000/e500crtres64gprctr.asm,
+	config/rs6000/e500crtrest32gpr.asm, config/rs6000/e500crtrest64gpr.asm,
+	config/rs6000/e500crtresx32gpr.asm, config/rs6000/e500crtresx64gpr.asm,
+	config/rs6000/e500crtsav32gpr.asm, config/rs6000/e500crtsav64gpr.asm,
+	config/rs6000/e500crtsav64gprctr.asm,
+	config/rs6000/e500crtsavg32gpr.asm, config/rs6000/e500crtsavg64gpr.asm,
+	config/rs6000/e500crtsavg64gprctr.asm: New files.
+	* config/rs6000/t-ppccomm: Add build rules for new files.
+	(LIB2FUNCS_STATIC_EXTRA): Add new files.
+	* config/rs6000/t-netbsd: Add build rules for new files.
+	(LIB2FUNCS_STATIC_EXTRA): New variable.
+	* config/rs6000/sysv4.h (ENDFILE_SPEC): Don't include crtsavres.o
+	(CRTSAVRES_DEFAULT_SPEC): Likewise.
+	* config/rs6000/netbsd.h (ENDFILE_SPEC): Likewise.
 
 2008-04-30  H.J. Lu  <hongjiu.lu@intel.com>
 
@@ -199,8 +316,7 @@
 	(ix86_expand_args_builtin): Updated.  Take a pointer
 	to const struct builtin_description.  Handle comparison
 	builtin functions.
-	(ix86_expand_sse_compare): Take a new argument for swapping
-	operands.
+	(ix86_expand_sse_compare): Take a new argument for swapping operands.
 	(ix86_expand_builtin): Updated.
 
 	* config/i386/sse.md (ssse3_pmaddubswv8hi3): Renamed to ...
@@ -208,10 +324,9 @@
 	(ssse3_pmaddubswv4hi3): Renamed to ...
 	(ssse3_pmaddubsw): This.
 
-	* doc/extend.texi (__builtin_ia32_packsswb128): Correct
-	prototype.
+	* doc/extend.texi (__builtin_ia32_packsswb128): Correct prototype.
 	(__builtin_ia32_packssdw128): Likewise.
-	)__builtin_ia32_packuswb128): Likewise.
+	(__builtin_ia32_packuswb128): Likewise.
 	(__builtin_ia32_pmaddubsw): Likewise.
 	(__builtin_ia32_pmaddubsw128): Likewise.
 
@@ -837,8 +952,7 @@
 	
 2008-04-25  H.J. Lu  <hongjiu.lu@intel.com>
 
-	* config/i386/sse.md (mov<mode>): Replace SSEMODEI with
-	SSEMODE.
+	* config/i386/sse.md (mov<mode>): Replace SSEMODEI with SSEMODE.
 	(*mov<mode>_internal): Likewise.  Support V4SF and V2DF.
 	(mov<mode>): Removed.
 	(*movv4sf_internal): Likewise.

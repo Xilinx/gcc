@@ -1,3 +1,51 @@
+2008-05-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/35995
+	* gfortran.dg/intrinsic_ifunction_1.f90:  New test case.
+
+2008-05-04   Andy Hutchinson   <hutchinsonandy@aim.com>
+
+	* gcc.dg/nested-func-5.c: Skip for target without trampolines.
+	* gcc.dg/torture/nested-fn-1.c: Ditto.
+
+2008-05-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/35990
+	* gfortran.dg/intrinsic_pack_4.f90:  New test case.
+
+2008-05-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr6_pkg.ads: New helper.
+	* gnat.dg/discr6.adb: New test.
+
+2008-05-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/alignment4.adb: Adjust.
+	* gnat.dg/alignment5.adb: Likewise.
+	* gnat.dg/alignment6.adb: XFAIL.
+
+2008-05-03  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/loop-36.c: Cleanup the dump file.
+
+2008-05-03  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/33268
+	* gfortran.dg/io_constraints_4.f90: New test.
+
+2008-05-01  Simon Baldwin <simonb@google.com>
+
+	PR bootstrap/36108
+	* testsuite/gcc.dg/Warray-bounds.c: Removed frontend warnings update.
+	* testsuite/g++.dg/warn/Warray-bounds.c: Ditto.
+	* testsuite/gcc.dg/Warray-bounds-noopt.c: Removed testcase.
+	* testsuite/g++.dg/warn/Warray-bounds-noopt.c: Ditto.
+
+2008-05-01  Bud Davis  <bdavis9659@sbcglobal.net>
+
+	PR fortran/PR35940	
+	* gfortran.dg/index.f90: New test.
+
 2008-05-01  Simon Baldwin <simonb@google.com>
 
 	* testsuite/gcc.dg/Warray-bounds.c: Updated for frontend warnings,
