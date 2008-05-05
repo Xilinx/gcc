@@ -1,10 +1,20 @@
+2008-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: (create_normcontext) fill the initial
+	predefmap with symbols using (fill_initial_predefmap). Added the
+	output_c_initpredef selector to set the predefined values very
+	early. Added generation of obj_num in initial objects. Added
+	generation of asserts in putslots. Still buggy, perhaps because of
+	late setting of predefined values.
+
+	* Makefile.in: added empty run of warmbasilys1
+
 2008-04-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: (basilysgc_add_strbuf_cident) avoid adding several
 	consecutive '_' underscores.
 
 	* basilys.h: added comment about updating warm-basilys.bysl when
 	adding new predefs
-	
+
 	* Makefile.in: generates test0c.c etc...
 
 	* melt-cc-script.proto: removed -x flag.
@@ -14,7 +24,7 @@
 	names. Corrected wrong argument order to error_plain. More
 	locations in output of getarg. Should add more global_* stuff, or
 	generate it by some script (& also in basilys.h)
-	
+
 2008-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added compilation of test0 by warm-basilys1.c itself
 

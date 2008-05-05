@@ -141,10 +141,10 @@
 
 ;; class of command dispatchers
 (defclass class_command_dispatcher
+  :predef CLASS_COMMAND_DISPATCHER
   :super class_named
   :fields (cmd_fundict			;stringmap for closures
-	   )
-  :predef CLASS_COMMAND_DISPATCHER)
+	   ))
 
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
@@ -572,6 +572,7 @@
 ;; make list
 (defprimitive make_list (discr) :value
 "(basilysgc_new_list((void*)(" discr ")))")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; PAIR primitives
 ;; test
@@ -4005,13 +4006,95 @@
     ndata
     ))
 
-;;; keep manually this in sync with basilys.h
-(defprimitive global_DISCR_NULLRECV      ()    :value "BASILYSG(DISCR_NULLRECV)"   )
-(defprimitive global_DISCR_STRING        ()    :value "BASILYSG(DISCR_STRING)"     )
-(defprimitive global_DISCR_INTEGER       ()    :value "BASILYSG(DISCR_INTEGER)"    )
-(defprimitive global_DISCR_LIST          ()    :value "BASILYSG(DISCR_LIST)"       )
-(defprimitive global_DISCR_MULTIPLE      ()    :value "BASILYSG(DISCR_MULTIPLE)"   )
+;;; keep manually this in sync with enum basilys_globalix_en in basilys.h
+(defprimitive global_DISCR_NULLRECV              () :value "(void*)BASILYSG(DISCR_NULLRECV)")
+(defprimitive global_DISCR_STRING                () :value "(void*)BASILYSG(DISCR_STRING)")
+(defprimitive global_DISCR_INTEGER               () :value "(void*)BASILYSG(DISCR_INTEGER)")
+(defprimitive global_DISCR_LIST                  () :value "(void*)BASILYSG(DISCR_LIST)")
+(defprimitive global_DISCR_MULTIPLE              () :value "(void*)BASILYSG(DISCR_MULTIPLE)")
+(defprimitive global_DISCR_BOX                   () :value "(void*)BASILYSG(DISCR_BOX)")
+(defprimitive global_DISCR_MAPOBJECTS            () :value "(void*)BASILYSG(DISCR_MAPOBJECTS)")
+(defprimitive global_DISCR_MAPSTRINGS            () :value "(void*)BASILYSG(DISCR_MAPSTRINGS)")
+(defprimitive global_DISCR_CHARINTEGER           () :value "(void*)BASILYSG(DISCR_CHARINTEGER)")
+(defprimitive global_DISCR_MIXEDINT              () :value "(void*)BASILYSG(DISCR_MIXEDINT)")
+(defprimitive global_DISCR_SEQCLASS              () :value "(void*)BASILYSG(DISCR_SEQCLASS)")
+(defprimitive global_DISCR_CLOSURE               () :value "(void*)BASILYSG(DISCR_CLOSURE)")
+(defprimitive global_DISCR_ROUTINE               () :value "(void*)BASILYSG(DISCR_ROUTINE)")
+(defprimitive global_DISCR_PAIR                  () :value "(void*)BASILYSG(DISCR_PAIR)")
+(defprimitive global_DISCR_NAMESTRING            () :value "(void*)BASILYSG(DISCR_NAMESTRING)")
+(defprimitive global_DISCR_VERBATIMSTRING        () :value "(void*)BASILYSG(DISCR_VERBATIMSTRING)")
+(defprimitive global_DISCR_SEQFIELD              () :value "(void*)BASILYSG(DISCR_SEQFIELD)")
+(defprimitive global_DISCR_METHODMAP             () :value "(void*)BASILYSG(DISCR_METHODMAP)")
+(defprimitive global_CLASS_CLASS                 () :value "(void*)BASILYSG(CLASS_CLASS)")
+(defprimitive global_CLASS_ROOT                  () :value "(void*)BASILYSG(CLASS_ROOT)")
+(defprimitive global_CLASS_PROPED                () :value "(void*)BASILYSG(CLASS_PROPED)")
+(defprimitive global_CLASS_NAMED                 () :value "(void*)BASILYSG(CLASS_NAMED)")
+(defprimitive global_CLASS_LOCATED               () :value "(void*)BASILYSG(CLASS_LOCATED)")
+(defprimitive global_CLASS_SYMBOL                () :value "(void*)BASILYSG(CLASS_SYMBOL)")
+(defprimitive global_CLASS_KEYWORD               () :value "(void*)BASILYSG(CLASS_KEYWORD)")
+(defprimitive global_CLASS_SEXPR                 () :value "(void*)BASILYSG(CLASS_SEXPR)")
+(defprimitive global_CLASS_FIELD                 () :value "(void*)BASILYSG(CLASS_FIELD)")
+(defprimitive global_CLASS_SELECTOR              () :value "(void*)BASILYSG(CLASS_SELECTOR)")
+(defprimitive global_CLASS_PRIMITIVE             () :value "(void*)BASILYSG(CLASS_PRIMITIVE)")
+(defprimitive global_CLASS_FORMAL_BINDING        () :value "(void*)BASILYSG(CLASS_FORMAL_BINDING)")
+(defprimitive global_CLASS_DISCR                 () :value "(void*)BASILYSG(CLASS_DISCR)")
+(defprimitive global_CLASS_TOKENIZER             () :value "(void*)BASILYSG(CLASS_TOKENIZER)")
+(defprimitive global_CLASS_COMMAND_DISPATCHER    () :value "(void*)BASILYSG(CLASS_COMMAND_DISPATCHER)")
+(defprimitive global_ATOM_TRUE                   () :value "(void*)BASILYSG(ATOM_TRUE)")
+(defprimitive global_CTYPE_LONG                  () :value "(void*)BASILYSG(CTYPE_LONG)")
+(defprimitive global_CTYPE_VALUE                 () :value "(void*)BASILYSG(CTYPE_VALUE)")
+(defprimitive global_CTYPE_TREE                  () :value "(void*)BASILYSG(CTYPE_TREE)")
+(defprimitive global_CTYPE_VOID                  () :value "(void*)BASILYSG(CTYPE_VOID)")
+(defprimitive global_CTYPE_CSTRING               () :value "(void*)BASILYSG(CTYPE_CSTRING)")
+(defprimitive global_TOKENIZER                   () :value "(void*)BASILYSG(TOKENIZER)")
+(defprimitive global_INITIAL_COMMAND_DISPATCHER  () :value "(void*)BASILYSG(INITIAL_COMMAND_DISPATCHER)")
 
+(defun fill_initial_predefmap (predefmap)
+    ;; manually keep in sync  with enum basilys_globalix_en in basilys.h
+    (mapobject_put predefmap (global_DISCR_NULLRECV)                 'DISCR_NULLRECV)
+    (mapobject_put predefmap (global_DISCR_STRING)                   'DISCR_STRING)
+    (mapobject_put predefmap (global_DISCR_INTEGER)                  'DISCR_INTEGER)
+    (mapobject_put predefmap (global_DISCR_LIST)                     'DISCR_LIST)
+    (mapobject_put predefmap (global_DISCR_MULTIPLE)                 'DISCR_MULTIPLE)
+    (mapobject_put predefmap (global_DISCR_BOX)                      'DISCR_BOX)
+    (mapobject_put predefmap (global_DISCR_MAPOBJECTS)               'DISCR_MAPOBJECTS)
+    (mapobject_put predefmap (global_DISCR_MAPSTRINGS)               'DISCR_MAPSTRINGS)
+    (mapobject_put predefmap (global_DISCR_CHARINTEGER)              'DISCR_CHARINTEGER)
+    (mapobject_put predefmap (global_DISCR_MIXEDINT)                 'DISCR_MIXEDINT)
+    (mapobject_put predefmap (global_DISCR_SEQCLASS)                 'DISCR_SEQCLASS)
+    (mapobject_put predefmap (global_DISCR_CLOSURE)                  'DISCR_CLOSURE)
+    (mapobject_put predefmap (global_DISCR_ROUTINE)                  'DISCR_ROUTINE)
+    (mapobject_put predefmap (global_DISCR_PAIR)                     'DISCR_PAIR)
+    (mapobject_put predefmap (global_DISCR_NAMESTRING)               'DISCR_NAMESTRING)
+    (mapobject_put predefmap (global_DISCR_VERBATIMSTRING)           'DISCR_VERBATIMSTRING)
+    (mapobject_put predefmap (global_DISCR_SEQFIELD)                 'DISCR_SEQFIELD)
+    (mapobject_put predefmap (global_DISCR_METHODMAP)                'DISCR_METHODMAP)
+    (mapobject_put predefmap (global_CLASS_CLASS)                    'CLASS_CLASS)
+    (mapobject_put predefmap (global_CLASS_ROOT)                     'CLASS_ROOT)
+    (mapobject_put predefmap (global_CLASS_PROPED)                   'CLASS_PROPED)
+    (mapobject_put predefmap (global_CLASS_NAMED)                    'CLASS_NAMED)
+    (mapobject_put predefmap (global_CLASS_LOCATED)                  'CLASS_LOCATED)
+    (mapobject_put predefmap (global_CLASS_SYMBOL)                   'CLASS_SYMBOL)
+    (mapobject_put predefmap (global_CLASS_KEYWORD)                  'CLASS_KEYWORD)
+    (mapobject_put predefmap (global_CLASS_SEXPR)                    'CLASS_SEXPR)
+    (mapobject_put predefmap (global_CLASS_FIELD)                    'CLASS_FIELD)
+    (mapobject_put predefmap (global_CLASS_SELECTOR)                 'CLASS_SELECTOR)
+    (mapobject_put predefmap (global_CLASS_PRIMITIVE)                'CLASS_PRIMITIVE)
+    (mapobject_put predefmap (global_CLASS_FORMAL_BINDING)           'CLASS_FORMAL_BINDING)
+    (mapobject_put predefmap (global_CLASS_DISCR)                    'CLASS_DISCR)
+    (mapobject_put predefmap (global_CLASS_TOKENIZER)                'CLASS_TOKENIZER)
+    (mapobject_put predefmap (global_CLASS_COMMAND_DISPATCHER)       'CLASS_COMMAND_DISPATCHER)
+    (mapobject_put predefmap (global_ATOM_TRUE)                      'ATOM_TRUE)
+    (mapobject_put predefmap (global_CTYPE_LONG)                     'CTYPE_LONG)
+    (mapobject_put predefmap (global_CTYPE_VALUE)                    'CTYPE_VALUE)
+    (mapobject_put predefmap (global_CTYPE_TREE)                     'CTYPE_TREE)
+    (mapobject_put predefmap (global_CTYPE_VOID)                     'CTYPE_VOID)
+    (mapobject_put predefmap (global_CTYPE_CSTRING)                  'CTYPE_CSTRING)
+    (mapobject_put predefmap (global_TOKENIZER)                      'TOKENIZER)
+    (mapobject_put predefmap (global_INITIAL_COMMAND_DISPATCHER)     'INITIAL_COMMAND_DISPATCHER)
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; create a normalization context
 (defun create_normcontext ()
   (let ( (:long maxpredefix (last_globpredef_index))
@@ -4026,7 +4109,7 @@
 		   (mapobject_put predefmap curpredef (make_integerbox discr_integer ix)))
 	       )
 	     (setq ix (+i ix 1)))
-    (mapobject_put predefmap global_DISCR_NULLRECV 'DISCR_NULLRECV)
+    (fill_initial_predefmap predefmap)
     (let ( (inipro  (make_instance class_nrep_initproc
 				   :ninit_topl (make_list discr_list)
 				   :nrep_loc ()
@@ -6392,6 +6475,19 @@
 (install_method class_root output_c_initfill outcinitfill_root)
 
 
+;;;; selector to generate the predef fill of some objinit
+;;; reciever some objinitelem
+;;; argument a stringbuffer
+(defselector output_c_initpredef class_selector
+)
+
+(defun outcinitpredef_root (recv declbuf implbuf :long depth)
+  (debugmsg recv "outcinitfill_root recv" (the_callcount))
+  (return)
+)
+(install_method class_root output_c_initpredef outcinitpredef_root)
+
+
 (defun outpucod_predef (obpred declbuf implbuf :long depth)
   (assert_msg "check obpredef" (is_a obpred class_objpredef))
   (let ( (obpr (unsafe_get_field :obpredef obpred)) )
@@ -6402,9 +6498,9 @@
        (add2sbuf_strconst implbuf ")")
        )
      ( (is_a obpr class_symbol)
-       (add2sbuf_strconst implbuf "BASILYSG(")
+       (add2sbuf_strconst implbuf "((void*)(BASILYSG(")
        (add2sbuf_string implbuf (unsafe_get_field :named_name obpr))
-       (add2sbuf_strconst implbuf ")")
+       (add2sbuf_strconst implbuf ")))")
        )
      ( :else
        (debugmsg obpredef "bad obpredef" (the_callcount))
@@ -6428,6 +6524,7 @@
 )
 (install_method class_objinitobject output_c_declinit outdeclinit_objinitobject)
 
+
 (defun outcinitfill_objinitobject (recv sbuf)
   (assert_msg "outcinitfill_objinitobject check recv" (is_a recv class_objinitobject))
   (debugmsg recv "outcinitfill_objinitobject recv" (the_callcount))
@@ -6441,7 +6538,8 @@
     (let ( (odloc (unsafe_get_field :nrep_loc odata))
 	   (odhash (unsafe_get_field :ninst_hash odata))
 	   (odslots (unsafe_get_field :ninst_slots odata))
-	  )
+	   (odobnum (unsafe_get_field :ninst_objnum odata))
+	   )
       (output_location odloc sbuf 1 "iniobj")
       (add2sbuf_strconst sbuf "/*iniobj ")
       (add2sbuf_string sbuf oname)
@@ -6484,6 +6582,22 @@
       (output_c_code odiscr (the_null) sbuf 1)
       (add2sbuf_strconst sbuf ";")
       (add2sbuf_indentnl sbuf 1)
+      (if odobnum
+	  (progn
+	    (add2sbuf_strconst sbuf " cdat->")
+	    (add2sbuf_string sbuf oname)
+	    (add2sbuf_strconst sbuf ".obj_num = ")
+	    (cond ( (is_integerbox odobnum)
+		    (add2sbuf_longdec sbuf (get_int odobnum)))
+		  ( (is_a odobnum class_symbol)
+		    (add2sbuf_string sbuf (unsafe_get_field :named_name odobnum)))
+		  (:else 
+		   (debugmsg odobnum "outcinitfill_objinitobject unexpected odobnum" (the_callcount))
+		   (assert_msg "outcinitfill_objinitobject unexpected odobnum" ())
+		   ))
+	    (add2sbuf_strconst sbuf ";")
+	    (add2sbuf_indentnl sbuf 1)
+	    ))
       (add2sbuf_strconst sbuf " cdat->")
       (add2sbuf_string sbuf oname)
       (add2sbuf_strconst sbuf ".obj_hash = ")
@@ -6506,8 +6620,58 @@
       ;; output the fill
       )
     )
- )
+  )
 (install_method class_objinitobject output_c_initfill outcinitfill_objinitobject)
+
+
+
+
+(defun outcinitpredef_objinitobject (recv sbuf)
+  (assert_msg "outcinitpredef_objinitobject check recv" (is_a recv class_objinitobject))
+  (debugmsg recv "outcinitpredef_objinitobject recv" (the_callcount))
+  (let ( (odata (unsafe_get_field :oie_data recv)) 
+	 (odiscr (unsafe_get_field :oie_discr recv))
+	 (oname (unsafe_get_field :oie_cname recv))
+	 (olocvar (unsafe_get_field :oie_locvar recv))
+	 (oiopredef (unsafe_get_field :oio_predef recv))
+	 )
+    (assert_msg "check odata" (is_a odata class_nrep_datainstance))
+    (if (null oiopredef) (return))
+    (let ( (odloc (unsafe_get_field :nrep_loc odata))
+	   )
+      (output_location odloc sbuf 1 "inipredef")
+      (add2sbuf_strconst sbuf "/*inipredef ")
+      (add2sbuf_string sbuf oname)
+      (add2sbuf_strconst sbuf "*/")
+      (add2sbuf_indentnl sbuf 1)
+      (if oiopredef
+	  (cond
+	   ( (is_a oiopredef class_symbol)
+	     (add2sbuf_strconst sbuf "/*inipredefsym*/ BASILYSG(")
+	     (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
+	     (add2sbuf_strconst sbuf ") = (void*)&cdat->")
+	     (add2sbuf_string sbuf oname)
+	     (add2sbuf_strconst sbuf ";")
+	     (add2sbuf_indentnl sbuf 1)
+	     )
+	   ( (is_integerbox oiopredef)
+	     (add2sbuf_strconst sbuf "/*inipredefnum*/ basilys_globarr[")
+	     (add2sbuf_longdec sbuf (get_int oiopredef))
+	     (add2sbuf_strconst sbuf "] = (void*)&cdat->")
+	     (add2sbuf_string sbuf oname)
+	     (add2sbuf_strconst sbuf ";")
+	     (add2sbuf_indentnl sbuf 1)
+	     )
+	   ( :else
+	     (debugmsg oiopredef "outcinitpredef_objinitobject unexpected oiopredef" (the_callcount))
+	     (assert_msg "outcinitpredef_objinitobject unexpected oiopredef" ())
+	     )))
+      )
+    )
+  )
+(install_method class_objinitobject output_c_initpredef outcinitpredef_objinitobject)
+
+
 
 ;;; initial multiple - see BASILYS_MULTIPLE_STRUCT in basilys.h
 (defclass class_objinitmultiple
@@ -7338,6 +7502,12 @@
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf " basilys_prohibit_garbcoll = TRUE;")
     (add2sbuf_indentnl implbuf 1)
+;;; generate the initial predef of cdat
+  ;;? (multiple_every
+  ;;?  idatup
+  ;;?  (lambda (curfil :long curk) 
+  ;;?    (debugmsg curfil "outpucod_initialroutine curfil" (the_callcount))
+  ;;?    (output_c_initpredef curfil implbuf)))
 ;;; generate the initial filling of cdat
     (multiple_every
      idatup
@@ -8317,6 +8487,18 @@
 	 )
     (assert_msg "outpucod_objputslot check oval not nrep" (not (is_a oval class_nrep)))
     (output_location iloc implbuf depth "putslot")
+    (add2sbuf_strconst implbuf "/*putslot checkobj*/ basilys_assertmsg(\"putslot checkobj\", basilys_magic_discr(")
+    (output_c_code odata declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ") == OBMAG_OBJECT);")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "/*putslot checkoff*/ basilys_assertmsg(\"putslot checkoff\", (")
+    (output_c_code ooff declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ">=0 && ")
+    (output_c_code ooff declbuf implbuf depth)
+    (add2sbuf_strconst implbuf "< basilys_object_length(")
+    (output_c_code odata declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ")));")
+    (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "/*putslot*/ ((basilysobject_ptr_t)(")
     (output_c_code odata declbuf implbuf depth)
     (add2sbuf_strconst implbuf "))->obj_vartab[")
@@ -8717,10 +8899,11 @@
 	(add2sbuf_longdec nambuf (+i nbval 1))
 	(put_int nbvalbox (+i nbval 1))
 	(let ( (namstr (strbuf2string discr_string nambuf))
+	       (oldnbvalbox (make_integerbox discr_integer nbval))
 	       (nloc (make_instance class_objlocv
 				    :obv_type ctype_value
 				    ;; the offset is the old nbval - not the incremented one
-				    :obl_off (make_integerbox discr_integer nbval)
+				    :obl_off oldnbvalbox
 				    :obl_proc orout
 				    :obl_cname namstr)) 
 	      )
@@ -10021,10 +10204,10 @@
   (assert_msg "compil_data_and_slots_fill check odiscr" (is_a odiscr class_objvalue))
   (assert_msg "compil_data_and_slots_fill check irout" (is_a irout class_initialroutineobj))
   (assert_msg "compil_data_and_slots_fill check gcx" (is_a gcx class_genercontext))
- ;; (debugmsg ndat "compil_data_and_slots_fill ndat" (the_callcount))
- ;; (debugmsg obj "compil_data_and_slots_fill obj" (the_callcount))
- ;; (debugmsg odiscr "compil_data_and_slots_fill odiscr" (the_callcount))
- ;; (debugmsg irout "compil_data_and_slots_fill irout un" (the_callcount))
+  ;; (debugmsg ndat "compil_data_and_slots_fill ndat" (the_callcount))
+  ;; (debugmsg obj "compil_data_and_slots_fill obj" (the_callcount))
+  ;; (debugmsg odiscr "compil_data_and_slots_fill odiscr" (the_callcount))
+  ;; (debugmsg irout "compil_data_and_slots_fill irout un" (the_callcount))
   (let (
 	(ibodylis (unsafe_get_field :obrout_body irout))
 	(ifilllis (unsafe_get_field :oirout_fill irout))
@@ -10041,11 +10224,11 @@
     (unsafe_put_fields obj :oie_locvar locvar)
     (assert_msg "compil_data_and_slots_fill check ifilllis" (is_list ifilllis))
     (assert_msg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
-    ; (debugmsg dlocbind "compil_data_and_slots_fill dlocbind" (the_callcount))
+					; (debugmsg dlocbind "compil_data_and_slots_fill dlocbind" (the_callcount))
     (multiple_every
      dlocbind
      (lambda (lbind :long bindrk)
-       ; (debugmsg lbind "compil_data_and_slots_fill lbind")
+					; (debugmsg lbind "compil_data_and_slots_fill lbind")
        (assert_msg "compil_data_and_slots_fill check lbind" (is_a lbind class_normlet_binding))
        (let ( (bder (unsafe_get_field :binder lbind))
 	      (cty (unsafe_get_field :letbind_type lbind))
@@ -10064,20 +10247,23 @@
     (multiple_every
      (unsafe_get_field :ninst_slots ndat)
      (lambda (sloval :long slork)
-       ;(debugmsg sloval "compil_data_and_slots_fill sloval" (the_callcount))
+					;(debugmsg sloval "compil_data_and_slots_fill sloval" (the_callcount))
        (if sloval
-           ;;; add to list inifill the filling in dai of slot#slork by slobj
+;;; add to list inifill the filling in dai of slot#slork by slobj
 	   (let ( (slobj (compile_obj sloval gcx)) 
 		  )
-	     ;(debugmsg slobj "compil_data_and_slots_fill slobj" (the_callcount))
+					;(debugmsg slobj "compil_data_and_slots_fill slobj" (the_callcount))
 	     (assert_msg "compil_data_and_slots_fill check slobj not nrep" (not (is_a slobj class_nrep)))
-	     (let ( (oput 
-		     (make_instance class_objputslot
-				    :obi_loc  nloc
-				    :oslot_odata obj
-				    :oslot_offset (make_integerbox discr_integer slork)
-				    :oslot_value slobj
-				    )) )
+	     (let (
+		   (ooff (make_integerbox discr_integer slork))
+		   (oput 
+		    (make_instance class_objputslot
+				   :obi_loc  nloc
+				   :oslot_odata obj
+				   :oslot_offset ooff
+				   :oslot_value slobj
+				   )) 
+		   )
 	       (list_append ibodylis oput)
 	       )))))
     ;; touch the object
@@ -10102,7 +10288,7 @@
      dlocbind
      (lambda (bnd :long ix) (dispose_bnd_obj bnd gcx)))
     )
-  ;(debugmsg ibodylis "compil_data_and_slots_fill final ibodylis" (the_callcount))
+					;(debugmsg ibodylis "compil_data_and_slots_fill final ibodylis" (the_callcount))
   (return)				;force a nil return
   )
 
@@ -10177,6 +10363,7 @@
 	   (disx (unsafe_get_field :ndata_discrx dai))
 	   (drank (unsafe_get_field :ndata_rank dai))
 	   (dhash (unsafe_get_field :ninst_hash dai))
+	   (dpredef (unsafe_get_field :ninst_predef dai))
 	   (dslots (unsafe_get_field :ninst_slots dai)) 
 	   (ininsl (unsafe_get_field :ninit_topl inirout))
 	   (inifill (unsafe_get_field :oirout_fill inirout))
@@ -10194,7 +10381,9 @@
 	      (oini (make_instance class_objinitobject
 				   :obv_type ctype_value
 				   :oie_data dai
-				   :oie_discr cdisx))
+				   :oie_discr cdisx
+				   :oio_predef dpredef
+				   ))
 	      (nambuf (make_strbuf discr_strbuf))
 	      (:long drk (get_int drank))
 	      )

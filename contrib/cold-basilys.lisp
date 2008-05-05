@@ -1359,7 +1359,7 @@
 	       (let ( (clovs
 		       (mapcar 
 			(lambda (lr)
-			  (assert (prog_lambda-p lr))
+			  (assert (prog_lambda-p lr) (lr bnd symb) "normalize_symbol symb=~S bnd=~S expect lr=~S to be a prog_lambda" symb bnd lr)
 			  (or 
 			   (find-if
 			    (lambda (cv)

@@ -121,6 +121,7 @@
 (definstance mysub_instance my_class_sub
   :root_f1 and_t2
   :sub_f3 (mkint_t2 3)
+  :obj_num 2345
   )
 
 (defun multiret_t2 (x) 
@@ -148,7 +149,7 @@
 
 (defun n1234_t2 (f) (f 1234))
 
-(defun xn12345_t2 (f x) (f x x 12345))
+(defun xn23456_t2 (f x) (f x x 23456))
 
 
 (defun tl_t2 (v) (let ((x3 (mkint_t2 3))) (tup1_pr2 v x3)))
