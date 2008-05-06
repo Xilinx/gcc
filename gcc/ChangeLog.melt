@@ -1,3 +1,8 @@
+2008-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* tree-passes.h: MERGED WITH TRUNK r134973
+
+	* passes.c: MERGED WITH TRUNK r134973
+
 2008-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: (create_normcontext) fill the initial
 	predefmap with symbols using (fill_initial_predefmap). Added the

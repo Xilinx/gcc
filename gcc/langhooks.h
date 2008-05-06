@@ -130,6 +130,12 @@ struct lang_hooks_for_types
      for the debugger about the array bounds, strides, etc.  */
   bool (*get_array_descr_info) (const_tree, struct array_descr_info *);
 
+  /* If we requested a pointer to a vector, build up the pointers that
+     we stripped off while looking for the inner type.  Similarly for
+     return values from functions.  The argument TYPE is the top of the
+     chain, and BOTTOM is the new type which we will point to.  */
+  tree (*reconstruct_complex_type) (tree, tree);
+
   /* Nonzero if types that are identical are to be hashed so that only
      one copy is kept.  If a language requires unique types for each
      user-specified type, such as Ada, this should be set to TRUE.  */
@@ -400,10 +406,9 @@ struct lang_hooks
   void (*init_ts) (void);
 
   /* Called by recompute_tree_invariant_for_addr_expr to go from EXPR
-     to a contained expression or DECL, possibly updating *TC, *TI or
-     *SE if in the process TREE_CONSTANT, TREE_INVARIANT or
-     TREE_SIDE_EFFECTS need updating.  */
-  tree (*expr_to_decl) (tree expr, bool *tc, bool *ti, bool *se);
+     to a contained expression or DECL, possibly updating *TC or *SE
+     if in the process TREE_CONSTANT or TREE_SIDE_EFFECTS need updating.  */
+  tree (*expr_to_decl) (tree expr, bool *tc, bool *se);
 
   /* Whenever you add entries here, make sure you adjust langhooks-def.h
      and langhooks.c accordingly.  */

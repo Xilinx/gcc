@@ -1,3 +1,102 @@
+2008-05-03  Janus Weil  <jaydub66@gmail.com>
+
+	* misc.c (gfc_clear_ts): Set interface to NULL.
+
+2008-05-03  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/33268
+	* gfortran.h: Add extra_comma pointer to gfc_dt structure. Add iokind to
+	gfc_expr value union. Add io_kind enum to here from io.c.
+	* io.c (gfc_free_dt): Free extra_comma.
+	(gfc_resolve_dt): If an extra comma was encountered and io_unit is type
+	BT_CHARACTER, resolve to format_expr and set default unit.  Error if
+	io_kind is M_WRITE. (match_io):  Match the extra comma and set new
+	pointer, extra_comma.
+
+2008-05-01  Bud Davis  <bdavis9659@sbcglobal.net>
+
+	PR35940/Fortran
+	* simplify.c (gfc_simplify_index): Check for direction argument 
+	being a constant.
+
+2008-05-01  Janus Weil  <jaydub66@gmail.com>
+
+	* gfortran.h (struct gfc_symbol): Moving "interface" member to
+	gfc_typespec (plus fixing a small docu error).
+	* interface.c (gfc_procedure_use): Ditto.
+	* decl.c (match_procedure_decl): Ditto.
+	* resolve.c (resolve_specific_f0,
+	resolve_specific_f0, resolve_symbol): Ditto.
+
+2008-04-30  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* intrinsic.c (add_functions): Add SELECTED_CHAR_KIND intrinsic.
+	* intrinsic.h (gfc_check_selected_char_kind,
+	gfc_simplify_selected_char_kind): New prototypes.
+	* gfortran.h (gfc_isym_id): Add GFC_ISYM_SC_KIND.
+	* trans.h (gfor_fndecl_sc_kind): New function decl.
+	* trans-decl.c (gfor_fndecl_sc_kind): Build new decl.
+	* arith.c (gfc_compare_with_Cstring): New function.
+	* arith.h (gfc_compare_with_Cstring): New prototype.
+	* check.c (gfc_check_selected_char_kind): New function.
+	* primary.c (match_string_constant, match_kind_param): Mark
+	symbols used as literal constant kind param as referenced.
+	* trans-intrinsic.c (gfc_conv_intrinsic_sc_kind): New function.
+	(gfc_conv_intrinsic_function): Call gfc_conv_intrinsic_sc_kind.
+	* intrinsic.texi (SELECTED_CHAR_KIND): Document new intrinsic.
+	* simplify.c (gfc_simplify_selected_char_kind): New function.
+
+2008-04-28  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35997
+	* module.c (find_symbol): Do not return a result for a symbol
+	that has been renamed in another module.
+
+2008-04-26  George Helffrich <george@gcc.gnu.org>
+
+	PR fortran/35892
+	PR fortran/35154
+	* trans-common.c (create_common):  Add decl to function
+	chain (if inside one) to preserve identifier scope in debug output.
+
+2008-04-25  Jan Hubicka  <jh@suse.cz>
+
+	* trans-decl.c (trans_function_start): Update.
+
+2008-04-25  Tobias Burnus  <burnus@net-b.de>
+	    Daniel Franke <franke.daniel@gmail.com>
+
+	PR fortran/35156
+	* gfortranspec.c (lang_specific_driver): Deprecate
+	-M option; fix ICE when "-M" is last argument and
+	make "-M<dir>" work.
+	* options.c (gfc_handle_module_path_options): 
+	Use -J instead of -M in error messages.
+	* invoke.texi: Mark -M as depecated.
+
+2008-04-23  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+	    Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/35994
+	* trans-instrinsic.c (gfc_conv_intrinsic_minmaxloc): Correctly adjust
+	loop counter offset.
+
+2008-04-23  Paolo Bonzini  <bonzini@gnu.org>
+
+	* trans-expr.c (gfc_conv_structure): Don't set TREE_INVARIANT.
+	* trans-array.c (gfc_build_null_descriptor): Don't set TREE_INVARIANT.
+	(gfc_trans_array_constructor_value): Don't set TREE_INVARIANT.
+	(gfc_build_constant_array_constructor): Don't set TREE_INVARIANT.
+	(gfc_conv_array_initializer): Don't set TREE_INVARIANT.
+	* trans-common.c (get_init_field): Don't set TREE_INVARIANT.
+	(create_common): Don't set TREE_INVARIANT.
+	* trans-stmt.c (gfc_trans_character_select): Don't set TREE_INVARIANT.
+	* trans-decl.c (gfc_generate_function_code): Don't set TREE_INVARIANT.
+
+2008-04-21  Steve Ellcey  <sje@cup.hp.com>
+
+	* f95-lang.c (gfc_init_decl_processing): use ptr_mode instead of Pmode.
+
 2008-04-21  Daniel Franke  <franke.daniel@gmail.com>
 
 	PR fortran/35019
@@ -182,6 +281,7 @@
 
 2008-04-01  George Helffrich <george@gcc.gnu.org>
 
+	PR fortran/35154, fortran/23057
 	* trans-common.c (create_common):  Add decl to function
 	chain to preserve identifier scope in debug output.
 

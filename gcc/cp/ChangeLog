@@ -1,3 +1,88 @@
+2008-05-02  Simon Baldwin <simonb@google.com>
+
+	PR bootstrap/36108
+	* typeck.c (build_array_ref): Remove warn_array_subscript_range.
+
+2008-05-01  Simon Baldwin <simonb@google.com>
+
+	* typeck.c (build_array_ref): Call warn_array_subscript_range.
+
+2008-04-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35986
+	* pt.c (more_specialized_fn): Stop the loop even if there are no
+	arguments before ellipsis.
+
+2008-04-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35650
+	* parser.c (cp_parser_lookup_name): Look through single function
+	OVERLOAD.
+
+	PR c++/35987
+	* typeck.c (cp_build_modify_expr) <case PREINCREMENT_EXPR>: Don't build
+	COMPOUND_EXPR if the second argument would be error_mark_node.
+
+2008-04-28  Jason Merrill  <jason@redhat.com>
+	    Liu Guanwei <liu_gw@163.com>
+
+	PR c++/57
+	* parser.c (cp_parser_parameter_declaration): Handle < ambiguity
+	in default arguments.
+
+2008-04-25  Jan Hubicka  <jh@suse.cz>
+
+	* typeck.c (check_return_expr): Update.
+	* decl.c (start_preparsed_function): Update.
+	* method.c (use_thunk): Update.
+
+2008-04-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35758
+	* cp-tree.h (cp_reconstruct_complex_type): New prototype.
+	* cp-objcp-common.h (LANG_HOOKS_RECONSTRUCT_COMPLEX_TYPE): Define.
+	* decl2.c (is_late_template_attribute): Only make vector_size
+	late tmpl attribute if argument is type or value dependent.
+	(cp_reconstruct_complex_type): New function.
+
+2008-04-24  Richard Guenther  <rguenther@suse.de>
+
+	* typeck.c (cp_build_function_call): Call
+	check_builtin_function_arguments.
+
+2008-04-23  Paolo Bonzini  <bonzini@gnu.org>
+
+	* typeck.c (get_member_function_from_ptrfunc): Don't set TREE_INVARIANT.
+	(build_ptrmemfunc1): Don't set TREE_INVARIANT.
+	* init.c (build_zero_init): Don't set TREE_INVARIANT.
+	* class.c (build_base_path): Don't set TREE_INVARIANT.
+	(build_vtbl_ref_1): Don't set TREE_INVARIANT.
+	(build_vtbl_initializer): Don't set TREE_INVARIANT.
+	* decl.c (build_enumerator): Don't set TREE_INVARIANT.
+	* rtti.c (tinfo_base_init): Don't set TREE_INVARIANT.
+	(generic_initializer): Don't set TREE_INVARIANT.
+	(ptr_initializer): Don't set TREE_INVARIANT.
+	(ptm_initializer): Don't set TREE_INVARIANT.
+	(class_initializer): Don't set TREE_INVARIANT.
+	* typeck2.c (process_init_constructor): Don't set TREE_INVARIANT.
+	* pt.c (push_inline_template_parms_recursive): Don't set TREE_INVARIANT.
+	(build_template_parm_index): Don't set TREE_INVARIANT.
+	(reduce_template_parm_level): Don't set TREE_INVARIANT.
+	(process_template_parm): Don't set TREE_INVARIANT.
+
+2008-04-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35316
+	* semantics.c (finish_decltype_type): Check DECL_BIT_FIELD_TYPE
+	to see if DECL_BIT_FIELD_TYPE should be used, not some other flag.
+	* typeck.c (is_bitfield_expr_with_lowered_type): Likewise.
+
+2008-04-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35747
+	* semantics.c (finish_stmt_expr): Call pop_stmt_list even if the stmt
+	expression is errorneous.
+
 2008-04-21  Jason Merrill  <jason@redhat.com>
 
 	PR c++/35325

@@ -1570,7 +1570,8 @@ gfc_simplify_index (gfc_expr *x, gfc_expr *y, gfc_expr *b, gfc_expr *kind)
   int back, len, lensub;
   int i, j, k, count, index = 0, start;
 
-  if (x->expr_type != EXPR_CONSTANT || y->expr_type != EXPR_CONSTANT)
+  if (x->expr_type != EXPR_CONSTANT || y->expr_type != EXPR_CONSTANT 
+      || ( b != NULL && b->expr_type !=  EXPR_CONSTANT))
     return NULL;
 
   if (b != NULL && b->value.logical != 0)
@@ -3625,6 +3626,28 @@ gfc_simplify_scan (gfc_expr *e, gfc_expr *c, gfc_expr *b, gfc_expr *kind)
     }
   mpz_set_ui (result->value.integer, indx);
   return range_check (result, "SCAN");
+}
+
+
+gfc_expr *
+gfc_simplify_selected_char_kind (gfc_expr *e)
+{
+  int kind;
+  gfc_expr *result;
+
+  if (e->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  if (gfc_compare_with_Cstring (e, "ascii", false) == 0
+      || gfc_compare_with_Cstring (e, "default", false) == 0)
+    kind = 1;
+  else
+    kind = -1;
+
+  result = gfc_int_expr (kind);
+  result->where = e->where;
+
+  return result;
 }
 
 

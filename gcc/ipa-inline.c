@@ -1426,26 +1426,6 @@ cgraph_gate_inlining (void)
   return flag_inline_trees;
 }
 
-struct simple_ipa_opt_pass pass_ipa_inline = 
-{
- {
-  SIMPLE_IPA_PASS,
-  "inline",				/* name */
-  cgraph_gate_inlining,			/* gate */
-  cgraph_decide_inlining,		/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_INLINE_HEURISTICS,			/* tv_id */
-  0,	                                /* properties_required */
-  PROP_cfg,				/* properties_provided */
-  0,					/* properties_destroyed */
-  TODO_remove_functions,		/* todo_flags_finish */
-  TODO_dump_cgraph | TODO_dump_func
-  | TODO_remove_functions		/* todo_flags_finish */
- }
-};
-
 /* Because inlining might remove no-longer reachable nodes, we need to
    keep the array visible to garbage collector to avoid reading collected
    out nodes.  */
@@ -1579,18 +1559,20 @@ struct gimple_opt_pass pass_inline_parameters =
  }
 };
 
-/* Apply inline plan to the function.  */
+/* Note function body size.  */
+static void
+inline_generate_summary (struct cgraph_node *node ATTRIBUTE_UNUSED)
+{
+  compute_inline_parameters ();
+  return;
+}
+
+/* Apply inline plan to function.  */
 static unsigned int
-apply_inline (void)
+inline_transform (struct cgraph_node *node)
 {
   unsigned int todo = 0;
   struct cgraph_edge *e;
-  struct cgraph_node *node = cgraph_node (current_function_decl);
-
-  /* Even when not optimizing, ensure that always_inline functions get inlined.
-   */
-  if (!optimize)
-   cgraph_decide_inlining_incrementally (node, INLINE_SPEED, 0);
 
   /* We might need the body of this function so that we can expand
      it inline somewhere else.  */
@@ -1601,6 +1583,66 @@ apply_inline (void)
     if (!e->inline_failed || warn_inline)
       break;
   if (e)
+    {
+      timevar_push (TV_INTEGRATION);
+      todo = optimize_inline_calls (current_function_decl);
+      timevar_pop (TV_INTEGRATION);
+    }
+  return todo | execute_fixup_cfg ();
+}
+
+struct ipa_opt_pass pass_ipa_inline = 
+{
+ {
+  IPA_PASS,
+  "inline",				/* name */
+  cgraph_gate_inlining,			/* gate */
+  cgraph_decide_inlining,		/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_INLINE_HEURISTICS,			/* tv_id */
+  0,	                                /* properties_required */
+  PROP_cfg,				/* properties_provided */
+  0,					/* properties_destroyed */
+  TODO_remove_functions,		/* todo_flags_finish */
+  TODO_dump_cgraph | TODO_dump_func
+  | TODO_remove_functions		/* todo_flags_finish */
+ },
+ inline_generate_summary,		/* function_generate_summary */
+ NULL,					/* variable_generate_summary */
+ NULL,					/* function_write_summary */
+ NULL,					/* variable_write_summary */
+ NULL,					/* function_read_summary */
+ NULL,					/* variable_read_summary */
+ 0,					/* TODOs */
+ inline_transform,			/* function_transform */
+ NULL,					/* variable_transform */
+};
+
+
+/* When inlining shall be performed.  */
+static bool
+cgraph_gate_O0_always_inline (void)
+{
+  return !flag_unit_at_a_time || !flag_inline_trees;
+}
+
+static unsigned int
+cgraph_O0_always_inline (void)
+{
+  struct cgraph_node *node = cgraph_node (current_function_decl);
+  unsigned int todo = 0;
+  bool inlined;
+
+  if (sorrycount || errorcount)
+    return 0;
+  inlined = cgraph_decide_inlining_incrementally (node, INLINE_SPEED, 0);
+  /* We might need the body of this function so that we can expand
+     it inline somewhere else.  */
+  if (cgraph_preserve_function_body_p (current_function_decl))
+    save_inline_function_body (node);
+  if (inlined || warn_inline)
     {
       timevar_push (TV_INTEGRATION);
       todo = optimize_inline_calls (current_function_decl);
@@ -1617,13 +1659,13 @@ apply_inline (void)
   return todo | execute_fixup_cfg ();
 }
 
-struct gimple_opt_pass pass_apply_inline = 
+struct gimple_opt_pass pass_O0_always_inline = 
 {
  {
   GIMPLE_PASS,
-  "apply_inline",			/* name */
-  NULL,					/* gate */
-  apply_inline,				/* execute */
+  "always_inline",			/* name */
+  cgraph_gate_O0_always_inline,		/* gate */
+  cgraph_O0_always_inline,		/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */

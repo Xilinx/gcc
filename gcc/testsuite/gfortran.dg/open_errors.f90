@@ -1,4 +1,4 @@
-! { dg-do run }
+! { dg-do run { target { ! *-*-mingw* } } }
 ! PR30005 Enhanced error messages for OPEN
 ! Submitted by Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 character(60) :: msg

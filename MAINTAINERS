@@ -43,7 +43,7 @@ avr port		Denis Chertykov		denisc@overta.ru
 avr port		Anatoly Sokolov		aesok@post.ru
 bfin port		Bernd Schmidt		bernd.schmidt@analog.com
 cris port		Hans-Peter Nilsson	hp@axis.com
-crx port		Paul Woegerer		paul.woegerer@nsc.com
+crx port		Pompapathi V Gadad 	Pompapathi.V.Gadad@nsc.com
 fr30 port		Nick Clifton		nickc@redhat.com
 frv port		Aldy Hernandez		aldyh@redhat.com
 frv port		Alexandre Oliva		aoliva@redhat.com
@@ -336,6 +336,7 @@ Daniel Jacobowitz				dan@debian.org
 Andreas Jaeger					aj@suse.de
 Harsha Jagasia					harsha.jagasia@amd.com
 Fariborz Jahanian				fjahanian@apple.com
+Martin Jambor					mjambor@suse.cz
 Phillip Jordan					phillip.m.jordan@gmail.com
 Tim Josling					tej@melbpc.org.au
 Klaus Kaempf					kkaempf@progis.de
@@ -428,12 +429,14 @@ Jakub Staszak					kuba@et.pl
 Graham Stott					graham.stott@btinternet.com
 Mike Stump					mrs@apple.com
 Jeff Sturm					jsturm@gcc.gnu.org
+Gabriele Svelto					gabriele.svelto@st.com
 Samuel Tardieu					sam@rfc1149.net
 Kresten Krab Thorup				krab@gcc.gnu.org
 Caroline Tice					ctice@apple.com
 Michael Tiemann					tiemann@redhat.com
 Kai Tietz					kai.tietz@onevision.com
 David Ung					davidu@mips.com
+Kris Van Hees					kris.van.hees@oracle.com
 Jonathan Wakely					redi@gcc.gnu.org
 Feng Wang					fengwang@nudt.edu.cn
 Stephen M. Webb					stephen.webb@bregmasoft.com

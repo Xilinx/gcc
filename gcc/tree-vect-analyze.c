@@ -1060,7 +1060,9 @@ vect_check_interleaving (struct data_reference *dra,
   type_size_b = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (TREE_TYPE (DR_REF (drb))));
 
   if (type_size_a != type_size_b
-      || tree_int_cst_compare (DR_STEP (dra), DR_STEP (drb)))
+      || tree_int_cst_compare (DR_STEP (dra), DR_STEP (drb))
+      || !types_compatible_p (TREE_TYPE (DR_REF (dra)), 
+                              TREE_TYPE (DR_REF (drb))))
     return;
 
   init_a = TREE_INT_CST_LOW (DR_INIT (dra));
@@ -2226,11 +2228,16 @@ vect_analyze_group_access (struct data_reference *dr)
 
       /* Check that the size of the interleaving is equal to STEP for stores,
          i.e., that there are no gaps.  */
-      if (!DR_IS_READ (dr) && dr_step != count_in_bytes)
+      if (dr_step != count_in_bytes)
         {
-          if (vect_print_dump_info (REPORT_DETAILS))
-            fprintf (vect_dump, "interleaved store with gaps");
-          return false;
+          if (DR_IS_READ (dr))
+            slp_impossible = true;
+          else
+            {
+              if (vect_print_dump_info (REPORT_DETAILS))
+                fprintf (vect_dump, "interleaved store with gaps");
+              return false;
+            }
         }
 
       /* Check that STEP is a multiple of type size.  */

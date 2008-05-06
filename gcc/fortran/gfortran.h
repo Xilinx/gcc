@@ -103,6 +103,12 @@ mstring;
 
 /*************************** Enums *****************************/
 
+/* Used when matching and resolving data I/O transfer statements.  */
+
+typedef enum
+{ M_READ, M_WRITE, M_PRINT, M_INQUIRE }
+io_kind;
+
 /* The author remains confused to this day about the convention of
    returning '0' for 'SUCCESS'... or was it the other way around?  The
    following enum makes things much more readable.  We also start
@@ -465,6 +471,7 @@ enum gfc_isym_id
   GFC_ISYM_RESHAPE,
   GFC_ISYM_RRSPACING,
   GFC_ISYM_RSHIFT,
+  GFC_ISYM_SC_KIND,
   GFC_ISYM_SCALE,
   GFC_ISYM_SCAN,
   GFC_ISYM_SECNDS,
@@ -777,6 +784,7 @@ typedef struct
   int kind;
   struct gfc_symbol *derived;
   gfc_charlen *cl;	/* For character types only.  */
+  struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
   int is_c_interop;
   int is_iso_c;
   bt f90_type; 
@@ -979,7 +987,7 @@ typedef struct gfc_symbol
   gfc_typespec ts;
   symbol_attribute attr;
 
-  /* The interface member points to the formal argument list if the
+  /* The formal member points to the formal argument list if the
      symbol is a function or subroutine name.  If the symbol is a
      generic name, the generic member points to the list of
      interfaces.  */
@@ -994,8 +1002,6 @@ typedef struct gfc_symbol
   gfc_array_spec *as;
   struct gfc_symbol *result;	/* function result symbol */
   gfc_component *components;	/* Derived type components */
-
-  struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
 
   /* Defined only for Cray pointees; points to their pointer.  */
   struct gfc_symbol *cp_pointer;
@@ -1444,6 +1450,8 @@ typedef struct gfc_expr
   {
     int logical;
 
+    io_kind iokind;
+
     mpz_t integer;
 
     mpfr_t real;
@@ -1684,7 +1692,7 @@ typedef struct
 {
   gfc_expr *io_unit, *format_expr, *rec, *advance, *iostat, *size, *iomsg,
 	   *id, *pos, *asynchronous, *blank, *decimal, *delim, *pad, *round,
-	   *sign;
+	   *sign, *extra_comma;
 
   gfc_symbol *namelist;
   /* A format_label of `format_asterisk' indicates the "*" format */

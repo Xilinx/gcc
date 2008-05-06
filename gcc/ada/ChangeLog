@@ -1,3 +1,79 @@
+2008-05-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (maybe_pad_type): Add ??? comment.
+
+2008-05-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (components_to_record): Zero the alignment of the qualified
+	union built for the variant part upon creating it.
+
+2008-05-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (maybe_pad_type): Try to get a form of the type with integral
+	mode even if the alignment is not a factor of the original size.  But
+	make sure to create the inner field with the original size.  Reorder.
+	* trans.c (addressable_p) <COMPONENT_REF>: Treat the field of a padding
+	record as always addressable.
+	* utils.c (convert): Deal specially with conversions between original
+	and packable versions of a record type.
+	* utils2.c (build_binary_op) <MODIFY_EXPR>: Be more restrictive when
+	recognizing an assignment between padded objects.
+
+2008-05-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* decl.c (make_packable_type): Resize the last component to its RM size
+	only if it is of an aggregate type.
+	* trans.c (call_to_gnu): Fix nit in comment.
+	(gnat_to_gnu): Likewise.
+
+2008-04-30  Samuel Tardieu  <sam@rfc1149.net>
+
+	* Makefile.in: Adapt sh4-linux target.
+
+2008-04-29  Ed Schonberg  <schonberg@adacore.com>
+
+	PR ada/35792
+	* sem_ch3.adb (Find_Type_Name): Refuse completion of an incomplete
+	tagged type by an untagged protected or task type.
+
+2008-04-28  Eric Botcazou  <ebotcazou@adacore.com>
+            Tristan Gingold  <gingold@adacore.com>
+
+	PR ada/36007
+	* decl.c (gnat_to_gnu_entity) <object>: Do not promote alignment
+	of aliased objects with an unconstrained nominal subtype.
+	Cap the promotion to the effective alignment of the word mode.
+
+2008-04-28  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Make-lang.in (ada.tags, check-acats, ada/treeprs.ads)
+	(ada/einfo.h, ada/sinfo.h, ada/nmake.adb, ada/nmake.ads):
+	Use '&&' instead of ';'.
+
+2008-04-24  Olivier Hainque  <hainque@adacore.com>
+
+	* trans.c (Attribute_to_gnu) <case Attr_Length>: Length computation
+	doesn't require signed arithmetic anymore.
+
+2008-04-23  Paolo Bonzini  <bonzini@gnu.org>
+
+	* trans.c (Attribute_to_gnu): Don't set TREE_INVARIANT.
+	(call_to_gnu): Don't set TREE_INVARIANT.
+	* utils2.c (gnat_build_constructor): Don't set TREE_INVARIANT.
+
+2008-04-22  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* s-osinte-rtems.adb: Add sigalstack function.
+	* s-osinte-rtems.ads: Add SO_ONSTACK and sigalstack
+	function. Add Alternate_Stack and Alternate_Stack_Size.
+	Add missing process_shared field to pthread_condattr_t
+	and change ss_low_priority to int from timespec.
+
+2008-04-22  Samuel Tardieu  <sam@rfc1149.net>
+
+	* i-forbla.adb: Link against -llapack and -lblas by default
+	instead of the private -lgnalasup.
+
 2008-04-21  Olivier Hainque  <hainque@adacore.com>
 
 	Access to most C builtins from Ada

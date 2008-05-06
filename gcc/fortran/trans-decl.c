@@ -124,7 +124,8 @@ tree gfor_fndecl_size0;
 tree gfor_fndecl_size1;
 tree gfor_fndecl_iargc;
 
-/* Intrinsic functions implemented in FORTRAN.  */
+/* Intrinsic functions implemented in Fortran.  */
+tree gfor_fndecl_sc_kind;
 tree gfor_fndecl_si_kind;
 tree gfor_fndecl_sr_kind;
 
@@ -1601,7 +1602,7 @@ trans_function_start (gfc_symbol * sym)
      call expand_expr to calculate the size of a variable-sized array.
      We haven't necessarily assigned RTL to all variables yet, so it's
      not safe to try to expand expressions involving them.  */
-  cfun->x_dont_save_pending_sizes_p = 1;
+  cfun->dont_save_pending_sizes_p = 1;
 
   /* function.c requires a push at the start of the function.  */
   pushlevel (0);
@@ -2099,19 +2100,22 @@ gfc_build_intrinsic_function_decls (void)
 				     pchar_type_node,
 				     gfc_charlen_type_node, pchar_type_node);
 
+  gfor_fndecl_sc_kind =
+    gfc_build_library_function_decl (get_identifier
+					(PREFIX("selected_char_kind")),
+                                     gfc_int4_type_node, 2,
+				     gfc_charlen_type_node, pchar_type_node);
+
   gfor_fndecl_si_kind =
     gfc_build_library_function_decl (get_identifier
 					(PREFIX("selected_int_kind")),
-                                     gfc_int4_type_node,
-                                     1,
-                                     pvoid_type_node);
+                                     gfc_int4_type_node, 1, pvoid_type_node);
 
   gfor_fndecl_sr_kind =
     gfc_build_library_function_decl (get_identifier
 					(PREFIX("selected_real_kind")),
-                                     gfc_int4_type_node,
-                                     2, pvoid_type_node,
-                                     pvoid_type_node);
+                                     gfc_int4_type_node, 2,
+                                     pvoid_type_node, pvoid_type_node);
 
   /* Power functions.  */
   {
@@ -3183,13 +3187,11 @@ gfc_generate_function_code (gfc_namespace * ns)
 								      6)));
       array = build_constructor_from_list (array_type, nreverse (array));
       TREE_CONSTANT (array) = 1;
-      TREE_INVARIANT (array) = 1;
       TREE_STATIC (array) = 1;
 
       /* Create a static variable to hold the jump table.  */
       var = gfc_create_var (array_type, "options");
       TREE_CONSTANT (var) = 1;
-      TREE_INVARIANT (var) = 1;
       TREE_STATIC (var) = 1;
       TREE_READONLY (var) = 1;
       DECL_INITIAL (var) = array;

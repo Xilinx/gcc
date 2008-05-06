@@ -1808,9 +1808,9 @@ notice_special_calls (tree t)
   int flags = call_expr_flags (t);
 
   if (flags & ECF_MAY_BE_ALLOCA)
-    current_function_calls_alloca = true;
+    cfun->calls_alloca = true;
   if (flags & ECF_RETURNS_TWICE)
-    current_function_calls_setjmp = true;
+    cfun->calls_setjmp = true;
 }
 
 
@@ -1820,8 +1820,8 @@ notice_special_calls (tree t)
 void
 clear_special_calls (void)
 {
-  current_function_calls_alloca = false;
-  current_function_calls_setjmp = false;
+  cfun->calls_alloca = false;
+  cfun->calls_setjmp = false;
 }
 
 
@@ -2495,7 +2495,7 @@ is_ctrl_altering_stmt (const_tree t)
     {
       /* A non-pure/const CALL_EXPR alters flow control if the current
 	 function has nonlocal labels.  */
-      if (TREE_SIDE_EFFECTS (call) && current_function_has_nonlocal_label)
+      if (TREE_SIDE_EFFECTS (call) && cfun->has_nonlocal_label)
 	return true;
 
       /* A CALL_EXPR also alters control flow if it does not return.  */
@@ -2545,7 +2545,7 @@ tree_can_make_abnormal_goto (const_tree t)
   if (TREE_CODE (t) == WITH_SIZE_EXPR)
     t = TREE_OPERAND (t, 0);
   if (TREE_CODE (t) == CALL_EXPR)
-    return TREE_SIDE_EFFECTS (t) && current_function_has_nonlocal_label;
+    return TREE_SIDE_EFFECTS (t) && cfun->has_nonlocal_label;
   return false;
 }
 
@@ -3188,27 +3188,19 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 
     case ADDR_EXPR:
       {
-	bool old_invariant;
 	bool old_constant;
 	bool old_side_effects;
-	bool new_invariant;
 	bool new_constant;
 	bool new_side_effects;
 
-	old_invariant = TREE_INVARIANT (t);
+	gcc_assert (is_gimple_address (t));
+
 	old_constant = TREE_CONSTANT (t);
 	old_side_effects = TREE_SIDE_EFFECTS (t);
 
 	recompute_tree_invariant_for_addr_expr (t);
-	new_invariant = TREE_INVARIANT (t);
 	new_side_effects = TREE_SIDE_EFFECTS (t);
 	new_constant = TREE_CONSTANT (t);
-
-	if (old_invariant != new_invariant)
-	  {
-	    error ("invariant not recomputed when ADDR_EXPR changed");
-	    return t;
-	  }
 
         if (old_constant != new_constant)
 	  {
@@ -3254,6 +3246,9 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	}
       break;
 
+    case NON_LVALUE_EXPR:
+	gcc_unreachable ();
+
     case NOP_EXPR:
     case CONVERT_EXPR:
     case FIX_TRUNC_EXPR:
@@ -3261,7 +3256,6 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
     case NEGATE_EXPR:
     case ABS_EXPR:
     case BIT_NOT_EXPR:
-    case NON_LVALUE_EXPR:
     case TRUTH_NOT_EXPR:
       CHECK_OP (0, "invalid operand to unary operator");
       break;
@@ -5511,7 +5505,7 @@ DEF_VEC_ALLOC_P(basic_block,heap);
    adding blocks when the dominator traversal reaches EXIT.  This
    function silently assumes that ENTRY strictly dominates EXIT.  */
 
-static void
+void
 gather_blocks_in_sese_region (basic_block entry, basic_block exit,
 			      VEC(basic_block,heap) **bbs_p)
 {
@@ -6586,7 +6580,7 @@ tree_purge_dead_abnormal_call_edges (basic_block bb)
 {
   bool changed = tree_purge_dead_eh_edges (bb);
 
-  if (current_function_has_nonlocal_label)
+  if (cfun->has_nonlocal_label)
     {
       tree stmt = last_stmt (bb);
       edge_iterator ei;

@@ -387,7 +387,6 @@ struct tree_base GTY(())
   unsigned private_flag : 1;
   unsigned protected_flag : 1;
   unsigned deprecated_flag : 1;
-  unsigned invariant_flag : 1;
   unsigned saturating_flag : 1;
   unsigned default_def_flag : 1;
 
@@ -400,7 +399,7 @@ struct tree_base GTY(())
   unsigned lang_flag_6 : 1;
   unsigned visited : 1;
 
-  unsigned spare : 22;
+  unsigned spare : 23;
 
   /* FIXME tuples: Eventually, we need to move this somewhere external to
      the trees.  */
@@ -578,11 +577,6 @@ struct gimple_stmt GTY(())
    visited:
 
    	Used in tree traversals to mark visited nodes.
-
-   invariant_flag:
-
-	TREE_INVARIANT in
-	    all expressions.
 
    saturating_flag:
 
@@ -1371,12 +1365,6 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    uses are to be substituted for uses of the TREE_CHAINed identifier.  */
 #define IDENTIFIER_TRANSPARENT_ALIAS(NODE) \
   (IDENTIFIER_NODE_CHECK (NODE)->base.deprecated_flag)
-
-/* Value of expression is function invariant.  A strict subset of
-   TREE_CONSTANT, such an expression is constant over any one function
-   invocation, though not across different invocations.  May appear in
-   any expression node.  */
-#define TREE_INVARIANT(NODE) ((NODE)->base.invariant_flag)
 
 /* In fixed-point types, means a saturating type.  */
 #define TYPE_SATURATING(NODE) ((NODE)->base.saturating_flag)
@@ -2276,8 +2264,9 @@ struct tree_block GTY(())
 #define TYPE_TRANSPARENT_UNION(NODE)  \
   (UNION_TYPE_CHECK (NODE)->type.transparent_union_flag)
 
-/* For an ARRAY_TYPE, indicates that it is not permitted to
-   take the address of a component of the type.  */
+/* For an ARRAY_TYPE, indicates that it is not permitted to take the
+   address of a component of the type.  This is the counterpart of
+   DECL_NONADDRESSABLE_P for arrays, see the definition of this flag.  */
 #define TYPE_NONALIASED_COMPONENT(NODE) \
   (ARRAY_TYPE_CHECK (NODE)->type.transparent_union_flag)
 
@@ -2908,7 +2897,20 @@ struct tree_decl_with_rtl GTY(())
 #define DECL_BIT_FIELD(NODE) (FIELD_DECL_CHECK (NODE)->decl_common.decl_flag_2)
 
 /* Used in a FIELD_DECL to indicate that we cannot form the address of
-   this component.  */
+   this component.  This makes it possible for Type-Based Alias Analysis
+   to disambiguate accesses to this field with indirect accesses using
+   the field's type:
+
+     struct S { int i; } s;
+     int *p;
+
+   If the flag is set on 'i', TBAA computes that s.i and *p never conflict.
+
+   From the implementation's viewpoint, the alias set of the type of the
+   field 'i' (int) will not be recorded as a subset of that of the type of
+   's' (struct S) in record_component_aliases.  The counterpart is that
+   accesses to s.i must not be given the alias set of the type of 'i'
+   (int) but instead directly that of the type of 's' (struct S).  */
 #define DECL_NONADDRESSABLE_P(NODE) \
   (FIELD_DECL_CHECK (NODE)->decl_common.decl_flag_3)
 
@@ -3190,7 +3192,7 @@ extern void decl_fini_priority_insert (tree, priority_type);
 /* In a VAR_DECL, nonzero if the data should be allocated from
    thread-local storage.  */
 #define DECL_THREAD_LOCAL_P(NODE) \
-  (VAR_DECL_CHECK (NODE)->decl_with_vis.tls_model != TLS_MODEL_NONE)
+  (VAR_DECL_CHECK (NODE)->decl_with_vis.tls_model >= TLS_MODEL_REAL)
 
 struct tree_var_decl GTY(())
 {
@@ -4886,6 +4888,7 @@ extern tree strip_float_extensions (tree);
 
 /* In tree.c */
 extern int really_constant_p (const_tree);
+extern bool decl_address_invariant_p (const_tree);
 extern int int_fits_type_p (const_tree, const_tree);
 #ifndef GENERATOR_FILE
 extern void get_type_static_bounds (const_tree, mpz_t, mpz_t);

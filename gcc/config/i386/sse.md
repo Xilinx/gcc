@@ -70,8 +70,8 @@
 ;; This is essential for maintaining stable calling conventions.
 
 (define_expand "mov<mode>"
-  [(set (match_operand:SSEMODEI 0 "nonimmediate_operand" "")
-	(match_operand:SSEMODEI 1 "nonimmediate_operand" ""))]
+  [(set (match_operand:SSEMODE 0 "nonimmediate_operand" "")
+	(match_operand:SSEMODE 1 "nonimmediate_operand" ""))]
   "TARGET_SSE"
 {
   ix86_expand_vector_move (<MODE>mode, operands);
@@ -79,8 +79,8 @@
 })
 
 (define_insn "*mov<mode>_internal"
-  [(set (match_operand:SSEMODEI 0 "nonimmediate_operand" "=x,x ,m")
-	(match_operand:SSEMODEI 1 "nonimmediate_or_sse_const_operand"  "C ,xm,x"))]
+  [(set (match_operand:SSEMODE 0 "nonimmediate_operand" "=x,x ,m")
+	(match_operand:SSEMODE 1 "nonimmediate_or_sse_const_operand"  "C ,xm,x"))]
   "TARGET_SSE
    && (register_operand (operands[0], <MODE>mode)
        || register_operand (operands[1], <MODE>mode))"
@@ -91,23 +91,32 @@
       return standard_sse_constant_opcode (insn, operands[1]);
     case 1:
     case 2:
-      if (get_attr_mode (insn) == MODE_V4SF)
-	return "movaps\t{%1, %0|%0, %1}";
-      else
-	return "movdqa\t{%1, %0|%0, %1}";
+      switch (get_attr_mode (insn))
+	{
+	case MODE_V4SF:
+	  return "movaps\t{%1, %0|%0, %1}";
+	case MODE_V2DF:
+	  return "movapd\t{%1, %0|%0, %1}";
+	default:
+	  return "movdqa\t{%1, %0|%0, %1}";
+	}
     default:
       gcc_unreachable ();
     }
 }
   [(set_attr "type" "sselog1,ssemov,ssemov")
    (set (attr "mode")
-	(if_then_else
-	  (ior (ior (ne (symbol_ref "optimize_size") (const_int 0))
-		    (eq (symbol_ref "TARGET_SSE2") (const_int 0)))
-	       (and (eq_attr "alternative" "2")
-	  	    (ne (symbol_ref "TARGET_SSE_TYPELESS_STORES")
-		        (const_int 0))))
-	  (const_string "V4SF")
+	(cond [(ior (ior (ne (symbol_ref "optimize_size") (const_int 0))
+			 (eq (symbol_ref "TARGET_SSE2") (const_int 0)))
+		    (and (eq_attr "alternative" "2")
+			 (ne (symbol_ref "TARGET_SSE_TYPELESS_STORES")
+			     (const_int 0))))
+		 (const_string "V4SF")
+	       (eq (const_string "<MODE>mode") (const_string "V4SFmode"))
+		 (const_string "V4SF")
+	       (eq (const_string "<MODE>mode") (const_string "V2DFmode"))
+		 (const_string "V2DF")
+	      ]
 	  (const_string "TI")))])
 
 ;; Move a DI from a 32-bit register pair (e.g. %edx:%eax) to an xmm.
@@ -145,36 +154,6 @@
       gcc_unreachable ();
 })
 
-(define_expand "mov<mode>"
-  [(set (match_operand:SSEMODEF2P 0 "nonimmediate_operand" "")
-	(match_operand:SSEMODEF2P 1 "nonimmediate_operand" ""))]
-  "TARGET_SSE"
-{
-  ix86_expand_vector_move (<MODE>mode, operands);
-  DONE;
-})
-
-(define_insn "*movv4sf_internal"
-  [(set (match_operand:V4SF 0 "nonimmediate_operand" "=x,x,m")
-	(match_operand:V4SF 1 "nonimmediate_or_sse_const_operand" "C,xm,x"))]
-  "TARGET_SSE
-   && (register_operand (operands[0], V4SFmode)
-       || register_operand (operands[1], V4SFmode))"
-{
-  switch (which_alternative)
-    {
-    case 0:
-      return standard_sse_constant_opcode (insn, operands[1]);
-    case 1:
-    case 2:
-      return "movaps\t{%1, %0|%0, %1}";
-    default:
-      gcc_unreachable ();
-    }
-}
-  [(set_attr "type" "sselog1,ssemov,ssemov")
-   (set_attr "mode" "V4SF")])
-
 (define_split
   [(set (match_operand:V4SF 0 "register_operand" "")
 	(match_operand:V4SF 1 "zero_extended_scalar_load_operand" ""))]
@@ -188,38 +167,6 @@
   operands[1] = simplify_gen_subreg (SFmode, operands[1], V4SFmode, 0);
   operands[2] = CONST0_RTX (V4SFmode);
 })
-
-(define_insn "*movv2df_internal"
-  [(set (match_operand:V2DF 0 "nonimmediate_operand" "=x,x,m")
-	(match_operand:V2DF 1 "nonimmediate_or_sse_const_operand" "C,xm,x"))]
-  "TARGET_SSE
-   && (register_operand (operands[0], V2DFmode)
-       || register_operand (operands[1], V2DFmode))"
-{
-  switch (which_alternative)
-    {
-    case 0:
-      return standard_sse_constant_opcode (insn, operands[1]);
-    case 1:
-    case 2:
-      if (get_attr_mode (insn) == MODE_V4SF)
-	return "movaps\t{%1, %0|%0, %1}";
-      else
-	return "movapd\t{%1, %0|%0, %1}";
-    default:
-      gcc_unreachable ();
-    }
-}
-  [(set_attr "type" "sselog1,ssemov,ssemov")
-   (set (attr "mode")
-	(if_then_else
-	  (ior (ior (ne (symbol_ref "optimize_size") (const_int 0))
-		    (eq (symbol_ref "TARGET_SSE2") (const_int 0)))
-	       (and (eq_attr "alternative" "2")
-	  	    (ne (symbol_ref "TARGET_SSE_TYPELESS_STORES")
-		        (const_int 0))))
-	  (const_string "V4SF")
-	  (const_string "V2DF")))])
 
 (define_split
   [(set (match_operand:V2DF 0 "register_operand" "")
@@ -355,7 +302,7 @@
   "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
   "ix86_expand_fp_absneg_operator (<CODE>, <MODE>mode, operands); DONE;")
 
-(define_expand "<addsub><mode>3"
+(define_expand "<plusminus_insn><mode>3"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
 	(plusminus:SSEMODEF2P
 	  (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "")
@@ -363,18 +310,18 @@
   "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
   "ix86_fixup_binary_operands_no_copy (<CODE>, <MODE>mode, operands);")
 
-(define_insn "*<addsub><mode>3"
+(define_insn "*<plusminus_insn><mode>3"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x")
 	(plusminus:SSEMODEF2P
 	  (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "<comm>0")
 	  (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "xm")))]
   "SSE_VEC_FLOAT_MODE_P (<MODE>mode)
    && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
-  "<addsub>p<ssemodesuffixf2c>\t{%2, %0|%0, %2}"
+  "<plusminus_mnemonic>p<ssemodesuffixf2c>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseadd")
    (set_attr "mode" "<MODE>")])
 
-(define_insn "<sse>_vm<addsub><mode>3"
+(define_insn "<sse>_vm<plusminus_insn><mode>3"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x")
 	(vec_merge:SSEMODEF2P
 	  (plusminus:SSEMODEF2P
@@ -384,7 +331,7 @@
 	  (const_int 1)))]
   "SSE_VEC_FLOAT_MODE_P (<MODE>mode)
    && ix86_binary_operator_ok (<CODE>, V4SFmode, operands)"
-  "<addsub>s<ssemodesuffixf2c>\t{%2, %0|%0, %2}"
+  "<plusminus_mnemonic>s<ssemodesuffixf2c>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseadd")
    (set_attr "mode" "<ssescalarmode>")])
 
@@ -668,7 +615,7 @@
   [(set_attr "type" "sseadd")
    (set_attr "mode" "V2DF")])
 
-(define_insn "sse3_h<addsub>v4sf3"
+(define_insn "sse3_h<plusminus_insn>v4sf3"
   [(set (match_operand:V4SF 0 "register_operand" "=x")
 	(vec_concat:V4SF
 	  (vec_concat:V2SF
@@ -690,12 +637,12 @@
 	      (vec_select:SF (match_dup 2) (parallel [(const_int 2)]))
 	      (vec_select:SF (match_dup 2) (parallel [(const_int 3)]))))))]
   "TARGET_SSE3"
-  "h<addsub>ps\t{%2, %0|%0, %2}"
+  "h<plusminus_mnemonic>ps\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseadd")
    (set_attr "prefix_rep" "1")
    (set_attr "mode" "V4SF")])
 
-(define_insn "sse3_h<addsub>v2df3"
+(define_insn "sse3_h<plusminus_insn>v2df3"
   [(set (match_operand:V2DF 0 "register_operand" "=x")
 	(vec_concat:V2DF
 	  (plusminus:DF
@@ -709,7 +656,7 @@
 	      (parallel [(const_int 0)]))
 	    (vec_select:DF (match_dup 2) (parallel [(const_int 1)])))))]
   "TARGET_SSE3"
-  "h<addsub>pd\t{%2, %0|%0, %2}"
+  "h<plusminus_mnemonic>pd\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseadd")
    (set_attr "mode" "V2DF")])
 
@@ -2775,82 +2722,32 @@
   "TARGET_SSE2"
   "operands[2] = force_reg (<MODE>mode, CONST0_RTX (<MODE>mode));")
 
-(define_expand "add<mode>3"
+(define_expand "<plusminus_insn><mode>3"
   [(set (match_operand:SSEMODEI 0 "register_operand" "")
-	(plus:SSEMODEI (match_operand:SSEMODEI 1 "nonimmediate_operand" "")
-		       (match_operand:SSEMODEI 2 "nonimmediate_operand" "")))]
+	(plusminus:SSEMODEI
+	  (match_operand:SSEMODEI 1 "nonimmediate_operand" "")
+	  (match_operand:SSEMODEI 2 "nonimmediate_operand" "")))]
   "TARGET_SSE2"
-  "ix86_fixup_binary_operands_no_copy (PLUS, <MODE>mode, operands);")
+  "ix86_fixup_binary_operands_no_copy (<CODE>, <MODE>mode, operands);")
 
-(define_insn "*add<mode>3"
+(define_insn "*<plusminus_insn><mode>3"
   [(set (match_operand:SSEMODEI 0 "register_operand" "=x")
-	(plus:SSEMODEI
-	  (match_operand:SSEMODEI 1 "nonimmediate_operand" "%0")
+	(plusminus:SSEMODEI
+	  (match_operand:SSEMODEI 1 "nonimmediate_operand" "<comm>0")
 	  (match_operand:SSEMODEI 2 "nonimmediate_operand" "xm")))]
-  "TARGET_SSE2 && ix86_binary_operator_ok (PLUS, <MODE>mode, operands)"
-  "padd<ssevecsize>\t{%2, %0|%0, %2}"
+  "TARGET_SSE2 && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
+  "p<plusminus_mnemonic><ssevecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseiadd")
    (set_attr "prefix_data16" "1")
    (set_attr "mode" "TI")])
 
-(define_insn "sse2_ssadd<mode>3"
+(define_insn "sse2_<plusminus_insn><mode>3"
   [(set (match_operand:SSEMODE12 0 "register_operand" "=x")
-	(ss_plus:SSEMODE12
-	  (match_operand:SSEMODE12 1 "nonimmediate_operand" "%0")
+	(sat_plusminus:SSEMODE12
+	  (match_operand:SSEMODE12 1 "nonimmediate_operand" "<comm>0")
 	  (match_operand:SSEMODE12 2 "nonimmediate_operand" "xm")))]
-  "TARGET_SSE2 && ix86_binary_operator_ok (SS_PLUS, <MODE>mode, operands)"
-  "padds<ssevecsize>\t{%2, %0|%0, %2}"
-  [(set_attr "type" "sseiadd")
-   (set_attr "prefix_data16" "1")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse2_usadd<mode>3"
-  [(set (match_operand:SSEMODE12 0 "register_operand" "=x")
-	(us_plus:SSEMODE12
-	  (match_operand:SSEMODE12 1 "nonimmediate_operand" "%0")
-	  (match_operand:SSEMODE12 2 "nonimmediate_operand" "xm")))]
-  "TARGET_SSE2 && ix86_binary_operator_ok (US_PLUS, <MODE>mode, operands)"
-  "paddus<ssevecsize>\t{%2, %0|%0, %2}"
-  [(set_attr "type" "sseiadd")
-   (set_attr "prefix_data16" "1")
-   (set_attr "mode" "TI")])
-
-(define_expand "sub<mode>3"
-  [(set (match_operand:SSEMODEI 0 "register_operand" "")
-	(minus:SSEMODEI (match_operand:SSEMODEI 1 "register_operand" "")
-			(match_operand:SSEMODEI 2 "nonimmediate_operand" "")))]
-  "TARGET_SSE2"
-  "ix86_fixup_binary_operands_no_copy (MINUS, <MODE>mode, operands);")
-
-(define_insn "*sub<mode>3"
-  [(set (match_operand:SSEMODEI 0 "register_operand" "=x")
-	(minus:SSEMODEI
-	  (match_operand:SSEMODEI 1 "register_operand" "0")
-	  (match_operand:SSEMODEI 2 "nonimmediate_operand" "xm")))]
-  "TARGET_SSE2"
-  "psub<ssevecsize>\t{%2, %0|%0, %2}"
-  [(set_attr "type" "sseiadd")
-   (set_attr "prefix_data16" "1")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse2_sssub<mode>3"
-  [(set (match_operand:SSEMODE12 0 "register_operand" "=x")
-	(ss_minus:SSEMODE12
-	  (match_operand:SSEMODE12 1 "register_operand" "0")
-	  (match_operand:SSEMODE12 2 "nonimmediate_operand" "xm")))]
-  "TARGET_SSE2"
-  "psubs<ssevecsize>\t{%2, %0|%0, %2}"
-  [(set_attr "type" "sseiadd")
-   (set_attr "prefix_data16" "1")
-   (set_attr "mode" "TI")])
-
-(define_insn "sse2_ussub<mode>3"
-  [(set (match_operand:SSEMODE12 0 "register_operand" "=x")
-	(us_minus:SSEMODE12
-	  (match_operand:SSEMODE12 1 "register_operand" "0")
-	  (match_operand:SSEMODE12 2 "nonimmediate_operand" "xm")))]
-  "TARGET_SSE2"
-  "psubus<ssevecsize>\t{%2, %0|%0, %2}"
+  "TARGET_SSE2 && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
+  "p<plusminus_mnemonic><ssevecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sseiadd")
    (set_attr "prefix_data16" "1")
    (set_attr "mode" "TI")])
@@ -5639,7 +5536,7 @@
    (set_attr "prefix_extra" "1")
    (set_attr "mode" "DI")])
 
-(define_insn "ssse3_pmaddubswv8hi3"
+(define_insn "ssse3_pmaddubsw128"
   [(set (match_operand:V8HI 0 "register_operand" "=x")
 	(ss_plus:V8HI
 	  (mult:V8HI
@@ -5693,7 +5590,7 @@
    (set_attr "prefix_extra" "1")
    (set_attr "mode" "TI")])
 
-(define_insn "ssse3_pmaddubswv4hi3"
+(define_insn "ssse3_pmaddubsw"
   [(set (match_operand:V4HI 0 "register_operand" "=y")
 	(ss_plus:V4HI
 	  (mult:V4HI

@@ -70,7 +70,7 @@ void
 clear_pending_stack_adjust (void)
 {
   if (optimize > 0
-      && (! flag_omit_frame_pointer || current_function_calls_alloca)
+      && (! flag_omit_frame_pointer || cfun->calls_alloca)
       && EXIT_IGNORE_STACK
       && ! (DECL_INLINE (current_function_decl) && ! flag_no_inline))
     discard_pending_stack_adjust ();
@@ -219,8 +219,7 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
 
 	  /* Strip narrowing integral type conversions.  */
 	  while ((TREE_CODE (exp0) == NOP_EXPR
-		  || TREE_CODE (exp0) == CONVERT_EXPR
-		  || TREE_CODE (exp0) == NON_LVALUE_EXPR)
+		  || TREE_CODE (exp0) == CONVERT_EXPR)
 		 && TREE_OPERAND (exp0, 0) != error_mark_node
 		 && TYPE_PRECISION (TREE_TYPE (exp0))
 		    <= TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (exp0, 0))))

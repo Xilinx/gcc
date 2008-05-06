@@ -518,6 +518,13 @@ proc check_effective_target_tls {} {
 # This won't change for different subtargets so cache the result.
 
 proc check_effective_target_tls_native {} {
+    # VxWorks uses emulated TLS machinery, but with non-standard helper
+    # functions, so we fail to automatically detect it.
+    global target_triplet
+    if { [regexp ".*-.*-vxworks.*" $target_triplet] } {
+	return 0
+    }
+    
     return [check_no_messages_and_pattern tls_native "!emutls" assembly {
 	__thread int i;
 	int f (void) { return i; }
@@ -2343,5 +2350,13 @@ proc check_effective_target_c99_runtime { } {
 	}
 	check_no_compiler_messages_nocache c99_runtime assembly \
 	    $contents [add_options_for_c99_runtime ""]
+    }]
+}
+
+# Return 1 if  target wchar_t is at least 4 bytes.
+
+proc check_effective_target_4byte_wchar_t { } {
+    return [check_no_compiler_messages 4byte_wchar_t object {
+	int dummy[sizeof (wchar_t) >= 4 ? 1 : -1];
     }]
 }

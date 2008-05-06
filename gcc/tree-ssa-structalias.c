@@ -2913,7 +2913,6 @@ get_constraint_for (tree t, VEC (ce_s, heap) **results)
 	  {
 	  case NOP_EXPR:
 	  case CONVERT_EXPR:
-	  case NON_LVALUE_EXPR:
 	    {
 	      tree op = TREE_OPERAND (t, 0);
 
@@ -4862,8 +4861,6 @@ set_used_smts (void)
 static void
 merge_smts_into (tree p, bitmap solution)
 {
-  unsigned int i;
-  bitmap_iterator bi;
   tree smt;
   bitmap aliases;
   tree var = p;
@@ -4874,20 +4871,8 @@ merge_smts_into (tree p, bitmap solution)
   smt = var_ann (var)->symbol_mem_tag;
   if (smt)
     {
-      alias_set_type smtset = get_alias_set (TREE_TYPE (smt));
-
-      /* Need to set the SMT subsets first before this
-	 will work properly.  */
+      /* The smt itself isn't included in its aliases.  */
       bitmap_set_bit (solution, DECL_UID (smt));
-      EXECUTE_IF_SET_IN_BITMAP (used_smts, 0, i, bi)
-	{
-	  tree newsmt = referenced_var (i);
-	  tree newsmttype = TREE_TYPE (newsmt);
-
-	  if (alias_set_subset_of (get_alias_set (newsmttype),
-				   smtset))
-	    bitmap_set_bit (solution, i);
-	}
 
       aliases = MTAG_ALIASES (smt);
       if (aliases)
@@ -4984,17 +4969,9 @@ find_what_p_points_to (tree p)
 
 	  /* Instead of using pt_anything, we merge in the SMT aliases
 	     for the underlying SMT.  In addition, if they could have
-	     pointed to anything, they could point to global memory.
-	     But we cannot do that for ref-all pointers because these
-	     aliases have not been computed yet.  */
+	     pointed to anything, they could point to global memory.  */
 	  if (was_pt_anything)
 	    {
-	      if (PTR_IS_REF_ALL (p))
-		{
-		  pi->pt_anything = 1;
-		  return false;
-		}
-
 	      merge_smts_into (p, finished_solution);
 	      pi->pt_global_mem = 1;
 	    }

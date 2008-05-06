@@ -196,7 +196,6 @@ static bitmap_obstack alias_bitmap_obstack;
 
 /* Local functions.  */
 static void compute_flow_insensitive_aliasing (struct alias_info *);
-static void finalize_ref_all_pointers (struct alias_info *);
 static void dump_alias_stats (FILE *);
 static bool may_alias_p (tree, alias_set_type, tree, alias_set_type, bool);
 static tree create_memory_tag (tree type, bool is_type_tag);
@@ -1800,12 +1799,6 @@ compute_may_aliases (void)
      avoid invalid transformations on them.  */
   maybe_create_global_var ();
 
-  /* If the program contains ref-all pointers, finalize may-alias information
-     for them.  This pass needs to be run after call-clobbering information
-     has been computed.  */
-  if (ai->ref_all_symbol_mem_tag)
-    finalize_ref_all_pointers (ai);
-
   /* Compute memory partitions for every memory variable.  */
   compute_memory_partitions ();
 
@@ -2354,7 +2347,6 @@ compute_flow_sensitive_aliasing (struct alias_info *ai)
   for (i = 0; VEC_iterate (tree, ai->processed_ptrs, i, ptr); i++)
     {
       struct ptr_info_def *pi = SSA_NAME_PTR_INFO (ptr);
-      tree tag = symbol_mem_tag (SSA_NAME_VAR (ptr));
 
       /* Set up aliasing information for PTR's name memory tag (if it has
 	 one).  Note that only pointers that have been dereferenced will
@@ -2362,18 +2354,7 @@ compute_flow_sensitive_aliasing (struct alias_info *ai)
       if (pi->name_mem_tag && pi->pt_vars)
 	{
 	  if (!bitmap_empty_p (pi->pt_vars))
-	    {
-	      union_alias_set_into (pi->name_mem_tag, pi->pt_vars);
-	      union_alias_set_into (tag, pi->pt_vars);
-	      bitmap_clear_bit (MTAG_ALIASES (tag), DECL_UID (tag));
-	    
-	      /* It may be the case that this the tag uid was the only
-		 bit we had set in the aliases list, and in this case,
-		 we don't want to keep an empty bitmap, as this
-		 asserts in tree-ssa-operands.c .  */
-	      if (bitmap_empty_p (MTAG_ALIASES (tag)))
-		BITMAP_FREE (MTAG_ALIASES (tag));
-	    }
+	    union_alias_set_into (pi->name_mem_tag, pi->pt_vars);
 	}
     }
   timevar_pop (TV_FLOW_SENSITIVE);
@@ -2390,9 +2371,7 @@ have_common_aliases_p (bitmap tag1aliases, bitmap tag2aliases)
   /* This is the old behavior of have_common_aliases_p, which is to
      return false if both sets are empty, or one set is and the other
      isn't.  */
-     if ((tag1aliases == NULL && tag2aliases != NULL)
-      || (tag2aliases == NULL && tag1aliases != NULL)
-      || (tag1aliases == NULL && tag2aliases == NULL))
+  if (tag1aliases == NULL || tag2aliases == NULL)
     return false;
 
   return bitmap_intersect_p (tag1aliases, tag2aliases);
@@ -2421,10 +2400,6 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
       struct alias_map_d *p_map = ai->pointers[i];
       tree tag = symbol_mem_tag (p_map->var);
       tree var;
-
-      /* Call-clobbering information is not finalized yet at this point.  */
-      if (PTR_IS_REF_ALL (p_map->var))
-	continue;
 
       for (j = 0; j < ai->num_addressable_vars; j++)
 	{
@@ -2487,16 +2462,14 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
       tree tag1 = symbol_mem_tag (p_map1->var);
       bitmap may_aliases1 = MTAG_ALIASES (tag1);
 
-      if (PTR_IS_REF_ALL (p_map1->var))
-	continue;
-
-      for (j = i + 1; j < ai->num_pointers; j++)
+      for (j = 0; j < ai->num_pointers; j++)
 	{
 	  struct alias_map_d *p_map2 = ai->pointers[j];
 	  tree tag2 = symbol_mem_tag (p_map2->var);
 	  bitmap may_aliases2 = may_aliases (tag2);
 
-	  if (PTR_IS_REF_ALL (p_map2->var))
+	  /* By convention tags don't alias themselves.  */
+	  if (tag1 == tag2)
 	    continue;
 
 	  /* If the pointers may not point to each other, do nothing.  */
@@ -2508,63 +2481,10 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
 	  if (have_common_aliases_p (may_aliases1, may_aliases2))
 	    continue;
 
-	  if (may_aliases2 && !bitmap_empty_p (may_aliases2))
-	    {
-	      union_alias_set_into (tag1, may_aliases2);
-	    }
-	  else
-	    {
-	      /* Since TAG2 does not have any aliases of its own, add
-		 TAG2 itself to the alias set of TAG1.  */
-	      add_may_alias (tag1, tag2);
-	    }
+	  add_may_alias (tag1, tag2);
 	}
-
     }
   timevar_pop (TV_FLOW_INSENSITIVE);
-}
-
-
-/* Finalize may-alias information for ref-all pointers.  Traverse all
-   the addressable variables found in setup_pointers_and_addressables.
-
-   If flow-sensitive alias analysis has attached a name memory tag to
-   a ref-all pointer, we will use it for the dereferences because that
-   will have more precise aliasing information.  But if there is no
-   name tag, we will use a special symbol tag that aliases all the
-   call-clobbered addressable variables.  */
-
-static void
-finalize_ref_all_pointers (struct alias_info *ai)
-{
-  size_t i;
-
-  /* First add the real call-clobbered variables.  */
-  for (i = 0; i < ai->num_addressable_vars; i++)
-    {
-      tree var = ai->addressable_vars[i]->var;
-      if (is_call_clobbered (var))
-	add_may_alias (ai->ref_all_symbol_mem_tag, var);
-    }
-
-  /* Then add the call-clobbered pointer memory tags.  See
-     compute_flow_insensitive_aliasing for the rationale.  */
-  for (i = 0; i < ai->num_pointers; i++)
-    {
-      tree ptr = ai->pointers[i]->var, tag;
-      /* Avoid adding to self and clean up.  */
-      if (PTR_IS_REF_ALL (ptr))
-	{
-	  struct ptr_info_def *pi = get_ptr_info (ptr);
-	  if (pi->is_dereferenced)
-	    pi->pt_anything = 0;
-	  continue;
-	}
-      tag = symbol_mem_tag (ptr);
-      if (is_call_clobbered (tag))
-	add_may_alias (ai->ref_all_symbol_mem_tag, tag);
-    }
-
 }
 
 
@@ -2862,73 +2782,84 @@ may_alias_p (tree ptr, alias_set_type mem_alias_set,
       return false;
     }
 
+  /* If the pointed to memory has alias set zero, or the pointer
+     is ref-all, or the pointer decl is marked that no TBAA is to
+     be applied, the MEM can alias VAR.  */
+  if (mem_alias_set == 0
+      || DECL_POINTER_ALIAS_SET (ptr) == 0
+      || TYPE_REF_CAN_ALIAS_ALL (TREE_TYPE (ptr))
+      || DECL_NO_TBAA_P (ptr))
+    {
+      alias_stats.alias_mayalias++;
+      alias_stats.simple_resolved++;
+      return true;
+    }
+
   gcc_assert (TREE_CODE (mem) == SYMBOL_MEMORY_TAG);
 
-  if (!DECL_NO_TBAA_P (ptr))
+  alias_stats.tbaa_queries++;
+
+  /* If the alias sets don't conflict then MEM cannot alias VAR.  */
+  if (mem_alias_set != var_alias_set
+      && !alias_set_subset_of (mem_alias_set, var_alias_set))
     {
-      alias_stats.tbaa_queries++;
+      alias_stats.alias_noalias++;
+      alias_stats.tbaa_resolved++;
+      return false;
+    }
 
-      /* If the alias sets don't conflict then MEM cannot alias VAR.  */
-      if (!alias_sets_conflict_p (mem_alias_set, var_alias_set))
-	{
-	  alias_stats.alias_noalias++;
-	  alias_stats.tbaa_resolved++;
-	  return false;
-	}
-
-      /* If VAR is a record or union type, PTR cannot point into VAR
-	 unless there is some explicit address operation in the
-	 program that can reference a field of the type pointed-to by
-	 PTR.  This also assumes that the types of both VAR and PTR
-	 are contained within the compilation unit, and that there is
-	 no fancy addressing arithmetic associated with any of the
-	 types involved.  */
-      if (mem_alias_set != 0 && var_alias_set != 0)
-	{
-	  tree ptr_type = TREE_TYPE (ptr);
-	  tree var_type = TREE_TYPE (var);
+  /* If VAR is a record or union type, PTR cannot point into VAR
+     unless there is some explicit address operation in the
+     program that can reference a field of the type pointed-to by
+     PTR.  This also assumes that the types of both VAR and PTR
+     are contained within the compilation unit, and that there is
+     no fancy addressing arithmetic associated with any of the
+     types involved.  */
+  if (mem_alias_set != 0 && var_alias_set != 0)
+    {
+      tree ptr_type = TREE_TYPE (ptr);
+      tree var_type = TREE_TYPE (var);
       
-	  /* The star count is -1 if the type at the end of the
-	     pointer_to chain is not a record or union type. */ 
-	  if ((!alias_set_only) && 
-	      ipa_type_escape_star_count_of_interesting_type (var_type) >= 0)
+      /* The star count is -1 if the type at the end of the
+	 pointer_to chain is not a record or union type. */ 
+      if (!alias_set_only
+	  && ipa_type_escape_star_count_of_interesting_type (var_type) >= 0)
+	{
+	  int ptr_star_count = 0;
+	  
+	  /* ipa_type_escape_star_count_of_interesting_type is a
+	     little too restrictive for the pointer type, need to
+	     allow pointers to primitive types as long as those
+	     types cannot be pointers to everything.  */
+	  while (POINTER_TYPE_P (ptr_type))
 	    {
-	      int ptr_star_count = 0;
+	      /* Strip the *s off.  */ 
+	      ptr_type = TREE_TYPE (ptr_type);
+	      ptr_star_count++;
+	    }
 	  
-	      /* ipa_type_escape_star_count_of_interesting_type is a
-		 little too restrictive for the pointer type, need to
-		 allow pointers to primitive types as long as those
-		 types cannot be pointers to everything.  */
-	      while (POINTER_TYPE_P (ptr_type))
+	  /* There does not appear to be a better test to see if
+	     the pointer type was one of the pointer to everything
+	     types.  */
+	  if (ptr_star_count > 0)
+	    {
+	      alias_stats.structnoaddress_queries++;
+	      if (ipa_type_escape_field_does_not_clobber_p (var_type, 
+							    TREE_TYPE (ptr)))
 		{
-		  /* Strip the *s off.  */ 
-		  ptr_type = TREE_TYPE (ptr_type);
-		  ptr_star_count++;
-		}
-	  
-	      /* There does not appear to be a better test to see if
-		 the pointer type was one of the pointer to everything
-		 types.  */
-	      if (ptr_star_count > 0)
-		{
-		  alias_stats.structnoaddress_queries++;
-		  if (ipa_type_escape_field_does_not_clobber_p (var_type, 
-								TREE_TYPE (ptr)))
-		    {
-		      alias_stats.structnoaddress_resolved++;
-		      alias_stats.alias_noalias++;
-		      return false;
-		    }
-		}
-	      else if (ptr_star_count == 0)
-		{
-		  /* If PTR_TYPE was not really a pointer to type, it cannot 
-		     alias.  */ 
-		  alias_stats.structnoaddress_queries++;
 		  alias_stats.structnoaddress_resolved++;
 		  alias_stats.alias_noalias++;
 		  return false;
 		}
+	    }
+	  else if (ptr_star_count == 0)
+	    {
+	      /* If PTR_TYPE was not really a pointer to type, it cannot 
+		 alias.  */ 
+	      alias_stats.structnoaddress_queries++;
+	      alias_stats.structnoaddress_resolved++;
+	      alias_stats.alias_noalias++;
+	      return false;
 	    }
 	}
     }
@@ -3035,12 +2966,6 @@ is_escape_site (tree stmt)
 	     pointer escapes since we can't track the integer.  */
 	  if (POINTER_TYPE_P (from) && !POINTER_TYPE_P (to))
 	    return ESCAPE_BAD_CAST;
-
-	  /* Same if the RHS is a conversion between a regular pointer and a
-	     ref-all pointer since we can't track the SMT of the former.  */
-	  if (POINTER_TYPE_P (from) && !TYPE_REF_CAN_ALIAS_ALL (from)
-	      && POINTER_TYPE_P (to) && TYPE_REF_CAN_ALIAS_ALL (to))
-	    return ESCAPE_BAD_CAST;
 	}
 
       /* If the LHS is an SSA name, it can't possibly represent a non-local
@@ -3145,14 +3070,6 @@ get_smt_for (tree ptr, struct alias_info *ai)
   tree tag;
   tree tag_type = TREE_TYPE (TREE_TYPE (ptr));
   alias_set_type tag_set = get_alias_set (tag_type);
-
-  /* We use a unique memory tag for all the ref-all pointers.  */
-  if (PTR_IS_REF_ALL (ptr))
-    {
-      if (!ai->ref_all_symbol_mem_tag)
-	ai->ref_all_symbol_mem_tag = create_memory_tag (void_type_node, true);
-      return ai->ref_all_symbol_mem_tag;
-    }
 
   /* To avoid creating unnecessary memory tags, only create one memory tag
      per alias set class.  Note that it may be tempting to group

@@ -180,7 +180,6 @@ __enable_execute_stack (void *addr)					\
 #undef ENABLE_EXECUTE_STACK
 #define ENABLE_EXECUTE_STACK MINGW_ENABLE_EXECUTE_STACK
 
-
 #ifdef IN_LIBGCC2
 #include <windows.h>
 #endif
