@@ -1778,7 +1778,7 @@ basilysgc_add_strbuf_cident (struct basilysstrbuf_st
   else
     dupstr = xcalloc (slen + 2, 1);
   if (str)
-    for (ps = str, pd = dupstr; *ps; ps++)
+    for (ps = (char*)str, pd = dupstr; *ps; ps++)
       {
 	if (ISALNUM (*ps))
 	  *(pd++) = *ps;
@@ -2759,7 +2759,7 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
     }
   else
     if ((len = basilys_primtab[map_mapobjectv->lenix]) <=
-	(5 * (cnt = map_mapobjectv->count)) / 4 + 1
+	(5 * (cnt = map_mapobjectv->count)) / 4 
 	|| (len <= 5 && cnt + 1 >= len))
     {
       /* entab is nearly full so need to be resized */
@@ -3068,7 +3068,7 @@ basilysgc_put_mapstrings (struct basilysmapstrings_st
     }
   else
     if ((len = basilys_primtab[map_mapstringv->lenix]) <=
-	(5 * (cnt = map_mapstringv->count)) / 4 + 1
+	(5 * (cnt = map_mapstringv->count)) / 4
 	|| (len <= 5 && cnt + 1 >= len))
     {
       int ix, newcnt = 0;
@@ -3409,7 +3409,7 @@ basilysgc_raw_put_mappointers (void *mappointer_p,
     }
   else
     if ((len = basilys_primtab[map_mappointerv->lenix]) <=
-	(5 * (cnt = map_mappointerv->count)) / 4 + 1
+	(5 * (cnt = map_mappointerv->count)) / 4
 	|| (len <= 5 && cnt + 1 >= len))
     {
       int ix, newcnt = 0;
@@ -3876,7 +3876,7 @@ basilysgc_send (basilys_ptr_t recv_p,
 	}
       else
 	{
-	  closv = obj_discrv->obj_vartab[FDISCR_SENDCLOSURE];
+	  closv = obj_discrv->obj_vartab[FDISCR_SENDER];
 	  if (basilys_magic_discr (closv) == OBMAG_CLOSURE)
 	    {
 	      union basilysparam_un pararg[1];
@@ -4055,6 +4055,7 @@ load_checked_dylib (const char *dypath, char *md5src)
 {
   lt_dlhandle dlh = NULL;
   char *dynmd5 = NULL;
+  char *dyncomptimstamp = NULL;
   int i = 0, c = 0;
   char hbuf[4];
   dlh = lt_dlopenext (dypath);
@@ -4064,6 +4065,9 @@ load_checked_dylib (const char *dypath, char *md5src)
      loaded stuff; otherwise it was not generated from MELT/basilys */
   dynmd5 = (char *) lt_dlsym (dlh, "basilys_md5");
   if (!dynmd5)
+    goto bad;
+  dyncomptimstamp =  (char *) lt_dlsym (dlh, "basilys_compiled_timestamp");
+  if (!dyncomptimstamp)
     goto bad;
   if (md5src)
     {
@@ -4082,6 +4086,7 @@ load_checked_dylib (const char *dypath, char *md5src)
 	    goto bad;
 	}
     }
+  debugeprintf("load_checked_dylib dypath %s dynmd5 %s dyncomptimstamp %s", dypath, dynmd5, dyncomptimstamp);
   return dlh;
 bad:
   lt_dlclose (dlh);
@@ -4501,7 +4506,7 @@ readsimplelong (struct reading_st *rd)
       NUMNAM (FNAMED_NAME);
       NUMNAM (FNAMED__LAST);
       NUMNAM (FDISCR_METHODICT);
-      NUMNAM (FDISCR_SENDCLOSURE);
+      NUMNAM (FDISCR_SENDER);
       NUMNAM (FDISCR__LAST);
       NUMNAM (FCLASS_ANCESTORS);
       NUMNAM (FCLASS_FIELDS);

@@ -1,5 +1,15 @@
 2008-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
-	*  melt/warm-basilys.bysl: still buggy.
+	* basilys.h: renamed FDISCR_SENDCLOSURE as FDISCR_SENDER.
+
+	* basilys.c: renamed FDISCR_SENDCLOSURE as FDISCR_SENDER.
+	(basilysgc_put_mapobjects, basilysgc_put_mapstrings)
+	(basilysgc_raw_put_mappointers) threshold to grow softened.
+
+	* melt/warm-basilys.bysl: *****shameful hack******** [bug not found!]
+	to call outpucod_verbatimstring from outpucod_string
+
+2008-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warm-basilys.bysl: still buggy.
 	Maybe should avoid circularity on discr_namestring name discr.
 	added ninst_objnum initialization to propagate objnum from src to normexp.
 	added inipredef.

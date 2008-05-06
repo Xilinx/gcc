@@ -1,4 +1,4 @@
-; -*- Lisp -*-
+;; -*- Lisp -*-
 ;; file warm-basilys.bysl
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    Copyright 2008 Free Software Foundation, Inc.
@@ -29,7 +29,7 @@
 
 ;; root class
 (defclass class_root 
- :predef CLASS_ROOT)
+  :predef CLASS_ROOT)
 
 ;; class of everything with a property table
 (defclass class_proped 
@@ -641,7 +641,6 @@
 (unsafe_put_fields discr_namestring :disc_super discr_string)
 (unsafe_put_fields discr_namestring :named_name
 		   (stringconst2val discr_namestring "DISCR_NAMESTRING"))
-
 ;;; the discriminant for verbatim strings (used for defprimitive)
 (definstance discr_verbatimstring class_discr
  :obj_num OBMAG_STRING
@@ -779,7 +778,7 @@
   (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) )
     (assert_msg "check ckw" (is_a ckw class_keyword))
     (unsafe_put_fields ckw :symb_data ctyp)
-))
+    ))
 
 
 ;;; every ctype should be predefined. normexp_defprimitive requires this
@@ -1170,6 +1169,11 @@
 
 ;;; installation of a method in a class or discriminant
 (defun install_method (cla sel fun)
+  (messageval_dbg "install_method cla!VAL" cla)
+  (messageval_dbg "install_method sel!VAL" sel)
+  (debugmsg cla "install_method cla%" (the_callcount))
+  (debugmsg sel "install_method sel%" (the_callcount))
+  (debugmsg fun "install_method fun%" (the_callcount))
   (if (is_a cla class_discr)
       (if (is_a sel class_selector)
 	  (if (is_closure fun)
@@ -1179,8 +1183,8 @@
 		(if (is_mapobject mapdict)
 		    (mapobject_put mapdict sel fun)
 		  (let ( (newmapdict (make_mapobject discr_methodmap 30)) )
-		    (mapobject_put newmapdict sel fun)
 		    (unsafe_put_fields cla :disc_methodict newmapdict)
+		    (mapobject_put newmapdict sel fun)
 		    )))))))
 
 
@@ -1312,8 +1316,8 @@
 	))))
 
 (install_method discr_string  dbg_output dbgout_string_method)
-(install_method discr_namestring  dbg_output dbgout_string_method)
-(install_method discr_verbatimstring  dbg_output dbgout_string_method)
+;(install_method discr_namestring  dbg_output dbgout_string_method)
+;(install_method discr_verbatimstring  dbg_output dbgout_string_method)
 
 ;; integer debug output
 (defun dbgout_integer_method (self dbgi :long depth)
@@ -1428,7 +1432,7 @@
 	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
 	(add2sbuf_strconst sbuf "*clo<")))
     (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 0)
-    (dbg_out (closure_routine self) dbgi 0)
+    (dbg_out (closure_routine self) dbgi depth)
     (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(let ((:long ix 0))
@@ -2418,15 +2422,15 @@
 
 (defun macroexpand_toplevel_list (slist env)
   ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
-  (debugmsg  env "macroexpand_toplevel_list env"(the_callcount)) 
-  (debugmsg slist "macroexpand_toplevel_list slist" (the_callcount)) 
+  ;;  (debugmsg  env "macroexpand_toplevel_list env"(the_callcount)) 
+  ;;  (debugmsg slist "macroexpand_toplevel_list slist" (the_callcount)) 
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check slist" (is_list slist))
   (let ( (xlist (list_map slist 
 			  (lambda (sexp) 
-			    (debugmsg sexp "macroexpand_toplevel_list sexp" (the_callcount))
+			    ;; (debugmsg sexp "macroexpand_toplevel_list sexp" (the_callcount))
 			    (macroexpand_1 sexp env macroexpand_1)))) )
-    (debugmsg xlist "macroexpand_toplevel_list res xlist" (the_callcount))
+    ;;   (debugmsg xlist "macroexpand_toplevel_list res xlist" (the_callcount))
     xlist
     ))
 
@@ -2524,6 +2528,10 @@
 	 (put_env initial_environment mbind)
 ))
 
+
+(message_dbg "@%X after install_initial_macro")
+(debugmsg discr_verbatimstring "@%Y after install_initial_macro discr_verbatimstring")
+(message_dbg "@%Z after install_initial_macro")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; macro expansers
 ;; the defprimitive expander
@@ -5412,10 +5420,14 @@
 		tup  (-i tuplen 1)
 		rlet)
 	       )))))
-    tup ; returns the original tuple
+    tup					; returns the original tuple
 ;;; general case, do nothing 
     )
-)
+  )
+
+(message_dbg "@%X after replace_last_by_return")
+(debugmsg discr_verbatimstring "@%Y after replace_last_by_return discr_verbatimstring")
+(message_dbg "@%Z after replace_last_by_return")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFUN
@@ -8604,27 +8616,43 @@
 ;;; output a verbatim string
 (defun outpucod_verbatimstring (vstr declbuf implbuf :long depth)
   (assert_msg "check vstr" (== (discrim vstr) discr_verbatimstring))
+  (debugmsg vstr "outpucod_verbatimstring vstr" (the_callcount))
   (add2sbuf_string implbuf vstr)
 )
 (install_method discr_verbatimstring output_c_code outpucod_verbatimstring)
+
+(debugmsg discr_verbatimstring "discr_verbatimstring @@toplev warmbasilys")
 
 ;; output a string (cstring constant)
 (defun outpucod_string (vstr declbuf implbuf :long depth)
   (if (== (discrim vstr) discr_verbatimstring)
       (progn
+	;;; @@@ UGLY HACK - should never be used. But something wrong
+	;;; in sending output_c_code to discr_verbatimstring
 	(debugmsg vstr "outpucod_string bad verbatim vstr" (the_callcount))
+	(debugmsg class_discr "outpucod_string class_discr" (the_callcount))
 	(debugmsg discr_string "outpucod_string discr_string" (the_callcount))
+	(debugmsg (unsafe_get_field :disc_methodict discr_string) "outpucod_string discr_string methodict" (the_callcount))
 	(debugmsg discr_namestring "outpucod_string discr_namestring" (the_callcount))
+	(debugmsg (unsafe_get_field :disc_methodict discr_namestring) "outpucod_string discr_namestring methodict" (the_callcount))
 	(debugmsg discr_verbatimstring "outpucod_string discr_verbatimstring" (the_callcount))
-	(assert_msg "check vstr not verbatim" (!= (discrim vstr) discr_verbatimstring))))
+	(debugmsg  (unsafe_get_field :disc_methodict discr_verbatimstring) "outpucod_string discr_verbatimstring methodict" (the_callcount))
+	(install_method discr_verbatimstring output_c_code outpucod_verbatimstring)
+	(return (outpucod_verbatimstring vstr declbuf implbuf depth))
+;;; never reached!
+	(assert_msg "outpucod_string check vstr not verbatim" (!= (discrim vstr) discr_verbatimstring)
+		    )))
   (if (!= (discrim vstr) discr_string)
       (debugmsg vstr "outpucod_string strange vstr" (the_callcount)))
   (assert_msg "check vstr" (== (discrim vstr) discr_string)) 
   (add2sbuf_strconst implbuf " \"")
   (add2sbuf_cencstring implbuf vstr)
   (add2sbuf_strconst implbuf "\"")
-)
+  )
 (install_method discr_string output_c_code outpucod_string)
+
+(debugmsg discr_string "discr_string @@toplev warmbasilys")
+
 
 ;;; output an integer
 (defun outpucod_integer (vint declbuf implbuf :long depth)
@@ -10755,12 +10783,16 @@
 
 ;;;;
 
-
+(message_dbg "@%X before compileseq_command")
+(debugmsg discr_verbatimstring "@%Y before compileseq_command discr_verbatimstring")
+(message_dbg "@%Z before compileseq_command")
 
 ;;;;;
 (defun compileseq_command (dispatcher arg secarg)
   (message_dbg "starting compileseq_command")
   (debugmsg arg "start compileseq_command" (the_callcount))
+  (debugmsg discr_string "compileseq_command discr_string" (the_callcount))
+  (debugmsg discr_verbatimstring "compileseq_command discr_verbatimstring" (the_callcount))
   (let ( (rlist (read_file arg)) 
 	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	 ) 
@@ -10772,4 +10804,6 @@
     ))
 
 (install_initial_command  (stringconst2val discr_string "compileseq") compileseq_command)
+
+(message_dbg "@%X at eof")
 ;;; eof warm-basilys.bysl

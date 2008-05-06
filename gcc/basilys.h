@@ -1887,7 +1887,7 @@ enum
 {
   FDISCR_METHODICT = FNAMED__LAST,	/* a mapobjects for method mapping
 					   selectors to closures */
-  FDISCR_SENDCLOSURE,		/* the closure doing the send if a
+  FDISCR_SENDER,		/* the closure doing the send if a
 				   selector is not in the method
 				   dict */
   FDISCR_SUPER,			/* the "superclass" or "parent discrim" */
