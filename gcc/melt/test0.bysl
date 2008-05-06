@@ -6,8 +6,6 @@
  :predef CLASS_ROOT
  :fields (root_f1 
 		  ))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#| ; SKIPPING
 
 (defun testifapp (f x y) 
   (if x
@@ -98,6 +96,7 @@
 	     ))
 
 (definstance ii my_class_root 
+  :obj_num 12751
   :root_f1 (boxint 1001002))
 
 (defprimitive gti (:long a b) :long 
@@ -145,4 +144,6 @@
     (puts "has boxint"))
 
 (puts "end test0")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#| ; SKIPPING
 ; SKIPPED |#

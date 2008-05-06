@@ -628,7 +628,7 @@
 (definstance discr_namestring class_discr
  :predef DISCR_NAMESTRING
  :obj_num OBMAG_STRING
- :named_name (stringconst2val discr_namestring "DISCR_NAMESTRING")
+;;; :named_name (stringconst2val discr_namestring "DISCR_NAMESTRING")
 ;;; :disc_super discr_string   ;; forward reference not allowed
 )
 
@@ -639,6 +639,8 @@
  :named_name (stringconst2val discr_namestring "DISCR_STRING"))
 
 (unsafe_put_fields discr_namestring :disc_super discr_string)
+(unsafe_put_fields discr_namestring :named_name
+		   (stringconst2val discr_namestring "DISCR_NAMESTRING"))
 
 ;;; the discriminant for verbatim strings (used for defprimitive)
 (definstance discr_verbatimstring class_discr
@@ -1794,7 +1796,7 @@
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_mapobjects 50))
-	     (boxedmaxdepth (make_integerbox discr_integer 18)) ;;;; @@@ DEBUGDEPTH
+	     (boxedmaxdepth (make_integerbox discr_integer 19)) ;;;; @@@ DEBUGDEPTH
 	     (dbgi (make_instance class_debuginfo
 				  :dbgi_sbuf sbuf
 				  :dbgi_occmap occmap
@@ -6179,6 +6181,7 @@
 				  :ninst_hash (make_integerbox discr_integer (nonzero_hash))
 				  :ninst_predef spredef
 				  :ninst_slots slotup
+				  :ninst_objnum sinstobjnum
 				  )) 
 	  )
       (add_nctx_data ncx insdata)
@@ -6266,6 +6269,7 @@
 				  :ninst_hash (make_integerbox discr_integer (nonzero_hash))
 				  :ninst_predef spredef
 				  :ninst_slots slotup
+				  :ninst_objnum sinstobjnum
 				  )) 
 	  )
       (add_nctx_data ncx insdata)
@@ -6315,7 +6319,6 @@
 ;;; result = the obj instruction or value
 
 (defselector compile_obj class_selector
-;  :named_name  (stringconst2val discr_namestring "COMPILE_OBJ")
 )
 ;; a catchall method for nrep-s (normal representations) each should
 ;; be separately compiled with its own method so this should never be
@@ -6335,7 +6338,6 @@
 ;;; argument: the destination value
 ;;; result: the (modified) recieving objcode or its replacement
 (defselector put_objdest class_selector
-;  :named_name (stringconst2val discr_namestring "PUT_OBJDEST")
 )
 
 ;;; classes for code generation
@@ -6425,7 +6427,6 @@
 ;;; reciever some objinielem
 ;;; argument strbuf
 (defselector output_c_declinit class_selector
-;  :named_name (stringconst2val discr_namestring "OUTPUT_C_DECLINIT")
 )
 (defun outdeclinit_root (recv sbuf)
   (debugmsg recv "outdeclinit_root recv" (the_callcount))
@@ -6443,7 +6444,6 @@
 ;;; result is not used
 
 (defselector output_c_code class_selector
-;  :named_name  (stringconst2val discr_namestring "OUTPUT_C_CODE")
 )
 
 
@@ -6466,7 +6466,6 @@
 ;;; reciever some objinitelem
 ;;; argument a stringbuffer
 (defselector output_c_initfill class_selector
-;  :named_name (stringconst2val discr_namestring "OUTPUT_C_INITFILL")
 )
 (defun outcinitfill_root (recv declbuf implbuf :long depth)
   (debugmsg recv "outcinitfill_root recv" (the_callcount))
@@ -6636,7 +6635,9 @@
 	 (oiopredef (unsafe_get_field :oio_predef recv))
 	 )
     (assert_msg "check odata" (is_a odata class_nrep_datainstance))
-    (if (null oiopredef) (return))
+    (debugmsg oiopredef "outcinitpredef_objinitobject oiopredef" (the_callcount))
+    (if (null oiopredef) (return ()))
+    (if (is_a oiopredef class_nrep_nil) (return ()))
     (let ( (odloc (unsafe_get_field :nrep_loc odata))
 	   )
       (output_location odloc sbuf 1 "inipredef")
@@ -6644,31 +6645,32 @@
       (add2sbuf_string sbuf oname)
       (add2sbuf_strconst sbuf "*/")
       (add2sbuf_indentnl sbuf 1)
-      (if oiopredef
-	  (cond
-	   ( (is_a oiopredef class_symbol)
-	     (add2sbuf_strconst sbuf "/*inipredefsym*/ BASILYSG(")
-	     (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
-	     (add2sbuf_strconst sbuf ") = (void*)&cdat->")
-	     (add2sbuf_string sbuf oname)
-	     (add2sbuf_strconst sbuf ";")
-	     (add2sbuf_indentnl sbuf 1)
-	     )
-	   ( (is_integerbox oiopredef)
-	     (add2sbuf_strconst sbuf "/*inipredefnum*/ basilys_globarr[")
-	     (add2sbuf_longdec sbuf (get_int oiopredef))
-	     (add2sbuf_strconst sbuf "] = (void*)&cdat->")
-	     (add2sbuf_string sbuf oname)
-	     (add2sbuf_strconst sbuf ";")
-	     (add2sbuf_indentnl sbuf 1)
-	     )
-	   ( :else
-	     (debugmsg oiopredef "outcinitpredef_objinitobject unexpected oiopredef" (the_callcount))
-	     (assert_msg "outcinitpredef_objinitobject unexpected oiopredef" ())
-	     )))
-      )
+      (cond
+       ( (is_a oiopredef class_symbol)
+	 (add2sbuf_strconst sbuf "/*inipredefsym*/ BASILYSG(")
+	 (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
+	 (add2sbuf_strconst sbuf ") = (void*)&cdat->")
+	 (add2sbuf_string sbuf oname)
+	 (add2sbuf_strconst sbuf ";")
+	 (add2sbuf_indentnl sbuf 1)
+	 )
+       ( (is_integerbox oiopredef)
+	 (add2sbuf_strconst sbuf "/*inipredefnum*/ basilys_globarr[")
+	 (add2sbuf_longdec sbuf (get_int oiopredef))
+	 (add2sbuf_strconst sbuf "] = (void*)&cdat->")
+	 (add2sbuf_string sbuf oname)
+	 (add2sbuf_strconst sbuf ";")
+	 (add2sbuf_indentnl sbuf 1)
+	 )
+       ( (null oiopredef)
+	 (return ()))
+       ( :else
+	 (debugmsg oiopredef "outcinitpredef_objinitobject unexpected oiopredef" (the_callcount))
+	 (assert_msg "outcinitpredef_objinitobject unexpected oiopredef" ())
+	 )))
     )
   )
+  
 (install_method class_objinitobject output_c_initpredef outcinitpredef_objinitobject)
 
 
@@ -7468,8 +7470,11 @@
 (defun outpucod_initialroutine (pini declbuf implbuf :long depth)
   (assert_msg "check pini" (is_a pini class_initialroutineobj))
   (add2sbuf_indentnl declbuf 0)
+  (add2sbuf_indentnl declbuf 0)
   (add2sbuf_strconst declbuf "void* start_module_basilys(void*);")
   (add2sbuf_indentnl declbuf 0)
+  (add2sbuf_indentnl implbuf 0)
+  (add2sbuf_indentnl implbuf 0)
   (add2sbuf_indentnl implbuf 0)
   (add2sbuf_strconst implbuf "void* start_module_basilys(void* modatap_) {")
   (add2sbuf_indentnl implbuf 0)
@@ -7502,13 +7507,19 @@
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf " basilys_prohibit_garbcoll = TRUE;")
     (add2sbuf_indentnl implbuf 1)
+;;;
 ;;; generate the initial predef of cdat
-  ;;? (multiple_every
-  ;;?  idatup
-  ;;?  (lambda (curfil :long curk) 
-  ;;?    (debugmsg curfil "outpucod_initialroutine curfil" (the_callcount))
-  ;;?    (output_c_initpredef curfil implbuf)))
+    (add2sbuf_strconst implbuf "/*initial routine predef*/")
+    (add2sbuf_indentnl implbuf 1)
+   (multiple_every
+    idatup
+    (lambda (curfil :long curk) 
+      (debugmsg curfil "outpucod_initialroutine curfil" (the_callcount))
+      (output_c_initpredef curfil implbuf)))
+;;;
 ;;; generate the initial filling of cdat
+    (add2sbuf_strconst implbuf "/*initial routine fill*/")
+    (add2sbuf_indentnl implbuf 1)
     (multiple_every
      idatup
      (lambda (curfil :long curk) 
@@ -7523,7 +7534,8 @@
     (add2sbuf_strconst implbuf " basilys_prohibit_garbcoll = FALSE;")
     (add2sbuf_indentnl implbuf 0)
 ;;; output the body
-    (add2sbuf_strconst implbuf "/*initroutbody*/")
+;;;
+    (add2sbuf_strconst implbuf "/*initial routine body*/")
     (add2sbuf_indentnl implbuf 0)
     (let ( (ibody (unsafe_get_field :obrout_body pini)) 
 	   )
@@ -8598,6 +8610,15 @@
 
 ;; output a string (cstring constant)
 (defun outpucod_string (vstr declbuf implbuf :long depth)
+  (if (== (discrim vstr) discr_verbatimstring)
+      (progn
+	(debugmsg vstr "outpucod_string bad verbatim vstr" (the_callcount))
+	(debugmsg discr_string "outpucod_string discr_string" (the_callcount))
+	(debugmsg discr_namestring "outpucod_string discr_namestring" (the_callcount))
+	(debugmsg discr_verbatimstring "outpucod_string discr_verbatimstring" (the_callcount))
+	(assert_msg "check vstr not verbatim" (!= (discrim vstr) discr_verbatimstring))))
+  (if (!= (discrim vstr) discr_string)
+      (debugmsg vstr "outpucod_string strange vstr" (the_callcount)))
   (assert_msg "check vstr" (== (discrim vstr) discr_string)) 
   (add2sbuf_strconst implbuf " \"")
   (add2sbuf_cencstring implbuf vstr)

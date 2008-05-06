@@ -1,4 +1,10 @@
 2008-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	*  melt/warm-basilys.bysl: still buggy.
+	Maybe should avoid circularity on discr_namestring name discr.
+	added ninst_objnum initialization to propagate objnum from src to normexp.
+	added inipredef.
+
+2008-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* tree-passes.h: MERGED WITH TRUNK r134973
 
 	* passes.c: MERGED WITH TRUNK r134973
