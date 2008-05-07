@@ -7191,6 +7191,22 @@ build_null_declspecs (void)
   return ret;
 }
 
+struct c_declspecs *
+declspecs_add_addrspace (struct c_declspecs *specs, tree addrspace ATTRIBUTE_UNUSED)
+{
+  unsigned char as = 0;
+  specs->non_sc_seen_p = true;
+  specs->declspecs_seen_p = true;
+
+  /* FIXME: use a target hook here.  */
+  as = 1;
+  if (specs->address_space > 0)
+    pedwarn ("duplicate %qs", "__ea");
+  
+  specs->address_space = as;
+  return specs;
+}
+
 /* Add the type qualifier QUAL to the declaration specifiers SPECS,
    returning SPECS.  */
 
@@ -7217,10 +7233,6 @@ declspecs_add_qual (struct c_declspecs *specs, tree qual)
     case RID_RESTRICT:
       dupe = specs->restrict_p;
       specs->restrict_p = true;
-      break;
-    case RID_EA:
-      dupe = (specs->address_space > 0);
-      specs->address_space = 1; /* FIXME: __ea */
       break;
     default:
       gcc_unreachable ();

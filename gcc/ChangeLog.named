@@ -1,3 +1,21 @@
+2008-05-07  Ben Elliston  <bje@au.ibm.com>
+
+	* c-common.h (RID_EA): Remove.
+	* c-parser.c (reswords): Remove "__ea"/RID_EA entry.
+	(enum c_id_kind): Add C_ID_ADDRSPACE.
+	(legitimate_addr_space): New (for now).
+	(c_lex_one_token): Handle C_ID_ADDRSPACE tokens in the lexer.
+	(c_token_starts_typename): Add C_ID_ADDRPSACE case.
+	Remove RID_EA keyword case.
+	(c_token_starts_declspecs): Add C_ID_ADDRSPACE case.
+	Likewise, remove RID_EA keyword case.
+	(c_parser_declspecs): Handle C_ID_ADDRSPACE.
+	Remove sundry handling of RID_EA keyword.
+	(c_parser_objc_selector): Likewise.
+	* c-tree.h (declspecs_add_addrspace): New.
+	* c-decl.c (declspecs_add_addrspace): Likewise.
+	(declspecs_add_qual): Remove RID_EA case.
+
 2008-05-02  Ben Elliston  <bje@au.ibm.com>
 
 	* expr.c (expand_expr_real_1): Remove unused local variable `reg'.
