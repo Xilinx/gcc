@@ -804,7 +804,9 @@ end_scop (scop_p scop, basic_block exit, basic_block *last, tree stmt)
 	}
 
       e = split_block (exit, stmt);
-      exit = e->src;
+      set_immediate_dominator (CDI_DOMINATORS, e->dest, e->src);
+      set_immediate_dominator (CDI_POST_DOMINATORS, e->src, e->dest);
+      exit = e->dest;
       *last = e->dest;
     }
 

@@ -1,5 +1,10 @@
 2008-05-07  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (end_scop): The exit of the scop is not part of the scop.
+	Update dominators after splitting.
+
+2008-05-07  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (is_bb_addable): Return the harmful statement.
 	Factor up some code.
 	(end_scop): New.  Splits end of scope bbs on a harmful statement.
