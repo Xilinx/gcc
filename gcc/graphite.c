@@ -48,7 +48,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 
 VEC (scop_p, heap) *current_scops;
 
-static tree harmful_stmt_in_bb (scop_p, basic_block);
+static tree harmful_stmt_in_bb (struct loop *outermost_loop, basic_block);
 static CloogMatrix *schedule_to_scattering (graphite_bb_p);
 
 /* Returns a new loop_to_cloog_loop_str structure.  */
@@ -378,14 +378,13 @@ outermost_loop_in_scop (scop_p scop, basic_block bb)
   return nest;
 }
 
-/* Return true when EXPR is an affine function in LOOP for the current
-   open scop.  EXPR is contained in BB.  */
+/* Return true when EXPR is an affine function in LOOP with parameters
+   instantiated relative to outermost_loop.  */
 
 static bool
-scop_affine_expr (scop_p scop, struct loop *loop, tree expr, basic_block bb)
+loop_affine_expr (struct loop *outermost_loop, struct loop *loop, tree expr)
 {
   tree scev = analyze_scalar_evolution (loop, expr);
-  struct loop *outermost_loop = outermost_loop_in_scop (scop, bb);
 
   scev = instantiate_parameters (outermost_loop, scev);
 
@@ -395,13 +394,12 @@ scop_affine_expr (scop_p scop, struct loop *loop, tree expr, basic_block bb)
 }
 
 
-/* Return true only when STMT is simple enough for being handled by
-   Graphite.  When the SCOP is NULL, i.e. when trying to start a new
-   SCoP, the conditions are always not part of the scop: new SCoPs are
-   created for each branch.  */
+/* Return true only when STMT is simple enough for being handled by Graphite.
+   This depends on outermost_loop, as the parametetrs are initialized relativ
+   to this loop.  */
 
 static bool
-stmt_simple_for_scop_p (scop_p scop, tree stmt)
+stmt_simple_for_scop_p (struct loop *outermost_loop, tree stmt)
 {
   basic_block bb = bb_for_stmt (stmt);
   struct loop *loop = bb->loop_father;
@@ -433,9 +431,9 @@ stmt_simple_for_scop_p (scop_p scop, tree stmt)
 	  case GT_EXPR:
 	  case LE_EXPR:
 	  case GE_EXPR:
-	    return (scop
-		    && scop_affine_expr (scop, loop, TREE_OPERAND (opnd0, 0), bb)
-		    && scop_affine_expr (scop, loop, TREE_OPERAND (opnd0, 1), bb));
+	    return (outermost_loop
+		    && loop_affine_expr (outermost_loop, loop, TREE_OPERAND (opnd0, 0))
+		    && loop_affine_expr (outermost_loop, loop, TREE_OPERAND (opnd0, 1)));
 	  default:
 	    return false;
 	  }
@@ -485,8 +483,8 @@ stmt_simple_for_scop_p (scop_p scop, tree stmt)
 	    return true;
 	  }
 
-	/* We cannot return (scop_affine_expr (loop, opnd0) &&
-	   scop_affine_expr (loop, opnd1)) because D.1882_16 is
+	/* We cannot return (loop_affine_expr (loop, opnd0) &&
+	   loop_affine_expr (loop, opnd1)) because D.1882_16 is
 	   not affine in the following:
 
 	   D.1881_15 = a[j_13][pretmp.22_20];
@@ -539,12 +537,12 @@ stmt_simple_for_scop_p (scop_p scop, tree stmt)
    this statement.  */
 
 static tree
-harmful_stmt_in_bb (scop_p scop, basic_block bb)
+harmful_stmt_in_bb (struct loop *outermost_loop, basic_block bb)
 {
   block_stmt_iterator bsi;
 
   for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-    if (!stmt_simple_for_scop_p (scop, bsi_stmt (bsi)))
+    if (!stmt_simple_for_scop_p (outermost_loop, bsi_stmt (bsi)))
       return bsi_stmt (bsi);
 
   return NULL_TREE;
@@ -872,7 +870,8 @@ build_scops_1 (basic_block cbb, VEC (scop_p, heap) **open_scops, bitmap visited)
       {
 	basic_block bb = e->dest;
 	scop_p scop = VEC_last (scop_p, *open_scops);
-	tree harmful_stmt = harmful_stmt_in_bb (scop, bb);
+	tree harmful_stmt = harmful_stmt_in_bb (outermost_loop_in_scop (scop, bb),
+		            bb);
 
 	if (harmful_stmt)
 	  {

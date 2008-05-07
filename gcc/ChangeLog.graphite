@@ -1,3 +1,10 @@
+2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (scop_affine_expr): Renamed to loop_affine_expr.  Check affine
+	expressions depending on the outermost loop instead of a scop.
+	(stmt_simple_for_scop_p): Same.
+	(harmfule_stmt_in_scop): Same.
+
 2008-04-28  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (dot_all_scops): Remove incorrect difficult bb coloring,
