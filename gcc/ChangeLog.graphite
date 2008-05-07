@@ -1,3 +1,11 @@
+2008-05-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c: (succs_at_same_depth, end_scop, all_preds_visited_p,
+	all_succs_visited_p, start_new_scop_for_each_succ, start_new_scop,
+	add_dominators_to_open_scops, stop_last_open_scop, scop_end_loop,
+	build_scops_1): Removed.
+	(build_scops_2): Renamed build_scops_1.
+
 2008-05-06  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c: Fix formatting.

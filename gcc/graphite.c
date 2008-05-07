@@ -631,305 +631,6 @@ free_scops (VEC (scop_p, heap) *scops)
   VEC_free (scop_p, heap, scops);
 }
 
-/* Returns true when the successors of BB are at the same loop depth as BB.  */
-
-static bool
-succs_at_same_depth (basic_block bb)
-{
-  edge e;
-  edge_iterator ei;
-  unsigned entry_depth = loop_depth (bb->loop_father);
-
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    if (loop_depth (e->dest->loop_father) != entry_depth)
-      return false;
-
-  return true;
-}
-
-/* Build the SCoP ending with EXIT.  */
-
-static void
-end_scop (scop_p scop, basic_block exit, VEC (scop_p, heap) **open_scops)
-{
-  VEC_pop (scop_p, *open_scops);
-  SCOP_EXIT (scop) = exit;
-  VEC_safe_push (scop_p, heap, current_scops, scop);
-}
-
-/* Returns true when all the predecessors of BB have been marked in VISITED.  */
-
-static bool
-all_preds_visited_p (basic_block bb, bitmap visited)
-{
-  edge e;
-  edge_iterator ei;
-
-  FOR_EACH_EDGE (e, ei, bb->preds)
-    if (!bitmap_bit_p (visited, e->src->index))
-      return false;
-
-  return true;
-}
-
-/* Returns true when all the successors of BB have been marked in VISITED.  */
-
-static bool
-all_succs_visited_p (basic_block bb, bitmap visited)
-{
-  edge e;
-  edge_iterator ei;
-
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    if (!bitmap_bit_p (visited, e->dest->index))
-      return false;
-
-  return true;
-}
-
-static void build_scops_1 (basic_block, VEC (scop_p, heap) **, bitmap);
-static void start_new_scop (basic_block, VEC (scop_p, heap) **, bitmap);
-static void stop_last_open_scop (basic_block, VEC (scop_p, heap) **, bitmap, tree);
-
-static void
-start_new_scop_for_each_succ (basic_block bb, VEC (scop_p, heap) **open_scops,
-			      bitmap visited)
-{
-  edge e;
-  edge_iterator ei;
-
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    if (!bitmap_bit_p (visited, e->dest->index)
-	&& !all_succs_visited_p (e->dest, visited))
-      start_new_scop (e->dest, open_scops, visited);
-}
-
-/* Recursively try to start a new SCOP with an entry at BB.  */
-
-static void
-start_new_scop (basic_block bb, VEC (scop_p, heap) **open_scops,
-		bitmap visited)
-{
-  scop_p last;
-  block_stmt_iterator bsi;
-  basic_block start = bb;
-
-  if (bitmap_bit_p (visited, bb->index))
-    return;
-
-  for (bsi = bsi_last (bb); !bsi_end_p (bsi); bsi_prev (&bsi))
-    if (!stmt_simple_for_scop_p (NULL, bsi_stmt (bsi)))
-      {
-	tree harmful_stmt = bsi_stmt (bsi);
-
-	bitmap_set_bit (visited, bb->index);
-
-	if (harmful_stmt != bsi_stmt (bsi_last (bb))
-	    || single_succ_p (bb))
-	  start = split_block (bb, harmful_stmt)->dest;
-
-	else
-	  start_new_scop_for_each_succ (bb, open_scops, visited);
-
-	break;
-      }
-
-  if (!all_succs_visited_p (start, visited))
-    {
-      last = new_scop (start);
-      VEC_safe_push (scop_p, heap, *open_scops, last);
-      build_scops_1 (start, open_scops, visited);
-    }
-}
-
-/* Add to OPEN_SCOPS the dominators that don't dominate the LAST scop.
-   First elements in OPEN_SCOPS dominate the remaining elements.  */
-
-static void
-add_dominators_to_open_scops (basic_block bb, VEC (scop_p, heap) **open_scops,
-			      bitmap visited)
-{
-  bool split_p = true;
-  scop_p last = VEC_last (scop_p, *open_scops);
-  basic_block entry = SCOP_ENTRY (last);
-  basic_block dom = get_immediate_dominator (CDI_DOMINATORS, bb);
-
-  while (dominated_by_p (CDI_DOMINATORS, dom, entry)
-	 && (VEC_length (edge, dom->succs) < 2
-	     || all_succs_visited_p (dom, visited))
-	 && (VEC_length (edge, dom->preds) < 2 
-	     || all_preds_visited_p (dom, visited))
-	 && dom != SCOP_ENTRY (last))
-    dom = get_immediate_dominator (CDI_DOMINATORS, dom);
-
-  if (dom == entry)
-    return;
-
-  add_dominators_to_open_scops (dom, open_scops, visited);
-  last = VEC_last (scop_p, *open_scops);
-
-  if (!single_pred_p (dom))
-    {
-      edge e;
-      edge_iterator ei;
-
-      FOR_EACH_EDGE (e, ei, dom->preds)
-	if (bitmap_bit_p (visited, e->src->index)
-	    && dominated_by_p (CDI_DOMINATORS, e->src, dom))
-	  {
-	    split_p = false;
-	    break;
-	  }
-
-      if (split_p)
-	FOR_EACH_EDGE (e, ei, dom->preds)
-	  if (bitmap_bit_p (visited, e->src->index))
-	    {
-	      end_scop (last, e->src, open_scops);
-	      break;
-	    }
-    }
-
-  else if (!all_succs_visited_p (dom, visited)
-	   && succs_at_same_depth (dom))
-    {
-      basic_block nbb;
-
-      nbb = split_block (dom, NULL_TREE)->src;
-      end_scop (last, nbb, open_scops);
-      dom = single_succ (nbb);
-      bitmap_set_bit (visited, nbb->index);
-      bitmap_set_bit (visited, dom->index);
-    }
-
-  else
-    split_p = false;
-
-
-  /* Push an open scop for branches originating from DOM.  */
-  if (split_p && single_succ_p (dom))
-    VEC_safe_push (scop_p, heap, *open_scops, new_scop (dom));
-  else if (split_p)
-    start_new_scop_for_each_succ (dom, open_scops, visited);
-}
-
-/* Ends the LAST open scop with the HARMFUL_STMT.  Split BB following
-   the position of the HARMFUL_STMT.  */
-
-static void
-stop_last_open_scop (basic_block bb, VEC (scop_p, heap) **open_scops,
-		     bitmap visited, tree harmful_stmt)
-{
-  scop_p last;
-  basic_block stop;
-  add_dominators_to_open_scops (bb, open_scops, visited);
-
-  if (bitmap_bit_p (visited, bb->index))
-    return;
-
-  bitmap_set_bit (visited, bb->index);
-  last = VEC_last (scop_p, *open_scops);
-
-  if (harmful_stmt 
-      && harmful_stmt != bsi_stmt (bsi_after_labels (bb)))
-    {
-      block_stmt_iterator bsi = bsi_for_stmt (harmful_stmt);
-
-      bsi_prev (&bsi);
-      stop = split_block (bb, bsi_stmt (bsi))->src;
-      bitmap_set_bit (visited, stop->index);
-      end_scop (last, stop, open_scops);
-    }
-
-  else
-    {
-      stop = split_block (bb, NULL_TREE)->src;
-      bitmap_set_bit (visited, stop->index);
-      end_scop (last, stop, open_scops);
-    }
-}
-
-static void
-scop_end_loop (basic_block bb, scop_p scop, VEC (scop_p, heap) **open_scops,
-	       bitmap visited)
-{
-  edge e;
-  edge_iterator ei;
-  unsigned entry_depth = loop_depth (SCOP_ENTRY (scop)->loop_father);
-
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    if (loop_depth (e->dest->loop_father) < entry_depth)
-      {
-	basic_block stop;
-	block_stmt_iterator bsi = bsi_last (bb);
-
-	bsi_prev (&bsi);
-	/* Split off the condition of the outer loop.  */
-	stop = split_block (bb, bsi_stmt (bsi))->src;
-	bitmap_set_bit (visited, stop->index);
-	end_scop (scop, stop, open_scops);
-
-	bb = single_succ (stop);
-	bitmap_set_bit (visited, bb->index);
-
-	start_new_scop_for_each_succ (bb, open_scops, visited);
-	break;
-      }
-}
-
-/* Recursive walking over the CFG in depth first order.  Mark
-   difficult constructs as boundaries of SCoPs.  */
-
-static void
-build_scops_1 (basic_block cbb, VEC (scop_p, heap) **open_scops, bitmap visited)
-{ 
-  bool succ_p = false;
-  edge e;
-  edge_iterator ei;
-
-  if (bitmap_bit_p (visited, cbb->index))
-    return;
-
-  bitmap_set_bit (visited, cbb->index);
-
-  FOR_EACH_EDGE (e, ei, cbb->succs)
-    if (!bitmap_bit_p (visited, e->dest->index))
-      {
-	basic_block bb = e->dest;
-	scop_p scop = VEC_last (scop_p, *open_scops);
-	tree harmful_stmt = harmful_stmt_in_bb (outermost_loop_in_scop (scop, bb),
-		            bb);
-
-	if (harmful_stmt)
-	  {
-	    stop_last_open_scop (bb, open_scops, visited, harmful_stmt);
-	    start_new_scop (bb_for_stmt (harmful_stmt), open_scops, visited);
-	  }
-
-	/* Scop entry should dominate all the basic blocks of the scop.  */
-	else if (!dominated_by_p (CDI_DOMINATORS, bb, SCOP_ENTRY (scop)))
-	  {
-	    end_scop (scop, cbb, open_scops);
-	    start_new_scop (bb, open_scops, visited);
-	  }
-
-	/* A loop exit ends a scop when the scop entry is in the loop.  */
-	else if (VEC_length (edge, bb->succs) >= 2)
-	  scop_end_loop (bb, scop, open_scops, visited);
-
-	build_scops_1 (bb, open_scops, visited);
-	succ_p = true;
-      }
-
-  if (!succ_p && single_succ_p (cbb)
-      && !dominated_by_p (CDI_DOMINATORS, cbb, single_succ (cbb))
-      && !VEC_empty (scop_p, *open_scops))
-    {
-      scop_p scop = VEC_last (scop_p, *open_scops);
-      end_scop (scop, cbb, open_scops);
-    }
-}
-
 #define GBB_UNKNOWN 0
 #define GBB_LOOP_HEADER 1
 #define GBB_LOOP_EXIT 3
@@ -993,7 +694,7 @@ move_scops (VEC (scop_p, heap) **source, VEC (scop_p, heap) **target)
   VEC_free (scop_p, heap, *source);
 }
 
-static bool build_scops_2 (basic_block, VEC (scop_p, heap) **, struct loop *,
+static bool build_scops_1 (basic_block, VEC (scop_p, heap) **, struct loop *,
 			   struct loop *, basic_block *, bool *);
 
 /* Checks, if a bb can be added to a SCoP.  */
@@ -1031,7 +732,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
       *next = single_exit (bb->loop_father)->dest;
       *last = single_exit (bb->loop_father)->src;
       tmp_scops = VEC_alloc (scop_p, heap, 3);
-      bb_addable = build_scops_2 (bb, &tmp_scops, loop, outermost_loop, last,
+      bb_addable = build_scops_1 (bb, &tmp_scops, loop, outermost_loop, last,
                                   bb_simple);
 
       if (!bb_addable)
@@ -1049,7 +750,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
       for (i = 0; VEC_iterate (edge, bb->succs, i, e); i++)
         if (!dominated_by_p (CDI_POST_DOMINATORS, bb, e->dest))
           {
-	    bb_addable &= build_scops_2 (e->dest, &tmp_scops, loop,
+	    bb_addable &= build_scops_1 (e->dest, &tmp_scops, loop,
 					 outermost_loop, last, &bb_simple_tmp);
 	    *bb_simple &= bb_simple_tmp;
           }
@@ -1086,7 +787,7 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
 /* Creates the SCoPs and writes entry and exit points for every SCoP.  */
 
 static bool 
-build_scops_2 (basic_block start, VEC (scop_p, heap) **scops,
+build_scops_1 (basic_block start, VEC (scop_p, heap) **scops,
 	       struct loop *loop, struct loop *outermost_loop,
 	       basic_block *last, bool *all_simple)
 {
@@ -1149,7 +850,7 @@ build_scops (void)
   struct loop *loop = ENTRY_BLOCK_PTR->loop_father;
   basic_block last;
   bool tmp;
-  build_scops_2 (ENTRY_BLOCK_PTR, &current_scops, loop, loop, &last, &tmp);
+  build_scops_1 (ENTRY_BLOCK_PTR, &current_scops, loop, loop, &last, &tmp);
 }
 
 
