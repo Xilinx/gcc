@@ -958,17 +958,19 @@ get_bb_type (basic_block bb, struct loop *last_loop)
     type = GBB_LAST;
 
   else if (nb_dom == 1)
+    {
       if (loop->latch == bb)
-        type = GBB_LOOP_LATCH;
+	type = GBB_LOOP_LATCH;
       else 
-        type = GBB_SIMPLE;
-
+	type = GBB_SIMPLE;
+    }
   else if (nb_dom == 2)
+    {
       if (single_exit (loop) != NULL && single_exit (loop)->src == bb)
         type = GBB_LOOP_EXIT;
       else
         type = GBB_COND_HEADER;
-
+    }
   else if (nb_dom == 3)
     type = GBB_COND_HEADER;
 
@@ -991,18 +993,15 @@ move_scops (VEC (scop_p, heap) **source, VEC (scop_p, heap) **target)
   VEC_free (scop_p, heap, *source);
 }
 
-static bool 
-build_scops_2 (basic_block start, VEC (scop_p, heap) **scops,
-struct loop *loop, struct loop *outermost_loop, basic_block *last,
-bool *all_simple);
-
+static bool build_scops_2 (basic_block, VEC (scop_p, heap) **, struct loop *,
+			   struct loop *, basic_block *, bool *);
 
 /* Checks, if a bb can be added to a SCoP.  */
 
 static bool
 is_bb_addable (basic_block bb, struct loop *outermost_loop,
-VEC (scop_p, heap) **scops, int type, basic_block *next, bool *bb_simple,
-basic_block *last)
+	       VEC (scop_p, heap) **scops, int type, basic_block *next,
+	       bool *bb_simple, basic_block *last)
 {
   VEC (scop_p, heap) *tmp_scops;
   struct loop *loop = bb->loop_father;
@@ -1012,7 +1011,7 @@ basic_block *last)
   bool bb_simple_tmp;
 
   switch (type)
-  {
+    {
     case GBB_LAST:
     case GBB_LOOP_LATCH:
       *next = NULL;
@@ -1050,9 +1049,9 @@ basic_block *last)
       for (i = 0; VEC_iterate (edge, bb->succs, i, e); i++)
         if (!dominated_by_p (CDI_POST_DOMINATORS, bb, e->dest))
           {
-          bb_addable &= build_scops_2 (e->dest, &tmp_scops, loop,
-                                       outermost_loop, last, &bb_simple_tmp);
-          *bb_simple &= bb_simple_tmp;
+	    bb_addable &= build_scops_2 (e->dest, &tmp_scops, loop,
+					 outermost_loop, last, &bb_simple_tmp);
+	    *bb_simple &= bb_simple_tmp;
           }
 
       *next = VEC_last (edge, (*last)->succs)->dest;
@@ -1079,7 +1078,7 @@ basic_block *last)
 
     default:
       assert (false);
-  }
+    }
 
   return bb_addable;
 }
@@ -1088,8 +1087,8 @@ basic_block *last)
 
 static bool 
 build_scops_2 (basic_block start, VEC (scop_p, heap) **scops,
-struct loop *loop, struct loop *outermost_loop, basic_block *last,
-bool *all_simple)
+	       struct loop *loop, struct loop *outermost_loop,
+	       basic_block *last, bool *all_simple)
 {
   basic_block current = start;
   basic_block next;
@@ -1109,9 +1108,9 @@ bool *all_simple)
       int type = get_bb_type (current, loop);
       bool bb_simple;
       bool bb_addable;
-      
+
       bb_addable = is_bb_addable (current, outermost_loop, scops, type,
-                          &next, &bb_simple, last);  
+				  &next, &bb_simple, last);  
 
       if (!in_scop && bb_addable)
         {
@@ -1124,7 +1123,7 @@ bool *all_simple)
           SCOP_EXIT (open_scop) = current;
           in_scop = false;
         }
-      
+
       if (!in_scop)
         all_addable &= false;
 
@@ -1132,7 +1131,7 @@ bool *all_simple)
 
       if (next == NULL && in_scop)
         SCOP_EXIT (open_scop) = VEC_last (edge, (*last)->succs)->dest;
-        
+
       current = next;
     }
 
