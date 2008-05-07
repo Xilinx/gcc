@@ -1,3 +1,125 @@
+2008-05-06  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* arith.c: (gfc_arith_concat, gfc_compare_string,
+	gfc_compare_with_Cstring, hollerith2representation,
+	gfc_hollerith2int, gfc_hollerith2real, gfc_hollerith2complex,
+	gfc_hollerith2character, gfc_hollerith2logical): Use wide
+	characters for character constants.
+	* data.c (create_character_intializer): Likewise.
+	* decl.c (gfc_set_constant_character_len): Likewise.
+	* dump-parse-tree.c (show_char_const): Correctly dump wide
+	character strings.
+	error.c (print_wide_char): Rename into gfc_print_wide_char.
+	(show_locus): Adapt to new prototype of gfc_print_wide_char.
+	expr.c (free_expr0): Representation is now disjunct from
+	character string value, so we always free it.
+	(gfc_copy_expr, find_substring_ref, gfc_simplify_expr): Adapt
+	to wide character strings.
+	* gfortran.h (gfc_expr): Make value.character.string a wide string.
+	(gfc_wide_toupper, gfc_wide_strncasecmp, gfc_wide_memset,
+	gfc_widechar_to_char, gfc_char_to_widechar): New prototypes.
+	(gfc_get_wide_string): New macro.
+	(gfc_print_wide_char): New prototype.
+	* io.c (format_string): Make a wide string.
+	(next_char, gfc_match_format, compare_to_allowed_values, 
+	gfc_match_open): Deal with wide strings.
+	* module.c (mio_expr): Convert between wide strings and ASCII ones.
+	* primary.c (match_hollerith_constant, match_charkind_name): 
+	Handle wide strings.
+	* resolve.c (build_default_init_expr): Likewise.
+	* scanner.c (gfc_wide_toupper, gfc_wide_memset,
+	gfc_char_to_widechar): New functions.
+	(wide_strchr, gfc_widechar_to_char, gfc_wide_strncasecmp):
+	Changes in prototypes.
+	(gfc_define_undef_line, load_line, preprocessor_line,
+	include_line, load_file, gfc_read_orig_filename): Handle wide
+	strings.
+	* simplify.c (gfc_simplify_achar, gfc_simplify_adjustl,
+	gfc_simplify_adjustr, gfc_simplify_char, gfc_simplify_iachar,
+	gfc_simplify_ichar, simplify_min_max, gfc_simplify_new_line,
+	gfc_simplify_repeat): Handle wide strings.
+	(wide_strspn, wide_strcspn): New helper functions.
+	(gfc_simplify_scan, gfc_simplify_trim, gfc_simplify_verify):
+	Handle wide strings.
+	* symbol.c (generate_isocbinding_symbol): Likewise.
+	* target-memory.c (size_character, gfc_target_expr_size,
+	encode_character, gfc_target_encode_expr, gfc_interpret_character,
+	gfc_target_interpret_expr): Handle wide strings.
+	* trans-const.c (gfc_conv_string_init): Lower wide strings to
+	narrow ones.
+	(gfc_conv_constant_to_tree): Likewise.
+	* trans-expr.c (gfc_conv_substring_expr): Handle wide strings.
+	* trans-io.c (gfc_new_nml_name_expr): Likewise.
+	* trans-stmt.c (gfc_trans_label_assign): Likewise.
+
+2008-05-06  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* simplify.c (gfc_simplify_bessel_j0,gfc_simplify_bessel_j1,
+	gfc_simplify_bessel_jn,gfc_simplify_bessel_y0,
+	gfc_simplify_bessel_y1,gfc_simplify_bessel_yn): Mark arguments
+	with ATTRIBUTE_UNUSED.
+
+2008-05-06  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* check.c (gfc_check_sizeof): Switch to ATTRIBUTE_UNUSED.
+	* simplify.c (gfc_simplify_lgamma): Likewise.
+
+2008-05-06  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* openmp.c (gfc_match_omp_eos): Use gfc_next_ascii_char and
+	gfc_peek_ascii_char.
+	* decl.c (gfc_match_kind_spec, gfc_match_type_spec,
+	gfc_match_implicit_none, match_implicit_range, gfc_match_implicit,
+	match_string_p, match_attr_spec, gfc_match_suffix,
+	match_procedure_decl, gfc_match_entry, gfc_match_subroutine):
+	Likewise.
+	* gfortran.h (gfc_char_t): New type.
+	(gfc_linebuf): Make line member a gfc_char_t.
+	(locus): Make nextc member a gfc_char_t.
+	(gfc_wide_is_printable, gfc_wide_is_digit, gfc_wide_fits_in_byte,
+	gfc_wide_tolower, gfc_wide_strlen, gfc_next_ascii_char,
+	gfc_peek_ascii_char, gfc_check_digit): New prototypes.
+	* error.c (print_wide_char): New function.
+	(show_locus): Use print_wide_char and gfc_wide_strlen.
+	* io.c (next_char): Use gfc_char_t type.
+	(match_io): Use gfc_peek_ascii_char and gfc_next_ascii_char.
+	* match.c (gfc_match_parens, gfc_match_eos,
+	gfc_match_small_literal_int, gfc_match_name, gfc_match_name_C,
+	gfc_match_intrinsic_op, gfc_match_char,  gfc_match_return,
+	gfc_match_common): Likewise.
+	* match.h (gfc_match_special_char): Change prototype.
+	* parse.c (decode_specification_statement, decode_statement,
+	decode_omp_directive, next_free, next_fixed): Use
+	gfc_peek_ascii_char and gfc_next_ascii_char.
+	* primary.c (gfc_check_digit): Change name.
+	(match_digits, match_hollerith_constant, match_boz_constant,
+	match_real_constant, next_string_char, match_charkind_name,
+	match_string_constant, match_logical_constant_string,
+	match_complex_constant, match_actual_arg, match_varspec,
+	gfc_match_rvalue, match_variable): Use gfc_peek_ascii_char and
+	gfc_next_ascii_char.
+	* scanner.c (gfc_wide_fits_in_byte, wide_is_ascii,
+	gfc_wide_is_printable, gfc_wide_tolower, gfc_wide_is_digit,
+	gfc_wide_is_digit, wide_atoi, gfc_wide_strlen, wide_strcpy,
+	wide_strchr, widechar_to_char, wide_strncmp, wide_strncasecmp,
+	gfc_next_ascii_char, gfc_peek_ascii_char):
+	New functions.
+	(next_char, gfc_define_undef_line, skip_free_comments,
+	gfc_next_char_literal, gfc_next_char, gfc_peek_char,
+	gfc_error_recovery, load_line, preprocessor_line, include_line,
+	load_file, gfc_read_orig_filename): Use gfc_char_t for source
+	characters and the {gfc_,}wide_* functions to manipulate wide
+	strings.
+
+2008-05-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36117
+	* intrinsic.c (add_functions): Call gfc_simplify_bessel_*.
+	* intrinsic.h: Add prototypes for gfc_simplify_bessel_*.
+	* simplify.c (gfc_simplify_bessel_j0,gfc_simplify_bessel_j1,
+	gfc_simplify_bessel_jn,gfc_simplify_bessel_y0,
+	gfc_simplify_bessel_y1,gfc_simplify_bessel_yn): New.
+
 2008-05-03  Janus Weil  <jaydub66@gmail.com>
 
 	* misc.c (gfc_clear_ts): Set interface to NULL.
@@ -673,7 +795,7 @@
 	gfc_conv_allocated, gfc_conv_associated, gfc_conv_intrinsic_trim,
 	gfc_conv_intrinsic_repeat): Likewise.
 
-2008-02-23  Francois-Xavier Coudert  <coudert@clipper.ens.fr>
+2008-02-23  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR target/25477
 	* trans-expr.c (gfc_conv_power_op): Use BUILT_IN_CPOW{F,,L}.

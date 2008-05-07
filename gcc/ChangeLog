@@ -1,3 +1,229 @@
+2008-05-07  Alan Modra  <amodra@bigpond.net.au>
+
+	* c-decl.c (grokdeclarator): Comment typo.
+
+2008-05-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree-flow.h: Remove prototype for computed_goto_p.
+	* tree-cfg.c (computed_goto_p): Make static.
+
+2008-05-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/35657
+	* config/i386/i386.c (contains_128bit_aligned_vector_p): Renamed to ...
+	(contains_aligned_value_p): This.  Handle _Decimal128.
+	(ix86_function_arg_boundary): Only align _Decimal128 to its
+	natural boundary and handle it properly.
+
+2008-05-06  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-cp.c (ipcp_method_orig_node): Renamed to ipcp_get_orig_node.
+	(ipcp_method_is_cloned): Renamed to ipcp_node_is_clone
+	(ipcp_method_set_orig_node): Removed.
+	(ipcp_cval_get_cvalue_type): Removed.
+	(ipcp_method_get_scale): Renamed to ipcp_get_node_scale.
+	(ipcp_method_set_scale): Renamed to ipcp_set_node_scale.
+	(ipcp_cval_set_cvalue_type): Removed.
+	(ipcp_cval_get_cvalue): Removed.
+	(ipcp_cval_set_cvalue): Removed.
+	(ipcp_type_is_const): Renamed to ipcp_lat_is_const.
+	(ipcp_cval_equal_cvalues): Renamed to ipcp_lats_are_equal
+	(ipcp_lats_are_equal): Changed parameters to two ipcp_lattice's
+	(ipcp_cval_meet): Renamed to ipa_lattice_meet
+	(ipcp_cval_changed): Changed to use ipcp_lat_is_const
+	(ipcp_method_cval): Renamed to ipcp_get_ith_lattice
+	(ipcp_get_ith_lattice): Changed parameters.
+	(ipcp_cval_compute): Renamed to ipcp_lattice_from_jfunc
+	(ipcp_lattice_from_jfunc): Changed parameters.
+	(ipcp_redirect): Local lattice pointer instead of lattice type variable.
+	(ipcp_method_cval_print): Added temporary variable info.
+	(ipcp_redirect): Removed already unused local variable caller.
+	(ipcp_redirect): New temporary variable orig_callee_info
+	(ipcp_redirect): Removed newly unused local variable callee.
+	(ipcp_redirect): Removed (a bit confusing) local variable type.
+	(ipcp_insert_stage): Added local variable info.
+	(ipcp_cval_changed): Renamed to ipcp_lattice_changed, parameters 
+	renamed too
+	(ipcp_formal_create): Removed.
+	(ipcp_method_cval_set): Removed.
+	(ipcp_propagate_stage): Renamed lattice variables.
+	(ipcp_method_cval_set_cvalue_type): Removed.
+	(ipcp_method_cval_print): Renamed to ipcp_print_all_lattices
+	(ipcp_print_all_lattices): Changed printed strings to refer to 
+	lattices rather than cvals.
+	(ipcp_method_cval_init): Renamed to ipcp_initialize_node_lattices
+	(ipcp_propagate_const): Changed formal parameters.
+	(build_const_val): Changed formal parameters.
+	(ipcp_insert_stage): Removed useless variable cvalue
+	(build_const_val): Changed formal parameters.
+	(ipcp_method_compute_scale): Renamed to ipcp_compute_node_scale
+	(ipcp_after_propagate): Renamed to ipcp_change_tops_to_bottom
+	(ipcp_callsite_param_print): Renamed to ipcp_print_all_jump_functions
+	(ipcp_profile_mt_count_print): Renamed to ipcp_print_func_profile_counts
+	(ipcp_print_func_profile_counts): Changed string from "method" to 
+	"function"
+	(ipcp_profile_cs_count_print): Renamed to ipcp_print_call_profile_counts
+	(ipcp_profile_edge_print): Renamed to ipcp_print_edge_profiles
+	(ipcp_profile_bb_print): Renamed to ipcp_print_bb_profiles
+	(ipcp_structures_print): Renamed to ipcp_print_all_structures
+	(ipcp_profile_print): Renamed to ipcp_print_profile_data
+	(ipcp_lat_is_const): Changed parameters and made inline.
+	(ipcp_replace_map_create): Renamed to ipcp_create_replace_map
+	(ipcp_redirect): Renamed to ipcp_need_redirect_p
+	(ipcp_need_redirect_p): Calls ipcp_lat_is_const instead of using 
+	the predicate condition directly
+	(ipcp_propagate_stage): Added local variable args. Removed local
+	variable callee.  (Both are mere code simplifications.)
+	(ipcp_method_dont_insert_const): Renamed to
+	ipcp_node_not_modifiable_p.
+	(ipcp_node_not_modifiable_p): Made inline.
+	(ipcp_cloned_create): Renamed to ipcp_init_cloned_node
+	(ipcp_propagate_const): Renamed to ipcp_propagate_one_const
+	(ipcp_print_all_lattices): Removed variable cvalue
+	(ipcp_method_scale_print): Renamed to ipcp_function_scale_print
+	Updated comments.
+
+2008-05-06  Olivier Hainque  <hainque@adacore.com>
+
+	* tree-sra.c (try_instantiate_multiple_fields): Early return
+	if field has POINTER_TYPE.
+
+2008-05-06  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/i386.c (output_set_got): Fix for x86_64 output_emit_asm
+	by using 'q' specifier for instruction.
+	(ix86_file_end): Replaced case TARGET_64BIT_MS_ABI by TARGET_64BIT.
+
+2008-05-06  Anatoly Sokolov <aesok@post.ru>
+
+	* config/avr/avr.md (*sbrx_branch, *sbix_branch, *sbix_branch_tmp):
+	Change mode of zero_extract from QImode to HImode.
+	(sign bit tests peepholes): (Ditto.).
+
+2008-05-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/mmx.md: Remove double backslashes from asm templates.
+	(*mmx_addv2sf3): Rename from mmx_addv2sf3 insn pattern.
+	(mmx_addv2sf3): New expander.  Use ix86_fixup_binary_operands_no_copy
+	to handle nonimmediate operands.
+	(*mmx_mulv2sf3): Rename from mmx_mulv2sf3 insn pattern.
+	(mmx_mulv2sf3): New expander.  Use ix86_fixup_binary_operands_no_copy
+	to handle nonimmediate operands.
+	(*mmx_<code>v2sf3_finite): New insn pattern.
+	(*mmx_<code>v2sf3): Rename from mmx_<code>v2sf3 insn pattern.
+	(mmx_<code>v2sf3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(mmx_<plusminus_insn><mode>3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*mmx_<plusminus_insn><mode>3): New insn pattern.
+	(mmx_add<mode>3): Removed.
+	(mmx_ssadd<mode>3): Ditto.
+	(mmx_usadd<mode>3): Ditto.
+	(mmx_sub<mode>3): Ditto.
+	(mmx_sssub<mode>3): Ditto.
+	(mmx_ussub<mode>3): Ditto.
+	(*mmx_mulv4hi3): Rename from mmx_mulv4hi3 insn pattern.
+	(mmx_mulv4hi3): New expander.  Use ix86_fixup_binary_operands_no_copy
+	to handle nonimmediate operands.
+	(*mmx_smulv4hi3_highpart): Rename from mmx_smulv4hi3_highpart
+	insn pattern.
+	(mmx_smulv4hi3_highpart): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*mmx_umulv4hi3_highpart): Rename from mmx_umulv4hi3_highpart
+	insn pattern.
+	(mmx_umulv4hi3_highpart): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*mmx_<code>v4hi3): Rename from mmx_<code>v4hi3 insn pattern.
+	(mmx_<code>v4hi3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*mmx_<code>v8qi3): Rename from mmx_<code>v8qi3 insn pattern.
+	(mmx_<code>v8qi3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*mmx_<code><mode>3): Rename from mmx_<code><mode>3 insn pattern.
+	(mmx_<code><mode>3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+
+2008-05-05  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/36118
+	* passes.c (pass_init_dump_file): Fix dump header.
+
+2008-05-05  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/36141
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Don't create
+	VCE for function decls.
+
+2008-05-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/sse.md (sse2_<plusminus_insn><mode>3): Fix a typo.
+
+2008-05-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (sat_plusminus): New.
+	(plusminus_insn): Likewise.
+	(plusminus_mnemonic): Likewise.
+	(addsub): Removed.
+	(comm): Add ss_plus, us_plus, ss_minus and us_minus.
+	(*<addsub><mode>3_cc_overflow): Renamed to ...
+	(*<plusminus_insn><mode>3_cc_overflow): This.
+	(*<addsub>si3_zext_cc_overflow): Renamed to ...
+	(*<plusminus_insn>si3_zext_cc_overflow): This.
+
+	* config/i386/sse.md (<addsub><mode>3): Renamed to ...
+	(<plusminus_insn><mode>3): This.
+	(*<addsub><mode>3): Renamed to ...
+	(*<plusminus_insn><mode>3): This.
+	(<sse>_vm<addsub><mode>3): Renamed to ...
+	(<sse>_vm<plusminus_insn><mode>3): This.
+	(sse3_h<addsub>v4sf3): Renamed to ...
+	(sse3_h<plusminus_insn>v4sf3): This.
+	(sse3_h<addsub>v2df3): Renamed to ...
+	(sse3_h<plusminus_insn>v2df3): This.
+	(<plusminus_insn><mode>3): New.
+	(*<plusminus_insn><mode>3): Likewise.
+	(sse2_<plusminus_insn><mode>3): Likewise.
+	(add<mode>): Removed.
+	(*add<mode>3): Likewise.
+	(sse2_ssadd<mode>3): Likewise.
+	(sse2_usadd<mode>3): Likewise.
+	(sub<mode>3): Likewise.
+	(*sub<mode>3): Likewise.
+	(sse2_sssub<mode>3): Likewise.
+	(sse2_ussub<mode>3): Likewise.
+
+2008-05-05  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* gthr-single.h: Add in required interface elements as per gthr.h.
+	Add stub types for __gthread_key_t, __gthread_once_t. Add defines
+	for __GTHREAD_ONCE_INIT, __GTHREAD_RECURSIVE_MUTEX_INIT.
+	Generalize UNUSED macro. 
+	(__gthread_once): Add.
+	(__gthread_key_create): Add.
+	(__gthread_key_delete): Add.
+	(__gthread_getspecific): Add.
+	(__gthread_setspecific): Add.
+	
+2008-05-05  Andrew Pinski  <Andrew.Pinski@playstation.sony.com>
+
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): If we have
+	the same size types for the indirect reference on the rhs, then
+	create a VCE.
+
+2008-05-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md
+	(*float<SSEMODEI24:mode><MODEF:mode>2_sse_interunit): Use only
+	one insn template instead of template series.
+	(*xordi_1_rex64): Ditto.
+	(*xordi_2_rex64): Ditto.
+
+2008-05-05  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/36119
+	* tree-vect-transform.c (vectorizable_assignment): Set NCOPIES to 1
+	in case of SLP.
+
 2008-06-04  Jan Hubicka  <jh@suse.cz>
 
 	tree-optimization/36100

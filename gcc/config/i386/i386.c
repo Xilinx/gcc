@@ -4579,12 +4579,12 @@ ix86_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
 }
 
 /* Return true when TYPE should be 128bit aligned for 32bit argument passing
-   ABI.  Only called if TARGET_SSE.  */
+   ABI.  */
 static bool
-contains_128bit_aligned_vector_p (tree type)
+contains_aligned_value_p (tree type)
 {
   enum machine_mode mode = TYPE_MODE (type);
-  if (SSE_REG_MODE_P (mode)
+  if (((TARGET_SSE && SSE_REG_MODE_P (mode)) || mode == TDmode)
       && (!TYPE_USER_ALIGN (type) || TYPE_ALIGN (type) > 128))
     return true;
   if (TYPE_ALIGN (type) < 128)
@@ -4605,7 +4605,7 @@ contains_128bit_aligned_vector_p (tree type)
 	    for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
 	      {
 		if (TREE_CODE (field) == FIELD_DECL
-		    && contains_128bit_aligned_vector_p (TREE_TYPE (field)))
+		    && contains_aligned_value_p (TREE_TYPE (field)))
 		  return true;
 	      }
 	    break;
@@ -4613,7 +4613,7 @@ contains_128bit_aligned_vector_p (tree type)
 
 	case ARRAY_TYPE:
 	  /* Just for use if some languages passes arrays by value.  */
-	  if (contains_128bit_aligned_vector_p (TREE_TYPE (type)))
+	  if (contains_aligned_value_p (TREE_TYPE (type)))
 	    return true;
 	  break;
 
@@ -4637,8 +4637,8 @@ ix86_function_arg_boundary (enum machine_mode mode, tree type)
     align = GET_MODE_ALIGNMENT (mode);
   if (align < PARM_BOUNDARY)
     align = PARM_BOUNDARY;
-  /* Decimal floating point is aligned to its natural boundary.  */
-  if (!TARGET_64BIT && !VALID_DFP_MODE_P (mode))
+  /* In 32bit, only _Decimal128 is aligned to its natural boundary.  */
+  if (!TARGET_64BIT && mode != TDmode)
     {
       /* i386 ABI defines all arguments to be 4 byte aligned.  We have to
 	 make an exception for SSE modes since these require 128bit
@@ -4647,16 +4647,14 @@ ix86_function_arg_boundary (enum machine_mode mode, tree type)
 	 The handling here differs from field_alignment.  ICC aligns MMX
 	 arguments to 4 byte boundaries, while structure fields are aligned
 	 to 8 byte boundaries.  */
-      if (!TARGET_SSE)
-	align = PARM_BOUNDARY;
-      else if (!type)
+      if (!type)
 	{
-	  if (!SSE_REG_MODE_P (mode))
+	  if (!(TARGET_SSE && SSE_REG_MODE_P (mode)) && mode != TDmode)
 	    align = PARM_BOUNDARY;
 	}
       else
 	{
-	  if (!contains_128bit_aligned_vector_p (type))
+	  if (!contains_aligned_value_p (type))
 	    align = PARM_BOUNDARY;
 	}
     }
@@ -5884,20 +5882,14 @@ ix86_file_end (void)
 	  switch_to_section (text_section);
 	  ASM_OUTPUT_LABEL (asm_out_file, name);
 	}
-      if (TARGET_64BIT_MS_ABI)
-        {
-	  xops[0] = gen_rtx_REG (Pmode, regno);
-	  xops[1] = gen_rtx_MEM (Pmode, stack_pointer_rtx);
-	  output_asm_insn ("mov{q}\t{%1, %0|%0, %1}", xops);
-	  output_asm_insn ("ret", xops);
-        }
+
+      xops[0] = gen_rtx_REG (Pmode, regno);
+      xops[1] = gen_rtx_MEM (Pmode, stack_pointer_rtx);
+      if (TARGET_64BIT)
+	output_asm_insn ("mov{q}\t{%1, %0|%0, %1}", xops);
       else
-        {
-	  xops[0] = gen_rtx_REG (SImode, regno);
-	  xops[1] = gen_rtx_MEM (SImode, stack_pointer_rtx);
-	  output_asm_insn ("mov{l}\t{%1, %0|%0, %1}", xops);
-	  output_asm_insn ("ret", xops);
-	}
+	output_asm_insn ("mov{l}\t{%1, %0|%0, %1}", xops);
+      output_asm_insn ("ret", xops);
     }
 
   if (NEED_INDICATE_EXEC_STACK)
@@ -5936,7 +5928,12 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
       xops[2] = gen_rtx_LABEL_REF (Pmode, label ? label : gen_label_rtx ());
 
       if (!flag_pic)
-	output_asm_insn ("mov{l}\t{%2, %0|%0, %2}", xops);
+        {
+          if (TARGET_64BIT)
+	    output_asm_insn ("mov{q}\t{%2, %0|%0, %2}", xops);
+	  else
+	    output_asm_insn ("mov{l}\t{%2, %0|%0, %2}", xops);
+	}
       else
 	output_asm_insn ("call\t%a2", xops);
 
@@ -5951,7 +5948,12 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
 				 CODE_LABEL_NUMBER (XEXP (xops[2], 0)));
 
       if (flag_pic)
-	output_asm_insn ("pop{l}\t%0", xops);
+        {
+          if (TARGET_64BIT)
+	    output_asm_insn ("pop{q}\t%0", xops);
+	  else
+	    output_asm_insn ("pop{l}\t%0", xops);
+	}
     }
   else
     {
@@ -5977,9 +5979,19 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
     return "";
 
   if (!flag_pic || TARGET_DEEP_BRANCH_PREDICTION)
-    output_asm_insn ("add{l}\t{%1, %0|%0, %1}", xops);
+    {
+      if (TARGET_64BIT)
+        output_asm_insn ("add{q}\t{%1, %0|%0, %1}", xops);
+      else
+        output_asm_insn ("add{l}\t{%1, %0|%0, %1}", xops);
+    }
   else
-    output_asm_insn ("add{l}\t{%1+[.-%a2], %0|%0, %1+(.-%a2)}", xops);
+    {
+      if (TARGET_64BIT)
+        output_asm_insn ("add{q}\t{%1+[.-%a2], %0|%0, %1+(.-%a2)}", xops);
+      else
+        output_asm_insn ("add{l}\t{%1+[.-%a2], %0|%0, %1+(.-%a2)}", xops);
+    }
 
   return "";
 }
