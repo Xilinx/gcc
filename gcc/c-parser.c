@@ -302,11 +302,6 @@ typedef struct c_parser GTY(())
 
 static GTY (()) c_parser *the_parser;
 
-bool legitimate_addr_space (tree value)
-{
-  return (strcmp (IDENTIFIER_POINTER (value), "__ea") == 0);
-}
-
 /* Read in and lex a single token, storing it in *TOKEN.  */
 
 static void
@@ -368,7 +363,7 @@ c_lex_one_token (c_parser *parser, c_token *token)
 		break;
 	      }
 	  }
-	else if (legitimate_addr_space (token->value))
+	else if (targetm.valid_addr_space (token->value))
 	  {
 	    token->id_kind = C_ID_ADDRSPACE;
 	    break;

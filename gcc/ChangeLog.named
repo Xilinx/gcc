@@ -1,5 +1,15 @@
 2008-05-07  Ben Elliston  <bje@au.ibm.com>
 
+	* target.h (struct gcc_target): Add valid_addr_space field.
+	* target-def.h (TARGET_VALID_ADDR_SPACE): New.
+	(TARGET_INITIALIZER): Add TARGET_VALID_ADDR_SPACE.
+	* c-parser.c (legitimate_addr_space): Remove.
+	(c_lex_one_token): Call target hook instead.
+	* config/spu/spu.c: Define TARGET_VALID_ADDR_SPACE.
+	(spu_valid_addr_space): New.
+
+2008-05-07  Ben Elliston  <bje@au.ibm.com>
+
 	* convert.c (convert_to_integer): Fix thinko (type -> intype).
 
 2008-05-07  Ben Elliston  <bje@au.ibm.com>

@@ -633,6 +633,9 @@ struct gcc_target
   /* Function to return a gen function for the pointer conversion.  */
   rtx (* (* addr_space_conversion_rtl) (int, int)) (rtx, rtx);
 
+  /* True if an identifier that is a valid address space.  */
+  bool (* valid_addr_space) (const tree);
+
   /* True if MODE is valid for the target.  By "valid", we mean able to
      be manipulated in non-trivial ways.  In particular, this means all
      the arithmetic is supported.  */

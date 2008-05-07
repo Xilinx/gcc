@@ -215,6 +215,10 @@ static bool spu_valid_pointer_mode (enum machine_mode mode);
 #undef TARGET_VALID_POINTER_MODE
 #define TARGET_VALID_POINTER_MODE spu_valid_pointer_mode
 
+static bool spu_valid_addr_space (const tree);
+#undef TARGET_VALID_ADDR_SPACE
+#define TARGET_VALID_ADDR_SPACE spu_valid_addr_space
+
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS spu_init_builtins
 
@@ -5927,3 +5931,12 @@ rtx (* spu_addr_space_conversion_rtl (int from, int to)) (rtx, rtx)
 
   return 0;
 }
+
+static
+bool spu_valid_addr_space (tree value)
+{
+  if (!value)
+    return false;
+  return (strcmp (IDENTIFIER_POINTER (value), "__ea") == 0);
+}
+
