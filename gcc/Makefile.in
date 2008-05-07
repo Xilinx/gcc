@@ -4703,6 +4703,46 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl -frandom-seed=AbCdEfGhIj
 	cp warm-basilys.c warm-basilys-1.c
 	./built-melt-cc-script warm-basilys-1.c warm-basilys-1.so
+## coldcompile testrun1
+	@echo coldtest-warm-basilys compiling testrun1
+	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
+	   -fbasilys-init=coldbuilt-warm-basilys.so \
+	 -fbasilys-dynlibdir=. \
+	 -fbasilys-compile-script=built-melt-cc-script \
+	 -fbasilys-gensrcdir=. \
+	 -fbasilys-tempdir=. \
+	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/testrun1.bysl -frandom-seed=AbCdEfGhIj
+	cp testrun1.c testrun1c.c
+	./built-melt-cc-script testrun1c.c testrun1c.so
+##testrun1c empty run
+	-@echo empty run testrun1c
+	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
+	   -fbasilys-init=testrun1c.so \
+	 -fbasilys-dynlibdir=. \
+	 -fbasilys-compile-script=built-melt-cc-script \
+  	 -fbasilys-gensrcdir=. \
+	 -fbasilys-tempdir=. \
+	 -frandom-seed=AbCdEfGhIj
+## warmcompile testrun1
+	@echo -warm-basilys compiling testrun1
+	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
+	   -fbasilys-init=warm-basilys-1.so \
+	 -fbasilys-dynlibdir=. \
+	 -fbasilys-compile-script=built-melt-cc-script \
+	 -fbasilys-gensrcdir=. \
+	 -fbasilys-tempdir=. \
+	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/testrun1.bysl -frandom-seed=AbCdEfGhIj
+	cp testrun1.c testrun1w.c
+	./built-melt-cc-script testrun1w.c testrun1w.so
+##testrun1w empty run
+	-@echo empty run testrun1w
+	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
+	   -fbasilys-init=testrun1w.so \
+	 -fbasilys-dynlibdir=. \
+	 -fbasilys-compile-script=built-melt-cc-script \
+  	 -fbasilys-gensrcdir=. \
+	 -fbasilys-tempdir=. \
+	 -frandom-seed=AbCdEfGhIj
 #warmbasilys1 empty run
 	-@echo empty run warmbasilys1
 	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \

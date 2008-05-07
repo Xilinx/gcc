@@ -1,3 +1,15 @@
+2008-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy]
+	* basilys.c: (basilysgc_add_strbuf_cident) always clear current bytedest.
+
+	* Makefile.in: added testrun1 runs
+
+	* melt/testrun1.bysl: new file.
+
+	* melt/warm-basilys.bysl: added generations of checks in putupl & putclosv
+
+	* melt-cc-script.prot: added more echo-s.
+
 2008-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: renamed FDISCR_SENDCLOSURE as FDISCR_SENDER.
 

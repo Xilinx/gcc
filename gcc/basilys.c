@@ -1784,6 +1784,8 @@ basilysgc_add_strbuf_cident (struct basilysstrbuf_st
 	  *(pd++) = *ps;
 	else if (pd > dupstr && pd[-1] != '_')
 	  *(pd++) = '_';
+	else
+	  *pd = (char) 0;
 	pd[1] = (char) 0;
       }
   basilysgc_add_strbuf_raw (strbuf_p, dupstr);
