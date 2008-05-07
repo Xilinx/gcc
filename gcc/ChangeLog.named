@@ -1,5 +1,9 @@
 2008-05-07  Ben Elliston  <bje@au.ibm.com>
 
+	* convert.c (convert_to_integer): Fix thinko (type -> intype).
+
+2008-05-07  Ben Elliston  <bje@au.ibm.com>
+
 	* c-common.h (RID_EA): Remove.
 	* c-parser.c (reswords): Remove "__ea"/RID_EA entry.
 	(enum c_id_kind): Add C_ID_ADDRSPACE.
