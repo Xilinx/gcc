@@ -1,4 +1,20 @@
 2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
+	
+	* testsuite/gcc.dg/graphite/scop-1.c: Update.
+	* testsuite/gcc.dg/graphite/scop-2.c: Update.
+	* testsuite/gcc.dg/graphite/scop-4.c: Update.
+	* testsuite/gcc.dg/graphite/scop-5.c: Add. 
+	* testsuite/gcc.dg/graphite/scop-6.c: Add.
+
+2008-05-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* testsuite/gcc.dg/graphite/scop-0.c: Add. 
+	* testsuite/gcc.dg/graphite/scop-7.c: Add.
+	* testsuite/gcc.dg/graphite/scop-8.c: Add.
+	* testsuite/gcc.dg/graphite/scop-9.c: Add.
+	* testsuite/gcc.dg/graphite/scop-10.c: Add.
+
+2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (scop_affine_expr): Renamed to loop_affine_expr.  Check affine
 	expressions depending on the outermost loop instead of a scop.

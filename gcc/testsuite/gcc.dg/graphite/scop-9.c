@@ -12,23 +12,19 @@ int toto()
   for (i = 1; i < 100; i++)
     {
       for (j = 1; j < 100; j++)
-	a[j][i] = a[j+1][i-1] + 2;
+        b[i+j] = b[i+j-1] + 2;
 
-      b[i] = b[i-1] + 2;
+      if (i * 2 == i + 8)
+        bar ();
+      else 
+	a[i][i] = 2;
 
-      bar ();
-
-      for (j = 1; j < 100; j++)
-	a[j][i] = a[j+1][i-1] + 2;
-
-      b[i] = a[i-1][i] + 2;
-
-      for (j = 1; j < 100; j++)
-	a[j][i] = a[j+1][i-1] + 2;
+      for (k = 1; k < 100; k++)
+        b[i+k] = b[i+k-5] + 2;
     }
 
   return a[3][5] + b[1];
 }
 
-/* { dg-final { scan-tree-dump-times "number of SCoPs: 5" 1 "graphite"} } */ 
+/* { dg-final { scan-tree-dump-times "number of SCoPs: 5" 1 "graphite"} } */
 /* { dg-final { cleanup-tree-dump "graphite" } } */
