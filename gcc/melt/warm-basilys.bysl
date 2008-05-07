@@ -2979,7 +2979,8 @@
 			       ))
 	       )
 	  (put_env env ibind)
-	  sinst
+	  (debugmsg sinst "mexp.definstance sinst" (the_callcount))
+	  (return sinst)
 	  )))))
 (install_initial_macro 'definstance mexpand_definstance)
 
@@ -6565,28 +6566,13 @@
 	    (add2sbuf_strconst sbuf ";")
 	    (add2sbuf_indentnl sbuf 1)
 	    ))
-      (if oiopredef
-	  (cond
-	   ( (is_a oiopredef class_symbol)
-	     (add2sbuf_strconst sbuf "/*iniobpredefsym*/ BASILYSG(")
-	     (add2sbuf_string sbuf (unsafe_get_field :named_name oiopredef))
-	     (add2sbuf_strconst sbuf ") = (void*)&cdat->")
-	     (add2sbuf_string sbuf oname)
-	     (add2sbuf_strconst sbuf ";")
-	     (add2sbuf_indentnl sbuf 1)
-	     )
-	   ( (is_integerbox oiopredef)
-	     (add2sbuf_strconst sbuf "/*iniobpredefnum*/ basilys_globarr[")
-	     (add2sbuf_longdec sbuf (get_int oiopredef))
-	     (add2sbuf_strconst sbuf "] = (void*)&cdat->")
-	     (add2sbuf_string sbuf oname)
-	     (add2sbuf_strconst sbuf ";")
-	     (add2sbuf_indentnl sbuf 1)
-	     )
-	   ( :else
-	     (debugmsg oiopredef "outcinitfill_objinitobject unexpected oiopredef" (the_callcount))
-	     (assert_msg "outcinitfill_objinitobject unexpected oiopredef" ())
-	     )))
+      ;;generate the check that odiscr is non-null 
+      (add2sbuf_strconst sbuf " basilys_assertmsg(\"iniobj checkdiscr ")
+      (add2sbuf_string sbuf oname)
+      (add2sbuf_strconst sbuf "\", NULL != (void*)")
+      (output_c_code odiscr (the_null) sbuf 1)
+      (add2sbuf_strconst sbuf ");")
+      (add2sbuf_indentnl sbuf 1)
       (add2sbuf_strconst sbuf " cdat->")
       (add2sbuf_string sbuf oname)
       (add2sbuf_strconst sbuf ".obj_class = ")
@@ -6639,6 +6625,7 @@
 
 (defun outcinitpredef_objinitobject (recv sbuf)
   (assert_msg "outcinitpredef_objinitobject check recv" (is_a recv class_objinitobject))
+  (assert_msg "outcinitpredef_objinitobject check sbuf" (is_strbuf sbuf))
   (debugmsg recv "outcinitpredef_objinitobject recv" (the_callcount))
   (let ( (odata (unsafe_get_field :oie_data recv)) 
 	 (odiscr (unsafe_get_field :oie_discr recv))
@@ -7525,9 +7512,9 @@
     (add2sbuf_indentnl implbuf 1)
    (multiple_every
     idatup
-    (lambda (curfil :long curk) 
-      (debugmsg curfil "outpucod_initialroutine curfil" (the_callcount))
-      (output_c_initpredef curfil implbuf)))
+    (lambda (curpdat :long curk) 
+      (debugmsg curpdat "outpucod_initialroutine curpdat inipredef")
+      (output_c_initpredef curpdat implbuf)))
 ;;;
 ;;; generate the initial filling of cdat
     (add2sbuf_strconst implbuf "/*initial routine fill*/")
@@ -8523,7 +8510,12 @@
 	 )
     (assert_msg "outpucod_objputslot check oval not nrep" (not (is_a oval class_nrep)))
     (output_location iloc implbuf depth "putslot")
-    (add2sbuf_strconst implbuf "/*putslot checkobj*/ basilys_assertmsg(\"putslot checkobj\", basilys_magic_discr(")
+    (add2sbuf_strconst implbuf "/*putslot checkobj*/ basilys_assertmsg(\"putslot checkobj")
+    (if (is_a odata class_named)
+	(progn
+	  (add2sbuf_strconst implbuf " ")
+	  (add2sbuf_string implbuf (unsafe_get_field :named_name odata))))
+    (add2sbuf_strconst implbuf "\", basilys_magic_discr(")
     (output_c_code odata declbuf implbuf depth)
     (add2sbuf_strconst implbuf ") == OBMAG_OBJECT);")
     (add2sbuf_indentnl implbuf depth)
@@ -10356,10 +10348,12 @@
 					 :obi_loc nloc
 					 :oclr_vloc obva))
 	     ))))
+    ;;; @@@@@ BUG MAYBE HERE - perhaps the dispose should not be done
+    ;;; here but in the caller
     ;; dispose every local binding
-    (multiple_every
-     dlocbind
-     (lambda (bnd :long ix) (dispose_bnd_obj bnd gcx)))
+   ;;?-  (multiple_every
+   ;;?-   dlocbind
+   ;;?-   (lambda (bnd :long ix) (dispose_bnd_obj bnd gcx)))
     )
 					;(debugmsg ibodylis "compil_data_and_slots_fill final ibodylis" (the_callcount))
   (return)				;force a nil return
@@ -10428,7 +10422,7 @@
     (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (if chobj
 	(progn
-	  (debugmsg chobj "compilobj_datainstance found chobj")
+	  (debugmsg chobj "compilobj_datainstance return found chobj" (the_callcount))
 	  (return chobj)))
     (let ( (loc (unsafe_get_field :nrep_loc dai))
 	   (nam (unsafe_get_field :ndata_name dai))
@@ -10446,8 +10440,10 @@
       (assert_msg "compilobj_datainstance check drank" (is_integerbox drank))
       ;(debugmsg disx "compilobj_datainstance disx" (the_callcount))
       ;(debugmsg gcx "compilobj_datainstance avant gcx" (the_callcount))
+      (debugmsg loc "compilobj_datainstance loc before cdisx" (the_callcount))
       (let ( (cdisx (compile_obj disx gcx)) 
 	     )
+	(debugmsg loc "compilobj_datainstance loc after cdisx" (the_callcount))
 	;(debugmsg cdisx "compilobj_datainstance cdisx" (the_callcount))
 	(let (
 	      ;; make a cname
@@ -10461,6 +10457,7 @@
 	      (:long drk (get_int drank))
 	      )
 	  (mapobject_put compicache dai oini)
+	  (debugmsg loc "compilobj_datainstance loc after put compicache" (the_callcount))
 	  (add2sbuf_strconst nambuf "dobj_")
 	  (add2sbuf_longdec nambuf drk)
 	  (if nam (progn
@@ -10472,8 +10469,10 @@
 	    )
 	  (put_int oini (multiple_length dslots))
 	  ;(debugmsg gcx "compilobj_datainstance apres gcx" (the_callcount))
-	  ;(debugmsg oini "compilobj_datainstance oini" (the_callcount))
+	  (debugmsg oini "compilobj_datainstance oini before data&slots" (the_callcount))
+	  (debugmsg loc "compilobj_datainstance loc before data&slots" (the_callcount))
 	  (compil_data_and_slots_fill dai oini cdisx inirout gcx)
+	  (debugmsg loc "compilobj_datainstance loc after data&slots" (the_callcount))
 	  (debugmsg oini "compilobj_datainstance final oini" (the_callcount))
 	  oini
 	  )  

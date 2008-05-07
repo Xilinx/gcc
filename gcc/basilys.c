@@ -1778,7 +1778,7 @@ basilysgc_add_strbuf_cident (struct basilysstrbuf_st
   else
     dupstr = xcalloc (slen + 2, 1);
   if (str)
-    for (ps = (char*)str, pd = dupstr; *ps; ps++)
+    for (ps = (char *) str, pd = dupstr; *ps; ps++)
       {
 	if (ISALNUM (*ps))
 	  *(pd++) = *ps;
@@ -2761,7 +2761,7 @@ basilysgc_put_mapobjects (basilysmapobjects_ptr_t
     }
   else
     if ((len = basilys_primtab[map_mapobjectv->lenix]) <=
-	(5 * (cnt = map_mapobjectv->count)) / 4 
+	(5 * (cnt = map_mapobjectv->count)) / 4
 	|| (len <= 5 && cnt + 1 >= len))
     {
       /* entab is nearly full so need to be resized */
@@ -4068,7 +4068,7 @@ load_checked_dylib (const char *dypath, char *md5src)
   dynmd5 = (char *) lt_dlsym (dlh, "basilys_md5");
   if (!dynmd5)
     goto bad;
-  dyncomptimstamp =  (char *) lt_dlsym (dlh, "basilys_compiled_timestamp");
+  dyncomptimstamp = (char *) lt_dlsym (dlh, "basilys_compiled_timestamp");
   if (!dyncomptimstamp)
     goto bad;
   if (md5src)
@@ -4088,7 +4088,8 @@ load_checked_dylib (const char *dypath, char *md5src)
 	    goto bad;
 	}
     }
-  debugeprintf("load_checked_dylib dypath %s dynmd5 %s dyncomptimstamp %s", dypath, dynmd5, dyncomptimstamp);
+  debugeprintf ("load_checked_dylib dypath %s dynmd5 %s dyncomptimstamp %s",
+		dypath, dynmd5, dyncomptimstamp);
   return dlh;
 bad:
   lt_dlclose (dlh);
@@ -5499,6 +5500,8 @@ basilys_initialize (void)
       FCMDIS__LAST && basilys_command_string)
     {
       gcc_assert (dump_file == (FILE *) 0);
+      debugeprintf ("basilys_initialize sets exit_after_options for command %s", basilys_command_string);
+      exit_after_options = 1;
       if (flag_basilys_debug)
 	{
 	  fflush (stderr);
@@ -5506,7 +5509,6 @@ basilys_initialize (void)
 	  fflush (stderr);
 	}
       do_initial_command ();
-      exit_after_options = 1;
       debugeprintf
 	("basilys_initialize after do_initial_command (will exit after options) command_string %s",
 	 basilys_command_string);
@@ -5518,6 +5520,12 @@ basilys_initialize (void)
 	  dump_file = 0;
 	}
     }
+  /* the command exit is builtin */
+  else if (basilys_command_string && !strcmp (basilys_command_string, "exit"))
+    exit_after_options = 1;
+  else if (basilys_command_string)
+    fatal_error ("basilys with command string %s without command dispatcher",
+		 basilys_command_string);
   debugeprintf ("basilys_initialize ended with %ld GarbColl, %ld fullGc",
 		basilys_nb_garbcoll, basilys_nb_full_garbcoll);
 }

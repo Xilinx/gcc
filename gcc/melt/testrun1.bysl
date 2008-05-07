@@ -30,9 +30,9 @@
 
 ;; class of everything with a property table
 (defclass class_proped 
+ :predef CLASS_PROPED
  :super class_root 
- :fields (prop_table)
- :predef CLASS_PROPED)
+ :fields (prop_table))
 
 
 ;; arbitrary container as class
@@ -41,18 +41,18 @@
   :fields (container_value))
 
 ;; class of named objects
-(defclass class_named 
+(defclass class_named  
+  :predef CLASS_NAMED
   :super class_proped 
-  :fields (named_name) 
-  :predef CLASS_NAMED)
+  :fields (named_name))
  
 ;; class of discriminants
 (defclass class_discr 
+  :predef CLASS_DISCR
   :super class_named 
   :fields (disc_methodict 
 	   disc_sender 
-	   disc_super)
-  :predef CLASS_DISCR)
+	   disc_super))
  
 ;; class of classes
 (defclass class_class
@@ -62,16 +62,16 @@
  
 ;; class of fields
 (defclass class_field
+   :predef CLASS_FIELD
   ;; the fields' objnum is its offset
    :super class_named
-   :fields (fld_ownclass fld_typinfo)
-   :predef CLASS_FIELD)
+   :fields (fld_ownclass fld_typinfo))
  
 ;; class of primitive
 (defclass class_primitive
+   :predef CLASS_PRIMITIVE
    :super class_named
-   :fields (prim_formals prim_type prim_expansion)
-   :predef CLASS_PRIMITIVE)
+   :fields (prim_formals prim_type prim_expansion))
  
 ;; class of symbols
 (defclass class_symbol
@@ -91,6 +91,38 @@
   :fields (cmd_fundict			;stringmap for closures
 	   ))
 
+;; the (super-)class of any binding
+(defclass class_any_binding
+  :super class_root
+  :fields (binder)
+)
+
+;;; superclass of exported bindings
+(defclass class_exported_binding
+  :super class_any_binding
+  :fields ( )
+)
+
+;; macro binding
+(defclass class_macro_binding
+  :super class_exported_binding
+  :fields (mbind_expanser))
+
+
+;; value binding - as exported 
+(defclass class_value_binding
+  :super class_exported_binding
+  :fields (vbind_value
+))
+
+; formal binding (used in generated defprimitive)
+(defclass class_formal_binding
+  :super class_any_binding
+  :fields (fbind_type)
+  ;;the obj_num is the argument rank
+  :predef CLASS_FORMAL_BINDING)
+
+
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
   " basilysgc_new_string((" discr "), (" strc "))")
@@ -103,6 +135,8 @@
 (defprimitive is_object (obj) :long
   " (basilys_magic_discr(" obj ") == OBMAG_OBJECT)")
   
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; primitive to get the discriminant of a value
 (defprimitive discrim (v) :value
@@ -480,6 +514,10 @@
 (defprimitive mixint_val (mi) :value
   "(basilys_val_mixint((" mi ")))")
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; the discriminant for name strings
 (definstance discr_namestring class_discr
  :predef DISCR_NAMESTRING
@@ -497,10 +535,11 @@
 (unsafe_put_fields discr_namestring :disc_super discr_string)
 (unsafe_put_fields discr_namestring :named_name
 		   (stringconst2val discr_namestring "DISCR_NAMESTRING"))
+
 ;;; the discriminant for verbatim strings (used for defprimitive)
 (definstance discr_verbatimstring class_discr
- :obj_num OBMAG_STRING
  :predef DISCR_VERBATIMSTRING
+ :obj_num OBMAG_STRING
  :named_name (stringconst2val discr_namestring "DISCR_VERBATIMSTRING")
  :disc_super discr_string
 )
@@ -627,3 +666,5 @@
  :obj_num OBMAG_ROUTINE
  :disc_super discr_anyrecv
  :named_name (stringconst2val discr_namestring "DISCR_ROUTINE"))
+
+;; eof 

@@ -1,4 +1,20 @@
 2008-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	[another bug; the previous one is probably related to too early disposal of locals]
+
+	* common.opt: all basilys options are only when ENABLE_BASILYSMELT.
+
+	* basilys.c: (basilys_initialize) force exit_after_options for builtin command exit
+	and detect command without dispatcher.
+
+	* melt/warm-basilys.bysl: compil_data_and_slots_fill is disposing
+	local bindings too early.
+	[TODO:] It should return a tuple of bindings to be disposed by the
+	caller.  outcinitfill_objinitobject does not set the predef
+	anymore. This is done in outcinitpredef_objinitobject.
+
+	* Makefile.in: the empty runs have -fbasilys-command=exit
+
+2008-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy]
 	* basilys.c: (basilysgc_add_strbuf_cident) always clear current bytedest.
 
