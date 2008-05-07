@@ -1,5 +1,12 @@
 2008-05-07  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (is_bb_addable): Return the harmful statement.
+	Factor up some code.
+	(end_scop): New.  Splits end of scope bbs on a harmful statement.
+	(build_scops_1): Call end_scop.
+
+2008-05-07  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c: (succs_at_same_depth, end_scop, all_preds_visited_p,
 	all_succs_visited_p, start_new_scop_for_each_succ, start_new_scop,
 	add_dominators_to_open_scops, stop_last_open_scop, scop_end_loop,

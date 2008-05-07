@@ -702,7 +702,7 @@ static bool build_scops_1 (basic_block, VEC (scop_p, heap) **, struct loop *,
 static bool
 is_bb_addable (basic_block bb, struct loop *outermost_loop,
 	       VEC (scop_p, heap) **scops, int type, basic_block *next,
-	       bool *bb_simple, basic_block *last)
+	       bool *bb_simple, basic_block *last, tree *stmt)
 {
   VEC (scop_p, heap) *tmp_scops;
   struct loop *loop = bb->loop_father;
@@ -711,20 +711,21 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
   edge e;
   bool bb_simple_tmp;
 
+  *stmt = harmful_stmt_in_bb (outermost_loop, bb);
+  bb_addable = (*stmt == NULL_TREE);
+
   switch (type)
     {
     case GBB_LAST:
     case GBB_LOOP_LATCH:
       *next = NULL;
       *last = bb;
-      bb_addable = harmful_stmt_in_bb (outermost_loop, bb) == NULL_TREE;
       *bb_simple = bb_addable;
       break;
 
     case GBB_SIMPLE:
       *next = VEC_last (edge, bb->succs)->dest;
       *last = bb;
-      bb_addable = harmful_stmt_in_bb (outermost_loop, bb) == NULL_TREE;
       *bb_simple = bb_addable;
       break;
 
@@ -743,7 +744,6 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
       break;
 
     case GBB_COND_HEADER:
-      bb_addable = harmful_stmt_in_bb (outermost_loop, bb) == NULL_TREE;
       *bb_simple = bb_addable; 
 
       tmp_scops = VEC_alloc (scop_p, heap, 3);
@@ -773,8 +773,8 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
           *next = e->dest;
 
       *last = bb;
+      *bb_simple = bb_addable;
       bb_addable = false;
-      *bb_simple = harmful_stmt_in_bb (outermost_loop, bb) == NULL_TREE;
       break;
 
     default:
@@ -782,6 +782,33 @@ is_bb_addable (basic_block bb, struct loop *outermost_loop,
     }
 
   return bb_addable;
+}
+
+/* End SCOP with basic block EXIT, and split EXIT before STMT when
+   STMT is non NULL.  */
+
+static void
+end_scop (scop_p scop, basic_block exit, basic_block *last, tree stmt)
+{
+  if (stmt && VEC_length (edge, exit->preds) == 1)
+    {
+      edge e;
+
+      if (stmt == bsi_stmt (bsi_after_labels (exit)))
+	stmt = NULL_TREE;
+      else
+	{
+	  block_stmt_iterator bsi = bsi_for_stmt (stmt);
+	  bsi_prev (&bsi);
+	  stmt = bsi_stmt (bsi);
+	}
+
+      e = split_block (exit, stmt);
+      exit = e->src;
+      *last = e->dest;
+    }
+
+  SCOP_EXIT (scop) = exit;
 }
 
 /* Creates the SCoPs and writes entry and exit points for every SCoP.  */
@@ -809,9 +836,10 @@ build_scops_1 (basic_block start, VEC (scop_p, heap) **scops,
       int type = get_bb_type (current, loop);
       bool bb_simple;
       bool bb_addable;
+      tree stmt;
 
       bb_addable = is_bb_addable (current, outermost_loop, scops, type,
-				  &next, &bb_simple, last);  
+				  &next, &bb_simple, last, &stmt);  
 
       if (!in_scop && bb_addable)
         {
@@ -821,7 +849,7 @@ build_scops_1 (basic_block start, VEC (scop_p, heap) **scops,
         }
       else if (in_scop && !bb_addable)
         {
-          SCOP_EXIT (open_scop) = current;
+          end_scop (open_scop, current, last, stmt);
           in_scop = false;
         }
 
@@ -831,7 +859,8 @@ build_scops_1 (basic_block start, VEC (scop_p, heap) **scops,
       *all_simple &= bb_simple;
 
       if (next == NULL && in_scop)
-        SCOP_EXIT (open_scop) = VEC_last (edge, (*last)->succs)->dest;
+        end_scop (open_scop, VEC_last (edge, (*last)->succs)->dest, last,
+		  stmt);
 
       current = next;
     }
