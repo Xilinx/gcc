@@ -75,10 +75,11 @@ DEF_VEC_ALLOC_P (name_tree, heap);
 struct scop
 {
   /* The entry bb dominates all the bbs of the scop.  The exit bb
-     post-dominates all the bbs of the scop.  These entry and exit bbs
-     potentially contain non affine data accesses, side effect
-     statements or difficult constructs, and thus they are not
-     considered part of the scop, but just boundaries.  */
+     post-dominates all the bbs of the scop.  The exit bb
+     potentially contains non affine data accesses, side effect
+     statements or difficult constructs, and thus is not
+     considered part of the scop, but just boundary.  The entry bb is
+     considered part of the scop.  */
   basic_block entry, exit;
 
   /* All the basic blocks in the scope.  They have extra information

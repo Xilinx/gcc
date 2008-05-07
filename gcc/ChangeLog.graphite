@@ -1,5 +1,15 @@
 2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite.c (get_bb_type): New.
+	(move_scops): New.
+	(build_scops_2): New.
+	(is_bb_addable): New.
+	(build_scops): Switch the scop detection.
+	(build_scop_bbs): Add entry bb to scop.
+	* graphite.h (struct scop): Update comment.
+
+2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.c (dot_all_scops_1): Fix some incorrect colors and add
 	more colors.
 

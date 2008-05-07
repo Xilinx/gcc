@@ -930,20 +930,229 @@ build_scops_1 (basic_block cbb, VEC (scop_p, heap) **open_scops, bitmap visited)
     }
 }
 
+#define GBB_UNKNOWN 0
+#define GBB_LOOP_HEADER 1
+#define GBB_LOOP_EXIT 3
+#define GBB_LOOP_LATCH 4
+#define GBB_COND_HEADER 5
+#define GBB_SIMPLE 6
+#define GBB_LAST 7
+
+/* Detect the tyoe of the bb.  Loop headers are only marked, if they are new.
+   This means their loop_father is different to last_loop.  Otherwise they are
+   treated like any other bb and their type can be any other type.  */
+
+static int
+get_bb_type (basic_block bb, struct loop *last_loop)
+{
+  int type = GBB_UNKNOWN;
+
+  VEC (basic_block, heap) *dom = get_dominated_by (CDI_DOMINATORS, bb);
+  int nb_dom = VEC_length (basic_block, dom);
+  struct loop *loop = bb->loop_father;
+
+  if (loop != last_loop)
+    type = GBB_LOOP_HEADER;
+
+  else if (nb_dom == 0)
+    type = GBB_LAST;
+
+  else if (nb_dom == 1)
+      if (loop->latch == bb)
+        type = GBB_LOOP_LATCH;
+      else 
+        type = GBB_SIMPLE;
+
+  else if (nb_dom == 2)
+      if (single_exit (loop) != NULL && single_exit (loop)->src == bb)
+        type = GBB_LOOP_EXIT;
+      else
+        type = GBB_COND_HEADER;
+
+  else if (nb_dom == 3)
+    type = GBB_COND_HEADER;
+
+  assert (type != GBB_UNKNOWN);
+
+  return type;
+}
+
+/* Move the scops from source to target and clean up target.  */
+
+static void
+move_scops (VEC (scop_p, heap) **source, VEC (scop_p, heap) **target)
+{
+  scop_p s;
+  int i;
+
+  for (i = 0; VEC_iterate (scop_p, *source, i, s); i++)
+    VEC_safe_push (scop_p, heap, *target, s);
+  
+  VEC_free (scop_p, heap, *source);
+}
+
+static bool 
+build_scops_2 (basic_block start, VEC (scop_p, heap) **scops,
+struct loop *loop, struct loop *outermost_loop, basic_block *last,
+bool *all_simple);
+
+
+/* Checks, if a bb can be added to a SCoP.  */
+
+static bool
+is_bb_addable (basic_block bb, struct loop *outermost_loop,
+VEC (scop_p, heap) **scops, int type, basic_block *next, bool *bb_simple,
+basic_block *last)
+{
+  VEC (scop_p, heap) *tmp_scops;
+  struct loop *loop = bb->loop_father;
+  bool bb_addable;
+  int i;
+  edge e;
+  bool bb_simple_tmp;
+
+  switch (type)
+  {
+    case GBB_LAST:
+    case GBB_LOOP_LATCH:
+      *next = NULL;
+      *last = bb;
+      bb_addable = harmful_stmt_in_bb (outermost_loop, bb) == NULL_TREE;
+      *bb_simple = bb_addable;
+      break;
+
+    case GBB_SIMPLE:
+      *next = VEC_last (edge, bb->succs)->dest;
+      *last = bb;
+      bb_addable = harmful_stmt_in_bb (outermost_loop, bb) == NULL_TREE;
+      *bb_simple = bb_addable;
+      break;
+
+    case GBB_LOOP_HEADER:
+      *next = single_exit (bb->loop_father)->dest;
+      *last = single_exit (bb->loop_father)->src;
+      tmp_scops = VEC_alloc (scop_p, heap, 3);
+      bb_addable = build_scops_2 (bb, &tmp_scops, loop, outermost_loop, last,
+                                  bb_simple);
+
+      if (!bb_addable)
+        move_scops (&tmp_scops, scops);
+      else 
+        free_scops (tmp_scops);
+
+      break;
+
+    case GBB_COND_HEADER:
+      bb_addable = harmful_stmt_in_bb (outermost_loop, bb) == NULL_TREE;
+      *bb_simple = bb_addable; 
+
+      tmp_scops = VEC_alloc (scop_p, heap, 3);
+      for (i = 0; VEC_iterate (edge, bb->succs, i, e); i++)
+        if (!dominated_by_p (CDI_POST_DOMINATORS, bb, e->dest))
+          {
+          bb_addable &= build_scops_2 (e->dest, &tmp_scops, loop,
+                                       outermost_loop, last, &bb_simple_tmp);
+          *bb_simple &= bb_simple_tmp;
+          }
+
+      *next = VEC_last (edge, (*last)->succs)->dest;
+
+      if (!dominated_by_p (CDI_DOMINATORS, *next, bb)) 
+        *next = NULL;  
+
+      if (!bb_addable)
+        move_scops (&tmp_scops, scops);
+      else 
+        free_scops (tmp_scops);
+
+      break;
+
+    case GBB_LOOP_EXIT:
+      for (i = 0; VEC_iterate (edge, bb->succs, i, e); i++)
+        if (e != single_exit (bb->loop_father))
+          *next = e->dest;
+
+      *last = bb;
+      bb_addable = false;
+      *bb_simple = harmful_stmt_in_bb (outermost_loop, bb) == NULL_TREE;
+      break;
+
+    default:
+      assert (false);
+  }
+
+  return bb_addable;
+}
+
+/* Creates the SCoPs and writes entry and exit points for every SCoP.  */
+
+static bool 
+build_scops_2 (basic_block start, VEC (scop_p, heap) **scops,
+struct loop *loop, struct loop *outermost_loop, basic_block *last,
+bool *all_simple)
+{
+  basic_block current = start;
+  basic_block next;
+  scop_p open_scop;
+  
+  bool in_scop = false;
+
+  bool all_addable = true;
+  *all_simple = true; 
+
+  /* Loop over the dominance tree.  If we meet a difficult bb jump out of the
+     SCoP, after that jump back in.  Loop and condition header start a new 
+     layer and can only be added, if all bbs in deeper layers are simple.  */
+
+  while (current != NULL)
+    {
+      int type = get_bb_type (current, loop);
+      bool bb_simple;
+      bool bb_addable;
+      
+      bb_addable = is_bb_addable (current, outermost_loop, scops, type,
+                          &next, &bb_simple, last);  
+
+      if (!in_scop && bb_addable)
+        {
+          open_scop = new_scop (current);
+          VEC_safe_push (scop_p, heap, *scops, open_scop); 
+          in_scop = true;
+        }
+      else if (in_scop && !bb_addable)
+        {
+          SCOP_EXIT (open_scop) = current;
+          in_scop = false;
+        }
+      
+      if (!in_scop)
+        all_addable &= false;
+
+      *all_simple &= bb_simple;
+
+      if (next == NULL && in_scop)
+        SCOP_EXIT (open_scop) = VEC_last (edge, (*last)->succs)->dest;
+        
+      current = next;
+    }
+
+  if ((start->loop_father->header == start) && *all_simple)
+    return true;
+
+  return all_addable;
+}
+
 /* Find static control parts.  */
 
 static void
 build_scops (void)
 {
-  VEC (scop_p, heap) *open_scops = VEC_alloc (scop_p, heap, 3);
-  bitmap visited = BITMAP_ALLOC (NULL);
-
-  VEC_safe_push (scop_p, heap, open_scops, new_scop (ENTRY_BLOCK_PTR->next_bb));
-  build_scops_1 (ENTRY_BLOCK_PTR->next_bb, &open_scops, visited);
-
-  gcc_assert (VEC_empty (scop_p, open_scops));
-  VEC_free (scop_p, heap, open_scops);
+  struct loop *loop = ENTRY_BLOCK_PTR->loop_father;
+  basic_block last;
+  bool tmp;
+  build_scops_2 (ENTRY_BLOCK_PTR, &current_scops, loop, loop, &last, &tmp);
 }
+
 
 /* Store the GRAPHITE representation of BB.  */
 
@@ -970,8 +1179,9 @@ dfs_bb_in_scop_p (const_basic_block bb, const void *data)
 {
   scop_p scop = (scop_p) data;
 
-  /* Scop's exit is not in the scop.  */
-  if (bb == SCOP_EXIT (scop)
+  /* Scop's exit is not in the scop.  Exclude also bbs, which are dominated
+     by the SCoP exit.  These are e.g. loop latches.  */
+  if (dominated_by_p (CDI_DOMINATORS, bb, SCOP_EXIT (scop))
       /* Every block in the scop is dominated by scop's entry.  */
       || !dominated_by_p (CDI_DOMINATORS, bb, SCOP_ENTRY (scop))
       /* Every block in the scop is postdominated by scop's exit.  */
@@ -996,7 +1206,7 @@ build_scop_bbs (scop_p scop)
 
   dfs_enumerate_from (SCOP_ENTRY (scop), 0, dfs_bb_in_scop_p, bbs,
 		      n_basic_blocks, scop);
-
+  build_graphite_bb (scop, SCOP_ENTRY (scop));
   free (bbs);
 }
 
