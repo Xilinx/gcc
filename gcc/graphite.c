@@ -287,18 +287,45 @@ dot_all_scops_1 (FILE *file)
 		color = "#ffff33";
 		break;
 	      case 6: /* brown */
-		color = "#e41a1c";
+		color = "#a65628";
 		break;
 	      case 7: /* rose */
 		color = "#f781bf";
 		break;
+	      case 8:
+		color = "#8dd3c7";
+		break;
+	      case 9:
+		color = "#ffffb3";
+		break;
+	      case 10:
+		color = "#bebada";
+		break;
+	      case 11:
+		color = "fb8072";
+		break;
+	      case 12:
+		color = "80b1d3";
+		break;
+	      case 13:
+		color = "fdb462";
+		break;
+	      case 14:
+		color = "#b3de69";
+		break;
+	      case 15:
+		color = "#fccde5";
+		break;
+	      case 16:
+		color = "#bc80bd";
+		break;
 	      default: /* gray */
-		color = "#e41a1c";
+		color = "#999999";
 	      }
 
 	    fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"%s\">", color);
         
-      if (!bb_in_scop_p (bb, scop))
+	    if (!bb_in_scop_p (bb, scop))
 	      fprintf (file, " ("); 
 
 	    if (bb == scop->entry && bb == scop->exit)
@@ -310,7 +337,7 @@ dot_all_scops_1 (FILE *file)
 	    else
 	      fprintf (file, " %d ", bb->index);
 
-      if (!bb_in_scop_p (bb, scop))
+	    if (!bb_in_scop_p (bb, scop))
 	      fprintf (file, ")");
 
 	    fprintf (file, "</TD></TR>\n");

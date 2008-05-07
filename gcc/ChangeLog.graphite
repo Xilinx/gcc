@@ -1,4 +1,9 @@
 2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (dot_all_scops_1): Fix some incorrect colors and add
+	more colors.
+
+2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 	
 	* testsuite/gcc.dg/graphite/scop-1.c: Update.
 	* testsuite/gcc.dg/graphite/scop-2.c: Update.
