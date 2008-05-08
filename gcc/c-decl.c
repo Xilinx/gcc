@@ -7201,8 +7201,8 @@ declspecs_add_addrspace (struct c_declspecs *specs, tree addrspace ATTRIBUTE_UNU
   /* FIXME: use a target hook here.  */
   as = 1;
   if (specs->address_space > 0)
-    pedwarn ("duplicate %qs", "__ea");
-  
+    pedwarn ("duplicate %qs", targetm.addr_space_name (specs->address_space));
+
   specs->address_space = as;
   return specs;
 }
