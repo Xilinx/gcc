@@ -1556,25 +1556,28 @@ c_parser_declspecs (c_parser *parser, struct c_declspecs *specs,
 	{
 	  tree value = c_parser_peek_token (parser)->value;
 	  c_id_kind kind = c_parser_peek_token (parser)->id_kind;
+
+	  if (kind == C_ID_ADDRSPACE && !c_dialect_objc ())
+	    {
+	      declspecs_add_addrspace (specs, c_parser_peek_token (parser)->value);
+	      c_parser_consume_token (parser);
+	      attrs_ok = true;
+	      seen_type = true;
+	      continue;
+	    }
+
 	  /* This finishes the specifiers unless a type name is OK, it
 	     is declared as a type name and a type name hasn't yet
 	     been seen.  */
 	  if (!typespec_ok || seen_type
-	      || (kind != C_ID_TYPENAME && kind != C_ID_CLASSNAME && kind != C_ID_ADDRSPACE))
+	      || (kind != C_ID_TYPENAME && kind != C_ID_CLASSNAME))
 	    break;
 	  c_parser_consume_token (parser);
 	  seen_type = true;
 	  attrs_ok = true;
-
-	  if (kind == C_ID_ADDRSPACE && !c_dialect_objc ())
-	    {
-	      /* FIX: don't use continue.  */
-	      declspecs_add_addrspace (specs, c_parser_peek_token (parser)->value);
-	      continue;
-	    }
-	  else if (kind == C_ID_TYPENAME
-		   && (!c_dialect_objc ()
-		       || c_parser_next_token_is_not (parser, CPP_LESS)))
+	  if (kind == C_ID_TYPENAME
+	      && (!c_dialect_objc ()
+		  || c_parser_next_token_is_not (parser, CPP_LESS)))
 	    {
 	      t.kind = ctsk_typedef;
 	      /* For a typedef name, record the meaning, not the name.
@@ -4267,9 +4270,6 @@ c_parser_asm_statement (c_parser *parser)
     }
   else if (c_parser_next_token_is_keyword (parser, RID_CONST)
 	   || c_parser_next_token_is_keyword (parser, RID_RESTRICT))
-    /*
-	   || legitimate_addr_space (c_parser_peek_token (parser)->value)) 
-    */
     {
       warning (0, "%H%E qualifier ignored on asm",
 	       &c_parser_peek_token (parser)->location,

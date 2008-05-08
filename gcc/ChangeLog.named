@@ -1,3 +1,8 @@
+2008-05-08  Ben Elliston  <bje@au.ibm.com>
+
+	* c-parser.c (c_parser_declspecs): Handle the possibility of a
+	C_ID_ADDRSPACE appearing in the list of declaration specifiers.
+
 2008-05-07  Ben Elliston  <bje@au.ibm.com>
 
 	* target.h (struct gcc_target): Add valid_addr_space field.
