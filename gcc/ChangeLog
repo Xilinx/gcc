@@ -1,3 +1,338 @@
+2008-05-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-parloops.c (create_parallel_loop): Set OMP_RETURN_NOWAIT
+	on OMP_RETURN for OMP_FOR.
+
+	PR debug/35896
+	* dwarf2out.c (dw_expand_expr, common_check): Removed.
+	(fortran_common): New function.
+	(gen_variable_die): Call fortran_common instead of common_check,
+	adjust for it returning tree instead of rtx.  Formatting.
+
+2008-05-07  Kenneth Zadeck  <zadeck@naturalbridge.com>
+
+        PATCH rtl/7335
+        PATCH rtl/33826
+        * see.c (see_copy_insn): Copy new pure const attributes for new
+        call.
+        * c-decl.c (merge_decls): Ditto.
+        * postreload.c (record_opr_changes): Change CONST_OR_PURE_CALL_P
+        to RTL_CONST_OR_PURE_CALL_P.
+        * tree.c (define_local_buitin): Rename DECL_IS_PURE to
+        DECL_PURE_P.  Initialized DECL_LOOPING_CONST_PURE.
+        (process_call_operands): Set tree_side_effects properly.
+        * tree.h (TREE_READONLY_DECL_P): Removed.
+        (DECL_IS_PURE): Renamed to DECL_PURE_P.
+        (DECL_LOOPING_OR_CONST_P): New macro.
+        (struct tree_function_decl): Added looping_const_or_pure_p.
+        (ECF_*) Renumbered.
+        (ECF_LOOPING_OR_CONST_P): New macro,
+        * rtlanal.c (pure_const_p): Removed.
+        * builtins.c (expand_builtin): Rename DECL_IS_PURE to DECL_PURE_P.
+        * reorg.c (delete_prior_computation) Changed CONST_OR_PURE_CALL_P
+        to RTL_CONST_CALL_P.
+        * ipa-pure-const.c (pure_const_state_e): Added looping field.
+        (check_decl, check_tree, check_call, scan_function): Initialize
+        looping.
+        (analyze_function): Rename DECL_IS_PURE to DECL_PURE_P.
+        (static_execute): Set looping true for recursive functions.
+        Undo setting state to IPA_NEITHER for recursive functions.
+        * cse.c (cse_insn): 
+        * ifcvt.c (noce_can_store_speculate_p): Changed
+        CONST_OR_PURE_CALL_P and pure_call_p to RTL_CONST_CALL_P or 
+        RTL_CONST_OR_PURE_CALL_P.
+        * dse.c (scan_insn): Ditto.
+        * local-alloc.c (validate_equiv_mem, memref_used_between_p): Ditto.
+        * gcse.c (oprs_not_seen_p) Changed CONST_OR_PURE_CALL_P to
+        RTL_CONST_OR_PURE_CALL_P.
+        (store_killed_in_insn): Changed CONST_OR_PURE_CALL_P and
+        pure_call_p to RTL_CONST_CALL_P.
+        * gimplify.c (gimplify_call_expr): Clear side effects for
+        non-looping pure and constant calls.
+        * calls.c (emit_call_1): Set rtl flags from ecf flags.
+        (flags_from_decl_or_type): Set ecf flags from decl flags.
+        (initialize_argument_information): Turn off
+        ECF_LOOPING_CONST_OR_PURE when turning off ECF_CONST.
+        Change const to pure if callee_copies is true rather than just
+        turning off const.
+        (expand_call): Turn off ECF_LOOPING_PURE_CONST_CALL and remove old
+        way of marking pure calls.
+        (emit_library_call_value_1): Turn off ECF_LOOPING_PURE_CONST_CALL.
+        Remove hack that was supposed to fix pr7335 and remove old
+        way of marking pure calls.
+        * emit-rtl.c (emit_copy_of_insn_after): Copy RTL_CONST_CALL_P,
+        RTL_PURE_CALL_P, RTL_LOOPING_CONST_OR_PURE_CALL_P.
+        * cselib.c (cselib_process_insn): Changed CONST_OR_PURE_CALL_P to
+        RTL_CONST_OR_PURE_CALL_P.
+        * tree-ssa-pre.c (can_value_number_call): Fixed spacing.
+        * loop-invariant.c (find_exits, find_invariant_bb): Changed
+        CONST_OR_PURE_CALL_P to RTL_CONST_OR_PURE_CALL_P.
+        * sched-deps.c (schedule_analyze): Ditto.
+        * rtl.h (struct rtx_def): Use call field, unchanging field, and
+        return_val field of calls to represent pure and const function
+        info.
+        (CONST_OR_PURE_CALL_P): Deleted macro.
+        (RTL_CONST_CALL_P, RTL_PURE_CALL_P,
+        RTL_LOOPING_CONST_OR_PURE_CALL_P, RTL_CONST_OR_PURE_P): New macros.
+        * tree-inline.c (copy_body_r): Changed TREE_READONLY_DECL_P to
+        TREE_READONLY.
+        * tree-optimize.c (execute_fixup_cfg): Added test for
+        ECF_LOOPING_CONST_OR_PURE.
+        * c-common.c (handle_pure_attribute): Changed DECL_IS_PURE to
+        DECL_PURE_P.
+        * tree-cfg.c (update_call_expr_flags): Do not clear tree side
+        effects for looping pure or const calls.
+        (verify_gimple_expr): Added verification code. 
+        * config/alpha/alpha.c (alpha_legitimize_address,
+        alpha_emit_xfloating_libcall): Changed CONST_OR_PURE_CALL_P to
+        RTL_CONST_CALL_P.
+        * config/s390/s390.c (s390_emit_tls_call_insn): Ditto.
+        * config/rs6000/rs6000.c (rs6000_legitimize_tls_address): Ditto.
+        * config/mips/mips.c (mips_call_tls_get_addr): Ditto.
+        * cfgrtl.c (need_fake_edge_p): Changed CONST_OR_PURE_CALL_P to
+        RTL_CONST_OR_PURE_CALL_P.
+        * dce.c (deletable_insn_p): Allow non looping, non sibling, pure
+        and const calls to be deleted.
+
+
+2008-05-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/35714
+	* config/i386/mmx.md (mmx_subv2sf3): New expander.
+	(*mmx_subv2sf3): Rename from mmx_subv2sf3 insn pattern.
+	(*mmx_eqv2sf3): Rename from mmx_eqv2sf3 insn pattern.
+	(mmx_eqv2sf3): New expander.  Use ix86_fixup_binary_operands_no_copy
+	to handle nonimmediate operands.
+	(*mmx_paddwd): Rename from mmx_paddwd insn pattern.
+	(mmx_paddwd): New expander.  Use ix86_fixup_binary_operands_no_copy
+	to handle nonimmediate operands.
+	(*mmx_pmulhrwv4hi3): Rename from mmx_pmulhrwv4hi3 insn pattern.
+	(mmx_pmulhrwv4hi3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*sse2_umulv1siv1di3): Rename from sse2_umulv1siv1di3 insn pattern.
+	(sse2_umulv1siv1di3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*mmx_eq<mode>3): Rename from mmx_eq<mode>3 insn pattern.
+	(mmx_eq<mode>3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*mmx_uavgv8qi3): Rename from mmx_uavgv8qi3 insn pattern.
+	(mmx_uavgv8qi3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*mmx_uavgv4hi3): Rename from mmx_uavgv4hi3 insn pattern.
+	(mmx_uavgv4hi3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+
+	* config/i386/sse.md
+	(sse_movhlps_exp): New expander.  Use ix86_fixup_binary_operands
+	to handle nonimmediate operands.
+	(sse_movlhps_exp): New expander.  Use ix86_fixup_binary_operands
+	to handle nonimmediate operands.
+	(sse_loadhps_exp): New expander.  Use ix86_fixup_binary_operands
+	to handle nonimmediate operands.
+	(sse_loadlps_exp): New expander.  Use ix86_fixup_binary_operands
+	to handle nonimmediate operands.
+	(sse2_unpckhpd_exp): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(sse2_unpcklpd_exp): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(sse_loadhpd_exp): New expander.  Use ix86_fixup_binary_operands
+	to handle nonimmediate operands.
+	(sse_loadlpd): New expander.  Use ix86_fixup_binary_operands
+	to handle nonimmediate operands.
+	(*sse2_<plusminus_insn><mode>3): Rename from
+	sse2_<plusminus_insn><mode>3 insn pattern.
+	(sse2_<plusminus_insn><mode>3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*sse2_umulv2siv2di3): Rename from sse2_umulv2siv2di3 insn pattern.
+	(sse2_umulv2siv2di3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*sse4_1_mulv2siv2di3): Rename from sse4_1_mulv2siv2di3 insn pattern.
+	(sse4_1_mulv2siv2di3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*sse2_pmaddwd): Rename from sse2_pmaddwd insn pattern.
+	(sse2_pmaddwd): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*sse2_eq<mode>3): Rename from sse2_eq<mode>3 insn pattern.
+	(sse2_eq<mode>3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*sse4_1_eqv2di3): Rename from sse4_1_eqv2di3 insn pattern.
+	(sse4_1_eqv2di3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*sse2_uavgv16qi3): Rename from sse2_uavgv16qi3 insn pattern.
+	(sse2_uavgv16qi3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*sse2_uavgv16qi3): Rename from sse2_uavgv16qi3 insn pattern.
+	(sse2_uavgv16qi3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*sse2_uavgv8hi3): Rename from sse2_uavgv8hi3 insn pattern.
+	(sse2_uavgv8hi3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*ssse3_pmulhrswv8hi3): Rename from ssse3_pmulhrswv8hi3 insn pattern.
+	(ssse3_pmulhrswv8hi3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+	(*ssse3_pmulhrswv4hi3): Rename from ssse3_pmulhrswv4hi3 insn pattern.
+	(ssse3_pmulhrswv4hi3): New expander.  Use
+	ix86_fixup_binary_operands_no_copy to handle nonimmediate operands.
+
+	(<sse>_vm<plusminus_insn><mode>3): Do not use ix86_binary_operator_ok.
+	(<sse>_vmmul<mode>3): Ditto.
+	(divv4sf3): Do not use ix86_fixup_binary_operands_no_copy.
+	(divv2df3): Ditto.
+	(ssse3_pmaddubsw128): Use register_operand for operand 1.
+	(ssse3_pmaddubsw): Ditto.
+
+	* config/i386/i386.c (struct_builtin_description)
+	[IX86_BUILTIN_LOADHPS]: Use CODE_FOR_sse_loadhps_exp.
+	[IX86_BUILTIN_STOREHPS]: Use CODE_FOR_sse_loadlps_exp.
+	[IX86_BUILTIN_LOADHPD]: Use CODE_FOR_sse2_loadhpd_exp.
+	[IX86_BUILTIN_LOADLPD]: Use CODE_FOR_sse2_loadlpd_exp.
+	[IX86_BUILTIN_MOVHLPS]: Use CODE_FOR_sse_movhlps_exp.
+	[IX86_BUILTIN_MOVLHPS]: Use CODE_FOR_sse_movlhps_exp.
+	[IX86_BUILTIN_UNPCKHPD]: Use FOR_sse2_unpckhpd_exp.
+	[IX86_BUILTIN_UNPCKLPD]: Use FOR_sse2_unpcklpd_exp.
+	(ix86_fixup_binary_operands): Assert that src1
+	and src2 must have the same mode when swapped.
+	(ix86_expand_binop_builtin): Do not use ix86_fixup_binary_operands
+	and ix86_binary_operator_ok.  Do not force operands in registers
+	when optimizing.
+
+2008-05-07  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (dump_cgraph_node): Update.
+	* cgraph.h (cgraph_local_info): Break out inline summary.
+	* cgraphunit.c (cgraph_process_new_functions): Use inliner analysis
+	hook.
+	* ipa-inline (inline_summary): New accestor function.
+	(cgraph_clone_inlined_nodes, cgraph_check_inline_limits,
+	cgraph_decide_inlining, compute_inline_parameters): Update.
+	* ipa.c (cgraph_remove_unreachable_nodes): Remove statistics.
+
+2008-05-07  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	Cleanup ColdFire scheduling support and add V4 pipeline model.
+
+	* config/m68k/m68k.md (UNSPEC_TIE): New constant.
+	(define_attr cpu): Add cfv4 value.
+	(define_attr type, define_attr type1): Merge into a single 'type'
+	attribute.  Update all uses.
+	(define_attr opx_type, define_attr opy_type, define_attr opx_access):
+	Rearrange and update.  Rename value 'reg' to 'Rn', add value 'FPn'.
+	Update all uses.
+	(define_attr opx_mem, define_attr opy_mem): Remove.
+	(define_attr op_mem): Clean up, update comment.
+	(define_attr size): Use specific values instead of general int.
+	(define_attr guess, define_attr split): Remove.  Update all uses.
+	(movdf_internal, tstsi_internal, tsthi_internal, tstqi_internal,
+	tst<mode>_68881, pushexthisi_const, movsi_const0_68000_10,
+	movsi_const0_68040_60, movsi_const0, movsi_cf, movstrictqi_cf,
+	zero_extendhisi2_cf, zero_extendqisi2_cfv4, cfv4_extendhisi2,
+	68k_extendhisi2, extendqihi2, cfv4_extendqisi2, 68k_extendqisi2,
+	floatsi<mode>2_68881, ftrunc<mode>2_68881, ftrunc<mode>2_cf,
+	fix<mode>qi2_68881, fix<mode>hi2_68881, fix<mode>si2_68881,
+	adddi_dishl32, addsi3_5200, add<mode>3_floatsi_68881,
+	add<mode>3_floathi_68881, add<mode>3_floatqi_68881,
+	add<mode>3_68881, add<mode>3_cf, subdi_dishl32, subsi3,
+	sub<mode>3_floatsi_68881, sub<mode>3_floathi_68881,
+	sub<mode>3_floatqi_68881, sub<mode>3_68881, sub<mode>3_cf,
+	mulhi3, mulhisi3, mulhisisi3_s, mulsi3_68020, mulsi3_cf,
+	umulhisi3, mulhisisi3_z, mul<mode>3_floatsi_68881,
+	mul<mode>3_floathi_68881, mul<mode>3_floatqi_68881, fmul<mode>3_cf,
+	div<mode>3_cf, sqrt<mode>2_cf, abs<mode>2_cf, clzsi2,
+	one_cmplsi2_5200, subreghi1ashrdi_const32, ashrsi3, lshrsi3,
+	bsetmemqi, bsetmemqi_ext, bclrmemqi, bclrmemqi_ext,
+	beq, bne, bgt, blt, bordered, bunordered, buneq, bunge, bungt, bunle,
+	bunlt, bltgt, tablejump_internal, call, non_symbolic_call_value,
+	symbolic_call_value_jsr, symbolic_call_value_bsr, link):
+	Update or set attributes.
+	(stack_tie): New fake instruction.
+
+	* config/m68k/m68k.h (TUNE_CFV4): New macro.
+	(m68k_sched_attr_size): Update declaration.
+	(m68k_sched_attr_type2): Remove.
+	(m68k_sched_address_bypass_p, m68k_sched_indexed_address_bypass_p):
+	Declare new bypass predicates.
+
+	* config/m68k/m68k.c (m68k_sched_issue_rate,
+	m68k_sched_first_cycle_multipass_dfa_lookahead): Declare hook
+	implementations.
+	(TARGET_SCHED_ISSUE_RATE,
+	TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD): Override hooks.
+	(override_options): Handle scheduling for ColdFire V4 core.
+	(m68k_expand_prologue): Emit stack_tie.
+	(enum attr_op_type): Split value 'OP_TYPE_REG' to 'OP_TYPE_RN' and
+	'OP_TYPE_FPN'.  Update all uses.
+	(sched_guess_p): Remove.
+	(sched_address_type): Handle symbolic addresses.
+	(sched_get_operand): New static function.
+	(sched_operand_type): Merge into sched_attr_op_type.
+	(sched_attr_op_type): Handle FP registers, handle quick constants,
+	update.
+	(m68k_sched_attr_opx_type, m68k_sched_attr_opy_type): Update.
+	(m68k_sched_attr_size): Update.  Move logic to ...
+	(sched_get_attr_size_int): New static function.
+	(sched_get_opxy_mem_type): New static function.
+	(m68k_sched_attr_op_mem): Update.
+	(m68k_sched_attr_type2): Remove.
+	(sched_cfv4_bypass_data): New static variable.
+	(m68k_sched_adjust_cost): Handle ColdFire V4 bypass.
+	(m68k_sched_issue_rate): Implement scheduler hook.
+	(struct _sched_ib: enabled_p): New field.
+	(m68k_sched_variable_issue): Update.  Handle V4.
+	(SCHED_DUMP_TODO, SCHED_DUMP_DONE, SCHED_DUMP_NOTHING,
+	sched_dump_class_func_t, sched_dump_split_class,
+	sched_dump_dfa_guess_unit_code, sched_dump_dfa_state,
+	sched_dump_dfa_class, m68k_sched_dump): Remove.
+	(m68k_sched_first_cycle_multipass_dfa_lookahead): Implement scheduler
+	hook.
+	(m68k_sched_init_global): Remove statisctics dumping, introduce
+	sanity check that all instructions have pipeline reservations.  Handle
+	ColdFire V4 core.
+	(m68k_sched_dfa_pre_advance_cycle, m68k_sched_dfa_post_advance_cycle):
+	Handle ColdFire V4 core.
+	(sched_mem_operand_p, sched_get_reg_operand, sched_get_mem_operand):
+	New static functions.
+	(m68k_sched_address_bypass_p): New bypass predicate.
+	(sched_get_indexed_address_scale): New static function.
+	(m68k_sched_indexed_address_bypass_p): New bypass predicate.
+
+	* cf.md: Update comments.
+	(define_attr type2): Remove.  Use 'type' attribute instead.
+	Update all uses.
+	(cf_ib): Rename to cfv123_ib.  Update all uses.
+	(cf_oep): Rename to cfv123_oep.  Update all uses.
+	(cf_chr): Rename to cfv123_chr.  Update all uses.
+	(cf_mem): Rename to cfv123_mem.  Update all uses.
+	(cf_mac): Move to more appropriate place.
+	(cfv123_guess): New automaton and cpu_unit.
+	(cfv123_*, cfv12_*, cfv1_*, cfv2_*, cfv3_*): Use type attribute.
+	Update uses of 'size' attribute.  Handle before reload scheduling.
+	(cfv123_guess): New dummy reservation for unhandled instructions.
+	(cfv4_*): Pipeline description of ColdFire V4 core.
+	(ignore): New reservation to handle 'ignore' type.
+
+2008-05-07  Ian Lance Taylor  <iant@google.com>
+
+	PR middle-end/36013
+	* gimplify.c (find_single_pointer_decl_1): Don't look through
+	indirections.
+	(find_single_pointer_decl): Adjust comments.
+
+2008-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36137
+	* fold-const.c (fold_binary): Use STRIP_SIGN_NOPS instead of
+	STRIP_NOPS on arguments even for MIN_EXPR and MAX_EXPR.
+
+	PR middle-end/36106
+	* omp-low.c (expand_omp_atomic_pipeline): Load value using the
+	integral type rather than floating point, then VIEW_CONVERT_EXPR
+	to the floating point type.
+
+2008-05-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_expand_copysign): Force non-zero constant
+	TFmode op0 to register.
+
 2008-05-07  Alan Modra  <amodra@bigpond.net.au>
 
 	* c-decl.c (grokdeclarator): Comment typo.
@@ -281,7 +616,7 @@
 	(ix86_init_mmx_sse_builtins): Move case V4HI_FTYPE_V4HI after
 	case V4SI_FTYPE_V2DF.
 
-2008-05-03  Kenneth Zadeck <zadeck@naturalbridge.com>
+2008-05-03  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	* doc/invoke.texi (max-flow-memory-locations): Removed.
 	* params.def (PARAM_MAX_FLOW_MEMORY_LOCATIONS): Removed.
@@ -1408,7 +1743,7 @@
 	* config/rs6000/rs6000.c (rs6000_register_move_cost): Increase cost
 	of LR/CTR moves for Power6.
 
-2008-04-22  Kenneth Zadeck <zadeck@naturalbridge.com>
+2008-04-22  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	PR middle-end/36003
 	* passes.c (init_optimization_passes): Remove
@@ -1493,14 +1828,14 @@
 	* coverage.c: Include tree-pass.h.
 	(coverage_counter_alloc): Print da_file_name to the dump file.
 
-2008-04-21  Kenneth Zadeck <zadeck@naturalbridge.com>
+2008-04-21  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	* sbitmap.c (sbitmap_range_empty_p): New function.
 	* sbitmap.h (sbitmap_range_empty_p): New function.
 	* bitmap.h: Now includes obstack.h.
 
 2008-04-21  Richard Sandiford  <rsandifo@nildram.co.uk>
-	    Kenneth Zadeck <zadeck@naturalbridge.com>
+	    Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	* dbgcnt.def (ra_byte_scan): Added.
 	* dbgcnt.c (dbg_cnt): Added code to print message to dump_file
@@ -2379,7 +2714,7 @@
 	* config/i386/i386.md ("*sse_prologue_save_insn"): Use braced output
 	control string instead of quoted.
 
-2008-04-07  Kenneth Zadeck <zadeck@naturalbridge.com>
+2008-04-07  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	* doc/rtl.texi: Rewrite of subreg section.
 
@@ -4980,7 +5315,7 @@
 
 	* alias.h (alias_set_type): Change from HOST_WIDE_INT to int.
 
-2008-03-05  Kenneth Zadeck <zadeck@naturalbridge.com>
+2008-03-05  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	* fwprop.c (update_df): Support width and offset parameters of
 	df_ref_create.
@@ -7644,7 +7979,7 @@
 	* common.opt (Wstrict-aliasing): Specify Var and Init.
 	(Wstrict-overflow): Likewise.
 
-2008-01-22  Kenneth Zadeck <zadeck@naturalbridge.com>
+2008-01-22  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	PR rtl-optimization/26854
 	PR rtl-optimization/34400
@@ -7741,7 +8076,7 @@
 	* ipa-struct-reorg.c (gen_size): Fix the malloc parameter calculation
 	when the structure size is not a power of 2.
 
-2008-01-20  Kenneth Zadeck <zadeck@naturalbridge.com>
+2008-01-20  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	* doc/install.texi: Add doc for --enable-checking=df.
 	
@@ -7755,7 +8090,7 @@
 	* global.c (find_reg): Only compute EH_RETURN_DATA_REGNO once per
 	input.
 
-2008-01-19  Kenneth Zadeck <zadeck@naturalbridge.com>
+2008-01-19  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	PR rtl-optimization/26854
 	PR rtl-optimization/34400

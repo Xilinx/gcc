@@ -7859,7 +7859,7 @@ legitimize_tls_address (rtx x, enum tls_model model, int for_mov)
 	  insns = get_insns ();
 	  end_sequence ();
 
-	  CONST_OR_PURE_CALL_P (insns) = 1;
+	  RTL_CONST_CALL_P (insns) = 1;
 	  emit_libcall_block (insns, dest, rax, x);
 	}
       else if (TARGET_64BIT && TARGET_GNU2_TLS)
@@ -7890,7 +7890,7 @@ legitimize_tls_address (rtx x, enum tls_model model, int for_mov)
 
 	  note = gen_rtx_EXPR_LIST (VOIDmode, const0_rtx, NULL);
 	  note = gen_rtx_EXPR_LIST (VOIDmode, ix86_tls_get_addr (), note);
-	  CONST_OR_PURE_CALL_P (insns) = 1;
+	  RTL_CONST_CALL_P (insns) = 1;
 	  emit_libcall_block (insns, base, rax, note);
 	}
       else if (TARGET_64BIT && TARGET_GNU2_TLS)
@@ -10689,7 +10689,12 @@ ix86_fixup_binary_operands (enum rtx_code code, enum machine_mode mode,
   /* Canonicalize operand order.  */
   if (ix86_swap_binary_operands_p (code, mode, operands))
     {
-      rtx temp = src1;
+      rtx temp;
+
+      /* It is invalid to swap operands of different modes.  */
+      gcc_assert (GET_MODE (src1) == GET_MODE (src2));
+
+      temp = src1;
       src1 = src2;
       src2 = temp;
     }
@@ -11245,7 +11250,7 @@ ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
 void
 ix86_expand_copysign (rtx operands[])
 {
-  enum machine_mode mode, vmode;
+  enum machine_mode mode;
   rtx dest, op0, op1, mask, nmask;
 
   dest = operands[0];
@@ -11253,7 +11258,6 @@ ix86_expand_copysign (rtx operands[])
   op1 = operands[2];
 
   mode = GET_MODE (dest);
-  vmode = mode == SFmode ? V4SFmode : V2DFmode;
 
   if (GET_CODE (op0) == CONST_DOUBLE)
     {
@@ -11264,6 +11268,10 @@ ix86_expand_copysign (rtx operands[])
 
       if (mode == SFmode || mode == DFmode)
 	{
+	  enum machine_mode vmode;
+
+	  vmode = mode == SFmode ? V4SFmode : V2DFmode;
+
 	  if (op0 == CONST0_RTX (mode))
 	    op0 = CONST0_RTX (vmode);
 	  else
@@ -11275,9 +11283,12 @@ ix86_expand_copysign (rtx operands[])
 			       CONST0_RTX (SFmode), CONST0_RTX (SFmode));
 	      else
 		v = gen_rtvec (2, op0, CONST0_RTX (DFmode));
+
 	      op0 = force_reg (vmode, gen_rtx_CONST_VECTOR (vmode, v));
 	    }
 	}
+      else if (op0 != CONST0_RTX (mode))
+	op0 = force_reg (mode, op0);
 
       mask = ix86_build_signbit_mask (mode, 0, 0);
 
@@ -18147,8 +18158,8 @@ static const struct builtin_description bdesc_special_args[] =
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movntv4sf, "__builtin_ia32_movntps", IX86_BUILTIN_MOVNTPS, UNKNOWN, (int) VOID_FTYPE_PFLOAT_V4SF },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movups, "__builtin_ia32_loadups", IX86_BUILTIN_LOADUPS, UNKNOWN, (int) V4SF_FTYPE_PCFLOAT },
 
-  { OPTION_MASK_ISA_SSE, CODE_FOR_sse_loadhps, "__builtin_ia32_loadhps", IX86_BUILTIN_LOADHPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_PCV2SF },
-  { OPTION_MASK_ISA_SSE, CODE_FOR_sse_loadlps, "__builtin_ia32_loadlps", IX86_BUILTIN_LOADLPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_PCV2SF },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_sse_loadhps_exp, "__builtin_ia32_loadhps", IX86_BUILTIN_LOADHPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_PCV2SF },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_sse_loadlps_exp, "__builtin_ia32_loadlps", IX86_BUILTIN_LOADLPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_PCV2SF },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_storehps, "__builtin_ia32_storehps", IX86_BUILTIN_STOREHPS, UNKNOWN, (int) VOID_FTYPE_PV2SF_V4SF },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_storelps, "__builtin_ia32_storelps", IX86_BUILTIN_STORELPS, UNKNOWN, (int) VOID_FTYPE_PV2SF_V4SF },
 
@@ -18167,8 +18178,8 @@ static const struct builtin_description bdesc_special_args[] =
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_movupd, "__builtin_ia32_loadupd", IX86_BUILTIN_LOADUPD, UNKNOWN, (int) V2DF_FTYPE_PCDOUBLE },
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_movdqu, "__builtin_ia32_loaddqu", IX86_BUILTIN_LOADDQU, UNKNOWN, (int) V16QI_FTYPE_PCCHAR },
 
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_loadhpd, "__builtin_ia32_loadhpd", IX86_BUILTIN_LOADHPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_PCDOUBLE },
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_loadlpd, "__builtin_ia32_loadlpd", IX86_BUILTIN_LOADLPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_PCDOUBLE },
+  { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_loadhpd_exp, "__builtin_ia32_loadhpd", IX86_BUILTIN_LOADHPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_PCDOUBLE },
+  { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_loadlpd_exp, "__builtin_ia32_loadlpd", IX86_BUILTIN_LOADLPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_PCDOUBLE },
 
   /* SSE3 */
   { OPTION_MASK_ISA_SSE3, CODE_FOR_sse3_lddqu, "__builtin_ia32_lddqu", IX86_BUILTIN_LDDQU, UNKNOWN, (int) V16QI_FTYPE_PCCHAR },
@@ -18337,8 +18348,8 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_SSE, CODE_FOR_xorv4sf3,  "__builtin_ia32_xorps", IX86_BUILTIN_XORPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
 
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movss,  "__builtin_ia32_movss", IX86_BUILTIN_MOVSS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
-  { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movhlps,  "__builtin_ia32_movhlps", IX86_BUILTIN_MOVHLPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
-  { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movlhps,  "__builtin_ia32_movlhps", IX86_BUILTIN_MOVLHPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movhlps_exp,  "__builtin_ia32_movhlps", IX86_BUILTIN_MOVHLPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_sse_movlhps_exp,  "__builtin_ia32_movlhps", IX86_BUILTIN_MOVLHPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_unpckhps, "__builtin_ia32_unpckhps", IX86_BUILTIN_UNPCKHPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_unpcklps, "__builtin_ia32_unpcklps", IX86_BUILTIN_UNPCKLPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF },
 
@@ -18434,8 +18445,8 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_SSE2, CODE_FOR_xorv2df3,  "__builtin_ia32_xorpd", IX86_BUILTIN_XORPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
 
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_movsd,  "__builtin_ia32_movsd", IX86_BUILTIN_MOVSD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_unpckhpd, "__builtin_ia32_unpckhpd", IX86_BUILTIN_UNPCKHPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_unpcklpd, "__builtin_ia32_unpcklpd", IX86_BUILTIN_UNPCKLPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
+  { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_unpckhpd_exp, "__builtin_ia32_unpckhpd", IX86_BUILTIN_UNPCKHPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
+  { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_unpcklpd_exp, "__builtin_ia32_unpcklpd", IX86_BUILTIN_UNPCKLPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF },
 
   { OPTION_MASK_ISA_SSE2, CODE_FOR_vec_pack_sfix_v2df, "__builtin_ia32_vec_pack_sfix", IX86_BUILTIN_VEC_PACK_SFIX, UNKNOWN, (int) V4SI_FTYPE_V2DF_V2DF },
 
@@ -20122,7 +20133,7 @@ safe_vector_operand (rtx x, enum machine_mode mode)
 static rtx
 ix86_expand_binop_builtin (enum insn_code icode, tree exp, rtx target)
 {
-  rtx pat, xops[3];
+  rtx pat;
   tree arg0 = CALL_EXPR_ARG (exp, 0);
   tree arg1 = CALL_EXPR_ARG (exp, 1);
   rtx op0 = expand_normal (arg0);
@@ -20153,30 +20164,12 @@ ix86_expand_binop_builtin (enum insn_code icode, tree exp, rtx target)
   if (!(*insn_data[icode].operand[2].predicate) (op1, mode1))
     op1 = copy_to_mode_reg (mode1, op1);
 
-  /* ??? Using ix86_fixup_binary_operands is problematic when
-     we've got mismatched modes.  Fake it.  */
-
-  xops[0] = target;
-  xops[1] = op0;
-  xops[2] = op1;
-
-  if (tmode == mode0 && tmode == mode1)
-    {
-      target = ix86_fixup_binary_operands (UNKNOWN, tmode, xops);
-      op0 = xops[1];
-      op1 = xops[2];
-    }
-  else if (optimize || !ix86_binary_operator_ok (UNKNOWN, tmode, xops))
-    {
-      op0 = force_reg (mode0, op0);
-      op1 = force_reg (mode1, op1);
-      target = gen_reg_rtx (tmode);
-    }
-
   pat = GEN_FCN (icode) (target, op0, op1);
   if (! pat)
     return 0;
+
   emit_insn (pat);
+
   return target;
 }
 

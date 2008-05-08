@@ -391,6 +391,13 @@ find_single_pointer_decl_1 (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
 {
   tree *pdecl = (tree *) data;
 
+  /* We are only looking for pointers at the same level as the
+     original tree; we must not look through any indirections.
+     Returning anything other than NULL_TREE will cause the caller to
+     not find a base.  */
+  if (REFERENCE_CLASS_P (*tp))
+    return *tp;
+
   if (DECL_P (*tp) && POINTER_TYPE_P (TREE_TYPE (*tp)))
     {
       if (*pdecl)
@@ -406,8 +413,9 @@ find_single_pointer_decl_1 (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
   return NULL_TREE;
 }
 
-/* Find the single DECL of pointer type in the tree T and return it.
-   If there are zero or more than one such DECLs, return NULL.  */
+/* Find the single DECL of pointer type in the tree T, used directly
+   rather than via an indirection, and return it.  If there are zero
+   or more than one such DECLs, return NULL.  */
 
 static tree
 find_single_pointer_decl (tree t)
@@ -418,7 +426,8 @@ find_single_pointer_decl (tree t)
     {
       /* find_single_pointer_decl_1 returns a nonzero value, causing
 	 walk_tree to return a nonzero value, to indicate that it
-	 found more than one pointer DECL.  */
+	 found more than one pointer DECL or that it found an
+	 indirection.  */
       return NULL_TREE;
     }
 
@@ -2265,10 +2274,14 @@ gimplify_call_expr (tree *expr_p, tree *pre_p, bool want_value)
   /* If the function is "const" or "pure", then clear TREE_SIDE_EFFECTS on its
      decl.  This allows us to eliminate redundant or useless
      calls to "const" functions.  */
-  if (TREE_CODE (*expr_p) == CALL_EXPR
-      && (call_expr_flags (*expr_p) & (ECF_CONST | ECF_PURE)))
-    TREE_SIDE_EFFECTS (*expr_p) = 0;
-
+  if (TREE_CODE (*expr_p) == CALL_EXPR)
+    {
+      int flags = call_expr_flags (*expr_p);
+      if (flags & (ECF_CONST | ECF_PURE)
+	  /* An infinite loop is considered a side effect.  */
+	  && !(flags & (ECF_LOOPING_CONST_OR_PURE)))
+	TREE_SIDE_EFFECTS (*expr_p) = 0;
+    }
   return ret;
 }
 
