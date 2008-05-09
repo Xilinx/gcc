@@ -36,6 +36,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "fixed-value.h"
 #include "value-prof.h"
 #include "predict.h"
+#include "target.h"
+#include "target-def.h"
 
 /* Local functions, macros and variables.  */
 static int op_prio (const_tree);
@@ -550,8 +552,12 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	  pp_string (buffer, "volatile ");
 	else if (quals & TYPE_QUAL_RESTRICT)
 	  pp_string (buffer, "restrict ");
-	else if (quals & TYPE_QUAL_EA)
-	  pp_string (buffer, "__ea ");
+
+	if (TYPE_ADDR_SPACE (node))
+	  {
+	    const char *as = targetm.addr_space_name (TYPE_ADDR_SPACE (node));
+	    pp_string (buffer, as);
+	  }
 
 	class = TREE_CODE_CLASS (TREE_CODE (node));
 
@@ -628,9 +634,13 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	    pp_string (buffer, " volatile");
 	  if (quals & TYPE_QUAL_RESTRICT)
 	    pp_string (buffer, " restrict");
-	  else if (quals & TYPE_QUAL_EA)
-	    pp_string (buffer, " __ea");
 
+	  if (TYPE_ADDR_SPACE (node))
+	    {
+	      const char *as = targetm.addr_space_name (TYPE_ADDR_SPACE (node));
+	      pp_string (buffer, as);
+	    }
+	  
 	  if (TYPE_REF_CAN_ALIAS_ALL (node))
 	    pp_string (buffer, " {ref-all}");
 	}

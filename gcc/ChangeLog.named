@@ -1,3 +1,12 @@
+2008-05-09  Ben Elliston  <bje@au.ibm.com>
+
+	* tree-dump.c (dequeue_and_dump): Remove TYPE_QUAL_EA case.
+	* tree-pretty-print.c: Include target.h/target-def.h.
+	(dump_generic_node): Use TYPE_ADDR_SPACE, not TYPE_QUAL_EA.
+	(pp_c_type_qualifier_list): Likewise. Update comments.
+	* c-pretty-print.c: Include target.h/target-def.h.
+	(pp_c_type_qualifer_list): Likewise.
+
 2008-05-08  Ben Elliston  <bje@au.ibm.com>
 
 	* c-decl.c (declspecs_add_addrspace): Use addr_space_name hook

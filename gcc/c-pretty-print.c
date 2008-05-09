@@ -29,6 +29,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-tree.h"
 #include "tree-iterator.h"
 #include "diagnostic.h"
+#include "target.h"
+#include "target-def.h"
 
 /* The pretty-printer code is primarily designed to closely follow
    (GNU) C and C++ grammars.  That is to be contrasted with spaghetti
@@ -224,7 +226,7 @@ pp_c_space_for_pointer_operator (c_pretty_printer *pp, tree t)
        volatile
 
    address-space-qualifier:
-	identifier  */
+       identifier			     -- GNU C  */
 
 void
 pp_c_type_qualifier_list (c_pretty_printer *pp, tree t)
@@ -244,8 +246,12 @@ pp_c_type_qualifier_list (c_pretty_printer *pp, tree t)
     pp_c_cv_qualifier (pp, "volatile");
   if (qualifiers & TYPE_QUAL_RESTRICT)
     pp_c_cv_qualifier (pp, flag_isoc99 ? "restrict" : "__restrict__");
-  if (qualifiers & TYPE_QUAL_EA)
-    pp_c_cv_qualifier (pp, "__ea");
+
+  if (TYPE_ADDR_SPACE (t))
+    {
+      const char *as = targetm.addr_space_name (TYPE_ADDR_SPACE (t));
+      pp_c_identifier (pp, as);
+    }
 }
 
 /* pointer:
