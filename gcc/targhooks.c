@@ -708,4 +708,9 @@ rtx (* default_addr_space_conversion_rtl (int from ATTRIBUTE_UNUSED, int to ATTR
   gcc_unreachable ();
 }
 
+unsigned char default_addr_space_number (const tree ident ATTRIBUTE_UNUSED)
+{
+  gcc_unreachable ();
+}
+
 #include "gt-targhooks.h"

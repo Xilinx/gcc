@@ -7192,18 +7192,15 @@ build_null_declspecs (void)
 }
 
 struct c_declspecs *
-declspecs_add_addrspace (struct c_declspecs *specs, tree addrspace ATTRIBUTE_UNUSED)
+declspecs_add_addrspace (struct c_declspecs *specs, tree addrspace)
 {
-  unsigned char as = 0;
   specs->non_sc_seen_p = true;
   specs->declspecs_seen_p = true;
 
-  /* FIXME: use a target hook here.  */
-  as = 1;
   if (specs->address_space > 0)
     pedwarn ("duplicate %qs", targetm.addr_space_name (specs->address_space));
 
-  specs->address_space = as;
+  specs->address_space = targetm.addr_space_number (addrspace);
   return specs;
 }
 

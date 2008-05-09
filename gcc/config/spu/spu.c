@@ -64,12 +64,14 @@ struct spu_builtin_range
 struct spu_address_space
 {
   const char *name;
+  rtx (*to_generic_insn) (rtx, rtx);
+  rtx (*from_generic_insn) (rtx, rtx);
 };
 
 static struct spu_address_space spu_address_spaces[] = {
-  {"generic"},
-  {"__ea"},
-  {NULL},
+  {"generic", NULL, NULL },
+  {"__ea", gen_from_ea, gen_to_ea },
+  {NULL, NULL, NULL},
 };
 
 static struct spu_builtin_range spu_builtin_range[] = {
@@ -5842,7 +5844,6 @@ spu_ea_pointer_mode (int addrspace)
 static bool
 spu_valid_pointer_mode (enum machine_mode mode)
 {
-  /* FIXME: __ea address space number. */
   return (mode == ptr_mode || mode == Pmode || mode == spu_ea_pointer_mode (1));
 }
 
@@ -5908,26 +5909,19 @@ spu_libgcc_shift_count_mode (void)
 const char *
 spu_addr_space_name (int addrspace)
 {
-  /* FIXME: check maximum, too.  */
-  gcc_assert (addrspace > 0);
+  gcc_assert (addrspace > 0 && addrspace <= 1);
   return (spu_address_spaces [addrspace].name);
 }
 
 static
 rtx (* spu_addr_space_conversion_rtl (int from, int to)) (rtx, rtx)
 {
-  gcc_assert (from != to);
-  gcc_assert (from == 0 || to == 0);
+  gcc_assert ((from == 0 && to == 1) || (from == 1 && to == 0));
 
-  /* FIXME: Also assert that from_as and to_as are valid.  */
-  /* FIXME: Make this table driven!  */
-
-  if (from == 1 && to == 0)
-    /* From __ea to generic. */
-    return gen_from_ea;
-  else if (from == 0 && to == 1)
-    /* From generic to __ea.  */
-    return gen_to_ea;
+  if (to == 0)
+    return spu_address_spaces[1].to_generic_insn;
+  else if (to == 1)
+    return spu_address_spaces[1].from_generic_insn;
 
   return 0;
 }
@@ -5935,8 +5929,13 @@ rtx (* spu_addr_space_conversion_rtl (int from, int to)) (rtx, rtx)
 static
 bool spu_valid_addr_space (tree value)
 {
+  int i;
   if (!value)
     return false;
-  return (strcmp (IDENTIFIER_POINTER (value), "__ea") == 0);
+
+  for (i = 0; spu_address_spaces[i].name; i++)
+    if (strcmp (IDENTIFIER_POINTER (value), spu_address_spaces[i].name) == 0)
+      return true;
+  return false;
 }
 

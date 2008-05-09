@@ -625,10 +625,13 @@ struct gcc_target
   bool (* valid_pointer_mode) (enum machine_mode mode);
 
   /* MODE to use for a pointer into another address space.  */
-  enum machine_mode (* addr_space_pointer_mode) (int addrspace);
+  enum machine_mode (* addr_space_pointer_mode) (int);
 
   /* Function to map an address space to a descriptive string.  */
-  const char * (* addr_space_name) (int addrspace);
+  const char * (* addr_space_name) (int);
+
+  /* Function to map an address space to a descriptive string.  */
+  unsigned char (* addr_space_number) (const tree);
 
   /* Function to return a gen function for the pointer conversion.  */
   rtx (* (* addr_space_conversion_rtl) (int, int)) (rtx, rtx);

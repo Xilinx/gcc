@@ -1,5 +1,21 @@
 2008-05-09  Ben Elliston  <bje@au.ibm.com>
 
+	* targhooks.c (default_addr_space_number): New.
+	* targhooks.h (default_addr_space_number): New prototype.
+	* target.h (struct gcc_target): New field addr_space_number.
+	* target-def.h (TARGET_ADDR_SPACE_NUMBER): New.
+	(TARGET_INITIALIZER): Add TARGET_ADDR_SPACE_NUMBER.
+	* c-decl.c (declspecs_add_addrspace): Use this target hook to look
+	up the address space number for a decl.
+	* config/spu/spu.c (struct spu_address_space): Add new fields.
+	(spu_address_spaces): Update struct instance.
+	(spu_valid_pointer_mode): Remove fixme.
+	(spu_addr_space_name): Likewise.
+	(spu_addr_space_conversion_rtl): Simplify--use the table.
+	(spu_valid_addr_space): Likewise.
+
+2008-05-09  Ben Elliston  <bje@au.ibm.com>
+
 	* doc/extend.texi: Document name address space extension.
 	* doc/invoke.texi: Document new SPU options.
 
