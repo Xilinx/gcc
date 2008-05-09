@@ -4901,8 +4901,8 @@ return_in_memory_ms_64 (const_tree type, enum machine_mode mode)
   return (size != 1 && size != 2 && size != 4 && size != 8);
 }
 
-int
-ix86_return_in_memory (const_tree type)
+bool
+ix86_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
   const enum machine_mode mode = type_natural_mode (type);
 
@@ -4919,8 +4919,8 @@ ix86_return_in_memory (const_tree type)
    but differs notably in that when MMX is available, 8-byte vectors
    are returned in memory, rather than in MMX registers.  */
 
-int
-ix86_sol10_return_in_memory (const_tree type)
+bool
+ix86_sol10_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
   int size;
   enum machine_mode mode = type_natural_mode (type);
@@ -4951,6 +4951,20 @@ ix86_sol10_return_in_memory (const_tree type)
   return size > 12;
 }
 
+bool
+ix86_i386elf_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
+{
+  return (TYPE_MODE (type) == BLKmode
+	  || (VECTOR_MODE_P (TYPE_MODE (type)) && int_size_in_bytes (type) == 8));
+}
+
+bool
+ix86_i386interix_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
+{
+  return (TYPE_MODE (type) == BLKmode
+          || (AGGREGATE_TYPE_P (type) && int_size_in_bytes(type) > 8 ));
+}
+
 /* When returning SSE vector types, we have a choice of either
      (1) being abi incompatible with a -march switch, or
      (2) generating an error.
@@ -4959,7 +4973,7 @@ ix86_sol10_return_in_memory (const_tree type)
 
    Choose the STRUCT_VALUE_RTX hook because that's (at present) only
    called in response to actually generating a caller or callee that
-   uses such a type.  As opposed to RETURN_IN_MEMORY, which is called
+   uses such a type.  As opposed to TARGET_RETURN_IN_MEMORY, which is called
    via aggregate_value_p for general type probing from tree-ssa.  */
 
 static rtx
