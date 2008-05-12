@@ -2,6 +2,18 @@
 
 
 
+(defun f1 
+  (g x)
+  (g x x))
+
+(defun f2 
+  (h k y) 
+  (h 
+   (f1 k y) 
+   y))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#| ; SKIPPING
 (defclass my_class_root 
  :predef CLASS_ROOT
  :fields (root_f1 
@@ -144,6 +156,4 @@
     (puts "has boxint"))
 
 (puts "end test0")
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#| ; SKIPPING
 ; SKIPPED |#

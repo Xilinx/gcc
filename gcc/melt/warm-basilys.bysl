@@ -7212,6 +7212,8 @@
 	(add2sbuf_indentnl implbuf depth)
 	)))
 
+
+
 ;;; output the code for declaring and initializing the current frame 
 (defun output_curframe_init (rou implbuf)
   (debugmsg rou "output_curframe_init rou" (the_callcount))
@@ -7221,8 +7223,9 @@
 	(onblong (unsafe_get_field :obrout_nblong rou))
 	(:long nbval (get_int onbval))
 	(:long nblong (get_int onblong))
+	(:long isinitial (is_a rou class_initialroutineobj))
 	(others (unsafe_get_field :obrout_others rou))
-	)
+	)       
     ;; output call counter for debugging
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#if ENABLE_CHECKING")
@@ -7240,7 +7243,13 @@
     (add2sbuf_strconst implbuf "#endif")
     ;; output the current frame
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf " struct { unsigned nbvar;")
+    (add2sbuf_strconst implbuf " struct ")
+    (if (is_a rou class_named)
+	(progn
+	  (add2sbuf_strconst implbuf "frame_")
+	  (add2sbuf_string implbuf (unsafe_get_field :named_name rou))
+	  (add2sbuf_strconst implbuf "_st ")))
+    (add2sbuf_strconst implbuf "{ unsigned nbvar;")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#if ENABLE_CHECKING")
     (add2sbuf_indentnl implbuf 0)
@@ -7248,7 +7257,11 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#endif")
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "  struct basilysclosure_st *clos;")
+    ;; we declare a noinitialclos to be sure to never use clos in the
+    ;; generated code; if we do, the generated code is invalid C
+    (if isinitial
+	(add2sbuf_strconst implbuf "  struct basilysclosure_st *noinitialclos;")
+      (add2sbuf_strconst implbuf "  struct basilysclosure_st *clos;"))
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "  struct excepth_basilys_st *exh;")
     (add2sbuf_indentnl implbuf 0)
@@ -7358,13 +7371,13 @@
     (add2sbuf_indentnl implbuf 0)
     (if  (is_a rou class_initialroutineobj)
 	(progn
-	  (add2sbuf_strconst implbuf " curfram__.clos = NULL /*since initroutine*/;")
+	  (add2sbuf_strconst implbuf " curfram__.noinitialclos = NULL /*since initroutine*/;")
 	  (add2sbuf_indentnl implbuf 0)
 	  )
-	(progn
-	  (add2sbuf_strconst implbuf " curfram__.clos = closp_;")
-	  (add2sbuf_indentnl implbuf 0)
-	  ))
+      (progn
+	(add2sbuf_strconst implbuf " curfram__.clos = closp_;")
+	(add2sbuf_indentnl implbuf 0)
+	))
     (add2sbuf_strconst implbuf " basilys_topframe = (void*) &curfram__;")
     (add2sbuf_indentnl implbuf 0)
     ))
@@ -7698,6 +7711,10 @@
 		(== (unsafe_get_field :obv_type ocnstv) ctype_value))
     (add2sbuf_strconst implbuf "(/*!")
     (add2sbuf_string implbuf onam)
+    ;; for debug only 
+    (add2sbuf_strconst implbuf " #")
+    (add2sbuf_longhex implbuf (obj_hash ocnstv))
+    ;; was for debug
     (add2sbuf_strconst implbuf "*/ curfram__.clos->rout->tabval[")
     (add2sbuf_longdec implbuf (get_int ooff))
     (add2sbuf_strconst implbuf "])")
@@ -8603,6 +8620,10 @@
 	 (ooff (unsafe_get_field :oprconst_off oprconst))
 	 (ocval (unsafe_get_field :oprconst_cval oprconst)) )
     (output_location oloc implbuf depth "putroutconst")
+    (add2sbuf_strconst implbuf "/*putroutconst checkrout*/ basilys_assertmsg(\"putroutconst checkrout\", basilys_magic_discr(")
+    (output_c_code orout declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ") == OBMAG_ROUTINE);")
+    (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "/*putroutconst*/ ((basilysroutine_ptr_t)")
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")->tabval[")
@@ -9923,6 +9944,115 @@
     ))
 
 (install_method class_nrep_multimsend compile_obj compilobj_nrep_multimsend)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile bindings
+(defun compilobj_any_binding  (bind gcx)
+  (assert_msg "check bind" (is_a bind class_any_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg bind "compilobj_any_binding bind" (the_callcount))
+  (displaydebugmsg bind "class_bind compile_obj recv" (the_callcount))
+  (outcstring_err "* compilobj unimplemented reciever binding class ")
+  (let ( (discr (discrim bind)) ) (outstr_err (unsafe_get_field :named_name discr)))
+  (outnewline_err)
+  (assert_msg "@@compile_obj should be implemented in anybinding-s subclasses" ())
+)
+(install_method class_any_binding compile_obj compilobj_any_binding)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile value bindings
+(defun compilobj_value_binding  (bind gcx)
+  (assert_msg "check bind" (is_a bind class_value_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg bind "compilobj_value_binding bind" (the_callcount))
+  (assert_msg "@@unimplemented compilobj_value_binding" ())
+)
+(install_method class_value_binding compile_obj compilobj_value_binding )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile selector bindings
+(defun compilobj_selector_binding  (bind gcx)
+  (assert_msg "check bind" (is_a bind class_selector_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg bind "compilobj_selector_binding bind" (the_callcount))
+  (let ( (sbdata (unsafe_get_field :sbind_selectordata bind)) 
+	 (osdata (compile_obj sbdata gcx)) )
+    (debugmsg osdata "compilobj_selector_binding osdata" (the_callcount))
+    (return osdata)
+    )
+)
+
+(install_method class_selector_binding compile_obj compilobj_selector_binding)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile primitive bindings
+(defun compilobj_primitive_binding  (bind gcx)
+  (assert_msg "check bind" (is_a bind class_primitive_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg bind "compilobj_primitive_binding bind" (the_callcount))
+  (let ( (pbdata (unsafe_get_field :pbind_primdata bind)) 
+	 (opdata (compile_obj pbdata gcx)) )
+    (debugmsg opdata "compilobj_primitive_binding opdata" (the_callcount))
+    (return opdata))
+)
+(install_method class_primitive_binding compile_obj compilobj_primitive_binding)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile function bindings
+(defun compilobj_function_binding  (bind gcx)
+  (assert_msg "check bind" (is_a bind class_function_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg bind "compilobj_function_binding bind" (the_callcount))
+  (let ( (fbdata (unsafe_get_field :fubind_fundata bind))
+	 (ofdata (compile_obj fbdata gcx)) )
+    (debugmsg ofdata "compilobj_function_binding ofdata" (the_callcount))
+    (return ofdata))
+)
+(install_method class_function_binding compile_obj compilobj_function_binding)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile class bindings
+(defun compilobj_class_binding  (bind gcx)
+  (assert_msg "check bind" (is_a bind class_class_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg bind "compilobj_class_binding bind" (the_callcount))
+  (let ( (cbdata (unsafe_get_field :cbind_cladata bind)) 
+	 (ocdata (compile_obj cbdata gcx)) )
+    (debugmsg ocdata "compilobj_class_binding ocdata" (the_callcount))
+    (return ocdata))
+)
+(install_method class_class_binding compile_obj compilobj_class_binding)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile field bindings
+(defun compilobj_field_binding  (bind gcx)
+  (assert_msg "check bind" (is_a bind class_field_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg bind "compilobj_field_binding bind" (the_callcount))
+  (let ( (fbdata (unsafe_get_field :flbind_fdata bind))
+	 (ofdata (compile_obj fbdata gcx)) )
+    (debugmsg ofdata "compilobj_field_binding ofdata" (the_callcount))
+    (return ofdata))
+)
+(install_method class_field_binding compile_obj compilobj_field_binding)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile instance bindings
+(defun compilobj_instance_binding  (bind gcx)
+  (assert_msg "check bind" (is_a bind class_instance_binding))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg bind "compilobj_instance_binding bind" (the_callcount))
+  (let ( (ibdata (unsafe_get_field :ibind_data bind)) 
+	 (oidata (compile_obj ibdata gcx)) )
+    (debugmsg oidata "compilobj_instance_binding oidata" oidata)
+    (return oidata))
+)
+(install_method class_instance_binding compile_obj compilobj_instance_binding)
+
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objvalue (recv desto)
   (assert_msg "check recv" (is_a recv class_objvalue))
@@ -10263,6 +10393,7 @@
 
 ;;; common code to compilobj_datasymbol & compilobj_datainstance
 ;;; to add the initial data fill and the slots filling
+;;; return a tuple of bindings to be disposed
 (defun compil_data_and_slots_fill (ndat obj odiscr irout gcx)
   (assert_msg "compil_data_and_slots_fill check ndat" (is_a ndat class_nrep_data))
   (assert_msg "compil_data_and_slots_fill check obj" (is_a obj class_objinitobject))
@@ -10348,19 +10479,21 @@
 					 :obi_loc nloc
 					 :oclr_vloc obva))
 	     ))))
-    ;;; @@@@@ BUG MAYBE HERE - perhaps the dispose should not be done
-    ;;; here but in the caller
-    ;; dispose every local binding
-   ;;?-  (multiple_every
-   ;;?-   dlocbind
-   ;;?-   (lambda (bnd :long ix) (dispose_bnd_obj bnd gcx)))
+    ;;
+    (debugmsg dlocbind "compil_data_and_slots_fill final dlocbind" (the_callcount))
+    ;; the caller is supposed to do dispose_dlocbind_after_data_and_slots_fill with the result
+    (return dlocbind)
     )
-					;(debugmsg ibodylis "compil_data_and_slots_fill final ibodylis" (the_callcount))
   (return)				;force a nil return
   )
 
 
-
+(defun dispose_dlocbind_after_data_and_slots_fill (dlocbind gcx)
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (multiple_every
+   dlocbind
+   (lambda (bnd :long ix) (dispose_bnd_obj bnd gcx)))
+  )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_datasymbol (syv gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
@@ -10401,7 +10534,9 @@
       (put_int obsym (multiple_length (unsafe_get_field :ninst_slots syv)))
       ;(debugmsg gcx "compilobj_datasymbol gcx" (the_callcount))
       ;(debugmsg obsym "compilobj_datasymbol obsym beforfill" (the_callcount))
-      (compil_data_and_slots_fill syv obsym odiscr inirout gcx)
+      (let ( (dlocbind (compil_data_and_slots_fill syv obsym odiscr inirout gcx)) ) 
+	(debugmsg dlocbind "compilobj_datasymbol dlocbind" (the_callcount))
+	(dispose_dlocbind_after_data_and_slots_fill dlocbind gcx))
       (debugmsg obsym "compilobj_datasymbol obsym final" (the_callcount))
       (return obsym)
       )))
@@ -10471,7 +10606,9 @@
 	  ;(debugmsg gcx "compilobj_datainstance apres gcx" (the_callcount))
 	  (debugmsg oini "compilobj_datainstance oini before data&slots" (the_callcount))
 	  (debugmsg loc "compilobj_datainstance loc before data&slots" (the_callcount))
-	  (compil_data_and_slots_fill dai oini cdisx inirout gcx)
+	  (let ( (dlocbind (compil_data_and_slots_fill dai oini cdisx inirout gcx)) )
+	    (debugmsg dlocbind "compilobj_datainstance dlocbind")
+	    (dispose_dlocbind_after_data_and_slots_fill dlocbind gcx))
 	  (debugmsg loc "compilobj_datainstance loc after data&slots" (the_callcount))
 	  (debugmsg oini "compilobj_datainstance final oini" (the_callcount))
 	  oini
@@ -10695,12 +10832,12 @@
 (defun compilobj_dataroutine (ndrou gcx)
   (assert_msg "check ndrou" (is_a ndrou class_nrep_dataroutine))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  ;(debugmsg gcx "compilobj_dataroutine+ gcx"  (the_callcount))
+  ;;(debugmsg gcx "compilobj_dataroutine+ gcx"  (the_callcount))
   (debugmsg ndrou "compilobj_dataroutine+ ndrou" (the_callcount))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
 	 (chobj (mapobject_get compicache ndrou))
-	 (unused_stuff ()) ;to circumvent a bug in cold-basilys
+	 (unused_stuff ())	  ;to circumvent a bug in cold-basilys
 	 )
     ;; dataroutine compiled only in initial routines
     (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
@@ -10717,6 +10854,9 @@
 	   (inibody (unsafe_get_field :obrout_body inirout))
 	   (locvar (get_free_objlocptr gcx '_valrout_))
 	   )
+      (if (null nloc)
+	  (if (is_a npro class_nrep)
+	      (setq nloc (unsafe_get_field :nrep_loc npro))))
       (assert_msg "check compicache" (is_mapobject compicache))
       (let (
 	    (nambuf (make_strbuf discr_strbuf))
@@ -10752,29 +10892,57 @@
 		(list_every
 		 pconstl
 		 (lambda (constx)
-		   (let ( (oconstx (compile_obj constx gcx)) 
-			  (:long off (get_int bxoff))
-			  ) 
-		     (if oconstx 
-			 (let ( (iput (make_instance class_objputroutconst
-						     :obi_loc nloc
-						     :oprconst_rout oirout
-						     :oprconst_off (make_integerbox discr_integer off)
-						     :oprconst_cval oconstx)) ) 
-			   (list_append inibody iput)
-			   (put_int bxoff (+i off 1)))))))
+		   (debugmsg constx "compilobj_dataroutine constx")
+		   (cond
+		    ( (is_a constx class_nrep_constocc)
+		      (let ( (cnstbind (unsafe_get_field :nocc_bind constx)) )
+			(assert_msg "compilobj_dataroutine check cnstbind" (is_a cnstbind class_any_binding))
+			(let ( 
+			      (oconstx (compile_obj cnstbind gcx)) 
+			      (:long off (get_int bxoff))
+			      ) 
+			  (if oconstx 
+			      (let ( (iput (make_instance class_objputroutconst
+							  :obi_loc nloc
+							  :oprconst_rout oirout
+							  :oprconst_off (make_integerbox discr_integer off)
+							  :oprconst_cval oconstx)) ) 
+				(list_append inibody iput)
+				(put_int bxoff (+i off 1))))))
+		      )
+		    ( (is_a constx class_nrep_data)
+		      (debugmsg constx "compilobj_dataroutine constx data")
+		      (let ( 
+			    (oconstx (compile_obj constx gcx)) 
+			    (:long off (get_int bxoff))
+			    ) 
+			(if oconstx 
+			    (let ( (iput (make_instance class_objputroutconst
+							:obi_loc nloc
+							:oprconst_rout oirout
+							:oprconst_off (make_integerbox discr_integer off)
+							:oprconst_cval oconstx)) ) 
+			      (list_append inibody iput)
+			      (put_int bxoff (+i off 1))))))
+		    (:else
+		     (debugmsg constx  "compilobj_dataroutine unexpected constx" (the_callcount))
+		     (assert_msg "compilobj_dataroutine unexepected constx" ())
+		     )
+		    )
+		   )
+		 )
 		(if (>i (get_int bxoff) 0)
 		    (list_append inibody (make_instance class_objtouch
 							:obi_loc nloc
 							:otouch_val oirout
 							:otouch_comment comm
 							)))
-		)
-	    )
-	  (debugmsg npro "compilobj_dataroutine here npro" (the_callcount))
-	  (debugmsg oirout "compilobj_dataroutine here fresh oirout" (the_callcount))
-	  oirout)
-	))))
+		(debugmsg npro "compilobj_dataroutine here npro" (the_callcount))
+		(debugmsg oirout "compilobj_dataroutine here fresh oirout" (the_callcount))
+		oirout)
+	    ))))
+    )
+  )
 (install_method class_nrep_dataroutine compile_obj compilobj_dataroutine)
 
 

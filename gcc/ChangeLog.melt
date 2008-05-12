@@ -1,3 +1,10 @@
+2008-05-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy]
+	* melt/warm-basilys.bysl: generated code has a named frame structure.
+	generation of initial routine without clos field in curfram to catch bad access to closures.
+	added compilobj_*_binding methods for compile_obj of class*binding-s.
+	compilobj_dataroutine handle constant occurrences.
+
 2008-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	[another bug; the previous one is probably related to too early disposal of locals]
 
