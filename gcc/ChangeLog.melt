@@ -1,4 +1,9 @@
 2008-05-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	[hurt another bug: check typcomp in PUTOBJDEST_OBJVALUE]
+
+	* melt/warm-basilys.bysl: corrected normalization of progn
+
+2008-05-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy - incorrectly calling output_code on discr_list from
 	outpucod_objblock so some objblock is incorrectly built]
 	* basilys.c: (do_initial_command) added check for closure to

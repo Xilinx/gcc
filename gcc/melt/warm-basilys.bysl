@@ -3473,10 +3473,13 @@
      bindtup
      (lambda (slb)
        (assert_msg "mexp.let. check slb" (is_a slb class_src_letbinding))
-       (let ( (lb (make_instance class_let_binding
+       (let (
+	      (sx (unsafe_get_field :sletb_expr slb))
+	      (lb (make_instance class_let_binding
 				:binder (unsafe_get_field :sletb_binder slb)
 				:letbind_type (unsafe_get_field :sletb_type slb)
-				:letbind_expr (unsafe_get_field :sletb_expr slb))) )
+				:letbind_expr sx)) )
+	 (assert_msg "mexp.let not list lb" (not (is_list lb)))
 	 (put_env newenv lb)
        )))
     (setq bodytup (pairlist_to_multiple restpair discr_multiple 
@@ -4931,6 +4934,7 @@
 	    (ncur nbindcur)
 	    (normal_exp comp env ncx sloc)
 	    (assert_msg "check nbindcur" (is_list_or_null nbindcur))
+	    (assert_msg "check ncur not list" (not (is_list ncur)))
 	    (or (is_list nbindcur) (setq nbindcur (make_list discr_list)))
 	    (let ( (newenv (fresh_env env)) )
 	      (list_every 
@@ -4942,10 +4946,11 @@
 		     (cbind (make_instance class_normlet_binding
 					   :binder csym
 					   :letbind_type ctypcur
-					   :letbind_expr nbindcur
+					   :letbind_expr ncur
 					   ))
 		     )
 		(list_append nbindcur cbind)
+		(debugmsg cbind "normexp_progn cbind")
 		;; drop the value since it is not needed, so wrap_let a nil
 		(multiple_put_nth nseq ix (wrap_normal_let1 () nbindcur sloc))
 		)
@@ -4974,6 +4979,8 @@
 				 :nocc_bind cbind))
 	   )
        (list_append nbindlast cbind)
+       (debugmsg clocc "normexp_progn return clocc" (the_callcount))
+       (debugmsg nbindlast "normexp_progn return nbindlast" (the_callcount))
        (return clocc nbindlast)
        ))))
 (install_method class_src_progn normal_exp normexp_progn)
@@ -9477,12 +9484,20 @@
 	 (debugmsg nexp "compilobj_nrep_let current normbinding nexp" (the_callcount))
 	 (let ( (obnx (compile_obj nexp gcx)) )
 	   (debugmsg obnx "compilobj_nrep_let current normbinding obnx" (the_callcount))
+	   (if (is_a nexp class_sexpr) 
+	       (if (not (is_object obnx))
+		   (progn 
+		     (debugmsg nexp "compilobj_nrep_let current normbinding faulty nexp")
+		     (debugmsg obnx "compilobj_nrep_let current normbinding faulty obnx")
+		     (assert_msg "compilobj_nrep_let check obnx" (is_object obnx)))))
 	   ;; link nlbnd to obva in locmap
 	   (if obva (mapobject_put locmap nlbnd obva))
 	   ;; put destination obva in obnx
-	   (let ( (obmy (if obva (put_objdest obnx obva) obnx)) )
-	     ;; add the modified obmy in the bodypart of oblock
-	     (list_append obodl obmy)
+	   (let ( (obmy (if obva (or (put_objdest obnx obva) obnx) obnx)) )
+	     (if obmy
+		 (progn 
+		   (debugmsg obmy "compilobj_nrep_let obmy")
+		   (list_append obodl obmy)))
 	     )
 	   ;; add clearing of obva to epilogue part of oblock
 	   (if obva 
@@ -9503,6 +9518,17 @@
        (let ( (objcomp  (compile_obj bdycomp gcx)) 
 	      )
 	 (debugmsg objcomp "compilobj_nrep_let body objcomp" (the_callcount))
+	 ;; objcomp is null when compiling a locvar of ctype_void;
+	 ;; this happens with primitive of :void type
+	 (if (null objcomp) (return ())) ;return from the inner lambda
+	 ;; for debugging
+	 (if (not (is_object objcomp)) 
+	     (progn 
+	       (debugmsg rlet "compilobj_nrep_let body bad.objcomp rlet" )
+	       (debugmsg bdycomp "compilobj_nrep_let body bad.objcomp bdycomp" )
+	       ))
+	 ;; was for debugging
+	 (assert_msg "compilobj_nrep_let check objcomp" (is_object objcomp))
 	 (list_append obodl objcomp))))
     (debugmsg loc "compilobj_nrep_let after iterate body loc" (the_callcount))
     ;; dispose each binding
