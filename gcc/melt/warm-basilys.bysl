@@ -6397,9 +6397,14 @@
   (unsafe_get_field :obv_type recv))
 (install_method class_objvalue get_ctype getctype_objvalue)
 
+;;; pure values are side-effect free
+(defclass class_objpurevalue
+  :super class_objvalue
+  :fields ())
+
 ;; object local variable
 (defclass class_objlocv
-  :super class_objvalue
+  :super class_objpurevalue
   :fields (obl_off			;offset in frame
 	   obl_proc			;containing procedure
 	   obl_cname			;symbolic cname string
@@ -6408,7 +6413,7 @@
 
 ;; closed occurrence
 (defclass class_objcloccv
-  :super class_objvalue
+  :super class_objpurevalue
   :fields (obc_off			;offset in closure
 	   obc_proc			;containing procedure
 	   obc_name			;symbolic name
@@ -6422,13 +6427,13 @@
 
 ;; predefined object
 (defclass class_objpredef
-  :super class_objvalue
+  :super class_objpurevalue
   :fields (obpredef
 ))
 
 ;; initial element 
 (defclass class_objinitelem
-  :super class_objvalue
+  :super class_objpurevalue
   :fields (oie_cname 			;symbolic cname string - fieldname in cdat
 	   oie_data			;normal data
 	   oie_discr			;compiled discriminant
@@ -7167,6 +7172,9 @@
 
 (defun outpucod_anydiscr (any declbuf implbuf :long depth)
   (debugmsg any "outpucod_anydiscr any" (the_callcount))
+  (outcstring_err "* output_c_code unimplemented reciever discriminator ")
+  (let ( (discr (discrim any)) ) (outstr_err (unsafe_get_field :named_name discr)))
+  (outnewline_err)
   (assert_msg "@@ outpucod_anydiscr not able to output" ())
 )
 (install_method discr_anyrecv output_c_code outpucod_anydiscr)
@@ -7447,7 +7455,7 @@
     (list_every
      obody
      (lambda (curbody)
-       (if (is_a curbody class_objinstr) 
+       (if (not (is_a curbody class_objpurevalue))
 	   (progn
 	     (output_c_code curbody declbuf implbuf 0)
 	     (add2sbuf_indentnl implbuf 0)))))
@@ -7556,7 +7564,7 @@
        ibody
        (lambda (curbody)
 	 (debugmsg curbody "outpucod_initialroutine curbody" (the_callcount))
-	 (if (is_a curbody class_objinstr) 
+	 (if (not (is_a curbody class_objpurevalue))
 	     (progn
 	       (output_c_code curbody declbuf implbuf 1)
 	       (add2sbuf_indentnl implbuf 1))))))
@@ -7740,7 +7748,7 @@
 	   bodyl
 	   (lambda (curbody)
 	     (let ( (:long depthp1 (get_int boxdepthp1)) )
-	       (if (is_a curbody class_objinstr)
+	       (if (not (is_a curbody class_objpurevalue))
 		   (progn
 		     (output_c_code curbody declbuf implbuf depthp1)
 		     (add2sbuf_strconst implbuf ";")
@@ -7753,7 +7761,7 @@
 	   epil
 	   (lambda (curepil)
 	     (let ( (:long depthp1 (get_int boxdepthp1)) )
-	       (if (is_a curepil class_objinstr)
+	       (if (not (is_a curepil class_objpurevalue))
 		   (progn
 		     (output_c_code curepil declbuf implbuf depthp1)
 		     (add2sbuf_strconst implbuf ";")
@@ -7800,7 +7808,7 @@
 	   bodyl
 	   (lambda (curbody)
 	     (let ( (:long depthp1 (get_int boxdepthp1)) )
-	       (if (is_a curbody class_objinstr) 
+	       (if (not (is_a curbody class_objpurevalue))
 		   (output_c_code curbody declbuf implbuf depthp1))
 	       (add2sbuf_strconst implbuf ";")
 	       (add2sbuf_indentnl implbuf depthp1))))))
@@ -7822,7 +7830,7 @@
 	   epil
 	   (lambda (curepil)
 	     (let ( (:long depthp1 (get_int boxdepthp1)) )
-	       (if (is_a curepil class_objinstr) 
+	       (if (not (is_a curepil class_objpurevalue))
 		   (output_c_code curepil declbuf implbuf depthp1))
 	       (add2sbuf_strconst implbuf ";")
 	       (add2sbuf_indentnl implbuf depthp1))))))
@@ -7845,7 +7853,7 @@
     (output_location loc implbuf depth "exit")
     (add2sbuf_strconst implbuf "/*exit*/{")
     (add2sbuf_indentnl implbuf depth)
-    (if (is_a oprolog class_objinstr)
+    (if (not (is_a oprolog class_objpurevalue))
 	(progn
 	  (output_location loc implbuf depth "exitprolog")
 	  (output_c_code oprolog declbuf implbuf (+i depth 1))
@@ -7900,14 +7908,14 @@
     (output_c_code ctest declbuf implbuf (+i depth 1))
     (add2sbuf_strconst implbuf ") /*then*/ {")
     (add2sbuf_indentnl implbuf depth)
-    (if (is_a cthen class_objinstr) 
+    (if (not (is_a cthen class_objpurevalue))
 	(progn
 	  (output_location cloc implbuf depth "cond.then")
 	  (output_c_code cthen declbuf implbuf (+i depth 1))
 	  (add2sbuf_strconst implbuf ";")
 	  ))
     (add2sbuf_indentnl implbuf depth)
-    (if (is_a celse class_objinstr)
+    (if (not (is_a celse class_objpurevalue))
 	(progn
 	  (output_location cloc implbuf depth "cond.else")
 	  (add2sbuf_strconst implbuf "} else {")
@@ -8569,6 +8577,10 @@
 	 (oclos (unsafe_get_field :opclor_clos opclor))
 	 (orout (unsafe_get_field :opclor_rout opclor)) )
     (output_location oloc implbuf depth "putclosurout")
+    (add2sbuf_strconst implbuf "/*putclosrout checkclo*/ basilys_assertmsg(\"putclosrout checkclo\", basilys_magic_discr(")
+    (output_c_code oclos declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ") == OBMAG_CLOSURE);")
+    (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "/*putclosrout*/ ((basilysclosure_ptr_t)")
     (output_c_code oclos declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")->rout = ")
@@ -9748,13 +9760,15 @@
 		   args
 		   (lambda (comp :long ix)
 		     (let ( (ocomp (compile_obj comp gcx)) )
-		       (assert_msg "compilobj_nrep_apply check ocomp not objinstr" (not (is_a ocomp class_objinstr)))
+		       (assert_msg "compilobj_nrep_apply check ocomp not objinstr"
+				   (not (is_a ocomp class_objinstr)))
 		       ocomp))))
+	   (dlist (make_list discr_list))
 	   (oapp 
 	    (make_instance 
 	     class_objapply
 	     :obi_loc loc
-	     :obdi_destlist (make_list discr_list)
+	     :obdi_destlist dlist
 	     :obapp_clos oclos
 	     :obapp_args oargs))
 	   )
@@ -9812,11 +9826,11 @@
 			       :obmultapp_xres oxres))
 	 )
     (if firstres (list_append reslist firstres))
-    ;; add every compiled argument to the resulting block (if it is an instruction)
+    ;; add every compiled argument to the resulting block unless it is a pure value
     (multiple_every 
      oargs
      (lambda (ocurarg :long ix)
-       (if (is_a ocurarg class_objinstr)
+       (if (not (is_a ocurarg class_objpurevalue))
 	   (list_append obodl ocurarg))))
     ;; add the multiapply to the block
     (list_append obodl omapp)
@@ -9921,11 +9935,11 @@
 				:obmultsnd_xres oxres))
 	 )
     (if firstres (list_append reslist firstres))
-    ;; add every compiled argument to the resulting block (if it is an instruction)
+    ;; add every compiled argument to the resulting block unless it is a pure value
     (multiple_every 
      oargs
      (lambda (ocurarg :long ix)
-       (if (is_a ocurarg class_objinstr)
+       (if (not (is_a ocurarg class_objpurevalue))
 	   (list_append obodl ocurarg))))
     ;; add the multisend to the block
     (list_append obody omsend)
@@ -10481,15 +10495,19 @@
 	     ))))
     ;;
     (debugmsg dlocbind "compil_data_and_slots_fill final dlocbind" (the_callcount))
-    ;; the caller is supposed to do dispose_dlocbind_after_data_and_slots_fill with the result
+    ;; the caller is supposed to do
+    ;; dispose_dlocbind_after_data_and_slots_fill with the result if
+    ;; needed but in practice this is never needed
     (return dlocbind)
     )
   (return)				;force a nil return
   )
 
 
+;; probably useless function
 (defun dispose_dlocbind_after_data_and_slots_fill (dlocbind gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg dlocbind "dispose_dlocbind_after_data_and_slots_fill dlocbind" (the_callcount))
   (multiple_every
    dlocbind
    (lambda (bnd :long ix) (dispose_bnd_obj bnd gcx)))
@@ -10536,7 +10554,8 @@
       ;(debugmsg obsym "compilobj_datasymbol obsym beforfill" (the_callcount))
       (let ( (dlocbind (compil_data_and_slots_fill syv obsym odiscr inirout gcx)) ) 
 	(debugmsg dlocbind "compilobj_datasymbol dlocbind" (the_callcount))
-	(dispose_dlocbind_after_data_and_slots_fill dlocbind gcx))
+	;(dispose_dlocbind_after_data_and_slots_fill dlocbind gcx)
+	)
       (debugmsg obsym "compilobj_datasymbol obsym final" (the_callcount))
       (return obsym)
       )))
@@ -10608,7 +10627,8 @@
 	  (debugmsg loc "compilobj_datainstance loc before data&slots" (the_callcount))
 	  (let ( (dlocbind (compil_data_and_slots_fill dai oini cdisx inirout gcx)) )
 	    (debugmsg dlocbind "compilobj_datainstance dlocbind")
-	    (dispose_dlocbind_after_data_and_slots_fill dlocbind gcx))
+	    ;(dispose_dlocbind_after_data_and_slots_fill dlocbind gcx)
+	    )
 	  (debugmsg loc "compilobj_datainstance loc after data&slots" (the_callcount))
 	  (debugmsg oini "compilobj_datainstance final oini" (the_callcount))
 	  oini
@@ -10957,6 +10977,9 @@
 )
 
 (defun install_initial_command (nam fun)
+  (messageval_dbg "install_initial_command @@ fun" fun)
+  (messageval_dbg "install_initial_command @@ nam" nam)
+  (debugmsg fun "install_initial_command fun" (the_callcount))
   (if (is_closure fun)
       (if (is_string nam)
 	  (mapstring_putstr (unsafe_get_field :cmd_fundict initial_command_dispatcher) 

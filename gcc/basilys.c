@@ -5392,12 +5392,16 @@ do_initial_command (void)
     goto end;
   dictv = BASILYSGOB (INITIAL_COMMAND_DISPATCHER)->obj_vartab[FCMDIS_FUNDICT];
   debugeprintf ("do_initial_command dictv=%p", dictv);
+  debugeprintvalue("do_initial_command dictv", dictv);
   if (basilys_magic_discr (dictv) != OBMAG_MAPSTRINGS)
     goto end;
   closv = basilys_get_mapstrings (dictv, basilys_command_string);
   debugeprintf ("do_initial_command closv=%p", closv);
   if (basilys_magic_discr (closv) != OBMAG_CLOSURE)
-    goto end;
+    {
+      error ("no closure for basilys command %s", basilys_command_string);
+      goto end;
+    };
   debugeprintf ("do_initial_command argument_string %s",
 		basilys_argument_string);
   debugeprintf ("do_initial_command secondargument_string %s",
@@ -5494,13 +5498,18 @@ basilys_initialize (void)
   debugeprintf
     ("basilys_initialize before initial_command command_string=%s",
      basilys_command_string);
-  if (basilys_magic_discr
-      ((BASILYSG (INITIAL_COMMAND_DISPATCHER))) == OBMAG_OBJECT
-      && BASILYSGOB (INITIAL_COMMAND_DISPATCHER)->obj_len >=
-      FCMDIS__LAST && basilys_command_string)
+  /* the command exit is builtin */
+  if (basilys_command_string && !strcmp (basilys_command_string, "exit"))
+    exit_after_options = 1;
+  else if (basilys_magic_discr
+	   ((BASILYSG (INITIAL_COMMAND_DISPATCHER))) == OBMAG_OBJECT
+	   && BASILYSGOB (INITIAL_COMMAND_DISPATCHER)->obj_len >=
+	   FCMDIS__LAST && basilys_command_string)
     {
       gcc_assert (dump_file == (FILE *) 0);
-      debugeprintf ("basilys_initialize sets exit_after_options for command %s", basilys_command_string);
+      debugeprintf
+	("basilys_initialize sets exit_after_options for command %s",
+	 basilys_command_string);
       exit_after_options = 1;
       if (flag_basilys_debug)
 	{
@@ -5520,9 +5529,6 @@ basilys_initialize (void)
 	  dump_file = 0;
 	}
     }
-  /* the command exit is builtin */
-  else if (basilys_command_string && !strcmp (basilys_command_string, "exit"))
-    exit_after_options = 1;
   else if (basilys_command_string)
     fatal_error ("basilys with command string %s without command dispatcher",
 		 basilys_command_string);

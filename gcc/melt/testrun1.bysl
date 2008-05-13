@@ -122,6 +122,13 @@
   ;;the obj_num is the argument rank
   :predef CLASS_FORMAL_BINDING)
 
+;; class of command dispatchers
+(defclass class_command_dispatcher
+  :predef CLASS_COMMAND_DISPATCHER
+  :super class_named
+  :fields (cmd_fundict			;stringmap for closures
+	   ))
+
 
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
@@ -514,7 +521,15 @@
 (defprimitive mixint_val (mi) :value
   "(basilys_val_mixint((" mi ")))")
 
-
+;;; debugging primitives
+(defprimitive message_dbg (:cstring msg) :void
+  "debugeputs((" msg "))")
+(defprimitive messagenum_dbg (:cstring msg :long i) :void
+  "debugnum((" msg "), (" i "))")
+(defprimitive messageval_dbg (:cstring msg :value val) :void
+  "debugvalue((" msg "), ((void*)(" val ")))")
+(defprimitive debugprintval_dbg (:cstring msg :value val) :void
+  "debugeprintvalue((" msg "), ((void*)(" val ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -667,4 +682,38 @@
  :disc_super discr_anyrecv
  :named_name (stringconst2val discr_namestring "DISCR_ROUTINE"))
 
+;;;;;;;;;;;;;;;;;;;; initial commands
+(definstance initial_command_dispatcher class_command_dispatcher
+  :predef INITIAL_COMMAND_DISPATCHER
+  :named_name (stringconst2val discr_namestring "INITIAL_COMMAND_DISPATCHER")
+  :cmd_fundict  (make_mapstring discr_mapstrings 40)
+)
+
+(defun install_initial_command (nam fun)
+  (debugprintval_dbg "install_initial_command @@ fun" fun)
+  (debugprintval_dbg "install_initial_command @@ nam" nam)
+  (if (is_closure fun)
+      (if (is_string nam)
+	  (mapstring_putstr 
+	   (unsafe_get_field :cmd_fundict initial_command_dispatcher) 
+	   nam fun))))
+
+;;; output on stderr
+(defprimitive outnum_err (:cstring pref :long l :cstring suf) :void
+  "basilys_putnum(stderr,(" pref "), (" l "), (" suf "))")
+(defprimitive outcstring_err (:cstring s) :void
+  "basilys_puts(stderr,(" s "))")
+(defprimitive outstrbuf_err (sbuf) :void
+  "basilys_putstrbuf(stderr,(" sbuf "))")
+(defprimitive outnewline_err () :void
+  "basilys_newlineflush(stderr)")
+(defprimitive outstr_err (str) :void
+  "basilys_putstr(stderr,(" str "))")
+
+(defun say_command (dispatcher arg)
+  (debugprintval_dbg "say_command" arg)
+  (outstr_err arg)
+  (outnewline_err)
+)
+(install_initial_command   (stringconst2val discr_string "say") say_command)
 ;; eof 

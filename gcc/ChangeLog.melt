@@ -1,3 +1,19 @@
+2008-05-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy - incorrectly calling output_code on discr_list from
+	outpucod_objblock so some objblock is incorrectly built]
+	* basilys.c: (do_initial_command) added check for closure to
+	invoke for command & moved "exit" builtin command handling.
+
+	* Makefile.in: added testrun1c run to say hello.
+
+	* melt/warm-basilys.bysl: added class_objpurevalue superclass to
+	avoid outputting it. Other values such as class_objexpv should
+	always be output - otherwise some primitive invocations are
+	disappearing. All tests in outpucod* are testing unless is_a
+	class_objpurevalue to avoid outputting.
+
+	* melt/testrun1.bysl: added say command...
+
 2008-05-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy]
 	* melt/warm-basilys.bysl: generated code has a named frame structure.
