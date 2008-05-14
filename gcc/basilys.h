@@ -1223,17 +1223,20 @@ basilys_field_object (basilys_ptr_t ob, unsigned off)
 
 #if ENABLE_CHECKING
 static inline basilys_ptr_t
-basilys_getfield_object (basilys_ptr_t ob, unsigned off, const char*msg)
+basilys_getfield_object_at (basilys_ptr_t ob, unsigned off, const char*msg, const char*fil, int lin)
 {
   if (basilys_magic_discr (ob) == OBMAG_OBJECT)
     {
       basilysobject_ptr_t pob = (void *) ob;
       if (off < pob->obj_len)
 	return pob->obj_vartab[off];
+      fatal_error("checked field access failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, msg?msg:"...");
+      return NULL;
     }
-  fatal_error("checked field access access failed %s", msg?msg:"...");
+  fatal_error("checked field access failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
   return NULL;
 }
+#define basilys_getfield_object(Obj,Off,Msg) basilys_getfield_object_at((void*)(Obj),(Off),(Msg),__FILE__,__LINE__)
 #else
 #define basilys_getfield_object(Obj,Off,Msg) (((basilysobject_ptr_t)(Obj))->obj_vartab[Off])
 #endif

@@ -1,4 +1,15 @@
 2008-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy]
+
+	* basilys.h: (basilys_getfield_object_at) new function, called by
+	macro basilys_getfield_object when ENABLE_CHECKING
+
+	* melt/warm-basilys.bysl: find_env indented better.
+	added more empty lines in generated output for procedures.
+	(outpucod_objputclosurout) added check of routine.
+	(compilobj_dataclosure) buggy putclosrout generation...
+
+2008-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy - first generation of warm-basilys-1.c which does not
 	behave correctly]
 	* melt/warm-basilys.bysl: all (return ()) replaced

@@ -1948,11 +1948,16 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check binder" (is_object binder))
   (forever findloop
-	   (if (not (is_a env class_environment)) (exit findloop))
-	   (let ( (bindmap (unsafe_get_field :env_bind env)) )
+	   (if (not (is_a env class_environment)) 
+	       (exit findloop))
+	   (assert_msg "check env obj" (is_object env))
+	   (let ( (bindmap 
+		   (unsafe_get_field :env_bind env)) )
 	     (assert_msg "check bindmap" (is_mapobject bindmap))
-	     (let ( (bnd (mapobject_get bindmap binder)) )
-	       (if bnd (exit findloop bnd))
+	     (let ( (bnd 
+		     (mapobject_get bindmap binder)) )
+	       (if bnd 
+		   (exit findloop bnd))
 	       ))
 	   (setq env (unsafe_get_field :env_prev env))
 	   )
@@ -7424,12 +7429,16 @@
     (add2sbuf_indentnl declbuf 0)
     ;; output the implementation
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "static basilys_ptr_t ")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "static basilys_ptr_t")
+    (add2sbuf_indentnl implbuf 0)
     (add2sbuf_string implbuf onam)
     (add2sbuf_strconst implbuf "(basilysclosure_ptr_t closp_,")
     (add2sbuf_strconst implbuf " basilys_ptr_t firstargp_,")
     (add2sbuf_strconst implbuf " const char xargdescr_[],")
     (add2sbuf_strconst implbuf " union basilysparam_un *xargtab_,")
+    (add2sbuf_indentnl implbuf 5)
     (add2sbuf_strconst implbuf " const char xresdescr_[],")
     (add2sbuf_strconst implbuf " union basilysparam_un *xrestab_) {")
     (output_curframe_init prou implbuf)
@@ -7488,6 +7497,7 @@
     (add2sbuf_strconst implbuf "} /*end ")
     (add2sbuf_string implbuf onam)
     (add2sbuf_strconst implbuf "*/")
+    (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
     ))
 (install_method class_procroutineobj output_c_code outpucod_procroutine)
@@ -7596,9 +7606,9 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "} /* end start_module_basilys */")
-    (add2sbuf_indentnl implbuf 0))
-     
-  )
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+  ))
 (install_method class_initialroutineobj output_c_code outpucod_initialroutine)
 
 
@@ -8587,6 +8597,10 @@
     (add2sbuf_strconst implbuf "/*putclosrout checkclo*/ basilys_assertmsg(\"putclosrout checkclo\", basilys_magic_discr(")
     (output_c_code oclos declbuf implbuf depth)
     (add2sbuf_strconst implbuf ") == OBMAG_CLOSURE);")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "/*putclosrout checkrout*/ basilys_assertmsg(\"putclosrout checkrout\", basilys_magic_discr(")
+    (output_c_code orout declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ") == OBMAG_ROUTINE);")
     (add2sbuf_indentnl implbuf depth)
     (add2sbuf_strconst implbuf "/*putclosrout*/ ((basilysclosure_ptr_t)")
     (output_c_code oclos declbuf implbuf depth)
@@ -10867,15 +10881,19 @@
 	(let (
 	      ;; npro should already have been compiled, so should be in the compiler cache
 	      (ocrout (mapobject_get compicache npro))
+	      (odatrout (compile_obj ndatarou gcx))
 	      (ocputrout (make_instance  class_objputclosurout
 					 :obi_loc nloc
 					 :opclor_clos oiclo
-					 :opclor_rout (mapobject_get compicache ndatarou)))
+					 :opclor_rout odatrout
+					 ;;@@OLDBUGGY :opclor_rout (mapobject_get compicache ndatarou)
+					 ))
 	      (bxoff (make_integerbox discr_integer 0))
 	      )
 	  (assert_msg "check ocrout" (is_a ocrout class_procroutineobj))
 	  (list_append inibody ocputrout)
 	  (debugmsg nclov "compilobj_dataclosure nclov" (the_callcount))
+	  (debugmsg ocrout "compilobj_dataclosure ocrout" (the_callcount))
 	  (multiple_every
 	   nclov
 	   (lambda (clov :long ix)
