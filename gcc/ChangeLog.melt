@@ -1,4 +1,15 @@
 2008-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy - first generation of warm-basilys-1.c which does not
+	behave correctly]
+	* melt/warm-basilys.bysl: all (return ()) replaced
+	by (return (the_null)) because of a cold-basilys.lisp possible bug
+	(compilobj_nrep_let) don't test for objcomp objectness. It could
+	be a non object when source is nil, an integer, a verbatim string, ..
+
+	* Makefile.in: fixed typos for warmcompilation. added generation
+	of warm-basilys-2.c and compare to warm-basilys-1.c
+
+2008-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy]
 	* melt/warm-basilys.bysl: (putobjdest_objvalue) handles specially
 	a void reciever by making an objblock with an

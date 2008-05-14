@@ -5993,7 +5993,7 @@
 ;;; put the data into the primitive binding
     (if (is_a sprimbind class_primitive_binding)
 	(unsafe_put_fields sprimbind :pbind_primdata nprimdata))
-    (return ())			     ;normalized defprimitive is empty
+    (return (the_null))			     ;normalized defprimitive is empty
     ))
 (install_method class_src_defprimitive normal_exp normexp_defprimitive)
 
@@ -6647,8 +6647,8 @@
 	 )
     (assert_msg "check odata" (is_a odata class_nrep_datainstance))
     (debugmsg oiopredef "outcinitpredef_objinitobject oiopredef" (the_callcount))
-    (if (null oiopredef) (return ()))
-    (if (is_a oiopredef class_nrep_nil) (return ()))
+    (if (null oiopredef) (return (the_null)))
+    (if (is_a oiopredef class_nrep_nil) (return (the_null)))
     (let ( (odloc (unsafe_get_field :nrep_loc odata))
 	   )
       (output_location odloc sbuf 1 "inipredef")
@@ -6674,7 +6674,7 @@
 	 (add2sbuf_indentnl sbuf 1)
 	 )
        ( (null oiopredef)
-	 (return ()))
+	 (return (the_null)))
        ( :else
 	 (debugmsg oiopredef "outcinitpredef_objinitobject unexpected oiopredef" (the_callcount))
 	 (assert_msg "outcinitpredef_objinitobject unexpected oiopredef" ())
@@ -8893,6 +8893,7 @@
 
 ;; compile a list of sexpressions as a module starting from a given environment
 (defun compile_list_sexpr (lsexp inienv modnamstr)
+  (message_dbg "starting  compile_list_sexpr")
   (debugmsg lsexp "\n\n\n*compile_list_sexpr lsexp"  (the_callcount)) ;list of sexpr
   (debugmsg inienv "compile_list_sexpr inienv" (the_callcount)) ;initial environment
   (debugmsg modnamstr "compile_list_sexpr modnamstr" (the_callcount)) ;module name
@@ -8967,7 +8968,9 @@
 	      (debugmsg iniobj "compile_list_sexpr outputting iniobj" (the_callcount))
 	      (output_c_code iniobj declbuf implbuf 0)
 	      (output_cfile_decl_impl modnamstr declbuf implbuf)
-	      )))))))
+	      ))))))
+  (message_dbg "ended compile_list_sexpr")
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -9162,8 +9165,9 @@
 			 comp
 		       (compile_obj comp gcx)))
 		   ))
+	    (primty (unsafe_get_field :prim_type nprim))
 	    (oexp (make_instance class_objexpv
-				 :obv_type (unsafe_get_field :prim_type nprim)
+				 :obv_type primty
 				 :obx_cont otup
 				 ))      
 	    )
@@ -9520,15 +9524,7 @@
 	 (debugmsg objcomp "compilobj_nrep_let body objcomp" (the_callcount))
 	 ;; objcomp is null when compiling a locvar of ctype_void;
 	 ;; this happens with primitive of :void type
-	 (if (null objcomp) (return ())) ;return from the inner lambda
-	 ;; for debugging
-	 (if (not (is_object objcomp)) 
-	     (progn 
-	       (debugmsg rlet "compilobj_nrep_let body bad.objcomp rlet" )
-	       (debugmsg bdycomp "compilobj_nrep_let body bad.objcomp bdycomp" )
-	       ))
-	 ;; was for debugging
-	 (assert_msg "compilobj_nrep_let check objcomp" (is_object objcomp))
+	 (if (null objcomp) (return objcomp)) ;return from the inner lambda
 	 (list_append obodl objcomp))))
     (debugmsg loc "compilobj_nrep_let after iterate body loc" (the_callcount))
     ;; dispose each binding
@@ -11076,5 +11072,11 @@
 
 (install_initial_command  (stringconst2val discr_string "compileseq") compileseq_command)
 
-(message_dbg "@%X at eof")
+(message_dbg "@%T before showing initial_command_dispatcher")
+
+(assert_msg "check that debugmsg is a closure" (is_closure debugmsg))
+
+(debugmsg initial_command_dispatcher "toplevel initial_command_dispatcher")
+
+(message_dbg "@%Z at eof")
 ;;; eof warm-basilys.bysl
