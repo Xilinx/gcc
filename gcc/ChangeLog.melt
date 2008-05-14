@@ -1,3 +1,11 @@
+2008-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy]
+	* melt/warm-basilys.bysl: (putobjdest_objvalue) handles specially
+	a void reciever by making an objblock with an
+	objclear. (compilobj_nrep_unsafe_put_fields) adds the touched
+	locvar to the generated block. (compil_data_and_slots_fill) adds
+	the initialized data to the generated block.
+
 2008-05-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	[hurt another bug: check typcomp in PUTOBJDEST_OBJVALUE]
 

@@ -9768,6 +9768,8 @@
     (list_append obodl (make_instance class_objtouch
 				      :obi_loc loc
 				      :otouch_val oobj))
+    ;; add the touched obj to the block
+    (list_append obodl oobj)
     (return oblock)
     ))
 (install_method class_nrep_unsafe_put_fields compile_obj compilobj_nrep_unsafe_put_fields)
@@ -10097,29 +10099,56 @@
 (defun putobjdest_objvalue (recv desto)
   (assert_msg "check recv" (is_a recv class_objvalue))
   (assert_msg "check desto" (is_a desto class_objlocv))
-  (if (!= (unsafe_get_field :obv_type recv) 
-	  (unsafe_get_field :obv_type desto))
-      (progn
-	(debugmsg recv "putobjdest_objvalue recv" (the_callcount))
-	(debugmsg desto "putobjdest_objvalue desto" (the_callcount))
-	))
-  (assert_msg "check typcomp" (== (unsafe_get_field :obv_type recv) 
-				  (unsafe_get_field :obv_type desto)))
-  (let ( (destlis (make_list discr_list))
-	 (explis (make_list discr_list))
-	 (obc (make_instance class_objcompute
-			     ;; dont fill :obi_loc
-			     :obdi_destlist destlis
-			     :obcpt_expr explis
-			     )) 
-	 ;; we have a bug in the cold-basilys.lisp that we circumvent thru a useless variable
-	 (unused_recvtype (unsafe_get_field :obv_type recv))
+  (let ( (typrecv (unsafe_get_field :obv_type recv))
+	 (typdesto (unsafe_get_field :obv_type desto)) 
 	 )
-    (list_append destlis desto)
-    (list_append explis recv)
-;    (debugmsg obc "putobjdest objval obc" (the_callcount))
-    (return obc)
-))
+    (cond
+     ;; special case when reciver is void
+     ( (== typrecv ctype_void)
+       (if (== typdesto ctype_void)
+	   (return recv)
+	 ;; if recv is void we just create a block with recv and the
+	 ;; clear of desto
+	 (let ( 
+	       (obodl (make_list discr_list))
+	       (oblk (make_instance class_objblock
+				    ;; dont fill :obi_loc
+				    :oblo_bodyl obodl
+				    :oblo_epil ()
+				    )
+		     )
+	       (oclr (make_instance class_objclear
+				    ;; dont fill :obi_loc
+				    :oclr_vloc desto
+				    ))
+	       )
+	   (list_append obodl recv)
+	   (list_append obodl oclr)
+	   ;; the last of the block is the destination location, to
+	   ;; avoid latter putobjdest-s on the objclear
+	   (list_append obodl desto)
+	   (return oblk)
+	   )))
+     ;; common case when desto & recv have same type
+     ( (== typrecv typdesto)
+       (let ( (destlis (make_list discr_list))
+	      (explis (make_list discr_list))
+	      (obc (make_instance class_objcompute
+				  ;; dont fill :obi_loc
+				  :obdi_destlist destlis
+				  :obcpt_expr explis
+				  )) 
+	      )
+	 (list_append destlis desto)
+	 (list_append explis recv)
+	 (return obc)))
+     ;; error case: type mismatch
+     (:else
+      (debugmsg recv "putobjdest_objvalue recv" (the_callcount))
+      (debugmsg desto "putobjdest_objvalue desto" (the_callcount))
+      (assert_msg "putobjdest_objvalue type mismatch" ())
+      (return recv)))
+    ))
 
 (install_method class_objvalue  put_objdest  putobjdest_objvalue)
 
@@ -10519,6 +10548,8 @@
 					 :obi_loc nloc
 					 :oclr_vloc obva))
 	     ))))
+    ;;; add the obj as the last instr of the block
+    (list_append ibodylis obj)
     ;;
     (debugmsg dlocbind "compil_data_and_slots_fill final dlocbind" (the_callcount))
     ;; the caller is supposed to do
