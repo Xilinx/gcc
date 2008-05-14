@@ -1,4 +1,14 @@
 2008-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy - exit is better, but return is not well handled when
+	propagated into an exit or a forever...]
+
+	* melt/warm-basilys.bysl: class_objexit is simpler (no more
+	:obexit_prolog) nrep_exit is compiled into a block. all tests for
+	not is_a class_objpurevalue also test for non-null.
+
+	* melt/test0.bysl: (testforeverif) added but not compiled correctly.
+
+2008-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy]
 
 	* basilys.h: (basilys_getfield_object_at) new function, called by

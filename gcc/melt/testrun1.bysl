@@ -129,6 +129,14 @@
   :fields (cmd_fundict			;stringmap for closures
 	   ))
 
+;;;; the class for environments
+(defclass class_environment
+  :super class_root
+  :fields (env_bind			;the map of bindings
+	   env_prev			;the previous environment
+	   env_proc			;the procedure of this environment
+))
+
 
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
@@ -709,6 +717,26 @@
   "basilys_newlineflush(stderr)")
 (defprimitive outstr_err (str) :void
   "basilys_putstr(stderr,(" str "))")
+
+;; find a binding inside an environment
+(defun find_env (env binder)
+  (if (not (is_a env class_environment)) 
+      (return))
+  (if (not (is_object binder)) 
+      (return))
+  (forever findloop
+	   (if (not (is_a env class_environment)) 
+	       (exit findloop))
+	   (let ( (bindmap 
+		   (unsafe_get_field :env_bind env)) )
+	     (let ( (bnd 
+		     (mapobject_get bindmap binder)) )
+	       (if bnd 
+		   (exit findloop bnd))
+	       ))
+	   (setq env (unsafe_get_field :env_prev env))
+	   )
+  )
 
 (defun say_command (dispatcher arg)
   (debugprintval_dbg "say_command" arg)

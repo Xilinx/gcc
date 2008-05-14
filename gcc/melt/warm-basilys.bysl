@@ -6999,11 +6999,10 @@
 	   obloop_resv		 ;the result of the loop
 ))
 
-;; exit a loop (with a single body)
+;; exit a loop
 (defclass class_objexit
   :super class_objinstr
   :fields (obexit_label			;cloned symbol for goto destination
-	   obexit_prolog		;single instruction prolog
 ))
 
 ;; conditional instruction
@@ -7471,7 +7470,7 @@
     (list_every
      obody
      (lambda (curbody)
-       (if (not (is_a curbody class_objpurevalue))
+       (if (and curbody (not (is_a curbody class_objpurevalue)))
 	   (progn
 	     (output_c_code curbody declbuf implbuf 0)
 	     (add2sbuf_indentnl implbuf 0)))))
@@ -7581,7 +7580,7 @@
        ibody
        (lambda (curbody)
 	 (debugmsg curbody "outpucod_initialroutine curbody" (the_callcount))
-	 (if (not (is_a curbody class_objpurevalue))
+	 (if (and curbody (not (is_a curbody class_objpurevalue)))
 	     (progn
 	       (output_c_code curbody declbuf implbuf 1)
 	       (add2sbuf_indentnl implbuf 1))))))
@@ -7765,7 +7764,7 @@
 	   bodyl
 	   (lambda (curbody)
 	     (let ( (:long depthp1 (get_int boxdepthp1)) )
-	       (if (not (is_a curbody class_objpurevalue))
+	       (if (and curbody (not (is_a curbody class_objpurevalue)))
 		   (progn
 		     (output_c_code curbody declbuf implbuf depthp1)
 		     (add2sbuf_strconst implbuf ";")
@@ -7778,7 +7777,7 @@
 	   epil
 	   (lambda (curepil)
 	     (let ( (:long depthp1 (get_int boxdepthp1)) )
-	       (if (not (is_a curepil class_objpurevalue))
+	       (if (and curepil (not (is_a curepil class_objpurevalue)))
 		   (progn
 		     (output_c_code curepil declbuf implbuf depthp1)
 		     (add2sbuf_strconst implbuf ";")
@@ -7825,7 +7824,7 @@
 	   bodyl
 	   (lambda (curbody)
 	     (let ( (:long depthp1 (get_int boxdepthp1)) )
-	       (if (not (is_a curbody class_objpurevalue))
+	       (if (and curbody (not (is_a curbody class_objpurevalue)))
 		   (output_c_code curbody declbuf implbuf depthp1))
 	       (add2sbuf_strconst implbuf ";")
 	       (add2sbuf_indentnl implbuf depthp1))))))
@@ -7847,7 +7846,7 @@
 	   epil
 	   (lambda (curepil)
 	     (let ( (:long depthp1 (get_int boxdepthp1)) )
-	       (if (not (is_a curepil class_objpurevalue))
+	       (if (and curepil (not (is_a curepil class_objpurevalue)))
 		   (output_c_code curepil declbuf implbuf depthp1))
 	       (add2sbuf_strconst implbuf ";")
 	       (add2sbuf_indentnl implbuf depthp1))))))
@@ -7865,19 +7864,11 @@
   (debugmsg obxi "outpucod_objexit obxi" (the_callcount))
   (let ( (olab (unsafe_get_field :obexit_label obxi))
 	 (loc (unsafe_get_field :obi_loc obxi))
-	 (oprolog (unsafe_get_field :obexit_prolog obxi)) )
+	 )
     (assert_msg "check olab" (is_a olab class_clonedsymbol))
     (output_location loc implbuf depth "exit")
     (add2sbuf_strconst implbuf "/*exit*/{")
     (add2sbuf_indentnl implbuf depth)
-    (if (not (is_a oprolog class_objpurevalue))
-	(progn
-	  (output_location loc implbuf depth "exitprolog")
-	  (output_c_code oprolog declbuf implbuf (+i depth 1))
-	  (add2sbuf_strconst implbuf ";")
-	  (add2sbuf_indentnl implbuf (+i depth 1))
-	  ))
-    (add2sbuf_strconst implbuf ";")
     (add2sbuf_strconst implbuf " goto labexit_")
     (add2sbuf_clonsym implbuf olab)	
     (add2sbuf_strconst implbuf ";}")
@@ -7925,14 +7916,14 @@
     (output_c_code ctest declbuf implbuf (+i depth 1))
     (add2sbuf_strconst implbuf ") /*then*/ {")
     (add2sbuf_indentnl implbuf depth)
-    (if (not (is_a cthen class_objpurevalue))
+    (if (and cthen (not (is_a cthen class_objpurevalue)))
 	(progn
 	  (output_location cloc implbuf depth "cond.then")
 	  (output_c_code cthen declbuf implbuf (+i depth 1))
 	  (add2sbuf_strconst implbuf ";")
 	  ))
     (add2sbuf_indentnl implbuf depth)
-    (if (not (is_a celse class_objpurevalue))
+    (if (and celse (not (is_a celse class_objpurevalue)))
 	(progn
 	  (output_location cloc implbuf depth "cond.else")
 	  (add2sbuf_strconst implbuf "} else {")
@@ -9411,6 +9402,7 @@
 	 )
     (assert_msg "check nbind" (is_a nbind class_label_binding))
     (unsafe_put_fields nbind :labind_res oresv)
+    (debugmsg nbind "compilobj_nrep_forever updated nbind" (the_callcount))
     (let ( (closy (unsafe_get_field :labind_clonsy nbind)) 
 	   (bodyl (make_list discr_list))
 	   (epilogl (make_list discr_list))
@@ -9426,7 +9418,7 @@
        nbody
        (lambda (ncomp :long ix)
 	 (list_append bodyl (compile_obj ncomp gcx))))
-      (debugmsg oloop "compilobj loop result oloop" (the_callcount))
+      (debugmsg oloop "compilobj forever result oloop" (the_callcount))
       oloop
       )
     )  
@@ -9440,16 +9432,37 @@
   (assert_msg "check nexi" (is_a nexi class_nrep_exit))
   (debugmsg nexi "compilobj_nrep_exit nexi" (the_callcount))
   ;;(debugmsg gcx "compilobj_nrep_exit gcx" (the_callcount))
-  (let ( (nloc (unsafe_get_field :nrep_loc nexi))
-	 (nbindx (unsafe_get_field :nexit_bind nexi))
-	 (nval (unsafe_get_field :nexit_val nexi)) )
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc nexi))
+	(nbindx (unsafe_get_field :nexit_bind nexi))
+	(nval (unsafe_get_field :nexit_val nexi)) )
     (assert_msg "check nbindx" (is_a nbindx class_label_binding))
-    (let ( (obex (make_instance class_objexit
+    (let ( 
+	  (inslist (make_list discr_list)) 
+	  (epilist (make_list discr_list)) 
+	  (destlist (make_list discr_list))
+	  (oval (compile_obj nval gcx))
+	  (bxres (unsafe_get_field :labind_res nbindx))
+	  (obloc (make_instance class_objblock
 				:obi_loc nloc
-				:obexit_label (unsafe_get_field :labind_clonsy nbindx)
-				:obexit_prolog (compile_obj nval gcx))) )
-      obex
-)))
+				:oblo_bodyl inslist
+				:oblo_epil epilist
+				))
+	  (obex (make_instance class_objexit
+			       :obi_loc nloc
+			       :obexit_label (unsafe_get_field :labind_clonsy nbindx)
+			       )) 
+	  (obcom (make_instance class_objcompute
+				:obi_loc nloc
+				:obdi_destlist destlist
+				:obcpt_expr oval))
+	  )
+      (list_append inslist obcom)
+      (list_append epilist obex)
+      (list_append destlist bxres)
+      (debugmsg obloc "compilobj_nrep_exit return obloc" (the_callcount))
+      (return obloc)
+      )))
 (install_method class_nrep_exit compile_obj compilobj_nrep_exit)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -9868,7 +9881,7 @@
     (multiple_every 
      oargs
      (lambda (ocurarg :long ix)
-       (if (not (is_a ocurarg class_objpurevalue))
+       (if (and ocurarg (not (is_a ocurarg class_objpurevalue)))
 	   (list_append obodl ocurarg))))
     ;; add the multiapply to the block
     (list_append obodl omapp)
@@ -9977,7 +9990,7 @@
     (multiple_every 
      oargs
      (lambda (ocurarg :long ix)
-       (if (not (is_a ocurarg class_objpurevalue))
+       (if (and ocurarg (not (is_a ocurarg class_objpurevalue)))
 	   (list_append obodl ocurarg))))
     ;; add the multisend to the block
     (list_append obody omsend)
@@ -10211,15 +10224,12 @@
 (install_method class_objloop  put_objdest  putobjdest_objloop)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; do nothing when puting a destination into an objexit
 (defun putobjdest_objexit (recv desto)
   (assert_msg "check recv" (is_a recv class_objexit))
   (assert_msg "check desto" (is_a desto class_objlocv))
-  (let ( (oxpro (unsafe_get_field :obexit_prolog recv)) 
-	 (npro (put_objdest oxpro desto)) )
-    (if (!= npro oxpro)
-	(unsafe_put_fields recv :obexit_prolog npro))
     recv
-))
+)
 (install_method class_objexit put_objdest putobjdest_objexit)
 
 

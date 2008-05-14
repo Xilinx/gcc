@@ -1,6 +1,13 @@
 ;; -*- lisp -*-
 
+(defun testforeverif (p f x)
+  (forever looplab
+	   (if (p x) 
+	       (exit looplab (f x)))))
 
+
+
+(defprimitive puts (:cstring s) :void "puts(" s ")")
 
 (defun f1 
   (g x)
@@ -12,8 +19,6 @@
    (f1 k y) 
    y))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#| ; SKIPPING
 (defclass my_class_root 
  :predef CLASS_ROOT
  :fields (root_f1 
@@ -114,8 +119,6 @@
 (defprimitive gti (:long a b) :long 
   "((" a ")>(" b "))")
 
-(defprimitive puts (:cstring s) :void "puts(" s ")")
-
 (defun foo (x :long n) 
   (if
       (gti n 0) 
@@ -156,4 +159,7 @@
     (puts "has boxint"))
 
 (puts "end test0")
-; SKIPPED |#
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#| ; SKIPPING
+; SKIPPED  |#
