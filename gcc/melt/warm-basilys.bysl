@@ -154,6 +154,10 @@
 ;; primitive for testing if an object is a (sub) instance of a class
 (defprimitive is_a (obj cla) :long
   " basilys_is_instance_of((" obj "), (" cla "))")
+
+;; primitive for testing if an object is NOT a (sub) instance of a class
+(defprimitive is_not_a (obj cla) :long
+  " !basilys_is_instance_of((" obj "), (" cla "))")
   
 ;; primitive for testing objectness
 (defprimitive is_object (obj) :long
@@ -1948,8 +1952,8 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check binder" (is_object binder))
   (forever findloop
-	   (if (not (is_a env class_environment)) 
-	       (exit findloop))
+	   (if (is_not_a env class_environment)
+	       (exit findloop ()))
 	   (assert_msg "check env obj" (is_object env))
 	   (let ( (bindmap 
 		   (unsafe_get_field :env_bind env)) )
@@ -8991,6 +8995,8 @@
 	 (freeli (unsafe_get_field :gncx_freeptrlist gcx)) 
 	 (pfree (list_popfirst freeli))
 	 (:long off -1)
+	 (useless1 (the_null))			;coldcompile failed
+	 (useless2 (the_null))			;coldcompile failed
 	 )
     ;;    (debugmsg pfree "get_free_objlocptr start pfree" (the_callcount))
     ;;    (debugmsg freeli "get_free_objlocptr popped freeli" (the_callcount))
@@ -9005,6 +9011,7 @@
     (let ( (nbvalbox (unsafe_get_field :obrout_nbval orout)) 
 	   (:long nbval (get_int nbvalbox))  
 	   (nambuf (make_strbuf discr_strbuf))
+	   (useless3 (the_null))			;coldcompile failed
 	   )
       (cond ( (is_a nam class_named)
 	      (add2sbuf_cident nambuf (unsafe_get_field :named_name nam)))

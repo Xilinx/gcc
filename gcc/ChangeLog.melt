@@ -1,4 +1,15 @@
 2008-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy: find_env in testrun1.bysl or warm-basilys.bysl is
+	not correctly compiled. The output instructions are in wrong
+	order!]
+
+	* melt/warm-basilys.bysl: (is_not_a) new primitive.
+	(find_env) use is_not_a. (get_free_objlocptr) added
+	useless... variables to circumvent a cold-basilys.lisp bug.
+
+	* melt/testrun1.bysl: added is_not_a
+
+2008-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy but return better handled in exit or forever]
 
 	* melt/warm-basilys.bysl: (putobjdest_objdestinstr) check that

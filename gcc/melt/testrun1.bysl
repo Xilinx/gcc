@@ -145,6 +145,10 @@
 ;; primitive for testing if an object is a (sub) instance of a class
 (defprimitive is_a (obj cla) :long
   " basilys_is_instance_of((" obj "), (" cla "))")
+
+;; primitive for testing if an object is NOT a (sub) instance of a class
+(defprimitive is_not_a (obj cla) :long
+  " !basilys_is_instance_of((" obj "), (" cla "))")
   
 ;; primitive for testing objectness
 (defprimitive is_object (obj) :long
@@ -720,12 +724,12 @@
 
 ;; find a binding inside an environment
 (defun find_env (env binder)
-  (if (not (is_a env class_environment)) 
-      (return))
+  (if (is_not_a env class_environment)
+      (return ()))
   (if (not (is_object binder)) 
       (return))
   (forever findloop
-	   (if (not (is_a env class_environment)) 
+	   (if (is_not_a env class_environment)
 	       (exit findloop))
 	   (let ( (bindmap 
 		   (unsafe_get_field :env_bind env)) )
