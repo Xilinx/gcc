@@ -7168,6 +7168,9 @@
 	(progn 
 	  (setq destl (make_list discr_list))
 	  (unsafe_put_fields recv :obdi_destlist destl)))
+    (let ( (firstd (pair_head (list_first destl))) )
+      (if (== firstd desto)
+	  (return recv)))
     (list_append destl desto)
     (return recv)
 ))
@@ -8979,50 +8982,47 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; function to get a free local value pointer for some name
+;;;function to get a free local value pointer for some name
+;; any free ptr is only reused for its offset. the objlocv is not reused...
 (defun get_free_objlocptr (gcx nam)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  ;(debugmsg nam "get_free_objlocptr start nam" (the_callcount))
+  ;;(debugmsg nam "get_free_objlocptr start nam" (the_callcount))
   (let ( (orout (unsafe_get_field :gncx_objrout gcx))
 	 (freeli (unsafe_get_field :gncx_freeptrlist gcx)) 
 	 (pfree (list_popfirst freeli))
+	 (:long off -1)
 	 )
-;    (debugmsg pfree "get_free_objlocptr start pfree" (the_callcount))
-;    (debugmsg freeli "get_free_objlocptr popped freeli" (the_callcount))
+    ;;    (debugmsg pfree "get_free_objlocptr start pfree" (the_callcount))
+    ;;    (debugmsg freeli "get_free_objlocptr popped freeli" (the_callcount))
     (if (not (is_a orout class_routineobj))
 	(debugmsg orout "get_free_objlocptr bad orout" (the_callcount)))
     (assert_msg "check orout" (is_a orout class_routineobj))
     (if (is_a pfree  class_objlocv)
-	(let ( (nambuf (make_strbuf discr_strbuf)) )
-	  (assert_msg "check pfreetyo" (== ctype_value (unsafe_get_field :obv_type pfree)))
-	  (if (is_a nam class_named)
+	(setq off (get_int (unsafe_get_field :obl_off pfree)))
+      (setq off (get_int (unsafe_get_field :obrout_nbval orout)))
+      )
+    (assert_msg "check off" (>=i off 0))
+    (let ( (nbvalbox (unsafe_get_field :obrout_nbval orout)) 
+	   (:long nbval (get_int nbvalbox))  
+	   (nambuf (make_strbuf discr_strbuf))
+	   )
+      (cond ( (is_a nam class_named)
 	      (add2sbuf_cident nambuf (unsafe_get_field :named_name nam)))
-	  (add2sbuf_strconst nambuf "__V")
-	  (add2sbuf_longdec nambuf (get_int (unsafe_get_field :obl_off pfree)))
-	  (unsafe_put_fields pfree :obl_cname (strbuf2string discr_string nambuf))
-	  ;(debugmsg pfree "get_free_objlocptr returning reused pfree" (the_callcount))
-	  (return pfree))
-      (let ( (nbvalbox (unsafe_get_field :obrout_nbval orout)) 
-	     (:long nbval (get_int nbvalbox))  
-	     (nambuf (make_strbuf discr_strbuf))
+	    ( (is_string nam)
+	      (add2sbuf_cident nambuf nam)))
+      (add2sbuf_strconst nambuf "__V")
+      (add2sbuf_longdec nambuf (+i nbval 1))
+      (put_int nbvalbox (+i nbval 1))
+      (let ( (namstr (strbuf2string discr_string nambuf))
+	     (oldnbvalbox (make_integerbox discr_integer nbval))
+	     (nloc (make_instance class_objlocv
+				  :obv_type ctype_value
+				  :obl_off (make_integerbox discr_integer off)
+				  :obl_proc orout
+				  :obl_cname namstr)) 
 	     )
-	(if (is_a nam class_named)
-	    (add2sbuf_cident nambuf (unsafe_get_field :named_name nam)))
-	(add2sbuf_strconst nambuf "__V")
-	(add2sbuf_longdec nambuf (+i nbval 1))
-	(put_int nbvalbox (+i nbval 1))
-	(let ( (namstr (strbuf2string discr_string nambuf))
-	       (oldnbvalbox (make_integerbox discr_integer nbval))
-	       (nloc (make_instance class_objlocv
-				    :obv_type ctype_value
-				    ;; the offset is the old nbval - not the incremented one
-				    :obl_off oldnbvalbox
-				    :obl_proc orout
-				    :obl_cname namstr)) 
-	      )
-	  ;(debugmsg nloc "get_free_objlocptr returning new nloc" (the_callcount))
-	  (return nloc)
-	  )))))
+	(return nloc)
+	))))
 
 ;;; function to get a free local long for some name
 (defun get_free_objloclong (gcx nam)
@@ -9030,32 +9030,31 @@
   (let ( (orout (unsafe_get_field :gncx_objrout gcx))
 	 (freeli (unsafe_get_field :gncx_freelonglist gcx)) 
 	 (pfree (list_popfirst freeli))
+	 (:long off -1)
 	 )
     (assert_msg "check orout" (is_a orout class_routineobj))
     (if (is_a pfree  class_objlocv)
-	(let ( (nambuf (make_strbuf discr_strbuf)) )
-	  (assert_msg "check pfreetyo" (== ctype_long (unsafe_get_field :obv_type pfree)))
-	  (if (is_a nam class_named)
+	(setq off (get_int (unsafe_get_field :obl_off pfree)))
+      (setq off (get_int (unsafe_get_field :obrout_nblong orout)))
+      )
+    (assert_msg "check off" (>=i off 0))
+    (let ( (nblongbox (unsafe_get_field :obrout_nblong orout)) 
+	   (:long nblong (get_int nblongbox))  
+	   (nambuf (make_strbuf discr_strbuf))
+	   )
+      (cond ( (is_a nam class_named)
 	      (add2sbuf_cident nambuf (unsafe_get_field :named_name nam)))
-	  (add2sbuf_strconst nambuf "__L")
-	  (add2sbuf_longdec nambuf (get_int (unsafe_get_field :obl_off pfree)))
-	  (unsafe_put_fields pfree :obl_cname (strbuf2string discr_string nambuf))
-	  (return pfree))
-      (let ( (nblongbox (unsafe_get_field :obrout_nblong orout)) 
-	     (:long nblong (get_int nblongbox))  
-	     (nambuf (make_strbuf discr_strbuf))
-	     )
-	(if (is_a nam class_named)
-	    (add2sbuf_cident nambuf (unsafe_get_field :named_name nam)))
-	(add2sbuf_strconst nambuf "__L")
-	(add2sbuf_longdec nambuf (+i nblong 1))
-	(put_int nblongbox (+i nblong 1))
-	(let ( (nloc (make_instance class_objlocv
-				    :obv_type ctype_long
-				    :obl_off (make_integerbox discr_integer nblong)
-				    :obl_cname (strbuf2string discr_string nambuf))) )
-	  (return nloc)
-	  )))))
+	    ( (is_string nam)
+	      (add2sbuf_cident nambuf nam)))
+      (add2sbuf_strconst nambuf "__L")
+      (add2sbuf_longdec nambuf (+i nblong 1))
+      (put_int nblongbox (+i nblong 1))
+      (let ( (nloc (make_instance class_objlocv
+				  :obv_type ctype_long
+				  :obl_off (make_integerbox discr_integer off)
+				  :obl_cname (strbuf2string discr_string nambuf))) )
+	(return nloc)
+	))))
 
 ;;; function to get a free local otherstuff for some name and ctype
 (defun get_free_objloctyped (gcx nam ctyp)
@@ -9073,6 +9072,7 @@
 	 (debugmsg ctyp "getfreeobjloctyped ctyp" (the_callcount))
 	 (let ( (freemap (unsafe_get_field :gncx_freeothermaps gcx)) 
 		(orout (unsafe_get_field :gncx_objrout gcx))
+		(:long off -1)
 		)
 	   (assert_msg "check freemap" (is_mapobject freemap))
 	   (assert_msg "check orout" (is_a orout class_routineobj))
@@ -9083,29 +9083,26 @@
 		   (mapobject_put freemap ctyp freeli)))
 	     (let ( (pfree (list_popfirst freeli)) )
 	       (if (is_a pfree  class_objlocv)
-		   (let ( ;; we are reusing a previously freed variable
-			 (nambuf (make_strbuf discr_strbuf)) )
-		     (add2sbuf_strconst nambuf "bYloc_")
-		     (assert_msg "check pfreetyo" (== ctyp (unsafe_get_field :obv_type pfree)))
-		     (return pfree))
-		 (let ( ;; we need to create a new variable
-		       (nambuf (make_strbuf discr_strbuf)) 
-		       (others (unsafe_get_field :obrout_others orout))
-		       (:long nbothers (list_length others))
-		       )
-		   (assert_msg "check others" (is_list others))
-		   (add2sbuf_strconst nambuf "loc_")
-		   (add2sbuf_cident nambuf  (unsafe_get_field :named_name ctyp))
-		   (add2sbuf_strconst nambuf "__o")
-		   (add2sbuf_longdec nambuf nbothers)
-		   (let ( (nloc (make_instance class_objlocv
-					       :obv_type ctyp
-					       :obl_off (make_integerbox discr_integer nbothers)
-					       :obl_cname (strbuf2string discr_string nambuf))) )
-		     (list_append others nloc)
-		     (return nloc)
+		   (setq off (get_int (unsafe_get_field :obl_off pfree)))
+		 (setq off  (list_length (unsafe_get_field :obrout_others orout))))
+	       (let ( 
+		     (nambuf (make_strbuf discr_strbuf)) 
+		     (others (unsafe_get_field :obrout_others orout))
+		     (:long nbothers (list_length others))
 		     )
-		   ))))))))
+		 (assert_msg "check others" (is_list others))
+		 (add2sbuf_strconst nambuf "loc_")
+		 (add2sbuf_cident nambuf  (unsafe_get_field :named_name ctyp))
+		 (add2sbuf_strconst nambuf "__o")
+		 (add2sbuf_longdec nambuf nbothers)
+		 (let ( (nloc (make_instance class_objlocv
+					     :obv_type ctyp
+					     :obl_off (make_integerbox discr_integer off)
+					     :obl_cname (strbuf2string discr_string nambuf))) )
+		   (list_append others nloc)
+		   (return nloc)
+		   )
+		 )))))))
   
 
 
@@ -10208,17 +10205,19 @@
   (assert_msg "check desto" (is_a desto class_objlocv))
   (let ( (epil (unsafe_get_field :oblo_epil recv)) 
 	 (resv (unsafe_get_field :obloop_resv recv))
+	 (destlist (make_list discr_list))
 	 (obc (make_instance class_objcompute
 			     ;; dont fill :obi_loc
-			     :obdi_destlist desto
+			     :obdi_destlist destlist
 			     :obcpt_expr resv
 			     ))
 	 )
+    (list_append destlist desto)
     (assert_msg "check epil" (is_list epil))
     (assert_msg "check resv" (is_a resv class_objlocv))
     (list_append epil obc)
     )
-  ;;    (debugmsg recv "putobjdest loop updated recv" (the_callcount))
+  (debugmsg recv "putobjdest loop updated recv" (the_callcount))
   recv
   )
 (install_method class_objloop  put_objdest  putobjdest_objloop)
