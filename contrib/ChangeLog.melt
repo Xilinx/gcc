@@ -1,4 +1,9 @@
-2008-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+2008-05-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: use curfptr curfnum ... in generated code.
+	When ENABLE_CHECKING added empty flocs in frames.
+
+2008-04-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: the assert of prog_lambda-p is more verbose,
 	to catch when a primitive is directly referenced.
 

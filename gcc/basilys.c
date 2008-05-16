@@ -1797,8 +1797,8 @@ void
 basilysgc_add_strbuf_cidentprefix (struct basilysstrbuf_st
 				   *strbuf_p, const char *str, int preflen)
 {
-  char *dupstr = 0;
-  char *pc = 0;
+  const char *ps = 0;
+  char *pd = 0;
   char tinybuf[80];
   if (str)
     {
@@ -1813,13 +1813,14 @@ basilysgc_add_strbuf_cidentprefix (struct basilysstrbuf_st
   if (preflen <= 0)
     return;
   memset (tinybuf, 0, sizeof (tinybuf));
-  if (str)
-    strncpy (tinybuf, str, preflen);
-  dupstr = tinybuf;
-  for (pc = dupstr; *pc; pc++)
-    if (!ISALNUM (*pc))
-      *pc = '_';
-  basilysgc_add_strbuf_raw (strbuf_p, dupstr);
+  for (pd = tinybuf, ps = str; ps < str + preflen && *ps; ps++)
+    {
+      if (ISALNUM (*ps))
+	*(pd++) = *ps;
+      else if (pd>tinybuf && pd[-1] != '_') 
+	*(pd++) = '_';
+    }
+  basilysgc_add_strbuf_raw (strbuf_p, tinybuf);
 }
 
 

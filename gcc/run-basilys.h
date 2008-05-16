@@ -67,4 +67,15 @@ Boston, MA 02110-1301, USA.  */
 #error required libtool dynamic loader library LTDL
 #endif /*HAVE_LIBTOOLDYNL */
 
+#if ENABLE_BASILYSMELT
 #include "basilys.h"
+#else
+#error required Basilys MELT enabling
+#endif
+
+#define curfptr curfram__.varptr
+#define curfnum curfram__.varnum
+#define curfclos curfram__.clos
+#define curfrout curfram__.clos->rout
+
+/* eof run-basilys.h */

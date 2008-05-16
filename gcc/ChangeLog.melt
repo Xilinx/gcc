@@ -1,3 +1,31 @@
+2008-05-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy elsewhere, find_env seems to be warmcompiled ok.]
+
+	* basilys.h: added flocs field instead of [removed] floc in frames.
+	(BASILYS_LOCATION) new macro to set the flocs.
+	(BASILYS_INITFRAME, BASILYS_INITFRAME_AT) sets the flocs.
+
+	* basilys.c: (basilysgc_add_strbuf_cidentprefix) avoid adding many _ 
+
+	* run-basilys.h: added ENABLE_BASILYSMELT check.
+	(curfptr, curfnum, curfclos, curfrout) new macros to shorten
+	generated code when accessing current frame curfram__.
+
+	* Makefile.in: reordered various melt tests. Added calls to indent
+	on generated C files.
+
+	* melt/warm-basilys.bysl: replaced field floc by flocs in generated frames.
+	(output_raw_location): new function.
+	(output_location) calls output_raw_location and also emits BASILYS_LOCATION
+	(class_objnil): new class.
+	(putobjdest_objvalue): verbose message when type mismatch.
+	(normexp_exit) returns a localoccv.
+	(normexp_let) likewise.
+	(normexp_forever) likewise.
+	(minor_garbcoll,full_garbcoll,is_not_object,is_not_a): new primitives.
+
+	* melt/testrun1.bysl: added is_not_a is_not_object primitives & more message_dbg in find_env
+
 2008-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy: find_env in testrun1.bysl or warm-basilys.bysl is
 	not correctly compiled. The output instructions are in wrong

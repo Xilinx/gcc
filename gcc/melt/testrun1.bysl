@@ -153,6 +153,9 @@
 ;; primitive for testing objectness
 (defprimitive is_object (obj) :long
   " (basilys_magic_discr(" obj ") == OBMAG_OBJECT)")
+(defprimitive is_not_object (obj) :long
+  " (basilys_magic_discr(" obj ") != OBMAG_OBJECT)")
+  
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -724,21 +727,28 @@
 
 ;; find a binding inside an environment
 (defun find_env (env binder)
+  (message_dbg "find_env start")
   (if (is_not_a env class_environment)
       (return ()))
-  (if (not (is_object binder)) 
+  (if (is_not_object binder)
       (return))
+  (message_dbg "find_env before findloop")
   (forever findloop
+	   (message_dbg "find_env start findloop")
 	   (if (is_not_a env class_environment)
 	       (exit findloop))
+	   (message_dbg "find_env before let bindmap")
 	   (let ( (bindmap 
 		   (unsafe_get_field :env_bind env)) )
+	     (message_dbg "find_env inside let bindmap")
 	     (let ( (bnd 
 		     (mapobject_get bindmap binder)) )
+	       (message_dbg "find_env inside let bnd")
 	       (if bnd 
 		   (exit findloop bnd))
 	       ))
 	   (setq env (unsafe_get_field :env_prev env))
+	   (message_dbg "find_env end findloop")
 	   )
   )
 

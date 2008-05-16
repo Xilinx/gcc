@@ -2004,7 +2004,7 @@ struct callframe_basilys_st
 {
   unsigned nbvar;
 #if ENABLE_CHECKING
-  struct framloc_basilys_st* floc;
+  const char* flocs;
 #endif
   struct basilysclosure_st *clos;
   struct excepth_basilys_st *exh;	/* for our exceptions - not implemented yet */
@@ -2035,23 +2035,23 @@ extern basilys_ptr_t basilys_jmpval;
 #if ENABLE_CHECKING
 #define BASILYS_DECLFRAME(NBVAR) struct {	\
   unsigned nbvar;				\
-  const struct framloc_basilys_st* floc;        \
+  const char* flocs;                            \
   struct basilysclosure_st* clos;		\
   struct excepth_basilys_st* exh;               \
   struct callframe_basilys_st* prev;		\
   void*  /* a basilys_ptr_t */ varptr[NBVAR];	\
 } curfram__
 /* initialize the current callframe and link it at top */
-#define BASILYS_INITFRAME(NBVAR,CLOS) do {	\
-  static const struct framloc_basilys_st here=  \
-          { __FILE__, __LINE__ };               \
+#define BASILYS_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {	\
   memset(&curfram__, 0, sizeof(curfram__));	\
   curfram__.nbvar = (NBVAR);			\
-  curfram__.floc = &here;			\
+  curfram__.flocs = FIL ":" #LIN;		\
   curfram__.prev = basilys_topframe;		\
   curfram__.clos = (CLOS);			\
   basilys_topframe = ((void*)&curfram__);	\
 } while(0)
+#define BASILYS_INITFRAME(NBVAR,CLOS) BASILYS_INITFRAME_AT(NBVAR,CLOS,__FILE__,__LINE__)
+#define BASILYS_LOCATION(LOCS) do{curfram__.flocs= LOCS;}while(0)
 #else
 #define BASILYS_DECLFRAME(NBVAR) struct {	\
   unsigned nbvar;				\
@@ -2060,6 +2060,7 @@ extern basilys_ptr_t basilys_jmpval;
   struct callframe_basilys_st* prev;		\
   void*  /* a basilys_ptr_t */ varptr[NBVAR];	\
 } curfram__
+#define BASILYS_LOCATION(LOCS) do{}while(0)
 /* initialize the current callframe and link it at top */
 #define BASILYS_INITFRAME(NBVAR,CLOS) do {	\
   memset(&curfram__, 0, sizeof(curfram__));	\

@@ -162,6 +162,8 @@
 ;; primitive for testing objectness
 (defprimitive is_object (obj) :long
   " (basilys_magic_discr(" obj ") == OBMAG_OBJECT)")
+(defprimitive is_not_object (obj) :long
+  " (basilys_magic_discr(" obj ") != OBMAG_OBJECT)")
   
 
 ;; primitive to return the last predefined index
@@ -207,6 +209,13 @@
 (defprimitive the_callcount () :long "callcount")
 ;;; the current frame depth
 (defprimitive the_framedepth () :long "(basilys_curframdepth())")
+
+
+;; primitive to force garbage collection
+(defprimitive minor_garbcoll (:long siz) :void 
+  "basilys_garbcoll((" siz "), BASILYS_MINOR_OR_FULL)")
+(defprimitive full_garbcoll (:long siz) :void
+  "basilys_garbcoll((" siz "), BASILYS_NEED_FULL)")
 
 ;; primitive to get or create a symbol from a string value
 (defprimitive get_symbolstr (strv) :value
@@ -5070,19 +5079,38 @@
       bindlist
       (lambda (cbnd) 
 	(assert_msg "normexp_let check cbnd" (is_a cbnd class_normlet_binding))))
-     ;;; remove every locallly bound symbol from the symbol cache map
+;;; remove every locallly bound symbol from the symbol cache map
      (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )
        (list_every bindlist 
 		   (lambda (bnd)
 		     (mapobject_remove sycmap (unsafe_get_field :binder bnd))
 		     )))
-     ;;;; make the result
-     (let ( (nlet
-	     (make_instance class_nrep_let
-			    :nrep_loc sloc
-			    :nlet_bindings (list_to_multiple bindlist discr_multiple)
-			    :nlet_body nbody)) )
-       (return nlet ())
+;;;; make the result
+     (let (
+	   (nlastbody (multiple_nth nbody -1))
+	   ;; the type of a let with empty body is void
+	   (nlastyp (or (get_ctype nlastbody newenv) ctype_void))
+	   (csym (clone_symbol 'let_))
+	   (nlet
+	    (make_instance class_nrep_let
+			   :nrep_loc sloc
+			   :nlet_bindings (list_to_multiple bindlist discr_multiple)
+			   :nlet_body nbody))
+	   (cbind (make_instance class_normlet_binding
+				 :binder csym
+				 :letbind_loc sloc
+				 :letbind_type nlastyp
+				 :letbind_expr nlet))
+	   (clocc (make_instance class_nrep_locsymocc
+				 :nrep_loc sloc
+				 :nocc_ctyp nlastyp
+				 :nocc_bind cbind))
+	   (resbinds (make_list discr_list))
+	   )
+       (list_append resbinds cbind)
+       (debugmsg clocc "normexp_let result clocc" (the_callcount))
+       (debugmsg resbinds "normexp_let result resbinds" (the_callcount))
+       (return clocc resbinds)
        )
      )))
 (install_method class_src_let normal_exp normexp_let)
@@ -5313,18 +5341,30 @@
        (nbody nbodbindings)
        (normalize_tuple sbody newenv ncx sloc)
        (let (
-	     (resbody (if 
-			  (or (null nbodbindings) (null (list_first nbodbindings))) 
-			  nbody
-			(make_tuple1 discr_multiple (wrap_normal_letseq nbody nbodbindings sloc))))
+	     (resbody (make_tuple1 discr_multiple 
+				   (wrap_normal_letseq nbody nbodbindings sloc)))
+	     (csym (clone_symbol 'forever_))
 	     (nforever (make_instance class_nrep_forever
 				      :nrep_loc sloc
 				      :nforever_bind slbind
 				      :nforever_body resbody
 				      :nforever_result resy)) 
+	     (cbind (make_instance class_normlet_binding
+				   :binder csym
+				   :letbind_loc sloc
+				   :letbind_type ctype_value
+				   :letbind_expr nforever))
+	     (clocc (make_instance class_nrep_locsymocc
+				   :nrep_loc sloc
+				   :nocc_ctyp ctype_value
+				   :nocc_symb csym
+				   :nocc_bind cbind))
+	     (nforbindings (make_list discr_list))
 	     )
-	 (debugmsg nforever "normexp_forever return nforever")
-	 (return nforever ())
+	 (list_append nforbindings cbind)
+	 (debugmsg clocc "normexp_forever return nforever" (the_callcount))
+	 (debugmsg clocc "normexp_forever return nforever" (the_callcount))
+	 (return clocc nforbindings)
 	 )
        ))))
 (install_method class_src_forever normal_exp normexp_forever)
@@ -5332,6 +5372,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize an exit
+;;; the normalization of an exit is a local variable of ctype_void
+;;; this enables detection of applications like (foo (exit 2))
 (defun normexp_exit (recv env ncx psloc)
   (assert_msg "check exit recv" (is_a recv class_src_exit))
   (assert_msg "check env" (is_a env class_environment))
@@ -5347,14 +5389,29 @@
     (multicall
      (nbody nbodbindings)
      (normalize_tuple sbody newenv ncx sloc)
+     (if (null nbodbindings)
+	 (setq nbodbindings (make_list discr_list)))
      ;; the only interesting value of nbody is the last one
      (let ( (nexit (make_instance class_nrep_exit
 				  :nrep_loc sloc
 				  :nexit_bind slbind
-				  :nexit_val (multiple_nth nbody (-i (multiple_length nbody) 1)))) )
+				  :nexit_val (multiple_nth nbody (-i (multiple_length nbody) 1)))) 
+	    (csym (clone_symbol 'exit_))
+	    (cbind (make_instance class_normlet_binding
+				  :binder csym
+				  :letbind_loc sloc
+				  :letbind_type ctype_void
+				  :letbind_expr nexit))
+	    (clocc (make_instance class_nrep_locsymocc
+				  :nrep_loc sloc
+				  :nocc_ctyp ctype_void
+				  :nocc_symb csym
+				  :nocc_bind cbind))
+	    )
+       (list_append nbodbindings cbind)
        (debugmsg nexit "normexp_exit nexit" (the_callcount))
        (debugmsg nbodbindings "normexp_exit nbodbindings" (the_callcount))
-       (return nexit nbodbindings)
+       (return clocc nbodbindings)
        ))))
 (install_method class_src_exit normal_exp normexp_exit)
 
@@ -6447,6 +6504,11 @@
   :fields (obpredef
 ))
 
+;; nil
+(defclass class_objnil
+  :super class_objpurevalue
+  :fields ())
+
 ;; initial element 
 (defclass class_objinitelem
   :super class_objpurevalue
@@ -6520,7 +6582,7 @@
 )
 (install_method class_root output_c_initpredef outcinitpredef_root)
 
-
+;;; output a predef
 (defun outpucod_predef (obpred declbuf implbuf :long depth)
   (assert_msg "check obpredef" (is_a obpred class_objpredef))
   (let ( (obpr (unsafe_get_field :obpredef obpred)) )
@@ -6541,6 +6603,19 @@
        )
      )))
 (install_method class_objpredef output_c_code outpucod_predef)
+
+;;;; output a nil
+(defun outpucod_nil (obnil  declbuf implbuf :long depth)
+  (assert_msg "check obnil" (is_a obnil class_objnil))
+  (add2sbuf_strconst implbuf "(/*nil*/NULL)"))
+(install_method class_objnil output_c_code outpucod_nil)
+
+
+;; nil are ctype_value
+(defun gectyp_objnil (recv env)  
+  (debugmsg recv "gectyp_objnil recv" (the_callcount))
+  ctype_value)
+(install_method class_objnil get_ctype gectyp_objnil)
 
 ;;; initial object - see BASILYS_OBJECT_STRUCT in basilys.h
 (defclass class_objinitobject
@@ -7143,6 +7218,7 @@
 (defclass class_procroutineobj
   :super class_routineobj
   :fields (oprout_getargs		;the get arguments tuple of instructions
+	   oprout_loc			;the source location
 ))
 
 ;; initial routine
@@ -7214,7 +7290,9 @@
 (install_method class_root output_c_code outpucod_catchall_root)
 
 ;;; common code to output a location
-(defun output_location (loc implbuf :long depth :cstring msg)
+
+;;; just output the #line directive
+(defun output_raw_location (loc implbuf :long depth :cstring msg)
   (if loc
       (progn
 	(add2sbuf_indentnl implbuf 0)
@@ -7222,14 +7300,13 @@
 	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_strconst implbuf "#line 0 ")
 	(add2sbuf_strconst implbuf " \"")
-	(if 
-	    (is_mixint loc) 
+	(if (is_mixint loc) 
 	    (progn
 	      (add2sbuf_string implbuf (mixint_val loc))
-	      (add2sbuf_strconst implbuf "@")
+	      (add2sbuf_strconst implbuf ":")
 	      (add2sbuf_longdec implbuf (get_int loc))))
 	(if msg (progn
-		  (add2sbuf_strconst implbuf ";")
+		  (add2sbuf_strconst implbuf ": @")
 		  (add2sbuf_strconst implbuf msg)
 		  ))
 	(add2sbuf_strconst implbuf "\"")
@@ -7238,7 +7315,23 @@
 	(add2sbuf_indentnl implbuf depth)
 	)))
 
-
+;; output the location & set the frame's location
+(defun output_location (loc implbuf :long depth :cstring msg)
+  (output_raw_location loc implbuf depth msg)
+  (if (is_mixint loc) 
+      (progn
+	(add2sbuf_strconst implbuf "BASILYS_LOCATION(\"")
+	(add2sbuf_string implbuf (mixint_val loc))
+	(add2sbuf_strconst implbuf ":")
+	(add2sbuf_longdec implbuf (get_int loc))
+	(if msg (progn
+		  (add2sbuf_strconst implbuf ": @")
+		  (add2sbuf_strconst implbuf msg)
+		  ))
+	(add2sbuf_strconst implbuf "\");")
+	(add2sbuf_indentnl implbuf depth)
+	))
+  )
 
 ;;; output the code for declaring and initializing the current frame 
 (defun output_curframe_init (rou implbuf)
@@ -7279,7 +7372,7 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#if ENABLE_CHECKING")
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "  struct framloc_basilys_st* floc;")
+    (add2sbuf_strconst implbuf "  const char* flocs;")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#endif")
     (add2sbuf_indentnl implbuf 0)
@@ -7352,7 +7445,7 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#if ENABLE_CHECKING")
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf " (struct framloc_basilys_st *)0, ")
+    (add2sbuf_strconst implbuf " (const char *)0, ")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#endif")
     (add2sbuf_indentnl implbuf 0)
@@ -7420,9 +7513,13 @@
 	 (others (unsafe_get_field :obrout_others prou))
 	 (ogargs (unsafe_get_field :oprout_getargs prou))
 	 (oretval (unsafe_get_field :obrout_retval prou))
+	 (orloc (unsafe_get_field :oprout_loc prou))
 	 )
     (debugmsg prou "outpucod_procroutine prou" (the_callcount))
     ;; output the declaration
+    (add2sbuf_indentnl declbuf 0)
+    (add2sbuf_indentnl declbuf 0)
+    (output_raw_location orloc implbuf 0 "proc")
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_strconst declbuf "static basilys_ptr_t ")
     (add2sbuf_string declbuf onam)
@@ -7698,17 +7795,17 @@
      ( (== ltyp ctype_value)
        (add2sbuf_strconst implbuf "/*lptr:")
        (add2sbuf_string implbuf lcnam)
-       (add2sbuf_strconst implbuf "*/curfram__.varptr[")
+       (add2sbuf_strconst implbuf "*/ curfptr[")
        (add2sbuf_longdec implbuf (get_int loff))
        (add2sbuf_strconst implbuf "]") )
      ( (== ltyp ctype_long)
        (add2sbuf_strconst implbuf "/*llng:")
        (add2sbuf_string implbuf lcnam)
-       (add2sbuf_strconst implbuf "*/curfram__.varnum[")
+       (add2sbuf_strconst implbuf "*/ curfnum[")
        (add2sbuf_longdec implbuf (get_int loff))
        (add2sbuf_strconst implbuf "]") )
      (:else
-      (add2sbuf_strconst implbuf "/*lother*/curfram__.")
+      (add2sbuf_strconst implbuf "/*lother*/ curfram__.")
       (add2sbuf_string implbuf lcnam)))
     )
   )
@@ -7724,7 +7821,7 @@
 		(== (unsafe_get_field :obv_type occv) ctype_value))
     (add2sbuf_strconst implbuf "(/*~")
     (add2sbuf_string implbuf onam)
-    (add2sbuf_strconst implbuf "*/ curfram__.clos->tabval[")
+    (add2sbuf_strconst implbuf "*/ curfclos->tabval[")
     (add2sbuf_longdec implbuf (get_int ooff))
     (add2sbuf_strconst implbuf "])")
 ))
@@ -7746,7 +7843,7 @@
     (add2sbuf_strconst implbuf " #")
     (add2sbuf_longhex implbuf (obj_hash ocnstv))
     ;; was for debug
-    (add2sbuf_strconst implbuf "*/ curfram__.clos->rout->tabval[")
+    (add2sbuf_strconst implbuf "*/ curfrout->tabval[")
     (add2sbuf_longdec implbuf (get_int ooff))
     (add2sbuf_strconst implbuf "])")
 ))
@@ -8780,6 +8877,7 @@
 				 :obrout_nbval (make_integerbox discr_integer 0)
 				 :obrout_nblong (make_integerbox discr_integer 0)
 				 :obrout_others (make_list discr_list)
+				 :oprout_loc nloc
 				 )) 
 	  (locmap (make_mapobject discr_mapobjects (+i 20 (*i 3 (multiple_length nargb)))))
 	  (gcx (make_instance class_genercontext
@@ -8995,8 +9093,6 @@
 	 (freeli (unsafe_get_field :gncx_freeptrlist gcx)) 
 	 (pfree (list_popfirst freeli))
 	 (:long off -1)
-	 (useless1 (the_null))			;coldcompile failed
-	 (useless2 (the_null))			;coldcompile failed
 	 )
     ;;    (debugmsg pfree "get_free_objlocptr start pfree" (the_callcount))
     ;;    (debugmsg freeli "get_free_objlocptr popped freeli" (the_callcount))
@@ -9004,17 +9100,20 @@
 	(debugmsg orout "get_free_objlocptr bad orout" (the_callcount)))
     (assert_msg "check orout" (is_a orout class_routineobj))
     (if (is_a pfree  class_objlocv)
-	(setq off (get_int (unsafe_get_field :obl_off pfree)))
-      (setq off (get_int (unsafe_get_field :obrout_nbval orout)))
-      )
+	(let ( (offpfree (unsafe_get_field :obl_off pfree)) )
+	  (assert_msg "get_free_objlocptr check offpfree" (is_integerbox offpfree))
+	  (setq off (get_int offpfree)))
+      (let ( (nbvalorout (unsafe_get_field :obrout_nbval orout)) )
+	(setq off (get_int nbvalorout))
+      ))
     (assert_msg "check off" (>=i off 0))
     (let ( (nbvalbox (unsafe_get_field :obrout_nbval orout)) 
 	   (:long nbval (get_int nbvalbox))  
 	   (nambuf (make_strbuf discr_strbuf))
-	   (useless3 (the_null))			;coldcompile failed
 	   )
       (cond ( (is_a nam class_named)
-	      (add2sbuf_cident nambuf (unsafe_get_field :named_name nam)))
+	      (let ( (namstr (unsafe_get_field :named_name nam)) )
+		(add2sbuf_cident nambuf namstr)))
 	    ( (is_string nam)
 	      (add2sbuf_cident nambuf nam)))
       (add2sbuf_strconst nambuf "__V")
@@ -9031,6 +9130,8 @@
 	(return nloc)
 	))))
 
+
+
 ;;; function to get a free local long for some name
 (defun get_free_objloclong (gcx nam)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
@@ -9041,9 +9142,12 @@
 	 )
     (assert_msg "check orout" (is_a orout class_routineobj))
     (if (is_a pfree  class_objlocv)
-	(setq off (get_int (unsafe_get_field :obl_off pfree)))
-      (setq off (get_int (unsafe_get_field :obrout_nblong orout)))
-      )
+	(let ( (offpfree (unsafe_get_field :obl_off pfree)) )
+	  (assert_msg "check offpfree" (is_integerbox offpfree))
+	  (setq off (get_int offpfree)))
+      (let ( (nblongorout (unsafe_get_field :obrout_nblong orout)) )
+	(assert_msg "check nblongorout" (is_integerbox nblongorout))
+	(setq off (get_int nblongorout))))
     (assert_msg "check off" (>=i off 0))
     (let ( (nblongbox (unsafe_get_field :obrout_nblong orout)) 
 	   (:long nblong (get_int nblongbox))  
@@ -9191,7 +9295,9 @@
   (assert_msg "check nilo" (is_a nilo class_nrep_nil))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debugmsg nilo "compilobj_nrep_nil nilo")
-  (make_stringconst discr_verbatimstring "(/*nil*/NULL)")
+  (let ( (obnil (make_instance class_objnil
+			       :obv_type ctype_value)) )
+    (return obnil))
 )
 
 (install_method class_nrep_nil compile_obj compilobj_nrep_nil)
@@ -10171,8 +10277,16 @@
 	 (return obc)))
      ;; error case: type mismatch
      (:else
-      (debugmsg recv "putobjdest_objvalue recv" (the_callcount))
-      (debugmsg desto "putobjdest_objvalue desto" (the_callcount))
+      (debugmsg recv "putobjdest_objvalue mismatching recv" (the_callcount))
+      (debugmsg typrecv "putobjdest_objvalue mismatching typrecv" (the_callcount))
+      (debugmsg desto "putobjdest_objvalue mismatching desto" (the_callcount))
+      (debugmsg typdesto "putobjdest_objvalue mismatching typdesto" (the_callcount))
+      (outcstring_err "putobjdest_objvalue type mismatch : recv <")
+      (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
+      (outcstring_err "> & desto<") 
+      (let ( (discr (discrim desto)) ) (outstr_err (unsafe_get_field :named_name discr)))
+      (outcstring_err ">")
+      (outnewline_err)
       (assert_msg "putobjdest_objvalue type mismatch" ())
       (return recv)))
     ))
@@ -10253,7 +10367,8 @@
     (assert_msg "check nctyp" (is_a nctyp class_ctype))
     (let ( (otest (compile_obj ntest gcx))
 	   (othen (compile_obj nthen gcx))
-	   (oelse (compile_obj nelse gcx))
+	   (oelse (if (is_not_a nelse class_nrep_nil) 
+		      (compile_obj nelse gcx)))
 	   (obif (make_instance class_objcond
 				:obi_loc loc
 				:obcond_test otest
@@ -10299,6 +10414,7 @@
     recv
 ))
 (install_method class_objapply put_objdest putobjdest_objapply)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;
