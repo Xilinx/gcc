@@ -1,4 +1,9 @@
 2008-05-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	[warmcompilation of test0 still buggy for multisend]
+
+	* melt/warm-basilys.bysl: (normexp_multicall) generates a local & bindings.
+
+2008-05-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy elsewhere, find_env seems to be warmcompiled ok.]
 
 	* basilys.h: added flocs field instead of [removed] floc in frames.

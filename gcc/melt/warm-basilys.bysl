@@ -1182,23 +1182,34 @@
 
 ;;; installation of a method in a class or discriminant
 (defun install_method (cla sel fun)
-  (messageval_dbg "install_method cla!VAL" cla)
-  (messageval_dbg "install_method sel!VAL" sel)
-  (debugmsg cla "install_method cla%" (the_callcount))
-  (debugmsg sel "install_method sel%" (the_callcount))
-  (debugmsg fun "install_method fun%" (the_callcount))
-  (if (is_a cla class_discr)
-      (if (is_a sel class_selector)
-	  (if (is_closure fun)
-	      (let 
-		  ( (mapdict 
-		     (unsafe_get_field :disc_methodict cla)) )
-		(if (is_mapobject mapdict)
-		    (mapobject_put mapdict sel fun)
-		  (let ( (newmapdict (make_mapobject discr_methodmap 30)) )
-		    (unsafe_put_fields cla :disc_methodict newmapdict)
-		    (mapobject_put newmapdict sel fun)
-		    )))))))
+  ;;(messageval_dbg "install_method cla!VAL" cla)
+  ;;(messageval_dbg "install_method sel!VAL" sel)
+  ;;(debugmsg cla "install_method cla%" (the_callcount))
+  ;;(debugmsg sel "install_method sel%" (the_callcount))
+  ;;(debugmsg fun "install_method fun%" (the_callcount))
+  (if (and
+       (is_a cla class_discr)
+       (is_a sel class_selector)
+       (is_closure fun))
+      (let 
+	  ( (mapdict 
+	     (unsafe_get_field :disc_methodict cla)) )
+	(if (is_mapobject mapdict)
+	    (mapobject_put mapdict sel fun)
+	  (let ( (newmapdict (make_mapobject discr_methodmap 35)) )
+	    (unsafe_put_fields cla :disc_methodict newmapdict)
+	    (mapobject_put newmapdict sel fun)
+	    )))
+    (progn
+      (debugmsg cla "install_method failed cla=" (the_callcount))
+      (debugmsg sel "install_method failed sel=" (the_callcount))
+      (debugmsg fun "install_method failed fun=" (the_callcount))
+      (messageval_dbg "install_method failed cla!=" cla)
+      (messageval_dbg "install_method failed sel!=" sel)
+      (messageval_dbg "install_method failed fun!=" fun)
+      ;(assert_msg "install_method failed" ())
+      )
+    ))
 
 
 (defclass class_debuginfo 
@@ -5757,37 +5768,59 @@
 			    (lambda (bnd)
 			      (mapobject_remove sycmap (unsafe_get_field :binder bnd))
 			      )))
+	  (let ( 
+		(lastnbody (multiple_nth nbody -1))
+		(lastntype (if lastnbody (get_ctype lastnbody newenv) ctype_void))
+		(csym (clone_symbol 'multi_))
+		(cbind (make_instance class_normlet_binding
+				      :binder csym
+				      :letbind_loc sloc
+				      :letbind_type lastntype
+					; :letbind_expr  filled below
+				      ))
+		(clocc (make_instance class_nrep_locsymocc
+				      :nrep_loc sloc
+				      :nocc_ctyp lastntype
+				      :nocc_symb csym
+				      :nocc_bind cbind))
+		)
 ;;; handle differently apply & sends
-	  (cond
-	   ( (is_a scall class_src_apply)
-	     (assert_msg "normexp_multicall check nrealcall apply" (is_a nrealcall class_nrep_apply))
-	     (let ( (nres (make_instance class_nrep_multiapply
-					 :nrep_loc sloc
-					 :napp_fun (unsafe_get_field :napp_fun nrealcall)
-					 :napp_args (unsafe_get_field :napp_args nrealcall)
-					 :nmulapp_bindings sresbind
-					 :nmulapp_body wnbodylet)) )
-	       (debugmsg nres "normexp_multicall multiapply nres" (the_callcount))
-	       (return nres nincallbindings)
+	    (cond
+	     ( (is_a scall class_src_apply)
+	       (assert_msg "normexp_multicall check nrealcall apply" (is_a nrealcall class_nrep_apply))
+	       (let ( (nres (make_instance class_nrep_multiapply
+					   :nrep_loc sloc
+					   :napp_fun (unsafe_get_field :napp_fun nrealcall)
+					   :napp_args (unsafe_get_field :napp_args nrealcall)
+					   :nmulapp_bindings sresbind
+					   :nmulapp_body wnbodylet)) )
+		 (unsafe_put_fields cbind :letbind_expr nres)
+		 (list_append nincallbindings cbind)
+		 (debugmsg clocc "normexp_multicall multiapply result clocc" (the_callcount))
+		 (debugmsg nincallbindings "normexp_multicall multiapply result nincallbindings" (the_callcount))
+		 (return clocc nincallbindings)
+		 )
 	       )
-	     )
-	   ( (is_a scall class_src_msend)
-	     (debugmsg nrealcall "normexp_multicall multicall nrealcall" (the_callcount))
-	     (assert_msg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
-	     (let ( (nres (make_instance class_nrep_multimsend
-					 :nrep_loc sloc
-					 :nsend_sel (unsafe_get_field :nsend_sel nrealcall)
-					 :nsend_recv (unsafe_get_field :nsend_recv nrealcall)
-					 :nsend_args (unsafe_get_field :nsend_args nrealcall)
-					 :nmulsend_bindings sresbind
-					 :nmulsend_body wnbodylet)) )
-	       (debugmsg nres "normexp_multicall multisend nres" (the_callcount))
-	       (return nres nincallbindings)
+	     ( (is_a scall class_src_msend)
+	       (debugmsg nrealcall "normexp_multicall multicall nrealcall" (the_callcount))
+	       (assert_msg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
+	       (let ( (nres (make_instance class_nrep_multimsend
+					   :nrep_loc sloc
+					   :nsend_sel (unsafe_get_field :nsend_sel nrealcall)
+					   :nsend_recv (unsafe_get_field :nsend_recv nrealcall)
+					   :nsend_args (unsafe_get_field :nsend_args nrealcall)
+					   :nmulsend_bindings sresbind
+					   :nmulsend_body wnbodylet)) )
+		 (unsafe_put_fields cbind :letbind_expr nres)
+		 (list_append nincallbindings cbind)
+		 (debugmsg clocc "normexp_multicall multisend result clocc" (the_callcount))
+		 (debugmsg nincallbindings "normexp_multicall multisend result nincallbindings" (the_callcount))
+		 (return clocc nincallbindings)
+		 )
 	       )
-	     )
-	   ( :else
-	     (error_plain sloc "multi-called expression neither apply nor send"))
-	   )))))))
+	     ( :else
+	       (error_plain sloc "multi-called expression neither apply nor send"))
+	     ))))))))
        
 (install_method class_src_multicall normal_exp normexp_multicall)
 
@@ -8784,6 +8817,8 @@
   (debugmsg vstr "outpucod_verbatimstring vstr" (the_callcount))
   (add2sbuf_string implbuf vstr)
 )
+(debugmsg discr_verbatimstring "discr_verbatimstring @@before installmeth warmbasilys")
+
 (install_method discr_verbatimstring output_c_code outpucod_verbatimstring)
 
 (debugmsg discr_verbatimstring "discr_verbatimstring @@toplev warmbasilys")
@@ -9029,12 +9064,12 @@
 	   (multicall 
 	    (nexp nbind)
 	    (normal_exp sexp inienv ncx psloc)	    
-	    (debugmsg nexp "compile_list_sexpr nexp" (the_callcount))    
-	    (debugmsg nbind "compile_list_sexpr nbind" (the_callcount))
+	    (debugmsg nexp "compile_list_sexpr nexp")    
+	    (debugmsg nbind "compile_list_sexpr nbind")
 	    (if (and (is_a nexp class_nrep)
 		     (not (is_a nexp class_nrep_anyproc)))
 		(let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
-		  (debugmsg wnexp "compile_list_sexpr wnexp" (the_callcount))
+		  (debugmsg wnexp "compile_list_sexpr wnexp")
 		  (list_append (unsafe_get_field :ninit_topl iniproc) 
 			       wnexp)
 		  ))))))
@@ -9169,8 +9204,10 @@
 
 ;;; function to get a free local otherstuff for some name and ctype
 (defun get_free_objloctyped (gcx nam ctyp)
+  (debugmsg nam "get_free_objloctyped nam" (the_callcount))
+  (debugmsg ctyp "get_free_objloctyped ctyp" (the_callcount))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  ;; (assert_msg "check ctyp" (is_a ctyp class_ctype))
+  (assert_msg "check ctyp" (is_a ctyp class_ctype))
   (cond ( (== ctyp ctype_long)
 	  (get_free_objloclong gcx nam))
 	( (== ctyp ctype_value)
@@ -9284,6 +9321,7 @@
 				 :obx_cont otup
 				 ))      
 	    )
+      (assert_msg "check primty" (is_a primty class_ctype))
       (debugmsg oexp "compiobj nrepchunk oexp" (the_callcount))
       oexp)
     ))
@@ -9374,13 +9412,17 @@
 	   (setq curank (+i curank 1))
 	   ))
 	(assert_msg "check good closed rank" (>=i clorank 0))
-	(let ( (ocloccv 
+	(let ( 
+	      (nclotyp (unsafe_get_field :nocc_ctyp nclo))
+	      (ocloccv 
 		(make_instance class_objcloccv
-			       :obv_type (unsafe_get_field :nocc_ctyp nclo)
+			       :obv_type nclotyp
 			       :obc_off (make_integerbox discr_integer
 							 clorank)
 			       :obc_proc lastcproc
-			       :obc_name (unsafe_get_field :named_name osym))) )
+			       :obc_name (unsafe_get_field :named_name osym)))
+	      )
+	  (assert_msg "check nclotyp" (is_a nclotyp class_ctype))
 	  (debugmsg ocloccv "compilobj closedocc result ocloccv" (the_callcount))
 	  ocloccv
 	  )))))
@@ -9423,13 +9465,16 @@
 	   (setq curank (+i curank 1))
 	   ))
 	(assert_msg "check good const rank" (>=i cnstrank 0))
-	(let ( (oconstv 
+	(let ( 
+	      (cnstyp (unsafe_get_field :nocc_ctyp ncnst))
+	      (oconstv 
 		(make_instance class_objconstv
-			       :obv_type (unsafe_get_field :nocc_ctyp ncnst)
+			       :obv_type cnstyp
 			       :obc_off (make_integerbox discr_integer
 							 cnstrank)
 			       :obc_proc lastcproc
 			       :obc_name (unsafe_get_field :named_name osym))) )
+	  (assert_msg "check cnstyp" (is_a cnstyp class_ctype))
 	  (debugmsg oconstv "compilobj constocc result oconstv" (the_callcount))
 	  oconstv
 	  )))))
@@ -9991,7 +10036,8 @@
     (multiple_every 
      oargs
      (lambda (ocurarg :long ix)
-       (if (and ocurarg (not (is_a ocurarg class_objpurevalue)))
+       (debugmsg ocurarg "compilobj_nrep_multiapply ocurarg")
+       (if (and ocurarg (is_not_a ocurarg class_objpurevalue))
 	   (list_append obodl ocurarg))))
     ;; add the multiapply to the block
     (list_append obodl omapp)
@@ -10100,10 +10146,11 @@
     (multiple_every 
      oargs
      (lambda (ocurarg :long ix)
-       (if (and ocurarg (not (is_a ocurarg class_objpurevalue)))
+       (debugmsg ocurarg "compilobj_nrep_multimsend ocurarg")
+       (if (and ocurarg (is_not_a ocurarg class_objpurevalue))
 	   (list_append obodl ocurarg))))
     ;; add the multisend to the block
-    (list_append obody omsend)
+    (list_append obodl omsend)
     ;; add the clearing of each result
     (multiple_every 
      reslocs
@@ -10264,6 +10311,7 @@
 	   )))
      ;; common case when desto & recv have same type
      ( (== typrecv typdesto)
+       (assert_msg "check same typrecv&rtpdesto" (is_a typrecv class_ctype))
        (let ( (destlis (make_list discr_list))
 	      (explis (make_list discr_list))
 	      (obc (make_instance class_objcompute

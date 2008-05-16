@@ -104,17 +104,23 @@
 	   x
 	   246))
 
-(defun testmultisend (g y)
-  (multicall (u v)
-	     (the_sel 
-	      (g y y) 
-	      the_sel 1357)
-	     (g u v)
-	     ))
-
 (definstance ii my_class_root 
   :obj_num 12751
   :root_f1 (boxint 1001002))
+
+(defun testmultisend (g h x y)
+  (puts "begin testmultisend")
+  (multicall 
+   (u v)
+   (the_sel 
+    (g y y) 
+    ii 
+    1357)
+   (puts "middle testmultisend")
+   (h u 
+      (g v x))
+   ))
+
 
 (defprimitive gti (:long a b) :long 
   "((" a ")>(" b "))")
