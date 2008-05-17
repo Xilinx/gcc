@@ -254,13 +254,6 @@ verify_ssa_name (tree ssa_name, bool is_virtual)
       return true;
     }
 
-  if (is_virtual && var_ann (SSA_NAME_VAR (ssa_name)) 
-      && get_subvars_for_var (SSA_NAME_VAR (ssa_name)) != NULL)
-    {
-      error ("found real variable when subvariables should have appeared");
-      return true;
-    }
-
   if (SSA_NAME_IS_DEFAULT_DEF (ssa_name)
       && !IS_EMPTY_STMT (SSA_NAME_DEF_STMT (ssa_name)))
     {
@@ -951,18 +944,18 @@ uid_ssaname_map_hash (const void *item)
 /* Initialize global DFA and SSA structures.  */
 
 void
-init_tree_ssa (void)
+init_tree_ssa (struct function *fn)
 {
-  cfun->gimple_df = GGC_CNEW (struct gimple_df);
-  cfun->gimple_df->referenced_vars = htab_create_ggc (20, uid_decl_map_hash, 
-				     		      uid_decl_map_eq, NULL);
-  cfun->gimple_df->default_defs = htab_create_ggc (20, uid_ssaname_map_hash, 
-				                   uid_ssaname_map_eq, NULL);
-  cfun->gimple_df->var_anns = htab_create_ggc (20, var_ann_hash, 
-					       var_ann_eq, NULL);
-  cfun->gimple_df->call_clobbered_vars = BITMAP_GGC_ALLOC ();
-  cfun->gimple_df->addressable_vars = BITMAP_GGC_ALLOC ();
-  init_ssanames ();
+  fn->gimple_df = GGC_CNEW (struct gimple_df);
+  fn->gimple_df->referenced_vars = htab_create_ggc (20, uid_decl_map_hash, 
+				     		    uid_decl_map_eq, NULL);
+  fn->gimple_df->default_defs = htab_create_ggc (20, uid_ssaname_map_hash, 
+				                 uid_ssaname_map_eq, NULL);
+  fn->gimple_df->var_anns = htab_create_ggc (20, var_ann_hash, 
+					     var_ann_eq, NULL);
+  fn->gimple_df->call_clobbered_vars = BITMAP_GGC_ALLOC ();
+  fn->gimple_df->addressable_vars = BITMAP_GGC_ALLOC ();
+  init_ssanames (fn, 0);
   init_phinodes ();
 }
 
@@ -1223,7 +1216,7 @@ tree_ssa_useless_type_conversion (tree expr)
      the top of the RHS to the type of the LHS and the type conversion
      is "safe", then strip away the type conversion so that we can
      enter LHS = RHS into the const_and_copies table.  */
-  if (TREE_CODE (expr) == NOP_EXPR || TREE_CODE (expr) == CONVERT_EXPR
+  if (CONVERT_EXPR_P (expr)
       || TREE_CODE (expr) == VIEW_CONVERT_EXPR
       || TREE_CODE (expr) == NON_LVALUE_EXPR)
     /* FIXME: Use of GENERIC_TREE_TYPE here is a temporary measure to work

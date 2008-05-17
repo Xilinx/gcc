@@ -172,6 +172,12 @@ static int nfunctions_inlined;
 static int overall_insns;
 static gcov_type max_count;
 
+static inline struct inline_summary *
+inline_summary (struct cgraph_node *node)
+{
+  return &node->local.inline_summary;
+}
+
 /* Estimate size of the function after inlining WHAT into TO.  */
 
 static int
@@ -226,8 +232,10 @@ cgraph_clone_inlined_nodes (struct cgraph_edge *e, bool duplicate, bool update_o
   else
     e->callee->global.inlined_to = e->caller;
   e->callee->global.stack_frame_offset
-    = e->caller->global.stack_frame_offset + e->caller->local.estimated_self_stack_size;
-  peak = e->callee->global.stack_frame_offset + e->callee->local.estimated_self_stack_size;
+    = e->caller->global.stack_frame_offset
+      + inline_summary (e->caller)->estimated_self_stack_size;
+  peak = e->callee->global.stack_frame_offset
+      + inline_summary (e->callee)->estimated_self_stack_size;
   if (e->callee->global.inlined_to->global.estimated_stack_size < peak)
     e->callee->global.inlined_to->global.estimated_stack_size = peak;
 
@@ -359,10 +367,10 @@ cgraph_check_inline_limits (struct cgraph_node *to, struct cgraph_node *what,
 
   /* When inlining large function body called once into small function,
      take the inlined function as base for limiting the growth.  */
-  if (to->local.self_insns > what->local.self_insns)
-    limit = to->local.self_insns;
+  if (inline_summary (to)->self_insns > inline_summary(what)->self_insns)
+    limit = inline_summary (to)->self_insns;
   else
-    limit = what->local.self_insns;
+    limit = inline_summary (what)->self_insns;
 
   limit += limit * PARAM_VALUE (PARAM_LARGE_FUNCTION_GROWTH) / 100;
 
@@ -378,12 +386,12 @@ cgraph_check_inline_limits (struct cgraph_node *to, struct cgraph_node *what,
       return false;
     }
 
-  stack_size_limit = to->local.estimated_self_stack_size;
+  stack_size_limit = inline_summary (to)->estimated_self_stack_size;
 
   stack_size_limit += stack_size_limit * PARAM_VALUE (PARAM_STACK_FRAME_GROWTH) / 100;
 
   inlined_stack = (to->global.stack_frame_offset
-		   + to->local.estimated_self_stack_size
+		   + inline_summary (to)->estimated_self_stack_size
 		   + what->global.estimated_stack_size);
   if (inlined_stack  > stack_size_limit
       && inlined_stack > PARAM_VALUE (PARAM_LARGE_STACK_FRAME))
@@ -1036,8 +1044,8 @@ cgraph_decide_inlining (void)
       {
 	struct cgraph_edge *e;
 
-	initial_insns += node->local.self_insns;
-	gcc_assert (node->local.self_insns == node->global.insns);
+	initial_insns += inline_summary (node)->self_insns;
+	gcc_assert (inline_summary (node)->self_insns == node->global.insns);
 	for (e = node->callees; e; e = e->next_callee)
 	  if (max_count < e->count)
 	    max_count = e->count;
@@ -1511,25 +1519,35 @@ struct simple_ipa_opt_pass pass_ipa_early_inline =
 };
 
 /* Compute parameters of functions used by inliner.  */
-static unsigned int
-compute_inline_parameters (void)
+unsigned int
+compute_inline_parameters (struct cgraph_node *node)
 {
-  struct cgraph_node *node = cgraph_node (current_function_decl);
-
   gcc_assert (!node->global.inlined_to);
-  node->local.estimated_self_stack_size = estimated_stack_frame_size ();
-  node->global.estimated_stack_size = node->local.estimated_self_stack_size;
+  inline_summary (node)->estimated_self_stack_size
+    = estimated_stack_frame_size ();
+  node->global.estimated_stack_size
+    = inline_summary (node)->estimated_self_stack_size;
   node->global.stack_frame_offset = 0;
   node->local.inlinable = tree_inlinable_function_p (current_function_decl);
-  node->local.self_insns = estimate_num_insns (current_function_decl,
-					       &eni_inlining_weights);
+  inline_summary (node)->self_insns = estimate_num_insns (current_function_decl,
+					                  &eni_inlining_weights);
   if (node->local.inlinable && !node->local.disregard_inline_limits)
     node->local.disregard_inline_limits
       = DECL_DISREGARD_INLINE_LIMITS (current_function_decl);
   if (flag_really_no_inline && !node->local.disregard_inline_limits)
     node->local.inlinable = 0;
   /* Inlining characteristics are maintained by the cgraph_mark_inline.  */
-  node->global.insns = node->local.self_insns;
+  node->global.insns = inline_summary (node)->self_insns;
+  return 0;
+}
+
+
+/* Compute parameters of functions used by inliner using
+   current_function_decl.  */
+static unsigned int
+compute_inline_parameters_for_current (void)
+{
+  compute_inline_parameters (cgraph_node (current_function_decl));
   return 0;
 }
 
@@ -1546,7 +1564,7 @@ struct gimple_opt_pass pass_inline_parameters =
   GIMPLE_PASS,
   NULL,	 				/* name */
   gate_inline_passes,			/* gate */
-  compute_inline_parameters,		/* execute */
+  compute_inline_parameters_for_current,/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
@@ -1561,9 +1579,30 @@ struct gimple_opt_pass pass_inline_parameters =
 
 /* Note function body size.  */
 static void
-inline_generate_summary (struct cgraph_node *node ATTRIBUTE_UNUSED)
+inline_generate_summary (void)
 {
-  compute_inline_parameters ();
+  struct cgraph_node **order =
+    XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
+  int nnodes = cgraph_postorder (order);
+  int i;
+
+  for (i = nnodes - 1; i >= 0; i--)
+    {
+      struct cgraph_node *node = order[i];
+      
+      /* Allow possibly removed nodes to be garbage collected.  */
+      order[i] = NULL;
+      if (node->analyzed && (node->needed || node->reachable))
+	{
+	  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+	  current_function_decl = node->decl;
+	  compute_inline_parameters (node);
+	  pop_cfun ();
+	}
+    }
+  
+  current_function_decl = NULL;
+  free (order);
   return;
 }
 
@@ -1609,12 +1648,10 @@ struct ipa_opt_pass pass_ipa_inline =
   TODO_dump_cgraph | TODO_dump_func
   | TODO_remove_functions		/* todo_flags_finish */
  },
- inline_generate_summary,		/* function_generate_summary */
- NULL,					/* variable_generate_summary */
- NULL,					/* function_write_summary */
- NULL,					/* variable_write_summary */
+ inline_generate_summary,		/* generate_summary */
+ NULL,					/* write_summary */
+ NULL,					/* read_summary */
  NULL,					/* function_read_summary */
- NULL,					/* variable_read_summary */
  0,					/* TODOs */
  inline_transform,			/* function_transform */
  NULL,					/* variable_transform */

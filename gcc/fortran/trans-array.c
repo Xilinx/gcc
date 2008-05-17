@@ -959,9 +959,10 @@ gfc_put_offset_into_var (stmtblock_t * pblock, tree * poffset,
 }
 
 
-/* Assign an element of an array constructor.  */
+/* Variables needed for bounds-checking.  */
 static bool first_len;
 static tree first_len_val; 
+static bool typespec_chararray_ctor;
 
 static void
 gfc_trans_array_ctor_element (stmtblock_t * pblock, tree desc,
@@ -998,7 +999,7 @@ gfc_trans_array_ctor_element (stmtblock_t * pblock, tree desc,
 				 se->string_length,
 				 se->expr);
 	}
-      if (flag_bounds_check)
+      if (flag_bounds_check && !typespec_chararray_ctor)
 	{
 	  if (first_len)
 	    {
@@ -1677,7 +1678,13 @@ gfc_trans_array_constructor (gfc_loopinfo * loop, gfc_ss * ss)
   tree loopfrom;
   bool dynamic;
 
-  if (flag_bounds_check && ss->expr->ts.type == BT_CHARACTER)
+  /* Do bounds-checking here and in gfc_trans_array_ctor_element only if no
+     typespec was given for the array constructor.  */
+  typespec_chararray_ctor = (ss->expr->ts.cl
+			     && ss->expr->ts.cl->length_from_typespec);
+
+  if (flag_bounds_check && ss->expr->ts.type == BT_CHARACTER
+      && !typespec_chararray_ctor)
     {  
       first_len_val = gfc_create_var (gfc_charlen_type_node, "len");
       first_len = true;
@@ -1688,7 +1695,27 @@ gfc_trans_array_constructor (gfc_loopinfo * loop, gfc_ss * ss)
   c = ss->expr->value.constructor;
   if (ss->expr->ts.type == BT_CHARACTER)
     {
-      bool const_string = get_array_ctor_strlen (&loop->pre, c, &ss->string_length);
+      bool const_string;
+      
+      /* get_array_ctor_strlen walks the elements of the constructor, if a
+	 typespec was given, we already know the string length and want the one
+	 specified there.  */
+      if (typespec_chararray_ctor && ss->expr->ts.cl->length
+	  && ss->expr->ts.cl->length->expr_type != EXPR_CONSTANT)
+	{
+	  gfc_se length_se;
+
+	  const_string = false;
+	  gfc_init_se (&length_se, NULL);
+	  gfc_conv_expr_type (&length_se, ss->expr->ts.cl->length,
+			      gfc_charlen_type_node);
+	  ss->string_length = length_se.expr;
+	  gfc_add_block_to_block (&loop->pre, &length_se.pre);
+	  gfc_add_block_to_block (&loop->post, &length_se.post);
+	}
+      else
+	const_string = get_array_ctor_strlen (&loop->pre, c,
+					      &ss->string_length);
 
       /* Complex character array constructors should have been taken care of
 	 and not end up here.  */
@@ -1873,20 +1900,21 @@ gfc_add_loop_ss_code (gfc_loopinfo * loop, gfc_ss * ss, bool subscript)
 	  /* Scalar expression.  Evaluate this now.  This includes elemental
 	     dimension indices, but not array section bounds.  */
 	  gfc_init_se (&se, NULL);
-          gfc_conv_expr (&se, ss->expr);
-          gfc_add_block_to_block (&loop->pre, &se.pre);
+	  gfc_conv_expr (&se, ss->expr);
+	  gfc_add_block_to_block (&loop->pre, &se.pre);
 
-          if (ss->expr->ts.type != BT_CHARACTER)
-            {
-              /* Move the evaluation of scalar expressions outside the
-                 scalarization loop.  */
-              if (subscript)
-                se.expr = convert(gfc_array_index_type, se.expr);
-              se.expr = gfc_evaluate_now (se.expr, &loop->pre);
-              gfc_add_block_to_block (&loop->pre, &se.post);
-            }
-          else
-            gfc_add_block_to_block (&loop->post, &se.post);
+	  if (ss->expr->ts.type != BT_CHARACTER)
+	    {
+	      /* Move the evaluation of scalar expressions outside the
+		 scalarization loop, except for WHERE assignments.  */
+	      if (subscript)
+		se.expr = convert(gfc_array_index_type, se.expr);
+	      if (!ss->where)
+		se.expr = gfc_evaluate_now (se.expr, &loop->pre);
+	      gfc_add_block_to_block (&loop->pre, &se.post);
+	    }
+	  else
+	    gfc_add_block_to_block (&loop->post, &se.post);
 
 	  ss->data.scalar.expr = se.expr;
 	  ss->string_length = se.string_length;
@@ -3083,6 +3111,8 @@ gfc_conv_ss_startstride (gfc_loopinfo * loop)
 				 info->start[n]);
 	      tmp = fold_build2 (FLOOR_DIV_EXPR, gfc_array_index_type, tmp,
 				 info->stride[n]);
+	      tmp = fold_build2 (MAX_EXPR, gfc_array_index_type, tmp,
+				 build_int_cst (gfc_array_index_type, 0));
 	      /* We remember the size of the first section, and check all the
 	         others against this.  */
 	      if (size[n])
@@ -3435,8 +3465,10 @@ gfc_conv_loop_setup (gfc_loopinfo * loop)
 	     for (i = 0; i<=last; i++){...};  */
 	  tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type,
 			     loop->to[n], loop->from[n]);
-	  tmp = fold_build2 (TRUNC_DIV_EXPR, gfc_array_index_type, 
+	  tmp = fold_build2 (FLOOR_DIV_EXPR, gfc_array_index_type, 
 			     tmp, info->stride[n]);
+	  tmp = fold_build2 (MAX_EXPR, gfc_array_index_type, tmp,
+			     build_int_cst (gfc_array_index_type, -1));
 	  loop->to[n] = gfc_evaluate_now (tmp, &loop->pre);
 	  /* Make the loop variable start at 0.  */
 	  loop->from[n] = gfc_index_zero_node;

@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "tree-affine.h"
 #include "pointer-set.h"
+#include "tree-ssa-propagate.h"
 
 /* TODO:  Support for predicated code motion.  I.e.
 
@@ -812,8 +813,7 @@ rewrite_bittest (block_stmt_iterator *bsi)
 
   /* There is a conversion in between possibly inserted by fold.  */
   t = GIMPLE_STMT_OPERAND (stmt1, 1);
-  if (TREE_CODE (t) == NOP_EXPR
-      || TREE_CODE (t) == CONVERT_EXPR)
+  if (CONVERT_EXPR_P (t))
     {
       t = TREE_OPERAND (t, 0);
       if (TREE_CODE (t) != SSA_NAME
@@ -900,6 +900,14 @@ determine_invariantness_stmt (struct dom_walk_data *dw_data ATTRIBUTE_UNUSED,
 	    {
 	      maybe_never = true;
 	      outermost = NULL;
+	    }
+	  /* Make sure to note always_executed_in for stores to make
+	     store-motion work.  */
+	  else if (stmt_makes_single_store (stmt))
+	    {
+	      stmt_ann (stmt)->common.aux
+		= xcalloc (1, sizeof (struct lim_aux_data));
+	      LIM_DATA (stmt)->always_executed_in = outermost;
 	    }
 	  continue;
 	}

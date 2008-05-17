@@ -2168,9 +2168,7 @@ noce_can_store_speculate_p (basic_block top_bb, const_rtx mem)
 	     unconditionally before the barrier.  */
 	  if (INSN_P (insn)
 	      && (volatile_insn_p (PATTERN (insn))
-		  || (CALL_P (insn)
-		      && (!CONST_OR_PURE_CALL_P (insn)
-			  || pure_call_p (insn)))))
+		  || (CALL_P (insn) && (!RTL_CONST_CALL_P (insn)))))
 	    return false;
 
 	  if (memory_modified_in_insn_p (mem, insn))
@@ -3915,7 +3913,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
 	  if (INSN_P (insn))
 	    {
 	      df_simulate_find_defs (insn, test_set);
-	      df_simulate_one_insn_backwards (test_bb, insn, test_live);
+	      df_simulate_one_insn (test_bb, insn, test_live);
 	    }
 	  prev = PREV_INSN (insn);
 	  if (insn == earliest)

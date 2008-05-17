@@ -1,3 +1,48 @@
+2008-05-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* trans.c (add_decl_expr): At toplevel, mark the TYPE_ADA_SIZE field
+	of records and unions.
+	(gnat_to_gnu) <N_Validate_Unchecked_Conversion>: Fix formatting.
+
+2008-05-14  Samuel Tardieu  <sam@rfc1149.net>
+            Robert Dewar <dewar@adacore.com>
+
+	* sem_attr.adb (Analyze_Attribute, Attribute_Old case): Add
+	restrictions to the prefix of 'Old.
+	* sem_util.ads, sem_util.adb (In_Parameter_Specification): New.
+	* gnat_rm.texi ('Old): Note that 'Old cannot be applied to local
+	variables.
+
+2008-05-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/24880
+	PR ada/26635
+	* utils.c (convert) <INTEGER_TYPE>: When converting an additive
+	expression to an integral type with lower precision, use NOP_EXPR
+	directly in a couple of special cases.
+
+2008-05-12  Samuel Tardieu  <sam@rfc1149.net>
+            Ed Schonberg <schonberg@adacore.com>
+
+	* sem_ch3.adb (Build_Derived_Record_Type): Accept statically matching
+	constraint expressions.
+
+2008-05-12  Tomas Bily  <tbily@suse.cz>
+
+	* utils2.c (known_alignment, contains_save_expr_p)
+	(gnat_mark_addressable): Use CASE_CONVERT.
+	* decl.c (annotate_value): Likewise.
+	* trans.c (maybe_stabilize_reference): Likewise.
+	* utils2.c (build_binary_op): Use CONVERT_EXPR_P.
+	* utils.c (rest_of_record_type_compilation): Likewise.
+	* trans.c (protect_multiple_eval, Attribute_to_gnu)
+	(protect_multiple_eval): Likewise.
+
+2008-05-08  Andreas Schwab  <schwab@suse.de>
+
+	* utils.c (handle_pure_attribute, init_gigi_decls): Rename
+	DECL_IS_PURE to DECL_PURE_P.
+
 2008-05-05  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* decl.c (maybe_pad_type): Add ??? comment.

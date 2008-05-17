@@ -650,7 +650,7 @@ proc check_effective_target_nomips16 { } {
 # we don't support MIPS16 PIC.
 
 proc add_options_for_mips16_attribute { flags } {
-    return "$flags -mno-abicalls -fno-pic"
+    return "$flags -mno-abicalls -fno-pic -DMIPS16=__attribute__((mips16))"
 }
 
 # Return true if we can force a mode that allows MIPS16 code generation.
@@ -748,6 +748,18 @@ proc check_effective_target_fortran_large_int { } {
 	integer,parameter :: k = selected_int_kind (range (0_8) + 1)
 	integer(kind=k) :: i
 	end
+    }]
+}
+
+# Return 1 if the target supports Fortran integer(16), 0 otherwise.
+#
+# When the target name changes, replace the cached result.
+
+proc check_effective_target_fortran_integer_16 { } {
+    return [check_no_compiler_messages fortran_integer_16 executable {
+        ! Fortran
+        integer(16) :: i
+        end
     }]
 }
 
@@ -2052,7 +2064,8 @@ proc check_effective_target_sync_int_long { } {
 	     || [istarget s390*-*-*] 
 	     || [istarget powerpc*-*-*]
 	     || [istarget sparc64-*-*]
-	     || [istarget sparcv9-*-*] } {
+	     || [istarget sparcv9-*-*]
+	     || [istarget mips*-*-*] } {
            set et_sync_int_long_saved 1
         }
     }
@@ -2079,7 +2092,8 @@ proc check_effective_target_sync_char_short { } {
 	     || [istarget s390*-*-*] 
 	     || [istarget powerpc*-*-*]
 	     || [istarget sparc64-*-*]
-	     || [istarget sparcv9-*-*] } {
+	     || [istarget sparcv9-*-*]
+	     || [istarget mips*-*-*] } {
            set et_sync_char_short_saved 1
         }
     }
@@ -2357,6 +2371,6 @@ proc check_effective_target_c99_runtime { } {
 
 proc check_effective_target_4byte_wchar_t { } {
     return [check_no_compiler_messages 4byte_wchar_t object {
-	int dummy[sizeof (wchar_t) >= 4 ? 1 : -1];
+	int dummy[sizeof (__WCHAR_TYPE__) >= 4 ? 1 : -1];
     }]
 }

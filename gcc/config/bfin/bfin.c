@@ -94,7 +94,7 @@ static int bfin_flag_schedule_insns2;
 static int bfin_flag_var_tracking;
 
 /* -mcpu support */
-bfin_cpu_t bfin_cpu_type = DEFAULT_CPU_TYPE;
+bfin_cpu_t bfin_cpu_type = BFIN_CPU_UNKNOWN;
 
 /* -msi-revision support. There are three special values:
    -1      -msi-revision=none.
@@ -103,8 +103,6 @@ int bfin_si_revision;
 
 /* The workarounds enabled */
 unsigned int bfin_workarounds = 0;
-
-static bool cputype_selected = false;
 
 struct bfin_cpu
 {
@@ -1840,10 +1838,10 @@ bfin_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
 
 /* Decide whether a type should be returned in memory (true)
    or in a register (false).  This is called by the macro
-   RETURN_IN_MEMORY.  */
+   TARGET_RETURN_IN_MEMORY.  */
 
-int
-bfin_return_in_memory (const_tree type)
+static bool
+bfin_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
   int size = int_size_in_bytes (type);
   return size > 2 * UNITS_PER_WORD || size == -1;
@@ -2378,8 +2376,6 @@ bfin_handle_option (size_t code, const char *arg, int value)
 
 	q = arg + strlen (p);
 
-	cputype_selected = true;
-
 	if (*q == '\0')
 	  {
 	    bfin_si_revision = bfin_cpus[i].si_revision;
@@ -2450,6 +2446,17 @@ bfin_init_machine_status (void)
 void
 override_options (void)
 {
+  /* If processor type is not specified, enable all workarounds.  */
+  if (bfin_cpu_type == BFIN_CPU_UNKNOWN)
+    {
+      int i;
+
+      for (i = 0; bfin_cpus[i].name != NULL; i++)
+	bfin_workarounds |= bfin_cpus[i].workarounds;
+
+      bfin_si_revision = 0xffff;
+    }
+
   if (bfin_csync_anomaly == 1)
     bfin_workarounds |= WA_SPECULATIVE_SYNCS;
   else if (bfin_csync_anomaly == 0)
@@ -2459,9 +2466,6 @@ override_options (void)
     bfin_workarounds |= WA_SPECULATIVE_LOADS;
   else if (bfin_specld_anomaly == 0)
     bfin_workarounds &= ~WA_SPECULATIVE_LOADS;
-
-  if (!cputype_selected)
-    bfin_workarounds |= WA_RETS;
 
   if (TARGET_OMIT_LEAF_FRAME_POINTER)
     flag_omit_frame_pointer = 1;
@@ -2497,6 +2501,18 @@ override_options (void)
      since we don't support it and it'll just break.  */
   if (flag_pic && !TARGET_FDPIC && !TARGET_ID_SHARED_LIBRARY)
     flag_pic = 0;
+
+  if (TARGET_MULTICORE && bfin_cpu_type != BFIN_CPU_BF561)
+    error ("-mmulticore can only be used with BF561");
+
+  if (TARGET_COREA && !TARGET_MULTICORE)
+    error ("-mcorea should be used with -mmulticore");
+
+  if (TARGET_COREB && !TARGET_MULTICORE)
+    error ("-mcoreb should be used with -mmulticore");
+
+  if (TARGET_COREA && TARGET_COREB)
+    error ("-mcorea and -mcoreb can't be used together");
 
   flag_schedule_insns = 0;
 
@@ -4202,7 +4218,22 @@ bfin_discover_loops (bitmap_obstack *stack, FILE *dump_file)
 
       if (INSN_P (tail) && recog_memoized (tail) == CODE_FOR_loop_end)
 	{
+	  rtx insn;
 	  /* A possible loop end */
+
+	  /* There's a degenerate case we can handle - an empty loop consisting
+	     of only a back branch.  Handle that by deleting the branch.  */
+	  insn = BB_HEAD (BRANCH_EDGE (bb)->dest);
+	  if (next_real_insn (insn) == tail)
+	    {
+	      if (dump_file)
+		{
+		  fprintf (dump_file, ";; degenerate loop ending at\n");
+		  print_rtl_single (dump_file, tail);
+		}
+	      delete_insn_and_edges (tail);
+	      continue;
+	    }
 
 	  loop = XNEW (struct loop_info);
 	  loop->next = loops;
@@ -5228,6 +5259,8 @@ enum bfin_builtins
 
   BFIN_BUILTIN_CPLX_SQU,
 
+  BFIN_BUILTIN_LOADBYTES,
+
   BFIN_BUILTIN_MAX
 };
 
@@ -5282,7 +5315,11 @@ bfin_init_builtins (void)
   tree short_ftype_v2hi
     = build_function_type_list (short_integer_type_node, V2HI_type_node,
 				NULL_TREE);
-
+  tree int_ftype_pint
+    = build_function_type_list (integer_type_node,
+				build_pointer_type (integer_type_node),
+				NULL_TREE);
+  
   /* Add the remaining MMX insns with somewhat more complicated types.  */
   def_builtin ("__builtin_bfin_csync", void_ftype_void, BFIN_BUILTIN_CSYNC);
   def_builtin ("__builtin_bfin_ssync", void_ftype_void, BFIN_BUILTIN_SSYNC);
@@ -5409,6 +5446,11 @@ bfin_init_builtins (void)
 	       BFIN_BUILTIN_CPLX_MSU_16_S40);
   def_builtin ("__builtin_bfin_csqu_fr16", v2hi_ftype_v2hi,
 	       BFIN_BUILTIN_CPLX_SQU);
+
+  /* "Unaligned" load.  */
+  def_builtin ("__builtin_bfin_loadbytes", int_ftype_pint,
+	       BFIN_BUILTIN_LOADBYTES);
+
 }
 
 
@@ -5456,6 +5498,8 @@ static const struct builtin_description bdesc_2arg[] =
 
 static const struct builtin_description bdesc_1arg[] =
 {
+  { CODE_FOR_loadbytes, "__builtin_bfin_loadbytes", BFIN_BUILTIN_LOADBYTES, 0 },
+
   { CODE_FOR_ones, "__builtin_bfin_ones", BFIN_BUILTIN_ONES, 0 },
 
   { CODE_FOR_signbitshi2, "__builtin_bfin_norm_fr1x16", BFIN_BUILTIN_NORM_1X16, 0 },
@@ -5912,5 +5956,8 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
 
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM bfin_cannot_force_const_mem
+
+#undef TARGET_RETURN_IN_MEMORY
+#define TARGET_RETURN_IN_MEMORY bfin_return_in_memory
 
 struct gcc_target targetm = TARGET_INITIALIZER;

@@ -218,8 +218,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      scalar_type = TREE_TYPE (GIMPLE_STMT_OPERAND (stmt, 0));
 
 	      operation = GIMPLE_STMT_OPERAND (stmt, 1);
-	      if (TREE_CODE (operation) == NOP_EXPR
-		  || TREE_CODE (operation) == CONVERT_EXPR
+	      if (CONVERT_EXPR_P (operation)
 		  || TREE_CODE (operation) == WIDEN_MULT_EXPR
 		  || TREE_CODE (operation) == FLOAT_EXPR)
 		{
@@ -2231,7 +2230,13 @@ vect_analyze_group_access (struct data_reference *dr)
       if (dr_step != count_in_bytes)
         {
           if (DR_IS_READ (dr))
-            slp_impossible = true;
+            {
+              slp_impossible = true;
+              /* There is a gap after the last load in the group. This gap is a
+                 difference between the stride and the number of elements. When 
+                 there is no gap, this difference should be 0.  */ 
+              DR_GROUP_GAP (vinfo_for_stmt (stmt)) = stride - count; 
+            }
           else
             {
               if (vect_print_dump_info (REPORT_DETAILS))
@@ -2645,7 +2650,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
   enum machine_mode vec_mode;
   tree first_stmt_const_oprnd = NULL_TREE;
   struct data_reference *first_dr;
- 
+
   /* For every stmt in NODE find its def stmt/s.  */
   for (i = 0; VEC_iterate (tree, stmts, i, stmt); i++)
     {
@@ -2701,29 +2706,44 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
 
 	  /* Shift arguments should be equal in all the packed stmts for a 
 	     vector shift with scalar shift operand.  */
-	  if (TREE_CODE (rhs) == LSHIFT_EXPR || TREE_CODE (rhs) == RSHIFT_EXPR)
+	  if (TREE_CODE (rhs) == LSHIFT_EXPR || TREE_CODE (rhs) == RSHIFT_EXPR
+	      || TREE_CODE (rhs) == LROTATE_EXPR
+	      || TREE_CODE (rhs) == RROTATE_EXPR)
 	    {
 	      vec_mode = TYPE_MODE (vectype);
-	      optab = optab_for_tree_code (TREE_CODE (rhs), vectype);
-	      if (!optab)
+
+	      /* First see if we have a vector/vector shift.  */
+	      optab = optab_for_tree_code (TREE_CODE (rhs), vectype,
+					   optab_vector);
+
+	      if (!optab
+		  || (optab->handlers[(int) vec_mode].insn_code
+		      == CODE_FOR_nothing))
 		{
-		  if (vect_print_dump_info (REPORT_SLP))
-		    fprintf (vect_dump, "Build SLP failed: no optab.");
-		  return false;
-		}
-	      icode = (int) optab->handlers[(int) vec_mode].insn_code;
-	      if (icode == CODE_FOR_nothing)
-		{
-		  if (vect_print_dump_info (REPORT_SLP))
-		    fprintf (vect_dump,
-			     "Build SLP failed: op not supported by target.");
-		  return false;
-		}
-	      optab_op2_mode = insn_data[icode].operand[2].mode;
-	      if (!VECTOR_MODE_P (optab_op2_mode))
-		{
-		  need_same_oprnds = true;
-		  first_op1 = TREE_OPERAND (rhs, 1);
+		  /* No vector/vector shift, try for a vector/scalar shift.  */
+		  optab = optab_for_tree_code (TREE_CODE (rhs), vectype,
+					       optab_scalar);
+
+		  if (!optab)
+		    {
+		      if (vect_print_dump_info (REPORT_SLP))
+			fprintf (vect_dump, "Build SLP failed: no optab.");
+		      return false;
+		    }
+		  icode = (int) optab->handlers[(int) vec_mode].insn_code;
+		  if (icode == CODE_FOR_nothing)
+		    {
+		      if (vect_print_dump_info (REPORT_SLP))
+			fprintf (vect_dump,
+				 "Build SLP failed: op not supported by target.");
+		      return false;
+		    }
+		  optab_op2_mode = insn_data[icode].operand[2].mode;
+		  if (!VECTOR_MODE_P (optab_op2_mode))
+		    {
+		      need_same_oprnds = true;
+		      first_op1 = TREE_OPERAND (rhs, 1);
+		    }
 		}
 	    }
 	}
@@ -2777,15 +2797,17 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
 		if (i == 0)
 		  {
 		    /* First stmt of the SLP group should be the first load of 
-		       the interleaving loop if data permutation is not 
-		       allowed.  */
-		    if  (DR_GROUP_FIRST_DR (vinfo_for_stmt (stmt)) != stmt) 
+		       the interleaving loop if data permutation is not allowed.
+		       Check that there is no gap between the loads.  */
+		    if (DR_GROUP_FIRST_DR (vinfo_for_stmt (stmt)) != stmt
+                        || DR_GROUP_GAP (vinfo_for_stmt (stmt)) != 0) 
 		      {
-			/* FORNOW: data permutations are not supported.  */
+			/* FORNOW: data permutations and gaps in loads are not 
+                           supported.  */
 			if (vect_print_dump_info (REPORT_SLP)) 
 			  {
 			    fprintf (vect_dump, "Build SLP failed: strided "
-				     " loads need permutation ");
+				     " loads need permutation or have gaps ");
 			    print_generic_expr (vect_dump, stmt, TDF_SLIM);
 			  }
 
@@ -2812,13 +2834,17 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
 		  }
 		else
 		  {
-		    if (DR_GROUP_NEXT_DR (vinfo_for_stmt (prev_stmt)) != stmt)
+                    /* Check that we have consecutive loads from interleaving
+                       chain and that there is no gap between the loads.  */
+		    if (DR_GROUP_NEXT_DR (vinfo_for_stmt (prev_stmt)) != stmt
+                        || DR_GROUP_GAP (vinfo_for_stmt (stmt)) != 1)
 		      {
-			/* FORNOW: data permutations are not supported.  */
+			/* FORNOW: data permutations and gaps in loads are not
+                           supported.  */
 			if (vect_print_dump_info (REPORT_SLP)) 
 			  {
 			    fprintf (vect_dump, "Build SLP failed: strided "
-				     " loads need permutation ");
+				     " loads need permutation or have gaps ");
 			    print_generic_expr (vect_dump, stmt, TDF_SLIM);
 			  }
 			return false;

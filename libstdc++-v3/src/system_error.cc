@@ -1,6 +1,6 @@
 // <system_error> implementation file
 
-// Copyright (C) 2007
+// Copyright (C) 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -35,27 +35,23 @@
 
 namespace
 {
+  using std::string; 
+
   struct gnu_error_category : public std::error_category
   {
-    virtual const std::string& 
+    virtual const char*
     name() const 
     { 
-      static const std::string category("GNU");
-      return category;
+      const char* s = "GNU";
+      return s;
     }
 
-    virtual std::posix_error::posix_errno 
-    posix(int __v) const
+    virtual string 
+    message(int i) const
     {
-#ifdef _GLIBCXX_HAVE_SYS_NERR
-      const int last_errorno = sys_nerr;
-#else
-      const int last_errorno = std::numeric_limits<int>::max();
-#endif
-      if (__v > 0 && __v <= last_errorno)
-	return std::posix_error::posix_errno(__v);
-      else
-	return std::posix_error::no_posix_equivalent;
+      // XXX locale issues: how does one get or set loc.
+      // _GLIBCXX_HAVE_STRERROR_L, strerror_l(i, cloc)
+      return string(strerror(i));
     }
   };
 
@@ -64,8 +60,28 @@ namespace
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
-  const error_category& system_category = gnu_category;
+  const error_category& 
+  get_posix_category() { return gnu_category; }
+
+  const error_category& 
+  get_system_category() { return gnu_category; }
 
   system_error::~system_error() throw() { }
+
+  error_condition 
+  error_category::default_error_condition(int __i) const
+  { return error_condition(__i, *this); }
+
+  bool 
+  error_category::equivalent(int __i, const error_condition& __cond) const
+  { return default_error_condition(__i) == __cond; }
+
+  bool 
+  error_category::equivalent(const error_code& __code, int __i) const
+  { return *this == __code.category() && __code.value() == __i; }
+
+  error_condition 
+  error_code::default_error_condition() const
+  { return category().default_error_condition(value()); }
 
 _GLIBCXX_END_NAMESPACE

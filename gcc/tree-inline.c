@@ -671,7 +671,7 @@ copy_body_r (tree *tp, int *walk_subtrees, void *data)
 	    {
 	      value = *n;
 	      STRIP_TYPE_NOPS (value);
-	      if (TREE_CONSTANT (value) || TREE_READONLY_DECL_P (value))
+	      if (TREE_CONSTANT (value) || TREE_READONLY (value))
 		{
 		  *tp = build_empty_stmt ();
 		  return copy_body_r (tp, walk_subtrees, data);
@@ -1301,7 +1301,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
 
   if (src_cfun->gimple_df)
     {
-      init_tree_ssa ();
+      init_tree_ssa (cfun);
       cfun->gimple_df->in_ssa_p = true;
       init_ssa_operands ();
     }
@@ -2220,8 +2220,7 @@ estimate_num_insns_1 (tree *tp, int *walk_subtrees, void *data)
     case BIND_EXPR:
     case WITH_CLEANUP_EXPR:
     case PAREN_EXPR:
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case VIEW_CONVERT_EXPR:
     case SAVE_EXPR:
     case ADDR_EXPR:

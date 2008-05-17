@@ -589,11 +589,11 @@ validate_replace_rtx_1 (rtx *loc, rtx from, rtx to, rtx object)
   if (SWAPPABLE_OPERANDS_P (x)
       && swap_commutative_operands_p (XEXP (x, 0), XEXP (x, 1)))
     {
-      validate_change (object, loc,
-		       gen_rtx_fmt_ee (COMMUTATIVE_ARITH_P (x) ? code
-				       : swap_condition (code),
-				       GET_MODE (x), XEXP (x, 1),
-				       XEXP (x, 0)), 1);
+      validate_unshare_change (object, loc,
+			       gen_rtx_fmt_ee (COMMUTATIVE_ARITH_P (x) ? code
+					       : swap_condition (code),
+					       GET_MODE (x), XEXP (x, 1),
+					       XEXP (x, 0)), 1);
       x = *loc;
       code = GET_CODE (x);
     }
@@ -2646,7 +2646,7 @@ split_all_insns (void)
 
 	      /* Don't split no-op move insns.  These should silently
 		 disappear later in final.  Splitting such insns would
-		 break the code that handles REG_NO_CONFLICT blocks.  */
+		 break the code that handles LIBCALL blocks.  */
 	      if (set && set_noop_p (set))
 		{
 		  /* Nops get in the way while scheduling, so delete them
@@ -2701,7 +2701,7 @@ split_all_insns_noflow (void)
 	{
 	  /* Don't split no-op move insns.  These should silently
 	     disappear later in final.  Splitting such insns would
-	     break the code that handles REG_NO_CONFLICT blocks.  */
+	     break the code that handles LIBCALL blocks.  */
 	  rtx set = single_set (insn);
 	  if (set && set_noop_p (set))
 	    {
@@ -2953,7 +2953,7 @@ peephole2_optimize (void)
 		  && peep2_insn_data[peep2_current].insn == NULL_RTX)
 		peep2_current_count++;
 	      peep2_insn_data[peep2_current].insn = insn;
-	      df_simulate_one_insn_backwards (bb, insn, live);
+	      df_simulate_one_insn (bb, insn, live);
 	      COPY_REG_SET (peep2_insn_data[peep2_current].live_before, live);
 
 	      if (RTX_FRAME_RELATED_P (insn))
@@ -3115,7 +3115,7 @@ peephole2_optimize (void)
 			    peep2_current_count++;
 			  peep2_insn_data[i].insn = x;
 			  df_insn_rescan (x);
-			  df_simulate_one_insn_backwards (bb, x, live);
+			  df_simulate_one_insn (bb, x, live);
 			  bitmap_copy (peep2_insn_data[i].live_before, live);
 			}
 		      x = PREV_INSN (x);

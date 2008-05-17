@@ -1,9 +1,36 @@
-2008-05-02  Simon Baldwin <simonb@google.com>
+2008-05-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR c++/35331
+        * semantics.c (begin_class_definition): Extend checks on the first
+	argument.
+
+2008-05-12  Tomas Bily  <tbily@suse.cz>
+
+        * typeck2.c (digest_init): Use CONVERT_EXPR_P.
+        * call.c (build_over_call): Likewise.
+        * error.c (dump_expr): Use CASE_CONVERT.
+        * class.c (fixed_type_or_null): Likewise.
+
+2008-05-11  Volker Reichelt  <v.reichelt@netcologne.de>
+
+	* parser.c (cp_parser_omp_clause_reduction): Add missing "expected"
+	in error message.
+	(cp_parser_omp_clause_schedule): Remove superfluous "expected"
+	in error message.
+
+2008-05-07  Kenneth Zadeck  <zadeck@naturalbridge.com>
+
+	* decl.c (duplicate_decls): Merge in DECL_PURE_P, TREE_READONLY,
+	DECL_LOOPING_CONST_OR_PURE_P attributes.
+	* rtti.c (build_dynamic_cast_1): Rename DECL_IS_PURE to
+	DECL_PURE_P.
+
+2008-05-02  Simon Baldwin  <simonb@google.com>
 
 	PR bootstrap/36108
 	* typeck.c (build_array_ref): Remove warn_array_subscript_range.
 
-2008-05-01  Simon Baldwin <simonb@google.com>
+2008-05-01  Simon Baldwin  <simonb@google.com>
 
 	* typeck.c (build_array_ref): Call warn_array_subscript_range.
 

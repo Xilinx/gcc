@@ -278,6 +278,41 @@ get_stmt_ann (tree stmt)
   return (ann) ? ann : create_stmt_ann (stmt);
 }
 
+/* Set the uid of all non phi function statements.  */
+static inline void
+set_gimple_stmt_uid (tree stmt, unsigned int uid)
+{
+  get_stmt_ann (stmt)->uid = uid;
+}
+
+/* Get the uid of all non phi function statements.  */
+static inline unsigned int
+gimple_stmt_uid (tree stmt)
+{
+  return get_stmt_ann (stmt)->uid;
+}
+
+/* Get the number of the next statement uid to be allocated.  */
+static inline unsigned int
+gimple_stmt_max_uid (struct function *fn)
+{
+  return fn->last_stmt_uid;
+}
+
+/* Set the number of the next statement uid to be allocated.  */
+static inline void
+set_gimple_stmt_max_uid (struct function *fn, unsigned int maxid)
+{
+  fn->last_stmt_uid = maxid;
+}
+
+/* Set the number of the next statement uid to be allocated.  */
+static inline unsigned int
+inc_gimple_stmt_max_uid (struct function *fn)
+{
+  return fn->last_stmt_uid++;
+}
+
 /* Return the annotation type for annotation ANN.  */
 static inline enum tree_ann_type
 ann_type (tree_ann_t ann)
@@ -883,7 +918,7 @@ clear_call_clobbered (tree var)
 {
   var_ann_t ann = var_ann (var);
   ann->escape_mask = 0;
-  if (MTAG_P (var) && TREE_CODE (var) != STRUCT_FIELD_TAG)
+  if (MTAG_P (var))
     MTAG_GLOBAL (var) = 0;
   if (!MTAG_P (var))
     var_ann (var)->call_clobbered = false;
@@ -1545,7 +1580,7 @@ unmodifiable_var_p (const_tree var)
     var = SSA_NAME_VAR (var);
 
   if (MTAG_P (var))
-    return TREE_READONLY (var) && (TREE_STATIC (var) || MTAG_GLOBAL (var));
+    return false;
 
   return TREE_READONLY (var) && (TREE_STATIC (var) || DECL_EXTERNAL (var));
 }
@@ -1581,151 +1616,6 @@ ref_contains_array_ref (const_tree ref)
   return false;
 }
 
-/* Given a variable VAR, lookup and return a pointer to the list of
-   subvariables for it.  */
-
-static inline subvar_t *
-lookup_subvars_for_var (const_tree var)
-{
-  var_ann_t ann = var_ann (var);
-  gcc_assert (ann);
-  return &ann->subvars;
-}
-
-/* Given a variable VAR, return a linked list of subvariables for VAR, or
-   NULL, if there are no subvariables.  */
-
-static inline subvar_t
-get_subvars_for_var (tree var)
-{
-  subvar_t subvars;
-
-  gcc_assert (SSA_VAR_P (var));  
-  
-  if (TREE_CODE (var) == SSA_NAME)
-    subvars = *(lookup_subvars_for_var (SSA_NAME_VAR (var)));
-  else
-    subvars = *(lookup_subvars_for_var (var));
-  return subvars;
-}
-
-/* Return the subvariable of VAR at offset OFFSET.  */
-
-static inline tree
-get_subvar_at (tree var, unsigned HOST_WIDE_INT offset)
-{
-  subvar_t sv = get_subvars_for_var (var);
-  int low, high;
-
-  low = 0;
-  high = VEC_length (tree, sv) - 1;
-  while (low <= high)
-    {
-      int mid = (low + high) / 2;
-      tree subvar = VEC_index (tree, sv, mid);
-      if (SFT_OFFSET (subvar) == offset)
-	return subvar;
-      else if (SFT_OFFSET (subvar) < offset)
-	low = mid + 1;
-      else
-	high = mid - 1;
-    }
-
-  return NULL_TREE;
-}
-
-
-/* Return the first subvariable in SV that overlaps [offset, offset + size[.
-   NULL_TREE is returned, if there is no overlapping subvariable, else *I
-   is set to the index in the SV vector of the first overlap.  */
-
-static inline tree
-get_first_overlapping_subvar (subvar_t sv, unsigned HOST_WIDE_INT offset,
-			      unsigned HOST_WIDE_INT size, unsigned int *i)
-{
-  int low = 0;
-  int high = VEC_length (tree, sv) - 1;
-  int mid;
-  tree subvar;
-
-  if (low > high)
-    return NULL_TREE;
-
-  /* Binary search for offset.  */
-  do
-    {
-      mid = (low + high) / 2;
-      subvar = VEC_index (tree, sv, mid);
-      if (SFT_OFFSET (subvar) == offset)
-	{
-	  *i = mid;
-	  return subvar;
-	}
-      else if (SFT_OFFSET (subvar) < offset)
-	low = mid + 1;
-      else
-	high = mid - 1;
-    }
-  while (low <= high);
-
-  /* As we didn't find a subvar with offset, adjust to return the
-     first overlapping one.  */
-  if (SFT_OFFSET (subvar) < offset
-      && SFT_OFFSET (subvar) + SFT_SIZE (subvar) <= offset)
-    {
-      mid += 1;
-      if ((unsigned)mid >= VEC_length (tree, sv))
-	return NULL_TREE;
-      subvar = VEC_index (tree, sv, mid);
-    }
-  else if (SFT_OFFSET (subvar) > offset
-	   && size <= SFT_OFFSET (subvar) - offset)
-    {
-      mid -= 1;
-      if (mid < 0)
-	return NULL_TREE;
-      subvar = VEC_index (tree, sv, mid);
-    }
-
-  if (overlap_subvar (offset, size, subvar, NULL))
-    {
-      *i = mid;
-      return subvar;
-    }
-
-  return NULL_TREE;
-}
-
-
-/* Return true if V is a tree that we can have subvars for.
-   Normally, this is any aggregate type.  Also complex
-   types which are not gimple registers can have subvars.  */
-
-static inline bool
-var_can_have_subvars (const_tree v)
-{
-  /* Volatile variables should never have subvars.  */
-  if (TREE_THIS_VOLATILE (v))
-    return false;
-
-  /* Non decls or memory tags can never have subvars.  */
-  if (!DECL_P (v) || MTAG_P (v))
-    return false;
-
-  /* Aggregates can have subvars.  */
-  if (AGGREGATE_TYPE_P (TREE_TYPE (v)))
-    return true;
-
-  /* Complex types variables which are not also a gimple register can
-    have subvars. */
-  if (TREE_CODE (TREE_TYPE (v)) == COMPLEX_TYPE
-      && !DECL_GIMPLE_REG_P (v))
-    return true;
-
-  return false;
-}
-
-
 /* Return true, if the two ranges [POS1, SIZE1] and [POS2, SIZE2]
    overlap.  SIZE1 and/or SIZE2 can be (unsigned)-1 in which case the
    range is open-ended.  Otherwise return false.  */
@@ -1746,53 +1636,6 @@ ranges_overlap_p (unsigned HOST_WIDE_INT pos1,
     return true;
 
   return false;
-}
-
-
-/* Return true if OFFSET and SIZE define a range that overlaps with some
-   portion of the range of SV, a subvar.  If there was an exact overlap,
-   *EXACT will be set to true upon return. */
-
-static inline bool
-overlap_subvar (unsigned HOST_WIDE_INT offset, unsigned HOST_WIDE_INT size,
-		const_tree sv,  bool *exact)
-{
-  /* There are three possible cases of overlap.
-     1. We can have an exact overlap, like so:   
-     |offset, offset + size             |
-     |sv->offset, sv->offset + sv->size |
-     
-     2. We can have offset starting after sv->offset, like so:
-     
-           |offset, offset + size              |
-     |sv->offset, sv->offset + sv->size  |
-
-     3. We can have offset starting before sv->offset, like so:
-     
-     |offset, offset + size    |
-       |sv->offset, sv->offset + sv->size|
-  */
-
-  if (exact)
-    *exact = false;
-  if (offset == SFT_OFFSET (sv) && size == SFT_SIZE (sv))
-    {
-      if (exact)
-	*exact = true;
-      return true;
-    }
-  else if (offset >= SFT_OFFSET (sv) 
-	   && offset < (SFT_OFFSET (sv) + SFT_SIZE (sv)))
-    {
-      return true;
-    }
-  else if (offset < SFT_OFFSET (sv) 
-	   && (size > SFT_OFFSET (sv) - offset))
-    {
-      return true;
-    }
-  return false;
-
 }
 
 /* Return the memory tag associated with symbol SYM.  */
@@ -1881,4 +1724,15 @@ redirect_edge_var_map_result (edge_var_map *v)
 {
   return v->result;
 }
+
+
+/* Return an SSA_NAME node for variable VAR defined in statement STMT
+   in function cfun.  */
+
+static inline tree
+make_ssa_name (tree var, tree stmt)
+{
+  return make_ssa_name_fn (cfun, var, stmt);
+}
+
 #endif /* _TREE_FLOW_INLINE_H  */

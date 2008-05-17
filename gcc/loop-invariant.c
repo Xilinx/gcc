@@ -563,7 +563,8 @@ find_exits (struct loop *loop, basic_block *body,
 	  FOR_BB_INSNS (body[i], insn)
 	    {
 	      if (CALL_P (insn)
-		  && !CONST_OR_PURE_CALL_P (insn))
+		  && (RTL_LOOPING_CONST_OR_PURE_CALL_P (insn)
+		      || !RTL_CONST_OR_PURE_CALL_P (insn)))
 		{
 		  has_call = true;
 		  bitmap_set_bit (may_exit, i);
@@ -796,8 +797,7 @@ find_invariant_insn (rtx insn, bool always_reached, bool always_executed)
 
   /* Until we get rid of LIBCALLS.  */
   if (find_reg_note (insn, REG_RETVAL, NULL_RTX)
-      || find_reg_note (insn, REG_LIBCALL, NULL_RTX)
-      || find_reg_note (insn, REG_NO_CONFLICT, NULL_RTX))
+      || find_reg_note (insn, REG_LIBCALL, NULL_RTX))
     return;
 
 #ifdef HAVE_cc0
@@ -904,7 +904,8 @@ find_invariants_bb (basic_block bb, bool always_reached, bool always_executed)
 
       if (always_reached
 	  && CALL_P (insn)
-	  && !CONST_OR_PURE_CALL_P (insn))
+	  && (RTL_LOOPING_CONST_OR_PURE_CALL_P (insn)
+	      || ! RTL_CONST_OR_PURE_CALL_P (insn)))
 	always_reached = false;
     }
 }

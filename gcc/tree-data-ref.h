@@ -88,7 +88,6 @@ struct dr_alias
   /* The alias information that should be used for new pointers to this
      location.  SYMBOL_TAG is either a DECL or a SYMBOL_MEMORY_TAG.  */
   tree symbol_tag;
-  subvar_t subvars;
   struct ptr_info_def *ptr_info;
 
   /* The set of virtual operands corresponding to this memory reference,
@@ -138,7 +137,6 @@ DEF_VEC_ALLOC_P (data_reference_p, heap);
 #define DR_STEP(DR)                (DR)->innermost.step
 #define DR_SYMBOL_TAG(DR)          (DR)->alias.symbol_tag
 #define DR_PTR_INFO(DR)            (DR)->alias.ptr_info
-#define DR_SUBVARS(DR)             (DR)->alias.subvars
 #define DR_VOPS(DR)		   (DR)->alias.vops
 #define DR_ALIGNED_TO(DR)          (DR)->innermost.aligned_to
 
@@ -223,6 +221,10 @@ struct data_dependence_relation
      a distance vector.  */
   bool affine_p;
 
+  /* Set to true when the dependence relation is on the same data
+     access.  */
+  bool self_reference_p;
+
   /* A "yes/no/maybe" field for the dependence relation:
      
      - when "ARE_DEPENDENT == NULL_TREE", there exist a dependence
@@ -275,6 +277,7 @@ DEF_VEC_ALLOC_P(ddr_p,heap);
    the loop nest.  */
 #define DDR_NB_LOOPS(DDR) (VEC_length (loop_p, DDR_LOOP_NEST (DDR)))
 #define DDR_INNER_LOOP(DDR) DDR->inner_loop
+#define DDR_SELF_REFERENCE(DDR) DDR->self_reference_p
 
 #define DDR_DIST_VECTS(DDR) ((DDR)->dist_vects)
 #define DDR_DIR_VECTS(DDR) ((DDR)->dir_vects)

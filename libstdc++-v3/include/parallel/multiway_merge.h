@@ -297,7 +297,7 @@ template<template<typename RAI, typename C> class iterator,
       RandomAccessIteratorIterator seqs_begin,
       RandomAccessIteratorIterator seqs_end,
       RandomAccessIterator3 target,
-      Comparator comp, _DifferenceTp length)
+      _DifferenceTp length, Comparator comp)
   {
     _GLIBCXX_CALL(length);
 
@@ -416,7 +416,7 @@ template<template<typename RAI, typename C> class iterator,
   multiway_merge_4_variant(RandomAccessIteratorIterator seqs_begin,
                            RandomAccessIteratorIterator seqs_end,
                            RandomAccessIterator3 target,
-                           Comparator comp, _DifferenceTp length)
+                           _DifferenceTp length, Comparator comp)
   {
     _GLIBCXX_CALL(length);
     typedef _DifferenceTp difference_type;
@@ -540,8 +540,7 @@ template<typename LT,
   multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
                             RandomAccessIteratorIterator seqs_end,
                             RandomAccessIterator3 target,
-                            Comparator comp,
-                            _DifferenceTp length)
+                            _DifferenceTp length, Comparator comp)
   {
     _GLIBCXX_CALL(length)
 
@@ -615,15 +614,19 @@ template<typename LT,
  * @return End iterator of output sequence.
  */
 template<typename LT,
-	 typename RandomAccessIteratorIterator,
-	 typename RandomAccessIterator3,
-	 typename _DifferenceTp, typename Comparator>
+    typename RandomAccessIteratorIterator,
+    typename RandomAccessIterator3,
+    typename _DifferenceTp, typename Comparator>
   RandomAccessIterator3
-  multiway_merge_loser_tree_unguarded(RandomAccessIteratorIterator seqs_begin,
-                                      RandomAccessIteratorIterator seqs_end,
-                                      RandomAccessIterator3 target,
-                                      int min_seq, Comparator comp,
-                                      _DifferenceTp length)
+  multiway_merge_loser_tree_unguarded(
+    RandomAccessIteratorIterator seqs_begin,
+    RandomAccessIteratorIterator seqs_end,
+    RandomAccessIterator3 target,
+    const typename std::iterator_traits<typename std::iterator_traits<
+      RandomAccessIteratorIterator>::value_type::first_type>::value_type&
+        sentinel,
+    _DifferenceTp length,
+    Comparator comp)
   {
     _GLIBCXX_CALL(length)
     typedef _DifferenceTp difference_type;
@@ -635,10 +638,6 @@ template<typename LT,
       value_type;
 
     int k = seqs_end - seqs_begin;
-
-    // Determine the sentinel.  The sentinel is largest/last element of the
-    // sequences with the smallest largest/last element.
-    value_type sentinel = *(seqs_begin[min_seq].second - 1);
 
     LT lt(k, sentinel, comp);
 
@@ -674,9 +673,6 @@ template<typename LT,
         *(target++) = *(seqs_begin[source].first++);
 
 #if _GLIBCXX_ASSERTIONS
-        _GLIBCXX_PARALLEL_ASSERT(
-            (seqs_begin[source].first != seqs_begin[source].second)
-            || (i >= length - 1));
         ++i;
 #endif
         // Replace from same source.
@@ -712,11 +708,15 @@ template<
     typename _DifferenceTp,
     typename Comparator>
   RandomAccessIterator3
-  multiway_merge_loser_tree_sentinel(RandomAccessIteratorIterator seqs_begin,
-                                     RandomAccessIteratorIterator seqs_end,
-                                     RandomAccessIterator3 target,
-                                     Comparator comp,
-                                     _DifferenceTp length)
+  multiway_merge_loser_tree_sentinel(
+    RandomAccessIteratorIterator seqs_begin,
+    RandomAccessIteratorIterator seqs_end,
+    RandomAccessIterator3 target,
+    const typename std::iterator_traits<typename std::iterator_traits<
+      RandomAccessIteratorIterator>::value_type::first_type>::value_type&
+        sentinel,
+    _DifferenceTp length,
+    Comparator comp)
   {
     _GLIBCXX_CALL(length)
 
@@ -739,7 +739,7 @@ template<
 
     target_end = multiway_merge_loser_tree_unguarded
         <UnguardedLoserTree>
-      (seqs_begin, seqs_end, target, 0, comp, length);
+      (seqs_begin, seqs_end, target, sentinel, length, comp);
 
 #if _GLIBCXX_ASSERTIONS
     _GLIBCXX_PARALLEL_ASSERT(target_end == target + length);
@@ -807,10 +807,10 @@ struct multiway_merge_3_variant_sentinel_switch
       RandomAccessIteratorIterator seqs_begin,
       RandomAccessIteratorIterator seqs_end,
       RandomAccessIterator3 target,
-      Comparator comp, _DifferenceTp length)
+      _DifferenceTp length, Comparator comp)
   {
     return multiway_merge_3_variant<guarded_iterator>(
-        seqs_begin, seqs_end, target, comp, length);
+        seqs_begin, seqs_end, target, length, comp);
   }
 };
 
@@ -832,10 +832,10 @@ struct multiway_merge_3_variant_sentinel_switch
       RandomAccessIteratorIterator seqs_begin,
       RandomAccessIteratorIterator seqs_end,
       RandomAccessIterator3 target,
-      Comparator comp, _DifferenceTp length)
+      _DifferenceTp length, Comparator comp)
   {
     return multiway_merge_3_variant<unguarded_iterator>(
-        seqs_begin, seqs_end, target, comp, length);
+        seqs_begin, seqs_end, target, length, comp);
   }
 };
 
@@ -856,10 +856,10 @@ struct multiway_merge_4_variant_sentinel_switch
       RandomAccessIteratorIterator seqs_begin,
       RandomAccessIteratorIterator seqs_end,
       RandomAccessIterator3 target,
-      Comparator comp, _DifferenceTp length)
+      _DifferenceTp length, Comparator comp)
   {
     return multiway_merge_4_variant<guarded_iterator>(
-        seqs_begin, seqs_end, target, comp, length);
+        seqs_begin, seqs_end, target, length, comp);
   }
 };
 
@@ -881,10 +881,10 @@ struct multiway_merge_4_variant_sentinel_switch
       RandomAccessIteratorIterator seqs_begin,
       RandomAccessIteratorIterator seqs_end,
       RandomAccessIterator3 target,
-      Comparator comp, _DifferenceTp length)
+      _DifferenceTp length, Comparator comp)
   {
     return multiway_merge_4_variant<unguarded_iterator>(
-        seqs_begin, seqs_end, target, comp, length);
+        seqs_begin, seqs_end, target, length, comp);
   }
 };
 
@@ -904,7 +904,10 @@ struct multiway_merge_k_variant_sentinel_switch
       RandomAccessIteratorIterator seqs_begin,
       RandomAccessIteratorIterator seqs_end,
       RandomAccessIterator3 target,
-      Comparator comp, _DifferenceTp length)
+      const typename std::iterator_traits<typename std::iterator_traits<
+        RandomAccessIteratorIterator>::value_type::first_type>::value_type&
+          sentinel,
+      _DifferenceTp length, Comparator comp)
   {
     typedef typename std::iterator_traits<RandomAccessIteratorIterator>
       ::value_type::first_type
@@ -917,7 +920,7 @@ struct multiway_merge_k_variant_sentinel_switch
             loser_tree_traits<value_type>::use_pointer
           , LoserTreePointerUnguarded<stable, value_type, Comparator>
           , LoserTreeUnguarded<stable, value_type, Comparator>
-        >::__type>(seqs_begin, seqs_end, target, comp, length);
+        >::__type>(seqs_begin, seqs_end, target, sentinel, length, comp);
   }
 };
 
@@ -938,7 +941,10 @@ struct multiway_merge_k_variant_sentinel_switch
       RandomAccessIteratorIterator seqs_begin,
       RandomAccessIteratorIterator seqs_end,
       RandomAccessIterator3 target,
-      Comparator comp, _DifferenceTp length)
+      const typename std::iterator_traits<typename std::iterator_traits<
+        RandomAccessIteratorIterator>::value_type::first_type>::value_type&
+          sentinel,
+      _DifferenceTp length, Comparator comp)
   {
     typedef typename std::iterator_traits<RandomAccessIteratorIterator>
       ::value_type::first_type
@@ -951,7 +957,7 @@ struct multiway_merge_k_variant_sentinel_switch
             loser_tree_traits<value_type>::use_pointer
           , LoserTreePointer<stable, value_type, Comparator>
           , LoserTree<stable, value_type, Comparator>
-        >::__type >(seqs_begin, seqs_end, target, comp, length);
+        >::__type >(seqs_begin, seqs_end, target, length, comp);
   }
 };
 
@@ -976,10 +982,14 @@ template<
     typename _DifferenceTp,
     typename Comparator>
   RandomAccessIterator3
-  sequential_multiway_merge(RandomAccessIteratorIterator seqs_begin,
-                 RandomAccessIteratorIterator seqs_end,
-                 RandomAccessIterator3 target,
-                 Comparator comp, _DifferenceTp length)
+  sequential_multiway_merge(
+    RandomAccessIteratorIterator seqs_begin,
+    RandomAccessIteratorIterator seqs_end,
+    RandomAccessIterator3 target,
+    const typename std::iterator_traits<typename std::iterator_traits<
+      RandomAccessIteratorIterator>::value_type::first_type>::value_type&
+        sentinel,
+    _DifferenceTp length, Comparator comp)
   {
     _GLIBCXX_CALL(length)
 
@@ -1032,7 +1042,7 @@ template<
           , RandomAccessIteratorIterator
           , RandomAccessIterator3
           , _DifferenceTp
-          , Comparator>()(seqs_begin, seqs_end, target, comp, length);
+          , Comparator>()(seqs_begin, seqs_end, target, length, comp);
         break;
       case 4:
         return_target = multiway_merge_4_variant_sentinel_switch<
@@ -1040,7 +1050,7 @@ template<
           , RandomAccessIteratorIterator
           , RandomAccessIterator3
           , _DifferenceTp
-          , Comparator>()(seqs_begin, seqs_end, target, comp, length);
+          , Comparator>()(seqs_begin, seqs_end, target, length, comp);
         break;
       default:
           return_target = multiway_merge_k_variant_sentinel_switch<
@@ -1049,7 +1059,7 @@ template<
             , RandomAccessIteratorIterator
             , RandomAccessIterator3
             , _DifferenceTp
-            , Comparator>()(seqs_begin, seqs_end, target, comp, length);
+            , Comparator>()(seqs_begin, seqs_end, target, sentinel, length, comp);
           break;
       }
 #if _GLIBCXX_ASSERTIONS
@@ -1096,8 +1106,7 @@ template<
 void multiway_merge_sampling_splitting(
     RandomAccessIteratorIterator seqs_begin,
     RandomAccessIteratorIterator seqs_end,
-    Comparator comp, difference_type length,
-    difference_type total_length,
+    difference_type length, difference_type total_length, Comparator comp,
     std::vector<std::pair<difference_type, difference_type> > *pieces)
 {
   typedef typename std::iterator_traits<RandomAccessIteratorIterator>
@@ -1178,9 +1187,7 @@ template<
 void multiway_merge_exact_splitting(
     RandomAccessIteratorIterator seqs_begin,
     RandomAccessIteratorIterator seqs_end,
-    Comparator comp,
-    difference_type length,
-    difference_type total_length,
+    difference_type length, difference_type total_length, Comparator comp,
     std::vector<std::pair<difference_type, difference_type> > *pieces)
 {
   typedef typename std::iterator_traits<RandomAccessIteratorIterator>
@@ -1285,9 +1292,10 @@ template<
   parallel_multiway_merge(RandomAccessIteratorIterator seqs_begin,
                           RandomAccessIteratorIterator seqs_end,
                           RandomAccessIterator3 target,
-                          Comparator comp,
                           Splitter splitter,
-                          _DifferenceTp length)
+                          _DifferenceTp length,
+                          Comparator comp,
+                          thread_index_t num_threads)
     {
 #if _GLIBCXX_ASSERTIONS
       _GLIBCXX_PARALLEL_ASSERT(seqs_end - seqs_begin > 1);
@@ -1335,8 +1343,8 @@ template<
 
       std::vector<std::pair<difference_type, difference_type> >* pieces;
 
-      thread_index_t num_threads = static_cast<thread_index_t>
-        (std::min<difference_type>(get_max_threads(), total_length));
+      num_threads = static_cast<thread_index_t>
+        (std::min<difference_type>(num_threads, total_length));
 
 #     pragma omp parallel num_threads (num_threads)
         {
@@ -1353,8 +1361,8 @@ template<
                   __gnu_parallel::_Settings::get().merge_oversampling *
                     num_threads;
 
-              splitter(ne_seqs, ne_seqs + k, comp, length, total_length,
-                       pieces);
+              splitter(ne_seqs, ne_seqs + k, length, total_length,
+                       comp, pieces);
             } //single
 
           thread_index_t iam = omp_get_thread_num();
@@ -1376,8 +1384,8 @@ template<
 
           if(length > target_position)
             sequential_multiway_merge<stable, sentinels>(
-              chunks, chunks + k, target + target_position, comp,
-              length - target_position);
+              chunks, chunks + k, target + target_position,
+               *(seqs_begin->second), length - target_position, comp);
 
           delete[] chunks;
         } // parallel
@@ -1469,6 +1477,7 @@ template<
  *
  * @return end iterator of output sequence
  */
+// multiway_merge
 // public interface
 template<
     typename RandomAccessIteratorPairIterator
@@ -1479,48 +1488,7 @@ RandomAccessIteratorOut
 multiway_merge(RandomAccessIteratorPairIterator seqs_begin
     , RandomAccessIteratorPairIterator seqs_end
     , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length)
-{
-  typedef _DifferenceTp difference_type;
-  _GLIBCXX_CALL(seqs_end - seqs_begin)
-
-  // catch special case: no sequences
-  if (seqs_begin == seqs_end)
-    return target;
-
-  // Execute merge; maybe parallel, depending on the number of merged
-  // elements and the number of sequences and global thresholds in
-  // Settings.
-  if ((seqs_end - seqs_begin > 1) &&
-        _GLIBCXX_PARALLEL_CONDITION(
-        ((seqs_end - seqs_begin) >=
-        __gnu_parallel::_Settings::get().multiway_merge_minimal_k)
-        && ((sequence_index_t)length >=
-        __gnu_parallel::_Settings::get().multiway_merge_minimal_n)))
-    return parallel_multiway_merge
-      </* stable = */ false, /* sentinels = */ false>
-        (seqs_begin, seqs_end, target, comp,
-        multiway_merge_sampling_splitting</* stable = */ false,
-          RandomAccessIteratorPairIterator, Comparator, _DifferenceTp>,
-        static_cast<difference_type>(length));
-  else
-    return sequential_multiway_merge
-      </* stable = */false, /* sentinels = */ false>(
-        seqs_begin, seqs_end,
-        target, comp, length);
-}
-
-// public interface
-template<
-    typename RandomAccessIteratorPairIterator
-  , typename RandomAccessIteratorOut
-  , typename _DifferenceTp
-  , typename Comparator>
-RandomAccessIteratorOut
-multiway_merge(RandomAccessIteratorPairIterator seqs_begin
-    , RandomAccessIteratorPairIterator seqs_end
-    , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length
+    , _DifferenceTp length, Comparator comp
     , __gnu_parallel::sequential_tag)
 {
   typedef _DifferenceTp difference_type;
@@ -1533,10 +1501,10 @@ multiway_merge(RandomAccessIteratorPairIterator seqs_begin
   // Execute multiway merge *sequentially*.
   return sequential_multiway_merge
     </* stable = */ false, /* sentinels = */ false>
-      (seqs_begin, seqs_end, target, comp, length);
+      (seqs_begin, seqs_end, target, *(seqs_begin->second), length, comp);
 }
 
-//public interface
+// public interface
 template<
     typename RandomAccessIteratorPairIterator
   , typename RandomAccessIteratorOut
@@ -1546,8 +1514,50 @@ RandomAccessIteratorOut
 multiway_merge(RandomAccessIteratorPairIterator seqs_begin
     , RandomAccessIteratorPairIterator seqs_end
     , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length
-    , __gnu_parallel::exact_tag)
+    , _DifferenceTp length, Comparator comp
+    , __gnu_parallel::exact_tag tag)
+{
+    typedef _DifferenceTp difference_type;
+    _GLIBCXX_CALL(seqs_end - seqs_begin)
+
+    // catch special case: no sequences
+    if (seqs_begin == seqs_end)
+      return target;
+
+    // Execute merge; maybe parallel, depending on the number of merged
+    // elements and the number of sequences and global thresholds in
+    // Settings.
+    if ((seqs_end - seqs_begin > 1) &&
+          _GLIBCXX_PARALLEL_CONDITION(
+          ((seqs_end - seqs_begin) >=
+             __gnu_parallel::_Settings::get().multiway_merge_minimal_k)
+          && ((sequence_index_t)length >=
+            __gnu_parallel::_Settings::get().multiway_merge_minimal_n)))
+      return parallel_multiway_merge
+                    </* stable = */ false, /* sentinels = */ false>(
+          seqs_begin, seqs_end, target,
+          multiway_merge_exact_splitting</* stable = */ false,
+            typename std::iterator_traits<RandomAccessIteratorPairIterator>
+              ::value_type*, Comparator, _DifferenceTp>,
+          static_cast<difference_type>(length), comp, tag.get_num_threads());
+    else
+      return sequential_multiway_merge
+                      </* stable = */ false, /* sentinels = */ false>(
+          seqs_begin, seqs_end, target, *(seqs_begin->second), length, comp);
+}
+
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+multiway_merge(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , __gnu_parallel::sampling_tag tag)
 {
     typedef _DifferenceTp difference_type;
     _GLIBCXX_CALL(seqs_end - seqs_begin)
@@ -1568,15 +1578,16 @@ multiway_merge(RandomAccessIteratorPairIterator seqs_begin
       return parallel_multiway_merge
                     </* stable = */ false, /* sentinels = */ false>(
           seqs_begin, seqs_end,
-          target, comp,
+          target,
           multiway_merge_exact_splitting</* stable = */ false,
-            RandomAccessIteratorPairIterator, Comparator, _DifferenceTp>,
-          static_cast<difference_type>(length));
+            typename std::iterator_traits<RandomAccessIteratorPairIterator>
+              ::value_type*, Comparator, _DifferenceTp>,
+          static_cast<difference_type>(length), comp, tag.get_num_threads());
     else
       return sequential_multiway_merge
                       </* stable = */ false, /* sentinels = */ false>(
           seqs_begin, seqs_end,
-          target, comp, length);
+          target, *(seqs_begin->second), length, comp);
 }
 
 // public interface
@@ -1586,41 +1597,34 @@ template<
   , typename _DifferenceTp
   , typename Comparator>
 RandomAccessIteratorOut
-stable_multiway_merge(RandomAccessIteratorPairIterator seqs_begin
+multiway_merge(RandomAccessIteratorPairIterator seqs_begin
     , RandomAccessIteratorPairIterator seqs_end
     , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length)
+    , _DifferenceTp length, Comparator comp
+    , parallel_tag tag = parallel_tag(0))
 {
-    typedef _DifferenceTp difference_type;
-    _GLIBCXX_CALL(seqs_end - seqs_begin)
-
-    // catch special case: no sequences
-    if (seqs_begin == seqs_end)
-      return target;
-
-    // Execute merge; maybe parallel, depending on the number of merged
-    // elements and the number of sequences and global thresholds in
-    // Settings.
-    if ((seqs_end - seqs_begin > 1) &&
-          _GLIBCXX_PARALLEL_CONDITION(
-          ((seqs_end - seqs_begin) >=
-            __gnu_parallel::_Settings::get().multiway_merge_minimal_k)
-          && ((sequence_index_t)length >=
-            __gnu_parallel::_Settings::get().multiway_merge_minimal_n)))
-      return parallel_multiway_merge
-        </* stable = */ true, /* sentinels = */ false>(
-          seqs_begin, seqs_end,
-          target, comp,
-          multiway_merge_sampling_splitting</* stable = */ true,
-          RandomAccessIteratorPairIterator, Comparator, _DifferenceTp>,
-          static_cast<difference_type>(length));
-    else
-      return sequential_multiway_merge
-        </* stable = */ true, /* sentinels = */ false>(
-          seqs_begin, seqs_end,
-          target, comp, length);
+  return multiway_merge(seqs_begin, seqs_end, target, length, comp,
+                         exact_tag(tag.get_num_threads()));
 }
 
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+multiway_merge(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , default_parallel_tag tag)
+{
+  return multiway_merge(seqs_begin, seqs_end, target, length, comp,
+                         exact_tag(tag.get_num_threads()));
+}
+
+// stable_multiway_merge
 // public interface
 template<
     typename RandomAccessIteratorPairIterator
@@ -1631,7 +1635,7 @@ RandomAccessIteratorOut
 stable_multiway_merge(RandomAccessIteratorPairIterator seqs_begin
     , RandomAccessIteratorPairIterator seqs_end
     , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length
+    , _DifferenceTp length, Comparator comp
     , __gnu_parallel::sequential_tag)
 {
     typedef _DifferenceTp difference_type;
@@ -1644,7 +1648,7 @@ stable_multiway_merge(RandomAccessIteratorPairIterator seqs_begin
     // Execute multiway merge *sequentially*.
     return sequential_multiway_merge
       </* stable = */ true, /* sentinels = */ false>
-        (seqs_begin, seqs_end, target, comp, length);
+        (seqs_begin, seqs_end, target, *(seqs_begin->second), length, comp);
 }
 
 // public interface
@@ -1657,8 +1661,8 @@ RandomAccessIteratorOut
 stable_multiway_merge(RandomAccessIteratorPairIterator seqs_begin
     , RandomAccessIteratorPairIterator seqs_end
     , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length
-    , __gnu_parallel::exact_tag)
+    , _DifferenceTp length, Comparator comp
+    , __gnu_parallel::exact_tag tag)
 {
     typedef _DifferenceTp difference_type;
     _GLIBCXX_CALL(seqs_end - seqs_begin)
@@ -1679,16 +1683,95 @@ stable_multiway_merge(RandomAccessIteratorPairIterator seqs_begin
       return parallel_multiway_merge
         </* stable = */ true, /* sentinels = */ false>(
           seqs_begin, seqs_end,
-          target, comp, 
-          multiway_merge_exact_splitting
-            </* stable = */ true, RandomAccessIteratorPairIterator,
-             Comparator, _DifferenceTp>,
-          static_cast<difference_type>(length));
+          target,
+          multiway_merge_exact_splitting</* stable = */ true,
+            typename std::iterator_traits<RandomAccessIteratorPairIterator>
+              ::value_type*, Comparator, _DifferenceTp>,
+          static_cast<difference_type>(length), comp, tag.get_num_threads());
     else
       return sequential_multiway_merge</* stable = */ true,
         /* sentinels = */ false>(
           seqs_begin, seqs_end,
-          target, comp, length);
+          target, *(seqs_begin->second), length, comp);
+}
+
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+stable_multiway_merge(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , sampling_tag tag)
+{
+    typedef _DifferenceTp difference_type;
+    _GLIBCXX_CALL(seqs_end - seqs_begin)
+
+    // catch special case: no sequences
+    if (seqs_begin == seqs_end)
+      return target;
+
+    // Execute merge; maybe parallel, depending on the number of merged
+    // elements and the number of sequences and global thresholds in
+    // Settings.
+    if ((seqs_end - seqs_begin > 1) &&
+          _GLIBCXX_PARALLEL_CONDITION(
+          ((seqs_end - seqs_begin) >=
+            __gnu_parallel::_Settings::get().multiway_merge_minimal_k)
+          && ((sequence_index_t)length >=
+            __gnu_parallel::_Settings::get().multiway_merge_minimal_n)))
+      return parallel_multiway_merge
+        </* stable = */ true, /* sentinels = */ false>(
+          seqs_begin, seqs_end,
+          target,
+          multiway_merge_sampling_splitting</* stable = */ true,
+            typename std::iterator_traits<RandomAccessIteratorPairIterator>
+              ::value_type*, Comparator, _DifferenceTp>,
+          static_cast<difference_type>(length), comp, tag.get_num_threads());
+    else
+      return sequential_multiway_merge
+        </* stable = */ true, /* sentinels = */ false>(
+          seqs_begin, seqs_end,
+          target, *(seqs_begin->second), length, comp);
+}
+
+
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+stable_multiway_merge(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , parallel_tag tag = parallel_tag(0))
+{
+  return stable_multiway_merge(seqs_begin, seqs_end, target, length, comp,
+                         exact_tag(tag.get_num_threads()));
+}
+
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+stable_multiway_merge(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , default_parallel_tag tag)
+{
+  return stable_multiway_merge(seqs_begin, seqs_end, target, length, comp,
+                         exact_tag(tag.get_num_threads()));
 }
 
 /**
@@ -1766,6 +1849,7 @@ stable_multiway_merge(RandomAccessIteratorPairIterator seqs_begin
  *
  * @return end iterator of output sequence
  */
+// multiway_merge_sentinels
 // public interface
 template<
     typename RandomAccessIteratorPairIterator
@@ -1776,7 +1860,79 @@ RandomAccessIteratorOut
 multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
     , RandomAccessIteratorPairIterator seqs_end
     , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length)
+    , _DifferenceTp length, Comparator comp
+    , __gnu_parallel::sequential_tag)
+{
+    typedef _DifferenceTp difference_type;
+    _GLIBCXX_CALL(seqs_end - seqs_begin)
+
+    // catch special case: no sequences
+    if (seqs_begin == seqs_end)
+      return target;
+
+    // Execute multiway merge *sequentially*.
+    return sequential_multiway_merge
+      </* stable = */ false, /* sentinels = */ true>
+        (seqs_begin, seqs_end,
+         target, *(seqs_begin->second), length, comp);
+}
+
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , __gnu_parallel::exact_tag tag)
+{
+    typedef _DifferenceTp difference_type;
+    _GLIBCXX_CALL(seqs_end - seqs_begin)
+
+    // catch special case: no sequences
+    if (seqs_begin == seqs_end)
+      return target;
+
+    // Execute merge; maybe parallel, depending on the number of merged
+    // elements and the number of sequences and global thresholds in
+    // Settings.
+    if ((seqs_end - seqs_begin > 1) &&
+          _GLIBCXX_PARALLEL_CONDITION(
+          ((seqs_end - seqs_begin) >=
+            __gnu_parallel::_Settings::get().multiway_merge_minimal_k)
+          && ((sequence_index_t)length >=
+            __gnu_parallel::_Settings::get().multiway_merge_minimal_n)))
+      return parallel_multiway_merge
+        </* stable = */ false, /* sentinels = */ true>(
+          seqs_begin, seqs_end,
+          target,
+          multiway_merge_exact_splitting</* stable = */ false,
+            typename std::iterator_traits<RandomAccessIteratorPairIterator>
+              ::value_type*, Comparator, _DifferenceTp>,
+          static_cast<difference_type>(length), comp, tag.get_num_threads());
+    else
+      return sequential_multiway_merge
+        </* stable = */ false, /* sentinels = */ true>(
+          seqs_begin, seqs_end,
+          target, *(seqs_begin->second), length, comp);
+}
+
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , sampling_tag tag)
 {
     typedef _DifferenceTp difference_type;
     _GLIBCXX_CALL(seqs_end - seqs_begin)
@@ -1796,42 +1952,16 @@ multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
             __gnu_parallel::_Settings::get().multiway_merge_minimal_n)))
       return parallel_multiway_merge
         </* stable = */ false, /* sentinels = */ true>
-          (seqs_begin, seqs_end, target, comp,
-          multiway_merge_sampling_splitting
-            </* stable = */ false, RandomAccessIteratorPairIterator,
-             Comparator, _DifferenceTp>,
-          static_cast<difference_type>(length));
+          (seqs_begin, seqs_end, target,
+          multiway_merge_sampling_splitting</* stable = */ false,
+            typename std::iterator_traits<RandomAccessIteratorPairIterator>
+              ::value_type*, Comparator, _DifferenceTp>,
+          static_cast<difference_type>(length), comp, tag.get_num_threads());
     else
       return sequential_multiway_merge
         </* stable = */false, /* sentinels = */ true>(
           seqs_begin, seqs_end,
-          target, comp, length);
-}
-
-//public interface
-template<
-    typename RandomAccessIteratorPairIterator
-  , typename RandomAccessIteratorOut
-  , typename _DifferenceTp
-  , typename Comparator>
-RandomAccessIteratorOut
-multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
-    , RandomAccessIteratorPairIterator seqs_end
-    , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length
-    , __gnu_parallel::sequential_tag)
-{
-    typedef _DifferenceTp difference_type;
-    _GLIBCXX_CALL(seqs_end - seqs_begin)
-
-    // catch special case: no sequences
-    if (seqs_begin == seqs_end)
-      return target;
-
-    // Execute multiway merge *sequentially*.
-    return sequential_multiway_merge
-      </* stable = */ false, /* sentinels = */ true>
-        (seqs_begin, seqs_end, target, comp, length);
+          target, *(seqs_begin->second), length, comp);
 }
 
 // public interface
@@ -1844,40 +1974,31 @@ RandomAccessIteratorOut
 multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
     , RandomAccessIteratorPairIterator seqs_end
     , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length
-    , __gnu_parallel::exact_tag)
+    , _DifferenceTp length, Comparator comp
+    , parallel_tag tag = parallel_tag(0))
 {
-    typedef _DifferenceTp difference_type;
-    _GLIBCXX_CALL(seqs_end - seqs_begin)
-
-    // catch special case: no sequences
-    if (seqs_begin == seqs_end)
-      return target;
-
-    // Execute merge; maybe parallel, depending on the number of merged
-    // elements and the number of sequences and global thresholds in
-    // Settings.
-    if ((seqs_end - seqs_begin > 1) &&
-          _GLIBCXX_PARALLEL_CONDITION(
-          ((seqs_end - seqs_begin) >=
-            __gnu_parallel::_Settings::get().multiway_merge_minimal_k)
-          && ((sequence_index_t)length >=
-            __gnu_parallel::_Settings::get().multiway_merge_minimal_n)))
-      return parallel_multiway_merge
-        </* stable = */ false, /* sentinels = */ true>(
-          seqs_begin, seqs_end,
-          target, comp,
-          multiway_merge_exact_splitting
-            </* stable = */ false, RandomAccessIteratorPairIterator,
-              Comparator, _DifferenceTp>,
-          static_cast<difference_type>(length));
-    else
-      return sequential_multiway_merge
-        </* stable = */ false, /* sentinels = */ true>(
-          seqs_begin, seqs_end,
-          target, comp, length);
+  return multiway_merge_sentinels(seqs_begin, seqs_end, target, length, comp,
+                         exact_tag(tag.get_num_threads()));
 }
 
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , default_parallel_tag tag)
+{
+  return multiway_merge_sentinels(seqs_begin, seqs_end, target, length, comp,
+                         exact_tag(tag.get_num_threads()));
+}
+
+// stable_multiway_merge_sentinels
 // public interface
 template<
     typename RandomAccessIteratorPairIterator
@@ -1888,50 +2009,7 @@ RandomAccessIteratorOut
 stable_multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
     , RandomAccessIteratorPairIterator seqs_end
     , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length)
-{
-    typedef _DifferenceTp difference_type;
-    _GLIBCXX_CALL(seqs_end - seqs_begin)
-
-    // catch special case: no sequences
-    if (seqs_begin == seqs_end)
-      return target;
-
-    // Execute merge; maybe parallel, depending on the number of merged
-    // elements and the number of sequences and global thresholds in
-    // Settings.
-    if ((seqs_end - seqs_begin > 1) &&
-          _GLIBCXX_PARALLEL_CONDITION(
-          ((seqs_end - seqs_begin) >=
-            __gnu_parallel::_Settings::get().multiway_merge_minimal_k)
-          && ((sequence_index_t)length >=
-            __gnu_parallel::_Settings::get().multiway_merge_minimal_n)))
-      return parallel_multiway_merge
-        </* stable = */ true, /* sentinels = */ true>(
-          seqs_begin, seqs_end,
-          target, comp,
-          multiway_merge_sampling_splitting
-            </* stable = */ true, RandomAccessIteratorPairIterator,
-            Comparator, _DifferenceTp>,
-          static_cast<difference_type>(length));
-    else
-      return sequential_multiway_merge
-        </* stable = */ true, /* sentinels = */ true>(
-          seqs_begin, seqs_end,
-          target, comp, length);
-}
-
-// public interface
-template<
-    typename RandomAccessIteratorPairIterator
-  , typename RandomAccessIteratorOut
-  , typename _DifferenceTp
-  , typename Comparator>
-RandomAccessIteratorOut
-stable_multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
-    , RandomAccessIteratorPairIterator seqs_end
-    , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length
+    , _DifferenceTp length, Comparator comp
     , __gnu_parallel::sequential_tag)
 {
     typedef _DifferenceTp difference_type;
@@ -1944,7 +2022,7 @@ stable_multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
     // Execute multiway merge *sequentially*.
     return sequential_multiway_merge
       </* stable = */ true, /* sentinels = */ true>
-        (seqs_begin, seqs_end, target, comp, length);
+        (seqs_begin, seqs_end, target, *(seqs_begin->second), length, comp);
 }
 
 // public interface
@@ -1957,8 +2035,8 @@ RandomAccessIteratorOut
 stable_multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
     , RandomAccessIteratorPairIterator seqs_end
     , RandomAccessIteratorOut target
-    , Comparator comp, _DifferenceTp length
-    , __gnu_parallel::exact_tag)
+    , _DifferenceTp length, Comparator comp
+    , __gnu_parallel::exact_tag tag)
 {
     typedef _DifferenceTp difference_type;
     _GLIBCXX_CALL(seqs_end - seqs_begin)
@@ -1979,16 +2057,93 @@ stable_multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
       return parallel_multiway_merge
         </* stable = */ true, /* sentinels = */ true>(
           seqs_begin, seqs_end,
-          target, comp, 
-          multiway_merge_exact_splitting
-            </* stable = */ true, RandomAccessIteratorPairIterator,
-            Comparator, _DifferenceTp>,
-          static_cast<difference_type>(length));
+          target,
+          multiway_merge_exact_splitting</* stable = */ true,
+            typename std::iterator_traits<RandomAccessIteratorPairIterator>
+              ::value_type*, Comparator, _DifferenceTp>,
+          static_cast<difference_type>(length), comp, tag.get_num_threads());
+    else
+      return sequential_multiway_merge
+        </* stable = */ true, /* sentinels = */ true>(
+          seqs_begin, seqs_end, target, *(seqs_begin->second), length, comp);
+}
+
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+stable_multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , sampling_tag tag)
+{
+    typedef _DifferenceTp difference_type;
+    _GLIBCXX_CALL(seqs_end - seqs_begin)
+
+    // catch special case: no sequences
+    if (seqs_begin == seqs_end)
+      return target;
+
+    // Execute merge; maybe parallel, depending on the number of merged
+    // elements and the number of sequences and global thresholds in
+    // Settings.
+    if ((seqs_end - seqs_begin > 1) &&
+          _GLIBCXX_PARALLEL_CONDITION(
+          ((seqs_end - seqs_begin) >=
+            __gnu_parallel::_Settings::get().multiway_merge_minimal_k)
+          && ((sequence_index_t)length >=
+            __gnu_parallel::_Settings::get().multiway_merge_minimal_n)))
+      return parallel_multiway_merge
+        </* stable = */ true, /* sentinels = */ true>(
+          seqs_begin, seqs_end,
+          target,
+          multiway_merge_sampling_splitting</* stable = */ true,
+            typename std::iterator_traits<RandomAccessIteratorPairIterator>
+              ::value_type*, Comparator, _DifferenceTp>,
+          static_cast<difference_type>(length), comp, tag.get_num_threads());
     else
       return sequential_multiway_merge
         </* stable = */ true, /* sentinels = */ true>(
           seqs_begin, seqs_end,
-          target, comp, length);
+          target, *(seqs_begin->second), length, comp);
+}
+
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+stable_multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , parallel_tag tag = parallel_tag(0))
+{
+  return stable_multiway_merge_sentinels(seqs_begin, seqs_end, target, length, comp,
+                         exact_tag(tag.get_num_threads()));
+}
+
+// public interface
+template<
+    typename RandomAccessIteratorPairIterator
+  , typename RandomAccessIteratorOut
+  , typename _DifferenceTp
+  , typename Comparator>
+RandomAccessIteratorOut
+stable_multiway_merge_sentinels(RandomAccessIteratorPairIterator seqs_begin
+    , RandomAccessIteratorPairIterator seqs_end
+    , RandomAccessIteratorOut target
+    , _DifferenceTp length, Comparator comp
+    , default_parallel_tag tag)
+{
+  return stable_multiway_merge_sentinels(seqs_begin, seqs_end, target, length, comp,
+                         exact_tag(tag.get_num_threads()));
 }
 
 }; // namespace __gnu_parallel

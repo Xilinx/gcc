@@ -890,6 +890,7 @@ struct prop_stats_d
   long num_const_prop;
   long num_copy_prop;
   long num_pred_folded;
+  long num_dce;
 };
 
 static struct prop_stats_d prop_stats;
@@ -1249,16 +1250,18 @@ substitute_and_fold (prop_value_t *prop_value, bool use_ranges_p)
 	      && (!(call = get_call_expr_in (stmt))
 		  || !TREE_SIDE_EFFECTS (call)))
 	    {
+	      block_stmt_iterator i2;
 	      if (dump_file && dump_flags & TDF_DETAILS)
 		{
 		  fprintf (dump_file, "Removing dead stmt ");
 		  print_generic_expr (dump_file, stmt, 0);
 		  fprintf (dump_file, "\n");
 		}
-	      bsi_remove (&i, true);
+	      prop_stats.num_dce++;
+	      bsi_prev (&i);
+	      i2 = bsi_for_stmt (stmt);
+	      bsi_remove (&i2, true);
 	      release_defs (stmt);
-	      if (!bsi_end_p (i))
-	        bsi_prev (&i);
 	      continue;
 	    }
 
@@ -1341,15 +1344,14 @@ substitute_and_fold (prop_value_t *prop_value, bool use_ranges_p)
 	}
     }
 
-  if (dump_file && (dump_flags & TDF_STATS))
-    {
-      fprintf (dump_file, "Constants propagated: %6ld\n",
-	       prop_stats.num_const_prop);
-      fprintf (dump_file, "Copies propagated:    %6ld\n",
-	       prop_stats.num_copy_prop);
-      fprintf (dump_file, "Predicates folded:    %6ld\n",
-	       prop_stats.num_pred_folded);
-    }
+  statistics_counter_event (cfun, "Constants propagated",
+			    prop_stats.num_const_prop);
+  statistics_counter_event (cfun, "Copies propagated",
+			    prop_stats.num_copy_prop);
+  statistics_counter_event (cfun, "Predicates folded",
+			    prop_stats.num_pred_folded);
+  statistics_counter_event (cfun, "Statements deleted",
+			    prop_stats.num_dce);
   return something_changed;
 }
 

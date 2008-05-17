@@ -3072,8 +3072,7 @@ c_common_truthvalue_conversion (tree expr)
 		c_common_truthvalue_conversion (TREE_OPERAND (expr, 1)),
 		c_common_truthvalue_conversion (TREE_OPERAND (expr, 2)));
 
-    case CONVERT_EXPR:
-    case NOP_EXPR:
+    CASE_CONVERT:
       /* Don't cancel the effect of a CONVERT_EXPR from a REFERENCE_TYPE,
 	 since that affects how `default_conversion' will behave.  */
       if (TREE_CODE (TREE_TYPE (expr)) == REFERENCE_TYPE
@@ -3456,7 +3455,7 @@ c_alignof_expr (tree expr)
       tree best = t;
       int bestalign = TYPE_ALIGN (TREE_TYPE (TREE_TYPE (t)));
 
-      while ((TREE_CODE (t) == NOP_EXPR || TREE_CODE (t) == CONVERT_EXPR)
+      while (CONVERT_EXPR_P (t)
 	     && TREE_CODE (TREE_TYPE (TREE_OPERAND (t, 0))) == POINTER_TYPE)
 	{
 	  int thisalign;
@@ -6019,7 +6018,7 @@ handle_pure_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 		       int ARG_UNUSED (flags), bool *no_add_attrs)
 {
   if (TREE_CODE (*node) == FUNCTION_DECL)
-    DECL_IS_PURE (*node) = 1;
+    DECL_PURE_P (*node) = 1;
   /* ??? TODO: Support types.  */
   else
     {
@@ -6566,7 +6565,7 @@ check_function_arguments_recurse (void (*callback)
 				  void *ctx, tree param,
 				  unsigned HOST_WIDE_INT param_num)
 {
-  if ((TREE_CODE (param) == NOP_EXPR || TREE_CODE (param) == CONVERT_EXPR)
+  if (CONVERT_EXPR_P (param)
       && (TYPE_PRECISION (TREE_TYPE (param))
 	  == TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (param, 0)))))
     {

@@ -279,8 +279,7 @@ get_pointer_alignment (tree exp, unsigned int max_align)
     {
       switch (TREE_CODE (exp))
 	{
-	case NOP_EXPR:
-	case CONVERT_EXPR:
+	CASE_CONVERT:
 	  exp = TREE_OPERAND (exp, 0);
 	  if (! POINTER_TYPE_P (TREE_TYPE (exp)))
 	    return align;
@@ -1077,7 +1076,7 @@ get_memory_rtx (tree exp, tree len)
   /* Get an expression we can use to find the attributes to assign to MEM.
      If it is an ADDR_EXPR, use the operand.  Otherwise, dereference it if
      we can.  First remove any nops.  */
-  while ((TREE_CODE (exp) == NOP_EXPR || TREE_CODE (exp) == CONVERT_EXPR)
+  while (CONVERT_EXPR_P (exp)
 	 && POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0))))
     exp = TREE_OPERAND (exp, 0);
 
@@ -1107,8 +1106,7 @@ get_memory_rtx (tree exp, tree len)
 	  tree inner = exp;
 
 	  while (TREE_CODE (inner) == ARRAY_REF
-		 || TREE_CODE (inner) == NOP_EXPR
-		 || TREE_CODE (inner) == CONVERT_EXPR
+		 || CONVERT_EXPR_P (inner)
 		 || TREE_CODE (inner) == VIEW_CONVERT_EXPR
 		 || TREE_CODE (inner) == SAVE_EXPR)
 	    inner = TREE_OPERAND (inner, 0);
@@ -3084,7 +3082,7 @@ expand_builtin_powi (tree exp, rtx target, rtx subtarget)
     op1 = convert_to_mode (mode2, op1, 0);
 
   target = emit_library_call_value (optab_libfunc (powi_optab, mode),
-				    target, LCT_CONST_MAKE_BLOCK, mode, 2,
+				    target, LCT_CONST, mode, 2,
 				    op0, mode, op1, mode2);
 
   return target;
@@ -4149,7 +4147,7 @@ expand_builtin_memcmp (tree exp, rtx target, enum machine_mode mode)
     if (insn)
       emit_insn (insn);
     else
-      emit_library_call_value (memcmp_libfunc, result, LCT_PURE_MAKE_BLOCK,
+      emit_library_call_value (memcmp_libfunc, result, LCT_PURE,
 			       TYPE_MODE (integer_type_node), 3,
 			       XEXP (arg1_rtx, 0), Pmode,
 			       XEXP (arg2_rtx, 0), Pmode,
@@ -6098,7 +6096,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
      none of its arguments are volatile, we can avoid expanding the
      built-in call and just evaluate the arguments for side-effects.  */
   if (target == const0_rtx
-      && (DECL_IS_PURE (fndecl) || TREE_READONLY (fndecl)))
+      && (DECL_PURE_P (fndecl) || TREE_READONLY (fndecl)))
     {
       bool volatilep = false;
       tree arg;
@@ -11368,8 +11366,7 @@ fold_builtin_next_arg (tree exp, bool va_start_p)
 	 is not quite the same as STRIP_NOPS.  It does more.
 	 We must also strip off INDIRECT_EXPR for C++ reference
 	 parameters.  */
-      while (TREE_CODE (arg) == NOP_EXPR
-	     || TREE_CODE (arg) == CONVERT_EXPR
+      while (CONVERT_EXPR_P (arg)
 	     || TREE_CODE (arg) == INDIRECT_REF)
 	arg = TREE_OPERAND (arg, 0);
       if (arg != last_parm)

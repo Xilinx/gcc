@@ -53,11 +53,13 @@ extern const char * const cgraph_availability_names[];
 
 struct cgraph_local_info GTY(())
 {
-  /* Estimated stack frame consumption by the function.  */
-  HOST_WIDE_INT estimated_self_stack_size;
+  struct inline_summary {
+    /* Estimated stack frame consumption by the function.  */
+    HOST_WIDE_INT estimated_self_stack_size;
 
-  /* Size of the function before inlining.  */
-  int self_insns;
+    /* Size of the function before inlining.  */
+    int self_insns;
+  } inline_summary;
 
   /* Set when function function is visible in current compilation unit only
      and its address is never taken.  */
@@ -116,7 +118,7 @@ struct cgraph_global_info GTY(())
 
 struct cgraph_rtl_info GTY(())
 {
-   int preferred_incoming_stack_boundary;
+   unsigned int preferred_incoming_stack_boundary;
 };
 
 /* The cgraph data structure.
@@ -416,6 +418,7 @@ varpool_next_static_initializer (struct varpool_node *node)
 void cgraph_clone_inlined_nodes (struct cgraph_edge *, bool, bool);
 void cgraph_mark_inline_edge (struct cgraph_edge *, bool);
 bool cgraph_default_inline_p (struct cgraph_node *, const char **);
+unsigned int compute_inline_parameters (struct cgraph_node *);
 
 
 /* Create a new static variable of type TYPE.  */

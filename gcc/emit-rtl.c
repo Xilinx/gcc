@@ -1431,7 +1431,7 @@ component_ref_for_mem_expr (tree ref)
     {
       /* Now remove any conversions: they don't change what the underlying
 	 object is.  Likewise for SAVE_EXPR.  */
-      while (TREE_CODE (inner) == NOP_EXPR || TREE_CODE (inner) == CONVERT_EXPR
+      while (CONVERT_EXPR_P (inner)
 	     || TREE_CODE (inner) == VIEW_CONVERT_EXPR
 	     || TREE_CODE (inner) == SAVE_EXPR)
 	inner = TREE_OPERAND (inner, 0);
@@ -1561,7 +1561,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
       /* Now remove any conversions: they don't change what the underlying
 	 object is.  Likewise for SAVE_EXPR.  */
-      while (TREE_CODE (t) == NOP_EXPR || TREE_CODE (t) == CONVERT_EXPR
+      while (CONVERT_EXPR_P (t)
 	     || TREE_CODE (t) == VIEW_CONVERT_EXPR
 	     || TREE_CODE (t) == SAVE_EXPR)
 	t = TREE_OPERAND (t, 0);
@@ -5464,7 +5464,10 @@ emit_copy_of_insn_after (rtx insn, rtx after)
 	CALL_INSN_FUNCTION_USAGE (new)
 	  = copy_insn (CALL_INSN_FUNCTION_USAGE (insn));
       SIBLING_CALL_P (new) = SIBLING_CALL_P (insn);
-      CONST_OR_PURE_CALL_P (new) = CONST_OR_PURE_CALL_P (insn);
+      RTL_CONST_CALL_P (new) = RTL_CONST_CALL_P (insn);
+      RTL_PURE_CALL_P (new) = RTL_PURE_CALL_P (insn);
+      RTL_LOOPING_CONST_OR_PURE_CALL_P (new) 
+	= RTL_LOOPING_CONST_OR_PURE_CALL_P (insn);
       break;
 
     default:

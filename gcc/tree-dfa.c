@@ -85,13 +85,30 @@ find_referenced_vars (void)
 {
   basic_block bb;
   block_stmt_iterator si;
+  tree phi;
 
   FOR_EACH_BB (bb)
-    for (si = bsi_start (bb); !bsi_end_p (si); bsi_next (&si))
-      {
-	tree *stmt_p = bsi_stmt_ptr (si);
-	walk_tree (stmt_p, find_vars_r, NULL, NULL);
-      }
+    {
+      for (si = bsi_start (bb); !bsi_end_p (si); bsi_next (&si))
+	{
+	  tree *stmt_p = bsi_stmt_ptr (si);
+	  walk_tree (stmt_p, find_vars_r, NULL, NULL);
+	}
+
+      for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
+	{
+	  int len = PHI_NUM_ARGS (phi);
+	  int i;
+
+	  walk_tree (&phi, find_vars_r, NULL, NULL);
+
+	  for (i = 0; i < len; i++)
+	    {
+	      tree arg = PHI_ARG_DEF (phi, i);
+	      walk_tree (&arg, find_vars_r, NULL, NULL);
+	    }
+	}
+    }
 
   return 0;
 }
@@ -110,8 +127,8 @@ struct gimple_opt_pass pass_referenced_vars =
   PROP_gimple_leh | PROP_cfg,		/* properties_required */
   PROP_referenced_vars,			/* properties_provided */
   0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  0                                     /* todo_flags_finish */
+  TODO_dump_func,			/* todo_flags_start */
+  TODO_dump_func                        /* todo_flags_finish */
  }
 };
 
@@ -194,9 +211,35 @@ create_stmt_ann (tree t)
   /* Since we just created the annotation, mark the statement modified.  */
   ann->modified = true;
 
+  ann->uid = inc_gimple_stmt_max_uid (cfun);
   t->base.ann = (tree_ann_t) ann;
 
   return ann;
+}
+
+/* Renumber all of the gimple stmt uids.  */
+
+void 
+renumber_gimple_stmt_uids (void)
+{
+  basic_block bb;
+
+  set_gimple_stmt_max_uid (cfun, 0);
+  FOR_ALL_BB (bb)
+    {
+      block_stmt_iterator bsi;
+      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+	{
+	  tree stmt = bsi_stmt (bsi);
+	  /* If the stmt has an annotation, then overwrite it, if not,
+	     the process of getting it will set the number
+	     properly.  */
+	  if (has_stmt_ann (stmt))
+	    set_gimple_stmt_uid (stmt, inc_gimple_stmt_max_uid (cfun));
+	  else
+	    get_stmt_ann (stmt);
+	}
+    }
 }
 
 /* Create a new annotation for a tree T.  */
@@ -269,42 +312,6 @@ void
 debug_referenced_vars (void)
 {
   dump_referenced_vars (stderr);
-}
-
-
-/* Dump sub-variables for VAR to FILE.  */
-
-void
-dump_subvars_for (FILE *file, tree var)
-{
-  subvar_t sv = get_subvars_for_var (var);
-  tree subvar;
-  unsigned int i;
-
-  if (!sv)
-    return;
-
-  fprintf (file, "{ ");
-
-  for (i = 0; VEC_iterate (tree, sv, i, subvar); ++i)
-    {
-      print_generic_expr (file, subvar, dump_flags);
-      fprintf (file, "@" HOST_WIDE_INT_PRINT_UNSIGNED, SFT_OFFSET (subvar));
-      if (SFT_BASE_FOR_COMPONENTS_P (subvar))
-        fprintf (file, "[B]");
-      fprintf (file, " ");
-    }
-
-  fprintf (file, "}");
-}
-
-
-/* Dumb sub-variables for VAR to stderr.  */
-
-void
-debug_subvars_for (tree var)
-{
-  dump_subvars_for (stderr, var);
 }
 
 
@@ -403,12 +410,6 @@ dump_variable (FILE *file, tree var)
       dump_may_aliases_for (file, var);
     }
 
-  if (get_subvars_for_var (var))
-    {
-      fprintf (file, ", sub-vars: ");
-      dump_subvars_for (file, var);
-    }
-
   if (!is_gimple_reg (var))
     {
       if (memory_partition (var))
@@ -421,16 +422,6 @@ dump_variable (FILE *file, tree var)
 	{
 	  fprintf (file, ", partition symbols: ");
 	  dump_decl_set (file, MPT_SYMBOLS (var));
-	}
-
-      if (TREE_CODE (var) == STRUCT_FIELD_TAG)
-	{
-	  fprintf (file, ", offset: " HOST_WIDE_INT_PRINT_UNSIGNED,
-		   SFT_OFFSET (var));
-	  fprintf (file, ", base for components: %s",
-		   SFT_BASE_FOR_COMPONENTS_P (var) ? "NO" : "YES");
-	  fprintf (file, ", partitionable: %s",
-		   SFT_UNPARTITIONABLE_P (var) ? "NO" : "YES");
 	}
     }
 
@@ -624,9 +615,14 @@ collect_dfa_stats_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
 static tree
 find_vars_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 {
+  /* If we are reading the lto info back in, we need to rescan the
+     referenced vars.  */
+  if (TREE_CODE (*tp) == SSA_NAME)
+    add_referenced_var (SSA_NAME_VAR (*tp));
+
   /* If T is a regular variable that the optimizers are interested
      in, add it to the list of variables.  */
-  if (SSA_VAR_P (*tp))
+  else if (SSA_VAR_P (*tp))
     add_referenced_var (*tp);
 
   /* Type, _DECL and constant nodes have no interesting children.
@@ -766,18 +762,6 @@ remove_referenced_var (tree var)
   struct tree_decl_minimal in;
   void **loc;
   unsigned int uid = DECL_UID (var);
-  subvar_t sv;
-
-  /* If we remove a var, we should also remove its subvars, as we kill
-     their parent var and its annotation.  */
-  if (var_can_have_subvars (var)
-      && (sv = get_subvars_for_var (var)))
-    {
-      unsigned int i;
-      tree subvar;
-      for (i = 0; VEC_iterate (tree, sv, i, subvar); ++i)
-        remove_referenced_var (subvar);
-    }
 
   clear_call_clobbered (var);
   if ((v_ann = var_ann (var)))
@@ -1060,10 +1044,12 @@ refs_may_alias_p (tree ref1, tree ref2)
 
   gcc_assert ((SSA_VAR_P (ref1)
 	       || handled_component_p (ref1)
-	       || TREE_CODE (ref1) == INDIRECT_REF)
+	       || INDIRECT_REF_P (ref1)
+	       || TREE_CODE (ref1) == TARGET_MEM_REF)
 	      && (SSA_VAR_P (ref2)
 		  || handled_component_p (ref2)
-		  || TREE_CODE (ref2) == INDIRECT_REF));
+		  || INDIRECT_REF_P (ref2)
+		  || TREE_CODE (ref2) == TARGET_MEM_REF));
 
   /* Defer to TBAA if possible.  */
   if (flag_strict_aliasing

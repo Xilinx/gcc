@@ -611,7 +611,7 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
     {
       u->maxrec = max_offset;
       u->recl = 1;
-      u->strm_pos = 1;
+      u->strm_pos = file_position (u->s) + 1;
     }
 
   memmove (u->file, opp->file, opp->file_len);
@@ -626,6 +626,19 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
 
   if (flags->status == STATUS_SCRATCH && opp->file != NULL)
     free_mem (opp->file);
+    
+  if (flags->form == FORM_FORMATTED && (flags->action != ACTION_READ))
+    {
+      if ((opp->common.flags & IOPARM_OPEN_HAS_RECL_IN))
+        fbuf_init (u, u->recl);
+      else
+        fbuf_init (u, 0);
+    }
+  else
+    u->fbuf = NULL;
+
+    
+    
   return u;
 
  cleanup:

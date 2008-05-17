@@ -64,7 +64,7 @@ m68k port		Andreas Schwab		schwab@suse.de
 m68k-motorola-sysv port	Philippe De Muyter	phdm@macqel.be
 mcore port		Nick Clifton		nickc@redhat.com
 mips port               Eric Christopher        echristo@apple.com
-mips port		Richard Sandiford	rsandifo@nildram.co.uk
+mips port		Richard Sandiford	rdsandiford@googlemail.com
 mmix port		Hans-Peter Nilsson	hp@bitrange.com
 mn10300 port		Jeff Law		law@redhat.com
 mn10300 port		Alexandre Oliva		aoliva@redhat.com
@@ -160,7 +160,7 @@ caller-save.c		Jeff Law		law@redhat.com
 callgraph		Jan Hubicka		jh@suse.cz
 debugging code		Jim Wilson		wilson@tuliptree.org
 dwarf debugging code	Jason Merrill		jason@redhat.com
-c++ runtime libs	Paolo Carlini		pcarlini@suse.de
+c++ runtime libs	Paolo Carlini		paolo.carlini@oracle.com
 c++ runtime libs        Gabriel Dos Reis        gdr@integrable-solutions.net
 c++ runtime libs	Ulrich Drepper		drepper@redhat.com
 c++ runtime libs	Phil Edwards		pme@gcc.gnu.org
@@ -441,6 +441,7 @@ Jonathan Wakely					redi@gcc.gnu.org
 Feng Wang					fengwang@nudt.edu.cn
 Stephen M. Webb					stephen.webb@bregmasoft.com
 John Wehle					john@feith.com
+Janus Weil					janus@gcc.gnu.org
 Florian Weimer					fw@deneb.enyo.de
 Zack Weinberg					zackw@panix.com
 Mark Wielaard					mark@gcc.gnu.org

@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "langhooks.h"
 #include "tree-iterator.h"
+#include "tree-flow.h"
 
 /* Define the hash table of nodes already seen.
    Such nodes are not repeated; brief cross-references are used.  */
@@ -221,21 +222,25 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       return;
     }
 
-  hash = ((unsigned long) node) % HASH_SIZE;
-
-  /* If node is in the table, just mention its address.  */
-  for (b = table[hash]; b; b = b->next)
-    if (b->node == node)
-      {
-	print_node_brief (file, prefix, node, indent);
-	return;
-      }
-
-  /* Add this node to the table.  */
-  b = XNEW (struct bucket);
-  b->node = node;
-  b->next = table[hash];
-  table[hash] = b;
+  /* Allow this function to be called if the table is not there.  */
+  if (table)
+    {
+      hash = ((unsigned long) node) % HASH_SIZE;
+      
+      /* If node is in the table, just mention its address.  */
+      for (b = table[hash]; b; b = b->next)
+	if (b->node == node)
+	  {
+	    print_node_brief (file, prefix, node, indent);
+	    return;
+	  }
+      
+      /* Add this node to the table.  */
+      b = XNEW (struct bucket);
+      b->node = node;
+      b->next = table[hash];
+      table[hash] = b;
+    }
 
   /* Indent to the specified column, since this is the long form.  */
   indent_to (file, indent);
@@ -534,15 +539,6 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	  && DECL_HAS_VALUE_EXPR_P (node))
 	print_node (file, "value-expr", DECL_VALUE_EXPR (node), indent + 4);
 
-      if (TREE_CODE (node) == STRUCT_FIELD_TAG)
-	{
-	  fprintf (file, " sft size " HOST_WIDE_INT_PRINT_DEC, 
-		   SFT_SIZE (node));
-	  fprintf (file, " sft offset " HOST_WIDE_INT_PRINT_DEC,
-		   SFT_OFFSET (node));
-	  print_node_brief (file, "parent var", SFT_PARENT_VAR (node), 
-			    indent + 4);
-	}
       /* Print the decl chain only if decl is at second level.  */
       if (indent == 4)
 	print_node (file, "chain", TREE_CHAIN (node), indent + 4);
@@ -913,6 +909,12 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	      if (SSA_NAME_VALUE (node))
 		dump_addr (file, " value ", SSA_NAME_VALUE (node));
 	    }
+	  break;
+
+	case PHI_NODE:
+	  print_node (file, "result", PHI_RESULT (node), indent + 4);
+	  for (i = 0; i < PHI_NUM_ARGS (node); i++)
+	    print_node (file, "arg", PHI_ARG_DEF (node, i), indent + 4);
 	  break;
 
 	case OMP_CLAUSE:

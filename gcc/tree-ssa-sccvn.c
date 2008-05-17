@@ -504,6 +504,27 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
       return;
     }
 
+  if (TREE_CODE (ref) == TARGET_MEM_REF)
+    {
+      vn_reference_op_s temp;
+
+      memset (&temp, 0, sizeof (temp));
+      /* We do not care for spurious type qualifications.  */
+      temp.type = TYPE_MAIN_VARIANT (TREE_TYPE (ref));
+      temp.opcode = TREE_CODE (ref);
+      temp.op0 = TMR_SYMBOL (ref) ? TMR_SYMBOL (ref) : TMR_BASE (ref);
+      temp.op1 = TMR_INDEX (ref);
+      VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
+
+      memset (&temp, 0, sizeof (temp));
+      temp.type = NULL_TREE;
+      temp.opcode = TREE_CODE (ref);
+      temp.op0 = TMR_STEP (ref);
+      temp.op1 = TMR_OFFSET (ref);
+      VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
+      return;
+    }
+
   /* For non-calls, store the information that makes up the address.  */
 
   while (ref)
@@ -1569,8 +1590,7 @@ simplify_unary_expression (tree rhs)
 
   if (VN_INFO (op0)->has_constants)
     op0 = valueize_expr (VN_INFO (op0)->expr);
-  else if (TREE_CODE (rhs) == NOP_EXPR
-	   || TREE_CODE (rhs) == CONVERT_EXPR
+  else if (CONVERT_EXPR_P (rhs)
 	   || TREE_CODE (rhs) == REALPART_EXPR
 	   || TREE_CODE (rhs) == IMAGPART_EXPR
 	   || TREE_CODE (rhs) == VIEW_CONVERT_EXPR)
@@ -1870,7 +1890,7 @@ compare_ops (const void *pa, const void *pb)
 	return -1;
       else if (TREE_CODE (opstmtb) == PHI_NODE)
 	return 1;
-      return stmt_ann (opstmta)->uid - stmt_ann (opstmtb)->uid;
+      return gimple_stmt_uid (opstmta) - gimple_stmt_uid (opstmtb);
     }
   return rpo_numbers[bba->index] - rpo_numbers[bbb->index];
 }
@@ -2069,8 +2089,6 @@ init_scc_vn (void)
   size_t i;
   int j;
   int *rpo_numbers_temp;
-  basic_block bb;
-  size_t id = 0;
 
   calculate_dominance_info (CDI_DOMINATORS);
   sccstack = NULL;
@@ -2111,15 +2129,7 @@ init_scc_vn (void)
 	}
     }
 
-  FOR_ALL_BB (bb)
-    {
-      block_stmt_iterator bsi;
-      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	{
-	  tree stmt = bsi_stmt (bsi);
-	  stmt_ann (stmt)->uid = id++;
-	}
-    }
+  renumber_gimple_stmt_uids ();
 
   /* Create the valid and optimistic value numbering tables.  */
   valid_info = XCNEW (struct vn_tables_s);

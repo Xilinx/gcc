@@ -263,17 +263,14 @@ init_ttree (void)
   tree_contains_struct[TRANSLATION_UNIT_DECL][TS_DECL_MINIMAL] = 1;
   tree_contains_struct[LABEL_DECL][TS_DECL_MINIMAL] = 1;
   tree_contains_struct[FIELD_DECL][TS_DECL_MINIMAL] = 1;
-  tree_contains_struct[STRUCT_FIELD_TAG][TS_DECL_MINIMAL] = 1;
   tree_contains_struct[NAME_MEMORY_TAG][TS_DECL_MINIMAL] = 1;
   tree_contains_struct[SYMBOL_MEMORY_TAG][TS_DECL_MINIMAL] = 1;
   tree_contains_struct[MEMORY_PARTITION_TAG][TS_DECL_MINIMAL] = 1;
 
-  tree_contains_struct[STRUCT_FIELD_TAG][TS_MEMORY_TAG] = 1;
   tree_contains_struct[NAME_MEMORY_TAG][TS_MEMORY_TAG] = 1;
   tree_contains_struct[SYMBOL_MEMORY_TAG][TS_MEMORY_TAG] = 1;
   tree_contains_struct[MEMORY_PARTITION_TAG][TS_MEMORY_TAG] = 1;
 
-  tree_contains_struct[STRUCT_FIELD_TAG][TS_STRUCT_FIELD_TAG] = 1;
   tree_contains_struct[MEMORY_PARTITION_TAG][TS_MEMORY_PARTITION_TAG] = 1;
 
   tree_contains_struct[VAR_DECL][TS_DECL_WITH_VIS] = 1;
@@ -370,8 +367,6 @@ tree_code_size (enum tree_code code)
 	  case NAME_MEMORY_TAG:
 	  case SYMBOL_MEMORY_TAG:
 	    return sizeof (struct tree_memory_tag);
-	  case STRUCT_FIELD_TAG:
-	    return sizeof (struct tree_struct_field_tag);
 	  case MEMORY_PARTITION_TAG:
 	    return sizeof (struct tree_memory_partition_tag);
 	  default:
@@ -1603,8 +1598,7 @@ int
 really_constant_p (const_tree exp)
 {
   /* This is not quite the same as STRIP_NOPS.  It does more.  */
-  while (TREE_CODE (exp) == NOP_EXPR
-	 || TREE_CODE (exp) == CONVERT_EXPR
+  while (CONVERT_EXPR_P (exp)
 	 || TREE_CODE (exp) == NON_LVALUE_EXPR)
     exp = TREE_OPERAND (exp, 0);
   return TREE_CONSTANT (exp);
@@ -1923,7 +1917,7 @@ expr_align (const_tree t)
 
   switch (TREE_CODE (t))
     {
-    case NOP_EXPR:  case CONVERT_EXPR:  case NON_LVALUE_EXPR:
+    CASE_CONVERT:  case NON_LVALUE_EXPR:
       /* If we have conversions, we know that the alignment of the
 	 object must meet each of the alignments of the types.  */
       align0 = expr_align (TREE_OPERAND (t, 0));
@@ -2289,7 +2283,6 @@ tree_node_structure (const_tree t)
 	    return TS_FUNCTION_DECL;
 	  case SYMBOL_MEMORY_TAG:
 	  case NAME_MEMORY_TAG:
-	  case STRUCT_FIELD_TAG:
 	  case MEMORY_PARTITION_TAG:
 	    return TS_MEMORY_TAG;
 	  default:
@@ -2829,8 +2822,7 @@ stabilize_reference (tree ref)
       /* No action is needed in this case.  */
       return ref;
 
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
     case FLOAT_EXPR:
     case FIX_TRUNC_EXPR:
       result = build_nt (code, stabilize_reference (TREE_OPERAND (ref, 0)));
@@ -6060,8 +6052,7 @@ get_unwidened (tree op, tree for_type)
        && TYPE_UNSIGNED (type));
   tree win = op;
 
-  while (TREE_CODE (op) == NOP_EXPR
-	 || TREE_CODE (op) == CONVERT_EXPR)
+  while (CONVERT_EXPR_P (op))
     {
       int bitschange;
 
@@ -6099,8 +6090,7 @@ get_unwidened (tree op, tree for_type)
 	     Let's avoid computing it if it does not affect WIN
 	     and if UNS will not be needed again.  */
 	  if ((uns
-	       || TREE_CODE (op) == NOP_EXPR
-	       || TREE_CODE (op) == CONVERT_EXPR)
+	       || CONVERT_EXPR_P (op))
 	      && TYPE_UNSIGNED (TREE_TYPE (op)))
 	    {
 	      uns = 1;
@@ -7373,7 +7363,9 @@ local_define_builtin (const char *name, tree type, enum built_in_function code,
   if (ecf_flags & ECF_CONST)
     TREE_READONLY (decl) = 1;
   if (ecf_flags & ECF_PURE)
-    DECL_IS_PURE (decl) = 1;
+    DECL_PURE_P (decl) = 1;
+  if (ecf_flags & ECF_LOOPING_CONST_OR_PURE)
+    DECL_LOOPING_CONST_OR_PURE_P (decl) = 1;
   if (ecf_flags & ECF_NORETURN)
     TREE_THIS_VOLATILE (decl) = 1;
   if (ecf_flags & ECF_NOTHROW)
@@ -7766,7 +7758,7 @@ process_call_operands (tree t)
       /* Calls have side-effects, except those to const or
 	 pure functions.  */
       i = call_expr_flags (t);
-      if (!(i & (ECF_CONST | ECF_PURE)))
+      if ((i & ECF_LOOPING_CONST_OR_PURE) || !(i & (ECF_CONST | ECF_PURE)))
 	side_effects = 1;
     }
   TREE_SIDE_EFFECTS (t) = side_effects;

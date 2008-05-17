@@ -299,7 +299,8 @@ execute_fixup_cfg (void)
 	    tree call = get_call_expr_in (stmt);
 	    tree decl = call ? get_callee_fndecl (call) : NULL;
 
-	    if (decl && call_expr_flags (call) & (ECF_CONST | ECF_PURE)
+	    if (decl && call_expr_flags (call) & (ECF_CONST | ECF_PURE 
+						  | ECF_LOOPING_CONST_OR_PURE)
 		&& TREE_SIDE_EFFECTS (call))
 	      {
 		if (gimple_in_ssa_p (cfun))
@@ -332,7 +333,7 @@ static unsigned int
 execute_init_datastructures (void)
 {
   /* Allocate hash tables, arrays and other structures.  */
-  init_tree_ssa ();
+  init_tree_ssa (cfun);
   return 0;
 }
 

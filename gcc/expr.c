@@ -625,8 +625,7 @@ convert_move (rtx to, rtx from, int unsignedp)
       insns = get_insns ();
       end_sequence ();
 
-      emit_no_conflict_block (insns, to, from, NULL_RTX,
-			      gen_rtx_fmt_e (equiv_code, to_mode, copy_rtx (from)));
+      emit_insn (insns);
       return;
     }
 
@@ -1259,6 +1258,10 @@ emit_block_move (rtx x, rtx y, rtx size, enum block_op_methods method)
 static bool
 block_move_libcall_safe_for_call_parm (void)
 {
+#if defined (REG_PARM_STACK_SPACE)
+  tree fn;
+#endif
+
   /* If arguments are pushed on the stack, then they're safe.  */
   if (PUSH_ARGS)
     return true;
@@ -1266,13 +1269,10 @@ block_move_libcall_safe_for_call_parm (void)
   /* If registers go on the stack anyway, any argument is sure to clobber
      an outgoing argument.  */
 #if defined (REG_PARM_STACK_SPACE)
-  if (OUTGOING_REG_PARM_STACK_SPACE)
-    {
-      tree fn;
-      fn = emit_block_move_libcall_fn (false);
-      if (REG_PARM_STACK_SPACE (fn) != 0)
-	return false;
-    }
+  fn = emit_block_move_libcall_fn (false);
+  if (OUTGOING_REG_PARM_STACK_SPACE ((!fn ? NULL_TREE : TREE_TYPE (fn)))
+      && REG_PARM_STACK_SPACE (fn) != 0)
+    return false;
 #endif
 
   /* If any argument goes in memory, then it might clobber an outgoing
@@ -6599,7 +6599,7 @@ highest_pow2_factor (const_tree exp)
 	}
       break;
 
-    case NOP_EXPR:  case CONVERT_EXPR:
+    CASE_CONVERT:
     case SAVE_EXPR:
       return highest_pow2_factor (TREE_OPERAND (exp, 0));
 
@@ -7739,13 +7739,15 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	/* If this is a constant, put it into a register if it is a legitimate
 	   constant, OFFSET is 0, and we won't try to extract outside the
 	   register (in case we were passed a partially uninitialized object
-	   or a view_conversion to a larger size).  Force the constant to
-	   memory otherwise.  */
+	   or a view_conversion to a larger size) or a BLKmode piece of it
+	   (e.g. if it is unchecked-converted to a record type in Ada).  Force
+	   the constant to memory otherwise.  */
 	if (CONSTANT_P (op0))
 	  {
 	    enum machine_mode mode = TYPE_MODE (TREE_TYPE (tem));
 	    if (mode != BLKmode && LEGITIMATE_CONSTANT_P (op0)
 		&& offset == 0
+		&& mode1 != BLKmode
 		&& bitpos + bitsize <= GET_MODE_BITSIZE (mode))
 	      op0 = force_reg (mode, op0);
 	    else
@@ -7759,8 +7761,9 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	   for an ARRAY_RANGE_REF whose type is BLKmode.  */
 	else if (!MEM_P (op0)
 		 && (offset != 0
-		     || (bitpos + bitsize > GET_MODE_BITSIZE (GET_MODE (op0)))
-		     || (code == ARRAY_RANGE_REF && mode == BLKmode)))
+		     || mode1 == BLKmode
+		     || (bitpos + bitsize
+			 > GET_MODE_BITSIZE (GET_MODE (op0)))))
 	  {
 	    tree nt = build_qualified_type (TREE_TYPE (tem),
 					    (TYPE_QUALS (TREE_TYPE (tem))
@@ -8017,8 +8020,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       return expand_call (exp, target, ignore);
 
     case PAREN_EXPR:
-    case NOP_EXPR:
-    case CONVERT_EXPR:
+    CASE_CONVERT:
       if (TREE_OPERAND (exp, 0) == error_mark_node)
 	return const0_rtx;
 
@@ -8689,7 +8691,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       if (modifier == EXPAND_STACK_PARM)
 	target = 0;
       temp = expand_unop (mode,
-      			  optab_for_tree_code (NEGATE_EXPR, type),
+      			  optab_for_tree_code (NEGATE_EXPR, type,
+					       optab_default),
 			  op0, target, 0);
       gcc_assert (temp);
       return REDUCE_BIT_FIELD (temp);
@@ -8728,7 +8731,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* First try to do it with a special MIN or MAX instruction.
 	 If that does not win, use a conditional jump to select the proper
 	 value.  */
-      this_optab = optab_for_tree_code (code, type);
+      this_optab = optab_for_tree_code (code, type, optab_default);
       temp = expand_binop (mode, this_optab, op0, op1, target, unsignedp,
 			   OPTAB_WIDEN);
       if (temp != 0)
@@ -8866,12 +8869,11 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 
     case LROTATE_EXPR:
     case RROTATE_EXPR:
-      /* The expansion code only handles expansion of mode precision
-	 rotates.  */
-      gcc_assert (GET_MODE_PRECISION (TYPE_MODE (type))
-		  == TYPE_PRECISION (type));
+      gcc_assert (VECTOR_MODE_P (TYPE_MODE (type))
+		  || (GET_MODE_PRECISION (TYPE_MODE (type))
+		      == TYPE_PRECISION (type)));
+      /* fall through */
 
-      /* Falltrough.  */
     case LSHIFT_EXPR:
     case RSHIFT_EXPR:
       /* If this is a fixed-point operation, then we cannot use the code
@@ -9213,7 +9215,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
         tree oprnd2 = TREE_OPERAND (exp, 2);
         rtx op2;
 
-        this_optab = optab_for_tree_code (code, type);
+        this_optab = optab_for_tree_code (code, type, optab_default);
         expand_operands (oprnd0, oprnd1, NULL_RTX, &op0, &op1, EXPAND_NORMAL);
         op2 = expand_normal (oprnd2);
         temp = expand_ternary_op (mode, this_optab, op0, op1, op2,
@@ -9252,7 +9254,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     case REDUC_PLUS_EXPR:
       {
         op0 = expand_normal (TREE_OPERAND (exp, 0));
-        this_optab = optab_for_tree_code (code, type);
+        this_optab = optab_for_tree_code (code, type, optab_default);
         temp = expand_unop (mode, this_optab, op0, target, unsignedp);
         gcc_assert (temp);
         return temp;
@@ -9263,7 +9265,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       {
         expand_operands (TREE_OPERAND (exp, 0),  TREE_OPERAND (exp, 1),
                          NULL_RTX, &op0, &op1, 0);
-        this_optab = optab_for_tree_code (code, type);
+        this_optab = optab_for_tree_code (code, type, optab_default);
         temp = expand_binop (mode, this_optab, op0, op1, target, unsignedp,
                              OPTAB_WIDEN);
         gcc_assert (temp);
@@ -9275,7 +9277,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       {
         expand_operands (TREE_OPERAND (exp, 0),  TREE_OPERAND (exp, 1),
                          NULL_RTX, &op0, &op1, 0);
-        this_optab = optab_for_tree_code (code, type);
+        this_optab = optab_for_tree_code (code, type, optab_default);
         temp = expand_binop (mode, this_optab, op0, op1, target, unsignedp,
                              OPTAB_WIDEN);
         gcc_assert (temp);
@@ -9293,7 +9295,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     case VEC_UNPACK_LO_EXPR:
       {
 	op0 = expand_normal (TREE_OPERAND (exp, 0));
-	this_optab = optab_for_tree_code (code, type);
+	this_optab = optab_for_tree_code (code, type, optab_default);
 	temp = expand_widen_pattern_expr (exp, op0, NULL_RTX, NULL_RTX,
 					  target, unsignedp);
 	gcc_assert (temp);
@@ -9306,7 +9308,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	op0 = expand_normal (TREE_OPERAND (exp, 0));
 	/* The signedness is determined from input operand.  */
 	this_optab = optab_for_tree_code (code,
-					  TREE_TYPE (TREE_OPERAND (exp, 0)));
+					  TREE_TYPE (TREE_OPERAND (exp, 0)),
+					  optab_default);
 	temp = expand_widen_pattern_expr
 	  (exp, op0, NULL_RTX, NULL_RTX,
 	   target, TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (exp, 0))));
@@ -9353,7 +9356,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
   expand_operands (TREE_OPERAND (exp, 0), TREE_OPERAND (exp, 1),
 		   subtarget, &op0, &op1, 0);
  binop2:
-  this_optab = optab_for_tree_code (code, type);
+  this_optab = optab_for_tree_code (code, type, optab_default);
  binop3:
   if (modifier == EXPAND_STACK_PARM)
     target = 0;
@@ -9409,8 +9412,7 @@ static int
 is_aligning_offset (const_tree offset, const_tree exp)
 {
   /* Strip off any conversions.  */
-  while (TREE_CODE (offset) == NOP_EXPR
-	 || TREE_CODE (offset) == CONVERT_EXPR)
+  while (CONVERT_EXPR_P (offset))
     offset = TREE_OPERAND (offset, 0);
 
   /* We must now have a BIT_AND_EXPR with a constant that is one less than
@@ -9425,16 +9427,14 @@ is_aligning_offset (const_tree offset, const_tree exp)
   /* Look at the first operand of BIT_AND_EXPR and strip any conversion.
      It must be NEGATE_EXPR.  Then strip any more conversions.  */
   offset = TREE_OPERAND (offset, 0);
-  while (TREE_CODE (offset) == NOP_EXPR
-	 || TREE_CODE (offset) == CONVERT_EXPR)
+  while (CONVERT_EXPR_P (offset))
     offset = TREE_OPERAND (offset, 0);
 
   if (TREE_CODE (offset) != NEGATE_EXPR)
     return 0;
 
   offset = TREE_OPERAND (offset, 0);
-  while (TREE_CODE (offset) == NOP_EXPR
-	 || TREE_CODE (offset) == CONVERT_EXPR)
+  while (CONVERT_EXPR_P (offset))
     offset = TREE_OPERAND (offset, 0);
 
   /* This must now be the address of EXP.  */

@@ -101,19 +101,15 @@ static void dse_record_phis (struct dom_walk_data *, basic_block);
 static void dse_finalize_block (struct dom_walk_data *, basic_block);
 static void record_voperand_set (bitmap, bitmap *, unsigned int);
 
-static unsigned max_stmt_uid;	/* Maximal uid of a statement.  Uids to phi
-				   nodes are assigned using the versions of
-				   ssa names they define.  */
-
 /* Returns uid of statement STMT.  */
 
 static unsigned
 get_stmt_uid (tree stmt)
 {
   if (TREE_CODE (stmt) == PHI_NODE)
-    return SSA_NAME_VERSION (PHI_RESULT (stmt)) + max_stmt_uid;
+    return SSA_NAME_VERSION (PHI_RESULT (stmt)) + gimple_stmt_max_uid (cfun);
 
-  return stmt_ann (stmt)->uid;
+  return gimple_stmt_uid (stmt);
 }
 
 /* Set bit UID in bitmaps GLOBAL and *LOCAL, creating *LOCAL as needed.  */
@@ -288,7 +284,6 @@ dse_possible_dead_store_p (tree stmt,
   vuse_vec_p vv;
   tree defvar = NULL_TREE, temp;
   tree prev_defvar = NULL_TREE;
-  stmt_ann_t ann = stmt_ann (stmt);
 
   /* We want to verify that each virtual definition in STMT has
      precisely one use and that all the virtual definitions are
@@ -312,6 +307,14 @@ dse_possible_dead_store_p (tree stmt,
       single_imm_use (defvar, use_p, &temp);
       gcc_assert (*use_p != NULL_USE_OPERAND_P);
       *first_use_p = *use_p;
+
+      /* ???  If we hit a PHI_NODE we could skip to the PHI_RESULT uses.
+	 Don't bother to do that for now.  */
+      if (TREE_CODE (temp) == PHI_NODE)
+	{
+	  fail = true;
+	  break;
+	}
 
       /* In the case of memory partitions, we may get:
 
@@ -356,31 +359,8 @@ dse_possible_dead_store_p (tree stmt,
 
   if (fail)
     {
-      record_voperand_set (dse_gd->stores, &bd->stores, ann->uid);
+      record_voperand_set (dse_gd->stores, &bd->stores, gimple_stmt_uid (stmt));
       return false;
-    }
-
-  /* Skip through any PHI nodes we have already seen if the PHI
-     represents the only use of this store.
-
-     Note this does not handle the case where the store has
-     multiple VDEFs which all reach a set of PHI nodes in the same block.  */
-  while (*use_p != NULL_USE_OPERAND_P
-	 && TREE_CODE (*use_stmt) == PHI_NODE
-	 && bitmap_bit_p (dse_gd->stores, get_stmt_uid (*use_stmt)))
-    {
-      /* A PHI node can both define and use the same SSA_NAME if
-	 the PHI is at the top of a loop and the PHI_RESULT is
-	 a loop invariant and copies have not been fully propagated.
-
-	 The safe thing to do is exit assuming no optimization is
-	 possible.  */
-      if (SSA_NAME_DEF_STMT (PHI_RESULT (*use_stmt)) == *use_stmt)
-	return false;
-
-      /* Skip past this PHI and loop again in case we had a PHI
-	 chain.  */
-      single_imm_use (PHI_RESULT (*use_stmt), use_p, use_stmt);
     }
 
   return true;
@@ -450,7 +430,7 @@ dse_optimize_stmt (struct dom_walk_data *walk_data,
              memory location.  */
           if (!get_kill_of_stmt_lhs (stmt, &first_use_p, &use_p, &use_stmt))
             {
-              record_voperand_set (dse_gd->stores, &bd->stores, ann->uid);
+              record_voperand_set (dse_gd->stores, &bd->stores, gimple_stmt_uid (stmt));
               return;
             }
         }
@@ -520,7 +500,7 @@ dse_optimize_stmt (struct dom_walk_data *walk_data,
 	  release_defs (stmt);
 	}
 
-      record_voperand_set (dse_gd->stores, &bd->stores, ann->uid);
+      record_voperand_set (dse_gd->stores, &bd->stores, gimple_stmt_uid (stmt));
     }
 }
 
@@ -571,18 +551,8 @@ tree_ssa_dse (void)
 {
   struct dom_walk_data walk_data;
   struct dse_global_data dse_gd;
-  basic_block bb;
 
-  /* Create a UID for each statement in the function.  Ordering of the
-     UIDs is not important for this pass.  */
-  max_stmt_uid = 0;
-  FOR_EACH_BB (bb)
-    {
-      block_stmt_iterator bsi;
-
-      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	stmt_ann (bsi_stmt (bsi))->uid = max_stmt_uid++;
-    }
+  renumber_gimple_stmt_uids ();
 
   /* We might consider making this a property of each pass so that it
      can be [re]computed on an as-needed basis.  Particularly since
