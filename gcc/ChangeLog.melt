@@ -1,3 +1,9 @@
+2008-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	[warmcompilation of test0 better for multisend but warm-basilys-1 fails
+	should add a predicate obj_without_sideeffects better than testing if in class_objpurevalue]
+
+	* melt/warm-basilys.bysl: better output of objmultimsend & objmultiapply
+
 2008-05-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[warmcompilation of test0 still buggy for multisend]
 

@@ -8340,6 +8340,35 @@
 		   ))))
 	  (add2sbuf_indentnl implbuf (get_int boxdepthp1))
 	  ))
+    ;; output the initialization of restab
+    (if (>i nbxres 0)
+	(progn
+	  (multiple_every
+	   oxres
+	   (lambda (cures :long curank)
+	     (let ( (curestyp (get_ctype cures (the_null))) )
+	       (debugmsg curestyp "outpucod_objmultiapply curestyp")
+	       (assert_msg "check curestyp" (is_a curestyp class_ctype))
+	       (output_location aloc implbuf (get_int boxdepthp1) "multiapply.xres")
+	       (add2sbuf_strconst implbuf "restab[")
+	       (add2sbuf_longdec implbuf  curank)
+	       (add2sbuf_strconst implbuf "].")
+	       (cond
+		( (null cures)
+		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*)NULL"))
+		( (== curestyp ctype_value)
+		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
+		  (output_c_code cures declbuf implbuf (get_int boxdepthp1))
+		  )
+		(:else
+		 (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield curestyp))
+		 (add2sbuf_strconst implbuf " = ")
+		 (output_c_code cures declbuf implbuf (get_int boxdepthp1))
+		 ))
+	       (add2sbuf_strconst implbuf ";")
+	       )
+	     ))
+	  ))
 ;;; output the destination(s)
     (list_every
      adest
@@ -8384,6 +8413,9 @@
     ))
   
 (install_method class_objmultiapply output_c_code outpucod_objmultiapply)
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output a multiresult message send
 (defun outpucod_objmultimsend (omsnd  declbuf implbuf :long depth)
@@ -8401,7 +8433,7 @@
 	 (resdesclist (make_list discr_list))
 	 (boxdepthp1 (make_integerbox discr_integer (+i 1 depth)))
 	 )
-    (output_location oloc implbuf depth "msend")
+    (output_location oloc implbuf depth "multimsend")
     (add2sbuf_strconst implbuf "/*multimsend*/{")
     (add2sbuf_indentnl implbuf (+i 1 depth))
     (if (>i nbarg 0)
@@ -8413,7 +8445,6 @@
 	  ))
     (if (>i nbxres 0)
 	(progn
-	  (add2sbuf_indentnl implbuf (+i 1 depth))
 	  (add2sbuf_strconst implbuf "union basilysparam_un restab[")
 	  (add2sbuf_longdec implbuf nbxres)
 	  (add2sbuf_strconst implbuf "];")
@@ -8422,8 +8453,8 @@
 	  (multiple_every 
 	   oxres
 	   (lambda (cures :long curank)
-		 (let ( (curctyp (get_ctype cures (the_null))) )
-	     (list_append resdesclist (unsafe_get_field :ctype_parstring curctyp)))))
+	     (let ( (curestyp (get_ctype cures (the_null))) )
+	       (list_append resdesclist (unsafe_get_field :ctype_parstring curestyp)))))
 	  ))
     (if (>i nbarg 0)
 	(progn
@@ -8436,37 +8467,63 @@
     ;; output the initialization of argtab and fill paramdesclist
     (if (>i nbarg 0)
 	(progn
-	  (add2sbuf_strconst implbuf "memset(&argtab, 0, sizeof(argtab));")
-	  (add2sbuf_indentnl implbuf (+i 1 depth))
 	  ;; output the initialization of argtab and fill the paramdesclist
 	  (multiple_every
 	   oargs
 	   (lambda (curarg :long curank)
 	     (debugmsg curarg "outpucod_objmultimsend curarg")
-	     (if (>i curank 0)
-		 (let ( (curctyp (get_ctype curarg (the_null))) )
-		   (debugmsg curctyp "outpucod_objmultimsend curctyp")
-		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
-		   (output_location oloc implbuf (get_int boxdepthp1) "msend.arg")
-		   (add2sbuf_strconst implbuf "argtab[")
-		   (add2sbuf_longdec implbuf  (-i curank 1))
-		   (add2sbuf_strconst implbuf "].")
-		   (list_append paramdesclist (unsafe_get_field :ctype_parstring curctyp))
-		   (cond
-		    ( (null curarg)
-		      (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*)NULL"))
-		    ( (== curctyp ctype_value)
-		      (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
-		      (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-		      )
-		    (:else
-		     (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
-		     (add2sbuf_strconst implbuf " = ")
-		     (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-		     ))
-		   (add2sbuf_strconst implbuf ";")
-		   ))))
+	     (let ( (curctyp (get_ctype curarg (the_null))) )
+	       (debugmsg curctyp "outpucod_objmultimsend curctyp")
+	       (assert_msg "check curctyp" (is_a curctyp class_ctype))
+	       (output_location oloc implbuf (get_int boxdepthp1) "multimsend.arg")
+	       (add2sbuf_strconst implbuf "argtab[")
+	       (add2sbuf_longdec implbuf   curank)
+	       (add2sbuf_strconst implbuf "].")
+	       (list_append paramdesclist (unsafe_get_field :ctype_parstring curctyp))
+	       (cond
+		( (null curarg)
+		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*)NULL"))
+		( (== curctyp ctype_value)
+		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
+		  (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		  )
+		(:else
+		 (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
+		 (add2sbuf_strconst implbuf " = ")
+		 (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		 ))
+	       (add2sbuf_strconst implbuf ";")
+	       )))
 	  (add2sbuf_indentnl implbuf (get_int boxdepthp1))
+	  ))
+    ;; output the initialization of restab
+    (if (>i nbxres 0)
+	(progn
+	  (multiple_every
+	   oxres
+	   (lambda (cures :long curank)
+	     (let ( (curestyp (get_ctype cures (the_null))) )
+	       (debugmsg curestyp "outpucod_objmultimsend curestyp")
+	       (assert_msg "check curestyp" (is_a curestyp class_ctype))
+	       (output_location oloc implbuf (get_int boxdepthp1) "multimsend.xres")
+	       (add2sbuf_strconst implbuf "restab[")
+	       (add2sbuf_longdec implbuf  curank)
+	       (add2sbuf_strconst implbuf "].")
+	       (cond
+		( (null cures)
+		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*)NULL"))
+		( (== curestyp ctype_value)
+		  (add2sbuf_strconst implbuf "bp_aptr = (basilys_ptr_t*) &")
+		  (output_c_code cures declbuf implbuf (get_int boxdepthp1))
+		  )
+		(:else
+		 (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield curestyp))
+		 (add2sbuf_strconst implbuf " = ")
+		 (output_c_code cures declbuf implbuf (get_int boxdepthp1))
+		 ))
+	       (add2sbuf_strconst implbuf ";")
+	       )
+	     ))
 	  ))
 ;;; output the destination(s)
     (list_every
@@ -8509,6 +8566,8 @@
     (add2sbuf_indentnl implbuf depth)
     ))
 (install_method class_objmultimsend output_c_code outpucod_objmultimsend)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output a clear
 (defun outpucod_objclear (oclear declbuf implbuf :long depth)
@@ -10116,7 +10175,8 @@
 			   (is_a cty class_ctype))
 	       obva
 	       ))))
-	 (oxres (make_multiple discr_multiple (if (>i nbres 1) (-i nbres 1) 0)))
+	 (oxres (if (>i nbres 1) 
+		    (make_multiple discr_multiple  (-i nbres 1))))
 	 (firstres (multiple_nth reslocs 0))
 	 (osel (compile_obj nsel gcx))
 	 (reslist (make_list discr_list))
@@ -10141,6 +10201,7 @@
 				:obmsnd_args oargs
 				:obmultsnd_xres oxres))
 	 )
+    (debugmsg reslocs "compilobj_nrep_multimsend reslocs" (the_callcount))
     (if firstres (list_append reslist firstres))
     ;; add every compiled argument to the resulting block unless it is a pure value
     (multiple_every 
