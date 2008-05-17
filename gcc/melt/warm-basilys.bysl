@@ -3738,7 +3738,7 @@
 (defclass class_nrep_multiapply
   :super class_nrep_apply
   :fields (nmulapp_bindings 		;a tuple of formal result bindings
-	   nmulapp_body			;body tuple
+	   nmulapp_body			;body normexp
 ))
 
 ;;; normal message sending
@@ -3755,7 +3755,7 @@
 (defclass class_nrep_multimsend
   :super class_nrep_msend
   :fields (nmulsend_bindings		;tuple of formal bindings
-	   nmulsend_body		;body tuple)
+	   nmulsend_body		;body normexp
 ))
 
 ;; normal chunk is a normalized expansion of primitive
@@ -8525,6 +8525,7 @@
 	       )
 	     ))
 	  ))
+    (output_location oloc implbuf (get_int boxdepthp1) "multimsend.send")
 ;;; output the destination(s)
     (list_every
      odest
@@ -10051,12 +10052,14 @@
 	 (rbinds (unsafe_get_field :nmulapp_bindings nmapp))
 	 (fun (unsafe_get_field :napp_fun nmapp))
 	 (args (unsafe_get_field :napp_args nmapp))
-	 (body (unsafe_get_field :nmulapp_body nmapp))
+	 (nbody (unsafe_get_field :nmulapp_body nmapp))
+	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (:long nbres (multiple_length rbinds))
 	 (reslocs 
 	  (multiple_map
 	   rbinds
 	   (lambda (bind :long ix)
+	     (debugmsg bind "compilobj_nrep_multiapply bind")
 	     (assert_msg "compilobj_nrep_multiapply check bind" 
 			 (is_a bind class_formal_binding))
 	     (let ( (bder (unsafe_get_field :binder bind))
@@ -10065,6 +10068,9 @@
 		    )
 	       (assert_msg "compilobj_nrep_multiapply check cty" 
 			   (is_a cty class_ctype))
+	       ;; link nlbnd to obva in locmap
+	       (if obva (mapobject_put locmap bind obva))
+	       (debugmsg obva "compilobj_nrep_multiapply obva")
 	       obva
 	       ))))
 	 (obodl (make_list discr_list))
@@ -10080,9 +10086,7 @@
 	 (oargs (multiple_map args
 			      (lambda (comp :long ix)
 				(compile_obj comp gcx))))
-	 (obody (multiple_map body
-			      (lambda (comp :long ix)
-				(compile_obj comp gcx))))
+	 (obody (compile_obj nbody gcx))
 	 (omapp (make_instance class_objmultiapply
 			       :obi_loc loc
 			       :obdi_destlist reslist
@@ -10100,7 +10104,10 @@
 	   (list_append obodl ocurarg))))
     ;; add the multiapply to the block
     (list_append obodl omapp)
-    ;; add the clearing of each result
+    ;; add the compiled body to the block
+    (debugmsg obody "compilobj_nrep_multiapply obody")
+    (list_append obodl obody)
+    ;; add the clearing of each result to epilog
     (multiple_every 
      reslocs
      (lambda (rloc :long ix)
@@ -10111,6 +10118,10 @@
 	     (list_append oepil oclear)
 	     (multiple_put_nth oxres (-i ix 1) rloc)
 	     ))))
+    ;; dispose the local bindings
+    (multiple_every 
+     rbinds
+     (lambda (bind :long ix) (dispose_bnd_obj bind gcx)))
     (debugmsg oblock "compilobj_nrep_multiapply final oblock" (the_callcount))
     oblock
     ))
@@ -10156,15 +10167,17 @@
   (debugmsg nmsnd "compilobj_nrep_multimsend nmsnd" (the_callcount))
   (let ( (loc (unsafe_get_field :nrep_loc nmsnd)) 
 	 (rbinds (unsafe_get_field :nmulsend_bindings nmsnd))
-	 (nbody (unsafe_get_field :nmulsend_body nmsnd))
+	 (nbody (unsafe_get_field :nmulsend_body nmsnd))  ; a single normalized expression
 	 (nsel (unsafe_get_field :nsend_sel nmsnd))
 	 (nrecv (unsafe_get_field :nsend_recv nmsnd))
 	 (nargs (unsafe_get_field :nsend_args nmsnd))
+	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (:long nbres (multiple_length rbinds))
 	 (reslocs 
 	  (multiple_map
 	   rbinds
 	   (lambda (bind :long ix)
+	     (debugmsg bind "compilobj_nrep_multimsend bind")
 	     (assert_msg "compilobj_nrep_multimsend check bind" 
 			 (is_a bind class_formal_binding))
 	     (let ( (bder (unsafe_get_field :binder bind))
@@ -10173,6 +10186,9 @@
 		    )
 	       (assert_msg "compilobj_nrep_multimsend check cty" 
 			   (is_a cty class_ctype))
+	       ;; link nlbnd to obva in locmap
+	       (if obva (mapobject_put locmap bind obva))
+	       (debugmsg obva "compilobj_nrep_multimsend obva")
 	       obva
 	       ))))
 	 (oxres (if (>i nbres 1) 
@@ -10184,9 +10200,7 @@
 	 (oargs (multiple_map nargs
 			      (lambda (comp :long ix)
 				(compile_obj comp gcx))))
-	 (obody (multiple_map nbody
-			      (lambda (comp :long ix)
-				(compile_obj comp gcx))))
+	 (obody (compile_obj nbody gcx))
 	 (obodl (make_list discr_list))
 	 (oepil (make_list discr_list))
 	 (oblock (make_instance class_objblock
@@ -10212,7 +10226,9 @@
 	   (list_append obodl ocurarg))))
     ;; add the multisend to the block
     (list_append obodl omsend)
-    ;; add the clearing of each result
+    ;; add the compiled body to the block
+    (list_append obodl obody)
+    ;; add the clearing of each result to epilog
     (multiple_every 
      reslocs
      (lambda (rloc :long ix)
@@ -10222,6 +10238,10 @@
 					 :oclr_vloc rloc)) )
 	     (list_append oepil oclear)
 	     (multiple_put_nth oxres (-i ix 1) rloc)))))
+    ;; dispose the local bindings
+    (multiple_every 
+     rbinds
+     (lambda (bind :long ix) (dispose_bnd_obj bind gcx)))
     (debugmsg oblock "compilobj_nrep_multimsend final oblock" (the_callcount))
     oblock
     ))

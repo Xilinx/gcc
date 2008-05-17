@@ -4572,6 +4572,7 @@ po/gcc.pot: force
 ## in particular http://gcc.gnu.org/ml/gcc/2008-02/msg00673.html
 
 
+MELTINDENT= indent -gnu -l90
 ## this is the installation include directory for the header files of
 ## gcc/ needed for basilys/MELT generated C code
 melt_private_include_dir=$(libexecsubdir)/melt-private-include/
@@ -4665,7 +4666,7 @@ coldbuilt-warm-basilys.so: built-melt-cc-script coldbuilt-warm-basilys.c
 coldbuilt-warm-basilys.c: $(srcdir)/../contrib/cold-basilys.lisp $(srcdir)/melt/warm-basilys.bysl
 	clisp -C -x  "(load \"$(srcdir)/../contrib/cold-basilys.lisp\")" \
 	         -x "(handle-source-file \"$(srcdir)/melt/warm-basilys.bysl\" \"tmp-$@\")"
-	indent tmp-$@
+	$(MELTINDENT) tmp-$@
 	$(SHELL) $(srcdir)/../move-if-change tmp-$@ $@
 
 .PHONY: install-melt-headers coldtest-warm-basilys
@@ -4688,7 +4689,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/test0.bysl -frandom-seed=AbCdEfGhIj
 	-@echo done test0
 	mv test0.c test0c.c
-	indent test0c.c
+	$(MELTINDENT) test0c.c
 	./built-melt-cc-script test0c.c test0c.so
 ## warmcompile test1.bysl
 	-@echo coldtest-warm-basilys starting test1
@@ -4700,7 +4701,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-tempdir=. \
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/test1.bysl -frandom-seed=AbCdEfGhIj
 	mv test1.c test1c.c
-	indent test1c.c
+	$(MELTINDENT) test1c.c
 	./built-melt-cc-script test1c.c test1c.so
 ## warmcompile testrun1
 	@echo coldtest-warm-basilys compiling testrun1
@@ -4712,7 +4713,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-tempdir=. \
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/testrun1.bysl -frandom-seed=AbCdEfGhIj
 	cp testrun1.c testrun1c.c
-	indent testrun1c.c
+	$(MELTINDENT) testrun1c.c
 	./built-melt-cc-script testrun1c.c testrun1c.so
 ##testrun1c empty run
 	-@echo empty run testrun1c
@@ -4745,7 +4746,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-tempdir=. \
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl -frandom-seed=AbCdEfGhIj
 	cp warm-basilys.c warm-basilys-1.c
-	indent warm-basilys-1.c
+	$(MELTINDENT) warm-basilys-1.c
 	./built-melt-cc-script warm-basilys-1.c warm-basilys-1.so
 #warmbasilys1 empty run
 	-@echo empty run warm-basilys-1
@@ -4767,7 +4768,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-tempdir=. \
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/test0.bysl -frandom-seed=AbCdEfGhIj
 	mv test0.c test0w.c
-	indent test0w.c
+	$(MELTINDENT) test0w.c
 	./built-melt-cc-script test0w.c test0w.so
 #warmcompile test1 using warm-basilys1
 	-@echo warm-basilys-1 compiling test1
@@ -4790,7 +4791,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-tempdir=. \
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/testrun1.bysl -frandom-seed=AbCdEfGhIj
 	cp testrun1.c testrun1w.c
-	indent testrun1w.c
+	$(MELTINDENT) testrun1w.c
 	./built-melt-cc-script testrun1w.c testrun1w.so
 ##testrun1w empty run
 	-@echo empty run testrun1w
@@ -4823,7 +4824,7 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-tempdir=. \
 	 -fbasilys-command=compileseq -fbasilys-arg=$(srcdir)/melt/warm-basilys.bysl -frandom-seed=AbCdEfGhIj
 	cp warm-basilys.c warm-basilys-2.c
-	indent warm-basilys-2.c
+	$(MELTINDENT) warm-basilys-2.c
 	./built-melt-cc-script warm-basilys-2.c warm-basilys-2.so
 	diff warm-basilys-1.c warm-basilys-2.c
 

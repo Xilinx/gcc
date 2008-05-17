@@ -1,4 +1,13 @@
 2008-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	[warmcompilation of test0 better for multisend but warm-basilys-1 runs badly on test0]
+
+	* melt/warm-basilys.bysl: better normalization & compilation of
+	multisend & multiapply. The body is actually compiled and the
+	localvars are bound and allocated.
+
+	* Makefile.in: added MELTINDENT variable for coldtest-warm-basilys target
+
+2008-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	[warmcompilation of test0 better for multisend but warm-basilys-1 fails
 	should add a predicate obj_without_sideeffects better than testing if in class_objpurevalue]
 

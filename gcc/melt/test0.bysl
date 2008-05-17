@@ -108,7 +108,17 @@
   :obj_num 12751
   :root_f1 (boxint 1001002))
 
-(defun testmultisend (g h x y)
+
+(defun testmultisend0 (g x)
+  (multicall 
+   (u v)
+   (the_sel x)
+   (g u v)
+   ))
+
+
+
+(defun testmultisend1 (g h x y)
   (puts "begin testmultisend")
   (multicall 
    (u v)
@@ -121,6 +131,19 @@
       (g v x))
    ))
 
+
+
+(defun testmultisend2 (f g1 g2 h x)
+  (multicall 
+   (u v)
+   (the_sel
+    (f x)
+    x)
+   (g1 u v)
+   (g2 u v)
+   (h u v)
+   )
+)
 
 (defprimitive gti (:long a b) :long 
   "((" a ")>(" b "))")
