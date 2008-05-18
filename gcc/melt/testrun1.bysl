@@ -84,6 +84,7 @@
   :predef CLASS_KEYWORD
   :super class_symbol
   :fields ())
+
 ;; class of command dispatchers
 (defclass class_command_dispatcher
   :predef CLASS_COMMAND_DISPATCHER
@@ -122,12 +123,6 @@
   ;;the obj_num is the argument rank
   :predef CLASS_FORMAL_BINDING)
 
-;; class of command dispatchers
-(defclass class_command_dispatcher
-  :predef CLASS_COMMAND_DISPATCHER
-  :super class_named
-  :fields (cmd_fundict			;stringmap for closures
-	   ))
 
 ;;;; the class for environments
 (defclass class_environment
@@ -543,8 +538,7 @@
   "debugnum((" msg "), (" i "))")
 (defprimitive messageval_dbg (:cstring msg :value val) :void
   "debugvalue((" msg "), ((void*)(" val ")))")
-(defprimitive debugprintval_dbg (:cstring msg :value val) :void
-  "debugeprintvalue((" msg "), ((void*)(" val ")))")
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -705,8 +699,6 @@
 )
 
 (defun install_initial_command (nam fun)
-  (debugprintval_dbg "install_initial_command @@ fun" fun)
-  (debugprintval_dbg "install_initial_command @@ nam" nam)
   (if (is_closure fun)
       (if (is_string nam)
 	  (mapstring_putstr 
@@ -724,6 +716,18 @@
   "basilys_newlineflush(stderr)")
 (defprimitive outstr_err (str) :void
   "basilys_putstr(stderr,(" str "))")
+
+;;; full iterator on tuple - 
+;;; the function is called with the component and its index
+(defun multiple_every (tup f)
+  (if (is_multiple tup)
+      (if (is_closure f)
+	  (let ( (:long ln (multiple_length tup))
+		 (:long ix 0) )
+	    (forever tuploop
+		     (if (>=i ix ln) (exit tuploop))
+		     (f  (multiple_nth tup ix) ix)
+		     (setq ix (+i ix 1)))))))
 
 ;; find a binding inside an environment
 (defun find_env (env binder)
@@ -752,10 +756,84 @@
 	   )
   )
 
+(defun outv (v :cstring m)
+  (if m (outcstring_err m))
+  (cond 
+   ( (null v) 
+     (outcstring_err "*nil* ") )
+   ( (is_integerbox v)
+     (outnum_err "#" (get_int v) " "))
+   ( (is_multiple v)
+     (outnum_err "mult#" (multiple_length v) " "))
+   ( (is_object v)
+     (let ( (cla (discrim v))
+	    (clanam (unsafe_get_field :named_name cla))
+	    (:long h (obj_hash v)) )
+       (if (is_a v class_named)
+	 (let ( (nam (unsafe_get_field :named_name v)) )
+	   (outstr_err nam)
+	   (outcstring_err ":")
+	   )
+	   (outcstring_err "|")
+	   )
+       (outstr_err clanam)
+       (outnum_err "/" h " ")))
+))
+	   
 (defun say_command (dispatcher arg)
-  (debugprintval_dbg "say_command" arg)
   (outstr_err arg)
   (outnewline_err)
 )
+
+(defun dotest_multiple ()
+  (outcstring_err "**multiple_every test**")
+  (outnewline_err)
+  (multiple_every 
+   (make_tuple5 discr_multiple 
+		(make_integerbox discr_integer 10) 
+		(make_integerbox discr_integer 20) 
+		(make_integerbox discr_integer 30) 
+		(make_integerbox discr_integer 40) 
+		(make_integerbox discr_integer 50))
+   (lambda (comp :long ix)
+     (outv comp "comp=")
+     (outnum_err " ix#" ix " ")
+     (outnewline_err)
+   ))
+)
+
+(defun dotest_multiapply ()
+  (outcstring_err "**multiapply test**")
+  (outnewline_err)
+  (let ( (f 
+	  (lambda (x) 
+	    (outcstring_err "inside multiapplied lambda x=")
+	    (outv x "inside multiapplied f x=")
+	    (outnewline_err)
+	    (return x (make_tuple1 discr_multiple x)))
+	  ) )
+    (multicall 
+     (u v)
+     (f (make_integerbox discr_integer 12))
+     (outv u "inslude multicall u=")
+     (outv v " v=")
+     (outnewline_err)
+     u
+     )
+    )
+  (outcstring_err "**ended multiapply**")
+  (outnewline_err) 
+  )
+
+(defun test_command (dispatcher arg)
+  (outcstring_err "**start of test in testrun1**")
+  (outnewline_err)
+  (dotest_multiple)
+  (dotest_multiapply)
+  (outcstring_err "**end test**")
+  (outnewline_err)
+)
+
 (install_initial_command   (stringconst2val discr_string "say") say_command)
+(install_initial_command   (stringconst2val discr_string "test") test_command)
 ;; eof 

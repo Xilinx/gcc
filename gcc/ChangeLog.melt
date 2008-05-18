@@ -1,4 +1,12 @@
 2008-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	[stillbuggy multiapply incorrectly compiled see testrun1]
+
+	* melt/testrun1.bysl: added test command.
+
+	* Makefile.in: added testrun1x production by cold-basilys.lisp to
+	compare with warmcompiled testrun1c
+
+2008-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	[warmcompilation of test0 better for multisend but warm-basilys-1 runs badly on test0]
 
 	* melt/warm-basilys.bysl: better normalization & compilation of

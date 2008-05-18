@@ -4703,6 +4703,21 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	mv test1.c test1c.c
 	$(MELTINDENT) test1c.c
 	./built-melt-cc-script test1c.c test1c.so
+## coldcompiled testrun1 as testrun1x
+	clisp -C -x  "(load \"$(srcdir)/../contrib/cold-basilys.lisp\")" \
+	         -x "(handle-source-file \"$(srcdir)/melt/testrun1.bysl\" \"testrun1x.c\")"
+	./built-melt-cc-script testrun1x.c testrun1x.so
+## running testrun1x
+	-@echo run testrun1x for test
+	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
+	   -fbasilys-init=testrun1x-n.so \
+	 -fbasilys-dynlibdir=. \
+	 -fbasilys-compile-script=built-melt-cc-script \
+  	 -fbasilys-gensrcdir=. \
+	 -fbasilys-tempdir=. \
+	 -fbasilys-command=test \
+	 -fbasilys-arg=here \
+	 -frandom-seed=AbCdEfGhIj
 ## warmcompile testrun1
 	@echo coldtest-warm-basilys compiling testrun1
 	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
@@ -4735,6 +4750,17 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-tempdir=. \
 	 -fbasilys-command=say \
 	 -fbasilys-arg=hello \
+	 -frandom-seed=AbCdEfGhIj
+##testrun1c run test
+	-@echo run testrun1c for test
+	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
+	   -fbasilys-init=testrun1c-n.so \
+	 -fbasilys-dynlibdir=. \
+	 -fbasilys-compile-script=built-melt-cc-script \
+  	 -fbasilys-gensrcdir=. \
+	 -fbasilys-tempdir=. \
+	 -fbasilys-command=test \
+	 -fbasilys-arg=here \
 	 -frandom-seed=AbCdEfGhIj
 ## warmcompile warm-basilys itself
 	-@echo coldtest-warm-basilys generating warm-basilys-1.c 
@@ -4813,6 +4839,17 @@ coldtest-warm-basilys: coldbuilt-warm-basilys.so cc1$(exeext) built-melt-cc-scri
 	 -fbasilys-tempdir=. \
 	 -fbasilys-command=say \
 	 -fbasilys-arg=hello \
+	 -frandom-seed=AbCdEfGhIj
+##testrun1c run say
+	-@echo run testrun1w for test
+	time ./cc1-melt$(exeext) -fbasilys  $(BASILYSDEBUG)  \
+	   -fbasilys-init=testrun1w-n.so \
+	 -fbasilys-dynlibdir=. \
+	 -fbasilys-compile-script=built-melt-cc-script \
+  	 -fbasilys-gensrcdir=. \
+	 -fbasilys-tempdir=. \
+	 -fbasilys-command=test \
+	 -fbasilys-arg=here \
 	 -frandom-seed=AbCdEfGhIj
 ## warmcompile warm-basilys itself with itself
 	-@echo warmbasilys1 compiling warmbasilys
