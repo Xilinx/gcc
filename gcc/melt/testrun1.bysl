@@ -132,6 +132,12 @@
 	   env_proc			;the procedure of this environment
 ))
 
+;; class of message selectors
+(defclass class_selector
+  :super class_named
+  :fields (sel_signature sel_data)
+  :predef CLASS_SELECTOR)
+
 
 ;; primitive for converting a string constant into a string value
 (defprimitive stringconst2val (discr :cstring strc) :value
@@ -705,6 +711,22 @@
 	   (unsafe_get_field :cmd_fundict initial_command_dispatcher) 
 	   nam fun))))
 
+;;; installation of a method in a class or discriminant
+(defun install_method (cla sel fun)
+  (if (and
+       (is_a cla class_discr)
+       (is_a sel class_selector)
+       (is_closure fun))
+      (let 
+	  ( (mapdict 
+	     (unsafe_get_field :disc_methodict cla)) )
+	(if (is_mapobject mapdict)
+	    (mapobject_put mapdict sel fun)
+	  (let ( (newmapdict (make_mapobject discr_methodmap 35)) )
+	    (unsafe_put_fields cla :disc_methodict newmapdict)
+	    (mapobject_put newmapdict sel fun)
+	    )))))
+
 ;;; output on stderr
 (defprimitive outnum_err (:cstring pref :long l :cstring suf) :void
   "basilys_putnum(stderr,(" pref "), (" l "), (" suf "))")
@@ -763,6 +785,11 @@
      (outcstring_err "*nil* ") )
    ( (is_integerbox v)
      (outnum_err "#" (get_int v) " "))
+   ( (is_string v)
+     (outcstring_err "*str'")
+     (outstr_err v)
+     (outcstring_err "' ")
+     )
    ( (is_multiple v)
      (outnum_err "mult#" (multiple_length v) " "))
    ( (is_object v)
@@ -785,6 +812,39 @@
   (outnewline_err)
 )
 
+(defclass myclass_container
+  :super class_root
+  :fields (contain))
+
+(definstance mycontainer myclass_container
+  :contain (make_stringconst discr_string "inside-my-container")
+)
+
+(defselector get_self_and_content class_selector)
+
+(defun methcontainer_get_self_and_content (recv)
+  (outv recv "methcontainer_get_self_and_content recv")
+  (outnewline_err)
+  (return recv (unsafe_get_field :contain recv)))
+
+(install_method myclass_container get_self_and_content methcontainer_get_self_and_content)
+
+(defun dotest_progn ()
+  (outcstring_err "**progn test**")
+  (outnewline_err)
+  (outcstring_err "first")
+  (outnewline_err)
+  (outcstring_err "second")
+  (outnewline_err)
+  (outcstring_err "third")
+  (outnewline_err)
+  (outcstring_err "fourth")
+  (outnewline_err)
+  (outcstring_err "**ended progn test**")
+  (outnewline_err)
+)
+
+  
 (defun dotest_multiple ()
   (outcstring_err "**multiple_every test**")
   (outnewline_err)
@@ -800,37 +860,58 @@
      (outnum_err " ix#" ix " ")
      (outnewline_err)
    ))
+  (outcstring_err "**ended test multiple_every**")
+  (outnewline_err) 
 )
+
+(defun multiappliedfun (x y)
+  (outv x "inside multiappliedfun x=")
+  (outv y "& y=")
+  (outnewline_err)
+  (return y x))
+
 
 (defun dotest_multiapply ()
   (outcstring_err "**multiapply test**")
   (outnewline_err)
-  (let ( (f 
-	  (lambda (x) 
-	    (outcstring_err "inside multiapplied lambda x=")
-	    (outv x "inside multiapplied f x=")
-	    (outnewline_err)
-	    (return x (make_tuple1 discr_multiple x)))
-	  ) )
-    (multicall 
-     (u v)
-     (f (make_integerbox discr_integer 12))
-     (outv u "inslude multicall u=")
-     (outv v " v=")
-     (outnewline_err)
-     u
-     )
-    )
-  (outcstring_err "**ended multiapply**")
+  (multicall 
+   (u v)
+   (multiappliedfun (make_integerbox discr_integer 12)  (make_integerbox discr_integer 34))
+   (outv u "inside body multicall u=")
+   (outv v " v=")
+   (outnewline_err)
+   u
+   )
+  (outcstring_err "**ended test multiapply**")
   (outnewline_err) 
   )
 
+(defun dotest_multisend ()
+  (outcstring_err "**multisend test**")
+  (outnewline_err)
+  (multicall 
+   (u v)
+   (get_self_and_content mycontainer)
+   (outv u "inside body multisend u=")
+   (outv v " v=")
+   (outnewline_err)
+   )
+  (outcstring_err "**ended test multisend**")
+  (outnewline_err) 
+  )
+
+
 (defun test_command (dispatcher arg)
-  (outcstring_err "**start of test in testrun1**")
+  (outcstring_err "**start of tests in testrun1**")
+  (outnewline_err)
+  (dotest_progn)
   (outnewline_err)
   (dotest_multiple)
+  (outnewline_err)
   (dotest_multiapply)
-  (outcstring_err "**end test**")
+  (outnewline_err)
+  (dotest_multisend)
+  (outcstring_err "**end tests in testrun1**")
   (outnewline_err)
 )
 

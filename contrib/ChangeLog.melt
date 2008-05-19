@@ -1,4 +1,7 @@
 
+2008-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: using bp_aptr in multivalued returns.
+
 2008-05-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: use curfptr curfnum ... in generated code.
 	When ENABLE_CHECKING added empty flocs in frames.

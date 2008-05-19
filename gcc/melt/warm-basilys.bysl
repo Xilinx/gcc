@@ -3303,6 +3303,7 @@
 (defun mexpand_cond (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (debugmsg sexpr "mexpand_cond sexpr" (the_callcount))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -3315,54 +3316,75 @@
 		      c
 		      ))) 
 	(:long nbcond (multiple_length cexptuple))
-	(lastcexp (multiple_nth cexptuple (-i nbcond 1)))
-	(lastcontpair (if (is_a lastcexp class_sexpr)
-			  (list_first 
-			   (unsafe_get_field :sexp_contents lastcexp))))
-	(lastloc (if (is_a lastcexp class_sexpr)
-		     (unsafe_get_field :loca_location lastcexp)))
-	(lasttest (pair_head lastcontpair))
-	(res (cond 
-	      ( (== lasttest ':else) 
-		(pairlist_to_progn (pair_tail lastcontpair)
-				   lastloc
-				   env
-				   mexpander) )
-	      ( lasttest
-		(make_instance class_src_if
-			       :src_loc lastloc
-			       :sif_test (macroexpand_1 lasttest env mexpander)
-			       :sif_then (pairlist_to_progn (pair_tail lastcontpair)
-							    lastloc
-							    env
-							    mexpander)) 
-		)))
-	(:long ix (-i nbcond 2))
+	(lastcexp (let ( (lx (multiple_nth cexptuple -1)) )
+		    (debugmsg lx "mexpand_cond lastcexp lx" (the_callcount))
+		    lx))
+	(:long ix (-i nbcond 1))
+	(res ())
 	)
-    (forever revloop
-	     (if (<i ix 0) (exit revloop))
-	     (let ( (curcexp (multiple_nth cexptuple ix)) )
-	       (if (is_a curcexp class_sexpr) 
-		   (let ( (curcloc (unsafe_get_field :loca_location curcexp))
-			  (curcfirstpair (list_first (unsafe_get_field :sexp_contents curcexp))) 
-			  )
-		     (if (<i (pair_listlength curcfirstpair) 2)
-			 (error_plain curcloc "COND element should have at least two components")
-		       (setq res
-			     (make_instance class_src_if
-					    :src_loc curcloc
-					    :sif_test  (macroexpand_1 (pair_head curcfirstpair)
-								      env
-								      mexpander)
-					    :sif_then  (pairlist_to_progn (pair_tail curcfirstpair)
-									  curcloc
-									  env
-									  mexpander)
-					    :sif_else res)))
-	     )))
+    (debugmsg cexptuple "mexpand_cond cexptuple" (the_callcount))
+    (forever condloop
+	     (if (<i ix 0) (exit condloop))
+	     (let ( (curcond (multiple_nth cexptuple ix)) )
+	       (debugmsg curcond "mexpand_cond curcond" (the_callcount))
+	       (cond  
+		( (and (null res)
+		       (is_a curcond class_sexpr)
+		       (== ':else (pair_head (list_first 
+					      (unsafe_get_field :sexp_contents curcond)))))
+		  (let ( (restpairs 
+			  (pair_tail (list_first (unsafe_get_field :sexp_contents curcond)))) 
+			 )
+		    (if restpairs 
+			(setq res (pairlist_to_progn restpairs 
+						     (unsafe_get_field :loca_location curcond) 
+						     env mexpander)))
+		    (debugmsg res "mexpand_cond res for :else" (the_callcount))
+		    ))
+		( (is_a curcond class_sexpr)
+		  (let ( (curcondcont (unsafe_get_field :sexp_contents curcond))
+			 (curcondloc (unsafe_get_field :loca_location curcond)) 
+			 (curcondtest (pair_head (list_first curcondcont)))
+			 (curcondrestpairs (pair_tail (list_first curcondcont))) 
+			 )
+		    (cond ( (null curcondrestpairs)
+			    (setq res (make_instance class_src_or
+						     :src_loc curcondloc
+						     :sor_disj (make_tuple2 discr_multiple 
+									    (macroexpand_1 curcondtest env mexpander)
+									    res)))
+			    (debugmsg res "mexpand_cond res for monoexp cond" (the_callcount))
+			    )
+			  ( (null (pair_tail curcondrestpairs))
+			    (setq res (make_instance class_src_if
+						     :src_loc curcondloc
+						     :sif_test (macroexpand_1 curcondtest env mexpander)
+						     :sif_then (macroexpand_1 (pair_head curcondrestpairs) env mexpander)
+						     :sif_else res
+						     ))
+			    (debugmsg res "mexpand_cond res for biexp cond" (the_callcount))
+			    )
+			  (:else 
+			    (setq res (make_instance class_src_if
+						     :src_loc curcondloc
+						     :sif_test (macroexpand_1 curcondtest env mexpander)
+						     :sif_then (pairlist_to_progn curcondrestpairs curcondloc env mexpander)
+						     :sif_else res))
+			    (debugmsg res "mexpand_cond res for manyexp cond" (the_callcount))
+			   ))
+		    ))
+		(:else ;curcond is not a sexpr 
+		 (setq res (make_instance class_src_or
+					  :src_loc loc
+					  :sor_disj (make_tuple2 discr_multiple curcond res)))
+		 (debugmsg res "mexpand_cond res for nonsexp cond" (the_callcount))
+		 )
+		)
+	       )
 	     (setq ix (-i ix 1))
 	     )
-    res
+    (debugmsg res "mexpand_cond final res" (the_callcount))
+    (return res)
     ))
 (install_initial_macro 'cond mexpand_cond)
 
@@ -3643,7 +3665,7 @@
 ;;;; the return expanser
 (defun mexpand_return (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (pairlist_to_return (pair_head (unsafe_get_field :sexp_contents sexpr))
+  (pairlist_to_return (pair_tail (list_first (unsafe_get_field :sexp_contents sexpr)))
 		     (unsafe_get_field :loca_location sexpr)
 		     env
 		     mexpander)
@@ -4753,6 +4775,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a return
 (defun normexp_return (recv env ncx psloc)
+  (debugmsg recv "normexp_return recv" (the_callcount))
   (assert_msg "check return recv" (is_a recv class_src_return))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
@@ -4761,15 +4784,20 @@
 	 (:long nbrets (multiple_length srets)))
     ;; special case for empty return
     (if (<=i nbrets 0)
-	(make_instance class_nrep_return
-		       :nrep_loc sloc
-		       :nret_main ()
-		       :nret_rest ())
+	(let ( (nemptret 
+		(make_instance class_nrep_return
+			       :nrep_loc sloc
+			       :nret_main ()
+			       :nret_rest ()
+			       ))
+	       )
+	  (debugmsg nemptret "normexp_return result nemptret" (the_callcount))
+	  (return nemptret))
       (multicall
        (nrets nbindrets)
        (normalize_tuple srets env ncx sloc)
        (let ( (nret0 (multiple_nth nrets 0))
-	      (toth (make_multiple discr_multiple (-i nrets 1))) 
+	      (toth (make_multiple discr_multiple (-i nbrets 1))) 
 	      (ctyp0 (get_ctype nret0 env))
 	      )
 	 (if (!= ctyp0 ctype_value)
@@ -4779,13 +4807,16 @@
 	  (lambda (ncomp :long ix)
 	    (if (>i ix 0)
 		(multiple_put_nth toth (-i ix 1) ncomp))))
-	 (return
-	  (make_instance class_nrep_return
-			 :nrep_loc sloc
-			 :nret_main nret0
-			 :nret_rest (if (>i nbrets 0) toth))
-	  nbindrets
-	  ))))))
+	 (let ( (nret
+		 (make_instance class_nrep_return
+				:nrep_loc sloc
+				:nret_main nret0
+				:nret_rest (if (>i nbrets 0) toth)))
+		)
+	   (debugmsg nret "normexp_return result nret" (the_callcount))
+	   (debugmsg nbindrets "normexp_return result nbindrets" (the_callcount))
+	   (return nret nbindrets)
+	   ))))))
 (install_method class_src_return normal_exp normexp_return)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8278,8 +8309,15 @@
 	(resdesclist (make_list discr_list))
 	(boxdepthp1 (make_integerbox discr_integer (+i 1 depth)))
 	)
+    (assert_msg "check oargs" (is_multiple_or_null oargs))
+    (assert_msg "check oxres" (is_multiple_or_null oxres))
     (output_location aloc implbuf depth "multiapply")
-    (add2sbuf_strconst implbuf "/*multiapply*/{")
+    (add2sbuf_strconst implbuf "/*multiapply ")
+    (add2sbuf_longdec implbuf nbarg)
+    (add2sbuf_strconst implbuf "args, ")
+    (add2sbuf_longdec implbuf nbxres)
+    (add2sbuf_strconst implbuf "x.res*/ ")
+    (add2sbuf_strconst implbuf "{")
     (add2sbuf_indentnl implbuf (+i 1 depth))
     (if (>i nbarg 1)
 	(progn
@@ -8369,6 +8407,7 @@
 	       )
 	     ))
 	  ))
+    (output_location aloc implbuf (get_int boxdepthp1) "multiapply.appl")
 ;;; output the destination(s)
     (list_every
      adest
@@ -8856,6 +8895,42 @@
     )
   )
 (install_method class_objputroutconst output_c_code outpucod_objputroutconst)
+
+
+
+;;; output the put of an extra returned result
+(defun outpucod_objputxtraresult (oputx declbuf implbuf :long depth)
+  (assert_msg "check oputx" (is_a oputx class_objputxtraresult))
+  (let (  (oloc (unsafe_get_field :obi_loc oputx))
+	  (orank (unsafe_get_field :obxres_rank oputx))
+	  (ovloc (unsafe_get_field :obxres_obloc oputx))
+	  (octyp (get_ctype ovloc (the_null)))
+	  )
+    (output_location oloc implbuf depth "putxtraresult")
+    (assert_msg "check octyp" (is_a octyp class_ctype))
+    (assert_msg "check orank" (is_integerbox orank))
+    (add2sbuf_strconst implbuf "if (!xrestab_ || !xresdescr_) goto labend_rout;")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "if (xresdescr_[")
+    (add2sbuf_longdec implbuf (get_int orank))
+    (add2sbuf_strconst implbuf "] != ")
+    (add2sbuf_string implbuf (unsafe_get_field :ctype_parchar octyp))
+    (add2sbuf_strconst implbuf ") goto labend_rout;")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "if (xrestab_[")
+    (add2sbuf_longdec implbuf (get_int orank))
+    (add2sbuf_strconst implbuf "].")
+    (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield octyp))
+    (add2sbuf_strconst implbuf ") *(xrestab_[")
+    (add2sbuf_longdec implbuf (get_int orank))
+    (add2sbuf_strconst implbuf "].")
+    (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield octyp))
+    (add2sbuf_strconst implbuf ") = ")
+    (output_c_code ovloc declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ";")
+    (add2sbuf_indentnl implbuf depth)
+    ))
+(install_method class_objputxtraresult output_c_code  outpucod_objputxtraresult)
 
 ;;; output an expression
 (defun outpucod_objexpv (oexp declbuf implbuf :long depth)
@@ -10079,7 +10154,7 @@
 				:obi_loc loc
 				:oblo_bodyl obodl
 				:oblo_epil oepil))
-	 (oxres (make_multiple discr_multiple (if (>i nbres 1) (-i nbres 1) 0)))
+	 (oxres (if (>i nbres 1) (make_multiple discr_multiple (-i nbres 1)) ()))
 	 (firstres (multiple_nth reslocs 0))
 	 (ofun (compile_obj fun gcx))
 	 (reslist (make_list discr_list))
@@ -10551,7 +10626,7 @@
   (assert_msg "check nret" (is_a nret class_nrep_return))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
 ;  (debugmsg gcx "compilobj_nrep_return gcx" (the_callcount))
-;  (debugmsg nret "compilobj_nrep_return nret" (the_callcount))
+  (debugmsg nret "compilobj_nrep_return nret" (the_callcount))
   (let ( (rloc (unsafe_get_field :nrep_loc nret))
 	 (rmain (unsafe_get_field :nret_main nret))
 	 (rrest (unsafe_get_field :nret_rest nret)) ;; a tuple or nil
@@ -10564,6 +10639,8 @@
 	 (omainv (compile_obj rmain gcx))
 	 )
     (assert_msg "check orout" (is_a orout class_routineobj))
+    (debugmsg rrest "compilobj_nrep_return rrest" (the_callcount))
+    (assert_msg "check rrest" (is_multiple_or_null rrest))
     (if (null (unsafe_get_field :obrout_retval orout))
 	(unsafe_put_fields orout :obrout_retval retloc))
     (list_append olis (put_objdest omainv retloc))
@@ -10582,7 +10659,7 @@
     (list_append olis 
 		 (make_instance class_objfinalreturn
 				:obi_loc rloc))
-;    (debugmsg oblock "compilobj_nrep_return final oblock" (the_callcount))
+    (debugmsg oblock "compilobj_nrep_return final oblock" (the_callcount))
     oblock
     )
   )

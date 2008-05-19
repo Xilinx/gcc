@@ -1,3 +1,14 @@
+2008-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	[stillbuggy cond & testrun1 bad; perhaps progn sometimes badly
+	handled, 'or' badly normalized?]
+
+	* melt/testrun1.bysl: added better testcommand & install_method.
+
+	* melt/warm-basilys.bysl: betteer handling of multiple return.
+	(outpucod_objputxtraresult) new function. 
+	better normalization & compilation of return.
+	(mexpand_cond) rewritten expansion of cond using sometimes or.
+
 2008-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	[stillbuggy multiapply incorrectly compiled see testrun1]
 
