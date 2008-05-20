@@ -1,4 +1,11 @@
 2008-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy warmbasilys2]
+
+	* melt/warm-basilys.bysl: (normexp_keyword) handling correctly
+	keyword at toplevel. This affects initializatin of our ctype_value
+	etc...
+
+2008-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	[****important issue about GGC & basilys full collection when
 	creating new GGC data e.g. tree-s***]
 	* basilys.h: added an important TODO comment for explanation.

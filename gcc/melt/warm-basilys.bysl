@@ -4179,6 +4179,7 @@
 				   :ninit_topl (make_list discr_list)
 				   :nrep_loc ()
 				   )) )
+      (debugmsg inipro "create_normcontext inipro" (the_callcount))
       (make_instance class_normcontext
 		     :nctx_initproc inipro
 		     :nctx_proclist (make_list discr_list)
@@ -5983,29 +5984,40 @@
 	  )))))
 (install_method class_src_quote normal_exp normexp_quote)
 
+
+
 ;;;;;; normalize a keyword
 (defun normexp_keyword (recv env ncx psloc)
   (assert_msg "check keyword recv" (is_a recv class_keyword))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  ;(debugmsg ncx "normexp_keyword ncx" (the_callcount))
+  ;;(debugmsg ncx "normexp_keyword ncx" (the_callcount))
   (debugmsg recv "normexp_keyword recv" (the_callcount))
   (let ( (kdata (normal_keyword_data recv ncx psloc)) 
-	 (curproc (unsafe_get_field :nctx_curproc ncx))
-	 (constlist (unsafe_get_field :nrpro_const curproc))
-	 (nconst (make_instance class_nrep_constant
-				:nrep_loc psloc
-				:nconst_sval recv
-				:nconst_data kdata
-				:nconst_proc curproc))
+	 (curproc (unsafe_get_field :nctx_curproc ncx)) 
 	 )
-    (debugmsg curproc "normexp_keyword curproc" (the_callcount))
     (assert_msg "check curproc" (is_a curproc class_nrep_anyproc))
-    (list_append constlist kdata)
-    (debugmsg nconst "normexp_keyword nconst" (the_callcount))
-    nconst
-))
+    (if (is_a curproc class_nrep_routproc)
+	(let (
+	      (constlist (unsafe_get_field :nrpro_const curproc))
+	      (nconst (make_instance class_nrep_constant
+				     :nrep_loc psloc
+				     :nconst_sval recv
+				     :nconst_data kdata
+				     :nconst_proc curproc))
+	      )
+	  (debugmsg curproc "normexp_keyword routine curproc" (the_callcount))
+	  (list_append constlist kdata)
+	  (debugmsg nconst "normexp_keyword result nconst" (the_callcount))
+	  (return nconst)
+	  )
+      (progn
+	(debugmsg kdata "normexp_keyword routineinit result kdata" (the_callcount))
+	(return kdata)
+	))))
 (install_method class_keyword normal_exp normexp_keyword)
+
+
 
 ;;;;;; normalize a DEFPRIMITIVE
 (defun normexp_defprimitive (recv env ncx psloc)
@@ -6278,7 +6290,7 @@
   (assert_msg "check definstance recv" (is_a recv class_src_definstance))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (debugmsg recv "normexp definstance recv" (the_callcount))
+  (debugmsg recv "normexp_definstance recv" (the_callcount))
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (spredef (unsafe_get_field :sobj_predef recv))
@@ -6296,7 +6308,7 @@
 	 (icladata (if (is_a sinstclasym class_symbol) 
 		       (normal_exp sinstclasym env ncx sloc)))
 	 )
-    (debugmsg bindins "normexp definstance bindins" (the_callcount))
+    (debugmsg bindins "normexp_definstance bindins" (the_callcount))
     (assert_msg "check bindins" (is_a  bindins class_instance_binding))
     (if (not (is_a icladata class_nrep))
 	(progn
@@ -6328,7 +6340,7 @@
       (multiple_every
        sinstfields
        (lambda (flda :long ix)
-	 (debugmsg flda "normexp definstance flda")
+	 (debugmsg flda "normexp_definstance flda")
 	 (assert_msg "check flda" (is_a flda class_src_fieldassign))
 	 (let ( (curfld (unsafe_get_field :sfla_field flda))
 		(curexp (unsafe_get_field :sfla_expr flda))
@@ -6338,10 +6350,11 @@
 	   (assert_msg "good curfld"
 		       (== (multiple_nth (unsafe_get_field :class_fields sinstclass) curoff) 
 			   curfld))  
+	   (debugmsg curexp "normexp_definstance field curexp")
 	   (multicall
 	    (ncur nbindcur)
 	    (normal_exp curexp env ncx sloc)
-	    (debugmsg ncur "normexp definstance field ncur")
+	    (debugmsg ncur "normexp_definstance field ncur")
 	    (multiple_put_nth slotup curoff ncur)
 	    (if (is_list nbindcur)
 		(let ( (nbindlist (box_content nbindbox)))

@@ -85,6 +85,19 @@
   :super class_symbol
   :fields ())
 
+;; class of C types keywords
+(defclass class_ctype
+  :super class_named
+  :fields (
+	   ctype_keyword ;the keyword associated to the ctype (e.g. :long)
+	   ctype_cname	 ;the name for C of the type (eg long)
+	   ctype_parchar ;the name of the basilys parameter char (eg BPAR_LONG)
+	   ctype_parstring ;the name of the basilys parameter string (eg BPARSTR_LONG)
+	   ctype_argfield ;the name of the basilys argument union field (eg bp_long)
+	   ctype_resfield ;the name of the basilys result union field (eg bp_longptr)
+	   )
+  )
+
 ;; class of command dispatchers
 (defclass class_command_dispatcher
   :predef CLASS_COMMAND_DISPATCHER
@@ -697,6 +710,8 @@
  :disc_super discr_anyrecv
  :named_name (stringconst2val discr_namestring "DISCR_ROUTINE"))
 
+
+
 ;;;;;;;;;;;;;;;;;;;; initial commands
 (definstance initial_command_dispatcher class_command_dispatcher
   :predef INITIAL_COMMAND_DISPATCHER
@@ -807,6 +822,39 @@
        (outnum_err "/" h " ")))
 ))
 	   
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun install_ctype (ctyp)
+  (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
+  (outv ctyp "install_ctype ctyp=")
+  (outnewline_err)
+  (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) )
+    (outv ckw "install_ctype ckw=")
+    (outnewline_err)
+    (assert_msg "check ckw" (is_a ckw class_keyword))
+    (unsafe_put_fields ckw :symb_data ctyp)
+    ))
+
+
+;;; every ctype should be predefined. normexp_defprimitive requires this
+;;; while predef are somehow costly, we don't have that much many ctype-s
+;;; and each of them nearly requires some code in basilys.h
+;;; which should be enhanced for any new ctype
+;; the C type for values
+(definstance ctype_value class_ctype
+  :predef CTYPE_VALUE
+  :named_name  (stringconst2val discr_namestring "CTYPE_VALUE")
+  :ctype_keyword (quote :value)
+  :ctype_cname  (stringconst2val discr_namestring "basilys_ptr_t")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_PTR")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PTR")
+  ;; value have to be passed specially, we need to pass the address of the pointer
+  :ctype_argfield (stringconst2val discr_namestring "bp_aptr")
+  :ctype_resfield (stringconst2val discr_namestring "bp_aptr")
+  )
+(install_ctype ctype_value)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun say_command (dispatcher arg)
   (outstr_err arg)
   (outnewline_err)
