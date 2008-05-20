@@ -1,3 +1,7 @@
+2008-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	[cond was buggy because of progn; testrun1 running ok; warmbasilys2 still bad]
+	* melt/warm-basilys.bysl: (normexp_progn) recoded function, using normalize_tuple...
+
 2008-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	[stillbuggy cond & testrun1 bad; perhaps progn sometimes badly
 	handled, 'or' badly normalized?]

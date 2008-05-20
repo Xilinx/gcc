@@ -1824,7 +1824,7 @@
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_mapobjects 50))
-	     (boxedmaxdepth (make_integerbox discr_integer 19)) ;;;; @@@ DEBUGDEPTH
+	     (boxedmaxdepth (make_integerbox discr_integer 25)) ;;;; @@@ DEBUGDEPTH
 	     (dbgi (make_instance class_debuginfo
 				  :dbgi_sbuf sbuf
 				  :dbgi_occmap occmap
@@ -4973,7 +4973,7 @@
 (install_method class_src_or normal_exp normexp_or)
 
 ;;;;;; normalize a PROGN
-;;;; (PROGN a1 a2 ... an) is (PROGN (let aa1 = a1 in NULL) (let aa2 = a2 in NULL) ... & aan ; with aan = an
+;;;; (PROGN a1 a2 ... an) is based upon the normalization of (LET () a1 a2 ... an)
 (defun normexp_progn (recv env ncx psloc)
   (assert_msg "check progn recv" (is_a recv class_src_progn))
   (assert_msg "check env" (is_a env class_environment))
@@ -4983,69 +4983,56 @@
 	 (sbody (unsafe_get_field :sprogn_body recv))
 	 (:long lnbody (multiple_length sbody)) 
 	 (boxlnbody (make_integerbox discr_integer lnbody))
-	 (nseq (if (>i lnbody 1) (make_multiple discr_multiple (-i lnbody 1))))
-	 (slast (if (>i lnbody 0) (multiple_nth sbody (-i lnbody 1))))
 	 )
-    (multiple_every
-     sbody
-     (lambda (comp :long ix)
-       (if (<i ix (-i (get_int boxlnbody) 1))
-	   (multicall
-	    (ncur nbindcur)
-	    (normal_exp comp env ncx sloc)
-	    (assert_msg "check nbindcur" (is_list_or_null nbindcur))
-	    (assert_msg "check ncur not list" (not (is_list ncur)))
-	    (or (is_list nbindcur) (setq nbindcur (make_list discr_list)))
-	    (let ( (newenv (fresh_env env)) )
-	      (list_every 
-	       nbindcur
-	       (lambda (b) (put_env newenv b)))
-	      (let ( (csym (clone_symbol 'prognbody_))
-		     ;; no need of a lococc
-		     (ctypcur (get_ctype ncur newenv)) 
-		     (cbind (make_instance class_normlet_binding
-					   :binder csym
-					   :letbind_type ctypcur
-					   :letbind_expr ncur
-					   ))
-		     )
-		(list_append nbindcur cbind)
-		(debugmsg cbind "normexp_progn cbind")
-		;; drop the value since it is not needed, so wrap_let a nil
-		(multiple_put_nth nseq ix (wrap_normal_let1 () nbindcur sloc))
-		)
-	      )))
-       ))
+    (if (<=i lnbody 0)
+	(let ( (onull (make_instance class_nrep_nil :nrep_loc sloc)) )
+	  (error_plain sloc "empty PROGN")
+	  (debugmsg onull "normexp_progn return empty onull" (the_callcount))
+	  (return onull)))
     (multicall
-     (nlast nbindlast)
-     (normal_exp slast env ncx sloc)
-     (assert_msg "check nbindlast" (is_list_or_null nbindlast))
-     (if (null nbindlast) (setq nbindlast (make_list discr_list)))
-     (let (
-	   (csym (clone_symbol 'progn_))
-	   (lastctyp (get_ctype nlast env))
-	   (cbind (make_instance class_normlet_binding
-				 :binder csym
-				 :letbind_loc sloc
-				 :letbind_type lastctyp
-				 :letbind_expr (make_instance class_nrep_progn
-							      :nrep_loc sloc
-							      :nprogn_seq nseq
-							      :nprogn_last nlast)))
-	   (clocc (make_instance class_nrep_locsymocc
-				 :nrep_loc sloc
-				 :nocc_ctyp lastctyp
-				 :nocc_symb csym
-				 :nocc_bind cbind))
-	   )
-       (list_append nbindlast cbind)
-       (debugmsg clocc "normexp_progn return clocc" (the_callcount))
-       (debugmsg nbindlast "normexp_progn return nbindlast" (the_callcount))
-       (return clocc nbindlast)
-       ))))
+     (nbody nbind)
+     (normalize_tuple sbody env ncx sloc)
+     (debugmsg nbody "normexp_progn nbody" (the_callcount))
+     (debugmsg nbind "normexp_progn nbind" (the_callcount))
+     (let ( (nlast (multiple_nth nbody -1)) 
+	    (:long lenbody (multiple_length nbody))
+	    (nallbutlast (if (>i lenbody 0) (make_multiple discr_multiple (-i lenbody 1))))
+	    )
+       ;; fill nallbutlast 
+       (let ( (:long ix (-i lenbody 1)) )
+	 (forever bodyloop
+		  (if (<i ix 0) (exit bodyloop))
+		  (multiple_put_nth nallbutlast ix (multiple_nth nbody ix))
+		  (setq ix (-i ix 1))))
+       (debugmsg nallbutlast "normexp_progn nallbutlast" (the_callcount))
+       (if (null nbind) (setq nbind (make_list discr_list)))
+       (let (
+	     (csym (clone_symbol 'progn_))
+	     (lastctyp (get_ctype nlast env))
+	     (cbind (make_instance class_normlet_binding
+				   :binder csym
+				   :letbind_loc sloc
+				   :letbind_type lastctyp
+				   :letbind_expr (make_instance class_nrep_progn
+								:nrep_loc sloc
+								:nprogn_seq nallbutlast
+								:nprogn_last nlast)))
+	     (clocc (make_instance class_nrep_locsymocc
+				   :nrep_loc sloc
+				   :nocc_ctyp lastctyp
+				   :nocc_symb csym
+				   :nocc_bind cbind))
+	     )
+	 (list_append nbind cbind)
+	 (debugmsg clocc "normexp_progn return clocc" (the_callcount))
+	 (debugmsg nbind "normexp_progn return nbind" (the_callcount))
+	 (return clocc nbind)
+	 )))))
 (install_method class_src_progn normal_exp normexp_progn)
 (install_method class_nrep_progn get_ctype 
 		(lambda (recv env) (get_ctype (unsafe_get_field :nprogn_last recv) env)))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	 
 ;;;;;; normalize a LET
 (defun normexp_let (recv  env ncx psloc)
