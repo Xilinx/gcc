@@ -1,4 +1,9 @@
 2008-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	[****important issue about GGC & basilys full collection when
+	creating new GGC data e.g. tree-s***]
+	* basilys.h: added an important TODO comment for explanation.
+
+2008-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	[cond was buggy because of progn; testrun1 running ok; warmbasilys2 still bad]
 	* melt/warm-basilys.bysl: (normexp_progn) recoded function, using normalize_tuple...
 

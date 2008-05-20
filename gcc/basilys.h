@@ -25,6 +25,26 @@ along with GCC; see the file COPYING3.   If not see
 #error basilys.h should enly be used when basilemelt is enabled at configuretion time
 #endif
 
+/***** TODO: 
+
+       if GGC-collected data, e.g. tree-s, edge-s, ... is computed by
+       basilys/MELT routines and is referenced only by the
+       basilys/MELT call frames, it is lost on full basilys garbage
+       collections, because the GGC collector is invoked (on full
+       basilys GC) without being aware of such data.
+
+       For basilys code which only inspects but does not create or
+       modify such data this won't happen.
+
+       A possible solution might be to generate code which copy such
+       GGC data outside (e.g. into some specific GGC vector) on full
+       garbage collections. This code might either be another routine
+       pointer in our basilysroutine_st structure, or simply be
+       invoked by calling the closure routine with a magic incantation,
+       i.e. with the xargdescr_ set to (char*)-1
+
+ *****/
+
 /* use -fdump-ipa-basilys */
 
 #define dbgprintf_raw(Fmt,...) do{if (dump_file) \
@@ -2013,7 +2033,7 @@ struct callframe_basilys_st
 };
 
 /* maximal number of local variables per frame */
-#define BASILYS_MAXNBLOCALVAR 4096
+#define BASILYS_MAXNBLOCALVAR 16384
 
 /* the topmost call frame */
 extern struct callframe_basilys_st *basilys_topframe;
