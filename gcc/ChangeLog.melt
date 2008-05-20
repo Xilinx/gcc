@@ -1,4 +1,13 @@
 2008-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	[added pregetting & interning of symbols & keywords - still buggy warmbasilys2]
+
+	* basilys.h: (basilys_is_string_const) new function.
+
+	* melt/warm-basilys.bysl: (macroexpand_1) check for not DEFUN when unbound.
+	(output_code_getsymkw, output_code_internsymkw) new functions called in ...
+	(outpucod_initialroutine) added pregetting & interning of symbols & keywords...
+
+2008-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy warmbasilys2]
 
 	* melt/warm-basilys.bysl: (normexp_keyword) handling correctly

@@ -1315,6 +1315,13 @@ basilys_string_same (basilys_ptr_t v1, basilys_ptr_t v2)
   return 0;
 }
 
+static inline bool
+basilys_is_string_const (basilys_ptr_t v, const char *s) {
+  if (s && basilys_magic_discr (v) == OBMAG_STRING)
+    return 0 == strcmp (((struct basilysstring_st *) v)->val, s);
+  return 0;
+}
+
 static inline const char *
 basilys_strbuf_str (basilys_ptr_t v)
 {

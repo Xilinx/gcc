@@ -793,6 +793,28 @@
 	   )
   )
 
+
+; find a binding inside an environment and also returns the reversed list of enclosing procedures
+(defun find_enclosing_env (env binder)
+  (if (is_not_a env class_environment)
+      (return))
+  (if (is_not_object binder)
+      (return))
+  (let ( (proclist (make_list discr_list)) )
+    (forever findloop
+	     (if (is_not_a env class_environment) 
+		 (exit findloop))
+	     (let ( (bindmap (unsafe_get_field :env_bind env)) 
+		    (eproc (unsafe_get_field :env_proc env))
+		    )
+	       (let ( (bnd (mapobject_get bindmap binder)) )
+		 (if bnd 
+		     (return bnd proclist)))
+	       (if eproc 
+		   (list_prepend proclist eproc))
+	       (setq env (unsafe_get_field :env_prev env))
+	       ))))
+
 (defun outv (v :cstring m)
   (if m (outcstring_err m))
   (cond 

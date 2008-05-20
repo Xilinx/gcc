@@ -395,7 +395,8 @@
   "(basilysgc_new_stringdup((void*)(" dis "), basilys_string_str((" str "))))")
 (defprimitive make_stringconst (dis :cstring cstr) :value
   "(basilysgc_new_stringdup((void*)(" dis "), (" cstr ")))")
-
+(defprimitive is_stringconst (str :cstring cs) :long
+  "(basilys_is_string_const((void*)(" str "), (" cs ")))")
 (defprimitive string_length (str) :long
   "basilys_string_length((" str "))")
 ;;; convert a strbuf into a string
@@ -1824,7 +1825,7 @@
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_mapobjects 50))
-	     (boxedmaxdepth (make_integerbox discr_integer 25)) ;;;; @@@ DEBUGDEPTH
+	     (boxedmaxdepth (make_integerbox discr_integer 12)) ;;;; @@@ DEBUGDEPTH
 	     (dbgi (make_instance class_debuginfo
 				  :dbgi_sbuf sbuf
 				  :dbgi_occmap occmap
@@ -1993,7 +1994,7 @@
   (assert_msg "check binder" (is_object binder))
   (let ( (proclist (make_list discr_list)) )
   (forever findloop
-	   (if (not (is_a env class_environment)) (exit findloop))
+	   (if (is_not_a env class_environment) (exit findloop))
 	   (let ( (bindmap (unsafe_get_field :env_bind env)) 
 		  (eproc (unsafe_get_field :env_proc env))
 		  )
@@ -2404,8 +2405,11 @@
   (if (is_a sexpr class_sexpr)
       (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	     (soper (pair_head (list_first scont))) )
+	(debugmsg sexpr "macroexpand_1 sexpr" (the_callcount))
+	(debugmsg soper "macroexpand_1 soper" (the_callcount))
 	(cond ( (is_a soper class_symbol)
 		(let ( (opbind (find_env env soper)) )
+		  (debugmsg opbind "macroexpand_1 opbind" (the_callcount))
 		  (cond ( (is_a opbind class_macro_binding)
 			  (let ( (mexp (unsafe_get_field :mbind_expanser opbind)) )
 			    (assert_msg "check mexp" (is_closure mexp))
@@ -2416,7 +2420,11 @@
 			( (is_a opbind class_primitive_binding)
 			  (expand_primitive opbind sexpr env mexpander)
 			  )
-			(:else (expand_apply sexpr env mexpander))
+			(:else 
+			 ;; this is to catch the case when DEFUN is not bound...
+			 (assert_msg "check soper not defun" (!= soper 'defun))
+			 (assert_msg "check soper not named DEFUN" (not (is_stringconst (unsafe_get_field :named_name soper) "DEFUN")))
+			 (expand_apply sexpr env mexpander))
 			)
 		  ))
 	      ( (is_a soper class_keyword)
@@ -2452,14 +2460,19 @@
 (defun macroexpand_toplevel_list (slist env)
   ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
   ;;  (debugmsg  env "macroexpand_toplevel_list env"(the_callcount)) 
-  ;;  (debugmsg slist "macroexpand_toplevel_list slist" (the_callcount)) 
+  (debugmsg slist "macroexpand_toplevel_list slist" (the_callcount)) 
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check slist" (is_list slist))
   (let ( (xlist (list_map slist 
 			  (lambda (sexp) 
-			    ;; (debugmsg sexp "macroexpand_toplevel_list sexp" (the_callcount))
-			    (macroexpand_1 sexp env macroexpand_1)))) )
-    ;;   (debugmsg xlist "macroexpand_toplevel_list res xlist" (the_callcount))
+			    (debugmsg sexp "macroexpand_toplevel_list sexp")
+			    (let ( (mex (macroexpand_1 sexp env macroexpand_1)) 
+				   )
+			      (debugmsg mex "macroexpand_toplevel_list mex")
+			      mex
+			      )))) 
+	 )
+    (debugmsg xlist "macroexpand_toplevel_list res xlist" (the_callcount))
     xlist
     ))
 
@@ -7670,6 +7683,81 @@
 (install_method class_procroutineobj output_c_code outpucod_procroutine)
 
 
+
+;;;;;;;;;;;;;;;;
+;; output at start of initial routine the get of symbols or keywords
+(defun output_code_getsymkw (curpdat implbuf)
+  (let ( (odat (unsafe_get_field :oie_data curpdat))
+	 (oloc (unsafe_get_field :oie_locvar curpdat)) 
+	 )
+    (cond 
+     ;; first check for keywords, since they are also symbols (so order is important)
+     ( (is_a odat class_nrep_datakeyword)
+       (let ( (nsy (unsafe_get_field :ndsy_namestr odat)) )
+	 (output_location (unsafe_get_field :nrep_loc odat) implbuf 2 "getkeywd")
+	 (add2sbuf_strconst implbuf "{ basilys_ptr_t kw_")
+	 (add2sbuf_cident implbuf nsy)
+	 (add2sbuf_strconst implbuf " = basilysgc_named_keyword(\"")
+	 (add2sbuf_string implbuf nsy)
+	 (add2sbuf_strconst implbuf "\", BASILYS_GET);")
+	 (add2sbuf_indentnl implbuf 2)
+	 (add2sbuf_strconst implbuf "if (kw_")
+	 (add2sbuf_cident implbuf nsy)
+	 (add2sbuf_strconst implbuf ") ")
+	 (output_c_code oloc (the_null) implbuf 2)
+	 (add2sbuf_strconst implbuf " = (void*) kw_")
+	 (add2sbuf_cident implbuf nsy)
+	 (add2sbuf_strconst implbuf "; }")
+	 (add2sbuf_indentnl implbuf 1)
+	 )) 
+     ( (is_a odat class_nrep_datasymbol)
+       (let ( (nsy (unsafe_get_field :ndsy_namestr odat)) )
+	 (output_location (unsafe_get_field :nrep_loc odat) implbuf 2 "getsymbol")
+	 (add2sbuf_strconst implbuf "{ basilys_ptr_t sy_")
+	 (add2sbuf_cident implbuf nsy)
+	 (add2sbuf_strconst implbuf " = basilysgc_named_symbol(\"")
+	 (add2sbuf_string implbuf nsy)
+	 (add2sbuf_strconst implbuf "\", BASILYS_GET);")
+	 (add2sbuf_indentnl implbuf 2)
+	 (add2sbuf_strconst implbuf "if (sy_")
+	 (add2sbuf_cident implbuf nsy)
+	 (add2sbuf_strconst implbuf ") ")
+	 (output_c_code oloc (the_null) implbuf 2)
+	 (add2sbuf_strconst implbuf " = (void*) sy_")
+	 (add2sbuf_cident implbuf nsy)
+	 (add2sbuf_strconst implbuf "; }")
+	 (add2sbuf_indentnl implbuf 1)
+	 ))
+     ))
+  )
+
+;; output at end of initial routine the interning of symbols & keywords
+(defun output_code_internsymkw (curpdat implbuf)
+  (let ( (odat (unsafe_get_field :oie_data curpdat))
+	 (oloc (unsafe_get_field :oie_locvar curpdat)) 
+	 )
+    (cond 
+     ;; first check for keywords, since they are also symbols (so order is important)
+     ( (is_a odat class_nrep_datakeyword)
+       (let ( (nsy (unsafe_get_field :ndsy_namestr odat)) )
+	 (output_location (unsafe_get_field :nrep_loc odat) implbuf 1 "internkeywd")
+	 (add2sbuf_strconst implbuf "/*")
+	 (add2sbuf_string implbuf nsy)
+	 (add2sbuf_strconst implbuf "*/ (void) basilysgc_intern_keyword(")
+	 (output_c_code oloc (the_null) implbuf 1)
+	 (add2sbuf_strconst implbuf ");")
+	 (add2sbuf_indentnl implbuf 1)))
+     ( (is_a odat class_nrep_datasymbol)
+       (let ( (nsy (unsafe_get_field :ndsy_namestr odat)) )
+	 (output_location (unsafe_get_field :nrep_loc odat) implbuf 1 "internsymb")
+	 (add2sbuf_strconst implbuf "/*")
+	 (add2sbuf_string implbuf nsy)
+	 (add2sbuf_strconst implbuf "*/ (void) basilysgc_intern_symbol(")
+	 (output_c_code oloc (the_null) implbuf 1)
+	 (add2sbuf_strconst implbuf ");")
+	 (add2sbuf_indentnl implbuf 1))
+       ))))
+
 ;; output code for the initial routine
 (defun outpucod_initialroutine (pini declbuf implbuf :long depth)
   (assert_msg "check pini" (is_a pini class_initialroutineobj))
@@ -7715,11 +7803,11 @@
 ;;; generate the initial predef of cdat
     (add2sbuf_strconst implbuf "/*initial routine predef*/")
     (add2sbuf_indentnl implbuf 1)
-   (multiple_every
-    idatup
-    (lambda (curpdat :long curk) 
-      (debugmsg curpdat "outpucod_initialroutine curpdat inipredef")
-      (output_c_initpredef curpdat implbuf)))
+    (multiple_every
+     idatup
+     (lambda (curpdat :long curk) 
+       (debugmsg curpdat "outpucod_initialroutine curpdat inipredef")
+       (output_c_initpredef curpdat implbuf)))
 ;;;
 ;;; generate the initial filling of cdat
     (add2sbuf_strconst implbuf "/*initial routine fill*/")
@@ -7730,7 +7818,25 @@
        (debugmsg curfil "outpucod_initialroutine curfil" (the_callcount))
        (add2sbuf_indentnl implbuf 1)
        (output_c_initfill curfil implbuf)))
+;;;
+;;; generate the get of symbols & keywords
+    (add2sbuf_strconst implbuf "/*initial routine get symbol & keyword*/")
+    (add2sbuf_indentnl implbuf 1)
+    (add2sbuf_strconst implbuf "if (BASILYSG(TOKENIZER)) {")
+    (add2sbuf_indentnl implbuf 2)
+    (multiple_every
+     idatup
+     (lambda (curpdat :long curk) 
+       (debugmsg curpdat "outpucod_initialroutine curpdat getsymkey")
+       (if (is_a curpdat class_objinitobject)
+	   (output_code_getsymkw curpdat implbuf)
+	 )
+       ))
+    (add2sbuf_strconst implbuf "}; /*end get symbols & keywords */")
+    (add2sbuf_indentnl implbuf 1)
+;;;;;;;
 ;;; initialize the variables
+;;;
     (debugmsg irfill "outpucod_initialroutine irfill")
 ;;; clear the cdat for safety and renable GC
     (add2sbuf_strconst implbuf " cdat = NULL;")
@@ -7752,7 +7858,21 @@
 	     (progn
 	       (output_c_code curbody declbuf implbuf 1)
 	       (add2sbuf_indentnl implbuf 1))))))
-    ;; end of implementation
+;;; ouput the interning of symbols & keywwords
+    (add2sbuf_strconst implbuf "/*initial routine interning of symbol & keyword*/")
+    (add2sbuf_indentnl implbuf 1)
+    (multiple_every
+     idatup
+     (lambda (curpdat :long curk) 
+       (debugmsg curpdat "outpucod_initialroutine curpdat internkeysym")
+       (if (is_a curpdat class_objinitobject)
+	   (output_code_internsymkw curpdat implbuf)
+	 )
+       ))
+    (add2sbuf_strconst implbuf "/*end interning of symbols & keywords */")
+    (add2sbuf_indentnl implbuf 1)
+;;; end of implementation
+;;;
     (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " goto labend_rout;")
@@ -7775,7 +7895,7 @@
     (add2sbuf_strconst implbuf "} /* end start_module_basilys */")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
-  ))
+    ))
 (install_method class_initialroutineobj output_c_code outpucod_initialroutine)
 
 
