@@ -1,6 +1,13 @@
 2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy, but less for OR]
+
+	* melt/warm-basilys.bysl: (normexp_or) works correctly [at least for simple cases].
+	corrected various OR occurrences [detected by warm-basilys-1!]
+
+2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	merged with trunk rev135714
-	* basilys.h: explicit [re-]declaration of fatail_error.
+
+	* basilys.h: explicit [re-]declaration of fatal_error.
 
 2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	[handling of OR might be incorrect in cold and improved in warm]

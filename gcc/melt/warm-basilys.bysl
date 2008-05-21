@@ -1840,7 +1840,7 @@
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_mapobjects 50))
-	     (boxedmaxdepth (make_integerbox discr_integer 12)) ;;;; @@@ DEBUGDEPTH
+	     (boxedmaxdepth (make_integerbox discr_integer 10)) ;;;; @@@ DEBUGDEPTH
 	     (dbgi (make_instance class_debuginfo
 				  :dbgi_sbuf sbuf
 				  :dbgi_occmap occmap
@@ -2593,6 +2593,7 @@
 ;;;;;;;;;;;;;;;;;;;; macro expansers
 ;; the defprimitive expander
 (defun mexpand_defprimitive (sexpr env mexpander)
+  (debugmsg sexpr "mexpand_defprimitive sexpr" (the_callcount))
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
@@ -2611,11 +2612,19 @@
 	(if (is_not_a typkw class_keyword)
 	    (error_plain loc "missing type keyword for defprimitive"))
 	(let ( (cty (unsafe_get_field :symb_data typkw)) )
-	  (if (not (and (is_a cty class_ctype) 
-		   (== (unsafe_get_field :ctype_keyword cty) typkw)))
+	  (if (is_not_a cty class_ctype)
 	      (progn
+		(debugmsg typkw "mexpand_defprimitive bad cty" (the_callcount))
+		(error_strv loc "bad type keyword for defprimitive"
+			    (unsafe_get_field :named_name typkw))
+		(return ())
+		))
+	  (if (!= (unsafe_get_field :ctype_keyword cty) typkw)
+	      (progn
+		(debugmsg typkw "mexpand_defprimitive strange typkw" (the_callcount))
 		(error_strv loc "invalid type keyword for defprimitive"
-			    (unsafe_get_field :named_name typkw))    
+			    (unsafe_get_field :named_name typkw)) 
+		(return ())   
 		))
 	  ;; parse the rest as to be expanded
 	  (setq curpair (pair_tail curpair))
@@ -2656,7 +2665,8 @@
 				   ))
 		   )
 	      (put_env env pbind)
-	      sdefpri
+	      (debugmsg sdefpri "mexpand_defprimitive result sdefpri" (the_callcount))
+	      (return sdefpri)
 	      )))))))
 (install_initial_macro 'defprimitive mexpand_defprimitive)
 
@@ -2677,8 +2687,8 @@
 	(error_plain loc "missing symbol for defun"))
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments
-    (or (null (pair_head curpair))
-	(is_a (pair_head curpair) class_sexpr)
+    (if (not (or (null (pair_head curpair))
+		 (is_a (pair_head curpair) class_sexpr)))
 	(error_plain loc "missing or invalid arglist for defun"))
     (let ( (btup (lambda_arg_bindings (pair_head curpair) sexpr)) )
       (if (not (is_multiple btup))
@@ -2785,8 +2795,8 @@
 		       ( (== curkw ':predef)
 			 (if predef (error_plain loc "duplicate predef in defclass"))
 			 (setq predef (macroexpand_1 curval env mexpander))
-			 (or (is_integerbox predef)
-			     (is_a predef class_symbol)
+			 (if (not (or (is_integerbox predef)
+				      (is_a predef class_symbol)))
 			     (error_plain loc "bad predef in class"))
 			 )
 		       ( (== curkw ':docstr)
@@ -5009,6 +5019,7 @@
 	    	 	   :nocc_bind corbind))
 	    	  )
 	      (box_put nbindorbox (make_list discr_list))
+	      (list_append2list (box_content nbindorbox) nbind)
 	      (list_append (box_content nbindorbox) corbind)
 	      (box_put norbox corocc)
 	      (the_null)
@@ -5020,7 +5031,7 @@
      )
     (debugmsg (box_content norbox) "normexp_or result nor" (the_callcount))
     (debugmsg (box_content nbindorbox) "normexp_or result nbindor" (the_callcount))
-    (return  (box_content norbox) (box_content nbindorbox))
+    (return (box_content norbox) (box_content nbindorbox))
     )
   )
 (install_method class_src_or normal_exp normexp_or)
@@ -6368,7 +6379,7 @@
 	  (error_strv sloc "invalid class in definstance" (unsafe_get_field :named_name sname))
 	  (return)))
     (if spredef
-	(or (is_integerbox spredef) (is_a spredef class_symbol)
+	(if (not (or (is_integerbox spredef) (is_a spredef class_symbol)))
 	    (progn (error_strv sloc "bad predef in definstance"  (unsafe_get_field :named_name sname))
 		   (return))))
     (assert_msg "check sinstclass" (is_a sinstclass class_class))
@@ -6457,7 +6468,7 @@
 	  (error_strv sloc "invalid class in defselector" (unsafe_get_field :named_name sname))
 	  (return)))
     (if spredef
-	(or (is_integerbox spredef) (is_a spredef class_symbol)
+	(if (not (or (is_integerbox spredef) (is_a spredef class_symbol)))
 	    (progn (error_strv sloc "bad predef in defselector"  (unsafe_get_field :named_name sname))
 		   (return))))
     (assert_msg "check sinstclass" (is_a sinstclass class_class))
@@ -10752,6 +10763,7 @@
 (defun compilobj_nrep_if (rif gcx)
   (assert_msg "check rif" (is_a rif class_nrep_if))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debugmsg rif "compilobj_nrep_if rif" (the_callcount))
   (let ( (loc (unsafe_get_field :nrep_loc rif))
 	 (ntest (unsafe_get_field :nif_test rif))
 	 (nthen (unsafe_get_field :nif_then rif))
@@ -10769,7 +10781,7 @@
 				:obcond_then othen
 				:obcond_else oelse))
 	   )
-;      (debugmsg obif "compilobj_nrep_if obif" (the_callcount))
+      (debugmsg obif "compilobj_nrep_if obif" (the_callcount))
       obif
       )))
 (install_method class_nrep_if compile_obj compilobj_nrep_if)
@@ -11487,7 +11499,7 @@
 	(if nam (progn
 		  (add2sbuf_strconst nambuf "__")
 		  (add2sbuf_cident nambuf (unsafe_get_field :named_name nam))))
-	(debugmsg ndrou "compilobj_dataroutine encore ndrou" (the_callcount))
+	;(debugmsg ndrou "compilobj_dataroutine encore ndrou" (the_callcount))
 	(let (
 	      (oirout 
 	       (make_instance class_objinitroutine
@@ -11610,6 +11622,12 @@
   (debugmsg 'defun "before read compileseq_command defun symbol" (the_callcount))
   (debugmsg 'if "before read compileseq_command if symbol" (the_callcount))
   (debugmsg tokenizer "before read compileseq_command tokenizer" (the_callcount))
+  (debugmsg ':value "before read compileseq_command :value keyword" (the_callcount))
+  (debugmsg ':void "before read compileseq_command :void keyword" (the_callcount))
+  (debugmsg ':long "before read compileseq_command :long keyword" (the_callcount))
+  (debugmsg ctype_value "before read compileseq_command ctype_value" (the_callcount))
+  (debugmsg ctype_void "before read compileseq_command ctype_void" (the_callcount))
+  (debugmsg ctype_long "before read compileseq_command ctype_long" (the_callcount))
   (let ( (rlist (read_file arg)) 
 	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	 ) 
