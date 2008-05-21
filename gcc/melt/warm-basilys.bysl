@@ -2687,12 +2687,22 @@
 	(error_plain loc "missing symbol for defun"))
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments
-    (if (not (or (null (pair_head curpair))
-		 (is_a (pair_head curpair) class_sexpr)))
-	(error_plain loc "missing or invalid arglist for defun"))
-    (let ( (btup (lambda_arg_bindings (pair_head curpair) sexpr)) )
+    (let ( (curpairhead (pair_head curpair)) 
+	   (btup 
+	    (cond ( (null curpairhead) 
+		    (make_multiple discr_multiple 0) )
+		  ( (is_a curpairhead class_sexpr)
+		    (lambda_arg_bindings (pair_head curpair) sexpr))
+		  (:else
+		   (debugmsg curpairhead "mexpand_defun strange arglist curpairhead" (the_callcount))
+		   (error_plain loc "missing or invalid arglist for DEFUN")
+		   (the_null)
+		   )))
+	   )
       (if (not (is_multiple btup))
-	  (error_plain loc "missing formal arguments for defun"))
+	  (progn
+	    (debugmsg btup "mexpand_defun strange btup" (the_callcount))
+	    (error_plain loc "missing formal arguments for DEFUN")))
       (multiple_every btup (lambda (fb) (put_env newenv fb)))
       (setq curpair (pair_tail curpair))
       (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander)) 
@@ -2709,8 +2719,8 @@
 			     :fubind_defun sdefun
 			     ))
 	     )
-	      (put_env env fbind)
-	      sdefun
+	(put_env env fbind)
+	sdefun
 	))))
 (install_initial_macro 'defun mexpand_defun)
 
@@ -2767,6 +2777,7 @@
 				  (error_strv loc "invalid super in defclass" 
 					      (unsafe_get_field :named_name supernam)))
 				 )
+			   ()
 			   ))
 		       ( (== curkw ':fields)
 			 (if fieldnams (error_plain loc "duplicate fields in defclass"))
@@ -2791,23 +2802,36 @@
 				    (setq ix (+i ix 1))
 				    )
 			   (setq fieldnams namtupl)
+			   ()
 			   ))
 		       ( (== curkw ':predef)
-			 (if predef (error_plain loc "duplicate predef in defclass"))
+			 (if predef (error_plain loc "duplicate predef in DEFCLASS"))
 			 (setq predef (macroexpand_1 curval env mexpander))
-			 (if (not (or (is_integerbox predef)
-				      (is_a predef class_symbol)))
-			     (error_plain loc "bad predef in class"))
+			 (cond
+			  ( (is_integerbox predef) 
+			    ()
+			    )
+			  ( (is_a predef class_symbol)
+			    ()
+			    )
+			  (:else
+			     (error_plain loc "bad predef in DEFCLASS")
+			     ()
+			     )
+			  )
+			 ()
 			 )
 		       ( (== curkw ':docstr)
-			 (if docstr (error_plain loc "duplicate docstr in defclass"))
+			 (if docstr (error_plain loc "duplicate docstr in DEFCLASS"))
 			 (setq docstr (macroexpand_1 curval env mexpander))
 			 (if (not (is_string docstr))
-			     (error_plain loc "bad docstr in class"))
+			     (error_plain loc "bad docstr in DEFCLASS"))
+			 ()
 			 )
 		       (:else
-			(error_strv loc "invalid keyword in defclass" 
+			(error_strv loc "invalid keyword in DEFCLASS" 
 				    (unsafe_get_field :named_name curkw))
+			()
 			)
 		       ))))
     (return symb loc supernam superbind superclass predef fieldnams fieldsloc docstr)
@@ -4992,7 +5016,7 @@
 		 )
 	    (assert_msg "check ctypcur" (is_a ctypcur class_ctype))
 	    (if (!= ctypcur (box_content ctyporbox))
-		(error_plain  sloc "disjuncts' type mismatch in OR"))
+		(error_plain  sloc "disjuncts' type mismatch in OR | COND"))
 	    (let (
 	    	  ;; ncur is normal, so simple
 	    	  (nifor (make_instance
@@ -5429,7 +5453,10 @@
     (assert_msg "check slbind" (is_a slbind class_label_binding))
     (put_env newenv slbind)
     (let ( (resy (clone_symbol (unsafe_get_field :binder slbind))) )
+      (debugmsg resy "normexp_forever updated resy" (the_callcount))
       (unsafe_put_fields slbind :labind_clonsy resy)
+      (debugmsg slbind "normexp_forever updated slbind" (the_callcount))
+      (assert_msg "check resy" (is_a resy class_clonedsymbol))
       (multicall
        (nbody nbodbindings)
        (normalize_tuple sbody newenv ncx sloc)
@@ -6378,10 +6405,13 @@
 	(progn
 	  (error_strv sloc "invalid class in definstance" (unsafe_get_field :named_name sname))
 	  (return)))
-    (if spredef
-	(if (not (or (is_integerbox spredef) (is_a spredef class_symbol)))
-	    (progn (error_strv sloc "bad predef in definstance"  (unsafe_get_field :named_name sname))
-		   (return))))
+    (cond
+     ( (null spredef) () )
+     ( (is_integerbox spredef) () )
+     ( (is_a spredef class_symbol) () )
+     (:else
+      (error_strv sloc "bad predef in DEFINSTANCE"  (unsafe_get_field :named_name sname))
+      (return)))
     (assert_msg "check sinstclass" (is_a sinstclass class_class))
     (assert_msg "check sinstclasym" (is_a sinstclasym class_symbol))
     (let (
@@ -9891,8 +9921,13 @@
 	 (nres (unsafe_get_field :nforever_result nfor)) 
 	 (oresv (get_free_objlocptr gcx nres))
 	 )
+    (debugmsg nbind "compilobj_nrep_forever initial nbind" (the_callcount))
+    (debugmsg (discrim nbind) "compilobj_nrep_forever initial nbind's class" (the_callcount))
     (assert_msg "check nbind" (is_a nbind class_label_binding))
+    (debugmsg oresv "compilobj_nrep_forever oresv" (the_callcount))
+    (assert_msg "check oresv" (is_a oresv class_objlocv))
     (unsafe_put_fields nbind :labind_res oresv)
+    (assert_msg "check again nbind" (is_object nbind))
     (debugmsg nbind "compilobj_nrep_forever updated nbind" (the_callcount))
     (let ( (closy (unsafe_get_field :labind_clonsy nbind)) 
 	   (bodyl (make_list discr_list))

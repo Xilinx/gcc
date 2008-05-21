@@ -1,4 +1,16 @@
 2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	[perhaps a metabug: the (unsafe_put_fields nbind :labind_res
+	oresv) in compilobj_nrep_forever is not compiled in warm-basilys-1
+	which fails on compiling test0; some OR are perhaps badly
+	cold-compiled!]
+
+	* melt/warm-basilys.bysl: (mexpand_defun) uses a COND not an OR to
+	parse formal arguments.
+	(scan_defclass) uses COND not OR; also better error messages.
+	(normexp_definstance) likewise.
+	(compilobj_nrep_forever) added debugmsg.... 
+
+2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy, but less for OR]
 
 	* melt/warm-basilys.bysl: (normexp_or) works correctly [at least for simple cases].
