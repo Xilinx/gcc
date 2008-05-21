@@ -1,3 +1,7 @@
+2008-05-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (build_access_matrix): Fix typo from the merge.
+
 2008-05-20  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (130800:135673).

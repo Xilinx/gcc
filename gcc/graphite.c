@@ -980,7 +980,7 @@ build_scop_dynamic_schedules (scop_p scop)
       if (loop_num != 0)
         {
           dim = loop_iteration_vector_dim (loop_num, scop);
-          GBB_DYNAMIC_SCHEDULE (gb) = cloog_matrix_alloc(dim, dim);
+          GBB_DYNAMIC_SCHEDULE (gb) = cloog_matrix_alloc (dim, dim);
           for (row = 0; row < GBB_DYNAMIC_SCHEDULE (gb)->NbRows; row++)
             for (col = 0; col < GBB_DYNAMIC_SCHEDULE (gb)->NbColumns; col++)
               if (row == col)
@@ -1738,6 +1738,7 @@ build_access_matrix (data_reference_p ref, graphite_bb_p gb)
   struct access_matrix *am = GGC_NEW (struct access_matrix);
 
   AM_MATRIX (am) = VEC_alloc (lambda_vector, heap, ndim);
+  DR_SCOP (ref) = GBB_SCOP (gb);
 
   for (i = 0; i < ndim; i++)
     {
@@ -1751,7 +1752,6 @@ build_access_matrix (data_reference_p ref, graphite_bb_p gb)
       VEC_safe_push (lambda_vector, heap, AM_MATRIX (am), v);
     }
 
-  DR_SCOP (ref) = GBB_SCOP (gb);
   DR_ACCESS_MATRIX (ref) = am;
   return true;
 }
