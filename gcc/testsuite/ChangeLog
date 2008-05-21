@@ -1,3 +1,229 @@
+2008-05-20  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* gcc.c-torture/execute/builtins/memops-asm.c: Set inside_main.
+
+	* lib/gcc-dg.exp (cleanup-saved-temps): Add optional list of
+	suffixes not to delete.
+	* gcc.dg/pch/save-temps-1.c: Don't delete ".s" temp.
+	* g++.dg/pch/pch.C: Likewise.
+
+	* g++.old-deja/g++.pt/static11.C: Replace xfail by target requirement.
+
+	* lib/dg-pch.exp (dg-pch): Don't expect .s files if there are
+	dg-errors expected.
+
+2008-05-20  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/20771
+	* lib/dg-pch.exp: Move a flag in arguments to dg-test to differentiate
+	compile results for pch test lines in gcc.sum.
+	* gcc.dg/pch/counter-2.c: Add comments to dg-error directives to
+	make them unique in gcc.sum.
+	* gcc.dg/pch/valid-1.c: Ditto.
+	* gcc.dg/pch/valid-2.c: Ditto.
+	* gcc.dg/pch/valid-3.c: Ditto.
+	* gcc.dg/pch/warn-1.c: Same for dg-warning.
+
+2008-05-20  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.dg/array-quals-1.c: xfail read only section
+	check for avr target. 
+   
+2008-05-20  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	PR testsuite/34889
+	* gcc.c-torture/execute/builtins/pr23484-chk.c : Correct test for 
+	16bit int target. 
+
+2008-05-20  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.dg/tree-ssa/ifc-20040816-1.c : signal.h not required.
+	* gcc.c-torture/execute/ieee/fp-cmp-1.c : Do not include signal.h if
+	SIGNAL_SUPPRESS.
+	* gcc.c-torture/execute/ieee/fp-cmp-2.c : Ditto.
+	* gcc.c-torture/execute/ieee/fp-cmp-3.c : Ditto.
+
+2008-05-20  Andy Hutchinson  <hutchinsonandy@aim.com>
+
+	* gcc.dg/builtins-config.h: AVR does not have C99 runtime. 
+  
+2008-05-20  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/22523
+	* g++.dg/template/inline1.C: Handle syntax for more assemblers.
+
+	* lib/scandump.exp (scan-dump): Handle non-existent dump file.
+	(scan-dump-times): Ditto.
+	(scan-dump-not): Ditto.
+	(scan-dump-dem): Ditto.
+	(scan-dump-dem-not): Ditto.
+
+	* obj-c++.dg/bitfield-1.mm: XFAIL for ICE; move dg-options after other
+	test directives; use dg-prune-output instead of dg-excess-errors for
+	possible message to ignore; adjust line numbers for messages.
+
+	* obj-c++.dg/comp-types-10.mm: XFAIL for ICE.
+	* obj-c++.dg/try-catch-9.mm: XFAILfor ICE, move dg-options after
+	other test directives.
+
+	* obj-c++.dg/try-catch-2.mm: Move dg-options after dg-xfail-if.
+	* obj-c++.dg/encode-8.mm: Move dg-options after dg-do.
+	* obj-c++.dg/bitfield-4.mm: Ditto; use dg-prune-output instead of
+	dg-excess-errors for possible additional message.
+	* obj-c++.dg/layout-1.mm: Use dg-prune-output instead of
+	dg-excess-errors for possible additional message.
+
+	* g++.dg/ext/vector14.C: Ignore a possible warning.
+
+2008-05-20  Samuel Tardieu  <sam@rfc1149.net>
+
+	* gnat.dg/modular.adb: Remove test, gnat.dg/modular1.adb already
+	checks that the bug is fixed and is more concise.
+
+2008-05-20  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/35791
+	* gnat.dg/check_displace_generation.adb: New.
+
+2008-05-20  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/30740
+	* gnat.dg/modular.adb: New test.
+
+2008-05-20  Jan Sjodin  <jan.sjodin@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/36181
+	* gcc.dg/tree-ssa/pr36181.c: New.
+
+2008-05-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/36057
+	* g++.dg/compat/struct-layout-1_generate.c (DG_OPTIONS): Remove.
+	(const char *dg_options): New array.
+	(switchfiles): Loop through dg_options array to generate dg-options
+	directives.  Remove numbered arguments usage from fprintf
+	format strings.
+
+2008-05-20  Jan Sjodin  <jan.sjodin@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/36206
+	* testsuite/gfortran.dg/pr36206.f: New.
+
+2008-05-20  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/testint.adb: New test.
+	* gnat.dg/modular1.adb: New test.
+	* gnat.dg/test_iface_aggr.adb: New test.
+	* gnat.dg/gen_disp.ad[sb]: New test.
+	* gnat.dg/specs/tag2.ads: Adjust.
+	* gnat.dg/specs/empty_variants.ads: Adjust.
+
+2008-05-20  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ssa-sink-1.c: Adjust.
+	* gcc.dg/tree-ssa/ssa-sink-2.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-sink-3.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-sink-4.c: Likewise.
+
+2008-05-20  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* gcc.c-torture/compile/20061214-1.c: New test.
+
+2008-05-20  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/20080519-1.c: New testcase.
+
+2008-05-19  Xinliang David Li  <davidxl@google.com>
+
+	* gcc.dg/cdce1.c: Remove test.
+	* gcc.dg/cdce2.c: Remove test.
+
+2008-05-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/36265
+	* gfortran.dg/char_length_11.f90: New test.
+
+2008-05-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/widechar_intrinsics_5.f90: Add dg-do directive and
+	use -fbackslash option.
+
+2008-05-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/char_cast_2.f90: Adjust count in scanning the tree
+	dump file.
+
+2008-05-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/bind_c_module.f90: Adjust expected error messages.
+
+2008-05-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/char_cast_1.f90: Adjust count in scanning the tree
+	dump file.
+
+2008-05-18  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/builtins-error.c: Test __builtin_isinf_sign.
+	* gcc.dg/tg-tests.h: Likewise.  Mark variables volatile.
+	* gcc.dg/torture/builtin-isinf_sign-1.c: New test.
+
+2008-05-18  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/achar_3.f90: Adjust error messages.
+	* gfortran.dg/achar_5.f90: New test.
+	* gfortran.dg/achar_6.F90: New test.
+	* gfortran.dg/widechar_1.f90: New test.
+	* gfortran.dg/widechar_2.f90: New test.
+	* gfortran.dg/widechar_3.f90: New test.
+	* gfortran.dg/widechar_4.f90: New test.
+	* gfortran.dg/widechar_intrinsics_1.f90: New test.
+	* gfortran.dg/widechar_intrinsics_2.f90: New test.
+	* gfortran.dg/widechar_intrinsics_3.f90: New test.
+	* gfortran.dg/widechar_intrinsics_4.f90: New test.
+	* gfortran.dg/widechar_intrinsics_5.f90: New test.
+	* gfortran.dg/widechar_select_1.f90: New test.
+	* gfortran.dg/widechar_select_2.f90: New test.
+
+2008-05-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization2.ad[sb]: New test.
+
+2008-05-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/36090
+	* gcc.c-torture/execute/20080502-1.c: New test.
+
+2008-05-18  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/stat_1.f90: Skip on mingw.
+	* gfortran.dg/stat_2.f90: Skip on mingw.
+
+2008-05-18  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/36251
+	gfortran.dg/public_private_module.f90: new test.
+	gfortran.dg/bind_c_module.f90: new test.
+
+2008-05-17  Xinliang David Li <davidxl@google.com>
+
+	* gcc.dg/cdce1.c: New test
+	* gcc.dg/cdce2.c: New test
+
+2008-05-17  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/initialization_19.f90: New test.
+
+2008-05-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/bit_packed_array3.adb: New test.
+
+2008-05-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/warn4.adb: New test.
+
 2008-05-16  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/35756

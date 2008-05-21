@@ -3258,6 +3258,9 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
 		  && operand_equal_p (TREE_OPERAND (arg0, 1),
 				      TREE_OPERAND (arg1, 0), flags));
 
+	case COND_EXPR:
+	  return OP_SAME (0) && OP_SAME (1) && OP_SAME (2);
+	  
 	default:
 	  return 0;
 	}
@@ -7864,8 +7867,7 @@ fold_unary (enum tree_code code, tree type, tree op0)
       /* Convert (T)(x & c) into (T)x & (T)c, if c is an integer
 	 constants (if x has signed type, the sign bit cannot be set
 	 in c).  This folds extension into the BIT_AND_EXPR.  */
-      if (INTEGRAL_TYPE_P (type)
-	  && TREE_CODE (type) != BOOLEAN_TYPE
+      if (TREE_CODE (type) == INTEGER_TYPE
 	  && TREE_CODE (op0) == BIT_AND_EXPR
 	  && TREE_CODE (TREE_OPERAND (op0, 1)) == INTEGER_CST)
 	{

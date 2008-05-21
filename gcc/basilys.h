@@ -45,6 +45,10 @@ along with GCC; see the file COPYING3.   If not see
 
  *****/
 
+/* declared in toplev.h which we want to avoid #include-ing */
+extern void fatal_error (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2)
+     ATTRIBUTE_NORETURN;
+
 /* use -fdump-ipa-basilys */
 
 #define dbgprintf_raw(Fmt,...) do{if (dump_file) \

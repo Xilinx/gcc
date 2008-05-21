@@ -1,4 +1,8 @@
 2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	merged with trunk rev135714
+	* basilys.h: explicit [re-]declaration of fatail_error.
+
+2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	[handling of OR might be incorrect in cold and improved in warm]
 	* melt/warm-basilys.bysl: (normexp_or) rewritten.
 	[many occurrences of OR replaced by IF because contrib/cold-basilys.lisp might be wrong]
@@ -16,7 +20,7 @@
 	[still buggy warmbasilys2]
 
 	* melt/warm-basilys.bysl: (normexp_keyword) handling correctly
-	keyword at toplevel. This affects initializatin of our ctype_value
+	keyword at toplevel. This affects initialization of our ctype_value
 	etc...
 
 2008-05-20  Basile Starynkevitch  <basile@starynkevitch.net>

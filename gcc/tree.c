@@ -2516,8 +2516,7 @@ substitute_in_expr (tree exp, tree f, tree r)
 {
   enum tree_code code = TREE_CODE (exp);
   tree op0, op1, op2, op3;
-  tree new;
-  tree inner;
+  tree new, inner;
 
   /* We handle TREE_LIST and COMPONENT_REF separately.  */
   if (code == TREE_LIST)
@@ -2627,13 +2626,15 @@ substitute_in_expr (tree exp, tree f, tree r)
 	  for (i = 1; i < TREE_OPERAND_LENGTH (exp); i++)
 	    {
 	      tree op = TREE_OPERAND (exp, i);
-	      tree newop = SUBSTITUTE_IN_EXPR (op, f, r);
-	      if (newop != op)
+	      tree new_op = SUBSTITUTE_IN_EXPR (op, f, r);
+	      if (new_op != op)
 		{
-		  copy = copy_node (exp);
-		  TREE_OPERAND (copy, i) = newop;
+		  if (!copy)
+		    copy = copy_node (exp);
+		  TREE_OPERAND (copy, i) = new_op;
 		}
 	    }
+
 	  if (copy)
 	    new = fold (copy);
 	  else
@@ -2777,18 +2778,19 @@ substitute_placeholder_in_expr (tree exp, tree obj)
 	{
 	  tree copy = NULL_TREE;
 	  int i;
-	  int n = TREE_OPERAND_LENGTH (exp);
-	  for (i = 1; i < n; i++)
+
+	  for (i = 1; i < TREE_OPERAND_LENGTH (exp); i++)
 	    {
 	      tree op = TREE_OPERAND (exp, i);
-	      tree newop = SUBSTITUTE_PLACEHOLDER_IN_EXPR (op, obj);
-	      if (newop != op)
+	      tree new_op = SUBSTITUTE_PLACEHOLDER_IN_EXPR (op, obj);
+	      if (new_op != op)
 		{
 		  if (!copy)
 		    copy = copy_node (exp);
-		  TREE_OPERAND (copy, i) = newop;
+		  TREE_OPERAND (copy, i) = new_op;
 		}
 	    }
+
 	  if (copy)
 	    return fold (copy);
 	  else

@@ -1,3 +1,190 @@
+2008-05-18  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* m4/in_pack.m4 (internal_pack_'rtype_code`):  Destination
+	pointer is restrict.
+	* m4/transpose.m4 (transpose_'rtype_code`):  Likewise.
+	* m4/pack.m4 (pack_'rtype_code`):  Likewise.
+	* m4/spread.m4 (spread_'rtype_code`):  Likewise.
+	(spread_scalar_'rtype_code`): Likewise.
+	* m4/iforeach.m4 (name`'rtype_qual`_'atype_code):  Likewise.
+	* m4/eoshift1.m4 (eoshift1):  Likewise.
+	* m4/eoshift3.m4 (eoshift3):  Likewise.
+	* m4/in_unpack.m4 (internal_unpack_'rtype_ccode`):  Likewise.
+	* m4/unpack.m4 (unpack0_'rtype_code`):  Likewise.
+	(unpack1_'rtype_code`):  Likewise.
+	* intrinsics/pack_generic.c (pack_generic.c):  Likewise.
+	* intrinsics/unpack_generic.c (unpack_internal):  Likewise.
+	* intrinsics/eoshift0.c (eoshift0):  Likewise.
+	* intrinsics/eoshift2.c (eoshift2):  Likewise.
+	* intrinsics/reshape_generic.c (reshape_internal):  Likewise.
+	* intrinsics/reshape_packed.c (reshape_packed):  Likewise.
+	* generated/eoshift1_16.c: Regenerated.
+	* generated/eoshift1_4.c: Regenerated.
+	* generated/eoshift1_8.c: Regenerated.
+	* generated/eoshift3_16.c: Regenerated.
+	* generated/eoshift3_4.c: Regenerated.
+	* generated/eoshift3_8.c: Regenerated.
+	* generated/in_pack_c10.c: Regenerated.
+	* generated/in_pack_c16.c: Regenerated.
+	* generated/in_pack_c4.c: Regenerated.
+	* generated/in_pack_c8.c: Regenerated.
+	* generated/in_pack_i1.c: Regenerated.
+	* generated/in_pack_i16.c: Regenerated.
+	* generated/in_pack_i2.c: Regenerated.
+	* generated/in_pack_i4.c: Regenerated.
+	* generated/in_pack_i8.c: Regenerated.
+	* generated/in_pack_r10.c: Regenerated.
+	* generated/in_pack_r16.c: Regenerated.
+	* generated/in_pack_r4.c: Regenerated.
+	* generated/in_pack_r8.c: Regenerated.
+	* generated/in_unpack_c10.c: Regenerated.
+	* generated/in_unpack_c16.c: Regenerated.
+	* generated/in_unpack_c4.c: Regenerated.
+	* generated/in_unpack_c8.c: Regenerated.
+	* generated/in_unpack_i1.c: Regenerated.
+	* generated/in_unpack_i16.c: Regenerated.
+	* generated/in_unpack_i2.c: Regenerated.
+	* generated/in_unpack_i4.c: Regenerated.
+	* generated/in_unpack_i8.c: Regenerated.
+	* generated/in_unpack_r10.c: Regenerated.
+	* generated/in_unpack_r16.c: Regenerated.
+	* generated/in_unpack_r4.c: Regenerated.
+	* generated/in_unpack_r8.c: Regenerated.
+	* generated/maxloc0_16_i1.c: Regenerated.
+	* generated/maxloc0_16_i16.c: Regenerated.
+	* generated/maxloc0_16_i2.c: Regenerated.
+	* generated/maxloc0_16_i4.c: Regenerated.
+	* generated/maxloc0_16_i8.c: Regenerated.
+	* generated/maxloc0_16_r10.c: Regenerated.
+	* generated/maxloc0_16_r16.c: Regenerated.
+	* generated/maxloc0_16_r4.c: Regenerated.
+	* generated/maxloc0_16_r8.c: Regenerated.
+	* generated/maxloc0_4_i1.c: Regenerated.
+	* generated/maxloc0_4_i16.c: Regenerated.
+	* generated/maxloc0_4_i2.c: Regenerated.
+	* generated/maxloc0_4_i4.c: Regenerated.
+	* generated/maxloc0_4_i8.c: Regenerated.
+	* generated/maxloc0_4_r10.c: Regenerated.
+	* generated/maxloc0_4_r16.c: Regenerated.
+	* generated/maxloc0_4_r4.c: Regenerated.
+	* generated/maxloc0_4_r8.c: Regenerated.
+	* generated/maxloc0_8_i1.c: Regenerated.
+	* generated/maxloc0_8_i16.c: Regenerated.
+	* generated/maxloc0_8_i2.c: Regenerated.
+	* generated/maxloc0_8_i4.c: Regenerated.
+	* generated/maxloc0_8_i8.c: Regenerated.
+	* generated/maxloc0_8_r10.c: Regenerated.
+	* generated/maxloc0_8_r16.c: Regenerated.
+	* generated/maxloc0_8_r4.c: Regenerated.
+	* generated/maxloc0_8_r8.c: Regenerated.
+	* generated/minloc0_16_i1.c: Regenerated.
+	* generated/minloc0_16_i16.c: Regenerated.
+	* generated/minloc0_16_i2.c: Regenerated.
+	* generated/minloc0_16_i4.c: Regenerated.
+	* generated/minloc0_16_i8.c: Regenerated.
+	* generated/minloc0_16_r10.c: Regenerated.
+	* generated/minloc0_16_r16.c: Regenerated.
+	* generated/minloc0_16_r4.c: Regenerated.
+	* generated/minloc0_16_r8.c: Regenerated.
+	* generated/minloc0_4_i1.c: Regenerated.
+	* generated/minloc0_4_i16.c: Regenerated.
+	* generated/minloc0_4_i2.c: Regenerated.
+	* generated/minloc0_4_i4.c: Regenerated.
+	* generated/minloc0_4_i8.c: Regenerated.
+	* generated/minloc0_4_r10.c: Regenerated.
+	* generated/minloc0_4_r16.c: Regenerated.
+	* generated/minloc0_4_r4.c: Regenerated.
+	* generated/minloc0_4_r8.c: Regenerated.
+	* generated/minloc0_8_i1.c: Regenerated.
+	* generated/minloc0_8_i16.c: Regenerated.
+	* generated/minloc0_8_i2.c: Regenerated.
+	* generated/minloc0_8_i4.c: Regenerated.
+	* generated/minloc0_8_i8.c: Regenerated.
+	* generated/minloc0_8_r10.c: Regenerated.
+	* generated/minloc0_8_r16.c: Regenerated.
+	* generated/minloc0_8_r4.c: Regenerated.
+	* generated/minloc0_8_r8.c: Regenerated.
+	* generated/pack_c10.c: Regenerated.
+	* generated/pack_c16.c: Regenerated.
+	* generated/pack_c4.c: Regenerated.
+	* generated/pack_c8.c: Regenerated.
+	* generated/pack_i1.c: Regenerated.
+	* generated/pack_i16.c: Regenerated.
+	* generated/pack_i2.c: Regenerated.
+	* generated/pack_i4.c: Regenerated.
+	* generated/pack_i8.c: Regenerated.
+	* generated/pack_r10.c: Regenerated.
+	* generated/pack_r16.c: Regenerated.
+	* generated/pack_r4.c: Regenerated.
+	* generated/pack_r8.c: Regenerated.
+	* generated/spread_c10.c: Regenerated.
+	* generated/spread_c16.c: Regenerated.
+	* generated/spread_c4.c: Regenerated.
+	* generated/spread_c8.c: Regenerated.
+	* generated/spread_i1.c: Regenerated.
+	* generated/spread_i16.c: Regenerated.
+	* generated/spread_i2.c: Regenerated.
+	* generated/spread_i4.c: Regenerated.
+	* generated/spread_i8.c: Regenerated.
+	* generated/spread_r10.c: Regenerated.
+	* generated/spread_r16.c: Regenerated.
+	* generated/spread_r4.c: Regenerated.
+	* generated/spread_r8.c: Regenerated.
+	* generated/transpose_c10.c: Regenerated.
+	* generated/transpose_c16.c: Regenerated.
+	* generated/transpose_c4.c: Regenerated.
+	* generated/transpose_c8.c: Regenerated.
+	* generated/transpose_i16.c: Regenerated.
+	* generated/transpose_i4.c: Regenerated.
+	* generated/transpose_i8.c: Regenerated.
+	* generated/transpose_r10.c: Regenerated.
+	* generated/transpose_r16.c: Regenerated.
+	* generated/transpose_r4.c: Regenerated.
+	* generated/transpose_r8.c: Regenerated.
+	* generated/unpack_c10.c: Regenerated.
+	* generated/unpack_c16.c: Regenerated.
+	* generated/unpack_c4.c: Regenerated.
+	* generated/unpack_c8.c: Regenerated.
+	* generated/unpack_i1.c: Regenerated.
+	* generated/unpack_i16.c: Regenerated.
+	* generated/unpack_i2.c: Regenerated.
+	* generated/unpack_i4.c: Regenerated.
+	* generated/unpack_i8.c: Regenerated.
+	* generated/unpack_r10.c: Regenerated.
+	* generated/unpack_r16.c: Regenerated.
+	* generated/unpack_r4.c: Regenerated.
+	* generated/unpack_r8.c: Regenerated.
+
+2008-05-18  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* runtime/select.c: Moved content to select_inc.c. Include it. 
+	Add macros for different character types.
+	* runtime/select_inc.c: New file.
+	* runtime/convert_char.c: New file.
+	* intrinsics/pack_generic.c (pack_char4, pack_s_char4): New
+	functions.
+	* intrinsics/transpose_generic.c (transpose_char4): New function.
+	* intrinsics/spread_generic.c (spread_char4, spread_char4_scalar):
+	New functions.
+	* intrinsics/unpack_generic.c (unpack1_char4, unpack0_char4): 
+	New functions.
+	* intrinsics/reshape_generic.c (reshape_char): Use
+	gfc_charlen_type as type for length variables.
+	(reshape_char4): New function.
+	* gfortran.map (GFORTRAN_1.1): Add _gfortran_select_string_char4,
+	_gfortran_convert_char1_to_char4, _gfortran_convert_char4_to_char1,
+	_gfortran_transpose_char4, _gfortran_spread_char4,
+	_gfortran_spread_char4_scalar, _gfortran_reshape_char4,
+	_gfortran_pack_char4, _gfortran_pack_s_char4,
+	_gfortran_unpack0_char4 and _gfortran_unpack1_char4.
+	* Makefile.am: Add runtime/convert_char.c.
+	* Makefile.in: Regenerate.
+
+2008-05-17  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* io/list_read.c (list_formatted_read_scalar):  Declare
+	type as volatile to shut up compiler warning.
+
 2008-05-16  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	PR libfortran/25561

@@ -1,7 +1,312 @@
+2008-05-21  David S. Miller  <davem@davemloft.net>
+
+	* config.gcc (sparc-*-linux*): Always include sparc/t-linux in
+	tmake_file.
+
+2008-05-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cfgexpand.c (tree_expand_cfg): Zap the EH throw statement table
+	once finished.
+
+2008-05-20  David Daney  <ddaney@avtrex.com>
+
+	* config/mips/mips.md (UNSPEC_SYNC_NEW_OP_12,
+	UNSPEC_SYNC_OLD_OP_12,
+	UNSPEC_SYNC_EXCHANGE_12): New define_constants.
+	(UNSPEC_SYNC_EXCHANGE, UNSPEC_MEMORY_BARRIER,
+	UNSPEC_SET_GOT_VERSION,
+	UNSPEC_UPDATE_GOT_VERSION): Renumber.
+	(optab, insn): Add 'plus' and 'minus' to define_code_attr.
+	(atomic_hiqi_op): New define_code_iterator.
+	(sync_compare_and_swap<mode>): Call
+	mips_expand_atomic_qihi instead of
+	mips_expand_compare_and_swap_12.
+	(compare_and_swap_12): Use MIPS_COMPARE_AND_SWAP_12 instead of
+	MIPS_COMPARE_AND_SWAP_12_0.  Pass argument to
+	MIPS_COMPARE_AND_SWAP_12.
+	(sync_<optab><mode>, sync_old_<optab><mode>,
+	sync_new_<optab><mode>, sync_nand<mode>, sync_old_nand<mode>,
+	sync_new_nand<mode>): New define_expands for HI and QI mode
+	operands.
+	(sync_<optab>_12, sync_old_<optab>_12, sync_new_<optab>_12,
+	sync_nand_12, sync_old_nand_12, sync_new_nand_12): New insns.
+	(sync_lock_test_and_set<mode>): New define_expand for HI and QI
+	modes.
+	(test_and_set_12): New insn.
+	(sync_old_add<mode>, sync_new_add<mode>, sync_old_<optab><mode>,
+	sync_new_<optab><mode>, sync_old_nand<mode>,
+	sync_new_nand<mode>, sync_lock_test_and_set<mode>):  Add early
+	clobber to operand 0 for SI and DI mode insns.
+	* config/mips/mips-protos.h (mips_gen_fn_6, mips_gen_fn_5,
+	mips_gen_fn_4): New typedefs.
+	(mips_gen_fn_ptrs): Define new union type.
+	(mips_expand_compare_and_swap_12): Remove declaration.
+	(mips_expand_atomic_qihi): Declare function.
+	* config/mips/mips.c (mips_expand_compare_and_swap_12): Rename to...
+	(mips_expand_atomic_qihi): ... this.  Use new generator function
+	parameter.
+	* config/mips/mips.h (MIPS_COMPARE_AND_SWAP_12): Add OPS parameter.
+	(MIPS_COMPARE_AND_SWAP_12_0): Delete macro.
+	(MIPS_COMPARE_AND_SWAP_12_ZERO_OP,
+	MIPS_COMPARE_AND_SWAP_12_NONZERO_OP,
+	MIPS_SYNC_OP_12, MIPS_SYNC_OP_12_NOT_NOP,
+	MIPS_SYNC_OP_12_NOT_NOT, MIPS_SYNC_OLD_OP_12,
+	MIPS_SYNC_OLD_OP_12_NOT_NOP, MIPS_SYNC_OLD_OP_12_NOT_NOP_REG,
+	MIPS_SYNC_OLD_OP_12_NOT_NOT, MIPS_SYNC_OLD_OP_12_NOT_NOT_REG,
+	MIPS_SYNC_NEW_OP_12, MIPS_SYNC_NEW_OP_12_NOT_NOP,
+	MIPS_SYNC_NEW_OP_12_NOT_NOT, MIPS_SYNC_EXCHANGE_12,
+	MIPS_SYNC_EXCHANGE_12_ZERO_OP,
+	MIPS_SYNC_EXCHANGE_12_NONZERO_OP): New macros.
+
+2008-05-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_expand_vector_init_one_nonzero): Add
+	the missing break.
+
+2008-05-20  Anatoly Sokolov <aesok@post.ru>
+
+	* config/avr/avr.h (machine_function): Add 'is_OS_main' field.
+	* config/avr/avr.c (avr_OS_main_function_p): Add new function.
+	(avr_attribute_table): Add 'OS_main' function attribute.
+	(avr_regs_to_save, expand_prologue, expand_epilogue): Handle
+	functions with 'OS_main' attribute.
+
+2008-05-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/35204
+	* tree-ssa-sccvn.c (extract_and_process_scc_for_name): New
+	helper, split out from ...
+	(DFS): ... here.  Make the DFS walk non-recursive.
+
+2008-05-20  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
+	PR tree-optimization/36181
+	* tree-parloops.c (loop_has_vector_phi_nodes): New.
+	(parallelize_loops): Don't parallelize when the loop has vector
+	phi nodes.
+
+2008-05-20  Jan Sjodin  <jan.sjodin@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-loop-linear.c (gather_interchange_stats): Look in the access matrix,
+	and never look at the tree representation of the memory accesses.
+	(linear_transform_loops): Computes parameters and access matrices.
+	* tree-data-ref.c (compute_data_dependences_for_loop): Returns false when fails.
+	(access_matrix_get_index_for_parameter): New.
+	* tree-data-ref.h (struct access_matrix): New.
+	(AM_LOOP_NEST_NUM, AM_NB_INDUCTION_VARS, AM_PARAMETERS, AM_MATRIX,
+	AM_NB_PARAMETERS, AM_CONST_COLUMN_INDEX, AM_NB_COLUMNS,
+	AM_GET_SUBSCRIPT_ACCESS_VECTOR, AM_GET_ACCESS_MATRIX_ELEMENT,
+	am_vector_index_for_loop): New.
+	(struct data_reference): Add field access_matrix.
+	(DR_ACCESS_MATRIX): New.
+	(compute_data_dependences_for_loop): Update declaration.
+	(lambda_collect_parameters, lambda_compute_access_matrices): Declared.
+	* lambda.h (lambda_vector_vec_p): Declared.
+	* lambda-code.c: Depend on pointer-set.h.
+	(lambda_collect_parameters_from_af, lambda_collect_parameters,
+	av_for_af_base, av_for_af, build_access_matrix,
+	lambda_compute_access_matrices): New.
+	* Makefile.in (lambda-code.o): Depend on pointer-set.h.
+
+2008-05-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/install.texi2html: Generate gcc-vers.texi in $DESTDIR not
+	$SOURCEDIR/include.
+
+2008-05-20  Jan Sjodin  <jan.sjodin@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/36206
+	* tree-scalar-evolution.c: Remove enum INSERT_SUPERLOOP_CHRECS,
+	FOLD_CONVERSIONS.
+	(instantiate_scev_1): Rename flags to fold_conversions.
+	Do not check for INSERT_SUPERLOOP_CHRECS, keep SSA_NAMEs defined
+	outeside instantiation_loop.
+	* tree-chrec.h (evolution_function_is_affine_in_loop): New.
+	(evolution_function_is_affine_or_constant_p): Removed.
+	* tree-data-ref.c (dr_analyze_indices): Replace resolve_mixers with
+	instantiate_scev.
+	(analyze_siv_subscript): Pass in the loop nest number.
+	Call evolution_function_is_affine_in_loop instead of 
+	evolution_function_is_affine_p.
+	(analyze_overlapping_iterations): Pass in the loop nest number.
+
+2008-05-20  Jan Sjodin  <jan.sjodin@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/36206
+	* tree-chrec.h (chrec_fold_op): New.
+	* tree-data-ref.c (initialize_matrix_A): Traverse NOP_EXPR, PLUS_EXPR, and
+	other trees.
+
+2008-05-20  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* c-incpath.c (INO_T_EQ): Do not define on non-inode systems.
+	(DIRS_EQ): New.
+	(remove_duplicates): Do not set inode on non-inode systems.  Use
+	DIRS_EQ.
+
+2008-05-20  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* config.gcc (tm_file): Update comments about relative pathnames.
+
+2008-05-20  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-reassoc.c (fini_reassoc): Use the statistics
+	infrastructure.
+	* tree-ssa-sccvn.c (process_scc): Likewise.
+	* tree-ssa-sink.c (execute_sink_code): Likewise.
+	* tree-ssa-threadupdate.c (thread_through_all_blocks): Likewise.
+	* tree-vrp.c (process_assert_insertions): Likewise.
+	* tree-ssa-dce.c (eliminate_unnecessary_stmts): Likewise.
+	(perform_tree_ssa_dce): Likewise.
+	* tree-ssa-dom.c (tree_ssa_dominator_optimize): Likewise.
+	(dump_dominator_optimization_stats): Likewise.
+	* tree-vectorizer.c (vectorize_loops): Likewise.
+
+2008-05-20  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vn.c (vn_lookup_with_vuses): Do not use the alias oracle.
+
+2008-05-20  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/i386-protos.h (ix86_return_in_memory): Removed.
+	(ix86_i386elf_return_in_memory): Likewise.
+	(ix86_i386interix_return_in_memory): Likewise.
+	* config/i386/i386-interix.h (TARGET_RETURN_IN_MEMORY): Removed.
+	(SUBTARGET_RETURN_IN_MEMORY): New.
+	* config/i386/i386elf.h: Likewise.
+	* config/i386/ptx4-i.h: Likewise.
+	* config/i386/sol2-10.h: Likewise.
+	* config/i386/sysv4.h: Likewise.
+	* config/i386/vx-common.h: Likewise.
+	* config/i386/i386.h (TARGET_RETURN_IN_MEMORY): Removed.
+	* config/i386/i386.c (ix86_return_in_memory): Made static and
+	make use of optional SUBTARGET_RETURN_IN_MEMORY macro.
+	(ix86_i386elf_return_in_memory): Removed.
+	(ix86_i386interix_return_in_memory): Removed.
+	(TARGET_RETURN_IN_MEMORY): Declared within i386.c only.
+	* target-def.h (TARGET_RETURN_IN_MEMORY): Remove protection #ifdef.
+
+2008-05-20  Alexandre Oliva  <aoliva@redhat.com>
+
+	* cselib.c (cselib_record_sets): Use correct mode for IF_THEN_ELSE.
+
+2008-05-19  Xinliang David Li  <davidxl@google.com>
+
+	* tree-ssa-dce.c: Revert patches of 2008-05-17 and 2008-05-18. 
+	* opts.c: Ditto.
+	* common.opt: Ditto.
+	* doc/invoke.texi: Ditto.
+
+2008-05-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.c (substitute_in_expr) <tcc_vl_exp>: Fix thinko.
+	(substitute_placeholder_in_expr) <tcc_vl_exp>: Minor tweak.
+
+2008-05-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_expand_vector_init_concat): Change
+	sizes of operand array from 8/4 to 4/2.
+	(ix86_expand_vector_init_general): Change size of operand array
+	from 32 to 16.  Remove op0, op1 and half_mode.
+
+2008-05-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_expand_vector_init_concat): New.
+	(ix86_expand_vector_init_interleave): Likewise.
+	(ix86_expand_vector_init_general): Use them.  Assert word_mode
+	== SImode when n_words == 4.
+
+2008-05-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_secondary_reload): New static function.
+	(TARGET_SECONDARY_RELOAD): New define.
+	* config/i386/i386.h (SECONDARY_OUTPUT_RELOAD_CLASS): Remove.
+	* config/i386/i386.md (reload_outqi): Remove.
+
+2008-05-18  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR middle-end/35509
+	* builtins.c (mathfn_built_in_1): Renamed from mathfn_built_in.
+	Add `implicit' parameter.  Handle BUILT_IN_SIGNBIT.
+	(mathfn_built_in): Rewrite in terms of mathfn_built_in_1.
+	(fold_builtin_classify): Handle BUILT_IN_ISINF_SIGN.
+	(fold_builtin_1): Likewise.
+	* builtins.def (BUILT_IN_ISINF_SIGN): New.
+	c-common.c (check_builtin_function_arguments): Handle
+	BUILT_IN_ISINF_SIGN.
+	* doc/extend.texi: Document __builtin_isinf_sign.
+	* fold-const.c (operand_equal_p): Handle COND_EXPR.
+
+2008-05-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-dom.c (tree_ssa_dominator_optimize): If some blocks need
+	EH cleanup at the end of the pass, search for those that have been
+	turned into forwarder blocks and do the cleanup on their successor.
+
+2008-05-18  Richard Guenther  <rguenther@suse.de>
+
+	* tree-cfg.c (verify_gimple_expr): Allow conversions from
+	pointers to sizetype and vice versa.
+
+2008-05-18 Xinliang David Li   <davidxl@google.com>
+
+	* gcc/tree-ssa-dce.c: Coding style fix.
+	(check_pow): Documentation comment. 
+	(check_log): Documenation comment. Coding style fix.
+	(is_unnecessary_except_errno_call): Ditto.
+	(gen_conditions_for_pow): Ditto.
+	(gen_conditions_for_log): Ditto.
+	(gen_shrink_wrap_conditions): Ditto.
+	(shrink_wrap_one_built_in_calls): Ditto.
+	* gcc/doc/invoke.texi: Better documentation string.
+	* ChangeLog: Fix wrong change log entries from 
+	May 17 checkin on function call DCE.
+
+2008-05-17  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (sh_output_mi_thunk): Update the use of init_flow.
+
+2008-05-17  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* doc/rtl.texi (RTL_CONST_CALL_P, RTL_PURE_CALL_P): Fixed typos.
+	* df-problems.c (simulation routines): Fixed block comment to
+	properly say how to add forwards scanning functions.
+	
+2008-05-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-inline.c (setup_one_parameter): Remove dead code.
+
+2008-05-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* fold-const.c (fold_unary) <CASE_CONVERT>: Fold the cast into
+	a BIT_AND_EXPR only for an INTEGER_TYPE.
+
+2008-05-17 Xinliang David Li   <davidxl@google.com>
+
+	* gcc/tree-ssa-dce.c (cond_dead_built_in_calls): New static variable.
+	(check_pow, check_log, is_unnecessary_except_errno_call): New 
+	functions to check for eliminating math functions that are pure 
+	except for setting errno.
+	(gen_conditions_for_pow, gen_conditionas_for_log): New functions to
+	general condition expressions for shrink-wrapping pow/log calls.
+	(gen_shrink_wrap_conditions): Ditto.
+	(shrink_wrap_one_built_in_call): Ditto.
+	(shrink_wrap_conditional_dead_built_in_calls): Ditto.
+	(mark_operand_necessary): If debugging, output if OP is necessary.
+	(eliminate_unnecessary_stmts): Eliminate pow, log calls that are
+	unnecessary.
+	* gcc/opts.c (decode_options): set flag_tree_builtin_dce to 1 when
+	opt level >= 2.
+	* gcc/common.opt: New user flag -ftree-builtin-dce.
+	* gcc/doc/invoke.texi (-ftree-builtin-dce): New option.
+
 2008-05-16  David S. Miller  <davem@davemloft.net>
 
-	* config/sparc/linux.h (NO_PROFILE_COUNTERS): Undef before
-	overriding.
+	* config/sparc/linux.h (NO_PROFILE_COUNTERS): Undef before overriding.
 	* config/sparc/linux64.h (NO_PROFILE_COUNTERS): Likewise.
 
 2008-05-16  Uros Bizjak  <ubizjak@gmail.com>
@@ -14,7 +319,7 @@
 	* ifcvt.c (dead_or_predicable): Rename
 	df_simulate_one_insn_backwards to df_simulate_one_insn.
 	* recog.c (peephole2_optimize): Ditto.
-	* rtl-factoring.c (collect_pattern_seqs, clear_regs_live_in_seq): 
+	* rtl-factoring.c (collect_pattern_seqs, clear_regs_live_in_seq):
 	Ditto.
 	* df.h: Rename df_simulate_one_insn_backwards to
 	df_simulate_one_insn.  and delete df_simulate_one_insn_forwards.
@@ -23,7 +328,6 @@
 	(df_simulate_one_insn_backwards): Renamed to df_simulate_one_insn.
 	(df_simulate_one_insn_forwards): Removed.
 
-	
 2008-05-16  Doug Kwan  <dougkwan@google.com>
 
 	* real.c (real_to_decimal, real_to_hexadecimal): Distinguish
@@ -53,8 +357,8 @@
 	* tree-ssa-sccvn.c (compare_ops, init_scc_vn): Ditto.
 	* function.h (cfun.last_stmt_uid): New field.
 	* tree-flow-inline.h (set_gimple_stmt_uid, gimple_stmt_uid,
-	gimple_stmt_max_uid, set_gimple_stmt_max_uid, 
-	inc_gimple_stmt_max_uid): New functions.
+	gimple_stmt_max_uid, set_gimple_stmt_max_uid, inc_gimple_stmt_max_uid):
+	New functions.
 	* tree-dfa.c (renumber_gimple_stmt_uids): New function.
 	(create_stmt_ann): Initialize the ann->uid field.
 	* tree-ssa-pre.c (compute_avail): Encapsulate the stmt_ann->uid
@@ -95,8 +399,7 @@
 	MULTILIB_MATCHES, MULTILIB_EXCEPTIONS): Likewise.
 	* config/bfin/t-bfin-linux (MULTILIB_OPTIONS, MULTILIB_DIRNAMES,
 	MULTILIB_MATCHES, MULTILIB_EXCEPTIONS): Likewise.
-	* config/bfin/bfin-protos.h (enum bfin_cpu_type): Add
-	BFIN_CPU_UNKNOWN.
+	* config/bfin/bfin-protos.h (enum bfin_cpu_type): Add BFIN_CPU_UNKNOWN.
 	* config/bfin/elf.h (STARTFILE_SPEC): Use specific CRT for BF561.
 	(LIB_SPEC): Use proper linker script for bf561.  Error if no mcpu
 	option.
@@ -124,8 +427,8 @@
 	* cgraph.h (compute_inline_parameters): Made public.
 	* tree-pass.h (ipa_opt_pass): Removed function_generate_summary,
 	variable_generate_summary, function_write_summary,
-	variable_write_summary, variable_read_summary.  Added 
-	generate_summary, write_summary, read_summary.
+	variable_write_summary, variable_read_summary.  Added generate_summary,
+	write_summary, read_summary.
 	* cgraphunit.c (cgraph_process_new_functions): Changed call from
 	pass_ipa_inline.function_generate_summary, to
 	compute_inline_parameters. 

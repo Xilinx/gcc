@@ -319,6 +319,23 @@ tree_ssa_dominator_optimize (void)
      such edges from the CFG as needed.  */
   if (!bitmap_empty_p (need_eh_cleanup))
     {
+      unsigned i;
+      bitmap_iterator bi;
+
+      /* Jump threading may have created forwarder blocks from blocks
+	 needing EH cleanup; the new successor of these blocks, which
+	 has inherited from the original block, needs the cleanup.  */
+      EXECUTE_IF_SET_IN_BITMAP (need_eh_cleanup, 0, i, bi)
+	{
+	  basic_block bb = BASIC_BLOCK (i);
+	  if (single_succ_p (bb) == 1
+	      && (single_succ_edge (bb)->flags & EDGE_EH) == 0)
+	    {
+	      bitmap_clear_bit (need_eh_cleanup, i);
+	      bitmap_set_bit (need_eh_cleanup, single_succ (bb)->index);
+	    }
+	}
+
       tree_purge_all_dead_eh_edges (need_eh_cleanup);
       bitmap_zero (need_eh_cleanup);
     }
@@ -339,6 +356,13 @@ tree_ssa_dominator_optimize (void)
       if (value && !is_gimple_min_invariant (value))
 	SSA_NAME_VALUE (name) = NULL;
     }
+
+  statistics_counter_event (cfun, "Redundant expressions eliminated",
+			    opt_stats.num_re);
+  statistics_counter_event (cfun, "Constants propagated",
+			    opt_stats.num_const_prop);
+  statistics_counter_event (cfun, "Copies propagated",
+			    opt_stats.num_copy_prop);
 
   /* Debugging dumps.  */
   if (dump_file && (dump_flags & TDF_STATS))
@@ -851,24 +875,10 @@ record_equivalences_from_incoming_edge (basic_block bb)
 void
 dump_dominator_optimization_stats (FILE *file)
 {
-  long n_exprs;
-
   fprintf (file, "Total number of statements:                   %6ld\n\n",
 	   opt_stats.num_stmts);
   fprintf (file, "Exprs considered for dominator optimizations: %6ld\n",
            opt_stats.num_exprs_considered);
-
-  n_exprs = opt_stats.num_exprs_considered;
-  if (n_exprs == 0)
-    n_exprs = 1;
-
-  fprintf (file, "    Redundant expressions eliminated:         %6ld (%.0f%%)\n",
-	   opt_stats.num_re, PERCENT (opt_stats.num_re,
-				      n_exprs));
-  fprintf (file, "    Constants propagated:                     %6ld\n",
-	   opt_stats.num_const_prop);
-  fprintf (file, "    Copies propagated:                        %6ld\n",
-	   opt_stats.num_copy_prop);
 
   fprintf (file, "\nHash table statistics:\n");
 

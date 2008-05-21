@@ -1261,25 +1261,6 @@ do {									\
 
 #define GOT_SYMBOL_NAME "_GLOBAL_OFFSET_TABLE_"
 
-/* A C expression which can inhibit the returning of certain function
-   values in registers, based on the type of value.  A nonzero value
-   says to return the function value in memory, just as large
-   structures are always returned.  Here TYPE will be a C expression
-   of type `tree', representing the data type of the value.
-
-   Note that values of mode `BLKmode' must be explicitly handled by
-   this macro.  Also, the option `-fpcc-struct-return' takes effect
-   regardless of this macro.  On most systems, it is possible to
-   leave the macro undefined; this causes a default definition to be
-   used, whose value is the constant 1 for `BLKmode' values, and 0
-   otherwise.
-
-   Do not use this macro to indicate that structures and unions
-   should always be returned in memory.  You should instead use
-   `DEFAULT_PCC_STRUCT_RETURN' to indicate this.  */
-
-#define TARGET_RETURN_IN_MEMORY ix86_return_in_memory
-
 /* This is overridden by <cygwin.h>.  */
 #define MS_AGGREGATE_RETURN 0
 
@@ -1523,15 +1504,6 @@ enum reg_class
   (GET_MODE_BITSIZE (MODE) < 32 && INTEGRAL_MODE_P (MODE)	\
    ? mode_for_size (32, GET_MODE_CLASS (MODE), 0)		\
    : MODE)
-
-/* QImode spills from non-QI registers need a scratch.  This does not
-   happen often -- the only example so far requires an uninitialized
-   pseudo.  */
-
-#define SECONDARY_OUTPUT_RELOAD_CLASS(CLASS, MODE, OUT)			\
-  (((CLASS) == GENERAL_REGS || (CLASS) == LEGACY_REGS			\
-    || (CLASS) == INDEX_REGS) && !TARGET_64BIT && (MODE) == QImode	\
-   ? Q_REGS : NO_REGS)
 
 /* Return the maximum number of consecutive registers
    needed to represent mode MODE in a register of class CLASS.  */
