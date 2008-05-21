@@ -845,6 +845,11 @@
 ))
 	   
 
+(defun outv_ident (v :cstring m)
+  (outv v m)
+  (outnewline_err)
+  v)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun install_ctype (ctyp)
   (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
@@ -970,11 +975,60 @@
   (outnewline_err) 
   )
 
+(defun dotest_or ()
+  (outcstring_err "**or tests**")
+  (outnewline_err)
+  (if  (or
+	(notnull (outv_ident
+	 (make_stringconst discr_string "first-orand") "first-in-or"))
+	(notnull (outv_ident 
+	 (make_stringconst discr_string "second-orand") "second-in-or"))
+	(notnull (outv_ident 
+	 (make_integerbox discr_integer 123) "third-in-or"))
+	(notnull (outv_ident
+	 (make_integerbox discr_integer 456) "fourth-in-or")))
+      (progn
+	(outcstring_err "**first or test ok**")
+	(outnewline_err))
+    (progn
+      (outcstring_err "@@@ first or test FAILED! @@@@")
+      (outnewline_err)))
+  ;;-   (cond ( (let ( ( aa (make_integerbox discr_integer 111) )
+  ;;- 		 ( bb (make_integerbox discr_integer 222) )
+  ;;- 		 ( cc (make_integerbox discr_integer 333) )
+  ;;- 		 ( zz () ) )
+  ;;- 	    (or aa
+  ;;- 		bb
+  ;;- 		cc
+  ;;- 		zz))
+  ;;- 	  (outcstring_err "@@@ second or test FAILED! @@@")
+  ;;- 	  (outnewline_err))
+  ;;- 	(:else
+  ;;- 	 (outcstring_err "**second or test ok**")
+  ;;- 	 (outnewline_err)))
+  ;;-   (cond ( (or
+  ;;- 	   (outv_ident
+  ;;- 	    (make_stringconst discr_string "again-first-orand") "again-first-in-or")
+  ;;- 	   (outv_ident
+  ;;- 	    () "again-nil-in-or")
+  ;;- 	   (outv_ident 
+  ;;- 	    (make_stringconst discr_string "again-third-orand") "again-third--in-or"))
+  ;;- 	  (outcstring_err "@@@ again or test FAILED! @@@")
+  ;;- 	  (outnewline_err))
+  ;;- 	(:else
+  ;;- 	 (outcstring_err "**again or test ok**")
+  ;;- 	 (outnewline_err)))
+  (outcstring_err "**ended or tests**")
+  (outnewline_err)
+  )
+
 
 (defun test_command (dispatcher arg)
   (outcstring_err "**start of tests in testrun1**")
   (outnewline_err)
   (dotest_progn)
+  (outnewline_err)
+  (dotest_or)
   (outnewline_err)
   (dotest_multiple)
   (outnewline_err)

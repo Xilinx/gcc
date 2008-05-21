@@ -890,7 +890,9 @@
   (let ( (syname (unsafe_get_field :named_name symb)) 
 	 (sydict (unsafe_get_field :tok_symboldict tokz))
 	 (oldsy (mapstring_getstr sydict syname)) )
-    (or oldsy (progn 
+    (if oldsy 
+	oldsy 
+      (progn 
 		(mapstring_putstr sydict syname symb) 
 ;		(messageval_dbg "warm interning symbol" symb)
 		symb))
@@ -903,7 +905,9 @@
   (let ( (kwname (unsafe_get_field :named_name keyw)) 
 	 (kwdict (unsafe_get_field :tok_keywdict tokz))
 	 (oldkw (mapstring_getstr kwdict kwname)) )
-    (or oldkw (progn (mapstring_putstr kwdict kwname keyw) keyw))
+    (if oldkw 
+	oldkw
+      (progn (mapstring_putstr kwdict kwname keyw) keyw))
 ))
 
 ;;; container of a mapstring for cloning symbol, maping symbol names to boxed integer
@@ -923,7 +927,7 @@
 		  (assert_msg "invalid symb in clone_symbol" ())
 		  (return))))
 	 (boxi (mapstring_getstr mapstr synam)) )
-    (or (is_integerbox boxi)
+    (if (not (is_integerbox boxi))
 	(progn 
 	  (setq boxi (make_integerbox discr_integer 0))
 	  (mapstring_putstr mapstr synam boxi)))
@@ -1099,7 +1103,7 @@
 		    
 ;;; translate a list to a multiple - with each element transformed by a function f (default the identity)
 (defun list_to_multiple (lis disc f)
-  (or disc (setq disc discr_multiple))
+  (if (null disc) (setq disc discr_multiple))
   (if (is_list lis)
       (let ( (:long ln (list_length lis))
 	     (tup (make_multiple disc ln))
@@ -1119,7 +1123,7 @@
 
 ;;; translate a pairlist to a tuple - with each element transformed by a function f (default the identity)
 (defun pairlist_to_multiple (pair disc f)
-  (or disc (setq disc discr_multiple))
+  (if (null disc) (setq disc discr_multiple))
   (let ( (:long ln 0) )
     (let ( (curpair pair) )
       (forever loopln
@@ -1151,6 +1155,17 @@
 		     (if (>=i ix ln) (exit tuploop))
 		     (f  (multiple_nth tup ix) ix)
 		     (setq ix (+i ix 1)))))))
+
+;; full iterator backward
+(defun multiple_backward_every (tup f)
+  (if (is_multiple tup)
+      (if (is_closure f)
+	  (let ( (:long ln (multiple_length tup))
+		 (:long ix (-i ln 1)) )
+	    (forever tuploop
+		     (if (<i ix 0) (exit tuploop))
+		     (f  (multiple_nth tup ix) ix)
+		     (setq ix (-i ix 1)))))))
 
 ;;; iterator on tuple , if the called f returns nil the iteration is stopped
 ;;; the function is called with the component and its index
@@ -2585,7 +2600,7 @@
 	 (curpair (pair_tail (list_first cont)))
 	 (symb (pair_head curpair))
 	 )
-    (or (is_a symb class_symbol)
+    (if (is_not_a symb class_symbol)
 	(error_plain loc "missing symbol for defprimitive"))
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments
@@ -2593,11 +2608,11 @@
       (setq curpair (pair_tail curpair))
       ;; parse the type keyword
       (let ( (typkw  (pair_head curpair)) )
-	(or (is_a typkw class_keyword)
+	(if (is_not_a typkw class_keyword)
 	    (error_plain loc "missing type keyword for defprimitive"))
 	(let ( (cty (unsafe_get_field :symb_data typkw)) )
-	  (or (and (is_a cty class_ctype) 
-		   (== (unsafe_get_field :ctype_keyword cty) typkw))
+	  (if (not (and (is_a cty class_ctype) 
+		   (== (unsafe_get_field :ctype_keyword cty) typkw)))
 	      (progn
 		(error_strv loc "invalid type keyword for defprimitive"
 			    (unsafe_get_field :named_name typkw))    
@@ -2658,7 +2673,7 @@
 	 (symb (pair_head curpair))
 	 (newenv (fresh_env env))
 	 )
-    (or (is_a symb class_symbol)
+    (if (is_not_a symb class_symbol)
 	(error_plain loc "missing symbol for defun"))
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments
@@ -2666,7 +2681,7 @@
 	(is_a (pair_head curpair) class_sexpr)
 	(error_plain loc "missing or invalid arglist for defun"))
     (let ( (btup (lambda_arg_bindings (pair_head curpair) sexpr)) )
-      (or (is_multiple btup)
+      (if (not (is_multiple btup))
 	  (error_plain loc "missing formal arguments for defun"))
       (multiple_every btup (lambda (fb) (put_env newenv fb)))
       (setq curpair (pair_tail curpair))
@@ -2707,7 +2722,7 @@
 	 (curpair (pair_tail (list_first cont)))
 	 (symb (pair_head curpair))
 	 )
-    (or (is_a symb class_symbol)
+    (if (is_not_a symb class_symbol)
 	(error_plain loc "missing symbol for defclass"))
     (setq curpair (pair_tail curpair))
     (forever scanloop
@@ -2777,7 +2792,7 @@
 		       ( (== curkw ':docstr)
 			 (if docstr (error_plain loc "duplicate docstr in defclass"))
 			 (setq docstr (macroexpand_1 curval env mexpander))
-			 (or (is_string docstr)
+			 (if (not (is_string docstr))
 			     (error_plain loc "bad docstr in class"))
 			 )
 		       (:else
@@ -2950,11 +2965,11 @@
 	 (cla ())
 	 (clabind ())
 	 )
-    (or (is_a symb class_symbol)
+    (if (is_not_a symb class_symbol)
 	(error_plain loc "missing symbol for definstance"))
     (setq curpair (pair_tail curpair))
     (let ( (nam (pair_head curpair)) )
-      (or (is_a nam class_symbol)
+      (if (is_not_a nam class_symbol)
 	  (error_plain loc "missing class name for definstance"))
       (let ( (bnd (find_env env nam)) 
 	     (fldlist (make_list discr_list))
@@ -2978,7 +2993,7 @@
 	(forever insloop
 		 (if (not (is_pair curpair)) (exit insloop))
 		 (let ( (curfkw (pair_head curpair)) )
-		   (or (is_a curfkw class_keyword)
+		   (if (is_not_a curfkw class_keyword)
 		       (error_plain loc "expecting keyword in definstance"))
 		   (setq curpair (pair_tail curpair))
 		   (let ( (curexp (pair_head curpair)) )
@@ -3045,11 +3060,11 @@
 	 (cla ())
 	 (clabind ())
 	 )
-    (or (is_a symb class_symbol)
+    (if (is_not_a symb class_symbol)
 	(error_plain loc "missing symbol for definstance"))
     (setq curpair (pair_tail curpair))
     (let ( (nam (pair_head curpair)) )
-      (or (is_a nam class_symbol)
+      (if (is_not_a nam class_symbol)
 	  (error_plain loc "missing class name for definstance"))
       (let ( (bnd (find_env env nam)) 
 	     (fldlist (make_list discr_list))
@@ -3073,7 +3088,7 @@
 	(forever insloop
 		 (if (not (is_pair curpair)) (exit insloop))
 		 (let ( (curfkw (pair_head curpair)) )
-		   (or (is_a curfkw class_keyword)
+		   (if (is_not_a curfkw class_keyword)
 		       (error_plain loc "expecting keyword in definstance"))
 		   (setq curpair (pair_tail curpair))
 		   (let ( (curexp (pair_head curpair)) )
@@ -3134,7 +3149,7 @@
 	 (clabind ())
 	 )
     (debugmsg sexpr "mexpand_make_instance start sexpr" (the_callcount))
-    (or (is_a claname class_symbol)
+    (if (is_not_a claname class_symbol)
 	(error_plain loc "missing class symbol for make_instance"))
     (let ( (bnd (find_env env claname)) 
 	   (fldlist (make_list discr_list))
@@ -3157,7 +3172,7 @@
       (forever insloop
 	       (if (not (is_pair curpair)) (exit insloop))
 	       (let ( (curfkw (pair_head curpair)) )
-		 (or (is_a curfkw class_keyword)
+		 (if (is_not_a curfkw class_keyword)
 		     (error_plain loc "expecting keyword in make_instance"))
 		 (setq curpair (pair_tail curpair))
 		 (let ( (curexp (pair_head curpair)) )
@@ -3199,7 +3214,7 @@
       (forever insloop
 	       (if (not (is_pair curpair)) (exit insloop))
 	       (let ( (curfkw (pair_head curpair)) )
-		 (or (is_a curfkw class_keyword)
+		 (if (is_not_a curfkw class_keyword)
 		     (error_plain loc "expecting heyword in unsafe_put_fields"))
 		 (setq curpair (pair_tail curpair))
 		 (let ( (curexp (pair_head curpair)) )
@@ -3226,7 +3241,7 @@
 	 (curpair (pair_tail (list_first cont)))
 	 (curfkw (pair_head curpair)) 
 	 )
-    (or (is_a curfkw class_keyword)
+    (if (is_not_a curfkw class_keyword)
 	(progn
 	  (error_plain loc "field keyword expected in unsafe_get_field")
 	  (return)))
@@ -3261,7 +3276,7 @@
 	 (curpair (pair_tail (list_first cont)))
 	 (cursym (pair_head curpair)) 
 	 )
-    (or (is_a cursym class_symbol)
+    (if (is_not_a cursym class_symbol)
 	(progn
 	  (error_plain loc "var symbol name expected in setq")
 	  (return)))
@@ -3324,7 +3339,7 @@
 		    (pair_tail (list_first cont))
 		    discr_multiple
 		    (lambda (c)
-		      (or (is_a c class_sexpr)
+		      (if (is_not_a c class_sexpr)
 			  (error_plain loc "COND with non-sexpr"))
 		      c
 		      ))) 
@@ -3446,6 +3461,7 @@
 (defun mexpand_or (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (debugmsg sexpr "mexpand_or sexpr" (the_callcount))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -3458,10 +3474,13 @@
 	)
     (if (<i nbcomp 1)
 	(error_plain loc "OR without sons")
-      (make_instance class_src_or
-		     :src_loc loc
-		     :sor_disj cxtup)
-)))
+      (let ( (res 
+	      (make_instance class_src_or
+			     :src_loc loc
+			     :sor_disj cxtup)) )
+	(debugmsg res "mexpand_or res" (the_callcount))
+	(return res)
+	))))
 (install_initial_macro 'or mexpand_or)
 
 ;;;;;;;; for LET
@@ -3496,7 +3515,8 @@
 	    (setq var curarg)
 	    (setq curpair (pair_tail curpair))
 	    (setq curarg (pair_head curpair))))
-    (or var (error_plain loc "missing variable in letbinding"))
+    (if (null var) 
+	(error_plain loc "missing variable in letbinding"))
     (if curarg
 	(progn 
 	  (setq expr (macroexpand_1 curarg env mexpander))
@@ -3694,7 +3714,7 @@
 	 (labnam (pair_head curpair))
 	 (newenv (fresh_env env))
 	 )
-    (or (is_a labnam class_symbol)
+    (if (is_not_a labnam class_symbol)
 	(progn
 	  (error_plain loc "missing label in FOREVER")
 	  (return)))
@@ -3724,13 +3744,13 @@
 	 (labnam (pair_head curpair))
 	 (newenv (fresh_env env))
 	 )
-    (or (is_a labnam class_symbol)
+    (if (is_not_a labnam class_symbol)
 	(progn
 	  (error_plain loc "missing label in EXIT")
 	  (return)))
     (setq curpair (pair_tail curpair))
     (let ( (labind (find_env env labnam)) )
-	   (or (is_a labind class_label_binding)
+	   (if (is_not_a labind class_label_binding)
 	       (progn 
 		 (error_strv loc "bad label in EXIT" 
 			     (unsafe_get_field :named_name labnam))
@@ -4390,7 +4410,7 @@
       ( (is_a bind class_value_binding)
 	(let ( (bvar (mapobject_get (unsafe_get_field :nctx_valbindmap ncx) bind)) )
 	  (debugmsg bind "normexp_symbol value bind" (the_callcount))
-	  (or bvar 
+	  (if (null bvar)
 	      (let ( (newbvar 
 		      (make_instance class_nrep_startval
 				     :nrep_loc psloc
@@ -4596,7 +4616,7 @@
 	    (:long nbarg (multiple_length nargs))
 	    (:long nbexp (multiple_length sopexp))
 	    )
-       (or (==i nbarg (multiple_length sopformals))
+       (if (!=i nbarg (multiple_length sopformals))
 	   (progn
 	     (error_strv sloc "length mismatch between formals & actuals in primitive" 
 			 sopnamstr)
@@ -4717,7 +4737,7 @@
 						  :napp_args nargs
 						  ))) )
 	(unsafe_put_fields clocc :nocc_bind cbind)
-	(or (is_list nbindargs) 
+	(if (not (is_list nbindargs))
 	    (setq nbindargs (make_list discr_list)))
 	(list_append nbindargs cbind)
 	(return clocc nbindargs)
@@ -4777,7 +4797,7 @@
 				   :letbind_expr nsend))
 	    )
 	(unsafe_put_fields clocc :nocc_bind cbind)
-	(or (is_list nbindrecv) 
+	(if (not (is_list nbindrecv))
 	    (setq nbindrecv (make_list discr_list)))
 	(list_append nbindrecv cbind)
 	(debugmsg nbindrecv "normexp_msend final nbindrecv" (the_callcount))
@@ -4913,7 +4933,7 @@
 						     :nif_ctyp ctypif
 						     ))) )
 	   (unsafe_put_fields clocc :nocc_bind cbind)
-	   (or (is_list nbindif) 
+	   (if (not (is_list nbindif))
 	       (setq nbindif (make_list discr_list)))
 	   (list_append nbindif cbind)
 	   (return clocc nbindif)
@@ -4923,67 +4943,86 @@
 		(lambda (recv env) (unsafe_get_field :nif_ctyp recv)))
 
 ;;;;;;;;;;;;;;;; normalize an or
-;; (OR a1) is a1
-;; (OR a1 a2) is (IF a1 a1 a2) -- ie let aa1 = a1 in (IF aa1 aa1 a2)
-;; (OR a1 a2 a3) is let aa1 = a1 in (IF aa1 aa1 (let aa2=a2 in (IF aa2 aa2 a3)))
+;; (OR (f1 a1)) is let d1 = (f1 a1) in d1
+;; (OR (f1 a1) (f2 a2)) is let o1 = (let d1 = (f1 a1) in  (if d1 d1 (let d2 = (f2 a2) in d2))) in o1
 (defun normexp_or (recv env ncx psloc)
   (assert_msg "check or recv" (is_a recv class_src_or))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debugmsg recv "normexp_or recv" (the_callcount))
-  (let ( (sloc (unsafe_get_field :src_loc recv))
-	 (sdisj (unsafe_get_field :sor_disj recv))
-	 (:long nbdisj (multiple_length sdisj))
-	 (:long ix (-i nbdisj 1))
-	 (nor ())
-	 (ctyp ctype_void)
-	 (nbind (make_list discr_list))
-	 )
-    (forever backloop
-	     (if (<i ix 0) (exit backloop))
-	     (let ( (curdis (multiple_nth sdisj ix)) )
-	       (multicall 
-		(ncur nbindcur)
-		(normal_exp curdis env ncx sloc)
-		(assert_msg "check nbindcur" (is_list_or_null nbindcur))
-		(let ( (newenv (fresh_env env)) )
-		  (list_every 
-		   nbindcur
-		   (lambda (b) (put_env newenv b)))
-		  (if nor
-		      (let ( (csym (clone_symbol '_or_))
-			     (clocc  (make_instance  class_nrep_locsymocc
-						     :nrep_loc sloc
-						     :nocc_symb csym)) 
-			     (ctypcur (get_ctype ncur newenv)) 
-			     (cbind (make_instance class_normlet_binding
-						   :letbind_loc sloc
-						   :binder csym
-						   :letbind_type ctypcur
-						   :letbind_expr nbindcur
-						   ))
-			     (nif (make_instance class_nrep_if
-						 :nrep_loc sloc
-						 :nif_test clocc
-						 :nif_then clocc
-						 :nif_else nor
-						 :nif_ctyp ctypcur))
-				    )
-			(unsafe_put_fields clocc :nocc_bind cbind)
-			(if (not (is_list nbindcur)) (setq nbindcur (make_list discr_list)))
-			(and (!= ctypcur ctyp)
-			     (!= ctypcur ctype_void)
-			     (!= ctyp ctype_void)
-			     (error_plain sloc "incompatible types in OR"))
-			(if (== ctyp ctype_void) (setq ctyp ctypcur))
-			(list_append nbindcur cbind)
-			(setq nor (wrap_normal_let1 clocc nbindcur sloc))
-			     )))))
-	     (setq ix (-i ix 1))
-	     )
-    (debugmsg nor "normexp_or result nor" (the_callcount))
-    (return nor (make_list discr_list))
-    ))
+  (let ( 
+	(boxorcount (make_integerbox discr_integer (the_callcount)))
+	(sloc (unsafe_get_field :src_loc recv))
+	(sdisj (unsafe_get_field :sor_disj recv))
+	(:long nbdisj (multiple_length sdisj))
+	(:long ix (-i nbdisj 1))
+	(norbox (make_box discr_box (the_null)))
+	(nbindorbox (make_box discr_box (make_list discr_list)))
+	(ctyporbox (make_box discr_box ctype_void))
+	(newenv (fresh_env env))
+	)
+    (multiple_backward_every 
+     sdisj
+     (lambda (scur :long six)
+       (debugmsg scur "normexp scur" (get_int boxorcount))
+       (multicall
+        (ncur nbind)
+        (normal_exp scur env ncx sloc)
+        (debugmsg ncur "normexp ncur" (get_int boxorcount))
+        (list_every ncur
+                    (lambda (bnd) (put_env newenv bnd)))
+        (if (null (box_content norbox))
+	    (progn
+	      (box_put nbindorbox nbind)
+	      (box_put norbox ncur) 
+	      (box_put ctyporbox (get_ctype ncur newenv))
+	      (the_null)
+	      )
+	  (let ( (ctypcur (get_ctype ncur newenv))
+		 )
+	    (assert_msg "check ctypcur" (is_a ctypcur class_ctype))
+	    (if (!= ctypcur (box_content ctyporbox))
+		(error_plain  sloc "disjuncts' type mismatch in OR"))
+	    (let (
+	    	  ;; ncur is normal, so simple
+	    	  (nifor (make_instance
+	    		  class_nrep_if
+	    		  :nrep_loc sloc
+	    		  :nif_test ncur
+	    		  :nif_then ncur
+	    		  :nif_else (wrap_normal_let1 (box_content norbox) (box_content nbindorbox) sloc)
+	    		  :nif_ctyp ctypcur
+	    		  )
+	    		 )
+	    	  (csymor (clone_symbol 'or_))
+		  (corbind (make_instance 
+	    	 	    class_normlet_binding
+	    	 	    :binder csymor
+	    	 	    :letbind_loc sloc
+	    	 	    :letbind_type ctypcur
+	    	 	    :letbind_expr nifor))
+		  (corocc (make_instance
+			   class_nrep_locsymocc
+	    	 	   :nrep_loc sloc
+	    	 	   :nocc_ctyp ctypcur
+	    	 	   :nocc_symb csymor
+	    	 	   :nocc_bind corbind))
+	    	  )
+	      (box_put nbindorbox (make_list discr_list))
+	      (list_append (box_content nbindorbox) corbind)
+	      (box_put norbox corocc)
+	      (the_null)
+	      )
+	    )
+	  )
+	)
+       )
+     )
+    (debugmsg (box_content norbox) "normexp_or result nor" (the_callcount))
+    (debugmsg (box_content nbindorbox) "normexp_or result nbindor" (the_callcount))
+    (return  (box_content norbox) (box_content nbindorbox))
+    )
+  )
 (install_method class_src_or normal_exp normexp_or)
 
 ;;;;;; normalize a PROGN
@@ -5884,7 +5923,8 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (valmap  (unsafe_get_field :nctx_valmap ncx))
 	 (osydata (mapobject_get valmap sym)) )
-    (or osydata 
+    (if osydata
+	osydata
 	(let ( (:long syhash (obj_hash sym))
 	       (synamstr (unsafe_get_field :named_name sym))
 	       ;; make the datastring from synamstr
@@ -5919,7 +5959,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (valmap  (unsafe_get_field :nctx_valmap ncx))
 	 (osydata (mapobject_get valmap keyw)) )
-    (or osydata 
+    (if osydata osydata
 	(let ( (:long syhash (obj_hash keyw))
 	       (synamstr (unsafe_get_field :named_name keyw))
 	       ;; make the datastring from synamstr
@@ -7094,6 +7134,12 @@
 (defclass class_objexpv
   :super class_objvalue
   :fields (obx_cont
+))
+
+;; expanded value with location 
+(defclass class_objlocatedexpv
+  :super class_objexpv
+  :fields (obcx_loc			;optional location
 ))
 
 ;;;; instructions
@@ -9066,6 +9112,24 @@
 )
 (install_method class_objexpv output_c_code outpucod_objexpv)
 
+;;; output a located expression
+(defun outpucod_objlocatedexpv (oexp declbuf implbuf :long depth)
+  (assert_msg "check oexp" (is_a oexp class_objlocatedexpv))
+  (let ( (cont (unsafe_get_field :obx_cont oexp)) 
+	 (oloc (unsafe_get_field :obcx_loc oexp))
+	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
+	 )
+    (assert_msg "check cont" (is_multiple cont))
+    (if (is_mixint oloc)
+	(output_raw_location oloc implbuf depth "expr")
+	)
+    (multiple_every
+     cont
+     (lambda (comp :long ix)
+       (output_c_code comp declbuf implbuf (get_int boxdepthp1)))))
+)
+(install_method class_objlocatedexpv output_c_code outpucod_objlocatedexpv)
+
 ;;; output a verbatim string
 (defun outpucod_verbatimstring (vstr declbuf implbuf :long depth)
   (assert_msg "check vstr" (== (discrim vstr) discr_verbatimstring))
@@ -9571,10 +9635,16 @@
 		       (compile_obj comp gcx)))
 		   ))
 	    (primty (unsafe_get_field :prim_type nprim))
-	    (oexp (make_instance class_objexpv
+	    (oexp (if (is_mixint loc)
+		      (make_instance class_objlocatedexpv
 				 :obv_type primty
 				 :obx_cont otup
-				 ))      
+				 :obcx_loc loc
+				 )
+		    (make_instance class_objexpv
+				 :obv_type primty
+				 :obx_cont otup)
+		    ))      
 	    )
       (assert_msg "check primty" (is_a primty class_ctype))
       (debugmsg oexp "compiobj nrepchunk oexp" (the_callcount))
@@ -11536,10 +11606,15 @@
   (debugmsg arg "start compileseq_command" (the_callcount))
   (debugmsg discr_string "compileseq_command discr_string" (the_callcount))
   (debugmsg discr_verbatimstring "compileseq_command discr_verbatimstring" (the_callcount))
+  (debugmsg initial_environment "before read compileseq_command initial_environment" (the_callcount))
+  (debugmsg 'defun "before read compileseq_command defun symbol" (the_callcount))
+  (debugmsg 'if "before read compileseq_command if symbol" (the_callcount))
+  (debugmsg tokenizer "before read compileseq_command tokenizer" (the_callcount))
   (let ( (rlist (read_file arg)) 
 	 (basnam (if (is_string secarg) secarg (make_string_nakedbasename discr_string arg)))
 	 ) 
     (debugmsg rlist "after read compileseq_command rlist" (the_callcount))
+    (debugmsg tokenizer "after read compileseq_command tokenizer" (the_callcount))
     (debugmsg initial_environment "after read compileseq_command initial_environment" (the_callcount))
     (debugmsg class_nrep_datakeyword "compileseq_command class_nrep_datakeyword" (the_callcount))
     (debugmsg class_nrep "compileseq_command class_nrep" (the_callcount))

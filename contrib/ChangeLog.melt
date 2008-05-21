@@ -1,4 +1,9 @@
 
+2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* cold-basilys.lisp: [handling of OR might be wrong but is not corrected]
+	typo in output_ccode obj_closetq.
+	more verbose assert in output_ccode obj_call.
+
 2008-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: using bp_aptr in multivalued returns.
 

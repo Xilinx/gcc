@@ -1,3 +1,8 @@
+2008-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	[handling of OR might be incorrect in cold and improved in warm]
+	* melt/warm-basilys.bysl: (normexp_or) rewritten.
+	[many occurrences of OR replaced by IF because contrib/cold-basilys.lisp might be wrong]
+
 2008-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	[added pregetting & interning of symbols & keywords - still buggy warmbasilys2]
 
